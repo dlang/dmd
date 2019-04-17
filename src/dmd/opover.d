@@ -363,24 +363,6 @@ private Identifier opId_r(Expression e)
     return v.id;
 }
 
-/************************************
- * If type is a class or struct, return the symbol for it,
- * else NULL
- */
-AggregateDeclaration isAggregate(Type t)
-{
-    t = t.toBasetype();
-    if (t.ty == Tclass)
-    {
-        return (cast(TypeClass)t).sym;
-    }
-    else if (t.ty == Tstruct)
-    {
-        return (cast(TypeStruct)t).sym;
-    }
-    return null;
-}
-
 /*******************************************
  * Helper function to turn operator into template argument list
  */
@@ -1080,16 +1062,56 @@ Expression op_overload(Expression e, Scope* sc)
                 }
             }
 
+            Expression tempResult;
             if (!(e.op == TOK.assign && ad2 && ad1 == ad2)) // https://issues.dlang.org/show_bug.cgi?id=2943
             {
                 result = checkAliasThisForLhs(ad1, sc, e);
                 if (result)
-                    return;
+                {
+                    /* https://issues.dlang.org/show_bug.cgi?id=19441
+                     *
+                     * alias this may not be used for partial assignment.
+                     * If a struct has a single member which is aliased this
+                     * directly or aliased to a ref getter function that returns
+                     * the mentioned member, then alias this may be
+                     * used since the object will be fully initialised.
+                     * If the struct is nested, the context pointer is considered
+                     * one of the members, hence the `ad1.fields.dim == 2 && ad1.vthis`
+                     * condition.
+                     */
+                    if (e.op != TOK.assign || e.e1.op == TOK.type)
+                        return;
+
+                    if (ad1.fields.dim == 1 || (ad1.fields.dim == 2 && ad1.vthis))
+                    {
+                        auto var = ad1.aliasthis.isVarDeclaration();
+                        if (var && var.type == ad1.fields[0].type)
+                            return;
+
+                        auto func = ad1.aliasthis.isFuncDeclaration();
+                        auto tf = cast(TypeFunction)(func.type);
+                        if (tf.isref && ad1.fields[0].type == tf.next)
+                            return;
+                    }
+                    tempResult = result;
+                }
             }
             if (!(e.op == TOK.assign && ad1 && ad1 == ad2)) // https://issues.dlang.org/show_bug.cgi?id=2943
             {
                 result = checkAliasThisForRhs(ad2, sc, e);
-                return;
+                if (result)
+                    return;
+            }
+
+            // @@@DEPRECATED_2019-02@@@
+            // 1. Deprecation for 1 year
+            // 2. Turn to error after
+            if (tempResult)
+            {
+                // move this line where tempResult is assigned to result and turn to error when derecation period is over
+                e.deprecation("Cannot use `alias this` to partially initialize variable `%s` of type `%s`. Use `%s`", e.e1.toChars(), ad1.toChars(), (cast(BinExp)tempResult).e1.toChars());
+                // delete this line when deprecation period is over
+                result = tempResult;
             }
         }
 
@@ -1269,7 +1291,11 @@ Expression op_overload(Expression e, Scope* sc)
                 if (!e.att2) e.att2 = t2;
                 e.e1 = new DotIdExp(e.loc, e.e1, Id._tupleof);
                 e.e2 = new DotIdExp(e.loc, e.e2, Id._tupleof);
-                result = e.expressionSemantic(sc);
+
+                auto sc2 = sc.push();
+                sc2.flags = (sc2.flags & ~SCOPE.onlysafeaccess) | SCOPE.noaccesscheck;
+                result = e.expressionSemantic(sc2);
+                sc2.pop();
 
                 /* https://issues.dlang.org/show_bug.cgi?id=15292
                  * if the rewrite result is same with the original,
@@ -1646,6 +1672,13 @@ private Expression compare_overload(BinExp e, Scope* sc, Identifier id)
         }
         return result;
     }
+    /*
+     * https://issues.dlang.org/show_bug.cgi?id=16657
+     * at this point, no matching opEquals was found for structs,
+     * so we should not follow the alias this comparison code.
+     */
+    if ((e.op == TOK.equal || e.op == TOK.notEqual) && ad1 == ad2)
+        return null;
     Expression result = checkAliasThisForLhs(ad1, sc, e);
     return result ? result : checkAliasThisForRhs(isAggregate(e.e2.type), sc, e);
 }

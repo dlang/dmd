@@ -294,7 +294,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             funcdecl.localsymtab = new DsymbolTable();
 
             // Establish function scope
-            auto ss = new ScopeDsymbol();
+            auto ss = new ScopeDsymbol(funcdecl.loc, null);
             // find enclosing scope symbol, might skip symbol-less CTFE and/or FuncExp scopes
             for (auto scx = sc; ; scx = scx.enclosing)
             {
@@ -304,7 +304,6 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     break;
                 }
             }
-            ss.loc = funcdecl.loc;
             ss.endlinnum = funcdecl.endloc.linnum;
             Scope* sc2 = sc.push(ss);
             sc2.func = funcdecl;
@@ -315,7 +314,9 @@ private extern(C++) final class Semantic3Visitor : Visitor
             sc2.sw = null;
             sc2.fes = funcdecl.fes;
             sc2.linkage = LINK.d;
-            sc2.stc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.abstract_ | STC.deprecated_ | STC.override_ | STC.TYPECTOR | STC.final_ | STC.tls | STC.gshared | STC.ref_ | STC.return_ | STC.property | STC.nothrow_ | STC.pure_ | STC.safe | STC.trusted | STC.system);
+            sc2.stc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.abstract_ | STC.deprecated_ | STC.override_ |
+                         STC.TYPECTOR | STC.final_ | STC.tls | STC.gshared | STC.ref_ | STC.return_ | STC.property |
+                         STC.nothrow_ | STC.pure_ | STC.safe | STC.trusted | STC.system);
             sc2.protection = Prot(Prot.Kind.public_);
             sc2.explicitProtection = 0;
             sc2.aligndecl = null;
@@ -537,18 +538,16 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 }
 
                 // scope of out contract (need for vresult.semantic)
-                auto sym = new ScopeDsymbol();
+                auto sym = new ScopeDsymbol(funcdecl.loc, null);
                 sym.parent = sc2.scopesym;
-                sym.loc = funcdecl.loc;
                 sym.endlinnum = fensure_endlin;
                 scout = sc2.push(sym);
             }
 
             if (funcdecl.fbody)
             {
-                auto sym = new ScopeDsymbol();
+                auto sym = new ScopeDsymbol(funcdecl.loc, null);
                 sym.parent = sc2.scopesym;
-                sym.loc = funcdecl.loc;
                 sym.endlinnum = funcdecl.endloc.linnum;
                 sc2 = sc2.push(sym);
 
@@ -760,7 +759,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     // For foreach(){} body, append a return 0;
                     if (blockexit & BE.fallthru)
                     {
-                        Expression e = new IntegerExp(0);
+                        Expression e = IntegerExp.literal!0;
                         Statement s = new ReturnStatement(Loc.initial, e);
                         funcdecl.fbody = new CompoundStatement(Loc.initial, funcdecl.fbody, s);
                         funcdecl.hasReturnExp |= (funcdecl.hasReturnExp & 1 ? 16 : 1);
@@ -782,7 +781,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             /* Add an assert(0, msg); where the missing return
                              * should be.
                              */
-                            e = new AssertExp(funcdecl.endloc, new IntegerExp(0), new StringExp(funcdecl.loc, cast(char*)"missing return expression"));
+                            e = new AssertExp(funcdecl.endloc, IntegerExp.literal!0, new StringExp(funcdecl.loc, cast(char*)"missing return expression"));
                         }
                         else
                             e = new HaltExp(funcdecl.endloc);
@@ -824,7 +823,11 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             else if (exp.type.wildOf().implicitConvTo(tret))
                                 exp = exp.castTo(sc2, exp.type.wildOf());
                         }
-                        exp = exp.implicitCastTo(sc2, tret);
+
+                        const hasCopyCtor = exp.type.ty == Tstruct && (cast(TypeStruct)exp.type).sym.hasCopyCtor;
+                        // if a copy constructor is present, the return type conversion will be handled by it
+                        if (!hasCopyCtor)
+                            exp = exp.implicitCastTo(sc2, tret);
 
                         if (f.isref)
                         {
@@ -840,7 +843,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                              * If NRVO is not possible, all returned lvalues should call their postblits.
                              */
                             if (!funcdecl.nrvo_can)
-                                exp = doCopyOrMove(sc2, exp);
+                                exp = doCopyOrMove(sc2, exp, f.next);
 
                             if (tret.hasPointers())
                                 checkReturnEscape(sc2, exp, false);
@@ -888,9 +891,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
             {
                 /* frequire is composed of the [in] contracts
                  */
-                auto sym = new ScopeDsymbol();
+                auto sym = new ScopeDsymbol(funcdecl.loc, null);
                 sym.parent = sc2.scopesym;
-                sym.loc = funcdecl.loc;
                 sym.endlinnum = funcdecl.endloc.linnum;
                 sc2 = sc2.push(sym);
                 sc2.flags = (sc2.flags & ~SCOPE.contract) | SCOPE.require;
@@ -1027,7 +1029,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 if (addReturn0())
                 {
                     // Add a return 0; statement
-                    Statement s = new ReturnStatement(Loc.initial, new IntegerExp(0));
+                    Statement s = new ReturnStatement(Loc.initial, IntegerExp.literal!0);
                     a.push(s);
                 }
 
@@ -1382,7 +1384,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
         // don't do it for unused deprecated types
         // or error ypes
-        if (!ad.getRTInfo && Type.rtinfo && (!ad.isDeprecated() || global.params.useDeprecated != Diagnostic.error) && (ad.type && ad.type.ty != Terror))
+        if (!ad.getRTInfo && Type.rtinfo && (!ad.isDeprecated() || global.params.useDeprecated != DiagnosticReporting.error) && (ad.type && ad.type.ty != Terror))
         {
             // Evaluate: RTinfo!type
             auto tiargs = new Objects();

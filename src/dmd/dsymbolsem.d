@@ -47,7 +47,6 @@ import dmd.identifier;
 import dmd.init;
 import dmd.initsem;
 import dmd.hdrgen;
-import dmd.lexer;
 import dmd.mtype;
 import dmd.nogc;
 import dmd.nspace;
@@ -335,6 +334,199 @@ private FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         _alias.addMember(sc, sd); // add to symbol table
     }
     return xpostblit;
+}
+
+/**
+ * Generates a copy constructor declaration with the specified storage
+ * class for the parameter and the function.
+ *
+ * Params:
+ *  sd = the `struct` that contains the copy constructor
+ *  paramStc = the storage class of the copy constructor parameter
+ *  funcStc = the storage class for the copy constructor declaration
+ *
+ * Returns:
+ *  The copy constructor declaration for struct `sd`.
+ */
+private CtorDeclaration generateCopyCtorDeclaration(StructDeclaration sd, const StorageClass paramStc, const StorageClass funcStc)
+{
+    auto fparams = new Parameters();
+    auto structType = sd.type;
+    fparams.push(new Parameter(paramStc | STC.ref_ | STC.return_ | STC.scope_, structType, Id.p, null, null));
+    ParameterList pList = ParameterList(fparams);
+    auto tf = new TypeFunction(pList, structType, LINK.d, STC.ref_);
+    auto ccd = new CtorDeclaration(sd.loc, Loc.initial, STC.ref_, tf, true);
+    ccd.storage_class |= funcStc;
+    ccd.storage_class |= STC.inference;
+    ccd.generated = true;
+    return ccd;
+}
+
+/**
+ * Generates a trivial copy constructor body that simply does memberwise
+ * initialization:
+ *
+ *    this.field1 = rhs.field1;
+ *    this.field2 = rhs.field2;
+ *    ...
+ *
+ * Params:
+ *  sd = the `struct` declaration that contains the copy constructor
+ *
+ * Returns:
+ *  A `CompoundStatement` containing the body of the copy constructor.
+ */
+private Statement generateCopyCtorBody(StructDeclaration sd)
+{
+    Loc loc;
+    Expression e;
+    foreach (v; sd.fields)
+    {
+        auto ec = new AssignExp(loc,
+            new DotVarExp(loc, new ThisExp(loc), v),
+            new DotVarExp(loc, new IdentifierExp(loc, Id.p), v));
+        e = Expression.combine(e, ec);
+        //printf("e.toChars = %s\n", e.toChars());
+    }
+    Statement s1 = new ExpStatement(loc, e);
+    return new CompoundStatement(loc, s1);
+}
+
+/**
+ * Generates a copy constructor for a specified `struct` sd if
+ * the following conditions are met:
+ *
+ * 1. sd does not define a copy constructor
+ * 2. at least one field of sd defines a copy constructor
+ *
+ * If the above conditions are met, the following copy constructor
+ * is generated:
+ *
+ * this(ref return scope inout(S) rhs) inout
+ * {
+ *    this.field1 = rhs.field1;
+ *    this.field2 = rhs.field2;
+ *    ...
+ * }
+ *
+ * Params:
+ *  sd = the `struct` for which the copy constructor is generated
+ *  sc = the scope where the copy constructor is generated
+ *
+ * Returns:
+ *  `true` if `struct` sd defines a copy constructor (explicitly or generated),
+ *  `false` otherwise.
+ */
+private bool buildCopyCtor(StructDeclaration sd, Scope* sc)
+{
+    if (global.errors)
+        return false;
+
+    if (sd.postblit)
+        return false;
+
+    auto ctor = sd.search(sd.loc, Id.ctor);
+    CtorDeclaration cpCtor;
+    CtorDeclaration rvalueCtor;
+    if (ctor)
+    {
+        if (ctor.isOverloadSet())
+            return false;
+        if (auto td = ctor.isTemplateDeclaration())
+            ctor = td.funcroot;
+    }
+
+    if (!ctor)
+        goto LcheckFields;
+
+    overloadApply(ctor, (Dsymbol s)
+    {
+        if (s.isTemplateDeclaration())
+            return 0;
+        auto ctorDecl = s.isCtorDeclaration();
+        assert(ctorDecl);
+        if (ctorDecl.isCpCtor)
+        {
+            cpCtor = ctorDecl;
+            return 1;
+        }
+
+        auto tf = ctorDecl.type.toTypeFunction();
+        auto dim = Parameter.dim(tf.parameterList);
+        if (dim == 1)
+        {
+            auto param = Parameter.getNth(tf.parameterList, 0);
+            if (param.type.mutableOf().unSharedOf() == sd.type.mutableOf().unSharedOf())
+            {
+                rvalueCtor = ctorDecl;
+            }
+        }
+        return 0;
+    });
+
+    if (cpCtor && rvalueCtor)
+    {
+        .error(sd.loc, "`struct %s` may not define both a rvalue constructor and a copy constructor", sd.toChars());
+        errorSupplemental(rvalueCtor.loc,"rvalue constructor defined here");
+        errorSupplemental(cpCtor.loc, "copy constructor defined here");
+        return true;
+    }
+    else if (cpCtor)
+        return true;
+
+LcheckFields:
+    VarDeclaration fieldWithCpCtor;
+    // see if any struct members define a copy constructor
+    foreach (v; sd.fields)
+    {
+        if (v.storage_class & STC.ref_)
+            continue;
+        if (v.overlapped)
+            continue;
+
+        auto ts = v.type.baseElemOf().isTypeStruct();
+        if (!ts)
+            continue;
+        if (ts.sym.hasCopyCtor)
+        {
+            fieldWithCpCtor = v;
+            break;
+        }
+    }
+
+    if (fieldWithCpCtor && rvalueCtor)
+    {
+        .error(sd.loc, "`struct %s` may not define a rvalue constructor and have fields with copy constructors", sd.toChars());
+        errorSupplemental(rvalueCtor.loc,"rvalue constructor defined here");
+        errorSupplemental(fieldWithCpCtor.loc, "field with copy constructor defined here");
+        return false;
+    }
+    else if (!fieldWithCpCtor)
+        return false;
+
+    //printf("generating copy constructor for %s\n", sd.toChars());
+    const MOD paramMod = MODFlags.wild;
+    const MOD funcMod = MODFlags.wild;
+    auto ccd = generateCopyCtorDeclaration(sd, ModToStc(paramMod), ModToStc(funcMod));
+    auto copyCtorBody = generateCopyCtorBody(sd);
+    ccd.fbody = copyCtorBody;
+    sd.members.push(ccd);
+    ccd.addMember(sc, sd);
+    const errors = global.startGagging();
+    Scope* sc2 = sc.push();
+    sc2.stc = 0;
+    sc2.linkage = LINK.d;
+    ccd.dsymbolSemantic(sc2);
+    ccd.semantic2(sc2);
+    ccd.semantic3(sc2);
+    //printf("ccd semantic: %s\n", ccd.type.toChars());
+    sc2.pop();
+    if (global.endGagging(errors))
+    {
+        ccd.storage_class |= STC.disable;
+        ccd.fbody = null;
+    }
+    return true;
 }
 
 private uint setMangleOverride(Dsymbol s, const(char)[] sym)
@@ -1440,25 +1632,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 AliasDeclaration ad = imp.aliasdecls[i];
                 //printf("\tImport %s alias %s = %s, scope = %p\n", toPrettyChars(), aliases[i].toChars(), names[i].toChars(), ad._scope);
-                Dsymbol sym = imp.mod.search(imp.loc, imp.names[i] /*, IgnorePrivateImports */);
+                Dsymbol sym = imp.mod.search(imp.loc, imp.names[i], IgnorePrivateImports);
                 if (sym)
                 {
-                    // Deprecated in 2018-01.
-                    // Change to error in 2019-01 by deleteting the following 5 lines and uncommenting
-                    // the IgnorePrivateImports parameter from above.
-                    // @@@DEPRECATED_2019-01@@@.
-                    Dsymbol s = imp.mod.search(imp.loc, imp.names[i], IgnorePrivateImports);
-                    if (!s)
-                        .deprecation(imp.loc,
-                            "Symbol `%s` is not visible from module `%s` because it is privately imported in module `%s`",
-                            sym.toPrettyChars, sc._module.toChars(), imp.mod.toChars());
-
-                    // Deprecated in 2018-01.
-                    // Change to error in 2019-01.
-                    // @@@DEPRECATED_2019-01@@@.
                     import dmd.access : symbolIsVisible;
                     if (!symbolIsVisible(sc, sym))
-                        imp.mod.deprecation(imp.loc, "member `%s` is not visible from module `%s`",
+                        imp.mod.error(imp.loc, "member `%s` is not visible from module `%s`",
                             imp.names[i].toChars(), sc._module.toChars());
                     ad.dsymbolSemantic(sc);
                     // If the import declaration is in non-root module,
@@ -3111,6 +3290,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             TypeFunction tfx = funcdecl.type.toTypeFunction();
             tfo.mod = tfx.mod;
             tfo.isscope = tfx.isscope;
+            tfo.isreturninferred = tfx.isreturninferred;
             tfo.isscopeinferred = tfx.isscopeinferred;
             tfo.isref = tfx.isref;
             tfo.isnothrow = tfx.isnothrow;
@@ -3139,7 +3319,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             /* Non-static nested functions have a hidden 'this' pointer to which
              * the 'return' applies
              */
-            funcdecl.error("`static` member has no `this` to which `return` can apply");
+            if (sc.scopesym && sc.scopesym.isAggregateDeclaration())
+                funcdecl.error("`static` member has no `this` to which `return` can apply");
+            else
+                error(funcdecl.loc, "Top-level function `%s` has no `this` to which `return` can apply", funcdecl.toChars());
         }
 
         if (funcdecl.isAbstract() && !funcdecl.isVirtual())
@@ -3154,7 +3337,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             funcdecl.error("`%s` functions cannot be `abstract`", sfunc);
         }
 
-        if (funcdecl.isOverride() && !funcdecl.isVirtual())
+        if (funcdecl.isOverride() && !funcdecl.isVirtual() && !funcdecl.isFuncLiteralDeclaration())
         {
             Prot.Kind kind = funcdecl.prot().kind;
             if ((kind == Prot.Kind.private_ || kind == Prot.Kind.package_) && funcdecl.isMember())
@@ -3463,6 +3646,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
              * functions, set the tintro.
              */
         Linterfaces:
+            bool foundVtblMatch = false;
+
             foreach (b; cd.interfaces)
             {
                 vi = funcdecl.findVtblIndex(&b.sym.vtbl, cast(int)b.sym.vtbl.dim);
@@ -3480,6 +3665,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     {
                         auto fdv = cast(FuncDeclaration)b.sym.vtbl[vi];
                         Type ti = null;
+
+                        foundVtblMatch = true;
 
                         /* Remember which functions this overrides
                          */
@@ -3513,11 +3700,17 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                                     funcdecl.error("incompatible covariant types `%s` and `%s`", funcdecl.tintro.toChars(), ti.toChars());
                                 }
                             }
-                            funcdecl.tintro = ti;
+                            else
+                            {
+                                funcdecl.tintro = ti;
+                            }
                         }
-                        goto L2;
                     }
                 }
+            }
+            if (foundVtblMatch)
+            {
+                goto L2;
             }
 
             if (!doesoverride && funcdecl.isOverride() && (funcdecl.type.nextOf() || !may_override))
@@ -3777,6 +3970,16 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         ctd.deprecation("all parameters have default arguments, "~
                                     "but structs cannot have default constructors.");
                 }
+                else if ((dim == 1 || (dim > 1 && tf.parameterList[1].defaultArg)))
+                {
+                    //printf("tf: %s\n", tf.toChars());
+                    auto param = Parameter.getNth(tf.parameterList, 0);
+                    if (param.storageClass & STC.ref_ && param.type.mutableOf().unSharedOf() == sd.type.mutableOf().unSharedOf())
+                    {
+                        //printf("copy constructor\n");
+                        ctd.isCpCtor = true;
+                    }
+                }
             }
             else if (dim == 0 && tf.parameterList.varargs == VarArg.none)
             {
@@ -3925,8 +4128,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             sa.push(s);
 
             Expression e = new IdentifierExp(Loc.initial, v.ident);
-            e = new AddAssignExp(Loc.initial, e, new IntegerExp(1));
-            e = new EqualExp(TOK.notEqual, Loc.initial, e, new IntegerExp(1));
+            e = new AddAssignExp(Loc.initial, e, IntegerExp.literal!1);
+            e = new EqualExp(TOK.notEqual, Loc.initial, e, IntegerExp.literal!1);
             s = new IfStatement(Loc.initial, null, e, new ReturnStatement(Loc.initial, null), null, Loc.initial);
 
             sa.push(s);
@@ -3993,8 +4196,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             sa.push(s);
 
             Expression e = new IdentifierExp(Loc.initial, v.ident);
-            e = new AddAssignExp(Loc.initial, e, new IntegerExp(-1));
-            e = new EqualExp(TOK.notEqual, Loc.initial, e, new IntegerExp(0));
+            e = new AddAssignExp(Loc.initial, e, IntegerExp.literal!(-1));
+            e = new EqualExp(TOK.notEqual, Loc.initial, e, IntegerExp.literal!0);
             s = new IfStatement(Loc.initial, null, e, new ReturnStatement(Loc.initial, null), null, Loc.initial);
 
             sa.push(s);
@@ -4209,6 +4412,42 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         funcDeclarationSemantic(deld);
     }
 
+    /* https://issues.dlang.org/show_bug.cgi?id=19731
+     *
+     * Some aggregate member functions might have had
+     * semantic 3 ran on them despite being in semantic1
+     * (e.g. auto functions); if that is the case, then
+     * invariants will not be taken into account for them
+     * because at the time of the analysis it would appear
+     * as if the struct declaration does not have any
+     * invariants. To solve this issue, we need to redo
+     * semantic3 on the function declaration.
+     */
+    private void reinforceInvariant(AggregateDeclaration ad, Scope* sc)
+    {
+        // for each member
+        for(int i = 0; i < ad.members.dim; i++)
+        {
+            if (!(*ad.members)[i])
+                continue;
+            auto fd = (*ad.members)[i].isFuncDeclaration();
+            if (!fd || fd.generated || fd.semanticRun != PASS.semantic3done)
+                continue;
+
+            /* if it's a user defined function declaration and semantic3
+             * was already performed on it, create a syntax copy and
+             * redo the first semantic step.
+             */
+            auto err = global.startGagging();
+            auto fd_temp = fd.syntaxCopy(null);
+            if (auto cd = ad.isClassDeclaration())
+                cd.vtbl.remove(fd.vtblIndex);
+            fd_temp.dsymbolSemantic(sc);
+            global.endGagging(err);
+            (*ad.members)[i] = fd_temp;
+        }
+    }
+
     override void visit(StructDeclaration sd)
     {
         //printf("StructDeclaration::semantic(this=%p, '%s', sizeok = %d)\n", sd, sd.toPrettyChars(), sd.sizeok);
@@ -4344,6 +4583,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         sd.dtor = buildDtor(sd, sc2);
         sd.tidtor = buildExternDDtor(sd, sc2);
         sd.postblit = buildPostBlit(sd, sc2);
+        sd.hasCopyCtor = buildCopyCtor(sd, sc2);
 
         buildOpAssign(sd, sc2);
         buildOpEquals(sd, sc2);
@@ -4356,6 +4596,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
 
         sd.inv = buildInv(sd, sc2);
+        if (sd.inv)
+            reinforceInvariant(sd, sc2);
 
         Module.dprogress++;
         sd.semanticRun = PASS.semanticdone;
@@ -4979,6 +5221,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
 
         cldec.inv = buildInv(cldec, sc2);
+        if (cldec.inv)
+            reinforceInvariant(cldec, sc2);
 
         Module.dprogress++;
         cldec.semanticRun = PASS.semanticdone;

@@ -14,6 +14,7 @@ module dmd.cond;
 
 import core.stdc.string;
 import dmd.arraytypes;
+import dmd.ast_node;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
@@ -44,7 +45,7 @@ enum Include
     no,                 /// do not include the conditional code
 }
 
-extern (C++) abstract class Condition : RootObject
+extern (C++) abstract class Condition : ASTNode
 {
     Loc loc;
 
@@ -64,12 +65,17 @@ extern (C++) abstract class Condition : RootObject
 
     abstract int include(Scope* sc);
 
-    DebugCondition isDebugCondition()
+    inout(DebugCondition) isDebugCondition() inout
     {
         return null;
     }
 
-    void accept(Visitor v)
+    inout(VersionCondition) isVersionCondition() inout
+    {
+        return null;
+    }
+
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -530,7 +536,7 @@ extern (C++) final class DebugCondition : DVCondition
         return (inc == Include.yes);
     }
 
-    override DebugCondition isDebugCondition()
+    override inout(DebugCondition) isDebugCondition() inout
     {
         return this;
     }
@@ -803,6 +809,11 @@ extern (C++) final class VersionCondition : DVCondition
             }
         }
         return (inc == Include.yes);
+    }
+
+    override inout(VersionCondition) isVersionCondition() inout
+    {
+        return this;
     }
 
     override void accept(Visitor v)

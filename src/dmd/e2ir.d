@@ -89,18 +89,55 @@ void* mem_malloc2(uint);
  */
 bool ISREF(Declaration var)
 {
-    return (config.exe == EX_WIN64 && var.isParameter() &&
-            (var.type.size(Loc.initial) > REGSIZE || var.storage_class & STC.lazy_))
-            || var.isOut() || var.isRef();
+    if (var.isOut() || var.isRef())
+    {
+        return true;
+    }
+
+    return ISX64REF(var);
 }
 
-/* If variable var of type typ is a reference due to Win64 calling conventions
+/* If variable var of type typ is a reference due to x64 calling conventions
  */
-bool ISWIN64REF(Declaration var)
+bool ISX64REF(Declaration var)
 {
-    return (config.exe == EX_WIN64 && var.isParameter() &&
-            (var.type.size(Loc.initial) > REGSIZE || var.storage_class & STC.lazy_))
-            && !(var.isOut() || var.isRef());
+    if (var.isOut() || var.isRef())
+    {
+        return false;
+    }
+
+    if (var.isParameter())
+    {
+        if (config.exe == EX_WIN64)
+        {
+            return var.type.size(Loc.initial) > REGSIZE
+                || (var.storage_class & STC.lazy_)
+                || (var.type.isTypeStruct() && !var.type.isTypeStruct().sym.isPOD());
+        }
+        else if (!global.params.isWindows)
+        {
+            return !(var.storage_class & STC.lazy_) && var.type.isTypeStruct() && !var.type.isTypeStruct().sym.isPOD();
+        }
+    }
+
+    return false;
+}
+
+/* If variable exp of type typ is a reference due to x64 calling conventions
+ */
+bool ISX64REF(IRState* irs, Expression exp)
+{
+    if (config.exe == EX_WIN64)
+    {
+        return exp.type.size(Loc.initial) > REGSIZE
+            || (exp.type.isTypeStruct() && !exp.type.isTypeStruct().sym.isPOD());
+    }
+    else if (!irs.params.isWindows)
+    {
+        return exp.type.isTypeStruct() && !exp.type.isTypeStruct().sym.isPOD();
+    }
+
+    return false;
 }
 
 /******************************************
@@ -218,7 +255,7 @@ private elem *callfunc(const ref Loc loc,
                 continue;
             }
 
-            if (config.exe == EX_WIN64 && arg.type.size(arg.loc) > REGSIZE && op == NotIntrinsic)
+            if (ISX64REF(irs, arg) && op == NotIntrinsic)
             {
                 /* Copy to a temporary, and make the argument a pointer
                  * to that temporary.
@@ -1164,7 +1201,7 @@ elem *toElem(Expression e, IRState *irs)
                     e = el_bin(OPadd, TYnptr, ethis, el_long(TYnptr, soffset));
                     if (se.op == TOK.variable)
                         e = el_una(OPind, TYnptr, e);
-                    if (ISREF(se.var) && !(ISWIN64REF(se.var) && v && v.offset && !forceStackAccess))
+                    if (ISREF(se.var) && !(ISX64REF(se.var) && v && v.offset && !forceStackAccess))
                         e = el_una(OPind, s.Stype.Tty, e);
                     else if (se.op == TOK.symbolOffset && nrvo)
                     {
@@ -1189,7 +1226,7 @@ elem *toElem(Expression e, IRState *irs)
                         e.ET = Type_toCtype(se.type);
                     elem_setLoc(e, se.loc);
                 }
-                if (ISREF(se.var) && !ISWIN64REF(se.var))
+                if (ISREF(se.var) && !ISX64REF(se.var))
                 {
                     e.Ety = TYnptr;
                     e = el_una(OPind, s.Stype.Tty, e);
@@ -1296,7 +1333,13 @@ elem *toElem(Expression e, IRState *irs)
             elem *e = el_ptr(s);
             if (fld.isNested())
             {
-                elem *ethis = getEthis(fe.loc, irs, fld);
+                elem *ethis;
+                // Delegate literals report isNested() even if they are in global scope,
+                // so we need to check that the parent is a function.
+                if (!fld.toParent2().isFuncDeclaration())
+                    ethis = el_long(TYnptr, 0);
+                else
+                    ethis = getEthis(fe.loc, irs, fld);
                 e = el_pair(TYdelegate, ethis, e);
             }
             elem_setLoc(e, fe.loc);
@@ -1610,7 +1653,8 @@ elem *toElem(Expression e, IRState *irs)
                 else
                 {
                     Symbol *csym = toSymbol(cd);
-                    ex = el_bin(OPcall,TYnptr,el_var(getRtlsym(RTLSYM_NEWCLASS)),el_ptr(csym));
+                    const rtl = global.params.ehnogc && ne.thrownew ? RTLSYM_NEWTHROW : RTLSYM_NEWCLASS;
+                    ex = el_bin(OPcall,TYnptr,el_var(getRtlsym(rtl)),el_ptr(csym));
                     toTraceGC(irs, ex, ne.loc);
                     ectype = null;
 
@@ -3454,13 +3498,17 @@ elem *toElem(Expression e, IRState *irs)
             elem *ec = toElem(ce.econd, irs);
 
             elem *eleft = toElem(ce.e1, irs);
-            tym_t ty = eleft.Ety;
             if (irs.params.cov && ce.e1.loc.linnum)
                 eleft = el_combine(incUsageElem(irs, ce.e1.loc), eleft);
 
             elem *eright = toElem(ce.e2, irs);
             if (irs.params.cov && ce.e2.loc.linnum)
                 eright = el_combine(incUsageElem(irs, ce.e2.loc), eright);
+
+            tym_t ty = eleft.Ety;
+            if (ce.e1.type.toBasetype().ty == Tvoid ||
+                ce.e2.type.toBasetype().ty == Tvoid)
+                ty = TYvoid;
 
             elem *e = el_bin(OPcond, ty, ec, el_bin(OPcolon, ty, eleft, eright));
             if (tybasic(ty) == TYstruct)
@@ -4069,8 +4117,10 @@ elem *toElem(Expression e, IRState *irs)
 
             TY fty;
             TY tty;
-            if (t.equals(tfrom))
-                goto Lret;
+            if (t.equals(tfrom) ||
+                t.equals(Type.tvoid)) // https://issues.dlang.org/show_bug.cgi?id=18573
+                                      // Remember to pop value left on FPU stack
+                return e;
 
             fty = tfrom.ty;
             tty = t.ty;
@@ -4137,11 +4187,8 @@ elem *toElem(Expression e, IRState *irs)
                         e = el_pair(totym(ce.type), elen2, eptr);
                     }
                     else
-                    {   // Runtime check needed in case arrays don't line up
-                        if (config.exe == EX_WIN64)
-                            e = addressElem(e, t, true);
-                        elem *ep = el_params(e, el_long(TYsize_t, fsize), el_long(TYsize_t, tsize), null);
-                        e = el_bin(OPcall, totym(ce.type), el_var(getRtlsym(RTLSYM_ARRAYCAST)), ep);
+                    {
+                        assert(false, "This case should have been rewritten to `__ArrayCast` in the semantic phase");
                     }
                 }
                 goto Lret;

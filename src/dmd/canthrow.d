@@ -70,10 +70,15 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
             if (ce.f && ce.f == func)
                 return;
             Type t = ce.e1.type.toBasetype();
-            if (t.ty == Tfunction && (cast(TypeFunction)t).isnothrow)
+            auto tf = t.isTypeFunction();
+            if (tf && tf.isnothrow)
                 return;
-            if (t.ty == Tdelegate && (cast(TypeFunction)(cast(TypeDelegate)t).next).isnothrow)
-                return;
+            else
+            {
+                auto td = t.isTypeDelegate();
+                if (td && td.nextOf().isTypeFunction().isnothrow)
+                    return;
+            }
 
             if (mustNotThrow)
             {
@@ -85,8 +90,8 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
                 else
                 {
                     auto e1 = ce.e1;
-                    if (e1.op == TOK.star)   // print 'fp' if e1 is (*fp)
-                        e1 = (cast(PtrExp)e1).e1;
+                    if (auto pe = e1.isPtrExp())   // print 'fp' if e1 is (*fp)
+                        e1 = pe.e1;
                     ce.error("`%s` is not `nothrow`", e1.toChars());
                 }
             }
@@ -100,8 +105,8 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
                 if (ne.allocator)
                 {
                     // https://issues.dlang.org/show_bug.cgi?id=14407
-                    Type t = ne.allocator.type.toBasetype();
-                    if (t.ty == Tfunction && !(cast(TypeFunction)t).isnothrow)
+                    auto tf = ne.allocator.type.toBasetype().isTypeFunction();
+                    if (tf && !tf.isnothrow)
                     {
                         if (mustNotThrow)
                         {
@@ -112,8 +117,8 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
                     }
                 }
                 // See if constructor call can throw
-                Type t = ne.member.type.toBasetype();
-                if (t.ty == Tfunction && !(cast(TypeFunction)t).isnothrow)
+                auto tf = ne.member.type.toBasetype().isTypeFunction();
+                if (tf && !tf.isnothrow)
                 {
                     if (mustNotThrow)
                     {
@@ -133,31 +138,25 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
             switch (tb.ty)
             {
             case Tclass:
-                ad = (cast(TypeClass)tb).sym;
+                ad = tb.isTypeClass().sym;
                 break;
 
             case Tpointer:
-                tb = (cast(TypePointer)tb).next.toBasetype();
-                if (tb.ty == Tstruct)
-                    ad = (cast(TypeStruct)tb).sym;
-                break;
-
             case Tarray:
-                Type tv = tb.nextOf().baseElemOf();
-                if (tv.ty == Tstruct)
-                    ad = (cast(TypeStruct)tv).sym;
+                auto ts = tb.nextOf().baseElemOf().isTypeStruct();
+                if (!ts)
+                    return;
+                ad = ts.sym;
                 break;
 
             default:
-                break;
-            }
-            if (!ad)
                 return;
+            }
 
             if (ad.dtor)
             {
-                Type t = ad.dtor.type.toBasetype();
-                if (t.ty == Tfunction && !(cast(TypeFunction)t).isnothrow)
+                auto tf = ad.dtor.type.toBasetype().isTypeFunction();
+                if (tf && !tf.isnothrow)
                 {
                     if (mustNotThrow)
                     {
@@ -167,10 +166,11 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
                     stop = true;
                 }
             }
+
             if (ad.aggDelete && tb.ty != Tarray)
             {
-                Type t = ad.aggDelete.type;
-                if (t.ty == Tfunction && !(cast(TypeFunction)t).isnothrow)
+                auto tf = ad.aggDelete.type.isTypeFunction();
+                if (tf && !tf.isnothrow)
                 {
                     if (mustNotThrow)
                     {
@@ -196,17 +196,20 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
                     return;
                 t = ae.type;
             }
-            else if (ae.e1.op == TOK.slice)
-                t = (cast(SliceExp)ae.e1).e1.type;
+            else if (auto se = ae.e1.isSliceExp())
+                t = se.e1.type;
             else
                 return;
-            Type tv = t.baseElemOf();
-            if (tv.ty != Tstruct)
+
+            auto ts = t.baseElemOf().isTypeStruct();
+            if (!ts)
                 return;
-            StructDeclaration sd = (cast(TypeStruct)tv).sym;
-            if (!sd.postblit || sd.postblit.type.ty != Tfunction)
+            StructDeclaration sd = ts.sym;
+            if (!sd.postblit)
                 return;
-            if ((cast(TypeFunction)sd.postblit.type).isnothrow)
+
+            auto tf = sd.postblit.type.isTypeFunction();
+            if (!tf || tf.isnothrow)
             {
             }
             else
@@ -281,9 +284,8 @@ private bool Dsymbol_canThrow(Dsymbol s, FuncDeclaration func, bool mustNotThrow
             if (o.dyncast() == DYNCAST.expression)
             {
                 Expression eo = cast(Expression)o;
-                if (eo.op == TOK.dSymbol)
+                if (auto se = eo.isDsymbolExp())
                 {
-                    DsymbolExp se = cast(DsymbolExp)eo;
                     if (Dsymbol_canThrow(se.s, func, mustNotThrow))
                         return true;
                 }

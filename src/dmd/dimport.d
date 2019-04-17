@@ -49,7 +49,28 @@ extern (C++) final class Import : Dsymbol
 
     extern (D) this(const ref Loc loc, Identifiers* packages, Identifier id, Identifier aliasId, int isstatic)
     {
-        super(null);
+        Identifier selectIdent()
+        {
+            // select Dsymbol identifier (bracketed)
+            if (aliasId)
+            {
+                // import [aliasId] = std.stdio;
+                return aliasId;
+            }
+            else if (packages && packages.dim)
+            {
+                // import [std].stdio;
+                return (*packages)[0];
+            }
+            else
+            {
+                // import [id];
+                return id;
+            }
+        }
+
+        super(loc, selectIdent());
+
         assert(id);
         version (none)
         {
@@ -64,28 +85,11 @@ extern (C++) final class Import : Dsymbol
             }
             printf("%s)\n", id.toChars());
         }
-        this.loc = loc;
         this.packages = packages;
         this.id = id;
         this.aliasId = aliasId;
         this.isstatic = isstatic;
         this.protection = Prot.Kind.private_; // default to private
-        // Set symbol name (bracketed)
-        if (aliasId)
-        {
-            // import [cstdio] = std.stdio;
-            this.ident = aliasId;
-        }
-        else if (packages && packages.dim)
-        {
-            // import [std].stdio;
-            this.ident = (*packages)[0];
-        }
-        else
-        {
-            // import [foo];
-            this.ident = id;
-        }
     }
 
     void addAlias(Identifier name, Identifier _alias)
@@ -103,7 +107,7 @@ extern (C++) final class Import : Dsymbol
         return isstatic ? "static import" : "import";
     }
 
-    override Prot prot()
+    override Prot prot() pure nothrow @nogc @safe
     {
         return protection;
     }

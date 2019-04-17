@@ -430,6 +430,11 @@ dmd -cov -unittest myprog.d
             source module to be compiled. This name can be overridden with
             the $(SWLINK -of) switch.`,
         ),
+        Option("lowmem",
+            "enable garbage collection for the compiler",
+            `Enable the garbage collector for the compiler, reducing the
+            compiler memory requirements but increasing compile times.`,
+        ),
         Option("m32",
             "generate 32 bit code",
             `$(UNIX Compile a 32 bit executable. This is the default for the 32 bit dmd.)

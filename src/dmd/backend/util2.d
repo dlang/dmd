@@ -23,7 +23,7 @@ import core.stdc.stdint : uint64_t;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.global;
-import dmd.backend.memh;
+import dmd.backend.mem;
 
 extern (C++):
 

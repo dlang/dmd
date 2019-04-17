@@ -158,6 +158,23 @@ extern(C++, `ns1`)
     int constFunction4(const(char*), const(char***));
 }
 
+extern(C++)
+{
+    struct SmallStruct
+    {
+        this(this)
+        {
+            i += 10;
+        }
+        int i = 0;
+    }
+    void smallStructTest(SmallStruct p);
+    void smallStructCallBack(SmallStruct p)
+    {
+        assert(p.i == 10);
+    }
+}
+
 void main()
 {
     foreach(bool val; values!bool())     check(val);
@@ -180,4 +197,8 @@ void main()
     assert(constFunction2(null, null) == 2);
     assert(constFunction3(null, null) == 3);
     assert(constFunction4(null, null) == 42);
+
+    SmallStruct ss;
+    smallStructTest(ss);
+    assert(ss.i == 0);
 }

@@ -12,6 +12,8 @@
 
 module dmd.backend.cgcod;
 
+version = FRAMEPTR;
+
 version (SCPP)
     version = COMPILE;
 version (MARS)
@@ -32,7 +34,7 @@ import dmd.backend.codebuilder;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
 import dmd.backend.melf;
-import dmd.backend.memh;
+import dmd.backend.mem;
 import dmd.backend.el;
 import dmd.backend.exh;
 import dmd.backend.global;
@@ -764,12 +766,14 @@ targ_size_t alignsection(targ_size_t base, uint alignment, int bias)
 void prolog(ref CodeBuilder cdb)
 {
     bool enter;
-    regm_t namedargs = 0;
 
     //printf("cod3.prolog() %s, needframe = %d, Auto.alignment = %d\n", funcsym_p.Sident, needframe, Auto.alignment);
     debug debugw && printf("funcstart()\n");
     regcon.immed.mval = 0;                      /* no values in registers yet   */
-    EBPtoESP = -REGSIZE;
+    version (FRAMEPTR)
+        EBPtoESP = 0;
+    else
+        EBPtoESP = -REGSIZE;
     hasframe = 0;
     bool pushds = false;
     BPoff = 0;
@@ -843,7 +847,16 @@ Lagain:
     if (tym == TYifunc)
         Para.size = 26; // how is this number derived?
     else
-        Para.size = (farfunc ? 3 : 2) * REGSIZE;
+    {
+        version (FRAMEPTR)
+        {
+            Para.size = ((farfunc ? 2 : 1) + needframe) * REGSIZE;
+            if (needframe)
+                EBPtoESP = -REGSIZE;
+        }
+        else
+            Para.size = ((farfunc ? 2 : 1) + 1) * REGSIZE;
+    }
 
     /* The real reason for the FAST section is because the implementation of contracts
      * requires a consistent stack frame location for the 'this' pointer. But if varying
@@ -891,8 +904,11 @@ Lagain:
      * defined and on other platforms, it is never set. Because of that
      * the value of neadframe should always be the same for the overridden
      * and the overriding function, and so bias should be the same too.
-    */
+     */
 
+version (FRAMEPTR)
+    int bias = enforcealign ? 0 : cast(int)(Para.size);
+else
     int bias = enforcealign ? 0 : cast(int)(Para.size + (needframe ? 0 : REGSIZE));
 
     if (Fast.alignment < REGSIZE)
@@ -969,7 +985,12 @@ Lagain:
 
         int sz = cast(int)(localsize + npush * REGSIZE);
         if (!enforcealign)
-            sz += Para.size + (needframe ? 0 : -REGSIZE);
+        {
+            version (FRAMEPTR)
+                sz += Para.size;
+            else
+                sz += Para.size + (needframe ? 0 : -REGSIZE);
+        }
         if (sz & (STACKALIGN - 1))
             localsize += STACKALIGN - (sz & (STACKALIGN - 1));
     }
@@ -1063,7 +1084,8 @@ Lagain:
     {
         assert(I32 || I64);
         prolog_frameadj2(cdbx, tyf, xlocalsize, &pushalloc);
-        BPoff += REGSIZE;
+        version (FRAMEPTR) { } else
+            BPoff += REGSIZE;
     }
     else
         assert((localsize | Alloca.size) == 0 || (usednteh & NTEHjmonitor));
@@ -1098,7 +1120,12 @@ Lagain:
             uint spalign = 0;
             int sz = cast(int)localsize;
             if (!enforcealign)
-                sz += Para.size + (needframe ? 0 : -REGSIZE);
+            {
+                version (FRAMEPTR)
+                    sz += Para.size;
+                else
+                    sz += Para.size + (needframe ? 0 : -REGSIZE);
+            }
             if (STACKALIGN >= 16 && (sz & (STACKALIGN - 1)))
                 spalign = STACKALIGN - (sz & (STACKALIGN - 1));
 
@@ -1144,7 +1171,8 @@ Lcont:
     {
         if (variadic(funcsym_p.Stype))
             prolog_gen_win64_varargs(cdb);
-        prolog_loadparams(cdb, tyf, pushalloc, &namedargs);
+        regm_t namedargs;
+        prolog_loadparams(cdb, tyf, pushalloc, namedargs);
         return;
     }
 
@@ -1159,10 +1187,11 @@ Lcont:
     // Load register parameters off of the stack. Do not use
     // assignaddr(), as it will replace the stack reference with
     // the register!
-    prolog_loadparams(cdb, tyf, pushalloc, &namedargs);
+    regm_t namedargs;
+    prolog_loadparams(cdb, tyf, pushalloc, namedargs);
 
     if (sv64)
-        prolog_genvarargs(cdb, sv64, &namedargs);
+        prolog_genvarargs(cdb, sv64, namedargs);
 
     /* Alignment checks
      */
@@ -1877,7 +1906,7 @@ private void resetEcomsub(elem *e)
     {
         elem_debug(e);
         e.Ecomsub = e.Ecount;
-        uint op = e.Eoper;
+        const op = e.Eoper;
         if (!OTleaf(op))
         {
             if (OTbinary(op))
@@ -2768,7 +2797,7 @@ private void loadcse(ref CodeBuilder cdb,elem *e,reg_t reg,regm_t regm)
 
 mixin(import("cdxxx.d"));                      /* jump table                   */
 
-void callcdxxx(ref CodeBuilder cdb, elem *e, regm_t *pretregs, uint op)
+void callcdxxx(ref CodeBuilder cdb, elem *e, regm_t *pretregs, OPER op)
 {
     (*cdxxx[op])(cdb,e,pretregs);
 }

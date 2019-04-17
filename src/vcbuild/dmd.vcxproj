@@ -73,7 +73,14 @@
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Label="UserMacros">
+    <_DCompilerExe Condition="'$(DCompiler)' == 'LDC' and '$(Platform)'=='x64'">$(LDCBinDir)ldmd2.exe -m64</_DCompilerExe>
+    <_DCompilerExe Condition="'$(DCompiler)' == 'LDC' and '$(Platform)'=='Win32'">$(LDCBinDir)ldmd2.exe -m32</_DCompilerExe>
+    <_DCompilerExe Condition="'$(_DCompilerExe)' == ''">$(DMDBinDir)dmd.exe</_DCompilerExe>
+  </PropertyGroup>
+  <PropertyGroup>
+    <CustomBuildBeforeTargets>_DMD</CustomBuildBeforeTargets>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>..\..\generated\Windows\$(Configuration)\$(PlatformName)\</OutDir>
@@ -111,7 +118,7 @@
     </Link>
     <DCompile>
       <VersionIdentifiers>MARS</VersionIdentifiers>
-      <StringImportPaths>..\..;..\..\res;$(OutDir)\backend\generated</StringImportPaths>
+      <StringImportPaths>..\..;..\..\res;$(OutDir)\dmd\generated</StringImportPaths>
       <CRuntimeLibrary>MultiThreadedDebug</CRuntimeLibrary>
       <CompilationModel>Package</CompilationModel>
       <ImportPaths>..</ImportPaths>
@@ -135,7 +142,7 @@
     </Link>
     <DCompile>
       <VersionIdentifiers>MARS</VersionIdentifiers>
-      <StringImportPaths>..\..;..\..\res;$(OutDir)\backend\generated</StringImportPaths>
+      <StringImportPaths>..\..;..\..\res;$(OutDir)\dmd\generated</StringImportPaths>
       <CRuntimeLibrary>MultiThreadedDebug</CRuntimeLibrary>
       <CompilationModel>Package</CompilationModel>
       <ImportPaths>..</ImportPaths>
@@ -163,7 +170,7 @@
     </Link>
     <DCompile>
       <VersionIdentifiers>MARS</VersionIdentifiers>
-      <StringImportPaths>..\..;..\..\res;$(OutDir)\backend\generated</StringImportPaths>
+      <StringImportPaths>..\..;..\..\res;$(OutDir)\dmd\generated</StringImportPaths>
       <CompilationModel>Package</CompilationModel>
       <ImportPaths>..</ImportPaths>
       <Optimizer>true</Optimizer>
@@ -192,7 +199,7 @@
     </Link>
     <DCompile>
       <VersionIdentifiers>MARS</VersionIdentifiers>
-      <StringImportPaths>..\..;..\..\res;$(OutDir)\backend\generated</StringImportPaths>
+      <StringImportPaths>..\..;..\..\res;$(OutDir)\dmd\generated</StringImportPaths>
       <CompilationModel>Package</CompilationModel>
       <ImportPaths>..</ImportPaths>
       <Optimizer>true</Optimizer>
@@ -202,12 +209,23 @@
     </DCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <DCompile Include="../dmd/**/*.d" Exclude="../dmd/backend/optabgen.d;../dmd/frontend.d;../dmd/asttypename.d"/>
+    <DCompile Include="../dmd/**/*.d" Exclude="../dmd/backend/optabgen.d;../dmd/frontend.d;../dmd/asttypename.d" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="dmd_backend.vcxproj">
-      <Project>{2387389d-7d3f-4d5e-ae0e-c871776e8432}</Project>
-    </ProjectReference>
+    <ClInclude Include="../dmd/**/*.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="..\dmd\backend\optabgen.d">
+      <Message>Building and running $(IntDir)%(Filename).exe</Message>
+      <Command>$(_DCompilerExe) -I.. -version=MARS -of"$(IntDir)generated\%(Filename).exe" "%(FullPath)"
+if errorlevel 1 exit /B %ERRORLEVEL%
+pushd $(IntDir)generated
+"%(Filename).exe"
+if errorlevel 1 exit /B %ERRORLEVEL%
+popd</Command>
+      <Outputs>$(IntDir)generated\optab.d;$(IntDir)generated\debtab.d;$(IntDir)generated\cdxxx.d;$(IntDir)generated\elxxx.d;$(IntDir)generated\tytab.d;$(IntDir)generated\\fltables.d;%(Outputs)</Outputs>
+      <AdditionalInputs>..\dmd\backend\cc.d;..\dmd\backend\cdef.d;..\dmd\backend\oper.d;..\dmd\backend\ty.d;%(AdditionalInputs)</AdditionalInputs>
+    </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

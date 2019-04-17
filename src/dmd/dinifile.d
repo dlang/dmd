@@ -113,19 +113,19 @@ const(char)[] findConfFile(const(char)[] argv0, const(char)[] inifile)
  * Returns:
  *      environment value corresponding to name
  */
-const(char)* readFromEnv(StringTable* environment, const(char)* name)
+const(char)* readFromEnv(const ref StringTable environment, const(char)* name)
 {
     const len = strlen(name);
-    auto sv = environment.lookup(name, len);
+    const sv = environment.lookup(name, len);
     if (sv && sv.ptrvalue)
-        return cast(const(char)*)sv.ptrvalue; // get cached value
+        return cast(char*)sv.ptrvalue; // get cached value
     return getenv(name);
 }
 
 /*********************************
  * Write to our copy of the environment, not the real environment
  */
-private bool writeToEnv(StringTable* environment, char* nameEqValue)
+private bool writeToEnv(ref StringTable environment, char* nameEqValue)
 {
     auto p = strchr(nameEqValue, '=');
     if (!p)
@@ -140,7 +140,7 @@ private bool writeToEnv(StringTable* environment, char* nameEqValue)
  * Params:
  *      environment = our copy of the environment
  */
-void updateRealEnvironment(StringTable* environment)
+void updateRealEnvironment(ref StringTable environment)
 {
     static int envput(const(StringValue)* sv)
     {
@@ -173,11 +173,10 @@ void updateRealEnvironment(StringTable* environment)
  *      environment = our own cache of the program environment
  *      filename = name of the file being parsed
  *      path = what @P will expand to
- *      length = length of the configuration file buffer
  *      buffer = contents of configuration file
  *      sections = section names
  */
-void parseConfFile(StringTable* environment, const(char)* filename, const(char)* path, size_t length, ubyte* buffer, Strings* sections)
+void parseConfFile(ref StringTable environment, const(char)* filename, const(char)[] path, const(ubyte)[] buffer, const(Strings)* sections)
 {
     /********************
      * Skip spaces.
@@ -194,11 +193,11 @@ void parseConfFile(StringTable* environment, const(char)* filename, const(char)*
     OutBuffer buf;
     bool eof = false;
     int lineNum = 0;
-    for (size_t i = 0; i < length && !eof; i++)
+    for (size_t i = 0; i < buffer.length && !eof; i++)
     {
     Lstart:
-        size_t linestart = i;
-        for (; i < length; i++)
+        const linestart = i;
+        for (; i < buffer.length; i++)
         {
             switch (buffer[i])
             {
@@ -229,7 +228,7 @@ void parseConfFile(StringTable* environment, const(char)* filename, const(char)*
         for (size_t k = 0; k < i - linestart; ++k)
         {
             // The line is buffer[linestart..i]
-            char* line = cast(char*)&buffer[linestart];
+            const line = cast(const char*)&buffer[linestart];
             if (line[k] == '%')
             {
                 foreach (size_t j; k + 1 .. i - linestart)
@@ -240,7 +239,7 @@ void parseConfFile(StringTable* environment, const(char)* filename, const(char)*
                     {
                         // %@P% is special meaning the path to the .ini file
                         auto p = path;
-                        if (!*p)
+                        if (!p.length)
                             p = ".";
                         buf.writestring(p);
                     }

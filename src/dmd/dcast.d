@@ -2362,7 +2362,7 @@ Expression castTo(Expression e, Scope* sc, Type t)
                         }
                         else if (f.isNested())
                         {
-                            result = new DelegateExp(e.loc, new IntegerExp(0), f, false);
+                            result = new DelegateExp(e.loc, IntegerExp.literal!0, f, false);
                             result = result.expressionSemantic(sc);
                         }
                         else if (f.needThis())

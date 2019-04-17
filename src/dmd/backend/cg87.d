@@ -28,7 +28,7 @@ import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.code_x86;
 import dmd.backend.codebuilder;
-import dmd.backend.memh;
+import dmd.backend.mem;
 import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.oper;
@@ -40,7 +40,7 @@ extern (C++):
 int REGSIZE();
 
 private extern (D) uint mask(uint m) { return 1 << m; }
-void callcdxxx(ref CodeBuilder cdb, elem *e, regm_t *pretregs, uint op);
+void callcdxxx(ref CodeBuilder cdb, elem *e, regm_t *pretregs, OPER op);
 
 
 // Constants that the 8087 supports directly
@@ -958,7 +958,7 @@ void orth87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     if (tycomplex(e1.Ety))
         sz2 /= 2;
 
-    int eoper = e.Eoper;
+    OPER eoper = e.Eoper;
     if (eoper == OPmul && e2.Eoper == OPconst && el_toldoubled(e.EV.E2) == 2.0L)
     {
         // Perform "mul 2.0" as fadd ST(0), ST
@@ -974,7 +974,7 @@ void orth87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     if (OTrel(eoper))
         eoper = OPeqeq;
     bool imaginary;
-    static uint X(uint op, uint ty1, uint ty2) { return (op << 16) + ty1 * 256 + ty2; }
+    static uint X(OPER op, uint ty1, uint ty2) { return (op << 16) + ty1 * 256 + ty2; }
     switch (X(eoper, tybasic(e1.Ety), tybasic(e2.Ety)))
     {
         case X(OPadd, TYfloat, TYfloat):
@@ -1978,7 +1978,7 @@ ret0:
 void eq87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     code cs;
-    uint op1;
+    opcode_t op1;
     uint op2;
 
     //printf("+eq87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
@@ -2092,7 +2092,7 @@ void eq87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 void complex_eq87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     code cs;
-    uint op1;
+    opcode_t op1;
     uint op2;
     uint sz;
     int fxch = 0;
@@ -2211,7 +2211,7 @@ void complex_eq87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 private void cnvteq87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     code cs;
-    uint op1;
+    opcode_t op1;
     uint op2;
 
     assert(e.Eoper == OPeq);
@@ -2262,8 +2262,8 @@ void opass87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     code cs;
     uint op;
-    uint opld;
-    uint op1;
+    opcode_t opld;
+    opcode_t op1;
     uint op2;
     tym_t ty1 = tybasic(e.EV.E1.Ety);
 
@@ -2482,7 +2482,7 @@ private void opass_complex87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     regm_t idxregs;
     code cs;
     uint op;
-    uint op2;
+    opcode_t op2;
 
     tym_t ty1 = tybasic(e.EV.E1.Ety);
     uint sz2 = _tysize[ty1] / 2;
@@ -2588,7 +2588,7 @@ private void opass_complex87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 ubyte rmfst = cs.Irm | modregrm(0,2,0);
                 ubyte rmfstp = cs.Irm | modregrm(0,3,0);
                 ubyte iopfst = (ty1 == TYcfloat) ? 0xD9 : 0xDD;
-                ubyte iop = (ty1 == TYcfloat) ? 0xD8 : 0xDC;
+                opcode_t iop = (ty1 == TYcfloat) ? 0xD8 : 0xDC;
 
                 cs.Iop = iop;
                 cs.Irm = rmop;
@@ -2848,7 +2848,7 @@ void cdnegass87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 void post87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     uint op;
-    uint op1;
+    opcode_t op1;
     reg_t reg;
 
     //printf("post87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
@@ -3404,7 +3404,7 @@ void neg87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     //printf("neg87()\n");
 
     assert(*pretregs);
-    int op;
+    opcode_t op;
     switch (e.Eoper)
     {   case OPneg:  op = 0xE0;     break;
         case OPabs:  op = 0xE1;     break;

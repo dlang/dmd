@@ -36,24 +36,17 @@ source ci.sh
 # Always source a DMD instance
 ################################################################################
 
-# Later versions of LDC causes a linker error.
-if  [ "$DMD" == "ldc" ]; then
-    LDC_VERSION=1.11.0
-    DUB_VERSION=1.13.0
-
-    install_d "ldc-$LDC_VERSION"
-    source ~/dlang/ldc-$LDC_VERSION/activate
-
-    # Older versions of LDC are shipped with a version of Dub that doesn't
-    # support the `DUB_EXE` environment variable
-    curl -o dub.tar.gz -L https://github.com/dlang/dub/releases/download/v$DUB_VERSION/dub-v$DUB_VERSION-linux-x86_64.tar.gz
-    tar xf dub.tar.gz
-    # Replace default dub with newer version
-    mv dub $(which dub)
-    deactivate
-else
-    install_d "$DMD"
+if  [ "$DMD" == "gdc" ] && [ "${GDC_VERSION:-0}" == "7" ] ; then
+    # Disable -lowmem tests for the GDC7 host compiler
+    # -lowmem is an optional switch and GDC-7 will be removed from the required
+    # bootstrap compilers in May 2019.
+    # See also : https://github.com/dlang/dmd/pull/9048/files
+    rm test/runnable/{testptrref,xtest46}_gc.d test/fail_compilation/mixin_gc.d || true
+    # Also remove it when building d_do_test.
+    sed -i -e 's/ -lowmem//g' test/Makefile
 fi
+
+install_d "$DMD"
 
 ################################################################################
 # Define commands

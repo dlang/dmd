@@ -49,19 +49,6 @@ enum LOGSEMANTIC = false;
 
 /************************ TraitsExp ************************************/
 
-// callback for TypeFunction::attributesApply
-struct PushAttributes
-{
-    Expressions* mods;
-
-    extern (D) static int fp(void* param, string str)
-    {
-        PushAttributes* p = cast(PushAttributes*)param;
-        p.mods.push(new StringExp(Loc.initial, cast(char*)str.ptr, str.length));
-        return 0;
-    }
-}
-
 /**************************************
  * Convert `Expression` or `Type` to corresponding `Dsymbol`, additionally
  * stripping off expression contexts.
@@ -82,7 +69,7 @@ struct PushAttributes
  * Returns:
  *      Dsymbol  the corresponding symbol for oarg
  */
-Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
+private Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
 {
     if (auto e = isExpression(oarg))
     {
@@ -90,8 +77,6 @@ Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
             return (cast(DotVarExp)e).var;
         if (e.op == TOK.dotTemplateDeclaration)
             return (cast(DotTemplateExp)e).td;
-        if (e.op == TOK.scope_)
-            return (cast(ScopeExp)e).sds;
     }
     return getDsymbol(oarg);
 }
@@ -900,9 +885,9 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return new ErrorExp();
         }
 
-        // ignore symbol visibility for these traits, should disable access checks as well
+        // ignore symbol visibility and disable access checks for these traits
         Scope* scx = sc.push();
-        scx.flags |= SCOPE.ignoresymbolvisibility;
+        scx.flags |= SCOPE.ignoresymbolvisibility | SCOPE.noaccesscheck;
         scope (exit) scx.pop();
 
         if (e.ident == Id.hasMember)
@@ -1145,10 +1130,13 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         }
 
         auto mods = new Expressions();
-        PushAttributes pa;
-        pa.mods = mods;
-        tf.modifiersApply(&pa, &PushAttributes.fp);
-        tf.attributesApply(&pa, &PushAttributes.fp, TRUSTformatSystem);
+
+        void addToMods(string str)
+        {
+            mods.push(new StringExp(Loc.initial, cast(char*)str.ptr, str.length));
+        }
+        tf.modifiersApply(&addToMods);
+        tf.attributesApply(&addToMods, TRUSTformatSystem);
 
         auto tup = new TupleExp(e.loc, mods);
         return tup.expressionSemantic(sc);

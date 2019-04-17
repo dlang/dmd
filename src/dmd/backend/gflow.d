@@ -238,7 +238,7 @@ private uint numdefelems(elem *e, uint *pnum_unambig_def)
 private void asgdefelems(block *b,elem *n)
 {
     assert(b && n);
-    const uint op = n.Eoper;
+    const op = n.Eoper;
     if (ERTOL(n))
     {
         asgdefelems(b,n.EV.E2);
@@ -308,7 +308,7 @@ private void rdelem(vec_t *pgen,vec_t *pkill,   /* where to put result          
 private void accumrd(vec_t GEN,vec_t KILL,elem *n)
 {
     assert(GEN && KILL && n);
-    const uint op = n.Eoper;
+    const op = n.Eoper;
     if (OTunary(op))
         accumrd(GEN,KILL,n.EV.E1);
     else if (OTbinary(op))
@@ -709,7 +709,7 @@ private int numaeelems(elem *n)
     uint ae;
 
     assert(n);
-    const uint op = n.Eoper;
+    const op = n.Eoper;
     if (OTunary(op))
     {
         ae = numaeelems(n.EV.E1);
@@ -855,7 +855,7 @@ private void defstarkill()
         foreach (uint i; 1 .. go.exptop)
         {
             elem *n = go.expnod[i];
-            const uint op = n.Eoper;
+            const op = n.Eoper;
             assert(op == OPeq || op == OPstreq);
             assert(n.EV.E1.Eoper==OPvar && n.EV.E2.Eoper==OPvar);
 
@@ -875,7 +875,7 @@ private void defstarkill()
         foreach (uint i; 1 .. go.exptop)
         {
             elem *n = go.expnod[i];
-            const uint op = n.Eoper;
+            const op = n.Eoper;
             switch (op)
             {
                 case OPvar:
@@ -1028,7 +1028,7 @@ private void accumaecpx(elem *n)
 
     assert(n);
     elem_debug(n);
-    const uint op = n.Eoper;
+    const op = n.Eoper;
 
     switch (op)
     {
@@ -1409,7 +1409,7 @@ private void accumlv(vec_t GEN,vec_t KILL,elem *n)
     while (1)
     {
         elem_debug(n);
-        const uint op = n.Eoper;
+        const op = n.Eoper;
         switch (op)
         {
             case OPvar:
@@ -1665,7 +1665,7 @@ private void accumvbe(vec_t GEN,vec_t KILL,elem *n)
     elem *t;
 
     assert(GEN && KILL && n);
-    const uint op = n.Eoper;
+    const op = n.Eoper;
 
     switch (op)
     {

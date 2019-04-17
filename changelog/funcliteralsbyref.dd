@@ -1,0 +1,30 @@
+Function literals can now return by reference
+
+Prior to this release, there was no way to declare a function that would return a reference by using an anonymous function.
+$(BR)(It was possible to return a pointer but it's not worth mentioning.)
+
+Here this function returns by value:
+---
+alias fn = () => a += 2;
+---
+In order to return by reference, we needed to define a named function to assign from:
+---
+ref int func()        // a static or non-nested function to mimic a `function` literal
+{                     // or a non-static nested function to mimic a `delegate` literal
+    return a += 2;
+}
+alias fn = func;
+---
+Now it's possible to use the `ref` keyword to indicate a return by reference:
+---
+function ref () { return x; }    // `=>` shorthand is there too
+delegate ref () { return x; }
+ref () { return x; }
+---
+For example:
+---
+int x = 1;
+alias add2 = ref () => x += 2;
+add2() += 7;    // add2 as a lvalue
+assert(x == 10);
+---

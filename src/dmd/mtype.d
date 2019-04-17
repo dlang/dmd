@@ -21,6 +21,7 @@ import core.stdc.string;
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.attrib;
+import dmd.ast_node;
 import dmd.gluelayer;
 import dmd.dclass;
 import dmd.declaration;
@@ -33,6 +34,7 @@ import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
+import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;
 import dmd.hdrgen;
@@ -167,14 +169,14 @@ void MODtoBuffer(OutBuffer* buf, MOD mod) nothrow
  *   a human readable representation of `mod`,
  *   which is the token `mod` corresponds to
  */
-const(char)* MODtoChars(MOD mod) nothrow
+const(char)* MODtoChars(MOD mod) nothrow pure
 {
     /// Works because we return a literal
     return MODtoString(mod).ptr;
 }
 
 /// Ditto
-string MODtoString(MOD mod) nothrow
+string MODtoString(MOD mod) nothrow pure
 {
     final switch (mod)
     {
@@ -374,7 +376,7 @@ enum VarArg
 
 /***********************************************************
  */
-extern (C++) abstract class Type : RootObject
+extern (C++) abstract class Type : ASTNode
 {
     TY ty;
     MOD mod; // modifiers MODxxxx
@@ -501,7 +503,7 @@ extern (C++) abstract class Type : RootObject
         assert(false); // should be overridden
     }
 
-    final Type copy() nothrow
+    final Type copy() nothrow const
     {
         Type t = cast(Type)mem.xmalloc(sizeTy[ty]);
         memcpy(cast(void*)t, cast(void*)this, sizeTy[ty]);
@@ -570,17 +572,14 @@ extern (C++) abstract class Type : RootObject
 
         bool notcovariant = false;
 
-        TypeFunction t1;
-        TypeFunction t2;
-
         if (equals(t))
             return 1; // covariant
 
-        if (ty != Tfunction || t.ty != Tfunction)
-            goto Ldistinct;
+        TypeFunction t1 = this.isTypeFunction();
+        TypeFunction t2 = t.isTypeFunction();
 
-        t1 = cast(TypeFunction)this;
-        t2 = cast(TypeFunction)t;
+        if (!t1 || !t2)
+            goto Ldistinct;
 
         if (t1.parameterList.varargs != t2.parameterList.varargs)
             goto Ldistinct;
@@ -604,14 +603,14 @@ extern (C++) abstract class Type : RootObject
                     Type tp2 = fparam2.type;
                     if (tp1.ty == tp2.ty)
                     {
-                        if (tp1.ty == Tclass)
+                        if (auto tc1 = tp1.isTypeClass())
                         {
-                            if ((cast(TypeClass)tp1).sym == (cast(TypeClass)tp2).sym && MODimplicitConv(tp2.mod, tp1.mod))
+                            if (tc1.sym == (cast(TypeClass)tp2).sym && MODimplicitConv(tp2.mod, tp1.mod))
                                 goto Lcov;
                         }
-                        else if (tp1.ty == Tstruct)
+                        else if (auto ts1 = tp1.isTypeStruct())
                         {
-                            if ((cast(TypeStruct)tp1).sym == (cast(TypeStruct)tp2).sym && MODimplicitConv(tp2.mod, tp1.mod))
+                            if (ts1.sym == (cast(TypeStruct)tp2).sym && MODimplicitConv(tp2.mod, tp1.mod))
                                 goto Lcov;
                         }
                         else if (tp1.ty == Tpointer)
@@ -939,7 +938,7 @@ extern (C++) abstract class Type : RootObject
         // Needed to display any deprecations that were gagged
         auto tcopy = this.syntaxCopy();
 
-        uint errors = global.startGagging();
+        const errors = global.startGagging();
         Type t = typeSemantic(this, loc, sc);
         if (global.endGagging(errors) || t.ty == Terror) // if any errors happened
         {
@@ -983,7 +982,7 @@ extern (C++) abstract class Type : RootObject
     /*********************************
      * Store this type's modifier name into buf.
      */
-    final void modToBuffer(OutBuffer* buf) nothrow
+    final void modToBuffer(OutBuffer* buf) nothrow const
     {
         if (mod)
         {
@@ -995,7 +994,7 @@ extern (C++) abstract class Type : RootObject
     /*********************************
      * Return this type's modifier name.
      */
-    final char* modToChars() nothrow
+    final char* modToChars() nothrow const
     {
         OutBuffer buf;
         buf.reserve(16);
@@ -1130,7 +1129,7 @@ extern (C++) abstract class Type : RootObject
      * Return a copy of this type with all attributes null-initialized.
      * Useful for creating a type with different modifiers.
      */
-    final Type nullAttributes() nothrow
+    final Type nullAttributes() nothrow const
     {
         uint sz = sizeTy[ty];
         Type t = cast(Type)mem.xmalloc(sz);
@@ -2496,8 +2495,9 @@ extern (C++) abstract class Type : RootObject
     final Type baseElemOf()
     {
         Type t = toBasetype();
-        while (t.ty == Tsarray)
-            t = (cast(TypeSArray)t).next.toBasetype();
+        TypeSArray tsa;
+        while ((tsa = t.isTypeSArray()) !is null)
+            t = tsa.next.toBasetype();
         return t;
     }
 
@@ -2671,7 +2671,7 @@ extern (C++) abstract class Type : RootObject
         inout(TypeNull)       isTypeNull()       { return ty == Tnull      ? cast(typeof(return))this : null; }
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -3846,7 +3846,7 @@ extern (C++) final class TypeAArray : TypeArray
         return t;
     }
 
-    override d_uns64 size(const ref Loc loc)
+    override d_uns64 size(const ref Loc loc) const
     {
         return target.ptrsize;
     }
@@ -4135,6 +4135,7 @@ extern (C++) final class TypeFunction : TypeNext
     bool isref;                 // true: returns a reference
     bool isreturn;              // true: 'this' is returned by ref
     bool isscope;               // true: 'this' is scope
+    bool isreturninferred;      // true: 'this' is return from inference
     bool isscopeinferred;       // true: 'this' is scope from inference
     LINK linkage;               // calling convention
     TRUST trust;                // level of trust
@@ -4165,6 +4166,8 @@ extern (C++) final class TypeFunction : TypeNext
             this.isref = true;
         if (stc & STC.return_)
             this.isreturn = true;
+        if (stc & STC.returninferred)
+            this.isreturninferred = true;
         if (stc & STC.scope_)
             this.isscope = true;
         if (stc & STC.scopeinferred)
@@ -4202,6 +4205,7 @@ extern (C++) final class TypeFunction : TypeNext
         t.isref = isref;
         t.isreturn = isreturn;
         t.isscope = isscope;
+        t.isreturninferred = isreturninferred;
         t.isscopeinferred = isscopeinferred;
         t.iswild = iswild;
         t.trust = trust;
@@ -4466,6 +4470,7 @@ extern (C++) final class TypeFunction : TypeNext
             tf.isref = t.isref;
             tf.isreturn = t.isreturn;
             tf.isscope = t.isscope;
+            tf.isreturninferred = t.isreturninferred;
             tf.isscopeinferred = t.isscopeinferred;
             tf.trust = t.trust;
             tf.iswild = t.iswild;
@@ -4529,6 +4534,7 @@ extern (C++) final class TypeFunction : TypeNext
         t.isref = isref;
         t.isreturn = isreturn;
         t.isscope = isscope;
+        t.isreturninferred = isreturninferred;
         t.isscopeinferred = isscopeinferred;
         t.iswild = 0;
         t.trust = trust;
@@ -4573,7 +4579,7 @@ extern (C++) final class TypeFunction : TypeNext
      * Returns:
      *      MATCHxxxx
      */
-    extern (D) MATCH callMatch(Type tthis, Expressions* args, int flag = 0, const(char)** pMessage = null)
+    extern (D) MATCH callMatch(Type tthis, Expressions* args, int flag = 0, const(char)** pMessage = null, Scope* sc = null)
     {
         //printf("TypeFunction::callMatch() %s\n", toChars());
         MATCH match = MATCH.exact; // assume exact match
@@ -4688,7 +4694,51 @@ extern (C++) final class TypeFunction : TypeNext
                         m = targ.implicitConvTo(tprm);
                     }
                     else
-                        m = arg.implicitConvTo(tprm);
+                    {
+                        const isRef = (p.storageClass & (STC.ref_ | STC.out_)) != 0;
+
+                        StructDeclaration argStruct, prmStruct;
+
+                        // first look for a copy constructor
+                        if (arg.isLvalue() && !isRef && targ.ty == Tstruct && tprm.ty == Tstruct)
+                        {
+                            // if the argument and the parameter are of the same unqualified struct type
+                            argStruct = (cast(TypeStruct)targ).sym;
+                            prmStruct = (cast(TypeStruct)tprm).sym;
+                        }
+
+                        // check if the copy constructor may be called to copy the argument
+                        if (argStruct && argStruct == prmStruct && argStruct.hasCopyCtor)
+                        {
+                            /* this is done by seeing if a call to the copy constructor can be made:
+                             *
+                             * typeof(tprm) __copytmp;
+                             * copytmp.__copyCtor(arg);
+                             */
+                            auto tmp = new VarDeclaration(arg.loc, tprm, Identifier.generateId("__copytmp"), null);
+                            tmp.dsymbolSemantic(sc);
+                            Expression ve = new VarExp(arg.loc, tmp);
+                            Expression e = new DotIdExp(arg.loc, ve, Id.ctor);
+                            e = new CallExp(arg.loc, e, arg);
+                            //printf("e = %s\n", e.toChars());
+                            if(.trySemantic(e, sc))
+                                m = MATCH.exact;
+                            else
+                            {
+                                m = MATCH.nomatch;
+                                if (pMessage)
+                                {
+                                    OutBuffer buf;
+                                    buf.printf("`struct %s` does not define a copy constructor for `%s` to `%s` copies",
+                                           argStruct.toChars(), targ.toChars(), tprm.toChars());
+                                    *pMessage = buf.extractString();
+                                }
+                                goto Nomatch;
+                            }
+                        }
+                        else
+                            m = arg.implicitConvTo(tprm);
+                    }
                     //printf("match %d\n", m);
                 }
 
@@ -5459,13 +5509,15 @@ extern (C++) final class TypeStruct : Type
         bool assignable = true;
         uint offset = ~0; // dead-store initialize to prevent spurious warning
 
+        sym.determineSize(sym.loc);
+
         /* If any of the fields are const or immutable,
          * then one cannot assign this struct.
          */
         for (size_t i = 0; i < sym.fields.dim; i++)
         {
             VarDeclaration v = sym.fields[i];
-            //printf("%s [%d] v = (%s) %s, v.offset = %d, v.parent = %s", sym.toChars(), i, v.kind(), v.toChars(), v.offset, v.parent.kind());
+            //printf("%s [%d] v = (%s) %s, v.offset = %d, v.parent = %s\n", sym.toChars(), i, v.kind(), v.toChars(), v.offset, v.parent.kind());
             if (i == 0)
             {
             }
@@ -5776,7 +5828,7 @@ extern (C++) final class TypeEnum : Type
     override MATCH implicitConvTo(Type to)
     {
         MATCH m;
-        //printf("TypeEnum::implicitConvTo()\n");
+        //printf("TypeEnum::implicitConvTo() %s to %s\n", toChars(), to.toChars());
         if (ty == to.ty && sym == (cast(TypeEnum)to).sym)
             m = (mod == to.mod) ? MATCH.exact : MATCH.constant;
         else if (sym.getMemtype(Loc.initial).implicitConvTo(to))
@@ -6193,6 +6245,14 @@ extern (C++) final class TypeNull : Type
         return MATCH.nomatch;
     }
 
+    override bool hasPointers()
+    {
+        /* Although null isn't dereferencable, treat it as a pointer type for
+         * attribute inference, generic code, etc.
+         */
+        return true;
+    }
+
     override bool isBoolean() const
     {
         return true;
@@ -6234,7 +6294,7 @@ extern (C++) struct ParameterList
 
 /***********************************************************
  */
-extern (C++) final class Parameter : RootObject
+extern (C++) final class Parameter : ASTNode
 {
     import dmd.attrib : UserAttributeDeclaration;
 
@@ -6296,7 +6356,7 @@ extern (C++) final class Parameter : RootObject
         return DYNCAST.parameter;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -6532,7 +6592,7 @@ const(char*)[2] toAutoQualChars(Type t1, Type t2)
  * For each active modifier (MODFlags.const_, MODFlags.immutable_, etc) call `fp` with a
  * void* for the work param and a string representation of the attribute.
  */
-int modifiersApply(TypeFunction tf, void* param, int function(void*, string) fp)
+void modifiersApply(const TypeFunction tf, void delegate(string) dg)
 {
     immutable ubyte[4] modsArr = [MODFlags.const_, MODFlags.immutable_, MODFlags.wild, MODFlags.shared_];
 
@@ -6540,66 +6600,55 @@ int modifiersApply(TypeFunction tf, void* param, int function(void*, string) fp)
     {
         if (tf.mod & modsarr)
         {
-            if (int res = fp(param, MODtoString(modsarr)))
-                return res;
+            dg(MODtoString(modsarr));
         }
     }
-
-    return 0;
 }
 
 /**
  * For each active attribute (ref/const/nogc/etc) call `fp` with a void* for the
  * work param and a string representation of the attribute.
  */
-int attributesApply(TypeFunction tf, void* param, int function(void*, string) fp, TRUSTformat trustFormat = TRUSTformatDefault)
+void attributesApply(const TypeFunction tf, void delegate(string) dg, TRUSTformat trustFormat = TRUSTformatDefault)
 {
-    int res = 0;
     if (tf.purity)
-        res = fp(param, "pure");
-    if (res)
-        return res;
-
+        dg("pure");
     if (tf.isnothrow)
-        res = fp(param, "nothrow");
-    if (res)
-        return res;
-
+        dg("nothrow");
     if (tf.isnogc)
-        res = fp(param, "@nogc");
-    if (res)
-        return res;
-
+        dg("@nogc");
     if (tf.isproperty)
-        res = fp(param, "@property");
-    if (res)
-        return res;
-
+        dg("@property");
     if (tf.isref)
-        res = fp(param, "ref");
-    if (res)
-        return res;
-
-    if (tf.isreturn)
-        res = fp(param, "return");
-    if (res)
-        return res;
-
+        dg("ref");
+    if (tf.isreturn && !tf.isreturninferred)
+        dg("return");
     if (tf.isscope && !tf.isscopeinferred)
-        res = fp(param, "scope");
-    if (res)
-        return res;
+        dg("scope");
 
     TRUST trustAttrib = tf.trust;
 
     if (trustAttrib == TRUST.default_)
     {
-        // Print out "@system" when trust equals TRUST.default_ (if desired).
         if (trustFormat == TRUSTformatSystem)
             trustAttrib = TRUST.system;
         else
-            return res; // avoid calling with an empty string
+            return; // avoid calling with an empty string
     }
 
-    return fp(param, trustToString(trustAttrib));
+    dg(trustToString(trustAttrib));
+}
+
+/**
+ * If the type is a class or struct, returns the symbol for it,
+ * else null.
+ */
+extern (C++) AggregateDeclaration isAggregate(Type t)
+{
+    t = t.toBasetype();
+    if (t.ty == Tclass)
+        return (cast(TypeClass)t).sym;
+    if (t.ty == Tstruct)
+        return (cast(TypeStruct)t).sym;
+    return null;
 }

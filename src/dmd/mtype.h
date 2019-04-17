@@ -17,6 +17,7 @@
 #include "visitor.h"
 
 struct Scope;
+class AggregateDeclaration;
 class Identifier;
 class Expression;
 class StructDeclaration;
@@ -132,7 +133,7 @@ enum VarArg
                          ///   or https://dlang.org/spec/function.html#typesafe_variadic_functions
 };
 
-class Type : public RootObject
+class Type : public ASTNode
 {
 public:
     TY ty;
@@ -345,7 +346,7 @@ public:
     TypeSlice *isTypeSlice();
     TypeNull *isTypeNull();
 
-    virtual void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeError : public Type
@@ -574,6 +575,7 @@ public:
     bool isref;         // true: returns a reference
     bool isreturn;      // true: 'this' is returned by ref
     bool isscope;       // true: 'this' is scope
+    bool isreturninferred;      // true: 'this' is return from inference
     bool isscopeinferred; // true: 'this' is scope from inference
     LINK linkage;  // calling convention
     TRUST trust;   // level of trust
@@ -866,3 +868,6 @@ public:
 
 bool arrayTypeCompatible(Loc loc, Type *t1, Type *t2);
 bool arrayTypeCompatibleWithoutCasting(Type *t1, Type *t2);
+
+// If the type is a class or struct, returns the symbol for it, else null.
+AggregateDeclaration *isAggregate(Type *t);

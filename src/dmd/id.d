@@ -342,6 +342,7 @@ immutable Msgtable[] msgtable =
     { "__equals"},
     { "__switch"},
     { "__switch_error"},
+    { "__ArrayCast"},
 
     // varargs implementation
     { "va_start" },

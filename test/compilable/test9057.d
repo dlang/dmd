@@ -1,5 +1,6 @@
 // PERMUTE_ARGS:
 // REQUIRED_ARGS: -Icompilable/extra-files
+// EXTRA_FILES: extra-files/imp9057.d extra-files/imp9057_2.d
 
 struct Bug9057(T)
 {

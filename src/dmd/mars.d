@@ -64,7 +64,12 @@ import dmd.utils;
  */
 private void logo()
 {
-    printf("DMD%llu D Compiler %s\n%s %s\n", cast(ulong)size_t.sizeof * 8, global._version, global.copyright, global.written);
+    printf("DMD%llu D Compiler %.*s\n%s %s\n",
+        cast(ulong)size_t.sizeof * 8,
+        cast(int) global._version.length - 1, global._version.ptr,
+        global.copyright,
+        global.written
+    );
 }
 
 /**
@@ -81,7 +86,7 @@ extern(C) void printInternalFailure(FILE* stream)
             "with, preferably, a reduced, reproducible example and the information below.\n" ~
     "DustMite (https://github.com/CyberShadow/DustMite/wiki) can help with the reduction.\n" ~
     "---\n").ptr, stream);
-    stream.fprintf("DMD %s\n", global._version);
+    stream.fprintf("DMD %%.*s\n", cast(int) global._version.length - 1, global._version.ptr);
     stream.printPredefinedVersions;
     stream.printGlobalConfigs();
     fputs("---\n".ptr, stream);
@@ -131,7 +136,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     global._init();
     debug
     {
-        printf("DMD %s DEBUG\n", global._version);
+        printf("DMD %.*s DEBUG\n", cast(int) global._version.length - 1, global._version.ptr);
         fflush(stdout); // avoid interleaving with stderr output when redirecting
     }
     // Check for malformed input
@@ -190,7 +195,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     inifile.read();
     /* Need path of configuration file, for use in expanding @P macro
      */
-    const(char)* inifilepath = FileName.path(global.inifilename);
+    const(char)[] inifilepath = FileName.path(global.inifilename.toDString());
     Strings sections;
     StringTable environment;
     environment._init(7);
@@ -198,7 +203,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
      * pick up any DFLAGS settings.
      */
     sections.push("Environment");
-    parseConfFile(&environment, global.inifilename, inifilepath, inifile.len, inifile.buffer, &sections);
+    parseConfFile(environment, global.inifilename, inifilepath, inifile.buffer[0..inifile.len], &sections);
 
     const(char)* arch = params.is64bit ? "64" : "32"; // use default
     arch = parse_arch_arg(&arguments, arch);
@@ -206,7 +211,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     // parse architecture from DFLAGS read from [Environment] section
     {
         Strings dflags;
-        getenv_setargv(readFromEnv(&environment, "DFLAGS"), &dflags);
+        getenv_setargv(readFromEnv(environment, "DFLAGS"), &dflags);
         environment.reset(7); // erase cached environment updates
         arch = parse_arch_arg(&dflags, arch);
     }
@@ -221,9 +226,9 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     char[80] envsection = void;
     sprintf(envsection.ptr, "Environment%s", arch);
     sections.push(envsection.ptr);
-    parseConfFile(&environment, global.inifilename, inifilepath, inifile.len, inifile.buffer, &sections);
-    getenv_setargv(readFromEnv(&environment, "DFLAGS"), &arguments);
-    updateRealEnvironment(&environment);
+    parseConfFile(environment, global.inifilename, inifilepath, inifile.buffer[0..inifile.len], &sections);
+    getenv_setargv(readFromEnv(environment, "DFLAGS"), &arguments);
+    updateRealEnvironment(environment);
     environment.reset(1); // don't need environment cache any more
 
     if (parseCommandLine(arguments, argc, params, files))
@@ -406,6 +411,12 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         return result;
     }
 
+    if (params.mixinFile)
+    {
+        params.mixinOut = cast(OutBuffer*)calloc(1, OutBuffer.sizeof);
+        atexit(&flushMixins); // see comment for flushMixins
+    }
+    scope(exit) flushMixins();
     global.path = buildPath(params.imppath);
     global.filePath = buildPath(params.fileImppath);
 
@@ -767,7 +778,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     return status;
 }
 
-private void generateJson(Modules* modules)
+extern (C++) void generateJson(Modules* modules)
 {
     OutBuffer buf;
     json_generate(&buf, modules);
@@ -812,53 +823,108 @@ private void generateJson(Modules* modules)
 }
 
 
-/**
- * Entry point which forwards to `tryMain`.
- *
- * Returns:
- *   Return code of the application
- */
-version(NoMain) {} else
-int main()
+version (NoMain) {} else
 {
-    import core.memory;
-    import core.runtime;
+    // in druntime:
+    alias MainFunc = extern(C) int function(char[][] args);
+    extern (C) int _d_run_main(int argc, char** argv, MainFunc dMain);
 
-    version (GC)
+    // When using a C main, host DMD may not link against host druntime by default.
+    version (DigitalMars)
     {
-    }
-    else
-    {
-        GC.disable();
-    }
-    version(D_Coverage)
-    {
-        // for now we need to manually set the source path
-        string dirName(string path, char separator)
+        version (Win64)
+            pragma(lib, "phobos64");
+        else version (Win32)
         {
-            for (size_t i = path.length - 1; i > 0; i--)
-            {
-                if (path[i] == separator)
-                    return path[0..i];
-            }
-            return path;
+            version (CRuntime_Microsoft)
+                pragma(lib, "phobos32mscoff");
+            else
+                pragma(lib, "phobos");
         }
-        version (Windows)
-            enum sourcePath = dirName(dirName(__FILE_FULL_PATH__, '\\'), '\\');
-        else
-            enum sourcePath = dirName(dirName(__FILE_FULL_PATH__, '/'), '/');
-
-        dmd_coverSourcePath(sourcePath);
-        dmd_coverDestPath(sourcePath);
-        dmd_coverSetMerge(true);
     }
 
-    scope(failure) stderr.printInternalFailure;
+    /**
+     * DMD's entry point, C main.
+     *
+     * Without `-lowmem`, we need to switch to the bump-pointer allocation scheme
+     * right from the start, before any module ctors are run, so we need this hook
+     * before druntime is initialized and `_Dmain` is called.
+     *
+     * Returns:
+     *   Return code of the application
+     */
+    extern (C) int main(int argc, char** argv)
+    {
+        static if (isGCAvailable)
+        {
+            bool lowmem = false;
+            foreach (i; 1 .. argc)
+            {
+                if (strcmp(argv[i], "-lowmem") == 0)
+                {
+                    lowmem = true;
+                    break;
+                }
+            }
+            if (!lowmem)
+                mem.disableGC();
+        }
 
-    auto args = Runtime.cArgs();
-    return tryMain(args.argc, cast(const(char)**)args.argv, global.params);
-}
+        // initialize druntime and call _Dmain() below
+        return _d_run_main(argc, argv, &_Dmain);
+    }
 
+    /**
+     * Manual D main (for druntime initialization), which forwards to `tryMain`.
+     *
+     * Returns:
+     *   Return code of the application
+     */
+    extern (C) int _Dmain(char[][])
+    {
+        import core.memory;
+        import core.runtime;
+
+        // Older host druntime versions need druntime to be initialized before
+        // disabling the GC, so we cannot disable it in C main above.
+        static if (isGCAvailable)
+        {
+            if (!mem.isGCEnabled)
+                GC.disable();
+        }
+        else
+        {
+            GC.disable();
+        }
+
+        version(D_Coverage)
+        {
+            // for now we need to manually set the source path
+            string dirName(string path, char separator)
+            {
+                for (size_t i = path.length - 1; i > 0; i--)
+                {
+                    if (path[i] == separator)
+                        return path[0..i];
+                }
+                return path;
+            }
+            version (Windows)
+                enum sourcePath = dirName(dirName(__FILE_FULL_PATH__, '\\'), '\\');
+            else
+                enum sourcePath = dirName(dirName(__FILE_FULL_PATH__, '/'), '/');
+
+            dmd_coverSourcePath(sourcePath);
+            dmd_coverDestPath(sourcePath);
+            dmd_coverSetMerge(true);
+        }
+
+        scope(failure) stderr.printInternalFailure;
+
+        auto args = Runtime.cArgs();
+        return tryMain(args.argc, cast(const(char)**)args.argv, global.params);
+    }
+} // !NoMain
 
 /**
  * Parses an environment variable containing command-line flags
@@ -1222,14 +1288,14 @@ private void printPredefinedVersions(FILE* stream)
 extern(C) void printGlobalConfigs(FILE* stream)
 {
     stream.fprintf("binary    %.*s\n", cast(int)global.params.argv0.length, global.params.argv0.ptr);
-    stream.fprintf("version   %s\n", global._version);
+    stream.fprintf("version   %.*s\n", cast(int) global._version.length - 1, global._version.ptr);
     stream.fprintf("config    %s\n", global.inifilename ? global.inifilename : "(none)");
     // Print DFLAGS environment variable
     {
         StringTable environment;
         environment._init(0);
         Strings dflags;
-        getenv_setargv(readFromEnv(&environment, "DFLAGS"), &dflags);
+        getenv_setargv(readFromEnv(environment, "DFLAGS"), &dflags);
         environment.reset(1);
         OutBuffer buf;
         foreach (flag; dflags[])
@@ -1293,8 +1359,8 @@ private void setTargetCPU(ref Param params)
 /**************************************
  * we want to write the mixin expansion file also on error, but there
  * are too many ways to terminate dmd (e.g. fatal() which calls exit(EXIT_FAILURE)),
- * so we cant use scope(exit) ...
- * so we do it with atexit(&flushMixins);
+ * so we can't rely on scope(exit) ... in tryMain() actually being executed
+ * so we add atexit(&flushMixins); for those fatal exits (with the GC still valid)
  */
 extern(C) void flushMixins()
 {
@@ -1306,6 +1372,8 @@ extern(C) void flushMixins()
     OutBuffer* ob = global.params.mixinOut;
     f.setbuffer(cast(void*)ob.data, ob.offset);
     f.write();
+
+    global.params.mixinOut = null;
 }
 
 /****************************************************
@@ -1510,11 +1578,11 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         if (arg == "-allinst")               // https://dlang.org/dmd.html#switch-allinst
             params.allInst = true;
         else if (arg == "-de")               // https://dlang.org/dmd.html#switch-de
-            params.useDeprecated = Diagnostic.error;
+            params.useDeprecated = DiagnosticReporting.error;
         else if (arg == "-d")                // https://dlang.org/dmd.html#switch-d
-            params.useDeprecated = Diagnostic.off;
+            params.useDeprecated = DiagnosticReporting.off;
         else if (arg == "-dw")               // https://dlang.org/dmd.html#switch-dw
-            params.useDeprecated = Diagnostic.inform;
+            params.useDeprecated = DiagnosticReporting.inform;
         else if (arg == "-c")                // https://dlang.org/dmd.html#switch-c
             params.link = false;
         else if (startsWith(p + 1, "checkaction")) // https://dlang.org/dmd.html#switch-checkaction
@@ -1655,11 +1723,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             auto tmp = p + 6 + 1;
             if (!tmp[0])
                 goto Lnoarg;
-            // The following are usedin atexit, so we can't rely on main's argv...
             params.mixinFile = mem.xstrdup(tmp);
-            // ... or the GC's memory being valid.
-            params.mixinOut = cast(OutBuffer*)calloc(1, OutBuffer.sizeof);
-            atexit(&flushMixins);
         }
         else if (arg == "-g") // https://dlang.org/dmd.html#switch-g
             params.symdebug = 1;
@@ -1673,6 +1737,22 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.alwaysframe = true;
         else if (arg == "-gx")  // https://dlang.org/dmd.html#switch-gx
             params.stackstomp = true;
+        else if (arg == "-lowmem") // https://dlang.org/dmd.html#switch-lowmem
+        {
+            static if (isGCAvailable)
+            {
+                // ignore, already handled in C main
+            }
+            else
+            {
+                error("switch '%s' requires DMD to be built with '-version=GC'", arg.ptr);
+                continue;
+            }
+        }
+        else if (arg.length > 6 && arg[0..6] == "--DRT-")
+        {
+            continue; // skip druntime options, e.g. used to configure the GC
+        }
         else if (arg == "-m32") // https://dlang.org/dmd.html#switch-m32
         {
             static if (TARGET.DragonFlyBSD) {
@@ -1934,9 +2014,9 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 params.useDIP25 = false;
         }
         else if (arg == "-w")   // https://dlang.org/dmd.html#switch-w
-            params.warnings = Diagnostic.error;
+            params.warnings = DiagnosticReporting.error;
         else if (arg == "-wi")  // https://dlang.org/dmd.html#switch-wi
-            params.warnings = Diagnostic.inform;
+            params.warnings = DiagnosticReporting.inform;
         else if (arg == "-O")   // https://dlang.org/dmd.html#switch-O
             params.optimize = true;
         else if (p[1] == 'o')

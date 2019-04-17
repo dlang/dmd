@@ -13,15 +13,15 @@ OS=windows
 ################################### Rules ####################################
 
 .d.exe:
-	$(HOST_DC) -of$@ $<
+	$(HOST_DC) -g -of$@ $<
 
 D=dmd
 GEN = ..\generated
 G = $(GEN)\$(OS)\$(BUILD)\$(MODEL)
 OBJ_MSVC=$G/strtold.obj $G/longdouble.obj
-DEPENDENCIES=vcbuild\msvc-dmc.exe vcbuild\msvc-lib.exe $G
+DEPENDENCIES=vcbuild\msvc-lib.exe $G
 
-MAKE_WIN32=$(MAKE) -f win32.mak MAKE="$(MAKE)" BUILD=$(BUILD) MODEL=$(MODEL) HOST_DC=$(HOST_DC) GEN="$(GEN)" G="$G" OBJ_MSVC="$(OBJ_MSVC)" CC=vcbuild\msvc-dmc LIB=vcbuild\msvc-lib
+MAKE_WIN32=$(MAKE) -f win32.mak MAKE="$(MAKE)" BUILD=$(BUILD) MODEL=$(MODEL) HOST_DC=$(HOST_DC) GEN="$(GEN)" G="$G" OBJ_MSVC="$(OBJ_MSVC)" LIB=vcbuild\msvc-lib
 
 ################################## Targets ###################################
 
@@ -32,7 +32,7 @@ release : $(DEPENDENCIES)
 trace : $(DEPENDENCIES)
 	$(MAKE_WIN32) $@
 clean :
-	del $(DEPENDENCIES) dmd.pdb
+	del /s /q $(DEPENDENCIES) dmd.pdb
 	$(MAKE_WIN32) $@
 install : $(DEPENDENCIES)
 	$(MAKE_WIN32) $@

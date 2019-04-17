@@ -128,6 +128,7 @@ struct ASTBase
         scopeinferred       = (1L << 49),   // 'scope' has been inferred and should not be part of mangling
         future              = (1L << 50),   // introducing new base class function
         local               = (1L << 51),   // do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
+        returninferred      = (1L << 52),   // 'return' has been inferred and should not be part of mangling
 
         TYPECTOR = (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild),
         FUNCATTR = (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.property | STC.safe | STC.trusted | STC.system),
@@ -298,7 +299,12 @@ struct ASTBase
 
     alias Visitor = ParseTimeVisitor!ASTBase;
 
-    extern (C++) class Dsymbol : RootObject
+    extern (C++) abstract class ASTNode : RootObject
+    {
+        abstract void accept(Visitor v);
+    }
+
+    extern (C++) class Dsymbol : ASTNode
     {
         Loc loc;
         Identifier ident;
@@ -458,7 +464,7 @@ struct ASTBase
             return DYNCAST.dsymbol;
         }
 
-        void accept(Visitor v)
+        override void accept(Visitor v)
         {
             v.visit(this);
         }
@@ -824,7 +830,7 @@ struct ASTBase
 
     extern (C++) final class CtorDeclaration : FuncDeclaration
     {
-        extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc, Type type)
+        extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc, Type type, bool isCopyCtor = false)
         {
             super(loc, endloc, Id.ctor, stc, type);
         }
@@ -1754,7 +1760,7 @@ struct ASTBase
         VarArg varargs = VarArg.none;
     }
 
-    extern (C++) final class Parameter : RootObject
+    extern (C++) final class Parameter : ASTNode
     {
         StorageClass storageClass;
         Type type;
@@ -1840,7 +1846,7 @@ struct ASTBase
             return new Parameter(storageClass, type ? type.syntaxCopy() : null, ident, defaultArg ? defaultArg.syntaxCopy() : null, userAttribDecl ? cast(UserAttributeDeclaration) userAttribDecl.syntaxCopy(null) : null);
         }
 
-        void accept(Visitor v)
+        override void accept(Visitor v)
         {
             v.visit(this);
         }
@@ -1860,7 +1866,7 @@ struct ASTBase
 
     }
 
-    extern (C++) abstract class Statement : RootObject
+    extern (C++) abstract class Statement : ASTNode
     {
         Loc loc;
 
@@ -1884,7 +1890,7 @@ struct ASTBase
             return null;
         }
 
-        void accept(Visitor v)
+        override void accept(Visitor v)
         {
             v.visit(this);
         }
@@ -2595,7 +2601,7 @@ struct ASTBase
     extern (C++) __gshared int Tsize_t = Tuns32;
     extern (C++) __gshared int Tptrdiff_t = Tint32;
 
-    extern (C++) abstract class Type : RootObject
+    extern (C++) abstract class Type : ASTNode
     {
         TY ty;
         MOD mod;
@@ -3418,7 +3424,7 @@ struct ASTBase
             return null;
         }
 
-        void accept(Visitor v)
+        override void accept(Visitor v)
         {
             v.visit(this);
         }
@@ -4280,7 +4286,7 @@ struct ASTBase
         }
     }
 
-    extern (C++) abstract class Expression : RootObject
+    extern (C++) abstract class Expression : ASTNode
     {
         TOK op;
         ubyte size;
@@ -4327,7 +4333,7 @@ struct ASTBase
             return DYNCAST.expression;
         }
 
-        void accept(Visitor v)
+        override void accept(Visitor v)
         {
             v.visit(this);
         }
@@ -5990,7 +5996,7 @@ struct ASTBase
         }
     }
 
-    extern (C++) abstract class Condition : RootObject
+    extern (C++) abstract class Condition : ASTNode
     {
         Loc loc;
 
@@ -5999,7 +6005,7 @@ struct ASTBase
             this.loc = loc;
         }
 
-        void accept(Visitor v)
+        override void accept(Visitor v)
         {
             v.visit(this);
         }
@@ -6095,7 +6101,7 @@ struct ASTBase
         exp,
     }
 
-    extern (C++) class Initializer : RootObject
+    extern (C++) class Initializer : ASTNode
     {
         Loc loc;
         InitKind kind;
@@ -6117,7 +6123,7 @@ struct ASTBase
             return kind == InitKind.exp ? cast(ExpInitializer)cast(void*)this : null;
         }
 
-        void accept(Visitor v)
+        override void accept(Visitor v)
         {
             v.visit(this);
         }

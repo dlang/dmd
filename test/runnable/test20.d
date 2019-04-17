@@ -743,7 +743,7 @@ void test42()
         string string1 =  "ワロスｗ";
         string string2 = r"ワロスｗ";
         string string3 =  `ワロスｗ`;
-        string string4 = x"E3 83 AF E3 83 AD E3 82 B9 EF BD 97";
+        string string4 = "\xE3\x83\xAF\xE3\x83\xAD\xE3\x82\xB9\xEF\xBD\x97";
 
         assert(string1.length==master.length);
 

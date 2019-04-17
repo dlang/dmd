@@ -55,7 +55,7 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.code_x86;
-import dmd.backend.memh;
+import dmd.backend.mem;
 import dmd.backend.dlist;
 import dmd.backend.el;
 import dmd.backend.global;
@@ -1132,8 +1132,7 @@ static if (ELFOBJ)
 version (MARS)
 {
     debug_info.buf.write("Digital Mars D ");
-    //debug_info.buf.writeString(global._version);     // DW_AT_producer
-    debug_info.buf.writeString("v2.083");              // DW_AT_producer
+    debug_info.buf.write(config._version);     // DW_AT_producer
     // DW_AT_language
     debug_info.buf.writeByte((config.fulltypes == CVDWARF_D) ? DW_LANG_D : DW_LANG_C89);
 }

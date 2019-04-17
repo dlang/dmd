@@ -5,8 +5,8 @@ dependency "dmd" path="../.."
 void main()
 {
     import dmd.astbase;
+    import dmd.errors;
     import dmd.globals;
-    import dmd.lexer;
     import dmd.parse;
 
     scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);

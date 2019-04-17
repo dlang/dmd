@@ -50,7 +50,7 @@ import dmd.backend.el;
 import dmd.backend.evalu8 : el_toldoubled;
 import dmd.backend.global;
 import dmd.backend.goh;
-import dmd.backend.memh;
+import dmd.backend.mem;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.rtlsym;
@@ -1939,6 +1939,7 @@ static if (TARGET_OSX)
          */
         Symbol *sd = symboldata(Offset(DATA), TYnptr);
         sd.Sseg = DATA;
+        Obj.data_start(sd, _tysize[TYnptr], DATA);
         Offset(DATA) += Obj.reftoident(DATA, Offset(DATA), s, 0, CFoff);
         e = el_picvar(sd);
         return e;

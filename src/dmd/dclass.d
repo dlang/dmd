@@ -229,12 +229,10 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
         if (!id)
         {
-            id = Identifier.generateId("__anonclass");
             isActuallyAnonymous = true;
         }
-        assert(id);
 
-        super(loc, id);
+        super(loc, id ? id : Identifier.generateId("__anonclass"));
 
         __gshared const(char)* msg = "only object.d can define this reserved class name";
 
@@ -248,7 +246,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
         this.members = members;
 
-        //printf("ClassDeclaration(%s), dim = %d\n", id.toChars(), this.baseclasses.dim);
+        //printf("ClassDeclaration(%s), dim = %d\n", ident.toChars(), this.baseclasses.dim);
 
         // For forward references
         type = new TypeClass(this);

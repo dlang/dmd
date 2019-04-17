@@ -34,7 +34,7 @@ enum TARGET : bool
     DragonFlyBSD = xversion!`DragonFlyBSD`,
 }
 
-enum Diagnostic : ubyte
+enum DiagnosticReporting : ubyte
 {
     error,        // generate an error
     inform,       // generate a warning
@@ -132,7 +132,7 @@ struct Param
     bool isSolaris;         // generate code for Solaris
     bool hasObjectiveC;     // target supports Objective-C
     bool mscoff = false;    // for Win32: write MsCoff object files instead of OMF
-    Diagnostic useDeprecated = Diagnostic.inform;  // how use of deprecated features are handled
+    DiagnosticReporting useDeprecated = DiagnosticReporting.inform;  // how use of deprecated features are handled
     bool stackstomp;            // add stack stomping code
     bool useUnitTests;          // generate unittest code
     bool useInline = false;     // inline expand functions
@@ -140,7 +140,7 @@ struct Param
     bool noDIP25;           // revert to pre-DIP25 behavior
     bool release;           // build release version
     bool preservePaths;     // true means don't strip path from source file
-    Diagnostic warnings = Diagnostic.off;  // how compiler warnings are handled
+    DiagnosticReporting warnings = DiagnosticReporting.off;  // how compiler warnings are handled
     bool pic;               // generate position-independent-code for shared libs
     bool color;             // use ANSI colors in console output
     bool cov;               // generate code coverage data
@@ -288,7 +288,7 @@ struct Global
     Array!(const(char)*)* path;         // Array of char*'s which form the import lookup path
     Array!(const(char)*)* filePath;     // Array of char*'s which form the file import lookup path
 
-    const(char)* _version;
+    string _version;
     const(char)* vendor;    // Compiler backend name
 
     Param params;
@@ -396,7 +396,7 @@ struct Global
         {
             params.mscoff = params.is64bit;
         }
-        _version = (import("VERSION") ~ '\0').ptr;
+        _version = import("VERSION") ~ '\0';
         vendor = "Digital Mars D";
 
         // -color=auto is the default value
@@ -430,7 +430,7 @@ struct Global
             uint major = 0;
             uint minor = 0;
             bool point = false;
-            for (const(char)* p = _version + 1;; p++)
+            for (const(char)* p = _version.ptr + 1;; p++)
             {
                 const c = *p;
                 if (isdigit(cast(char)c))
@@ -492,7 +492,7 @@ nothrow:
         this.filename = filename;
     }
 
-    extern (C++) const(char)* toChars() const
+    extern (C++) const(char)* toChars(bool showColumns = global.params.showColumns) const pure nothrow
     {
         OutBuffer buf;
         if (filename)
@@ -503,7 +503,7 @@ nothrow:
         {
             buf.writeByte('(');
             buf.print(linnum);
-            if (global.params.showColumns && charnum)
+            if (showColumns && charnum)
             {
                 buf.writeByte(',');
                 buf.print(charnum);
@@ -513,11 +513,43 @@ nothrow:
         return buf.extractString();
     }
 
+    /* Checks for equivalence,
+     * a) comparing the filename contents (not the pointer), case-
+     *    insensitively on Windows, and
+     * b) ignoring charnum if `global.params.showColumns` is false.
+     */
     extern (C++) bool equals(ref const(Loc) loc) const
     {
         return (!global.params.showColumns || charnum == loc.charnum) &&
                linnum == loc.linnum &&
                FileName.equals(filename, loc.filename);
+    }
+
+    /* opEquals() / toHash() for AA key usage:
+     *
+     * Compare filename contents (case-sensitively on Windows too), not
+     * the pointer - a static foreach loop repeatedly mixing in a mixin
+     * may lead to multiple equivalent filenames (`foo.d-mixin-<line>`),
+     * e.g., for test/runnable/test18880.d.
+     */
+    extern (D) bool opEquals(ref const(Loc) loc) const @trusted pure nothrow @nogc
+    {
+        import core.stdc.string : strcmp;
+
+        return charnum == loc.charnum &&
+               linnum == loc.linnum &&
+               (filename == loc.filename ||
+                (filename && loc.filename && strcmp(filename, loc.filename) == 0));
+    }
+
+    extern (D) size_t toHash() const @trusted pure nothrow
+    {
+        import dmd.utils : toDString;
+
+        auto hash = hashOf(linnum);
+        hash = hashOf(charnum, hash);
+        hash = hashOf(filename.toDString, hash);
+        return hash;
     }
 
     /******************

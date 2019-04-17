@@ -25,6 +25,7 @@ import dmd.globals;
 import dmd.identifier;
 import dmd.init;
 import dmd.mtype;
+import dmd.printast;
 import dmd.root.rootobject;
 import dmd.tokens;
 import dmd.visitor;
@@ -441,6 +442,17 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
             continue;
         }
 
+        if (vaIsFirstRef &&
+            (v.isScope() || (v.storage_class & STC.maybescope)) &&
+            !(v.storage_class & STC.return_) &&
+            v.isParameter() &&
+            sc.func.flags & FUNCFLAG.returnInprocess &&
+            p == sc.func)
+        {
+            if (log) printf("inferring 'return' for parameter %s in function %s\n", v.toChars(), sc.func.toChars());
+            inferReturn(sc.func, v);        // infer addition of 'return'
+        }
+
         if (!(va && va.isScope()) || vaIsRef)
             notMaybeScope(v);
 
@@ -474,7 +486,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
                  // va is class reference
                  ae.e1.op == TOK.dotVariable && va.type.toBasetype().ty == Tclass && (va.enclosesLifetimeOf(v) || !va.isScope()) ||
                  vaIsRef ||
-                 va.storage_class & (STC.ref_ | STC.out_) && !(v.storage_class & STC.temp)) &&
+                 va.storage_class & (STC.ref_ | STC.out_) && !(v.storage_class & (STC.parameter | STC.temp))) &&
                 sc.func.setUnsafe())
             {
                 if (!gag)
@@ -488,7 +500,11 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
                 if (!va.isScope() && inferScope)
                 {   //printf("inferring scope for %s\n", va.toChars());
                     va.storage_class |= STC.scope_ | STC.scopeinferred;
-                    va.storage_class |= v.storage_class & STC.return_;
+                    if (v.storage_class & STC.return_ &&
+                        !(va.storage_class & STC.return_))
+                    {
+                        va.storage_class |= STC.return_ | STC.returninferred;
+                    }
                 }
                 continue;
             }
@@ -897,7 +913,7 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
  */
 bool checkReturnEscape(Scope* sc, Expression e, bool gag)
 {
-    //printf("[%s] checkReturnEscape, e = %s\n", e.loc.toChars(), e.toChars());
+    //printf("[%s] checkReturnEscape, e: %s\n", e.loc.toChars(), e.toChars());
     return checkReturnEscapeImpl(sc, e, false, gag);
 }
 
@@ -929,6 +945,7 @@ bool checkReturnEscapeRef(Scope* sc, Expression e, bool gag)
  * Params:
  *      sc = used to determine current function and module
  *      e = expression to check
+ *      refs = true: escape by value, false: escape by ref
  *      gag = do not print error messages
  * Returns:
  *      true if references to the stack can escape
@@ -981,7 +998,14 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                  *        return s;     // s is inferred as 'scope' but incorrectly tested in foo()
                  *    return null; }
                  */
-                !(!refs && p.parent == sc.func))
+                !(!refs && p.parent == sc.func && p.isFuncDeclaration() && p.isFuncDeclaration().fes) &&
+                /*
+                 *  auto p(scope string s) {
+                 *      string scfunc() { return s; }
+                 *  }
+                 */
+                !(!refs && p.isFuncDeclaration() && sc.func.isFuncDeclaration().getLevel(p.isFuncDeclaration(), sc.intypeof) > 0)
+               )
             {
                 // Only look for errors if in module listed on command line
                 if (global.params.vsafe) // https://issues.dlang.org/show_bug.cgi?id=17029
@@ -1051,7 +1075,9 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                  * Because dg.ptr points to x, this is returning dt.ptr+offset
                  */
                 if (global.params.vsafe)
-                    sc.func.storage_class |= STC.return_;
+                {
+                    sc.func.storage_class |= STC.return_ | STC.returninferred;
+                }
             }
 
         }
@@ -1121,18 +1147,19 @@ private void inferReturn(FuncDeclaration fd, VarDeclaration v)
     // v is a local in the current function
 
     //printf("for function '%s' inferring 'return' for variable '%s'\n", fd.toChars(), v.toChars());
-    v.storage_class |= STC.return_;
+    v.storage_class |= STC.return_ | STC.returninferred;
 
     TypeFunction tf = cast(TypeFunction)fd.type;
     if (v == fd.vthis)
     {
         /* v is the 'this' reference, so mark the function
          */
-        fd.storage_class |= STC.return_;
+        fd.storage_class |= STC.return_ | STC.returninferred;
         if (tf.ty == Tfunction)
         {
             //printf("'this' too %p %s\n", tf, sc.func.toChars());
             tf.isreturn = true;
+            tf.isreturninferred = true;
         }
     }
     else
@@ -1146,7 +1173,7 @@ private void inferReturn(FuncDeclaration fd, VarDeclaration v)
                 Parameter p = tf.parameterList[i];
                 if (p.ident == v.ident)
                 {
-                    p.storageClass |= STC.return_;
+                    p.storageClass |= STC.return_ | STC.returninferred;
                     break;              // there can be only one
                 }
             }
@@ -1786,6 +1813,8 @@ void eliminateMaybeScopes(VarDeclaration[] array)
                         {
                             // v cannot be scope since it is assigned to a non-scope va
                             notMaybeScope(v);
+                            if (!(v.storage_class & (STC.ref_ | STC.out_)))
+                                v.storage_class &= ~(STC.return_ | STC.returninferred);
                             changes = true;
                         }
                     }

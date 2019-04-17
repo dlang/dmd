@@ -27,7 +27,7 @@ import dmd.backend.code;
 import dmd.backend.dlist;
 import dmd.backend.el;
 import dmd.backend.el : elem;
-import dmd.backend.memh;
+import dmd.backend.mem;
 import dmd.backend.type;
 //import dmd.backend.obj;
 

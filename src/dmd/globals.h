@@ -65,6 +65,15 @@ enum CPU
     native              // the machine the compiler is being run on
 };
 
+enum JsonFieldFlags
+{
+    none         = 0,
+    compilerInfo = (1 << 0),
+    buildInfo    = (1 << 1),
+    modules      = (1 << 2),
+    semantics    = (1 << 3)
+};
+
 enum CppStdRevision
 {
     CppStdRevisionCpp98 = 199711,
@@ -91,7 +100,7 @@ struct Param
     bool vgc;           // identify gc usage
     bool vfield;        // identify non-mutable field variables
     bool vcomplex;      // identify complex/imaginary type usage
-    char symdebug;      // insert debug symbolic information
+    unsigned char symdebug;  // insert debug symbolic information
     bool symdebugref;   // insert debug information for all referenced types, too
     bool alwaysframe;   // always emit standard stack frame
     bool optimize;      // run optimizer
@@ -254,8 +263,8 @@ struct Global
     Array<const char *> *path;        // Array of char*'s which form the import lookup path
     Array<const char *> *filePath;    // Array of char*'s which form the file import lookup path
 
-    const char *version;     // Compiler version string
-    const char *vendor;      // Compiler backend name
+    DArray<const char> version;     // Compiler version string
+    const char *vendor;             // Compiler backend name
 
     Param params;
     unsigned errors;         // number of errors reported so far
@@ -336,7 +345,7 @@ struct Loc
 
     Loc(const char *filename, unsigned linnum, unsigned charnum);
 
-    const char *toChars() const;
+    const char *toChars(bool showColumns = global.params.showColumns) const;
     bool equals(const Loc& loc) const;
 };
 

@@ -258,6 +258,7 @@ enum STC : long
     scopeinferred       = (1L << 49),   // 'scope' has been inferred and should not be part of mangling
     future              = (1L << 50),   // introducing new base class function
     local               = (1L << 51),   // do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
+    returninferred      = (1L << 52),   // 'return' has been inferred and should not be part of mangling
 
     TYPECTOR = (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild),
     FUNCATTR = (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.property | STC.safe | STC.trusted | STC.system),
@@ -284,20 +285,24 @@ extern (C++) abstract class Declaration : Dsymbol
 {
     Type type;
     Type originalType;  // before semantic analysis
-    StorageClass storage_class;
+    StorageClass storage_class = STC.undefined_;
     Prot protection;
-    LINK linkage;
+    LINK linkage = LINK.default_;
     int inuse;          // used to detect cycles
 
     // overridden symbol with pragma(mangle, "...")
     const(char)[] mangleOverride;
 
-    final extern (D) this(Identifier id)
+    final extern (D) this(Identifier ident)
     {
-        super(id);
-        storage_class = STC.undefined_;
+        super(ident);
         protection = Prot(Prot.Kind.undefined);
-        linkage = LINK.default_;
+    }
+
+    final extern (D) this(const ref Loc loc, Identifier ident)
+    {
+        super(loc, ident);
+        protection = Prot(Prot.Kind.undefined);
     }
 
     override const(char)* kind() const
@@ -561,10 +566,9 @@ extern (C++) final class TupleDeclaration : Declaration
     bool isexp;             // true: expression tuple
     TypeTuple tupletype;    // !=null if this is a type tuple
 
-    extern (D) this(const ref Loc loc, Identifier id, Objects* objects)
+    extern (D) this(const ref Loc loc, Identifier ident, Objects* objects)
     {
-        super(id);
-        this.loc = loc;
+        super(loc, ident);
         this.objects = objects;
     }
 
@@ -691,22 +695,20 @@ extern (C++) final class AliasDeclaration : Declaration
     Dsymbol overnext;   // next in overload list
     Dsymbol _import;    // !=null if unresolved internal alias for selective import
 
-    extern (D) this(const ref Loc loc, Identifier id, Type type)
+    extern (D) this(const ref Loc loc, Identifier ident, Type type)
     {
-        super(id);
+        super(loc, ident);
         //printf("AliasDeclaration(id = '%s', type = %p)\n", id.toChars(), type);
         //printf("type = '%s'\n", type.toChars());
-        this.loc = loc;
         this.type = type;
         assert(type);
     }
 
-    extern (D) this(const ref Loc loc, Identifier id, Dsymbol s)
+    extern (D) this(const ref Loc loc, Identifier ident, Dsymbol s)
     {
-        super(id);
+        super(loc, ident);
         //printf("AliasDeclaration(id = '%s', s = %p)\n", id.toChars(), s);
         assert(s != this);
-        this.loc = loc;
         this.aliassym = s;
         assert(s);
     }
@@ -980,12 +982,12 @@ extern (C++) final class OverDeclaration : Declaration
         if (this == o)
             return true;
 
-        Dsymbol s = isDsymbol(o);
+        auto s = isDsymbol(o);
         if (!s)
             return false;
 
-        OverDeclaration od1 = this;
-        if (OverDeclaration od2 = s.isOverDeclaration())
+        auto od1 = this;
+        if (auto od2 = s.isOverDeclaration())
         {
             return od1.aliassym.equals(od2.aliassym) && od1.hasOverloads == od2.hasOverloads;
         }
@@ -993,11 +995,11 @@ extern (C++) final class OverDeclaration : Declaration
         {
             if (hasOverloads)
                 return true;
-            if (FuncDeclaration fd = s.isFuncDeclaration())
+            if (auto fd = s.isFuncDeclaration())
             {
-                return fd.isUnique() !is null;
+                return fd.isUnique();
             }
-            if (TemplateDeclaration td = s.isTemplateDeclaration())
+            if (auto td = s.isTemplateDeclaration())
             {
                 return td.overnext is null;
             }
@@ -1099,21 +1101,21 @@ extern (C++) class VarDeclaration : Declaration
 
     private bool _isAnonymous;
 
-    final extern (D) this(const ref Loc loc, Type type, Identifier id, Initializer _init, StorageClass storage_class = STC.undefined_)
+    final extern (D) this(const ref Loc loc, Type type, Identifier ident, Initializer _init, StorageClass storage_class = STC.undefined_)
     {
-        if (id is Identifier.anonymous)
+        if (ident is Identifier.anonymous)
         {
-            id = Identifier.generateId("__anonvar");
+            ident = Identifier.generateId("__anonvar");
             _isAnonymous = true;
         }
-        //printf("VarDeclaration('%s')\n", id.toChars());
-        assert(id);
-        super(id);
+        //printf("VarDeclaration('%s')\n", ident.toChars());
+        assert(ident);
+        super(loc, ident);
         debug
         {
             if (!type && !_init)
             {
-                //printf("VarDeclaration('%s')\n", id.toChars());
+                //printf("VarDeclaration('%s')\n", ident.toChars());
                 //*(char*)0=0;
             }
         }
@@ -1121,7 +1123,6 @@ extern (C++) class VarDeclaration : Declaration
         assert(type || _init);
         this.type = type;
         this._init = _init;
-        this.loc = loc;
         ctfeAdrOnStack = -1;
         this.storage_class = storage_class;
         sequenceNumber = ++nextSequenceNumber;
@@ -1300,6 +1301,7 @@ extern (C++) class VarDeclaration : Declaration
             else if (storage_class & (STC.static_ | STC.extern_ | STC.tls | STC.gshared) ||
                 parent.isModule() || parent.isTemplateInstance() || parent.isNspace())
             {
+                assert(!isParameter() && !isResult());
                 isdataseg = 1; // It is in the DataSegment
             }
         }
@@ -1574,8 +1576,7 @@ extern (C++) class VarDeclaration : Declaration
         //printf("\tfdthis = %s\n", fdthis.toChars());
         if (loc.isValid())
         {
-            int lv = fdthis.getLevel(loc, sc, fdv);
-            if (lv == -2) // error
+            if (fdthis.getLevelAndCheck(loc, sc, fdv) == fdthis.LevelError)
                 return true;
         }
 
@@ -1681,8 +1682,7 @@ extern (C++) final class SymbolDeclaration : Declaration
 
     extern (D) this(const ref Loc loc, StructDeclaration dsym)
     {
-        super(dsym.ident);
-        this.loc = loc;
+        super(loc, dsym.ident);
         this.dsym = dsym;
         storage_class |= STC.const_;
     }

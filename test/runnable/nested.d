@@ -1488,6 +1488,19 @@ void test55()
 }
 
 /*******************************************/
+
+enum dg56 = delegate { return 5; };
+
+void test56()
+{
+    auto inner() {
+        return dg56();
+    }
+
+    assert(inner() == 5);
+}
+
+/*******************************************/
 // https://issues.dlang.org/show_bug.cgi?id=4401
 
 void test4401()
@@ -2357,6 +2370,12 @@ enum foo11297 = function (int x)
         xmap!(y => x)(7);
    };
 
+enum goo11297 = delegate (int x)
+   {
+        //int bar(int y) { return x; } xmap!bar(7);
+        xmap!(y => x)(7);
+   };
+
 void xreduce(alias f)()
 {
     f(4);
@@ -2365,6 +2384,7 @@ void xreduce(alias f)()
 void test11297()
 {
     xreduce!foo11297();
+    xreduce!goo11297();
 }
 
 /*******************************************/
@@ -2763,6 +2783,7 @@ int main()
     test53();
     test54();
     test55();
+    test56();
     test4401();
     test7428();
     test4612();

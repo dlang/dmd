@@ -14,8 +14,9 @@
  */
 module dmd.frontend;
 
+import dmd.astcodegen : ASTCodegen;
 import dmd.dmodule : Module;
-import dmd.lexer : DiagnosticReporter;
+import dmd.errors : DiagnosticReporter;
 
 import std.range.primitives : isInputRange, ElementType;
 import std.traits : isNarrowString;
@@ -278,7 +279,7 @@ Params:
 
 Returns: the parsed module object
 */
-Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(
+Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(AST = ASTCodegen)(
     const(char)[] fileName,
     const(char)[] code = null,
     DiagnosticReporter diagnosticReporter = defaultDiagnosticReporter
@@ -289,7 +290,6 @@ in
 }
 body
 {
-    import dmd.astcodegen : ASTCodegen;
     import dmd.globals : Loc, global;
     import dmd.parse : Parser;
     import dmd.identifier : Identifier;
@@ -299,7 +299,7 @@ body
 
     static auto parse(Module m, const(char)[] code, DiagnosticReporter diagnosticReporter)
     {
-        scope p = new Parser!ASTCodegen(m, code, false, diagnosticReporter);
+        scope p = new Parser!AST(m, code, false, diagnosticReporter);
         p.nextToken; // skip the initial token
         auto members = p.parseModule;
         if (p.errors)
@@ -336,9 +336,16 @@ void fullSemantic(Module m)
 
     m.importedFrom = m;
     m.importAll(null);
+
     m.dsymbolSemantic(null);
+    Module.dprogress = 1;
+    Module.runDeferredSemantic();
+
     m.semantic2(null);
+    Module.runDeferredSemantic2();
+
     m.semantic3(null);
+    Module.runDeferredSemantic3();
 }
 
 /**
@@ -350,12 +357,11 @@ Returns:
 string prettyPrint(Module m)
 {
     import dmd.root.outbuffer: OutBuffer;
-    import dmd.hdrgen : HdrGenState, PrettyPrintVisitor;
+    import dmd.hdrgen : HdrGenState, moduleToBuffer2;
 
     OutBuffer buf = { doindent: 1 };
     HdrGenState hgs = { fullDump: 1 };
-    scope PrettyPrintVisitor ppv = new PrettyPrintVisitor(&buf, &hgs);
-    m.accept(ppv);
+    moduleToBuffer2(m, &buf, &hgs);
 
     import std.string : replace, fromStringz;
     import std.exception : assumeUnique;
@@ -367,7 +373,7 @@ string prettyPrint(Module m)
 private DiagnosticReporter defaultDiagnosticReporter()
 {
     import dmd.globals : global;
-    import dmd.lexer : StderrDiagnosticReporter;
+    import dmd.errors : StderrDiagnosticReporter;
 
     return new StderrDiagnosticReporter(global.params.useDeprecated);
 }

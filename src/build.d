@@ -51,7 +51,6 @@ Examples
 Important variables:
 --------------------
 
-HOST_CXX:             Host C++ compiler to use (g++,clang++)
 HOST_DMD:             Host D compiler to use for bootstrapping
 AUTO_BOOTSTRAP:       Enable auto-boostrapping by downloading a stable DMD binary
 MODEL:                Target architecture to build for (32,64) - defaults to the host architecture
@@ -64,10 +63,6 @@ Opt-in build features:
 
 ENABLE_RELEASE:       Optimized release built
 ENABLE_DEBUG:         Add debug instructions and symbols (set if ENABLE_RELEASE isn't set)
-ENABLE_WARNINGS:      Enable C++ build warnings
-ENABLE_PROFILING:     Build dmd with a profiling recorder (C++)
-ENABLE_PGO_USE:       Build dmd with existing profiling information (C++)
-  PGO_DIR:            Directory for profile-guided optimization (PGO) logs
 ENABLE_LTO:           Enable link-time optimizations
 ENABLE_UNITTEST:      Build dmd with unittests (sets ENABLE_COVERAGE=1)
 ENABLE_PROFILE:       Build dmd with a profiling recorder (D)
@@ -154,7 +149,7 @@ auto lexer()
         target: env["G"].buildPath("lexer").libName,
         sources: sources.lexer,
         rebuildSources: configFiles,
-        name: "(DC) D_LEXER_OBJ",
+        name: "(DC) D_LEXER_OBJ %-(%s, %)".format(sources.lexer.map!(e => e.baseName).array),
         command: [
             env["HOST_DMD_RUN"],
             "-of$@",
@@ -206,7 +201,7 @@ auto opTabGen()
         auto args = [env["HOST_DMD_RUN"], opTabSourceFile, "-of" ~ opTabBin];
         args ~= flags["DFLAGS"];
 
-        writefln("(DC) BUILD_OPTABGEN");
+        writefln("(DC) OPTABGEN %s", opTabSourceFile.baseName);
         args.runCanThrow;
 
         writefln("(RUN) OPTABBIN %-(%s, %)", opTabFiles);
@@ -223,65 +218,13 @@ auto opTabGen()
     return dependency;
 }
 
-version(Windows)
-{
-    /// Returns: the dependency that builds msvc-dmd.exe
-    auto buildMsvcDmc()
-    {
-        enum targetName = "msvc-dmc";
-
-        Dependency dependency = {
-            target: env["G"].buildPath(targetName).exeName,
-            sources: [`vcbuild\` ~ targetName],
-            name: "(DC) MSCV-CC " ~ targetName,
-            command: [env["HOST_DMD_RUN"], "-of$@", "$<"]
-        };
-        return dependency;
-    }
-
-    /// Returns: the dependency that builds msvc-lib.exe
-    auto buildMsvcLib()
-    {
-        enum targetName = "msvc-lib";
-
-        Dependency dependency = {
-            target: env["G"].buildPath(targetName).exeName,
-            sources: [`vcbuild\` ~ targetName],
-            name: "(DC) MSCV-LIB " ~ targetName,
-            command: [env["HOST_DMD_RUN"], "-of$@", "$<"]
-        };
-        return dependency;
-    }
-}
-
-/**
-Gets the dependency that generates the given object file from the given source file
-
-Params:
-    obj      = the object file that the dependency should generate
-    fileName = the source file to build, generating the object file
-Returns:
-    the dependency that generates the given object file from the given source file
-*/
-auto buildCXX(string obj, string fileName)
-{
-    Dependency dependency = {
-        target: obj,
-        sources: [fileName],
-        rebuildSources: sources.backendC ~ configFiles,
-        name: "(CC) BACK_OBJS %s".format(fileName),
-        command: [env["HOST_CXX"], "-c", "-o$@"].chain(flags["CXXFLAGS"], flags["BACK_FLAGS"], "$<".only).array
-    };
-    return dependency;
-}
-
 /// Returns: the dependencies that build the D backend
 auto dBackend()
 {
     Dependency dependency = {
         target: env["G"].buildPath("dbackend").objName,
         sources: sources.backend,
-        name: "(DC) D_BACK_OBJS %-(%s %)".format(sources.backend),
+        name: "(DC) D_BACK_OBJS %-(%s, %)".format(sources.backend.map!(e => e.baseName).array),
         command: [
             env["HOST_DMD_RUN"],
             "-c",
@@ -292,31 +235,21 @@ auto dBackend()
     return dependency;
 }
 
-/// Returns: the dependencies that build the C++ backend
-auto cxxBackend()
-{
-    Dependency[] dependencies;
-    foreach (obj; sources.backendObjects)
-        dependencies ~= buildCXX(obj, env["C"].buildPath(obj.baseName.stripExtension ~ ".c"));
-
-    return dependencies;
-}
-
 /// Execute the sub-dependencies of the backend and pack everything into one object file
 auto buildBackend()
 {
     opTabGen.run;
 
-    Dependency[] dependencies = cxxBackend();
-    dependencies ~= dBackend;
+    Dependency[] dependencies = [dBackend];
     foreach (dependency; dependencies.parallel(1))
         dependency.run;
 
     // Pack the backend
     Dependency dependency = {
-        sources: sources.backendObjects.chain(env["G"].buildPath("dbackend").objName.only).array,
+        name: "(LIB) %s".format("BACKEND".libName),
+        sources: [ env["G"].buildPath("dbackend").objName ],
         target: env["G"].buildPath("backend").libName,
-        command: [env["AR"], "rcs", "$@", "$<"],
+        command: [env["HOST_DMD_RUN"], env["MODEL_FLAG"], "-lib", "-of$@", "$<"]
     };
     dependency.run;
     return dependency;
@@ -363,16 +296,6 @@ Params:
 */
 auto buildDMD(string[] extraFlags...)
 {
-    version(Windows)
-    {
-        immutable model = detectModel;
-        if (model == "64")
-        {
-            foreach (dependency; [buildMsvcDmc, buildMsvcLib].parallel(1))
-                dependency.run;
-        }
-    }
-
     // The string files are required by most targets
     Dependency[] dependencies = buildStringFiles();
     foreach (dependency; dependencies.parallel(1))
@@ -389,7 +312,7 @@ auto buildDMD(string[] extraFlags...)
         // newdelete.o + lexer.a + backend.a
         sources: sources.dmd.chain(sources.root, dependencies[0].targets, backend.targets).array,
         target: env["DMD_PATH"],
-        name: "(DC) MAIN_DMD_BUILD",
+        name: "(DC) MAIN_DMD_BUILD %-(%s, %)".format(sources.dmd.map!(e => e.baseName).array),
         command: [
             env["HOST_DMD_RUN"],
             "-of$@",
@@ -522,10 +445,8 @@ void parseEnvironment()
     env.getDefault("GIT_HOME", "https://github.com/dlang");
     env.getDefault("SYSCONFDIR", "/etc");
     env.getDefault("TMP", tempDir);
-    env.getDefault("PGO_DIR", srcDir.buildPath("pgo"));
     auto d = env.getDefault("D", srcDir.buildPath("dmd"));
     env.getDefault("C", d.buildPath("backend"));
-    env.getDefault("TK", d.buildPath("tk"));
     env.getDefault("ROOT", d.buildPath("root"));
     env.getDefault("EX", d.buildPath("examples"));
     auto generated = env.getDefault("GENERATED", srcDir.dirName.buildPath("generated"));
@@ -565,23 +486,6 @@ void parseEnvironment()
         stderr.writefln("No DMD compiler is installed. Try AUTO_BOOTSTRAP=1 or manually set the D host compiler with HOST_DMD");
         exit(1);
     }
-
-    version(Windows)
-    {
-        const vswhere = getHostVSWhere(env["G"]);
-        const vcBinDir = getHostMSVCBinDir(model, vswhere);
-
-        // environment variable `MSVC_CC` will be read by `msvc-dmd.exe`
-        env.getDefault("MSVC_CC", vcBinDir.buildPath("cl.exe"));
-
-        // environment variable `MSVC_AR` will be read by `msvc-lib.exe`
-        env.getDefault("MSVC_AR", vcBinDir.buildPath("lib.exe"));
-    }
-
-    env.getDefault("HOST_CXX", getHostCXX);
-    env.getDefault("CXX_KIND", getHostCXXKind);
-
-    env.getDefault("AR", "ar");
 }
 
 /// Checks the environment variables and flags
@@ -603,67 +507,11 @@ void processEnvironment()
 
     env.getDefault("ENABLE_WARNINGS", "0");
     string[] warnings;
-    if (env["ENABLE_WARNINGS"] != "0")
-    {
-        warnings = ["-Wall", "-Wextra", "-Werror",
-            "-Wno-attributes",
-            "-Wno-char-subscripts",
-            "-Wno-deprecated",
-            "-Wno-empty-body",
-            "-Wno-format",
-            "-Wno-missing-braces",
-            "-Wno-missing-field-initializers",
-            "-Wno-overloaded-virtual",
-            "-Wno-parentheses",
-            "-Wno-reorder",
-            "-Wno-return-type",
-            "-Wno-sign-compare",
-            "-Wno-strict-aliasing",
-            "-Wno-switch",
-            "-Wno-type-limits",
-            "-Wno-unknown-pragmas",
-            "-Wno-unused-function",
-            "-Wno-unused-label",
-            "-Wno-unused-parameter",
-            "-Wno-unused-value",
-            "-Wno-unused-variable",
-        ];
-        if (env["CXX_KIND"] == "g++")
-            warnings ~= [
-                "-Wno-logical-op",
-                "-Wno-narrowing",
-                "-Wno-unused-but-set-variable",
-                "-Wno-uninitialized",
-                "-Wno-class-memaccess",
-                "-Wno-implicit-fallthrough",
-            ];
-    }
-    else
-    {
-        // default warnings
-        warnings = ["-Wno-deprecated", "-Wstrict-aliasing", "-Werror"];
-        if (env["CXX_KIND"] == "clang++")
-            warnings ~= "-Wno-logical-op-parentheses";
-    }
 
-    auto targetCPU = "X86";
-    auto cxxFlags = warnings;
-    cxxFlags ~= [
-        "-fno-exceptions", "-fno-rtti",
-        "-D__pascal=", "-DMARS=1", "-DTARGET_"~os.toUpper~"=1",
-        "-DDM_TARGET_CPU_"~targetCPU~"=1",
-        env["MODEL_FLAG"],
-        env["PIC_FLAG"],
-    ];
-    if (env["CXX_KIND"] == "g++")
-        cxxFlags ~= ["-std=gnu++98"];
-    if (env["CXX_KIND"] == "clang++")
-        cxxFlags ~= ["-xc++"];
-
-    // TODO: allow adding new flags from the environment
+      // TODO: allow adding new flags from the environment
     string[] dflags = ["-version=MARS", "-w", "-de", "-dip25", env["PIC_FLAG"], env["MODEL_FLAG"], "-J"~env["G"]];
 
-    flags["BACK_FLAGS"] = ["-I"~env["ROOT"], "-I"~env["TK"], "-I"~env["C"], "-I"~env["G"], "-I"~env["D"], "-DDMDV2=1"];
+    flags["BACK_FLAGS"] = ["-I"~env["ROOT"], "-I"~env["C"], "-I"~env["G"], "-I"~env["D"], "-DDMDV2=1"];
 
     // TODO: add support for dObjc
     auto dObjc = false;
@@ -672,12 +520,10 @@ void processEnvironment()
 
     if (env.getDefault("ENABLE_DEBUG", "0") != "0")
     {
-        cxxFlags ~= ["-g", "-g3", "-DDEBUG=1", "-DUNITTEST"];
         dflags ~= ["-g", "-debug"];
     }
     if (env.getDefault("ENABLE_RELEASE", "0") != "0")
     {
-        cxxFlags ~= ["-O2"];
         dflags ~= ["-O", "-release", "-inline"];
     }
     else
@@ -686,23 +532,9 @@ void processEnvironment()
         if (!dflags.canFind("-g"))
             dflags ~= ["-g"];
     }
-    if (env.getDefault("ENABLE_PROFILING", "0") != "0")
-    {
-        cxxFlags ~= ["-pg", "-fprofile-arcs", "-ftest-coverage"];
-    }
-    if (env.getDefault("ENABLE_PGO_GENERATE", "0") != "0")
-    {
-        enforce("PGO_DIR" in env, "No PGO_DIR variable set.");
-        cxxFlags ~= ["-fprofile-generate="~env["PGO_DIR"]];
-    }
-    if (env.getDefault("ENABLE_PGO_USE", "0") != "0")
-    {
-        enforce("PGO_DIR" in env, "No PGO_DIR variable set.");
-        cxxFlags ~= ["-fprofile-use="~env["PGO_DIR"], "-freorder-blocks-and-partition"];
-    }
     if (env.getDefault("ENABLE_LTO", "0") != "0")
     {
-        cxxFlags ~= ["-flto"];
+        dflags ~= ["-flto=full"];
     }
     if (env.getDefault("ENABLE_UNITTEST", "0") != "0")
     {
@@ -714,15 +546,13 @@ void processEnvironment()
     }
     if (env.getDefault("ENABLE_COVERAGE", "0") != "0")
     {
-        cxxFlags ~= ["--coverage"];
         dflags ~= ["-cov", "-L-lgcov"];
     }
     if (env.getDefault("ENABLE_SANITIZERS", "0") != "0")
     {
-        cxxFlags ~= ["-fsanitize="~env["ENABLE_SANITIZERS"]];
+        dflags ~= ["-fsanitize="~env["ENABLE_SANITIZERS"]];
     }
     flags["DFLAGS"] ~= dflags;
-    flags["CXXFLAGS"] ~= cxxFlags;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -735,7 +565,7 @@ auto sourceFiles()
     struct Sources
     {
         string[] frontend, lexer, root, glue, dmd, backend;
-        string[] backendHeaders, backendC, backendObjects;
+        string[] backendHeaders, backendObjects;
     }
     string targetCH;
     string[] targetObjs;
@@ -787,23 +617,14 @@ auto sourceFiles()
         backend:
             dirEntries(env["C"], "*.d", SpanMode.shallow)
                 .map!(e => e.name)
-                .filter!(e => !e.canFind("dt.d", "obj.d"))
-                .array ~ buildPath(env["C"], "elfobj.d"),
+                .filter!(e => !e.baseName.among("dt.d", "obj.d", "optabgen.d"))
+                .array,
         backendHeaders: [
             // can't be built with -betterC
             "dt",
             "obj",
         ].map!(e => env["C"].buildPath(e ~ ".d")).array,
-        backendC:
-            // all backend files in C
-            ["fp", "strtold", "tk"]
-                .map!(a => env["G"].buildPath(a).objName)
-                .array,
-        backendObjects: ["fp", "strtold", "tk"]
-                .map!(a => env["G"].buildPath(a).objName)
-                .array,
     };
-    sources.backendC.writeln;
     sources.dmd = sources.frontend ~ sources.backendHeaders;
 
     return sources;
@@ -894,39 +715,6 @@ auto detectModel()
     throw new Exception(`Cannot figure 32/64 model from "` ~ uname ~ `"`);
 }
 
-/// Returns: the command for querying or invoking the host C++ compiler
-auto getHostCXX()
-{
-    version(Posix)
-        return "c++";
-    else version(Windows)
-    {
-        immutable model = detectModel;
-        if (model == "32")
-            return "dmc";
-        else if (model == "64")
-            return buildMsvcDmc.target;
-        else
-            assert(false, `Unknown model "` ~ model ~ `"`);
-    }
-    else
-        static assert(false, "Unrecognized or unsupported OS.");
-}
-
-/// Returns: a string describing the type of host C++ compiler
-auto getHostCXXKind()
-{
-    version(Posix)
-    {
-        auto cxxVersion = execute([getHostCXX, "--version"]).output;
-        return !cxxVersion.find("gcc", "Free Software")[0].empty ? "g++" : "clang++";
-    }
-    else version(Windows)
-        return "dmc";
-    else
-        static assert(false, "Unrecognized or unsupported OS.");
-}
-
 /**
 Gets the absolute path of the host's dmd executable
 
@@ -942,76 +730,6 @@ auto getHostDMDPath(string hostDmd)
         return ["where", hostDmd].execute.output;
     else
         static assert(false, "Unrecognized or unsupported OS.");
-}
-
-version(Windows)
-{
-    /**
-    Gets the absolute path to the host's vshwere executable
-
-    Params:
-        outputFolder = this build's output folder
-    Returns: a string that is the absolute path of the host's vswhere executable
-    */
-    auto getHostVSWhere(string outputFolder)
-    {
-        // Check if vswhere.exe can be found in the host's PATH
-        const where = ["where", "vswhere"].execute;
-        if (where.status == 0)
-            return where.output;
-
-        // Check if vswhere.exe is in the standard location
-        const standardPath = ["cmd", "/C", "echo", `%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe`]
-            .execute.output       // Execute command and return standard output
-            .replace(`"`, "")     // Remove quotes surrounding the path
-            .replace("\r\n", ""); // Remove trailing newline characters
-        if (standardPath.exists)
-            return standardPath;
-
-        // Check if it has already been dowloaded to this build's output folder
-        const outputPath = outputFolder.buildPath("vswhere").exeName;
-        if (outputPath.exists)
-            return outputPath;
-
-        // try to download it
-        if (download(outputPath, "https://github.com/Microsoft/vswhere/releases/download/2.5.2/vswhere.exe"))
-            return outputPath;
-
-        // Could not find or obtain vswhere.exe
-        throw new Exception("Could not obtain vswhere.exe. Consider downloading it from https://github.com/Microsoft/vswhere and placing it in your PATH");
-    }
-
-    /**
-    Gets the absolute path to the host's MSVC bin directory
-
-    Params:
-        model   = a string describing the host's model, "64" or "32"
-        vswhere = a string that is the path to the vswhere executable
-    Returns: a string that is the absolute path to the host's MSVC bin directory
-    */
-    auto getHostMSVCBinDir(string model, string vswhere)
-    {
-        // See https://github.com/Microsoft/vswhere/wiki/Find-VC
-
-        const vsInstallPath = [vswhere, "-latest", "-products", "*", "-requires",
-            "Microsoft.VisualStudio.Component.VC.Tools.x86.x64", "-property", "installationPath"].execute.output
-            .replace("\r\n", "");
-
-        if (!vsInstallPath.exists)
-            throw new Exception("Could not locate the Visual Studio installation directory");
-
-        const vcVersionFile = vsInstallPath.buildPath("VC", "Auxiliary", "Build", "Microsoft.VCToolsVersion.default.txt");
-        if (!vcVersionFile.exists)
-            throw new Exception(`Could not locate the Visual C++ version file "%s"`.format(vcVersionFile));
-
-        const vcVersion = vcVersionFile.readText().replace("\r\n", "");
-        const vcArch = model == "64" ? "x64" : "x86";
-        const vcPath = vsInstallPath.buildPath("VC", "Tools", "MSVC", vcVersion, "bin", "Host" ~ vcArch, vcArch);
-        if (!vcPath.exists)
-            throw new Exception("Could not locate the Visual C++ installation directory");
-
-        return vcPath;
-    }
 }
 
 /**
@@ -1049,7 +767,7 @@ Params:
 auto libName(T)(T name)
 {
     version(Windows)
-        return name ~ ".dll";
+        return name ~ ".lib";
     return name ~ ".a";
 }
 
@@ -1237,6 +955,7 @@ Params:
 */
 auto run(T)(T args)
 {
+    args = args.filter!(a => !a.empty).array;
     log("Run: %s", args.join(" "));
     return execute(args, null, Config.none, size_t.max, srcDir);
 }

@@ -42,7 +42,7 @@ import dmd.backend.dt;
 import dmd.backend.dvec;
 import dmd.backend.el;
 import dmd.backend.global;
-import dmd.backend.memh;
+import dmd.backend.mem;
 import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;

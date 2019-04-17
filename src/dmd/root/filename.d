@@ -77,7 +77,8 @@ nothrow:
 
         version (Windows)
         {
-            return Port.memicmp(name1.ptr, name2.ptr, name1.length) == 0;
+            return name1.ptr == name2.ptr ||
+                   Port.memicmp(name1.ptr, name2.ptr, name1.length) == 0;
         }
         else
         {
@@ -710,16 +711,16 @@ nothrow:
                     // exists and name is *really* a "child" of path
                     if (exists(cname) && strncmp(cpath, cname, strlen(cpath)) == 0)
                     {
-                        .free(cast(void*)cpath);
+                        mem.xfree(cast(void*)cpath);
                         const(char)* p = mem.xstrdup(cname);
-                        .free(cast(void*)cname);
+                        mem.xfree(cast(void*)cname);
                         return p;
                     }
                 cont:
                     if (cpath)
-                        .free(cast(void*)cpath);
+                        mem.xfree(cast(void*)cpath);
                     if (cname)
-                        .free(cast(void*)cname);
+                        mem.xfree(cast(void*)cname);
                 }
             }
             return null;
@@ -1130,80 +1131,5 @@ version(Windows)
         ret[$ - 1] = '\0';
 
         return F(ret[0 .. $ - 1]);
-    }
-}
-
-version (Posix)
-{
-    /**
-    Takes a callable F and applies it to the result of converting
-    `fileName` to an absolute file path (char*)
-
-    Params:
-        fileName = The file name to be converted to an absolute path
-    Returns: Whatever `F` returns.
-    */
-    auto absPathThen(alias F)(const(char)[] fileName)
-    {
-        auto absPath = FileName.canonicalName(fileName);
-        scope(exit) mem.xfree(cast(void*)absPath.ptr);
-        return F(cast(char[])absPath);
-    }
-}
-else
-{
-    /**
-    Takes a callable F and applies it to the result of converting
-    `fileName` to an absolute file path (char*)
-
-    Params:
-        fileName = The file name to be converted to an absolute path
-    Returns: Whatever `F` returns.
-     */
-    auto absPathThen(alias F)(const(char)[] fileName)
-    {
-        import core.sys.windows.winnls: WideCharToMultiByte;
-        import core.stdc.stdlib: malloc, free;
-
-        return fileName.extendedPathThen!((wpath) {
-                // first find out how long the buffer must be to store the result
-                const length = WideCharToMultiByte(0,    // code page
-                                                   0,    // flags
-                                                   &wpath[0],
-                                                   -1,   // wpath len, -1 is null terminated
-                                                   null, // multibyte output ptr
-                                                   0,    // multibyte output length
-                                                   null, // default char
-                                                   null, // if used default char
-                );
-
-                if (!length) return F((char[]).init);
-
-                char[1024] buf = void;
-
-                scope multibyteBuf = length > buf.length
-                    ? (cast(char*)malloc(length * char.sizeof))[0 .. length]
-                    : buf[0 .. length];
-                scope (exit)
-                {
-                    if (multibyteBuf.ptr != buf.ptr)
-                        free(multibyteBuf.ptr);
-                }
-
-                // now store the result
-                const length2 = WideCharToMultiByte(0,    // code page
-                                                    0,    // flags
-                                                    &wpath[0],
-                                                    -1,   // wpath len, -1 is null terminated
-                                                    multibyteBuf.ptr,
-                                                    length,
-                                                    null, // default char
-                                                    null, // if used default char
-                );
-
-                assert(length == length2);
-
-                return F(multibyteBuf[0 .. length - 1]);
-        });
     }
 }

@@ -87,7 +87,7 @@ public:
         buf.writeByte('\"');
     }
 
-    extern(D) void stringPart(const(char)[] s)
+    extern(D) void stringPart(const char[] s)
     {
         foreach (char c; s)
         {
@@ -131,7 +131,7 @@ public:
     /*********************************
      * Encode string into buf, and wrap it in double quotes.
      */
-    extern(D) void value(const(char)[] s)
+    extern(D) void value(const char[] s)
     {
         stringStart();
         stringPart(s);
@@ -156,7 +156,7 @@ public:
     /*********************************
      * Item is an intented value and a comma, for use in arrays
      */
-    extern(D) void item(const(char)[] s)
+    extern(D) void item(const char[] s)
     {
         indent();
         value(s);
@@ -224,7 +224,7 @@ public:
     }
 
     // Json object property functions
-    extern(D) void propertyStart(const(char)[] name)
+    extern(D) void propertyStart(const char[] name)
     {
         indent();
         value(name);
@@ -238,7 +238,7 @@ public:
      name = the name of the object property
      s = the string value of the object property
     */
-    extern(D) void property(const(char)[] name, const(char)[] s)
+    extern(D) void property(const char[] name, const char[] s)
     {
         if (s is null)
             return;
@@ -254,7 +254,7 @@ public:
      name = the name of the object property
      s = the string value of the object property
     */
-    extern(D) void requiredProperty(const(char)[] name, const(char)[] s)
+    extern(D) void requiredProperty(const char[] name, const char[] s)
     {
         propertyStart(name);
         if (s is null)
@@ -264,21 +264,21 @@ public:
         comma();
     }
 
-    extern(D) void property(const(char)[] name, int i)
+    extern(D) void property(const char[] name, int i)
     {
         propertyStart(name);
         value(i);
         comma();
     }
 
-    extern(D) void propertyBool(const(char)[] name, const bool b)
+    extern(D) void propertyBool(const char[] name, const bool b)
     {
         propertyStart(name);
         valueBool(b);
         comma();
     }
 
-    extern(D) void property(const(char)[] name, TRUST trust)
+    extern(D) void property(const char[] name, TRUST trust)
     {
         final switch (trust)
         {
@@ -298,7 +298,7 @@ public:
         }
     }
 
-    extern(D) void property(const(char)[] name, PURE purity)
+    extern(D) void property(const char[] name, PURE purity)
     {
         final switch (purity)
         {
@@ -321,7 +321,7 @@ public:
         }
     }
 
-    extern(D) void property(const(char)[] name, const LINK linkage)
+    extern(D) void property(const char[] name, const LINK linkage)
     {
         final switch (linkage)
         {
@@ -355,7 +355,7 @@ public:
         }
     }
 
-    extern(D) void propertyStorageClass(const(char)[] name, StorageClass stc)
+    extern(D) void propertyStorageClass(const char[] name, StorageClass stc)
     {
         stc &= STCStorageClass;
         if (stc)
@@ -372,9 +372,9 @@ public:
         }
     }
 
-    extern(D) void property(const(char)[] linename, const(char)[] charname, Loc* loc)
+    extern(D) void property(const char[] linename, const char[] charname, const ref Loc loc)
     {
-        if (loc)
+        if (loc.isValid())
         {
             if (auto filename = loc.filename.toDString)
             {
@@ -393,7 +393,7 @@ public:
         }
     }
 
-    extern(D) void property(const(char)[] name, Type type)
+    extern(D) void property(const char[] name, Type type)
     {
         if (type)
         {
@@ -401,7 +401,7 @@ public:
         }
     }
 
-    extern(D) void property(const(char)[] name, const(char)[] deconame, Type type)
+    extern(D) void property(const char[] name, const char[] deconame, Type type)
     {
         if (type)
         {
@@ -412,7 +412,7 @@ public:
         }
     }
 
-    extern(D) void property(const(char)[] name, Parameters* parameters)
+    extern(D) void property(const char[] name, Parameters* parameters)
     {
         if (parameters is null || parameters.dim == 0)
             return;
@@ -454,7 +454,7 @@ public:
                 property("value", em.origValue.toString());
         }
         property("comment", s.comment.toDString);
-        property("line", "char", &s.loc);
+        property("line", "char", s.loc);
     }
 
     void jsonProperties(Declaration d)
@@ -527,7 +527,7 @@ public:
         {
             for (size_t i = 0; i < s.packages.dim; i++)
             {
-                Identifier pid = (*s.packages)[i];
+                const pid = (*s.packages)[i];
                 stringPart(pid.toString());
                 buf.writeByte('.');
             }
@@ -537,7 +537,7 @@ public:
         comma();
         property("kind", s.kind.toDString);
         property("comment", s.comment.toDString);
-        property("line", "char", &s.loc);
+        property("line", "char", s.loc);
         if (s.prot().kind != Prot.Kind.public_)
             property("protection", protectionToString(s.prot().kind));
         if (s.aliasId)
@@ -561,8 +561,8 @@ public:
             objectStart();
             for (size_t i = 0; i < s.aliases.dim; i++)
             {
-                Identifier name = s.names[i];
-                Identifier _alias = s.aliases[i];
+                const name = s.names[i];
+                const _alias = s.aliases[i];
                 if (_alias)
                     property(_alias.toString(), name.toString());
             }
@@ -669,7 +669,7 @@ public:
         TypeFunction tf = cast(TypeFunction)d.type;
         if (tf && tf.ty == Tfunction)
             property("parameters", tf.parameterList.parameters);
-        property("endline", "endchar", &d.endloc);
+        property("endline", "endchar", d.endloc);
         if (d.foverrides.dim)
         {
             propertyStart("overrides");
@@ -707,8 +707,8 @@ public:
             TemplateParameter s = (*d.parameters)[i];
             objectStart();
             property("name", s.ident.toString());
-            TemplateTypeParameter type = s.isTemplateTypeParameter();
-            if (type)
+
+            if (auto type = s.isTemplateTypeParameter())
             {
                 if (s.isTemplateThisParameter())
                     property("kind", "this");
@@ -717,8 +717,8 @@ public:
                 property("type", "deco", type.specType);
                 property("default", "defaultDeco", type.defaultType);
             }
-            TemplateValueParameter value = s.isTemplateValueParameter();
-            if (value)
+
+            if (auto value = s.isTemplateValueParameter())
             {
                 property("kind", "value");
                 property("type", "deco", value.valType);
@@ -727,8 +727,8 @@ public:
                 if (value.defaultValue)
                     property("defaultValue", value.defaultValue.toString());
             }
-            TemplateAliasParameter _alias = s.isTemplateAliasParameter();
-            if (_alias)
+
+            if (auto _alias = s.isTemplateAliasParameter())
             {
                 property("kind", "alias");
                 property("type", "deco", _alias.specType);
@@ -737,11 +737,12 @@ public:
                 if (_alias.defaultAlias)
                     property("defaultAlias", _alias.defaultAlias.toString());
             }
-            TemplateTupleParameter tuple = s.isTemplateTupleParameter();
-            if (tuple)
+
+            if (auto tuple = s.isTemplateTupleParameter())
             {
                 property("kind", "tuple");
             }
+
             objectEnd();
         }
         arrayEnd();
@@ -852,7 +853,7 @@ public:
     {
         objectStart();
         requiredProperty("vendor", global.vendor.toDString);
-        requiredProperty("version", global._version.toDString);
+        requiredProperty("version", global._version);
         property("__VERSION__", global.versionNumber());
         requiredProperty("interface", determineCompilerInterface());
         property("size_t", size_t.sizeof);
@@ -1071,7 +1072,7 @@ Params:
 Returns: JsonFieldFlags.none on error, otherwise the JsonFieldFlags value
          corresponding to the given fieldName.
 */
-JsonFieldFlags tryParseJsonField(const(char)* fieldName)
+extern (C++) JsonFieldFlags tryParseJsonField(const(char)* fieldName)
 {
     auto fieldNameString = fieldName[0 .. strlen(fieldName)];
     foreach (idx, enumName; __traits(allMembers, JsonFieldFlags))

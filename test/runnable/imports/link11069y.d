@@ -1,3 +1,4 @@
+module imports.link11069y;
 import std.traits;
 
 void readWriteVariable(T)(ref T data)

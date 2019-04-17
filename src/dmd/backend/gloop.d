@@ -39,7 +39,7 @@ import dmd.backend.type;
 
 import dmd.backend.dlist;
 import dmd.backend.dvec;
-import dmd.backend.memh;
+import dmd.backend.mem;
 
 char symbol_isintab(Symbol *s) { return sytab[s.Sclass] & SCSS; }
 
@@ -1398,7 +1398,7 @@ void fillInDNunambig(vec_t v, elem *e)
 extern (C) {
 void updaterd(elem *n,vec_t GEN,vec_t KILL)
 {
-    uint op = n.Eoper;
+    const op = n.Eoper;
     elem *t;
 
     assert(OTdef(op));
@@ -1584,7 +1584,7 @@ Lnextlis:
     //if (isLI(n)) { printf("movelis("); WReqn(n); printf(")\n"); }
     assert(l && n);
     elem_debug(n);
-    const uint op = n.Eoper;
+    const op = n.Eoper;
     switch (op)
     {
         case OPvar:
@@ -2445,7 +2445,6 @@ private void findivfams(loop *l)
 
 private void ivfamelems(Iv *biv,elem **pn)
 {
-    uint op;
     tym_t ty,c2ty;
     elem *n;
     elem *n1;
@@ -2454,7 +2453,7 @@ private void ivfamelems(Iv *biv,elem **pn)
     assert(pn);
     n = *pn;
     assert(biv && n);
-    op = n.Eoper;
+    const op = n.Eoper;
     if (OTunary(op))
     {
        ivfamelems(biv,&n.EV.E1);
@@ -3631,7 +3630,7 @@ private void elimspecwalk(elem **pn)
                 !el_sideeffect(e1.EV.E1))
             {
                 elem *e;
-                int op;
+                OPER op;
 
                 debug if (debugc)
                 {   printf("4rewriting ("); WReqn(n); printf(")\n"); }
@@ -3696,7 +3695,7 @@ struct UnrollWalker
     void walker(elem *e)
     {
         assert(e);
-        uint op = e.Eoper;
+        const op = e.Eoper;
         if (ERTOL(e))
         {
             if (e.Edef != defnum)

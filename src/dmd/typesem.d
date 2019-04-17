@@ -165,10 +165,17 @@ private void resolveTupleIndex(const ref Loc loc, Scope* sc, Dsymbol s, Expressi
 
 /*************************************
  * Takes an array of Identifiers and figures out if
- * it represents a Type or an Expression.
- * Output:
- *      if expression, *pe is set
- *      if type, *pt is set
+ * it represents a Type, Expression, or Dsymbol.
+ * Params:
+ *      mt = array of identifiers
+ *      loc = location for error messages
+ *      sc = context
+ *      s = symbol to start search at
+ *      scopesym = unused
+ *      pe = set if expression
+ *      pt = set if type
+ *      ps = set if symbol
+ *      typeid = set if in TypeidExpression https://dlang.org/spec/expression.html#TypeidExpression
  */
 private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymbol s, Dsymbol scopesym,
     Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
@@ -237,9 +244,26 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
                 *pt = Type.terror;
                 return;
             }
+
+            void helper3()
+            {
+                Expression e;
+                VarDeclaration v = s.isVarDeclaration();
+                FuncDeclaration f = s.isFuncDeclaration();
+                if (intypeid || !v && !f)
+                    e = symbolToExp(s, loc, sc, true);
+                else
+                    e = new VarExp(loc, s.isDeclaration(), true);
+
+                e = typeToExpressionHelper(mt, e, i);
+                e = e.expressionSemantic(sc);
+                resolveExp(e, pt, pe, ps);
+            }
+
             //printf("\t3: s = %p %s %s, sm = %p\n", s, s.kind(), s.toChars(), sm);
             if (intypeid && !t && sm && sm.needThis())
-                goto L3;
+                return helper3();
+
             if (VarDeclaration v = s.isVarDeclaration())
             {
                 if (v.storage_class & (STC.const_ | STC.immutable_ | STC.manifest) ||
@@ -248,7 +272,7 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
                     // https://issues.dlang.org/show_bug.cgi?id=13087
                     // this.field is not constant always
                     if (!v.isThisDeclaration())
-                        goto L3;
+                        return helper3();
                 }
             }
             if (!sm)
@@ -259,12 +283,12 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
                     {
                         t = s.isDeclaration().type;
                         if (!t && s.isTupleDeclaration()) // expression tuple?
-                            goto L3;
+                            return helper3();
                     }
                     else if (s.isTemplateInstance() ||
                              s.isImport() || s.isPackage() || s.isModule())
                     {
-                        goto L3;
+                        return helper3();
                     }
                 }
                 if (t)
@@ -272,32 +296,12 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
                     sm = t.toDsymbol(sc);
                     if (sm && id.dyncast() == DYNCAST.identifier)
                     {
-                        sm = sm.search(loc, cast(Identifier)id /*, IgnorePrivateImports*/);
-                        // Deprecated in 2018-01.
-                        // Change to error by deleting the deprecation line and uncommenting
-                        // the above parameter. The error will be issued in Type.getProperty.
-                        // The deprecation is highlighted here to avoid a redundant call to
-                        // ScopeDsymbol.search.
-                        // @@@DEPRECATED_2019-01@@@.
-                        if (sm)
-                        {
-                            .deprecation(loc, "`%s` is not visible from module `%s`", sm.toPrettyChars(), sc._module.toChars());
-                            goto L2;
-                        }
+                        sm = sm.search(loc, cast(Identifier)id, IgnorePrivateImports);
+                        if (!sm)
+                            return helper3();
                     }
-                L3:
-                    Expression e;
-                    VarDeclaration v = s.isVarDeclaration();
-                    FuncDeclaration f = s.isFuncDeclaration();
-                    if (intypeid || !v && !f)
-                        e = symbolToExp(s, loc, sc, true);
                     else
-                        e = new VarExp(loc, s.isDeclaration(), true);
-
-                    e = typeToExpressionHelper(mt, e, i);
-                    e = e.expressionSemantic(sc);
-                    resolveExp(e, pt, pe, ps);
-                    return;
+                        return helper3();
                 }
                 else
                 {
@@ -316,10 +320,9 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
                             error(loc, "identifier `%s` of `%s` is not defined", id.toChars(), mt.toChars());
                     }
                     *pe = new ErrorExp();
+                    return;
                 }
-                return;
             }
-        L2:
             s = sm.toAlias();
         }
 
@@ -373,16 +376,18 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
             }
         }
 
-    L1:
-        Type t = s.getType();
-        if (!t)
+        Type t;
+        while (1)
         {
+            t = s.getType();
+            if (t)
+                break;
             // If the symbol is an import, try looking inside the import
             if (Import si = s.isImport())
             {
                 s = si.search(loc, s.ident);
                 if (s && s != si)
-                    goto L1;
+                    continue;
                 s = si;
             }
             *ps = s;
@@ -670,14 +675,8 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
 
         case 3:
             // invalid size
-            if (sz == 32)
-                deprecation(loc, "%d byte vector types are only supported with -mcpu=avx", sz, mtype.toChars());
-            else
-            {
-                .error(loc, "%d byte vector type `%s` is not supported on this platform", sz, mtype.toChars());
-                return error();
-            }
-            break;
+            .error(loc, "%d byte vector type `%s` is not supported on this platform", sz, mtype.toChars());
+            return error();
         }
         return merge(mtype);
     }
@@ -1142,6 +1141,8 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
             tf.isref = true;
         if (sc.stc & STC.return_)
             tf.isreturn = true;
+        if (sc.stc & STC.returninferred)
+            tf.isreturninferred = true;
         if (sc.stc & STC.scope_)
             tf.isscope = true;
         if (sc.stc & STC.scopeinferred)
@@ -1284,7 +1285,8 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                     }
                     else
                     {
-                        fparam.storageClass |= STC.scope_;        // 'return' implies 'scope'
+                        if (!(fparam.storageClass & STC.scope_))
+                            fparam.storageClass |= STC.scope_ | STC.scopeinferred; // 'return' implies 'scope'
                         if (tf.isref)
                         {
                         }
@@ -1318,8 +1320,16 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
 
                 if (fparam.storageClass & STC.scope_ && !fparam.type.hasPointers() && fparam.type.ty != Ttuple)
                 {
+                    /*     X foo(ref return scope X) => Ref-ReturnScope
+                     * ref X foo(ref return scope X) => ReturnRef-Scope
+                     * But X has no pointers, we don't need the scope part, so:
+                     *     X foo(ref return scope X) => Ref
+                     * ref X foo(ref return scope X) => ReturnRef
+                     * Constructors are treated as if they are being returned through the hidden parameter,
+                     * which is by ref, and the ref there is ignored.
+                     */
                     fparam.storageClass &= ~STC.scope_;
-                    if (!(fparam.storageClass & STC.ref_))
+                    if (!tf.isref || (sc.flags & SCOPE.ctor))
                         fparam.storageClass &= ~STC.return_;
                 }
 
@@ -1628,28 +1638,49 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
             return mtype;
         }
 
-        import dmd.traits : semanticTraits, getDsymbolWithoutExpCtx;
+        import dmd.traits : semanticTraits;
         Type result;
 
         if (Expression e = semanticTraits(mtype.exp, sc))
         {
-            if (TupleExp te = e.toTupleExp)
-                mtype.sym = new TupleDeclaration(mtype.loc,
-                    Identifier.generateId("__aliastup"), cast(Objects*) te.exps);
-            else if (Dsymbol ds = getDsymbol(e))
-                mtype.sym = ds;
-            else if (Dsymbol ds = getDsymbolWithoutExpCtx(e))
-                mtype.sym = ds;
-            else if (Type t = getType(e))
-                result = t.addMod(mtype.mod);
+            switch (e.op)
+            {
+            case TOK.dotVariable:
+                mtype.sym = (cast(DotVarExp)e).var;
+                break;
+            case TOK.variable:
+                mtype.sym = (cast(VarExp)e).var;
+                break;
+            case TOK.dotTemplateDeclaration:
+                mtype.sym = (cast(DotTemplateExp)e).td;
+                break;
+            case TOK.dSymbol:
+                mtype.sym = (cast(DsymbolExp)e).s;
+                break;
+            case TOK.scope_:
+                mtype.sym = (cast(ScopeExp)e).sds;
+                break;
+            case TOK.tuple:
+                mtype.sym = new TupleDeclaration(e.loc,
+                    Identifier.generateId("__aliastup"), cast(Objects*) e.toTupleExp.exps);
+                break;
+            case TOK.dotType:
+                result = (cast(DotTypeExp)e).sym.isType();
+                break;
+            case TOK.type:
+                result = (cast(TypeExp)e).type;
+                break;
+            default:
+            }
         }
 
+        if (result)
+            result = result.addMod(mtype.mod);
         if (!mtype.inAliasDeclaration && !result)
         {
             if (!global.errors)
                 .error(mtype.loc, "`%s` does not give a valid type", mtype.toChars);
-            mtype.ty = Terror;
-            return mtype;
+            return error();
         }
 
         return result;
@@ -1984,111 +2015,72 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
 
     Expression visitBasic(TypeBasic mt)
     {
-        Expression e;
-        dinteger_t ivalue;
-        real_t fvalue;
+        Expression integerValue(dinteger_t i)
+        {
+            return new IntegerExp(loc, i, mt);
+        }
+
+        Expression intValue(dinteger_t i)
+        {
+            return new IntegerExp(loc, i, Type.tint32);
+        }
+
+        Expression floatValue(real_t r)
+        {
+            if (mt.isreal() || mt.isimaginary())
+                return new RealExp(loc, r, mt);
+            else
+            {
+                return new ComplexExp(loc, complex_t(r, r), mt);
+            }
+        }
+
         //printf("TypeBasic::getProperty('%s')\n", ident.toChars());
         if (ident == Id.max)
         {
             switch (mt.ty)
             {
-            case Tint8:
-                ivalue = 0x7F;
-                goto Livalue;
-            case Tuns8:
-                ivalue = 0xFF;
-                goto Livalue;
-            case Tint16:
-                ivalue = 0x7FFFU;
-                goto Livalue;
-            case Tuns16:
-                ivalue = 0xFFFFU;
-                goto Livalue;
-            case Tint32:
-                ivalue = 0x7FFFFFFFU;
-                goto Livalue;
-            case Tuns32:
-                ivalue = 0xFFFFFFFFU;
-                goto Livalue;
-            case Tint64:
-                ivalue = 0x7FFFFFFFFFFFFFFFL;
-                goto Livalue;
-            case Tuns64:
-                ivalue = 0xFFFFFFFFFFFFFFFFUL;
-                goto Livalue;
-            case Tbool:
-                ivalue = 1;
-                goto Livalue;
-            case Tchar:
-                ivalue = 0xFF;
-                goto Livalue;
-            case Twchar:
-                ivalue = 0xFFFFU;
-                goto Livalue;
-            case Tdchar:
-                ivalue = 0x10FFFFU;
-                goto Livalue;
+            case Tint8:        return integerValue(byte.max);
+            case Tuns8:        return integerValue(ubyte.max);
+            case Tint16:       return integerValue(short.max);
+            case Tuns16:       return integerValue(ushort.max);
+            case Tint32:       return integerValue(int.max);
+            case Tuns32:       return integerValue(uint.max);
+            case Tint64:       return integerValue(long.max);
+            case Tuns64:       return integerValue(ulong.max);
+            case Tbool:        return integerValue(bool.max);
+            case Tchar:        return integerValue(char.max);
+            case Twchar:       return integerValue(wchar.max);
+            case Tdchar:       return integerValue(dchar.max);
             case Tcomplex32:
             case Timaginary32:
-            case Tfloat32:
-                fvalue = target.FloatProperties.max;
-                goto Lfvalue;
+            case Tfloat32:     return floatValue(target.FloatProperties.max);
             case Tcomplex64:
             case Timaginary64:
-            case Tfloat64:
-                fvalue = target.DoubleProperties.max;
-                goto Lfvalue;
+            case Tfloat64:     return floatValue(target.DoubleProperties.max);
             case Tcomplex80:
             case Timaginary80:
-            case Tfloat80:
-                fvalue = target.RealProperties.max;
-                goto Lfvalue;
-            default:
-                break;
+            case Tfloat80:     return floatValue(target.RealProperties.max);
+            default:           break;
             }
         }
         else if (ident == Id.min)
         {
             switch (mt.ty)
             {
-            case Tint8:
-                ivalue = -128;
-                goto Livalue;
+            case Tint8:        return integerValue(byte.min);
             case Tuns8:
-                ivalue = 0;
-                goto Livalue;
-            case Tint16:
-                ivalue = -32768;
-                goto Livalue;
             case Tuns16:
-                ivalue = 0;
-                goto Livalue;
-            case Tint32:
-                ivalue = -2147483647 - 1;
-                goto Livalue;
             case Tuns32:
-                ivalue = 0;
-                goto Livalue;
-            case Tint64:
-                ivalue = (-9223372036854775807L - 1L);
-                goto Livalue;
             case Tuns64:
-                ivalue = 0;
-                goto Livalue;
             case Tbool:
-                ivalue = 0;
-                goto Livalue;
             case Tchar:
-                ivalue = 0;
-                goto Livalue;
             case Twchar:
-                ivalue = 0;
-                goto Livalue;
-            case Tdchar:
-                ivalue = 0;
-                goto Livalue;
-            default:
-                break;
+            case Tdchar:       return integerValue(0);
+            case Tint16:       return integerValue(short.min);
+            case Tint32:       return integerValue(int.min);
+            case Tint64:       return integerValue(long.min);
+            default:           break;
             }
         }
         else if (ident == Id.min_normal)
@@ -2098,21 +2090,14 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             {
             case Tcomplex32:
             case Timaginary32:
-            case Tfloat32:
-                fvalue = target.FloatProperties.min_normal;
-                goto Lfvalue;
+            case Tfloat32:     return floatValue(target.FloatProperties.min_normal);
             case Tcomplex64:
             case Timaginary64:
-            case Tfloat64:
-                fvalue = target.DoubleProperties.min_normal;
-                goto Lfvalue;
+            case Tfloat64:     return floatValue(target.DoubleProperties.min_normal);
             case Tcomplex80:
             case Timaginary80:
-            case Tfloat80:
-                fvalue = target.RealProperties.min_normal;
-                goto Lfvalue;
-            default:
-                break;
+            case Tfloat80:     return floatValue(target.RealProperties.min_normal);
+            default:           break;
             }
         }
         else if (ident == Id.nan)
@@ -2127,11 +2112,8 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             case Timaginary80:
             case Tfloat32:
             case Tfloat64:
-            case Tfloat80:
-                fvalue = target.RealProperties.nan;
-                goto Lfvalue;
-            default:
-                break;
+            case Tfloat80:     return floatValue(target.RealProperties.nan);
+            default:           break;
             }
         }
         else if (ident == Id.infinity)
@@ -2146,11 +2128,8 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             case Timaginary80:
             case Tfloat32:
             case Tfloat64:
-            case Tfloat80:
-                fvalue = target.RealProperties.infinity;
-                goto Lfvalue;
-            default:
-                break;
+            case Tfloat80:     return floatValue(target.RealProperties.infinity);
+            default:           break;
             }
         }
         else if (ident == Id.dig)
@@ -2159,21 +2138,14 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             {
             case Tcomplex32:
             case Timaginary32:
-            case Tfloat32:
-                ivalue = target.FloatProperties.dig;
-                goto Lint;
+            case Tfloat32:     return intValue(target.FloatProperties.dig);
             case Tcomplex64:
             case Timaginary64:
-            case Tfloat64:
-                ivalue = target.DoubleProperties.dig;
-                goto Lint;
+            case Tfloat64:     return intValue(target.DoubleProperties.dig);
             case Tcomplex80:
             case Timaginary80:
-            case Tfloat80:
-                ivalue = target.RealProperties.dig;
-                goto Lint;
-            default:
-                break;
+            case Tfloat80:     return intValue(target.RealProperties.dig);
+            default:           break;
             }
         }
         else if (ident == Id.epsilon)
@@ -2182,21 +2154,14 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             {
             case Tcomplex32:
             case Timaginary32:
-            case Tfloat32:
-                fvalue = target.FloatProperties.epsilon;
-                goto Lfvalue;
+            case Tfloat32:     return floatValue(target.FloatProperties.epsilon);
             case Tcomplex64:
             case Timaginary64:
-            case Tfloat64:
-                fvalue = target.DoubleProperties.epsilon;
-                goto Lfvalue;
+            case Tfloat64:     return floatValue(target.DoubleProperties.epsilon);
             case Tcomplex80:
             case Timaginary80:
-            case Tfloat80:
-                fvalue = target.RealProperties.epsilon;
-                goto Lfvalue;
-            default:
-                break;
+            case Tfloat80:     return floatValue(target.RealProperties.epsilon);
+            default:           break;
             }
         }
         else if (ident == Id.mant_dig)
@@ -2205,21 +2170,14 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             {
             case Tcomplex32:
             case Timaginary32:
-            case Tfloat32:
-                ivalue = target.FloatProperties.mant_dig;
-                goto Lint;
+            case Tfloat32:     return intValue(target.FloatProperties.mant_dig);
             case Tcomplex64:
             case Timaginary64:
-            case Tfloat64:
-                ivalue = target.DoubleProperties.mant_dig;
-                goto Lint;
+            case Tfloat64:     return intValue(target.DoubleProperties.mant_dig);
             case Tcomplex80:
             case Timaginary80:
-            case Tfloat80:
-                ivalue = target.RealProperties.mant_dig;
-                goto Lint;
-            default:
-                break;
+            case Tfloat80:     return intValue(target.RealProperties.mant_dig);
+            default:           break;
             }
         }
         else if (ident == Id.max_10_exp)
@@ -2228,21 +2186,14 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             {
             case Tcomplex32:
             case Timaginary32:
-            case Tfloat32:
-                ivalue = target.FloatProperties.max_10_exp;
-                goto Lint;
+            case Tfloat32:     return intValue(target.FloatProperties.max_10_exp);
             case Tcomplex64:
             case Timaginary64:
-            case Tfloat64:
-                ivalue = target.DoubleProperties.max_10_exp;
-                goto Lint;
+            case Tfloat64:     return intValue(target.DoubleProperties.max_10_exp);
             case Tcomplex80:
             case Timaginary80:
-            case Tfloat80:
-                ivalue = target.RealProperties.max_10_exp;
-                goto Lint;
-            default:
-                break;
+            case Tfloat80:     return intValue(target.RealProperties.max_10_exp);
+            default:           break;
             }
         }
         else if (ident == Id.max_exp)
@@ -2251,21 +2202,14 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             {
             case Tcomplex32:
             case Timaginary32:
-            case Tfloat32:
-                ivalue = target.FloatProperties.max_exp;
-                goto Lint;
+            case Tfloat32:     return intValue(target.FloatProperties.max_exp);
             case Tcomplex64:
             case Timaginary64:
-            case Tfloat64:
-                ivalue = target.DoubleProperties.max_exp;
-                goto Lint;
+            case Tfloat64:     return intValue(target.DoubleProperties.max_exp);
             case Tcomplex80:
             case Timaginary80:
-            case Tfloat80:
-                ivalue = target.RealProperties.max_exp;
-                goto Lint;
-            default:
-                break;
+            case Tfloat80:     return intValue(target.RealProperties.max_exp);
+            default:           break;
             }
         }
         else if (ident == Id.min_10_exp)
@@ -2274,21 +2218,14 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             {
             case Tcomplex32:
             case Timaginary32:
-            case Tfloat32:
-                ivalue = target.FloatProperties.min_10_exp;
-                goto Lint;
+            case Tfloat32:     return intValue(target.FloatProperties.min_10_exp);
             case Tcomplex64:
             case Timaginary64:
-            case Tfloat64:
-                ivalue = target.DoubleProperties.min_10_exp;
-                goto Lint;
+            case Tfloat64:     return intValue(target.DoubleProperties.min_10_exp);
             case Tcomplex80:
             case Timaginary80:
-            case Tfloat80:
-                ivalue = target.RealProperties.min_10_exp;
-                goto Lint;
-            default:
-                break;
+            case Tfloat80:     return intValue(target.RealProperties.min_10_exp);
+            default:           break;
             }
         }
         else if (ident == Id.min_exp)
@@ -2297,43 +2234,17 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             {
             case Tcomplex32:
             case Timaginary32:
-            case Tfloat32:
-                ivalue = target.FloatProperties.min_exp;
-                goto Lint;
+            case Tfloat32:     return intValue(target.FloatProperties.min_exp);
             case Tcomplex64:
             case Timaginary64:
-            case Tfloat64:
-                ivalue = target.DoubleProperties.min_exp;
-                goto Lint;
+            case Tfloat64:     return intValue(target.DoubleProperties.min_exp);
             case Tcomplex80:
             case Timaginary80:
-            case Tfloat80:
-                ivalue = target.RealProperties.min_exp;
-                goto Lint;
-            default:
-                break;
+            case Tfloat80:     return intValue(target.RealProperties.min_exp);
+            default:           break;
             }
         }
         return visitType(mt);
-
-    Livalue:
-        return new IntegerExp(loc, ivalue, mt);
-
-    Lfvalue:
-        if (mt.isreal() || mt.isimaginary())
-            e = new RealExp(loc, fvalue, mt);
-        else
-        {
-            const cvalue = complex_t(fvalue, fvalue);
-            //for (int i = 0; i < 20; i++)
-            //    printf("%02x ", ((unsigned char *)&cvalue)[i]);
-            //printf("\n");
-            e = new ComplexExp(loc, cvalue, mt);
-        }
-        return e;
-
-    Lint:
-        return new IntegerExp(loc, ivalue, Type.tint32);
     }
 
     Expression visitVector(TypeVector mt)
@@ -3948,7 +3859,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                  * *(cast(void**)e + 1)
                  */
                 e = e.castTo(sc, mt.tvoidptr.pointerTo());
-                e = new AddExp(e.loc, e, new IntegerExp(1));
+                e = new AddExp(e.loc, e, IntegerExp.literal!1);
                 e = new PtrExp(e.loc, e);
                 e = e.expressionSemantic(sc);
                 return e;
@@ -4171,31 +4082,12 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
 
                         // Skip up over nested functions, and get the enclosing
                         // class type.
-                        int n = 0;
-                        for (s = tcd.toParent(); s && s.isFuncDeclaration(); s = s.toParent())
+                        e1 = getThisSkipNestedFuncs(e1.loc, sc, tcd.toParent2(), d.isMember2(), e1, t, d, true);
+                        if (!e1)
                         {
-                            FuncDeclaration f = s.isFuncDeclaration();
-                            if (f.vthis)
-                            {
-                                //printf("rewriting e1 to %s's this\n", f.toChars());
-                                n++;
-                                e1 = new VarExp(e.loc, f.vthis);
-                            }
-                            else
-                            {
-                                e = new VarExp(e.loc, d);
-                                return e;
-                            }
+                            e = new VarExp(e.loc, d);
+                            return e;
                         }
-                        if (s && s.isClassDeclaration())
-                        {
-                            e1.type = s.isClassDeclaration().type;
-                            e1.type = e1.type.addMod(t.mod);
-                            if (n > 1)
-                                e1 = e1.expressionSemantic(sc);
-                        }
-                        else
-                            e1 = e1.expressionSemantic(sc);
                         goto L2;
                     }
                 }

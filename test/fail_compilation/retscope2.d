@@ -124,7 +124,7 @@ fail_compilation/retscope2.d(721): Error: returning `s.get1()` escapes a referen
 #line 700
 // https://issues.dlang.org/show_bug.cgi?id=17049
 
-@safe S700* get2(return ref scope S700 _this)
+@safe S700* get2(return ref S700 _this)
 {
     return &_this;
 }

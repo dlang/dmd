@@ -88,7 +88,6 @@ PGO_DIR=$(abspath pgo)
 D = dmd
 
 C=$D/backend
-TK=$D/tk
 ROOT=$D/root
 EX=examples
 RES=../res
@@ -97,7 +96,7 @@ GENERATED = ../generated
 G = $(GENERATED)/$(OS)/$(BUILD)/$(MODEL)
 $(shell mkdir -p $G)
 
-DSCANNER_HASH=383fcb84d892e5169c134e282878ee2c51e4265f
+DSCANNER_HASH=b51ee472fe29c05cc33359ab8de52297899131fe
 DSCANNER_DIR=$G/dscanner-$(DSCANNER_HASH)
 
 ifeq (osx,$(OS))
@@ -291,7 +290,7 @@ endif
 
 # Unique extra flags if necessary
 DMD_FLAGS  := -I$D -Wuninitialized
-BACK_FLAGS := -I$(ROOT) -I$(TK) -I$C -I$G -I$D -DDMDV2=1
+BACK_FLAGS := -I$(ROOT) -I$C -I$G -I$D -DDMDV2=1
 BACK_DFLAGS := -version=DMDV2
 ROOT_FLAGS := -I$(ROOT)
 
@@ -310,8 +309,8 @@ endif
 
 ######## DMD frontend source files
 
-FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argtypes arrayop	\
-	arraytypes astcodegen attrib builtin canthrow cli clone compiler complex cond constfold	\
+FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argtypes argtypes_sysv_x64 arrayop	\
+	arraytypes astcodegen ast_node attrib builtin canthrow cli clone compiler complex cond constfold	\
 	cppmangle cppmanglewin ctfeexpr ctorflow dcast dclass declaration delegatize denum dimport	\
 	dinifile dinterpret dmacro dmangle dmodule doc dscope dstruct dsymbol dsymbolsem	\
 	dtemplate dversion escape expression expressionsem func			\
@@ -328,37 +327,17 @@ LEXER_ROOT=$(addsuffix .d, $(addprefix $(ROOT)/, array ctfloat file filename out
 
 ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array ctfloat file \
 	filename man outbuffer port response rmem rootobject speller \
-	longdouble stringtable hash))
+	longdouble strtold stringtable hash))
 
 GLUE_SRCS=$(addsuffix .d, $(addprefix $D/,irstate toctype glue gluelayer todt tocsym toir dmsc \
 	tocvdebug s2ir toobj e2ir eh iasm iasmdmd iasmgcc objc_glue))
 
-DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
-
-######## DMD backend source files
-
-ifeq (X86,$(TARGET_CPU))
-    TARGET_CH =
-    TARGET_OBJS =
-else
-    ifeq (stub,$(TARGET_CPU))
-        TARGET_CH = $C/code_stub.h
-        TARGET_OBJS = platform_stub.o
-    else
-        $(error unknown TARGET_CPU: '$(TARGET_CPU)')
-    endif
-endif
-
-BACK_OBJS = \
-    fp.o \
-	\
-	tk.o strtold.o \
-	$(TARGET_OBJS)
+DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS)
 
 BACK_DOBJS = bcomplex.o evalu8.o divcoeff.o dvec.o go.o gsroa.o glocal.o gdag.o gother.o gflow.o \
 	out.o \
-	gloop.o compress.o cgelem.o cgcs.o ee.o cod4.o cod5.o nteh.o blockopt.o memh.o cg.o cgreg.o \
-	dtype.o debugprint.o symbol.o elem.o dcode.o cgsched.o cg87.o cgxmm.o cgcod.o cod1.o cod2.o \
+	gloop.o compress.o cgelem.o cgcs.o ee.o cod4.o cod5.o nteh.o blockopt.o mem.o cg.o cgreg.o \
+	dtype.o debugprint.o fp.o symbol.o elem.o dcode.o cgsched.o cg87.o cgxmm.o cgcod.o cod1.o cod2.o \
 	cod3.o cv8.o dcgcv.o pdata.o util2.o var.o md5.o backconfig.o ph2.o drtlsym.o dwarfeh.o ptrntab.o \
 	aarray.o dvarstats.o dwarfdbginf.o elfobj.o cgen.o os.o goh.o barray.o
 
@@ -384,33 +363,26 @@ BACK_HDRS=$C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/glob
 	$C/ty.d $C/type.d $C/exh.d $C/mach.d $C/mscoff.d $C/dwarf.d $C/dwarf2.d $C/xmm.d \
 	$C/dlist.d $C/melf.d $C/varstats.di $C/dt.d
 
-TK_HDRS=
-
 BACK_SRC = \
 	$C/optabgen.d \
 	$C/bcomplex.d $C/blockopt.d $C/cg.d $C/cg87.d $C/cgxmm.d \
 	$C/cgcod.d $C/cgcs.d $C/dcgcv.d $C/cgelem.d $C/cgen.d $C/cgobj.d \
-	$C/compress.d $C/cgreg.d $C/var.d $C/strtold.c \
+	$C/compress.d $C/cgreg.d $C/var.d \
 	$C/cgsched.d $C/cod1.d $C/cod2.d $C/cod3.d $C/cod4.d $C/cod5.d \
 	$C/dcode.d $C/symbol.d $C/debugprint.d $C/dt.d $C/ee.d $C/elem.d \
-	$C/evalu8.d $C/fp.c $C/go.d $C/gflow.d $C/gdag.d \
+	$C/evalu8.d $C/fp.d $C/go.d $C/gflow.d $C/gdag.d \
 	$C/gother.d $C/glocal.d $C/gloop.d $C/gsroa.d $C/newman.d \
 	$C/nteh.d $C/os.d $C/out.d $C/ptrntab.d $C/drtlsym.d \
 	$C/dtype.d \
 	$C/token.h \
 	$C/elfobj.d \
 	$C/dwarfdbginf.d $C/aarray.d \
-	$C/platform_stub.c $C/code_stub.h \
 	$C/machobj.d $C/mscoffobj.d \
 	$C/pdata.d $C/cv8.d $C/backconfig.d $C/divcoeff.d \
 	$C/dvarstats.d $C/dvec.d \
 	$C/md5.d $C/barray.d \
-	$C/ph2.d $C/util2.d $C/dwarfeh.d $C/goh.d $C/memh.d $C/filespec.d \
+	$C/ph2.d $C/util2.d $C/dwarfeh.d $C/goh.d $C/mem.d $C/filespec.d \
 	$(TARGET_CH)
-
-TK_SRC = \
-	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
-	$(TK)/mem.c
 
 ######## CXX header files (only needed for cxx-unittest)
 
@@ -565,10 +537,6 @@ FORCE: ;
 
 -include $(DEPS)
 
-$(G_OBJS): $G/%.o: $C/%.c $(optabgen_files) $(SRC_MAKE)
-	@echo "  (CC)  BACK_OBJS  $<"
-	$(CXX) -c -o$@ $(CXXFLAGS) $(BACK_FLAGS) $(MMD) $<
-
 $(G_DOBJS): $G/%.o: $C/%.d $(optabgen_files) posix.mak $(HOST_DMD_PATH)
 	@echo "  (HOST_DMD_RUN)  BACK_DOBJS  $<"
 	$(HOST_DMD_RUN) -c -of$@ $(DFLAGS) $(MODEL_FLAG) $(BACK_BETTERC) $(BACK_DFLAGS) $<
@@ -638,7 +606,7 @@ cxx-unittest: $G/cxx-unittest
 
 zip:
 	-rm -f dmdsrc.zip
-	zip dmdsrc $(SRC) $(ROOT_SRCS) $(GLUE_SRC) $(BACK_SRC) $(TK_SRC)
+	zip dmdsrc $(SRC) $(ROOT_SRCS) $(GLUE_SRC) $(BACK_SRC)
 
 ######################################################
 

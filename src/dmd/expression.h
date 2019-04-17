@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "ast_node.h"
 #include "complex_t.h"
 #include "globals.h"
 #include "arraytypes.h"
@@ -63,7 +64,7 @@ enum
     OWNEDcache      // constant value cached for CTFE
 };
 
-class Expression : public RootObject
+class Expression : public ASTNode
 {
 public:
     TOK op;                     // to minimize use of dynamic_cast
@@ -223,7 +224,7 @@ public:
     FuncInitExp* isFuncInitExp();
     PrettyFuncInitExp* isPrettyFuncInitExp();
 
-    virtual void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class IntegerExp : public Expression
@@ -233,6 +234,8 @@ public:
 
     static IntegerExp *create(Loc loc, dinteger_t value, Type *type);
     static IntegerExp *createi(Loc loc, int value, Type *type);
+    static void emplace(UnionExp *pue, Loc loc, dinteger_t value, Type *type);
+    static void emplacei(UnionExp *pue, Loc loc, int value, Type *type);
     bool equals(RootObject *o);
     dinteger_t toInteger();
     real_t toReal();
@@ -244,6 +247,8 @@ public:
     dinteger_t getInteger() { return value; }
     void setInteger(dinteger_t value);
     void normalize();
+    template<int v>
+    static IntegerExp literal();
 };
 
 class ErrorExp : public Expression
@@ -261,6 +266,7 @@ public:
     real_t value;
 
     static RealExp *create(Loc loc, real_t value, Type *type);
+    static void emplace(UnionExp *pue, Loc loc, real_t value, Type *type);
     bool equals(RootObject *o);
     dinteger_t toInteger();
     uinteger_t toUInteger();
@@ -277,6 +283,7 @@ public:
     complex_t value;
 
     static ComplexExp *create(Loc loc, complex_t value, Type *type);
+    static void emplace(UnionExp *pue, Loc loc, complex_t value, Type *type);
     bool equals(RootObject *o);
     dinteger_t toInteger();
     uinteger_t toUInteger();
@@ -357,6 +364,8 @@ public:
 
     static StringExp *create(Loc loc, char *s);
     static StringExp *create(Loc loc, void *s, size_t len);
+    static void emplace(UnionExp *pue, Loc loc, char *s);
+    static void emplace(UnionExp *pue, Loc loc, void *s, size_t len);
     bool equals(RootObject *o);
     StringExp *toStringExp();
     StringExp *toUTF8(Scope *sc);
@@ -402,6 +411,7 @@ public:
     OwnedBy ownedByCtfe;
 
     static ArrayLiteralExp *create(Loc loc, Expressions *elements);
+    static void emplace(UnionExp *pue, Loc loc, Expressions *elements);
     Expression *syntaxCopy();
     bool equals(RootObject *o);
     Expression *getElement(d_size_t i);
@@ -879,6 +889,7 @@ public:
     OwnedBy ownedByCtfe;
 
     static VectorExp *create(Loc loc, Expression *e, Type *t);
+    static void emplace(UnionExp *pue, Loc loc, Expression *e, Type *t);
     Expression *syntaxCopy();
     void accept(Visitor *v) { v->visit(this); }
 };

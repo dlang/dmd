@@ -31,13 +31,13 @@ import dmd.root.rmem;
 import dmd.tokens;
 import dmd.utf;
 
-enum LS = 0x2028;       // UTF line separator
-enum PS = 0x2029;       // UTF paragraph separator
+private enum LS = 0x2028;       // UTF line separator
+private enum PS = 0x2029;       // UTF paragraph separator
 
 /********************************************
  * Do our own char maps
  */
-static immutable cmtable = () {
+private static immutable cmtable = () {
     ubyte[256] table;
     foreach (const c; 0 .. table.length)
     {
@@ -89,39 +89,42 @@ static immutable cmtable = () {
     return table;
 }();
 
-enum CMoctal  = 0x1;
-enum CMhex    = 0x2;
-enum CMidchar = 0x4;
-enum CMzerosecond = 0x8;
-enum CMdigitsecond = 0x10;
-enum CMsinglechar = 0x20;
+private
+{
+    enum CMoctal  = 0x1;
+    enum CMhex    = 0x2;
+    enum CMidchar = 0x4;
+    enum CMzerosecond = 0x8;
+    enum CMdigitsecond = 0x10;
+    enum CMsinglechar = 0x20;
+}
 
-bool isoctal(const char c)
+private bool isoctal(const char c)
 {
     return (cmtable[c] & CMoctal) != 0;
 }
 
-bool ishex(const char c)
+private bool ishex(const char c)
 {
     return (cmtable[c] & CMhex) != 0;
 }
 
-bool isidchar(const char c)
+private bool isidchar(const char c)
 {
     return (cmtable[c] & CMidchar) != 0;
 }
 
-bool isZeroSecond(const char c)
+private bool isZeroSecond(const char c)
 {
     return (cmtable[c] & CMzerosecond) != 0;
 }
 
-bool isDigitSecond(const char c)
+private bool isDigitSecond(const char c)
 {
     return (cmtable[c] & CMdigitsecond) != 0;
 }
 
-bool issinglechar(const char c)
+private bool issinglechar(const char c)
 {
     return (cmtable[c] & CMsinglechar) != 0;
 }
@@ -196,233 +199,33 @@ unittest
     }
 }
 
-/// Interface for diagnostic reporting.
-abstract class DiagnosticReporter
-{
-    /// Returns: the number of errors that occurred during lexing or parsing.
-    abstract int errorCount();
-
-    /// Returns: the number of warnings that occurred during lexing or parsing.
-    abstract int warningCount();
-
-    /// Returns: the number of deprecations that occurred during lexing or parsing.
-    abstract int deprecationCount();
-
-    /**
-    Reports an error message.
-
-    Params:
-        loc = Location of error
-        format = format string for error
-        ... = format string arguments
-    */
-    final void error(const ref Loc loc, const(char)* format, ...)
-    {
-        va_list args;
-        va_start(args, format);
-        error(loc, format, args);
-        va_end(args);
-    }
-
-    /// ditto
-    abstract void error(const ref Loc loc, const(char)* format, va_list args);
-
-    /**
-    Reports additional details about an error message.
-
-    Params:
-        loc = Location of error
-        format = format string for supplemental message
-        ... = format string arguments
-    */
-    final void errorSupplemental(const ref Loc loc, const(char)* format, ...)
-    {
-        va_list args;
-        va_start(args, format);
-        errorSupplemental(loc, format, args);
-        va_end(args);
-    }
-
-    /// ditto
-    abstract void errorSupplemental(const ref Loc loc, const(char)* format, va_list);
-
-    /**
-    Reports a warning message.
-
-    Params:
-        loc = Location of warning
-        format = format string for warning
-        ... = format string arguments
-    */
-    final void warning(const ref Loc loc, const(char)* format, ...)
-    {
-        va_list args;
-        va_start(args, format);
-        warning(loc, format, args);
-        va_end(args);
-    }
-
-    /// ditto
-    abstract void warning(const ref Loc loc, const(char)* format, va_list args);
-
-    /**
-    Reports additional details about a warning message.
-
-    Params:
-        loc = Location of warning
-        format = format string for supplemental message
-        ... = format string arguments
-    */
-    final void warningSupplemental(const ref Loc loc, const(char)* format, ...)
-    {
-        va_list args;
-        va_start(args, format);
-        warningSupplemental(loc, format, args);
-        va_end(args);
-    }
-
-    /// ditto
-    abstract void warningSupplemental(const ref Loc loc, const(char)* format, va_list);
-
-    /**
-    Reports a deprecation message.
-
-    Params:
-        loc = Location of the deprecation
-        format = format string for the deprecation
-        ... = format string arguments
-    */
-    final void deprecation(const ref Loc loc, const(char)* format, ...)
-    {
-        va_list args;
-        va_start(args, format);
-        deprecation(loc, format, args);
-        va_end(args);
-    }
-
-    /// ditto
-    abstract void deprecation(const ref Loc loc, const(char)* format, va_list args);
-
-    /**
-    Reports additional details about a deprecation message.
-
-    Params:
-        loc = Location of deprecation
-        format = format string for supplemental message
-        ... = format string arguments
-    */
-    final void deprecationSupplemental(const ref Loc loc, const(char)* format, ...)
-    {
-        va_list args;
-        va_start(args, format);
-        deprecationSupplemental(loc, format, args);
-        va_end(args);
-    }
-
-    /// ditto
-    abstract void deprecationSupplemental(const ref Loc loc, const(char)* format, va_list);
-}
-
-/**
-Diagnostic reporter which prints the diagnostic messages to stderr.
-
-This is usually the default diagnostic reporter.
-*/
-final class StderrDiagnosticReporter : DiagnosticReporter
-{
-    private const Diagnostic useDeprecated;
-
-    private int errorCount_;
-    private int warningCount_;
-    private int deprecationCount_;
-
-    /**
-    Initializes this object.
-
-    Params:
-        useDeprecated = indicates how deprecation diagnostics should be
-            handled
-    */
-    this(Diagnostic useDeprecated)
-    {
-        this.useDeprecated = useDeprecated;
-    }
-
-    override int errorCount()
-    {
-        return errorCount_;
-    }
-
-    override int warningCount()
-    {
-        return warningCount_;
-    }
-
-    override int deprecationCount()
-    {
-        return deprecationCount_;
-    }
-
-    override void error(const ref Loc loc, const(char)* format, va_list args)
-    {
-        verror(loc, format, args);
-        errorCount_++;
-    }
-
-    override void errorSupplemental(const ref Loc loc, const(char)* format, va_list args)
-    {
-        verrorSupplemental(loc, format, args);
-    }
-
-    override void warning(const ref Loc loc, const(char)* format, va_list args)
-    {
-        vwarning(loc, format, args);
-        warningCount_++;
-    }
-
-    override void warningSupplemental(const ref Loc loc, const(char)* format, va_list args)
-    {
-        vwarningSupplemental(loc, format, args);
-    }
-
-    override void deprecation(const ref Loc loc, const(char)* format, va_list args)
-    {
-        vdeprecation(loc, format, args);
-
-        if (useDeprecated == Diagnostic.error)
-            errorCount_++;
-        else
-            deprecationCount_++;
-    }
-
-    override void deprecationSupplemental(const ref Loc loc, const(char)* format, va_list args)
-    {
-        vdeprecationSupplemental(loc, format, args);
-    }
-}
-
 /***********************************************************
  */
 class Lexer
 {
-    __gshared OutBuffer stringbuffer;
+    private __gshared OutBuffer stringbuffer;
 
     Loc scanloc;            // for error messages
     Loc prevloc;            // location of token before current
 
-    const(char)* base;      // pointer to start of buffer
-    const(char)* end;       // pointer to last element of buffer
     const(char)* p;         // current character
-    const(char)* line;      // start of current line
+
     Token token;
-    bool doDocComment;      // collect doc comment information
-    bool anyToken;          // seen at least one token
-    bool commentToken;      // comments are TOK.comment's
-    int lastDocLine;        // last line of previous doc comment
 
-    private DiagnosticReporter diagnosticReporter;
+    private
+    {
+        const(char)* base;      // pointer to start of buffer
+        const(char)* end;       // pointer to last element of buffer
+        const(char)* line;      // start of current line
 
-    private Token* tokenFreelist;
+        bool doDocComment;      // collect doc comment information
+        bool anyToken;          // seen at least one token
+        bool commentToken;      // comments are TOK.comment's
+        int lastDocLine;        // last line of previous doc comment
+
+        DiagnosticReporter diagnosticReporter;
+        Token* tokenFreelist;
+    }
 
     /*********************
      * Creates a Lexer for the source code base[begoffset..endoffset+1].
@@ -504,7 +307,7 @@ class Lexer
     }
 
     /// Frees the given token by returning it to the freelist.
-    void releaseToken(Token* token) pure nothrow @nogc @safe
+    private void releaseToken(Token* token) pure nothrow @nogc @safe
     {
         token.next = tokenFreelist;
         tokenFreelist = token;
@@ -625,8 +428,11 @@ class Lexer
                 if (p[1] != '"')
                     goto case_ident;
                 p++;
+                auto start = p;
+                auto hexString = new OutBuffer();
                 t.value = hexStringConstant(t);
-                deprecation("Built-in hex string literals are deprecated, use `std.conv.hexString` instead.");
+                hexString.write(start, p - start);
+                error("Built-in hex string literals are obsolete, use `std.conv.hexString!%s` instead.", hexString.extractString());
                 return;
             case 'q':
                 if (p[1] == '"')
@@ -1350,7 +1156,7 @@ class Lexer
     /*******************************************
      * Parse escape sequence.
      */
-    final uint escapeSequence()
+    private uint escapeSequence()
     {
         return Lexer.escapeSequence(token.loc, diagnosticReporter, p);
     }
@@ -1365,7 +1171,7 @@ class Lexer
     Returns:
         the escaped sequence as a single character
     */
-    static dchar escapeSequence(const ref Loc loc, DiagnosticReporter handler, ref const(char)* sequence)
+    private static dchar escapeSequence(const ref Loc loc, DiagnosticReporter handler, ref const(char)* sequence)
     in
     {
         assert(handler !is null);
@@ -1515,7 +1321,7 @@ class Lexer
     Params:
         result = pointer to the token that accepts the result
     */
-    final void wysiwygStringConstant(Token* result)
+    private void wysiwygStringConstant(Token* result)
     {
         result.value = TOK.string_;
         Loc start = loc();
@@ -1571,7 +1377,7 @@ class Lexer
      * Lex hex strings:
      *      x"0A ae 34FE BD"
      */
-    final TOK hexStringConstant(Token* t)
+    private TOK hexStringConstant(Token* t)
     {
         Loc start = loc();
         uint n = 0;
@@ -1659,7 +1465,7 @@ class Lexer
     Params:
         result = pointer to the token that accepts the result
     */
-    final void delimitedStringConstant(Token* result)
+    private void delimitedStringConstant(Token* result)
     {
         result.value = TOK.string_;
         Loc start = loc();
@@ -1818,7 +1624,7 @@ class Lexer
     Params:
         result = pointer to the token that accepts the result
     */
-    final void tokenStringConstant(Token* result)
+    private void tokenStringConstant(Token* result)
     {
         result.value = TOK.string_;
 
@@ -1860,7 +1666,7 @@ class Lexer
     Params:
         t = the token to set the resulting string to
     */
-    final void escapeStringConstant(Token* t)
+    private void escapeStringConstant(Token* t)
     {
         t.value = TOK.string_;
 
@@ -1928,7 +1734,7 @@ class Lexer
 
     /**************************************
      */
-    final TOK charConstant(Token* t)
+    private TOK charConstant(Token* t)
     {
         TOK tk = TOK.charLiteral;
         //printf("Lexer::charConstant\n");
@@ -1997,7 +1803,7 @@ class Lexer
     /***************************************
      * Get postfix of string literal.
      */
-    final void stringPostfix(Token* t)
+    private void stringPostfix(Token* t)
     {
         switch (*p)
         {
@@ -2023,7 +1829,7 @@ class Lexer
      *      TKnum
      *      TKdouble,...
      */
-    final TOK number(Token* t)
+    private TOK number(Token* t)
     {
         int base = 10;
         const start = p;
@@ -2311,7 +2117,7 @@ class Lexer
      *      Exponent overflow not detected.
      *      Too much requested precision is not detected.
      */
-    final TOK inreal(Token* t)
+    private TOK inreal(Token* t)
     {
         //printf("Lexer::inreal()\n");
         debug
@@ -2545,7 +2351,7 @@ class Lexer
      *      #line linnum [filespec]
      * also allow __LINE__ for linnum, and __FILE__ for filespec
      */
-    final void poundLine()
+    private void poundLine()
     {
         auto linnum = this.scanloc.linnum;
         const(char)* filespec = null;
@@ -2653,7 +2459,7 @@ class Lexer
      * Issue error messages for invalid sequences.
      * Return decoded character, advance p to last character in UTF sequence.
      */
-    final uint decodeUTF()
+    private uint decodeUTF()
     {
         const s = p;
         assert(*s & 0x80);
@@ -2684,7 +2490,7 @@ class Lexer
      * If newParagraph is true, an extra newline will be
      * added between adjoining doc comments.
      */
-    final void getDocComment(Token* t, uint lineComment, bool newParagraph)
+    private void getDocComment(Token* t, uint lineComment, bool newParagraph)
     {
         /* ct tells us which kind of comment it is: '/', '*', or '+'
          */

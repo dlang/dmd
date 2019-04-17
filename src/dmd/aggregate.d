@@ -122,10 +122,8 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
     final extern (D) this(const ref Loc loc, Identifier id)
     {
-        super(id);
-        this.loc = loc;
+        super(loc, id);
         protection = Prot(Prot.Kind.public_);
-        sizeok = Sizeok.none; // size not determined yet
     }
 
     /***************************************
@@ -743,7 +741,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         return s;
     }
 
-    override final Prot prot()
+    override final Prot prot() pure nothrow @nogc @safe
     {
         return protection;
     }

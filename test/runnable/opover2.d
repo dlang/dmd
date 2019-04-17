@@ -789,40 +789,23 @@ bool test3789()
 }
 static assert(test3789());
 
-/**************************************/
-// https://issues.dlang.org/show_bug.cgi?id=10037
-
-struct S10037
+struct S
 {
-    bool opEquals(ref const S10037) { assert(0); }
+    bool opEquals(ref const S) { return false; }
 }
 
-struct T10037
+struct T
 {
-    S10037 s;
-    // Compiler should not generate 'opEquals' here implicitly:
-}
-
-struct Sub10037(TL...)
-{
-    TL data;
+    S s;
     int value;
     alias value this;
 }
 
-void test10037()
+void test11161()
 {
-    S10037 s;
-    T10037 t;
-    static assert( __traits(hasMember, S10037, "opEquals"));
-    static assert(!__traits(hasMember, T10037, "opEquals"));
-    assert(thrown!Error(s == s));
-    assert(thrown!Error(t == t));
-
-    Sub10037!(S10037) lhs;
-    Sub10037!(S10037) rhs;
-    static assert(!__traits(hasMember, Sub10037!(S10037), "opEquals"));
-    assert(lhs == rhs);     // lowered to: lhs.value == rhs.value
+    T t1, t2; 
+    assert(t1.tupleof != t2.tupleof);
+    assert(t1 != t2); // fails
 }
 
 /**************************************/
@@ -2033,7 +2016,7 @@ int main()
     test16();
     test17();
     test3789();
-    test10037();
+    test11161();
     test6798();
     test12904();
     test7641();

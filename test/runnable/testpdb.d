@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -gf
+// REQUIRED_ARGS: -gf -mixin=${RESULTS_DIR}/runnable/testpdb.mixin
 // PERMUTE_ARGS:
 
 import core.time;
@@ -37,7 +37,9 @@ void main(string[] args)
         testSymbolHasChildren(ctsym, "core.time.ClockType");
         ctsym.Release();
 
-        testLineNumbers(session, globals);
+        testLineNumbers15432(session, globals);
+        testLineNumbers19747(session, globals);
+        testLineNumbers19719(session, globals);
 
         S18984 s = test18984(session, globals);
 
@@ -62,6 +64,15 @@ int test15432() // line 8
 }
 enum lineAfterTest15432 = __LINE__;
 
+// https://issues.dlang.org/show_bug.cgi?id=19747
+enum lineScopeExitTest19747 = __LINE__ + 3;
+int test19747()
+{
+    scope(exit) call15432(null);
+    int x = 0;
+    return x;
+}
+
 version(CRuntime_Microsoft):
 
 void testSymbolHasChildren(IDiaSymbol sym, string name)
@@ -78,7 +89,7 @@ void testSymbolHasChildren(IDiaSymbol sym, string name)
     enumSymbols.Release();
 }
 
-void testLineNumbers(IDiaSession session, IDiaSymbol globals)
+void testLineNumbers15432(IDiaSession session, IDiaSymbol globals)
 {
     IDiaSymbol funcsym = searchSymbol(globals, cPrefix ~ test15432.mangleof);
     assert(funcsym, "symbol test15432 not found");
@@ -92,6 +103,47 @@ void testLineNumbers(IDiaSession session, IDiaSymbol globals)
     ubyte codeByte = lines[$-1].addr[0];
     assert(codeByte == 0x48 || codeByte == 0x5d || codeByte == 0xc3); // should be one of "mov rsp,rbp", "pop rbp" or "ret"
 }
+
+void testLineNumbers19747(IDiaSession session, IDiaSymbol globals)
+{
+    IDiaSymbol funcsym = searchSymbol(globals, cPrefix ~ test19747.mangleof);
+    assert(funcsym, "symbol test19747 not found");
+    ubyte[] funcRange;
+    Line[] lines = findSymbolLineNumbers(session, funcsym, &funcRange);
+    assert(lines, "no line number info for test19747");
+
+    //dumpLineNumbers(lines, funcRange);
+    bool found = false;
+    foreach(ln; lines)
+        found = found || ln.line == lineScopeExitTest19747;
+    assert(found);
+}
+
+int test19719()
+{
+    enum code = "int a = 5;";
+    mixin(code);
+    return a;
+}
+
+void testLineNumbers19719(IDiaSession session, IDiaSymbol globals)
+{
+    IDiaSymbol funcsym = searchSymbol(globals, cPrefix ~ test19719.mangleof);
+    assert(funcsym, "symbol test19719 not found");
+    ubyte[] funcRange;
+    Line[] lines = findSymbolLineNumbers(session, funcsym, &funcRange);
+    assert(lines, "no line number info for test19747");
+
+    test19719();
+
+    //dumpLineNumbers(lines, funcRange);
+    wstring mixinfile = "testpdb.mixin";
+    bool found = false;
+    foreach(ln; lines)
+        found = found || (ln.srcfile.length >= mixinfile.length && ln.srcfile[$-mixinfile.length .. $] == mixinfile);
+    assert(found);
+}
+
 
 ///////////////////////////////////////////////
 // https://issues.dlang.org/show_bug.cgi?id=18984
@@ -297,8 +349,8 @@ pragma(lib, "ole32.lib");
 pragma(lib, "oleaut32.lib");
 
 // defintions translated from the DIA SDK header dia2.h
-GUID uuid_DiaSource_V120 = { 0xe6756135, 0x1e65, 0x4d17, [0x85, 0x76, 0x61, 0x07, 0x61, 0x39, 0x8c, 0x3c] };
-GUID uuid_DiaSource_V140 = { 0x3bfcea48, 0x620f, 0x4b6b, [0x81, 0xf7, 0xb9, 0xaf, 0x75, 0x45, 0x4c, 0x7d] };
+GUID uuid_DiaSource_V120 = { 0x3bfcea48, 0x620f, 0x4b6b, [0x81, 0xf7, 0xb9, 0xaf, 0x75, 0x45, 0x4c, 0x7d] };
+GUID uuid_DiaSource_V140 = { 0xe6756135, 0x1e65, 0x4d17, [0x85, 0x76, 0x61, 0x07, 0x61, 0x39, 0x8c, 0x3c] };
 
 interface IDiaDataSource : IUnknown
 {
@@ -710,6 +762,11 @@ interface IDiaEnumLineNumbers : IUnknown
 
 interface IDiaSourceFile : IUnknown
 {
+    HRESULT get_uniqueId(DWORD *pRetVal);
+    HRESULT get_fileName(BSTR *pRetVal);
+    HRESULT get_checksumType(DWORD *pRetVal);
+    HRESULT get_compilands(IDiaEnumSymbols **pRetVal);
+    HRESULT get_checksum(DWORD cbData, DWORD *pcbData, BYTE *pbData) = 0;
 }
 
 interface IDiaLineNumber : IUnknown
@@ -888,6 +945,9 @@ bool openDebugInfo(IDiaDataSource* source, IDiaSession* session, IDiaSymbol* glo
         hr = CoCreateInstance(&uuid_DiaSource_V140, null, CLSCTX.CLSCTX_INPROC_SERVER,
                               &IDiaDataSource.iid, cast(void**)source);
     if (hr != S_OK)
+        hr = CreateRegFreeCOMInstance("msdia140.dll", &uuid_DiaSource_V140,
+                                      &IDiaDataSource.iid, cast(void**)source);
+    if (hr != S_OK)
         return false;
 
     hr = source.loadDataForExe(exepath.ptr, null, null);
@@ -902,6 +962,24 @@ bool openDebugInfo(IDiaDataSource* source, IDiaSession* session, IDiaSymbol* glo
     hr == S_OK || assert(false, "get_globalScope failed");
 
     return true;
+}
+
+HRESULT CreateRegFreeCOMInstance(const(char*)dll, REFCLSID classID, REFIID iid, PVOID* pObj)
+{
+    HANDLE hmod = LoadLibraryA(dll);
+    if (!hmod)
+        return E_FAIL;
+    auto fnDllGetClassObject = cast(typeof(&DllGetClassObject))GetProcAddress(hmod, "DllGetClassObject");
+    if (!fnDllGetClassObject)
+        return E_FAIL;
+
+    static const GUID IClassFactory_iid = { 0x00000001,0x0000,0x0000,[ 0xC0,0x00,0x00,0x00,0x00,0x00,0x00,0x46 ] };
+    IClassFactory factory;
+    HRESULT hr = fnDllGetClassObject(classID, &IClassFactory_iid, cast(void**)&factory);
+    if (hr != S_OK)
+        return hr;
+
+    return factory.CreateInstance(null, iid, pObj);
 }
 
 void printSymbol(IDiaSymbol sym, int indent)
@@ -967,6 +1045,7 @@ struct Line
 {
     DWORD line;
     ubyte* addr;
+    wstring srcfile;
 }
 
 // linker generated symbol
@@ -1000,7 +1079,21 @@ Line[] findSymbolLineNumbers(IDiaSession session, IDiaSymbol sym, ubyte[]* funcR
     {
         DWORD lno, lrva;
         if (line.get_lineNumber(&lno) == S_OK && line.get_relativeVirtualAddress(&lrva) == S_OK)
-            lines ~= Line(lno, rvabase + lrva);
+        {
+            wstring srcfile;
+            IDiaSourceFile diaSource;
+            if (line.get_sourceFile(&diaSource) == S_OK)
+            {
+                BSTR bsrcfile;
+                if (diaSource.get_fileName(&bsrcfile) == S_OK)
+                {
+                    srcfile = bsrcfile[0..wcslen(bsrcfile)].dup;
+                    SysFreeString(bsrcfile);
+                }
+                diaSource.Release();
+            }
+            lines ~= Line(lno, rvabase + lrva, srcfile);
+        }
         line.Release();
     }
     return lines;

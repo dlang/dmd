@@ -15,9 +15,6 @@
 # win32.mak (this file) - requires Digital Mars Make ($DM_HOME\dm\bin\make.exe)
 #   http://www.digitalmars.com/ctg/make.html
 #
-# $(CC) - requires Digital Mars C++ Compiler ($DM_HOME\dm\bin\dmc.exe)
-#   http://www.digitalmars.com/ctg/sc.html
-#
 # detab, tolf, install targets - require the D Language Tools (detab.exe, tolf.exe)
 #   https://github.com/dlang/tools.
 #
@@ -27,12 +24,10 @@
 # Configuration:
 #
 # The easiest and recommended way to configure this makefile is to add
-# $DM_HOME\dm\bin to your PATH environment to automatically find make and dmc.
+# $DM_HOME\dm\bin to your PATH environment to automatically find make.
 # Set HOST_DC to point to your installed D compiler.
 #
-# Custom CFLAGS may be set in the User configuration section, along with custom
-# LFLAGS.  The difference between CFLAGS and OPT is that CFLAGS primarily
-# applies to front-end files, while OPT applies to essentially all C++ sources.
+# Custom LFLAGS may be set in the User configuration section.
 #
 # Targets:
 #
@@ -65,7 +60,6 @@ DMCROOT=$(DM_HOME)\dm
 # DMD source directories
 D=dmd
 C=$D\backend
-TK=$D\tk
 ROOT=$D\root
 
 # Include directories
@@ -84,8 +78,6 @@ G = $(GEN)\$(OS)\$(BUILD)\$(MODEL)
 GIT_HOME=https://github.com/dlang
 TOOLS_DIR=..\..\tools
 
-# C++ compiler
-CC=dmc
 # D compiler (set with env variable)
 #HOST_DC=dmd
 # Make program
@@ -118,10 +110,6 @@ ML=ml64
 # Target name
 TARGET=$G\dmd
 TARGETEXE=$(TARGET).exe
-# Custom compile flags
-CFLAGS=
-# Custom compile flags for all modules
-OPT=
 # Debug flags
 DEBUG=-gl -D -DUNITTEST
 # Linker flags (prefix with -L)
@@ -137,21 +125,17 @@ DDEBUG=-debug -g -unittest
 
 ##### Implementation variables (do not modify)
 
-# Compile flags
-CFLAGS=-I$(INCLUDE) $(OPT) $(CFLAGS) $(DEBUG) -cpp -DTARGET_WINDOS=1 -DDM_TARGET_CPU_X86=1
-# Compile flags for modules with backend/toolkit dependencies
-MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx -DTARGET_WINDOS=1 -DDM_TARGET_CPU_X86=1
 # D compile flags
 DFLAGS=$(DOPT) $(DMODEL) $(DDEBUG) -wi -version=MARS -dip25
 
 # Recursive make
-DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT) MAKE="$(MAKE)" HOST_DC="$(HOST_DC)" MODEL=$(MODEL) CC="$(CC)" LIB="$(LIB)" OBJ_MSVC="$(OBJ_MSVC)"
+DMDMAKE=$(MAKE) -fwin32.mak C=$C ROOT=$(ROOT) MAKE="$(MAKE)" HOST_DC="$(HOST_DC)" MODEL=$(MODEL) CC="$(CC)" LIB="$(LIB)" OBJ_MSVC="$(OBJ_MSVC)"
 
 ############################### Rule Variables ###############################
 
 # D front end
-FRONT_SRCS=$D/access.d $D/aggregate.d $D/aliasthis.d $D/apply.d $D/argtypes.d $D/arrayop.d	\
-	$D/arraytypes.d $D/astcodegen.d $D/attrib.d $D/builtin.d $D/canthrow.d $D/cli.d $D/clone.d $D/compiler.d $D/complex.d	\
+FRONT_SRCS=$D/access.d $D/aggregate.d $D/aliasthis.d $D/apply.d $D/argtypes.d $D/argtypes_sysv_x64.d $D/arrayop.d	\
+	$D/arraytypes.d $D/astcodegen.d $D/ast_node.d $D/attrib.d $D/builtin.d $D/canthrow.d $D/cli.d $D/clone.d $D/compiler.d $D/complex.d	\
 	$D/cond.d $D/constfold.d $D/cppmangle.d $D/cppmanglewin.d $D/ctfeexpr.d $D/ctorflow.d $D/dcast.d $D/dclass.d		\
 	$D/declaration.d $D/delegatize.d $D/denum.d $D/dimport.d $D/dinifile.d $D/dinterpret.d	\
 	$D/dmacro.d $D/dmangle.d $D/dmodule.d $D/doc.d $D/dscope.d $D/dstruct.d $D/dsymbol.d $D/dsymbolsem.d		\
@@ -180,13 +164,11 @@ GLUE_SRCS=$D/irstate.d $D/toctype.d $D/glue.d $D/gluelayer.d $D/todt.d $D/tocsym
 BACK_HDRS=$C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/global.d \
 	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d $C/code_x86.d $C/iasm.d $C/codebuilder.d \
 	$C/ty.d $C/type.d $C/exh.d $C/mach.d $C/mscoff.d $C/dwarf.d $C/dwarf2.d $C/xmm.d \
-	$C/dlist.d $C/goh.d $C/memh.d $C/melf.d $C/varstats.di $C/barray.d
-
-TK_HDRS=
+	$C/dlist.d $C/goh.d $C/melf.d $C/varstats.di $C/barray.d
 
 STRING_IMPORT_FILES= $G\VERSION ../res/default_ddoc_theme.ddoc
 
-DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
+DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS)
 
 # Glue layer
 GLUEOBJ=
@@ -201,7 +183,7 @@ GBACKOBJ= $G/go.obj $G/gdag.obj $G/gother.obj $G/gflow.obj $G/gloop.obj $G/var.o
 	$G/bcomplex.obj $G/ptrntab.obj $G/md5.obj $G/barray.obj $G/goh.obj \
 	$G/mscoffobj.obj $G/pdata.obj $G/cv8.obj $G/backconfig.obj \
 	$G/divcoeff.obj $G/dwarfdbginf.obj $G/compress.obj $G/dvarstats.obj \
-	$G/ph2.obj $G/util2.obj $G/tk.obj $G/gsroa.obj $G/dvec.obj $G/filespec.obj \
+	$G/ph2.obj $G/util2.obj $G/gsroa.obj $G/dvec.obj $G/filespec.obj $G/mem.obj \
 
 # Root package
 ROOT_SRCS=$(ROOT)/aav.d $(ROOT)/array.d $(ROOT)/ctfloat.d $(ROOT)/file.d \
@@ -231,29 +213,23 @@ BACKSRC= $C\optabgen.d \
 	$C\compress.d $C\cgreg.d $C\var.d \
 	$C\cgsched.d $C\cod1.d $C\cod2.d $C\cod3.d $C\cod4.d $C\cod5.d \
 	$C\dcode.d $C\symbol.d $C\debugprint.d $C\ee.d $C\elem.d \
-	$C\evalu8.d $C\fp.c $C\go.d $C\gflow.d $C\gdag.d \
+	$C\evalu8.d $C\fp.d $C\go.d $C\gflow.d $C\gdag.d \
 	$C\gother.d $C\glocal.d $C\gloop.d $C\gsroa.d $C\newman.d \
 	$C\nteh.d $C\os.d $C\out.d $C\ptrntab.d $C\drtlsym.d \
 	$C\dtype.d \
 	$C\elfobj.d \
 	$C\dwarfdbginf.d $C\machobj.d $C\aarray.d $C\barray.d \
-	$C\strtold.c \
 	$C\md5.d $C\ph2.d $C\util2.d \
 	$C\mscoffobj.d $C\pdata.d $C\cv8.d $C\backconfig.d \
 	$C\divcoeff.d $C\dwarfeh.d $C\dvarstats.d \
-	$C\dvec.d $C\filespec.d $C\backend.txt
-
-# Toolkit
-TKSRCC=	$(TK)\mem.c
-TKSRC= $(TK)\filespec.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h \
-	$(TKSRCC)
+	$C\dvec.d $C\filespec.d $C\mem.d $C\backend.txt
 
 # Root package
 ROOTSRCC=
 ROOTSRCD=$(ROOT)\rmem.d $(ROOT)\stringtable.d $(ROOT)\hash.d $(ROOT)\man.d $(ROOT)\port.d \
 	$(ROOT)\response.d $(ROOT)\rootobject.d $(ROOT)\speller.d $(ROOT)\aav.d \
 	$(ROOT)\ctfloat.d $(ROOT)\longdouble.d $(ROOT)\outbuffer.d $(ROOT)\filename.d \
-	$(ROOT)\file.d $(ROOT)\array.d
+	$(ROOT)\file.d $(ROOT)\array.d $(ROOT)\strtold.d
 ROOTSRC= $(ROOT)\root.h \
 	$(ROOT)\longdouble.h $(ROOT)\outbuffer.h $(ROOT)\object.h $(ROOT)\ctfloat.h \
 	$(ROOT)\filename.h $(ROOT)\file.h $(ROOT)\array.h $(ROOT)\rmem.h $(ROOTSRCC) \
@@ -354,13 +330,11 @@ install-copy:
 	$(MD) $(INSTALL)\windows\bin
 	$(MD) $(INSTALL)\windows\lib
 	$(MD) $(INSTALL)\src\dmd\root
-	$(MD) $(INSTALL)\src\dmd\tk
 	$(MD) $(INSTALL)\src\dmd\backend
 	$(CP) $(TARGETEXE)          $(INSTALL)\windows\bin\$(TARGETEXE)
 	$(CP) $(SRCS)               $(INSTALL)\src\dmd
 	$(CP) $(GLUESRC)            $(INSTALL)\src\dmd
 	$(CP) $(ROOTSRC)            $(INSTALL)\src\dmd\root
-	$(CP) $(TKSRC)              $(INSTALL)\src\dmd\tk
 	$(CP) $(BACKSRC)            $(INSTALL)\src\dmd\backend
 	$(CP) $(MAKEFILES)          $(INSTALL)\src\dmd
 	$(CP) $D\readme.txt            $(INSTALL)\src\dmd\readme.txt
@@ -371,10 +345,10 @@ install-clean:
 	$(RD) /s/q $(INSTALL)
 
 detab:
-	$(DETAB) $(SRCS) $(GLUESRC) $(ROOTSRC) $(TKSRC) $(BACKSRC)
+	$(DETAB) $(SRCS) $(GLUESRC) $(ROOTSRC) $(BACKSRC)
 
 tolf:
-	$(TOLF) $(SRCS) $(GLUESRC) $(ROOTSRC) $(TKSRC) $(BACKSRC) $(MAKEFILES)
+	$(TOLF) $(SRCS) $(GLUESRC) $(ROOTSRC) $(BACKSRC) $(MAKEFILES)
 
 zip: detab tolf $(MAKEFILES)
 	$(DEL) dmdsrc.zip
@@ -382,7 +356,6 @@ zip: detab tolf $(MAKEFILES)
 	$(ZIP) dmdsrc $(SRCS)
 	$(ZIP) dmdsrc $(GLUESRC)
 	$(ZIP) dmdsrc $(BACKSRC)
-	$(ZIP) dmdsrc $(TKSRC)
 	$(ZIP) dmdsrc $(ROOTSRC)
 
 scp: detab tolf $(MAKEFILES)
@@ -390,21 +363,19 @@ scp: detab tolf $(MAKEFILES)
 	$(SCP) $(SRCS) $(SCPDIR)/src
 	$(SCP) $(GLUESRC) $(SCPDIR)/src
 	$(SCP) $(BACKSRC) $(SCPDIR)/src/backend
-	$(SCP) $(TKSRC) $(SCPDIR)/src/tk
 	$(SCP) $(ROOTSRC) $(SCPDIR)/src/root
 
 pvs:
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /Tp canthrow.c --source-file canthrow.c
-#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /I$C /I$(TK) /Tp scanmscoff.c --source-file scanmscoff.c
-	$(PVS) --cfg PVS-Studio.cfg --cl-params /DMARS /DDM_TARGET_CPU_X86 /I$C /I$(TK) /I$(ROOT) /Tp $C\cod3.c --source-file $C\cod3.c
+#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /I$C /Tp scanmscoff.c --source-file scanmscoff.c
+	$(PVS) --cfg PVS-Studio.cfg --cl-params /DMARS /DDM_TARGET_CPU_X86 /I$C /I$(ROOT) /Tp $C\cod3.c --source-file $C\cod3.c
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /Tp $(SRCS) --source-file $(SRCS)
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /Tp $(GLUESRC) --source-file $(GLUESRC)
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /Tp $(ROOTSRCC) --source-file $(ROOTSRCC)
-#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$C;$(TK) /Tp $(BACKSRC) --source-file $(BACKSRC)
-#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(TK) /Tp $(TKSRCC) --source-file $(TKSRCC)
+#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$C /Tp $(BACKSRC) --source-file $(BACKSRC)
 
 checkwhitespace: $(TOOLS_DIR)\checkwhitespace.d
-	$(HOST_DC) -run $(TOOLS_DIR)\checkwhitespace $(SRCS) $(GLUESRC) $(ROOTSRC) $(TKSRC) $(BACKSRC)
+	$(HOST_DC) -run $(TOOLS_DIR)\checkwhitespace $(SRCS) $(GLUESRC) $(ROOTSRC) $(BACKSRC)
 
 # Extra test here, wine attempts to execute git even if file already exists
 $(TOOLS_DIR)\checkwhitespace.d:
@@ -441,13 +412,6 @@ $G\VERSION : ..\VERSION $G
 	copy ..\VERSION $@
 
 ############################# Intermediate Rules ############################
-
-# Default rules
-.c.obj:
-	$(CC) -c $(CFLAGS) $*
-
-.asm.obj:
-	$(CC) -c $(CFLAGS) $*
 
 # D front/back end
 
@@ -550,8 +514,8 @@ $G/evalu8.obj : $C\evalu8.d
 $G/filespec.obj : $C\filespec.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\filespec
 
-$G/fp.obj : $C\fp.c
-	$(CC) -c -o$@ $(MFLAGS) $C\fp
+$G/fp.obj : $C\fp.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\fp
 
 $G/go.obj : $C\go.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\go
@@ -580,6 +544,9 @@ $G/gsroa.obj : $C\gsroa.d
 $G/md5.obj : $C\md5.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\md5
 
+$G/mem.obj : $C\mem.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\mem
+
 $G/mscoffobj.obj : $C\mscoffobj.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\mscoffobj
 
@@ -607,9 +574,6 @@ $G/ptrntab.obj : $C\iasm.d $C\ptrntab.d
 $G/drtlsym.obj : $C\rtlsym.d $C\drtlsym.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\drtlsym
 
-$G/strtold.obj : $C\strtold.c
-	$(CC) -c -o$@ -cpp $C\strtold
-
 $G/dtype.obj : $C\dtype.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\dtype
 
@@ -621,15 +585,13 @@ $G/var.obj : $C\var.d $G\optab.d $G\tytab.d
 
 $G/dvarstats.obj : $C\dvarstats.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\dvarstats
-#	$(CC) -c -o$@ $(MFLAGS) -I$D -I$G $C\varstats
-
-
-$G/tk.obj : $C\tk.c
-	$(CC) -c -o$@ $(MFLAGS) $C\tk.c
 
 # Root
 $G/longdouble.obj : $(ROOT)\longdouble.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) $(ROOT)\longdouble.d
+
+$G/strtold.obj : $(ROOT)\strtold.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) $(ROOT)\strtold
 
 ############################## Generated Rules ###############################
 

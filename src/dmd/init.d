@@ -16,6 +16,7 @@ import core.stdc.stdio;
 import core.checkedint;
 
 import dmd.arraytypes;
+import dmd.ast_node;
 import dmd.dsymbol;
 import dmd.expression;
 import dmd.globals;
@@ -50,7 +51,7 @@ enum InitKind : ubyte
 
 /***********************************************************
  */
-extern (C++) class Initializer : RootObject
+extern (C++) class Initializer : ASTNode
 {
     Loc loc;
     InitKind kind;
@@ -96,7 +97,7 @@ extern (C++) class Initializer : RootObject
         return kind == InitKind.exp ? cast(inout ExpInitializer)cast(void*)this : null;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -182,11 +183,11 @@ extern (C++) final class ArrayInitializer : Initializer
         type = null;
     }
 
-    bool isAssociativeArray()
+    bool isAssociativeArray() const pure
     {
-        for (size_t i = 0; i < value.dim; i++)
+        foreach (idx; index)
         {
-            if (index[i])
+            if (idx)
                 return true;
         }
         return false;
@@ -235,36 +236,31 @@ version (all)
             return false;
         if (e.op == TOK.null_)
             return false;
-        if (e.op == TOK.structLiteral)
+        if (auto se = e.isStructLiteralExp())
         {
-            StructLiteralExp se = cast(StructLiteralExp)e;
             return checkArray(se.elements);
         }
-        if (e.op == TOK.arrayLiteral)
+        if (auto ae = e.isArrayLiteralExp())
         {
-            if (!e.type.nextOf().hasPointers())
+            if (!ae.type.nextOf().hasPointers())
                 return false;
-            ArrayLiteralExp ae = cast(ArrayLiteralExp)e;
             return checkArray(ae.elements);
         }
-        if (e.op == TOK.assocArrayLiteral)
+        if (auto ae = e.isAssocArrayLiteralExp())
         {
-            AssocArrayLiteralExp ae = cast(AssocArrayLiteralExp)e;
             if (ae.type.nextOf().hasPointers() && checkArray(ae.values))
                 return true;
             if ((cast(TypeAArray)ae.type).index.hasPointers())
                 return checkArray(ae.keys);
             return false;
         }
-        if (e.op == TOK.address)
+        if (auto ae = e.isAddrExp())
         {
-            AddrExp ae = cast(AddrExp)e;
-            if (ae.e1.op == TOK.structLiteral)
+            if (auto se = ae.e1.isStructLiteralExp())
             {
-                StructLiteralExp se = cast(StructLiteralExp)ae.e1;
                 if (!(se.stageflags & stageSearchPointers))
                 {
-                    int old = se.stageflags;
+                    const old = se.stageflags;
                     se.stageflags |= stageSearchPointers;
                     bool ret = checkArray(se.elements);
                     se.stageflags = old;

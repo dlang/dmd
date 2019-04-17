@@ -87,6 +87,7 @@ struct IntRange;
 #define STCscopeinferred 0x2000000000000LL // 'scope' has been inferred and should not be part of mangling
 #define STCfuture        0x4000000000000LL // introducing new base class function
 #define STClocal         0x8000000000000LL // do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
+#define STCreturninferred 0x10000000000000LL   // 'return' has been inferred and should not be part of mangling
 
 void ObjectNotFound(Identifier *id);
 
@@ -462,7 +463,6 @@ public:
         VarDeclaration *selector;
     };
 
-    Types *fthrows;                     // Array of Type's of exceptions (not used)
     Statements *frequires;              // in contracts
     Ensures *fensures;                  // out contracts
     Statement *frequire;                // lowered in contract
@@ -664,6 +664,7 @@ public:
 class CtorDeclaration : public FuncDeclaration
 {
 public:
+    bool isCpCtor;
     Dsymbol *syntaxCopy(Dsymbol *);
     const char *kind() const;
     const char *toChars();
