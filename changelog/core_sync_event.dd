@@ -1,0 +1,4 @@
+New module core.sync.event
+
+This module provides a cross-platform interface for lightweight signaling of other threads.
+It can be used to start execution of multiple waiting threads simultaneously.

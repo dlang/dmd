@@ -378,7 +378,7 @@ bool dll_process_attach( HINSTANCE hInstance, bool attach_threads,
     // attach to all other threads
     return enumProcessThreads(
         function (uint id, void* context) {
-            if ( !thread_findByAddr( id ) )
+            if ( !thread_findByAddr( id ) && !findLowLevelThread( id ) )
             {
                 // if the OS has not prepared TLS for us, don't attach to the thread
                 if ( GetTlsDataAddress( id ) )
@@ -409,6 +409,9 @@ bool dll_process_attach( HINSTANCE hInstance, bool attach_threads = true )
 // to be called from DllMain with reason DLL_PROCESS_DETACH
 void dll_process_detach( HINSTANCE hInstance, bool detach_threads = true )
 {
+    // notify core.thread.joinLowLevelThread that the DLL is about to be unloaded
+    thread_DLLProcessDetaching = true;
+
     // detach from all other threads
     if ( detach_threads )
         enumProcessThreads(
@@ -435,9 +438,10 @@ bool dll_thread_attach( bool attach_thread = true, bool initTls = true )
 {
     // if the OS has not prepared TLS for us, don't attach to the thread
     //  (happened when running under x64 OS)
-    if ( !GetTlsDataAddress( GetCurrentThreadId() ) )
+    auto tid = GetCurrentThreadId();
+    if ( !GetTlsDataAddress( tid ) )
         return false;
-    if ( !thread_findByAddr( GetCurrentThreadId() ) )
+    if ( !thread_findByAddr( tid ) && !findLowLevelThread( tid ) )
     {
         // only attach to thread and initalize it if it is not in the thread list (so it's not created by "new Thread")
         if ( attach_thread )

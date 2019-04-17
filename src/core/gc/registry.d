@@ -5,9 +5,9 @@
  * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Martin Nowak
  */
-module gc.registry;
+module core.gc.registry;
 
-import gc.gcinterface : GC;
+import core.gc.gcinterface : GC;
 
 /*@nogc nothrow:*/
 
@@ -71,7 +71,7 @@ GC createGCInstance(string name)
 }
 
 // list of all registerd GCs
-package(gc) const(Entry[]) registeredGCFactories(scope int dummy=0) nothrow @nogc
+const(Entry[]) registeredGCFactories(scope int dummy=0) nothrow @nogc
 {
     return entries;
 }

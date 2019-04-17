@@ -16,6 +16,10 @@ DOCS=\
 	$(DOCDIR)\core_time.html \
 	$(DOCDIR)\core_vararg.html \
 	\
+	$(DOCDIR)\core_gc_config.html \
+	$(DOCDIR)\core_gc_gcinterface.html \
+	$(DOCDIR)\core_gc_registry.html \
+	\
 	$(DOCDIR)\core_stdc_assert_.html \
 	$(DOCDIR)\core_stdc_config.html \
 	$(DOCDIR)\core_stdc_complex.html \
@@ -51,6 +55,7 @@ DOCS=\
 	$(DOCDIR)\core_sync_condition.html \
 	$(DOCDIR)\core_sync_config.html \
 	$(DOCDIR)\core_sync_exception.html \
+	$(DOCDIR)\core_sync_event.html \
 	$(DOCDIR)\core_sync_mutex.html \
 	$(DOCDIR)\core_sync_rwmutex.html \
 	$(DOCDIR)\core_sync_semaphore.html \
@@ -74,7 +79,6 @@ DOCS=\
     $(DOCDIR)\rt_adi.html \
     $(DOCDIR)\rt_alloca.html \
     $(DOCDIR)\rt_arrayassign.html \
-    $(DOCDIR)\rt_arraycast.html \
     $(DOCDIR)\rt_arraycat.html \
     \
     $(DOCDIR)\rt_backtrace_dwarf.html \
@@ -99,7 +103,6 @@ DOCS=\
     $(DOCDIR)\rt_memset.html \
     $(DOCDIR)\rt_minfo.html \
     $(DOCDIR)\rt_monitor_.html \
-    $(DOCDIR)\rt_obj.html \
     $(DOCDIR)\rt_profilegc.html \
     $(DOCDIR)\rt_qsort.html \
     $(DOCDIR)\rt_sections_android.html \

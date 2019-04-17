@@ -77,7 +77,7 @@ ifeq (solaris,$(OS))
 endif
 
 # Set DFLAGS
-UDFLAGS:=-conf= -Isrc -Iimport -w -dip1000 -preview=fieldwise $(MODEL_FLAG) $(PIC) $(OPTIONAL_COVERAGE)
+UDFLAGS:=-conf= -Isrc -Iimport -w -de -dip1000 -preview=fieldwise $(MODEL_FLAG) $(PIC) $(OPTIONAL_COVERAGE)
 ifeq ($(BUILD),debug)
 	UDFLAGS += -g -debug
 	DFLAGS:=$(UDFLAGS)
@@ -150,6 +150,9 @@ $(DOCDIR)/object.html : src/object.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOCDIR)/core_%.html : src/core/%.d $(DMD)
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+
+$(DOCDIR)/core_gc_%.html : src/core/gc/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOCDIR)/core_stdc_%.html : src/core/stdc/%.d $(DMD)
@@ -387,10 +390,20 @@ style_lint:
 	$(GREP) -nrE "\<(version) \( " $$(find src -name '*.d') ; test $$? -eq 1
 
 .PHONY : auto-tester-build
+ifneq (,$(findstring Darwin_64_32, $(PWD)))
+auto-tester-build:
+	echo "Darwin_64_32_disabled"
+else
 auto-tester-build: target checkwhitespace
+endif
 
 .PHONY : auto-tester-test
+ifneq (,$(findstring Darwin_64_32, $(PWD)))
+auto-tester-test:
+	echo "Darwin_64_32_disabled"
+else
 auto-tester-test: unittest benchmark-compile-only
+endif
 
 .PHONY : buildkite-test
 buildkite-test: unittest benchmark-compile-only

@@ -1180,7 +1180,7 @@ extern (C) void _d_delarray_t(void[]* p, const TypeInfo_Struct ti)
     }
 }
 
-unittest
+deprecated unittest
 {
     __gshared size_t countDtor = 0;
     struct S
@@ -2567,7 +2567,7 @@ unittest
 
 // test struct finalizers
 debug(SENTINEL) {} else
-unittest
+deprecated unittest
 {
     __gshared int dtorCount;
     static struct S1

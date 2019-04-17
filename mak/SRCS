@@ -17,6 +17,10 @@ SRCS=\
 	src\core\time.d \
 	src\core\vararg.d \
 	\
+	src\core\gc\config.d \
+	src\core\gc\gcinterface.d \
+	src\core\gc\registry.d \
+	\
 	src\core\internal\abort.d \
 	src\core\internal\arrayop.d \
 	src\core\internal\convert.d \
@@ -27,6 +31,7 @@ SRCS=\
 	src\core\internal\string.d \
 	src\core\internal\traits.d \
 	src\core\internal\utf.d \
+	src\core\internal\lifetime.d \
 	\
 	src\core\stdc\assert_.d \
 	src\core\stdc\complex.d \
@@ -63,6 +68,7 @@ SRCS=\
 	src\core\sync\condition.d \
 	src\core\sync\config.d \
 	src\core\sync\exception.d \
+	src\core\sync\event.d \
 	src\core\sync\mutex.d \
 	src\core\sync\rwmutex.d \
 	src\core\sync\semaphore.d \
@@ -388,13 +394,10 @@ SRCS=\
 	src\core\sys\windows\wtypes.d \
 	\
 	src\gc\bits.d \
-	src\gc\config.d \
-	src\gc\gcinterface.d \
 	src\gc\impl\conservative\gc.d \
 	src\gc\os.d \
 	src\gc\pooltable.d \
 	src\gc\proxy.d \
-	src\gc\registry.d \
 	src\gc\impl\manual\gc.d \
 	src\gc\impl\proto\gc.d \
 	\
@@ -404,7 +407,6 @@ SRCS=\
 	src\rt\adi.d \
 	src\rt\alloca.d \
 	src\rt\arrayassign.d \
-	src\rt\arraycast.d \
 	src\rt\arraycat.d \
 	src\rt\cast_.d \
 	src\rt\cmath2.d \
@@ -424,7 +426,6 @@ SRCS=\
 	src\rt\memset.d \
 	src\rt\minfo.d \
 	src\rt\monitor_.d \
-	src\rt\obj.d \
 	src\rt\profilegc.d \
 	src\rt\qsort.d \
 	src\rt\sections.d \

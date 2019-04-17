@@ -23,7 +23,7 @@ version (Posix)
     private import core.time;
 
 
-    void mktspec( ref timespec t ) nothrow
+    void mktspec( ref timespec t ) nothrow @nogc
     {
         static if ( false && is( typeof( clock_gettime ) ) )
         {
@@ -41,14 +41,14 @@ version (Posix)
     }
 
 
-    void mktspec( ref timespec t, Duration delta ) nothrow
+    void mktspec( ref timespec t, Duration delta ) nothrow @nogc
     {
         mktspec( t );
         mvtspec( t, delta );
     }
 
 
-    void mvtspec( ref timespec t, Duration delta ) nothrow
+    void mvtspec( ref timespec t, Duration delta ) nothrow @nogc
     {
         auto val  = delta;
              val += dur!"seconds"( t.tv_sec );

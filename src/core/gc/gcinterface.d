@@ -11,7 +11,7 @@
  *    (See accompanying file LICENSE or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
-module gc.gcinterface;
+module core.gc.gcinterface;
 
 static import core.memory;
 alias BlkAttr = core.memory.GC.BlkAttr;

@@ -14,9 +14,9 @@
 module gc.proxy;
 
 import gc.impl.proto.gc;
-import gc.config;
-import gc.gcinterface;
-import gc.registry : createGCInstance;
+import core.gc.config;
+import core.gc.gcinterface;
+import core.gc.registry : createGCInstance;
 
 static import core.memory;
 

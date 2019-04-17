@@ -30,13 +30,21 @@ $(IMPDIR)\core\sync\semaphore.di : src\core\sync\semaphore.d
 ######################## Header .di file copy ##############################
 
 copydir: $(IMPDIR)
+	mkdir $(IMPDIR)\core\gc
 	mkdir $(IMPDIR)\core\stdc
 	mkdir $(IMPDIR)\core\stdcpp
 	mkdir $(IMPDIR)\core\internal
 	mkdir $(IMPDIR)\core\sys\darwin\mach
+	mkdir $(IMPDIR)\core\sys\darwin\netinet
+	mkdir $(IMPDIR)\core\sys\darwin\sys
+	mkdir $(IMPDIR)\core\sys\freebsd\netinet
 	mkdir $(IMPDIR)\core\sys\freebsd\sys
+	mkdir $(IMPDIR)\core\sys\dragonflybsd\netinet
 	mkdir $(IMPDIR)\core\sys\dragonflybsd\sys
+	mkdir $(IMPDIR)\core\sys\linux\netinet
 	mkdir $(IMPDIR)\core\sys\linux\sys
+	mkdir $(IMPDIR)\core\sys\linux\sys\netinet
+	mkdir $(IMPDIR)\core\sys\openbsd
 	mkdir $(IMPDIR)\core\sys\posix\arpa
 	mkdir $(IMPDIR)\core\sys\posix\net
 	mkdir $(IMPDIR)\core\sys\posix\netinet
@@ -96,6 +104,15 @@ $(IMPDIR)\core\time.d : src\core\time.d
 $(IMPDIR)\core\vararg.d : src\core\vararg.d
 	copy $** $@
 
+$(IMPDIR)\core\gc\config.d : src\core\gc\config.d
+	copy $** $@
+
+$(IMPDIR)\core\gc\gcinterface.d : src\core\gc\gcinterface.d
+	copy $** $@
+
+$(IMPDIR)\core\gc\registry.d : src\core\gc\registry.d
+	copy $** $@
+
 $(IMPDIR)\core\internal\abort.d : src\core\internal\abort.d
 	copy $** $@
 
@@ -124,6 +141,9 @@ $(IMPDIR)\core\internal\traits.d : src\core\internal\traits.d
 	copy $** $@
 
 $(IMPDIR)\core\internal\utf.d : src\core\internal\utf.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\lifetime.d : src\core\internal\lifetime.d
 	copy $** $@
 
 $(IMPDIR)\core\stdc\assert_.d : src\core\stdc\assert_.d
@@ -190,6 +210,9 @@ $(IMPDIR)\core\stdc\wchar_.d : src\core\stdc\wchar_.d
 	copy $** $@
 
 $(IMPDIR)\core\stdc\wctype.d : src\core\stdc\wctype.d
+	copy $** $@
+
+$(IMPDIR)\core\sync\event.d : src\core\sync\event.d
 	copy $** $@
 
 $(IMPDIR)\core\stdcpp\allocator.d : src\core\stdcpp\allocator.d

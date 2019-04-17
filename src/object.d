@@ -332,6 +332,22 @@ if (!__traits(isScalar, T1) && !__traits(isScalar, T2))
     assert(__cmp([c2, c2], [c2, c1]) > 0);
 }
 
+@safe unittest
+{
+    auto a = "hello"c;
+
+    assert(a >  "hel");
+    assert(a >= "hel");
+    assert(a <  "helloo");
+    assert(a <= "helloo");
+    assert(a >  "betty");
+    assert(a >= "betty");
+    assert(a == "hello");
+    assert(a <= "hello");
+    assert(a >= "hello");
+    assert(a <  "я");
+}
+
 // `lhs == rhs` lowers to `__equals(lhs, rhs)` for dynamic arrays
 bool __equals(T1, T2)(T1[] lhs, T2[] rhs)
 {
@@ -446,6 +462,20 @@ bool __equals(T1, T2)(T1[] lhs, T2[] rhs)
 {
     assert(__equals([], []));
     assert(!__equals([1, 2], [1, 2, 3]));
+}
+
+@safe unittest
+{
+    auto a = "hello"c;
+
+    assert(a != "hel");
+    assert(a != "helloo");
+    assert(a != "betty");
+    assert(a == "hello");
+    assert(a != "hxxxx");
+
+    float[] fa = [float.nan];
+    assert(fa != fa);
 }
 
 @safe unittest
@@ -599,7 +629,8 @@ void destroy(bool initialize = true, T)(T obj) if (is(T == class))
 {
     static if (__traits(getLinkage, T) == "C++")
     {
-        obj.__xdtor();
+        static if (__traits(hasMember, T, "__xdtor"))
+            obj.__xdtor();
 
         static if (initialize)
         {
@@ -702,6 +733,19 @@ void destroy(bool initialize = true, T)(T obj) if (is(T == interface))
     assert(i == 1);           // `i` was not initialized
     destroy(i);
     assert(i == 0);           // `i` is back to its initial state `0`
+}
+
+@system unittest
+{
+    extern(C++)
+    static class C
+    {
+        void* ptr;
+        this() {}
+    }
+
+    destroy!false(new C());
+    destroy!true(new C());
 }
 
 @system unittest
@@ -3929,7 +3973,10 @@ private
  */
 size_t reserve(T)(ref T[] arr, size_t newcapacity) pure nothrow @trusted
 {
-    return _d_arraysetcapacity(typeid(T[]), newcapacity, cast(void[]*)&arr);
+    if (__ctfe)
+        return newcapacity;
+    else
+        return _d_arraysetcapacity(typeid(T[]), newcapacity, cast(void[]*)&arr);
 }
 
 ///
@@ -3951,6 +3998,18 @@ size_t reserve(T)(ref T[] arr, size_t newcapacity) pure nothrow @trusted
     a ~= [5, 6, 7, 8];
     assert(p == &a[0]);      //a should not have been reallocated
     assert(u == a.capacity); //a should not have been extended
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=12330, reserve() at CTFE time
+@safe unittest
+{
+    int[] foo() {
+        int[] result;
+        auto a = result.reserve = 5;
+        assert(a == 5);
+        return result;
+    }
+    enum r = foo();
 }
 
 // Issue 6646: should be possible to use array.reserve from SafeD.
@@ -4156,14 +4215,23 @@ void __ctfeWrite(scope const(char)[] s) @nogc @safe pure nothrow {}
  * Create RTInfo for type T
  */
 
-template RTInfoImpl(size_t[] pointers)
+template RTInfoImpl(size_t[] pointerBitmap)
 {
-    immutable size_t[pointers.length] RTInfoImpl = pointers[];
+    immutable size_t[pointerBitmap.length] RTInfoImpl = pointerBitmap[];
+}
+
+template NoPointersBitmapPayload(size_t N)
+{
+    enum size_t[N] NoPointersBitmapPayload = 0;
 }
 
 template RTInfo(T)
 {
-    enum RTInfo = RTInfoImpl!(__traits(getPointerBitmap, T)).ptr;
+    enum pointerBitmap = __traits(getPointerBitmap, T);
+    static if (pointerBitmap[1 .. $] == NoPointersBitmapPayload!(pointerBitmap.length - 1))
+        enum RTInfo = rtinfoNoPointers;
+    else
+        enum RTInfo = RTInfoImpl!(pointerBitmap).ptr;
 }
 
 /**
@@ -4735,31 +4803,38 @@ Params:
 private void onArrayCastError()(string fromType, size_t fromSize, string toType, size_t toSize) @trusted
 {
     import core.internal.string : unsignedToTempString;
-    import core.stdc.stdlib : alloca;
 
-    const(char)[][8] msgComponents =
+    const(char)[][9] msgComponents =
     [
-        "Cannot cast `"
-        , fromType
-        , "` to `"
-        , toType
-        , "`; an array of size "
+        "An array of size "
         , unsignedToTempString(fromSize)
         , " does not align on an array of size "
         , unsignedToTempString(toSize)
+        , ", so `"
+        , fromType
+        , "` cannot be cast to `"
+        , toType
+        , "`"
     ];
 
     // convert discontiguous `msgComponents` to contiguous string on the stack
-    size_t length = 0;
-    foreach (m ; msgComponents)
-        length += m.length;
-
-    auto msg = (cast(char*)alloca(length))[0 .. length];
+    enum msgLength = 2048;
+    char[msgLength] msg;
 
     size_t index = 0;
-    foreach (m ; msgComponents)
+    foreach (m; msgComponents)
+    {
         foreach (c; m)
+        {
             msg[index++] = c;
+            if (index >= (msgLength - 1))
+                break;
+        }
+
+        if (index >= (msgLength - 1))
+            break;
+    }
+    msg[index] = '\0'; // null-termination
 
     // first argument must evaluate to `false` at compile-time to maintain memory safety in release builds
     assert(false, msg);

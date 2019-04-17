@@ -1,6 +1,10 @@
 COPY=\
 	$(IMPDIR)\object.d \
 	\
+	$(IMPDIR)\core\gc\config.d \
+	$(IMPDIR)\core\gc\gcinterface.d \
+	$(IMPDIR)\core\gc\registry.d \
+	\
 	$(IMPDIR)\core\atomic.d \
 	$(IMPDIR)\core\attribute.d \
 	$(IMPDIR)\core\bitop.d \
@@ -27,6 +31,7 @@ COPY=\
 	$(IMPDIR)\core\internal\string.d \
 	$(IMPDIR)\core\internal\traits.d \
 	$(IMPDIR)\core\internal\utf.d \
+	$(IMPDIR)\core\internal\lifetime.d \
 	\
 	$(IMPDIR)\core\stdc\assert_.d \
 	$(IMPDIR)\core\stdc\complex.d \
@@ -59,6 +64,8 @@ COPY=\
 	$(IMPDIR)\core\stdcpp\typeinfo.d \
 	$(IMPDIR)\core\stdcpp\type_traits.d \
 	$(IMPDIR)\core\stdcpp\xutility.d \
+	\
+	$(IMPDIR)\core\sync\event.d \
 	\
 	$(IMPDIR)\core\sys\darwin\crt_externs.d \
 	$(IMPDIR)\core\sys\darwin\dlfcn.d \

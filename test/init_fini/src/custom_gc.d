@@ -1,5 +1,5 @@
-import gc.registry;
-import gc.gcinterface;
+import core.gc.registry;
+import core.gc.gcinterface;
 import core.stdc.stdlib;
 
 static import core.memory;
