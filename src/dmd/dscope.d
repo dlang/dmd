@@ -286,7 +286,7 @@ struct Scope
             FuncDeclaration f = func;
             if (fes)
                 f = fes.func;
-            auto ad = f.isMember2();
+            auto ad = f.isMember4();
             assert(ad);
             foreach (i, v; ad.fields)
             {

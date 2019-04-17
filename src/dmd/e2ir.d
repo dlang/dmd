@@ -341,7 +341,7 @@ private elem *callfunc(const ref Loc loc,
         }
     }
 
-    if (fd && fd.isMember2())
+    if (fd && fd.isMember4())
     {
         assert(op == NotIntrinsic);       // members should not be intrinsics
 
@@ -1678,7 +1678,7 @@ elem *toElem(Expression e, IRState *irs)
                     //printf("cdthis = %s\n", cdthis.toChars());
                     assert(cd.isNested());
                     int offset = 0;
-                    Dsymbol cdp = cd.toParent2();     // class we're nested in
+                    Dsymbol cdp = cd.toParent4();     // class we're nested in
 
                     //printf("member = %p\n", member);
                     //printf("cdp = %s\n", cdp.toChars());

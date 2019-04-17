@@ -378,7 +378,7 @@ extern (C++) class FuncDeclaration : Declaration
         if (isInstantiated() && !isVirtualMethod() &&
             ((ti = parent.isTemplateInstance()) is null || ti.isTemplateMixin() || ti.tempdecl.ident == ident))
         {
-            AggregateDeclaration ad = isMember2();
+            AggregateDeclaration ad = isMember4();
             if (ad && ad.sizeok != Sizeok.done)
             {
                 /* Currently dmd cannot resolve forward references per methods,
@@ -1610,7 +1610,7 @@ extern (C++) class FuncDeclaration : Declaration
     override inout(AggregateDeclaration) isThis() inout
     {
         //printf("+FuncDeclaration::isThis() '%s'\n", toChars());
-        auto ad = (storage_class & STC.static_) ? objc.isThis(this) : isMember2();
+        auto ad = (storage_class & STC.static_) ? objc.isThis(this) : isMember4();
         //printf("-FuncDeclaration::isThis() %p\n", ad);
         return ad;
     }
