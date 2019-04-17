@@ -3,9 +3,7 @@
 
 module test42;
 
-import std.stdio;
 import core.stdc.stdio;
-import std.string;
 import core.memory;
 import core.vararg;
 
@@ -52,8 +50,8 @@ void test2()
 void test3()
 {
     auto i = mixin("__LINE__");
-    writefln("%d", i);
-    assert(i == 54);
+    printf("%d\n", i);
+    assert(i == 52);
 }
 
 /***************************************************/
@@ -154,8 +152,8 @@ void test8()
 
 void test9()
 {
-    writeln(long.max.stringof);
-    writeln(ulong.max.stringof);
+    //writeln(long.max.stringof);
+    //writeln(ulong.max.stringof);
     assert(long.max.stringof == "9223372036854775807L");
     assert(ulong.max.stringof == "18446744073709551615LU");
 }
@@ -413,7 +411,7 @@ void test25()
     int[10] arrayA = [0,1,2,3,4,5,6,7,8,9];
     foreach(int i; arrayA)
     {
-        writeln(i);
+        printf("%d\n", i);
     }
 }
 
@@ -524,11 +522,11 @@ struct S35
 void test35()
 {   S35 s;
     auto t = typeid(S35);
-    writefln("s = %s", s);
-    writefln("s = %s", t);
+    //writefln("s = %s", s);
+    //writefln("s = %s", t);
     auto tis = cast(TypeInfo_Struct)t;
-    writefln("s = %s", tis);
-    writefln("s = %s", tis.xtoString);
+    //writefln("s = %s", tis);
+    //writefln("s = %s", tis.xtoString);
     assert(tis.xtoString != null);
 }
 
@@ -656,7 +654,7 @@ void test44()
 {
     ifloat f = 1.0fi;
 //    f *= 2.0fi; // illegal but compiles
-    writefln("%s", f);
+    printf("%g\n", f);
 //    assert(f == 0i);
 }
 
@@ -846,7 +844,7 @@ void test56()
 
 void writecrossing(bool goal)
 {
-  writeln(goal?"escape":"return");
+    goal ? printf("escape\n") : printf("return\n");
 }
 
 void test57()
@@ -1297,15 +1295,15 @@ class C79
 void test79()
 {
     C79 c = new C79();
-    writeln(c.__vptr);
-    writeln(c.__vptr[0]);
-    writeln(cast(void*)c.classinfo);
+//    writeln(c.__vptr);
+//    writeln(c.__vptr[0]);
+//    writeln(cast(void*)c.classinfo);
     assert(c.__vptr[0] == cast(void*)c.classinfo);
-    writeln(c.__monitor);
+//    writeln(c.__monitor);
     assert(c.__monitor == null);
     synchronized (c)
     {
-        writeln(c.__monitor);
+//        writeln(c.__monitor);
         assert(c.__monitor !is null);
     }
 }
@@ -1599,11 +1597,11 @@ void test96()
 void test97()
 {
     const short[] ct = cast(short[]) [cast(byte)1, 1];
-    writeln(ct);
+//    writeln(ct);
     assert(ct.length == 2 && ct[0] == 1 && ct[1] == 1);
 
     short[] rt = cast(short[]) [cast(byte)1, cast(byte)1].dup;
-    writeln(rt);
+//    writeln(rt);
     assert(rt.length == 1 && rt[0] == 257);
 }
 
@@ -1743,7 +1741,7 @@ void test105()
 {
     Templ!(int).Type x;
     auto s = Templ!(int).XXX;
-    writeln(s);
+    printf("%.*s\n", cast(int)s.length, s.ptr);
     assert(s == "i");
 }
 
@@ -3334,9 +3332,9 @@ void test203()
     auto b = a.new B203;
     auto c = new C203;
 
-    writeln(a.tupleof); // prints: A
-    writeln(b.tupleof); // prints: B main.A
-    writeln(c.tupleof); // prints: C 0000
+//    writeln(a.tupleof); // prints: A
+//    writeln(b.tupleof); // prints: B main.A
+//    writeln(c.tupleof); // prints: C 0000
     assert(a.tupleof.length == 1 && a.tupleof[0] == 'A');
     assert(b.tupleof.length == 1 && b.tupleof[0] == 'B');
     assert(c.tupleof.length == 1 && c.tupleof[0] == 'C');
@@ -3597,9 +3595,9 @@ void test220()
   mixin T220!(int);
 
   // all print 8
-  writeln(T220!(int).C.classinfo.initializer.length);
-  writeln(C.classinfo.initializer.length);
-  writeln(D220.classinfo.initializer.length);
+//  writeln(T220!(int).C.classinfo.initializer.length);
+//  writeln(C.classinfo.initializer.length);
+//  writeln(D220.classinfo.initializer.length);
 
   auto c = new C; // segfault in _d_newclass
 }
@@ -4195,7 +4193,7 @@ void bug6184()
 {
     bool cmp(ref int[3] a, ref int[3] b)
     {
-        return a is b;
+        return a[] is b[];
     }
 
     static struct Ary
@@ -4285,7 +4283,7 @@ void test237()
 {
     foreach (s, i; [ "a":1, "b":2 ])
     {
-        writeln(s, i);
+        //writeln(s, i);
     }
 }
 
@@ -5211,8 +5209,7 @@ public:
         ubyte size = value < (0x7fU << 0 ) ? 1 :
                      value < (0x7fU << 14) ? 2 :
                                              3;
-        import std.stdio;
-        writeln(size);
+        printf("%u\n", size);
         assert(size == 2);
     }
 }
@@ -5660,7 +5657,7 @@ void testreal_to_ulong()
         static assert(false, "Test not implemented for this architecture");
 
     auto v = r2ulong(adjust * 1.1);
-    writefln("%s %s %s", adjust, v, u + u/10);
+    //writefln("%s %s %s", adjust, v, u + u/10);
 
     //assert(v == 10145709240540253389UL);
 }
@@ -5956,8 +5953,6 @@ void test10633()
 
 /***************************************************/
 
-import std.stdio;
-
 void _assertEq (ubyte lhs, short rhs, string msg, string file, size_t line)
 {
     immutable result = lhs == rhs;
@@ -5966,9 +5961,9 @@ void _assertEq (ubyte lhs, short rhs, string msg, string file, size_t line)
     {
         string op = "==";
         if(msg.length > 0)
-            writefln(`_assertEq failed: [%s] is not [%s].`, lhs, rhs);
+            printf("_assertEq failed: [%u] is not [%d].\n", lhs, rhs);
         else
-            writefln(`_assertEq failed: [%s] is not [%s]: %s`, lhs, rhs, msg);
+            printf("_assertEq failed: [%u] is not [%d]: %.*s\n", lhs, rhs, cast(int)msg.length, msg.ptr);
     }
 
     assert(result);
@@ -6118,7 +6113,7 @@ double entropy2(double[] probs)
         __gshared int x;
         ++x;
         if (!p) continue;
-        import std.math : log2;
+        import core.stdc.math : log2;
         result -= p * log2(p);
     }
     return result;
@@ -6126,7 +6121,6 @@ double entropy2(double[] probs)
 
 void test16530()
 {
-    import std.stdio;
     if (entropy2([1.0, 0, 0]) != 0.0)
        assert(0);
 }
@@ -6480,7 +6474,7 @@ int main()
     test11472();
     test13285();
 
-    writefln("Success");
+    printf("Success\n");
     return 0;
 }
 
