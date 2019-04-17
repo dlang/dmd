@@ -186,7 +186,7 @@ bool isNeedThisScope(Scope* sc, Declaration d)
         return false;
     //printf("d = %s, ad = %s\n", d.toChars(), ad.toChars());
 
-    for (Dsymbol s = sc.parent; s; s = s.toParent2())
+    for (Dsymbol s = sc.parent; s; s = s.toParent4())
     {
         //printf("\ts = %s %s, toParent2() = %p\n", s.kind(), s.toChars(), s.toParent2());
         if (AggregateDeclaration ad2 = s.isAggregateDeclaration())
@@ -200,7 +200,7 @@ bool isNeedThisScope(Scope* sc, Declaration d)
         }
         if (FuncDeclaration f = s.isFuncDeclaration())
         {
-            if (f.isMember2())
+            if (f.isMember4())
                 break;
         }
     }
@@ -910,7 +910,7 @@ extern (C++) abstract class Expression : ASTNode
                 if (auto dve = this.isDotVarExp())
                 {
                     if (isNeedThisScope(sc, dve.var))
-                        for (Dsymbol s = sc.func; s; s = s.toParent2())
+                        for (Dsymbol s = sc.func; s; s = s.toParent4())
                     {
                         FuncDeclaration ff = s.isFuncDeclaration();
                         if (!ff)
