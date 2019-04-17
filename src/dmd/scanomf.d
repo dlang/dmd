@@ -116,7 +116,7 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
                 }
                 //printf("[s] name='%s'\n",name);
                 const(char)* n = names[idx];
-                pAddSymbol(n[0 .. strlen(name.ptr)], pickAny);
+                pAddSymbol(n[0 .. strlen(n)], pickAny);
                 break;
             }
         case COMDEF:
