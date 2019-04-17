@@ -790,6 +790,9 @@ extern (C++) class Dsymbol : ASTNode
 
         if (global.gag)
             return null; // don't do it for speculative compiles; too time consuming
+        // search for exact name ignoring visibility first
+        if (auto s = search(Loc.initial, ident, IgnoreErrors | IgnoreSymbolVisibility))
+            return s;
         return speller!symbol_search_fp(ident.toChars());
     }
 
@@ -1466,13 +1469,8 @@ public:
                 {
                     if (flags & SearchImportsOnly)
                         continue;
-                    // compatibility with -transition=import
-                    // https://issues.dlang.org/show_bug.cgi?id=15925
-                    // SearchLocalsOnly should always get set for new lookup rules
-                    if (global.params.check10378)
-                        sflags |= (flags & SearchLocalsOnly);
-                    else
-                        sflags |= SearchLocalsOnly;
+
+                    sflags |= SearchLocalsOnly;
                 }
 
                 /* Don't find private members if ss is a module

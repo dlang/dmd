@@ -479,19 +479,6 @@ struct Scope
         if (this.flags & SCOPE.ignoresymbolvisibility)
             flags |= IgnoreSymbolVisibility;
 
-        Dsymbol sold = void;
-        if (global.params.bug10378 || global.params.check10378)
-        {
-            sold = searchScopes(flags | IgnoreSymbolVisibility);
-            if (!global.params.check10378)
-                return sold;
-
-            if (ident == Id.dollar) // https://issues.dlang.org/show_bug.cgi?id=15825
-                return sold;
-
-            // Search both ways
-        }
-
         // First look in local scopes
         Dsymbol s = searchScopes(flags | SearchLocalsOnly);
         version (LOGSEARCH) if (s) printMsg("-Scope.search() found local", s);
@@ -500,66 +487,8 @@ struct Scope
             // Second look in imported modules
             s = searchScopes(flags | SearchImportsOnly);
             version (LOGSEARCH) if (s) printMsg("-Scope.search() found import", s);
-
-            /** Still find private symbols, so that symbols that weren't access
-             * checked by the compiler remain usable.  Once the deprecation is over,
-             * this should be moved to search_correct instead.
-             */
-            if (!s && !(flags & IgnoreSymbolVisibility))
-            {
-                s = searchScopes(flags | SearchLocalsOnly | IgnoreSymbolVisibility);
-                if (!s)
-                    s = searchScopes(flags | SearchImportsOnly | IgnoreSymbolVisibility);
-
-                if (s && !(flags & IgnoreErrors))
-                    .deprecation(loc, "`%s` is not visible from module `%s`", s.toPrettyChars(), _module.toChars());
-                version (LOGSEARCH) if (s) printMsg("-Scope.search() found imported private symbol", s);
-            }
-        }
-        if (global.params.check10378)
-        {
-            alias snew = s;
-            if (sold !is snew)
-                deprecation10378(loc, sold, snew);
-            if (global.params.bug10378)
-                s = sold;
         }
         return s;
-    }
-
-    /* A helper function to show deprecation message for new name lookup rule.
-     */
-    extern (D) static void deprecation10378(Loc loc, Dsymbol sold, Dsymbol snew)
-    {
-        // https://issues.dlang.org/show_bug.cgi?id=15857
-        //
-        // The overloadset found via the new lookup rules is either
-        // equal or a subset of the overloadset found via the old
-        // lookup rules, so it suffices to compare the dimension to
-        // check for equality.
-        OverloadSet osold, osnew;
-        if (sold && (osold = sold.isOverloadSet()) !is null &&
-            snew && (osnew = snew.isOverloadSet()) !is null &&
-            osold.a.dim == osnew.a.dim)
-            return;
-
-        OutBuffer buf;
-        buf.writestring("local import search method found ");
-        if (osold)
-            buf.printf("%s `%s` (%d overloads)", sold.kind(), sold.toPrettyChars(), cast(int) osold.a.dim);
-        else if (sold)
-            buf.printf("%s `%s`", sold.kind(), sold.toPrettyChars());
-        else
-            buf.writestring("nothing");
-        buf.writestring(" instead of ");
-        if (osnew)
-            buf.printf("%s `%s` (%d overloads)", snew.kind(), snew.toPrettyChars(), cast(int) osnew.a.dim);
-        else if (snew)
-            buf.printf("%s `%s`", snew.kind(), snew.toPrettyChars());
-        else
-            buf.writestring("nothing");
-
-        deprecation(loc, buf.peekString());
     }
 
     extern (C++) Dsymbol search_correct(Identifier ident)
@@ -601,6 +530,10 @@ struct Scope
             return s;
         }
 
+        Dsymbol scopesym = null;
+        // search for exact name ignoring visibility first
+        if (auto s = search(Loc.initial, ident, &scopesym, IgnoreErrors | IgnoreSymbolVisibility))
+            return s;
         return speller!scope_search_fp(ident.toChars());
     }
 
