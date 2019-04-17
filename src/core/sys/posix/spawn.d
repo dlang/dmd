@@ -288,6 +288,8 @@ else version (NetBSD)
         uint len;
         posix_spawn_file_actions_entry_t* fae;
     }
+    alias posix_spawnattr_t = posix_spawnattr;
+    alias posix_spawn_file_actions_t = posix_spawn_file_actions;
 }
 else version (OpenBSD)
 {
