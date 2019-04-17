@@ -4082,31 +4082,12 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
 
                         // Skip up over nested functions, and get the enclosing
                         // class type.
-                        int n = 0;
-                        for (s = tcd.toParent(); s && s.isFuncDeclaration(); s = s.toParent())
+                        e1 = getThisSkipNestedFuncs(e1.loc, sc, tcd.toParent2(), d.isMember2(), e1, t, d, true);
+                        if (!e1)
                         {
-                            FuncDeclaration f = s.isFuncDeclaration();
-                            if (f.vthis)
-                            {
-                                //printf("rewriting e1 to %s's this\n", f.toChars());
-                                n++;
-                                e1 = new VarExp(e.loc, f.vthis);
-                            }
-                            else
-                            {
-                                e = new VarExp(e.loc, d);
-                                return e;
-                            }
+                            e = new VarExp(e.loc, d);
+                            return e;
                         }
-                        if (s && s.isClassDeclaration())
-                        {
-                            e1.type = s.isClassDeclaration().type;
-                            e1.type = e1.type.addMod(t.mod);
-                            if (n > 1)
-                                e1 = e1.expressionSemantic(sc);
-                        }
-                        else
-                            e1 = e1.expressionSemantic(sc);
                         goto L2;
                     }
                 }
