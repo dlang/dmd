@@ -680,12 +680,12 @@ void test4_run( T, int n )( T t )
 
 void dbg( T, int n )( )
 {
-        import std.stdio;
-        writefln( "D %s\t[ %16x, %16x ]", T.stringof, dump[0], dump[1], );
-        writef(   "C %s\t[ %16x", T.stringof, RegValue[n][0] );
+        import core.stdc.stdio;
+        printf( "D %.*s\t[ %16x, %16x ]\n", cast(int)T.stringof.length, T.stringof.ptr, dump[0], dump[1], );
+        printf(   "C %.*s\t[ %16x", cast(int)T.stringof.length, T.stringof.ptr, RegValue[n][0] );
         if( RegValue[n].length == 2 )
-        writef( ", %16x", RegValue[n][1] );
-        writefln( " ]" );
+        printf( ", %16x", RegValue[n][1] );
+        printf( " ]\n" );
 }
 void test4()
 {
