@@ -629,7 +629,8 @@ void destroy(bool initialize = true, T)(T obj) if (is(T == class))
 {
     static if (__traits(getLinkage, T) == "C++")
     {
-        obj.__xdtor();
+        static if (__traits(hasMember, T, "__xdtor"))
+            obj.__xdtor();
 
         static if (initialize)
         {
@@ -732,6 +733,19 @@ void destroy(bool initialize = true, T)(T obj) if (is(T == interface))
     assert(i == 1);           // `i` was not initialized
     destroy(i);
     assert(i == 0);           // `i` is back to its initial state `0`
+}
+
+@system unittest
+{
+    extern(C++)
+    static class C
+    {
+        void* ptr;
+        this() {}
+    }
+
+    destroy!false(new C());
+    destroy!true(new C());
 }
 
 @system unittest
