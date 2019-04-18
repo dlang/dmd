@@ -406,7 +406,7 @@ bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
     }
     if (!e)
     {
-        // Access have been removed in favor of visibility checks.
+        // Access checks have been removed in favor of visibility checks.
         // See https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP22.md
     }
     else if (e.type.ty == Tclass)

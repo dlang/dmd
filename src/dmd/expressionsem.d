@@ -2414,9 +2414,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 if (withsym)
                 {
-                    Declaration d = s.isDeclaration();
-                    if (d)
-                        checkAccess(exp.loc, sc, null, d);
+                    if (auto t = withsym.withstate.exp.isTypeExp())
+                    {
+                        e = new TypeExp(exp.loc, t.type);
+                        e = new DotIdExp(exp.loc, e, exp.ident);
+                        result = e.expressionSemantic(sc);
+                        return;
+                    }
                 }
 
                 /* If f is really a function template,
