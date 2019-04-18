@@ -3730,7 +3730,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
             {
                 s = mt.sym.search(e.loc, ident, flags | SearchLocalsOnly | IgnoreSymbolVisibility);
                 if (s && !(flags & IgnoreErrors))
-                    .deprecation(e.loc, "`%s` is not visible from class `%s`", s.toPrettyChars(), mt.sym.toChars());
+                    .error(e.loc, "`%s` is not visible from class `%s`", s.toPrettyChars(), mt.sym.toChars());
             }
 
             return s;
