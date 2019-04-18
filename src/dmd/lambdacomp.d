@@ -153,7 +153,7 @@ public:
                 OutBuffer value;
                 value.writestring("arg");
                 value.print(i);
-                arg_hash.insert(&key[0], key.length, value.extractString);
+                arg_hash.insert(key, value.extractString);
                 // and the type of the variable is serialized.
                 fparam.accept(this);
             }

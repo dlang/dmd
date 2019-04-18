@@ -1890,7 +1890,7 @@ Type merge(Type type)
 
         mangleToBuffer(type, &buf);
 
-        StringValue* sv = type.stringtable.update(cast(char*)buf.data, buf.offset);
+        StringValue* sv = type.stringtable.update(buf.extractSlice());
         if (sv.ptrvalue)
         {
             Type t = cast(Type)sv.ptrvalue;

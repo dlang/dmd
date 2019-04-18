@@ -142,7 +142,7 @@ shared static this()
 
     foreach (s; names)
     {
-        auto sv = traitsStringTable.insert(s.ptr, s.length, cast(void*)s.ptr);
+        auto sv = traitsStringTable.insert(s, cast(void*)s.ptr);
         assert(sv);
     }
 }

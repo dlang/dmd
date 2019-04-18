@@ -507,7 +507,7 @@ static:
     {
         hasSymbols_ = true;
 
-        auto stringValue = methVarNameTable.update(name.ptr, name.length);
+        auto stringValue = methVarNameTable.update(name);
         auto symbol = cast(Symbol*) stringValue.ptrvalue;
 
         if (!symbol)
@@ -664,7 +664,7 @@ static:
     {
         hasSymbols_ = true;
 
-        auto stringValue = methVarRefTable.update(name.ptr, name.length);
+        auto stringValue = methVarRefTable.update(name);
         auto refSymbol = cast(Symbol*) stringValue.ptrvalue;
         if (refSymbol is null)
         {
