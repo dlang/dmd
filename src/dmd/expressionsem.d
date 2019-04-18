@@ -10994,7 +10994,6 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
          */
         if (s && !(sc.flags & SCOPE.ignoresymbolvisibility) && !symbolIsVisible(sc._module, s))
         {
-            error(exp.loc, "`%s` is not visible from module `%s`", s.toPrettyChars(), sc._module.toChars());
             s = null;
         }
         if (s)
