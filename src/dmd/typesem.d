@@ -3429,16 +3429,8 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
             return e;
         }
 
-        Dsymbol searchSym()
-        {
-            int flags = sc.flags & SCOPE.ignoresymbolvisibility ? IgnoreSymbolVisibility : 0;
-
-            auto s = mt.sym.search(e.loc, ident, flags | IgnorePrivateImports);
-
-            return s;
-        }
-
-        s = searchSym();
+        immutable flags = sc.flags & SCOPE.ignoresymbolvisibility ? IgnoreSymbolVisibility : 0;
+        s = mt.sym.search(e.loc, ident, flags | IgnorePrivateImports);
     L1:
         if (!s)
         {
@@ -3721,22 +3713,9 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
             return e;
         }
 
-        Dsymbol searchSym()
-        {
-            int flags = sc.flags & SCOPE.ignoresymbolvisibility ? IgnoreSymbolVisibility : 0;
+        int flags = sc.flags & SCOPE.ignoresymbolvisibility ? IgnoreSymbolVisibility : 0;
+        s = mt.sym.search(e.loc, ident, flags | IgnorePrivateImports);
 
-            auto s = mt.sym.search(e.loc, ident, flags | SearchLocalsOnly);
-            if (!s && !(flags & IgnoreSymbolVisibility))
-            {
-                s = mt.sym.search(e.loc, ident, flags | SearchLocalsOnly | IgnoreSymbolVisibility);
-                if (s && !(flags & IgnoreErrors))
-                    .error(e.loc, "`%s` is not visible from class `%s`", s.toPrettyChars(), mt.sym.toChars());
-            }
-
-            return s;
-        }
-
-        s = searchSym();
     L1:
         if (!s)
         {
