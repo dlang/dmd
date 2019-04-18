@@ -3110,7 +3110,7 @@ extern (C++) final class StructLiteralExp : Expression
         if (i != -1)
         {
             //printf("\ti = %d\n", i);
-            if (i == sd.fields.dim - 1 && sd.isNested())
+            if (i >= sd.fields.dim - sd.isNested() - (sd.vthis2 !is null))
                 return null;
 
             assert(i < elements.dim);
@@ -3160,8 +3160,8 @@ extern (C++) final class StructLiteralExp : Expression
             {
                 if (offset == v.offset && type.size() == v.type.size())
                 {
-                    /* context field might not be filled. */
-                    if (i == sd.fields.dim - 1 && sd.isNested())
+                    /* context fields might not be filled. */
+                    if (i >= sd.fields.dim - sd.isNested() - (sd.vthis2 !is null))
                         return cast(int)i;
                     if (auto e = (*elements)[i])
                     {

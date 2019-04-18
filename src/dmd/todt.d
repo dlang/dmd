@@ -454,7 +454,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
     void visitStructLiteral(StructLiteralExp sle)
     {
         //printf("StructLiteralExp.toDt() %s, ctfe = %d\n", sle.toChars(), sle.ownedByCtfe);
-        assert(sle.sd.fields.dim - sle.sd.isNested() <= sle.elements.dim);
+        assert(sle.sd.fields.dim - sle.sd.isNested() - (sle.sd.vthis2 !is null) <= sle.elements.dim);
         membersToDt(sle.sd, dtb, sle.elements, 0, null);
     }
 

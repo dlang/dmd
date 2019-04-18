@@ -1658,8 +1658,12 @@ void assignInPlace(Expression dest, Expression src)
         assert(dest.op == src.op);
         oldelems = (cast(StructLiteralExp)dest).elements;
         newelems = (cast(StructLiteralExp)src).elements;
-        if ((cast(StructLiteralExp)dest).sd.isNested() && oldelems.dim == newelems.dim - 1)
-            oldelems.push(null);
+        auto sd = (cast(StructLiteralExp)dest).sd;
+        const nvthis = sd.isNested() + (sd.vthis2 !is null);
+        const nfields = sd.fields.dim - nvthis;
+        if (nvthis && oldelems.dim >= nfields && oldelems.dim < newelems.dim)
+            foreach (_; 0 .. newelems.dim - oldelems.dim)
+                oldelems.push(null);
     }
     else if (dest.op == TOK.arrayLiteral && src.op == TOK.arrayLiteral)
     {

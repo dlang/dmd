@@ -2923,17 +2923,22 @@ public:
         if (dim != e.sd.fields.dim)
         {
             // guaranteed by AggregateDeclaration.fill and TypeStruct.defaultInitLiteral
-            assert(e.sd.isNested() && dim == e.sd.fields.dim - 1);
+            const nvthis = e.sd.isNested() + (e.sd.vthis2 !is null);
+            assert(e.sd.fields.dim - dim == nvthis);
 
             /* If a nested struct has no initialized hidden pointer,
              * set it to null to match the runtime behaviour.
              */
-            auto ne = new NullExp(e.loc);
-            ne.type = e.sd.vthis.type;
+            foreach (const i; 0 .. nvthis)
+            {
+                auto ne = new NullExp(e.loc);
+                auto vthis = i == 0 ? e.sd.vthis : e.sd.vthis2;
+                ne.type = vthis.type;
 
-            expsx = copyArrayOnWrite(expsx, e.elements);
-            expsx.push(ne);
-            ++dim;
+                expsx = copyArrayOnWrite(expsx, e.elements);
+                expsx.push(ne);
+                ++dim;
+            }
         }
         assert(dim == e.sd.fields.dim);
 

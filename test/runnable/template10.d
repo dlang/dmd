@@ -696,6 +696,32 @@ void test13()
 
 /********************************************/
 
+void test14()
+{
+    int i;
+    struct S(alias a)
+    {
+        auto get() { return a; }
+        auto inc() { ++i; }
+    }
+
+    auto f0()
+    {
+        int a = 10;
+
+        auto s = S!a();
+        static assert(typeof(s).sizeof == size_t.sizeof * 2);
+
+        assert(s.get() == 10);
+        s.inc();
+        assert(i == 1);
+    }
+
+    f0();
+}
+
+/********************************************/
+
 int runTests()
 {
     test1();
@@ -711,6 +737,7 @@ int runTests()
     test11();
     test12();
     test13();
+    test14();
     return 0;
 }
 

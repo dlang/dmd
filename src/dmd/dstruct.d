@@ -445,7 +445,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         if (!elements)
             return true;
 
-        size_t nfields = fields.dim - isNested();
+        const nfields = fields.dim - isNested() - (vthis2 !is null);
         size_t offset = 0;
         for (size_t i = 0; i < elements.dim; i++)
         {
@@ -456,7 +456,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             e = resolveProperties(sc, e);
             if (i >= nfields)
             {
-                if (i == fields.dim - 1 && isNested() && e.op == TOK.null_)
+                if (i <= fields.dim && e.op == TOK.null_)
                 {
                     // CTFE sometimes creates null as hidden pointer; we'll allow this.
                     continue;

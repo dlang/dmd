@@ -1761,12 +1761,14 @@ elem *toElem(Expression e, IRState *irs)
 
                 /* Things to do:
                  * 1) ex: call allocator
-                 * 2) ey: set vthis for nested classes
+                 * 2) ey: set vthis for nested structs
+                 * 2) ew: set vthis2 for nested structs
                  * 3) ez: call constructor
                  */
 
                 elem *ex = null;
                 elem *ey = null;
+                elem *ew = null;
                 elem *ezprefix = null;
                 elem *ez = null;
 
@@ -1805,6 +1807,14 @@ elem *toElem(Expression e, IRState *irs)
                          *  *(ey + sd.vthis.offset) = this;
                          */
                         ey = setEthis(ne.loc, irs, ey, sd);
+                        if (sd.vthis2)
+                        {
+                            /* Initialize sd.vthis2:
+                             *  *(ew + sd.vthis2.offset) = this1;
+                             */
+                            ew = el_copytree(ev);
+                            ew = setEthis(ne.loc, irs, ew, sd, true);
+                        }
                     }
 
                     // Call constructor
@@ -1824,6 +1834,7 @@ elem *toElem(Expression e, IRState *irs)
                 //elem_print(ez);
 
                 e = el_combine(ex, ey);
+                e = el_combine(e, ew);
                 e = el_combine(e, ezprefix);
                 e = el_combine(e, ez);
             }
@@ -3040,6 +3051,7 @@ elem *toElem(Expression e, IRState *irs)
                      *  memset(&struct, 0, struct.sizeof)
                      */
                     elem *ey = null;
+                    elem *ew = null;
                     uint sz = cast(uint)ae.e1.type.size();
                     StructDeclaration sd = t1s.sym;
                     if (sd.isNested() && ae.op == TOK.construct)
@@ -3047,6 +3059,11 @@ elem *toElem(Expression e, IRState *irs)
                         ey = el_una(OPaddr, TYnptr, e1);
                         e1 = el_same(&ey);
                         ey = setEthis(ae.loc, irs, ey, sd);
+                        if (sd.vthis2)
+                        {
+                            ew = el_same(&e1);
+                            ew = setEthis(ae.loc, irs, ew, sd, true);
+                        }
                         sz = sd.vthis.offset;
                     }
 
@@ -3059,6 +3076,7 @@ elem *toElem(Expression e, IRState *irs)
                     elem* e = el_param(enbytes, evalue);
                     e = el_bin(OPmemset,TYnptr,el,e);
                     e = el_combine(ey, e);
+                    e = el_combine(ew, e);
                     return setResult2(e);
                 }
 
@@ -5752,7 +5770,7 @@ private elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol
         // Initialize the hidden 'this' pointer
         assert(sle.sd.fields.dim);
 
-        elem *e1;
+        elem* e1, e2;
         if (tybasic(stmp.Stype.Tty) == TYnptr)
         {
             e1 = el_var(stmp);
@@ -5761,9 +5779,21 @@ private elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol
         {
             e1 = el_ptr(stmp);
         }
+        if (sle.sd.vthis2)
+        {
+            /* Initialize sd.vthis2:
+             *  *(e2 + sd.vthis2.offset) = this1;
+             */
+            e2 = el_copytree(e1);
+            e2 = setEthis(sle.loc, irs, e2, sle.sd, true);
+        }
+        /* Initialize sd.vthis:
+         *  *(e1 + sd.vthis.offset) = this;
+         */
         e1 = setEthis(sle.loc, irs, e1, sle.sd);
 
         e = el_combine(e, e1);
+        e = el_combine(e, e2);
     }
 
     elem *ev = el_var(stmp);
