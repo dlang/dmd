@@ -3884,7 +3884,6 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
         }
         if (!(sc.flags & SCOPE.ignoresymbolvisibility) && !symbolIsVisible(sc, s))
         {
-            .error(e.loc, "`%s` is not visible from module `%s`", s.toPrettyChars(), sc._module.toPrettyChars());
             return noMember(mt, sc, e, ident, flag);
         }
         if (!s.isFuncDeclaration()) // because of overloading
