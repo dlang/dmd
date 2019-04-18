@@ -671,10 +671,14 @@ dmd -cov -unittest myprog.d
     /// Representation of a CLI feature
     struct Feature
     {
+        /// Whether or not the feature is still in use
+        enum Deprecated { no, yes}
+
         string name; /// name of the feature
         string paramName; // internal transition parameter name
         string helpText; // detailed description of the feature
         bool documented = true; // whether this option should be shown in the documentation
+        bool deprecated_; /// whether the feature is still in use
     }
 
     /// Returns all available transitions
@@ -682,7 +686,7 @@ dmd -cov -unittest myprog.d
         Feature("field", "vfield",
             "list all non-mutable fields which occupy an object instance"),
         Feature("checkimports", "check10378",
-            "give deprecation messages about 10378 anomalies"),
+            "give deprecation messages about 10378 anomalies", true, Feature.Deprecated.yes),
         Feature("complex", "vcomplex",
             "give deprecation messages about all usages of complex or imaginary types"),
         Feature("tls", "vtls",
@@ -694,7 +698,7 @@ dmd -cov -unittest myprog.d
     /// Returns all available reverts
     static immutable reverts = [
         Feature("dip25", "noDIP25", "revert DIP25 changes https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md"),
-        Feature("import", "bug10378", "revert to single phase name lookup"),
+        Feature("import", "bug10378", "revert to single phase name lookup", true, Feature.Deprecated.yes),
     ];
 
     /// Returns all available previews
@@ -777,6 +781,8 @@ struct CLIUsage
             "list information on all " ~ description)] ~ features;
         foreach (t; allTransitions)
         {
+            if (t.deprecated_ == Usage.Feature.Deprecated.yes)
+                continue;
             if (!t.documented)
                 continue;
             buf ~= "  =";

@@ -1524,12 +1524,20 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 import dmd.cli : Usage;
                 string buf = `case "all":`;
                 foreach (t; features)
+                {
+                    if (t.deprecated_ == Usage.Feature.Deprecated.yes)
+                        continue;
+
                     buf ~= `params.`~t.paramName~` = true;`;
-                buf ~= "break;";
+                }
+                buf ~= "break;\n";
 
                 foreach (t; features)
                 {
-                    buf ~= `case "`~t.name~`": params.`~t.paramName~` = true; return true;`;
+                    buf ~= `case "`~t.name~`":`;
+                    if (t.deprecated_ == Usage.Feature.Deprecated.yes)
+                        buf ~= "deprecation(Loc.initial, \"`-"~name~"="~t.name~"` no longer has any effect.\"); ";
+                    buf ~= `params.`~t.paramName~` = true; return true;`;
                 }
                 return buf;
             }
