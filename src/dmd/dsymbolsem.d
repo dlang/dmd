@@ -1167,7 +1167,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (func.fes)
                     func = func.fes.func;
                 bool isWild = false;
-                for (FuncDeclaration fd = func; fd; fd = fd.toParent4().isFuncDeclaration())
+                for (FuncDeclaration fd = func; fd; fd = fd.toParentDecl().isFuncDeclaration())
                 {
                     if ((cast(TypeFunction)fd.type).iswild)
                     {
@@ -3899,7 +3899,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
 
         ctd.parent = sc.parent;
-        Dsymbol p = ctd.toParent4();
+        Dsymbol p = ctd.toParentDecl();
         AggregateDeclaration ad = p.isAggregateDeclaration();
         if (!ad)
         {
@@ -5082,23 +5082,23 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 // Use the base class's 'this' member
                 if (cldec.storage_class & STC.static_)
                     cldec.error("static class cannot inherit from nested class `%s`", cldec.baseClass.toChars());
-                if (cldec.toParent4() != cldec.baseClass.toParent4() &&
-                    (!cldec.toParent4() ||
-                     !cldec.baseClass.toParent4().getType() ||
-                     !cldec.baseClass.toParent4().getType().isBaseOf(cldec.toParent4().getType(), null)))
+                if (cldec.toParentDecl() != cldec.baseClass.toParentDecl() &&
+                    (!cldec.toParentDecl() ||
+                     !cldec.baseClass.toParentDecl().getType() ||
+                     !cldec.baseClass.toParentDecl().getType().isBaseOf(cldec.toParentDecl().getType(), null)))
                 {
-                    if (cldec.toParent4())
+                    if (cldec.toParentDecl())
                     {
                         cldec.error("is nested within `%s`, but super class `%s` is nested within `%s`",
-                            cldec.toParent4().toChars(),
+                            cldec.toParentDecl().toChars(),
                             cldec.baseClass.toChars(),
-                            cldec.baseClass.toParent4().toChars());
+                            cldec.baseClass.toParentDecl().toChars());
                     }
                     else
                     {
                         cldec.error("is not nested, but super class `%s` is nested within `%s`",
                             cldec.baseClass.toChars(),
-                            cldec.baseClass.toParent4().toChars());
+                            cldec.baseClass.toParentDecl().toChars());
                     }
                     cldec.enclosing = null;
                 }

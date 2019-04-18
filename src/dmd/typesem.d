@@ -3870,7 +3870,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                 if (mt.sym.vthis.semanticRun == PASS.init)
                     mt.sym.vthis.dsymbolSemantic(null);
 
-                if (auto cdp = mt.sym.toParent4().isClassDeclaration())
+                if (auto cdp = mt.sym.toParentDecl().isClassDeclaration())
                 {
                     auto dve = new DotVarExp(e.loc, e, mt.sym.vthis);
                     dve.type = cdp.type.addMod(e.type.mod);
@@ -3880,7 +3880,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                 /* https://issues.dlang.org/show_bug.cgi?id=15839
                  * Find closest parent class through nested functions.
                  */
-                for (auto p = mt.sym.toParent4(); p; p = p.toParent4())
+                for (auto p = mt.sym.toParentDecl(); p; p = p.toParentDecl())
                 {
                     auto fd = p.isFuncDeclaration();
                     if (!fd)
