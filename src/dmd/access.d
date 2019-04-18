@@ -406,11 +406,8 @@ bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
     }
     if (!e)
     {
-        if (d.prot().kind == Prot.Kind.private_ && d.getAccessModule() != sc._module || d.prot().kind == Prot.Kind.package_ && !hasPackageAccess(sc, d))
-        {
-            error(loc, "%s `%s` is not accessible from module `%s`", d.kind(), d.toPrettyChars(), sc._module.toChars());
-            return true;
-        }
+        // Access have been removed in favor of visibility checks.
+        // See https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP22.md
     }
     else if (e.type.ty == Tclass)
     {
