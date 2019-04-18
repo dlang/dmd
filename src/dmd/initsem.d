@@ -374,7 +374,8 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
             sc = sc.endCTFE();
         if (i.exp.op == TOK.error)
         {
-            return new ErrorInitializer();
+            assert(cast(ErrorExp) i.exp);
+            return i;
         }
         uint olderrors = global.errors;
         if (needInterpret)
