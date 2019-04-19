@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -de
+// REQUIRED_ARGS:
 /*
 TEST_OUTPUT:
 ---
