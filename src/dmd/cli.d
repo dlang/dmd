@@ -678,7 +678,7 @@ dmd -cov -unittest myprog.d
         string paramName; // internal transition parameter name
         string helpText; // detailed description of the feature
         bool documented = true; // whether this option should be shown in the documentation
-        bool deprecated_; /// whether the feature is still in use
+        Feature.Deprecated deprecated_; /// whether the feature is still in use
     }
 
     /// Returns all available transitions
