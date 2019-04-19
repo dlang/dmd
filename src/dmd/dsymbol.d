@@ -790,7 +790,7 @@ extern (C++) class Dsymbol : ASTNode
 
         if (global.gag)
             return null; // don't do it for speculative compiles; too time consuming
-        // search for exact name ignoring visibility first
+        // search for exact name first
         if (auto s = search(Loc.initial, ident, IgnoreErrors))
             return s;
         return speller!symbol_search_fp(ident.toChars());
