@@ -2,7 +2,7 @@
 REQUIRED_ARGS:
 TEST_OUTPUT:
 ---
-fail_compilation/dip22e.d(14): Error: undefined identifier `foo`, did you mean function `foo`?
+fail_compilation/dip22e.d(14): Error: undefined identifier `foo`, did you mean struct `Foo`?
 ---
 */
 

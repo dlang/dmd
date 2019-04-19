@@ -532,7 +532,7 @@ struct Scope
 
         Dsymbol scopesym = null;
         // search for exact name ignoring visibility first
-        if (auto s = search(Loc.initial, ident, &scopesym, IgnoreErrors | IgnoreSymbolVisibility))
+        if (auto s = search(Loc.initial, ident, &scopesym, IgnoreErrors))
             return s;
         return speller!scope_search_fp(ident.toChars());
     }

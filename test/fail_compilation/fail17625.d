@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail17625.d(15): Error: undefined identifier `boo`, did you mean function `boo`?
+fail_compilation/fail17625.d(15): Error: undefined identifier `boo`
 ---
 */
 

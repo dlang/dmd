@@ -2,7 +2,7 @@
 TEST_OUTPUT:
 ---
 fail_compilation/fail313.d(15): Error: module `imports.b313` is not accessible here, perhaps add `static import imports.b313;`
-fail_compilation/fail313.d(22): Error: undefined identifier `core`, did you mean import `core`?
+fail_compilation/fail313.d(22): Error: undefined identifier `core`
 fail_compilation/fail313.d(27): Error: package `imports.pkg313` is not accessible here, perhaps add `static import imports.pkg313;`
 ---
 */

@@ -2,7 +2,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test15897.d(18): Error: no property `create` for type `imports.test15897.Cat`, did you mean `test15897.Animal.create`?
+fail_compilation/test15897.d(18): Error: no property `create` for type `imports.test15897.Cat`
 ---
 */
 module test15897;

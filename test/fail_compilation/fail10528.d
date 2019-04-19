@@ -1,9 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail10528.d(19): Error: undefined identifier `a`, did you mean variable `a`?
+fail_compilation/fail10528.d(19): Error: undefined identifier `a`
 fail_compilation/fail10528.d(20): Error: undefined identifier `a` in module `a10528`, did you mean variable `a`?
-fail_compilation/fail10528.d(22): Error: undefined identifier `b`, did you mean enum member `b`?
+fail_compilation/fail10528.d(22): Error: undefined identifier `b`
 fail_compilation/fail10528.d(23): Error: undefined identifier `b` in module `a10528`, did you mean enum member `b`?
 fail_compilation/fail10528.d(25): Error: no property `c` for type `S`, did you mean `a10528.S.c`?
 fail_compilation/fail10528.d(26): Error: no property `c` for type `S`, did you mean `a10528.S.c`?
