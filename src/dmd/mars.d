@@ -1525,7 +1525,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 string buf = `case "all":`;
                 foreach (t; features)
                 {
-                    if (t.deprecated_ == Usage.Feature.Deprecated.yes)
+                    if (t.deprecated_)
                         continue;
 
                     buf ~= `params.`~t.paramName~` = true;`;
@@ -1535,7 +1535,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 foreach (t; features)
                 {
                     buf ~= `case "`~t.name~`":`;
-                    if (t.deprecated_ == Usage.Feature.Deprecated.yes)
+                    if (t.deprecated_)
                         buf ~= "deprecation(Loc.initial, \"`-"~name~"="~t.name~"` no longer has any effect.\"); ";
                     buf ~= `params.`~t.paramName~` = true; return true;`;
                 }
