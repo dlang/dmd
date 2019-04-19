@@ -404,7 +404,7 @@ bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
         // Unittests are always accessible.
         return false;
     }
-    
+
     if (!e)
         return false;
 
