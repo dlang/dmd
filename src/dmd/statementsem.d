@@ -3310,7 +3310,7 @@ else
 
         if (sc.ctorflow.fieldinit.length)       // if aggregate fields are being constructed
         {
-            auto ad = fd.isMember4();
+            auto ad = fd.isMemberDecl();
             assert(ad);
             foreach (i, v; ad.fields)
             {

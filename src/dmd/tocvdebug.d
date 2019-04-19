@@ -92,7 +92,7 @@ uint cv4_memfunctypidx(FuncDeclaration fd)
     //printf("cv4_memfunctypidx(fd = '%s')\n", fd.toChars());
 
     type *t = Type_toCtype(fd.type);
-    if (AggregateDeclaration ad = fd.isMember4())
+    if (AggregateDeclaration ad = fd.isMemberDecl())
     {
         // It's a member function, which gets a special type record
 

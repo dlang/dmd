@@ -2174,7 +2174,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             // isReturnIsolated() in functionResolve.
             scx.flags |= SCOPE.ctor;
 
-            Dsymbol parent = toParent4();
+            Dsymbol parent = toParentDecl();
             Type tret;
             AggregateDeclaration ad = parent.isAggregateDeclaration();
             if (!ad || parent.isUnionDeclaration())

@@ -551,7 +551,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 sym.endlinnum = funcdecl.endloc.linnum;
                 sc2 = sc2.push(sym);
 
-                auto ad2 = funcdecl.isMember4();
+                auto ad2 = funcdecl.isMemberDecl();
 
                 /* If this is a class constructor
                  */
@@ -1074,7 +1074,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 {
                     /* Wrap the entire function body in a synchronized statement
                      */
-                    ClassDeclaration cd = funcdecl.toParent4().isClassDeclaration();
+                    ClassDeclaration cd = funcdecl.toParentDecl().isClassDeclaration();
                     if (cd)
                     {
                         if (!global.params.is64bit && global.params.isWindows && !funcdecl.isStatic() && !sbody.usesEH() && !global.params.trace)
@@ -1272,7 +1272,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
          * structs should be benign.
          * https://issues.dlang.org/show_bug.cgi?id=14246
          */
-        AggregateDeclaration ad = ctor.isMember4();
+        AggregateDeclaration ad = ctor.isMemberDecl();
         if (ad && ad.fieldDtor && global.params.dtorFields)
         {
             /* Generate:

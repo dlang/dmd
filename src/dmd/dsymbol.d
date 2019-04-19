@@ -476,7 +476,7 @@ extern (C++) class Dsymbol : ASTNode
      * `toParent3()` returns a logically enclosing scope symbol this is a member of.
      * It skips over TemplateMixin's.
      *
-     * `toParent4()` similar to `toParent2()` but always follows the template declaration scope
+     * `toParentDecl()` similar to `toParent2()` but always follows the template declaration scope
      * instead of the instantiation scope.
      *
      * Examples:
@@ -519,15 +519,15 @@ extern (C++) class Dsymbol : ASTNode
     }
 
     /// ditto
-    final inout(Dsymbol) toParent4() inout
+    final inout(Dsymbol) toParentDecl() inout
     {
         auto p = toParent();
         if (!p || !p.isTemplateInstance())
             return p;
         auto ti = p.isTemplateInstance();
         if (ti.enclosing && ti.tempdecl && !(cast(TemplateDeclaration)ti.tempdecl).isstatic)
-            return ti.tempdecl.toParent4();
-        return parent.toParent4();
+            return ti.tempdecl.toParentDecl();
+        return parent.toParentDecl();
     }
 
     final inout(TemplateInstance) isInstantiated() inout
@@ -920,11 +920,11 @@ extern (C++) class Dsymbol : ASTNode
         return p ? p.isAggregateDeclaration() : null;
     }
 
-    /// Returns an AggregateDeclaration when toParent4() is that.
-    final inout(AggregateDeclaration) isMember4() inout
+    /// Returns an AggregateDeclaration when toParentDecl() is that.
+    final inout(AggregateDeclaration) isMemberDecl() inout
     {
-        //printf("Dsymbol::isMember4() '%s'\n", toChars());
-        auto p = toParent4();
+        //printf("Dsymbol::isMemberDecl() '%s'\n", toChars());
+        auto p = toParentDecl();
         //printf("parent is %s %s\n", p.kind(), p.toChars());
         return p ? p.isAggregateDeclaration() : null;
     }
