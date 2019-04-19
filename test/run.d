@@ -161,6 +161,7 @@ void ensureToolsExists(const TestTool[] tools ...)
         {
             const command = [
                 hostDMD,
+                "-g",
                 "-of"~targetBin,
                 sourceFile
             ] ~ tool.extraArgs;
