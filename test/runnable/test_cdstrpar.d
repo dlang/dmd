@@ -5,86 +5,10 @@
 debug = PRINTF;
 debug (PRINTF) import core.stdc.stdio;
 
-// Run this after codegen changes:
-// env DMD=generated/linux/release/64/dmd rdmd -fPIC -version=update test/runnable/test_cdstrpar.d
-version (update)
-{
-    import std.algorithm : canFind, find, splitter, until;
-    import std.array : appender, join;
-    import std.conv : to;
-    import std.exception : enforce;
-    import std.file : readText;
-    import std.format : formattedWrite;
-    import std.meta : AliasSeq;
-    import std.path : baseName, setExtension;
-    import std.process : environment, execute, pipeProcess, wait;
-    import std.range : dropOne;
-    import std.regex : ctRegex, matchFirst, replaceFirstInto;
-    import std.stdio : File, stdout, writeln;
-    import std.string : strip;
-    import std.traits : EnumMembers;
-    import std.typecons : tuple;
-
-    enum Arch
-    {
-        baseline, // doesn't affect argument passing
-        // avx,
-        // avx2,
-    }
-
-    enum sizes = [4, 8, 16, 32, 64];
-
-    enum asmRE = ctRegex!`^\s+[\da-z]+:((\s[\da-z]{2})*)(.*)$`;
-
-    void formatASM(Captures, Sink)(Captures cap, Sink sink)
-    {
-        formattedWrite(sink, "        /* %-30s */ %-(0x%s,%| %)\n", cap[3].strip, cap[1].splitter);
-    }
-
-    void main()
-    {
-        enum src = __FILE__;
-        auto dmd = environment.get("DMD", "dmd");
-        auto sink = appender!string();
-        foreach (arch; [EnumMembers!Arch])
-        {
-            auto args = [dmd, "-c", "-O", "-fPIC", "-mcpu=" ~ arch.to!string, __FILE__];
-            auto rc = execute(args);
-            enforce(rc.status == 0, rc.output);
-            formattedWrite(sink, "alias %sCases = AliasSeq!(\n", arch);
-            // Just add empty Code!(newtype, count)(null) elements when adding a new type
-            foreach (type; AliasSeq!(ubyte))
-            {
-                foreach (sz; sizes)
-                {
-                    args = ["objdump", "--disassemble", "--disassembler-options=intel-mnemonic",
-                        "--section=.text.testee_" ~ type.stringof ~ "_" ~ sz.to!string,
-                        __FILE__.baseName.setExtension(".o")];
-                    auto p = pipeProcess(args);
-                    formattedWrite(sink, "    Code!(%s, %s)([\n", type.stringof, sz);
-                    foreach (line; p.stdout.byLine.find!(ln => ln.matchFirst(ctRegex!">:$"))
-                            .dropOne.until!(ln => ln.canFind("...")))
-                    {
-                        replaceFirstInto!formatASM(sink, line, asmRE);
-                    }
-                    formattedWrite(sink, "    ]),\n");
-                    enforce(wait(p.pid) == 0, p.stderr.byLine.join("\n"));
-                }
-            }
-            formattedWrite(sink, ");\n\n");
-        }
-        {
-            auto content = src.readText;
-            auto f = File(src, "w");
-            auto orng = f.lockingTextWriter;
-            immutable string start = "// dfmt off";
-            immutable string end = "// dfmt on";
-            replaceFirstInto!((_, orng) => formattedWrite(orng, start ~ "\n%s" ~ end, sink.data))(orng,
-                    content, ctRegex!(`^` ~ start ~ `[^$]*` ~ end ~ `$`, "m"));
-        }
-    }
-}
-else:
+/*
+Automatically update this file with:
+./run.d runnable/test_cdstrpar.d AUTO_UPDATE=1
+*/
 
 struct Struct(T, int N)
 {

@@ -867,21 +867,22 @@ int tryMain(string[] args)
             }
 
             if (envData.autoUpdate)
-            if (auto ce = cast(CompareException) e)
             {
                 // remove the output file in test_results as its outdated
                 output_file.remove();
 
                 auto existingText = input_file.readText;
-                auto updatedText = existingText.replace(ce.expected, ce.actual);
-                if (existingText != updatedText)
+                auto updatedText = autoUpdate(input_file, existingText, e, envData.dmd);
+                if (existingText != updatedText && updatedText.length > 0)
                 {
                     std.file.write(input_file, updatedText);
                     writefln("\n==> `TEST_OUTPUT` of %s has been updated", input_file);
                 }
                 else
                 {
-                    writefln("\nWARNING: %s has multiple `TEST_OUTPUT` blocks and can't be auto-updated", input_file);
+                    writefln("\nWARNING: %s couldn't be auto-updated.", input_file);
+                    if (auto ce = cast(CompareException) e)
+                        writefln("It has multiple `TEST_OUTPUT` blocks.");
                 }
                 return Result.return0;
             }
@@ -957,6 +958,20 @@ int tryMain(string[] args)
     return 0;
 }
 
+// determines how to automatically update a test file
+string autoUpdate(string inputFile, string existingText, Exception e, string dmd)
+{
+    if (inputFile.baseName.among("test_cdstrpar.d", "test_cdvecfill.d", "test_cdcmp.d"))
+    {
+        return updateCodegenTest(dmd, inputFile, existingText);
+    }
+    else if (auto ce = cast(CompareException) e)
+    {
+        return existingText.replace(ce.expected, ce.actual);
+    }
+    return "";
+}
+
 int runBashTest(string input_dir, string test_name)
 {
     version(Windows)
@@ -969,4 +984,191 @@ int runBashTest(string input_dir, string test_name)
         auto process = spawnProcess([scriptDir.buildPath("tools", "sh_do_test.sh"), input_dir, test_name]);
     }
     return process.wait();
+}
+
+enum CodegenArch
+{
+    baseline,
+    avx,
+    avx2,
+}
+
+/*
+Allows to automatically Assembly Codegen blocks.
+At the moment this script only supports three scripts, but a future version
+should automatically search for all `testee` sections in the object file.
+*/
+string updateCodegenTest(string dmd, string src, string existingText)
+{
+    import std.meta : AliasSeq;
+    import std.traits : EnumMembers;
+    import std.typecons : tuple;
+
+    alias Builder = CodegenBuilder!(Appender!string);
+    auto defaultArch = [CodegenArch.baseline];
+
+    if (src.endsWith("test_cdstrpar.d"))
+    {
+        enum sizes = [4, 8, 16, 32, 64];
+        static void cdstrpar(Builder builder, CodegenArch arch)
+        {
+            foreach (type; AliasSeq!(ubyte))
+            {
+                foreach (sz; sizes)
+                {
+                    string objectSuffix = type.stringof ~ "_" ~ sz.to!string;
+                    string testName = "%s, %s".format(type.stringof, sz);
+                    builder.addTest(objectSuffix, testName);
+                }
+            }
+        }
+
+        return initBuilder(defaultArch, src, dmd, existingText, &cdstrpar);
+    }
+    else if (src.endsWith("test_cdvecfill.d"))
+    {
+        static size_t[] sizes(CodegenArch arch)
+        {
+            final switch (arch)
+            {
+            case CodegenArch.baseline:
+                return [16];
+            case CodegenArch.avx:
+            case CodegenArch.avx2:
+                return [16, 32];
+            }
+        }
+
+        static void cdvecfill(Builder builder, CodegenArch arch)
+        {
+            foreach (type; AliasSeq!(ubyte, byte, ushort, short, uint, int,
+                    ulong, long, float, double))
+            {
+                foreach (sz; sizes(arch))
+                {
+                    foreach (suffix; [tuple("", ""), tuple("_ptr", "*")])
+                    {
+                        string objectSuffix = type.stringof ~ suffix[0] ~ "_" ~ (sz / type.sizeof).to!string;
+                        string testName = "%s%s, %s / %s.sizeof".format(type.stringof, suffix[1], sz, type.stringof);
+                        builder.addTest(objectSuffix, testName);
+                    }
+                }
+            }
+        }
+
+        return initBuilder([EnumMembers!CodegenArch], src, dmd, existingText, &cdvecfill);
+    }
+    else if (src.endsWith("test_cdcmp.d"))
+    {
+        static string opName(string op)
+        {
+            switch (op)
+            {
+            case "<": return "lt";
+            case "<=": return "le";
+            case "==": return "eq";
+            case "!=": return "ne";
+            case ">=": return "ge";
+            case ">": return "gt";
+            default: assert(0);
+            }
+        }
+        enum ops = ["<", "<=", "==", "!=", ">=", ">"];
+
+        static void cdcmp(Builder builder, CodegenArch arch)
+        {
+            foreach (type; AliasSeq!(ubyte, byte, ushort, short, uint, int, ulong, long, float, double))
+            {
+                foreach (op; ops)
+                {
+                    foreach (suffix; [tuple("zero", "Zero!"~type.stringof), tuple(type.stringof, type.stringof)])
+                    {
+                        string objectSuffix = type.stringof ~ "_" ~ opName(op) ~ "_" ~ suffix[0];
+                        string testName = "%s, \"%s\", %s".format(type.stringof, op, suffix[1]);
+                        builder.addTest(objectSuffix, testName);
+                    }
+                }
+            }
+        }
+        return initBuilder(defaultArch, src, dmd, existingText, &cdcmp);
+    }
+    return "";
+}
+
+// Initializes an CodegenBuilder that can be used to extract individual tests
+// An individual test might have multiple CodegenBuilder (for each respective arch one).
+auto initBuilder(T)(CodegenArch[] arches, string src, string dmd, string existingText, T tester)
+{
+    import std.exception : enforce;
+    import std.process : execute;
+    import std.traits : EnumMembers;
+
+    auto sink = appender!string();
+    auto tmpTarget = tempDir.buildPath(src.baseName.setExtension(".o"));
+    foreach (arch; arches)
+    {
+        auto args = [dmd, "-c", "-O", "-fPIC", "-mcpu=" ~ arch.to!string, src, "-of"~tmpTarget];
+        auto rc = execute(args);
+        enforce(rc.status == 0, rc.output);
+        formattedWrite(sink, "alias %sCases = AliasSeq!(\n", arch);
+        alias Builder = CodegenBuilder!(typeof(sink));
+        auto builder = Builder(sink, tmpTarget);
+        tester(builder, arch);
+        formattedWrite(sink, ");\n\n");
+    }
+    // remove the temporary object file
+    tmpTarget.remove;
+    // replace all code section with their current assembly representation
+    return replaceCode(existingText, sink.data);
+}
+
+/*
+Operates on the generated object file of a codegen test.
+Allows to select individual testee sections.
+*/
+struct CodegenBuilder(A)
+{
+    A sink;
+    string target;
+
+    // Extract an test with the suffix `objectSuffix` from an objectFile
+    // Save the assembly in the test as `Code!(${testName})`
+    void addTest(string objectSuffix, string testName)
+    {
+        import std.exception : enforce;
+        import std.range : dropOne;
+        import std.regex : regex, matchFirst, replaceFirstInto;
+        import std.process : pipeProcess, wait;
+
+        static asmRE = regex(`^\s+[\da-z]+:((\s[\da-z]{2})*)(.*)$`);
+
+        static void formatASM(Captures, Sink)(Captures cap, Sink sink)
+        {
+            formattedWrite(sink, "        /* %-30s */ %-(0x%s,%| %)\n", cap[3].strip, cap[1].splitter);
+        }
+
+        auto args = ["objdump", "--disassemble", "--disassembler-options=intel-mnemonic",
+            "--section=.text.testee_" ~ objectSuffix, target];
+        auto p = pipeProcess(args);
+        formattedWrite(sink, "    Code!(%s)([\n", testName);
+        foreach (line; p.stdout.byLine.find!(ln => ln.matchFirst(ctRegex!">:$"))
+                .dropOne.until!(ln => ln.canFind("...")))
+        {
+            replaceFirstInto!formatASM(sink, line, asmRE);
+        }
+        formattedWrite(sink, "    ]),\n");
+        enforce(wait(p.pid) == 0, p.stderr.byLine.join("\n"));
+    }
+}
+
+// Replaces all Code sections in a testfile with their updated tests
+string replaceCode(string existingText, string codegen)
+{
+    auto orng = appender!string;
+    immutable string start = "// dfmt off";
+    immutable string end = "// dfmt on";
+    static re = regex(`^` ~ start ~ `[^$]*` ~ end ~ `$`, "m");
+    replaceFirstInto!((_, orng) => formattedWrite(orng, start ~ "\n%s" ~ end, codegen))
+                      (orng, existingText, re);
+    return orng.data;
 }
