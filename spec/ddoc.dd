@@ -465,8 +465,9 @@ $(P
 $(H3 $(LNAME2 embedded_code, Embedded Code))
 
 $(P
-    D code can be embedded using lines beginning with at least three
-    hyphens (ignoring whitespace) to delineate the code section:
+    D code can be embedded using lines beginning with at least three hyphens `-`,
+    backticks $(DDOC_BACKQUOTED $(BACKTICK)) or tildes `~` (ignoring whitespace) to
+    delineate the code section:
 )
 
 ------------------------------------
@@ -486,9 +487,33 @@ $(P
 ------------------------------------
 
 $(P
-    Note that the documentation comment uses the $(D_COMMENT /++ ... +/)
-    form
-    so that $(D_COMMENT /* ... */) can be used inside the code section.
+    Note that in the above example the documentation comment uses the
+    $(D_COMMENT /++ ... +/) form so that $(D_COMMENT /* ... */) can be used
+    inside the code section.
+)
+
+$(P
+    D code gets automatic syntax highlighting. To include code in another
+    language without syntax highlighting, add a language string at the end of
+    the top delimiter line:
+)
+
+------------------------------------
+/++
+ + Some C++
+ + ``` cpp
+ + #include <iostream>
+ +
+ + void foo()
+ + {
+ +     std::cout << "foo!";
+ + }
+ + ```
+ +/
+------------------------------------
+
+$(P
+$(EM Enable support for backticks, tildes and other code languages with the `-preview=markdown` compiler flag.)
 )
 
 $(H3 $(LNAME2 inline_code, Inline Code))
@@ -541,7 +566,331 @@ best to avoid using it where practical.
  */
 ------------------------------------
 
-$(H3 $(LNAME2 emphasis, Emphasis))
+$(H3 $(LNAME2 headings, Headings))
+
+$(P
+$(EM Enable this feature with the `-preview=markdown` compiler flag.)
+)
+
+$(P
+A long documentation section can be subdivided by adding headings. A heading is
+a line of text that starts with one to six `#` characters followed by whitespace
+and then the heading text. The number of `#` characters determines the heading
+level. Headings may optionally end with any number of trailing `#` characters.
+)
+
+---
+/**
+ * # H1
+ * ## H2
+ * ### H3
+ * #### H4 ###
+ * ##### H5 ##
+ * ###### H6 #
+ */
+---
+
+$(H3 $(LNAME2 links, Links))
+
+$(P
+$(EM Enable this feature with the `-preview=markdown` compiler flag.)
+)
+
+$(P
+Documentation may link to other documentation or to a URL. There are four
+styles of links:
+)
+
+---
+/**
+ * Some links:
+ *
+ * 1. A [reference link][ref] and bare reference links: [ref] or [Object]
+ * 2. An [inline link](https://dlang.org)
+ * 3. A bare URL: https://dlang.org
+ * 4. An ![image](https://dlang.org/images/d3.png)
+ *
+ * [ref]: https://dlang.org "The D Language Website"
+ */
+---
+
+$(H4 $(LNAME2 reference_links, Reference Links))
+
+$(P
+Reference-style links enclose a reference label in square brackets. They may
+optionally be preceeded by some link text, also enclosed in square brackets.
+)
+
+$(P
+The reference label must match a reference defined elsewhere. This may be a D
+symbol in scope of the source code being documented, like `[Object]` in the
+example above, or it may be an explicit reference that is defined in the same
+documentation comment, like `[ref]` in the example above. In the example both
+instances of `[ref]` in item `1.` will be replaced with the URL and title text
+from the matching definition at the bottom of the example. The first link will
+read `reference link` and the second will read `ref`.
+)
+
+$(P
+Reference definitions start with a label in square brackets, followed by a
+colon, a URL and an optional title wrapped in single or double quotes, or in
+parentheses. If a reference label would match both a D symbol and a reference
+definition then the reference definition is used.
+)
+
+$(P
+The generated links to D symbols are relative if they have the same root package
+as the module being documented. If not, their URLs are preceeded by a
+`$(DOLLAR)(DDOC_ROOT_pkg)` macro, where `pkg` is the root package of the symbol
+being linked to. Links to D symbols are generated with a `$(DOLLAR)(DOC_EXTENSION)`
+macro after the module name. So the generated URL for `[Object]` in the above
+example is as if you had written:
+)
+
+---
+$(DOLLAR)(DOC_ROOT_object)object$(DOLLAR)(DOC_EXTENSION)#.Object
+---
+
+$(P
+You may define your own `DOC_ROOT_` macros for any external packages you wish
+to link to using a $(LINK2 #macros, Macros section).
+)
+
+$(H4 $(LNAME2 inline_links, Inline Links))
+
+$(P
+Inline-style links enclose link text in square brackets and the link URL in
+parentheses. Like reference links, the URL may optionally be followed by title
+text wrapped in single or double quotes, or in parentheses:
+)
+
+---
+/// [a link with title text](https://dlang.org 'Some title text')
+---
+
+$(H4 $(LNAME2 urls, Bare URLs))
+
+$(P
+Bare URLs are sequences of characters that start with `http://` or `https://`,
+continue with one or more characters from the set of letters, digits and
+`-_?=%&/+#~.`, and contain at least one period.
+URL recognition happens before all macro text substitution.
+The URL is wrapped in a `$(DOLLAR)(DDOC_LINK_AUTODETECT)` macro and is otherwise
+left untouched.
+)
+
+$(H4 $(LNAME2 images, Images))
+
+$(P
+Images have the same form as reference or inline links, but add an exclamation
+point `!` before the initial square bracket. What would be the link text in a
+normal link is used as the image's alt text.
+)
+
+$(H3 $(LNAME2 lists, Lists))
+
+$(P
+$(EM Enable this feature with the `-preview=markdown` compiler flag.)
+)
+
+$(P
+Documentation may contain lists. Start an ordered list with a number followed by
+a period:
+)
+
+---
+/**
+ * 1. First this
+ * 2. Then this
+ *    1. A sub-item
+ */
+---
+
+$(P
+Start an unordered list with a hypen (`-`), an asterisk (`*`) or a plus (`+`).
+Subsequent items in the same list must also start with the same symbol:
+)
+
+---
+/**
+ * - A list
+ * - With a second item
+ *
+ * + A different list
+ *   - With a sub-item
+ *
+ * * A third list (note the double asterisks)
+ */
+---
+
+$(P
+Note the double asterisks in the example above. This is because the list is
+inside a documentation comment that is delimited with asterisks, so the initial
+asterisk is considered part of the documentation comment, not a list item. This
+is even true when other lines don't start with an asterisk:
+)
+
+---
+/**
+ - A list
+ * Not a list because the asterisk is part of the documentation comment
+ */
+
+/++
+ + + The caveat also applies to plus-delimited documentation comments
+ +/
+---
+
+$(P
+List items can include content like new paragraphs, headings, embedded code, or
+child list items. Simply indent the content to match the indent of the text
+after the list symbol:
+)
+
+----
+/**
+ * - A parent list item
+ *
+ *   With a second paragraph
+ *
+ *   - A sub-item
+ *     ---
+ *     // A code example inside the sub-item
+ *     ---
+ */
+----
+
+$(H3 $(LNAME2 tables, Tables))
+
+$(P
+$(EM Enable this feature with the `-preview=markdown` compiler flag.)
+)
+
+$(P
+Data may be placed into a table. Tables consist of a single header row, a
+delimiter row, and zero or more data rows. Cells in each row are separated by
+pipe (`|`) characters. Initial and trailing `|`'s are optional. The number of
+cells in the delimiter row must match the number of cells in the header row:
+)
+
+---
+/**
+ *  | Item | Price |
+ *  | ---- | ----: |
+ *  | Wigs | $10 |
+ *    Wheels | $13
+ *  | Widgets | $200 |
+ */
+---
+
+$(P
+Cells in the delimiter row contain hyphens (`-`) and optional colons (`:`).
+A `:` to the left of the hyphens creates a left-aligned column, a `:` to the
+right of the hyphens creates a right-aligned column (like the example above),
+and `:`'s on both sides of the hyphens create a center-aligned column.
+)
+
+$(H3 $(LNAME2 quotes, Quotes))
+
+$(P
+$(EM Enable this feature with the `-preview=markdown` compiler flag.)
+)
+
+$(P
+Documentation may include a section of quoted material by prefixing each line of
+the section with a `>`. Quotes may include headings, lists, embedded code, etc.
+)
+
+---
+/**
+ * > To D, or not to D. -- Willeam NerdSpeare
+ */
+---
+
+$(P
+Lines of text that directly follow a quoted line are considered part of the quote:
+)
+
+---
+/**
+ * > This line
+ * and this line are both part of the quote
+ *
+ * This line is not part of the quote.
+ */
+---
+
+$(H3 $(LNAME2 hrules, Horizontal Rules))
+
+$(P
+$(EM Enable this feature with the `-preview=markdown` compiler flag.)
+)
+
+$(P
+Create a horizontal rule by adding a line containing three or more asterisks,
+underscores or hyphens:
+)
+
+---
+/**
+ * ***
+ * ___
+ */
+---
+
+$(P
+As with $(LINK2 #lists, lists), note that the initial `*` in the example above
+will be stripped because it is part of a documentation comment that is delimited
+with asterisks, so you need at least three subsequent asterisks.
+)
+
+$(P
+To create a horizontal rule with hyphens, add spaces between the hyphens.
+Without the spaces they would be treated as the start or end of an $(LINK2
+#embedded_code, embedded code block). Note that any horizontal rule may contain
+spaces:
+)
+
+---
+/**
+ * - - -
+ * _ _ _
+ * * * *
+ */
+---
+
+$(H3 $(LNAME2 text_emphasis, Text Emphasis))
+
+$(P
+$(EM Enable this feature with the `-preview=markdown` compiler flag.)
+)
+
+$(P
+A span of text wrapped in asterisks (`*`) is emphasized, and text wrapped in
+two asterisks (`**`) is strongly emphasized:
+)
+
+$(P
+`*single asterisks*` is rendered as $(EM single asterisks).
+)
+
+$(P
+`**double asterisks**` is rendered as $(STRONG double asterisks).
+)
+
+$(P
+You can insert a literal asterisk by $(LINK2 #punctuation_escapes,
+backslash-escaping) it: `\*` is rendered as *.
+)
+
+$(P
+Unlike $(LINK2 https://daringfireball.net/projects/markdown/syntax, Markdown),
+underscores (`$(UNDERSCORE)`) are not supported for emphasizing text because it
+would break snake$(UNDERSCORE)case names and underscore prefix processing in
+$(LINK2 #emphasis, identifier emphasis).
+)
+
+$(H3 $(LNAME2 emphasis, Identifier Emphasis))
 
 $(P
 Identifiers in documentation comments that are function parameters or are
@@ -552,17 +901,6 @@ How it is emphasized depends on what it is $(MDASH) a function parameter, type,
 D keyword, etc.
 To prevent unintended emphasis of an identifier, it can be preceded by
 an underscore ($(UNDERSCORE)). The underscore will be stripped from the output.
-)
-
-$(H3 $(LNAME2 urls, URLs))
-
-$(P
-URLs are sequences of characters starting with 'http://' or 'https://',
-continue with one or more characters from the set of letters, digits and
-`-_?=%&/+#~.`, and contain at least one period.
-URL recognition happens before all macro text substitution.
-The URL is wrapped with a `$(DOLLAR)(DDOC_LINK_AUTODETECT)` macro.
-The $(LINK2 #emphasis, underscore prefix processing) is not done for URL text.
 )
 
 $(H3 $(LNAME2 character_entities, Character Entities))
@@ -582,6 +920,33 @@ $(P
 $(P
     It is not necessary to do this inside a code section, or if the
     special character is not immediately followed by a $(HASH) or a letter.
+)
+
+$(H3 $(LNAME2 punctuation_escapes, Punctuation Escapes))
+
+$(P
+$(EM Enable this feature with the `-preview=markdown` compiler flag.)
+)
+
+$(P
+    You can escape any ASCII punctuation symbol with a backslash `\`.
+    Doing so outputs the original character without the backslash, except for
+    the following characters which output predefined macros instead:
+)
+
+    $(TABLE2 Characters and Escape Macros,
+    $(THEAD Character, Macro)
+    $(TROW $(D $(LPAREN)), $(DOLLAR)(LPAREN))
+    $(TROW $(D $(RPAREN)), $(DOLLAR)(RPAREN))
+    $(TROW $(D $(COMMA)), $(DOLLAR)(COMMA))
+    $(TROW $(D $(DOLLAR)), $(DOLLAR)(DOLLAR)))
+
+$(P
+    To output a backslash, simply use two backslashes in a row: `\\`.
+    Note that backslashes inside embedded or inline code do $(EM not) escape
+    punctuation and are included in the output as-is. Backslashes before
+    non-punctation are also included in the output as-is. For example,
+    `C:\dmd2\bin\dmd.exe` does not require escaping its embedded backslashes.
 )
 
 $(H3 $(LNAME2 no_documentation, No Documentation))
@@ -647,8 +1012,8 @@ $(P
     If the macro name is undefined, the replacement text has no characters
     in it.
     If a $(DOLLAR)(NAME) is desired to exist in the output without being
-    macro expanded, the $(DOLLAR) should be replaced with
-    $(AMP)$(HASH)$(D 36;).
+    macro expanded, the $(DOLLAR) should be $(LINK2 #punctuation_escapes,
+    backslash-escaped): `\$`.
 )
 
 $(P
@@ -662,8 +1027,8 @@ $(P
     $(DOLLAR)+ represents the text from the first comma to the closing $(SINGLEQUOTE $(RPAREN)).
     The argument text can contain nested parentheses, "" or '' strings,
     $(D <)$(D !--) $(D ...) $(D --)$(D >) comments, or tags.
-    If stray, unnested parentheses are used, they can be replaced with
-    the entity $(AMP)$(HASH)40; for ( and $(AMP)$(HASH)41; for ).
+    If stray, unnested parentheses are used, they can be
+    $(LINK2 #punctuation_escapes, backslash-escaped): `\(` or `\)`.
 )
 
 $(P
