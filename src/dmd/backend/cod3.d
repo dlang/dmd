@@ -3724,12 +3724,31 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
 
             type *t = s.Stype;
             type *t2 = null;
-            if (tybasic(t.Tty) == TYstruct && config.exe != EX_WIN64)
+
+            tym_t tyb = tybasic(t.Tty);
+
+            // This logic is same as FuncParamRegs_alloc function at src/dmd/backend/cod1.d
+            //
+            // Treat array of 1 the same as its element type
+            // (Don't put volatile parameters in registers)
+            if (tyb == TYarray && t.Tdim == 1 && !(t.Tty & mTYvolatile))
             {
-                type *targ1 = t.Ttag.Sstruct.Sarg1type;
-                t2 = t.Ttag.Sstruct.Sarg2type;
-                if (targ1)
-                    t = targ1;
+                t = t.Tnext;
+                tyb = tybasic(t.Tty);
+            }
+
+            // If struct just wraps another type
+            if (tyb == TYstruct)
+            {
+                // On windows 64 bits, structs occupy a general purpose register,
+                // regardless of the struct size or the number & types of its fields.
+                if (config.exe != EX_WIN64)
+                {
+                    type *targ1 = t.Ttag.Sstruct.Sarg1type;
+                    t2 = t.Ttag.Sstruct.Sarg2type;
+                    if (targ1)
+                        t = targ1;
+                }
             }
 
             if (Symbol_Sisdead(s, anyiasm))
