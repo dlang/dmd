@@ -5631,7 +5631,7 @@ public:
         /* Set dollar to the length of the array
          */
         uinteger_t dollar;
-        if (e1.op == TOK.variable && e1.type.toBasetype().ty == Tsarray)
+        if ((e1.op == TOK.variable || e1.op == TOK.dotVariable) && e1.type.toBasetype().ty == Tsarray)
             dollar = e1.type.toBasetype().isTypeSArray().dim.toInteger();
         else
         {
