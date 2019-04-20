@@ -1655,13 +1655,15 @@ UnionExp Cat(Type type, Expression e1, Expression e2)
     }
     else if (e1.op == TOK.int64 && e2.op == TOK.string_)
     {
-        // Concatenate the strings
+        // [w|d]?char ~ string --> string
+        // We assume that we only ever prepend one char of the same type
+        // (wchar,dchar) as the string's characters.
         StringExp es2 = cast(StringExp)e2;
         size_t len = 1 + es2.len;
         ubyte sz = es2.sz;
         dinteger_t v = e1.toInteger();
         void* s = mem.xmalloc(len * sz);
-        memcpy(cast(char*)s, &v, sz);
+        Port.valcpy(cast(char*)s, v, sz);
         memcpy(cast(char*)s + sz, es2.string, es2.len * sz);
         emplaceExp!(StringExp)(&ue, loc, s, len);
         StringExp es = cast(StringExp)ue.exp();
