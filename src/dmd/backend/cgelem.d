@@ -1514,7 +1514,7 @@ private elem * elbitwise(elem *e, goal_t goal)
             e.Ety = TYbool;
             e.EV.E1 = e2;
             e.EV.E2 = e1.EV.E2;
-            e.EV.E2.Ety = e.EV.E1.Ety;
+            //e.EV.E2.Ety = e.EV.E1.Ety; // leave type as int
             e1.EV.E2 = null;
             el_free(e1);
 
