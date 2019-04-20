@@ -47,13 +47,13 @@ import dmd.root.filename;
  *   0   success
  *   !=0   failure (argc, argv unchanged)
  */
-bool response_expand(Strings* args)
+bool response_expand(ref Strings args)
 {
     const(char)* cp;
     int recurse = 0;
     for (size_t i = 0; i < args.dim;)
     {
-        cp = (*args)[i];
+        cp = args[i];
         if (*cp != '@')
         {
             ++i;
