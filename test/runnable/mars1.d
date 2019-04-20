@@ -1876,6 +1876,32 @@ void test19497() // https://issues.dlang.org/show_bug.cgi?id=19497
 
 ////////////////////////////////////////////////////////////////////////
 
+// https://issues.dlang.org/show_bug.cgi?id=18794
+
+bool method18794(size_t* p)
+{
+    int bitIdx = 0;
+    func18794();
+    return (*p & (1UL << bitIdx)) != 0;
+}
+
+void func18794() {}
+
+void prep18794()
+{
+    asm {}
+    ulong[2] x = -1;
+}
+
+void test18794()
+{
+    prep18794();
+    size_t s;
+    method18794(&s);
+}
+
+////////////////////////////////////////////////////////////////////////
+
 int main()
 {
     testgoto();
@@ -1942,6 +1968,7 @@ int main()
     test18461();
     test18730();
     test19497();
+    test18794();
 
     printf("Success\n");
     return 0;
