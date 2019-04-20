@@ -7,5 +7,3 @@ void foo(A[1] a)
     void bar(A[1] a) { a[] = null; }
     bar(a);
 }
-
-void main() {}

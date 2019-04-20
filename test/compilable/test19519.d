@@ -13,5 +13,3 @@ int foo()
 }
 
 static assert(foo() == 1);
-
-void main() {}
