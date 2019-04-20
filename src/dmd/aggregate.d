@@ -218,9 +218,8 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             return 0;
         }
 
-        for (size_t i = 0; i < members.dim; i++)
+        foreach (ref s; *members)
         {
-            auto s = (*members)[i];
             if (s.apply(&func, cast(void*)this))
             {
                 if (sizeok != Sizeok.none)
