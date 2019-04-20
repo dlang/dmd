@@ -4599,7 +4599,10 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size
         case '*':
         {
             if (inCode || inBacktick || !global.params.markdown)
+            {
+                leadingBlank = false;
                 break;
+            }
 
             if (leadingBlank)
             {
