@@ -3256,7 +3256,6 @@ public:
 
     void visit(OnScopeStatement *oss)
     {
-#ifndef IN_GCC
         if (oss->tok != TOKon_scope_exit)
         {
             // scope(success) and scope(failure) are rewritten to try-catch(-finally) statement,
@@ -3274,7 +3273,6 @@ public:
                 return setError();
             }
         }
-#endif
 
         sc = sc->push();
         sc->tf = NULL;
@@ -3494,7 +3492,6 @@ void semantic(Catch *c, Scope *sc)
 {
     //printf("Catch::semantic(%s)\n", ident->toChars());
 
-#ifndef IN_GCC
     if (sc->os && sc->os->tok != TOKon_scope_failure)
     {
         // If enclosing is scope(success) or scope(exit), this will be placed in finally block.
@@ -3512,7 +3509,6 @@ void semantic(Catch *c, Scope *sc)
         error(c->loc, "cannot put catch statement inside finally block");
         c->errors = true;
     }
-#endif
 
     ScopeDsymbol *sym = new ScopeDsymbol();
     sym->parent = sc->scopesym;
