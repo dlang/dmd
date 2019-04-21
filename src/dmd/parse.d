@@ -4447,7 +4447,33 @@ final class Parser(AST) : Lexer
                         parseAttributes;
 
                     AST.Declaration v;
-                    if (token.value == TOK.function_ ||
+                    AST.Dsymbol s;
+
+                    // try to parse function type:
+                    // TypeCtors? BasicType ( Parameters ) MemberFunctionAttributes
+                    bool attributesAppended;
+                    const StorageClass funcStc = parseTypeCtor();
+                    Token* tlu = &token;
+                    if (token.value != TOK.function_ &&
+                        token.value != TOK.delegate_ &&
+                        isBasicType(&tlu) && tlu &&
+                        tlu.value == TOK.leftParentheses)
+                    {
+                        AST.VarArg vargs;
+                        AST.Type tret = parseBasicType();
+                        AST.Parameters* prms = parseParameters(&vargs);
+                        AST.ParameterList pl = AST.ParameterList(prms, vargs);
+
+                        parseAttributes();
+                        if (udas)
+                            error("user-defined attributes not allowed for `alias` declarations");
+
+                        attributesAppended = true;
+                        storage_class = appendStorageClass(storage_class, funcStc);
+                        AST.Type tf = new AST.TypeFunction(pl, tret, link, storage_class);
+                        v = new AST.AliasDeclaration(loc, ident, tf);
+                    }
+                    else if (token.value == TOK.function_ ||
                         token.value == TOK.delegate_ ||
                         token.value == TOK.leftParentheses &&
                             skipAttributes(peekPastParen(&token), &tk) &&
@@ -4468,7 +4494,7 @@ final class Parser(AST) : Lexer
                         // ref (parameters) { statements... }
                         // ref (parameters) => expression
 
-                        AST.Dsymbol s = parseFunctionLiteral();
+                        s = parseFunctionLiteral();
 
                         if (udas !is null)
                         {
@@ -4497,9 +4523,11 @@ final class Parser(AST) : Lexer
                         t = parseType();
                         v = new AST.AliasDeclaration(loc, ident, t);
                     }
+                    if (!attributesAppended)
+                        storage_class = appendStorageClass(storage_class, funcStc);
                     v.storage_class = storage_class;
 
-                    AST.Dsymbol s = v;
+                    s = v;
                     if (tpl)
                     {
                         auto a2 = new AST.Dsymbols();
