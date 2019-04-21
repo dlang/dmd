@@ -1010,6 +1010,7 @@ Language changes listed by -transition=id:\n\
 
     if (global.params.betterC)
     {
+        global.params.checkAction = CHECKACTION_halt;
         global.params.useModuleInfo = false;
         global.params.useTypeInfo = false;
         global.params.useExceptions = false;

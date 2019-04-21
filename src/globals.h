@@ -36,6 +36,14 @@ enum BOUNDSCHECK
     BOUNDSCHECKsafeonly // do bounds checking only in @safe functions
 };
 
+typedef unsigned char CHECKACTION;
+enum
+{
+    CHECKACTION_D,        // call D assert on failure
+    CHECKACTION_C,        // call C assert on failure
+    CHECKACTION_halt      // cause program halt on failure
+};
+
 enum CPU
 {
     x87,
@@ -129,7 +137,9 @@ struct Param
     bool showGaggedErrors;  // print gagged errors anyway
 
     CPU cpu;                // CPU instruction set to target
-    BOUNDSCHECK useArrayBounds;
+
+    BOUNDSCHECK useArrayBounds;    // when to generate code for array bounds checks
+    CHECKACTION checkAction;       // action to take when bounds, asserts or switch defaults are violated
 
     const char *argv0;    // program name
     Array<const char *> *modFileAliasStrings; // array of char*'s of -I module filename alias strings

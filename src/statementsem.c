@@ -2073,8 +2073,19 @@ public:
             CompoundStatement *cs;
             Statement *s;
 
-            if (global.params.useSwitchError)
-                s = new SwitchErrorStatement(ss->loc);
+            if (global.params.useSwitchError &&
+                global.params.checkAction != CHECKACTION_halt)
+            {
+                if (global.params.checkAction == CHECKACTION_C)
+                {
+                    /* Rewrite as an assert(0) and let e2ir generate
+                     * the call to the C assert failure function
+                     */
+                    s = new ExpStatement(ss->loc, new AssertExp(ss->loc, new IntegerExp(ss->loc, 0, Type::tint32)));
+                }
+                else
+                    s = new SwitchErrorStatement(ss->loc);
+            }
             else
                 s = new ExpStatement(ss->loc, new HaltExp(ss->loc));
 
