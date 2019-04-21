@@ -1,5 +1,6 @@
 
 import core.stdc.stdio;
+import core.memory : __delete;
 
 /*******************************************/
 
@@ -31,7 +32,7 @@ void test1()
     IO io = new IO();
     printf("io = %p\n", io);
     foo(io, io);
-    delete io;
+    __delete(io);
 }
 
 /*******************************************/
@@ -45,7 +46,7 @@ class C : I
 void test2()
 {
     I i = new C();
-    delete i;
+    __delete(i);
 
   {
     scope I j = new C();

@@ -897,7 +897,8 @@ class Outer38
 void test38()
 {
     Outer38 o = new Outer38();
-    delete o;
+    import core.memory : __delete;
+    __delete(o);
     assert(Outer38.c == 3);
 }
 

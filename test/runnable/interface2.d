@@ -37,7 +37,8 @@ void test1()
     printf("cast(Bar)f = %p\n", b2);
     assert(b is b2);
 
-    delete f;
+    import core.memory : __delete;
+    __delete(f);
 }
 
 /*******************************************************/
@@ -88,7 +89,9 @@ class E3 : D3, C3
 void test3()
 {
     C3 c = new E3();
-    delete c;
+
+    import core.memory : __delete;
+    __delete(c);
 }
 
 

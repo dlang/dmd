@@ -6434,12 +6434,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     {
         if (!sc.isDeprecated)
         {
-            // @@@DEPRECATED_2019-02@@@
-            // 1. Deprecation for 1 year
-            // 2. Error for 1 year
-            // 3. Removal of keyword, "delete" can be used for other identities
+            // @@@DEPRECATED_2.091@@@
+            // Made an error in 2.087.
+            // Should be removed in 2.091
+            // After removal from the language everything associated with `DeleteExp` can probably be deleted
             if (!exp.isRAII)
-                deprecation(exp.loc, "The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.");
+                error(exp.loc, "`delete` is obsolete.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.");
         }
 
         if (Expression ex = unaSemantic(exp, sc))

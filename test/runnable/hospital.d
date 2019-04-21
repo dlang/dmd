@@ -170,7 +170,8 @@ private:
 
     void TreatOrTransferPatients()
     {
-        delete transfers;
+        import core.memory : __delete;
+        __delete(transfers);
 
         for(ptrdiff_t i = examination.length-1; i >= 0; i--)
         {

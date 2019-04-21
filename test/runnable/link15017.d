@@ -39,7 +39,8 @@ void test()
 
     // OK <- in DeleteExp::semantic
     Variant10* p10;
-    delete p10;
+    import core.memory : __delete;
+    __delete(p10);
 }
 
 void main() {}

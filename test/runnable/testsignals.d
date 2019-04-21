@@ -47,7 +47,8 @@ void test1()
     a.value = 5;                // so should not call o.watch()
     a.connect(&o.watch);        // connect again
     a.value = 6;                // should call o.watch()
-    delete o;                   // destroying o should automatically disconnect it
+    import core.memory : __delete;
+    __delete(o);                 // destroying o should automatically disconnect it
     a.value = 7;                // should not call o.watch()
 }
 

@@ -39,7 +39,8 @@ int main ()
             ns = new Connection ();
             ns.connect ("localhost", 80);
             ns.poll ();
-            delete ns;
+            import core.memory : __delete;
+            __delete(ns);
         }
         catch(SocketException e)
         {

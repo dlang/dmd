@@ -28,7 +28,10 @@ void fun()()
     { alias P = S3*; auto p = new P; }
     { S4[int] aa; auto b = (aa == aa); }
     { S5[] a; a.length = 10; }
-    { S6[] a; delete a; }
+
+    import core.memory : __delete;
+    { S6[] a; __delete(a); }
+
     { S7[] a = []; }
     { S8[] a = [S8.init]; }
     { S9[int] aa = [1:S9.init]; }

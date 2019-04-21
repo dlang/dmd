@@ -2,6 +2,7 @@
 
 import core.stdc.stdio;
 import core.stdc.math : isnan;
+import core.memory : __delete;
 
 void test12826()
 {
@@ -37,8 +38,8 @@ int main()
     {
         assert(isnan(v));
     }
-    delete a;
-    delete b;
+    __delete(a);
+    __delete(b);
 
     a = null;
     for (int i = 0; i < 100000; i++)
@@ -59,8 +60,8 @@ int main()
     {
         assert(v == k);
     }
-    delete a;
-    delete b;
+    __delete(a);
+    __delete(b);
 
     test12826();
     printf("Success\n");

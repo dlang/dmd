@@ -330,32 +330,6 @@ void test15()
 
 /*****************************************/
 
-int y16;
-
-class C16
-{
-        new(size_t size, byte blah){
-                void* v = (new byte[C16.classinfo.initializer.length]).ptr;
-                y16 = 1;
-                assert(blah == 3);
-                return v;
-        }
-        int x;
-        this()
-        {
-            x = 4;
-        }
-}
-
-void test16()
-{
-    C16 c = new(3) C16;
-    assert(y16 == 1);
-    assert(c.x == 4);
-}
-
-/*****************************************/
-
 ubyte* ptr17;
 
 void test17()
@@ -446,7 +420,8 @@ class Buffer
 void test20()
 {
     Buffer b = new Buffer();
-    delete b;
+    import core.memory : __delete;
+    __delete(b);
 }
 
 /*****************************************/
@@ -1246,7 +1221,7 @@ int main()
     test13();
     test14();
     test15();
-    test16();
+
     test17();
     test18();
     test19();

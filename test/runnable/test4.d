@@ -756,7 +756,8 @@ void test29()
 
     Foo29 f = new Foo29();
 
-    delete f;
+    import core.memory : __delete;
+    __delete(f);
     assert(x29 == 3);
 }
 

@@ -2,6 +2,7 @@
 // REQUIRED_ARGS: -preview=dtorfields
 
 import core.vararg;
+import core.memory : __delete;
 
 extern (C) int printf(const(char*) fmt, ...) nothrow;
 
@@ -19,7 +20,7 @@ struct S1
 void test1()
 {
     S1* s = new S1();
-    delete s;
+    __delete(s);
     assert(sdtor == 1);
 }
 
@@ -30,14 +31,13 @@ int sdtor2;
 struct S2
 {
     ~this() { printf("~S2()\n"); sdtor2++; }
-    delete(void* p) { assert(sdtor2 == 1); printf("S2.delete()\n"); sdtor2++; }
 }
 
 void test2()
 {
     S2* s = new S2();
-    delete s;
-    assert(sdtor2 == 2);
+    __delete(s);
+    assert(sdtor2 == 1);
 }
 
 /**********************************/
@@ -59,7 +59,7 @@ void test3()
 {
     T3* s = new T3();
     s.s.a = 3;
-    delete s;
+    __delete(s);
     assert(sdtor3 == 1);
 }
 
@@ -93,7 +93,7 @@ void test4()
 {
     T4* s = new T4();
     s.s.a = 4;
-    delete s;
+    __delete(s);
     assert(sdtor4 == 3);
 }
 
@@ -117,7 +117,7 @@ struct T5
 void test5()
 {
     T5* s = new T5();
-    delete s;
+    __delete(s);
     assert(sdtor5 == 2);
 }
 
@@ -143,7 +143,7 @@ class T6
 void test6()
 {
     T6 s = new T6();
-    delete s;
+    __delete(s);
     assert(sdtor6 == 2);
 }
 
@@ -177,7 +177,7 @@ struct T7
 void test7()
 {
     T7* s = new T7();
-    delete s;
+    __delete(s);
     assert(sdtor7 == 4);
 }
 
@@ -203,7 +203,7 @@ void test8()
     s[0].c = 2;
     s[1].c = 1;
     s[2].c = 0;
-    delete s;
+    __delete(s);
     assert(sdtor8 == 3);
 }
 
@@ -276,7 +276,7 @@ class T11
 void test11()
 {
     T11 s = new T11();
-    delete s;
+    __delete(s);
     assert(sdtor11 == 2);
 }
 
@@ -620,7 +620,7 @@ struct A26
     int id;
     this(int x) { id = x; printf("Created A from scratch: %d\n", x); z26++; }
     this(this) { printf("Copying A: %d\n", id); z26 += 10; }
-    ~this() { printf("Destroying A: %d\n", id); z26 += 100; }
+    ~this() { printf("__deleteing A: %d\n", id); z26 += 100; }
 }
 
 struct B26
@@ -656,7 +656,7 @@ struct A27
     int id;
     this(int x) { id = x; printf("Ctor A27: %d\n", x); z27++; }
     this(this) { printf("Copying A27: %d\n", id); z27 += 10; }
-    ~this() { printf("Destroying A27: %d\n", id); z27 += 100; }
+    ~this() { printf("__deleteing A27: %d\n", id); z27 += 100; }
 }
 
 struct B27
@@ -1742,7 +1742,7 @@ void test5737()
 {
     static struct S
     {
-        static int destroyed;
+        static int __deleteed;
         static int copied;
 
         this(this)
@@ -1752,7 +1752,7 @@ void test5737()
 
         ~this()
         {
-            destroyed++;
+            __deleteed++;
         }
     }
 
@@ -1768,7 +1768,7 @@ void test5737()
     }
 
     assert(S.copied == 1); // fail, s2 was not copied;
-    assert(S.destroyed == 1); // ok, s2 was destroyed
+    assert(S.__deleteed == 1); // ok, s2 was __deleteed
 }
 
 /**********************************/
@@ -2747,7 +2747,7 @@ void test9907()
         {
             ~this()
             {
-                printf("destroying %08X(%d)\n", &this.i, this.i);
+                printf("__deleteing %08X(%d)\n", &this.i, this.i);
                 ++dtor;
             }
         }
@@ -3207,7 +3207,7 @@ int test10972()
     struct A
     {
         this(this)  { result ~= "pA"; version(none) printf("copied A\n"); }
-        ~this()     { result ~= "dA"; version(none) printf("destroy A\n"); }
+        ~this()     { result ~= "dA"; version(none) printf("__delete A\n"); }
     }
     struct B
     {
@@ -3216,7 +3216,7 @@ int test10972()
             result ~= "(pB)"; version(none) printf("B says what?\n");
             throw new Exception("BOOM!");
         }
-        ~this() { result ~= "dB"; version(none) printf("destroy B\n"); }
+        ~this() { result ~= "dB"; version(none) printf("__delete B\n"); }
     }
     struct S
     {
@@ -4045,7 +4045,7 @@ bool test13669()
     dtor = "";
 
     { S[2] a = [S('a'), S('b')]; }
-    assert(dtor == "ba");   // reverse order. See also: TypeInfo_StaticArray.destroy()
+    assert(dtor == "ba");   // reverse order. See also: TypeInfo_StaticArray.__delete()
 
     return true;
 }

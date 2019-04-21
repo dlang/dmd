@@ -1,0 +1,13 @@
+`delete` expressions is now obsolete
+
+$(LINK2 https://dlang.org/spec/expression.html#delete_expressions, Delete expressions) are now obsolete.
+
+Prior to this release, usage of a delete expression would result in a deprecation warning.  Starting with
+this release it will result in an error.
+
+Use $(LINK2 https://dlang.org/phobos/object.html#.destroy, `destroy`)
+(and $(LINK2 https://dlang.org/phobos/core_memory.html#.GC.free, `core.memory.GC.free()` if applicable) instead.
+Use $(LINK2 https://dlang.org/phobos/core_memory.html#.__delete, `core.memory.__delete` as a last resort.
+
+See the $(LINK2 https://dlang.org/deprecate.html#delete, deprecated features page) for more information.
+

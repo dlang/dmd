@@ -656,7 +656,8 @@ void test30()
 
         assert(status30 == 1);
 
-        delete m;   // _d_callfinalizer
+        import core.memory : __delete;
+        __delete(m);   // _d_callfinalizer
     }
     catch (Error e) // FinalizeError
     {
@@ -844,15 +845,8 @@ int counter41;
 class C41{
         this(){
                 printf("this: counter41 = %d\n", counter41);
-                assert(counter41==1);
-                counter41+=2;
-        }
-
-        new(size_t size){
-                printf("new: size = %d\n", size);
                 assert(counter41==0);
-                counter41++;
-                return malloc(size);
+                counter41+=2;
         }
 }
 
@@ -861,7 +855,7 @@ void test41()
         C41 c;
         assert(counter41==0);
         c = new C41();
-        assert(counter41==3);
+        assert(counter41==2);
 }
 
 /* ================================ */
