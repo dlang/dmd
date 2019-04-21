@@ -2079,6 +2079,16 @@ elem *toElem(Expression *e, IRState *irs)
             ce->print();
         #endif
 
+            /* Do this check during code gen rather than semantic() because concatenation is
+             * allowed in CTFE, and cannot distinguish that in semantic().
+             */
+            if (global.params.betterC)
+            {
+                error(ce->loc, "array concatenation of expression `%s` requires the GC which is not available with -betterC", ce->toChars());
+                result = el_long(TYint, 0);
+                return;
+            }
+
             Type *tb1 = ce->e1->type->toBasetype();
             Type *tb2 = ce->e2->type->toBasetype();
 

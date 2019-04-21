@@ -1325,6 +1325,16 @@ static void buildEnsureRequire(FuncDeclaration *fdx)
     }
 }
 
+/* Determine if function should add `return 0;`
+ */
+static bool addReturn0(FuncDeclaration *funcdecl)
+{
+    TypeFunction *f = (TypeFunction *)funcdecl->type;
+
+    return f->next->ty == Tvoid &&
+        (funcdecl->isMain() || (global.params.betterC && funcdecl->isCMain()));
+}
+
 // Do the semantic analysis on the internals of the function.
 
 void FuncDeclaration::semantic3(Scope *sc)
@@ -1708,7 +1718,10 @@ void FuncDeclaration::semantic3(Scope *sc)
                     Expression *exp = (*returns)[i]->exp;
                     if (exp->op == TOKvar && ((VarExp *)exp)->var == vresult)
                     {
-                        exp->type = f->next;
+                        if (addReturn0(this))
+                            exp->type = Type::tint32;
+                        else
+                            exp->type = f->next;
                         // Remove `return vresult;` from returns
                         returns->remove(i);
                         continue;
@@ -1901,7 +1914,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 
             if (returns)
             {
-                bool implicit0 = (f->next->ty == Tvoid && isMain());
+                bool implicit0 = addReturn0(this);
                 Type *tret = implicit0 ? Type::tint32 : f->next;
                 assert(tret->ty != Tvoid);
                 if (vresult || returnLabel)
@@ -2123,7 +2136,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     a->push(s);
                 }
             }
-            if (isMain() && f->next->ty == Tvoid)
+            if (addReturn0(this))
             {
                 // Add a return 0; statement
                 Statement *s = new ReturnStatement(Loc(), new IntegerExp(0));
