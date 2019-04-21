@@ -900,7 +900,9 @@ Expression *op_overload(Expression *e, Scope *sc)
             if (t->ty != Tstruct)
                 return false;
 
-            semanticTypeInfo(sc, t);
+            if (global.params.useTypeInfo && Type::dtypeinfo)
+                semanticTypeInfo(sc, t);
+
             return ((TypeStruct *)t)->sym->hasIdentityEquals;
         }
 

@@ -37,9 +37,22 @@ static bool builtinTypeInfo(Type *t);
  * Get the exact TypeInfo.
  */
 
-void genTypeInfo(Type *torig, Scope *sc)
+void genTypeInfo(Loc loc,Type *torig, Scope *sc)
 {
     //printf("Type::genTypeInfo() %p, %s\n", this, toChars());
+
+    // Even when compiling without `useTypeInfo` (e.g. -betterC) we should
+    // still be able to evaluate `TypeInfo` at compile-time, just not at runtime.
+    // https://issues.dlang.org/show_bug.cgi?id=18472
+    if (!sc || !(sc->flags & SCOPEctfe))
+    {
+        if (!global.params.useTypeInfo)
+        {
+            error(loc, "`TypeInfo` cannot be used with -betterC");
+            fatal();
+        }
+    }
+
     if (!Type::dtypeinfo)
     {
         torig->error(Loc(), "TypeInfo not found. object.d may be incorrectly installed or corrupt, compile with -v switch");
@@ -84,10 +97,10 @@ void genTypeInfo(Type *torig, Scope *sc)
     assert(torig->vtinfo);
 }
 
-Type *getTypeInfoType(Type *t, Scope *sc)
+Type *getTypeInfoType(Loc loc, Type *t, Scope *sc)
 {
     assert(t->ty != Terror);
-    genTypeInfo(t, sc);
+    genTypeInfo(loc, t, sc);
     return t->vtinfo->type;
 }
 
