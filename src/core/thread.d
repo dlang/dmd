@@ -5720,11 +5720,12 @@ private
     // Note: if the DLL is never unloaded, process termination kills all threads
     // and signals their handles before unconditionally calling DllMain(DLL_PROCESS_DETACH).
 
-    import core.sys.windows.windows : HMODULE, FreeLibraryAndExitThread, GetModuleHandleExW,
+    import core.sys.windows.winbase : FreeLibraryAndExitThread, GetModuleHandleExW,
         GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT;
+    import core.sys.windows.windef : HMODULE;
     import core.sys.windows.dll : dll_getRefCount;
 
-    version(CRuntime_Microsoft)
+    version (CRuntime_Microsoft)
         extern(C) extern __gshared ubyte msvcUsesUCRT; // from rt/msvc.c
 
     package(core) bool thread_DLLProcessDetaching;
