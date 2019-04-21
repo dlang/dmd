@@ -339,50 +339,47 @@ struct ASTBase
             return true;
         }
 
-        extern (D) static bool oneMembers(Dsymbols* members, Dsymbol* ps, Identifier ident)
+        extern (D) static bool oneMembers(ref Dsymbols members, Dsymbol* ps, Identifier ident)
         {
             Dsymbol s = null;
-            if (members)
+            for (size_t i = 0; i < members.dim; i++)
             {
-                for (size_t i = 0; i < members.dim; i++)
+                Dsymbol sx = members[i];
+                bool x = sx.oneMember(ps, ident);
+                if (!x)
                 {
-                    Dsymbol sx = (*members)[i];
-                    bool x = sx.oneMember(ps, ident);
-                    if (!x)
+                    assert(*ps is null);
+                    return false;
+                }
+                if (*ps)
+                {
+                    assert(ident);
+                    if (!(*ps).ident || !(*ps).ident.equals(ident))
+                        continue;
+                    if (!s)
+                        s = *ps;
+                    else if (s.isOverloadable() && (*ps).isOverloadable())
                     {
-                        assert(*ps is null);
-                        return false;
-                    }
-                    if (*ps)
-                    {
-                        assert(ident);
-                        if (!(*ps).ident || !(*ps).ident.equals(ident))
-                            continue;
-                        if (!s)
-                            s = *ps;
-                        else if (s.isOverloadable() && (*ps).isOverloadable())
+                        // keep head of overload set
+                        FuncDeclaration f1 = s.isFuncDeclaration();
+                        FuncDeclaration f2 = (*ps).isFuncDeclaration();
+                        if (f1 && f2)
                         {
-                            // keep head of overload set
-                            FuncDeclaration f1 = s.isFuncDeclaration();
-                            FuncDeclaration f2 = (*ps).isFuncDeclaration();
-                            if (f1 && f2)
+                            for (; f1 != f2; f1 = f1.overnext0)
                             {
-                                for (; f1 != f2; f1 = f1.overnext0)
+                                if (f1.overnext0 is null)
                                 {
-                                    if (f1.overnext0 is null)
-                                    {
-                                        f1.overnext0 = f2;
-                                        break;
-                                    }
+                                    f1.overnext0 = f2;
+                                    break;
                                 }
                             }
                         }
-                        else // more than one symbol
-                        {
-                            *ps = null;
-                            //printf("\tfalse 2\n");
-                            return false;
-                        }
+                    }
+                    else // more than one symbol
+                    {
+                        *ps = null;
+                        //printf("\tfalse 2\n");
+                        return false;
                     }
                 }
             }
@@ -1073,7 +1070,7 @@ struct ASTBase
             if (members && ident)
             {
                 Dsymbol s;
-                if (Dsymbol.oneMembers(members, &s, ident) && s)
+                if (Dsymbol.oneMembers(*members, &s, ident) && s)
                 {
                     onemember = s;
                     s.parent = this;
