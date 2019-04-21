@@ -61,14 +61,14 @@ private void* spellerY(const(char)* seed, size_t seedlen, dg_speller_t dg, const
         if (!buf)
             return null; // no matches
     }
-    memcpy(buf, seed, index);
+    buf[0 .. index] = seed[0 .. index];
     *cost = INT_MAX;
     void* p = null;
     int ncost;
     /* Delete at seed[index] */
     if (index < seedlen)
     {
-        memcpy(buf + index, seed + index + 1, seedlen - index);
+        buf[index .. seedlen] = seed[index + 1 .. seedlen + 1];
         assert(buf[seedlen - 1] == 0);
         void* np = dg(buf, ncost);
         if (combineSpellerResult(p, *cost, np, ncost))
@@ -79,7 +79,7 @@ private void* spellerY(const(char)* seed, size_t seedlen, dg_speller_t dg, const
         /* Substitutions */
         if (index < seedlen)
         {
-            memcpy(buf, seed, seedlen + 1);
+            buf[0 .. seedlen + 1] = seed[0 .. seedlen + 1];
             for (const(char)* s = charset; *s; s++)
             {
                 buf[index] = *s;
@@ -91,7 +91,7 @@ private void* spellerY(const(char)* seed, size_t seedlen, dg_speller_t dg, const
             assert(buf[seedlen] == 0);
         }
         /* Insertions */
-        memcpy(buf + index + 1, seed + index, seedlen + 1 - index);
+        buf[index + 1 .. seedlen + 2] = seed[index .. seedlen + 1];
         for (const(char)* s = charset; *s; s++)
         {
             buf[index] = *s;
@@ -122,7 +122,7 @@ private void* spellerX(const(char)* seed, size_t seedlen, dg_speller_t dg, const
     int cost = INT_MAX, ncost;
     void* p = null, np;
     /* Deletions */
-    memcpy(buf, seed + 1, seedlen);
+    buf[0 .. seedlen] = seed[1 .. seedlen + 1];
     for (size_t i = 0; i < seedlen; i++)
     {
         //printf("del buf = '%s'\n", buf);
@@ -137,7 +137,7 @@ private void* spellerX(const(char)* seed, size_t seedlen, dg_speller_t dg, const
     /* Transpositions */
     if (!flag)
     {
-        memcpy(buf, seed, seedlen + 1);
+        buf[0 .. seedlen + 1] = seed[0 .. seedlen + 1];
         for (size_t i = 0; i + 1 < seedlen; i++)
         {
             // swap [i] and [i + 1]
@@ -152,7 +152,7 @@ private void* spellerX(const(char)* seed, size_t seedlen, dg_speller_t dg, const
     if (charset && *charset)
     {
         /* Substitutions */
-        memcpy(buf, seed, seedlen + 1);
+        buf[0 .. seedlen + 1] = seed[0 .. seedlen + 1];
         for (size_t i = 0; i < seedlen; i++)
         {
             for (const(char)* s = charset; *s; s++)
@@ -169,7 +169,7 @@ private void* spellerX(const(char)* seed, size_t seedlen, dg_speller_t dg, const
             buf[i] = seed[i];
         }
         /* Insertions */
-        memcpy(buf + 1, seed, seedlen + 1);
+        buf[1 .. seedlen + 2] = seed[0 .. seedlen + 1];
         for (size_t i = 0; i <= seedlen; i++) // yes, do seedlen+1 iterations
         {
             for (const(char)* s = charset; *s; s++)
