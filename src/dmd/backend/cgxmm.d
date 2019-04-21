@@ -167,7 +167,8 @@ void orthxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     regm_t retregs = *pretregs & XMMREGS;
     if (!retregs)
         retregs = XMMREGS;
-    codelem(cdb,e1,&retregs,false); // eval left leaf
+    const constflag = OTrel(e.Eoper);
+    codelem(cdb,e1,&retregs,constflag); // eval left leaf
     const reg = findreg(retregs);
     regm_t rretregs = XMMREGS & ~retregs;
     scodelem(cdb, e2, &rretregs, retregs, true);  // eval right leaf
@@ -1359,7 +1360,7 @@ static if (0)
             else
             {
                 regm_t regm = ALLREGS;
-                codelem(cdb,e1,&regm,false); // eval left leaf
+                codelem(cdb,e1,&regm,true); // eval left leaf
                 const r = findreg(regm);
 
                 reg_t reg;
@@ -1429,7 +1430,7 @@ static if (0)
             else
             {
                 regm_t regm = ALLREGS;
-                codelem(cdb,e1,&regm,false); // eval left leaf
+                codelem(cdb,e1,&regm,true); // eval left leaf
                 reg_t r = findreg(regm);
 
                 reg_t reg;
@@ -1481,7 +1482,7 @@ static if (0)
             }
             else
             {
-                codelem(cdb,e1,&retregs,false); // eval left leaf
+                codelem(cdb,e1,&retregs,true); // eval left leaf
                 const reg = cast(reg_t)(findreg(retregs) - XMM0);
                 getregs(cdb,retregs);
                 if (config.avx >= 2)
@@ -1524,7 +1525,7 @@ static if (0)
             }
             else
             {
-                codelem(cdb,e1,&retregs,false); // eval left leaf
+                codelem(cdb,e1,&retregs,true); // eval left leaf
                 const reg = cast(reg_t)(findreg(retregs) - XMM0);
                 getregs(cdb,retregs);
                 if (config.avx >= 2)
@@ -1665,6 +1666,9 @@ void checkSetVex(code *c, tym_t ty)
                 assert(tysize(ty) == 32); // AVX-256 only instructions
                 vreg = 0;       // for 2 operand vex instructions
                 break;
+
+            case NOP:
+                return;         // ignore
 
             default:
                 break;

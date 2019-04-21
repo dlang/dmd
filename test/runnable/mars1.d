@@ -1902,6 +1902,20 @@ void test18794()
 
 ////////////////////////////////////////////////////////////////////////
 
+const(char)* fastpar(string s)
+{
+    return s.ptr + s.length;
+}
+
+void testfastpar()
+{
+    string s = "abcde";
+    auto p = fastpar(s);
+    assert(*p == 0);
+}
+
+////////////////////////////////////////////////////////////////////////
+
 int main()
 {
     testgoto();
@@ -1969,6 +1983,7 @@ int main()
     test18730();
     test19497();
     test18794();
+    testfastpar();
 
     printf("Success\n");
     return 0;

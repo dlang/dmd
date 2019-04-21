@@ -72,8 +72,7 @@ targ_size_t paramsize(elem *e, tym_t tyf);
 bool regParamInPreg(Symbol* s)
 {
     return (s.Sclass == SCfastpar || s.Sclass == SCshadowreg) &&
-            (!(config.flags4 & CFG4optimized) || !(s.Sflags & GTregcand));
-//    return (s.Sclass == SCfastpar || s.Sclass == SCshadowreg);
+        (!(config.flags4 & CFG4optimized) || !(s.Sflags & GTregcand));
 }
 
 
@@ -616,9 +615,8 @@ void loadea(ref CodeBuilder cdb,elem *e,code *cs,uint op,uint reg,targ_size_t of
 
     debug
     if (debugw)
-        printf("loadea: e=%p cs=%p op=x%x reg=%d offset=%lld keepmsk=%s desmsk=%s\n",
-               e, cs, op, reg, cast(ulong)offset, regm_str(keepmsk), regm_str(desmsk));
-
+        printf("loadea: e=%p cs=%p op=x%x reg=%s offset=%lld keepmsk=%s desmsk=%s\n",
+               e, cs, op, regstring[reg], cast(ulong)offset, regm_str(keepmsk), regm_str(desmsk));
     assert(e);
     cs.Iflags = 0;
     cs.Irex = 0;
@@ -701,6 +699,9 @@ void loadea(ref CodeBuilder cdb,elem *e,code *cs,uint op,uint reg,targ_size_t of
             cs.Irex |= REX;
         if ((op & 0xFFFFFFF8) == 0xD8)
             cs.Irex &= ~REX_W;                 // not needed for x87 ops
+        if (mask(reg) & XMMREGS &&
+            (op == LODSD || op == STOSD))
+            cs.Irex &= ~REX_W;                 // not needed for xmm ops
     }
     code_newreg(cs, reg);                         // OR in reg field
     if (!I16)
@@ -741,6 +742,17 @@ L2:
         if (cs.Irex & REX_B)
             r |= 8;
         if (r == reg)
+            cs.Iop = NOP;
+    }
+
+    // Eliminate MOV xmmreg,xmmreg
+    if ((cs.Iop & ~(LODSD ^ STOSS)) == LODSD &&    // detect LODSD, LODSS, STOSD, STOSS
+        (cs.Irm & 0xC7) == modregrm(3,0,reg & 7))
+    {
+        reg_t r = cs.Irm & 7;
+        if (cs.Irex & REX_B)
+            r |= 8;
+        if (r == (reg - XMM0))
             cs.Iop = NOP;
     }
 
@@ -1508,16 +1520,24 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
             if (sz == 1)
             {   /* Don't use SI or DI for this variable     */
                 s.Sflags |= GTbyte;
-                if (e.EV.Voffset > 1 ||
-                    I64)                            // could work if restrict reg to AH,BH,CH,DH
+                if (I64 ? e.EV.Voffset > 0 : e.EV.Voffset > 1)
+                {
+                    debug if (debugr) printf("'%s' not reg cand due to byte offset\n", s.Sident.ptr);
                     s.Sflags &= ~GTregcand;
+                }
             }
             else if (e.EV.Voffset || sz > tysize(s.Stype.Tty))
+            {
+                debug if (debugr) printf("'%s' not reg cand due to offset or size\n", s.Sident.ptr);
                 s.Sflags &= ~GTregcand;
+            }
 
             if (config.fpxmmregs && tyfloating(s.ty()) && !tyfloating(ty))
+            {
+                debug if (debugr) printf("'%s' not reg cand due to mix float and int\n", s.Sident.ptr);
                 // Can't successfully mix XMM register variables accessed as integers
                 s.Sflags &= ~GTregcand;
+            }
 
             if (!(keepmsk & RMstore))               // if not store only
                 s.Sflags |= SFLread;               // assume we are doing a read
@@ -5165,7 +5185,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
                     !(config.exe & EX_OSX64 && !(sytab[e.EV.Vsym.Sclass] & SCSS))
                    )
                 {
-                    opmv = tyuns(tym) ? 0x0FB6 : 0x0FBE;      // MOVZX/MOVSX
+//                    opmv = tyuns(tym) ? 0x0FB6 : 0x0FBE;      // MOVZX/MOVSX
                 }
                 loadea(cdb, e, &cs, opmv, reg, 0, 0, 0);     // MOV regL,data
             }
@@ -5210,7 +5230,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
                 !(config.exe & EX_OSX64 && !(sytab[e.EV.Vsym.Sclass] & SCSS))
                )
             {
-                opmv = tyuns(tym) ? 0x0FB7 : 0x0FBF;  // MOVZX/MOVSX
+//                opmv = tyuns(tym) ? 0x0FB7 : 0x0FBF;  // MOVZX/MOVSX
             }
             loadea(cdb, e, &cs, opmv, reg, 0, RMload, 0);
         }

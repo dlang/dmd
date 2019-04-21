@@ -195,9 +195,13 @@ Disassembly of section .text._D9cdvecfill4testFfZNhG4f:
 0000000000000000 <_D9cdvecfill4testFfZNhG4f>:
    0:	55                   	push   rbp
    1:	48 8b ec             	mov    rbp,rsp
-   4:	0f c6 c0 00          	shufps xmm0,xmm0,0x0
-   8:	5d                   	pop    rbp
-   9:	c3                   	ret    
+   4:	48 83 ec 10          	sub    rsp,0x10
+   8:	f3 0f 11 45 f8       	movss  DWORD PTR [rbp-0x8],xmm0
+   d:	f3 0f 10 45 f8       	movss  xmm0,DWORD PTR [rbp-0x8]
+  12:	0f c6 c0 00          	shufps xmm0,xmm0,0x0
+  16:	48 8b e5             	mov    rsp,rbp
+  19:	5d                   	pop    rbp
+  1a:	c3                   	ret    
 	...
 
 Disassembly of section .text._D9cdvecfill4testFPfZNhG4f:
@@ -216,9 +220,13 @@ Disassembly of section .text._D9cdvecfill4testFdZNhG2d:
 0000000000000000 <_D9cdvecfill4testFdZNhG2d>:
    0:	55                   	push   rbp
    1:	48 8b ec             	mov    rbp,rsp
-   4:	66 0f 14 c0          	unpcklpd xmm0,xmm0
-   8:	5d                   	pop    rbp
-   9:	c3                   	ret    
+   4:	48 83 ec 10          	sub    rsp,0x10
+   8:	f2 0f 11 45 f8       	movsd  QWORD PTR [rbp-0x8],xmm0
+   d:	f2 0f 10 45 f8       	movsd  xmm0,QWORD PTR [rbp-0x8]
+  12:	66 0f 14 c0          	unpcklpd xmm0,xmm0
+  16:	48 8b e5             	mov    rsp,rbp
+  19:	5d                   	pop    rbp
+  1a:	c3                   	ret    
 	...
 
 Disassembly of section .text._D9cdvecfill4testFPdZNhG2d:
@@ -231,20 +239,3 @@ Disassembly of section .text._D9cdvecfill4testFPdZNhG2d:
    c:	5d                   	pop    rbp
    d:	c3                   	ret    
 	...
-
-Disassembly of section .text.d_dso_init:
-
-0000000000000000 <.text.d_dso_init>:
-   0:	55                   	push   rbp
-   1:	48 8b ec             	mov    rbp,rsp
-   4:	48 8d 05 00 00 00 00 	lea    rax,[rip+0x0]        # b <.text.d_dso_init+0xb>
-   b:	50                   	push   rax
-   c:	48 8d 05 00 00 00 00 	lea    rax,[rip+0x0]        # 13 <.text.d_dso_init+0x13>
-  13:	50                   	push   rax
-  14:	48 8d 05 00 00 00 00 	lea    rax,[rip+0x0]        # 1b <.text.d_dso_init+0x1b>
-  1b:	50                   	push   rax
-  1c:	6a 01                	push   0x1
-  1e:	48 8b fc             	mov    rdi,rsp
-  21:	e8 00 00 00 00       	call   26 <.text.d_dso_init+0x26>
-  26:	c9                   	leave  
-  27:	c3                   	ret    

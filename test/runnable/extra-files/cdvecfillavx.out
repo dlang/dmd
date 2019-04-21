@@ -189,10 +189,13 @@ Disassembly of section .text._D9cdvecfill4testFfZNhG4f:
 0000000000000000 <_D9cdvecfill4testFfZNhG4f>:
    0:	55                   	push   rbp
    1:	48 8b ec             	mov    rbp,rsp
-   4:	c5 f8 c6 c0 00       	vshufps xmm0,xmm0,xmm0,0x0
-   9:	5d                   	pop    rbp
-   a:	c3                   	ret    
-	...
+   4:	48 83 ec 10          	sub    rsp,0x10
+   8:	c5 fa 11 45 f8       	vmovss DWORD PTR [rbp-0x8],xmm0
+   d:	c5 fa 10 45 f8       	vmovss xmm0,DWORD PTR [rbp-0x8]
+  12:	c5 f8 c6 c0 00       	vshufps xmm0,xmm0,xmm0,0x0
+  17:	48 8b e5             	mov    rsp,rbp
+  1a:	5d                   	pop    rbp
+  1b:	c3                   	ret    
 
 Disassembly of section .text._D9cdvecfill4testFPfZNhG4f:
 
@@ -209,9 +212,13 @@ Disassembly of section .text._D9cdvecfill4testFdZNhG2d:
 0000000000000000 <_D9cdvecfill4testFdZNhG2d>:
    0:	55                   	push   rbp
    1:	48 8b ec             	mov    rbp,rsp
-   4:	c5 f9 14 c0          	vunpcklpd xmm0,xmm0,xmm0
-   8:	5d                   	pop    rbp
-   9:	c3                   	ret    
+   4:	48 83 ec 10          	sub    rsp,0x10
+   8:	c5 fb 11 45 f8       	vmovsd QWORD PTR [rbp-0x8],xmm0
+   d:	c5 fb 10 45 f8       	vmovsd xmm0,QWORD PTR [rbp-0x8]
+  12:	c5 f9 14 c0          	vunpcklpd xmm0,xmm0,xmm0
+  16:	48 8b e5             	mov    rsp,rbp
+  19:	5d                   	pop    rbp
+  1a:	c3                   	ret    
 	...
 
 Disassembly of section .text._D9cdvecfill4testFPdZNhG2d:
@@ -430,11 +437,14 @@ Disassembly of section .text._D9cdvecfill4testFfZNhG8f:
 0000000000000000 <_D9cdvecfill4testFfZNhG8f>:
    0:	55                   	push   rbp
    1:	48 8b ec             	mov    rbp,rsp
-   4:	c5 fc c6 c0 00       	vshufps ymm0,ymm0,ymm0,0x0
-   9:	c4 e3 7d 18 c0 01    	vinsertf128 ymm0,ymm0,xmm0,0x1
-   f:	5d                   	pop    rbp
-  10:	c3                   	ret    
-  11:	00 00                	add    BYTE PTR [rax],al
+   4:	48 83 ec 10          	sub    rsp,0x10
+   8:	c5 fa 11 45 f8       	vmovss DWORD PTR [rbp-0x8],xmm0
+   d:	c5 fa 10 45 f8       	vmovss xmm0,DWORD PTR [rbp-0x8]
+  12:	c5 fc c6 c0 00       	vshufps ymm0,ymm0,ymm0,0x0
+  17:	c4 e3 7d 18 c0 01    	vinsertf128 ymm0,ymm0,xmm0,0x1
+  1d:	48 8b e5             	mov    rsp,rbp
+  20:	5d                   	pop    rbp
+  21:	c3                   	ret    
 	...
 
 Disassembly of section .text._D9cdvecfill4testFPfZNhG8f:
@@ -452,10 +462,16 @@ Disassembly of section .text._D9cdvecfill4testFdZNhG4d:
 0000000000000000 <_D9cdvecfill4testFdZNhG4d>:
    0:	55                   	push   rbp
    1:	48 8b ec             	mov    rbp,rsp
-   4:	c5 f9 14 c0          	vunpcklpd xmm0,xmm0,xmm0
-   8:	c4 e3 7d 18 c0 01    	vinsertf128 ymm0,ymm0,xmm0,0x1
-   e:	5d                   	pop    rbp
-   f:	c3                   	ret    
+   4:	48 83 ec 10          	sub    rsp,0x10
+   8:	c5 fb 11 45 f8       	vmovsd QWORD PTR [rbp-0x8],xmm0
+   d:	c5 fb 10 45 f8       	vmovsd xmm0,QWORD PTR [rbp-0x8]
+  12:	c5 f9 14 c0          	vunpcklpd xmm0,xmm0,xmm0
+  16:	c4 e3 7d 18 c0 01    	vinsertf128 ymm0,ymm0,xmm0,0x1
+  1c:	48 8b e5             	mov    rsp,rbp
+  1f:	5d                   	pop    rbp
+  20:	c3                   	ret    
+  21:	00 00                	add    BYTE PTR [rax],al
+	...
 
 Disassembly of section .text._D9cdvecfill4testFPdZNhG4d:
 
@@ -466,20 +482,3 @@ Disassembly of section .text._D9cdvecfill4testFPdZNhG4d:
    9:	5d                   	pop    rbp
    a:	c3                   	ret    
 	...
-
-Disassembly of section .text.d_dso_init:
-
-0000000000000000 <.text.d_dso_init>:
-   0:	55                   	push   rbp
-   1:	48 8b ec             	mov    rbp,rsp
-   4:	48 8d 05 00 00 00 00 	lea    rax,[rip+0x0]        # b <.text.d_dso_init+0xb>
-   b:	50                   	push   rax
-   c:	48 8d 05 00 00 00 00 	lea    rax,[rip+0x0]        # 13 <.text.d_dso_init+0x13>
-  13:	50                   	push   rax
-  14:	48 8d 05 00 00 00 00 	lea    rax,[rip+0x0]        # 1b <.text.d_dso_init+0x1b>
-  1b:	50                   	push   rax
-  1c:	6a 01                	push   0x1
-  1e:	48 8b fc             	mov    rdi,rsp
-  21:	e8 00 00 00 00       	call   26 <.text.d_dso_init+0x26>
-  26:	c9                   	leave  
-  27:	c3                   	ret    
