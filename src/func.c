@@ -246,6 +246,15 @@ public:
             s->finalbody && (des = s->finalbody->isDtorExpStatement()) != NULL &&
             fd->nrvo_var == des->var)
         {
+            if (!(global.params.useExceptions && ClassDeclaration::throwable))
+            {
+                /* Don't need to call destructor at all, since it is nrvo
+                 */
+                replaceCurrent(s->_body);
+                s->_body->accept(this);
+                return;
+            }
+
             /* Normally local variable dtors are called regardless exceptions.
              * But for nrvo_var, its dtor should be called only when exception is thrown.
              *

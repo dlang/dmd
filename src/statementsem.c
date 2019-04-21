@@ -3118,6 +3118,18 @@ public:
 
     void visit(TryCatchStatement *tcs)
     {
+        if (!global.params.useExceptions)
+        {
+            tcs->error("Cannot use try-catch statements with -betterC");
+            return setError();
+        }
+
+        if (!ClassDeclaration::throwable)
+        {
+            tcs->error("Cannot use try-catch statements because `object.Throwable` was not declared");
+            return setError();
+        }
+
         unsigned flags = 0;
         const unsigned FLAGcpp = 1;
         const unsigned FLAGd = 2;
@@ -3227,7 +3239,14 @@ public:
             return;
         }
 
-        if (blockExit(tfs->_body, sc->func, false) == BEfallthru)
+        int blockexit = blockExit(tfs->_body, sc->func, false);
+
+        // if not worrying about exceptions
+        if (!(global.params.useExceptions && ClassDeclaration::throwable))
+            blockexit &= ~BEthrow;            // don't worry about paths that otherwise may throw
+
+        // Don't care about paths that halt, either
+        if ((blockexit & ~BEhalt) == BEfallthru)
         {
             result = new CompoundStatement(tfs->loc, tfs->_body, tfs->finalbody);
             return;
@@ -3280,6 +3299,18 @@ public:
     void visit(ThrowStatement *ts)
     {
         //printf("ThrowStatement::semantic()\n");
+
+        if (!global.params.useExceptions)
+        {
+            ts->error("Cannot use `throw` statements with -betterC");
+            return setError();
+        }
+
+        if (!ClassDeclaration::throwable)
+        {
+            ts->error("Cannot use `throw` statements because `object.Throwable` was not declared");
+            return setError();
+        }
 
         FuncDeclaration *fd = sc->parent->isFuncDeclaration();
         fd->hasReturnExp |= 2;

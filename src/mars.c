@@ -229,6 +229,7 @@ int tryMain(size_t argc, const char *argv[])
     global.params.useSwitchError = true;
     global.params.useModuleInfo = true;
     global.params.useTypeInfo = true;
+    global.params.useExceptions = true;
     global.params.useInline = false;
     global.params.obj = true;
     global.params.useDeprecated = 2;
@@ -1011,6 +1012,7 @@ Language changes listed by -transition=id:\n\
     {
         global.params.useModuleInfo = false;
         global.params.useTypeInfo = false;
+        global.params.useExceptions = false;
     }
 
     if (!global.params.obj || global.params.lib)
