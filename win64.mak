@@ -111,10 +111,10 @@ test_gc:
 custom_gc:
 	$(MAKE) -f test\init_fini\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) "VCDIR=$(VCDIR)" DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
 
-test_loadlib:
-	"$(DMD)" -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIME) -run test\shared\src\loadlibwin.d
+test_shared:
+	$(MAKE) -f test\shared\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) "VCDIR=$(VCDIR)" DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
 
-test_all:  test_uuid test_aa test_hash test_stdcpp test_gc custom_gc test_loadlib
+test_all: test_shared test_uuid test_aa test_hash test_stdcpp test_gc custom_gc
 
 ################### zip/install/clean ##########################
 
