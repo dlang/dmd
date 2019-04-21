@@ -477,10 +477,11 @@ void genObjFile(Module *m, bool multiobj)
         return;
     }
 
-    /* Always generate module info, because of templates and -cov.
-     * But module info needs the runtime library, so disable it for betterC.
+    /* Generate module info for templates and -cov.
+     *  Don't generate ModuleInfo if `object.ModuleInfo` is not declared or
+     *  explicitly disabled through compiler switches such as `-betterC`.
      */
-    if (!global.params.betterC /*|| needModuleInfo()*/)
+    if (global.params.useModuleInfo && Module::moduleinfo /*|| needModuleInfo()*/)
         genModuleInfo(m);
 
     objmod->termfile();
