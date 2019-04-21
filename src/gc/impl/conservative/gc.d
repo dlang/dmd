@@ -2769,10 +2769,41 @@ struct Gcx
         debug(PARALLEL_PRINTF) printf("waitForScanDone done\n");
     }
 
-    void startScanThreads() nothrow
+    int maxParallelThreads() nothrow
     {
         import core.cpuid;
         auto threads = threadsPerCPU();
+
+        if (threads == 0)
+        {
+            // If the GC is called by module ctors no explicit
+            // import dependency on the GC is generated. So the
+            // GC module is not correctly inserted into the module
+            // initialization chain. As it relies on core.cpuid being
+            // initialized, force this here.
+            try
+            {
+                foreach (m; ModuleInfo)
+                    if (m.name == "core.cpuid")
+                        if (auto ctor = m.ctor())
+                        {
+                            ctor();
+                            threads = threadsPerCPU();
+                            break;
+                        }
+            }
+            catch (Exception)
+            {
+                assert(false, "unexpected exception iterating ModuleInfo");
+            }
+        }
+        return threads;
+    }
+
+
+    void startScanThreads() nothrow
+    {
+        auto threads = maxParallelThreads();
         debug(PARALLEL_PRINTF) printf("startScanThreads: %d threads per CPU\n", threads);
         if (threads <= 1)
             return; // either core.cpuid not initialized or single core
@@ -2787,12 +2818,12 @@ struct Gcx
         evDone.initialize(false, false);
 
         for (int idx = 0; idx < numScanThreads; idx++)
-            scanThreadData[idx].tid = createLowLevelThread(&scanBackground, 0x4000);
+            scanThreadData[idx].tid = createLowLevelThread(&scanBackground, 0x4000, &stopScanThreads);
     }
 
     void stopScanThreads() nothrow
     {
-        if (!scanThreadData)
+        if (!numScanThreads)
             return;
 
         debug(PARALLEL_PRINTF) printf("stopScanThreads\n");
@@ -2812,7 +2843,7 @@ struct Gcx
         evStart.terminate();
 
         cstdlib.free(scanThreadData);
-        scanThreadData = null;
+        // scanThreadData = null; // keep non-null to not start again after shutdown
         numScanThreads = 0;
 
         debug(PARALLEL_PRINTF) printf("stopScanThreads done\n");
