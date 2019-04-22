@@ -12,7 +12,6 @@
 
 module dmd.root.speller;
 
-import core.stdc.limits;
 import core.stdc.stdlib;
 import core.stdc.string;
 
@@ -26,7 +25,7 @@ immutable string idchars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
  * respect to the cost defined by the search function
  * Input/Output:
  *      p       best found spelling (NULL if none found yet)
- *      cost    cost of p (INT_MAX if none found yet)
+ *      cost    cost of p (int.max if none found yet)
  * Input:
  *      np      new found spelling (NULL if none found)
  *      ncost   cost of np if non-NULL
@@ -62,7 +61,7 @@ private void* spellerY(const(char)* seed, size_t seedlen, dg_speller_t dg, size_
             return null; // no matches
     }
     buf[0 .. index] = seed[0 .. index];
-    *cost = INT_MAX;
+    *cost = int.max;
     void* p = null;
     int ncost;
     /* Delete at seed[index] */
@@ -116,7 +115,7 @@ private void* spellerX(const(char)* seed, size_t seedlen, dg_speller_t dg, int f
         if (!buf)
             return null; // no matches
     }
-    int cost = INT_MAX, ncost;
+    int cost = int.max, ncost;
     void* p = null, np;
     /* Deletions */
     buf[0 .. seedlen] = seed[1 .. seedlen + 1];
