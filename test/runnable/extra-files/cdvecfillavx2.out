@@ -1,0 +1,431 @@
+
+
+Disassembly of section .text._D9cdvecfill4testFhZNhG16h:
+
+0000000000000000 <_D9cdvecfill4testFhZNhG16h>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c5 f9 6e c7          	vmovd  xmm0,edi
+   8:	c4 e2 79 78 c0       	vpbroadcastb xmm0,xmm0
+   d:	5d                   	pop    rbp
+   e:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFPhZNhG16h:
+
+0000000000000000 <_D9cdvecfill4testFPhZNhG16h>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c4 e2 79 78 07       	vpbroadcastb xmm0,BYTE PTR [rdi]
+   9:	5d                   	pop    rbp
+   a:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFgZNhG16g:
+
+0000000000000000 <_D9cdvecfill4testFgZNhG16g>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c5 f9 6e c7          	vmovd  xmm0,edi
+   8:	c4 e2 79 78 c0       	vpbroadcastb xmm0,xmm0
+   d:	5d                   	pop    rbp
+   e:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFPgZNhG16g:
+
+0000000000000000 <_D9cdvecfill4testFPgZNhG16g>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c4 e2 79 78 07       	vpbroadcastb xmm0,BYTE PTR [rdi]
+   9:	5d                   	pop    rbp
+   a:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFtZNhG8t:
+
+0000000000000000 <_D9cdvecfill4testFtZNhG8t>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c5 f9 6e c7          	vmovd  xmm0,edi
+   8:	c4 e2 79 79 c0       	vpbroadcastw xmm0,xmm0
+   d:	5d                   	pop    rbp
+   e:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFPtZNhG8t:
+
+0000000000000000 <_D9cdvecfill4testFPtZNhG8t>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c4 e2 79 79 07       	vpbroadcastw xmm0,WORD PTR [rdi]
+   9:	5d                   	pop    rbp
+   a:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFsZNhG8s:
+
+0000000000000000 <_D9cdvecfill4testFsZNhG8s>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c5 f9 6e c7          	vmovd  xmm0,edi
+   8:	c4 e2 79 79 c0       	vpbroadcastw xmm0,xmm0
+   d:	5d                   	pop    rbp
+   e:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFPsZNhG8s:
+
+0000000000000000 <_D9cdvecfill4testFPsZNhG8s>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c4 e2 79 79 07       	vpbroadcastw xmm0,WORD PTR [rdi]
+   9:	5d                   	pop    rbp
+   a:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFkZNhG4k:
+
+0000000000000000 <_D9cdvecfill4testFkZNhG4k>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c5 f9 6e c7          	vmovd  xmm0,edi
+   8:	c4 e2 79 58 c0       	vpbroadcastd xmm0,xmm0
+   d:	5d                   	pop    rbp
+   e:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFPkZNhG4k:
+
+0000000000000000 <_D9cdvecfill4testFPkZNhG4k>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c4 e2 79 58 07       	vpbroadcastd xmm0,DWORD PTR [rdi]
+   9:	5d                   	pop    rbp
+   a:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFiZNhG4i:
+
+0000000000000000 <_D9cdvecfill4testFiZNhG4i>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c5 f9 6e c7          	vmovd  xmm0,edi
+   8:	c4 e2 79 58 c0       	vpbroadcastd xmm0,xmm0
+   d:	5d                   	pop    rbp
+   e:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFPiZNhG4i:
+
+0000000000000000 <_D9cdvecfill4testFPiZNhG4i>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c4 e2 79 58 07       	vpbroadcastd xmm0,DWORD PTR [rdi]
+   9:	5d                   	pop    rbp
+   a:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFmZNhG2m:
+
+0000000000000000 <_D9cdvecfill4testFmZNhG2m>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c4 e1 f9 6e c7       	vmovq  xmm0,rdi
+   9:	c4 e2 79 59 c0       	vpbroadcastq xmm0,xmm0
+   e:	5d                   	pop    rbp
+   f:	c3                   	ret    
+
+Disassembly of section .text._D9cdvecfill4testFPmZNhG2m:
+
+0000000000000000 <_D9cdvecfill4testFPmZNhG2m>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c4 e2 79 59 07       	vpbroadcastq xmm0,QWORD PTR [rdi]
+   9:	5d                   	pop    rbp
+   a:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFlZNhG2l:
+
+0000000000000000 <_D9cdvecfill4testFlZNhG2l>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c4 e1 f9 6e c7       	vmovq  xmm0,rdi
+   9:	c4 e2 79 59 c0       	vpbroadcastq xmm0,xmm0
+   e:	5d                   	pop    rbp
+   f:	c3                   	ret    
+
+Disassembly of section .text._D9cdvecfill4testFPlZNhG2l:
+
+0000000000000000 <_D9cdvecfill4testFPlZNhG2l>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c4 e2 79 59 07       	vpbroadcastq xmm0,QWORD PTR [rdi]
+   9:	5d                   	pop    rbp
+   a:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFfZNhG4f:
+
+0000000000000000 <_D9cdvecfill4testFfZNhG4f>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c4 e2 79 18 c0       	vbroadcastss xmm0,xmm0
+   9:	5d                   	pop    rbp
+   a:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFPfZNhG4f:
+
+0000000000000000 <_D9cdvecfill4testFPfZNhG4f>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c4 e2 79 18 07       	vbroadcastss xmm0,DWORD PTR [rdi]
+   9:	5d                   	pop    rbp
+   a:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFdZNhG2d:
+
+0000000000000000 <_D9cdvecfill4testFdZNhG2d>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c5 f9 14 c0          	vunpcklpd xmm0,xmm0,xmm0
+   8:	5d                   	pop    rbp
+   9:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFPdZNhG2d:
+
+0000000000000000 <_D9cdvecfill4testFPdZNhG2d>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c5 fb 10 07          	vmovsd xmm0,QWORD PTR [rdi]
+   8:	c5 f9 14 c0          	vunpcklpd xmm0,xmm0,xmm0
+   c:	5d                   	pop    rbp
+   d:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFhZNhG32h:
+
+0000000000000000 <_D9cdvecfill4testFhZNhG32h>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c5 f9 6e c7          	vmovd  xmm0,edi
+   8:	c4 e2 7d 78 c0       	vpbroadcastb ymm0,xmm0
+   d:	5d                   	pop    rbp
+   e:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFPhZNhG32h:
+
+0000000000000000 <_D9cdvecfill4testFPhZNhG32h>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c4 e2 7d 78 07       	vpbroadcastb ymm0,BYTE PTR [rdi]
+   9:	5d                   	pop    rbp
+   a:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFgZNhG32g:
+
+0000000000000000 <_D9cdvecfill4testFgZNhG32g>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c5 f9 6e c7          	vmovd  xmm0,edi
+   8:	c4 e2 7d 78 c0       	vpbroadcastb ymm0,xmm0
+   d:	5d                   	pop    rbp
+   e:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFPgZNhG32g:
+
+0000000000000000 <_D9cdvecfill4testFPgZNhG32g>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c4 e2 7d 78 07       	vpbroadcastb ymm0,BYTE PTR [rdi]
+   9:	5d                   	pop    rbp
+   a:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFtZNhG16t:
+
+0000000000000000 <_D9cdvecfill4testFtZNhG16t>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c5 f9 6e c7          	vmovd  xmm0,edi
+   8:	c4 e2 7d 79 c0       	vpbroadcastw ymm0,xmm0
+   d:	5d                   	pop    rbp
+   e:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFPtZNhG16t:
+
+0000000000000000 <_D9cdvecfill4testFPtZNhG16t>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c4 e2 7d 79 07       	vpbroadcastw ymm0,WORD PTR [rdi]
+   9:	5d                   	pop    rbp
+   a:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFsZNhG16s:
+
+0000000000000000 <_D9cdvecfill4testFsZNhG16s>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c5 f9 6e c7          	vmovd  xmm0,edi
+   8:	c4 e2 7d 79 c0       	vpbroadcastw ymm0,xmm0
+   d:	5d                   	pop    rbp
+   e:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFPsZNhG16s:
+
+0000000000000000 <_D9cdvecfill4testFPsZNhG16s>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c4 e2 7d 79 07       	vpbroadcastw ymm0,WORD PTR [rdi]
+   9:	5d                   	pop    rbp
+   a:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFkZNhG8k:
+
+0000000000000000 <_D9cdvecfill4testFkZNhG8k>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c5 f9 6e c7          	vmovd  xmm0,edi
+   8:	c4 e2 7d 58 c0       	vpbroadcastd ymm0,xmm0
+   d:	5d                   	pop    rbp
+   e:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFPkZNhG8k:
+
+0000000000000000 <_D9cdvecfill4testFPkZNhG8k>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c4 e2 7d 58 07       	vpbroadcastd ymm0,DWORD PTR [rdi]
+   9:	5d                   	pop    rbp
+   a:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFiZNhG8i:
+
+0000000000000000 <_D9cdvecfill4testFiZNhG8i>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c5 f9 6e c7          	vmovd  xmm0,edi
+   8:	c4 e2 7d 58 c0       	vpbroadcastd ymm0,xmm0
+   d:	5d                   	pop    rbp
+   e:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFPiZNhG8i:
+
+0000000000000000 <_D9cdvecfill4testFPiZNhG8i>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c4 e2 7d 58 07       	vpbroadcastd ymm0,DWORD PTR [rdi]
+   9:	5d                   	pop    rbp
+   a:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFmZNhG4m:
+
+0000000000000000 <_D9cdvecfill4testFmZNhG4m>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c4 e1 f9 6e c7       	vmovq  xmm0,rdi
+   9:	c4 e2 7d 59 c0       	vpbroadcastq ymm0,xmm0
+   e:	5d                   	pop    rbp
+   f:	c3                   	ret    
+
+Disassembly of section .text._D9cdvecfill4testFPmZNhG4m:
+
+0000000000000000 <_D9cdvecfill4testFPmZNhG4m>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c4 e2 7d 59 07       	vpbroadcastq ymm0,QWORD PTR [rdi]
+   9:	5d                   	pop    rbp
+   a:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFlZNhG4l:
+
+0000000000000000 <_D9cdvecfill4testFlZNhG4l>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c4 e1 f9 6e c7       	vmovq  xmm0,rdi
+   9:	c4 e2 7d 59 c0       	vpbroadcastq ymm0,xmm0
+   e:	5d                   	pop    rbp
+   f:	c3                   	ret    
+
+Disassembly of section .text._D9cdvecfill4testFPlZNhG4l:
+
+0000000000000000 <_D9cdvecfill4testFPlZNhG4l>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c4 e2 7d 59 07       	vpbroadcastq ymm0,QWORD PTR [rdi]
+   9:	5d                   	pop    rbp
+   a:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFfZNhG8f:
+
+0000000000000000 <_D9cdvecfill4testFfZNhG8f>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c4 e2 7d 18 c0       	vbroadcastss ymm0,xmm0
+   9:	5d                   	pop    rbp
+   a:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFPfZNhG8f:
+
+0000000000000000 <_D9cdvecfill4testFPfZNhG8f>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c4 e2 7d 18 07       	vbroadcastss ymm0,DWORD PTR [rdi]
+   9:	5d                   	pop    rbp
+   a:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFdZNhG4d:
+
+0000000000000000 <_D9cdvecfill4testFdZNhG4d>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c4 e2 7d 19 c0       	vbroadcastsd ymm0,xmm0
+   9:	5d                   	pop    rbp
+   a:	c3                   	ret    
+	...
+
+Disassembly of section .text._D9cdvecfill4testFPdZNhG4d:
+
+0000000000000000 <_D9cdvecfill4testFPdZNhG4d>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	c4 e2 7d 19 07       	vbroadcastsd ymm0,QWORD PTR [rdi]
+   9:	5d                   	pop    rbp
+   a:	c3                   	ret    
+	...
+
+Disassembly of section .text.d_dso_init:
+
+0000000000000000 <.text.d_dso_init>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	48 8d 05 00 00 00 00 	lea    rax,[rip+0x0]        # b <.text.d_dso_init+0xb>
+   b:	50                   	push   rax
+   c:	48 8d 05 00 00 00 00 	lea    rax,[rip+0x0]        # 13 <.text.d_dso_init+0x13>
+  13:	50                   	push   rax
+  14:	48 8d 05 00 00 00 00 	lea    rax,[rip+0x0]        # 1b <.text.d_dso_init+0x1b>
+  1b:	50                   	push   rax
+  1c:	6a 01                	push   0x1
+  1e:	48 8b fc             	mov    rdi,rsp
+  21:	e8 00 00 00 00       	call   26 <.text.d_dso_init+0x26>
+  26:	c9                   	leave  
+  27:	c3                   	ret    
