@@ -37,6 +37,14 @@ version(DLL)
     static this()
     {
         auto tsk = new Task;
+        assert(tsk.tid != ThreadID.init);
+    }
+
+    static ~this()
+    {
+        // creating thread in shutdown should fail
+        auto tsk = new Task;
+        assert(tsk.tid == ThreadID.init);
     }
 }
 else

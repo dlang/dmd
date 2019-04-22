@@ -5728,7 +5728,7 @@ private
     version (CRuntime_Microsoft)
         extern(C) extern __gshared ubyte msvcUsesUCRT; // from rt/msvc.c
 
-    package(core) bool thread_DLLProcessDetaching;
+    package(core) __gshared bool thread_DLLProcessDetaching;
 
     __gshared HMODULE ll_dllModule;
     __gshared ThreadID ll_dllMonitorThread;
@@ -5852,6 +5852,10 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
     ThreadID tid;
     version (Windows)
     {
+        // the thread won't start until after the DLL is unloaded
+        if (thread_DLLProcessDetaching)
+            return ThreadID.init;
+
         static extern (Windows) uint thread_lowlevelEntry(void* ctx) nothrow
         {
             auto dg = *cast(void delegate() nothrow*)ctx;
