@@ -18,7 +18,7 @@ import core.stdc.string;
 
 alias dg_speller_t = void* delegate(const(char)*, ref int);
 
-__gshared const(char)* idchars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
+immutable string idchars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
 
 /**************************************************
  * combine a new result from the spell checker to
@@ -46,7 +46,7 @@ private bool combineSpellerResult(ref void* p, ref int cost, void* np, int ncost
     return false;
 }
 
-private void* spellerY(const(char)* seed, size_t seedlen, dg_speller_t dg, const(char)* charset, size_t index, int* cost)
+private void* spellerY(const(char)* seed, size_t seedlen, dg_speller_t dg, string charset, size_t index, int* cost)
 {
     if (!seedlen)
         return null;
@@ -74,15 +74,15 @@ private void* spellerY(const(char)* seed, size_t seedlen, dg_speller_t dg, const
         if (combineSpellerResult(p, *cost, np, ncost))
             return p;
     }
-    if (charset && *charset)
+    if (charset.length)
     {
         /* Substitutions */
         if (index < seedlen)
         {
             buf[0 .. seedlen + 1] = seed[0 .. seedlen + 1];
-            for (const(char)* s = charset; *s; s++)
+            foreach (s; charset)
             {
-                buf[index] = *s;
+                buf[index] = s;
                 //printf("sub buf = '%s'\n", buf);
                 void* np = dg(buf, ncost);
                 if (combineSpellerResult(p, *cost, np, ncost))
@@ -92,9 +92,9 @@ private void* spellerY(const(char)* seed, size_t seedlen, dg_speller_t dg, const
         }
         /* Insertions */
         buf[index + 1 .. seedlen + 2] = seed[index .. seedlen + 1];
-        for (const(char)* s = charset; *s; s++)
+        foreach (s; charset)
         {
-            buf[index] = *s;
+            buf[index] = s;
             //printf("ins buf = '%s'\n", buf);
             void* np = dg(buf, ncost);
             if (combineSpellerResult(p, *cost, np, ncost))
@@ -105,7 +105,7 @@ private void* spellerY(const(char)* seed, size_t seedlen, dg_speller_t dg, const
     return p; // return "best" result
 }
 
-private void* spellerX(const(char)* seed, size_t seedlen, dg_speller_t dg, const(char)* charset, int flag)
+private void* spellerX(const(char)* seed, size_t seedlen, dg_speller_t dg, string charset, int flag)
 {
     if (!seedlen)
         return null;
@@ -149,15 +149,15 @@ private void* spellerX(const(char)* seed, size_t seedlen, dg_speller_t dg, const
             buf[i] = seed[i];
         }
     }
-    if (charset && *charset)
+    if (charset.length)
     {
         /* Substitutions */
         buf[0 .. seedlen + 1] = seed[0 .. seedlen + 1];
         for (size_t i = 0; i < seedlen; i++)
         {
-            for (const(char)* s = charset; *s; s++)
+            foreach (s; charset)
             {
-                buf[i] = *s;
+                buf[i] = s;
                 //printf("sub buf = '%s'\n", buf);
                 if (flag)
                     np = spellerY(buf, seedlen, dg, charset, i + 1, &ncost);
@@ -172,9 +172,9 @@ private void* spellerX(const(char)* seed, size_t seedlen, dg_speller_t dg, const
         buf[1 .. seedlen + 2] = seed[0 .. seedlen + 1];
         for (size_t i = 0; i <= seedlen; i++) // yes, do seedlen+1 iterations
         {
-            for (const(char)* s = charset; *s; s++)
+            foreach (s; charset)
             {
-                buf[i] = *s;
+                buf[i] = s;
                 //printf("ins buf = '%s'\n", buf);
                 if (flag)
                     np = spellerY(buf, seedlen + 1, dg, charset, i + 1, &ncost);
@@ -201,7 +201,7 @@ private void* spellerX(const(char)* seed, size_t seedlen, dg_speller_t dg, const
  *      null = no correct spellings found, otherwise
  *      the value returned by dg() for first possible correct spelling
  */
-void* speller(const(char)* seed, scope dg_speller_t dg, const(char)* charset)
+void* speller(const(char)* seed, scope dg_speller_t dg, string charset)
 {
     size_t seedlen = strlen(seed);
     size_t maxdist = seedlen < 4 ? seedlen / 2 : 2;
