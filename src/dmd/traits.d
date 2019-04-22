@@ -1780,17 +1780,17 @@ Lnext:
         return r.expressionSemantic(sc);
     }
 
-    extern (D) void* trait_search_fp(const(char)[] seed, ref int cost)
+    extern (D) const(char)* trait_search_fp(const(char)[] seed, ref int cost)
     {
         //printf("trait_search_fp('%s')\n", seed);
         if (!seed.length)
             return null;
         cost = 0;
         StringValue* sv = traitsStringTable.lookup(seed);
-        return sv ? sv.ptrvalue : null;
+        return sv ? cast(const(char)*)sv.ptrvalue : null;
     }
 
-    if (auto sub = cast(const(char)*)speller(e.ident.toChars(), &trait_search_fp))
+    if (auto sub = speller!trait_search_fp(e.ident.toChars()))
         e.error("unrecognized trait `%s`, did you mean `%s`?", e.ident.toChars(), sub);
     else
         e.error("unrecognized trait `%s`", e.ident.toChars());
