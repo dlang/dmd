@@ -597,7 +597,7 @@ struct GC
      * collector, if p points to the interior of a memory block, or if this
      * method is called from a finalizer, no action will be taken.  The block
      * will not be finalized regardless of whether the FINALIZE attribute is
-     * set.  If finalization is desired, use delete instead.
+     * set.  If finalization is desired, call $(REF1 destroy, object) prior to `GC.free`.
      *
      * Params:
      *  p = A pointer to the root of a valid memory block or to null.
