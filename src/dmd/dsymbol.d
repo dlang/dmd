@@ -774,7 +774,7 @@ extern (C++) class Dsymbol : ASTNode
 
         if (global.gag)
             return null; // don't do it for speculative compiles; too time consuming
-        return cast(Dsymbol)speller(ident.toChars(), &symbol_search_fp, idchars);
+        return cast(Dsymbol)speller(ident.toChars(), &symbol_search_fp);
     }
 
     /***************************************

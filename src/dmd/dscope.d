@@ -601,7 +601,7 @@ struct Scope
             return cast(void*)s;
         }
 
-        return cast(Dsymbol)speller(ident.toChars(), &scope_search_fp, idchars);
+        return cast(Dsymbol)speller(ident.toChars(), &scope_search_fp);
     }
 
     /************************************

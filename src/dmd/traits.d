@@ -1790,7 +1790,7 @@ Lnext:
         return sv ? sv.ptrvalue : null;
     }
 
-    if (auto sub = cast(const(char)*)speller(e.ident.toChars(), &trait_search_fp, idchars))
+    if (auto sub = cast(const(char)*)speller(e.ident.toChars(), &trait_search_fp))
         e.error("unrecognized trait `%s`, did you mean `%s`?", e.ident.toChars(), sub);
     else
         e.error("unrecognized trait `%s`", e.ident.toChars());
