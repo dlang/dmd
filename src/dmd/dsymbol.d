@@ -756,15 +756,14 @@ extern (C++) class Dsymbol : ASTNode
         /***************************************************
          * Search for symbol with correct spelling.
          */
-        extern (D) void* symbol_search_fp(const(char)* seed, ref int cost)
+        extern (D) void* symbol_search_fp(const(char)[] seed, ref int cost)
         {
             /* If not in the lexer's string table, it certainly isn't in the symbol table.
              * Doing this first is a lot faster.
              */
-            size_t len = strlen(seed);
-            if (!len)
+            if (!seed.length)
                 return null;
-            Identifier id = Identifier.lookup(seed, len);
+            Identifier id = Identifier.lookup(seed);
             if (!id)
                 return null;
             cost = 0;

@@ -1780,14 +1780,13 @@ Lnext:
         return r.expressionSemantic(sc);
     }
 
-    extern (D) void* trait_search_fp(const(char)* seed, ref int cost)
+    extern (D) void* trait_search_fp(const(char)[] seed, ref int cost)
     {
         //printf("trait_search_fp('%s')\n", seed);
-        size_t len = strlen(seed);
-        if (!len)
+        if (!seed.length)
             return null;
         cost = 0;
-        StringValue* sv = traitsStringTable.lookup(seed, len);
+        StringValue* sv = traitsStringTable.lookup(seed);
         return sv ? sv.ptrvalue : null;
     }
 

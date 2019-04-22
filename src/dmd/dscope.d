@@ -571,16 +571,15 @@ struct Scope
          * Given the failed search attempt, try to find
          * one with a close spelling.
          */
-        extern (D) void* scope_search_fp(const(char)* seed, ref int cost)
+        extern (D) void* scope_search_fp(const(char)[] seed, ref int cost)
         {
             //printf("scope_search_fp('%s')\n", seed);
             /* If not in the lexer's string table, it certainly isn't in the symbol table.
              * Doing this first is a lot faster.
              */
-            size_t len = strlen(seed);
-            if (!len)
+            if (!seed.length)
                 return null;
-            Identifier id = Identifier.lookup(seed, len);
+            Identifier id = Identifier.lookup(seed);
             if (!id)
                 return null;
             Scope* sc = &this;
