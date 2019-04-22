@@ -5082,23 +5082,23 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 // Use the base class's 'this' member
                 if (cldec.storage_class & STC.static_)
                     cldec.error("static class cannot inherit from nested class `%s`", cldec.baseClass.toChars());
-                if (cldec.toParentDecl() != cldec.baseClass.toParentDecl() &&
-                    (!cldec.toParentDecl() ||
-                     !cldec.baseClass.toParentDecl().getType() ||
-                     !cldec.baseClass.toParentDecl().getType().isBaseOf(cldec.toParentDecl().getType(), null)))
+                if (cldec.toParentLocal() != cldec.baseClass.toParentLocal() &&
+                    (!cldec.toParentLocal() ||
+                     !cldec.baseClass.toParentLocal().getType() ||
+                     !cldec.baseClass.toParentLocal().getType().isBaseOf(cldec.toParentLocal().getType(), null)))
                 {
-                    if (cldec.toParentDecl())
+                    if (cldec.toParentLocal())
                     {
                         cldec.error("is nested within `%s`, but super class `%s` is nested within `%s`",
-                            cldec.toParentDecl().toChars(),
+                            cldec.toParentLocal().toChars(),
                             cldec.baseClass.toChars(),
-                            cldec.baseClass.toParentDecl().toChars());
+                            cldec.baseClass.toParentLocal().toChars());
                     }
                     else
                     {
                         cldec.error("is not nested, but super class `%s` is nested within `%s`",
                             cldec.baseClass.toChars(),
-                            cldec.baseClass.toParentDecl().toChars());
+                            cldec.baseClass.toParentLocal().toChars());
                     }
                     cldec.enclosing = null;
                 }

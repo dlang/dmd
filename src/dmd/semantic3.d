@@ -551,7 +551,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 sym.endlinnum = funcdecl.endloc.linnum;
                 sc2 = sc2.push(sym);
 
-                auto ad2 = funcdecl.isMemberDecl();
+                auto ad2 = funcdecl.isMemberLocal();
 
                 /* If this is a class constructor
                  */
