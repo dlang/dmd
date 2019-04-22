@@ -16,7 +16,7 @@ import core.stdc.limits;
 import core.stdc.stdlib;
 import core.stdc.string;
 
-alias dg_speller_t = void* delegate(const(char)*, ref int);
+alias dg_speller_t = void* delegate(const(char)[], ref int);
 
 __gshared const(char)* idchars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
 
@@ -70,7 +70,7 @@ private void* spellerY(const(char)* seed, size_t seedlen, dg_speller_t dg, const
     {
         buf[index .. seedlen] = seed[index + 1 .. seedlen + 1];
         assert(buf[seedlen - 1] == 0);
-        void* np = dg(buf, ncost);
+        void* np = dg(buf[0 .. seedlen - 1], ncost);
         if (combineSpellerResult(p, *cost, np, ncost))
             return p;
     }
@@ -84,7 +84,7 @@ private void* spellerY(const(char)* seed, size_t seedlen, dg_speller_t dg, const
             {
                 buf[index] = *s;
                 //printf("sub buf = '%s'\n", buf);
-                void* np = dg(buf, ncost);
+                void* np = dg(buf[0 .. seedlen], ncost);
                 if (combineSpellerResult(p, *cost, np, ncost))
                     return p;
             }
@@ -96,7 +96,7 @@ private void* spellerY(const(char)* seed, size_t seedlen, dg_speller_t dg, const
         {
             buf[index] = *s;
             //printf("ins buf = '%s'\n", buf);
-            void* np = dg(buf, ncost);
+            void* np = dg(buf[0 .. seedlen + 1], ncost);
             if (combineSpellerResult(p, *cost, np, ncost))
                 return p;
         }
@@ -129,7 +129,7 @@ private void* spellerX(const(char)* seed, size_t seedlen, dg_speller_t dg, const
         if (flag)
             np = spellerY(buf, seedlen - 1, dg, charset, i, &ncost);
         else
-            np = dg(buf, ncost);
+            np = dg(buf[0 .. seedlen - 1], ncost);
         if (combineSpellerResult(p, cost, np, ncost))
             return p;
         buf[i] = seed[i];
@@ -144,7 +144,7 @@ private void* spellerX(const(char)* seed, size_t seedlen, dg_speller_t dg, const
             buf[i] = seed[i + 1];
             buf[i + 1] = seed[i];
             //printf("tra buf = '%s'\n", buf);
-            if (combineSpellerResult(p, cost, dg(buf, ncost), ncost))
+            if (combineSpellerResult(p, cost, dg(buf[0 .. seedlen], ncost), ncost))
                 return p;
             buf[i] = seed[i];
         }
@@ -162,7 +162,7 @@ private void* spellerX(const(char)* seed, size_t seedlen, dg_speller_t dg, const
                 if (flag)
                     np = spellerY(buf, seedlen, dg, charset, i + 1, &ncost);
                 else
-                    np = dg(buf, ncost);
+                    np = dg(buf[0 .. seedlen], ncost);
                 if (combineSpellerResult(p, cost, np, ncost))
                     return p;
             }
@@ -179,7 +179,7 @@ private void* spellerX(const(char)* seed, size_t seedlen, dg_speller_t dg, const
                 if (flag)
                     np = spellerY(buf, seedlen + 1, dg, charset, i + 1, &ncost);
                 else
-                    np = dg(buf, ncost);
+                    np = dg(buf[0 .. seedlen + 1], ncost);
                 if (combineSpellerResult(p, cost, np, ncost))
                     return p;
             }
@@ -218,7 +218,7 @@ void* speller(const(char)* seed, scope dg_speller_t dg, const(char)* charset)
 
 unittest
 {
-    __gshared const(char)*** cases =
+    static string[][] cases =
     [
         ["hello", "hell", "y"],
         ["hello", "hel", "y"],
@@ -239,25 +239,26 @@ unittest
     ];
     //printf("unittest_speller()\n");
 
-    void* dgarg;
+    string dgarg;
 
-    void* speller_test(const(char)* s, ref int cost)
+    void* speller_test(const(char)[] s, ref int cost)
     {
+        assert(s[$-1] != '\0');
         //printf("speller_test(%s, %s)\n", dgarg, s);
         cost = 0;
-        if (strcmp(cast(char*)dgarg, s) == 0)
-            return dgarg;
+        if (dgarg == s)
+            return cast(void*)dgarg;
         return null;
     }
 
-    dgarg = cast(char*)"hell";
+    dgarg = "hell";
     const(void)* p = speller(cast(const(char)*)"hello", &speller_test, idchars);
     assert(p !is null);
     for (int i = 0; cases[i][0]; i++)
     {
         //printf("case [%d]\n", i);
-        dgarg = cast(void*)cases[i][1];
-        void* p2 = speller(cases[i][0], &speller_test, idchars);
+        dgarg = cases[i][1];
+        void* p2 = speller(cases[i][0].ptr, &speller_test, idchars);
         if (p2)
             assert(cases[i][2][0] == 'y');
         else
