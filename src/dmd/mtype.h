@@ -13,6 +13,7 @@
 #include "root/rmem.h" // for d_size_t
 
 #include "arraytypes.h"
+#include "ast_node.h"
 #include "globals.h"
 #include "visitor.h"
 
@@ -228,7 +229,7 @@ public:
     static Type *basic[TMAX];
 
     virtual const char *kind();
-    Type *copy();
+    Type *copy() const;
     virtual Type *syntaxCopy();
     bool equals(RootObject *o);
     bool equivalent(Type *t);
@@ -244,8 +245,8 @@ public:
     virtual unsigned alignsize();
     Type *trySemantic(const Loc &loc, Scope *sc);
     Type *merge2();
-    void modToBuffer(OutBuffer *buf);
-    char *modToChars();
+    void modToBuffer(OutBuffer *buf) const;
+    char *modToChars() const;
 
     virtual bool isintegral();
     virtual bool isfloating();   // real, imaginary, or complex
@@ -268,7 +269,7 @@ public:
     bool isWildConst() const   { return (mod & MODwildconst) == MODwildconst; }
     bool isSharedWild() const  { return (mod & (MODshared | MODwild)) == (MODshared | MODwild); }
     bool isNaked() const       { return mod == 0; }
-    Type *nullAttributes();
+    Type *nullAttributes() const;
     Type *constOf();
     Type *immutableOf();
     Type *mutableOf();
@@ -842,7 +843,7 @@ public:
 
 //enum InOut { None, In, Out, InOut, Lazy };
 
-class Parameter : public RootObject
+class Parameter : public ASTNode
 {
 public:
     //enum InOut inout;
@@ -858,7 +859,7 @@ public:
     Type *isLazyArray();
     // kludge for template.isType()
     DYNCAST dyncast() const { return DYNCAST_PARAMETER; }
-    virtual void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) { v->visit(this); }
 
     static size_t dim(Parameters *parameters);
     static Parameter *getNth(Parameters *parameters, d_size_t nth, d_size_t *pn = NULL);

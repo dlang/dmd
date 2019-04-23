@@ -78,7 +78,7 @@ public:
     bool sem;           // true if semantic() is run
 
     void addInit(Expression *index, Initializer *value);
-    bool isAssociativeArray();
+    bool isAssociativeArray() const;
     Expression *toAssocArrayLiteral();
 
     void accept(Visitor *v) { v->visit(this); }
