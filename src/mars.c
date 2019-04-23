@@ -227,6 +227,9 @@ int tryMain(size_t argc, const char *argv[])
     global.params.useOut = true;
     global.params.useArrayBounds = BOUNDSCHECKdefault;   // set correct value later
     global.params.useSwitchError = true;
+    global.params.useModuleInfo = true;
+    global.params.useTypeInfo = true;
+    global.params.useExceptions = true;
     global.params.useInline = false;
     global.params.obj = true;
     global.params.useDeprecated = 2;
@@ -1005,6 +1008,14 @@ Language changes listed by -transition=id:\n\
     if (global.params.useUnitTests)
         global.params.useAssert = true;
 
+    if (global.params.betterC)
+    {
+        global.params.checkAction = CHECKACTION_halt;
+        global.params.useModuleInfo = false;
+        global.params.useTypeInfo = false;
+        global.params.useExceptions = false;
+    }
+
     if (!global.params.obj || global.params.lib)
         global.params.link = false;
 
@@ -1120,6 +1131,17 @@ Language changes listed by -transition=id:\n\
         VersionCondition::addPredefinedGlobalIdent("assert");
     if (global.params.useArrayBounds == BOUNDSCHECKoff)
         VersionCondition::addPredefinedGlobalIdent("D_NoBoundsChecks");
+
+    if (global.params.betterC)
+    {
+        VersionCondition::addPredefinedGlobalIdent("D_BetterC");
+    }
+    else
+    {
+        VersionCondition::addPredefinedGlobalIdent("D_ModuleInfo");
+        VersionCondition::addPredefinedGlobalIdent("D_Exceptions");
+        VersionCondition::addPredefinedGlobalIdent("D_TypeInfo");
+    }
 
     VersionCondition::addPredefinedGlobalIdent("D_HardFloat");
 

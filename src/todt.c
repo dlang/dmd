@@ -53,7 +53,7 @@ void toObjFile(Dsymbol *ds, bool multiobj);
 Symbol *toVtblSymbol(ClassDeclaration *cd);
 Symbol* toSymbol(StructLiteralExp *sle);
 Symbol* toSymbol(ClassReferenceExp *cre);
-void genTypeInfo(Type *t, Scope *sc);
+void genTypeInfo(Loc loc, Type *t, Scope *sc);
 Symbol *toInitializer(AggregateDeclaration *ad);
 Symbol *toInitializer(EnumDeclaration *ed);
 FuncDeclaration *search_toString(StructDeclaration *sd);
@@ -567,7 +567,7 @@ void Expression_toDt(Expression *e, DtBuilder& dtb)
         {
             if (Type *t = isType(e->obj))
             {
-                genTypeInfo(t, NULL);
+                genTypeInfo(e->loc, t, NULL);
                 Symbol *s = toSymbol(t->vtinfo);
                 dtb.xoff(s, 0);
                 return;
@@ -967,7 +967,7 @@ public:
         dtb.size(0);                                     // monitor
         Type *tm = d->tinfo->mutableOf();
         tm = tm->merge();
-        genTypeInfo(tm, NULL);
+        genTypeInfo(d->loc, tm, NULL);
         dtb.xoff(toSymbol(tm->vtinfo), 0);
     }
 
@@ -980,7 +980,7 @@ public:
         dtb.size(0);                                         // monitor
         Type *tm = d->tinfo->mutableOf();
         tm = tm->merge();
-        genTypeInfo(tm, NULL);
+        genTypeInfo(d->loc, tm, NULL);
         dtb.xoff(toSymbol(tm->vtinfo), 0);
     }
 
@@ -993,7 +993,7 @@ public:
         dtb.size(0);                                     // monitor
         Type *tm = d->tinfo->unSharedOf();
         tm = tm->merge();
-        genTypeInfo(tm, NULL);
+        genTypeInfo(d->loc, tm, NULL);
         dtb.xoff(toSymbol(tm->vtinfo), 0);
     }
 
@@ -1006,7 +1006,7 @@ public:
         dtb.size(0);                                 // monitor
         Type *tm = d->tinfo->mutableOf();
         tm = tm->merge();
-        genTypeInfo(tm, NULL);
+        genTypeInfo(d->loc, tm, NULL);
         dtb.xoff(toSymbol(tm->vtinfo), 0);
     }
 
@@ -1032,7 +1032,7 @@ public:
         // TypeInfo for enum members
         if (sd->memtype)
         {
-            genTypeInfo(sd->memtype, NULL);
+            genTypeInfo(d->loc, sd->memtype, NULL);
             dtb.xoff(toSymbol(sd->memtype->vtinfo), 0);
         }
         else
@@ -1073,7 +1073,7 @@ public:
 
         TypePointer *tc = (TypePointer *)d->tinfo;
 
-        genTypeInfo(tc->next, NULL);
+        genTypeInfo(d->loc, tc->next, NULL);
         dtb.xoff(toSymbol(tc->next->vtinfo), 0); // TypeInfo for type being pointed to
     }
 
@@ -1089,7 +1089,7 @@ public:
 
         TypeDArray *tc = (TypeDArray *)d->tinfo;
 
-        genTypeInfo(tc->next, NULL);
+        genTypeInfo(d->loc, tc->next, NULL);
         dtb.xoff(toSymbol(tc->next->vtinfo), 0); // TypeInfo for array of type
     }
 
@@ -1105,7 +1105,7 @@ public:
 
         TypeSArray *tc = (TypeSArray *)d->tinfo;
 
-        genTypeInfo(tc->next, NULL);
+        genTypeInfo(d->loc, tc->next, NULL);
         dtb.xoff(toSymbol(tc->next->vtinfo), 0);   // TypeInfo for array of type
 
         dtb.size(tc->dim->toInteger());          // length
@@ -1123,7 +1123,7 @@ public:
 
         TypeVector *tc = (TypeVector *)d->tinfo;
 
-        genTypeInfo(tc->basetype, NULL);
+        genTypeInfo(d->loc, tc->basetype, NULL);
         dtb.xoff(toSymbol(tc->basetype->vtinfo), 0); // TypeInfo for equivalent static array
     }
 
@@ -1139,10 +1139,10 @@ public:
 
         TypeAArray *tc = (TypeAArray *)d->tinfo;
 
-        genTypeInfo(tc->next, NULL);
+        genTypeInfo(d->loc, tc->next, NULL);
         dtb.xoff(toSymbol(tc->next->vtinfo), 0);   // TypeInfo for array of type
 
-        genTypeInfo(tc->index, NULL);
+        genTypeInfo(d->loc, tc->index, NULL);
         dtb.xoff(toSymbol(tc->index->vtinfo), 0);  // TypeInfo for array of type
     }
 
@@ -1158,7 +1158,7 @@ public:
 
         TypeFunction *tc = (TypeFunction *)d->tinfo;
 
-        genTypeInfo(tc->next, NULL);
+        genTypeInfo(d->loc, tc->next, NULL);
         dtb.xoff(toSymbol(tc->next->vtinfo), 0); // TypeInfo for function return value
 
         const char *name = d->tinfo->deco;
@@ -1183,7 +1183,7 @@ public:
 
         TypeDelegate *tc = (TypeDelegate *)d->tinfo;
 
-        genTypeInfo(tc->next->nextOf(), NULL);
+        genTypeInfo(d->loc, tc->next->nextOf(), NULL);
         dtb.xoff(toSymbol(tc->next->nextOf()->vtinfo), 0); // TypeInfo for delegate return value
 
         const char *name = d->tinfo->deco;
@@ -1341,7 +1341,7 @@ public:
                 // m_argi
                 if (t)
                 {
-                    genTypeInfo(t, NULL);
+                    genTypeInfo(d->loc, t, NULL);
                     dtb.xoff(toSymbol(t->vtinfo), 0);
                 }
                 else
@@ -1410,7 +1410,7 @@ public:
         {
             Parameter *arg = (*tu->arguments)[i];
 
-            genTypeInfo(arg->type, NULL);
+            genTypeInfo(d->loc, arg->type, NULL);
             Symbol *s = toSymbol(arg->type->vtinfo);
             dtbargs.xoff(s, 0);
         }
