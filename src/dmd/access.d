@@ -451,11 +451,7 @@ bool checkAccess(Loc loc, Scope* sc, Package p)
         if (sc.scopesym && sc.scopesym.isPackageAccessible(p, Prot(Prot.Kind.private_)))
             return false;
     }
-    auto name = p.toPrettyChars();
-    if (p.isPkgMod == PKG.module_ || p.isModule())
-        error(loc, "%s `%s` is not accessible here, perhaps add `static import %s;`", p.kind(), name, name);
-    else
-        error(loc, "%s `%s` is not accessible here", p.kind(), name);
+
     return true;
 }
 
