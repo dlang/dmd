@@ -625,7 +625,8 @@ extern (C++) void cpp_type_info_ptr_toDt(ClassDeclaration cd, ref DtBuilder dtb)
 
     // Put in first two members, the vtbl[] and the monitor
     dtb.xoff(toVtblSymbol(ClassDeclaration.cpp_type_info_ptr), 0);
-    dtb.size(0);             // monitor
+    if (ClassDeclaration.cpp_type_info_ptr.hasMonitor())
+        dtb.size(0);             // monitor
 
     // Create symbol for C++ type info
     Symbol *s = toSymbolCppTypeInfo(cd);
@@ -711,7 +712,7 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
         {
             dtb.xoff(toVtblSymbol(concreteType), 0);  // __vptr
             offset = target.ptrsize;
-            if (cd.classKind != ClassKind.cpp)
+            if (cd.hasMonitor())
             {
                 dtb.size(0);              // __monitor
                 offset += target.ptrsize;
@@ -959,7 +960,8 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         verifyStructSize(Type.dtypeinfo, 2 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.dtypeinfo), 0);        // vtbl for TypeInfo
-        dtb.size(0);                                     // monitor
+        if (Type.dtypeinfo.hasMonitor())
+            dtb.size(0);                                  // monitor
     }
 
     override void visit(TypeInfoConstDeclaration d)
@@ -968,7 +970,8 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         verifyStructSize(Type.typeinfoconst, 3 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfoconst), 0);    // vtbl for TypeInfo_Const
-        dtb.size(0);                                     // monitor
+        if (Type.typeinfoconst.hasMonitor())
+            dtb.size(0);                                  // monitor
         Type tm = d.tinfo.mutableOf();
         tm = tm.merge();
         genTypeInfo(d.loc, tm, null);
@@ -981,7 +984,8 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         verifyStructSize(Type.typeinfoinvariant, 3 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfoinvariant), 0);    // vtbl for TypeInfo_Invariant
-        dtb.size(0);                                         // monitor
+        if (Type.typeinfoinvariant.hasMonitor())
+            dtb.size(0);                                      // monitor
         Type tm = d.tinfo.mutableOf();
         tm = tm.merge();
         genTypeInfo(d.loc, tm, null);
@@ -994,7 +998,8 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         verifyStructSize(Type.typeinfoshared, 3 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfoshared), 0);   // vtbl for TypeInfo_Shared
-        dtb.size(0);                                     // monitor
+        if (Type.typeinfoshared.hasMonitor())
+            dtb.size(0);                                 // monitor
         Type tm = d.tinfo.unSharedOf();
         tm = tm.merge();
         genTypeInfo(d.loc, tm, null);
@@ -1007,7 +1012,8 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         verifyStructSize(Type.typeinfowild, 3 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfowild), 0); // vtbl for TypeInfo_Wild
-        dtb.size(0);                                 // monitor
+        if (Type.typeinfowild.hasMonitor())
+            dtb.size(0);                              // monitor
         Type tm = d.tinfo.mutableOf();
         tm = tm.merge();
         genTypeInfo(d.loc, tm, null);
@@ -1020,7 +1026,8 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         verifyStructSize(Type.typeinfoenum, 7 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfoenum), 0); // vtbl for TypeInfo_Enum
-        dtb.size(0);                        // monitor
+        if (Type.typeinfoenum.hasMonitor())
+            dtb.size(0);                              // monitor
 
         assert(d.tinfo.ty == Tenum);
 
@@ -1071,7 +1078,8 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         verifyStructSize(Type.typeinfopointer, 3 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfopointer), 0);  // vtbl for TypeInfo_Pointer
-        dtb.size(0);                                     // monitor
+        if (Type.typeinfopointer.hasMonitor())
+            dtb.size(0);                                  // monitor
 
         assert(d.tinfo.ty == Tpointer);
 
@@ -1087,7 +1095,8 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         verifyStructSize(Type.typeinfoarray, 3 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfoarray), 0);    // vtbl for TypeInfo_Array
-        dtb.size(0);                                     // monitor
+        if (Type.typeinfoarray.hasMonitor())
+            dtb.size(0);                                  // monitor
 
         assert(d.tinfo.ty == Tarray);
 
@@ -1103,7 +1112,8 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         verifyStructSize(Type.typeinfostaticarray, 4 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfostaticarray), 0);  // vtbl for TypeInfo_StaticArray
-        dtb.size(0);                                         // monitor
+        if (Type.typeinfostaticarray.hasMonitor())
+            dtb.size(0);                                      // monitor
 
         assert(d.tinfo.ty == Tsarray);
 
@@ -1121,7 +1131,8 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         verifyStructSize(Type.typeinfovector, 3 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfovector), 0);   // vtbl for TypeInfo_Vector
-        dtb.size(0);                                     // monitor
+        if (Type.typeinfovector.hasMonitor())
+            dtb.size(0);                                  // monitor
 
         assert(d.tinfo.ty == Tvector);
 
@@ -1137,7 +1148,8 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         verifyStructSize(Type.typeinfoassociativearray, 4 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfoassociativearray), 0); // vtbl for TypeInfo_AssociativeArray
-        dtb.size(0);                        // monitor
+        if (Type.typeinfoassociativearray.hasMonitor())
+            dtb.size(0);                    // monitor
 
         assert(d.tinfo.ty == Taarray);
 
@@ -1156,7 +1168,8 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         verifyStructSize(Type.typeinfofunction, 5 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfofunction), 0); // vtbl for TypeInfo_Function
-        dtb.size(0);                                     // monitor
+        if (Type.typeinfofunction.hasMonitor())
+            dtb.size(0);                                  // monitor
 
         assert(d.tinfo.ty == Tfunction);
 
@@ -1181,7 +1194,8 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         verifyStructSize(Type.typeinfodelegate, 5 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfodelegate), 0); // vtbl for TypeInfo_Delegate
-        dtb.size(0);                                     // monitor
+        if (Type.typeinfodelegate.hasMonitor())
+            dtb.size(0);                                  // monitor
 
         assert(d.tinfo.ty == Tdelegate);
 
@@ -1209,7 +1223,8 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
             verifyStructSize(Type.typeinfostruct, 15 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfostruct), 0); // vtbl for TypeInfo_Struct
-        dtb.size(0);                        // monitor
+        if (Type.typeinfostruct.hasMonitor())
+            dtb.size(0);                                // monitor
 
         assert(d.tinfo.ty == Tstruct);
 
@@ -1382,7 +1397,8 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         verifyStructSize(Type.typeinfointerface, 3 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfointerface), 0);    // vtbl for TypeInfoInterface
-        dtb.size(0);                                           // monitor
+        if (Type.typeinfointerface.hasMonitor())
+            dtb.size(0);                                  // monitor
 
         assert(d.tinfo.ty == Tclass);
 
@@ -1401,7 +1417,8 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         verifyStructSize(Type.typeinfotypelist, 4 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfotypelist), 0); // vtbl for TypeInfoInterface
-        dtb.size(0);                                       // monitor
+        if (Type.typeinfotypelist.hasMonitor())
+            dtb.size(0);                                  // monitor
 
         assert(d.tinfo.ty == Ttuple);
 
