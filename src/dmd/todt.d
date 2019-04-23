@@ -706,7 +706,7 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
         {
             dtb.xoff(toVtblSymbol(concreteType), 0);  // __vptr
             offset = target.ptrsize;
-            if (cd.classKind != ClassKind.cpp)
+            if (cd.hasMonitor())
             {
                 dtb.size(0);              // __monitor
                 offset += target.ptrsize;

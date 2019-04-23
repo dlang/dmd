@@ -1238,7 +1238,8 @@ private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit)
         dtb.xoff(toVtblSymbol(Type.typeinfoclass), 0, TYnptr);
     else
         dtb.size(0);                    // BUG: should be an assert()
-    dtb.size(0);                        // monitor
+    if (Type.typeinfoclass.hasMonitor())
+        dtb.size(0);                    // monitor
 
     // m_init[]
     assert(cd.structsize >= 8 || (cd.classKind == ClassKind.cpp && cd.structsize >= 4));
@@ -1467,7 +1468,8 @@ private void genClassInfoForInterface(InterfaceDeclaration id)
         dtb.xoff(toVtblSymbol(Type.typeinfoclass), 0, TYnptr); // vtbl for ClassInfo
     else
         dtb.size(0);                    // BUG: should be an assert()
-    dtb.size(0);                        // monitor
+    if (Type.typeinfoclass.hasMonitor())
+        dtb.size(0);                        // monitor
 
     // m_init[]
     dtb.size(0);                        // size

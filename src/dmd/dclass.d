@@ -603,7 +603,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         {
             alignsize = target.ptrsize;
             structsize = target.ptrsize;      // allow room for __vptr
-            if (classKind != ClassKind.cpp)
+            if (hasMonitor())
                 structsize += target.ptrsize; // allow room for __monitor
         }
 
@@ -681,6 +681,14 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
         // Calculate fields[i].overlapped
         checkOverlappedFields();
+    }
+
+    /**************
+     * Returns: true if there's a __monitor field
+     */
+    final bool hasMonitor()
+    {
+        return classKind == ClassKind.d || classKind == ClassKind.objc;
     }
 
     override bool isAnonymous()
