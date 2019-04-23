@@ -45,7 +45,7 @@ private bool combineSpellerResult(ref void* p, ref int cost, void* np, int ncost
     return false;
 }
 
-private void* spellerY(const(char)* seed, size_t seedlen, dg_speller_t dg, size_t index, int* cost)
+private void* spellerY(const(char)* seed, size_t seedlen, dg_speller_t dg, size_t index, ref int cost)
 {
     if (!seedlen)
         return null;
@@ -61,7 +61,7 @@ private void* spellerY(const(char)* seed, size_t seedlen, dg_speller_t dg, size_
             return null; // no matches
     }
     buf[0 .. index] = seed[0 .. index];
-    *cost = int.max;
+    cost = int.max;
     void* p = null;
     int ncost;
     /* Delete at seed[index] */
@@ -70,7 +70,7 @@ private void* spellerY(const(char)* seed, size_t seedlen, dg_speller_t dg, size_
         buf[index .. seedlen] = seed[index + 1 .. seedlen + 1];
         assert(buf[seedlen - 1] == 0);
         void* np = dg(buf[0 .. seedlen - 1], ncost);
-        if (combineSpellerResult(p, *cost, np, ncost))
+        if (combineSpellerResult(p, cost, np, ncost))
             return p;
     }
     /* Substitutions */
@@ -82,7 +82,7 @@ private void* spellerY(const(char)* seed, size_t seedlen, dg_speller_t dg, size_
             buf[index] = s;
             //printf("sub buf = '%s'\n", buf);
             void* np = dg(buf[0 .. seedlen], ncost);
-            if (combineSpellerResult(p, *cost, np, ncost))
+            if (combineSpellerResult(p, cost, np, ncost))
                 return p;
         }
         assert(buf[seedlen] == 0);
@@ -94,7 +94,7 @@ private void* spellerY(const(char)* seed, size_t seedlen, dg_speller_t dg, size_
         buf[index] = s;
         //printf("ins buf = '%s'\n", buf);
         void* np = dg(buf[0 .. seedlen + 1], ncost);
-        if (combineSpellerResult(p, *cost, np, ncost))
+        if (combineSpellerResult(p, cost, np, ncost))
             return p;
     }
     assert(buf[seedlen + 1] == 0);
@@ -123,7 +123,7 @@ private void* spellerX(const(char)* seed, size_t seedlen, dg_speller_t dg, int f
     {
         //printf("del buf = '%s'\n", buf);
         if (flag)
-            np = spellerY(buf, seedlen - 1, dg, i, &ncost);
+            np = spellerY(buf, seedlen - 1, dg, i, ncost);
         else
             np = dg(buf[0 .. seedlen - 1], ncost);
         if (combineSpellerResult(p, cost, np, ncost))
@@ -154,7 +154,7 @@ private void* spellerX(const(char)* seed, size_t seedlen, dg_speller_t dg, int f
             buf[i] = s;
             //printf("sub buf = '%s'\n", buf);
             if (flag)
-                np = spellerY(buf, seedlen, dg, i + 1, &ncost);
+                np = spellerY(buf, seedlen, dg, i + 1, ncost);
             else
                 np = dg(buf[0 .. seedlen], ncost);
             if (combineSpellerResult(p, cost, np, ncost))
@@ -171,7 +171,7 @@ private void* spellerX(const(char)* seed, size_t seedlen, dg_speller_t dg, int f
             buf[i] = s;
             //printf("ins buf = '%s'\n", buf);
             if (flag)
-                np = spellerY(buf, seedlen + 1, dg, i + 1, &ncost);
+                np = spellerY(buf, seedlen + 1, dg, i + 1, ncost);
             else
                 np = dg(buf[0 .. seedlen + 1], ncost);
             if (combineSpellerResult(p, cost, np, ncost))
