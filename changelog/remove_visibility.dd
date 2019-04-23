@@ -1,0 +1,5 @@
+The deprecation phase for access checks is finished
+
+The `-transition=import` and `-transition=checkimports` switches no longer have an
+effect and are now deprecated. Symbols that are not visible in a particular
+scope will no longer be found by the compiler.
