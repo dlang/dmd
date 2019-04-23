@@ -3853,7 +3853,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                 return e;
             }
 
-            if (ident == Id.__monitor)
+            if (ident == Id.__monitor && mt.sym.hasMonitor())
             {
                 /* The handle to the monitor (call it a void*)
                  * *(cast(void**)e + 1)

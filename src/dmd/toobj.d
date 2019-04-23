@@ -1234,12 +1234,17 @@ private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit)
 
     auto dtb = DtBuilder(0);
 
-    if (Type.typeinfoclass)            // vtbl for TypeInfo_Class : ClassInfo
-        dtb.xoff(toVtblSymbol(Type.typeinfoclass), 0, TYnptr);
+    if (auto tic = Type.typeinfoclass)
+    {
+        dtb.xoff(toVtblSymbol(tic), 0, TYnptr); // vtbl for TypeInfo_Class : ClassInfo
+        if (tic.hasMonitor())
+            dtb.size(0);                        // monitor
+    }
     else
+    {
         dtb.size(0);                    // BUG: should be an assert()
-    if (Type.typeinfoclass.hasMonitor())
-        dtb.size(0);                    // monitor
+        dtb.size(0);                    // call hasMonitor()?
+    }
 
     // m_init[]
     assert(cd.structsize >= 8 || (cd.classKind == ClassKind.cpp && cd.structsize >= 4));
@@ -1464,12 +1469,17 @@ private void genClassInfoForInterface(InterfaceDeclaration id)
      */
     auto dtb = DtBuilder(0);
 
-    if (Type.typeinfoclass)
-        dtb.xoff(toVtblSymbol(Type.typeinfoclass), 0, TYnptr); // vtbl for ClassInfo
+    if (auto tic = Type.typeinfoclass)
+    {
+        dtb.xoff(toVtblSymbol(tic), 0, TYnptr); // vtbl for ClassInfo
+        if (tic.hasMonitor())
+            dtb.size(0);                        // monitor
+    }
     else
+    {
         dtb.size(0);                    // BUG: should be an assert()
-    if (Type.typeinfoclass.hasMonitor())
-        dtb.size(0);                        // monitor
+        dtb.size(0);                    // call hasMonitor()?
+    }
 
     // m_init[]
     dtb.size(0);                        // size

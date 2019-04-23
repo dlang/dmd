@@ -688,7 +688,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
      */
     final bool hasMonitor()
     {
-        return classKind == ClassKind.d || classKind == ClassKind.objc;
+        return classKind == ClassKind.d;
     }
 
     override bool isAnonymous()
