@@ -212,7 +212,7 @@ alias searchFunctionType(alias fun) = typeof(() {int x; return fun("", x);}());
 
 unittest
 {
-    static string[][] cases =
+    static immutable string[][] cases =
     [
         ["hello", "hell", "y"],
         ["hello", "hel", "y"],
