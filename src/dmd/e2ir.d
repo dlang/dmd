@@ -4126,6 +4126,16 @@ elem *toElem(Expression e, IRState *irs)
             tty = t.ty;
             //printf("fty = %d\n", fty);
 
+            static elem* Lret(CastExp ce, elem* e)
+            {
+                // Adjust for any type paints
+                Type t = ce.type.toBasetype();
+                e.Ety = totym(t);
+
+                elem_setLoc(e, ce.loc);
+                return e;
+            }
+
             if (tty == Tpointer && fty == Tarray)
             {
                 if (e.Eoper == OPvar)
@@ -4149,21 +4159,21 @@ elem *toElem(Expression e, IRState *irs)
                         e = el_una(OP64_32, totym(t), e);
                     }
                 }
-                goto Lret;
+                return Lret(ce, e);
             }
 
             if (tty == Tpointer && fty == Tsarray)
             {
                 // e1 . &e1
                 e = el_una(OPaddr, TYnptr, e);
-                goto Lret;
+                return Lret(ce, e);
             }
 
             // Convert from static array to dynamic array
             if (tty == Tarray && fty == Tsarray)
             {
                 e = sarray_toDarray(ce.loc, tfrom, t, e);
-                goto Lret;
+                return Lret(ce, e);
             }
 
             // Convert from dynamic array to dynamic array
@@ -4191,7 +4201,7 @@ elem *toElem(Expression e, IRState *irs)
                         assert(false, "This case should have been rewritten to `__ArrayCast` in the semantic phase");
                     }
                 }
-                goto Lret;
+                return Lret(ce, e);
             }
 
             // Casting between class/interface may require a runtime check
@@ -4243,7 +4253,7 @@ elem *toElem(Expression e, IRState *irs)
                         /* Casting from a C++ interface to a C++ interface
                          * is always a 'paint' operation
                          */
-                        goto Lret;                  // no-op
+                        return Lret(ce, e);                  // no-op
                     }
 
                     /* Casting from a C++ interface to a class
@@ -4255,7 +4265,7 @@ elem *toElem(Expression e, IRState *irs)
                      * can be derived from the other.
                      */
                     e = el_bin(OPcomma, TYnptr, e, el_long(TYnptr, 0));
-                    goto Lret;
+                    return Lret(ce, e);
                 }
                 else
                 {
@@ -4272,19 +4282,19 @@ elem *toElem(Expression e, IRState *irs)
                     elem *ep = el_param(el_ptr(toSymbol(cdto)), e);
                     e = el_bin(OPcall, TYnptr, el_var(getRtlsym(rtl)), ep);
                 }
-                goto Lret;
+                return Lret(ce, e);
             }
 
             if (fty == Tvector && tty == Tsarray)
             {
                 if (tfrom.size() == t.size())
-                    goto Lret;
+                    return Lret(ce, e);
             }
 
             ftym = tybasic(e.Ety);
             ttym = tybasic(totym(t));
             if (ftym == ttym)
-                goto Lret;
+                return Lret(ce, e);
 
             /* Reduce combinatorial explosion by rewriting the 'to' and 'from' types to a
              * generic equivalent (as far as casting goes)
@@ -4306,7 +4316,7 @@ elem *toElem(Expression e, IRState *irs)
                 {
                     // Construct e?true:false
                     e = el_una(OPbool, ttym, e);
-                    goto Lret;
+                    return Lret(ce, e);
                 }
 
                 default:
@@ -4792,13 +4802,9 @@ elem *toElem(Expression e, IRState *irs)
                     e = el_una(eop, ttym, e);
                     break;
             }
-        Lret:
-            // Adjust for any type paints
-            t = ce.type.toBasetype();
-            e.Ety = totym(t);
 
-            elem_setLoc(e, ce.loc);
-            return e;
+            return Lret(ce, e);
+
         }
 
         override void visit(ArrayLengthExp ale)
