@@ -101,7 +101,7 @@ public:
  * For this-parameter:
  *  template Foo(this ident)
  */
-class TemplateParameter : public RootObject
+class TemplateParameter : public ASTNode
 {
 public:
     Loc loc;
@@ -138,7 +138,7 @@ public:
     /* Create dummy argument based on parameter.
      */
     virtual void *dummyArg() = 0;
-    virtual void accept(Visitor *v) { v->visit(this); }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 /* Syntax:

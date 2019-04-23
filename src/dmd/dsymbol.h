@@ -162,7 +162,7 @@ public:
     static Dsymbol *create(Identifier *);
     const char *toChars();
     virtual const char *toPrettyCharsHelper(); // helper to print fully qualified (template) arguments
-    Loc& getLoc();
+    Loc getLoc();
     const char *locToChars();
     bool equals(RootObject *o);
     virtual bool isAnonymous();
