@@ -621,6 +621,8 @@ else version (OpenBSD)
     }
 
     ///
+    alias __sFILE _iobuf;
+    ///
     alias shared(__sFILE) FILE;
 }
 else version (DragonFlyBSD)
@@ -994,14 +996,16 @@ else version (OpenBSD)
         _IONBF = 2,
     }
 
-    private extern shared FILE[] __sF;
-
+    private extern __gshared FILE[3] __sF;
+    @property auto __stdin()() { return &__sF[0]; }
+    @property auto __stdout()() { return &__sF[1]; }
+    @property auto __stderr()() { return &__sF[2]; }
     ///
-    shared stdin  = &__sF[0];
+    alias __stdin stdin;
     ///
-    shared stdout = &__sF[1];
+    alias __stdout stdout;
     ///
-    shared stderr = &__sF[2];
+    alias __stderr stderr;
 }
 else version (DragonFlyBSD)
 {
@@ -1486,17 +1490,17 @@ else version (OpenBSD)
     @trusted private
     {
         ///
-        pure void clearerr(FILE*);
-        alias __clearerr = clearerr;
+        pragma(mangle, "clearerr")
+        pure void __clearerr(FILE*);
         ///
-        pure int  feof(FILE*);
-        alias __feof = feof;
+        pragma(mangle, "feof")
+        pure int __feof(FILE*);
         ///
-        pure int  ferror(FILE*);
-        alias __ferror = ferror;
+        pragma(mangle, "ferror")
+        pure int __ferror(FILE*);
         ///
-        int  fileno(FILE*);
-        alias __fileno = fileno;
+        pragma(mangle, "fileno")
+        int __fileno(FILE*);
     }
 
     enum __SLBF = 0x0001;
@@ -1516,9 +1520,9 @@ else version (OpenBSD)
     enum __SALC = 0x4000;
     enum __SIGN = 0x8000;
 
-    extern int __isthreaded;
+    extern immutable __gshared int __isthreaded;
 
-    extern (D)
+    extern (D) @trusted
     {
         void __sclearerr()(FILE* p)
         {
@@ -1540,17 +1544,17 @@ else version (OpenBSD)
             return p._file;
         }
 
-        int clearerr()(FILE* file)
+        pure void clearerr()(FILE* file)
         {
-            return !__isthreaded ? __sclearerr(file) : __clearerr(file);
+            !__isthreaded ? __sclearerr(file) : __clearerr(file);
         }
 
-        int feof()(FILE* file)
+        pure int feof()(FILE* file)
         {
             return !__isthreaded ? __sfeof(file) : __feof(file);
         }
 
-        int ferror()(FILE* file)
+        pure int ferror()(FILE* file)
         {
             return !__isthreaded ? __sferror(file) : __ferror(file);
         }
