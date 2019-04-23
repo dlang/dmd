@@ -211,378 +211,383 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb)
 
 extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
 {
-    extern (C++) class ExpToDt : Visitor
+    void visitExpression(Expression e)
     {
-        DtBuilder* dtb;
-
-        this(ref DtBuilder dtb)
+        version (none)
         {
-            this.dtb = &dtb;
+            printf("Expression.toDt() %d\n", e.op);
         }
+        e.error("non-constant expression `%s`", e.toChars());
+        dtb.nzeros(1);
+    }
 
-        alias visit = Visitor.visit;
-
-        override void visit(Expression e)
+    void visitCast(CastExp e)
+    {
+        version (none)
         {
-            version (none)
-            {
-                printf("Expression.toDt() %d\n", e.op);
-            }
-            e.error("non-constant expression `%s`", e.toChars());
-            dtb.nzeros(1);
+            printf("CastExp.toDt() %d from %s to %s\n", e.op, e.e1.type.toChars(), e.type.toChars());
         }
-
-        override void visit(CastExp e)
+        if (e.e1.type.ty == Tclass && e.type.ty == Tclass)
         {
-            version (none)
+            if ((cast(TypeClass)e.type).sym.isInterfaceDeclaration()) // casting from class to interface
             {
-                printf("CastExp.toDt() %d from %s to %s\n", e.op, e.e1.type.toChars(), e.type.toChars());
-            }
-            if (e.e1.type.ty == Tclass && e.type.ty == Tclass)
-            {
-                if ((cast(TypeClass)e.type).sym.isInterfaceDeclaration()) // casting from class to interface
-                {
-                    assert(e.e1.op == TOK.classReference);
-                    ClassDeclaration from = (cast(ClassReferenceExp)e.e1).originalClass();
-                    InterfaceDeclaration to = (cast(TypeClass)e.type).sym.isInterfaceDeclaration();
-                    int off = 0;
-                    int isbase = to.isBaseOf(from, &off);
-                    assert(isbase);
-                    ClassReferenceExp_toDt(cast(ClassReferenceExp)e.e1, *dtb, off);
-                }
-                else //casting from class to class
-                {
-                    Expression_toDt(e.e1, *dtb);
-                }
-                return;
-            }
-            visit(cast(UnaExp)e);
-        }
-
-        override void visit(AddrExp e)
-        {
-            version (none)
-            {
-                printf("AddrExp.toDt() %d\n", e.op);
-            }
-            if (e.e1.op == TOK.structLiteral)
-            {
-                StructLiteralExp sl = cast(StructLiteralExp)e.e1;
-                Symbol* s = toSymbol(sl);
-                dtb.xoff(s, 0);
-                if (sl.type.isMutable())
-                    write_pointers(sl.type, s, 0);
-                return;
-            }
-            visit(cast(UnaExp)e);
-        }
-
-        override void visit(IntegerExp e)
-        {
-            //printf("IntegerExp.toDt() %d\n", e.op);
-            uint sz = cast(uint)e.type.size();
-            dinteger_t value = e.getInteger();
-            if (value == 0)
-                dtb.nzeros(sz);
-            else
-                dtb.nbytes(sz, cast(char*)&value);
-        }
-
-        override void visit(RealExp e)
-        {
-            //printf("RealExp.toDt(%Lg)\n", e.value);
-            switch (e.type.toBasetype().ty)
-            {
-                case Tfloat32:
-                case Timaginary32:
-                {
-                    auto fvalue = cast(float)e.value;
-                    dtb.nbytes(4, cast(char*)&fvalue);
-                    break;
-                }
-
-                case Tfloat64:
-                case Timaginary64:
-                {
-                    auto dvalue = cast(double)e.value;
-                    dtb.nbytes(8, cast(char*)&dvalue);
-                    break;
-                }
-
-                case Tfloat80:
-                case Timaginary80:
-                {
-                    auto evalue = e.value;
-                    dtb.nbytes(target.realsize - target.realpad, cast(char*)&evalue);
-                    dtb.nzeros(target.realpad);
-                    break;
-                }
-
-                default:
-                    printf("%s, e.type=%s\n", e.toChars(), e.type.toChars());
-                    assert(0);
-            }
-        }
-
-        override void visit(ComplexExp e)
-        {
-            //printf("ComplexExp.toDt() '%s'\n", e.toChars());
-            switch (e.type.toBasetype().ty)
-            {
-                case Tcomplex32:
-                {
-                    auto fvalue = cast(float)creall(e.value);
-                    dtb.nbytes(4, cast(char*)&fvalue);
-                    fvalue = cast(float)cimagl(e.value);
-                    dtb.nbytes(4, cast(char*)&fvalue);
-                    break;
-                }
-
-                case Tcomplex64:
-                {
-                    auto dvalue = cast(double)creall(e.value);
-                    dtb.nbytes(8, cast(char*)&dvalue);
-                    dvalue = cast(double)cimagl(e.value);
-                    dtb.nbytes(8, cast(char*)&dvalue);
-                    break;
-                }
-
-                case Tcomplex80:
-                {
-                    auto evalue = creall(e.value);
-                    dtb.nbytes(target.realsize - target.realpad, cast(char*)&evalue);
-                    dtb.nzeros(target.realpad);
-                    evalue = cimagl(e.value);
-                    dtb.nbytes(target.realsize - target.realpad, cast(char*)&evalue);
-                    dtb.nzeros(target.realpad);
-                    break;
-                }
-
-                default:
-                    assert(0);
-            }
-        }
-
-        override void visit(NullExp e)
-        {
-            assert(e.type);
-            dtb.nzeros(cast(uint)e.type.size());
-        }
-
-        override void visit(StringExp e)
-        {
-            //printf("StringExp.toDt() '%s', type = %s\n", e.toChars(), e.type.toChars());
-            Type t = e.type.toBasetype();
-
-            // BUG: should implement some form of static string pooling
-            int n = cast(int)e.numberOfCodeUnits();
-            char* p = e.toPtr();
-            if (!p)
-            {
-                p = cast(char*)mem.xmalloc(n * e.sz);
-                e.writeTo(p, false);
-            }
-
-            switch (t.ty)
-            {
-                case Tarray:
-                    dtb.size(n);
-                    goto case Tpointer;
-
-                case Tpointer:
-                    if (e.sz == 1)
-                    {
-                        import dmd.e2ir : toStringSymbol;
-                        import dmd.glue : totym;
-                        Symbol* s = toStringSymbol(p, n, e.sz);
-                        dtb.xoff(s, 0);
-                    }
-                    else
-                        dtb.abytes(0, n * e.sz, p, cast(uint)e.sz);
-                    break;
-
-                case Tsarray:
-                {
-                    TypeSArray tsa = cast(TypeSArray)t;
-
-                    dtb.nbytes(n * e.sz, p);
-                    if (tsa.dim)
-                    {
-                        dinteger_t dim = tsa.dim.toInteger();
-                        if (n < dim)
-                        {
-                            // Pad remainder with 0
-                            dtb.nzeros(cast(uint)((dim - n) * tsa.next.size()));
-                        }
-                    }
-                    break;
-                }
-
-                default:
-                    printf("StringExp.toDt(type = %s)\n", e.type.toChars());
-                    assert(0);
-            }
-            if (p != e.toPtr())
-                mem.xfree(p);
-        }
-
-        override void visit(ArrayLiteralExp e)
-        {
-            //printf("ArrayLiteralExp.toDt() '%s', type = %s\n", e.toChars(), e.type.toChars());
-
-            auto dtbarray = DtBuilder(0);
-            for (size_t i = 0; i < e.elements.dim; i++)
-            {
-                Expression_toDt(e.getElement(i), dtbarray);
-            }
-
-            Type t = e.type.toBasetype();
-            switch (t.ty)
-            {
-                case Tsarray:
-                    dtb.cat(dtbarray);
-                    break;
-
-                case Tpointer:
-                case Tarray:
-                {
-                    if (t.ty == Tarray)
-                        dtb.size(e.elements.dim);
-                    dt_t* d = dtbarray.finish();
-                    if (d)
-                        dtb.dtoff(d, 0);
-                    else
-                        dtb.size(0);
-
-                    break;
-                }
-
-                default:
-                    assert(0);
-            }
-        }
-
-        override void visit(StructLiteralExp sle)
-        {
-            //printf("StructLiteralExp.toDt() %s, ctfe = %d\n", sle.toChars(), sle.ownedByCtfe);
-            assert(sle.sd.fields.dim - sle.sd.isNested() <= sle.elements.dim);
-            membersToDt(sle.sd, *dtb, sle.elements, 0, null);
-        }
-
-        override void visit(SymOffExp e)
-        {
-            //printf("SymOffExp.toDt('%s')\n", e.var.toChars());
-            assert(e.var);
-            if (!(e.var.isDataseg() || e.var.isCodeseg()) ||
-                e.var.needThis() ||
-                e.var.isThreadlocal())
-            {
-                version (none)
-                {
-                    printf("SymOffExp.toDt()\n");
-                }
-                e.error("non-constant expression `%s`", e.toChars());
-                return;
-            }
-            dtb.xoff(toSymbol(e.var), cast(uint)e.offset);
-        }
-
-        override void visit(VarExp e)
-        {
-            //printf("VarExp.toDt() %d\n", e.op);
-
-            VarDeclaration v = e.var.isVarDeclaration();
-            if (v && (v.isConst() || v.isImmutable()) &&
-                e.type.toBasetype().ty != Tsarray && v._init)
-            {
-                if (v.inuse)
-                {
-                    e.error("recursive reference `%s`", e.toChars());
-                    return;
-                }
-                v.inuse++;
-                Initializer_toDt(v._init, *dtb);
-                v.inuse--;
-                return;
-            }
-            SymbolDeclaration sd = e.var.isSymbolDeclaration();
-            if (sd && sd.dsym)
-            {
-                StructDeclaration_toDt(sd.dsym, *dtb);
-                return;
-            }
-            version (none)
-            {
-                printf("VarExp.toDt(), kind = %s\n", e.var.kind());
-            }
-            e.error("non-constant expression `%s`", e.toChars());
-            dtb.nzeros(1);
-        }
-
-        override void visit(FuncExp e)
-        {
-            //printf("FuncExp.toDt() %d\n", e.op);
-            if (e.fd.tok == TOK.reserved && e.type.ty == Tpointer)
-            {
-                // change to non-nested
-                e.fd.tok = TOK.function_;
-                e.fd.vthis = null;
-            }
-            Symbol *s = toSymbol(e.fd);
-            toObjFile(e.fd, false);
-            if (e.fd.tok == TOK.delegate_)
-                dtb.size(0);
-            dtb.xoff(s, 0);
-        }
-
-        override void visit(VectorExp e)
-        {
-            //printf("VectorExp.toDt() %s\n", e.toChars());
-            for (size_t i = 0; i < e.dim; i++)
-            {
-                Expression elem;
-                if (e.e1.op == TOK.arrayLiteral)
-                {
-                    ArrayLiteralExp ale = cast(ArrayLiteralExp)e.e1;
-                    elem = ale.getElement(i);
-                }
-                else
-                    elem = e.e1;
-                Expression_toDt(elem, *dtb);
-            }
-        }
-
-        override void visit(ClassReferenceExp e)
-        {
-            InterfaceDeclaration to = (cast(TypeClass)e.type).sym.isInterfaceDeclaration();
-
-            if (to) //Static typeof this literal is an interface. We must add offset to symbol
-            {
-                ClassDeclaration from = e.originalClass();
+                assert(e.e1.op == TOK.classReference);
+                ClassDeclaration from = (cast(ClassReferenceExp)e.e1).originalClass();
+                InterfaceDeclaration to = (cast(TypeClass)e.type).sym.isInterfaceDeclaration();
                 int off = 0;
                 int isbase = to.isBaseOf(from, &off);
                 assert(isbase);
-                ClassReferenceExp_toDt(e, *dtb, off);
+                ClassReferenceExp_toDt(cast(ClassReferenceExp)e.e1, dtb, off);
             }
-            else
-                ClassReferenceExp_toDt(e, *dtb, 0);
-        }
-
-        override void visit(TypeidExp e)
-        {
-            if (Type t = isType(e.obj))
+            else //casting from class to class
             {
-                genTypeInfo(e.loc, t, null);
-                Symbol *s = toSymbol(t.vtinfo);
-                dtb.xoff(s, 0);
-                return;
+                Expression_toDt(e.e1, dtb);
             }
-            assert(0);
+            return;
+        }
+        visitExpression(e);
+    }
+
+    void visitAddr(AddrExp e)
+    {
+        version (none)
+        {
+            printf("AddrExp.toDt() %d\n", e.op);
+        }
+        if (e.e1.op == TOK.structLiteral)
+        {
+            StructLiteralExp sl = cast(StructLiteralExp)e.e1;
+            Symbol* s = toSymbol(sl);
+            dtb.xoff(s, 0);
+            if (sl.type.isMutable())
+                write_pointers(sl.type, s, 0);
+            return;
+        }
+        visitExpression(e);
+    }
+
+    void visitInteger(IntegerExp e)
+    {
+        //printf("IntegerExp.toDt() %d\n", e.op);
+        uint sz = cast(uint)e.type.size();
+        dinteger_t value = e.getInteger();
+        if (value == 0)
+            dtb.nzeros(sz);
+        else
+            dtb.nbytes(sz, cast(char*)&value);
+    }
+
+    void visitReal(RealExp e)
+    {
+        //printf("RealExp.toDt(%Lg)\n", e.value);
+        switch (e.type.toBasetype().ty)
+        {
+            case Tfloat32:
+            case Timaginary32:
+            {
+                auto fvalue = cast(float)e.value;
+                dtb.nbytes(4, cast(char*)&fvalue);
+                break;
+            }
+
+            case Tfloat64:
+            case Timaginary64:
+            {
+                auto dvalue = cast(double)e.value;
+                dtb.nbytes(8, cast(char*)&dvalue);
+                break;
+            }
+
+            case Tfloat80:
+            case Timaginary80:
+            {
+                auto evalue = e.value;
+                dtb.nbytes(target.realsize - target.realpad, cast(char*)&evalue);
+                dtb.nzeros(target.realpad);
+                break;
+            }
+
+            default:
+                printf("%s, e.type=%s\n", e.toChars(), e.type.toChars());
+                assert(0);
         }
     }
 
-    scope v = new ExpToDt(dtb);
-    e.accept(v);
+    void visitComplex(ComplexExp e)
+    {
+        //printf("ComplexExp.toDt() '%s'\n", e.toChars());
+        switch (e.type.toBasetype().ty)
+        {
+            case Tcomplex32:
+            {
+                auto fvalue = cast(float)creall(e.value);
+                dtb.nbytes(4, cast(char*)&fvalue);
+                fvalue = cast(float)cimagl(e.value);
+                dtb.nbytes(4, cast(char*)&fvalue);
+                break;
+            }
+
+            case Tcomplex64:
+            {
+                auto dvalue = cast(double)creall(e.value);
+                dtb.nbytes(8, cast(char*)&dvalue);
+                dvalue = cast(double)cimagl(e.value);
+                dtb.nbytes(8, cast(char*)&dvalue);
+                break;
+            }
+
+            case Tcomplex80:
+            {
+                auto evalue = creall(e.value);
+                dtb.nbytes(target.realsize - target.realpad, cast(char*)&evalue);
+                dtb.nzeros(target.realpad);
+                evalue = cimagl(e.value);
+                dtb.nbytes(target.realsize - target.realpad, cast(char*)&evalue);
+                dtb.nzeros(target.realpad);
+                break;
+            }
+
+            default:
+                assert(0);
+        }
+    }
+
+    void visitNull(NullExp e)
+    {
+        assert(e.type);
+        dtb.nzeros(cast(uint)e.type.size());
+    }
+
+    void visitString(StringExp e)
+    {
+        //printf("StringExp.toDt() '%s', type = %s\n", e.toChars(), e.type.toChars());
+        Type t = e.type.toBasetype();
+
+        // BUG: should implement some form of static string pooling
+        int n = cast(int)e.numberOfCodeUnits();
+        char* p = e.toPtr();
+        if (!p)
+        {
+            p = cast(char*)mem.xmalloc(n * e.sz);
+            e.writeTo(p, false);
+        }
+
+        switch (t.ty)
+        {
+            case Tarray:
+                dtb.size(n);
+                goto case Tpointer;
+
+            case Tpointer:
+                if (e.sz == 1)
+                {
+                    import dmd.e2ir : toStringSymbol;
+                    import dmd.glue : totym;
+                    Symbol* s = toStringSymbol(p, n, e.sz);
+                    dtb.xoff(s, 0);
+                }
+                else
+                    dtb.abytes(0, n * e.sz, p, cast(uint)e.sz);
+                break;
+
+            case Tsarray:
+            {
+                TypeSArray tsa = cast(TypeSArray)t;
+
+                dtb.nbytes(n * e.sz, p);
+                if (tsa.dim)
+                {
+                    dinteger_t dim = tsa.dim.toInteger();
+                    if (n < dim)
+                    {
+                        // Pad remainder with 0
+                        dtb.nzeros(cast(uint)((dim - n) * tsa.next.size()));
+                    }
+                }
+                break;
+            }
+
+            default:
+                printf("StringExp.toDt(type = %s)\n", e.type.toChars());
+                assert(0);
+        }
+        if (p != e.toPtr())
+            mem.xfree(p);
+    }
+
+    void visitArrayLiteral(ArrayLiteralExp e)
+    {
+        //printf("ArrayLiteralExp.toDt() '%s', type = %s\n", e.toChars(), e.type.toChars());
+
+        auto dtbarray = DtBuilder(0);
+        for (size_t i = 0; i < e.elements.dim; i++)
+        {
+            Expression_toDt(e.getElement(i), dtbarray);
+        }
+
+        Type t = e.type.toBasetype();
+        switch (t.ty)
+        {
+            case Tsarray:
+                dtb.cat(dtbarray);
+                break;
+
+            case Tpointer:
+            case Tarray:
+            {
+                if (t.ty == Tarray)
+                    dtb.size(e.elements.dim);
+                dt_t* d = dtbarray.finish();
+                if (d)
+                    dtb.dtoff(d, 0);
+                else
+                    dtb.size(0);
+
+                break;
+            }
+
+            default:
+                assert(0);
+        }
+    }
+
+    void visitStructLiteral(StructLiteralExp sle)
+    {
+        //printf("StructLiteralExp.toDt() %s, ctfe = %d\n", sle.toChars(), sle.ownedByCtfe);
+        assert(sle.sd.fields.dim - sle.sd.isNested() <= sle.elements.dim);
+        membersToDt(sle.sd, dtb, sle.elements, 0, null);
+    }
+
+    void visitSymOff(SymOffExp e)
+    {
+        //printf("SymOffExp.toDt('%s')\n", e.var.toChars());
+        assert(e.var);
+        if (!(e.var.isDataseg() || e.var.isCodeseg()) ||
+            e.var.needThis() ||
+            e.var.isThreadlocal())
+        {
+            version (none)
+            {
+                printf("SymOffExp.toDt()\n");
+            }
+            e.error("non-constant expression `%s`", e.toChars());
+            return;
+        }
+        dtb.xoff(toSymbol(e.var), cast(uint)e.offset);
+    }
+
+    void visitVar(VarExp e)
+    {
+        //printf("VarExp.toDt() %d\n", e.op);
+
+        VarDeclaration v = e.var.isVarDeclaration();
+        if (v && (v.isConst() || v.isImmutable()) &&
+            e.type.toBasetype().ty != Tsarray && v._init)
+        {
+            if (v.inuse)
+            {
+                e.error("recursive reference `%s`", e.toChars());
+                return;
+            }
+            v.inuse++;
+            Initializer_toDt(v._init, dtb);
+            v.inuse--;
+            return;
+        }
+        SymbolDeclaration sd = e.var.isSymbolDeclaration();
+        if (sd && sd.dsym)
+        {
+            StructDeclaration_toDt(sd.dsym, dtb);
+            return;
+        }
+        version (none)
+        {
+            printf("VarExp.toDt(), kind = %s\n", e.var.kind());
+        }
+        e.error("non-constant expression `%s`", e.toChars());
+        dtb.nzeros(1);
+    }
+
+    void visitFunc(FuncExp e)
+    {
+        //printf("FuncExp.toDt() %d\n", e.op);
+        if (e.fd.tok == TOK.reserved && e.type.ty == Tpointer)
+        {
+            // change to non-nested
+            e.fd.tok = TOK.function_;
+            e.fd.vthis = null;
+        }
+        Symbol *s = toSymbol(e.fd);
+        toObjFile(e.fd, false);
+        if (e.fd.tok == TOK.delegate_)
+            dtb.size(0);
+        dtb.xoff(s, 0);
+    }
+
+    void visitVector(VectorExp e)
+    {
+        //printf("VectorExp.toDt() %s\n", e.toChars());
+        for (size_t i = 0; i < e.dim; i++)
+        {
+            Expression elem;
+            if (e.e1.op == TOK.arrayLiteral)
+            {
+                ArrayLiteralExp ale = cast(ArrayLiteralExp)e.e1;
+                elem = ale.getElement(i);
+            }
+            else
+                elem = e.e1;
+            Expression_toDt(elem, dtb);
+        }
+    }
+
+    void visitClassReference(ClassReferenceExp e)
+    {
+        InterfaceDeclaration to = (cast(TypeClass)e.type).sym.isInterfaceDeclaration();
+
+        if (to) //Static typeof this literal is an interface. We must add offset to symbol
+        {
+            ClassDeclaration from = e.originalClass();
+            int off = 0;
+            int isbase = to.isBaseOf(from, &off);
+            assert(isbase);
+            ClassReferenceExp_toDt(e, dtb, off);
+        }
+        else
+            ClassReferenceExp_toDt(e, dtb, 0);
+    }
+
+    void visitTypeid(TypeidExp e)
+    {
+        if (Type t = isType(e.obj))
+        {
+            genTypeInfo(e.loc, t, null);
+            Symbol *s = toSymbol(t.vtinfo);
+            dtb.xoff(s, 0);
+            return;
+        }
+        assert(0);
+    }
+
+    switch (e.op)
+    {
+        default:                 return visitExpression(e);
+        case TOK.cast_:          return visitCast          (e.isCastExp());
+        case TOK.address:        return visitAddr          (e.isAddrExp());
+        case TOK.int64:          return visitInteger       (e.isIntegerExp());
+        case TOK.float64:        return visitReal          (e.isRealExp());
+        case TOK.complex80:      return visitComplex       (e.isComplexExp());
+        case TOK.null_:          return visitNull          (e.isNullExp());
+        case TOK.string_:        return visitString        (e.isStringExp());
+        case TOK.arrayLiteral:   return visitArrayLiteral  (e.isArrayLiteralExp());
+        case TOK.structLiteral:  return visitStructLiteral (e.isStructLiteralExp());
+        case TOK.symbolOffset:   return visitSymOff        (e.isSymOffExp());
+        case TOK.variable:       return visitVar           (e.isVarExp());
+        case TOK.function_:      return visitFunc          (e.isFuncExp());
+        case TOK.vector:         return visitVector        (e.isVectorExp());
+        case TOK.classReference: return visitClassReference(cast(ClassReferenceExp)e);
+        case TOK.typeid_:        return visitTypeid        (e.isTypeidExp());
+    }
 }
 
 /* ================================================================= */
