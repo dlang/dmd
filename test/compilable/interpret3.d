@@ -7779,3 +7779,30 @@ char[] mangle19447(char[] dst)
 }
 
 static char[] x19447 = mangle19447(null);
+
+/***/
+enum KindEnum
+{
+    integer,
+    arrayOf
+}
+ 
+struct FullKind
+{
+    KindEnum[] contents;
+
+    this(KindEnum ) { opAssign; }
+
+    this(KindEnum , FullKind contentKind)
+    {
+         contents = contentKind.contents;
+    }
+
+    void opAssign()
+    {
+        contents = [];
+    }
+}
+
+enum fk = FullKind(KindEnum.integer);
+enum fk2 = FullKind(KindEnum.arrayOf, fk);
