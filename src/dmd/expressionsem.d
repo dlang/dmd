@@ -882,7 +882,7 @@ Lagain:
     if (auto v = s.isVarDeclaration())
     {
         //printf("Identifier '%s' is a variable, type '%s'\n", s.toChars(), v.type.toChars());
-        if (sc.intypeof == 1)
+        if (sc.intypeof == 1 && !v.inuse)
             v.dsymbolSemantic(sc);
         if (!v.type ||                  // during variable type inference
             !v.type.deco && v.inuse)    // during variable type semantic
