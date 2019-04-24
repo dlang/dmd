@@ -772,7 +772,7 @@ extern (C++) class Dsymbol : ASTNode
         /***************************************************
          * Search for symbol with correct spelling.
          */
-        extern (D) void* symbol_search_fp(const(char)[] seed, ref int cost)
+        extern (D) Dsymbol symbol_search_fp(const(char)[] seed, ref int cost)
         {
             /* If not in the lexer's string table, it certainly isn't in the symbol table.
              * Doing this first is a lot faster.
@@ -785,12 +785,12 @@ extern (C++) class Dsymbol : ASTNode
             cost = 0;
             Dsymbol s = this;
             Module.clearCache();
-            return cast(void*)s.search(Loc.initial, id, IgnoreErrors);
+            return s.search(Loc.initial, id, IgnoreErrors);
         }
 
         if (global.gag)
             return null; // don't do it for speculative compiles; too time consuming
-        return cast(Dsymbol)speller(ident.toChars(), &symbol_search_fp);
+        return speller!symbol_search_fp(ident.toChars());
     }
 
     /***************************************

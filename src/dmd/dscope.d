@@ -571,7 +571,7 @@ struct Scope
          * Given the failed search attempt, try to find
          * one with a close spelling.
          */
-        extern (D) void* scope_search_fp(const(char)[] seed, ref int cost)
+        extern (D) Dsymbol scope_search_fp(const(char)[] seed, ref int cost)
         {
             //printf("scope_search_fp('%s')\n", seed);
             /* If not in the lexer's string table, it certainly isn't in the symbol table.
@@ -598,10 +598,10 @@ struct Scope
                         return null;
                 }
             }
-            return cast(void*)s;
+            return s;
         }
 
-        return cast(Dsymbol)speller(ident.toChars(), &scope_search_fp);
+        return speller!scope_search_fp(ident.toChars());
     }
 
     /************************************
