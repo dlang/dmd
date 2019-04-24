@@ -4215,9 +4215,22 @@ elem *toElem(Expression e, IRState *irs)
                 return e;
             }
 
-            static elem* Lpaint(CastExp ce, elem* e, tym_t ttym){
-              e.Ety = ttym;
-              return Lret(ce, e);
+            static elem* Lpaint(CastExp ce, elem* e, tym_t ttym)
+            {
+                e.Ety = ttym;
+                return Lret(ce, e);
+            }
+
+            static elem* Lzero(CastExp ce, elem* e, tym_t ttym)
+            {
+                e = el_bin(OPcomma, ttym, e, el_long(ttym, 0));
+                return Lret(ce, e);
+            }
+
+            static elem* Leop(CastExp ce, elem* e, OPER eop, tym_t ttym)
+            {
+                e = el_una(eop, ttym, e);
+                return Lret(ce, e);
             }
 
             if (tty == Tpointer && fty == Tarray)
@@ -4412,7 +4425,7 @@ elem *toElem(Expression e, IRState *irs)
                 case Tnull:
                 {
                     // typeof(null) is same with void* in binary level.
-                    goto Lzero;
+                    return Lzero(ce, e, ttym);
                 }
                 case Tpointer:  fty = irs.params.is64bit ? Tuns64 : Tuns32;  break;
                 case Tchar:     fty = Tuns8;    break;
@@ -4435,7 +4448,7 @@ elem *toElem(Expression e, IRState *irs)
                 case X(Tbool,Tint16):
                 case X(Tbool,Tuns16):
                 case X(Tbool,Tint32):
-                case X(Tbool,Tuns32):   eop = OPu8_16;  goto Leop;
+                case X(Tbool,Tuns32):   eop = OPu8_16;  return Leop(ce, e, eop, ttym);
                 case X(Tbool,Tint64):
                 case X(Tbool,Tuns64):
                 case X(Tbool,Tfloat32):
@@ -4449,7 +4462,7 @@ elem *toElem(Expression e, IRState *irs)
                                         goto Lagain;
                 case X(Tbool,Timaginary32):
                 case X(Tbool,Timaginary64):
-                case X(Tbool,Timaginary80): goto Lzero;
+                case X(Tbool,Timaginary80): return Lzero(ce, e, ttym);
 
                 /* ============================= */
 
@@ -4457,7 +4470,7 @@ elem *toElem(Expression e, IRState *irs)
                 case X(Tint8,Tint16):
                 case X(Tint8,Tuns16):
                 case X(Tint8,Tint32):
-                case X(Tint8,Tuns32):   eop = OPs8_16;  goto Leop;
+                case X(Tint8,Tuns32):   eop = OPs8_16;  return Leop(ce, e, eop, ttym);
                 case X(Tint8,Tint64):
                 case X(Tint8,Tuns64):
                 case X(Tint8,Tfloat32):
@@ -4471,7 +4484,7 @@ elem *toElem(Expression e, IRState *irs)
                                         goto Lagain;
                 case X(Tint8,Timaginary32):
                 case X(Tint8,Timaginary64):
-                case X(Tint8,Timaginary80): goto Lzero;
+                case X(Tint8,Timaginary80): return Lzero(ce, e, ttym);
 
                 /* ============================= */
 
@@ -4479,7 +4492,7 @@ elem *toElem(Expression e, IRState *irs)
                 case X(Tuns8,Tint16):
                 case X(Tuns8,Tuns16):
                 case X(Tuns8,Tint32):
-                case X(Tuns8,Tuns32):   eop = OPu8_16;  goto Leop;
+                case X(Tuns8,Tuns32):   eop = OPu8_16;  return Leop(ce, e, eop, ttym);
                 case X(Tuns8,Tint64):
                 case X(Tuns8,Tuns64):
                 case X(Tuns8,Tfloat32):
@@ -4493,15 +4506,15 @@ elem *toElem(Expression e, IRState *irs)
                                         goto Lagain;
                 case X(Tuns8,Timaginary32):
                 case X(Tuns8,Timaginary64):
-                case X(Tuns8,Timaginary80): goto Lzero;
+                case X(Tuns8,Timaginary80): return Lzero(ce, e, ttym);
 
                 /* ============================= */
 
                 case X(Tint16,Tint8):
-                case X(Tint16,Tuns8):   eop = OP16_8;   goto Leop;
+                case X(Tint16,Tuns8):   eop = OP16_8;   return Leop(ce, e, eop, ttym);
                 case X(Tint16,Tuns16):  return Lpaint(ce, e, ttym);
                 case X(Tint16,Tint32):
-                case X(Tint16,Tuns32):  eop = OPs16_32; goto Leop;
+                case X(Tint16,Tuns32):  eop = OPs16_32; return Leop(ce, e, eop, ttym);
                 case X(Tint16,Tint64):
                 case X(Tint16,Tuns64):  e = el_una(OPs16_32, TYint, e);
                                         fty = Tint32;
@@ -4517,15 +4530,15 @@ elem *toElem(Expression e, IRState *irs)
                                         goto Lagain;
                 case X(Tint16,Timaginary32):
                 case X(Tint16,Timaginary64):
-                case X(Tint16,Timaginary80): goto Lzero;
+                case X(Tint16,Timaginary80): return Lzero(ce, e, ttym);
 
                 /* ============================= */
 
                 case X(Tuns16,Tint8):
-                case X(Tuns16,Tuns8):   eop = OP16_8;   goto Leop;
+                case X(Tuns16,Tuns8):   eop = OP16_8;   return Leop(ce, e, eop, ttym);
                 case X(Tuns16,Tint16):  return Lpaint(ce, e, ttym);
                 case X(Tuns16,Tint32):
-                case X(Tuns16,Tuns32):  eop = OPu16_32; goto Leop;
+                case X(Tuns16,Tuns32):  eop = OPu16_32; return Leop(ce, e, eop, ttym);
                 case X(Tuns16,Tint64):
                 case X(Tuns16,Tuns64):
                 case X(Tuns16,Tfloat64):
@@ -4539,7 +4552,7 @@ elem *toElem(Expression e, IRState *irs)
                                         goto Lagain;
                 case X(Tuns16,Timaginary32):
                 case X(Tuns16,Timaginary64):
-                case X(Tuns16,Timaginary80): goto Lzero;
+                case X(Tuns16,Timaginary80): return Lzero(ce, e, ttym);
 
                 /* ============================= */
 
@@ -4548,10 +4561,10 @@ elem *toElem(Expression e, IRState *irs)
                                         fty = Tint16;
                                         goto Lagain;
                 case X(Tint32,Tint16):
-                case X(Tint32,Tuns16):  eop = OP32_16;  goto Leop;
+                case X(Tint32,Tuns16):  eop = OP32_16;  return Leop(ce, e, eop, ttym);
                 case X(Tint32,Tuns32):  return Lpaint(ce, e, ttym);
                 case X(Tint32,Tint64):
-                case X(Tint32,Tuns64):  eop = OPs32_64; goto Leop;
+                case X(Tint32,Tuns64):  eop = OPs32_64; return Leop(ce, e, eop, ttym);
                 case X(Tint32,Tfloat32):
                 case X(Tint32,Tfloat64):
                 case X(Tint32,Tfloat80):
@@ -4563,7 +4576,7 @@ elem *toElem(Expression e, IRState *irs)
                                         goto Lagain;
                 case X(Tint32,Timaginary32):
                 case X(Tint32,Timaginary64):
-                case X(Tint32,Timaginary80): goto Lzero;
+                case X(Tint32,Timaginary80): return Lzero(ce, e, ttym);
 
                 /* ============================= */
 
@@ -4572,10 +4585,10 @@ elem *toElem(Expression e, IRState *irs)
                                         fty = Tuns16;
                                         goto Lagain;
                 case X(Tuns32,Tint16):
-                case X(Tuns32,Tuns16):  eop = OP32_16;  goto Leop;
+                case X(Tuns32,Tuns16):  eop = OP32_16;  return Leop(ce, e, eop, ttym);
                 case X(Tuns32,Tint32):  return Lpaint(ce, e, ttym);
                 case X(Tuns32,Tint64):
-                case X(Tuns32,Tuns64):  eop = OPu32_64; goto Leop;
+                case X(Tuns32,Tuns64):  eop = OPu32_64; return Leop(ce, e, eop, ttym);
                 case X(Tuns32,Tfloat32):
                 case X(Tuns32,Tfloat64):
                 case X(Tuns32,Tfloat80):
@@ -4587,7 +4600,7 @@ elem *toElem(Expression e, IRState *irs)
                                         goto Lagain;
                 case X(Tuns32,Timaginary32):
                 case X(Tuns32,Timaginary64):
-                case X(Tuns32,Timaginary80): goto Lzero;
+                case X(Tuns32,Timaginary80): return Lzero(ce, e, ttym);
 
                 /* ============================= */
 
@@ -4598,7 +4611,7 @@ elem *toElem(Expression e, IRState *irs)
                                         fty = Tint32;
                                         goto Lagain;
                 case X(Tint64,Tint32):
-                case X(Tint64,Tuns32):  eop = OP64_32; goto Leop;
+                case X(Tint64,Tuns32):  eop = OP64_32; return Leop(ce, e, eop, ttym);
                 case X(Tint64,Tuns64):  return Lpaint(ce, e, ttym);
                 case X(Tint64,Tfloat32):
                 case X(Tint64,Tfloat64):
@@ -4611,7 +4624,7 @@ elem *toElem(Expression e, IRState *irs)
                                         goto Lagain;
                 case X(Tint64,Timaginary32):
                 case X(Tint64,Timaginary64):
-                case X(Tint64,Timaginary80): goto Lzero;
+                case X(Tint64,Timaginary80): return Lzero(ce, e, ttym);
 
                 /* ============================= */
 
@@ -4622,7 +4635,7 @@ elem *toElem(Expression e, IRState *irs)
                                         fty = Tint32;
                                         goto Lagain;
                 case X(Tuns64,Tint32):
-                case X(Tuns64,Tuns32):  eop = OP64_32;  goto Leop;
+                case X(Tuns64,Tuns32):  eop = OP64_32;  return Leop(ce, e, eop, ttym);
                 case X(Tuns64,Tint64):  return Lpaint(ce, e, ttym);
                 case X(Tuns64,Tfloat32):
                 case X(Tuns64,Tfloat64):
@@ -4635,7 +4648,7 @@ elem *toElem(Expression e, IRState *irs)
                                          goto Lagain;
                 case X(Tuns64,Timaginary32):
                 case X(Tuns64,Timaginary64):
-                case X(Tuns64,Timaginary80): goto Lzero;
+                case X(Tuns64,Timaginary80): return Lzero(ce, e, ttym);
 
                 /* ============================= */
 
@@ -4650,10 +4663,10 @@ elem *toElem(Expression e, IRState *irs)
                 case X(Tfloat32,Tfloat80): e = el_una(OPf_d, TYdouble, e);
                                            fty = Tfloat64;
                                            goto Lagain;
-                case X(Tfloat32,Tfloat64): eop = OPf_d; goto Leop;
+                case X(Tfloat32,Tfloat64): eop = OPf_d; return Leop(ce, e, eop, ttym);
                 case X(Tfloat32,Timaginary32):
                 case X(Tfloat32,Timaginary64):
-                case X(Tfloat32,Timaginary80): goto Lzero;
+                case X(Tfloat32,Timaginary80): return Lzero(ce, e, ttym);
                 case X(Tfloat32,Tcomplex32):
                 case X(Tfloat32,Tcomplex64):
                 case X(Tfloat32,Tcomplex80):
@@ -4667,17 +4680,17 @@ elem *toElem(Expression e, IRState *irs)
                 case X(Tfloat64,Tuns8):    e = el_una(OPd_s16, TYshort, e);
                                            fty = Tint16;
                                            goto Lagain;
-                case X(Tfloat64,Tint16):   eop = OPd_s16; goto Leop;
-                case X(Tfloat64,Tuns16):   eop = OPd_u16; goto Leop;
-                case X(Tfloat64,Tint32):   eop = OPd_s32; goto Leop;
-                case X(Tfloat64,Tuns32):   eop = OPd_u32; goto Leop;
-                case X(Tfloat64,Tint64):   eop = OPd_s64; goto Leop;
-                case X(Tfloat64,Tuns64):   eop = OPd_u64; goto Leop;
-                case X(Tfloat64,Tfloat32): eop = OPd_f;   goto Leop;
-                case X(Tfloat64,Tfloat80): eop = OPd_ld;  goto Leop;
+                case X(Tfloat64,Tint16):   eop = OPd_s16; return Leop(ce, e, eop, ttym);
+                case X(Tfloat64,Tuns16):   eop = OPd_u16; return Leop(ce, e, eop, ttym);
+                case X(Tfloat64,Tint32):   eop = OPd_s32; return Leop(ce, e, eop, ttym);
+                case X(Tfloat64,Tuns32):   eop = OPd_u32; return Leop(ce, e, eop, ttym);
+                case X(Tfloat64,Tint64):   eop = OPd_s64; return Leop(ce, e, eop, ttym);
+                case X(Tfloat64,Tuns64):   eop = OPd_u64; return Leop(ce, e, eop, ttym);
+                case X(Tfloat64,Tfloat32): eop = OPd_f;   return Leop(ce, e, eop, ttym);
+                case X(Tfloat64,Tfloat80): eop = OPd_ld;  return Leop(ce, e, eop, ttym);
                 case X(Tfloat64,Timaginary32):
                 case X(Tfloat64,Timaginary64):
-                case X(Tfloat64,Timaginary80):  goto Lzero;
+                case X(Tfloat64,Timaginary80):  return Lzero(ce, e, ttym);
                 case X(Tfloat64,Tcomplex32):
                 case X(Tfloat64,Tcomplex64):
                 case X(Tfloat64,Tcomplex80):
@@ -4698,11 +4711,11 @@ elem *toElem(Expression e, IRState *irs)
                                            fty = Tfloat64;
                                            goto Lagain;
                 case X(Tfloat80,Tuns64):
-                                           eop = OPld_u64; goto Leop;
-                case X(Tfloat80,Tfloat64): eop = OPld_d; goto Leop;
+                                           eop = OPld_u64; return Leop(ce, e, eop, ttym);
+                case X(Tfloat80,Tfloat64): eop = OPld_d; return Leop(ce, e, eop, ttym);
                 case X(Tfloat80,Timaginary32):
                 case X(Tfloat80,Timaginary64):
-                case X(Tfloat80,Timaginary80): goto Lzero;
+                case X(Tfloat80,Timaginary80): return Lzero(ce, e, ttym);
                 case X(Tfloat80,Tcomplex32):
                 case X(Tfloat80,Tcomplex64):
                 case X(Tfloat80,Tcomplex80):
@@ -4722,8 +4735,8 @@ elem *toElem(Expression e, IRState *irs)
                 case X(Timaginary32,Tuns64):
                 case X(Timaginary32,Tfloat32):
                 case X(Timaginary32,Tfloat64):
-                case X(Timaginary32,Tfloat80):  goto Lzero;
-                case X(Timaginary32,Timaginary64): eop = OPf_d; goto Leop;
+                case X(Timaginary32,Tfloat80):  return Lzero(ce, e, ttym);
+                case X(Timaginary32,Timaginary64): eop = OPf_d; return Leop(ce, e, eop, ttym);
                 case X(Timaginary32,Timaginary80):
                                            e = el_una(OPf_d, TYidouble, e);
                                            fty = Timaginary64;
@@ -4747,9 +4760,9 @@ elem *toElem(Expression e, IRState *irs)
                 case X(Timaginary64,Tuns64):
                 case X(Timaginary64,Tfloat32):
                 case X(Timaginary64,Tfloat64):
-                case X(Timaginary64,Tfloat80):  goto Lzero;
-                case X(Timaginary64,Timaginary32): eop = OPd_f;   goto Leop;
-                case X(Timaginary64,Timaginary80): eop = OPd_ld;  goto Leop;
+                case X(Timaginary64,Tfloat80):  return Lzero(ce, e, ttym);
+                case X(Timaginary64,Timaginary32): eop = OPd_f;   return Leop(ce, e, eop, ttym);
+                case X(Timaginary64,Timaginary80): eop = OPd_ld;  return Leop(ce, e, eop, ttym);
                 case X(Timaginary64,Tcomplex32):
                 case X(Timaginary64,Tcomplex64):
                 case X(Timaginary64,Tcomplex80):
@@ -4769,11 +4782,11 @@ elem *toElem(Expression e, IRState *irs)
                 case X(Timaginary80,Tuns64):
                 case X(Timaginary80,Tfloat32):
                 case X(Timaginary80,Tfloat64):
-                case X(Timaginary80,Tfloat80):  goto Lzero;
+                case X(Timaginary80,Tfloat80):  return Lzero(ce, e, ttym);
                 case X(Timaginary80,Timaginary32): e = el_una(OPld_d, TYidouble, e);
                                            fty = Timaginary64;
                                            goto Lagain;
-                case X(Timaginary80,Timaginary64): eop = OPld_d; goto Leop;
+                case X(Timaginary80,Timaginary64): eop = OPld_d; return Leop(ce, e, eop, ttym);
                 case X(Timaginary80,Tcomplex32):
                 case X(Timaginary80,Tcomplex64):
                 case X(Timaginary80,Tcomplex80):
@@ -4831,8 +4844,8 @@ elem *toElem(Expression e, IRState *irs)
                         e = el_una(OPc_i, TYidouble, e);
                         fty = Timaginary64;
                         goto Lagain;
-                case X(Tcomplex64,Tcomplex32):   eop = OPd_f;   goto Leop;
-                case X(Tcomplex64,Tcomplex80):   eop = OPd_ld;  goto Leop;
+                case X(Tcomplex64,Tcomplex32):   eop = OPd_f;   return Leop(ce, e, eop, ttym);
+                case X(Tcomplex64,Tcomplex80):   eop = OPd_ld;  return Leop(ce, e, eop, ttym);
 
                 /* ============================= */
 
@@ -4874,17 +4887,7 @@ elem *toElem(Expression e, IRState *irs)
                     e = el_long(TYint, 0);
                     return e;
 
-                Lzero:
-                    e = el_bin(OPcomma, ttym, e, el_long(ttym, 0));
-                    break;
-
-                Leop:
-                    e = el_una(eop, ttym, e);
-                    break;
             }
-
-            return Lret(ce, e);
-
         }
 
         override void visit(ArrayLengthExp ale)
