@@ -4608,29 +4608,6 @@ public:
         return ret;
     }
 
-    /** Negate a relational operator, eg >= becomes <
-     */
-    static TOK reverseRelation(TOK op)
-    {
-        switch (op)
-        {
-        case TOK.greaterOrEqual:
-            return TOK.lessThan;
-
-        case TOK.greaterThan:
-            return TOK.lessOrEqual;
-
-        case TOK.lessOrEqual:
-            return TOK.greaterThan;
-
-        case TOK.lessThan:
-            return TOK.greaterOrEqual;
-
-        default:
-            assert(0);
-        }
-    }
-
     /** If this is a four pointer relation, evaluate it, else return NULL.
      *
      *  This is an expression of the form (p1 > q1 && p2 < q2) or (p1 < q1 || p2 > q2)
@@ -4759,7 +4736,27 @@ public:
             else
                 break;
         }
-        const cmpop = nott ? reverseRelation(ex.op) : ex.op;
+
+        /** Negate relational operator, eg >= becomes <
+         * Params:
+         *      op = comparison operator to negate
+         * Returns:
+         *      negate operator
+         */
+        static TOK negateRelation(TOK op) pure
+        {
+            switch (op)
+            {
+                case TOK.greaterOrEqual:  op = TOK.lessThan;       break;
+                case TOK.greaterThan:     op = TOK.lessOrEqual;    break;
+                case TOK.lessOrEqual:     op = TOK.greaterThan;    break;
+                case TOK.lessThan:        op = TOK.greaterOrEqual; break;
+                default:                  assert(0);
+            }
+            return op;
+        }
+
+        const TOK cmpop = nott ? negateRelation(ex.op) : ex.op;
         const cmp = comparePointers(cmpop, agg1, ofs1, agg2, ofs2);
         // We already know this is a valid comparison.
         assert(cmp >= 0);

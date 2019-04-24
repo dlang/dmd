@@ -2215,6 +2215,12 @@ extern (C++) class ThisExp : Expression
         //printf("ThisExp::ThisExp() loc = %d\n", loc.linnum);
     }
 
+    this(const ref Loc loc, const TOK tok)
+    {
+        super(loc, tok, __traits(classInstanceSize, ThisExp));
+        //printf("ThisExp::ThisExp() loc = %d\n", loc.linnum);
+    }
+
     override final bool isBool(bool result)
     {
         return result;
@@ -2249,8 +2255,7 @@ extern (C++) final class SuperExp : ThisExp
 {
     extern (D) this(const ref Loc loc)
     {
-        super(loc);
-        op = TOK.super_;
+        super(loc, TOK.super_);
     }
 
     override void accept(Visitor v)
@@ -5722,6 +5727,11 @@ extern (C++) class AssignExp : BinExp
         super(loc, TOK.assign, __traits(classInstanceSize, AssignExp), e1, e2);
     }
 
+    this(const ref Loc loc, TOK tok, Expression e1, Expression e2)
+    {
+        super(loc, tok, __traits(classInstanceSize, AssignExp), e1, e2);
+    }
+
     override final bool isLvalue()
     {
         // Array-op 'x[] = y[]' should make an rvalue.
@@ -5769,8 +5779,7 @@ extern (C++) final class ConstructExp : AssignExp
 {
     extern (D) this(const ref Loc loc, Expression e1, Expression e2)
     {
-        super(loc, e1, e2);
-        op = TOK.construct;
+        super(loc, TOK.construct, e1, e2);
     }
 
     // Internal use only. If `v` is a reference variable, the assinment
@@ -5780,8 +5789,7 @@ extern (C++) final class ConstructExp : AssignExp
         auto ve = new VarExp(loc, v);
         assert(v.type && ve.type);
 
-        super(loc, ve, e2);
-        op = TOK.construct;
+        super(loc, TOK.construct, ve, e2);
 
         if (v.storage_class & (STC.ref_ | STC.out_))
             memset |= MemorySet.referenceInit;
@@ -5799,8 +5807,7 @@ extern (C++) final class BlitExp : AssignExp
 {
     extern (D) this(const ref Loc loc, Expression e1, Expression e2)
     {
-        super(loc, e1, e2);
-        op = TOK.blit;
+        super(loc, TOK.blit, e1, e2);
     }
 
     // Internal use only. If `v` is a reference variable, the assinment
@@ -5810,8 +5817,7 @@ extern (C++) final class BlitExp : AssignExp
         auto ve = new VarExp(loc, v);
         assert(v.type && ve.type);
 
-        super(loc, ve, e2);
-        op = TOK.blit;
+        super(loc, TOK.blit, ve, e2);
 
         if (v.storage_class & (STC.ref_ | STC.out_))
             memset |= MemorySet.referenceInit;

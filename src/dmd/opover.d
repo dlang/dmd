@@ -1040,23 +1040,7 @@ Expression op_overload(Expression e, Scope* sc)
                         }
                         // When reversing operands of comparison operators,
                         // need to reverse the sense of the op
-                        switch (e.op)
-                        {
-                        case TOK.lessThan:
-                            e.op = TOK.greaterThan;
-                            break;
-                        case TOK.greaterThan:
-                            e.op = TOK.lessThan;
-                            break;
-                        case TOK.lessOrEqual:
-                            e.op = TOK.greaterOrEqual;
-                            break;
-                        case TOK.greaterOrEqual:
-                            e.op = TOK.lessOrEqual;
-                            break;
-                        default:
-                            break;
-                        }
+                        e.op = reverseRelation(e.op);
                         return;
                     }
                 }
@@ -1652,23 +1636,7 @@ private Expression compare_overload(BinExp e, Scope* sc, Identifier id)
             result = build_overload(e.loc, sc, e.e2, e.e1, m.lastf ? m.lastf : s_r);
             // When reversing operands of comparison operators,
             // need to reverse the sense of the op
-            switch (e.op)
-            {
-            case TOK.lessThan:
-                e.op = TOK.greaterThan;
-                break;
-            case TOK.greaterThan:
-                e.op = TOK.lessThan;
-                break;
-            case TOK.lessOrEqual:
-                e.op = TOK.greaterOrEqual;
-                break;
-            case TOK.greaterOrEqual:
-                e.op = TOK.lessOrEqual;
-                break;
-            default:
-                break;
-            }
+            e.op = reverseRelation(e.op);
         }
         return result;
     }
@@ -2089,3 +2057,26 @@ private bool matchParamsToOpApply(TypeFunction tf, Parameters* parameters, bool 
     }
     return true;
 }
+
+/**
+ * Reverse relational operator, eg >= becomes <=
+ * Note this is not negation.
+ * Params:
+ *      op = comparison operator to negate
+ * Returns:
+ *      negate operator
+ */
+private TOK reverseRelation(TOK op) pure
+{
+    switch (op)
+    {
+        case TOK.greaterOrEqual:  op = TOK.lessOrEqual;    break;
+        case TOK.greaterThan:     op = TOK.lessThan;       break;
+        case TOK.lessOrEqual:     op = TOK.greaterOrEqual; break;
+        case TOK.lessThan:        op = TOK.greaterThan;    break;
+        default:                  break;
+    }
+    return op;
+}
+
+
