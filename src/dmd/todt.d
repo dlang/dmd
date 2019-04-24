@@ -211,7 +211,7 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb)
 
 extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
 {
-    void visitExpression(Expression e)
+    void nonConstExpError(Expression e)
     {
         version (none)
         {
@@ -227,25 +227,27 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
         {
             printf("CastExp.toDt() %d from %s to %s\n", e.op, e.e1.type.toChars(), e.type.toChars());
         }
-        if (e.e1.type.ty == Tclass && e.type.ty == Tclass)
+        if (e.e1.type.ty == Tclass)
         {
-            if ((cast(TypeClass)e.type).sym.isInterfaceDeclaration()) // casting from class to interface
+            if (auto toc = e.type.isTypeClass())
             {
-                assert(e.e1.op == TOK.classReference);
-                ClassDeclaration from = (cast(ClassReferenceExp)e.e1).originalClass();
-                InterfaceDeclaration to = (cast(TypeClass)e.type).sym.isInterfaceDeclaration();
-                int off = 0;
-                int isbase = to.isBaseOf(from, &off);
-                assert(isbase);
-                ClassReferenceExp_toDt(cast(ClassReferenceExp)e.e1, dtb, off);
+                if (auto toi = toc.sym.isInterfaceDeclaration()) // casting from class to interface
+                {
+                    auto cre1 = e.e1.isClassReferenceExp();
+                    ClassDeclaration from = cre1.originalClass();
+                    int off = 0;
+                    const isbase = toi.isBaseOf(from, &off);
+                    assert(isbase);
+                    ClassReferenceExp_toDt(cre1, dtb, off);
+                }
+                else //casting from class to class
+                {
+                    Expression_toDt(e.e1, dtb);
+                }
+                return;
             }
-            else //casting from class to class
-            {
-                Expression_toDt(e.e1, dtb);
-            }
-            return;
         }
-        visitExpression(e);
+        nonConstExpError(e);
     }
 
     void visitAddr(AddrExp e)
@@ -254,27 +256,25 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
         {
             printf("AddrExp.toDt() %d\n", e.op);
         }
-        if (e.e1.op == TOK.structLiteral)
+        if (auto sl = e.e1.isStructLiteralExp())
         {
-            StructLiteralExp sl = cast(StructLiteralExp)e.e1;
             Symbol* s = toSymbol(sl);
             dtb.xoff(s, 0);
             if (sl.type.isMutable())
                 write_pointers(sl.type, s, 0);
             return;
         }
-        visitExpression(e);
+        nonConstExpError(e);
     }
 
     void visitInteger(IntegerExp e)
     {
         //printf("IntegerExp.toDt() %d\n", e.op);
-        uint sz = cast(uint)e.type.size();
-        dinteger_t value = e.getInteger();
-        if (value == 0)
-            dtb.nzeros(sz);
-        else
+        const sz = cast(uint)e.type.size();
+        if (auto value = e.getInteger())
             dtb.nbytes(sz, cast(char*)&value);
+        else
+            dtb.nzeros(sz);
     }
 
     void visitReal(RealExp e)
@@ -364,7 +364,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
         Type t = e.type.toBasetype();
 
         // BUG: should implement some form of static string pooling
-        int n = cast(int)e.numberOfCodeUnits();
+        const n = cast(int)e.numberOfCodeUnits();
         char* p = e.toPtr();
         if (!p)
         {
@@ -392,7 +392,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
 
             case Tsarray:
             {
-                TypeSArray tsa = cast(TypeSArray)t;
+                auto tsa = t.isTypeSArray();
 
                 dtb.nbytes(n * e.sz, p);
                 if (tsa.dim)
@@ -420,7 +420,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
         //printf("ArrayLiteralExp.toDt() '%s', type = %s\n", e.toChars(), e.type.toChars());
 
         auto dtbarray = DtBuilder(0);
-        for (size_t i = 0; i < e.elements.dim; i++)
+        foreach (i; 0 .. e.elements.dim)
         {
             Expression_toDt(e.getElement(i), dtbarray);
         }
@@ -432,13 +432,13 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
                 dtb.cat(dtbarray);
                 break;
 
-            case Tpointer:
             case Tarray:
+                dtb.size(e.elements.dim);
+                goto case Tpointer;
+
+            case Tpointer:
             {
-                if (t.ty == Tarray)
-                    dtb.size(e.elements.dim);
-                dt_t* d = dtbarray.finish();
-                if (d)
+                if (auto d = dtbarray.finish())
                     dtb.dtoff(d, 0);
                 else
                     dtb.size(0);
@@ -466,12 +466,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
             e.var.needThis() ||
             e.var.isThreadlocal())
         {
-            version (none)
-            {
-                printf("SymOffExp.toDt()\n");
-            }
-            e.error("non-constant expression `%s`", e.toChars());
-            return;
+            return nonConstExpError(e);
         }
         dtb.xoff(toSymbol(e.var), cast(uint)e.offset);
     }
@@ -480,11 +475,10 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
     {
         //printf("VarExp.toDt() %d\n", e.op);
 
-        VarDeclaration v = e.var.isVarDeclaration();
-        if (v && (v.isConst() || v.isImmutable()) &&
-            e.type.toBasetype().ty != Tsarray && v._init)
+        if (auto v = e.var.isVarDeclaration())
         {
-            if (v.inuse)
+            if ((v.isConst() || v.isImmutable()) &&
+                e.type.toBasetype().ty != Tsarray && v._init)
             {
                 e.error("recursive reference `%s`", e.toChars());
                 return;
@@ -494,18 +488,15 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
             v.inuse--;
             return;
         }
-        SymbolDeclaration sd = e.var.isSymbolDeclaration();
-        if (sd && sd.dsym)
-        {
-            StructDeclaration_toDt(sd.dsym, dtb);
-            return;
-        }
-        version (none)
-        {
-            printf("VarExp.toDt(), kind = %s\n", e.var.kind());
-        }
-        e.error("non-constant expression `%s`", e.toChars());
-        dtb.nzeros(1);
+
+        if (auto sd = e.var.isSymbolDeclaration())
+            if (sd.dsym)
+            {
+                StructDeclaration_toDt(sd.dsym, dtb);
+                return;
+            }
+
+        return nonConstExpError(e);
     }
 
     void visitFunc(FuncExp e)
@@ -527,14 +518,11 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
     void visitVector(VectorExp e)
     {
         //printf("VectorExp.toDt() %s\n", e.toChars());
-        for (size_t i = 0; i < e.dim; i++)
+        foreach (i; 0 .. e.dim)
         {
             Expression elem;
-            if (e.e1.op == TOK.arrayLiteral)
-            {
-                ArrayLiteralExp ale = cast(ArrayLiteralExp)e.e1;
+            if (auto ale = e.e1.isArrayLiteralExp())
                 elem = ale.getElement(i);
-            }
             else
                 elem = e.e1;
             Expression_toDt(elem, dtb);
@@ -549,7 +537,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
         {
             ClassDeclaration from = e.originalClass();
             int off = 0;
-            int isbase = to.isBaseOf(from, &off);
+            const isbase = to.isBaseOf(from, &off);
             assert(isbase);
             ClassReferenceExp_toDt(e, dtb, off);
         }
@@ -571,7 +559,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
 
     switch (e.op)
     {
-        default:                 return visitExpression(e);
+        default:                 return nonConstExpError(e);
         case TOK.cast_:          return visitCast          (e.isCastExp());
         case TOK.address:        return visitAddr          (e.isAddrExp());
         case TOK.int64:          return visitInteger       (e.isIntegerExp());
@@ -585,7 +573,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
         case TOK.variable:       return visitVar           (e.isVarExp());
         case TOK.function_:      return visitFunc          (e.isFuncExp());
         case TOK.vector:         return visitVector        (e.isVectorExp());
-        case TOK.classReference: return visitClassReference(cast(ClassReferenceExp)e);
+        case TOK.classReference: return visitClassReference(e.isClassReferenceExp());
         case TOK.typeid_:        return visitTypeid        (e.isTypeidExp());
     }
 }
@@ -793,9 +781,8 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
         if (elements)
         {
             Expression e = (*elements)[firstFieldIndex + k];
-            Type tb = vd.type.toBasetype();
-            if (tb.ty == Tsarray)
-                toDtElem((cast(TypeSArray)tb), dtbx, e);
+            if (auto tsa = vd.type.toBasetype().isTypeSArray())
+                toDtElem(tsa, dtbx, e);
             else
                 Expression_toDt(e, dtbx);    // convert e to an initializer dt
         }
@@ -809,10 +796,10 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
 
                 assert(vd.semanticRun >= PASS.semantic2done);
 
-                ExpInitializer ei = init.isExpInitializer();
-                Type tb = vd.type.toBasetype();
-                if (ei && tb.ty == Tsarray)
-                    toDtElem((cast(TypeSArray)tb), dtbx, ei.exp);
+                auto ei = init.isExpInitializer();
+                auto tsa = vd.type.toBasetype().isTypeSArray();
+                if (ei && tsa)
+                    toDtElem(tsa, dtbx, ei.exp);
                 else
                     Initializer_toDt(init, dtbx);
             }
@@ -873,7 +860,7 @@ private void toDtElem(TypeSArray tsa, ref DtBuilder dtb, Expression e)
         Type tbn = tnext.toBasetype();
         while (tbn.ty == Tsarray && (!e || !tbn.equivalent(e.type.nextOf())))
         {
-            len *= (cast(TypeSArray)tbn).dim.toInteger();
+            len *= tbn.isTypeSArray().dim.toInteger();
             tnext = tbn.nextOf();
             tbn = tnext.toBasetype();
         }
@@ -884,10 +871,10 @@ private void toDtElem(TypeSArray tsa, ref DtBuilder dtb, Expression e)
         {
             // https://issues.dlang.org/show_bug.cgi?id=1914
             // https://issues.dlang.org/show_bug.cgi?id=3198
-            if (e.op == TOK.string_)
-                len /= (cast(StringExp)e).numberOfCodeUnits();
-            else if (e.op == TOK.arrayLiteral)
-                len /= (cast(ArrayLiteralExp)e).elements.dim;
+            if (auto se = e.isStringExp())
+                len /= se.numberOfCodeUnits();
+            else if (auto ae = e.isArrayLiteralExp())
+                len /= ae.elements.dim;
         }
 
         auto dtb2 = DtBuilder(0);
@@ -1081,9 +1068,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         if (Type.typeinfopointer.hasMonitor())
             dtb.size(0);                                  // monitor
 
-        assert(d.tinfo.ty == Tpointer);
-
-        TypePointer tc = cast(TypePointer)d.tinfo;
+        auto tc = d.tinfo.isTypePointer();
 
         genTypeInfo(d.loc, tc.next, null);
         dtb.xoff(toSymbol(tc.next.vtinfo), 0); // TypeInfo for type being pointed to
@@ -1098,9 +1083,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         if (Type.typeinfoarray.hasMonitor())
             dtb.size(0);                                  // monitor
 
-        assert(d.tinfo.ty == Tarray);
-
-        TypeDArray tc = cast(TypeDArray)d.tinfo;
+        auto tc = d.tinfo.isTypeDArray();
 
         genTypeInfo(d.loc, tc.next, null);
         dtb.xoff(toSymbol(tc.next.vtinfo), 0); // TypeInfo for array of type
@@ -1115,9 +1098,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         if (Type.typeinfostaticarray.hasMonitor())
             dtb.size(0);                                      // monitor
 
-        assert(d.tinfo.ty == Tsarray);
-
-        TypeSArray tc = cast(TypeSArray)d.tinfo;
+        auto tc = d.tinfo.isTypeSArray();
 
         genTypeInfo(d.loc, tc.next, null);
         dtb.xoff(toSymbol(tc.next.vtinfo), 0);   // TypeInfo for array of type
@@ -1134,9 +1115,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         if (Type.typeinfovector.hasMonitor())
             dtb.size(0);                                  // monitor
 
-        assert(d.tinfo.ty == Tvector);
-
-        TypeVector tc = cast(TypeVector)d.tinfo;
+        auto tc = d.tinfo.isTypeVector();
 
         genTypeInfo(d.loc, tc.basetype, null);
         dtb.xoff(toSymbol(tc.basetype.vtinfo), 0); // TypeInfo for equivalent static array
@@ -1151,9 +1130,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         if (Type.typeinfoassociativearray.hasMonitor())
             dtb.size(0);                    // monitor
 
-        assert(d.tinfo.ty == Taarray);
-
-        TypeAArray tc = cast(TypeAArray)d.tinfo;
+        auto tc = d.tinfo.isTypeAArray();
 
         genTypeInfo(d.loc, tc.next, null);
         dtb.xoff(toSymbol(tc.next.vtinfo), 0);   // TypeInfo for array of type
@@ -1171,16 +1148,14 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         if (Type.typeinfofunction.hasMonitor())
             dtb.size(0);                                  // monitor
 
-        assert(d.tinfo.ty == Tfunction);
-
-        TypeFunction tc = cast(TypeFunction)d.tinfo;
+        auto tc = d.tinfo.isTypeFunction();
 
         genTypeInfo(d.loc, tc.next, null);
         dtb.xoff(toSymbol(tc.next.vtinfo), 0); // TypeInfo for function return value
 
-        const(char)* name = d.tinfo.deco;
+        const name = d.tinfo.deco;
         assert(name);
-        size_t namelen = strlen(name);
+        const namelen = strlen(name);
         dtb.size(namelen);
         dtb.xoff(d.csym, Type.typeinfofunction.structsize);
 
@@ -1197,16 +1172,14 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         if (Type.typeinfodelegate.hasMonitor())
             dtb.size(0);                                  // monitor
 
-        assert(d.tinfo.ty == Tdelegate);
-
-        TypeDelegate tc = cast(TypeDelegate)d.tinfo;
+        auto tc = d.tinfo.isTypeDelegate();
 
         genTypeInfo(d.loc, tc.next.nextOf(), null);
         dtb.xoff(toSymbol(tc.next.nextOf().vtinfo), 0); // TypeInfo for delegate return value
 
-        const(char)* name = d.tinfo.deco;
+        const name = d.tinfo.deco;
         assert(name);
-        size_t namelen = strlen(name);
+        const namelen = strlen(name);
         dtb.size(namelen);
         dtb.xoff(d.csym, Type.typeinfodelegate.structsize);
 
@@ -1226,9 +1199,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         if (Type.typeinfostruct.hasMonitor())
             dtb.size(0);                                // monitor
 
-        assert(d.tinfo.ty == Tstruct);
-
-        TypeStruct tc = cast(TypeStruct)d.tinfo;
+        auto tc = d.tinfo.isTypeStruct();
         StructDeclaration sd = tc.sym;
 
         if (!sd.members)
@@ -1276,8 +1247,8 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
          *  xgetRTInfo
          */
 
-        const(char)* name = sd.toPrettyChars();
-        size_t namelen = strlen(name);
+        const name = sd.toPrettyChars();
+        const namelen = strlen(name);
         dtb.size(namelen);
         dtb.xoff(d.csym, Type.typeinfostruct.structsize);
 
@@ -1329,16 +1300,14 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         version (none)
         {
             // xgetMembers
-            FuncDeclaration sgetmembers = sd.findGetMembers();
-            if (sgetmembers)
+            if (auto sgetmembers = sd.findGetMembers())
                 dtb.xoff(toSymbol(sgetmembers), 0);
             else
                 dtb.size(0);                     // xgetMembers
         }
 
         // xdtor
-        FuncDeclaration sdtor = sd.tidtor;
-        if (sdtor)
+        if (auto sdtor = sd.tidtor)
             dtb.xoff(toSymbol(sdtor), 0);
         else
             dtb.size(0);                     // xdtor
@@ -1356,7 +1325,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         if (global.params.is64bit)
         {
             Type t = sd.arg1type;
-            for (int i = 0; i < 2; i++)
+            foreach (i; 0 .. 2)
             {
                 // m_argi
                 if (t)
@@ -1400,14 +1369,11 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         if (Type.typeinfointerface.hasMonitor())
             dtb.size(0);                                  // monitor
 
-        assert(d.tinfo.ty == Tclass);
-
-        TypeClass tc = cast(TypeClass)d.tinfo;
-        Symbol *s;
+        auto tc = d.tinfo.isTypeClass();
 
         if (!tc.sym.vclassinfo)
             tc.sym.vclassinfo = TypeInfoClassDeclaration.create(tc);
-        s = toSymbol(tc.sym.vclassinfo);
+        auto s = toSymbol(tc.sym.vclassinfo);
         dtb.xoff(s, 0);    // ClassInfo for tinfo
     }
 
@@ -1420,18 +1386,14 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         if (Type.typeinfotypelist.hasMonitor())
             dtb.size(0);                                  // monitor
 
-        assert(d.tinfo.ty == Ttuple);
+        auto tu = d.tinfo.isTypeTuple();
 
-        TypeTuple tu = cast(TypeTuple)d.tinfo;
-
-        size_t dim = tu.arguments.dim;
+        const dim = tu.arguments.dim;
         dtb.size(dim);                       // elements.length
 
         auto dtbargs = DtBuilder(0);
-        for (size_t i = 0; i < dim; i++)
+        foreach (arg; *tu.arguments)
         {
-            Parameter arg = (*tu.arguments)[i];
-
             genTypeInfo(d.loc, arg.type, null);
             Symbol* s = toSymbol(arg.type.vtinfo);
             dtbargs.xoff(s, 0);
