@@ -289,6 +289,8 @@ enum TOK : ubyte
     vectorArray,
 
     max_,
+
+    structLiteral2,
 }
 
 // Assert that all token enum members have consecutive values and
