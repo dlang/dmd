@@ -139,7 +139,7 @@ FuncDeclaration hasThis(Scope* sc)
         {
             goto Lno;
         }
-        if (!fd.isNested())
+        if (!fd.isNested() || fd.isThis() || (fd.isThis2 && fd.isMember2()))
             break;
 
         Dsymbol parent = fd.parent;
@@ -156,7 +156,7 @@ FuncDeclaration hasThis(Scope* sc)
         fd = parent.isFuncDeclaration();
     }
 
-    if (!fd.isThis())
+    if (!fd.isThis() && !(fd.isThis2 && fd.isMember2()))
     {
         goto Lno;
     }
@@ -1249,7 +1249,7 @@ extern (C++) abstract class Expression : ASTNode
              */
 
             Dsymbol vparent = v.toParent2();
-            for (Dsymbol s = sc.func; !err && s; s = s.toParent2())
+            for (Dsymbol s = sc.func; !err && s; s = toParentP(s, vparent))
             {
                 if (s == vparent)
                     break;
@@ -3110,7 +3110,7 @@ extern (C++) final class StructLiteralExp : Expression
         if (i != -1)
         {
             //printf("\ti = %d\n", i);
-            if (i == sd.fields.dim - 1 && sd.isNested())
+            if (i >= sd.nonHiddenFields())
                 return null;
 
             assert(i < elements.dim);
@@ -3160,8 +3160,8 @@ extern (C++) final class StructLiteralExp : Expression
             {
                 if (offset == v.offset && type.size() == v.type.size())
                 {
-                    /* context field might not be filled. */
-                    if (i == sd.fields.dim - 1 && sd.isNested())
+                    /* context fields might not be filled. */
+                    if (i >= sd.nonHiddenFields())
                         return cast(int)i;
                     if (auto e = (*elements)[i])
                     {
@@ -3430,6 +3430,7 @@ extern (C++) class SymbolExp : Expression
 {
     Declaration var;
     bool hasOverloads;
+    Dsymbol originalScope; // original scope before inlining
 
     extern (D) this(const ref Loc loc, TOK op, int size, Declaration var, bool hasOverloads)
     {
@@ -4765,12 +4766,14 @@ extern (C++) final class DelegateExp : UnaExp
 {
     FuncDeclaration func;
     bool hasOverloads;
+    VarDeclaration vthis2;  // container for multi-context
 
-    extern (D) this(const ref Loc loc, Expression e, FuncDeclaration f, bool hasOverloads = true)
+    extern (D) this(const ref Loc loc, Expression e, FuncDeclaration f, bool hasOverloads = true, VarDeclaration vthis2 = null)
     {
         super(loc, TOK.delegate_, __traits(classInstanceSize, DelegateExp), e);
         this.func = f;
         this.hasOverloads = hasOverloads;
+        this.vthis2 = vthis2;
     }
 
     override void accept(Visitor v)
@@ -4804,6 +4807,7 @@ extern (C++) final class CallExp : UnaExp
     Expressions* arguments; // function arguments
     FuncDeclaration f;      // symbol to call
     bool directcall;        // true if a virtual call is devirtualized
+    VarDeclaration vthis2;  // container for multi-context
 
     extern (D) this(const ref Loc loc, Expression e, Expressions* exps)
     {

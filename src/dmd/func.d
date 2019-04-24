@@ -210,6 +210,11 @@ extern (C++) class FuncDeclaration : Declaration
          */
         VarDeclaration vthis;
 
+        /**
+         * Is 'this' a pointer to a static array holding two contexts.
+         */
+        bool isThis2;
+
         /// The selector parameter for Objective-C methods.
         VarDeclaration selectorParameter;
     }
@@ -233,6 +238,7 @@ extern (C++) class FuncDeclaration : Declaration
     // scopes from having the same name
     DsymbolTable localsymtab;
     VarDeclaration vthis;               /// 'this' parameter (member and nested)
+    bool isThis2;                       /// has a dual-context 'this' parameter
     VarDeclaration v_arguments;         /// '_arguments' parameter
     ObjcSelector* selector;             /// Objective-C method selector (member function only)
     VarDeclaration selectorParameter;   /// Objective-C implicit selector parameter
@@ -460,6 +466,32 @@ extern (C++) class FuncDeclaration : Declaration
      */
     final HiddenParameters declareThis(Scope* sc, AggregateDeclaration ad)
     {
+        if (toParent2() != toParentLocal())
+        {
+            Type tthis2 = Type.tvoidptr.sarrayOf(2).pointerTo();
+            tthis2 = tthis2.addMod(type.mod)
+                           .addStorageClass(storage_class);
+            VarDeclaration v2 = new VarDeclaration(loc, tthis2, Id.this2, null);
+            v2.storage_class |= STC.parameter | STC.nodtor;
+            if (type.ty == Tfunction)
+            {
+                TypeFunction tf = cast(TypeFunction)type;
+                if (tf.isreturn)
+                    v2.storage_class |= STC.return_;
+                if (tf.isscope)
+                    v2.storage_class |= STC.scope_;
+                // if member function is marked 'inout', then this is 'return ref'
+                if (tf.iswild & 2)
+                    v2.storage_class |= STC.return_;
+            }
+            if (flags & FUNCFLAG.inferScope && !(v2.storage_class & STC.scope_))
+                v2.storage_class |= STC.maybescope;
+            v2.dsymbolSemantic(sc);
+            if (!sc.insert(v2))
+                assert(0);
+            v2.parent = this;
+            return HiddenParameters(v2, true);
+        }
         if (ad)
         {
             //printf("declareThis() %s\n", toChars());
@@ -491,7 +523,7 @@ extern (C++) class FuncDeclaration : Declaration
             if (!sc.insert(v))
                 assert(0);
             v.parent = this;
-            return HiddenParameters(v, objc.createSelectorParameter(this, sc));
+            return HiddenParameters(v, false, objc.createSelectorParameter(this, sc));
         }
         if (isNested())
         {
@@ -1091,7 +1123,7 @@ extern (C++) class FuncDeclaration : Declaration
                     return LevelError;
             }
 
-            s = s.toParent2();
+            s = toParentP(s, fd);
             assert(s);
             level++;
         }
@@ -1588,7 +1620,8 @@ extern (C++) class FuncDeclaration : Declaration
      * Returns:
      *  `true` if function is really nested within other function.
      * Contracts:
-     *  If isNested() returns true, isThis() should return false.
+     *  If isNested() returns true, isThis() should return false,
+     *  unless the function needs a dual-context pointer.
      */
     bool isNested() const
     {
@@ -1596,7 +1629,8 @@ extern (C++) class FuncDeclaration : Declaration
         //printf("\ttoParent2() = '%s'\n", f.toParent2().toChars());
         return ((f.storage_class & STC.static_) == 0) &&
                 (f.linkage == LINK.d) &&
-                (f.toParent2().isFuncDeclaration() !is null);
+                (f.toParent2().isFuncDeclaration() !is null ||
+                 f.toParent2() !is f.toParentLocal());
     }
 
     /****************************************
@@ -1605,7 +1639,8 @@ extern (C++) class FuncDeclaration : Declaration
      * Returns:
      *  The aggregate it is a member of, or null.
      * Contracts:
-     *  If isThis() returns true, isNested() should return false.
+     *  Both isThis() and isNested() should return true if function needs a dual-context pointer,
+     *  otherwise if isThis() returns true, isNested() should return false.
      */
     override inout(AggregateDeclaration) isThis() inout
     {
@@ -1762,10 +1797,13 @@ extern (C++) class FuncDeclaration : Declaration
         if (!fdthis)
             return false; // out of function scope
 
-        Dsymbol p = toParent2();
+        Dsymbol p = toParentLocal();
+        Dsymbol p2 = toParent2();
 
         // Function literals from fdthis to p must be delegates
         ensureStaticLinkTo(fdthis, p);
+        if (p != p2)
+            ensureStaticLinkTo(fdthis, p2);
 
         if (isNested())
         {
@@ -1810,6 +1848,8 @@ extern (C++) class FuncDeclaration : Declaration
             }
 
             if (checkEnclosing(p.isFuncDeclaration()))
+                return true;
+            if (checkEnclosing(p == p2 ? null : p2.isFuncDeclaration()))
                 return true;
         }
         return false;
@@ -1864,7 +1904,7 @@ extern (C++) class FuncDeclaration : Declaration
                  * so does f.
                  * Mark all affected functions as requiring closures.
                  */
-                for (Dsymbol s = f; s && s != this; s = s.parent)
+                for (Dsymbol s = f; s && s != this; s = toParentP(s, this))
                 {
                     FuncDeclaration fx = s.isFuncDeclaration();
                     if (!fx)
@@ -1875,7 +1915,7 @@ extern (C++) class FuncDeclaration : Declaration
 
                         /* Mark as needing closure any functions between this and f
                          */
-                        markAsNeedingClosure((fx == f) ? fx.parent : fx, this);
+                        markAsNeedingClosure((fx == f) ? toParentP(fx, this) : fx, this);
 
                         requiresClosure = true;
                     }
@@ -1937,7 +1977,7 @@ extern (C++) class FuncDeclaration : Declaration
                 assert(f !is this);
 
             LcheckAncestorsOfANestedRef:
-                for (Dsymbol s = f; s && s !is this; s = s.parent)
+                for (Dsymbol s = f; s && s !is this; s = toParentP(s, this))
                 {
                     auto fx = s.isFuncDeclaration();
                     if (!fx)
@@ -2477,7 +2517,7 @@ Expression addInvariant(const ref Loc loc, Scope* sc, AggregateDeclaration ad, V
          * Change the behavior of pre-invariant call by following it.
          */
         e = new ThisExp(Loc.initial);
-        e.type = vthis.type;
+        e.type = ad.type.addMod(vthis.type.mod);
         e = new DotVarExp(Loc.initial, e, inv, false);
         e.type = inv.type;
         e = new CallExp(Loc.initial, e);
@@ -3075,7 +3115,7 @@ private bool traverseIndirections(Type ta, Type tb)
  */
 private void markAsNeedingClosure(Dsymbol f, FuncDeclaration outerFunc)
 {
-    for (Dsymbol sx = f; sx && sx != outerFunc; sx = sx.parent)
+    for (Dsymbol sx = f; sx && sx != outerFunc; sx = toParentP(sx, outerFunc))
     {
         FuncDeclaration fy = sx.isFuncDeclaration();
         if (fy && fy.closureVars.dim)
@@ -3125,7 +3165,7 @@ private bool checkEscapingSiblings(FuncDeclaration f, FuncDeclaration outerFunc,
             bAnyClosures = true;
         }
 
-        for (auto parent = g.parent; parent && parent !is outerFunc; parent = parent.parent)
+        for (auto parent = toParentP(g, outerFunc); parent && parent !is outerFunc; parent = toParentP(parent, outerFunc))
         {
             // A parent of the sibling had its address taken.
             // Assume escaping of parent affects its children, so needs propagating.
@@ -3153,6 +3193,60 @@ private bool checkEscapingSiblings(FuncDeclaration f, FuncDeclaration outerFunc,
     }
     //printf("\t%d\n", bAnyClosures);
     return bAnyClosures;
+}
+
+/***
+ * Returns true if any of the symbols `p` resides in the enclosing instantiation scope of `s`.
+ */
+bool followInstantiationContext(D...)(Dsymbol s, D p)
+{
+    static bool has2This(Dsymbol s)
+    {
+        if (auto f = s.isFuncDeclaration())
+            return f.isThis2;
+        if (auto ad = s.isAggregateDeclaration())
+            return ad.vthis2 !is null;
+        return false;
+    }
+
+    assert(s);
+    if (has2This(s))
+    {
+        assert(p.length);
+        auto parent = s.toParent();
+        while (parent)
+        {
+            auto ti = parent.isTemplateInstance();
+            if (!ti) break;
+            foreach (oarg; *ti.tiargs)
+            {
+                auto sa = getDsymbol(oarg);
+                if (!sa)
+                    continue;
+                sa = sa.toAlias().toParent2();
+                if (!sa)
+                    continue;
+                foreach (ps; p)
+                {
+                    if (sa == ps)
+                        return true;
+                }
+            }
+            parent = ti.tempdecl.toParent();
+        }
+        return false;
+    }
+    return false;
+}
+
+/*
+ * Returns the declaration scope scope of `s`
+ * unless any of the symbols `p` resides in its enclosing instantiation scope
+ * then the latter is returned.
+ */
+Dsymbol toParentP(D...)(Dsymbol s, D p)
+{
+    return followInstantiationContext(s, p) ? s.toParent2() : s.toParentLocal();
 }
 
 /***********************************************************

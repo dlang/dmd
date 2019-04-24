@@ -1010,7 +1010,7 @@ Lagain:
         Dsymbol p = td.toParentLocal();
         FuncDeclaration fdthis = hasThis(sc);
         AggregateDeclaration ad = p ? p.isAggregateDeclaration() : null;
-        if (fdthis && ad && isAggregate(fdthis.vthis.type) == ad && (td._scope.stc & STC.static_) == 0)
+        if (fdthis && ad && fdthis.isMemberLocal() == ad && (td._scope.stc & STC.static_) == 0)
         {
             e = new DotTemplateExp(loc, new ThisExp(loc), td);
         }
@@ -1038,7 +1038,7 @@ Lagain:
  * Returns:
  *      Expression representing the `this` for the var
  */
-private Expression getRightThis(const ref Loc loc, Scope* sc, AggregateDeclaration ad, Expression e1, Declaration var, int flag = 0)
+private Expression getRightThis(const ref Loc loc, Scope* sc, AggregateDeclaration ad, Expression e1, Dsymbol var, int flag = 0)
 {
     //printf("\ngetRightThis(e1 = %s, ad = %s, var = %s)\n", e1.toChars(), ad.toChars(), var.toChars());
 L1:
@@ -1055,6 +1055,28 @@ L1:
              var.isFuncDeclaration.selector)
     {
         return new ObjcClassReferenceExp(e1.loc, cast(ClassDeclaration) ad);
+    }
+
+    /* Access of a member which is a template parameter in dual-scope scenario
+     * class A { inc(alias m)() { ++m; } } // `m` needs `this` of `B`
+     * class B {int m; inc() { new A().inc!m(); } }
+     */
+    if (e1.op == TOK.this_)
+    {
+        FuncDeclaration f = hasThis(sc);
+        if (f && f.isThis2)
+        {
+            if (followInstantiationContext(f, ad))
+            {
+                e1 = new VarExp(loc, f.vthis);
+                e1 = new PtrExp(loc, e1);
+                e1 = new IndexExp(loc, e1, IntegerExp.literal!1);
+                e1 = getThisSkipNestedFuncs(loc, sc, f.toParent2(), ad, e1, t, var);
+                if (e1.op == TOK.error)
+                    return e1;
+                goto L1;
+            }
+        }
     }
 
     /* If e1 is not the 'this' pointer for ad
@@ -1078,15 +1100,16 @@ L1:
                 /* e1 is the 'this' pointer for an inner class: tcd.
                  * Rewrite it as the 'this' pointer for the outer class.
                  */
-                e1 = new DotVarExp(loc, e1, tcd.vthis);
-                e1.type = tcd.vthis.type;
+                auto vthis = followInstantiationContext(tcd, ad) ? tcd.vthis2 : tcd.vthis;
+                e1 = new DotVarExp(loc, e1, vthis);
+                e1.type = vthis.type;
                 e1.type = e1.type.addMod(t.mod);
                 // Do not call ensureStaticLinkTo()
                 //e1 = e1.semantic(sc);
 
                 // Skip up over nested functions, and get the enclosing
                 // class type.
-                e1 = getThisSkipNestedFuncs(loc, sc, tcd.toParent2(), ad, e1, t, var);
+                e1 = getThisSkipNestedFuncs(loc, sc, toParentP(tcd, ad), ad, e1, t, var);
                 if (e1.op == TOK.error)
                     return e1;
                 goto L1;
@@ -1856,10 +1879,19 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
              *
              * void foo(ref inout(int) x) {
              *   ref inout(int) bar(inout(int)) { return x; }
-             *   struct S { ref inout(int) bar() inout { return x; } }
+             *   struct S {
+             *      ref inout(int) bar() inout { return x; }
+             *      ref inout(int) baz(alias a)() inout { return x; }
+             *   }
              *   bar(int.init) = 1;  // bad!
              *   S().bar() = 1;      // bad!
              * }
+             * void test() {
+             *   int a;
+             *   auto s = foo(a);
+             *   s.baz!a() = 1;      // bad!
+             * }
+             *
              */
             bool checkEnclosingWild(Dsymbol s)
             {
@@ -1882,10 +1914,17 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                     }
                     return false;
                 }
-                return checkWild(s.toParent2());
-           }
-           if ((fd.isThis() || fd.isNested()) && checkEnclosingWild(fd))
-               return true;
+
+                Dsymbol ctx0 = s.toParent2();
+                Dsymbol ctx1 = s.toParentLocal();
+                if (checkWild(ctx0))
+                    return true;
+                if (ctx0 != ctx1)
+                    return checkWild(ctx1);
+                return false;
+            }
+            if ((fd.isThis() || fd.isNested()) && checkEnclosingWild(fd))
+                return true;
         }
         else if (tf.isWild())
             return errorInout(wildmatch);
@@ -2595,6 +2634,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         FuncDeclaration fd = hasThis(sc); // fd is the uplevel function with the 'this' variable
+        AggregateDeclaration ad;
 
         /* Special case for typeof(this) and typeof(super) since both
          * should work even if they are not inside a non-static member function
@@ -2631,7 +2671,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         assert(fd.vthis);
         e.var = fd.vthis;
         assert(e.var.parent);
-        e.type = e.var.type;
+        ad = fd.isMemberLocal();
+        if (!ad)
+            ad = fd.isMember2();
+        assert(ad);
+        e.type = ad.type.addMod(e.var.type.mod);
 
         if (e.var.checkNestedReference(sc, e.loc))
             return setError();
@@ -2705,7 +2749,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (!cd.baseClass)
         {
             e.error("no base class for `%s`", cd.toChars());
-            e.type = e.var.type;
+            e.type = cd.type.addMod(e.var.type.mod);
         }
         else
         {
@@ -3078,7 +3122,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     Dsymbol p = td.toParentLocal();
                     FuncDeclaration fdthis = hasThis(sc);
                     AggregateDeclaration ad = p ? p.isAggregateDeclaration() : null;
-                    if (fdthis && ad && isAggregate(fdthis.vthis.type) == ad && (td._scope.stc & STC.static_) == 0)
+                    if (fdthis && ad && fdthis.isMemberLocal() == ad && (td._scope.stc & STC.static_) == 0)
                     {
                         Expression e = new DotTemplateInstanceExp(exp.loc, new ThisExp(exp.loc), ti.name, ti.tiargs);
                         result = e.expressionSemantic(sc);
@@ -3089,7 +3133,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 {
                     FuncDeclaration fdthis = hasThis(sc);
                     AggregateDeclaration ad = os.parent.isAggregateDeclaration();
-                    if (fdthis && ad && isAggregate(fdthis.vthis.type) == ad)
+                    if (fdthis && ad && fdthis.isMemberLocal() == ad)
                     {
                         Expression e = new DotTemplateInstanceExp(exp.loc, new ThisExp(exp.loc), ti.name, ti.tiargs);
                         result = e.expressionSemantic(sc);
@@ -3392,6 +3436,21 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 exp.error("`.new` is only for allocating nested classes");
                 return setError();
+            }
+
+            if (cd.vthis2)
+            {
+                if (AggregateDeclaration ad2 = cd.isMember2())
+                {
+                    Expression te = new ThisExp(exp.loc).expressionSemantic(sc);
+                    if (te.op != TOK.error)
+                        te = getRightThis(exp.loc, sc, ad2, te, cd);
+                    if (te.op == TOK.error)
+                    {
+                        exp.error("need `this` of type `%s` needed to `new` nested class `%s`", ad2.toChars(), cd.toChars());
+                        return setError();
+                    }
+                }
             }
 
             if (cd.aggNew)
@@ -4804,6 +4863,27 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 result = e.expressionSemantic(sc);
             }
         }
+
+        // declare dual-context container
+        if (exp.f && exp.f.isThis2 && !sc.intypeof && sc.func)
+        {
+            // check access to second `this`
+            if (AggregateDeclaration ad2 = exp.f.isMember2())
+            {
+                Expression te = new ThisExp(exp.loc).expressionSemantic(sc);
+                if (te.op != TOK.error)
+                    te = getRightThis(exp.loc, sc, ad2, te, exp.f);
+                if (te.op == TOK.error)
+                {
+                    exp.error("need `this` of type `%s` to call function `%s`", ad2.toChars(), exp.f.toChars());
+                    return setError();
+                }
+            }
+            VarDeclaration vthis2 = makeThis2Argument(exp.loc, sc, exp.f);            exp.vthis2 = vthis2;
+            Expression de = new DeclarationExp(exp.loc, vthis2);
+            result = Expression.combine(de, result);
+            result = result.expressionSemantic(sc);
+        }
     }
 
     override void visit(DeclarationExp e)
@@ -5816,7 +5896,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              * If fd obviously has no overloads, we should
              * normalize AST, and it will give a chance to wrap fd with FuncExp.
              */
-            if (fd.isNested() || fd.isFuncLiteralDeclaration())
+            if ((fd.isNested() && !fd.isThis()) || fd.isFuncLiteralDeclaration())
             {
                 // (e1, fd)
                 auto e = symbolToExp(fd, exp.loc, sc, false);
@@ -5952,6 +6032,27 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             e.e1 = e.e1.expressionSemantic(sc);
         }
         result = e;
+        // declare dual-context container
+        if (f.isThis2 && !sc.intypeof && sc.func)
+        {
+            // check access to second `this`
+            if (AggregateDeclaration ad2 = f.isMember2())
+            {
+                Expression te = new ThisExp(e.loc).expressionSemantic(sc);
+                if (te.op != TOK.error)
+                    te = getRightThis(e.loc, sc, ad2, te, f);
+                if (te.op == TOK.error)
+                {
+                    e.error("need `this` of type `%s` to make delegate from function `%s`", ad2.toChars(), f.toChars());
+                    return setError();
+                }
+            }
+            VarDeclaration vthis2 = makeThis2Argument(e.loc, sc, f);
+            e.vthis2 = vthis2;
+            Expression de = new DeclarationExp(e.loc, vthis2);
+            result = Expression.combine(de, result);
+            result = result.expressionSemantic(sc);
+        }
     }
 
     override void visit(DotTypeExp exp)
@@ -6123,9 +6224,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                  * mark here that we took its address because castTo()
                  * may not be called with an exact match.
                  */
-                if (!ve.hasOverloads || f.isNested())
+                if (!ve.hasOverloads || (f.isNested() && !f.needThis()))
                     f.tookAddressOf++;
-                if (f.isNested())
+                if (f.isNested() && !f.needThis())
                 {
                     if (f.isFuncLiteralDeclaration())
                     {
@@ -11512,6 +11613,17 @@ Expression getThisSkipNestedFuncs(const ref Loc loc, Scope* sc, Dsymbol s, Aggre
         {
             n++;
             e1 = new VarExp(loc, f.vthis);
+            if (f.isThis2)
+            {
+                // (*__this)[i]
+                if (n > 1)
+                    e1 = e1.expressionSemantic(sc);
+                e1 = new PtrExp(loc, e1);
+                uint i = followInstantiationContext(f, ad);
+                e1 = new IndexExp(loc, e1, new IntegerExp(i));
+                s = toParentP(f, ad);
+                continue;
+            }
         }
         else
         {
@@ -11523,7 +11635,7 @@ Expression getThisSkipNestedFuncs(const ref Loc loc, Scope* sc, Dsymbol s, Aggre
         }
         s = s.toParent2();
     }
-    if (n > 1)
+    if (n > 1 || e1.op == TOK.index)
         e1 = e1.expressionSemantic(sc);
     if (s && e1.type.equivalent(Type.tvoidptr))
     {
@@ -11537,4 +11649,32 @@ Expression getThisSkipNestedFuncs(const ref Loc loc, Scope* sc, Dsymbol s, Aggre
     }
     e1.type = e1.type.addMod(t.mod);
     return e1;
+}
+
+/*******************************
+ * Make a dual-context container for use as a `this` argument.
+ * Params:
+ *      loc = location to use for error messages
+ *      sc = current scope
+ *      fd = target function that will take the `this` argument
+ * Returns:
+ *      Temporary closure variable.
+ * Note:
+ *      The function `fd` is added to the nested references of the
+ *      newly created variable such that a closure is made for the variable when
+ *      the address of `fd` is taken.
+ */
+VarDeclaration makeThis2Argument(const ref Loc loc, Scope* sc, FuncDeclaration fd)
+{
+    Type tthis2 = Type.tvoidptr.sarrayOf(2);
+    VarDeclaration vthis2 = new VarDeclaration(loc, tthis2, Identifier.generateId("__this"), null);
+    vthis2.storage_class |= STC.temp;
+    vthis2.dsymbolSemantic(sc);
+    vthis2.parent = sc.parent;
+    // make it a closure var
+    assert(sc.func);
+    sc.func.closureVars.push(vthis2);
+    // add `fd` to the nested refs
+    vthis2.nestedrefs.push(fd);
+    return vthis2;
 }

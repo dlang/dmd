@@ -1658,8 +1658,12 @@ void assignInPlace(Expression dest, Expression src)
         assert(dest.op == src.op);
         oldelems = (cast(StructLiteralExp)dest).elements;
         newelems = (cast(StructLiteralExp)src).elements;
-        if ((cast(StructLiteralExp)dest).sd.isNested() && oldelems.dim == newelems.dim - 1)
-            oldelems.push(null);
+        auto sd = (cast(StructLiteralExp)dest).sd;
+        const nfields = sd.nonHiddenFields();
+        const nvthis = sd.fields.dim - nfields;
+        if (nvthis && oldelems.dim >= nfields && oldelems.dim < newelems.dim)
+            foreach (_; 0 .. newelems.dim - oldelems.dim)
+                oldelems.push(null);
     }
     else if (dest.op == TOK.arrayLiteral && src.op == TOK.arrayLiteral)
     {
@@ -1857,7 +1861,14 @@ bool isCtfeValueValid(Expression newval)
     {
         // e1 should be a CTFE reference
         Expression e1 = (cast(AddrExp)newval).e1;
-        return tb.ty == Tpointer && (e1.op == TOK.structLiteral && isCtfeValueValid(e1) || e1.op == TOK.variable || e1.op == TOK.dotVariable && isCtfeReferenceValid(e1) || e1.op == TOK.index && isCtfeReferenceValid(e1) || e1.op == TOK.slice && e1.type.toBasetype().ty == Tsarray);
+        return tb.ty == Tpointer &&
+        (
+            (e1.op == TOK.structLiteral || e1.op == TOK.arrayLiteral) && isCtfeValueValid(e1) ||
+             e1.op == TOK.variable ||
+             e1.op == TOK.dotVariable && isCtfeReferenceValid(e1) ||
+             e1.op == TOK.index && isCtfeReferenceValid(e1) ||
+             e1.op == TOK.slice && e1.type.toBasetype().ty == Tsarray
+        );
     }
     if (newval.op == TOK.slice)
     {

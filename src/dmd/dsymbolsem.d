@@ -5065,6 +5065,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 memcpy(cldec.vtbl.tdata(), cldec.baseClass.vtbl.tdata(), (void*).sizeof * cldec.vtbl.dim);
 
                 cldec.vthis = cldec.baseClass.vthis;
+                cldec.vthis2 = cldec.baseClass.vthis2;
             }
             else
             {
@@ -5102,6 +5103,30 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     }
                     cldec.enclosing = null;
                 }
+                if (cldec.vthis2)
+                {
+                    if (cldec.toParent2() != cldec.baseClass.toParent2() &&
+                        (!cldec.toParent2() ||
+                         !cldec.baseClass.toParent2().getType() ||
+                         !cldec.baseClass.toParent2().getType().isBaseOf(cldec.toParent2().getType(), null)))
+                    {
+                        if (cldec.toParent2() && cldec.toParent2() != cldec.toParentLocal())
+                        {
+                            cldec.error("needs the frame pointer of `%s`, but super class `%s` needs the frame pointer of `%s`",
+                                cldec.toParent2().toChars(),
+                                cldec.baseClass.toChars(),
+                                cldec.baseClass.toParent2().toChars());
+                        }
+                        else
+                        {
+                            cldec.error("doesn't need a frame pointer, but super class `%s` needs the frame pointer of `%s`",
+                                cldec.baseClass.toChars(),
+                                cldec.baseClass.toParent2().toChars());
+                        }
+                    }
+                }
+                else
+                    cldec.makeNested2();
             }
             else
                 cldec.makeNested();

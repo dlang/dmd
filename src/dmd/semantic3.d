@@ -368,6 +368,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             auto ad = funcdecl.isThis();
             auto hiddenParams = funcdecl.declareThis(sc2, ad);
             funcdecl.vthis = hiddenParams.vthis;
+            funcdecl.isThis2 = hiddenParams.isThis2;
             funcdecl.selectorParameter = hiddenParams.selectorParameter;
             //printf("[%s] ad = %p vthis = %p\n", loc.toChars(), ad, vthis);
             //if (vthis) printf("\tvthis.type = %s\n", vthis.type.toChars());
@@ -679,7 +680,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         sc2.ctorflow.callSuper = CSX.none;
 
                         // Insert implicit super() at start of fbody
-                        FuncDeclaration fd = resolveFuncCall(Loc.initial, sc2, cd.baseClass.ctor, null, funcdecl.vthis.type, null, FuncResolveFlag.quiet);
+                        Type tthis = ad2.type.addMod(funcdecl.vthis.type.mod);
+                        FuncDeclaration fd = resolveFuncCall(Loc.initial, sc2, cd.baseClass.ctor, null, tthis, null, FuncResolveFlag.quiet);
                         if (!fd)
                         {
                             funcdecl.error("no match for implicit `super()` call in constructor");
@@ -1095,6 +1097,11 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             {
                                 // 'this' is the monitor
                                 vsync = new VarExp(funcdecl.loc, funcdecl.vthis);
+                                if (funcdecl.isThis2)
+                                {
+                                    vsync = new PtrExp(funcdecl.loc, vsync);
+                                    vsync = new IndexExp(funcdecl.loc, vsync, IntegerExp.literal!0);
+                                }
                             }
                             sbody = new PeelStatement(sbody); // don't redo semantic()
                             sbody = new SynchronizedStatement(funcdecl.loc, vsync, sbody);
