@@ -445,7 +445,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         if (!elements)
             return true;
 
-        const nfields = fields.dim - isNested() - (vthis2 !is null);
+        const nfields = nonHiddenFields();
         size_t offset = 0;
         for (size_t i = 0; i < elements.dim; i++)
         {

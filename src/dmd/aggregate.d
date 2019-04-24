@@ -240,6 +240,15 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     }
 
     /***************************************
+     * Returns:
+     *      The total number of fields minus the number of hidden fields.
+     */
+    final size_t nonHiddenFields()
+    {
+        return fields.dim - isNested() - (vthis2 !is null);
+    }
+
+    /***************************************
      * Collect all instance fields, then determine instance size.
      * Returns:
      *      false if failed to determine the size.
@@ -395,7 +404,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         //printf("AggregateDeclaration::fill() %s\n", toChars());
         assert(sizeok == Sizeok.done);
         assert(elements);
-        size_t nfields = fields.dim - isNested() - (vthis2 !is null);
+        const nfields = nonHiddenFields();
         bool errors = false;
 
         size_t dim = elements.dim;

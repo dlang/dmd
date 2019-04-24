@@ -2923,7 +2923,7 @@ public:
         if (dim != e.sd.fields.dim)
         {
             // guaranteed by AggregateDeclaration.fill and TypeStruct.defaultInitLiteral
-            const nvthis = e.sd.isNested() + (e.sd.vthis2 !is null);
+            const nvthis = e.sd.fields.dim - e.sd.nonHiddenFields();
             assert(e.sd.fields.dim - dim == nvthis);
 
             /* If a nested struct has no initialized hidden pointer,

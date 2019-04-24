@@ -1659,8 +1659,8 @@ void assignInPlace(Expression dest, Expression src)
         oldelems = (cast(StructLiteralExp)dest).elements;
         newelems = (cast(StructLiteralExp)src).elements;
         auto sd = (cast(StructLiteralExp)dest).sd;
-        const nvthis = sd.isNested() + (sd.vthis2 !is null);
-        const nfields = sd.fields.dim - nvthis;
+        const nfields = sd.nonHiddenFields();
+        const nvthis = sd.fields.dim - nfields;
         if (nvthis && oldelems.dim >= nfields && oldelems.dim < newelems.dim)
             foreach (_; 0 .. newelems.dim - oldelems.dim)
                 oldelems.push(null);
