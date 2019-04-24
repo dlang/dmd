@@ -10304,6 +10304,24 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
         }
 
+        if (t1.ty == Tclass && t2.ty == Tclass)
+        {
+            // Lower to object.__cmp(e1, e2)
+            Expression cl = new IdentifierExp(exp.loc, Id.empty);
+            cl = new DotIdExp(exp.loc, cl, Id.object);
+            cl = new DotIdExp(exp.loc, cl, Id.__cmp);
+            cl = cl.expressionSemantic(sc);
+
+            auto arguments = new Expressions();
+            arguments.push(exp.e1);
+            arguments.push(exp.e2);
+
+            cl = new CallExp(exp.loc, cl, arguments);
+            cl = new CmpExp(exp.op, exp.loc, cl, new IntegerExp(0));
+            result = cl.expressionSemantic(sc);
+            return;
+        }
+
         Expression e = exp.op_overload(sc);
         if (e)
         {
