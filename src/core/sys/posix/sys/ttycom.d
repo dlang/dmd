@@ -110,8 +110,6 @@ version (OSX)
 }
 else version (FreeBSD)
 {
-    import std.conv;
-
     struct winsize {
         ushort  ws_row;     // rows, in characters
         ushort  ws_col;     // columns, in characters
@@ -161,15 +159,15 @@ else version (FreeBSD)
     enum uint TIOCGWINSZ = _IOR!(winsize)('t', 104); // get window size
                             // 105 unused
     enum uint TIOCMGET  = _IOR!(int)('t', 106); // get all modem bits
-    enum uint   TIOCM_LE  = 1;                  // line enable
-    enum uint   TIOCM_DTR = 2;                  // data terminal ready
-    enum uint   TIOCM_RTS = 4;                  // request to send
-    enum uint   TIOCM_ST  = octal!10;  // secondary transmit
-    enum uint   TIOCM_SR  = octal!20;  // secondary receive
-    enum uint   TIOCM_CTS = octal!40;  // clear to send
-    enum uint   TIOCM_DCD = octal!100; // data carrier detect
-    enum uint   TIOCM_RI  = octal!200; // ring indicate
-    enum uint   TIOCM_DSR = octal!400; // data set ready
+    enum uint   TIOCM_LE  = 0x01;               // line enable
+    enum uint   TIOCM_DTR = 0x02;               // data terminal ready
+    enum uint   TIOCM_RTS = 0x04;               // request to send
+    enum uint   TIOCM_ST  = 0x08;               // secondary transmit
+    enum uint   TIOCM_SR  = 0x10;               // secondary receive
+    enum uint   TIOCM_CTS = 0x20;               // clear to send
+    enum uint   TIOCM_DCD = 0x40;               // data carrier detect
+    enum uint   TIOCM_RI  = 0x80;               // ring indicate
+    enum uint   TIOCM_DSR = 0x100;              // data set ready
     enum uint   TIOCM_CD  = TIOCM_DCD;
     enum uint   TIOCM_CAR = TIOCM_DCD;
     enum uint   TIOCM_RNG = TIOCM_RI;
