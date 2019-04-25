@@ -108,7 +108,7 @@ version (OSX)
     enum uint SLIPDISC = 4;       // serial IP discipline
     enum uint PPPDISC  = 5;       // PPP discipline
 }
-else version(FreeBSD)
+else version (FreeBSD)
 {
     import std.conv;
 

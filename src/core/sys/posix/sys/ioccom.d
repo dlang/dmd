@@ -66,7 +66,7 @@ version (OSX)
         return _IOC!(T)(IOC_INOUT, cast(uint)g, cast(uint)n, T.sizeof);
     }
 }
-else version(FreeBSD)
+else version (FreeBSD)
 {
     /* FreeBSD ioctl's encode the command in the lower 16-bits
      * and the size of any in/out parameters in the lower 13 bits of the upper
