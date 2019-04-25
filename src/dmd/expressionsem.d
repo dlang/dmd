@@ -8101,13 +8101,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (exp.op == TOK.assign && exp.e1.checkModifiable(sc) == 2)
         {
             //printf("[%s] change to init - %s\n", exp.loc.toChars(), exp.toChars());
-            exp.op = TOK.construct;
+            auto t = exp.type;
+            exp = new ConstructExp(exp.loc, exp.e1, exp.e2);
+            exp.type = t;
 
             // https://issues.dlang.org/show_bug.cgi?id=13515
             // set Index::modifiable flag for complex AA element initialization
-            if (exp.e1.op == TOK.index)
+            if (auto ie1 = exp.e1.isIndexExp())
             {
-                Expression e1x = (cast(IndexExp)exp.e1).markSettingAAElem();
+                Expression e1x = ie1.markSettingAAElem();
                 if (e1x.op == TOK.error)
                 {
                     result = e1x;

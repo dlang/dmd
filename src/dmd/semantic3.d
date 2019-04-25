@@ -967,8 +967,13 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             }
                             ExpInitializer ie = v._init.isExpInitializer();
                             assert(ie);
-                            if (ie.exp.op == TOK.construct)
-                                ie.exp.op = TOK.assign; // construction occurred in parameter processing
+                            if (auto iec = ie.exp.isConstructExp())
+                            {
+                                // construction occurred in parameter processing
+                                auto ec = new AssignExp(iec.loc, iec.e1, iec.e2);
+                                ec.type = iec.type;
+                                ie.exp = ec;
+                            }
                             a.push(new ExpStatement(Loc.initial, ie.exp));
                         }
                     }
