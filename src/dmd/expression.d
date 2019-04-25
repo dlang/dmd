@@ -627,7 +627,7 @@ enum WANTexpand = 1;    // expand const/immutable variables if possible
  */
 extern (C++) abstract class Expression : ASTNode
 {
-    TOK op;         // to minimize use of dynamic_cast
+    const TOK op;   // to minimize use of dynamic_cast
     ubyte size;     // # of bytes in Expression so we can copy() it
     ubyte parens;   // if this is a parenthesized expression
     Type type;      // !=null means that semantic() has been run
