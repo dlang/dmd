@@ -343,13 +343,8 @@ final class Parser(AST) : Lexer
                     {
                         // deprecated (...) module ...
                         if (isdeprecated)
-                        {
                             error("there is only one deprecation attribute allowed for module declaration");
-                        }
-                        else
-                        {
-                            isdeprecated = true;
-                        }
+                        isdeprecated = true;
                         nextToken();
                         if (token.value == TOK.leftParentheses)
                         {
@@ -405,32 +400,28 @@ final class Parser(AST) : Lexer
                 error("identifier expected following `module`");
                 goto Lerr;
             }
-            else
+            AST.Identifiers* a = null;
+            Identifier id = token.ident;
+            while (nextToken() == TOK.dot)
             {
-                AST.Identifiers* a = null;
-                Identifier id = token.ident;
-
-                while (nextToken() == TOK.dot)
-                {
-                    if (!a)
-                        a = new AST.Identifiers();
-                    a.push(id);
-                    nextToken();
-                    if (token.value != TOK.identifier)
-                    {
-                        error("identifier expected following `package`");
-                        goto Lerr;
-                    }
-                    id = token.ident;
-                }
-
-                md = new AST.ModuleDeclaration(loc, a, id, msg, isdeprecated);
-
-                if (token.value != TOK.semicolon)
-                    error("`;` expected following module declaration instead of `%s`", token.toChars());
+                if (!a)
+                    a = new AST.Identifiers();
+                a.push(id);
                 nextToken();
-                addComment(mod, comment);
+                if (token.value != TOK.identifier)
+                {
+                    error("identifier expected following `package`");
+                    goto Lerr;
+                }
+                id = token.ident;
             }
+
+            md = new AST.ModuleDeclaration(loc, a, id, msg, isdeprecated);
+
+            if (token.value != TOK.semicolon)
+                error("`;` expected following module declaration instead of `%s`", token.toChars());
+            nextToken();
+            addComment(mod, comment);
         }
 
         decldefs = parseDeclDefs(0, &lastDecl);
@@ -594,8 +585,7 @@ final class Parser(AST) : Lexer
             case TOK.this_:
                 if (peekNext() == TOK.dot)
                     goto Ldeclaration;
-                else
-                    s = parseCtor(pAttrs);
+                s = parseCtor(pAttrs);
                 break;
 
             case TOK.tilde:
@@ -611,13 +601,10 @@ final class Parser(AST) : Lexer
                         // invariant() { statements... }
                         // invariant (expression);
                         s = parseInvariant(pAttrs);
+                        break;
                     }
-                    else
-                    {
-                        error("invariant body expected, not `%s`", token.toChars());
-                        goto Lerror;
-                    }
-                    break;
+                    error("invariant body expected, not `%s`", token.toChars());
+                    goto Lerror;
                 }
             case TOK.unittest_:
                 if (global.params.useUnitTests || global.params.doDocComments || global.params.doHdrGeneration)
@@ -2743,10 +2730,7 @@ final class Parser(AST) : Lexer
                 auto f = new AST.InvariantDeclaration(loc, token.loc, stc, null, fbody);
                 return f;
             }
-            else
-            {
-                nextToken();
-            }
+            nextToken();
         }
 
         auto fbody = parseStatement(ParseStatementFlags.curly);
@@ -3176,12 +3160,9 @@ final class Parser(AST) : Lexer
                                 ident = token.ident;
                                 type = null;
                                 nextToken();
+                                break;
                             }
-                            else
-                            {
-                                goto default;
-                            }
-                            break;
+                            goto default;
                         default:
                             if (isAnonymousEnum)
                             {
@@ -3236,10 +3217,7 @@ final class Parser(AST) : Lexer
                 auto em = new AST.EnumMember(loc, ident, value, type, stc, uad, dd);
                 e.members.push(em);
 
-                if (token.value == TOK.rightCurly)
-                {
-                }
-                else
+                if (token.value != TOK.rightCurly)
                 {
                     addComment(em, comment);
                     comment = null;
@@ -3368,30 +3346,22 @@ final class Parser(AST) : Lexer
                 bool inObject = md && !md.packages && md.id == Id.object;
                 a = new AST.StructDeclaration(loc, id, inObject);
                 a.members = members;
+                break;
             }
-            else
-            {
-                /* Anonymous structs/unions are more like attributes.
-                 */
-                assert(!tpl);
-                return new AST.AnonDeclaration(loc, false, members);
-            }
-            break;
+            /* Anonymous structs/unions are more like attributes.*/
+            assert(!tpl);
+            return new AST.AnonDeclaration(loc, false, members);
 
         case TOK.union_:
             if (id)
             {
                 a = new AST.UnionDeclaration(loc, id);
                 a.members = members;
+                break;
             }
-            else
-            {
-                /* Anonymous structs/unions are more like attributes.
-                 */
-                assert(!tpl);
-                return new AST.AnonDeclaration(loc, true, members);
-            }
-            break;
+            /* Anonymous structs/unions are more like attributes. */
+            assert(!tpl);
+            return new AST.AnonDeclaration(loc, true, members);
 
         default:
             assert(0);
@@ -3908,13 +3878,10 @@ final class Parser(AST) : Lexer
                             check(TOK.rightBracket);
                             return t;
                         }
-                        else
-                        {
-                            maybeArray = new AST.TypeSArray(t, e);
-                            inBrackets--;
-                            check(TOK.rightBracket);
-                            continue;
-                        }
+                        maybeArray = new AST.TypeSArray(t, e);
+                        inBrackets--;
+                        check(TOK.rightBracket);
+                        continue;
                     }
                     break;
                 }
@@ -4067,8 +4034,7 @@ final class Parser(AST) : Lexer
                 {
                     error("function declaration without return type. (Note that constructors are always named `this`)");
                 }
-                else
-                    error("unexpected `(` in declarator");
+                error("unexpected `(` in declarator");
                 break;
             }
         default:
@@ -4692,8 +4658,7 @@ final class Parser(AST) : Lexer
                 {
                     if (isThis)
                         error("cannot use syntax `alias this = %s`, use `alias %s this` instead", _init.toChars(), _init.toChars());
-                    else
-                        error("alias cannot have initializer");
+                    error("alias cannot have initializer");
                 }
                 v = new AST.AliasDeclaration(loc, ident, t);
 
@@ -4963,8 +4928,7 @@ final class Parser(AST) : Lexer
             decldefs.push(fd);
             return new AST.TemplateDeclaration(fd.loc, fd.ident, tpl, null, decldefs, false, true);
         }
-        else
-            return fd;
+        return fd;
     }
 
     /*****************************************
@@ -5121,8 +5085,7 @@ final class Parser(AST) : Lexer
                     error("attributes cannot be placed after a template constraint");
                 else if (t == TOK.if_)
                     error("cannot use function constraints for non-template functions. Use `static if` instead");
-                else
-                    error("semicolon expected following function declaration");
+                error("semicolon expected following function declaration");
             }
             break;
         }
@@ -5427,8 +5390,7 @@ final class Parser(AST) : Lexer
              */
             if (isDeclaration(&token, NeedDeclaratorId.mustIfDstyle, TOK.reserved, null))
                 goto Ldeclaration;
-            else
-                goto Lexp;
+            goto Lexp;
 
         case TOK.assert_:
         case TOK.this_:
@@ -5891,24 +5853,21 @@ final class Parser(AST) : Lexer
                 error("scope identifier expected");
                 goto Lerror;
             }
+            TOK t = TOK.onScopeExit;
+            Identifier id = token.ident;
+            if (id == Id.exit)
+                t = TOK.onScopeExit;
+            else if (id == Id.failure)
+                t = TOK.onScopeFailure;
+            else if (id == Id.success)
+                t = TOK.onScopeSuccess;
             else
-            {
-                TOK t = TOK.onScopeExit;
-                Identifier id = token.ident;
-                if (id == Id.exit)
-                    t = TOK.onScopeExit;
-                else if (id == Id.failure)
-                    t = TOK.onScopeFailure;
-                else if (id == Id.success)
-                    t = TOK.onScopeSuccess;
-                else
-                    error("valid scope identifiers are `exit`, `failure`, or `success`, not `%s`", id.toChars());
-                nextToken();
-                check(TOK.rightParentheses);
-                AST.Statement st = parseStatement(ParseStatementFlags.scope_);
-                s = new AST.ScopeGuardStatement(loc, t, st);
-                break;
-            }
+                error("valid scope identifiers are `exit`, `failure`, or `success`, not `%s`", id.toChars());
+            nextToken();
+            check(TOK.rightParentheses);
+            AST.Statement st = parseStatement(ParseStatementFlags.scope_);
+            s = new AST.ScopeGuardStatement(loc, t, st);
+            break;
 
         case TOK.debug_:
             nextToken();
@@ -6781,8 +6740,7 @@ final class Parser(AST) : Lexer
                 *pt = t;
             goto Lis;
         }
-        else
-            goto Lisnot;
+        goto Lisnot;
 
     Lis:
         //printf("\tis declaration, t = %s\n", t.toChars());
@@ -6920,8 +6878,7 @@ final class Parser(AST) : Lexer
                         goto Lfalse;
                     }
                 }
-                else
-                    break;
+                break;
             }
             break;
 
@@ -8491,8 +8448,7 @@ final class Parser(AST) : Lexer
                     e = parseNewExp(e);
                     continue;
                 }
-                else
-                    error("identifier expected following `.`, not `%s`", token.toChars());
+                error("identifier expected following `.`, not `%s`", token.toChars());
                 break;
 
             case TOK.plusPlus:
@@ -8934,18 +8890,16 @@ final class Parser(AST) : Lexer
         else
             endtok = TOK.rightParentheses;
 
+        nextToken();
+        while (token.value != endtok && token.value != TOK.endOfFile)
         {
-            nextToken();
-            while (token.value != endtok && token.value != TOK.endOfFile)
-            {
-                auto arg = parseAssignExp();
-                arguments.push(arg);
-                if (token.value == endtok)
-                    break;
-                check(TOK.comma);
-            }
-            check(endtok);
+            auto arg = parseAssignExp();
+            arguments.push(arg);
+            if (token.value == endtok)
+                break;
+            check(TOK.comma);
         }
+        check(endtok);
         return arguments;
     }
 
@@ -9011,10 +8965,7 @@ final class Parser(AST) : Lexer
             }
             t = new AST.TypeSArray(taa.next, edim);
         }
-        else if (t.ty == AST.Tsarray)
-        {
-        }
-        else if (token.value == TOK.leftParentheses)
+        else if (t.ty != AST.Tsarray && token.value == TOK.leftParentheses)
         {
             arguments = parseArguments();
         }
