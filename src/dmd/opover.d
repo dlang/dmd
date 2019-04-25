@@ -2062,9 +2062,9 @@ private bool matchParamsToOpApply(TypeFunction tf, Parameters* parameters, bool 
  * Reverse relational operator, eg >= becomes <=
  * Note this is not negation.
  * Params:
- *      op = comparison operator to negate
+ *      op = comparison operator to reverse
  * Returns:
- *      negate operator
+ *      reverse of op
  */
 private TOK reverseRelation(TOK op) pure
 {
