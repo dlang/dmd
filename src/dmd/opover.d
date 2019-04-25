@@ -495,11 +495,13 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
         alias visit = Visitor.visit;
     public:
         Scope* sc;
+        TOK* pop;
         Expression result;
 
-        extern (D) this(Scope* sc)
+        extern (D) this(Scope* sc, TOK* pop)
         {
             this.sc = sc;
+            this.pop = pop;
         }
 
         override void visit(Expression e)
@@ -1552,7 +1554,7 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
 
     if (pop)
         *pop = e.op;
-    scope OpOverload v = new OpOverload(sc);
+    scope OpOverload v = new OpOverload(sc, pop);
     e.accept(v);
     return v.result;
 }
