@@ -120,10 +120,10 @@ else version(FreeBSD)
     }
 
     // Serial/TTY ioctl's
-    						// 0-2 compat
-    						// 3-7 unused
-    						// 8-10 compat
-    						// 11-12 unused
+                                               // 0-2 compat
+                                               // 3-7 unused
+                                               // 8-10 compat
+                                               // 11-12 unused
     enum uint TIOCEXCL  = _IO('t', 13);        // set exclusive use of tty
     enum uint TIOCNXCL  = _IO('t', 14);        // reset exclusive use of tty
     enum uint TIOCGPTN  = _IOR!(int)('t', 15); // get pts number
@@ -133,33 +133,33 @@ else version(FreeBSD)
     enum uint TIOCSETA  = _IOW!(termios)('t', 20); // set termios struct
     enum uint TIOCSETAW = _IOW!(termios)('t', 21); // drain output, set
     enum uint TIOCSETAF = _IOW!(termios)('t', 22); // drn out, fls in, set
-    					// 23-25 unused
+                            // 23-25 unused
     enum uint TIOCGETD  = _IOR!(int)('t', 26); // get line discipline
     enum uint TIOCSETD  = _IOW!(int)('t', 27); // set line discipline
     enum uint TIOCPTMASTER = _IO('t', 28);     // pts master validation
-					// 29-85 unused
+                            // 29-85 unused
     enum uint TIOCGDRAINWAIT = _IOR!(int)('t', 86); // get ttywait timeout
     enum uint TIOCSDRAINWAIT = _IOW!(int)('t', 87); // set ttywait timeout
-    					// 88 unused
-    					// 89-91 conflicts: tun and tap
+                            // 88 unused
+                            // 89-91 conflicts: tun and tap
     enum uint TIOCTIMESTAMP = _IOR!(timeval)('t', 89); // enable/get timestamp of last input event
     enum uint TIOCMGDTRWAIT = _IOR!(int)('t', 90); // modem: get wait on close
     enum uint TIOCMSDTRWAIT = _IOW!(int)('t', 91); // modem: set wait on close
-    					// 92-93 tun and tap
-    					// 94-97 conflicts: tun and tap
+                            // 92-93 tun and tap
+                            // 94-97 conflicts: tun and tap
     enum uint TIOCDRAIN = _IO('t', 94); // wait till output drained
     enum uint TIOCSIG   = _IOWINT!(int)('t', 95); // pty: generate signal
     enum uint TIOCEXT   = _IOW!(int)('t', 96); // pty: external processing
     enum uint TIOCSCTTY = _IO('t', 97);        // become controlling tty
     enum uint TIOCCONS  = _IOW!(int)('t', 98); // become virtual console
     enum uint TIOCGSID  = _IOR!(int)('t', 99); // get session id
-    					// 100 unused
+                            // 100 unused
     enum uint TIOCSTAT  = _IO('t', 101);       // simulate ^T status message
     enum uint TIOCUCNTL = _IOW!(int)('t', 102); // pty: set/clr usr cntl mode
     enum uint   UIOCCMD(n) = _IO('u', n);       // usr cntl op "n"
     enum uint TIOCSWINSZ = _IOW!(winsize)('t', 103); // set window size
     enum uint TIOCGWINSZ = _IOR!(winsize)('t', 104); // get window size
-    					// 105 unused
+                            // 105 unused
     enum uint TIOCMGET  = _IOR!(int)('t', 106); // get all modem bits
     enum uint   TIOCM_LE  = 1;                  // line enable
     enum uint   TIOCM_DTR = 2;                  // data terminal ready
@@ -190,7 +190,7 @@ else version(FreeBSD)
     enum uint TIOCNOTTY = _IO('t', 113);        // void tty association
     enum uint TIOCSTI   = _IOW!(char)('t', 114); // simulate terminal input
     enum uint TIOCOUTQ  = _IOR!(int)('t', 115); // output queue size
-    				// 116-117 compat
+                             // 116-117 compat
     enum uint TIOCSPGRP = _IOW!(int)('t', 118); // set pgrp of tty
     enum uint TIOCGPGRP = _IOR!(int)('t', 119); // get pgrp of tty
 
