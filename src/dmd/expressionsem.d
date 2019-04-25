@@ -9022,8 +9022,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (checkNewEscape(sc, exp.e2, false))
                 return setError();
 
-            exp.op = TOK.concatenateElemAssign;
-            exp.e2 = exp.e2.castTo(sc, tb1next);
+            exp = new CatElemAssignExp(exp.loc, exp.type, exp.e1, exp.e2.castTo(sc, tb1next));
             exp.e2 = doCopyOrMove(sc, exp.e2);
         }
         else if (tb1.ty == Tarray &&
@@ -9032,8 +9031,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                  exp.e2.implicitConvTo(Type.tdchar))
         {
             // Append dchar to char[] or wchar[]
-            exp.op = TOK.concatenateDcharAssign;
-            exp.e2 = exp.e2.castTo(sc, Type.tdchar);
+            exp = new CatDcharAssignExp(exp.loc, exp.type, exp.e1, exp.e2.castTo(sc, Type.tdchar));
 
             /* Do not allow appending wchar to char[] because if wchar happens
              * to be a surrogate pair, nothing good can result.

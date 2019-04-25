@@ -1659,9 +1659,15 @@ extern (C++) abstract class Expression : ASTNode
         inout(ShrAssignExp)  isShrAssignExp()  { return op == TOK.rightShiftAssign ? cast(typeof(return))this : null; }
         inout(UshrAssignExp) isUshrAssignExp() { return op == TOK.unsignedRightShiftAssign ? cast(typeof(return))this : null; }
 
-        inout(CatAssignExp) isCatAssignExp() { return (op == TOK.concatenateAssign ||
-                                                       op == TOK.concatenateElemAssign ||
-                                                       op == TOK.concatenateDcharAssign)
+        inout(CatAssignExp) isCatAssignExp() { return op == TOK.concatenateAssign
+                                                ? cast(typeof(return))this
+                                                : null; }
+
+        inout(CatElemAssignExp) isCatElemAssignExp() { return op == TOK.concatenateElemAssign
+                                                ? cast(typeof(return))this
+                                                : null; }
+
+        inout(CatDcharAssignExp) isCatDcharAssignExp() { return op == TOK.concatenateDcharAssign
                                                 ? cast(typeof(return))this
                                                 : null; }
 
@@ -5777,7 +5783,7 @@ extern (C++) final class ConstructExp : AssignExp
         op = TOK.construct;
     }
 
-    // Internal use only. If `v` is a reference variable, the assinment
+    // Internal use only. If `v` is a reference variable, the assignment
     // will become a reference initialization automatically.
     extern (D) this(const ref Loc loc, VarDeclaration v, Expression e2)
     {
@@ -6017,11 +6023,46 @@ extern (C++) final class UshrAssignExp : BinAssignExp
  * The parser initially sets it to TOK.concatenateAssign, and semantic() later decides which
  * of the three it will be set to.
  */
-extern (C++) final class CatAssignExp : BinAssignExp
+extern (C++) class CatAssignExp : BinAssignExp
 {
     extern (D) this(const ref Loc loc, Expression e1, Expression e2)
     {
         super(loc, TOK.concatenateAssign, __traits(classInstanceSize, CatAssignExp), e1, e2);
+    }
+
+    extern (D) this(const ref Loc loc, TOK tok, Expression e1, Expression e2)
+    {
+        super(loc, tok, __traits(classInstanceSize, CatAssignExp), e1, e2);
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+///
+extern (C++) final class CatElemAssignExp : CatAssignExp
+{
+    extern (D) this(const ref Loc loc, Type type, Expression e1, Expression e2)
+    {
+        super(loc, TOK.concatenateElemAssign, e1, e2);
+        this.type = type;
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+///
+extern (C++) final class CatDcharAssignExp : CatAssignExp
+{
+    extern (D) this(const ref Loc loc, Type type, Expression e1, Expression e2)
+    {
+        super(loc, TOK.concatenateDcharAssign, e1, e2);
+        this.type = type;
     }
 
     override void accept(Visitor v)
