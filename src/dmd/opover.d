@@ -478,9 +478,17 @@ private Expression checkAliasThisForRhs(AggregateDeclaration ad, Scope* sc, BinE
  * Operator overload.
  * Check for operator overload, if so, replace
  * with function call.
- * Return NULL if not an operator overload.
+ * Params:
+ *      e = expression with operator
+ *      sc = context
+ *      pop = if not null, is set to the operator that was actually overloaded,
+ *            which may not be `e.op`. Happens when operands are reversed to
+ *            to match an overload
+ * Returns:
+ *      `null` if not an operator overload,
+ *      otherwise the lowered expression
  */
-Expression op_overload(Expression e, Scope* sc)
+Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
 {
     extern (C++) final class OpOverload : Visitor
     {
@@ -1040,7 +1048,8 @@ Expression op_overload(Expression e, Scope* sc)
                         }
                         // When reversing operands of comparison operators,
                         // need to reverse the sense of the op
-                        e.op = reverseRelation(e.op);
+                        if (pop)
+                            *pop = reverseRelation(e.op);
                         return;
                     }
                 }
@@ -1206,7 +1215,7 @@ Expression op_overload(Expression e, Scope* sc)
                 }
             }
 
-            result = compare_overload(e, sc, Id.eq);
+            result = compare_overload(e, sc, Id.eq, null);
             if (result)
             {
                 if (result.op == TOK.call && e.op == TOK.notEqual)
@@ -1344,7 +1353,7 @@ Expression op_overload(Expression e, Scope* sc)
         override void visit(CmpExp e)
         {
             //printf("CmpExp:: () (%s)\n", e.toChars());
-            result = compare_overload(e, sc, Id.cmp);
+            result = compare_overload(e, sc, Id.cmp, pop);
         }
 
         /*********************************
@@ -1541,6 +1550,8 @@ Expression op_overload(Expression e, Scope* sc)
         }
     }
 
+    if (pop)
+        *pop = e.op;
     scope OpOverload v = new OpOverload(sc);
     e.accept(v);
     return v.result;
@@ -1549,7 +1560,7 @@ Expression op_overload(Expression e, Scope* sc)
 /******************************************
  * Common code for overloading of EqualExp and CmpExp
  */
-private Expression compare_overload(BinExp e, Scope* sc, Identifier id)
+private Expression compare_overload(BinExp e, Scope* sc, Identifier id, TOK* pop)
 {
     //printf("BinExp::compare_overload(id = %s) %s\n", id.toChars(), e.toChars());
     AggregateDeclaration ad1 = isAggregate(e.e1.type);
@@ -1636,7 +1647,8 @@ private Expression compare_overload(BinExp e, Scope* sc, Identifier id)
             result = build_overload(e.loc, sc, e.e2, e.e1, m.lastf ? m.lastf : s_r);
             // When reversing operands of comparison operators,
             // need to reverse the sense of the op
-            e.op = reverseRelation(e.op);
+            if (pop)
+                *pop = reverseRelation(e.op);
         }
         return result;
     }
