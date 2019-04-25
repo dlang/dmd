@@ -99,7 +99,7 @@ private auto spellerY(alias dg)(const(char)* seed, size_t seedlen, size_t index,
     return p; // return "best" result
 }
 
-private auto spellerX(alias dg)(const(char)* seed, size_t seedlen, int flag)
+private auto spellerX(alias dg)(const(char)* seed, size_t seedlen, bool flag)
 {
     if (!seedlen)
         return null;
@@ -198,7 +198,7 @@ if (isSearchFunction!dg)
     size_t maxdist = seedlen < 4 ? seedlen / 2 : 2;
     for (int distance = 0; distance < maxdist; distance++)
     {
-        auto p = spellerX!dg(seed, seedlen, distance);
+        auto p = spellerX!dg(seed, seedlen, distance > 0);
         if (p)
             return p;
         //      if (seedlen > 10)
