@@ -5548,7 +5548,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         se = se.toUTF8(sc);
 
         auto namez = se.toStringz().ptr;
-        if (!global.params.fileImppath)
+        if (!global.filePath)
         {
             e.error("need `-J` switch to import text file `%s`", namez);
             return setError();

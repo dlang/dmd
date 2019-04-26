@@ -139,3 +139,27 @@ unittest
 
     assert(global.errors == 0);
 }
+
+@("addStringImport") unittest
+{
+    import std.algorithm : each;
+    import std.path : dirName, buildPath;
+
+    import dmd.frontend;
+    import dmd.globals : global;
+
+    initDMD();
+    defaultImportPaths.each!addImport;
+    addStringImport(__FILE_FULL_PATH__.dirName.buildPath("support", "data"));
+
+    auto t = parseModule("test.d", q{
+        enum a = import("foo.txt");
+    });
+
+    assert(!t.diagnostics.hasErrors);
+    assert(!t.diagnostics.hasWarnings);
+
+    t.module_.fullSemantic();
+
+    assert(global.errors == 0);
+}
