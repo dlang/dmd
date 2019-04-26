@@ -95,7 +95,7 @@ bool isSameFuncLiteral(FuncLiteralDeclaration l1, FuncLiteralDeclaration l2, Sco
  */
 private string getSerialization(FuncLiteralDeclaration fld, Scope* sc)
 {
-    scope serVisitor = new SerializeVisitor(sc);
+    scope serVisitor = new SerializeVisitor(fld.parent._scope);
     fld.accept(serVisitor);
     const len = serVisitor.buf.offset;
     if (len == 0)
@@ -263,6 +263,11 @@ public:
                 {
                     buf.reset();
                 }
+            }
+            // If it's an unknown symbol, consider the function incomparable
+            else
+            {
+                buf.reset();
             }
         }
     }
@@ -435,4 +440,54 @@ public:
         else
             visitType(p.type);
     }
+
+    override void visit(StructLiteralExp e) {
+        static if (LOG)
+            printf("StructLiteralExp: %s\n", e.toChars);
+
+        auto ty = cast(TypeStruct)e.stype;
+        if (ty)
+        {
+            writeMangledName(ty.sym);
+            auto dim = e.elements.dim;
+            foreach (i; 0..dim)
+            {
+                auto elem = (*e.elements)[i];
+                if (elem)
+                    elem.accept(this);
+                else
+                    buf.writestring("null_");
+            }
+        }
+        else
+            buf.reset();
+    }
+
+    override void visit(ArrayLiteralExp) { buf.reset(); }
+    override void visit(AssocArrayLiteralExp) { buf.reset(); }
+    override void visit(CompileExp) { buf.reset(); }
+    override void visit(ComplexExp) { buf.reset(); }
+    override void visit(DeclarationExp) { buf.reset(); }
+    override void visit(DefaultInitExp) { buf.reset(); }
+    override void visit(DsymbolExp) { buf.reset(); }
+    override void visit(ErrorExp) { buf.reset(); }
+    override void visit(FuncExp) { buf.reset(); }
+    override void visit(HaltExp) { buf.reset(); }
+    override void visit(IntervalExp) { buf.reset(); }
+    override void visit(IsExp) { buf.reset(); }
+    override void visit(NewAnonClassExp) { buf.reset(); }
+    override void visit(NewExp) { buf.reset(); }
+    override void visit(NullExp) { buf.reset(); }
+    override void visit(ObjcClassReferenceExp) { buf.reset(); }
+    override void visit(OverExp) { buf.reset(); }
+    override void visit(ScopeExp) { buf.reset(); }
+    override void visit(StringExp) { buf.reset(); }
+    override void visit(SymbolExp) { buf.reset(); }
+    override void visit(TemplateExp) { buf.reset(); }
+    override void visit(ThisExp) { buf.reset(); }
+    override void visit(TraitsExp) { buf.reset(); }
+    override void visit(TupleExp) { buf.reset(); }
+    override void visit(TypeExp) { buf.reset(); }
+    override void visit(TypeidExp) { buf.reset(); }
+    override void visit(VoidInitExp) { buf.reset(); }
 }
