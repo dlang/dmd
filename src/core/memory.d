@@ -1067,7 +1067,7 @@ void __delete(T)(ref T x) @system
     {
         static if (is(E == struct))
         {
-            foreach (ref e; x)
+            foreach_reverse (ref e; x)
                 _destructRecurse(e);
         }
     }
@@ -1192,10 +1192,14 @@ unittest
         int a;
         ~this()
         {
+            assert(dtorCalled == a);
             dtorCalled++;
         }
     }
     auto arr = [A(1), A(2), A(3)];
+    arr[0].a = 2;
+    arr[1].a = 1;
+    arr[2].a = 0;
 
     assert(GC.addrOf(arr.ptr) != null);
     __delete(arr);
