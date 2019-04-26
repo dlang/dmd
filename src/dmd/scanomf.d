@@ -157,6 +157,9 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
     ubyte result = 0;
     char[LIBIDMAX + 1] name;
     Strings names;
+    scope(exit)
+        for (size_t u = 1; u < names.dim; u++)
+            free(cast(void*)names[u]);
     names.push(null); // don't use index 0
     easyomf = 0; // assume not EASY-OMF
     auto pend = cast(const(ubyte)*)base.ptr + buflen;
@@ -250,7 +253,7 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
         case MODEND:
         case M386END:
             result = 1;
-            goto Ret;
+            return;
         case COMENT:
             // Recognize Phar Lap EASY-OMF format
             {
@@ -286,9 +289,6 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
             // ignore
         }
     }
-Ret:
-    for (size_t u = 1; u < names.dim; u++)
-        free(cast(void*)names[u]);
 }
 
 /*************************************************
