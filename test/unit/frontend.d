@@ -71,3 +71,47 @@ unittest
 
     assert(visitor.created);
 }
+
+@("initDMD - contract checking")
+unittest
+{
+    import std.algorithm : each;
+
+    import dmd.frontend;
+    import dmd.globals : global;
+
+    defaultImportPaths.each!addImport;
+
+    auto t = parseModule("test.d", q{
+        int foo(int a)
+        in(a == 3)
+        out(result; result == 0)
+        {
+            if (a == 1)
+                assert(false);
+
+            int[] array;
+            array[0] = 3;
+
+            final switch (3)
+            {
+                case 4: break;
+            }
+
+            return 0;
+        }
+
+        class Foo
+        {
+            int a;
+            invariant(a > 0);
+        }
+    });
+
+    assert(!t.diagnostics.hasErrors);
+    assert(!t.diagnostics.hasWarnings);
+
+    t.module_.fullSemantic();
+
+    assert(global.errors == 0);
+}

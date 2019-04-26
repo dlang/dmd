@@ -17,6 +17,7 @@ module dmd.frontend;
 import dmd.astcodegen : ASTCodegen;
 import dmd.dmodule : Module;
 import dmd.errors : DiagnosticReporter;
+import dmd.globals : CHECKENABLE;
 
 import std.range.primitives : isInputRange, ElementType;
 import std.traits : isNarrowString;
@@ -47,17 +48,66 @@ immutable struct Diagnostics
     }
 }
 
+/// Indicates the checking state of various contracts.
+enum ContractChecking : CHECKENABLE
+{
+    /// Initial value
+    default_ = CHECKENABLE._default,
+
+    /// Never do checking
+    disabled = CHECKENABLE.off,
+
+    /// Always do checking
+    enabled = CHECKENABLE.on,
+
+    /// Only do checking in `@safe` functions
+    enabledInSafe = CHECKENABLE.safeonly
+}
+
+unittest
+{
+    static assert(
+        __traits(allMembers, ContractChecking).length ==
+        __traits(allMembers, CHECKENABLE).length
+    );
+}
+
+/// Indicates which contracts should be checked or not.
+struct ContractChecks
+{
+    /// Precondition checks (in contract).
+    ContractChecking precondition = ContractChecking.enabled;
+
+    /// Invariant checks.
+    ContractChecking invariant_ = ContractChecking.enabled;
+
+    /// Postcondition checks (out contract).
+    ContractChecking postcondition = ContractChecking.enabled;
+
+    /// Array bound checks.
+    ContractChecking arrayBounds = ContractChecking.enabled;
+
+    /// Assert checks.
+    ContractChecking assert_ = ContractChecking.enabled;
+
+    /// Switch error checks.
+    ContractChecking switchError = ContractChecking.enabled;
+}
+
 /*
 Initializes the global variables of the DMD compiler.
 This needs to be done $(I before) calling any function.
+
+Params:
+    contractChecks = indicates which contracts should be enabled or not
 */
-void initDMD()
+void initDMD(ContractChecks contractChecks = ContractChecks())
 {
     import dmd.builtin : builtin_init;
     import dmd.dmodule : Module;
     import dmd.expression : Expression;
     import dmd.filecache : FileCache;
-    import dmd.globals : global;
+    import dmd.globals : CHECKENABLE, global;
     import dmd.id : Id;
     import dmd.identifier : Identifier;
     import dmd.mars : setTarget, addDefaultVersionIdentifiers;
@@ -66,6 +116,17 @@ void initDMD()
     import dmd.target : target;
 
     global._init();
+
+    with (global.params)
+    {
+        useIn = contractChecks.precondition;
+        useInvariants = contractChecks.invariant_;
+        useOut = contractChecks.postcondition;
+        useArrayBounds = contractChecks.arrayBounds;
+        useAssert = contractChecks.assert_;
+        useSwitchError = contractChecks.switchError;
+    }
+
     setTarget(global.params);
     addDefaultVersionIdentifiers(global.params);
 
