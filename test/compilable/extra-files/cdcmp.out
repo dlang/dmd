@@ -1050,3 +1050,20 @@ Disassembly of section .text._D5cdcmp7test_gtFddZb:
    b:	72 02                	jb     f <_D5cdcmp7test_gtFddZb+0xf>
    d:	31 c0                	xor    eax,eax
    f:	c3                   	ret    
+
+Disassembly of section .text.d_dso_init:
+
+0000000000000000 <.text.d_dso_init>:
+   0:	55                   	push   rbp
+   1:	48 8b ec             	mov    rbp,rsp
+   4:	48 8d 05 00 00 00 00 	lea    rax,[rip+0x0]        # b <.text.d_dso_init+0xb>
+   b:	50                   	push   rax
+   c:	48 8d 05 00 00 00 00 	lea    rax,[rip+0x0]        # 13 <.text.d_dso_init+0x13>
+  13:	50                   	push   rax
+  14:	48 8d 05 00 00 00 00 	lea    rax,[rip+0x0]        # 1b <.text.d_dso_init+0x1b>
+  1b:	50                   	push   rax
+  1c:	6a 01                	push   0x1
+  1e:	48 8b fc             	mov    rdi,rsp
+  21:	e8 00 00 00 00       	call   26 <.text.d_dso_init+0x26>
+  26:	c9                   	leave  
+  27:	c3                   	ret    
