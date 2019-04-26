@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+export LC_ALL=C
 src_file=${EXTRA_FILES}/${TEST_NAME}.d
 expect_file=${EXTRA_FILES}/${TEST_NAME}.out
 expect_file_avx=${EXTRA_FILES}/${TEST_NAME}avx.out
