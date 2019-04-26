@@ -137,7 +137,7 @@ FuncDeclaration hasThis(Scope* sc)
     {
         if (!fd)
         {
-            goto Lno;
+            return null;
         }
         if (!fd.isNested() || fd.isThis() || (fd.isThis2 && fd.isMember2()))
             break;
@@ -146,7 +146,7 @@ FuncDeclaration hasThis(Scope* sc)
         while (1)
         {
             if (!parent)
-                goto Lno;
+                return null;
             TemplateInstance ti = parent.isTemplateInstance();
             if (ti)
                 parent = ti.parent;
@@ -158,14 +158,12 @@ FuncDeclaration hasThis(Scope* sc)
 
     if (!fd.isThis() && !(fd.isThis2 && fd.isMember2()))
     {
-        goto Lno;
+        return null;
     }
 
     assert(fd.vthis);
     return fd;
 
-Lno:
-    return null; // don't have 'this' available
 }
 
 /***********************************
@@ -276,26 +274,28 @@ extern (C++) TupleDeclaration isAliasThisTuple(Expression e)
         return null;
 
     Type t = e.type.toBasetype();
-Lagain:
-    if (Dsymbol s = t.toDsymbol(null))
+    while (true)
     {
-        if (auto ad = s.isAggregateDeclaration())
+        if (Dsymbol s = t.toDsymbol(null))
         {
-            s = ad.aliasthis;
-            if (s && s.isVarDeclaration())
+            if (auto ad = s.isAggregateDeclaration())
             {
-                TupleDeclaration td = s.isVarDeclaration().toAlias().isTupleDeclaration();
-                if (td && td.isexp)
-                    return td;
-            }
-            if (Type att = t.aliasthisOf())
-            {
-                t = att;
-                goto Lagain;
+                s = ad.aliasthis;
+                if (s && s.isVarDeclaration())
+                {
+                    TupleDeclaration td = s.isVarDeclaration().toAlias().isTupleDeclaration();
+                    if (td && td.isexp)
+                        return td;
+                }
+                if (Type att = t.aliasthisOf())
+                {
+                    t = att;
+                    continue;
+                }
             }
         }
+        return null;
     }
-    return null;
 }
 
 extern (C++) int expandAliasThisTuples(Expressions* exps, size_t starti = 0)
@@ -3716,6 +3716,14 @@ extern (C++) final class FuncExp : Expression
 
     extern (D) MATCH matchType(Type to, Scope* sc, FuncExp* presult, int flag = 0)
     {
+
+        static MATCH cannotInfer(Expression e, Type to, int flag)
+        {
+            if (!flag)
+                e.error("cannot infer parameter types from `%s`", to.toChars());
+            return MATCH.nomatch;
+        }
+
         //printf("FuncExp::matchType('%s'), to=%s\n", type ? type.toChars() : "null", to.toChars());
         if (presult)
             *presult = null;
@@ -3745,10 +3753,7 @@ extern (C++) final class FuncExp : Expression
         {
             if (!tof)
             {
-            L1:
-                if (!flag)
-                    error("cannot infer parameter types from `%s`", to.toChars());
-                return MATCH.nomatch;
+                return cannotInfer(this, to, flag);
             }
 
             // Parameter types inference from 'tof'
@@ -3759,7 +3764,7 @@ extern (C++) final class FuncExp : Expression
             size_t dim = tf.parameterList.length;
 
             if (tof.parameterList.length != dim || tof.parameterList.varargs != tf.parameterList.varargs)
-                goto L1;
+                return cannotInfer(this, to, flag);
 
             auto tiargs = new Objects();
             tiargs.reserve(td.parameters.dim);
@@ -3780,7 +3785,7 @@ extern (C++) final class FuncExp : Expression
                 Parameter pto = tof.parameterList[u];
                 Type t = pto.type;
                 if (t.ty == Terror)
-                    goto L1;
+                    return cannotInfer(this, to, flag);
                 tiargs.push(t);
             }
 
@@ -3799,7 +3804,7 @@ extern (C++) final class FuncExp : Expression
             if (auto ef = ex.isFuncExp())
                 return ef.matchType(to, sc, presult, flag);
             else
-                goto L1;
+                return cannotInfer(this, to, flag);
         }
 
         if (!tof || !tof.next)
