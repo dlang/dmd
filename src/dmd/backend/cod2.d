@@ -69,66 +69,56 @@ private void swap(reg_t *a,reg_t *b)
 
 
 /*******************************************
- * !=0 if cannot use this EA in anything other than a MOV instruction.
+ * Returns: true if cannot use this EA in anything other than a MOV instruction.
  */
 
-int movOnly(elem *e)
+bool movOnly(const elem *e)
 {
     if (config.exe & EX_OSX64 && config.flags3 & CFG3pic && e.Eoper == OPvar)
-    {   Symbol *s = e.EV.Vsym;
+    {
+        const s = e.EV.Vsym;
         // Fixups for these can only be done with a MOV
         if (s.Sclass == SCglobal || s.Sclass == SCextern ||
             s.Sclass == SCcomdat || s.Sclass == SCcomdef)
-            return 1;
+            return true;
     }
-    return 0;
+    return false;
 }
 
 /********************************
- * Return mask of index registers used by addressing mode.
+ * Determine index registers used by addressing mode.
  * Index is rm of modregrm field.
+ * Returns:
+ *      mask of index registers
  */
 
-regm_t idxregm(code *c)
+regm_t idxregm(const code* c)
 {
-    static immutable ubyte[8] idxsib = [ mAX,mCX,mDX,mBX,0,mBP,mSI,mDI ];
-    static immutable ubyte[8] idxrm  = [mBX|mSI,mBX|mDI,mSI,mDI,mSI,mDI,0,mBX];
-
-    uint rm = c.Irm;
-    regm_t idxm = 0;
+    const rm = c.Irm;
+    regm_t idxm;
     if ((rm & 0xC0) != 0xC0)            /* if register is not the destination */
     {
         if (I16)
+        {
+            static immutable ubyte[8] idxrm  = [mBX|mSI,mBX|mDI,mSI,mDI,mSI,mDI,0,mBX];
             idxm = idxrm[rm & 7];
+        }
         else
         {
             if ((rm & 7) == 4)          /* if sib byte                  */
             {
-                uint sib = c.Isib;
-                uint idxreg = (sib >> 3) & 7;
-                if (c.Irex & REX_X)
-                {   idxreg |= 8;
-                    idxm = mask(idxreg);  // scaled index reg
-                }
-                else
-                    idxm = idxsib[idxreg];  // scaled index reg
+                const sib = c.Isib;
+                reg_t idxreg = (sib >> 3) & 7;
+                // scaled index reg
+                idxm = mask(idxreg | ((c.Irex & REX_X) ? 8 : 0));
+
                 if ((sib & 7) == 5 && (rm & 0xC0) == 0)
                 { }
                 else
-                {   uint base = sib & 7;
-                    if (c.Irex & REX_B)
-                        idxm |= mask(base | 8);
-                    else
-                        idxm |= idxsib[base];
-                }
+                    idxm |= mask((sib & 7) | ((c.Irex & REX_B) ? 8 : 0));
             }
             else
-            {   uint base = rm & 7;
-                if (c.Irex & REX_B)
-                    idxm |= mask(base | 8);
-                else
-                    idxm |= idxsib[base];
-            }
+                idxm = mask((rm & 7) | ((c.Irex & REX_B) ? 8 : 0));
         }
     }
     return idxm;
@@ -196,8 +186,8 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         return;
     }
 
-    tym_t ty = tybasic(e.Ety);
-    tym_t ty1 = tybasic(e1.Ety);
+    const ty = tybasic(e.Ety);
+    const ty1 = tybasic(e1.Ety);
 
     if (tyfloating(ty1))
     {
@@ -235,14 +225,14 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
     opcode_t op1, op2;
     uint mode;
-    static int nest;
+    __gshared int nest;
 
-    tym_t ty2 = tybasic(e2.Ety);
-    int e2oper = e2.Eoper;
-    uint sz = _tysize[ty];
-    uint isbyte = (sz == 1);
-    ubyte word = (!I16 && sz == SHORTSIZE) ? CFopsize : 0;
-    uint test = false;                // assume we destroyed lvalue
+    const ty2 = tybasic(e2.Ety);
+    const e2oper = e2.Eoper;
+    const sz = _tysize[ty];
+    const isbyte = (sz == 1);
+    code_flags_t word = (!I16 && sz == SHORTSIZE) ? CFopsize : 0;
+    bool test = false;                // assume we destroyed lvalue
 
     switch (e.Eoper)
     {
@@ -301,7 +291,7 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         // Handle the case of (var & const)
         if (e2.Eoper == OPconst && el_signx32(e2))
         {
-            code cs;
+            code cs = void;
             cs.Iflags = 0;
             cs.Irex = 0;
             getlvalue(cdb,&cs,e1,0);
@@ -340,7 +330,7 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         regm_t retregs;
         if (isregvar(e2,&retregs,&reg))
         {
-            code cs;
+            code cs = void;
             cs.Iflags = 0;
             cs.Irex = 0;
             getlvalue(cdb,&cs,e1,0);
@@ -356,11 +346,7 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         }
     }
 
-    reg_t reg,rreg;
-    regm_t retregs,rretregs,posregs;
-    int rval;
-    targ_size_t i;
-    code cs;
+    code cs = void;
     cs.Iflags = 0;
     cs.Irex = 0;
 
@@ -370,7 +356,7 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         !nest &&                              // could cause infinite recursion if e.Ecount
         (sz == REGSIZE || (I64 && sz == 4)))  // far pointers aren't handled
     {
-        uint rex = (sz == 8) ? REX_W : 0;
+        const rex = (sz == 8) ? REX_W : 0;
 
         // Handle the case of (e + &var)
         int e1oper = e1.Eoper;
@@ -388,9 +374,9 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             (!I16 && e1.Ecount)
            )
         {
-            int inc = e.Ecount != 0;
+            const inc = e.Ecount != 0;
             nest += inc;
-            code csx;
+            code csx = void;
             getlvalue(cdb,&csx,e,0);
             nest -= inc;
             reg_t regx;
@@ -410,13 +396,9 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
              e2oper == OPconst && el_signx32(e2)) &&
             !e1.Ecount
            )
-        {   elem *e11;
+        {
             elem *ebase;
             elem *edisp;
-            int ss;
-            int ss2;
-            reg_t reg1,reg2;
-
             if (e2oper == OPconst && el_signx32(e2))
             {   edisp = e2;
                 ebase = e1.EV.E2;
@@ -426,12 +408,12 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 ebase = e2;
             }
 
-            e11 = e1.EV.E1;
-            retregs = *pretregs & ALLREGS;
+            auto e11 = e1.EV.E1;
+            regm_t retregs = *pretregs & ALLREGS;
             if (!retregs)
                 retregs = ALLREGS;
-            ss = 0;
-            ss2 = 0;
+            int ss = 0;
+            int ss2 = 0;
 
             // Handle the case of (((e *  c1) + c2) + e2)
             // Handle the case of (((e << c1) + c2) + e2)
@@ -440,7 +422,7 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 !e11.Ecount
                )
             {
-                targ_size_t co1 = cast(targ_size_t)el_tolong(e11.EV.E2);
+                const co1 = cast(targ_size_t)el_tolong(e11.EV.E2);
                 if (e11.Eoper == OPshl)
                 {
                     if (co1 > 3)
@@ -473,11 +455,12 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 { }
             }
 
+            reg_t reg11;
             regm_t regm;
-            if (e11.Eoper == OPvar && isregvar(e11,&regm,&reg1))
+            if (e11.Eoper == OPvar && isregvar(e11,&regm,&reg11))
             {
                 if (tysize(e11.Ety) <= REGSIZE)
-                    retregs = mask(reg1); // only want the LSW
+                    retregs = mask(reg11); // only want the LSW
                 else
                     retregs = regm;
                 freenode(e11);
@@ -485,8 +468,9 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             else
                 codelem(cdb,e11,&retregs,false);
 
-            rretregs = ALLREGS & ~retregs & ~mBP;
+            regm_t rretregs = ALLREGS & ~retregs & ~mBP;
             scodelem(cdb,ebase,&rretregs,retregs,true);
+            reg_t reg;
             {
                 regm_t sregs = *pretregs & ~rretregs;
                 if (!sregs)
@@ -497,8 +481,8 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             assert((retregs & (retregs - 1)) == 0); // must be only one register
             assert((rretregs & (rretregs - 1)) == 0); // must be only one register
 
-            reg1 = findreg(retregs);
-            reg2 = findreg(rretregs);
+            auto  reg1 = findreg(retregs);
+            const reg2 = findreg(rretregs);
 
             if (ss2)
             {
@@ -544,8 +528,8 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         }
     }
 
-    posregs = (isbyte) ? BYTEREGS : (mES | ALLREGS | mBP);
-    retregs = *pretregs & posregs;
+    regm_t posregs = (isbyte) ? BYTEREGS : (mES | ALLREGS | mBP);
+    regm_t retregs = *pretregs & posregs;
     if (retregs == 0)                   /* if no return regs speced     */
                                         /* (like if wanted flags only)  */
         retregs = ALLREGS & posregs;    // give us some
@@ -554,10 +538,8 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     {     /* Generate code for add/subtract of huge pointers.
            No attempt is made to generate very good code.
          */
-        uint mreg,lreg;
-        uint lrreg;
-
         retregs = (retregs & mLSW) | mDX;
+        regm_t rretregs;
         if (ty1 == TYhptr)
         {   // hptr +- long
             rretregs = mLSW & ~(retregs | regcon.mvar);
@@ -580,8 +562,8 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             scodelem(cdb,e2,&rretregs,retregs,true);
         }
         getregs(cdb,rretregs | retregs);
-        mreg = DX;
-        lreg = findreglsw(retregs);
+        const mreg = DX;
+        const lreg = findreglsw(retregs);
         if (e.Eoper == OPmin)
         {   // negate retregs
             cdb.gen2(0xF7,modregrm(3,3,mreg));     // NEG mreg
@@ -589,7 +571,7 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             code_orflag(cdb.last(),CFpsw);
             cdb.genc2(0x81,modregrm(3,3,mreg),0);  // SBB mreg,0
         }
-        lrreg = findreglsw(rretregs);
+        const lrreg = findreglsw(rretregs);
         genregs(cdb,0x03,lreg,lrreg);              // ADD lreg,lrreg
         code_orflag(cdb.last(),CFpsw);
         genmovreg(cdb,lrreg,CX);      // MOV lrreg,CX
@@ -601,6 +583,8 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         return;
     }
 
+    regm_t rretregs;
+    reg_t reg;
     if (_tysize[ty1] > REGSIZE && numwords == 1)
     {     /* The only possibilities are (TYfptr + tyword) or (TYfptr - tyword) */
 
@@ -633,7 +617,8 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         reg = findreglsw(retregs);      /* reg is the register with the offset*/
     }
     else
-    {     regm_t regm;
+    {
+        regm_t regm;
 
         /* if (tyword + TYfptr) */
         if (_tysize[ty1] == REGSIZE && _tysize[ty2] > REGSIZE)
@@ -666,6 +651,9 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         codelem(cdb,e1,&retregs,test != 0);         // eval left leaf
         reg = findreg(retregs);
     }
+    reg_t rreg;
+    int rval;
+    targ_size_t i;
     switch (e2oper)
     {
         case OPind:                                 /* if addressing mode   */
@@ -815,16 +803,13 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             }
             else if (numwords == 2)
             {
-                uint lsreg;
-                targ_int msw;
-
                 getregs(cdb,retregs);
                 reg = findregmsw(retregs);
-                lsreg = findreglsw(retregs);
+                const lsreg = findreglsw(retregs);
                 cs.Iop = 0x81;
                 cs.Irm = modregrm(3,mode,lsreg);
                 cs.IFL2 = FLconst;
-                msw = cast(targ_int)MSREG(e2.EV.Vllong);
+                const msw = cast(targ_int)MSREG(e2.EV.Vllong);
                 cs.IEV2.Vint = e2.EV.Vlong;
                 switch (e.Eoper)
                 {
@@ -894,7 +879,7 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
          */
         if (I64 && e.Eoper == OPadd && e1.Eoper == OPvar)
         {
-            Symbol *s = e1.EV.Vsym;
+            const s = e1.EV.Vsym;
             if (s.Sident[0] == '_' && memcmp(s.Sident.ptr + 1,"tls_array".ptr,10) == 0)
             {
                 goto L7;                        // don't assume flags are set

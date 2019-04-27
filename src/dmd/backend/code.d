@@ -486,8 +486,8 @@ void pushParams(ref CodeBuilder cdb,elem *, uint, tym_t tyf);
 void offsetinreg(ref CodeBuilder cdb, elem *e, regm_t *pretregs);
 
 /* cod2.c */
-int movOnly(elem *e);
-regm_t idxregm(code *c);
+bool movOnly(const elem *e);
+regm_t idxregm(const code *c);
 void opdouble(ref CodeBuilder cdb, elem *e, regm_t *pretregs, uint clib);
 void WRcodlst(code *c);
 void getoffset(ref CodeBuilder cdb, elem *e, reg_t reg);
