@@ -2939,6 +2939,7 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
 {
     // max num of overloads to print (-v overrides this).
     int numToDisplay = 5;
+    bool hadConstraints;
 
     overloadApply(declaration, (Dsymbol s)
     {
@@ -2965,6 +2966,7 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
                 const char* txt = "  whose parameters have the following constraints:";
                 const char* sep = "  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
                 .errorSupplemental(td.loc, "`%s`,\n%s\n`%s\n%s%s`", tmsg, txt, sep, cmsg, sep);
+                hadConstraints = true;
             }
             else
                 .errorSupplemental(td.loc, "`%s`", tmsg);
@@ -2983,6 +2985,10 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
             .errorSupplemental(loc, "... (%d more, -v to show) ...", num);
         return 1;   // stop iterating
     });
+
+    static if (is(Decl == TemplateDeclaration))
+        if (hadConstraints)
+            .tip("not satisfied constraints are marked with `>`");
 }
 
 /**************************************

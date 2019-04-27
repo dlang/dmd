@@ -7138,6 +7138,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     const char* txt = "  whose parameters have the following constraints:";
                     const char* sep = "  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
                     error("%s `%s`,\n%s\n`%s\n%s%s`", msg, tmsg, txt, sep, cmsg, sep);
+                    .tip("not satisfied constraints are marked with `>`");
                 }
                 else
                     error("%s `%s`", msg, tmsg);
