@@ -1,10 +1,10 @@
-// REQUIRED_ARGS: -de
+// REQUIRED_ARGS:
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail18228.d(13): Deprecation: Using `this` as a type is deprecated. Use `typeof(this)` instead
-fail_compilation/fail18228.d(14): Deprecation: Using `this` as a type is deprecated. Use `typeof(this)` instead
-fail_compilation/fail18228.d(15): Deprecation: Using `super` as a type is deprecated. Use `typeof(super)` instead
+fail_compilation/fail18228.d(13): Error: Using `this` as a type is obsolete. Use `typeof(this)` instead
+fail_compilation/fail18228.d(14): Error: Using `this` as a type is obsolete. Use `typeof(this)` instead
+fail_compilation/fail18228.d(15): Error: Using `super` as a type is obsolete. Use `typeof(super)` instead
 ---
 */
 

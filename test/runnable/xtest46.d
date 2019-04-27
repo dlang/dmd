@@ -3645,18 +3645,18 @@ class A2540
 class B2540 : A2540
 {
     int b;
-    override super.X foo() { return 1; }
+    override typeof(super).X foo() { return 1; }
 
-    alias this athis;
-    alias this.b thisb;
-    alias super.a supera;
-    alias super.foo superfoo;
-    alias this.foo thisfoo;
+    alias typeof(this) athis;
+    alias typeof(this).b thisb;
+    alias typeof(super).a supera;
+    alias typeof(super).foo superfoo;
+    alias typeof(this).foo thisfoo;
 }
 
 struct X2540
 {
-    alias this athis;
+    alias typeof(this) athis;
 }
 
 void test2540()

@@ -2572,15 +2572,19 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
         //printf("TypeIdentifier::resolve(sc = %p, idents = '%s')\n", sc, mt.toChars());
         if ((mt.ident.equals(Id._super) || mt.ident.equals(Id.This)) && !hasThis(sc))
         {
-            // @@@DEPRECATED_v2.086@@@.
+            // @@@DEPRECATED_v2.091@@@.
+            // Made an error in 2.086.
+            // Eligible for removal in 2.091.
             if (mt.ident.equals(Id._super))
             {
-                deprecation(mt.loc, "Using `super` as a type is deprecated. Use `typeof(super)` instead");
+                error(mt.loc, "Using `super` as a type is obsolete. Use `typeof(super)` instead");
             }
-            // @@@DEPRECATED_v2.086@@@.
+             // @@@DEPRECATED_v2.091@@@.
+            // Made an error in 2.086.
+            // Eligible for removal in 2.091.
             if (mt.ident.equals(Id.This))
             {
-                deprecation(mt.loc, "Using `this` as a type is deprecated. Use `typeof(this)` instead");
+                error(mt.loc, "Using `this` as a type is obsolete. Use `typeof(this)` instead");
             }
             if (AggregateDeclaration ad = sc.getStructClassScope())
             {
