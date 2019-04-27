@@ -900,36 +900,20 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
 void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
-    reg_t rreg;
-    opcode_t op;
-    uint lib;
-    regm_t resreg,retregs,rretregs;
-    tym_t tyml;
-    targ_size_t e2factor;
-    targ_size_t d;
-    bool neg;
-    int pow2;
-
+    elem *e1 = e.EV.E1;
+    elem *e2 = e.EV.E2;
     if (*pretregs == 0)                         // if don't want result
     {
-        codelem(cdb,e.EV.E1,pretregs,false);      // eval left leaf
+        codelem(cdb,e1,pretregs,false);      // eval left leaf
         *pretregs = 0;                          // in case they got set
-        codelem(cdb,e.EV.E2,pretregs,false);
+        codelem(cdb,e2,pretregs,false);
         return;
     }
 
     //printf("cdmul(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
-    regm_t keepregs = 0;
-    elem *e1 = e.EV.E1;
-    elem *e2 = e.EV.E2;
-    tyml = tybasic(e1.Ety);
-    tym_t ty = tybasic(e.Ety);
-    const int sz = _tysize[tyml];
-    uint isbyte = tybyte(e.Ety) != 0;
-    tym_t uns = tyuns(tyml) || tyuns(e2.Ety);  // 1 if uint operation, 0 if not
+    const tyml = tybasic(e1.Ety);
+    const ty = tybasic(e.Ety);
     const oper = e.Eoper;
-    const uint rex = (I64 && sz == 8) ? REX_W : 0;
-    const uint grex = rex << 16;
 
     if (tyfloating(tyml))
     {
@@ -957,7 +941,12 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         return;
     }
 
-    OPER opunslng = I16 ? OPu16_32 : OPu32_64;
+    uint lib;
+    regm_t keepregs = 0;
+    regm_t resreg;
+    ubyte op;
+    const uns = tyuns(tyml) || tyuns(e2.Ety);  // 1 if uint operation, 0 if not
+
     switch (oper)
     {
         case OPmul:
@@ -994,6 +983,10 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             assert(0);
     }
 
+    regm_t retregs;
+    regm_t rretregs;
+    const isbyte = tybyte(e.Ety) != 0;
+    const sz = _tysize[tyml];
     if (sz <= REGSIZE)                  // dedicated regs for mul & div
     {   retregs = mAX;
         // pick some other regs
@@ -1007,7 +1000,14 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         rretregs = mCX | mBX;           // second arg
     }
 
-    code cs;
+    reg_t rreg;
+    int pow2;
+
+    const ubyte rex = (I64 && sz == 8) ? REX_W : 0;
+    const uint grex = rex << 16;
+    const OPER opunslng = I16 ? OPu16_32 : OPu32_64;
+
+    code cs = void;
     cs.Iflags = 0;
     cs.Irex = 0;
 
@@ -1021,22 +1021,22 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             if (sz != 2 * REGSIZE || oper != OPmul || e1.Eoper != e2.Eoper ||
                 e1.Ecount || e2.Ecount)
                 goto L2;
-            op = (e2.Eoper == opunslng) ? 4 : 5;
-            retregs = mAX;
-            codelem(cdb,e1.EV.E1,&retregs,false);    // eval left leaf
+            const ubyte opx = (e2.Eoper == opunslng) ? 4 : 5;
+            regm_t retregsx = mAX;
+            codelem(cdb,e1.EV.E1,&retregsx,false);    // eval left leaf
             if (e2.EV.E1.Eoper == OPvar ||
                 (e2.EV.E1.Eoper == OPind && !e2.EV.E1.Ecount)
                )
             {
-                loadea(cdb,e2.EV.E1,&cs,0xF7,op,0,mAX,mAX | mDX);
+                loadea(cdb,e2.EV.E1,&cs,0xF7,opx,0,mAX,mAX | mDX);
             }
             else
             {
-                rretregs = ALLREGS & ~mAX;
-                scodelem(cdb,e2.EV.E1,&rretregs,retregs,true); // get rvalue
+                regm_t rretregsx = ALLREGS & ~mAX;
+                scodelem(cdb,e2.EV.E1,&rretregsx,retregs,true); // get rvalue
                 getregs(cdb,mAX | mDX);
-                rreg = findreg(rretregs);
-                cdb.gen2(0xF7,grex | modregrmx(3,op,rreg)); // OP AX,rreg
+                const rregx = findreg(rretregsx);
+                cdb.gen2(0xF7,grex | modregrmx(3,opx,rregx)); // OP AX,rregx
             }
             freenode(e.EV.E1);
             freenode(e2);
@@ -1045,9 +1045,9 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         }
 
         case OPconst:
-            e2factor = cast(targ_size_t)el_tolong(e2);
-            neg = false;
-            d = e2factor;
+            auto d = cast(targ_size_t)el_tolong(e2);
+            bool neg = false;
+            const e2factor = d;
             if (!uns && cast(targ_llong)e2factor < 0)
             {   neg = true;
                 d = -d;
@@ -1075,8 +1075,8 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 allocreg(cdb,&scratch,&reg,TYint);
                 getregs(cdb,mDX | mAX);
 
-                targ_int lsw = cast(targ_int)(e2factor & ((1L << (REGSIZE * 8)) - 1));
-                targ_int msw = cast(targ_int)(e2factor >> (REGSIZE * 8));
+                const lsw = cast(targ_int)(e2factor & ((1L << (REGSIZE * 8)) - 1));
+                const msw = cast(targ_int)(e2factor >> (REGSIZE * 8));
 
                 if (msw)
                 {
@@ -1092,9 +1092,9 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 cdb.gen2(0xF7,modregrm(3,4,DX));            // MUL EDX
                 cdb.gen2(0x03,modregrm(3,DX,reg));          // ADD EDX,reg
 
-                resreg = mDX | mAX;
+                const resregx = mDX | mAX;
                 freenode(e2);
-                fixresult(cdb,e,resreg,pretregs);
+                fixresult(cdb,e,resregx,pretregs);
                 return;
             }
 
@@ -1120,16 +1120,14 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                  */
                 assert(sz == 4 || sz == 8);
 
-                uint r3;
-
                 ulong m;
                 int shpost;
-                int N = sz * 8;
-                bool mhighbit = choose_multiplier(N, d, N - 1, &m, &shpost);
+                const int N = sz * 8;
+                const bool mhighbit = choose_multiplier(N, d, N - 1, &m, &shpost);
 
                 regm_t regm = allregs & ~(mAX | mDX);
                 codelem(cdb,e1,&regm,false);       // eval left leaf
-                reg_t reg = findreg(regm);
+                const reg_t reg = findreg(regm);
                 getregs(cdb,regm | mDX | mAX);
 
                 /* Algorithm 5.2
@@ -1140,7 +1138,7 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                  * if (neg)
                  *    q = -q
                  */
-                bool mgt = mhighbit || m >= (1UL << (N - 1));
+                const bool mgt = mhighbit || m >= (1UL << (N - 1));
                 movregconst(cdb, AX, cast(targ_size_t)m, (sz == 8) ? 0x40 : 0);  // MOV EAX,m
                 cdb.gen2(0xF7,grex | modregrmx(3,5,reg));               // IMUL R1
                 if (mgt)
@@ -1150,6 +1148,7 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 cdb.genc2(0xC1,grex | modregrm(3,7,AX),sz * 8 - 1);     // SAR EAX,31
                 if (shpost)
                     cdb.genc2(0xC1,grex | modregrm(3,7,DX),shpost);     // SAR EDX,shpost
+                reg_t r3;
                 if (neg && oper == OPdiv)
                 {
                     cdb.gen2(0x2B,grex | modregrm(3,AX,DX));            // SUB EAX,EDX
@@ -1162,9 +1161,10 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 }
 
                 // r3 is quotient
+                regm_t resregx;
                 switch (oper)
                 {   case OPdiv:
-                        resreg = mask(r3);
+                        resregx = mask(r3);
                         break;
 
                     case OPmod:
@@ -1180,7 +1180,7 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                             getregsNoSave(mAX);                             // EAX no longer contains 'd'
                         }
                         cdb.gen2(0x2B,grex | modregxrm(3,reg,AX));          // SUB R1,EAX
-                        resreg = regm;
+                        resregx = regm;
                         break;
 
                     case OPremquo:
@@ -1199,14 +1199,14 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                         if (neg)
                             cdb.gen2(0xF7,grex | modregrm(3,3,AX));         // NEG EAX
                         genmovreg(cdb, DX, reg);               // MOV EDX,R1
-                        resreg = mDX | mAX;
+                        resregx = mDX | mAX;
                         break;
 
                     default:
                         assert(0);
                 }
                 freenode(e2);
-                fixresult(cdb,e,resreg,pretregs);
+                fixresult(cdb,e,resregx,pretregs);
                 return;
             }
 
@@ -1495,11 +1495,11 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 }
 
                 scodelem(cdb,e.EV.E1,&retregs,0,true);     // eval left leaf
-                reg = findreg(retregs);
+                const regx = findreg(retregs);
                 allocreg(cdb,&resreg,&rreg,e.Ety);
 
-                // IMUL reg,imm16
-                cdb.genc2(0x69,grex | modregxrmx(3,rreg,reg),e2factor);
+                // IMUL regx,imm16
+                cdb.genc2(0x69,grex | modregxrmx(3,rreg,regx),e2factor);
                 fixresult(cdb,e,resreg,pretregs);
                 return;
             }
@@ -1773,15 +1773,9 @@ void cdnot(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 retregs = BYTEREGS;
             allocreg(cdb,&retregs,&reg,TYint);
 
-            int iop;
-            if (op == OPbool)
-            {
-                iop = 0x0F95;   // SETNZ rm8
-            }
-            else
-            {
-                iop = 0x0F94;   // SETZ rm8
-            }
+            const opcode_t iop = (op == OPbool)
+                ? 0x0F95    // SETNZ rm8
+                : 0x0F94;   // SETZ rm8
             cdb.gen2(iop, modregrmx(3,0,reg));
             if (reg >= 4)
                 code_orrex(cdb.last(), REX);
