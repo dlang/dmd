@@ -534,7 +534,7 @@ struct Scope
         // search for exact name first
         if (auto s = search(Loc.initial, ident, &scopesym, IgnoreErrors))
             return s;
-        return speller!scope_search_fp(ident.toChars());
+        return speller!scope_search_fp(ident.toString());
     }
 
     /************************************
