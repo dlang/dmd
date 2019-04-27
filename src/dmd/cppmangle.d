@@ -824,7 +824,7 @@ private final class CppMangleVisitor : Visitor
         {
             if (!is_temp_arg_ref)
             {
-                buf.writestring(d.ident.toChars());
+                buf.writestring(d.ident.toString());
             }
             else
             {

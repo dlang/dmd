@@ -1706,7 +1706,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     ob.printf("%s.", pid.toChars());
                 }
             }
-            ob.writestring(imp.id.toChars());
+            ob.writestring(imp.id.toString());
             ob.writestring(" (");
             if (imp.mod)
                 escapePath(ob, imp.mod.srcfile.toChars());
@@ -1981,7 +1981,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 /* Print unrecognized pragmas
                  */
                 OutBuffer buf;
-                buf.writestring(pd.ident.toChars());
+                buf.writestring(pd.ident.toString());
                 if (pd.args)
                 {
                     for (size_t i = 0; i < pd.args.dim; i++)
