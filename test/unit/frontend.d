@@ -1,12 +1,6 @@
 module frontend;
 
-import support : afterEach, beforeEach, defaultImportPaths;
-
-@beforeEach initializeFrontend()
-{
-    import dmd.frontend : initDMD;
-    initDMD();
-}
+import support : afterEach, defaultImportPaths;
 
 @afterEach deinitializeFrontend()
 {
@@ -57,6 +51,7 @@ unittest
         }
     }
 
+    initDMD();
     defaultImportPaths.each!addImport;
 
     auto t = parseModule!AST("test.d", q{
@@ -80,6 +75,7 @@ unittest
     import dmd.frontend;
     import dmd.globals : global;
 
+    initDMD();
     defaultImportPaths.each!addImport;
 
     auto t = parseModule("test.d", q{
@@ -106,6 +102,34 @@ unittest
             int a;
             invariant(a > 0);
         }
+    });
+
+    assert(!t.diagnostics.hasErrors);
+    assert(!t.diagnostics.hasWarnings);
+
+    t.module_.fullSemantic();
+
+    assert(global.errors == 0);
+}
+
+@("initDMD - version identifiers")
+unittest
+{
+    import std.algorithm : each;
+
+    import dmd.frontend;
+    import dmd.globals : global;
+
+    initDMD(["Foo"]);
+    defaultImportPaths.each!addImport;
+
+    auto t = parseModule("test.d", q{
+        version (Foo)
+            enum a = 1;
+        else
+            enum a = 2;
+
+        static assert(a == 1);
     });
 
     assert(!t.diagnostics.hasErrors);

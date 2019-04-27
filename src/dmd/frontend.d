@@ -100,10 +100,17 @@ This needs to be done $(I before) calling any function.
 
 Params:
     contractChecks = indicates which contracts should be enabled or not
+    versionIdentifiers = a list of version identifiers that should be enabled
 */
-void initDMD(ContractChecks contractChecks = ContractChecks())
+void initDMD(
+    string[] versionIdentifiers = [],
+    ContractChecks contractChecks = ContractChecks()
+)
 {
+    import std.algorithm : each;
+
     import dmd.builtin : builtin_init;
+    import dmd.cond : VersionCondition;
     import dmd.dmodule : Module;
     import dmd.expression : Expression;
     import dmd.filecache : FileCache;
@@ -127,6 +134,7 @@ void initDMD(ContractChecks contractChecks = ContractChecks())
         useSwitchError = contractChecks.switchError;
     }
 
+    versionIdentifiers.each!(VersionCondition.addGlobalIdent);
     setTarget(global.params);
     addDefaultVersionIdentifiers(global.params);
 
