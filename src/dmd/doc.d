@@ -1224,7 +1224,7 @@ private void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
                     .toCBuffer(origType, buf, d.ident, &hgs);
             }
             else
-                buf.writestring(d.ident.toChars());
+                buf.writestring(d.ident.toString());
             if (d.isVarDeclaration() && td)
             {
                 buf.writeByte('(');

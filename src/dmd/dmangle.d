@@ -683,7 +683,7 @@ public:
         }
         if (fd.isWinMain() || fd.isDllMain() || fd.ident == Id.tls_get_addr)
         {
-            buf.writestring(fd.ident.toChars());
+            buf.writestring(fd.ident.toString());
             return;
         }
         visit(cast(Declaration)fd);

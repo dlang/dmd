@@ -6249,11 +6249,11 @@ struct ASTBase
                 for (size_t i = 0; i < packages.dim; i++)
                 {
                     Identifier pid = (*packages)[i];
-                    buf.writestring(pid.toChars());
+                    buf.writestring(pid.toString());
                     buf.writeByte('.');
                 }
             }
-            buf.writestring(id.toChars());
+            buf.writestring(id.toString());
             return buf.extractString();
         }
     }

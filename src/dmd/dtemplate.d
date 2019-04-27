@@ -649,7 +649,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         OutBuffer buf;
         HdrGenState hgs;
 
-        buf.writestring(ident.toChars());
+        buf.writestring(ident.toString());
         buf.writeByte('(');
         for (size_t i = 0; i < parameters.dim; i++)
         {
