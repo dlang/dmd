@@ -185,6 +185,16 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         //printf("EnumDeclaration::getMaxValue()\n");
         bool first = true;
 
+        static Expression pvalToResult(Expression e, const ref Loc loc)
+        {
+            if (e.op != TOK.error)
+            {
+                e = e.copy();
+                e.loc = loc;
+            }
+            return e;
+        }
+
         Expression* pval = (id == Id.max) ? &maxval : &minval;
 
         Expression errorReturn()
@@ -199,7 +209,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             return errorReturn();
         }
         if (*pval)
-            goto Ldone;
+            return pvalToResult(*pval, loc);
 
         if (_scope)
             dsymbolSemantic(this, _scope);
@@ -258,14 +268,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
                     *pval = e;
             }
         }
-    Ldone:
-        Expression e = *pval;
-        if (e.op != TOK.error)
-        {
-            e = e.copy();
-            e.loc = loc;
-        }
-        return e;
+        return pvalToResult(*pval, loc);
     }
 
     /****************
@@ -280,6 +283,10 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
 
     Expression getDefaultValue(const ref Loc loc)
     {
+        Expression handleErrors(){
+            defaultval = new ErrorExp();
+            return defaultval;
+        }
         //printf("EnumDeclaration::getDefaultValue() %p %s\n", this, toChars());
         if (defaultval)
             return defaultval;
@@ -287,7 +294,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         if (_scope)
             dsymbolSemantic(this, _scope);
         if (errors)
-            goto Lerrors;
+            return handleErrors();
         if (semanticRun == PASS.init || !members)
         {
             if (isSpecial())
@@ -298,7 +305,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             }
 
             error(loc, "forward reference of `%s.init`", toChars());
-            goto Lerrors;
+            return handleErrors();
         }
 
         foreach (const i; 0 .. members.dim)
@@ -310,10 +317,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
                 return defaultval;
             }
         }
-
-    Lerrors:
-        defaultval = new ErrorExp();
-        return defaultval;
+        return handleErrors();
     }
 
     Type getMemtype(const ref Loc loc)
