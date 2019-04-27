@@ -1,11 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail313.d(17): Error: module `imports.b313` is not accessible here, perhaps add `static import imports.b313;`
-fail_compilation/fail313.d(24): Deprecation: `imports.a313.core` is not visible from module `test313`
-fail_compilation/fail313.d(24): Error: package `core.stdc` is not accessible here
-fail_compilation/fail313.d(24): Error: module `core.stdc.stdio` is not accessible here, perhaps add `static import core.stdc.stdio;`
-fail_compilation/fail313.d(29): Error: package `imports.pkg313` is not accessible here, perhaps add `static import imports.pkg313;`
+fail_compilation/fail313.d(15): Error: undefined identifier `b313` in package `imports`, perhaps add `static import imports.b313;`
+fail_compilation/fail313.d(22): Error: undefined identifier `core`
+fail_compilation/fail313.d(27): Error: undefined identifier `pkg313` in package `imports`, perhaps add `static import imports.pkg313;`
 ---
 */
 module test313;

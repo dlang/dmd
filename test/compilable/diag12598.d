@@ -1,8 +1,7 @@
 /*
-REQUIRED_ARGS: -revert=import
+REQUIRED_ARGS:
 TEST_OUTPUT:
 ---
-fail_compilation/diag12598.d(14): Error: `lines` is a `struct` definition and cannot be modified
 ---
 */
 

@@ -404,15 +404,11 @@ bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
         // Unittests are always accessible.
         return false;
     }
+
     if (!e)
-    {
-        if (d.prot().kind == Prot.Kind.private_ && d.getAccessModule() != sc._module || d.prot().kind == Prot.Kind.package_ && !hasPackageAccess(sc, d))
-        {
-            error(loc, "%s `%s` is not accessible from module `%s`", d.kind(), d.toPrettyChars(), sc._module.toChars());
-            return true;
-        }
-    }
-    else if (e.type.ty == Tclass)
+        return false;
+
+    if (e.type.ty == Tclass)
     {
         // Do access check
         ClassDeclaration cd = (cast(TypeClass)e.type).sym;
@@ -455,11 +451,7 @@ bool checkAccess(Loc loc, Scope* sc, Package p)
         if (sc.scopesym && sc.scopesym.isPackageAccessible(p, Prot(Prot.Kind.private_)))
             return false;
     }
-    auto name = p.toPrettyChars();
-    if (p.isPkgMod == PKG.module_ || p.isModule())
-        error(loc, "%s `%s` is not accessible here, perhaps add `static import %s;`", p.kind(), name, name);
-    else
-        error(loc, "%s `%s` is not accessible here", p.kind(), name);
+
     return true;
 }
 

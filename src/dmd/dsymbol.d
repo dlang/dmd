@@ -790,6 +790,9 @@ extern (C++) class Dsymbol : ASTNode
 
         if (global.gag)
             return null; // don't do it for speculative compiles; too time consuming
+        // search for exact name first
+        if (auto s = search(Loc.initial, ident, IgnoreErrors))
+            return s;
         return speller!symbol_search_fp(ident.toChars());
     }
 
@@ -1453,7 +1456,7 @@ public:
                 // If private import, don't search it
                 if ((flags & IgnorePrivateImports) && prots[i] == Prot.Kind.private_)
                     continue;
-                int sflags = flags & (IgnoreErrors | IgnoreAmbiguous | IgnoreSymbolVisibility); // remember these in recursive searches
+                int sflags = flags & (IgnoreErrors | IgnoreAmbiguous); // remember these in recursive searches
                 Dsymbol ss = (*importedScopes)[i];
                 //printf("\tscanning import '%s', prots = %d, isModule = %p, isImport = %p\n", ss.toChars(), prots[i], ss.isModule(), ss.isImport());
 
@@ -1466,13 +1469,8 @@ public:
                 {
                     if (flags & SearchImportsOnly)
                         continue;
-                    // compatibility with -transition=import
-                    // https://issues.dlang.org/show_bug.cgi?id=15925
-                    // SearchLocalsOnly should always get set for new lookup rules
-                    if (global.params.check10378)
-                        sflags |= (flags & SearchLocalsOnly);
-                    else
-                        sflags |= SearchLocalsOnly;
+
+                    sflags |= SearchLocalsOnly;
                 }
 
                 /* Don't find private members if ss is a module
@@ -1547,18 +1545,6 @@ public:
                     if (!s.isOverloadSet())
                         a = mergeOverloadSet(ident, a, s);
                     s = a;
-                }
-                // TODO: remove once private symbol visibility has been deprecated
-                if (!(flags & IgnoreErrors) && s.prot().kind == Prot.Kind.private_ &&
-                    !s.isOverloadable() && !s.parent.isTemplateMixin() && !s.parent.isNspace())
-                {
-                    AliasDeclaration ad = void;
-                    // accessing private selective and renamed imports is
-                    // deprecated by restricting the symbol visibility
-                    if (s.isImport() || (ad = s.isAliasDeclaration()) !is null && ad._import !is null)
-                    {}
-                    else
-                        error(loc, "%s `%s` is `private`", s.kind(), s.toPrettyChars());
                 }
                 //printf("\tfound in imports %s.%s\n", toChars(), s.toChars());
                 return s;

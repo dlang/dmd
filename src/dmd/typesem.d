@@ -236,8 +236,8 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
             Dsymbol sm = s.searchX(loc, sc, id, flags);
             if (sm && !(sc.flags & SCOPE.ignoresymbolvisibility) && !symbolIsVisible(sc, sm))
             {
-                .deprecation(loc, "`%s` is not visible from module `%s`", sm.toPrettyChars(), sc._module.toChars());
-                // sm = null;
+                .error(loc, "`%s` is not visible from module `%s`", sm.toPrettyChars(), sc._module.toChars());
+                sm = null;
             }
             if (global.errors != errorsave)
             {
@@ -3433,31 +3433,8 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
             return e;
         }
 
-        Dsymbol searchSym()
-        {
-            int flags = sc.flags & SCOPE.ignoresymbolvisibility ? IgnoreSymbolVisibility : 0;
-
-            Dsymbol sold = void;
-            if (global.params.bug10378 || global.params.check10378)
-            {
-                sold = mt.sym.search(e.loc, ident, flags);
-                if (!global.params.check10378)
-                    return sold;
-            }
-
-            auto s = mt.sym.search(e.loc, ident, flags | IgnorePrivateImports);
-            if (global.params.check10378)
-            {
-                alias snew = s;
-                if (sold !is snew)
-                    Scope.deprecation10378(e.loc, sold, snew);
-                if (global.params.bug10378)
-                    s = sold;
-            }
-            return s;
-        }
-
-        s = searchSym();
+        immutable flags = sc.flags & SCOPE.ignoresymbolvisibility ? IgnoreSymbolVisibility : 0;
+        s = mt.sym.search(e.loc, ident, flags | IgnorePrivateImports);
     L1:
         if (!s)
         {
@@ -3465,8 +3442,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
         }
         if (!(sc.flags & SCOPE.ignoresymbolvisibility) && !symbolIsVisible(sc, s))
         {
-            .deprecation(e.loc, "`%s` is not visible from module `%s`", s.toPrettyChars(), sc._module.toPrettyChars());
-            // return noMember(sc, e, ident, flag);
+            return noMember(mt, sc, e, ident, flag);
         }
         if (!s.isFuncDeclaration()) // because of overloading
         {
@@ -3741,36 +3717,9 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
             return e;
         }
 
-        Dsymbol searchSym()
-        {
-            int flags = sc.flags & SCOPE.ignoresymbolvisibility ? IgnoreSymbolVisibility : 0;
-            Dsymbol sold = void;
-            if (global.params.bug10378 || global.params.check10378)
-            {
-                sold = mt.sym.search(e.loc, ident, flags | IgnoreSymbolVisibility);
-                if (!global.params.check10378)
-                    return sold;
-            }
+        int flags = sc.flags & SCOPE.ignoresymbolvisibility ? IgnoreSymbolVisibility : 0;
+        s = mt.sym.search(e.loc, ident, flags | IgnorePrivateImports);
 
-            auto s = mt.sym.search(e.loc, ident, flags | SearchLocalsOnly);
-            if (!s && !(flags & IgnoreSymbolVisibility))
-            {
-                s = mt.sym.search(e.loc, ident, flags | SearchLocalsOnly | IgnoreSymbolVisibility);
-                if (s && !(flags & IgnoreErrors))
-                    .deprecation(e.loc, "`%s` is not visible from class `%s`", s.toPrettyChars(), mt.sym.toChars());
-            }
-            if (global.params.check10378)
-            {
-                alias snew = s;
-                if (sold !is snew)
-                    Scope.deprecation10378(e.loc, sold, snew);
-                if (global.params.bug10378)
-                    s = sold;
-            }
-            return s;
-        }
-
-        s = searchSym();
     L1:
         if (!s)
         {
@@ -3918,8 +3867,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
         }
         if (!(sc.flags & SCOPE.ignoresymbolvisibility) && !symbolIsVisible(sc, s))
         {
-            .deprecation(e.loc, "`%s` is not visible from module `%s`", s.toPrettyChars(), sc._module.toPrettyChars());
-            // return noMember(sc, e, ident, flag);
+            return noMember(mt, sc, e, ident, flag);
         }
         if (!s.isFuncDeclaration()) // because of overloading
         {
