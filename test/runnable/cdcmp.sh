@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+export LC_ALL=C
 src_file=${EXTRA_FILES}/${TEST_NAME}.d
 expect_file=${EXTRA_FILES}/${TEST_NAME}.out
 tmp_file=${RESULTS_TEST_DIR}/${TEST_NAME}.out
