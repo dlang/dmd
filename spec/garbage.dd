@@ -406,6 +406,7 @@ $(H2 $(LNAME2 gc_config, Configuring the Garbage Collector))
         $(LI minPoolSize:N  - initial and minimum pool size in MB)
         $(LI maxPoolSize:N  - maximum pool size in MB)
         $(LI incPoolSize:N  - pool size increment MB)
+        $(LI parallel:N     - number of additional threads for marking)
         $(LI heapSizeFactor:N - targeted heap size to used memory ratio)
         $(LI cleanup:none|collect|finalize - how to treat live objects when terminating
           $(UL
@@ -517,6 +518,19 @@ $(H2 $(LNAME2 precise_dataseg, Precise Scanning of the DATA and TLS segment))
         shared static this() { singleton.mem = allocateSharedMem(); }
         ---------
         This doesn't work for TLS memory, though.
+
+$(H2 $(LNAME2 gc_parallel, Parallel marking))
+
+    $(P By default the garbage collector uses all available CPU cores to mark the heap.)
+
+    $(P This might affect your application if it has threads that are not suspended
+        during the mark phase of the collection. You can configure the number of
+        additional threads used for marking by GC option `parallel`,
+        e.g. by passing `--DRT-gcopt=parallel:2` on the command
+        line or embedding the option into the binary via `rt_options`.
+        The number of threads actually created is limited to
+        $(LINK2 $(ROOT_DIR)library/core/cpuid/threads_per_cpu.html, `core.cpuid.threadsPerCPU-1`).
+        A value of `0` disables parallel marking completely.)
 
 $(H2 $(LNAME2 gc_registry, Adding your own Garbage Collector))
 
