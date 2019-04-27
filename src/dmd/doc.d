@@ -5045,7 +5045,7 @@ private void highlightCode2(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offse
         Token tok;
         lex.scan(&tok);
         highlightCode3(sc, &res, lastp, tok.ptr);
-        const(char)* highlight = null;
+        string highlight = null;
         switch (tok.value)
         {
         case TOK.identifier:
