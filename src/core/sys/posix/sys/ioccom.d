@@ -97,7 +97,7 @@ else version (FreeBSD)
     enum uint IOC_DIRMASK = (IOC_VOID|IOC_OUT|IOC_IN);
 
     // encode the ioctl info into 32 bits
-    uint _IOC(T=typeof(null))(uint inorout, uint group, uint num, size_t len)
+    uint _IOC(uint inorout, uint group, uint num, size_t len)
     {
         return (inorout | ((len & IOCPARM_MASK) << 16) | (group << 8) | num);
     }
@@ -107,23 +107,23 @@ else version (FreeBSD)
     {
         return _IOC(IOC_VOID, cast(uint)g, cast(uint)n, cast(size_t)0);
     }
-    uint _IOWINT(T=int)(char g, int n)
+    uint _IOWINT(char g, int n)
     {
         return _IOC(IOC_VOID, cast(uint)g, cast(uint)n, int.sizeof);
     }
     // encode a command that returns info
     uint _IOR(T)(char g, int n)
     {
-        return _IOC!(T)(IOC_OUT, cast(uint)g, cast(uint)n, T.sizeof);
+        return _IOC(IOC_OUT, cast(uint)g, cast(uint)n, T.sizeof);
     }
     // encode a command that takes info
     uint _IOW(T)(char g, int n)
     {
-        return _IOC!(T)(IOC_IN, cast(uint)g, cast(uint)n, T.sizeof);
+        return _IOC(IOC_IN, cast(uint)g, cast(uint)n, T.sizeof);
     }
     // encode a command that takes info and returns info
     uint _IOWR(T)(char g, int n)
     {
-        return _IOC!(T)(IOC_INOUT, cast(uint)g, cast(uint)n, T.sizeof);
+        return _IOC(IOC_INOUT, cast(uint)g, cast(uint)n, T.sizeof);
     }
 }

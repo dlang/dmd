@@ -146,7 +146,7 @@ else version (FreeBSD)
                             // 92-93 tun and tap
                             // 94-97 conflicts: tun and tap
     enum uint TIOCDRAIN = _IO('t', 94); // wait till output drained
-    enum uint TIOCSIG   = _IOWINT!(int)('t', 95); // pty: generate signal
+    enum uint TIOCSIG   = _IOWINT('t', 95); // pty: generate signal
     enum uint TIOCEXT   = _IOW!(int)('t', 96); // pty: external processing
     enum uint TIOCSCTTY = _IO('t', 97);        // become controlling tty
     enum uint TIOCCONS  = _IOW!(int)('t', 98); // become virtual console
