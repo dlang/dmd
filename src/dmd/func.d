@@ -2956,7 +2956,18 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
         }
         else if (auto td = s.isTemplateDeclaration())
         {
-            .errorSupplemental(td.loc, "`%s`", td.toPrettyChars());
+            import dmd.staticcond;
+
+            const tmsg = td.toCharsNoConstraints();
+            const cmsg = td.getConstraintEvalError();
+            if (cmsg)
+            {
+                const char* txt = "  whose parameters have the following constraints:";
+                const char* sep = "  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+                .errorSupplemental(td.loc, "`%s`,\n%s\n`%s\n%s%s`", tmsg, txt, sep, cmsg, sep);
+            }
+            else
+                .errorSupplemental(td.loc, "`%s`", tmsg);
             nextOverload = td.overnext;
         }
 
