@@ -23,6 +23,8 @@ import dmd.expressionsem;
 import dmd.globals;
 import dmd.identifier;
 import dmd.mtype;
+import dmd.root.array;
+import dmd.root.outbuffer;
 import dmd.tokens;
 import dmd.utils;
 
@@ -35,82 +37,237 @@ import dmd.utils;
  * necessary.
  * Params:
  *      sc  = instantiating scope
- *      exp = original expression, for error messages
+ *      original = original expression, for error messages
  *      e =  resulting expression
  *      errors = set to `true` if errors occurred
+ *      negatives = array to store negative clauses
  * Returns:
  *      true if evaluates to true
  */
-
-bool evalStaticCondition(Scope* sc, Expression exp, Expression e, ref bool errors)
+bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool errors, Array!Expression* negatives = null)
 {
-    if (e.op == TOK.andAnd || e.op == TOK.orOr)
+    if (negatives)
+        negatives.setDim(0);
+
+    bool impl(Expression e)
     {
-        LogicalExp aae = cast(LogicalExp)e;
-        bool result = evalStaticCondition(sc, exp, aae.e1, errors);
-        if (errors)
-            return false;
-        if (e.op == TOK.andAnd)
+        if (e.op == TOK.not)
         {
-            if (!result)
+            NotExp ne = cast(NotExp)e;
+            return !impl(ne.e1);
+        }
+
+        if (e.op == TOK.andAnd || e.op == TOK.orOr)
+        {
+            LogicalExp aae = cast(LogicalExp)e;
+            bool result = impl(aae.e1);
+            if (errors)
                 return false;
+            if (e.op == TOK.andAnd)
+            {
+                if (!result)
+                    return false;
+            }
+            else
+            {
+                if (result)
+                    return true;
+            }
+            result = impl(aae.e2);
+            return !errors && result;
         }
-        else
+
+        if (e.op == TOK.question)
         {
-            if (result)
-                return true;
+            CondExp ce = cast(CondExp)e;
+            bool result = impl(ce.econd);
+            if (errors)
+                return false;
+            Expression leg = result ? ce.e1 : ce.e2;
+            result = impl(leg);
+            return !errors && result;
         }
-        result = evalStaticCondition(sc, exp, aae.e2, errors);
-        return !errors && result;
-    }
 
-    if (e.op == TOK.question)
-    {
-        CondExp ce = cast(CondExp)e;
-        bool result = evalStaticCondition(sc, exp, ce.econd, errors);
-        if (errors)
+        Expression before = e;
+        const uint nerrors = global.errors;
+
+        sc = sc.startCTFE();
+        sc.flags |= SCOPE.condition;
+
+        e = e.expressionSemantic(sc);
+        e = resolveProperties(sc, e);
+
+        sc = sc.endCTFE();
+        e = e.optimize(WANTvalue);
+
+        if (nerrors != global.errors ||
+            e.op == TOK.error ||
+            e.type.toBasetype() == Type.terror)
+        {
+            errors = true;
             return false;
-        Expression leg = result ? ce.e1 : ce.e2;
-        result = evalStaticCondition(sc, exp, leg, errors);
-        return !errors && result;
-    }
+        }
 
-    uint nerrors = global.errors;
+        e = resolveAliasThis(sc, e);
 
-    sc = sc.startCTFE();
-    sc.flags |= SCOPE.condition;
+        if (!e.type.isBoolean())
+        {
+            original.error("expression `%s` of type `%s` does not have a boolean value",
+                original.toChars(), e.type.toChars());
+            errors = true;
+            return false;
+        }
 
-    e = e.expressionSemantic(sc);
-    e = resolveProperties(sc, e);
+        e = e.ctfeInterpret();
 
-    sc = sc.endCTFE();
-    e = e.optimize(WANTvalue);
+        if (e.isBool(true))
+            return true;
+        else if (e.isBool(false))
+        {
+            if (negatives)
+                negatives.push(before);
+            return false;
+        }
 
-    if (nerrors != global.errors ||
-        e.op == TOK.error ||
-        e.type.toBasetype() == Type.terror)
-    {
+        e.error("expression `%s` is not constant", e.toChars());
         errors = true;
         return false;
     }
+    return impl(e);
+}
 
-    e = resolveAliasThis(sc, e);
+/********************************************
+ * Format a static condition as a tree-like structure, marking failed and
+ * bypassed expressions.
+ * Params:
+ *      original = original expression
+ *      instantiated = instantiated expression
+ *      negatives = array with negative clauses from `instantiated` expression
+ * Returns:
+ *      formatted string or `null` if the expressions were `null`
+ */
+const(char)* visualizeStaticCondition(Expression original, Expression instantiated, const Expression[] negatives)
+{
+    if (!original || !instantiated)
+        return null;
 
-    if (!e.type.isBoolean())
+    OutBuffer buf;
+    uint indent;
+    bool unreached; // indicates that we are printing unreached 'and' clauses
+    bool marked;    // `unreached` mate
+
+    static void printOr(uint indent, ref OutBuffer buf)
     {
-        exp.error("expression `%s` of type `%s` does not have a boolean value", exp.toChars(), e.type.toChars());
-        errors = true;
-        return false;
+        buf.reserve(indent * 4 + 8);
+        foreach (i; 0 .. indent)
+            buf.writestring("    ");
+        buf.writestring("    or:\n");
     }
 
-    e = e.ctfeInterpret();
+    void impl(Expression orig, Expression e, bool inverted, bool orOperand)
+    {
+        TOK op = orig.op;
 
-    if (e.isBool(true))
-        return true;
-    else if (e.isBool(false))
-        return false;
+        // !(A && B) -> !A || !B
+        // !(A || B) -> !A && !B
+        if (inverted)
+        {
+            if (op == TOK.andAnd)
+                op = TOK.orOr;
+            else if (op == TOK.orOr)
+                op = TOK.andAnd;
+        }
 
-    e.error("expression `%s` is not constant", e.toChars());
-    errors = true;
-    return false;
+        if (op == TOK.not)
+        {
+            NotExp no = cast(NotExp)orig;
+            NotExp ne = cast(NotExp)e;
+            impl(no.e1, ne.e1, !inverted, orOperand);
+        }
+        else if (op == TOK.andAnd)
+        {
+            BinExp bo = cast(BinExp)orig;
+            BinExp be = cast(BinExp)e;
+            impl(bo.e1, be.e1, inverted, false);
+            if (marked)
+                unreached = true;
+            impl(bo.e2, be.e2, inverted, false);
+            if (orOperand)
+                unreached = false;
+        }
+        else if (op == TOK.orOr)
+        {
+            if (!orOperand) // do not indent A || B || C twice
+                indent++;
+            BinExp bo = cast(BinExp)orig;
+            BinExp be = cast(BinExp)e;
+            impl(bo.e1, be.e1, inverted, true);
+            printOr(indent, buf);
+            impl(bo.e2, be.e2, inverted, true);
+            if (!orOperand)
+                indent--;
+        }
+        else if (op == TOK.question)
+        {
+            // rewrite (A ? B : C) as (A && B || !A && C)
+            if (!orOperand)
+                indent++;
+            CondExp co = cast(CondExp)orig;
+            CondExp ce = cast(CondExp)e;
+            impl(co.econd, ce.econd, inverted, false);
+            if (marked)
+                unreached = true;
+            impl(co.e1, ce.e1, inverted, false);
+            unreached = false;
+            printOr(indent, buf);
+            impl(co.econd, ce.econd, !inverted, false);
+            if (marked)
+                unreached = true;
+            impl(co.e2, ce.e2, inverted, false);
+            unreached = false;
+            if (!orOperand)
+                indent--;
+        }
+        else // 'primitive' expression
+        {
+            buf.reserve(indent * 4 + 4);
+            foreach (i; 0 .. indent)
+                buf.writestring("    ");
+
+            // find its value; it may be not computed, if there was a short circuit,
+            // but we handle this case with `unreached` flag
+            bool value = true;
+            if (!unreached)
+            {
+                foreach (fe; negatives)
+                {
+                    if (fe is e)
+                    {
+                        value = false;
+                        break;
+                    }
+                }
+            }
+            // print marks first
+            const unsatisfied = inverted ? value : !value;
+            marked = false;
+            if (unsatisfied && !unreached)
+            {
+                buf.writestring("  > ");
+                marked = true;
+            }
+            else if (unreached)
+                buf.writestring("  - ");
+            else
+                buf.writestring("    ");
+            // then the expression itself
+            if (inverted)
+                buf.writeByte('!');
+            buf.writestring(orig.toChars);
+            buf.writenl();
+        }
+    }
+
+    impl(original, instantiated, false, true);
+    return buf.extractString();
 }
