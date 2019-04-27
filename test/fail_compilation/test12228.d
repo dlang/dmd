@@ -1,11 +1,11 @@
 /*
-REQUIRED_ARGS: -de
+REQUIRED_ARGS:
 TEST_OUTPUT:
 ---
-fail_compilation/test12228.d(14): Deprecation: Using `this` as a type is deprecated. Use `typeof(this)` instead
+fail_compilation/test12228.d(14): Error: Using `this` as a type is obsolete. Use `typeof(this)` instead
 fail_compilation/test12228.d(19): Error: no property `x` for type `object.Object`
-fail_compilation/test12228.d(20): Deprecation: Using `super` as a type is deprecated. Use `typeof(super)` instead
-fail_compilation/test12228.d(21): Deprecation: Using `super` as a type is deprecated. Use `typeof(super)` instead
+fail_compilation/test12228.d(20): Error: Using `super` as a type is obsolete. Use `typeof(super)` instead
+fail_compilation/test12228.d(21): Error: Using `super` as a type is obsolete. Use `typeof(super)` instead
 ---
 */
 

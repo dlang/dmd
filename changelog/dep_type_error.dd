@@ -1,0 +1,33 @@
+Usage of `this` and `super` as types is obsolete
+
+Prior to this release, `this` and `super` could be used as both data or types depending on the context, but
+was deprecated about a year ago. Starting with this release using `this` or `super` as a type will result in a compiler error.
+
+```
+class C
+{
+    shared(this) x;    // Error: Using `this` as a type is obsolete. Use `typeof(this)` instead
+}
+
+class D : C
+{
+    shared(super) a;   // Error: Using `super` as a type is obsolete. Use `typeof(super)` instead
+    super b;           // Error: Using `super` as a type is obsolete. Use `typeof(super)` instead
+}
+```
+
+```
+Use typeof(super) or typeof(this) instead.
+
+class C
+{
+    shared(typeof(this)) x;
+}
+
+class D : C
+{
+    shared(typeof(super)) a;
+    typeof(super) b;
+}
+```
+
