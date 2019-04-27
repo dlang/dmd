@@ -1,0 +1,15 @@
+Convert FreeBSD's sys/ttycom.h into core.sys.posix.sys.ttycom
+
+In FreeBSD, as in OSX, the tty part of ioctl is defined in
+sys/ttycom.h which is included by sys/ioctl.h.
+In druntime, there were OSX part of definitions in ttycom.d,
+but there were no FreeBSD equivalent.
+This change implements FreeBSD part of ttycom.d and ioccom.d,
+and public import core.sys.posix.sys.ttycom in ioctl.d.
+The OSX users and FreeBSD users can now use full ioctls related
+to tty by importing core.sys.posix.sys.ioctl, like including
+sys/ioctl.h in C language. (For example, TIOCGWINSZ ioctl was
+not provided in FreeBSD.)
+Since there are only version(OSX) and version(FreeBSD) part
+in ttycom.d, public import'ing core.sys.posix.sys.ttycom from
+ioctl.d will make no harm to other platforms.
