@@ -153,8 +153,6 @@ const(char)* visualizeStaticCondition(Expression original, Expression instantiat
 
     OutBuffer buf;
     uint indent;
-    bool unreached; // indicates that we are printing unreached 'and' clauses
-    bool marked;    // `unreached` mate
 
     static void printOr(uint indent, ref OutBuffer buf)
     {
@@ -164,10 +162,12 @@ const(char)* visualizeStaticCondition(Expression original, Expression instantiat
         buf.writestring("    or:\n");
     }
 
-    void impl(Expression orig, Expression e, bool inverted, bool orOperand)
+    // returns true if satisfied
+    bool impl(Expression orig, Expression e, bool inverted, bool orOperand, bool unreached)
     {
         TOK op = orig.op;
 
+        // lower all 'not' to the bottom
         // !(A && B) -> !A || !B
         // !(A || B) -> !A && !B
         if (inverted)
@@ -182,18 +182,15 @@ const(char)* visualizeStaticCondition(Expression original, Expression instantiat
         {
             NotExp no = cast(NotExp)orig;
             NotExp ne = cast(NotExp)e;
-            impl(no.e1, ne.e1, !inverted, orOperand);
+            return impl(no.e1, ne.e1, !inverted, orOperand, unreached);
         }
         else if (op == TOK.andAnd)
         {
             BinExp bo = cast(BinExp)orig;
             BinExp be = cast(BinExp)e;
-            impl(bo.e1, be.e1, inverted, false);
-            if (marked)
-                unreached = true;
-            impl(bo.e2, be.e2, inverted, false);
-            if (orOperand)
-                unreached = false;
+            const r1 = impl(bo.e1, be.e1, inverted, false, unreached);
+            const r2 = impl(bo.e2, be.e2, inverted, false, unreached || !r1);
+            return r1 && r2;
         }
         else if (op == TOK.orOr)
         {
@@ -201,32 +198,47 @@ const(char)* visualizeStaticCondition(Expression original, Expression instantiat
                 indent++;
             BinExp bo = cast(BinExp)orig;
             BinExp be = cast(BinExp)e;
-            impl(bo.e1, be.e1, inverted, true);
+            const r1 = impl(bo.e1, be.e1, inverted, true, unreached);
             printOr(indent, buf);
-            impl(bo.e2, be.e2, inverted, true);
+            const r2 = impl(bo.e2, be.e2, inverted, true, unreached);
             if (!orOperand)
                 indent--;
+            return r1 || r2;
         }
         else if (op == TOK.question)
         {
-            // rewrite (A ? B : C) as (A && B || !A && C)
-            if (!orOperand)
-                indent++;
             CondExp co = cast(CondExp)orig;
             CondExp ce = cast(CondExp)e;
-            impl(co.econd, ce.econd, inverted, false);
-            if (marked)
-                unreached = true;
-            impl(co.e1, ce.e1, inverted, false);
-            unreached = false;
-            printOr(indent, buf);
-            impl(co.econd, ce.econd, !inverted, false);
-            if (marked)
-                unreached = true;
-            impl(co.e2, ce.e2, inverted, false);
-            unreached = false;
-            if (!orOperand)
-                indent--;
+            if (!inverted)
+            {
+                // rewrite (A ? B : C) as (A && B || !A && C)
+                if (!orOperand)
+                    indent++;
+                const r1 = impl(co.econd, ce.econd, inverted, false, unreached);
+                const r2 = impl(co.e1, ce.e1, inverted, false, unreached || !r1);
+                printOr(indent, buf);
+                const r3 = impl(co.econd, ce.econd, !inverted, false, unreached);
+                const r4 = impl(co.e2, ce.e2, inverted, false, unreached || !r3);
+                if (!orOperand)
+                    indent--;
+                return r1 && r2 || r3 && r4;
+            }
+            else
+            {
+                // rewrite !(A ? B : C) as (!A || !B) && (A || !C)
+                if (!orOperand)
+                    indent++;
+                const r1 = impl(co.econd, ce.econd, inverted, false, unreached);
+                printOr(indent, buf);
+                const r2 = impl(co.e1, ce.e1, inverted, false, unreached);
+                const r12 = r1 || r2;
+                const r3 = impl(co.econd, ce.econd, !inverted, false, unreached || !r12);
+                printOr(indent, buf);
+                const r4 = impl(co.e2, ce.e2, inverted, false, unreached || !r12);
+                if (!orOperand)
+                    indent--;
+                return (r1 || r2) && (r3 || r4);
+            }
         }
         else // 'primitive' expression
         {
@@ -249,13 +261,9 @@ const(char)* visualizeStaticCondition(Expression original, Expression instantiat
                 }
             }
             // print marks first
-            const unsatisfied = inverted ? value : !value;
-            marked = false;
-            if (unsatisfied && !unreached)
-            {
+            const satisfied = inverted ? !value : value;
+            if (!satisfied && !unreached)
                 buf.writestring("  > ");
-                marked = true;
-            }
             else if (unreached)
                 buf.writestring("  - ");
             else
@@ -265,9 +273,10 @@ const(char)* visualizeStaticCondition(Expression original, Expression instantiat
                 buf.writeByte('!');
             buf.writestring(orig.toChars);
             buf.writenl();
+            return satisfied;
         }
     }
 
-    impl(original, instantiated, false, true);
+    impl(original, instantiated, false, true, false);
     return buf.extractString();
 }
