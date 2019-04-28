@@ -195,6 +195,24 @@ void addImport(const(char)[] path)
 }
 
 /**
+Add string import path to `global.filePath`.
+Params:
+    path = string import to add
+*/
+void addStringImport(const(char)[] path)
+{
+    import std.string : toStringz;
+
+    import dmd.globals : global;
+    import dmd.arraytypes : Strings;
+
+    if (global.filePath is null)
+        global.filePath = new Strings();
+
+    global.filePath.push(path.toStringz);
+}
+
+/**
 Searches for a `dmd.conf`.
 
 Params:
