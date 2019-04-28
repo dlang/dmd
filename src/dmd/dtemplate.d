@@ -851,7 +851,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     {
         import dmd.staticcond;
 
-        const msg = visualizeStaticCondition(constraint, lastConstraint, lastConstraintNegs[]);
+        const msg = visualizeStaticCondition(constraint, lastConstraint, lastConstraintNegs[], global.params.verbose);
         lastConstraint = null;
         lastConstraintNegs.setDim(0);
         return msg;

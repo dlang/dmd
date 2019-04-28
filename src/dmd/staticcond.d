@@ -44,7 +44,7 @@ import dmd.utils;
  * Returns:
  *      true if evaluates to true
  */
-bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool errors, Array!Expression* negatives = null)
+bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool errors, Expressions* negatives = null)
 {
     if (negatives)
         negatives.setDim(0);
@@ -143,15 +143,31 @@ bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool 
  *      original = original expression
  *      instantiated = instantiated expression
  *      negatives = array with negative clauses from `instantiated` expression
+ *      full = controls whether it shows the full output or only failed parts
  * Returns:
- *      formatted string or `null` if the expressions were `null`
+ *      formatted string or `null` if the expressions were `null`, or if the
+ *      instantiated expression is not based on the original one
  */
-const(char)* visualizeStaticCondition(Expression original, Expression instantiated, const Expression[] negatives)
+const(char)* visualizeStaticCondition(Expression original, Expression instantiated,
+    const Expression[] negatives, bool full)
 {
-    if (!original || !instantiated)
+    if (!original || !instantiated || original.loc !is instantiated.loc)
         return null;
 
     OutBuffer buf;
+
+    if (full)
+        visualizeFull(original, instantiated, negatives, buf);
+    else
+        visualizeShort(original, instantiated, negatives, buf);
+
+    return buf.extractString();
+}
+
+private void visualizeFull(Expression original, Expression instantiated,
+    const Expression[] negatives, ref OutBuffer buf)
+{
+    // tree-like structure; traverse and format simultaneously
     uint indent;
 
     static void printOr(uint indent, ref OutBuffer buf)
@@ -182,12 +198,14 @@ const(char)* visualizeStaticCondition(Expression original, Expression instantiat
         {
             NotExp no = cast(NotExp)orig;
             NotExp ne = cast(NotExp)e;
+            assert(ne);
             return impl(no.e1, ne.e1, !inverted, orOperand, unreached);
         }
         else if (op == TOK.andAnd)
         {
             BinExp bo = cast(BinExp)orig;
             BinExp be = cast(BinExp)e;
+            assert(be);
             const r1 = impl(bo.e1, be.e1, inverted, false, unreached);
             const r2 = impl(bo.e2, be.e2, inverted, false, unreached || !r1);
             return r1 && r2;
@@ -198,6 +216,7 @@ const(char)* visualizeStaticCondition(Expression original, Expression instantiat
                 indent++;
             BinExp bo = cast(BinExp)orig;
             BinExp be = cast(BinExp)e;
+            assert(be);
             const r1 = impl(bo.e1, be.e1, inverted, true, unreached);
             printOr(indent, buf);
             const r2 = impl(bo.e2, be.e2, inverted, true, unreached);
@@ -209,6 +228,7 @@ const(char)* visualizeStaticCondition(Expression original, Expression instantiat
         {
             CondExp co = cast(CondExp)orig;
             CondExp ce = cast(CondExp)e;
+            assert(ce);
             if (!inverted)
             {
                 // rewrite (A ? B : C) as (A && B || !A && C)
@@ -260,7 +280,7 @@ const(char)* visualizeStaticCondition(Expression original, Expression instantiat
                     }
                 }
             }
-            // print marks first
+            // write the marks first
             const satisfied = inverted ? !value : value;
             if (!satisfied && !unreached)
                 buf.writestring("  > ");
@@ -278,5 +298,132 @@ const(char)* visualizeStaticCondition(Expression original, Expression instantiat
     }
 
     impl(original, instantiated, false, true, false);
-    return buf.extractString();
+}
+
+private void visualizeShort(Expression original, Expression instantiated,
+    const Expression[] negatives, ref OutBuffer buf)
+{
+    // simple list; somewhat similar to long version, so no comments
+    // one difference is that it needs to hold items to display in a stack
+
+    static struct Item
+    {
+        Expression orig;
+        bool inverted;
+    }
+
+    Array!Item stack;
+
+    bool impl(Expression orig, Expression e, bool inverted)
+    {
+        TOK op = orig.op;
+
+        if (inverted)
+        {
+            if (op == TOK.andAnd)
+                op = TOK.orOr;
+            else if (op == TOK.orOr)
+                op = TOK.andAnd;
+        }
+
+        if (op == TOK.not)
+        {
+            NotExp no = cast(NotExp)orig;
+            NotExp ne = cast(NotExp)e;
+            assert(ne);
+            return impl(no.e1, ne.e1, !inverted);
+        }
+        else if (op == TOK.andAnd)
+        {
+            BinExp bo = cast(BinExp)orig;
+            BinExp be = cast(BinExp)e;
+            assert(be);
+            bool r = impl(bo.e1, be.e1, inverted);
+            r = r && impl(bo.e2, be.e2, inverted);
+            return r;
+        }
+        else if (op == TOK.orOr)
+        {
+            BinExp bo = cast(BinExp)orig;
+            BinExp be = cast(BinExp)e;
+            assert(be);
+            const lbefore = stack.length;
+            bool r = impl(bo.e1, be.e1, inverted);
+            r = r || impl(bo.e2, be.e2, inverted);
+            if (r)
+                stack.setDim(lbefore); // purge added positive items
+            return r;
+        }
+        else if (op == TOK.question)
+        {
+            CondExp co = cast(CondExp)orig;
+            CondExp ce = cast(CondExp)e;
+            assert(ce);
+            if (!inverted)
+            {
+                const lbefore = stack.length;
+                bool a = impl(co.econd, ce.econd, inverted);
+                a = a && impl(co.e1, ce.e1, inverted);
+                bool b;
+                if (!a)
+                {
+                    b = impl(co.econd, ce.econd, !inverted);
+                    b = b && impl(co.e2, ce.e2, inverted);
+                }
+                const r = a || b;
+                if (r)
+                    stack.setDim(lbefore);
+                return r;
+            }
+            else
+            {
+                bool a;
+                {
+                    const lbefore = stack.length;
+                    a = impl(co.econd, ce.econd, inverted);
+                    a = a || impl(co.e1, ce.e1, inverted);
+                    if (a)
+                        stack.setDim(lbefore);
+                }
+                bool b;
+                if (a)
+                {
+                    const lbefore = stack.length;
+                    b = impl(co.econd, ce.econd, !inverted);
+                    b = b || impl(co.e2, ce.e2, inverted);
+                    if (b)
+                        stack.setDim(lbefore);
+                }
+                return a && b;
+            }
+        }
+        else // 'primitive' expression
+        {
+            bool value = true;
+            foreach (fe; negatives)
+            {
+                if (fe is e)
+                {
+                    value = false;
+                    break;
+                }
+            }
+            const satisfied = inverted ? !value : value;
+            if (!satisfied)
+                stack.push(Item(orig, inverted));
+            return satisfied;
+        }
+    }
+
+    impl(original, instantiated, false);
+
+    foreach (item; stack)
+    {
+        // write the expression only
+        buf.writestring("  ");
+        if (item.inverted)
+            buf.writeByte('!');
+        buf.writestring(item.orig.toChars);
+        buf.writenl();
+    }
 }
