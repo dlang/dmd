@@ -348,6 +348,7 @@ $(GNAME AliasDeclarationX):
 $(GNAME AliasDeclarationY):
     $(GLINK_LEX Identifier) $(GLINK2 template, TemplateParameters)$(OPT) $(D =) $(GLINK StorageClasses)$(OPT) $(GLINK Type)
     $(GLINK_LEX Identifier) $(GLINK2 template, TemplateParameters)$(OPT) $(D =) $(GLINK2 expression, FunctionLiteral)
+    $(GLINK_LEX Identifier) $(GLINK2 template, TemplateParameters)$(OPT) $(D =) $(GLINK StorageClasses)$(OPT) $(GLINK BasicType) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
 )
 
     $(P $(I AliasDeclaration)s create a symbol that is an alias for another type,
@@ -398,6 +399,15 @@ t1.t v1;  // v1 is type int
 t2 v2;    // v2 is type int
 t3 v3;    // v3 is type int
 t4 v4;    // v4 is type int
+
+alias Fun = int(string p);
+int fun(string){return 0;}
+static assert(is(typeof(fun) == Fun));
+
+alias MemberFun1 = int() const;
+alias MemberFun2 = const int();
+// leading attributes apply to the func, not the return type
+static assert(is(MemberFun1 == MemberFun2));
 --------------------
 
         $(P
