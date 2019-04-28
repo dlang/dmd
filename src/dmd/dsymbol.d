@@ -793,7 +793,7 @@ extern (C++) class Dsymbol : ASTNode
         // search for exact name first
         if (auto s = search(Loc.initial, ident, IgnoreErrors))
             return s;
-        return speller!symbol_search_fp(ident.toChars());
+        return speller!symbol_search_fp(ident.toString());
     }
 
     /***************************************

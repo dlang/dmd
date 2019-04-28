@@ -1795,7 +1795,7 @@ Lnext:
         return sv ? cast(const(char)*)sv.ptrvalue : null;
     }
 
-    if (auto sub = speller!trait_search_fp(e.ident.toChars()))
+    if (auto sub = speller!trait_search_fp(e.ident.toString()))
         e.error("unrecognized trait `%s`, did you mean `%s`?", e.ident.toChars(), sub);
     else
         e.error("unrecognized trait `%s`", e.ident.toChars());

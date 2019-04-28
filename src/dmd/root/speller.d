@@ -186,14 +186,13 @@ private auto spellerX(alias dg)(const(char)[] seed, bool flag)
  *      null = no correct spellings found, otherwise
  *      the value returned by dg() for first possible correct spelling
  */
-auto speller(alias dg)(const(char)* seed)
+auto speller(alias dg)(const(char)[] seed)
 if (isSearchFunction!dg)
 {
-    size_t seedlen = strlen(seed);
-    size_t maxdist = seedlen < 4 ? seedlen / 2 : 2;
+    size_t maxdist = seed.length < 4 ? seed.length / 2 : 2;
     for (int distance = 0; distance < maxdist; distance++)
     {
-        auto p = spellerX!dg(seed[0 .. seedlen], distance > 0);
+        auto p = spellerX!dg(seed, distance > 0);
         if (p)
             return p;
         //      if (seedlen > 10)
@@ -224,7 +223,6 @@ unittest
         ["hello", "ehlxxlo", "n"],
         ["hello", "heaao", "y"],
         ["_123456789_123456789_123456789_123456789", "_123456789_123456789_123456789_12345678", "y"],
-        [null, null, null]
     ];
     //printf("unittest_speller()\n");
 
@@ -241,17 +239,17 @@ unittest
     }
 
     dgarg = "hell";
-    auto p = speller!speller_test(cast(const(char)*)"hello");
+    auto p = speller!speller_test("hello");
     assert(p !is null);
-    for (int i = 0; cases[i][0]; i++)
+    foreach (testCase; cases)
     {
         //printf("case [%d]\n", i);
-        dgarg = cases[i][1];
-        auto p2 = speller!speller_test(cases[i][0].ptr);
+        dgarg = testCase[1];
+        auto p2 = speller!speller_test(testCase[0]);
         if (p2)
-            assert(cases[i][2][0] == 'y');
+            assert(testCase[2][0] == 'y');
         else
-            assert(cases[i][2][0] == 'n');
+            assert(testCase[2][0] == 'n');
     }
     //printf("unittest_speller() success\n");
 }
