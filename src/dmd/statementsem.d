@@ -3373,8 +3373,15 @@ else
         }
         if (e0)
         {
-            result = new CompoundStatement(rs.loc, new ExpStatement(rs.loc, e0), rs);
-            return;
+            if (e0.op == TOK.declaration)
+            {
+                rs.exp = Expression.combine(e0, rs.exp);
+            }
+            else
+            {
+                result = new CompoundStatement(rs.loc, new ExpStatement(rs.loc, e0), rs);
+                return;
+            }
         }
         result = rs;
     }
