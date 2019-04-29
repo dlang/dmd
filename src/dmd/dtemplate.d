@@ -540,8 +540,9 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     // threaded list of previous instantiation attempts on stack
     TemplatePrevious* previous;
 
-    private Expression lastConstraint; // the last failed constraint instantiation
-    private Array!Expression lastConstraintNegs; // its negative parts
+    private Expression lastConstraint; /// the constraint after the last failed evaluation
+    private Array!Expression lastConstraintNegs; /// its negative parts
+    private Objects* lastConstraintTiargs; /// template instance arguments for `lastConstraint`
 
     extern (D) this(const ref Loc loc, Identifier ident, TemplateParameters* parameters, Expression constraint, Dsymbols* decldefs, bool ismixin = false, bool literal = false)
     {
@@ -698,10 +699,9 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
         buf.writestring(ident.toChars());
         buf.writeByte('(');
-        for (size_t i = 0; i < parameters.dim; i++)
+        foreach (i, tp; *parameters)
         {
-            TemplateParameter tp = (*parameters)[i];
-            if (i)
+            if (i > 0)
                 buf.writestring(", ");
             .toCBuffer(tp, &buf, &hgs);
         }
@@ -712,11 +712,11 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             FuncDeclaration fd = onemember.isFuncDeclaration();
             if (fd && fd.type)
             {
-                TypeFunction tf = cast(TypeFunction)fd.type;
+                TypeFunction tf = fd.type.isTypeFunction();
                 buf.writestring(parametersTypeToChars(tf.parameterList));
             }
         }
-        return buf.extractString();
+        return buf.extractChars();
     }
 
     override Prot prot() pure nothrow @nogc @safe
@@ -822,6 +822,8 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         }
 
         lastConstraint = constraint.syntaxCopy();
+        lastConstraintTiargs = ti.tiargs;
+        lastConstraintNegs.setDim(0);
 
         import dmd.staticcond;
 
@@ -830,9 +832,10 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         scx.flags |= SCOPE.constraint;
         bool errors;
         const bool result = evalStaticCondition(scx, constraint, lastConstraint, errors, &lastConstraintNegs);
-        if (result)
+        if (result || errors)
         {
             lastConstraint = null;
+            lastConstraintTiargs = null;
             lastConstraintNegs.setDim(0);
         }
         ti.inst = null;
@@ -846,15 +849,111 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
     /****************************
      * Destructively get the error message from the last constraint evaluation
+     * Params:
+     *      tip = tip to show after printing all overloads
      */
-    const(char)* getConstraintEvalError()
+    const(char)* getConstraintEvalError(ref const(char)* tip)
     {
         import dmd.staticcond;
 
-        const msg = visualizeStaticCondition(constraint, lastConstraint, lastConstraintNegs[], global.params.verbose);
-        lastConstraint = null;
-        lastConstraintNegs.setDim(0);
-        return msg;
+        // there will be a full tree view in verbose mode, and more compact list in the usual
+        const full = global.params.verbose;
+        uint count;
+        const msg = visualizeStaticCondition(constraint, lastConstraint, lastConstraintNegs[], full, count);
+        scope (exit)
+        {
+            lastConstraint = null;
+            lastConstraintTiargs = null;
+            lastConstraintNegs.setDim(0);
+        }
+        if (msg)
+        {
+            OutBuffer buf;
+
+            assert(parameters && lastConstraintTiargs);
+            if (parameters.length > 0)
+            {
+                formatParamsWithTiargs(*lastConstraintTiargs, buf);
+                buf.writenl();
+            }
+            if (!full)
+            {
+                // choosing singular/plural
+                const s = (count == 1) ?
+                    "  must satisfy the following constraint:" :
+                    "  must satisfy one of the following constraints:";
+                buf.writestring(s);
+                buf.writenl();
+                // the constraints
+                buf.writeByte('`');
+                buf.writestring(msg);
+                buf.writeByte('`');
+            }
+            else
+            {
+                buf.writestring("  whose parameters have the following constraints:");
+                buf.writenl();
+                const sep = "  `~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`";
+                buf.writestring(sep);
+                buf.writenl();
+                // the constraints
+                buf.writeByte('`');
+                buf.writestring(msg);
+                buf.writeByte('`');
+                buf.writestring(sep);
+                tip = "not satisfied constraints are marked with `>`";
+            }
+            return buf.extractChars();
+        }
+        else
+            return null;
+    }
+
+    private void formatParamsWithTiargs(ref Objects tiargs, ref OutBuffer buf)
+    {
+        buf.writestring("  with `");
+
+        // write usual arguments line-by-line
+        // skips trailing default ones - they are not present in `tiargs`
+        const bool variadic = isVariadic() !is null;
+        const end = cast(int)parameters.length - (variadic ? 1 : 0);
+        uint i;
+        for (; i < tiargs.length && i < end; i++)
+        {
+            if (i > 0)
+            {
+                buf.writeByte(',');
+                buf.writenl();
+                buf.writestring("       ");
+            }
+            buf.write((*parameters)[i]);
+            buf.writestring(" = ");
+            buf.write(tiargs[i]);
+        }
+        // write remaining variadic arguments on the last line
+        if (variadic)
+        {
+            if (i > 0)
+            {
+                buf.writeByte(',');
+                buf.writenl();
+                buf.writestring("       ");
+            }
+            buf.write((*parameters)[end]);
+            buf.writestring(" = ");
+            buf.writeByte('(');
+            if (cast(int)tiargs.length - end > 0)
+            {
+                buf.write(tiargs[end]);
+                foreach (j; parameters.length .. tiargs.length)
+                {
+                    buf.writestring(", ");
+                    buf.write(tiargs[j]);
+                }
+            }
+            buf.writeByte(')');
+        }
+        buf.writeByte('`');
     }
 
     /******************************
@@ -7131,14 +7230,14 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             {
                 // Only one template, so we can give better error message
                 const(char)* msg = "does not match template declaration";
+                const(char)* tip;
                 const tmsg = tdecl.toCharsNoConstraints();
-                const cmsg = tdecl.getConstraintEvalError();
+                const cmsg = tdecl.getConstraintEvalError(tip);
                 if (cmsg)
                 {
-                    const char* txt = "  whose parameters have the following constraints:";
-                    const char* sep = "  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
-                    error("%s `%s`,\n%s\n`%s\n%s%s`", msg, tmsg, txt, sep, cmsg, sep);
-                    .tip("not satisfied constraints are marked with `>`");
+                    error("%s `%s`\n%s", msg, tmsg, cmsg);
+                    if (tip)
+                        .tip(tip);
                 }
                 else
                     error("%s `%s`", msg, tmsg);

@@ -144,12 +144,13 @@ bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool 
  *      instantiated = instantiated expression
  *      negatives = array with negative clauses from `instantiated` expression
  *      full = controls whether it shows the full output or only failed parts
+ *      itemCount = returns the number of written clauses
  * Returns:
  *      formatted string or `null` if the expressions were `null`, or if the
  *      instantiated expression is not based on the original one
  */
 const(char)* visualizeStaticCondition(Expression original, Expression instantiated,
-    const Expression[] negatives, bool full)
+    const Expression[] negatives, bool full, ref uint itemCount)
 {
     if (!original || !instantiated || original.loc !is instantiated.loc)
         return null;
@@ -157,17 +158,18 @@ const(char)* visualizeStaticCondition(Expression original, Expression instantiat
     OutBuffer buf;
 
     if (full)
-        visualizeFull(original, instantiated, negatives, buf);
+        itemCount = visualizeFull(original, instantiated, negatives, buf);
     else
-        visualizeShort(original, instantiated, negatives, buf);
+        itemCount = visualizeShort(original, instantiated, negatives, buf);
 
-    return buf.extractString();
+    return buf.extractChars();
 }
 
-private void visualizeFull(Expression original, Expression instantiated,
+private uint visualizeFull(Expression original, Expression instantiated,
     const Expression[] negatives, ref OutBuffer buf)
 {
     // tree-like structure; traverse and format simultaneously
+    uint count;
     uint indent;
 
     static void printOr(uint indent, ref OutBuffer buf)
@@ -293,14 +295,16 @@ private void visualizeFull(Expression original, Expression instantiated,
                 buf.writeByte('!');
             buf.writestring(orig.toChars);
             buf.writenl();
+            count++;
             return satisfied;
         }
     }
 
     impl(original, instantiated, false, true, false);
+    return count;
 }
 
-private void visualizeShort(Expression original, Expression instantiated,
+private uint visualizeShort(Expression original, Expression instantiated,
     const Expression[] negatives, ref OutBuffer buf)
 {
     // simple list; somewhat similar to long version, so no comments
@@ -417,13 +421,16 @@ private void visualizeShort(Expression original, Expression instantiated,
 
     impl(original, instantiated, false);
 
-    foreach (item; stack)
+    foreach (i; 0 .. stack.length)
     {
         // write the expression only
-        buf.writestring("  ");
-        if (item.inverted)
+        buf.writestring("       ");
+        if (stack[i].inverted)
             buf.writeByte('!');
-        buf.writestring(item.orig.toChars);
-        buf.writenl();
+        buf.writestring(stack[i].orig.toChars);
+        // here with no trailing newline
+        if (i + 1 < stack.length)
+            buf.writenl();
     }
+    return cast(uint)stack.length;
 }

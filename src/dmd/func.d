@@ -2939,7 +2939,7 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
 {
     // max num of overloads to print (-v overrides this).
     int numToDisplay = 5;
-    bool hadConstraints;
+    const(char)* constraintsTip;
 
     overloadApply(declaration, (Dsymbol s)
     {
@@ -2960,14 +2960,9 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
             import dmd.staticcond;
 
             const tmsg = td.toCharsNoConstraints();
-            const cmsg = td.getConstraintEvalError();
+            const cmsg = td.getConstraintEvalError(constraintsTip);
             if (cmsg)
-            {
-                const char* txt = "  whose parameters have the following constraints:";
-                const char* sep = "  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
-                .errorSupplemental(td.loc, "`%s`,\n%s\n`%s\n%s%s`", tmsg, txt, sep, cmsg, sep);
-                hadConstraints = true;
-            }
+                .errorSupplemental(td.loc, "`%s`\n%s", tmsg, cmsg);
             else
                 .errorSupplemental(td.loc, "`%s`", tmsg);
             nextOverload = td.overnext;
@@ -2985,10 +2980,9 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
             .errorSupplemental(loc, "... (%d more, -v to show) ...", num);
         return 1;   // stop iterating
     });
-
-    static if (is(Decl == TemplateDeclaration))
-        if (hadConstraints)
-            .tip("not satisfied constraints are marked with `>`");
+    // should be only in verbose mode
+    if (constraintsTip)
+        .tip(constraintsTip);
 }
 
 /**************************************
