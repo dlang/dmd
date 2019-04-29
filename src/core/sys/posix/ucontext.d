@@ -914,44 +914,57 @@ else version (FreeBSD)
 }
 else version (NetBSD)
 {
-
     version (X86_64)
     {
-      enum { NGREG = 26 };
-      alias __greg_t = ulong;
-      alias __gregset_t = __greg_t[NGREG];
-      alias __fpregset_t = align(8)ubyte[512];
+        private
+        {
+            enum _NGREG = 26;
+            alias __greg_t = c_ulong;
+            alias __gregset_t = __greg_t[_NGREG];
+            alias __fpregset_t = align(8) ubyte[512];
+        }
 
-      struct mcontext_t {
-        __gregset_t     __gregs;
-        __greg_t        _mc_tlsbase;
-        __fpregset_t    __fpregs;
-      }
+        struct mcontext_t
+        {
+            __gregset_t  __gregs;
+            __greg_t     _mc_tlsbase;
+            __fpregset_t __fpregs;
+        }
     }
     else version (X86)
     {
-      enum { NGREG = 19 };
-      alias __greg_t = ulong;
-      alias __gregset_t = __greg_t[_NGREG];
-      struct __fpregset_t{
-        union __fp_reg_set{
-                struct __fpchip_state{
-                        int[27]     __fp_state; /* Environment and registers */
-                } ;       /* x87 regs in fsave format */
-                struct __fp_xmm_state{
+        private
+        {
+            enum _NGREG = 19;
+            alias __greg_t = int;
+            alias __gregset_t = __greg_t[_NGREG];
+            struct __fpregset_t
+            {
+                union fp_reg_set_t
+                {
+                    struct fpchip_state_t
+                    {
+                        int[27] __fp_state;
+                    }
+                    struct fp_xmm_state_t
+                    {
                         ubyte[512]    __fp_xmm;
-                } ;       /* x87 and xmm regs in fxsave format */
-                int[128]     __fp_fpregs;
-        };
-        __fpregset_t __fp_reg_set;
-        int[33]     __fp_pad;                   /* Historic padding */
-      };
+                    }
+                    fpchip_state_t __fpchip_state;
+                    fp_xmm_state_t __fp_xmm_state;
+                    int[128]     __fp_fpregs;
+                }
+                fp_reg_set_t __fp_reg_set;
+                int[33]     __fp_pad;
+            }
+        }
 
-      struct mcontext_t {
-        __gregset_t     __gregs;
-        __fpregset_t    __fpregs;
-        __greg_t        _mc_tlsbase;
-      }
+        struct mcontext_t
+        {
+            __gregset_t     __gregs;
+            __fpregset_t    __fpregs;
+            __greg_t        _mc_tlsbase;
+        }
     }
 
     struct ucontext_t
@@ -965,7 +978,6 @@ else version (NetBSD)
                 long            __uc_pad[_UC_MACHINE_PAD];
         #endif
         +/
-
     }
 }
 else version (OpenBSD)
