@@ -3666,6 +3666,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (!e.cd.errors && sc.intypeof && !sc.parent.inNonRoot())
         {
             ScopeDsymbol sds = sc.tinst ? cast(ScopeDsymbol)sc.tinst : sc._module;
+            if (!sds.members)
+                sds.members = new Dsymbols();
             sds.members.push(e.cd);
         }
 
