@@ -249,16 +249,16 @@ else version (NetBSD)
         {
             struct _x87
             {
-                    ushort control;       /* Control word register */
+                    ushort control;     /* Control word register */
                     ushort unused1;
-                    ushort status;        /* Status word register */
+                    ushort status;      /* Status word register */
                     ushort unused2;
-                    ushort tag;           /* Tag word register */
+                    ushort tag;         /* Tag word register */
                     ushort unused3;
                     uint[4] others;     /* EIP, Pointer Selector, etc */
             };
             _x87 x87;
-            uint32_t mxcsr;                 /* Control and status register */
+            uint mxcsr;                 /* Control and status register */
         };
 
     }
