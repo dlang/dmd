@@ -103,7 +103,7 @@ Params:
     versionIdentifiers = a list of version identifiers that should be enabled
 */
 void initDMD(
-    string[] versionIdentifiers = [],
+    const string[] versionIdentifiers = [],
     ContractChecks contractChecks = ContractChecks()
 )
 {
