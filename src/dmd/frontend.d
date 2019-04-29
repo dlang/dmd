@@ -109,6 +109,11 @@ void initDMD(
 {
     import std.algorithm : each;
 
+    import dmd.root.ctfloat : CTFloat;
+
+    version (CRuntime_Microsoft)
+        import dmd.root.longdouble : initFPU;
+
     import dmd.builtin : builtin_init;
     import dmd.cond : VersionCondition;
     import dmd.dmodule : Module;
@@ -146,6 +151,11 @@ void initDMD(
     Objc._init();
     builtin_init();
     FileCache._init();
+
+    version (CRuntime_Microsoft)
+        initFPU();
+
+    CTFloat.initialize();
 }
 
 /**

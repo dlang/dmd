@@ -163,3 +163,26 @@ unittest
 
     assert(global.errors == 0);
 }
+
+@("initDMD - floating-point")
+unittest
+{
+    import std.algorithm : each;
+
+    import dmd.frontend;
+    import dmd.globals : global;
+
+    initDMD();
+    defaultImportPaths.each!addImport;
+
+    auto t = parseModule("test.d", q{
+        static assert((2.0i).re == 0);
+    });
+
+    assert(!t.diagnostics.hasErrors);
+    assert(!t.diagnostics.hasWarnings);
+
+    t.module_.fullSemantic();
+
+    assert(global.errors == 0);
+}
