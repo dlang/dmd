@@ -47,7 +47,6 @@ version (CRuntime_Glibc)
 }
 
 alias Strings = Array!(const(char)*);
-alias Files = Array!(File*);
 
 /***********************************************************
  * Encapsulate path and file names.
@@ -1046,6 +1045,12 @@ nothrow:
     const(char)[] toString() const pure nothrow @nogc @trusted
     {
         return str;
+    }
+
+    bool opCast(T)() const pure nothrow @nogc @safe
+    if (is(T == bool))
+    {
+        return str.ptr !is null;
     }
 }
 

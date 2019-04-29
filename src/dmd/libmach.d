@@ -85,11 +85,10 @@ final class LibMach : Library
         if (!buf)
         {
             assert(module_name[0]);
-            File* file = File.create(cast(char*)module_name);
-            readFile(Loc.initial, file);
-            buf = file.buffer;
-            buflen = file.len;
-            file._ref = 1;
+            // read file and take buffer ownership
+            auto data = readFile(Loc.initial, module_name).extractData();
+            buf = data.ptr;
+            buflen = data.length;
             fromfile = 1;
         }
         int reason = 0;

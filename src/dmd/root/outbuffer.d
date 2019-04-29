@@ -42,6 +42,11 @@ struct OutBuffer
         return p;
     }
 
+    extern (C++) void destroy() pure nothrow @trusted
+    {
+        mem.xfree(extractData());
+    }
+
     extern (C++) void reserve(size_t nbytes) pure nothrow
     {
         //printf("OutBuffer::reserve: size = %d, offset = %d, nbytes = %d\n", size, offset, nbytes);

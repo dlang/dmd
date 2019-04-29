@@ -259,7 +259,6 @@ struct Global
 
     const char *copyright;
     const char *written;
-    const char *main_d;         // dummy filename for dummy main()
     Array<const char *> *path;        // Array of char*'s which form the import lookup path
     Array<const char *> *filePath;    // Array of char*'s which form the file import lookup path
 

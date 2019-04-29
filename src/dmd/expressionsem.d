@@ -5592,16 +5592,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         {
-            auto f = File(name);
-            if (f.read())
+            auto readResult = File.read(name);
+            if (!readResult.success)
             {
-                e.error("cannot read file `%s`", f.toChars());
+                e.error("cannot read file `%s`", name);
                 return setError();
             }
             else
             {
-                f._ref = 1;
-                se = new StringExp(e.loc, f.buffer, f.len);
+                // take ownership of buffer (probably leaking)
+                auto data = readResult.extractData();
+                se = new StringExp(e.loc, data.ptr, data.length);
             }
         }
         result = se.expressionSemantic(sc);

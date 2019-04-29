@@ -383,11 +383,11 @@ extern(C++) void gendocfile(Module m)
         // Override with the ddoc macro files from the command line
         for (size_t i = 0; i < global.params.ddocfiles.dim; i++)
         {
-            auto file = File(global.params.ddocfiles[i].toDString());
-            readFile(m.loc, &file);
+            auto buffer = readFile(m.loc, global.params.ddocfiles[i]);
             // BUG: convert file contents to UTF-8 before use
-            //printf("file: '%.*s'\n", cast(int)file.len, file.buffer);
-            mbuf.write(file.buffer, file.len);
+            const data = buffer.data;
+            //printf("file: '%.*s'\n", cast(int)data.length, data.ptr);
+            mbuf.write(data.ptr, data.length);
         }
     }
     DocComment.parseMacros(m.escapetable, &m.macrotable, mbuf.peekSlice().ptr, mbuf.peekSlice().length);
@@ -484,12 +484,7 @@ extern(C++) void gendocfile(Module m)
                 buf.writeByte(c);
             }
         }
-        // Transfer image to file
-        assert(m.docfile);
-        m.docfile.setbuffer(cast(void*)buf.peekSlice().ptr, buf.peekSlice().length);
-        m.docfile._ref = 1;
-        ensurePathToNameExists(Loc.initial, m.docfile.toChars());
-        writeFile(m.loc, m.docfile);
+        writeFile(m.loc, m.docfile.toChars(), buf.peekSlice());
     }
     else
     {
@@ -510,11 +505,7 @@ extern(C++) void gendocfile(Module m)
             }
             buf2.setsize(i);
         }
-        // Transfer image to file
-        m.docfile.setbuffer(buf2.data, buf2.offset);
-        m.docfile._ref = 1;
-        ensurePathToNameExists(Loc.initial, m.docfile.toChars());
-        writeFile(m.loc, m.docfile);
+        writeFile(m.loc, m.docfile.toChars(), buf2.peekSlice());
     }
 }
 
@@ -3705,12 +3696,12 @@ private struct MarkdownLinkReferences
                 root = symbol;
 
                 // If the module has a file name, we're done
-                if (symbol.isModule() && symbol.isModule().docfile)
-                {
-                    const docfilename = symbol.isModule().docfile.toChars();
-                    path = docfilename[0..strlen(docfilename)];
-                    break;
-                }
+                if (const m = symbol.isModule())
+                    if (m.docfile)
+                    {
+                        path = m.docfile.toString();
+                        break;
+                    }
 
                 if (path.length)
                     path = '_' ~ path;

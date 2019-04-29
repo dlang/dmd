@@ -44,6 +44,7 @@ public:
         mem.xfree(data);
     }
     char *extractData();
+    void destroy();
 
     void reserve(size_t nbytes);
     void setsize(size_t size);

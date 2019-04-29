@@ -260,11 +260,7 @@ public int runLINK()
             if (plen > 7000)
             {
                 lnkfilename = FileName.forceExt(global.params.exefile, "lnk");
-                auto flnk = File(lnkfilename);
-                flnk.setbuffer(p, plen);
-                flnk._ref = 1;
-                if (flnk.write())
-                    error(Loc.initial, "error writing file %s", lnkfilename);
+                writeFile(Loc.initial, lnkfilename, p[0 .. plen]);
                 if (strlen(lnkfilename) < plen)
                     sprintf(p, "@%s", lnkfilename);
             }
@@ -388,11 +384,7 @@ public int runLINK()
             if (plen > 7000)
             {
                 lnkfilename = FileName.forceExt(global.params.exefile, "lnk");
-                auto flnk = File(lnkfilename);
-                flnk.setbuffer(p, plen);
-                flnk._ref = 1;
-                if (flnk.write())
-                    error(Loc.initial, "error writing file %s", lnkfilename);
+                writeFile(Loc.initial, lnkfilename, p[0 .. plen]);
                 if (strlen(lnkfilename) < plen)
                     sprintf(p, "@%s", lnkfilename);
             }
@@ -1216,10 +1208,10 @@ version (Windows)
                 if (FileName.exists(defverFile))
                 {
                     // VS 2017
-                    File f = File(defverFile);
-                    if (!f.read()) // returns true on error (!), adds sentinel 0 at end of file
+                    auto readResult = File.read(defverFile); // adds sentinel 0 at end of file
+                    if (readResult.success)
                     {
-                        auto ver = cast(char*)f.buffer;
+                        auto ver = cast(char*)readResult.buffer.data.ptr;
                         // trim version number
                         while (*ver && isspace(*ver))
                             ver++;

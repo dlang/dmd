@@ -77,11 +77,7 @@ extern (C++) void genhdrfile(Module m)
     HdrGenState hgs;
     hgs.hdrgen = true;
     toCBuffer(m, &buf, &hgs);
-    // Transfer image to file
-    m.hdrfile.setbuffer(buf.data, buf.offset);
-    buf.extractData();
-    ensurePathToNameExists(Loc.initial, m.hdrfile.toChars());
-    writeFile(m.loc, m.hdrfile);
+    writeFile(m.loc, m.hdrfile.toChars(), buf.peekSlice());
 }
 
 /**

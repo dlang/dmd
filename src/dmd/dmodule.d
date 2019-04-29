@@ -37,7 +37,6 @@ import dmd.root.file;
 import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.root.port;
-import dmd.root.rmem;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.utils;
@@ -316,10 +315,11 @@ extern (C++) final class Module : Package
 
     const(char)* arg;           // original argument name
     ModuleDeclaration* md;      // if !=null, the contents of the ModuleDeclaration declaration
-    File* srcfile;              // input source file
-    File* objfile;              // output .obj file
-    File* hdrfile;              // 'header' file
-    File* docfile;              // output documentation file
+    const FileName srcfile;     // input source file
+    const FileName objfile;     // output .obj file
+    const FileName hdrfile;     // 'header' file
+    FileName docfile;           // output documentation file
+    FileBuffer* srcBuffer;      // set during load(), free'd in parse()
     uint errors;                // if any errors in file
     uint numlines;              // number of lines in source file
     bool isHdrFile;             // if it is a header (.di) file
@@ -423,13 +423,12 @@ extern (C++) final class Module : Package
             error("source file name '%s' must have .%s extension", srcfilename, global.mars_ext);
             fatal();
         }
-        srcfile = new File(srcfilename);
-        objfile = setOutfile(global.params.objname, global.params.objdir, filename, global.obj_ext);
+        srcfile = FileName(srcfilename.toDString);
+        objfile = setOutfilename(global.params.objname, global.params.objdir, filename, global.obj_ext);
         if (doDocComment)
             setDocfile();
         if (doHdrGen)
-            hdrfile = setOutfile(global.params.hdrname, global.params.hdrdir, arg, global.hdr_ext);
-        //objfile = new File(objfilename);
+            hdrfile = setOutfilename(global.params.hdrname, global.params.hdrdir, arg, global.hdr_ext);
         escapetable = new Escape();
     }
 
@@ -504,15 +503,13 @@ extern (C++) final class Module : Package
             buf.writeByte(0);
             filename = buf.extractData().toDString();
         }
-        auto m = new Module(loc, filename.ptr, ident, 0, 0);
 
         /* Look for the source file
          */
         if (const result = lookForSourceFile(filename))
-        {
-            m.srcfile = new File(result);
-            FileName.free(result.ptr);
-        }
+            filename = result; // leaks
+
+        auto m = new Module(loc, filename.ptr, ident, 0, 0);
 
         if (!m.read(loc))
             return null;
@@ -561,13 +558,13 @@ extern (C++) final class Module : Package
      *      global.params.preservePaths     get output path from arg
      *      srcfile Input file - output file name must not match input file
      */
-    File* setOutfile(const(char)* name, const(char)* dir, const(char)* arg, const(char)* ext)
+    FileName setOutfilename(const(char)* name, const(char)* dir, const(char)* arg, const(char)* ext)
     {
-        return setOutfile(name.toDString(), dir.toDString(), arg.toDString(), ext.toDString());
+        return setOutfilename(name.toDString(), dir.toDString(), arg.toDString(), ext.toDString());
     }
 
     /// Ditto
-    extern(D) File* setOutfile(const(char)[] name, const(char)[] dir, const(char)[] arg, const(char)[] ext)
+    extern(D) FileName setOutfilename(const(char)[] name, const(char)[] dir, const(char)[] arg, const(char)[] ext)
     {
         const(char)[] docfilename;
         if (name)
@@ -599,24 +596,27 @@ extern (C++) final class Module : Package
             }
             docfilename = FileName.forceExt(argdoc, ext);
         }
-        if (FileName.equals(docfilename, srcfile.name.toString()))
+        if (FileName.equals(docfilename, srcfile.toString()))
         {
-            error("source file and output file have same name '%s'", srcfile.name.toChars());
+            error("source file and output file have same name '%s'", srcfile.toChars());
             fatal();
         }
-        return new File(docfilename);
+        return FileName(docfilename);
     }
 
     void setDocfile()
     {
-        docfile = setOutfile(global.params.docname, global.params.docdir, arg, global.doc_ext);
+        docfile = setOutfilename(global.params.docname, global.params.docdir, arg, global.doc_ext);
     }
 
     // read file, returns 'true' if succeed, 'false' otherwise.
     bool read(Loc loc)
     {
         //printf("Module::read('%s') file '%s'\n", toChars(), srcfile.toChars());
-        if (!srcfile.read())
+        auto readResult = File.read(srcfile.toChars());
+        // take ownership of buffer
+        srcBuffer = new FileBuffer(readResult.extractData());
+        if (readResult.success)
             return true;
 
         if (FileName.equals(srcfile.toString(), "object.d"))
@@ -629,7 +629,7 @@ extern (C++) final class Module : Package
         else
         {
             // if module is not named 'package' but we're trying to read 'package.d', we're looking for a package module
-            bool isPackageMod = (strcmp(toChars(), "package") != 0) && (strcmp(srcfile.name.name(), "package.d") == 0 || (strcmp(srcfile.name.name(), "package.di") == 0));
+            bool isPackageMod = (strcmp(toChars(), "package") != 0) && (strcmp(srcfile.name(), "package.d") == 0 || (strcmp(srcfile.name(), "package.di") == 0));
             if (isPackageMod)
                 .error(loc, "importing package '%s' requires a 'package.d' file which cannot be found in '%s'", toChars(), srcfile.toChars());
             else
@@ -774,11 +774,11 @@ extern (C++) final class Module : Package
             return dbuf.extractSlice();
         }
 
-        const(char)* srcname = srcfile.name.toChars();
+        const(char)* srcname = srcfile.toChars();
         //printf("Module::parse(srcname = '%s')\n", srcname);
-        isPackageFile = (strcmp(srcfile.name.name(), "package.d") == 0 ||
-                         strcmp(srcfile.name.name(), "package.di") == 0);
-        const(char)[] buf = (cast(char*)srcfile.buffer)[0..srcfile.len];
+        isPackageFile = (strcmp(srcfile.name(), "package.d") == 0 ||
+                         strcmp(srcfile.name(), "package.di") == 0);
+        const(char)[] buf = cast(const(char)[]) srcBuffer.data;
 
         bool needsReencoding = true;
         bool hasBOM = true; //assume there's a BOM
@@ -911,7 +911,7 @@ extern (C++) final class Module : Package
         }
         {
             scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-            scope p = new Parser!ASTCodegen(this, buf, docfile !is null, diagnosticReporter);
+            scope p = new Parser!ASTCodegen(this, buf, cast(bool) docfile, diagnosticReporter);
             p.nextToken();
             members = p.parseModule();
             md = p.md;
@@ -919,10 +919,8 @@ extern (C++) final class Module : Package
             if (p.errors)
                 ++global.errors;
         }
-        if (srcfile._ref == 0)
-            mem.xfree(srcfile.buffer);
-        srcfile.buffer = null;
-        srcfile.len = 0;
+        srcBuffer.destroy();
+        srcBuffer = null;
         /* The symbol table into which the module is to be inserted.
          */
         DsymbolTable dst;
@@ -937,8 +935,8 @@ extern (C++) final class Module : Package
             dst = Package.resolve(md.packages, &this.parent, &ppack);
             assert(dst);
             Module m = ppack ? ppack.isModule() : null;
-            if (m && (strcmp(m.srcfile.name.name(), "package.d") != 0 &&
-                      strcmp(m.srcfile.name.name(), "package.di") != 0))
+            if (m && (strcmp(m.srcfile.name(), "package.d") != 0 &&
+                      strcmp(m.srcfile.name(), "package.di") != 0))
             {
                 .error(md.loc, "package name '%s' conflicts with usage as a module name in file %s", ppack.toPrettyChars(), m.srcfile.toChars());
             }
@@ -1161,9 +1159,9 @@ extern (C++) final class Module : Package
     void deleteObjFile()
     {
         if (global.params.obj)
-            objfile.remove();
+            File.remove(objfile.toChars());
         if (docfile)
-            docfile.remove();
+            File.remove(docfile.toChars());
     }
 
     /*******************************************

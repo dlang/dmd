@@ -284,7 +284,6 @@ struct Global
 
     const(char)* copyright = "Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved";
     const(char)* written = "written by Walter Bright";
-    const(char)* main_d = "__main.d";   // dummy filename for dummy main()
     Array!(const(char)*)* path;         // Array of char*'s which form the import lookup path
     Array!(const(char)*)* filePath;     // Array of char*'s which form the file import lookup path
 

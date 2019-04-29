@@ -78,11 +78,10 @@ final class LibOMF : Library
         if (!buf)
         {
             assert(module_name);
-            File* file = File.create(module_name);
-            readFile(Loc.initial, file);
-            buf = file.buffer;
-            buflen = file.len;
-            file._ref = 1;
+            // read file and take buffer ownership
+            auto data = readFile(Loc.initial, module_name).extractData();
+            buf = data.ptr;
+            buflen = data.length;
         }
         uint g_page_size;
         ubyte* pstart = cast(ubyte*)buf;
