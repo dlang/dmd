@@ -1,2 +1,2 @@
 bytes allocated, allocations, type, function, file:line
-           4000	           1000	both.Num both.foo src/both.d:15
+           16000	           1000	both.Num both.foo src/both.d:15

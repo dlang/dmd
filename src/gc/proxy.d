@@ -215,6 +215,11 @@ extern (C)
         return instance.stats();
     }
 
+    void gc_resetThreadLocalStats() nothrow @nogc
+    {
+        return instance.resetThreadLocalStats();
+    }
+
     core.memory.GC.ProfileStats gc_profileStats() nothrow
     {
         return instance.profileStats();
