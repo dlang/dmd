@@ -658,77 +658,109 @@ extern (C++) final class Module : Package
         enum Endian { little, big}
         enum SourceEncoding { utf16, utf32}
 
-        char[] toUtf8(SourceEncoding sourceEncoding, Endian endian)(const(char)[] buf)
+        /*
+         * Convert a buffer from UTF32 to UTF8
+         * Params:
+         *    Endian = is the buffer big/little endian
+         *    buf = buffer of UTF32 data
+         * Returns:
+         *    input buffer reencoded as UTF8
+         */
+
+        char[] UTF32ToUTF8(Endian endian)(const(char)[] buf)
         {
-            static if (sourceEncoding == SourceEncoding.utf16)
+            static if (endian == Endian.little) alias readNext = Port.readlongLE;
+            else alias readNext = Port.readlongBE;
+
+            if (buf.length & 3)
             {
-                alias SourceElement = ushort;
-                static if (endian == Endian.little) alias readNext = Port.readwordLE;
-                else alias readNext = Port.readwordBE;
-            }
-            else
-            {
-                alias SourceElement = uint;
-                static if ( endian == Endian.little) alias readNext = Port.readlongLE;
-                else alias readNext = Port.readlongBE;
-            }
-            if (buf.length & (SourceElement.sizeof -1))
-            {
-                error("odd length of UTF-%d char source %u", SourceElement.sizeof*8, buf.length);
+                error("odd length of UTF-32 char source %u", buf.length);
                 fatal();
             }
 
-            const(SourceElement)[] eBuf = cast(const(SourceElement)[])buf;
+            const (uint)[] eBuf = cast(const(uint)[])buf;
 
             OutBuffer dbuf;
             dbuf.reserve(eBuf.length);
 
-            const(SourceElement*) pumax = eBuf.ptr + eBuf.length;
-            for (const(SourceElement)* pu = eBuf.ptr; pu < pumax; pu++)
+            foreach (i; 0 .. eBuf.length)
             {
-                uint u = readNext(pu);
+                const u = readNext(&eBuf[i]);
                 if (u & ~0x7F)
                 {
-                    static if (sourceEncoding == SourceEncoding.utf32)
+                    if (u > 0x10FFFF)
                     {
-                        if (u > 0x10FFFF)
-                        {
-                            error("UTF-32 value %08x greater than 0x10FFFF", u);
-                            fatal();
-                        }
-                        dbuf.writeUTF8(u);
+                        error("UTF-32 value %08x greater than 0x10FFFF", u);
+                        fatal();
                     }
-                    else //utf16
+                    dbuf.writeUTF8(u);
+                }
+                else
+                    dbuf.writeByte(u);
+            }
+            dbuf.writeByte(0); //add null terminator
+            return dbuf.extractSlice();
+        }
+
+        /*
+         * Convert a buffer from UTF16 to UTF8
+         * Params:
+         *    Endian = is the buffer big/little endian
+         *    buf = buffer of UTF16 data
+         * Returns:
+         *    input buffer reencoded as UTF8
+         */
+
+        char[] UTF16ToUTF8(Endian endian)(const(char)[] buf)
+        {
+            static if (endian == Endian.little) alias readNext = Port.readwordLE;
+            else alias readNext = Port.readwordBE;
+
+            if (buf.length & 1)
+            {
+                error("odd length of UTF-16 char source %u", buf.length);
+                fatal();
+            }
+
+            const (ushort)[] eBuf = cast(const(ushort)[])buf;
+
+            OutBuffer dbuf;
+            dbuf.reserve(eBuf.length);
+
+            //i will be incremented in the loop for high codepoints
+            foreach (ref i; 0 .. eBuf.length)
+            {
+                uint u = readNext(&eBuf[i]);
+                if (u & ~0x7F)
+                {
+                    if (0xD800 <= u && u <= 0xDBFF)
                     {
-                        if (u >= 0xD800 && u <= 0xDBFF)
+                        i++;
+                        if (i >= eBuf.length)
                         {
-                            uint u2;
-                            if (++pu > pumax)
-                            {
-                                error("surrogate UTF-16 high value %04x at end of file", u);
-                                fatal();
-                            }
-                            u2 = readNext(pu);
-                            if (u2 < 0xDC00 || u2 > 0xDFFF)
-                            {
-                                error("surrogate UTF-16 low value %04x out of range", u2);
-                                fatal();
-                            }
-                            u = (u - 0xD7C0) << 10;
-                            u |= (u2 - 0xDC00);
-                        }
-                        else if (u >= 0xDC00 && u <= 0xDFFF)
-                        {
-                            error("unpaired surrogate UTF-16 value %04x", u);
+                            error("surrogate UTF-16 high value %04x at end of file", u);
                             fatal();
                         }
-                        else if (u == 0xFFFE || u == 0xFFFF)
+                        const u2 = readNext(&eBuf[i]);
+                        if (u2 < 0xDC00 || u2 > 0xDFFF)
                         {
-                            error("illegal UTF-16 value %04x", u);
+                            error("surrogate UTF-16 low value %04x out of range", u2);
                             fatal();
                         }
-                        dbuf.writeUTF8(u);
+                        u = (u - 0xD7C0) << 10;
+                        u |= (u2 - 0xDC00);
                     }
+                    else if (u >= 0xDC00 && u <= 0xDFFF)
+                    {
+                        error("unpaired surrogate UTF-16 value %04x", u);
+                        fatal();
+                    }
+                    else if (u == 0xFFFE || u == 0xFFFF)
+                    {
+                        error("illegal UTF-16 value %04x", u);
+                        fatal();
+                    }
+                    dbuf.writeUTF8(u);
                 }
                 else
                     dbuf.writeByte(u);
@@ -762,8 +794,9 @@ extern (C++) final class Module : Package
             {
                 endian = Endian.little;
 
-                sourceEncoding = buf.length >= 4 && buf[2] == 0 && buf[3] == 0 ?
-                    SourceEncoding.utf32 : SourceEncoding.utf16;
+                sourceEncoding = buf.length >= 4 && buf[2] == 0 && buf[3] == 0
+                                 ? SourceEncoding.utf32
+                                 : SourceEncoding.utf16;
             }
             else if (buf[0] == 0xFE && buf[1] == 0xFF)
             {
@@ -812,12 +845,13 @@ extern (C++) final class Module : Package
                     if (buf[0] >= 0x80)
                     {
                         error("source file must start with BOM or ASCII character, not \\x%02X", buf[0]);
-                    fatal();
+                        fatal();
                     }
                 }
             }
             //throw away BOM
-            if (hasBOM){
+            if (hasBOM)
+            {
                 if (!needsReencoding) buf = buf[3..$];// utf-8 already
                 else if (sourceEncoding == SourceEncoding.utf32) buf = buf[4..$];
                 else buf = buf[2..$]; //utf 16
@@ -828,15 +862,15 @@ extern (C++) final class Module : Package
         {
             if (sourceEncoding == SourceEncoding.utf16)
             {
-                buf = endian == Endian.little ?
-                    toUtf8!(SourceEncoding.utf16, Endian.little)(buf) :
-                    toUtf8!(SourceEncoding.utf16, Endian.big)(buf);
+                buf = endian == Endian.little
+                      ? UTF16ToUTF8!(Endian.little)(buf)
+                      : UTF16ToUTF8!(Endian.big)(buf);
             }
             else
             {
-                buf = endian == Endian.little ?
-                    toUtf8!(SourceEncoding.utf32, Endian.little)(buf) :
-                    toUtf8!(SourceEncoding.utf32, Endian.big)(buf);
+                buf = endian == Endian.little
+                      ? UTF32ToUTF8!(Endian.little)(buf)
+                      : UTF32ToUTF8!(Endian.big)(buf);
             }
         }
 
