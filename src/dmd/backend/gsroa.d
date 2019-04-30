@@ -314,7 +314,7 @@ void sliceStructs(symtab_t* symtab, block* startblock)
                 sia[si].accessSlice = false;
                 // We can't slice whole XMM registers
                 if (tyxmmreg(s.Stype.Tty) &&
-                    s.Spreg >= XMM0 && s.Spreg <= XMM15 && s.Spreg2 == NOREG)
+                    isXMMreg(s.Spreg) && s.Spreg2 == NOREG)
                 {
                     sia[si].canSlice = false;
                 }

@@ -65,7 +65,7 @@ bool isXMMstore(opcode_t op)
  * Move constant value into xmm register xreg.
  */
 
-private void movxmmconst(ref CodeBuilder cdb, uint xreg, uint sz, targ_size_t value, regm_t flags)
+private void movxmmconst(ref CodeBuilder cdb, reg_t xreg, uint sz, targ_size_t value, regm_t flags)
 {
     /* Generate:
      *    MOV reg,value
@@ -416,7 +416,7 @@ void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
     codelem(cdb,e1, &regs, false);
     reg_t reg = findreg(regs);
-    if (reg >= XMM0)
+    if (isXMMreg(reg))
         reg -= XMM0;
     else if (zx)
     {   assert(I64);
@@ -439,7 +439,7 @@ void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
     reg_t rreg;
     allocreg(cdb,&retregs,&rreg,ty);
-    if (rreg >= XMM0)
+    if (isXMMreg(rreg))
         rreg -= XMM0;
 
     cdb.gen2(op, modregxrmx(3,rreg,reg));
