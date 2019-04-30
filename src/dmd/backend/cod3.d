@@ -3325,7 +3325,7 @@ void prolog_saveregs(ref CodeBuilder cdb, regm_t topush, int cfa_offset)
         {
             reg_t reg = findreg(topush);
             topush &= ~mask(reg);
-            if (reg >= XMM0)
+            if (isXMMreg(reg))
             {
                 if (hasframe && !enforcealign)
                 {
@@ -3373,7 +3373,7 @@ void prolog_saveregs(ref CodeBuilder cdb, regm_t topush, int cfa_offset)
         {
             reg_t reg = findreg(topush);
             topush &= ~mask(reg);
-            if (reg >= XMM0)
+            if (isXMMreg(reg))
             {
                 // SUB RSP,16
                 cod3_stackadj(cdb, 16);
@@ -3427,7 +3427,7 @@ private void epilog_restoreregs(ref CodeBuilder cdb, regm_t topop)
         {
             reg_t reg = findreg(topop);
             topop &= ~mask(reg);
-            if (reg >= XMM0)
+            if (isXMMreg(reg))
             {
                 if (hasframe && !enforcealign)
                 {
@@ -3469,7 +3469,7 @@ private void epilog_restoreregs(ref CodeBuilder cdb, regm_t topop)
         while (topop)
         {   if (topop & regm)
             {
-                if (reg >= XMM0)
+                if (isXMMreg(reg))
                 {
                     // MOVUPD xmm,0[RSP]
                     cdb.genc1(LODUPD,modregxrm(2,reg-XMM0,4) + 256*modregrm(0,4,SP),FLconst,0);
@@ -3772,12 +3772,12 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
                 if (!hasframe || (enforcealign && s.Sclass != SCshadowreg))
                     offset += EBPtoESP;
 
-                uint preg = s.Spreg;
+                reg_t preg = s.Spreg;
                 for (int i = 0; i < 2; ++i)     // twice, once for each possible parameter register
                 {
                     shadowregm |= mask(preg);
                     opcode_t op = 0x89;                  // MOV x[EBP],preg
-                    if (XMM0 <= preg && preg <= XMM15)
+                    if (isXMMreg(preg))
                         op = xmmstore(t.Tty);
                     if (!(pushalloc && preg == pushallocreg) || s.Sclass == SCshadowreg)
                     {
@@ -3785,7 +3785,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
                         {
                             // MOV x[EBP],preg
                             cdb.genc1(op,modregxrm(2,preg,BPRM),FLconst,offset);
-                            if (XMM0 <= preg && preg <= XMM15)
+                            if (isXMMreg(preg))
                             {
                                 checkSetVex(cdb.last(), t.Tty);
                             }
@@ -3804,7 +3804,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
                             cdb.genc1(op,
                                       (modregrm(0,4,SP) << 8) |
                                        modregxrm(2,preg,4),FLconst,offset);
-                            if (preg >= XMM0 && preg <= XMM15)
+                            if (isXMMreg(preg))
                             {
                                 checkSetVex(cdb.last(), t.Tty);
                             }

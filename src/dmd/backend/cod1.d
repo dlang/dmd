@@ -4999,7 +4999,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
                 flags |= 2;
             if (sz == 8)
                 flags |= 64;
-            if (reg >= XMM0)
+            if (isXMMreg(reg))
             {   /* This comes about because 0, 1, pi, etc., constants don't get stored
                  * in the data segment, because they are x87 opcodes.
                  * Not so efficient. We should at least do a PXOR for 0.
@@ -5053,7 +5053,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             if (I32)
             {
                 targ_long *p = cast(targ_long *)cast(void*)&e.EV.Vdouble;
-                if (reg >= XMM0)
+                if (isXMMreg(reg))
                 {   /* This comes about because 0, 1, pi, etc., constants don't get stored
                      * in the data segment, because they are x87 opcodes.
                      * Not so efficient. We should at least do a PXOR for 0.
