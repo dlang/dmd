@@ -6563,14 +6563,14 @@ private Expression scrubReturnValue(const ref Loc loc, Expression e)
             return true;
         }
 
+        if (auto sle = e.isStructLiteralExp())
+            return isEntirelyVoid(sle.elements);
+
         if (checkArrayType && e.type.ty != Tsarray)
             return false;
 
         if (auto ale = e.isArrayLiteralExp())
             return isEntirelyVoid(ale.elements);
-
-        if (auto sle = e.isStructLiteralExp())
-            return isEntirelyVoid(sle.elements);
 
         return false;
     }
