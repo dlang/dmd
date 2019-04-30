@@ -208,17 +208,21 @@ private __gshared ubyte[256] inssize2 =
 ];
 
 /*************************************************
- * Allocate register temporaries
+ * Generate code to save `reg` in `regsave` stack area.
+ * Params:
+ *      regsave = register save areay on stack
+ *      cdb = where to write generated code
+ *      reg = register to save
+ *      idx = set to location in regsave for use in REGSAVE_restore()
  */
 
-void REGSAVE_save(ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, uint *pidx)
+void REGSAVE_save(ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, out uint idx)
 {
-    uint i;
-    if (reg >= XMM0)
+    if (isXMMreg(reg))
     {
         regsave.alignment = 16;
         regsave.idx = (regsave.idx + 15) & ~15;
-        i = regsave.idx;
+        idx = regsave.idx;
         regsave.idx += 16;
         // MOVD idx[RBP],xmm
         opcode_t op = STOAPD;
@@ -230,39 +234,43 @@ void REGSAVE_save(ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, uint *pid
              * reason. Need to fix.
              */
             op = STOUPD;
-        cdb.genc1(op,modregxrm(2, reg - XMM0, BPRM),FLregsave,cast(targ_uns) i);
+        cdb.genc1(op,modregxrm(2, reg - XMM0, BPRM),FLregsave,cast(targ_uns) idx);
     }
     else
     {
         if (!regsave.alignment)
             regsave.alignment = REGSIZE;
-        i = regsave.idx;
+        idx = regsave.idx;
         regsave.idx += REGSIZE;
         // MOV idx[RBP],reg
-        cdb.genc1(0x89,modregxrm(2, reg, BPRM),FLregsave,cast(targ_uns) i);
+        cdb.genc1(0x89,modregxrm(2, reg, BPRM),FLregsave,cast(targ_uns) idx);
         if (I64)
             code_orrex(cdb.last(), REX_W);
     }
     reflocal = true;
     if (regsave.idx > regsave.top)
         regsave.top = regsave.idx;              // keep high water mark
-    *pidx = i;
 }
 
-void REGSAVE_restore(ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, uint index)
+/*******************************
+ * Restore `reg` from `regsave` area.
+ * Complement REGSAVE_save().
+ */
+
+void REGSAVE_restore(const ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, uint idx)
 {
-    if (reg >= XMM0)
+    if (isXMMreg(reg))
     {
         assert(regsave.alignment == 16);
-        // MOVD xmm,index[RBP]
+        // MOVD xmm,idx[RBP]
         opcode_t op = LODAPD;
         if (0)
             op = LODUPD;
-        cdb.genc1(op,modregxrm(2, reg - XMM0, BPRM),FLregsave,cast(targ_uns) index);
+        cdb.genc1(op,modregxrm(2, reg - XMM0, BPRM),FLregsave,cast(targ_uns) idx);
     }
     else
-    {   // MOV reg,index[RBP]
-        cdb.genc1(0x8B,modregxrm(2, reg, BPRM),FLregsave,cast(targ_uns) index);
+    {   // MOV reg,idx[RBP]
+        cdb.genc1(0x8B,modregxrm(2, reg, BPRM),FLregsave,cast(targ_uns) idx);
         if (I64)
             code_orrex(cdb.last(), REX_W);
     }
