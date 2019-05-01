@@ -466,6 +466,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
 /* cod1.c */
 extern __gshared int clib_inited;
 
+bool regParamInPreg(Symbol* s);
 int isscaledindex(elem *);
 int ssindex(int op,targ_uns product);
 void buildEA(code *c,int base,int index,int scale,targ_size_t disp);
