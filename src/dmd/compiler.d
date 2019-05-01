@@ -139,6 +139,9 @@ struct Compiler
         case Tfloat64:
             u.float64value = cast(double) e.toReal();
             break;
+        case Tfloat80:
+            assert(e.type.size() == 8); // 64-bit target `real`
+            goto case Tfloat64;
         default:
             assert(0, "Unsupported source type");
         }
@@ -165,6 +168,10 @@ struct Compiler
             r = u.float64value;
             emplaceExp!(RealExp)(pue, e.loc, r, type);
             break;
+
+        case Tfloat80:
+            assert(type.size() == 8); // 64-bit target `real`
+            goto case Tfloat64;
 
         default:
             assert(0, "Unsupported target type");
