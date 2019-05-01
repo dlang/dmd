@@ -468,8 +468,10 @@ $(LATEX
 )
 
 $(P In the graph above, any directed path is a legal implicit conversion. No
-other qualifier combinations than the ones shown is valid. The same information
-is shown below in tabular format:)
+other qualifier combinations than the ones shown is valid. If a directed path
+exists between two sets of qualifiers, the types thus qualified are called
+$(GLOSSARY qualifier-convertible). The same information is shown below in tabular
+format:)
 
     $(TABLE_10 $(ARGS Implicit Conversion of Reference Types),
     $(VERTROW from/to, $(I mutable), $(D const), $(D shared), $(D const shared), $(D inout), $(D const inout), $(D inout shared), $(D const inout shared), $(D immutable)),
