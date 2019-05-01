@@ -147,19 +147,13 @@ private bool needOpAssign(StructDeclaration sd)
 {
     //printf("StructDeclaration::needOpAssign() %s\n", sd.toChars());
 
-    static bool isNeeded()
-    {
-        //printf("\tneed\n");
-        return true;
-    }
-
     if (sd.isUnionDeclaration())
-        return !isNeeded();
+        return false;
 
     if (sd.hasIdentityAssign || // because has identity==elaborate opAssign
         sd.dtor ||
         sd.postblit)
-        return isNeeded();
+        return true;
 
     /* If any of the fields need an opAssign, then we
      * need it too.
@@ -177,10 +171,10 @@ private bool needOpAssign(StructDeclaration sd)
             if (ts.sym.isUnionDeclaration())
                 continue;
             if (needOpAssign(ts.sym))
-                return isNeeded();
+                return true;
         }
     }
-    return !isNeeded();
+    return false;
 }
 
 /******************************************
@@ -398,9 +392,9 @@ bool needOpEquals(StructDeclaration sd)
 {
     //printf("StructDeclaration::needOpEquals() %s\n", sd.toChars());
     if (sd.isUnionDeclaration())
-        goto Ldontneed;
+        return false;
     if (sd.hasIdentityEquals)
-        goto Lneed;
+        return true;
     /* If any of the fields has an opEquals, then we
      * need it too.
      */
@@ -419,30 +413,25 @@ bool needOpEquals(StructDeclaration sd)
             if (ts.sym.isUnionDeclaration())
                 continue;
             if (needOpEquals(ts.sym))
-                goto Lneed;
+                return true;
             if (ts.sym.aliasthis) // https://issues.dlang.org/show_bug.cgi?id=14806
-                goto Lneed;
+                return true;
         }
         if (tv.isfloating())
         {
             // This is necessray for:
             //  1. comparison of +0.0 and -0.0 should be true.
             //  2. comparison of NANs should be false always.
-            goto Lneed;
+            return true;
         }
         if (tv.ty == Tarray)
-            goto Lneed;
+            return true;
         if (tv.ty == Taarray)
-            goto Lneed;
+            return true;
         if (tv.ty == Tclass)
-            goto Lneed;
+            return true;
     }
-Ldontneed:
-    //printf("\tdontneed\n");
     return false;
-Lneed:
-    //printf("\tneed\n");
-    return true;
 }
 
 /*******************************************
@@ -536,16 +525,14 @@ FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
         if (FuncDeclaration fd = eq.isFuncDeclaration())
         {
             TypeFunction tfeqptr;
-            {
-                Scope scx;
-                /* const bool opEquals(ref const S s);
-                 */
-                auto parameters = new Parameters();
-                parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, null, null, null));
-                tfeqptr = new TypeFunction(ParameterList(parameters), Type.tbool, LINK.d);
-                tfeqptr.mod = MODFlags.const_;
-                tfeqptr = cast(TypeFunction)tfeqptr.typeSemantic(Loc.initial, &scx);
-            }
+            Scope scx;
+            /* const bool opEquals(ref const S s);
+             */
+            auto parameters = new Parameters();
+            parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, null, null, null));
+            tfeqptr = new TypeFunction(ParameterList(parameters), Type.tbool, LINK.d);
+            tfeqptr.mod = MODFlags.const_;
+            tfeqptr = cast(TypeFunction)tfeqptr.typeSemantic(Loc.initial, &scx);
             fd = fd.overloadExactMatch(tfeqptr);
             if (fd)
                 return fd;
@@ -606,16 +593,14 @@ FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
         if (FuncDeclaration fd = cmp.isFuncDeclaration())
         {
             TypeFunction tfcmpptr;
-            {
-                Scope scx;
-                /* const int opCmp(ref const S s);
-                 */
-                auto parameters = new Parameters();
-                parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, null, null, null));
-                tfcmpptr = new TypeFunction(ParameterList(parameters), Type.tint32, LINK.d);
-                tfcmpptr.mod = MODFlags.const_;
-                tfcmpptr = cast(TypeFunction)tfcmpptr.typeSemantic(Loc.initial, &scx);
-            }
+            Scope scx;
+            /* const int opCmp(ref const S s);
+             */
+            auto parameters = new Parameters();
+            parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, null, null, null));
+            tfcmpptr = new TypeFunction(ParameterList(parameters), Type.tint32, LINK.d);
+            tfcmpptr.mod = MODFlags.const_;
+            tfcmpptr = cast(TypeFunction)tfcmpptr.typeSemantic(Loc.initial, &scx);
             fd = fd.overloadExactMatch(tfcmpptr);
             if (fd)
                 return fd;
@@ -717,9 +702,9 @@ private bool needToHash(StructDeclaration sd)
 {
     //printf("StructDeclaration::needToHash() %s\n", sd.toChars());
     if (sd.isUnionDeclaration())
-        goto Ldontneed;
+        return false;
     if (sd.xhash)
-        goto Lneed;
+        return true;
 
     /* If any of the fields has an opEquals, then we
      * need it too.
@@ -739,30 +724,25 @@ private bool needToHash(StructDeclaration sd)
             if (ts.sym.isUnionDeclaration())
                 continue;
             if (needToHash(ts.sym))
-                goto Lneed;
+                return true;
             if (ts.sym.aliasthis) // https://issues.dlang.org/show_bug.cgi?id=14948
-                goto Lneed;
+                return true;
         }
         if (tv.isfloating())
         {
             /* This is necessary because comparison of +0.0 and -0.0 should be true,
              * i.e. not a bit compare.
              */
-            goto Lneed;
+            return true;
         }
         if (tv.ty == Tarray)
-            goto Lneed;
+            return true;
         if (tv.ty == Taarray)
-            goto Lneed;
+            return true;
         if (tv.ty == Tclass)
-            goto Lneed;
+            return true;
     }
-Ldontneed:
-    //printf("\tdontneed\n");
     return false;
-Lneed:
-    //printf("\tneed\n");
-    return true;
 }
 
 /******************************************
@@ -1137,46 +1117,40 @@ DtorDeclaration buildExternDDtor(AggregateDeclaration ad, Scope* sc)
  */
 FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
 {
-    switch (ad.invs.dim)
-    {
-    case 0:
+    if (ad.invs.dim == 0)
         return null;
 
-    case 1:
-        // Don't return invs[0] so it has uniquely generated name.
-        goto default;
+    // for 1 inv don't return invs[0] so it has uniquely generated name.
 
-    default:
-        Expression e = null;
-        StorageClass stcx = 0;
-        StorageClass stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
-        foreach (i, inv; ad.invs)
+    Expression e = null;
+    StorageClass stcx = 0;
+    StorageClass stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
+    foreach (i, inv; ad.invs)
+    {
+        stc = mergeFuncAttrs(stc, inv);
+        if (stc & STC.disable)
         {
-            stc = mergeFuncAttrs(stc, inv);
-            if (stc & STC.disable)
-            {
-                // What should do?
-            }
-            const stcy = (inv.storage_class & STC.synchronized_) |
-                         (inv.type.mod & MODFlags.shared_ ? STC.shared_ : 0);
-            if (i == 0)
-                stcx = stcy;
-            else if (stcx ^ stcy)
-            {
-                version (all)
-                {
-                    // currently rejects
-                    ad.error(inv.loc, "mixing invariants with different `shared`/`synchronized` qualifiers is not supported");
-                    e = null;
-                    break;
-                }
-            }
-            e = Expression.combine(e, new CallExp(Loc.initial, new VarExp(Loc.initial, inv, false)));
+            // What should do?
         }
-        auto inv = new InvariantDeclaration(ad.loc, Loc.initial, stc | stcx,
-                Id.classInvariant, new ExpStatement(Loc.initial, e));
-        ad.members.push(inv);
-        inv.dsymbolSemantic(sc);
-        return inv;
+        const stcy = (inv.storage_class & STC.synchronized_) |
+                     (inv.type.mod & MODFlags.shared_ ? STC.shared_ : 0);
+        if (i == 0)
+            stcx = stcy;
+        else if (stcx ^ stcy)
+        {
+            version (all)
+            {
+                // currently rejects
+                ad.error(inv.loc, "mixing invariants with different `shared`/`synchronized` qualifiers is not supported");
+                e = null;
+                break;
+            }
+        }
+        e = Expression.combine(e, new CallExp(Loc.initial, new VarExp(Loc.initial, inv, false)));
     }
+    auto inv = new InvariantDeclaration(ad.loc, Loc.initial, stc | stcx,
+            Id.classInvariant, new ExpStatement(Loc.initial, e));
+    ad.members.push(inv);
+    inv.dsymbolSemantic(sc);
+    return inv;
 }
