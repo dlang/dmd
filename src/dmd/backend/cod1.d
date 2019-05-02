@@ -3111,6 +3111,12 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
     if (e.EV.E1.Eoper == OPvar)
         sf = e.EV.E1.EV.Vsym;
 
+    /* Assume called function access statics
+     */
+    if (config.exe & (EX_LINUX | EX_LINUX64 | EX_OSX | EX_FREEBSD | EX_FREEBSD64) &&
+        config.flags3 & CFG3pic)
+        cgstate.accessedTLS = true;
+
     /* Special handling for call to __tls_get_addr, we must save registers
      * before evaluating the parameter, so that the parameter load and call
      * are adjacent.

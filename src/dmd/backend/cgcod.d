@@ -236,6 +236,7 @@ tryagain:
     cgstate.stackclean = 1;
     cgstate.funcarg.init();
     cgstate.funcargtos = ~0;
+    cgstate.accessedTLS = false;
     STACKALIGN = TARGET_STACKALIGN;
 
     regsave.reset();
@@ -811,6 +812,7 @@ void prolog(ref CodeBuilder cdb)
          * so need frame if function can possibly throw
          */
         !(config.exe == EX_WIN32) && !(funcsym_p.Sfunc.Fflags3 & Fnothrow) ||
+        cgstate.accessedTLS ||
         sv64
        )
         needframe = 1;

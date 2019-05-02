@@ -115,8 +115,10 @@ static if (TARGET_LINUX)
     if (!exe)
     {
         config.flags3 |= CFG3pic;
-        config.flags |= CFGalwaysframe; // PIC needs a frame for TLS fixups
     }
+    if (symdebug)
+        config.flags |= CFGalwaysframe;
+
     config.objfmt = OBJ_ELF;
 }
 static if (TARGET_OSX)
@@ -137,8 +139,11 @@ static if (TARGET_OSX)
     if (!exe)
     {
         config.flags3 |= CFG3pic;
-        config.flags |= CFGalwaysframe; // PIC needs a frame for TLS fixups
+        if (model == 64)
+            config.flags |= CFGalwaysframe; // PIC needs a frame for TLS fixups
     }
+    if (symdebug)
+        config.flags |= CFGalwaysframe;
     config.flags |= CFGromable; // put switch tables in code segment
     config.objfmt = OBJ_MACH;
 }
@@ -161,8 +166,9 @@ static if (TARGET_FREEBSD)
     if (!exe)
     {
         config.flags3 |= CFG3pic;
-        config.flags |= CFGalwaysframe; // PIC needs a frame for TLS fixups
     }
+    if (symdebug)
+        config.flags |= CFGalwaysframe;
     config.objfmt = OBJ_ELF;
 }
 static if (TARGET_OPENBSD)
