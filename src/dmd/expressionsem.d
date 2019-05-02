@@ -6719,38 +6719,53 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         // to handle certain casts.  Those casts which `object.__ArrayCast` does not support are filtered out.
         // See `e2ir.toElemCast` for other types of casts.  If `object.__ArrayCast` is improved to support more
         // casts these conditions and potentially some logic in `e2ir.toElemCast` can be removed.
-        if (tob.ty == Tarray && t1b.ty == Tarray && exp.e1.op != TOK.string_ && exp.e1.op != TOK.arrayLiteral)
+        if (tob.ty == Tarray)
         {
-            auto tFrom = t1b.nextOf();
-            auto tTo = tob.nextOf();
-
-            const uint fromSize = cast(uint)tFrom.size();
-            const uint toSize = cast(uint)tTo.size();
-
-            // If array element sizes do not match, we must adjust the dimensions
-            if (fromSize != toSize)
+            // https://issues.dlang.org/show_bug.cgi?id=19840
+            if (auto ad = isAggregate(t1b))
             {
-                // A runtime check is needed in case arrays don't line up.  That check should
-                // be done in the implementation of `object.__ArrayCast`
-                if ((fromSize % toSize) != 0)
+                if (ad.aliasthis)
                 {
-                    // lower to `object.__ArrayCast!(TFrom, TTo)(from)`
-
-                    // fully qualify as `object.__ArrayCast`
-                    Expression id = new IdentifierExp(exp.loc, Id.empty);
-                    auto dotid = new DotIdExp(exp.loc, id, Id.object);
-
-                    auto tiargs = new Objects();
-                    tiargs.push(tFrom);
-                    tiargs.push(tTo);
-                    auto dt = new DotTemplateInstanceExp(exp.loc, dotid, Id.__ArrayCast, tiargs);
-
-                    auto arguments = new Expressions();
-                    arguments.push(exp.e1);
-                    Expression ce = new CallExp(exp.loc, dt, arguments);
-
-                    result = expressionSemantic(ce, sc);
+                    Expression e = resolveAliasThis(sc, exp.e1);
+                    e = new CastExp(exp.loc, e, exp.to);
+                    result = e.expressionSemantic(sc);
                     return;
+                }
+            }
+
+            if(t1b.ty == Tarray && exp.e1.op != TOK.string_ && exp.e1.op != TOK.arrayLiteral)
+            {
+                auto tFrom = t1b.nextOf();
+                auto tTo = tob.nextOf();
+
+                const uint fromSize = cast(uint)tFrom.size();
+                const uint toSize = cast(uint)tTo.size();
+
+                // If array element sizes do not match, we must adjust the dimensions
+                if (fromSize != toSize)
+                {
+                    // A runtime check is needed in case arrays don't line up.  That check should
+                    // be done in the implementation of `object.__ArrayCast`
+                    if ((fromSize % toSize) != 0)
+                    {
+                        // lower to `object.__ArrayCast!(TFrom, TTo)(from)`
+
+                        // fully qualify as `object.__ArrayCast`
+                        Expression id = new IdentifierExp(exp.loc, Id.empty);
+                        auto dotid = new DotIdExp(exp.loc, id, Id.object);
+
+                        auto tiargs = new Objects();
+                        tiargs.push(tFrom);
+                        tiargs.push(tTo);
+                        auto dt = new DotTemplateInstanceExp(exp.loc, dotid, Id.__ArrayCast, tiargs);
+
+                        auto arguments = new Expressions();
+                        arguments.push(exp.e1);
+                        Expression ce = new CallExp(exp.loc, dt, arguments);
+
+                        result = expressionSemantic(ce, sc);
+                        return;
+                    }
                 }
             }
         }
