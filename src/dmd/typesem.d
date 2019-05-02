@@ -1655,6 +1655,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                 mtype.sym = (cast(DotTemplateExp)e).td;
                 break;
             case TOK.dSymbol:
+            case TOK.template_:
                 mtype.sym = (cast(DsymbolExp)e).s;
                 break;
             case TOK.scope_:
