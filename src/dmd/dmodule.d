@@ -669,8 +669,10 @@ extern (C++) final class Module : Package
 
         char[] UTF32ToUTF8(Endian endian)(const(char)[] buf)
         {
-            static if (endian == Endian.little) alias readNext = Port.readlongLE;
-            else alias readNext = Port.readlongBE;
+            static if (endian == Endian.little)
+                alias readNext = Port.readlongLE;
+            else
+                alias readNext = Port.readlongBE;
 
             if (buf.length & 3)
             {
@@ -713,8 +715,10 @@ extern (C++) final class Module : Package
 
         char[] UTF16ToUTF8(Endian endian)(const(char)[] buf)
         {
-            static if (endian == Endian.little) alias readNext = Port.readwordLE;
-            else alias readNext = Port.readwordBE;
+            static if (endian == Endian.little)
+                alias readNext = Port.readwordLE;
+            else
+                alias readNext = Port.readwordBE;
 
             if (buf.length & 1)
             {
@@ -733,7 +737,7 @@ extern (C++) final class Module : Package
                 uint u = readNext(&eBuf[i]);
                 if (u & ~0x7F)
                 {
-                    if (0xD800 <= u && u <= 0xDBFF)
+                    if (0xD800 <= u && u < 0xDC00)
                     {
                         i++;
                         if (i >= eBuf.length)
@@ -742,7 +746,7 @@ extern (C++) final class Module : Package
                             fatal();
                         }
                         const u2 = readNext(&eBuf[i]);
-                        if (u2 < 0xDC00 || u2 > 0xDFFF)
+                        if (u2 < 0xDC00 || 0xE000 <= u2)
                         {
                             error("surrogate UTF-16 low value %04x out of range", u2);
                             fatal();
