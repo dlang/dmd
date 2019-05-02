@@ -44,7 +44,11 @@ version (NoBackend)
         void backend_term() {}
 
         // iasm
-        Statement asmSemantic(AsmStatement s, Scope* sc) { assert(0); }
+        Statement asmSemantic(AsmStatement s, Scope* sc)
+        {
+            sc.func.hasReturnExp = 8;
+            return null;
+        }
 
         // toir
         void toObjFile(Dsymbol ds, bool multiobj)   {}
