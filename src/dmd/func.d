@@ -934,7 +934,7 @@ extern (C++) class FuncDeclaration : Declaration
                 MODMatchToBuffer(&thisBuf, tthis.mod, tf.mod);
                 MODMatchToBuffer(&funcBuf, tf.mod, tthis.mod);
                 .error(loc, "%smethod %s is not callable using a %sobject",
-                    funcBuf.peekString(), this.toPrettyChars(), thisBuf.peekString());
+                    funcBuf.peekChars(), this.toPrettyChars(), thisBuf.peekChars());
             }
         }
         return m.lastf;
@@ -2832,14 +2832,14 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
         {
             .error(loc, "%s `%s.%s` cannot deduce function from argument types `!(%s)%s`, candidates are:",
                 td.kind(), td.parent.toPrettyChars(), td.ident.toChars(),
-                tiargsBuf.peekString(), fargsBuf.peekString());
+                tiargsBuf.peekChars(), fargsBuf.peekChars());
 
             printCandidates(loc, td);
         }
         else if (od)
         {
             .error(loc, "none of the overloads of `%s` are callable using argument types `!(%s)%s`",
-                od.ident.toChars(), tiargsBuf.peekString(), fargsBuf.peekString());
+                od.ident.toChars(), tiargsBuf.peekChars(), fargsBuf.peekChars());
         }
         else
         {
@@ -2859,7 +2859,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
                 if (hasOverloads)
                 {
                     .error(loc, "none of the overloads of `%s` are callable using a %sobject, candidates are:",
-                        fd.ident.toChars(), thisBuf.peekString());
+                        fd.ident.toChars(), thisBuf.peekChars());
                 }
                 else
                 {
@@ -2869,15 +2869,15 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
                     {
                         .error(loc, "%s `%s%s%s` is not callable using argument types `%s`",
                             fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameterList),
-                            tf.modToChars(), fargsBuf.peekString());
+                            tf.modToChars(), fargsBuf.peekChars());
                         errorSupplemental(loc, failMessage);
                     }
                     else
                     {
                         auto fullFdPretty = fd.toPrettyChars();
                         .error(loc, "%smethod `%s` is not callable using a %sobject",
-                            funcBuf.peekString(), fullFdPretty,
-                            thisBuf.peekString());
+                            funcBuf.peekChars(), fullFdPretty,
+                            thisBuf.peekChars());
 
                         if (mismatches.isNotShared)
                             .errorSupplemental(loc, "Consider adding `shared` to %s", fullFdPretty);
@@ -2892,13 +2892,13 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
                 if (hasOverloads)
                 {
                     .error(loc, "none of the overloads of `%s` are callable using argument types `%s`, candidates are:",
-                        fd.toChars(), fargsBuf.peekString());
+                        fd.toChars(), fargsBuf.peekChars());
                 }
                 else
                 {
                     .error(loc, "%s `%s%s%s` is not callable using argument types `%s`",
                         fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameterList),
-                        tf.modToChars(), fargsBuf.peekString());
+                        tf.modToChars(), fargsBuf.peekChars());
                     // re-resolve to check for supplemental message
                     const(char)* failMessage;
                     functionResolve(&m, orig_s, loc, sc, tiargs, tthis, fargs, &failMessage);
@@ -2923,7 +2923,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
 
         .error(loc, "`%s.%s` called with argument types `%s` matches both:\n%s:     `%s%s%s`\nand:\n%s:     `%s%s%s`",
             s.parent.toPrettyChars(), s.ident.toChars(),
-            fargsBuf.peekString(),
+            fargsBuf.peekChars(),
             m.lastf.loc.toChars(), m.lastf.toPrettyChars(), lastprms, mod1,
             m.nextf.loc.toChars(), m.nextf.toPrettyChars(), nextprms, mod2);
     }

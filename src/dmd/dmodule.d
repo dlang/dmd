@@ -469,7 +469,7 @@ extern (C++) final class Module : Package
                     const m = (*ms)[j];
                     const q = strchr(m, '=');
                     assert(q);
-                    if (dotmods.offset == q - m && memcmp(dotmods.peekString(), m, q - m) == 0)
+                    if (dotmods.offset == q - m && memcmp(dotmods.peekChars(), m, q - m) == 0)
                     {
                         buf.reset();
                         auto qlen = strlen(q + 1);
@@ -527,7 +527,7 @@ extern (C++) final class Module : Package
                 }
             }
             buf.printf("%s\t(%s)", ident.toChars(), m.srcfile.toChars());
-            message("import    %s", buf.peekString());
+            message("import    %s", buf.peekChars());
         }
         m = m.parse();
 

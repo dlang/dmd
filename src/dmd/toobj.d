@@ -963,7 +963,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             OutBuffer buffer;
             buffer.writestring(s.Sident);
             buffer.writestring("$tlv$init");
-            const(char) *tlvInitName = buffer.peekString();
+            const(char) *tlvInitName = buffer.peekChars();
 
             // Compute type for tlv symbol
             type *t = type_fake(vd.type.ty);

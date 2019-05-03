@@ -2616,7 +2616,7 @@ class Lexer
         auto dc = (lineComment && anyToken) ? &t.lineComment : &t.blockComment;
         // Combine with previous doc comment, if any
         if (*dc)
-            *dc = combineComments(*dc, buf.peekString(), newParagraph);
+            *dc = combineComments(*dc, buf.peekChars(), newParagraph);
         else
             *dc = buf.extractString();
     }

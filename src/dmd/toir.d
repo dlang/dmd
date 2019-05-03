@@ -792,7 +792,7 @@ int intrinsic_op(FuncDeclaration fd)
         {
             OutBuffer buf;
             mangleToBuffer(fd.getModule(), &buf);
-            const s = buf.peekString();
+            const s = buf.peekChars();
             if (!strcmp(s, "4core4stdc6stdarg"))
             {
                 return OPva_start;

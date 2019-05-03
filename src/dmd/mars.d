@@ -1281,7 +1281,7 @@ private void printPredefinedVersions(FILE* stream)
             buf.writeByte(' ');
             buf.writestring(str.toChars());
         }
-        stream.fprintf("predefs  %s\n", buf.peekString());
+        stream.fprintf("predefs  %s\n", buf.peekChars());
     }
 }
 

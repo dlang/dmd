@@ -1348,7 +1348,7 @@ final class Parser(AST) : Lexer
         {
             OutBuffer buf;
             AST.stcToBuffer(&buf, stc);
-            error("redundant attribute `%s`", buf.peekString());
+            error("redundant attribute `%s`", buf.peekChars());
             return storageClass | stc;
         }
 
@@ -2584,7 +2584,7 @@ final class Parser(AST) : Lexer
         {
             OutBuffer buf;
             AST.stcToBuffer(&buf, modStc);
-            error(loc, "static constructor cannot be `%s`", buf.peekString());
+            error(loc, "static constructor cannot be `%s`", buf.peekChars());
         }
         stc &= ~(AST.STC.static_ | AST.STC.TYPECTOR);
 
@@ -2619,7 +2619,7 @@ final class Parser(AST) : Lexer
         {
             OutBuffer buf;
             AST.stcToBuffer(&buf, modStc);
-            error(loc, "static destructor cannot be `%s`", buf.peekString());
+            error(loc, "static destructor cannot be `%s`", buf.peekChars());
         }
         stc &= ~(AST.STC.static_ | AST.STC.TYPECTOR);
 
@@ -2658,7 +2658,7 @@ final class Parser(AST) : Lexer
         {
             OutBuffer buf;
             AST.stcToBuffer(&buf, modStc);
-            error(loc, "shared static constructor cannot be `%s`", buf.peekString());
+            error(loc, "shared static constructor cannot be `%s`", buf.peekChars());
         }
         stc &= ~(AST.STC.static_ | AST.STC.TYPECTOR);
 
@@ -2692,7 +2692,7 @@ final class Parser(AST) : Lexer
         {
             OutBuffer buf;
             AST.stcToBuffer(&buf, modStc);
-            error(loc, "shared static destructor cannot be `%s`", buf.peekString());
+            error(loc, "shared static destructor cannot be `%s`", buf.peekChars());
         }
         stc &= ~(AST.STC.static_ | AST.STC.TYPECTOR);
 
@@ -3157,7 +3157,7 @@ final class Parser(AST) : Lexer
                                 {
                                     OutBuffer buf;
                                     AST.stcToBuffer(&buf, _stc);
-                                    error(attributeErrorMessage, buf.peekString());
+                                    error(attributeErrorMessage, buf.peekChars());
                                 }
                                 nextToken();
                             }
@@ -4909,7 +4909,7 @@ final class Parser(AST) : Lexer
                     {
                         OutBuffer buf;
                         AST.stcToBuffer(&buf, modStc);
-                        error("function literal cannot be `%s`", buf.peekString());
+                        error("function literal cannot be `%s`", buf.peekChars());
                     }
                     else
                         save = TOK.delegate_;

@@ -254,7 +254,7 @@ public int runLINK()
                 cmdbuf.writeByte(' ');
                 cmdbuf.writestring(lflags);
             }
-            char* p = cmdbuf.peekString();
+            char* p = cmdbuf.peekChars();
             const(char)* lnkfilename = null;
             const size_t plen = strlen(p);
             if (plen > 7000)
@@ -382,7 +382,7 @@ public int runLINK()
                 cmdbuf.writestring(global.params.linkswitches[i]);
             }
             cmdbuf.writeByte(';');
-            char* p = cmdbuf.peekString();
+            char* p = cmdbuf.peekChars();
             const(char)* lnkfilename = null;
             const size_t plen = strlen(p);
             if (plen > 7000)
@@ -697,7 +697,7 @@ public int runLINK()
                 buf.writestring(argv[i]);
                 buf.writeByte(' ');
             }
-            message(buf.peekString());
+            message(buf.peekChars());
         }
         argv.push(null);
         // set up pipes
@@ -809,7 +809,7 @@ version (Windows)
                 startInf.hStdError = GetStdHandle(STD_ERROR_HANDLE);
                 PROCESS_INFORMATION procInf;
 
-                BOOL b = CreateProcessA(null, cmdbuf.peekString(), null, null, 1, NORMAL_PRIORITY_CLASS, null, null, &startInf, &procInf);
+                BOOL b = CreateProcessA(null, cmdbuf.peekChars(), null, null, 1, NORMAL_PRIORITY_CLASS, null, null, &startInf, &procInf);
                 if (b)
                 {
                     WaitForSingleObject(procInf.hProcess, INFINITE);
@@ -882,7 +882,7 @@ public int runProgram()
             buf.writeByte(' ');
             buf.writestring(global.params.runargs[i]);
         }
-        message(buf.peekString());
+        message(buf.peekChars());
     }
     // Build argv[]
     Strings argv;

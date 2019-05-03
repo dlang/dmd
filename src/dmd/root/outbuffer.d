@@ -416,7 +416,7 @@ struct OutBuffer
     }
 
     // Append terminating null if necessary and get view of internal buffer
-    extern (C++) char* peekString() pure nothrow
+    extern (C++) char* peekChars() pure nothrow
     {
         if (!offset || data[offset - 1] != '\0')
         {

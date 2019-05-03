@@ -1410,7 +1410,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                                 OutBuffer buf2;  stcToBuffer(&buf2, stc2);
 
                                 .error(loc, "incompatible parameter storage classes `%s` and `%s`",
-                                    buf1.peekString(), buf2.peekString());
+                                    buf1.peekChars(), buf2.peekChars());
                                 errors = true;
                                 stc = stc1 | (stc & ~(STC.ref_ | STC.out_ | STC.lazy_));
                             }

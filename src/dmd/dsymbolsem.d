@@ -1072,7 +1072,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 OutBuffer buf;
                 stcToBuffer(&buf, stc);
-                dsym.error("cannot be `%s`", buf.peekString());
+                dsym.error("cannot be `%s`", buf.peekChars());
             }
             dsym.storage_class &= ~stc; // strip off
         }
@@ -1084,7 +1084,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 OutBuffer buf;
                 stcToBuffer(&buf, stc);
-                dsym.error("cannot be `scope` and `%s`", buf.peekString());
+                dsym.error("cannot be `scope` and `%s`", buf.peekChars());
             }
             else if (dsym.isMember())
             {
@@ -2001,7 +2001,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     if (pd.args.dim)
                         buf.writeByte(')');
                 }
-                message("pragma    %s", buf.peekString());
+                message("pragma    %s", buf.peekChars());
             }
             goto Lnodecl;
         }
@@ -3251,7 +3251,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 OutBuffer buf;
                 MODtoBuffer(&buf, tf.mod);
-                funcdecl.error("without `this` cannot be `%s`", buf.peekString());
+                funcdecl.error("without `this` cannot be `%s`", buf.peekChars());
                 tf.mod = 0; // remove qualifiers
             }
 
@@ -3733,7 +3733,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     auto fd = s.isFuncDeclaration();
                     functionToBufferFull(cast(TypeFunction)(funcdecl.type), &buf,
                         new Identifier(funcdecl.toPrettyChars()), &hgs, null);
-                    const(char)* funcdeclToChars = buf.peekString();
+                    const(char)* funcdeclToChars = buf.peekChars();
 
                     if (fd)
                     {
@@ -3743,7 +3743,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                             new Identifier(fd.toPrettyChars()), &hgs, null);
 
                         error(funcdecl.loc, "function `%s` does not override any function, did you mean to override `%s`?",
-                            funcdeclToChars, buf1.peekString());
+                            funcdeclToChars, buf1.peekChars());
                     }
                     else
                     {

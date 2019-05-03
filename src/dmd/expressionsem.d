@@ -4654,7 +4654,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                 //printf("tf = %s, args = %s\n", tf.deco, (*arguments)[0].type.deco);
                 .error(exp.loc, "%s `%s%s` is not callable using argument types `%s`",
-                    p, exp.e1.toChars(), parametersTypeToChars(tf.parameterList), buf.peekString());
+                    p, exp.e1.toChars(), parametersTypeToChars(tf.parameterList), buf.peekChars());
                 if (failMessage)
                     errorSupplemental(exp.loc, failMessage);
                 return setError();
@@ -4726,7 +4726,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                     //printf("tf = %s, args = %s\n", tf.deco, (*arguments)[0].type.deco);
                     .error(exp.loc, "%s `%s%s` is not callable using argument types `%s`",
-                        exp.f.kind(), exp.f.toPrettyChars(), parametersTypeToChars(tf.parameterList), buf.peekString());
+                        exp.f.kind(), exp.f.toPrettyChars(), parametersTypeToChars(tf.parameterList), buf.peekChars());
                     if (failMessage)
                         errorSupplemental(exp.loc, failMessage);
                     exp.f = null;
@@ -5992,7 +5992,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 MODMatchToBuffer(&thisBuf, e.e1.type.mod, tf.mod);
                 MODMatchToBuffer(&funcBuf, tf.mod, e.e1.type.mod);
                 e.error("%smethod `%s` is not callable using a %s`%s`",
-                    funcBuf.peekString(), f.toPrettyChars(), thisBuf.peekString(), e.e1.toChars());
+                    funcBuf.peekChars(), f.toPrettyChars(), thisBuf.peekChars(), e.e1.toChars());
                 return setError();
             }
         }
