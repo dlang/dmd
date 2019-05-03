@@ -170,6 +170,7 @@ struct CGstate
                                 // as if they were 'pushed' on the stack.
                                 // Special case: if funcargtos==~0, then no
                                 // arguments are there.
+    bool accessedTLS;           // set if accessed Thread Local Storage (TLS)
 }
 
 // nteh.c
