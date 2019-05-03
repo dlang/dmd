@@ -421,27 +421,43 @@ nothrow:
     // Split a path into an Array of paths
     extern (C++) static Strings* splitPath(const(char)* path)
     {
-        char c = 0; // unnecessary initializer is for VC /W4
-        const(char)* p;
-        OutBuffer buf;
-        Strings* array;
-        array = new Strings();
+        auto array = new Strings();
+        void sink(const(char)* p) nothrow
+        {
+            array.push(p);
+        }
+        splitPath(&sink, path);
+        return array;
+    }
+
+    /****
+     * Split path into pieces, each piece is mem.xmalloc'd
+     * Handle double quotes and ~.
+     * Pass the pieces to sink()
+     * Params:
+     *  sink = send the path pieces here
+     *  path = the path to split up.
+     */
+    static void splitPath(void delegate(const(char)*) nothrow sink, const(char)* path)
+    {
         if (path)
         {
-            p = path;
+            auto p = path;
+            OutBuffer buf;
+            char c;
             do
             {
-                char instring = 0;
+                bool instring = false;
                 while (isspace(cast(char)*p)) // skip leading whitespace
                     p++;
-                buf.reserve(strlen(p) + 1); // guess size of path
+                buf.reserve(8); // guess size of piece
                 for (;; p++)
                 {
                     c = *p;
                     switch (c)
                     {
                     case '"':
-                        instring ^= 1; // toggle inside/outside of string
+                        instring ^= false; // toggle inside/outside of string
                         continue;
                         version (OSX)
                         {
@@ -470,7 +486,7 @@ nothrow:
                         {
                         case '~':
                             {
-                                char* home = getenv("HOME");
+                                const home = getenv("HOME");
                                 if (home)
                                     buf.writestring(home);
                                 else
@@ -495,12 +511,10 @@ nothrow:
                 }
                 if (buf.offset) // if path is not empty
                 {
-                    array.push(buf.extractChars());
+                    sink(buf.extractChars());
                 }
-            }
-            while (c);
+            } while (c);
         }
-        return array;
     }
 
     /**
