@@ -406,7 +406,7 @@ body
     }
 
     auto id = Identifier.idPool(fileName.baseName.stripExtension);
-    auto m = new Module(fileName.toStringz, id, 0, 0);
+    auto m = new Module(fileName, id, 0, 0);
     if (code !is null)
         m.members = parse(m, code, diagnosticReporter);
     else

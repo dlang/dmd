@@ -146,7 +146,7 @@ void obj_write_deferred(Library library)
             idbuf.data = null;
             Identifier id = Identifier.create(idstr);
 
-            Module md = Module.create(mname, id, 0, 0);
+            Module md = new Module(mname.toDString, id, 0, 0);
             md.members = new Dsymbols();
             md.members.push(s);   // its only 'member' is s
             md.doppelganger = 1;       // identify this module as doppelganger
@@ -232,7 +232,7 @@ private Symbol *callFuncsAndGates(Module m, symbols *sctors, StaticDtorDeclarati
         block *b = block_calloc();
         b.BC = BCret;
         b.Belem = ector;
-        sctor.Sfunc.Fstartline.Sfilename = m.arg;
+        sctor.Sfunc.Fstartline.Sfilename = m.arg.xarraydup.ptr;
         sctor.Sfunc.Fstartblock = b;
         writefunc(sctor);
     }
@@ -473,7 +473,7 @@ void genObjFile(Module m, bool multiobj)
             block *b = block_calloc();
             b.BC = BCret;
             b.Belem = eictor;
-            m.sictor.Sfunc.Fstartline.Sfilename = m.arg;
+            m.sictor.Sfunc.Fstartline.Sfilename = m.arg.xarraydup.ptr;
             m.sictor.Sfunc.Fstartblock = b;
             writefunc(m.sictor);
         }
