@@ -186,3 +186,32 @@ unittest
 
     assert(global.errors == 0);
 }
+
+@("inline assembly")
+unittest
+{
+    import std.algorithm : each;
+
+    import dmd.frontend;
+    import dmd.globals : global;
+
+    initDMD();
+    defaultImportPaths.each!addImport;
+
+    auto t = parseModule("test.d", q{
+        void foo()
+        {
+            asm
+            {
+                call foo;
+            }
+        }
+    });
+
+    assert(!t.diagnostics.hasErrors);
+    assert(!t.diagnostics.hasWarnings);
+
+    t.module_.fullSemantic();
+
+    assert(global.errors == 0);
+}
