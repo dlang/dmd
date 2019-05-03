@@ -3,165 +3,149 @@
 Disassembly of section .text._D9cdvecfill4testFhZNhG16h:
 
 0000000000000000 <_D9cdvecfill4testFhZNhG16h>:
-   0:	50                   	push   rax
-   1:	66 0f 6e c7          	movd   xmm0,edi
-   5:	66 0f 60 c0          	punpcklbw xmm0,xmm0
-   9:	66 0f 61 c0          	punpcklwd xmm0,xmm0
-   d:	66 0f 70 c0 00       	pshufd xmm0,xmm0,0x0
-  12:	59                   	pop    rcx
-  13:	c3                   	ret    
+   0:	66 0f 6e c7          	movd   xmm0,edi
+   4:	66 0f 60 c0          	punpcklbw xmm0,xmm0
+   8:	66 0f 61 c0          	punpcklwd xmm0,xmm0
+   c:	66 0f 70 c0 00       	pshufd xmm0,xmm0,0x0
+  11:	c3                   	ret    
+	...
 
 Disassembly of section .text._D9cdvecfill4testFPhZNhG16h:
 
 0000000000000000 <_D9cdvecfill4testFPhZNhG16h>:
-   0:	50                   	push   rax
-   1:	0f b6 07             	movzx  eax,BYTE PTR [rdi]
-   4:	66 0f 6e c0          	movd   xmm0,eax
-   8:	66 0f 60 c0          	punpcklbw xmm0,xmm0
-   c:	66 0f 61 c0          	punpcklwd xmm0,xmm0
-  10:	66 0f 70 c0 00       	pshufd xmm0,xmm0,0x0
-  15:	59                   	pop    rcx
-  16:	c3                   	ret    
+   0:	0f b6 07             	movzx  eax,BYTE PTR [rdi]
+   3:	66 0f 6e c0          	movd   xmm0,eax
+   7:	66 0f 60 c0          	punpcklbw xmm0,xmm0
+   b:	66 0f 61 c0          	punpcklwd xmm0,xmm0
+   f:	66 0f 70 c0 00       	pshufd xmm0,xmm0,0x0
+  14:	c3                   	ret    
+  15:	00 00                	add    BYTE PTR [rax],al
 	...
 
 Disassembly of section .text._D9cdvecfill4testFgZNhG16g:
 
 0000000000000000 <_D9cdvecfill4testFgZNhG16g>:
-   0:	50                   	push   rax
-   1:	66 0f 6e c7          	movd   xmm0,edi
-   5:	66 0f 60 c0          	punpcklbw xmm0,xmm0
-   9:	66 0f 61 c0          	punpcklwd xmm0,xmm0
-   d:	66 0f 70 c0 00       	pshufd xmm0,xmm0,0x0
-  12:	59                   	pop    rcx
-  13:	c3                   	ret    
+   0:	66 0f 6e c7          	movd   xmm0,edi
+   4:	66 0f 60 c0          	punpcklbw xmm0,xmm0
+   8:	66 0f 61 c0          	punpcklwd xmm0,xmm0
+   c:	66 0f 70 c0 00       	pshufd xmm0,xmm0,0x0
+  11:	c3                   	ret    
+	...
 
 Disassembly of section .text._D9cdvecfill4testFPgZNhG16g:
 
 0000000000000000 <_D9cdvecfill4testFPgZNhG16g>:
-   0:	50                   	push   rax
-   1:	0f be 07             	movsx  eax,BYTE PTR [rdi]
-   4:	66 0f 6e c0          	movd   xmm0,eax
-   8:	66 0f 60 c0          	punpcklbw xmm0,xmm0
-   c:	66 0f 61 c0          	punpcklwd xmm0,xmm0
-  10:	66 0f 70 c0 00       	pshufd xmm0,xmm0,0x0
-  15:	59                   	pop    rcx
-  16:	c3                   	ret    
+   0:	0f be 07             	movsx  eax,BYTE PTR [rdi]
+   3:	66 0f 6e c0          	movd   xmm0,eax
+   7:	66 0f 60 c0          	punpcklbw xmm0,xmm0
+   b:	66 0f 61 c0          	punpcklwd xmm0,xmm0
+   f:	66 0f 70 c0 00       	pshufd xmm0,xmm0,0x0
+  14:	c3                   	ret    
+  15:	00 00                	add    BYTE PTR [rax],al
 	...
 
 Disassembly of section .text._D9cdvecfill4testFtZNhG8t:
 
 0000000000000000 <_D9cdvecfill4testFtZNhG8t>:
-   0:	50                   	push   rax
-   1:	66 0f 6e c7          	movd   xmm0,edi
-   5:	66 0f 61 c0          	punpcklwd xmm0,xmm0
-   9:	66 0f 70 c0 00       	pshufd xmm0,xmm0,0x0
-   e:	59                   	pop    rcx
-   f:	c3                   	ret    
+   0:	66 0f 6e c7          	movd   xmm0,edi
+   4:	66 0f 61 c0          	punpcklwd xmm0,xmm0
+   8:	66 0f 70 c0 00       	pshufd xmm0,xmm0,0x0
+   d:	c3                   	ret    
+	...
 
 Disassembly of section .text._D9cdvecfill4testFPtZNhG8t:
 
 0000000000000000 <_D9cdvecfill4testFPtZNhG8t>:
-   0:	50                   	push   rax
-   1:	0f b7 07             	movzx  eax,WORD PTR [rdi]
-   4:	66 0f 6e c0          	movd   xmm0,eax
-   8:	66 0f 61 c0          	punpcklwd xmm0,xmm0
-   c:	66 0f 70 c0 00       	pshufd xmm0,xmm0,0x0
-  11:	59                   	pop    rcx
-  12:	c3                   	ret    
+   0:	0f b7 07             	movzx  eax,WORD PTR [rdi]
+   3:	66 0f 6e c0          	movd   xmm0,eax
+   7:	66 0f 61 c0          	punpcklwd xmm0,xmm0
+   b:	66 0f 70 c0 00       	pshufd xmm0,xmm0,0x0
+  10:	c3                   	ret    
+  11:	00 00                	add    BYTE PTR [rax],al
 	...
 
 Disassembly of section .text._D9cdvecfill4testFsZNhG8s:
 
 0000000000000000 <_D9cdvecfill4testFsZNhG8s>:
-   0:	50                   	push   rax
-   1:	66 0f 6e c7          	movd   xmm0,edi
-   5:	66 0f 61 c0          	punpcklwd xmm0,xmm0
-   9:	66 0f 70 c0 00       	pshufd xmm0,xmm0,0x0
-   e:	59                   	pop    rcx
-   f:	c3                   	ret    
+   0:	66 0f 6e c7          	movd   xmm0,edi
+   4:	66 0f 61 c0          	punpcklwd xmm0,xmm0
+   8:	66 0f 70 c0 00       	pshufd xmm0,xmm0,0x0
+   d:	c3                   	ret    
+	...
 
 Disassembly of section .text._D9cdvecfill4testFPsZNhG8s:
 
 0000000000000000 <_D9cdvecfill4testFPsZNhG8s>:
-   0:	50                   	push   rax
-   1:	0f bf 07             	movsx  eax,WORD PTR [rdi]
-   4:	66 0f 6e c0          	movd   xmm0,eax
-   8:	66 0f 61 c0          	punpcklwd xmm0,xmm0
-   c:	66 0f 70 c0 00       	pshufd xmm0,xmm0,0x0
-  11:	59                   	pop    rcx
-  12:	c3                   	ret    
+   0:	0f bf 07             	movsx  eax,WORD PTR [rdi]
+   3:	66 0f 6e c0          	movd   xmm0,eax
+   7:	66 0f 61 c0          	punpcklwd xmm0,xmm0
+   b:	66 0f 70 c0 00       	pshufd xmm0,xmm0,0x0
+  10:	c3                   	ret    
+  11:	00 00                	add    BYTE PTR [rax],al
 	...
 
 Disassembly of section .text._D9cdvecfill4testFkZNhG4k:
 
 0000000000000000 <_D9cdvecfill4testFkZNhG4k>:
-   0:	50                   	push   rax
-   1:	66 0f 6e c7          	movd   xmm0,edi
-   5:	66 0f 70 c0 00       	pshufd xmm0,xmm0,0x0
-   a:	59                   	pop    rcx
-   b:	c3                   	ret    
+   0:	66 0f 6e c7          	movd   xmm0,edi
+   4:	66 0f 70 c0 00       	pshufd xmm0,xmm0,0x0
+   9:	c3                   	ret    
+	...
 
 Disassembly of section .text._D9cdvecfill4testFPkZNhG4k:
 
 0000000000000000 <_D9cdvecfill4testFPkZNhG4k>:
-   0:	50                   	push   rax
-   1:	66 0f 6e 07          	movd   xmm0,DWORD PTR [rdi]
-   5:	66 0f 70 c0 00       	pshufd xmm0,xmm0,0x0
-   a:	59                   	pop    rcx
-   b:	c3                   	ret    
+   0:	66 0f 6e 07          	movd   xmm0,DWORD PTR [rdi]
+   4:	66 0f 70 c0 00       	pshufd xmm0,xmm0,0x0
+   9:	c3                   	ret    
+	...
 
 Disassembly of section .text._D9cdvecfill4testFiZNhG4i:
 
 0000000000000000 <_D9cdvecfill4testFiZNhG4i>:
-   0:	50                   	push   rax
-   1:	66 0f 6e c7          	movd   xmm0,edi
-   5:	66 0f 70 c0 00       	pshufd xmm0,xmm0,0x0
-   a:	59                   	pop    rcx
-   b:	c3                   	ret    
+   0:	66 0f 6e c7          	movd   xmm0,edi
+   4:	66 0f 70 c0 00       	pshufd xmm0,xmm0,0x0
+   9:	c3                   	ret    
+	...
 
 Disassembly of section .text._D9cdvecfill4testFPiZNhG4i:
 
 0000000000000000 <_D9cdvecfill4testFPiZNhG4i>:
-   0:	50                   	push   rax
-   1:	66 0f 6e 07          	movd   xmm0,DWORD PTR [rdi]
-   5:	66 0f 70 c0 00       	pshufd xmm0,xmm0,0x0
-   a:	59                   	pop    rcx
-   b:	c3                   	ret    
+   0:	66 0f 6e 07          	movd   xmm0,DWORD PTR [rdi]
+   4:	66 0f 70 c0 00       	pshufd xmm0,xmm0,0x0
+   9:	c3                   	ret    
+	...
 
 Disassembly of section .text._D9cdvecfill4testFmZNhG2m:
 
 0000000000000000 <_D9cdvecfill4testFmZNhG2m>:
-   0:	50                   	push   rax
-   1:	66 48 0f 6e c7       	movq   xmm0,rdi
-   6:	66 0f 6c c0          	punpcklqdq xmm0,xmm0
-   a:	59                   	pop    rcx
-   b:	c3                   	ret    
+   0:	66 48 0f 6e c7       	movq   xmm0,rdi
+   5:	66 0f 6c c0          	punpcklqdq xmm0,xmm0
+   9:	c3                   	ret    
+	...
 
 Disassembly of section .text._D9cdvecfill4testFPmZNhG2m:
 
 0000000000000000 <_D9cdvecfill4testFPmZNhG2m>:
-   0:	50                   	push   rax
-   1:	66 0f 6c 07          	punpcklqdq xmm0,XMMWORD PTR [rdi]
-   5:	59                   	pop    rcx
-   6:	c3                   	ret    
+   0:	66 0f 6c 07          	punpcklqdq xmm0,XMMWORD PTR [rdi]
+   4:	c3                   	ret    
+   5:	00 00                	add    BYTE PTR [rax],al
 	...
 
 Disassembly of section .text._D9cdvecfill4testFlZNhG2l:
 
 0000000000000000 <_D9cdvecfill4testFlZNhG2l>:
-   0:	50                   	push   rax
-   1:	66 48 0f 6e c7       	movq   xmm0,rdi
-   6:	66 0f 6c c0          	punpcklqdq xmm0,xmm0
-   a:	59                   	pop    rcx
-   b:	c3                   	ret    
+   0:	66 48 0f 6e c7       	movq   xmm0,rdi
+   5:	66 0f 6c c0          	punpcklqdq xmm0,xmm0
+   9:	c3                   	ret    
+	...
 
 Disassembly of section .text._D9cdvecfill4testFPlZNhG2l:
 
 0000000000000000 <_D9cdvecfill4testFPlZNhG2l>:
-   0:	50                   	push   rax
-   1:	66 0f 6c 07          	punpcklqdq xmm0,XMMWORD PTR [rdi]
-   5:	59                   	pop    rcx
-   6:	c3                   	ret    
+   0:	66 0f 6c 07          	punpcklqdq xmm0,XMMWORD PTR [rdi]
+   4:	c3                   	ret    
+   5:	00 00                	add    BYTE PTR [rax],al
 	...
 
 Disassembly of section .text._D9cdvecfill4testFfZNhG4f:
@@ -179,11 +163,10 @@ Disassembly of section .text._D9cdvecfill4testFfZNhG4f:
 Disassembly of section .text._D9cdvecfill4testFPfZNhG4f:
 
 0000000000000000 <_D9cdvecfill4testFPfZNhG4f>:
-   0:	50                   	push   rax
-   1:	f3 0f 10 07          	movss  xmm0,DWORD PTR [rdi]
-   5:	0f c6 c0 00          	shufps xmm0,xmm0,0x0
-   9:	59                   	pop    rcx
-   a:	c3                   	ret    
+   0:	f3 0f 10 07          	movss  xmm0,DWORD PTR [rdi]
+   4:	0f c6 c0 00          	shufps xmm0,xmm0,0x0
+   8:	c3                   	ret    
+   9:	00 00                	add    BYTE PTR [rax],al
 	...
 
 Disassembly of section .text._D9cdvecfill4testFdZNhG2d:
@@ -201,9 +184,8 @@ Disassembly of section .text._D9cdvecfill4testFdZNhG2d:
 Disassembly of section .text._D9cdvecfill4testFPdZNhG2d:
 
 0000000000000000 <_D9cdvecfill4testFPdZNhG2d>:
-   0:	50                   	push   rax
-   1:	f2 0f 10 07          	movsd  xmm0,QWORD PTR [rdi]
-   5:	66 0f 14 c0          	unpcklpd xmm0,xmm0
-   9:	59                   	pop    rcx
-   a:	c3                   	ret    
+   0:	f2 0f 10 07          	movsd  xmm0,QWORD PTR [rdi]
+   4:	66 0f 14 c0          	unpcklpd xmm0,xmm0
+   8:	c3                   	ret    
+   9:	00 00                	add    BYTE PTR [rax],al
 	...

@@ -964,7 +964,7 @@ else
 
     //printf("Fast.size = x%x, Auto.size = x%x\n", (int)Fast.size, (int)Auto.size);
 
-    cgstate.funcarg.alignment = STACKALIGN;
+    cgstate.funcarg.alignment = cgstate.funcarg.size ? STACKALIGN : REGSIZE;
     cgstate.funcarg.offset = alignsection(pushoff - cgstate.funcarg.size, cgstate.funcarg.alignment, bias);
 
     localsize = -cgstate.funcarg.offset;
