@@ -1036,7 +1036,7 @@ version (Windows)
                 cmdbuf.writestring(p);
                 cmdbuf.writestring(x64 ? `\Lib\x64"` : `\Lib\x86"`);
             }
-            return cmdbuf.extractString();
+            return cmdbuf.extractChars();
         }
 
         /**
@@ -1070,7 +1070,7 @@ version (Windows)
                     memcpy(npath + 5 + addpathlen + 1, path, pathlen + 1);
                     putenv(npath);
                 }
-                return cmdbuf.extractString();
+                return cmdbuf.extractChars();
             }
 
             // try lld-link.exe alongside dmd.exe

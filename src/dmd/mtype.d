@@ -791,7 +791,7 @@ extern (C++) abstract class Type : ASTNode
         hgs.fullQual = (ty == Tclass && !mod);
 
         .toCBuffer(this, &buf, null, &hgs);
-        return buf.extractString();
+        return buf.extractChars();
     }
 
     /// ditto
@@ -803,7 +803,7 @@ extern (C++) abstract class Type : ASTNode
         hgs.fullQual = QualifyTypes;
 
         .toCBuffer(this, &buf, null, &hgs);
-        return buf.extractString();
+        return buf.extractChars();
     }
 
     static void _init()
@@ -999,7 +999,7 @@ extern (C++) abstract class Type : ASTNode
         OutBuffer buf;
         buf.reserve(16);
         modToBuffer(&buf);
-        return buf.extractString();
+        return buf.extractChars();
     }
 
     bool isintegral()
@@ -4558,7 +4558,7 @@ extern (C++) final class TypeFunction : TypeNext
         buf.printf("cannot pass %sargument `%s` of type `%s` to parameter `%s`",
             rv ? "rvalue ".ptr : "".ptr, arg.toChars(), at,
             parameterToChars(par, this, qual));
-        return buf.extractString();
+        return buf.extractChars();
     }
 
     private extern(D) const(char)* getMatchError(A...)(const(char)* format, A args)
@@ -4567,7 +4567,7 @@ extern (C++) final class TypeFunction : TypeNext
             return null;
         OutBuffer buf;
         buf.printf(format, args);
-        return buf.extractString();
+        return buf.extractChars();
     }
 
     /********************************
@@ -4731,7 +4731,7 @@ extern (C++) final class TypeFunction : TypeNext
                                     OutBuffer buf;
                                     buf.printf("`struct %s` does not define a copy constructor for `%s` to `%s` copies",
                                            argStruct.toChars(), targ.toChars(), tprm.toChars());
-                                    *pMessage = buf.extractString();
+                                    *pMessage = buf.extractChars();
                                 }
                                 goto Nomatch;
                             }
@@ -4844,7 +4844,7 @@ extern (C++) final class TypeFunction : TypeNext
                                 OutBuffer buf;
                                 buf.printf("expected %d variadic argument(s)", sz);
                                 buf.printf(", not %d", nargs - u);
-                                *pMessage = buf.extractString();
+                                *pMessage = buf.extractChars();
                             }
                             goto Nomatch;
                         }

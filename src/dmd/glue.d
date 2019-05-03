@@ -166,7 +166,7 @@ void obj_write_deferred(Library library)
             hash += *p;
         namebuf.printf("%s_%x_%x.%s", fname, count, hash, global.obj_ext);
         FileName.free(cast(char *)fname);
-        fname = namebuf.extractString();
+        fname = namebuf.extractChars();
 
         //printf("writing '%s'\n", fname);
         File *objfile = File.create(fname);

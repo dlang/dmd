@@ -5501,7 +5501,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         uint errors = global.errors;
         const len = buf.offset;
-        const str = buf.extractString()[0 .. len];
+        const str = buf.extractChars()[0 .. len];
         scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
         scope p = new Parser!ASTCodegen(exp.loc, sc._module, str, false, diagnosticReporter);
         p.nextToken();
@@ -5701,7 +5701,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 OutBuffer buf;
                 buf.printf("%s failed", assertExpMsg);
-                exp.msg = new StringExp(Loc.initial, buf.extractString());
+                exp.msg = new StringExp(Loc.initial, buf.extractChars());
             }
         }
         if (exp.msg)
@@ -10969,7 +10969,7 @@ Expression semanticX(DotIdExp exp, Scope* sc)
                 OutBuffer buf;
                 mangleToBuffer(ds, &buf);
                 const s = buf.peekSlice();
-                Expression e = new StringExp(exp.loc, buf.extractString(), s.length);
+                Expression e = new StringExp(exp.loc, buf.extractChars(), s.length);
                 e = e.expressionSemantic(sc);
                 return e;
             }

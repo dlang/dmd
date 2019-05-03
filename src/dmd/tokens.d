@@ -842,7 +842,7 @@ extern (C++) struct Token
                 buf.writeByte('"');
                 if (postfix)
                     buf.writeByte(postfix);
-                p = buf.extractString();
+                p = buf.extractChars();
             }
             break;
         case TOK.hexadecimalString:

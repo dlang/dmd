@@ -69,7 +69,7 @@ extern(C++) const(char)* toCppMangleItanium(Dsymbol s)
     OutBuffer buf;
     scope CppMangleVisitor v = new CppMangleVisitor(&buf, s.loc);
     v.mangleOf(s);
-    return buf.extractString();
+    return buf.extractChars();
 }
 
 ///
@@ -80,7 +80,7 @@ extern(C++) const(char)* cppTypeInfoMangleItanium(Dsymbol s)
     buf.writestring("_ZTI");    // "TI" means typeinfo structure
     scope CppMangleVisitor v = new CppMangleVisitor(&buf, s.loc);
     v.cpp_mangle_name(s, false);
-    return buf.extractString();
+    return buf.extractChars();
 }
 
 /******************************

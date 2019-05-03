@@ -2935,7 +2935,7 @@ extern (C++) const(char)* parametersTypeToChars(ParameterList pl)
     OutBuffer buf;
     HdrGenState hgs;
     parametersToBuffer(pl, &buf, &hgs);
-    return buf.extractString();
+    return buf.extractChars();
 }
 
 /*************************************************************
@@ -2958,7 +2958,7 @@ const(char)* parameterToChars(Parameter parameter, TypeFunction tf, bool fullQua
     {
         buf.writestring("...");
     }
-    return buf.extractString();
+    return buf.extractChars();
 }
 
 

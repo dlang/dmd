@@ -1734,7 +1734,7 @@ extern (C++) class TypeInfoDeclaration : VarDeclaration
         buf.writestring("typeid(");
         buf.writestring(tinfo.toChars());
         buf.writeByte(')');
-        return buf.extractString();
+        return buf.extractChars();
     }
 
     override final inout(TypeInfoDeclaration) isTypeInfoDeclaration() inout

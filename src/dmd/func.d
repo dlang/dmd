@@ -1176,7 +1176,7 @@ extern (C++) class FuncDeclaration : Declaration
     {
         OutBuffer buf;
         functionToBufferWithIdent(type.toTypeFunction(), &buf, toChars());
-        return buf.extractString();
+        return buf.extractChars();
     }
 
     final bool isMain() const

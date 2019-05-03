@@ -1141,7 +1141,7 @@ extern (C++) const(char)* mangleExact(FuncDeclaration fd)
         OutBuffer buf;
         scope Mangler v = new Mangler(&buf);
         v.mangleExact(fd);
-        fd.mangleString = buf.extractString();
+        fd.mangleString = buf.extractChars();
     }
     return fd.mangleString;
 }

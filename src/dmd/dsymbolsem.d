@@ -2059,7 +2059,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         const errors = global.errors;
         const len = buf.offset;
-        const str = buf.extractString()[0 .. len];
+        const str = buf.extractChars()[0 .. len];
         scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
         scope p = new Parser!ASTCodegen(cd.loc, sc._module, str, false, diagnosticReporter);
         p.nextToken();
