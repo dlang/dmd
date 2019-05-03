@@ -431,7 +431,7 @@ nothrow:
     }
 
     /****
-     * Split path into pieces, each piece is mem.xmalloc'd
+     * Split path (such as that returned by `getenv("PATH")`) into pieces, each piece is mem.xmalloc'd
      * Handle double quotes and ~.
      * Pass the pieces to sink()
      * Params:
@@ -621,9 +621,13 @@ nothrow:
     }
 
     /*************************************
-     * Search Path for file.
-     * Input:
-     *      cwd     if true, search current directory before searching path
+     * Search paths for file.
+     * Params:
+     *  path = array of path strings
+     *  name = file to look for
+     *  cwd = true means search current directory before searching path
+     * Returns:
+     *  if found, filename combined with path, otherwise null
      */
     extern (C++) static const(char)* searchPath(Strings* path, const(char)* name, bool cwd)
     {
@@ -649,6 +653,38 @@ nothrow:
                 if (exists(n))
                     return n;
             }
+        }
+        return null;
+    }
+
+    extern (D) static const(char)[] searchPath(const(char)* path, const(char)[] name, bool cwd)
+    {
+        if (absolute(name))
+        {
+            return exists(name) ? name : null;
+        }
+        if (cwd)
+        {
+            if (exists(name))
+                return name;
+        }
+        if (path && *path)
+        {
+            const(char)[] result;
+
+            void sink(const(char)* p) nothrow
+            {
+                if (!result)
+                {
+                    auto n = combine(p.toDString, name);
+                    if (exists(n))
+                        result = n;
+                }
+                mem.xfree(cast(void*)p);
+            }
+
+            splitPath(&sink, path);
+            return result;
         }
         return null;
     }

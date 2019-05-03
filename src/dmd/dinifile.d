@@ -83,8 +83,7 @@ const(char)[] findConfFile(const(char)[] argv0, const(char)[] inifile)
         {
             printf("\tPATH='%s'\n", p);
         }
-        auto paths = FileName.splitPath(p);
-        auto abspath = FileName.searchPath(paths, argv0, false);
+        auto abspath = FileName.searchPath(p, argv0, false);
         if (abspath)
         {
             auto absname = FileName.replaceName(abspath, inifile);
