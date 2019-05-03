@@ -396,6 +396,11 @@ extern (C++) final class LinkDeclaration : AttribDeclaration
 
     override const(char)* toChars() const
     {
+        return toString().ptr;
+    }
+
+    extern(D) override const(char)[] toString() const
+    {
         return "extern ()";
     }
 
@@ -431,6 +436,11 @@ extern (C++) final class CPPMangleDeclaration : AttribDeclaration
     }
 
     override const(char)* toChars() const
+    {
+        return toString().ptr;
+    }
+
+    extern(D) override const(char)[] toString() const
     {
         return "extern ()";
     }
