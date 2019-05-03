@@ -332,7 +332,7 @@ typedef uint64_t                d_uns64;
 // file location
 struct Loc
 {
-    const char *filename; // either absolute or relative to cwd
+    DArray<const char> filename; // either absolute or relative to cwd
     unsigned linnum;
     unsigned charnum;
 
@@ -340,7 +340,8 @@ struct Loc
     {
         linnum = 0;
         charnum = 0;
-        filename = NULL;
+        filename.length = 0;
+        filename.ptr = 0;
     }
 
     Loc(const char *filename, unsigned linnum, unsigned charnum);

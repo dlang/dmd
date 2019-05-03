@@ -225,6 +225,8 @@ private StorageClass getStorageClass(AST)(PrefixAttributes!(AST)* pAttrs)
  */
 private bool writeMixin(const(char)[] s, ref Loc loc)
 {
+    import dmd.utils : toDString;
+
     if (!global.params.mixinOut)
         return false;
 
@@ -236,7 +238,7 @@ private bool writeMixin(const(char)[] s, ref Loc loc)
 
     global.params.mixinLines++;
 
-    loc = Loc(global.params.mixinFile, global.params.mixinLines + 1, loc.charnum);
+    loc = Loc(global.params.mixinFile.toDString, global.params.mixinLines + 1, loc.charnum);
 
     // write by line to create consistent line endings
     size_t lastpos = 0;
@@ -293,6 +295,7 @@ final class Parser(AST) : Lexer
     extern (D) this(const ref Loc loc, AST.Module _module, const(char)[] input,
         bool doDocComment, DiagnosticReporter diagnosticReporter)
     {
+        import dmd.utils : toDString;
         super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false, diagnosticReporter);
 
         //printf("Parser::Parser()\n");
@@ -303,9 +306,9 @@ final class Parser(AST) : Lexer
             /* Create a pseudo-filename for the mixin string, as it may not even exist
              * in the source file.
              */
-            char* filename = cast(char*)mem.xmalloc(strlen(loc.filename) + 7 + (loc.linnum).sizeof * 3 + 1);
-            sprintf(filename, "%s-mixin-%d", loc.filename, cast(int)loc.linnum);
-            scanloc.filename = filename;
+            char* filename = cast(char*)mem.xmalloc(loc.filename.length + 7 + (loc.linnum).sizeof * 3 + 1);
+            sprintf(filename, "%s-mixin-%d", loc.filename.ptr, cast(int)loc.linnum);
+            scanloc.filename = filename.toDString;
         }
 
         mod = _module;
@@ -7699,14 +7702,14 @@ final class Parser(AST) : Lexer
 
         case TOK.file:
             {
-                const(char)* s = loc.filename ? loc.filename : mod.ident.toChars();
-                e = new AST.StringExp(loc, cast(char*)s);
+                const(char)[] s = loc.filename ? loc.filename : mod.ident.toString();
+                e = new AST.StringExp(loc, cast(char*)s.ptr);
                 nextToken();
                 break;
             }
         case TOK.fileFullPath:
             assert(loc.isValid(), "__FILE_FULL_PATH__ does not work with an invalid location");
-            e = new AST.StringExp(loc, cast(char*)FileName.toAbsolute(loc.filename));
+            e = new AST.StringExp(loc, cast(char*)FileName.toAbsolute(loc.filename.ptr));
             nextToken();
             break;
 

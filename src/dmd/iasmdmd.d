@@ -1955,7 +1955,7 @@ L2:
 
     if (global.params.symdebug)
     {
-        cdb.genlinnum(Srcpos.create(loc.filename, loc.linnum, loc.charnum));
+        cdb.genlinnum(Srcpos.create(loc.filename.ptr, loc.linnum, loc.charnum));
     }
 
     cdb.append(pc);
@@ -3304,7 +3304,7 @@ code *asm_da_parse(OP *pop)
                 error(asmstate.loc, "label `%s` not found", asmstate.tok.ident.toChars());
 
             if (global.params.symdebug)
-                cdb.genlinnum(Srcpos.create(asmstate.loc.filename, asmstate.loc.linnum, asmstate.loc.charnum));
+                cdb.genlinnum(Srcpos.create(asmstate.loc.filename.ptr, asmstate.loc.linnum, asmstate.loc.charnum));
             cdb.genasm(cast(_LabelDsymbol*)label);
         }
         else
@@ -3518,7 +3518,7 @@ code *asm_db_parse(OP *pop)
     CodeBuilder cdb;
     cdb.ctor();
     if (global.params.symdebug)
-        cdb.genlinnum(Srcpos.create(asmstate.loc.filename, asmstate.loc.linnum, asmstate.loc.charnum));
+        cdb.genlinnum(Srcpos.create(asmstate.loc.filename.ptr, asmstate.loc.linnum, asmstate.loc.charnum));
     cdb.genasm(cast(char*)bytes, cast(uint)usBytes);
     code *c = cdb.finish();
     mem.xfree(bytes);

@@ -354,7 +354,8 @@ void parseConfFile(ref StringTable environment, const(char)* filename, const(cha
                 {
                     if (!writeToEnv(environment, strdup(pn)))
                     {
-                        error(Loc(filename, lineNum, 0), "Use `NAME=value` syntax, not `%s`", pn);
+                        import dmd.utils : toDString;
+                        error(Loc(filename.toDString, lineNum, 0), "Use `NAME=value` syntax, not `%s`", pn);
                         fatal();
                     }
                     static if (LOG)

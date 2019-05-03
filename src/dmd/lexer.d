@@ -249,8 +249,9 @@ class Lexer
     }
     body
     {
+        import dmd.utils : toDString;
         this.diagnosticReporter = diagnosticReporter;
-        scanloc = Loc(filename, 1, 1);
+        scanloc = Loc(filename.toDString, 1, 1);
         //printf("Lexer::Lexer(%p,%d)\n",base,length);
         //printf("lexer.filename = %s\n", filename);
         token = Token.init;
@@ -2353,6 +2354,7 @@ class Lexer
      */
     private void poundLine()
     {
+        import dmd.utils : toDString;
         auto linnum = this.scanloc.linnum;
         const(char)* filespec = null;
         const loc = this.loc();
@@ -2381,7 +2383,7 @@ class Lexer
             Lnewline:
                 this.scanloc.linnum = linnum;
                 if (filespec)
-                    this.scanloc.filename = filespec;
+                    this.scanloc.filename = filespec.toDString;
                 return;
             case '\r':
                 p++;
@@ -2401,7 +2403,7 @@ class Lexer
                 if (memcmp(p, "__FILE__".ptr, 8) == 0)
                 {
                     p += 8;
-                    filespec = mem.xstrdup(scanloc.filename);
+                    filespec = mem.xstrdup(scanloc.filename.ptr);
                     continue;
                 }
                 goto Lerr;

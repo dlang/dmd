@@ -6579,9 +6579,9 @@ extern (C++) final class FileInitExp : DefaultInitExp
         //printf("FileInitExp::resolve() %s\n", toChars());
         const(char)* s;
         if (subop == TOK.fileFullPath)
-            s = FileName.toAbsolute(loc.isValid() ? loc.filename : sc._module.srcfile.name.toChars());
+            s = FileName.toAbsolute(loc.isValid() ? loc.filename.ptr : sc._module.srcfile.name.toChars());
         else
-            s = loc.isValid() ? loc.filename : sc._module.ident.toChars();
+            s = loc.isValid() ? loc.filename.ptr : sc._module.ident.toChars();
 
         Expression e = new StringExp(loc, cast(char*)s);
         e = e.expressionSemantic(sc);

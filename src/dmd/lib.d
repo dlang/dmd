@@ -95,19 +95,19 @@ class Library
         if (!FileName.absolute(arg))
             arg = FileName.combine(dir, arg);
 
-        loc = Loc(FileName.defaultExt(arg, global.lib_ext), 0, 0);
+        loc = Loc(FileName.defaultExt(arg, global.lib_ext).toDString, 0, 0);
     }
 
     final void write()
     {
         if (global.params.verbose)
-            message("library   %s", loc.filename);
+            message("library   %s", loc.filename.ptr);
 
         OutBuffer libbuf;
         WriteLibToBuffer(&libbuf);
 
         // Transfer image to file
-        File* libfile = File.create(loc.filename);
+        File* libfile = new File(loc.filename);
         libfile.setbuffer(libbuf.data, libbuf.offset);
         libbuf.extractData();
         ensurePathToNameExists(Loc.initial, libfile.name.toChars());

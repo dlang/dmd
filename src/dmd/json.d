@@ -376,7 +376,7 @@ public:
     {
         if (loc.isValid())
         {
-            if (auto filename = loc.filename.toDString)
+            if (auto filename = loc.filename)
             {
                 if (filename != this.filename)
                 {

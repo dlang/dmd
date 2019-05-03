@@ -2087,12 +2087,11 @@ elem *toElem(Expression e, IRState *irs)
                  * to a #line directive.
                  */
                 elem *ea;
-                if (ae.loc.filename && (ae.msg || strcmp(ae.loc.filename, mname) != 0))
+                if (ae.loc.filename && (ae.msg || strcmp(ae.loc.filename.ptr, mname) != 0))
                 {
-                    const(char)* id = ae.loc.filename;
-                    size_t len = strlen(id);
-                    Symbol *si = toStringSymbol(id, len, 1);
-                    elem *efilename = el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(si));
+                    const(char)[] id = ae.loc.filename;
+                    Symbol *si = toStringSymbol(id.ptr, id.length, 1);
+                    elem *efilename = el_pair(TYdarray, el_long(TYsize_t, id.length), el_ptr(si));
                     if (config.exe == EX_WIN64)
                         efilename = addressElem(efilename, Type.tstring, true);
 
@@ -6051,10 +6050,9 @@ Symbol *toStringSymbol(StringExp se)
 
 private elem *filelinefunction(IRState *irs, const ref Loc loc)
 {
-    const(char)* id = loc.filename;
-    size_t len = strlen(id);
-    Symbol *si = toStringSymbol(id, len, 1);
-    elem *efilename = el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(si));
+    const(char)[] id = loc.filename;
+    Symbol *si = toStringSymbol(id.ptr, id.length, 1);
+    elem *efilename = el_pair(TYdarray, el_long(TYsize_t, id.length), el_ptr(si));
     if (config.exe == EX_WIN64)
         efilename = addressElem(efilename, Type.tstring, true);
 
@@ -6067,7 +6065,7 @@ private elem *filelinefunction(IRState *irs, const ref Loc loc)
         s = fd.toPrettyChars();
     }
 
-    len = strlen(s);
+    const len = strlen(s);
     si = toStringSymbol(s, len, 1);
     elem *efunction = el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(si));
     if (config.exe == EX_WIN64)
@@ -6197,7 +6195,7 @@ elem *callCAssert(IRState *irs, const ref Loc loc, Expression exp, Expression em
 {
     //printf("callCAssert.toElem() %s\n", e.toChars());
     Module m = cast(Module)irs.blx._module;
-    const(char)* mname = m.srcfile.toChars();
+    const(char)[] mname = m.srcfile.toString();
 
     //printf("filename = '%s'\n", loc.filename);
     //printf("module = '%s'\n", mname);
@@ -6206,11 +6204,9 @@ elem *callCAssert(IRState *irs, const ref Loc loc, Expression exp, Expression em
      * to a #line directive.
      */
     elem *efilename;
-    if (loc.filename && strcmp(loc.filename, mname) != 0)
+    if (loc.filename == mname)
     {
-        const(char)* id = loc.filename;
-        size_t len = strlen(id);
-        Symbol *si = toStringSymbol(id, len, 1);
+        Symbol *si = toStringSymbol(loc.filename.ptr, loc.filename.length, 1);
         efilename = el_ptr(si);
     }
     else

@@ -77,7 +77,7 @@ extern (D) elem *incUsageElem(IRState *irs, const ref Loc loc)
 
     Module m = cast(Module)irs.blx._module;
     if (!m.cov || !linnum ||
-        loc.filename != m.srcfile.toChars())
+        loc.filename != m.srcfile.toString())
         return null;
 
     //printf("cov = %p, covb = %p, linnum = %u\n", m.cov, m.covb, p, linnum);

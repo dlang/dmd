@@ -423,7 +423,7 @@ extern(C++) void gendocfile(Module m)
     if (m.isDocFile)
     {
         const ploc = m.md ? &m.md.loc : &m.loc;
-        const loc = Loc(ploc.filename ? ploc.filename : srcfilename.ptr,
+        const loc = Loc(ploc.filename ? ploc.filename : srcfilename,
                         ploc.linnum,
                         ploc.charnum);
 

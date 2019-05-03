@@ -478,14 +478,14 @@ alias d_uns64 = uint64_t;
 // file location
 struct Loc
 {
-    const(char)* filename; // either absolute or relative to cwd
+    const(char)[] filename; // either absolute or relative to cwd
     uint linnum;
     uint charnum;
 
     static immutable Loc initial;       /// use for default initialization of const ref Loc's
 
 nothrow:
-    extern (D) this(const(char)* filename, uint linnum, uint charnum) pure
+    extern (D) this(const(char)[] filename, uint linnum, uint charnum) pure
     {
         this.linnum = linnum;
         this.charnum = charnum;
@@ -534,12 +534,9 @@ nothrow:
      */
     extern (D) bool opEquals(ref const(Loc) loc) const @trusted pure nothrow @nogc
     {
-        import core.stdc.string : strcmp;
-
         return charnum == loc.charnum &&
                linnum == loc.linnum &&
-               (filename == loc.filename ||
-                (filename && loc.filename && strcmp(filename, loc.filename) == 0));
+               filename == loc.filename;
     }
 
     extern (D) size_t toHash() const @trusted pure nothrow
@@ -548,7 +545,7 @@ nothrow:
 
         auto hash = hashOf(linnum);
         hash = hashOf(charnum, hash);
-        hash = hashOf(filename.toDString, hash);
+        hash = hashOf(filename, hash);
         return hash;
     }
 

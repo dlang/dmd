@@ -278,7 +278,8 @@ extern (D) void error(Loc loc, const(char)* format, ...)
  */
 extern (C++) void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...)
 {
-    const loc = Loc(filename, linnum, charnum);
+    import dmd.utils : toDString;
+    const loc = Loc(filename.toDString, linnum, charnum);
     va_list ap;
     va_start(ap, format);
     verror(loc, format, ap);
@@ -443,11 +444,11 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
         // ignore invalid files
         loc != Loc.initial &&
         // ignore mixins for now
-        !loc.filename.strstr(".d-mixin-") &&
+        !loc.filename.ptr.strstr(".d-mixin-") &&
         !global.params.mixinOut)
     {
         import dmd.filecache : FileCache;
-        auto fllines = FileCache.fileCache.addOrGetFile(loc.filename[0 .. strlen(loc.filename)]);
+        auto fllines = FileCache.fileCache.addOrGetFile(loc.filename);
 
         if (loc.linnum - 1 < fllines.lines.length)
         {

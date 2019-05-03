@@ -287,7 +287,7 @@ extern (C++) class Dsymbol : ASTNode
             auto m = getModule();
             if (m && m.srcfile)
             {
-                return Loc(m.srcfile.toChars(), 0, 0);
+                return Loc(m.srcfile.toString(), 0, 0);
             }
         }
         return loc;
