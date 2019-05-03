@@ -718,7 +718,7 @@ extern (C++) class ExpStatement : Statement
                     HdrGenState hgs;
                     hgs.hdrgen = true;
                     toCBuffer(s, &buf, &hgs);
-                    printf("tm ==> s = %s\n", buf.peekString());
+                    printf("tm ==> s = %s\n", buf.peekChars());
                 }
                 auto a = new Statements();
                 a.push(s);

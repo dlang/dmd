@@ -270,7 +270,7 @@ void parseConfFile(ref StringTable environment, const(char)* filename, const(cha
             --slicelen;
         buf.setsize(slicelen);
 
-        auto p = buf.peekString();
+        auto p = buf.peekChars();
         // The expanded line is in p.
         // Now parse it for meaning.
         p = skipspace(p);
