@@ -3,506 +3,388 @@
 Disassembly of section .text._D5cdcmp8test_ltzFhZb:
 
 0000000000000000 <_D5cdcmp8test_ltzFhZb>:
-   0:	50                   	push   rax
-   1:	31 c0                	xor    eax,eax
-   3:	59                   	pop    rcx
-   4:	c3                   	ret    
-   5:	00 00                	add    BYTE PTR [rax],al
+   0:	31 c0                	xor    eax,eax
+   2:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp8test_lezFhZb:
 
 0000000000000000 <_D5cdcmp8test_lezFhZb>:
-   0:	50                   	push   rax
-   1:	40 84 ff             	test   dil,dil
-   4:	0f 94 c0             	sete   al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	40 84 ff             	test   dil,dil
+   3:	0f 94 c0             	sete   al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp8test_eqzFhZb:
 
 0000000000000000 <_D5cdcmp8test_eqzFhZb>:
-   0:	50                   	push   rax
-   1:	40 84 ff             	test   dil,dil
-   4:	0f 94 c0             	sete   al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	40 84 ff             	test   dil,dil
+   3:	0f 94 c0             	sete   al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp8test_nezFhZb:
 
 0000000000000000 <_D5cdcmp8test_nezFhZb>:
-   0:	50                   	push   rax
-   1:	40 84 ff             	test   dil,dil
-   4:	0f 95 c0             	setne  al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	40 84 ff             	test   dil,dil
+   3:	0f 95 c0             	setne  al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp8test_gezFhZb:
 
 0000000000000000 <_D5cdcmp8test_gezFhZb>:
-   0:	50                   	push   rax
-   1:	b8 01 00 00 00       	mov    eax,0x1
-   6:	59                   	pop    rcx
-   7:	c3                   	ret    
+   0:	b8 01 00 00 00       	mov    eax,0x1
+   5:	c3                   	ret    
+	...
 
 Disassembly of section .text._D5cdcmp8test_gtzFhZb:
 
 0000000000000000 <_D5cdcmp8test_gtzFhZb>:
-   0:	50                   	push   rax
-   1:	40 84 ff             	test   dil,dil
-   4:	0f 95 c0             	setne  al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	40 84 ff             	test   dil,dil
+   3:	0f 95 c0             	setne  al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp8test_ltzFgZb:
 
 0000000000000000 <_D5cdcmp8test_ltzFgZb>:
-   0:	50                   	push   rax
-   1:	40 84 ff             	test   dil,dil
-   4:	0f 98 c0             	sets   al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	40 84 ff             	test   dil,dil
+   3:	0f 98 c0             	sets   al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp8test_lezFgZb:
 
 0000000000000000 <_D5cdcmp8test_lezFgZb>:
-   0:	50                   	push   rax
-   1:	40 84 ff             	test   dil,dil
-   4:	0f 9e c0             	setle  al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	40 84 ff             	test   dil,dil
+   3:	0f 9e c0             	setle  al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp8test_eqzFgZb:
 
 0000000000000000 <_D5cdcmp8test_eqzFgZb>:
-   0:	50                   	push   rax
-   1:	40 84 ff             	test   dil,dil
-   4:	0f 94 c0             	sete   al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	40 84 ff             	test   dil,dil
+   3:	0f 94 c0             	sete   al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp8test_nezFgZb:
 
 0000000000000000 <_D5cdcmp8test_nezFgZb>:
-   0:	50                   	push   rax
-   1:	40 84 ff             	test   dil,dil
-   4:	0f 95 c0             	setne  al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	40 84 ff             	test   dil,dil
+   3:	0f 95 c0             	setne  al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp8test_gezFgZb:
 
 0000000000000000 <_D5cdcmp8test_gezFgZb>:
-   0:	50                   	push   rax
-   1:	40 84 ff             	test   dil,dil
-   4:	0f 99 c0             	setns  al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	40 84 ff             	test   dil,dil
+   3:	0f 99 c0             	setns  al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp8test_gtzFgZb:
 
 0000000000000000 <_D5cdcmp8test_gtzFgZb>:
-   0:	50                   	push   rax
-   1:	40 84 ff             	test   dil,dil
-   4:	0f 9f c0             	setg   al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	40 84 ff             	test   dil,dil
+   3:	0f 9f c0             	setg   al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp8test_ltzFtZb:
 
 0000000000000000 <_D5cdcmp8test_ltzFtZb>:
-   0:	50                   	push   rax
-   1:	31 c0                	xor    eax,eax
-   3:	59                   	pop    rcx
-   4:	c3                   	ret    
-   5:	00 00                	add    BYTE PTR [rax],al
+   0:	31 c0                	xor    eax,eax
+   2:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp8test_lezFtZb:
 
 0000000000000000 <_D5cdcmp8test_lezFtZb>:
-   0:	50                   	push   rax
-   1:	66 85 ff             	test   di,di
-   4:	0f 94 c0             	sete   al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	66 85 ff             	test   di,di
+   3:	0f 94 c0             	sete   al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp8test_eqzFtZb:
 
 0000000000000000 <_D5cdcmp8test_eqzFtZb>:
-   0:	50                   	push   rax
-   1:	66 85 ff             	test   di,di
-   4:	0f 94 c0             	sete   al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	66 85 ff             	test   di,di
+   3:	0f 94 c0             	sete   al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp8test_nezFtZb:
 
 0000000000000000 <_D5cdcmp8test_nezFtZb>:
-   0:	50                   	push   rax
-   1:	66 85 ff             	test   di,di
-   4:	0f 95 c0             	setne  al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	66 85 ff             	test   di,di
+   3:	0f 95 c0             	setne  al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp8test_gezFtZb:
 
 0000000000000000 <_D5cdcmp8test_gezFtZb>:
-   0:	50                   	push   rax
-   1:	b8 01 00 00 00       	mov    eax,0x1
-   6:	59                   	pop    rcx
-   7:	c3                   	ret    
+   0:	b8 01 00 00 00       	mov    eax,0x1
+   5:	c3                   	ret    
+	...
 
 Disassembly of section .text._D5cdcmp8test_gtzFtZb:
 
 0000000000000000 <_D5cdcmp8test_gtzFtZb>:
-   0:	50                   	push   rax
-   1:	66 85 ff             	test   di,di
-   4:	0f 95 c0             	setne  al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	66 85 ff             	test   di,di
+   3:	0f 95 c0             	setne  al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp8test_ltzFsZb:
 
 0000000000000000 <_D5cdcmp8test_ltzFsZb>:
-   0:	50                   	push   rax
-   1:	66 85 ff             	test   di,di
-   4:	0f 98 c0             	sets   al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	66 85 ff             	test   di,di
+   3:	0f 98 c0             	sets   al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp8test_lezFsZb:
 
 0000000000000000 <_D5cdcmp8test_lezFsZb>:
-   0:	50                   	push   rax
-   1:	66 85 ff             	test   di,di
-   4:	0f 9e c0             	setle  al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	66 85 ff             	test   di,di
+   3:	0f 9e c0             	setle  al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp8test_eqzFsZb:
 
 0000000000000000 <_D5cdcmp8test_eqzFsZb>:
-   0:	50                   	push   rax
-   1:	66 85 ff             	test   di,di
-   4:	0f 94 c0             	sete   al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	66 85 ff             	test   di,di
+   3:	0f 94 c0             	sete   al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp8test_nezFsZb:
 
 0000000000000000 <_D5cdcmp8test_nezFsZb>:
-   0:	50                   	push   rax
-   1:	66 85 ff             	test   di,di
-   4:	0f 95 c0             	setne  al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	66 85 ff             	test   di,di
+   3:	0f 95 c0             	setne  al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp8test_gezFsZb:
 
 0000000000000000 <_D5cdcmp8test_gezFsZb>:
-   0:	50                   	push   rax
-   1:	66 85 ff             	test   di,di
-   4:	0f 99 c0             	setns  al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	66 85 ff             	test   di,di
+   3:	0f 99 c0             	setns  al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp8test_gtzFsZb:
 
 0000000000000000 <_D5cdcmp8test_gtzFsZb>:
-   0:	50                   	push   rax
-   1:	66 85 ff             	test   di,di
-   4:	0f 9f c0             	setg   al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	66 85 ff             	test   di,di
+   3:	0f 9f c0             	setg   al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp8test_ltzFkZb:
 
 0000000000000000 <_D5cdcmp8test_ltzFkZb>:
-   0:	50                   	push   rax
-   1:	31 c0                	xor    eax,eax
-   3:	59                   	pop    rcx
-   4:	c3                   	ret    
-   5:	00 00                	add    BYTE PTR [rax],al
+   0:	31 c0                	xor    eax,eax
+   2:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp8test_lezFkZb:
 
 0000000000000000 <_D5cdcmp8test_lezFkZb>:
-   0:	50                   	push   rax
-   1:	85 ff                	test   edi,edi
-   3:	0f 94 c0             	sete   al
-   6:	59                   	pop    rcx
-   7:	c3                   	ret    
+   0:	85 ff                	test   edi,edi
+   2:	0f 94 c0             	sete   al
+   5:	c3                   	ret    
+	...
 
 Disassembly of section .text._D5cdcmp8test_eqzFkZb:
 
 0000000000000000 <_D5cdcmp8test_eqzFkZb>:
-   0:	50                   	push   rax
-   1:	85 ff                	test   edi,edi
-   3:	0f 94 c0             	sete   al
-   6:	59                   	pop    rcx
-   7:	c3                   	ret    
+   0:	85 ff                	test   edi,edi
+   2:	0f 94 c0             	sete   al
+   5:	c3                   	ret    
+	...
 
 Disassembly of section .text._D5cdcmp8test_nezFkZb:
 
 0000000000000000 <_D5cdcmp8test_nezFkZb>:
-   0:	50                   	push   rax
-   1:	85 ff                	test   edi,edi
-   3:	0f 95 c0             	setne  al
-   6:	59                   	pop    rcx
-   7:	c3                   	ret    
+   0:	85 ff                	test   edi,edi
+   2:	0f 95 c0             	setne  al
+   5:	c3                   	ret    
+	...
 
 Disassembly of section .text._D5cdcmp8test_gezFkZb:
 
 0000000000000000 <_D5cdcmp8test_gezFkZb>:
-   0:	50                   	push   rax
-   1:	b8 01 00 00 00       	mov    eax,0x1
-   6:	59                   	pop    rcx
-   7:	c3                   	ret    
+   0:	b8 01 00 00 00       	mov    eax,0x1
+   5:	c3                   	ret    
+	...
 
 Disassembly of section .text._D5cdcmp8test_gtzFkZb:
 
 0000000000000000 <_D5cdcmp8test_gtzFkZb>:
-   0:	50                   	push   rax
-   1:	85 ff                	test   edi,edi
-   3:	0f 95 c0             	setne  al
-   6:	59                   	pop    rcx
-   7:	c3                   	ret    
+   0:	85 ff                	test   edi,edi
+   2:	0f 95 c0             	setne  al
+   5:	c3                   	ret    
+	...
 
 Disassembly of section .text._D5cdcmp8test_ltzFiZb:
 
 0000000000000000 <_D5cdcmp8test_ltzFiZb>:
-   0:	50                   	push   rax
-   1:	8b c7                	mov    eax,edi
-   3:	c1 e8 1f             	shr    eax,0x1f
-   6:	59                   	pop    rcx
-   7:	c3                   	ret    
+   0:	8b c7                	mov    eax,edi
+   2:	c1 e8 1f             	shr    eax,0x1f
+   5:	c3                   	ret    
+	...
 
 Disassembly of section .text._D5cdcmp8test_lezFiZb:
 
 0000000000000000 <_D5cdcmp8test_lezFiZb>:
-   0:	50                   	push   rax
-   1:	8b c7                	mov    eax,edi
-   3:	83 c0 ff             	add    eax,0xffffffff
-   6:	83 d0 00             	adc    eax,0x0
-   9:	c1 e8 1f             	shr    eax,0x1f
-   c:	59                   	pop    rcx
-   d:	c3                   	ret    
-	...
+   0:	8b c7                	mov    eax,edi
+   2:	83 c0 ff             	add    eax,0xffffffff
+   5:	83 d0 00             	adc    eax,0x0
+   8:	c1 e8 1f             	shr    eax,0x1f
+   b:	c3                   	ret    
 
 Disassembly of section .text._D5cdcmp8test_eqzFiZb:
 
 0000000000000000 <_D5cdcmp8test_eqzFiZb>:
-   0:	50                   	push   rax
-   1:	85 ff                	test   edi,edi
-   3:	0f 94 c0             	sete   al
-   6:	59                   	pop    rcx
-   7:	c3                   	ret    
+   0:	85 ff                	test   edi,edi
+   2:	0f 94 c0             	sete   al
+   5:	c3                   	ret    
+	...
 
 Disassembly of section .text._D5cdcmp8test_nezFiZb:
 
 0000000000000000 <_D5cdcmp8test_nezFiZb>:
-   0:	50                   	push   rax
-   1:	85 ff                	test   edi,edi
-   3:	0f 95 c0             	setne  al
-   6:	59                   	pop    rcx
-   7:	c3                   	ret    
+   0:	85 ff                	test   edi,edi
+   2:	0f 95 c0             	setne  al
+   5:	c3                   	ret    
+	...
 
 Disassembly of section .text._D5cdcmp8test_gezFiZb:
 
 0000000000000000 <_D5cdcmp8test_gezFiZb>:
-   0:	50                   	push   rax
-   1:	8b c7                	mov    eax,edi
-   3:	01 c0                	add    eax,eax
-   5:	19 c0                	sbb    eax,eax
-   7:	ff c0                	inc    eax
-   9:	59                   	pop    rcx
-   a:	c3                   	ret    
+   0:	8b c7                	mov    eax,edi
+   2:	01 c0                	add    eax,eax
+   4:	19 c0                	sbb    eax,eax
+   6:	ff c0                	inc    eax
+   8:	c3                   	ret    
+   9:	00 00                	add    BYTE PTR [rax],al
 	...
 
 Disassembly of section .text._D5cdcmp8test_gtzFiZb:
 
 0000000000000000 <_D5cdcmp8test_gtzFiZb>:
-   0:	50                   	push   rax
-   1:	8b c7                	mov    eax,edi
-   3:	f7 d8                	neg    eax
-   5:	83 d8 00             	sbb    eax,0x0
-   8:	c1 e8 1f             	shr    eax,0x1f
-   b:	59                   	pop    rcx
-   c:	c3                   	ret    
-   d:	00 00                	add    BYTE PTR [rax],al
+   0:	8b c7                	mov    eax,edi
+   2:	f7 d8                	neg    eax
+   4:	83 d8 00             	sbb    eax,0x0
+   7:	c1 e8 1f             	shr    eax,0x1f
+   a:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp8test_ltzFmZb:
 
 0000000000000000 <_D5cdcmp8test_ltzFmZb>:
-   0:	50                   	push   rax
-   1:	31 c0                	xor    eax,eax
-   3:	59                   	pop    rcx
-   4:	c3                   	ret    
-   5:	00 00                	add    BYTE PTR [rax],al
+   0:	31 c0                	xor    eax,eax
+   2:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp8test_lezFmZb:
 
 0000000000000000 <_D5cdcmp8test_lezFmZb>:
-   0:	50                   	push   rax
-   1:	48 85 ff             	test   rdi,rdi
-   4:	0f 94 c0             	sete   al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	48 85 ff             	test   rdi,rdi
+   3:	0f 94 c0             	sete   al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp8test_eqzFmZb:
 
 0000000000000000 <_D5cdcmp8test_eqzFmZb>:
-   0:	50                   	push   rax
-   1:	48 85 ff             	test   rdi,rdi
-   4:	0f 94 c0             	sete   al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	48 85 ff             	test   rdi,rdi
+   3:	0f 94 c0             	sete   al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp8test_nezFmZb:
 
 0000000000000000 <_D5cdcmp8test_nezFmZb>:
-   0:	50                   	push   rax
-   1:	48 85 ff             	test   rdi,rdi
-   4:	0f 95 c0             	setne  al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	48 85 ff             	test   rdi,rdi
+   3:	0f 95 c0             	setne  al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp8test_gezFmZb:
 
 0000000000000000 <_D5cdcmp8test_gezFmZb>:
-   0:	50                   	push   rax
-   1:	b8 01 00 00 00       	mov    eax,0x1
-   6:	59                   	pop    rcx
-   7:	c3                   	ret    
+   0:	b8 01 00 00 00       	mov    eax,0x1
+   5:	c3                   	ret    
+	...
 
 Disassembly of section .text._D5cdcmp8test_gtzFmZb:
 
 0000000000000000 <_D5cdcmp8test_gtzFmZb>:
-   0:	50                   	push   rax
-   1:	48 85 ff             	test   rdi,rdi
-   4:	0f 95 c0             	setne  al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	48 85 ff             	test   rdi,rdi
+   3:	0f 95 c0             	setne  al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp8test_ltzFlZb:
 
 0000000000000000 <_D5cdcmp8test_ltzFlZb>:
-   0:	50                   	push   rax
-   1:	48 8b c7             	mov    rax,rdi
-   4:	48 c1 e8 3f          	shr    rax,0x3f
-   8:	59                   	pop    rcx
-   9:	c3                   	ret    
-	...
+   0:	48 8b c7             	mov    rax,rdi
+   3:	48 c1 e8 3f          	shr    rax,0x3f
+   7:	c3                   	ret    
 
 Disassembly of section .text._D5cdcmp8test_lezFlZb:
 
 0000000000000000 <_D5cdcmp8test_lezFlZb>:
-   0:	50                   	push   rax
-   1:	48 8b c7             	mov    rax,rdi
-   4:	48 83 c0 ff          	add    rax,0xffffffffffffffff
-   8:	48 83 d0 00          	adc    rax,0x0
-   c:	48 c1 e8 3f          	shr    rax,0x3f
-  10:	59                   	pop    rcx
-  11:	c3                   	ret    
-	...
+   0:	48 8b c7             	mov    rax,rdi
+   3:	48 83 c0 ff          	add    rax,0xffffffffffffffff
+   7:	48 83 d0 00          	adc    rax,0x0
+   b:	48 c1 e8 3f          	shr    rax,0x3f
+   f:	c3                   	ret    
 
 Disassembly of section .text._D5cdcmp8test_eqzFlZb:
 
 0000000000000000 <_D5cdcmp8test_eqzFlZb>:
-   0:	50                   	push   rax
-   1:	48 85 ff             	test   rdi,rdi
-   4:	0f 94 c0             	sete   al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	48 85 ff             	test   rdi,rdi
+   3:	0f 94 c0             	sete   al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp8test_nezFlZb:
 
 0000000000000000 <_D5cdcmp8test_nezFlZb>:
-   0:	50                   	push   rax
-   1:	48 85 ff             	test   rdi,rdi
-   4:	0f 95 c0             	setne  al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	48 85 ff             	test   rdi,rdi
+   3:	0f 95 c0             	setne  al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp8test_gezFlZb:
 
 0000000000000000 <_D5cdcmp8test_gezFlZb>:
-   0:	50                   	push   rax
-   1:	48 8b c7             	mov    rax,rdi
-   4:	48 01 c0             	add    rax,rax
-   7:	48 19 c0             	sbb    rax,rax
-   a:	48 ff c0             	inc    rax
-   d:	59                   	pop    rcx
-   e:	c3                   	ret    
+   0:	48 8b c7             	mov    rax,rdi
+   3:	48 01 c0             	add    rax,rax
+   6:	48 19 c0             	sbb    rax,rax
+   9:	48 ff c0             	inc    rax
+   c:	c3                   	ret    
+   d:	00 00                	add    BYTE PTR [rax],al
 	...
 
 Disassembly of section .text._D5cdcmp8test_gtzFlZb:
 
 0000000000000000 <_D5cdcmp8test_gtzFlZb>:
-   0:	50                   	push   rax
-   1:	48 8b c7             	mov    rax,rdi
-   4:	48 f7 d8             	neg    rax
-   7:	48 83 d8 00          	sbb    rax,0x0
-   b:	48 c1 e8 3f          	shr    rax,0x3f
-   f:	59                   	pop    rcx
-  10:	c3                   	ret    
-  11:	00 00                	add    BYTE PTR [rax],al
+   0:	48 8b c7             	mov    rax,rdi
+   3:	48 f7 d8             	neg    rax
+   6:	48 83 d8 00          	sbb    rax,0x0
+   a:	48 c1 e8 3f          	shr    rax,0x3f
+   e:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp8test_ltzFfZb:
@@ -536,28 +418,26 @@ Disassembly of section .text._D5cdcmp8test_lezFfZb:
 Disassembly of section .text._D5cdcmp8test_eqzFfZb:
 
 0000000000000000 <_D5cdcmp8test_eqzFfZb>:
-   0:	50                   	push   rax
-   1:	0f 57 c9             	xorps  xmm1,xmm1
-   4:	0f 2e c8             	ucomiss xmm1,xmm0
-   7:	74 04                	je     d <_D5cdcmp8test_eqzFfZb+0xd>
-   9:	31 c0                	xor    eax,eax
-   b:	eb 05                	jmp    12 <_D5cdcmp8test_eqzFfZb+0x12>
-   d:	b8 01 00 00 00       	mov    eax,0x1
-  12:	59                   	pop    rcx
-  13:	c3                   	ret    
+   0:	0f 57 c9             	xorps  xmm1,xmm1
+   3:	0f 2e c8             	ucomiss xmm1,xmm0
+   6:	74 04                	je     c <_D5cdcmp8test_eqzFfZb+0xc>
+   8:	31 c0                	xor    eax,eax
+   a:	eb 05                	jmp    11 <_D5cdcmp8test_eqzFfZb+0x11>
+   c:	b8 01 00 00 00       	mov    eax,0x1
+  11:	c3                   	ret    
+	...
 
 Disassembly of section .text._D5cdcmp8test_nezFfZb:
 
 0000000000000000 <_D5cdcmp8test_nezFfZb>:
-   0:	50                   	push   rax
-   1:	0f 57 c9             	xorps  xmm1,xmm1
-   4:	0f 2e c8             	ucomiss xmm1,xmm0
-   7:	75 04                	jne    d <_D5cdcmp8test_nezFfZb+0xd>
-   9:	31 c0                	xor    eax,eax
-   b:	eb 05                	jmp    12 <_D5cdcmp8test_nezFfZb+0x12>
-   d:	b8 01 00 00 00       	mov    eax,0x1
-  12:	59                   	pop    rcx
-  13:	c3                   	ret    
+   0:	0f 57 c9             	xorps  xmm1,xmm1
+   3:	0f 2e c8             	ucomiss xmm1,xmm0
+   6:	75 04                	jne    c <_D5cdcmp8test_nezFfZb+0xc>
+   8:	31 c0                	xor    eax,eax
+   a:	eb 05                	jmp    11 <_D5cdcmp8test_nezFfZb+0x11>
+   c:	b8 01 00 00 00       	mov    eax,0x1
+  11:	c3                   	ret    
+	...
 
 Disassembly of section .text._D5cdcmp8test_gezFfZb:
 
@@ -622,30 +502,24 @@ Disassembly of section .text._D5cdcmp8test_lezFdZb:
 Disassembly of section .text._D5cdcmp8test_eqzFdZb:
 
 0000000000000000 <_D5cdcmp8test_eqzFdZb>:
-   0:	50                   	push   rax
-   1:	66 0f 57 c9          	xorpd  xmm1,xmm1
-   5:	66 0f 2e c8          	ucomisd xmm1,xmm0
-   9:	74 04                	je     f <_D5cdcmp8test_eqzFdZb+0xf>
-   b:	31 c0                	xor    eax,eax
-   d:	eb 05                	jmp    14 <_D5cdcmp8test_eqzFdZb+0x14>
-   f:	b8 01 00 00 00       	mov    eax,0x1
-  14:	59                   	pop    rcx
-  15:	c3                   	ret    
-	...
+   0:	66 0f 57 c9          	xorpd  xmm1,xmm1
+   4:	66 0f 2e c8          	ucomisd xmm1,xmm0
+   8:	74 04                	je     e <_D5cdcmp8test_eqzFdZb+0xe>
+   a:	31 c0                	xor    eax,eax
+   c:	eb 05                	jmp    13 <_D5cdcmp8test_eqzFdZb+0x13>
+   e:	b8 01 00 00 00       	mov    eax,0x1
+  13:	c3                   	ret    
 
 Disassembly of section .text._D5cdcmp8test_nezFdZb:
 
 0000000000000000 <_D5cdcmp8test_nezFdZb>:
-   0:	50                   	push   rax
-   1:	66 0f 57 c9          	xorpd  xmm1,xmm1
-   5:	66 0f 2e c8          	ucomisd xmm1,xmm0
-   9:	75 04                	jne    f <_D5cdcmp8test_nezFdZb+0xf>
-   b:	31 c0                	xor    eax,eax
-   d:	eb 05                	jmp    14 <_D5cdcmp8test_nezFdZb+0x14>
-   f:	b8 01 00 00 00       	mov    eax,0x1
-  14:	59                   	pop    rcx
-  15:	c3                   	ret    
-	...
+   0:	66 0f 57 c9          	xorpd  xmm1,xmm1
+   4:	66 0f 2e c8          	ucomisd xmm1,xmm0
+   8:	75 04                	jne    e <_D5cdcmp8test_nezFdZb+0xe>
+   a:	31 c0                	xor    eax,eax
+   c:	eb 05                	jmp    13 <_D5cdcmp8test_nezFdZb+0x13>
+   e:	b8 01 00 00 00       	mov    eax,0x1
+  13:	c3                   	ret    
 
 Disassembly of section .text._D5cdcmp8test_gezFdZb:
 
@@ -682,653 +556,497 @@ Disassembly of section .text._D5cdcmp8test_gtzFdZb:
 Disassembly of section .text._D5cdcmp7test_ltFhhZb:
 
 0000000000000000 <_D5cdcmp7test_ltFhhZb>:
-   0:	50                   	push   rax
-   1:	40 38 fe             	cmp    sil,dil
-   4:	0f 92 c0             	setb   al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	40 38 fe             	cmp    sil,dil
+   3:	0f 92 c0             	setb   al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_leFhhZb:
 
 0000000000000000 <_D5cdcmp7test_leFhhZb>:
-   0:	50                   	push   rax
-   1:	40 3a fe             	cmp    dil,sil
-   4:	0f 93 c0             	setae  al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	40 3a fe             	cmp    dil,sil
+   3:	0f 93 c0             	setae  al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_eqFhhZb:
 
 0000000000000000 <_D5cdcmp7test_eqFhhZb>:
-   0:	50                   	push   rax
-   1:	40 38 fe             	cmp    sil,dil
-   4:	0f 94 c0             	sete   al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	40 38 fe             	cmp    sil,dil
+   3:	0f 94 c0             	sete   al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_neFhhZb:
 
 0000000000000000 <_D5cdcmp7test_neFhhZb>:
-   0:	50                   	push   rax
-   1:	40 38 fe             	cmp    sil,dil
-   4:	0f 95 c0             	setne  al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	40 38 fe             	cmp    sil,dil
+   3:	0f 95 c0             	setne  al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_geFhhZb:
 
 0000000000000000 <_D5cdcmp7test_geFhhZb>:
-   0:	50                   	push   rax
-   1:	40 38 fe             	cmp    sil,dil
-   4:	0f 93 c0             	setae  al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	40 38 fe             	cmp    sil,dil
+   3:	0f 93 c0             	setae  al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_gtFhhZb:
 
 0000000000000000 <_D5cdcmp7test_gtFhhZb>:
-   0:	50                   	push   rax
-   1:	40 3a fe             	cmp    dil,sil
-   4:	0f 92 c0             	setb   al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	40 3a fe             	cmp    dil,sil
+   3:	0f 92 c0             	setb   al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_ltFggZb:
 
 0000000000000000 <_D5cdcmp7test_ltFggZb>:
-   0:	50                   	push   rax
-   1:	40 38 fe             	cmp    sil,dil
-   4:	0f 9c c0             	setl   al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	40 38 fe             	cmp    sil,dil
+   3:	0f 9c c0             	setl   al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_leFggZb:
 
 0000000000000000 <_D5cdcmp7test_leFggZb>:
-   0:	50                   	push   rax
-   1:	40 38 fe             	cmp    sil,dil
-   4:	0f 9e c0             	setle  al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	40 38 fe             	cmp    sil,dil
+   3:	0f 9e c0             	setle  al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_eqFggZb:
 
 0000000000000000 <_D5cdcmp7test_eqFggZb>:
-   0:	50                   	push   rax
-   1:	40 38 fe             	cmp    sil,dil
-   4:	0f 94 c0             	sete   al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	40 38 fe             	cmp    sil,dil
+   3:	0f 94 c0             	sete   al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_neFggZb:
 
 0000000000000000 <_D5cdcmp7test_neFggZb>:
-   0:	50                   	push   rax
-   1:	40 38 fe             	cmp    sil,dil
-   4:	0f 95 c0             	setne  al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	40 38 fe             	cmp    sil,dil
+   3:	0f 95 c0             	setne  al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_geFggZb:
 
 0000000000000000 <_D5cdcmp7test_geFggZb>:
-   0:	50                   	push   rax
-   1:	40 38 fe             	cmp    sil,dil
-   4:	0f 9d c0             	setge  al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	40 38 fe             	cmp    sil,dil
+   3:	0f 9d c0             	setge  al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_gtFggZb:
 
 0000000000000000 <_D5cdcmp7test_gtFggZb>:
-   0:	50                   	push   rax
-   1:	40 38 fe             	cmp    sil,dil
-   4:	0f 9f c0             	setg   al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	40 38 fe             	cmp    sil,dil
+   3:	0f 9f c0             	setg   al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_ltFttZb:
 
 0000000000000000 <_D5cdcmp7test_ltFttZb>:
-   0:	50                   	push   rax
-   1:	66 39 fe             	cmp    si,di
-   4:	0f 92 c0             	setb   al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	66 39 fe             	cmp    si,di
+   3:	0f 92 c0             	setb   al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_leFttZb:
 
 0000000000000000 <_D5cdcmp7test_leFttZb>:
-   0:	50                   	push   rax
-   1:	66 3b fe             	cmp    di,si
-   4:	0f 93 c0             	setae  al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	66 3b fe             	cmp    di,si
+   3:	0f 93 c0             	setae  al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_eqFttZb:
 
 0000000000000000 <_D5cdcmp7test_eqFttZb>:
-   0:	50                   	push   rax
-   1:	66 39 fe             	cmp    si,di
-   4:	0f 94 c0             	sete   al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	66 39 fe             	cmp    si,di
+   3:	0f 94 c0             	sete   al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_neFttZb:
 
 0000000000000000 <_D5cdcmp7test_neFttZb>:
-   0:	50                   	push   rax
-   1:	66 39 fe             	cmp    si,di
-   4:	0f 95 c0             	setne  al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	66 39 fe             	cmp    si,di
+   3:	0f 95 c0             	setne  al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_geFttZb:
 
 0000000000000000 <_D5cdcmp7test_geFttZb>:
-   0:	50                   	push   rax
-   1:	66 39 fe             	cmp    si,di
-   4:	0f 93 c0             	setae  al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	66 39 fe             	cmp    si,di
+   3:	0f 93 c0             	setae  al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_gtFttZb:
 
 0000000000000000 <_D5cdcmp7test_gtFttZb>:
-   0:	50                   	push   rax
-   1:	66 3b fe             	cmp    di,si
-   4:	0f 92 c0             	setb   al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	66 3b fe             	cmp    di,si
+   3:	0f 92 c0             	setb   al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_ltFssZb:
 
 0000000000000000 <_D5cdcmp7test_ltFssZb>:
-   0:	50                   	push   rax
-   1:	66 39 fe             	cmp    si,di
-   4:	0f 9c c0             	setl   al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	66 39 fe             	cmp    si,di
+   3:	0f 9c c0             	setl   al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_leFssZb:
 
 0000000000000000 <_D5cdcmp7test_leFssZb>:
-   0:	50                   	push   rax
-   1:	66 39 fe             	cmp    si,di
-   4:	0f 9e c0             	setle  al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	66 39 fe             	cmp    si,di
+   3:	0f 9e c0             	setle  al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_eqFssZb:
 
 0000000000000000 <_D5cdcmp7test_eqFssZb>:
-   0:	50                   	push   rax
-   1:	66 39 fe             	cmp    si,di
-   4:	0f 94 c0             	sete   al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	66 39 fe             	cmp    si,di
+   3:	0f 94 c0             	sete   al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_neFssZb:
 
 0000000000000000 <_D5cdcmp7test_neFssZb>:
-   0:	50                   	push   rax
-   1:	66 39 fe             	cmp    si,di
-   4:	0f 95 c0             	setne  al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	66 39 fe             	cmp    si,di
+   3:	0f 95 c0             	setne  al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_geFssZb:
 
 0000000000000000 <_D5cdcmp7test_geFssZb>:
-   0:	50                   	push   rax
-   1:	66 39 fe             	cmp    si,di
-   4:	0f 9d c0             	setge  al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	66 39 fe             	cmp    si,di
+   3:	0f 9d c0             	setge  al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_gtFssZb:
 
 0000000000000000 <_D5cdcmp7test_gtFssZb>:
-   0:	50                   	push   rax
-   1:	66 39 fe             	cmp    si,di
-   4:	0f 9f c0             	setg   al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	66 39 fe             	cmp    si,di
+   3:	0f 9f c0             	setg   al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_ltFkkZb:
 
 0000000000000000 <_D5cdcmp7test_ltFkkZb>:
-   0:	50                   	push   rax
-   1:	39 fe                	cmp    esi,edi
-   3:	0f 92 c0             	setb   al
-   6:	59                   	pop    rcx
-   7:	c3                   	ret    
+   0:	39 fe                	cmp    esi,edi
+   2:	0f 92 c0             	setb   al
+   5:	c3                   	ret    
+	...
 
 Disassembly of section .text._D5cdcmp7test_leFkkZb:
 
 0000000000000000 <_D5cdcmp7test_leFkkZb>:
-   0:	50                   	push   rax
-   1:	3b fe                	cmp    edi,esi
-   3:	0f 93 c0             	setae  al
-   6:	59                   	pop    rcx
-   7:	c3                   	ret    
+   0:	3b fe                	cmp    edi,esi
+   2:	0f 93 c0             	setae  al
+   5:	c3                   	ret    
+	...
 
 Disassembly of section .text._D5cdcmp7test_eqFkkZb:
 
 0000000000000000 <_D5cdcmp7test_eqFkkZb>:
-   0:	50                   	push   rax
-   1:	39 fe                	cmp    esi,edi
-   3:	0f 94 c0             	sete   al
-   6:	59                   	pop    rcx
-   7:	c3                   	ret    
+   0:	39 fe                	cmp    esi,edi
+   2:	0f 94 c0             	sete   al
+   5:	c3                   	ret    
+	...
 
 Disassembly of section .text._D5cdcmp7test_neFkkZb:
 
 0000000000000000 <_D5cdcmp7test_neFkkZb>:
-   0:	50                   	push   rax
-   1:	39 fe                	cmp    esi,edi
-   3:	0f 95 c0             	setne  al
-   6:	59                   	pop    rcx
-   7:	c3                   	ret    
+   0:	39 fe                	cmp    esi,edi
+   2:	0f 95 c0             	setne  al
+   5:	c3                   	ret    
+	...
 
 Disassembly of section .text._D5cdcmp7test_geFkkZb:
 
 0000000000000000 <_D5cdcmp7test_geFkkZb>:
-   0:	50                   	push   rax
-   1:	39 fe                	cmp    esi,edi
-   3:	0f 93 c0             	setae  al
-   6:	59                   	pop    rcx
-   7:	c3                   	ret    
+   0:	39 fe                	cmp    esi,edi
+   2:	0f 93 c0             	setae  al
+   5:	c3                   	ret    
+	...
 
 Disassembly of section .text._D5cdcmp7test_gtFkkZb:
 
 0000000000000000 <_D5cdcmp7test_gtFkkZb>:
-   0:	50                   	push   rax
-   1:	3b fe                	cmp    edi,esi
-   3:	0f 92 c0             	setb   al
-   6:	59                   	pop    rcx
-   7:	c3                   	ret    
+   0:	3b fe                	cmp    edi,esi
+   2:	0f 92 c0             	setb   al
+   5:	c3                   	ret    
+	...
 
 Disassembly of section .text._D5cdcmp7test_ltFiiZb:
 
 0000000000000000 <_D5cdcmp7test_ltFiiZb>:
-   0:	50                   	push   rax
-   1:	39 fe                	cmp    esi,edi
-   3:	0f 9c c0             	setl   al
-   6:	59                   	pop    rcx
-   7:	c3                   	ret    
+   0:	39 fe                	cmp    esi,edi
+   2:	0f 9c c0             	setl   al
+   5:	c3                   	ret    
+	...
 
 Disassembly of section .text._D5cdcmp7test_leFiiZb:
 
 0000000000000000 <_D5cdcmp7test_leFiiZb>:
-   0:	50                   	push   rax
-   1:	39 fe                	cmp    esi,edi
-   3:	0f 9e c0             	setle  al
-   6:	59                   	pop    rcx
-   7:	c3                   	ret    
+   0:	39 fe                	cmp    esi,edi
+   2:	0f 9e c0             	setle  al
+   5:	c3                   	ret    
+	...
 
 Disassembly of section .text._D5cdcmp7test_eqFiiZb:
 
 0000000000000000 <_D5cdcmp7test_eqFiiZb>:
-   0:	50                   	push   rax
-   1:	39 fe                	cmp    esi,edi
-   3:	0f 94 c0             	sete   al
-   6:	59                   	pop    rcx
-   7:	c3                   	ret    
+   0:	39 fe                	cmp    esi,edi
+   2:	0f 94 c0             	sete   al
+   5:	c3                   	ret    
+	...
 
 Disassembly of section .text._D5cdcmp7test_neFiiZb:
 
 0000000000000000 <_D5cdcmp7test_neFiiZb>:
-   0:	50                   	push   rax
-   1:	39 fe                	cmp    esi,edi
-   3:	0f 95 c0             	setne  al
-   6:	59                   	pop    rcx
-   7:	c3                   	ret    
+   0:	39 fe                	cmp    esi,edi
+   2:	0f 95 c0             	setne  al
+   5:	c3                   	ret    
+	...
 
 Disassembly of section .text._D5cdcmp7test_geFiiZb:
 
 0000000000000000 <_D5cdcmp7test_geFiiZb>:
-   0:	50                   	push   rax
-   1:	39 fe                	cmp    esi,edi
-   3:	0f 9d c0             	setge  al
-   6:	59                   	pop    rcx
-   7:	c3                   	ret    
+   0:	39 fe                	cmp    esi,edi
+   2:	0f 9d c0             	setge  al
+   5:	c3                   	ret    
+	...
 
 Disassembly of section .text._D5cdcmp7test_gtFiiZb:
 
 0000000000000000 <_D5cdcmp7test_gtFiiZb>:
-   0:	50                   	push   rax
-   1:	39 fe                	cmp    esi,edi
-   3:	0f 9f c0             	setg   al
-   6:	59                   	pop    rcx
-   7:	c3                   	ret    
+   0:	39 fe                	cmp    esi,edi
+   2:	0f 9f c0             	setg   al
+   5:	c3                   	ret    
+	...
 
 Disassembly of section .text._D5cdcmp7test_ltFmmZb:
 
 0000000000000000 <_D5cdcmp7test_ltFmmZb>:
-   0:	50                   	push   rax
-   1:	48 39 fe             	cmp    rsi,rdi
-   4:	0f 92 c0             	setb   al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	48 39 fe             	cmp    rsi,rdi
+   3:	0f 92 c0             	setb   al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_leFmmZb:
 
 0000000000000000 <_D5cdcmp7test_leFmmZb>:
-   0:	50                   	push   rax
-   1:	48 3b fe             	cmp    rdi,rsi
-   4:	0f 93 c0             	setae  al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	48 3b fe             	cmp    rdi,rsi
+   3:	0f 93 c0             	setae  al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_eqFmmZb:
 
 0000000000000000 <_D5cdcmp7test_eqFmmZb>:
-   0:	50                   	push   rax
-   1:	48 39 fe             	cmp    rsi,rdi
-   4:	0f 94 c0             	sete   al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	48 39 fe             	cmp    rsi,rdi
+   3:	0f 94 c0             	sete   al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_neFmmZb:
 
 0000000000000000 <_D5cdcmp7test_neFmmZb>:
-   0:	50                   	push   rax
-   1:	48 39 fe             	cmp    rsi,rdi
-   4:	0f 95 c0             	setne  al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	48 39 fe             	cmp    rsi,rdi
+   3:	0f 95 c0             	setne  al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_geFmmZb:
 
 0000000000000000 <_D5cdcmp7test_geFmmZb>:
-   0:	50                   	push   rax
-   1:	48 39 fe             	cmp    rsi,rdi
-   4:	0f 93 c0             	setae  al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	48 39 fe             	cmp    rsi,rdi
+   3:	0f 93 c0             	setae  al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_gtFmmZb:
 
 0000000000000000 <_D5cdcmp7test_gtFmmZb>:
-   0:	50                   	push   rax
-   1:	48 3b fe             	cmp    rdi,rsi
-   4:	0f 92 c0             	setb   al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	48 3b fe             	cmp    rdi,rsi
+   3:	0f 92 c0             	setb   al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_ltFllZb:
 
 0000000000000000 <_D5cdcmp7test_ltFllZb>:
-   0:	50                   	push   rax
-   1:	48 39 fe             	cmp    rsi,rdi
-   4:	0f 9c c0             	setl   al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	48 39 fe             	cmp    rsi,rdi
+   3:	0f 9c c0             	setl   al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_leFllZb:
 
 0000000000000000 <_D5cdcmp7test_leFllZb>:
-   0:	50                   	push   rax
-   1:	48 39 fe             	cmp    rsi,rdi
-   4:	0f 9e c0             	setle  al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	48 39 fe             	cmp    rsi,rdi
+   3:	0f 9e c0             	setle  al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_eqFllZb:
 
 0000000000000000 <_D5cdcmp7test_eqFllZb>:
-   0:	50                   	push   rax
-   1:	48 39 fe             	cmp    rsi,rdi
-   4:	0f 94 c0             	sete   al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	48 39 fe             	cmp    rsi,rdi
+   3:	0f 94 c0             	sete   al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_neFllZb:
 
 0000000000000000 <_D5cdcmp7test_neFllZb>:
-   0:	50                   	push   rax
-   1:	48 39 fe             	cmp    rsi,rdi
-   4:	0f 95 c0             	setne  al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	48 39 fe             	cmp    rsi,rdi
+   3:	0f 95 c0             	setne  al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_geFllZb:
 
 0000000000000000 <_D5cdcmp7test_geFllZb>:
-   0:	50                   	push   rax
-   1:	48 39 fe             	cmp    rsi,rdi
-   4:	0f 9d c0             	setge  al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	48 39 fe             	cmp    rsi,rdi
+   3:	0f 9d c0             	setge  al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_gtFllZb:
 
 0000000000000000 <_D5cdcmp7test_gtFllZb>:
-   0:	50                   	push   rax
-   1:	48 39 fe             	cmp    rsi,rdi
-   4:	0f 9f c0             	setg   al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	48 39 fe             	cmp    rsi,rdi
+   3:	0f 9f c0             	setg   al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_ltFffZb:
 
 0000000000000000 <_D5cdcmp7test_ltFffZb>:
-   0:	50                   	push   rax
-   1:	0f 2e c1             	ucomiss xmm0,xmm1
-   4:	0f 97 c0             	seta   al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	0f 2e c1             	ucomiss xmm0,xmm1
+   3:	0f 97 c0             	seta   al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_leFffZb:
 
 0000000000000000 <_D5cdcmp7test_leFffZb>:
-   0:	50                   	push   rax
-   1:	0f 2e c1             	ucomiss xmm0,xmm1
-   4:	0f 93 c0             	setae  al
-   7:	59                   	pop    rcx
-   8:	c3                   	ret    
-   9:	00 00                	add    BYTE PTR [rax],al
+   0:	0f 2e c1             	ucomiss xmm0,xmm1
+   3:	0f 93 c0             	setae  al
+   6:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_eqFffZb:
 
 0000000000000000 <_D5cdcmp7test_eqFffZb>:
-   0:	50                   	push   rax
-   1:	0f 2e c1             	ucomiss xmm0,xmm1
-   4:	b8 01 00 00 00       	mov    eax,0x1
-   9:	7a 02                	jp     d <_D5cdcmp7test_eqFffZb+0xd>
-   b:	74 02                	je     f <_D5cdcmp7test_eqFffZb+0xf>
-   d:	31 c0                	xor    eax,eax
-   f:	59                   	pop    rcx
-  10:	c3                   	ret    
-  11:	00 00                	add    BYTE PTR [rax],al
+   0:	0f 2e c1             	ucomiss xmm0,xmm1
+   3:	b8 01 00 00 00       	mov    eax,0x1
+   8:	7a 02                	jp     c <_D5cdcmp7test_eqFffZb+0xc>
+   a:	74 02                	je     e <_D5cdcmp7test_eqFffZb+0xe>
+   c:	31 c0                	xor    eax,eax
+   e:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_neFffZb:
 
 0000000000000000 <_D5cdcmp7test_neFffZb>:
-   0:	50                   	push   rax
-   1:	0f 2e c1             	ucomiss xmm0,xmm1
-   4:	b8 01 00 00 00       	mov    eax,0x1
-   9:	75 04                	jne    f <_D5cdcmp7test_neFffZb+0xf>
-   b:	7a 02                	jp     f <_D5cdcmp7test_neFffZb+0xf>
-   d:	31 c0                	xor    eax,eax
-   f:	59                   	pop    rcx
-  10:	c3                   	ret    
-  11:	00 00                	add    BYTE PTR [rax],al
+   0:	0f 2e c1             	ucomiss xmm0,xmm1
+   3:	b8 01 00 00 00       	mov    eax,0x1
+   8:	75 04                	jne    e <_D5cdcmp7test_neFffZb+0xe>
+   a:	7a 02                	jp     e <_D5cdcmp7test_neFffZb+0xe>
+   c:	31 c0                	xor    eax,eax
+   e:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_geFffZb:
 
 0000000000000000 <_D5cdcmp7test_geFffZb>:
-   0:	50                   	push   rax
-   1:	0f 2e c1             	ucomiss xmm0,xmm1
-   4:	b8 01 00 00 00       	mov    eax,0x1
-   9:	7a 02                	jp     d <_D5cdcmp7test_geFffZb+0xd>
-   b:	76 02                	jbe    f <_D5cdcmp7test_geFffZb+0xf>
-   d:	31 c0                	xor    eax,eax
-   f:	59                   	pop    rcx
-  10:	c3                   	ret    
-  11:	00 00                	add    BYTE PTR [rax],al
+   0:	0f 2e c1             	ucomiss xmm0,xmm1
+   3:	b8 01 00 00 00       	mov    eax,0x1
+   8:	7a 02                	jp     c <_D5cdcmp7test_geFffZb+0xc>
+   a:	76 02                	jbe    e <_D5cdcmp7test_geFffZb+0xe>
+   c:	31 c0                	xor    eax,eax
+   e:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_gtFffZb:
 
 0000000000000000 <_D5cdcmp7test_gtFffZb>:
-   0:	50                   	push   rax
-   1:	0f 2e c1             	ucomiss xmm0,xmm1
-   4:	b8 01 00 00 00       	mov    eax,0x1
-   9:	7a 02                	jp     d <_D5cdcmp7test_gtFffZb+0xd>
-   b:	72 02                	jb     f <_D5cdcmp7test_gtFffZb+0xf>
-   d:	31 c0                	xor    eax,eax
-   f:	59                   	pop    rcx
-  10:	c3                   	ret    
-  11:	00 00                	add    BYTE PTR [rax],al
+   0:	0f 2e c1             	ucomiss xmm0,xmm1
+   3:	b8 01 00 00 00       	mov    eax,0x1
+   8:	7a 02                	jp     c <_D5cdcmp7test_gtFffZb+0xc>
+   a:	72 02                	jb     e <_D5cdcmp7test_gtFffZb+0xe>
+   c:	31 c0                	xor    eax,eax
+   e:	c3                   	ret    
 	...
 
 Disassembly of section .text._D5cdcmp7test_ltFddZb:
 
 0000000000000000 <_D5cdcmp7test_ltFddZb>:
-   0:	50                   	push   rax
-   1:	66 0f 2e c1          	ucomisd xmm0,xmm1
-   5:	0f 97 c0             	seta   al
-   8:	59                   	pop    rcx
-   9:	c3                   	ret    
-	...
+   0:	66 0f 2e c1          	ucomisd xmm0,xmm1
+   4:	0f 97 c0             	seta   al
+   7:	c3                   	ret    
 
 Disassembly of section .text._D5cdcmp7test_leFddZb:
 
 0000000000000000 <_D5cdcmp7test_leFddZb>:
-   0:	50                   	push   rax
-   1:	66 0f 2e c1          	ucomisd xmm0,xmm1
-   5:	0f 93 c0             	setae  al
-   8:	59                   	pop    rcx
-   9:	c3                   	ret    
-	...
+   0:	66 0f 2e c1          	ucomisd xmm0,xmm1
+   4:	0f 93 c0             	setae  al
+   7:	c3                   	ret    
 
 Disassembly of section .text._D5cdcmp7test_eqFddZb:
 
 0000000000000000 <_D5cdcmp7test_eqFddZb>:
-   0:	50                   	push   rax
-   1:	66 0f 2e c1          	ucomisd xmm0,xmm1
-   5:	b8 01 00 00 00       	mov    eax,0x1
-   a:	7a 02                	jp     e <_D5cdcmp7test_eqFddZb+0xe>
-   c:	74 02                	je     10 <_D5cdcmp7test_eqFddZb+0x10>
-   e:	31 c0                	xor    eax,eax
-  10:	59                   	pop    rcx
-  11:	c3                   	ret    
-	...
+   0:	66 0f 2e c1          	ucomisd xmm0,xmm1
+   4:	b8 01 00 00 00       	mov    eax,0x1
+   9:	7a 02                	jp     d <_D5cdcmp7test_eqFddZb+0xd>
+   b:	74 02                	je     f <_D5cdcmp7test_eqFddZb+0xf>
+   d:	31 c0                	xor    eax,eax
+   f:	c3                   	ret    
 
 Disassembly of section .text._D5cdcmp7test_neFddZb:
 
 0000000000000000 <_D5cdcmp7test_neFddZb>:
-   0:	50                   	push   rax
-   1:	66 0f 2e c1          	ucomisd xmm0,xmm1
-   5:	b8 01 00 00 00       	mov    eax,0x1
-   a:	75 04                	jne    10 <_D5cdcmp7test_neFddZb+0x10>
-   c:	7a 02                	jp     10 <_D5cdcmp7test_neFddZb+0x10>
-   e:	31 c0                	xor    eax,eax
-  10:	59                   	pop    rcx
-  11:	c3                   	ret    
-	...
+   0:	66 0f 2e c1          	ucomisd xmm0,xmm1
+   4:	b8 01 00 00 00       	mov    eax,0x1
+   9:	75 04                	jne    f <_D5cdcmp7test_neFddZb+0xf>
+   b:	7a 02                	jp     f <_D5cdcmp7test_neFddZb+0xf>
+   d:	31 c0                	xor    eax,eax
+   f:	c3                   	ret    
 
 Disassembly of section .text._D5cdcmp7test_geFddZb:
 
 0000000000000000 <_D5cdcmp7test_geFddZb>:
-   0:	50                   	push   rax
-   1:	66 0f 2e c1          	ucomisd xmm0,xmm1
-   5:	b8 01 00 00 00       	mov    eax,0x1
-   a:	7a 02                	jp     e <_D5cdcmp7test_geFddZb+0xe>
-   c:	76 02                	jbe    10 <_D5cdcmp7test_geFddZb+0x10>
-   e:	31 c0                	xor    eax,eax
-  10:	59                   	pop    rcx
-  11:	c3                   	ret    
-	...
+   0:	66 0f 2e c1          	ucomisd xmm0,xmm1
+   4:	b8 01 00 00 00       	mov    eax,0x1
+   9:	7a 02                	jp     d <_D5cdcmp7test_geFddZb+0xd>
+   b:	76 02                	jbe    f <_D5cdcmp7test_geFddZb+0xf>
+   d:	31 c0                	xor    eax,eax
+   f:	c3                   	ret    
 
 Disassembly of section .text._D5cdcmp7test_gtFddZb:
 
 0000000000000000 <_D5cdcmp7test_gtFddZb>:
-   0:	50                   	push   rax
-   1:	66 0f 2e c1          	ucomisd xmm0,xmm1
-   5:	b8 01 00 00 00       	mov    eax,0x1
-   a:	7a 02                	jp     e <_D5cdcmp7test_gtFddZb+0xe>
-   c:	72 02                	jb     10 <_D5cdcmp7test_gtFddZb+0x10>
-   e:	31 c0                	xor    eax,eax
-  10:	59                   	pop    rcx
-  11:	c3                   	ret    
-	...
+   0:	66 0f 2e c1          	ucomisd xmm0,xmm1
+   4:	b8 01 00 00 00       	mov    eax,0x1
+   9:	7a 02                	jp     d <_D5cdcmp7test_gtFddZb+0xd>
+   b:	72 02                	jb     f <_D5cdcmp7test_gtFddZb+0xf>
+   d:	31 c0                	xor    eax,eax
+   f:	c3                   	ret    
