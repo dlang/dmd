@@ -391,6 +391,7 @@ body
     import dmd.parse : Parser;
     import dmd.identifier : Identifier;
     import dmd.tokens : TOK;
+    import std.path : baseName, stripExtension;
     import std.string : toStringz;
     import std.typecons : tuple;
 
@@ -404,7 +405,7 @@ body
         return members;
     }
 
-    Identifier id = Identifier.idPool(fileName);
+    auto id = Identifier.idPool(fileName.baseName.stripExtension);
     auto m = new Module(fileName.toStringz, id, 0, 0);
     if (code !is null)
         m.members = parse(m, code, diagnosticReporter);

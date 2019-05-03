@@ -67,6 +67,22 @@ unittest
     assert(visitor.created);
 }
 
+@("parseModule - invalid module name")
+unittest
+{
+    import dmd.frontend;
+
+    initDMD();
+
+    auto t = parseModule("foo/bar.d", "");
+
+    assert(!t.diagnostics.hasErrors);
+    assert(!t.diagnostics.hasWarnings);
+
+    const actual = t.module_.ident.toString;
+    assert(actual == "bar", actual);
+}
+
 @("initDMD - contract checking")
 unittest
 {
