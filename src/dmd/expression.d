@@ -705,7 +705,7 @@ extern (C++) abstract class Expression : ASTNode
         OutBuffer buf;
         HdrGenState hgs;
         toCBuffer(this, &buf, &hgs);
-        return buf.extractString();
+        return buf.extractChars();
     }
 
     final void error(const(char)* format, ...) const
@@ -6692,7 +6692,7 @@ extern (C++) final class PrettyFuncInitExp : DefaultInitExp
             const funcStr = fd.Dsymbol.toPrettyChars();
             OutBuffer buf;
             functionToBufferWithIdent(fd.type.isTypeFunction(), &buf, funcStr);
-            s = buf.extractString();
+            s = buf.extractChars();
         }
         else
         {

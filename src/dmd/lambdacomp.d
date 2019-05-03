@@ -101,7 +101,7 @@ private string getSerialization(FuncLiteralDeclaration fld, Scope* sc)
     if (len == 0)
         return null;
 
-    return cast(string)serVisitor.buf.extractString()[0 .. len];
+    return cast(string)serVisitor.buf.extractChars()[0 .. len];
 }
 
 private extern (C++) class SerializeVisitor : SemanticTimeTransitiveVisitor
@@ -153,7 +153,7 @@ public:
                 OutBuffer value;
                 value.writestring("arg");
                 value.print(i);
-                arg_hash.insert(key, value.extractString);
+                arg_hash.insert(key, value.extractChars);
                 // and the type of the variable is serialized.
                 fparam.accept(this);
             }

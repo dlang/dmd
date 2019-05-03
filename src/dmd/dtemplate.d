@@ -676,7 +676,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             .toCBuffer(constraint, &buf, &hgs);
             buf.writeByte(')');
         }
-        return buf.extractString();
+        return buf.extractChars();
     }
 
     override Prot prot() pure nothrow @nogc @safe
@@ -6068,14 +6068,14 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     {
         OutBuffer buf;
         toCBufferInstance(this, &buf);
-        return buf.extractString();
+        return buf.extractChars();
     }
 
     override final const(char)* toPrettyCharsHelper()
     {
         OutBuffer buf;
         toCBufferInstance(this, &buf, true);
-        return buf.extractString();
+        return buf.extractChars();
     }
 
     /**************************************
@@ -7689,7 +7689,7 @@ extern (C++) final class TemplateMixin : TemplateInstance
     {
         OutBuffer buf;
         toCBufferInstance(this, &buf);
-        return buf.extractString();
+        return buf.extractChars();
     }
 
     extern (D) bool findTempDecl(Scope* sc)

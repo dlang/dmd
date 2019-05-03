@@ -6254,7 +6254,7 @@ struct ASTBase
                 }
             }
             buf.writestring(id.toString());
-            return buf.extractString();
+            return buf.extractChars();
         }
     }
 

@@ -217,7 +217,7 @@ private void buildArrayOp(Scope* sc, Expression e, Objects* tiargs, Expressions*
                 buf.writestring("u");
                 buf.writestring(Token.toString(e.op));
                 e.e1.accept(this);
-                tiargs.push(new StringExp(Loc.initial, buf.extractString()).expressionSemantic(sc));
+                tiargs.push(new StringExp(Loc.initial, buf.extractChars()).expressionSemantic(sc));
             }
         }
 

@@ -1396,7 +1396,7 @@ struct ModuleDeclaration
             }
         }
         buf.writestring(id.toString());
-        return buf.extractString();
+        return buf.extractChars();
     }
 
     /// Provide a human readable representation

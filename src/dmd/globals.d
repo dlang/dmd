@@ -510,7 +510,7 @@ nothrow:
             }
             buf.writeByte(')');
         }
-        return buf.extractString();
+        return buf.extractChars();
     }
 
     /* Checks for equivalence,

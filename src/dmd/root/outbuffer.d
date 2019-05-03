@@ -427,7 +427,7 @@ struct OutBuffer
     }
 
     // Append terminating null if necessary and take ownership of data
-    extern (C++) char* extractString() pure nothrow
+    extern (C++) char* extractChars() pure nothrow
     {
         if (!offset || data[offset - 1] != '\0')
             writeByte(0);

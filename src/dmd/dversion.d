@@ -59,7 +59,7 @@ extern (C++) final class DebugSymbol : Dsymbol
         {
             OutBuffer buf;
             buf.print(level);
-            return buf.extractString();
+            return buf.extractChars();
         }
     }
 
@@ -147,7 +147,7 @@ extern (C++) final class VersionSymbol : Dsymbol
         {
             OutBuffer buf;
             buf.print(level);
-            return buf.extractString();
+            return buf.extractChars();
         }
     }
 

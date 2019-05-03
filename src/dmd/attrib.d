@@ -525,7 +525,7 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
         assert(protection.kind > Prot.Kind.undefined);
         OutBuffer buf;
         protectionToBuffer(&buf, protection);
-        return buf.extractString();
+        return buf.extractChars();
     }
 
     override inout(ProtDeclaration) isProtDeclaration() inout

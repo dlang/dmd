@@ -432,7 +432,7 @@ class Lexer
                 auto hexString = new OutBuffer();
                 t.value = hexStringConstant(t);
                 hexString.write(start, p - start);
-                error("Built-in hex string literals are obsolete, use `std.conv.hexString!%s` instead.", hexString.extractString());
+                error("Built-in hex string literals are obsolete, use `std.conv.hexString!%s` instead.", hexString.extractChars());
                 return;
             case 'q':
                 if (p[1] == '"')
@@ -2618,7 +2618,7 @@ class Lexer
         if (*dc)
             *dc = combineComments(*dc, buf.peekChars(), newParagraph);
         else
-            *dc = buf.extractString();
+            *dc = buf.extractChars();
     }
 
     /********************************************
