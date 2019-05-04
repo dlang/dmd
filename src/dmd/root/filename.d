@@ -422,9 +422,10 @@ nothrow:
     extern (C++) static Strings* splitPath(const(char)* path)
     {
         auto array = new Strings();
-        void sink(const(char)* p) nothrow
+        int sink(const(char)* p) nothrow
         {
             array.push(p);
+            return 0;
         }
         splitPath(&sink, path);
         return array;
@@ -435,10 +436,10 @@ nothrow:
      * Handle double quotes and ~.
      * Pass the pieces to sink()
      * Params:
-     *  sink = send the path pieces here
+     *  sink = send the path pieces here, end when sink() returns !=0
      *  path = the path to split up.
      */
-    static void splitPath(void delegate(const(char)*) nothrow sink, const(char)* path)
+    static void splitPath(int delegate(const(char)*) nothrow sink, const(char)* path)
     {
         if (path)
         {
@@ -447,18 +448,20 @@ nothrow:
             char c;
             do
             {
+                const(char)* home;
                 bool instring = false;
-                while (isspace(cast(char)*p)) // skip leading whitespace
-                    p++;
+                while (isspace(*p)) // skip leading whitespace
+                    ++p;
                 buf.reserve(8); // guess size of piece
-                for (;; p++)
+                for (;; ++p)
                 {
                     c = *p;
                     switch (c)
                     {
-                    case '"':
-                        instring ^= false; // toggle inside/outside of string
-                        continue;
+                        case '"':
+                            instring ^= false; // toggle inside/outside of string
+                            continue;
+
                         version (OSX)
                         {
                         case ',':
@@ -471,47 +474,45 @@ nothrow:
                         {
                         case ':':
                         }
-                        p++;
-                        break;
-                        // note that ; cannot appear as part
-                        // of a path, quotes won't protect it
-                    case 0x1A:
-                        // ^Z means end of file
-                    case 0:
-                        break;
-                    case '\r':
-                        continue;
-                        // ignore carriage returns
+                            p++;    // ; cannot appear as part of a
+                            break;  // path, quotes won't protect it
+
+                        case 0x1A:  // ^Z means end of file
+                        case 0:
+                            break;
+
+                        case '\r':
+                            continue;  // ignore carriage returns
+
                         version (Posix)
                         {
                         case '~':
-                            {
-                                const home = getenv("HOME");
-                                if (home)
-                                    buf.writestring(home);
-                                else
-                                    buf.writestring("~");
-                                continue;
-                            }
+                            if (!home)
+                                home = getenv("HOME");
+                            if (home)
+                                buf.writestring(home);
+                            else
+                                buf.writeByte('~');
+                            continue;
                         }
+
                         version (none)
                         {
                         case ' ':
-                        case '\t':
-                            // tabs in filenames?
+                        case '\t':         // tabs in filenames?
                             if (!instring) // if not in string
-                                break;
-                            // treat as end of path
+                                break;     // treat as end of path
                         }
-                    default:
-                        buf.writeByte(c);
-                        continue;
+                        default:
+                            buf.writeByte(c);
+                            continue;
                     }
                     break;
                 }
                 if (buf.offset) // if path is not empty
                 {
-                    sink(buf.extractChars());
+                    if (sink(buf.extractChars()))
+                        break;
                 }
             } while (c);
         }
@@ -672,15 +673,16 @@ nothrow:
         {
             const(char)[] result;
 
-            void sink(const(char)* p) nothrow
+            int sink(const(char)* p) nothrow
             {
-                if (!result)
-                {
-                    auto n = combine(p.toDString, name);
-                    if (exists(n))
-                        result = n;
-                }
+                auto n = combine(p.toDString, name);
                 mem.xfree(cast(void*)p);
+                if (exists(n))
+                {
+                    result = n;
+                    return 1;   // done with splitPath() call
+                }
+                return 0;
             }
 
             splitPath(&sink, path);
