@@ -11,7 +11,7 @@ FalsePointers* ptrs;
 
 void main(string[] argv)
 {
-    version(EXTENDEND)
+    version(EXTENDED)
         size_t nIter = 100;
     else
         size_t nIter = 20;
