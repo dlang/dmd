@@ -45,7 +45,8 @@ copydir: $(IMPDIR)
 	mkdir $(IMPDIR)\core\sys\linux\netinet
 	mkdir $(IMPDIR)\core\sys\linux\sys
 	mkdir $(IMPDIR)\core\sys\linux\sys\netinet
-	mkdir $(IMPDIR)\core\sys\netbsd
+	mkdir src\core\sys\netbsd\sys
+	mkdir src\core\sys\netbsd\
 	mkdir $(IMPDIR)\core\sys\openbsd
 	mkdir $(IMPDIR)\core\sys\posix\arpa
 	mkdir $(IMPDIR)\core\sys\posix\net
@@ -482,6 +483,9 @@ $(IMPDIR)\core\sys\linux\sys\xattr.d : src\core\sys\linux\sys\xattr.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\linux\sys\time.d : src\core\sys\linux\sys\time.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\netbsd\sys\featuretest.d : src\core\sys\netbsd\sys\featuretest.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\netbsd\string.d : src\core\sys\netbsd\string.d

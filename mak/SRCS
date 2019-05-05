@@ -162,6 +162,7 @@ SRCS=\
 	src\core\sys\linux\sys\time.d \
 	src\core\sys\linux\sys\prctl.d \
 	\
+	src\core\sys\netbsd\sys\featuretest.d \
 	src\core\sys\netbsd\string.d \
 	\
 	src\core\sys\openbsd\dlfcn.d \

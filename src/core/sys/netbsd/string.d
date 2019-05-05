@@ -8,13 +8,12 @@
 module core.sys.netbsd.string;
 
 public import core.stdc.string;
+import core.sys.netbsd.sys.featuretest;
 
 version (NetBSD):
 extern (C):
 nothrow:
 @nogc:
-
-enum _NETBSD_SOURCE = true;
 
 static if (_NETBSD_SOURCE)
 {

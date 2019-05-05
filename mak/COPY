@@ -162,6 +162,7 @@ COPY=\
 	$(IMPDIR)\core\sys\linux\sys\time.d \
 	$(IMPDIR)\core\sys\linux\sys\prctl.d \
 	\
+	$(IMPDIR)\core\sys\netbsd\sys\featuretest.d \
 	$(IMPDIR)\core\sys\netbsd\string.d \
 	\
 	$(IMPDIR)\core\sys\openbsd\dlfcn.d \
