@@ -1,7 +1,0 @@
-HexString literals are now obsolete
-
-$(LINK2 http://dlang.org/spec/lex.html#HexString, HexString literals) are obsolete.
-
-Prior to this release, usage of hex string literals would emit a deprecation warning.  Starting with this release they will emit an error.
-
-Use $(LINK2 https://dlang.org/phobos/std_conv.html#hexString, `std.conv.hexString`) instead.
