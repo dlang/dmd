@@ -1596,7 +1596,7 @@ struct Gcx
 
     private @property bool lowMem() const nothrow
     {
-        return isLowOnMem(mappedPages * PAGESIZE);
+        return isLowOnMem(cast(size_t)mappedPages * PAGESIZE);
     }
 
     void* alloc(size_t size, ref size_t alloc_size, uint bits, const TypeInfo ti) nothrow
@@ -1821,8 +1821,8 @@ struct Gcx
 
         if (config.profile)
         {
-            if (mappedPages * PAGESIZE > maxPoolMemory)
-                maxPoolMemory = mappedPages * PAGESIZE;
+            if (cast(size_t)mappedPages * PAGESIZE > maxPoolMemory)
+                maxPoolMemory = cast(size_t)mappedPages * PAGESIZE;
         }
         return pool;
     }
