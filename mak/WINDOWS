@@ -34,6 +34,7 @@ copydir: $(IMPDIR)
 	mkdir $(IMPDIR)\core\stdc
 	mkdir $(IMPDIR)\core\stdcpp
 	mkdir $(IMPDIR)\core\internal
+	mkdir $(IMPDIR)\core\sys\bionic
 	mkdir $(IMPDIR)\core\sys\darwin\mach
 	mkdir $(IMPDIR)\core\sys\darwin\netinet
 	mkdir $(IMPDIR)\core\sys\darwin\sys
@@ -44,6 +45,8 @@ copydir: $(IMPDIR)
 	mkdir $(IMPDIR)\core\sys\linux\netinet
 	mkdir $(IMPDIR)\core\sys\linux\sys
 	mkdir $(IMPDIR)\core\sys\linux\sys\netinet
+	mkdir src\core\sys\netbsd\sys
+	mkdir src\core\sys\netbsd\
 	mkdir $(IMPDIR)\core\sys\openbsd
 	mkdir $(IMPDIR)\core\sys\posix\arpa
 	mkdir $(IMPDIR)\core\sys\posix\net
@@ -239,6 +242,9 @@ $(IMPDIR)\core\stdcpp\type_traits.d : src\core\stdcpp\type_traits.d
 $(IMPDIR)\core\stdcpp\xutility.d : src\core\stdcpp\xutility.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\bionic\string.d : src\core\sys\bionic\string.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\darwin\crt_externs.d : src\core\sys\darwin\crt_externs.d
 	copy $** $@
 
@@ -249,6 +255,9 @@ $(IMPDIR)\core\sys\darwin\execinfo.d : src\core\sys\darwin\execinfo.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\darwin\pthread.d : src\core\sys\darwin\pthread.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\darwin\string.d : src\core\sys\darwin\string.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\darwin\mach\dyld.d : src\core\sys\darwin\mach\dyld.d
@@ -291,6 +300,9 @@ $(IMPDIR)\core\sys\freebsd\execinfo.d : src\core\sys\freebsd\execinfo.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\freebsd\pthread_np.d : src\core\sys\freebsd\pthread_np.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\freebsd\string.d : src\core\sys\freebsd\string.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\freebsd\time.d : src\core\sys\freebsd\time.d
@@ -342,6 +354,9 @@ $(IMPDIR)\core\sys\dragonflybsd\execinfo.d : src\core\sys\dragonflybsd\execinfo.
 	copy $** $@
 
 $(IMPDIR)\core\sys\dragonflybsd\pthread_np.d : src\core\sys\dragonflybsd\pthread_np.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\dragonflybsd\string.d : src\core\sys\dragonflybsd\string.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\dragonflybsd\time.d : src\core\sys\dragonflybsd\time.d
@@ -410,6 +425,9 @@ $(IMPDIR)\core\sys\linux\link.d : src\core\sys\linux\link.d
 $(IMPDIR)\core\sys\linux\sched.d : src\core\sys\linux\sched.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\linux\string.d : src\core\sys\linux\string.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\linux\termios.d : src\core\sys\linux\termios.d
 	copy $** $@
 
@@ -467,7 +485,16 @@ $(IMPDIR)\core\sys\linux\sys\xattr.d : src\core\sys\linux\sys\xattr.d
 $(IMPDIR)\core\sys\linux\sys\time.d : src\core\sys\linux\sys\time.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\netbsd\sys\featuretest.d : src\core\sys\netbsd\sys\featuretest.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\netbsd\string.d : src\core\sys\netbsd\string.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\openbsd\dlfcn.d : src\core\sys\openbsd\dlfcn.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\openbsd\string.d : src\core\sys\openbsd\string.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\posix\arpa\inet.d : src\core\sys\posix\arpa\inet.d

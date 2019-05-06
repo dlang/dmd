@@ -67,10 +67,13 @@ COPY=\
 	\
 	$(IMPDIR)\core\sync\event.d \
 	\
+	$(IMPDIR)\core\sys\bionic\string.d \
+	\
 	$(IMPDIR)\core\sys\darwin\crt_externs.d \
 	$(IMPDIR)\core\sys\darwin\dlfcn.d \
 	$(IMPDIR)\core\sys\darwin\execinfo.d \
 	$(IMPDIR)\core\sys\darwin\pthread.d \
+	$(IMPDIR)\core\sys\darwin\string.d \
 	\
 	$(IMPDIR)\core\sys\darwin\mach\dyld.d \
 	$(IMPDIR)\core\sys\darwin\mach\getsect.d \
@@ -92,6 +95,7 @@ COPY=\
 	$(IMPDIR)\core\sys\freebsd\netinet\in_.d \
 	\
 	$(IMPDIR)\core\sys\freebsd\pthread_np.d \
+	$(IMPDIR)\core\sys\freebsd\string.d \
 	$(IMPDIR)\core\sys\freebsd\sys\_bitset.d \
 	$(IMPDIR)\core\sys\freebsd\sys\_cpuset.d \
 	$(IMPDIR)\core\sys\freebsd\sys\cdefs.d \
@@ -112,6 +116,7 @@ COPY=\
 	$(IMPDIR)\core\sys\dragonflybsd\netinet\in_.d \
 	\
 	$(IMPDIR)\core\sys\dragonflybsd\pthread_np.d \
+	$(IMPDIR)\core\sys\dragonflybsd\string.d \
 	$(IMPDIR)\core\sys\dragonflybsd\sys\_bitset.d \
 	$(IMPDIR)\core\sys\dragonflybsd\sys\_cpuset.d \
 	$(IMPDIR)\core\sys\dragonflybsd\sys\cdefs.d \
@@ -134,6 +139,7 @@ COPY=\
 	$(IMPDIR)\core\sys\linux\ifaddrs.d \
 	$(IMPDIR)\core\sys\linux\link.d \
 	$(IMPDIR)\core\sys\linux\sched.d \
+	$(IMPDIR)\core\sys\linux\string.d \
 	$(IMPDIR)\core\sys\linux\termios.d \
 	$(IMPDIR)\core\sys\linux\time.d \
 	$(IMPDIR)\core\sys\linux\timerfd.d \
@@ -156,7 +162,11 @@ COPY=\
 	$(IMPDIR)\core\sys\linux\sys\time.d \
 	$(IMPDIR)\core\sys\linux\sys\prctl.d \
 	\
+	$(IMPDIR)\core\sys\netbsd\sys\featuretest.d \
+	$(IMPDIR)\core\sys\netbsd\string.d \
+	\
 	$(IMPDIR)\core\sys\openbsd\dlfcn.d \
+	$(IMPDIR)\core\sys\openbsd\string.d \
 	\
 	$(IMPDIR)\core\sys\posix\arpa\inet.d \
 	$(IMPDIR)\core\sys\posix\aio.d \
