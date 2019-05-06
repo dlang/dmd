@@ -1136,55 +1136,57 @@ else version (NetBSD)
     enum SIG_UNBLOCK = 2;
     enum SIG_SETMASK = 3;
 
-    union sigval_t {
-        int     sival_int;
-        void    *sival_ptr;
-    };
-    struct _rt{
-        pid_t   _pid;
-        uid_t   _uid;
-        sigval_t        _value;
-    };
-    struct _child{
-        pid_t   _pid;
-        uid_t   _uid;
-        int     _status;
-        clock_t _utime;
-        clock_t _stime;
-    };
-   struct _fault{
-        void   *_addr;
-        int     _trap;
-        int     _trap2;
-        int     _trap3;
-    };
-    struct _poll{
-        long    _band;
-        int     _fd;
-    };
-    union _reason{
-        _rt rt;
-        _child child;
-        _fault fault;
-        _poll poll;
-    };
-    struct _ksiginfo {
+    union sigval_t
+    {
+        int   sival_int;
+        void* sival_ptr;
+    }
+
+    struct _ksiginfo
+    {
         int     _signo;
         int     _code;
         int     _errno;
-/+#ifdef _LP64
-        /* In _LP64 the union starts on an 8-byte boundary. */
-        int     _pad;
-#endif+/
-        _reason reason;
-    };
+        version (D_LP64)
+            int _pad;
 
+        union reason_t
+        {
+            struct rt_t
+            {
+                pid_t    _pid;
+                uid_t    _uid;
+                sigval_t _value;
+            } rt_t _rt;
+            struct child_t
+            {
+                pid_t   _pid;
+                uid_t   _uid;
+                int     _status;
+                clock_t _utime;
+                clock_t _stime;
+            } child_t _child;
+            struct fault_t
+            {
+                void* _addr;
+                int   _trap;
+                int   _trap2;
+                int   _trap3;
+            } fault_t fault;
+            struct poll_t
+            {
+                c_long _band;
+                int  _fd;
+            } poll_t _poll;
+        }
+        reason_t _reason;
+    }
 
     union siginfo_t
     {
-        ubyte[128] si_pad;/* Total size; for future expansion */
+        ubyte[128] si_pad;
         _ksiginfo _info;
-        @property ref c_long si_band() return { return _info.reason.poll._band; }
+        @property ref c_long si_band() return { return _info._reason._poll._band; }
     }
 
     enum SI_USER    = 0;
