@@ -653,6 +653,11 @@ nothrow:
                 auto n = combine(p.toDString, name);
                 if (exists(n))
                     return n;
+                //combine might return name
+                if (n.ptr != name.ptr)
+                {
+                    mem.xfree(cast(void*)n.ptr);
+                }
             }
         }
         return null;
