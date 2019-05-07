@@ -218,6 +218,12 @@ nothrow:
         }
     }
 
+    ///ditto
+    extern(D) static bool write(const(char)[] name, const void[] data)
+    {
+        return name.toCStringThen!((fname) => write(fname.ptr, data));
+    }
+
     /// ditto
     extern (C++) static bool write(const(char)* name, const(void)* data, size_t size)
     {

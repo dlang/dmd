@@ -76,12 +76,12 @@ extern (C++) FileBuffer readFile(Loc loc, const(char)* filename)
  *   filename = Path to file
  *   data = Full content of the file to be written
  */
-extern (D) void writeFile(Loc loc, const(char)* filename, const void[] data)
+extern (D) void writeFile(Loc loc, const(char)[] filename, const void[] data)
 {
     ensurePathToNameExists(Loc.initial, filename);
     if (!File.write(filename, data))
     {
-        error(loc, "Error writing file '%s'", filename);
+        error(loc, "Error writing file '%*.s'", filename.length, filename.ptr);
         fatal();
     }
 }
@@ -89,7 +89,7 @@ extern (D) void writeFile(Loc loc, const(char)* filename, const void[] data)
 /// Ditto
 extern (C++) void writeFile(Loc loc, const(char)* filename, const(void)* data, size_t size)
 {
-    writeFile(loc, filename, data[0 .. size]);
+    writeFile(loc, filename.toDString, data[0 .. size]);
 }
 
 
@@ -101,20 +101,25 @@ extern (C++) void writeFile(Loc loc, const(char)* filename, const(void)* data, s
  *   loc = The line number information from where the call originates
  *   name = a path to check (the name is stripped)
  */
-extern (C++) void ensurePathToNameExists(Loc loc, const(char)* name)
+void ensurePathToNameExists(Loc loc, const(char)[] name)
 {
-    const(char)* pt = FileName.path(name);
-    if (*pt)
+    const char[] pt = FileName.path(name);
+    if (pt.length)
     {
         if (!FileName.ensurePathExists(pt))
         {
-            error(loc, "cannot create directory %s", pt);
+            error(loc, "cannot create directory %*.s", pt.length, pt.ptr);
             fatal();
         }
     }
-    FileName.free(pt);
+    FileName.free(pt.ptr);
 }
 
+///ditto
+extern (C++) void ensurePathToNameExists(Loc loc, const(char)* name)
+{
+    ensurePathToNameExists(loc, name.toDString);
+}
 
 /**
  * Takes a path, and escapes '(', ')' and backslashes

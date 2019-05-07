@@ -285,7 +285,7 @@ void obj_end(Library library, const(char)* objfilename)
     else
     {
         //printf("write obj %s\n", objfilename);
-        writeFile(Loc.initial, objfilename, data);
+        writeFile(Loc.initial, objfilename.toDString, data);
         free(objbuf.buf); // objbuf is a backend `Outbuffer` managed by C malloc/free
     }
     objbuf.buf = null;

@@ -260,7 +260,7 @@ public int runLINK()
             if (plen > 7000)
             {
                 lnkfilename = FileName.forceExt(global.params.exefile, "lnk");
-                writeFile(Loc.initial, lnkfilename, p[0 .. plen]);
+                writeFile(Loc.initial, lnkfilename.toDString, p[0 .. plen]);
                 if (strlen(lnkfilename) < plen)
                     sprintf(p, "@%s", lnkfilename);
             }
@@ -384,7 +384,7 @@ public int runLINK()
             if (plen > 7000)
             {
                 lnkfilename = FileName.forceExt(global.params.exefile, "lnk");
-                writeFile(Loc.initial, lnkfilename, p[0 .. plen]);
+                writeFile(Loc.initial, lnkfilename.toDString, p[0 .. plen]);
                 if (strlen(lnkfilename) < plen)
                     sprintf(p, "@%s", lnkfilename);
             }
