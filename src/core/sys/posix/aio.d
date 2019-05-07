@@ -525,7 +525,7 @@ version (CRuntime_Glibc)
         void aio_init(const(aioinit)* init);
     }
 }
-version (CRuntime_UClibc)
+else version (CRuntime_UClibc)
 {
     static if (__USE_GNU)
     {
