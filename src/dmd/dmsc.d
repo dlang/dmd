@@ -97,9 +97,9 @@ void backend_init()
             exe = true;         // EXE file only optimizations
         else if (params.link && !global.params.deffile)
             exe = true;         // EXE file only optimizations
-        else if (params.exefile)           // if writing out EXE file
-        {   size_t len = strlen(params.exefile);
-            if (len >= 4 && FileName.equals(params.exefile + len - 3, "exe"))
+        else if (params.exefile.length)           // if writing out EXE file
+        {
+            if (params.exefile.length >= 4 && FileName.equals(params.exefile[$-3 .. $], "exe"))
                 exe = true;
         }
     }

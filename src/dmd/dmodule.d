@@ -63,11 +63,11 @@ private const(char)[] lookForSourceFile(const(char)[] filename)
 {
     /* Search along global.path for .di file, then .d file.
      */
-    const sdi = FileName.forceExt(filename, global.hdr_ext.toDString());
+    const sdi = FileName.forceExt(filename, global.hdr_ext);
     if (FileName.exists(sdi) == 1)
         return sdi;
     scope(exit) FileName.free(sdi.ptr);
-    const sd = FileName.forceExt(filename, global.mars_ext.toDString());
+    const sd = FileName.forceExt(filename, global.mars_ext);
     if (FileName.exists(sd) == 1)
         return sd;
     scope(exit) FileName.free(sd.ptr);
@@ -412,7 +412,7 @@ extern (C++) final class Module : Package
         const(char)[] srcfilename;
         //printf("Module::Module(filename = '%s', ident = '%s')\n", filename, ident.toChars());
         this.arg = filename;
-        srcfilename = FileName.defaultExt(filename, global.mars_ext.toDString());
+        srcfilename = FileName.defaultExt(filename, global.mars_ext);
         if (global.run_noext && global.params.run &&
             !FileName.ext(filename) &&
             FileName.exists(srcfilename) == 0 &&
@@ -421,22 +421,23 @@ extern (C++) final class Module : Package
             FileName.free(srcfilename.ptr);
             srcfilename = FileName.removeExt(filename); // just does a mem.strdup(filename)
         }
-        else if (!FileName.equalsExt(srcfilename, global.mars_ext.toDString()) &&
-                 !FileName.equalsExt(srcfilename, global.hdr_ext.toDString()) &&
+        else if (!FileName.equalsExt(srcfilename, global.mars_ext) &&
+                 !FileName.equalsExt(srcfilename, global.hdr_ext) &&
                  !FileName.equalsExt(srcfilename, "dd"))
         {
-            error("source file name '%.*s' must have .%s extension",
-                  srcfilename.length, srcfilename.ptr, global.mars_ext);
+
+            error("source file name '%.*s' must have .%.*s extension",
+                  cast(int)srcfilename.length, srcfilename.ptr,
+                  cast(int)global.mars_ext.length, global.mars_ext.ptr);
             fatal();
         }
 
         srcfile = FileName(srcfilename);
-        objfile = setOutfilename(global.params.objname.toDString, global.params.objdir.toDString, filename, global.obj_ext.toDString);
+        objfile = setOutfilename(global.params.objname, global.params.objdir, filename, global.obj_ext);
         if (doDocComment)
             setDocfile();
         if (doHdrGen)
-            hdrfile = setOutfilename(global.params.hdrname.toDString, global.params.hdrdir.toDString, arg, global.hdr_ext.toDString);
-
+            hdrfile = setOutfilename(global.params.hdrname.toDString, global.params.hdrdir.toDString, arg, global.hdr_ext);
         escapetable = new Escape();
     }
 
@@ -619,7 +620,7 @@ extern (C++) final class Module : Package
 
     void setDocfile()
     {
-        docfile = setOutfilename(global.params.docname.toDString, global.params.docdir.toDString, arg, global.doc_ext.toDString);
+        docfile = setOutfilename(global.params.docname.toDString, global.params.docdir.toDString, arg, global.doc_ext);
     }
 
     // read file, returns 'true' if succeed, 'false' otherwise.

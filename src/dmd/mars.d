@@ -64,11 +64,11 @@ import dmd.utils;
  */
 private void logo()
 {
-    printf("DMD%llu D Compiler %.*s\n%s %s\n",
+    printf("DMD%llu D Compiler %.*s\n%.*s %.*s\n",
         cast(ulong)size_t.sizeof * 8,
         cast(int) global._version.length - 1, global._version.ptr,
-        global.copyright,
-        global.written
+        cast(int)global.copyright.length, global.copyright.ptr,
+        cast(int)global.written.length, global.written.ptr
     );
 }
 
@@ -756,7 +756,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
                     if (params.oneobj)
                         break;
                 }
-                remove(params.exefile);
+                params.exefile.toCStringThen!(ef => File.remove(ef.ptr));
             }
         }
     }
@@ -811,8 +811,8 @@ extern (C++) void generateJson(Modules* modules)
     json_generate(&buf, modules);
 
     // Write buf to file
-    const(char)* name = global.params.jsonfilename;
-    if (name && name[0] == '-' && name[1] == 0)
+    const(char)[] name = global.params.jsonfilename.toDString;
+    if (name == "-")
     {
         // Write to stdout; assume it succeeds
         size_t n = fwrite(buf.data, 1, buf.offset, stdout);
@@ -822,8 +822,8 @@ extern (C++) void generateJson(Modules* modules)
     {
         /* The filename generation code here should be harmonized with Module.setOutfilename()
          */
-        const(char)* jsonfilename;
-        if (name && *name)
+        const(char)[] jsonfilename;
+        if (name)
         {
             jsonfilename = FileName.defaultExt(name, global.json_ext);
         }
@@ -835,13 +835,13 @@ extern (C++) void generateJson(Modules* modules)
                 fatal();
             }
             // Generate json file name from first obj name
-            const(char)* n = global.params.objfiles[0];
+            const(char)[] n = global.params.objfiles[0].toDString;
             n = FileName.name(n);
             //if (!FileName::absolute(name))
             //    name = FileName::combine(dir, name);
             jsonfilename = FileName.forceExt(n, global.json_ext);
         }
-        writeFile(Loc.initial, jsonfilename.toDString, buf.peekSlice());
+        writeFile(Loc.initial, jsonfilename, buf.peekSlice());
     }
 }
 
@@ -1588,10 +1588,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         {
             static if (TARGET.Windows)
             {
-                const ext = FileName.ext(p);
-                if (ext && FileName.equals(ext, "exe"))
+                const ext = FileName.ext(arg);
+                if (ext.length && FileName.equals(ext, "exe"))
                 {
-                    params.objname = p;
+                    params.objname = arg;
                     continue;
                 }
                 if (arg == "/?")
@@ -2064,7 +2064,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 {
                     path = toWinPath(path);
                 }
-                params.objdir = path;
+                params.objdir = path.toDString;
                 break;
             case 'f':                       // https://dlang.org/dmd.html#switch-of
                 if (!p[3])
@@ -2074,7 +2074,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 {
                     path = toWinPath(path);
                 }
-                params.objname = path;
+                params.objname = path.toDString;
                 break;
             case 'p':                       // https://dlang.org/dmd.html#switch-op
                 if (p[3])
@@ -2532,14 +2532,14 @@ private void reconcileCommands(ref Param params, size_t numSrcFiles)
             /* Use this to name the one object file with the same
              * name as the exe file.
              */
-            params.objname = cast(char*)FileName.forceExt(params.objname, global.obj_ext);
+            params.objname = FileName.forceExt(params.objname, global.obj_ext);
             /* If output directory is given, use that path rather than
              * the exe file path.
              */
             if (params.objdir)
             {
-                const(char)* name = FileName.name(params.objname);
-                params.objname = cast(char*)FileName.combine(params.objdir, name);
+                const(char)[] name = FileName.name(params.objname);
+                params.objname = FileName.combine(params.objdir, name);
             }
         }
     }
@@ -2593,14 +2593,14 @@ Modules createModules(ref Strings files, ref Strings libmodules)
     bool firstmodule = true;
     for (size_t i = 0; i < files.dim; i++)
     {
-        const(char)* name;
+        const(char)[] name;
         version (Windows)
         {
             files[i] = toWinPath(files[i]);
         }
-        const(char)* p = files[i];
+        const(char)[] p = files[i].toDString();
         p = FileName.name(p); // strip path
-        const(char)* ext = FileName.ext(p);
+        const(char)[] ext = FileName.ext(p);
         if (ext)
         {
             /* Deduce what to do with a file based on its extension
@@ -2626,7 +2626,7 @@ Modules createModules(ref Strings files, ref Strings libmodules)
                     continue;
                 }
             }
-            if (strcmp(ext, global.ddoc_ext) == 0)
+            if (ext == global.ddoc_ext)
             {
                 global.params.ddocfiles.push(files[i]);
                 continue;
@@ -2639,7 +2639,7 @@ Modules createModules(ref Strings files, ref Strings libmodules)
             }
             if (FileName.equals(ext, global.map_ext))
             {
-                global.params.mapfile = files[i];
+                global.params.mapfile = files[i].toDString;
                 continue;
             }
             static if (TARGET.Windows)
@@ -2665,7 +2665,7 @@ Modules createModules(ref Strings files, ref Strings libmodules)
             if (FileName.equals(ext, global.mars_ext) || FileName.equals(ext, global.hdr_ext) || FileName.equals(ext, "dd"))
             {
                 name = FileName.removeExt(p);
-                if (name[0] == 0 || strcmp(name, "..") == 0 || strcmp(name, ".") == 0)
+                if (!name.length || name == ".." || name == ".")
                 {
                 Linvalid:
                     error(Loc.initial, "invalid file name '%s'", files[i]);
@@ -2674,20 +2674,20 @@ Modules createModules(ref Strings files, ref Strings libmodules)
             }
             else
             {
-                error(Loc.initial, "unrecognized file extension %s", ext);
+                error(Loc.initial, "unrecognized file extension %.*s", cast(int)ext.length, ext.ptr);
                 fatal();
             }
         }
         else
         {
             name = p;
-            if (!*name)
+            if (!name.length)
                 goto Linvalid;
         }
         /* At this point, name is the D source file name stripped of
          * its path and extension.
          */
-        auto id = Identifier.idPool(name, cast(uint)strlen(name));
+        auto id = Identifier.idPool(name);
         auto m = new Module(files[i].toDString, id, global.params.doDocComments, global.params.doHdrGeneration);
         modules.push(m);
         if (firstmodule)

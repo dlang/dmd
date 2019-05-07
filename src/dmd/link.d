@@ -160,6 +160,22 @@ public int runLINK()
     const phobosLibname = global.params.betterC ? null :
         global.params.symdebug ? global.params.debuglibname : global.params.defaultlibname;
 
+    void setExeFile()
+    {
+        /* Generate exe file name from first obj name.
+         * No need to add it to cmdbuf because the linker will default to it.
+         */
+        const char[] n = FileName.name(global.params.objfiles[0].toDString);
+        global.params.exefile = FileName.forceExt(n, "exe");
+    }
+
+    const(char)[] getMapFilename()
+    {
+        const(char)[] fn = FileName.forceExt(global.params.exefile, "map");
+        const(char)[] path = FileName.path(global.params.exefile);
+        return path.length ? fn : FileName.combine(global.params.objdir, fn);
+    }
+
     version (Windows)
     {
         if (phobosLibname)
@@ -188,12 +204,7 @@ public int runLINK()
             }
             else
             {
-                /* Generate exe file name from first obj name.
-                 * No need to add it to cmdbuf because the linker will default to it.
-                 */
-                const(char)* n = global.params.objfiles[0];
-                n = FileName.name(n);
-                global.params.exefile = FileName.forceExt(n, "exe");
+                setExeFile();
             }
             // Make sure path to exe file exists
             ensurePathToNameExists(Loc.initial, global.params.exefile);
@@ -205,15 +216,8 @@ public int runLINK()
             }
             else if (global.params.map)
             {
-                const(char)* fn = FileName.forceExt(global.params.exefile, "map");
-                const(char)* path = FileName.path(global.params.exefile);
-                const(char)* p;
-                if (path[0] == '\0')
-                    p = FileName.combine(global.params.objdir, fn);
-                else
-                    p = fn;
                 cmdbuf.writestring("/MAP:");
-                writeFilename(&cmdbuf, p);
+                writeFilename(&cmdbuf, getMapFilename());
             }
             for (size_t i = 0; i < global.params.libfiles.dim; i++)
             {
@@ -254,15 +258,19 @@ public int runLINK()
                 cmdbuf.writeByte(' ');
                 cmdbuf.writestring(lflags);
             }
-            char* p = cmdbuf.peekChars();
-            const(char)* lnkfilename = null;
-            const size_t plen = strlen(p);
-            if (plen > 7000)
+            cmdbuf.writeByte(0); // null terminate the buffer
+            char[] p = cmdbuf.extractSlice()[0 .. $-1];
+            const(char)[] lnkfilename;
+            if (p.length > 7000)
             {
                 lnkfilename = FileName.forceExt(global.params.exefile, "lnk");
-                writeFile(Loc.initial, lnkfilename.toDString, p[0 .. plen]);
-                if (strlen(lnkfilename) < plen)
-                    sprintf(p, "@%s", lnkfilename);
+                writeFile(Loc.initial, lnkfilename, p);
+                if (lnkfilename.length < p.length)
+                {
+                    p[0] = '@';
+                    p[1 ..  lnkfilename.length +1] = lnkfilename;
+                    p[lnkfilename.length +1] = 0;
+                }
             }
             const(char)* linkcmd = getenv(global.params.is64bit ? "LINKCMD64" : "LINKCMD");
             if (!linkcmd)
@@ -270,11 +278,11 @@ public int runLINK()
             if (!linkcmd)
                 linkcmd = vsopt.linkerPath(global.params.is64bit);
 
-            const int status = executecmd(linkcmd, p);
+            const int status = executecmd(linkcmd, p.ptr);
             if (lnkfilename)
             {
-                remove(lnkfilename);
-                FileName.free(lnkfilename);
+                lnkfilename.toCStringThen!(lf => remove(lf.ptr));
+                FileName.free(lnkfilename.ptr);
             }
             return status;
         }
@@ -304,12 +312,7 @@ public int runLINK()
                 writeFilename(&cmdbuf, global.params.exefile);
             else
             {
-                /* Generate exe file name from first obj name.
-                 * No need to add it to cmdbuf because the linker will default to it.
-                 */
-                const(char)* n = global.params.objfiles[0];
-                n = FileName.name(n);
-                global.params.exefile = FileName.forceExt(n, "exe");
+                setExeFile();
             }
             // Make sure path to exe file exists
             ensurePathToNameExists(Loc.initial, global.params.exefile);
@@ -318,14 +321,7 @@ public int runLINK()
                 writeFilename(&cmdbuf, global.params.mapfile);
             else if (global.params.map)
             {
-                const(char)* fn = FileName.forceExt(global.params.exefile, "map");
-                const(char)* path = FileName.path(global.params.exefile);
-                const(char)* p;
-                if (path[0] == '\0')
-                    p = FileName.combine(global.params.objdir, fn);
-                else
-                    p = fn;
-                writeFilename(&cmdbuf, p);
+                writeFilename(&cmdbuf, getMapFilename());
             }
             else
                 cmdbuf.writestring("nul");
@@ -378,24 +374,28 @@ public int runLINK()
                 cmdbuf.writestring(global.params.linkswitches[i]);
             }
             cmdbuf.writeByte(';');
-            char* p = cmdbuf.peekChars();
-            const(char)* lnkfilename = null;
-            const size_t plen = strlen(p);
-            if (plen > 7000)
+            cmdbuf.writeByte(0); //null terminate the buffer
+            char[] p = cmdbuf.extractSlice()[0 .. $-1];
+            const(char)[] lnkfilename;
+            if (p.length > 7000)
             {
                 lnkfilename = FileName.forceExt(global.params.exefile, "lnk");
-                writeFile(Loc.initial, lnkfilename.toDString, p[0 .. plen]);
-                if (strlen(lnkfilename) < plen)
-                    sprintf(p, "@%s", lnkfilename);
+                writeFile(Loc.initial, lnkfilename, p);
+                if (lnkfilename.length < p.length)
+                {
+                    p[0] = '@';
+                    p[1 .. lnkfilename.length +1] = lnkfilename;
+                    p[lnkfilename.length +1] = 0;
+                }
             }
             const(char)* linkcmd = getenv("LINKCMD");
             if (!linkcmd)
                 linkcmd = "link";
-            const int status = executecmd(linkcmd, p);
+            const int status = executecmd(linkcmd, p.ptr);
             if (lnkfilename)
             {
-                remove(lnkfilename);
-                FileName.free(lnkfilename);
+                lnkfilename.toCStringThen!(lf => remove(lf.ptr));
+                FileName.free(lnkfilename.ptr);
             }
             return status;
         }
@@ -441,7 +441,7 @@ public int runLINK()
         argv.push("-o");
         if (global.params.exefile)
         {
-            argv.push(global.params.exefile);
+            argv.push(global.params.exefile.xarraydup.ptr);
         }
         else if (global.params.run)
         {
@@ -458,8 +458,8 @@ public int runLINK()
                 }
                 else
                     close(fd);
-                global.params.exefile = mem.xstrdup(name.ptr);
-                argv.push(global.params.exefile);
+                global.params.exefile = name.arraydup;
+                argv.push(global.params.exefile.xarraydup.ptr);
             }
             else
             {
@@ -486,14 +486,14 @@ public int runLINK()
             if (const e = FileName.ext(n))
             {
                 if (global.params.dll)
-                    ex = FileName.forceExt(ex, global.dll_ext.toDString());
+                    ex = FileName.forceExt(ex, global.dll_ext);
                 else
                     ex = FileName.removeExt(n);
             }
             else
                 ex = "a.out"; // no extension, so give up
             argv.push(ex.ptr);
-            global.params.exefile = ex.ptr;
+            global.params.exefile = ex;
         }
         // Make sure path to exe file exists
         ensurePathToNameExists(Loc.initial, global.params.exefile);
@@ -524,7 +524,7 @@ public int runLINK()
             argv.push("-Xlinker");
             argv.push("-no_compact_unwind");
         }
-        if (global.params.map || global.params.mapfile)
+        if (global.params.map || global.params.mapfile.length)
         {
             argv.push("-Xlinker");
             version (OSX)
@@ -535,19 +535,14 @@ public int runLINK()
             {
                 argv.push("-Map");
             }
-            if (!global.params.mapfile)
+            if (!global.params.mapfile.length)
             {
-                const(char)* fn = FileName.forceExt(global.params.exefile, "map");
-                const(char)* path = FileName.path(global.params.exefile);
-                const(char)* p;
-                if (path[0] == '\0')
-                    p = FileName.combine(global.params.objdir, fn);
-                else
-                    p = fn;
-                global.params.mapfile = cast(char*)p;
+                const(char)[] fn = FileName.forceExt(global.params.exefile, "map");
+                const(char)[] path = FileName.path(global.params.exefile);
+                global.params.mapfile = path.length ? fn : FileName.combine(global.params.objdir, fn);
             }
             argv.push("-Xlinker");
-            argv.push(global.params.mapfile);
+            argv.push(global.params.mapfile.xarraydup.ptr);
         }
         if (0 && global.params.exefile)
         {
@@ -878,7 +873,7 @@ public int runProgram()
     }
     // Build argv[]
     Strings argv;
-    argv.push(global.params.exefile);
+    argv.push(global.params.exefile.xarraydup.ptr);
     for (size_t i = 0; i < global.params.runargs.dim; ++i)
     {
         const(char)* a = global.params.runargs[i];
@@ -897,13 +892,13 @@ public int runProgram()
     argv.push(null);
     version (Windows)
     {
-        const(char)* ex = FileName.name(global.params.exefile);
+        const(char)[] ex = FileName.name(global.params.exefile);
         if (ex == global.params.exefile)
             ex = FileName.combine(".", ex);
         else
             ex = global.params.exefile;
         // spawnlp returns intptr_t in some systems, not int
-        return spawnv(0, ex, argv.tdata());
+        return spawnv(0, ex.xarraydup.ptr, argv.tdata());
     }
     else version (Posix)
     {

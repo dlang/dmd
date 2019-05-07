@@ -926,7 +926,7 @@ public:
         requiredProperty("cwd", getcwd(null, 0).toDString);
         requiredProperty("argv0", global.params.argv0);
         requiredProperty("config", global.inifilename.toDString);
-        requiredProperty("libName", global.params.libname.toDString);
+        requiredProperty("libName", global.params.libname);
 
         propertyStart("importPaths");
         arrayStart();
@@ -963,7 +963,7 @@ public:
         }
         arrayEnd();
 
-        requiredProperty("mapFile", global.params.mapfile.toDString);
+        requiredProperty("mapFile", global.params.mapfile);
         requiredProperty("resourceFile", global.params.resfile.toDString);
         requiredProperty("defFile", global.params.deffile.toDString);
 

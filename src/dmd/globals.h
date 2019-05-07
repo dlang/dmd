@@ -181,9 +181,9 @@ struct Param
     Array<const char *> *modFileAliasStrings; // array of char*'s of -I module filename alias strings
     Array<const char *> *imppath;     // array of char*'s of where to look for import modules
     Array<const char *> *fileImppath; // array of char*'s of where to look for file import modules
-    const char *objdir;   // .obj/.lib file output directory
-    const char *objname;  // .obj file output name
-    const char *libname;  // .lib file output name
+    DArray<const char> objdir;   // .obj/.lib file output directory
+    DArray<const char> objname;  // .obj file output name
+    DArray<const char> libname;  // .lib file output name
 
     bool doDocComments;  // process embedded documentation comments
     const char *docdir;  // write documentation file to docdir directory
@@ -234,8 +234,8 @@ struct Param
     Array<const char *> dllfiles;
     const char *deffile;
     const char *resfile;
-    const char *exefile;
-    const char *mapfile;
+    DArray<const char> exefile;
+    DArray<const char> mapfile;
 };
 
 typedef unsigned structalign_t;
@@ -246,19 +246,20 @@ typedef unsigned structalign_t;
 struct Global
 {
     const char *inifilename;
-    const char *mars_ext;
-    const char *obj_ext;
-    const char *lib_ext;
-    const char *dll_ext;
-    const char *doc_ext;        // for Ddoc generated files
-    const char *ddoc_ext;       // for Ddoc macro include files
-    const char *hdr_ext;        // for D 'header' import files
-    const char *json_ext;       // for JSON files
-    const char *map_ext;        // for .map files
+    const DArray<const char> mars_ext;
+    DArray<const char> obj_ext;
+    DArray<const char> lib_ext;
+    DArray<const char> dll_ext;
+    const DArray<const char> doc_ext;  // for Ddoc generated files
+    const DArray<const char> ddoc_ext; // for Ddoc macro include files
+    const DArray<const char> hdr_ext;  // for D 'header' import files
+    const DArray<const char> json_ext; // for JSON files
+    const DArray<const char> map_ext;  // for .map files
     bool run_noext;             // allow -run sources without extensions.
 
-    const char *copyright;
-    const char *written;
+
+    const DArray<const char> copyright;
+    const DArray<const char> written;
     Array<const char *> *path;        // Array of char*'s which form the import lookup path
     Array<const char *> *filePath;    // Array of char*'s which form the file import lookup path
 
