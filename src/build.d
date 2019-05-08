@@ -707,9 +707,9 @@ auto detectModel()
     else
         uname = ["uname", "-m"].execute.output;
 
-    if (!uname.find("x86_64", "amd64", "64-bit")[0].empty)
+    if (!uname.find("x86_64", "amd64", "64-bit", "64 bit")[0].empty)
         return "64";
-    if (!uname.find("i386", "i586", "i686", "32-bit")[0].empty)
+    if (!uname.find("i386", "i586", "i686", "32-bit", "32 bit")[0].empty)
         return "32";
 
     throw new Exception(`Cannot figure 32/64 model from "` ~ uname ~ `"`);
