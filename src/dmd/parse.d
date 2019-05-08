@@ -4190,123 +4190,86 @@ final class Parser(AST) : Lexer
         return ts;
     }
 
+    ///parse the storage classes for the current declaration
     private void parseStorageClasses(ref StorageClass storage_class, ref LINK link,
         ref bool setAlignment, ref AST.Expression ealign, ref AST.Expressions* udas)
     {
-        StorageClass stc;
         bool sawLinkage = false; // seen a linkage declaration
 
-        while (1)
+        ///add the given storage class and advance to the next token
+        void updateStorageClass(StorageClass stc)
         {
-            switch (token.value)
+            storage_class = appendStorageClass(storage_class, stc);
+            nextToken();
+        }
+
+        bool matched;
+        do
+        {
+            matched = false;
+
+            alias Seq(T...) = T;
+            foreach(name; Seq!("const_", "immutable_", "shared_"))
             {
-            case TOK.const_:
-                if (peek(&token).value == TOK.leftParentheses)
-                    break; // const as type constructor
-                stc = AST.STC.const_; // const as storage class
-                goto L1;
-
-            case TOK.immutable_:
-                if (peek(&token).value == TOK.leftParentheses)
-                    break;
-                stc = AST.STC.immutable_;
-                goto L1;
-
-            case TOK.shared_:
-                if (peek(&token).value == TOK.leftParentheses)
-                    break;
-                stc = AST.STC.shared_;
-                goto L1;
-
-            case TOK.inout_:
-                if (peek(&token).value == TOK.leftParentheses)
-                    break;
-                stc = AST.STC.wild;
-                goto L1;
-
-            case TOK.static_:
-                stc = AST.STC.static_;
-                goto L1;
-
-            case TOK.final_:
-                stc = AST.STC.final_;
-                goto L1;
-
-            case TOK.auto_:
-                stc = AST.STC.auto_;
-                goto L1;
-
-            case TOK.scope_:
-                stc = AST.STC.scope_;
-                goto L1;
-
-            case TOK.override_:
-                stc = AST.STC.override_;
-                goto L1;
-
-            case TOK.abstract_:
-                stc = AST.STC.abstract_;
-                goto L1;
-
-            case TOK.synchronized_:
-                stc = AST.STC.synchronized_;
-                goto L1;
-
-            case TOK.deprecated_:
-                stc = AST.STC.deprecated_;
-                goto L1;
-
-            case TOK.nothrow_:
-                stc = AST.STC.nothrow_;
-                goto L1;
-
-            case TOK.pure_:
-                stc = AST.STC.pure_;
-                goto L1;
-
-            case TOK.ref_:
-                stc = AST.STC.ref_;
-                goto L1;
-
-            case TOK.gshared:
-                stc = AST.STC.gshared;
-                goto L1;
-
-            case TOK.enum_:
+                if(token.value == __traits(getMember, TOK, name))
                 {
-                    Token* t = peek(&token);
-                    if (t.value == TOK.leftCurly || t.value == TOK.colon)
-                        break;
-                    else if (t.value == TOK.identifier)
-                    {
-                        t = peek(t);
-                        if (t.value == TOK.leftCurly || t.value == TOK.colon || t.value == TOK.semicolon)
-                            break;
-                    }
-                    stc = AST.STC.manifest;
-                    goto L1;
+                    if(peek(&token).value == TOK.leftParentheses)
+                        return; //used as a type constructor, not a STC, we're done
+                    updateStorageClass(__traits(getMember, AST.STC, name));
+                    matched = true;
+                }
+            }
+            //same as above, but the "name" is different in TOK and AST.STC
+            if(token.value == TOK.inout_)
+            {
+                if(peek(&token).value == TOK.leftParentheses)
+                    return;
+                updateStorageClass(AST.STC.wild);
+                matched = true;
+            }
+
+            foreach(name; Seq!("static_", "final_", "auto_", "scope_", "override_", "abstract_",
+                                      "synchronized_", "deprecated_", "nothrow_", "pure_", "ref_", "gshared"))
+            {
+                if(token.value == __traits(getMember, TOK, name))
+                {
+                    updateStorageClass( __traits(getMember, AST.STC, name));
+                    matched = true;
                 }
 
-            case TOK.at:
+            }
+
+            if(token.value == TOK.enum_)
+            {
+                Token* next = peek(&token);
+                if (next.value == TOK.leftCurly || next.value == TOK.colon)
+                    return; //anonymous enum declaration
+                else if (next.value == TOK.identifier)
                 {
-                    stc = parseAttribute(&udas);
-                    if (stc)
-                        goto L1;
-                    continue;
+                    Token* nn = peek(next);
+                    if (nn.value == TOK.leftCurly || nn.value == TOK.colon || nn.value == TOK.semicolon)
+                        return; //named enum declaration
                 }
-            L1:
-                storage_class = appendStorageClass(storage_class, stc);
-                nextToken();
-                continue;
-
-            case TOK.extern_:
+                updateStorageClass(AST.STC.manifest);
+                matched = true;
+            }
+            if(token.value == TOK.at)
+            {
+                const stc = parseAttribute(&udas);
+                if(stc)
                 {
-                    if (peek(&token).value != TOK.leftParentheses)
-                    {
-                        stc = AST.STC.extern_;
-                        goto L1;
-                    }
-
+                    updateStorageClass(stc);
+                }
+                matched = true;
+            }
+            if(token.value ==  TOK.extern_)
+            {
+                if (peek(&token).value != TOK.leftParentheses)
+                {
+                    updateStorageClass(AST.STC.extern_);
+                }
+                else
+                {
                     if (sawLinkage)
                         error("redundant linkage declaration");
                     sawLinkage = true;
@@ -4323,25 +4286,22 @@ final class Parser(AST) : Lexer
                     {
                         error("C++ mangle declaration not allowed here");
                     }
-                    continue;
                 }
-            case TOK.align_:
+                matched = true;
+            }
+            if(token.value == TOK.align_)
+            {
+                nextToken();
+                setAlignment = true;
+                if (token.value == TOK.leftParentheses)
                 {
                     nextToken();
-                    setAlignment = true;
-                    if (token.value == TOK.leftParentheses)
-                    {
-                        nextToken();
-                        ealign = parseExpression();
-                        check(TOK.rightParentheses);
-                    }
-                    continue;
+                    ealign = parseExpression();
+                    check(TOK.rightParentheses);
                 }
-            default:
-                break;
+                matched = true;
             }
-            break;
-        }
+        } while (matched);
     }
 
     /**********************************
