@@ -8085,7 +8085,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         /* Inside constructor, if this is the first assignment of object field,
          * rewrite this to initializing the field.
          */
-        if (exp.op == TOK.assign && exp.e1.checkModifiable(sc) == 2)
+        if (exp.op == TOK.assign
+            && exp.e1.checkModifiable(sc) == Modifiable.initialization)
         {
             //printf("[%s] change to init - %s\n", exp.loc.toChars(), exp.toChars());
             auto t = exp.type;

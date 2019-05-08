@@ -79,6 +79,16 @@ void emplaceExp(T : UnionExp)(T* p, Expression e)
     memcpy(p, cast(void*)e, e.size);
 }
 
+// Return value for `checkModifiable`
+enum Modifiable
+{
+    /// Not modifiable
+    no,
+    /// Modifiable (the type is mutable)
+    yes,
+    /// Modifiable because it is initialization
+    initialization,
+}
 
 /****************************************
  * Find the first non-comma expression.
@@ -902,7 +912,7 @@ extern (C++) abstract class Expression : ASTNode
     {
         //printf("Expression::modifiableLvalue() %s, type = %s\n", toChars(), type.toChars());
         // See if this expression is a modifiable lvalue (i.e. not const)
-        if (checkModifiable(sc) == 1)
+        if (checkModifiable(sc) == Modifiable.yes)
         {
             assert(type);
             if (!type.isMutable())
@@ -1447,13 +1457,11 @@ extern (C++) abstract class Expression : ASTNode
      *      sc:     scope
      *      flag:   1: do not issue error message for invalid modification
      * Returns:
-     *      0:      is not modifiable
-     *      1:      is modifiable in default == being related to type.isMutable()
-     *      2:      is modifiable, because this is a part of initializing.
+     *      Wether the type is modifiable
      */
-    int checkModifiable(Scope* sc, int flag = 0)
+    Modifiable checkModifiable(Scope* sc, int flag = 0)
     {
-        return type ? 1 : 0; // default modifiable
+        return type ? Modifiable.yes : Modifiable.no; // default modifiable
     }
 
     /*****************************
@@ -3524,7 +3532,7 @@ extern (C++) final class VarExp : SymbolExp
         return false;
     }
 
-    override int checkModifiable(Scope* sc, int flag)
+    override Modifiable checkModifiable(Scope* sc, int flag)
     {
         //printf("VarExp::checkModifiable %s", toChars());
         assert(type);
@@ -4596,11 +4604,11 @@ extern (C++) final class DotVarExp : UnaExp
         this.hasOverloads = hasOverloads;
     }
 
-    override int checkModifiable(Scope* sc, int flag)
+    override Modifiable checkModifiable(Scope* sc, int flag)
     {
         //printf("DotVarExp::checkModifiable %s %s\n", toChars(), type.toChars());
         if (checkUnsafeAccess(sc, this, false, !flag))
-            return 2;
+            return Modifiable.initialization;
 
         if (e1.op == TOK.this_)
             return var.checkModify(loc, sc, e1, flag);
@@ -4635,8 +4643,8 @@ extern (C++) final class DotVarExp : UnaExp
                                 scope modifyLevel = v.checkModify(loc, sc, dve.e1, flag);
                                 // reflect that assigning a field of v is not initialization of v
                                 v.ctorinit = false;
-                                if (modifyLevel == 2)
-                                    return 1;
+                                if (modifyLevel == Modifiable.initialization)
+                                    return Modifiable.yes;
                                 return modifyLevel;
                             }
                         }
@@ -5033,7 +5041,7 @@ extern (C++) final class PtrExp : UnaExp
         type = t;
     }
 
-    override int checkModifiable(Scope* sc, int flag)
+    override Modifiable checkModifiable(Scope* sc, int flag)
     {
         if (auto se = e1.isSymOffExp())
         {
@@ -5043,7 +5051,7 @@ extern (C++) final class PtrExp : UnaExp
         {
             return ae.e1.checkModifiable(sc, flag);
         }
-        return 1;
+        return Modifiable.yes;
     }
 
     override bool isLvalue()
@@ -5295,14 +5303,14 @@ extern (C++) final class SliceExp : UnaExp
         return se;
     }
 
-    override int checkModifiable(Scope* sc, int flag)
+    override Modifiable checkModifiable(Scope* sc, int flag)
     {
         //printf("SliceExp::checkModifiable %s\n", toChars());
         if (e1.type.ty == Tsarray || (e1.op == TOK.index && e1.type.ty != Tarray) || e1.op == TOK.slice)
         {
             return e1.checkModifiable(sc, flag);
         }
-        return 1;
+        return Modifiable.yes;
     }
 
     override bool isLvalue()
@@ -5440,7 +5448,7 @@ extern (C++) final class CommaExp : BinExp
         allowCommaExp = isGenerated = generated;
     }
 
-    override int checkModifiable(Scope* sc, int flag)
+    override Modifiable checkModifiable(Scope* sc, int flag)
     {
         return e2.checkModifiable(sc, flag);
     }
@@ -5628,7 +5636,7 @@ extern (C++) final class IndexExp : BinExp
         return ie;
     }
 
-    override int checkModifiable(Scope* sc, int flag)
+    override Modifiable checkModifiable(Scope* sc, int flag)
     {
         if (e1.type.ty == Tsarray ||
             e1.type.ty == Taarray ||
@@ -5637,7 +5645,7 @@ extern (C++) final class IndexExp : BinExp
         {
             return e1.checkModifiable(sc, flag);
         }
-        return 1;
+        return Modifiable.yes;
     }
 
     override bool isLvalue()
@@ -6431,9 +6439,12 @@ extern (C++) final class CondExp : BinExp
         return new CondExp(loc, econd.syntaxCopy(), e1.syntaxCopy(), e2.syntaxCopy());
     }
 
-    override int checkModifiable(Scope* sc, int flag)
+    override Modifiable checkModifiable(Scope* sc, int flag)
     {
-        return e1.checkModifiable(sc, flag) && e2.checkModifiable(sc, flag);
+        if (e1.checkModifiable(sc, flag) != Modifiable.no
+            && e2.checkModifiable(sc, flag) != Modifiable.no)
+            return Modifiable.yes;
+        return Modifiable.no;
     }
 
     override bool isLvalue()

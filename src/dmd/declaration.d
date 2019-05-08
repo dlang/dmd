@@ -368,11 +368,11 @@ extern (C++) abstract class Declaration : Dsymbol
      * Check to see if declaration can be modified in this context (sc).
      * Issue error if not.
      */
-    extern (D) final int checkModify(Loc loc, Scope* sc, Expression e1, int flag)
+    extern (D) final Modifiable checkModify(Loc loc, Scope* sc, Expression e1, int flag)
     {
         VarDeclaration v = isVarDeclaration();
         if (v && v.canassign)
-            return 2;
+            return Modifiable.initialization;
 
         if (isParameter() || isResult())
         {
@@ -383,7 +383,7 @@ extern (C++) abstract class Declaration : Dsymbol
                     const(char)* s = isParameter() && parent.ident != Id.ensure ? "parameter" : "result";
                     if (!flag)
                         error(loc, "cannot modify %s `%s` in contract", s, toChars());
-                    return 2; // do not report type related errors
+                    return Modifiable.initialization; // do not report type related errors
                 }
             }
         }
@@ -397,7 +397,7 @@ extern (C++) abstract class Declaration : Dsymbol
                 {
                     if (!flag)
                         error(loc, "cannot modify parameter 'this' in contract");
-                    return 2; // do not report type related errors
+                    return Modifiable.initialization; // do not report type related errors
                 }
             }
         }
@@ -406,10 +406,11 @@ extern (C++) abstract class Declaration : Dsymbol
         {
             // It's only modifiable if inside the right constructor
             if ((storage_class & (STC.foreach_ | STC.ref_)) == (STC.foreach_ | STC.ref_))
-                return 2;
-            return modifyFieldVar(loc, sc, v, e1) ? 2 : 1;
+                return Modifiable.initialization;
+            return modifyFieldVar(loc, sc, v, e1)
+                ? Modifiable.initialization : Modifiable.yes;
         }
-        return 1;
+        return Modifiable.yes;
     }
 
     override final Dsymbol search(const ref Loc loc, Identifier ident, int flags = SearchLocalsOnly)
