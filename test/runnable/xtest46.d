@@ -4659,7 +4659,7 @@ template Hoge6691()
     immutable static int[int] dict;
     immutable static int value;
 
-    static this()
+    shared static this()
     {
         dict = [1:1, 2:2];
         value = 10;
