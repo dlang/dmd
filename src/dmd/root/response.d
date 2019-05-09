@@ -47,7 +47,7 @@ import dmd.root.filename;
  *   0   success
  *   !=0   failure (argc, argv unchanged)
  */
-bool response_expand(ref Strings args)
+bool response_expand(ref Strings args) nothrow
 {
     const(char)* cp;
     int recurse = 0;
