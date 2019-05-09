@@ -309,7 +309,7 @@ nothrow:
 
     /* Set buffer
      */
-    extern (C++) void setbuffer(void* buffer, size_t len)
+    extern (C++) void setbuffer(void* buffer, size_t len) pure @nogc
     {
         this.buffer = cast(ubyte*)buffer;
         this.len = len;
