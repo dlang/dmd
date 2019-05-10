@@ -43,12 +43,13 @@ struct StringValue
 
 nothrow:
 pure:
+@nogc:
     char* lstring() return
     {
         return cast(char*)(&this + 1);
     }
 
-    size_t len() const
+    size_t len() const @safe
     {
         return length;
     }
@@ -76,7 +77,7 @@ private:
     size_t count;
 
 public:
-    void _init(size_t size = 0) nothrow
+    void _init(size_t size = 0) nothrow pure
     {
         size = nextpow2(cast(size_t)(size / loadFactor));
         if (size < 32)
@@ -88,7 +89,7 @@ public:
         count = 0;
     }
 
-    void reset(size_t size = 0) nothrow
+    void reset(size_t size = 0) nothrow pure
     {
         for (size_t i = 0; i < npools; ++i)
             mem.xfree(pools[i]);
@@ -99,7 +100,7 @@ public:
         _init(size);
     }
 
-    ~this() nothrow
+    ~this() nothrow pure
     {
         for (size_t i = 0; i < npools; ++i)
             mem.xfree(pools[i]);
@@ -121,7 +122,7 @@ public:
     Returns: the string's associated value, or `null` if the string doesn't
      exist in the string table
     */
-    inout(StringValue)* lookup(const(char)[] str) inout nothrow pure
+    inout(StringValue)* lookup(const(char)[] str) inout nothrow pure @nogc
     {
         const(hash_t) hash = calcHash(str.ptr, str.length);
         const(size_t) i = findSlot(hash, str);
@@ -130,7 +131,7 @@ public:
     }
 
     /// ditto
-    inout(StringValue)* lookup(const(char)* s, size_t length) inout nothrow pure
+    inout(StringValue)* lookup(const(char)* s, size_t length) inout nothrow pure @nogc
     {
         return lookup(s[0 .. length]);
     }
@@ -252,7 +253,7 @@ nothrow:
         return vptr;
     }
 
-    inout(StringValue)* getValue(uint vptr) inout pure
+    inout(StringValue)* getValue(uint vptr) inout pure @nogc
     {
         if (!vptr)
             return null;
@@ -261,7 +262,7 @@ nothrow:
         return cast(inout(StringValue)*)&pools[idx][off];
     }
 
-    size_t findSlot(hash_t hash, const(char)[] str) const pure
+    size_t findSlot(hash_t hash, const(char)[] str) const pure @nogc
     {
         // quadratic probing using triangular numbers
         // http://stackoverflow.com/questions/2348187/moving-from-linear-probing-to-quadratic-probing-hash-collisons/2349774#2349774
