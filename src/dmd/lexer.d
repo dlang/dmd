@@ -2354,7 +2354,7 @@ class Lexer
     private void poundLine()
     {
         auto linnum = this.scanloc.linnum;
-        const(char)* filespec = null;
+        const(char)[] filespec;
         const loc = this.loc();
         Token tok;
         scan(&tok);
@@ -2380,7 +2380,7 @@ class Lexer
             case '\n':
             Lnewline:
                 this.scanloc.linnum = linnum;
-                if (filespec)
+                if (filespec.length)
                     this.scanloc.filename = filespec;
                 return;
             case '\r':
@@ -2401,12 +2401,12 @@ class Lexer
                 if (memcmp(p, "__FILE__".ptr, 8) == 0)
                 {
                     p += 8;
-                    filespec = mem.xstrdup(scanloc.filename);
+                    filespec = scanloc.filename.xarraydup;
                     continue;
                 }
                 goto Lerr;
             case '"':
-                if (filespec)
+                if (filespec.length)
                     goto Lerr;
                 stringbuffer.reset();
                 p++;
@@ -2423,7 +2423,7 @@ class Lexer
                         goto Lerr;
                     case '"':
                         stringbuffer.writeByte(0);
-                        filespec = mem.xstrdup(cast(const(char)*)stringbuffer.data);
+                        filespec = stringbuffer.peekSlice.xarraydup;
                         p++;
                         break;
                     default:

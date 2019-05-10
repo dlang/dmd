@@ -478,24 +478,37 @@ alias d_uns64 = uint64_t;
 // file location
 struct Loc
 {
-    const(char)* filename; // either absolute or relative to cwd
+    uint fileIndex;
     uint linnum;
     uint charnum;
 
     static immutable Loc initial;       /// use for default initialization of const ref Loc's
 
+    private {
+        //array of all filenames stored as 0-terminated Dstrings
+        static const(char)[][] filenames;
+        static nextFileIndex = 1; //leave 0 ununsed so fileIndex = 0 is "falsey"
+        enum growthFactor = 2;
+    }
+
 nothrow:
-    extern (D) this(const(char)* filename, uint linnum, uint charnum) pure
+    extern (D) this(const(char)[] fname, uint linnum, uint charnum)
     {
         this.linnum = linnum;
         this.charnum = charnum;
-        this.filename = filename;
+        setFilename(fname);
     }
 
-    extern (C++) const(char)* toChars(bool showColumns = global.params.showColumns) const pure nothrow
+    extern (C++) this(const(char)* filename, uint linenum, uint charnum)
+    {
+        import dmd.utils : toDString;
+        this(filename.toDString, linenum, charnum);
+    }
+
+    extern (C++) const(char)* toChars(bool showColumns = global.params.showColumns) const nothrow
     {
         OutBuffer buf;
-        if (filename)
+        if (fileIndex)
         {
             buf.writestring(filename);
         }
@@ -518,11 +531,11 @@ nothrow:
      *    insensitively on Windows, and
      * b) ignoring charnum if `global.params.showColumns` is false.
      */
-    extern (C++) bool equals(ref const(Loc) loc) const
+    extern (C++) bool equals(ref const(Loc) loc) const @nogc
     {
         return (!global.params.showColumns || charnum == loc.charnum) &&
                linnum == loc.linnum &&
-               FileName.equals(filename, loc.filename);
+               (fileIndex == loc.fileIndex || FileName.equals(filename, loc.filename));
     }
 
     /* opEquals() / toHash() for AA key usage:
@@ -532,23 +545,18 @@ nothrow:
      * may lead to multiple equivalent filenames (`foo.d-mixin-<line>`),
      * e.g., for test/runnable/test18880.d.
      */
-    extern (D) bool opEquals(ref const(Loc) loc) const @trusted pure nothrow @nogc
+    extern (D) bool opEquals(ref const(Loc) loc) const @trusted @nogc
     {
-        import core.stdc.string : strcmp;
-
         return charnum == loc.charnum &&
                linnum == loc.linnum &&
-               (filename == loc.filename ||
-                (filename && loc.filename && strcmp(filename, loc.filename) == 0));
+               (fileIndex == loc.fileIndex || (filename == loc.filename));
     }
 
-    extern (D) size_t toHash() const @trusted pure nothrow
+    extern (D) size_t toHash() const @trusted @nogc
     {
-        import dmd.utils : toDString;
-
         auto hash = hashOf(linnum);
         hash = hashOf(charnum, hash);
-        hash = hashOf(filename.toDString, hash);
+        hash = hashOf(filename, hash);
         return hash;
     }
 
@@ -556,10 +564,50 @@ nothrow:
      * Returns:
      *   true if Loc has been set to other than the default initialization
      */
-    bool isValid() const pure
+    bool isValid() const pure nothrow @nogc
     {
-        return filename !is null;
+        return fileIndex != 0;
     }
+
+    /*
+     * returns the filename as a null-terminated dstring
+     */
+    @property extern(D) const(char)[] filename() const nothrow @nogc
+    {
+        return filenames[fileIndex];
+    }
+
+    /// update the filename for this Loc
+    @property extern(D) void filename(const(char)[] fname) nothrow
+    {
+        setFilename(fname);
+    }
+    
+    @property extern(C++) void filename(const(char)* fname) nothrow
+    {
+        import dmd.utils : toDString;
+        setFilename(fname.toDString);
+    }
+    
+    private extern(D) void setFilename(const char[] fname) nothrow
+    {
+        import dmd.root.rmem : Mem, xarraydup;
+        if (nextFileIndex >= filenames.length)
+        {
+            const newLength = growthFactor * (char[]).sizeof * (filenames.length > 0 ? filenames.length : 1);
+            void* p = Mem.xrealloc(filenames.ptr, newLength);
+            
+            if (p != filenames.ptr)
+            {
+                Mem.xfree(filenames.ptr);
+                filenames = (cast(const(char)[]*)p)[0 .. newLength];
+            }
+        }
+
+        filenames[nextFileIndex] = fname.xarraydup;
+        this.fileIndex = nextFileIndex++;
+    }
+    
 }
 
 enum LINK : int
