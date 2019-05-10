@@ -878,8 +878,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 sc2 = sc2.pop();
             }
 
-            funcdecl.frequire = funcdecl.mergeFrequire(funcdecl.frequire);
-            funcdecl.fensure = funcdecl.mergeFensure(funcdecl.fensure, Id.result);
+            funcdecl.frequire = funcdecl.mergeFrequire(funcdecl.frequire, funcdecl.fdrequireParams);
+            funcdecl.fensure = funcdecl.mergeFensure(funcdecl.fensure, Id.result, funcdecl.fdensureParams);
 
             Statement freq = funcdecl.frequire;
             Statement fens = funcdecl.fensure;
