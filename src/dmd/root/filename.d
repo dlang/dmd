@@ -58,19 +58,19 @@ nothrow:
     private const(char)[] str;
 
     ///
-    extern (D) this(const(char)[] str)
+    extern (D) this(const(char)[] str) pure
     {
         this.str = str.xarraydup;
     }
 
     /// Compare two name according to the platform's rules (case sensitive or not)
-    extern (C++) static bool equals(const(char)* name1, const(char)* name2) pure
+    extern (C++) static bool equals(const(char)* name1, const(char)* name2) pure @nogc
     {
         return equals(name1.toDString, name2.toDString);
     }
 
     /// Ditto
-    extern (D) static bool equals(const(char)[] name1, const(char)[] name2) pure
+    extern (D) static bool equals(const(char)[] name1, const(char)[] name2) pure @nogc
     {
         if (name1.length != name2.length)
             return false;
@@ -93,13 +93,13 @@ nothrow:
      * Returns:
      *  true if absolute path name.
      */
-    extern (C++) static bool absolute(const(char)* name) pure
+    extern (C++) static bool absolute(const(char)* name) pure @nogc
     {
         return absolute(name.toDString);
     }
 
     /// Ditto
-    extern (D) static bool absolute(const(char)[] name) pure
+    extern (D) static bool absolute(const(char)[] name) pure @nogc
     {
         if (!name.length)
             return false;
@@ -150,7 +150,7 @@ nothrow:
      *  Points past '.' of extension.
      *  If there isn't one, return null.
      */
-    extern (C++) static const(char)* ext(const(char)* str) pure
+    extern (C++) static const(char)* ext(const(char)* str) pure @nogc
     {
         return ext(str.toDString).ptr;
     }
@@ -192,7 +192,7 @@ nothrow:
         assert(ext([]) == null);
     }
 
-    extern (C++) const(char)* ext() const pure
+    extern (C++) const(char)* ext() const pure @nogc
     {
         return ext(str).ptr;
     }
@@ -239,13 +239,13 @@ nothrow:
     /********************************
      * Return filename name excluding path (read-only).
      */
-    extern (C++) static const(char)* name(const(char)* str) pure
+    extern (C++) static const(char)* name(const(char)* str) pure @nogc
     {
         return name(str.toDString).ptr;
     }
 
     /// Ditto
-    extern (D) static const(char)[] name(const(char)[] str) pure
+    extern (D) static const(char)[] name(const(char)[] str) pure @nogc
     {
         foreach_reverse (idx, char e; str)
         {
@@ -278,7 +278,7 @@ nothrow:
         return str;
     }
 
-    extern (C++) const(char)* name() const pure
+    extern (C++) const(char)* name() const pure @nogc
     {
         return name(str).ptr;
     }
@@ -528,7 +528,7 @@ nothrow:
      * Returns:
      *   A newly allocated string (free with `FileName.free`)
      */
-    extern(D) static char[] addExt(const(char)[] name, const(char)[] ext)
+    extern(D) static char[] addExt(const(char)[] name, const(char)[] ext) pure
     {
         const len = name.length + ext.length + 2;
         auto s = cast(char*)mem.xmalloc(len);
@@ -589,13 +589,13 @@ nothrow:
 
     /// Returns:
     ///   `true` if `name`'s extension is `ext`
-    extern (C++) static bool equalsExt(const(char)* name, const(char)* ext) pure
+    extern (C++) static bool equalsExt(const(char)* name, const(char)* ext) pure @nogc
     {
         return equalsExt(name.toDString, ext.toDString);
     }
 
     /// Ditto
-    extern (D) static bool equalsExt(const(char)[] name, const(char)[] ext) pure
+    extern (D) static bool equalsExt(const(char)[] name, const(char)[] ext) pure @nogc
     {
         auto e = FileName.ext(name);
         if (!e.length && !ext.length)
@@ -616,7 +616,7 @@ nothrow:
     /******************************
      * Return !=0 if extensions match.
      */
-    extern (C++) bool equalsExt(const(char)* ext) const pure
+    extern (C++) bool equalsExt(const(char)* ext) const pure @nogc
     {
         return equalsExt(str, ext.toDString());
     }
@@ -1026,7 +1026,7 @@ nothrow:
     /********************************
      * Free memory allocated by FileName routines
      */
-    extern (C++) static void free(const(char)* str)
+    extern (C++) static void free(const(char)* str) pure
     {
         if (str)
         {
@@ -1036,14 +1036,14 @@ nothrow:
         mem.xfree(cast(void*)str);
     }
 
-    extern (C++) const(char)* toChars() const pure nothrow @trusted
+    extern (C++) const(char)* toChars() const pure nothrow @nogc @trusted
     {
         // Since we can return an empty slice (but '\0' terminated),
         // we don't do bounds check (as `&str[0]` does)
         return str.ptr;
     }
 
-    const(char)[] toString() const pure nothrow @trusted
+    const(char)[] toString() const pure nothrow @nogc @trusted
     {
         return str;
     }
