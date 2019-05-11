@@ -169,8 +169,8 @@ void obj_write_deferred(Library library)
         fname = namebuf.extractString();
 
         //printf("writing '%s'\n", fname);
-        File *objfile = File.create(fname);
-        obj_end(library, objfile);
+        File objfile = File(fname);
+        obj_end(library, &objfile);
     }
     obj_symbols_towrite.dim = 0;
 }
@@ -288,12 +288,15 @@ void obj_end(Library library, File *objfile)
     {
         // Transfer image to file
         objfile.setbuffer(objbuf.buf, objbuf.p - objbuf.buf);
-        objbuf.buf = null;
+        objfile._ref = 1;
 
         ensurePathToNameExists(Loc.initial, objfilename);
 
         //printf("write obj %s\n", objfilename);
         writeFile(Loc.initial, objfile);
+
+        free(objbuf.buf); // objbuf is a backend `Outbuffer` managed by C malloc/free
+        objbuf.buf = null;
     }
     objbuf.pend = null;
     objbuf.p = null;
