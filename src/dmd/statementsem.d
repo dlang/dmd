@@ -1193,16 +1193,47 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     goto case Terror;
                 }
 
+                // Finish semantic on all foreach parameter types.
+                foreach (i; 0 .. dim)
+                {
+                    Parameter p = (*fs.parameters)[i];
+                    p.type = p.type.typeSemantic(loc, sc2);
+                    p.type = p.type.addStorageClass(p.storageClass);
+                }
+
+                tn = tab.nextOf().toBasetype();
+
+                if (dim == 2)
+                {
+                    Type tindex = (*fs.parameters)[0].type;
+                    if (!tindex.isintegral())
+                    {
+                        fs.error("foreach: key cannot be of non-integral type `%s`", tindex.toChars());
+                        goto case Terror;
+                    }
+                    /* What cases to deprecate implicit conversions for:
+                     *  1. foreach aggregate is a dynamic array
+                     *  2. foreach body is lowered to _aApply (see special case below).
+                     */
+                    Type tv = (*fs.parameters)[1].type.toBasetype();
+                    if ((tab.ty == Tarray ||
+                         (tn.ty != tv.ty &&
+                          (tn.ty == Tchar || tn.ty == Twchar || tn.ty == Tdchar) &&
+                          (tv.ty == Tchar || tv.ty == Twchar || tv.ty == Tdchar))) &&
+                        !Type.tsize_t.implicitConvTo(tindex))
+                    {
+                        fs.deprecation("foreach: loop index implicitly converted from `size_t` to `%s`",
+                                       tindex.toChars());
+                    }
+                }
+
                 /* Look for special case of parsing char types out of char type
                  * array.
                  */
-                tn = tab.nextOf().toBasetype();
                 if (tn.ty == Tchar || tn.ty == Twchar || tn.ty == Tdchar)
                 {
                     int i = (dim == 1) ? 0 : 1; // index of value
                     Parameter p = (*fs.parameters)[i];
-                    p.type = p.type.typeSemantic(loc, sc2);
-                    p.type = p.type.addStorageClass(p.storageClass);
                     tnv = p.type.toBasetype();
                     if (tnv.ty != tn.ty &&
                         (tnv.ty == Tchar || tnv.ty == Twchar || tnv.ty == Tdchar))
@@ -1229,17 +1260,10 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 {
                     // Declare parameters
                     Parameter p = (*fs.parameters)[i];
-                    p.type = p.type.typeSemantic(loc, sc2);
-                    p.type = p.type.addStorageClass(p.storageClass);
                     VarDeclaration var;
 
                     if (dim == 2 && i == 0)
                     {
-                        if (!p.type.isintegral())
-                        {
-                            fs.error("foreach: key cannot be of non-integral type `%s`", p.type.toChars());
-                            goto case Terror;
-                        }
                         var = new VarDeclaration(loc, p.type.mutableOf(), Identifier.generateId("__key"), null);
                         var.storage_class |= STC.temp | STC.foreach_;
                         if (var.storage_class & (STC.ref_ | STC.out_))
@@ -1266,11 +1290,6 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                                 goto case Terror;
                             }
                             fs.key.range = new IntRange(SignExtendedNumber(0), dimrange.imax);
-                        }
-                        else if (!Type.tsize_t.implicitConvTo(var.type))
-                        {
-                            fs.deprecation("foreach: loop index implicitly converted from `size_t` to `%s`",
-                                           fs.key.type.toChars());
                         }
                     }
                     else
