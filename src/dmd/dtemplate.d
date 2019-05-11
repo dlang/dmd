@@ -5697,6 +5697,13 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
                  *  template X(T) {}        // T => sa
                  */
             }
+            else if (ta)
+            {
+                /* Match any type to alias parameters, but prefer type parameter.
+                 * template X(alias a) { }  // a == ta
+                 */
+                m = MATCH.convert;
+            }
             else
                 goto Lnomatch;
         }
