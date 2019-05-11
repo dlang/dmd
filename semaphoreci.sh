@@ -36,16 +36,6 @@ source ci.sh
 # Always source a DMD instance
 ################################################################################
 
-if  [ "$DMD" == "gdc" ] && [ "${GDC_VERSION:-0}" == "7" ] ; then
-    # Disable -lowmem tests for the GDC7 host compiler
-    # -lowmem is an optional switch and GDC-7 will be removed from the required
-    # bootstrap compilers in May 2019.
-    # See also : https://github.com/dlang/dmd/pull/9048/files
-    rm test/runnable/{testptrref,xtest46}_gc.d test/fail_compilation/mixin_gc.d || true
-    # Also remove it when building d_do_test.
-    sed -i -e 's/ -lowmem//g' test/Makefile
-fi
-
 install_d "$DMD"
 
 ################################################################################
