@@ -1371,8 +1371,10 @@ extern(C) void flushMixins()
     auto f = File(global.params.mixinFile);
     OutBuffer* ob = global.params.mixinOut;
     f.setbuffer(cast(void*)ob.data, ob.offset);
+    f._ref = 1;
     f.write();
 
+    global.params.mixinOut.destroy();
     global.params.mixinOut = null;
 }
 
