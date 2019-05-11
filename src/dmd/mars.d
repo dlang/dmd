@@ -635,17 +635,17 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         fatal();
 
     // inlineScan incrementally run semantic3 of each expanded functions.
-    // So deps file generation should be moved after the inlinig stage.
-    if (params.moduleDeps)
+    // So deps file generation should be moved after the inlining stage.
+    if (OutBuffer* ob = params.moduleDeps)
     {
         foreach (i; 1 .. modules[0].aimports.dim)
             semantic3OnDependencies(modules[0].aimports[i]);
 
-        OutBuffer* ob = params.moduleDeps;
         if (params.moduleDepsFile)
         {
             auto deps = File(params.moduleDepsFile);
             deps.setbuffer(cast(void*)ob.data, ob.offset);
+            deps._ref = 1;
             writeFile(Loc.initial, &deps);
         }
         else
