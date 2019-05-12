@@ -1131,6 +1131,11 @@ extern (C++) class VarDeclaration : Declaration
         sequenceNumber = ++nextSequenceNumber;
     }
 
+    static VarDeclaration create(const ref Loc loc, Type type, Identifier ident, Initializer _init, StorageClass storage_class = STC.undefined_)
+    {
+        return new VarDeclaration(loc, type, ident, _init, storage_class);
+    }
+
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         //printf("VarDeclaration::syntaxCopy(%s)\n", toChars());
