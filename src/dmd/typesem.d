@@ -1651,12 +1651,18 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
             case TOK.variable:
                 mtype.sym = (cast(VarExp)e).var;
                 break;
+            case TOK.function_:
+                auto fe = cast(FuncExp)e;
+                mtype.sym = fe.td ? fe.td : fe.fd;
+                break;
             case TOK.dotTemplateDeclaration:
                 mtype.sym = (cast(DotTemplateExp)e).td;
                 break;
             case TOK.dSymbol:
-            case TOK.template_:
                 mtype.sym = (cast(DsymbolExp)e).s;
+                break;
+            case TOK.template_:
+                mtype.sym = (cast(TemplateExp)e).td;
                 break;
             case TOK.scope_:
                 mtype.sym = (cast(ScopeExp)e).sds;
@@ -1671,7 +1677,11 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
             case TOK.type:
                 result = (cast(TypeExp)e).type;
                 break;
+            case TOK.overloadSet:
+                result = (cast(OverExp)e).type;
+                break;
             default:
+                break;
             }
         }
 
