@@ -1351,8 +1351,33 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             {
                 Parameter fparam = fparameters[parami];
 
+                Type prmtype = fparam.type;
+                //printf("prmtype: %s\n", prmtype.toChars());
+                while (prmtype.ty == Tinstance)
+                {
+                    TypeInstance prmti = cast(TypeInstance) prmtype;
+                    //printf("prmti: %s\n", prmti.toChars());
+                    if (prmti.tempinst.findTempDecl(sc, null))
+                    {
+                        if (auto td = prmti.tempinst.tempdecl.isTemplateDeclaration())
+                        {
+                            //printf("td: %s\n", td.toChars());
+                            if (td.onemember)
+                            {
+                                if (auto ad = td.onemember.isAliasDeclaration())
+                                {
+                                    Type adtype = ad.getType();
+                                    prmtype = adtype;
+                                    continue;
+                                }
+                            }
+                        }
+                    }
+                    break;
+                }
+
                 // Apply function parameter storage classes to parameter types
-                Type prmtype = fparam.type.addStorageClass(fparam.storageClass);
+                prmtype = prmtype.addStorageClass(fparam.storageClass);
 
                 Expression farg;
 
