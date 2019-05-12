@@ -246,13 +246,13 @@ public:
     char *modToChars() const;
 
     virtual bool isintegral();
+    virtual bool ischaracter();  // char, wchar, or dchar
     virtual bool isfloating();   // real, imaginary, or complex
     virtual bool isreal();
     virtual bool isimaginary();
     virtual bool iscomplex();
     virtual bool isscalar();
     virtual bool isunsigned();
-    virtual bool ischar();
     virtual bool isscope();
     virtual bool isString();
     virtual bool isAssignable();
@@ -392,13 +392,13 @@ public:
     d_uns64 size(const Loc &loc) /*const*/;
     unsigned alignsize();
     bool isintegral();
+    bool ischaracter();
     bool isfloating() /*const*/;
     bool isreal() /*const*/;
     bool isimaginary() /*const*/;
     bool iscomplex() /*const*/;
     bool isscalar() /*const*/;
     bool isunsigned() /*const*/;
-    bool ischar() /*const*/;
     MATCH implicitConvTo(Type *to);
     bool isZeroInit(const Loc &loc) /*const*/;
 
@@ -418,6 +418,7 @@ public:
     d_uns64 size(const Loc &loc);
     unsigned alignsize();
     bool isintegral();
+    bool ischaracter();
     bool isfloating();
     bool isscalar();
     bool isunsigned();
@@ -771,13 +772,13 @@ public:
     Type *memType(const Loc &loc = Loc());
     Dsymbol *toDsymbol(Scope *sc);
     bool isintegral();
+    bool ischaracter();
     bool isfloating();
     bool isreal();
     bool isimaginary();
     bool iscomplex();
     bool isscalar();
     bool isunsigned();
-    bool ischar();
     bool isBoolean();
     bool isString();
     bool isAssignable();

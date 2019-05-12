@@ -2830,7 +2830,7 @@ bool typeMerge(Scope* sc, TOK op, Type* pt, Expression* pe1, Expression* pe2)
 
     if (op != TOK.question || t1b.ty != t2b.ty && (t1b.isTypeBasic() && t2b.isTypeBasic()))
     {
-        if (op == TOK.question && t1b.ischar() && t2b.ischar())
+        if (op == TOK.question && t1b.ischaracter() && t2b.ischaracter())
         {
             e1 = charPromotions(e1, sc);
             e2 = charPromotions(e2, sc);
