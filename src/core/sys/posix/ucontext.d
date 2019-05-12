@@ -23,6 +23,8 @@ extern (C):
 nothrow:
 @nogc:
 
+version (MIPS32)  version = MIPS_Any;
+version (MIPS64)  version = MIPS_Any;
 version (RISCV32) version = RISCV_Any;
 version (RISCV64) version = RISCV_Any;
 version (S390)    version = IBMZ_Any;
@@ -766,6 +768,139 @@ version (CRuntime_Glibc)
         }
 
         alias ucontext_t = ucontext;
+    }
+    else
+        static assert(0, "unimplemented");
+}
+else version (CRuntime_Musl)
+{
+    version (AArch64)
+    {
+        struct mcontext_t
+        {
+            real[18+256] __regs;
+        }
+
+        struct ucontext_t
+        {
+            c_ulong     uc_flags;
+            ucontext_t* uc_link;
+            stack_t     uc_stack;
+            sigset_t    uc_sigmask;
+            mcontext_t  uc_mcontext;
+        }
+    }
+    else version (ARM)
+    {
+        struct mcontext_t
+        {
+            c_ulong[21] __regs;
+        }
+
+        struct ucontext_t
+        {
+            c_ulong     uc_flags;
+            ucontext_t* uc_link;
+            stack_t     uc_stack;
+            mcontext_t  uc_mcontext;
+            sigset_t    uc_sigmask;
+            ulong[64]   uc_regspace;
+        }
+    }
+    else version (IBMZ_Any)
+    {
+        struct mcontext_t
+        {
+            c_ulong[18] __regs1;
+            uint[18]    __regs2;
+            double[16]  __regs3;
+        }
+
+        struct ucontext_t
+        {
+            c_ulong     uc_flags;
+            ucontext_t* uc_link;
+            stack_t     uc_stack;
+            mcontext_t  uc_mcontext;
+            sigset_t    uc_sigmask;
+        }
+    }
+    else version (MIPS_Any)
+    {
+        version (MIPS_N32)
+        {
+            struct mcontext_t
+            {
+                ulong[32]  __mc1;
+                double[32] __mc2;
+                ulong[9]   __mc3;
+                uint[4]    __mc4;
+            }
+        }
+        else version (MIPS64)
+        {
+            struct mcontext_t
+            {
+                ulong[32]  __mc1;
+                double[32] __mc2;
+                ulong[9]   __mc3;
+                uint[4]    __mc4;
+            }
+        }
+        else
+        {
+            struct mcontext_t
+            {
+                uint[2]    __mc1;
+                ulong[65]  __mc2;
+                uint[5]    __mc3;
+                ulong[2]   __mc4;
+                uint[6]    __mc5;
+            }
+        }
+
+        struct ucontext_t
+        {
+            c_ulong     uc_flags;
+            ucontext_t* uc_link;
+            stack_t     uc_stack;
+            mcontext_t  uc_mcontext;
+            sigset_t    uc_sigmask;
+        }
+    }
+    else version (X86)
+    {
+        struct mcontext_t
+        {
+            uint[22] __space;
+        }
+
+        struct ucontext_t
+        {
+            c_ulong     uc_flags;
+            ucontext_t* uc_link;
+            stack_t     uc_stack;
+            mcontext_t  uc_mcontext;
+            sigset_t    uc_sigmask;
+            c_ulong[28] __fpregs_mem;
+        }
+    }
+    else version (X86_64)
+    {
+        struct mcontext_t
+        {
+            ulong[32] __space;
+        }
+
+        struct ucontext_t
+        {
+            c_ulong     uc_flags;
+            ucontext_t* uc_link;
+            stack_t     uc_stack;
+            mcontext_t  uc_mcontext;
+            sigset_t    uc_sigmask;
+            ulong[64]   __fpregs_mem;
+        }
     }
     else
         static assert(0, "unimplemented");
