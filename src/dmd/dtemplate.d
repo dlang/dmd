@@ -1351,6 +1351,10 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             {
                 Parameter fparam = fparameters[parami];
 
+                /* https://issues.dlang.org/show_bug.cgi?id=16486
+                 * If 'prmtype' is template alias, resolve it,
+                 * to the instance it's aliased to before proceeding.
+                 */
                 Type prmtype = fparam.type;
                 //printf("prmtype: %s\n", prmtype.toChars());
                 while (prmtype.ty == Tinstance)
