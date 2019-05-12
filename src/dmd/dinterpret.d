@@ -3033,7 +3033,7 @@ public:
             return ae;
         }
         assert(argnum == arguments.dim - 1);
-        if (elemType.ty == Tchar || elemType.ty == Twchar || elemType.ty == Tdchar)
+        if (elemType.ischaracter())
         {
             const ch = cast(dchar)elemType.defaultInitLiteral(loc).toInteger();
             const sz = cast(ubyte)elemType.size();

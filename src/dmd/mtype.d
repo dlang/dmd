@@ -3594,8 +3594,7 @@ extern (C++) final class TypeSArray : TypeArray
 
     override bool isString()
     {
-        TY nty = next.toBasetype().ty;
-        return nty == Tchar || nty == Twchar || nty == Tdchar;
+        return next.toBasetype().ischaracter();
     }
 
     override bool isZeroInit(const ref Loc loc)
@@ -3764,8 +3763,7 @@ extern (C++) final class TypeDArray : TypeArray
 
     override bool isString()
     {
-        TY nty = next.toBasetype().ty;
-        return nty == Tchar || nty == Twchar || nty == Tdchar;
+        return next.toBasetype().ischaracter();
     }
 
     override bool isZeroInit(const ref Loc loc) const

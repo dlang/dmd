@@ -114,8 +114,7 @@ bool expressionsToString(ref OutBuffer buf, Scope* sc, Expressions* exps)
         // char literals exp `.toStringExp` return `null` but we cant override it
         // because in most contexts we don't want the conversion to succeed.
         IntegerExp ie = e4.isIntegerExp();
-        const ty = (ie && ie.type) ? ie.type.ty : Terror;
-        if (ty == Tchar || ty == Twchar || ty == Tdchar)
+        if (ie && ie.type && ie.type.ischaracter())
         {
             auto tsa = new TypeSArray(ie.type, new IntegerExp(1));
             e4 = new ArrayLiteralExp(ex.loc, tsa, ie);
@@ -10759,8 +10758,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             Type t1n = t1.nextOf().toBasetype();
             Type t2n = t2.nextOf().toBasetype();
-            if (((t1n.ty == Tchar || t1n.ty == Twchar || t1n.ty == Tdchar) &&
-                 (t2n.ty == Tchar || t2n.ty == Twchar || t2n.ty == Tdchar)) ||
+            if ((t1n.ischaracter() && t2n.ischaracter()) ||
                 (t1n.ty == Tvoid || t2n.ty == Tvoid))
             {
                 return false;
