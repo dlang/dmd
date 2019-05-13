@@ -1379,7 +1379,6 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     if (!s)
                     {
                         // roll-back
-                        prmtype = savetype;
                         break;
                     }
                     /* We might have found an alias within a template when
@@ -1404,7 +1403,6 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     }
 
 
-                    s = s.toAlias();
                     td = s.isTemplateDeclaration();
                     /// Having found the declaration, check if it is an
                     /// alias and get the actual type.
@@ -1414,7 +1412,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                         //printf("ad: %s\n", ad.toChars());
                         Type adtype = ad.getType();
                         // Set the actual type, the type of the alias.
-                        if (adtype != prevtype) {
+                        if (adtype.ty == Tinstance && adtype != prevtype) {
                             prmtype = adtype;
                             prevtype = prmtype;
                             //printf("prmtype: %s\n\n", prmtype.toChars());
