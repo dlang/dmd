@@ -106,12 +106,7 @@ class Library
         OutBuffer libbuf;
         WriteLibToBuffer(&libbuf);
 
-        // Transfer image to file
-        File* libfile = File.create(loc.filename);
-        libfile.setbuffer(libbuf.data, libbuf.offset);
-        libbuf.extractData();
-        ensurePathToNameExists(Loc.initial, libfile.name.toChars());
-        writeFile(Loc.initial, libfile);
+        writeFile(Loc.initial, loc.filename, libbuf.peekSlice());
     }
 
     final void error(const(char)* format, ...)

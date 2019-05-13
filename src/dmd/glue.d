@@ -169,8 +169,7 @@ void obj_write_deferred(Library library)
         fname = namebuf.extractChars();
 
         //printf("writing '%s'\n", fname);
-        File objfile = File(fname);
-        obj_end(library, &objfile);
+        obj_end(library, fname);
     }
     obj_symbols_towrite.dim = 0;
 }
@@ -271,33 +270,25 @@ void obj_start(const(char)* srcfile)
 }
 
 
-void obj_end(Library library, File *objfile)
+void obj_end(Library library, const(char)* objfilename)
 {
-    const(char)* objfilename = objfile.name.toChars();
     objmod.term(objfilename);
     //delete objmod;
     objmod = null;
 
+    const data = objbuf.buf[0 .. objbuf.p - objbuf.buf];
     if (library)
     {
         // Transfer image to library
-        library.addObject(objfilename, objbuf.buf[0 .. objbuf.p - objbuf.buf]);
-        objbuf.buf = null;
+        library.addObject(objfilename, data);
     }
     else
     {
-        // Transfer image to file
-        objfile.setbuffer(objbuf.buf, objbuf.p - objbuf.buf);
-        objfile._ref = 1;
-
-        ensurePathToNameExists(Loc.initial, objfilename);
-
         //printf("write obj %s\n", objfilename);
-        writeFile(Loc.initial, objfile);
-
+        writeFile(Loc.initial, objfilename, data);
         free(objbuf.buf); // objbuf is a backend `Outbuffer` managed by C malloc/free
-        objbuf.buf = null;
     }
+    objbuf.buf = null;
     objbuf.pend = null;
     objbuf.p = null;
 }

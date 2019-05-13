@@ -74,6 +74,7 @@ struct OutBuffer;
 #include "globals.h"
 
 #include "root/ctfloat.h"
+#include "root/file.h"
 
 #include "complex_t.h"
 
@@ -81,15 +82,14 @@ struct OutBuffer;
 
 class Dsymbol;
 class Library;
-struct File;
 void obj_start(const char *srcfile);
-void obj_end(Library *library, File *objfile);
+void obj_end(Library *library, const char *objfilename);
 void obj_append(Dsymbol *s);
 void obj_write_deferred(Library *library);
 
 /// Utility functions used by both main and frontend.
-void readFile(Loc loc, File *f);
-void writeFile(Loc loc, File *f);
+FileBuffer readFile(Loc loc, const char *filename);
+void writeFile(Loc loc, const char *filename, const void *data, d_size_t size);
 void ensurePathToNameExists(Loc loc, const char *name);
 
 /// Little helper function for writing out deps.

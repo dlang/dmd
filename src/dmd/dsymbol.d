@@ -283,13 +283,8 @@ extern (C++) class Dsymbol : ASTNode
     final const(Loc) getLoc()
     {
         if (!loc.isValid()) // avoid bug 5861.
-        {
-            auto m = getModule();
-            if (m && m.srcfile)
-            {
+            if (const m = getModule())
                 return Loc(m.srcfile.toChars(), 0, 0);
-            }
-        }
         return loc;
     }
 

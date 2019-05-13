@@ -6590,7 +6590,7 @@ extern (C++) final class FileInitExp : DefaultInitExp
         //printf("FileInitExp::resolve() %s\n", toChars());
         const(char)* s;
         if (subop == TOK.fileFullPath)
-            s = FileName.toAbsolute(loc.isValid() ? loc.filename : sc._module.srcfile.name.toChars());
+            s = FileName.toAbsolute(loc.isValid() ? loc.filename : sc._module.srcfile.toChars());
         else
             s = loc.isValid() ? loc.filename : sc._module.ident.toChars();
 

@@ -212,12 +212,15 @@ void test_semantic()
         "class Throwable { }\n"
         "class Error : Throwable { this(immutable(char)[]); }";
 
+    FileBuffer *srcBuffer = FileBuffer::create(); // free'd in Module::parse()
+    srcBuffer->data.ptr = (unsigned char *)mem.xstrdup(buf);
+    srcBuffer->data.length = strlen(buf);
+
     Module *m = Module::create("object.d", Identifier::idPool("object"), 0, 0);
 
     unsigned errors = global.startGagging();
 
-    m->srcfile->setbuffer((void*)buf, strlen(buf));
-    m->srcfile->ref = 1;
+    m->srcBuffer = srcBuffer;
     m->parse();
     m->importedFrom = m;
     m->importAll(NULL);

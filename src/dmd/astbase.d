@@ -30,6 +30,7 @@ struct ASTBase
     import dmd.id;
     import dmd.errors;
     import dmd.lexer;
+    import dmd.utils : toDString;
 
     import core.stdc.string;
     import core.stdc.stdarg;
@@ -1466,15 +1467,14 @@ struct ASTBase
     {
         extern (C++) __gshared AggregateDeclaration moduleinfo;
 
-        File* srcfile;
+        const FileName srcfile;
         const(char)* arg;
 
         extern (D) this(const(char)* filename, Identifier ident, int doDocComment, int doHdrGen)
         {
             super(ident);
             this.arg = filename;
-            const(char)* srcfilename = FileName.defaultExt(filename, global.mars_ext);
-            srcfile = new File(srcfilename);
+            srcfile = FileName(FileName.defaultExt(filename, global.mars_ext).toDString);
         }
 
         override void accept(Visitor v)

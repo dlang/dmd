@@ -190,9 +190,9 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             static assert(0, "fix this");
         }
     }
-    // Read the configurarion file
-    auto inifile = File(global.inifilename);
-    inifile.read();
+    // Read the configuration file
+    const iniReadResult = File.read(global.inifilename);
+    const inifileBuffer = iniReadResult.buffer.data;
     /* Need path of configuration file, for use in expanding @P macro
      */
     const(char)[] inifilepath = FileName.path(global.inifilename.toDString());
@@ -203,7 +203,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
      * pick up any DFLAGS settings.
      */
     sections.push("Environment");
-    parseConfFile(environment, global.inifilename, inifilepath, inifile.buffer[0..inifile.len], &sections);
+    parseConfFile(environment, global.inifilename, inifilepath, inifileBuffer, &sections);
 
     const(char)* arch = params.is64bit ? "64" : "32"; // use default
     arch = parse_arch_arg(&arguments, arch);
@@ -226,7 +226,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     char[80] envsection = void;
     sprintf(envsection.ptr, "Environment%s", arch);
     sections.push(envsection.ptr);
-    parseConfFile(environment, global.inifilename, inifilepath, inifile.buffer[0..inifile.len], &sections);
+    parseConfFile(environment, global.inifilename, inifilepath, inifileBuffer, &sections);
     getenv_setargv(readFromEnv(environment, "DFLAGS"), &arguments);
     updateRealEnvironment(environment);
     environment.reset(1); // don't need environment cache any more
@@ -422,29 +422,11 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     if (params.addMain)
     {
-        files.push(global.main_d); // a dummy name, we never actually look up this file
+        files.push("__main.d"); // a dummy name recognized in dmd.root.file.File.read()
     }
     // Create Modules
     Modules modules = createModules(files, libmodules);
     // Read files
-    /* Start by "reading" the dummy main.d file
-     */
-    if (params.addMain)
-    {
-        bool added = false;
-        foreach (m; modules)
-        {
-            if (strcmp(m.srcfile.name.toChars(), global.main_d) == 0)
-            {
-                string buf = "int main(){return 0;}";
-                m.srcfile.setbuffer(cast(void*)buf.ptr, buf.length);
-                m.srcfile._ref = 1;
-                added = true;
-                break;
-            }
-        }
-        assert(added);
-    }
     enum ASYNCREAD = false;
     static if (ASYNCREAD)
     {
@@ -481,7 +463,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         {
             if (aw.read(filei))
             {
-                error(Loc.initial, "cannot read file %s", m.srcfile.name.toChars());
+                error(Loc.initial, "cannot read file %s", m.srcfile.toChars());
                 fatal();
             }
         }
@@ -491,7 +473,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             // Remove m's object file from list of object files
             for (size_t j = 0; j < params.objfiles.dim; j++)
             {
-                if (m.objfile.name.toChars() == params.objfiles[j])
+                if (m.objfile.toChars() == params.objfiles[j])
                 {
                     params.objfiles.remove(j);
                     break;
@@ -510,7 +492,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             // Remove m's object file from list of object files
             for (size_t j = 0; j < params.objfiles.dim; j++)
             {
-                if (m.objfile.name.toChars() == params.objfiles[j])
+                if (m.objfile.toChars() == params.objfiles[j])
                 {
                     params.objfiles.remove(j);
                     break;
@@ -641,15 +623,11 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         foreach (i; 1 .. modules[0].aimports.dim)
             semantic3OnDependencies(modules[0].aimports[i]);
 
+        const data = ob.peekSlice();
         if (params.moduleDepsFile)
-        {
-            auto deps = File(params.moduleDepsFile);
-            deps.setbuffer(cast(void*)ob.data, ob.offset);
-            deps._ref = 1;
-            writeFile(Loc.initial, &deps);
-        }
+            writeFile(Loc.initial, params.moduleDepsFile, data);
         else
-            printf("%.*s", cast(int)ob.offset, ob.data);
+            printf("%.*s", cast(int)data.length, data.ptr);
     }
 
     printCtfePerformanceStats();
@@ -691,10 +669,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
             // write the output to $(filename).cg
             auto cgFilename = FileName.addExt(mod.srcfile.toString(), "cg");
-            auto cgFile = File(cgFilename);
-            cgFile.setbuffer(buf.data, buf.offset);
-            cgFile._ref = 1;
-            cgFile.write();
+            File.write(cgFilename.ptr, buf.peekSlice());
         }
     }
     if (!params.obj)
@@ -720,7 +695,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         }
         if (!global.errors && firstm)
         {
-            obj_end(library, firstm.objfile);
+            obj_end(library, firstm.objfile.toChars());
         }
     }
     else
@@ -735,7 +710,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             genObjFile(m, params.multiobj);
             if (entrypoint && m == rootHasMain)
                 genObjFile(entrypoint, params.multiobj);
-            obj_end(library, m.objfile);
+            obj_end(library, m.objfile.toChars());
             obj_write_deferred(library);
             if (global.errors && !params.lib)
                 m.deleteObjFile();
@@ -793,7 +768,7 @@ extern (C++) void generateJson(Modules* modules)
     }
     else
     {
-        /* The filename generation code here should be harmonized with Module::setOutfile()
+        /* The filename generation code here should be harmonized with Module.setOutfilename()
          */
         const(char)* jsonfilename;
         if (name && *name)
@@ -814,11 +789,7 @@ extern (C++) void generateJson(Modules* modules)
             //    name = FileName::combine(dir, name);
             jsonfilename = FileName.forceExt(n, global.json_ext);
         }
-        ensurePathToNameExists(Loc.initial, jsonfilename);
-        auto jsonfile = new File(jsonfilename);
-        jsonfile.setbuffer(buf.data, buf.offset);
-        jsonfile._ref = 1;
-        writeFile(Loc.initial, jsonfile);
+        writeFile(Loc.initial, jsonfilename, buf.peekSlice());
     }
 }
 
@@ -1368,11 +1339,7 @@ extern(C) void flushMixins()
         return;
 
     assert(global.params.mixinFile);
-    auto f = File(global.params.mixinFile);
-    OutBuffer* ob = global.params.mixinOut;
-    f.setbuffer(cast(void*)ob.data, ob.offset);
-    f._ref = 1;
-    f.write();
+    File.write(global.params.mixinFile, global.params.mixinOut.peekSlice());
 
     global.params.mixinOut.destroy();
     global.params.mixinOut = null;
@@ -2673,7 +2640,7 @@ Modules createModules(ref Strings files, ref Strings libmodules)
         modules.push(m);
         if (firstmodule)
         {
-            global.params.objfiles.push(m.objfile.name.toChars());
+            global.params.objfiles.push(m.objfile.toChars());
             firstmodule = false;
         }
     }

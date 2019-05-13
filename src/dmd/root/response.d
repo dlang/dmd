@@ -72,12 +72,13 @@ bool response_expand(ref Strings args) nothrow
         }
         else
         {
-            auto f = File(cp);
-            if (f.read())
+            auto readResult = File.read(cp);
+            if (!readResult.success)
                 goto noexpand;
-            f._ref = 1;
-            buffer = cast(char*)f.buffer;
-            bufend = buffer + f.len;
+            // take ownership of buffer (leaking)
+            auto data = readResult.extractData();
+            buffer = cast(char*)data.ptr;
+            bufend = buffer + data.length;
         }
         // The logic of this should match that in setargv()
         int comment = 0;

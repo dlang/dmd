@@ -36,7 +36,7 @@ version (NoBackend)
         // glue
         void obj_write_deferred(Library library)        {}
         void obj_start(const(char)* srcfile)            {}
-        void obj_end(Library library, File* objfile)    {}
+        void obj_end(Library library, const(char)* objfilename) {}
         void genObjFile(Module m, bool multiobj)        {}
 
         // msc
@@ -72,7 +72,7 @@ else version (MARS)
     {
         void obj_write_deferred(Library library);
         void obj_start(const(char)* srcfile);
-        void obj_end(Library library, File* objfile);
+        void obj_end(Library library, const(char)* objfilename);
         void genObjFile(Module m, bool multiobj);
 
         void backend_init();
