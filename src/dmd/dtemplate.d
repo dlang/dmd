@@ -1356,25 +1356,73 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                  * to the instance it's aliased to before proceeding.
                  */
                 Type prmtype = fparam.type;
+
+                // We might have cyclic template references, so 'a' aliases to 'b'
+                // and 'b' goes back to 'a'. For now, we save the previous type
+                // and test it against (if they're equal) the new type.
+                // TODO: In the general
+                // case, we probably need full DFS cycle detection.
+                Type savetype = prmtype;
+                Type prevtype = null;
                 //printf("prmtype: %s\n", prmtype.toChars());
                 while (prmtype.ty == Tinstance)
                 {
                     TypeInstance prmti = cast(TypeInstance) prmtype;
                     //printf("prmti: %s\n", prmti.toChars());
-                    if (prmti.tempinst.findTempDecl(sc, null))
+
+                    ///
+                    /// Use the findTempDecl() logic to find the declaration.
+                    ///
+                    Identifier id = prmti.tempinst.name;
+                    Dsymbol scopesym;
+                    Dsymbol s = sc.search(prmti.tempinst.loc, id, &scopesym);
+                    if (!s)
                     {
-                        if (auto td = prmti.tempinst.tempdecl.isTemplateDeclaration())
+                        // roll-back
+                        prmtype = savetype;
+                        break;
+                    }
+                    /* We might have found an alias within a template when
+                        * we really want the template.
+                        */
+                    TemplateInstance ti2;
+                    TemplateDeclaration td;
+                    if (s.parent && (ti2 = s.parent.isTemplateInstance()) !is null)
+                    {
+                        if (ti2.tempdecl && ti2.tempdecl.ident == id)
                         {
-                            //printf("td: %s\n", td.toChars());
-                            if (td.onemember)
-                            {
-                                if (auto ad = td.onemember.isAliasDeclaration())
-                                {
-                                    Type adtype = ad.getType();
-                                    prmtype = adtype;
-                                    continue;
-                                }
-                            }
+                            /* This is so that one can refer to the enclosing
+                                * template, even if it has the same name as a member
+                                * of the template, if it has a !(arguments)
+                                */
+                            td = ti2.tempdecl.isTemplateDeclaration();
+                            assert(td);
+                            if (td.overroot) // if not start of overloaded list of TemplateDeclaration's
+                                td = td.overroot; // then get the start
+                            s = td;
+                        }
+                    }
+
+
+                    s = s.toAlias();
+                    td = s.isTemplateDeclaration();
+                    /// Having found the declaration, check if it is an
+                    /// alias and get the actual type.
+                    if(td && td.onemember && td.onemember.isAliasDeclaration())
+                    {
+                        AliasDeclaration ad = td.onemember.isAliasDeclaration();
+                        //printf("ad: %s\n", ad.toChars());
+                        Type adtype = ad.getType();
+                        // Set the actual type, the type of the alias.
+                        if(adtype != prevtype) {
+                            prmtype = adtype;
+                            prevtype = prmtype;
+                            //printf("prmtype: %s\n\n", prmtype.toChars());
+                            continue;
+                        } else {
+                            // roll-back
+                            prmtype = savetype;
+                            break;
                         }
                     }
                     break;
