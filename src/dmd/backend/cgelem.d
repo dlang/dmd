@@ -1190,6 +1190,16 @@ L1:
         e = optelem(e, goal);
         return e;
     }
+
+        /* Replace e1 - (v * c) with e1 + (v * -c)
+         */
+        if (e2.Eoper == OPmul &&
+            e2.EV.E2.Eoper == OPconst)
+        {
+            e.Eoper = OPadd;
+            e2.EV.E2 = el_una(OPneg, e2.EV.E2.Ety, e2.EV.E2);
+            return optelem(e, goal);
+        }
   }
 
     if (I16 && tybasic(e2.Ety) == TYhptr && tybasic(e.EV.E1.Ety) == TYhptr)
