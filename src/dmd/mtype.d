@@ -4924,6 +4924,26 @@ extern (C++) final class TypeFunction : TypeNext
         return MATCH.nomatch;
     }
 
+    /**
+     * Check if the arguments of a call are possibly inverted and prints a
+     * supplemental error message if the call would compile.
+     *
+     * Params:
+     *      tthis   = The type of the parent aggregate if it's a member function.
+     *      args    = The arguments of the call.
+     *      sc      = The scope of the call.
+     */
+    extern (D) void checkInvertedMatch(Type tthis, Expressions* args, Scope* sc)
+    {
+        if (args is null || args.length != 2)
+            return;
+        Expression[2] invertedArgs = [ (*args)[1], (*args)[0] ];
+        if (const m = callMatch(tthis, invertedArgs[], 0, null, sc))
+        {
+            errorSupplemental((*args)[1].loc, "Could the order of arguments be inverted ?");
+        }
+    }
+
     extern (D) bool checkRetType(const ref Loc loc)
     {
         Type tb = next.toBasetype();

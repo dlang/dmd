@@ -4702,6 +4702,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     p, exp.e1.toChars(), parametersTypeToChars(tf.parameterList), buf.peekChars());
                 if (failMessage)
                     errorSupplemental(exp.loc, failMessage);
+                tf.checkInvertedMatch(tthis, exp.arguments, sc);
                 return setError();
             }
             // Purity and safety check should run after testing arguments matching
@@ -4775,6 +4776,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         exp.f.kind(), exp.f.toPrettyChars(), parametersTypeToChars(tf.parameterList), buf.peekChars());
                     if (failMessage)
                         errorSupplemental(exp.loc, failMessage);
+                    tf.checkInvertedMatch(tthis, exp.arguments, sc);
                     exp.f = null;
                 }
             }

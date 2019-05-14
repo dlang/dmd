@@ -2833,6 +2833,22 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
                 tiargsBuf.peekChars(), fargsBuf.peekChars());
 
             printCandidates(loc, td);
+
+            if (fargs && fargs.length == 2)
+            {
+                MatchAccumulator m2;
+                Expressions ia = Expressions(2);
+
+                ia[0] = (*fargs)[1];
+                ia[1] = (*fargs)[0];
+
+                functionResolve(m2, s, loc, sc, tiargs, tthis, &ia, null);
+                if (m2.lastf)
+                {
+                    // printf("check inverted args for %s\n", m2.lastf.toChars());
+                    m2.lastf.type.isTypeFunction().checkInvertedMatch(tthis, fargs, sc);
+                }
+            }
         }
         else if (od)
         {
@@ -2869,6 +2885,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
                             fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameterList),
                             tf.modToChars(), fargsBuf.peekChars());
                         errorSupplemental(loc, failMessage);
+                        tf.checkInvertedMatch(tthis, fargs, sc);
                     }
                     else
                     {
@@ -2902,6 +2919,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
                     functionResolve(m, orig_s, loc, sc, tiargs, tthis, fargs, &failMessage);
                     if (failMessage)
                         errorSupplemental(loc, failMessage);
+                    tf.checkInvertedMatch(tthis, fargs, sc);
                 }
             }
 
