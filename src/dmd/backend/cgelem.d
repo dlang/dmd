@@ -68,7 +68,7 @@ private __gshared
     tym_t global_tyf;
 }
 
-private bool cnst(elem* e) { return e.Eoper == OPconst; }
+private bool cnst(const elem* e) { return e.Eoper == OPconst; }
 int REGSIZE();
 
 version (MARS)
@@ -108,7 +108,7 @@ private elem * cgel_lvalue(elem *e)
     else if (e1.Eoper == OPcomma)
     {
         // Replace ((e,v) op e2) with (e,(v op e2))
-        const int op = e.Eoper;
+        const op = e.Eoper;
         e.Eoper = OPcomma;
         e1.Eoper = op;
         e1.Ety = e.Ety;
@@ -271,9 +271,9 @@ nomatch:
  * Swap relational operators (like if we swapped the leaves).
  */
 
-uint swaprel(uint op)
+OPER swaprel(OPER op)
 {
-    assert(op < cast(uint) OPMAX);
+    assert(op < OPMAX);
     if (OTrel(op))
         op = rel_swap(op);
     return op;
@@ -285,7 +285,7 @@ uint swaprel(uint op)
 
 private void fixside(elem **pe1,elem **pe2)
 {
-    tym_t tym = (*pe1).Ety;
+    const tym = (*pe1).Ety;
     elem *tmp = el_alloctmp(tym);
     *pe1 = el_bin(OPeq,tym,tmp,*pe1);
     elem *e2 = el_copytree(tmp);
@@ -301,14 +301,14 @@ private void fixside(elem **pe1,elem **pe2)
  * We'll fake it.
  */
 
-int cost(elem* n) { return opcost[n.Eoper]; }
+private int cost(const elem* n) { return opcost[n.Eoper]; }
 
 /*******************************
  * For floating point expressions, the cost would be the number
  * of registers in the FPU stack needed.
  */
 
-int fcost(elem *e)
+private int fcost(const elem *e)
 {
     int cost;
 
@@ -406,7 +406,7 @@ private elem *fixconvop(elem *e)
     assert(invconvtab.length == CNVOPMAX - CNVOPMIN + 1);
     assert(e);
     tym_t tyme = e.Ety;
-    uint cop = e.EV.E1.Eoper;             /* the conversion operator      */
+    const cop = e.EV.E1.Eoper;             /* the conversion operator      */
     assert(cop <= CNVOPMAX);
 
     if (e.EV.E1.EV.E1.Eoper == OPcomma)
@@ -440,7 +440,7 @@ private elem *fixconvop(elem *e)
     elem *e2 = e.EV.E2;
     assert(e1 && e2);
     /* select inverse conversion operator   */
-    uint icop = invconvtab[convidx(cop)];
+    const icop = invconvtab[convidx(cop)];
 
     /* First, let's see if we can just throw it away.       */
     /* (unslng or shtlng) e op= e2  => e op= (lngsht) e2    */
@@ -455,7 +455,7 @@ private elem *fixconvop(elem *e)
     }
 
     /* Oh well, just split up the op and the =.                     */
-    uint op = opeqtoop(e.Eoper); // convert op= to op
+    const op = opeqtoop(e.Eoper); // convert op= to op
     e.Eoper = OPeq;                  // just plain =
     elem *ed = el_copytree(e1);       // duplicate e1
                                       // make: e1 = (icop) ((cop) ed op e2)
@@ -1255,7 +1255,7 @@ private elem * elbitwise(elem *e, goal_t goal)
 
     elem *e2 = e.EV.E2;
     elem *e1 = e.EV.E1;
-    int op = e1.Eoper;
+    const op = e1.Eoper;
     uint sz = tysize(e2.Ety);
 
     if (e2.Eoper == OPconst)
@@ -1877,7 +1877,7 @@ private elem *elxor(elem *e, goal_t goal)
 private elem * elnot(elem *e, goal_t goal)
 {
     elem *e1 = e.EV.E1;
-    uint op = e1.Eoper;
+    const op = e1.Eoper;
     switch (op)
     {
         case OPnot:                     // ! ! e => bool e
@@ -1885,20 +1885,20 @@ private elem * elnot(elem *e, goal_t goal)
             e1.Eoper = cast(ubyte)(op ^ (OPbool ^ OPnot));
             /* That was a clever substitute for the following:  */
             /* e.Eoper = (op == OPnot) ? OPbool : OPnot;               */
-            goto L1;
+            e = optelem(el_selecte1(e), goal);
+            break;
 
         default:
             if (OTrel(op))                      /* ! OTrel => !OTrel            */
             {
                   /* Find the logical negation of the operator  */
-                  op = rel_not(op);
+                  auto op2 = rel_not(op);
                   if (!tyfloating(e1.EV.E1.Ety))
-                  {   op = rel_integral(op);
-                      assert(OTrel(op));
+                  {   op2 = rel_integral(op2);
+                      assert(OTrel(op2));
                   }
-                  e1.Eoper = cast(ubyte)op;
-
-            L1: e = optelem(el_selecte1(e), goal);
+                  e1.Eoper = cast(ubyte)op2;
+                  e = optelem(el_selecte1(e), goal);
             }
             else if (tybasic(e1.Ety) == TYbool && tysize(e.Ety) == 1)
             {
@@ -1916,7 +1916,8 @@ private elem * elnot(elem *e, goal_t goal)
                     if (OTconv(op))             // don't use case because of differ target
                     {   // conversion operators
                         e1.Eoper = e.Eoper;
-                        goto L1;
+                        e = optelem(el_selecte1(e), goal);
+                        break;
                     }
                 }
             }
@@ -1937,7 +1938,8 @@ private elem * elnot(elem *e, goal_t goal)
         case OPcvp_fp:
         case OPnp_fp:
             e1.Eoper = e.Eoper;
-            goto L1;
+            e = optelem(el_selecte1(e), goal);
+            break;
 
         case OPcomma:
             /* !(a,b) => (a,!b) */
@@ -2411,7 +2413,7 @@ private elem * eldiv(elem *e, goal_t goal)
             int i = ispow2(el_tolong(e2));
             if (i != -1)
             {
-                int op;
+                OPER op;
                 switch (e.Eoper)
                 {   case OPdiv:
                         op = OPshr;
@@ -2546,7 +2548,7 @@ private elem * eldiv(elem *e, goal_t goal)
                 else
                 {
                     assert(sz == 2 || sz == 4 || sz == 8);
-                    int op = OPmsw;
+                    OPER op = OPmsw;
                     if (e.Eoper == OPdiv)
                     {
                         op = (sz == 2) ? OP32_16 : (sz == 4) ? OP64_32 : OP128_64;
@@ -2704,7 +2706,7 @@ private bool optim_loglog(elem **pe)
     if (I16)
         return false;
     elem *e = *pe;
-    int op = e.Eoper;
+    const op = e.Eoper;
     assert(op == OPandand || op == OPoror);
     size_t n = el_opN(e, op);
     if (n <= 3)
@@ -3160,7 +3162,7 @@ private elem * eladdr(elem *e, goal_t goal)
             int sz = tysize(tym) - tysize(tym2);
             if (sz != 0)
             {
-                int op;
+                OPER op;
                 if (sz > 0)                         // if &far * near
                     op = OPnp_fp;
                 else                                // else &near * far
@@ -3931,7 +3933,7 @@ version (SCPP)   // have bit fields to worry about?
     goal_t wantres = goal;
     if (e1.Eoper == OPbit)
     {
-        uint op = opeqtoop(e.Eoper);
+        const op = opeqtoop(e.Eoper);
 
         // Make sure t is uint
         // so >> doesn't have to be masked
@@ -4126,7 +4128,7 @@ private elem * elcmp(elem *e, goal_t goal)
 L1:
     if (OPTIMIZER)
     {
-        int op = e.Eoper;
+        auto op = e.Eoper;
 
         // Convert comparison of OPrelconsts of the same symbol to comparisons
         // of their offsets.
@@ -4216,7 +4218,7 @@ L1:
             e1.EV.E2.Eoper == OPconst &&
             sz > CHARSIZE)
         {
-            int op;
+            OPER op;
             assert(tyintegral(e2.Ety) || typtr(e2.Ety));
             /* ending up with byte ops in A regs */
             if (!(el_tolong(e2) & ~CHARMASK) &&
@@ -4535,7 +4537,7 @@ private elem * elvptrfptr(elem *e, goal_t goal)
         if (tybasic(e12.Ety) != TYvptr)
         {
             /* Rewrite (vtof(e11 + e12)) to (vtof(e11) + e12)   */
-            int op = e.Eoper;
+            const op = e.Eoper;
             e.Eoper = e1.Eoper;
             e.EV.E2 = e12;
             e1.Ety = e.Ety;
@@ -5308,7 +5310,7 @@ beg:
             e.Nflags |= NFLnogoal;
     }
 
-    uint op = e.Eoper;
+    auto op = e.Eoper;
     if (OTleaf(op))                     // if not an operator node
     {
         if (goal || OTsideff(op) || e.Ety & mTYvolatile)
@@ -5324,11 +5326,9 @@ beg:
     }
     else if (OTbinary(op))              // if binary operator
     {
-        goal_t leftgoal = GOALvalue;
-        goal_t rightgoal;
-
         /* Determine goals for left and right subtrees  */
-        rightgoal = (goal || OTsideff(op)) ? GOALvalue : GOALnone;
+        goal_t leftgoal = GOALvalue;
+        goal_t rightgoal = (goal || OTsideff(op)) ? GOALvalue : GOALnone;
         switch (op)
         {
             case OPcomma:
@@ -5442,12 +5442,12 @@ beg:
             case OPcall:
             case OPcallns:
             {
-                tym_t tyf = tybasic(e.EV.E1.Ety);
+                const tyf = tybasic(e.EV.E1.Ety);
                 leftgoal = rightgoal;
                 elem *e1 = e.EV.E1 = optelem(e.EV.E1, leftgoal);
 
                 // Need argument to type_zeroSize()
-                tym_t tyf_save = global_tyf;
+                const tyf_save = global_tyf;
                 global_tyf = tyf;
                 elem *e2 = e.EV.E2 = optelem(e.EV.E2, rightgoal);
                 global_tyf = tyf_save;
