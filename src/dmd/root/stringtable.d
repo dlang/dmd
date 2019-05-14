@@ -26,7 +26,8 @@ private size_t nextpow2(size_t val) pure nothrow @nogc @safe
     return res;
 }
 
-enum loadFactor = 0.8;
+enum loadFactorNumerator = 8;
+enum loadFactorDenominator = 10;        // for a load factor of 0.8
 
 struct StringEntry
 {
@@ -75,15 +76,17 @@ private:
     size_t npools;
     size_t nfill;
     size_t count;
+    size_t countTrigger;   // amount which will trigger growing the table
 
 public:
     void _init(size_t size = 0) nothrow pure
     {
-        size = nextpow2(cast(size_t)(size / loadFactor));
+        size = nextpow2((size * loadFactorDenominator) / loadFactorNumerator);
         if (size < 32)
             size = 32;
         table = cast(StringEntry*)mem.xcalloc(size, (table[0]).sizeof);
         tabledim = size;
+        countTrigger = (tabledim * loadFactorNumerator) / loadFactorDenominator;
         pools = null;
         npools = nfill = 0;
         count = 0;
@@ -156,7 +159,7 @@ public:
         size_t i = findSlot(hash, str);
         if (table[i].vptr)
             return null; // already in table
-        if (++count > tabledim * loadFactor)
+        if (++count > countTrigger)
         {
             grow();
             i = findSlot(hash, str);
@@ -179,7 +182,7 @@ public:
         size_t i = findSlot(hash, str);
         if (!table[i].vptr)
         {
-            if (++count > tabledim * loadFactor)
+            if (++count > countTrigger)
             {
                 grow();
                 i = findSlot(hash, str);
@@ -281,6 +284,7 @@ nothrow:
         const odim = tabledim;
         auto otab = table;
         tabledim *= 2;
+        countTrigger = (tabledim * loadFactorNumerator) / loadFactorDenominator;
         table = cast(StringEntry*)mem.xcalloc(tabledim, (table[0]).sizeof);
         foreach (const se; otab[0 .. odim])
         {
