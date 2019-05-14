@@ -1365,67 +1365,90 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 Type savetype = prmtype;
                 Type prevtype = null;
                 //printf("prmtype: %s\n", prmtype.toChars());
-                while (prmtype.ty == Tinstance)
-                {
+                if(prmtype.ty == Tinstance) {
+                    Objects* tempargs;
                     TypeInstance prmti = cast(TypeInstance) prmtype;
-                    //printf("prmti: %s\n", prmti.toChars());
-
-                    ///
-                    /// Use the findTempDecl() logic to find the declaration.
-                    ///
-                    Identifier id = prmti.tempinst.name;
-                    Dsymbol scopesym;
-                    Dsymbol s = sc.search(prmti.tempinst.loc, id, &scopesym);
-                    if (!s)
+                    tempargs = prmti.tempinst.tiargs;
+                    while (prmtype.ty == Tinstance)
                     {
-                        // roll-back
+                        prmti = cast(TypeInstance) prmtype;
+                        //printf("prmti: %s %s\n", prmti.toChars(), prmti.tempinst.tiargs[0].toChars());
+
+                        ///
+                        /// Use the findTempDecl() logic to find the declaration.
+                        ///
+                        Identifier id = prmti.tempinst.name;
+                        Dsymbol scopesym;
+                        Dsymbol s = sc.search(prmti.tempinst.loc, id, &scopesym);
+                        if (!s)
+                        {
+                            break;
+                        }
+                        /* We might have found an alias within a template when
+                            * we really want the template.
+                            */
+                        TemplateInstance ti2;
+                        TemplateDeclaration td;
+                        if (s.parent && (ti2 = s.parent.isTemplateInstance()) !is null)
+                        {
+                            if (ti2.tempdecl && ti2.tempdecl.ident == id)
+                            {
+                                /* This is so that one can refer to the enclosing
+                                    * template, even if it has the same name as a member
+                                    * of the template, if it has a !(arguments)
+                                    */
+                                td = ti2.tempdecl.isTemplateDeclaration();
+                                assert(td);
+                                if (td.overroot) // if not start of overloaded list of TemplateDeclaration's
+                                    td = td.overroot; // then get the start
+                                s = td;
+                            }
+                        }
+
+
+                        td = s.isTemplateDeclaration();
+                        /// Having found the declaration, check if it is an
+                        /// alias and get the actual type.
+                        if (td && td.onemember && td.onemember.isAliasDeclaration())
+                        {
+                            AliasDeclaration ad = td.onemember.isAliasDeclaration();
+                            //printf("ad: %s\n", ad.toChars());
+                            Type adtype = ad.getType();
+                            // Set the actual type, the type of the alias.
+                            if (adtype.ty == Tinstance && adtype != prevtype) {
+                                prmtype = adtype;
+                                prevtype = prmtype;
+                                //printf("prmtype: %s\n\n", prmtype.toChars());
+                                continue;
+                            }
+                            else
+                            {
+                                // roll-back
+                                prmtype = savetype;
+                                break;
+                            }
+                        }
                         break;
                     }
-                    /* We might have found an alias within a template when
-                        * we really want the template.
-                        */
-                    TemplateInstance ti2;
-                    TemplateDeclaration td;
-                    if (s.parent && (ti2 = s.parent.isTemplateInstance()) !is null)
-                    {
-                        if (ti2.tempdecl && ti2.tempdecl.ident == id)
-                        {
-                            /* This is so that one can refer to the enclosing
-                                * template, even if it has the same name as a member
-                                * of the template, if it has a !(arguments)
-                                */
-                            td = ti2.tempdecl.isTemplateDeclaration();
-                            assert(td);
-                            if (td.overroot) // if not start of overloaded list of TemplateDeclaration's
-                                td = td.overroot; // then get the start
-                            s = td;
-                        }
-                    }
 
-
-                    td = s.isTemplateDeclaration();
-                    /// Having found the declaration, check if it is an
-                    /// alias and get the actual type.
-                    if (td && td.onemember && td.onemember.isAliasDeclaration())
-                    {
-                        AliasDeclaration ad = td.onemember.isAliasDeclaration();
-                        //printf("ad: %s\n", ad.toChars());
-                        Type adtype = ad.getType();
-                        // Set the actual type, the type of the alias.
-                        if (adtype.ty == Tinstance && adtype != prevtype) {
-                            prmtype = adtype;
-                            prevtype = prmtype;
-                            //printf("prmtype: %s\n\n", prmtype.toChars());
-                            continue;
-                        }
-                        else
-                        {
-                            // roll-back
-                            prmtype = savetype;
+                    // Look if any parameter doesn't match the initial parameter.
+                    bool change = false;
+                    prmti = cast(TypeInstance) prmtype;
+                    for(size_t i = 0; i < tempargs[0].length; ++i) {
+                        if(tempargs[0][i] != prmti.tempinst.tiargs[0][i]) {
+                            //printf("tempargs[i]: %s\n", tempargs[0][i].toChars());
+                            change = true;
                             break;
                         }
                     }
-                    break;
+                    // If so, use the initial parameters.
+                    if(change) {
+                        prmti = cast(TypeInstance) prmti.copy();
+                        for(size_t i = 0; i < tempargs[0].length; ++i) {
+                            prmti.tempinst.tiargs[0][i] = tempargs[0][i];
+                        }
+                        prmtype = prmti;
+                    }
                 }
 
                 // Apply function parameter storage classes to parameter types
