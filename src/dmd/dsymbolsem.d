@@ -447,8 +447,9 @@ private bool buildCopyCtor(StructDeclaration sd, Scope* sc)
         assert(ctorDecl);
         if (ctorDecl.isCpCtor)
         {
-            cpCtor = ctorDecl;
-            return 1;
+            if (!cpCtor)
+                cpCtor = ctorDecl;
+            return 0;
         }
 
         auto tf = ctorDecl.type.toTypeFunction();
