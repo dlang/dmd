@@ -6,7 +6,7 @@ $(HEADERNAV_TOC)
 
         $(P Operator overloading is accomplished by rewriting operators whose
         operands are class or struct objects into calls to specially named
-        member functions. No additional syntax is used.
+        members. No additional syntax is used.
         )
 
         $(UL
