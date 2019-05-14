@@ -1168,6 +1168,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 if (funcdecl.type == f)
                     f = cast(TypeFunction)f.copy();
                 f.isreturn = true;
+                if (funcdecl.storage_class & STC.returninferred)
+                    f.isreturninferred = true;
             }
         }
 
