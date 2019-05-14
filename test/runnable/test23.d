@@ -702,72 +702,6 @@ void test31()
 
 /*******************************************/
 
-class Foo32
-{
-    static void* ps;
-
-    new (size_t sz)
-    {
-        void* p = core.stdc.stdlib.malloc(sz);
-        printf("new(sz = %d) = %p\n", sz, p);
-        ps = p;
-        return p;
-    }
-
-    delete(void* p)
-    {
-        printf("delete(p = %p)\n", p);
-        assert(p == ps);
-        if (p) core.stdc.stdlib.free(p);
-    }
-}
-
-void test32()
-{
-    Foo32 f = new Foo32;
-    delete f;
-}
-
-/*******************************************/
-
-class Foo33
-{
-//    this() { printf("this()\n"); }
-//    ~this() { printf("~this()\n"); }
-
-    static void* ps;
-    static int del;
-
-    new (size_t sz, int i)
-    {
-        void* p = core.stdc.stdlib.malloc(sz);
-        printf("new(sz = %d) = %p\n", sz, p);
-        ps = p;
-        return p;
-    }
-
-    delete(void* p)
-    {
-        printf("delete(p = %p)\n", p);
-        assert(p == ps);
-        if (p) core.stdc.stdlib.free(p);
-        del += 1;
-    }
-}
-
-void foo33()
-{
-    scope Foo33 f = new(3) Foo33;
-}
-
-void test33()
-{
-    foo33();
-    assert(Foo33.del == 1);
-}
-
-/*******************************************/
-
 struct o_O { int a; }
 union  O_O { int a; }
 class  O_o { int a; }
@@ -1529,8 +1463,8 @@ void main()
     test29();
     test30();
     test31();
-    test32();
-    test33();
+
+
     test34();
     test37();
     test38();

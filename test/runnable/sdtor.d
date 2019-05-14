@@ -25,23 +25,6 @@ void test1()
 
 /**********************************/
 
-int sdtor2;
-
-struct S2
-{
-    ~this() { printf("~S2()\n"); sdtor2++; }
-    delete(void* p) { assert(sdtor2 == 1); printf("S2.delete()\n"); sdtor2++; }
-}
-
-void test2()
-{
-    S2* s = new S2();
-    delete s;
-    assert(sdtor2 == 2);
-}
-
-/**********************************/
-
 int sdtor3;
 
 struct S3
@@ -4680,7 +4663,7 @@ void test19676()
 int main()
 {
     test1();
-    test2();
+
     test3();
     test4();
     test5();
