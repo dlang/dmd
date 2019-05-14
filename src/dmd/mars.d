@@ -421,13 +421,25 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     global.filePath = buildPath(params.fileImppath);
 
     if (params.addMain)
-    {
-        files.push("__main.d"); // a dummy name recognized in dmd.root.file.File.read()
-    }
+        files.push("__main.d");
     // Create Modules
     Modules modules = createModules(files, libmodules);
     // Read files
     enum ASYNCREAD = false;
+    // Start by "reading" the special files (__main.d, __stdin.d)
+    foreach (m; modules)
+    {
+        if (params.addMain && m.srcfile.toString() == "__main.d")
+        {
+            auto data = arraydup("int main(){return 0;}\0\0"); // need 2 trailing nulls for sentinel
+            m.srcBuffer = new FileBuffer(cast(ubyte[]) data[0 .. $-2]);
+        }
+        else if (m.srcfile.toString() == "__stdin.d")
+        {
+            auto buffer = readFromStdin();
+            m.srcBuffer = new FileBuffer(buffer.extractData());
+        }
+    }
     static if (ASYNCREAD)
     {
         // Multi threaded
@@ -751,6 +763,46 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (global.errors || global.warnings)
         fatal();
     return status;
+}
+
+private FileBuffer readFromStdin()
+{
+    enum bufIncrement = 128 * 1024;
+    size_t pos = 0;
+    size_t sz = bufIncrement;
+
+    ubyte* buffer = null;
+    for (;;)
+    {
+        buffer = cast(ubyte*)mem.xrealloc(buffer, sz + 2); // +2 for sentinel
+
+        // Fill up buffer
+        do
+        {
+            assert(sz > pos);
+            size_t rlen = fread(buffer + pos, 1, sz - pos, stdin);
+            pos += rlen;
+            if (ferror(stdin))
+            {
+                import core.stdc.errno;
+                error(Loc.initial, "cannot read from stdin, errno = %d", errno);
+                fatal();
+            }
+            if (feof(stdin))
+            {
+                // We're done
+                assert(pos < sz + 2);
+                buffer[pos] = '\0';
+                buffer[pos + 1] = '\0';
+                return FileBuffer(buffer[0 .. pos]);
+            }
+        } while (pos < sz);
+
+        // Buffer full, expand
+        sz += bufIncrement;
+    }
+
+    assert(0);
 }
 
 extern (C++) void generateJson(Modules* modules)
