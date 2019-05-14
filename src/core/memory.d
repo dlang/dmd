@@ -172,7 +172,7 @@ struct GC
         size_t freeSize;
         /// number of bytes allocated for current thread since program start or
         /// call to `GC.resetThreadLocalStats()`
-        size_t allocatedInCurrentThread;
+        ulong allocatedInCurrentThread;
     }
 
     /**

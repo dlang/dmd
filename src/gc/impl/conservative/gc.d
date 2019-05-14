@@ -79,7 +79,7 @@ __gshared long extendTime;
 __gshared long otherTime;
 __gshared long lockTime;
 
-size_t bytesAllocated;   // thread local counter
+ulong bytesAllocated;   // thread local counter
 
 private
 {
@@ -397,7 +397,7 @@ class ConservativeGC : GC
             alloc_size = size;
         }
         gcx.leakDetector.log_malloc(p, size);
-        .bytesAllocated += size;
+        bytesAllocated += alloc_size;
 
         debug(PRINTF) printf("  => p = %p\n", p);
         return p;
@@ -1116,12 +1116,12 @@ class ConservativeGC : GC
 
         stats.usedSize -= freeListSize;
         stats.freeSize += freeListSize;
-        stats.allocatedInCurrentThread = .bytesAllocated;
+        stats.allocatedInCurrentThread = bytesAllocated;
     }
 
     void resetThreadLocalStats() nothrow @nogc
     {
-        .bytesAllocated = 0;
+        bytesAllocated = 0;
     }
 }
 
@@ -4379,7 +4379,7 @@ version (D_LP64) unittest
     {
         // only run if the system has enough physical memory
         size_t sz = 2L^^32;
-        import core.stdc.stdio;
+        //import core.stdc.stdio;
         //printf("availphys = %lld", os_physical_mem());
         if (os_physical_mem() > sz)
         {
@@ -4396,8 +4396,7 @@ version (D_LP64) unittest
             auto nstats = GC.stats();
             assert(nstats.usedSize == stats.usedSize);
             assert(nstats.freeSize == stats.freeSize);
-            //printf("%d, %d\n", nstats.allocatedInCurrentThread, stats.allocatedInCurrentThread);
-            //assert(nstats.allocatedInCurrentThread == stats.allocatedInCurrentThread);
+            assert(nstats.allocatedInCurrentThread - sz == stats.allocatedInCurrentThread);
         }
     }
 }

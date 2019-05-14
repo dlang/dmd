@@ -65,7 +65,7 @@ enum accumulator = q{
     else
         string name = "";
 
-    version(tracegc)
+    version (tracegc)
     {
         import core.stdc.stdio;
 
@@ -82,7 +82,7 @@ enum accumulator = q{
 
     scope(exit)
     {
-        size_t size = GC.stats().allocatedInCurrentThread;
+        ulong size = GC.stats().allocatedInCurrentThread;
         if (size > 0)
             accumulate(file, line, funcname, name, size);
     }

@@ -1,9 +1,9 @@
 bytes allocated, allocations, type, function, file:line
-            288	              1	immutable(char)[][int] D main src/profilegc.d:23
+            464	              1	immutable(char)[][int] D main src/profilegc.d:23
             160	              1	float[][] D main src/profilegc.d:18
             160	              1	int[][] D main src/profilegc.d:15
-             64	              1	float[] D main src/profilegc.d:42
-             64	              1	int[] D main src/profilegc.d:41
+             48	              1	float[] D main src/profilegc.d:42
+             48	              1	int[] D main src/profilegc.d:41
              32	              1	profilegc.main.C D main src/profilegc.d:12
              16	              1	char[] D main src/profilegc.d:34
              16	              1	char[] D main src/profilegc.d:36

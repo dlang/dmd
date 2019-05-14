@@ -22,7 +22,7 @@ import core.stdc.string;
 import core.exception : onOutOfMemoryError;
 import rt.util.container.hashtab;
 
-struct Entry { size_t count, size; }
+struct Entry { ulong count, size; }
 
 char[] buffer;
 HashTab!(const(char)[], Entry) newCounts;
@@ -45,9 +45,7 @@ extern (C) void profilegc_setlogfilename(string name)
     logfilename = name ~ "\0";
 }
 
-
-
-public void accumulate(string file, uint line, string funcname, string type, size_t sz) @nogc
+public void accumulate(string file, uint line, string funcname, string type, ulong sz) @nogc
 {
     if (sz == 0)
         return;
@@ -60,10 +58,10 @@ public void accumulate(string file, uint line, string funcname, string type, siz
     {
         // Enlarge buffer[] so it is big enough
         assert(buffer.length > 0 || buffer.ptr is null);
-        auto p = cast(char*)realloc(buffer.ptr, length + 1);
+        auto p = cast(char*)realloc(buffer.ptr, length);
         if (!p)
             onOutOfMemoryError();
-        buffer = p[0 .. length + 1];
+        buffer = p[0 .. length];
     }
 
     // "type funcname file:line"
@@ -77,7 +75,6 @@ public void accumulate(string file, uint line, string funcname, string type, siz
     buffer[type.length + 1 + funcname.length + 1 + file.length] = ':';
     buffer[type.length + 1 + funcname.length + 1 + file.length + 1 ..
            type.length + 1 + funcname.length + 1 + file.length + 1 + buflen] = buf[0 .. buflen];
-    buffer[length] = 0;
 
     if (auto pcount = cast(string)buffer[0 .. length] in newCounts)
     { // existing entry
@@ -127,7 +124,7 @@ shared static ~this()
         {
             auto result1 = cast(Result*)r1;
             auto result2 = cast(Result*)r2;
-            ptrdiff_t cmp = result2.entry.size - result1.entry.size;
+            long cmp = result2.entry.size - result1.entry.size;
             if (cmp) return cmp < 0 ? -1 : 1;
             cmp = result2.entry.count - result1.entry.count;
             if (cmp) return cmp < 0 ? -1 : 1;
