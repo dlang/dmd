@@ -4184,6 +4184,20 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     return setError();
                 if (!sd.ctor)
                     sd.ctor = sd.searchCtor();
+                /* If `sd.ctor` is a generated copy constructor, this means that it
+                   is the single constructor that this struct has. In order to not
+                   disable default construction, the ctor is nullified. The side effect
+                   of this is that the generated copy constructor cannot be called
+                   explicitly, but that is ok, because when calling a constructor the
+                   default constructor should have priority over the generated copy
+                   constructor.
+                */
+                if (sd.ctor)
+                {
+                    auto ctor = sd.ctor.isCtorDeclaration();
+                    if (ctor && ctor.isCpCtor && ctor.generated)
+                        sd.ctor = null;
+                }
 
                 // First look for constructor
                 if (exp.e1.op == TOK.type && sd.ctor)
