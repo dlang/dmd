@@ -1432,22 +1432,12 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     }
 
                     // Look if any parameter doesn't match the initial parameter.
-                    bool change = false;
                     prmti = cast(TypeInstance) prmtype;
                     for(size_t i = 0; i < tempargs[0].length; ++i) {
                         if(tempargs[0][i] != prmti.tempinst.tiargs[0][i]) {
                             //printf("tempargs[i]: %s\n", tempargs[0][i].toChars());
-                            change = true;
-                            break;
-                        }
-                    }
-                    // If so, use the initial parameters.
-                    if(change) {
-                        prmti = cast(TypeInstance) prmti.copy();
-                        for(size_t i = 0; i < tempargs[0].length; ++i) {
                             prmti.tempinst.tiargs[0][i] = tempargs[0][i];
                         }
-                        prmtype = prmti;
                     }
                 }
 
