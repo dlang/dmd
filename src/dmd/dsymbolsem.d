@@ -4315,11 +4315,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         //printf("NewDeclaration::semantic()\n");
 
         // `@disable new();` should not be deprecated
-        if (!nd.isDisabled() && !nd.isDeprecated())
+        if (!nd.isDisabled())
         {
-            // @@@DEPRECATED_2.084@@@
-            // Should be changed to an error in 2.084
-            deprecation(nd.loc, "class allocators have been deprecated, consider moving the allocation strategy outside of the class");
+            // @@@DEPRECATED_2.091@@@
+            // Made an error in 2.087.
+            // Should be removed in 2.091
+            error(nd.loc, "class allocators are obsolete, consider moving the allocation strategy outside of the class");
         }
 
         if (nd.semanticRun >= PASS.semanticdone)
@@ -4369,10 +4370,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     {
         //printf("DeleteDeclaration::semantic()\n");
 
-        // @@@DEPRECATED_2.084@@@
-        // Should be changed to an error in 2.084
-        if (!deld.isDeprecated())
-            deprecation(deld.loc, "class deallocators have been deprecated, consider moving the deallocation strategy outside of the class");
+        // @@@DEPRECATED_2.091@@@
+        // Made an error in 2.087.
+        // Should be removed in 2.091
+        error(deld.loc, "class deallocators are obsolete, consider moving the deallocation strategy outside of the class");
 
         if (deld.semanticRun >= PASS.semanticdone)
             return;
