@@ -612,6 +612,9 @@ extern (C++) final class Module : Package
     // read file, returns 'true' if succeed, 'false' otherwise.
     bool read(Loc loc)
     {
+        if (srcBuffer)
+            return true; // already read
+
         //printf("Module::read('%s') file '%s'\n", toChars(), srcfile.toChars());
         auto readResult = File.read(srcfile.toChars());
         // take ownership of buffer

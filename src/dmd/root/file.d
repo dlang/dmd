@@ -71,58 +71,6 @@ nothrow:
     {
         ReadResult result;
 
-        import core.stdc.string : strcmp;
-        if (strcmp(name, "__main.d") == 0)
-        {
-            /* "Read" the dummy main.d file */
-            result.success = true;
-            result.buffer.data = cast(ubyte[]) xarraydup("int main(){return 0;}");
-            return result;
-        }
-        if (strcmp(name, "__stdin.d") == 0)
-        {
-            /* Read from stdin */
-            enum bufIncrement = 128 * 1024;
-            size_t pos = 0;
-            size_t sz = bufIncrement;
-
-            ubyte* buffer = null;
-            L1: for (;;)
-            {
-                buffer = cast(ubyte*)mem.xrealloc(buffer, sz + 2); // +2 for sentinel
-                if (!buffer)
-                    break L1;
-
-                // Fill up buffer
-                do
-                {
-                    assert(sz > pos);
-                    size_t rlen = fread(buffer + pos, 1, sz - pos, stdin);
-                    pos += rlen;
-                    if (ferror(stdin))
-                    {
-                        printf("\tread error, errno = %d\n", errno);
-                        break L1;
-                    }
-                    if (feof(stdin))
-                    {
-                        // We're done
-                        assert(pos < sz + 2);
-                        buffer[pos] = '\0';
-                        buffer[pos + 1] = '\0';
-                        result.success = true;
-                        result.buffer.data = buffer[0 .. pos];
-                        return result;
-                    }
-                } while (pos < sz);
-
-                // Buffer full, expand
-                sz += bufIncrement;
-            }
-            mem.xfree(buffer);
-            return result;
-        }
-
         version (Posix)
         {
             size_t size;
