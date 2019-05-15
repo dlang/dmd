@@ -91,6 +91,8 @@ public:
         type** ptypes = (nparams <= tmp.length)
                         ? tmp.ptr
                         : cast(type**)malloc((type*).sizeof * nparams);
+        assert(ptypes);
+        type*[] types = ptypes[0 .. nparams];
 
         foreach (i; 0 .. nparams)
         {
@@ -101,14 +103,14 @@ public:
             else if (p.storageClass & STC.lazy_)
             {
                 // Mangle as delegate
-                type* tf = type_function(TYnfunc, null, 0, false, tp);
+                type* tf = type_function(TYnfunc, null, false, tp);
                 tp = type_delegate(tf);
             }
-            ptypes[i] = tp;
+            types[i] = tp;
         }
-        t.ctype = type_function(totym(t), ptypes, nparams, t.parameterList.varargs == VarArg.variadic, Type_toCtype(t.next));
-        if (nparams > tmp.length)
-            free(ptypes);
+        t.ctype = type_function(totym(t), types, t.parameterList.varargs == VarArg.variadic, Type_toCtype(t.next));
+        if (types.ptr != tmp.ptr)
+            free(types.ptr);
     }
 
     override void visit(TypeDelegate t)

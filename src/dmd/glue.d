@@ -200,7 +200,7 @@ private Symbol *callFuncsAndGates(Module m, symbols *sctors, StaticDtorDeclarati
             /* t will be the type of the functions generated:
              *      extern (C) void func();
              */
-            t = type_function(TYnfunc, null, 0, false, tstypes[TYvoid]);
+            t = type_function(TYnfunc, null, false, tstypes[TYvoid]);
             t.Tmangle = mTYman_c;
         }
 
@@ -431,7 +431,7 @@ void genObjFile(Module m, bool multiobj)
         /* t will be the type of the functions generated:
          *      extern (C) void func();
          */
-        type *t = type_function(TYnfunc, null, 0, false, tstypes[TYvoid]);
+        type *t = type_function(TYnfunc, null, false, tstypes[TYvoid]);
         t.Tmangle = mTYman_c;
 
         m.sictor = toSymbolX(m, "__modictor", SCglobal, t, "FZv");
