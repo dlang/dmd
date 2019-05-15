@@ -343,13 +343,8 @@ final class Parser(AST) : Lexer
                     {
                         // deprecated (...) module ...
                         if (isdeprecated)
-                        {
                             error("there is only one deprecation attribute allowed for module declaration");
-                        }
-                        else
-                        {
-                            isdeprecated = true;
-                        }
+                        isdeprecated = true;
                         nextToken();
                         if (token.value == TOK.leftParentheses)
                         {
@@ -405,32 +400,30 @@ final class Parser(AST) : Lexer
                 error("identifier expected following `module`");
                 goto Lerr;
             }
-            else
+
+            AST.Identifiers* a = null;
+            Identifier id = token.ident;
+
+            while (nextToken() == TOK.dot)
             {
-                AST.Identifiers* a = null;
-                Identifier id = token.ident;
-
-                while (nextToken() == TOK.dot)
-                {
-                    if (!a)
-                        a = new AST.Identifiers();
-                    a.push(id);
-                    nextToken();
-                    if (token.value != TOK.identifier)
-                    {
-                        error("identifier expected following `package`");
-                        goto Lerr;
-                    }
-                    id = token.ident;
-                }
-
-                md = new AST.ModuleDeclaration(loc, a, id, msg, isdeprecated);
-
-                if (token.value != TOK.semicolon)
-                    error("`;` expected following module declaration instead of `%s`", token.toChars());
+                if (!a)
+                    a = new AST.Identifiers();
+                a.push(id);
                 nextToken();
-                addComment(mod, comment);
+                if (token.value != TOK.identifier)
+                {
+                    error("identifier expected following `package`");
+                    goto Lerr;
+                }
+                id = token.ident;
             }
+
+            md = new AST.ModuleDeclaration(loc, a, id, msg, isdeprecated);
+
+            if (token.value != TOK.semicolon)
+                error("`;` expected following module declaration instead of `%s`", token.toChars());
+            nextToken();
+            addComment(mod, comment);
         }
 
         decldefs = parseDeclDefs(0, &lastDecl);
@@ -594,8 +587,7 @@ final class Parser(AST) : Lexer
             case TOK.this_:
                 if (peekNext() == TOK.dot)
                     goto Ldeclaration;
-                else
-                    s = parseCtor(pAttrs);
+                s = parseCtor(pAttrs);
                 break;
 
             case TOK.tilde:
@@ -603,22 +595,18 @@ final class Parser(AST) : Lexer
                 break;
 
             case TOK.invariant_:
+                Token* t = peek(&token);
+                if (t.value == TOK.leftParentheses || t.value == TOK.leftCurly)
                 {
-                    Token* t = peek(&token);
-                    if (t.value == TOK.leftParentheses || t.value == TOK.leftCurly)
-                    {
-                        // invariant { statements... }
-                        // invariant() { statements... }
-                        // invariant (expression);
-                        s = parseInvariant(pAttrs);
-                    }
-                    else
-                    {
-                        error("invariant body expected, not `%s`", token.toChars());
-                        goto Lerror;
-                    }
+                    // invariant { statements... }
+                    // invariant() { statements... }
+                    // invariant (expression);
+                    s = parseInvariant(pAttrs);
                     break;
                 }
+                error("invariant body expected, not `%s`", token.toChars());
+                goto Lerror;
+
             case TOK.unittest_:
                 if (global.params.useUnitTests || global.params.doDocComments || global.params.doHdrGeneration)
                 {
@@ -1600,8 +1588,7 @@ final class Parser(AST) : Lexer
             error("members of template declaration expected");
             goto Lerr;
         }
-        else
-            decldefs = parseBlock(null);
+        decldefs = parseBlock(null);
 
         tempdecl = new AST.TemplateDeclaration(loc, id, tpl, constraint, decldefs, ismixin);
         return tempdecl;
@@ -1860,13 +1847,12 @@ final class Parser(AST) : Lexer
             nextToken();
         }
 
+        id = null;
         if (token.value == TOK.identifier)
         {
             id = token.ident;
             nextToken();
         }
-        else
-            id = null;
 
         tm = new AST.TemplateMixin(locMixin, id, tqual, tiargs);
         if (token.value != TOK.semicolon)
@@ -2199,7 +2185,7 @@ final class Parser(AST) : Lexer
         AST.Identifiers* idents = null;
         AST.Expressions* identExps = null;
         cppmangle = CPPMANGLE.def;
-        LINK link = LINK.default_;
+        LINK link = LINK.d; // default
         nextToken();
         assert(token.value == TOK.leftParentheses);
         nextToken();
@@ -2215,7 +2201,7 @@ final class Parser(AST) : Lexer
                 link = LINK.pascal;
             }
             else if (id == Id.D)
-                link = LINK.d;
+            { /* already set */}
             else if (id == Id.C)
             {
                 link = LINK.c;
@@ -2291,10 +2277,6 @@ final class Parser(AST) : Lexer
                 error("valid linkage identifiers are `D`, `C`, `C++`, `Objective-C`, `Pascal`, `Windows`, `System`");
                 link = LINK.d;
             }
-        }
-        else
-        {
-            link = LINK.d; // default
         }
         check(TOK.rightParentheses);
         *pidents = idents;
@@ -2743,10 +2725,7 @@ final class Parser(AST) : Lexer
                 auto f = new AST.InvariantDeclaration(loc, token.loc, stc, null, fbody);
                 return f;
             }
-            else
-            {
-                nextToken();
-            }
+            nextToken();
         }
 
         auto fbody = parseStatement(ParseStatementFlags.curly);
@@ -2961,13 +2940,13 @@ final class Parser(AST) : Lexer
                         goto L4;
                     L4:
                         nextToken();
+                        ai = null;
                         if (token.value == TOK.identifier)
                         {
                             ai = token.ident;
                             nextToken();
                         }
-                        else
-                            ai = null;
+
                         at = null; // no type
                         ae = null; // no default argument
                         if (token.value == TOK.assign) // = defaultArg
@@ -3094,14 +3073,14 @@ final class Parser(AST) : Lexer
 
         // printf("Parser::parseEnum()\n");
         nextToken();
+        id = null;
         if (token.value == TOK.identifier)
         {
             id = token.ident;
             nextToken();
         }
-        else
-            id = null;
 
+        memtype = null;
         if (token.value == TOK.colon)
         {
             nextToken();
@@ -3111,8 +3090,6 @@ final class Parser(AST) : Lexer
             memtype = parseDeclarator(memtype, &alt, null);
             checkCstyleTypeSyntax(typeLoc, memtype, alt, null);
         }
-        else
-            memtype = null;
 
         e = new AST.EnumDeclaration(loc, id, memtype);
         if (token.value == TOK.semicolon && id)
@@ -4007,11 +3984,7 @@ final class Parser(AST) : Lexer
                         else
                             tf = cast(AST.TypeFunction)tf.addSTC(stc);
                     }
-
-                    if (save == TOK.delegate_)
-                        t = new AST.TypeDelegate(tf);
-                    else
-                        t = new AST.TypePointer(tf); // pointer to function
+                    t = save == TOK.delegate_ ? new AST.TypeDelegate(tf) : new AST.TypePointer(tf); // pointer to function
                     continue;
                 }
             default:
@@ -4277,7 +4250,7 @@ final class Parser(AST) : Lexer
                     Token* t = peek(&token);
                     if (t.value == TOK.leftCurly || t.value == TOK.colon)
                         break;
-                    else if (t.value == TOK.identifier)
+                    if (t.value == TOK.identifier)
                     {
                         t = peek(t);
                         if (t.value == TOK.leftCurly || t.value == TOK.colon || t.value == TOK.semicolon)
@@ -4963,8 +4936,7 @@ final class Parser(AST) : Lexer
             decldefs.push(fd);
             return new AST.TemplateDeclaration(fd.loc, fd.ident, tpl, null, decldefs, false, true);
         }
-        else
-            return fd;
+        return fd;
     }
 
     /*****************************************
@@ -5427,8 +5399,7 @@ final class Parser(AST) : Lexer
              */
             if (isDeclaration(&token, NeedDeclaratorId.mustIfDstyle, TOK.reserved, null))
                 goto Ldeclaration;
-            else
-                goto Lexp;
+            goto Lexp;
 
         case TOK.assert_:
         case TOK.this_:
@@ -5496,7 +5467,7 @@ final class Parser(AST) : Lexer
                     cond = parseStaticIfCondition();
                     goto Lcondition;
                 }
-                else if(t.value == TOK.foreach_ || t.value == TOK.foreach_reverse_)
+                if (t.value == TOK.foreach_ || t.value == TOK.foreach_reverse_)
                 {
                     s = parseForeach!(true,false)(loc);
                     if (flags & ParseStatementFlags.scope_)
@@ -6079,10 +6050,7 @@ final class Parser(AST) : Lexer
             {
                 AST.Expression exp;
                 nextToken();
-                if (token.value == TOK.semicolon)
-                    exp = null;
-                else
-                    exp = parseExpression();
+                exp = token.value == TOK.semicolon ? null : parseExpression();
                 check(TOK.semicolon, "`return` statement");
                 s = new AST.ReturnStatement(loc, exp);
                 break;
@@ -6091,13 +6059,12 @@ final class Parser(AST) : Lexer
             {
                 Identifier ident;
                 nextToken();
+                ident = null;
                 if (token.value == TOK.identifier)
                 {
                     ident = token.ident;
                     nextToken();
                 }
-                else
-                    ident = null;
                 check(TOK.semicolon, "`break` statement");
                 s = new AST.BreakStatement(loc, ident);
                 break;
@@ -6106,13 +6073,12 @@ final class Parser(AST) : Lexer
             {
                 Identifier ident;
                 nextToken();
+                ident = null;
                 if (token.value == TOK.identifier)
                 {
                     ident = token.ident;
                     nextToken();
                 }
-                else
-                    ident = null;
                 check(TOK.semicolon, "`continue` statement");
                 s = new AST.ContinueStatement(loc, ident);
                 break;
@@ -6672,33 +6638,25 @@ final class Parser(AST) : Lexer
      */
     private AST.Expression parseDefaultInitExp()
     {
-        if (token.value == TOK.file || token.value == TOK.fileFullPath || token.value == TOK.line
-            || token.value == TOK.moduleString || token.value == TOK.functionString || token.value == TOK.prettyFunction)
+        AST.Expression e = null;
+        Token* t = peek(&token);
+        if (t.value == TOK.comma || t.value == TOK.rightParentheses)
         {
-            Token* t = peek(&token);
-            if (t.value == TOK.comma || t.value == TOK.rightParentheses)
+            switch (token.value)
             {
-                AST.Expression e = null;
-                if (token.value == TOK.file)
-                    e = new AST.FileInitExp(token.loc, TOK.file);
-                else if (token.value == TOK.fileFullPath)
-                    e = new AST.FileInitExp(token.loc, TOK.fileFullPath);
-                else if (token.value == TOK.line)
-                    e = new AST.LineInitExp(token.loc);
-                else if (token.value == TOK.moduleString)
-                    e = new AST.ModuleInitExp(token.loc);
-                else if (token.value == TOK.functionString)
-                    e = new AST.FuncInitExp(token.loc);
-                else if (token.value == TOK.prettyFunction)
-                    e = new AST.PrettyFuncInitExp(token.loc);
-                else
-                    assert(0);
-                nextToken();
-                return e;
+            case TOK.file:           e = new AST.FileInitExp(token.loc, TOK.file); break;
+            case TOK.fileFullPath:   e = new AST.FileInitExp(token.loc, TOK.fileFullPath); break;
+            case TOK.line:           e = new AST.LineInitExp(token.loc); break;
+            case TOK.moduleString:   e = new AST.ModuleInitExp(token.loc); break;
+            case TOK.functionString: e = new AST.FuncInitExp(token.loc); break;
+            case TOK.prettyFunction: e = new AST.PrettyFuncInitExp(token.loc); break;
+            default: goto LExp;
             }
+            nextToken();
+            return e;
         }
-        AST.Expression e = parseAssignExp();
-        return e;
+        LExp:
+        return parseAssignExp();
     }
 
     private void check(Loc loc, TOK value)
@@ -6781,8 +6739,7 @@ final class Parser(AST) : Lexer
                 *pt = t;
             goto Lis;
         }
-        else
-            goto Lisnot;
+        goto Lisnot;
 
     Lis:
         //printf("\tis declaration, t = %s\n", t.toChars());
@@ -6920,8 +6877,7 @@ final class Parser(AST) : Lexer
                         goto Lfalse;
                     }
                 }
-                else
-                    break;
+                break;
             }
             break;
 
@@ -8486,13 +8442,12 @@ final class Parser(AST) : Lexer
                         e = new AST.DotIdExp(loc, e, id);
                     continue;
                 }
-                else if (token.value == TOK.new_)
+                if (token.value == TOK.new_)
                 {
                     e = parseNewExp(e);
                     continue;
                 }
-                else
-                    error("identifier expected following `.`, not `%s`", token.toChars());
+                error("identifier or `new` expected following `.`, not `%s`", token.toChars());
                 break;
 
             case TOK.plusPlus:
@@ -8929,23 +8884,19 @@ final class Parser(AST) : Lexer
         TOK endtok;
 
         arguments = new AST.Expressions();
-        if (token.value == TOK.leftBracket)
-            endtok = TOK.rightBracket;
-        else
-            endtok = TOK.rightParentheses;
+        endtok = token.value == TOK.leftBracket ? TOK.rightBracket : TOK.rightParentheses;
 
+        nextToken();
+        while (token.value != endtok && token.value != TOK.endOfFile)
         {
-            nextToken();
-            while (token.value != endtok && token.value != TOK.endOfFile)
-            {
-                auto arg = parseAssignExp();
-                arguments.push(arg);
-                if (token.value == endtok)
-                    break;
-                check(TOK.comma);
-            }
-            check(endtok);
+            auto arg = parseAssignExp();
+            arguments.push(arg);
+            if (token.value == endtok)
+                break;
+            check(TOK.comma);
         }
+        check(endtok);
+
         return arguments;
     }
 
@@ -9011,10 +8962,7 @@ final class Parser(AST) : Lexer
             }
             t = new AST.TypeSArray(taa.next, edim);
         }
-        else if (t.ty == AST.Tsarray)
-        {
-        }
-        else if (token.value == TOK.leftParentheses)
+        else if (token.value == TOK.leftParentheses && t.ty != AST.Tsarray)
         {
             arguments = parseArguments();
         }

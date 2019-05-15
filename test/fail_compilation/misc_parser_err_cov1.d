@@ -17,7 +17,7 @@ fail_compilation/misc_parser_err_cov1.d(38): Error: found `)` instead of stateme
 fail_compilation/misc_parser_err_cov1.d(39): Error: identifier expected following `(type)`.
 fail_compilation/misc_parser_err_cov1.d(39): Error: expression expected, not `;`
 fail_compilation/misc_parser_err_cov1.d(40): Error: semicolon expected following auto declaration, not `auto`
-fail_compilation/misc_parser_err_cov1.d(40): Error: identifier expected following `.`, not `+`
+fail_compilation/misc_parser_err_cov1.d(40): Error: identifier or `new` expected following `.`, not `+`
 fail_compilation/misc_parser_err_cov1.d(41): Error: declaration expected, not `(`
 fail_compilation/misc_parser_err_cov1.d(42): Error: unrecognized declaration
 ---
