@@ -106,7 +106,7 @@ class Library
         OutBuffer libbuf;
         WriteLibToBuffer(&libbuf);
 
-        writeFile(Loc.initial, loc.filename, libbuf.peekSlice());
+        writeFile(Loc.initial, loc.filename.toDString, libbuf.peekSlice());
     }
 
     final void error(const(char)* format, ...)

@@ -484,7 +484,7 @@ extern(C++) void gendocfile(Module m)
                 buf.writeByte(c);
             }
         }
-        writeFile(m.loc, m.docfile.toChars(), buf.peekSlice());
+        writeFile(m.loc, m.docfile.toString(), buf.peekSlice());
     }
     else
     {
@@ -505,7 +505,7 @@ extern(C++) void gendocfile(Module m)
             }
             buf2.setsize(i);
         }
-        writeFile(m.loc, m.docfile.toChars(), buf2.peekSlice());
+        writeFile(m.loc, m.docfile.toString(), buf2.peekSlice());
     }
 }
 

@@ -637,7 +637,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
         const data = ob.peekSlice();
         if (params.moduleDepsFile)
-            writeFile(Loc.initial, params.moduleDepsFile, data);
+            writeFile(Loc.initial, params.moduleDepsFile.toDString, data);
         else
             printf("%.*s", cast(int)data.length, data.ptr);
     }
@@ -841,7 +841,7 @@ extern (C++) void generateJson(Modules* modules)
             //    name = FileName::combine(dir, name);
             jsonfilename = FileName.forceExt(n, global.json_ext);
         }
-        writeFile(Loc.initial, jsonfilename, buf.peekSlice());
+        writeFile(Loc.initial, jsonfilename.toDString, buf.peekSlice());
     }
 }
 
