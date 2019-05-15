@@ -58,7 +58,7 @@ public:
     static AggregateDeclaration *moduleinfo;
 
 
-    const char *arg;    // original argument name
+    DArray<const char> arg;    // original argument name
     ModuleDeclaration *md; // if !NULL, the contents of the ModuleDeclaration declaration
     FileName srcfile;   // input source file
     FileName objfile;   // output .obj file

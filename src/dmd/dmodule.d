@@ -313,7 +313,7 @@ extern (C++) final class Module : Package
 
     extern (C++) __gshared AggregateDeclaration moduleinfo;
 
-    const(char)* arg;           // original argument name
+    const(char)[] arg;           // original argument name
     ModuleDeclaration* md;      // if !=null, the contents of the ModuleDeclaration declaration
     const FileName srcfile;     // input source file
     const FileName objfile;     // output .obj file
@@ -406,38 +406,51 @@ extern (C++) final class Module : Package
     size_t nameoffset;          // offset of module name from start of ModuleInfo
     size_t namelen;             // length of module name in characters
 
-    extern (D) this(const ref Loc loc, const(char)* filename, Identifier ident, int doDocComment, int doHdrGen)
+    extern (D) this(const ref Loc loc, const(char)[] filename, Identifier ident, int doDocComment, int doHdrGen)
     {
         super(loc, ident);
-        const(char)* srcfilename;
+        const(char)[] srcfilename;
         //printf("Module::Module(filename = '%s', ident = '%s')\n", filename, ident.toChars());
         this.arg = filename;
-        srcfilename = FileName.defaultExt(filename, global.mars_ext);
-        if (global.run_noext && global.params.run && !FileName.ext(filename) && FileName.exists(srcfilename) == 0 && FileName.exists(filename) == 1)
+        srcfilename = FileName.defaultExt(filename, global.mars_ext.toDString());
+        if (global.run_noext && global.params.run &&
+            !FileName.ext(filename) &&
+            FileName.exists(srcfilename) == 0 &&
+            FileName.exists(filename) == 1)
         {
-            FileName.free(srcfilename);
+            FileName.free(srcfilename.ptr);
             srcfilename = FileName.removeExt(filename); // just does a mem.strdup(filename)
         }
-        else if (!FileName.equalsExt(srcfilename, global.mars_ext) && !FileName.equalsExt(srcfilename, global.hdr_ext) && !FileName.equalsExt(srcfilename, "dd"))
+        else if (!FileName.equalsExt(srcfilename, global.mars_ext.toDString()) &&
+                 !FileName.equalsExt(srcfilename, global.hdr_ext.toDString()) &&
+                 !FileName.equalsExt(srcfilename, "dd"))
         {
-            error("source file name '%s' must have .%s extension", srcfilename, global.mars_ext);
+            error("source file name '%.*s' must have .%s extension",
+                  srcfilename.length, srcfilename.ptr, global.mars_ext);
             fatal();
         }
-        srcfile = FileName(srcfilename.toDString);
-        objfile = setOutfilename(global.params.objname, global.params.objdir, filename, global.obj_ext);
+
+        srcfile = FileName(srcfilename);
+        objfile = setOutfilename(global.params.objname.toDString, global.params.objdir.toDString, filename, global.obj_ext.toDString);
         if (doDocComment)
             setDocfile();
         if (doHdrGen)
-            hdrfile = setOutfilename(global.params.hdrname, global.params.hdrdir, arg, global.hdr_ext);
+            hdrfile = setOutfilename(global.params.hdrname.toDString, global.params.hdrdir.toDString, arg, global.hdr_ext.toDString);
+
         escapetable = new Escape();
     }
 
-    extern (D) this(const(char)* filename, Identifier ident, int doDocComment, int doHdrGen)
+    extern (D) this(const(char)[] filename, Identifier ident, int doDocComment, int doHdrGen)
     {
         this(Loc.initial, filename, ident, doDocComment, doHdrGen);
     }
 
     static Module create(const(char)* filename, Identifier ident, int doDocComment, int doHdrGen)
+    {
+        return create(filename.toDString, ident, doDocComment, doHdrGen);
+    }
+
+    extern (D) static Module create(const(char)[] filename, Identifier ident, int doDocComment, int doHdrGen)
     {
         return new Module(Loc.initial, filename, ident, doDocComment, doHdrGen);
     }
@@ -509,7 +522,7 @@ extern (C++) final class Module : Package
         if (const result = lookForSourceFile(filename))
             filename = result; // leaks
 
-        auto m = new Module(loc, filename.ptr, ident, 0, 0);
+        auto m = new Module(loc, filename, ident, 0, 0);
 
         if (!m.read(loc))
             return null;
@@ -606,7 +619,7 @@ extern (C++) final class Module : Package
 
     void setDocfile()
     {
-        docfile = setOutfilename(global.params.docname, global.params.docdir, arg, global.doc_ext);
+        docfile = setOutfilename(global.params.docname.toDString, global.params.docdir.toDString, arg, global.doc_ext.toDString);
     }
 
     // read file, returns 'true' if succeed, 'false' otherwise.

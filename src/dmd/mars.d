@@ -2688,7 +2688,7 @@ Modules createModules(ref Strings files, ref Strings libmodules)
          * its path and extension.
          */
         auto id = Identifier.idPool(name, cast(uint)strlen(name));
-        auto m = new Module(files[i], id, global.params.doDocComments, global.params.doHdrGeneration);
+        auto m = new Module(files[i].toDString, id, global.params.doDocComments, global.params.doHdrGeneration);
         modules.push(m);
         if (firstmodule)
         {
