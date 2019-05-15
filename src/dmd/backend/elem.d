@@ -1519,7 +1519,7 @@ elem *el_picvar(Symbol *s)
     elem *e;
     int x;
 
-    //printf("el_picvar(s = '%s')\n", s.Sident);
+    //printf("el_picvar(s = '%s')\n", s.Sident.ptr);
     symbol_debug(s);
     type_debug(s.Stype);
     e = el_calloc();
@@ -1557,7 +1557,6 @@ elem *el_picvar(Symbol *s)
 
     if (I64)
     {
-        Obj.refGOTsym();
         switch (s.Sclass)
         {
             case SCstatic:
@@ -1572,6 +1571,7 @@ elem *el_picvar(Symbol *s)
                 x = 1;
             case_got64:
             {
+                Obj.refGOTsym();
                 int op = e.Eoper;
                 tym_t tym = e.Ety;
                 e.Ety = TYnptr;
