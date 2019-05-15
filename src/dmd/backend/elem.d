@@ -225,9 +225,6 @@ elem *el_calloc()
 
 void el_free(elem *e)
 {
-    int op;
-    tym_t ty;
-
 L1:
     if (!e) return;
     elem_debug(e);
@@ -235,6 +232,7 @@ L1:
     //elem_print(e);
     version (SCPP_HTOD)
     {
+        tym_t ty;
         if (PARSER)
         {
             ty = e.ET ? e.ET.Tty : 0;
@@ -249,7 +247,7 @@ L1:
             return;                         // usage count
     }
     elcount--;
-    op = e.Eoper;
+    const op = e.Eoper;
     switch (op)
     {
         case OPconst:
@@ -273,10 +271,9 @@ L1:
             debug assert(op < OPMAX);
             if (!OTleaf(op))
             {
-                elem *en;
                 if (OTbinary(op))
                     el_free(e.EV.E2);
-                en = e.EV.E1;
+                elem* en = e.EV.E1;
                 debug memset(e,0xFF,elem_size);
                 e.EV.E1 = nextfree;
                 nextfree = e;
@@ -879,42 +876,36 @@ Symbol *el_basesym(elem *e)
 /****************************************
  * Does any definition of lvalue ed appear in e?
  * Returns:
- *      1       yes
- *      0       no
+ *      true if there is one
  */
 
-int el_anydef(elem *ed, elem *e)
+bool el_anydef(elem *ed, elem *e)
 {
-    int op;
-    int edop;
-    Symbol *s;
-    elem *e1;
-
-    edop = ed.Eoper;
-    s = (edop == OPvar) ? ed.EV.Vsym : null;
+    const edop = ed.Eoper;
+    const s = (edop == OPvar) ? ed.EV.Vsym : null;
     while (1)
     {
-        op = e.Eoper;
+        const op = e.Eoper;
         if (!OTleaf(op))
         {
-            e1 = e.EV.E1;
+            auto e1 = e.EV.E1;
             if (OTdef(op))
             {
                 if (e1.Eoper == OPvar && e1.EV.Vsym == s)
-                    return 1;
+                    return true;
 
                 // This doesn't cover all the cases
                 if (e1.Eoper == edop && el_match(e1,ed))
-                    return 1;
+                    return true;
             }
             if (OTbinary(op) && el_anydef(ed,e.EV.E2))
-                return 1;
+                return true;
             e = e1;
         }
         else
             break;
     }
-    return 0;
+    return false;
 }
 
 }
@@ -923,7 +914,7 @@ int el_anydef(elem *ed, elem *e)
  * Make a binary operator node.
  */
 
-elem * el_bint(uint op,type *t,elem *e1,elem *e2)
+elem* el_bint(OPER op,type *t,elem *e1,elem *e2)
 {
     elem *e;
     /* e2 is null when OPpostinc is built       */
@@ -945,10 +936,8 @@ elem * el_bint(uint op,type *t,elem *e1,elem *e2)
     return e;
 }
 
-elem * el_bin(uint op,tym_t ty,elem *e1,elem *e2)
+elem* el_bin(OPER op,tym_t ty,elem *e1,elem *e2)
 {
-    elem *e;
-
 static if (0)
 {
     if (!(op < OPMAX && OTbinary(op) && e1 && e2))
@@ -958,7 +947,7 @@ static if (0)
     version (MARS) { } else assert(!PARSER);
     elem_debug(e1);
     elem_debug(e2);
-    e = el_calloc();
+    elem* e = el_calloc();
     e.Ety = ty;
     e.Eoper = cast(ubyte)op;
     e.EV.E1 = e1;
@@ -972,7 +961,7 @@ static if (0)
  * Make a unary operator node.
  */
 
-elem * el_unat(uint op,type *t,elem *e1)
+elem* el_unat(OPER op,type *t,elem *e1)
 {
     debug if (!(op < OPMAX && OTunary(op) && e1))
         printf("op = x%x, e1 = %p\n",op,e1);
@@ -992,7 +981,7 @@ elem * el_unat(uint op,type *t,elem *e1)
     return e;
 }
 
-elem * el_una(uint op,tym_t ty,elem *e1)
+elem* el_una(OPER op,tym_t ty,elem *e1)
 {
     debug if (!(op < OPMAX && OTunary(op) && e1))
         printf("op = x%x, e1 = %p\n",op,e1);
@@ -1013,9 +1002,8 @@ elem * el_una(uint op,tym_t ty,elem *e1)
 
 extern (C) elem * el_longt(type *t,targ_llong val)
 {
-    elem *e;
     assert(PARSER);
-    e = el_calloc();
+    elem* e = el_calloc();
     e.Eoper = OPconst;
     e.ET = t;
     if (e.ET)
@@ -1031,14 +1019,12 @@ extern (C) // necessary because D <=> C++ mangling of "long long" is not consist
 {
 elem * el_long(tym_t t,targ_llong val)
 {
-    elem *e;
-
     version (MARS)
     { }
     else
         assert(!PARSER);
 
-    e = el_calloc();
+    elem* e = el_calloc();
     e.Eoper = OPconst;
     e.Ety = t;
     switch (tybasic(t))
@@ -1228,34 +1214,33 @@ elem * el_nelems(type *t)
 }
 
 /************************************
- * Return != 0 if function has any side effects.
+ * Returns: true if function has any side effects.
  */
 
 version (MARS)
 {
 
-int el_funcsideeff(elem *e)
+bool el_funcsideeff(const elem *e)
 {
-    Symbol *s;
+    const(Symbol)* s;
     if (e.Eoper == OPvar &&
         tyfunc((s = e.EV.Vsym).Stype.Tty) &&
         ((s.Sfunc && s.Sfunc.Fflags3 & Fnosideeff) || s == funcsym_p)
        )
-        return 0;
-    return 1;                   // assume it does have side effects
+        return false;
+    return true;                   // assume it does have side effects
 }
 
 }
 
 /****************************
- * Return != 0 if elem has any side effects.
+ * Returns: true if elem has any side effects.
  */
 
 int el_sideeffect(elem *e)
 {
-    int op;
     assert(e);
-    op = e.Eoper;
+    const op = e.Eoper;
     assert(op < OPMAX);
     elem_debug(e);
     return  typemask(e) & mTYvolatile ||
@@ -1406,7 +1391,7 @@ elem *el_picvar(Symbol *s)
 
         case_got:
         {
-            int op = e.Eoper;
+            const op = e.Eoper;
             tym_t tym = e.Ety;
             e.Eoper = OPrelconst;
             e.Ety = TYnptr;
@@ -1572,7 +1557,7 @@ elem *el_picvar(Symbol *s)
             case_got64:
             {
                 Obj.refGOTsym();
-                int op = e.Eoper;
+                const op = e.Eoper;
                 tym_t tym = e.Ety;
                 e.Ety = TYnptr;
 
@@ -1643,7 +1628,7 @@ elem *el_picvar(Symbol *s)
                     x = 1;
             case_got:
             {
-                int op = e.Eoper;
+                const op = e.Eoper;
                 tym_t tym = e.Ety;
                 e.Eoper = OPrelconst;
                 e.Ety = TYnptr;
@@ -2033,11 +2018,8 @@ version (SCPP_HTOD)
 
 elem * el_ptr_offset(Symbol *s,targ_size_t offset)
 {
-    elem *e;
-    elem *e1;
-
-    e = el_ptr(s);      /* e is an elem which is a pointer to s */
-    e1 = e.EV.E1;
+    auto e = el_ptr(s);      /* e is an elem which is a pointer to s */
+    auto e1 = e.EV.E1;
     if (e1.Eoper == OPvar)
     { }
     // The following case happens if symbol s is in thread local storage
@@ -2056,11 +2038,11 @@ elem * el_ptr_offset(Symbol *s,targ_size_t offset)
 
 /*************************
  * Returns:
- *      !=0     elem evaluates right-to-left
- *      0       elem evaluates left-to-right
+ *      true   elem evaluates right-to-left
+ *      false  elem evaluates left-to-right
  */
 
-int ERTOL(elem *e)
+bool ERTOL(const elem *e)
 {
     elem_debug(e);
     assert(!PARSER);
@@ -2077,7 +2059,7 @@ int ERTOL(elem *e)
  *      false if expression never returns.
  */
 
-bool el_returns(elem *e)
+bool el_returns(const(elem)* e)
 {
     while (1)
     {
@@ -2434,10 +2416,9 @@ version (HTOD) { } else
 {
 elem *el_convert(elem *e)
 {
-    int op;
     //printf("el_convert(%p)\n", e);
     elem_debug(e);
-    op = e.Eoper;
+    const op = e.Eoper;
     switch (op)
     {
         case OPvar:
@@ -2745,19 +2726,17 @@ elem *el_dtor(elem *edtor,elem *e)
 
 elem *el_zero(type *t)
 {
-        elem *e;
+    assert(PARSER);
 
-        assert(PARSER);
-
-        e = el_calloc();
-        e.Eoper = OPconst;
-        e.ET = t;
-        if (t)
-        {
-            type_debug(t);
-            e.ET.Tcount++;
-        }
-        return(e);
+    elem* e = el_calloc();
+    e.Eoper = OPconst;
+    e.ET = t;
+    if (t)
+    {
+        type_debug(t);
+        e.ET.Tcount++;
+    }
+    return(e);
 }
 
 /*******************
@@ -2786,39 +2765,38 @@ elem ** el_parent(elem *e,elem **pe)
 }
 
 /*******************************
- * Return !=0 if trees match.
+ * Returns: true if trees match.
  */
-private __gshared int gmatch2;                     // kludge for el_match2()
 
-int el_match(elem *n1,elem *n2)
+private bool el_matchx(const(elem)* n1, const(elem)* n2, int gmatch2)
 {
-    uint op;
-    tym_t tym,tym2;
-
-L1:
     if (n1 == n2)
         return true;
     if (!n1 || !n2)
-        goto nomatch;
+        return false;
     elem_debug(n1);
     elem_debug(n2);
 
-    if ((op = n1.Eoper) != n2.Eoper)
-        goto nomatch;
+L1:
+    const op = n1.Eoper;
+    if (op != n2.Eoper)
+        return false;
 
-    if ((tym = typemask(n1)) != (tym2 = typemask(n2)))
+    auto tym = typemask(n1);
+    auto tym2 = typemask(n2);
+    if (tym != tym2)
     {
         if ((tym & ~mTYbasic) != (tym2 & ~mTYbasic))
         {
             if (!(gmatch2 & 2))
-                goto nomatch;
+                return false;
         }
         tym = tybasic(tym);
         tym2 = tybasic(tym2);
         if (tyequiv[tym] != tyequiv[tym2] &&
             !((gmatch2 & 8) && touns(tym) == touns(tym2))
            )
-            goto nomatch;
+            return false;
         gmatch2 &= ~8;
     }
 
@@ -2836,7 +2814,7 @@ L1:
         {
             if (op == OPstrpar || op == OPstrctor)
             {   if (/*n1.Enumbytes != n2.Enumbytes ||*/ n1.ET != n2.ET)
-                    goto nomatch;
+                    return false;
             }
             n1 = n1.EV.E1;
             n2 = n2.EV.E1;
@@ -2860,14 +2838,14 @@ L1:
             if (op == OPstreq)
             {
                 if (/*n1.Enumbytes != n2.Enumbytes ||*/ n1.ET != n2.ET)
-                    goto nomatch;
+                    return false;
             }
         }
-        if (el_match(n1.EV.E2,n2.EV.E2))
+        if (el_matchx(n1.EV.E2, n2.EV.E2, gmatch2))
         {
             goto L2;    // check left tree
         }
-        goto nomatch;
+        return false;
   }
   else /* leaf elem */
   {
@@ -2885,7 +2863,7 @@ L1:
                     case TYchar16:
                     case_short:
                         if (n1.EV.Vshort != n2.EV.Vshort)
-                                goto nomatch;
+                            return false;
                         break;
 
                     case TYlong:
@@ -2893,21 +2871,21 @@ L1:
                     case TYdchar:
                     case_long:
                         if (n1.EV.Vlong != n2.EV.Vlong)
-                                goto nomatch;
+                            return false;
                         break;
 
                     case TYllong:
                     case TYullong:
                     case_llong:
                         if (n1.EV.Vllong != n2.EV.Vllong)
-                                goto nomatch;
+                            return false;
                         break;
 
                     case TYcent:
                     case TYucent:
                         if (n1.EV.Vcent.lsw != n2.EV.Vcent.lsw ||
                             n1.EV.Vcent.msw != n2.EV.Vcent.msw)
-                                goto nomatch;
+                                return false;
                         break;
 
                     case TYenum:
@@ -2943,7 +2921,7 @@ L1:
                     case TYuchar:
                     case TYschar:
                         if (n1.EV.Vschar != n2.EV.Vschar)
-                                goto nomatch;
+                            return false;
                         break;
 
                     case TYfptr:
@@ -2954,7 +2932,7 @@ L1:
                            any integral type...
                          */
                         if (memcmp(&n1.EV, &n2.EV, tysize(tym)))
-                            goto nomatch;
+                            return false;
                         break;
 
                         /* Compare bit patterns w/o worrying about
@@ -2963,14 +2941,14 @@ L1:
                     case TYfloat:
                     case TYifloat:
                         if (memcmp(&n1.EV,&n2.EV,(n1.EV.Vfloat).sizeof))
-                            goto nomatch;
+                            return false;
                         break;
 
                     case TYdouble:
                     case TYdouble_alias:
                     case TYidouble:
                         if (memcmp(&n1.EV,&n2.EV,(n1.EV.Vdouble).sizeof))
-                            goto nomatch;
+                            return false;
                         break;
 
                     case TYldouble:
@@ -2979,23 +2957,23 @@ L1:
                         {
                             /* sizeof is 12, but actual size is 10 */
                             if (memcmp(&n1.EV,&n2.EV,10))
-                                goto nomatch;
+                                return false;
                         }
                         else
                         {
                             if (memcmp(&n1.EV,&n2.EV,(n1.EV.Vldouble).sizeof))
-                                goto nomatch;
+                                return false;
                         }
                         break;
 
                     case TYcfloat:
                         if (memcmp(&n1.EV,&n2.EV,(n1.EV.Vcfloat).sizeof))
-                            goto nomatch;
+                            return false;
                         break;
 
                     case TYcdouble:
                         if (memcmp(&n1.EV,&n2.EV,(n1.EV.Vcdouble).sizeof))
-                            goto nomatch;
+                            return false;
                         break;
 
                     case TYfloat4:
@@ -3009,7 +2987,7 @@ L1:
                     case TYllong2:
                     case TYullong2:
                         if (n1.EV.Vcent.msw != n2.EV.Vcent.msw || n1.EV.Vcent.lsw != n2.EV.Vcent.lsw)
-                            goto nomatch;
+                            return false;
                         break;
 
                     case TYcldouble:
@@ -3018,12 +2996,12 @@ L1:
                             /* sizeof is 12, but actual size of each part is 10 */
                             if (memcmp(&n1.EV,&n2.EV,10) ||
                                 memcmp(&n1.EV.Vldouble + 1, &n2.EV.Vldouble + 1, 10))
-                                goto nomatch;
+                                return false;
                         }
                         else
                         {
                             if (memcmp(&n1.EV,&n2.EV,(n1.EV.Vcldouble).sizeof))
-                                goto nomatch;
+                                return false;
                         }
                         break;
 
@@ -3034,7 +3012,7 @@ L1:
                     {
                     case TYident:
                         assert(errcnt);
-                        goto nomatch;
+                        return false;
                     }
 
                     default:
@@ -3050,7 +3028,7 @@ version (SCPP_HTOD)
                 symbol_debug(n1.EV.Vsym);
                 symbol_debug(n2.EV.Vsym);
                 if (n1.EV.Voffset != n2.EV.Voffset)
-                    goto nomatch;
+                    return false;
 version (SCPP_HTOD)
 {
                 if (gmatch2 & 4)
@@ -3065,26 +3043,26 @@ version (SCPP_HTOD)
                     if (/*strcmp(n1.EV.Vsym.Sident, n2.EV.Vsym.Sident) &&*/
                         n1.EV.Vsym != n2.EV.Vsym &&
                         (!n1.EV.Vsym.Ssequence || n1.EV.Vsym.Ssequence != n2.EV.Vsym.Ssequence))
-                        goto nomatch;
+                        return false;
                 }
                 else if (n1.EV.Vsym != n2.EV.Vsym)
-                    goto nomatch;
+                    return false;
 }
 else
 {
                 if (n1.EV.Vsym != n2.EV.Vsym)
-                    goto nomatch;
+                    return false;
 }
                 break;
 
             case OPasm:
             case OPstring:
             {
-                uint n;
-                if (n1.EV.Vstrlen != (n = cast(uint)n2.EV.Vstrlen) ||
+                const n = n2.EV.Vstrlen;
+                if (n1.EV.Vstrlen != n ||
                     n1.EV.Voffset != n2.EV.Voffset ||
-                    memcmp(n1.EV.Vstring,n2.EV.Vstring,n))
-                        goto nomatch;   /* check bytes in the string    */
+                    memcmp(n1.EV.Vstring, n2.EV.Vstring, cast(size_t)n))
+                        return false;   /* check bytes in the string    */
                 break;
             }
 
@@ -3107,61 +3085,50 @@ ismatch:
         return true;
     }
     assert(0);
+}
 
-nomatch:
-    return false;
+/*******************************
+ * Returns: true if trees match.
+ */
+bool el_match(const elem* n1, const elem* n2)
+{
+    return el_matchx(n1, n2, 0);
 }
 
 /*********************************
  * Kludge on el_match(). Same, but ignore differences in OPconst.
  */
 
-int el_match2(elem *n1,elem *n2)
+bool el_match2(const elem* n1, const elem* n2)
 {
-    int result;
-    gmatch2 = 1;
-    result = el_match(n1,n2);
-    gmatch2 = 0;
-    return result;
+    return el_matchx(n1,n2,1);
 }
 
 /*********************************
  * Kludge on el_match(). Same, but ignore differences in type modifiers.
  */
 
-int el_match3(elem *n1,elem *n2)
+bool el_match3(const elem* n1, const elem* n2)
 {
-    int result;
-    gmatch2 = 2;
-    result = el_match(n1,n2);
-    gmatch2 = 0;
-    return result;
+    return el_matchx(n1,n2,2);
 }
 
 /*********************************
  * Kludge on el_match(). Same, but ignore differences in spelling of var's.
  */
 
-int el_match4(elem *n1,elem *n2)
+bool el_match4(const elem* n1, const elem* n2)
 {
-    int result;
-    gmatch2 = 2|4;
-    result = el_match(n1,n2);
-    gmatch2 = 0;
-    return result;
+    return el_matchx(n1,n2,2|4);
 }
 
 /*********************************
  * Kludge on el_match(). Same, but regard signed/unsigned as equivalent.
  */
 
-int el_match5(elem *n1,elem *n2)
+bool el_match5(const elem* n1, const elem* n2)
 {
-    int result;
-    gmatch2 = 8;
-    result = el_match(n1,n2);
-    gmatch2 = 0;
-    return result;
+    return el_matchx(n1,n2,8);
 }
 
 
@@ -3171,10 +3138,9 @@ int el_match5(elem *n1,elem *n2)
 
 targ_llong el_tolongt(elem *e)
 {
-    targ_llong result;
-    char parsersave = PARSER;
+    const parsersave = PARSER;
     PARSER = 1;
-    result = el_tolong(e);
+    const result = el_tolong(e);
     PARSER = parsersave;
     return result;
 }
@@ -3185,9 +3151,6 @@ targ_llong el_tolongt(elem *e)
 
 targ_llong el_tolong(elem *e)
 {
-    targ_llong result;
-    tym_t ty;
-
     elem_debug(e);
     version (SCPP_HTOD)
     {
@@ -3200,8 +3163,9 @@ targ_llong el_tolong(elem *e)
     if (e.Eoper != OPconst)
         elem_print(e);
     assert(e.Eoper == OPconst);
-    ty = tybasic(typemask(e));
+    auto ty = tybasic(typemask(e));
 L1:
+    targ_llong result;
     switch (ty)
     {
         case TYchar:
@@ -3323,18 +3287,20 @@ version (SCPP_HTOD)
 
 /***********************************
  * Determine if constant e is all ones or all zeros.
- * Input:
- *      bit 0:  all zeros
+ * Params:
+ *    e = elem to test
+ *    bit = 0:  all zeros
  *          1:  1
  *         -1:  all ones
+ * Returns:
+  *   true if it is
  */
 
-int el_allbits(elem *e,int bit)
+bool el_allbits(const elem* e,int bit)
 {
-    targ_llong value;
     elem_debug(e);
     assert(e.Eoper == OPconst);
-    value = e.EV.Vullong;
+    targ_llong value = e.EV.Vullong;
     switch (tysize(e.Ety))
     {
         case 1: value = cast(byte) value;
@@ -3362,7 +3328,7 @@ int el_allbits(elem *e,int bit)
  * Determine if constant e is a 32 bit or less value, or is a 32 bit value sign extended to 64 bits.
  */
 
-int el_signx32(elem *e)
+bool el_signx32(const elem* e)
 {
     elem_debug(e);
     assert(e.Eoper == OPconst);
@@ -3449,38 +3415,38 @@ targ_ldouble el_toldouble(elem *e)
 
 /********************************
  * Is elem type-dependent or value-dependent?
- * Return !=0 if so.
+ * Returns: true if so
  */
 
-int el_isdependent(elem *e)
+bool el_isdependent(elem* e)
 {
     if (type_isdependent(e.ET))
-        return 1;
+        return true;
     while (1)
     {
         if (e.PEFflags & PEFdependent)
-            return 1;
+            return true;
         if (OTunary(e.Eoper))
             e = e.EV.E1;
         else if (OTbinary(e.Eoper))
         {
             if (el_isdependent(e.EV.E2))
-                return 1;
+                return true;
             e = e.EV.E1;
         }
         else
             break;
     }
-    return 0;
+    return false;
 }
 
 /****************************************
- * Return alignment size of elem.
+ * Returns: alignment size of elem e
  */
 
 uint el_alignsize(elem *e)
 {
-    tym_t tym = tybasic(e.Ety);
+    const tym = tybasic(e.Ety);
     uint alignsize = tyalignsize(tym);
     if (alignsize == cast(uint)-1)
     {
@@ -3497,7 +3463,7 @@ uint el_alignsize(elem *e)
 debug
 {
 
-void el_check(elem *e)
+void el_check(const(elem)* e)
 {
     elem_debug(e);
     while (1)
@@ -3520,19 +3486,15 @@ void el_check(elem *e)
  * Write out expression elem.
  */
 
-void elem_print(const elem* e)
+void elem_print(const elem* e, int nestlevel = 0)
 {
-    __gshared int nestlevel = 0;
-    int i;
-    tym_t tym;
-
-    nestlevel++;
-    for (i = nestlevel; --i;) printf(" ");
+    foreach (i; 0 .. nestlevel)
+        printf(" ");
     printf("el:%p ",e);
     if (!e)
     {
         printf("\n");
-        goto ret;
+        return;
     }
     elem_debug(e);
     if (configv.addlinenumbers)
@@ -3581,15 +3543,15 @@ void elem_print(const elem* e)
             printf("%p %p\n",e.EV.E1,e.EV.E2);
         else
             printf("%p\n",e.EV.E1);
-        elem_print(e.EV.E1);
+        elem_print(e.EV.E1, nestlevel + 1);
     }
     else if (OTbinary(e.Eoper))
     {
         if (!PARSER && e.Eoper == OPstreq && e.ET)
                 printf("bytes=%d ", cast(int)type_size(e.ET));
         printf("%p %p\n",e.EV.E1,e.EV.E2);
-        elem_print(e.EV.E1);
-        elem_print(e.EV.E2);
+        elem_print(e.EV.E1, nestlevel + 1);
+        elem_print(e.EV.E2, nestlevel + 1);
     }
     else
     {
@@ -3620,8 +3582,6 @@ void elem_print(const elem* e)
         }
         printf("\n");
     }
-ret:
-    nestlevel--;
 }
 
 void elem_print_const(const elem* e)
@@ -3780,13 +3740,11 @@ static if (HYDRATE)
 {
 void el_hydrate(elem **pe)
 {
-    elem *e;
-
     if (!isdehydrated(*pe))
         return;
 
     assert(PARSER);
-    e = cast(elem *) ph_hydrate(cast(void**)pe);
+    elem* e = cast(elem *) ph_hydrate(cast(void**)pe);
     elem_debug(e);
 
     debug if (!(e.Eoper < OPMAX))
@@ -3845,8 +3803,8 @@ static if (DEHYDRATE)
 {
 void el_dehydrate(elem **pe)
 {
-    elem *e;
-    if ((e = *pe) == null || isdehydrated(e))
+    elem* e = *pe;
+    if (e == null || isdehydrated(e))
         return;
 
     assert(PARSER);

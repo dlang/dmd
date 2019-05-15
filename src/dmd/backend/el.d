@@ -16,6 +16,7 @@ module dmd.backend.el;
 import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.global;
+import dmd.backend.oper;
 import dmd.backend.type;
 
 import dmd.backend.cc : Symbol;
@@ -171,25 +172,24 @@ int el_sideeffect(elem *);
 int el_depends(elem *ea,elem *eb);
 targ_llong el_tolongt(elem *);
 targ_llong el_tolong(elem *);
-int el_allbits(elem *,int);
-int el_signx32(elem *);
+bool el_allbits(const elem*, int);
+bool el_signx32(const elem *);
 targ_ldouble el_toldouble(elem *);
 void el_toconst(elem *);
 elem *el_same(elem **);
 elem *el_copytotmp(elem **);
-int el_match(elem *,elem *);
-int el_match2(elem *,elem *);
-int el_match3(elem *,elem *);
-int el_match4(elem *,elem *);
-int el_match5(elem *,elem *);
-
+bool el_match(const elem *, const elem *);
+bool el_match2(const elem *, const elem *);
+bool el_match3(const elem *, const elem *);
+bool el_match4(const elem *, const elem *);
+bool el_match5(const elem *, const elem *);
 int el_appears(elem *e,Symbol *s);
 Symbol *el_basesym(elem *e);
-int el_anydef(elem *ed, elem *e);
-elem *el_bint(uint,type *,elem *,elem *);
-elem *el_unat(uint,type *,elem *);
-elem *el_bin(uint,tym_t,elem *,elem *);
-elem *el_una(uint,tym_t,elem *);
+bool el_anydef(elem *ed, elem *e);
+elem* el_bint(OPER, type*,elem*, elem*);
+elem* el_unat(OPER, type*, elem*);
+elem* el_bin(OPER, tym_t, elem*, elem*);
+elem* el_una(OPER, tym_t, elem*);
 extern(C) elem *el_longt(type *,targ_llong);
 Symbol *el_alloc_localgot();
 elem *el_var(Symbol *);
@@ -202,8 +202,8 @@ elem *el_nelems(type *);
 
 extern (C) elem *el_long(tym_t,targ_llong);
 
-int ERTOL(elem *);
-bool el_returns(elem *);
+bool ERTOL(const elem *);
+bool el_returns(const(elem) *);
 //elem *el_dctor(elem *e,void *decl);
 //elem *el_ddtor(elem *e,void *decl);
 elem *el_ctor_dtor(elem *ec, elem *ed, elem **pedtor);
@@ -215,7 +215,7 @@ elem *el_test(tym_t, eve *);
 elem ** el_parent(elem *,elem **);
 
 //#ifdef DEBUG
-//void el_check(elem *);
+//void el_check(const(elem)*);
 //#else
 //#define el_check(e)     ((void)0)
 //#endif
@@ -223,7 +223,7 @@ elem ** el_parent(elem *,elem **);
 elem *el_convfloat(elem *);
 elem *el_convstring(elem *);
 elem *el_convert(elem *e);
-int el_isdependent(elem *);
+bool el_isdependent(elem *);
 uint el_alignsize(elem *);
 
 size_t el_opN(elem *e, uint op);
@@ -231,7 +231,7 @@ void el_opArray(elem ***parray, elem *e, uint op);
 void el_opFree(elem *e, uint op);
 extern (C) elem *el_opCombine(elem **args, size_t length, uint op, uint ty);
 
-void elem_print(const elem *);
+void elem_print(const elem *, int nestlevel = 0);
 void elem_print_const(const elem *);
 void el_hydrate(elem **);
 void el_dehydrate(elem **);
