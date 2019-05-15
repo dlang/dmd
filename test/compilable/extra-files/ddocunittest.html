@@ -2028,7 +2028,7 @@
 <br>
 auto <code class="code">redBlackTree</code>(bool allowDuplicates, E)(E[] <code class="code">elems</code>...);
 <br>
-auto <code class="code">redBlackTree</code>(alias less, E)(E[] <code class="code">elems</code>...);
+auto <code class="code">redBlackTree</code>(alias less, E)(E[] <code class="code">elems</code>...) if (__traits(compiles, (E a, E b) =&gt; mixin(less)));
 
           </code>
         </p>
