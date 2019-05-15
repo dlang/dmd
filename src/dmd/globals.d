@@ -302,6 +302,8 @@ struct Global
     Array!Identifier* versionids;    // command line versions and predefined versions
     Array!Identifier* debugids;      // command line debug versions and predefined versions
 
+  nothrow:
+
     /* Start gagging. Return the current number of gagged errors
      */
     extern (C++) uint startGagging()
