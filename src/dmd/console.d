@@ -18,7 +18,7 @@
 module dmd.console;
 
 import core.stdc.stdio;
-extern (C) int isatty(int);
+extern (C) int isatty(int) nothrow;
 
 
 enum Color : int
@@ -44,6 +44,8 @@ enum Color : int
 
 struct Console
 {
+  nothrow:
+
     version (Windows)
     {
         import core.sys.windows.winbase;
