@@ -672,11 +672,11 @@ extern (C) {
     LDAP ldap_conn_from_msg(LDAP*, LDAPMessage*);
     INT LdapUnicodeToUTF8(LPCWSTR, int, LPSTR, int);
     INT LdapUTF8ToUnicode(LPCSTR, int, LPWSTR, int);
-    deprecated {
-        ULONG ldap_bindA(LDAP*, PSTR, PCHAR, ULONG);
-        ULONG ldap_bindW(LDAP*, PWSTR, PWCHAR, ULONG);
-        ULONG ldap_bind_sA(LDAP*, PSTR, PCHAR, ULONG);
-        ULONG ldap_bind_sW(LDAP*, PWSTR, PWCHAR, ULONG);
+    ULONG ldap_bindA(LDAP*, PSTR, PCHAR, ULONG);
+    ULONG ldap_bindW(LDAP*, PWSTR, PWCHAR, ULONG);
+    ULONG ldap_bind_sA(LDAP*, PSTR, PCHAR, ULONG);
+    ULONG ldap_bind_sW(LDAP*, PWSTR, PWCHAR, ULONG);
+    deprecated ("For LDAP 3 or later, use the ldap_rename_ext or ldap_rename_ext_s functions") {
         ULONG ldap_modrdnA(LDAP*, PCSTR, PCSTR);
         ULONG ldap_modrdnW(LDAP*, PCWSTR, PCWSTR);
         ULONG ldap_modrdn_sA(LDAP*, PCSTR, PCSTR);
