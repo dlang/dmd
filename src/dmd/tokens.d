@@ -707,6 +707,8 @@ extern (C++) struct Token
         return true;
     }());
 
+nothrow:
+
     shared static this()
     {
         Identifier.initTable();
