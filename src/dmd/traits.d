@@ -395,10 +395,10 @@ private Expression pointerBitmap(TraitsExp e)
     if (sz == d_uns64.max)
         return new ErrorExp();
 
-    auto exps = new Expressions();
-    exps.push(new IntegerExp(e.loc, sz, Type.tsize_t));
-    foreach (d_uns64 i; 0 .. data.dim)
-        exps.push(new IntegerExp(e.loc, data[cast(size_t)i], Type.tsize_t));
+    auto exps = new Expressions(data.dim + 1);
+    (*exps)[0] = new IntegerExp(e.loc, sz, Type.tsize_t);
+    foreach (size_t i; 1 .. exps.dim)
+        (*exps)[i] = new IntegerExp(e.loc, data[cast(size_t) (i - 1)], Type.tsize_t);
 
     auto ale = new ArrayLiteralExp(e.loc, Type.tsize_t.sarrayOf(data.dim + 1), exps);
     return ale;

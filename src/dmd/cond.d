@@ -316,11 +316,11 @@ extern (C++) final class StaticForeach : RootObject
         {
             foreach (i; 0 .. 2)
             {
-                auto e = new Expressions();
-                foreach (j; 0 .. pparams[0].dim)
+                auto e = new Expressions(pparams[0].dim);
+                foreach (j, ref elem; *e)
                 {
                     auto p = (*pparams[i])[j];
-                    e.push(new IdentifierExp(aloc, p.ident));
+                    elem = new IdentifierExp(aloc, p.ident);
                 }
                 if (!tplty)
                 {

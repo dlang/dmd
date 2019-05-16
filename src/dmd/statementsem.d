@@ -2642,9 +2642,9 @@ else
                     sl = new DotIdExp(ss.loc, sl, Id.object);
                     sl = new DotIdExp(ss.loc, sl, Id.__switch_error);
 
-                    Expressions* args = new Expressions();
-                    args.push(new StringExp(ss.loc, cast(char*) ss.loc.filename));
-                    args.push(new IntegerExp(ss.loc.linnum));
+                    Expressions* args = new Expressions(2);
+                    (*args)[0] = new StringExp(ss.loc, cast(char*) ss.loc.filename);
+                    (*args)[1] = new IntegerExp(ss.loc.linnum);
 
                     sl = new CallExp(ss.loc, sl, args);
                     sl.expressionSemantic(sc);
