@@ -553,6 +553,19 @@ ByRef:
         if (v.isDataseg())
             continue;
 
+        if (global.params.vsafe)
+        {
+            if (va && va.isScope() && va.storage_class & STC.return_ &&
+                (v.storage_class & (STC.ref_ | STC.out_)) == 0 &&
+                sc.func.setUnsafe())
+            {
+                if (!gag)
+                    error(ae.loc, "address of local variable `%s` assigned to return scope `%s`", v.toChars(), va.toChars());
+                result = true;
+                continue;
+            }
+        }
+
         Dsymbol p = v.toParent2();
 
         // If va's lifetime encloses v's, then error
