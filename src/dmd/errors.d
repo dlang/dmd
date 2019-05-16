@@ -21,9 +21,13 @@ import dmd.root.outbuffer;
 import dmd.root.rmem;
 import dmd.console;
 
+nothrow:
+
 /// Interface for diagnostic reporting.
 abstract class DiagnosticReporter
 {
+  nothrow:
+
     /// Returns: the number of errors that occurred during lexing or parsing.
     abstract int errorCount();
 
@@ -160,6 +164,8 @@ final class StderrDiagnosticReporter : DiagnosticReporter
     private int errorCount_;
     private int warningCount_;
     private int deprecationCount_;
+
+  nothrow:
 
     /**
     Initializes this object.

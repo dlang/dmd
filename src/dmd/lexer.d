@@ -31,6 +31,8 @@ import dmd.root.rmem;
 import dmd.tokens;
 import dmd.utf;
 
+nothrow:
+
 private enum LS = 0x2028;       // UTF line separator
 private enum PS = 0x2029;       // UTF paragraph separator
 
@@ -226,6 +228,8 @@ class Lexer
         DiagnosticReporter diagnosticReporter;
         Token* tokenFreelist;
     }
+
+  nothrow:
 
     /*********************
      * Creates a Lexer for the source code base[begoffset..endoffset+1].
@@ -1590,7 +1594,7 @@ class Lexer
                     p--;
                     scan(&tok); // read in possible heredoc identifier
                     //printf("endid = '%s'\n", tok.ident.toChars());
-                    if (tok.value == TOK.identifier && tok.ident.equals(hereid))
+                    if (tok.value == TOK.identifier && tok.ident is hereid)
                     {
                         /* should check that rest of line is blank
                          */
@@ -2726,6 +2730,9 @@ unittest
     {
         string expected;
         bool gotError;
+
+      nothrow:
+
         this(string expected) { this.expected = expected; }
 
         override int errorCount() { assert(0); }
@@ -2735,7 +2742,7 @@ unittest
         override void error(const ref Loc loc, const(char)* format, va_list args)
         {
             gotError = true;
-            char[100] buffer;
+            char[100] buffer = void;
             auto actual = buffer[0 .. vsprintf(buffer.ptr, format, args)];
             assert(expected == actual);
         }

@@ -14,6 +14,8 @@ module dmd.entity;
 
 import core.stdc.ctype;
 
+nothrow:
+
 private:
 
 /*********************************************

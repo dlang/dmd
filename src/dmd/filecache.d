@@ -28,6 +28,8 @@ class FileAndLines
     FileBuffer* buffer;
     const(char[])[] lines;
 
+  nothrow:
+
     /**
     File to read and split into its lines.
     */
@@ -88,6 +90,8 @@ It stores its cached files as $(LREF FileAndLines)
 struct FileCache
 {
     private StringTable files;
+
+  nothrow:
 
     /**
     Add or get a file from the file cache.
