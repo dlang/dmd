@@ -318,7 +318,7 @@ private:
 struct CpuFeatures
 {
     bool probablyIntel; // true = _probably_ an Intel processor, might be faking
-    bool probablyAMD; // true = _probably_ an AMD processor
+    bool probablyAMD; // true = _probably_ an AMD or Hygon processor
     string processorName;
     char [12] vendorID = 0;
     char [48] processorNameBuffer = 0;
@@ -727,7 +727,7 @@ void cpuidX86()
 
 
     cf.probablyIntel = cf.vendorID == "GenuineIntel";
-    cf.probablyAMD = cf.vendorID == "AuthenticAMD";
+    cf.probablyAMD = (cf.vendorID == "AuthenticAMD" || cf.vendorID == "HygonGenuine");
     uint apic = 0; // brand index, apic id
     version (GNU) asm pure nothrow @nogc {
         "cpuid" : "=a" a, "=b" apic, "=c" cf.miscfeatures, "=d" cf.features : "a" 1;
