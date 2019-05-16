@@ -245,9 +245,9 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0)
             edim = edim.expressionSemantic(sc);
             tiargs.push(edim);
 
-            auto fargs = new Expressions();
-            fargs.push(ie.lwr);
-            fargs.push(ie.upr);
+            auto fargs = new Expressions(2);
+            (*fargs)[0] = ie.lwr;
+            (*fargs)[1] = ie.upr;
 
             uint xerrors = global.startGagging();
             sc = sc.push();
@@ -5668,8 +5668,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 tok == TOK.in_ ||
                 isEqualsCallExpression)
             {
-                auto es = new Expressions();
-                auto tiargs = new Objects();
+                auto es = new Expressions(2);
+                auto tiargs = new Objects(3);
                 Loc loc = exp.e1.loc;
 
                 if (isEqualsCallExpression)
@@ -5681,13 +5681,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     static immutable compMsg = "==";
                     Expression comp = new StringExp(loc, cast(char*) compMsg.ptr);
                     comp = comp.expressionSemantic(sc);
-                    tiargs.push(comp);
-                    tiargs.push((*args)[0].type);
-                    tiargs.push((*args)[1].type);
+                    (*tiargs)[0] = comp;
+                    (*tiargs)[1] = (*args)[0].type;
+                    (*tiargs)[2] = (*args)[1].type;
 
                     // runtime args
-                    es.push((*args)[0]);
-                    es.push((*args)[1]);
+                    (*es)[0] = (*args)[0];
+                    (*es)[1] = (*args)[1];
                 }
                 else
                 {
@@ -5696,13 +5696,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     // template args
                     Expression comp = new StringExp(loc, cast(char*) Token.toChars(exp.e1.op));
                     comp = comp.expressionSemantic(sc);
-                    tiargs.push(comp);
-                    tiargs.push(binExp.e1.type);
-                    tiargs.push(binExp.e2.type);
+                    (*tiargs)[0] = comp;
+                    (*tiargs)[1] = binExp.e1.type;
+                    (*tiargs)[2] = binExp.e2.type;
 
                     // runtime args
-                    es.push(binExp.e1);
-                    es.push(binExp.e2);
+                    (*es)[0] = binExp.e1;
+                    (*es)[1] = binExp.e2;
                 }
 
                 Expression __assertFail = new IdentifierExp(exp.loc, Id.empty);
@@ -10367,9 +10367,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 al = new DotIdExp(exp.loc, al, Id.__cmp);
                 al = al.expressionSemantic(sc);
 
-                auto arguments = new Expressions();
-                arguments.push(exp.e1);
-                arguments.push(exp.e2);
+                auto arguments = new Expressions(2);
+                (*arguments)[0] = exp.e1;
+                (*arguments)[1] = exp.e2;
 
                 al = new CallExp(exp.loc, al, arguments);
                 al = new CmpExp(exp.op, exp.loc, al, IntegerExp.literal!0);
@@ -10608,9 +10608,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             __equals = new DotIdExp(exp.loc, __equals, Id.object);
             __equals = new DotIdExp(exp.loc, __equals, id);
 
-            auto arguments = new Expressions();
-            arguments.push(exp.e1);
-            arguments.push(exp.e2);
+            auto arguments = new Expressions(2);
+            (*arguments)[0] = exp.e1;
+            (*arguments)[1] = exp.e2;
 
             __equals = new CallExp(exp.loc, __equals, arguments);
             if (exp.op == TOK.notEqual)

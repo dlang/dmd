@@ -1220,9 +1220,9 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
             /* Create a new tuple that combines them
              * (do not append to left operand, as this is a copy-on-write operation)
              */
-            udas = new Expressions();
-            udas.push(new TupleExp(Loc.initial, udas1));
-            udas.push(new TupleExp(Loc.initial, udas2));
+            udas = new Expressions(2);
+            (*udas)[0] = new TupleExp(Loc.initial, udas1);
+            (*udas)[1] = new TupleExp(Loc.initial, udas2);
         }
         return udas;
     }

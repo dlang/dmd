@@ -1232,9 +1232,9 @@ struct ASTBase
                 udas = udas1;
             else
             {
-                udas = new Expressions();
-                udas.push(new TupleExp(Loc.initial, udas1));
-                udas.push(new TupleExp(Loc.initial, udas2));
+                udas = new Expressions(2);
+                (*udas)[0] = new TupleExp(Loc.initial, udas1);
+                (*udas)[1] = new TupleExp(Loc.initial, udas2);
             }
             return udas;
         }

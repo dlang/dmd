@@ -3667,8 +3667,8 @@ extern (C++) final class TypeSArray : TypeArray
         else
             elementinit = next.defaultInitLiteral(loc);
         auto elements = new Expressions(d);
-        for (size_t i = 0; i < d; i++)
-            (*elements)[i] = null;
+        foreach (ref e; *elements)
+            e = null;
         auto ae = new ArrayLiteralExp(Loc.initial, this, elementinit, elements);
         return ae;
     }
@@ -5461,7 +5461,7 @@ extern (C++) final class TypeStruct : Type
 
         auto structelems = new Expressions(sym.nonHiddenFields());
         uint offset = 0;
-        for (size_t j = 0; j < structelems.dim; j++)
+        foreach (j; 0 .. structelems.dim)
         {
             VarDeclaration vd = sym.fields[j];
             Expression e;
