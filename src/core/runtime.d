@@ -630,23 +630,42 @@ extern (C) UnitTestResult runModuleUnitTests()
     UnitTestResult results;
     foreach ( m; ModuleInfo )
     {
-        if ( m )
-        {
-            auto fp = m.unitTest;
+        if ( !m )
+            continue;
+        auto fp = m.unitTest;
+        if ( !fp )
+            continue;
 
-            if ( fp )
+        import core.exception;
+        ++results.executed;
+        try
+        {
+            fp();
+            ++results.passed;
+        }
+        catch ( Throwable e )
+        {
+            import core.stdc.stdio;
+            printf("%.*s(%zu): [unittest] %.*s\n",
+                cast(int) e.file.length, e.file.ptr, e.line,
+                cast(int) e.message.length, e.message.ptr);
+            if ( typeid(e) == typeid(AssertError) )
             {
-                ++results.executed;
-                try
+                // Crude heuristic to figure whether the assertion originates in
+                // the unittested module. TODO: improve.
+                auto moduleName = m.name;
+                if (moduleName.length && e.file.length > moduleName.length
+                    && e.file[0 .. moduleName.length] == moduleName)
                 {
-                    fp();
-                    ++results.passed;
-                }
-                catch ( Throwable e )
-                {
-                    _d_print_throwable(e);
+                    // Exception originates in the same module, don't print
+                    // the stack trace.
+                    // TODO: omit stack trace only if assert was thrown
+                    // directly by the unittest.
+                    continue;
                 }
             }
+            // TODO: perhaps indent all of this stuff.
+            _d_print_throwable(e);
         }
     }
 
