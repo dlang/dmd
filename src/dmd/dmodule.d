@@ -622,14 +622,20 @@ extern (C++) final class Module : Package
         docfile = setOutfilename(global.params.docname.toDString, global.params.docdir.toDString, arg, global.doc_ext.toDString);
     }
 
-    // read file, returns 'true' if succeed, 'false' otherwise.
-    bool read(Loc loc)
+    /**
+     * Loads the source buffer from the given read result into `this.srcBuffer`.
+     *
+     * Will take ownership of the buffer located inside `readResult`.
+     *
+     * Params:
+     *  loc = the location
+     *  readResult = the result of reading a file containing the source code
+     *
+     * Returns: `true` if successful
+     */
+    bool loadSourceBuffer(const ref Loc loc, ref File.ReadResult readResult)
     {
-        if (srcBuffer)
-            return true; // already read
-
-        //printf("Module::read('%s') file '%s'\n", toChars(), srcfile.toChars());
-        auto readResult = File.read(srcfile.toChars());
+        //printf("Module::loadSourceBuffer('%s') file '%s'\n", toChars(), srcfile.toChars());
         // take ownership of buffer
         srcBuffer = new FileBuffer(readResult.extractData());
         if (readResult.success)
@@ -667,8 +673,35 @@ extern (C++) final class Module : Package
         return false;
     }
 
-    // syntactic parse
+    /**
+     * Reads the file from `srcfile` and loads the source buffer.
+     *
+     * Params:
+     *  loc = the location
+     *
+     * Returns: `true` if successful
+     * See_Also: loadSourceBuffer
+     */
+    bool read(const ref Loc loc)
+    {
+        if (srcBuffer)
+            return true; // already read
+
+        //printf("Module::read('%s') file '%s'\n", toChars(), srcfile.toChars());
+        auto readResult = File.read(srcfile.toChars());
+
+        return loadSourceBuffer(loc, readResult);
+    }
+
+    /// syntactic parse
     Module parse()
+    {
+        scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
+        return parse!ASTCodegen(diagnosticReporter);
+    }
+
+    /// ditto
+    extern (D) Module parse(AST)(DiagnosticReporter diagnosticReporter)
     {
 
 
@@ -878,7 +911,10 @@ extern (C++) final class Module : Package
                 else buf = buf[2..$]; //utf 16
             }
         }
-        //printf("%s, %d, %d, %d\n", srcfile.name.toChars(), needsReencoding, endian == Endian.little, sourceEncoding == SourceEncoding.utf16);
+        // Assume the buffer is from memory and has not be read from disk. Assume UTF-8.
+        else if (buf.length >= 1 && (buf[0] == '\0' || buf[0] == 0x1A))
+            needsReencoding = false;
+         //printf("%s, %d, %d, %d\n", srcfile.name.toChars(), needsReencoding, endian == Endian.little, sourceEncoding == SourceEncoding.utf16);
         if (needsReencoding)
         {
             if (sourceEncoding == SourceEncoding.utf16)
@@ -926,8 +962,7 @@ extern (C++) final class Module : Package
             isHdrFile = true;
         }
         {
-            scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-            scope p = new Parser!ASTCodegen(this, buf, cast(bool) docfile, diagnosticReporter);
+            scope p = new Parser!AST(this, buf, cast(bool) docfile, diagnosticReporter);
             p.nextToken();
             members = p.parseModule();
             md = p.md;
