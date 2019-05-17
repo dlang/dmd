@@ -2,6 +2,7 @@
 PERMUTE_ARGS:
 TEST_OUTPUT:
 ---
+fail_compilation/typeerrors.d(31): Deprecation: `scope` as a type constraint is deprecated.  Use `scope` at the usage site.
 fail_compilation/typeerrors.d(36): Error: tuple index 4 exceeds 4
 fail_compilation/typeerrors.d(38): Error: variable `x` cannot be read at compile time
 fail_compilation/typeerrors.d(39): Error: cannot have array of `void()`
@@ -19,7 +20,6 @@ fail_compilation/typeerrors.d(55): Error: slice `[1..5]` is out of range of [0..
 fail_compilation/typeerrors.d(56): Error: slice `[2..1]` is out of range of [0..4]
 ---
 */
-
 
 
 

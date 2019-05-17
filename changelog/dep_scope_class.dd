@@ -1,0 +1,10 @@
+`scope` as a type constraint on class declarations is deprecated.
+
+`scope` as a type constraint on class declarations has been deprecated for quite some time.  However,
+starting with this release, the compiler will emit a deprecation warning if used.
+
+---
+scope class C { }  // Deprecation: `scope` as a type constraint is deprecated.  Use `scope` at the usage site.
+---
+
+Note that this does not apply to structs.  Deprecation of `scope` as a type constraint on structs is still awaiting a decision.
