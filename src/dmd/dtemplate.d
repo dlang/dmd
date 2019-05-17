@@ -2361,7 +2361,7 @@ extern (C++) final class TypeDeduced : Type
  *      fargs       = arguments to function
  *      pMessage    = address to store error message, or null
  */
-void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiargs,
+void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiargs,
     Type tthis, Expressions* fargs, const(char)** pMessage = null)
 {
     version (none)
