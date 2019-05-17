@@ -2364,6 +2364,7 @@ extern (C++) final class TypeDeduced : Type
 void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiargs,
     Type tthis, Expressions* fargs, const(char)** pMessage = null)
 {
+    Expression[] fargs_ = fargs ? (*fargs)[] : null;
     version (none)
     {
         printf("functionResolve() dstart = %s\n", dstart.toChars());
@@ -2469,7 +2470,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
             else if (shared_this && !shared_dtor && tthis_fd !is null)
                 tf.mod = tthis_fd.mod;
         }
-        MATCH mfa = tf.callMatch(tthis_fd, fargs, 0, pMessage, sc);
+        MATCH mfa = tf.callMatch(tthis_fd, fargs_, 0, pMessage, sc);
         //printf("test1: mfa = %d\n", mfa);
         if (mfa > MATCH.nomatch)
         {
@@ -2674,7 +2675,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
             Type tthis_fd = fd.needThis() && !fd.isCtorDeclaration() ? tthis : null;
 
             auto tf = cast(TypeFunction)fd.type;
-            MATCH mfa = tf.callMatch(tthis_fd, fargs, 0, null, sc);
+            MATCH mfa = tf.callMatch(tthis_fd, fargs_, 0, null, sc);
             if (mfa < m.last)
                 return 0;
 
@@ -2769,8 +2770,8 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
                 assert(tf1.ty == Tfunction);
                 auto tf2 = cast(TypeFunction)m.lastf.type;
                 assert(tf2.ty == Tfunction);
-                MATCH c1 = tf1.callMatch(tthis_fd, fargs, 0, null, sc);
-                MATCH c2 = tf2.callMatch(tthis_best, fargs, 0, null, sc);
+                MATCH c1 = tf1.callMatch(tthis_fd, fargs_, 0, null, sc);
+                MATCH c2 = tf2.callMatch(tthis_best, fargs_, 0, null, sc);
                 //printf("2: c1 = %d, c2 = %d\n", c1, c2);
                 if (c1 > c2) goto Ltd;
                 if (c1 < c2) goto Ltd_best;
@@ -2874,7 +2875,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
         if (tf.ty == Terror)
             goto Lerror;
         assert(tf.ty == Tfunction);
-        if (!tf.callMatch(tthis_best, fargs, 0, null, sc))
+        if (!tf.callMatch(tthis_best, fargs_, 0, null, sc))
             goto Lnomatch;
 
         /* As https://issues.dlang.org/show_bug.cgi?id=3682 shows,
