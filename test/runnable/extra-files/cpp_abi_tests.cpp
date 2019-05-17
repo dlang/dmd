@@ -77,20 +77,19 @@ namespace ns1
 
 struct SmallStruct
 {
-    SmallStruct()
-        : i(0) {}
-    SmallStruct(const SmallStruct& x)
-        : i(x.i + 10) {}
     int i;
+    SmallStruct(int); // implemented in D
+    SmallStruct(const SmallStruct &);
 };
+SmallStruct::SmallStruct(const SmallStruct &rhs)
+    : i(rhs.i + 10) {}
 void smallStructCallBack(SmallStruct p);
 void smallStructTest(SmallStruct p)
 {
-    assert(p.i == 10);
+    assert(p.i == 52);
 
-    SmallStruct x;
-    smallStructCallBack(x);
-    assert(x.i == 0);
+    smallStructCallBack(p);
+    assert(p.i == 52);
 }
 
 // Uncomment when mangling is fixed
