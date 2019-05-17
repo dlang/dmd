@@ -27,7 +27,7 @@ import dmd.root.port;
 import dmd.root.stringtable;
 import dmd.utils;
 
-version (Windows) extern (C) int putenv(const char*);
+version (Windows) extern (C) int putenv(const char*) nothrow;
 private enum LOG = false;
 
 /*****************************
@@ -141,7 +141,7 @@ private bool writeToEnv(ref StringTable environment, char* nameEqValue)
  */
 void updateRealEnvironment(ref StringTable environment)
 {
-    static int envput(const(StringValue)* sv)
+    static int envput(const(StringValue)* sv) nothrow
     {
         const name = sv.toDchars();
         const namelen = strlen(name);

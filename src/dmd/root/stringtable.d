@@ -78,6 +78,7 @@ private:
     size_t count;
     size_t countTrigger;   // amount which will trigger growing the table
 
+nothrow:
 public:
     void _init(size_t size = 0) nothrow pure
     {
@@ -207,7 +208,7 @@ public:
      * Returns:
      *      last return value of fp call
      */
-    int apply(int function(const(StringValue)*) fp)
+    int apply(int function(const(StringValue)*) nothrow fp)
     {
         foreach (const se; table[0 .. tabledim])
         {
@@ -221,7 +222,7 @@ public:
         return 0;
     }
 
-    extern(D) int opApply(scope int delegate(const(StringValue)*) dg)
+    extern(D) int opApply(scope int delegate(const(StringValue)*) nothrow dg)
     {
         foreach (const se; table[0 .. tabledim])
         {
