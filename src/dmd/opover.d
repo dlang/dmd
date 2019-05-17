@@ -922,11 +922,10 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                 args2[0] = e.e2;
                 expandTuples(&args2);
                 argsset = 1;
-                Match m;
-                m.last = MATCH.nomatch;
+                MatchAccumulator m;
                 if (s)
                 {
-                    functionResolve(&m, s, e.loc, sc, tiargs, e.e1.type, &args2);
+                    functionResolve(m, s, e.loc, sc, tiargs, e.e1.type, &args2);
                     if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                     {
                         result = new ErrorExp();
@@ -936,7 +935,7 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                 FuncDeclaration lastf = m.lastf;
                 if (s_r)
                 {
-                    functionResolve(&m, s_r, e.loc, sc, tiargs, e.e2.type, &args1);
+                    functionResolve(m, s_r, e.loc, sc, tiargs, e.e2.type, &args1);
                     if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                     {
                         result = new ErrorExp();
@@ -1008,11 +1007,10 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                             args2[0] = e.e2;
                             expandTuples(&args2);
                         }
-                        Match m;
-                        m.last = MATCH.nomatch;
+                        MatchAccumulator m;
                         if (s_r)
                         {
-                            functionResolve(&m, s_r, e.loc, sc, tiargs, e.e1.type, &args2);
+                            functionResolve(m, s_r, e.loc, sc, tiargs, e.e1.type, &args2);
                             if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                             {
                                 result = new ErrorExp();
@@ -1022,7 +1020,7 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                         FuncDeclaration lastf = m.lastf;
                         if (s)
                         {
-                            functionResolve(&m, s, e.loc, sc, tiargs, e.e2.type, &args1);
+                            functionResolve(m, s, e.loc, sc, tiargs, e.e2.type, &args1);
                             if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                             {
                                 result = new ErrorExp();
@@ -1517,11 +1515,10 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                 args2.setDim(1);
                 args2[0] = e.e2;
                 expandTuples(&args2);
-                Match m;
-                m.last = MATCH.nomatch;
+                MatchAccumulator m;
                 if (s)
                 {
-                    functionResolve(&m, s, e.loc, sc, tiargs, e.e1.type, &args2);
+                    functionResolve(m, s, e.loc, sc, tiargs, e.e1.type, &args2);
                     if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                     {
                         result = new ErrorExp();
@@ -1593,8 +1590,7 @@ private Expression compare_overload(BinExp e, Scope* sc, Identifier id, TOK* pop
         Expressions args2 = Expressions(1);
         args2[0] = e.e2;
         expandTuples(&args2);
-        Match m;
-        m.last = MATCH.nomatch;
+        MatchAccumulator m;
         if (0 && s && s_r)
         {
             printf("s  : %s\n", s.toPrettyChars());
@@ -1602,7 +1598,7 @@ private Expression compare_overload(BinExp e, Scope* sc, Identifier id, TOK* pop
         }
         if (s)
         {
-            functionResolve(&m, s, e.loc, sc, tiargs, e.e1.type, &args2);
+            functionResolve(m, s, e.loc, sc, tiargs, e.e1.type, &args2);
             if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                 return new ErrorExp();
         }
@@ -1610,7 +1606,7 @@ private Expression compare_overload(BinExp e, Scope* sc, Identifier id, TOK* pop
         int count = m.count;
         if (s_r)
         {
-            functionResolve(&m, s_r, e.loc, sc, tiargs, e.e2.type, &args1);
+            functionResolve(m, s_r, e.loc, sc, tiargs, e.e2.type, &args1);
             if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                 return new ErrorExp();
         }

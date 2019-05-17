@@ -272,12 +272,14 @@ enum STCStorageClass =
      STC.immutable_ | STC.shared_ | STC.wild | STC.nothrow_ | STC.nogc | STC.pure_ | STC.ref_ | STC.return_ | STC.tls | STC.gshared |
      STC.property | STC.safe | STC.trusted | STC.system | STC.disable | STC.local);
 
-struct Match
+/* Accumulator for successive matches.
+ */
+struct MatchAccumulator
 {
-    int count;              // number of matches found
-    MATCH last;             // match level of lastf
+    int count;              // number of matches found so far
+    MATCH last = MATCH.nomatch; // match level of lastf
     FuncDeclaration lastf;  // last matching function we found
-    FuncDeclaration nextf;  // current matching function
+    FuncDeclaration nextf;  // if ambiguous match, this is the "other" function
     FuncDeclaration anyf;   // pick a func, any func, to use for error recovery
 }
 

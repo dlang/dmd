@@ -853,8 +853,7 @@ extern (C++) class FuncDeclaration : Declaration
     final FuncDeclaration overloadModMatch(const ref Loc loc, Type tthis, ref bool hasOverloads)
     {
         //printf("FuncDeclaration::overloadModMatch('%s')\n", toChars());
-        Match m;
-        m.last = MATCH.nomatch;
+        MatchAccumulator m;
         overloadApply(this, (Dsymbol s)
         {
             auto f = s.isFuncDeclaration();
@@ -2533,11 +2532,12 @@ Expression addInvariant(const ref Loc loc, Scope* sc, AggregateDeclaration ad, V
  * Params:
  *  fstart = symbol to start from
  *  dg = the delegate to be called on the overload
- *  sc = the initial scope from the calling context
+ *  sc = context used to check if symbol is accessible (and therefore visible),
+ *       can be null
  *
  * Returns:
  *      ==0     continue
- *      !=0     done
+ *      !=0     done (and the return value from the last dg() call)
  */
 extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) dg, Scope* sc = null)
 {
@@ -2767,9 +2767,8 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
         return null;
     }
 
-    Match m;
-    m.last = MATCH.nomatch;
-    functionResolve(&m, s, loc, sc, tiargs, tthis, fargs, null);
+    MatchAccumulator m;
+    functionResolve(m, s, loc, sc, tiargs, tthis, fargs, null);
     auto orig_s = s;
 
     if (m.last > MATCH.nomatch && m.lastf)
@@ -2864,7 +2863,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
                 else
                 {
                     const(char)* failMessage;
-                    functionResolve(&m, orig_s, loc, sc, tiargs, tthis, fargs, &failMessage);
+                    functionResolve(m, orig_s, loc, sc, tiargs, tthis, fargs, &failMessage);
                     if (failMessage)
                     {
                         .error(loc, "%s `%s%s%s` is not callable using argument types `%s`",
@@ -2901,7 +2900,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
                         tf.modToChars(), fargsBuf.peekChars());
                     // re-resolve to check for supplemental message
                     const(char)* failMessage;
-                    functionResolve(&m, orig_s, loc, sc, tiargs, tthis, fargs, &failMessage);
+                    functionResolve(m, orig_s, loc, sc, tiargs, tthis, fargs, &failMessage);
                     if (failMessage)
                         errorSupplemental(loc, failMessage);
                 }
@@ -3481,6 +3480,7 @@ extern (C++) final class CtorDeclaration : FuncDeclaration
     {
         return this;
     }
+
     override void accept(Visitor v)
     {
         v.visit(this);
