@@ -4573,13 +4573,16 @@ extern (C++) final class TypeFunction : TypeNext
     /********************************
      * 'args' are being matched to function 'this'
      * Determine match level.
-     * Input:
-     *      flag    1       performing a partial ordering match
-     *      pMessage        address to store error message, or null
+     * Params:
+     *      tthis = type of `this` pointer, null if not member function
+     *      args = array of function arguments
+     *      flag = 1: performing a partial ordering match
+     *      pMessage = address to store error message, or null
+     *      sc = context
      * Returns:
      *      MATCHxxxx
      */
-    extern (D) MATCH callMatch(Type tthis, Expressions* args, int flag = 0, const(char)** pMessage = null, Scope* sc = null)
+    extern (D) MATCH callMatch(Type tthis, Expression[] args, int flag = 0, const(char)** pMessage = null, Scope* sc = null)
     {
         //printf("TypeFunction::callMatch() %s\n", toChars());
         MATCH match = MATCH.exact; // assume exact match
@@ -4615,7 +4618,7 @@ extern (C++) final class TypeFunction : TypeNext
         }
 
         size_t nparams = parameterList.length;
-        size_t nargs = args ? args.dim : 0;
+        size_t nargs = args.length;
         if (nargs > nparams)
         {
             if (parameterList.varargs == VarArg.none)
@@ -4634,7 +4637,7 @@ extern (C++) final class TypeFunction : TypeNext
             if (u >= nparams)
                 break;
             Parameter p = parameterList[u];
-            Expression arg = (*args)[u];
+            Expression arg = args[u];
             assert(arg);
             Type tprm = p.type;
             Type targ = arg.type;
@@ -4676,7 +4679,7 @@ extern (C++) final class TypeFunction : TypeNext
                 goto L1;
             }
             {
-                Expression arg = (*args)[u];
+                Expression arg = args[u];
                 assert(arg);
                 //printf("arg: %s, type: %s\n", arg.toChars(), arg.type.toChars());
 
@@ -4852,9 +4855,8 @@ extern (C++) final class TypeFunction : TypeNext
                     case Tarray:
                         {
                             TypeArray ta = cast(TypeArray)tb;
-                            for (; u < nargs; u++)
+                            foreach (arg; args[u .. nargs])
                             {
-                                Expression arg = (*args)[u];
                                 assert(arg);
 
                                 /* If lazy array of delegates,
@@ -4897,7 +4899,7 @@ extern (C++) final class TypeFunction : TypeNext
                     }
                 }
                 if (pMessage && u < nargs)
-                    *pMessage = getParamError((*args)[u], p);
+                    *pMessage = getParamError(args[u], p);
                 else if (pMessage)
                     *pMessage = getMatchError("missing argument for parameter #%d: `%s`",
                         u + 1, parameterToChars(p, this, false));

@@ -4657,7 +4657,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
 
             const(char)* failMessage;
-            if (!tf.callMatch(null, exp.arguments, 0, &failMessage, sc))
+            Expression[] fargs = exp.arguments ? (*exp.arguments)[] : null;
+            if (!tf.callMatch(null, fargs, 0, &failMessage, sc))
             {
                 OutBuffer buf;
                 buf.writeByte('(');
@@ -4731,7 +4732,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 exp.f = exp.f.toAliasFunc();
                 TypeFunction tf = cast(TypeFunction)exp.f.type;
                 const(char)* failMessage;
-                if (!tf.callMatch(null, exp.arguments, 0, &failMessage, sc))
+                Expression[] fargs = exp.arguments ? (*exp.arguments)[] : null;
+                if (!tf.callMatch(null, fargs, 0, &failMessage, sc))
                 {
                     OutBuffer buf;
                     buf.writeByte('(');
