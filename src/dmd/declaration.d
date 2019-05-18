@@ -280,7 +280,6 @@ struct MatchAccumulator
     MATCH last = MATCH.nomatch; // match level of lastf
     FuncDeclaration lastf;  // last matching function we found
     FuncDeclaration nextf;  // if ambiguous match, this is the "other" function
-    FuncDeclaration anyf;   // pick a func, any func, to use for error recovery
 }
 
 /***********************************************************

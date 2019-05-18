@@ -859,7 +859,6 @@ extern (C++) class FuncDeclaration : Declaration
             auto f = s.isFuncDeclaration();
             if (!f || f == m.lastf) // skip duplicates
                 return 0;
-            m.anyf = f;
 
             auto tf = f.type.toTypeFunction();
             //printf("tf = %s\n", tf.toChars());
