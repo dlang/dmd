@@ -333,12 +333,6 @@ $(H2 $(LEGACY_LNAME2 StructLiteral, struct-literal, Struct Literals))
         struct literal, and all subsequent non-overlapping fields are default
         initialized.
         )
-        $(P If a `struct` does not define any user provided constructors, the `struct`
-        literal will be treated as a call to the default constructor. If a `struct`
-        defines at least one user provided constructor, the `struct` literal will
-        be resolved to one of the user provided constructors i.e. the generation of
-        the default constructor will be disabled.
-        )
 
 $(H2 $(LNAME2 struct_properties, Struct Properties))
 
