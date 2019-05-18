@@ -949,9 +949,9 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                 }
                 else if (m.last <= MATCH.nomatch)
                 {
-                    m.lastf = m.anyf;
                     if (tiargs)
                         goto L1;
+                    m.lastf = null;
                 }
                 if (e.op == TOK.plusPlus || e.op == TOK.minusMinus)
                 {
@@ -1034,8 +1034,9 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                         }
                         else if (m.last <= MATCH.nomatch)
                         {
-                            m.lastf = m.anyf;
+                            m.lastf = null;
                         }
+
                         if (lastf && m.lastf == lastf || !s && m.last <= MATCH.nomatch)
                         {
                             // Rewrite (e1 op e2) as e1.opfunc_r(e2)
@@ -1532,9 +1533,9 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                 }
                 else if (m.last <= MATCH.nomatch)
                 {
-                    m.lastf = m.anyf;
                     if (tiargs)
                         goto L1;
+                    m.lastf = null;
                 }
                 // Rewrite (e1 op e2) as e1.opOpAssign(e2)
                 result = build_overload(e.loc, sc, e.e1, e.e2, m.lastf ? m.lastf : s);
@@ -1631,7 +1632,7 @@ private Expression compare_overload(BinExp e, Scope* sc, Identifier id, TOK* pop
         }
         else if (m.last <= MATCH.nomatch)
         {
-            m.lastf = m.anyf;
+            m.lastf = null;
         }
         Expression result;
         if (lastf && m.lastf == lastf || !s_r && m.last <= MATCH.nomatch)
