@@ -696,6 +696,8 @@ dmd -cov -unittest myprog.d
     static immutable reverts = [
         Feature("dip25", "noDIP25", "revert DIP25 changes https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md"),
         Feature("import", "bug10378", "revert to single phase name lookup", true, true),
+        Feature("noautoimports", "noautoimports",
+            "revert disabling automatic importing of modules, including object.d"),
     ];
 
     /// Returns all available previews

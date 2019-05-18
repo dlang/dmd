@@ -1067,6 +1067,10 @@ extern (C++) final class Module : Package
         // If it isn't there, some compiler rewrites, like
         //    classinst == classinst -> .object.opEquals(classinst, classinst)
         // would fail inside object.d.
+        //
+        // TODO: After -revert=noautoimports is added to the default dmd.conf file
+        // of the host compiler and released to users, use it to disable automatically
+        // importing object.d
         if (members.dim == 0 || (*members)[0].ident != Id.object)
         {
             auto im = new Import(Loc.initial, null, Id.object, null, 0);
