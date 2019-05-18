@@ -1,3 +1,3 @@
-// REQUIRED_ARGS: -lowmem -Jrunnable
+// REQUIRED_ARGS: -lowmem -Jrunnable -preview=rvaluerefparam
 
 mixin(import("xtest46.d"));

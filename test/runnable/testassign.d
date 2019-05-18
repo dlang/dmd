@@ -1,17 +1,5 @@
-/*
-TEST_OUTPUT:
----
-\	S1	S2a	S2b	S3a	S3b	S4a	S4b
--	true	true	true	true	true	true	true
-Xa	true	true	true	true	true	true	true
-Xb	true	true	true	true	true	true	true
-Xc	true	true	true	true	true	true	true
-Xd	true	true	true	true	true	true	true
-Xe	true	true	true	true	true	true	true
-Xf	true	true	true	true	true	true	true
-Xg	true	true	true	true	true	true	true
----
-*/
+// REQUIRED_ARGS: -preview=rvaluerefparam
+
 import core.stdc.stdio;
 
 template TypeTuple(T...){ alias T TypeTuple; }
@@ -885,8 +873,8 @@ void test12211()
     // array ops should make rvalue
     int[3] sa, sb;
     void bar(ref int[]) {}
-    static assert(!__traits(compiles, bar(sa[]  = sb[])));
-    static assert(!__traits(compiles, bar(sa[] += sb[])));
+    static assert(__traits(compiles, bar(sa[]  = sb[])));
+    static assert(__traits(compiles, bar(sa[] += sb[])));
 }
 
 /***************************************************/
