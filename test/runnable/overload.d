@@ -1,3 +1,4 @@
+// REQUIRED_ARGS: -preview=rvaluerefparam
 // EXTRA_SOURCES: imports/ovs1528a.d imports/ovs1528b.d
 // EXTRA_SOURCES: imports/template_ovs1.d imports/template_ovs2.d imports/template_ovs3.d
 
@@ -470,7 +471,13 @@ void test9410()
 {
     S s;
     assert(foo(1, s  ) == 1); // works fine. Print: ref
-    assert(foo(1, S()) == 2); // Fails with: Error: S() is not an lvalue
+
+    /* With the rvalue to ref param change, this calls the 'ref' version
+     * because both are the same match level, but the 'ref' version is
+     * considered "more specialized", as the non-ref version undergoes
+     * a "conversion" to call the ref version.
+     */
+    assert(foo(1, S()) == 1);
 }
 
 /***************************************************/
