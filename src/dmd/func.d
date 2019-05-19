@@ -2278,9 +2278,6 @@ extern (C++) class FuncDeclaration : Declaration
             auto fd = new FuncDeclaration(loc, loc, Id.ensure, STC.undefined_, tf);
             fd.fbody = fensure;
             Statement s1 = new ExpStatement(loc, fd);
-            Expression eresult = null;
-            if (canBuildResultVar())
-                eresult = new IdentifierExp(loc, Id.result);
             Expression e = new CallExp(loc, new VarExp(loc, fd, false), fdensureParams);
             Statement s2 = new ExpStatement(loc, e);
             fensure = new CompoundStatement(loc, s1, s2);
