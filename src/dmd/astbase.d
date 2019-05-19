@@ -1474,7 +1474,7 @@ struct ASTBase
         {
             super(ident);
             this.arg = filename;
-            srcfile = FileName(FileName.defaultExt(filename, global.mars_ext).toDString);
+            srcfile = FileName(FileName.defaultExt(filename.toDString, global.mars_ext));
         }
 
         override void accept(Visitor v)

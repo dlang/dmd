@@ -205,9 +205,9 @@ struct Param
     Array!(const(char)*)* modFileAliasStrings; // array of char*'s of -I module filename alias strings
     Array!(const(char)*)* imppath;      // array of char*'s of where to look for import modules
     Array!(const(char)*)* fileImppath;  // array of char*'s of where to look for file import modules
-    const(char)* objdir;                // .obj/.lib file output directory
-    const(char)* objname;               // .obj file output name
-    const(char)* libname;               // .lib file output name
+    const(char)[] objdir;                // .obj/.lib file output directory
+    const(char)[] objname;               // .obj file output name
+    const(char)[] libname;               // .lib file output name
 
     bool doDocComments;                 // process embedded documentation comments
     const(char)* docdir;                // write documentation file to docdir directory
@@ -258,8 +258,8 @@ struct Param
     Array!(const(char)*) dllfiles;
     const(char)* deffile;
     const(char)* resfile;
-    const(char)* exefile;
-    const(char)* mapfile;
+    const(char)[] exefile;
+    const(char)[] mapfile;
 }
 
 alias structalign_t = uint;
@@ -271,19 +271,20 @@ enum STRUCTALIGN_DEFAULT = (cast(structalign_t)~0);
 struct Global
 {
     const(char)* inifilename;
-    const(char)* mars_ext = "d";
-    const(char)* obj_ext;
-    const(char)* lib_ext;
-    const(char)* dll_ext;
-    const(char)* doc_ext = "html";      // for Ddoc generated files
-    const(char)* ddoc_ext = "ddoc";     // for Ddoc macro include files
-    const(char)* hdr_ext = "di";        // for D 'header' import files
-    const(char)* json_ext = "json";     // for JSON files
-    const(char)* map_ext = "map";       // for .map files
+    string mars_ext = "d";
+    const(char)[] obj_ext;
+    const(char)[] lib_ext;
+    const(char)[] dll_ext;
+    string doc_ext = "html";      // for Ddoc generated files
+    string ddoc_ext = "ddoc";     // for Ddoc macro include files
+    string hdr_ext = "di";        // for D 'header' import files
+    string json_ext = "json";     // for JSON files
+    string map_ext = "map";       // for .map files
     bool run_noext;                     // allow -run sources without extensions.
 
-    const(char)* copyright = "Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved";
-    const(char)* written = "written by Walter Bright";
+    string copyright = "Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved";
+    string written = "written by Walter Bright";
+
     Array!(const(char)*)* path;         // Array of char*'s which form the import lookup path
     Array!(const(char)*)* filePath;     // Array of char*'s which form the file import lookup path
 

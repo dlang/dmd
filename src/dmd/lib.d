@@ -78,24 +78,25 @@ class Library
      *  dir = path to file
      *  filename = name of file relative to `dir`
      */
-    final void setFilename(const(char)* dir, const(char)* filename)
+    final void setFilename(const(char)[] dir, const(char)[] filename)
     {
         static if (LOG)
         {
-            printf("LibElf::setFilename(dir = '%s', filename = '%s')\n", dir ? dir : "", filename ? filename : "");
+            printf("LibElf::setFilename(dir = '%.*s', filename = '%.*s')\n",
+                   cast(int)dir.length, dir.ptr, cast(int)filename.length, filename.ptr);
         }
-        const(char)* arg = filename;
-        if (!arg || !*arg)
+        const(char)[] arg = filename;
+        if (!arg.length)
         {
             // Generate lib file name from first obj name
-            const(char)* n = global.params.objfiles[0];
+            const(char)[] n = global.params.objfiles[0].toDString;
             n = FileName.name(n);
             arg = FileName.forceExt(n, global.lib_ext);
         }
         if (!FileName.absolute(arg))
             arg = FileName.combine(dir, arg);
 
-        loc = Loc(FileName.defaultExt(arg, global.lib_ext), 0, 0);
+        loc = Loc(FileName.defaultExt(arg, global.lib_ext).ptr, 0, 0);
     }
 
     final void write()
