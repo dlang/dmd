@@ -22,7 +22,9 @@ import core.stdc.limits;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
+
 import dmd.arraytypes;
+import dmd.astcodegen;
 import dmd.gluelayer;
 import dmd.builtin;
 import dmd.cond;

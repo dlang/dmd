@@ -83,6 +83,23 @@ unittest
     assert(actual == "bar", actual);
 }
 
+@("parseModule - missing package")
+unittest
+{
+    import dmd.frontend;
+
+    initDMD();
+
+    auto t = parseModule("foo/bar.d", q{
+        module foo.bar;
+    });
+
+    assert(!t.diagnostics.hasErrors);
+    assert(!t.diagnostics.hasWarnings);
+
+    assert(t.module_.parent !is null);
+}
+
 @("initDMD - contract checking")
 unittest
 {

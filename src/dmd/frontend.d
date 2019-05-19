@@ -387,33 +387,33 @@ in
 }
 body
 {
+    import dmd.root.file : File, FileBuffer;
+
     import dmd.globals : Loc, global;
     import dmd.parse : Parser;
     import dmd.identifier : Identifier;
     import dmd.tokens : TOK;
+
     import std.path : baseName, stripExtension;
     import std.string : toStringz;
     import std.typecons : tuple;
 
-    static auto parse(Module m, const(char)[] code, DiagnosticReporter diagnosticReporter)
-    {
-        scope p = new Parser!AST(m, code, false, diagnosticReporter);
-        p.nextToken; // skip the initial token
-        auto members = p.parseModule;
-        if (p.errors)
-            ++global.errors;
-        return members;
-    }
-
     auto id = Identifier.idPool(fileName.baseName.stripExtension);
     auto m = new Module(fileName, id, 0, 0);
-    if (code !is null)
-        m.members = parse(m, code, diagnosticReporter);
+
+    if (code is null)
+        m.read(Loc.initial);
     else
     {
-        m.read(Loc.initial);
-        m.parse();
+        File.ReadResult readResult = {
+            success: true,
+            buffer: FileBuffer(cast(ubyte[]) code.dup ~ '\0')
+        };
+
+        m.loadSourceBuffer(Loc.initial, readResult);
     }
+
+    m.parse!AST(diagnosticReporter);
 
     Diagnostics diagnostics = {
         errors: global.errors,
