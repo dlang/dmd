@@ -2214,6 +2214,15 @@ extern (C++) class ThisExp : Expression
         //printf("ThisExp::ThisExp() loc = %d\n", loc.linnum);
     }
 
+    override Expression syntaxCopy()
+    {
+        auto r = cast(ThisExp) super.syntaxCopy();
+        // require new semantic (possibly new `var` etc.)
+        r.type = null;
+        r.var = null;
+        return r;
+    }
+
     override final bool isBool(bool result)
     {
         return result;
