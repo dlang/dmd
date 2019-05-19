@@ -22,6 +22,8 @@ import dmd.canthrow;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum;
+import dmd.dimport;
+import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
@@ -107,6 +109,8 @@ shared static this()
         "isFinalFunction",
         "isOverrideFunction",
         "isStaticFunction",
+        "isModule",
+        "isPackage",
         "isRef",
         "isOut",
         "isLazy",
@@ -480,7 +484,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         return null;
     }
 
-    IntegerExp isX(T)(bool function(T) fp)
+    IntegerExp isX(T)(bool delegate(T) fp)
     {
         if (!dim)
             return False();
@@ -515,6 +519,14 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
     alias isDeclX = isX!Declaration;
     alias isFuncX = isX!FuncDeclaration;
     alias isEnumMemX = isX!EnumMember;
+
+    Expression isPkgX(bool function(Package) fp)
+    {
+        return isDsymX((Dsymbol sym) {
+            Package p = resolveIsPackage(sym);
+            return (p !is null) && fp(p);
+        });
+    }
 
     if (e.ident == Id.isArithmetic)
     {
@@ -671,6 +683,20 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return dimError(1);
 
         return isFuncX(f => !f.needThis() && !f.isNested());
+    }
+    if (e.ident == Id.isModule)
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        return isPkgX(p => p.isModule() || p.isPackageMod());
+    }
+    if (e.ident == Id.isPackage)
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        return isPkgX(p => p.isModule() is null);
     }
     if (e.ident == Id.isRef)
     {

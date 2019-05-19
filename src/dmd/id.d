@@ -393,6 +393,8 @@ immutable Msgtable[] msgtable =
     { "isFinalFunction" },
     { "isOverrideFunction" },
     { "isStaticFunction" },
+    { "isModule" },
+    { "isPackage" },
     { "isRef" },
     { "isOut" },
     { "isLazy" },

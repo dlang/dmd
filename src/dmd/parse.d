@@ -7974,8 +7974,9 @@ final class Parser(AST) : Lexer
                         nextToken();
                         if (tok == TOK.equal && (token.value == TOK.struct_ || token.value == TOK.union_
                             || token.value == TOK.class_ || token.value == TOK.super_ || token.value == TOK.enum_
-                            || token.value == TOK.interface_ || token.value == TOK.argumentTypes
-                            || token.value == TOK.parameters || token.value == TOK.const_ && peek(&token).value == TOK.rightParentheses
+                            || token.value == TOK.interface_ || token.value == TOK.package_ || token.value == TOK.module_
+                            || token.value == TOK.argumentTypes || token.value == TOK.parameters
+                            || token.value == TOK.const_ && peek(&token).value == TOK.rightParentheses
                             || token.value == TOK.immutable_ && peek(&token).value == TOK.rightParentheses
                             || token.value == TOK.shared_ && peek(&token).value == TOK.rightParentheses
                             || token.value == TOK.inout_ && peek(&token).value == TOK.rightParentheses || token.value == TOK.function_
