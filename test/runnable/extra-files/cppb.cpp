@@ -612,7 +612,7 @@ void throwit()
 
 /******************************************/
 
-#if linux
+#if __linux__
 #include <stdexcept>
 
 void throwle()
