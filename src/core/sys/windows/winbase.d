@@ -1285,9 +1285,17 @@ struct WIN32_STREAM_ID {
 }
 alias WIN32_STREAM_ID* LPWIN32_STREAM_ID;
 
-enum FINDEX_INFO_LEVELS {
-    FindExInfoStandard,
-    FindExInfoMaxInfoLevel
+static if (_WIN32_WINNT >= 0x601) {
+    enum FINDEX_INFO_LEVELS {
+        FindExInfoStandard,
+        FindExInfoBasic,
+        FindExInfoMaxInfoLevel,
+    }
+} else {
+    enum FINDEX_INFO_LEVELS {
+        FindExInfoStandard,
+        FindExInfoMaxInfoLevel,
+    }
 }
 
 enum FINDEX_SEARCH_OPS {
