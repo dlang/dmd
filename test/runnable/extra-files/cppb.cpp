@@ -587,7 +587,7 @@ void fuzz2_cppvararg(uint64_t arg10, uint64_t arg11, bool arg12)
     fuzz2_checkValues(arg10, arg11, arg12);
 }
 
-#ifndef __DMC__
+#ifndef TEST_UNICODE
 void fuzz3_checkValues(char16_t arg10, char32_t arg11, bool arg12);
 void fuzz3_cppvararg(char16_t arg10, char32_t arg11, bool arg12)
 {
