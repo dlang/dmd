@@ -920,7 +920,7 @@ void fuzz2()
 ////////
 version(CppRuntime_DigitalMars)
     enum UNICODE = false;
-version(CppRuntime_Mocrosoft)
+version(CppRuntime_Microsoft)
     enum UNICODE = false; //VS2013 doesn't support them
 else
     enum UNICODE = true;
