@@ -1,5 +1,7 @@
 // EXTRA_CPP_SOURCES: cpp_abi_tests.cpp
-// CXXFLAGS: -std=c++11
+// CXXFLAGS(linux freebsd osx netbsd dragonflybsd): -std=c++11
+
+// N.B MSVC doesn't have a C++11 switch, but it defaults to the latest fully-supported standard
 
 version(Posix)
     enum __c_wchar_t : dchar;
@@ -194,8 +196,10 @@ void main()
     foreach(byte val; values!byte())     check(val);
     foreach(ubyte val; values!ubyte())   check(val);
     foreach(char val; values!char())     check(val);
+version(CppRuntime_DigitalMars){} else {
     foreach(wchar val; values!wchar())   check(val);
     foreach(dchar val; values!dchar())   check(val);
+}
     foreach(wchar_t val; values!wchar_t()) check(val);
     foreach(short val; values!short())   check(val);
     foreach(ushort val; values!ushort()) check(val);

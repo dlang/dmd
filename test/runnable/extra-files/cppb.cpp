@@ -407,18 +407,22 @@ wchar_t f13289_cpp_wchar_t(wchar_t ch)
     }
 }
 
+#ifndef __DMC__
 char16_t f13289_d_wchar(char16_t ch);
 char32_t f13289_d_dchar(char32_t ch);
+#endif
 wchar_t f13289_d_wchar_t(wchar_t ch);
 
 bool f13289_cpp_test()
 {
     if (!(f13289_d_wchar_t(L'e') == L'E')) return false;
     if (!(f13289_d_wchar_t(L'F') == L'F')) return false;
+#ifndef __DMC__
     if (!(f13289_d_wchar(u'c') == u'C')) return false;
     if (!(f13289_d_wchar(u'D') == u'D')) return false;
     if (!(f13289_d_dchar(U'e') == U'E')) return false;
     if (!(f13289_d_dchar(U'F') == U'F')) return false;
+#endif
     return true;
 }
 
@@ -577,11 +581,13 @@ void fuzz2_cppvararg(uint64_t arg10, uint64_t arg11, bool arg12)
     fuzz2_checkValues(arg10, arg11, arg12);
 }
 
+#ifndef __DMC__
 void fuzz3_checkValues(char16_t arg10, char32_t arg11, bool arg12);
 void fuzz3_cppvararg(char16_t arg10, char32_t arg11, bool arg12)
 {
     fuzz3_checkValues(arg10, arg11, arg12);
 }
+#endif
 
 /******************************************/
 

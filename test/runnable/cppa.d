@@ -1,6 +1,8 @@
 // PERMUTE_ARGS: -g
 // EXTRA_CPP_SOURCES: cppb.cpp
-// CXXFLAGS: -std=c++11
+// CXXFLAGS(linux freebsd osx netbsd dragonflybsd): -std=c++11
+
+// N.B MSVC doesn't have a C++11 switch, but it defaults to the latest fully-supported standard
 
 import core.stdc.stdio;
 import core.stdc.stdarg;
@@ -916,6 +918,12 @@ void fuzz2()
 }
 
 ////////
+version(CppRuntime_DigitalMars)
+    enum NODMC = false;
+else
+    enum NODMC = true;
+static if (NODMC)
+{
 extern(C++) void fuzz3_cppvararg(wchar arg10, dchar arg11, bool arg12);
 extern(C++) void fuzz3_dvararg(wchar arg10, dchar arg11, bool arg12)
 {
@@ -937,12 +945,13 @@ void fuzz3()
     fuzz3_dvararg(arg10, arg11, arg12);
     fuzz3_cppvararg(arg10, arg11, arg12);
 }
+}
 
 void fuzz()
 {
     fuzz1();
     fuzz2();
-    fuzz3();
+    static if (NODMC) fuzz3();
 }
 
 /****************************************/
