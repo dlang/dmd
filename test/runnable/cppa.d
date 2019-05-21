@@ -919,10 +919,13 @@ void fuzz2()
 
 ////////
 version(CppRuntime_DigitalMars)
-    enum NODMC = false;
+    enum UNICODE = false;
+version(CppRuntime_Mocrosoft)
+    enum UNICODE = false; //VS2013 doesn't support them
 else
-    enum NODMC = true;
-static if (NODMC)
+    enum UNICODE = true;
+
+static if (UNICODE)
 {
 extern(C++) void fuzz3_cppvararg(wchar arg10, dchar arg11, bool arg12);
 extern(C++) void fuzz3_dvararg(wchar arg10, dchar arg11, bool arg12)
