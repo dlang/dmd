@@ -954,7 +954,7 @@ void fuzz()
 {
     fuzz1();
     fuzz2();
-    static if (NODMC) fuzz3();
+    static if (UNICODE) fuzz3();
 }
 
 /****************************************/
