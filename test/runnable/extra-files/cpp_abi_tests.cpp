@@ -13,7 +13,7 @@ bool               passthrough(bool                value)     { return value; }
 signed char        passthrough(signed char         value)     { return value; }
 unsigned char      passthrough(unsigned char       value)     { return value; }
 char               passthrough(char                value)     { return value; }
-#ifdef __DMC__
+#ifndef __DMC__
 char16_t           passthrough(char16_t            value)     { return value; }
 char32_t           passthrough(char32_t            value)     { return value; }
 #endif
@@ -35,7 +35,7 @@ bool               passthrough_ptr(bool               *value) { return *value; }
 signed char        passthrough_ptr(signed char        *value) { return *value; }
 unsigned char      passthrough_ptr(unsigned char      *value) { return *value; }
 char               passthrough_ptr(char               *value) { return *value; }
-#ifdef __DMC__
+#ifndef __DMC__
 char16_t           passthrough_ptr(char16_t           *value) { return *value; }
 char32_t           passthrough_ptr(char32_t           *value) { return *value; }
 #endif
@@ -57,7 +57,7 @@ bool               passthrough_ref(bool               &value) { return value; }
 signed char        passthrough_ref(signed char        &value) { return value; }
 unsigned char      passthrough_ref(unsigned char      &value) { return value; }
 char               passthrough_ref(char               &value) { return value; }
-#ifdef __DMC__
+#ifndef __DMC__
 char16_t           passthrough_ref(char16_t           &value) { return value; }
 char32_t           passthrough_ref(char32_t           &value) { return value; }
 #endif
