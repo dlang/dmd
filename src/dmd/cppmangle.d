@@ -1334,8 +1334,8 @@ extern(C++):
             case Tfloat80:               c = 'e';       break;
             case Tbool:                  c = 'b';       break;
             case Tchar:                  c = 'c';       break;
-            case Twchar:                 c = 't';       break;  // unsigned short (perhaps use 'Ds' ?
-            case Tdchar:                 c = 'w';       break;  // wchar_t (UTF-32) (perhaps use 'Di' ?
+            case Twchar:        p = 'D'; c = 's';       break;  // since C++11
+            case Tdchar:        p = 'D'; c = 'i';       break;  // since C++11
             case Timaginary32:  p = 'G'; c = 'f';       break;  // 'G' means imaginary
             case Timaginary64:  p = 'G'; c = 'd';       break;
             case Timaginary80:  p = 'G'; c = 'e';       break;
