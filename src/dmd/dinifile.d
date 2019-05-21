@@ -25,6 +25,7 @@ import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.root.port;
 import dmd.root.stringtable;
+import dmd.root.rmem : xarraydup;
 import dmd.utils;
 
 version (Windows) extern (C) int putenv(const char*) nothrow;
@@ -175,7 +176,7 @@ void updateRealEnvironment(ref StringTable environment)
  *      buffer = contents of configuration file
  *      sections = section names
  */
-void parseConfFile(ref StringTable environment, const(char)* filename, const(char)[] path, const(ubyte)[] buffer, const(Strings)* sections)
+void parseConfFile(ref StringTable environment, const(char)[] filename, const(char)[] path, const(ubyte)[] buffer, const(Strings)* sections)
 {
     /********************
      * Skip spaces.
@@ -353,7 +354,7 @@ void parseConfFile(ref StringTable environment, const(char)* filename, const(cha
                 {
                     if (!writeToEnv(environment, strdup(pn)))
                     {
-                        error(Loc(filename, lineNum, 0), "Use `NAME=value` syntax, not `%s`", pn);
+                        error(Loc(filename.xarraydup.ptr, lineNum, 0), "Use `NAME=value` syntax, not `%s`", pn);
                         fatal();
                     }
                     static if (LOG)

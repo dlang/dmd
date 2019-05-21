@@ -102,9 +102,10 @@ private void usage()
     import dmd.cli : CLIUsage;
     logo();
     auto help = CLIUsage.usage;
+    const inifileCanon = FileName.canonicalName(global.inifilename);
     printf("
 Documentation: https://dlang.org/
-Config file: %s
+Config file: %.*s
 Usage:
   dmd [<option>...] <file>...
   dmd [<option>...] -run <file> [<arg>...]
@@ -115,7 +116,7 @@ Where:
 
 <option>:
   @<cmdfile>       read arguments from cmdfile
-%.*s", FileName.canonicalName(global.inifilename), cast(int)help.length, &help[0]);
+%.*s", cast(int)inifileCanon.length, inifileCanon.ptr, cast(int)help.length, &help[0]);
 }
 
 /**
@@ -174,18 +175,19 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (global.inifilename)
     {
         // can be empty as in -conf=
-        if (strlen(global.inifilename) && !FileName.exists(global.inifilename))
-            error(Loc.initial, "Config file '%s' does not exist.", global.inifilename);
+        if (global.inifilename.length && !FileName.exists(global.inifilename))
+            error(Loc.initial, "Config file '%.*s' does not exist.",
+                  cast(int)global.inifilename.length, global.inifilename.ptr);
     }
     else
     {
         version (Windows)
         {
-            global.inifilename = findConfFile(params.argv0, "sc.ini").ptr;
+            global.inifilename = findConfFile(params.argv0, "sc.ini");
         }
         else version (Posix)
         {
-            global.inifilename = findConfFile(params.argv0, "dmd.conf").ptr;
+            global.inifilename = findConfFile(params.argv0, "dmd.conf");
         }
         else
         {
@@ -193,11 +195,11 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         }
     }
     // Read the configuration file
-    const iniReadResult = File.read(global.inifilename);
+    const iniReadResult = global.inifilename.toCStringThen!(fn => File.read(fn.ptr));
     const inifileBuffer = iniReadResult.buffer.data;
     /* Need path of configuration file, for use in expanding @P macro
      */
-    const(char)[] inifilepath = FileName.path(global.inifilename.toDString());
+    const(char)[] inifilepath = FileName.path(global.inifilename);
     Strings sections;
     StringTable environment;
     environment._init(7);
@@ -332,7 +334,8 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     setTarget(params);           // set target operating system
     setTargetCPU(params);
     if (params.is64bit != is64bit)
-        error(Loc.initial, "the architecture must not be changed in the %s section of %s", envsection.ptr, global.inifilename);
+        error(Loc.initial, "the architecture must not be changed in the %s section of %.*s",
+              envsection.ptr, cast(int)global.inifilename.length, global.inifilename.ptr);
 
     if (global.errors)
     {
@@ -639,7 +642,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
         const data = ob.peekSlice();
         if (params.moduleDepsFile)
-            writeFile(Loc.initial, params.moduleDepsFile.toDString, data);
+            writeFile(Loc.initial, params.moduleDepsFile, data);
         else
             printf("%.*s", cast(int)data.length, data.ptr);
     }
@@ -813,7 +816,7 @@ extern (C++) void generateJson(Modules* modules)
     json_generate(&buf, modules);
 
     // Write buf to file
-    const(char)[] name = global.params.jsonfilename.toDString;
+    const(char)[] name = global.params.jsonfilename;
     if (name == "-")
     {
         // Write to stdout; assume it succeeds
@@ -1074,16 +1077,18 @@ const(char)* parse_arch_arg(Strings* args, const(char)* arch)
  * Returns:
  *   The 'path' in -conf=path, which is the path to the config file to use
  */
-const(char)* parse_conf_arg(Strings* args)
+const(char)[] parse_conf_arg(Strings* args)
 {
-    const(char)* conf = null;
+    const(char)[] conf;
     foreach (const p; *args)
     {
-        if (p[0] == '-')
+        const(char)[] arg = p.toDString;
+        if (arg.length && arg[0] == '-')
         {
-            if (strncmp(p + 1, "conf=", 5) == 0)
-                conf = p + 6;
-            else if (strcmp(p + 1, "run") == 0)
+            if(arg.length >= 6 && arg[1 .. 6] == "conf="){
+                conf = arg[6 .. $];
+            }
+            else if (arg[1 .. $] == "run")
                 break;
         }
     }
@@ -1125,7 +1130,7 @@ private void setDefaultLibrary()
             static assert(0, "fix this");
         }
     }
-    else if (!global.params.defaultlibname[0])  // if `-defaultlib=` (i.e. an empty defaultlib)
+    else if (!global.params.defaultlibname.length)  // if `-defaultlib=` (i.e. an empty defaultlib)
         global.params.defaultlibname = null;
 
     if (global.params.debuglibname is null)
@@ -1314,7 +1319,8 @@ extern(C) void printGlobalConfigs(FILE* stream)
 {
     stream.fprintf("binary    %.*s\n", cast(int)global.params.argv0.length, global.params.argv0.ptr);
     stream.fprintf("version   %.*s\n", cast(int) global._version.length - 1, global._version.ptr);
-    stream.fprintf("config    %s\n", global.inifilename ? global.inifilename : "(none)");
+    const iniOutput = global.inifilename ? global.inifilename : "(none)";
+    stream.fprintf("config    %.*s\n", cast(int)iniOutput.length, iniOutput.ptr);
     // Print DFLAGS environment variable
     {
         StringTable environment;
@@ -1817,7 +1823,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         {
             static if (TARGET.Windows)
             {
-                params.mscrtlib = p + 10;
+                params.mscrtlib = (p + 10).toDString;
             }
             else
             {
@@ -2119,12 +2125,12 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             case 'd':               // https://dlang.org/dmd.html#switch-Hd
                 if (!p[3])
                     goto Lnoarg;
-                params.hdrdir = p + 3 + (p[3] == '=');
+                params.hdrdir = (p + 3 + (p[3] == '=')).toDString;
                 break;
             case 'f':               // https://dlang.org/dmd.html#switch-Hf
                 if (!p[3])
                     goto Lnoarg;
-                params.hdrname = p + 3 + (p[3] == '=');
+                params.hdrname = (p + 3 + (p[3] == '=')).toDString;
                 break;
             case 0:
                 break;
@@ -2140,7 +2146,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             case 'f':               // https://dlang.org/dmd.html#switch-Xf
                 if (!p[3])
                     goto Lnoarg;
-                params.jsonfilename = p + 3 + (p[3] == '=');
+                params.jsonfilename = (p + 3 + (p[3] == '=')).toDString;
                 break;
             case 'i':
                 if (!p[3])
@@ -2349,11 +2355,11 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (startsWith(p + 1, "defaultlib="))   // https://dlang.org/dmd.html#switch-defaultlib
         {
-            params.defaultlibname = p + 1 + 11;
+            params.defaultlibname = (p + 1 + 11).toDString;
         }
         else if (startsWith(p + 1, "debuglib="))     // https://dlang.org/dmd.html#switch-debuglib
         {
-            params.debuglibname = p + 1 + 9;
+            params.debuglibname = (p + 1 + 9).toDString;
         }
         else if (startsWith(p + 1, "deps"))          // https://dlang.org/dmd.html#switch-deps
         {
@@ -2364,7 +2370,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             }
             if (p[5] == '=')
             {
-                params.moduleDepsFile = p + 1 + 5;
+                params.moduleDepsFile = (p + 1 + 5).toDString;
                 if (!params.moduleDepsFile[0])
                     goto Lnoarg;
             }
@@ -2452,7 +2458,7 @@ private void reconcileCommands(ref Param params, size_t numSrcFiles)
         {
             VSOptions vsopt;
             vsopt.initialize();
-            params.mscrtlib = vsopt.defaultRuntimeLibrary(params.is64bit);
+            params.mscrtlib = vsopt.defaultRuntimeLibrary(params.is64bit).toDString;
         }
     }
 
@@ -2634,7 +2640,7 @@ Modules createModules(ref Strings files, ref Strings libmodules)
             if (FileName.equals(ext, global.json_ext))
             {
                 global.params.doJsonGeneration = true;
-                global.params.jsonfilename = files[i];
+                global.params.jsonfilename = files[i].toDString;
                 continue;
             }
             if (FileName.equals(ext, global.map_ext))
@@ -2646,12 +2652,12 @@ Modules createModules(ref Strings files, ref Strings libmodules)
             {
                 if (FileName.equals(ext, "res"))
                 {
-                    global.params.resfile = files[i];
+                    global.params.resfile = files[i].toDString;
                     continue;
                 }
                 if (FileName.equals(ext, "def"))
                 {
-                    global.params.deffile = files[i];
+                    global.params.deffile = files[i].toDString;
                     continue;
                 }
                 if (FileName.equals(ext, "exe"))

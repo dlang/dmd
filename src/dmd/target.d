@@ -772,7 +772,7 @@ struct Target
                 if (global.params.isWindows)
                 {
                     if (global.params.mscoff)
-                        return stringExp(global.params.mscrtlib ? global.params.mscrtlib.toDString : "");
+                        return stringExp(global.params.mscrtlib);
                     return stringExp("snn");
                 }
                 return stringExp("");

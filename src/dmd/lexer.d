@@ -559,7 +559,7 @@ class Lexer
                         }
                         else if (id == Id.VENDOR)
                         {
-                            t.ustring = global.vendor;
+                            t.ustring = global.vendor.xarraydup.ptr;
                             goto Lstr;
                         }
                         else if (id == Id.TIMESTAMP)

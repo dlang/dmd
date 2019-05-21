@@ -179,7 +179,7 @@ public int runLINK()
     version (Windows)
     {
         if (phobosLibname)
-            global.params.libfiles.push(phobosLibname);
+            global.params.libfiles.push(phobosLibname.xarraydup.ptr);
 
         if (global.params.mscoff)
         {
@@ -631,7 +631,7 @@ public int runLINK()
         /* D runtime libraries must go after user specified libraries
          * passed with -l.
          */
-        const libname = phobosLibname.toDString();
+        const libname = phobosLibname;
         if (libname.length)
         {
             const bufsize = 2 + libname.length + 1;
