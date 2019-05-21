@@ -1061,7 +1061,12 @@ private final class CppMangleVisitor : Visitor
                 fatal();
             }
             auto prev = this.context.push({
-                    auto tf = cast(TypeFunction)this.context.res.asFuncDecl().type;
+                    TypeFunction tf;
+                    if (isDsymbol(this.context.res))
+                        tf = cast(TypeFunction)this.context.res.asFuncDecl().type;
+                    else
+                        tf = this.context.res.asType().isTypeFunction();
+                    assert(tf);
                     return (*tf.parameterList.parameters)[n].type;
                 }());
             scope (exit) this.context.pop(prev);
