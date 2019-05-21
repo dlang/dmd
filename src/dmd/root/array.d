@@ -289,9 +289,9 @@ private:
  * Returns:
  *  The given array exposed to a standard D array.
  */
-@property inout(T)[] asDArray(T)(inout ref Array!T array) pure nothrow @nogc
+@property inout(T)[] peekSlice(T)(inout(Array!T)* array) pure nothrow @nogc
 {
-    return array.data[0..array.length];
+    return array ? (*array)[] : null;
 }
 
 /**
@@ -319,26 +319,26 @@ unittest
 {
     auto array = Array!int();
     array.split(0, 0);
-    assert([] == array.asDArray);
+    assert([] == array[]);
     array.push(1).push(3);
     array.split(1, 1);
     array[1] = 2;
-    assert([1, 2, 3] == array.asDArray);
+    assert([1, 2, 3] == array[]);
     array.split(2, 3);
     array[2] = 8;
     array[3] = 20;
     array[4] = 4;
-    assert([1, 2, 8, 20, 4, 3] == array.asDArray);
+    assert([1, 2, 8, 20, 4, 3] == array[]);
     array.split(0, 0);
-    assert([1, 2, 8, 20, 4, 3] == array.asDArray);
+    assert([1, 2, 8, 20, 4, 3] == array[]);
     array.split(0, 1);
     array[0] = 123;
-    assert([123, 1, 2, 8, 20, 4, 3] == array.asDArray);
+    assert([123, 1, 2, 8, 20, 4, 3] == array[]);
     array.split(0, 3);
     array[0] = 123;
     array[1] = 421;
     array[2] = 910;
-    assert([123, 421, 910, 123, 1, 2, 8, 20, 4, 3] == array.asDArray);
+    assert([123, 421, 910, 123, 1, 2, 8, 20, 4, 3] == (&array).peekSlice());
 }
 
 /**

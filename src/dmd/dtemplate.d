@@ -41,6 +41,7 @@ import dmd.init;
 import dmd.initsem;
 import dmd.mtype;
 import dmd.opover;
+import dmd.root.array;
 import dmd.root.outbuffer;
 import dmd.root.rootobject;
 import dmd.semantic2;
@@ -2364,7 +2365,7 @@ extern (C++) final class TypeDeduced : Type
 void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiargs,
     Type tthis, Expressions* fargs, const(char)** pMessage = null)
 {
-    Expression[] fargs_ = fargs ? (*fargs)[] : null;
+    Expression[] fargs_ = fargs.peekSlice();
     version (none)
     {
         printf("functionResolve() dstart = %s\n", dstart.toChars());
