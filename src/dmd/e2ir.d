@@ -960,15 +960,6 @@ Lagain:
                 default:     r = RTLSYM_MEMSETN;    break;
             }
 
-            if (sz == 16 && !irs.params.is64bit && irs.params.isOSX && tyaggregate(evalue.Ety))
-            {
-                // cast to cdouble to match the parameter type
-                // otherwise it may not get the proper alignment
-                const tym = TYcdouble | (evalue.Ety & ~mTYbasic);
-                evalue = addressElem(evalue, tb);
-                evalue = el_una(OPind, tym, evalue);
-            }
-
             /* Determine if we need to do postblit
              */
             if (op != TOK.blit)
@@ -1034,6 +1025,30 @@ Lagain:
     if (config.exe == EX_WIN64 && sz > REGSIZE)
     {
         evalue = addressElem(evalue, tb);
+    }
+    // cast to the proper parameter type
+    else if (r != RTLSYM_MEMSETN)
+    {
+        tym_t tym;
+        switch (r)
+        {
+            case RTLSYM_MEMSET8:      tym = TYchar;     break;
+            case RTLSYM_MEMSET16:     tym = TYshort;    break;
+            case RTLSYM_MEMSET32:     tym = TYlong;     break;
+            case RTLSYM_MEMSET64:     tym = TYllong;    break;
+            case RTLSYM_MEMSET80:     tym = TYldouble;  break;
+            case RTLSYM_MEMSET160:    tym = TYcldouble; break;
+            case RTLSYM_MEMSET128:    tym = TYcdouble;  break;
+            case RTLSYM_MEMSET128ii:  tym = TYucent;    break;
+            case RTLSYM_MEMSETFLOAT:  tym = TYfloat;    break;
+            case RTLSYM_MEMSETDOUBLE: tym = TYdouble;   break;
+            case RTLSYM_MEMSETSIMD:   tym = TYfloat4;   break;
+            default:
+                assert(0);
+        }
+        tym = tym | (evalue.Ety & ~mTYbasic);
+        evalue = addressElem(evalue, tb);
+        evalue = el_una(OPind, tym, evalue);
     }
 
     evalue = useOPstrpar(evalue);
