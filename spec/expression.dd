@@ -2048,6 +2048,8 @@ $(GNAME TypeSpecialization):
     $(D shared)
     $(D return)
     $(D __parameters)
+    $(D module)
+    $(D package)
 )
 
     $(P $(I IsExpression)s are evaluated at compile time and are
@@ -2132,11 +2134,15 @@ void foo()
                 $(D enum)
                 $(D function)
                 $(D delegate)
-           $(D const)
+                $(D const)
                 $(D immutable)
                 $(D shared)
+                $(D module)
+                $(D package)
 
-        then the condition is satisfied if $(I Type) is one of those.
+        then the condition is satisfied if $(I Type) is one of those. $(DDSUBLINK
+        spec/module, package-module, Package modules) are considered to be both
+        packages and modules.
 
 -------------
 alias Bar = short;
