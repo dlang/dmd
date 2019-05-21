@@ -406,8 +406,14 @@ wchar_t f13289_cpp_wchar_t(wchar_t ch)
         return ch;
     }
 }
-
-#ifndef __DMC__
+#ifdef __DMC__
+// DMC doesn't support c++11
+#elif defined (_MSC_VER) && _MSC_VER <= 1800
+// MSVC2013 doesn't support char16_t/char32_t
+#else
+#define TEST_UNICODE
+#endif
+#ifdef TEST_UNICODE
 char16_t f13289_d_wchar(char16_t ch);
 char32_t f13289_d_dchar(char32_t ch);
 #endif
@@ -417,7 +423,7 @@ bool f13289_cpp_test()
 {
     if (!(f13289_d_wchar_t(L'e') == L'E')) return false;
     if (!(f13289_d_wchar_t(L'F') == L'F')) return false;
-#ifndef __DMC__
+#ifdef TEST_UNICODE
     if (!(f13289_d_wchar(u'c') == u'C')) return false;
     if (!(f13289_d_wchar(u'D') == u'D')) return false;
     if (!(f13289_d_dchar(U'e') == U'E')) return false;
