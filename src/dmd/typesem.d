@@ -1421,11 +1421,9 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                              * tuple the default argument tuple must also be expanded.
                              */
                             Expression paramDefaultArg = narg.defaultArg;
-                            if (fparam.defaultArg)
-                            {
-                                auto te = cast(TupleExp)(fparam.defaultArg);
+                            TupleExp te = fparam.defaultArg ? fparam.defaultArg.isTupleExp() : null;
+                            if (te && te.exps && te.exps.length)
                                 paramDefaultArg = (*te.exps)[j];
-                            }
 
                             (*newparams)[j] = new Parameter(
                                 stc, narg.type, narg.ident, paramDefaultArg, narg.userAttribDecl);
