@@ -122,33 +122,67 @@ version (Posix)
         FILE* stream = fdopen(fd, "r");
         if (stream is null)
             return -1;
+        return findStr(stream, nmeErrorMessage, stderr);
+    }
+
+    /*****************************
+     * Return `true` if the linker enables PIE by default.
+     */
+    private bool hasDefaultPIE(const char* cc)
+    {
+        OutBuffer cmd;
+        cmd.writestring(cc);
+        cmd.writestring(" -v 2>&1");
+        FILE* fp = popen(cmd.peekChars(), "r");
+        scope(exit) pclose(fp);
+        return 1 == findStr(fp, "--enable-default-pie");
+    }
+
+    /*****************************
+     * Find `needle` in file `stream`.
+     * Optionally writes to `tee` the content of `stream`.
+     *
+     * Params:
+     *    stream = input file
+     *    needle = string to find
+     *    tee = output file
+     *
+     * Returns:
+     *      1 if needle was found
+     *     -1 if there is an IO error
+     *      0 otherwise
+     */
+    private int findStr(scope FILE* stream, scope const(char*) needle, scope FILE* tee = null)
+    {
+        if (stream is null)
+            return -1;
         const(size_t) len = 64 * 1024 - 1;
         char[len + 1] buffer; // + '\0'
         size_t beg = 0, end = len;
-        bool nmeFound = false;
+        bool found = false;
         for (;;)
         {
-            // read linker output
+            // read
             const(size_t) n = fread(&buffer[beg], 1, len - beg, stream);
             if (beg + n < len && ferror(stream))
                 return -1;
             buffer[(end = beg + n)] = '\0';
-            // search error message, stop at last complete line
+            // search, stop at last complete line
             const(char)* lastSep = strrchr(buffer.ptr, '\n');
             if (lastSep)
                 buffer[(end = lastSep - &buffer[0])] = '\0';
-            if (strstr(&buffer[0], nmeErrorMessage))
-                nmeFound = true;
+            if (strstr(&buffer[0], needle))
+                found = true;
             if (lastSep)
                 buffer[end++] = '\n';
-            if (fwrite(&buffer[0], 1, end, stderr) < end)
+            if (tee && fwrite(&buffer[0], 1, end, tee) < end)
                 return -1;
             if (beg + n < len && feof(stream))
                 break;
             // copy over truncated last line
             memcpy(&buffer[0], &buffer[end], (beg = len - end));
         }
-        return nmeFound ? 1 : 0;
+        return found ? 1 : 0;
     }
 }
 
@@ -548,6 +582,14 @@ public int runLINK()
             argv.push("-m64");
         else
             argv.push("-m32");
+        version (linux)
+        {
+            if (!global.params.dll && global.params.pic != PIC.pie)
+            {
+                if (hasDefaultPIE(argv[0]))
+                    argv.push("-no-pie");
+            }
+        }
         version (OSX)
         {
             /* Without this switch, ld generates messages of the form:
