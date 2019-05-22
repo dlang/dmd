@@ -1234,6 +1234,8 @@ struct Symbol
 //#define class_debug(s)
 //#endif
 
+    nothrow:
+
     Symbol* Sl, Sr;             // left, right child
     Symbol* Snext;              // next in threaded list
     dt_t* Sdt;                  // variables: initializer

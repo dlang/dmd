@@ -25,6 +25,8 @@ import dmd.backend.type;
 
 extern (C++):
 
+nothrow:
+
 alias segidx_t = int;           // index into SegData[]
 
 /**********************************
@@ -263,7 +265,7 @@ struct seg_data
     uint             SDlinnum_count;
     uint             SDlinnum_max;
     linnum_data     *SDlinnum_data;     // array of line number / offset data
-
+    nothrow:
     version (Windows)
         int isCode() { return seg_data_isCode(this); }
     version (OSX)
