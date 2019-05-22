@@ -307,6 +307,11 @@ ifneq (gdc, $(HOST_DMD_KIND))
   override DFLAGS  += -dip25
 endif
 
+ifeq (gdc, $(HOST_DMD_KIND))
+  # Link against phobos statically
+  override DFLAGS += -q,-static-libphobos
+endif
+
 ######## DMD frontend source files
 
 FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argtypes argtypes_sysv_x64 arrayop	\
