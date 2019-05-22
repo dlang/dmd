@@ -765,7 +765,13 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                  * when the bottom of element type is opaque.
                  */
             }
-            else if (tbn.isintegral() || tbn.isfloating() || tbn.ty == Tpointer || tbn.ty == Tarray || tbn.ty == Tsarray || tbn.ty == Taarray || (tbn.ty == Tstruct && ((cast(TypeStruct)tbn).sym.sizeok == Sizeok.done)) || tbn.ty == Tclass)
+            else if (tbn.isTypeBasic() ||
+                     tbn.ty == Tpointer ||
+                     tbn.ty == Tarray ||
+                     tbn.ty == Tsarray ||
+                     tbn.ty == Taarray ||
+                     (tbn.ty == Tstruct && ((cast(TypeStruct)tbn).sym.sizeok == Sizeok.done)) ||
+                     tbn.ty == Tclass)
             {
                 /* Only do this for types that don't need to have semantic()
                  * run on them for the size, since they may be forward referenced.
