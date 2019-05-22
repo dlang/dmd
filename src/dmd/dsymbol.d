@@ -1132,248 +1132,63 @@ extern (C++) class Dsymbol : ASTNode
         return false;
     }
 
-    // Eliminate need for dynamic_cast
-    inout(Package) isPackage() inout
-    {
-        return null;
-    }
-
-    inout(Module) isModule() inout
-    {
-        return null;
-    }
-
-    inout(EnumMember) isEnumMember() inout
-    {
-        return null;
-    }
-
-    inout(TemplateDeclaration) isTemplateDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(TemplateInstance) isTemplateInstance() inout
-    {
-        return null;
-    }
-
-    inout(TemplateMixin) isTemplateMixin() inout
-    {
-        return null;
-    }
-
-    inout(ForwardingAttribDeclaration) isForwardingAttribDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(Nspace) isNspace() inout
-    {
-        return null;
-    }
-
-    inout(Declaration) isDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(StorageClassDeclaration) isStorageClassDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(ExpressionDsymbol) isExpressionDsymbol() inout
-    {
-        return null;
-    }
-
-    inout(ThisDeclaration) isThisDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(TypeInfoDeclaration) isTypeInfoDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(TupleDeclaration) isTupleDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(AliasDeclaration) isAliasDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(AggregateDeclaration) isAggregateDeclaration() inout pure nothrow @safe @nogc
-    {
-        return null;
-    }
-
-    inout(FuncDeclaration) isFuncDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(FuncAliasDeclaration) isFuncAliasDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(OverDeclaration) isOverDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(FuncLiteralDeclaration) isFuncLiteralDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(CtorDeclaration) isCtorDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(PostBlitDeclaration) isPostBlitDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(DtorDeclaration) isDtorDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(StaticCtorDeclaration) isStaticCtorDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(StaticDtorDeclaration) isStaticDtorDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(SharedStaticCtorDeclaration) isSharedStaticCtorDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(SharedStaticDtorDeclaration) isSharedStaticDtorDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(InvariantDeclaration) isInvariantDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(UnitTestDeclaration) isUnitTestDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(NewDeclaration) isNewDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(VarDeclaration) isVarDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(ClassDeclaration) isClassDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(StructDeclaration) isStructDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(UnionDeclaration) isUnionDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(InterfaceDeclaration) isInterfaceDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(ScopeDsymbol) isScopeDsymbol() inout
-    {
-        return null;
-    }
-
-    inout(ForwardingScopeDsymbol) isForwardingScopeDsymbol() inout
-    {
-        return null;
-    }
-
-    inout(WithScopeSymbol) isWithScopeSymbol() inout
-    {
-        return null;
-    }
-
-    inout(ArrayScopeSymbol) isArrayScopeSymbol() inout
-    {
-        return null;
-    }
-
-    inout(Import) isImport() inout
-    {
-        return null;
-    }
-
-    inout(EnumDeclaration) isEnumDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(DeleteDeclaration) isDeleteDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(SymbolDeclaration) isSymbolDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(AttribDeclaration) isAttribDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(AnonDeclaration) isAnonDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(ProtDeclaration) isProtDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(OverloadSet) isOverloadSet() inout
-    {
-        return null;
-    }
-
     /************
      */
     override void accept(Visitor v)
     {
         v.visit(this);
     }
+
+  pure nothrow @safe @nogc:
+
+    // Eliminate need for dynamic_cast
+    inout(Package)                     isPackage()                     inout { return null; }
+    inout(Module)                      isModule()                      inout { return null; }
+    inout(EnumMember)                  isEnumMember()                  inout { return null; }
+    inout(TemplateDeclaration)         isTemplateDeclaration()         inout { return null; }
+    inout(TemplateInstance)            isTemplateInstance()            inout { return null; }
+    inout(TemplateMixin)               isTemplateMixin()               inout { return null; }
+    inout(ForwardingAttribDeclaration) isForwardingAttribDeclaration() inout { return null; }
+    inout(Nspace)                      isNspace()                      inout { return null; }
+    inout(Declaration)                 isDeclaration()                 inout { return null; }
+    inout(StorageClassDeclaration)     isStorageClassDeclaration()     inout { return null; }
+    inout(ExpressionDsymbol)           isExpressionDsymbol()           inout { return null; }
+    inout(ThisDeclaration)             isThisDeclaration()             inout { return null; }
+    inout(TypeInfoDeclaration)         isTypeInfoDeclaration()         inout { return null; }
+    inout(TupleDeclaration)            isTupleDeclaration()            inout { return null; }
+    inout(AliasDeclaration)            isAliasDeclaration()            inout { return null; }
+    inout(AggregateDeclaration)        isAggregateDeclaration()        inout { return null; }
+    inout(FuncDeclaration)             isFuncDeclaration()             inout { return null; }
+    inout(FuncAliasDeclaration)        isFuncAliasDeclaration()        inout { return null; }
+    inout(OverDeclaration)             isOverDeclaration()             inout { return null; }
+    inout(FuncLiteralDeclaration)      isFuncLiteralDeclaration()      inout { return null; }
+    inout(CtorDeclaration)             isCtorDeclaration()             inout { return null; }
+    inout(PostBlitDeclaration)         isPostBlitDeclaration()         inout { return null; }
+    inout(DtorDeclaration)             isDtorDeclaration()             inout { return null; }
+    inout(StaticCtorDeclaration)       isStaticCtorDeclaration()       inout { return null; }
+    inout(StaticDtorDeclaration)       isStaticDtorDeclaration()       inout { return null; }
+    inout(SharedStaticCtorDeclaration) isSharedStaticCtorDeclaration() inout { return null; }
+    inout(SharedStaticDtorDeclaration) isSharedStaticDtorDeclaration() inout { return null; }
+    inout(InvariantDeclaration)        isInvariantDeclaration()        inout { return null; }
+    inout(UnitTestDeclaration)         isUnitTestDeclaration()         inout { return null; }
+    inout(NewDeclaration)              isNewDeclaration()              inout { return null; }
+    inout(VarDeclaration)              isVarDeclaration()              inout { return null; }
+    inout(ClassDeclaration)            isClassDeclaration()            inout { return null; }
+    inout(StructDeclaration)           isStructDeclaration()           inout { return null; }
+    inout(UnionDeclaration)            isUnionDeclaration()            inout { return null; }
+    inout(InterfaceDeclaration)        isInterfaceDeclaration()        inout { return null; }
+    inout(ScopeDsymbol)                isScopeDsymbol()                inout { return null; }
+    inout(ForwardingScopeDsymbol)      isForwardingScopeDsymbol()      inout { return null; }
+    inout(WithScopeSymbol)             isWithScopeSymbol()             inout { return null; }
+    inout(ArrayScopeSymbol)            isArrayScopeSymbol()            inout { return null; }
+    inout(Import)                      isImport()                      inout { return null; }
+    inout(EnumDeclaration)             isEnumDeclaration()             inout { return null; }
+    inout(DeleteDeclaration)           isDeleteDeclaration()           inout { return null; }
+    inout(SymbolDeclaration)           isSymbolDeclaration()           inout { return null; }
+    inout(AttribDeclaration)           isAttribDeclaration()           inout { return null; }
+    inout(AnonDeclaration)             isAnonDeclaration()             inout { return null; }
+    inout(ProtDeclaration)             isProtDeclaration()             inout { return null; }
+    inout(OverloadSet)                 isOverloadSet()                 inout { return null; }
 }
 
 /***********************************************************
