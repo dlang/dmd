@@ -4101,7 +4101,14 @@ elem *toElem(Expression e, IRState *irs)
             else
             {
                 // For other vector expressions this just a paint operation.
-                result = toElem(vae.e1, irs);
+                elem* e = toElem(vae.e1, irs);
+                type* tarray = Type_toCtype(vae.type);
+                // Take the address then repaint,
+                // this makes it swap to the right registers
+                e = addressElem(e, vae.e1.type);
+                e = el_una(OPind, tarray.Tty, e);
+                e.ET = tarray;
+                result = e;
             }
             result.Ety = totym(vae.type);
             elem_setLoc(result, vae.loc);
