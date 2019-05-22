@@ -11,4 +11,4 @@ $DMD -m${MODEL} -I${EXTRA_FILES} -of${libname} -lib ${EXTRA_FILES}${SEP}std14198
 $DMD -m${MODEL} -I${EXTRA_FILES} -of${OUTPUT_BASE}${EXE}                   ${EXTRA_FILES}${SEP}test14198.d ${libname}
 $DMD -m${MODEL} -I${EXTRA_FILES} -of${OUTPUT_BASE}${EXE} -version=bug14198 ${EXTRA_FILES}${SEP}test14198.d ${libname}
 
-rm ${OUTPUT_BASE}{${OBJ},${EXE}} ${libname}
+rm_retry ${OUTPUT_BASE}{${OBJ},${EXE}} ${libname}

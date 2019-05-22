@@ -30,5 +30,5 @@ $DMD -m${MODEL} -c -o- ${EXTRA_FILES}/paranoia.d -version=Double -version=CTFE
 echo ======== Testing CTFE Extended Precision ========
 $DMD -m${MODEL} -c -o- ${EXTRA_FILES}/paranoia.d -version=Extended -version=CTFE
 
-rm ${OUTPUT_BASE}_[1-4]${EXE}
-rm ${OUTPUT_BASE}_[1-4]${OBJ}
+rm_retry ${OUTPUT_BASE}_[1-4]${EXE}
+rm_retry ${OUTPUT_BASE}_[1-4]${OBJ}

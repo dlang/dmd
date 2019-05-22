@@ -17,4 +17,4 @@ $DMD -m${MODEL} -of${OUTPUT_BASE}${EXE} ${OUTPUT_BASE}${OBJ} ${libname}
 
 ${OUTPUT_BASE}${EXE}
 
-rm ${OUTPUT_BASE}{${OBJ},a${OBJ},${EXE}} ${libname}
+rm_retry ${OUTPUT_BASE}{${OBJ},a${OBJ},${EXE}} ${libname}
