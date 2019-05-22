@@ -338,94 +338,6 @@ extern (C++) abstract class Statement : ASTNode
         return this;
     }
 
-    /********************
-     * A cheaper method of doing downcasting of Statements.
-     * Returns:
-     *    the downcast statement if it can be downcasted, otherwise `null`
-     */
-    inout(ErrorStatement) isErrorStatement() inout pure nothrow
-    {
-        return null;
-    }
-
-    /// ditto
-    inout(ScopeStatement) isScopeStatement() inout nothrow pure
-    {
-        return null;
-    }
-
-    /// ditto
-    inout(ExpStatement) isExpStatement() inout pure nothrow
-    {
-        return null;
-    }
-
-    /// ditto
-    inout(CompoundStatement) isCompoundStatement() inout nothrow pure
-    {
-        return null;
-    }
-
-    /// ditto
-    inout(ReturnStatement) isReturnStatement() inout nothrow pure
-    {
-        return null;
-    }
-
-    /// ditto
-    inout(IfStatement) isIfStatement() inout pure nothrow
-    {
-        return null;
-    }
-
-    /// ditto
-    inout(CaseStatement) isCaseStatement() inout pure nothrow
-    {
-        return null;
-    }
-
-    /// ditto
-    inout(DefaultStatement) isDefaultStatement() inout pure nothrow
-    {
-        return null;
-    }
-
-    /// ditto
-    inout(LabelStatement) isLabelStatement() inout pure nothrow
-    {
-        return null;
-    }
-
-    /// ditto
-    inout(GotoDefaultStatement) isGotoDefaultStatement() inout pure nothrow
-    {
-        return null;
-    }
-
-    /// ditto
-    inout(GotoCaseStatement) isGotoCaseStatement() inout pure nothrow
-    {
-        return null;
-    }
-
-    /// ditto
-    inout(BreakStatement) isBreakStatement() inout nothrow pure
-    {
-        return null;
-    }
-
-    /// ditto
-    inout(DtorExpStatement) isDtorExpStatement() inout pure nothrow
-    {
-        return null;
-    }
-
-    /// ditto
-    inout(ForwardingStatement) isForwardingStatement() inout pure nothrow
-    {
-        return null;
-    }
-
     /**************************
      * Support Visitor Pattern
      * Params:
@@ -435,6 +347,28 @@ extern (C++) abstract class Statement : ASTNode
     {
         v.visit(this);
     }
+
+  pure nothrow @nogc:
+
+    /********************
+     * A cheaper method of doing downcasting of Statements.
+     * Returns:
+     *    the downcast statement if it can be downcasted, otherwise `null`
+     */
+    inout(ErrorStatement)       isErrorStatement()       inout { return null; }
+    inout(ScopeStatement)       isScopeStatement()       inout { return null; }
+    inout(ExpStatement)         isExpStatement()         inout { return null; }
+    inout(CompoundStatement)    isCompoundStatement()    inout { return null; }
+    inout(ReturnStatement)      isReturnStatement()      inout { return null; }
+    inout(IfStatement)          isIfStatement()          inout { return null; }
+    inout(CaseStatement)        isCaseStatement()        inout { return null; }
+    inout(DefaultStatement)     isDefaultStatement()     inout { return null; }
+    inout(LabelStatement)       isLabelStatement()       inout { return null; }
+    inout(GotoDefaultStatement) isGotoDefaultStatement() inout { return null; }
+    inout(GotoCaseStatement)    isGotoCaseStatement()    inout { return null; }
+    inout(BreakStatement)       isBreakStatement()       inout { return null; }
+    inout(DtorExpStatement)     isDtorExpStatement()     inout { return null; }
+    inout(ForwardingStatement)  isForwardingStatement()  inout { return null; }
 }
 
 /***********************************************************
