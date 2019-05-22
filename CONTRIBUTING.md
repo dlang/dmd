@@ -66,6 +66,106 @@ For first-time contributers, we suggest to look for issues categorized as [trivi
 
 If you want a hassle-free contribution look for issues categorized as [preapproved](https://issues.dlang.org/buglist.cgi?component=dmd&keywords=preapproved&product=D).
 
+## DMD Best Practices
+
+Here is a short list of stylistic issues the core team will expect in
+pull requests. Much of the source code does not follow these, but
+we expect new code to, and PRs retrofitting the existing code to
+follow it is welcome.
+
+1. Use attributes `const`/`nothrow`/`pure`/`scope`/`@safe`/`private`/etc.
+Successfully using `pure` functions is regarded with particular favor.
+
+2. Use correct Ddoc function comment blocks. Do not use Ddoc comments for
+overrides unless the overriding function does something different (as far as
+the caller is concerned) than the overridden function. Ddoc comment blocks
+are often overkill for nested functions and function literals; use ordinary
+comments for those. Follow the [D Style](https://dlang.org/dstyle.html#phobos_documentation)
+for for comment blocks. 
+
+3. Do not use `strlen`/`strcmp` and their ilk. Use D arrays instead.
+
+4. Use `ref`/`out` instead of raw pointers.
+
+5. Use nested functions to get rid of rats' nests of goto's.
+
+6. Look for duplicative code and factor out into functions.
+
+7. Declare local variables as `const` as much as possible.
+
+8. Use Single Assignment for local variables:
+```
+T t = x;
+...
+t = y;
+...
+```
+becomes:
+```
+T tx = x;
+...
+T ty = y;
+...
+```
+
+9. "Shrinkwrap" the scope of local variables as tightly as possible
+around their uses.
+
+10. Similar to (8), use distinct variable names for non-overlapping uses.
+
+11. Avoid use of mutable globals as much as practical. Consider passing them
+in as parameters.
+
+12. Avoid use of default parameters. Spell them out.
+
+13. Minimize use of overloading.
+
+14. Avoid clever code. Anybody can write clever code. It takes genius to write
+simple code.
+
+15. Try to reduce cyclomatic complexity, i.e. think about how to make the code work
+without control flow statements.
+
+16. Try not to mix functions that "answer a question" with functions that
+"mutate the data".
+This was done successfully in src/dmd/escape.d, it wasn't easy, but
+it was well worth it.
+
+17. Try to eliminate reliance on `global.errors`.
+
+18. For aggregates that expose public access to fields, think hard about why this is
+necessary and if it can be done better. Merely replacing them with read/write properties
+accomplishes nothing. The more of its internal details can be made private, the better.
+
+19. Try to use function prefixes:
+
+* `is` is the parameter in a certain category?
+* `has` does the parameter have a certain feature?
+* `can` for can I do X with the parameter?
+
+Such functions should not be mutating the data nor issuing error messages.
+
+20. The function return value variable should be named `result`.
+
+21. The more constrained the scope of a name is, the shorter it should be.
+
+
+## The following will not be viewed with favor:
+
+1. Shuffling all the code about
+
+2. As a general rule, any improvement that is implemented by using sed scripts
+across the source tree is likely to be disruptive and unlikely to provide
+significant improvement.
+
+3. Reformatting into your personal style. Please stick with the existing style. 
+Use the [D Style](https://dlang.org/dstyle.html#phobos_documentation) for new code.
+
+As always, treating the above as sacred writ is a huge mistake. Use
+your best judgement on a case-by-case basis. Blindly doing things just
+adds more technical debt.
+
+
 ## dmd-internals mailing list
 
 For questions and discussions related to DMD development, a [mailing list](https://forum.dlang.org/group/dmd) is available.
