@@ -11748,3 +11748,24 @@ VarDeclaration makeThis2Argument(const ref Loc loc, Scope* sc, FuncDeclaration f
     vthis2.nestedrefs.push(fd);
     return vthis2;
 }
+
+/*******************************
+ * Make sure that the runtime hook `id` exists.
+ * Params:
+ *      loc = location to use for error messages
+ *      sc = current scope
+ *      id = the hook identifier
+ *      description = what the hook does
+ *      module_ = what module the hook is located in
+ * Returns:
+ *      a `bool` indicating if the hook is present.
+ */
+bool verifyHookExist(const ref Loc loc, ref Scope sc, Identifier id, string description, Identifier module_ = Id.object)
+{
+    auto rootSymbol = sc.search(loc, Id.empty, null);
+    if (auto moduleSymbol = rootSymbol.search(loc, module_))
+        if (moduleSymbol.search(loc, id))
+          return true;
+    error(loc, "`%s.%s` not found. The current runtime does not support %.*s, or the runtime is corrupt.", module_.toChars(), id.toChars(), cast(int)description.length, description.ptr);
+    return false;
+}
