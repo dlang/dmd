@@ -315,10 +315,11 @@ FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argt
 	dinifile dinterpret dmacro dmangle dmodule doc dscope dstruct dsymbol dsymbolsem	\
 	dtemplate dversion escape expression expressionsem func			\
 	hdrgen id impcnvtab imphint init initsem inline inlinecost intrange	\
-	json lambdacomp lib libelf libmach link mars mtype nogc nspace objc opover optimize parse permissivevisitor sapply templateparamsem	\
+	json lambdacomp link mars mtype nogc nspace objc opover optimize parse permissivevisitor sapply templateparamsem	\
 	sideeffect statement staticassert target typesem traits transitivevisitor parsetimevisitor visitor	\
-	typinf utils scanelf scanmach statement_rewrite_walker statementsem staticcond safe blockexit printast \
-	semantic2 semantic3))
+	typinf utils statement_rewrite_walker statementsem staticcond safe blockexit printast \
+	semantic2 semantic3 \
+	$(addprefix lib/, package elf mach scanelf scanmach)))
 
 LEXER_SRCS=$(addsuffix .d, $(addprefix $D/, console entity errors filecache globals id identifier lexer tokens utf ))
 
@@ -355,7 +356,7 @@ endif
 
 GLUE_SRC = \
 	$(addprefix $D/, \
-	libelf.d scanelf.d libmach.d scanmach.d \
+	$(addprefix lib/, elf.d scanelf.d mach.d scanmach.d) \
 	objc_glue.d)
 
 BACK_HDRS=$C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/global.d \
@@ -392,7 +393,7 @@ SRC = $(addprefix $D/, aggregate.h aliasthis.h arraytypes.h	\
 	id.h import.h init.h json.h \
 	mangle.h mars.h module.h mtype.h nspace.h objc.h                \
 	scope.h statement.h staticassert.h target.h template.h tokens.h	\
-	version.h visitor.h libomf.d scanomf.d libmscoff.d scanmscoff.d)         \
+	version.h visitor.h $(addprefix lib/, omf.d scanomf.d mscoff.d scanmscoff.d))         \
 	$(DMD_SRCS)
 
 ROOT_SRC = $(addprefix $(ROOT)/, array.h ctfloat.h dcompat.h file.h filename.h \

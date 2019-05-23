@@ -10,9 +10,10 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/libmach.d
  */
 
-module dmd.libmach;
+module dmd.lib.mach;
 
 version(OSX):
+package(dmd.lib):
 
 import core.stdc.time;
 import core.stdc.string;
@@ -35,7 +36,7 @@ import dmd.root.port;
 import dmd.root.rmem;
 import dmd.root.stringtable;
 
-import dmd.scanmach;
+import dmd.lib.scanmach;
 
 enum LOG = false;
 

@@ -10,9 +10,10 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/libomf.d
  */
 
-module dmd.libomf;
+module dmd.lib.omf;
 
 version(Windows):
+package(dmd.lib):
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -28,7 +29,7 @@ import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.root.stringtable;
 
-import dmd.scanomf;
+import dmd.lib.scanomf;
 
 enum LOG = false;
 

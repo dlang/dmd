@@ -10,9 +10,10 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/libmscoff.d
  */
 
-module dmd.libmscoff;
+module dmd.lib.mscoff;
 
 version(Windows):
+package(dmd.lib):
 
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -34,7 +35,7 @@ import dmd.root.port;
 import dmd.root.rmem;
 import dmd.root.stringtable;
 
-import dmd.scanmscoff;
+import dmd.lib.scanmscoff;
 
 enum LOG = false;
 

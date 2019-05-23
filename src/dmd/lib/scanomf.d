@@ -10,9 +10,10 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/scanomf.d
  */
 
-module dmd.scanomf;
+module dmd.lib.scanomf;
 
 version(Windows):
+package(dmd.lib):
 
 import core.stdc.string;
 import core.stdc.stdlib;

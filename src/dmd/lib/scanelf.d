@@ -10,11 +10,12 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/scanelf.d
  */
 
-module dmd.scanelf;
+module dmd.lib.scanelf;
 
 version(Windows) {}
 else version(OSX) {}
 else:
+package(dmd.lib):
 
 version (linux)
     import core.sys.linux.elf;

@@ -582,9 +582,11 @@ auto sourceFiles()
     {
         assert(0, "Unknown TARGET_CPU: " ~ env["TARGET_CPU"]);
     }
+    string[] packages = [/*main src dir*/"","lib"];
     Sources sources = {
         frontend:
-            dirEntries(env["D"], "*.d", SpanMode.shallow)
+            packages.map!(p => env["D"].buildPath(p).dirEntries("*.d", SpanMode.shallow))
+                .joiner
                 .map!(e => e.name)
                 .filter!(e => !e.canFind("asttypename.d", "frontend.d"))
                 .array,

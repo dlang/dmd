@@ -10,9 +10,10 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/scanmscoff.d
  */
 
-module dmd.scanmscoff;
+module dmd.lib.scanmscoff;
 
 version(Windows):
+package(dmd.lib):
 
 import core.stdc.string, core.stdc.stdlib, core.sys.windows.winnt;
 import dmd.globals, dmd.errors;

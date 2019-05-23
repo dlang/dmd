@@ -25,16 +25,16 @@ import dmd.root.filename;
 
 static if (TARGET.Windows)
 {
-    import dmd.libomf;
-    import dmd.libmscoff;
+    import dmd.lib.omf;
+    import dmd.lib.mscoff;
 }
 else static if (TARGET.Linux || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
 {
-    import dmd.libelf;
+    import dmd.lib.elf;
 }
 else static if (TARGET.OSX)
 {
-    import dmd.libmach;
+    import dmd.lib.mach;
 }
 else
 {

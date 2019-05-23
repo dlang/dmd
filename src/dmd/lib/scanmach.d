@@ -10,9 +10,10 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/scanmach.d
  */
 
-module dmd.scanmach;
+module dmd.lib.scanmach;
 
 version(OSX):
+package(dmd.lib):
 
 import core.stdc.string;
 import core.stdc.stdint;
