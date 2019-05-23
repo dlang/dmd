@@ -425,12 +425,23 @@ else version (CRuntime_Glibc)
         void*   _markers;
         _IO_FILE* _chain;
         int     _fileno;
-        int     _blksize;
-        int     _old_offset;
+        int     _flags2;
+        ptrdiff_t _old_offset;
         ushort  _cur_column;
         byte    _vtable_offset;
         char[1] _shortbuf = 0;
         void*   _lock;
+
+        ptrdiff_t _offset;
+
+        /*_IO_codecvt*/ void* _codecvt;
+        /*_IO_wide_data*/ void* _wide_data;
+        _IO_FILE *_freeres_list;
+        void *_freeres_buf;
+        size_t __pad5;
+        int _mode;
+
+        char[15 * int.sizeof - 4 * (void*).sizeof - size_t.sizeof] _unused2;
     }
 
     ///
