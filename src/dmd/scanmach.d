@@ -121,113 +121,113 @@ void scanMachObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol
         }
         commands += command.cmdsize;
     }
-    if (symtab_commands)
+
+    if (!symtab_commands)
+        return;
+
+    // Get pointer to string table
+    char* strtab = cast(char*)buf + symtab_commands.stroff;
+    if (buflen < symtab_commands.stroff + symtab_commands.strsize)
+        return corrupt(__LINE__);
+
+    if (header.magic == MH_MAGIC_64)
     {
-        // Get pointer to string table
-        char* strtab = cast(char*)buf + symtab_commands.stroff;
-        if (buflen < symtab_commands.stroff + symtab_commands.strsize)
+        // Get pointer to symbol table
+        nlist_64* symtab = cast(nlist_64*)(cast(char*)buf + symtab_commands.symoff);
+        if (buflen < symtab_commands.symoff + symtab_commands.nsyms * nlist_64.sizeof)
             return corrupt(__LINE__);
 
-        if (header.magic == MH_MAGIC_64)
+        // For each symbol
+        for (int i = 0; i < symtab_commands.nsyms; i++)
         {
-            // Get pointer to symbol table
-            nlist_64* symtab = cast(nlist_64*)(cast(char*)buf + symtab_commands.symoff);
-            if (buflen < symtab_commands.symoff + symtab_commands.nsyms * nlist_64.sizeof)
-                return corrupt(__LINE__);
-
-            // For each symbol
-            for (int i = 0; i < symtab_commands.nsyms; i++)
+            nlist_64* s = symtab + i;
+            const(char)* name = strtab + s.n_strx;
+            const namelen = strlen(name);
+            if (s.n_type & N_STAB)
             {
-                nlist_64* s = symtab + i;
-                const(char)* name = strtab + s.n_strx;
-                const namelen = strlen(name);
-                if (s.n_type & N_STAB)
+                // values in /usr/include/mach-o/stab.h
+                //printf(" N_STAB");
+                continue;
+            }
+
+            version (none)
+            {
+                if (s.n_type & N_PEXT)
                 {
-                    // values in /usr/include/mach-o/stab.h
-                    //printf(" N_STAB");
                 }
-                else
+                if (s.n_type & N_EXT)
                 {
-                    version (none)
-                    {
-                        if (s.n_type & N_PEXT)
-                        {
-                        }
-                        if (s.n_type & N_EXT)
-                        {
-                        }
-                    }
-                    switch (s.n_type & N_TYPE)
-                    {
-                    case N_UNDF:
-                        if (s.n_type & N_EXT && s.n_value != 0) // comdef
-                            pAddSymbol(name[0 .. namelen], 1);
-                        break;
-                    case N_ABS:
-                        break;
-                    case N_SECT:
-                        if (s.n_type & N_EXT) /*&& !(s.n_desc & N_REF_TO_WEAK)*/
-                            pAddSymbol(name[0 .. namelen], 1);
-                        break;
-                    case N_PBUD:
-                        break;
-                    case N_INDR:
-                        break;
-                    default:
-                        break;
-                    }
                 }
             }
-        }
-        else
-        {
-            // Get pointer to symbol table
-            nlist* symtab = cast(nlist*)(cast(char*)buf + symtab_commands.symoff);
-            if (buflen < symtab_commands.symoff + symtab_commands.nsyms * nlist.sizeof)
-                return corrupt(__LINE__);
-
-            // For each symbol
-            for (int i = 0; i < symtab_commands.nsyms; i++)
+            switch (s.n_type & N_TYPE)
             {
-                nlist* s = symtab + i;
-                const(char)* name = strtab + s.n_strx;
-                const namelen = strlen(name);
-                if (s.n_type & N_STAB)
+            case N_UNDF:
+                if (s.n_type & N_EXT && s.n_value != 0) // comdef
+                    pAddSymbol(name[0 .. namelen], 1);
+                break;
+            case N_ABS:
+                break;
+            case N_SECT:
+                if (s.n_type & N_EXT) /*&& !(s.n_desc & N_REF_TO_WEAK)*/
+                    pAddSymbol(name[0 .. namelen], 1);
+                break;
+            case N_PBUD:
+                break;
+            case N_INDR:
+                break;
+            default:
+                break;
+            }
+
+        }
+    }
+    else
+    {
+        // Get pointer to symbol table
+        nlist* symtab = cast(nlist*)(cast(char*)buf + symtab_commands.symoff);
+        if (buflen < symtab_commands.symoff + symtab_commands.nsyms * nlist.sizeof)
+            return corrupt(__LINE__);
+
+        // For each symbol
+        for (int i = 0; i < symtab_commands.nsyms; i++)
+        {
+            nlist* s = symtab + i;
+            const(char)* name = strtab + s.n_strx;
+            const namelen = strlen(name);
+            if (s.n_type & N_STAB)
+            {
+                // values in /usr/include/mach-o/stab.h
+                //printf(" N_STAB");
+                continue;
+            }
+
+            version (none)
+            {
+                if (s.n_type & N_PEXT)
                 {
-                    // values in /usr/include/mach-o/stab.h
-                    //printf(" N_STAB");
                 }
-                else
+                if (s.n_type & N_EXT)
                 {
-                    version (none)
-                    {
-                        if (s.n_type & N_PEXT)
-                        {
-                        }
-                        if (s.n_type & N_EXT)
-                        {
-                        }
-                    }
-                    switch (s.n_type & N_TYPE)
-                    {
-                    case N_UNDF:
-                        if (s.n_type & N_EXT && s.n_value != 0) // comdef
-                            pAddSymbol(name[0 .. namelen], 1);
-                        break;
-                    case N_ABS:
-                        break;
-                    case N_SECT:
-                        if (s.n_type & N_EXT) /*&& !(s.n_desc & N_REF_TO_WEAK)*/
-                            pAddSymbol(name[0 .. namelen], 1);
-                        break;
-                    case N_PBUD:
-                        break;
-                    case N_INDR:
-                        break;
-                    default:
-                        break;
-                    }
                 }
+            }
+            switch (s.n_type & N_TYPE)
+            {
+            case N_UNDF:
+                if (s.n_type & N_EXT && s.n_value != 0) // comdef
+                    pAddSymbol(name[0 .. namelen], 1);
+                break;
+            case N_ABS:
+                break;
+            case N_SECT:
+                if (s.n_type & N_EXT) /*&& !(s.n_desc & N_REF_TO_WEAK)*/
+                    pAddSymbol(name[0 .. namelen], 1);
+                break;
+            case N_PBUD:
+                break;
+            case N_INDR:
+                break;
+            default:
+                break;
             }
         }
     }
