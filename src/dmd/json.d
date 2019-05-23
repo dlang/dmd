@@ -852,7 +852,7 @@ public:
     private void generateCompilerInfo()
     {
         objectStart();
-        requiredProperty("vendor", global.vendor.toDString);
+        requiredProperty("vendor", global.vendor);
         requiredProperty("version", global._version);
         property("__VERSION__", global.versionNumber());
         requiredProperty("interface", determineCompilerInterface());
@@ -925,7 +925,7 @@ public:
         objectStart();
         requiredProperty("cwd", getcwd(null, 0).toDString);
         requiredProperty("argv0", global.params.argv0);
-        requiredProperty("config", global.inifilename.toDString);
+        requiredProperty("config", global.inifilename);
         requiredProperty("libName", global.params.libname);
 
         propertyStart("importPaths");
@@ -964,8 +964,8 @@ public:
         arrayEnd();
 
         requiredProperty("mapFile", global.params.mapfile);
-        requiredProperty("resourceFile", global.params.resfile.toDString);
-        requiredProperty("defFile", global.params.deffile.toDString);
+        requiredProperty("resourceFile", global.params.resfile);
+        requiredProperty("defFile", global.params.deffile);
 
         objectEnd();
     }
@@ -1092,13 +1092,13 @@ Determines and returns the compiler interface which is one of `dmd`, `ldc`,
 */
 private extern(D) string determineCompilerInterface()
 {
-    if (!strcmp(global.vendor, "Digital Mars D"))
+    if (global.vendor == "Digital Mars D")
         return "dmd";
-    if (!strcmp(global.vendor, "LDC"))
+    if (global.vendor == "LDC")
         return "ldc";
-    if (!strcmp(global.vendor, "GNU"))
+    if (global.vendor == "GNU")
         return "gdc";
-    if (!strcmp(global.vendor, "SDC"))
+    if (global.vendor == "SDC")
         return "sdc";
     return null;
 }

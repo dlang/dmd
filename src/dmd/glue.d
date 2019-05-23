@@ -294,9 +294,14 @@ void obj_end(Library library, const(char)* objfilename)
     objbuf.p = null;
 }
 
-bool obj_includelib(const(char)* name)
+bool obj_includelib(const(char)* name) nothrow
 {
     return objmod.includelib(name);
+}
+
+extern(D) bool obj_includelib(const(char)[] name) nothrow
+{
+    return name.toCStringThen!(n => obj_includelib(n.ptr));
 }
 
 void obj_startaddress(Symbol *s)
@@ -1289,7 +1294,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
  */
 private void specialFunctions(Obj objmod, FuncDeclaration fd)
 {
-    const(char)* libname = (global.params.symdebug)
+    const(char)[] libname = (global.params.symdebug)
                             ? global.params.debuglibname
                             : global.params.defaultlibname;
 
@@ -1313,7 +1318,7 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
             objmod.external_def("__acrtused_con");
         }
         if (libname)
-            objmod.includelib(libname);
+            obj_includelib(libname);
         s.Sclass = SCglobal;
     }
     else if (fd.isRtInit())
@@ -1330,7 +1335,7 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
         if (global.params.mscoff)
         {
             if (global.params.mscrtlib && global.params.mscrtlib[0])
-                objmod.includelib(global.params.mscrtlib);
+                obj_includelib(global.params.mscrtlib);
             objmod.includelib("OLDNAMES");
         }
         else if (config.exe == EX_WIN32)
@@ -1346,7 +1351,7 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
         {
             objmod.includelib("uuid");
             if (global.params.mscrtlib && global.params.mscrtlib[0])
-                objmod.includelib(global.params.mscrtlib);
+                obj_includelib(global.params.mscrtlib);
             objmod.includelib("OLDNAMES");
         }
         else
@@ -1354,7 +1359,7 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
             objmod.external_def("__acrtused");
         }
         if (libname)
-            objmod.includelib(libname);
+            obj_includelib(libname);
         s.Sclass = SCglobal;
     }
 
@@ -1365,7 +1370,7 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
         {
             objmod.includelib("uuid");
             if (global.params.mscrtlib && global.params.mscrtlib[0])
-                objmod.includelib(global.params.mscrtlib);
+                obj_includelib(global.params.mscrtlib);
             objmod.includelib("OLDNAMES");
         }
         else
@@ -1373,7 +1378,7 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
             objmod.external_def("__acrtused_dll");
         }
         if (libname)
-            objmod.includelib(libname);
+            obj_includelib(libname);
         s.Sclass = SCglobal;
     }
     else if (fd.ident == Id.tls_get_addr && fd.linkage == LINK.d)

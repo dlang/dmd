@@ -191,12 +191,12 @@ struct Param
     Array<const char *> ddocfiles;  // macro include files for Ddoc
 
     bool doHdrGeneration;  // process embedded documentation comments
-    const char *hdrdir;    // write 'header' file to docdir directory
-    const char *hdrname;   // write 'header' file to docname
+    DArray<const char> hdrdir;    // write 'header' file to docdir directory
+    DArray<const char> hdrname;   // write 'header' file to docname
     bool hdrStripPlainFunctions; // strip the bodies of plain (non-template) functions
 
     bool doJsonGeneration;    // write JSON file
-    const char *jsonfilename; // write JSON file to jsonfilename
+    DArray<const char> jsonfilename; // write JSON file to jsonfilename
     unsigned jsonFieldFlags;  // JSON field flags to include
 
     OutBuffer *mixinOut;                // write expanded mixins for debugging
@@ -209,11 +209,11 @@ struct Param
     unsigned versionlevel; // version level
     Array<const char *> *versionids;   // version identifiers
 
-    const char *defaultlibname; // default library for non-debug builds
-    const char *debuglibname;   // default library for debug builds
-    const char *mscrtlib;       // MS C runtime library
+    DArray<const char> defaultlibname; // default library for non-debug builds
+    DArray<const char> debuglibname;   // default library for debug builds
+    DArray<const char> mscrtlib;       // MS C runtime library
 
-    const char *moduleDepsFile; // filename for deps output
+    DArray<const char> moduleDepsFile; // filename for deps output
     OutBuffer *moduleDeps;      // contents to be written to deps file
 
     // Hidden debug switches
@@ -232,8 +232,8 @@ struct Param
     Array<const char *> linkswitches;
     Array<const char *> libfiles;
     Array<const char *> dllfiles;
-    const char *deffile;
-    const char *resfile;
+    DArray<const char> deffile;
+    DArray<const char> resfile;
     DArray<const char> exefile;
     DArray<const char> mapfile;
 };
@@ -245,7 +245,7 @@ typedef unsigned structalign_t;
 
 struct Global
 {
-    const char *inifilename;
+    DArray<const char> inifilename;
     const DArray<const char> mars_ext;
     DArray<const char> obj_ext;
     DArray<const char> lib_ext;
@@ -264,7 +264,7 @@ struct Global
     Array<const char *> *filePath;    // Array of char*'s which form the file import lookup path
 
     DArray<const char> version;     // Compiler version string
-    const char *vendor;             // Compiler backend name
+    DArray<const char> vendor;             // Compiler backend name
 
     Param params;
     unsigned errors;         // number of errors reported so far
