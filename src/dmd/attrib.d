@@ -19,18 +19,18 @@ import dmd.declaration;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dsymbolsem;
+import dmd.dsymbolsem : dsymbolSemantic;
 import dmd.expression;
-import dmd.expressionsem;
+import dmd.expressionsem : arrayExpressionSemantic;
 import dmd.func;
 import dmd.globals;
-import dmd.hdrgen;
+import dmd.hdrgen : protectionToBuffer;
 import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
-import dmd.objc;
+import dmd.objc; // for objc.addSymbols
 import dmd.root.outbuffer;
-import dmd.target;
+import dmd.target; // for target.systemLinkage
 import dmd.tokens;
 import dmd.visitor;
 
