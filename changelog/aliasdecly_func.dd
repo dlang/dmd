@@ -1,23 +1,10 @@
 A new syntax is available to declare an alias to a function type
 
 It's now possible to declare an alias to a function type using the `alias` syntax based on the assignment operator.
-The declaration consists of the return type, followed by parameters and ends with optional (member) function attributes:
+The declaration consists of the return type, followed by parameters and ends with optional (member) function attributes. See the
+$(GLINK2 https://dlang.org/spec/grammar.html#AliasDeclarationY, AliasDeclarationY) rule for more details.
 
-$(GRAMMAR
-$(GNAME AliasDeclaration):
-    ...
-    $(D alias) $(I AliasDeclarationX) $(D ;)
-
-$(GNAME AliasDeclarationX):
-    $(I AliasDeclarationY)
-    $(I AliasDeclarationX) $(D ,) $(I AliasDeclarationY)
-
-$(GNAME AliasDeclarationY):
-    ...
-    $(I Identifier) $(I TemplateParameters)$(OPT) $(D =) $(I StorageClasses)$(OPT) $(I BasicType) $(I Parameters) $(I MemberFunctionAttributes)$(OPT)
-)
-
-For example:
+Example:
 
 ---
 alias int OldStyleFunAlias(string);
@@ -27,7 +14,7 @@ int fun(string p){return 0;}
 static assert(is(typeof(fun) == NewStyleFunAlias));
 ---
 
-Note that an advantage compared to the old syntax is that the new allows to express function template types:
+Note that an advantage compared to the old syntax is that the new allows a shortcut to function template types:
 
 ---
 alias SetterProto(T) = void(T t);
