@@ -41,7 +41,7 @@ else
     static assert(0, "unsupported system");
 }
 
-enum LOG = false;
+private enum LOG = false;
 
 class Library
 {

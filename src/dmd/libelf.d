@@ -37,6 +37,14 @@ import dmd.root.stringtable;
 
 import dmd.scanelf;
 
+// Entry point (only public symbol in this module).
+public extern (C++) Library LibElf_factory()
+{
+    return new LibElf();
+}
+
+private: // for the remainder of this module
+
 enum LOG = false;
 
 struct ElfObjSymbol
@@ -473,11 +481,6 @@ private:
         }
         assert(libbuf.offset == moffset);
     }
-}
-
-extern (C++) Library LibElf_factory()
-{
-    return new LibElf();
 }
 
 /*****************************************************************************/
