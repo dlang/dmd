@@ -9,4 +9,4 @@ $DMD -I${EXTRA_FILES} -of${OUTPUT_BASE}${LIBEXT} -lib ${EXTRA_FILES}/test16096a.
 $DMD -I${EXTRA_FILES} -of${OUTPUT_BASE}${EXE} ${EXTRA_FILES}/test16096.d ${OUTPUT_BASE}${LIBEXT} -L-framework -LFoundation
 ${OUTPUT_BASE}${EXE}
 
-rm ${OUTPUT_BASE}{${LIBEXT},${EXE}}
+rm_retry ${OUTPUT_BASE}{${LIBEXT},${EXE}}

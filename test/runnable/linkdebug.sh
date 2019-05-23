@@ -8,4 +8,4 @@ $DMD -m${MODEL} -I${EXTRA_FILES} -of${libname} -lib ${EXTRA_FILES}${SEP}linkdebu
 
 $DMD -m${MODEL} -I${EXTRA_FILES} -of${OUTPUT_BASE}${EXE} -g -debug ${EXTRA_FILES}${SEP}linkdebug.d ${libname}
 
-rm ${OUTPUT_BASE}{${OBJ},${LIBEXT},${EXE}}
+rm_retry ${OUTPUT_BASE}{${OBJ},${LIBEXT},${EXE}}

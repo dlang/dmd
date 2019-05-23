@@ -15,4 +15,4 @@ EOF
     gdb ${OUTPUT_BASE}${EXE} --batch -x ${OUTPUT_BASE}.gdb | grep 'RESULT=.*1234'
 fi
 
-rm -f ${OUTPUT_BASE}{,${OBJ},${EXE},${LIBEXT},.gdb}
+rm_retry -f ${OUTPUT_BASE}{,${OBJ},${EXE},${LIBEXT},.gdb}
