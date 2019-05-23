@@ -37,6 +37,14 @@ import dmd.root.stringtable;
 
 import dmd.scanmach;
 
+// Entry point (only public symbol in this module).
+public extern (C++) Library LibMach_factory()
+{
+    return new LibMach();
+}
+
+private: // for the remainder of this module
+
 enum LOG = false;
 
 struct MachObjSymbol
@@ -444,11 +452,6 @@ private:
         }
         assert(libbuf.offset == moffset);
     }
-}
-
-extern (C++) Library LibMach_factory()
-{
-    return new LibMach();
 }
 
 /*****************************************************************************/

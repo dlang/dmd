@@ -20,7 +20,7 @@ import core.sys.darwin.mach.loader;
 import dmd.globals;
 import dmd.errors;
 
-enum LOG = false;
+private enum LOG = false;
 
 /*****************************************
  * Reads an object module from base[] and passes the names
@@ -232,6 +232,8 @@ void scanMachObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol
         }
     }
 }
+
+private: // for the remainder of this module
 
 enum CPU_TYPE_I386 = 7;
 enum CPU_TYPE_X86_64 = CPU_TYPE_I386 | 0x1000000;

@@ -36,6 +36,14 @@ import dmd.root.stringtable;
 
 import dmd.scanmscoff;
 
+// Entry point (only public symbol in this module).
+public extern (C++) Library LibMSCoff_factory()
+{
+    return new LibMSCoff();
+}
+
+private: // for the remainder of this module
+
 enum LOG = false;
 
 alias stat_t = struct_stat;
@@ -583,11 +591,6 @@ private:
         }
         assert(libbuf.offset == moffset);
     }
-}
-
-extern (C++) Library LibMSCoff_factory()
-{
-    return new LibMSCoff();
 }
 
 /*****************************************************************************/
