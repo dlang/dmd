@@ -1947,10 +1947,11 @@ version (CRuntime_Microsoft)
         return cast(targ_ldouble)fmodl(cast(real)x, cast(real)y);
     }
     import core.stdc.math : isnan;
-    extern (D) private int isnan(targ_ldouble x)
-    {
-        return isnan(cast(real)x);
-    }
+    static if (!is(targ_ldouble == real))
+        extern (D) private int isnan(targ_ldouble x)
+        {
+            return isnan(cast(real)x);
+        }
     import core.stdc.math : fabsl;
     import dmd.root.longdouble : fabsl; // needed if longdouble is longdouble_soft
 }
