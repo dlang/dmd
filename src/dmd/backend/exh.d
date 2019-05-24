@@ -51,6 +51,4 @@ Symbol *except_gentables();
 void except_fillInEHTable(Symbol *s);
 void  except_reset();
 
-/* pdata.c */
-void win64_pdata(Symbol *sf);
 
