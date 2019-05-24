@@ -295,14 +295,6 @@ int ispow2(uint64_t c)
         return i;
 }
 
-char *unsstr(uint value) nothrow
-{
-    __gshared char[64] buffer = void;
-
-    sprintf(buffer.ptr, "%d", value);
-    return buffer.ptr;
-}
-
 /***************************
  */
 

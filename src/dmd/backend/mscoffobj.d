@@ -33,7 +33,6 @@ import dmd.backend.mem;
 import dmd.backend.global;
 import dmd.backend.obj;
 import dmd.backend.outbuf;
-import dmd.backend.util2 : unsstr;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -1736,6 +1735,14 @@ static if (0) // NOT_DONE
     len += obj_namestring(buffer + len,n2);
     objrecord(ALIAS,buffer,len);
 }
+}
+
+char *unsstr(uint value)
+{
+    __gshared char[64] buffer;
+
+    sprintf (buffer.ptr, "%d", value);
+    return buffer.ptr;
 }
 
 /*******************************
