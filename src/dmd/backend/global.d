@@ -176,10 +176,6 @@ int isillegal(int);
 int ishex(int);
 //#endif
 
-/* from cgcs.c */
-void comsubs();
-void cgcs_term();
-
 /* errmsgs.c */
 char *dlcmsgs(int);
 void errmsgs_term();
