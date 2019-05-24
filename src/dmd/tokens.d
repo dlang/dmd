@@ -451,6 +451,74 @@ extern (C++) struct Token
         Identifier ident;
     }
 
+    bool opEquals()(auto ref const Token rhs) const
+    {
+        if (value != rhs.value)
+            return false;
+
+        with (TOK) switch (value)
+        {
+            case int32Literal,
+                uns32Literal,
+                int64Literal,
+                uns64Literal,
+                charLiteral,
+                wcharLiteral,
+                dcharLiteral:
+                // unsvalue is used for signed integers and characters by the lexer
+                return unsvalue == rhs.unsvalue;
+
+            case int128Literal, uns128Literal:
+                // the lexer doesn't handle these
+                assert(false, "not implemented");
+
+            case float32Literal,
+                float64Literal,
+                float80Literal,
+                imaginary32Literal,
+                imaginary64Literal,
+                imaginary80Literal:
+                    return floatvalue == rhs.floatvalue;
+
+            case string_, hexadecimalString:
+                return postfix == rhs.postfix &&
+                    ustring[0 .. len] == rhs.ustring[0 .. rhs.len];
+
+            case identifier,
+                enum_,
+                struct_,
+                import_,
+                wchar_,
+                dchar_,
+                bool_,
+                char_,
+                int8,
+                uns8,
+                int16,
+                uns16,
+                int32,
+                uns32,
+                int64,
+                uns64,
+                int128,
+                uns128,
+                float32,
+                float64,
+                float80,
+                imaginary32,
+                imaginary64,
+                imaginary80,
+                complex32,
+                complex64,
+                complex80,
+                void_:
+                    return ident is rhs.ident;
+
+            default:
+                return true;
+        }
+    }
+
     extern (D) private __gshared immutable string[TOK.max_] tochars =
     [
         // Keywords
@@ -911,4 +979,15 @@ nothrow:
     {
         return tochars[value];
     }
+}
+
+TOK stringToTOK(string str)()
+{
+    foreach (i, s ; Token.tochars)
+    {
+        if (s == str)
+            return cast(TOK) i;
+    }
+
+    return TOK.max_;
 }
