@@ -1457,7 +1457,7 @@ extern (C++) abstract class Expression : ASTNode
      *      sc:     scope
      *      flag:   1: do not issue error message for invalid modification
      * Returns:
-     *      Wether the type is modifiable
+     *      Whether the type is modifiable
      */
     Modifiable checkModifiable(Scope* sc, int flag = 0)
     {
@@ -2393,9 +2393,9 @@ extern (C++) final class StringExp : Expression
         //printf("StringExp::equals('%s') %s\n", o.toChars(), toChars());
         if (auto e = o.isExpression())
         {
-            if (e.op == TOK.string_)
+            if (auto se = e.isStringExp())
             {
-                return compare(o) == 0;
+                return comparex(se) == 0;
             }
         }
         return false;
@@ -2575,18 +2575,10 @@ extern (C++) final class StringExp : Expression
         return this;
     }
 
-    override int compare(RootObject obj)
+    int comparex(const StringExp se2) const nothrow pure @nogc
     {
         //printf("StringExp::compare()\n");
         // Used to sort case statement expressions so we can do an efficient lookup
-        StringExp se2 = cast(StringExp)obj;
-
-        // This is a kludge so isExpression() in template.c will return 5
-        // for StringExp's.
-        if (!se2)
-            return 5;
-
-        assert(se2.op == TOK.string_);
 
         const len1 = len;
         const len2 = se2.len;

@@ -1612,13 +1612,6 @@ extern (C++) final class CaseStatement : Statement
         return new CaseStatement(loc, exp.syntaxCopy(), statement.syntaxCopy());
     }
 
-    override int compare(RootObject obj)
-    {
-        // Sort cases so we can do an efficient lookup
-        CaseStatement cs2 = cast(CaseStatement)obj;
-        return exp.compare(cs2.exp);
-    }
-
     override inout(CaseStatement) isCaseStatement() inout pure nothrow
     {
         return this;
