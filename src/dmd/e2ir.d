@@ -80,7 +80,7 @@ alias Elems = Array!(elem *);
 alias toSymbol = dmd.tocsym.toSymbol;
 alias toSymbol = dmd.glue.toSymbol;
 
-void* mem_malloc2(uint);
+extern(C) void* mem_malloc(size_t);
 
 
 @property int REGSIZE() { return _tysize[TYnptr]; }
@@ -779,7 +779,7 @@ elem *array_toDarray(Type t, elem *e)
                     es.Eoper = OPstring;
 
                     // freed in el_free
-                    es.EV.Vstring = cast(char*)mem_malloc2(cast(uint)len);
+                    es.EV.Vstring = cast(char*)mem_malloc(cast(uint)len);
                     memcpy(es.EV.Vstring, &e.EV, len);
 
                     es.EV.Vstrlen = len;
@@ -1582,7 +1582,7 @@ elem *toElem(Expression e, IRState *irs)
                 e.Eoper = OPstring;
                 // freed in el_free
                 uint len = cast(uint)((se.numberOfCodeUnits() + 1) * se.sz);
-                e.EV.Vstring = cast(char *)mem_malloc2(cast(uint)len);
+                e.EV.Vstring = cast(char *)mem_malloc(cast(uint)len);
                 se.writeTo(e.EV.Vstring, true);
                 e.EV.Vstrlen = len;
                 e.Ety = TYnptr;

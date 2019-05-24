@@ -24,36 +24,14 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.global;
 import dmd.backend.mem;
+import dmd.backend.ph2;
 
 extern (C++):
 
-void *ph_malloc(size_t nbytes);
-void *ph_calloc(size_t nbytes);
-void ph_free(void *p);
-void *ph_realloc(void *p , size_t nbytes);
-
 extern (C) void printInternalFailure(FILE* stream); // from dmd/mars.d
-
-
-void util_exit(int exitcode);
 
 void file_progress()
 {
-}
-
-/*******************************
- * Alternative assert failure.
- */
-
-void util_assert(const(char)* file, int line)
-{
-    fflush(stdout);
-    printInternalFailure(stdout);
-    printf("Internal error: %s %d\n",file,line);
-    err_exit();
-//#if __clang__
-//    __builtin_unreachable();
-//#endif
 }
 
 /****************************
@@ -62,7 +40,7 @@ void util_assert(const(char)* file, int line)
 
 void err_exit()
 {
-    util_exit(EXIT_FAILURE);
+    exit(EXIT_FAILURE);
 }
 
 /********************************
@@ -71,17 +49,7 @@ void err_exit()
 
 void err_break()
 {
-    util_exit(255);
-}
-
-
-/****************************
- * Clean up and exit program.
- */
-
-void util_exit(int exitcode)
-{
-    exit(exitcode);                     /* terminate abnormally         */
+    exit(255);
 }
 
 version (CRuntime_DigitalMars)
@@ -410,11 +378,4 @@ else
     return p;
 }
 }
-}
-
-/*****************************
- */
-void *mem_malloc2(uint size)
-{
-    return mem_malloc(size);
 }
