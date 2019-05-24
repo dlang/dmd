@@ -2622,6 +2622,31 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
 
         Dsymbol scopesym;
         Dsymbol s = sc.search(loc, mt.ident, &scopesym);
+        /*
+         * https://issues.dlang.org/show_bug.cgi?id=1170
+         * https://issues.dlang.org/show_bug.cgi?id=10739
+         *
+         * If a symbol is not found, it might be declared in
+         * a mixin-ed string or a mixin-ed template, so before
+         * issuing an error semantically analyze all string/template
+         * mixins that are members of the current ScopeDsymbol.
+         */
+        if (!s && sc.enclosing)
+        {
+            ScopeDsymbol sds = sc.enclosing.scopesym;
+            if (sds && sds.members)
+            {
+                void semanticOnMixin(Dsymbol member)
+                {
+                    if (auto compileDecl = member.isCompileDeclaration())
+                        compileDecl.dsymbolSemantic(sc);
+                    else if (auto mixinTempl = member.isTemplateMixin())
+                        mixinTempl.dsymbolSemantic(sc);
+                }
+                sds.members.foreachDsymbol( s => semanticOnMixin(s) );
+                s = sc.search(loc, mt.ident, &scopesym);
+            }
+        }
 
         if (s)
         {

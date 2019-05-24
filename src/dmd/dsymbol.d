@@ -1189,6 +1189,7 @@ extern (C++) class Dsymbol : ASTNode
     inout(AnonDeclaration)             isAnonDeclaration()             inout { return null; }
     inout(ProtDeclaration)             isProtDeclaration()             inout { return null; }
     inout(OverloadSet)                 isOverloadSet()                 inout { return null; }
+    inout(CompileDeclaration)          isCompileDeclaration()          inout { return null; }
 }
 
 /***********************************************************
