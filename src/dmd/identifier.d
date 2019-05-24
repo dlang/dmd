@@ -82,16 +82,6 @@ public:
         return new Identifier(name);
     }
 
-    override bool equals(RootObject o) const
-    {
-        return this == o;
-    }
-
-    override int compare(RootObject o) const
-    {
-        return strncmp(name.ptr, o.toChars(), name.length + 1);
-    }
-
 nothrow:
     override const(char)* toChars() const pure
     {

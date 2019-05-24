@@ -261,7 +261,7 @@ private bool includeImportedModuleCheck(ModuleComponentRange components)
                     // MATCH
                     return !info.isExclude;
                 }
-                if (!range.front.equals(matchNodes[nodeIndex + nodeOffset].id))
+                if (!(range.front is matchNodes[nodeIndex + nodeOffset].id))
                 {
                     break;
                 }
