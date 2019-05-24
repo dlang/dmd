@@ -27,7 +27,6 @@ alias symlist_t = LIST*;
 
 extern __gshared char* ftdbname;
 
-void cv_init();
 uint cv_typidx(type* t);
 void cv_outsym(Symbol* s);
 void cv_func(Symbol* s);
@@ -95,22 +94,3 @@ void TOIDX(ubyte* a, uint b)
 
 enum DEBSYM = 5;               // segment of symbol info
 enum DEBTYP = 6;               // segment of type info
-
-/* ======================== Added for Codeview 8 =========================== */
-
-void cv8_initfile(const(char)* filename);
-void cv8_termfile(const(char)* objfilename);
-void cv8_initmodule(const(char)* filename, const(char)* modulename);
-void cv8_termmodule();
-void cv8_func_start(Symbol* sfunc);
-void cv8_func_term(Symbol* sfunc);
-//void cv8_linnum(Srcpos srcpos, uint offset);  // Srcpos isn't available yet
-void cv8_outsym(Symbol* s);
-void cv8_udt(const(char)* id, idx_t typidx);
-int cv8_regnum(Symbol* s);
-idx_t cv8_fwdref(Symbol* s);
-idx_t cv8_darray(type* tnext, idx_t etypidx);
-idx_t cv8_ddelegate(type* t, idx_t functypidx);
-idx_t cv8_daarray(type* t, idx_t keyidx, idx_t validx);
-
-

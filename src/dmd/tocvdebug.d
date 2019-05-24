@@ -45,6 +45,7 @@ import dmd.backend.cdef;
 import dmd.backend.cgcv;
 import dmd.backend.code;
 import dmd.backend.cv4;
+import dmd.backend.cv8 : cv8_udt;
 import dmd.backend.dlist;
 import dmd.backend.dt;
 import dmd.backend.global;

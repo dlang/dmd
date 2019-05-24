@@ -21,6 +21,7 @@ import core.stdc.string;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcv;
+import dmd.backend.dcgcv;
 import dmd.backend.code;
 import dmd.backend.code_x86;
 import dmd.backend.cv4;
@@ -705,7 +706,7 @@ Symbol *out_string_literal(const(char)* str, uint len, uint sz)
  * a code generator tree.
  */
 
-/*private*/ void outelem(elem *e, ref bool addressOfParam)
+private void outelem(elem *e, ref bool addressOfParam)
 {
     Symbol *s;
     tym_t tym;

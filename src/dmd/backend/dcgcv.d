@@ -33,6 +33,7 @@ import dmd.backend.cgcv;
 import dmd.backend.code;
 import dmd.backend.code_x86;
 import dmd.backend.cv4;
+import dmd.backend.cv8;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
 import dmd.backend.el;
