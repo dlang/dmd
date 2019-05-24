@@ -19,7 +19,7 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.dlist;
-import dmd.backend.goh;
+import dmd.backend.go;
 import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.ty;
@@ -274,7 +274,6 @@ uint
                         /* dfoblks <= numblks <= maxblks                */
          numcse;        /* number of common subexpressions              */
 
-GlobalOptimizer go;
 
 /* From debug.c */
 const(char)*[32] regstring = ["AX","CX","DX","BX","SP","BP","SI","DI",

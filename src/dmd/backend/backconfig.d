@@ -18,6 +18,7 @@ import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.code;
 import dmd.backend.global;
+import dmd.backend.go : go_flag;
 import dmd.backend.ty;
 import dmd.backend.type;
 

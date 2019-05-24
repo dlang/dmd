@@ -28,13 +28,14 @@ import dmd.backend.cdef;
 import dmd.backend.code_x86;
 import dmd.backend.oper;
 import dmd.backend.global;
-import dmd.backend.goh;
+import dmd.backend.go;
 import dmd.backend.el;
 import dmd.backend.ty;
 import dmd.backend.type;
 
 import dmd.backend.dlist;
 import dmd.backend.dvec;
+import dmd.backend.gflow : flowae;
 
 extern (C++):
 

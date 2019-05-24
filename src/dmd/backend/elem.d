@@ -49,7 +49,7 @@ import dmd.backend.dvec;
 import dmd.backend.el;
 import dmd.backend.evalu8 : el_toldoubled;
 import dmd.backend.global;
-import dmd.backend.goh;
+import dmd.backend.go;
 import dmd.backend.mem;
 import dmd.backend.obj;
 import dmd.backend.oper;

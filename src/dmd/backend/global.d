@@ -455,16 +455,11 @@ int elemisone(elem *);
 /* msc.c */
 targ_size_t size(tym_t);
 extern (C) Symbol *symboldata(targ_size_t offset,tym_t ty);
-bool dom(block *A , block *B);
 uint revop(uint op);
 uint invrel(uint op);
 int binary(const(char)* p, const(char)** tab, int high);
 int binary(const(char)* p, size_t len, const(char)** tab, int high);
 
-/* go.c */
-void go_term();
-int go_flag(char *cp);
-void optfunc();
 
 /* filename.c */
 version (SCPP)

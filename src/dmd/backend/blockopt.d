@@ -37,7 +37,7 @@ import dmd.backend.el;
 import dmd.backend.mem;
 import dmd.backend.type;
 import dmd.backend.global;
-import dmd.backend.goh;
+import dmd.backend.go;
 import dmd.backend.code;
 import dmd.backend.ty;
 

@@ -29,7 +29,7 @@ import dmd.backend.cdef;
 import dmd.backend.code_x86;
 import dmd.backend.oper;
 import dmd.backend.global;
-import dmd.backend.goh;
+import dmd.backend.go;
 import dmd.backend.el;
 import dmd.backend.outbuf;
 import dmd.backend.ty;
@@ -38,6 +38,7 @@ import dmd.backend.type;
 import dmd.backend.barray;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
+import dmd.backend.gloop : fillInDNunambig, updaterd;
 
 void vec_setclear(size_t b, vec_t vs, vec_t vc) { vec_setbit(b, vs); vec_clearbit(b, vc); }
 
