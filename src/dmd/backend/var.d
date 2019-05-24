@@ -120,12 +120,8 @@ mangle_t[LINK_MAXDIM] varmangletab =
 
 /* File variables: */
 
-char *argv0;                    // argv[0] (program name)
 extern (C)
 {
-FILE *fdep = null;              // dependency file stream pointer
-FILE *flst = null;              // list file stream pointer
-FILE *fin = null;               // input file
 version (SPP)
 {
 FILE *fout;
@@ -136,14 +132,6 @@ FILE *fout;
 char *fdmodulename = null;
 extern (C) FILE *fdmodule = null;
 
-char*   foutdir = null,       // directory to place output files in
-        finname = null,
-        foutname = null,
-        fsymname = null,
-        fphreadname = null,
-        ftdbname = null,
-        fdepname = null,
-        flstname = null;       /* the filename strings                 */
 
 version (SPP)
 {
@@ -161,28 +149,6 @@ version (HTOD)
     phstring_t pathlist;            // include paths
 }
 
-int pathsysi;                   // -isystem= index
-list_t headers;                 /* pre-include files                    */
-
-/* Data from lexical analyzer: */
-
-uint idhash = 0;    // hash value of identifier
-int xc = ' ';           // character last read
-
-/* Data for pragma processor:
- */
-
-int colnumber = 0;              /* current column number                */
-
-/* Other variables: */
-
-int level = 0;                  /* declaration level                    */
-                                /* 0: top level                         */
-                                /* 1: function parameter declarations   */
-                                /* 2: function local declarations       */
-                                /* 3+: compound statement decls         */
-
-param_t *paramlst = null;       /* function parameter list              */
 tym_t pointertype = TYnptr;     /* default data pointer type            */
 
 /************************
@@ -269,10 +235,9 @@ symtab_t globsym;               /* global symbol table                  */
 Pstate pstate;                  // parser state
 Cstate cstate;                  // compiler state
 
-uint
-         maxblks = 0,   /* array max for all block stuff                */
+uint maxblks = 0;   /* array max for all block stuff                */
                         /* dfoblks <= numblks <= maxblks                */
-         numcse;        /* number of common subexpressions              */
+
 
 GlobalOptimizer go;
 
