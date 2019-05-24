@@ -32,7 +32,6 @@ import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.outbuf;
 import dmd.backend.rtlsym;
-import dmd.backend.drtlsym : rtlsym_reset;
 import dmd.backend.ty;
 import dmd.backend.type;
 

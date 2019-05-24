@@ -20,7 +20,6 @@ import dmd.backend.code;
 import dmd.backend.global;
 import dmd.backend.ty;
 import dmd.backend.type;
-import dmd.backend.drtlsym : rtlsym_init;
 
 extern (C++):
 
