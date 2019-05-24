@@ -14,8 +14,8 @@ module dmd.backend.ee;
  * Code to handle debugger expression evaluation
  */
 
-version (SPP) {} else
-{
+version (SPP) {}
+else:
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -28,7 +28,7 @@ import dmd.backend.oper;
 import dmd.backend.el;
 import dmd.backend.exh;
 import dmd.backend.cgcv;
-
+import dmd.backend.code_x86 : code;
 version (SCPP)
 {
 import parser;
@@ -43,42 +43,60 @@ version (MARS)
 __gshared EEcontext eecontext;
 }
 
+/**************************************************
+* This is to support compiling expressions within the context of a function.
+*/
+
+struct EEcontext
+{
+    uint EElinnum;              // line number to insert expression
+    char *EEexpr;               // expression
+    char *EEtypedef;            // typedef identifier
+    byte EEpending;             // !=0 means we haven't compiled it yet
+    byte EEimminent;            // we've installed it in the source text
+    byte EEcompile;             // we're compiling for the EE expression
+    byte EEin;                  // we are parsing an EE expression
+    elem *EEelem;               // compiled version of EEexpr
+    Symbol *EEfunc;             // function expression is in
+    code *EEcode;               // generated code
+
+
 //////////////////////////////////////
 // Convert any symbols generated for the debugger expression to SCstack
 // storage class.
 
-void eecontext_convs(uint marksi)
-{   uint u;
-    uint top;
-    symtab_t *ps;
+    void convs(uint marksi)
+    {
+        uint u;
+        uint top;
+        symtab_t *ps;
 
     // Change all generated SCauto's to SCstack's
 version (SCPP)
 {
-    ps = &globsym;
+        ps = &globsym;
 }
 else
 {
-    ps = cstate.CSpsymtab;
+        ps = cstate.CSpsymtab;
 }
-    top = ps.top;
-    //printf("eecontext_convs(%d,%d)\n",marksi,top);
-    for (u = marksi; u < top; u++)
-    {   Symbol *s;
-
-        s = ps.tab[u];
-        switch (s.Sclass)
+        top = ps.top;
+        //printf("eecontext_convs(%d,%d)\n",marksi,top);
+        foreach(Symbol *s; ps.tab[u .. top])
         {
-            case SCauto:
-            case SCregister:
-                s.Sclass = SCstack;
-                s.Sfl = FLstack;
-                break;
-            default:
-                break;
+            s = ps.tab[u];
+            switch (s.Sclass)
+            {
+                case SCauto:
+                case SCregister:
+                    s.Sclass = SCstack;
+                    s.Sfl = FLstack;
+                    break;
+                default:
+                    break;
+            }
         }
     }
-}
 
 ////////////////////////////////////////
 // Parse the debugger expression.
@@ -86,43 +104,45 @@ else
 version (SCPP)
 {
 
-void eecontext_parse()
-{
-    if (eecontext.EEimminent)
-    {   type *t;
+    void eecontext_parse()
+    {
+        if (!EEimminent)
+            return;
+
+        type *t;
         uint marksi;
         Symbol *s;
 
         //printf("imminent\n");
         marksi = globsym.top;
-        eecontext.EEin++;
+        EEin++;
         s = symbol_genauto(tspvoid);
-        eecontext.EEelem = func_expr_dtor(true);
-        t = eecontext.EEelem.ET;
+        EEelem = func_expr_dtor(true);
+        t = EEelem.ET;
         if (tybasic(t.Tty) != TYvoid)
         {   uint op;
             elem *e;
 
             e = el_unat(OPind,t,el_var(s));
             op = tyaggregate(t.Tty) ? OPstreq : OPeq;
-            eecontext.EEelem = el_bint(op,t,e,eecontext.EEelem);
+            EEelem = el_bint(op,t,e,EEelem);
         }
-        eecontext.EEin--;
-        eecontext.EEimminent = 0;
-        eecontext.EEfunc = funcsym_p;
+        EEin--;
+        EEimminent = 0;
+        EEfunc = funcsym_p;
 
-        eecontext_convs(marksi);
+        convs(marksi);
 
         // Generate the typedef
-        if (eecontext.EEtypedef && config.fulltypes)
+        if (EEtypedef && config.fulltypes)
         {   Symbol *s;
 
-            s = symbol_name(eecontext.EEtypedef,SCtypedef,t);
+            s = symbol_name(EEtypedef,SCtypedef,t);
             cv_outsym(s);
             symbol_free(s);
         }
     }
 }
+}
 
-}
-}
+

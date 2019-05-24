@@ -37,6 +37,7 @@ import dmd.backend.outbuf;
 import dmd.backend.rtlsym;
 import dmd.backend.ty;
 import dmd.backend.type;
+import dmd.backend.ee;
 
 version (SCPP)
 {
@@ -1341,7 +1342,7 @@ version (MARS)
         outelem(eecontext.EEelem, addressOfParam);
         eecontext.EEelem = doptelem(eecontext.EEelem,true);
         eecontext.EEin--;
-        eecontext_convs(marksi);
+        eecontext.convs(marksi);
     }
     maxblks = 3 * numblks;              // allow for increase in # of blocks
     // If we took the address of one parameter, assume we took the
