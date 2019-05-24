@@ -127,7 +127,7 @@ public:
     bool fill(Loc loc, Expressions *elements, bool ctorinit);
     Type *getType();
     bool isDeprecated() const;         // is aggregate deprecated?
-    bool isNested();
+    bool isNested() const;
     void makeNested();
     bool isExport() const;
     Dsymbol *searchCtor();

@@ -904,7 +904,7 @@ extern (C++) class Dsymbol : ASTNode
         return false;
     }
 
-    bool isOverloadable()
+    bool isOverloadable() const
     {
         return false;
     }

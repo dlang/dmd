@@ -2288,7 +2288,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     /***********************************
      * We can overload templates.
      */
-    override bool isOverloadable()
+    override bool isOverloadable() const
     {
         return true;
     }

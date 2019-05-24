@@ -177,7 +177,7 @@ public:
     Type *getType();
     Dsymbol *toAlias();
     Dsymbol *toAlias2();
-    bool isOverloadable();
+    bool isOverloadable() const;
 
     AliasDeclaration *isAliasDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -198,7 +198,7 @@ public:
 
     Dsymbol *toAlias();
     Dsymbol *isUnique();
-    bool isOverloadable();
+    bool isOverloadable() const;
 
     OverDeclaration *isOverDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -583,7 +583,7 @@ public:
     bool isExport() const;
     bool isImportedSymbol() const;
     bool isCodeseg() const;
-    bool isOverloadable();
+    bool isOverloadable() const;
     bool isAbstract();
     PURE isPure();
     PURE isPureBypassingInference();
@@ -600,7 +600,7 @@ public:
     void printGCUsage(const Loc &loc, const char *warn);
     bool isolateReturn();
     bool parametersIntersect(Type *t);
-    virtual bool isNested();
+    virtual bool isNested() const;
     AggregateDeclaration *isThis();
     bool needThis();
     bool isVirtualMethod();
@@ -649,7 +649,7 @@ public:
     bool deferToObj;
 
     Dsymbol *syntaxCopy(Dsymbol *);
-    bool isNested();
+    bool isNested() const;
     AggregateDeclaration *isThis();
     bool isVirtual() const;
     bool addPreInvariant();

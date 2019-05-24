@@ -1229,7 +1229,7 @@ extern (C++) class FuncDeclaration : Declaration
         return true; // functions are always in the code segment
     }
 
-    override final bool isOverloadable()
+    override final bool isOverloadable() const
     {
         return true; // functions can be overloaded
     }

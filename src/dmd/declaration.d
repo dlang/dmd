@@ -933,7 +933,7 @@ extern (C++) final class AliasDeclaration : Declaration
         return s;
     }
 
-    override bool isOverloadable()
+    override bool isOverloadable() const
     {
         // assume overloadable until alias is resolved
         return semanticRun < PASS.semanticdone ||
@@ -1022,7 +1022,7 @@ extern (C++) final class OverDeclaration : Declaration
         return true;
     }
 
-    override bool isOverloadable()
+    override bool isOverloadable() const
     {
         return true;
     }

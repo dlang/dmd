@@ -206,7 +206,7 @@ public:
     virtual bool isExport() const;              // is Dsymbol exported?
     virtual bool isImportedSymbol() const;      // is Dsymbol imported?
     virtual bool isDeprecated() const;                // is Dsymbol deprecated?
-    virtual bool isOverloadable();
+    virtual bool isOverloadable() const;
     virtual LabelDsymbol *isLabel();            // is this a LabelDsymbol?
     AggregateDeclaration *isMember();           // is toParent() an AggregateDeclaration?
     AggregateDeclaration *isMember2();          // is toParent2() an AggregateDeclaration?

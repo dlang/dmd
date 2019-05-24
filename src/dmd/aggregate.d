@@ -630,7 +630,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
      * Returns true if there's an extra member which is the 'this'
      * pointer to the enclosing context (enclosing aggregate or function)
      */
-    final bool isNested()
+    final bool isNested() const
     {
         return enclosing !is null;
     }
