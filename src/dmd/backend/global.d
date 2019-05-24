@@ -279,6 +279,33 @@ int nteh_offset_sindex();
 int nteh_offset_sindex_seh();
 int nteh_offset_info();
 
+/* os.c */
+void *globalrealloc(void *oldp,size_t nbytes);
+void *vmem_baseaddr();
+void vmem_reservesize(uint *psize);
+uint vmem_physmem();
+void *vmem_reserve(void *ptr,uint size);
+int   vmem_commit(void *ptr, uint size);
+void vmem_decommit(void *ptr,uint size);
+void vmem_release(void *ptr,uint size);
+void *vmem_mapfile(const(char)* filename,void *ptr,uint size,int flag);
+void vmem_setfilesize(uint size);
+void vmem_unmapfile();
+void os_loadlibrary(const(char)* dllname);
+void os_freelibrary();
+void *os_getprocaddress(const(char)* funcname);
+void os_heapinit();
+void os_heapterm();
+void os_term();
+uint os_unique();
+int os_file_exists(const(char)* name);
+int os_file_mtime(const(char)* name);
+int os_file_size(int fd);
+int os_file_size(const(char)* filename);
+char *file_8dot3name(const(char)* filename);
+int file_write(char *name, void *buffer, uint len);
+int file_createdirs(char *name);
+
 /* pseudo.c */
 Symbol *pseudo_declar(char *);
 extern __gshared
