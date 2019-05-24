@@ -6746,7 +6746,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 {
                     // A runtime check is needed in case arrays don't line up.  That check should
                     // be done in the implementation of `object.__ArrayCast`
-                    if ((fromSize % toSize) != 0)
+                    if (toSize == 0 || (fromSize % toSize) != 0)
                     {
                         // lower to `object.__ArrayCast!(TFrom, TTo)(from)`
 

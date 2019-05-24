@@ -4196,7 +4196,7 @@ elem *toElem(Expression e, IRState *irs)
 
                 if (fsize != tsize)
                 {   // Array element sizes do not match, so we must adjust the dimensions
-                    if (fsize % tsize == 0)
+                    if (tsize != 0 && fsize % tsize == 0)
                     {
                         // Set array dimension to (length * (fsize / tsize))
                         // Generate pair(e.length * (fsize/tsize), es.ptr)
