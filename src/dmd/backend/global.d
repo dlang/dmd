@@ -483,6 +483,11 @@ uint tdb_typidx(void *buf);
 //uint tdb_typidx(ubyte *buf,uint length);
 void tdb_term();
 
+// rtlsym.c
+void rtlsym_init();
+void rtlsym_reset();
+void rtlsym_term();
+
 // compress.c
 extern(C) char *id_compress(const char *id, int idlen, size_t *plen);
 
