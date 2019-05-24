@@ -57,6 +57,9 @@ private enum LOG = false;
 
 enum IDX_NOTFOUND = 0x12345678;
 
+pure nothrow @nogc
+{
+
 /********************************************
  * These functions substitute for dynamic_cast. dynamic_cast does not work
  * on earlier versions of gcc.
@@ -102,11 +105,11 @@ extern (C++) inout(Parameter) isParameter(inout RootObject o)
 }
 
 extern (C++) inout(TemplateParameter) isTemplateParameter(inout RootObject o)
-    {
-        if (!o || o.dyncast() != DYNCAST.templateparameter)
-            return null;
-        return cast(inout(TemplateParameter))o;
-    }
+{
+    if (!o || o.dyncast() != DYNCAST.templateparameter)
+        return null;
+    return cast(inout(TemplateParameter))o;
+}
 
 /**************************************
  * Is this Object an error?
@@ -153,38 +156,34 @@ extern (C++) inout(Type) getType(inout RootObject o)
     return t;
 }
 
+}
+
 extern (C++) Dsymbol getDsymbol(RootObject oarg)
 {
     //printf("getDsymbol()\n");
     //printf("e %p s %p t %p v %p\n", isExpression(oarg), isDsymbol(oarg), isType(oarg), isTuple(oarg));
-    Dsymbol sa;
-    if (Expression ea = isExpression(oarg))
+    if (auto ea = isExpression(oarg))
     {
         // Try to convert Expression to symbol
-        if (ea.op == TOK.variable)
-            sa = (cast(VarExp)ea).var;
-        else if (ea.op == TOK.function_)
-        {
-            if ((cast(FuncExp)ea).td)
-                sa = (cast(FuncExp)ea).td;
-            else
-                sa = (cast(FuncExp)ea).fd;
-        }
-        else if (ea.op == TOK.template_)
-            sa = (cast(TemplateExp)ea).td;
+        if (auto ve = ea.isVarExp())
+            return ve.var;
+        else if (auto fe = ea.isFuncExp())
+            return fe.td ? fe.td : fe.fd;
+        else if (auto te = ea.isTemplateExp())
+            return te.td;
         else
-            sa = null;
+            return null;
     }
     else
     {
         // Try to convert Type to symbol
-        if (Type ta = isType(oarg))
-            sa = ta.toDsymbol(null);
+        if (auto ta = isType(oarg))
+            return ta.toDsymbol(null);
         else
-            sa = isDsymbol(oarg); // if already a symbol
+            return isDsymbol(oarg); // if already a symbol
     }
-    return sa;
 }
+
 
 private Expression getValue(ref Dsymbol s)
 {
