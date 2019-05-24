@@ -2699,17 +2699,20 @@ else
             // data we pass to codegen (the order of the cases in the switch).
             CaseStatements *csCopy = (*ss.cases).copy();
 
-            extern (C) static int sort_compare(const(void*) x, const(void*) y) @trusted
-            {
-                CaseStatement ox = *cast(CaseStatement *)x;
-                CaseStatement oy = *cast(CaseStatement*)y;
-
-                return ox.compare(oy);
-            }
-
             if (numcases)
             {
-                import core.stdc.stdlib;
+                extern (C) static int sort_compare(const(void*) x, const(void*) y) @trusted
+                {
+                    CaseStatement ox = *cast(CaseStatement *)x;
+                    CaseStatement oy = *cast(CaseStatement*)y;
+
+                    auto se1 = ox.exp.isStringExp();
+                    auto se2 = oy.exp.isStringExp();
+                    return (se1 && se2) ? se1.comparex(se2) : 0;
+                }
+
+                // Sort cases for efficient lookup
+                import core.stdc.stdlib : qsort, _compare_fp_t;
                 qsort(csCopy.data, numcases, CaseStatement.sizeof, cast(_compare_fp_t)&sort_compare);
             }
 
