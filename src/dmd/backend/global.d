@@ -148,11 +148,6 @@ void* util_malloc(uint n,uint size) { return mem_malloc(n * size); }
 void* util_calloc(uint n,uint size) { return mem_calloc(n * size); }
 void util_free(void *p) { mem_free(p); }
 void *util_realloc(void *oldp,uint n,uint size) { return mem_realloc(oldp, n * size); }
-//#define parc_malloc     mem_malloc
-//#define parc_calloc     mem_calloc
-//#define parc_realloc    mem_realloc
-//#define parc_strdup     mem_strdup
-//#define parc_free       mem_free
 }
 else
 {
@@ -160,18 +155,11 @@ void *util_malloc(uint n,uint size);
 void *util_calloc(uint n,uint size);
 void util_free(void *p);
 void *util_realloc(void *oldp,uint n,uint size);
-void *parc_malloc(size_t len);
-void *parc_calloc(size_t len);
-void *parc_realloc(void *oldp,size_t len);
-char *parc_strdup(const(char)* s);
-void parc_free(void *p);
 }
 
 void swap(int *, int *);
 //void crlf(FILE *);
 char *unsstr(uint);
-int isignore(int);
-int isillegal(int);
 
 //#if !defined(__DMC__) && !defined(_MSC_VER)
 int ishex(int);
@@ -180,10 +168,6 @@ int ishex(int);
 /* from cgcs.c */
 void comsubs();
 void cgcs_term();
-
-/* errmsgs.c */
-char *dlcmsgs(int);
-void errmsgs_term();
 
 /* from evalu8.c */
 int boolres(elem *);
@@ -198,11 +182,7 @@ elem *selecte1(elem *, type *);
 //extern       type *declar(type *,char *,int);
 
 /* from err.c */
-void err_message(const(char)* format,...);
-void dll_printf(const(char)* format,...);
-void cmderr(uint,...);
 int synerr(uint,...);
-void preerr(uint,...);
 
 //#if __clang__
 //void err_exit() __attribute__((analyzer_noreturn));
@@ -223,17 +203,6 @@ int cpperr(uint,...);
 int tx86err(uint,...);
 extern __gshared int errmsgs_tx86idx;
 void warerr(uint,...);
-void err_warning_enable(uint warnum, int on);
-void lexerr(uint,...);
-
-int typerr(int,type *,type *, ...);
-void err_noctor(Classsym *stag,list_t arglist);
-void err_nomatch(const(char)*, list_t);
-void err_ambiguous(Symbol *,Symbol *);
-void err_noinstance(Symbol *s1,Symbol *s2);
-void err_redeclar(Symbol *s,type *t1,type *t2);
-void err_override(Symbol *sfbase,Symbol *sfder);
-void err_notamember(const(char)* id, Classsym *s, Symbol *alternate = null);
 
 /* exp.c */
 elem *expression();
