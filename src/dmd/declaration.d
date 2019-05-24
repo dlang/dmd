@@ -501,7 +501,7 @@ extern (C++) abstract class Declaration : Dsymbol
         return (storage_class & STC.parameter) != 0;
     }
 
-    override final bool isDeprecated() pure nothrow @nogc @safe
+    override final bool isDeprecated() const pure nothrow @nogc @safe
     {
         return (storage_class & STC.deprecated_) != 0;
     }

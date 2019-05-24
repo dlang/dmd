@@ -126,7 +126,7 @@ public:
     d_uns64 size(const Loc &loc);
     bool fill(Loc loc, Expressions *elements, bool ctorinit);
     Type *getType();
-    bool isDeprecated();         // is aggregate deprecated?
+    bool isDeprecated() const;         // is aggregate deprecated?
     bool isNested();
     void makeNested();
     bool isExport() const;

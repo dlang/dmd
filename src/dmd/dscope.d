@@ -702,14 +702,14 @@ struct Scope
     *
     * Returns: `true` if this or any parent scope is deprecated, `false` otherwise`
     */
-    extern(C++) bool isDeprecated()
+    extern(C++) bool isDeprecated() const
     {
-        for (Dsymbol sp = this.parent; sp; sp = sp.parent)
+        for (const(Dsymbol)* sp = &(this.parent); *sp; sp = &(sp.parent))
         {
             if (sp.isDeprecated())
                 return true;
         }
-        for (Scope* sc2 = &this; sc2; sc2 = sc2.enclosing)
+        for (const(Scope)* sc2 = &this; sc2; sc2 = sc2.enclosing)
         {
             if (sc2.scopesym && sc2.scopesym.isDeprecated())
                 return true;
