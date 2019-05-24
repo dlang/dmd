@@ -138,5 +138,5 @@ struct Scope
 
     structalign_t alignment();
 
-    bool isDeprecated();
+    bool isDeprecated() const;
 };

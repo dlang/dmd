@@ -899,7 +899,7 @@ extern (C++) class Dsymbol : ASTNode
     }
 
     // is Dsymbol deprecated?
-    bool isDeprecated()
+    bool isDeprecated() const
     {
         return false;
     }

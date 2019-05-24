@@ -621,7 +621,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     }
 
     // is aggregate deprecated?
-    override final bool isDeprecated()
+    override final bool isDeprecated() const
     {
         return isdeprecated;
     }

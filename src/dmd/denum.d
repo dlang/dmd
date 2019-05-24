@@ -160,7 +160,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
     }
 
     // is Dsymbol deprecated?
-    override bool isDeprecated()
+    override bool isDeprecated() const
     {
         return isdeprecated;
     }

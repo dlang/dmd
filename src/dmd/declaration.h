@@ -124,7 +124,7 @@ public:
     bool isScope() const        { return (storage_class & STCscope) != 0; }
     bool isSynchronized() const { return (storage_class & STCsynchronized) != 0; }
     bool isParameter() const    { return (storage_class & STCparameter) != 0; }
-    bool isDeprecated()         { return (storage_class & STCdeprecated) != 0; }
+    bool isDeprecated() const   { return (storage_class & STCdeprecated) != 0; }
     bool isOverride() const     { return (storage_class & STCoverride) != 0; }
     bool isResult() const       { return (storage_class & STCresult) != 0; }
     bool isField() const        { return (storage_class & STCfield) != 0; }

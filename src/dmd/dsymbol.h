@@ -205,7 +205,7 @@ public:
     virtual AggregateDeclaration *isThis();     // is a 'this' required to access the member
     virtual bool isExport() const;              // is Dsymbol exported?
     virtual bool isImportedSymbol() const;      // is Dsymbol imported?
-    virtual bool isDeprecated();                // is Dsymbol deprecated?
+    virtual bool isDeprecated() const;                // is Dsymbol deprecated?
     virtual bool isOverloadable();
     virtual LabelDsymbol *isLabel();            // is this a LabelDsymbol?
     AggregateDeclaration *isMember();           // is toParent() an AggregateDeclaration?
