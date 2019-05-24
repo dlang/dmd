@@ -6179,14 +6179,12 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      * Compare proposed template instantiation with existing template instantiation.
      * Note that this is not commutative because of the auto ref check.
      * Params:
-     *  o = existing template instantiation
+     *  ti = existing template instantiation
      * Returns:
-     *  0 for match, 1 for no match
+     *  true for match
      */
-    override final int compare(RootObject o)
+    final bool equalsx(TemplateInstance ti)
     {
-        TemplateInstance ti = cast(TemplateInstance)o;
-
         //printf("this = %p, ti = %p\n", this, ti);
         assert(tdtypes.dim == ti.tdtypes.dim);
 
@@ -6234,10 +6232,10 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 }
             }
         }
-        return 0;
+        return true;
 
     Lnotequals:
-        return 1;
+        return false;
     }
 
     final hash_t toHash()
@@ -7819,7 +7817,7 @@ struct TemplateInstanceBox
             /* Used when a proposed instance is used to see if there's
              * an existing instance.
              */
-            res = (cast()s.ti).compare(cast()ti) == 0;
+            res = (cast()s.ti).equalsx(cast()ti);
 
         debug (FindExistingInstance) ++(res ? nHits : nCollisions);
         return res;
