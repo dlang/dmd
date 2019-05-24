@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail106.d(12): Error: cannot modify `immutable` expression `'C'`
+fail_compilation/fail106.d(12): Error: cannot modify `immutable` expression `"ABC"[2]`
 ---
 */
 
