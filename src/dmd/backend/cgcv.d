@@ -62,19 +62,6 @@ struct Cgcv
 
 __gshared Cgcv cgcv;
 
-debtyp_t* debtyp_alloc(uint length);
-int cv_stringbytes(const(char)* name);
-uint cv4_numericbytes(uint value);
-void cv4_storenumeric(ubyte* p, uint value);
-uint cv4_signednumericbytes(int value);
-void cv4_storesignednumeric(ubyte* p, int value);
-idx_t cv_debtyp(debtyp_t* d);
-int cv_namestring(ubyte* p, const(char)* name, int length = -1);
-uint cv4_typidx(type* t);
-idx_t cv4_arglist(type* t, uint* pnparam);
-ubyte cv4_callconv(type* t);
-idx_t cv_numdebtypes();
-
 void TOWORD(ubyte* a, uint b)
 {
     *cast(ushort*)a = cast(ushort)b;
