@@ -42,7 +42,6 @@ import dmd.backend.oper;
 import dmd.backend.outbuf;
 import dmd.backend.ty;
 import dmd.backend.type;
-import dmd.backend.util2 : unsstr;
 
 extern (C++):
 
@@ -2218,6 +2217,14 @@ static if (0)
     len += obj_namestring(buffer + len,n2);
     objrecord(ALIAS,buffer,len);
 }
+}
+
+char *unsstr(uint value)
+{
+    __gshared char[64] buffer = void;
+
+    sprintf(buffer.ptr, "%d", value);
+    return buffer.ptr;
 }
 
 /*******************************
