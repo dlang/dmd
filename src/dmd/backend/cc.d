@@ -85,19 +85,6 @@ enum LANG
     LANGjapanese,
 }
 
-
-//#if SPP || SCPP
-//#include        "msgs2.h"
-//#endif
-//#include        "ty.h"
-//#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
-//#include        "../tk/mem.h"
-//#else
-//#include        "mem.h"
-//#endif
-//#include        "list.h"
-//#include        "vec.h"
-
 version (SPP)
 {
     enum COMPILER = "Preprocessor";
@@ -113,35 +100,6 @@ else version (SCPP)
     enum COMPILER = "C/C++ Compiler";
     enum ACTIVITY = "compiling...";
 }
-
-//#ifdef DEBUG
-//#   define debug(a)     (a)
-//#   define debugx(a)    (a)
-//#   define debug_assert assert
-//#else
-//#   define debug(a)
-//#   define debugx(a)
-//#   define debug_assert(e)
-//#endif
-
-/***************************
- * Print out debugging information.
- */
-
-//#ifdef DEBUG
-//#define debugmes(s)     (debugw && dbg_printf(s))
-//#define cmes(s)         (debugc && dbg_printf(s))
-//#define cmes2(s,b)      (debugc && dbg_printf((s),(b)))
-//#define cmes3(s,b,c)    (debugc && dbg_printf((s),(b),(c)))
-//#else
-//#define debugmes(s)
-//#define cmes(s)
-//#define cmes2(s,b)
-//#define cmes3(s,b,c)
-//#endif
-
-
-//#define arraysize(array)        (sizeof(array) / sizeof(array[0]))
 
 enum IDMAX = 900;              // identifier max (excluding terminating 0)
 enum IDOHD = 4+1+int.sizeof*3; // max amount of overhead to ID added by
@@ -163,15 +121,6 @@ version (MARS)
 else
     import dtoken : token_t;
 
-//struct param_t;
-//struct block;
-//struct Classsym;
-//struct Nspacesym;
-//struct Outbuffer;
-//struct Aliassym;
-//struct dt_t;
-//typedef struct TYPE type;
-//typedef struct Symbol symbol;
 alias Funcsym = Symbol;
 //#if !MARS
 //typedef struct MACRO macro_t;
@@ -249,8 +198,6 @@ version (HTOD)
 }
 
 void Srcpos_print(ref const Srcpos srcpos, const(char)* func);
-
-//#include "token.h"
 
 alias stflags_t = uint;
 enum
@@ -1822,43 +1769,3 @@ enum
     DT_coff   = 5,
     DT_ibytes = 6,
 }
-
-// An efficient way to clear aligned memory
-//#define MEMCLEAR(p,sz)                  \
-//    if ((sz) == 10 * sizeof(size_t))    \
-//    {                                   \
-//        ((size_t *)(p))[0] = 0;         \
-//        ((size_t *)(p))[1] = 0;         \
-//        ((size_t *)(p))[2] = 0;         \
-//        ((size_t *)(p))[3] = 0;         \
-//        ((size_t *)(p))[4] = 0;         \
-//        ((size_t *)(p))[5] = 0;         \
-//        ((size_t *)(p))[6] = 0;         \
-//        ((size_t *)(p))[7] = 0;         \
-//        ((size_t *)(p))[8] = 0;         \
-//        ((size_t *)(p))[9] = 0;         \
-//    }                                   \
-//    else if ((sz) == 14 * sizeof(size_t))       \
-//    {                                   \
-//        ((size_t *)(p))[0] = 0;         \
-//        ((size_t *)(p))[1] = 0;         \
-//        ((size_t *)(p))[2] = 0;         \
-//        ((size_t *)(p))[3] = 0;         \
-//        ((size_t *)(p))[4] = 0;         \
-//        ((size_t *)(p))[5] = 0;         \
-//        ((size_t *)(p))[6] = 0;         \
-//        ((size_t *)(p))[7] = 0;         \
-//        ((size_t *)(p))[8] = 0;         \
-//        ((size_t *)(p))[9] = 0;         \
-//        ((size_t *)(p))[10] = 0;        \
-//        ((size_t *)(p))[11] = 0;        \
-//        ((size_t *)(p))[12] = 0;        \
-//        ((size_t *)(p))[13] = 0;        \
-//    }                                   \
-//    else                                \
-//    {                                   \
-//        /*printf("%s(%d) sz = %d\n",__FILE__,__LINE__,(sz));fflush(stdout);*(char*)0=0;*/  \
-//        for (size_t i = 0; i < sz / sizeof(size_t); ++i)        \
-//            ((size_t *)(p))[i] = 0;                             \
-//    }
-

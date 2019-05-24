@@ -79,10 +79,6 @@ enum
     ALOC_FUNC       = 8,   // follows function declaration
 }
 
-//#define ATTR_LINK_MODIFIERS (mTYconst|mTYvolatile|mTYcdecl|mTYstdcall)
-//#define ATTR_CAN_IGNORE(a) (((a) & (ATTR_LINKMOD|ATTR_TYPEMOD|ATTR_FUNCINFO|ATTR_DATAINFO|ATTR_TRANSU)) == 0)
-//#define LNX_CHECK_ATTRIBUTES(a,x) assert(((a) & ~(x|ATTR_IGNORED|ATTR_WARNING)) == 0)
-
 version (_WINDLL)
     enum SUFFIX = "nd";
 else version (_WIN64)
@@ -127,88 +123,6 @@ bool LDOUBLE() { return config.exe == EX_WIN32; }   // support true long doubles
 //      2: new style
 enum NTEXCEPTIONS = 2;
 
-// For Shared Code Base
-//#if _WINDLL
-//#define dbg_printf dll_printf
-//#else
-//#define dbg_printf printf
-//#endif
-
-//#ifndef ERRSTREAM
-//#define ERRSTREAM stdout
-//#endif
-//#define err_printf printf
-//#define err_vprintf vfprintf
-//#define err_fputc fputc
-//#define dbg_fputc fputc
-//#define LF '\n'
-//#define LF_STR "\n"
-//#define CR '\r'
-//#define ANSI        config.ansi_c
-//#define ANSI_STRICT config.ansi_c
-//#define ANSI_RELAX  config.ansi_c
-//#define TRIGRAPHS   ANSI
-//#define T80x86(x)       x
-
-// For Share MEM_ macros - default to mem_xxx package
-// PH           precompiled header
-// PARF         parser, life of function
-// PARC         parser, life of compilation
-// BEF          back end, function
-// BEC          back end, compilation
-
-//#define MEM_PH_FREE      mem_free
-//#define MEM_PARF_FREE    mem_free
-//#define MEM_PARC_FREE    mem_free
-//#define MEM_BEF_FREE     mem_free
-//#define MEM_BEC_FREE     mem_free
-
-//#define MEM_PH_CALLOC    mem_calloc
-//#define MEM_PARC_CALLOC  mem_calloc
-//#define MEM_PARF_CALLOC  mem_calloc
-//#define MEM_BEF_CALLOC   mem_calloc
-//#define MEM_BEC_CALLOC   mem_calloc
-
-//#define MEM_PH_MALLOC    mem_malloc
-//#define MEM_PARC_MALLOC  mem_malloc
-//#define MEM_PARF_MALLOC  mem_malloc
-//#define MEM_BEF_MALLOC   mem_malloc
-//#define MEM_BEC_MALLOC   mem_malloc
-
-//#define MEM_PH_STRDUP    mem_strdup
-//#define MEM_PARC_STRDUP  mem_strdup
-//#define MEM_PARF_STRDUP  mem_strdup
-//#define MEM_BEF_STRDUP   mem_strdup
-//#define MEM_BEC_STRDUP   mem_strdup
-
-//#define MEM_PH_REALLOC   mem_realloc
-//#define MEM_PARC_REALLOC mem_realloc
-//#define MEM_PARF_REALLOC mem_realloc
-//#define MEM_PERM_REALLOC mem_realloc
-//#define MEM_BEF_REALLOC  mem_realloc
-//#define MEM_BEC_REALLOC  mem_realloc
-
-//#define MEM_PH_FREEFP    mem_freefp
-//#define MEM_PARC_FREEFP  mem_freefp
-//#define MEM_PARF_FREEFP  mem_freefp
-//#define MEM_BEF_FREEFP   mem_freefp
-//#define MEM_BEC_FREEFP   mem_freefp
-
-
-// If we can use 386 instruction set (possible in 16 bit code)
-//#define I386 (config.target_cpu >= TARGET_80386)
-
-// If we are generating 32 bit code
-//#if MARS
-//#define I16     0               // no 16 bit code for D
-//#define I32     (NPTRSIZE == 4)
-//#define I64     (NPTRSIZE == 8) // 1 if generating 64 bit code
-//#else
-//#define I16     (NPTRSIZE == 2)
-//#define I32     (NPTRSIZE == 4)
-//#define I64     (NPTRSIZE == 8) // 1 if generating 64 bit code
-//#endif
-
 /**********************************
  * Limits & machine dependent stuff.
  */
@@ -221,21 +135,6 @@ enum NTEXCEPTIONS = 2;
 
 
 enum EXIT_BREAK = 255;     // aborted compile with ^C
-
-/* Take advantage of machines that can store a word, lsb first  */
-//#if _M_I86              // if Intel processor
-//#define TOWORD(ptr,val) (*(unsigned short *)(ptr) = (unsigned short)(val))
-//#define TOLONG(ptr,val) (*(unsigned *)(ptr) = (unsigned)(val))
-//#else
-//#define TOWORD(ptr,val) (((ptr)[0] = (unsigned char)(val)),\
-//                         ((ptr)[1] = (unsigned char)((val) >> 8)))
-//#define TOLONG(ptr,val) (((ptr)[0] = (unsigned char)(val)),\
-//                         ((ptr)[1] = (unsigned char)((val) >> 8)),\
-//                         ((ptr)[2] = (unsigned char)((val) >> 16)),\
-//                         ((ptr)[3] = (unsigned char)((val) >> 24)))
-//#endif
-//
-//#define TOOFFSET(a,b)   (I32 ? TOLONG(a,b) : TOWORD(a,b))
 
 /***************************
  * Target machine data types as they appear on the host.
@@ -277,10 +176,6 @@ enum
     TMAXSIZE       = 16,      // largest size a constant can be
 }
 
-//#define intsize         _tysize[TYint]
-//#define REGSIZE         _tysize[TYnptr]
-//@property @nogc nothrow auto NPTRSIZE() { return _tysize[TYnptr]; }
-//#define FPTRSIZE        _tysize[TYfptr]
 enum REGMASK = 0xFFFF;
 
 // targ_llong is also used to store host pointers, so it should have at least their size
@@ -311,16 +206,11 @@ else
    (Some features may no longer work the old way when compiled out,
     I don't test the old ways once the new way is set.)
  */
-//#define NEWTEMPMANGLE   (!(config.flags4 & CFG4oldtmangle))     // do new template mangling
-//#define USEDLLSHELL     _WINDLL
 bool MFUNC() { return I32 != 0; } // && config.exe == EX_WIN32)       // member functions are TYmfunc
 enum CV3 = 0;          // 1 means support CV3 debug format
 
 /* Object module format
  */
-//#ifndef OMFOBJ
-//#define OMFOBJ          TARGET_WINDOS
-//#endif
 enum ELFOBJ = TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS;
 enum MACHOBJ = TARGET_OSX;
 
@@ -329,8 +219,6 @@ version (XVERSION)
     enum SYMDEB_CODEVIEW = TARGET_WINDOS;
     enum SYMDEB_DWARF = TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS || TARGET_OSX;
 }
-
-//#define TOOLKIT_H
 
 enum
 {
@@ -884,12 +772,6 @@ union eve
 }                               // variants for each type of elem
 
 // Symbols
-
-//#ifdef DEBUG
-//#define IDSYMBOL        IDsymbol,
-//#else
-//#define IDSYMBOL
-//#endif
 
 alias SYMFLGS = uint;
 
