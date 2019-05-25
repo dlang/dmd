@@ -1159,6 +1159,11 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
         return "mixin";
     }
 
+    override inout(CompileDeclaration) isCompileDeclaration() inout
+    {
+        return this;
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);
