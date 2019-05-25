@@ -107,7 +107,7 @@ unittest
     a.setLength(4);
     assert(a.length == 4);
     foreach (i, ref v; a[])
-        v = i * 2;
+        v = cast(int) i * 2;
     foreach (i, ref const v; a[])
         assert(v == i * 2);
     a.dtor();
