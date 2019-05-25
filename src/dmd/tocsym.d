@@ -478,10 +478,6 @@ Symbol *toImport(Symbol *sym)
         else
             idlen = sprintf(id,"_imp__%s@%u",n,cast(uint)type_paramsize(sym.Stype));
     }
-    else if (sym.Stype.Tmangle == mTYman_d)
-    {
-        idlen = sprintf(id,(config.exe == EX_WIN64) ? "__imp_%s" : "_imp_%s",n);
-    }
     else
     {
         idlen = sprintf(id,(config.exe == EX_WIN64) ? "__imp_%s" : "_imp__%s",n);
