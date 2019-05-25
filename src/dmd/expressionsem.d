@@ -5718,6 +5718,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 tok == TOK.in_ ||
                 isEqualsCallExpression)
             {
+                if (!verifyHookExist(exp.loc, *sc, Id._d_assert_fail, "generating assert messages"))
+                    return setError();
+
                 auto es = new Expressions(2);
                 auto tiargs = new Objects(3);
                 Loc loc = exp.e1.loc;
@@ -6882,6 +6885,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     // be done in the implementation of `object.__ArrayCast`
                     if ((fromSize % toSize) != 0)
                     {
+                        if (!verifyHookExist(exp.loc, *sc, Id.__ArrayCast, "casting array of structs"))
+                            return setError();
+
                         // lower to `object.__ArrayCast!(TFrom, TTo)(from)`
 
                         // fully qualify as `object.__ArrayCast`
@@ -10413,6 +10419,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             if ((t1.ty == Tarray || t1.ty == Tsarray) && (t2.ty == Tarray || t2.ty == Tsarray))
             {
+                if (!verifyHookExist(exp.loc, *sc, Id.__cmp, "comparing arrays"))
+                    return setError();
+
                 // Lower to object.__cmp(e1, e2)
                 Expression al = new IdentifierExp(exp.loc, Id.empty);
                 al = new DotIdExp(exp.loc, al, Id.object);
@@ -10654,6 +10663,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             // For e1 and e2 of struct type, lowers e1 == e2 to object.__equals(e1, e2)
             // and e1 != e2 to !(object.__equals(e1, e2)).
+
+            if (!verifyHookExist(exp.loc, *sc, Id.__equals, "equal checks on arrays"))
+                return setError();
 
             Expression __equals = new IdentifierExp(exp.loc, Id.empty);
             Identifier id = Identifier.idPool("__equals");

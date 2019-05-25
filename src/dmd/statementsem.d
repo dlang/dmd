@@ -2638,6 +2638,9 @@ else
                 }
                 else
                 {
+                    if (!verifyHookExist(ss.loc, *sc, Id.__switch_error, "generating assert messages"))
+                        return setError();
+
                     Expression sl = new IdentifierExp(ss.loc, Id.empty);
                     sl = new DotIdExp(ss.loc, sl, Id.object);
                     sl = new DotIdExp(ss.loc, sl, Id.__switch_error);
@@ -2684,6 +2687,9 @@ else
 
             // We sort a copy of the array of labels because we want to do a binary search in object.__switch,
             // without modifying the order of the case blocks here in the compiler.
+
+            if (!verifyHookExist(ss.loc, *sc, Id.__switch, "switch cases on strings"))
+                return setError();
 
             size_t numcases = 0;
             if (ss.cases)
