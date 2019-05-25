@@ -388,7 +388,7 @@ struct ASTBase
             return true;
         }
 
-        bool isOverloadable()
+        bool isOverloadable() const
         {
             return false;
         }
@@ -726,7 +726,7 @@ struct ASTBase
             return null;
         }
 
-        override bool isOverloadable()
+        override bool isOverloadable() const
         {
             return true;
         }
@@ -760,7 +760,7 @@ struct ASTBase
             this.type = type;
         }
 
-        override bool isOverloadable()
+        override bool isOverloadable() const
         {
             //assume overloadable until alias is resolved;
             // should be modified when semantic analysis is added
@@ -1079,7 +1079,7 @@ struct ASTBase
             }
         }
 
-        override bool isOverloadable()
+        override bool isOverloadable() const
         {
             return true;
         }
