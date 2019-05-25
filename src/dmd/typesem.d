@@ -1540,7 +1540,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
         Type t;
         Expression e;
         Dsymbol s;
-        //printf("TypeIdentifier::semantic(%s)\n", mtype.toChars());
+        //printf("TypeIdentifier::semantic(%s)\n", toChars());
         mtype.resolve(loc, sc, &e, &t, &s);
         if (t)
         {
