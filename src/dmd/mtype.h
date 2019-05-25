@@ -400,6 +400,7 @@ public:
     bool iscomplex() /*const*/;
     bool isscalar() /*const*/;
     bool isunsigned() /*const*/;
+    bool ischar() /*const*/;
     MATCH implicitConvTo(Type *to);
     bool isZeroInit(const Loc &loc) /*const*/;
 
@@ -760,6 +761,7 @@ public:
     bool iscomplex();
     bool isscalar();
     bool isunsigned();
+    bool ischar();
     bool isBoolean();
     bool isString();
     bool isAssignable();
