@@ -175,7 +175,7 @@ GLUEOBJ=
 
 # D back end
 GBACKOBJ= $G/go.obj $G/gdag.obj $G/gother.obj $G/gflow.obj $G/gloop.obj $G/var.obj $G/elem.obj \
-	$G/newman.obj $G/glocal.obj $G/nteh.obj $G/evalu8.obj $G/fp.obj $G/cgcs.obj \
+	$G/newman.obj $G/glocal.obj $G/os.obj $G/nteh.obj $G/evalu8.obj $G/fp.obj $G/cgcs.obj \
 	$G/drtlsym.obj $G/cgelem.obj $G/cgen.obj $G/cgreg.obj $G/out.obj \
 	$G/blockopt.obj $G/cgobj.obj $G/cg.obj $G/dcgcv.obj $G/dtype.obj \
 	$G/debugprint.obj $G/dcode.obj $G/cg87.obj $G/cgxmm.obj $G/cgsched.obj $G/ee.obj $G/symbol.obj \
@@ -215,7 +215,7 @@ BACKSRC= $C\optabgen.d \
 	$C\dcode.d $C\symbol.d $C\debugprint.d $C\ee.d $C\elem.d \
 	$C\evalu8.d $C\fp.d $C\go.d $C\gflow.d $C\gdag.d \
 	$C\gother.d $C\glocal.d $C\gloop.d $C\gsroa.d $C\newman.d \
-	$C\nteh.d $C\out.d $C\ptrntab.d $C\drtlsym.d \
+	$C\nteh.d $C\os.d $C\out.d $C\ptrntab.d $C\drtlsym.d \
 	$C\dtype.d \
 	$C\elfobj.d \
 	$C\dwarfdbginf.d $C\machobj.d $C\aarray.d $C\barray.d \
@@ -236,7 +236,7 @@ ROOTSRC= $(ROOT)\root.h \
 	$(ROOTSRCD)
 # Removed garbage collector bits (look in history)
 #	$(ROOT)\gc\bits.c $(ROOT)\gc\gc.c $(ROOT)\gc\gc.h $(ROOT)\gc\mscbitops.h \
-#	$(ROOT)\gc\bits.h $(ROOT)\gc\gccbitops.h $(ROOT)\gc\linux.c \
+#	$(ROOT)\gc\bits.h $(ROOT)\gc\gccbitops.h $(ROOT)\gc\linux.c $(ROOT)\gc\os.h \
 #	$(ROOT)\gc\win32.c
 
 # Header files
@@ -555,6 +555,9 @@ $G/newman.obj : $C\newman.d
 
 $G/nteh.obj : $C\rtlsym.d $C\nteh.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\nteh
+
+$G/os.obj : $C\os.d
+    $(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\os
 
 $G/out.obj : $C\out.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\out
