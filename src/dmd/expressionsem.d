@@ -5873,7 +5873,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
             }
 
-            if (v && v.isDataseg()) // fix https://issues.dlang.org/show_bug.cgi?id=8238
+            if (v && (v.isDataseg() || // fix https://issues.dlang.org/show_bug.cgi?id=8238
+                      !v.needThis()))  // fix https://issues.dlang.org/show_bug.cgi?id=17258
             {
                 // (e1, v)
                 checkAccess(exp.loc, sc, exp.e1, v);
