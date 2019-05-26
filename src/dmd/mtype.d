@@ -4154,6 +4154,7 @@ extern (C++) final class TypeFunction : TypeNext
     ubyte iswild;               // bit0: inout on params, bit1: inout on qualifier
     Expressions* fargs;         // function arguments
     int inuse;
+    bool incomplete;            // return type or default arguments removed
 
     extern (D) this(ParameterList pl, Type treturn, LINK linkage, StorageClass stc = 0)
     {
