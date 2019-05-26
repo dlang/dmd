@@ -31,6 +31,7 @@ extern (C++) struct CodeBuilder
     code *head;
     code **pTail;
 
+  nothrow:
   public:
     //this() { pTail = &head; }
     //this(code *c);

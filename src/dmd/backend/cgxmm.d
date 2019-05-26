@@ -39,6 +39,7 @@ version (SCPP)
 version (MARS)
     import dmd.backend.errors;
 
+
 extern (C++):
 
 int REGSIZE();
