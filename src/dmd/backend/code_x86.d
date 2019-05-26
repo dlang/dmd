@@ -20,6 +20,8 @@ import dmd.backend.codebuilder : CodeBuilder;
 import dmd.backend.el : elem;
 import dmd.backend.ty : I64;
 
+nothrow:
+
 alias opcode_t = uint;          // CPU opcode
 enum opcode_t NoOpcode = 0xFFFF;              // not a valid opcode_t
 
@@ -321,6 +323,7 @@ struct code
         opcode_t Iop;
         struct Svex
         {
+          nothrow:
           align(1):
             ubyte  op;
 
@@ -380,6 +383,7 @@ struct code
     evc IEV1;             // 1st operand, if any
     evc IEV2;             // 2nd operand, if any
 
+  nothrow:
     void orReg(uint reg)
     {   if (reg & 8)
             Irex |= REX_R;
