@@ -226,13 +226,8 @@ void REGSAVE_save(ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, out uint 
         regsave.idx += 16;
         // MOVD idx[RBP],xmm
         opcode_t op = STOAPD;
-        if (0)
-            /* This is because the regsave does not get properly aligned
-             * to 16 on 32 bit machines.
-             * Doing so wreaks havoc with the location of vthis, which messes
-             * up testcontracts.d, which is likely broken anyway for this same
-             * reason. Need to fix.
-             */
+        if (TARGET_LINUX && I32)
+            // Haven't yet figured out why stack is not aligned to 16
             op = STOUPD;
         cdb.genc1(op,modregxrm(2, reg - XMM0, BPRM),FLregsave,cast(targ_uns) idx);
     }
@@ -264,7 +259,8 @@ void REGSAVE_restore(const ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, 
         assert(regsave.alignment == 16);
         // MOVD xmm,idx[RBP]
         opcode_t op = LODAPD;
-        if (0)
+        if (TARGET_LINUX && I32)
+            // Haven't yet figured out why stack is not aligned to 16
             op = LODUPD;
         cdb.genc1(op,modregxrm(2, reg - XMM0, BPRM),FLregsave,cast(targ_uns) idx);
     }
@@ -375,17 +371,10 @@ void cod3_set32()
     if (config.flags3 & CFG3eseqds)
         fregsaved |= mES;
 
-    for (uint i = 0x80; i < 0x90; i++)
-        inssize2[i] = W|T|6;
+    foreach (ref v; inssize2[0x80 .. 0x90])
+        v = W|T|6;
 
-static if (TARGET_OSX)
-{
-    TARGET_STACKALIGN = 16;   // 16 for OSX because OSX uses SIMD
-}
-else
-{
-    TARGET_STACKALIGN = 4;
-}
+    TARGET_STACKALIGN = config.fpxmmregs ? 16 : 4;
 }
 
 /********************************
@@ -411,15 +400,14 @@ else
     FLOATREGS = FLOATREGS_64;
     FLOATREGS2 = FLOATREGS2_64;
     DOUBLEREGS = DOUBLEREGS_64;
-    TARGET_STACKALIGN = 16;
 
     ALLREGS = mAX|mBX|mCX|mDX|mSI|mDI|  mR8|mR9|mR10|mR11|mR12|mR13|mR14|mR15;
     BYTEREGS = ALLREGS;
 
-    for (uint i = 0x80; i < 0x90; i++)
-        inssize2[i] = W|T|6;
+    foreach (ref v; inssize2[0x80 .. 0x90])
+        v = W|T|6;
 
-    TARGET_STACKALIGN = 16;   // 16 rather than 8 because of SIMD alignment
+    TARGET_STACKALIGN = config.fpxmmregs ? 16 : 8;
 }
 
 /*********************************

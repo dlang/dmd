@@ -328,6 +328,15 @@ struct Target
         }
     }
 
+    /******************
+     * Returns:
+     *  true if xmm usage is supported
+     */
+    extern (C++) bool isXmmSupported()
+    {
+        return global.params.is64bit || global.params.isOSX;
+    }
+
     /**
      * Checks whether the target supports a vector type.
      * Params:
@@ -341,8 +350,9 @@ struct Target
      */
     extern (C++) int isVectorTypeSupported(int sz, Type type)
     {
-        if (!global.params.is64bit && !global.params.isOSX)
+        if (!isXmmSupported())
             return 1; // not supported
+
         switch (type.ty)
         {
         case Tvoid:

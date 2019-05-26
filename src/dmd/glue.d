@@ -1505,7 +1505,6 @@ uint totym(Type tx)
                 default:
                     assert(0);
             }
-            assert(global.params.is64bit || global.params.isOSX);
             break;
         }
 

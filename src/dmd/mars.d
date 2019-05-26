@@ -1362,7 +1362,7 @@ extern(C) void printGlobalConfigs(FILE* stream)
 
 private void setTargetCPU(ref Param params)
 {
-    if (params.is64bit || params.isOSX)
+    if (target.isXmmSupported())
     {
         switch (params.cpu)
         {
