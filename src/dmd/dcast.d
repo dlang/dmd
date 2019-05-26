@@ -2789,8 +2789,16 @@ bool typeMerge(Scope* sc, TOK op, Type* pt, Expression* pe1, Expression* pe2)
 
     if (op != TOK.question || t1b.ty != t2b.ty && (t1b.isTypeBasic() && t2b.isTypeBasic()))
     {
-        e1 = integralPromotions(e1, sc);
-        e2 = integralPromotions(e2, sc);
+        if (op == TOK.question && t1b.ischar() && t2b.ischar())
+        {
+            e1 = charPromotions(e1, sc);
+            e2 = charPromotions(e2, sc);
+        }
+        else
+        {
+            e1 = integralPromotions(e1, sc);
+            e2 = integralPromotions(e2, sc);
+        }
     }
 
     Type t1 = e1.type;
@@ -3499,6 +3507,29 @@ Expression integralPromotions(Expression e, Scope* sc)
 
     default:
         break;
+    }
+    return e;
+}
+
+/***********************************
+ * Do char promotions.
+ *   char  -> dchar
+ *   wchar -> dchar
+ *   dchar -> dchar
+ */
+Expression charPromotions(Expression e, Scope* sc)
+{
+    //printf("charPromotions %s %s\n", e.toChars(), e.type.toChars());
+    switch (e.type.toBasetype().ty)
+    {
+    case Tchar:
+    case Twchar:
+    case Tdchar:
+        e = e.castTo(sc, Type.tdchar);
+        break;
+
+    default:
+        assert(0);
     }
     return e;
 }

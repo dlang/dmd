@@ -235,6 +235,7 @@ private enum TFlags
     real_        = 8,
     imaginary    = 0x10,
     complex      = 0x20,
+    char_        = 0x40,
 }
 
 enum ENUMTY : int
@@ -1034,6 +1035,11 @@ extern (C++) abstract class Type : ASTNode
     }
 
     bool isunsigned()
+    {
+        return false;
+    }
+
+    bool ischar()
     {
         return false;
     }
@@ -3134,17 +3140,17 @@ extern (C++) final class TypeBasic : Type
 
         case Tchar:
             d = Token.toChars(TOK.char_);
-            flags |= TFlags.integral | TFlags.unsigned;
+            flags |= TFlags.integral | TFlags.unsigned | TFlags.char_;
             break;
 
         case Twchar:
             d = Token.toChars(TOK.wchar_);
-            flags |= TFlags.integral | TFlags.unsigned;
+            flags |= TFlags.integral | TFlags.unsigned | TFlags.char_;
             break;
 
         case Tdchar:
             d = Token.toChars(TOK.dchar_);
-            flags |= TFlags.integral | TFlags.unsigned;
+            flags |= TFlags.integral | TFlags.unsigned | TFlags.char_;
             break;
 
         default:
@@ -3282,6 +3288,11 @@ extern (C++) final class TypeBasic : Type
     override bool isunsigned() const
     {
         return (flags & TFlags.unsigned) != 0;
+    }
+
+    override bool ischar() const
+    {
+        return (flags & TFlags.char_) != 0;
     }
 
     override MATCH implicitConvTo(Type to)
@@ -5800,6 +5811,11 @@ extern (C++) final class TypeEnum : Type
     override bool isunsigned()
     {
         return memType().isunsigned();
+    }
+
+    override bool ischar()
+    {
+        return memType().ischar();
     }
 
     override bool isBoolean()
