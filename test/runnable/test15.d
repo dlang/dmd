@@ -1,4 +1,5 @@
 // REQUIRED_ARGS:
+// EXTRA_FILES: extra-files/test15.txt
 
 import std.array;
 import core.stdc.math : cos, fabs, sin, sqrt;
@@ -46,7 +47,7 @@ void test7()
     string s = `hello"there'you`;
     printf("s = '%.*s'\n", s.length, s.ptr);
     assert(s == "hello\"there'you");
-    ubyte[] b = cast(ubyte[])x"8B 7D f4 0d";
+    ubyte[] b = cast(ubyte[])"\x8B\x7D\xf4\x0d";
     for (int i = 0; i < b.length; i++)
         printf("b[%d] = x%02x\n", i, b[i]);
     assert(b.length == 4);
@@ -204,8 +205,8 @@ class A15
         List2.rehash;
     }
   private:
-    int delegate(in int arg1) List1[char[]];
-    int  List2[char []];
+    int delegate(in int arg1)[char[]] List1;
+    int[char []]  List2;
 }
 
 void test15()
@@ -899,12 +900,12 @@ void test49()
 
 void foo50(int[] f, ...)
 {
-    foreach(int i, TypeInfo ti; _arguments) { }
+    foreach(size_t i, TypeInfo ti; _arguments) { }
 }
 
 void bar50(out int[] f, ...)
 {
-    foreach(int i, TypeInfo ti; _arguments) { }
+    foreach(size_t i, TypeInfo ti; _arguments) { }
 }
 
 void test50()
@@ -1042,9 +1043,9 @@ void test56()
 
 /************************************/
 
-void det(float mat[][])
+void det(float[][] mat)
 {
-    float newmat[][];
+    float[][] newmat;
 
     size_t i = newmat[0 .. (mat.length - 1)].length;
 }
@@ -1097,7 +1098,6 @@ void test59()
 class Foo60
 {
    int x;
-static:
    this() { x = 3; }
    ~this() { }
 }

@@ -1,3 +1,9 @@
+/*
+TEST_OUTPUT:
+---
+compilable/test17791.d(23): Deprecation: class `test17791.DepClass` is deprecated - A deprecated class
+---
+*/
 deprecated("A deprecated class") {
 class DepClass
 {

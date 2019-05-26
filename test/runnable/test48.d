@@ -38,6 +38,6 @@ void main()
     printf("offset2 = %d\n", offset2);
     assert(offset2 == 8);
 
-    int t1[S.tupleof.offsetof[1]];
+    int[S.tupleof.offsetof[1]] t1;
     assert(t1.length == 4);
 }

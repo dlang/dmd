@@ -1,5 +1,10 @@
 MAKE=make
 
+defaulttarget:
+	cd src
+	$(MAKE) -f win32.mak
+	cd ..
+
 auto-tester-build:
 	cd src
 	$(MAKE) -f win32.mak auto-tester-build

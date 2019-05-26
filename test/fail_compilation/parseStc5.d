@@ -3,7 +3,7 @@
 TEST_OUTPUT:
 ---
 fail_compilation/parseStc5.d(11): Error: constructor cannot be static
-fail_compilation/parseStc5.d(12): Error: postblit cannot be static
+fail_compilation/parseStc5.d(12): Error: postblit cannot be `static`
 ---
 */
 class C1

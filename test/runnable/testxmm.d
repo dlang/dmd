@@ -90,14 +90,6 @@ void test1()
     static assert(!__traits(compiles, v1 > v2));
     static assert(!__traits(compiles, v1 <= v2));
     static assert(!__traits(compiles, v1 >= v2));
-    static assert(!__traits(compiles, v1 <> v2));
-    static assert(!__traits(compiles, v1 !< v2));
-    static assert(!__traits(compiles, v1 !> v2));
-    static assert(!__traits(compiles, v1 !<> v2));
-    static assert(!__traits(compiles, v1 <>= v2));
-    static assert(!__traits(compiles, v1 !<= v2));
-    static assert(!__traits(compiles, v1 !>= v2));
-    static assert(!__traits(compiles, v1 !<>= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -158,14 +150,6 @@ void test2()
     static assert(!__traits(compiles, v1 > v2));
     static assert(!__traits(compiles, v1 <= v2));
     static assert(!__traits(compiles, v1 >= v2));
-    static assert(!__traits(compiles, v1 <> v2));
-    static assert(!__traits(compiles, v1 !< v2));
-    static assert(!__traits(compiles, v1 !> v2));
-    static assert(!__traits(compiles, v1 !<> v2));
-    static assert(!__traits(compiles, v1 <>= v2));
-    static assert(!__traits(compiles, v1 !<= v2));
-    static assert(!__traits(compiles, v1 !>= v2));
-    static assert(!__traits(compiles, v1 !<>= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -226,14 +210,6 @@ void test2b()
     static assert(!__traits(compiles, v1 > v2));
     static assert(!__traits(compiles, v1 <= v2));
     static assert(!__traits(compiles, v1 >= v2));
-    static assert(!__traits(compiles, v1 <> v2));
-    static assert(!__traits(compiles, v1 !< v2));
-    static assert(!__traits(compiles, v1 !> v2));
-    static assert(!__traits(compiles, v1 !<> v2));
-    static assert(!__traits(compiles, v1 <>= v2));
-    static assert(!__traits(compiles, v1 !<= v2));
-    static assert(!__traits(compiles, v1 !>= v2));
-    static assert(!__traits(compiles, v1 !<>= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -294,14 +270,6 @@ void test2c()
     static assert(!__traits(compiles, v1 > v2));
     static assert(!__traits(compiles, v1 <= v2));
     static assert(!__traits(compiles, v1 >= v2));
-    static assert(!__traits(compiles, v1 <> v2));
-    static assert(!__traits(compiles, v1 !< v2));
-    static assert(!__traits(compiles, v1 !> v2));
-    static assert(!__traits(compiles, v1 !<> v2));
-    static assert(!__traits(compiles, v1 <>= v2));
-    static assert(!__traits(compiles, v1 !<= v2));
-    static assert(!__traits(compiles, v1 !>= v2));
-    static assert(!__traits(compiles, v1 !<>= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -363,14 +331,6 @@ void test2d()
     static assert(!__traits(compiles, v1 > v2));
     static assert(!__traits(compiles, v1 <= v2));
     static assert(!__traits(compiles, v1 >= v2));
-    static assert(!__traits(compiles, v1 <> v2));
-    static assert(!__traits(compiles, v1 !< v2));
-    static assert(!__traits(compiles, v1 !> v2));
-    static assert(!__traits(compiles, v1 !<> v2));
-    static assert(!__traits(compiles, v1 <>= v2));
-    static assert(!__traits(compiles, v1 !<= v2));
-    static assert(!__traits(compiles, v1 !>= v2));
-    static assert(!__traits(compiles, v1 !<>= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -434,14 +394,6 @@ void test2e()
     static assert(!__traits(compiles, v1 > v2));
     static assert(!__traits(compiles, v1 <= v2));
     static assert(!__traits(compiles, v1 >= v2));
-    static assert(!__traits(compiles, v1 <> v2));
-    static assert(!__traits(compiles, v1 !< v2));
-    static assert(!__traits(compiles, v1 !> v2));
-    static assert(!__traits(compiles, v1 !<> v2));
-    static assert(!__traits(compiles, v1 <>= v2));
-    static assert(!__traits(compiles, v1 !<= v2));
-    static assert(!__traits(compiles, v1 !>= v2));
-    static assert(!__traits(compiles, v1 !<>= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -508,14 +460,6 @@ void test2f()
     static assert(!__traits(compiles, v1 > v2));
     static assert(!__traits(compiles, v1 <= v2));
     static assert(!__traits(compiles, v1 >= v2));
-    static assert(!__traits(compiles, v1 <> v2));
-    static assert(!__traits(compiles, v1 !< v2));
-    static assert(!__traits(compiles, v1 !> v2));
-    static assert(!__traits(compiles, v1 !<> v2));
-    static assert(!__traits(compiles, v1 <>= v2));
-    static assert(!__traits(compiles, v1 !<= v2));
-    static assert(!__traits(compiles, v1 !>= v2));
-    static assert(!__traits(compiles, v1 !<>= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -579,14 +523,6 @@ void test2g()
     static assert(!__traits(compiles, v1 > v2));
     static assert(!__traits(compiles, v1 <= v2));
     static assert(!__traits(compiles, v1 >= v2));
-    static assert(!__traits(compiles, v1 <> v2));
-    static assert(!__traits(compiles, v1 !< v2));
-    static assert(!__traits(compiles, v1 !> v2));
-    static assert(!__traits(compiles, v1 !<> v2));
-    static assert(!__traits(compiles, v1 <>= v2));
-    static assert(!__traits(compiles, v1 !<= v2));
-    static assert(!__traits(compiles, v1 !>= v2));
-    static assert(!__traits(compiles, v1 !<>= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -647,14 +583,6 @@ void test2h()
     static assert(!__traits(compiles, v1 > v2));
     static assert(!__traits(compiles, v1 <= v2));
     static assert(!__traits(compiles, v1 >= v2));
-    static assert(!__traits(compiles, v1 <> v2));
-    static assert(!__traits(compiles, v1 !< v2));
-    static assert(!__traits(compiles, v1 !> v2));
-    static assert(!__traits(compiles, v1 !<> v2));
-    static assert(!__traits(compiles, v1 <>= v2));
-    static assert(!__traits(compiles, v1 !<= v2));
-    static assert(!__traits(compiles, v1 !>= v2));
-    static assert(!__traits(compiles, v1 !<>= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -715,14 +643,6 @@ void test2i()
     static assert(!__traits(compiles, v1 > v2));
     static assert(!__traits(compiles, v1 <= v2));
     static assert(!__traits(compiles, v1 >= v2));
-    static assert(!__traits(compiles, v1 <> v2));
-    static assert(!__traits(compiles, v1 !< v2));
-    static assert(!__traits(compiles, v1 !> v2));
-    static assert(!__traits(compiles, v1 !<> v2));
-    static assert(!__traits(compiles, v1 <>= v2));
-    static assert(!__traits(compiles, v1 !<= v2));
-    static assert(!__traits(compiles, v1 !>= v2));
-    static assert(!__traits(compiles, v1 !<>= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -783,14 +703,6 @@ void test2j()
     static assert(!__traits(compiles, v1 > v2));
     static assert(!__traits(compiles, v1 <= v2));
     static assert(!__traits(compiles, v1 >= v2));
-    static assert(!__traits(compiles, v1 <> v2));
-    static assert(!__traits(compiles, v1 !< v2));
-    static assert(!__traits(compiles, v1 !> v2));
-    static assert(!__traits(compiles, v1 !<> v2));
-    static assert(!__traits(compiles, v1 <>= v2));
-    static assert(!__traits(compiles, v1 !<= v2));
-    static assert(!__traits(compiles, v1 !>= v2));
-    static assert(!__traits(compiles, v1 !<>= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -863,7 +775,7 @@ void test7411()
 }
 
 /*****************************************/
-// 7951
+// https://issues.dlang.org/show_bug.cgi?id=7951
 
 float[4] test7951()
 {
@@ -1398,7 +1310,7 @@ float4 test5(float4 a, float4 b)
 
 /*****************************************/
 /+
-// 9200
+// https://issues.dlang.org/show_bug.cgi?id=9200
 
 void bar9200(double[2] a)
 {
@@ -1423,7 +1335,8 @@ void test9200()
 
 /*****************************************/
 
-// 9304 and 9322
+// https://issues.dlang.org/show_bug.cgi?id=9304
+// https://issues.dlang.org/show_bug.cgi?id=9322
 
 float4 foo9304(float4 a)
 {
@@ -1500,7 +1413,7 @@ void test9449_2()
 }
 
 /*****************************************/
-// 13841
+// https://issues.dlang.org/show_bug.cgi?id=13841
 
 void test13841()
 {
@@ -1526,7 +1439,7 @@ void test13841()
 }
 
 /*****************************************/
-// 12776
+// https://issues.dlang.org/show_bug.cgi?id=12776
 
 void test12776()
 {
@@ -1564,7 +1477,7 @@ void test13988()
 }
 
 /*****************************************/
-// 15123
+// https://issues.dlang.org/show_bug.cgi?id=15123
 
 void test15123()
 {
@@ -1925,7 +1838,10 @@ ubyte[16] foounsto()
 void testOPvecunsto()
 {
     auto a = foounsto();
-    assert(a == [0, 0, 64, 65, 0, 0, 64, 65, 0, 0, 64, 65, 0, 0, 64, 65]);
+    version (LittleEndian)
+        assert(a == [0, 0, 64, 65, 0, 0, 64, 65, 0, 0, 64, 65, 0, 0, 64, 65]);
+    version (BigEndian)
+        assert(a == [65, 64, 0, 0, 65, 64, 0, 0, 65, 64, 0, 0, 65, 64, 0, 0]);
 }
 
 /*****************************************/
@@ -2017,6 +1933,41 @@ void refIntrinsics()
 
 /*****************************************/
 
+void test6()
+{
+    version (D_AVX2)
+    {
+        // stack occasionally misaligned
+        float f = 0;
+        long4 v;
+        v += 1;
+    }
+}
+
+/*****************************************/
+
+version (D_AVX)
+{
+    double4 test7r(double4 v)
+    {
+        return v;
+    }
+}
+
+void test7()
+{
+    version (D_AVX)
+    {
+        // 32 bytes sliced down to 16 bytes
+        double4 v = 1;
+        double4 r = test7r(v);
+        assert(v[2] == r[2]);
+        assert(v[3] == r[3]);
+    }
+}
+
+/*****************************************/
+
 int main()
 {
     test1();
@@ -2056,6 +2007,9 @@ int main()
     test10447();
     test17344();
     test17356();
+
+    test6();
+    test7();
 
     return 0;
 }

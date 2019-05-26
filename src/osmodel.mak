@@ -2,7 +2,7 @@
 #
 # Detects and sets the macros:
 #
-#   OS         = one of {osx,linux,freebsd,openbsd,netbsd,solaris}
+#   OS         = one of {osx,linux,freebsd,openbsd,netbsd,dragonflybsd,solaris}
 #   MODEL      = one of { 32, 64 }
 #   MODEL_FLAG = one of { -m32, -m64 }
 #
@@ -27,6 +27,9 @@ ifeq (,$(OS))
   endif
   ifeq (NetBSD,$(uname_S))
     OS:=netbsd
+  endif
+  ifeq (DragonFly,$(uname_S))
+    OS:=dragonflybsd
   endif
   ifeq (Solaris,$(uname_S))
     OS:=solaris

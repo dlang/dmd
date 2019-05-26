@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag8318.d(13): Error: function diag8318.Bar8318.foo return type inference is not supported if may override base class function
+fail_compilation/diag8318.d(13): Error: function `diag8318.Bar8318.foo` return type inference is not supported if may override base class function
 ---
 */
 class Foo8318
@@ -16,7 +16,7 @@ class Bar8318 : Foo8318
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag8318.d(24): Error: function diag8318.C10021.makeI return type inference is not supported if may override base class function
+fail_compilation/diag8318.d(24): Error: function `diag8318.C10021.makeI` return type inference is not supported if may override base class function
 ---
 */
 interface I10021 { I10021 makeI(); }
@@ -26,7 +26,7 @@ class C10021 : I10021 { auto   makeI() { return this; } }
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag8318.d(38): Error: function diag8318.Bar10195.baz return type inference is not supported if may override base class function
+fail_compilation/diag8318.d(38): Error: function `diag8318.Bar10195.baz` return type inference is not supported if may override base class function
 ---
 */
 interface Foo10195
@@ -41,7 +41,7 @@ class Bar10195 : Foo10195
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag8318.d(50): Error: function diag8318.B14173.foo does not override any function
+fail_compilation/diag8318.d(50): Error: function `diag8318.B14173.foo` does not override any function
 ---
 */
 class A14173 {}

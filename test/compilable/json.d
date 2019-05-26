@@ -1,6 +1,11 @@
 // PERMUTE_ARGS:
-// REQUIRED_ARGS: -dip1000 -o- -X -Xf${RESULTS_DIR}/compilable/json.out
+// REQUIRED_ARGS: -d -preview=dip1000 -o- -X -Xf${RESULTS_DIR}/compilable/json.out
 // POST_SCRIPT: compilable/extra-files/json-postscript.sh
+// EXTRA_FILES: imports/jsonimport1.d imports/jsonimport2.d imports/jsonimport3.d imports/jsonimport4.d
+/* TEST_OUTPUT:
+---
+---
+*/
 
 module json;
 
@@ -11,17 +16,17 @@ static ~this() {}
 
 
 alias int myInt;
-myInt x; // bug 3404
+myInt x; // https://issues.dlang.org/show_bug.cgi?id=3404
 
 struct Foo(T) { T t; }
 class  Bar(int T) { int t = T; }
-interface Baz(T...) { T[0] t() const; } // bug 3466
+interface Baz(T...) { T[0] t() const; } // https://issues.dlang.org/show_bug.cgi?id=3466
 
 template P(alias T) {}
 
 class Bar2 : Bar!1, Baz!(int, 2, null) {
     this() {}
-    ~this() {} // bug 4178
+    ~this() {} // https://issues.dlang.org/show_bug.cgi?id=4178
 
     static foo() {}
     protected abstract Foo!int baz();
@@ -66,7 +71,7 @@ struct Foo3(bool b) {
 /++
  + Documentation test
  +/
-@trusted myInt bar(ref uint blah, Bar2 foo = new Bar3(7)) // bug 4477
+@trusted myInt bar(ref uint blah, Bar2 foo = new Bar3(7)) // https://issues.dlang.org/show_bug.cgi?id=4477
 {
     return -1;
 }
@@ -159,20 +164,45 @@ ref int* foo(scope return ref int* a) @safe
 struct SafeS
 {
 @safe:
-	ref SafeS foo() return
-	{
-		return this;
-	}
+    ref SafeS foo() return
+    {
+        return this;
+    }
 
-	SafeS foo() return scope
-	{
-		return this;
-	}
+    SafeS foo2() return scope
+    {
+        return this;
+    }
 
-	ref SafeS foo() return scope
-	{
-		return this;
-	}
+    ref SafeS foo3() return scope
+    {
+        return this;
+    }
 
 	int* p;
+}
+
+extern int vlinkageDefault;
+extern(D) int vlinkageD;
+extern(C) int vlinakgeC;
+extern(C++) __gshared int vlinkageCpp;
+extern(Windows) int vlinkageWindows;
+extern(Pascal) int vlinkagePascal;
+extern(Objective-C) int vlinkageObjc;
+
+extern int flinkageDefault();
+extern(D) int flinkageD();
+extern(C) int linakgeC();
+extern(C++) int flinkageCpp();
+extern(Windows) int flinkageWindows();
+extern(Pascal) int flinkagePascal();
+extern(Objective-C) int flinkageObjc();
+
+mixin template test18211(int n)
+{
+    static foreach (i; 0 .. n>10 ? 10 : n)
+    {
+        mixin("enum x" ~ cast(char)('0' + i));
+    }
+    static if (true) {}
 }

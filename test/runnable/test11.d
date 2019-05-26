@@ -530,14 +530,14 @@ struct NODE27 {
     shared(NODE27) *next;
 }
 
-static shared NODE27 nodetbl[3] =
+static shared NODE27[3] nodetbl =
 [
     {   0,cast(shared(NODE27)*)nodetbl + 1},
     {   0,cast(shared(NODE27)*)nodetbl + 2},
     {   0,null}
 ];
 
-static shared NODE27 nodetbl2[3] = [
+static shared NODE27[3] nodetbl2 = [
     {   0,&nodetbl2[1]},
     {   0,&nodetbl2[2]},
     {   0,null}
@@ -1228,7 +1228,7 @@ void test65()
 }
 
 /**************************************/
-// 8809
+// https://issues.dlang.org/show_bug.cgi?id=8809
 
 void test8809()
 {
@@ -1297,7 +1297,7 @@ void test8809()
 }
 
 /**************************************/
-// 9734
+// https://issues.dlang.org/show_bug.cgi?id=9734
 
 void test9734()
 {

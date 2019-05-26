@@ -1023,7 +1023,7 @@ void instantiate4652()
 }
 
 /*********************************************************/
-// 7589
+// https://issues.dlang.org/show_bug.cgi?id=7589
 
 struct T7589(T)
 {
@@ -1050,7 +1050,7 @@ void test39()
 }
 
 /*********************************************************/
-// 6701
+// https://issues.dlang.org/show_bug.cgi?id=6701
 
 uint foo_6701(uint v:0)() { return 1; }
 uint foo_6701(uint v)() { return 0; }
@@ -1064,7 +1064,7 @@ void test6701()
 }
 
 /******************************************/
-// 7469
+// https://issues.dlang.org/show_bug.cgi?id=7469
 
 struct Foo7469a(int x) { }
 struct Foo7469b(int x) { }

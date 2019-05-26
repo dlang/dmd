@@ -1,9 +1,15 @@
 DMD
 ===
 
-[![GitHub tag](https://img.shields.io/github/tag/dlang/dmd.svg?maxAge=86400)](#)
-[![Build Status](https://travis-ci.org/dlang/dmd.svg?branch=master)](https://travis-ci.org/dlang/dmd)
-[![Code coverage](https://img.shields.io/codecov/c/github/dlang/dmd.svg?maxAge=86400)](https://codecov.io/gh/dlang/dmd)
+[![GitHub tag](https://img.shields.io/github/tag-date/dlang/dmd.svg?maxAge=86400&style=flat)](https://github.com/dlang/dmd/releases)
+[![Code coverage](https://img.shields.io/codecov/c/github/dlang/dmd.svg?maxAge=86400&style=flat)](https://codecov.io/gh/dlang/dmd)
+[![Bugzilla Issues](https://img.shields.io/badge/issues-Bugzilla-green.svg?style=flat)](https://issues.dlang.org/buglist.cgi?component=dmd&list_id=220151&product=D&resolution=---)
+[![license](https://img.shields.io/github/license/dlang/dmd.svg?style=flat)](https://github.com/dlang/dmd/blob/master/LICENSE.txt)
+
+[![CircleCI](https://img.shields.io/circleci/project/github/dlang/dmd/master.svg?style=flat&label=circleci&logo=circleci)](https://circleci.com/gh/dlang/dmd/tree/master)
+[![AppVeyor](https://img.shields.io/appveyor/ci/greenify/dmd/master.svg?style=flat&label=appveyor&logo=appveyor)](https://ci.appveyor.com/project/greenify/dmd)
+[![Buildkite](https://img.shields.io/buildkite/01239dde8424d69809d08769015bbdb9b90d05082e534d2f82/master.svg?style=flat&logo=dependabot&label=buildkite)](https://buildkite.com/dlang/dmd)
+[![SemaphoreCI](https://semaphoreci.com/api/v1/dlang/dmd-2/branches/master/badge.svg)](https://semaphoreci.com/dlang/dmd-2)
 
 DMD is the reference compiler for the D programming language.
 

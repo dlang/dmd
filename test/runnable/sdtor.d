@@ -1,8 +1,9 @@
 // PERMUTE_ARGS: -unittest -O -release -inline -fPIC -g
+// REQUIRED_ARGS: -preview=dtorfields
 
 import core.vararg;
 
-extern (C) int printf(const(char*) fmt, ...);
+extern (C) int printf(const(char*) fmt, ...) nothrow;
 
 template TypeTuple(T...) { alias TypeTuple = T; }
 
@@ -20,23 +21,6 @@ void test1()
     S1* s = new S1();
     delete s;
     assert(sdtor == 1);
-}
-
-/**********************************/
-
-int sdtor2;
-
-struct S2
-{
-    ~this() { printf("~S2()\n"); sdtor2++; }
-    delete(void* p) { assert(sdtor2 == 1); printf("S2.delete()\n"); sdtor2++; }
-}
-
-void test2()
-{
-    S2* s = new S2();
-    delete s;
-    assert(sdtor2 == 2);
 }
 
 /**********************************/
@@ -879,8 +863,10 @@ void test34()
     X34[2] xs;
 //  xs[0][0] = X34();
     printf("foreach\n");
-    for (int j = 0; j < xs.length; j++) { auto x = (j++,j--,xs[j]);
-        //foreach(x; xs) {
+    for (int j = 0; j < xs.length; j++) {
+        j++,j--;
+        auto x = xs[j];
+        //foreach(x; xs)
         //printf("foreach x.i = %d\n", x[0].i);
         //assert(x[0].i == 1);
         printf("foreach x.i = %d\n", x.i);
@@ -1169,7 +1155,7 @@ void test45()
 }
 
 /**********************************/
-// 3986
+// https://issues.dlang.org/show_bug.cgi?id=3986
 
 struct SiberianHamster
 {
@@ -1184,7 +1170,7 @@ void test46()
 }
 
 /**********************************/
-// 8741
+// https://issues.dlang.org/show_bug.cgi?id=8741
 
 struct Vec8741
 {
@@ -1340,7 +1326,7 @@ void test52()
 }
 
 /**********************************/
-// 4339
+// https://issues.dlang.org/show_bug.cgi?id=4339
 
 struct A53 {
     invariant() {   }
@@ -1395,22 +1381,22 @@ void test54()
     assert(S54.t == "c");
 
     {   S54.t = null;
-        int b = 1 && (bar54(S54(1)), 1);
+        int b = 1 && (){ bar54(S54(1)); return 1;}();
     }
     assert(S54.t == "ac");
 
     {   S54.t = null;
-        int b = 0 && (bar54(S54(1)), 1);
+        int b = 0 && (){ bar54(S54(1)); return 1;}();
     }
     assert(S54.t == "");
 
     {   S54.t = null;
-        int b = 0 || (bar54(S54(1)), 1);
+        int b = 0 || (){ bar54(S54(1)); return 1;}();
     }
     assert(S54.t == "ac");
 
     {   S54.t = null;
-        int b = 1 || (bar54(S54(1)), 1);
+        int b = 1 || (){ bar54(S54(1)); return 1;}();
     }
     assert(S54.t == "");
 
@@ -1504,7 +1490,7 @@ void test56()
 }
 
 /**********************************/
-// 5859
+// https://issues.dlang.org/show_bug.cgi?id=5859
 
 int dtor_cnt = 0;
 struct S57
@@ -1529,7 +1515,8 @@ void test57()
 
     printf("----\n");    //+
     dtor_cnt = 0;
-    if (auto s = (S57(1), S57(2), S57(10)))
+    S57(1), S57(2);
+    if (auto s = S57(10))
     {
         assert(dtor_cnt == 2);
         printf("ifbody\n");
@@ -1562,7 +1549,8 @@ void test57()
 
     printf("----\n");    //+
     dtor_cnt = 0;
-    if (auto s = (f(1), f(2), f(10)))
+    f(1), f(2);
+    if (auto s = f(10))
     {
         assert(dtor_cnt == 2);
         printf("ifbody\n");
@@ -1596,7 +1584,8 @@ void test57()
 
     printf("----\n");
     dtor_cnt = 0;
-    if ((S57(1), S57(2), S57(10)))
+    S57(1), S57(2);
+    if (S57(10))
     {
         assert(dtor_cnt == 3);
         printf("ifbody\n");
@@ -1628,7 +1617,8 @@ void test57()
 
     printf("----\n");
     dtor_cnt = 0;
-    if ((f(1), f(2), f(10)))
+    f(1), f(2);
+    if (f(10))
     {
         assert(dtor_cnt == 3);
         printf("ifbody\n");
@@ -1649,7 +1639,7 @@ void test57()
 }
 
 /**********************************/
-// 5574
+// https://issues.dlang.org/show_bug.cgi?id=5574
 
 struct foo5574a
 {
@@ -1670,7 +1660,7 @@ struct bar5574b
 }
 
 /**********************************/
-// 5777
+// https://issues.dlang.org/show_bug.cgi?id=5777
 
 int sdtor58 = 0;
 S58* ps58;
@@ -1696,7 +1686,7 @@ void test58()
 }
 
 /**********************************/
-// 6308
+// https://issues.dlang.org/show_bug.cgi?id=6308
 
 struct C59
 {
@@ -1729,7 +1719,7 @@ void test59()
 }
 
 /**********************************/
-// 5737
+// https://issues.dlang.org/show_bug.cgi?id=5737
 
 void test5737()
 {
@@ -1765,7 +1755,7 @@ void test5737()
 }
 
 /**********************************/
-// 6119
+// https://issues.dlang.org/show_bug.cgi?id=6119
 
 void test6119()
 {
@@ -1797,7 +1787,7 @@ void test6119()
 }
 
 /**********************************/
-// 6364
+// https://issues.dlang.org/show_bug.cgi?id=6364
 
 struct Foo6364
 {
@@ -1823,7 +1813,7 @@ void test6364()
 }
 
 /**********************************/
-// 6499
+// https://issues.dlang.org/show_bug.cgi?id=6499
 
 struct S6499
 {
@@ -1937,7 +1927,7 @@ void test60()
 }
 
 /**********************************/
-// 4316
+// https://issues.dlang.org/show_bug.cgi?id=4316
 
 struct A4316
 {
@@ -1970,7 +1960,7 @@ void test6177()
 
 
 /**********************************/
-// 6470
+// https://issues.dlang.org/show_bug.cgi?id=6470
 
 struct S6470
 {
@@ -2001,7 +1991,7 @@ void test6470()
 }
 
 /**********************************/
-// 6636
+// https://issues.dlang.org/show_bug.cgi?id=6636
 
 struct S6636
 {
@@ -2023,7 +2013,7 @@ void test6636()
 }
 
 /**********************************/
-// 6637
+// https://issues.dlang.org/show_bug.cgi?id=6637
 
 struct S6637
 {
@@ -2042,7 +2032,7 @@ void test6637()
 }
 
 /**********************************/
-// 7353
+// https://issues.dlang.org/show_bug.cgi?id=7353
 
 struct S7353
 {
@@ -2081,7 +2071,7 @@ void test7353()
 }
 
 /**********************************/
-// 8036
+// https://issues.dlang.org/show_bug.cgi?id=8036
 
 struct S8036a
 {
@@ -2122,7 +2112,7 @@ void test61()
 }
 
 /**********************************/
-// 7506
+// https://issues.dlang.org/show_bug.cgi?id=7506
 
 void test7506()
 {
@@ -2152,7 +2142,7 @@ void test7506()
 }
 
 /**********************************/
-// 7516
+// https://issues.dlang.org/show_bug.cgi?id=7516
 
 struct S7516
 {
@@ -2275,7 +2265,7 @@ void test7516e()
 }
 
 /**********************************/
-// 7530
+// https://issues.dlang.org/show_bug.cgi?id=7530
 
 void test7530()
 {
@@ -2332,7 +2322,7 @@ void test62()
 }
 
 /**********************************/
-// 7579
+// https://issues.dlang.org/show_bug.cgi?id=7579
 
 void test7579a()
 {
@@ -2405,7 +2395,7 @@ void test7579b()
 }
 
 /**********************************/
-// 8335
+// https://issues.dlang.org/show_bug.cgi?id=8335
 
 struct S8335
 {
@@ -2451,7 +2441,7 @@ void test8335()
 }
 
 /**********************************/
-// 8356
+// https://issues.dlang.org/show_bug.cgi?id=8356
 
 void test8356()
 {
@@ -2473,7 +2463,7 @@ void test8356()
 }
 
 /**********************************/
-// 8475
+// https://issues.dlang.org/show_bug.cgi?id=8475
 
 T func8475(T)(T x) @safe pure
 {
@@ -2515,7 +2505,7 @@ Foo9320 test9320(Foo9320 a, Foo9320 b, Foo9320 c) {
 }
 
 /**********************************/
-// 9386
+// https://issues.dlang.org/show_bug.cgi?id=9386
 
 struct Test9386
 {
@@ -2628,7 +2618,7 @@ void test9386()
 }
 
 /**********************************/
-// 9441
+// https://issues.dlang.org/show_bug.cgi?id=9441
 
 auto x9441 = X9441(0.123);
 
@@ -2691,7 +2681,7 @@ void test9720()
 }
 
 /**********************************/
-// 9899
+// https://issues.dlang.org/show_bug.cgi?id=9899
 
 struct S9899
 {
@@ -2709,7 +2699,7 @@ void test9899() @safe pure nothrow
 }
 
 /**********************************/
-// 9907
+// https://issues.dlang.org/show_bug.cgi?id=9907
 
 void test9907()
 {
@@ -2773,12 +2763,12 @@ void test9907()
 }
 
 /**********************************/
-// 9985
+// https://issues.dlang.org/show_bug.cgi?id=9985
 
 struct S9985
 {
     ubyte* b;
-    ubyte buf[128];
+    ubyte[128] buf;
     this(this) { assert(0); }
 
     static void* ptr;
@@ -2843,7 +2833,7 @@ void test17457()
 }
 
 /**********************************/
-// 9994
+// https://issues.dlang.org/show_bug.cgi?id=9994
 
 void test9994()
 {
@@ -2863,7 +2853,7 @@ void test9994()
 }
 
 /**********************************/
-// 10053
+// https://issues.dlang.org/show_bug.cgi?id=10053
 
 struct S10053A
 {
@@ -2877,7 +2867,7 @@ struct S10053B
 }
 
 /**********************************/
-// 10055
+// https://issues.dlang.org/show_bug.cgi?id=10055
 
 void test10055a()
 {
@@ -2978,7 +2968,7 @@ void test10055b()
 }
 
 /**********************************/
-// 10160
+// https://issues.dlang.org/show_bug.cgi?id=10160
 
 struct S10160 { this(this) {} }
 
@@ -2992,7 +2982,7 @@ void test10160()
 }
 
 /**********************************/
-// 10094
+// https://issues.dlang.org/show_bug.cgi?id=10094
 
 void test10094()
 {
@@ -3014,7 +3004,7 @@ void test10094()
 }
 
 /**********************************/
-// 10079
+// https://issues.dlang.org/show_bug.cgi?id=10079
 
 // dtor || postblit
 struct S10079a
@@ -3061,7 +3051,7 @@ static assert(__traits(compiles, &check10079!S10079e));
 static assert(__traits(compiles, &check10079!S10079f));
 
 /**********************************/
-// 10244
+// https://issues.dlang.org/show_bug.cgi?id=10244
 
 void test10244()
 {
@@ -3089,7 +3079,7 @@ void test10244()
 }
 
 /**********************************/
-// 10694
+// https://issues.dlang.org/show_bug.cgi?id=10694
 
 struct Foo10694 { ~this() { } }
 
@@ -3105,7 +3095,7 @@ void test10694() pure
 }
 
 /**********************************/
-// 10787
+// https://issues.dlang.org/show_bug.cgi?id=10787
 
 int global10787;
 
@@ -3124,7 +3114,7 @@ shared static ~this() nothrow pure @safe
 }
 
 /**********************************/
-// 10789
+// https://issues.dlang.org/show_bug.cgi?id=10789
 
 struct S10789
 {
@@ -3191,7 +3181,7 @@ void test10789()
 }
 
 /**********************************/
-// 10972
+// https://issues.dlang.org/show_bug.cgi?id=10972
 
 int test10972()
 {
@@ -3255,7 +3245,7 @@ int test10972()
 static assert(test10972()); // CTFE
 
 /**********************************/
-// 11134
+// https://issues.dlang.org/show_bug.cgi?id=11134
 
 void test11134()
 {
@@ -3291,7 +3281,7 @@ void test11134()
 }
 
 /**********************************/
-// 11197
+// https://issues.dlang.org/show_bug.cgi?id=11197
 
 struct S11197a
 {
@@ -3325,7 +3315,7 @@ void fun7474(T...)() { T x; }
 void test7474() { fun7474!S7474(); }
 
 /**********************************/
-// 11286
+// https://issues.dlang.org/show_bug.cgi?id=11286
 
 struct A11286
 {
@@ -3343,7 +3333,7 @@ void test11286()
 }
 
 /**********************************/
-// 11505
+// https://issues.dlang.org/show_bug.cgi?id=11505
 
 struct Foo11505
 {
@@ -3363,7 +3353,7 @@ void test11505()
 }
 
 /**********************************/
-// 12045
+// https://issues.dlang.org/show_bug.cgi?id=12045
 
 bool test12045()
 {
@@ -3414,7 +3404,7 @@ bool test12045()
 static assert(test12045());
 
 /**********************************/
-// 12591
+// https://issues.dlang.org/show_bug.cgi?id=12591
 
 struct S12591(T)
 {
@@ -3437,7 +3427,7 @@ void test12591()
 }
 
 /**********************************/
-// 12660
+// https://issues.dlang.org/show_bug.cgi?id=12660
 
 struct X12660
 {
@@ -3478,7 +3468,7 @@ void test12660() @nogc
 }
 
 /**********************************/
-// 12686
+// https://issues.dlang.org/show_bug.cgi?id=12686
 
 struct Foo12686
 {
@@ -3506,11 +3496,12 @@ void test12686()
 }
 
 /**********************************/
-// 13089
+// https://issues.dlang.org/show_bug.cgi?id=13089
 
 struct S13089
 {
     @disable this(this);    // non nothrow
+    int val;
 }
 
 void* p13089;
@@ -3665,7 +3656,7 @@ void test13586()
 }
 
 /**********************************/
-// 14443
+// https://issues.dlang.org/show_bug.cgi?id=14443
 
 T enforce14443(E : Throwable = Exception, T)(T value)
 {
@@ -3809,7 +3800,10 @@ void test14443()
 }
 
 /**********************************/
-// 13661, 14022, 14023 - postblit/dtor call on static array assignment
+// postblit/dtor call on static array assignment
+// https://issues.dlang.org/show_bug.cgi?id=13661
+// https://issues.dlang.org/show_bug.cgi?id=14022
+// https://issues.dlang.org/show_bug.cgi?id=14023
 
 bool test13661()
 {
@@ -4017,7 +4011,7 @@ bool test14023()
 static assert(test14023());
 
 /************************************************/
-// 13669 - dtor call on static array variable
+// https://issues.dlang.org/show_bug.cgi?id=13669 - dtor call on static array variable
 
 bool test13669()
 {
@@ -4062,7 +4056,7 @@ void test13095()
 }
 
 /**********************************/
-// 14264
+// https://issues.dlang.org/show_bug.cgi?id=14264
 
 void test14264()
 {
@@ -4094,7 +4088,7 @@ void test14264()
 }
 
 /**********************************/
-// 14686
+// https://issues.dlang.org/show_bug.cgi?id=14686
 
 int test14686()
 {
@@ -4138,7 +4132,7 @@ int test14686()
 static assert(test14686());
 
 /**********************************/
-// 14815
+// https://issues.dlang.org/show_bug.cgi?id=14815
 
 int test14815()
 {
@@ -4200,7 +4194,7 @@ void test16197() {
 }
 
 /**********************************/
-// 14860
+// https://issues.dlang.org/show_bug.cgi?id=14860
 
 int test14860()
 {
@@ -4223,7 +4217,39 @@ int test14860()
 static assert(test14860());
 
 /**********************************/
-// 14696
+// https://issues.dlang.org/show_bug.cgi?id=14246
+
+struct A14246 {
+     int a = 3;
+     static string s;
+     this( int var ) { printf("A()\n"); a += var; s ~= "a"; }
+
+     ~this() { printf("~A()\n"); s ~= "b"; }
+}
+
+struct B14246 {
+     int i;
+     A14246 a;
+
+     this( int var ) {
+         A14246.s ~= "c";
+         a = A14246(var+1);
+         throw new Exception("An exception");
+     }
+}
+
+void test14246() {
+    try {
+         auto b = B14246(2);
+    } catch( Exception ex ) {
+        printf("Caught ex\n");
+        A14246.s ~= "d";
+    }
+    assert(A14246.s == "cabd");
+}
+
+/**********************************/
+// https://issues.dlang.org/show_bug.cgi?id=14696
 
 void test14696(int len = 2)
 {
@@ -4332,7 +4358,7 @@ void test14696(int len = 2)
 }
 
 /**********************************/
-// 14838
+// https://issues.dlang.org/show_bug.cgi?id=14838
 
 int test14838() pure nothrow @safe
 {
@@ -4430,7 +4456,8 @@ struct S64
 
 S64 foo64()
 {
-    return S64((X64(), 1));
+    X64();
+    return S64(1);
 }
 
 void test64()
@@ -4478,7 +4505,7 @@ void test65()
 }
 
 /**********************************/
-// 15661
+// https://issues.dlang.org/show_bug.cgi?id=15661
 
 struct X15661
 {
@@ -4519,10 +4546,124 @@ void test15661()
 
 /**********************************/
 
+// https://issues.dlang.org/show_bug.cgi?id=18045
+
+struct A18045
+{
+  nothrow:
+    __gshared int r;
+    int state;
+    this(this) { printf("postblit: A(%d)\n", state); r += 1; }
+    ~this() { printf("dtor: A(%d)\n", state); r *= 3; }
+}
+
+A18045 fun18045() nothrow
+{
+    __gshared a = A18045(42);
+    return a;
+}
+
+void test18045() nothrow
+{
+    alias A = A18045;
+
+    __gshared a = A(-42);
+    if (fun18045() == a)
+        assert(0);
+    else
+        assert(A.r == 3);
+
+    A.r = 0;
+    if (a == fun18045())
+        assert(0);
+    else
+        assert(A.r == 3);
+}
+
+/**********************************/
+
+struct S66
+{
+    ~this() { }
+}
+
+nothrow void notthrow() { }
+
+class C66
+{
+    S66 s;
+
+    this() nothrow { notthrow(); }
+}
+
+/**********************************/
+// https://issues.dlang.org/show_bug.cgi?id=16652
+
+struct Vector
+{
+    this(ubyte a)
+    {
+        pragma(inline, false);
+        buf = a;
+    }
+
+    ~this()
+    {
+        pragma(inline, false);
+        buf = 0;
+    }
+
+    ubyte buf;
+}
+
+int bar16652(ubyte* v)
+{
+    pragma(inline, true);
+    assert(*v == 1);
+    return 0;
+}
+
+void test16652()
+{
+    bar16652(&Vector(1).buf);
+}
+
+
+/**********************************/
+// https://issues.dlang.org/show_bug.cgi?id=19676
+
+void test19676()
+{
+    static struct S
+    {
+        __gshared int count;
+        ~this() { ++count; }
+    }
+
+    static S foo() { return S(); }
+
+    static void test1()
+    {
+        cast(void)foo();
+    }
+
+    static void test2()
+    {
+        foo();
+    }
+
+    test1();
+    assert(S.count == 1);
+    test2();
+    assert(S.count == 2);
+}
+
+/**********************************/
+
 int main()
 {
     test1();
-    test2();
+
     test3();
     test4();
     test5();
@@ -4643,12 +4784,16 @@ int main()
     test14815();
     test16197();
     test14860();
+    test14246();
     test14696();
     test14838();
     test63();
     test64();
     test65();
     test15661();
+    test18045();
+    test16652();
+    test19676();
 
     printf("Success\n");
     return 0;

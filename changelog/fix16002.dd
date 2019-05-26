@@ -1,0 +1,7 @@
+fix Issue 16002 - Add `is(sym == module)` and `is(sym == package)`
+
+This enhancement adds two new forms of the `is()`, expression, which
+determine whether a given symbol represents a module or package.
+
+It also adds `__traits(isModule, sym)` and `__traits(isPackage, sym)`, which
+do the same thing.

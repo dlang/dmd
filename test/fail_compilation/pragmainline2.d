@@ -2,9 +2,9 @@
 REQUIRED_ARGS: -inline
 TEST_OUTPUT:
 ---
-fail_compilation/pragmainline2.d(14): Error: function pragmainline2.foo cannot inline function
-fail_compilation/pragmainline2.d(22): Error: function pragmainline2.f1t cannot inline function
-fail_compilation/pragmainline2.d(25): Error: function pragmainline2.f2t cannot inline function
+fail_compilation/pragmainline2.d(14): Error: function `pragmainline2.foo` cannot inline function
+fail_compilation/pragmainline2.d(22): Error: function `pragmainline2.f1t` cannot inline function
+fail_compilation/pragmainline2.d(25): Error: function `pragmainline2.f2t` cannot inline function
 ---
 */
 

@@ -2,6 +2,8 @@ LPAREN = (
 RPAREN = )
 BACKTICK = `
 DOLLAR = $
+COMMA = ,
+QUOTE = &quot;
 LF =
 $(LF)
 
@@ -10,25 +12,50 @@ ESCAPES =
   />/&gt;/
   /&/&amp;/
 
+H1 = <h1>$0</h1>
+H2 = <h2>$0</h2>
+H3 = <h3>$0</h3>
+H4 = <h4>$0</h4>
+H5 = <h5>$0</h5>
+H6 = <h6>$0</h6>
 B = <b>$0</b>
 I = <i>$0</i>
+EM = <em>$0</em>
+STRONG = <strong>$0</strong>
 U = <u>$0</u>
 P = <p>$0</p>
 DL = <dl>$0</dl>
 DT = <dt>$0</dt>
 DD = <dd>$0</dd>
 TABLE = <table>$0</table>
+THEAD = <thead>$0</thead>
+TBODY = <tbody>$0</tbody>
 TR = <tr>$0</tr>
 TH = <th>$0</th>
 TD = <td>$0</td>
+TH_ALIGN = <th align="$1">$+</th>
+TD_ALIGN = <td align="$1">$+</td>
 OL = <ol>$0</ol>
+OL_START = <ol start="$1">$2</ol>
 UL = <ul>$0</ul>
 LI = <li>$0</li>
 BIG = <span class="font_big">$0</span>
 SMALL = <small>$0</small>
 BR = <br>
+HR = <hr />
 LINK = <a href="$0">$0</a>
 LINK2 = <a href="$1">$+</a>
+LINK_TITLE = <a href="$1" title="$2">$3</a>
+SYMBOL_LINK = <a href="$1">$(DDOC_PSYMBOL $+)</a>
+PHOBOS_PATH = https://dlang.org/phobos/
+DOC_ROOT_std = $(PHOBOS_PATH)
+DOC_ROOT_core = $(PHOBOS_PATH)
+DOC_ROOT_etc = $(PHOBOS_PATH)
+DOC_ROOT_object = $(PHOBOS_PATH)
+DOC_EXTENSION = .html
+IMAGE = <img src="$1" alt="$+" />
+IMAGE_TITLE = <img src="$1" alt="$3" title="$2" />
+BLOCKQUOTE = <blockquote>$0</blockquote>
 DEPRECATED = $0
 
 RED = <span class="color_red">$0</span>
@@ -44,6 +71,17 @@ D_CODE =
     <div class="dlang">
       <ol class="code_lines">
         <li><code class="code">$0</code></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+OTHER_CODE =
+<section class="code_listing">
+  <div class="code_sample">
+    <div class="dlang">
+      <ol class="code_lines">
+        <li><code class="code language-$1">$+</code></li>
       </ol>
     </div>
   </div>
@@ -79,6 +117,44 @@ DDOC =
         outline: 0 none;
         padding: 0;
         vertical-align: baseline;
+      }
+
+      h1 { font-size: 200%; }
+      h2 { font-size: 160%; }
+      h3 { font-size: 120%; }
+      h4 { font-size: 100%; }
+      h5 { font-size: 80%; }
+      h6 { font-size: 80%; font-weight: normal; }
+
+      ul, ol {
+        margin: 1.4em 0;
+      }
+      ul ul, ol ol, ul ol, ol ul {
+        margin-top: 0;
+        margin-bottom: 0;
+      }
+      ul, ol {
+        margin-left: 2.8em;
+      }
+
+      ol {
+        list-style: decimal;
+      }
+      ol ol {
+        list-style: lower-alpha;
+      }
+      ol ol ol {
+        list-style: lower-roman;
+      }
+      ol ol ol ol {
+        list-style: decimal;
+      }
+
+      blockquote {
+        margin: 0.1em;
+        margin-left: 1em;
+        border-left: 2px solid #cccccc;
+        padding-left: 0.7em;
       }
 
       .color_red { color: #dc322f; }
@@ -168,7 +244,7 @@ DDOC =
         border-radius: 5px;
       }
 
-      #ddoc_main .ddoc_decl .section h4, #ddoc_main .section.ddoc_sections h4 {
+      #ddoc_main .ddoc_decl .section h4:first-of-type, #ddoc_main .section.ddoc_sections h4:first-of-type {
         font-size: 13px;
         line-height: 1.5;
         margin-top: 21px;
@@ -473,11 +549,18 @@ DDOC =
         min-width: 50px;
       }
 
+      .ddoc th {
+        margin: 0;
+        max-width: 260px;
+        padding: 5px 10px 5px 10px;
+        vertical-align: bottom;
+      }
+
       .ddoc td {
         border: 1px solid rgba(233, 233, 233, 1);
         margin: 0;
         max-width: 260px;
-        padding: 5px 25px 5px 10px;
+        padding: 5px 10px 5px 10px;
         vertical-align: middle;
       }
 
@@ -735,3 +818,8 @@ DDOC_CONSTRAINT = $(DDOC_CONSTRAINT) if ($0)
 DDOC_OVERLOAD_SEPARATOR = $0
 DDOC_TEMPLATE_PARAM_LIST = $0
 DDOC_TEMPLATE_PARAM = $0
+DDOC_LINK_AUTODETECT = $(LINK $0)
+DDOC_AUTO_PSYMBOL = $(DDOC_PSYMBOL $0)
+DDOC_AUTO_KEYWORD = $(DDOC_KEYWORD $0)
+DDOC_AUTO_PARAM = $(DDOC_PARAM $0)
+DDOC_AUTO_PSYMBOL_SUPPRESS = $0

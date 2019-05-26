@@ -1,5 +1,8 @@
 // EXTRA_CPP_SOURCES: externmangle.cpp
 
+import core.stdc.config;
+import core.stdc.stdint;
+
 extern(C++):
 
 struct Foo(X)
@@ -122,7 +125,16 @@ interface Module
     public static int dim(Array!Module*);
 };
 
-ulong testlongmangle(int a, uint b, long c, ulong d);
+uint64_t testlongmangle(int a, uint b, int64_t c, uint64_t d);
+cpp_ulong testCppLongMangle(cpp_long a, cpp_ulong b);
+cpp_ulonglong testCppLongLongMangle(cpp_longlong a, cpp_ulonglong b);
+
+// direct size_t/ptrdiff_t interop is fine except on 32-bit OS X
+version (OSX) { version (D_LP64) {} else version = OSX_32; }
+version (OSX_32)
+    cpp_size_t testCppSizeTMangle(cpp_ptrdiff_t a, cpp_size_t b);
+else
+    size_t testCppSizeTMangle(ptrdiff_t a, size_t b);
 
 __gshared extern int[2][2][2] test31;
 __gshared extern int* test32;
@@ -280,6 +292,9 @@ void main()
     assert(Module.dim(&arr2) == 20);
 
     assert(testlongmangle(1, 2, 3, 4) == 10);
+    assert(testCppLongMangle(1, 2) == 3);
+    assert(testCppLongLongMangle(3, 4) == 7);
+    assert(testCppSizeTMangle(3, 4) == 7);
     assert(test31 == [[[1, 1], [1, 1]], [[1, 1], [1, 1]]]);
     assert(test32 == null);
 

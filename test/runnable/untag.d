@@ -22,13 +22,13 @@ bool startsWithConsume(alias pred = "a == b", R1, R2)(ref R1 r1, R2 r2)
         r.popFront();
         r2.popFront();
     }
-    return r2.empty ? (r1 = r, true) : false;
+    return r2.empty ? (){ r1 = r; return true;}() : false;
 }
 
 
 uint bug = 1;
 
-int main(string args[]) {
+int main(string[] args) {
     getopt(args, "bug", &bug);
     enforce(bug <= 2);
     auto txt = readText("runnable/extra-files/untag.html");

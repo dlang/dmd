@@ -1,3 +1,4 @@
+// REQUIRED_ARGS: -ignore
 module foo.bar;
 
 import core.vararg;
@@ -5,10 +6,35 @@ import std.stdio;
 
 pragma(lib, "test");
 pragma(msg, "Hello World");
+pragma(linkerDirective, "/DEFAULTLIB:test2");
 
 static assert(true, "message");
 
 alias double mydbl;
+
+alias fl1 = function ()
+    in {}
+    in (true)
+    out (; true)
+    out (r; true)
+    out
+    {
+    }
+    out (r)
+    {
+    }
+    do
+    {
+        return 2;
+    };
+
+alias fl2 = function ()
+    in (true)
+    out(; true)
+    out(r; true)
+    {
+        return 2;
+    };
 
 int testmain()
 in
@@ -23,7 +49,7 @@ body
 {
     float f = float.infinity;
     int i = cast(int) f;
-    writeln((i,1),2);
+    writeln(i,1,2);
     writeln(cast(int)float.max);
     assert(i == cast(int)float.max);
     assert(i == 0x80000000);
@@ -36,7 +62,7 @@ template Foo(T, int V)
 {
     void foo(...)
     {
-        static if (is(Object _ : X!TL, alias X, TL...)) {}  // Bugzilla 10044
+        static if (is(Object _ : X!TL, alias X, TL...)) {}  // https://issues.dlang.org/show_bug.cgi?id=10044
 
         auto x = __traits(hasMember, Object, "noMember");
         auto y = is(Object : X!TL, alias X, TL...);
@@ -58,7 +84,7 @@ template Foo(T, int V)
         d--;
 
     asm
-    {	naked ;
+    {   naked ;
         mov EAX, 3;
     }
 
@@ -133,11 +159,11 @@ template Foo(T, int V)
     }
 
     try
-	    bar(1, 2);
+        bar(1, 2);
     catch(Object o)
-	    x++;
+        x++;
     finally
-	    x--;
+        x--;
 
     Object o;
     synchronized (o)
@@ -244,9 +270,7 @@ class Test
 
     pure nothrow @safe @nogc unittest {}
     pure nothrow @safe @nogc invariant {}
-
-    pure nothrow @safe @nogc new (size_t sz) { return null; }
-    pure nothrow @safe @nogc delete (void* p) { }
+    pure nothrow @safe @nogc invariant (true);
 }
 
 template templ( T )
@@ -385,7 +409,7 @@ struct T12
 }
 
 
-// 6591
+// https://issues.dlang.org/show_bug.cgi?id=6591
 import std.stdio : writeln, F = File;
 
 void foo6591()()
@@ -394,7 +418,7 @@ void foo6591()()
 }
 
 
-// 8081
+// https://issues.dlang.org/show_bug.cgi?id=8081
 version(unittest) {
     pure nothrow unittest {}
     pure nothrow unittest {}
@@ -405,7 +429,7 @@ version(unittest) {
 }
 
 
-// 10334
+// https://issues.dlang.org/show_bug.cgi?id=10334
 
 template Foo10334(T) if (Bar10334!()) {}                ///
 template Foo10334(T) if (Bar10334!100) {}               ///
@@ -434,7 +458,7 @@ mixin Test10334!int a;          ///
 mixin Test10334!(int,long) b;   ///
 mixin Test10334!"str" c;        ///
 
-// 12266
+// https://issues.dlang.org/show_bug.cgi?id=12266
 auto clamp12266a(T1, T2, T3)(T1 x, T2 min_val, T3 max_val)
 {
     return 0;
@@ -448,10 +472,10 @@ pure clamp12266b(T1, T2, T3)(T1 x, T2 min_val, T3 max_val)
     return 0;
 }
 
-// 13832
+// https://issues.dlang.org/show_bug.cgi?id=13832
 alias Dg13832 = ref int delegate();
 
-// 16590
+// https://issues.dlang.org/show_bug.cgi?id=16590
 class TestClass {
     int aa;
     int b1, b2;
@@ -513,7 +537,7 @@ class Foo2A {
 
 }
 
-// bugzilla 15676
+// https://issues.dlang.org/show_bug.cgi?id=15676
 struct Foo3A(T)
 {
     @disable this(this);
@@ -523,36 +547,54 @@ struct Foo3A(T)
 // return ref, return scope, return ref scope
 ref int foo(return ref int a) @safe
 {
-	return a;
+    return a;
 }
 
 int* foo(return scope int* a) @safe
 {
-	return a;
+    return a;
 }
 
 ref int* foo(scope return ref int* a) @safe
 {
-	return a;
+    return a;
 }
 
 struct SafeS
 {
 @safe:
-	ref SafeS foo() return
-	{
-		return this;
-	}
+    ref SafeS foo() return
+    {
+        return this;
+    }
 
-	SafeS foo() return scope
-	{
-		return this;
-	}
+    SafeS foo2() return scope
+    {
+        return this;
+    }
 
-	ref SafeS foo() return scope
-	{
-		return this;
-	}
+    ref SafeS foo3() return scope
+    {
+        return this;
+    }
 
-	int* p;
+    int* p;
 }
+
+void test13x(@(10) int a, @(20) int, @(30) @(40) int[] arr...) {}
+
+enum Test14UDA1;
+struct Test14UDA2
+{
+    string str;
+}
+
+Test14UDA2 test14uda3(string name)
+{
+    return Test14UDA2(name);
+}
+struct Test14UDA4(string v){}
+
+void test14x(@Test14UDA1 int, @Test14UDA2("1") int, @test14uda3("2") int, @Test14UDA4!"3" int) {}
+
+void test15x(@(20) void delegate(int) @safe dg){}

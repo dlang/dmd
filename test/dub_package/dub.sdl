@@ -1,5 +1,0 @@
-name "dmd-dub-test"
-description "Test of the DMD Dub package"
-license "BSL 1.0"
-
-dependency "dmd" path="../../"

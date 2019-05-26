@@ -2,8 +2,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/issue3827.d(12): Deprecation: Implicit string concatenation is deprecated, use "Hello" ~ "World" instead
-fail_compilation/issue3827.d(13): Deprecation: Implicit string concatenation is deprecated, use "A" ~ "B" instead
+fail_compilation/issue3827.d(12): Error: Implicit string concatenation is deprecated, use "Hello" ~ "World" instead
+fail_compilation/issue3827.d(13): Error: Implicit string concatenation is deprecated, use "A" ~ "B" instead
 ---
 */
 

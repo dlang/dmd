@@ -2,8 +2,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail156.d(33): Error: overlapping initialization for y
-fail_compilation/fail156.d(40): Error: overlapping initialization for y
+fail_compilation/fail156.d(33): Error: overlapping initialization for `y`
+fail_compilation/fail156.d(40): Error: overlapping initialization for `y`
 ---
 */
 

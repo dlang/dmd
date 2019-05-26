@@ -1,5 +1,5 @@
 // PERMUTE_ARGS:
-// REQUIRED_ARGS: -d -dip1000
+// REQUIRED_ARGS: -d -preview=dip1000
 
 extern(C) int printf(const char*, ...);
 
@@ -293,8 +293,6 @@ void test11()
     static int* p;
     static int i;
     bar11(p, &i);
-
-    bar11((i,p), &i);  // comma expressions are deprecated, but need to test them
 }
 
 /********************************************/

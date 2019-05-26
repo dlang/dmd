@@ -1,4 +1,5 @@
 // PERMUTE_ARGS:
+// EXTRA_FILES: extra-files/teststdio.txt
 
 import std.stdio;
 import core.stdc.stdio;

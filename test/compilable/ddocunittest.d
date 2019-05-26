@@ -1,6 +1,6 @@
 // PERMUTE_ARGS: -unittest
-// REQUIRED_ARGS: -D -w -o- -c -Dd${RESULTS_DIR}/compilable -o-
-// POST_SCRIPT: compilable/extra-files/ddocAny-postscript.sh unittest
+// REQUIRED_ARGS: -D -w -o- -Dd${RESULTS_DIR}/compilable -o-
+// POST_SCRIPT: compilable/extra-files/ddocAny-postscript.sh
 
 module ddocunittest;
 
@@ -276,7 +276,7 @@ else
 unittest { int x6b; }
 
 // ------------------------------------
-// 9474
+// https://issues.dlang.org/show_bug.cgi?id=9474
 
 ///
 void foo9474() { }
@@ -323,7 +323,7 @@ template Template9474()
 unittest { alias Template9474!() T; }
 
 // ------------------------------------
-// 9713
+// https://issues.dlang.org/show_bug.cgi?id=9713
 
 ///
 void fooNoDescription() {}
@@ -334,7 +334,7 @@ unittest { if (true) {fooNoDescription(); } /* comment */ }
 
 // ------------------------------------
 
-/// test for bugzilla 9757
+/// test for https://issues.dlang.org/show_bug.cgi?id=9757
 void foo9757() {}
 /// ditto
 void bar9757() {}
@@ -357,6 +357,7 @@ auto redBlackTree(bool allowDuplicates, E)(E[] elems...)
 }
 /// ditto
 auto redBlackTree(alias less, E)(E[] elems...)
+if (__traits(compiles, (E a, E b) => mixin(less)))
 {
     return 3;
 }
@@ -370,7 +371,7 @@ unittest
 }
 
 // ------------------------------------
-// Issue 9758
+// https://issues.dlang.org/show_bug.cgi?id=9758
 
 /// test
 void foo(){}
@@ -379,7 +380,7 @@ void foo(){}
 unittest {  }
 
 // ------------------------------------
-// Issue 10519
+// https://issues.dlang.org/show_bug.cgi?id=10519
 
 ///
 bool balancedParens10519(string, char, char) { return true; }
@@ -391,7 +392,7 @@ unittest
 }
 
 // ------------------------------------
-// Issue 12097
+// https://issues.dlang.org/show_bug.cgi?id=12097
 
 /// declaration
 struct S12097
@@ -419,7 +420,7 @@ unittest
 }
 
 // ------------------------------------
-// 14594
+// https://issues.dlang.org/show_bug.cgi?id=14594
 
 /*******************
  * testA

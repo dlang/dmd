@@ -120,6 +120,7 @@ static foreach(member;__traits(allMembers,S)){
 }
 
 // print prime numbers using overload sets as state variables.
+/+
 static assert(is(typeof(bad57)));
 static assert(!is(typeof(bad53)));
 
@@ -136,6 +137,7 @@ static foreach(x;iota(2,100)){
         static assert(iota(2,x).any!(y=>!(x%y)));
     }
 }
++/
 
 
 alias Seq(T...)=T;
@@ -696,7 +698,7 @@ T foo(T v)@nogc{
     static foreach(x;0..v.n){ }
     return T.init;
 }
-T foo(T v)@nogc{
+T foo2(T v)@nogc{
     static foreach(_;0..typeof(return).n){ }
     return T.init;
 }

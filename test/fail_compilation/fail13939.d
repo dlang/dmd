@@ -3,7 +3,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13939.d(15): Error: cannot directly load global variable 'val' with PIC code
+fail_compilation/fail13939.d(15): Error: cannot directly load global variable `val` with PIC code
 ---
 */
 version(Windows) static assert(0);

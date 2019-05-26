@@ -2,7 +2,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail15999b.d(11): Error: bad type/size of operands 'and'
+fail_compilation/fail15999b.d(11): Error: bad type/size of operands `and`
 ---
 */
 

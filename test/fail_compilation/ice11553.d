@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice11553.d(22): Error: recursive template expansion while looking for A!().A()
+fail_compilation/ice11553.d(22): Error: recursive template expansion while looking for `A!().A()`
 ---
 */
 

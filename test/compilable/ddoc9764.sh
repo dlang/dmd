@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 
-name=`basename $0 .sh`
-dir=${RESULTS_DIR}/compilable
-output_file=${dir}/${name}.html
+output_html=${OUTPUT_BASE}.html
 
-rm -f ${output_file}
+rm -f ${output_html}
 
-$DMD -m${MODEL} -D -o- compilable/extra-files/ddoc9764.dd -Df${output_file}
+$DMD -m${MODEL} -D -o- ${EXTRA_FILES}/ddoc9764.dd -Df${output_html}
 
-compilable/extra-files/ddocAny-postscript.sh 9764 && touch ${dir}/`basename $0`.out
+
+${EXTRA_FILES}/ddocAny-postscript.sh 9764

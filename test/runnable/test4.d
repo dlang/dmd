@@ -48,17 +48,17 @@ void test1()
 
 void test2()
 {
-    byte foo1[5];
-    ubyte foo2[6];
-    short foo3[7];
-    ushort foo4[8];
-    int foo5[9];
-    uint foo6[10];
-    long foo7[11];
-    ulong foo8[12];
-    float foo9[13];
-    double foo10[14];
-    real foo11[15];
+    byte[5] foo1;
+    ubyte[6] foo2;
+    short[7] foo3;
+    ushort[8] foo4;
+    int[9] foo5;
+    uint[10] foo6;
+    long[11] foo7;
+    ulong[12] foo8;
+    float[13] foo9;
+    double[14] foo10;
+    real[15] foo11;
 
     int i;
 
@@ -96,17 +96,17 @@ void test2()
 
 void test3()
 {
-    byte foo1[5] = 20;
-    ubyte foo2[6] = 21;
-    short foo3[7] = 22;
-    ushort foo4[8] = 23;
-    int foo5[9] = 24;
-    uint foo6[10] = 25;
-    long foo7[11] = 26;
-    ulong foo8[12] = 27;
-    float foo9[13] = 28;
-    double foo10[14] = 29;
-    real foo11[15] = 30;
+    byte[5] foo1 = 20;
+    ubyte[6] foo2 = 21;
+    short[7] foo3 = 22;
+    ushort[8] foo4 = 23;
+    int[9] foo5 = 24;
+    uint[10] foo6 = 25;
+    long[11] foo7 = 26;
+    ulong[12] foo8 = 27;
+    float[13] foo9 = 28;
+    double[14] foo10 = 29;
+    real[15] foo11 = 30;
 
     int i;
 
@@ -224,46 +224,26 @@ void test6()
     assert(&t.Bottom < &t.foo2);
 
     assert(TRECT6.foo1.offsetof == 0);
-version (Win32)
-{
-    assert(TRECT6.Left.offsetof == 8);
-    assert(TRECT6.Top.offsetof == 12);
-    assert(TRECT6.Right.offsetof == 16);
-    assert(TRECT6.Bottom.offsetof == 20);
-    assert(TRECT6.TopLeft.offsetof == 8);
-    assert(TRECT6.BottomRight.offsetof == 16);
-    assert(TRECT6.foo2.offsetof == 24);
-}
-else version (X86_64)
-{
-    assert(TRECT6.Left.offsetof == 8);
-    assert(TRECT6.Top.offsetof == 12);
-    assert(TRECT6.Right.offsetof == 16);
-    assert(TRECT6.Bottom.offsetof == 20);
-    assert(TRECT6.TopLeft.offsetof == 8);
-    assert(TRECT6.BottomRight.offsetof == 16);
-    assert(TRECT6.foo2.offsetof == 24);
-}
-else version(ARM)
-{
-    assert(TRECT6.Left.offsetof == 8);
-    assert(TRECT6.Top.offsetof == 12);
-    assert(TRECT6.Right.offsetof == 16);
-    assert(TRECT6.Bottom.offsetof == 20);
-    assert(TRECT6.TopLeft.offsetof == 8);
-    assert(TRECT6.BottomRight.offsetof == 16);
-    assert(TRECT6.foo2.offsetof == 24);
-}
-else
-{
-    assert(TRECT6.Left.offsetof == 4);
-    assert(TRECT6.Top.offsetof == 8);
-    assert(TRECT6.Right.offsetof == 12);
-    assert(TRECT6.Bottom.offsetof == 16);
-    assert(TRECT6.TopLeft.offsetof == 4);
-    assert(TRECT6.BottomRight.offsetof == 12);
-    assert(TRECT6.foo2.offsetof == 20);
-}
+    static if (long.alignof == 8)
+    {
+        assert(TRECT6.Left.offsetof == 8);
+        assert(TRECT6.Top.offsetof == 12);
+        assert(TRECT6.Right.offsetof == 16);
+        assert(TRECT6.Bottom.offsetof == 20);
+        assert(TRECT6.TopLeft.offsetof == 8);
+        assert(TRECT6.BottomRight.offsetof == 16);
+        assert(TRECT6.foo2.offsetof == 24);
+    }
+    else
+    {
+        assert(TRECT6.Left.offsetof == 4);
+        assert(TRECT6.Top.offsetof == 8);
+        assert(TRECT6.Right.offsetof == 12);
+        assert(TRECT6.Bottom.offsetof == 16);
+        assert(TRECT6.TopLeft.offsetof == 4);
+        assert(TRECT6.BottomRight.offsetof == 12);
+        assert(TRECT6.foo2.offsetof == 20);
+    }
 }
 
 /* ================================ */
@@ -277,13 +257,13 @@ struct TestVectors
     string replace;
 };
 
-TestVectors tva[] =
+TestVectors[] tva =
 [
   {  pattern:"(a)\\1",  input:"abaab",  result:"y",     format:"&",     replace:"aa" },
   {  pattern:"abc",     input:"abc",    result:"y",     format:"&",     replace:"abc" },
 ];
 
-TestVectors tvs[2] =
+TestVectors[2] tvs =
 [
   {  pattern:"(a)\\1",  input:"abaab",  result:"y",     format:"&",     replace:"aa" },
   {  pattern:"abc",     input:"abc",    result:"y",     format:"&",     replace:"abc" },
@@ -380,8 +360,8 @@ const uint MAX_PATH1 = 260;
 enum { MAX_PATH2 = 261 }
 
 struct WIN32_FIND_DATA {
-    char   cFileName1[MAX_PATH1];
-    char   cFileName2[MAX_PATH2];
+    char[MAX_PATH1]   cFileName1;
+    char[MAX_PATH2]   cFileName2;
 }
 
 void test11()
@@ -522,10 +502,10 @@ void test15()
 
 struct GUID {          // size is 16
     align(1):
-        uint    Data1;
-        ushort  Data2;
-        ushort  Data3;
-        ubyte   Data4[8];
+        uint     Data1;
+        ushort   Data2;
+        ushort   Data3;
+        ubyte[8] Data4;
 }
 
 
@@ -582,7 +562,7 @@ void test17()
 
 /* ================================ */
 
-private const uint crc_table[256] = [
+private const uint[256] crc_table = [
     0x00000000u, 0x77073096u, 0xee0e612cu, 0x990951bau, 0x076dc419u,
     0x2d02ef8du
   ];

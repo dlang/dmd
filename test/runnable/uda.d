@@ -251,7 +251,7 @@ void test12()
 }
 
 /************************************************/
-// 9178
+// https://issues.dlang.org/show_bug.cgi?id=9178
 
 void test9178()
 {
@@ -262,7 +262,7 @@ void test9178()
 }
 
 /************************************************/
-// 9652
+// https://issues.dlang.org/show_bug.cgi?id=9652
 
 struct Bug9652
 {
@@ -318,7 +318,7 @@ struct Bug9652
 }
 
 /************************************************/
-// 9741
+// https://issues.dlang.org/show_bug.cgi?id=9741
 
 import imports.a9741;
 
@@ -329,7 +329,7 @@ alias X9741 = ShowAttributes!(B9741);
 @A9741 struct B9741 {}
 
 /************************************************/
-// 12160
+// https://issues.dlang.org/show_bug.cgi?id=12160
 
 auto before12160(alias Hook)(string) { return 0; }
 
@@ -349,7 +349,7 @@ void test12160()
 }
 
 /************************************************/
-// 10208
+// https://issues.dlang.org/show_bug.cgi?id=10208
 
 @( 10)                enum int x10208_01 =  100;
 @( 20)                     int x10208_02;
@@ -381,7 +381,8 @@ static assert(__traits(getAttributes, x10208_13)[0] == 130); // Error -> OK
 static assert(__traits(getAttributes, x10208_14)[0] == 140); // Error -> OK
 
 /************************************************/
-// 11677, 11678
+// https://issues.dlang.org/show_bug.cgi?id=11677
+// https://issues.dlang.org/show_bug.cgi?id=11678
 
 bool test_uda(alias func)() @safe
 {
@@ -410,7 +411,7 @@ static assert(test_uda!func11678b());
 static assert(test_uda!func11678c());
 
 /************************************************/
-// 11678
+// https://issues.dlang.org/show_bug.cgi?id=11678
 
 class C11678
 {
@@ -425,7 +426,7 @@ static ~this() @(10) @(20) {}
 shared static ~this() @(10) @(20) {}
 
 /************************************************/
-// 11679
+// https://issues.dlang.org/show_bug.cgi?id=11679
 
 void test11679()
 {
@@ -434,7 +435,7 @@ void test11679()
 }
 
 /************************************************/
-// 11680
+// https://issues.dlang.org/show_bug.cgi?id=11680
 
 @(10) gvar11680 = 1;  // OK <- NG
 @(10) gfun11680() {}  // OK <- NG
@@ -446,7 +447,7 @@ void test11680()
 }
 
 /************************************************/
-// 11844
+// https://issues.dlang.org/show_bug.cgi?id=11844
 
 auto make_encode11844(T, string name)()
 {
@@ -467,6 +468,192 @@ static assert(__traits(getAttributes, FileData11844.member)[0](new FileData11844
 
 /************************************************/
 
+template AliasSeq(T...)
+{
+    alias AliasSeq = T;
+}
+
+template ParameterUDA(size_t p_num, func...)
+if (func.length == 1 && is(typeof(func[0]) PT == __parameters) && PT.length > p_num)
+{
+    static if (is(typeof(func[0]) PT == __parameters))
+    {
+        template Get(size_t i)
+        {
+            static if (//!isFunctionPointer!func && !isDelegate!func
+                       // Parameters without UDA may yield CT error.
+                       /*&&*/ is(typeof(__traits(getAttributes, PT[i..i+1]))x))
+            {
+                alias Get = AliasSeq!(__traits(getAttributes, PT[i..i+1]));
+            }
+            else
+            {
+                alias Get = AliasSeq!();
+            }
+        }
+    }
+    else
+    {
+        static assert(0, func[0].stringof ~ "is not a function");
+
+        // Define dummy entities to avoid pointless errors
+        template Get(size_t i) { alias Get = AliasSeq!(); }
+        alias PT = AliasSeq!();
+    }
+
+    alias ParameterUDA = Get!p_num;
+}
+
+void test13x(@(10) int a, @(20) int, @(30) @(40) int[] arr...) {}
+
+void test13()
+{
+    static assert([ParameterUDA!(0, test13x)] == [10]);
+    static assert([ParameterUDA!(1, test13x)] == [20]);
+    static assert([ParameterUDA!(2, test13x)] == [30, 40]);
+}
+
+template Test13t(F)
+{
+    static assert(!__traits(compiles, ParameterUDA!(0, F)));
+    static assert(!__traits(compiles, ParameterUDA!(1, F)));
+    static assert(!__traits(compiles, ParameterUDA!(2, F)));
+    enum Test13t = true;
+}
+
+alias test13t = Test13t!(typeof(test13x));
+
+enum Test14UDA1;
+
+struct Test14UDA2
+{
+    string str;
+}
+
+Test14UDA2 test14uda3(string name)
+{
+    return Test14UDA2(name);
+}
+
+struct Test14UDA4(string v)
+{
+}
+
+void test14x(@Test14UDA1 int, @Test14UDA2("1") int, @test14uda3("2") int, @Test14UDA4!"3" int) {}
+void test14()
+{
+    static assert(is(ParameterUDA!(0, test14x)[0] == Test14UDA1));
+    static assert(ParameterUDA!(1, test14x)[0] == Test14UDA2("1"));
+    static assert(ParameterUDA!(2, test14x)[0] == test14uda3("2"));
+    static assert(is(ParameterUDA!(3, test14x)[0] == Test14UDA4!"3"));
+}
+
+void test15x(@(20) void delegate(int) @safe dg)
+{
+    static assert([__traits(getAttributes, dg)] == [20]);
+    static assert(is(typeof(dg) == void delegate(int) @safe));
+}
+
+template MinimalFunctionTypeOf(func...)
+if (func.length == 1)
+{
+    static if (is(func[0] T) || is(typeof(func[0]) T) && is(T Fdlg == delegate))
+        alias MinimalFunctionTypeOf = Fdlg; // HIT: delegate
+    else
+        static assert(0);
+}
+
+template Parameters(func...)
+if (func.length == 1)
+{
+    static if (is(MinimalFunctionTypeOf!func P == function))
+        alias Parameters = P;
+    else
+        static assert(0, "argument has no parameters");
+}
+
+void test15y(@(20) void delegate(@Test14UDA2("2") @("test15yUDA") int) @safe dg)
+{
+    static assert([__traits(getAttributes, dg)] == [20]);
+    static assert(is(typeof(dg) == void delegate(int) @safe));
+    auto foo = (@("myUDA") int x){
+        static assert([__traits(getAttributes, x)] == ["myUDA"]);
+    };
+    static assert(__traits(getAttributes, Parameters!dg)[0] == Test14UDA2("2"));
+    static assert(__traits(getAttributes, Parameters!dg)[1] == "test15yUDA");
+}
+
+void test15z()
+{
+    test15y((@(15) @(16) int x){
+        static assert([__traits(getAttributes, x)] == [15, 16]);
+    });
+}
+
+void test16x(A)(@(22) A a)
+{
+    static assert([__traits(getAttributes, a)] == [22]);
+}
+
+void test16()
+{
+    static assert([ParameterUDA!(0, test16x!int)] == [22]);
+}
+
+void test17()
+{
+    void test17x(A)(@(23) A a)
+    {
+        static assert([__traits(getAttributes, a)] == [23]);
+    }
+    static assert([ParameterUDA!(0, test17x!int)] == [23]);
+}
+
+void test18()
+{
+    void test18a(@(Tuple!(18, "a")) int a)
+    {
+        static assert(__traits(getAttributes, a) == Tuple!(18, "a"));
+    }
+    void test18b(@Tuple!(18, "b") int a)
+    {
+        static assert(__traits(getAttributes, a) == Tuple!(18, "b"));
+    }
+
+    static assert(ParameterUDA!(0, test18a) == Tuple!(18, "a"));
+    static assert(ParameterUDA!(0, test18b) == Tuple!(18, "b"));
+}
+
+// Lambdas with parentheses:
+void test19()
+{
+    // lambdas without parentheses
+    alias test19a = @(3) b => 1 + 2;
+    alias test19b = @(3) @(4) b => 1 + 2;
+
+    alias test19c = (@(3) c, @(5) d) => 1 + 2;
+    alias test19d = (@(3) @(4) c, @(5) d) => 1 + 2;
+    auto test19e = (@(3) int c, @(5) int d) => 1 + 2;
+
+    // still allow alias function declarations
+    alias FuncType = @safe void function();
+    alias FuncType2 = @safe nothrow void function();
+    alias FuncType3 = nothrow void function();
+    alias FuncType4 = nothrow @safe void function();
+}
+
+void test20()
+{
+    // Using a delegate with inferred parameter type
+    void test20a(int delegate(int) t){ t(1); }
+    test20a((@(19) a) {
+        static assert([__traits(getAttributes, a)] == [19]);
+        return a + 2;
+    });
+}
+
+/************************************************/
+
 int main()
 {
     test1();
@@ -482,6 +669,13 @@ int main()
     test11();
     test12();
     test9178();
+    test13();
+    test14();
+    test16();
+    test17();
+    test18();
+    test19();
+    test20();
 
     printf("Success\n");
     return 0;

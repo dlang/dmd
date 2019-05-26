@@ -187,7 +187,7 @@ void test9()
 }
 
 /********************************************************/
-// 8257
+// https://issues.dlang.org/show_bug.cgi?id=8257
 
 struct S8257 {
     static int g() {
@@ -227,8 +227,8 @@ void test10()
 class A12
 {
 public:
-  int delegate(int, int) dgs[4];
-  int function(int, int) fps[4];
+  int delegate(int, int)[4] dgs;
+  int function(int, int)[4] fps;
   int delegate(int, int) dg;
   int function(int, int) fp;
   int f(int x, int y) {
@@ -263,7 +263,7 @@ void test12()
 }
 
 /********************************************************/
-// 1570
+// https://issues.dlang.org/show_bug.cgi?id=1570
 
 class A13
 {
@@ -291,7 +291,24 @@ void test13()
 }
 
 /********************************************************/
-// 2472
+
+enum dg14 = delegate { ++a14; b14 += 2; };
+
+int a14, b14;
+
+void test14()
+{
+    a14 = b14 = 10;
+
+    auto var = dg14;
+    var();
+
+    assert(a14 == 11);
+    assert(b14 == 12);
+}
+
+/********************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=2472
 
 class A2472
 {
@@ -348,6 +365,7 @@ int main()
     test10();
     test12();
     test13();
+    test14();
     test2472();
     test8257();
     testAssign();

@@ -1,0 +1,33 @@
+Local templates can now receive local symbols.
+
+With this release local and member templates can be instantiated with local symbols.
+
+---
+struct S
+{
+    private int _m;
+    void exec(alias fun)()
+    {
+        fun(_m);
+    }
+}
+
+unittest
+{
+    int localVar;
+
+    void set(int i)
+    {
+        localVar = i;
+    }
+
+    auto obj = S(10);
+    obj.exec!set();
+
+    assert(localVar == 10);
+}
+---
+
+This was a long-standing limitation that disturbed the metaprograming experience.
+
+See issue $(LINK2 https://issues.dlang.org/show_bug.cgi?id=5710, 5710).

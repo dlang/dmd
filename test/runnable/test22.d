@@ -201,7 +201,9 @@ class B9
     {
         A9 test1 = new A9(1, 2, 3);
         A9 test2 = new A9(1, 2, 3, 4);
-        int[3] arg; A9 test3 = new A9((arg[0]=1, arg[1]=2, arg[2]=3, arg));
+        int[3] arg;
+        arg[0]=1, arg[1]=2, arg[2]=3;
+        A9 test3 = new A9(arg);
     }
 }
 
@@ -663,7 +665,7 @@ struct particle
     float yg;     /* Y Gravity       */
 }
 
-particle particles[10000];
+particle[10000] particles;
 
 void test32()
 {
@@ -1098,7 +1100,7 @@ body
 void test47()
 {
     real x = 3.1;
-    static real pp[] = [56.1, 32.7, 6];
+    static real[] pp = [56.1, 32.7, 6];
     real r;
 
     printf("The result should be %Lf\n",(56.1L + (32.7L + 6L * x) * x));
@@ -1245,6 +1247,24 @@ void test6758() {
 
 /*************************************/
 
+real f18573() { return 1; }
+
+void test18573()
+{
+    cast(void) f18573();
+    cast(void) f18573();
+    cast(void) f18573();
+    cast(void) f18573();
+    cast(void) f18573();
+    cast(void) f18573();
+    cast(void) f18573();
+
+    real b = 2;
+    assert(b == 2); /* fails; should pass */
+}
+
+/*************************************/
+
 int main()
 {
     test1();
@@ -1302,6 +1322,7 @@ int main()
     test51();
     test52();
     test6758();
+    test18573();
 
     printf("Success\n");
     return 0;

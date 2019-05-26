@@ -1,5 +1,5 @@
 // PERMUTE_ARGS:
-// POST_SCRIPT: runnable/extra-files/cov2-postscript.sh
+// POST_SCRIPT: runnable/extra-files/coverage-postscript.sh
 // REQUIRED_ARGS: -cov
 // EXECUTE_ARGS: ${RESULTS_DIR}/runnable
 
@@ -22,7 +22,7 @@ struct S2
 {
     this(this) { int x = 1; }
     ~this() { int x = 1; }
-    ref S2 opAssign(S2) { return this; }
+    ref S2 opAssign(S2) return { return this; }
     bool opEquals(ref const S2) const { return true; }
 }
 struct T2
