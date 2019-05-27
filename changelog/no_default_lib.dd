@@ -1,0 +1,11 @@
+Phobos/DRuntime library dependencies are no longer added when -defaultlib= is given
+
+Phobos/DRuntime library dependencies (i.e. `-lrt`, `-ldl`, `kernel32`) will no longer be added to the linker command when those libraries are disabled with `-defaultlib=`.
+
+This will break any project that satisfies these three criteria:
+
+1. If the project depends on `-lpthread`, `-lm`, `-lrt` or `-ldl` but does not explicitly link to them
+2. If the project uses `-defaultlib=`
+3. If the project uses DMD to link
+
+A project fitting these three criteria is implicitly relying on the hard-coded libraries that DMD adds rather than declaring those dependencies explicitly.  To fix a project that fits these criteria, it should add any libraries that it depends on with `-L-l<library>`.
