@@ -4349,9 +4349,18 @@ double foo240() {
 }
 
 void test240() {
-    double a = foo240();
-    double b = foo240();
-    double x = a*a + a*a + a*a + a*a + a*a + a*a + a*a +
+    double a = void;
+    double b = void;
+    double x = void;
+    version (D_SIMD)
+    {
+//	assert((cast(size_t)&a & 7) == 0);
+//	assert((cast(size_t)&b & 7) == 0);
+//	assert((cast(size_t)&x & 7) == 0);
+    }
+    a = foo240();
+    b = foo240();
+    x = a*a + a*a + a*a + a*a + a*a + a*a + a*a +
                a*b + a*b;
     assert(x > 0);
 }
@@ -5118,6 +5127,8 @@ else version (D_InlineAsm_X86)
     version = Check;
     version (OSX)
         enum Align = 0xC;
+//    version (linux)
+//        enum Align = 0xC;
 }
 
 void onFailure()
@@ -6188,6 +6199,7 @@ void test11472()
 
 int main()
 {
+    checkAlign();
     test1();
     test2();
     test3();
