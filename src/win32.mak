@@ -189,7 +189,7 @@ GBACKOBJ= $G/go.obj $G/gdag.obj $G/gother.obj $G/gflow.obj $G/gloop.obj $G/var.o
 ROOT_SRCS=$(ROOT)/aav.d $(ROOT)/array.d $(ROOT)/ctfloat.d $(ROOT)/file.d \
 	$(ROOT)/filename.d $(ROOT)/man.d $(ROOT)/outbuffer.d $(ROOT)/port.d \
 	$(ROOT)/response.d $(ROOT)/rmem.d $(ROOT)/rootobject.d \
-	$(ROOT)/speller.d $(ROOT)/stringtable.d $(ROOT)/hash.d
+	$(ROOT)/speller.d $(ROOT)/stringtable.d $(ROOT)/hash.d $(ROOT)/string.d
 
 # D front end
 SRCS = $D/aggregate.h $D/aliasthis.h $D/arraytypes.h	\
