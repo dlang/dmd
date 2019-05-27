@@ -727,7 +727,7 @@ auto getHostDMDPath(string hostDmd)
     version(Posix)
         return ["which", hostDmd].execute.output;
     else version(Windows)
-        return ["where", hostDmd].execute.output;
+        return ["where", hostDmd].execute.output.lineSplitter.front;
     else
         static assert(false, "Unrecognized or unsupported OS.");
 }
