@@ -103,7 +103,7 @@ enum REQUIRE_DSO_REGISTRY = (DMDV2 && (TARGET_LINUX || TARGET_FREEBSD || TARGET_
  * For the time being, just stick with Linux.
  */
 
-enum ELF_COMDAT = TARGET_LINUX;
+enum ELF_COMDAT = 1;
 
 /***************************************************
  * Correspondence of relocation types
