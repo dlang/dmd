@@ -3592,10 +3592,7 @@ private
         else version (Posix)
             version = AsmX86_Posix;
 
-        version (Darwin)
-            version = AlignFiberStackTo16Byte;
-        version (Linux)
-            version = AlignFiberStackTo16Byte;
+        version = AlignFiberStackTo16Byte;
     }
     else version (D_InlineAsm_X86_64)
     {
