@@ -100,6 +100,7 @@ code *code_malloc()
 
 extern __gshared con_t regcon;
 
+uint CSE_offset(int i);
 bool CSE_loaded(int i);
 
 /************************************
@@ -395,12 +396,10 @@ void getregsNoSave(regm_t r);
 void getregs_imm(ref CodeBuilder cdb, regm_t r);
 void cse_flush(ref CodeBuilder, int);
 bool cse_simple(code *c, elem *e);
-void gen_testcse(ref CodeBuilder cdb, uint sz, targ_uns i);
-void gen_loadcse(ref CodeBuilder cdb, reg_t reg, targ_uns i);
 bool cssave (elem *e , regm_t regm , uint opsflag );
 bool evalinregister(elem *e);
 regm_t getscratch();
-void codelem(ref CodeBuilder cdb, elem *e, regm_t *pretregs, bool constflag);
+void codelem(ref CodeBuilder cdb, elem *e, regm_t *pretregs, uint constflag);
 void scodelem(ref CodeBuilder cdb, elem *e, regm_t *pretregs, regm_t keepmsk, bool constflag);
 const(char)* regm_str(regm_t rm);
 int numbitsset(regm_t);
@@ -524,7 +523,9 @@ void genregs(ref CodeBuilder cdb, opcode_t op, uint dstreg, uint srcreg);
 void gentstreg(ref CodeBuilder cdb, uint reg);
 void genpush(ref CodeBuilder cdb, reg_t reg);
 void genpop(ref CodeBuilder cdb, reg_t reg);
-void gensavereg(ref CodeBuilder cdb, ref reg_t reg, targ_uns slot);
+void gen_storecse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot);
+void gen_testcse(ref CodeBuilder cdb, tym_t tym, uint sz, size_t i);
+void gen_loadcse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot);
 code *genmovreg(uint to, uint from);
 void genmovreg(ref CodeBuilder cdb, uint to, uint from);
 void genmulimm(ref CodeBuilder cdb,uint r1,uint r2,targ_int imm);

@@ -335,6 +335,7 @@ Lp:
 
 void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
+    //printf("xmmconvt: %p, %s\n", e, regm_str(*pretregs));
     opcode_t op = NoOpcode;
     regm_t regs;
     tym_t ty;
@@ -364,9 +365,16 @@ void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             ty = TYfloat;
             break;
         }
+        if (e1.Ecount)
+        {
+            regs = XMMREGS;
+            op = CVTSD2SS;
+            ty = TYfloat;
+            break;
+        }
         // directly use si2ss
         regs = ALLREGS;
-        e1 = e1.EV.E1;
+        e1 = e1.EV.E1;  // fused operation
         op = CVTSI2SS;
         ty = TYfloat;
         break;
@@ -388,7 +396,12 @@ void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         switch (e1.Eoper)
         {
         case OPf_d:
-            e1 = e1.EV.E1;
+            if (e1.Ecount)
+            {
+                op = CVTTSD2SI;
+                break;
+            }
+            e1 = e1.EV.E1;      // fused operation
             op = CVTTSS2SI;
             break;
         case OPld_d:
