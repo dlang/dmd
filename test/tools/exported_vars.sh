@@ -9,7 +9,7 @@ export EXTRA_FILES=${TEST_DIR}/extra-files # reference to the extra files direct
 
 export LC_ALL=C #otherwise objdump localizes its output
 
-if [ "$OS" == "win32" ] || [ "$OS" == "win64" ]; then
+if [ "$OS" == "windows" ]; then
     export LIBEXT=.lib
 else
     export LIBEXT=.a

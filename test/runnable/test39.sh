@@ -7,7 +7,7 @@ $DMD -m${MODEL} -I${TEST_DIR} -od${RESULTS_TEST_DIR} -c ${EXTRA_FILES}/test39.d
 $DMD -m${MODEL} -I${TEST_DIR} -od${RESULTS_TEST_DIR} -c ${TEST_DIR}/imports/test39a.d
 libname=${OUTPUT_BASE}a${LIBEXT}
 
-if [ ${OS} == "win32" -o ${OS} == "win64" ]; then
+if [ ${OS} == "windows" ]; then
     $DMD -m${MODEL} -lib -of${libname} ${OUTPUT_BASE}a${OBJ}
 else
     ar -r ${libname} ${OUTPUT_BASE}a${OBJ}
