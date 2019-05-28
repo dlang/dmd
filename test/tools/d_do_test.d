@@ -38,7 +38,7 @@ void usage()
           ~ "      REQUIRED_ARGS: arguments always passed to the compiler\n"
           ~ "      DMD:           compiler to use, ex: ../src/dmd (required)\n"
           ~ "      CC:            C++ compiler to use, ex: dmc, g++\n"
-          ~ "      OS:            win32, win64, linux, freebsd, osx, netbsd, dragonflybsd\n"
+          ~ "      OS:            windows, linux, freebsd, osx, netbsd, dragonflybsd\n"
           ~ "      RESULTS_DIR:   base directory for test results\n"
           ~ "      MODEL:         32 or 64 (required)\n"
           ~ "      AUTO_UPDATE:   set to 1 to auto-update mismatching test output\n"
@@ -253,7 +253,7 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     }
 
     // win(32|64) doesn't support pic
-    if (envData.os == "win32" || envData.os == "win64")
+    if (envData.os == "windows")
     {
         auto index = std.string.indexOf(testArgs.permuteArgs, "-fPIC");
         if (index != -1)
@@ -469,7 +469,7 @@ bool collectExtraSources (in string input_dir, in string output_dir, in string[]
             {
                 command ~= ` /c /nologo `~curSrc~` /Fo`~curObj;
             }
-            else if (envData.os == "win32")
+            else if (envData.os == "windows" && envData.model == "32")
             {
                 command ~= " -c "~curSrc~" -o"~curObj;
             }
@@ -620,12 +620,14 @@ int tryMain(string[] args)
 
     if (envData.ccompiler.empty)
     {
-        switch (envData.os)
-        {
-            case "win32": envData.ccompiler = "dmc"; break;
-            case "win64": envData.ccompiler = `\"Program Files (x86)"\"Microsoft Visual Studio 10.0"\VC\bin\amd64\cl.exe`; break;
-            default:      envData.ccompiler = "c++"; break;
-        }
+        if (envData.os != "windows")
+            envData.ccompiler = "c++";
+        else if (envData.model == "32")
+            envData.ccompiler = "dmc";
+        else if (envData.model == "64")
+            envData.ccompiler = `C:\"Program Files (x86)"\"Microsoft Visual Studio 10.0"\VC\bin\amd64\cl.exe`;
+        else
+            assert(0, "unknown $OS$MODEL combination: " ~ envData.os ~ envData.model);
     }
 
     envData.usingMicrosoftCompiler = envData.ccompiler.toLower.endsWith("cl.exe");
@@ -656,7 +658,8 @@ int tryMain(string[] args)
         }
     }
 
-    if (testArgs.disabledPlatforms.any!(a => envData.os.chain(envData.model).canFind(a)))
+    const osAbbrev = (envData.os == "windows") ? "win" : envData.os;
+    if (testArgs.disabledPlatforms.any!(a => osAbbrev.chain(envData.model).canFind(a)))
         testArgs.disabled = true;
 
     //prepare cpp extra sources
@@ -665,7 +668,7 @@ int tryMain(string[] args)
         switch (envData.compiler)
         {
             case "dmd":
-                if(envData.os != "win32" && envData.os != "win64")
+                if(envData.os != "windows")
                    testArgs.requiredArgs ~= " -L-lstdc++ -L--no-demangle";
                 break;
             case "ldc":

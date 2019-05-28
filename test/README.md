@@ -252,7 +252,7 @@ The Makefile uses environment variables to store test settings and as a way to p
     REQUIRED_ARGS: arguments always passed to the compiler
     DMD:           compiler to use, ex: ../src/dmd (required)
     CC:            C++ compiler to use, ex: dmc, g++
-    OS:            win32, win64, linux, freebsd, osx, netbsd, dragonflybsd
+    OS:            windows, linux, freebsd, osx, netbsd, dragonflybsd
     RESULTS_DIR:   base directory for test results
     MODEL:         32 or 64 (required)
     AUTO_UPDATE:   set to 1 to auto-update mismatching test output

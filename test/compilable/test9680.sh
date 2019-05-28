@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-if [ "${OS}" == "win32" -o "${OS}" == "Windows_NT" ]; then
+if [ "${OS}" == "windows" ]; then
     kinds=( main winmain dllmain )
 else
     kinds=( main )
