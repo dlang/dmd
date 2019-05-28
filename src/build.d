@@ -993,3 +993,9 @@ auto runCanThrow(T)(T args)
     enforce(!res.status, res.output);
     return res.output;
 }
+
+version (Win32)
+{
+    // workaround issue https://issues.dlang.org/show_bug.cgi?id=13727
+    auto parallel(R)(R range, size_t workUnitSize) { return range; }
+}
