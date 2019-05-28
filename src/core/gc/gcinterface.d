@@ -188,4 +188,9 @@ interface GC
      *
      */
     bool inFinalizer() nothrow;
+
+    /*
+     * Reset gc thread local stats
+     */
+    void resetThreadLocalStats() nothrow @nogc;
 }

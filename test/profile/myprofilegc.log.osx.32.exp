@@ -1,0 +1,17 @@
+bytes allocated, allocations, type, function, file:line
+            176	              1	immutable(char)[][int] D main src/profilegc.d:23
+            128	              1	float[][] D main src/profilegc.d:18
+            128	              1	int[][] D main src/profilegc.d:15
+             64	              1	float[] D main src/profilegc.d:42
+             64	              1	int[] D main src/profilegc.d:41
+             16	              1	char[] D main src/profilegc.d:34
+             16	              1	char[] D main src/profilegc.d:36
+             16	              1	closure profilegc.main.foo src/profilegc.d:45
+             16	              1	float D main src/profilegc.d:16
+             16	              1	float[] D main src/profilegc.d:17
+             16	              1	int D main src/profilegc.d:13
+             16	              1	int[] D main src/profilegc.d:14
+             16	              1	int[] D main src/profilegc.d:22
+             16	              1	int[] D main src/profilegc.d:37
+             16	              1	profilegc.main.C D main src/profilegc.d:12
+             16	              1	wchar[] D main src/profilegc.d:35

@@ -79,6 +79,8 @@ __gshared long extendTime;
 __gshared long otherTime;
 __gshared long lockTime;
 
+ulong bytesAllocated;   // thread local counter
+
 private
 {
     extern (C)
@@ -395,6 +397,7 @@ class ConservativeGC : GC
             alloc_size = size;
         }
         gcx.leakDetector.log_malloc(p, size);
+        bytesAllocated += alloc_size;
 
         debug(PRINTF) printf("  => p = %p\n", p);
         return p;
@@ -1113,6 +1116,12 @@ class ConservativeGC : GC
 
         stats.usedSize -= freeListSize;
         stats.freeSize += freeListSize;
+        stats.allocatedInCurrentThread = bytesAllocated;
+    }
+
+    void resetThreadLocalStats() nothrow @nogc
+    {
+        bytesAllocated = 0;
     }
 }
 
@@ -4385,7 +4394,9 @@ version (D_LP64) unittest
             GC.free(ptr);
             GC.minimize();
             auto nstats = GC.stats();
-            assert(nstats == stats);
+            assert(nstats.usedSize == stats.usedSize);
+            assert(nstats.freeSize == stats.freeSize);
+            assert(nstats.allocatedInCurrentThread - sz == stats.allocatedInCurrentThread);
         }
     }
 }
