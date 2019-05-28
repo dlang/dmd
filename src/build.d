@@ -491,7 +491,26 @@ void parseEnvironment()
 /// Checks the environment variables and flags
 void processEnvironment()
 {
-    auto os = env["OS"];
+    version (Windows)
+    {
+        // On windows, the OS environment variable is already being used by the system.
+        // For example, on a default Windows7 system it's configured by the system
+        // to be "Windows_NT".
+        //
+        // However, there are a good number of components in this repo and the other
+        // repos that set this environment variable to "windows" without checking whether
+        // it's already configured, i.e.
+        //      dmd\src\win32.mak (OS=windows)
+        //      druntime\win32.mak (OS=windows)
+        //      phobos\win32.mak (OS=windows)
+        //
+        // It's necessary to emulate the same behavior in this tool in order to make this
+        // new tool compatible with existing tools. We can do this by also setting the
+        // environment variable to "windows" whether or not it already has a value.
+        //
+        env["OS"] = "windows";
+    }
+    const os = env["OS"];
 
     auto hostDMDVersion = [env["HOST_DMD_RUN"], "--version"].execute.output;
     if (hostDMDVersion.find("DMD"))
