@@ -404,7 +404,6 @@ static if (0)
     debtyphash[hashi] = cast(uint)debtyp.length;
 
     /* It's not already in the array, so add it */
-L1:
     debtyp.push(d);
     version (SCPP)
     {

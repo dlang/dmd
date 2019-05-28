@@ -286,7 +286,6 @@ void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,regm_t 
     }
 
     fixresult(cdb,e,retregs,pretregs);
-Lp:
     if (postinc)
     {
         const increg = findreg(idxregm(&cs));  // the register to increment

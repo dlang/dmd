@@ -2684,7 +2684,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
             if (mfa < m.last) goto Ltd_best2;
             if (mfa > m.last) goto Ltd2;
 
-        Lambig2:    // td_best and td are ambiguous
+            // td_best and td are ambiguous
             //printf("Lambig2\n");
             m.nextf = fd;
             m.count++;

@@ -2349,7 +2349,6 @@ static if (0)
             if (SegData[seg].isCode() && flags & CFselfrel)
             {
                 seg_data *pseg = SegData[jumpTableSeg];
-             L1:
                 val -= offset + 4;
                 MsCoffObj_addrel(seg, offset, null, jumpTableSeg, RELrel, 0);
             }

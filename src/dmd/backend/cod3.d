@@ -2293,7 +2293,6 @@ regm_t cod3_useBP()
            )
             goto Lcant;
     }
-Lcan:
     return mBP;
 
 Lcant:
@@ -4772,7 +4771,6 @@ void cod3_adjSymOffsets()
 
             case SCauto:
             case SCregister:
-            case_auto:
                 if (s.Sfl == FLfast)
                     s.Soffset += Fast.size + BPoff;
                 else

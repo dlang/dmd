@@ -316,10 +316,6 @@ else
 
     return pview;
 
-Terminate:
-    if (UnmapViewOfFile(pview) == false)
-        os_error();
-    pview = null;
 L3:
     if (CloseHandle(hFileMap) != true)
         os_error();

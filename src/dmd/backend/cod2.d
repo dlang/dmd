@@ -4213,7 +4213,6 @@ void cdrelconst(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         }
         else
         {
-        loadreg:
             int fl = s.Sfl;
             if (s.ty() & mTYcs)
                 fl = FLcsdata;

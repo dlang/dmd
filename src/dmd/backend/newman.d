@@ -463,7 +463,6 @@ L1:
         default:
             break;
     }
-Lret:
     return s;
 }
 

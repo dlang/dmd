@@ -2109,7 +2109,6 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
         }
         else if (ident == Id.min_normal)
         {
-        Lmin_normal:
             switch (mt.ty)
             {
             case Tcomplex32:

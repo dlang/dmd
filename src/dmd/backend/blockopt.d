@@ -2114,16 +2114,13 @@ void funcsideeffects()
         for (block *b = startblock; b; b = b.Bnext)
         {
             if (b.Belem && funcsideeffect_walk(b.Belem))
-                goto Lside;
+            {
+                //printf("  function '%s' has side effects\n",funcsym_p.Sident);
+                return;
+            }
         }
-
-      Lnoside:
         funcsym_p.Sfunc.Fflags3 |= Fnosideeff;
         //printf("  function '%s' has no side effects\n",funcsym_p.Sident);
-        //return;
-
-      Lside:
-        //printf("  function '%s' has side effects\n",funcsym_p.Sident);
     }
 }
 
