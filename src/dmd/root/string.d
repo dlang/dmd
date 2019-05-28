@@ -32,7 +32,6 @@ module dmd.root.string;
  */
 string stripLeadingLineTerminator(string str)
 {
-    enum crlf = "\n\r";
     enum nextLine = "\xC2\x85";
     enum lineSeparator = "\xE2\x80\xA8";
     enum paragraphSeparator = "\xE2\x80\xA9";

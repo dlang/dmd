@@ -97,7 +97,6 @@ longdouble_soft strtold_dm(const(char) *p, char **endp)
     int  pow;
     int  ndigits;
     const(char) *pinit = p;
-    uint old_cw;
 
     while (isspace(*p))
         p++;

@@ -2839,9 +2839,6 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
     if (tthis)
         tthis.modToBuffer(&fargsBuf);
 
-    // max num of overloads to print (-v overrides this).
-    enum int numOverloadsDisplay = 5;
-
     if (!m.lastf && !(flags & FuncResolveFlag.quiet)) // no match
     {
         if (!fd && !td && !od)
