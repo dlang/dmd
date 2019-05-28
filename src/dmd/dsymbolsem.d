@@ -2731,7 +2731,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     {
         static if (LOG)
         {
-            printf("+TemplateMixin.dsymbolSemantic('%s', this=%p)\n",tm.toChars(), tm);
+            printf("+TemplateMixin.dsymbolSemantic('%s', this=%p)\n", tm.toChars(), tm);
             fflush(stdout);
         }
         if (tm.semanticRun != PASS.init)
@@ -3500,7 +3500,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 }
                 else
                 {
-                    //printf("\tintroducing function %s\n", toChars());
+                    //printf("\tintroducing function %s\n", funcdecl.toChars());
                     funcdecl.introducing = 1;
                     if (cd.classKind == ClassKind.cpp && target.reverseCppOverloads)
                     {
@@ -3607,7 +3607,37 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         {
                             funcdecl.error("multiple overrides of same function");
                         }
-                        else if (!thismixin) // fdc overrides fdv
+                        /*
+                         * https://issues.dlang.org/show_bug.cgi?id=711
+                         *
+                         * If an overriding method is introduced through a mixin,
+                         * we need to update the vtbl so that both methods are
+                         * present.
+                         */
+                        else if (thismixin)
+                        {
+                            /* if the mixin introduced the overriding method, then reintroduce it
+                             * in the vtbl. The initial entry for the mixined method
+                             * will be updated at the end of the enclosing `if` block
+                             * to point to the current (non-mixined) function.
+                             */
+                            auto vitmp = cast(int)cd.vtbl.dim;
+                            cd.vtbl.push(fdc);
+                            fdc.vtblIndex = vitmp;
+                        }
+                        else if (fdcmixin)
+                        {
+                            /* if the current overriding function is coming from a
+                             * mixined block, then push the current function in the
+                             * vtbl, but keep the previous (non-mixined) function as
+                             * the overriding one.
+                             */
+                            auto vitmp = cast(int)cd.vtbl.dim;
+                            cd.vtbl.push(funcdecl);
+                            funcdecl.vtblIndex = vitmp;
+                            break;
+                        }
+                        else // fdc overrides fdv
                         {
                             // this doesn't override any function
                             break;
