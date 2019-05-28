@@ -934,12 +934,15 @@ final class Parser(AST) : Lexer
                         {
                             error("conflicting linkage `extern (%s)` and `extern (%s)`", AST.linkageToChars(pAttrs.link), AST.linkageToChars(link));
                         }
-                        else if (idents || identExps)
+                        else if (idents || identExps || cppmangle != CPPMANGLE.def)
                         {
                             // Allow:
                             //      extern(C++, foo) extern(C++, bar) void foo();
                             // to be equivalent with:
                             //      extern(C++, foo.bar) void foo();
+                            // Allow also:
+                            //      extern(C++, "ns") extern(C++, class) struct test {}
+                            //      extern(C++, class) extern(C++, "ns") struct test {}
                         }
                         else
                             error("redundant linkage `extern (%s)`", AST.linkageToChars(pAttrs.link));
