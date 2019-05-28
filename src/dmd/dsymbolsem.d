@@ -755,6 +755,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (dsym.semanticRun >= PASS.semanticdone)
             return;
 
+        // https://issues.dlang.org/show_bug.cgi?id=19122
+        if (sc && sc.inunion)
+            dsym.overlapped = true;
+
         Scope* scx = null;
         if (dsym._scope)
         {
