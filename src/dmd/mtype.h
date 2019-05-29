@@ -41,7 +41,8 @@ typedef struct TYPE type;
 
 void semanticTypeInfo(Scope *sc, Type *t);
 
-enum ENUMTY
+typedef unsigned char TY;
+enum
 {
     Tarray,             // slice array, aka T[]
     Tsarray,            // static array, aka T[dimension]
@@ -94,7 +95,6 @@ enum ENUMTY
     TTraits,
     TMAX
 };
-typedef unsigned char TY;       // ENUMTY
 
 extern int Tsize_t;
 extern int Tptrdiff_t;
@@ -119,9 +119,9 @@ typedef unsigned char MOD;
 
 // These tables are for implicit conversion of binary ops;
 // the indices are the type of operand one, followed by operand two.
-extern unsigned char impcnvResult[TMAX][TMAX];
-extern unsigned char impcnvType1[TMAX][TMAX];
-extern unsigned char impcnvType2[TMAX][TMAX];
+extern TY impcnvResult[TMAX][TMAX];
+extern TY impcnvType1[TMAX][TMAX];
+extern TY impcnvType2[TMAX][TMAX];
 
 // If !=0, give warning on implicit conversion
 extern unsigned char impcnvWarn[TMAX][TMAX];
