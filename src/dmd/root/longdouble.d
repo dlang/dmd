@@ -83,7 +83,7 @@ struct longdouble_soft
 {
 nothrow @nogc pure:
     // DMD's x87 `real` on Windows is packed (alignof = 2 -> sizeof = 10).
-    align(2) ulong mantissa = 0xC000000000000001UL; // default to snan
+    align(2) ulong mantissa = 0xC000000000000000UL; // default to qnan
     ushort exp_sign = 0x7fff; // sign is highest bit
 
     this(ulong m, ushort es) { mantissa = m; exp_sign = es; }
@@ -165,6 +165,7 @@ nothrow @nogc pure:
         }
     }
 
+    // a qnan
     static longdouble_soft nan() { return longdouble_soft(0xC000000000000000UL, 0x7fff); }
     static longdouble_soft infinity() { return longdouble_soft(0x8000000000000000UL, 0x7fff); }
     static longdouble_soft zero() { return longdouble_soft(0, 0); }
@@ -661,7 +662,6 @@ longdouble_soft ld_mod(longdouble_soft x, longdouble_soft y)
 __gshared const
 {
     longdouble_soft ld_qnan = longdouble_soft(0xC000000000000000UL, 0x7fff);
-    longdouble_soft ld_snan = longdouble_soft(0xC000000000000001UL, 0x7fff);
     longdouble_soft ld_inf  = longdouble_soft(0x8000000000000000UL, 0x7fff);
 
     longdouble_soft ld_zero  = longdouble_soft(0, 0);

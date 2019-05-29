@@ -1441,28 +1441,12 @@ elem *toElem(Expression e, IRState *irs)
             {
                 case TYfloat:
                 case TYifloat:
-                    /* This assignment involves a conversion, which
-                     * unfortunately also converts SNAN to QNAN.
-                     */
                     e.EV.Vfloat = cast(float) re.value;
-                    if (CTFloat.isSNaN(re.value))
-                    {
-                        // Put SNAN back
-                        e.EV.Vuns &= 0xFFBFFFFFL;
-                    }
                     break;
 
                 case TYdouble:
                 case TYidouble:
-                    /* This assignment involves a conversion, which
-                     * unfortunately also converts SNAN to QNAN.
-                     */
                     e.EV.Vdouble = cast(double) re.value;
-                    if (CTFloat.isSNaN(re.value))
-                    {
-                        // Put SNAN back
-                        e.EV.Vullong &= 0xFFF7FFFFFFFFFFFFUL;
-                    }
                     break;
 
                 case TYldouble:
