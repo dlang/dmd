@@ -994,7 +994,7 @@ auto runCanThrow(T)(T args)
     return res.output;
 }
 
-version (Win32)
+version (CRuntime_DigitalMars)
 {
     // workaround issue https://issues.dlang.org/show_bug.cgi?id=13727
     auto parallel(R)(R range, size_t workUnitSize) { return range; }
