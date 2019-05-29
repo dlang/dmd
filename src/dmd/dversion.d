@@ -66,7 +66,7 @@ extern (C++) final class DebugSymbol : Dsymbol
     override void addMember(Scope* sc, ScopeDsymbol sds)
     {
         //printf("DebugSymbol::addMember('%s') %s\n", sds.toChars(), toChars());
-        Module m = sds.isModule();
+        Module m = moduleOfSkipNspaces(sds);
         // Do not add the member to the symbol table,
         // just make sure subsequent debug declarations work.
         if (ident)
@@ -154,7 +154,7 @@ extern (C++) final class VersionSymbol : Dsymbol
     override void addMember(Scope* sc, ScopeDsymbol sds)
     {
         //printf("VersionSymbol::addMember('%s') %s\n", sds.toChars(), toChars());
-        Module m = sds.isModule();
+        Module m = moduleOfSkipNspaces(sds);
         // Do not add the member to the symbol table,
         // just make sure subsequent debug declarations work.
         if (ident)
@@ -198,4 +198,21 @@ extern (C++) final class VersionSymbol : Dsymbol
     {
         v.visit(this);
     }
+}
+
+/*
+ * Get the Module that is `sds` or its parent if `sds` is an `Nspace`
+ */
+private Module moduleOfSkipNspaces(ScopeDsymbol sds)
+{
+    Dsymbol s = sds;
+    while (s.isNspace())
+    {
+        if (Module m = s.isModule())
+            return m;
+        s = s.parent;
+    }
+    if (Module m = s.isModule())
+        return m;
+    return null;
 }

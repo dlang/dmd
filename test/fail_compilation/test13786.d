@@ -18,3 +18,9 @@ template T()
 }
 
 alias X = T!();
+
+extern(C++, "std"):
+debug = 456;
+debug = def;
+version = 456;
+version = def;
