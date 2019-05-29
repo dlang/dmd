@@ -8,11 +8,11 @@ struct HasDestructor
 {
     ~this()
     {
-        ++d;
+        assert(0);
     }
     this(this)
     {
-        ++p;
+        assert(0);
     }
 }
 
@@ -25,13 +25,10 @@ struct S
     }
 }
 
-int d, p;
 void main()
 {
     {
         S s;
         s = s;
-        assert(p == 0); // Should fail.
     }
-    assert(d == 0); // Should fail.
 }

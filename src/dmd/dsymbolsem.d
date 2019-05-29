@@ -755,10 +755,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (dsym.semanticRun >= PASS.semanticdone)
             return;
 
-        // https://issues.dlang.org/show_bug.cgi?id=19122
-        if (sc && sc.inunion)
-            dsym.overlapped = true;
-
         Scope* scx = null;
         if (dsym._scope)
         {
@@ -1795,6 +1791,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             for (size_t i = 0; i < scd.decl.dim; i++)
             {
                 Dsymbol s = (*scd.decl)[i];
+                // https://issues.dlang.org/show_bug.cgi?id=19122
+                if (sc.inunion)
+                    if (auto decl = s.isVarDeclaration())
+                        decl.overlapped = true;
                 s.dsymbolSemantic(sc);
             }
             sc = sc.pop();
