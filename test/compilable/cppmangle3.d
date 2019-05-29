@@ -34,5 +34,4 @@ struct Foo
 alias Alias(alias a) = a;
 alias Alias(T) = T;
 
-static assert(is(Alias!(__traits(parent, bar)) == Foo));
-
+static assert(is(Alias!(__traits(parent, Foo.bar)) == Foo));
