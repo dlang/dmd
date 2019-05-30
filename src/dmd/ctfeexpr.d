@@ -1279,7 +1279,7 @@ private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2, bool ide
         real_t r1 = e1.type.isreal() ? e1.toReal() : e1.toImaginary();
         real_t r2 = e1.type.isreal() ? e2.toReal() : e2.toImaginary();
         if (identity)
-            return !RealEquals(r1, r2);
+            return !RealIdentical(r1, r2);
         if (CTFloat.isNaN(r1) || CTFloat.isNaN(r2)) // if unordered
         {
             return 1;   // they are not equal
@@ -1295,7 +1295,7 @@ private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2, bool ide
         auto c2 = e2.toComplex();
         if (identity)
         {
-            return !RealEquals(c1.re, c2.re) && !RealEquals(c1.im, c2.im);
+            return !RealIdentical(c1.re, c2.re) && !RealIdentical(c1.im, c2.im);
         }
         return c1 != c2;
     }
@@ -1400,14 +1400,14 @@ int ctfeIdentity(const ref Loc loc, TOK op, Expression e1, Expression e2)
         cmp = (es1.var == es2.var && es1.offset == es2.offset);
     }
     else if (e1.type.isreal())
-        cmp = RealEquals(e1.toReal(), e2.toReal());
+        cmp = RealIdentical(e1.toReal(), e2.toReal());
     else if (e1.type.isimaginary())
-        cmp = RealEquals(e1.toImaginary(), e2.toImaginary());
+        cmp = RealIdentical(e1.toImaginary(), e2.toImaginary());
     else if (e1.type.iscomplex())
     {
         complex_t v1 = e1.toComplex();
         complex_t v2 = e2.toComplex();
-        cmp = RealEquals(creall(v1), creall(v2)) && RealEquals(cimagl(v1), cimagl(v1));
+        cmp = RealIdentical(creall(v1), creall(v2)) && RealIdentical(cimagl(v1), cimagl(v1));
     }
     else
     {
