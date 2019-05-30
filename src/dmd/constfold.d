@@ -942,17 +942,17 @@ UnionExp Identity(TOK op, const ref Loc loc, Type type, Expression e1, Expressio
     {
         if (e1.type.isreal())
         {
-            cmp = RealEquals(e1.toReal(), e2.toReal());
+            cmp = RealIdentical(e1.toReal(), e2.toReal());
         }
         else if (e1.type.isimaginary())
         {
-            cmp = RealEquals(e1.toImaginary(), e2.toImaginary());
+            cmp = RealIdentical(e1.toImaginary(), e2.toImaginary());
         }
         else if (e1.type.iscomplex())
         {
             complex_t v1 = e1.toComplex();
             complex_t v2 = e2.toComplex();
-            cmp = RealEquals(creall(v1), creall(v2)) && RealEquals(cimagl(v1), cimagl(v1));
+            cmp = RealIdentical(creall(v1), creall(v2)) && RealIdentical(cimagl(v1), cimagl(v1));
         }
         else
         {
