@@ -128,8 +128,8 @@ void test3()
     assert(1    .init == 0);
     assert([1]  .init == null);
     assert([1:1].init == null);
-    assert(1.0  .init is double.init);
-    assert(10i  .init is idouble.init);
+    assert(1.0  .init is double.nan);
+    assert(10i  .init is idouble.nan);
     assert('c'  .init == 0xFF);
     assert("s"  .init == null);
 
