@@ -5718,6 +5718,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 tok == TOK.in_ ||
                 isEqualsCallExpression)
             {
+                if (!verifyHookExist(exp.loc, *sc, Id._d_assert_fail, "generating assert messages"))
+                    return setError();
+
                 auto es = new Expressions(2);
                 auto tiargs = new Objects(3);
                 Loc loc = exp.e1.loc;
@@ -6882,6 +6885,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     // be done in the implementation of `object.__ArrayCast`
                     if ((fromSize % toSize) != 0)
                     {
+                        if (!verifyHookExist(exp.loc, *sc, Id.__ArrayCast, "casting array of structs"))
+                            return setError();
+
                         // lower to `object.__ArrayCast!(TFrom, TTo)(from)`
 
                         // fully qualify as `object.__ArrayCast`
@@ -10413,6 +10419,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             if ((t1.ty == Tarray || t1.ty == Tsarray) && (t2.ty == Tarray || t2.ty == Tsarray))
             {
+                if (!verifyHookExist(exp.loc, *sc, Id.__cmp, "comparing arrays"))
+                    return setError();
+
                 // Lower to object.__cmp(e1, e2)
                 Expression al = new IdentifierExp(exp.loc, Id.empty);
                 al = new DotIdExp(exp.loc, al, Id.object);
@@ -10654,6 +10663,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             // For e1 and e2 of struct type, lowers e1 == e2 to object.__equals(e1, e2)
             // and e1 != e2 to !(object.__equals(e1, e2)).
+
+            if (!verifyHookExist(exp.loc, *sc, Id.__equals, "equal checks on arrays"))
+                return setError();
 
             Expression __equals = new IdentifierExp(exp.loc, Id.empty);
             Identifier id = Identifier.idPool("__equals");
@@ -11747,4 +11759,25 @@ VarDeclaration makeThis2Argument(const ref Loc loc, Scope* sc, FuncDeclaration f
     // add `fd` to the nested refs
     vthis2.nestedrefs.push(fd);
     return vthis2;
+}
+
+/*******************************
+ * Make sure that the runtime hook `id` exists.
+ * Params:
+ *      loc = location to use for error messages
+ *      sc = current scope
+ *      id = the hook identifier
+ *      description = what the hook does
+ *      module_ = what module the hook is located in
+ * Returns:
+ *      a `bool` indicating if the hook is present.
+ */
+bool verifyHookExist(const ref Loc loc, ref Scope sc, Identifier id, string description, Identifier module_ = Id.object)
+{
+    auto rootSymbol = sc.search(loc, Id.empty, null);
+    if (auto moduleSymbol = rootSymbol.search(loc, module_))
+        if (moduleSymbol.search(loc, id))
+          return true;
+    error(loc, "`%s.%s` not found. The current runtime does not support %.*s, or the runtime is corrupt.", module_.toChars(), id.toChars(), cast(int)description.length, description.ptr);
+    return false;
 }
