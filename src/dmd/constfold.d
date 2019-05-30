@@ -938,7 +938,7 @@ UnionExp Identity(TOK op, const ref Loc loc, Type type, Expression e1, Expressio
         SymOffExp es2 = cast(SymOffExp)e2;
         cmp = (es1.var == es2.var && es1.offset == es2.offset);
     }
-    else if (e1.op == TOKstructliteral && e2.op == TOKstructliteral)
+    else if (e1.op == TOK.structLiteral && e2.op == TOK.structLiteral)
     {
         StructLiteralExp es1 = cast(StructLiteralExp)e1;
         StructLiteralExp es2 = cast(StructLiteralExp)e2;
@@ -967,8 +967,8 @@ UnionExp Identity(TOK op, const ref Loc loc, Type type, Expression e1, Expressio
                     cmp = 0;
                     break;
                 }
-                ue = Identity(TOKequal, loc, Type.tint32, ee1, ee2);
-                if (ue.exp().op == TOKcantexp)
+                ue = Identity(TOK.equal, loc, Type.tint32, ee1, ee2);
+                if (ue.exp().op == TOK.cantExpression)
                     return ue;
                 cmp = cast(int)ue.exp().toInteger();
                 if (cmp == 0)
@@ -984,10 +984,10 @@ UnionExp Identity(TOK op, const ref Loc loc, Type type, Expression e1, Expressio
     }
     else
     {
-        ue = Equal((op == TOKidentity) ? TOKequal : TOKnotequal, loc, type, e1, e2);
+        ue = Equal((op == TOK.identity) ? TOK.equal : TOK.notEqual, loc, type, e1, e2);
         return ue;
     }
-    if (op == TOKnotidentity)
+    if (op == TOK.notIdentity)
         cmp ^= 1;
     emplaceExp!(IntegerExp)(&ue, loc, cmp, type);
     return ue;

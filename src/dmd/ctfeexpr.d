@@ -1409,7 +1409,7 @@ int ctfeIdentity(const ref Loc loc, TOK op, Expression e1, Expression e2)
         complex_t v2 = e2.toComplex();
         cmp = RealEquals(creall(v1), creall(v2)) && RealEquals(cimagl(v1), cimagl(v1));
     }
-    else if (e1.op == TOKstructliteral)
+    else if (e1.op == TOK.structLiteral)
     {
         StructLiteralExp es1 = cast(StructLiteralExp)e1;
         StructLiteralExp es2 = cast(StructLiteralExp)e2;
@@ -1438,7 +1438,7 @@ int ctfeIdentity(const ref Loc loc, TOK op, Expression e1, Expression e2)
                     cmp = 0;
                     break;
                 }
-                if (!ctfeIdentity(loc, TOKidentity, ee1, ee2))
+                if (!ctfeIdentity(loc, TOK.identity, ee1, ee2))
                 {
                     cmp = 0;
                     break;

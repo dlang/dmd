@@ -2579,7 +2579,7 @@ elem *toElem(Expression e, IRState *irs)
                 // we can skip the compare if the structs are empty
                 e = el_long(TYbool, ie.op == TOK.identity);
             }
-            else if (t1.ty == Tcomplex80 && Target.realpad != 0)
+            else if (t1.ty == Tcomplex80 && target.realpad != 0)
             {
                 /* creal has padding in the middle on some platforms,
                  * so do identity comparison on real and imaginary parts
@@ -2594,17 +2594,17 @@ elem *toElem(Expression e, IRState *irs)
 
                 elem *e1a = addressElem(ed1, Type.tcomplex80);
                 elem *e2a = addressElem(ed2, Type.tcomplex80);
-                elem *ecount1 = el_long(TYsize_t, Target.realsize - Target.realpad);
+                elem *ecount1 = el_long(TYsize_t, target.realsize - target.realpad);
                 elem *ec1 = el_bin(OPmemcmp, TYint, el_param(e1a, e2a), ecount1);
                 ec1 = el_bin(eop, TYint, ec1, el_long(TYint, 0));
 
-                e1a = el_bin(OPadd, e1a.Ety, addressElem(el_var(s1), Type.tcomplex80), el_long(TYsize_t, Target.realsize));
-                e2a = el_bin(OPadd, e2a.Ety, addressElem(el_var(s2), Type.tcomplex80), el_long(TYsize_t, Target.realsize));
-                elem *ecount2 = el_long(TYsize_t, Target.realsize - Target.realpad);
+                e1a = el_bin(OPadd, e1a.Ety, addressElem(el_var(s1), Type.tcomplex80), el_long(TYsize_t, target.realsize));
+                e2a = el_bin(OPadd, e2a.Ety, addressElem(el_var(s2), Type.tcomplex80), el_long(TYsize_t, target.realsize));
+                elem *ecount2 = el_long(TYsize_t, target.realsize - target.realpad);
                 elem *ec2 = el_bin(OPmemcmp, TYint, el_param(e1a, e2a ), ecount2);
                 ec2 = el_bin(eop, TYint, ec2, el_long(TYint, 0));
 
-                OPER xop = (ie.op == TOKidentity) ? OPandand : OPoror;
+                OPER xop = (ie.op == TOK.identity) ? OPandand : OPoror;
 
                 e = el_bin(xop, TYint, ec1, ec2);
                 elem_setLoc(e, ie.loc);
@@ -2619,7 +2619,7 @@ elem *toElem(Expression e, IRState *irs)
                 e = el_param(es1, es2);
                 elem *ecount;
                 if (t1.ty == Tfloat80 || t1.ty == Timaginary80)
-                    ecount = el_long(TYsize_t, t1.size() - Target.realpad);
+                    ecount = el_long(TYsize_t, t1.size() - target.realpad);
                 else
                     ecount = el_long(TYsize_t, t1.size());
                 e = el_bin(OPmemcmp, TYint, e, ecount);
