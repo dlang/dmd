@@ -81,7 +81,7 @@ extern (C++) final class Nspace : ScopeDsymbol
             sc = sc.push(this);
             sc.linkage = LINK.cpp; // namespaces default to C++ linkage
             sc.parent = this;
-            members.foreachDsymbol(s => s.addMember(sc, this));
+            members.foreachDsymbol(s => s.addMember(sc, mangleOnly ? sds : this));
             sc.pop();
         }
     }
