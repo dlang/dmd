@@ -1,0 +1,7 @@
+Windows: The mingw based runtime and platform import libraries can now be selected explicitly
+
+When specifying `-mscrtlib=msvcrt100` explicitly on the command line to dmd, detection
+of a Visual Studio installation is skipped and the redistributable
+VC2010 dynamic runtime library and mingw based platform import libraries will be used
+unconditionally. The LLD linker (provided by the LLVM project) will be invoked
+instead of the Microsoft linker.

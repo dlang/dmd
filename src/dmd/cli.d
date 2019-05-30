@@ -507,13 +507,18 @@ dmd -cov -unittest myprog.d
         Option("mixin=<filename>",
             "expand and save mixins to file specified by <filename>"
         ),
-        Option("mscrtlib=<name>",
+        Option("mscrtlib=<libname>",
             "MS C runtime library to reference from main/WinMain/DllMain",
             "If building MS-COFF object files with -m64 or -m32mscoff, embed a reference to
             the given C runtime library $(I libname) into the object file containing `main`,
             `DllMain` or `WinMain` for automatic linking. The default is $(TT libcmt)
             (release version with static linkage), the other usual alternatives are
             $(TT libcmtd), $(TT msvcrt) and $(TT msvcrtd).
+            If no Visual C installation is detected, a wrapper for the redistributable
+            VC2010 dynamic runtime library and mingw based platform import libraries will
+            be linked instead using the LLD linker provided by the LLVM project.
+            The detection can be skipped explicitly if $(TT msvcrt100) is specified as
+            $(I libname).
             If $(I libname) is empty, no C runtime library is automatically linked in.",
             TargetOS.windows,
         ),

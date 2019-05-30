@@ -251,7 +251,11 @@ public int runLINK()
             }
 
             VSOptions vsopt;
-            vsopt.initialize();
+            // if a runtime library (msvcrtNNN.lib) from the mingw folder is selected explicitly, do not detect VS and use lld
+            if (global.params.mscrtlib.length <= 6 ||
+                global.params.mscrtlib[0..6] != "msvcrt" || !isdigit(global.params.mscrtlib[6]))
+                vsopt.initialize();
+
             const(char)* lflags = vsopt.linkOptions(global.params.is64bit);
             if (lflags)
             {
