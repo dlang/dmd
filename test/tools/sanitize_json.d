@@ -57,25 +57,25 @@ string capitalize(string s)
 
 void sanitize(JSONValue root)
 {
-    if (root.type == JSON_TYPE.ARRAY)
+    if (root.type == JSONType.array)
     {
         sanitizeSyntaxNode(root);
     }
     else
     {
-        assert(root.type == JSON_TYPE.OBJECT);
+        assert(root.type == JSONType.object);
         auto rootObject = root.object;
         static foreach (name; ["compilerInfo", "buildInfo", "semantics"])
         {{
             auto node = rootObject.get(name, JSONValue.init);
-            if (node.type != JSON_TYPE.NULL)
+            if (node.type != JSONType.null_)
             {
                 mixin("sanitize" ~ name.capitalize ~ "(node.object);");
             }
         }}
         {
             auto modules = rootObject.get("modules", JSONValue.init);
-            if (modules.type != JSON_TYPE.NULL)
+            if (modules.type != JSONType.null_)
             {
                 sanitizeSyntaxNode(modules);
             }
@@ -85,12 +85,12 @@ void sanitize(JSONValue root)
 
 void removeString(JSONValue* value)
 {
-    assert(value.type == JSON_TYPE.STRING || value.type == JSON_TYPE.NULL);
+    assert(value.type == JSONType.string || value.type == JSONType.null_);
     *value = JSONValue("VALUE_REMOVED_FOR_TEST");
 }
 void removeNumber(JSONValue* value)
 {
-    assert(value.type == JSON_TYPE.INTEGER || value.type == JSON_TYPE.UINTEGER);
+    assert(value.type == JSONType.integer || value.type == JSONType.uinteger);
     *value = JSONValue(0);
 }
 void removeStringIfExists(JSONValue* value)
@@ -100,7 +100,7 @@ void removeStringIfExists(JSONValue* value)
 }
 void removeArray(JSONValue* value)
 {
-    assert(value.type == JSON_TYPE.ARRAY);
+    assert(value.type == JSONType.array);
     *value = JSONValue([JSONValue("VALUES_REMOVED_FOR_TEST")]);
 }
 
@@ -133,14 +133,14 @@ void sanitizeBuildInfo(ref JSONValue[string] buildInfo)
 }
 void sanitizeSyntaxNode(ref JSONValue value)
 {
-    if (value.type == JSON_TYPE.ARRAY)
+    if (value.type == JSONType.array)
     {
         foreach (ref element; value.array)
         {
             sanitizeSyntaxNode(element);
         }
     }
-    else if(value.type == JSON_TYPE.OBJECT)
+    else if(value.type == JSONType.object)
     {
         foreach (name; value.object.byKey)
         {
@@ -159,9 +159,9 @@ void sanitizeSyntaxNode(ref JSONValue value)
 string getOptionalString(ref JSONValue[string] obj, string name)
 {
     auto node = obj.get(name, JSONValue.init);
-    if (node.type == JSON_TYPE.NULL)
+    if (node.type == JSONType.null_)
         return null;
-    assert(node.type == JSON_TYPE.STRING, format("got %s where STRING was expected", node.type));
+    assert(node.type == JSONType.string, format("got %s where STRING was expected", node.type));
     return node.str;
 }
 
