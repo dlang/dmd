@@ -145,9 +145,12 @@ fail_compilation_tests=$(fail_compilation_tests_long) \
 		    $(wildcard fail_compilation/*.html)
 fail_compilation_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(fail_compilation_tests)))
 
+dshell_tests=$(wildcard dshell/*.d)
+dshell_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(dshell_tests)))
+
 all: run_tests
 
-test_tools=$(RESULTS_DIR)/d_do_test$(EXE) $(RESULTS_DIR)/sanitize_json$(EXE)
+test_tools=$(RESULTS_DIR)/d_do_test$(EXE) $(RESULTS_DIR)/dshell_prebuilt$(OBJ) $(RESULTS_DIR)/sanitize_json$(EXE)
 
 $(RESULTS_DIR)/%.out: % $(RESULTS_DIR)/.created $(test_tools) $(DMD)
 	$(QUIET) $(RESULTS_DIR)/d_do_test $<
@@ -165,9 +168,10 @@ $(RESULTS_DIR)/.created:
 	$(QUIET)if [ ! -d $(RESULTS_DIR)/runnable ]; then mkdir $(RESULTS_DIR)/runnable; fi
 	$(QUIET)if [ ! -d $(RESULTS_DIR)/compilable ]; then mkdir $(RESULTS_DIR)/compilable; fi
 	$(QUIET)if [ ! -d $(RESULTS_DIR)/fail_compilation ]; then mkdir $(RESULTS_DIR)/fail_compilation; fi
+	$(QUIET)if [ ! -d $(RESULTS_DIR)/dshell ]; then mkdir $(RESULTS_DIR)/dshell; fi
 	$(QUIET)touch $(RESULTS_DIR)/.created
 
-run_tests: unit_tests start_runnable_tests start_compilable_tests start_fail_compilation_tests
+run_tests: unit_tests start_runnable_tests start_compilable_tests start_fail_compilation_tests start_dshell_tests
 
 unit_tests: $(RESULTS_DIR)/unit_test_runner$(EXE)
 	@echo "Running unit tests"
@@ -191,7 +195,13 @@ start_fail_compilation_tests: $(RESULTS_DIR)/.created $(test_tools)
 	@echo "Running fail compilation tests"
 	$(QUIET)$(MAKE) $(DMD_TESTSUITE_MAKE_ARGS) --no-print-directory run_fail_compilation_tests
 
-run_all_tests: unit_tests run_runnable_tests run_compilable_tests run_fail_compilation_tests
+run_dshell_tests: $(dshell_test_results)
+
+start_dshell_tests: $(RESULTS_DIR)/.created $(test_tools)
+	@echo "Running dshell tests"
+	$(QUIET)$(MAKE) $(DMD_TESTSUITE_MAKE_ARGS) --no-print-directory run_dshell_tests
+
+run_all_tests: unit_tests run_runnable_tests run_compilable_tests run_fail_compilation_tests run_dshell_tests
 
 start_all_tests: $(RESULTS_DIR)/.created
 	$(QUIET)$(MAKE) $(DMD_TESTSUITE_MAKE_ARGS) --no-print-directory $(test_tools)
@@ -207,6 +217,9 @@ $(RESULTS_DIR)/d_do_test$(EXE): tools/d_do_test.d $(RESULTS_DIR)/.created
 	@pid=$!
 	$(DMD) -conf= $(MODEL_FLAG) $(DEBUG_FLAGS) -lowmem -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)d_do_test$(EXE) $<
 	@wait $(pid)
+
+$(RESULTS_DIR)/dshell_prebuilt$(OBJ): tools/dshell_prebuilt/dshell_prebuilt.d
+	$(DMD) -conf= $(MODEL_FLAG) -of$(RESULTS_DIR)/dshell_prebuilt$(OBJ) -c $< $(PIC_FLAG)
 
 $(RESULTS_DIR)/sanitize_json$(EXE): tools/sanitize_json.d $(RESULTS_DIR)/.created
 	@echo "Building sanitize_json tool"
