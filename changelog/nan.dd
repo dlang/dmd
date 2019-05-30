@@ -1,0 +1,19 @@
+Floating point types now use a quiet nan as the .init value
+
+Prior to this release, `float.init`, `double.init` and `real.init` used a
+signalling nan. They now use a quiet nan, which is the same as the corresponding
+`.nan` value.
+
+Old behaviour:
+---
+double a = double.init, b = double.nan;
+writefln("%x",*cast(ulong*)&a); // 7ff4000000000000
+writefln("%x",*cast(ulong*)&b); // 7ff8000000000000
+---
+
+New behaviour:
+---
+double a = double.init, b = double.nan;
+writefln("%x",*cast(ulong*)&a); // 7ff8000000000000
+writefln("%x",*cast(ulong*)&b); // 7ff8000000000000
+---
