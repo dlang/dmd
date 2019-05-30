@@ -3872,28 +3872,28 @@ void test3632()
 
         // Struct identity
         assert( (nan is nan2));
-        assert(!(nan is init2));
+        assert( (nan is init2));
         assert( (init is init2));
         assert( (zero is zero2));
         assert(!(zero is nzero2));
 
         // Float identity
         assert( (nan.f is nan2.f));
-        assert(!(nan.f is init2.f));
+        assert( (nan.f is init2.f));
         assert( (init.f is init2.f));
         assert( (zero.f is zero2.f));
         assert(!(zero.f is nzero2.f));
 
         // Struct !identity
         assert(!(nan !is nan2));
-        assert( (nan !is init2));
+        assert( (nan  is init2));
         assert(!(init !is init2));
         assert(!(zero !is zero2));
         assert( (zero !is nzero2));
 
         // float !identity
         assert(!(nan.f !is nan2.f));
-        assert( (nan.f !is init2.f));
+        assert( (nan.f is init2.f));
         assert(!(init.f !is init2.f));
         assert(!(zero.f !is zero2.f));
         assert( (zero.f !is nzero2.f));
