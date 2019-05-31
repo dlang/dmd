@@ -469,7 +469,6 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
             }
         }
     }
-end:
     fflush(stderr);     // ensure it gets written out in case of compiler aborts
 }
 

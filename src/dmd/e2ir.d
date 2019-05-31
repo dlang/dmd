@@ -5677,7 +5677,6 @@ private elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol
              *  S s = {f2:x, f3:y};     // filled holes: 2..8 and 12..16
              */
             size_t vend = sle.sd.fields.dim;
-        Lagain:
             size_t holeEnd = structsize;
             size_t offset2 = structsize;
             foreach (j; i + 1 .. vend)

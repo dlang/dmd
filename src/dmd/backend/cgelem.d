@@ -1111,8 +1111,6 @@ Lneg:
 
 private elem * elmin(elem *e, goal_t goal)
 {
-
-L1:
     elem *e2 = e.EV.E2;
 
     if (OPTIMIZER)
@@ -3662,7 +3660,6 @@ static if (0)
 
         if (op2 == OPneg && el_match(e1,e2.EV.E1) && !el_sideeffect(e1))
         {
-        Ldef:
             // Replace (i = -i) with (negass i)
             e.Eoper = OPnegass;
             e.EV.E2 = null;
@@ -4125,7 +4122,6 @@ private elem * elcmp(elem *e, goal_t goal)
 
   //printf("elcmp(%p)\n",e); elem_print(e);
 
-L1:
     if (OPTIMIZER)
     {
         auto op = e.Eoper;
@@ -5701,7 +5697,6 @@ beg:
         }
   }
 
-L1:
 //  if (debugb)
 //  {   print("optelem: %p ",e); WROP(op); print("\n"); }
 

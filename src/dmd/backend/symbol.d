@@ -654,9 +654,7 @@ debug
    }
    /* not in table, so insert into table        */
    *parent = s;                         /* link new symbol into tree    */
-L1:
 }
-
 }
 
 /*************************************

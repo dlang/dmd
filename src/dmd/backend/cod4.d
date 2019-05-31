@@ -2071,7 +2071,6 @@ void cdcmp(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         default:
         L2:
             scodelem(cdb,e1,&retregs,0,true);      // compute left leaf
-        L1:
             rretregs = allregs & ~retregs;
             if (isbyte)
                 rretregs &= BYTEREGS;

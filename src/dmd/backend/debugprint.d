@@ -443,7 +443,6 @@ version (MARS)
             case BC_ret:
             case BC_except:
 
-            Lsucc:
                 if (bl)
                 {
                     printf("\tBsucc:");

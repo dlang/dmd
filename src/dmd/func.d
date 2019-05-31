@@ -888,7 +888,6 @@ extern (C++) class FuncDeclaration : Declaration
             if (m.lastf.overrides(f)) goto LlastIsBetter;
             if (f.overrides(m.lastf)) goto LcurrIsBetter;
 
-        Lambiguous:
             //printf("\tambiguous\n");
             m.nextf = f;
             m.count++;
@@ -3970,4 +3969,3 @@ extern (C++) final class DeleteDeclaration : FuncDeclaration
         v.visit(this);
     }
 }
-

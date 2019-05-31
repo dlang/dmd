@@ -220,7 +220,6 @@ version (SCPP)
                 /* A block of zeros
                  */
                 //printf("DT_azeros %d\n", dt.DTazeros);
-            case_azeros:
                 datasize += dt.DTazeros;
                 if (dt == dtstart && !dt.DTnext && s.Sclass != SCcomdat &&
                     (s.Sseg == UNKNOWN || s.Sseg <= UDATA))
