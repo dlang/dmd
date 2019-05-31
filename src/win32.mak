@@ -49,14 +49,12 @@
 ############################### Configuration ################################
 
 # fixed model for win32.mak, overridden by win64.mak
-MODEL=32
+MODEL=32mscoff
 BUILD=release
 OS=windows
 
 ##### Directories
 
-# DMC directory
-DMCROOT=$(DM_HOME)\dm
 # DMD source directories
 D=dmd
 C=$D\backend
@@ -83,7 +81,7 @@ TOOLS_DIR=..\..\tools
 # Make program
 MAKE=make
 # Librarian
-LIB=lib
+LIB=vcbuild\msvc-lib
 # Delete file(s)
 DEL=del
 # Make directory
