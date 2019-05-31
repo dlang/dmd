@@ -2,7 +2,7 @@ A new syntax is available to declare an alias to a function type
 
 It's now possible to declare an alias to a function type using the `alias` syntax based on the assignment operator.
 The declaration consists of the return type, followed by parameters and ends with optional (member) function attributes. See the
-$(GLINK2 https://dlang.org/spec/grammar.html#AliasDeclarationY, AliasDeclarationY) rule for more details.
+$(GLINK2 https://dlang.org/spec/grammar.html, AliasDeclarationY) rule for more details.
 
 Example:
 
