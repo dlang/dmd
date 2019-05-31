@@ -21,6 +21,7 @@ import core.stdc.math;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
+static import core.bitop;
 
 //#if _MSC_VER
 //#define isnan _isnan
@@ -1721,10 +1722,7 @@ else
         e.EV.Vlong = i1 & 1;
         break;
     case OPbswap:
-        e.EV.Vint = ((i1 >> 24) & 0x000000FF) |
-                    ((i1 >>  8) & 0x0000FF00) |
-                    ((i1 <<  8) & 0x00FF0000) |
-                    ((i1 << 24) & 0xFF000000);
+        e.EV.Vint = core.bitop.bswap(cast(uint) i1);
         break;
 
     case OPpopcnt:
@@ -1738,14 +1736,7 @@ else
             case 8:     break;
             default:    assert(0);
         }
-
-        int popcnt = 0;
-        while (l1)
-        {   // Not efficient, but don't need efficiency here
-            popcnt += (l1 & 1);
-            l1 = cast(targ_ullong)l1 >> 1;  // shift is unsigned
-        }
-        e.EV.Vllong = popcnt;
+        e.EV.Vllong = core.bitop.popcnt(cast(ulong) l1);
         break;
     }
 
