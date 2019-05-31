@@ -1248,7 +1248,12 @@ private extern(C++) final class Semantic3Visitor : Visitor
         // reset deco to apply inference result to mangled name
         if (f != funcdecl.type)
             f.deco = null;
-
+        if (auto ad1 = funcdecl.isThis())
+        {
+            auto cad = ad1.isClassDeclaration();
+            if  (cad !is null && cad.isAbstract() && !fbody)
+                storage_class |= STCabstract;
+        }
         // Do semantic type AFTER pure/nothrow inference.
         if (!f.deco && funcdecl.ident != Id.xopEquals && funcdecl.ident != Id.xopCmp)
         {
