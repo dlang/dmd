@@ -1,0 +1,8 @@
+Turn deprecation into error for some invalid integer literals.
+
+With this release DMD will issue an error when some invalid integer literals like `0b` or `0x` are used. Example:
+
+---
+auto a = 0b;  // Error: `0b` isn't a valid integer literal, use `0b0` instead
+auto a = 0x;  // Error: `0x` isn't a valid integer literal, use `0x0` instead
+---
