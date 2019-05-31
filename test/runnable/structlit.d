@@ -1,3 +1,11 @@
+/*
+TEST_OUTPUT:
+---
+runnable/structlit.d(1306): Deprecation: constructor `structlit.test11256.F11256!((gv) => true).F11256.this` all parameters have default arguments, but structs cannot have default constructors.
+runnable/structlit.d(1306): Deprecation: constructor `structlit.test11256.F11256!((gv) => true).F11256.this` all parameters have default arguments, but structs cannot have default constructors.
+runnable/structlit.d(1306): Deprecation: constructor `structlit.test11256.F11256!((gv) => true).F11256.this` all parameters have default arguments, but structs cannot have default constructors.
+---
+*/
 import std.stdio;
 
 struct S

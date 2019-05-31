@@ -1,4 +1,11 @@
 // REQUIRED_ARGS:
+/*
+TEST_OUTPUT:
+---
+runnable/nested.d(800): Deprecation: `extern(Pascal)` is deprecated. You might want to use `extern(Windows)` instead.
+null
+---
+*/
 
 import core.stdc.stdio;
 

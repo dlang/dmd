@@ -1,4 +1,44 @@
 // PERMUTE_ARGS: -unittest -O -release -inline -fPIC -g
+/*
+TEST_OUTPUT:
+---
+Boo!double
+Boo!int
+true
+int
+!! immutable(int)[]
+int(int i, long j = 7L)
+long
+C10390(C10390(<recursion>))
+tuple(height)
+tuple(get, get)
+tuple(clear)
+tuple(draw, draw)
+runnable/xtest46.d(179): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(181): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(182): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(184): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(211): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(213): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(214): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(216): Deprecation: `opDot` is deprecated. Use `alias this`
+const(int)
+string[]
+double[]
+double[]
+{}
+tuple("m")
+true
+TFunction1: extern (C) void function()
+f
+toString
+toHash
+opCmp
+opEquals
+Monitor
+factory
+---
+*/
 
 //import std.stdio;
 import core.stdc.stdio;
@@ -7387,7 +7427,7 @@ void test13476()
 // https://issues.dlang.org/show_bug.cgi?id=14038
 
 static immutable ubyte[string] wordsAA14038;
-static this()
+shared static this()
 {
     wordsAA14038["zero"] = 0;
 }

@@ -1,3 +1,14 @@
+/*
+TEST_OUTPUT:
+---
+int delegate() pure nothrow @nogc @safe delegate() pure nothrow @nogc @safe delegate() pure nothrow @safe
+int delegate() pure nothrow @nogc @safe delegate() pure nothrow @nogc @safe delegate() pure nothrow @safe
+int
+int
+int[]
+int delegate() pure nothrow @nogc @safe function() pure nothrow @safe
+---
+*/
 import core.vararg;
 
 extern (C) int printf(const char*, ...);

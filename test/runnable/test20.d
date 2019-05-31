@@ -1,3 +1,9 @@
+/*
+TEST_OUTPUT:
+---
+runnable/test20.d(448): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+---
+*/
 import core.vararg;
 
 extern(C) int printf(const char*, ...);
@@ -213,7 +219,7 @@ void test10()
 
 /*****************************************/
 
-scope class T11
+class T11
 {
     this(){}
     ~this(){}
@@ -1287,4 +1293,3 @@ int main()
     printf("Success\n");
     return 0;
 }
-

@@ -1,3 +1,9 @@
+/*
+TEST_OUTPUT:
+---
+Object
+---
+*/
 
 module test34;
 

@@ -1,3 +1,17 @@
+/*
+TEST_OUTPUT:
+---
+false
+[] = int
+[] = string
+[0] = int
+[1] = string
+[] = string
+[] = int
+[1] = string
+[0] = int
+---
+*/
 
 extern (C) int printf(const(char*) fmt, ...);
 import core.vararg;

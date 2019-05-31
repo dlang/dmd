@@ -1,5 +1,10 @@
-// REQUIRED_ARGS:
-// EXTRA_FILES: extra-files/test15.txt
+/*
+REQUIRED_ARGS:
+EXTRA_FILES: extra-files/test15.txt
+TEST_OUTPUT:
+---
+---
+*/
 
 import std.array;
 import core.stdc.math : cos, fabs, sin, sqrt;

@@ -1,5 +1,19 @@
 // PERMUTE_ARGS: -unittest -O -release -inline -fPIC -g
 // REQUIRED_ARGS: -preview=dtorfields
+/*
+TEST_OUTPUT:
+---
+runnable/sdtor.d(36): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/sdtor.d(59): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/sdtor.d(93): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/sdtor.d(117): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/sdtor.d(143): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/sdtor.d(177): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/sdtor.d(203): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/sdtor.d(276): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+S7353
+---
+*/
 
 import core.vararg;
 
