@@ -367,7 +367,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     // Predefined version identifiers
     addDefaultVersionIdentifiers(params);
 
-    setDefaultLibrary();
+    setDefaultLibrary(files);
 
     // Initialization
     Type._init();
@@ -1103,11 +1103,32 @@ const(char)[] parse_conf_arg(Strings* args)
  * override any value.
  * Note that if `-defaultlib=` or `-debuglib=` was used,
  * we don't override that either.
+ * If no defaultlib is set, Will first check for `_defaultlibconf.d` in the linker search paths.
+ * If found, this function will only add that file to the given `files` array and
+ * no library will be set.  This is because in that case, the standard libraries
+ * will be added via pragmas in `_defaultlibconf.d`.
+ * Params:
+ *      files = the list of files from the command-line
  */
-private void setDefaultLibrary()
+private void setDefaultLibrary(ref Strings files)
 {
     if (global.params.defaultlibname is null)
     {
+        foreach (p; global.params.linkswitches)
+        {
+            if (p[0] != '-' || p[1] != 'L')
+                continue;
+            auto candidate = FileName.combine(&p[2], "_defaultlibconf.d");
+            if (FileName.exists(candidate))
+            {
+                if (global.params.verbose)
+                    message("defaultlibconf %s", candidate);
+                files.push(candidate);
+                return; // don't set any libraries
+            }
+            mem.xfree(cast(void*)candidate);
+        }
+
         static if (TARGET.Windows)
         {
             if (global.params.is64bit)
