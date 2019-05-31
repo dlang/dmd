@@ -152,7 +152,7 @@ unittest
      */
     string text = "int"; // We rely on the implicit null-terminator
     scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-    scope Lexer lex1 = new Lexer(null, text.ptr, 0, text.length, 0, 0, diagnosticReporter);
+    Lexer lex1 = Lexer(null, text.ptr, 0, text.length, 0, 0, diagnosticReporter);
     TOK tok;
     tok = lex1.nextToken();
     //printf("tok == %s, %d, %d\n", Token::toChars(tok), tok, TOK.int32);
@@ -188,7 +188,7 @@ unittest
     foreach (testcase; testcases)
     {
         scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-        scope Lexer lex2 = new Lexer(null, testcase.ptr, 0, testcase.length-1, 0, 0, diagnosticReporter);
+        Lexer lex2 = Lexer(null, testcase.ptr, 0, testcase.length-1, 0, 0, diagnosticReporter);
         TOK tok = lex2.nextToken();
         size_t iterations = 1;
         while ((tok != TOK.endOfFile) && (iterations++ < testcase.length))
@@ -203,7 +203,7 @@ unittest
 
 /***********************************************************
  */
-class Lexer
+struct Lexer
 {
     private __gshared OutBuffer stringbuffer;
 
@@ -213,6 +213,8 @@ class Lexer
     const(char)* p;         // current character
 
     Token token;
+    
+    package DiagnosticReporter diagnosticReporter;
 
     private
     {
@@ -225,7 +227,6 @@ class Lexer
         bool commentToken;      // comments are TOK.comment's
         int lastDocLine;        // last line of previous doc comment
 
-        DiagnosticReporter diagnosticReporter;
         Token* tokenFreelist;
     }
 
@@ -292,7 +293,7 @@ class Lexer
     }
 
     /// Returns: `true` if any errors occurred during lexing or parsing.
-    final bool errors()
+    bool errors()
     {
         return diagnosticReporter.errorCount > 0;
     }
@@ -317,7 +318,7 @@ class Lexer
         tokenFreelist = token;
     }
 
-    final TOK nextToken()
+    TOK nextToken()
     {
         prevloc = token.loc;
         if (token.next)
@@ -337,7 +338,7 @@ class Lexer
     /***********************
      * Look ahead at next token's value.
      */
-    final TOK peekNext()
+    TOK peekNext()
     {
         return peek(&token).value;
     }
@@ -345,7 +346,7 @@ class Lexer
     /***********************
      * Look 2 tokens ahead at value.
      */
-    final TOK peekNext2()
+    TOK peekNext2()
     {
         Token* t = peek(&token);
         return peek(t).value;
@@ -354,7 +355,7 @@ class Lexer
     /****************************
      * Turn next token in buffer into a token.
      */
-    final void scan(Token* t)
+    void scan(Token* t)
     {
         const lastLine = scanloc.linnum;
         Loc startLoc;
@@ -1099,7 +1100,7 @@ class Lexer
         }
     }
 
-    final Token* peek(Token* ct)
+    Token* peek(Token* ct)
     {
         Token* t;
         if (ct.next)
@@ -1117,7 +1118,7 @@ class Lexer
      * tk is on the opening (.
      * Look ahead and return token that is past the closing ).
      */
-    final Token* peekPastParen(Token* tk)
+    Token* peekPastParen(Token* tk)
     {
         //printf("peekPastParen()\n");
         int parens = 1;
@@ -2280,13 +2281,13 @@ class Lexer
         return result;
     }
 
-    final Loc loc()
+    Loc loc()
     {
         scanloc.charnum = cast(uint)(1 + p - line);
         return scanloc;
     }
 
-    final void error(const(char)* format, ...)
+    void error(const(char)* format, ...)
     {
         va_list args;
         va_start(args, format);
@@ -2294,7 +2295,7 @@ class Lexer
         va_end(args);
     }
 
-    final void error(const ref Loc loc, const(char)* format, ...)
+    void error(const ref Loc loc, const(char)* format, ...)
     {
         va_list args;
         va_start(args, format);
@@ -2302,7 +2303,7 @@ class Lexer
         va_end(args);
     }
 
-    final void errorSupplemental(const ref Loc loc, const(char)* format, ...)
+    void errorSupplemental(const ref Loc loc, const(char)* format, ...)
     {
         va_list args;
         va_start(args, format);
@@ -2310,7 +2311,7 @@ class Lexer
         va_end(args);
     }
 
-    final void warning(const ref Loc loc, const(char)* format, ...)
+    void warning(const ref Loc loc, const(char)* format, ...)
     {
         va_list args;
         va_start(args, format);
@@ -2318,7 +2319,7 @@ class Lexer
         va_end(args);
     }
 
-    final void warningSupplemental(const ref Loc loc, const(char)* format, ...)
+    void warningSupplemental(const ref Loc loc, const(char)* format, ...)
     {
         va_list args;
         va_start(args, format);
@@ -2326,7 +2327,7 @@ class Lexer
         va_end(args);
     }
 
-    final void deprecation(const(char)* format, ...)
+    void deprecation(const(char)* format, ...)
     {
         va_list args;
         va_start(args, format);
@@ -2334,7 +2335,7 @@ class Lexer
         va_end(args);
     }
 
-    final void deprecation(const ref Loc loc, const(char)* format, ...)
+    void deprecation(const ref Loc loc, const(char)* format, ...)
     {
         va_list args;
         va_start(args, format);
@@ -2342,7 +2343,7 @@ class Lexer
         va_end(args);
     }
 
-    final void deprecationSupplemental(const ref Loc loc, const(char)* format, ...)
+    void deprecationSupplemental(const ref Loc loc, const(char)* format, ...)
     {
         va_list args;
         va_start(args, format);

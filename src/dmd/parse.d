@@ -271,7 +271,7 @@ private bool writeMixin(const(char)[] s, ref Loc loc)
 
 /***********************************************************
  */
-final class Parser(AST) : Lexer
+final class Parser(AST)
 {
     AST.ModuleDeclaration* md;
 
@@ -284,6 +284,8 @@ final class Parser(AST) : Lexer
         int inBrackets; // inside [] of array index or slice
         Loc lookingForElse; // location of lonely if looking for an else
     }
+    Lexer lexer;
+    alias lexer this;
 
     /*********************
      * Use this constructor for string mixins.
@@ -293,7 +295,7 @@ final class Parser(AST) : Lexer
     extern (D) this(const ref Loc loc, AST.Module _module, const(char)[] input,
         bool doDocComment, DiagnosticReporter diagnosticReporter)
     {
-        super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false, diagnosticReporter);
+        lexer = Lexer(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false, diagnosticReporter);
 
         //printf("Parser::Parser()\n");
         scanloc = loc;
@@ -315,7 +317,7 @@ final class Parser(AST) : Lexer
 
     extern (D) this(AST.Module _module, const(char)[] input, bool doDocComment, DiagnosticReporter diagnosticReporter)
     {
-        super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false, diagnosticReporter);
+        lexer = Lexer(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false, diagnosticReporter);
 
         //printf("Parser::Parser()\n");
         mod = _module;
@@ -9009,6 +9011,31 @@ final class Parser(AST) : Lexer
             s.addComment(combineComments(blockComment, token.lineComment, true));
             token.lineComment = null;
         }
+    }
+
+    import core.stdc.stdarg;
+
+    package final void error(string format, ...)
+    {
+        va_list args;
+        va_start(args, format);
+        lexer.diagnosticReporter.error(lexer.token.loc, format.ptr, args);
+        va_end(args);
+    }
+
+    package final void error(const ref Loc loc, string format, ...)
+    {
+        va_list args;
+        va_start(args, format);
+        lexer.diagnosticReporter.error(loc, format.ptr, args);
+        va_end(args);
+    }
+    private final void deprecation(const(char)* format, ...)
+    {
+        va_list args;
+        va_start(args, format);
+        lexer.diagnosticReporter.deprecation(lexer.token.loc, format, args);
+        va_end(args);
     }
 }
 
