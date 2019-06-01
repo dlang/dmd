@@ -194,12 +194,22 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             static assert(0, "fix this");
         }
     }
+
+    bool is64bit;
+    const(char)* arch = params.is64bit ? "64" : "32"; // use default
+    char[80] envsection = void;
+
+  // odd indent to keep diff minimal for now
+  bool localParseConfFile(const(char)[] inifilename)
+  {
+
     // Read the configuration file
-    const iniReadResult = global.inifilename.toCStringThen!(fn => File.read(fn.ptr));
+    const iniReadResult = inifilename.toCStringThen!(fn => File.read(fn.ptr));
+
     const inifileBuffer = iniReadResult.buffer.data;
     /* Need path of configuration file, for use in expanding @P macro
      */
-    const(char)[] inifilepath = FileName.path(global.inifilename);
+    const(char)[] inifilepath = FileName.path(inifilename);
     Strings sections;
     StringTable environment;
     environment._init(7);
@@ -207,9 +217,8 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
      * pick up any DFLAGS settings.
      */
     sections.push("Environment");
-    parseConfFile(environment, global.inifilename, inifilepath, inifileBuffer, &sections);
+    parseConfFile(environment, inifilename, inifilepath, inifileBuffer, &sections);
 
-    const(char)* arch = params.is64bit ? "64" : "32"; // use default
     arch = parse_arch_arg(&arguments, arch);
 
     // parse architecture from DFLAGS read from [Environment] section
@@ -220,20 +229,37 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         arch = parse_arch_arg(&dflags, arch);
     }
 
-    bool is64bit = arch[0] == '6';
+    is64bit = arch[0] == '6';
 
     version(Windows) // delete LIB entry in [Environment] (necessary for optlink) to allow inheriting environment for MS-COFF
         if (is64bit || strcmp(arch, "32mscoff") == 0)
             environment.update("LIB", 3).ptrvalue = null;
 
     // read from DFLAGS in [Environment{arch}] section
-    char[80] envsection = void;
     sprintf(envsection.ptr, "Environment%s", arch);
     sections.push(envsection.ptr);
-    parseConfFile(environment, global.inifilename, inifilepath, inifileBuffer, &sections);
+    parseConfFile(environment, inifilename, inifilepath, inifileBuffer, &sections);
     getenv_setargv(readFromEnv(environment, "DFLAGS"), &arguments);
     updateRealEnvironment(environment);
     environment.reset(1); // don't need environment cache any more
+    return iniReadResult.success;
+
+  }
+    localParseConfFile(global.inifilename);
+
+    // check if there are more conf files, parse them and add their arguments as well
+    for (size_t i = 1; i < arguments.dim; i++)
+    {
+        const(char)* p = arguments[i];
+        if (startsWith(p, "-addconf="))
+        {
+            if (!localParseConfFile((p + 9).toDString))
+            {
+                error(Loc.initial, "failed to read file from '%s'\n", p);
+                return EXIT_FAILURE;
+            }
+        }
+    }
 
     if (parseCommandLine(arguments, argc, params, files))
     {
@@ -1405,6 +1431,24 @@ extern(C) void flushMixins()
     global.params.mixinOut = null;
 }
 
+/********************************
+ * Params:
+ *  p = 0 terminated string
+ *  s = string
+ * Returns:
+ *  true if `p` starts with `s`
+ */
+static pure bool startsWith(const(char)* p, string s)
+{
+    foreach (const c; s)
+    {
+        if (c != *p)
+            return false;
+        ++p;
+    }
+    return true;
+}
+
 /****************************************************
  * Parse command line arguments.
  *
@@ -1448,24 +1492,6 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             value = addu(value, d, overflow);
         }
         return (overflow || value > max || *p) ? uint.max : value;
-    }
-
-    /********************************
-     * Params:
-     *  p = 0 terminated string
-     *  s = string
-     * Returns:
-     *  true if `p` starts with `s`
-     */
-    static pure bool startsWith(const(char)* p, string s)
-    {
-        foreach (const c; s)
-        {
-            if (c != *p)
-                return false;
-            ++p;
-        }
-        return true;
     }
 
     /**
@@ -1711,6 +1737,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 params.color = true;
         }
         else if (startsWith(p + 1, "conf=")) // https://dlang.org/dmd.html#switch-conf
+        {
+            // ignore, already handled above
+        }
+        else if (startsWith(p + 1, "addconf=")) // https://dlang.org/dmd.html#switch-addconf
         {
             // ignore, already handled above
         }

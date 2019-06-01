@@ -169,10 +169,10 @@ auto dmdConf()
         exportDynamic = " -L--export-dynamic";
 
     auto conf = `[Environment32]
-DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../../../phobos/generated/{OS}/{BUILD}/32{exportDynamic}
+DFLAGS=-addconf=%@P%/../../../../../phobos/generated/{OS}/{BUILD}/32/defaultlib.conf
 
 [Environment64]
-DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../../../phobos/generated/{OS}/{BUILD}/64{exportDynamic} -fPIC`
+DFLAGS=-addconf=%@P%/../../../../../phobos/generated/{OS}/{BUILD}/64/defaultlib.conf`
         .replace("{exportDynamic}", exportDynamic)
         .replace("{BUILD}", env["BUILD"])
         .replace("{OS}", env["OS"]);
