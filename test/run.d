@@ -13,7 +13,7 @@ See the README.md for all available test targets
 
 import std.algorithm, std.conv, std.datetime, std.exception, std.file, std.format,
        std.getopt, std.parallelism, std.path, std.process, std.range, std.stdio,
-       std.string, std.traits;
+       std.string, std.traits, core.atomic;
 import core.stdc.stdlib : exit;
 
 import tools.paths;
@@ -151,6 +151,7 @@ void ensureToolsExists(const TestTool[] tools ...)
 {
     resultsDir.mkdirRecurse;
 
+    shared uint failCount = 0;
     foreach (tool; tools.parallel(1))
     {
         const targetBin = resultsDir.buildPath(tool).exeName;
@@ -166,9 +167,15 @@ void ensureToolsExists(const TestTool[] tools ...)
             ] ~ tool.extraArgs;
 
             writefln("Executing: %-(%s %)", command);
-            spawnProcess(command).wait;
+            if (spawnProcess(command).wait)
+            {
+                stderr.writefln("failed to build '%s'", targetBin);
+                atomicOp!"+="(failCount, 1);
+            }
         }
     }
+    if (failCount > 0)
+        exit(1); // error already printed
 
     // ensure output directories exist
     foreach (dir; testDirs)
