@@ -51,25 +51,6 @@ unittest
     assert(reporter.warningCount == 1);
 }
 
-@("deprecations: Invalid integer")
-unittest
-{
-    static final class DeprecationsCountingDiagnosticReporter : NoopDiagnosticReporter
-    {
-        int deprecationCount;
-
-        override void deprecation(const ref Loc, const(char)*, va_list)
-        {
-            deprecationCount++;
-        }
-    }
-
-    scope reporter = new DeprecationsCountingDiagnosticReporter;
-    lexUntilEndOfFile(`auto a = 0b;`, reporter);
-
-    assert(reporter.deprecationCount == 1);
-}
-
 private void lexUntilEndOfFile(string code, DiagnosticReporter reporter)
 {
     import dmd.lexer : Lexer;

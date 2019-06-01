@@ -1984,12 +1984,9 @@ class Lexer
             error("integer overflow");
             err = true;
         }
-        // Deprecated in 2018-06.
-        // Change to error in 2019-06.
-        // @@@DEPRECATED_2019-06@@@
         if ((base == 2 && !anyBinaryDigitsNoSingleUS) ||
             (base == 16 && !anyHexDigitsNoSingleUS))
-            deprecation("`%.*s` isn't a valid integer literal, use `%.*s0` instead", cast(int)(p - start), start, 2, start);
+            error("`%.*s` isn't a valid integer literal, use `%.*s0` instead", cast(int)(p - start), start, 2, start);
         enum FLAGS : int
         {
             none = 0,
