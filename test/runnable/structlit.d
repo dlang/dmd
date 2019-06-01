@@ -1,9 +1,6 @@
 /*
 TEST_OUTPUT:
 ---
-runnable/structlit.d(1306): Deprecation: constructor `structlit.test11256.F11256!((gv) => true).F11256.this` all parameters have default arguments, but structs cannot have default constructors.
-runnable/structlit.d(1306): Deprecation: constructor `structlit.test11256.F11256!((gv) => true).F11256.this` all parameters have default arguments, but structs cannot have default constructors.
-runnable/structlit.d(1306): Deprecation: constructor `structlit.test11256.F11256!((gv) => true).F11256.this` all parameters have default arguments, but structs cannot have default constructors.
 ---
 */
 import std.stdio;
@@ -1303,7 +1300,7 @@ struct Z11256c(Ranges...)
 
 struct F11256(alias pred)
 {
-    this(int[] = null) { }
+    this(int[]) { }
 }
 
 Z!Ranges z11256(alias Z, Ranges...)(Ranges ranges)
@@ -1313,9 +1310,9 @@ Z!Ranges z11256(alias Z, Ranges...)(Ranges ranges)
 
 void test11256()
 {
-    z11256!Z11256a(S11256.init, F11256!(gv => true)());
-    z11256!Z11256b(S11256.init, F11256!(gv => true)());
-    z11256!Z11256c(S11256.init, F11256!(gv => true)());
+    z11256!Z11256a(S11256.init, F11256!(gv => true)(null));
+    z11256!Z11256b(S11256.init, F11256!(gv => true)(null));
+    z11256!Z11256c(S11256.init, F11256!(gv => true)(null));
 }
 
 /********************************************/
