@@ -1382,9 +1382,12 @@ extern (C++) abstract class Expression : ASTNode
     {
         if (auto ts = t.baseElemOf().isTypeStruct())
         {
-            // https://issues.dlang.org/show_bug.cgi?id=11395
-            // Require TypeInfo generation for array concatenation
-            semanticTypeInfo(sc, t);
+            if (global.params.useTypeInfo)
+            {
+                // https://issues.dlang.org/show_bug.cgi?id=11395
+                // Require TypeInfo generation for array concatenation
+                semanticTypeInfo(sc, t);
+            }
 
             StructDeclaration sd = ts.sym;
             if (sd.postblit)
