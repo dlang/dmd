@@ -454,6 +454,15 @@ struct Global
         }
         return cached;
     }
+
+    /**
+    Returns: the final defaultlibname based on the command-line parameters
+    */
+    const(char)[] finalDefaultlibname() const
+    {
+        return params.betterC ? null :
+            params.symdebug ? params.debuglibname : params.defaultlibname;
+    }
 }
 
 // Because int64_t and friends may be any integral type of the

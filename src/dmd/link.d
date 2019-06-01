@@ -157,8 +157,7 @@ version (Posix)
  */
 public int runLINK()
 {
-    const phobosLibname = global.params.betterC ? null :
-        global.params.symdebug ? global.params.debuglibname : global.params.defaultlibname;
+    const phobosLibname = global.finalDefaultlibname();
 
     void setExeFile()
     {
