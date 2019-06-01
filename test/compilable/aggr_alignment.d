@@ -47,3 +47,13 @@ align(1) struct UglyStruct
 static assert(UglyStruct.i.offsetof == 4);
 static assert(UglyStruct.alignof == 1);
 static assert(UglyStruct.sizeof == 9);
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=19914
+
+class TemplatedClass(T)
+{
+    align T field;
+}
+
+mixin TemplatedClass!(string);
