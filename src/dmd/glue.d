@@ -1294,9 +1294,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
  */
 private void specialFunctions(Obj objmod, FuncDeclaration fd)
 {
-    const(char)[] libname = (global.params.symdebug)
-                            ? global.params.debuglibname
-                            : global.params.defaultlibname;
+    const libname = global.finalDefaultlibname();
 
     Symbol* s = fd.toSymbol();  // backend symbol corresponding to fd
 
