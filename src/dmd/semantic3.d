@@ -377,6 +377,18 @@ private extern(C++) final class Semantic3Visitor : Visitor
             {
                 if (f.linkage == LINK.d)
                 {
+                    // Variadic arguments depend on Typeinfo being defined.
+                    if (!global.params.useTypeInfo || !Type.dtypeinfo || !Type.typeinfotypelist)
+                    {
+                        if (!global.params.useTypeInfo)
+                            funcdecl.error("D-style variadic functions cannot be used with -betterC");
+                        else if (!Type.typeinfotypelist)
+                            funcdecl.error("`object.TypeInfo_Tuple` could not be found, but is implicitly used in D-style variadic functions");
+                        else
+                            funcdecl.error("`object.TypeInfo` could not be found, but is implicitly used in D-style variadic functions");
+                        fatal();
+                    }
+
                     // Declare _arguments[]
                     funcdecl.v_arguments = new VarDeclaration(funcdecl.loc, Type.typeinfotypelist.type, Id._arguments_typeinfo, null);
                     funcdecl.v_arguments.storage_class |= STC.temp | STC.parameter;
@@ -384,7 +396,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     sc2.insert(funcdecl.v_arguments);
                     funcdecl.v_arguments.parent = funcdecl;
 
-                    //Type *t = Type::typeinfo.type.constOf().arrayOf();
+                    //Type t = Type.dtypeinfo.type.constOf().arrayOf();
                     Type t = Type.dtypeinfo.type.arrayOf();
                     _arguments = new VarDeclaration(funcdecl.loc, t, Id._arguments, null);
                     _arguments.storage_class |= STC.temp;
