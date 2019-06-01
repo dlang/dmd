@@ -1,6 +1,6 @@
 /* 
 DFLAGS:
-REQUIRED_ARGS: -c -I=fail_compilation/extra-files/no_Throwable/
+REQUIRED_ARGS: -c -I=fail_compilation/extra-files/minimal/
 TEST_OUTPUT:
 ---
 fail_compilation/no_Throwable.d(13): Error: Cannot use `throw` statements because `object.Throwable` was not declared
