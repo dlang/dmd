@@ -157,8 +157,6 @@ version (Posix)
  */
 public int runLINK()
 {
-    const phobosLibname = global.finalDefaultlibname();
-
     void setExeFile()
     {
         /* Generate exe file name from first obj name.
@@ -177,9 +175,6 @@ public int runLINK()
 
     version (Windows)
     {
-        if (phobosLibname)
-            global.params.libfiles.push(phobosLibname.xarraydup.ptr);
-
         if (global.params.mscoff)
         {
             OutBuffer cmdbuf;
@@ -630,53 +625,6 @@ public int runLINK()
         foreach (p; global.params.dllfiles)
         {
             argv.push(p);
-        }
-        /* D runtime libraries must go after user specified libraries
-         * passed with -l.
-         */
-        const libname = phobosLibname;
-        if (libname.length)
-        {
-            const bufsize = 2 + libname.length + 1;
-            auto buf = (cast(char*) malloc(bufsize))[0 .. bufsize];
-            buf[0 .. 2] = "-l";
-
-            char* getbuf(const(char)[] suffix)
-            {
-                buf[2 .. 2 + suffix.length] = suffix[];
-                buf[2 + suffix.length] = 0;
-                return buf.ptr;
-            }
-
-            if (libname.length > 3 + 2 && libname[0 .. 3] == "lib")
-            {
-                if (libname[$-2 .. $] == ".a")
-                {
-                    argv.push("-Xlinker");
-                    argv.push("-Bstatic");
-                    argv.push(getbuf(libname[3 .. $-2]));
-                    argv.push("-Xlinker");
-                    argv.push("-Bdynamic");
-                }
-                else if (libname[$-3 .. $] == ".so")
-                    argv.push(getbuf(libname[3 .. $-3]));
-                else
-                    argv.push(getbuf(libname));
-            }
-            else
-            {
-                argv.push(getbuf(libname));
-            }
-        }
-        //argv.push("-ldruntime");
-        argv.push("-lpthread");
-        argv.push("-lm");
-        version (linux)
-        {
-            // Changes in ld for Ubuntu 11.10 require this to appear after phobos2
-            argv.push("-lrt");
-            // Link against libdl for phobos usage of dlopen
-            argv.push("-ldl");
         }
         if (global.params.verbose)
         {

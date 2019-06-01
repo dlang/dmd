@@ -367,8 +367,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     // Predefined version identifiers
     addDefaultVersionIdentifiers(params);
 
-    setDefaultLibrary();
-
     // Initialization
     Type._init();
     Id.initialize();
@@ -1095,47 +1093,6 @@ const(char)[] parse_conf_arg(Strings* args)
     return conf;
 }
 
-
-/**
- * Set the default and debug libraries to link against, if not already set
- *
- * Must be called after argument parsing is done, as it won't
- * override any value.
- * Note that if `-defaultlib=` or `-debuglib=` was used,
- * we don't override that either.
- */
-private void setDefaultLibrary()
-{
-    if (global.params.defaultlibname is null)
-    {
-        static if (TARGET.Windows)
-        {
-            if (global.params.is64bit)
-                global.params.defaultlibname = "phobos64";
-            else if (global.params.mscoff)
-                global.params.defaultlibname = "phobos32mscoff";
-            else
-                global.params.defaultlibname = "phobos";
-        }
-        else static if (TARGET.Linux || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-        {
-            global.params.defaultlibname = "libphobos2.a";
-        }
-        else static if (TARGET.OSX)
-        {
-            global.params.defaultlibname = "phobos2";
-        }
-        else
-        {
-            static assert(0, "fix this");
-        }
-    }
-    else if (!global.params.defaultlibname.length)  // if `-defaultlib=` (i.e. an empty defaultlib)
-        global.params.defaultlibname = null;
-
-    if (global.params.debuglibname is null)
-        global.params.debuglibname = global.params.defaultlibname;
-}
 
 /*************************************
  * Set the `is` target fields of `params` according
