@@ -148,7 +148,7 @@ auto lexer()
     Dependency dependency = {
         target: env["G"].buildPath("lexer").libName,
         sources: sources.lexer,
-        rebuildSources: buildStringFiles.map!(a => a.target).array,
+        rebuildSources: configFiles,
         name: "(DC) D_LEXER_OBJ %-(%s, %)".format(sources.lexer.map!(e => e.baseName).array),
         command: [
             env["HOST_DMD_RUN"],
@@ -278,6 +278,12 @@ auto buildStringFiles()
         commandFunction: commandFunction,
     };
     return [versionDependency, sysconfDirDependency];
+}
+
+/// Returns: a list of config files that are required by the DMD build
+auto configFiles()
+{
+    return buildStringFiles.map!(a => a.target).array;
 }
 
 /**
@@ -944,7 +950,7 @@ struct Dependency
             command[i] = c.replace("$@", target);
 
         // Support $< (shortcut for the source path)
-        if (command[$ - 1].find("$<"))
+        if (!command[$ - 1].find("$<").empty)
             command = command.remove(command.length - 1) ~ sources;
     }
 }
