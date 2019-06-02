@@ -3996,13 +3996,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     // if the first parameter has a default argument, then the rest does as well
                     if (ctd.storage_class & STC.disable)
                     {
-                        ctd.deprecation("is marked `@disable`, so it cannot have default "~
-                                    "arguments for all parameters.");
-                        deprecationSupplemental(ctd.loc, "Use `@disable this();` if you want to disable default initialization.");
+                        ctd.error("is marked `@disable`, so it cannot have default "~
+                                  "arguments for all parameters.");
+                        errorSupplemental(ctd.loc, "Use `@disable this();` if you want to disable default initialization.");
                     }
                     else
-                        ctd.deprecation("all parameters have default arguments, "~
-                                    "but structs cannot have default constructors.");
+                        ctd.error("all parameters have default arguments, "~
+                                  "but structs cannot have default constructors.");
                 }
                 else if ((dim == 1 || (dim > 1 && tf.parameterList[1].defaultArg)))
                 {
