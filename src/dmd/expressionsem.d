@@ -4974,6 +4974,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 error(exp.loc, "Runtime type information is not supported for `extern(C++)` classes");
                 e = new ErrorExp();
             }
+            else if (!Type.typeinfoclass)
+            {
+                error(exp.loc, "`object.TypeInfo_Class` could not be found, but is implicitly used");
+                e = new ErrorExp();
+            }
             else
             {
                 /* Get the dynamic type, which is .classinfo

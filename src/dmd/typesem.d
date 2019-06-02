@@ -3810,7 +3810,12 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
 
             if (ident == Id.classinfo)
             {
-                assert(Type.typeinfoclass);
+                if (!Type.typeinfoclass)
+                {
+                    error(e.loc, "`object.TypeInfo_Class` could not be found, but is implicitly used");
+                    return new ErrorExp();
+                }
+
                 Type t = Type.typeinfoclass.type;
                 if (e.op == TOK.type || e.op == TOK.dotType)
                 {
