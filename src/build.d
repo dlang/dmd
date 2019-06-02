@@ -163,30 +163,37 @@ auto lexer()
 /// Returns: the dependency that generates the dmd.conf file in the output folder
 auto dmdConf()
 {
-    // TODO: add support for Windows
-    string exportDynamic;
-    version(OSX) {} else
-        exportDynamic = " -L--export-dynamic";
-
-    auto conf = `[Environment32]
-DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../../../phobos/generated/{OS}/{BUILD}/32{exportDynamic}
-
-[Environment64]
-DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../../../phobos/generated/{OS}/{BUILD}/64{exportDynamic} -fPIC`
-        .replace("{exportDynamic}", exportDynamic)
-        .replace("{BUILD}", env["BUILD"])
-        .replace("{OS}", env["OS"]);
-
-    auto target = env["G"].buildPath("dmd.conf");
-    auto commandFunction = (){
-        conf.toFile(target);
-    }; // defined separately to support older D compilers
-    Dependency dependency = {
-        target: target,
-        name: "(TX) DMD_CONF",
-        commandFunction: commandFunction,
+    const makedmdconfBin = env["G"].buildPath("makedmdconf").exeName;
+    Dependency buildMakedmdconf = {
+        name: "(DC) MAKEDMDCONF",
+        target: makedmdconfBin,
+        sources: [srcDir.dirName.buildPath("makedmdconf.d")],
+        command: [
+            env["HOST_DMD_RUN"],
+            "-of$@",
+            "$<"
+        ],
     };
-    return dependency;
+    buildMakedmdconf.run;
+
+    string[] options = new string[0];
+    version (Windows)
+    {
+        if (env["MODEL"] == "64")
+            options ~= "--mscoff";
+    }
+    Dependency runMakedmdconf = {
+        target: env["G"].buildPath("dmd.conf"),
+        sources: [makedmdconfBin],
+        forceOutOfDate: true,
+        command: [
+            makedmdconfBin,
+            "$@",
+            env["OS"],
+            env["BUILD"],
+        ] ~ options,
+    };
+    return runMakedmdconf;
 }
 
 /// Returns: the dependency that builds and executes the optabgen utility
@@ -283,7 +290,7 @@ auto buildStringFiles()
 /// Returns: a list of config files that are required by the DMD build
 auto configFiles()
 {
-    return buildStringFiles.map!(a => a.target).array ~ dmdConf.target;
+    return buildStringFiles.map!(a => a.target).array;
 }
 
 /**
@@ -911,6 +918,7 @@ struct Dependency
     void delegate() commandFunction; // a custom dependency command which gets called instead of command
     string name; // name of the dependency that is e.g. written to the CLI when it's executed
     string[] trackSources;
+    bool forceOutOfDate; // always runs the command
 
     /**
     Executes the dependency
@@ -921,7 +929,7 @@ struct Dependency
         if (target !is null)
             targets = [target];
 
-        if (targets.isUpToDate(sources, [thisBuildScript], rebuildSources))
+        if (!forceOutOfDate && targets.isUpToDate(sources, [thisBuildScript], rebuildSources))
         {
             if (sources !is null)
                 log("Skipping build of %-(%s%) as it's newer than %-(%s%)", targets, sources);
@@ -950,7 +958,7 @@ struct Dependency
             command[i] = c.replace("$@", target);
 
         // Support $< (shortcut for the source path)
-        if (command[$ - 1].find("$<"))
+        if (command[$ - 1] == "$<")
             command = command.remove(command.length - 1) ~ sources;
     }
 }

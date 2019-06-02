@@ -486,18 +486,12 @@ endif
 
 ######## generate a default dmd.conf
 
-define DEFAULT_DMD_CONF
-[Environment32]
-DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../../../phobos/generated/$(OS)/$(BUILD)/32$(if $(filter $(OS),osx),, -L--export-dynamic)
+$G/makedmdconf: ../makedmdconf.d $(HOST_DMD_PATH)
+	@echo "  (HOST_DMD_RUN)  $<  $<"
+	$(HOST_DMD_RUN) $< -of$@
 
-[Environment64]
-DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../../../phobos/generated/$(OS)/$(BUILD)/64$(if $(filter $(OS),osx),, -L--export-dynamic) -fPIC
-endef
-
-export DEFAULT_DMD_CONF
-
-$G/dmd.conf: $(SRC_MAKE)
-	echo "$$DEFAULT_DMD_CONF" > $@
+$G/dmd.conf: $G/makedmdconf FORCE
+	$< $@ $(OS) $(BUILD)
 
 ######## optabgen generates some source
 optabgen_output = debtab.d optab.d cdxxx.d elxxx.d fltables.d tytab.d
