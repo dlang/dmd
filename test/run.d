@@ -401,14 +401,14 @@ string[string] getEnvironment()
         if (environment.get("PIC", "0") == "1")
             pic = true;
 
-        env["PIC_FLAGS"]  = pic ? "-fPIC" : "";
+        env["PIC_FLAG"]  = pic ? "-fPIC" : "";
         env["DFLAGS"] = "-I%s/import -I%s".format(druntimePath, phobosPath)
             ~ " -L-L%s/%s".format(phobosPath, generatedSuffix);
         bool isShared = os.among("linux", "freebsd") > 0;
         if (isShared)
             env["DFLAGS"] = env["DFLAGS"] ~ " -defaultlib=libphobos2.so -L-rpath=%s/%s".format(phobosPath, generatedSuffix);
 
-        env["REQUIRED_ARGS"] = environment.get("REQUIRED_ARGS") ~  env["PIC_FLAGS"];
+        env["REQUIRED_ARGS"] = environment.get("REQUIRED_ARGS") ~ " " ~ env["PIC_FLAG"];
 
         version(OSX)
             version(X86_64)
