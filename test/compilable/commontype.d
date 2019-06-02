@@ -46,16 +46,16 @@ struct Sl { long a; alias a this; }
 static assert(is( X!( byte, byte ) == byte ));
 static assert(is( X!( ubyte, ubyte ) == ubyte ));
 static assert(is( X!( byte, ubyte ) == int ));
-static assert(is( X!( byte, short ) == int ));
-static assert(is( X!( byte, ushort ) == int ));
-static assert(is( X!( byte, const(byte) ) == int ));
-static assert(is( X!( ubyte, const(ubyte) ) == int ));
+static assert(is( X!( byte, short ) == short ));
+static assert(is( X!( byte, ushort ) == ushort ));
+static assert(is( X!( byte, const(byte) ) == const(byte) ));
+static assert(is( X!( ubyte, const(ubyte) ) == const(ubyte) ));
 
 static assert(is( X!( short, short ) == short ));
 static assert(is( X!( ushort, ushort ) == ushort ));
 static assert(is( X!( short, ushort ) == int ));
-static assert(is( X!( short, const(short) ) == int ));
-static assert(is( X!( ushort, const(ushort) ) == int ));
+static assert(is( X!( short, const(short) ) == const(short) ));
+static assert(is( X!( ushort, const(ushort) ) == const(ushort) ));
 
 static assert(is( X!( int, int ) == int ));
 static assert(is( X!( int, uint ) == uint ));
@@ -75,21 +75,21 @@ static assert(is( X!( float, real ) == real ));
 static assert(is( X!( char, char ) == char ));
 static assert(is( X!( char, byte ) == int ));
 static assert(is( X!( char, ubyte ) == int ));
-static assert(is( X!( char, wchar ) == dchar ));
+static assert(is( X!( char, wchar ) == wchar ));
 static assert(is( X!( char, dchar ) == dchar ));
 static assert(is( X!( char, const(char) ) == const(char) ));
 static assert(is( X!( wchar, const(wchar) ) == const(wchar) ));
 static assert(is( X!( dchar, const(dchar) ) == const(dchar) ));
 static assert(is( X!( char, immutable(char) ) == const(char) ));
-static assert(Error!( char, shared(char) ));
+static assert(is( X!( char, shared(char) ) == shared(const(char)) ));
 
 static assert(is( X!( char, float ) == float ));
 
-static assert(is( X!( immutable(int), int ) == int ));
-static assert(is( X!( const(int), int ) == int ));
-static assert(is( X!( shared(int), int ) == int ));
-static assert(is( X!( immutable(int), const(shared(int)) ) == int ));
-static assert(is( X!( shared(int), const(int) ) == int ));
+static assert(is( X!( immutable(int), int ) == const(int) ));
+static assert(is( X!( const(int), int ) == const(int) ));
+static assert(is( X!( shared(int), int ) == shared(const(int)) ));
+static assert(is( X!( immutable(int), const(shared(int)) ) == shared(const(int)) ));
+static assert(is( X!( shared(int), const(int) ) == shared(const(int)) ));
 
 /******************************
  * Strings
@@ -117,21 +117,21 @@ static assert(is( X!( Ei, Ei ) == Ei ));
 static assert(is( X!( Ei, const(Ei) ) == const(Ei) ));
 static assert(is( X!( Ei, immutable(Ei) ) == const(Ei) ));
 static assert(is( X!( Eb, Eb ) == Eb ));
-static assert(is( X!( Eb, const(Eb) ) == int ));
-static assert(is( X!( Eb, immutable(Eb) ) == int ));
+static assert(is( X!( Eb, const(Eb) ) == const(Eb) ));
+static assert(is( X!( Eb, immutable(Eb) ) == const(Eb) ));
 static assert(is( X!( Ei, Eb ) == int ));
-static assert(is( X!( Ei, const(Eb) ) == int ));
-static assert(is( X!( Ei, immutable(Eb) ) == int ));
+static assert(is( X!( Ei, const(Eb) ) == const(int) ));
+static assert(is( X!( Ei, immutable(Eb) ) == const(int) ));
 
 static assert(is( X!( Ec, Ec ) == Ec ));
-static assert(is( X!( Ec, const(Ec) ) == const(char) ));
-static assert(is( X!( Ec, immutable(Ec) ) == const(char) ));
+static assert(is( X!( Ec, const(Ec) ) == const(Ec) ));
+static assert(is( X!( Ec, immutable(Ec) ) == const(Ec) ));
 static assert(is( X!( Ew, Ew ) == Ew ));
-static assert(is( X!( Ew, const(Ew) ) == const(wchar) ));
-static assert(is( X!( Ew, immutable(Ew) ) == const(wchar) ));
-static assert(is( X!( Ew, Ec ) == dchar ));
-static assert(is( X!( Ew, const(Ec) ) == dchar ));
-static assert(is( X!( Ew, immutable(Ec) ) == dchar ));
+static assert(is( X!( Ew, const(Ew) ) == const(Ew) ));
+static assert(is( X!( Ew, immutable(Ew) ) == const(Ew) ));
+static assert(is( X!( Ew, Ec ) == wchar ));
+static assert(is( X!( Ew, const(Ec) ) == const(wchar) ));
+static assert(is( X!( Ew, immutable(Ec) ) == const(wchar) ));
 
 /******************************
  * Tuple

@@ -2814,21 +2814,23 @@ bool typeMerge(Scope* sc, TOK op, Type* pt, Expression* pe1, Expression* pe2)
 
     bool Lt1()
     {
-        e2 = e2.castTo(sc, t1);
         t = t1;
+        e1 = e1.castTo(sc, t);
+        e2 = e2.castTo(sc, t);
         return Lret();
     }
 
     bool Lt2()
     {
-        e1 = e1.castTo(sc, t2);
         t = t2;
+        e1 = e1.castTo(sc, t);
+        e2 = e2.castTo(sc, t);
         return Lret();
     }
 
     bool Lincompatible() { return false; }
 
-    if (op != TOK.question || t1b.ty != t2b.ty && (t1b.isTypeBasic() && t2b.isTypeBasic()))
+    if (op != TOK.question)
     {
         e1 = integralPromotions(e1, sc);
         e2 = integralPromotions(e2, sc);
@@ -2868,6 +2870,46 @@ bool typeMerge(Scope* sc, TOK op, Type* pt, Expression* pe1, Expression* pe2)
 Lagain:
     t1b = t1.toBasetype();
     t2b = t2.toBasetype();
+
+    if (op == TOK.question && t1b.isTypeBasic() && t2b.isTypeBasic())
+    {
+        if (t1.mod != t2.mod)
+        {
+            ubyte mod = MODmerge(t1.mod, t2.mod);
+            t1 = t1.castMod(mod);
+            t2 = t2.castMod(mod);
+            t1b = t1.toBasetype();
+            t2b = t2.toBasetype();
+        }
+        if (t1.equals(t2))
+        {
+            return Lt1();
+        }
+        if (t1b.equals(t2b))
+        {
+            t1 = t1b;
+            return Lt1();
+        }
+        if (!t1b.isintegral() || !t2b.isintegral() || t1b.size() == t2b.size())
+        {
+            e1 = integralPromotions(e1, sc);
+            e2 = integralPromotions(e2, sc);
+            t1 = e1.type;
+            t2 = e2.type;
+            t1b = t1.toBasetype();
+            t2b = t2.toBasetype();
+        }
+        else if (t2b.implicitConvTo(t1b))
+        {
+            t1 = t1b;
+            return Lt1();
+        }
+        else if (t1b.implicitConvTo(t2b))
+        {
+            t2 = t2b;
+            return Lt2();
+        }
+    }
 
     TY ty = cast(TY)impcnvResult[t1b.ty][t2b.ty];
     if (ty != Terror)
