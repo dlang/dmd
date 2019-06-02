@@ -92,6 +92,19 @@ static assert(is( X!( immutable(int), const(shared(int)) ) == int ));
 static assert(is( X!( shared(int), const(int) ) == int ));
 
 /******************************
+ * Strings
+ */
+
+static assert(is( X!( string, string ) == string ));
+static assert(Error!( wstring, string ));
+static assert(Error!( dstring, string ));
+static assert(Error!( dstring, wstring ));
+static assert(is( X!( const(char)[], string ) == const(char)[] ));
+static assert(is( X!( char[], string ) == const(char)[] ));
+static assert(is( X!( string, immutable(string) ) == immutable(string) )); // `const`
+static assert(is( X!( immutable(string), string ) == string )); // not commutative
+
+/******************************
  * Enums
  */
 
