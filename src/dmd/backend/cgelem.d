@@ -4436,7 +4436,8 @@ private elem * elbool(elem *e, goal_t goal)
         }
 
         // Replace bool(e % 2) with (uint char)(e & 1)
-        else if (e.EV.E1.Eoper == OPmod && e.EV.E1.EV.E2.Eoper == OPconst && el_tolong(e.EV.E1.EV.E2) == 2)
+        else if (e.EV.E1.Eoper == OPmod && e.EV.E1.EV.E2.Eoper == OPconst && el_tolong(e.EV.E1.EV.E2) == 2
+            && !tyfloating(e.EV.E1.Ety)) // dont optimize fmod()
         {
             uint sz = tysize(e.EV.E1.Ety);
             tym_t ty = e.Ety;

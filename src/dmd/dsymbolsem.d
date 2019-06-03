@@ -447,8 +447,9 @@ private bool buildCopyCtor(StructDeclaration sd, Scope* sc)
         assert(ctorDecl);
         if (ctorDecl.isCpCtor)
         {
-            cpCtor = ctorDecl;
-            return 1;
+            if (!cpCtor)
+                cpCtor = ctorDecl;
+            return 0;
         }
 
         auto tf = ctorDecl.type.toTypeFunction();
@@ -4473,12 +4474,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
              * was already performed on it, create a syntax copy and
              * redo the first semantic step.
              */
-            auto err = global.startGagging();
-            auto fd_temp = fd.syntaxCopy(null);
+            auto fd_temp = fd.syntaxCopy(null).isFuncDeclaration();
+            fd_temp.storage_class &= ~STC.auto_; // type has already been inferred
             if (auto cd = ad.isClassDeclaration())
                 cd.vtbl.remove(fd.vtblIndex);
             fd_temp.dsymbolSemantic(sc);
-            global.endGagging(err);
             (*ad.members)[i] = fd_temp;
         }
     }

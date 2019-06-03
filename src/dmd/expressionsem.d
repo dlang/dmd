@@ -5068,6 +5068,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 error(exp.loc, "Runtime type information is not supported for `extern(C++)` classes");
                 e = new ErrorExp();
             }
+            else if (!Type.typeinfoclass)
+            {
+                error(exp.loc, "`object.TypeInfo_Class` could not be found, but is implicitly used");
+                e = new ErrorExp();
+            }
             else
             {
                 /* Get the dynamic type, which is .classinfo
@@ -5989,7 +5994,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
             }
 
-            if (v && v.isDataseg()) // fix https://issues.dlang.org/show_bug.cgi?id=8238
+            if (v && (v.isDataseg() || // fix https://issues.dlang.org/show_bug.cgi?id=8238
+                      !v.needThis()))  // fix https://issues.dlang.org/show_bug.cgi?id=17258
             {
                 // (e1, v)
                 checkAccess(exp.loc, sc, exp.e1, v);
@@ -6883,7 +6889,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 {
                     // A runtime check is needed in case arrays don't line up.  That check should
                     // be done in the implementation of `object.__ArrayCast`
-                    if ((fromSize % toSize) != 0)
+                    if (toSize == 0 || (fromSize % toSize) != 0)
                     {
                         if (!verifyHookExist(exp.loc, *sc, Id.__ArrayCast, "casting array of structs"))
                             return setError();

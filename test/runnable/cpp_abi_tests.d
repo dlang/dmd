@@ -178,16 +178,14 @@ extern(C++)
 {
     struct SmallStruct
     {
-        this(this)
-        {
-            i += 10;
-        }
-        int i = 0;
+        int i;
+        this(int i) { this.i = i; }
+        this(ref const SmallStruct); // implemented in C++
     }
     void smallStructTest(SmallStruct p);
     void smallStructCallBack(SmallStruct p)
     {
-        assert(p.i == 10);
+        assert(p.i == 62);
     }
 }
 
@@ -224,7 +222,7 @@ else
     assert(constFunction3(null, null) == 3);
     assert(constFunction4(null, null) == 42);
 
-    SmallStruct ss;
+    auto ss = SmallStruct(42);
     smallStructTest(ss);
-    assert(ss.i == 0);
+    assert(ss.i == 42);
 }

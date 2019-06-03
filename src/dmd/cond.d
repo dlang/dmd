@@ -288,8 +288,18 @@ extern (C++) final class StaticForeach : RootObject
      *     sc = The current scope.
      */
 
-    private void lowerNonArrayAggregate(Scope* sc)
+    private void lowerNonArrayAggregate(Scope* scInput)
     {
+        Scope* sc = scInput;
+
+        if (sc.stc & STC.nogc)
+        {
+            // concating `~=` an array is only done at compile time for `static foreach` range
+            // remove @nogc to avoid a compile error in this case
+            sc = scInput.copy();
+            sc.stc &= ~STC.nogc;
+        }
+
         auto nvars = aggrfe ? aggrfe.parameters.dim : 1;
         auto aloc = aggrfe ? aggrfe.aggr.loc : rangefe.lwr.loc;
         // We need three sets of foreach loop variables because the
@@ -373,7 +383,7 @@ extern (C++) final class StaticForeach : RootObject
                                       aggrfe ? aggrfe._body : rangefe._body,
                                       aggrfe ? aggrfe.endloc : rangefe.endloc);
         rangefe = null;
-        lowerArrayAggregate(sc); // finally, turn generated array into expression tuple
+        lowerArrayAggregate(scInput); // finally, turn generated array into expression tuple
     }
 
     /*****************************************

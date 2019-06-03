@@ -229,6 +229,9 @@ extern (C++) class FuncDeclaration : Declaration
     FuncDeclaration fdrequire;          /// function that does the in contract
     FuncDeclaration fdensure;           /// function that does the out contract
 
+    Expressions* fdrequireParams;       /// argument list for __require
+    Expressions* fdensureParams;        /// argument list for __ensure
+
     const(char)* mangleString;          /// mangled symbol created from mangleExact()
 
     VarDeclaration vresult;             /// result variable for out contracts
@@ -2086,7 +2089,7 @@ extern (C++) class FuncDeclaration : Declaration
      * Merge into this function the 'in' contracts of all it overrides.
      * 'in's are OR'd together, i.e. only one of them needs to pass.
      */
-    final Statement mergeFrequire(Statement sf)
+    final Statement mergeFrequire(Statement sf, Expressions* params)
     {
         /* If a base function and its override both have an IN contract, then
          * only one of them needs to succeed. This is done by generating:
@@ -2104,22 +2107,6 @@ extern (C++) class FuncDeclaration : Declaration
          * If base.in() throws, then derived.in()'s body is executed.
          */
 
-        /* Implementing this is done by having the overriding function call
-         * nested functions (the fdrequire functions) nested inside the overridden
-         * function. This requires that the stack layout of the calling function's
-         * parameters and 'this' pointer be in the same place (as the nested
-         * function refers to them).
-         * This is easy for the parameters, as they are all on the stack in the same
-         * place by definition, since it's an overriding function. The problem is
-         * getting the 'this' pointer in the same place, since it is a local variable.
-         * We did some hacks in the code generator to make this happen:
-         *  1. always generate exception handler frame, or at least leave space for it
-         *     in the frame (Windows 32 SEH only)
-         *  2. always generate an EBP style frame
-         *  3. since 'this' is passed in a register that is subsequently copied into
-         *     a stack local, allocate that local immediately following the exception
-         *     handler block, so it is always at the same offset from EBP.
-         */
         foreach (fdv; foverrides)
         {
             /* The semantic pass on the contracts of the overridden functions must
@@ -2135,16 +2122,16 @@ extern (C++) class FuncDeclaration : Declaration
                 sc.pop();
             }
 
-            sf = fdv.mergeFrequire(sf);
+            sf = fdv.mergeFrequire(sf, params);
             if (sf && fdv.fdrequire)
             {
                 //printf("fdv.frequire: %s\n", fdv.frequire.toChars());
                 /* Make the call:
-                 *   try { __require(); }
+                 *   try { __require(params); }
                  *   catch (Throwable) { frequire; }
                  */
-                Expression eresult = null;
-                Expression e = new CallExp(loc, new VarExp(loc, fdv.fdrequire, false), eresult);
+                params = Expression.arraySyntaxCopy(params);
+                Expression e = new CallExp(loc, new VarExp(loc, fdv.fdrequire, false), params);
                 Statement s2 = new ExpStatement(loc, e);
 
                 auto c = new Catch(loc, getThrowable(), null, sf);
@@ -2244,15 +2231,42 @@ extern (C++) class FuncDeclaration : Declaration
          */
         TypeFunction f = cast(TypeFunction) type;
 
+        /* Make a copy of the parameters and make them all ref */
+        static Parameters* toRefCopy(Parameters* params)
+        {
+            auto result = new Parameters();
+
+            int toRefDg(size_t n, Parameter p)
+            {
+                p = p.syntaxCopy();
+                if (!(p.storageClass & STC.lazy_))
+                    p.storageClass = (p.storageClass | STC.ref_) & ~STC.out_;
+                p.defaultArg = null; // won't be the same with ref
+                result.push(p);
+                return 0;
+            }
+
+            Parameter._foreach(params, &toRefDg);
+            return result;
+        }
+
         if (frequire)
         {
             /*   in { ... }
              * becomes:
-             *   void __require() { ... }
-             *   __require();
+             *   void __require(ref params) { ... }
+             *   __require(params);
              */
             Loc loc = frequire.loc;
-            auto tf = new TypeFunction(ParameterList(), Type.tvoid, LINK.d);
+            fdrequireParams = new Expressions();
+            if (parameters)
+            {
+                foreach (vd; *parameters)
+                    fdrequireParams.push(new VarExp(loc, vd));
+            }
+            auto fo = cast(TypeFunction)(originalType ? originalType : f);
+            auto fparams = toRefCopy(fo.parameterList.parameters);
+            auto tf = new TypeFunction(ParameterList(fparams), Type.tvoid, LINK.d);
             tf.isnothrow = f.isnothrow;
             tf.isnogc = f.isnogc;
             tf.purity = f.purity;
@@ -2260,27 +2274,41 @@ extern (C++) class FuncDeclaration : Declaration
             auto fd = new FuncDeclaration(loc, loc, Id.require, STC.undefined_, tf);
             fd.fbody = frequire;
             Statement s1 = new ExpStatement(loc, fd);
-            Expression e = new CallExp(loc, new VarExp(loc, fd, false), cast(Expressions*)null);
+            Expression e = new CallExp(loc, new VarExp(loc, fd, false), fdrequireParams);
             Statement s2 = new ExpStatement(loc, e);
             frequire = new CompoundStatement(loc, s1, s2);
             fdrequire = fd;
+        }
+
+        /* We need to set fdensureParams here and not in the block below to
+         * have the parameters available when calling a base class ensure(),
+         * even if this function doesn't have an out contract.
+         */
+        fdensureParams = new Expressions();
+        if (canBuildResultVar())
+            fdensureParams.push(new IdentifierExp(loc, Id.result));
+        if (parameters)
+        {
+            foreach (vd; *parameters)
+                fdensureParams.push(new VarExp(loc, vd));
         }
 
         if (fensure)
         {
             /*   out (result) { ... }
              * becomes:
-             *   void __ensure(ref tret result) { ... }
-             *   __ensure(result);
+             *   void __ensure(ref tret result, ref params) { ... }
+             *   __ensure(result, params);
              */
             Loc loc = fensure.loc;
             auto fparams = new Parameters();
-            Parameter p = null;
             if (canBuildResultVar())
             {
-                p = new Parameter(STC.ref_ | STC.const_, f.nextOf(), Id.result, null, null);
+                Parameter p = new Parameter(STC.ref_ | STC.const_, f.nextOf(), Id.result, null, null);
                 fparams.push(p);
             }
+            auto fo = cast(TypeFunction)(originalType ? originalType : f);
+            fparams.pushSlice((*toRefCopy(fo.parameterList.parameters))[]);
             auto tf = new TypeFunction(ParameterList(fparams), Type.tvoid, LINK.d);
             tf.isnothrow = f.isnothrow;
             tf.isnogc = f.isnogc;
@@ -2289,10 +2317,7 @@ extern (C++) class FuncDeclaration : Declaration
             auto fd = new FuncDeclaration(loc, loc, Id.ensure, STC.undefined_, tf);
             fd.fbody = fensure;
             Statement s1 = new ExpStatement(loc, fd);
-            Expression eresult = null;
-            if (canBuildResultVar())
-                eresult = new IdentifierExp(loc, Id.result);
-            Expression e = new CallExp(loc, new VarExp(loc, fd, false), eresult);
+            Expression e = new CallExp(loc, new VarExp(loc, fd, false), fdensureParams);
             Statement s2 = new ExpStatement(loc, e);
             fensure = new CompoundStatement(loc, s1, s2);
             fdensure = fd;
@@ -2303,7 +2328,7 @@ extern (C++) class FuncDeclaration : Declaration
      * Merge into this function the 'out' contracts of all it overrides.
      * 'out's are AND'd together, i.e. all of them need to pass.
      */
-    final Statement mergeFensure(Statement sf, Identifier oid)
+    final Statement mergeFensure(Statement sf, Identifier oid, Expressions* params)
     {
         /* Same comments as for mergeFrequire(), except that we take care
          * of generating a consistent reference to the 'result' local by
@@ -2330,16 +2355,14 @@ extern (C++) class FuncDeclaration : Declaration
                 sc.pop();
             }
 
-            sf = fdv.mergeFensure(sf, oid);
+            sf = fdv.mergeFensure(sf, oid, params);
             if (fdv.fdensure)
             {
                 //printf("fdv.fensure: %s\n", fdv.fensure.toChars());
-                // Make the call: __ensure(result)
-                Expression eresult = null;
+                // Make the call: __ensure(result, params)
+                params = Expression.arraySyntaxCopy(params);
                 if (canBuildResultVar())
                 {
-                    eresult = new IdentifierExp(loc, oid);
-
                     Type t1 = fdv.type.nextOf().toBasetype();
                     Type t2 = this.type.nextOf().toBasetype();
                     if (t1.isBaseOf(t2, null))
@@ -2349,15 +2372,16 @@ extern (C++) class FuncDeclaration : Declaration
                          * https://issues.dlang.org/show_bug.cgi?id=5204
                          * https://issues.dlang.org/show_bug.cgi?id=10479
                          */
-                        auto ei = new ExpInitializer(Loc.initial, eresult);
+                        Expression* eresult = &(*params)[0];
+                        auto ei = new ExpInitializer(Loc.initial, *eresult);
                         auto v = new VarDeclaration(Loc.initial, t1, Identifier.generateId("__covres"), ei);
                         v.storage_class |= STC.temp;
                         auto de = new DeclarationExp(Loc.initial, v);
                         auto ve = new VarExp(Loc.initial, v);
-                        eresult = new CommaExp(Loc.initial, de, ve);
+                        *eresult = new CommaExp(Loc.initial, de, ve);
                     }
                 }
-                Expression e = new CallExp(loc, new VarExp(loc, fdv.fdensure, false), eresult);
+                Expression e = new CallExp(loc, new VarExp(loc, fdv.fdensure, false), params);
                 Statement s2 = new ExpStatement(loc, e);
 
                 if (sf)

@@ -266,6 +266,10 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
 
             if (VarDeclaration v = s.isVarDeclaration())
             {
+                // https://issues.dlang.org/show_bug.cgi?id=19913
+                // v.type would be null if it is a forward referenced member.
+                if (v.type is null)
+                    v.dsymbolSemantic(sc);
                 if (v.storage_class & (STC.const_ | STC.immutable_ | STC.manifest) ||
                     v.type.isConst() || v.type.isImmutable())
                 {
@@ -1434,11 +1438,9 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                              * tuple the default argument tuple must also be expanded.
                              */
                             Expression paramDefaultArg = narg.defaultArg;
-                            if (fparam.defaultArg)
-                            {
-                                auto te = cast(TupleExp)(fparam.defaultArg);
+                            TupleExp te = fparam.defaultArg ? fparam.defaultArg.isTupleExp() : null;
+                            if (te && te.exps && te.exps.length)
                                 paramDefaultArg = (*te.exps)[j];
-                            }
 
                             (*newparams)[j] = new Parameter(
                                 stc, narg.type, narg.ident, paramDefaultArg, narg.userAttribDecl);
@@ -3798,7 +3800,12 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
 
             if (ident == Id.classinfo)
             {
-                assert(Type.typeinfoclass);
+                if (!Type.typeinfoclass)
+                {
+                    error(e.loc, "`object.TypeInfo_Class` could not be found, but is implicitly used");
+                    return new ErrorExp();
+                }
+
                 Type t = Type.typeinfoclass.type;
                 if (e.op == TOK.type || e.op == TOK.dotType)
                 {

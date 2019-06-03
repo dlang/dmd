@@ -2238,6 +2238,15 @@ extern (C++) class ThisExp : Expression
         //printf("ThisExp::ThisExp() loc = %d\n", loc.linnum);
     }
 
+    override Expression syntaxCopy()
+    {
+        auto r = cast(ThisExp) super.syntaxCopy();
+        // require new semantic (possibly new `var` etc.)
+        r.type = null;
+        r.var = null;
+        return r;
+    }
+
     override final bool isBool(bool result)
     {
         return result;
@@ -6680,7 +6689,7 @@ extern (C++) final class FuncInitExp : DefaultInitExp
             s = "";
         Expression e = new StringExp(loc, cast(char*)s);
         e = e.expressionSemantic(sc);
-        e = e.castTo(sc, type);
+        e.type = Type.tstring;
         return e;
     }
 
@@ -6720,7 +6729,7 @@ extern (C++) final class PrettyFuncInitExp : DefaultInitExp
 
         Expression e = new StringExp(loc, cast(char*)s);
         e = e.expressionSemantic(sc);
-        e = e.castTo(sc, type);
+        e.type = Type.tstring;
         return e;
     }
 
