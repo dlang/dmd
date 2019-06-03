@@ -178,7 +178,7 @@ extern (C++) final class StaticForeach : RootObject
      */
     private extern(D) Expression wrapAndCall(const ref Loc loc, Statement s)
     {
-        auto tf = new TypeFunction(ParameterList(), null, LINK.default_, 0);
+        auto tf = new TypeFunction(ParameterList(), null, LINK.default_, STC.undefined);
         auto fd = new FuncLiteralDeclaration(loc, loc, tf, TOK.reserved, null);
         fd.fbody = s;
         auto fe = new FuncExp(loc, fd);
@@ -240,7 +240,7 @@ extern (C++) final class StaticForeach : RootObject
         sdecl.members = new Dsymbols();
         auto fid = Identifier.idPool(tupleFieldName.ptr, tupleFieldName.length);
         auto ty = new TypeTypeof(loc, new TupleExp(loc, e));
-        sdecl.members.push(new VarDeclaration(loc, ty, fid, null, 0));
+        sdecl.members.push(new VarDeclaration(loc, ty, fid, null, STC.undefined));
         auto r = cast(TypeStruct)sdecl.type;
         r.vtinfo = TypeInfoStructDeclaration.create(r); // prevent typeinfo from going to object file
         return r;

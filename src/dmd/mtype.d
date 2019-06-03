@@ -215,7 +215,7 @@ string MODtoString(MOD mod) nothrow pure
  */
 StorageClass ModToStc(uint mod) pure nothrow @nogc @safe
 {
-    StorageClass stc = 0;
+    STC stc = STC.undefined;
     if (mod & MODFlags.immutable_)
         stc |= STC.immutable_;
     if (mod & MODFlags.const_)
@@ -558,7 +558,7 @@ extern (C++) abstract class Type : ASTNode
      *      3       cannot determine covariance because of forward references
      *      *pstc   STCxxxx which would make it covariant
      */
-    final int covariant(Type t, StorageClass* pstc = null, bool fix17349 = true)
+    final int covariant(Type t, STC* pstc = null, bool fix17349 = true)
     {
         version (none)
         {
@@ -568,8 +568,8 @@ extern (C++) abstract class Type : ASTNode
             printf("mod = %x, %x\n", mod, t.mod);
         }
         if (pstc)
-            *pstc = 0;
-        StorageClass stc = 0;
+            *pstc = STC.undefined;
+        STC stc = STC.undefined;
 
         bool notcovariant = false;
 
@@ -702,8 +702,8 @@ extern (C++) abstract class Type : ASTNode
 
         if (!t1.isref && (t1.isscope || t2.isscope))
         {
-            StorageClass stc1 = t1.isscope ? STC.scope_ : 0;
-            StorageClass stc2 = t2.isscope ? STC.scope_ : 0;
+            STC stc1 = t1.isscope ? STC.scope_ : STC.undefined;
+            STC stc2 = t2.isscope ? STC.scope_ : STC.undefined;
             if (t1.isreturn)
             {
                 stc1 |= STC.return_;
@@ -4155,7 +4155,7 @@ extern (C++) final class TypeFunction : TypeNext
     Expressions* fargs;         // function arguments
     int inuse;
 
-    extern (D) this(ParameterList pl, Type treturn, LINK linkage, StorageClass stc = 0)
+    extern (D) this(ParameterList pl, Type treturn, LINK linkage, StorageClass stc = STC.undefined)
     {
         super(Tfunction, treturn);
         //if (!treturn) *(char*)0=0;
@@ -4193,7 +4193,7 @@ extern (C++) final class TypeFunction : TypeNext
             this.trust = TRUST.trusted;
     }
 
-    static TypeFunction create(Parameters* parameters, Type treturn, VarArg varargs, LINK linkage, StorageClass stc = 0)
+    static TypeFunction create(Parameters* parameters, Type treturn, VarArg varargs, LINK linkage, StorageClass stc = STC.undefined)
     {
         return new TypeFunction(ParameterList(parameters, varargs), treturn, linkage, stc);
     }
@@ -4471,7 +4471,7 @@ extern (C++) final class TypeFunction : TypeNext
             (stc & STC.safe && t.trust < TRUST.trusted))
         {
             // Klunky to change these
-            auto tf = new TypeFunction(t.parameterList, t.next, t.linkage, 0);
+            auto tf = new TypeFunction(t.parameterList, t.next, t.linkage, STC.undefined);
             tf.mod = t.mod;
             tf.fargs = fargs;
             tf.purity = t.purity;
@@ -6109,7 +6109,7 @@ extern (C++) final class TypeTuple : Type
                 Expression e = (*exps)[i];
                 if (e.type.ty == Ttuple)
                     e.error("cannot form tuple of tuples");
-                auto arg = new Parameter(STC.undefined_, e.type, null, null, null);
+                auto arg = new Parameter(STC.undefined, e.type, null, null, null);
                 (*arguments)[i] = arg;
             }
         }
@@ -6135,15 +6135,15 @@ extern (C++) final class TypeTuple : Type
     {
         super(Ttuple);
         arguments = new Parameters();
-        arguments.push(new Parameter(0, t1, null, null, null));
+        arguments.push(new Parameter(STC.undefined, t1, null, null, null));
     }
 
     extern (D) this(Type t1, Type t2)
     {
         super(Ttuple);
         arguments = new Parameters();
-        arguments.push(new Parameter(0, t1, null, null, null));
-        arguments.push(new Parameter(0, t2, null, null, null));
+        arguments.push(new Parameter(STC.undefined, t1, null, null, null));
+        arguments.push(new Parameter(STC.undefined, t2, null, null, null));
     }
 
     override const(char)* kind() const
@@ -6494,30 +6494,31 @@ extern (C++) final class Parameter : ASTNode
         return isCovariantScope(returnByRef, this.storageClass, p.storageClass);
     }
 
-    extern (D) private static bool isCovariantScope(bool returnByRef, StorageClass from, StorageClass to) pure nothrow @nogc @safe
+    extern (D) private static bool isCovariantScope(bool returnByRef, STC from, STC to) pure nothrow @nogc @safe
     {
         if (from == to)
             return true;
 
-        /* Shrinking the representation is necessary because StorageClass is so wide
+        /* Shrinking the representation is necessary because STC is so wide
          * Params:
          *   returnByRef = true if the function returns by ref
          *   stc = storage class of parameter
          */
-        static uint buildSR(bool returnByRef, StorageClass stc) pure nothrow @nogc @safe
+        static uint buildSR(bool returnByRef, STC stc) pure nothrow @nogc @safe
         {
             uint result;
-            final switch (stc & (STC.ref_ | STC.scope_ | STC.return_))
+            switch (stc & (STC.ref_ | STC.scope_ | STC.return_))
             {
-                case 0:                    result = SR.None;        break;
-                case STC.ref_:               result = SR.Ref;         break;
-                case STC.scope_:             result = SR.Scope;       break;
-                case STC.return_ | STC.ref_:   result = SR.ReturnRef;   break;
-                case STC.return_ | STC.scope_: result = SR.ReturnScope; break;
-                case STC.ref_    | STC.scope_: result = SR.RefScope;    break;
+                case STC.undefined:            result = SR.None;        break;
+                case STC.ref_:                  result = SR.Ref;         break;
+                case STC.scope_:                result = SR.Scope;       break;
+                case STC.return_ | STC.ref_:    result = SR.ReturnRef;   break;
+                case STC.return_ | STC.scope_:  result = SR.ReturnScope; break;
+                case STC.ref_    | STC.scope_:  result = SR.RefScope;    break;
                 case STC.return_ | STC.ref_ | STC.scope_:
                     result = returnByRef ? SR.ReturnRef_Scope : SR.Ref_ReturnScope;
                     break;
+                default: assert(0); // should not happen since (stc & ...)
             }
             return result;
         }

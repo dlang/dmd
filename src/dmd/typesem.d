@@ -1219,7 +1219,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
             /* Create a scope for evaluating the default arguments for the parameters
              */
             Scope* argsc = sc.push();
-            argsc.stc = 0; // don't inherit storage class
+            argsc.stc = STC.undefined; // don't inherit storage class
             argsc.protection = Prot(Prot.Kind.public_);
             argsc.func = null;
 
@@ -1414,12 +1414,12 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                             // https://issues.dlang.org/show_bug.cgi?id=12744
                             // If the storage classes of narg
                             // conflict with the ones in fparam, it's ignored.
-                            StorageClass stc  = fparam.storageClass | narg.storageClass;
-                            StorageClass stc1 = fparam.storageClass & (STC.ref_ | STC.out_ | STC.lazy_);
-                            StorageClass stc2 =   narg.storageClass & (STC.ref_ | STC.out_ | STC.lazy_);
+                            STC stc  = fparam.storageClass | narg.storageClass;
+                            STC stc1 = fparam.storageClass & (STC.ref_ | STC.out_ | STC.lazy_);
+                            STC stc2 =   narg.storageClass & (STC.ref_ | STC.out_ | STC.lazy_);
                             if (stc1 && stc2 && stc1 != stc2)
                             {
-                                OutBuffer buf1;  stcToBuffer(&buf1, stc1 | ((stc1 & STC.ref_) ? (fparam.storageClass & STC.auto_) : 0));
+                                OutBuffer buf1;  stcToBuffer(&buf1, stc1 | ((stc1 & STC.ref_) ? (fparam.storageClass & STC.auto_) : STC.undefined));
                                 OutBuffer buf2;  stcToBuffer(&buf2, stc2);
 
                                 .error(loc, "incompatible parameter storage classes `%s` and `%s`",
@@ -1445,7 +1445,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                         }
                         fparam.type = new TypeTuple(newparams);
                     }
-                    fparam.storageClass = 0;
+                    fparam.storageClass = STC.undefined;
 
                     /* Reset number of parameters, and back up one to do this fparam again,
                      * now that it is a tuple

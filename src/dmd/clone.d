@@ -50,7 +50,7 @@ StorageClass mergeFuncAttrs(StorageClass s1, const FuncDeclaration f) pure
 {
     if (!f)
         return s1;
-    StorageClass s2 = (f.storage_class & STC.disable);
+    STC s2 = (f.storage_class & STC.disable);
 
     TypeFunction tf = cast(TypeFunction)f.type;
     if (tf.trust == TRUST.safe)
@@ -70,7 +70,7 @@ StorageClass mergeFuncAttrs(StorageClass s1, const FuncDeclaration f) pure
     const sa = s1 & s2;
     const so = s1 | s2;
 
-    StorageClass stc = (sa & (STC.pure_ | STC.nothrow_ | STC.nogc)) | (so & STC.disable);
+    STC stc = (sa & (STC.pure_ | STC.nothrow_ | STC.nogc)) | (so & STC.disable);
 
     if (so & STC.system)
         stc |= STC.system;
@@ -262,7 +262,7 @@ FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
         return null;
 
     //printf("StructDeclaration::buildOpAssign() %s\n", sd.toChars());
-    StorageClass stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
+    STC stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
     Loc declLoc = sd.loc;
     Loc loc; // internal code should have no loc to prevent coverage
 
@@ -369,7 +369,7 @@ FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     sd.hasIdentityAssign = true; // temporary mark identity assignable
     const errors = global.startGagging(); // Do not report errors, even if the template opAssign fbody makes it.
     Scope* sc2 = sc.push();
-    sc2.stc = 0;
+    sc2.stc = STC.undefined;
     sc2.linkage = LINK.d;
     fop.dsymbolSemantic(sc2);
     fop.semantic2(sc2);
@@ -578,7 +578,7 @@ FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
     fop.fbody = new ReturnStatement(loc, e);
     uint errors = global.startGagging(); // Do not report errors
     Scope* sc2 = sc.push();
-    sc2.stc = 0;
+    sc2.stc = STC.undefined;
     sc2.linkage = LINK.d;
     fop.dsymbolSemantic(sc2);
     fop.semantic2(sc2);
@@ -698,7 +698,7 @@ FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
     fop.fbody = new ReturnStatement(loc, e);
     uint errors = global.startGagging(); // Do not report errors
     Scope* sc2 = sc.push();
-    sc2.stc = 0;
+    sc2.stc = STC.undefined;
     sc2.linkage = LINK.d;
     fop.dsymbolSemantic(sc2);
     fop.semantic2(sc2);
@@ -816,7 +816,7 @@ FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
         "return h;";
     fop.fbody = new CompileStatement(loc, new StringExp(loc, cast(char*)code));
     Scope* sc2 = sc.push();
-    sc2.stc = 0;
+    sc2.stc = STC.undefined;
     sc2.linkage = LINK.d;
     fop.dsymbolSemantic(sc2);
     fop.semantic2(sc2);
@@ -845,7 +845,7 @@ DtorDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
     if (ad.isUnionDeclaration())
         return null;                    // unions don't have destructors
 
-    StorageClass stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
+    STC stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
     Loc declLoc = ad.dtors.dim ? ad.dtors[0].loc : ad.loc;
     Loc loc; // internal code should have no loc to prevent coverage
 
@@ -1047,7 +1047,7 @@ private DtorDeclaration buildWindowsCppDtor(AggregateDeclaration ad, DtorDeclara
     //   // TODO: if (del) delete (char*)this;
     //   return (void*) this;
     // }
-    Parameter delparam = new Parameter(STC.undefined_, Type.tuns32, Identifier.idPool("del"), new IntegerExp(dtor.loc, 0, Type.tuns32), null);
+    Parameter delparam = new Parameter(STC.undefined, Type.tuns32, Identifier.idPool("del"), new IntegerExp(dtor.loc, 0, Type.tuns32), null);
     Parameters* params = new Parameters;
     params.push(delparam);
     auto ftype = new TypeFunction(ParameterList(params), Type.tvoidptr, LINK.cpp, dtor.storage_class);
@@ -1148,8 +1148,8 @@ FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
 
     default:
         Expression e = null;
-        StorageClass stcx = 0;
-        StorageClass stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
+        STC stcx = STC.undefined;
+        STC stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
         foreach (i, inv; ad.invs)
         {
             stc = mergeFuncAttrs(stc, inv);
@@ -1157,8 +1157,8 @@ FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
             {
                 // What should do?
             }
-            const stcy = (inv.storage_class & STC.synchronized_) |
-                         (inv.type.mod & MODFlags.shared_ ? STC.shared_ : 0);
+            const STC stcy = (inv.storage_class & STC.synchronized_) |
+                         (inv.type.mod & MODFlags.shared_ ? STC.shared_ : STC.undefined);
             if (i == 0)
                 stcx = stcy;
             else if (stcx ^ stcy)

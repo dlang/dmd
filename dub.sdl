@@ -57,7 +57,8 @@ subPackage {
     "src/dmd/parse.d" \
     "src/dmd/transitivevisitor.d" \
     "src/dmd/permissivevisitor.d" \
-    "src/dmd/strictvisitor.d"
+    "src/dmd/strictvisitor.d" \
+    "src/dmd/storage_class.d"
 
   dependency "dmd:lexer" version="*"
 }

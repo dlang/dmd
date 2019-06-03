@@ -1079,7 +1079,7 @@ public:
             buf.writestring("Nk");
         switch (p.storageClass & (STC.in_ | STC.out_ | STC.ref_ | STC.lazy_))
         {
-        case 0:
+        case STC.undefined:
         case STC.in_:
             break;
         case STC.out_:

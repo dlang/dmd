@@ -393,7 +393,7 @@ Expression extractSideEffect(Scope* sc, const char* name,
     if (!alwaysCopy && isTrivialExp(e))
         return e;
 
-    auto vd = copyToTemp(0, name, e);
+    auto vd = copyToTemp(STC.undefined, name, e);
     vd.storage_class |= e.isLvalue() ? STC.ref_ : STC.rvalue;
 
     e0 = Expression.combine(e0, new DeclarationExp(vd.loc, vd)

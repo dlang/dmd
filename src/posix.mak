@@ -316,7 +316,7 @@ FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argt
 	dtemplate dversion escape expression expressionsem func			\
 	hdrgen id impcnvtab imphint init initsem inline inlinecost intrange	\
 	json lambdacomp lib libelf libmach link mars mtype nogc nspace objc opover optimize parse permissivevisitor sapply templateparamsem	\
-	sideeffect statement staticassert target typesem traits transitivevisitor parsetimevisitor visitor	\
+	sideeffect statement staticassert storage_class target typesem traits transitivevisitor parsetimevisitor visitor	\
 	typinf utils scanelf scanmach statement_rewrite_walker statementsem staticcond safe blockexit printast \
 	semantic2 semantic3))
 

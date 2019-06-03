@@ -1266,7 +1266,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return new ErrorExp();
         }
 
-        StorageClass stc;
+        STC stc;
 
         // Set stc to storage class of the ith parameter
         auto ex = isExpression((*e.args)[1]);

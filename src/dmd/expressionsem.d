@@ -1545,7 +1545,7 @@ private Expression rewriteOpAssign(BinExp exp)
         /*    auto tmp = &array;
          *    (*tmp).length = (*tmp).length op e2
          */
-        auto tmp = copyToTemp(0, "__arraylength", new AddrExp(ale.loc, ale.e1));
+        auto tmp = copyToTemp(STC.undefined, "__arraylength", new AddrExp(ale.loc, ale.e1));
 
         Expression e1 = new ArrayLengthExp(ale.loc, new PtrExp(ale.loc, new VarExp(ale.loc, tmp)));
         Expression elvalue = e1.syntaxCopy();
@@ -2185,7 +2185,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
 
                 /* Declare temporary 'auto __pfx = arg' (needsDtor) or 'auto __pfy = arg' (!needsDtor)
                  */
-                auto tmp = copyToTemp(0,
+                auto tmp = copyToTemp(STC.undefined,
                     needsDtor ? "__pfx" : "__pfy",
                     !isRef ? arg : arg.addressOf());
                 tmp.dsymbolSemantic(sc);
@@ -4867,10 +4867,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 Loc loc = exp.loc;
 
                 auto vptr = new DotIdExp(loc, new ThisExp(loc), Id.__vptr);
-                auto vptrTmpDecl = copyToTemp(0, "__vptrTmp", vptr);
+                auto vptrTmpDecl = copyToTemp(STC.undefined, "__vptrTmp", vptr);
                 auto declareVptrTmp = new DeclarationExp(loc, vptrTmpDecl);
 
-                auto superTmpDecl = copyToTemp(0, "__superTmp", result);
+                auto superTmpDecl = copyToTemp(STC.undefined, "__superTmp", result);
                 auto declareSuperTmp = new DeclarationExp(loc, superTmpDecl);
 
                 auto declareTmps = new CommaExp(loc, declareVptrTmp, declareSuperTmp);
@@ -6638,7 +6638,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 VarDeclaration v = null;
                 if (fd && f)
                 {
-                    v = copyToTemp(0, "__tmpea", exp.e1);
+                    v = copyToTemp(STC.undefined, "__tmpea", exp.e1);
                     v.dsymbolSemantic(sc);
                     ea = new DeclarationExp(exp.loc, v);
                     ea.type = v.type;
@@ -7739,7 +7739,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             /* Rewrite as:
              * auto tmp = e1; ++e1; tmp
              */
-            auto tmp = copyToTemp(0, "__pitmp", exp.e1);
+            auto tmp = copyToTemp(STC.undefined, "__pitmp", exp.e1);
             Expression ea = new DeclarationExp(exp.loc, tmp);
 
             Expression eb = exp.e1.syntaxCopy();
@@ -9956,7 +9956,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             // Replace x^^2 with (tmp = x, tmp*tmp)
             // Replace x^^3 with (tmp = x, tmp*tmp*tmp)
-            auto tmp = copyToTemp(0, "__powtmp", exp.e1);
+            auto tmp = copyToTemp(STC.undefined, "__powtmp", exp.e1);
             Expression de = new DeclarationExp(exp.loc, tmp);
             Expression ve = new VarExp(exp.loc, tmp);
 

@@ -953,7 +953,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 { // expand tuples into multiple `static foreach` variables.
                     assert(e && !t);
                     auto ident = Identifier.generateId("__value");
-                    declareVariable(0, e.type, ident, e, null);
+                    declareVariable(STC.undefined, e.type, ident, e, null);
                     import dmd.cond: StaticForeach;
                     auto field = Identifier.idPool(StaticForeach.tupleFieldName.ptr,StaticForeach.tupleFieldName.length);
                     Expression access = new DotIdExp(loc, e, field);
@@ -1491,7 +1491,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 }
                 else
                 {
-                    r = copyToTemp(0, "__r", fs.aggr);
+                    r = copyToTemp(STC.undefined, "__r", fs.aggr);
                     r.dsymbolSemantic(sc);
                     _init = new ExpStatement(loc, r);
                     if (vinit)
@@ -1742,14 +1742,14 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     if (!fdapply[i])
                     {
                         auto params = new Parameters();
-                        params.push(new Parameter(0, Type.tvoid.pointerTo(), null, null, null));
+                        params.push(new Parameter(STC.undefined, Type.tvoid.pointerTo(), null, null, null));
                         params.push(new Parameter(STC.in_, Type.tsize_t, null, null, null));
                         auto dgparams = new Parameters();
-                        dgparams.push(new Parameter(0, Type.tvoidptr, null, null, null));
+                        dgparams.push(new Parameter(STC.undefined, Type.tvoidptr, null, null, null));
                         if (dim == 2)
-                            dgparams.push(new Parameter(0, Type.tvoidptr, null, null, null));
+                            dgparams.push(new Parameter(STC.undefined, Type.tvoidptr, null, null, null));
                         fldeTy[i] = new TypeDelegate(new TypeFunction(ParameterList(dgparams), Type.tint32, LINK.d));
-                        params.push(new Parameter(0, fldeTy[i], null, null, null));
+                        params.push(new Parameter(STC.undefined, fldeTy[i], null, null, null));
                         fdapply[i] = FuncDeclaration.genCfunc(params, Type.tint32, i ? Id._aaApply2 : Id._aaApply);
                     }
 
@@ -1814,11 +1814,11 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     auto params = new Parameters();
                     params.push(new Parameter(STC.in_, tn.arrayOf(), null, null, null));
                     auto dgparams = new Parameters();
-                    dgparams.push(new Parameter(0, Type.tvoidptr, null, null, null));
+                    dgparams.push(new Parameter(STC.undefined, Type.tvoidptr, null, null, null));
                     if (dim == 2)
-                        dgparams.push(new Parameter(0, Type.tvoidptr, null, null, null));
+                        dgparams.push(new Parameter(STC.undefined, Type.tvoidptr, null, null, null));
                     dgty = new TypeDelegate(new TypeFunction(ParameterList(dgparams), Type.tint32, LINK.d));
-                    params.push(new Parameter(0, dgty, null, null, null));
+                    params.push(new Parameter(STC.undefined, dgty, null, null, null));
                     fdapply = FuncDeclaration.genCfunc(params, Type.tint32, fdname.ptr);
 
                     if (tab.ty == Tsarray)
@@ -1948,7 +1948,7 @@ else
         foreach (i; 0 .. fs.parameters.dim)
         {
             Parameter p = (*fs.parameters)[i];
-            StorageClass stc = STC.ref_;
+            STC stc = STC.ref_;
             Identifier id;
 
             p.type = p.type.typeSemantic(fs.loc, sc);
@@ -1992,7 +1992,7 @@ else
         }
         // https://issues.dlang.org/show_bug.cgi?id=13840
         // Throwable nested function inside nothrow function is acceptable.
-        StorageClass stc = mergeFuncAttrs(STC.safe | STC.pure_ | STC.nogc, fs.func);
+        STC stc = mergeFuncAttrs(STC.safe | STC.pure_ | STC.nogc, fs.func);
         auto tf = new TypeFunction(ParameterList(params), Type.tint32, LINK.d, stc);
         fs.cases = new Statements();
         fs.gotos = new ScopeStatements();
@@ -3628,14 +3628,14 @@ else
                  *  _d_monitorenter(tmp);
                  *  try { body } finally { _d_monitorexit(tmp); }
                  */
-                auto tmp = copyToTemp(0, "__sync", ss.exp);
+                auto tmp = copyToTemp(STC.undefined, "__sync", ss.exp);
                 tmp.dsymbolSemantic(sc);
 
                 auto cs = new Statements();
                 cs.push(new ExpStatement(ss.loc, tmp));
 
                 auto args = new Parameters();
-                args.push(new Parameter(0, ClassDeclaration.object.type, null, null, null));
+                args.push(new Parameter(STC.undefined, ClassDeclaration.object.type, null, null, null));
 
                 FuncDeclaration fdenter = FuncDeclaration.genCfunc(args, Type.tvoid, Id.monitorenter);
                 Expression e = new CallExp(ss.loc, fdenter, new VarExp(ss.loc, tmp));
@@ -3677,7 +3677,7 @@ else
             cs.push(new ExpStatement(ss.loc, v));
 
             auto args = new Parameters();
-            args.push(new Parameter(0, t.pointerTo(), null, null, null));
+            args.push(new Parameter(STC.undefined, t.pointerTo(), null, null, null));
 
             FuncDeclaration fdenter = FuncDeclaration.genCfunc(args, Type.tvoid, Id.criticalenter, STC.nothrow_);
             Expression int0 = new IntegerExp(ss.loc, dinteger_t(0), Type.tint8);
@@ -3774,7 +3774,7 @@ else
                      *   }
                      * }
                      */
-                    auto tmp = copyToTemp(0, "__withtmp", ws.exp);
+                    auto tmp = copyToTemp(STC.undefined, "__withtmp", ws.exp);
                     tmp.dsymbolSemantic(sc);
                     auto es = new ExpStatement(ws.loc, tmp);
                     ws.exp = new VarExp(ws.loc, tmp);
@@ -4235,7 +4235,7 @@ void catchSemantic(Catch c, Scope* sc)
         c.errors = true;
     else
     {
-        StorageClass stc;
+        STC stc;
         auto cd = c.type.toBasetype().isClassHandle();
         if (!cd)
         {

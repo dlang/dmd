@@ -819,7 +819,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         paramscope.tinst = ti;
         paramscope.minst = sc.minst;
         paramscope.callsc = sc;
-        paramscope.stc = 0;
+        paramscope.stc = STC.undefined;
         return paramscope;
     }
 
@@ -1308,7 +1308,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             // Match attributes of tthis against attributes of fd
             if (fd.type && !fd.isCtorDeclaration())
             {
-                StorageClass stc = _scope.stc | fd.storage_class2;
+                STC stc = _scope.stc | fd.storage_class2;
                 // Propagate parent storage class, https://issues.dlang.org/show_bug.cgi?id=5504
                 Dsymbol p = parent;
                 while (p.isTemplateDeclaration() || p.isTemplateInstance())

@@ -631,7 +631,7 @@ extern (C++) class FuncDeclaration : Declaration
     {
         //printf("findVtblIndex() %s\n", toChars());
         FuncDeclaration mismatch = null;
-        StorageClass mismatchstc = 0;
+        STC mismatchstc = STC.undefined;
         int mismatchvi = -1;
         int exactvi = -1;
         int bestvi = -1;
@@ -662,7 +662,7 @@ extern (C++) class FuncDeclaration : Declaration
                     continue;
                 }
 
-                StorageClass stc = 0;
+                STC stc = STC.undefined;
                 int cov = type.covariant(fdv.type, &stc, fix17349);
                 //printf("\tbaseclass cov = %d\n", cov);
                 switch (cov)
@@ -2257,7 +2257,7 @@ extern (C++) class FuncDeclaration : Declaration
             tf.isnogc = f.isnogc;
             tf.purity = f.purity;
             tf.trust = f.trust;
-            auto fd = new FuncDeclaration(loc, loc, Id.require, STC.undefined_, tf);
+            auto fd = new FuncDeclaration(loc, loc, Id.require, STC.undefined, tf);
             fd.fbody = frequire;
             Statement s1 = new ExpStatement(loc, fd);
             Expression e = new CallExp(loc, new VarExp(loc, fd, false), cast(Expressions*)null);
@@ -2286,7 +2286,7 @@ extern (C++) class FuncDeclaration : Declaration
             tf.isnogc = f.isnogc;
             tf.purity = f.purity;
             tf.trust = f.trust;
-            auto fd = new FuncDeclaration(loc, loc, Id.ensure, STC.undefined_, tf);
+            auto fd = new FuncDeclaration(loc, loc, Id.ensure, STC.undefined, tf);
             fd.fbody = fensure;
             Statement s1 = new ExpStatement(loc, fd);
             Expression eresult = null;
@@ -2389,12 +2389,12 @@ extern (C++) class FuncDeclaration : Declaration
     /**********************************
      * Generate a FuncDeclaration for a runtime library function.
      */
-    static FuncDeclaration genCfunc(Parameters* fparams, Type treturn, const(char)* name, StorageClass stc = 0)
+    static FuncDeclaration genCfunc(Parameters* fparams, Type treturn, const(char)* name, StorageClass stc = STC.undefined)
     {
         return genCfunc(fparams, treturn, Identifier.idPool(name, cast(uint)strlen(name)), stc);
     }
 
-    static FuncDeclaration genCfunc(Parameters* fparams, Type treturn, Identifier id, StorageClass stc = 0)
+    static FuncDeclaration genCfunc(Parameters* fparams, Type treturn, Identifier id, StorageClass stc = STC.undefined)
     {
         FuncDeclaration fd;
         TypeFunction tf;
@@ -3308,7 +3308,7 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
 
     extern (D) this(const ref Loc loc, const ref Loc endloc, Type type, TOK tok, ForeachStatement fes, Identifier id = null)
     {
-        super(loc, endloc, null, STC.undefined_, type);
+        super(loc, endloc, null, STC.undefined, type);
         this.ident = id ? id : Id.empty;
         this.tok = tok;
         this.fes = fes;
@@ -3538,7 +3538,7 @@ extern (C++) final class DtorDeclaration : FuncDeclaration
 {
     extern (D) this(const ref Loc loc, const ref Loc endloc)
     {
-        super(loc, endloc, Id.dtor, STC.undefined_, null);
+        super(loc, endloc, Id.dtor, STC.undefined, null);
     }
 
     extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, Identifier id)

@@ -2071,7 +2071,7 @@ extern (C++) final class ScopeGuardStatement : Statement
                  *  sexception:    x = true;
                  *  sfinally: if (!x) statement;
                  */
-                auto v = copyToTemp(0, "__os", new IntegerExp(Loc.initial, 0, Type.tbool));
+                auto v = copyToTemp(STC.undefined, "__os", new IntegerExp(Loc.initial, 0, Type.tbool));
                 v.dsymbolSemantic(sc);
                 *sentry = new ExpStatement(loc, v);
 

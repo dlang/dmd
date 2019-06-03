@@ -3206,7 +3206,7 @@ extern (C++) final class StructLiteralExp : Expression
             strncat(buf.ptr, sd.ident.toChars(), len - 4 - 1);
             assert(buf[len] == 0);
 
-            auto tmp = copyToTemp(0, buf.ptr, this);
+            auto tmp = copyToTemp(STC.undefined, buf.ptr, this);
             Expression ae = new DeclarationExp(loc, tmp);
             Expression e = new CommaExp(loc, ae, new VarExp(loc, tmp));
             e = e.expressionSemantic(sc);
@@ -3832,7 +3832,7 @@ extern (C++) final class FuncExp : Expression
             convertMatch = true;
 
             auto tfy = new TypeFunction(tfx.parameterList, tof.next,
-                        tfx.linkage, STC.undefined_);
+                        tfx.linkage, STC.undefined);
             tfy.mod = tfx.mod;
             tfy.isnothrow = tfx.isnothrow;
             tfy.isnogc = tfx.isnogc;
@@ -4945,7 +4945,7 @@ extern (C++) final class CallExp : UnaExp
                 /* Type needs destruction, so declare a tmp
                  * which the back end will recognize and call dtor on
                  */
-                auto tmp = copyToTemp(0, "__tmpfordtor", this);
+                auto tmp = copyToTemp(STC.undefined, "__tmpfordtor", this);
                 auto de = new DeclarationExp(loc, tmp);
                 auto ve = new VarExp(loc, tmp);
                 Expression e = new CommaExp(loc, de, ve);

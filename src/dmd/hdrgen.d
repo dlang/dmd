@@ -383,7 +383,7 @@ public:
         buf.writestring("if (");
         if (Parameter p = s.prm)
         {
-            StorageClass stc = p.storageClass;
+            STC stc = p.storageClass;
             if (!p.type && !stc)
                 stc = STC.auto_;
             if (stcToBuffer(buf, stc))
@@ -2683,7 +2683,7 @@ string stcToString(ref StorageClass stc)
 {
     struct SCstring
     {
-        StorageClass stc;
+        STC stc;
         TOK tok;
         string id;
     }
@@ -2722,12 +2722,12 @@ string stcToString(ref StorageClass stc)
         SCstring(STC.disable, TOK.at, "@disable"),
         SCstring(STC.future, TOK.at, "@__future"),
         SCstring(STC.local, TOK.at, "__local"),
-        SCstring(0, TOK.reserved)
+        SCstring(STC.undefined, TOK.reserved)
     ];
     for (int i = 0; table[i].stc; i++)
     {
-        StorageClass tbl = table[i].stc;
-        assert(tbl & STCStorageClass);
+        STC tbl = table[i].stc;
+        //assert(tbl & STCStorageClass);
         if (stc & tbl)
         {
             stc &= ~tbl;
@@ -3033,7 +3033,7 @@ private void parameterToBuffer(Parameter p, OutBuffer* buf, HdrGenState* hgs)
     else if (p.storageClass & STC.alias_)
         buf.writestring("alias ");
 
-    StorageClass stc = p.storageClass;
+    STC stc = p.storageClass;
     if (p.type && p.type.mod & MODFlags.shared_)
         stc &= ~STC.shared_;
 

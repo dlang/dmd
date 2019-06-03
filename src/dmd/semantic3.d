@@ -421,7 +421,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 {
                     Parameter fparam = f.parameterList[i];
                     Identifier id = fparam.ident;
-                    StorageClass stc = 0;
+                    STC stc = STC.undefined;
                     if (!id)
                     {
                         /* Generate identifier for un-named parameter,
@@ -1261,7 +1261,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             sc = sc.push();
             if (funcdecl.isCtorDeclaration()) // https://issues.dlang.org/show_bug.cgi?id=#15665
                 sc.flags |= SCOPE.ctor;
-            sc.stc = 0;
+            sc.stc = STC.undefined;
             sc.linkage = funcdecl.linkage; // https://issues.dlang.org/show_bug.cgi?id=8496
             funcdecl.type = f.typeSemantic(funcdecl.loc, sc);
             sc = sc.pop();

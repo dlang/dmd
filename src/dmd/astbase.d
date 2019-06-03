@@ -31,6 +31,7 @@ struct ASTBase
     import dmd.errors;
     import dmd.lexer;
     import dmd.utils : toDString;
+    import dmd.storage_class;
 
     import core.stdc.string;
     import core.stdc.stdarg;
@@ -73,70 +74,6 @@ struct ASTBase
     }
 
     alias MOD = ubyte;
-
-    enum STC : long
-    {
-        undefined_          = 0L,
-        static_             = (1L << 0),
-        extern_             = (1L << 1),
-        const_              = (1L << 2),
-        final_              = (1L << 3),
-        abstract_           = (1L << 4),
-        parameter           = (1L << 5),
-        field               = (1L << 6),
-        override_           = (1L << 7),
-        auto_               = (1L << 8),
-        synchronized_       = (1L << 9),
-        deprecated_         = (1L << 10),
-        in_                 = (1L << 11),   // in parameter
-        out_                = (1L << 12),   // out parameter
-        lazy_               = (1L << 13),   // lazy parameter
-        foreach_            = (1L << 14),   // variable for foreach loop
-                              //(1L << 15)
-        variadic            = (1L << 16),   // the 'variadic' parameter in: T foo(T a, U b, V variadic...)
-        ctorinit            = (1L << 17),   // can only be set inside constructor
-        templateparameter   = (1L << 18),   // template parameter
-        scope_              = (1L << 19),
-        immutable_          = (1L << 20),
-        ref_                = (1L << 21),
-        init                = (1L << 22),   // has explicit initializer
-        manifest            = (1L << 23),   // manifest constant
-        nodtor              = (1L << 24),   // don't run destructor
-        nothrow_            = (1L << 25),   // never throws exceptions
-        pure_               = (1L << 26),   // pure function
-        tls                 = (1L << 27),   // thread local
-        alias_              = (1L << 28),   // alias parameter
-        shared_             = (1L << 29),   // accessible from multiple threads
-        gshared             = (1L << 30),   // accessible from multiple threads, but not typed as "shared"
-        wild                = (1L << 31),   // for "wild" type constructor
-        property            = (1L << 32),
-        safe                = (1L << 33),
-        trusted             = (1L << 34),
-        system              = (1L << 35),
-        ctfe                = (1L << 36),   // can be used in CTFE, even if it is static
-        disable             = (1L << 37),   // for functions that are not callable
-        result              = (1L << 38),   // for result variables passed to out contracts
-        nodefaultctor       = (1L << 39),   // must be set inside constructor
-        temp                = (1L << 40),   // temporary variable
-        rvalue              = (1L << 41),   // force rvalue for variables
-        nogc                = (1L << 42),   // @nogc
-        volatile_           = (1L << 43),   // destined for volatile in the back end
-        return_             = (1L << 44),   // 'return ref' or 'return scope' for function parameters
-        autoref             = (1L << 45),   // Mark for the already deduced 'auto ref' parameter
-        inference           = (1L << 46),   // do attribute inference
-        exptemp             = (1L << 47),   // temporary variable that has lifetime restricted to an expression
-        maybescope          = (1L << 48),   // parameter might be 'scope'
-        scopeinferred       = (1L << 49),   // 'scope' has been inferred and should not be part of mangling
-        future              = (1L << 50),   // introducing new base class function
-        local               = (1L << 51),   // do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
-        returninferred      = (1L << 52),   // 'return' has been inferred and should not be part of mangling
-
-        TYPECTOR = (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild),
-        FUNCATTR = (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.property | STC.safe | STC.trusted | STC.system),
-    }
-
-    extern (C++) __gshared const(StorageClass) STCStorageClass =
-        (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.const_ | STC.final_ | STC.abstract_ | STC.synchronized_ | STC.deprecated_ | STC.override_ | STC.lazy_ | STC.alias_ | STC.out_ | STC.in_ | STC.manifest | STC.immutable_ | STC.shared_ | STC.wild | STC.nothrow_ | STC.nogc | STC.pure_ | STC.ref_ | STC.return_ | STC.tls | STC.gshared | STC.property | STC.safe | STC.trusted | STC.system | STC.disable);
 
     enum ENUMTY : int
     {
@@ -496,7 +433,7 @@ struct ASTBase
         final extern (D) this(Identifier id)
         {
             super(id);
-            storage_class = STC.undefined_;
+            storage_class = STC.undefined;
             protection = Prot(Prot.Kind.undefined);
             linkage = LINK.default_;
         }
@@ -666,7 +603,7 @@ struct ASTBase
         uint sequenceNumber;
         __gshared uint nextSequenceNumber;
 
-        final extern (D) this(const ref Loc loc, Type type, Identifier id, Initializer _init, StorageClass st = STC.undefined_)
+        final extern (D) this(const ref Loc loc, Type type, Identifier id, Initializer _init, StorageClass st = STC.undefined)
         {
             super(id);
             this.type = type;
@@ -797,7 +734,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc, Loc endloc, Type type, TOK tok, ForeachStatement fes, Identifier id = null)
         {
-            super(loc, endloc, null, STC.undefined_, type);
+            super(loc, endloc, null, STC.undefined, type);
             this.ident = id ? id : Id.empty;
             this.tok = tok;
             this.fes = fes;
@@ -844,7 +781,7 @@ struct ASTBase
     {
         extern (D) this(const ref Loc loc, Loc endloc)
         {
-            super(loc, endloc, Id.dtor, STC.undefined_, null);
+            super(loc, endloc, Id.dtor, STC.undefined, null);
         }
         extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc, Identifier id)
         {
@@ -3681,7 +3618,7 @@ struct ASTBase
                     Expression e = (*exps)[i];
                     if (e.type.ty == Ttuple)
                         e.error("cannot form tuple of tuples");
-                    auto arg = new Parameter(STC.undefined_, e.type, null, null, null);
+                    auto arg = new Parameter(STC.undefined, e.type, null, null, null);
                     (*arguments)[i] = arg;
                 }
             }
@@ -3889,7 +3826,7 @@ struct ASTBase
         ubyte iswild;
         Expressions* fargs;
 
-        extern (D) this(ParameterList pl, Type treturn, LINK linkage, StorageClass stc = 0)
+        extern (D) this(ParameterList pl, Type treturn, LINK linkage, StorageClass stc = STC.undefined)
         {
             super(Tfunction, treturn);
             assert(VarArg.none <= pl.varargs && pl.varargs <= VarArg.typesafe);
@@ -6396,11 +6333,11 @@ struct ASTBase
             SCstring(STC.system, TOK.at, "@system"),
             SCstring(STC.disable, TOK.at, "@disable"),
             SCstring(STC.future, TOK.at, "@__future"),
-            SCstring(0, TOK.reserved)
+            SCstring(STC.undefined, TOK.reserved)
         ];
         for (int i = 0; table[i].stc; i++)
         {
-            StorageClass tbl = table[i].stc;
+            STC tbl = table[i].stc;
             assert(tbl & STCStorageClass);
             if (stc & tbl)
             {
