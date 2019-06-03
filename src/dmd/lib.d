@@ -131,8 +131,3 @@ else version (OSX)
 }
 else
     alias cpp_size_t = size_t;
-
-extern (C++) void addObjectToLibrary(Library lib, const(char)* module_name, const(ubyte)* buf, cpp_size_t buflen)
-{
-    lib.addObject(module_name, buf[0 .. buflen]);
-}
