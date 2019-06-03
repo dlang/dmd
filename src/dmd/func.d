@@ -1020,7 +1020,7 @@ extern (C++) class FuncDeclaration : Declaration
         {
             Parameter p = tf.parameterList[u];
             Expression e;
-            if (p.storageClass & (STC.ref_ | STC.out_))
+            if (p.isRefOrOut())
             {
                 e = new IdentifierExp(Loc.initial, p.ident);
                 e.type = p.type;

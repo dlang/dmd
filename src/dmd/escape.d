@@ -172,7 +172,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Exp
 
         notMaybeScope(v);
 
-        if ((v.storage_class & (STC.ref_ | STC.out_)) == 0 && p == sc.func)
+        if (!v.isRefOrOut() && p == sc.func)
         {
             if (par && (par.storageClass & (STC.scope_ | STC.return_)) == STC.scope_)
                 continue;
@@ -393,7 +393,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 
     // Determine if va is a parameter that is an indirect reference
     const bool vaIsRef = va && va.storage_class & STC.parameter &&
-        (va.storage_class & (STC.ref_ | STC.out_) || va.type.toBasetype().ty == Tclass);
+        (va.isRefOrOut() || va.type.toBasetype().ty == Tclass);
     if (log && vaIsRef) printf("va is ref `%s`\n", va.toChars());
 
     /* Determine if va is the first parameter, through which other 'return' parameters
@@ -486,7 +486,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
                  // va is class reference
                  ae.e1.op == TOK.dotVariable && va.type.toBasetype().ty == Tclass && (va.enclosesLifetimeOf(v) || !va.isScope()) ||
                  vaIsRef ||
-                 va.storage_class & (STC.ref_ | STC.out_) && !(v.storage_class & (STC.parameter | STC.temp))) &&
+                 va.isRefOrOut() && !(v.storage_class & (STC.parameter | STC.temp))) &&
                 sc.func.setUnsafe())
             {
                 if (!gag)
@@ -568,7 +568,7 @@ ByRef:
             continue;
         }
 
-        if (va && v.storage_class & (STC.ref_ | STC.out_))
+        if (va && v.isRefOrOut())
         {
             Dsymbol pva = va.toParent2();
             for (Dsymbol pv = p; pv; )
@@ -591,7 +591,7 @@ ByRef:
         if (!(va && va.isScope()))
             notMaybeScope(v);
 
-        if ((v.storage_class & (STC.ref_ | STC.out_)) == 0 && p == sc.func)
+        if (!v.isRefOrOut() && p == sc.func)
         {
             if (va && !va.isDataseg() && !va.doNotInferScope)
             {
@@ -841,7 +841,7 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
 
         Dsymbol p = v.toParent2();
 
-        if ((v.storage_class & (STC.ref_ | STC.out_)) == 0)
+        if (!v.isRefOrOut())
         {
             if (p == sc.func)
             {
@@ -853,7 +853,7 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
         /* Check for returning a ref variable by 'ref', but should be 'return ref'
          * Infer the addition of 'return', or set result to be the offending expression.
          */
-        if (v.storage_class & (STC.ref_ | STC.out_))
+        if (v.isRefOrOut())
         {
             if (global.params.useDIP25 &&
                      sc._module && sc._module.isRoot())
@@ -1057,7 +1057,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
 
         Dsymbol p = v.toParent2();
 
-        if ((v.storage_class & (STC.ref_ | STC.out_)) == 0)
+        if (!v.isRefOrOut())
         {
             if (p == sc.func)
             {
@@ -1085,8 +1085,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
         /* Check for returning a ref variable by 'ref', but should be 'return ref'
          * Infer the addition of 'return', or set result to be the offending expression.
          */
-        if ( (v.storage_class & (STC.ref_ | STC.out_)) &&
-            !(v.storage_class & (STC.return_ | STC.foreach_)))
+        if (v.isRefOrOut() && !(v.storage_class & (STC.return_ | STC.foreach_)))
         {
             if (sc.func.flags & FUNCFLAG.returnInprocess && p == sc.func)
             {
@@ -1828,7 +1827,7 @@ void eliminateMaybeScopes(VarDeclaration[] array)
                         {
                             // v cannot be scope since it is assigned to a non-scope va
                             notMaybeScope(v);
-                            if (!(v.storage_class & (STC.ref_ | STC.out_)))
+                            if (!v.isRefOrOut())
                                 v.storage_class &= ~(STC.return_ | STC.returninferred);
                             changes = true;
                         }

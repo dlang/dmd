@@ -1266,7 +1266,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     {
                         var = new VarDeclaration(loc, p.type.mutableOf(), Identifier.generateId("__key"), null);
                         var.storage_class |= STC.temp | STC.foreach_;
-                        if (var.storage_class & (STC.ref_ | STC.out_))
+                        if (var.isRefOrOut())
                             var.storage_class |= STC.nodtor;
 
                         fs.key = var;
@@ -1297,7 +1297,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         var = new VarDeclaration(loc, p.type, p.ident, null);
                         var.storage_class |= STC.foreach_;
                         var.storage_class |= p.storageClass & (STC.in_ | STC.out_ | STC.ref_ | STC.TYPECTOR);
-                        if (var.storage_class & (STC.ref_ | STC.out_))
+                        if (var.isRefOrOut())
                             var.storage_class |= STC.nodtor;
 
                         fs.value = var;

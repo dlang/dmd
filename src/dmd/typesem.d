@@ -1251,8 +1251,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                     .error(loc, "cannot have parameter of function type `%s`", fparam.type.toChars());
                     errors = true;
                 }
-                else if (!(fparam.storageClass & (STC.ref_ | STC.out_)) &&
-                         (t.ty == Tstruct || t.ty == Tsarray || t.ty == Tenum))
+                else if (!fparam.isRefOrOut() && (t.ty == Tstruct || t.ty == Tsarray || t.ty == Tenum))
                 {
                     Type tb2 = t.baseElemOf();
                     if (tb2.ty == Tstruct && !(cast(TypeStruct)tb2).sym.members ||
@@ -1276,16 +1275,15 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
 
                 if (fparam.storageClass & STC.return_)
                 {
-                    if (fparam.storageClass & (STC.ref_ | STC.out_))
+                    if (auto isRefOrOut = fparam.isRefOrOut())
                     {
                         // Disabled for the moment awaiting improvement to allow return by ref
                         // to be transformed into return by scope.
                         if (0 && !tf.isref)
                         {
-                            auto stc = fparam.storageClass & (STC.ref_ | STC.out_);
                             .error(loc, "parameter `%s` is `return %s` but function does not return by `ref`",
                                 fparam.ident ? fparam.ident.toChars() : "",
-                                stcToChars(stc));
+                                stcToChars(isRefOrOut));
                             errors = true;
                         }
                     }
@@ -1349,7 +1347,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                 if (fparam.defaultArg)
                 {
                     Expression e = fparam.defaultArg;
-                    auto isRefOrOut = fparam.storageClass & (STC.ref_ | STC.out_);
+                    auto isRefOrOut = fparam.isRefOrOut();
                     if (isRefOrOut)
                     {
                         e = e.expressionSemantic(argsc);
@@ -1415,8 +1413,8 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                             // If the storage classes of narg
                             // conflict with the ones in fparam, it's ignored.
                             StorageClass stc  = fparam.storageClass | narg.storageClass;
-                            StorageClass stc1 = fparam.storageClass & (STC.ref_ | STC.out_ | STC.lazy_);
-                            StorageClass stc2 =   narg.storageClass & (STC.ref_ | STC.out_ | STC.lazy_);
+                            StorageClass stc1 = fparam.isLazyOrWritable();
+                            StorageClass stc2 =   narg.isLazyOrWritable();
                             if (stc1 && stc2 && stc1 != stc2)
                             {
                                 OutBuffer buf1;  stcToBuffer(&buf1, stc1 | ((stc1 & STC.ref_) ? (fparam.storageClass & STC.auto_) : 0));

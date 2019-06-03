@@ -302,7 +302,7 @@ public:
     extern (C++) void pop(VarDeclaration v)
     {
         assert(!v.isDataseg() || v.isCTFE());
-        assert(!(v.storage_class & (STC.ref_ | STC.out_)));
+        assert(!(v.isRefOrOut()));
         int oldid = v.ctfeAdrOnStack;
         v.ctfeAdrOnStack = cast(int)cast(size_t)savedId[oldid];
         if (v.ctfeAdrOnStack == values.dim - 1)
@@ -2519,7 +2519,7 @@ public:
         result = getVarExp(e.loc, istate, e.var, goal);
         if (exceptionOrCant(result))
             return;
-        if ((e.var.storage_class & (STC.ref_ | STC.out_)) == 0 && e.type.baseElemOf().ty != Tstruct)
+        if (!e.var.isRefOrOut() && e.type.baseElemOf().ty != Tstruct)
         {
             /* Ultimately, STC.ref_|STC.out_ check should be enough to see the
              * necessity of type repainting. But currently front-end paints

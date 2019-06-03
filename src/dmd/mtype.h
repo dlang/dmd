@@ -867,6 +867,8 @@ public:
     static Parameter *getNth(Parameters *parameters, d_size_t nth, d_size_t *pn = NULL);
     const char *toChars();
     bool isCovariant(bool returnByRef, const Parameter *p) const;
+    StorageClass isRefOrOut() const;
+    StorageClass isLazyOrWritable() const;
 };
 
 bool arrayTypeCompatible(Loc loc, Type *t1, Type *t2);

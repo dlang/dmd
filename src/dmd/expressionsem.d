@@ -1816,7 +1816,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
         L1:
             if (!(p.storageClass & STC.lazy_ && p.type.ty == Tvoid))
             {
-                bool isRef = (p.storageClass & (STC.ref_ | STC.out_)) != 0;
+                const isRef = p.isRefOrOut() != 0;
                 if (ubyte wm = arg.type.deduceWild(p.type, isRef))
                 {
                     wildmatch = wildmatch ? MODmerge(wildmatch, wm) : wm;
@@ -1921,7 +1921,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 {
                     //printf("arg.type = %s, p.type = %s\n", arg.type.toChars(), p.type.toChars());
                     arg = arg.implicitCastTo(sc, tprm);
-                    arg = arg.optimize(WANTvalue, (p.storageClass & (STC.ref_ | STC.out_)) != 0);
+                    arg = arg.optimize(WANTvalue, p.isRefOrOut() != 0);
                 }
             }
             if (p.storageClass & STC.ref_)
@@ -2007,12 +2007,13 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                     }
                 }
             }
-            arg = arg.optimize(WANTvalue, (p.storageClass & (STC.ref_ | STC.out_)) != 0);
+            const isRefOrOut = p.isRefOrOut() != 0;
+            arg = arg.optimize(WANTvalue, isRefOrOut);
 
             /* Determine if this parameter is the "first reference" parameter through which
              * later "return" arguments can be stored.
              */
-            if (i == 0 && !tthis && p.storageClass & (STC.ref_ | STC.out_) && p.type &&
+            if (i == 0 && !tthis && isRefOrOut && p.type &&
                 (tf.next && tf.next.ty == Tvoid || isCtorCall))
             {
                 Type tb = p.type.baseElemOf();
@@ -2135,7 +2136,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             if (firstdtor == -1 && arg.type.needsDestruction())
             {
                 Parameter p = (i >= nparams ? null : tf.parameterList[i]);
-                if (!(p && (p.storageClass & (STC.lazy_ | STC.ref_ | STC.out_))))
+                if (!(p && p.isLazyOrWritable()))
                     firstdtor = i;
             }
         }
@@ -2165,7 +2166,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             Expression arg = (*arguments)[i];
 
             Parameter parameter = (i >= nparams ? null : tf.parameterList[i]);
-            const bool isRef = (parameter && (parameter.storageClass & (STC.ref_ | STC.out_)));
+            const bool isRef = (parameter && parameter.isRefOrOut());
             const bool isLazy = (parameter && (parameter.storageClass & STC.lazy_));
 
             /* Skip lazy parameters
