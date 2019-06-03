@@ -67,29 +67,11 @@ extern (C) void* __alloca(int nbytes)
         push    EBX             ;
         push    EDI             ;
         push    ESI             ;
-    }
 
-    version (Darwin)
-    {
-    asm
-    {
         add     EAX,15          ;
         and     EAX,0xFFFFFFF0  ; // round up to 16 byte boundary
-    }
-    }
-    else
-    {
-    asm
-    {
-        add     EAX,3           ;
-        and     EAX,0xFFFFFFFC  ; // round up to dword
-    }
-    }
-
-    asm
-    {
         jnz     Abegin          ;
-        mov     EAX,4           ; // allow zero bytes allocation, 0 rounded to dword is 4..
+        mov     EAX,16          ; // minimum allocation is 16
     Abegin:
         mov     ESI,EAX         ; // ESI = nbytes
         neg     EAX             ;
