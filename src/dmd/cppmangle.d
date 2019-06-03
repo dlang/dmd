@@ -28,6 +28,7 @@ import core.stdc.string;
 import core.stdc.stdio;
 
 import dmd.arraytypes;
+import dmd.attrib;
 import dmd.declaration;
 import dmd.dsymbol;
 import dmd.dtemplate;
@@ -173,7 +174,7 @@ private final class CppMangleVisitor : Visitor
     {
         if (VarDeclaration vd = s.isVarDeclaration())
         {
-            mangle_variable(vd, false);
+            mangle_variable(vd, vd.namespace !is null);
         }
         else if (FuncDeclaration fd = s.isFuncDeclaration())
         {
@@ -309,10 +310,21 @@ private final class CppMangleVisitor : Visitor
      */
     static bool isStd(Dsymbol s)
     {
-        return (s &&
-                s.ident == Id.std &&    // the right name
+        if (!s)
+            return false;
+
+        if (auto cnd = s.isCPPNamespaceDeclaration())
+            return isStd(cnd);
+
+        return (s.ident == Id.std &&    // the right name
                 s.isNspace() &&         // g++ disallows global "std" for other than a namespace
                 !getQualifier(s));      // at global level
+    }
+
+    /// Ditto
+    static bool isStd(CPPNamespaceDeclaration s)
+    {
+        return s && s.namespace is null && s.ident == Id.std;
     }
 
     /************************
@@ -524,15 +536,26 @@ private final class CppMangleVisitor : Visitor
         //printf("source_name(%s)\n", s.toChars());
         if (TemplateInstance ti = s.isTemplateInstance())
         {
-            if (!substitute(ti.tempdecl))
+            bool needsTa = false;
+            if (substitute(ti.tempdecl))
+                template_args(ti);
+            else if (this.writeStdSubstitution(ti, needsTa))
+            {
+                if (needsTa)
+                    template_args(ti);
+            }
+            else
             {
                 append(ti.tempdecl);
-                this.writeIdentifier(ti.tempdecl.toAlias().ident);
+                this.writeNamespace(
+                    s.namespace, () {
+                        this.writeIdentifier(ti.tempdecl.toAlias().ident);
+                        template_args(ti);
+                    });
             }
-            template_args(ti);
         }
         else
-            this.writeIdentifier(s.ident);
+            this.writeNamespace(s.namespace, () => this.writeIdentifier(s.ident));
     }
 
     /********
@@ -551,6 +574,15 @@ private final class CppMangleVisitor : Visitor
                 return ti;
         }
         return s;
+    }
+
+    /// Get the namespace of a template instance
+    CPPNamespaceDeclaration getTiNamespace(TemplateInstance ti)
+    {
+        // If we receive a pre-semantic `TemplateInstance`,
+        // `namespace` is always `null`
+        return ti.tempdecl ? ti.namespace
+            : this.context.res.asType().toDsymbol(null).namespace;
     }
 
     /********
@@ -578,19 +610,19 @@ private final class CppMangleVisitor : Visitor
     }
 
     // Detect type ::std::char_traits<char>
-    static bool isChar_traits_char(RootObject o)
+    bool isChar_traits_char(RootObject o)
     {
         return isIdent_char(Id.char_traits, o);
     }
 
     // Detect type ::std::allocator<char>
-    static bool isAllocator_char(RootObject o)
+    bool isAllocator_char(RootObject o)
     {
         return isIdent_char(Id.allocator, o);
     }
 
     // Detect type ::std::ident<char>
-    static bool isIdent_char(Identifier ident, RootObject o)
+    bool isIdent_char(Identifier ident, RootObject o)
     {
         Type t = isType(o);
         if (!t || t.ty != Tstruct)
@@ -605,7 +637,8 @@ private final class CppMangleVisitor : Visitor
         if (!ti)
             return false;
         Dsymbol q = getQualifier(ti);
-        return isStd(q) && ti.tiargs.dim == 1 && isChar((*ti.tiargs)[0]);
+        const bool inStd = isStd(q) || isStd(this.getTiNamespace(ti));
+        return inStd && ti.tiargs.dim == 1 && isChar((*ti.tiargs)[0]);
     }
 
     /***
@@ -680,6 +713,8 @@ private final class CppMangleVisitor : Visitor
     bool writeStdSubstitution(TemplateInstance ti, out bool needsTa)
     {
         if (!ti)
+            return false;
+        if (!isStd(this.getTiNamespace(ti)) && !isStd(getQualifier(ti)))
             return false;
 
         if (ti.name == Id.allocator)
@@ -823,7 +858,15 @@ private final class CppMangleVisitor : Visitor
             buf.writeByte('K');
     }
 
-    void mangle_variable(VarDeclaration d, bool is_temp_arg_ref)
+    /**
+     * Mangles a variable
+     *
+     * Params:
+     *   d = Variable declaration to mangle
+     *   isNested = Whether this variable is nested, e.g. a template parameter
+     *              or within a namespace
+     */
+    void mangle_variable(VarDeclaration d, bool isNested)
     {
         // fake mangling for fields to fix https://issues.dlang.org/show_bug.cgi?id=16525
         if (!(d.storage_class & (STC.extern_ | STC.field | STC.gshared)))
@@ -839,12 +882,11 @@ private final class CppMangleVisitor : Visitor
             source_name(d);
             buf.writeByte('E');
         }
-        else //char beta[6] should mangle as "beta"
+        //char beta[6] should mangle as "beta"
+        else
         {
-            if (!is_temp_arg_ref)
-            {
+            if (!isNested)
                 buf.writestring(d.ident.toString());
-            }
             else
             {
                 buf.writestring("_Z");
@@ -907,6 +949,50 @@ private final class CppMangleVisitor : Visitor
     }
 
     /**
+     * Recursively mangles a non-scoped namespace
+     *
+     * Parameters:
+     *   ns = Namespace to mangle
+     *   dg = A delegate to write the identifier in this namespace
+     *   nested = When `false`, do not nest the name within `N..E`
+     */
+    void writeNamespace(CPPNamespaceDeclaration ns, scope void delegate() dg,
+                        bool nested = true)
+    {
+        void runDg () { if (dg !is null) dg(); }
+
+        if (ns is null)
+            return runDg();
+
+        if (isStd(ns))
+        {
+            if (!substitute(ns))
+                buf.writestring("St");
+            runDg();
+        }
+        else if (dg !is null)
+        {
+            if (nested)
+                buf.writestring("N");
+            if (!substitute(ns))
+            {
+                this.writeNamespace(ns.namespace, null);
+                this.writeIdentifier(ns.ident);
+                append(ns);
+            }
+            dg();
+            if (nested)
+                buf.writestring("E");
+        }
+        else if (!substitute(ns))
+        {
+            this.writeNamespace(ns.namespace, null);
+            this.writeIdentifier(ns.ident);
+            append(ns);
+        }
+    }
+
+    /**
      * Mangles a function template to C++
      *
      * Params:
@@ -926,7 +1012,11 @@ private final class CppMangleVisitor : Visitor
             this.context.fd = d;
             this.context.res = d;
             TypeFunction preSemantic = cast(TypeFunction)d.originalType;
-            this.writeChained(ti.toParent3(), () => source_name(ti));
+            auto nspace = ti.toParent3();
+            if (nspace && nspace.isNspace())
+                this.writeChained(ti.toParent3(), () => source_name(ti));
+            else
+                source_name(ti);
             this.mangleReturnType(preSemantic);
             this.mangleFunctionParameters(preSemantic.parameterList.parameters, tf.parameterList.varargs);
             return;
@@ -1192,9 +1282,7 @@ private final class CppMangleVisitor : Visitor
                     return;
             }
             if (!substitute(s))
-            {
                 cpp_mangle_name(s, false);
-            }
         }
         if (t.isConst())
             append(t);
@@ -1269,6 +1357,112 @@ private final class CppMangleVisitor : Visitor
          *          ::= <prefix> <data-member-prefix>
          */
         prefix_name(parent);
+    }
+
+    /**
+     * Helper function to write a `T..._` template index.
+     *
+     * Params:
+     *   ident = Identifier for which substitution is attempted
+     *           (e.g. `void func(T)(T param)` => `T` from `T param`)
+     *   params = `TemplateParameters` of the enclosing symbol
+     *           (in the previous example, `func`'s template parameters)
+     *   type = Resolved type of `T`, so that `void func(T)(const T)`
+     *          gets mangled correctly
+     *
+     * Returns:
+     *   `true` if something was written to the buffer
+     */
+    private void writeTemplateArgIndex(size_t idx, TemplateParameter param)
+    {
+        // expressions are mangled in <X..E>
+        if (param.isTemplateValueParameter())
+            buf.writeByte('X');
+        buf.writeByte('T');
+        writeSequenceFromIndex(idx);
+        buf.writeByte('_');
+        if (param.isTemplateValueParameter())
+            buf.writeByte('E');
+    }
+
+    /**
+     * Given an array of template parameters and an identifier,
+     * returns the index of the identifier in that array.
+     *
+     *
+     * Returns:
+     *   The index of the identifier match in `params`,
+     *   or `params.dim` if there wasn't any match.
+     */
+    private static size_t templateParamIndex(
+        const ref Identifier ident, TemplateParameters* params)
+    {
+        foreach (idx, param; *params)
+            if (param.ident == ident)
+                return idx;
+        return params.length;
+    }
+
+    /**
+     * Given a template instance `t`, write its qualified name
+     * without the template parameter list
+     *
+     * Params:
+     *   t = Post-parsing `TemplateInstance` pointing to the symbol
+     *       to mangle (one level deep)
+     *   dg = Delegate to execute after writing the qualified symbol
+     *
+     */
+    private void writeQualified(TemplateInstance t, scope void delegate() dg)
+    {
+        auto type = isType(this.context.res);
+        if (!type)
+        {
+            this.writeIdentifier(t.name);
+            return dg();
+        }
+        auto sym1 = type.toDsymbol(null);
+        if (!sym1)
+        {
+            this.writeIdentifier(t.name);
+            return dg();
+        }
+        // Get the template instance
+        auto sym = getQualifier(sym1);
+        auto sym2 = getQualifier(sym);
+        if (sym2)
+        {
+            if (isStd(sym2))
+            {
+                bool unused;
+                assert(sym.isTemplateInstance());
+                if (this.writeStdSubstitution(sym.isTemplateInstance(), unused))
+                    return dg();
+                // std names don't require `N..E`
+                buf.writestring("St");
+                this.writeIdentifier(t.name);
+                this.append(t);
+                return dg();
+            }
+            buf.writestring("N");
+            if (!this.substitute(sym2))
+                sym2.accept(this);
+            dg();
+        }
+        if (sym1 !is null)
+        {
+            this.writeNamespace(
+                sym1.namespace, () {
+                    this.writeIdentifier(t.name);
+                    this.append(t);
+                    dg();
+                });
+        }
+        else
+        {
+            this.writeIdentifier(t.name);
+            dg();
+        }
     }
 
 extern(C++):
@@ -1542,9 +1736,21 @@ extern(C++):
     {
         auto decl = cast(TemplateDeclaration)this.context.ti.tempdecl;
         assert(decl.parameters !is null);
+        auto idx = templateParamIndex(t.ident, decl.parameters);
         // If not found, default to the post-semantic type
-        if (!this.writeTemplateSubstitution(t.ident, decl.parameters, this.context.res.isType()))
-            this.context.res.visitObject(this);
+        if (idx >= decl.parameters.length)
+            return this.context.res.visitObject(this);
+
+        auto param = (*decl.parameters)[idx];
+        if (auto type = this.context.res.isType())
+            CV_qualifiers(type);
+        // Otherwise, attempt substitution (`S_` takes precedence on `T_`)
+        if (this.substitute(param))
+            return;
+
+        // If substitution failed, write `TX_` where `X` is the index
+        this.writeTemplateArgIndex(idx, param);
+        this.append(param);
     }
 
     /// Ditto
@@ -1554,57 +1760,82 @@ extern(C++):
         t.tempinst.accept(this);
     }
 
-    /// Ditto
+    /**
+     * Mangles a `TemplateInstance`
+     *
+     * A `TemplateInstance` can be found either in the parameter,
+     * or the return value.
+     * Arguments to the template instance needs to be mangled but the template
+     * can be partially substituted, so for example the following:
+     * `Container!(T, Val) func16479_12 (alias Container, T, int Val) ()`
+     * will mangle the return value part to "T_IT0_XT1_EE"
+     */
     override void visit(TemplateInstance t)
     {
+        // Template names are substituted, but args still need to be written
+        void writeArgs ()
+        {
+            buf.writeByte('I');
+            // When visiting the arguments, the context will be set to the
+            // resolved type
+            auto analyzed_ti = this.context.res.asType().toDsymbol(null).isInstantiated();
+            auto prev = this.context;
+            scope (exit) this.context.pop(prev);
+            foreach (idx, RootObject o; *t.tiargs)
+            {
+                this.context.res = (*analyzed_ti.tiargs)[idx];
+                o.visitObject(this);
+            }
+            if (analyzed_ti.tiargs.dim > t.tiargs.dim)
+            {
+                // If the resolved AST has more args than the parse one,
+                // we have default arguments
+                auto oparams = (cast(TemplateDeclaration)analyzed_ti.tempdecl).origParameters;
+                foreach (idx, arg; (*oparams)[t.tiargs.dim .. $])
+                {
+                    this.context.res = (*analyzed_ti.tiargs)[idx + t.tiargs.dim];
+
+                    if (auto ttp = arg.isTemplateTypeParameter())
+                        ttp.defaultType.accept(this);
+                    else if (auto tvp = arg.isTemplateValueParameter())
+                        tvp.defaultValue.accept(this);
+                    else if (auto tvp = arg.isTemplateThisParameter())
+                        tvp.defaultType.accept(this);
+                    else if (auto tvp = arg.isTemplateAliasParameter())
+                        tvp.defaultAlias.visitObject(this);
+                    else
+                        assert(0, arg.toString());
+                }
+            }
+            buf.writeByte('E');
+        }
+
+        // `name` is used, not `ident`
         assert(t.name !is null);
         assert(t.tiargs !is null);
 
-        if (this.substitute(t))
-            return;
-        auto topdecl = cast(TemplateDeclaration)this.context.ti.tempdecl;
-        // Template names are substituted, but args still need to be written
-        bool needclosing;
-        if (!this.writeTemplateSubstitution(t.name, topdecl.parameters, t.getType()))
+        bool needsTa;
+        auto decl = cast(TemplateDeclaration)this.context.ti.tempdecl;
+        // Attempt to substitute the template itself
+        auto idx = templateParamIndex(t.name, decl.parameters);
+        if (idx < decl.parameters.length)
         {
-            needclosing = this.writeQualified(t);
-            this.append(t);
+            auto param = (*decl.parameters)[idx];
+            if (auto type = t.getType())
+                CV_qualifiers(type);
+            if (this.substitute(param))
+                return;
+            this.writeTemplateArgIndex(idx, param);
+            this.append(param);
+            writeArgs();
         }
-        buf.writeByte('I');
-        // When visiting the arguments, the context will be set to the
-        // resolved type
-        auto analyzed_ti = this.context.res.asType().toDsymbol(null).isInstantiated();
-        auto prev = this.context;
-        scope (exit) this.context.pop(prev);
-        foreach (idx, RootObject o; *t.tiargs)
+        else if (this.writeStdSubstitution(t, needsTa))
         {
-            this.context.res = (*analyzed_ti.tiargs)[idx];
-            o.visitObject(this);
+            if (needsTa)
+                writeArgs();
         }
-        if (analyzed_ti.tiargs.dim > t.tiargs.dim)
-        {
-            // If the resolved AST has more args than the parse one,
-            // we have default arguments
-            auto oparams = (cast(TemplateDeclaration)analyzed_ti.tempdecl).origParameters;
-            foreach (idx, arg; (*oparams)[t.tiargs.dim .. $])
-            {
-                this.context.res = (*analyzed_ti.tiargs)[idx + t.tiargs.dim];
-
-                if (auto ttp = arg.isTemplateTypeParameter())
-                    ttp.defaultType.accept(this);
-                else if (auto tvp = arg.isTemplateValueParameter())
-                    tvp.defaultValue.accept(this);
-                else if (auto tvp = arg.isTemplateThisParameter())
-                    tvp.defaultType.accept(this);
-                else if (auto tvp = arg.isTemplateAliasParameter())
-                    tvp.defaultAlias.visitObject(this);
-                else
-                    assert(0, arg.toString());
-            }
-        }
-        buf.writeByte('E');
-        if (needclosing)
-            buf.writeByte('E');
+        else if (!this.substitute(t))
+            this.writeQualified(t, &writeArgs);
     }
 
     /// Ditto
@@ -1638,97 +1869,6 @@ extern(C++):
     void visit(Tuple t)
     {
         assert(0);
-    }
-
-    /**
-     * Helper function to go through the `TemplateParameter`s and perform
-     * a substitution, if possible.
-     *
-     * Params:
-     *   ident = Identifier for which substitution is attempted
-     *           (e.g. `void func(T)(T param)` => `T` from `T param`)
-     *   params = `TemplateParameters` of the enclosing symbol
-     *           (in the previous example, `func`'s template parameters)
-     *   type = Resolved type of `T`, so that `void func(T)(const T)`
-     *          gets mangled correctly
-     *
-     * Returns:
-     *   `true` if something was written to the buffer
-     */
-    private bool writeTemplateSubstitution(const ref Identifier ident,
-        TemplateParameters* params, Type type)
-    {
-        foreach (idx, param; *params)
-        {
-            if (param.ident == ident)
-            {
-                if (type)
-                    CV_qualifiers(type);
-                if (this.substitute(param))
-                    return true;
-                this.append(param);
-
-                // expressions are mangled in <X..E>
-                if (param.isTemplateValueParameter())
-                    buf.writeByte('X');
-                buf.writeByte('T');
-                writeSequenceFromIndex(idx);
-                buf.writeByte('_');
-                if (param.isTemplateValueParameter())
-                    buf.writeByte('E');
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Given a template instance `t`, write its qualified name
-     * without the template parameter list
-     *
-     * Params:
-     *   t = Post-parsing `TemplateInstance` pointing to the symbol
-     *       to mangle (one level deep)
-     *
-     * Returns:
-     *   `true` if the name was qualified and requires an ending `E`
-     */
-    private bool writeQualified(TemplateInstance t)
-    {
-        auto type = isType(this.context.res);
-        if (!type)
-        {
-            this.writeIdentifier(t.name);
-            return false;
-        }
-        auto sym = type.toDsymbol(null);
-        if (!sym)
-        {
-            this.writeIdentifier(t.name);
-            return false;
-        }
-        // Get the template instance
-        sym = getQualifier(sym);
-        auto sym2 = getQualifier(sym);
-        if (sym2)
-        {
-            if (isStd(sym2))
-            {
-                bool unused;
-                assert(sym.isTemplateInstance());
-                if (this.writeStdSubstitution(sym.isTemplateInstance(), unused))
-                    return false;
-                // std names don't require `N..E`
-                buf.writestring("St");
-                this.writeIdentifier(t.name);
-                return false;
-            }
-            buf.writestring("N");
-            if (!this.substitute(sym2))
-                sym2.accept(this);
-        }
-        this.writeIdentifier(t.name);
-        return sym2 !is null;
     }
 }
 
@@ -1779,6 +1919,9 @@ private extern(C++) final class ComponentVisitor : Visitor
     private Nspace namespace;
 
     /// Ditto
+    private CPPNamespaceDeclaration namespace2;
+
+    /// Ditto
     private TypePointer tpointer;
 
     /// Ditto
@@ -1800,6 +1943,8 @@ private extern(C++) final class ComponentVisitor : Visitor
         case DYNCAST.dsymbol:
             if (auto ns = (cast(Dsymbol)base).isNspace())
                 this.namespace = ns;
+            else if (auto ns = (cast(Dsymbol)base).isCPPNamespaceDeclaration())
+                this.namespace2 = ns;
             else
                 goto default;
             break;
@@ -1922,6 +2067,58 @@ private extern(C++) final class ComponentVisitor : Visitor
      */
     public override void visit(Nspace ns)
     {
-        this.result = this.namespace && this.namespace.equals(ns);
+        this.result = isNamespaceEqual(this.namespace, ns)
+            || isNamespaceEqual(this.namespace2, ns);
     }
+
+    /// Ditto
+    public override void visit(CPPNamespaceDeclaration ns)
+    {
+        this.result = isNamespaceEqual(this.namespace, ns)
+            || isNamespaceEqual(this.namespace2, ns);
+    }
+}
+
+/// Transitional functions for `CPPNamespaceDeclaration` / `Nspace`
+/// Remove when `Nspace` is removed.
+private bool isNamespaceEqual (Nspace a, Nspace b)
+{
+    if (a is null || b is null)
+        return false;
+    return a.equals(b);
+}
+
+/// Ditto
+private bool isNamespaceEqual (Nspace a, CPPNamespaceDeclaration b)
+{
+    return isNamespaceEqual(b, a);
+}
+
+/// Ditto
+private bool isNamespaceEqual (CPPNamespaceDeclaration a, Nspace b, size_t idx = 0)
+{
+    if ((a is null) != (b is null))
+        return false;
+    if (!a.ident.equals(b.ident))
+        return false;
+
+    // We need to see if there's more ident enclosing
+    if (auto pb = b.toParent().isNspace())
+        return isNamespaceEqual(a.namespace, pb);
+    else
+        return a.namespace is null;
+}
+
+/// Returns:
+///   Whether  two `CPPNamespaceDeclaration` are equals
+private bool isNamespaceEqual (CPPNamespaceDeclaration a, CPPNamespaceDeclaration b)
+{
+    if (a is null || b is null)
+        return false;
+
+    if ((a.namespace is null) != (b.namespace is null))
+        return false;
+    if (a.ident != b.ident)
+        return false;
+    return a.namespace is null ? true : isNamespaceEqual(a.namespace, b.namespace);
 }

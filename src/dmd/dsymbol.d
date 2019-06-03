@@ -228,6 +228,8 @@ extern (C++) class Dsymbol : ASTNode
 {
     Identifier ident;
     Dsymbol parent;
+    /// C++ namespace this symbol belongs to
+    CPPNamespaceDeclaration namespace;
     Symbol* csym;           // symbol for code generator
     Symbol* isym;           // import version of csym
     const(char)* comment;   // documentation comment for this Dsymbol
@@ -447,16 +449,7 @@ extern (C++) class Dsymbol : ASTNode
     }
 
     /// ditto
-    final inout(Dsymbol) pastMixinAndNspace() inout
-    {
-        //printf("Dsymbol::pastMixin() %s\n", toChars());
-        auto nspace = isNspace();
-        if (!(nspace && nspace.mangleOnly) && !isTemplateMixin() && !isForwardingAttribDeclaration())
-            return this;
-        if (!parent)
-            return null;
-        return parent.pastMixinAndNspace();
-    }
+    alias pastMixinAndNspace = pastMixin;
 
     /**********************************
      * `parent` field returns a lexically enclosing scope symbol this is a member of.
@@ -1187,6 +1180,7 @@ extern (C++) class Dsymbol : ASTNode
     inout(SymbolDeclaration)           isSymbolDeclaration()           inout { return null; }
     inout(AttribDeclaration)           isAttribDeclaration()           inout { return null; }
     inout(AnonDeclaration)             isAnonDeclaration()             inout { return null; }
+    inout(CPPNamespaceDeclaration)     isCPPNamespaceDeclaration()     inout { return null; }
     inout(ProtDeclaration)             isProtDeclaration()             inout { return null; }
     inout(OverloadSet)                 isOverloadSet()                 inout { return null; }
     inout(CompileDeclaration)          isCompileDeclaration()          inout { return null; }

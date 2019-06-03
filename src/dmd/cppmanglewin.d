@@ -1043,6 +1043,9 @@ private:
         while (p && !p.isModule())
         {
             mangleName(p, dont_use_back_reference);
+            // Mangle our string namespaces as well
+            for (auto ns = p.namespace; ns !is null; ns = ns.namespace)
+                mangleName(ns, dont_use_back_reference);
             p = p.toParent3();
             if (p.toParent3() && p.toParent3().isTemplateInstance())
             {

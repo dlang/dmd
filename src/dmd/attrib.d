@@ -453,6 +453,66 @@ extern (C++) final class CPPMangleDeclaration : AttribDeclaration
 
 /***********************************************************
  */
+extern (C++) final class CPPNamespaceDeclaration : AttribDeclaration
+{
+    Expression exp;
+
+    extern (D) this(Identifier ident, Dsymbols* decl)
+    {
+        super(decl);
+        this.ident = ident;
+    }
+
+    extern (D) this(Expression exp, Dsymbols* decl)
+    {
+        super(decl);
+        this.exp = exp;
+    }
+
+    extern (D) this(Identifier ident, Expression exp, Dsymbols* decl,
+                    CPPNamespaceDeclaration parent)
+    {
+        super(decl);
+        this.ident = ident;
+        this.exp = exp;
+        this.namespace = parent;
+    }
+
+    override Dsymbol syntaxCopy(Dsymbol s)
+    {
+        assert(!s);
+        return new CPPNamespaceDeclaration(
+            this.ident, this.exp, Dsymbol.arraySyntaxCopy(this.decl), this.namespace);
+    }
+
+    override Scope* newScope(Scope* sc)
+    {
+        auto scx = sc.copy();
+        scx.linkage = LINK.cpp;
+        scx.namespace = this;
+        return scx;
+    }
+
+    override const(char)* toChars() const
+    {
+        return toString().ptr;
+    }
+
+    extern(D) override const(char)[] toString() const
+    {
+        return "extern (C++, `namespace`)";
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+
+    override inout(CPPNamespaceDeclaration) isCPPNamespaceDeclaration() inout { return this; }
+}
+
+/***********************************************************
+ */
 extern (C++) final class ProtDeclaration : AttribDeclaration
 {
     Prot protection;
