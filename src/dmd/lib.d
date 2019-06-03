@@ -121,13 +121,3 @@ class Library
   protected:
     Loc loc;                  // the filename of the library
 }
-
-version (D_LP64)
-    alias cpp_size_t = size_t;
-else version (OSX)
-{
-    import core.stdc.config : cpp_ulong;
-    alias cpp_size_t = cpp_ulong;
-}
-else
-    alias cpp_size_t = size_t;
