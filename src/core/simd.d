@@ -608,7 +608,9 @@ version (D_SIMD)
             is(V == int4) ||
             is(V == uint4) ||
             is(V == long2) ||
-            is(V == ulong2))
+            is(V == ulong2) ||
+            is(V == double2) ||
+            is(V == float4))
     {
         pragma(inline, true);
         static if (is(V == double2))
@@ -617,6 +619,50 @@ version (D_SIMD)
             return cast(V)__simd(XMM.LODUPS, *cast(const void16*)p);
         else
             return cast(V)__simd(XMM.LODDQU, *cast(const void16*)p);
+    }
+
+    @system
+    unittest
+    {
+        // Memory to load into the vector:
+        // Should have enough data to test all 16-byte alignments, and still
+        // have room for a 16-byte vector
+        ubyte[32] data;
+        foreach (i; 0..data.length)
+        {
+            data[i] = cast(ubyte)i;
+        }
+
+        // to test all alignments from 1 ~ 16
+        foreach (i; 0..16)
+        {
+            ubyte* d = &data[i];
+
+            void test(T)()
+            {
+                // load the data
+                T v = loadUnaligned(cast(T*)d);
+
+                // check that the data was loaded correctly
+                ubyte* ptrToV = cast(ubyte*)&v;
+                foreach (j; 0..T.sizeof)
+                {
+                    assert(ptrToV[j] == d[j]);
+                }
+            }
+
+            test!void16();
+            test!byte16();
+            test!ubyte16();
+            test!short8();
+            test!ushort8();
+            test!int4();
+            test!uint4();
+            test!long2();
+            test!ulong2();
+            test!double2();
+            test!float4();
+        }
     }
 
     /*************************************
@@ -638,7 +684,9 @@ version (D_SIMD)
             is(V == int4) ||
             is(V == uint4) ||
             is(V == long2) ||
-            is(V == ulong2))
+            is(V == ulong2) ||
+            is(V == double2) ||
+            is(V == float4))
     {
         pragma(inline, true);
         static if (is(V == double2))
@@ -647,5 +695,53 @@ version (D_SIMD)
             return cast(V)__simd_sto(XMM.STOUPS, *cast(void16*)p, value);
         else
             return cast(V)__simd_sto(XMM.STODQU, *cast(void16*)p, value);
+    }
+
+    @system
+    unittest
+    {
+        // Memory to store the vector to:
+        // Should have enough data to test all 16-byte alignments, and still
+        // have room for a 16-byte vector
+        ubyte[32] data;
+
+        // to test all alignments from 1 ~ 16
+        foreach (i; 0..16)
+        {
+            ubyte* d = &data[i];
+
+            void test(T)()
+            {
+                T v;
+
+                // populate v` with data
+                ubyte* ptrToV = cast(ubyte*)&v;
+                foreach (j; 0..T.sizeof)
+                {
+                    ptrToV[j] = cast(ubyte)j;
+                }
+
+                // store `v` to location pointed to by `d`
+                storeUnaligned(cast(T*)d, v);
+
+                // check that the the data was stored correctly
+                foreach (j; 0..T.sizeof)
+                {
+                    assert(ptrToV[j] == d[j]);
+                }
+            }
+
+            test!void16();
+            test!byte16();
+            test!ubyte16();
+            test!short8();
+            test!ushort8();
+            test!int4();
+            test!uint4();
+            test!long2();
+            test!ulong2();
+            test!double2();
+            test!float4();
+        }
     }
 }
