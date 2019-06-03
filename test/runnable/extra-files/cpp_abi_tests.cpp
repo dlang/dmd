@@ -9,6 +9,14 @@ namespace std
     struct test19248 {int a;};
 };
 
+struct S18784
+{
+    int i;
+    S18784(int n);
+};
+
+S18784::S18784(int n) : i(n) {}
+
 bool               passthrough(bool                value)     { return value; }
 signed char        passthrough(signed char         value)     { return value; }
 unsigned char      passthrough(unsigned char       value)     { return value; }
