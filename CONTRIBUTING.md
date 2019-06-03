@@ -66,6 +66,10 @@ For first-time contributers, we suggest to look for issues categorized as [trivi
 
 If you want a hassle-free contribution look for issues categorized as [preapproved](https://issues.dlang.org/buglist.cgi?component=dmd&keywords=preapproved&product=D).
 
+## Triage Pull Requests [![Open Source Helpers](https://www.codetriage.com/dlang/dmd/badges/users.svg)](https://www.codetriage.com/dlang/dmd)
+
+You can triage pull requests which may include reproducing bug reports or asking for vital information. If you would like to start triaging pull requests, one easy way to get started is to [subscribe to dmd on CodeTriage](https://www.codetriage.com/dlang/dmd).
+
 ## DMD Best Practices
 
 Here is a short list of stylistic issues the core team will expect in
