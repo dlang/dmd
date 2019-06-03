@@ -702,7 +702,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             if (!firstm)
             {
                 firstm = m;
-                obj_start(cast(char*)m.srcfile.toChars());
+                obj_start(m.srcfile.toChars());
             }
             if (params.verbose)
                 message("code      %s", m.toChars());
