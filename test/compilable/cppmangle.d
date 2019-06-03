@@ -337,7 +337,7 @@ version (linux)
 /**************************************/
 // https://issues.dlang.org/show_bug.cgi?id=13337
 
-extern(C++, N13337a.N13337b.N13337c)
+extern(C++, `N13337a`, `N13337b`, `N13337c`)
 {
   struct S13337{}
   void foo13337(S13337 s);
@@ -382,7 +382,7 @@ version (Posix)
 
 // Special cases of Itanium mangling
 
-extern (C++, std)
+extern (C++, `std`)
 {
     struct pair(T1, T2)
     {
@@ -428,15 +428,15 @@ extern (C++, std)
 version (linux)
 {
     // https://issues.dlang.org/show_bug.cgi?id=17947
-    static assert(std.pair!(void*, void*).swap.mangleof == "_ZNSt4pairIPvS0_E4swapERS1_");
+    static assert(pair!(void*, void*).swap.mangleof == "_ZNSt4pairIPvS0_E4swapERS1_");
 
-    static assert(std.allocator!int.fooa.mangleof == "_ZNKSaIiE4fooaEv");
-    static assert(std.allocator!int.foob.mangleof == "_ZNSaIiE4foobEv");
-    static assert(std.basic_string!(char,int,uint).fooa.mangleof == "_ZNSbIcijE4fooaEv");
-    static assert(std.basic_string!(char, std.char_traits!char, std.allocator!char).fooa.mangleof == "_ZNSs4fooaEv");
-    static assert(std.basic_istream!(char, std.char_traits!char).fooc.mangleof == "_ZNSi4foocEv");
-    static assert(std.basic_ostream!(char, std.char_traits!char).food.mangleof == "_ZNSo4foodEv");
-    static assert(std.basic_iostream!(char, std.char_traits!char).fooe.mangleof == "_ZNSd4fooeEv");
+    static assert(allocator!int.fooa.mangleof == "_ZNKSaIiE4fooaEv");
+    static assert(allocator!int.foob.mangleof == "_ZNSaIiE4foobEv");
+    static assert(basic_string!(char,int,uint).fooa.mangleof == "_ZNSbIcijE4fooaEv");
+    static assert(basic_string!(char, char_traits!char, allocator!char).fooa.mangleof == "_ZNSs4fooaEv");
+    static assert(basic_istream!(char, char_traits!char).fooc.mangleof == "_ZNSi4foocEv");
+    static assert(basic_ostream!(char, char_traits!char).food.mangleof == "_ZNSo4foodEv");
+    static assert(basic_iostream!(char, char_traits!char).fooe.mangleof == "_ZNSd4fooeEv");
 }
 
 /**************************************/
@@ -453,7 +453,7 @@ version (linux)
 /*****************************************/
 // https://issues.dlang.org/show_bug.cgi?id=17772
 
-extern(C++, SPACE)
+extern(C++, `SPACE`)
 int test37(T)(){ return 0;}
 
 version (Posix) // all non-Windows machines
@@ -732,7 +732,7 @@ version (Win64)
     static assert(TestOperators.opCall.mangleof          == "??RTestOperators@@QEAAHHM@Z");
 }
 
-extern(C++, Namespace18922)
+extern(C++, `Namespace18922`)
 {
     import cppmangle2;
     void func18922(Struct18922) {}
@@ -757,9 +757,9 @@ version (Posix)
     }
     void test18957(const std::test18957& t) {}
     +/
-    extern (C++) void test18957(ref const(std.test18957) t) {}
+    extern (C++) void test18957f(ref const(test18957) t) {}
 
-    static assert(test18957.mangleof == "_Z9test18957RKSt9test18957");
+    static assert(test18957f.mangleof == "_Z10test18957fRKSt9test18957");
 }
 
 /**************************************/
@@ -867,7 +867,7 @@ version (Posix) extern (C++)
      * (expressions always begin with a code anyway).
      */
     extern(C++) void CPPPrinter16479(const(char)*);
-    extern(C++, Namespace16479) void CPPPrinterNS16479(const(char)*);
+    extern(C++, `Namespace16479`) void CPPPrinterNS16479(const(char)*);
     void func16479_11 (alias Print) ();
     static assert(func16479_11!(CPPPrinter16479).mangleof
                   == `_Z12func16479_11IXadL_Z15CPPPrinter16479PKcEEEvv`);

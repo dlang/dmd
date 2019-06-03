@@ -1,0 +1,32 @@
+`extern(C++, identifier)` is deprecated
+
+While interfacing with C++, there are two ways to represent namespaces:
+- `extern(C++, identifier)`
+- `extern(C++, "string")`
+
+The former suffers from three issues:
+- It introduces a scope in the code (much like an aggregate),
+  importing some C++ semantic in D and conflicting with other identifiers
+  (e.g. `extern(C++, std) { struct vector(T); }` conflicts with `int std;`)
+- It is not CTFE-able: some bindings are different depending on the platform,
+  e.g. on Clang `std::vector` is actually in the inline namespace `std::__1`
+  while on GCC it is in `std`.
+  Such a situation would require duplicating the definitions.
+- It does not accept identifiers which are D keyword:
+  `body`, `in`, `pure`, etc, cannot be binded on the D side.
+
+For this reason, users are encouraged to use `extern(C++, "namespace")` instead.
+It accepts tuples, so `extern(C++, "std", "__1")` is accepted.
+Likewise it is CTFEable, so `extern(C++, getNamespace())` works.
+
+Lastly, when the grammar could be ambiguous, users should surround the tuple with parenthesis:
+---
+private template StdNS ()
+{
+    version (CppRuntime_Clang)
+        alias StdNS = AliasSeq!(`std`, `__1`);
+    else version (CppRuntime_Gcc)
+        alias StdNS = AliasSeq!(`std`);
+}
+extern(C++, (StdNS!())) struct vector(T);
+---

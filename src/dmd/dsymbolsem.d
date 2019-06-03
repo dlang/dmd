@@ -3029,6 +3029,25 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
 
         bool repopulateMembers = false;
+        {
+            OutBuffer buff;
+            Nspace parent = ns;
+            void writeNameRecursive (Nspace parent, bool coma = true)
+            {
+                if (parent is null)
+                    return;
+                writeNameRecursive(parent.parent.isNspace());
+                buff.writestring(`"`);
+                buff.writestring(parent.toString());
+                buff.writestring(`"`);
+                if (coma) buff.writestring(", ");
+            }
+            writeNameRecursive(ns, false);
+            scope sl = buff.peekSlice();
+            deprecation(ns.loc, "Scoped version of `extern(C++, namespace)` is deprecated. "
+                        ~ "Use `extern(C++, %.*s)` instead.", cast(int)sl.length, sl.ptr);
+        }
+
         if (ns.identExp)
         {
             // resolve the namespace identifier
