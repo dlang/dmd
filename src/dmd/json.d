@@ -286,15 +286,9 @@ public:
             // Should not be printed
             //property(name, "default");
             break;
-        case TRUST.system:
-            property(name, "system");
-            break;
-        case TRUST.trusted:
-            property(name, "trusted");
-            break;
-        case TRUST.safe:
-            property(name, "safe");
-            break;
+        case TRUST.system:  return property(name, "system");
+        case TRUST.trusted: return property(name, "trusted");
+        case TRUST.safe:    return property(name, "safe");
         }
     }
 
@@ -306,18 +300,10 @@ public:
             // Should not be printed
             //property(name, "impure");
             break;
-        case PURE.weak:
-            property(name, "weak");
-            break;
-        case PURE.const_:
-            property(name, "const");
-            break;
-        case PURE.strong:
-            property(name, "strong");
-            break;
-        case PURE.fwdref:
-            property(name, "fwdref");
-            break;
+        case PURE.weak:     return property(name, "weak");
+        case PURE.const_:   return property(name, "const");
+        case PURE.strong:   return property(name, "strong");
+        case PURE.fwdref:   return property(name, "fwdref");
         }
     }
 
@@ -337,21 +323,11 @@ public:
             // Should not be printed
             //property(name, "system");
             break;
-        case LINK.c:
-            property(name, "c");
-            break;
-        case LINK.cpp:
-            property(name, "cpp");
-            break;
-        case LINK.windows:
-            property(name, "windows");
-            break;
-        case LINK.pascal:
-            property(name, "pascal");
-            break;
-        case LINK.objc:
-            property(name, "objc");
-            break;
+        case LINK.c:        return property(name, "c");
+        case LINK.cpp:      return property(name, "cpp");
+        case LINK.windows:  return property(name, "windows");
+        case LINK.pascal:   return property(name, "pascal");
+        case LINK.objc:     return property(name, "objc");
         }
     }
 
