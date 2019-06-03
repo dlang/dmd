@@ -283,7 +283,7 @@ auto buildStringFiles()
 /// Returns: a list of config files that are required by the DMD build
 auto configFiles()
 {
-    return buildStringFiles.map!(a => a.target).array ~ dmdConf.target;
+    return buildStringFiles.map!(a => a.target).array;
 }
 
 /**
@@ -950,7 +950,7 @@ struct Dependency
             command[i] = c.replace("$@", target);
 
         // Support $< (shortcut for the source path)
-        if (command[$ - 1].find("$<"))
+        if (!command[$ - 1].find("$<").empty)
             command = command.remove(command.length - 1) ~ sources;
     }
 }
