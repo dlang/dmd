@@ -31,20 +31,6 @@ import dmd.backend.global;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-/+
-#include        "mars.h"
-
-#include        "cc.h"
-#include        "global.h"
-#include        "oper.h"
-#include        "code.h"
-#include        "type.h"
-#include        "dt.h"
-#include        "cgcv.h"
-
-extern Global global;
-+/
-
 extern (C) void out_config_init(
         int model,      // 32: 32 bit code
                         // 64: 64 bit code
