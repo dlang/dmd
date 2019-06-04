@@ -173,10 +173,6 @@ nothrow @nogc:
         return false;
     }
 
-    void resetThreadLocalStats() nothrow @nogc
-    {
-    }
-
 private:
     // doesn't care for alignment
     static void* sentinelAdd(void* p, size_t value)

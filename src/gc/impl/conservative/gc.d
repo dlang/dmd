@@ -1118,11 +1118,6 @@ class ConservativeGC : GC
         stats.freeSize += freeListSize;
         stats.allocatedInCurrentThread = bytesAllocated;
     }
-
-    void resetThreadLocalStats() nothrow @nogc
-    {
-        bytesAllocated = 0;
-    }
 }
 
 
