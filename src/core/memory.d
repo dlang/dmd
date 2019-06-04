@@ -140,7 +140,6 @@ private
     extern (C) BlkInfo_ gc_query( void* p ) pure nothrow;
     extern (C) GC.Stats gc_stats ( ) nothrow @nogc;
     extern (C) GC.ProfileStats gc_profileStats ( ) nothrow @nogc @safe;
-    extern (C) void gc_resetThreadLocalStats( ) nothrow @nogc;
 
     extern (C) void gc_addRoot( in void* p ) nothrow @nogc;
     extern (C) void gc_addRange( in void* p, size_t sz, const TypeInfo ti = null ) nothrow @nogc;
@@ -170,8 +169,7 @@ struct GC
         size_t usedSize;
         /// number of free bytes on the GC heap (might only get updated after a collection)
         size_t freeSize;
-        /// number of bytes allocated for current thread since program start or
-        /// call to `GC.resetThreadLocalStats()`
+        /// number of bytes allocated for current thread since program start
         ulong allocatedInCurrentThread;
     }
 
@@ -710,15 +708,6 @@ struct GC
     static Stats stats() nothrow
     {
         return gc_stats();
-    }
-
-    /**
-     * Resets runtime stats for currently active GC implementation of current thread
-     * See `core.memory.GC.Stats` for list of available metrics.
-     */
-    static void resetThreadLocalStats() nothrow
-    {
-        gc_resetThreadLocalStats();
     }
 
     /**
