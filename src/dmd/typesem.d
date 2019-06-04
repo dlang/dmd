@@ -1350,7 +1350,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                 {
                     Expression e = fparam.defaultArg;
                     const isRefOrOut = fparam.storageClass & (STC.ref_ | STC.out_);
-                    const isAuto = fparam.storageClass & STC.auto_;
+                    const isAuto = fparam.storageClass & (STC.auto_ | STC.autoref);
                     if (isRefOrOut && !isAuto)
                     {
                         e = e.expressionSemantic(argsc);
