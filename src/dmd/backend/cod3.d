@@ -2005,6 +2005,7 @@ int jmpopcode(elem *e)
     bool needsNanCheck = tyfloating(tymx) && config.inline8087 &&
         (tymx == TYldouble || tymx == TYildouble || tymx == TYcldouble ||
          tymx == TYcdouble || tymx == TYcfloat ||
+         (tyxmmreg(tymx) && config.fpxmmregs && e.Ecount != e.Ecomsub) ||
          op == OPind ||
          (OTcall(op) && (regmask(tymx, tybasic(e.EV.E1.Eoper)) & (mST0 | XMMREGS))));
     if (e.Ecount != e.Ecomsub)          // comsubs just get Z bit set
@@ -2355,25 +2356,63 @@ bool cse_simple(code *c, elem *e)
     return false;
 }
 
-void gen_testcse(ref CodeBuilder cdb, uint sz, targ_uns i)
+/**************************
+ * Store `reg` to the common subexpression save area in index `slot`.
+ * Params:
+ *      cdb = where to write code to
+ *      tym = type of value that's in `reg`
+ *      reg = register to save
+ *      slot = index into common subexpression save area
+ */
+void gen_storecse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot)
 {
+    // MOV slot[BP],reg
+    if (isXMMreg(reg) && config.fpxmmregs) // watch out for ES
+    {
+        const aligned = tyvector(tym) ? STACKALIGN >= 16 : true;
+        const op = xmmstore(tym, aligned);
+        cdb.genc1(op,modregxrm(2, reg - XMM0, BPRM),FLcs,cast(targ_size_t)slot);
+        return;
+    }
+    opcode_t op = STO;              // normal mov
+    if (reg == ES)
+    {
+        reg = 0;            // the real reg number
+        op = 0x8C;          // segment reg mov
+    }
+    cdb.genc1(op,modregxrm(2, reg, BPRM),FLcs,cast(targ_uns)slot);
+    if (I64)
+        code_orrex(cdb.last(), REX_W);
+}
+
+void gen_testcse(ref CodeBuilder cdb, tym_t tym, uint sz, size_t slot)
+{
+    // CMP slot[BP],0
     cdb.genc(sz == 1 ? 0x80 : 0x81,modregrm(2,7,BPRM),
-                FLcs,i, FLconst,cast(targ_uns) 0);
+                FLcs,cast(targ_uns)slot, FLconst,cast(targ_uns) 0);
     if ((I64 || I32) && sz == 2)
         cdb.last().Iflags |= CFopsize;
     if (I64 && sz == 8)
         code_orrex(cdb.last(), REX_W);
 }
 
-void gen_loadcse(ref CodeBuilder cdb, reg_t reg, targ_uns i)
+void gen_loadcse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot)
 {
-    opcode_t op = 0x8B;
+    // MOV reg,slot[BP]
+    if (isXMMreg(reg) && config.fpxmmregs)
+    {
+        const aligned = tyvector(tym) ? STACKALIGN >= 16 : true;
+        const op = xmmload(tym, aligned);
+        cdb.genc1(op,modregxrm(2, reg - XMM0, BPRM),FLcs,cast(targ_size_t)slot);
+        return;
+    }
+    opcode_t op = LOD;
     if (reg == ES)
     {
         op = 0x8E;
         reg = 0;
     }
-    cdb.genc1(op,modregxrm(2,reg,BPRM),FLcs,i);
+    cdb.genc1(op,modregxrm(2,reg,BPRM),FLcs,cast(targ_uns)slot);
     if (I64)
         code_orrex(cdb.last(), REX_W);
 }
@@ -2533,23 +2572,6 @@ void genpop(ref CodeBuilder cdb, reg_t reg)
     cdb.gen1(0x58 + (reg & 7));
     if (reg & 8)
         code_orrex(cdb.last(), REX_B);
-}
-
-/**************************
- * Generate a MOV to save a register to a stack slot
- */
-void gensavereg(ref CodeBuilder cdb, ref reg_t reg, targ_uns slot)
-{
-    // MOV i[BP],reg
-    opcode_t op = 0x89;              // normal mov
-    if (reg == ES)
-    {
-        reg = 0;            // the real reg number
-        op = 0x8C;          // segment reg mov
-    }
-    cdb.genc1(op,modregxrm(2, reg, BPRM),FLcs,slot);
-    if (I64)
-        code_orrex(cdb.last(), REX_W);
 }
 
 /**************************
@@ -3276,6 +3298,8 @@ void prolog_frameadj2(ref CodeBuilder cdb, tym_t tyf, uint xlocalsize, bool* pus
 
 void prolog_setupalloca(ref CodeBuilder cdb)
 {
+    //printf("prolog_setupalloca() offset x%x size x%x alignment x%x\n",
+        //cast(int)Alloca.offset, cast(int)Alloca.size, cast(int)Alloca.alignment);
     // Set up magic parameter for alloca()
     // MOV -REGSIZE[BP],localsize - BPoff
     cdb.genc(0xC7,modregrm(2,0,BPRM),
@@ -5073,7 +5097,7 @@ void assignaddrc(code *c)
                     c.Iop = NOP;
                     continue;
                 }
-                c.IEV1.Vpointer = sn * REGSIZE + CSoff + BPoff;
+                c.IEV1.Vpointer = CSE_offset(sn) + CSoff + BPoff;
                 c.Iflags |= CFunambig;
                 goto L2;
 

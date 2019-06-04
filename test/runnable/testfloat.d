@@ -58,10 +58,136 @@ void test241()
 
 /***************************************/
 
+void test1(float f)
+{
+    real r = f;
+    double d = f;
+}
+
+void test2(long l)
+{
+    real r = l;
+    double d = l;
+}
+
+void test3(float f)
+{
+    real r = f * f;
+    double d = f * f;
+}
+
+void test3(long l)
+{
+    real r = l * l;
+    double d = l * l;
+}
+
+/***************************************/
+
+double foo4(int i, double d)
+{
+    return ((i << 1) - d) + ((i << 1) - d);
+}
+
+void test4()
+{
+    double d = foo4(3, 4);
+    assert(d == 4);
+}
+
+/***************************************/
+
+import std.math; // trigger use of sqrt intrinsic
+
+void test5x(double p)
+{
+    bool b = p >= 0;
+    double mean = (1 - p) / p;
+    double skew = sqrt(1 - p);
+}
+
+void test5()
+{
+    test5x(2);
+}
+
+/***************************************/
+
+import std.math; // trigger use of sqrt intrinsic
+
+void dstatsEnforce(bool, string) { }
+
+ulong invNegBinomCDF(double pVal, ulong n, double p)
+{
+    dstatsEnforce(p >= 0 && p <= 1,
+        "p must be between 0, 1 for negative binomial distribution.");
+    dstatsEnforce(pVal >= 0 && pVal <= 1,
+        "P-values must be between 0, 1.");
+
+    // Normal or gamma approx, then adjust.
+    double mean = n * (1 - p) / p;
+    double var = n * (1 - p) / (p * p);
+    double skew = (2 - p) / sqrt(n * (1 - p));
+    double kk = 4.0L / (skew * skew);
+    double theta = sqrt(var / kk);
+    double offset = (kk * theta) - mean + 0.5L;
+    ulong guess;
+    return 0;
+}
+
+void test6()
+{
+    invNegBinomCDF(2.0, 3, 4.0);
+}
+
+/***************************************/
+
+float expDigamma(F)(in F x)
+{
+    return x;
+}
+
+float nextDown(float f) { return f; }
+
+void test7()
+{
+    foreach (i; 1 .. 2)
+    {
+	assert(expDigamma(float(i)) >= expDigamma(float(i).nextDown));
+    }
+}
+
+/***************************************/
+
+void foo8_1(double x)
+{
+    printf("x = %g\n", x);
+    assert(x == 0);
+}
+
+void foo8_2(double x)
+{
+    printf("x = %g\n", x);
+    assert(x != 0);
+}
+
+void test8()
+{
+    foo8_1(0.0);
+    foo8_2(1.0);
+}
+
+/***************************************/
+
 int main()
 {
     test240();
     test241();
+    test4();
+    test5();
+    test6();
+    test7();
+    test8();
 
     printf("Success\n");
     return EXIT_SUCCESS;

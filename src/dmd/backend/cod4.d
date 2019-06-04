@@ -2730,7 +2730,7 @@ void longcmp(ref CodeBuilder cdb,elem *e,bool jcond,uint fltarg,code *targ)
 
 void cdcnvt(ref CodeBuilder cdb,elem *e, regm_t *pretregs)
 {
-    //printf("cdcnvt: *pretregs = %s\n", regm_str(*pretregs));
+    //printf("cdcnvt: %p *pretregs = %s\n", e, regm_str(*pretregs));
     //elem_print(e);
 
     static immutable ubyte[2][16] clib =

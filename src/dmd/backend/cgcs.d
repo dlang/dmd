@@ -2,6 +2,8 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
+ * Compute common subexpressions for non-optimized builds.
+ *
  * Copyright:   Copyright (C) 1985-1995 by Symantec
  *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
@@ -372,15 +374,14 @@ private void ecom(elem **pe)
         case OPabs: case OPrndtol: case OPrint:
         case OPpreinc: case OPpredec:
         case OPbool: case OPstrlen: case OPs16_32: case OPu16_32:
-        case OPd_s32: case OPd_u32:
         case OPs32_d: case OPu32_d: case OPd_s16: case OPs16_d: case OP32_16:
-        case OPd_f: case OPf_d:
-        case OPd_ld: case OPld_d:
+        case OPf_d:
+        case OPld_d:
         case OPc_r: case OPc_i:
         case OPu8_16: case OPs8_16: case OP16_8:
         case OPu32_64: case OPs32_64: case OP64_32: case OPmsw:
         case OPu64_128: case OPs64_128: case OP128_64:
-        case OPd_s64: case OPs64_d: case OPd_u64: case OPu64_d:
+        case OPs64_d: case OPd_u64: case OPu64_d:
         case OPstrctor: case OPu16_d: case OPd_u16:
         case OParrow:
         case OPvoid:
@@ -392,6 +393,31 @@ private void ecom(elem **pe)
             ecom(&e.EV.E1);
             break;
 
+        case OPd_ld:
+            return;
+
+        case OPd_f:
+        {
+            const op1 = e.EV.E1.Eoper;
+            if (config.fpxmmregs &&
+                (op1 == OPs32_d ||
+                 I64 && (op1 == OPs64_d || op1 == OPu32_d))
+               )
+                ecom(&e.EV.E1.EV.E1);   // e and e1 ops are fused (see xmmcnvt())
+            else
+                ecom(&e.EV.E1);
+            break;
+        }
+
+        case OPd_s32:
+        case OPd_u32:
+        case OPd_s64:
+            if (e.EV.E1.Eoper == OPf_d && config.fpxmmregs)
+                ecom(&e.EV.E1.EV.E1);   // e and e1 ops are fused (see xmmcnvt());
+            else
+                ecom(&e.EV.E1);
+            break;
+
         case OPhalt:
             return;
     }
@@ -399,12 +425,15 @@ private void ecom(elem **pe)
     /* don't CSE structures or unions or volatile stuff   */
     if (tym == TYstruct ||
         tym == TYvoid ||
-        e.Ety & mTYvolatile ||
-        tyxmmreg(tym) ||
-        // don't CSE doubles if inline 8087 code (code generator can't handle it)
-        (tyfloating(tym) && config.inline8087)
-       )
+        e.Ety & mTYvolatile)
         return;
+    if (tyfloating(tym) && config.inline8087)
+    {
+        /* can CSE XMM code, but not x87
+         */
+        if (!(config.fpxmmregs && tyxmmreg(tym)))
+            return;
+    }
 
     hash = cs_comphash(e);                /* must be AFTER leaves are done */
 

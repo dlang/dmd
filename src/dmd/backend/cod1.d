@@ -356,7 +356,7 @@ uint gensaverestore(regm_t regm,ref CodeBuilder cdbsave,ref CodeBuilder cdbresto
         if (regm & 1)
         {
             code *cs2;
-            if (i == ES)
+            if (i == ES && I16)
             {
                 stackused += REGSIZE;
                 cdbsave.gen1(0x06);                     // PUSH ES
