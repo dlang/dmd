@@ -64,6 +64,8 @@ import dmd.semantic3;
 import dmd.target;
 import dmd.utils;
 
+import dmd.dtoh;
+
 /**
  * Print DMD's logo on stdout
  */
@@ -592,6 +594,13 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         }
     }
     Module.runDeferredSemantic3();
+    if (global.errors)
+        fatal();
+
+    if (global.params.doCxxHdrGeneration)
+    {
+        gencpphdrfiles(&modules);
+    }
     if (global.errors)
         fatal();
 
@@ -2096,6 +2105,27 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 if (!p[3])
                     goto Lnoarg;
                 params.docname = p + 3 + (p[3] == '=');
+                break;
+            case 0:
+                break;
+            default:
+                goto Lerror;
+            }
+        }
+        else if (p[1] == 'H' && p[2] == 'C')
+        {
+            params.doCxxHdrGeneration = true;
+            switch (p[3])
+            {
+            case 'd':               // https://dlang.org/dmd.html#switch-Hd
+                if (!p[4])
+                    goto Lnoarg;
+                params.hdrdir = p + 4 + (p[4] == '=');
+                break;
+            case 'f':               // https://dlang.org/dmd.html#switch-Hf
+                if (!p[4])
+                    goto Lnoarg;
+                params.hdrname = p + 4 + (p[4] == '=');
                 break;
             case 0:
                 break;
