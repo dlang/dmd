@@ -1550,7 +1550,7 @@ Expression op_overload(Expression e, Scope* sc)
             }
         L1:
             result = checkAliasThisForLhs(ad1, sc, e);
-            if (result)
+            if (result || !s) // no point in trying Rhs alias-this if there's no overload of any kind in lhs
                 return;
 
             result = checkAliasThisForRhs(isAggregate(e.e2.type), sc, e);
