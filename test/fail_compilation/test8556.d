@@ -1,8 +1,11 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test8556.d(21): Error: template instance `test8556.Grab!(Circle!(uint[]))` does not match template declaration `Grab(Range) if (!isSliceable!Range)`
-fail_compilation/test8556.d(52): Error: template instance `test8556.grab!(Circle!(uint[]))` error instantiating
+fail_compilation/test8556.d(24): Error: template instance `test8556.Grab!(Circle!(uint[]))` does not match template declaration `Grab(Range)`
+  with `Range = Circle!(uint[])`
+  must satisfy the following constraint:
+`       !isSliceable!Range`
+fail_compilation/test8556.d(55): Error: template instance `test8556.grab!(Circle!(uint[]))` error instantiating
 ---
 */
 
