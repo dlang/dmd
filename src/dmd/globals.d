@@ -260,6 +260,19 @@ struct Param
     const(char)* resfile;
     const(char)* exefile;
     const(char)* mapfile;
+
+    // generate code for POSIX
+    @property bool isPOSIX() scope const pure nothrow @nogc @safe
+    out(result) { assert(result || isWindows); }
+    do
+    {
+        return isLinux
+            || isOSX
+            || isFreeBSD
+            || isOpenBSD
+            || isDragonFlyBSD
+            || isSolaris;
+    }
 }
 
 alias structalign_t = uint;
