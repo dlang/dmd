@@ -2596,9 +2596,6 @@ struct ASTBase
         }
     }
 
-    extern (C++) __gshared int Tsize_t = Tuns32;
-    extern (C++) __gshared int Tptrdiff_t = Tint32;
-
     extern (C++) abstract class Type : ASTNode
     {
         TY ty;
@@ -2799,19 +2796,10 @@ struct ASTBase
             tdstring = tdchar.immutableOf().arrayOf();
             tvalist = Target.va_listType();
 
-            if (global.params.isLP64)
-            {
-                Tsize_t = Tuns64;
-                Tptrdiff_t = Tint64;
-            }
-            else
-            {
-                Tsize_t = Tuns32;
-                Tptrdiff_t = Tint32;
-            }
+            const isLP64 = global.params.isLP64;
 
-            tsize_t = basic[Tsize_t];
-            tptrdiff_t = basic[Tptrdiff_t];
+            tsize_t    = basic[isLP64 ? Tuns64 : Tuns32];
+            tptrdiff_t = basic[isLP64 ? Tint64 : Tint32];
             thash_t = tsize_t;
         }
 
