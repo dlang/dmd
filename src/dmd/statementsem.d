@@ -1358,7 +1358,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     fs.key = new VarDeclaration(loc, Type.tsize_t, idkey, null);
                     fs.key.storage_class |= STC.temp;
                 }
-                else if (fs.key.type.ty != Tsize_t)
+                else if (fs.key.type.ty != Type.tsize_t.ty)
                 {
                     tmp_length = new CastExp(loc, tmp_length, fs.key.type);
                 }
