@@ -829,7 +829,7 @@ public:
             buf = &decl;
             ds.accept(this);
             buf = save;
-            donebuf.writestring(decl.peekString());
+            donebuf.writestring(decl.peekChars());
         }
     }
     
@@ -1029,16 +1029,16 @@ public:
         ident = null;
         buf.writeByte(')');
         buf.writeByte('(');
-        foreach (i; 0 .. AST.Parameter.dim(tf.parameters))
+        foreach (i; 0 .. AST.Parameter.dim(tf.parameterList.parameters))
         {
             if (i)
                 buf.writestring(", ");
-            auto fparam = AST.Parameter.getNth(tf.parameters, i);
+            auto fparam = AST.Parameter.getNth(tf.parameterList.parameters, i);
             fparam.accept(this);
         }
-        if (tf.varargs)
+        if (tf.parameterList.varargs)
         {
-            if (tf.parameters.dim && tf.varargs == 1)
+            if (tf.parameterList.parameters.dim && tf.parameterList.varargs == 1)
             buf.writestring(", ");
             buf.writestring("...");
         }
@@ -1259,16 +1259,16 @@ public:
         buf.writestring(ident.toChars());
         
         buf.writeByte('(');
-        foreach (i; 0 .. AST.Parameter.dim(tf.parameters))
+        foreach (i; 0 .. AST.Parameter.dim(tf.parameterList.parameters))
         {
             if (i)
             buf.writestring(", ");
-            auto fparam = AST.Parameter.getNth(tf.parameters, i);
+            auto fparam = AST.Parameter.getNth(tf.parameterList.parameters, i);
             fparam.accept(this);
         }
-        if (tf.varargs)
+        if (tf.parameterList.varargs)
         {
-            if (tf.parameters.dim && tf.varargs == 1)
+            if (tf.parameterList.parameters.dim && tf.parameterList.varargs == 1)
             buf.writestring(", ");
             buf.writestring("...");
         }
@@ -1582,5 +1582,5 @@ void gencpphdrfiles(Modules *ms)
     `);
     
     debug buf.write(&check);
-    printf("%s\n", buf.peekString());
+    printf("%s\n", buf.peekChars());
 }
