@@ -468,6 +468,13 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             if (v.offset < offset)
             {
                 .error(loc, "overlapping initialization for `%s`", v.toChars());
+                if (!isUnionDeclaration())
+                {
+                    enum errorMsg = "`struct` initializers that contain anonymous unions" ~
+                                        " must initialize only the first member of a `union`. All subsequent" ~
+                                        " non-overlapping fields are default initialized";
+                    .errorSupplemental(loc, errorMsg);
+                }
                 return false;
             }
             offset = cast(uint)(v.offset + v.type.size());
