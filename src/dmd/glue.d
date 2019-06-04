@@ -333,7 +333,7 @@ void genObjFile(Module m, bool multiobj)
         foreach (member; *m.members)
         {
             //printf("toObjFile %s %s\n", member.kind(), member.toChars());
-            toObjFile(member, global.params.multiobj);
+            toObjFile(member, multiobj);
         }
 
         global.params.verbose = v;
