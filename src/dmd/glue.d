@@ -517,7 +517,7 @@ void genObjFile(Module m, bool multiobj)
 /**************************************
  * Search for a druntime array op
  */
-bool isDruntimeArrayOp(Identifier ident)
+private bool isDruntimeArrayOp(Identifier ident)
 {
     /* Some of the array op functions are written as library functions,
      * presumably to optimize them with special CPU vector instructions.
@@ -704,7 +704,7 @@ bool isDruntimeArrayOp(Identifier ident)
 
 /* ================================================================== */
 
-UnitTestDeclaration needsDeferredNested(FuncDeclaration fd)
+private UnitTestDeclaration needsDeferredNested(FuncDeclaration fd)
 {
     while (fd && fd.isNested())
     {
@@ -1387,7 +1387,7 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
 }
 
 
-bool onlyOneMain(Loc loc)
+private bool onlyOneMain(Loc loc)
 {
     __gshared Loc lastLoc;
     __gshared bool hasMain = false;
@@ -1596,7 +1596,7 @@ Symbol *toSymbol(Type t)
  * Generate elem that is a dynamic array slice of the module file name.
  */
 
-elem *toEfilename(Module m)
+private elem *toEfilename(Module m)
 {
     //printf("toEfilename(%s)\n", m.toChars());
     const(char)* id = m.srcfile.toChars();
@@ -1612,6 +1612,7 @@ elem *toEfilename(Module m)
     return el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(m.sfilename));
 }
 
+// Used in e2ir.d
 elem *toEfilenamePtr(Module m)
 {
     //printf("toEfilenamePtr(%s)\n", m.toChars());
