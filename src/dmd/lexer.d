@@ -101,44 +101,44 @@ private
     enum CMsinglechar = 0x20;
 }
 
-private bool isoctal(const char c)
+private bool isoctal(const char c) pure @nogc @safe
 {
     return (cmtable[c] & CMoctal) != 0;
 }
 
-private bool ishex(const char c)
+private bool ishex(const char c) pure @nogc @safe
 {
     return (cmtable[c] & CMhex) != 0;
 }
 
-private bool isidchar(const char c)
+private bool isidchar(const char c) pure @nogc @safe
 {
     return (cmtable[c] & CMidchar) != 0;
 }
 
-private bool isZeroSecond(const char c)
+private bool isZeroSecond(const char c) pure @nogc @safe
 {
     return (cmtable[c] & CMzerosecond) != 0;
 }
 
-private bool isDigitSecond(const char c)
+private bool isDigitSecond(const char c) pure @nogc @safe
 {
     return (cmtable[c] & CMdigitsecond) != 0;
 }
 
-private bool issinglechar(const char c)
+private bool issinglechar(const char c) pure @nogc @safe
 {
     return (cmtable[c] & CMsinglechar) != 0;
 }
 
-private bool c_isxdigit(const int c)
+private bool c_isxdigit(const int c) pure @nogc @safe
 {
     return (( c >= '0' && c <= '9') ||
             ( c >= 'a' && c <= 'f') ||
             ( c >= 'A' && c <= 'F'));
 }
 
-private bool c_isalnum(const int c)
+private bool c_isalnum(const int c) pure @nogc @safe
 {
     return (( c >= '0' && c <= '9') ||
             ( c >= 'a' && c <= 'z') ||
@@ -246,7 +246,7 @@ class Lexer
      */
     this(const(char)* filename, const(char)* base, size_t begoffset,
         size_t endoffset, bool doDocComment, bool commentToken,
-        DiagnosticReporter diagnosticReporter)
+        DiagnosticReporter diagnosticReporter) pure
     in
     {
         assert(diagnosticReporter !is null);
@@ -1807,7 +1807,7 @@ class Lexer
     /***************************************
      * Get postfix of string literal.
      */
-    private void stringPostfix(Token* t)
+    private void stringPostfix(Token* t) pure @nogc
     {
         switch (*p)
         {
@@ -2277,7 +2277,7 @@ class Lexer
         return result;
     }
 
-    final Loc loc()
+    final Loc loc() pure @nogc
     {
         scanloc.charnum = cast(uint)(1 + p - line);
         return scanloc;
@@ -2491,7 +2491,7 @@ class Lexer
      * If newParagraph is true, an extra newline will be
      * added between adjoining doc comments.
      */
-    private void getDocComment(Token* t, uint lineComment, bool newParagraph)
+    private void getDocComment(Token* t, uint lineComment, bool newParagraph) pure
     {
         /* ct tells us which kind of comment it is: '/', '*', or '+'
          */
@@ -2626,7 +2626,7 @@ class Lexer
      * Combine two document comments into one,
      * separated by an extra newline if newParagraph is true.
      */
-    static const(char)* combineComments(const(char)* c1, const(char)* c2, bool newParagraph)
+    static const(char)* combineComments(const(char)* c1, const(char)* c2, bool newParagraph) pure
     {
         //printf("Lexer::combineComments('%s', '%s', '%i')\n", c1, c2, newParagraph);
         auto c = c2;
@@ -2659,7 +2659,7 @@ class Lexer
     }
 
 private:
-    void endOfLine()
+    void endOfLine() pure @nogc @safe
     {
         scanloc.linnum++;
         line = p;
