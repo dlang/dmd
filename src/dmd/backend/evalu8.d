@@ -175,7 +175,7 @@ version (SCPP)
                 {   b = 0;
                     foreach (f; e.EV.Vfloat4)
                     {
-                        if (isnan(f) || f != 0) // Why not just f != 0?
+                        if (f != 0)
                         {   b = 1;
                             break;
                         }
@@ -200,7 +200,7 @@ version (SCPP)
                     b = 0;
                     foreach (f; e.EV.Vfloat8)
                     {
-                        if (isnan(f) || f != 0) // Why not just f != 0?
+                        if (f != 0)
                         {   b = 1;
                             break;
                         }
@@ -211,7 +211,7 @@ version (SCPP)
                     b = 0;
                     foreach (f; e.EV.Vdouble4)
                     {
-                        if (isnan(f) || f != 0) // Why not just f != 0?
+                        if (f != 0)
                         {   b = 1;
                             break;
                         }
