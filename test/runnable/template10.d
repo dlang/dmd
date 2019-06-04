@@ -176,7 +176,7 @@ void test4i(T)(T i)
 
 auto get4i(int a)
 {
-    return S4(5).inner!a(6);
+    return new S4(5).inner!a(6);
 }
 
 void test4()
