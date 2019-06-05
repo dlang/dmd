@@ -31,3 +31,9 @@ version (linux)
     static assert(__traits(getTargetInfo, "objectFormat") == "elf");
 
 static assert(__traits(getTargetInfo, "cppStd") == 199711);
+
+/******************************************/
+// https://issues.dlang.org/show_bug.cgi?id=19942
+
+static assert(!__traits(compiles, { a.init; }));
+static assert(!__traits(compiles, { import m : a; a.init; }));
