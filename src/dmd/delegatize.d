@@ -21,6 +21,7 @@ import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;
+import dmd.init;
 import dmd.initsem;
 import dmd.mtype;
 import dmd.statement;
@@ -98,6 +99,7 @@ private void lambdaSetParent(Expression e, FuncDeclaration fd)
         override void visit(DeclarationExp e)
         {
             e.declaration.parent = fd;
+            e.declaration.accept(this);
         }
 
         override void visit(IndexExp e)
@@ -106,6 +108,7 @@ private void lambdaSetParent(Expression e, FuncDeclaration fd)
             {
                 //printf("lengthVar\n");
                 e.lengthVar.parent = fd;
+                e.lengthVar.accept(this);
             }
         }
 
@@ -115,6 +118,44 @@ private void lambdaSetParent(Expression e, FuncDeclaration fd)
             {
                 //printf("lengthVar\n");
                 e.lengthVar.parent = fd;
+                e.lengthVar.accept(this);
+            }
+        }
+
+        override void visit(Dsymbol)
+        {
+        }
+
+        override void visit(VarDeclaration v)
+        {
+            if (v._init)
+                v._init.accept(this);
+        }
+
+        override void visit(Initializer)
+        {
+        }
+
+        override void visit(ExpInitializer ei)
+        {
+            walkPostorder(ei.exp ,this);
+        }
+
+        override void visit(StructInitializer si)
+        {
+            foreach (i, const id; si.field)
+                if (Initializer iz = si.value[i])
+                    iz.accept(this);
+        }
+
+        override void visit(ArrayInitializer ai)
+        {
+            foreach (i, ex; ai.index)
+            {
+                if (ex)
+                    walkPostorder(ex, this);
+                if (Initializer iz = ai.value[i])
+                    iz.accept(this);
             }
         }
     }

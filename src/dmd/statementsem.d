@@ -2226,6 +2226,14 @@ else
                 sdtor = new ScopeGuardStatement(ifs.loc, TOK.onScopeExit, sdtor);
                 ifs.ifbody = new CompoundStatement(ifs.loc, sdtor, ifs.ifbody);
                 ifs.match.storage_class |= STC.nodtor;
+
+                // the destructor is always called
+                // whether the 'ifbody' is executed or not
+                Statement sdtor2 = new DtorExpStatement(ifs.loc, ifs.match.edtor, ifs.match);
+                if (ifs.elsebody)
+                    ifs.elsebody = new CompoundStatement(ifs.loc, sdtor2, ifs.elsebody);
+                else
+                    ifs.elsebody = sdtor2;
             }
         }
         else

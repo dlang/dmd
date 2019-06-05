@@ -858,7 +858,10 @@ private void toDtElem(TypeSArray tsa, ref DtBuilder dtb, Expression e)
         assert(len);
         Type tnext = tsa.next;
         Type tbn = tnext.toBasetype();
-        while (tbn.ty == Tsarray && (!e || !tbn.equivalent(e.type.nextOf())))
+        Type ten = e ? e.type : null;
+        if (ten && (ten.ty == Tsarray || ten.ty == Tarray))
+            ten = ten.nextOf();
+        while (tbn.ty == Tsarray && (!e || !tbn.equivalent(ten)))
         {
             len *= tbn.isTypeSArray().dim.toInteger();
             tnext = tbn.nextOf();

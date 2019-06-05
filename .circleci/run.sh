@@ -20,6 +20,12 @@ case "${CIRCLE_STAGE}" in
         esac
 esac
 
+# sometimes $CIRCLE_PR_NUMBER is not defined
+# extract it from $CIRCLE_PULL_REQUEST
+if [ -z "${CIRCLE_PR_NUMBER:-}" ] && [ -n "${CIRCLE_PULL_REQUEST:-}" ]; then
+    export CIRCLE_PR_NUMBER=${CIRCLE_PULL_REQUEST#https://github.com/dlang/dmd/pull/}
+fi
+
 # clone druntime and phobos
 clone() {
     local url="$1"

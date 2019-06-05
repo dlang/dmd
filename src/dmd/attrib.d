@@ -568,7 +568,8 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
     {
         assert(!s);
         return new AlignDeclaration(loc,
-            ealign.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl));
+            ealign ? ealign.syntaxCopy() : null,
+            Dsymbol.arraySyntaxCopy(decl));
     }
 
     override Scope* newScope(Scope* sc)

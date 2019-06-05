@@ -474,6 +474,9 @@ public:
     FuncDeclaration *fdrequire;         // function that does the in contract
     FuncDeclaration *fdensure;          // function that does the out contract
 
+    Expressions *fdrequireParams;       // argument list for __require
+    Expressions *fdensureParams;        // argument list for __ensure
+
     const char *mangleString;           // mangled symbol created from mangleExact()
 
     VarDeclaration *vresult;            // result variable for out contracts
@@ -613,8 +616,8 @@ public:
     bool needsClosure();
     bool hasNestedFrameRefs();
     void buildResultVar(Scope *sc, Type *tret);
-    Statement *mergeFrequire(Statement *);
-    Statement *mergeFensure(Statement *, Identifier *oid);
+    Statement *mergeFrequire(Statement *, Expressions *);
+    Statement *mergeFensure(Statement *, Identifier *oid, Expressions *);
     ParameterList getParameterList();
 
     static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, const char *name, StorageClass stc=0);
