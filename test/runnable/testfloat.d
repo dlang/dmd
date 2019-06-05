@@ -153,7 +153,7 @@ void test7()
 {
     foreach (i; 1 .. 2)
     {
-	assert(expDigamma(float(i)) >= expDigamma(float(i).nextDown));
+        assert(expDigamma(float(i)) >= expDigamma(float(i).nextDown));
     }
 }
 
@@ -179,6 +179,22 @@ void test8()
 
 /***************************************/
 
+void test9()
+{
+    double a = 9;
+    double b = 3;
+    double c = a * b + 1;
+    double d = a + b + 1;
+    printf("%g %g\n", c, d);    // clobber XMM registers
+    assert(c == 28 && d == 13);
+    double e = a * b - 1;
+    double f = a + b - 1;       // reload 2 CSEs
+    printf("%g %g\n", e, f);
+    assert(e == 26 && f == 11);
+}
+
+/***************************************/
+
 int main()
 {
     test240();
@@ -188,6 +204,7 @@ int main()
     test6();
     test7();
     test8();
+    test9();
 
     printf("Success\n");
     return EXIT_SUCCESS;
