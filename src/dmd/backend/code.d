@@ -100,9 +100,6 @@ code *code_malloc()
 
 extern __gshared con_t regcon;
 
-uint CSE_offset(int i);
-bool CSE_loaded(int i);
-
 /************************************
  * Register save state.
  */

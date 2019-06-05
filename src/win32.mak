@@ -179,7 +179,7 @@ GBACKOBJ= $G/go.obj $G/gdag.obj $G/gother.obj $G/gflow.obj $G/gloop.obj $G/var.o
 	$G/drtlsym.obj $G/cgelem.obj $G/cgen.obj $G/cgreg.obj $G/out.obj \
 	$G/blockopt.obj $G/cgobj.obj $G/cg.obj $G/dcgcv.obj $G/dtype.obj \
 	$G/debugprint.obj $G/dcode.obj $G/cg87.obj $G/cgxmm.obj $G/cgsched.obj $G/ee.obj $G/symbol.obj \
-	$G/cgcod.obj $G/cod1.obj $G/cod2.obj $G/cod3.obj $G/cod4.obj $G/cod5.obj \
+	$G/cgcod.obj $G/cod1.obj $G/cod2.obj $G/cod3.obj $G/cod4.obj $G/cod5.obj $G/cgcse.obj \
 	$G/bcomplex.obj $G/ptrntab.obj $G/md5.obj $G/barray.obj $G/goh.obj \
 	$G/mscoffobj.obj $G/pdata.obj $G/cv8.obj $G/backconfig.obj \
 	$G/divcoeff.obj $G/dwarfdbginf.obj $G/compress.obj $G/dvarstats.obj \
@@ -210,7 +210,7 @@ BACKSRC= $C\optabgen.d \
 	$C/code_stub.h $C/platform_stub.c \
 	$C\bcomplex.d $C\blockopt.d $C\cg.d $C\cg87.d $C\cgxmm.d \
 	$C\cgcod.d $C\cgcs.d $C\dcgcv.d $C\cgelem.d $C\cgen.d $C\cgobj.d \
-	$C\compress.d $C\cgreg.d $C\var.d \
+	$C\compress.d $C\cgreg.d $C\var.d $C\cgcse.d \
 	$C\cgsched.d $C\cod1.d $C\cod2.d $C\cod3.d $C\cod4.d $C\cod5.d \
 	$C\dcode.d $C\symbol.d $C\debugprint.d $C\ee.d $C\elem.d \
 	$C\evalu8.d $C\fp.d $C\go.d $C\gflow.d $C\gdag.d \
@@ -438,6 +438,9 @@ $G/cgcod.obj : $G\cdxxx.d $C\cgcod.d
 
 $G/cgcs.obj : $C\cgcs.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\cgcs
+
+$G/cgcse.obj : $C\cgcse.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\cgcse
 
 $G/dcgcv.obj : $C\dcgcv.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\dcgcv
