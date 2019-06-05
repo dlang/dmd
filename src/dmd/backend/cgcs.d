@@ -38,42 +38,12 @@ import dmd.backend.dvec;
 
 extern (C++):
 
-/*********************************
- * Struct for each elem:
- *      Helem   pointer to elem
- *      Hhash   hash value for the elem
- */
-
-struct HCS
-{
-    elem    *Helem;
-    uint Hhash;
-}
-
-private __gshared
-{
-    Barray!HCS hcstab;           /* array of hcs's               */
-}
-
-struct HCSArray
-{
-    uint touchstari;
-    uint[2] touchfunci;
-}
-
-private __gshared HCSArray hcsarray;
-
-// Use a bit vector for quick check if expression is possibly in hcstab[].
-// This results in much faster compiles when hcstab[] gets big.
-private __gshared vec_t csvec;                     // vector of used entries
-enum CSVECDIM = 16001; //8009 //3001     // dimension of csvec (should be prime)
-
 /*******************************
  * Eliminate common subexpressions across extended basic blocks.
  * String together as many blocks as we can.
  */
 
-void comsubs()
+public void comsubs()
 {
     block* bl,blc,bln;
     int n;                       /* # of blocks to treat as one  */
@@ -144,7 +114,7 @@ void comsubs()
 /*******************************
  */
 
-void cgcs_term()
+public void cgcs_term()
 {
     vec_free(csvec);
     csvec = null;
@@ -152,11 +122,47 @@ void cgcs_term()
     //hcstab.dtor();  // cache allocation for next iteration
 }
 
+
+/***********************************************************************/
+
+private:
+
+/*********************************
+ * Struct for each elem:
+ *      Helem   pointer to elem
+ *      Hhash   hash value for the elem
+ */
+
+struct HCS
+{
+    elem    *Helem;
+    uint Hhash;
+}
+
+__gshared
+{
+    Barray!HCS hcstab;           /* array of hcs's               */
+}
+
+struct HCSArray
+{
+    uint touchstari;
+    uint[2] touchfunci;
+}
+
+__gshared HCSArray hcsarray;
+
+// Use a bit vector for quick check if expression is possibly in hcstab[].
+// This results in much faster compiles when hcstab[] gets big.
+__gshared vec_t csvec;                     // vector of used entries
+enum CSVECDIM = 16001; //8009 //3001     // dimension of csvec (should be prime)
+
+
 /*************************
  * Eliminate common subexpressions for an element.
  */
 
-private void ecom(elem **pe)
+void ecom(elem **pe)
 {
     int op;
     uint hash;
@@ -488,7 +494,7 @@ private void ecom(elem **pe)
  * Compute hash function for elem e.
  */
 
-private uint cs_comphash(elem *e)
+uint cs_comphash(elem *e)
 {
     int hash;
     uint op;
@@ -515,7 +521,7 @@ private uint cs_comphash(elem *e)
  * Add an elem to the common subexpression table.
  */
 
-private void addhcstab(elem *e,int hash)
+void addhcstab(elem *e,int hash)
 {
     hcstab.push(HCS(e, hash));
 }
@@ -527,7 +533,7 @@ private void addhcstab(elem *e,int hash)
  * Eliminate common subs that are indirect loads.
  */
 
-private void touchlvalue(elem *e)
+void touchlvalue(elem *e)
 {
     if (e.Eoper == OPind)                /* if indirect store            */
     {
@@ -595,7 +601,7 @@ private void touchlvalue(elem *e)
  *              If 0, then this is an indirect assignment.
  */
 
-private void touchfunc(int flag)
+void touchfunc(int flag)
 {
 
     //printf("touchfunc(%d)\n", flag);
@@ -674,7 +680,7 @@ private void touchfunc(int flag)
  * do any indirection ("starred" elems).
  */
 
-private void touchstar()
+void touchstar()
 {
     foreach (ref hcs; hcstab[hcsarray.touchstari .. $])
     {
@@ -689,7 +695,7 @@ private void touchstar()
  * Eliminate all common subexpressions.
  */
 
-private void touchall()
+void touchall()
 {
     foreach (ref hcs; hcstab[])
     {
@@ -705,7 +711,7 @@ private void touchall()
  * if a handle pointer access occurs.
  */
 
-private void touchaccess(elem *ev)
+void touchaccess(elem *ev)
 {
     ev = ev.EV.E1;
     foreach (ref hcs; hcstab[])
