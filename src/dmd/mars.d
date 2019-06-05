@@ -620,15 +620,13 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         fatal();
 
     // Scan for functions to inline
-    if (params.useInline)
+    foreach (m; modules)
     {
-        foreach (m; modules)
-        {
-            if (params.verbose)
-                message("inline scan %s", m.toChars());
-            inlineScanModule(m);
-        }
+        if (params.verbose)
+            message("inline scan %s", m.toChars());
+        inlineScanModule(m);
     }
+
     // Do not attempt to generate output files if errors or warnings occurred
     if (global.errors || global.warnings)
         fatal();

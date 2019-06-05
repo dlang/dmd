@@ -3603,7 +3603,7 @@ elem *toElem(Expression e, IRState *irs)
             assert(txb.ty == tyb.ty);
 
             // https://issues.dlang.org/show_bug.cgi?id=14730
-            if (irs.params.useInline && v.offset == 0)
+            if (v.offset == 0)
             {
                 FuncDeclaration fd = v.parent.isFuncDeclaration();
                 if (fd && fd.semanticRun < PASS.obj)

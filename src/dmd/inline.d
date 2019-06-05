@@ -1683,13 +1683,13 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
         break;
     }
 
-    final switch (fd.inlining)
+    if (fd.inlining == PINLINE.never)
     {
-    case PINLINE.default_:
-        break;
-    case PINLINE.always:
-        break;
-    case PINLINE.never:
+        return false;
+    }
+
+    if (fd.inlining == PINLINE.default_ && !global.params.useInline)
+    {
         return false;
     }
 
