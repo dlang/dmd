@@ -174,6 +174,8 @@ private struct CSE
      */
     static void updateSizeAndAlign(elem* e)
     {
+        if (I16)
+            return;
         const sz = tysize(e.Ety);
         if (slotSize < sz)
             slotSize = sz;
@@ -206,6 +208,19 @@ bool CSE_loaded(int i)
            (csextab[i].flags & CSEload);
 }
 
+/********************
+ * The above implementation of CSE is inefficient:
+ * 1. the optimization to not store CSE's that are never reloaded is based on the slot number,
+ * not the CSE. This means that when a slot is shared among multiple CSEs, it is treated
+ * as "reloaded" even if only one of the CSEs in that slot is reloaded.
+ * 2. updateSizeAndAlign should only be run when reloading when (1) is fixed.
+ * 3. all slots are aligned to worst case alignment of any slot.
+ * 4. unused slots still get memory allocated to them if they aren't at the end of the
+ * slot table.
+ *
+ * The slot number should be unique to each CSE, and allocation of actual slots should be
+ * done after the code is generated, not during generation.
+ */
 
 /*********************************
  * Generate code for a function.
@@ -2551,15 +2566,12 @@ private void comsub(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     uint byte_,sz;
 
     //printf("comsub(e = %p, *pretregs = %s)\n",e,regm_str(*pretregs));
-    //elem_debug(e);
+    elem_debug(e);
 
-    //debug
+    debug
     {
         if (e.Ecomsub > e.Ecount)
-        {
             elem_print(e);
-            assert(0);
-        }
     }
 
     assert(e.Ecomsub <= e.Ecount);
