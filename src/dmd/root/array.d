@@ -180,6 +180,8 @@ public:
         length = newdim;
     }
 
+    alias setLength = setDim;
+
     ref inout(T) opIndex(size_t i) inout nothrow pure
     {
         return data[i];
