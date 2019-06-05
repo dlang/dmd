@@ -3025,7 +3025,7 @@ extern (C) void thread_scanAll( scope ScanAllThreadsFn scan ) nothrow
  * holding the lock already got suspended.
  *
  * The term and concept of a 'critical region' comes from
- * $(LINK2 https://github.com/mono/mono/blob/521f4a198e442573c400835ef19bbb36b60b0ebb/mono/metadata/sgen-gc.h#L925 Mono's SGen garbage collector).
+ * $(LINK2 https://github.com/mono/mono/blob/521f4a198e442573c400835ef19bbb36b60b0ebb/mono/metadata/sgen-gc.h#L925, Mono's SGen garbage collector).
  *
  * In:
  *  The calling thread must be attached to the runtime.
