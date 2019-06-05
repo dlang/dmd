@@ -523,7 +523,7 @@ private final class CppMangleVisitor : Visitor
      * Returns:
      *  if s is instance of a template, return the instance, otherwise return s
      */
-    Dsymbol getInstance(Dsymbol s)
+    static Dsymbol getInstance(Dsymbol s)
     {
         Dsymbol p = s.toParent3();
         if (p)
