@@ -98,9 +98,9 @@ void go_term()
     vec_free(go.defkill);
     vec_free(go.starkill);
     vec_free(go.vptrkill);
-    go.defnod.dtor();
-    go.expnod.dtor();
-    go.expblk.dtor();
+    go.defnod.__dtor();
+    go.expnod.__dtor();
+    go.expblk.__dtor();
 }
 
 debug
