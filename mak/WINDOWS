@@ -55,6 +55,7 @@ copydir: $(IMPDIR)
 	mkdir $(IMPDIR)\core\sys\solaris\sys
 	mkdir $(IMPDIR)\core\sys\windows
 	mkdir $(IMPDIR)\etc\linux
+	mkdir $(IMPDIR)\rt\array
 
 copy: $(COPY)
 
@@ -1185,4 +1186,10 @@ $(IMPDIR)\core\sys\windows\wtypes.d : src\core\sys\windows\wtypes.d
 	copy $** $@
 
 $(IMPDIR)\etc\linux\memoryerror.d : src\etc\linux\memoryerror.d
+	copy $** $@
+
+$(IMPDIR)\rt\array\comparison.d : src\rt\array\comparison.d
+	copy $** $@
+
+$(IMPDIR)\rt\array\equality.d : src\rt\array\equality.d
 	copy $** $@
