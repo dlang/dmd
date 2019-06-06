@@ -84,28 +84,23 @@ Command-line parameters
         return;
     }
 
-    if (res.helpWanted)
-        return showHelp;
-
     // parse arguments
     args.popFront;
     args2Environment(args);
+    parseEnvironment;
+    processEnvironment;
+    sources = sourceFiles;
+
+    if (res.helpWanted)
+        return showHelp;
 
     // default target
     if (!args.length)
         args = ["all"];
 
-    // bootstrap all needed environment variables
-    parseEnvironment;
-
     auto targets = args
         .predefinedTargets // preprocess
         .array;
-
-    processEnvironment;
-
-    // get all sources
-    sources = sourceFiles;
 
     if (targets.length == 0)
         return showHelp;
