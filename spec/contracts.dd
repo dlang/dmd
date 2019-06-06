@@ -48,8 +48,8 @@ assert(expression, "message to display on failure");
         verify that the expression is indeed true.  If it is false, an
         `AssertError` is thrown.  When compiling for release, this check is not
         generated.  The special $(D assert(0)) expression, however, is
-        generated even in release mode. See the $(GLINK2 expression,
-        AssertExpression) documentation for more information.)
+        generated even in release mode. See the $(GLINK2 expression, AssertExpression)
+        documentation for more information.)
 
         $(P The compiler is free to assume the assert expression is true and
         optimize subsequent code accordingly.)
