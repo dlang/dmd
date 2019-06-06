@@ -36,18 +36,14 @@ import dmd.backend.barray;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
 
-extern (C++):
 
 /*******************************
  * Eliminate common subexpressions across extended basic blocks.
  * String together as many blocks as we can.
  */
 
-public void comsubs()
+public extern (C++) void comsubs()
 {
-    block* bl,blc,bln;
-    int n;                       /* # of blocks to treat as one  */
-
     //static int xx;
     //printf("comsubs() %d\n", ++xx);
     //debugx = (xx == 37);
@@ -69,15 +65,16 @@ public void comsubs()
         csvec = vec_calloc(CSVECDIM);
     }
 
-    for (bl = startblock; bl; bl = bln)
+    block* bln;
+    for (block* bl = startblock; bl; bl = bln)
     {
         bln = bl.Bnext;
         if (!bl.Belem)
             continue;                   /* if no expression or no parents       */
 
         // Count up n, the number of blocks in this extended basic block (EBB)
-        n = 1;                          // always at least one block in EBB
-        blc = bl;
+        int n = 1;                      // always at least one block in EBB
+        auto blc = bl;
         while (bln && list_nitems(bln.Bpred) == 1 &&
                ((blc.BC == BCiftrue &&
                  blc.nthSucc(1) == bln) ||
@@ -114,7 +111,7 @@ public void comsubs()
 /*******************************
  */
 
-public void cgcs_term()
+public extern (C++) void cgcs_term()
 {
     vec_free(csvec);
     csvec = null;
@@ -127,6 +124,8 @@ public void cgcs_term()
 
 private:
 
+alias hash_t = uint;    // for hash values
+
 /*********************************
  * Struct for each elem:
  *      Helem   pointer to elem
@@ -135,13 +134,8 @@ private:
 
 struct HCS
 {
-    elem    *Helem;
-    uint Hhash;
-}
-
-__gshared
-{
-    Barray!HCS hcstab;           /* array of hcs's               */
+    elem* Helem;
+    hash_t Hhash;
 }
 
 struct HCSArray
@@ -150,12 +144,16 @@ struct HCSArray
     uint[2] touchfunci;
 }
 
-__gshared HCSArray hcsarray;
+__gshared
+{
+    Barray!HCS hcstab;           // array of hcs's
+    HCSArray hcsarray;
 
-// Use a bit vector for quick check if expression is possibly in hcstab[].
-// This results in much faster compiles when hcstab[] gets big.
-__gshared vec_t csvec;                     // vector of used entries
-enum CSVECDIM = 16001; //8009 //3001     // dimension of csvec (should be prime)
+    // Use a bit vector for quick check if expression is possibly in hcstab[].
+    // This results in much faster compiles when hcstab[] gets big.
+    vec_t csvec;                 // vector of used entries
+    enum CSVECDIM = 16001; //8009 //3001     // dimension of csvec (should be prime)
+}
 
 
 /*************************
@@ -164,19 +162,13 @@ enum CSVECDIM = 16001; //8009 //3001     // dimension of csvec (should be prime)
 
 void ecom(elem **pe)
 {
-    int op;
-    uint hash;
-    elem *e;
-    elem *ehash;
-    tym_t tym;
-
-    e = *pe;
+    auto e = *pe;
     assert(e);
     elem_debug(e);
     debug assert(e.Ecount == 0);
     //assert(e.Ecomsub == 0);
-    tym = tybasic(e.Ety);
-    op = e.Eoper;
+    const tym = tybasic(e.Ety);
+    const op = e.Eoper;
     switch (op)
     {
         case OPconst:
@@ -227,7 +219,7 @@ void ecom(elem **pe)
             touchlvalue(e.EV.E1);
             if (!OTpost(op))                /* lvalue of i++ or i-- is not a cse*/
             {
-                hash = cs_comphash(e.EV.E1);
+                const hash = cs_comphash(e.EV.E1);
                 vec_setbit(hash % CSVECDIM,csvec);
                 addhcstab(e.EV.E1,hash);              // add lvalue to hcstab[]
             }
@@ -323,7 +315,7 @@ void ecom(elem **pe)
         case OPvp_fp:
         case OPcvp_fp:
             ecom(&e.EV.E1);
-            touchaccess(e);
+            touchaccess(hcstab, e);
             break;
 
         case OPind:
@@ -441,7 +433,7 @@ void ecom(elem **pe)
             return;
     }
 
-    hash = cs_comphash(e);                /* must be AFTER leaves are done */
+    const hash = cs_comphash(e);                /* must be AFTER leaves are done */
 
     /* Search for a match in hcstab[].
      * Search backwards, as most likely matches will be towards the end
@@ -458,6 +450,7 @@ void ecom(elem **pe)
                 printf("i: %2d Hhash: %6d Helem: %p\n",
                        i,hcs.Hhash,hcs.Helem);
 
+            elem* ehash;
             if (hash == hcs.Hhash && (ehash = hcs.Helem) != null)
             {
                 /* if elems are the same and we still have room for more    */
@@ -494,14 +487,11 @@ void ecom(elem **pe)
  * Compute hash function for elem e.
  */
 
-uint cs_comphash(elem *e)
+hash_t cs_comphash(const elem *e)
 {
-    int hash;
-    uint op;
-
     elem_debug(e);
-    op = e.Eoper;
-    hash = (e.Ety & (mTYbasic | mTYconst | mTYvolatile)) + (op << 8);
+    const op = e.Eoper;
+    hash_t hash = (e.Ety & (mTYbasic | mTYconst | mTYvolatile)) + (op << 8);
     if (!OTleaf(op))
     {
         hash += cast(size_t) e.EV.E1;
@@ -521,7 +511,7 @@ uint cs_comphash(elem *e)
  * Add an elem to the common subexpression table.
  */
 
-void addhcstab(elem *e,int hash)
+void addhcstab(elem *e, hash_t hash)
 {
     hcstab.push(HCS(e, hash));
 }
@@ -684,7 +674,7 @@ void touchstar()
 {
     foreach (ref hcs; hcstab[hcsarray.touchstari .. $])
     {
-        auto e = hcs.Helem;
+        const e = hcs.Helem;
         if (e && (e.Eoper == OPind || e.Eoper == OPbt) )
             hcs.Helem = null;
     }
@@ -711,15 +701,15 @@ void touchall()
  * if a handle pointer access occurs.
  */
 
-void touchaccess(elem *ev)
+void touchaccess(ref Barray!HCS hcstab, const elem *ev) pure nothrow
 {
-    ev = ev.EV.E1;
+    const ev1 = ev.EV.E1;
     foreach (ref hcs; hcstab[])
     {
-        auto e = hcs.Helem;
+        const e = hcs.Helem;
         /* Invalidate any previous handle pointer accesses that */
         /* are not accesses of ev.                              */
-        if (e && (e.Eoper == OPvp_fp || e.Eoper == OPcvp_fp) && e.EV.E1 != ev)
+        if (e && (e.Eoper == OPvp_fp || e.Eoper == OPcvp_fp) && e.EV.E1 != ev1)
             hcs.Helem = null;
     }
 }
