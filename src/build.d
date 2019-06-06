@@ -150,7 +150,7 @@ auto defineLexer()
         target: env["G"].buildPath("lexer").libName,
         sources: sources.lexer,
         deps: stringFiles,
-        name: "(DC) D_LEXER_OBJ %-(%s, %)".format(sources.lexer.map!(e => e.baseName).array),
+        msg: "(DC) D_LEXER_OBJ %-(%s, %)".format(sources.lexer.map!(e => e.baseName).array),
         command: [
             env["HOST_DMD_RUN"],
             "-of$@",
@@ -185,7 +185,7 @@ DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@
     }; // defined separately to support older D compilers
     Dependency dependency = {
         target: target,
-        name: "(TX) DMD_CONF",
+        msg: "(TX) DMD_CONF",
         commandFunction: commandFunction,
     };
     return new DependencyRef(dependency);
@@ -228,7 +228,7 @@ auto defineDBackend()
     Dependency dependency = {
         target: env["G"].buildPath("dbackend").objName,
         sources: sources.backend,
-        name: "(DC) D_BACK_OBJS %-(%s, %)".format(sources.backend.map!(e => e.baseName).array),
+        msg: "(DC) D_BACK_OBJS %-(%s, %)".format(sources.backend.map!(e => e.baseName).array),
         deps: [opTabGen],
         command: [
             env["HOST_DMD_RUN"],
@@ -246,7 +246,7 @@ auto defineBackend()
 {
     // Pack the backend
     Dependency dependency = {
-        name: "(LIB) %s".format("BACKEND".libName),
+        msg: "(LIB) %s".format("BACKEND".libName),
         sources: [ env["G"].buildPath("dbackend").objName ],
         target: env["G"].buildPath("backend").libName,
         deps: [opTabGen, dBackend],
@@ -297,7 +297,7 @@ auto defineDmd(string[] extraFlags...)
         // newdelete.o + lexer.a + backend.a
         sources: sources.dmd.chain(sources.root, lexer.targets, backend.targets).array,
         target: env["DMD_PATH"],
-        name: "(DC) MAIN_DMD_BUILD %-(%s, %)".format(sources.dmd.map!(e => e.baseName).array),
+        msg: "(DC) MAIN_DMD_BUILD %-(%s, %)".format(sources.dmd.map!(e => e.baseName).array),
         deps: stringFiles ~ [lexer, backend],
         command: [
             env["HOST_DMD_RUN"],
@@ -899,7 +899,7 @@ struct Dependency
     DependencyRef[] deps; // dependencies to build before this one
     string[] command; // the dependency command
     void delegate() commandFunction; // a custom dependency command which gets called instead of command
-    string name; // name of the dependency that is e.g. written to the CLI when it's executed
+    string msg; // msg of the dependency that is e.g. written to the CLI when it's executed
     string[] trackSources;
 }
 
@@ -945,14 +945,14 @@ class DependencyRef
             return;
         }
 
+        // Display the execution of the dependency
+        if (msg)
+            msg.writeln;
+
         if (commandFunction !is null)
             return commandFunction();
 
         resolveShorthands();
-
-        // Display the execution of the dependency
-        if (name)
-            name.writeln;
 
         command.runCanThrow;
     }
