@@ -80,6 +80,8 @@ version (CRuntime_Microsoft) extern (C++)
 
 extern (C++):
 
+nothrow:
+
 alias MEM_PH_MALLOC = mem_malloc;
 alias MEM_PH_CALLOC = mem_calloc;
 alias MEM_PH_FREE = mem_free;

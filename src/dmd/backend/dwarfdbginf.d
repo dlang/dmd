@@ -82,6 +82,8 @@ import dmd.backend.dwarf2;
 
 extern (C++):
 
+nothrow:
+
 int REGSIZE();
 
 __gshared
@@ -495,7 +497,7 @@ struct Section
 
     /* Allocate and initialize Section
      */
-    void initialize()
+    nothrow void initialize()
     {
         const segidx_t segi = dwarf_getsegment(name, 0, flags);
         seg = segi;

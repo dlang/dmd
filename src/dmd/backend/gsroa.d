@@ -37,6 +37,8 @@ import dmd.backend.dvec;
 
 extern (C++):
 
+nothrow:
+
 int REGSIZE();
 
 alias SLICESIZE = REGSIZE;  // slices are all register-sized

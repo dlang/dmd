@@ -42,11 +42,13 @@ else
 {
     extern (C)
     {
-        void *mem_calloc(size_t);
+        nothrow void *mem_calloc(size_t);
     }
 }
 
 extern (C++):
+
+nothrow:
 
 elem * evalu8(elem *e, goal_t goal);
 

@@ -33,6 +33,8 @@ import dmd.backend.type;
 
 import dmd.backend.barray;
 
+nothrow:
+
 extern __gshared
 {
     char debuga;            // cg - watch assignaddr()

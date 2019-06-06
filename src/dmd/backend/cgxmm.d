@@ -42,6 +42,8 @@ version (MARS)
 
 extern (C++):
 
+nothrow:
+
 int REGSIZE();
 
 uint mask(uint m);

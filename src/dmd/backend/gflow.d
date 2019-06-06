@@ -39,6 +39,8 @@ import dmd.backend.barray;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
 
+nothrow:
+
 void vec_setclear(size_t b, vec_t vs, vec_t vc) { vec_setbit(b, vs); vec_clearbit(b, vc); }
 
 bool Eunambig(elem* e) { return OTassign(e.Eoper) && e.EV.E1.Eoper == OPvar; }

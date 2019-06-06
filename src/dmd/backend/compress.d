@@ -12,6 +12,8 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+nothrow:
+
 /****************************************
  * Find longest match of pattern[0..plen] in dict[0..dlen].
  * Returns:

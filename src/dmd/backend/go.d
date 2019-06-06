@@ -43,10 +43,11 @@ version (OSX)
     enum clock_t CLOCKS_PER_SEC = 1_000_000; // was 100 until OSX 10.4/10.5
 }
 
-extern (C++) int os_clock();
-
 extern (C++):
 
+nothrow:
+
+int os_clock();
 
 /* gdag.c */
 void builddags();

@@ -40,6 +40,8 @@ import dmd.backend.dvec;
 
 extern (C++):
 
+nothrow:
+
 int REGSIZE();
 
 private __gshared

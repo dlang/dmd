@@ -54,6 +54,8 @@ else
 
 extern(C++):
 
+nothrow:
+
 version (CRuntime_Microsoft)
 {
     import core.stdc.stdlib;

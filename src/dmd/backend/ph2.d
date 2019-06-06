@@ -23,6 +23,8 @@ import dmd.backend.global;
 
 extern (C++):
 
+nothrow:
+
 /**********************************************
  * Do our own storage allocator, a replacement
  * for malloc/free.

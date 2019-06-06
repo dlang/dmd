@@ -23,6 +23,8 @@ import dmd.backend.type;
 
 extern (C++):
 
+nothrow:
+
 version (MARS)
 {
     void ph_init();

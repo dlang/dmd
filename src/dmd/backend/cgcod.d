@@ -56,6 +56,11 @@ version (SCPP)
 
 extern (C++):
 
+nothrow:
+
+alias _compare_fp_t = extern(C) nothrow int function(const void*, const void*);
+extern(C) void qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar);
+
 version (MARS)
     enum MARS = true;
 else
@@ -172,7 +177,7 @@ private struct CSE
      * Update slot size and alignment to worst case.
      * A bit wasteful of stack space.
      */
-    static void updateSizeAndAlign(elem* e)
+    static nothrow void updateSizeAndAlign(elem* e)
     {
         if (I16)
             return;

@@ -44,6 +44,9 @@ import scopeh;
 }
 
 extern (C++):
+
+nothrow:
+
 version (MARS)
     import dmd.backend.errors;
 

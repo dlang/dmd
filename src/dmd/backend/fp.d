@@ -21,6 +21,8 @@ version (SPP) {} else
 
     extern (C++):
 
+    nothrow:
+
     int statusFE()
     {
         return 0;

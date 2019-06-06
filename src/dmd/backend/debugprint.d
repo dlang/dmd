@@ -42,6 +42,8 @@ import dmd.backend.dvec;
 
 extern (C++):
 
+nothrow:
+
 mixin(import("debtab.d"));
 
 void ferr(const(char)* p) { printf("%s", p); }

@@ -32,6 +32,8 @@ import dmd.backend.mem;
 
 extern (C++):
 
+nothrow:
+
 __gshared
 code *code_list = null;
 

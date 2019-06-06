@@ -36,6 +36,7 @@ import dmd.backend.cdef;
 import dmd.backend.dlist;
 import dmd.backend.ty;
 
+nothrow:
 
 //
 // NOTE: For 0 operand instructions, the opcode is taken from
