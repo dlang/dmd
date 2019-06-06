@@ -956,6 +956,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 for (size_t i = 0; i < tf.parameterList.parameters.dim; i++)
                     (*tf.parameterList.parameters)[i].defaultArg = null;
                 tf.next = null;
+                tf.incomplete = true;
 
                 // Resolve parameter types and 'auto ref's.
                 tf.fargs = fargs;
@@ -2174,6 +2175,8 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         // Shouldn't run semantic on default arguments and return type.
         for (size_t i = 0; i < tf.parameterList.parameters.dim; i++)
             (*tf.parameterList.parameters)[i].defaultArg = null;
+        tf.incomplete = true;
+
         if (fd.isCtorDeclaration())
         {
             // For constructors, emitting return type is necessary for
@@ -6217,11 +6220,9 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     Parameter fparam = fparameters[j];
                     if (fparam.storageClass & STC.autoref)       // if "auto ref"
                     {
-                        if (!fargs)
+                        Expression farg = fargs && j < fargs.dim ? (*fargs)[j] : fparam.defaultArg;
+                        if (!farg)
                             goto Lnotequals;
-                        if (fargs.dim <= j)
-                            break;
-                        Expression farg = (*fargs)[j];
                         if (farg.isLvalue())
                         {
                             if (!(fparam.storageClass & STC.ref_))

@@ -1353,8 +1353,9 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                 if (fparam.defaultArg)
                 {
                     Expression e = fparam.defaultArg;
-                    auto isRefOrOut = fparam.storageClass & (STC.ref_ | STC.out_);
-                    if (isRefOrOut)
+                    const isRefOrOut = fparam.storageClass & (STC.ref_ | STC.out_);
+                    const isAuto = fparam.storageClass & (STC.auto_ | STC.autoref);
+                    if (isRefOrOut && !isAuto)
                     {
                         e = e.expressionSemantic(argsc);
                         e = resolveProperties(argsc, e);
@@ -1376,7 +1377,8 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                         e = new AddrExp(e.loc, e);
                         e = e.expressionSemantic(argsc);
                     }
-                    if (isRefOrOut && !MODimplicitConv(e.type.mod, fparam.type.mod))
+                    if (isRefOrOut && (!isAuto || e.isLvalue())
+                        && !MODimplicitConv(e.type.mod, fparam.type.mod))
                     {
                         const(char)* errTxt = fparam.storageClass & STC.ref_ ? "ref" : "out";
                         .error(e.loc, "expression `%s` of type `%s` is not implicitly convertible to type `%s %s` of parameter `%s`",
@@ -1385,7 +1387,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                     e = e.implicitCastTo(argsc, fparam.type);
 
                     // default arg must be an lvalue
-                    if (fparam.storageClass & (STC.out_ | STC.ref_))
+                    if (isRefOrOut && !isAuto)
                         e = e.toLvalue(argsc, e);
 
                     fparam.defaultArg = e;
@@ -1462,9 +1464,9 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                  */
                 if (fparam.storageClass & STC.auto_)
                 {
-                    if (mtype.fargs && i < mtype.fargs.dim && (fparam.storageClass & STC.ref_))
+                    Expression farg = mtype.fargs && i < mtype.fargs.dim ? (*mtype.fargs)[i] : fparam.defaultArg;
+                    if (farg && (fparam.storageClass & STC.ref_))
                     {
-                        Expression farg = (*mtype.fargs)[i];
                         if (farg.isLvalue())
                         {
                             // ref parameter
@@ -1472,6 +1474,14 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                         else
                             fparam.storageClass &= ~STC.ref_; // value parameter
                         fparam.storageClass &= ~STC.auto_;    // https://issues.dlang.org/show_bug.cgi?id=14656
+                        fparam.storageClass |= STC.autoref;
+                    }
+                    else if (mtype.incomplete && (fparam.storageClass & STC.ref_))
+                    {
+                        // the default argument may have been temporarily removed,
+                        // see usage of `TypeFunction.incomplete`.
+                        // https://issues.dlang.org/show_bug.cgi?id=19891
+                        fparam.storageClass &= ~STC.auto_;
                         fparam.storageClass |= STC.autoref;
                     }
                     else

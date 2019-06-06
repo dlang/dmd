@@ -583,6 +583,7 @@ public:
     Expressions *fargs; // function arguments
 
     int inuse;
+    bool incomplete;
 
     static TypeFunction *create(Parameters *parameters, Type *treturn, VarArg varargs, LINK linkage, StorageClass stc = 0);
     const char *kind();
