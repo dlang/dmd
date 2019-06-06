@@ -3,11 +3,12 @@ Files in the Back End
 
 Data Structures
 ---------------
-* **aarray.d**        simple hash table
-* **el.d**            expression trees (intermediate code)
-* **outbuf.d**        resizable buffer
-* **dlist.d**         liked list
-* **barray.d**        array of bits
+* **aarray.d**        hash table
+* **el.d**            expression trees (intermediate representation)
+* **outbuf.d**        resizable char buffer for writing text to
+* **dlist.d**         linked list
+* **barray.d**        generic resizeable array
+* **dt.d**            intermediate representation for static data
 
 Optimisations
 -------------
@@ -15,26 +16,27 @@ Optimisations
 * **blockopt.d**      manage and simple optimizations on graphs of basic blocks
 * **gdag.d**          Directed acyclic graphs and global optimizer common subexpressions
 * **gflow.d**         global data flow analysis
-* **global.h**        declarations for back end
-* **glocal.d**        global optimizations
+* **global.d**        declarations for back end
+* **glocal.d**        local optimizations
 * **gloop.d**         global loop optimizations
 * **go.d**            global optimizer main loop
-* **go.h**            global optimizer declarations
+* **goh.d**           global optimizer declarations
 * **gother.d**        other global optimizations
+* **gsroa.d**         SROA structured replacement of aggregate optimization
 * **evalu8.d**        constant folding
 * **divcoeff.d**      convert divisions to multiplications
 
 Debug Information
 -----------------
 
-* **cv4.d**           CodeView symbolic debug info declarations
-* **cv8.d**
-* **dcgcv.d**
-* **dwarf.d**         generate DWARF symbolic debug info
+* **cv4.d**           CodeView 4 symbolic debug info declarations
+* **cv8.d**           CodeView 8 symbolic debug info generation
+* **dcgcv.d**         CodeView 4 symbolic debug info generation
+* **dwarf.d**         interface to Dwarf generation
 * **dwarf2.d**        Dwarf 3 spec declarations
-* **dwarfdbginf.d**
+* **dwarfdbginf.d**   generate Dwarf debug info
 * **dwarfeh.d**       Dwarf Exception handling tables
-* **ee.d**            handle IDDE debugger expression evaluation
+* **ee.d**            DMC++ IDDE debugger expression evaluation
 
 Object File Generation
 ----------------------
@@ -44,36 +46,35 @@ Object File Generation
 * **machobj.d**       generate Mach-O object files
 * **mach.d**          declarations for Mach-O object file format
 * **cgobj.d**         generate OMF object files
-* **out.d**           write data definitions to object file
-* **dt.d**            static data for later output to object file
+* **obj.d**           interface to *obj.d files
 
 Exception Handling
 ------------------
 
-* **exh.d**           exception handling support
+* **exh.d**           interface for exception handling support
 * **nteh.d**          Windows structured exception handling support
 
 Miscellaneous
 -------------
 
-* **bcomplex.d**      our own complex number implementation because we can't rely on host C compiler
+* **bcomplex.d**      our own complex number implementation
 * **md5.d**           implementation of MD5 message digest
-* **md5.d**i          API for md5.d
+* **md5.di**          API for md5.d
 * **newman.d**        "new" C++ name mangling scheme
 * **os.d**            some operating system specific support
 * **cc.d**            common definitions
 * **cdef.d**          configuration
-* **backconfig.d**    configuration
+* **backconfig.d**    transfer configuration from front end to back end
 * **compress.d**      identifier comperssion
-* **debugprint.d**     pretty printing for debug builds
-* **iasm.h**          declarations for inline assembler
+* **debugprint.d**    pretty print data structures
+* **iasm.d**          declarations for inline assembler
 * **ptrntab.d**       instruction tables for inline assembler
-* **oper.h**          operators for expression tree
+* **oper.d**          operators for expression tree
 * **optabgen.d**      generate tables for back end
 * **ty.d**            type masks
 * **ph2.d**           leaking allocator
 * **symbol.d**        symbols for the back end
-* **type.d**          back end type
+* **type.d**          types for the back end
 * **var.d**           global variables
 
 Code Generation
@@ -83,21 +84,23 @@ Code Generation
 * **cg87.d**          x87 FPU code generation
 * **cgcod.d**         main loop for code generator
 * **cgcs.d**          compute common subexpressions for non-optimized code generation
-* **cgcv.d**          CodeView symbol debug info generation
-* **cgcv.h**          header for cgcv.d
+* **cgcse.d**         manage temporaries used to save CSEs in
+* **cgcv.d**          interface for CodeView symbol debug info generation
 * **cgelem.d**        local optimizations of elem trees
 * **cgen.d**          generate/manage linked list of code instructions
 * **cgreg.d**         register allocator
 * **cgsched.d**       instruction scheduler
-* **cgxmm.d**         xmm
+* **cgxmm.d**         xmm specific code generation
 * **cod1.d**          code gen
 * **cod2.d**          code gen
 * **cod3.d**          code gen
 * **cod4.d**          code gen
 * **cod5.d**          code gen
-* **code.d**          memory management for code instructions
 * **code.d**          define registers, register masks, and the CPU instruction linked list
-* **code_x86.d**
+* **codebuilder.d**   construct linked list of generated code
+* **code_x86.d**      x86 specific declarations
 * **dcode.d**         aloocate and free code blocks
 * **drtlsym.d**       compiler runtime function symbols
+* **out.d**           transition from intermediate representation to code generator
 * **xmm.d**           xmm opcodes
+
