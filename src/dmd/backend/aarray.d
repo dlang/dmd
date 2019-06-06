@@ -17,6 +17,8 @@ import core.stdc.string;
 
 alias hash_t = size_t;
 
+nothrow:
+
 /*********************
  * This is the "bucket" used by the AArray.
  */
@@ -37,6 +39,7 @@ private struct aaA
 
 struct AArray(TKey, Value)
 {
+nothrow:
     alias Key = TKey.Key;       // key type
 
     ~this()
@@ -295,7 +298,7 @@ struct AArray(TKey, Value)
         buckets = newbuckets[0 .. newbuckets_length];
     }
 
-
+    alias applyDg = nothrow int delegate(Key*, Value*);
     /*********************************************
      * For each element in the AArray,
      * call dg(Key* pkey, Value* pvalue)
@@ -307,7 +310,7 @@ struct AArray(TKey, Value)
      *  0   : no entries in aa, or all dg() calls returned 0
      */
 
-    int apply(int delegate(Key*, Value*) dg)
+    int apply(applyDg dg)
     {
         if (!nodes)
             return 0;
@@ -374,6 +377,7 @@ immutable uint[14] prime_list =
  */
 public struct Tinfo(K)
 {
+nothrow:
     alias Key = K;
 
     static hash_t getHash(Key* pk)
@@ -394,6 +398,7 @@ public struct Tinfo(K)
  */
 public struct TinfoChars
 {
+nothrow:
     alias Key = const(char)[];
 
     static hash_t getHash(Key* pk)
@@ -417,6 +422,7 @@ public struct TinfoChars
 // Interface for C++ code
 public extern (C++) struct AAchars
 {
+nothrow:
     alias AA = AArray!(TinfoChars, uint);
     AA aa;
 
@@ -453,6 +459,7 @@ struct Pair { uint start, end; }
 
 public struct TinfoPair
 {
+nothrow:
     alias Key = Pair;
 
     ubyte** pbase;
@@ -481,6 +488,7 @@ public struct TinfoPair
 // Interface for C++ code
 public extern (C++) struct AApair
 {
+nothrow:
     alias AA = AArray!(TinfoPair, uint);
     AA aa;
 

@@ -40,6 +40,8 @@ import dmd.backend.xmm;
 
 extern (C++):
 
+nothrow:
+
 int REGSIZE();
 
 extern __gshared CGstate cgstate;

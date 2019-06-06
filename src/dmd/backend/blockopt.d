@@ -60,6 +60,9 @@ else
 
 extern(C++):
 
+nothrow:
+
+
 extern (C) void *mem_fcalloc(size_t numbytes); // tk/mem.c
 extern (C) void mem_free(void*); // tk/mem.c
 

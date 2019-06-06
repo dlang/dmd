@@ -41,6 +41,11 @@ import dmd.backend.type;
 
 extern (C++):
 
+nothrow:
+
+alias _compare_fp_t = extern(C) nothrow int function(const void*, const void*);
+extern(C) void qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar);
+
 static if (MACHOBJ)
 {
 
@@ -67,8 +72,6 @@ void mach_relsort(Outbuffer *buf)
 {
     qsort(buf.buf, buf.size() / Relocation.sizeof, Relocation.sizeof, &rel_fp);
 }
-
-nothrow:
 
 // for x86_64
 enum

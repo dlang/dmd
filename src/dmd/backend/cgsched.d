@@ -35,6 +35,8 @@ import dmd.backend.barray;
 
 extern (C++):
 
+nothrow:
+
 int REGSIZE();
 code *gen1(code *c, uint op);
 code *gen2(code *c, uint op, uint rm);
@@ -94,7 +96,7 @@ struct Cinfo
     int fpuadjust;      // if !=0, then amount FPU stack changes as a result
                         // of this instruction being executed
 
-    void print()        // pretty-printer
+    nothrow void print()        // pretty-printer
     {
         Cinfo *ci = &this;
 
@@ -2230,6 +2232,7 @@ enum TBLMAX = 2*3*20;        // must be divisible by both 2 and 3
 
 struct Schedule
 {
+nothrow:
     Cinfo*[TBLMAX] tbl;         // even numbers are U pipe, odd numbers are V
     int tblmax;                 // max number of slots used
 

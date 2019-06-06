@@ -38,6 +38,8 @@ import dmd.backend.dvec;
 
 extern (C++):
 
+nothrow:
+
 /*******************************
  * Eliminate common subexpressions across extended basic blocks.
  * String together as many blocks as we can.

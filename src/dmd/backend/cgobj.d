@@ -44,6 +44,8 @@ import dmd.backend.type;
 
 extern (C++):
 
+nothrow:
+
 version (SCPP)
 {
     import filespec;

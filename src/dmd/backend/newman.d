@@ -66,6 +66,8 @@ version (MARS)
 
 extern (C++):
 
+nothrow:
+
 bool NEWTEMPMANGLE() { return !(config.flags4 & CFG4oldtmangle); }     // do new template mangling
 
 enum BUFIDMAX = 2 * IDMAX;

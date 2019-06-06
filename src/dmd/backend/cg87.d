@@ -37,6 +37,8 @@ import dmd.backend.evalu8 : el_toldoubled;
 
 extern (C++):
 
+nothrow:
+
 int REGSIZE();
 
 private extern (D) uint mask(uint m) { return 1 << m; }

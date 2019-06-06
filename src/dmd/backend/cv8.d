@@ -19,7 +19,7 @@ version (MARS)
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
-extern (C) char* getcwd(char*, size_t);
+extern (C) nothrow char* getcwd(char*, size_t);
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
@@ -41,6 +41,8 @@ import dmd.backend.varstats;
 import dmd.backend.xmm;
 
 extern (C++):
+
+nothrow:
 
 static if (TARGET_WINDOS)
 {
@@ -445,6 +447,7 @@ void cv8_func_term(Symbol *sfunc)
 
     struct cv8
     {
+    nothrow:
         // record for CV record S_BLOCK_V3
         struct block_v3_data
         {

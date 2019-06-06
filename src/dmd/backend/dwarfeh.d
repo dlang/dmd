@@ -29,6 +29,8 @@ import dmd.backend.dwarf2;
 
 extern (C++):
 
+nothrow:
+
 struct DwEhTableEntry
 {
     uint start;
@@ -41,6 +43,7 @@ struct DwEhTableEntry
 
 struct DwEhTable
 {
+nothrow:
     DwEhTableEntry *ptr;    // pointer to table
     uint dim;               // current amount used
     uint capacity;

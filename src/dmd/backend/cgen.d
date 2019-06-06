@@ -42,6 +42,7 @@ version (SCPP)
 
 extern (C++):
 
+nothrow:
 
 dt_t *dt_get_nzeros(uint n);
 
@@ -363,6 +364,7 @@ static if (TARGET_OSX)
 
 struct FixupArray
 {
+nothrow:
     Fixup *ptr;
     size_t dim, cap;
 

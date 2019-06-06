@@ -58,6 +58,8 @@ version (MARS)
 
 extern (C++):
 
+nothrow:
+
 enum SYMDEB_TDB = false;
 
 extern (C) void TOOFFSET(void* p, targ_size_t value)
@@ -2735,6 +2737,7 @@ version (MARS)
 
     struct cv4
     {
+    nothrow:
         // record for CV record S_BLOCK32
         struct block32_data
         {

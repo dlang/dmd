@@ -34,6 +34,8 @@ import dmd.backend.ty;
 
 extern(C++):
 
+nothrow:
+
 private void pe_add(block *b);
 private int need_prolog(block *b);
 

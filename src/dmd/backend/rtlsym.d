@@ -178,5 +178,7 @@ enum
 
 extern (C++):
 
+nothrow:
+
 Symbol *getRtlsym(int i);
 Symbol *getRtlsymPersonality();

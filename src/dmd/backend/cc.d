@@ -194,6 +194,7 @@ uint CPP() { return config.flags3 & CFG3cpp; }
 
 struct Srcpos
 {
+nothrow:
     uint Slinnum;           // 0 means no info available
     uint Scharnum;
     version (SCPP)
@@ -469,6 +470,7 @@ enum
 
 struct block
 {
+nothrow:
     union
     {
         elem *Belem;            // pointer to elem tree
@@ -1533,6 +1535,7 @@ EHmethod ehmethod(Symbol *f)
 
 struct param_t
 {
+nothrow:
     debug ushort      id;
     enum IDparam = 0x7050;
 

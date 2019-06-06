@@ -45,6 +45,8 @@ import dmd.backend.type;
 
 extern (C++):
 
+nothrow:
+
 static if (ELFOBJ)
 {
 

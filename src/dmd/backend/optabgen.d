@@ -23,6 +23,8 @@ import dmd.backend.cdef;
 import dmd.backend.oper;
 import dmd.backend.ty;
 
+nothrow:
+
 ubyte[OPMAX] xptab1,xptab2,xptab3;
 
 int[] _binary = [
@@ -604,7 +606,7 @@ static if (1)
 {
     {
         f = fopen("elxxx.d","w");
-        fprintf(f,"extern (C++) __gshared elem *function(elem *, goal_t)[OPMAX] elxxx = \n\t[\n");
+        fprintf(f,"extern (C++) __gshared nothrow elem *function(elem *, goal_t)[OPMAX] elxxx = \n\t[\n");
         for (i = 0; i < OPMAX - 1; i++)
             fprintf(f,"\t&%s,\n",elxxx[i].ptr);
         fprintf(f,"\t&%s\n\t];\n",elxxx[i].ptr);

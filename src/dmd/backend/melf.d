@@ -21,6 +21,8 @@ alias elf_u8_f32  = uint;
 
 enum EI_NIDENT = 16;
 
+nothrow:
+
 // EHident
         enum EI_MAG0         = 0;       /* Identification byte offset 0*/
         enum EI_MAG1         = 1;       /* Identification byte offset 1*/

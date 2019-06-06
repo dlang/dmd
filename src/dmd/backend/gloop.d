@@ -41,6 +41,8 @@ import dmd.backend.dlist;
 import dmd.backend.dvec;
 import dmd.backend.mem;
 
+nothrow:
+
 char symbol_isintab(Symbol *s) { return sytab[s.Sclass] & SCSS; }
 
 extern (C++):
@@ -53,6 +55,7 @@ bool findloopparameters(elem* erel, ref elem* rdeq, ref elem* rdinc);
 
 struct loop
 {
+nothrow:
     loop *Lnext;        // Next loop in list (startloop -> start of list)
     vec_t Lloop;        // Vector of blocks in this loop
     vec_t Lexit;        // Vector of exit blocks of loop
@@ -107,6 +110,7 @@ struct loop
 
 struct famlist
 {
+nothrow:
     elem **FLpelem;         /* parent of elem in the family         */
     elem *c1;
     elem *c2;               // c1*(basic IV) + c2
@@ -160,6 +164,7 @@ enum FLELIM = cast(Symbol *)-1;
 
 struct Iv
 {
+nothrow:
     Symbol *IVbasic;        // symbol of basic IV
     elem **IVincr;          // pointer to parent of IV increment elem
     famlist *IVfamily;      // variables in this family
@@ -3679,6 +3684,7 @@ private void elimspecwalk(elem **pn)
 
 struct UnrollWalker
 {
+nothrow:
     uint defnum;
     int state;
     Symbol *v;

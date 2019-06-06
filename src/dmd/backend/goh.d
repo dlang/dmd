@@ -30,7 +30,7 @@ import dmd.backend.dlist;
 import dmd.backend.dvec;
 
 extern (C++):
-
+nothrow:
 
 /***************************************
  * Bit masks for various optimizations.
