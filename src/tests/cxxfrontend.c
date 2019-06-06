@@ -41,7 +41,6 @@
 #include "import.h"
 #include "init.h"
 #include "json.h"
-#include "mars.h"
 #include "mangle.h"
 #include "module.h"
 #include "mtype.h"
