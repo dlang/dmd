@@ -76,6 +76,13 @@ enum CPU
     native              // the machine the compiler is being run on
 }
 
+enum PIC : ubyte
+{
+    fixed,              /// located at a specific address
+    pic,                /// Position Independent Code
+    pie,                /// Position Independent Executable
+}
+
 /**
 Each flag represents a field that can be included in the JSON output.
 
@@ -141,7 +148,7 @@ struct Param
     bool release;           // build release version
     bool preservePaths;     // true means don't strip path from source file
     DiagnosticReporting warnings = DiagnosticReporting.off;  // how compiler warnings are handled
-    bool pic;               // generate position-independent-code for shared libs
+    PIC pic = PIC.fixed;    // generate fixed, pic or pie code
     bool color;             // use ANSI colors in console output
     bool cov;               // generate code coverage data
     ubyte covPercent;       // 0..100 code coverage percentage required

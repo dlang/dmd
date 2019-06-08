@@ -1501,6 +1501,9 @@ void test15144()
         version (D_PIC)
         {
         }
+        else version (D_PIE)
+        {
+        }
         else
         {
             asm @nogc nothrow

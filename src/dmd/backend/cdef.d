@@ -601,6 +601,7 @@ enum
     CFG3digraphs    = 0x20000, // support ANSI C++ digraphs
     CFG3semirelax   = 0x40000, // moderate relaxed type checking (non-Windows targets)
     CFG3pic         = 0x80000, // position independent code
+    CFG3pie         = 0x10_0000, // position independent executable (CFG3pic also set)
 }
 
 alias config_flags4_t = uint;

@@ -50,6 +50,7 @@ extern (C) void out_config_init(
         bool alwaysframe,       // always create standard function frame
         bool stackstomp,        // add stack stomping code
         ubyte avx,              // use AVX instruction set (0, 1, 2)
+        ubyte pic,              // position independence level (0, 1, 2)
         bool useModuleInfo,     // implement ModuleInfo
         bool useTypeInfo,       // implement TypeInfo
         bool useExceptions,     // implement exception handling
@@ -114,9 +115,21 @@ static if (TARGET_LINUX)
             config.flags |= CFGromable; // put switch tables in code segment
     }
     config.flags |= CFGnoebp;
-    if (!exe)
+    switch (pic)
     {
-        config.flags3 |= CFG3pic;
+        case 0:         // PIC.fixed
+            break;
+
+        case 1:         // PIC.pic
+            config.flags3 |= CFG3pic;
+            break;
+
+        case 2:         // PIC.pie
+            config.flags3 |= CFG3pic | CFG3pie;
+            break;
+
+        default:
+            assert(0);
     }
     if (symdebug)
         config.flags |= CFGalwaysframe;

@@ -125,7 +125,7 @@ struct Param
     bool release;       // build release version
     bool preservePaths; // true means don't strip path from source file
     Diagnostic warnings;
-    bool pic;           // generate position-independent-code for shared libs
+    unsigned char pic;  // generate position-independent-code for shared libs
     bool color;         // use ANSI colors in console output
     bool cov;           // generate code coverage data
     unsigned char covPercent;   // 0..100 code coverage percentage required

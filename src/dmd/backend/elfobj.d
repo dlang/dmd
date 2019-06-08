@@ -3057,7 +3057,12 @@ static if (0)
             targetsymidx = MAP_SEG2SYMIDX(targetdatum);
         }
         else if (MAP_SEG2SEC(targetdatum).sh_flags & SHF_TLS)
-            relinfo = config.flags3 & CFG3pic ? R_X86_64_TLSGD : R_X86_64_TPOFF32;
+        {
+            if (config.flags3 & CFG3pie)
+                relinfo = R_X86_64_TPOFF32;
+            else
+                relinfo = config.flags3 & CFG3pic ? R_X86_64_TLSGD : R_X86_64_TPOFF32;
+        }
         else
         {
             relinfo = targetdatum == CDATA ? R_X86_64_32 : R_X86_64_32S;
@@ -3069,7 +3074,12 @@ static if (0)
         if (MAP_SEG2TYP(seg) == CODE && config.flags3 & CFG3pic)
             relinfo = R_386_GOTOFF;
         else if (MAP_SEG2SEC(targetdatum).sh_flags & SHF_TLS)
-            relinfo = config.flags3 & CFG3pic ? R_386_TLS_GD : R_386_TLS_LE;
+        {
+            if (config.flags3 & CFG3pie)
+                relinfo = R_386_TLS_LE;
+            else
+                relinfo = config.flags3 & CFG3pic ? R_386_TLS_GD : R_386_TLS_LE;
+        }
         else
             relinfo = R_386_32;
         targetsymidx = MAP_SEG2SYMIDX(targetdatum);
@@ -3164,7 +3174,12 @@ static if (0)
             if (I64)
             {
                 if (s.Sfl == FLtlsdata)
-                    relinfo = config.flags3 & CFG3pic ? R_X86_64_TLSGD : R_X86_64_TPOFF32;
+                {
+                    if (config.flags3 & CFG3pie)
+                        relinfo = R_X86_64_TPOFF32;
+                    else
+                        relinfo = config.flags3 & CFG3pic ? R_X86_64_TLSGD : R_X86_64_TPOFF32;
+                }
                 else
                 {   relinfo = config.flags3 & CFG3pic ? R_X86_64_PC32 : R_X86_64_32;
                     if (flags & CFpc32)
@@ -3174,7 +3189,12 @@ static if (0)
             else
             {
                 if (s.Sfl == FLtlsdata)
-                    relinfo = config.flags3 & CFG3pic ? R_386_TLS_GD : R_386_TLS_LE;
+                {
+                    if (config.flags3 & CFG3pie)
+                        relinfo = R_386_TLS_LE;
+                    else
+                        relinfo = config.flags3 & CFG3pic ? R_386_TLS_GD : R_386_TLS_LE;
+                }
                 else
                     relinfo = config.flags3 & CFG3pic ? R_386_GOTOFF : R_386_32;
             }
@@ -3193,7 +3213,7 @@ static if (0)
 static if (0)
 {
             if ((s.Sflags & SFLthunk) && s.Soffset)
-            {                   // A thunk symbol that has be defined
+            {                   // A thunk symbol that has been defined
                 assert(s.Sseg == seg);
                 val = (s.Soffset+val) - (offset+4);
                 goto outaddrval;
@@ -3229,7 +3249,9 @@ static if (0)
                     else
                     {
                         //dbg_printf("\tadding relocation\n");
-                        if (I64)
+                        if (s.Sclass == SCglobal && config.flags3 & CFG3pie && tyfunc(s.ty()))
+                            relinfo = I64 ? R_X86_64_PC32 : R_386_PC32;
+                        else if (I64)
                             relinfo = config.flags3 & CFG3pic ?  R_X86_64_PLT32 : R_X86_64_PC32;
                         else
                             relinfo = config.flags3 & CFG3pic ?  R_386_PLT32 : R_386_PC32;
@@ -3269,19 +3291,34 @@ static if (0)
                     else
                     {                   // relocation from within CODE seg
                         if (I64)
-                        {   if (config.flags3 & CFG3pic)
+                        {
+                            if (config.flags3 & CFG3pie && s.Sclass == SCglobal)
+                                relinfo = R_X86_64_PC32;
+                            else if (config.flags3 & CFG3pic)
                                 relinfo = R_X86_64_GOTPCREL;
                             else
                                 relinfo = (flags & CFpc32) ? R_X86_64_PC32 : R_X86_64_32;
                         }
                         else
-                            relinfo = config.flags3 & CFG3pic ? R_386_GOT32 : R_386_32;
+                        {
+                            if (config.flags3 & CFG3pie && s.Sclass == SCglobal)
+                                relinfo = R_386_GOTOFF;
+                            else
+                                relinfo = config.flags3 & CFG3pic ? R_386_GOT32 : R_386_32;
+                        }
                     }
                     if ((s.ty() & mTYLINK) & mTYthread)
                     {
                         if (I64)
                         {
-                            if (config.flags3 & CFG3pic)
+                            if (config.flags3 & CFG3pie)
+                            {
+                                if (s.Sclass == SCstatic || s.Sclass == SCglobal)
+                                    relinfo = R_X86_64_TPOFF32;
+                                else
+                                    relinfo = R_X86_64_GOTTPOFF;
+                            }
+                            else if (config.flags3 & CFG3pic)
                             {
                                 /+if (s.Sclass == SCstatic || s.Sclass == SClocstat)
                                     // Could use 'local dynamic (LD)' to optimize multiple local TLS reads
@@ -3299,7 +3336,14 @@ static if (0)
                         }
                         else
                         {
-                            if (config.flags3 & CFG3pic)
+                            if (config.flags3 & CFG3pie)
+                            {
+                                if (s.Sclass == SCstatic || s.Sclass == SCglobal)
+                                    relinfo = R_386_TLS_LE;
+                                else
+                                    relinfo = R_386_TLS_GOTIE;
+                            }
+                            else if (config.flags3 & CFG3pic)
                             {
                                 /+if (s.Sclass == SCstatic)
                                     // Could use 'local dynamic (LD)' to optimize multiple local TLS reads
@@ -3593,10 +3637,22 @@ debug
         }
 
         int reltype;
-        if (config.flags3 & CFG3pic)
+        opcode_t op;
+        if (0 && config.flags3 & CFG3pie)
+        {
+            op = LOD;
+            reltype = I64 ? R_X86_64_GOTPCREL : R_386_GOT32;
+        }
+        else if (config.flags3 & CFG3pic)
+        {
+            op = LEA;
             reltype = I64 ? R_X86_64_PC32 : R_386_GOTOFF;
+        }
         else
+        {
+            op = LEA;
             reltype = I64 ? R_X86_64_32 : R_386_32;
+        }
 
         const IDXSYM[3] syms = [dso_rec, minfo_beg, minfo_end];
 
@@ -3610,7 +3666,7 @@ debug
                 {
                     // lea RAX, sym[RIP]
                     buf.writeByte(REX | REX_W);
-                    buf.writeByte(LEA);
+                    buf.writeByte(op);
                     buf.writeByte(modregrm(0,AX,5));
                     off += 3;
                     off += Obj_writerel(codseg, off, reltype, syms[i], -4);
@@ -3618,7 +3674,7 @@ debug
                 else
                 {
                     // lea EAX, sym[EBX]
-                    buf.writeByte(LEA);
+                    buf.writeByte(op);
                     buf.writeByte(modregrm(2,AX,BX));
                     off += 2;
                     off += Obj_writerel(codseg, off, reltype, syms[i], 0);
@@ -3683,7 +3739,8 @@ else
                 buf.writeByte(0x83);
                 buf.writeByte(modregrm(0,7,5));
                 off += 3;
-                off += Obj_writerel(codseg, off, R_X86_64_GOTPCREL, symidx, -5);
+                const reltype = /*config.flags3 & CFG3pie ? R_X86_64_PC32 :*/ R_X86_64_GOTPCREL;
+                off += Obj_writerel(codseg, off, reltype, symidx, -5);
                 buf.writeByte(0);
                 off += 1;
             }
@@ -3693,7 +3750,8 @@ else
                 buf.writeByte(0x81);
                 buf.writeByte(modregrm(2,7,BX));
                 off += 2;
-                off += Obj_writerel(codseg, off, R_386_GOT32, symidx, 0);
+                const reltype = /*config.flags3 & CFG3pie ? R_386_GOTOFF :*/ R_386_GOT32;
+                off += Obj_writerel(codseg, off, reltype, symidx, 0);
                 buf.write32(0);
                 off += 4;
             }
