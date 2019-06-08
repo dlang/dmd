@@ -5098,12 +5098,12 @@ void assignaddrc(code *c)
 
             case FLcs:
                 sn = c.IEV1.Vuns;
-                if (!CSE_loaded(sn))            // if never loaded
+                if (!CSE.loaded(sn))            // if never loaded
                 {
                     c.Iop = NOP;
                     continue;
                 }
-                c.IEV1.Vpointer = CSE_offset(sn) + CSoff + BPoff;
+                c.IEV1.Vpointer = CSE.offset(sn) + CSoff + BPoff;
                 c.Iflags |= CFunambig;
                 goto L2;
 

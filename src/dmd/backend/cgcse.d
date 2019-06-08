@@ -39,7 +39,6 @@ import dmd.backend.barray;
 extern (C++):
 nothrow:
 
-__gshared Barray!CSE csextab;     /* CSE table (allocated for each function) */
 
 /****************************
  * Table of common subexpressions stored on the stack.
@@ -54,20 +53,62 @@ enum CSEsimple     = 2;       // CSE can be regenerated easily
 
 struct CSE
 {
-    elem    *e;             // pointer to elem
+    elem*   e;              // pointer to elem
     code    csimple;        // if CSEsimple, this is the code to regenerate it
     regm_t  regm;           // mask of register stored there
-    char    flags;          // flag bytes
-
-  __gshared:
-    uint slotSize;          // size of each slot in table
-    uint alignment;         // alignment for the table
+    int     slot;           // slot number
+    ubyte   flags;          // flag bytes
 
   nothrow:
 
+    /************************
+     * Initialize at function entry.
+     */
+    static void initialize()
+    {
+        csextab.setLength(64);  // reserve some space
+    }
+
+    /************************
+     * Start for generating code for this function.
+     * After ending generation, call finish().
+     */
+    static void start()
+    {
+        csextab.setLength(0);               // no entries in table yet
+        slotSize = REGSIZE;
+        alignment_ = REGSIZE;
+    }
+
+    /*******************************
+     * Create and add a new CSE entry.
+     * Returns:
+     *  pointer to created entry
+     */
+    static CSE* add()
+    {
+        foreach (ref cse; csextab)
+        {
+            if (cse.e == null)  // can share with previously used one
+            {
+                cse.flags &= CSEload;
+                return &cse;
+            }
+        }
+
+        // create new one
+        const slot = cast(int)csextab.length;
+        CSE cse;
+        cse.slot = slot;
+        csextab.push(cse);
+        return &csextab[slot];
+    }
+
     /********************************
      * Update slot size and alignment to worst case.
+     *
      * A bit wasteful of stack space.
+     * Params: e = elem with a size and an alignment
      */
     static void updateSizeAndAlign(elem* e)
     {
@@ -85,25 +126,131 @@ struct CSE
 
         if (alignsize >= 16 && TARGET_STACKALIGN >= 16)
         {
-            alignment = alignsize;
+            alignment_ = alignsize;
             STACKALIGN = alignsize;
             enforcealign = true;
         }
     }
+
+    /****
+     * Get range of all CSEs filtered by matching `e`,
+     * starting with most recent.
+     * Params: e = elem to match
+     * Returns:
+     *  input range
+     */
+    static auto filter(const elem* e)
+    {
+        struct Range
+        {
+            const elem* e;
+            int i;
+
+          nothrow:
+
+            bool empty()
+            {
+                while (i)
+                {
+                    if (csextab[i - 1].e == e)
+                        return false;
+                    --i;
+                }
+                return true;
+            }
+
+            ref CSE front() { return csextab[i - 1]; }
+
+            void popFront() { --i; }
+        }
+
+        return Range(e, cast(int)csextab.length);
+    }
+
+    /*********************
+     * Remove instances of `e` from CSE table.
+     * Params: e = elem to remove
+     */
+    static void remove(const elem* e)
+    {
+        foreach (ref cse; csextab[])
+        {
+            if (cse.e == e)
+                cse.e = null;
+        }
+    }
+
+    /************************
+     * Create mask of registers from CSEs that refer to `e`.
+     * Params: e = elem to match
+     * Returns:
+     *  mask
+     */
+    static regm_t mask(const elem* e)
+    {
+        regm_t result = 0;
+        foreach (ref cse; csextab[])
+        {
+            if (cse.e)
+                elem_debug(cse.e);
+            if (cse.e == e)
+                result |= cse.regm;
+        }
+        return result;
+    }
+
+    /***
+     * Finish generating code for this function.
+     *
+     * Get rid of unused cse temporaries by shrinking the array.
+     * References: loaded()
+     */
+    static void finish()
+    {
+        while (csextab.length != 0 && (csextab[csextab.length - 1].flags & CSEload) == 0)
+            csextab.setLength(csextab.length - 1);
+    }
+
+    /**** The rest of the functions can be called only after finish() ****/
+
+    /******************
+     * Returns:
+     *    total size used by CSE's
+     */
+    static uint size()
+    {
+        return cast(uint)csextab.length * CSE.slotSize;
+    }
+
+    /*********************
+     * Returns:
+     *  alignment needed for CSE region of the stack
+     */
+    static uint alignment()
+    {
+        return alignment_;
+    }
+
+    /// Returns: offset of slot i from start of CSE region
+    static uint offset(int i)
+    {
+        return i * slotSize;
+    }
+
+    /// Returns: true if CSE was ever loaded
+    static bool loaded(int i)
+    {
+        return i < csextab.length &&   // array could be shrunk for non-CSEload entries
+               (csextab[i].flags & CSEload);
+    }
+
+  private:
+  __gshared:
+    Barray!CSE csextab;     // CSE table (allocated for each function)
+    uint slotSize;          // size of each slot in table
+    uint alignment_;        // alignment for the table
 }
 
-// Returns: offset of slot i
-uint CSE_offset(int i)
-{
-    return i * CSE.slotSize;
-}
-
-// Returns: true if CSE was ever loaded
-bool CSE_loaded(int i)
-{
-    return i < csextab.length &&   // array could be shrunk for non-CSEload entries
-           (csextab[i].flags & CSEload);
-}
 
 /********************
  * The above implementation of CSE is inefficient:
