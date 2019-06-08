@@ -519,6 +519,13 @@ extern (C++) final class CPPNamespaceDeclaration : AttribDeclaration
         return scx;
     }
 
+    override void setScope(Scope* sc)
+    {
+        if (semanticRun < PASS.semantic)
+            sc.userAttribDecl = null; // do not propagate UDAs until semantic
+        return AttribDeclaration.setScope(sc);
+    }
+
     override const(char)* toChars() const
     {
         return toString().ptr;

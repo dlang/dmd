@@ -846,6 +846,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         //printf("this = %p, parent = %p, '%s'\n", this, parent, parent.toChars());
         dsym.protection = sc.protection;
 
+        udaGNUAbiTagSemantic(sc, dsym);
+
         /* If scope's alignment is the default, use the type's alignment,
          * otherwise the scope overrrides.
          */
@@ -1757,6 +1759,18 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (ad.semanticRun != PASS.init)
             return;
         ad.semanticRun = PASS.semantic;
+
+        const scx = sc;
+        scope(exit) if (sc != scx) sc = sc.pop(); // potential change in removeUdaGNUAbiTag()
+        if (ad.isCPPNamespaceDeclaration())
+        {
+            ad.userAttribDecl = sc.userAttribDecl;
+            udaGNUAbiTagSemantic(sc, ad);
+            // special UDA gnuAbiTag shouldn't propagate to namespace members
+            sc = removeUdaGNUAbiTag(sc);
+            ad.setScope(sc); // propagate the rest of UDAs to members
+        }
+
         Dsymbols* d = ad.include(sc);
         //printf("\tAttribDeclaration::semantic '%s', d = %p\n",toChars(), d);
         if (d)
@@ -2284,6 +2298,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         ed.semanticRun = PASS.semantic;
 
+        udaGNUAbiTagSemantic(sc, ed);
+
         if (!ed.members && !ed.memtype) // enum ident;
         {
             ed.semanticRun = PASS.semanticdone;
@@ -2702,6 +2718,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         tempdecl.namespace = sc.namespace;
         tempdecl.isstatic = tempdecl.toParent().isModule() || (tempdecl._scope.stc & STC.static_);
 
+        udaGNUAbiTagSemantic(sc, tempdecl);
+
         if (!tempdecl.isstatic)
         {
             if (auto ad = tempdecl.parent.pastMixin().isAggregateDeclaration())
@@ -3103,6 +3121,16 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         ns.semanticRun = PASS.semantic;
         ns.parent = sc.parent;
+
+        udaGNUAbiTagSemantic(sc, ns);
+
+        // special UDA gnuAbiTag shouldn't propagate to namespace members
+        const scx = sc;
+        scope(exit) if (sc != scx) sc = sc.pop();
+        sc = removeUdaGNUAbiTag(sc);
+        ns.setScope(sc); // propagate the rest of UDAs to members
+        ns._scope = null;
+
         if (ns.members)
         {
             assert(sc);
@@ -3126,7 +3154,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 }
                 s.dsymbolSemantic(sc);
             }
-            sc.pop();
+            sc = sc.pop();
         }
         ns.semanticRun = PASS.semanticdone;
         static if (LOG)
@@ -3218,6 +3246,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         funcdecl.inlining = sc.inlining;
         funcdecl.protection = sc.protection;
         funcdecl.userAttribDecl = sc.userAttribDecl;
+
+        udaGNUAbiTagSemantic(sc, funcdecl);
 
         if (!funcdecl.originalType)
             funcdecl.originalType = funcdecl.type.syntaxCopy();
@@ -4617,6 +4647,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         sd.semanticRun = PASS.semantic;
 
+        udaGNUAbiTagSemantic(sc, sd);
+
         if (!sd.members) // if opaque declaration
         {
             sd.semanticRun = PASS.semanticdone;
@@ -4839,6 +4871,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
         }
         cldec.semanticRun = PASS.semantic;
+
+        udaGNUAbiTagSemantic(sc, cldec);
 
         if (cldec.baseok < Baseok.done)
         {
@@ -5490,6 +5524,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
         idec.semanticRun = PASS.semantic;
+
+        udaGNUAbiTagSemantic(sc, idec);
 
         if (idec.baseok < Baseok.done)
         {
@@ -6463,4 +6499,129 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
         if (!ds.overloadInsert(sx))
             ScopeDsymbol.multiplyDefined(Loc.initial, sx, ds);
     }
+}
+
+/********************************
+ * Semantic of special UDA `gnuAbiTag`.
+ * Params:
+ *  sc = scope
+ *  s = symbol which has UDAs
+ */
+private void udaGNUAbiTagSemantic(Scope* sc, Dsymbol s)
+{
+    if (!s.userAttribDecl)
+        return;
+    Declaration d = s.isDeclaration();
+    if (d && (d.storage_class & (STC.manifest | STC.templateparameter)))
+        return;
+    auto udas = s.userAttribDecl.getAttributes();
+    expandTuples(udas);
+    auto sc2 = sc.startCTFE();
+    foreach (e; *udas)
+    {
+        assert(e.op != TOK.tuple);
+        if (isUdaGNUAbiTag(e))
+        {
+            if (!s.isCPPNamespaceDeclaration())
+            {
+                auto lnk = d ? d.linkage : sc.linkage;
+                if (lnk != LINK.cpp)
+                {
+                    s.error("`@%s()` can only apply to C++ symbols", Id.udaGNUAbiTag.toChars());
+                    return;
+                }
+            }
+            if (e.op == TOK.type)
+            {
+                e.error("`@%s` at least one argument expected", Id.udaGNUAbiTag.toChars());
+                continue;
+            }
+            e = e.expressionSemantic(sc2);
+            e = resolveProperties(sc2, e);
+            e = e.ctfeInterpret();
+            if (e.op != TOK.structLiteral)
+            {
+                assert(global.errors);
+                continue;
+            }
+            auto sle = cast(StructLiteralExp) e;
+            assert(sle.elements && sle.elements.length == 2);
+            auto e0 = (*sle.elements)[0];
+            auto e1 = (*sle.elements)[1];
+            bool addTag(StringExp name)
+            {
+                foreach (c; name.peekSlice())
+                {
+                    if (!c.isValidMangling())
+                    {
+                        e.error("`@%s()` char 0x%02x not allowed in mangling", Id.udaGNUAbiTag.toChars(), c);
+                        return false;
+                    }
+                }
+                s.gnuAbiTags.push(name.toStringz.ptr);
+                return true;
+            }
+            addTag(e0.toStringExp());
+            assert(e1.op == TOK.arrayLiteral);
+            foreach (elem; *(cast(ArrayLiteralExp)e1).elements)
+            {
+                addTag(elem.toStringExp());
+            }
+        }
+    }
+    sc2.endCTFE();
+}
+
+/********************************
+ * Remove special UDA `gnuAbiTag` from scope.
+ *
+ * Used to stop the UDA's propagation from namespaces to member symbols.
+ * See semantic of `Nspace` and `CPPNamespaceDeclaration`.
+ */
+private Scope* removeUdaGNUAbiTag(Scope* sc)
+{
+    if (!sc.userAttribDecl)
+        return sc;
+    Expressions* udas = sc.userAttribDecl.getAttributes();
+    expandTuples(udas);
+    foreach (e; *udas)
+    {
+        assert(e.op != TOK.tuple);
+        if (isUdaGNUAbiTag(e))
+            goto Lcopy;
+    }
+    return sc;
+
+Lcopy:
+    Expressions* udasCopy = new Expressions();
+    foreach (e; *udas)
+    {
+        assert(e.op != TOK.tuple);
+        if (!isUdaGNUAbiTag(e))
+            udasCopy.push(e);
+    }
+    auto sc2 = sc.push();
+    sc2.userAttribDecl = new UserAttributeDeclaration(udasCopy, null);
+    return sc2;
+}
+
+/********************************
+ * Returns `true` if expression is the special UDA `gnuAbiTag`.
+ */
+private bool isUdaGNUAbiTag(Expression e)
+{
+    Type t = e.type;
+    if (!t || !t.isTypeStruct())
+        return false;
+    auto sd = (cast(TypeStruct)t).sym;
+    if (sd.ident != Id.udaGNUAbiTag || !sd.parent)
+        return false;
+    version (none)
+    {
+        // activate when the UDA is added to druntime
+        Module m = sd.parent.isModule();
+        if (!m || !m.isCoreModule(Id.attribute))
+            return false;
+    }
+    return true;
 }

@@ -161,6 +161,7 @@ public:
     DeprecatedDeclaration *depdecl; // customized deprecation message
     UserAttributeDeclaration *userAttribDecl;   // user defined attributes
     UnitTestDeclaration *ddocUnittest; // !=NULL means there's a ddoc unittest associated with this symbol (only use this with ddoc)
+    Strings gnuAbiTags;         // Used in name mangling for C++ on the Itanium ABI
 
     static Dsymbol *create(Identifier *);
     const char *toChars();

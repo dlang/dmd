@@ -534,28 +534,32 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
     override void visit(UserAttributeDeclaration uad)
     {
-        if (uad.decl && uad.atts && uad.atts.dim && uad._scope)
+        if (uad.decl && uad.atts && uad.atts.dim)
         {
-            static void eval(Scope* sc, Expressions* exps)
+            static void eval(Scope* sc, Expressions* exps, bool didSemantic)
             {
                 foreach (ref Expression e; *exps)
                 {
                     if (e)
                     {
+                        auto gag = global.gag;
+                        if (didSemantic) global.gag = 1; // don't repeat same messages
                         e = e.expressionSemantic(sc);
+                        global.gag = gag;
                         if (definitelyValueParameter(e))
                             e = e.ctfeInterpret();
                         if (e.op == TOK.tuple)
                         {
                             TupleExp te = cast(TupleExp)e;
-                            eval(sc, te.exps);
+                            eval(sc, te.exps, didSemantic);
                         }
                     }
                 }
             }
 
+            const didSemantic = uad._scope is null;
             uad._scope = null;
-            eval(sc, uad.atts);
+            eval(sc, uad.atts, didSemantic);
         }
         visit(cast(AttribDeclaration)uad);
     }

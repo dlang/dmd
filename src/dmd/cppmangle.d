@@ -148,9 +148,10 @@ private final class CppMangleVisitor : Visitor
     /// Context used when processing pre-semantic AST
     private Context context;
 
-    Objects components;         // array of components available for substitution
-    OutBuffer* buf;             // append the mangling to buf[]
-    Loc loc;                    // location for use in error messages
+    Objects components;         /// array of components available for substitution
+    OutBuffer* buf;             /// append the mangling to buf[]
+    Loc loc;                    /// location for use in error messages
+    Strings* abiTags;           /// record of the processed abi-tags
 
     /**
      * Constructor
@@ -158,11 +159,13 @@ private final class CppMangleVisitor : Visitor
      * Params:
      *   buf = `OutBuffer` to write the mangling to
      *   loc = `Loc` of the symbol being mangled
+     *   abiTags = output to store the processed abi-tags
      */
-    this(OutBuffer* buf, Loc loc)
+    this(OutBuffer* buf, Loc loc, Strings* abiTags = null)
     {
         this.buf = buf;
         this.loc = loc;
+        this.abiTags = abiTags;
     }
 
     /*****
@@ -522,7 +525,7 @@ private final class CppMangleVisitor : Visitor
         if (p && !p.isModule())
         {
             buf.writestring("N");
-            source_name(p, true);
+            source_name(p, true, getAbiTags(p)[]);
             dg();
             buf.writestring("E");
         }
@@ -538,8 +541,9 @@ private final class CppMangleVisitor : Visitor
      *   haveNE = Whether `N..E` is already part of the mangling
      *            Because `Nspace` and `CPPNamespaceAttribute` can be
      *            mixed, this is a mandatory hack.
+     *   abiTags = abi-tags of the symbol
      */
-    void source_name(Dsymbol s, bool haveNE = false)
+    void source_name(Dsymbol s, bool haveNE = false, const(char)*[] abiTags = null)
     {
         version (none)
         {
@@ -554,6 +558,7 @@ private final class CppMangleVisitor : Visitor
                 template_args(ti);
             else if (this.writeStdSubstitution(ti, needsTa))
             {
+                writeAbiTags(abiTags, false);
                 if (needsTa)
                     template_args(ti);
             }
@@ -563,13 +568,141 @@ private final class CppMangleVisitor : Visitor
                 this.writeNamespace(
                     s.namespace, () {
                         this.writeIdentifier(ti.tempdecl.toAlias().ident);
+                        writeAbiTags(abiTags, false);
                         template_args(ti);
                     }, haveNE);
             }
         }
         else
-            this.writeNamespace(s.namespace, () => this.writeIdentifier(s.ident),
+            this.writeNamespace(s.namespace,
+                                () {
+                                    this.writeIdentifier(s.ident),
+                                    writeAbiTags(abiTags, s.isNspace() || s.isCPPNamespaceDeclaration());
+                                },
                                 haveNE);
+    }
+
+    /******************************
+     * Write the mangled representation of the abi-tags.
+     * Params:
+     *  tags = slice of tags
+     *  isNamespace = `true` if the current symbol is a namespace
+     */
+    void writeAbiTags(const(char)*[] tags, bool isNamespace)
+    {
+        import dmd.root.rmem : arraydup, mem;
+        import core.stdc.stdlib : qsort;
+
+        /* https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangle.abi-tag
+         *
+         *  <abi-tags>    ::= <abi-tag> [<abi-tags>]
+         *  <abi-tag>     ::= B <source-name>
+         *  <source-name> ::= <positive length number> <identifier>
+         */
+
+        if (!tags.length)
+            return;
+
+        if (isNamespace)
+        {
+            // abi-tags are invisible on namespaces
+            // but they still contribute in variables and functions
+            if (this.abiTags)
+                this.abiTags.pushSlice(tags);
+            return;
+        }
+
+        // must be written in alphanumeric order
+        auto sorted = arraydup(tags);
+        scope(exit) mem.xfree(sorted.ptr);
+        static extern(C) int cmpTags(const(void*) t0, const(void*) t1)
+        {
+            return strcmp(*cast(const(char**))t0, *cast(const(char**))t1);
+        }
+        qsort(sorted.ptr, sorted.length, (char*).sizeof, &cmpTags);
+
+        // write without duplicates
+        const(char)* last = null;
+        foreach (tag; sorted)
+        {
+            if (last && strcmp(tag, last) == 0)
+                continue;
+            buf.writeByte('B');
+            buf.print(strlen(tag));
+            buf.writestring(tag);
+            if (this.abiTags)
+                this.abiTags.push(tag); // record
+            last = tag;
+        }
+    }
+
+    /**************
+     * Get the abi-tags that must be written for `s`.
+     */
+    Strings getAbiTags(Dsymbol s)
+    {
+        Strings output;
+
+        output.pushSlice(s.gnuAbiTags[]);
+
+        if (auto va = s.isVarDeclaration())
+        {
+            // include abi-tags from the type
+            OutBuffer tmp;
+            scope CppMangleVisitor v = new CppMangleVisitor(&tmp, s.loc, &output);
+            va.type.accept(v);
+        }
+        // Functions:
+        else if (s.isCtorDeclaration())
+        {
+            // constructors return void
+            // https://itanium-cxx-abi.github.io/cxx-abi/abi.html#return-value-ctor
+        }
+        else if (getInstance(s).isTemplateInstance())
+        {
+            // return types are fully included in the mangling of functions templates
+        }
+        else if (auto fd = s.isFuncDeclaration())
+        {
+            // include tags from the return type which aren't present in the parameter types
+            // https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangle.abi-tag
+
+            TypeFunction tf = cast(TypeFunction)fd.type;
+
+            Strings retTypeTags;
+            {
+                OutBuffer tmp;
+                scope CppMangleVisitor v = new CppMangleVisitor(&tmp, s.loc, &retTypeTags);
+                tf.nextOf().accept(v);
+            }
+            if (retTypeTags.dim)
+            {
+                Strings paramsTags;
+                if (tf.parameterList.parameters)
+                {
+                    OutBuffer tmp;
+                    scope CppMangleVisitor v = new CppMangleVisitor(&tmp, s.loc, &paramsTags);
+
+                    int paramsVisitDg(size_t n, Parameter fparam)
+                    {
+                        fparam.type.accept(v);
+                        return 0;
+                    }
+                    Parameter._foreach(tf.parameterList.parameters, &paramsVisitDg);
+                }
+
+                Louter: foreach (rtag; retTypeTags[])
+                {
+                    foreach (ptag; paramsTags[])
+                    {
+                        if (strcmp(rtag, ptag) == 0)
+                            continue Louter;
+                    }
+                    output.push(rtag);
+                }
+            }
+        }
+        return output;
     }
 
     /********
@@ -682,6 +815,8 @@ private final class CppMangleVisitor : Visitor
         if (isStd(s))
             return buf.writestring("St");
 
+        Strings tags = getAbiTags(s);
+
         auto si = getInstance(s);
         Dsymbol p = getQualifier(si);
         if (p)
@@ -689,9 +824,11 @@ private final class CppMangleVisitor : Visitor
             if (isStd(p))
             {
                 bool needsTa;
+                writeAbiTags(getAbiTags(p)[], true);
                 auto ti = si.isTemplateInstance();
                 if (this.writeStdSubstitution(ti, needsTa))
                 {
+                    writeAbiTags(tags[], false);
                     if (needsTa)
                     {
                         template_args(ti);
@@ -704,7 +841,7 @@ private final class CppMangleVisitor : Visitor
             else
                 prefix_name(p);
         }
-        source_name(si, true);
+        source_name(si, true, tags[]);
         if (!isStd(si))
             /* Do this after the source_name() call to keep components[]
              * in the right order.
@@ -781,6 +918,7 @@ private final class CppMangleVisitor : Visitor
         Dsymbol p = s.toParent();
         Dsymbol se = s;
         bool write_prefix = true;
+        Strings tags = getAbiTags(s);
         if (p && p.isTemplateInstance())
         {
             se = p;
@@ -798,10 +936,12 @@ private final class CppMangleVisitor : Visitor
              */
             if (isStd(p) && !qualified)
             {
+                writeAbiTags(getAbiTags(p)[], true);
                 TemplateInstance ti = se.isTemplateInstance();
                 if (s.ident == Id.allocator)
                 {
                     buf.writestring("Sa"); // "Sa" is short for ::std::allocator
+                    writeAbiTags(tags[], false);
                     template_args(ti);
                 }
                 else if (s.ident == Id.basic_string)
@@ -814,9 +954,11 @@ private final class CppMangleVisitor : Visitor
 
                     {
                         buf.writestring("Ss");
+                        writeAbiTags(tags[], false);
                         return;
                     }
                     buf.writestring("Sb");      // ::std::basic_string
+                    writeAbiTags(tags[], false);
                     template_args(ti);
                 }
                 else
@@ -825,20 +967,29 @@ private final class CppMangleVisitor : Visitor
                     if (s.ident == Id.basic_istream)
                     {
                         if (char_std_char_traits_char(ti, "Si"))
+                        {
+                            writeAbiTags(tags[], false);
                             return;
+                        }
                     }
                     else if (s.ident == Id.basic_ostream)
                     {
                         if (char_std_char_traits_char(ti, "So"))
+                        {
+                            writeAbiTags(tags[], false);
                             return;
+                        }
                     }
                     else if (s.ident == Id.basic_iostream)
                     {
                         if (char_std_char_traits_char(ti, "Sd"))
+                        {
+                            writeAbiTags(tags[], false);
                             return;
+                        }
                     }
                     buf.writestring("St");
-                    source_name(se, true);
+                    source_name(se, true, tags[]);
                 }
             }
             else
@@ -847,16 +998,21 @@ private final class CppMangleVisitor : Visitor
                 if (write_prefix)
                 {
                     if (isStd(p))
+                    {
                         buf.writestring("St");
+                        writeAbiTags(getAbiTags(p)[], true);
+                    }
                     else
+                    {
                         prefix_name(p);
+                    }
                 }
-                source_name(se, true);
+                source_name(se, true, tags[]);
                 buf.writeByte('E');
             }
         }
         else
-            source_name(se);
+            source_name(se, false, tags[]);
         append(s);
     }
 
@@ -890,23 +1046,24 @@ private final class CppMangleVisitor : Visitor
             d.error("Internal Compiler Error: C++ static non-`__gshared` non-`extern` variables not supported");
             fatal();
         }
+        Strings tags = getAbiTags(d);
         Dsymbol p = d.toParent();
         if (p && !p.isModule()) //for example: char Namespace1::beta[6] should be mangled as "_ZN10Namespace14betaE"
         {
             buf.writestring("_ZN");
             prefix_name(p);
-            source_name(d, true);
+            source_name(d, true, tags[]);
             buf.writeByte('E');
         }
         //char beta[6] should mangle as "beta"
         else
         {
-            if (!isNested)
+            if (!isNested && !tags.length)
                 buf.writestring(d.ident.toString());
             else
             {
                 buf.writestring("_Z");
-                source_name(d);
+                source_name(d, false, tags[]);
             }
         }
     }
@@ -952,11 +1109,12 @@ private final class CppMangleVisitor : Visitor
                     buf.writestring("cl");
                 else
                     source_name(d, true);
+                writeAbiTags(getAbiTags(d)[], false);
                 buf.writeByte('E');
             }
             else
             {
-                source_name(d);
+                source_name(d, false, getAbiTags(d)[]);
             }
             // Template args accept extern "C" symbols with special mangling
             if (tf.linkage == LINK.cpp)
@@ -986,6 +1144,7 @@ private final class CppMangleVisitor : Visitor
         {
             if (!substitute(ns))
                 buf.writestring("St");
+            writeAbiTags(getAbiTags(ns)[], true);
             runDg();
         }
         else if (dg !is null)
@@ -996,6 +1155,7 @@ private final class CppMangleVisitor : Visitor
             {
                 this.writeNamespace(ns.namespace, null);
                 this.writeIdentifier(ns.ident);
+                writeAbiTags(getAbiTags(ns)[], true);
                 append(ns);
             }
             dg();
@@ -1006,6 +1166,7 @@ private final class CppMangleVisitor : Visitor
         {
             this.writeNamespace(ns.namespace, null);
             this.writeIdentifier(ns.ident);
+            writeAbiTags(getAbiTags(ns)[], true);
             append(ns);
         }
     }
@@ -1030,11 +1191,12 @@ private final class CppMangleVisitor : Visitor
             this.context.fd = d;
             this.context.res = d;
             TypeFunction preSemantic = cast(TypeFunction)d.originalType;
+            Strings tags = getAbiTags(d);
             auto nspace = ti.toParent();
             if (nspace && nspace.isNspace())
-                this.writeChained(ti.toParent(), () => source_name(ti, true));
+                this.writeChained(ti.toParent(), () => source_name(ti, true, tags[]));
             else
-                source_name(ti);
+                source_name(ti, false, tags[]);
             this.mangleReturnType(preSemantic);
             this.mangleFunctionParameters(preSemantic.parameterList.parameters, tf.parameterList.varargs);
             return;
@@ -1043,13 +1205,16 @@ private final class CppMangleVisitor : Visitor
         // It's a nested function (e.g. a member of an aggregate)
         this.mangleNestedFuncPrefix(tf, p);
 
+        Strings tags = getAbiTags(d);
         if (d.isCtorDeclaration())
         {
             buf.writestring("C1");
+            writeAbiTags(tags[], false);
         }
         else if (d.isPrimaryDtor())
         {
             buf.writestring("D1");
+            writeAbiTags(tags[], false);
         }
         else
         {
@@ -1149,12 +1314,13 @@ private final class CppMangleVisitor : Visitor
                 break;
             }
             if (symName.length == 0)
-                source_name(ti, true);
+                source_name(ti, true, tags[]);
             else
             {
                 buf.writestring(symName);
                 if (isConvertFunc)
                     template_arg(ti, 0);
+                writeAbiTags(tags[], false);
                 appendReturnType = template_args(ti, firstTemplateArg) && appendReturnType;
             }
             buf.writeByte('E');
@@ -1449,12 +1615,17 @@ private final class CppMangleVisitor : Visitor
         if (sym2 && isStd(sym2)) // Nspace path
         {
             bool unused;
+            writeAbiTags(getAbiTags(sym2)[], true);
             assert(sym.isTemplateInstance());
             if (this.writeStdSubstitution(sym.isTemplateInstance(), unused))
+            {
+                writeAbiTags(getAbiTags(sym1)[], false);
                 return dg();
+            }
             // std names don't require `N..E`
             buf.writestring("St");
             this.writeIdentifier(t.name);
+            writeAbiTags(getAbiTags(sym1)[], false);
             this.append(t);
             return dg();
         }
@@ -1467,6 +1638,7 @@ private final class CppMangleVisitor : Visitor
         this.writeNamespace(
             sym1.namespace, () {
                 this.writeIdentifier(t.name);
+                writeAbiTags(getAbiTags(sym1)[], false);
                 this.append(t);
                 dg();
             });
@@ -1840,6 +2012,8 @@ extern(C++):
         }
         else if (this.writeStdSubstitution(t, needsTa))
         {
+            Dsymbol sym = this.context.res.asType().toDsymbol(null);
+            writeAbiTags(getAbiTags(sym)[], false);
             if (needsTa)
                 writeArgs();
         }
@@ -1868,6 +2042,7 @@ extern(C++):
             this.writeIdentifier(t.ident);
             this.append(t);
         }
+        writeAbiTags(getAbiTags(t)[], true);
     }
 
     override void visit(Type t)

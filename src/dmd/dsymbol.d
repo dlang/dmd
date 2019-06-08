@@ -246,6 +246,10 @@ extern (C++) class Dsymbol : ASTNode
     // (only use this with ddoc)
     UnitTestDeclaration ddocUnittest;
 
+    // User defined "abi-tags", part of the C++ Itanium ABI name mangling.
+    // https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangle.abi-tag
+    Strings gnuAbiTags;
+
     final extern (D) this()
     {
         //printf("Dsymbol::Dsymbol(%p)\n", this);

@@ -86,6 +86,8 @@ extern (C++) final class Nspace : ScopeDsymbol
             sc = sc.push(this);
             sc.linkage = LINK.cpp; // namespaces default to C++ linkage
             sc.parent = this;
+            if (semanticRun < PASS.semantic)
+                sc.userAttribDecl = null; // do not propagate until semantic
             members.foreachDsymbol(s => s.setScope(sc));
             sc.pop();
         }
