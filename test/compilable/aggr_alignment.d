@@ -30,6 +30,7 @@ static assert(__traits(classInstanceSize, C2) == payloadOffset + 12);
 
 /***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=19914
+// https://issues.dlang.org/show_bug.cgi?id=19915
 
 class TemplatedClass(T)
 {
@@ -37,3 +38,4 @@ class TemplatedClass(T)
 }
 
 mixin TemplatedClass!(string);
+alias TCint = TemplatedClass!(int);
