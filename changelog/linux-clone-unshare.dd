@@ -1,0 +1,5 @@
+Add the clone and unshare functions to core.sys.linux.sched
+
+clone(2) and unshare(2) are Linux-specific system calls. Bindings have been
+added to the corresponding D module, as well as the CLONE_* constants that
+are used as flags to these functions.
