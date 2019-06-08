@@ -7,6 +7,12 @@ struct S
     float a = 1;
 }
 
+struct S18784
+{
+    int i;
+    this(int);
+}
+
 extern(C++, std)
 {
     struct test19248 {int a = 34;}
@@ -199,4 +205,5 @@ void main()
     auto ss = SmallStruct(42);
     smallStructTest(ss);
     assert(ss.i == 42);
+    assert(S18784(1).i == 1);
 }
