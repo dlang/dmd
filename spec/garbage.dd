@@ -539,7 +539,7 @@ $(H2 $(LNAME2 gc_registry, Adding your own Garbage Collector))
         the binary. To do so add a function that is executed before the
         D runtime initialization using `pragma(crt_constructor)`:)
         ---
-        import gc.interface, gc.registry;
+        import core.gc.interface, core.gc.registry;
         extern (C) pragma(crt_constructor) void registerMyGC()
         {
             registerGCFactory("mygc", &createMyGC);
