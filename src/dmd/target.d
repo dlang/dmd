@@ -13,6 +13,7 @@
 module dmd.target;
 
 import dmd.argtypes;
+import dmd.arraytypes;
 import core.stdc.string : strlen;
 import dmd.cppmangle;
 import dmd.cppmanglewin;
@@ -767,6 +768,14 @@ struct Target
 
         switch (name.toDString) with (TargetInfoKeys)
         {
+            case "allKeys":
+            {
+                Expressions* exps = new Expressions();
+                foreach (k; __traits(allMembers, TargetInfoKeys))
+                    exps.push(new StringExp(loc, cast(char*)k.ptr));
+
+                return new TupleExp(loc, exps);
+            }
             case objectFormat.stringof:
                 if (global.params.isWindows)
                     return stringExp(global.params.mscoff ? "coff" : "omf");

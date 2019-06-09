@@ -14,6 +14,7 @@ class C19152
     }
 }
 
+static assert(is(typeof(__traits(getTargetInfo, "allKeys")[0]) == string));
 static assert(is(typeof(__traits(getTargetInfo, "cppRuntimeLibrary")) == string));
 version (CppRuntime_Microsoft)
 {

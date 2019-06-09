@@ -1,0 +1,12 @@
+Add `__traits(getTargetInfo, "allKeys")` to query the set of targetInfo data available from the backend.
+
+This evaluates to a tuple of strings containing all keys accepted by the implementation for the current target
+and set of flags.
+
+---
+static assert([ __traits(getTargetInfo, "allKeys") ] == [ "cppRuntimeLibrary", ... ]); // not a true list
+---
+
+`getTargetInfo` keys are implementation defined, allowing relevant data for exotic targets or configurations.
+A reliable subset of which are always available, and are mentioned in the spec.
+
