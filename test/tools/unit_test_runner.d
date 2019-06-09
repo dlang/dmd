@@ -228,6 +228,7 @@ void writeCmdfile(string path, string runnerPath, string outputPath,
     const string[] testFiles)
 {
     auto flags = [
+        "-debug",
         "-version=NoBackend",
         "-version=GC",
         "-version=NoMain",

@@ -41,6 +41,8 @@ extern (C++) struct CTFloat
   @nogc:
   @safe:
 
+    alias isNaN = .isNaN;
+
     version (GNU)
         enum yl2x_supported = false;
     else
@@ -140,12 +142,6 @@ extern (C++) struct CTFloat
         return calcHash(cast(ubyte*) &a, sz);
     }
 
-    pure
-    static bool isNaN(real_t r)
-    {
-        return !(r == r);
-    }
-
     pure @trusted
     static bool isSNaN(real_t r)
     {
@@ -229,4 +225,9 @@ extern (C++) struct CTFloat
         minusone = real_t(-1);
         half = real_t(0.5);
     }
+}
+
+bool isNaN(real_t r) pure @nogc @safe
+{
+    return !(r == r);
 }
