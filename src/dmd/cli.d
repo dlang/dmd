@@ -708,7 +708,7 @@ dmd -cov -unittest myprog.d
         Feature("dip25", "useDIP25",
             "implement https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md (Sealed references)"),
         Feature("dip1000", "vsafe",
-            "implement https://github.com/dlang/DIPs/blob/master/DIPs/DIP1000.md (Scoped Pointers)"),
+            "implement https://github.com/dlang/DIPs/blob/master/DIPs/other/DIP1000.md (Scoped Pointers)"),
         Feature("dip1008", "ehnogc",
             "implement https://github.com/dlang/DIPs/blob/master/DIPs/DIP1008.md (@nogc Throwable)"),
         Feature("fieldwise", "fieldwise", "use fieldwise comparisons for struct equality"),
