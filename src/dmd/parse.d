@@ -4508,11 +4508,31 @@ final class Parser(AST) : Lexer
                     else
                     {
                         parseAttributes();
-                        // StorageClasses type
+                        // type
                         if (udas)
                             error("user-defined attributes not allowed for `%s` declarations", Token.toChars(tok));
 
                         auto t = parseType();
+
+                        // Disallow meaningless storage classes on type aliases
+                        if (storage_class)
+                        {
+                            // Don't raise errors for STC that are part of a function/delegate type, e.g.
+                            // `alias F = ref pure nothrow @nogc @safe int function();`
+                            auto tp = t.isTypePointer;
+                            const isFuncType = (tp && tp.next.isTypeFunction) || t.isTypeDelegate;
+                            const remStc = isFuncType ? (storage_class & ~STC.FUNCATTR) : storage_class;
+
+                            if (remStc)
+                            {
+                                OutBuffer buf;
+                                AST.stcToBuffer(&buf, remStc);
+                                // @@@DEPRECATED_2.093@@@
+                                // Deprecated in 2020-07, can be made an error in 2.103
+                                deprecation("storage class `%s` has no effect in type aliases", buf.peekChars());
+                            }
+                        }
+
                         v = new AST.AliasDeclaration(loc, ident, t);
                     }
                     if (!attributesAppended)
