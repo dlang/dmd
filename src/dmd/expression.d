@@ -2768,6 +2768,11 @@ extern (C++) final class TupleExp : Expression
         }
     }
 
+    static TupleExp create(Loc loc, Expressions* exps)
+    {
+        return new TupleExp(loc, exps);
+    }
+
     override TupleExp toTupleExp()
     {
         return this;

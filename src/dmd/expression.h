@@ -397,6 +397,7 @@ public:
      */
     Expressions *exps;
 
+    static TupleExp *create(Loc loc, Expressions *exps);
     TupleExp *toTupleExp();
     Expression *syntaxCopy();
     bool equals(RootObject *o);
