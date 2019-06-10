@@ -277,22 +277,19 @@ auto defineStringFiles()
 }
 
 /**
-Main build routine for the DMD compiler.
-Defines the required order for the build dependencies, runs all these dependency dependencies
-and afterwards builds the DMD compiler.
+Dependency for the DMD executable.
 
 Params:
   extra_flags = Flags to apply to the main build but not the dependencies
 */
-auto dmd(string[] extraFlags...) { return memoize!defineDmd(extraFlags); }
-auto defineDmd(string[] extraFlags...)
+auto defineDmdExe(string targetSuffix, string[] extraFlags...)
 {
     // Main DMD build dependency
-    Dependency dmdBin = {
+    Dependency dependency = {
         // newdelete.o + lexer.a + backend.a
         sources: sources.dmd.chain(sources.root, lexer.targets, backend.targets).array,
-        target: env["DMD_PATH"],
-        msg: "(DC) MAIN_DMD_BUILD %-(%s, %)".format(sources.dmd.map!(e => e.baseName).array),
+        target: env["DMD_PATH"] ~ targetSuffix,
+        msg: "(DC) DMD%s %-(%s, %)".format(targetSuffix, sources.dmd.map!(e => e.baseName).array),
         deps: stringFiles ~ [lexer, backend],
         command: [
             env["HOST_DMD_RUN"],
@@ -302,10 +299,38 @@ auto defineDmd(string[] extraFlags...)
             "-J../res",
         ].chain(extraFlags).chain(flags["DFLAGS"], "$<".only).array
     };
-    Dependency withConf = {
-        deps: [dmdConf, new DependencyRef(dmdBin)],
+    return new DependencyRef(dependency);
+}
+
+/// Dependency for the DMD executable and conf file.
+alias dmdDefault = memoize!defineDmdDefault;
+auto defineDmdDefault()
+{
+    Dependency dependency = {
+        deps: [dmdConf, memoize!defineDmdExe(null, null)],
     };
-    return new DependencyRef(withConf);
+    return new DependencyRef(dependency);
+}
+
+/// Dependency for the DMD unittest executable
+auto dmdUnittestExe()
+{
+    return memoize!defineDmdExe("-unittest", ["-version=NoMain", "-unittest", "-main"]);
+}
+
+/// Dependency to run the DMD unittest executable.
+alias runDmdUnittest = memoize!defineRunDmdUnittest;
+auto defineRunDmdUnittest()
+{
+    auto commandFunction = (){
+        spawnProcess(dmdUnittestExe.targets[0]);
+    };
+    Dependency dependency = {
+        msg: "(RUN) DMD-UNITTEST",
+        deps: [dmdUnittestExe],
+        commandFunction: commandFunction.toDelegate,
+    };
+    return new DependencyRef(dependency);
 }
 
 /**
@@ -336,11 +361,7 @@ auto predefinedTargets(string[] targets)
                 break;
 
             case "unittest":
-                flags["DFLAGS"] ~= "-version=NoMain";
-                newTargets.put((){
-                    dmd("-main", "-unittest").run;
-                    spawnProcess(env["DMD_PATH"]); // run the unittests
-                }.toDelegate);
+                newTargets.put(&runDmdUnittest.run);
                 break;
 
             case "cxx-unittest":
@@ -373,7 +394,7 @@ auto predefinedTargets(string[] targets)
 
             dmd:
             case "dmd":
-                newTargets.put({dmd.run;}.toDelegate);
+                newTargets.put(&dmdDefault.run);
                 break;
 
             case "clean":
@@ -933,7 +954,7 @@ class DependencyRef
             dep.run();
         }
 
-        if (targets.isUpToDate(dep.sources, [thisBuildScript], rebuildSources))
+        if (targets && targets.isUpToDate(dep.sources, [thisBuildScript], rebuildSources))
         {
             if (dep.sources !is null)
                 log("Skipping build of %-(%s%) as it's newer than %-(%s%)", targets, sources);
@@ -947,9 +968,11 @@ class DependencyRef
         if (commandFunction !is null)
             return commandFunction();
 
-        resolveShorthands();
-
-        command.runCanThrow;
+        if (command)
+        {
+            resolveShorthands();
+            command.runCanThrow;
+        }
     }
 
     /**
