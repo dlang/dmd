@@ -934,6 +934,12 @@ version (Posix) extern (C++)
     vector16479!(T)* func16479_17_2(T)();
     static assert(func16479_17_1!int.mangleof == `_Z14func16479_17_1IiEPN7fakestd3__111vector16479IT_NS1_14allocator16479IS3_EEEEv`);
     static assert(func16479_17_2!int.mangleof == `_Z14func16479_17_2IiEPN7fakestd3__111vector16479IT_NS1_14allocator16479IS3_EEEEv`);
+
+    // Make sure substitution takes place everywhere in template arg list
+    extern(C++, "ns") void func16479_18_1(T, X)(int, X, T, float);
+    extern(C++, "ns") void func16479_18_2(T, X)(X, int, T, float);
+    static assert(func16479_18_1!(double, char).mangleof == `_ZN2ns14func16479_18_1IdcEEviT0_T_f`);
+    static assert(func16479_18_2!(double, char).mangleof == `_ZN2ns14func16479_18_2IdcEEvT0_iT_f`);
 }
 
 /**************************************/
