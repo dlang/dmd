@@ -1,6 +1,8 @@
 // REQUIRED_ARGS: -o-
 // PERMUTE_ARGS:
 
+module staticforeach;
+
 struct Tuple(T...){
     T expand;
     alias expand this;
@@ -701,4 +703,11 @@ T foo(T v)@nogc{
 T foo2(T v)@nogc{
     static foreach(_;0..typeof(return).n){ }
     return T.init;
+}
+
+//https://issues.dlang.org/show_bug.cgi?id=18698
+
+static foreach(m; __traits(allMembers, staticforeach))
+{
+    pragma(msg, m);
 }
