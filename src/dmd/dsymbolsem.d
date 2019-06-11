@@ -1793,8 +1793,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 Dsymbol s = (*scd.decl)[i];
                 // https://issues.dlang.org/show_bug.cgi?id=19122
                 if (sc.inunion)
+                {
                     if (auto decl = s.isVarDeclaration())
                         decl.overlapped = true;
+                }
                 s.dsymbolSemantic(sc);
             }
             sc = sc.pop();
