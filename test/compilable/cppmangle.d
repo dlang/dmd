@@ -995,3 +995,18 @@ version (Win64)
 {
     static assert(test_char_mangling.mangleof == "?test_char_mangling@@YAXD_S_U_W@Z");
 }
+
+/**************************************/
+// https://issues.dlang.org/show_bug.cgi?id=15505
+// extern(C++) array parameter mangling gains surprise const
+
+extern(C++) void issue15505(int[4]* t);
+
+version (Win64)
+{
+    static assert(issue15505.mangleof == "?issue15505@@YAXPEAY03H@Z");
+}
+else version (Win32)
+{
+    static assert(issue15505.mangleof == "?issue15505@@YAXPAY03H@Z");
+}
