@@ -29,6 +29,12 @@ __gshared string[string] env;
 __gshared string[][string] flags;
 __gshared typeof(sourceFiles()) sources;
 
+/// Array of dependencies through which all other dependencies can be reached
+immutable rootDeps = [
+    &dmdDefault,
+    &runDmdUnittest,
+];
+
 void main(string[] args)
 {
     int jobs = totalCPUs;
@@ -47,6 +53,7 @@ Examples
     ./build.d dmd           # build DMD
     ./build.d unittest      # runs internal unittests
     ./build.d clean         # remove all generated files
+    ./build.d generated/linux/release/64/dmd.conf
 
 Important variables:
 --------------------
@@ -347,6 +354,7 @@ auto predefinedTargets(string[] targets)
 {
     import std.functional : toDelegate;
     Appender!(void delegate()[]) newTargets;
+LtargetsLoop:
     foreach (t; targets)
     {
         t = t.buildNormalizedPath; // remove trailing slashes
@@ -406,12 +414,51 @@ auto predefinedTargets(string[] targets)
             case "all":
                 goto dmd;
             default:
+                // check this last, target paths should be checked after predefined names
+                foreach (dep; DependencyRange(rootDeps.map!(a => a()).array))
+                {
+                    foreach (depTarget; dep.targets)
+                    {
+                        if (depTarget.endsWith(t))
+                        {
+                            newTargets.put(&dep.run);
+                            continue LtargetsLoop;
+                        }
+                    }
+                }
                 writefln("ERROR: Target `%s` is unknown.", t);
                 writeln;
                 break;
         }
     }
     return newTargets.data;
+}
+
+/// An input range for a recursive set of dependencies
+struct DependencyRange
+{
+    private DependencyRef[] next;
+    private bool[DependencyRef] added;
+    this(DependencyRef[] deps) { addDeps(deps); }
+    bool empty() const { return next.length == 0; }
+    auto front() inout { return next[0]; }
+    void popFront()
+    {
+        auto save = next[0];
+        next = next[1 .. $];
+        addDeps(save.deps);
+    }
+    void addDeps(DependencyRef[] deps)
+    {
+        foreach (dep; deps)
+        {
+            if (!added.get(dep, false))
+            {
+                next ~= dep;
+                added[dep] = true;
+            }
+        }
+    }
 }
 
 /// Sets the environment variables
