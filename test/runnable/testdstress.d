@@ -815,10 +815,12 @@ class Parent40{
 
         invariant()
         {
-                assert(!checked40);
+            if(!checked40)
+            {
                 checked40=true;
                 // even number
                 assert((x&1u)==0);
+            }
         }
 }
 

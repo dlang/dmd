@@ -4611,6 +4611,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
          */
         sd.aggNew = cast(NewDeclaration)sd.search(Loc.initial, Id.classNew);
         sd.aggDelete = cast(DeleteDeclaration)sd.search(Loc.initial, Id.classDelete);
+        sd.inv = buildInv(sd, sc2);
+        if (sd.inv)
+            reinforceInvariant(sd, sc2);
 
         // Look for the constructor
         sd.ctor = sd.searchCtor();
@@ -4629,10 +4632,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             sd.xcmp = buildXopCmp(sd, sc2);
             sd.xhash = buildXtoHash(sd, sc2);
         }
-
-        sd.inv = buildInv(sd, sc2);
-        if (sd.inv)
-            reinforceInvariant(sd, sc2);
 
         Module.dprogress++;
         sd.semanticRun = PASS.semanticdone;
@@ -5207,6 +5206,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         // Can be in base class
         cldec.aggNew = cast(NewDeclaration)cldec.search(Loc.initial, Id.classNew);
         cldec.aggDelete = cast(DeleteDeclaration)cldec.search(Loc.initial, Id.classDelete);
+        cldec.inv = buildInv(cldec, sc2);
+        if (cldec.inv)
+            reinforceInvariant(cldec, sc2);
 
         // Look for the constructor
         cldec.ctor = cldec.searchCtor();
@@ -5279,10 +5281,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (!(f.storage_class & STC.disable))
                 cldec.error(f.loc, "identity assignment operator overload is illegal");
         }
-
-        cldec.inv = buildInv(cldec, sc2);
-        if (cldec.inv)
-            reinforceInvariant(cldec, sc2);
 
         Module.dprogress++;
         cldec.semanticRun = PASS.semanticdone;

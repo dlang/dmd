@@ -464,6 +464,7 @@ public:
     int stageflags;
 
     bool useStaticInit;         // if this is true, use the StructDeclaration's init symbol
+    bool isDefaultStructInitializerExp;
     OwnedBy ownedByCtfe;
 
     static StructLiteralExp *create(Loc loc, StructDeclaration *sd, void *elements, Type *stype = NULL);

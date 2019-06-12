@@ -970,6 +970,12 @@ DtorDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
     switch (ad.dtors.dim)
     {
     case 0:
+        /* If running invariant, need a destructor to hang it on,
+         * but only do for root modules, as ones in the library may not
+         * have been compiled with useInvariants
+         */
+        if (global.params.useInvariants && ad.inv && sc._module.isRoot())
+            goto default;
         break;
 
     case 1:

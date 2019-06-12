@@ -5814,6 +5814,18 @@ private elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol
         e = el_combine(e, e2);
     }
 
+    if (global.params.useInvariants && sle.sd.inv)
+    {
+        /* Should only call invariant if this is not a default initialization of the struct.
+         */
+        if (!sle.isDefaultStructInitializerExp)
+        {
+            FuncDeclaration inv = sle.sd.inv;
+            elem *einv = callfunc(sle.loc, irs, 1, inv.type.nextOf(), el_ptr(stmp), sle.sd.type.pointerTo(), inv, inv.type, null, null);
+            e = el_combine(e, einv);
+        }
+    }
+
     elem *ev = el_var(stmp);
     ev.ET = Type_toCtype(sle.sd.type);
     e = el_combine(e, ev);

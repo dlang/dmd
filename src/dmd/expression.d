@@ -3074,6 +3074,7 @@ extern (C++) final class StructLiteralExp : Expression
     int stageflags;
 
     bool useStaticInit;     /// if this is true, use the StructDeclaration's init symbol
+    bool isDefaultStructInitializerExp;
     OwnedBy ownedByCtfe = OwnedBy.code;
 
     extern (D) this(const ref Loc loc, StructDeclaration sd, Expressions* elements, Type stype = null)
@@ -3083,6 +3084,8 @@ extern (C++) final class StructLiteralExp : Expression
         if (!elements)
             elements = new Expressions();
         this.elements = elements;
+        if (elements.dim == 0)
+            isDefaultStructInitializerExp = true;
         this.stype = stype;
         this.origin = this;
         //printf("StructLiteralExp::StructLiteralExp(%s)\n", toChars());

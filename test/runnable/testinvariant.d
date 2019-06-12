@@ -25,6 +25,85 @@ int testinvariant()
     return 0;
 }
 
+// https://issues.dlang.org/show_bug.cgi?id=519
+class C519
+{
+    invariant
+    {
+        printf("C519.invariant\n");
+        ++x;
+    }
+    __gshared int x;
+}
+
+struct S519
+{
+    invariant()
+    {
+        printf("S519.invariant\n");
+        ++x;
+    }
+    __gshared int x;
+}
+
+struct S519c
+{
+    invariant()
+    {
+        printf("S519c.invariant\n");
+        ++x;
+    }
+    __gshared int x;
+    int y;
+}
+
+void test519()
+{
+    //printf("test1\n");
+    {
+        auto foo = new C519();
+        assert(C519.x == 0);
+        printf("lifetime of foo\n");
+        destroy(foo);
+        assert(C519.x == 1);
+    }
+    {
+        scope auto foo = new C519();
+        assert(C519.x == 1);
+        printf("lifetime of foo\n");
+    }
+    assert(C519.x == 2);
+
+    //printf("test2\n");
+    {
+        auto foo = new S519();
+        printf("%d\n", S519.x);
+        assert(S519.x == 0);
+        printf("lifetime of foo\n");
+        destroy(*foo);
+        assert(S519.x == 1);
+    }
+    {
+        auto foo = S519();
+        assert(S519.x == 1);
+        printf("lifetime of foo\n");
+    }
+    assert(S519.x == 2);
+
+    //printf("test3\n");
+    {
+        auto foo = new S519c(1);
+        assert(S519c.x == 1);
+        printf("lifetime of foo\n");
+    }
+    {
+        auto foo = S519c(1);
+        assert(S519c.x == 2);
+        printf("lifetime of foo\n");
+    }
+    assert(S519c.x == 3);
+}
+
 /***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=6453
 
@@ -182,6 +261,7 @@ void test13147()
 void main()
 {
     testinvariant();
+    test519();
     test6453();
     test13113();
     test13147();

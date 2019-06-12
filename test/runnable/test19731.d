@@ -45,6 +45,8 @@ void main()
         }
         catch(AssertError)
         {
+            foo.obj_ = new Object();
+            foo2.obj_ = new Object();
             return;
         }
         assert(0);
