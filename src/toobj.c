@@ -959,7 +959,17 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 return;
 
             Symbol *s = toSymbol(vd);
-            unsigned sz = vd->type->size();
+            d_uns64 sz64 = vd->type->size(vd->loc);
+            if (sz64 == SIZE_INVALID)
+            {
+                vd->error("size overflow");
+                return;
+            }
+            if (sz64 >= Target::maxStaticDataSize)
+            {
+                vd->error("size of x%llx exceeds max allowed size 0x100_0000", sz64);
+            }
+            unsigned sz = (unsigned)sz64;
 
             Dsymbol *parent = vd->toParent();
             s->Sclass = SCglobal;
