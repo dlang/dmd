@@ -50,6 +50,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
      */
     Type type;              // the TypeEnum
     Type memtype;           // type of the members
+
     Prot protection;
     Expression maxval;
     Expression minval;
@@ -234,12 +235,14 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             if (!em)
                 continue;
             if (em.errors)
-                return errorReturn();
+            {
+                errors = true;
+                continue;
+            }
 
-            Expression e = em.value;
             if (first)
             {
-                *pval = e;
+                *pval = em.value;
                 first = false;
             }
             else
@@ -254,16 +257,22 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
                  *   if (e > maxval)
                  *      maxval = e;
                  */
+                Expression e = em.value;
                 Expression ec = new CmpExp(id == Id.max ? TOK.greaterThan : TOK.lessThan, em.loc, e, *pval);
                 inuse++;
                 ec = ec.expressionSemantic(em._scope);
                 inuse--;
                 ec = ec.ctfeInterpret();
+                if (ec.op == TOK.error)
+                {
+                    errors = true;
+                    continue;
+                }
                 if (ec.toInteger())
                     *pval = e;
             }
         }
-        return pvalToResult(*pval, loc);
+        return errors ? errorReturn() : pvalToResult(*pval, loc);
     }
 
     /****************
