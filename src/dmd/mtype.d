@@ -4782,7 +4782,7 @@ extern (C++) final class TypeFunction : TypeNext
                             }
                         }
                         else if (!global.params.rvalueRefParam ||
-                                 p.storageClass & STC.ref_ ||
+                                 !(p.storageClass & STC.ref_) ||
                                  !arg.type.isCopyable())  // can't copy to temp for ref parameter
                         {
                             if (pMessage) *pMessage = getParamError(arg, p);
