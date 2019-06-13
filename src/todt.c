@@ -127,12 +127,7 @@ void Initializer_toDt(Initializer *init, DtBuilder& dtb)
 
             Expression *edefault = tb->nextOf()->defaultInit();
 
-            size_t n = 1;
-            for (Type *tbn = tn; tbn->ty == Tsarray; tbn = tbn->nextOf()->toBasetype())
-            {
-                TypeSArray *tsa = (TypeSArray *)tbn;
-                n *= tsa->dim->toInteger();
-            }
+            size_t n = tn->numberOfElems(ai->loc);
 
             dt_t *dtdefault = NULL;
 
