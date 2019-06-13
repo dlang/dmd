@@ -884,11 +884,10 @@ void test12211()
     foo(a += 7);
     assert(a == 3);
 
-    // array ops should make rvalue
     int[3] sa, sb;
     void bar(ref int[]) {}
-    static assert(__traits(compiles, bar(sa[]  = sb[])));
-    static assert(__traits(compiles, bar(sa[] += sb[])));
+    bar(sa[]  = sb[]);
+    bar(sa[] += sb[]);
 }
 
 /***************************************************/

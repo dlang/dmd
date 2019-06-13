@@ -1925,12 +1925,12 @@ void h8976()()
     g8976!()();
 }
 
-static assert( __traits(compiles, h8976!()() ) ); // causes error
+h8976!()();
 static assert(is(typeof(          h8976!()() )));
 
 void test8976()
 {
-    static assert( __traits(compiles, h8976!()() ) );
+    h8976!()();
     static assert(is(typeof(          h8976!()() )));
 }
 

@@ -3923,7 +3923,7 @@ void test2486()
 
     int[] arr = [1,2,3];
     foo(arr);   //OK
-    static assert(__traits(compiles, foo(arr[1..2])));
+    foo(arr[1..2]);
 
     struct S
     {
@@ -3934,7 +3934,7 @@ void test2486()
     s[];
     // opSlice should return rvalue
     static assert(is(typeof(&S.opSlice) == int[] function() pure nothrow @nogc @safe));
-    static assert(__traits(compiles, foo(s[])));
+    foo(s[]);
 }
 
 /***************************************************/
@@ -4109,7 +4109,7 @@ void test4539()
         assert(s[4] == 0x61);
     }
 
-    static assert(__traits(compiles, foo1("hello")));
+    foo1("hello");
     static assert(!__traits(compiles, foo2("hello")));
     static assert(!__traits(compiles, foo3("hello")));
 
@@ -4986,7 +4986,7 @@ void test6763()
 
     f6763(0);   //With D2: Error: function main.f ((ref const const(int) _param_0)) is not callable using argument types (int)
     c6763(0);
-    r6763(n);   static assert(__traits(compiles, r6763(0)));
+    r6763(n);   r6763(0);
     i6763(0);
     o6763(n);   static assert(!__traits(compiles, o6763(0)));
 
@@ -7211,7 +7211,7 @@ void test11317()
     }
 
     void test(ref uint x) {}
-    static assert(__traits(compiles, test(fun())));
+    test(fun());
 
     assert(fun() == 0);
 }
