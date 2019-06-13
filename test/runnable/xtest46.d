@@ -15,14 +15,14 @@ tuple(height)
 tuple(get, get)
 tuple(clear)
 tuple(draw, draw)
-runnable/xtest46.d(179): Deprecation: `opDot` is deprecated. Use `alias this`
-runnable/xtest46.d(181): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(180): Deprecation: `opDot` is deprecated. Use `alias this`
 runnable/xtest46.d(182): Deprecation: `opDot` is deprecated. Use `alias this`
-runnable/xtest46.d(184): Deprecation: `opDot` is deprecated. Use `alias this`
-runnable/xtest46.d(211): Deprecation: `opDot` is deprecated. Use `alias this`
-runnable/xtest46.d(213): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(183): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(185): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(212): Deprecation: `opDot` is deprecated. Use `alias this`
 runnable/xtest46.d(214): Deprecation: `opDot` is deprecated. Use `alias this`
-runnable/xtest46.d(216): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(215): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(217): Deprecation: `opDot` is deprecated. Use `alias this`
 const(int)
 string[]
 double[]
