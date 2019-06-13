@@ -1,4 +1,6 @@
 /**
+ * Handle enums.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -8,6 +10,7 @@
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/denum.d, _denum.d)
  * Documentation:  https://dlang.org/phobos/dmd_denum.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/denum.d
+ * References:  https://dlang.org/spec/enum.html
  */
 
 module dmd.denum;
@@ -31,17 +34,9 @@ import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
 
-bool isSpecialEnumIdent(const Identifier ident) @nogc nothrow
-{
-    return  ident == Id.__c_long ||
-            ident == Id.__c_ulong ||
-            ident == Id.__c_longlong ||
-            ident == Id.__c_ulonglong ||
-            ident == Id.__c_long_double ||
-            ident == Id.__c_wchar_t;
-}
-
 /***********************************************************
+ * AST node for `EnumDeclaration`
+ * https://dlang.org/spec/enum.html#EnumDeclaration
  */
 extern (C++) final class EnumDeclaration : ScopeDsymbol
 {
@@ -183,7 +178,6 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
     Expression getMaxMinValue(const ref Loc loc, Identifier id)
     {
         //printf("EnumDeclaration::getMaxValue()\n");
-        bool first = true;
 
         static Expression pvalToResult(Expression e, const ref Loc loc)
         {
@@ -233,6 +227,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             return errorReturn();
         }
 
+        bool first = true;
         for (size_t i = 0; i < members.dim; i++)
         {
             EnumMember em = (*members)[i].isEnumMember();
@@ -272,9 +267,9 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
     }
 
     /****************
-     * Determine if enum is a 'special' one.
+     * Determine if enum is a special one.
      * Returns:
-     *  true if special
+     *  `true` if special
      */
     bool isSpecial() const nothrow @nogc
     {
@@ -366,6 +361,9 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
 }
 
 /***********************************************************
+ * AST node representing a member of an enum.
+ * https://dlang.org/spec/enum.html#EnumMember
+ * https://dlang.org/spec/enum.html#AnonymousEnumMember
  */
 extern (C++) final class EnumMember : VarDeclaration
 {
@@ -445,3 +443,25 @@ extern (C++) final class EnumMember : VarDeclaration
         v.visit(this);
     }
 }
+
+/******************************************
+ * Check for special enum names.
+ *
+ * Special enum names are used by the C++ name mangler to represent
+ * C++ types that are not basic D types.
+ * Params:
+ *      ident = identifier to check for specialness
+ * Returns:
+ *      `true` if it is special
+ */
+bool isSpecialEnumIdent(const Identifier ident) @nogc nothrow
+{
+    return  ident == Id.__c_long ||
+            ident == Id.__c_ulong ||
+            ident == Id.__c_longlong ||
+            ident == Id.__c_ulonglong ||
+            ident == Id.__c_long_double ||
+            ident == Id.__c_wchar_t;
+}
+
+
