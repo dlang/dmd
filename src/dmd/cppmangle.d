@@ -499,6 +499,25 @@ private final class CppMangleVisitor : Visitor
         return true;
     }
 
+    /**
+     * Write the symbol `p` if not null, then execute the delegate
+     *
+     * Params:
+     *   p = Symbol to write
+     *   dg = Delegate to execute
+     */
+    void writeChained(Dsymbol p, scope void delegate() dg)
+    {
+        if (p && !p.isModule())
+        {
+            buf.writestring("N");
+            source_name(p);
+            dg();
+            buf.writestring("E");
+        }
+        else
+            dg();
+    }
 
     void source_name(Dsymbol s)
     {
@@ -523,7 +542,7 @@ private final class CppMangleVisitor : Visitor
      * Returns:
      *  if s is instance of a template, return the instance, otherwise return s
      */
-    Dsymbol getInstance(Dsymbol s)
+    static Dsymbol getInstance(Dsymbol s)
     {
         Dsymbol p = s.toParent3();
         if (p)
@@ -899,7 +918,7 @@ private final class CppMangleVisitor : Visitor
     void mangleTemplatedFunction(FuncDeclaration d, TypeFunction tf,
                                  TemplateDeclaration ftd, TemplateInstance ti)
     {
-        Dsymbol p = ti.toParent3();
+        Dsymbol p = ti.toParent();
         // Check if this function is *not* nested
         if (!p || p.isModule() || tf.linkage != LINK.cpp)
         {
@@ -907,7 +926,7 @@ private final class CppMangleVisitor : Visitor
             this.context.fd = d;
             this.context.res = d;
             TypeFunction preSemantic = cast(TypeFunction)d.originalType;
-            source_name(ti);
+            this.writeChained(ti.toParent3(), () => source_name(ti));
             this.mangleReturnType(preSemantic);
             this.mangleFunctionParameters(preSemantic.parameterList.parameters, tf.parameterList.varargs);
             return;
