@@ -2120,12 +2120,12 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             case 'd':               // https://dlang.org/dmd.html#switch-Hd
                 if (!p[4])
                     goto Lnoarg;
-                params.hdrdir = (p + 4 + (p[4] == '=')).toDString;
+                params.cxxhdrdir = (p + 4 + (p[4] == '=')).toDString;
                 break;
             case 'f':               // https://dlang.org/dmd.html#switch-Hf
                 if (!p[4])
                     goto Lnoarg;
-                params.hdrname = (p + 4 + (p[4] == '=')).toDString;
+                params.cxxhdrname = (p + 4 + (p[4] == '=')).toDString;
                 break;
             case 0:
                 break;

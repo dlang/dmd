@@ -225,10 +225,13 @@ extern (C++) struct Param
     Array!(const(char)*) ddocfiles;     // macro include files for Ddoc
 
     bool doHdrGeneration;               // process embedded documentation comments
-    bool doCxxHdrGeneration;            // write 'Cxx header' file
     const(char)[] hdrdir;                // write 'header' file to docdir directory
     const(char)[] hdrname;               // write 'header' file to docname
     bool hdrStripPlainFunctions = true; // strip the bodies of plain (non-template) functions
+
+    bool doCxxHdrGeneration;            // write 'Cxx header' file
+    const(char)[] cxxhdrdir;            // write 'header' file to docdir directory
+    const(char)[] cxxhdrname;           // write 'header' file to docname
 
     bool doJsonGeneration;              // write JSON file
     const(char)[] jsonfilename;          // write JSON file to jsonfilename
@@ -290,6 +293,7 @@ extern (C++) struct Global
     string doc_ext = "html";      // for Ddoc generated files
     string ddoc_ext = "ddoc";     // for Ddoc macro include files
     string hdr_ext = "di";        // for D 'header' import files
+    string cxxhdr_ext = "h";      // for C/C++ 'header' files
     string json_ext = "json";     // for JSON files
     string map_ext = "map";       // for .map files
     bool run_noext;                     // allow -run sources without extensions.
