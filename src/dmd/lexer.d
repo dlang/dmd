@@ -1940,6 +1940,10 @@ class Lexer
                     goto Ldone; // if ".."
                 if (base == 10 && (isalpha(p[1]) || p[1] == '_' || p[1] & 0x80))
                     goto Ldone; // if ".identifier" or ".unicode"
+                if (base == 16 && (!ishex(p[1]) || p[1] == '_' || p[1] & 0x80))
+                    goto Ldone; // if ".identifier" or ".unicode"
+                if (base == 2)
+                    goto Ldone; // if ".identifier" or ".unicode"
                 goto Lreal; // otherwise as part of a floating point literal
             case 'p':
             case 'P':
