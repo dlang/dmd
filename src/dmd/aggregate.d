@@ -140,6 +140,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         sc2.explicitProtection = 0;
         sc2.aligndecl = null;
         sc2.userAttribDecl = null;
+        sc2.namespace = null;
         return sc2;
     }
 

@@ -24,6 +24,7 @@ class UserAttributeDeclaration;
 struct DocComment;
 struct AA;
 class TemplateInstance;
+class CPPNamespaceDeclaration;
 
 #include "dsymbol.h"
 
@@ -90,6 +91,9 @@ struct Scope
     size_t fieldinit_dim;
 
     AlignDeclaration *aligndecl;    // alignment for struct members
+
+    /// C++ namespace this symbol belongs to
+    CPPNamespaceDeclaration *namespace_;
 
     LINK linkage;               // linkage for external functions
     CPPMANGLE cppmangle;        // C++ mangle type

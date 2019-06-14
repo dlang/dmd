@@ -376,6 +376,8 @@ extern (C++) class FuncDeclaration : Declaration
                 return false;
         }
 
+        this.namespace = _scope.namespace;
+
         // if inferring return type, sematic3 needs to be run
         // - When the function body contains any errors, we cannot assume
         //   the inferred return type is valid.
