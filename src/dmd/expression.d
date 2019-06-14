@@ -1275,8 +1275,8 @@ extern (C++) abstract class Expression : ASTNode
                     break;
                 if (ff.isNested() || ff.isThis())
                 {
-                    if (ff.type.isImmutable() ||
-                        ff.type.isShared() && !MODimplicitConv(ff.type.mod, v.type.mod))
+                    if (ff.type.isImmutable() || ff.type.isConst() || ff.type.isWild() &&
+                        !MODimplicitConv(ff.type.mod, v.type.mod))
                     {
                         OutBuffer ffbuf;
                         OutBuffer vbuf;
