@@ -1909,6 +1909,8 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
         if (i < nparams)
         {
             Parameter p = tf.parameterList[i];
+            Type targ = arg.type;               // keep original type for isCopyable() because alias this
+                                                // resolution may hide an uncopyable type
 
             if (!(p.storageClass & STC.lazy_ && p.type.ty == Tvoid))
             {
@@ -1926,6 +1928,17 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             }
             if (p.storageClass & STC.ref_)
             {
+                if (global.params.rvalueRefParam &&
+                    !arg.isLvalue() &&
+                    targ.isCopyable())
+                {   /* allow rvalues to be passed to ref parameters by copying
+                     * them to a temp, then pass the temp as the argument
+                     */
+                    auto v = copyToTemp(0, "__rvalue", arg);
+                    Expression ev = new DeclarationExp(arg.loc, v);
+                    ev = new CommaExp(arg.loc, ev, new VarExp(arg.loc, v));
+                    arg = ev.expressionSemantic(sc);
+                }
                 arg = arg.toLvalue(sc, arg);
 
                 // Look for mutable misaligned pointer, etc., in @safe mode

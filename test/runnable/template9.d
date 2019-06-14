@@ -1,3 +1,4 @@
+// REQUIRED_ARGS: -preview=rvaluerefparam
 // PERMUTE_ARGS:
 
 module breaker;
@@ -1924,13 +1925,13 @@ void h8976()()
     g8976!()();
 }
 
-static assert(! __traits(compiles, h8976!()() ) ); // causes error
-static assert(!is(typeof(          h8976!()() )));
+static assert( __traits(compiles, h8976!()() ) ); // causes error
+static assert(is(typeof(          h8976!()() )));
 
 void test8976()
 {
-    static assert(! __traits(compiles, h8976!()() ) );
-    static assert(!is(typeof(          h8976!()() )));
+    static assert( __traits(compiles, h8976!()() ) );
+    static assert(is(typeof(          h8976!()() )));
 }
 
 /****************************************/
