@@ -1,8 +1,4 @@
-/**
-TEST_OUTPUT:
----
----
-*/
+
 // Test C++ name mangling.
 // https://issues.dlang.org/show_bug.cgi?id=4059
 // https://issues.dlang.org/show_bug.cgi?id=5148

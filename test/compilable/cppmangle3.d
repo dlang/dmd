@@ -1,8 +1,3 @@
-/**
-TEST_OUTPUT:
----
----
-*/
 module cppmangle3;
 
 

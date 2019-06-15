@@ -15,7 +15,6 @@ module dmd.dscope;
 import core.stdc.stdio;
 import core.stdc.string;
 import dmd.aggregate;
-import dmd.arraytypes;
 import dmd.attrib;
 import dmd.ctorflow;
 import dmd.dclass;
@@ -100,9 +99,6 @@ struct Scope
 
     /// alignment for struct members
     AlignDeclaration aligndecl;
-
-    /// C++ namespace this symbol is in
-    CPPNamespaceDeclaration namespace;
 
     /// linkage for external functions
     LINK linkage = LINK.d;

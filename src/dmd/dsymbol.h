@@ -16,7 +16,6 @@
 #include "arraytypes.h"
 #include "visitor.h"
 
-class CPPNamespaceDeclaration;
 class Identifier;
 struct Scope;
 class DsymbolTable;
@@ -148,8 +147,6 @@ class Dsymbol : public ASTNode
 public:
     Identifier *ident;
     Dsymbol *parent;
-    /// C++ namespace this symbol belongs to
-    CPPNamespaceDeclaration *namespace_;
     Symbol *csym;               // symbol for code generator
     Symbol *isym;               // import version of csym
     const utf8_t *comment;      // documentation comment for this Dsymbol

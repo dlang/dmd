@@ -1173,16 +1173,22 @@ struct ASTBase
     extern (C++) final class Nspace : ScopeDsymbol
     {
         /**
+         * Determines whether the symbol for this namespace should be included in the symbol table.
+         */
+        bool mangleOnly;
+
+        /**
          * Namespace identifier resolved during semantic.
          */
         Expression identExp;
 
-        extern (D) this(const ref Loc loc, Identifier ident, Expression identExp, Dsymbols* members)
+        extern (D) this(const ref Loc loc, Identifier ident, Expression identExp, Dsymbols* members, bool mangleOnly)
         {
             super(ident);
             this.loc = loc;
             this.members = members;
             this.identExp = identExp;
+            this.mangleOnly = mangleOnly;
         }
 
         override void accept(Visitor v)
@@ -1298,28 +1304,6 @@ struct ASTBase
         {
             super(decl);
             cppmangle = p;
-        }
-
-        override void accept(Visitor v)
-        {
-            v.visit(this);
-        }
-    }
-
-    extern (C++) final class CPPNamespaceDeclaration : AttribDeclaration
-    {
-        Expression exp;
-
-        extern (D) this(Identifier ident, Dsymbols* decl)
-        {
-            super(decl);
-            this.ident = ident;
-        }
-
-        extern (D) this(Expression exp, Dsymbols* decl)
-        {
-            super(decl);
-            this.exp = exp;
         }
 
         override void accept(Visitor v)

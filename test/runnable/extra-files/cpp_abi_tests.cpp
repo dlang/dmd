@@ -6,8 +6,7 @@ struct S{
 
 namespace std
 {
-    struct test19248_ {int a;}; // Remove when `extern(C++, ns)` is gone
-    struct test19248  {int a;};
+    struct test19248 {int a;};
 };
 
 #ifdef __DMC__
@@ -37,8 +36,7 @@ unsigned long long passthrough(unsigned long long  value)     { return value; }
 float              passthrough(float               value)     { return value; }
 double             passthrough(double              value)     { return value; }
 S                  passthrough(S                   value)     { return value; }
-std::test19248     passthrough(const std::test19248 value)    { return value; }
-std::test19248_    passthrough(const std::test19248_ value)   { return value; }
+std::test19248     passthrough(const std::test19248 value)     { return value; }
 
 bool               passthrough_ptr(bool               *value) { return *value; }
 signed char        passthrough_ptr(signed char        *value) { return *value; }
@@ -61,7 +59,6 @@ float              passthrough_ptr(float              *value) { return *value; }
 double             passthrough_ptr(double             *value) { return *value; }
 S                  passthrough_ptr(S                  *value) { return *value; }
 std::test19248     passthrough_ptr(const std::test19248 *value) { return *value; }
-std::test19248_    passthrough_ptr(const std::test19248_ *value) { return *value; }
 
 bool               passthrough_ref(bool               &value) { return value; }
 signed char        passthrough_ref(signed char        &value) { return value; }
@@ -84,7 +81,6 @@ float              passthrough_ref(float              &value) { return value; }
 double             passthrough_ref(double             &value) { return value; }
 S                  passthrough_ref(S                  &value) { return value; }
 std::test19248     passthrough_ref(const std::test19248 &value) { return value; }
-std::test19248_    passthrough_ref(const std::test19248_ &value) { return value; }
 
 namespace ns1
 {
