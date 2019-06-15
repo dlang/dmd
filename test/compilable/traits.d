@@ -54,3 +54,9 @@ static assert(__traits(isModule, b));
 // This is supposed to work even though we haven't directly imported imports.pkgmodule.
 static assert(__traits(isModule, imports.pkgmodule));
 static assert(!__traits(isModule, MyStruct));
+
+/******************************************/
+// https://issues.dlang.org/show_bug.cgi?id=19942
+
+static assert(!__traits(compiles, { a.init; }));
+static assert(!__traits(compiles, { import m : a; a.init; }));
