@@ -932,7 +932,7 @@ extern (C++) abstract class Expression : ASTNode
                         return new ErrorExp();
                     }
                 }
-                else if (sc.func.isNested() && ! sc.func.localsymtab.lookup(dve.var.ident))
+                else if (sc.func && sc.func.isNested() && ! sc.func.localsymtab.lookup(dve.var.ident))
                 {
                     error("cannot modify `%s` in `%s` function", toChars(), MODtoChars(type.mod));
                     return new ErrorExp();
