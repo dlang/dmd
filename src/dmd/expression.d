@@ -912,37 +912,43 @@ extern (C++) abstract class Expression : ASTNode
     {
         //printf("Expression::modifiableLvalue() %s, type = %s\n", toChars(), type.toChars());
         // See if this expression is a modifiable lvalue (i.e. not const)
-        if (checkModifiable(sc) == Modifiable.yes)
+        if (checkModifiable(sc) != Modifiable.yes)
+            return toLvalue(sc, e);
+
+        assert(type);
+        if (!type.isMutable())
         {
-            assert(type);
-            if (!type.isMutable())
+            if (auto dve = this.isDotVarExp())
             {
-                if (auto dve = this.isDotVarExp())
+                if (isNeedThisScope(sc, dve.var))
+                    for (Dsymbol s = sc.func; s; s = s.toParentLocal())
                 {
-                    if (isNeedThisScope(sc, dve.var))
-                        for (Dsymbol s = sc.func; s; s = s.toParentLocal())
+                    FuncDeclaration ff = s.isFuncDeclaration();
+                    if (!ff)
+                        break;
+                    if (!ff.type.isMutable)
                     {
-                        FuncDeclaration ff = s.isFuncDeclaration();
-                        if (!ff)
-                            break;
-                        if (!ff.type.isMutable)
-                        {
-                            error("cannot modify `%s` in `%s` function", toChars(), MODtoChars(type.mod));
-                            return new ErrorExp();
-                        }
+                        error("cannot modify `%s` in `%s` function", toChars(), MODtoChars(type.mod));
+                        return new ErrorExp();
                     }
                 }
-                error("cannot modify `%s` expression `%s`", MODtoChars(type.mod), toChars());
-                return new ErrorExp();
+                else if (sc.func.isNested() && ! sc.func.localsymtab.lookup(dve.var.ident))
+                {
+                    error("cannot modify `%s` in `%s` function", toChars(), MODtoChars(type.mod));
+                    return new ErrorExp();
+                }
             }
-            else if (!type.isAssignable())
-            {
-                error("cannot modify struct instance `%s` of type `%s` because it contains `const` or `immutable` members",
-                    toChars(), type.toChars());
-                return new ErrorExp();
-            }
+            error("cannot modify `%s` expression `%s`", MODtoChars(type.mod), toChars());
+            return new ErrorExp();
         }
-        return toLvalue(sc, e);
+        else if (!type.isAssignable())
+        {
+            error("cannot modify struct instance `%s` of type `%s` because it contains `const` or `immutable` members",
+                toChars(), type.toChars());
+            return new ErrorExp();
+        }
+        assert(0);
+
     }
 
     final Expression implicitCastTo(Scope* sc, Type t)
@@ -1240,56 +1246,6 @@ extern (C++) abstract class Expression : ASTNode
                     break;
                 if (ff.isFuncLiteralDeclaration())
                     break;
-            }
-        }
-        else
-        {
-            /* Given:
-             * void f() {
-             *   int fx;
-             *   pure void g() {
-             *     int gx;
-             *     /+pure+/ void h() {
-             *       int hx;
-             *       /+pure+/ void i() { }
-             *     }
-             *   }
-             * }
-             * i() can modify hx and gx but not fx
-             */
-
-            Dsymbol vparent = v.toParent2();
-            for (Dsymbol s = sc.func; !err && s; s = toParentP(s, vparent))
-            {
-                if (s == vparent)
-                    break;
-
-                if (AggregateDeclaration ad = s.isAggregateDeclaration())
-                {
-                    if (ad.isNested())
-                        continue;
-                    break;
-                }
-                FuncDeclaration ff = s.isFuncDeclaration();
-                if (!ff)
-                    break;
-                if (ff.isNested() || ff.isThis())
-                {
-                    if (ff.type.isImmutable() || ff.type.isConst() &&
-                        !MODimplicitConv(ff.type.mod, v.type.mod))
-                    {
-                        OutBuffer ffbuf;
-                        OutBuffer vbuf;
-                        MODMatchToBuffer(&ffbuf, ff.type.mod, v.type.mod);
-                        MODMatchToBuffer(&vbuf, v.type.mod, ff.type.mod);
-                        error("%s%s `%s` cannot access %sdata `%s`",
-                            ffbuf.peekChars(), ff.kind(), ff.toPrettyChars(), vbuf.peekChars(), v.toChars());
-                        err = true;
-                        break;
-                    }
-                    continue;
-                }
-                break;
             }
         }
 
