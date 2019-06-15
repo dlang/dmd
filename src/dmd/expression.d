@@ -947,8 +947,7 @@ extern (C++) abstract class Expression : ASTNode
                 toChars(), type.toChars());
             return new ErrorExp();
         }
-        assert(0);
-
+        return toLvalue(sc, e);
     }
 
     final Expression implicitCastTo(Scope* sc, Type t)
