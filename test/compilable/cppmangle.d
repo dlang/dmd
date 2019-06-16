@@ -49,7 +49,7 @@ void test1()
     c.bar(4, 5, 6);
 }
 
-version (linux)
+version (Posix)
 {
     static assert(foo.mangleof == "_Z3fooiii");
     static assert(foob.mangleof == "_Z4foobiii");
@@ -85,7 +85,7 @@ void test2()
     assert(i == 8);
 }
 
-version (linux)
+version (Posix)
 {
     static assert (getD.mangleof == "_Z4getDv");
     static assert (D.bar.mangleof == "_ZN1D3barEiii");
@@ -122,7 +122,7 @@ void test3()
     assert(i == 8);
 }
 
-version (linux)
+version (Posix)
 {
     static assert (callE.mangleof == "_Z5callEP1E");
     static assert (E.bar.mangleof == "_ZN1E3barEiii");
@@ -138,7 +138,7 @@ void test4()
     foo4(null);
 }
 
-version (linux)
+version (Posix)
 {
     static assert(foo4.mangleof == "_Z4foo4Pc");
 }
@@ -164,7 +164,7 @@ void test5()
   assert(f.p == cast(void*)b);
 }
 
-version (linux)
+version (Posix)
 {
     static assert(bar5.getFoo.mangleof == "_ZN4bar56getFooEi");
     static assert (newBar.mangleof == "_Z6newBarv");
@@ -194,7 +194,7 @@ void test6()
     assert(f.d == 2.5);
 }
 
-version (linux)
+version (Posix)
 {
     static assert (foo6.mangleof == "_Z4foo6v");
 }
@@ -225,7 +225,7 @@ void test8()
     foo8(&c);
 }
 
-version (linux)
+version (Posix)
 {
     static assert(foo8.mangleof == "_Z4foo8PKc");
 }
@@ -243,7 +243,7 @@ void test9()
     foobar9(a, a);
 }
 
-version (linux)
+version (Posix)
 {
     static assert(foobar9.mangleof == "_Z7foobar9P5elem9S0_");
 }
@@ -295,7 +295,7 @@ extern (C++)
     void test10058l(void* function(void*), void* function(const (void)*), const(void)* function(void*)) { }
 }
 
-version (linux)
+version (Posix)
 {
     static assert(test10058a.mangleof == "_Z10test10058aPv");
     static assert(test10058b.mangleof == "_Z10test10058bPFvPvE");
@@ -326,7 +326,7 @@ class CallExp
     static void test11696d(Loc, Expression*, Expression*);
 }
 
-version (linux)
+version (Posix)
 {
     static assert(CallExp.test11696a.mangleof == "_ZN7CallExp10test11696aE3LocP10ExpressionS2_");
     static assert(CallExp.test11696b.mangleof == "_ZN7CallExp10test11696bE3LocP10ExpressionPS2_");
@@ -343,7 +343,7 @@ extern(C++, N13337a.N13337b.N13337c)
   void foo13337(S13337 s);
 }
 
-version (linux)
+version (Posix)
 {
     static assert(foo13337.mangleof == "_ZN7N13337a7N13337b7N13337c8foo13337ENS1_6S13337E");
 }
@@ -425,7 +425,7 @@ extern (C++, std)
     struct test18957 {}
 }
 
-version (linux)
+version (Posix)
 {
     // https://issues.dlang.org/show_bug.cgi?id=17947
     static assert(std.pair!(void*, void*).swap.mangleof == "_ZNSt4pairIPvS0_E4swapERS1_");
@@ -445,7 +445,7 @@ alias T36 = int ********** ********** ********** **********;
 
 extern (C++) void test36(T36, T36*) { }
 
-version (linux)
+version (Posix)
 {
     static assert(test36.mangleof == "_Z6test36PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPiPS12_");
 }
