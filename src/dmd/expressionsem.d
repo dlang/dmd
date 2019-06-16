@@ -4714,7 +4714,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 .error(exp.loc, "%s `%s%s` is not callable using argument types `%s`",
                     p, exp.e1.toChars(), parametersTypeToChars(tf.parameterList), buf.peekChars());
                 if (failMessage)
-                    errorSupplemental(exp.loc, failMessage);
+                    errorSupplemental(exp.loc, "%s", failMessage);
                 return setError();
             }
             // Purity and safety check should run after testing arguments matching
@@ -4787,7 +4787,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     .error(exp.loc, "%s `%s%s` is not callable using argument types `%s`",
                         exp.f.kind(), exp.f.toPrettyChars(), parametersTypeToChars(tf.parameterList), buf.peekChars());
                     if (failMessage)
-                        errorSupplemental(exp.loc, failMessage);
+                        errorSupplemental(exp.loc, "%s", failMessage);
                     exp.f = null;
                 }
             }
