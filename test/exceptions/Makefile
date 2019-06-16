@@ -1,7 +1,7 @@
 include ../common.mak
 
 TESTS=stderr_msg unittest_assert invalid_memory_operation unknown_gc static_dtor \
-	  future_message rt_trap_exceptions_drt
+	  future_message rt_trap_exceptions_drt catch_in_finally
 
 ifeq ($(OS)-$(BUILD),linux-debug)
 	TESTS+=line_trace long_backtrace_trunc rt_trap_exceptions
@@ -63,6 +63,7 @@ $(ROOT)/unknown_gc.done: STDERR_EXP="'unknowngc'"
 $(ROOT)/static_dtor.done: STDERR_EXP="dtor_called_more_than_once"
 $(ROOT)/future_message.done: STDERR_EXP="exception I have a custom message. exception exception "
 $(ROOT)/static_dtor.done: NEGATE=!
+$(ROOT)/catch_in_finally.done: STDERR_EXP="success."
 $(ROOT)/rt_trap_exceptions.done: STDERR_EXP="object.Exception@src/rt_trap_exceptions.d(12): this will abort"
 $(ROOT)/rt_trap_exceptions.done: STDERR_EXP2="src/rt_trap_exceptions.d:8 main"
 $(ROOT)/assert_fail.done: STDERR_EXP="success."
