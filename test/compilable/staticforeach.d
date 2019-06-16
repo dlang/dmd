@@ -711,3 +711,5 @@ static foreach(m; __traits(allMembers, staticforeach))
 {
     pragma(msg, m);
 }
+
+static foreach(i; 0 .. 0xFFFF) {}
