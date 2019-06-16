@@ -2,11 +2,13 @@ Ddoc
 
 $(SPEC_S Introduction,
 
-        $(P The D programming language is a general purpose systems programming language.
-        To that end, a D program is a collection of modules that can be compiled separately
-        to native code that is combined with libraries and compiled C code by a linker to create a
-        native executable.
-        )
+$(P D is a general-purpose systems programming language with a C-like syntax that compiles to native code.
+It is statically typed and supports both automatic $(LPAREN)garbage collected$(RPAREN) and manual memory management.
+D programs are structured as modules that can be compiled separately and linked with external libraries
+to create native libraries or executables.)
+
+$(P This document is the reference manual for the D Programming Language. For more information and
+other documents$(COMMA) see $(LINK2 https://dlang.org/, The D Language Website).)
 
 $(H2 Phases of Compilation)
 

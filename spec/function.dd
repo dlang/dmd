@@ -1072,7 +1072,8 @@ $(H2 $(LNAME2 function-overloading, Function Overloading))
         $(OL
         $(LI no match)
         $(LI match with implicit conversions)
-        $(LI match with conversion to const)
+        $(LI match with qualifier conversion (if the argument type is
+        $(GLOSSARY qualifier-convertible) to the parameter type))
         $(LI exact match)
         )
 

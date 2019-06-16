@@ -44,6 +44,8 @@ $(GNAME TraitsKeyword):
     $(GLINK isLazy)
     $(GLINK isReturnOnStack)
     $(GLINK isZeroInit)
+    $(GLINK isModule)
+    $(GLINK isPackage)
     $(GLINK hasMember)
     $(GLINK identifier)
     $(GLINK getAliasThis)
@@ -593,6 +595,40 @@ $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     $(LI Testing that the compiler does this correctly is normally hackish and awkward,
     this enables efficient, direct, and simple testing.)
     ))
+
+$(H2 $(GNAME isModule))
+
+        $(P Takes one argument. If that argument is a symbol that refers to a
+        $(DDLINK spec/module, module) then $(D true) is returned, otherwise $(D false).
+        $(DDSUBLINK spec/module, package-module, Package modules) are considered to be
+        modules even if they have not been directly imported as modules.
+        )
+
+---
+import std.algorithm.sorting;
+
+// A regular package (no package.d)
+static assert(!__traits(isModule, std));
+// A package module (has a package.d file)
+// Note that we haven't imported std.algorithm directly.
+// (In other words, we don't have an "import std.algorithm;" directive.)
+static assert(__traits(isModule, std.algorithm));
+// A regular module
+static assert(__traits(isModule, std.algorithm.sorting));
+---
+
+$(H2 $(GNAME isPackage))
+
+        $(P Takes one argument. If that argument is a symbol that refers to a
+        $(DDLINK spec/module, package) then $(D true) is returned, otherwise $(D false).
+        )
+
+---
+import std.algorithm.sorting;
+static assert(__traits(isPackage, std));
+static assert(__traits(isPackage, std.algorithm));
+static assert(!__traits(isPackage, std.algorithm.sorting));
+---
 
 $(H2 $(GNAME hasMember))
 
