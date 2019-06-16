@@ -985,20 +985,20 @@ pure T ror(uint count, T)(in T value)
 ///
 unittest
 {
-    ubyte a = 0b10101010U;
-    ulong b = ulong.max;
+    ubyte a = 0b11110000U;
+    ulong b = ~1UL;
 
-    assert(rol(a, 1) == 0b01010101);
-    assert(ror(a, 1) == 0b01010101);
-    assert(rol(a, 3) == 0b01010101);
-    assert(ror(a, 3) == 0b01010101);
+    assert(rol(a, 1) == 0b11100001);
+    assert(ror(a, 1) == 0b01111000);
+    assert(rol(a, 3) == 0b10000111);
+    assert(ror(a, 3) == 0b00011110);
 
     assert(rol(a, 0) == a);
     assert(ror(a, 0) == a);
 
-    assert(rol(b, 63) == ulong.max);
-    assert(ror(b, 63) == ulong.max);
+    assert(rol(b, 63) == ~(1UL << 63));
+    assert(ror(b, 63) == ~2UL);
 
-    assert(rol!3(a) == 0b01010101);
-    assert(ror!3(a) == 0b01010101);
+    assert(rol!3(a) == 0b10000111);
+    assert(ror!3(a) == 0b00011110);
 }

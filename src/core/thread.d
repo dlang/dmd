@@ -47,8 +47,17 @@ version (Solaris)
     import core.sys.posix.sys.wait : idtype_t;
 }
 
-// this should be true for most architectures
-version = StackGrowsDown;
+version (GNU)
+{
+    import gcc.builtins;
+    version (GNU_StackGrowsDown)
+        version = StackGrowsDown;
+}
+else
+{
+    // this should be true for most architectures
+    version = StackGrowsDown;
+}
 
 /**
  * Returns the process ID of the calling process, which is guaranteed to be
@@ -288,11 +297,6 @@ else version (Posix)
         {
             import core.sys.darwin.mach.thread_act;
             import core.sys.darwin.pthread : pthread_mach_thread_np;
-        }
-
-        version (GNU)
-        {
-            import gcc.builtins;
         }
 
         //
@@ -882,6 +886,17 @@ class Thread
         }
     }
 
+    /**
+     * Tests whether this thread is the main thread, i.e. the thread
+     * that initialized the runtime
+     *
+     * Returns:
+     *  true if the thread is the main thread
+     */
+    final @property bool isMainThread() nothrow @nogc
+    {
+        return this is sm_main;
+    }
 
     /**
      * Tests whether this thread is running.
@@ -1180,8 +1195,8 @@ class Thread
             }
             else
             {
-                // NOTE: pthread_setschedprio is not implemented on Darwin, FreeBSD or DragonFlyBSD, so use
-                //       the more complicated get/set sequence below.
+                // NOTE: pthread_setschedprio is not implemented on Darwin, FreeBSD, OpenBSD,
+                //       or DragonFlyBSD, so use the more complicated get/set sequence below.
                 int         policy;
                 sched_param param;
 
@@ -3010,7 +3025,7 @@ extern (C) void thread_scanAll( scope ScanAllThreadsFn scan ) nothrow
  * holding the lock already got suspended.
  *
  * The term and concept of a 'critical region' comes from
- * $(LINK2 https://github.com/mono/mono/blob/521f4a198e442573c400835ef19bbb36b60b0ebb/mono/metadata/sgen-gc.h#L925 Mono's SGen garbage collector).
+ * $(LINK2 https://github.com/mono/mono/blob/521f4a198e442573c400835ef19bbb36b60b0ebb/mono/metadata/sgen-gc.h#L925, Mono's SGen garbage collector).
  *
  * In:
  *  The calling thread must be attached to the runtime.
@@ -3218,6 +3233,7 @@ extern (C) @nogc nothrow
     version (CRuntime_Glibc) int pthread_getattr_np(pthread_t thread, pthread_attr_t* attr);
     version (FreeBSD) int pthread_attr_get_np(pthread_t thread, pthread_attr_t* attr);
     version (NetBSD) int pthread_attr_get_np(pthread_t thread, pthread_attr_t* attr);
+    version (OpenBSD) int pthread_stackseg_np(pthread_t thread, stack_t* sinfo);
     version (DragonFlyBSD) int pthread_attr_get_np(pthread_t thread, pthread_attr_t* attr);
     version (Solaris) int thr_stksegment(stack_t* stk);
     version (CRuntime_Bionic) int pthread_getattr_np(pthread_t thid, pthread_attr_t* attr);
@@ -3297,6 +3313,13 @@ private void* getStackBottom() nothrow @nogc
         version (StackGrowsDown)
             addr += size;
         return addr;
+    }
+    else version (OpenBSD)
+    {
+        stack_t stk;
+
+        pthread_stackseg_np(pthread_self(), &stk);
+        return stk.ss_sp;
     }
     else version (DragonFlyBSD)
     {
@@ -3569,8 +3592,7 @@ private
         else version (Posix)
             version = AsmX86_Posix;
 
-        version (Darwin)
-            version = AlignFiberStackTo16Byte;
+        version = AlignFiberStackTo16Byte;
     }
     else version (D_InlineAsm_X86_64)
     {
@@ -4551,6 +4573,7 @@ private:
             version (Posix) import core.sys.posix.sys.mman; // mmap
             version (FreeBSD) import core.sys.freebsd.sys.mman : MAP_ANON;
             version (NetBSD) import core.sys.netbsd.sys.mman : MAP_ANON;
+            version (OpenBSD) import core.sys.openbsd.sys.mman : MAP_ANON;
             version (DragonFlyBSD) import core.sys.dragonflybsd.sys.mman : MAP_ANON;
             version (CRuntime_Glibc) import core.sys.linux.sys.mman : MAP_ANON;
             version (Darwin) import core.sys.darwin.sys.mman : MAP_ANON;
@@ -5645,8 +5668,15 @@ version (Posix)
 // lowlovel threading support
 private
 {
+    struct ll_ThreadData
+    {
+        ThreadID tid;
+        version (Windows)
+            void delegate() nothrow cbDllUnload;
+    }
+
     __gshared size_t ll_nThreads;
-    __gshared ThreadID* ll_pThreads;
+    __gshared ll_ThreadData* ll_pThreads;
 
     __gshared align(Mutex.alignof) void[__traits(classInstanceSize, Mutex)] ll_lock;
 
@@ -5673,20 +5703,151 @@ private
 
         foreach (i; 0 .. ll_nThreads)
         {
-            if (tid is ll_pThreads[i])
+            if (tid is ll_pThreads[i].tid)
             {
                 import core.stdc.string : memmove;
-                memmove(ll_pThreads + i, ll_pThreads + i + 1, ThreadID.sizeof * (ll_nThreads - i - 1));
+                memmove(ll_pThreads + i, ll_pThreads + i + 1, ll_ThreadData.sizeof * (ll_nThreads - i - 1));
                 --ll_nThreads;
                 // no need to minimize, next add will do
                 break;
             }
         }
     }
-}
 
-version (Windows)
-    package(core) bool thread_DLLProcessDetaching;
+    version (Windows):
+    // If the runtime is dynamically loaded as a DLL, there is a problem with
+    // threads still running when the DLL is supposed to be unloaded:
+    //
+    // - with the VC runtime starting with VS2015 (i.e. using the Universal CRT)
+    //   a thread created with _beginthreadex increments the DLL reference count
+    //   and decrements it when done, so that the DLL is no longer unloaded unless
+    //   all the threads have terminated. With the DLL reference count held up
+    //   by a thread that is only stopped by a signal from a static destructor or
+    //   the termination of the runtime will cause the DLL to never be unloaded.
+    //
+    // - with the DigitalMars runtime and VC runtime up to VS2013, the thread
+    //   continues to run, but crashes once the DLL is unloaded from memory as
+    //   the code memory is no longer accessible. Stopping the threads is not possible
+    //   from within the runtime termination as it is invoked from
+    //   DllMain(DLL_PROCESS_DETACH) holding a lock that prevents threads from
+    //   terminating.
+    //
+    // Solution: start a watchdog thread that keeps the DLL reference count above 0 and
+    // checks it periodically. If it is equal to 1 (plus the number of started threads), no
+    // external references to the DLL exist anymore, threads can be stopped
+    // and runtime termination and DLL unload can be invoked via FreeLibraryAndExitThread.
+    // Note: runtime termination is then performed by a different thread than at startup.
+    //
+    // Note: if the DLL is never unloaded, process termination kills all threads
+    // and signals their handles before unconditionally calling DllMain(DLL_PROCESS_DETACH).
+
+    import core.sys.windows.winbase : FreeLibraryAndExitThread, GetModuleHandleExW,
+        GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT;
+    import core.sys.windows.windef : HMODULE;
+    import core.sys.windows.dll : dll_getRefCount;
+
+    version (CRuntime_Microsoft)
+        extern(C) extern __gshared ubyte msvcUsesUCRT; // from rt/msvc.c
+
+    package(core) __gshared bool thread_DLLProcessDetaching;
+
+    __gshared HMODULE ll_dllModule;
+    __gshared ThreadID ll_dllMonitorThread;
+
+    int ll_countLowLevelThreadsWithDLLUnloadCallback() nothrow
+    {
+        lowlevelLock.lock_nothrow();
+        scope(exit) lowlevelLock.unlock_nothrow();
+
+        int cnt = 0;
+        foreach (i; 0 .. ll_nThreads)
+            if (ll_pThreads[i].cbDllUnload)
+                cnt++;
+        return cnt;
+    }
+
+    bool ll_dllHasExternalReferences() nothrow
+    {
+        version (CRuntime_DigitalMars)
+            enum internalReferences = 1; // only the watchdog thread
+        else
+            int internalReferences =  msvcUsesUCRT ? 1 + ll_countLowLevelThreadsWithDLLUnloadCallback() : 1;
+
+        int refcnt = dll_getRefCount(ll_dllModule);
+        return refcnt > internalReferences;
+    }
+
+    private void monitorDLLRefCnt() nothrow
+    {
+        // this thread keeps the DLL alive until all external references are gone
+        while (ll_dllHasExternalReferences())
+        {
+            Thread.sleep(100.msecs);
+        }
+
+        // the current thread will be terminated below
+        ll_removeThread(GetCurrentThreadId());
+
+        for (;;)
+        {
+            ThreadID tid;
+            void delegate() nothrow cbDllUnload;
+            {
+                lowlevelLock.lock_nothrow();
+                scope(exit) lowlevelLock.unlock_nothrow();
+
+                foreach (i; 0 .. ll_nThreads)
+                    if (ll_pThreads[i].cbDllUnload)
+                    {
+                        cbDllUnload = ll_pThreads[i].cbDllUnload;
+                        tid = ll_pThreads[0].tid;
+                    }
+            }
+            if (!cbDllUnload)
+                break;
+            cbDllUnload();
+            assert(!findLowLevelThread(tid));
+        }
+
+        FreeLibraryAndExitThread(ll_dllModule, 0);
+    }
+
+    int ll_getDLLRefCount() nothrow @nogc
+    {
+        if (!ll_dllModule &&
+            !GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                                cast(const(wchar)*) &ll_getDLLRefCount, &ll_dllModule))
+            return -1;
+        return dll_getRefCount(ll_dllModule);
+    }
+
+    bool ll_startDLLUnloadThread() nothrow @nogc
+    {
+        int refcnt = ll_getDLLRefCount();
+        if (refcnt < 0)
+            return false; // not a dynamically loaded DLL
+
+        if (ll_dllMonitorThread !is ThreadID.init)
+            return true;
+
+        // if a thread is created from a DLL, the MS runtime (starting with VC2015) increments the DLL reference count
+        // to avoid the DLL being unloaded while the thread is still running. Mimick this behavior here for all
+        // runtimes not doing this
+        version (CRuntime_DigitalMars)
+            enum needRef = true;
+        else
+            bool needRef = !msvcUsesUCRT;
+
+        if (needRef)
+        {
+            HMODULE hmod;
+            GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, cast(const(wchar)*) &ll_getDLLRefCount, &hmod);
+        }
+
+        ll_dllMonitorThread = createLowLevelThread(() { monitorDLLRefCnt(); });
+        return ll_dllMonitorThread != ThreadID.init;
+    }
+}
 
 /**
  * Create a thread not under control of the runtime, i.e. TLS module constructors are
@@ -5696,11 +5857,15 @@ version (Windows)
  *  dg        = delegate to execute in the created thread
  *  stacksize = size of the stack of the created thread. The default of 0 will select the
  *              platform-specific default size
+ *  cbDllUnload = Windows only: if running in a dynamically loaded DLL, this delegate will be called
+ *              if the DLL is supposed to be unloaded, but the thread is still running.
+ *              The thread must be terminated via `joinLowLevelThread` by the callback.
  *
  * Returns: the platform specific thread ID of the new thread. If an error occurs, `ThreadID.init`
  *  is returned.
  */
-ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0) nothrow @nogc
+ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
+                              void delegate() nothrow cbDllUnload = null) nothrow @nogc
 {
     void delegate() nothrow* context = cast(void delegate() nothrow*)malloc(dg.sizeof);
     *context = dg;
@@ -5708,6 +5873,10 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0) no
     ThreadID tid;
     version (Windows)
     {
+        // the thread won't start until after the DLL is unloaded
+        if (thread_DLLProcessDetaching)
+            return ThreadID.init;
+
         static extern (Windows) uint thread_lowlevelEntry(void* ctx) nothrow
         {
             auto dg = *cast(void delegate() nothrow*)ctx;
@@ -5729,14 +5898,18 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0) no
     scope(exit) lowlevelLock.unlock_nothrow();
 
     ll_nThreads++;
-    ll_pThreads = cast(ThreadID*)realloc(ll_pThreads, Thread.sizeof * ll_nThreads);
+    ll_pThreads = cast(ll_ThreadData*)realloc(ll_pThreads, ll_ThreadData.sizeof * ll_nThreads);
 
     version (Windows)
     {
-        ll_pThreads[ll_nThreads - 1] = tid;
+        ll_pThreads[ll_nThreads - 1].tid = tid;
+        ll_pThreads[ll_nThreads - 1].cbDllUnload = cbDllUnload;
         if (ResumeThread(hThread) == -1)
             onThreadError("Error resuming thread");
         CloseHandle(hThread);
+
+        if (cbDllUnload)
+            ll_startDLLUnloadThread();
     }
     else version (Posix)
     {
@@ -5760,7 +5933,7 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0) no
         if ((rc = pthread_create(&tid, &attr, &thread_lowlevelEntry, context)) != 0)
             return ThreadID.init;
 
-        ll_pThreads[ll_nThreads - 1] = tid;
+        ll_pThreads[ll_nThreads - 1].tid = tid;
     }
     return tid;
 }
@@ -5817,7 +5990,7 @@ bool findLowLevelThread(ThreadID tid) nothrow @nogc
     scope(exit) lowlevelLock.unlock_nothrow();
 
     foreach (i; 0 .. ll_nThreads)
-        if (tid is ll_pThreads[i])
+        if (tid is ll_pThreads[i].tid)
             return true;
     return false;
 }

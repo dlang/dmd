@@ -45,10 +45,12 @@ void destroy(T)(ref T t) if (!is(T == struct))
 void initialize(T)(ref T t) if (is(T == struct))
 {
     import core.stdc.string;
-    if (auto p = typeid(T).initializer().ptr)
-        memcpy(&t, p, T.sizeof);
-    else
+    static if (__traits(isPOD, T)) // implies !hasElaborateAssign!T && !hasElaborateDestructor!T
+        t = T.init;
+    else static if (__traits(isZeroInit, T))
         memset(&t, 0, T.sizeof);
+    else
+        memcpy(&t, typeid(T).initializer().ptr, T.sizeof);
 }
 
 void initialize(T)(ref T t) if (!is(T == struct))

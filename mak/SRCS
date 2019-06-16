@@ -73,10 +73,13 @@ SRCS=\
 	src\core\sync\rwmutex.d \
 	src\core\sync\semaphore.d \
 	\
+	src\core\sys\bionic\string.d \
+	\
 	src\core\sys\darwin\crt_externs.d \
 	src\core\sys\darwin\dlfcn.d \
 	src\core\sys\darwin\execinfo.d \
 	src\core\sys\darwin\pthread.d \
+	src\core\sys\darwin\string.d \
 	src\core\sys\darwin\mach\dyld.d \
 	src\core\sys\darwin\mach\getsect.d \
 	src\core\sys\darwin\mach\kern_return.d \
@@ -94,6 +97,7 @@ SRCS=\
 	src\core\sys\freebsd\execinfo.d \
 	src\core\sys\freebsd\netinet\in_.d \
 	src\core\sys\freebsd\pthread_np.d \
+	src\core\sys\freebsd\string.d \
 	src\core\sys\freebsd\sys\_bitset.d \
 	src\core\sys\freebsd\sys\_cpuset.d \
 	src\core\sys\freebsd\sys\cdefs.d \
@@ -112,6 +116,7 @@ SRCS=\
 	src\core\sys\dragonflybsd\execinfo.d \
 	src\core\sys\dragonflybsd\netinet\in_.d \
 	src\core\sys\dragonflybsd\pthread_np.d \
+	src\core\sys\dragonflybsd\string.d \
 	src\core\sys\dragonflybsd\sys\_bitset.d \
 	src\core\sys\dragonflybsd\sys\_cpuset.d \
 	src\core\sys\dragonflybsd\sys\cdefs.d \
@@ -134,6 +139,7 @@ SRCS=\
 	src\core\sys\linux\ifaddrs.d \
 	src\core\sys\linux\link.d \
 	src\core\sys\linux\sched.d \
+	src\core\sys\linux\string.d \
 	src\core\sys\linux\termios.d \
 	src\core\sys\linux\time.d \
 	src\core\sys\linux\timerfd.d \
@@ -156,7 +162,11 @@ SRCS=\
 	src\core\sys\linux\sys\time.d \
 	src\core\sys\linux\sys\prctl.d \
 	\
+	src\core\sys\netbsd\sys\featuretest.d \
+	src\core\sys\netbsd\string.d \
+	\
 	src\core\sys\openbsd\dlfcn.d \
+	src\core\sys\openbsd\string.d \
 	\
 	src\core\sys\posix\arpa\inet.d \
 	src\core\sys\posix\aio.d \

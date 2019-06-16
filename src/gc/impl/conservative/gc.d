@@ -18,6 +18,7 @@ module gc.impl.conservative.gc;
 /************** Debugging ***************************/
 
 //debug = PRINTF;               // turn on printf's
+//debug = PARALLEL_PRINTF;      // turn on printf's
 //debug = COLLECT_PRINTF;       // turn on printf's
 //debug = MARK_PRINTF;          // turn on printf's
 //debug = PRINTF_TO_FILE;       // redirect printf's ouptut to file "gcx.log"
@@ -32,6 +33,7 @@ module gc.impl.conservative.gc;
 //debug = PROFILE_API;          // profile API calls for config.profile > 1
 
 /***************************************************/
+version = COLLECT_PARALLEL;  // parallel scanning
 
 import gc.bits;
 import gc.os;
@@ -76,6 +78,8 @@ __gshared long reallocTime;
 __gshared long extendTime;
 __gshared long otherTime;
 __gshared long lockTime;
+
+ulong bytesAllocated;   // thread local counter
 
 private
 {
@@ -393,6 +397,7 @@ class ConservativeGC : GC
             alloc_size = size;
         }
         gcx.leakDetector.log_malloc(p, size);
+        bytesAllocated += alloc_size;
 
         debug(PRINTF) printf("  => p = %p\n", p);
         return p;
@@ -1111,6 +1116,7 @@ class ConservativeGC : GC
 
         stats.usedSize -= freeListSize;
         stats.freeSize += freeListSize;
+        stats.allocatedInCurrentThread = bytesAllocated;
     }
 }
 
@@ -1303,6 +1309,9 @@ struct Gcx
                    cast(long) maxPoolMemory >> 20, cast(ulong)numCollections, gcTime,
                    pauseTime, maxPause, apitxt.ptr);
         }
+
+        version (COLLECT_PARALLEL)
+            stopScanThreads();
 
         debug(INVARIANT) initialized = false;
 
@@ -1865,6 +1874,7 @@ struct Gcx
     {
     nothrow:
         @disable this(this);
+        auto stackLock = shared(AlignedSpinLock)(SpinLock.Contention.brief);
 
         void reset()
         {
@@ -1875,6 +1885,10 @@ struct Gcx
                 _p = null;
             }
             _cap = 0;
+        }
+        void clear()
+        {
+            _length = 0;
         }
 
         void push(RANGE rng)
@@ -1888,6 +1902,19 @@ struct Gcx
         do
         {
             return _p[--_length];
+        }
+
+        bool popLocked(ref RANGE rng)
+        {
+            if (_length == 0)
+                return false;
+
+            stackLock.lock();
+            scope(exit) stackLock.unlock();
+            if (_length == 0)
+                return false;
+            rng = _p[--_length];
+            return true;
         }
 
         ref inout(RANGE) opIndex(size_t idx) inout
@@ -1926,27 +1953,23 @@ struct Gcx
     ToScanStack!(ScanRange!false) toscanConservative;
     ToScanStack!(ScanRange!true) toscanPrecise;
 
+    template scanStack(bool precise)
+    {
+        static if (precise)
+            alias scanStack = toscanPrecise;
+        else
+            alias scanStack = toscanConservative;
+    }
+
     /**
      * Search a range of memory values and mark any pointers into the GC pool.
      */
-    void mark(bool precise)(void *pbot, void *ptop) scope nothrow
+    private void mark(bool precise, bool parallel)(ScanRange!precise rng) scope nothrow
     {
-        static if (precise)
-            alias toscan = toscanPrecise;
-        else
-            alias toscan = toscanConservative;
+        alias toscan = scanStack!precise;
 
         debug(MARK_PRINTF)
             printf("marking range: [%p..%p] (%#llx)\n", pbot, ptop, cast(long)(ptop - pbot));
-
-        if (pbot >= ptop)
-            return;
-
-        ScanRange!precise rng = void;
-        rng.pbot = cast(void **)pbot;
-        rng.ptop = cast(void **)ptop;
-        static if (precise)
-            rng.pbase = null; // always starting from a non-heap root
 
         // limit the amount of ranges added to the toscan stack
         enum FANOUT_LIMIT = 32;
@@ -2025,7 +2048,7 @@ struct Gcx
                     biti = offsetBase >> Pool.ShiftBy.Small;
                     //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
 
-                    if (!pool.mark.set(biti) && !pool.noscan.test(biti))
+                    if (!pool.mark.testAndSet!parallel(biti) && !pool.noscan.test(biti))
                     {
                         tgt.pbot = pool.baseAddr + offsetBase;
                         tgt.ptop = tgt.pbot + binsize[bin];
@@ -2052,7 +2075,7 @@ struct Gcx
                     if (tgt.pbot != sentinel_sub(p) && pool.nointerior.nbits && pool.nointerior.test(biti))
                         goto LnextPtr;
 
-                    if (!pool.mark.set(biti) && !pool.noscan.test(biti))
+                    if (!pool.mark.testAndSet!parallel(biti) && !pool.noscan.test(biti))
                     {
                         tgt.ptop = tgt.pbot + (cast(LargeObjectPool*)pool).getSize(pn);
                         goto LaddLargeRange;
@@ -2067,7 +2090,7 @@ struct Gcx
                     if (pool.nointerior.nbits && pool.nointerior.test(biti))
                         goto LnextPtr;
 
-                    if (!pool.mark.set(biti) && !pool.noscan.test(biti))
+                    if (!pool.mark.testAndSet!parallel(biti) && !pool.noscan.test(biti))
                     {
                         tgt.pbot = pool.baseAddr + (pn * PAGESIZE);
                         tgt.ptop = tgt.pbot + (cast(LargeObjectPool*)pool).getSize(pn);
@@ -2125,15 +2148,21 @@ struct Gcx
                 // pop range from local stack and recurse
                 rng = stack[--stackPos];
             }
-            else if (!toscan.empty)
-            {
-                // pop range from global stack and recurse
-                rng = toscan.pop();
-            }
             else
             {
-                // nothing more to do
-                break;
+                static if (parallel)
+                {
+                    if (!toscan.popLocked(rng))
+                        break; // nothing more to do
+                }
+                else
+                {
+                    if (toscan.empty)
+                        break; // nothing more to do
+
+                    // pop range from global stack and recurse
+                    rng = toscan.pop();
+                }
             }
             // printf("  pop [%p..%p] (%#zx)\n", p1, p2, cast(size_t)p2 - cast(size_t)p1);
             goto LcontRange;
@@ -2147,6 +2176,11 @@ struct Gcx
                     stack[stackPos] = tgt;
                     stackPos++;
                     continue;
+                }
+                static if (parallel)
+                {
+                    toscan.stackLock.lock();
+                    scope(exit) toscan.stackLock.unlock();
                 }
                 toscan.push(rng);
                 // reverse order for depth-first-order traversal
@@ -2165,12 +2199,31 @@ struct Gcx
 
     void markConservative(void *pbot, void *ptop) scope nothrow
     {
-        mark!false(pbot, ptop);
+        if (pbot < ptop)
+            mark!(false, false)(ScanRange!false(pbot, ptop));
     }
 
     void markPrecise(void *pbot, void *ptop) scope nothrow
     {
-        mark!true(pbot, ptop);
+        if (pbot < ptop)
+            mark!(true, false)(ScanRange!true(pbot, ptop, null));
+    }
+
+    version (COLLECT_PARALLEL)
+    ToScanStack!(void*) toscanRoots;
+
+    version (COLLECT_PARALLEL)
+    void collectRoots(void *pbot, void *ptop) scope nothrow
+    {
+        const minAddr = pooltable.minAddr;
+        size_t memSize = pooltable.maxAddr - minAddr;
+
+        for (auto p = cast(void**)pbot; cast(void*)p < ptop; p++)
+        {
+            auto ptr = *p;
+            if (cast(size_t)(ptr - minAddr) < memSize)
+                toscanRoots.push(ptr);
+        }
     }
 
     // collection step 1: prepare freebits and mark bits
@@ -2214,6 +2267,32 @@ struct Gcx
             markFn(range.pbot, range.ptop);
         }
         //log--;
+    }
+
+    version (COLLECT_PARALLEL)
+    void collectAllRoots(bool nostack) nothrow
+    {
+        if (!nostack)
+        {
+            debug(COLLECT_PRINTF) printf("\tcollect stacks.\n");
+            // Scan stacks and registers for each paused thread
+            thread_scanAll(&collectRoots);
+        }
+
+        // Scan roots[]
+        debug(COLLECT_PRINTF) printf("\tcollect roots[]\n");
+        foreach (root; roots)
+        {
+            toscanRoots.push(root);
+        }
+
+        // Scan ranges[]
+        debug(COLLECT_PRINTF) printf("\tcollect ranges[]\n");
+        foreach (range; ranges)
+        {
+            debug(COLLECT_PRINTF) printf("\t\t%p .. %p\n", range.pbot, range.ptop);
+            collectRoots(range.pbot, range.ptop);
+        }
     }
 
     // collection step 3: finalize unreferenced objects, recover full pages with no live objects
@@ -2521,10 +2600,23 @@ struct Gcx
             prepTime += (stop - start);
             start = stop;
 
-            if (ConservativeGC.isPrecise)
-                markAll!markPrecise(nostack);
+            version (COLLECT_PARALLEL)
+                bool doParallel = config.parallel > 0;
             else
-                markAll!markConservative(nostack);
+                enum doParallel = false;
+
+            if (doParallel)
+            {
+                version (COLLECT_PARALLEL)
+                    markParallel(nostack);
+            }
+            else
+            {
+                if (ConservativeGC.isPrecise)
+                    markAll!markPrecise(nostack);
+                else
+                    markAll!markConservative(nostack);
+            }
 
             thread_processGCMarks(&isMarked);
             thread_resumeAll();
@@ -2605,6 +2697,210 @@ struct Gcx
             return pool.mark.test(biti) ? IsMarked.yes : IsMarked.no;
         }
         return IsMarked.unknown;
+    }
+
+    /* ============================ Parallel scanning =============================== */
+    version (COLLECT_PARALLEL):
+    import core.sync.event;
+    import core.atomic;
+    private: // disable invariants for background threads
+
+    static struct ScanThreadData
+    {
+        ThreadID tid;
+    }
+    uint numScanThreads;
+    ScanThreadData* scanThreadData;
+
+    Event evStart;
+    Event evDone;
+
+    shared uint busyThreads;
+    bool stopGC;
+
+    void markParallel(bool nostack) nothrow
+    {
+        toscanRoots.clear();
+        collectAllRoots(nostack);
+        if (toscanRoots.empty)
+            return;
+
+        void** pbot = toscanRoots._p;
+        void** ptop = toscanRoots._p + toscanRoots._length;
+
+        if (!scanThreadData)
+            startScanThreads();
+
+        debug(PARALLEL_PRINTF) printf("markParallel\n");
+
+        size_t pointersPerThread = toscanRoots._length / (numScanThreads + 1);
+        if (pointersPerThread > 0)
+        {
+            void pushRanges(bool precise)()
+            {
+                alias toscan = scanStack!precise;
+                toscan.stackLock.lock();
+
+                for (int idx = 0; idx < numScanThreads; idx++)
+                {
+                    toscan.push(ScanRange!precise(pbot, pbot + pointersPerThread));
+                    pbot += pointersPerThread;
+                }
+                toscan.stackLock.unlock();
+            }
+            if (ConservativeGC.isPrecise)
+                pushRanges!true();
+            else
+                pushRanges!false();
+        }
+        assert(pbot < ptop);
+
+        busyThreads.atomicOp!"+="(1); // main thread is busy
+
+        evStart.set();
+
+        debug(PARALLEL_PRINTF) printf("mark %lld roots\n", cast(ulong)(ptop - pbot));
+
+        if (ConservativeGC.isPrecise)
+            mark!(true, true)(ScanRange!true(pbot, ptop, null));
+        else
+            mark!(false, true)(ScanRange!false(pbot, ptop));
+
+        busyThreads.atomicOp!"-="(1);
+
+        debug(PARALLEL_PRINTF) printf("waitForScanDone\n");
+        pullFromScanStack();
+        debug(PARALLEL_PRINTF) printf("waitForScanDone done\n");
+    }
+
+    int maxParallelThreads() nothrow
+    {
+        import core.cpuid;
+        auto threads = threadsPerCPU();
+
+        if (threads == 0)
+        {
+            // If the GC is called by module ctors no explicit
+            // import dependency on the GC is generated. So the
+            // GC module is not correctly inserted into the module
+            // initialization chain. As it relies on core.cpuid being
+            // initialized, force this here.
+            try
+            {
+                foreach (m; ModuleInfo)
+                    if (m.name == "core.cpuid")
+                        if (auto ctor = m.ctor())
+                        {
+                            ctor();
+                            threads = threadsPerCPU();
+                            break;
+                        }
+            }
+            catch (Exception)
+            {
+                assert(false, "unexpected exception iterating ModuleInfo");
+            }
+        }
+        return threads;
+    }
+
+
+    void startScanThreads() nothrow
+    {
+        auto threads = maxParallelThreads();
+        debug(PARALLEL_PRINTF) printf("startScanThreads: %d threads per CPU\n", threads);
+        if (threads <= 1)
+            return; // either core.cpuid not initialized or single core
+
+        numScanThreads = threads >= config.parallel ? config.parallel : threads - 1;
+
+        scanThreadData = cast(ScanThreadData*) cstdlib.calloc(numScanThreads, ScanThreadData.sizeof);
+        if (!scanThreadData)
+            onOutOfMemoryErrorNoGC();
+
+        evStart.initialize(false, false);
+        evDone.initialize(false, false);
+
+        for (int idx = 0; idx < numScanThreads; idx++)
+            scanThreadData[idx].tid = createLowLevelThread(&scanBackground, 0x4000, &stopScanThreads);
+    }
+
+    void stopScanThreads() nothrow
+    {
+        if (!numScanThreads)
+            return;
+
+        debug(PARALLEL_PRINTF) printf("stopScanThreads\n");
+        stopGC = true;
+        evStart.set();
+
+        for (int idx = 0; idx < numScanThreads; idx++)
+        {
+            if (scanThreadData[idx].tid != scanThreadData[idx].tid.init)
+            {
+                joinLowLevelThread(scanThreadData[idx].tid);
+                scanThreadData[idx].tid = scanThreadData[idx].tid.init;
+            }
+        }
+
+        evDone.terminate();
+        evStart.terminate();
+
+        cstdlib.free(scanThreadData);
+        // scanThreadData = null; // keep non-null to not start again after shutdown
+        numScanThreads = 0;
+
+        debug(PARALLEL_PRINTF) printf("stopScanThreads done\n");
+    }
+
+    void scanBackground() nothrow
+    {
+        while (!stopGC)
+        {
+            evStart.wait(dur!"msecs"(10));
+            pullFromScanStack();
+            evDone.set();
+        }
+    }
+
+    void pullFromScanStack() nothrow
+    {
+        if (ConservativeGC.isPrecise)
+            pullFromScanStackImpl!true();
+        else
+            pullFromScanStackImpl!false();
+    }
+
+    void pullFromScanStackImpl(bool precise)() nothrow
+    {
+        if (atomicLoad(busyThreads) == 0)
+            return;
+
+        debug(PARALLEL_PRINTF)
+            pthread_t threadId = pthread_self();
+        debug(PARALLEL_PRINTF) printf("scanBackground thread %d start\n", threadId);
+
+        ScanRange!precise rng;
+        alias toscan = scanStack!precise;
+
+        while (atomicLoad(busyThreads) > 0)
+        {
+            if (toscan.empty)
+            {
+                evDone.wait(dur!"msecs"(1));
+                continue;
+            }
+
+            busyThreads.atomicOp!"+="(1);
+            if (toscan.popLocked(rng))
+            {
+                debug(PARALLEL_PRINTF) printf("scanBackground thread %d scanning range [%p,%lld] from stack\n", threadId,
+                                              rng.pbot, cast(long) (rng.ptop - rng.pbot));
+                mark!(precise, true)(rng);
+            }
+            busyThreads.atomicOp!"-="(1);
+        }
+        debug(PARALLEL_PRINTF) printf("scanBackground thread %d done\n", threadId);
     }
 }
 
@@ -3610,9 +3906,14 @@ debug(PRINTF_TO_FILE)
     private __gshared MonoTime gcStartTick;
     private __gshared FILE* gcx_fh;
     private __gshared bool hadNewline = false;
+    import core.internal.spinlock;
+    static printLock = shared(AlignedSpinLock)(SpinLock.Contention.lengthy);
 
     private int printf(ARGS...)(const char* fmt, ARGS args) nothrow
     {
+        printLock.lock();
+        scope(exit) printLock.unlock();
+
         if (!gcx_fh)
             gcx_fh = fopen("gcx.log", "w");
         if (!gcx_fh)
@@ -4088,7 +4389,9 @@ version (D_LP64) unittest
             GC.free(ptr);
             GC.minimize();
             auto nstats = GC.stats();
-            assert(nstats == stats);
+            assert(nstats.usedSize == stats.usedSize);
+            assert(nstats.freeSize == stats.freeSize);
+            assert(nstats.allocatedInCurrentThread - sz == stats.allocatedInCurrentThread);
         }
     }
 }

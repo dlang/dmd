@@ -23,7 +23,7 @@ $(ROOT)/profilegc.done: $(ROOT)/%.done: $(ROOT)/%
 	@echo Testing $*
 	@rm -f $(ROOT)/myprofilegc.log
 	$(QUIET)$(TIMELIMIT)$(ROOT)/$* $(ROOT)/myprofilegc.log
-	$(QUIET)$(DIFF) myprofilegc.log.exp $(ROOT)/myprofilegc.log
+	$(QUIET)$(DIFF) myprofilegc.log.$(OS).$(MODEL).exp $(ROOT)/myprofilegc.log
 	@touch $@
 
 $(ROOT)/both.done: DFLAGS+=-profile -profile=gc

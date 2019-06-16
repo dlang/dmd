@@ -163,9 +163,6 @@ extern (C) string[] rt_args()
     return _d_args;
 }
 
-// make arguments passed to main available for being filtered by runtime initializers
-extern(C) __gshared char[][] _d_main_args = null;
-
 // This variable is only ever set by a debugger on initialization so it should
 // be fine to leave it as __gshared.
 extern (C) __gshared bool rt_trapExceptions = true;
@@ -358,7 +355,15 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
     version (CRuntime_Microsoft)
     {
         // enable full precision for reals
-        version (Win64)
+        version (GNU)
+        {
+            size_t fpu_cw;
+            asm { "fstcw %0" : "=m" (fpu_cw); }
+            fpu_cw |= 0b11_00_111111;  // 11: use 64 bit extended-precision
+                                       // 111111: mask all FP exceptions
+            asm { "fldcw %0" : "=m" (fpu_cw); }
+        }
+        else version (Win64)
             asm
             {
                 push    RAX;

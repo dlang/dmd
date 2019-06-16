@@ -80,6 +80,8 @@ pure nothrow @nogc:
 
     ///
     alias as_array this;
+    ///
+    alias toString = as_array;
 
     ///
     this(const(T)[] str) @trusted                   { __data = str.ptr; __size = str.length; }

@@ -36,6 +36,8 @@ int _set_output_format(int format); // VS2013-
 //extern const char* __acrt_iob_func;
 extern const char* _nullfunc = 0;
 
+unsigned char msvcUsesUCRT;
+
 #if defined _M_IX86
     #define C_PREFIX "_"
 #elif defined _M_X64 || defined _M_ARM || defined _M_ARM64
@@ -58,6 +60,7 @@ void init_msvc()
         stdin = __acrt_iob_func(0);
         stdout = __acrt_iob_func(1);
         stderr = __acrt_iob_func(2);
+        msvcUsesUCRT = 1;
     }
     else if (&__iob_func != (void*) &_nullfunc)
     {

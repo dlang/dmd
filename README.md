@@ -58,7 +58,7 @@ the [bug tracker](http://issues.dlang.org/).
 Licensing
 ---------
 
-See the [LICENSE.txt](https://github.com/dlang/druntim/blob/master/LICENSE.txt) file for licensing information.
+See the [LICENSE.txt](https://github.com/dlang/druntime/blob/master/LICENSE.txt) file for licensing information.
 
 Building
 --------

@@ -1,2 +1,0 @@
-bytes allocated, allocations, type, function, file:line
-              4	              1	uint D main src/profilegc.d:6

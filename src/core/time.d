@@ -164,7 +164,7 @@ version (CoreDdoc) enum ClockType
     normal = 0,
 
     /++
-        $(BLUE Linux-Only)
+        $(BLUE Linux,OpenBSD-Only)
 
         Uses $(D CLOCK_BOOTTIME).
       +/
@@ -214,7 +214,7 @@ version (CoreDdoc) enum ClockType
     precise = 3,
 
     /++
-        $(BLUE Linux,Solaris-Only)
+        $(BLUE Linux,OpenBSD,Solaris-Only)
 
         Uses $(D CLOCK_PROCESS_CPUTIME_ID).
       +/
@@ -251,14 +251,14 @@ version (CoreDdoc) enum ClockType
     second = 6,
 
     /++
-        $(BLUE Linux,Solaris-Only)
+        $(BLUE Linux,OpenBSD,Solaris-Only)
 
         Uses $(D CLOCK_THREAD_CPUTIME_ID).
       +/
     threadCPUTime = 7,
 
     /++
-        $(BLUE FreeBSD-Only)
+        $(BLUE DragonFlyBSD,FreeBSD,OpenBSD-Only)
 
         Uses $(D CLOCK_UPTIME).
       +/
@@ -319,6 +319,17 @@ else version (NetBSD) enum ClockType
     coarse = 2,
     precise = 3,
     second = 6,
+}
+else version (OpenBSD) enum ClockType
+{
+    normal = 0,
+    bootTime = 1,
+    coarse = 2,
+    precise = 3,
+    processCPUTime = 4,
+    second = 6,
+    threadCPUTime = 7,
+    uptime = 8,
 }
 else version (DragonFlyBSD) enum ClockType
 {
@@ -393,6 +404,21 @@ version (Posix)
             case coarse: return CLOCK_MONOTONIC;
             case normal: return CLOCK_MONOTONIC;
             case precise: return CLOCK_MONOTONIC;
+            case second: assert(0);
+            }
+        }
+        else version (OpenBSD)
+        {
+            import core.sys.openbsd.time;
+            with(ClockType) final switch (clockType)
+            {
+            case bootTime: return CLOCK_BOOTTIME;
+            case coarse: return CLOCK_MONOTONIC;
+            case normal: return CLOCK_MONOTONIC;
+            case precise: return CLOCK_MONOTONIC;
+            case processCPUTime: return CLOCK_PROCESS_CPUTIME_ID;
+            case threadCPUTime: return CLOCK_THREAD_CPUTIME_ID;
+            case uptime: return CLOCK_UPTIME;
             case second: assert(0);
             }
         }
@@ -2543,8 +2569,11 @@ unittest
 
     static bool clockSupported(ClockType c)
     {
-        version (Linux_Pre_2639) // skip CLOCK_BOOTTIME on older linux kernels
-            return c != ClockType.second && c != ClockType.bootTime;
+        // Skip unsupported clocks on older linux kernels, assume that only
+        // CLOCK_MONOTONIC and CLOCK_REALTIME exist, as that is the lowest
+        // common denominator supported by all versions of Linux pre-2.6.12.
+        version (Linux_Pre_2639)
+            return c == ClockType.normal || c == ClockType.precise;
         else
             return c != ClockType.second; // second doesn't work with MonoTimeImpl
 
@@ -3546,43 +3575,15 @@ unittest
 }
 
 
-// @@@DEPRECATED_2018-10@@@
-/++
-    $(RED Everything in druntime and Phobos that was using FracSec now uses
-          Duration for greater simplicity. So, FracSec has been deprecated.
-          It will be removed from the docs in October 2018, and removed
-          completely from druntime in October 2019.)
-
-    Represents fractional seconds.
-
-    This is the portion of the time which is smaller than a second and it cannot
-    hold values which would be greater than or equal to a second (or less than
-    or equal to a negative second).
-
-    It holds hnsecs internally, but you can create it using either milliseconds,
-    microseconds, or hnsecs. What it does is allow for a simple way to set or
-    adjust the fractional seconds portion of a $(D Duration) or a
-    $(REF SysTime, std,datetime) without having to worry about whether you're
-    dealing with milliseconds, microseconds, or hnsecs.
-
-    $(D FracSec)'s functions which take time unit strings do accept
-    $(D "nsecs"), but because the resolution of $(D Duration) and
-    $(REF SysTime, std,datetime) is hnsecs, you don't actually get precision higher
-    than hnsecs. $(D "nsecs") is accepted merely for convenience. Any values
-    given as nsecs will be converted to hnsecs using $(D convert) (which uses
-    truncating division when converting to smaller units).
-  +/
-deprecated("FracSec has been deprecated in favor of just using Duration for the sake of simplicity")
+// @@@DEPRECATED_2.089@@@
+deprecated("FracSec has been deprecated in favor of just using Duration for the sake of simplicity. " ~
+           "It will be removed in 2.089.")
 struct FracSec
 {
 @safe pure:
 
 public:
 
-    /++
-        A $(D FracSec) of $(D 0). It's shorter than doing something like
-        $(D FracSec.from!"msecs"(0)) and more explicit than $(D FracSec.init).
-      +/
     static @property nothrow @nogc FracSec zero() { return FracSec(0); }
 
     unittest
@@ -3591,19 +3592,6 @@ public:
     }
 
 
-    /++
-        Create a $(D FracSec) from the given units ($(D "msecs"), $(D "usecs"),
-        or $(D "hnsecs")).
-
-        Params:
-            units = The units to create a FracSec from.
-            value = The number of the given units passed the second.
-
-        Throws:
-            $(D TimeException) if the given value would result in a $(D FracSec)
-            greater than or equal to $(D 1) second or less than or equal to
-            $(D -1) seconds.
-      +/
     static FracSec from(string units)(long value)
         if (units == "msecs" ||
            units == "usecs" ||
@@ -3665,9 +3653,6 @@ public:
     }
 
 
-    /++
-        Returns the negation of this $(D FracSec).
-      +/
     FracSec opUnary(string op)() const nothrow @nogc
         if (op == "-")
     {
@@ -3687,9 +3672,6 @@ public:
     }
 
 
-    /++
-        The value of this $(D FracSec) as milliseconds.
-      +/
     @property int msecs() const nothrow @nogc
     {
         return cast(int)convert!("hnsecs", "msecs")(_hnsecs);
@@ -3712,16 +3694,6 @@ public:
     }
 
 
-    /++
-        The value of this $(D FracSec) as milliseconds.
-
-        Params:
-            milliseconds = The number of milliseconds passed the second.
-
-        Throws:
-            $(D TimeException) if the given value is not less than $(D 1) second
-            and greater than a $(D -1) seconds.
-      +/
     @property void msecs(int milliseconds)
     {
         immutable hnsecs = cast(int)convert!("msecs", "hnsecs")(milliseconds);
@@ -3759,9 +3731,6 @@ public:
     }
 
 
-    /++
-        The value of this $(D FracSec) as microseconds.
-      +/
     @property int usecs() const nothrow @nogc
     {
         return cast(int)convert!("hnsecs", "usecs")(_hnsecs);
@@ -3784,16 +3753,6 @@ public:
     }
 
 
-    /++
-        The value of this $(D FracSec) as microseconds.
-
-        Params:
-            microseconds = The number of microseconds passed the second.
-
-        Throws:
-            $(D TimeException) if the given value is not less than $(D 1) second
-            and greater than a $(D -1) seconds.
-      +/
     @property void usecs(int microseconds)
     {
         immutable hnsecs = cast(int)convert!("usecs", "hnsecs")(microseconds);
@@ -3832,9 +3791,6 @@ public:
     }
 
 
-    /++
-        The value of this $(D FracSec) as hnsecs.
-      +/
     @property int hnsecs() const nothrow @nogc
     {
         return _hnsecs;
@@ -3857,16 +3813,6 @@ public:
     }
 
 
-    /++
-        The value of this $(D FracSec) as hnsecs.
-
-        Params:
-            hnsecs = The number of hnsecs passed the second.
-
-        Throws:
-            $(D TimeException) if the given value is not less than $(D 1) second
-            and greater than a $(D -1) seconds.
-      +/
     @property void hnsecs(int hnsecs)
     {
         _enforceValid(hnsecs);
@@ -3905,12 +3851,6 @@ public:
     }
 
 
-    /++
-        The value of this $(D FracSec) as nsecs.
-
-        Note that this does not give you any greater precision
-        than getting the value of this $(D FracSec) as hnsecs.
-      +/
     @property int nsecs() const nothrow @nogc
     {
         return cast(int)convert!("hnsecs", "nsecs")(_hnsecs);
@@ -3933,19 +3873,6 @@ public:
     }
 
 
-    /++
-        The value of this $(D FracSec) as nsecs.
-
-        Note that this does not give you any greater precision
-        than setting the value of this $(D FracSec) as hnsecs.
-
-        Params:
-            nsecs = The number of nsecs passed the second.
-
-        Throws:
-            $(D TimeException) if the given value is not less than $(D 1) second
-            and greater than a $(D -1) seconds.
-      +/
     @property void nsecs(long nsecs)
     {
         immutable hnsecs = cast(int)convert!("nsecs", "hnsecs")(nsecs);
@@ -3987,9 +3914,6 @@ public:
     }
 
 
-    /+
-        Converts this $(D TickDuration) to a string.
-      +/
     //Due to bug http://d.puremagic.com/issues/show_bug.cgi?id=3715 , we can't
     //have versions of toString() with extra modifiers, so we define one version
     //with modifiers and one without.
@@ -3999,9 +3923,6 @@ public:
     }
 
 
-    /++
-        Converts this $(D TickDuration) to a string.
-      +/
     //Due to bug http://d.puremagic.com/issues/show_bug.cgi?id=3715 , we can't
     //have versions of toString() with extra modifiers, so we define one version
     //with modifiers and one without.
@@ -4125,13 +4046,6 @@ private:
     }
 
 
-    /+
-        Returns whether the given number of hnsecs fits within the range of
-        $(D FracSec).
-
-        Params:
-            hnsecs = The number of hnsecs.
-      +/
     static bool _valid(int hnsecs) nothrow @nogc
     {
         immutable second = convert!("seconds", "hnsecs")(1);
@@ -4139,10 +4053,6 @@ private:
     }
 
 
-    /+
-        Throws:
-            $(D TimeException) if $(D valid(hnsecs)) is $(D false).
-      +/
     static void _enforceValid(int hnsecs)
     {
         if (!_valid(hnsecs))
@@ -4150,10 +4060,6 @@ private:
     }
 
 
-    /+
-        Params:
-            hnsecs = The number of hnsecs passed the second.
-      +/
     this(int hnsecs) nothrow @nogc
     {
         _hnsecs = hnsecs;
