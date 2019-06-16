@@ -54,21 +54,21 @@ steps:
       REM build via VS projects with LDC
       cd src
       set LDC_ARGS=%LDC_ARGS% /p:DCompiler=LDC
-      msbuild /target:dmd /p:Configuration=Release /p:Platform=Win32 %LDC_ARGS% vcbuild\dmd.sln || exit /B %ERRORLEVEL%
+      msbuild /target:dmd /p:Configuration=Release /p:Platform=Win32 %LDC_ARGS% vcbuild\dmd.sln || exit /B 1
 
       %DMD% --version
       grep --version
 
       REM Check: run druntime unittests
       cd "%DMD_DIR%\..\druntime"
-      "%DM_MAKE%" -f win64.mak MODEL=32mscoff "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "MAKE=%DM_MAKE%" target || exit /B %ERRORLEVEL%
+      "%DM_MAKE%" -f win64.mak MODEL=32mscoff "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "MAKE=%DM_MAKE%" target || exit /B 2
       echo "[DRUNTIME] running tests..."
-      "%DM_MAKE%" -f win64.mak MODEL=32mscoff "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "MAKE=%DM_MAKE%" unittest32mscoff || exit /B %ERRORLEVEL%
-      "%DM_MAKE%" -f win64.mak MODEL=32mscoff "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "MAKE=%DM_MAKE%" test_all || exit /B %ERRORLEVEL%
+      "%DM_MAKE%" -f win64.mak MODEL=32mscoff "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "MAKE=%DM_MAKE%" unittest32mscoff || exit /B 3
+      "%DM_MAKE%" -f win64.mak MODEL=32mscoff "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "MAKE=%DM_MAKE%" test_all || exit /B 4
 
       REM Check: build phobos
       cd "%DMD_DIR%\..\phobos"
-      "%DM_MAKE%" -f win64.mak MODEL=32mscoff "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "AR=%MSVC_AR%" "MAKE=%DM_MAKE%" || exit /B %ERRORLEVEL%
+      "%DM_MAKE%" -f win64.mak MODEL=32mscoff "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "AR=%MSVC_AR%" "MAKE=%DM_MAKE%" || exit /B 5
 
       REM Build DMD VERSION + string imports (not built by VisualD)
       copy "%DMD_DIR%\VERSION" "%DMD_DIR%\generated\Windows\Release\Win32\VERSION"
@@ -76,7 +76,7 @@ steps:
       REM Run DMD testsuite
       cd "%DMD_DIR%\test"
       cp %DMD_DIR%\..\phobos\phobos32mscoff.lib .
-      "%GNU_MAKE%" -j%NUMBER_OF_PROCESSORS% all MODEL=32mscoff ARGS="-O -inline -g" OS=windows DMD="%DMD%" "CC=%MSVC_CC%" DMD_MODEL=win32 || exit /B %ERRORLEVEL%
+      "%GNU_MAKE%" -j%NUMBER_OF_PROCESSORS% all MODEL=32mscoff ARGS="-O -inline -g" OS=windows DMD="%DMD%" "CC=%MSVC_CC%" DMD_MODEL=win32 || exit /B 6
 
       cd "%DMD_DIR%\..\phobos"
       REM Check: build phobos unittests
