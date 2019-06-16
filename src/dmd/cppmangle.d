@@ -665,6 +665,8 @@ private final class CppMangleVisitor : Visitor
         //printf("prefix_name(%s)\n", s.toChars());
         if (substitute(s))
             return;
+        if (isStd(s))
+            return buf.writestring("St");
 
         auto si = getInstance(s);
         Dsymbol p = getQualifier(si);
@@ -1428,39 +1430,32 @@ private final class CppMangleVisitor : Visitor
         // Get the template instance
         auto sym = getQualifier(sym1);
         auto sym2 = getQualifier(sym);
-        if (sym2)
+        if (sym2 && isStd(sym2)) // Nspace path
         {
-            if (isStd(sym2))
-            {
-                bool unused;
-                assert(sym.isTemplateInstance());
-                if (this.writeStdSubstitution(sym.isTemplateInstance(), unused))
-                    return dg();
-                // std names don't require `N..E`
-                buf.writestring("St");
-                this.writeIdentifier(t.name);
-                this.append(t);
+            bool unused;
+            assert(sym.isTemplateInstance());
+            if (this.writeStdSubstitution(sym.isTemplateInstance(), unused))
                 return dg();
-            }
+            // std names don't require `N..E`
+            buf.writestring("St");
+            this.writeIdentifier(t.name);
+            this.append(t);
+            return dg();
+        }
+        else if (sym2)
+        {
             buf.writestring("N");
             if (!this.substitute(sym2))
                 sym2.accept(this);
-            dg();
         }
-        if (sym1 !is null)
-        {
-            this.writeNamespace(
-                sym1.namespace, () {
-                    this.writeIdentifier(t.name);
-                    this.append(t);
-                    dg();
-                });
-        }
-        else
-        {
-            this.writeIdentifier(t.name);
-            dg();
-        }
+        this.writeNamespace(
+            sym1.namespace, () {
+                this.writeIdentifier(t.name);
+                this.append(t);
+                dg();
+            });
+        if (sym2)
+            buf.writestring("E");
     }
 
 extern(C++):
