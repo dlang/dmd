@@ -363,7 +363,7 @@ void test15789()
 
 extern(C++)
 {
-    struct T
+    struct Struct7030
     {
         void foo(int) const;
         void bar(int);
@@ -373,9 +373,9 @@ extern(C++)
 
 version (Posix)
 {
-    static assert(T.foo.mangleof == "_ZNK1T3fooEi");
-    static assert(T.bar.mangleof == "_ZN1T3barEi");
-    static assert(T.boo.mangleof == "_ZN1T3booE");
+    static assert(Struct7030.foo.mangleof == "_ZNK10Struct70303fooEi");
+    static assert(Struct7030.bar.mangleof == "_ZN10Struct70303barEi");
+    static assert(Struct7030.boo.mangleof == "_ZN10Struct70303booE");
 }
 
 /****************************************/
