@@ -425,6 +425,12 @@ extern (C++, std)
     struct test18957 {}
 }
 
+extern(C++)
+{
+    allocator!int func_18957_1(allocator!(int)* v);
+    X func_18957_2(X)(X* v);
+}
+
 version (Posix)
 {
     // https://issues.dlang.org/show_bug.cgi?id=17947
@@ -437,6 +443,9 @@ version (Posix)
     static assert(std.basic_istream!(char, std.char_traits!char).fooc.mangleof == "_ZNSi4foocEv");
     static assert(std.basic_ostream!(char, std.char_traits!char).food.mangleof == "_ZNSo4foodEv");
     static assert(std.basic_iostream!(char, std.char_traits!char).fooe.mangleof == "_ZNSd4fooeEv");
+
+    static assert(func_18957_1.mangleof == `_Z12func_18957_1PSaIiE`);
+    static assert(func_18957_2!(allocator!int).mangleof == `_Z12func_18957_2ISaIiEET_PS1_`);
 }
 
 /**************************************/
@@ -1004,4 +1013,12 @@ version (Posix)
 version (Win64)
 {
     static assert(test_char_mangling.mangleof == "?test_char_mangling@@YAXD_S_U_W@Z");
+}
+
+// https://github.com/dlang/dmd/pull/10021/files#r294055424
+version (Posix)
+{
+    extern(C++, PR10021_NS) struct PR10021_Struct(T){}
+    extern(C++) void PR10021_fun(int i)(PR10021_Struct!int);
+    static assert(PR10021_fun!0.mangleof == `_Z11PR10021_funILi0EEvN10PR10021_NS14PR10021_StructIiEE`);
 }
