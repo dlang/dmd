@@ -665,6 +665,8 @@ private final class CppMangleVisitor : Visitor
         //printf("prefix_name(%s)\n", s.toChars());
         if (substitute(s))
             return;
+        if (isStd(s))
+            return buf.writestring("St");
 
         auto si = getInstance(s);
         Dsymbol p = getQualifier(si);
@@ -1363,15 +1365,8 @@ private final class CppMangleVisitor : Visitor
      * Helper function to write a `T..._` template index.
      *
      * Params:
-     *   ident = Identifier for which substitution is attempted
-     *           (e.g. `void func(T)(T param)` => `T` from `T param`)
-     *   params = `TemplateParameters` of the enclosing symbol
-     *           (in the previous example, `func`'s template parameters)
-     *   type = Resolved type of `T`, so that `void func(T)(const T)`
-     *          gets mangled correctly
-     *
-     * Returns:
-     *   `true` if something was written to the buffer
+     *   idx   = Index of `param` in the template argument list
+     *   param = Template parameter to mangle
      */
     private void writeTemplateArgIndex(size_t idx, TemplateParameter param)
     {
@@ -1389,10 +1384,15 @@ private final class CppMangleVisitor : Visitor
      * Given an array of template parameters and an identifier,
      * returns the index of the identifier in that array.
      *
+     * Params:
+     *   ident = Identifier for which substitution is attempted
+     *           (e.g. `void func(T)(T param)` => `T` from `T param`)
+     *   params = `TemplateParameters` of the enclosing symbol
+     *           (in the previous example, `func`'s template parameters)
      *
      * Returns:
      *   The index of the identifier match in `params`,
-     *   or `params.dim` if there wasn't any match.
+     *   or `params.length` if there wasn't any match.
      */
     private static size_t templateParamIndex(
         const ref Identifier ident, TemplateParameters* params)
@@ -1430,39 +1430,32 @@ private final class CppMangleVisitor : Visitor
         // Get the template instance
         auto sym = getQualifier(sym1);
         auto sym2 = getQualifier(sym);
-        if (sym2)
+        if (sym2 && isStd(sym2)) // Nspace path
         {
-            if (isStd(sym2))
-            {
-                bool unused;
-                assert(sym.isTemplateInstance());
-                if (this.writeStdSubstitution(sym.isTemplateInstance(), unused))
-                    return dg();
-                // std names don't require `N..E`
-                buf.writestring("St");
-                this.writeIdentifier(t.name);
-                this.append(t);
+            bool unused;
+            assert(sym.isTemplateInstance());
+            if (this.writeStdSubstitution(sym.isTemplateInstance(), unused))
                 return dg();
-            }
+            // std names don't require `N..E`
+            buf.writestring("St");
+            this.writeIdentifier(t.name);
+            this.append(t);
+            return dg();
+        }
+        else if (sym2)
+        {
             buf.writestring("N");
             if (!this.substitute(sym2))
                 sym2.accept(this);
-            dg();
         }
-        if (sym1 !is null)
-        {
-            this.writeNamespace(
-                sym1.namespace, () {
-                    this.writeIdentifier(t.name);
-                    this.append(t);
-                    dg();
-                });
-        }
-        else
-        {
-            this.writeIdentifier(t.name);
-            dg();
-        }
+        this.writeNamespace(
+            sym1.namespace, () {
+                this.writeIdentifier(t.name);
+                this.append(t);
+                dg();
+            });
+        if (sym2)
+            buf.writestring("E");
     }
 
 extern(C++):
