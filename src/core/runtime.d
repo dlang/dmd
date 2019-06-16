@@ -700,14 +700,20 @@ extern (C) UnitTestResult runModuleUnitTests()
     return results;
 }
 
-
-///////////////////////////////////////////////////////////////////////////////
-// Default Implementations
-///////////////////////////////////////////////////////////////////////////////
-
-
 /**
+ * Get the default `Throwable.TraceInfo` implementation for the platform
  *
+ * This functions returns a trace handler, allowing to inspect the
+ * current stack trace.
+ *
+ * Params:
+ *   ptr = (Windows only) The context to get the stack trace from.
+ *         When `null` (the default), start from the current frame.
+ *
+ * Returns:
+ *   A `Throwable.TraceInfo` implementation suitable to iterate over the stack,
+ *   or `null`. If called from a finalizer (destructor), always returns `null`
+ *   as trace handlers allocate.
  */
 Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
 {
@@ -1018,5 +1024,21 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
     else
     {
         return null;
+    }
+}
+
+/// Example of a simple program printing its stack trace
+unittest
+{
+    import core.runtime;
+    import core.stdc.stdio;
+
+    void main()
+    {
+        auto trace = defaultTraceHandler(null);
+        foreach (line; trace)
+        {
+            printf("%.*s\n", cast(int)line.length, line.ptr);
+        }
     }
 }
