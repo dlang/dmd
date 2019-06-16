@@ -76,7 +76,7 @@ steps:
       REM Run DMD testsuite
       cd "%DMD_DIR%\test"
       cp %DMD_DIR%\..\phobos\phobos32mscoff.lib .
-      "%GNU_MAKE%" -j%NUMBER_OF_PROCESSORS% all MODEL=32mscoff ARGS="-O -inline -g" OS=win32 DMD="%DMD%" "CC=%MSVC_CC%" DMD_MODEL=win32 || exit /B %ERRORLEVEL%
+      "%GNU_MAKE%" -j%NUMBER_OF_PROCESSORS% all MODEL=32mscoff ARGS="-O -inline -g" OS=windows DMD="%DMD%" "CC=%MSVC_CC%" DMD_MODEL=win32 || exit /B %ERRORLEVEL%
 
       cd "%DMD_DIR%\..\phobos"
       REM Check: build phobos unittests
