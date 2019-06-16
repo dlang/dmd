@@ -1100,6 +1100,8 @@ bool opEquals(Object lhs, Object rhs)
     // If either is null => non-equal
     if (lhs is null || rhs is null) return false;
 
+    if (!lhs.opEquals(rhs)) return false;
+
     // If same exact type => one call to method opEquals
     if (typeid(lhs) is typeid(rhs) ||
         !__ctfe && typeid(lhs).opEquals(typeid(rhs)))
@@ -1107,11 +1109,11 @@ bool opEquals(Object lhs, Object rhs)
             (issue 7147). But CTFE also guarantees that equal TypeInfos are
             always identical. So, no opEquals needed during CTFE. */
     {
-        return lhs.opEquals(rhs);
+        return true;
     }
 
     // General case => symmetric calls to method opEquals
-    return lhs.opEquals(rhs) && rhs.opEquals(lhs);
+    return rhs.opEquals(lhs);
 }
 
 /************************
