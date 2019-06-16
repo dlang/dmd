@@ -1,0 +1,8 @@
+32 Bit Linux now uses XMM registers for float and double rather than the x87.
+
+This should substantially speed up routine float and double processing.
+SIMD vector operations, however, are still not support on 32 bit Linux code
+because of issues with 16 byte stack alignment.
+
+This means that generated code will no longer work on older x86 processors that
+do not have XMM registers. If this is an issue, please file a bug report.

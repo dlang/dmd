@@ -37,6 +37,14 @@ import dmd.root.stringtable;
 
 import dmd.scanelf;
 
+// Entry point (only public symbol in this module).
+public extern (C++) Library LibElf_factory()
+{
+    return new LibElf();
+}
+
+private: // for the remainder of this module
+
 enum LOG = false;
 
 struct ElfObjSymbol
@@ -85,11 +93,10 @@ final class LibElf : Library
         if (!buf)
         {
             assert(module_name[0]);
-            File* file = File.create(cast(char*)module_name);
-            readFile(Loc.initial, file);
-            buf = file.buffer;
-            buflen = file.len;
-            file._ref = 1;
+            // read file and take buffer ownership
+            auto data = readFile(Loc.initial, module_name).extractData();
+            buf = data.ptr;
+            buflen = data.length;
             fromfile = 1;
         }
         if (buflen < 16)
@@ -474,11 +481,6 @@ private:
         }
         assert(libbuf.offset == moffset);
     }
-}
-
-extern (C++) Library LibElf_factory()
-{
-    return new LibElf();
 }
 
 /*****************************************************************************/

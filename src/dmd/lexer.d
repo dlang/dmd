@@ -31,6 +31,8 @@ import dmd.root.rmem;
 import dmd.tokens;
 import dmd.utf;
 
+nothrow:
+
 private enum LS = 0x2028;       // UTF line separator
 private enum PS = 0x2029;       // UTF paragraph separator
 
@@ -99,44 +101,44 @@ private
     enum CMsinglechar = 0x20;
 }
 
-private bool isoctal(const char c)
+private bool isoctal(const char c) pure @nogc @safe
 {
     return (cmtable[c] & CMoctal) != 0;
 }
 
-private bool ishex(const char c)
+private bool ishex(const char c) pure @nogc @safe
 {
     return (cmtable[c] & CMhex) != 0;
 }
 
-private bool isidchar(const char c)
+private bool isidchar(const char c) pure @nogc @safe
 {
     return (cmtable[c] & CMidchar) != 0;
 }
 
-private bool isZeroSecond(const char c)
+private bool isZeroSecond(const char c) pure @nogc @safe
 {
     return (cmtable[c] & CMzerosecond) != 0;
 }
 
-private bool isDigitSecond(const char c)
+private bool isDigitSecond(const char c) pure @nogc @safe
 {
     return (cmtable[c] & CMdigitsecond) != 0;
 }
 
-private bool issinglechar(const char c)
+private bool issinglechar(const char c) pure @nogc @safe
 {
     return (cmtable[c] & CMsinglechar) != 0;
 }
 
-private bool c_isxdigit(const int c)
+private bool c_isxdigit(const int c) pure @nogc @safe
 {
     return (( c >= '0' && c <= '9') ||
             ( c >= 'a' && c <= 'f') ||
             ( c >= 'A' && c <= 'F'));
 }
 
-private bool c_isalnum(const int c)
+private bool c_isalnum(const int c) pure @nogc @safe
 {
     return (( c >= '0' && c <= '9') ||
             ( c >= 'a' && c <= 'z') ||
@@ -227,6 +229,8 @@ class Lexer
         Token* tokenFreelist;
     }
 
+  nothrow:
+
     /*********************
      * Creates a Lexer for the source code base[begoffset..endoffset+1].
      * The last character, base[endoffset], must be null (0) or EOF (0x1A).
@@ -242,7 +246,7 @@ class Lexer
      */
     this(const(char)* filename, const(char)* base, size_t begoffset,
         size_t endoffset, bool doDocComment, bool commentToken,
-        DiagnosticReporter diagnosticReporter)
+        DiagnosticReporter diagnosticReporter) pure
     in
     {
         assert(diagnosticReporter !is null);
@@ -432,7 +436,7 @@ class Lexer
                 auto hexString = new OutBuffer();
                 t.value = hexStringConstant(t);
                 hexString.write(start, p - start);
-                error("Built-in hex string literals are obsolete, use `std.conv.hexString!%s` instead.", hexString.extractString());
+                error("Built-in hex string literals are obsolete, use `std.conv.hexString!%s` instead.", hexString.extractChars());
                 return;
             case 'q':
                 if (p[1] == '"')
@@ -555,7 +559,7 @@ class Lexer
                         }
                         else if (id == Id.VENDOR)
                         {
-                            t.ustring = global.vendor;
+                            t.ustring = global.vendor.xarraydup.ptr;
                             goto Lstr;
                         }
                         else if (id == Id.TIMESTAMP)
@@ -1590,7 +1594,7 @@ class Lexer
                     p--;
                     scan(&tok); // read in possible heredoc identifier
                     //printf("endid = '%s'\n", tok.ident.toChars());
-                    if (tok.value == TOK.identifier && tok.ident.equals(hereid))
+                    if (tok.value == TOK.identifier && tok.ident is hereid)
                     {
                         /* should check that rest of line is blank
                          */
@@ -1803,7 +1807,7 @@ class Lexer
     /***************************************
      * Get postfix of string literal.
      */
-    private void stringPostfix(Token* t)
+    private void stringPostfix(Token* t) pure @nogc
     {
         switch (*p)
         {
@@ -1984,12 +1988,9 @@ class Lexer
             error("integer overflow");
             err = true;
         }
-        // Deprecated in 2018-06.
-        // Change to error in 2019-06.
-        // @@@DEPRECATED_2019-06@@@
         if ((base == 2 && !anyBinaryDigitsNoSingleUS) ||
             (base == 16 && !anyHexDigitsNoSingleUS))
-            deprecation("`%.*s` isn't a valid integer literal, use `%.*s0` instead", cast(int)(p - start), start, 2, start);
+            error("`%.*s` isn't a valid integer literal, use `%.*s0` instead", cast(int)(p - start), start, 2, start);
         enum FLAGS : int
         {
             none = 0,
@@ -2280,7 +2281,7 @@ class Lexer
         return result;
     }
 
-    final Loc loc()
+    final Loc loc() pure @nogc
     {
         scanloc.charnum = cast(uint)(1 + p - line);
         return scanloc;
@@ -2494,7 +2495,7 @@ class Lexer
      * If newParagraph is true, an extra newline will be
      * added between adjoining doc comments.
      */
-    private void getDocComment(Token* t, uint lineComment, bool newParagraph)
+    private void getDocComment(Token* t, uint lineComment, bool newParagraph) pure
     {
         /* ct tells us which kind of comment it is: '/', '*', or '+'
          */
@@ -2620,16 +2621,16 @@ class Lexer
         auto dc = (lineComment && anyToken) ? &t.lineComment : &t.blockComment;
         // Combine with previous doc comment, if any
         if (*dc)
-            *dc = combineComments(*dc, buf.peekString(), newParagraph);
+            *dc = combineComments(*dc, buf.peekChars(), newParagraph);
         else
-            *dc = buf.extractString();
+            *dc = buf.extractChars();
     }
 
     /********************************************
      * Combine two document comments into one,
      * separated by an extra newline if newParagraph is true.
      */
-    static const(char)* combineComments(const(char)* c1, const(char)* c2, bool newParagraph)
+    static const(char)* combineComments(const(char)* c1, const(char)* c2, bool newParagraph) pure
     {
         //printf("Lexer::combineComments('%s', '%s', '%i')\n", c1, c2, newParagraph);
         auto c = c2;
@@ -2662,7 +2663,7 @@ class Lexer
     }
 
 private:
-    void endOfLine()
+    void endOfLine() pure @nogc @safe
     {
         scanloc.linnum++;
         line = p;
@@ -2730,6 +2731,9 @@ unittest
     {
         string expected;
         bool gotError;
+
+      nothrow:
+
         this(string expected) { this.expected = expected; }
 
         override int errorCount() { assert(0); }
@@ -2739,7 +2743,7 @@ unittest
         override void error(const ref Loc loc, const(char)* format, va_list args)
         {
             gotError = true;
-            char[100] buffer;
+            char[100] buffer = void;
             auto actual = buffer[0 .. vsprintf(buffer.ptr, format, args)];
             assert(expected == actual);
         }

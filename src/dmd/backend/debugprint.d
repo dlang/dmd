@@ -42,6 +42,8 @@ import dmd.backend.dvec;
 
 extern (C++):
 
+nothrow:
+
 mixin(import("debtab.d"));
 
 void ferr(const(char)* p) { printf("%s", p); }
@@ -443,7 +445,6 @@ version (MARS)
             case BC_ret:
             case BC_except:
 
-            Lsucc:
                 if (bl)
                 {
                     printf("\tBsucc:");

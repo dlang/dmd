@@ -1279,7 +1279,7 @@ private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2, bool ide
         real_t r1 = e1.type.isreal() ? e1.toReal() : e1.toImaginary();
         real_t r2 = e1.type.isreal() ? e2.toReal() : e2.toImaginary();
         if (identity)
-            return !RealEquals(r1, r2);
+            return !RealIdentical(r1, r2);
         if (CTFloat.isNaN(r1) || CTFloat.isNaN(r2)) // if unordered
         {
             return 1;   // they are not equal
@@ -1295,7 +1295,7 @@ private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2, bool ide
         auto c2 = e2.toComplex();
         if (identity)
         {
-            return !RealEquals(c1.re, c2.re) && !RealEquals(c1.im, c2.im);
+            return !RealIdentical(c1.re, c2.re) && !RealIdentical(c1.im, c2.im);
         }
         return c1 != c2;
     }
@@ -1400,14 +1400,14 @@ int ctfeIdentity(const ref Loc loc, TOK op, Expression e1, Expression e2)
         cmp = (es1.var == es2.var && es1.offset == es2.offset);
     }
     else if (e1.type.isreal())
-        cmp = RealEquals(e1.toReal(), e2.toReal());
+        cmp = RealIdentical(e1.toReal(), e2.toReal());
     else if (e1.type.isimaginary())
-        cmp = RealEquals(e1.toImaginary(), e2.toImaginary());
+        cmp = RealIdentical(e1.toImaginary(), e2.toImaginary());
     else if (e1.type.iscomplex())
     {
         complex_t v1 = e1.toComplex();
         complex_t v2 = e2.toComplex();
-        cmp = RealEquals(creall(v1), creall(v2)) && RealEquals(cimagl(v1), cimagl(v1));
+        cmp = RealIdentical(creall(v1), creall(v2)) && RealIdentical(cimagl(v1), cimagl(v1));
     }
     else
     {
@@ -1658,8 +1658,12 @@ void assignInPlace(Expression dest, Expression src)
         assert(dest.op == src.op);
         oldelems = (cast(StructLiteralExp)dest).elements;
         newelems = (cast(StructLiteralExp)src).elements;
-        if ((cast(StructLiteralExp)dest).sd.isNested() && oldelems.dim == newelems.dim - 1)
-            oldelems.push(null);
+        auto sd = (cast(StructLiteralExp)dest).sd;
+        const nfields = sd.nonHiddenFields();
+        const nvthis = sd.fields.dim - nfields;
+        if (nvthis && oldelems.dim >= nfields && oldelems.dim < newelems.dim)
+            foreach (_; 0 .. newelems.dim - oldelems.dim)
+                oldelems.push(null);
     }
     else if (dest.op == TOK.arrayLiteral && src.op == TOK.arrayLiteral)
     {
@@ -1857,7 +1861,14 @@ bool isCtfeValueValid(Expression newval)
     {
         // e1 should be a CTFE reference
         Expression e1 = (cast(AddrExp)newval).e1;
-        return tb.ty == Tpointer && (e1.op == TOK.structLiteral && isCtfeValueValid(e1) || e1.op == TOK.variable || e1.op == TOK.dotVariable && isCtfeReferenceValid(e1) || e1.op == TOK.index && isCtfeReferenceValid(e1) || e1.op == TOK.slice && e1.type.toBasetype().ty == Tsarray);
+        return tb.ty == Tpointer &&
+        (
+            (e1.op == TOK.structLiteral || e1.op == TOK.arrayLiteral) && isCtfeValueValid(e1) ||
+             e1.op == TOK.variable ||
+             e1.op == TOK.dotVariable && isCtfeReferenceValid(e1) ||
+             e1.op == TOK.index && isCtfeReferenceValid(e1) ||
+             e1.op == TOK.slice && e1.type.toBasetype().ty == Tsarray
+        );
     }
     if (newval.op == TOK.slice)
     {

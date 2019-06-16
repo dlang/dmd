@@ -30,6 +30,14 @@ import dmd.root.stringtable;
 
 import dmd.scanomf;
 
+// Entry point (only public symbol in this module).
+extern (C++) Library LibOMF_factory()
+{
+    return new LibOMF();
+}
+
+private: // for the remainder of this module
+
 enum LOG = false;
 
 struct OmfObjSymbol
@@ -78,11 +86,10 @@ final class LibOMF : Library
         if (!buf)
         {
             assert(module_name);
-            File* file = File.create(module_name);
-            readFile(Loc.initial, file);
-            buf = file.buffer;
-            buflen = file.len;
-            file._ref = 1;
+            // read file and take buffer ownership
+            auto data = readFile(Loc.initial, module_name).extractData();
+            buf = data.ptr;
+            buflen = data.length;
         }
         uint g_page_size;
         ubyte* pstart = cast(ubyte*)buf;
@@ -482,11 +489,6 @@ private:
     }
 }
 
-extern (C++) Library LibOMF_factory()
-{
-    return new LibOMF();
-}
-
 /*****************************************************************************/
 /*****************************************************************************/
 struct OmfObjModule
@@ -516,7 +518,7 @@ enum BUCKETSIZE = (BUCKETPAGE - HASHMOD - 1);
  * Returns:
  *      false   failure
  */
-private bool EnterDict(ubyte* bucketsP, ushort ndicpages, ubyte* entry, uint entrylen)
+bool EnterDict(ubyte* bucketsP, ushort ndicpages, ubyte* entry, uint entrylen)
 {
     ushort uStartIndex;
     ushort uStep;

@@ -220,27 +220,23 @@ public:
         case Tfloat64:
             buf.writeByte('N');
             break;
-        case Tbool:
-            buf.writestring("_N");
-            break;
-        case Tchar:
-            buf.writeByte('D');
-            break;
-        case Tdchar:
-            buf.writeByte('I');
-            break;
-            // unsigned int
         case Tfloat80:
             if (flags & IS_DMC)
                 buf.writestring("_Z"); // DigitalMars long double
             else
                 buf.writestring("_T"); // Intel long double
             break;
+        case Tbool:
+            buf.writestring("_N");
+            break;
+        case Tchar:
+            buf.writeByte('D');
+            break;
         case Twchar:
-            if (flags & IS_DMC)
-                buf.writestring("_Y"); // DigitalMars wchar_t
-            else
-                buf.writestring("_W"); // Visual C++ wchar_t
+            buf.writestring("_S"); // Visual C++ char16_t (since C++11)
+            break;
+        case Tdchar:
+            buf.writestring("_U"); // Visual C++ char32_t (since C++11)
             break;
         default:
             visit(cast(Type)type);
@@ -485,7 +481,7 @@ public:
         {
             assert(0);
         }
-        return buf.extractString();
+        return buf.extractChars();
     }
 
 private:
@@ -961,7 +957,7 @@ private:
                     fatal();
                 }
             }
-            name = tmp.buf.extractString();
+            name = tmp.buf.extractChars();
         }
         else
         {
@@ -1047,6 +1043,9 @@ private:
         while (p && !p.isModule())
         {
             mangleName(p, dont_use_back_reference);
+            // Mangle our string namespaces as well
+            for (auto ns = p.namespace; ns !is null; ns = ns.namespace)
+                mangleName(ns, dont_use_back_reference);
             p = p.toParent3();
             if (p.toParent3() && p.toParent3().isTemplateInstance())
             {
@@ -1264,7 +1263,7 @@ private:
             }
         }
         tmp.buf.writeByte('Z');
-        const(char)* ret = tmp.buf.extractString();
+        const(char)* ret = tmp.buf.extractChars();
         memcpy(&saved_idents, &tmp.saved_idents, (const(char)*).sizeof * VC_SAVED_IDENT_CNT);
         memcpy(&saved_types, &tmp.saved_types, Type.sizeof * VC_SAVED_TYPE_CNT);
         return ret;

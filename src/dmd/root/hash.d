@@ -67,7 +67,7 @@ uint calcHash(const(ubyte)* data, size_t len)
 }
 
 // combine and mix two words (boost::hash_combine)
-size_t mixHash(size_t h, size_t k)
+size_t mixHash(size_t h, size_t k) @safe
 {
     return h ^ (k + 0x9e3779b9 + (h << 6) + (h >> 2));
 }

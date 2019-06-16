@@ -131,7 +131,7 @@ void obj_write_deferred(Library library)
          */
         OutBuffer idbuf;
         idbuf.printf("%s.%d", m ? m.ident.toChars() : mname, count);
-        char *idstr = idbuf.peekString();
+        char *idstr = idbuf.peekChars();
 
         if (!m)
         {
@@ -146,7 +146,7 @@ void obj_write_deferred(Library library)
             idbuf.data = null;
             Identifier id = Identifier.create(idstr);
 
-            Module md = Module.create(mname, id, 0, 0);
+            Module md = new Module(mname.toDString, id, 0, 0);
             md.members = new Dsymbols();
             md.members.push(s);   // its only 'member' is s
             md.doppelganger = 1;       // identify this module as doppelganger
@@ -164,13 +164,13 @@ void obj_write_deferred(Library library)
         uint hash = 0;
         for (const(char)* p = s.toChars(); *p; p++)
             hash += *p;
-        namebuf.printf("%s_%x_%x.%s", fname, count, hash, global.obj_ext);
+        namebuf.printf("%s_%x_%x.%.*s", fname, count, hash,
+                       cast(int)global.obj_ext.length, global.obj_ext.ptr);
         FileName.free(cast(char *)fname);
-        fname = namebuf.extractString();
+        fname = namebuf.extractChars();
 
         //printf("writing '%s'\n", fname);
-        File objfile = File(fname);
-        obj_end(library, &objfile);
+        obj_end(library, fname);
     }
     obj_symbols_towrite.dim = 0;
 }
@@ -201,7 +201,7 @@ private Symbol *callFuncsAndGates(Module m, symbols *sctors, StaticDtorDeclarati
             /* t will be the type of the functions generated:
              *      extern (C) void func();
              */
-            t = type_function(TYnfunc, null, 0, false, tstypes[TYvoid]);
+            t = type_function(TYnfunc, null, false, tstypes[TYvoid]);
             t.Tmangle = mTYman_c;
         }
 
@@ -233,7 +233,7 @@ private Symbol *callFuncsAndGates(Module m, symbols *sctors, StaticDtorDeclarati
         block *b = block_calloc();
         b.BC = BCret;
         b.Belem = ector;
-        sctor.Sfunc.Fstartline.Sfilename = m.arg;
+        sctor.Sfunc.Fstartline.Sfilename = m.arg.xarraydup.ptr;
         sctor.Sfunc.Fstartblock = b;
         writefunc(sctor);
     }
@@ -271,40 +271,37 @@ void obj_start(const(char)* srcfile)
 }
 
 
-void obj_end(Library library, File *objfile)
+void obj_end(Library library, const(char)* objfilename)
 {
-    const(char)* objfilename = objfile.name.toChars();
     objmod.term(objfilename);
     //delete objmod;
     objmod = null;
 
+    const data = objbuf.buf[0 .. objbuf.p - objbuf.buf];
     if (library)
     {
         // Transfer image to library
-        library.addObject(objfilename, objbuf.buf[0 .. objbuf.p - objbuf.buf]);
-        objbuf.buf = null;
+        library.addObject(objfilename, data);
     }
     else
     {
-        // Transfer image to file
-        objfile.setbuffer(objbuf.buf, objbuf.p - objbuf.buf);
-        objfile._ref = 1;
-
-        ensurePathToNameExists(Loc.initial, objfilename);
-
         //printf("write obj %s\n", objfilename);
-        writeFile(Loc.initial, objfile);
-
+        writeFile(Loc.initial, objfilename.toDString, data);
         free(objbuf.buf); // objbuf is a backend `Outbuffer` managed by C malloc/free
-        objbuf.buf = null;
     }
+    objbuf.buf = null;
     objbuf.pend = null;
     objbuf.p = null;
 }
 
-bool obj_includelib(const(char)* name)
+bool obj_includelib(const(char)* name) nothrow
 {
     return objmod.includelib(name);
+}
+
+extern(D) bool obj_includelib(const(char)[] name) nothrow
+{
+    return name.toCStringThen!(n => obj_includelib(n.ptr));
 }
 
 void obj_startaddress(Symbol *s)
@@ -336,7 +333,7 @@ void genObjFile(Module m, bool multiobj)
         foreach (member; *m.members)
         {
             //printf("toObjFile %s %s\n", member.kind(), member.toChars());
-            toObjFile(member, global.params.multiobj);
+            toObjFile(member, multiobj);
         }
 
         global.params.verbose = v;
@@ -440,7 +437,7 @@ void genObjFile(Module m, bool multiobj)
         /* t will be the type of the functions generated:
          *      extern (C) void func();
          */
-        type *t = type_function(TYnfunc, null, 0, false, tstypes[TYvoid]);
+        type *t = type_function(TYnfunc, null, false, tstypes[TYvoid]);
         t.Tmangle = mTYman_c;
 
         m.sictor = toSymbolX(m, "__modictor", SCglobal, t, "FZv");
@@ -482,7 +479,7 @@ void genObjFile(Module m, bool multiobj)
             block *b = block_calloc();
             b.BC = BCret;
             b.Belem = eictor;
-            m.sictor.Sfunc.Fstartline.Sfilename = m.arg;
+            m.sictor.Sfunc.Fstartline.Sfilename = m.arg.xarraydup.ptr;
             m.sictor.Sfunc.Fstartblock = b;
             writefunc(m.sictor);
         }
@@ -520,7 +517,7 @@ void genObjFile(Module m, bool multiobj)
 /**************************************
  * Search for a druntime array op
  */
-bool isDruntimeArrayOp(Identifier ident)
+private bool isDruntimeArrayOp(Identifier ident)
 {
     /* Some of the array op functions are written as library functions,
      * presumably to optimize them with special CPU vector instructions.
@@ -707,7 +704,7 @@ bool isDruntimeArrayOp(Identifier ident)
 
 /* ================================================================== */
 
-UnitTestDeclaration needsDeferredNested(FuncDeclaration fd)
+private UnitTestDeclaration needsDeferredNested(FuncDeclaration fd)
 {
     while (fd && fd.isNested())
     {
@@ -1149,6 +1146,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             // Adjust the 'this' pointer instead of using a thunk
             assert(irs.sthis);
             elem *ethis = el_var(irs.sthis);
+            ethis = fixEthis2(ethis, fd);
             elem *e = el_bin(OPminass, TYnptr, ethis, el_long(TYsize_t, fd.interfaceVirtual.offset));
             block_appendexp(irs.blx.curblock, e);
         }
@@ -1177,8 +1175,10 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             {
                 if (b.BC == BCret)
                 {
+                    elem *ethis = el_var(sthis);
+                    ethis = fixEthis2(ethis, fd);
                     b.BC = BCretexp;
-                    b.Belem = el_combine(b.Belem, el_var(sthis));
+                    b.Belem = el_combine(b.Belem, ethis);
                 }
             }
         }
@@ -1294,9 +1294,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
  */
 private void specialFunctions(Obj objmod, FuncDeclaration fd)
 {
-    const(char)* libname = (global.params.symdebug)
-                            ? global.params.debuglibname
-                            : global.params.defaultlibname;
+    const libname = global.finalDefaultlibname();
 
     Symbol* s = fd.toSymbol();  // backend symbol corresponding to fd
 
@@ -1318,7 +1316,7 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
             objmod.external_def("__acrtused_con");
         }
         if (libname)
-            objmod.includelib(libname);
+            obj_includelib(libname);
         s.Sclass = SCglobal;
     }
     else if (fd.isRtInit())
@@ -1335,7 +1333,7 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
         if (global.params.mscoff)
         {
             if (global.params.mscrtlib && global.params.mscrtlib[0])
-                objmod.includelib(global.params.mscrtlib);
+                obj_includelib(global.params.mscrtlib);
             objmod.includelib("OLDNAMES");
         }
         else if (config.exe == EX_WIN32)
@@ -1351,7 +1349,7 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
         {
             objmod.includelib("uuid");
             if (global.params.mscrtlib && global.params.mscrtlib[0])
-                objmod.includelib(global.params.mscrtlib);
+                obj_includelib(global.params.mscrtlib);
             objmod.includelib("OLDNAMES");
         }
         else
@@ -1359,7 +1357,7 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
             objmod.external_def("__acrtused");
         }
         if (libname)
-            objmod.includelib(libname);
+            obj_includelib(libname);
         s.Sclass = SCglobal;
     }
 
@@ -1370,7 +1368,7 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
         {
             objmod.includelib("uuid");
             if (global.params.mscrtlib && global.params.mscrtlib[0])
-                objmod.includelib(global.params.mscrtlib);
+                obj_includelib(global.params.mscrtlib);
             objmod.includelib("OLDNAMES");
         }
         else
@@ -1378,7 +1376,7 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
             objmod.external_def("__acrtused_dll");
         }
         if (libname)
-            objmod.includelib(libname);
+            obj_includelib(libname);
         s.Sclass = SCglobal;
     }
     else if (fd.ident == Id.tls_get_addr && fd.linkage == LINK.d)
@@ -1389,7 +1387,7 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
 }
 
 
-bool onlyOneMain(Loc loc)
+private bool onlyOneMain(Loc loc)
 {
     __gshared Loc lastLoc;
     __gshared bool hasMain = false;
@@ -1505,7 +1503,6 @@ uint totym(Type tx)
                 default:
                     assert(0);
             }
-            assert(global.params.is64bit || global.params.isOSX);
             break;
         }
 
@@ -1599,7 +1596,7 @@ Symbol *toSymbol(Type t)
  * Generate elem that is a dynamic array slice of the module file name.
  */
 
-elem *toEfilename(Module m)
+private elem *toEfilename(Module m)
 {
     //printf("toEfilename(%s)\n", m.toChars());
     const(char)* id = m.srcfile.toChars();
@@ -1615,6 +1612,7 @@ elem *toEfilename(Module m)
     return el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(m.sfilename));
 }
 
+// Used in e2ir.d
 elem *toEfilenamePtr(Module m)
 {
     //printf("toEfilenamePtr(%s)\n", m.toChars());

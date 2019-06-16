@@ -1,22 +1,22 @@
 ifeq (Windows_NT,$(OS))
     ifeq ($(findstring WOW64, $(shell uname)),WOW64)
-        OS:=win64
+        OS:=windows
         MODEL:=64
     else
-        OS:=win32
+        OS:=windows
         MODEL:=32
     endif
 endif
 ifeq (Win_32,$(OS))
-    OS:=win32
+    OS:=windows
     MODEL:=32
 endif
 ifeq (Win_32_64,$(OS))
-    OS:=win64
+    OS:=windows
     MODEL:=64
 endif
 ifeq (Win_64,$(OS))
-    OS:=win64
+    OS:=windows
     MODEL:=64
 endif
 

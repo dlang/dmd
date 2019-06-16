@@ -68,7 +68,7 @@ extern (C++) class Initializer : ASTNode
         OutBuffer buf;
         HdrGenState hgs;
         .toCBuffer(this, &buf, &hgs);
-        return buf.extractString();
+        return buf.extractChars();
     }
 
     final inout(ErrorInitializer) isErrorInitializer() inout pure

@@ -1,0 +1,7 @@
+Class allocators and deallocators are now obsolete
+
+Starting with this release any use of $(LINK2 https://dlang.org/spec/class.html#allocators, class allocators)
+or $(LINK2 https://dlang.org/spec/class.html#deallocators, deallocators) will result in a compilation error.
+
+See the $(LINK2 https://dlang.org/deprecate.html#Class%20allocators%20and%20deallocators, deprecated features page)
+for more information.

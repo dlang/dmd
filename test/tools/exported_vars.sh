@@ -7,7 +7,9 @@ export RESULTS_TEST_DIR=${RESULTS_DIR}/${TEST_DIR} # reference to the resulting 
 export OUTPUT_BASE=${RESULTS_TEST_DIR}/${TEST_NAME} # reference to the resulting files without a suffix, e.g. test_results/runnable/test123
 export EXTRA_FILES=${TEST_DIR}/extra-files # reference to the extra files directory
 
-if [ "$OS" == "win32" ] || [ "$OS" == "win64" ]; then
+export LC_ALL=C #otherwise objdump localizes its output
+
+if [ "$OS" == "windows" ]; then
     export LIBEXT=.lib
 else
     export LIBEXT=.a

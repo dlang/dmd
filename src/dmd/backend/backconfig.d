@@ -23,6 +23,8 @@ import dmd.backend.type;
 
 extern (C++):
 
+nothrow:
+
 version (MARS)
 {
     void ph_init();
@@ -98,11 +100,11 @@ static if (TARGET_WINDOS)
 }
 static if (TARGET_LINUX)
 {
+    config.fpxmmregs = true;
+    config.avx = avx;
     if (model == 64)
     {   config.exe = EX_LINUX64;
         config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
-        config.fpxmmregs = true;
-        config.avx = avx;
     }
     else
     {
@@ -115,8 +117,10 @@ static if (TARGET_LINUX)
     if (!exe)
     {
         config.flags3 |= CFG3pic;
-        config.flags |= CFGalwaysframe; // PIC needs a frame for TLS fixups
     }
+    if (symdebug)
+        config.flags |= CFGalwaysframe;
+
     config.objfmt = OBJ_ELF;
 }
 static if (TARGET_OSX)
@@ -125,7 +129,6 @@ static if (TARGET_OSX)
     config.avx = avx;
     if (model == 64)
     {   config.exe = EX_OSX64;
-        config.fpxmmregs = true;
         config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
     }
     else
@@ -137,8 +140,11 @@ static if (TARGET_OSX)
     if (!exe)
     {
         config.flags3 |= CFG3pic;
-        config.flags |= CFGalwaysframe; // PIC needs a frame for TLS fixups
+        if (model == 64)
+            config.flags |= CFGalwaysframe; // PIC needs a frame for TLS fixups
     }
+    if (symdebug)
+        config.flags |= CFGalwaysframe;
     config.flags |= CFGromable; // put switch tables in code segment
     config.objfmt = OBJ_MACH;
 }
@@ -161,8 +167,9 @@ static if (TARGET_FREEBSD)
     if (!exe)
     {
         config.flags3 |= CFG3pic;
-        config.flags |= CFGalwaysframe; // PIC needs a frame for TLS fixups
     }
+    if (symdebug)
+        config.flags |= CFGalwaysframe;
     config.objfmt = OBJ_ELF;
 }
 static if (TARGET_OPENBSD)

@@ -128,9 +128,9 @@ extern (C++) struct Port
     }
 
     // Little endian
-    static uint readlongLE(scope void* buffer) pure
+    static uint readlongLE(scope const void* buffer) pure
     {
-        auto p = cast(ubyte*)buffer;
+        auto p = cast(const ubyte*)buffer;
         return (((((p[3] << 8) | p[2]) << 8) | p[1]) << 8) | p[0];
     }
 
@@ -145,23 +145,23 @@ extern (C++) struct Port
     }
 
     // Big endian
-    static uint readlongBE(scope void* buffer) pure
+    static uint readlongBE(scope const void* buffer) pure
     {
-        auto p = cast(ubyte*)buffer;
+        auto p = cast(const ubyte*)buffer;
         return (((((p[0] << 8) | p[1]) << 8) | p[2]) << 8) | p[3];
     }
 
     // Little endian
-    static uint readwordLE(scope void* buffer) pure
+    static uint readwordLE(scope const void* buffer) pure
     {
-        auto p = cast(ubyte*)buffer;
+        auto p = cast(const ubyte*)buffer;
         return (p[1] << 8) | p[0];
     }
 
     // Big endian
-    static uint readwordBE(scope void* buffer) pure
+    static uint readwordBE(scope const void* buffer) pure
     {
-        auto p = cast(ubyte*)buffer;
+        auto p = cast(const ubyte*)buffer;
         return (p[0] << 8) | p[1];
     }
 

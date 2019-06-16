@@ -54,6 +54,8 @@ else
 
 extern(C++):
 
+nothrow:
+
 version (CRuntime_Microsoft)
 {
     import core.stdc.stdlib;
@@ -316,10 +318,6 @@ else
 
     return pview;
 
-Terminate:
-    if (UnmapViewOfFile(pview) == false)
-        os_error();
-    pview = null;
 L3:
     if (CloseHandle(hFileMap) != true)
         os_error();

@@ -47,7 +47,6 @@ version (CRuntime_Glibc)
 }
 
 alias Strings = Array!(const(char)*);
-alias Files = Array!(File*);
 
 /***********************************************************
  * Encapsulate path and file names.
@@ -58,19 +57,19 @@ nothrow:
     private const(char)[] str;
 
     ///
-    extern (D) this(const(char)[] str)
+    extern (D) this(const(char)[] str) pure
     {
         this.str = str.xarraydup;
     }
 
     /// Compare two name according to the platform's rules (case sensitive or not)
-    extern (C++) static bool equals(const(char)* name1, const(char)* name2) pure
+    extern (C++) static bool equals(const(char)* name1, const(char)* name2) pure @nogc
     {
         return equals(name1.toDString, name2.toDString);
     }
 
     /// Ditto
-    extern (D) static bool equals(const(char)[] name1, const(char)[] name2) pure
+    extern (D) static bool equals(const(char)[] name1, const(char)[] name2) pure @nogc
     {
         if (name1.length != name2.length)
             return false;
@@ -93,13 +92,13 @@ nothrow:
      * Returns:
      *  true if absolute path name.
      */
-    extern (C++) static bool absolute(const(char)* name) pure
+    extern (C++) static bool absolute(const(char)* name) pure @nogc
     {
         return absolute(name.toDString);
     }
 
     /// Ditto
-    extern (D) static bool absolute(const(char)[] name) pure
+    extern (D) static bool absolute(const(char)[] name) pure @nogc
     {
         if (!name.length)
             return false;
@@ -150,7 +149,7 @@ nothrow:
      *  Points past '.' of extension.
      *  If there isn't one, return null.
      */
-    extern (C++) static const(char)* ext(const(char)* str) pure
+    extern (C++) static const(char)* ext(const(char)* str) pure @nogc
     {
         return ext(str.toDString).ptr;
     }
@@ -192,7 +191,7 @@ nothrow:
         assert(ext([]) == null);
     }
 
-    extern (C++) const(char)* ext() const pure
+    extern (C++) const(char)* ext() const pure @nogc
     {
         return ext(str).ptr;
     }
@@ -239,13 +238,13 @@ nothrow:
     /********************************
      * Return filename name excluding path (read-only).
      */
-    extern (C++) static const(char)* name(const(char)* str) pure
+    extern (C++) static const(char)* name(const(char)* str) pure @nogc
     {
         return name(str.toDString).ptr;
     }
 
     /// Ditto
-    extern (D) static const(char)[] name(const(char)[] str) pure
+    extern (D) static const(char)[] name(const(char)[] str) pure @nogc
     {
         foreach_reverse (idx, char e; str)
         {
@@ -278,7 +277,7 @@ nothrow:
         return str;
     }
 
-    extern (C++) const(char)* name() const pure
+    extern (C++) const(char)* name() const pure @nogc
     {
         return name(str).ptr;
     }
@@ -291,7 +290,8 @@ nothrow:
 
     /**************************************
      * Return path portion of str.
-     * Path will does not include trailing path separator.
+     * returned string is newly allocated
+     * Path does not include trailing path separator.
      */
     extern (C++) static const(char)* path(const(char)* str)
     {
@@ -421,28 +421,47 @@ nothrow:
     // Split a path into an Array of paths
     extern (C++) static Strings* splitPath(const(char)* path)
     {
-        char c = 0; // unnecessary initializer is for VC /W4
-        const(char)* p;
-        OutBuffer buf;
-        Strings* array;
-        array = new Strings();
+        auto array = new Strings();
+        int sink(const(char)* p) nothrow
+        {
+            array.push(p);
+            return 0;
+        }
+        splitPath(&sink, path);
+        return array;
+    }
+
+    /****
+     * Split path (such as that returned by `getenv("PATH")`) into pieces, each piece is mem.xmalloc'd
+     * Handle double quotes and ~.
+     * Pass the pieces to sink()
+     * Params:
+     *  sink = send the path pieces here, end when sink() returns !=0
+     *  path = the path to split up.
+     */
+    static void splitPath(int delegate(const(char)*) nothrow sink, const(char)* path)
+    {
         if (path)
         {
-            p = path;
+            auto p = path;
+            OutBuffer buf;
+            char c;
             do
             {
-                char instring = 0;
-                while (isspace(cast(char)*p)) // skip leading whitespace
-                    p++;
-                buf.reserve(strlen(p) + 1); // guess size of path
-                for (;; p++)
+                const(char)* home;
+                bool instring = false;
+                while (isspace(*p)) // skip leading whitespace
+                    ++p;
+                buf.reserve(8); // guess size of piece
+                for (;; ++p)
                 {
                     c = *p;
                     switch (c)
                     {
-                    case '"':
-                        instring ^= 1; // toggle inside/outside of string
-                        continue;
+                        case '"':
+                            instring ^= false; // toggle inside/outside of string
+                            continue;
+
                         version (OSX)
                         {
                         case ',':
@@ -455,52 +474,48 @@ nothrow:
                         {
                         case ':':
                         }
-                        p++;
-                        break;
-                        // note that ; cannot appear as part
-                        // of a path, quotes won't protect it
-                    case 0x1A:
-                        // ^Z means end of file
-                    case 0:
-                        break;
-                    case '\r':
-                        continue;
-                        // ignore carriage returns
+                            p++;    // ; cannot appear as part of a
+                            break;  // path, quotes won't protect it
+
+                        case 0x1A:  // ^Z means end of file
+                        case 0:
+                            break;
+
+                        case '\r':
+                            continue;  // ignore carriage returns
+
                         version (Posix)
                         {
                         case '~':
-                            {
-                                char* home = getenv("HOME");
-                                if (home)
-                                    buf.writestring(home);
-                                else
-                                    buf.writestring("~");
-                                continue;
-                            }
+                            if (!home)
+                                home = getenv("HOME");
+                            if (home)
+                                buf.writestring(home);
+                            else
+                                buf.writeByte('~');
+                            continue;
                         }
+
                         version (none)
                         {
                         case ' ':
-                        case '\t':
-                            // tabs in filenames?
+                        case '\t':         // tabs in filenames?
                             if (!instring) // if not in string
-                                break;
-                            // treat as end of path
+                                break;     // treat as end of path
                         }
-                    default:
-                        buf.writeByte(c);
-                        continue;
+                        default:
+                            buf.writeByte(c);
+                            continue;
                     }
                     break;
                 }
                 if (buf.offset) // if path is not empty
                 {
-                    array.push(buf.extractString());
+                    if (sink(buf.extractChars()))
+                        break;
                 }
-            }
-            while (c);
+            } while (c);
         }
-        return array;
     }
 
     /**
@@ -513,7 +528,7 @@ nothrow:
      * Returns:
      *   A newly allocated string (free with `FileName.free`)
      */
-    extern(D) static char[] addExt(const(char)[] name, const(char)[] ext)
+    extern(D) static char[] addExt(const(char)[] name, const(char)[] ext) pure
     {
         const len = name.length + ext.length + 2;
         auto s = cast(char*)mem.xmalloc(len);
@@ -574,13 +589,13 @@ nothrow:
 
     /// Returns:
     ///   `true` if `name`'s extension is `ext`
-    extern (C++) static bool equalsExt(const(char)* name, const(char)* ext) pure
+    extern (C++) static bool equalsExt(const(char)* name, const(char)* ext) pure @nogc
     {
         return equalsExt(name.toDString, ext.toDString);
     }
 
     /// Ditto
-    extern (D) static bool equalsExt(const(char)[] name, const(char)[] ext) pure
+    extern (D) static bool equalsExt(const(char)[] name, const(char)[] ext) pure @nogc
     {
         auto e = FileName.ext(name);
         if (!e.length && !ext.length)
@@ -601,15 +616,19 @@ nothrow:
     /******************************
      * Return !=0 if extensions match.
      */
-    extern (C++) bool equalsExt(const(char)* ext) const pure
+    extern (C++) bool equalsExt(const(char)* ext) const pure @nogc
     {
         return equalsExt(str, ext.toDString());
     }
 
     /*************************************
-     * Search Path for file.
-     * Input:
-     *      cwd     if true, search current directory before searching path
+     * Search paths for file.
+     * Params:
+     *  path = array of path strings
+     *  name = file to look for
+     *  cwd = true means search current directory before searching path
+     * Returns:
+     *  if found, filename combined with path, otherwise null
      */
     extern (C++) static const(char)* searchPath(Strings* path, const(char)* name, bool cwd)
     {
@@ -634,7 +653,45 @@ nothrow:
                 auto n = combine(p.toDString, name);
                 if (exists(n))
                     return n;
+                //combine might return name
+                if (n.ptr != name.ptr)
+                {
+                    mem.xfree(cast(void*)n.ptr);
+                }
             }
+        }
+        return null;
+    }
+
+    extern (D) static const(char)[] searchPath(const(char)* path, const(char)[] name, bool cwd)
+    {
+        if (absolute(name))
+        {
+            return exists(name) ? name : null;
+        }
+        if (cwd)
+        {
+            if (exists(name))
+                return name;
+        }
+        if (path && *path)
+        {
+            const(char)[] result;
+
+            int sink(const(char)* p) nothrow
+            {
+                auto n = combine(p.toDString, name);
+                mem.xfree(cast(void*)p);
+                if (exists(n))
+                {
+                    result = n;
+                    return 1;   // done with splitPath() call
+                }
+                return 0;
+            }
+
+            splitPath(&sink, path);
+            return result;
         }
         return null;
     }
@@ -792,29 +849,27 @@ nothrow:
        Returns:
          `true` if the directory exists or was successfully created
      */
-    extern (C++) static bool ensurePathExists(const(char)* path)
+    extern (D) static bool ensurePathExists(const(char)[] path)
     {
         //printf("FileName::ensurePathExists(%s)\n", path ? path : "");
-        if (!path || !(*path))
+        if (!path.length)
             return true;
         if (exists(path))
             return true;
 
         // We were provided with a file name
         // We need to call ourselves recursively to ensure parent dir exist
-        const(char)* p = FileName.path(path);
-        if (*p)
+        const char[] p = FileName.path(path);
+        if (p.length)
         {
             version (Windows)
             {
-                const len = strlen(path);
-                const plen = strlen(p);
                 // Note: Windows filename comparison should be case-insensitive,
                 // however p is a subslice of path so we don't need it
-                if (len == plen ||
-                    (len > 2 && path[1] == ':' && path[2 .. len] == p[0 .. plen]))
+                if (path.length == p.length ||
+                    (path.length > 2 && path[1] == ':' && path[2 .. $] == p))
                 {
-                    mem.xfree(cast(void*)p);
+                    mem.xfree(cast(void*)p.ptr);
                     return true;
                 }
             }
@@ -826,11 +881,11 @@ nothrow:
         }
 
         version (Windows)
-            const r = _mkdir(path.toDString);
+            const r = _mkdir(path);
         version (Posix)
         {
             errno = 0;
-            const r = mkdir(path, (7 << 6) | (7 << 3) | 7);
+            const r = path.toCStringThen!((pathCS) => mkdir(pathCS.ptr, (7 << 6) | (7 << 3) | 7));
         }
 
         if (r == 0)
@@ -851,6 +906,12 @@ nothrow:
         }
 
         return false;
+    }
+
+    ///ditto
+    extern (C++) static bool ensurePathExists(const(char)* path)
+    {
+        return ensurePathExists(path.toDString);
     }
 
     /******************************************
@@ -969,7 +1030,7 @@ nothrow:
     /********************************
      * Free memory allocated by FileName routines
      */
-    extern (C++) static void free(const(char)* str)
+    extern (C++) static void free(const(char)* str) pure
     {
         if (str)
         {
@@ -979,16 +1040,22 @@ nothrow:
         mem.xfree(cast(void*)str);
     }
 
-    extern (C++) const(char)* toChars() const pure nothrow @trusted
+    extern (C++) const(char)* toChars() const pure nothrow @nogc @trusted
     {
         // Since we can return an empty slice (but '\0' terminated),
         // we don't do bounds check (as `&str[0]` does)
         return str.ptr;
     }
 
-    const(char)[] toString() const pure nothrow @trusted
+    const(char)[] toString() const pure nothrow @nogc @trusted
     {
         return str;
+    }
+
+    bool opCast(T)() const pure nothrow @nogc @safe
+    if (is(T == bool))
+    {
+        return str.ptr !is null;
     }
 }
 

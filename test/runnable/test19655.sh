@@ -80,5 +80,5 @@ ${DMD} -m${MODEL} -of${TEST_DIR}${SEP}test19655${EXE} ${TEST_DIR}${SEP}test19655
 
 ${TEST_DIR}${SEP}test19655${EXE}
 
-rm -f ${TEST_DIR}${SEP}test19655${EXE} ${TEST_DIR}${SEP}test19655*.d \
+rm_retry -f ${TEST_DIR}${SEP}test19655${EXE} ${TEST_DIR}${SEP}test19655*.d \
    ${TEST_DIR}${SEP}test19655*${OBJ}

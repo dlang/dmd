@@ -1,4 +1,11 @@
 // PERMUTE_ARGS:
+/*
+TEST_OUTPUT:
+---
+runnable/interface2.d(47): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/interface2.d(98): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+---
+*/
 
 extern(C) int printf(const char*, ...);
 

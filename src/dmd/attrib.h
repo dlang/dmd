@@ -92,6 +92,17 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
+class CPPNamespaceDeclaration : public AttribDeclaration
+{
+public:
+    Expression *exp;
+
+    Dsymbol *syntaxCopy(Dsymbol *s);
+    Scope *newScope(Scope *sc);
+    const char *toChars();
+    void accept(Visitor *v) { v->visit(this); }
+};
+
 class ProtDeclaration : public AttribDeclaration
 {
 public:

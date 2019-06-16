@@ -418,8 +418,8 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 buf2.reset();
                 mangleToFuncSignature(buf2, f2);
 
-                auto s1 = buf1.peekString();
-                auto s2 = buf2.peekString();
+                auto s1 = buf1.peekChars();
+                auto s2 = buf2.peekChars();
 
                 //printf("+%s\n\ts1 = %s\n\ts2 = %s @ [%s]\n", toChars(), s1, s2, f2.loc.toChars());
                 if (strcmp(s1, s2) == 0)

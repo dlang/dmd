@@ -25,7 +25,8 @@ import core.stdc.string;
 
 extern (C++):
 
-nothrow @nogc
+nothrow:
+@nogc
 {
 
 /* **************** TYPEDEFS AND DEFINES ****************** */

@@ -26,7 +26,8 @@ private size_t nextpow2(size_t val) pure nothrow @nogc @safe
     return res;
 }
 
-enum loadFactor = 0.8;
+enum loadFactorNumerator = 8;
+enum loadFactorDenominator = 10;        // for a load factor of 0.8
 
 struct StringEntry
 {
@@ -43,12 +44,13 @@ struct StringValue
 
 nothrow:
 pure:
+@nogc:
     char* lstring() return
     {
         return cast(char*)(&this + 1);
     }
 
-    size_t len() const
+    size_t len() const @safe
     {
         return length;
     }
@@ -74,21 +76,24 @@ private:
     size_t npools;
     size_t nfill;
     size_t count;
+    size_t countTrigger;   // amount which will trigger growing the table
 
+nothrow:
 public:
-    void _init(size_t size = 0) nothrow
+    void _init(size_t size = 0) nothrow pure
     {
-        size = nextpow2(cast(size_t)(size / loadFactor));
+        size = nextpow2((size * loadFactorDenominator) / loadFactorNumerator);
         if (size < 32)
             size = 32;
         table = cast(StringEntry*)mem.xcalloc(size, (table[0]).sizeof);
         tabledim = size;
+        countTrigger = (tabledim * loadFactorNumerator) / loadFactorDenominator;
         pools = null;
         npools = nfill = 0;
         count = 0;
     }
 
-    void reset(size_t size = 0) nothrow
+    void reset(size_t size = 0) nothrow pure
     {
         for (size_t i = 0; i < npools; ++i)
             mem.xfree(pools[i]);
@@ -99,7 +104,7 @@ public:
         _init(size);
     }
 
-    ~this() nothrow
+    ~this() nothrow pure
     {
         for (size_t i = 0; i < npools; ++i)
             mem.xfree(pools[i]);
@@ -121,7 +126,7 @@ public:
     Returns: the string's associated value, or `null` if the string doesn't
      exist in the string table
     */
-    inout(StringValue)* lookup(const(char)[] str) inout nothrow pure
+    inout(StringValue)* lookup(const(char)[] str) inout nothrow pure @nogc
     {
         const(hash_t) hash = calcHash(str.ptr, str.length);
         const(size_t) i = findSlot(hash, str);
@@ -130,7 +135,7 @@ public:
     }
 
     /// ditto
-    inout(StringValue)* lookup(const(char)* s, size_t length) inout nothrow pure
+    inout(StringValue)* lookup(const(char)* s, size_t length) inout nothrow pure @nogc
     {
         return lookup(s[0 .. length]);
     }
@@ -155,7 +160,7 @@ public:
         size_t i = findSlot(hash, str);
         if (table[i].vptr)
             return null; // already in table
-        if (++count > tabledim * loadFactor)
+        if (++count > countTrigger)
         {
             grow();
             i = findSlot(hash, str);
@@ -178,7 +183,7 @@ public:
         size_t i = findSlot(hash, str);
         if (!table[i].vptr)
         {
-            if (++count > tabledim * loadFactor)
+            if (++count > countTrigger)
             {
                 grow();
                 i = findSlot(hash, str);
@@ -203,7 +208,7 @@ public:
      * Returns:
      *      last return value of fp call
      */
-    int apply(int function(const(StringValue)*) fp)
+    int apply(int function(const(StringValue)*) nothrow fp)
     {
         foreach (const se; table[0 .. tabledim])
         {
@@ -217,7 +222,7 @@ public:
         return 0;
     }
 
-    extern(D) int opApply(scope int delegate(const(StringValue)*) dg)
+    extern(D) int opApply(scope int delegate(const(StringValue)*) nothrow dg)
     {
         foreach (const se; table[0 .. tabledim])
         {
@@ -252,7 +257,7 @@ nothrow:
         return vptr;
     }
 
-    inout(StringValue)* getValue(uint vptr) inout pure
+    inout(StringValue)* getValue(uint vptr) inout pure @nogc
     {
         if (!vptr)
             return null;
@@ -261,7 +266,7 @@ nothrow:
         return cast(inout(StringValue)*)&pools[idx][off];
     }
 
-    size_t findSlot(hash_t hash, const(char)[] str) const pure
+    size_t findSlot(hash_t hash, const(char)[] str) const pure @nogc
     {
         // quadratic probing using triangular numbers
         // http://stackoverflow.com/questions/2348187/moving-from-linear-probing-to-quadratic-probing-hash-collisons/2349774#2349774
@@ -280,6 +285,7 @@ nothrow:
         const odim = tabledim;
         auto otab = table;
         tabledim *= 2;
+        countTrigger = (tabledim * loadFactorNumerator) / loadFactorDenominator;
         table = cast(StringEntry*)mem.xcalloc(tabledim, (table[0]).sizeof);
         foreach (const se; otab[0 .. odim])
         {

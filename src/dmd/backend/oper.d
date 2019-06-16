@@ -375,6 +375,8 @@ OPER opeqtoop(OPER opx)   { return opx - OPaddass + OPadd; }
 /* Convert op to op=    */
 OPER optoopeq(OPER opx)   { return opx - OPadd + OPaddass; }
 
+OPER swaprel(OPER);
+
 /***************************
  * Determine properties of an elem.
  * EBIN         binary node?

@@ -1,3 +1,5 @@
+// REQUIRED_ARGS: -preview=rvaluerefparam
+
 import std.stdio;
 
 struct S
@@ -319,8 +321,8 @@ int waz14(S)(ref S s) { return 2; }
 void test14()
 {
     // can not bind rvalue-sl with ref
-    static assert(!__traits(compiles, foo14(S14a(0))));
-    static assert(!__traits(compiles, foo14(S14b(0))));
+    static assert( __traits(compiles, foo14(S14a(0))));
+    static assert( __traits(compiles, foo14(S14b(0))));
     static assert(!__traits(compiles, hoo14(S14a(0))));
     static assert(!__traits(compiles, hoo14(S14b(0))));
     static assert(!__traits(compiles, poo14(S14a(0))));
@@ -1295,7 +1297,7 @@ struct Z11256c(Ranges...)
 
 struct F11256(alias pred)
 {
-    this(int[] = null) { }
+    this(int[]) { }
 }
 
 Z!Ranges z11256(alias Z, Ranges...)(Ranges ranges)
@@ -1305,9 +1307,9 @@ Z!Ranges z11256(alias Z, Ranges...)(Ranges ranges)
 
 void test11256()
 {
-    z11256!Z11256a(S11256.init, F11256!(gv => true)());
-    z11256!Z11256b(S11256.init, F11256!(gv => true)());
-    z11256!Z11256c(S11256.init, F11256!(gv => true)());
+    z11256!Z11256a(S11256.init, F11256!(gv => true)(null));
+    z11256!Z11256b(S11256.init, F11256!(gv => true)(null));
+    z11256!Z11256c(S11256.init, F11256!(gv => true)(null));
 }
 
 /********************************************/

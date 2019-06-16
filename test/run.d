@@ -13,7 +13,7 @@ See the README.md for all available test targets
 
 import std.algorithm, std.conv, std.datetime, std.exception, std.file, std.format,
        std.getopt, std.parallelism, std.path, std.process, std.range, std.stdio,
-       std.string, std.traits;
+       std.string, std.traits, core.atomic;
 import core.stdc.stdlib : exit;
 
 import tools.paths;
@@ -151,6 +151,7 @@ void ensureToolsExists(const TestTool[] tools ...)
 {
     resultsDir.mkdirRecurse;
 
+    shared uint failCount = 0;
     foreach (tool; tools.parallel(1))
     {
         const targetBin = resultsDir.buildPath(tool).exeName;
@@ -166,9 +167,15 @@ void ensureToolsExists(const TestTool[] tools ...)
             ] ~ tool.extraArgs;
 
             writefln("Executing: %-(%s %)", command);
-            spawnProcess(command).wait;
+            if (spawnProcess(command).wait)
+            {
+                stderr.writefln("failed to build '%s'", targetBin);
+                atomicOp!"+="(failCount, 1);
+            }
         }
     }
+    if (failCount > 0)
+        exit(1); // error already printed
 
     // ensure output directories exist
     foreach (dir; testDirs)
@@ -394,14 +401,14 @@ string[string] getEnvironment()
         if (environment.get("PIC", "0") == "1")
             pic = true;
 
-        env["PIC_FLAGS"]  = pic ? "-fPIC" : "";
+        env["PIC_FLAG"]  = pic ? "-fPIC" : "";
         env["DFLAGS"] = "-I%s/import -I%s".format(druntimePath, phobosPath)
             ~ " -L-L%s/%s".format(phobosPath, generatedSuffix);
         bool isShared = os.among("linux", "freebsd") > 0;
         if (isShared)
             env["DFLAGS"] = env["DFLAGS"] ~ " -defaultlib=libphobos2.so -L-rpath=%s/%s".format(phobosPath, generatedSuffix);
 
-        env["REQUIRED_ARGS"] = environment.get("REQUIRED_ARGS") ~  env["PIC_FLAGS"];
+        env["REQUIRED_ARGS"] = environment.get("REQUIRED_ARGS") ~ " " ~ env["PIC_FLAG"];
 
         version(OSX)
             version(X86_64)

@@ -115,7 +115,7 @@ extern (C++) struct Mem
         return p;
     }
 
-    static void error() pure nothrow
+    static void error() pure nothrow @nogc
     {
         onOutOfMemoryError();
     }
@@ -124,25 +124,25 @@ extern (C++) struct Mem
     {
         __gshared bool _isGCEnabled = true;
 
-        static bool isGCEnabled() pure nothrow
+        static bool isGCEnabled() pure nothrow @nogc
         {
             // fake purity by making global variable immutable (_isGCEnabled only modified before startup)
             enum _pIsGCEnabled = cast(immutable bool*) &_isGCEnabled;
             return *_pIsGCEnabled;
         }
 
-        static void disableGC()
+        static void disableGC() nothrow @nogc
         {
             _isGCEnabled = false;
         }
 
-        static void addRange(const(void)* p, size_t size) nothrow
+        static void addRange(const(void)* p, size_t size) nothrow @nogc
         {
             if (isGCEnabled)
                 GC.addRange(p, size);
         }
 
-        static void removeRange(const(void)* p) nothrow
+        static void removeRange(const(void)* p) nothrow @nogc
         {
             if (isGCEnabled)
                 GC.removeRange(p);
@@ -157,7 +157,7 @@ enum CHUNK_SIZE = (256 * 4096 - 64);
 __gshared size_t heapleft = 0;
 __gshared void* heapp;
 
-extern (C) void* allocmemory(size_t m_size) nothrow
+extern (C) void* allocmemory(size_t m_size) nothrow @nogc
 {
     // 16 byte alignment is better (and sometimes needed) for doubles
     m_size = (m_size + 15) & ~15;
@@ -226,7 +226,7 @@ static if (OVERRIDE_MEMALLOC)
 
     version (GC)
     {
-        private void* allocClass(const ClassInfo ci) nothrow
+        private void* allocClass(const ClassInfo ci) nothrow pure
         {
             alias BlkAttr = GC.BlkAttr;
 

@@ -1,4 +1,10 @@
-// REQUIRED_ARGS:
+/*
+REQUIRED_ARGS:
+TEST_OUTPUT:
+---
+runnable/hospital.d(179): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+---
+*/
 
 // NOTE: the shootout appears to be BSD licensed content.
 // Including this in the test suite based on that license.

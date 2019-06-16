@@ -124,7 +124,7 @@ public:
     bool isScope() const        { return (storage_class & STCscope) != 0; }
     bool isSynchronized() const { return (storage_class & STCsynchronized) != 0; }
     bool isParameter() const    { return (storage_class & STCparameter) != 0; }
-    bool isDeprecated()         { return (storage_class & STCdeprecated) != 0; }
+    bool isDeprecated() const   { return (storage_class & STCdeprecated) != 0; }
     bool isOverride() const     { return (storage_class & STCoverride) != 0; }
     bool isResult() const       { return (storage_class & STCresult) != 0; }
     bool isField() const        { return (storage_class & STCfield) != 0; }
@@ -177,7 +177,7 @@ public:
     Type *getType();
     Dsymbol *toAlias();
     Dsymbol *toAlias2();
-    bool isOverloadable();
+    bool isOverloadable() const;
 
     AliasDeclaration *isAliasDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -198,7 +198,7 @@ public:
 
     Dsymbol *toAlias();
     Dsymbol *isUnique();
-    bool isOverloadable();
+    bool isOverloadable() const;
 
     OverDeclaration *isOverDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -240,6 +240,7 @@ private:
     bool _isAnonymous;
 
 public:
+    static VarDeclaration *create(Loc loc, Type *t, Identifier *id, Initializer *init, StorageClass storage_class = STCundefined);
     Dsymbol *syntaxCopy(Dsymbol *);
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     const char *kind() const;
@@ -585,7 +586,7 @@ public:
     bool isExport() const;
     bool isImportedSymbol() const;
     bool isCodeseg() const;
-    bool isOverloadable();
+    bool isOverloadable() const;
     bool isAbstract();
     PURE isPure();
     PURE isPureBypassingInference();
@@ -602,7 +603,7 @@ public:
     void printGCUsage(const Loc &loc, const char *warn);
     bool isolateReturn();
     bool parametersIntersect(Type *t);
-    virtual bool isNested();
+    virtual bool isNested() const;
     AggregateDeclaration *isThis();
     bool needThis();
     bool isVirtualMethod();
@@ -651,7 +652,7 @@ public:
     bool deferToObj;
 
     Dsymbol *syntaxCopy(Dsymbol *);
-    bool isNested();
+    bool isNested() const;
     AggregateDeclaration *isThis();
     bool isVirtual() const;
     bool addPreInvariant();

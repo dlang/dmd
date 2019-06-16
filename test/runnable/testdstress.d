@@ -1,4 +1,10 @@
 // PERMUTE_ARGS:
+/*
+TEST_OUTPUT:
+---
+runnable/testdstress.d(665): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+---
+*/
 
 module run.module_01;
 
@@ -451,7 +457,7 @@ void test21()
 
 /* ================================ */
 
-scope class AutoClass{
+class AutoClass{
 }
 
 void test22()
@@ -466,7 +472,7 @@ void test22()
 
 int status23;
 
-scope class C23{
+class C23{
         ~this(){
                 assert(status23==0);
                 status23--;
@@ -492,7 +498,7 @@ void test23()
 
 int status24;
 
-scope class C24{
+class C24{
         this(){
                 assert(status24==0);
                 status24+=2;
@@ -844,15 +850,8 @@ int counter41;
 class C41{
         this(){
                 printf("this: counter41 = %d\n", counter41);
-                assert(counter41==1);
-                counter41+=2;
-        }
-
-        new(size_t size){
-                printf("new: size = %d\n", size);
                 assert(counter41==0);
-                counter41++;
-                return malloc(size);
+                counter41+=2;
         }
 }
 
@@ -861,7 +860,7 @@ void test41()
         C41 c;
         assert(counter41==0);
         c = new C41();
-        assert(counter41==3);
+        assert(counter41==2);
 }
 
 /* ================================ */

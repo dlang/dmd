@@ -51,6 +51,8 @@ version (SCPP_HTOD)
 
 extern (C++):
 
+nothrow:
+
 alias MEM_PH_MALLOC = mem_malloc;
 alias MEM_PH_CALLOC = mem_calloc;
 alias MEM_PH_FREE = mem_free;
@@ -582,22 +584,21 @@ type *type_delegate(type *tnext)
 
 /***********************************
  * Allocation a function type.
- * Input:
- *      tyf             function type
- *      ptypes[nparams] types of the function parameters
- *      variadic        if ... function
- *      tret            return type
+ * Params:
+ *      tyf      = function type
+ *      ptypes   = types of the function parameters
+ *      variadic = if ... function
+ *      tret     = return type
  * Returns:
  *      Tcount already incremented
  */
-extern (C) // because of size_t on OSX 32
-{
-type *type_function(tym_t tyf, type **ptypes, size_t nparams, bool variadic, type *tret)
+extern (C)
+type *type_function(tym_t tyf, type*[] ptypes, bool variadic, type *tret)
 {
     param_t *paramtypes = null;
-    for (size_t i = 0; i < nparams; i++)
+    foreach (p; ptypes)
     {
-        param_append_type(&paramtypes, ptypes[i]);
+        param_append_type(&paramtypes, p);
     }
     type *t = type_allocn(tyf, tret);
     t.Tflags |= TFprototype;
@@ -606,7 +607,6 @@ type *type_function(tym_t tyf, type **ptypes, size_t nparams, bool variadic, typ
     t.Tparamtypes = paramtypes;
     t.Tcount++;
     return t;
-}
 }
 
 /***************************************

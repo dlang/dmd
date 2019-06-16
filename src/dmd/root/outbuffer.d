@@ -32,7 +32,7 @@ struct OutBuffer
         mem.xfree(data);
     }
 
-    extern (C++) char* extractData() pure nothrow @safe
+    extern (C++) char* extractData() pure nothrow @nogc @safe
     {
         char* p;
         p = cast(char*)data;
@@ -40,6 +40,11 @@ struct OutBuffer
         offset = 0;
         size = 0;
         return p;
+    }
+
+    extern (C++) void destroy() pure nothrow @trusted
+    {
+        mem.xfree(extractData());
     }
 
     extern (C++) void reserve(size_t nbytes) pure nothrow
@@ -394,7 +399,7 @@ struct OutBuffer
         return insert(offset, s.ptr, s.length);
     }
 
-    extern (C++) void remove(size_t offset, size_t nbytes) pure nothrow
+    extern (C++) void remove(size_t offset, size_t nbytes) pure nothrow @nogc
     {
         memmove(data + offset, data + offset + nbytes, this.offset - (offset + nbytes));
         this.offset -= nbytes;
@@ -408,7 +413,7 @@ struct OutBuffer
     /***********************************
      * Extract the data as a slice and take ownership of it.
      */
-    extern (D) char[] extractSlice() pure nothrow
+    extern (D) char[] extractSlice() pure nothrow @nogc
     {
         auto length = offset;
         auto p = extractData();
@@ -416,7 +421,7 @@ struct OutBuffer
     }
 
     // Append terminating null if necessary and get view of internal buffer
-    extern (C++) char* peekString() pure nothrow
+    extern (C++) char* peekChars() pure nothrow
     {
         if (!offset || data[offset - 1] != '\0')
         {
@@ -427,7 +432,7 @@ struct OutBuffer
     }
 
     // Append terminating null if necessary and take ownership of data
-    extern (C++) char* extractString() pure nothrow
+    extern (C++) char* extractChars() pure nothrow
     {
         if (!offset || data[offset - 1] != '\0')
             writeByte(0);

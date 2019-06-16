@@ -286,15 +286,9 @@ public:
             // Should not be printed
             //property(name, "default");
             break;
-        case TRUST.system:
-            property(name, "system");
-            break;
-        case TRUST.trusted:
-            property(name, "trusted");
-            break;
-        case TRUST.safe:
-            property(name, "safe");
-            break;
+        case TRUST.system:  return property(name, "system");
+        case TRUST.trusted: return property(name, "trusted");
+        case TRUST.safe:    return property(name, "safe");
         }
     }
 
@@ -306,18 +300,10 @@ public:
             // Should not be printed
             //property(name, "impure");
             break;
-        case PURE.weak:
-            property(name, "weak");
-            break;
-        case PURE.const_:
-            property(name, "const");
-            break;
-        case PURE.strong:
-            property(name, "strong");
-            break;
-        case PURE.fwdref:
-            property(name, "fwdref");
-            break;
+        case PURE.weak:     return property(name, "weak");
+        case PURE.const_:   return property(name, "const");
+        case PURE.strong:   return property(name, "strong");
+        case PURE.fwdref:   return property(name, "fwdref");
         }
     }
 
@@ -337,21 +323,11 @@ public:
             // Should not be printed
             //property(name, "system");
             break;
-        case LINK.c:
-            property(name, "c");
-            break;
-        case LINK.cpp:
-            property(name, "cpp");
-            break;
-        case LINK.windows:
-            property(name, "windows");
-            break;
-        case LINK.pascal:
-            property(name, "pascal");
-            break;
-        case LINK.objc:
-            property(name, "objc");
-            break;
+        case LINK.c:        return property(name, "c");
+        case LINK.cpp:      return property(name, "cpp");
+        case LINK.windows:  return property(name, "windows");
+        case LINK.pascal:   return property(name, "pascal");
+        case LINK.objc:     return property(name, "objc");
         }
     }
 
@@ -852,7 +828,7 @@ public:
     private void generateCompilerInfo()
     {
         objectStart();
-        requiredProperty("vendor", global.vendor.toDString);
+        requiredProperty("vendor", global.vendor);
         requiredProperty("version", global._version);
         property("__VERSION__", global.versionNumber());
         requiredProperty("interface", determineCompilerInterface());
@@ -925,8 +901,8 @@ public:
         objectStart();
         requiredProperty("cwd", getcwd(null, 0).toDString);
         requiredProperty("argv0", global.params.argv0);
-        requiredProperty("config", global.inifilename.toDString);
-        requiredProperty("libName", global.params.libname.toDString);
+        requiredProperty("config", global.inifilename);
+        requiredProperty("libName", global.params.libname);
 
         propertyStart("importPaths");
         arrayStart();
@@ -963,9 +939,9 @@ public:
         }
         arrayEnd();
 
-        requiredProperty("mapFile", global.params.mapfile.toDString);
-        requiredProperty("resourceFile", global.params.resfile.toDString);
-        requiredProperty("defFile", global.params.deffile.toDString);
+        requiredProperty("mapFile", global.params.mapfile);
+        requiredProperty("resourceFile", global.params.resfile);
+        requiredProperty("defFile", global.params.deffile);
 
         objectEnd();
     }
@@ -1092,13 +1068,13 @@ Determines and returns the compiler interface which is one of `dmd`, `ldc`,
 */
 private extern(D) string determineCompilerInterface()
 {
-    if (!strcmp(global.vendor, "Digital Mars D"))
+    if (global.vendor == "Digital Mars D")
         return "dmd";
-    if (!strcmp(global.vendor, "LDC"))
+    if (global.vendor == "LDC")
         return "ldc";
-    if (!strcmp(global.vendor, "GNU"))
+    if (global.vendor == "GNU")
         return "gdc";
-    if (!strcmp(global.vendor, "SDC"))
+    if (global.vendor == "SDC")
         return "sdc";
     return null;
 }

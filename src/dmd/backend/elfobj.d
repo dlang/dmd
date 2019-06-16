@@ -45,6 +45,8 @@ import dmd.backend.type;
 
 extern (C++):
 
+nothrow:
+
 static if (ELFOBJ)
 {
 
@@ -122,9 +124,9 @@ enum ELF_COMDAT = TARGET_LINUX;
 /******************************************
  */
 
-__gshared Symbol *GOTsym; // global offset table reference
+private __gshared Symbol *GOTsym; // global offset table reference
 
-Symbol *Obj_getGOTsym()
+private Symbol *Obj_getGOTsym()
 {
     if (!GOTsym)
     {

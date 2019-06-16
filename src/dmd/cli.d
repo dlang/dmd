@@ -507,13 +507,18 @@ dmd -cov -unittest myprog.d
         Option("mixin=<filename>",
             "expand and save mixins to file specified by <filename>"
         ),
-        Option("mscrtlib=<name>",
+        Option("mscrtlib=<libname>",
             "MS C runtime library to reference from main/WinMain/DllMain",
             "If building MS-COFF object files with -m64 or -m32mscoff, embed a reference to
             the given C runtime library $(I libname) into the object file containing `main`,
             `DllMain` or `WinMain` for automatic linking. The default is $(TT libcmt)
             (release version with static linkage), the other usual alternatives are
             $(TT libcmtd), $(TT msvcrt) and $(TT msvcrtd).
+            If no Visual C installation is detected, a wrapper for the redistributable
+            VC2010 dynamic runtime library and mingw based platform import libraries will
+            be linked instead using the LLD linker provided by the LLVM project.
+            The detection can be skipped explicitly if $(TT msvcrt100) is specified as
+            $(I libname).
             If $(I libname) is empty, no C runtime library is automatically linked in.",
             TargetOS.windows,
         ),
@@ -675,6 +680,7 @@ dmd -cov -unittest myprog.d
         string paramName; // internal transition parameter name
         string helpText; // detailed description of the feature
         bool documented = true; // whether this option should be shown in the documentation
+        bool deprecated_; /// whether the feature is still in use
     }
 
     /// Returns all available transitions
@@ -682,7 +688,7 @@ dmd -cov -unittest myprog.d
         Feature("field", "vfield",
             "list all non-mutable fields which occupy an object instance"),
         Feature("checkimports", "check10378",
-            "give deprecation messages about 10378 anomalies"),
+            "give deprecation messages about 10378 anomalies", true, true),
         Feature("complex", "vcomplex",
             "give deprecation messages about all usages of complex or imaginary types"),
         Feature("tls", "vtls",
@@ -694,7 +700,7 @@ dmd -cov -unittest myprog.d
     /// Returns all available reverts
     static immutable reverts = [
         Feature("dip25", "noDIP25", "revert DIP25 changes https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md"),
-        Feature("import", "bug10378", "revert to single phase name lookup"),
+        Feature("import", "bug10378", "revert to single phase name lookup", true, true),
     ];
 
     /// Returns all available previews
@@ -702,7 +708,7 @@ dmd -cov -unittest myprog.d
         Feature("dip25", "useDIP25",
             "implement https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md (Sealed references)"),
         Feature("dip1000", "vsafe",
-            "implement https://github.com/dlang/DIPs/blob/master/DIPs/DIP1000.md (Scoped Pointers)"),
+            "implement https://github.com/dlang/DIPs/blob/master/DIPs/other/DIP1000.md (Scoped Pointers)"),
         Feature("dip1008", "ehnogc",
             "implement https://github.com/dlang/DIPs/blob/master/DIPs/DIP1008.md (@nogc Throwable)"),
         Feature("fieldwise", "fieldwise", "use fieldwise comparisons for struct equality"),
@@ -713,6 +719,8 @@ dmd -cov -unittest myprog.d
             "fix integral promotions for unary + - ~ operators"),
         Feature("dtorfields", "dtorFields",
             "destruct fields of partially constructed objects"),
+        Feature("rvaluerefparam", "rvalueRefParam",
+            "enable rvalue arguments to ref parameters"),
     ];
 }
 
@@ -777,6 +785,8 @@ struct CLIUsage
             "list information on all " ~ description)] ~ features;
         foreach (t; allTransitions)
         {
+            if (t.deprecated_)
+                continue;
             if (!t.documented)
                 continue;
             buf ~= "  =";

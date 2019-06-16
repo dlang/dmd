@@ -1,3 +1,8 @@
+/*
+TEST_OUTPUT:
+---
+---
+*/
 
 import core.stdc.stdio;
 import std.stdio;

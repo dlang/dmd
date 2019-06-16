@@ -121,7 +121,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
             {
                 return new ErrorInitializer();
             }
-            size_t nfields = sd.fields.dim - sd.isNested();
+            const nfields = sd.nonHiddenFields();
             //expandTuples for non-identity arguments?
             auto elements = new Expressions(nfields);
             for (size_t j = 0; j < elements.dim; j++)
@@ -391,6 +391,8 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
                 return i;
             }
             i.exp = i.exp.ctfeInterpret();
+            if (i.exp.op == TOK.voidExpression)
+                error(i.loc, "variables cannot be initialized with an expression of type `void`. Use `void` initialization instead.");
         }
         else
         {

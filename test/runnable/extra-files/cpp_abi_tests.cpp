@@ -6,8 +6,17 @@ struct S{
 
 namespace std
 {
-    struct test19248 {int a;};
+    struct test19248_ {int a;}; // Remove when `extern(C++, ns)` is gone
+    struct test19248  {int a;};
 };
+
+#ifdef __DMC__
+// DMC doesn't support c++11
+#elif defined (_MSC_VER) && _MSC_VER <= 1800
+// MSVC2013 doesn't support char16_t/char32_t
+#else
+#define TEST_UNICODE
+#endif
 
 struct S18784
 {
@@ -21,6 +30,10 @@ bool               passthrough(bool                value)     { return value; }
 signed char        passthrough(signed char         value)     { return value; }
 unsigned char      passthrough(unsigned char       value)     { return value; }
 char               passthrough(char                value)     { return value; }
+#ifdef TEST_UNICODE
+char16_t           passthrough(char16_t            value)     { return value; }
+char32_t           passthrough(char32_t            value)     { return value; }
+#endif
 wchar_t            passthrough(wchar_t             value)     { return value; }
 short              passthrough(short               value)     { return value; }
 unsigned short     passthrough(unsigned short      value)     { return value; }
@@ -33,12 +46,17 @@ unsigned long long passthrough(unsigned long long  value)     { return value; }
 float              passthrough(float               value)     { return value; }
 double             passthrough(double              value)     { return value; }
 S                  passthrough(S                   value)     { return value; }
-std::test19248     passthrough(const std::test19248 value)     { return value; }
+std::test19248     passthrough(const std::test19248 value)    { return value; }
+std::test19248_    passthrough(const std::test19248_ value)   { return value; }
 
 bool               passthrough_ptr(bool               *value) { return *value; }
 signed char        passthrough_ptr(signed char        *value) { return *value; }
 unsigned char      passthrough_ptr(unsigned char      *value) { return *value; }
 char               passthrough_ptr(char               *value) { return *value; }
+#ifdef TEST_UNICODE
+char16_t           passthrough_ptr(char16_t           *value) { return *value; }
+char32_t           passthrough_ptr(char32_t           *value) { return *value; }
+#endif
 wchar_t            passthrough_ptr(wchar_t            *value) { return *value; }
 short              passthrough_ptr(short              *value) { return *value; }
 unsigned short     passthrough_ptr(unsigned short     *value) { return *value; }
@@ -52,11 +70,16 @@ float              passthrough_ptr(float              *value) { return *value; }
 double             passthrough_ptr(double             *value) { return *value; }
 S                  passthrough_ptr(S                  *value) { return *value; }
 std::test19248     passthrough_ptr(const std::test19248 *value) { return *value; }
+std::test19248_    passthrough_ptr(const std::test19248_ *value) { return *value; }
 
 bool               passthrough_ref(bool               &value) { return value; }
 signed char        passthrough_ref(signed char        &value) { return value; }
 unsigned char      passthrough_ref(unsigned char      &value) { return value; }
 char               passthrough_ref(char               &value) { return value; }
+#ifdef TEST_UNICODE
+char16_t           passthrough_ref(char16_t           &value) { return value; }
+char32_t           passthrough_ref(char32_t           &value) { return value; }
+#endif
 wchar_t            passthrough_ref(wchar_t            &value) { return value; }
 short              passthrough_ref(short              &value) { return value; }
 unsigned short     passthrough_ref(unsigned short     &value) { return value; }
@@ -70,6 +93,7 @@ float              passthrough_ref(float              &value) { return value; }
 double             passthrough_ref(double             &value) { return value; }
 S                  passthrough_ref(S                  &value) { return value; }
 std::test19248     passthrough_ref(const std::test19248 &value) { return value; }
+std::test19248_    passthrough_ref(const std::test19248_ &value) { return value; }
 
 namespace ns1
 {

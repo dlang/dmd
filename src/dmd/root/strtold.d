@@ -374,7 +374,6 @@ L1:
     {
         *endp = cast(char *) p;
     }
-L3:
     return  sign ? -ldval : ldval;
 
 Lerr:

@@ -14,8 +14,8 @@ struct S
     this(int y) immutable
     {
         x = y;
-        import std.stdio;
-        writeln("Ctor called with ", y);
+        import core.stdc.stdio;
+        printf("Ctor called with %d\n", y);
     }
     void opAssign(int) immutable;
 }

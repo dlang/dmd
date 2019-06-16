@@ -43,10 +43,11 @@ version (OSX)
     enum clock_t CLOCKS_PER_SEC = 1_000_000; // was 100 until OSX 10.4/10.5
 }
 
-extern (C++) int os_clock();
-
 extern (C++):
 
+nothrow:
+
+int os_clock();
 
 /* gdag.c */
 void builddags();
@@ -97,9 +98,9 @@ void go_term()
     vec_free(go.defkill);
     vec_free(go.starkill);
     vec_free(go.vptrkill);
-    go.defnod.dtor();
-    go.expnod.dtor();
-    go.expblk.dtor();
+    go.defnod.__dtor();
+    go.expnod.__dtor();
+    go.expblk.__dtor();
 }
 
 debug

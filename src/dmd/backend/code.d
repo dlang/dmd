@@ -25,6 +25,8 @@ import dmd.backend.type;
 
 extern (C++):
 
+nothrow:
+
 alias segidx_t = int;           // index into SegData[]
 
 /**********************************
@@ -98,8 +100,6 @@ code *code_malloc()
 
 extern __gshared con_t regcon;
 
-bool CSE_loaded(int i);
-
 /************************************
  * Register save state.
  */
@@ -111,13 +111,14 @@ struct REGSAVE
     uint idx;                   // current number in use
     int alignment;              // 8 or 16
 
+  nothrow:
     void reset() { off = 0; top = 0; idx = 0; alignment = _tysize[TYnptr]/*REGSIZE*/; }
-    void save(ref CodeBuilder cdb, reg_t reg, uint *pidx) { REGSAVE_save(this, cdb, reg, pidx); }
+    void save(ref CodeBuilder cdb, reg_t reg, uint *pidx) { REGSAVE_save(this, cdb, reg, *pidx); }
     void restore(ref CodeBuilder cdb, reg_t reg, uint idx) { REGSAVE_restore(this, cdb, reg, idx); }
 }
 
-void REGSAVE_save(ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, uint *pidx);
-void REGSAVE_restore(ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, uint index);
+void REGSAVE_save(ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, out uint idx);
+void REGSAVE_restore(const ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, uint idx);
 
 extern __gshared REGSAVE regsave;
 
@@ -130,6 +131,7 @@ struct LocalSection
     targ_size_t size;           // size of section
     int alignment;              // alignment size
 
+  nothrow:
     void init()                 // initialize
     {   offset = 0;
         size = 0;
@@ -170,6 +172,7 @@ struct CGstate
                                 // as if they were 'pushed' on the stack.
                                 // Special case: if funcargtos==~0, then no
                                 // arguments are there.
+    bool accessedTLS;           // set if accessed Thread Local Storage (TLS)
 }
 
 // nteh.c
@@ -263,6 +266,7 @@ struct seg_data
     uint             SDlinnum_max;
     linnum_data     *SDlinnum_data;     // array of line number / offset data
 
+  nothrow:
     version (Windows)
         int isCode() { return seg_data_isCode(this); }
     version (OSX)
@@ -389,12 +393,10 @@ void getregsNoSave(regm_t r);
 void getregs_imm(ref CodeBuilder cdb, regm_t r);
 void cse_flush(ref CodeBuilder, int);
 bool cse_simple(code *c, elem *e);
-void gen_testcse(ref CodeBuilder cdb, uint sz, targ_uns i);
-void gen_loadcse(ref CodeBuilder cdb, reg_t reg, targ_uns i);
 bool cssave (elem *e , regm_t regm , uint opsflag );
 bool evalinregister(elem *e);
 regm_t getscratch();
-void codelem(ref CodeBuilder cdb, elem *e, regm_t *pretregs, bool constflag);
+void codelem(ref CodeBuilder cdb, elem *e, regm_t *pretregs, uint constflag);
 void scodelem(ref CodeBuilder cdb, elem *e, regm_t *pretregs, regm_t keepmsk, bool constflag);
 const(char)* regm_str(regm_t rm);
 int numbitsset(regm_t);
@@ -466,6 +468,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
 /* cod1.c */
 extern __gshared int clib_inited;
 
+bool regParamInPreg(Symbol* s);
 int isscaledindex(elem *);
 int ssindex(int op,targ_uns product);
 void buildEA(code *c,int base,int index,int scale,targ_size_t disp);
@@ -486,8 +489,8 @@ void pushParams(ref CodeBuilder cdb,elem *, uint, tym_t tyf);
 void offsetinreg(ref CodeBuilder cdb, elem *e, regm_t *pretregs);
 
 /* cod2.c */
-int movOnly(elem *e);
-regm_t idxregm(code *c);
+bool movOnly(const elem *e);
+regm_t idxregm(const code *c);
 void opdouble(ref CodeBuilder cdb, elem *e, regm_t *pretregs, uint clib);
 void WRcodlst(code *c);
 void getoffset(ref CodeBuilder cdb, elem *e, reg_t reg);
@@ -517,7 +520,9 @@ void genregs(ref CodeBuilder cdb, opcode_t op, uint dstreg, uint srcreg);
 void gentstreg(ref CodeBuilder cdb, uint reg);
 void genpush(ref CodeBuilder cdb, reg_t reg);
 void genpop(ref CodeBuilder cdb, reg_t reg);
-void gensavereg(ref CodeBuilder cdb, ref reg_t reg, targ_uns slot);
+void gen_storecse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot);
+void gen_testcse(ref CodeBuilder cdb, tym_t tym, uint sz, size_t i);
+void gen_loadcse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot);
 code *genmovreg(uint to, uint from);
 void genmovreg(ref CodeBuilder cdb, uint to, uint from);
 void genmulimm(ref CodeBuilder cdb,uint r1,uint r2,targ_int imm);

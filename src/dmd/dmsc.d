@@ -31,20 +31,6 @@ import dmd.backend.global;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-/+
-#include        "mars.h"
-
-#include        "cc.h"
-#include        "global.h"
-#include        "oper.h"
-#include        "code.h"
-#include        "type.h"
-#include        "dt.h"
-#include        "cgcv.h"
-
-extern Global global;
-+/
-
 extern (C) void out_config_init(
         int model,      // 32: 32 bit code
                         // 64: 64 bit code
@@ -97,9 +83,9 @@ void backend_init()
             exe = true;         // EXE file only optimizations
         else if (params.link && !global.params.deffile)
             exe = true;         // EXE file only optimizations
-        else if (params.exefile)           // if writing out EXE file
-        {   size_t len = strlen(params.exefile);
-            if (len >= 4 && FileName.equals(params.exefile + len - 3, "exe"))
+        else if (params.exefile.length)           // if writing out EXE file
+        {
+            if (params.exefile.length >= 4 && FileName.equals(params.exefile[$-3 .. $], "exe"))
                 exe = true;
         }
     }

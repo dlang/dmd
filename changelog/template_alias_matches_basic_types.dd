@@ -1,0 +1,36 @@
+Template alias parameters now match basic types as a conversion.
+
+With this release, templates with alias parameters can be instantiated with basic types,
+such as `int` or `void function()`.
+
+---
+template Example(alias A) { alias Example = A[]; }
+alias IntArray = Example!int;
+
+template MatchType(T) { enum MatchType = "type"; }
+template MatchType(alias A) { enum MatchType = "alias"; }
+
+// alias matches, but type matches take priority.
+static assert (MatchType!int == "type");
+---
+
+Templates with alias parameters already matched named types, lambdas, and even value literals. Templates with
+variadic parameters already matched basic types. This led to strange replacements for `alias` such as
+`template Template(T...) if (T.length == 1)`. Those replacements are no longer necessary.
+
+As a consequence, in some cases templates will match that did not used to. For instance, a template
+may have falsely relied on `alias` parameters being "something callable" vs. type parameters being
+"the type of something callable", such as
+
+---
+void fun(T...)(T callable) { ... }
+void fun(alias A)() { ... }
+---
+
+Such overloads may now need to explicitly check whether A is callable in the second case:
+
+---
+void fun(alias A)() if (__traits(compiles, A())) { ... }
+// shorter, but may miss cases like structs with a static opCall
+void fun(alias A)() if (!isType!A) { ... }
+---

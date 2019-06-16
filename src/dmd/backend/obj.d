@@ -24,6 +24,8 @@ import dmd.backend.outbuf;
 
 extern (C++):
 
+nothrow:
+
 version (Windows)
 {
     version (SCPP)
@@ -299,6 +301,8 @@ version (OMF)
     {
       static
       {
+        nothrow:
+
         Obj init(Outbuffer* objbuf, const(char)* filename, const(char)* csegname)
         {
             return OmfObj_init(objbuf, filename, csegname);
@@ -648,6 +652,8 @@ else version (OMFandMSCOFF)
     {
       static
       {
+        nothrow:
+
         Obj init(Outbuffer* objbuf, const(char)* filename, const(char)* csegname)
         {
             return config.objfmt == OBJ_MSCOFF
@@ -1193,7 +1199,7 @@ else version (Posix)
     class Obj
     {
       static:
-
+      nothrow:
         Obj init(Outbuffer* objbuf, const(char)* filename, const(char)* csegname)
         {
             return Obj_init(objbuf, filename, csegname);

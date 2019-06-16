@@ -1,0 +1,5 @@
+Add Markdown-inspired features to Ddoc
+
+With the `-preview=markdown` flag to dmd, Ddoc now supports $(LINK2 https://daringfireball.net/projects/markdown/syntax, Markdown) features like headings, emphasized text, links and more. The full list of features is described in $(LINK2 https://dlang.org/spec/ddoc.html#highlighting, the Ddoc documentation page).
+
+Use the `-transition=vmarkdown` flag together with the `-preview=markdown` flag to log all instances of Markdown features as they're processed in your documentation.

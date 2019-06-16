@@ -44,39 +44,44 @@ public:
         if (data != &smallarray[0])
             mem.xfree(data);
     }
-
-    const(char)* toChars()
+    ///returns elements comma separated in []
+    extern(D) const(char)[] toString()
     {
-        static if (is(typeof(T.init.toChars())))
+        static if (is(typeof(T.init.toString())))
         {
-            const(char)** buf = cast(const(char)**)mem.xmalloc(length * (char*).sizeof);
-            size_t len = 2;
-            for (size_t u = 0; u < length; u++)
+            const(char)[][] buf = (cast(const(char)[]*)mem.xcalloc((char[]).sizeof, length))[0 .. length];
+            size_t len = 2; // [ and ]
+            foreach (u; 0 .. length)
             {
-                buf[u] = data[u].toChars();
-                len += strlen(buf[u]) + 1;
+                buf[u] = data[u].toString();
+                len += buf[u].length + 1; //length + ',' or null terminator
             }
-            char* str = cast(char*)mem.xmalloc(len);
+            char[] str = (cast(char*)mem.xmalloc(len))[0..len];
 
             str[0] = '[';
-            char* p = str + 1;
-            for (size_t u = 0; u < length; u++)
+            char* p = str.ptr + 1;
+            foreach (u; 0 .. length)
             {
                 if (u)
                     *p++ = ',';
-                len = strlen(buf[u]);
-                memcpy(p, buf[u], len);
-                p += len;
+                memcpy(p, buf[u].ptr, buf[u].length);
+                p += buf[u].length;
             }
             *p++ = ']';
             *p = 0;
-            mem.xfree(buf);
-            return str;
+            assert(p - str.ptr == str.length - 1); //null terminator
+            mem.xfree(buf.ptr);
+            return str[0 .. $-1];
         }
         else
         {
             assert(0);
         }
+    }
+    ///ditto
+    const(char)* toChars()
+    {
+        return toString.ptr;
     }
 
     ref Array push(T ptr) return pure nothrow
@@ -284,9 +289,9 @@ private:
  * Returns:
  *  The given array exposed to a standard D array.
  */
-@property inout(T)[] asDArray(T)(inout ref Array!T array) pure nothrow @nogc
+@property inout(T)[] peekSlice(T)(inout(Array!T)* array) pure nothrow @nogc
 {
-    return array.data[0..array.length];
+    return array ? (*array)[] : null;
 }
 
 /**
@@ -314,26 +319,26 @@ unittest
 {
     auto array = Array!int();
     array.split(0, 0);
-    assert([] == array.asDArray);
+    assert([] == array[]);
     array.push(1).push(3);
     array.split(1, 1);
     array[1] = 2;
-    assert([1, 2, 3] == array.asDArray);
+    assert([1, 2, 3] == array[]);
     array.split(2, 3);
     array[2] = 8;
     array[3] = 20;
     array[4] = 4;
-    assert([1, 2, 8, 20, 4, 3] == array.asDArray);
+    assert([1, 2, 8, 20, 4, 3] == array[]);
     array.split(0, 0);
-    assert([1, 2, 8, 20, 4, 3] == array.asDArray);
+    assert([1, 2, 8, 20, 4, 3] == array[]);
     array.split(0, 1);
     array[0] = 123;
-    assert([123, 1, 2, 8, 20, 4, 3] == array.asDArray);
+    assert([123, 1, 2, 8, 20, 4, 3] == array[]);
     array.split(0, 3);
     array[0] = 123;
     array[1] = 421;
     array[2] = 910;
-    assert([123, 421, 910, 123, 1, 2, 8, 20, 4, 3] == array.asDArray);
+    assert([123, 421, 910, 123, 1, 2, 8, 20, 4, 3] == (&array).peekSlice());
 }
 
 /**
@@ -372,3 +377,17 @@ unittest
     assert(reverse(a5) == [5,4,3,2]);
 }
 
+unittest
+{
+    //test toString/toChars.  Identifier is a simple object that has a usable .toString
+    import dmd.identifier : Identifier;
+    import core.stdc.string : strcmp;
+
+    auto array = Array!Identifier();
+    array.push(new Identifier("id1"));
+    array.push(new Identifier("id2"));
+
+    string expected = "[id1,id2]";
+    assert(array.toString == expected);
+    assert(strcmp(array.toChars, expected.ptr) == 0);
+}

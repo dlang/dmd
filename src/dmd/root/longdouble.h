@@ -237,7 +237,6 @@ inline longdouble_soft sqrt (longdouble_soft ld) { return sqrtl(ld); }
 #define LDBL_MIN_10_EXP (-4932)
 
 extern const longdouble_soft ld_qnan;
-extern const longdouble_soft ld_snan;
 extern const longdouble_soft ld_inf;
 
 extern const longdouble_soft ld_zero;

@@ -31,6 +31,7 @@ extern (C++) struct CodeBuilder
     code *head;
     code **pTail;
 
+  nothrow:
   public:
     //this() { pTail = &head; }
     //this(code *c);
@@ -335,9 +336,9 @@ version (MARS)
         genc1(opcode,modregxrm(2,reg,BPRM),FLfltreg,offset);
     }
 
-    void genxmmreg(opcode_t opcode,uint xreg,targ_size_t offset, tym_t tym)
+    void genxmmreg(opcode_t opcode,reg_t xreg,targ_size_t offset, tym_t tym)
     {
-        assert(xreg >= XMM0);
+        assert(isXMMreg(xreg));
         floatreg = true;
         reflocal = true;
         genc1(opcode,modregxrm(2,xreg - XMM0,BPRM),FLfltreg,offset);
@@ -367,5 +368,3 @@ version (MARS)
     //    if (cs.Iop == LEA && cs.Irm == 0xCB) *(char*)0=0;
     }
 }
-
-

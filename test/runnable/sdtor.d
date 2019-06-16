@@ -1,5 +1,19 @@
 // PERMUTE_ARGS: -unittest -O -release -inline -fPIC -g
 // REQUIRED_ARGS: -preview=dtorfields
+/*
+TEST_OUTPUT:
+---
+runnable/sdtor.d(36): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/sdtor.d(59): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/sdtor.d(93): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/sdtor.d(117): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/sdtor.d(143): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/sdtor.d(177): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/sdtor.d(203): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/sdtor.d(276): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+S7353
+---
+*/
 
 import core.vararg;
 
@@ -21,23 +35,6 @@ void test1()
     S1* s = new S1();
     delete s;
     assert(sdtor == 1);
-}
-
-/**********************************/
-
-int sdtor2;
-
-struct S2
-{
-    ~this() { printf("~S2()\n"); sdtor2++; }
-    delete(void* p) { assert(sdtor2 == 1); printf("S2.delete()\n"); sdtor2++; }
-}
-
-void test2()
-{
-    S2* s = new S2();
-    delete s;
-    assert(sdtor2 == 2);
 }
 
 /**********************************/
@@ -4680,7 +4677,7 @@ void test19676()
 int main()
 {
     test1();
-    test2();
+
     test3();
     test4();
     test5();

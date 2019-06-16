@@ -36,7 +36,7 @@ version (NoBackend)
         // glue
         void obj_write_deferred(Library library)        {}
         void obj_start(const(char)* srcfile)            {}
-        void obj_end(Library library, File* objfile)    {}
+        void obj_end(Library library, const(char)* objfilename) {}
         void genObjFile(Module m, bool multiobj)        {}
 
         // msc
@@ -44,7 +44,11 @@ version (NoBackend)
         void backend_term() {}
 
         // iasm
-        Statement asmSemantic(AsmStatement s, Scope* sc) { assert(0); }
+        Statement asmSemantic(AsmStatement s, Scope* sc)
+        {
+            sc.func.hasReturnExp = 8;
+            return null;
+        }
 
         // toir
         void toObjFile(Dsymbol ds, bool multiobj)   {}
@@ -68,7 +72,7 @@ else version (MARS)
     {
         void obj_write_deferred(Library library);
         void obj_start(const(char)* srcfile);
-        void obj_end(Library library, File* objfile);
+        void obj_end(Library library, const(char)* objfilename);
         void genObjFile(Module m, bool multiobj);
 
         void backend_init();

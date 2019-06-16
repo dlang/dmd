@@ -36,6 +36,7 @@ import dmd.backend.type;
 
 extern (C++):
 
+nothrow:
 
 version (HTOD)
     __gshared uint ALLREGS;

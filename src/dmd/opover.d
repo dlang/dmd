@@ -478,20 +478,30 @@ private Expression checkAliasThisForRhs(AggregateDeclaration ad, Scope* sc, BinE
  * Operator overload.
  * Check for operator overload, if so, replace
  * with function call.
- * Return NULL if not an operator overload.
+ * Params:
+ *      e = expression with operator
+ *      sc = context
+ *      pop = if not null, is set to the operator that was actually overloaded,
+ *            which may not be `e.op`. Happens when operands are reversed to
+ *            to match an overload
+ * Returns:
+ *      `null` if not an operator overload,
+ *      otherwise the lowered expression
  */
-Expression op_overload(Expression e, Scope* sc)
+Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
 {
     extern (C++) final class OpOverload : Visitor
     {
         alias visit = Visitor.visit;
     public:
         Scope* sc;
+        TOK* pop;
         Expression result;
 
-        extern (D) this(Scope* sc)
+        extern (D) this(Scope* sc, TOK* pop)
         {
             this.sc = sc;
+            this.pop = pop;
         }
 
         override void visit(Expression e)
@@ -912,11 +922,10 @@ Expression op_overload(Expression e, Scope* sc)
                 args2[0] = e.e2;
                 expandTuples(&args2);
                 argsset = 1;
-                Match m;
-                m.last = MATCH.nomatch;
+                MatchAccumulator m;
                 if (s)
                 {
-                    functionResolve(&m, s, e.loc, sc, tiargs, e.e1.type, &args2);
+                    functionResolve(m, s, e.loc, sc, tiargs, e.e1.type, &args2);
                     if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                     {
                         result = new ErrorExp();
@@ -926,7 +935,7 @@ Expression op_overload(Expression e, Scope* sc)
                 FuncDeclaration lastf = m.lastf;
                 if (s_r)
                 {
-                    functionResolve(&m, s_r, e.loc, sc, tiargs, e.e2.type, &args1);
+                    functionResolve(m, s_r, e.loc, sc, tiargs, e.e2.type, &args1);
                     if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                     {
                         result = new ErrorExp();
@@ -940,9 +949,9 @@ Expression op_overload(Expression e, Scope* sc)
                 }
                 else if (m.last <= MATCH.nomatch)
                 {
-                    m.lastf = m.anyf;
                     if (tiargs)
                         goto L1;
+                    m.lastf = null;
                 }
                 if (e.op == TOK.plusPlus || e.op == TOK.minusMinus)
                 {
@@ -998,11 +1007,10 @@ Expression op_overload(Expression e, Scope* sc)
                             args2[0] = e.e2;
                             expandTuples(&args2);
                         }
-                        Match m;
-                        m.last = MATCH.nomatch;
+                        MatchAccumulator m;
                         if (s_r)
                         {
-                            functionResolve(&m, s_r, e.loc, sc, tiargs, e.e1.type, &args2);
+                            functionResolve(m, s_r, e.loc, sc, tiargs, e.e1.type, &args2);
                             if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                             {
                                 result = new ErrorExp();
@@ -1012,7 +1020,7 @@ Expression op_overload(Expression e, Scope* sc)
                         FuncDeclaration lastf = m.lastf;
                         if (s)
                         {
-                            functionResolve(&m, s, e.loc, sc, tiargs, e.e2.type, &args1);
+                            functionResolve(m, s, e.loc, sc, tiargs, e.e2.type, &args1);
                             if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                             {
                                 result = new ErrorExp();
@@ -1026,8 +1034,9 @@ Expression op_overload(Expression e, Scope* sc)
                         }
                         else if (m.last <= MATCH.nomatch)
                         {
-                            m.lastf = m.anyf;
+                            m.lastf = null;
                         }
+
                         if (lastf && m.lastf == lastf || !s && m.last <= MATCH.nomatch)
                         {
                             // Rewrite (e1 op e2) as e1.opfunc_r(e2)
@@ -1040,23 +1049,8 @@ Expression op_overload(Expression e, Scope* sc)
                         }
                         // When reversing operands of comparison operators,
                         // need to reverse the sense of the op
-                        switch (e.op)
-                        {
-                        case TOK.lessThan:
-                            e.op = TOK.greaterThan;
-                            break;
-                        case TOK.greaterThan:
-                            e.op = TOK.lessThan;
-                            break;
-                        case TOK.lessOrEqual:
-                            e.op = TOK.greaterOrEqual;
-                            break;
-                        case TOK.greaterOrEqual:
-                            e.op = TOK.lessOrEqual;
-                            break;
-                        default:
-                            break;
-                        }
+                        if (pop)
+                            *pop = reverseRelation(e.op);
                         return;
                     }
                 }
@@ -1222,7 +1216,7 @@ Expression op_overload(Expression e, Scope* sc)
                 }
             }
 
-            result = compare_overload(e, sc, Id.eq);
+            result = compare_overload(e, sc, Id.eq, null);
             if (result)
             {
                 if (result.op == TOK.call && e.op == TOK.notEqual)
@@ -1360,7 +1354,7 @@ Expression op_overload(Expression e, Scope* sc)
         override void visit(CmpExp e)
         {
             //printf("CmpExp:: () (%s)\n", e.toChars());
-            result = compare_overload(e, sc, Id.cmp);
+            result = compare_overload(e, sc, Id.cmp, pop);
         }
 
         /*********************************
@@ -1522,11 +1516,10 @@ Expression op_overload(Expression e, Scope* sc)
                 args2.setDim(1);
                 args2[0] = e.e2;
                 expandTuples(&args2);
-                Match m;
-                m.last = MATCH.nomatch;
+                MatchAccumulator m;
                 if (s)
                 {
-                    functionResolve(&m, s, e.loc, sc, tiargs, e.e1.type, &args2);
+                    functionResolve(m, s, e.loc, sc, tiargs, e.e1.type, &args2);
                     if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                     {
                         result = new ErrorExp();
@@ -1540,9 +1533,9 @@ Expression op_overload(Expression e, Scope* sc)
                 }
                 else if (m.last <= MATCH.nomatch)
                 {
-                    m.lastf = m.anyf;
                     if (tiargs)
                         goto L1;
+                    m.lastf = null;
                 }
                 // Rewrite (e1 op e2) as e1.opOpAssign(e2)
                 result = build_overload(e.loc, sc, e.e1, e.e2, m.lastf ? m.lastf : s);
@@ -1557,7 +1550,9 @@ Expression op_overload(Expression e, Scope* sc)
         }
     }
 
-    scope OpOverload v = new OpOverload(sc);
+    if (pop)
+        *pop = e.op;
+    scope OpOverload v = new OpOverload(sc, pop);
     e.accept(v);
     return v.result;
 }
@@ -1565,7 +1560,7 @@ Expression op_overload(Expression e, Scope* sc)
 /******************************************
  * Common code for overloading of EqualExp and CmpExp
  */
-private Expression compare_overload(BinExp e, Scope* sc, Identifier id)
+private Expression compare_overload(BinExp e, Scope* sc, Identifier id, TOK* pop)
 {
     //printf("BinExp::compare_overload(id = %s) %s\n", id.toChars(), e.toChars());
     AggregateDeclaration ad1 = isAggregate(e.e1.type);
@@ -1596,8 +1591,7 @@ private Expression compare_overload(BinExp e, Scope* sc, Identifier id)
         Expressions args2 = Expressions(1);
         args2[0] = e.e2;
         expandTuples(&args2);
-        Match m;
-        m.last = MATCH.nomatch;
+        MatchAccumulator m;
         if (0 && s && s_r)
         {
             printf("s  : %s\n", s.toPrettyChars());
@@ -1605,7 +1599,7 @@ private Expression compare_overload(BinExp e, Scope* sc, Identifier id)
         }
         if (s)
         {
-            functionResolve(&m, s, e.loc, sc, tiargs, e.e1.type, &args2);
+            functionResolve(m, s, e.loc, sc, tiargs, e.e1.type, &args2);
             if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                 return new ErrorExp();
         }
@@ -1613,7 +1607,7 @@ private Expression compare_overload(BinExp e, Scope* sc, Identifier id)
         int count = m.count;
         if (s_r)
         {
-            functionResolve(&m, s_r, e.loc, sc, tiargs, e.e2.type, &args1);
+            functionResolve(m, s_r, e.loc, sc, tiargs, e.e2.type, &args1);
             if (m.lastf && (m.lastf.errors || m.lastf.semantic3Errors))
                 return new ErrorExp();
         }
@@ -1638,7 +1632,7 @@ private Expression compare_overload(BinExp e, Scope* sc, Identifier id)
         }
         else if (m.last <= MATCH.nomatch)
         {
-            m.lastf = m.anyf;
+            m.lastf = null;
         }
         Expression result;
         if (lastf && m.lastf == lastf || !s_r && m.last <= MATCH.nomatch)
@@ -1652,23 +1646,8 @@ private Expression compare_overload(BinExp e, Scope* sc, Identifier id)
             result = build_overload(e.loc, sc, e.e2, e.e1, m.lastf ? m.lastf : s_r);
             // When reversing operands of comparison operators,
             // need to reverse the sense of the op
-            switch (e.op)
-            {
-            case TOK.lessThan:
-                e.op = TOK.greaterThan;
-                break;
-            case TOK.greaterThan:
-                e.op = TOK.lessThan;
-                break;
-            case TOK.lessOrEqual:
-                e.op = TOK.greaterOrEqual;
-                break;
-            case TOK.greaterOrEqual:
-                e.op = TOK.lessOrEqual;
-                break;
-            default:
-                break;
-            }
+            if (pop)
+                *pop = reverseRelation(e.op);
         }
         return result;
     }
@@ -2089,3 +2068,26 @@ private bool matchParamsToOpApply(TypeFunction tf, Parameters* parameters, bool 
     }
     return true;
 }
+
+/**
+ * Reverse relational operator, eg >= becomes <=
+ * Note this is not negation.
+ * Params:
+ *      op = comparison operator to reverse
+ * Returns:
+ *      reverse of op
+ */
+private TOK reverseRelation(TOK op) pure
+{
+    switch (op)
+    {
+        case TOK.greaterOrEqual:  op = TOK.lessOrEqual;    break;
+        case TOK.greaterThan:     op = TOK.lessThan;       break;
+        case TOK.lessOrEqual:     op = TOK.greaterOrEqual; break;
+        case TOK.lessThan:        op = TOK.greaterThan;    break;
+        default:                  break;
+    }
+    return op;
+}
+
+

@@ -96,9 +96,6 @@ enum ENUMTY
 };
 typedef unsigned char TY;       // ENUMTY
 
-extern int Tsize_t;
-extern int Tptrdiff_t;
-
 #define SIZE_INVALID (~(d_uns64)0)   // error return from size() functions
 
 
@@ -400,6 +397,7 @@ public:
     bool iscomplex() /*const*/;
     bool isscalar() /*const*/;
     bool isunsigned() /*const*/;
+    bool ischar() /*const*/;
     MATCH implicitConvTo(Type *to);
     bool isZeroInit(const Loc &loc) /*const*/;
 
@@ -585,6 +583,7 @@ public:
     Expressions *fargs; // function arguments
 
     int inuse;
+    bool incomplete;
 
     static TypeFunction *create(Parameters *parameters, Type *treturn, VarArg varargs, LINK linkage, StorageClass stc = 0);
     const char *kind();
@@ -760,6 +759,7 @@ public:
     bool iscomplex();
     bool isscalar();
     bool isunsigned();
+    bool ischar();
     bool isBoolean();
     bool isString();
     bool isAssignable();

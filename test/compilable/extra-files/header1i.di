@@ -347,13 +347,6 @@ class Test
 	alias getHUShort = A!ushort;
 	alias getHReal = A!real;
 	alias void F();
-	nothrow pure @nogc @safe new(size_t sz)
-	{
-		return null;
-	}
-	nothrow pure @nogc @safe delete(void* p)
-	{
-	}
 }
 void templ(T)(T val)
 {

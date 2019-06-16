@@ -189,12 +189,6 @@ static import core.stdc.stdlib;
 unittest { fooStaticImport(); }
 
 ///
-void fooPublicImport() {}
-public import core.stdc.string;
-/// test
-unittest { fooPublicImport(); }
-
-///
 void fooSelectiveImport() {}
 import core.stdc.ctype : isalpha;
 /// test
@@ -205,6 +199,28 @@ void fooRenamedImport() {}
 import io = core.stdc.stdio;
 /// test
 unittest { fooRenamedImport(); }
+
+/// This is a public import
+public import core.stdc.string;
+
+/// This is a mutiple public import
+public import core.stdc.stdarg, core.stdc.stdlib;
+
+/// This is a public selective import
+public import core.stdc.string : memcpy;
+
+/// This is a public selective renamed import
+public import core.stdc.string : copy = memcpy;
+
+/// This is a public multiple selective import
+public import core.stdc.string : memcpy, memcmp;
+
+/// This is a public multiple selective renamed import
+public import core.stdc.string : copy = memcpy, compare = memcmp;
+
+/// This is a public renamed import
+public import str = core.stdc.string;
+
 
 // ------------------------------------
 // documented unittest after conditional declarations
@@ -357,6 +373,7 @@ auto redBlackTree(bool allowDuplicates, E)(E[] elems...)
 }
 /// ditto
 auto redBlackTree(alias less, E)(E[] elems...)
+if (__traits(compiles, (E a, E b) => mixin(less)))
 {
     return 3;
 }

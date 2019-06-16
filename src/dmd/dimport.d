@@ -209,28 +209,23 @@ extern (C++) final class Import : Dsymbol
 
     override void importAll(Scope* sc)
     {
-        if (!mod)
+        if (mod) return; // Already done
+        load(sc);
+        if (!mod) return; // Failed
+
+        mod.importAll(null);
+        if (mod.md && mod.md.isdeprecated)
         {
-            load(sc);
-            if (mod) // if successfully loaded module
-            {
-                mod.importAll(null);
-                if (mod.md && mod.md.isdeprecated)
-                {
-                    Expression msg = mod.md.msg;
-                    if (StringExp se = msg ? msg.toStringExp() : null)
-                        mod.deprecation(loc, "is deprecated - %s", se.string);
-                    else
-                        mod.deprecation(loc, "is deprecated");
-                }
-                if (sc.explicitProtection)
-                    protection = sc.protection;
-                if (!isstatic && !aliasId && !names.dim)
-                {
-                    sc.scopesym.importScope(mod, protection);
-                }
-            }
+            Expression msg = mod.md.msg;
+            if (StringExp se = msg ? msg.toStringExp() : null)
+                mod.deprecation(loc, "is deprecated - %s", se.string);
+            else
+                mod.deprecation(loc, "is deprecated");
         }
+        if (sc.explicitProtection)
+            protection = sc.protection;
+        if (!isstatic && !aliasId && !names.dim)
+            sc.scopesym.importScope(mod, protection);
     }
 
     override Dsymbol toAlias()

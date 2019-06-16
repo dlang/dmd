@@ -50,6 +50,8 @@ static if (NTEXCEPTIONS)
 
 extern (C++):
 
+nothrow:
+
 int REGSIZE();
 Symbol* except_gensym();
 void except_fillInEHTable(Symbol *s);

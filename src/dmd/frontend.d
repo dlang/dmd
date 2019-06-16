@@ -17,6 +17,7 @@ module dmd.frontend;
 import dmd.astcodegen : ASTCodegen;
 import dmd.dmodule : Module;
 import dmd.errors : DiagnosticReporter;
+import dmd.globals : CHECKENABLE;
 
 import std.range.primitives : isInputRange, ElementType;
 import std.traits : isNarrowString;
@@ -47,17 +48,78 @@ immutable struct Diagnostics
     }
 }
 
+/// Indicates the checking state of various contracts.
+enum ContractChecking : CHECKENABLE
+{
+    /// Initial value
+    default_ = CHECKENABLE._default,
+
+    /// Never do checking
+    disabled = CHECKENABLE.off,
+
+    /// Always do checking
+    enabled = CHECKENABLE.on,
+
+    /// Only do checking in `@safe` functions
+    enabledInSafe = CHECKENABLE.safeonly
+}
+
+unittest
+{
+    static assert(
+        __traits(allMembers, ContractChecking).length ==
+        __traits(allMembers, CHECKENABLE).length
+    );
+}
+
+/// Indicates which contracts should be checked or not.
+struct ContractChecks
+{
+    /// Precondition checks (in contract).
+    ContractChecking precondition = ContractChecking.enabled;
+
+    /// Invariant checks.
+    ContractChecking invariant_ = ContractChecking.enabled;
+
+    /// Postcondition checks (out contract).
+    ContractChecking postcondition = ContractChecking.enabled;
+
+    /// Array bound checks.
+    ContractChecking arrayBounds = ContractChecking.enabled;
+
+    /// Assert checks.
+    ContractChecking assert_ = ContractChecking.enabled;
+
+    /// Switch error checks.
+    ContractChecking switchError = ContractChecking.enabled;
+}
+
 /*
 Initializes the global variables of the DMD compiler.
 This needs to be done $(I before) calling any function.
+
+Params:
+    contractChecks = indicates which contracts should be enabled or not
+    versionIdentifiers = a list of version identifiers that should be enabled
 */
-void initDMD()
+void initDMD(
+    const string[] versionIdentifiers = [],
+    ContractChecks contractChecks = ContractChecks()
+)
 {
+    import std.algorithm : each;
+
+    import dmd.root.ctfloat : CTFloat;
+
+    version (CRuntime_Microsoft)
+        import dmd.root.longdouble : initFPU;
+
     import dmd.builtin : builtin_init;
+    import dmd.cond : VersionCondition;
     import dmd.dmodule : Module;
     import dmd.expression : Expression;
     import dmd.filecache : FileCache;
-    import dmd.globals : global;
+    import dmd.globals : CHECKENABLE, global;
     import dmd.id : Id;
     import dmd.identifier : Identifier;
     import dmd.mars : setTarget, addDefaultVersionIdentifiers;
@@ -66,6 +128,18 @@ void initDMD()
     import dmd.target : target;
 
     global._init();
+
+    with (global.params)
+    {
+        useIn = contractChecks.precondition;
+        useInvariants = contractChecks.invariant_;
+        useOut = contractChecks.postcondition;
+        useArrayBounds = contractChecks.arrayBounds;
+        useAssert = contractChecks.assert_;
+        useSwitchError = contractChecks.switchError;
+    }
+
+    versionIdentifiers.each!(VersionCondition.addGlobalIdent);
     setTarget(global.params);
     addDefaultVersionIdentifiers(global.params);
 
@@ -77,6 +151,11 @@ void initDMD()
     Objc._init();
     builtin_init();
     FileCache._init();
+
+    version (CRuntime_Microsoft)
+        initFPU();
+
+    CTFloat.initialize();
 }
 
 /**
@@ -123,6 +202,24 @@ void addImport(const(char)[] path)
         global.path = new Strings();
 
     global.path.push(path.toStringz);
+}
+
+/**
+Add string import path to `global.filePath`.
+Params:
+    path = string import to add
+*/
+void addStringImport(const(char)[] path)
+{
+    import std.string : toStringz;
+
+    import dmd.globals : global;
+    import dmd.arraytypes : Strings;
+
+    if (global.filePath is null)
+        global.filePath = new Strings();
+
+    global.filePath.push(path.toStringz);
 }
 
 /**
@@ -290,32 +387,33 @@ in
 }
 body
 {
+    import dmd.root.file : File, FileBuffer;
+
     import dmd.globals : Loc, global;
     import dmd.parse : Parser;
     import dmd.identifier : Identifier;
     import dmd.tokens : TOK;
+
+    import std.path : baseName, stripExtension;
     import std.string : toStringz;
     import std.typecons : tuple;
 
-    static auto parse(Module m, const(char)[] code, DiagnosticReporter diagnosticReporter)
-    {
-        scope p = new Parser!AST(m, code, false, diagnosticReporter);
-        p.nextToken; // skip the initial token
-        auto members = p.parseModule;
-        if (p.errors)
-            ++global.errors;
-        return members;
-    }
+    auto id = Identifier.idPool(fileName.baseName.stripExtension);
+    auto m = new Module(fileName, id, 0, 0);
 
-    Identifier id = Identifier.idPool(fileName);
-    auto m = new Module(fileName.toStringz, id, 0, 0);
-    if (code !is null)
-        m.members = parse(m, code, diagnosticReporter);
+    if (code is null)
+        m.read(Loc.initial);
     else
     {
-        m.read(Loc.initial);
-        m.parse();
+        File.ReadResult readResult = {
+            success: true,
+            buffer: FileBuffer(cast(ubyte[]) code.dup ~ '\0')
+        };
+
+        m.loadSourceBuffer(Loc.initial, readResult);
     }
+
+    m.parse!AST(diagnosticReporter);
 
     Diagnostics diagnostics = {
         errors: global.errors,

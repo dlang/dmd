@@ -22,16 +22,20 @@ import dmd.backend.cdef;
 import dmd.backend.global;
 import dmd.backend.code;
 
-
 extern (C++):
+
+nothrow:
+
+alias _compare_fp_t = extern(C) nothrow int function(const void*, const void*);
+extern(C) void qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar);
 
 version (all) // free function version
 {
     import dmd.backend.varstats;
 
     void varStats_writeSymbolTable(symtab_t* symtab,
-                          void function(Symbol*) fnWriteVar, void function() fnEndArgs,
-                          void function(int off,int len) fnBeginBlock, void function() fnEndBlock)
+            void function(Symbol*) nothrow fnWriteVar, void function() nothrow fnEndArgs,
+            void function(int off,int len) nothrow fnBeginBlock, void function() nothrow fnEndBlock)
     {
         varStats.writeSymbolTable(symtab, fnWriteVar, fnEndArgs, fnBeginBlock, fnEndBlock);
     }
@@ -68,6 +72,7 @@ struct LineOffset
 struct VarStatistics
 {
 private:
+nothrow:
     LifeTime* lifeTimes;
     int cntAllocLifeTimes;
     int cntUsedLifeTimes;
@@ -273,8 +278,8 @@ private symtab_t* calcLexicalScope(symtab_t* symtab) return
 }
 
 public void writeSymbolTable(symtab_t* symtab,
-                          void function(Symbol*) fnWriteVar, void function() fnEndArgs,
-                          void function(int off,int len) fnBeginBlock, void function() fnEndBlock)
+            void function(Symbol*) nothrow fnWriteVar, void function() nothrow fnEndArgs,
+            void function(int off,int len) nothrow fnBeginBlock, void function() nothrow fnEndBlock)
 {
     symtab = calcLexicalScope(symtab);
 

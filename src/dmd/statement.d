@@ -121,7 +121,7 @@ extern (C++) abstract class Statement : ASTNode
         HdrGenState hgs;
         OutBuffer buf;
         .toCBuffer(this, &buf, &hgs);
-        return buf.extractString();
+        return buf.extractChars();
     }
 
     final void error(const(char)* format, ...)
@@ -338,94 +338,6 @@ extern (C++) abstract class Statement : ASTNode
         return this;
     }
 
-    /********************
-     * A cheaper method of doing downcasting of Statements.
-     * Returns:
-     *    the downcast statement if it can be downcasted, otherwise `null`
-     */
-    inout(ErrorStatement) isErrorStatement() inout pure nothrow
-    {
-        return null;
-    }
-
-    /// ditto
-    inout(ScopeStatement) isScopeStatement() inout nothrow pure
-    {
-        return null;
-    }
-
-    /// ditto
-    inout(ExpStatement) isExpStatement() inout pure nothrow
-    {
-        return null;
-    }
-
-    /// ditto
-    inout(CompoundStatement) isCompoundStatement() inout nothrow pure
-    {
-        return null;
-    }
-
-    /// ditto
-    inout(ReturnStatement) isReturnStatement() inout nothrow pure
-    {
-        return null;
-    }
-
-    /// ditto
-    inout(IfStatement) isIfStatement() inout pure nothrow
-    {
-        return null;
-    }
-
-    /// ditto
-    inout(CaseStatement) isCaseStatement() inout pure nothrow
-    {
-        return null;
-    }
-
-    /// ditto
-    inout(DefaultStatement) isDefaultStatement() inout pure nothrow
-    {
-        return null;
-    }
-
-    /// ditto
-    inout(LabelStatement) isLabelStatement() inout pure nothrow
-    {
-        return null;
-    }
-
-    /// ditto
-    inout(GotoDefaultStatement) isGotoDefaultStatement() inout pure nothrow
-    {
-        return null;
-    }
-
-    /// ditto
-    inout(GotoCaseStatement) isGotoCaseStatement() inout pure nothrow
-    {
-        return null;
-    }
-
-    /// ditto
-    inout(BreakStatement) isBreakStatement() inout nothrow pure
-    {
-        return null;
-    }
-
-    /// ditto
-    inout(DtorExpStatement) isDtorExpStatement() inout pure nothrow
-    {
-        return null;
-    }
-
-    /// ditto
-    inout(ForwardingStatement) isForwardingStatement() inout pure nothrow
-    {
-        return null;
-    }
-
     /**************************
      * Support Visitor Pattern
      * Params:
@@ -435,6 +347,28 @@ extern (C++) abstract class Statement : ASTNode
     {
         v.visit(this);
     }
+
+  pure nothrow @nogc:
+
+    /********************
+     * A cheaper method of doing downcasting of Statements.
+     * Returns:
+     *    the downcast statement if it can be downcasted, otherwise `null`
+     */
+    inout(ErrorStatement)       isErrorStatement()       inout { return null; }
+    inout(ScopeStatement)       isScopeStatement()       inout { return null; }
+    inout(ExpStatement)         isExpStatement()         inout { return null; }
+    inout(CompoundStatement)    isCompoundStatement()    inout { return null; }
+    inout(ReturnStatement)      isReturnStatement()      inout { return null; }
+    inout(IfStatement)          isIfStatement()          inout { return null; }
+    inout(CaseStatement)        isCaseStatement()        inout { return null; }
+    inout(DefaultStatement)     isDefaultStatement()     inout { return null; }
+    inout(LabelStatement)       isLabelStatement()       inout { return null; }
+    inout(GotoDefaultStatement) isGotoDefaultStatement() inout { return null; }
+    inout(GotoCaseStatement)    isGotoCaseStatement()    inout { return null; }
+    inout(BreakStatement)       isBreakStatement()       inout { return null; }
+    inout(DtorExpStatement)     isDtorExpStatement()     inout { return null; }
+    inout(ForwardingStatement)  isForwardingStatement()  inout { return null; }
 }
 
 /***********************************************************
@@ -718,7 +652,7 @@ extern (C++) class ExpStatement : Statement
                     HdrGenState hgs;
                     hgs.hdrgen = true;
                     toCBuffer(s, &buf, &hgs);
-                    printf("tm ==> s = %s\n", buf.peekString());
+                    printf("tm ==> s = %s\n", buf.peekChars());
                 }
                 auto a = new Statements();
                 a.push(s);
@@ -811,7 +745,7 @@ extern (C++) final class CompileStatement : Statement
 
         const errors = global.errors;
         const len = buf.offset;
-        const str = buf.extractString()[0 .. len];
+        const str = buf.extractChars()[0 .. len];
         scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
         scope p = new Parser!ASTCodegen(loc, sc._module, str, false, diagnosticReporter);
         p.nextToken();
@@ -1676,13 +1610,6 @@ extern (C++) final class CaseStatement : Statement
     override Statement syntaxCopy()
     {
         return new CaseStatement(loc, exp.syntaxCopy(), statement.syntaxCopy());
-    }
-
-    override int compare(RootObject obj)
-    {
-        // Sort cases so we can do an efficient lookup
-        CaseStatement cs2 = cast(CaseStatement)obj;
-        return exp.compare(cs2.exp);
     }
 
     override inout(CaseStatement) isCaseStatement() inout pure nothrow

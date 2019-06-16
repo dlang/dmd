@@ -62,6 +62,8 @@ version (Windows)
 
 extern (C++):
 
+nothrow:
+
 void dt_writeToObj(Obj objmod, dt_t *dt, int seg, ref targ_size_t offset);
 
 // Determine if this Symbol is stored in a COMDAT
@@ -220,7 +222,6 @@ version (SCPP)
                 /* A block of zeros
                  */
                 //printf("DT_azeros %d\n", dt.DTazeros);
-            case_azeros:
                 datasize += dt.DTazeros;
                 if (dt == dtstart && !dt.DTnext && s.Sclass != SCcomdat &&
                     (s.Sseg == UNKNOWN || s.Sseg <= UDATA))

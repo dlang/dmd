@@ -34,6 +34,7 @@ import dmd.backend.type;
 
 extern (C++):
 
+nothrow:
 
 static if (TARGET_WINDOS)
 {

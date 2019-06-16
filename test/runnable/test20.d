@@ -1,3 +1,9 @@
+/*
+TEST_OUTPUT:
+---
+runnable/test20.d(448): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+---
+*/
 import core.vararg;
 
 extern(C) int printf(const char*, ...);
@@ -213,7 +219,7 @@ void test10()
 
 /*****************************************/
 
-scope class T11
+class T11
 {
     this(){}
     ~this(){}
@@ -334,12 +340,6 @@ int y16;
 
 class C16
 {
-        new(size_t size, byte blah){
-                void* v = (new byte[C16.classinfo.initializer.length]).ptr;
-                y16 = 1;
-                assert(blah == 3);
-                return v;
-        }
         int x;
         this()
         {
@@ -349,8 +349,7 @@ class C16
 
 void test16()
 {
-    C16 c = new(3) C16;
-    assert(y16 == 1);
+    C16 c = new C16();
     assert(c.x == 4);
 }
 
@@ -1294,4 +1293,3 @@ int main()
     printf("Success\n");
     return 0;
 }
-

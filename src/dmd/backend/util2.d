@@ -27,6 +27,8 @@ import dmd.backend.mem;
 
 extern (C++):
 
+nothrow:
+
 void *ph_malloc(size_t nbytes);
 void *ph_calloc(size_t nbytes);
 void ph_free(void *p);

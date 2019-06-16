@@ -25,9 +25,10 @@ import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.root.port;
 import dmd.root.stringtable;
+import dmd.root.rmem : xarraydup;
 import dmd.utils;
 
-version (Windows) extern (C) int putenv(const char*);
+version (Windows) extern (C) int putenv(const char*) nothrow;
 private enum LOG = false;
 
 /*****************************
@@ -83,8 +84,7 @@ const(char)[] findConfFile(const(char)[] argv0, const(char)[] inifile)
         {
             printf("\tPATH='%s'\n", p);
         }
-        auto paths = FileName.splitPath(p);
-        auto abspath = FileName.searchPath(paths, argv0, false);
+        auto abspath = FileName.searchPath(p, argv0, false);
         if (abspath)
         {
             auto absname = FileName.replaceName(abspath, inifile);
@@ -142,7 +142,7 @@ private bool writeToEnv(ref StringTable environment, char* nameEqValue)
  */
 void updateRealEnvironment(ref StringTable environment)
 {
-    static int envput(const(StringValue)* sv)
+    static int envput(const(StringValue)* sv) nothrow
     {
         const name = sv.toDchars();
         const namelen = strlen(name);
@@ -176,7 +176,7 @@ void updateRealEnvironment(ref StringTable environment)
  *      buffer = contents of configuration file
  *      sections = section names
  */
-void parseConfFile(ref StringTable environment, const(char)* filename, const(char)[] path, const(ubyte)[] buffer, const(Strings)* sections)
+void parseConfFile(ref StringTable environment, const(char)[] filename, const(char)[] path, const(ubyte)[] buffer, const(Strings)* sections)
 {
     /********************
      * Skip spaces.
@@ -270,7 +270,7 @@ void parseConfFile(ref StringTable environment, const(char)* filename, const(cha
             --slicelen;
         buf.setsize(slicelen);
 
-        auto p = buf.peekString();
+        auto p = buf.peekChars();
         // The expanded line is in p.
         // Now parse it for meaning.
         p = skipspace(p);
@@ -354,7 +354,7 @@ void parseConfFile(ref StringTable environment, const(char)* filename, const(cha
                 {
                     if (!writeToEnv(environment, strdup(pn)))
                     {
-                        error(Loc(filename, lineNum, 0), "Use `NAME=value` syntax, not `%s`", pn);
+                        error(Loc(filename.xarraydup.ptr, lineNum, 0), "Use `NAME=value` syntax, not `%s`", pn);
                         fatal();
                     }
                     static if (LOG)

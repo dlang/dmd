@@ -170,7 +170,8 @@ private elem *callfunc(const ref Loc loc,
         Type t,                 // TypeDelegate or TypeFunction for this function
         elem *ehidden,          // if !=null, this is the 'hidden' argument
         Expressions *arguments,
-        elem *esel = null)      // selector for Objective-C methods (when not provided by fd)
+        elem *esel = null,      // selector for Objective-C methods (when not provided by fd)
+        elem *ethis2 = null)    // multi-context array
 {
     elem *ethis = null;
     elem *eside = null;
@@ -337,7 +338,7 @@ private elem *callfunc(const ref Loc loc,
         }
     }
 
-    if (fd && fd.isMember2())
+    if (fd && fd.isMemberLocal())
     {
         assert(op == NotIntrinsic);       // members should not be intrinsics
 
@@ -348,6 +349,10 @@ private elem *callfunc(const ref Loc loc,
             if (ad.isStructDeclaration() && tybasic(ec.Ety) != TYnptr)
             {
                 ethis = addressElem(ec, ectype);
+            }
+            if (ethis2)
+            {
+                ethis2 = setEthis2(loc, irs, fd, ethis2, &ethis, &eside);
             }
             if (el_sideeffect(ethis))
             {
@@ -398,10 +403,12 @@ if (!irs.params.is64bit) assert(tysize(TYnptr) == 4);
     else if (fd && fd.isNested())
     {
         assert(!ethis);
-        ethis = getEthis(loc, irs, fd);
+        ethis = getEthis(loc, irs, fd, fd.toParentLocal());
+        if (ethis2)
+            ethis2 = setEthis2(loc, irs, fd, ethis2, &ethis, &eside);
     }
 
-    ep = el_param(ep, ethis);
+    ep = el_param(ep, ethis2 ? ethis2 : ethis);
     if (ehidden)
         ep = el_param(ep, ehidden);     // if ehidden goes last
 
@@ -1170,7 +1177,7 @@ elem *toElem(Expression e, IRState *irs)
                 if (fd && fd != irs.getFunc())
                 {
                     // 'var' is a variable in an enclosing function.
-                    elem *ethis = getEthis(se.loc, irs, fd);
+                    elem *ethis = getEthis(se.loc, irs, fd, null, se.originalScope);
                     ethis = el_una(OPaddr, TYnptr, ethis);
 
                     /* https://issues.dlang.org/show_bug.cgi?id=9383
@@ -1413,9 +1420,13 @@ elem *toElem(Expression e, IRState *irs)
                 FuncDeclaration fd = te.var.toParent2().isFuncDeclaration();
                 assert(fd);
                 ethis = getEthis(te.loc, irs, fd);
+                ethis = fixEthis2(ethis, fd);
             }
             else
+            {
                 ethis = el_var(irs.sthis);
+                ethis = fixEthis2(ethis, irs.getFunc());
+            }
 
             if (te.type.ty == Tstruct)
             {
@@ -1448,28 +1459,12 @@ elem *toElem(Expression e, IRState *irs)
             {
                 case TYfloat:
                 case TYifloat:
-                    /* This assignment involves a conversion, which
-                     * unfortunately also converts SNAN to QNAN.
-                     */
                     e.EV.Vfloat = cast(float) re.value;
-                    if (CTFloat.isSNaN(re.value))
-                    {
-                        // Put SNAN back
-                        e.EV.Vuns &= 0xFFBFFFFFL;
-                    }
                     break;
 
                 case TYdouble:
                 case TYidouble:
-                    /* This assignment involves a conversion, which
-                     * unfortunately also converts SNAN to QNAN.
-                     */
                     e.EV.Vdouble = cast(double) re.value;
-                    if (CTFloat.isSNaN(re.value))
-                    {
-                        // Put SNAN back
-                        e.EV.Vullong &= 0xFFF7FFFFFFFFFFFFUL;
-                    }
                     break;
 
                 case TYldouble:
@@ -1621,11 +1616,13 @@ elem *toElem(Expression e, IRState *irs)
                 /* Things to do:
                  * 1) ex: call allocator
                  * 2) ey: set vthis for nested classes
+                 * 2) ew: set vthis2 for nested classes
                  * 3) ez: call constructor
                  */
 
                 elem *ex = null;
                 elem *ey = null;
+                elem *ew = null;
                 elem *ezprefix = null;
                 elem *ez = null;
 
@@ -1659,6 +1656,8 @@ elem *toElem(Expression e, IRState *irs)
                     {
                         ey = el_same(&ex);
                         ez = el_copytree(ey);
+                        if (cd.vthis2)
+                            ew = el_copytree(ey);
                     }
                     else if (ne.member)
                         ez = el_same(&ex);
@@ -1680,6 +1679,8 @@ elem *toElem(Expression e, IRState *irs)
                     {
                         ey = el_same(&ex);
                         ez = el_copytree(ey);
+                        if (cd.vthis2)
+                            ew = el_copytree(ey);
                     }
                     else if (ne.member)
                         ez = el_same(&ex);
@@ -1696,7 +1697,7 @@ elem *toElem(Expression e, IRState *irs)
                     //printf("cdthis = %s\n", cdthis.toChars());
                     assert(cd.isNested());
                     int offset = 0;
-                    Dsymbol cdp = cd.toParent2();     // class we're nested in
+                    Dsymbol cdp = cd.toParentLocal();     // class we're nested in
 
                     //printf("member = %p\n", member);
                     //printf("cdp = %s\n", cdp.toChars());
@@ -1732,6 +1733,15 @@ elem *toElem(Expression e, IRState *irs)
                     ey = setEthis(ne.loc, irs, ey, cd);
                 }
 
+                if (cd.vthis2)
+                {
+                    /* Initialize cd.vthis2:
+                     *  *(ew + cd.vthis2.offset) = this;
+                     */
+                    assert(ew);
+                    ew = setEthis(ne.loc, irs, ew, cd, true);
+                }
+
                 if (ne.member)
                 {
                     if (ne.argprefix)
@@ -1741,6 +1751,7 @@ elem *toElem(Expression e, IRState *irs)
                 }
 
                 e = el_combine(ex, ey);
+                e = el_combine(e, ew);
                 e = el_combine(e, ezprefix);
                 e = el_combine(e, ez);
             }
@@ -1752,12 +1763,14 @@ elem *toElem(Expression e, IRState *irs)
 
                 /* Things to do:
                  * 1) ex: call allocator
-                 * 2) ey: set vthis for nested classes
+                 * 2) ey: set vthis for nested structs
+                 * 2) ew: set vthis2 for nested structs
                  * 3) ez: call constructor
                  */
 
                 elem *ex = null;
                 elem *ey = null;
+                elem *ew = null;
                 elem *ezprefix = null;
                 elem *ez = null;
 
@@ -1796,6 +1809,14 @@ elem *toElem(Expression e, IRState *irs)
                          *  *(ey + sd.vthis.offset) = this;
                          */
                         ey = setEthis(ne.loc, irs, ey, sd);
+                        if (sd.vthis2)
+                        {
+                            /* Initialize sd.vthis2:
+                             *  *(ew + sd.vthis2.offset) = this1;
+                             */
+                            ew = el_copytree(ev);
+                            ew = setEthis(ne.loc, irs, ew, sd, true);
+                        }
                     }
 
                     // Call constructor
@@ -1815,6 +1836,7 @@ elem *toElem(Expression e, IRState *irs)
                 //elem_print(ez);
 
                 e = el_combine(ex, ey);
+                e = el_combine(e, ew);
                 e = el_combine(e, ezprefix);
                 e = el_combine(e, ez);
             }
@@ -3031,6 +3053,7 @@ elem *toElem(Expression e, IRState *irs)
                      *  memset(&struct, 0, struct.sizeof)
                      */
                     elem *ey = null;
+                    elem *ew = null;
                     uint sz = cast(uint)ae.e1.type.size();
                     StructDeclaration sd = t1s.sym;
                     if (sd.isNested() && ae.op == TOK.construct)
@@ -3038,6 +3061,11 @@ elem *toElem(Expression e, IRState *irs)
                         ey = el_una(OPaddr, TYnptr, e1);
                         e1 = el_same(&ey);
                         ey = setEthis(ae.loc, irs, ey, sd);
+                        if (sd.vthis2)
+                        {
+                            ew = el_same(&e1);
+                            ew = setEthis(ae.loc, irs, ew, sd, true);
+                        }
                         sz = sd.vthis.offset;
                     }
 
@@ -3050,6 +3078,7 @@ elem *toElem(Expression e, IRState *irs)
                     elem* e = el_param(enbytes, evalue);
                     e = el_bin(OPmemset,TYnptr,el,e);
                     e = el_combine(ey, e);
+                    e = el_combine(ew, e);
                     return setResult2(e);
                 }
 
@@ -3621,22 +3650,41 @@ elem *toElem(Expression e, IRState *irs)
                 }
             }
 
+            elem *eeq = null;
             elem *ethis;
             Symbol *sfunc = toSymbol(de.func);
             elem *ep;
-            if (de.func.isNested())
+
+            elem *ethis2 = null;
+            if (de.vthis2)
+            {
+                // avoid using toSymbol directly because vthis2 may be a closure var
+                Expression ve = new VarExp(de.loc, de.vthis2);
+                ve.type = de.vthis2.type;
+                ve = new AddrExp(de.loc, ve);
+                ve.type = de.vthis2.type.pointerTo();
+                ethis2 = toElem(ve, irs);
+            }
+
+            if (de.func.isNested() && !de.func.isThis())
             {
                 ep = el_ptr(sfunc);
                 if (de.e1.op == TOK.null_)
                     ethis = toElem(de.e1, irs);
                 else
-                    ethis = getEthis(de.loc, irs, de.func);
+                    ethis = getEthis(de.loc, irs, de.func, de.func.toParentLocal());
+
+                if (ethis2)
+                    ethis2 = setEthis2(de.loc, irs, de.func, ethis2, &ethis, &eeq);
             }
             else
             {
                 ethis = toElem(de.e1, irs);
                 if (de.e1.type.ty != Tclass && de.e1.type.ty != Tpointer)
                     ethis = addressElem(ethis, de.e1.type);
+
+                if (ethis2)
+                    ethis2 = setEthis2(de.loc, irs, de.func, ethis2, &ethis, &eeq);
 
                 if (de.e1.op == TOK.super_ || de.e1.op == TOK.dotType)
                     directcall = 1;
@@ -3669,7 +3717,10 @@ elem *toElem(Expression e, IRState *irs)
                 //if (func.tintro)
                 //    func.error(loc, "cannot form delegate due to covariant return type");
             }
+
             elem *e;
+            if (ethis2)
+                ethis = ethis2;
             if (ethis.Eoper == OPcomma)
             {
                 ethis.EV.E2 = el_pair(TYdelegate, ethis.EV.E2, ep);
@@ -3679,6 +3730,8 @@ elem *toElem(Expression e, IRState *irs)
             else
                 e = el_pair(TYdelegate, ethis, ep);
             elem_setLoc(e, de.loc);
+            if (eeq)
+                e = el_combine(eeq, e);
             result = e;
         }
 
@@ -3855,7 +3908,17 @@ elem *toElem(Expression e, IRState *irs)
                     }
                 }
             }
-            elem *ecall = callfunc(ce.loc, irs, ce.directcall, ce.type, ec, ectype, fd, t1, ehidden, ce.arguments);
+            elem *ethis2 = null;
+            if (ce.vthis2)
+            {
+                // avoid using toSymbol directly because vthis2 may be a closure var
+                Expression ve = new VarExp(ce.loc, ce.vthis2);
+                ve.type = ce.vthis2.type;
+                ve = new AddrExp(ce.loc, ve);
+                ve.type = ce.vthis2.type.pointerTo();
+                ethis2 = toElem(ve, irs);
+            }
+            elem *ecall = callfunc(ce.loc, irs, ce.directcall, ce.type, ec, ectype, fd, t1, ehidden, ce.arguments, null, ethis2);
 
             if (dctor && ecall.Eoper == OPind)
             {
@@ -4151,6 +4214,34 @@ elem *toElem(Expression e, IRState *irs)
             tty = t.ty;
             //printf("fty = %d\n", fty);
 
+            static elem* Lret(CastExp ce, elem* e)
+            {
+                // Adjust for any type paints
+                Type t = ce.type.toBasetype();
+                e.Ety = totym(t);
+
+                elem_setLoc(e, ce.loc);
+                return e;
+            }
+
+            static elem* Lpaint(CastExp ce, elem* e, tym_t ttym)
+            {
+                e.Ety = ttym;
+                return Lret(ce, e);
+            }
+
+            static elem* Lzero(CastExp ce, elem* e, tym_t ttym)
+            {
+                e = el_bin(OPcomma, ttym, e, el_long(ttym, 0));
+                return Lret(ce, e);
+            }
+
+            static elem* Leop(CastExp ce, elem* e, OPER eop, tym_t ttym)
+            {
+                e = el_una(eop, ttym, e);
+                return Lret(ce, e);
+            }
+
             if (tty == Tpointer && fty == Tarray)
             {
                 if (e.Eoper == OPvar)
@@ -4174,21 +4265,21 @@ elem *toElem(Expression e, IRState *irs)
                         e = el_una(OP64_32, totym(t), e);
                     }
                 }
-                goto Lret;
+                return Lret(ce, e);
             }
 
             if (tty == Tpointer && fty == Tsarray)
             {
                 // e1 . &e1
                 e = el_una(OPaddr, TYnptr, e);
-                goto Lret;
+                return Lret(ce, e);
             }
 
             // Convert from static array to dynamic array
             if (tty == Tarray && fty == Tsarray)
             {
                 e = sarray_toDarray(ce.loc, tfrom, t, e);
-                goto Lret;
+                return Lret(ce, e);
             }
 
             // Convert from dynamic array to dynamic array
@@ -4216,7 +4307,7 @@ elem *toElem(Expression e, IRState *irs)
                         assert(false, "This case should have been rewritten to `__ArrayCast` in the semantic phase");
                     }
                 }
-                goto Lret;
+                return Lret(ce, e);
             }
 
             // Casting between class/interface may require a runtime check
@@ -4268,7 +4359,7 @@ elem *toElem(Expression e, IRState *irs)
                         /* Casting from a C++ interface to a C++ interface
                          * is always a 'paint' operation
                          */
-                        goto Lret;                  // no-op
+                        return Lret(ce, e);                  // no-op
                     }
 
                     /* Casting from a C++ interface to a class
@@ -4280,7 +4371,7 @@ elem *toElem(Expression e, IRState *irs)
                      * can be derived from the other.
                      */
                     e = el_bin(OPcomma, TYnptr, e, el_long(TYnptr, 0));
-                    goto Lret;
+                    return Lret(ce, e);
                 }
                 else
                 {
@@ -4297,19 +4388,19 @@ elem *toElem(Expression e, IRState *irs)
                     elem *ep = el_param(el_ptr(toSymbol(cdto)), e);
                     e = el_bin(OPcall, TYnptr, el_var(getRtlsym(rtl)), ep);
                 }
-                goto Lret;
+                return Lret(ce, e);
             }
 
             if (fty == Tvector && tty == Tsarray)
             {
                 if (tfrom.size() == t.size())
-                    goto Lret;
+                    return Lret(ce, e);
             }
 
             ftym = tybasic(e.Ety);
             ttym = tybasic(totym(t));
             if (ftym == ttym)
-                goto Lret;
+                return Lret(ce, e);
 
             /* Reduce combinatorial explosion by rewriting the 'to' and 'from' types to a
              * generic equivalent (as far as casting goes)
@@ -4318,20 +4409,20 @@ elem *toElem(Expression e, IRState *irs)
             {
                 case Tpointer:
                     if (fty == Tdelegate)
-                        goto Lpaint;
+                        return Lpaint(ce, e, ttym);
                     tty = irs.params.is64bit ? Tuns64 : Tuns32;
                     break;
 
                 case Tchar:     tty = Tuns8;    break;
                 case Twchar:    tty = Tuns16;   break;
                 case Tdchar:    tty = Tuns32;   break;
-                case Tvoid:     goto Lpaint;
+                case Tvoid:     return Lpaint(ce, e, ttym);
 
                 case Tbool:
                 {
                     // Construct e?true:false
                     e = el_una(OPbool, ttym, e);
-                    goto Lret;
+                    return Lret(ce, e);
                 }
 
                 default:
@@ -4343,7 +4434,7 @@ elem *toElem(Expression e, IRState *irs)
                 case Tnull:
                 {
                     // typeof(null) is same with void* in binary level.
-                    goto Lzero;
+                    return Lzero(ce, e, ttym);
                 }
                 case Tpointer:  fty = irs.params.is64bit ? Tuns64 : Tuns32;  break;
                 case Tchar:     fty = Tuns8;    break;
@@ -4355,475 +4446,460 @@ elem *toElem(Expression e, IRState *irs)
             }
 
             static int X(int fty, int tty) { return fty * TMAX + tty; }
-        Lagain:
-            switch (X(fty,tty))
+
+            while (true)
             {
-                /* ============================= */
+                switch (X(fty,tty))
+                {
+                    /* ============================= */
 
-                case X(Tbool,Tint8):
-                case X(Tbool,Tuns8):
-                                        goto Lpaint;
-                case X(Tbool,Tint16):
-                case X(Tbool,Tuns16):
-                case X(Tbool,Tint32):
-                case X(Tbool,Tuns32):   eop = OPu8_16;  goto Leop;
-                case X(Tbool,Tint64):
-                case X(Tbool,Tuns64):
-                case X(Tbool,Tfloat32):
-                case X(Tbool,Tfloat64):
-                case X(Tbool,Tfloat80):
-                case X(Tbool,Tcomplex32):
-                case X(Tbool,Tcomplex64):
-                case X(Tbool,Tcomplex80):
-                                        e = el_una(OPu8_16, TYuint, e);
-                                        fty = Tuns32;
-                                        goto Lagain;
-                case X(Tbool,Timaginary32):
-                case X(Tbool,Timaginary64):
-                case X(Tbool,Timaginary80): goto Lzero;
+                    case X(Tbool,Tint8):
+                    case X(Tbool,Tuns8):
+                        return Lpaint(ce, e, ttym);
+                    case X(Tbool,Tint16):
+                    case X(Tbool,Tuns16):
+                    case X(Tbool,Tint32):
+                    case X(Tbool,Tuns32):   eop = OPu8_16;  return Leop(ce, e, eop, ttym);
+                    case X(Tbool,Tint64):
+                    case X(Tbool,Tuns64):
+                    case X(Tbool,Tfloat32):
+                    case X(Tbool,Tfloat64):
+                    case X(Tbool,Tfloat80):
+                    case X(Tbool,Tcomplex32):
+                    case X(Tbool,Tcomplex64):
+                    case X(Tbool,Tcomplex80):
+                        e = el_una(OPu8_16, TYuint, e);
+                        fty = Tuns32;
+                        continue;
+                    case X(Tbool,Timaginary32):
+                    case X(Tbool,Timaginary64):
+                    case X(Tbool,Timaginary80): return Lzero(ce, e, ttym);
 
-                /* ============================= */
+                        /* ============================= */
 
-                case X(Tint8,Tuns8):    goto Lpaint;
-                case X(Tint8,Tint16):
-                case X(Tint8,Tuns16):
-                case X(Tint8,Tint32):
-                case X(Tint8,Tuns32):   eop = OPs8_16;  goto Leop;
-                case X(Tint8,Tint64):
-                case X(Tint8,Tuns64):
-                case X(Tint8,Tfloat32):
-                case X(Tint8,Tfloat64):
-                case X(Tint8,Tfloat80):
-                case X(Tint8,Tcomplex32):
-                case X(Tint8,Tcomplex64):
-                case X(Tint8,Tcomplex80):
-                                        e = el_una(OPs8_16, TYint, e);
-                                        fty = Tint32;
-                                        goto Lagain;
-                case X(Tint8,Timaginary32):
-                case X(Tint8,Timaginary64):
-                case X(Tint8,Timaginary80): goto Lzero;
+                    case X(Tint8,Tuns8):    return Lpaint(ce, e, ttym);
+                    case X(Tint8,Tint16):
+                    case X(Tint8,Tuns16):
+                    case X(Tint8,Tint32):
+                    case X(Tint8,Tuns32):   eop = OPs8_16;  return Leop(ce, e, eop, ttym);
+                    case X(Tint8,Tint64):
+                    case X(Tint8,Tuns64):
+                    case X(Tint8,Tfloat32):
+                    case X(Tint8,Tfloat64):
+                    case X(Tint8,Tfloat80):
+                    case X(Tint8,Tcomplex32):
+                    case X(Tint8,Tcomplex64):
+                    case X(Tint8,Tcomplex80):
+                        e = el_una(OPs8_16, TYint, e);
+                        fty = Tint32;
+                        continue;
+                    case X(Tint8,Timaginary32):
+                    case X(Tint8,Timaginary64):
+                    case X(Tint8,Timaginary80): return Lzero(ce, e, ttym);
 
-                /* ============================= */
+                        /* ============================= */
 
-                case X(Tuns8,Tint8):    goto Lpaint;
-                case X(Tuns8,Tint16):
-                case X(Tuns8,Tuns16):
-                case X(Tuns8,Tint32):
-                case X(Tuns8,Tuns32):   eop = OPu8_16;  goto Leop;
-                case X(Tuns8,Tint64):
-                case X(Tuns8,Tuns64):
-                case X(Tuns8,Tfloat32):
-                case X(Tuns8,Tfloat64):
-                case X(Tuns8,Tfloat80):
-                case X(Tuns8,Tcomplex32):
-                case X(Tuns8,Tcomplex64):
-                case X(Tuns8,Tcomplex80):
-                                        e = el_una(OPu8_16, TYuint, e);
-                                        fty = Tuns32;
-                                        goto Lagain;
-                case X(Tuns8,Timaginary32):
-                case X(Tuns8,Timaginary64):
-                case X(Tuns8,Timaginary80): goto Lzero;
+                    case X(Tuns8,Tint8):    return Lpaint(ce, e, ttym);
+                    case X(Tuns8,Tint16):
+                    case X(Tuns8,Tuns16):
+                    case X(Tuns8,Tint32):
+                    case X(Tuns8,Tuns32):   eop = OPu8_16;  return Leop(ce, e, eop, ttym);
+                    case X(Tuns8,Tint64):
+                    case X(Tuns8,Tuns64):
+                    case X(Tuns8,Tfloat32):
+                    case X(Tuns8,Tfloat64):
+                    case X(Tuns8,Tfloat80):
+                    case X(Tuns8,Tcomplex32):
+                    case X(Tuns8,Tcomplex64):
+                    case X(Tuns8,Tcomplex80):
+                        e = el_una(OPu8_16, TYuint, e);
+                        fty = Tuns32;
+                        continue;
+                    case X(Tuns8,Timaginary32):
+                    case X(Tuns8,Timaginary64):
+                    case X(Tuns8,Timaginary80): return Lzero(ce, e, ttym);
 
-                /* ============================= */
+                        /* ============================= */
 
-                case X(Tint16,Tint8):
-                case X(Tint16,Tuns8):   eop = OP16_8;   goto Leop;
-                case X(Tint16,Tuns16):  goto Lpaint;
-                case X(Tint16,Tint32):
-                case X(Tint16,Tuns32):  eop = OPs16_32; goto Leop;
-                case X(Tint16,Tint64):
-                case X(Tint16,Tuns64):  e = el_una(OPs16_32, TYint, e);
-                                        fty = Tint32;
-                                        goto Lagain;
-                case X(Tint16,Tfloat32):
-                case X(Tint16,Tfloat64):
-                case X(Tint16,Tfloat80):
-                case X(Tint16,Tcomplex32):
-                case X(Tint16,Tcomplex64):
-                case X(Tint16,Tcomplex80):
-                                        e = el_una(OPs16_d, TYdouble, e);
-                                        fty = Tfloat64;
-                                        goto Lagain;
-                case X(Tint16,Timaginary32):
-                case X(Tint16,Timaginary64):
-                case X(Tint16,Timaginary80): goto Lzero;
+                    case X(Tint16,Tint8):
+                    case X(Tint16,Tuns8):   eop = OP16_8;   return Leop(ce, e, eop, ttym);
+                    case X(Tint16,Tuns16):  return Lpaint(ce, e, ttym);
+                    case X(Tint16,Tint32):
+                    case X(Tint16,Tuns32):  eop = OPs16_32; return Leop(ce, e, eop, ttym);
+                    case X(Tint16,Tint64):
+                    case X(Tint16,Tuns64):  e = el_una(OPs16_32, TYint, e);
+                        fty = Tint32;
+                        continue;
+                    case X(Tint16,Tfloat32):
+                    case X(Tint16,Tfloat64):
+                    case X(Tint16,Tfloat80):
+                    case X(Tint16,Tcomplex32):
+                    case X(Tint16,Tcomplex64):
+                    case X(Tint16,Tcomplex80):
+                        e = el_una(OPs16_d, TYdouble, e);
+                        fty = Tfloat64;
+                        continue;
+                    case X(Tint16,Timaginary32):
+                    case X(Tint16,Timaginary64):
+                    case X(Tint16,Timaginary80): return Lzero(ce, e, ttym);
 
-                /* ============================= */
+                        /* ============================= */
 
-                case X(Tuns16,Tint8):
-                case X(Tuns16,Tuns8):   eop = OP16_8;   goto Leop;
-                case X(Tuns16,Tint16):  goto Lpaint;
-                case X(Tuns16,Tint32):
-                case X(Tuns16,Tuns32):  eop = OPu16_32; goto Leop;
-                case X(Tuns16,Tint64):
-                case X(Tuns16,Tuns64):
-                case X(Tuns16,Tfloat64):
-                case X(Tuns16,Tfloat32):
-                case X(Tuns16,Tfloat80):
-                case X(Tuns16,Tcomplex32):
-                case X(Tuns16,Tcomplex64):
-                case X(Tuns16,Tcomplex80):
-                                        e = el_una(OPu16_32, TYuint, e);
-                                        fty = Tuns32;
-                                        goto Lagain;
-                case X(Tuns16,Timaginary32):
-                case X(Tuns16,Timaginary64):
-                case X(Tuns16,Timaginary80): goto Lzero;
+                    case X(Tuns16,Tint8):
+                    case X(Tuns16,Tuns8):   eop = OP16_8;   return Leop(ce, e, eop, ttym);
+                    case X(Tuns16,Tint16):  return Lpaint(ce, e, ttym);
+                    case X(Tuns16,Tint32):
+                    case X(Tuns16,Tuns32):  eop = OPu16_32; return Leop(ce, e, eop, ttym);
+                    case X(Tuns16,Tint64):
+                    case X(Tuns16,Tuns64):
+                    case X(Tuns16,Tfloat64):
+                    case X(Tuns16,Tfloat32):
+                    case X(Tuns16,Tfloat80):
+                    case X(Tuns16,Tcomplex32):
+                    case X(Tuns16,Tcomplex64):
+                    case X(Tuns16,Tcomplex80):
+                        e = el_una(OPu16_32, TYuint, e);
+                        fty = Tuns32;
+                        continue;
+                    case X(Tuns16,Timaginary32):
+                    case X(Tuns16,Timaginary64):
+                    case X(Tuns16,Timaginary80): return Lzero(ce, e, ttym);
 
-                /* ============================= */
+                        /* ============================= */
 
-                case X(Tint32,Tint8):
-                case X(Tint32,Tuns8):   e = el_una(OP32_16, TYshort, e);
-                                        fty = Tint16;
-                                        goto Lagain;
-                case X(Tint32,Tint16):
-                case X(Tint32,Tuns16):  eop = OP32_16;  goto Leop;
-                case X(Tint32,Tuns32):  goto Lpaint;
-                case X(Tint32,Tint64):
-                case X(Tint32,Tuns64):  eop = OPs32_64; goto Leop;
-                case X(Tint32,Tfloat32):
-                case X(Tint32,Tfloat64):
-                case X(Tint32,Tfloat80):
-                case X(Tint32,Tcomplex32):
-                case X(Tint32,Tcomplex64):
-                case X(Tint32,Tcomplex80):
-                                        e = el_una(OPs32_d, TYdouble, e);
-                                        fty = Tfloat64;
-                                        goto Lagain;
-                case X(Tint32,Timaginary32):
-                case X(Tint32,Timaginary64):
-                case X(Tint32,Timaginary80): goto Lzero;
+                    case X(Tint32,Tint8):
+                    case X(Tint32,Tuns8):   e = el_una(OP32_16, TYshort, e);
+                        fty = Tint16;
+                        continue;
+                    case X(Tint32,Tint16):
+                    case X(Tint32,Tuns16):  eop = OP32_16;  return Leop(ce, e, eop, ttym);
+                    case X(Tint32,Tuns32):  return Lpaint(ce, e, ttym);
+                    case X(Tint32,Tint64):
+                    case X(Tint32,Tuns64):  eop = OPs32_64; return Leop(ce, e, eop, ttym);
+                    case X(Tint32,Tfloat32):
+                    case X(Tint32,Tfloat64):
+                    case X(Tint32,Tfloat80):
+                    case X(Tint32,Tcomplex32):
+                    case X(Tint32,Tcomplex64):
+                    case X(Tint32,Tcomplex80):
+                        e = el_una(OPs32_d, TYdouble, e);
+                        fty = Tfloat64;
+                        continue;
+                    case X(Tint32,Timaginary32):
+                    case X(Tint32,Timaginary64):
+                    case X(Tint32,Timaginary80): return Lzero(ce, e, ttym);
 
-                /* ============================= */
+                        /* ============================= */
 
-                case X(Tuns32,Tint8):
-                case X(Tuns32,Tuns8):   e = el_una(OP32_16, TYshort, e);
-                                        fty = Tuns16;
-                                        goto Lagain;
-                case X(Tuns32,Tint16):
-                case X(Tuns32,Tuns16):  eop = OP32_16;  goto Leop;
-                case X(Tuns32,Tint32):  goto Lpaint;
-                case X(Tuns32,Tint64):
-                case X(Tuns32,Tuns64):  eop = OPu32_64; goto Leop;
-                case X(Tuns32,Tfloat32):
-                case X(Tuns32,Tfloat64):
-                case X(Tuns32,Tfloat80):
-                case X(Tuns32,Tcomplex32):
-                case X(Tuns32,Tcomplex64):
-                case X(Tuns32,Tcomplex80):
-                                        e = el_una(OPu32_d, TYdouble, e);
-                                        fty = Tfloat64;
-                                        goto Lagain;
-                case X(Tuns32,Timaginary32):
-                case X(Tuns32,Timaginary64):
-                case X(Tuns32,Timaginary80): goto Lzero;
+                    case X(Tuns32,Tint8):
+                    case X(Tuns32,Tuns8):   e = el_una(OP32_16, TYshort, e);
+                        fty = Tuns16;
+                        continue;
+                    case X(Tuns32,Tint16):
+                    case X(Tuns32,Tuns16):  eop = OP32_16;  return Leop(ce, e, eop, ttym);
+                    case X(Tuns32,Tint32):  return Lpaint(ce, e, ttym);
+                    case X(Tuns32,Tint64):
+                    case X(Tuns32,Tuns64):  eop = OPu32_64; return Leop(ce, e, eop, ttym);
+                    case X(Tuns32,Tfloat32):
+                    case X(Tuns32,Tfloat64):
+                    case X(Tuns32,Tfloat80):
+                    case X(Tuns32,Tcomplex32):
+                    case X(Tuns32,Tcomplex64):
+                    case X(Tuns32,Tcomplex80):
+                        e = el_una(OPu32_d, TYdouble, e);
+                        fty = Tfloat64;
+                        continue;
+                    case X(Tuns32,Timaginary32):
+                    case X(Tuns32,Timaginary64):
+                    case X(Tuns32,Timaginary80): return Lzero(ce, e, ttym);
 
-                /* ============================= */
+                        /* ============================= */
 
-                case X(Tint64,Tint8):
-                case X(Tint64,Tuns8):
-                case X(Tint64,Tint16):
-                case X(Tint64,Tuns16):  e = el_una(OP64_32, TYint, e);
-                                        fty = Tint32;
-                                        goto Lagain;
-                case X(Tint64,Tint32):
-                case X(Tint64,Tuns32):  eop = OP64_32; goto Leop;
-                case X(Tint64,Tuns64):  goto Lpaint;
-                case X(Tint64,Tfloat32):
-                case X(Tint64,Tfloat64):
-                case X(Tint64,Tfloat80):
-                case X(Tint64,Tcomplex32):
-                case X(Tint64,Tcomplex64):
-                case X(Tint64,Tcomplex80):
-                                        e = el_una(OPs64_d, TYdouble, e);
-                                        fty = Tfloat64;
-                                        goto Lagain;
-                case X(Tint64,Timaginary32):
-                case X(Tint64,Timaginary64):
-                case X(Tint64,Timaginary80): goto Lzero;
+                    case X(Tint64,Tint8):
+                    case X(Tint64,Tuns8):
+                    case X(Tint64,Tint16):
+                    case X(Tint64,Tuns16):  e = el_una(OP64_32, TYint, e);
+                        fty = Tint32;
+                        continue;
+                    case X(Tint64,Tint32):
+                    case X(Tint64,Tuns32):  eop = OP64_32; return Leop(ce, e, eop, ttym);
+                    case X(Tint64,Tuns64):  return Lpaint(ce, e, ttym);
+                    case X(Tint64,Tfloat32):
+                    case X(Tint64,Tfloat64):
+                    case X(Tint64,Tfloat80):
+                    case X(Tint64,Tcomplex32):
+                    case X(Tint64,Tcomplex64):
+                    case X(Tint64,Tcomplex80):
+                        e = el_una(OPs64_d, TYdouble, e);
+                        fty = Tfloat64;
+                        continue;
+                    case X(Tint64,Timaginary32):
+                    case X(Tint64,Timaginary64):
+                    case X(Tint64,Timaginary80): return Lzero(ce, e, ttym);
 
-                /* ============================= */
+                        /* ============================= */
 
-                case X(Tuns64,Tint8):
-                case X(Tuns64,Tuns8):
-                case X(Tuns64,Tint16):
-                case X(Tuns64,Tuns16):  e = el_una(OP64_32, TYint, e);
-                                        fty = Tint32;
-                                        goto Lagain;
-                case X(Tuns64,Tint32):
-                case X(Tuns64,Tuns32):  eop = OP64_32;  goto Leop;
-                case X(Tuns64,Tint64):  goto Lpaint;
-                case X(Tuns64,Tfloat32):
-                case X(Tuns64,Tfloat64):
-                case X(Tuns64,Tfloat80):
-                case X(Tuns64,Tcomplex32):
-                case X(Tuns64,Tcomplex64):
-                case X(Tuns64,Tcomplex80):
-                                         e = el_una(OPu64_d, TYdouble, e);
-                                         fty = Tfloat64;
-                                         goto Lagain;
-                case X(Tuns64,Timaginary32):
-                case X(Tuns64,Timaginary64):
-                case X(Tuns64,Timaginary80): goto Lzero;
+                    case X(Tuns64,Tint8):
+                    case X(Tuns64,Tuns8):
+                    case X(Tuns64,Tint16):
+                    case X(Tuns64,Tuns16):  e = el_una(OP64_32, TYint, e);
+                        fty = Tint32;
+                        continue;
+                    case X(Tuns64,Tint32):
+                    case X(Tuns64,Tuns32):  eop = OP64_32;  return Leop(ce, e, eop, ttym);
+                    case X(Tuns64,Tint64):  return Lpaint(ce, e, ttym);
+                    case X(Tuns64,Tfloat32):
+                    case X(Tuns64,Tfloat64):
+                    case X(Tuns64,Tfloat80):
+                    case X(Tuns64,Tcomplex32):
+                    case X(Tuns64,Tcomplex64):
+                    case X(Tuns64,Tcomplex80):
+                        e = el_una(OPu64_d, TYdouble, e);
+                        fty = Tfloat64;
+                        continue;
+                    case X(Tuns64,Timaginary32):
+                    case X(Tuns64,Timaginary64):
+                    case X(Tuns64,Timaginary80): return Lzero(ce, e, ttym);
 
-                /* ============================= */
+                        /* ============================= */
 
-                case X(Tfloat32,Tint8):
-                case X(Tfloat32,Tuns8):
-                case X(Tfloat32,Tint16):
-                case X(Tfloat32,Tuns16):
-                case X(Tfloat32,Tint32):
-                case X(Tfloat32,Tuns32):
-                case X(Tfloat32,Tint64):
-                case X(Tfloat32,Tuns64):
-                case X(Tfloat32,Tfloat80): e = el_una(OPf_d, TYdouble, e);
-                                           fty = Tfloat64;
-                                           goto Lagain;
-                case X(Tfloat32,Tfloat64): eop = OPf_d; goto Leop;
-                case X(Tfloat32,Timaginary32):
-                case X(Tfloat32,Timaginary64):
-                case X(Tfloat32,Timaginary80): goto Lzero;
-                case X(Tfloat32,Tcomplex32):
-                case X(Tfloat32,Tcomplex64):
-                case X(Tfloat32,Tcomplex80):
-                    e = el_bin(OPadd,TYcfloat,el_long(TYifloat,0),e);
-                    fty = Tcomplex32;
-                    goto Lagain;
+                    case X(Tfloat32,Tint8):
+                    case X(Tfloat32,Tuns8):
+                    case X(Tfloat32,Tint16):
+                    case X(Tfloat32,Tuns16):
+                    case X(Tfloat32,Tint32):
+                    case X(Tfloat32,Tuns32):
+                    case X(Tfloat32,Tint64):
+                    case X(Tfloat32,Tuns64):
+                    case X(Tfloat32,Tfloat80): e = el_una(OPf_d, TYdouble, e);
+                        fty = Tfloat64;
+                        continue;
+                    case X(Tfloat32,Tfloat64): eop = OPf_d; return Leop(ce, e, eop, ttym);
+                    case X(Tfloat32,Timaginary32):
+                    case X(Tfloat32,Timaginary64):
+                    case X(Tfloat32,Timaginary80): return Lzero(ce, e, ttym);
+                    case X(Tfloat32,Tcomplex32):
+                    case X(Tfloat32,Tcomplex64):
+                    case X(Tfloat32,Tcomplex80):
+                        e = el_bin(OPadd,TYcfloat,el_long(TYifloat,0),e);
+                        fty = Tcomplex32;
+                        continue;
 
-                /* ============================= */
+                        /* ============================= */
 
-                case X(Tfloat64,Tint8):
-                case X(Tfloat64,Tuns8):    e = el_una(OPd_s16, TYshort, e);
-                                           fty = Tint16;
-                                           goto Lagain;
-                case X(Tfloat64,Tint16):   eop = OPd_s16; goto Leop;
-                case X(Tfloat64,Tuns16):   eop = OPd_u16; goto Leop;
-                case X(Tfloat64,Tint32):   eop = OPd_s32; goto Leop;
-                case X(Tfloat64,Tuns32):   eop = OPd_u32; goto Leop;
-                case X(Tfloat64,Tint64):   eop = OPd_s64; goto Leop;
-                case X(Tfloat64,Tuns64):   eop = OPd_u64; goto Leop;
-                case X(Tfloat64,Tfloat32): eop = OPd_f;   goto Leop;
-                case X(Tfloat64,Tfloat80): eop = OPd_ld;  goto Leop;
-                case X(Tfloat64,Timaginary32):
-                case X(Tfloat64,Timaginary64):
-                case X(Tfloat64,Timaginary80):  goto Lzero;
-                case X(Tfloat64,Tcomplex32):
-                case X(Tfloat64,Tcomplex64):
-                case X(Tfloat64,Tcomplex80):
-                    e = el_bin(OPadd,TYcdouble,el_long(TYidouble,0),e);
-                    fty = Tcomplex64;
-                    goto Lagain;
+                    case X(Tfloat64,Tint8):
+                    case X(Tfloat64,Tuns8):    e = el_una(OPd_s16, TYshort, e);
+                        fty = Tint16;
+                        continue;
+                    case X(Tfloat64,Tint16):   eop = OPd_s16; return Leop(ce, e, eop, ttym);
+                    case X(Tfloat64,Tuns16):   eop = OPd_u16; return Leop(ce, e, eop, ttym);
+                    case X(Tfloat64,Tint32):   eop = OPd_s32; return Leop(ce, e, eop, ttym);
+                    case X(Tfloat64,Tuns32):   eop = OPd_u32; return Leop(ce, e, eop, ttym);
+                    case X(Tfloat64,Tint64):   eop = OPd_s64; return Leop(ce, e, eop, ttym);
+                    case X(Tfloat64,Tuns64):   eop = OPd_u64; return Leop(ce, e, eop, ttym);
+                    case X(Tfloat64,Tfloat32): eop = OPd_f;   return Leop(ce, e, eop, ttym);
+                    case X(Tfloat64,Tfloat80): eop = OPd_ld;  return Leop(ce, e, eop, ttym);
+                    case X(Tfloat64,Timaginary32):
+                    case X(Tfloat64,Timaginary64):
+                    case X(Tfloat64,Timaginary80):  return Lzero(ce, e, ttym);
+                    case X(Tfloat64,Tcomplex32):
+                    case X(Tfloat64,Tcomplex64):
+                    case X(Tfloat64,Tcomplex80):
+                        e = el_bin(OPadd,TYcdouble,el_long(TYidouble,0),e);
+                        fty = Tcomplex64;
+                        continue;
 
-                /* ============================= */
+                        /* ============================= */
 
-                case X(Tfloat80,Tint8):
-                case X(Tfloat80,Tuns8):
-                case X(Tfloat80,Tint16):
-                case X(Tfloat80,Tuns16):
-                case X(Tfloat80,Tint32):
-                case X(Tfloat80,Tuns32):
-                case X(Tfloat80,Tint64):
-                case X(Tfloat80,Tfloat32): e = el_una(OPld_d, TYdouble, e);
-                                           fty = Tfloat64;
-                                           goto Lagain;
-                case X(Tfloat80,Tuns64):
-                                           eop = OPld_u64; goto Leop;
-                case X(Tfloat80,Tfloat64): eop = OPld_d; goto Leop;
-                case X(Tfloat80,Timaginary32):
-                case X(Tfloat80,Timaginary64):
-                case X(Tfloat80,Timaginary80): goto Lzero;
-                case X(Tfloat80,Tcomplex32):
-                case X(Tfloat80,Tcomplex64):
-                case X(Tfloat80,Tcomplex80):
-                    e = el_bin(OPadd,TYcldouble,e,el_long(TYildouble,0));
-                    fty = Tcomplex80;
-                    goto Lagain;
+                    case X(Tfloat80,Tint8):
+                    case X(Tfloat80,Tuns8):
+                    case X(Tfloat80,Tint16):
+                    case X(Tfloat80,Tuns16):
+                    case X(Tfloat80,Tint32):
+                    case X(Tfloat80,Tuns32):
+                    case X(Tfloat80,Tint64):
+                    case X(Tfloat80,Tfloat32): e = el_una(OPld_d, TYdouble, e);
+                        fty = Tfloat64;
+                        continue;
+                    case X(Tfloat80,Tuns64):
+                        eop = OPld_u64; return Leop(ce, e, eop, ttym);
+                    case X(Tfloat80,Tfloat64): eop = OPld_d; return Leop(ce, e, eop, ttym);
+                    case X(Tfloat80,Timaginary32):
+                    case X(Tfloat80,Timaginary64):
+                    case X(Tfloat80,Timaginary80): return Lzero(ce, e, ttym);
+                    case X(Tfloat80,Tcomplex32):
+                    case X(Tfloat80,Tcomplex64):
+                    case X(Tfloat80,Tcomplex80):
+                        e = el_bin(OPadd,TYcldouble,e,el_long(TYildouble,0));
+                        fty = Tcomplex80;
+                        continue;
 
-                /* ============================= */
+                        /* ============================= */
 
-                case X(Timaginary32,Tint8):
-                case X(Timaginary32,Tuns8):
-                case X(Timaginary32,Tint16):
-                case X(Timaginary32,Tuns16):
-                case X(Timaginary32,Tint32):
-                case X(Timaginary32,Tuns32):
-                case X(Timaginary32,Tint64):
-                case X(Timaginary32,Tuns64):
-                case X(Timaginary32,Tfloat32):
-                case X(Timaginary32,Tfloat64):
-                case X(Timaginary32,Tfloat80):  goto Lzero;
-                case X(Timaginary32,Timaginary64): eop = OPf_d; goto Leop;
-                case X(Timaginary32,Timaginary80):
-                                           e = el_una(OPf_d, TYidouble, e);
-                                           fty = Timaginary64;
-                                           goto Lagain;
-                case X(Timaginary32,Tcomplex32):
-                case X(Timaginary32,Tcomplex64):
-                case X(Timaginary32,Tcomplex80):
-                    e = el_bin(OPadd,TYcfloat,el_long(TYfloat,0),e);
-                    fty = Tcomplex32;
-                    goto Lagain;
+                    case X(Timaginary32,Tint8):
+                    case X(Timaginary32,Tuns8):
+                    case X(Timaginary32,Tint16):
+                    case X(Timaginary32,Tuns16):
+                    case X(Timaginary32,Tint32):
+                    case X(Timaginary32,Tuns32):
+                    case X(Timaginary32,Tint64):
+                    case X(Timaginary32,Tuns64):
+                    case X(Timaginary32,Tfloat32):
+                    case X(Timaginary32,Tfloat64):
+                    case X(Timaginary32,Tfloat80):  return Lzero(ce, e, ttym);
+                    case X(Timaginary32,Timaginary64): eop = OPf_d; return Leop(ce, e, eop, ttym);
+                    case X(Timaginary32,Timaginary80):
+                        e = el_una(OPf_d, TYidouble, e);
+                        fty = Timaginary64;
+                        continue;
+                    case X(Timaginary32,Tcomplex32):
+                    case X(Timaginary32,Tcomplex64):
+                    case X(Timaginary32,Tcomplex80):
+                        e = el_bin(OPadd,TYcfloat,el_long(TYfloat,0),e);
+                        fty = Tcomplex32;
+                        continue;
 
-                /* ============================= */
+                        /* ============================= */
 
-                case X(Timaginary64,Tint8):
-                case X(Timaginary64,Tuns8):
-                case X(Timaginary64,Tint16):
-                case X(Timaginary64,Tuns16):
-                case X(Timaginary64,Tint32):
-                case X(Timaginary64,Tuns32):
-                case X(Timaginary64,Tint64):
-                case X(Timaginary64,Tuns64):
-                case X(Timaginary64,Tfloat32):
-                case X(Timaginary64,Tfloat64):
-                case X(Timaginary64,Tfloat80):  goto Lzero;
-                case X(Timaginary64,Timaginary32): eop = OPd_f;   goto Leop;
-                case X(Timaginary64,Timaginary80): eop = OPd_ld;  goto Leop;
-                case X(Timaginary64,Tcomplex32):
-                case X(Timaginary64,Tcomplex64):
-                case X(Timaginary64,Tcomplex80):
-                    e = el_bin(OPadd,TYcdouble,el_long(TYdouble,0),e);
-                    fty = Tcomplex64;
-                    goto Lagain;
+                    case X(Timaginary64,Tint8):
+                    case X(Timaginary64,Tuns8):
+                    case X(Timaginary64,Tint16):
+                    case X(Timaginary64,Tuns16):
+                    case X(Timaginary64,Tint32):
+                    case X(Timaginary64,Tuns32):
+                    case X(Timaginary64,Tint64):
+                    case X(Timaginary64,Tuns64):
+                    case X(Timaginary64,Tfloat32):
+                    case X(Timaginary64,Tfloat64):
+                    case X(Timaginary64,Tfloat80):  return Lzero(ce, e, ttym);
+                    case X(Timaginary64,Timaginary32): eop = OPd_f;   return Leop(ce, e, eop, ttym);
+                    case X(Timaginary64,Timaginary80): eop = OPd_ld;  return Leop(ce, e, eop, ttym);
+                    case X(Timaginary64,Tcomplex32):
+                    case X(Timaginary64,Tcomplex64):
+                    case X(Timaginary64,Tcomplex80):
+                        e = el_bin(OPadd,TYcdouble,el_long(TYdouble,0),e);
+                        fty = Tcomplex64;
+                        continue;
 
-                /* ============================= */
+                        /* ============================= */
 
-                case X(Timaginary80,Tint8):
-                case X(Timaginary80,Tuns8):
-                case X(Timaginary80,Tint16):
-                case X(Timaginary80,Tuns16):
-                case X(Timaginary80,Tint32):
-                case X(Timaginary80,Tuns32):
-                case X(Timaginary80,Tint64):
-                case X(Timaginary80,Tuns64):
-                case X(Timaginary80,Tfloat32):
-                case X(Timaginary80,Tfloat64):
-                case X(Timaginary80,Tfloat80):  goto Lzero;
-                case X(Timaginary80,Timaginary32): e = el_una(OPld_d, TYidouble, e);
-                                           fty = Timaginary64;
-                                           goto Lagain;
-                case X(Timaginary80,Timaginary64): eop = OPld_d; goto Leop;
-                case X(Timaginary80,Tcomplex32):
-                case X(Timaginary80,Tcomplex64):
-                case X(Timaginary80,Tcomplex80):
-                    e = el_bin(OPadd,TYcldouble,el_long(TYldouble,0),e);
-                    fty = Tcomplex80;
-                    goto Lagain;
+                    case X(Timaginary80,Tint8):
+                    case X(Timaginary80,Tuns8):
+                    case X(Timaginary80,Tint16):
+                    case X(Timaginary80,Tuns16):
+                    case X(Timaginary80,Tint32):
+                    case X(Timaginary80,Tuns32):
+                    case X(Timaginary80,Tint64):
+                    case X(Timaginary80,Tuns64):
+                    case X(Timaginary80,Tfloat32):
+                    case X(Timaginary80,Tfloat64):
+                    case X(Timaginary80,Tfloat80):  return Lzero(ce, e, ttym);
+                    case X(Timaginary80,Timaginary32): e = el_una(OPld_d, TYidouble, e);
+                        fty = Timaginary64;
+                        continue;
+                    case X(Timaginary80,Timaginary64): eop = OPld_d; return Leop(ce, e, eop, ttym);
+                    case X(Timaginary80,Tcomplex32):
+                    case X(Timaginary80,Tcomplex64):
+                    case X(Timaginary80,Tcomplex80):
+                        e = el_bin(OPadd,TYcldouble,el_long(TYldouble,0),e);
+                        fty = Tcomplex80;
+                        continue;
 
-                /* ============================= */
+                        /* ============================= */
 
-                case X(Tcomplex32,Tint8):
-                case X(Tcomplex32,Tuns8):
-                case X(Tcomplex32,Tint16):
-                case X(Tcomplex32,Tuns16):
-                case X(Tcomplex32,Tint32):
-                case X(Tcomplex32,Tuns32):
-                case X(Tcomplex32,Tint64):
-                case X(Tcomplex32,Tuns64):
-                case X(Tcomplex32,Tfloat32):
-                case X(Tcomplex32,Tfloat64):
-                case X(Tcomplex32,Tfloat80):
+                    case X(Tcomplex32,Tint8):
+                    case X(Tcomplex32,Tuns8):
+                    case X(Tcomplex32,Tint16):
+                    case X(Tcomplex32,Tuns16):
+                    case X(Tcomplex32,Tint32):
+                    case X(Tcomplex32,Tuns32):
+                    case X(Tcomplex32,Tint64):
+                    case X(Tcomplex32,Tuns64):
+                    case X(Tcomplex32,Tfloat32):
+                    case X(Tcomplex32,Tfloat64):
+                    case X(Tcomplex32,Tfloat80):
                         e = el_una(OPc_r, TYfloat, e);
                         fty = Tfloat32;
-                        goto Lagain;
-                case X(Tcomplex32,Timaginary32):
-                case X(Tcomplex32,Timaginary64):
-                case X(Tcomplex32,Timaginary80):
+                        continue;
+                    case X(Tcomplex32,Timaginary32):
+                    case X(Tcomplex32,Timaginary64):
+                    case X(Tcomplex32,Timaginary80):
                         e = el_una(OPc_i, TYifloat, e);
                         fty = Timaginary32;
-                        goto Lagain;
-                case X(Tcomplex32,Tcomplex64):
-                case X(Tcomplex32,Tcomplex80):
+                        continue;
+                    case X(Tcomplex32,Tcomplex64):
+                    case X(Tcomplex32,Tcomplex80):
                         e = el_una(OPf_d, TYcdouble, e);
                         fty = Tcomplex64;
-                        goto Lagain;
+                        continue;
 
-                /* ============================= */
+                        /* ============================= */
 
-                case X(Tcomplex64,Tint8):
-                case X(Tcomplex64,Tuns8):
-                case X(Tcomplex64,Tint16):
-                case X(Tcomplex64,Tuns16):
-                case X(Tcomplex64,Tint32):
-                case X(Tcomplex64,Tuns32):
-                case X(Tcomplex64,Tint64):
-                case X(Tcomplex64,Tuns64):
-                case X(Tcomplex64,Tfloat32):
-                case X(Tcomplex64,Tfloat64):
-                case X(Tcomplex64,Tfloat80):
+                    case X(Tcomplex64,Tint8):
+                    case X(Tcomplex64,Tuns8):
+                    case X(Tcomplex64,Tint16):
+                    case X(Tcomplex64,Tuns16):
+                    case X(Tcomplex64,Tint32):
+                    case X(Tcomplex64,Tuns32):
+                    case X(Tcomplex64,Tint64):
+                    case X(Tcomplex64,Tuns64):
+                    case X(Tcomplex64,Tfloat32):
+                    case X(Tcomplex64,Tfloat64):
+                    case X(Tcomplex64,Tfloat80):
                         e = el_una(OPc_r, TYdouble, e);
                         fty = Tfloat64;
-                        goto Lagain;
-                case X(Tcomplex64,Timaginary32):
-                case X(Tcomplex64,Timaginary64):
-                case X(Tcomplex64,Timaginary80):
+                        continue;
+                    case X(Tcomplex64,Timaginary32):
+                    case X(Tcomplex64,Timaginary64):
+                    case X(Tcomplex64,Timaginary80):
                         e = el_una(OPc_i, TYidouble, e);
                         fty = Timaginary64;
-                        goto Lagain;
-                case X(Tcomplex64,Tcomplex32):   eop = OPd_f;   goto Leop;
-                case X(Tcomplex64,Tcomplex80):   eop = OPd_ld;  goto Leop;
+                        continue;
+                    case X(Tcomplex64,Tcomplex32):   eop = OPd_f;   return Leop(ce, e, eop, ttym);
+                    case X(Tcomplex64,Tcomplex80):   eop = OPd_ld;  return Leop(ce, e, eop, ttym);
 
-                /* ============================= */
+                        /* ============================= */
 
-                case X(Tcomplex80,Tint8):
-                case X(Tcomplex80,Tuns8):
-                case X(Tcomplex80,Tint16):
-                case X(Tcomplex80,Tuns16):
-                case X(Tcomplex80,Tint32):
-                case X(Tcomplex80,Tuns32):
-                case X(Tcomplex80,Tint64):
-                case X(Tcomplex80,Tuns64):
-                case X(Tcomplex80,Tfloat32):
-                case X(Tcomplex80,Tfloat64):
-                case X(Tcomplex80,Tfloat80):
+                    case X(Tcomplex80,Tint8):
+                    case X(Tcomplex80,Tuns8):
+                    case X(Tcomplex80,Tint16):
+                    case X(Tcomplex80,Tuns16):
+                    case X(Tcomplex80,Tint32):
+                    case X(Tcomplex80,Tuns32):
+                    case X(Tcomplex80,Tint64):
+                    case X(Tcomplex80,Tuns64):
+                    case X(Tcomplex80,Tfloat32):
+                    case X(Tcomplex80,Tfloat64):
+                    case X(Tcomplex80,Tfloat80):
                         e = el_una(OPc_r, TYldouble, e);
                         fty = Tfloat80;
-                        goto Lagain;
-                case X(Tcomplex80,Timaginary32):
-                case X(Tcomplex80,Timaginary64):
-                case X(Tcomplex80,Timaginary80):
+                        continue;
+                    case X(Tcomplex80,Timaginary32):
+                    case X(Tcomplex80,Timaginary64):
+                    case X(Tcomplex80,Timaginary80):
                         e = el_una(OPc_i, TYildouble, e);
                         fty = Timaginary80;
-                        goto Lagain;
-                case X(Tcomplex80,Tcomplex32):
-                case X(Tcomplex80,Tcomplex64):
+                        continue;
+                    case X(Tcomplex80,Tcomplex32):
+                    case X(Tcomplex80,Tcomplex64):
                         e = el_una(OPld_d, TYcdouble, e);
                         fty = Tcomplex64;
-                        goto Lagain;
+                        continue;
 
-                /* ============================= */
+                        /* ============================= */
 
-                default:
-                    if (fty == tty)
-                        goto Lpaint;
-                    //dump(0);
-                    //printf("fty = %d, tty = %d, %d\n", fty, tty, t.ty);
-                    // This error should really be pushed to the front end
-                    ce.error("e2ir: cannot cast `%s` of type `%s` to type `%s`", ce.e1.toChars(), ce.e1.type.toChars(), t.toChars());
-                    e = el_long(TYint, 0);
-                    return e;
+                    default:
+                        if (fty == tty)
+                            return Lpaint(ce, e, ttym);
+                        //dump(0);
+                        //printf("fty = %d, tty = %d, %d\n", fty, tty, t.ty);
+                        // This error should really be pushed to the front end
+                        ce.error("e2ir: cannot cast `%s` of type `%s` to type `%s`", ce.e1.toChars(), ce.e1.type.toChars(), t.toChars());
+                        e = el_long(TYint, 0);
+                        return e;
 
-                Lzero:
-                    e = el_bin(OPcomma, ttym, e, el_long(ttym, 0));
-                    break;
-
-                Lpaint:
-                    e.Ety = ttym;
-                    break;
-
-                Leop:
-                    e = el_una(eop, ttym, e);
-                    break;
+                }
             }
-        Lret:
-            // Adjust for any type paints
-            t = ce.type.toBasetype();
-            e.Ety = totym(t);
-
-            elem_setLoc(e, ce.loc);
-            return e;
         }
 
         override void visit(ArrayLengthExp ale)
@@ -5626,7 +5702,6 @@ private elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol
              *  S s = {f2:x, f3:y};     // filled holes: 2..8 and 12..16
              */
             size_t vend = sle.sd.fields.dim;
-        Lagain:
             size_t holeEnd = structsize;
             size_t offset2 = structsize;
             foreach (j; i + 1 .. vend)
@@ -5652,7 +5727,7 @@ private elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol
                 //if (offset != holeEnd) printf("  2 fillHole, %d .. %d\n", offset, holeEnd);
                 e = el_combine(e, fillHole(stmp, &offset, holeEnd, structsize));
                 offset = offset2;
-                goto Lagain;
+                continue;
             }
             i = vend;
         }
@@ -5716,7 +5791,7 @@ private elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol
         // Initialize the hidden 'this' pointer
         assert(sle.sd.fields.dim);
 
-        elem *e1;
+        elem* e1, e2;
         if (tybasic(stmp.Stype.Tty) == TYnptr)
         {
             e1 = el_var(stmp);
@@ -5725,9 +5800,21 @@ private elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol
         {
             e1 = el_ptr(stmp);
         }
+        if (sle.sd.vthis2)
+        {
+            /* Initialize sd.vthis2:
+             *  *(e2 + sd.vthis2.offset) = this1;
+             */
+            e2 = el_copytree(e1);
+            e2 = setEthis(sle.loc, irs, e2, sle.sd, true);
+        }
+        /* Initialize sd.vthis:
+         *  *(e1 + sd.vthis.offset) = this;
+         */
         e1 = setEthis(sle.loc, irs, e1, sle.sd);
 
         e = el_combine(e, e1);
+        e = el_combine(e, e2);
     }
 
     elem *ev = el_var(stmp);
@@ -5910,7 +5997,7 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
                 import dmd.backend.md5;
                 MD5_CTX mdContext = void;
                 MD5Init(&mdContext);
-                MD5Update(&mdContext, cast(ubyte*)buf.peekString(), cast(uint)buf.offset);
+                MD5Update(&mdContext, cast(ubyte*)buf.peekChars(), cast(uint)buf.offset);
                 MD5Final(&mdContext);
                 buf.setsize(2);
                 foreach (u; mdContext.digest)
@@ -5922,7 +6009,7 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
                 }
             }
 
-            si = symbol_calloc(buf.peekString(), cast(uint)buf.offset);
+            si = symbol_calloc(buf.peekChars(), cast(uint)buf.offset);
             si.Sclass = SCcomdat;
             si.Stype = type_static_array(cast(uint)(len * sz), tstypes[TYchar]);
             si.Stype.Tcount++;
@@ -6251,4 +6338,37 @@ elem* elAssign(elem* e1, elem* e2, Type t, type* tx)
             break;
     }
     return e;
+}
+
+/**************************************************
+ * Initialize the dual-context array with the context pointers.
+ * Params:
+ *      loc = line and file of what line to show usage for
+ *      irs = current context to get the second context from
+ *      fd = the target function
+ *      ethis2 = dual-context array
+ *      ethis = the first context
+ *      eside = where to store the assignment expressions
+ * Returns:
+ *      `ethis2` if successful, null otherwise
+ */
+elem* setEthis2(const ref Loc loc, IRState* irs, FuncDeclaration fd, elem* ethis2, elem** ethis, elem** eside)
+{
+    if (!fd.isThis2)
+        return null;
+
+    assert(ethis2 && ethis && *ethis);
+
+    elem* ectx0 = el_una(OPind, (*ethis).Ety, el_copytree(ethis2));
+    elem* eeq0 = el_bin(OPeq, (*ethis).Ety, ectx0, *ethis);
+    *ethis = el_copytree(ectx0);
+    *eside = el_combine(eeq0, *eside);
+
+    elem* ethis1 = getEthis(loc, irs, fd, fd.toParent2());
+    elem* ectx1 = el_bin(OPadd, TYnptr, el_copytree(ethis2), el_long(TYsize_t, tysize(TYnptr)));
+    ectx1 = el_una(OPind, TYnptr, ectx1);
+    elem* eeq1 = el_bin(OPeq, ethis1.Ety, ectx1, ethis1);
+    *eside = el_combine(eeq1, *eside);
+
+    return ethis2;
 }

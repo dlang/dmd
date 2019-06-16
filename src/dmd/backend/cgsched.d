@@ -35,6 +35,8 @@ import dmd.backend.barray;
 
 extern (C++):
 
+nothrow:
+
 int REGSIZE();
 code *gen1(code *c, uint op);
 code *gen2(code *c, uint op, uint rm);
@@ -94,7 +96,7 @@ struct Cinfo
     int fpuadjust;      // if !=0, then amount FPU stack changes as a result
                         // of this instruction being executed
 
-    void print()        // pretty-printer
+    nothrow void print()        // pretty-printer
     {
         Cinfo *ci = &this;
 
@@ -1867,22 +1869,18 @@ private int triple_test(Cinfo *c0,Cinfo *c1,Cinfo *c2)
 
     assert(c0);
     if (!c1)
-        goto Lnopair;
+        return 0;
     c2isz = c2 ? c2.isz : 0;
     if (c0.isz > 7 || c1.isz > 7 || c2isz > 7 ||
         c0.isz + c1.isz + c2isz > 16)
-        goto Lnopair;
+        return 0;
 
     // 4-1-1 decode
     if (c1.uops > 1 ||
         (c2 && c2.uops > 1))
-        goto Lnopair;
+        return 0;
 
-Lpair:
     return 1;
-
-Lnopair:
-    return 0;
 }
 
 /********************************************
@@ -2234,6 +2232,7 @@ enum TBLMAX = 2*3*20;        // must be divisible by both 2 and 3
 
 struct Schedule
 {
+nothrow:
     Cinfo*[TBLMAX] tbl;         // even numbers are U pipe, odd numbers are V
     int tblmax;                 // max number of slots used
 
@@ -2250,11 +2249,6 @@ void initialize(int fpustackinit)          // initialize scheduler
     memset(&this,0,Schedule.sizeof);
     fpustackused = fpustackinit;
 }
-
-    void dtor()
-    {
-        stagelist.dtor();
-    }
 
 code **assemble(code **pc)  // reassemble scheduled instructions
 {
@@ -2845,7 +2839,6 @@ private code *schedule(code *c,regm_t scratch)
         //printf("assem %d\n",sch.tblmax);
         pctail = sch.assemble(pctail);  // reassemble instruction stream
     }
-    sch.dtor();
 
     return cresult;
 }
@@ -3185,7 +3178,6 @@ Lnop:
         c1 = cnext(c1);
         goto Ln;
     }
-L1:
     return cstart;
 }
 

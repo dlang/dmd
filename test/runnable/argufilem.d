@@ -1,4 +1,9 @@
 // EXTRA_SOURCES: imports/argufile.d
+/*
+TEST_OUTPUT:
+---
+---
+*/
 
 // NOTE: The bug only works when main.d and argufile.d are put in
 //                      separate files and compiled like 'dmd main.d argufile.d'
@@ -19,4 +24,3 @@ int main(string[] args)
 
         return 0;
 }
-

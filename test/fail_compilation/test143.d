@@ -3,7 +3,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test143.d(19): Deprecation: `imports.test143.x` is not visible from module `test143`
+fail_compilation/test143.d(19): Error: undefined identifier `x`
 ---
 */
 module test143;

@@ -1,4 +1,44 @@
+// REQUIRED_ARGS: -preview=rvaluerefparam
 // PERMUTE_ARGS: -unittest -O -release -inline -fPIC -g
+/* TEST_OUTPUT:
+---
+Boo!double
+Boo!int
+true
+int
+!! immutable(int)[]
+int(int i, long j = 7L)
+long
+C10390(C10390(<recursion>))
+tuple(height)
+tuple(get, get)
+tuple(clear)
+tuple(draw, draw)
+runnable/xtest46.d(179): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(181): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(182): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(184): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(211): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(213): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(214): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(216): Deprecation: `opDot` is deprecated. Use `alias this`
+const(int)
+string[]
+double[]
+double[]
+{}
+tuple("m")
+true
+TFunction1: extern (C) void function()
+f
+toString
+toHash
+opCmp
+opEquals
+Monitor
+factory
+---
+*/
 
 //import std.stdio;
 import core.stdc.stdio;
@@ -2553,21 +2593,6 @@ void test124() {
 
 /***************************************************/
 
-void test3022()
-{
-    static class Foo3022
-    {
-        new(size_t)
-        {
-            assert(0);
-        }
-    }
-
-    scope x = new Foo3022;
-}
-
-/***************************************************/
-
 void doNothing() {}
 
 void bug5071(short d, ref short c) {
@@ -3645,18 +3670,18 @@ class A2540
 class B2540 : A2540
 {
     int b;
-    override super.X foo() { return 1; }
+    override typeof(super).X foo() { return 1; }
 
-    alias this athis;
-    alias this.b thisb;
-    alias super.a supera;
-    alias super.foo superfoo;
-    alias this.foo thisfoo;
+    alias typeof(this) athis;
+    alias typeof(this).b thisb;
+    alias typeof(super).a supera;
+    alias typeof(super).foo superfoo;
+    alias typeof(this).foo thisfoo;
 }
 
 struct X2540
 {
-    alias this athis;
+    alias typeof(this) athis;
 }
 
 void test2540()
@@ -3718,15 +3743,11 @@ void bar7295() pure
 
 void test149()
 {
-    import std.traits;
-
     char a;
     immutable(char) b;
 
     static assert(is(typeof(true ? a : b) == const(char)));
     static assert(is(typeof([a, b][0]) == const(char)));
-
-    static assert(is(CommonType!(typeof(a), typeof(b)) == const(char)));
 }
 
 
@@ -3901,7 +3922,7 @@ void test2486()
 
     int[] arr = [1,2,3];
     foo(arr);   //OK
-    static assert(!__traits(compiles, foo(arr[1..2]))); // should be NG
+    static assert(__traits(compiles, foo(arr[1..2])));
 
     struct S
     {
@@ -3912,7 +3933,7 @@ void test2486()
     s[];
     // opSlice should return rvalue
     static assert(is(typeof(&S.opSlice) == int[] function() pure nothrow @nogc @safe));
-    static assert(!__traits(compiles, foo(s[])));       // should be NG
+    static assert(__traits(compiles, foo(s[])));
 }
 
 /***************************************************/
@@ -4087,7 +4108,7 @@ void test4539()
         assert(s[4] == 0x61);
     }
 
-    static assert(!__traits(compiles, foo1("hello")));
+    static assert(__traits(compiles, foo1("hello")));
     static assert(!__traits(compiles, foo2("hello")));
     static assert(!__traits(compiles, foo3("hello")));
 
@@ -4663,7 +4684,7 @@ template Hoge6691()
     immutable static int[int] dict;
     immutable static int value;
 
-    static this()
+    shared static this()
     {
         dict = [1:1, 2:2];
         value = 10;
@@ -4964,7 +4985,7 @@ void test6763()
 
     f6763(0);   //With D2: Error: function main.f ((ref const const(int) _param_0)) is not callable using argument types (int)
     c6763(0);
-    r6763(n);   static assert(!__traits(compiles, r6763(0)));
+    r6763(n);   static assert(__traits(compiles, r6763(0)));
     i6763(0);
     o6763(n);   static assert(!__traits(compiles, o6763(0)));
 
@@ -7189,7 +7210,7 @@ void test11317()
     }
 
     void test(ref uint x) {}
-    static assert(!__traits(compiles, test(fun())));
+    static assert(__traits(compiles, test(fun())));
 
     assert(fun() == 0);
 }
@@ -7406,7 +7427,7 @@ void test13476()
 // https://issues.dlang.org/show_bug.cgi?id=14038
 
 static immutable ubyte[string] wordsAA14038;
-static this()
+shared static this()
 {
     wordsAA14038["zero"] = 0;
 }
@@ -8232,7 +8253,7 @@ int main()
     test6733();
     test6813();
     test6859();
-    test3022();
+
     test6910();
     test6902();
     test6330();

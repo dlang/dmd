@@ -115,6 +115,7 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <StackReserveSize>8388608</StackReserveSize>
       <AdditionalOptions>$(ExternalLinkerOptions) %(AdditionalOptions)</AdditionalOptions>
+      <LargeAddressAware>true</LargeAddressAware>
     </Link>
     <DCompile>
       <VersionIdentifiers>MARS</VersionIdentifiers>
@@ -167,6 +168,7 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <StackReserveSize>8388608</StackReserveSize>
       <AdditionalOptions>$(ExternalLinkerOptions) %(AdditionalOptions)</AdditionalOptions>
+      <LargeAddressAware>true</LargeAddressAware>
     </Link>
     <DCompile>
       <VersionIdentifiers>MARS</VersionIdentifiers>

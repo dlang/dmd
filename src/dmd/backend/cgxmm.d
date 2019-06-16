@@ -39,7 +39,10 @@ version (SCPP)
 version (MARS)
     import dmd.backend.errors;
 
+
 extern (C++):
+
+nothrow:
 
 int REGSIZE();
 
@@ -65,7 +68,7 @@ bool isXMMstore(opcode_t op)
  * Move constant value into xmm register xreg.
  */
 
-private void movxmmconst(ref CodeBuilder cdb, uint xreg, uint sz, targ_size_t value, regm_t flags)
+private void movxmmconst(ref CodeBuilder cdb, reg_t xreg, uint sz, targ_size_t value, regm_t flags)
 {
     /* Generate:
      *    MOV reg,value
@@ -167,7 +170,8 @@ void orthxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     regm_t retregs = *pretregs & XMMREGS;
     if (!retregs)
         retregs = XMMREGS;
-    codelem(cdb,e1,&retregs,false); // eval left leaf
+    const constflag = OTrel(e.Eoper);
+    codelem(cdb,e1,&retregs,constflag); // eval left leaf
     const reg = findreg(retregs);
     regm_t rretregs = XMMREGS & ~retregs;
     scodelem(cdb, e2, &rretregs, retregs, true);  // eval right leaf
@@ -284,7 +288,6 @@ void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,regm_t 
     }
 
     fixresult(cdb,e,retregs,pretregs);
-Lp:
     if (postinc)
     {
         const increg = findreg(idxregm(&cs));  // the register to increment
@@ -333,6 +336,7 @@ Lp:
 
 void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
+    //printf("xmmconvt: %p, %s\n", e, regm_str(*pretregs));
     opcode_t op = NoOpcode;
     regm_t regs;
     tym_t ty;
@@ -362,9 +366,16 @@ void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             ty = TYfloat;
             break;
         }
+        if (e1.Ecount)
+        {
+            regs = XMMREGS;
+            op = CVTSD2SS;
+            ty = TYfloat;
+            break;
+        }
         // directly use si2ss
         regs = ALLREGS;
-        e1 = e1.EV.E1;
+        e1 = e1.EV.E1;  // fused operation
         op = CVTSI2SS;
         ty = TYfloat;
         break;
@@ -386,7 +397,12 @@ void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         switch (e1.Eoper)
         {
         case OPf_d:
-            e1 = e1.EV.E1;
+            if (e1.Ecount)
+            {
+                op = CVTTSD2SI;
+                break;
+            }
+            e1 = e1.EV.E1;      // fused operation
             op = CVTTSS2SI;
             break;
         case OPld_d:
@@ -416,7 +432,7 @@ void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
     codelem(cdb,e1, &regs, false);
     reg_t reg = findreg(regs);
-    if (reg >= XMM0)
+    if (isXMMreg(reg))
         reg -= XMM0;
     else if (zx)
     {   assert(I64);
@@ -439,7 +455,7 @@ void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
     reg_t rreg;
     allocreg(cdb,&retregs,&rreg,ty);
-    if (rreg >= XMM0)
+    if (isXMMreg(rreg))
         rreg -= XMM0;
 
     cdb.gen2(op, modregxrmx(3,rreg,reg));
@@ -1359,7 +1375,7 @@ static if (0)
             else
             {
                 regm_t regm = ALLREGS;
-                codelem(cdb,e1,&regm,false); // eval left leaf
+                codelem(cdb,e1,&regm,true); // eval left leaf
                 const r = findreg(regm);
 
                 reg_t reg;
@@ -1429,7 +1445,7 @@ static if (0)
             else
             {
                 regm_t regm = ALLREGS;
-                codelem(cdb,e1,&regm,false); // eval left leaf
+                codelem(cdb,e1,&regm,true); // eval left leaf
                 reg_t r = findreg(regm);
 
                 reg_t reg;
@@ -1481,7 +1497,7 @@ static if (0)
             }
             else
             {
-                codelem(cdb,e1,&retregs,false); // eval left leaf
+                codelem(cdb,e1,&retregs,true); // eval left leaf
                 const reg = cast(reg_t)(findreg(retregs) - XMM0);
                 getregs(cdb,retregs);
                 if (config.avx >= 2)
@@ -1524,7 +1540,7 @@ static if (0)
             }
             else
             {
-                codelem(cdb,e1,&retregs,false); // eval left leaf
+                codelem(cdb,e1,&retregs,true); // eval left leaf
                 const reg = cast(reg_t)(findreg(retregs) - XMM0);
                 getregs(cdb,retregs);
                 if (config.avx >= 2)
@@ -1665,6 +1681,9 @@ void checkSetVex(code *c, tym_t ty)
                 assert(tysize(ty) == 32); // AVX-256 only instructions
                 vreg = 0;       // for 2 operand vex instructions
                 break;
+
+            case NOP:
+                return;         // ignore
 
             default:
                 break;

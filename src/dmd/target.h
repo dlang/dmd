@@ -50,7 +50,6 @@ struct Target
         real_t max;
         real_t min_normal;
         real_t nan;
-        real_t snan;
         real_t infinity;
         real_t epsilon;
 

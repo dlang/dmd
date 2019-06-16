@@ -17,7 +17,7 @@ version(Windows):
 import core.stdc.string, core.stdc.stdlib, core.sys.windows.winnt;
 import dmd.globals, dmd.errors;
 
-enum LOG = false;
+private enum LOG = false;
 
 /*****************************************
  * Reads an object module from base[] and passes the names
@@ -175,6 +175,8 @@ void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) pAddSymb
         pAddSymbol(p[0 .. strlen(p)], 1);
     }
 }
+
+private: // for the remainder of this module
 
 align(1)
 struct BIGOBJ_HEADER

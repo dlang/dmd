@@ -942,17 +942,17 @@ UnionExp Identity(TOK op, const ref Loc loc, Type type, Expression e1, Expressio
     {
         if (e1.type.isreal())
         {
-            cmp = RealEquals(e1.toReal(), e2.toReal());
+            cmp = RealIdentical(e1.toReal(), e2.toReal());
         }
         else if (e1.type.isimaginary())
         {
-            cmp = RealEquals(e1.toImaginary(), e2.toImaginary());
+            cmp = RealIdentical(e1.toImaginary(), e2.toImaginary());
         }
         else if (e1.type.iscomplex())
         {
             complex_t v1 = e1.toComplex();
             complex_t v2 = e2.toComplex();
-            cmp = RealEquals(creall(v1), creall(v2)) && RealEquals(cimagl(v1), cimagl(v1));
+            cmp = RealIdentical(creall(v1), creall(v2)) && RealIdentical(cimagl(v1), cimagl(v1));
         }
         else
         {
@@ -1655,13 +1655,15 @@ UnionExp Cat(Type type, Expression e1, Expression e2)
     }
     else if (e1.op == TOK.int64 && e2.op == TOK.string_)
     {
-        // Concatenate the strings
+        // [w|d]?char ~ string --> string
+        // We assume that we only ever prepend one char of the same type
+        // (wchar,dchar) as the string's characters.
         StringExp es2 = cast(StringExp)e2;
         size_t len = 1 + es2.len;
         ubyte sz = es2.sz;
         dinteger_t v = e1.toInteger();
         void* s = mem.xmalloc(len * sz);
-        memcpy(cast(char*)s, &v, sz);
+        Port.valcpy(cast(char*)s, v, sz);
         memcpy(cast(char*)s + sz, es2.string, es2.len * sz);
         emplaceExp!(StringExp)(&ue, loc, s, len);
         StringExp es = cast(StringExp)ue.exp();

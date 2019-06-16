@@ -16,7 +16,7 @@ TODO:
 
 version(CoreDdoc) {} else:
 
-import std.algorithm, std.conv, std.datetime, std.exception, std.file, std.format,
+import std.algorithm, std.conv, std.datetime, std.exception, std.file, std.format, std.functional,
        std.getopt, std.parallelism, std.path, std.process, std.range, std.stdio, std.string;
 import core.stdc.stdlib : exit;
 
@@ -28,6 +28,12 @@ shared bool force; // always build everything (ignores timestamp checking)
 __gshared string[string] env;
 __gshared string[][string] flags;
 __gshared typeof(sourceFiles()) sources;
+
+/// Array of dependencies through which all other dependencies can be reached
+immutable rootDeps = [
+    &dmdDefault,
+    &runDmdUnittest,
+];
 
 void main(string[] args)
 {
@@ -47,6 +53,7 @@ Examples
     ./build.d dmd           # build DMD
     ./build.d unittest      # runs internal unittests
     ./build.d clean         # remove all generated files
+    ./build.d generated/linux/release/64/dmd.conf
 
 Important variables:
 --------------------
@@ -84,28 +91,23 @@ Command-line parameters
         return;
     }
 
-    if (res.helpWanted)
-        return showHelp;
-
     // parse arguments
     args.popFront;
     args2Environment(args);
+    parseEnvironment;
+    processEnvironment;
+    sources = sourceFiles;
+
+    if (res.helpWanted)
+        return showHelp;
 
     // default target
     if (!args.length)
         args = ["all"];
 
-    // bootstrap all needed environment variables
-    parseEnvironment;
-
     auto targets = args
         .predefinedTargets // preprocess
         .array;
-
-    processEnvironment;
-
-    // get all sources
-    sources = sourceFiles;
 
     if (targets.length == 0)
         return showHelp;
@@ -117,7 +119,7 @@ Command-line parameters
             log("%s=%s", key, value);
         log("================================================================================");
     }
-    foreach (target; targets)
+    foreach (target; targets.parallel(1))
         target();
 }
 
@@ -143,13 +145,14 @@ The function buildDMD defines the build order of its dependencies.
 */
 
 /// Returns: the dependency that builds the lexer
-auto lexer()
+alias lexer = memoize!defineLexer;
+auto defineLexer()
 {
     Dependency dependency = {
         target: env["G"].buildPath("lexer").libName,
         sources: sources.lexer,
-        rebuildSources: configFiles,
-        name: "(DC) D_LEXER_OBJ %-(%s, %)".format(sources.lexer.map!(e => e.baseName).array),
+        deps: stringFiles,
+        msg: "(DC) D_LEXER_OBJ %-(%s, %)".format(sources.lexer.map!(e => e.baseName).array),
         command: [
             env["HOST_DMD_RUN"],
             "-of$@",
@@ -157,11 +160,12 @@ auto lexer()
             "-J"~env["G"], "-J../res",
         ].chain(flags["DFLAGS"], "$<".only).array
     };
-    return dependency;
+    return new DependencyRef(dependency);
 }
 
 /// Returns: the dependency that generates the dmd.conf file in the output folder
-auto dmdConf()
+alias dmdConf = memoize!defineDmdConf;
+auto defineDmdConf()
 {
     // TODO: add support for Windows
     string exportDynamic;
@@ -183,14 +187,15 @@ DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@
     }; // defined separately to support older D compilers
     Dependency dependency = {
         target: target,
-        name: "(TX) DMD_CONF",
+        msg: "(TX) DMD_CONF",
         commandFunction: commandFunction,
     };
-    return dependency;
+    return new DependencyRef(dependency);
 }
 
 /// Returns: the dependency that builds and executes the optabgen utility
-auto opTabGen()
+alias opTabGen = memoize!defineOpTabGen;
+auto defineOpTabGen()
 {
     auto opTabFiles = ["debtab.d", "optab.d", "cdxxx.d", "elxxx.d", "fltables.d", "tytab.d"];
     auto opTabFilesBin = opTabFiles.map!(e => env["G"].buildPath(e)).array;
@@ -215,16 +220,18 @@ auto opTabGen()
         sources: [opTabSourceFile],
         commandFunction: commandFunction,
     };
-    return dependency;
+    return new DependencyRef(dependency);
 }
 
 /// Returns: the dependencies that build the D backend
-auto dBackend()
+alias dBackend = memoize!defineDBackend;
+auto defineDBackend()
 {
     Dependency dependency = {
         target: env["G"].buildPath("dbackend").objName,
         sources: sources.backend,
-        name: "(DC) D_BACK_OBJS %-(%s, %)".format(sources.backend.map!(e => e.baseName).array),
+        msg: "(DC) D_BACK_OBJS %-(%s, %)".format(sources.backend.map!(e => e.baseName).array),
+        deps: [opTabGen],
         command: [
             env["HOST_DMD_RUN"],
             "-c",
@@ -232,31 +239,27 @@ auto dBackend()
             "-betterC",
         ].chain(flags["DFLAGS"], "$<".only).array
     };
-    return dependency;
+    return new DependencyRef(dependency);
 }
 
 /// Execute the sub-dependencies of the backend and pack everything into one object file
-auto buildBackend()
+alias backend = memoize!defineBackend;
+auto defineBackend()
 {
-    opTabGen.run;
-
-    Dependency[] dependencies = [dBackend];
-    foreach (dependency; dependencies.parallel(1))
-        dependency.run;
-
     // Pack the backend
     Dependency dependency = {
-        name: "(LIB) %s".format("BACKEND".libName),
+        msg: "(LIB) %s".format("BACKEND".libName),
         sources: [ env["G"].buildPath("dbackend").objName ],
         target: env["G"].buildPath("backend").libName,
+        deps: [opTabGen, dBackend],
         command: [env["HOST_DMD_RUN"], env["MODEL_FLAG"], "-lib", "-of$@", "$<"]
     };
-    dependency.run;
-    return dependency;
+    return new DependencyRef(dependency);
 }
 
 /// Returns: the dependencies that generate required string files: VERSION and SYSCONFDIR.imp
-auto buildStringFiles()
+alias stringFiles = memoize!defineStringFiles;
+auto defineStringFiles()
 {
     const versionFile = env["G"].buildPath("VERSION");
     auto commandFunction = (){
@@ -277,42 +280,24 @@ auto buildStringFiles()
         target: sysconfDirFile,
         commandFunction: commandFunction,
     };
-    return [versionDependency, sysconfDirDependency];
-}
-
-/// Returns: a list of config files that are required by the DMD build
-auto configFiles()
-{
-    return buildStringFiles.map!(a => a.target).array ~ dmdConf.target;
+    return [new DependencyRef(versionDependency), new DependencyRef(sysconfDirDependency)];
 }
 
 /**
-Main build routine for the DMD compiler.
-Defines the required order for the build dependencies, runs all these dependency dependencies
-and afterwards builds the DMD compiler.
+Dependency for the DMD executable.
 
 Params:
   extra_flags = Flags to apply to the main build but not the dependencies
 */
-auto buildDMD(string[] extraFlags...)
+auto defineDmdExe(string targetSuffix, string[] extraFlags...)
 {
-    // The string files are required by most targets
-    Dependency[] dependencies = buildStringFiles();
-    foreach (dependency; dependencies.parallel(1))
-        dependency.run;
-
-    dependencies = [lexer, dmdConf];
-    foreach (ref dependency; dependencies.parallel(1))
-        dependency.run;
-
-    auto backend = buildBackend();
-
     // Main DMD build dependency
     Dependency dependency = {
         // newdelete.o + lexer.a + backend.a
-        sources: sources.dmd.chain(sources.root, dependencies[0].targets, backend.targets).array,
-        target: env["DMD_PATH"],
-        name: "(DC) MAIN_DMD_BUILD %-(%s, %)".format(sources.dmd.map!(e => e.baseName).array),
+        sources: sources.dmd.chain(sources.root, lexer.targets, backend.targets).array,
+        target: env["DMD_PATH"] ~ targetSuffix,
+        msg: "(DC) DMD%s %-(%s, %)".format(targetSuffix, sources.dmd.map!(e => e.baseName).array),
+        deps: stringFiles ~ [lexer, backend],
         command: [
             env["HOST_DMD_RUN"],
             "-of$@",
@@ -321,7 +306,38 @@ auto buildDMD(string[] extraFlags...)
             "-J../res",
         ].chain(extraFlags).chain(flags["DFLAGS"], "$<".only).array
     };
-    dependency.run;
+    return new DependencyRef(dependency);
+}
+
+/// Dependency for the DMD executable and conf file.
+alias dmdDefault = memoize!defineDmdDefault;
+auto defineDmdDefault()
+{
+    Dependency dependency = {
+        deps: [dmdConf, memoize!defineDmdExe(null, null)],
+    };
+    return new DependencyRef(dependency);
+}
+
+/// Dependency for the DMD unittest executable
+auto dmdUnittestExe()
+{
+    return memoize!defineDmdExe("-unittest", ["-version=NoMain", "-unittest", "-main"]);
+}
+
+/// Dependency to run the DMD unittest executable.
+alias runDmdUnittest = memoize!defineRunDmdUnittest;
+auto defineRunDmdUnittest()
+{
+    auto commandFunction = (){
+        spawnProcess(dmdUnittestExe.targets[0]);
+    };
+    Dependency dependency = {
+        msg: "(RUN) DMD-UNITTEST",
+        deps: [dmdUnittestExe],
+        commandFunction: commandFunction.toDelegate,
+    };
+    return new DependencyRef(dependency);
 }
 
 /**
@@ -338,6 +354,7 @@ auto predefinedTargets(string[] targets)
 {
     import std.functional : toDelegate;
     Appender!(void delegate()[]) newTargets;
+LtargetsLoop:
     foreach (t; targets)
     {
         t = t.buildNormalizedPath; // remove trailing slashes
@@ -352,11 +369,7 @@ auto predefinedTargets(string[] targets)
                 break;
 
             case "unittest":
-                flags["DFLAGS"] ~= "-version=NoMain";
-                newTargets.put((){
-                    buildDMD("-main", "-unittest");
-                    spawnProcess(env["DMD_PATH"]); // run the unittests
-                }.toDelegate);
+                newTargets.put(&runDmdUnittest.run);
                 break;
 
             case "cxx-unittest":
@@ -389,7 +402,7 @@ auto predefinedTargets(string[] targets)
 
             dmd:
             case "dmd":
-                newTargets.put({buildDMD();}.toDelegate);
+                newTargets.put(&dmdDefault.run);
                 break;
 
             case "clean":
@@ -401,6 +414,18 @@ auto predefinedTargets(string[] targets)
             case "all":
                 goto dmd;
             default:
+                // check this last, target paths should be checked after predefined names
+                foreach (dep; DependencyRange(rootDeps.map!(a => a()).array))
+                {
+                    foreach (depTarget; dep.targets)
+                    {
+                        if (depTarget.endsWith(t))
+                        {
+                            newTargets.put(&dep.run);
+                            continue LtargetsLoop;
+                        }
+                    }
+                }
                 writefln("ERROR: Target `%s` is unknown.", t);
                 writeln;
                 break;
@@ -409,11 +434,58 @@ auto predefinedTargets(string[] targets)
     return newTargets.data;
 }
 
+/// An input range for a recursive set of dependencies
+struct DependencyRange
+{
+    private DependencyRef[] next;
+    private bool[DependencyRef] added;
+    this(DependencyRef[] deps) { addDeps(deps); }
+    bool empty() const { return next.length == 0; }
+    auto front() inout { return next[0]; }
+    void popFront()
+    {
+        auto save = next[0];
+        next = next[1 .. $];
+        addDeps(save.deps);
+    }
+    void addDeps(DependencyRef[] deps)
+    {
+        foreach (dep; deps)
+        {
+            if (!added.get(dep, false))
+            {
+                next ~= dep;
+                added[dep] = true;
+            }
+        }
+    }
+}
+
 /// Sets the environment variables
 void parseEnvironment()
 {
     env.getDefault("TARGET_CPU", "X86");
-    auto os = env.getDefault("OS", detectOS);
+    version (Windows)
+    {
+        // On windows, the OS environment variable is already being used by the system.
+        // For example, on a default Windows7 system it's configured by the system
+        // to be "Windows_NT".
+        //
+        // However, there are a good number of components in this repo and the other
+        // repos that set this environment variable to "windows" without checking whether
+        // it's already configured, i.e.
+        //      dmd\src\win32.mak (OS=windows)
+        //      druntime\win32.mak (OS=windows)
+        //      phobos\win32.mak (OS=windows)
+        //
+        // It's necessary to emulate the same behavior in this tool in order to make this
+        // new tool compatible with existing tools. We can do this by also setting the
+        // environment variable to "windows" whether or not it already has a value.
+        //
+        const os = env["OS"] = "windows";
+    }
+    else
+        const os = env.getDefault("OS", detectOS);
     auto build = env.getDefault("BUILD", "release");
     enforce(build.among("release", "debug"), "BUILD must be 'debug' or 'release'");
 
@@ -491,7 +563,7 @@ void parseEnvironment()
 /// Checks the environment variables and flags
 void processEnvironment()
 {
-    auto os = env["OS"];
+    const os = env["OS"];
 
     auto hostDMDVersion = [env["HOST_DMD_RUN"], "--version"].execute.output;
     if (hostDMDVersion.find("DMD"))
@@ -707,9 +779,9 @@ auto detectModel()
     else
         uname = ["uname", "-m"].execute.output;
 
-    if (!uname.find("x86_64", "amd64", "64-bit")[0].empty)
+    if (!uname.find("x86_64", "amd64", "64-bit", "64 bit")[0].empty)
         return "64";
-    if (!uname.find("i386", "i586", "i686", "32-bit")[0].empty)
+    if (!uname.find("i386", "i586", "i686", "32-bit", "32 bit")[0].empty)
         return "32";
 
     throw new Exception(`Cannot figure 32/64 model from "` ~ uname ~ `"`);
@@ -727,7 +799,7 @@ auto getHostDMDPath(string hostDmd)
     version(Posix)
         return ["which", hostDmd].execute.output;
     else version(Windows)
-        return ["where", hostDmd].execute.output;
+        return ["where", hostDmd].execute.output.lineSplitter.front;
     else
         static assert(false, "Unrecognized or unsupported OS.");
 }
@@ -887,37 +959,67 @@ struct Dependency
     string[] targets; // list of all target files
     string[] sources; // list of all source files
     string[] rebuildSources; // Optional list of files that trigger a rebuild of this dependency
+    DependencyRef[] deps; // dependencies to build before this one
     string[] command; // the dependency command
     void delegate() commandFunction; // a custom dependency command which gets called instead of command
-    string name; // name of the dependency that is e.g. written to the CLI when it's executed
+    string msg; // msg of the dependency that is e.g. written to the CLI when it's executed
     string[] trackSources;
+}
 
-    /**
-    Executes the dependency
-    */
-    auto run()
+class DependencyRef
+{
+    Dependency dep;
+    alias dep this;
+    private bool executed;
+
+    this(ref Dependency dep)
     {
-        // allow one or multiple targets
-        if (target !is null)
-            targets = [target];
-
-        if (targets.isUpToDate(sources, [thisBuildScript], rebuildSources))
+        this.dep = dep;
+        if (dep.target)
         {
-            if (sources !is null)
+            assert(!dep.targets, "target and targets cannot both be set");
+            this.dep.targets = [dep.target];
+        }
+    }
+
+    /// Executes the dependency
+    void run()
+    {
+        synchronized (this)
+            runSynchronized();
+    }
+
+    private void runSynchronized()
+    {
+        if (executed)
+            return;
+        scope (exit) executed = true;
+
+        bool depUpdated = false;
+        foreach (dep; deps.parallel(1))
+        {
+            dep.run();
+        }
+
+        if (targets && targets.isUpToDate(dep.sources, [thisBuildScript], rebuildSources))
+        {
+            if (dep.sources !is null)
                 log("Skipping build of %-(%s%) as it's newer than %-(%s%)", targets, sources);
             return;
         }
 
+        // Display the execution of the dependency
+        if (msg)
+            msg.writeln;
+
         if (commandFunction !is null)
             return commandFunction();
 
-        resolveShorthands();
-
-        // Display the execution of the dependency
-        if (name)
-            name.writeln;
-
-        command.runCanThrow;
+        if (command)
+        {
+            resolveShorthands();
+            command.runCanThrow;
+        }
     }
 
     /**
@@ -930,8 +1032,8 @@ struct Dependency
             command[i] = c.replace("$@", target);
 
         // Support $< (shortcut for the source path)
-        if (command[$ - 1].find("$<"))
-            command = command.remove(command.length - 1) ~ sources;
+        if (!command[$ - 1].find("$<").empty)
+            command = command.remove(command.length - 1) ~ dep.sources;
     }
 }
 
@@ -972,4 +1074,10 @@ auto runCanThrow(T)(T args)
     auto res = run(args);
     enforce(!res.status, res.output);
     return res.output;
+}
+
+version (CRuntime_DigitalMars)
+{
+    // workaround issue https://issues.dlang.org/show_bug.cgi?id=13727
+    auto parallel(R)(R range, size_t workUnitSize) { return range; }
 }

@@ -327,7 +327,7 @@ LEXER_ROOT=$(addsuffix .d, $(addprefix $(ROOT)/, array ctfloat file filename out
 
 ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array ctfloat file \
 	filename man outbuffer port response rmem rootobject speller \
-	longdouble strtold stringtable hash))
+	longdouble strtold stringtable hash string))
 
 GLUE_SRCS=$(addsuffix .d, $(addprefix $D/,irstate toctype glue gluelayer todt tocsym toir dmsc \
 	tocvdebug s2ir toobj e2ir eh iasm iasmdmd iasmgcc objc_glue))
@@ -339,7 +339,7 @@ BACK_DOBJS = bcomplex.o evalu8.o divcoeff.o dvec.o go.o gsroa.o glocal.o gdag.o 
 	gloop.o compress.o cgelem.o cgcs.o ee.o cod4.o cod5.o nteh.o blockopt.o mem.o cg.o cgreg.o \
 	dtype.o debugprint.o fp.o symbol.o elem.o dcode.o cgsched.o cg87.o cgxmm.o cgcod.o cod1.o cod2.o \
 	cod3.o cv8.o dcgcv.o pdata.o util2.o var.o md5.o backconfig.o ph2.o drtlsym.o dwarfeh.o ptrntab.o \
-	aarray.o dvarstats.o dwarfdbginf.o elfobj.o cgen.o os.o goh.o barray.o
+	aarray.o dvarstats.o dwarfdbginf.o elfobj.o cgen.o os.o goh.o barray.o cgcse.o
 
 G_OBJS  = $(addprefix $G/, $(BACK_OBJS))
 G_DOBJS = $(addprefix $G/, $(BACK_DOBJS))
@@ -367,7 +367,7 @@ BACK_SRC = \
 	$C/optabgen.d \
 	$C/bcomplex.d $C/blockopt.d $C/cg.d $C/cg87.d $C/cgxmm.d \
 	$C/cgcod.d $C/cgcs.d $C/dcgcv.d $C/cgelem.d $C/cgen.d $C/cgobj.d \
-	$C/compress.d $C/cgreg.d $C/var.d \
+	$C/compress.d $C/cgreg.d $C/var.d $C/cgcse.d \
 	$C/cgsched.d $C/cod1.d $C/cod2.d $C/cod3.d $C/cod4.d $C/cod5.d \
 	$C/dcode.d $C/symbol.d $C/debugprint.d $C/dt.d $C/ee.d $C/elem.d \
 	$C/evalu8.d $C/fp.d $C/go.d $C/gflow.d $C/gdag.d \
@@ -390,7 +390,7 @@ SRC = $(addprefix $D/, aggregate.h aliasthis.h arraytypes.h	\
 	attrib.h compiler.h complex_t.h cond.h ctfe.h ctfe.h declaration.h doc.h dsymbol.h	\
 	enum.h errors.h expression.h globals.h hdrgen.h identifier.h \
 	id.h import.h init.h json.h \
-	mangle.h mars.h module.h mtype.h nspace.h objc.h                \
+	mangle.h module.h mtype.h nspace.h objc.h                \
 	scope.h statement.h staticassert.h target.h template.h tokens.h	\
 	version.h visitor.h libomf.d scanomf.d libmscoff.d scanmscoff.d)         \
 	$(DMD_SRCS)
@@ -409,9 +409,14 @@ DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(BACK_OBJS) $(BACK_DOBJS))
 
 ######## Begin build targets
 
-all: $G/dmd
 
-auto-tester-build: $G/dmd checkwhitespace cxx-unittest $G/dmd_frontend
+all: dmd
+.PHONY: all
+
+dmd: $G/dmd $G/dmd.conf
+.PHONY: dmd
+
+auto-tester-build: dmd checkwhitespace cxx-unittest $G/dmd_frontend
 .PHONY: auto-tester-build
 
 toolchain-info:
@@ -437,11 +442,11 @@ $G/dmd_frontend: $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) $G/lexer.a $(STRING_I
 	$(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^) -version=NoBackend
 
 ifdef ENABLE_LTO
-$G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/lexer.a $(G_OBJS) $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $G/dmd.conf
-	$(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $G/dmd.conf,$^)
+$G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/lexer.a $(G_OBJS) $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+	$(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 else
-$G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/backend.a $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $G/dmd.conf
-	$(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $(LEXER_ROOT) $G/dmd.conf,$^)
+$G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/backend.a $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+	$(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $(LEXER_ROOT),$^)
 endif
 
 $G/dmd-unittest: $(DMD_SRCS) $(ROOT_SRCS) $(LEXER_SRCS) $(G_OBJS) $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
@@ -455,10 +460,10 @@ unittest: $G/dmd-unittest
 EXAMPLES=$(addprefix $G/examples/, avg impvisitor)
 PARSER_SRCS=$(addsuffix .d, $(addprefix $D/,parse astbase parsetimevisitor transitivevisitor permissivevisitor strictvisitor utils))
 
-$G/parser.a: $(PARSER_SRCS) $(LEXER_SRCS) $(ROOT_SRCS) $G/dmd $G/dmd.conf $(SRC_MAKE)
+$G/parser.a: $(PARSER_SRCS) $(LEXER_SRCS) $(ROOT_SRCS) dmd $(SRC_MAKE)
 	$G/dmd -lib -of$@ $(MODEL_FLAG) -J$G $(DFLAGS) $(PARSER_SRCS) $(LEXER_SRCS) $(ROOT_SRCS)
 
-$G/examples/%: $(EX)/%.d $G/parser.a $G/dmd
+$G/examples/%: $(EX)/%.d $G/parser.a dmd
 	$G/dmd -of$@ $(MODEL_FLAG) $(DFLAGS) $G/parser.a $<
 
 build-examples: $(EXAMPLES)

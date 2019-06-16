@@ -6,7 +6,7 @@
  *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/code_x86.c, backend/code_x86.c)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/code_x86.d, backend/code_x86.d)
  */
 
 module dmd.backend.code_x86;
@@ -19,6 +19,8 @@ import dmd.backend.code;
 import dmd.backend.codebuilder : CodeBuilder;
 import dmd.backend.el : elem;
 import dmd.backend.ty : I64;
+
+nothrow:
 
 alias opcode_t = uint;          // CPU opcode
 enum opcode_t NoOpcode = 0xFFFF;              // not a valid opcode_t
@@ -58,6 +60,8 @@ enum
 /* There are also XMM8..XMM14 */
     XMM15   = 31,
 }
+
+bool isXMMreg(reg_t reg) pure { return reg >= XMM0 && reg <= XMM15; }
 
 enum PICREG = BX;
 
@@ -319,6 +323,7 @@ struct code
         opcode_t Iop;
         struct Svex
         {
+          nothrow:
           align(1):
             ubyte  op;
 
@@ -378,6 +383,7 @@ struct code
     evc IEV1;             // 1st operand, if any
     evc IEV2;             // 2nd operand, if any
 
+  nothrow:
     void orReg(uint reg)
     {   if (reg & 8)
             Irex |= REX_R;

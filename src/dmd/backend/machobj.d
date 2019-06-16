@@ -41,6 +41,11 @@ import dmd.backend.type;
 
 extern (C++):
 
+nothrow:
+
+alias _compare_fp_t = extern(C) nothrow int function(const void*, const void*);
+extern(C) void qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar);
+
 static if (MACHOBJ)
 {
 
@@ -48,6 +53,25 @@ import dmd.backend.dwarf;
 import dmd.backend.mach;
 
 alias nlist = dmd.backend.mach.nlist;   // avoid conflict with dmd.backend.dlist.nlist
+
+/****************************************
+ * Sort the relocation entry buffer.
+ * put before nothrow because qsort was not marked nothrow until version 2.086
+ */
+
+extern (C) {
+private int rel_fp(scope const(void*) e1, scope const(void*) e2)
+{   Relocation *r1 = cast(Relocation *)e1;
+    Relocation *r2 = cast(Relocation *)e2;
+
+    return cast(int)(r1.offset - r2.offset);
+}
+}
+
+void mach_relsort(Outbuffer *buf)
+{
+    qsort(buf.buf, buf.size() / Relocation.sizeof, Relocation.sizeof, &rel_fp);
+}
 
 // for x86_64
 enum
@@ -2571,24 +2595,6 @@ void Obj_addrel(int seg, targ_size_t offset, Symbol *targsym,
         assert(pseg.SDrel);
     }
     pseg.SDrel.write(&rel, rel.sizeof);
-}
-
-/****************************************
- * Sort the relocation entry buffer.
- */
-
-extern (C) {
-private int rel_fp(scope const(void*) e1, scope const(void*) e2)
-{   Relocation *r1 = cast(Relocation *)e1;
-    Relocation *r2 = cast(Relocation *)e2;
-
-    return cast(int)(r1.offset - r2.offset);
-}
-}
-
-void mach_relsort(Outbuffer *buf)
-{
-    qsort(buf.buf, buf.size() / Relocation.sizeof, Relocation.sizeof, &rel_fp);
 }
 
 /*******************************

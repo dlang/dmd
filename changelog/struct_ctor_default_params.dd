@@ -1,0 +1,10 @@
+Struct constructors with all-default parameter will now error
+
+Since 2.070.0, the following code has been giving deprecations:
+---
+struct Oops
+{
+    this (int universe = 42) {}
+}
+---
+It will now error out.

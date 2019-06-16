@@ -147,6 +147,7 @@ struct Param
     bool dtorFields;        // destruct fields of partially constructed objects
                             // https://issues.dlang.org/show_bug.cgi?id=14246
     bool fieldwise;         // do struct equality testing field-wise rather than by memcmp()
+    bool rvalueRefParam;    // allow rvalues to be arguments to ref parameters
     CppStdRevision cplusplus;  // version of C++ name mangling to support
     bool markdown;          // enable Markdown replacements in Ddoc
     bool vmarkdown;         // list instances of Markdown replacements in Ddoc
@@ -178,12 +179,12 @@ struct Param
     unsigned errorLimit;
 
     DArray<const char>  argv0;    // program name
-    Array<const char *> *modFileAliasStrings; // array of char*'s of -I module filename alias strings
+    Array<const char *> modFileAliasStrings; // array of char*'s of -I module filename alias strings
     Array<const char *> *imppath;     // array of char*'s of where to look for import modules
     Array<const char *> *fileImppath; // array of char*'s of where to look for file import modules
-    const char *objdir;   // .obj/.lib file output directory
-    const char *objname;  // .obj file output name
-    const char *libname;  // .lib file output name
+    DArray<const char> objdir;   // .obj/.lib file output directory
+    DArray<const char> objname;  // .obj file output name
+    DArray<const char> libname;  // .lib file output name
 
     bool doDocComments;  // process embedded documentation comments
     const char *docdir;  // write documentation file to docdir directory
@@ -191,12 +192,12 @@ struct Param
     Array<const char *> ddocfiles;  // macro include files for Ddoc
 
     bool doHdrGeneration;  // process embedded documentation comments
-    const char *hdrdir;    // write 'header' file to docdir directory
-    const char *hdrname;   // write 'header' file to docname
+    DArray<const char> hdrdir;    // write 'header' file to docdir directory
+    DArray<const char> hdrname;   // write 'header' file to docname
     bool hdrStripPlainFunctions; // strip the bodies of plain (non-template) functions
 
     bool doJsonGeneration;    // write JSON file
-    const char *jsonfilename; // write JSON file to jsonfilename
+    DArray<const char> jsonfilename; // write JSON file to jsonfilename
     unsigned jsonFieldFlags;  // JSON field flags to include
 
     OutBuffer *mixinOut;                // write expanded mixins for debugging
@@ -209,11 +210,11 @@ struct Param
     unsigned versionlevel; // version level
     Array<const char *> *versionids;   // version identifiers
 
-    const char *defaultlibname; // default library for non-debug builds
-    const char *debuglibname;   // default library for debug builds
-    const char *mscrtlib;       // MS C runtime library
+    DArray<const char> defaultlibname; // default library for non-debug builds
+    DArray<const char> debuglibname;   // default library for debug builds
+    DArray<const char> mscrtlib;       // MS C runtime library
 
-    const char *moduleDepsFile; // filename for deps output
+    DArray<const char> moduleDepsFile; // filename for deps output
     OutBuffer *moduleDeps;      // contents to be written to deps file
 
     // Hidden debug switches
@@ -232,10 +233,10 @@ struct Param
     Array<const char *> linkswitches;
     Array<const char *> libfiles;
     Array<const char *> dllfiles;
-    const char *deffile;
-    const char *resfile;
-    const char *exefile;
-    const char *mapfile;
+    DArray<const char> deffile;
+    DArray<const char> resfile;
+    DArray<const char> exefile;
+    DArray<const char> mapfile;
 };
 
 typedef unsigned structalign_t;
@@ -245,26 +246,26 @@ typedef unsigned structalign_t;
 
 struct Global
 {
-    const char *inifilename;
-    const char *mars_ext;
-    const char *obj_ext;
-    const char *lib_ext;
-    const char *dll_ext;
-    const char *doc_ext;        // for Ddoc generated files
-    const char *ddoc_ext;       // for Ddoc macro include files
-    const char *hdr_ext;        // for D 'header' import files
-    const char *json_ext;       // for JSON files
-    const char *map_ext;        // for .map files
+    DArray<const char> inifilename;
+    const DArray<const char> mars_ext;
+    DArray<const char> obj_ext;
+    DArray<const char> lib_ext;
+    DArray<const char> dll_ext;
+    const DArray<const char> doc_ext;  // for Ddoc generated files
+    const DArray<const char> ddoc_ext; // for Ddoc macro include files
+    const DArray<const char> hdr_ext;  // for D 'header' import files
+    const DArray<const char> json_ext; // for JSON files
+    const DArray<const char> map_ext;  // for .map files
     bool run_noext;             // allow -run sources without extensions.
 
-    const char *copyright;
-    const char *written;
-    const char *main_d;         // dummy filename for dummy main()
+
+    const DArray<const char> copyright;
+    const DArray<const char> written;
     Array<const char *> *path;        // Array of char*'s which form the import lookup path
     Array<const char *> *filePath;    // Array of char*'s which form the file import lookup path
 
     DArray<const char> version;     // Compiler version string
-    const char *vendor;             // Compiler backend name
+    DArray<const char> vendor;             // Compiler backend name
 
     Param params;
     unsigned errors;         // number of errors reported so far

@@ -20,6 +20,8 @@ import dmd.backend.cdef;
 
 extern (C++):
 
+nothrow:
+
 // estimate of variable life time
 struct LifeTime
 {
@@ -95,8 +97,8 @@ else
      */
 
     void varStats_writeSymbolTable(symtab_t* symtab,
-                          void function(Symbol*) fnWriteVar, void function() fnEndArgs,
-                          void function(int off,int len) fnBeginBlock, void function() fnEndBlock);
+                          void function(Symbol*) nothrow fnWriteVar, void function() nothrow fnEndArgs,
+                          void function(int off,int len) nothrow fnBeginBlock, void function() nothrow fnEndBlock);
 
     void varStats_startFunction();
     void varStats_recordLineOffset(Srcpos src, targ_size_t off);

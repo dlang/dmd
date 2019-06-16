@@ -77,11 +77,7 @@ extern (C++) void genhdrfile(Module m)
     HdrGenState hgs;
     hgs.hdrgen = true;
     toCBuffer(m, &buf, &hgs);
-    // Transfer image to file
-    m.hdrfile.setbuffer(buf.data, buf.offset);
-    buf.extractData();
-    ensurePathToNameExists(Loc.initial, m.hdrfile.toChars());
-    writeFile(m.loc, m.hdrfile);
+    writeFile(m.loc, m.hdrfile.toString(), buf.peekSlice());
 }
 
 /**
@@ -2319,7 +2315,7 @@ public:
     override void visit(DelegateExp e)
     {
         buf.writeByte('&');
-        if (!e.func.isNested())
+        if (!e.func.isNested() || e.func.needThis())
         {
             expToBuffer(e.e1, PREC.primary, buf, hgs);
             buf.writeByte('.');
@@ -2935,7 +2931,7 @@ extern (C++) const(char)* parametersTypeToChars(ParameterList pl)
     OutBuffer buf;
     HdrGenState hgs;
     parametersToBuffer(pl, &buf, &hgs);
-    return buf.extractString();
+    return buf.extractChars();
 }
 
 /*************************************************************
@@ -2958,7 +2954,7 @@ const(char)* parameterToChars(Parameter parameter, TypeFunction tf, bool fullQua
     {
         buf.writestring("...");
     }
-    return buf.extractString();
+    return buf.extractChars();
 }
 
 

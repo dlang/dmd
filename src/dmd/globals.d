@@ -153,8 +153,8 @@ struct Param
     bool betterC;           // be a "better C" compiler; no dependency on D runtime
     bool addMain;           // add a default main() function
     bool allInst;           // generate code for all template instantiations
-    bool check10378;        // check for issues transitioning to 10738
-    bool bug10378;          // use pre- https://issues.dlang.org/show_bug.cgi?id=10378 search strategy
+    bool check10378;        // check for issues transitioning to 10738 @@@DEPRECATED@@@ Remove in 2010-05 or later
+    bool bug10378;          // use pre- https://issues.dlang.org/show_bug.cgi?id=10378 search strategy  @@@DEPRECATED@@@ Remove in 2010-05 or later
     bool fix16997;          // fix integral promotions for unary + - ~ operators
                             // https://issues.dlang.org/show_bug.cgi?id=16997
     bool fixAliasThis;      // if the current scope has an alias this, check it before searching upper scopes
@@ -168,6 +168,7 @@ struct Param
     bool dtorFields;        // destruct fields of partially constructed objects
                             // https://issues.dlang.org/show_bug.cgi?id=14246
     bool fieldwise;         // do struct equality testing field-wise rather than by memcmp()
+    bool rvalueRefParam;    // allow rvalues to be arguments to ref parameters
 
     CppStdRevision cplusplus = CppStdRevision.cpp98;    // version of C++ standard to support
 
@@ -202,12 +203,12 @@ struct Param
     uint errorLimit = 20;
 
     const(char)[] argv0;                // program name
-    Array!(const(char)*)* modFileAliasStrings; // array of char*'s of -I module filename alias strings
+    Array!(const(char)*) modFileAliasStrings; // array of char*'s of -I module filename alias strings
     Array!(const(char)*)* imppath;      // array of char*'s of where to look for import modules
     Array!(const(char)*)* fileImppath;  // array of char*'s of where to look for file import modules
-    const(char)* objdir;                // .obj/.lib file output directory
-    const(char)* objname;               // .obj file output name
-    const(char)* libname;               // .lib file output name
+    const(char)[] objdir;                // .obj/.lib file output directory
+    const(char)[] objname;               // .obj file output name
+    const(char)[] libname;               // .lib file output name
 
     bool doDocComments;                 // process embedded documentation comments
     const(char)* docdir;                // write documentation file to docdir directory
@@ -215,12 +216,12 @@ struct Param
     Array!(const(char)*) ddocfiles;     // macro include files for Ddoc
 
     bool doHdrGeneration;               // process embedded documentation comments
-    const(char)* hdrdir;                // write 'header' file to docdir directory
-    const(char)* hdrname;               // write 'header' file to docname
+    const(char)[] hdrdir;                // write 'header' file to docdir directory
+    const(char)[] hdrname;               // write 'header' file to docname
     bool hdrStripPlainFunctions = true; // strip the bodies of plain (non-template) functions
 
     bool doJsonGeneration;              // write JSON file
-    const(char)* jsonfilename;          // write JSON file to jsonfilename
+    const(char)[] jsonfilename;          // write JSON file to jsonfilename
     JsonFieldFlags jsonFieldFlags;      // JSON field flags to include
 
     OutBuffer* mixinOut;                // write expanded mixins for debugging
@@ -233,11 +234,11 @@ struct Param
     uint versionlevel;                  // version level
     Array!(const(char)*)* versionids;   // version identifiers
 
-    const(char)* defaultlibname;        // default library for non-debug builds
-    const(char)* debuglibname;          // default library for debug builds
-    const(char)* mscrtlib;              // MS C runtime library
+    const(char)[] defaultlibname;        // default library for non-debug builds
+    const(char)[] debuglibname;          // default library for debug builds
+    const(char)[] mscrtlib;              // MS C runtime library
 
-    const(char)* moduleDepsFile;        // filename for deps output
+    const(char)[] moduleDepsFile;        // filename for deps output
     OutBuffer* moduleDeps;              // contents to be written to deps file
 
     // Hidden debug switches
@@ -256,10 +257,10 @@ struct Param
     Array!(const(char)*) linkswitches;
     Array!(const(char)*) libfiles;
     Array!(const(char)*) dllfiles;
-    const(char)* deffile;
-    const(char)* resfile;
-    const(char)* exefile;
-    const(char)* mapfile;
+    const(char)[] deffile;
+    const(char)[] resfile;
+    const(char)[] exefile;
+    const(char)[] mapfile;
 
     // generate code for POSIX
     @property bool isPOSIX() scope const pure nothrow @nogc @safe
@@ -283,26 +284,26 @@ enum STRUCTALIGN_DEFAULT = (cast(structalign_t)~0);
 
 struct Global
 {
-    const(char)* inifilename;
-    const(char)* mars_ext = "d";
-    const(char)* obj_ext;
-    const(char)* lib_ext;
-    const(char)* dll_ext;
-    const(char)* doc_ext = "html";      // for Ddoc generated files
-    const(char)* ddoc_ext = "ddoc";     // for Ddoc macro include files
-    const(char)* hdr_ext = "di";        // for D 'header' import files
-    const(char)* json_ext = "json";     // for JSON files
-    const(char)* map_ext = "map";       // for .map files
+    const(char)[] inifilename;
+    string mars_ext = "d";
+    const(char)[] obj_ext;
+    const(char)[] lib_ext;
+    const(char)[] dll_ext;
+    string doc_ext = "html";      // for Ddoc generated files
+    string ddoc_ext = "ddoc";     // for Ddoc macro include files
+    string hdr_ext = "di";        // for D 'header' import files
+    string json_ext = "json";     // for JSON files
+    string map_ext = "map";       // for .map files
     bool run_noext;                     // allow -run sources without extensions.
 
-    const(char)* copyright = "Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved";
-    const(char)* written = "written by Walter Bright";
-    const(char)* main_d = "__main.d";   // dummy filename for dummy main()
+    string copyright = "Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved";
+    string written = "written by Walter Bright";
+
     Array!(const(char)*)* path;         // Array of char*'s which form the import lookup path
     Array!(const(char)*)* filePath;     // Array of char*'s which form the file import lookup path
 
     string _version;
-    const(char)* vendor;    // Compiler backend name
+    const(char)[] vendor;    // Compiler backend name
 
     Param params;
     uint errors;            // number of errors reported so far
@@ -315,6 +316,8 @@ struct Global
 
     Array!Identifier* versionids;    // command line versions and predefined versions
     Array!Identifier* debugids;      // command line debug versions and predefined versions
+
+  nothrow:
 
     /* Start gagging. Return the current number of gagged errors
      */
@@ -465,6 +468,15 @@ struct Global
         }
         return cached;
     }
+
+    /**
+    Returns: the final defaultlibname based on the command-line parameters
+    */
+    const(char)[] finalDefaultlibname() const
+    {
+        return params.betterC ? null :
+            params.symdebug ? params.debuglibname : params.defaultlibname;
+    }
 }
 
 // Because int64_t and friends may be any integral type of the
@@ -523,7 +535,7 @@ nothrow:
             }
             buf.writeByte(')');
         }
-        return buf.extractString();
+        return buf.extractChars();
     }
 
     /* Checks for equivalence,

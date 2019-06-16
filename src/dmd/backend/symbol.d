@@ -62,6 +62,8 @@ version (SCPP_HTOD)
 
 extern (C++):
 
+nothrow:
+
 alias MEM_PH_MALLOC = mem_malloc;
 alias MEM_PH_CALLOC = mem_calloc;
 alias MEM_PH_FREE = mem_free;
@@ -654,9 +656,7 @@ debug
    }
    /* not in table, so insert into table        */
    *parent = s;                         /* link new symbol into tree    */
-L1:
 }
-
 }
 
 /*************************************

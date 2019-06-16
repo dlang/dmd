@@ -1,3 +1,4 @@
+// REQUIRED_ARGS: -preview=rvaluerefparam
 // PERMUTE_ARGS:
 
 module breaker;
@@ -1040,7 +1041,7 @@ void test3467()
     a1 ~ a2; // line 7, Error
 }
 
-struct TS6806(size_t n) { pragma(msg, typeof(n)); }
+struct TS6806(uint n) { pragma(msg, typeof(n)); }
 static assert(is(TS6806!(1u) == TS6806!(1)));
 
 /**********************************/
@@ -1924,13 +1925,13 @@ void h8976()()
     g8976!()();
 }
 
-static assert(! __traits(compiles, h8976!()() ) ); // causes error
-static assert(!is(typeof(          h8976!()() )));
+static assert( __traits(compiles, h8976!()() ) ); // causes error
+static assert(is(typeof(          h8976!()() )));
 
 void test8976()
 {
-    static assert(! __traits(compiles, h8976!()() ) );
-    static assert(!is(typeof(          h8976!()() )));
+    static assert( __traits(compiles, h8976!()() ) );
+    static assert(is(typeof(          h8976!()() )));
 }
 
 /****************************************/

@@ -220,6 +220,8 @@ The following is a list of all available settings:
                          Some
                          Output
                          ---
+                         note: if not given, it is assumed that the compilation will be silent.
+                         default: (none)
 
     POST_SCRIPT:         name of script to execute after test run
                          note: arguments to the script may be included after the name.
@@ -250,7 +252,7 @@ The Makefile uses environment variables to store test settings and as a way to p
     REQUIRED_ARGS: arguments always passed to the compiler
     DMD:           compiler to use, ex: ../src/dmd (required)
     CC:            C++ compiler to use, ex: dmc, g++
-    OS:            win32, win64, linux, freebsd, osx, netbsd, dragonflybsd
+    OS:            windows, linux, freebsd, osx, netbsd, dragonflybsd
     RESULTS_DIR:   base directory for test results
     MODEL:         32 or 64 (required)
     AUTO_UPDATE:   set to 1 to auto-update mismatching test output
@@ -307,3 +309,32 @@ A few operations are done on the output of a test before the comparison with `TE
 - paths to `test_results` will be replaced with `{{RESULTS_DIR}}`
 
 Both stderr and stdout of the DMD are captured for output comparison.
+
+## Test Coding Practices
+
+The purpose of the test suite is to test the compiler only. This means:
+
+* do not import modules from Phobos
+* keep imports from druntime to the interface to the C standard library
+* use `core.stdc.stdio.printf`, not `std.stdio.writef`
+
+In order to make the test suite run faster, multiple unrelated tests can
+be aggregated into a single file, for example `test/runnable/test42.d`
+
+Each test should be in the following form:
+
+```
+/*******************************/
+// https://issues/dlang.org/show_bug.cgi?id=NNNN
+
+void testNNNN()
+{
+}
+```
+
+The NNNN is the bugzilla issue number this test ensures is fixed.
+The test code should be self-contained. The test code should be
+minimized to focus on the test.
+
+As usual, test source code should be LF terminated lines, and not
+contain any tab characters.

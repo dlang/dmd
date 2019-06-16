@@ -33,6 +33,8 @@ import dmd.backend.type;
 
 import dmd.backend.barray;
 
+nothrow:
+
 extern __gshared
 {
     char debuga;            // cg - watch assignaddr()
@@ -61,8 +63,8 @@ enum LF_STR = "\n";
 
 extern __gshared
 {
-    uint[32] mask;                  // bit masks
-    uint[32] maskl;                 // bit masks
+    const uint[32] mask;            // bit masks
+    const uint[32] maskl;           // bit masks
 
     char* argv0;
     char* finname, foutname, foutdir;
@@ -305,8 +307,8 @@ void os_term();
 uint os_unique();
 int os_file_exists(const(char)* name);
 int os_file_mtime(const(char)* name);
-int os_file_size(int fd);
-int os_file_size(const(char)* filename);
+long os_file_size(int fd);
+long os_file_size(const(char)* filename);
 char *file_8dot3name(const(char)* filename);
 int file_write(char *name, void *buffer, uint len);
 int file_createdirs(char *name);
@@ -450,7 +452,6 @@ char *sym_ident(SYMIDX si);
 /* cgelem.c     */
 elem *doptelem(elem *, goal_t);
 void postoptelem(elem *);
-uint swaprel(uint);
 int elemisone(elem *);
 
 /* msc.c */

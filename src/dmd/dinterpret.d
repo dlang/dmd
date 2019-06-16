@@ -796,7 +796,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
     // except for delegates. (Note that the 'this' pointer may be null).
     // Func literals report isNested() even if they are in global scope,
     // so we need to check that the parent is a function.
-    if (fd.isNested() && fd.toParent2().isFuncDeclaration() && !thisarg && istate)
+    if (fd.isNested() && fd.toParentLocal().isFuncDeclaration() && !thisarg && istate)
         thisarg = ctfeStack.getThis();
 
     if (fd.needThis() && !thisarg)
@@ -876,6 +876,26 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
     InterState istatex;
     istatex.caller = istate;
     istatex.fd = fd;
+
+    if (fd.isThis2)
+    {
+        Expression arg0 = thisarg;
+        if (arg0 && arg0.type.ty == Tstruct)
+        {
+            Type t = arg0.type.pointerTo();
+            arg0 = new AddrExp(arg0.loc, arg0);
+            arg0.type = t;
+        }
+        auto elements = new Expressions(2);
+        (*elements)[0] = arg0;
+        (*elements)[1] = ctfeStack.getThis();
+        Type t2 = Type.tvoidptr.sarrayOf(2);
+        const loc = thisarg ? thisarg.loc : fd.loc;
+        thisarg = new ArrayLiteralExp(loc, t2, elements);
+        thisarg = new AddrExp(loc, thisarg);
+        thisarg.type = t2.pointerTo();
+    }
+
     ctfeStack.startFrame(thisarg);
     if (fd.vthis && thisarg)
     {
@@ -1000,6 +1020,24 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
         e = CTFEExp.voidexp;
     if (tf.isref && e.op == TOK.variable && (cast(VarExp)e).var == fd.vthis)
         e = thisarg;
+    if (tf.isref && fd.isThis2 && e.op == TOK.index)
+    {
+        auto ie = cast(IndexExp)e;
+        auto pe = ie.e1.isPtrExp();
+        auto ve = !pe ?  null : pe.e1.isVarExp();
+        if (ve && ve.var == fd.vthis)
+        {
+            auto ne = ie.e2.isIntegerExp();
+            assert(ne);
+            assert(thisarg.op == TOK.address);
+            e = (cast(AddrExp)thisarg).e1;
+            e = (*(cast(ArrayLiteralExp)e).elements)[cast(size_t)ne.getInteger()];
+            if (e.op == TOK.address)
+            {
+                e = (cast(AddrExp)e).e1;
+            }
+        }
+    }
     assert(e !is null);
 
     // Leave the function
@@ -2010,6 +2048,12 @@ public:
             if (istate && istate.fd.vthis)
             {
                 result = new VarExp(e.loc, istate.fd.vthis);
+                if (istate.fd.isThis2)
+                {
+                    result = new PtrExp(e.loc, result);
+                    result.type = Type.tvoidptr.sarrayOf(2);
+                    result = new IndexExp(e.loc, result, IntegerExp.literal!0);
+                }
                 result.type = e.type;
             }
             else
@@ -2020,6 +2064,18 @@ public:
         result = ctfeStack.getThis();
         if (result)
         {
+            if (istate && istate.fd.isThis2)
+            {
+                assert(result.op == TOK.address);
+                result = (cast(AddrExp)result).e1;
+                assert(result.op == TOK.arrayLiteral);
+                result = (*(cast(ArrayLiteralExp)result).elements)[0];
+                if (e.type.ty == Tstruct)
+                {
+                    result = (cast(AddrExp)result).e1;
+                }
+                return;
+            }
             assert(result.op == TOK.structLiteral || result.op == TOK.classReference);
             return;
         }
@@ -2867,17 +2923,22 @@ public:
         if (dim != e.sd.fields.dim)
         {
             // guaranteed by AggregateDeclaration.fill and TypeStruct.defaultInitLiteral
-            assert(e.sd.isNested() && dim == e.sd.fields.dim - 1);
+            const nvthis = e.sd.fields.dim - e.sd.nonHiddenFields();
+            assert(e.sd.fields.dim - dim == nvthis);
 
             /* If a nested struct has no initialized hidden pointer,
              * set it to null to match the runtime behaviour.
              */
-            auto ne = new NullExp(e.loc);
-            ne.type = e.sd.vthis.type;
+            foreach (const i; 0 .. nvthis)
+            {
+                auto ne = new NullExp(e.loc);
+                auto vthis = i == 0 ? e.sd.vthis : e.sd.vthis2;
+                ne.type = vthis.type;
 
-            expsx = copyArrayOnWrite(expsx, e.elements);
-            expsx.push(ne);
-            ++dim;
+                expsx = copyArrayOnWrite(expsx, e.elements);
+                expsx.push(ne);
+                ++dim;
+            }
         }
         assert(dim == e.sd.fields.dim);
 
@@ -4608,29 +4669,6 @@ public:
         return ret;
     }
 
-    /** Negate a relational operator, eg >= becomes <
-     */
-    static TOK reverseRelation(TOK op)
-    {
-        switch (op)
-        {
-        case TOK.greaterOrEqual:
-            return TOK.lessThan;
-
-        case TOK.greaterThan:
-            return TOK.lessOrEqual;
-
-        case TOK.lessOrEqual:
-            return TOK.greaterThan;
-
-        case TOK.lessThan:
-            return TOK.greaterOrEqual;
-
-        default:
-            assert(0);
-        }
-    }
-
     /** If this is a four pointer relation, evaluate it, else return NULL.
      *
      *  This is an expression of the form (p1 > q1 && p2 < q2) or (p1 < q1 || p2 > q2)
@@ -4759,7 +4797,27 @@ public:
             else
                 break;
         }
-        const cmpop = nott ? reverseRelation(ex.op) : ex.op;
+
+        /** Negate relational operator, eg >= becomes <
+         * Params:
+         *      op = comparison operator to negate
+         * Returns:
+         *      negate operator
+         */
+        static TOK negateRelation(TOK op) pure
+        {
+            switch (op)
+            {
+                case TOK.greaterOrEqual:  op = TOK.lessThan;       break;
+                case TOK.greaterThan:     op = TOK.lessOrEqual;    break;
+                case TOK.lessOrEqual:     op = TOK.greaterThan;    break;
+                case TOK.lessThan:        op = TOK.greaterOrEqual; break;
+                default:                  assert(0);
+            }
+            return op;
+        }
+
+        const TOK cmpop = nott ? negateRelation(ex.op) : ex.op;
         const cmp = comparePointers(cmpop, agg1, ofs1, agg2, ofs2);
         // We already know this is a valid comparison.
         assert(cmp >= 0);
@@ -4980,7 +5038,7 @@ public:
             // Member function call
 
             // Currently this is satisfied because closure is not yet supported.
-            assert(!fd.isNested());
+            assert(!fd.isNested() || fd.needThis());
 
             if (pthis.op == TOK.typeid_)
             {

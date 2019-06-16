@@ -1,3 +1,5 @@
+// REQUIRED_ARGS: -preview=rvaluerefparam
+
 import core.stdc.stdio;
 
 template TypeTuple(T...){ alias T TypeTuple; }
@@ -871,8 +873,8 @@ void test12211()
     // array ops should make rvalue
     int[3] sa, sb;
     void bar(ref int[]) {}
-    static assert(!__traits(compiles, bar(sa[]  = sb[])));
-    static assert(!__traits(compiles, bar(sa[] += sb[])));
+    static assert(__traits(compiles, bar(sa[]  = sb[])));
+    static assert(__traits(compiles, bar(sa[] += sb[])));
 }
 
 /***************************************************/

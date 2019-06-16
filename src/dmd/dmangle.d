@@ -683,7 +683,7 @@ public:
         }
         if (fd.isWinMain() || fd.isDllMain() || fd.ident == Id.tls_get_addr)
         {
-            buf.writestring(fd.ident.toChars());
+            buf.writestring(fd.ident.toString());
             return;
         }
         visit(cast(Declaration)fd);
@@ -1141,7 +1141,7 @@ extern (C++) const(char)* mangleExact(FuncDeclaration fd)
         OutBuffer buf;
         scope Mangler v = new Mangler(&buf);
         v.mangleExact(fd);
-        fd.mangleString = buf.extractString();
+        fd.mangleString = buf.extractChars();
     }
     return fd.mangleString;
 }

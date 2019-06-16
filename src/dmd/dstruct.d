@@ -445,7 +445,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         if (!elements)
             return true;
 
-        size_t nfields = fields.dim - isNested();
+        const nfields = nonHiddenFields();
         size_t offset = 0;
         for (size_t i = 0; i < elements.dim; i++)
         {
@@ -456,7 +456,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             e = resolveProperties(sc, e);
             if (i >= nfields)
             {
-                if (i == fields.dim - 1 && isNested() && e.op == TOK.null_)
+                if (i <= fields.dim && e.op == TOK.null_)
                 {
                     // CTFE sometimes creates null as hidden pointer; we'll allow this.
                     continue;
@@ -468,6 +468,13 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             if (v.offset < offset)
             {
                 .error(loc, "overlapping initialization for `%s`", v.toChars());
+                if (!isUnionDeclaration())
+                {
+                    enum errorMsg = "`struct` initializers that contain anonymous unions" ~
+                                        " must initialize only the first member of a `union`. All subsequent" ~
+                                        " non-overlapping fields are default initialized";
+                    .errorSupplemental(loc, errorMsg);
+                }
                 return false;
             }
             offset = cast(uint)(v.offset + v.type.size());

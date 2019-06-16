@@ -21,9 +21,13 @@ import dmd.root.outbuffer;
 import dmd.root.rmem;
 import dmd.console;
 
+nothrow:
+
 /// Interface for diagnostic reporting.
 abstract class DiagnosticReporter
 {
+  nothrow:
+
     /// Returns: the number of errors that occurred during lexing or parsing.
     abstract int errorCount();
 
@@ -160,6 +164,8 @@ final class StderrDiagnosticReporter : DiagnosticReporter
     private int errorCount_;
     private int warningCount_;
     private int deprecationCount_;
+
+  nothrow:
 
     /**
     Initializes this object.
@@ -430,13 +436,13 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
     OutBuffer tmp;
     tmp.vprintf(format, ap);
 
-    if (con && strchr(tmp.peekString(), '`'))
+    if (con && strchr(tmp.peekChars(), '`'))
     {
         colorSyntaxHighlight(&tmp);
         writeHighlights(con, &tmp);
     }
     else
-        fputs(tmp.peekString(), stderr);
+        fputs(tmp.peekChars(), stderr);
     fputc('\n', stderr);
 
     if (global.params.printErrorContext &&
@@ -463,7 +469,6 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
             }
         }
     }
-end:
     fflush(stderr);     // ensure it gets written out in case of compiler aborts
 }
 
@@ -599,7 +604,7 @@ extern (C++) void vmessage(const ref Loc loc, const(char)* format, va_list ap)
     }
     OutBuffer tmp;
     tmp.vprintf(format, ap);
-    fputs(tmp.peekString(), stdout);
+    fputs(tmp.peekChars(), stdout);
     fputc('\n', stdout);
     fflush(stdout);     // ensure it gets written out in case of compiler aborts
 }

@@ -1,4 +1,6 @@
 /**
+ * Handle enums.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -8,6 +10,7 @@
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/denum.d, _denum.d)
  * Documentation:  https://dlang.org/phobos/dmd_denum.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/denum.d
+ * References:  https://dlang.org/spec/enum.html
  */
 
 module dmd.denum;
@@ -31,17 +34,9 @@ import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
 
-bool isSpecialEnumIdent(const Identifier ident) @nogc nothrow
-{
-    return  ident == Id.__c_long ||
-            ident == Id.__c_ulong ||
-            ident == Id.__c_longlong ||
-            ident == Id.__c_ulonglong ||
-            ident == Id.__c_long_double ||
-            ident == Id.__c_wchar_t;
-}
-
 /***********************************************************
+ * AST node for `EnumDeclaration`
+ * https://dlang.org/spec/enum.html#EnumDeclaration
  */
 extern (C++) final class EnumDeclaration : ScopeDsymbol
 {
@@ -55,6 +50,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
      */
     Type type;              // the TypeEnum
     Type memtype;           // type of the members
+
     Prot protection;
     Expression maxval;
     Expression minval;
@@ -160,7 +156,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
     }
 
     // is Dsymbol deprecated?
-    override bool isDeprecated()
+    override bool isDeprecated() const
     {
         return isdeprecated;
     }
@@ -183,7 +179,16 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
     Expression getMaxMinValue(const ref Loc loc, Identifier id)
     {
         //printf("EnumDeclaration::getMaxValue()\n");
-        bool first = true;
+
+        static Expression pvalToResult(Expression e, const ref Loc loc)
+        {
+            if (e.op != TOK.error)
+            {
+                e = e.copy();
+                e.loc = loc;
+            }
+            return e;
+        }
 
         Expression* pval = (id == Id.max) ? &maxval : &minval;
 
@@ -199,7 +204,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             return errorReturn();
         }
         if (*pval)
-            goto Ldone;
+            return pvalToResult(*pval, loc);
 
         if (_scope)
             dsymbolSemantic(this, _scope);
@@ -223,18 +228,21 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             return errorReturn();
         }
 
+        bool first = true;
         for (size_t i = 0; i < members.dim; i++)
         {
             EnumMember em = (*members)[i].isEnumMember();
             if (!em)
                 continue;
             if (em.errors)
-                return errorReturn();
+            {
+                errors = true;
+                continue;
+            }
 
-            Expression e = em.value;
             if (first)
             {
-                *pval = e;
+                *pval = em.value;
                 first = false;
             }
             else
@@ -249,29 +257,28 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
                  *   if (e > maxval)
                  *      maxval = e;
                  */
+                Expression e = em.value;
                 Expression ec = new CmpExp(id == Id.max ? TOK.greaterThan : TOK.lessThan, em.loc, e, *pval);
                 inuse++;
                 ec = ec.expressionSemantic(em._scope);
                 inuse--;
                 ec = ec.ctfeInterpret();
+                if (ec.op == TOK.error)
+                {
+                    errors = true;
+                    continue;
+                }
                 if (ec.toInteger())
                     *pval = e;
             }
         }
-    Ldone:
-        Expression e = *pval;
-        if (e.op != TOK.error)
-        {
-            e = e.copy();
-            e.loc = loc;
-        }
-        return e;
+        return errors ? errorReturn() : pvalToResult(*pval, loc);
     }
 
     /****************
-     * Determine if enum is a 'special' one.
+     * Determine if enum is a special one.
      * Returns:
-     *  true if special
+     *  `true` if special
      */
     bool isSpecial() const nothrow @nogc
     {
@@ -280,6 +287,10 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
 
     Expression getDefaultValue(const ref Loc loc)
     {
+        Expression handleErrors(){
+            defaultval = new ErrorExp();
+            return defaultval;
+        }
         //printf("EnumDeclaration::getDefaultValue() %p %s\n", this, toChars());
         if (defaultval)
             return defaultval;
@@ -287,7 +298,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         if (_scope)
             dsymbolSemantic(this, _scope);
         if (errors)
-            goto Lerrors;
+            return handleErrors();
         if (semanticRun == PASS.init || !members)
         {
             if (isSpecial())
@@ -298,7 +309,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             }
 
             error(loc, "forward reference of `%s.init`", toChars());
-            goto Lerrors;
+            return handleErrors();
         }
 
         foreach (const i; 0 .. members.dim)
@@ -310,10 +321,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
                 return defaultval;
             }
         }
-
-    Lerrors:
-        defaultval = new ErrorExp();
-        return defaultval;
+        return handleErrors();
     }
 
     Type getMemtype(const ref Loc loc)
@@ -362,6 +370,9 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
 }
 
 /***********************************************************
+ * AST node representing a member of an enum.
+ * https://dlang.org/spec/enum.html#EnumMember
+ * https://dlang.org/spec/enum.html#AnonymousEnumMember
  */
 extern (C++) final class EnumMember : VarDeclaration
 {
@@ -441,3 +452,25 @@ extern (C++) final class EnumMember : VarDeclaration
         v.visit(this);
     }
 }
+
+/******************************************
+ * Check for special enum names.
+ *
+ * Special enum names are used by the C++ name mangler to represent
+ * C++ types that are not basic D types.
+ * Params:
+ *      ident = identifier to check for specialness
+ * Returns:
+ *      `true` if it is special
+ */
+bool isSpecialEnumIdent(const Identifier ident) @nogc nothrow
+{
+    return  ident == Id.__c_long ||
+            ident == Id.__c_ulong ||
+            ident == Id.__c_longlong ||
+            ident == Id.__c_ulonglong ||
+            ident == Id.__c_long_double ||
+            ident == Id.__c_wchar_t;
+}
+
+

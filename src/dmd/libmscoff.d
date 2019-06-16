@@ -36,6 +36,14 @@ import dmd.root.stringtable;
 
 import dmd.scanmscoff;
 
+// Entry point (only public symbol in this module).
+public extern (C++) Library LibMSCoff_factory()
+{
+    return new LibMSCoff();
+}
+
+private: // for the remainder of this module
+
 enum LOG = false;
 
 alias stat_t = struct_stat;
@@ -96,11 +104,10 @@ final class LibMSCoff : Library
         if (!buf)
         {
             assert(module_name[0]);
-            File* file = File.create(cast(char*)module_name);
-            readFile(Loc.initial, file);
-            buf = file.buffer;
-            buflen = file.len;
-            file._ref = 1;
+            // read file and take buffer ownership
+            auto data = readFile(Loc.initial, module_name).extractData();
+            buf = data.ptr;
+            buflen = data.length;
             fromfile = 1;
         }
         int reason = 0;
@@ -584,11 +591,6 @@ private:
         }
         assert(libbuf.offset == moffset);
     }
-}
-
-extern (C++) Library LibMSCoff_factory()
-{
-    return new LibMSCoff();
 }
 
 /*****************************************************************************/

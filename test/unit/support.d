@@ -24,6 +24,58 @@ string[] defaultImportPaths()
     ];
 }
 
+/**
+ * Strips indentation and extra newlines in delimited strings.
+ *
+ * This is indented to be used on delimited string literals. It will strip the
+ * indentation and remove the first and the last newlines.
+ *
+ * Params:
+ *  str = the delimited string to strip
+ *
+ * Return: the stripped string
+ */
+string stripDelimited(string str)
+{
+    import std.string : chomp, outdent;
+    import dmd.root.string : stripLeadingLineTerminator;
+
+    return str
+        .stripLeadingLineTerminator
+        .outdent
+        .chomp;
+}
+
+/**
+ * Returns `true` if the given code compiles.
+ *
+ * This will run the frontend up to, including, the semantic analysis.
+ *
+ * Params:
+ *  code = the code to compile
+ *  filename = the filename to use when compiling the code
+ *
+ * Returns: `true` if the given code compiles
+ */
+bool compiles(string code, string filename = "test.d")
+{
+    import dmd.globals : global;
+    import std.algorithm : each;
+
+    import dmd.frontend : addImport, fullSemantic, parseModule;
+
+    defaultImportPaths.each!addImport;
+
+    auto t = parseModule(filename, code);
+
+    if (t.diagnostics.hasErrors)
+        return false;
+
+    t.module_.fullSemantic();
+
+    return global.errors == 0;
+}
+
 class NoopDiagnosticReporter : DiagnosticReporter
 {
     import core.stdc.stdarg : va_list;

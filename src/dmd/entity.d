@@ -14,6 +14,22 @@ module dmd.entity;
 
 import core.stdc.ctype;
 
+nothrow:
+
+public int HtmlNamedEntity(const(char)* p, size_t length)
+{
+    int tableIndex = tolower(*p) - 'a';
+    if (tableIndex >= 0 && tableIndex < 26)
+    {
+        foreach (entity; namesTable[tableIndex])
+        {
+            if (entity.name == p[0 .. length])
+                return entity.value;
+        }
+    }
+    return -1;
+}
+
 private:
 
 /*********************************************
@@ -27,6 +43,14 @@ struct NameId
     string name;
     uint value;
 }
+
+// @todo@ order namesTable and names? by frequency
+immutable NameId[][] namesTable =
+[
+    namesA, namesB, namesC, namesD, namesE, namesF, namesG, namesH, namesI,
+    namesJ, namesK, namesL, namesM, namesN, namesO, namesP, namesQ, namesR,
+    namesS, namesT, namesU, namesV, namesW, namesX, namesY, namesZ
+];
 
 immutable NameId[] namesA =
 [
@@ -2368,25 +2392,3 @@ immutable NameId[] namesZ =
     {"zwj",              0x0200D},  // ZERO WIDTH JOINER
     {"zwnj",             0x0200C},  // ZERO WIDTH NON-JOINER
 ];
-
-// @todo@ order namesTable and names? by frequency
-immutable NameId[][] namesTable =
-[
-    namesA, namesB, namesC, namesD, namesE, namesF, namesG, namesH, namesI,
-    namesJ, namesK, namesL, namesM, namesN, namesO, namesP, namesQ, namesR,
-    namesS, namesT, namesU, namesV, namesW, namesX, namesY, namesZ
-];
-
-public int HtmlNamedEntity(const(char)* p, size_t length)
-{
-    int tableIndex = tolower(*p) - 'a';
-    if (tableIndex >= 0 && tableIndex < 26)
-    {
-        foreach (entity; namesTable[tableIndex])
-        {
-            if (entity.name == p[0 .. length])
-                return entity.value;
-        }
-    }
-    return -1;
-}

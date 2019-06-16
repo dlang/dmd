@@ -22,7 +22,8 @@ version (update)
     import std.regex : ctRegex, matchFirst, replaceFirstInto;
     import std.stdio : File, stdout, writeln;
     import std.string : strip;
-    import std.typecons : tuple, EnumMembers;
+    import std.traits : EnumMembers;
+    import std.typecons : tuple;
 
     enum Arch
     {

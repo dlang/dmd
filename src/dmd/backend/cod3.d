@@ -26,6 +26,7 @@ import core.stdc.string;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
+import dmd.backend.cgcse;
 import dmd.backend.code;
 import dmd.backend.code_x86;
 import dmd.backend.codebuilder;
@@ -51,6 +52,8 @@ version (SCPP)
 }
 
 extern (C++):
+
+nothrow:
 
 version (MARS)
     enum MARS = true;
@@ -208,61 +211,65 @@ private __gshared ubyte[256] inssize2 =
 ];
 
 /*************************************************
- * Allocate register temporaries
+ * Generate code to save `reg` in `regsave` stack area.
+ * Params:
+ *      regsave = register save areay on stack
+ *      cdb = where to write generated code
+ *      reg = register to save
+ *      idx = set to location in regsave for use in REGSAVE_restore()
  */
 
-void REGSAVE_save(ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, uint *pidx)
+void REGSAVE_save(ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, out uint idx)
 {
-    uint i;
-    if (reg >= XMM0)
+    if (isXMMreg(reg))
     {
         regsave.alignment = 16;
         regsave.idx = (regsave.idx + 15) & ~15;
-        i = regsave.idx;
+        idx = regsave.idx;
         regsave.idx += 16;
         // MOVD idx[RBP],xmm
         opcode_t op = STOAPD;
-        if (0)
-            /* This is because the regsave does not get properly aligned
-             * to 16 on 32 bit machines.
-             * Doing so wreaks havoc with the location of vthis, which messes
-             * up testcontracts.d, which is likely broken anyway for this same
-             * reason. Need to fix.
-             */
+        if (TARGET_LINUX && I32)
+            // Haven't yet figured out why stack is not aligned to 16
             op = STOUPD;
-        cdb.genc1(op,modregxrm(2, reg - XMM0, BPRM),FLregsave,cast(targ_uns) i);
+        cdb.genc1(op,modregxrm(2, reg - XMM0, BPRM),FLregsave,cast(targ_uns) idx);
     }
     else
     {
         if (!regsave.alignment)
             regsave.alignment = REGSIZE;
-        i = regsave.idx;
+        idx = regsave.idx;
         regsave.idx += REGSIZE;
         // MOV idx[RBP],reg
-        cdb.genc1(0x89,modregxrm(2, reg, BPRM),FLregsave,cast(targ_uns) i);
+        cdb.genc1(0x89,modregxrm(2, reg, BPRM),FLregsave,cast(targ_uns) idx);
         if (I64)
             code_orrex(cdb.last(), REX_W);
     }
     reflocal = true;
     if (regsave.idx > regsave.top)
         regsave.top = regsave.idx;              // keep high water mark
-    *pidx = i;
 }
 
-void REGSAVE_restore(ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, uint index)
+/*******************************
+ * Restore `reg` from `regsave` area.
+ * Complement REGSAVE_save().
+ */
+
+void REGSAVE_restore(const ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, uint idx)
 {
-    if (reg >= XMM0)
+    if (isXMMreg(reg))
     {
         assert(regsave.alignment == 16);
-        // MOVD xmm,index[RBP]
+        // MOVD xmm,idx[RBP]
         opcode_t op = LODAPD;
-        if (0)
+        if (TARGET_LINUX && I32)
+            // Haven't yet figured out why stack is not aligned to 16
             op = LODUPD;
-        cdb.genc1(op,modregxrm(2, reg - XMM0, BPRM),FLregsave,cast(targ_uns) index);
+        cdb.genc1(op,modregxrm(2, reg - XMM0, BPRM),FLregsave,cast(targ_uns) idx);
     }
     else
-    {   // MOV reg,index[RBP]
-        cdb.genc1(0x8B,modregxrm(2, reg, BPRM),FLregsave,cast(targ_uns) index);
+    {   // MOV reg,idx[RBP]
+        cdb.genc1(0x8B,modregxrm(2, reg, BPRM),FLregsave,cast(targ_uns) idx);
         if (I64)
             code_orrex(cdb.last(), REX_W);
     }
@@ -367,17 +374,10 @@ void cod3_set32()
     if (config.flags3 & CFG3eseqds)
         fregsaved |= mES;
 
-    for (uint i = 0x80; i < 0x90; i++)
-        inssize2[i] = W|T|6;
+    foreach (ref v; inssize2[0x80 .. 0x90])
+        v = W|T|6;
 
-static if (TARGET_OSX)
-{
-    TARGET_STACKALIGN = 16;   // 16 for OSX because OSX uses SIMD
-}
-else
-{
-    TARGET_STACKALIGN = 4;
-}
+    TARGET_STACKALIGN = config.fpxmmregs ? 16 : 4;
 }
 
 /********************************
@@ -403,15 +403,14 @@ else
     FLOATREGS = FLOATREGS_64;
     FLOATREGS2 = FLOATREGS2_64;
     DOUBLEREGS = DOUBLEREGS_64;
-    TARGET_STACKALIGN = 16;
 
     ALLREGS = mAX|mBX|mCX|mDX|mSI|mDI|  mR8|mR9|mR10|mR11|mR12|mR13|mR14|mR15;
     BYTEREGS = ALLREGS;
 
-    for (uint i = 0x80; i < 0x90; i++)
-        inssize2[i] = W|T|6;
+    foreach (ref v; inssize2[0x80 .. 0x90])
+        v = W|T|6;
 
-    TARGET_STACKALIGN = 16;   // 16 rather than 8 because of SIMD alignment
+    TARGET_STACKALIGN = config.fpxmmregs ? 16 : 8;
 }
 
 /*********************************
@@ -1251,6 +1250,9 @@ version (MARS)
  * Struct necessary for sorting switch cases.
  */
 
+alias _compare_fp_t = extern(C) nothrow int function(const void*, const void*);
+extern(C) void qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar);
+
 extern (C)  // qsort cmp functions need to be "C"
 {
 struct CaseVal
@@ -1259,7 +1261,7 @@ struct CaseVal
     block *target;
 
     /* Sort function for qsort() */
-    extern (C) static int cmp(scope const(void*) p, scope const(void*) q)
+    extern (C) static nothrow int cmp(scope const(void*) p, scope const(void*) q)
     {
         const(CaseVal)* c1 = cast(const(CaseVal)*)p;
         const(CaseVal)* c2 = cast(const(CaseVal)*)q;
@@ -2009,6 +2011,7 @@ int jmpopcode(elem *e)
     bool needsNanCheck = tyfloating(tymx) && config.inline8087 &&
         (tymx == TYldouble || tymx == TYildouble || tymx == TYcldouble ||
          tymx == TYcdouble || tymx == TYcfloat ||
+         (tyxmmreg(tymx) && config.fpxmmregs && e.Ecount != e.Ecomsub) ||
          op == OPind ||
          (OTcall(op) && (regmask(tymx, tybasic(e.EV.E1.Eoper)) & (mST0 | XMMREGS))));
     if (e.Ecount != e.Ecomsub)          // comsubs just get Z bit set
@@ -2297,7 +2300,6 @@ regm_t cod3_useBP()
            )
             goto Lcant;
     }
-Lcan:
     return mBP;
 
 Lcant:
@@ -2360,25 +2362,63 @@ bool cse_simple(code *c, elem *e)
     return false;
 }
 
-void gen_testcse(ref CodeBuilder cdb, uint sz, targ_uns i)
+/**************************
+ * Store `reg` to the common subexpression save area in index `slot`.
+ * Params:
+ *      cdb = where to write code to
+ *      tym = type of value that's in `reg`
+ *      reg = register to save
+ *      slot = index into common subexpression save area
+ */
+void gen_storecse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot)
 {
+    // MOV slot[BP],reg
+    if (isXMMreg(reg) && config.fpxmmregs) // watch out for ES
+    {
+        const aligned = tyvector(tym) ? STACKALIGN >= 16 : true;
+        const op = xmmstore(tym, aligned);
+        cdb.genc1(op,modregxrm(2, reg - XMM0, BPRM),FLcs,cast(targ_size_t)slot);
+        return;
+    }
+    opcode_t op = STO;              // normal mov
+    if (reg == ES)
+    {
+        reg = 0;            // the real reg number
+        op = 0x8C;          // segment reg mov
+    }
+    cdb.genc1(op,modregxrm(2, reg, BPRM),FLcs,cast(targ_uns)slot);
+    if (I64)
+        code_orrex(cdb.last(), REX_W);
+}
+
+void gen_testcse(ref CodeBuilder cdb, tym_t tym, uint sz, size_t slot)
+{
+    // CMP slot[BP],0
     cdb.genc(sz == 1 ? 0x80 : 0x81,modregrm(2,7,BPRM),
-                FLcs,i, FLconst,cast(targ_uns) 0);
+                FLcs,cast(targ_uns)slot, FLconst,cast(targ_uns) 0);
     if ((I64 || I32) && sz == 2)
         cdb.last().Iflags |= CFopsize;
     if (I64 && sz == 8)
         code_orrex(cdb.last(), REX_W);
 }
 
-void gen_loadcse(ref CodeBuilder cdb, reg_t reg, targ_uns i)
+void gen_loadcse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot)
 {
-    opcode_t op = 0x8B;
+    // MOV reg,slot[BP]
+    if (isXMMreg(reg) && config.fpxmmregs)
+    {
+        const aligned = tyvector(tym) ? STACKALIGN >= 16 : true;
+        const op = xmmload(tym, aligned);
+        cdb.genc1(op,modregxrm(2, reg - XMM0, BPRM),FLcs,cast(targ_size_t)slot);
+        return;
+    }
+    opcode_t op = LOD;
     if (reg == ES)
     {
         op = 0x8E;
         reg = 0;
     }
-    cdb.genc1(op,modregxrm(2,reg,BPRM),FLcs,i);
+    cdb.genc1(op,modregxrm(2,reg,BPRM),FLcs,cast(targ_uns)slot);
     if (I64)
         code_orrex(cdb.last(), REX_W);
 }
@@ -2538,23 +2578,6 @@ void genpop(ref CodeBuilder cdb, reg_t reg)
     cdb.gen1(0x58 + (reg & 7));
     if (reg & 8)
         code_orrex(cdb.last(), REX_B);
-}
-
-/**************************
- * Generate a MOV to save a register to a stack slot
- */
-void gensavereg(ref CodeBuilder cdb, ref reg_t reg, targ_uns slot)
-{
-    // MOV i[BP],reg
-    opcode_t op = 0x89;              // normal mov
-    if (reg == ES)
-    {
-        reg = 0;            // the real reg number
-        op = 0x8C;          // segment reg mov
-    }
-    cdb.genc1(op,modregxrm(2, reg, BPRM),FLcs,slot);
-    if (I64)
-        code_orrex(cdb.last(), REX_W);
 }
 
 /**************************
@@ -3281,6 +3304,8 @@ void prolog_frameadj2(ref CodeBuilder cdb, tym_t tyf, uint xlocalsize, bool* pus
 
 void prolog_setupalloca(ref CodeBuilder cdb)
 {
+    //printf("prolog_setupalloca() offset x%x size x%x alignment x%x\n",
+        //cast(int)Alloca.offset, cast(int)Alloca.size, cast(int)Alloca.alignment);
     // Set up magic parameter for alloca()
     // MOV -REGSIZE[BP],localsize - BPoff
     cdb.genc(0xC7,modregrm(2,0,BPRM),
@@ -3317,7 +3342,7 @@ void prolog_saveregs(ref CodeBuilder cdb, regm_t topush, int cfa_offset)
         {
             reg_t reg = findreg(topush);
             topush &= ~mask(reg);
-            if (reg >= XMM0)
+            if (isXMMreg(reg))
             {
                 if (hasframe && !enforcealign)
                 {
@@ -3365,7 +3390,7 @@ void prolog_saveregs(ref CodeBuilder cdb, regm_t topush, int cfa_offset)
         {
             reg_t reg = findreg(topush);
             topush &= ~mask(reg);
-            if (reg >= XMM0)
+            if (isXMMreg(reg))
             {
                 // SUB RSP,16
                 cod3_stackadj(cdb, 16);
@@ -3419,7 +3444,7 @@ private void epilog_restoreregs(ref CodeBuilder cdb, regm_t topop)
         {
             reg_t reg = findreg(topop);
             topop &= ~mask(reg);
-            if (reg >= XMM0)
+            if (isXMMreg(reg))
             {
                 if (hasframe && !enforcealign)
                 {
@@ -3461,7 +3486,7 @@ private void epilog_restoreregs(ref CodeBuilder cdb, regm_t topop)
         while (topop)
         {   if (topop & regm)
             {
-                if (reg >= XMM0)
+                if (isXMMreg(reg))
                 {
                     // MOVUPD xmm,0[RSP]
                     cdb.genc1(LODUPD,modregxrm(2,reg-XMM0,4) + 256*modregrm(0,4,SP),FLconst,0);
@@ -3764,12 +3789,12 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
                 if (!hasframe || (enforcealign && s.Sclass != SCshadowreg))
                     offset += EBPtoESP;
 
-                uint preg = s.Spreg;
+                reg_t preg = s.Spreg;
                 for (int i = 0; i < 2; ++i)     // twice, once for each possible parameter register
                 {
                     shadowregm |= mask(preg);
                     opcode_t op = 0x89;                  // MOV x[EBP],preg
-                    if (XMM0 <= preg && preg <= XMM15)
+                    if (isXMMreg(preg))
                         op = xmmstore(t.Tty);
                     if (!(pushalloc && preg == pushallocreg) || s.Sclass == SCshadowreg)
                     {
@@ -3777,7 +3802,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
                         {
                             // MOV x[EBP],preg
                             cdb.genc1(op,modregxrm(2,preg,BPRM),FLconst,offset);
-                            if (XMM0 <= preg && preg <= XMM15)
+                            if (isXMMreg(preg))
                             {
                                 checkSetVex(cdb.last(), t.Tty);
                             }
@@ -3796,7 +3821,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
                             cdb.genc1(op,
                                       (modregrm(0,4,SP) << 8) |
                                        modregxrm(2,preg,4),FLconst,offset);
-                            if (preg >= XMM0 && preg <= XMM15)
+                            if (isXMMreg(preg))
                             {
                                 checkSetVex(cdb.last(), t.Tty);
                             }
@@ -3890,7 +3915,10 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
                 assignregs |= mask(r);
 
                 // MOV reg,preg
-                if (mask(preg) & XMMREGS)
+                if (r == preg)
+                {
+                }
+                else if (mask(preg) & XMMREGS)
                 {
                     const op = xmmload(t.Tty);      // MOVSS/D xreg,preg
                     uint xreg = r - XMM0;
@@ -3898,6 +3926,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc, out regm_
                 }
                 else
                 {
+                    //printf("test1 mov %s, %s\n", regstring[r], regstring[preg]);
                     genmovreg(cdb,r,preg);
                     if (I64 && sz == 8)
                         code_orrex(cdb.last(), REX_W);
@@ -4772,7 +4801,6 @@ void cod3_adjSymOffsets()
 
             case SCauto:
             case SCregister:
-            case_auto:
                 if (s.Sfl == FLfast)
                     s.Soffset += Fast.size + BPoff;
                 else
@@ -5075,7 +5103,7 @@ void assignaddrc(code *c)
                     c.Iop = NOP;
                     continue;
                 }
-                c.IEV1.Vpointer = sn * REGSIZE + CSoff + BPoff;
+                c.IEV1.Vpointer = CSE_offset(sn) + CSoff + BPoff;
                 c.Iflags |= CFunambig;
                 goto L2;
 
@@ -6360,6 +6388,7 @@ nomatch:
 
 struct MiniCodeBuf
 {
+nothrow:
     size_t index;
     size_t offset;
     int seg;

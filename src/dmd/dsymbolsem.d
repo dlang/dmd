@@ -776,6 +776,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             dsym.error("extern symbols cannot have initializers");
 
         dsym.userAttribDecl = sc.userAttribDecl;
+        dsym.namespace = sc.namespace;
 
         AggregateDeclaration ad = dsym.isThis();
         if (ad)
@@ -826,7 +827,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             dsym.inuse--;
             sc2.pop();
         }
-        //printf(" semantic type = %s\n", type ? type.toChars() : "null");
+        //printf(" semantic type = %s\n", dsym.type ? dsym.type.toChars() : "null");
         if (dsym.type.ty == Terror)
             dsym.errors = true;
 
@@ -1073,7 +1074,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 OutBuffer buf;
                 stcToBuffer(&buf, stc);
-                dsym.error("cannot be `%s`", buf.peekString());
+                dsym.error("cannot be `%s`", buf.peekChars());
             }
             dsym.storage_class &= ~stc; // strip off
         }
@@ -1085,7 +1086,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 OutBuffer buf;
                 stcToBuffer(&buf, stc);
-                dsym.error("cannot be `scope` and `%s`", buf.peekString());
+                dsym.error("cannot be `scope` and `%s`", buf.peekChars());
             }
             else if (dsym.isMember())
             {
@@ -1168,7 +1169,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (func.fes)
                     func = func.fes.func;
                 bool isWild = false;
-                for (FuncDeclaration fd = func; fd; fd = fd.toParent2().isFuncDeclaration())
+                for (FuncDeclaration fd = func; fd; fd = fd.toParentDecl().isFuncDeclaration())
                 {
                     if ((cast(TypeFunction)fd.type).iswild)
                     {
@@ -1209,6 +1210,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 dsym.error("globals, statics, fields, manifest constants, ref and out parameters cannot be `scope`");
             }
+
+            // @@@DEPRECATED@@@  https://dlang.org/deprecate.html#scope%20as%20a%20type%20constraint
+            // Deprecated in 2.087
+            // Remove this when the feature is removed from the language
             if (!(dsym.storage_class & STC.scope_))
             {
                 if (!(dsym.storage_class & STC.parameter) && dsym.ident != Id.withSym)
@@ -1707,7 +1712,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     ob.printf("%s.", pid.toChars());
                 }
             }
-            ob.writestring(imp.id.toChars());
+            ob.writestring(imp.id.toString());
             ob.writestring(" (");
             if (imp.mod)
                 escapePath(ob, imp.mod.srcfile.toChars());
@@ -1982,7 +1987,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 /* Print unrecognized pragmas
                  */
                 OutBuffer buf;
-                buf.writestring(pd.ident.toChars());
+                buf.writestring(pd.ident.toString());
                 if (pd.args)
                 {
                     for (size_t i = 0; i < pd.args.dim; i++)
@@ -2002,7 +2007,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     if (pd.args.dim)
                         buf.writeByte(')');
                 }
-                message("pragma    %s", buf.peekString());
+                message("pragma    %s", buf.peekChars());
             }
             goto Lnodecl;
         }
@@ -2060,7 +2065,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         const errors = global.errors;
         const len = buf.offset;
-        const str = buf.extractString()[0 .. len];
+        const str = buf.extractChars()[0 .. len];
         scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
         scope p = new Parser!ASTCodegen(cd.loc, sc._module, str, false, diagnosticReporter);
         p.nextToken();
@@ -2101,6 +2106,64 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
         attribSemantic(cd);
+    }
+
+    override void visit(CPPNamespaceDeclaration ns)
+    {
+        Identifier identFromSE (StringExp se)
+        {
+            const sident = se.toStringz();
+            if (!sident.length || !Identifier.isValidIdentifier(sident))
+            {
+                ns.exp.error("expected valid identifer for C++ namespace but got `%.*s`",
+                             cast(int)sident.length, sident.ptr);
+                return null;
+            }
+            else
+                return Identifier.idPool(sident);
+        }
+
+        if (ns.ident is null)
+        {
+            ns.namespace = sc.namespace;
+            sc = sc.startCTFE();
+            ns.exp = ns.exp.expressionSemantic(sc);
+            ns.exp = resolveProperties(sc, ns.exp);
+            sc = sc.endCTFE();
+            ns.exp = ns.exp.ctfeInterpret();
+            // Can be either a tuple of strings or a string itself
+            if (auto te = ns.exp.isTupleExp())
+            {
+                expandTuples(te.exps);
+                CPPNamespaceDeclaration current = ns.namespace;
+                for (size_t d = 0; d < te.exps.dim; ++d)
+                {
+                    auto exp = (*te.exps)[d];
+                    auto prev = d ? current : ns.namespace;
+                    current = (d + 1) != te.exps.dim
+                        ? new CPPNamespaceDeclaration(exp, null)
+                        : ns;
+                    current.exp = exp;
+                    current.namespace = prev;
+                    if (auto se = exp.toStringExp())
+                    {
+                        current.ident = identFromSE(se);
+                        if (current.ident is null)
+                            return; // An error happened in `identFromSE`
+                    }
+                    else
+                        ns.exp.error("`%s`: index %d is not a string constant, it is a `%s`",
+                                     ns.exp.toChars(), d, ns.exp.type.toChars());
+                }
+            }
+            else if (auto se = ns.exp.toStringExp())
+                ns.ident = identFromSE(se);
+            else
+                ns.exp.error("compile time string constant (or tuple) expected, not `%s`",
+                             ns.exp.toChars());
+        }
+        if (ns.ident)
+            attribSemantic(ns);
     }
 
     override void visit(UserAttributeDeclaration uad)
@@ -2625,6 +2688,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         tempdecl.parent = sc.parent;
         tempdecl.protection = sc.protection;
+        tempdecl.namespace = sc.namespace;
         tempdecl.isstatic = tempdecl.toParent().isModule() || (tempdecl._scope.stc & STC.static_);
 
         if (!tempdecl.isstatic)
@@ -2728,7 +2792,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     {
         static if (LOG)
         {
-            printf("+TemplateMixin.dsymbolSemantic('%s', this=%p)\n",tm.toChars(), tm);
+            printf("+TemplateMixin.dsymbolSemantic('%s', this=%p)\n", tm.toChars(), tm);
             fflush(stdout);
         }
         if (tm.semanticRun != PASS.init)
@@ -3016,7 +3080,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     else
                     {
                         // insert the new namespace
-                        Nspace childns = new Nspace(ns.loc, Identifier.idPool(ident), null, parentns.members, ns.mangleOnly);
+                        Nspace childns = new Nspace(ns.loc, Identifier.idPool(ident), null, parentns.members);
                         parentns.members = new Dsymbols;
                         parentns.members.push(childns);
                         parentns = childns;
@@ -3099,6 +3163,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (!sc || funcdecl.errors)
             return;
 
+        funcdecl.namespace = sc.namespace;
         funcdecl.parent = sc.parent;
         Dsymbol parent = funcdecl.toParent();
 
@@ -3252,7 +3317,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 OutBuffer buf;
                 MODtoBuffer(&buf, tf.mod);
-                funcdecl.error("without `this` cannot be `%s`", buf.peekString());
+                funcdecl.error("without `this` cannot be `%s`", buf.peekChars());
                 tf.mod = 0; // remove qualifiers
             }
 
@@ -3497,7 +3562,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 }
                 else
                 {
-                    //printf("\tintroducing function %s\n", toChars());
+                    //printf("\tintroducing function %s\n", funcdecl.toChars());
                     funcdecl.introducing = 1;
                     if (cd.classKind == ClassKind.cpp && target.reverseCppOverloads)
                     {
@@ -3604,7 +3669,37 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         {
                             funcdecl.error("multiple overrides of same function");
                         }
-                        else if (!thismixin) // fdc overrides fdv
+                        /*
+                         * https://issues.dlang.org/show_bug.cgi?id=711
+                         *
+                         * If an overriding method is introduced through a mixin,
+                         * we need to update the vtbl so that both methods are
+                         * present.
+                         */
+                        else if (thismixin)
+                        {
+                            /* if the mixin introduced the overriding method, then reintroduce it
+                             * in the vtbl. The initial entry for the mixined method
+                             * will be updated at the end of the enclosing `if` block
+                             * to point to the current (non-mixined) function.
+                             */
+                            auto vitmp = cast(int)cd.vtbl.dim;
+                            cd.vtbl.push(fdc);
+                            fdc.vtblIndex = vitmp;
+                        }
+                        else if (fdcmixin)
+                        {
+                            /* if the current overriding function is coming from a
+                             * mixined block, then push the current function in the
+                             * vtbl, but keep the previous (non-mixined) function as
+                             * the overriding one.
+                             */
+                            auto vitmp = cast(int)cd.vtbl.dim;
+                            cd.vtbl.push(funcdecl);
+                            funcdecl.vtblIndex = vitmp;
+                            break;
+                        }
+                        else // fdc overrides fdv
                         {
                             // this doesn't override any function
                             break;
@@ -3734,7 +3829,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     auto fd = s.isFuncDeclaration();
                     functionToBufferFull(cast(TypeFunction)(funcdecl.type), &buf,
                         new Identifier(funcdecl.toPrettyChars()), &hgs, null);
-                    const(char)* funcdeclToChars = buf.peekString();
+                    const(char)* funcdeclToChars = buf.peekChars();
 
                     if (fd)
                     {
@@ -3744,7 +3839,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                             new Identifier(fd.toPrettyChars()), &hgs, null);
 
                         error(funcdecl.loc, "function `%s` does not override any function, did you mean to override `%s`?",
-                            funcdeclToChars, buf1.peekString());
+                            funcdeclToChars, buf1.peekChars());
                     }
                     else
                     {
@@ -3900,7 +3995,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
 
         ctd.parent = sc.parent;
-        Dsymbol p = ctd.toParent2();
+        Dsymbol p = ctd.toParentDecl();
         AggregateDeclaration ad = p.isAggregateDeclaration();
         if (!ad)
         {
@@ -3963,13 +4058,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     // if the first parameter has a default argument, then the rest does as well
                     if (ctd.storage_class & STC.disable)
                     {
-                        ctd.deprecation("is marked `@disable`, so it cannot have default "~
-                                    "arguments for all parameters.");
-                        deprecationSupplemental(ctd.loc, "Use `@disable this();` if you want to disable default initialization.");
+                        ctd.error("is marked `@disable`, so it cannot have default "~
+                                  "arguments for all parameters.");
+                        errorSupplemental(ctd.loc, "Use `@disable this();` if you want to disable default initialization.");
                     }
                     else
-                        ctd.deprecation("all parameters have default arguments, "~
-                                    "but structs cannot have default constructors.");
+                        ctd.error("all parameters have default arguments, "~
+                                  "but structs cannot have default constructors.");
                 }
                 else if ((dim == 1 || (dim > 1 && tf.parameterList[1].defaultArg)))
                 {
@@ -4316,11 +4411,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         //printf("NewDeclaration::semantic()\n");
 
         // `@disable new();` should not be deprecated
-        if (!nd.isDisabled() && !nd.isDeprecated())
+        if (!nd.isDisabled())
         {
-            // @@@DEPRECATED_2.084@@@
-            // Should be changed to an error in 2.084
-            deprecation(nd.loc, "class allocators have been deprecated, consider moving the allocation strategy outside of the class");
+            // @@@DEPRECATED_2.091@@@
+            // Made an error in 2.087.
+            // Should be removed in 2.091
+            error(nd.loc, "class allocators are obsolete, consider moving the allocation strategy outside of the class");
         }
 
         if (nd.semanticRun >= PASS.semanticdone)
@@ -4370,10 +4466,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     {
         //printf("DeleteDeclaration::semantic()\n");
 
-        // @@@DEPRECATED_2.084@@@
-        // Should be changed to an error in 2.084
-        if (!deld.isDeprecated())
-            deprecation(deld.loc, "class deallocators have been deprecated, consider moving the deallocation strategy outside of the class");
+        // @@@DEPRECATED_2.091@@@
+        // Made an error in 2.087.
+        // Should be removed in 2.091
+        error(deld.loc, "class deallocators are obsolete, consider moving the deallocation strategy outside of the class");
 
         if (deld.semanticRun >= PASS.semanticdone)
             return;
@@ -4506,6 +4602,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (sc.linkage == LINK.cpp)
                 sd.classKind = ClassKind.cpp;
+            sd.namespace = sc.namespace;
         }
         else if (sd.symtab && !scx)
             return;
@@ -4725,6 +4822,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (sc.linkage == LINK.cpp)
                 cldec.classKind = ClassKind.cpp;
+            cldec.namespace = sc.namespace;
             if (sc.linkage == LINK.objc)
                 objc.setObjc(cldec);
         }
@@ -5065,6 +5163,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 memcpy(cldec.vtbl.tdata(), cldec.baseClass.vtbl.tdata(), (void*).sizeof * cldec.vtbl.dim);
 
                 cldec.vthis = cldec.baseClass.vthis;
+                cldec.vthis2 = cldec.baseClass.vthis2;
             }
             else
             {
@@ -5082,26 +5181,50 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 // Use the base class's 'this' member
                 if (cldec.storage_class & STC.static_)
                     cldec.error("static class cannot inherit from nested class `%s`", cldec.baseClass.toChars());
-                if (cldec.toParent2() != cldec.baseClass.toParent2() &&
-                    (!cldec.toParent2() ||
-                     !cldec.baseClass.toParent2().getType() ||
-                     !cldec.baseClass.toParent2().getType().isBaseOf(cldec.toParent2().getType(), null)))
+                if (cldec.toParentLocal() != cldec.baseClass.toParentLocal() &&
+                    (!cldec.toParentLocal() ||
+                     !cldec.baseClass.toParentLocal().getType() ||
+                     !cldec.baseClass.toParentLocal().getType().isBaseOf(cldec.toParentLocal().getType(), null)))
                 {
-                    if (cldec.toParent2())
+                    if (cldec.toParentLocal())
                     {
                         cldec.error("is nested within `%s`, but super class `%s` is nested within `%s`",
-                            cldec.toParent2().toChars(),
+                            cldec.toParentLocal().toChars(),
                             cldec.baseClass.toChars(),
-                            cldec.baseClass.toParent2().toChars());
+                            cldec.baseClass.toParentLocal().toChars());
                     }
                     else
                     {
                         cldec.error("is not nested, but super class `%s` is nested within `%s`",
                             cldec.baseClass.toChars(),
-                            cldec.baseClass.toParent2().toChars());
+                            cldec.baseClass.toParentLocal().toChars());
                     }
                     cldec.enclosing = null;
                 }
+                if (cldec.vthis2)
+                {
+                    if (cldec.toParent2() != cldec.baseClass.toParent2() &&
+                        (!cldec.toParent2() ||
+                         !cldec.baseClass.toParent2().getType() ||
+                         !cldec.baseClass.toParent2().getType().isBaseOf(cldec.toParent2().getType(), null)))
+                    {
+                        if (cldec.toParent2() && cldec.toParent2() != cldec.toParentLocal())
+                        {
+                            cldec.error("needs the frame pointer of `%s`, but super class `%s` needs the frame pointer of `%s`",
+                                cldec.toParent2().toChars(),
+                                cldec.baseClass.toChars(),
+                                cldec.baseClass.toParent2().toChars());
+                        }
+                        else
+                        {
+                            cldec.error("doesn't need a frame pointer, but super class `%s` needs the frame pointer of `%s`",
+                                cldec.baseClass.toChars(),
+                                cldec.baseClass.toParent2().toChars());
+                        }
+                    }
+                }
+                else
+                    cldec.makeNested2();
             }
             else
                 cldec.makeNested();
@@ -5285,6 +5408,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             cldec.deferred.semantic3(sc);
         }
         //printf("-ClassDeclaration.dsymbolSemantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
+
+        // @@@DEPRECATED@@@ https://dlang.org/deprecate.html#scope%20as%20a%20type%20constraint
+        // Deprecated in 2.087
+        // Make an error in 2.091
+        // Don't forget to remove code at https://github.com/dlang/dmd/blob/b2f8274ba76358607fc3297a1e9f361480f9bcf9/src/dmd/dsymbolsem.d#L1032-L1036
+        if (cldec.storage_class & STC.scope_)
+            deprecation(cldec.loc, "`scope` as a type constraint is deprecated.  Use `scope` at the usage site.");
     }
 
     override void visit(InterfaceDeclaration idec)
@@ -5411,6 +5541,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (!idec.baseclasses.dim && sc.linkage == LINK.cpp)
                 idec.classKind = ClassKind.cpp;
+            idec.namespace = sc.namespace;
 
             if (sc.linkage == LINK.objc)
             {
@@ -5593,6 +5724,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
         assert(idec.type.ty != Tclass || (cast(TypeClass)idec.type).sym == idec);
+
+        // @@@DEPRECATED@@@https://dlang.org/deprecate.html#scope%20as%20a%20type%20constraint
+        // Deprecated in 2.087
+        // Remove in 2.091
+        // Don't forget to remove code at https://github.com/dlang/dmd/blob/b2f8274ba76358607fc3297a1e9f361480f9bcf9/src/dmd/dsymbolsem.d#L1032-L1036
+        if (idec.storage_class & STC.scope_)
+            deprecation(idec.loc, "`scope` as a type constraint is deprecated.  Use `scope` at the usage site.");
     }
 }
 
@@ -5694,6 +5832,9 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
     tempinst.hasNestedArgs(tempinst.tiargs, tempdecl.isstatic);
     if (tempinst.errors)
         goto Lerror;
+
+    // Copy the tempdecl namespace (not the scope one)
+    tempinst.namespace = tempdecl.namespace;
 
     /* See if there is an existing TemplateInstantiation that already
      * implements the typeargs. If so, just refer to that one instead.

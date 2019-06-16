@@ -37,6 +37,8 @@ import dmd.backend.evalu8 : el_toldoubled;
 
 extern (C++):
 
+nothrow:
+
 int REGSIZE();
 
 private extern (D) uint mask(uint m) { return 1 << m; }
@@ -287,8 +289,13 @@ void note87(elem *e, uint offset, int i, int linnum)
             printf("_8087elems[%d].e = %p\n",i,_8087elems[i].e);
     }
 
-    //if (i >= stackused) *cast(char*)0=0;
+    debug if (i >= stackused)
+    {
+        printf("note87(e = %p.%d, i = %d, stackused = %d, line = %d)\n",e,offset,i,stackused,linnum);
+        elem_print(e);
+    }
     assert(i < stackused);
+
     while (e.Eoper == OPcomma)
         e = e.EV.E2;
     _8087elems[i].e = e;
@@ -520,8 +527,6 @@ void comsub87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             // Reload
             loaddata(cdb,e,pretregs);
     }
-
-    freenode(e);
 }
 
 
@@ -810,7 +815,11 @@ void fixresult87(ref CodeBuilder cdb,elem *e,regm_t retregs,regm_t *pretregs)
     /* if retregs needs to be transferred into the 8087 */
     if (*pretregs & mST0 && retregs & (mBP | ALLREGS))
     {
-        if (sz > DOUBLESIZE) elem_print(e);
+        debug if (sz > DOUBLESIZE)
+        {
+            elem_print(e);
+            printf("retregs = %s\n", regm_str(retregs));
+        }
         assert(sz <= DOUBLESIZE);
         if (!I16)
         {
@@ -1872,20 +1881,7 @@ L5:
         default:
         Ldefault:
             retregs = mST0;
-            static if (1)   /* Do this instead of codelem() to avoid the freenode(e).
-                           We also lose CSE capability  */
-            {
-                if (e.Eoper == OPconst)
-                {
-                    load87(cdb, e, 0, &retregs, null, -1);
-                }
-                else
-                    callcdxxx(cdb,e,&retregs,e.Eoper);
-            }
-            else
-            {
-                codelem(cdb,e,&retregs,false);
-            }
+            codelem(cdb,e,&retregs,2);
 
             if (op != -1)
             {

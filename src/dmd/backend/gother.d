@@ -40,6 +40,8 @@ import dmd.backend.barray;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
 
+nothrow:
+
 char symbol_isintab(Symbol *s) { return sytab[s.Sclass] & SCSS; }
 
 extern (C++):
@@ -55,6 +57,7 @@ version (MARS)
 // Lists to help identify ranges of variables
 struct Elemdata
 {
+nothrow:
     Elemdata *next;         // linked list
     elem *pelem;            // the elem in question
     block *pblock;          // which block it's in

@@ -1,4 +1,13 @@
 // REQUIRED_ARGS: -preview=dip25
+/*
+TEST_OUTPUT:
+---
+foo1 ulong function(return ref int* delegate() return p) ref return
+foo2 int function(return ref int delegate() p) ref
+foo3 int function(return ref inout(int*) p) ref
+foo4 int function(return ref inout(int*) p) ref
+---
+*/
 
 import core.stdc.stdio;
 
@@ -245,4 +254,3 @@ void main()
     test11();
     printf("Success\n");
 }
-

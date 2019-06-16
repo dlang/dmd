@@ -1,4 +1,10 @@
 // PERMUTE_ARGS:
+/*
+TEST_OUTPUT:
+---
+runnable/testsocket.d(48): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+---
+*/
 
 import std.stdio;
 import std.socket;

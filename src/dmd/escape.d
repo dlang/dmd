@@ -1,4 +1,6 @@
 /**
+ * Most of the logic to implement scoped pointers and scoped references is here.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -39,7 +41,7 @@ import dmd.arraytypes;
  *      ae = array literal expression
  *      gag = do not print error messages
  * Returns:
- *      true if any elements escaped
+ *      `true` if any elements escaped
  */
 bool checkArrayLiteralEscape(Scope *sc, ArrayLiteralExp ae, bool gag)
 {
@@ -62,7 +64,7 @@ bool checkArrayLiteralEscape(Scope *sc, ArrayLiteralExp ae, bool gag)
  *      ae = associative array literal expression
  *      gag = do not print error messages
  * Returns:
- *      true if any elements escaped
+ *      `true` if any elements escaped
  */
 bool checkAssocArrayLiteralEscape(Scope *sc, AssocArrayLiteralExp ae, bool gag)
 {
@@ -81,18 +83,18 @@ bool checkAssocArrayLiteralEscape(Scope *sc, AssocArrayLiteralExp ae, bool gag)
 }
 
 /****************************************
- * Function parameter par is being initialized to arg,
- * and par may escape.
+ * Function parameter `par` is being initialized to `arg`,
+ * and `par` may escape.
  * Detect if scoped values can escape this way.
  * Print error messages when these are detected.
  * Params:
  *      sc = used to determine current function and module
  *      fdc = function being called, `null` if called indirectly
- *      par = function parameter ('this' if null)
+ *      par = function parameter (`this` if null)
  *      arg = initializer for param
  *      gag = do not print error messages
  * Returns:
- *      true if pointers to the stack can escape via assignment
+ *      `true` if pointers to the stack can escape via assignment
  */
 bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Expression arg, bool gag)
 {
@@ -226,11 +228,11 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Exp
  * Essentially, treat as `firstArg = arg;`
  * Params:
  *      sc = used to determine current function and module
- *      firstArg = ref argument through which arg may be assigned
- *      arg = initializer for param
+ *      firstArg = `ref` argument through which `arg` may be assigned
+ *      arg = initializer for parameter
  *      gag = do not print error messages
  * Returns:
- *      true if assignment to firstArg would cause an error
+ *      `true` if assignment to `firstArg` would cause an error
  */
 bool checkParamArgumentReturn(Scope* sc, Expression firstArg, Expression arg, bool gag)
 {
@@ -247,15 +249,15 @@ bool checkParamArgumentReturn(Scope* sc, Expression firstArg, Expression arg, bo
 }
 
 /*****************************************************
- * Check struct constructor of the form s.this(args), by
+ * Check struct constructor of the form `s.this(args)`, by
  * checking each `return` parameter to see if it gets
  * assigned to `s`.
  * Params:
  *      sc = used to determine current function and module
- *      ce = constructor call of the form s.this(args)
+ *      ce = constructor call of the form `s.this(args)`
  *      gag = do not print error messages
  * Returns:
- *      true if construction would cause an escaping reference error
+ *      `true` if construction would cause an escaping reference error
  */
 bool checkConstructorEscape(Scope* sc, CallExp ce, bool gag)
 {
@@ -311,17 +313,17 @@ bool checkConstructorEscape(Scope* sc, CallExp ce, bool gag)
 }
 
 /****************************************
- * Given an AssignExp, determine if the lvalue will cause
+ * Given an `AssignExp`, determine if the lvalue will cause
  * the contents of the rvalue to escape.
  * Print error messages when these are detected.
- * Infer 'scope' for the lvalue where possible, in order
+ * Infer `scope` attribute for the lvalue where possible, in order
  * to eliminate the error.
  * Params:
  *      sc = used to determine current function and module
- *      e = AssignExp or CatAssignExp to check for any pointers to the stack
+ *      e = `AssignExp` or `CatAssignExp` to check for any pointers to the stack
  *      gag = do not print error messages
  * Returns:
- *      true if pointers to the stack can escape via assignment
+ *      `true` if pointers to the stack can escape via assignment
  */
 bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 {
@@ -710,7 +712,7 @@ ByRef:
 }
 
 /************************************
- * Detect cases where pointers to the stack can 'escape' the
+ * Detect cases where pointers to the stack can escape the
  * lifetime of the stack frame when throwing `e`.
  * Print error messages when these are detected.
  * Params:
@@ -718,7 +720,7 @@ ByRef:
  *      e = expression to check for any pointers to the stack
  *      gag = do not print error messages
  * Returns:
- *      true if pointers to the stack can escape
+ *      `true` if pointers to the stack can escape
  */
 bool checkThrowEscape(Scope* sc, Expression e, bool gag)
 {
@@ -762,7 +764,7 @@ bool checkThrowEscape(Scope* sc, Expression e, bool gag)
 }
 
 /************************************
- * Detect cases where pointers to the stack can 'escape' the
+ * Detect cases where pointers to the stack can escape the
  * lifetime of the stack frame by being placed into a GC allocated object.
  * Print error messages when these are detected.
  * Params:
@@ -770,7 +772,7 @@ bool checkThrowEscape(Scope* sc, Expression e, bool gag)
  *      e = expression to check for any pointers to the stack
  *      gag = do not print error messages
  * Returns:
- *      true if pointers to the stack can escape
+ *      `true` if pointers to the stack can escape
  */
 bool checkNewEscape(Scope* sc, Expression e, bool gag)
 {
@@ -914,15 +916,15 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
 
 
 /************************************
- * Detect cases where pointers to the stack can 'escape' the
- * lifetime of the stack frame by returning 'e' by value.
+ * Detect cases where pointers to the stack can escape the
+ * lifetime of the stack frame by returning `e` by value.
  * Print error messages when these are detected.
  * Params:
  *      sc = used to determine current function and module
  *      e = expression to check for any pointers to the stack
  *      gag = do not print error messages
  * Returns:
- *      true if pointers to the stack can escape
+ *      `true` if pointers to the stack can escape
  */
 bool checkReturnEscape(Scope* sc, Expression e, bool gag)
 {
@@ -931,7 +933,7 @@ bool checkReturnEscape(Scope* sc, Expression e, bool gag)
 }
 
 /************************************
- * Detect cases where returning 'e' by ref can result in a reference to the stack
+ * Detect cases where returning `e` by `ref` can result in a reference to the stack
  * being returned.
  * Print error messages when these are detected.
  * Params:
@@ -939,7 +941,7 @@ bool checkReturnEscape(Scope* sc, Expression e, bool gag)
  *      e = expression to check
  *      gag = do not print error messages
  * Returns:
- *      true if references to the stack can escape
+ *      `true` if references to the stack can escape
  */
 bool checkReturnEscapeRef(Scope* sc, Expression e, bool gag)
 {
@@ -954,14 +956,14 @@ bool checkReturnEscapeRef(Scope* sc, Expression e, bool gag)
 }
 
 /***************************************
- * Implementation of checking for escapes in `return`.
+ * Implementation of checking for escapes in return expressions.
  * Params:
  *      sc = used to determine current function and module
  *      e = expression to check
- *      refs = true: escape by value, false: escape by ref
+ *      refs = `true`: escape by value, `false`: escape by `ref`
  *      gag = do not print error messages
  * Returns:
- *      true if references to the stack can escape
+ *      `true` if references to the stack can escape
  */
 private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
 {
@@ -1466,6 +1468,12 @@ private void escapeByValue(Expression e, EscapeByResults* er)
                     else if (dve.var.storage_class & STC.ref_)
                         escapeByRef(dve.e1, er);
                 }
+                // If it's also a nested function that is 'return scope'
+                if (fd && fd.isNested())
+                {
+                    if (tf.isreturn && tf.isscope)
+                        er.byexp.push(e);
+                }
             }
 
             /* If returning the result of a delegate call, the .ptr
@@ -1557,7 +1565,9 @@ private void escapeByRef(Expression e, EscapeByResults* er)
 
         override void visit(ThisExp e)
         {
-            if (e.var)
+            if (e.var && e.var.toParent2().isFuncDeclaration().isThis2)
+                escapeByValue(e, er);
+            else if (e.var)
                 er.byref.push(e.var);
         }
 
@@ -1690,6 +1700,13 @@ private void escapeByRef(Expression e, EscapeByResults* er)
                         else if (dve.var.storage_class & STC.ref_ || tf.isref)
                             dve.e1.accept(this);
                     }
+                    // If it's also a nested function that is 'return ref'
+                    FuncDeclaration fd = dve.var.isFuncDeclaration();
+                    if (fd && fd.isNested())
+                    {
+                        if (tf.isreturn)
+                            er.byexp.push(e);
+                    }
                 }
                 // If it's a delegate, check it too
                 if (e.e1.op == TOK.variable && t1.ty == Tdelegate)
@@ -1738,7 +1755,7 @@ private struct EscapeByResults
  *      fd = function
  *      vars = array to append found variables to
  */
-void findAllOuterAccessedVariables(FuncDeclaration fd, VarDeclarations* vars)
+public void findAllOuterAccessedVariables(FuncDeclaration fd, VarDeclarations* vars)
 {
     //printf("findAllOuterAccessedVariables(fd: %s)\n", fd.toChars());
     for (auto p = fd.parent; p; p = p.parent)
@@ -1762,14 +1779,15 @@ void findAllOuterAccessedVariables(FuncDeclaration fd, VarDeclarations* vars)
 }
 
 /***********************************
- * Turn off STC.maybescope for variable `v`.
- * This exists in order to find where STC.maybescope is getting turned off.
+ * Turn off `STC.maybescope` for variable `v`.
+ *
+ * This exists in order to find where `STC.maybescope` is getting turned off.
  * Params:
  *      v = variable
  */
 version (none)
 {
-    void notMaybeScope(string file = __FILE__, int line = __LINE__)(VarDeclaration v)
+    public void notMaybeScope(string file = __FILE__, int line = __LINE__)(VarDeclaration v)
     {
         printf("%.*s(%d): notMaybeScope('%s')\n", cast(int)file.length, file.ptr, line, v.toChars());
         v.storage_class &= ~STC.maybescope;
@@ -1777,7 +1795,7 @@ version (none)
 }
 else
 {
-    void notMaybeScope(VarDeclaration v)
+    public void notMaybeScope(VarDeclaration v)
     {
         v.storage_class &= ~STC.maybescope;
     }
@@ -1791,20 +1809,22 @@ else
  * complete, we can finalize this by turning off
  * maybescope for array elements that cannot be scope.
  *
- *  `va`    `v`    =>  `va`   `v`
- *  maybe   maybe  =>  scope  scope
- *  scope   scope  =>  scope  scope
- *  scope   maybe  =>  scope  scope
- *  maybe   scope  =>  scope  scope
- *  -       -      =>  -      -
- *  -       maybe  =>  -      -
- *  -       scope  =>  error
- *  maybe   -      =>  scope  -
- *  scope   -      =>  scope  -
+ * $(TABLE2 Scope Table,
+ * $(THEAD `va`, `v`,    =>,  `va` ,  `v`  )
+ * $(TROW maybe, maybe,  =>,  scope,  scope)
+ * $(TROW scope, scope,  =>,  scope,  scope)
+ * $(TROW scope, maybe,  =>,  scope,  scope)
+ * $(TROW maybe, scope,  =>,  scope,  scope)
+ * $(TROW -    , -    ,  =>,  -    ,  -    )
+ * $(TROW -    , maybe,  =>,  -    ,  -    )
+ * $(TROW -    , scope,  =>,  error,  error)
+ * $(TROW maybe, -    ,  =>,  scope,  -    )
+ * $(TROW scope, -    ,  =>,  scope,  -    )
+ * )
  * Params:
  *      array = array of variables that were assigned to from maybescope variables
  */
-void eliminateMaybeScopes(VarDeclaration[] array)
+public void eliminateMaybeScopes(VarDeclaration[] array)
 {
     enum log = false;
     if (log) printf("eliminateMaybeScopes()\n");

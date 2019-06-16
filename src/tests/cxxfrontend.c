@@ -19,7 +19,6 @@
 #include "root/port.h"
 #include "root/rmem.h"
 #include "root/root.h"
-#include "root/thread.h"
 
 #include "aggregate.h"
 #include "aliasthis.h"
@@ -42,7 +41,6 @@
 #include "import.h"
 #include "init.h"
 #include "json.h"
-#include "mars.h"
 #include "mangle.h"
 #include "module.h"
 #include "mtype.h"
@@ -69,7 +67,8 @@ static void frontend_init()
 
     global._init();
     global.params.isLinux = true;
-    global.vendor = "Front-End Tester";
+    global.vendor.ptr = "Front-End Tester";
+    global.vendor.length = strlen(global.vendor.ptr);
 
     Type::_init();
     Id::initialize();
@@ -212,12 +211,15 @@ void test_semantic()
         "class Throwable { }\n"
         "class Error : Throwable { this(immutable(char)[]); }";
 
+    FileBuffer *srcBuffer = FileBuffer::create(); // free'd in Module::parse()
+    srcBuffer->data.ptr = (unsigned char *)mem.xstrdup(buf);
+    srcBuffer->data.length = strlen(buf);
+
     Module *m = Module::create("object.d", Identifier::idPool("object"), 0, 0);
 
     unsigned errors = global.startGagging();
 
-    m->srcfile->setbuffer((void*)buf, strlen(buf));
-    m->srcfile->ref = 1;
+    m->srcBuffer = srcBuffer;
     m->parse();
     m->importedFrom = m;
     m->importAll(NULL);

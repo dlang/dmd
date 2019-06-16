@@ -14,4 +14,6 @@ module dmd.backend.errors;
 /**
    Print an error message, increasing the global error count
  */
+nothrow:
+
 extern (C++) void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...);

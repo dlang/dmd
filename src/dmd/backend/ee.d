@@ -38,6 +38,8 @@ import dmd.backend.iasm;
 
 extern(C++):
 
+nothrow:
+
 version (MARS)
 {
 __gshared EEcontext eecontext;

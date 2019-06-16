@@ -238,13 +238,13 @@ void test13023(ulong n)
 
 struct U { int a; union { char c; int d; } long b; }
 
-U f = { b:3, d:2, a:1 };
+U f = { b:3, d:0x22222222, a:1 };
 
 void testU()
 {
     assert(f.b == 3);
-    assert(f.d == 2);
-    assert(f.c == 2);
+    assert(f.d == 0x22222222);
+    assert(f.c == 0x22);
     assert(f.a == 1);
     assert(f.sizeof == 16);
     assert(U.sizeof == 16);
@@ -1876,6 +1876,67 @@ void test19497() // https://issues.dlang.org/show_bug.cgi?id=19497
 
 ////////////////////////////////////////////////////////////////////////
 
+// https://issues.dlang.org/show_bug.cgi?id=18794
+
+bool method18794(size_t* p)
+{
+    int bitIdx = 0;
+    func18794();
+    return (*p & (1UL << bitIdx)) != 0;
+}
+
+void func18794() {}
+
+void prep18794()
+{
+    asm {}
+    ulong[2] x = -1;
+}
+
+void test18794()
+{
+    prep18794();
+    size_t s;
+    method18794(&s);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+const(char)* fastpar(string s)
+{
+    return s.ptr + s.length;
+}
+
+void testfastpar()
+{
+    string s = "abcde";
+    auto p = fastpar(s);
+    assert(*p == 0);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+
+T testfooa(T)(T value)
+{
+    return 10 - (value * 57); // gets rewritten into (value*-57)+10
+}
+
+T testfoob(T)(T value)
+{
+    return (value * -57) + 10;
+}
+
+void testNegConst()
+{
+    assert(testfooa(1) == -47);
+    assert(testfoob(1) == -47);
+    assert(testfooa(1.0) == -47);
+    assert(testfoob(1.0) == -47);
+}
+
+////////////////////////////////////////////////////////////////////////
+
 int main()
 {
     testgoto();
@@ -1942,6 +2003,9 @@ int main()
     test18461();
     test18730();
     test19497();
+    test18794();
+    testfastpar();
+    testNegConst();
 
     printf("Success\n");
     return 0;

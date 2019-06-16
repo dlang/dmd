@@ -211,378 +211,371 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb)
 
 extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
 {
-    extern (C++) class ExpToDt : Visitor
+    void nonConstExpError(Expression e)
     {
-        DtBuilder* dtb;
-
-        this(ref DtBuilder dtb)
+        version (none)
         {
-            this.dtb = &dtb;
+            printf("Expression.toDt() %d\n", e.op);
         }
+        e.error("non-constant expression `%s`", e.toChars());
+        dtb.nzeros(1);
+    }
 
-        alias visit = Visitor.visit;
-
-        override void visit(Expression e)
+    void visitCast(CastExp e)
+    {
+        version (none)
         {
-            version (none)
-            {
-                printf("Expression.toDt() %d\n", e.op);
-            }
-            e.error("non-constant expression `%s`", e.toChars());
-            dtb.nzeros(1);
+            printf("CastExp.toDt() %d from %s to %s\n", e.op, e.e1.type.toChars(), e.type.toChars());
         }
-
-        override void visit(CastExp e)
+        if (e.e1.type.ty == Tclass)
         {
-            version (none)
+            if (auto toc = e.type.isTypeClass())
             {
-                printf("CastExp.toDt() %d from %s to %s\n", e.op, e.e1.type.toChars(), e.type.toChars());
-            }
-            if (e.e1.type.ty == Tclass && e.type.ty == Tclass)
-            {
-                if ((cast(TypeClass)e.type).sym.isInterfaceDeclaration()) // casting from class to interface
+                if (auto toi = toc.sym.isInterfaceDeclaration()) // casting from class to interface
                 {
-                    assert(e.e1.op == TOK.classReference);
-                    ClassDeclaration from = (cast(ClassReferenceExp)e.e1).originalClass();
-                    InterfaceDeclaration to = (cast(TypeClass)e.type).sym.isInterfaceDeclaration();
+                    auto cre1 = e.e1.isClassReferenceExp();
+                    ClassDeclaration from = cre1.originalClass();
                     int off = 0;
-                    int isbase = to.isBaseOf(from, &off);
+                    const isbase = toi.isBaseOf(from, &off);
                     assert(isbase);
-                    ClassReferenceExp_toDt(cast(ClassReferenceExp)e.e1, *dtb, off);
+                    ClassReferenceExp_toDt(cre1, dtb, off);
                 }
                 else //casting from class to class
                 {
-                    Expression_toDt(e.e1, *dtb);
+                    Expression_toDt(e.e1, dtb);
                 }
                 return;
             }
-            visit(cast(UnaExp)e);
         }
+        nonConstExpError(e);
+    }
 
-        override void visit(AddrExp e)
+    void visitAddr(AddrExp e)
+    {
+        version (none)
         {
-            version (none)
-            {
-                printf("AddrExp.toDt() %d\n", e.op);
-            }
-            if (e.e1.op == TOK.structLiteral)
-            {
-                StructLiteralExp sl = cast(StructLiteralExp)e.e1;
-                Symbol* s = toSymbol(sl);
-                dtb.xoff(s, 0);
-                if (sl.type.isMutable())
-                    write_pointers(sl.type, s, 0);
-                return;
-            }
-            visit(cast(UnaExp)e);
+            printf("AddrExp.toDt() %d\n", e.op);
         }
-
-        override void visit(IntegerExp e)
+        if (auto sl = e.e1.isStructLiteralExp())
         {
-            //printf("IntegerExp.toDt() %d\n", e.op);
-            uint sz = cast(uint)e.type.size();
-            dinteger_t value = e.getInteger();
-            if (value == 0)
-                dtb.nzeros(sz);
-            else
-                dtb.nbytes(sz, cast(char*)&value);
-        }
-
-        override void visit(RealExp e)
-        {
-            //printf("RealExp.toDt(%Lg)\n", e.value);
-            switch (e.type.toBasetype().ty)
-            {
-                case Tfloat32:
-                case Timaginary32:
-                {
-                    auto fvalue = cast(float)e.value;
-                    dtb.nbytes(4, cast(char*)&fvalue);
-                    break;
-                }
-
-                case Tfloat64:
-                case Timaginary64:
-                {
-                    auto dvalue = cast(double)e.value;
-                    dtb.nbytes(8, cast(char*)&dvalue);
-                    break;
-                }
-
-                case Tfloat80:
-                case Timaginary80:
-                {
-                    auto evalue = e.value;
-                    dtb.nbytes(target.realsize - target.realpad, cast(char*)&evalue);
-                    dtb.nzeros(target.realpad);
-                    break;
-                }
-
-                default:
-                    printf("%s, e.type=%s\n", e.toChars(), e.type.toChars());
-                    assert(0);
-            }
-        }
-
-        override void visit(ComplexExp e)
-        {
-            //printf("ComplexExp.toDt() '%s'\n", e.toChars());
-            switch (e.type.toBasetype().ty)
-            {
-                case Tcomplex32:
-                {
-                    auto fvalue = cast(float)creall(e.value);
-                    dtb.nbytes(4, cast(char*)&fvalue);
-                    fvalue = cast(float)cimagl(e.value);
-                    dtb.nbytes(4, cast(char*)&fvalue);
-                    break;
-                }
-
-                case Tcomplex64:
-                {
-                    auto dvalue = cast(double)creall(e.value);
-                    dtb.nbytes(8, cast(char*)&dvalue);
-                    dvalue = cast(double)cimagl(e.value);
-                    dtb.nbytes(8, cast(char*)&dvalue);
-                    break;
-                }
-
-                case Tcomplex80:
-                {
-                    auto evalue = creall(e.value);
-                    dtb.nbytes(target.realsize - target.realpad, cast(char*)&evalue);
-                    dtb.nzeros(target.realpad);
-                    evalue = cimagl(e.value);
-                    dtb.nbytes(target.realsize - target.realpad, cast(char*)&evalue);
-                    dtb.nzeros(target.realpad);
-                    break;
-                }
-
-                default:
-                    assert(0);
-            }
-        }
-
-        override void visit(NullExp e)
-        {
-            assert(e.type);
-            dtb.nzeros(cast(uint)e.type.size());
-        }
-
-        override void visit(StringExp e)
-        {
-            //printf("StringExp.toDt() '%s', type = %s\n", e.toChars(), e.type.toChars());
-            Type t = e.type.toBasetype();
-
-            // BUG: should implement some form of static string pooling
-            int n = cast(int)e.numberOfCodeUnits();
-            char* p = e.toPtr();
-            if (!p)
-            {
-                p = cast(char*)mem.xmalloc(n * e.sz);
-                e.writeTo(p, false);
-            }
-
-            switch (t.ty)
-            {
-                case Tarray:
-                    dtb.size(n);
-                    goto case Tpointer;
-
-                case Tpointer:
-                    if (e.sz == 1)
-                    {
-                        import dmd.e2ir : toStringSymbol;
-                        import dmd.glue : totym;
-                        Symbol* s = toStringSymbol(p, n, e.sz);
-                        dtb.xoff(s, 0);
-                    }
-                    else
-                        dtb.abytes(0, n * e.sz, p, cast(uint)e.sz);
-                    break;
-
-                case Tsarray:
-                {
-                    TypeSArray tsa = cast(TypeSArray)t;
-
-                    dtb.nbytes(n * e.sz, p);
-                    if (tsa.dim)
-                    {
-                        dinteger_t dim = tsa.dim.toInteger();
-                        if (n < dim)
-                        {
-                            // Pad remainder with 0
-                            dtb.nzeros(cast(uint)((dim - n) * tsa.next.size()));
-                        }
-                    }
-                    break;
-                }
-
-                default:
-                    printf("StringExp.toDt(type = %s)\n", e.type.toChars());
-                    assert(0);
-            }
-            if (p != e.toPtr())
-                mem.xfree(p);
-        }
-
-        override void visit(ArrayLiteralExp e)
-        {
-            //printf("ArrayLiteralExp.toDt() '%s', type = %s\n", e.toChars(), e.type.toChars());
-
-            auto dtbarray = DtBuilder(0);
-            for (size_t i = 0; i < e.elements.dim; i++)
-            {
-                Expression_toDt(e.getElement(i), dtbarray);
-            }
-
-            Type t = e.type.toBasetype();
-            switch (t.ty)
-            {
-                case Tsarray:
-                    dtb.cat(dtbarray);
-                    break;
-
-                case Tpointer:
-                case Tarray:
-                {
-                    if (t.ty == Tarray)
-                        dtb.size(e.elements.dim);
-                    dt_t* d = dtbarray.finish();
-                    if (d)
-                        dtb.dtoff(d, 0);
-                    else
-                        dtb.size(0);
-
-                    break;
-                }
-
-                default:
-                    assert(0);
-            }
-        }
-
-        override void visit(StructLiteralExp sle)
-        {
-            //printf("StructLiteralExp.toDt() %s, ctfe = %d\n", sle.toChars(), sle.ownedByCtfe);
-            assert(sle.sd.fields.dim - sle.sd.isNested() <= sle.elements.dim);
-            membersToDt(sle.sd, *dtb, sle.elements, 0, null);
-        }
-
-        override void visit(SymOffExp e)
-        {
-            //printf("SymOffExp.toDt('%s')\n", e.var.toChars());
-            assert(e.var);
-            if (!(e.var.isDataseg() || e.var.isCodeseg()) ||
-                e.var.needThis() ||
-                e.var.isThreadlocal())
-            {
-                version (none)
-                {
-                    printf("SymOffExp.toDt()\n");
-                }
-                e.error("non-constant expression `%s`", e.toChars());
-                return;
-            }
-            dtb.xoff(toSymbol(e.var), cast(uint)e.offset);
-        }
-
-        override void visit(VarExp e)
-        {
-            //printf("VarExp.toDt() %d\n", e.op);
-
-            VarDeclaration v = e.var.isVarDeclaration();
-            if (v && (v.isConst() || v.isImmutable()) &&
-                e.type.toBasetype().ty != Tsarray && v._init)
-            {
-                if (v.inuse)
-                {
-                    e.error("recursive reference `%s`", e.toChars());
-                    return;
-                }
-                v.inuse++;
-                Initializer_toDt(v._init, *dtb);
-                v.inuse--;
-                return;
-            }
-            SymbolDeclaration sd = e.var.isSymbolDeclaration();
-            if (sd && sd.dsym)
-            {
-                StructDeclaration_toDt(sd.dsym, *dtb);
-                return;
-            }
-            version (none)
-            {
-                printf("VarExp.toDt(), kind = %s\n", e.var.kind());
-            }
-            e.error("non-constant expression `%s`", e.toChars());
-            dtb.nzeros(1);
-        }
-
-        override void visit(FuncExp e)
-        {
-            //printf("FuncExp.toDt() %d\n", e.op);
-            if (e.fd.tok == TOK.reserved && e.type.ty == Tpointer)
-            {
-                // change to non-nested
-                e.fd.tok = TOK.function_;
-                e.fd.vthis = null;
-            }
-            Symbol *s = toSymbol(e.fd);
-            toObjFile(e.fd, false);
-            if (e.fd.tok == TOK.delegate_)
-                dtb.size(0);
+            Symbol* s = toSymbol(sl);
             dtb.xoff(s, 0);
+            if (sl.type.isMutable())
+                write_pointers(sl.type, s, 0);
+            return;
         }
+        nonConstExpError(e);
+    }
 
-        override void visit(VectorExp e)
+    void visitInteger(IntegerExp e)
+    {
+        //printf("IntegerExp.toDt() %d\n", e.op);
+        const sz = cast(uint)e.type.size();
+        if (auto value = e.getInteger())
+            dtb.nbytes(sz, cast(char*)&value);
+        else
+            dtb.nzeros(sz);
+    }
+
+    void visitReal(RealExp e)
+    {
+        //printf("RealExp.toDt(%Lg)\n", e.value);
+        switch (e.type.toBasetype().ty)
         {
-            //printf("VectorExp.toDt() %s\n", e.toChars());
-            for (size_t i = 0; i < e.dim; i++)
+            case Tfloat32:
+            case Timaginary32:
             {
-                Expression elem;
-                if (e.e1.op == TOK.arrayLiteral)
-                {
-                    ArrayLiteralExp ale = cast(ArrayLiteralExp)e.e1;
-                    elem = ale.getElement(i);
-                }
-                else
-                    elem = e.e1;
-                Expression_toDt(elem, *dtb);
+                auto fvalue = cast(float)e.value;
+                dtb.nbytes(4, cast(char*)&fvalue);
+                break;
             }
-        }
 
-        override void visit(ClassReferenceExp e)
-        {
-            InterfaceDeclaration to = (cast(TypeClass)e.type).sym.isInterfaceDeclaration();
-
-            if (to) //Static typeof this literal is an interface. We must add offset to symbol
+            case Tfloat64:
+            case Timaginary64:
             {
-                ClassDeclaration from = e.originalClass();
-                int off = 0;
-                int isbase = to.isBaseOf(from, &off);
-                assert(isbase);
-                ClassReferenceExp_toDt(e, *dtb, off);
+                auto dvalue = cast(double)e.value;
+                dtb.nbytes(8, cast(char*)&dvalue);
+                break;
             }
-            else
-                ClassReferenceExp_toDt(e, *dtb, 0);
-        }
 
-        override void visit(TypeidExp e)
-        {
-            if (Type t = isType(e.obj))
+            case Tfloat80:
+            case Timaginary80:
             {
-                genTypeInfo(e.loc, t, null);
-                Symbol *s = toSymbol(t.vtinfo);
-                dtb.xoff(s, 0);
-                return;
+                auto evalue = e.value;
+                dtb.nbytes(target.realsize - target.realpad, cast(char*)&evalue);
+                dtb.nzeros(target.realpad);
+                break;
             }
-            assert(0);
+
+            default:
+                printf("%s, e.type=%s\n", e.toChars(), e.type.toChars());
+                assert(0);
         }
     }
 
-    scope v = new ExpToDt(dtb);
-    e.accept(v);
+    void visitComplex(ComplexExp e)
+    {
+        //printf("ComplexExp.toDt() '%s'\n", e.toChars());
+        switch (e.type.toBasetype().ty)
+        {
+            case Tcomplex32:
+            {
+                auto fvalue = cast(float)creall(e.value);
+                dtb.nbytes(4, cast(char*)&fvalue);
+                fvalue = cast(float)cimagl(e.value);
+                dtb.nbytes(4, cast(char*)&fvalue);
+                break;
+            }
+
+            case Tcomplex64:
+            {
+                auto dvalue = cast(double)creall(e.value);
+                dtb.nbytes(8, cast(char*)&dvalue);
+                dvalue = cast(double)cimagl(e.value);
+                dtb.nbytes(8, cast(char*)&dvalue);
+                break;
+            }
+
+            case Tcomplex80:
+            {
+                auto evalue = creall(e.value);
+                dtb.nbytes(target.realsize - target.realpad, cast(char*)&evalue);
+                dtb.nzeros(target.realpad);
+                evalue = cimagl(e.value);
+                dtb.nbytes(target.realsize - target.realpad, cast(char*)&evalue);
+                dtb.nzeros(target.realpad);
+                break;
+            }
+
+            default:
+                assert(0);
+        }
+    }
+
+    void visitNull(NullExp e)
+    {
+        assert(e.type);
+        dtb.nzeros(cast(uint)e.type.size());
+    }
+
+    void visitString(StringExp e)
+    {
+        //printf("StringExp.toDt() '%s', type = %s\n", e.toChars(), e.type.toChars());
+        Type t = e.type.toBasetype();
+
+        // BUG: should implement some form of static string pooling
+        const n = cast(int)e.numberOfCodeUnits();
+        char* p = e.toPtr();
+        if (!p)
+        {
+            p = cast(char*)mem.xmalloc(n * e.sz);
+            e.writeTo(p, false);
+        }
+
+        switch (t.ty)
+        {
+            case Tarray:
+                dtb.size(n);
+                goto case Tpointer;
+
+            case Tpointer:
+                if (e.sz == 1)
+                {
+                    import dmd.e2ir : toStringSymbol;
+                    import dmd.glue : totym;
+                    Symbol* s = toStringSymbol(p, n, e.sz);
+                    dtb.xoff(s, 0);
+                }
+                else
+                    dtb.abytes(0, n * e.sz, p, cast(uint)e.sz);
+                break;
+
+            case Tsarray:
+            {
+                auto tsa = t.isTypeSArray();
+
+                dtb.nbytes(n * e.sz, p);
+                if (tsa.dim)
+                {
+                    dinteger_t dim = tsa.dim.toInteger();
+                    if (n < dim)
+                    {
+                        // Pad remainder with 0
+                        dtb.nzeros(cast(uint)((dim - n) * tsa.next.size()));
+                    }
+                }
+                break;
+            }
+
+            default:
+                printf("StringExp.toDt(type = %s)\n", e.type.toChars());
+                assert(0);
+        }
+        if (p != e.toPtr())
+            mem.xfree(p);
+    }
+
+    void visitArrayLiteral(ArrayLiteralExp e)
+    {
+        //printf("ArrayLiteralExp.toDt() '%s', type = %s\n", e.toChars(), e.type.toChars());
+
+        auto dtbarray = DtBuilder(0);
+        foreach (i; 0 .. e.elements.dim)
+        {
+            Expression_toDt(e.getElement(i), dtbarray);
+        }
+
+        Type t = e.type.toBasetype();
+        switch (t.ty)
+        {
+            case Tsarray:
+                dtb.cat(dtbarray);
+                break;
+
+            case Tarray:
+                dtb.size(e.elements.dim);
+                goto case Tpointer;
+
+            case Tpointer:
+            {
+                if (auto d = dtbarray.finish())
+                    dtb.dtoff(d, 0);
+                else
+                    dtb.size(0);
+
+                break;
+            }
+
+            default:
+                assert(0);
+        }
+    }
+
+    void visitStructLiteral(StructLiteralExp sle)
+    {
+        //printf("StructLiteralExp.toDt() %s, ctfe = %d\n", sle.toChars(), sle.ownedByCtfe);
+        assert(sle.sd.nonHiddenFields() <= sle.elements.dim);
+        membersToDt(sle.sd, dtb, sle.elements, 0, null);
+    }
+
+    void visitSymOff(SymOffExp e)
+    {
+        //printf("SymOffExp.toDt('%s')\n", e.var.toChars());
+        assert(e.var);
+        if (!(e.var.isDataseg() || e.var.isCodeseg()) ||
+            e.var.needThis() ||
+            e.var.isThreadlocal())
+        {
+            return nonConstExpError(e);
+        }
+        dtb.xoff(toSymbol(e.var), cast(uint)e.offset);
+    }
+
+    void visitVar(VarExp e)
+    {
+        //printf("VarExp.toDt() %d\n", e.op);
+
+        if (auto v = e.var.isVarDeclaration())
+        {
+            if ((v.isConst() || v.isImmutable()) &&
+                e.type.toBasetype().ty != Tsarray && v._init)
+            {
+                e.error("recursive reference `%s`", e.toChars());
+                return;
+            }
+            v.inuse++;
+            Initializer_toDt(v._init, dtb);
+            v.inuse--;
+            return;
+        }
+
+        if (auto sd = e.var.isSymbolDeclaration())
+            if (sd.dsym)
+            {
+                StructDeclaration_toDt(sd.dsym, dtb);
+                return;
+            }
+
+        return nonConstExpError(e);
+    }
+
+    void visitFunc(FuncExp e)
+    {
+        //printf("FuncExp.toDt() %d\n", e.op);
+        if (e.fd.tok == TOK.reserved && e.type.ty == Tpointer)
+        {
+            // change to non-nested
+            e.fd.tok = TOK.function_;
+            e.fd.vthis = null;
+        }
+        Symbol *s = toSymbol(e.fd);
+        toObjFile(e.fd, false);
+        if (e.fd.tok == TOK.delegate_)
+            dtb.size(0);
+        dtb.xoff(s, 0);
+    }
+
+    void visitVector(VectorExp e)
+    {
+        //printf("VectorExp.toDt() %s\n", e.toChars());
+        foreach (i; 0 .. e.dim)
+        {
+            Expression elem;
+            if (auto ale = e.e1.isArrayLiteralExp())
+                elem = ale.getElement(i);
+            else
+                elem = e.e1;
+            Expression_toDt(elem, dtb);
+        }
+    }
+
+    void visitClassReference(ClassReferenceExp e)
+    {
+        InterfaceDeclaration to = (cast(TypeClass)e.type).sym.isInterfaceDeclaration();
+
+        if (to) //Static typeof this literal is an interface. We must add offset to symbol
+        {
+            ClassDeclaration from = e.originalClass();
+            int off = 0;
+            const isbase = to.isBaseOf(from, &off);
+            assert(isbase);
+            ClassReferenceExp_toDt(e, dtb, off);
+        }
+        else
+            ClassReferenceExp_toDt(e, dtb, 0);
+    }
+
+    void visitTypeid(TypeidExp e)
+    {
+        if (Type t = isType(e.obj))
+        {
+            genTypeInfo(e.loc, t, null);
+            Symbol *s = toSymbol(t.vtinfo);
+            dtb.xoff(s, 0);
+            return;
+        }
+        assert(0);
+    }
+
+    switch (e.op)
+    {
+        default:                 return nonConstExpError(e);
+        case TOK.cast_:          return visitCast          (e.isCastExp());
+        case TOK.address:        return visitAddr          (e.isAddrExp());
+        case TOK.int64:          return visitInteger       (e.isIntegerExp());
+        case TOK.float64:        return visitReal          (e.isRealExp());
+        case TOK.complex80:      return visitComplex       (e.isComplexExp());
+        case TOK.null_:          return visitNull          (e.isNullExp());
+        case TOK.string_:        return visitString        (e.isStringExp());
+        case TOK.arrayLiteral:   return visitArrayLiteral  (e.isArrayLiteralExp());
+        case TOK.structLiteral:  return visitStructLiteral (e.isStructLiteralExp());
+        case TOK.symbolOffset:   return visitSymOff        (e.isSymOffExp());
+        case TOK.variable:       return visitVar           (e.isVarExp());
+        case TOK.function_:      return visitFunc          (e.isFuncExp());
+        case TOK.vector:         return visitVector        (e.isVectorExp());
+        case TOK.classReference: return visitClassReference(e.isClassReferenceExp());
+        case TOK.typeid_:        return visitTypeid        (e.isTypeidExp());
+    }
 }
 
 /* ================================================================= */
@@ -620,7 +613,8 @@ extern (C++) void cpp_type_info_ptr_toDt(ClassDeclaration cd, ref DtBuilder dtb)
 
     // Put in first two members, the vtbl[] and the monitor
     dtb.xoff(toVtblSymbol(ClassDeclaration.cpp_type_info_ptr), 0);
-    dtb.size(0);             // monitor
+    if (ClassDeclaration.cpp_type_info_ptr.hasMonitor())
+        dtb.size(0);             // monitor
 
     // Create symbol for C++ type info
     Symbol *s = toSymbolCppTypeInfo(cd);
@@ -706,7 +700,7 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
         {
             dtb.xoff(toVtblSymbol(concreteType), 0);  // __vptr
             offset = target.ptrsize;
-            if (cd.classKind != ClassKind.cpp)
+            if (cd.hasMonitor())
             {
                 dtb.size(0);              // __monitor
                 offset += target.ptrsize;
@@ -787,9 +781,8 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
         if (elements)
         {
             Expression e = (*elements)[firstFieldIndex + k];
-            Type tb = vd.type.toBasetype();
-            if (tb.ty == Tsarray)
-                toDtElem((cast(TypeSArray)tb), dtbx, e);
+            if (auto tsa = vd.type.toBasetype().isTypeSArray())
+                toDtElem(tsa, dtbx, e);
             else
                 Expression_toDt(e, dtbx);    // convert e to an initializer dt
         }
@@ -803,10 +796,10 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
 
                 assert(vd.semanticRun >= PASS.semantic2done);
 
-                ExpInitializer ei = init.isExpInitializer();
-                Type tb = vd.type.toBasetype();
-                if (ei && tb.ty == Tsarray)
-                    toDtElem((cast(TypeSArray)tb), dtbx, ei.exp);
+                auto ei = init.isExpInitializer();
+                auto tsa = vd.type.toBasetype().isTypeSArray();
+                if (ei && tsa)
+                    toDtElem(tsa, dtbx, ei.exp);
                 else
                     Initializer_toDt(init, dtbx);
             }
@@ -870,7 +863,7 @@ private void toDtElem(TypeSArray tsa, ref DtBuilder dtb, Expression e)
             ten = ten.nextOf();
         while (tbn.ty == Tsarray && (!e || !tbn.equivalent(ten)))
         {
-            len *= (cast(TypeSArray)tbn).dim.toInteger();
+            len *= tbn.isTypeSArray().dim.toInteger();
             tnext = tbn.nextOf();
             tbn = tnext.toBasetype();
         }
@@ -881,10 +874,10 @@ private void toDtElem(TypeSArray tsa, ref DtBuilder dtb, Expression e)
         {
             // https://issues.dlang.org/show_bug.cgi?id=1914
             // https://issues.dlang.org/show_bug.cgi?id=3198
-            if (e.op == TOK.string_)
-                len /= (cast(StringExp)e).numberOfCodeUnits();
-            else if (e.op == TOK.arrayLiteral)
-                len /= (cast(ArrayLiteralExp)e).elements.dim;
+            if (auto se = e.isStringExp())
+                len /= se.numberOfCodeUnits();
+            else if (auto ae = e.isArrayLiteralExp())
+                len /= ae.elements.dim;
         }
 
         auto dtb2 = DtBuilder(0);
@@ -957,7 +950,8 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         verifyStructSize(Type.dtypeinfo, 2 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.dtypeinfo), 0);        // vtbl for TypeInfo
-        dtb.size(0);                                     // monitor
+        if (Type.dtypeinfo.hasMonitor())
+            dtb.size(0);                                  // monitor
     }
 
     override void visit(TypeInfoConstDeclaration d)
@@ -966,7 +960,8 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         verifyStructSize(Type.typeinfoconst, 3 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfoconst), 0);    // vtbl for TypeInfo_Const
-        dtb.size(0);                                     // monitor
+        if (Type.typeinfoconst.hasMonitor())
+            dtb.size(0);                                  // monitor
         Type tm = d.tinfo.mutableOf();
         tm = tm.merge();
         genTypeInfo(d.loc, tm, null);
@@ -979,7 +974,8 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         verifyStructSize(Type.typeinfoinvariant, 3 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfoinvariant), 0);    // vtbl for TypeInfo_Invariant
-        dtb.size(0);                                         // monitor
+        if (Type.typeinfoinvariant.hasMonitor())
+            dtb.size(0);                                      // monitor
         Type tm = d.tinfo.mutableOf();
         tm = tm.merge();
         genTypeInfo(d.loc, tm, null);
@@ -992,7 +988,8 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         verifyStructSize(Type.typeinfoshared, 3 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfoshared), 0);   // vtbl for TypeInfo_Shared
-        dtb.size(0);                                     // monitor
+        if (Type.typeinfoshared.hasMonitor())
+            dtb.size(0);                                 // monitor
         Type tm = d.tinfo.unSharedOf();
         tm = tm.merge();
         genTypeInfo(d.loc, tm, null);
@@ -1005,7 +1002,8 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         verifyStructSize(Type.typeinfowild, 3 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfowild), 0); // vtbl for TypeInfo_Wild
-        dtb.size(0);                                 // monitor
+        if (Type.typeinfowild.hasMonitor())
+            dtb.size(0);                              // monitor
         Type tm = d.tinfo.mutableOf();
         tm = tm.merge();
         genTypeInfo(d.loc, tm, null);
@@ -1018,7 +1016,8 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         verifyStructSize(Type.typeinfoenum, 7 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfoenum), 0); // vtbl for TypeInfo_Enum
-        dtb.size(0);                        // monitor
+        if (Type.typeinfoenum.hasMonitor())
+            dtb.size(0);                              // monitor
 
         assert(d.tinfo.ty == Tenum);
 
@@ -1069,11 +1068,10 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         verifyStructSize(Type.typeinfopointer, 3 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfopointer), 0);  // vtbl for TypeInfo_Pointer
-        dtb.size(0);                                     // monitor
+        if (Type.typeinfopointer.hasMonitor())
+            dtb.size(0);                                  // monitor
 
-        assert(d.tinfo.ty == Tpointer);
-
-        TypePointer tc = cast(TypePointer)d.tinfo;
+        auto tc = d.tinfo.isTypePointer();
 
         genTypeInfo(d.loc, tc.next, null);
         dtb.xoff(toSymbol(tc.next.vtinfo), 0); // TypeInfo for type being pointed to
@@ -1085,11 +1083,10 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         verifyStructSize(Type.typeinfoarray, 3 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfoarray), 0);    // vtbl for TypeInfo_Array
-        dtb.size(0);                                     // monitor
+        if (Type.typeinfoarray.hasMonitor())
+            dtb.size(0);                                  // monitor
 
-        assert(d.tinfo.ty == Tarray);
-
-        TypeDArray tc = cast(TypeDArray)d.tinfo;
+        auto tc = d.tinfo.isTypeDArray();
 
         genTypeInfo(d.loc, tc.next, null);
         dtb.xoff(toSymbol(tc.next.vtinfo), 0); // TypeInfo for array of type
@@ -1101,11 +1098,10 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         verifyStructSize(Type.typeinfostaticarray, 4 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfostaticarray), 0);  // vtbl for TypeInfo_StaticArray
-        dtb.size(0);                                         // monitor
+        if (Type.typeinfostaticarray.hasMonitor())
+            dtb.size(0);                                      // monitor
 
-        assert(d.tinfo.ty == Tsarray);
-
-        TypeSArray tc = cast(TypeSArray)d.tinfo;
+        auto tc = d.tinfo.isTypeSArray();
 
         genTypeInfo(d.loc, tc.next, null);
         dtb.xoff(toSymbol(tc.next.vtinfo), 0);   // TypeInfo for array of type
@@ -1119,11 +1115,10 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         verifyStructSize(Type.typeinfovector, 3 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfovector), 0);   // vtbl for TypeInfo_Vector
-        dtb.size(0);                                     // monitor
+        if (Type.typeinfovector.hasMonitor())
+            dtb.size(0);                                  // monitor
 
-        assert(d.tinfo.ty == Tvector);
-
-        TypeVector tc = cast(TypeVector)d.tinfo;
+        auto tc = d.tinfo.isTypeVector();
 
         genTypeInfo(d.loc, tc.basetype, null);
         dtb.xoff(toSymbol(tc.basetype.vtinfo), 0); // TypeInfo for equivalent static array
@@ -1135,11 +1130,10 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         verifyStructSize(Type.typeinfoassociativearray, 4 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfoassociativearray), 0); // vtbl for TypeInfo_AssociativeArray
-        dtb.size(0);                        // monitor
+        if (Type.typeinfoassociativearray.hasMonitor())
+            dtb.size(0);                    // monitor
 
-        assert(d.tinfo.ty == Taarray);
-
-        TypeAArray tc = cast(TypeAArray)d.tinfo;
+        auto tc = d.tinfo.isTypeAArray();
 
         genTypeInfo(d.loc, tc.next, null);
         dtb.xoff(toSymbol(tc.next.vtinfo), 0);   // TypeInfo for array of type
@@ -1154,18 +1148,17 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         verifyStructSize(Type.typeinfofunction, 5 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfofunction), 0); // vtbl for TypeInfo_Function
-        dtb.size(0);                                     // monitor
+        if (Type.typeinfofunction.hasMonitor())
+            dtb.size(0);                                  // monitor
 
-        assert(d.tinfo.ty == Tfunction);
-
-        TypeFunction tc = cast(TypeFunction)d.tinfo;
+        auto tc = d.tinfo.isTypeFunction();
 
         genTypeInfo(d.loc, tc.next, null);
         dtb.xoff(toSymbol(tc.next.vtinfo), 0); // TypeInfo for function return value
 
-        const(char)* name = d.tinfo.deco;
+        const name = d.tinfo.deco;
         assert(name);
-        size_t namelen = strlen(name);
+        const namelen = strlen(name);
         dtb.size(namelen);
         dtb.xoff(d.csym, Type.typeinfofunction.structsize);
 
@@ -1179,18 +1172,17 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         verifyStructSize(Type.typeinfodelegate, 5 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfodelegate), 0); // vtbl for TypeInfo_Delegate
-        dtb.size(0);                                     // monitor
+        if (Type.typeinfodelegate.hasMonitor())
+            dtb.size(0);                                  // monitor
 
-        assert(d.tinfo.ty == Tdelegate);
-
-        TypeDelegate tc = cast(TypeDelegate)d.tinfo;
+        auto tc = d.tinfo.isTypeDelegate();
 
         genTypeInfo(d.loc, tc.next.nextOf(), null);
         dtb.xoff(toSymbol(tc.next.nextOf().vtinfo), 0); // TypeInfo for delegate return value
 
-        const(char)* name = d.tinfo.deco;
+        const name = d.tinfo.deco;
         assert(name);
-        size_t namelen = strlen(name);
+        const namelen = strlen(name);
         dtb.size(namelen);
         dtb.xoff(d.csym, Type.typeinfodelegate.structsize);
 
@@ -1207,11 +1199,10 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
             verifyStructSize(Type.typeinfostruct, 15 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfostruct), 0); // vtbl for TypeInfo_Struct
-        dtb.size(0);                        // monitor
+        if (Type.typeinfostruct.hasMonitor())
+            dtb.size(0);                                // monitor
 
-        assert(d.tinfo.ty == Tstruct);
-
-        TypeStruct tc = cast(TypeStruct)d.tinfo;
+        auto tc = d.tinfo.isTypeStruct();
         StructDeclaration sd = tc.sym;
 
         if (!sd.members)
@@ -1259,8 +1250,8 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
          *  xgetRTInfo
          */
 
-        const(char)* name = sd.toPrettyChars();
-        size_t namelen = strlen(name);
+        const name = sd.toPrettyChars();
+        const namelen = strlen(name);
         dtb.size(namelen);
         dtb.xoff(d.csym, Type.typeinfostruct.structsize);
 
@@ -1312,16 +1303,14 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         version (none)
         {
             // xgetMembers
-            FuncDeclaration sgetmembers = sd.findGetMembers();
-            if (sgetmembers)
+            if (auto sgetmembers = sd.findGetMembers())
                 dtb.xoff(toSymbol(sgetmembers), 0);
             else
                 dtb.size(0);                     // xgetMembers
         }
 
         // xdtor
-        FuncDeclaration sdtor = sd.tidtor;
-        if (sdtor)
+        if (auto sdtor = sd.tidtor)
             dtb.xoff(toSymbol(sdtor), 0);
         else
             dtb.size(0);                     // xdtor
@@ -1339,7 +1328,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         if (global.params.is64bit)
         {
             Type t = sd.arg1type;
-            for (int i = 0; i < 2; i++)
+            foreach (i; 0 .. 2)
             {
                 // m_argi
                 if (t)
@@ -1380,16 +1369,14 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         verifyStructSize(Type.typeinfointerface, 3 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfointerface), 0);    // vtbl for TypeInfoInterface
-        dtb.size(0);                                           // monitor
+        if (Type.typeinfointerface.hasMonitor())
+            dtb.size(0);                                  // monitor
 
-        assert(d.tinfo.ty == Tclass);
-
-        TypeClass tc = cast(TypeClass)d.tinfo;
-        Symbol *s;
+        auto tc = d.tinfo.isTypeClass();
 
         if (!tc.sym.vclassinfo)
             tc.sym.vclassinfo = TypeInfoClassDeclaration.create(tc);
-        s = toSymbol(tc.sym.vclassinfo);
+        auto s = toSymbol(tc.sym.vclassinfo);
         dtb.xoff(s, 0);    // ClassInfo for tinfo
     }
 
@@ -1399,20 +1386,17 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         verifyStructSize(Type.typeinfotypelist, 4 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfotypelist), 0); // vtbl for TypeInfoInterface
-        dtb.size(0);                                       // monitor
+        if (Type.typeinfotypelist.hasMonitor())
+            dtb.size(0);                                  // monitor
 
-        assert(d.tinfo.ty == Ttuple);
+        auto tu = d.tinfo.isTypeTuple();
 
-        TypeTuple tu = cast(TypeTuple)d.tinfo;
-
-        size_t dim = tu.arguments.dim;
+        const dim = tu.arguments.dim;
         dtb.size(dim);                       // elements.length
 
         auto dtbargs = DtBuilder(0);
-        for (size_t i = 0; i < dim; i++)
+        foreach (arg; *tu.arguments)
         {
-            Parameter arg = (*tu.arguments)[i];
-
             genTypeInfo(d.loc, arg.type, null);
             Symbol* s = toSymbol(arg.type.vtinfo);
             dtbargs.xoff(s, 0);

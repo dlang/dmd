@@ -1,3 +1,45 @@
+/*
+TEST_OUTPUT:
+---
+const(immutable(char)*)
+inout(immutable(char)*)
+inout(const(char)*)
+inout(const(char))
+shared(inout(char))
+shared(inout(char))
+immutable(char)
+immutable(char)
+inout(const(char))
+inout(const(char))
+shared(const(char))
+shared(const(char))
+inout(char*****)
+inout(char****)*
+const(char*****)
+const(char****)*
+immutable(char*****)
+immutable(char****)*
+shared(char*****)
+shared(char****)*
+const(shared(char****)*)
+shared(const(char*****))
+shared(char*****)
+immutable(char*****)
+inout(shared(char****)*)
+inout(shared(char**)***)
+shared(inout(char**))
+immutable(string)
+const(char[])
+char[]
+shared(foo85)
+const(char[26])
+const(char[26])
+immutable(char[26])
+immutable(char[26])
+string
+int[3]
+---
+*/
 
 import core.stdc.stdio;
 
@@ -3074,7 +3116,7 @@ class C8366a : B8366
 class C8366b : B8366
 {
     bool foo(in Object o)              { return false; }
-    alias super.foo foo;
+    alias typeof(super).foo foo;
     bool foo(in Object o) immutable    { return false; }
     bool foo(in Object o) shared       { return false; }
     bool foo(in Object o) shared const { return false; }

@@ -15,6 +15,7 @@ module dmd.filecache;
 import dmd.root.stringtable;
 import dmd.root.array;
 import dmd.root.file;
+import dmd.root.filename;
 
 import core.stdc.stdio;
 
@@ -23,23 +24,29 @@ A line-by-line representation of a $(REF File, dmd,root,file).
 */
 class FileAndLines
 {
-    File* file;
+    FileName* file;
+    FileBuffer* buffer;
     const(char[])[] lines;
+
+  nothrow:
 
     /**
     File to read and split into its lines.
     */
     this(const(char)[] filename)
     {
-        file = new File(filename);
+        file = new FileName(filename);
         readAndSplit();
     }
 
     // Read a file and split the file buffer linewise
     private void readAndSplit()
     {
-        file.read();
-        auto buf = file.buffer;
+        auto readResult = File.read(file.toChars());
+        // FIXME: check success
+        // take ownership of buffer
+        buffer = new FileBuffer(readResult.extractData());
+        ubyte* buf = buffer.data.ptr;
         // slice into lines
         while (*buf)
         {
@@ -63,6 +70,8 @@ class FileAndLines
         {
             file.destroy();
             file = null;
+            buffer.destroy();
+            buffer = null;
             lines.destroy();
             lines = null;
         }
@@ -81,6 +90,8 @@ It stores its cached files as $(LREF FileAndLines)
 struct FileCache
 {
     private StringTable files;
+
+  nothrow:
 
     /**
     Add or get a file from the file cache.

@@ -23,118 +23,53 @@ import dmd.root.filename;
 import dmd.root.rmem;
 import dmd.utils;
 
-/***********************************************************
- */
+/// Owns a (rmem-managed) file buffer.
+struct FileBuffer
+{
+    ubyte[] data;
+
+    this(this) @disable;
+
+    ~this() pure nothrow
+    {
+        mem.xfree(data.ptr);
+    }
+
+    /// Transfers ownership of the buffer to the caller.
+    ubyte[] extractData() pure nothrow @nogc @safe
+    {
+        auto result = data;
+        data = null;
+        return result;
+    }
+
+    extern (C++) static FileBuffer* create()
+    {
+        return new FileBuffer();
+    }
+}
+
+///
 struct File
 {
-    int _ref; // != 0 if this is a reference to someone else's buffer
-    ubyte* buffer; // data for our file
-    size_t len; // amount of data in buffer[]
-    const(FileName) name; // name of our file
+    ///
+    static struct ReadResult
+    {
+        bool success;
+        FileBuffer buffer;
+
+        /// Transfers ownership of the buffer to the caller.
+        ubyte[] extractData() pure nothrow @nogc @safe
+        {
+            return buffer.extractData();
+        }
+    }
 
 nothrow:
-    extern (D) this(const(char)* n)
+    /// Read the full content of a file.
+    extern (C++) static ReadResult read(const(char)* name)
     {
-        this(n.toDString());
-    }
-
-    extern (D) this(const(char)[] n)
-    {
-        _ref = 0;
-        buffer = null;
-        len = 0;
-        name = FileName(n);
-    }
-
-    extern (C++) static File* create(const(char)* n)
-    {
-        return new File(n.toDString());
-    }
-
-    extern (C++) ~this()
-    {
-        if (buffer)
-        {
-            if (_ref == 0)
-                mem.xfree(buffer);
-            version (Windows)
-            {
-                if (_ref == 2)
-                    UnmapViewOfFile(buffer);
-            }
-        }
-    }
-
-    extern (C++) const(char)* toChars() const pure nothrow @safe
-    {
-        return name.toChars();
-    }
-
-    const(char)[] toString() const nothrow pure @safe
-    {
-        return name.toString();
-    }
-
-    /**
-     * Read the full content of a file
-     *
-     * Returns:
-     *   `true` if there was an error
-     */
-    extern (C++) bool read()
-    {
-        if (len)
-            return false; // already read the file
-
-        import core.stdc.string : strcmp;
-        const(char)* name = this.name.toChars();
-        if (strcmp(name, "__stdin.d") == 0)
-        {
-            /* Read from stdin */
-            enum bufIncrement = 128 * 1024;
-            size_t pos = 0;
-            size_t sz = bufIncrement;
-
-            if (!_ref)
-                mem.xfree(buffer);
-
-            buffer = null;
-            L1: for (;;)
-            {
-                buffer = cast(ubyte*)mem.xrealloc(buffer, sz + 2); // +2 for sentinel
-                if (!buffer)
-                    break L1;
-
-                // Fill up buffer
-                do
-                {
-                    assert(sz > pos);
-                    size_t rlen = fread(buffer + pos, 1, sz - pos, stdin);
-                    pos += rlen;
-                    if (ferror(stdin))
-                    {
-                        printf("\tread error, errno = %d\n", errno);
-                        break L1;
-                    }
-                    if (feof(stdin))
-                    {
-                        // We're done
-                        assert(pos < sz + 2);
-                        len = pos;
-                        buffer[pos] = '\0';
-                        buffer[pos + 1] = '\0';
-                        return false;
-                    }
-                } while (pos < sz);
-
-                // Buffer full, expand
-                sz += bufIncrement;
-            }
-            mem.xfree(buffer);
-            buffer = null;
-            len = 0;
-            return true;
-        }
+        ReadResult result;
 
         version (Posix)
         {
@@ -146,22 +81,17 @@ nothrow:
             if (fd == -1)
             {
                 //printf("\topen error, errno = %d\n",errno);
-                goto err1;
+                return result;
             }
-            if (!_ref)
-            {
-                mem.xfree(buffer);
-                buffer = null;
-            }
-            _ref = 0; // we own the buffer now
             //printf("\tfile opened\n");
             if (fstat(fd, &buf))
             {
                 printf("\tfstat error, errno = %d\n", errno);
-                goto err2;
+                close(fd);
+                return result;
             }
             size = cast(size_t)buf.st_size;
-            buffer = cast(ubyte*)mem.xmalloc(size + 2);
+            ubyte* buffer = cast(ubyte*)mem.xmalloc(size + 2);
             if (!buffer)
                 goto err2;
             numread = .read(fd, buffer, size);
@@ -175,19 +105,17 @@ nothrow:
                 printf("\tclose error, errno = %d\n", errno);
                 goto err;
             }
-            len = size;
             // Always store a wchar ^Z past end of buffer so scanner has a sentinel
             buffer[size] = 0; // ^Z is obsolete, use 0
             buffer[size + 1] = 0;
-            return false;
+            result.success = true;
+            result.buffer.data = buffer[0 .. size];
+            return result;
         err2:
             close(fd);
         err:
             mem.xfree(buffer);
-            buffer = null;
-            len = 0;
-        err1:
-            return true;
+            return result;
         }
         else version (Windows)
         {
@@ -205,12 +133,9 @@ nothrow:
                                   FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,
                                   null));
             if (h == INVALID_HANDLE_VALUE)
-                goto err1;
-            if (!_ref)
-                mem.xfree(buffer);
-            _ref = 0;
+                return result;
             size = GetFileSize(h, null);
-            buffer = cast(ubyte*)mem.xmalloc(size + 2);
+            ubyte* buffer = cast(ubyte*)mem.xmalloc(size + 2);
             if (!buffer)
                 goto err2;
             if (ReadFile(h, buffer, size, &numread, null) != TRUE)
@@ -219,19 +144,17 @@ nothrow:
                 goto err2;
             if (!CloseHandle(h))
                 goto err;
-            len = size;
             // Always store a wchar ^Z past end of buffer so scanner has a sentinel
             buffer[size] = 0; // ^Z is obsolete, use 0
             buffer[size + 1] = 0;
-            return 0;
+            result.success = true;
+            result.buffer.data = buffer[0 .. size];
+            return result;
         err2:
             CloseHandle(h);
         err:
             mem.xfree(buffer);
-            buffer = null;
-            len = 0;
-        err1:
-            return true;
+            return result;
         }
         else
         {
@@ -239,36 +162,30 @@ nothrow:
         }
     }
 
-    /*********************************************
-     * Write a file.
-     * Returns:
-     *      false       success
-     */
-    extern (C++) bool write()
+    /// Write a file, returning `true` on success.
+    extern (D) static bool write(const(char)* name, const void[] data)
     {
         version (Posix)
         {
             ssize_t numwritten;
-            const(char)* name = this.name.toChars();
             int fd = open(name, O_CREAT | O_WRONLY | O_TRUNC, (6 << 6) | (4 << 3) | 4);
             if (fd == -1)
                 goto err;
-            numwritten = .write(fd, buffer, len);
-            if (len != numwritten)
+            numwritten = .write(fd, data.ptr, data.length);
+            if (numwritten != data.length)
                 goto err2;
             if (close(fd) == -1)
                 goto err;
-            return false;
+            return true;
         err2:
             close(fd);
             .remove(name);
         err:
-            return true;
+            return false;
         }
         else version (Windows)
         {
             DWORD numwritten; // here because of the gotos
-            const(char)* name = this.name.toChars();
             // work around Windows file path length limitation
             // (see documentation for extendedPathThen).
             HANDLE h = name.toDString.extendedPathThen!
@@ -282,18 +199,18 @@ nothrow:
             if (h == INVALID_HANDLE_VALUE)
                 goto err;
 
-            if (WriteFile(h, buffer, cast(DWORD)len, &numwritten, null) != TRUE)
+            if (WriteFile(h, data.ptr, cast(DWORD)data.length, &numwritten, null) != TRUE)
                 goto err2;
-            if (len != numwritten)
+            if (numwritten != data.length)
                 goto err2;
             if (!CloseHandle(h))
                 goto err;
-            return false;
+            return true;
         err2:
             CloseHandle(h);
             DeleteFileA(name);
         err:
-            return true;
+            return false;
         }
         else
         {
@@ -301,24 +218,28 @@ nothrow:
         }
     }
 
-    /* Set buffer
-     */
-    extern (C++) void setbuffer(void* buffer, size_t len)
+    ///ditto
+    extern(D) static bool write(const(char)[] name, const void[] data)
     {
-        this.buffer = cast(ubyte*)buffer;
-        this.len = len;
+        return name.toCStringThen!((fname) => write(fname.ptr, data));
     }
 
-    // delete file
-    extern (C++) void remove()
+    /// ditto
+    extern (C++) static bool write(const(char)* name, const(void)* data, size_t size)
+    {
+        return write(name, data[0 .. size]);
+    }
+
+    /// Delete a file.
+    extern (C++) static void remove(const(char)* name)
     {
         version (Posix)
         {
-            int dummy = .remove(this.name.toChars());
+            int dummy = .remove(name);
         }
         else version (Windows)
         {
-            DeleteFileA(this.name.toChars());
+            DeleteFileA(name);
         }
         else
         {
