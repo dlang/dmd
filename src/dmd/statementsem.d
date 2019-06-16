@@ -2555,7 +2555,7 @@ else
         ss._body = ss._body.statementSemantic(sc);
         sc.inLoop = inLoopSave;
 
-        if (conditionError || ss._body.isErrorStatement())
+        if (conditionError || (ss._body && ss._body.isErrorStatement()))
         {
             sc.pop();
             return setError();
@@ -2626,7 +2626,7 @@ else
         {
             ss.hasNoDefault = 1;
 
-            if (!ss.isFinal && !ss._body.isErrorStatement())
+            if (!ss.isFinal && (!ss._body || !ss._body.isErrorStatement()))
                 ss.error("`switch` statement without a `default`; use `final switch` or add `default: assert(0);` or add `default: break;`");
 
             // Generate runtime error if the default is hit
@@ -4191,12 +4191,19 @@ else
             }
 
             s.dsymbolSemantic(sc);
-            Module.addDeferredSemantic2(s);     // https://issues.dlang.org/show_bug.cgi?id=14666
-            sc.insert(s);
 
-            foreach (aliasdecl; s.aliasdecls)
+            // https://issues.dlang.org/show_bug.cgi?id=19942
+            // If the module that's being imported doesn't exist, don't add it to the symbol table
+            // for the current scope.
+            if (s.mod !is null)
             {
-                sc.insert(aliasdecl);
+                Module.addDeferredSemantic2(s);     // https://issues.dlang.org/show_bug.cgi?id=14666
+                sc.insert(s);
+
+                foreach (aliasdecl; s.aliasdecls)
+                {
+                    sc.insert(aliasdecl);
+                }
             }
         }
         result = imps;

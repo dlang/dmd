@@ -46,6 +46,8 @@ import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
 import dmd.imphint;
+import dmd.init;
+import dmd.initsem;
 import dmd.inline;
 import dmd.intrange;
 import dmd.mtype;
@@ -3523,6 +3525,22 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     exp.error("no constructor for `%s`", cd.toChars());
                     return setError();
                 }
+
+                // https://issues.dlang.org/show_bug.cgi?id=19941
+                // Run semantic on all field initializers to resolve any forward
+                // references. This is the same as done for structs in sd.fill().
+                for (ClassDeclaration c = cd; c; c = c.baseClass)
+                {
+                    foreach (v; c.fields)
+                    {
+                        if (v.inuse || v._scope is null || v._init is null ||
+                            v._init.isVoidInitializer())
+                            continue;
+                        v.inuse++;
+                        v._init = v._init.initializerSemantic(v._scope, v.type, INITinterpret);
+                        v.inuse--;
+                    }
+                }
             }
         }
         else if (tb.ty == Tstruct)
@@ -6784,6 +6802,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
         }
 
+        // https://issues.dlang.org/show_bug.cgi?id=19954
+        if (exp.e1.type.ty == Ttuple)
+        {
+            TupleExp te = exp.e1.isTupleExp();
+            if (te.exps.dim == 1)
+                exp.e1 = (*te.exps)[0];
+        }
+
         // only allow S(x) rewrite if cast specified S explicitly.
         // See https://issues.dlang.org/show_bug.cgi?id=18545
         const bool allowImplicitConstruction = exp.to !is null;
@@ -6889,41 +6915,45 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
             }
 
-            if(t1b.ty == Tarray && exp.e1.op != TOK.string_ && exp.e1.op != TOK.arrayLiteral)
+            if(t1b.ty == Tarray && exp.e1.op != TOK.arrayLiteral && (sc.flags & SCOPE.ctfe) == 0)
             {
                 auto tFrom = t1b.nextOf();
                 auto tTo = tob.nextOf();
 
-                const uint fromSize = cast(uint)tFrom.size();
-                const uint toSize = cast(uint)tTo.size();
-
-                // If array element sizes do not match, we must adjust the dimensions
-                if (fromSize != toSize)
+                // https://issues.dlang.org/show_bug.cgi?id=19954
+                if (exp.e1.op != TOK.string_ || tTo.ty == Tarray)
                 {
-                    // A runtime check is needed in case arrays don't line up.  That check should
-                    // be done in the implementation of `object.__ArrayCast`
-                    if (toSize == 0 || (fromSize % toSize) != 0)
+                    const uint fromSize = cast(uint)tFrom.size();
+                    const uint toSize = cast(uint)tTo.size();
+
+                    // If array element sizes do not match, we must adjust the dimensions
+                    if (fromSize != toSize)
                     {
                         if (!verifyHookExist(exp.loc, *sc, Id.__ArrayCast, "casting array of structs"))
                             return setError();
 
-                        // lower to `object.__ArrayCast!(TFrom, TTo)(from)`
+                        // A runtime check is needed in case arrays don't line up.  That check should
+                        // be done in the implementation of `object.__ArrayCast`
+                        if (toSize == 0 || (fromSize % toSize) != 0)
+                        {
+                            // lower to `object.__ArrayCast!(TFrom, TTo)(from)`
 
-                        // fully qualify as `object.__ArrayCast`
-                        Expression id = new IdentifierExp(exp.loc, Id.empty);
-                        auto dotid = new DotIdExp(exp.loc, id, Id.object);
+                            // fully qualify as `object.__ArrayCast`
+                            Expression id = new IdentifierExp(exp.loc, Id.empty);
+                            auto dotid = new DotIdExp(exp.loc, id, Id.object);
 
-                        auto tiargs = new Objects();
-                        tiargs.push(tFrom);
-                        tiargs.push(tTo);
-                        auto dt = new DotTemplateInstanceExp(exp.loc, dotid, Id.__ArrayCast, tiargs);
+                            auto tiargs = new Objects();
+                            tiargs.push(tFrom);
+                            tiargs.push(tTo);
+                            auto dt = new DotTemplateInstanceExp(exp.loc, dotid, Id.__ArrayCast, tiargs);
 
-                        auto arguments = new Expressions();
-                        arguments.push(exp.e1);
-                        Expression ce = new CallExp(exp.loc, dt, arguments);
+                            auto arguments = new Expressions();
+                            arguments.push(exp.e1);
+                            Expression ce = new CallExp(exp.loc, dt, arguments);
 
-                        result = expressionSemantic(ce, sc);
-                        return;
+                            result = expressionSemantic(ce, sc);
+                            return;
+                        }
                     }
                 }
             }

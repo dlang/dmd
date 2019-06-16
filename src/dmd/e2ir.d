@@ -317,11 +317,7 @@ private elem *callfunc(const ref Loc loc,
             ehidden = el_ptr(stmp);
             eresult = ehidden;
         }
-        if ((irs.params.isLinux ||
-             irs.params.isOSX ||
-             irs.params.isFreeBSD ||
-             irs.params.isDragonFlyBSD ||
-             irs.params.isSolaris) && tf.linkage != LINK.d)
+        if (irs.params.isPOSIX && tf.linkage != LINK.d)
         {
                 // ehidden goes last on Linux/OSX C++
         }
@@ -514,7 +510,14 @@ if (!irs.params.is64bit) assert(tysize(TYnptr) == 4);
             e.Eflags |= EFLAGS_variadic;
     }
 
-    if (retmethod == RET.stack)
+    const isCPPCtor = fd && fd.linkage == LINK.cpp && fd.isCtorDeclaration();
+    if (isCPPCtor && irs.params.isPOSIX)
+    {
+        // CPP constructor returns void on Posix
+        // https://itanium-cxx-abi.github.io/cxx-abi/abi.html#return-value-ctor
+        e = el_combine(e, el_same(&ethis));
+    }
+    else if (retmethod == RET.stack)
     {
         if (irs.params.isOSX && eresult)
             /* ABI quirk: hidden pointer is not returned in registers
