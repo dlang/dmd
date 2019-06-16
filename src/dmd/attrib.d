@@ -451,10 +451,32 @@ extern (C++) final class CPPMangleDeclaration : AttribDeclaration
     }
 }
 
-/***********************************************************
+/**
+ * A node to represent an `extern(C++)` namespace attribute
+ *
+ * There are two ways to declarate a symbol as member of a namespace:
+ * `Nspace` and `CPPNamespaceDeclaration`.
+ * The former creates a scope for the symbol, and inject them in the
+ * parent scope at the same time.
+ * The later, this class, has no semantic implications and is only
+ * used for mangling.
+ * Additionally, this class allows one to use reserved identifiers
+ * (D keywords) in the namespace.
+ *
+ * A `CPPNamespaceDeclaration` can be created from an `Identifier`
+ * (already resolved) or from an `Expression`, which is CTFE-ed
+ * and can be either a `TupleExp`, in which can additional
+ * `CPPNamespaceDeclaration` nodes are created, or a `StringExp`.
+ *
+ * Note that this class, like `Nspace`, matches only one identifier
+ * part of a namespace. For the namespace `"foo::bar"`,
+ * the will be a `CPPNamespaceDeclaration` with its `ident`
+ * set to `"bar"`, and its `namespace` field pointing to another
+ * `CPPNamespaceDeclaration` with its `ident` set to `"foo"`.
  */
 extern (C++) final class CPPNamespaceDeclaration : AttribDeclaration
 {
+    /// CTFE-able expression, resolving to `TupleExp` or `StringExp`
     Expression exp;
 
     extern (D) this(Identifier ident, Dsymbols* decl)
@@ -485,6 +507,10 @@ extern (C++) final class CPPNamespaceDeclaration : AttribDeclaration
             this.ident, this.exp, Dsymbol.arraySyntaxCopy(this.decl), this.namespace);
     }
 
+    /**
+     * Returns:
+     *   A copy of the parent scope, with `this` as `namespace` and C++ linkage
+     */
     override Scope* newScope(Scope* sc)
     {
         auto scx = sc.copy();
