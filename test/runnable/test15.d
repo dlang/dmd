@@ -1369,6 +1369,26 @@ void test72()
     assert(foos.length == 1);
 }
 
+/************************************/
+// https://issues.dlang.org/show_bug.cgi?id=19758
+
+void test19758()
+{
+    byte[1] a = [1];
+    int b = 0;
+
+    // If delete this 4 lines, the result is correct.
+    if (a[b] == 0)
+    {
+        a[b] = 0;
+        if (1 << b) { }
+    }
+
+    if ((a[b] & 0xFF) == 0)
+    {
+        assert((a[b] & 0xFF) == 0);
+    }
+}
 
 /************************************/
 
@@ -1439,6 +1459,7 @@ int main()
     test70();
     test71();
     test72();
+    test19758();
 
     printf("Success\n");
     return 0;
