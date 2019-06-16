@@ -1823,19 +1823,17 @@ public:
                 break;
             case Tuns8:
                 buf.writestring("cast(ubyte)");
-                goto L3;
+                goto case Tuns32;
             case Tuns16:
                 buf.writestring("cast(ushort)");
-                goto L3;
+                goto case Tuns32;
             case Tuns32:
-            L3:
                 buf.printf("%uu", cast(uint)v);
                 break;
             case Tint64:
                 buf.printf("%lldL", v);
                 break;
             case Tuns64:
-            L4:
                 buf.printf("%lluLU", v);
                 break;
             case Tbool:
@@ -1845,12 +1843,10 @@ public:
                 buf.writestring("cast(");
                 buf.writestring(t.toChars());
                 buf.writeByte(')');
-                if (target.ptrsize == 4)
-                    goto L3;
-                else if (target.ptrsize == 8)
-                    goto L4;
+                if (target.ptrsize == 8)
+                    goto case Tuns64;
                 else
-                    assert(0);
+                    goto case Tuns32;
             default:
                 /* This can happen if errors, such as
                  * the type is painted on like in fromConstInitializer().
@@ -3122,11 +3118,13 @@ private void sizeToBuffer(Expression e, OutBuffer* buf, HdrGenState* hgs)
         const dinteger_t uval = ex.op == TOK.int64 ? ex.toInteger() : cast(dinteger_t)-1;
         if (cast(sinteger_t)uval >= 0)
         {
-            dinteger_t sizemax;
-            if (target.ptrsize == 4)
-                sizemax = 0xFFFFFFFFU;
-            else if (target.ptrsize == 8)
+            dinteger_t sizemax = void;
+            if (target.ptrsize == 8)
                 sizemax = 0xFFFFFFFFFFFFFFFFUL;
+            else if (target.ptrsize == 4)
+                sizemax = 0xFFFFFFFFU;
+            else if (target.ptrsize == 2)
+                sizemax = 0xFFFFU;
             else
                 assert(0);
             if (uval <= sizemax && uval <= 0x7FFFFFFFFFFFFFFFUL)
