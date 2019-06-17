@@ -39,7 +39,7 @@ alias dstring = immutable(dchar)[];
 version (D_ObjectiveC) public import core.attribute : selector;
 
 public import rt.array.comparison : __cmp;
-public import rt.array.equality : __equals;
+public import rt.array.equality : __ArrayEq, __equals;
 
 // Compare class and interface objects for ordering.
 private int __cmp(Obj)(Obj lhs, Obj rhs)
@@ -4382,19 +4382,6 @@ private void _doPostblit(T)(T[] arr)
     int p;
     scope S[1] arr = [S(&p)];
     auto a = arr.dup; // dup does escape
-}
-
-// compiler frontend lowers dynamic array comparison to this
-bool __ArrayEq(T1, T2)(T1[] a, T2[] b)
-{
-    if (a.length != b.length)
-        return false;
-    foreach (size_t i; 0 .. a.length)
-    {
-        if (a[i] != b[i])
-            return false;
-    }
-    return true;
 }
 
 // compiler frontend lowers struct array postblitting to this

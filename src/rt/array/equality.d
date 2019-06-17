@@ -8,7 +8,20 @@
  * Source: $(DRUNTIMESRC rt/_array.d)
  */
 
- module rt.array.equality;
+module rt.array.equality;
+
+// compiler frontend lowers dynamic array comparison to this
+bool __ArrayEq(T1, T2)(T1[] a, T2[] b)
+{
+    if (a.length != b.length)
+        return false;
+    foreach (size_t i; 0 .. a.length)
+    {
+        if (a[i] != b[i])
+            return false;
+    }
+    return true;
+}
 
  // `lhs == rhs` lowers to `__equals(lhs, rhs)` for dynamic arrays
 bool __equals(T1, T2)(T1[] lhs, T2[] rhs)
