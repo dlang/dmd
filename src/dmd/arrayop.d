@@ -155,6 +155,8 @@ Expression arrayOp(BinAssignExp e, Scope* sc)
     if (tn && (!tn.isMutable() || !tn.isAssignable()))
     {
         e.error("slice `%s` is not mutable", e.e1.toChars());
+        if (e.op == TOK.addAssign)
+            checkPossibleAddCatError!(AddAssignExp, CatAssignExp)(e.isAddAssignExp);
         return new ErrorExp();
     }
     if (e.e1.op == TOK.arrayLiteral)
@@ -342,5 +344,17 @@ bool isArrayOpOperand(Expression e)
 ErrorExp arrayOpInvalidError(Expression e)
 {
     e.error("invalid array operation `%s` (possible missing [])", e.toChars());
+    if (e.op == TOK.add)
+        checkPossibleAddCatError!(AddExp, CatExp)(e.isAddExp());
+    else if (e.op == TOK.addAssign)
+        checkPossibleAddCatError!(AddAssignExp, CatAssignExp)(e.isAddAssignExp());
     return new ErrorExp();
+}
+
+private void checkPossibleAddCatError(AddT, CatT)(AddT ae)
+{
+    if (!ae.e2.type || ae.e2.type.ty != Tarray || !ae.e2.type.implicitConvTo(ae.e1.type))
+        return;
+    CatT ce = new CatT(ae.loc, ae.e1, ae.e2);
+    ae.errorSupplemental("did you mean to concatenate (`%s`) instead ?", ce.toChars());
 }
