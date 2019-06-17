@@ -405,5 +405,6 @@ COPY=\
 	\
 	$(IMPDIR)\rt\array\comparison.d \
 	$(IMPDIR)\rt\array\equality.d \
+	$(IMPDIR)\rt\array\casting.d \
 	\
 	$(IMPDIR)\etc\linux\memoryerror.d

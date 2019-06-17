@@ -1193,3 +1193,6 @@ $(IMPDIR)\rt\array\comparison.d : src\rt\array\comparison.d
 
 $(IMPDIR)\rt\array\equality.d : src\rt\array\equality.d
 	copy $** $@
+
+$(IMPDIR)\rt\array\casting.d : src\rt\array\casting.d
+	copy $** $@
