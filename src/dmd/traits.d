@@ -1823,6 +1823,17 @@ Lnext:
             return new ErrorExp();
         }
 
+        const fd = s.isFuncDeclaration();
+        const td = s.isTemplateDeclaration();
+        if ((fd && fd.overnext) || (td && td.overnext))
+        {
+            e.error("cannot get location of an overload set, " ~
+                    "use `__traits(getOverloads, ..., \"%s\"%s)[N]` " ~
+                    "to get the Nth overload",
+                    arg0.toChars(), td ? ", true".ptr : "".ptr);
+            return new ErrorExp();
+        }
+
         auto exps = new Expressions(3);
         exps.data[0] = new StringExp(e.loc, cast(void*)s.loc.filename, strlen(s.loc.filename));
         exps.data[1] = new IntegerExp(e.loc, s.loc.linnum,Type.tint32);
