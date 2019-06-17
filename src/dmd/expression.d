@@ -1887,13 +1887,13 @@ extern (C++) final class IntegerExp : Expression
             break;
 
         case Tpointer:
+            if (target.ptrsize == 8)
+                goto case Tuns64;
             if (target.ptrsize == 4)
-                result = cast(d_uns32)value;
-            else if (target.ptrsize == 8)
-                result = cast(d_uns64)value;
-            else
-                assert(0);
-            break;
+                goto case Tuns32;
+            if (target.ptrsize == 2)
+                goto case Tuns16;
+            assert(0);
 
         default:
             break;

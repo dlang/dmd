@@ -4427,13 +4427,13 @@ struct ASTBase
                 break;
 
             case Tpointer:
+                if (Target.ptrsize == 8)
+                    goto case Tuns64;
                 if (Target.ptrsize == 4)
-                    value = cast(d_uns32)value;
-                else if (Target.ptrsize == 8)
-                    value = cast(d_uns64)value;
-                else
-                    assert(0);
-                break;
+                    goto case Tuns32;
+                if (Target.ptrsize == 2)
+                    goto case Tuns16;
+                assert(0);
 
             default:
                 break;
