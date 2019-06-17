@@ -949,57 +949,33 @@ private:
                 symEnd = eptr - buf.ptr;
             }
         }
-        else version (FreeBSD)
-        {
-            // format is: 0x00000000 <_D6module4funcAFZv+0x78> at module
-            auto bptr = cast(char*) memchr( buf.ptr, '<', buf.length );
-            auto eptr = cast(char*) memchr( buf.ptr, '+', buf.length );
-
-            if ( bptr++ && eptr )
-            {
-                symBeg = bptr - buf.ptr;
-                symEnd = eptr - buf.ptr;
-            }
-        }
-        else version (NetBSD)
-        {
-            // format is: 0x00000000 <_D6module4funcAFZv+0x78> at module
-            auto bptr = cast(char*) memchr( buf.ptr, '<', buf.length );
-            auto eptr = cast(char*) memchr( buf.ptr, '+', buf.length );
-
-            if ( bptr++ && eptr )
-            {
-                symBeg = bptr - buf.ptr;
-                symEnd = eptr - buf.ptr;
-            }
-        }
-        else version (DragonFlyBSD)
-        {
-            // format is: 0x00000000 <_D6module4funcAFZv+0x78> at module
-            auto bptr = cast(char*) memchr( buf.ptr, '<', buf.length );
-            auto eptr = cast(char*) memchr( buf.ptr, '+', buf.length );
-
-            if ( bptr++ && eptr )
-            {
-                symBeg = bptr - buf.ptr;
-                symEnd = eptr - buf.ptr;
-            }
-        }
-        else version (Solaris)
-        {
-            // format is object'symbol+offset [pc]
-            auto bptr = cast(char*) memchr( buf.ptr, '\'', buf.length );
-            auto eptr = cast(char*) memchr( buf.ptr, '+', buf.length );
-
-            if ( bptr++ && eptr )
-            {
-                symBeg = bptr - buf.ptr;
-                symEnd = eptr - buf.ptr;
-            }
-        }
         else
         {
+            // format is: 0x00000000 <_D6module4funcAFZv+0x78> at module
+            version (FreeBSD)
+                enum StartChar = '<';
+            else version (NetBSD)
+                enum StartChar = '<';
+            else version (DragonFlyBSD)
+                enum StartChar = '<';
+            // format is object'symbol+offset [pc]
+            else version (Solaris)
+                enum StartChar = '\'';
             // fallthrough
+            else
+                enum StartChar = '\0';
+
+            if (StartChar != '\0')
+            {
+                auto bptr = cast(char*) memchr(buf.ptr, StartChar, buf.length);
+                auto eptr = cast(char*) memchr(buf.ptr, '+', buf.length);
+
+                if (bptr++ && eptr)
+                {
+                    symBeg = bptr - buf.ptr;
+                    symEnd = eptr - buf.ptr;
+                }
+            }
         }
 
         assert(symBeg < buf.length && symEnd < buf.length);
