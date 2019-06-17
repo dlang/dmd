@@ -523,7 +523,7 @@ private final class CppMangleVisitor : Visitor
         if (p && !p.isModule())
         {
             buf.writestring("N");
-            source_name(p);
+            source_name(p, true);
             dg();
             buf.writestring("E");
         }
@@ -531,9 +531,22 @@ private final class CppMangleVisitor : Visitor
             dg();
     }
 
-    void source_name(Dsymbol s)
+    /**
+     * Write the name of `s` to the buffer
+     *
+     * Params:
+     *   s = Symbol to write the name of
+     *   haveNE = Whether `N..E` is already part of the mangling
+     *            Because `Nspace` and `CPPNamespaceAttribute` can be
+     *            mixed, this is a mandatory hack.
+     */
+    void source_name(Dsymbol s, bool haveNE = false)
     {
         //printf("source_name(%s)\n", s.toChars());
+        {
+            auto sl = this.buf.peekSlice();
+            assert(sl.length == 0 || haveNE || s.namespace is null || sl != "_ZN");
+        }
         if (TemplateInstance ti = s.isTemplateInstance())
         {
             bool needsTa = false;
@@ -551,11 +564,12 @@ private final class CppMangleVisitor : Visitor
                     s.namespace, () {
                         this.writeIdentifier(ti.tempdecl.toAlias().ident);
                         template_args(ti);
-                    });
+                    }, haveNE);
             }
         }
         else
-            this.writeNamespace(s.namespace, () => this.writeIdentifier(s.ident));
+            this.writeNamespace(s.namespace, () => this.writeIdentifier(s.ident),
+                                haveNE);
     }
 
     /********
@@ -690,7 +704,7 @@ private final class CppMangleVisitor : Visitor
             else
                 prefix_name(p);
         }
-        source_name(si);
+        source_name(si, true);
         if (!isStd(si))
             /* Do this after the source_name() call to keep components[]
              * in the right order.
@@ -824,7 +838,7 @@ private final class CppMangleVisitor : Visitor
                             return;
                     }
                     buf.writestring("St");
-                    source_name(se);
+                    source_name(se, true);
                 }
             }
             else
@@ -837,7 +851,7 @@ private final class CppMangleVisitor : Visitor
                     else
                         prefix_name(p);
                 }
-                source_name(se);
+                source_name(se, true);
                 buf.writeByte('E');
             }
         }
@@ -881,7 +895,7 @@ private final class CppMangleVisitor : Visitor
         {
             buf.writestring("_ZN");
             prefix_name(p);
-            source_name(d);
+            source_name(d, true);
             buf.writeByte('E');
         }
         //char beta[6] should mangle as "beta"
@@ -937,7 +951,7 @@ private final class CppMangleVisitor : Visitor
                 else if (d.ident && d.ident == Id.call)
                     buf.writestring("cl");
                 else
-                    source_name(d);
+                    source_name(d, true);
                 buf.writeByte('E');
             }
             else
@@ -956,10 +970,12 @@ private final class CppMangleVisitor : Visitor
      * Parameters:
      *   ns = Namespace to mangle
      *   dg = A delegate to write the identifier in this namespace
-     *   nested = When `false`, do not nest the name within `N..E`
+     *   haveNE = When `false` (the default), surround the namespace / dg
+     *            call with nested name qualifier (`N..E`).
+     *            Otherwise, they are already present (e.g. `Nspace` was used).
      */
     void writeNamespace(CPPNamespaceDeclaration ns, scope void delegate() dg,
-                        bool nested = true)
+                        bool haveNE = false)
     {
         void runDg () { if (dg !is null) dg(); }
 
@@ -974,7 +990,7 @@ private final class CppMangleVisitor : Visitor
         }
         else if (dg !is null)
         {
-            if (nested)
+            if (!haveNE)
                 buf.writestring("N");
             if (!substitute(ns))
             {
@@ -983,7 +999,7 @@ private final class CppMangleVisitor : Visitor
                 append(ns);
             }
             dg();
-            if (nested)
+            if (!haveNE)
                 buf.writestring("E");
         }
         else if (!substitute(ns))
@@ -1016,7 +1032,7 @@ private final class CppMangleVisitor : Visitor
             TypeFunction preSemantic = cast(TypeFunction)d.originalType;
             auto nspace = ti.toParent3();
             if (nspace && nspace.isNspace())
-                this.writeChained(ti.toParent3(), () => source_name(ti));
+                this.writeChained(ti.toParent3(), () => source_name(ti, true));
             else
                 source_name(ti);
             this.mangleReturnType(preSemantic);
@@ -1133,7 +1149,7 @@ private final class CppMangleVisitor : Visitor
                 break;
             }
             if (symName.length == 0)
-                source_name(ti);
+                source_name(ti, true);
             else
             {
                 buf.writestring(symName);
