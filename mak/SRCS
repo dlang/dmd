@@ -451,6 +451,9 @@ SRCS=\
 	src\rt\tracegc.d \
 	src\rt\unwind.d \
 	\
+	src\rt\array\comparison.d \
+	src\rt\array\equality.d \
+	\
 	src\rt\backtrace\dwarf.d \
 	src\rt\backtrace\elf.d \
 	src\rt\backtrace\macho.d \

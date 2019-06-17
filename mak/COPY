@@ -403,4 +403,7 @@ COPY=\
 	$(IMPDIR)\core\sys\windows\wtsapi32.d \
 	$(IMPDIR)\core\sys\windows\wtypes.d \
 	\
+	$(IMPDIR)\rt\array\comparison.d \
+	$(IMPDIR)\rt\array\equality.d \
+	\
 	$(IMPDIR)\etc\linux\memoryerror.d
