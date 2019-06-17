@@ -47,6 +47,7 @@ extern (C) void out_config_init(
         bool alwaysframe,       // always create standard function frame
         bool stackstomp,        // add stack stomping code
         ubyte avx,              // use AVX instruction set (0, 1, 2)
+        PIC pic,                // kind of position independent code
         bool useModuleInfo,     // implement ModuleInfo
         bool useTypeInfo,       // implement TypeInfo
         bool useExceptions,     // implement exception handling
@@ -96,7 +97,7 @@ void backend_init()
              global.params.isDragonFlyBSD ||
              global.params.isSolaris)
     {
-        exe = params.pic == 0;
+        exe = params.pic == PIC.fixed;
     }
 
     out_config_init(
@@ -110,6 +111,7 @@ void backend_init()
         params.alwaysframe,
         params.stackstomp,
         params.cpu >= CPU.avx2 ? 2 : params.cpu >= CPU.avx ? 1 : 0,
+        params.pic,
         params.useModuleInfo && Module.moduleinfo,
         params.useTypeInfo && Type.dtypeinfo,
         params.useExceptions && ClassDeclaration.throwable,

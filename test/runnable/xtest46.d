@@ -6801,7 +6801,7 @@ void test9477()
     foreach (b1; Tuple9477!(false, true))
         foreach (b2; Tuple9477!(false, true))
         {
-            version (D_PIC) {} else // Work around http://d.puremagic.com/issues/show_bug.cgi?id=9754
+            version (D_PIC) {} else version (D_PIE) {}  else // Work around http://d.puremagic.com/issues/show_bug.cgi?id=9754
             {
                 assert( isEq (cast(Select9477!(b1, string, char[0]))"" , cast(Select9477!(b2, string, char[0]))""  ));
                 assert(!isNeq(cast(Select9477!(b1, string, char[0]))"" , cast(Select9477!(b2, string, char[0]))""  ));

@@ -105,6 +105,7 @@ fail_compilation/reserved_version.d(206): Error: version identifier `CppRuntime_
 fail_compilation/reserved_version.d(207): Error: version identifier `CppRuntime_Gcc` is reserved and cannot be set
 fail_compilation/reserved_version.d(208): Error: version identifier `CppRuntime_Microsoft` is reserved and cannot be set
 fail_compilation/reserved_version.d(209): Error: version identifier `CppRuntime_Sun` is reserved and cannot be set
+fail_compilation/reserved_version.d(210): Error: version identifier `D_PIE` is reserved and cannot be set
 ---
 */
 
@@ -216,6 +217,7 @@ version = CppRuntime_DigitalMars;
 version = CppRuntime_Gcc;
 version = CppRuntime_Microsoft;
 version = CppRuntime_Sun;
+version = D_PIE;
 
 // This should work though
 debug = DigitalMars;
@@ -309,6 +311,7 @@ debug = D_X32;
 debug = D_HardFloat;
 debug = D_SoftFloat;
 debug = D_PIC;
+debug = D_PIE;
 debug = D_SIMD;
 debug = D_Version2;
 debug = D_NoBoundsChecks;

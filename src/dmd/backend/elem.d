@@ -1349,7 +1349,7 @@ else
 static if (TARGET_OSX)
 {
 
-elem *el_picvar(Symbol *s)
+private elem *el_picvar(Symbol *s)
 {
     elem *e;
     int x;
@@ -1496,12 +1496,22 @@ static if (1)
     }
     return e;
 }
+
+private elem *el_pievar(Symbol *s)
+{
+    assert(0);  // option not needed on TARGET_OSX
+}
+
+private elem *el_pieptr(Symbol *s)
+{
+    assert(0);  // option not needed on TARGET_OSX
+}
 }
 
 static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
 {
 
-elem *el_picvar(Symbol *s)
+private elem *el_picvar(Symbol *s)
 {
     elem *e;
     int x;
@@ -1514,7 +1524,7 @@ elem *el_picvar(Symbol *s)
     e.EV.Vsym = s;
     e.Ety = s.ty();
 
-    /* For 32 bit:
+    /* For 32 bit PIC:
      *      CALL __i686.get_pc_thunk.bx@PC32
      *      ADD  EBX,offset _GLOBAL_OFFSET_TABLE_@GOTPC[2]
      * Generate for var locals:
@@ -1551,11 +1561,19 @@ elem *el_picvar(Symbol *s)
                 x = 0;
                 goto case_got64;
 
+            case SCglobal:
+                if (config.flags3 & CFG3pie)
+                    x = 0;
+                else
+                    x = 1;
+                goto case_got64;
+
             case SCcomdat:
             case SCcomdef:
-            case SCglobal:
             case SCextern:
                 x = 1;
+                goto case_got64;
+
             case_got64:
             {
                 Obj.refGOTsym();
@@ -1610,6 +1628,7 @@ elem *el_picvar(Symbol *s)
         }
     }
     else
+    {
         switch (s.Sclass)
         {
             /* local (and thread) symbols get only one level of indirection;
@@ -1620,9 +1639,17 @@ elem *el_picvar(Symbol *s)
                 x = 0;
                 goto case_got;
 
+            case SCglobal:
+                if (config.flags3 & CFG3pie)
+                    x = 0;
+                else if (s.Stype.Tty & mTYthread)
+                    x = 0;
+                else
+                    x = 1;
+                goto case_got;
+
             case SCcomdat:
             case SCcomdef:
-            case SCglobal:
             case SCextern:
                 if (s.Stype.Tty & mTYthread)
                     x = 0;
@@ -1685,6 +1712,191 @@ elem *el_picvar(Symbol *s)
             default:
                 break;
         }
+    }
+    return e;
+}
+
+/**********************************************
+ * Create an elem for TLS variable `s`.
+ * Use PIE protocol.
+ * Params: s = variable's symbol
+ * Returns: elem created
+ */
+private elem *el_pievar(Symbol *s)
+{
+    int x;
+
+    //printf("el_pievar(s = '%s')\n", s.Sident.ptr);
+    symbol_debug(s);
+    type_debug(s.Stype);
+    auto e = el_calloc();
+    e.Eoper = OPvar;
+    e.EV.Vsym = s;
+    e.Ety = s.ty();
+
+    if (I64)
+    {
+        switch (s.Sclass)
+        {
+            case SCstatic:
+            case SClocstat:
+            case SCglobal:
+                break;
+
+            case SCcomdat:
+            case SCcomdef:
+            case SCextern:
+            {
+                /* Generate:
+                 *   mov RAX,extern_tls@GOTTPOFF[RIP]
+                 *   mov EAX,FS:[RAX]
+                 */
+                Obj.refGOTsym();
+                tym_t tym = e.Ety;
+                e.Ety = TYsptr;         // TYsptr means FS:
+
+                e = el_una(OPind, tym, e);
+                break;
+            }
+            default:
+                break;
+        }
+    }
+    else
+    {
+        switch (s.Sclass)
+        {
+            case SCstatic:
+            case SClocstat:
+            case SCglobal:
+                break;
+
+            case SCcomdat:
+            case SCcomdef:
+            case SCextern:
+            {
+                /* Generate:
+                 *   mov EAX,extern_tls@TLS_GOTIE[ECX]
+                 *   mov EAX,GS:[EAX]
+                 */
+                tym_t tym = e.Ety;
+                e.Eoper = OPrelconst;
+                e.Ety = TYnptr;
+
+                e = el_bin(OPadd, TYnptr, e, el_var(el_alloc_localgot()));
+                e = el_una(OPind, TYsptr, e);
+                e = el_una(OPind, tym, e);
+                break;
+            }
+            default:
+                break;
+        }
+    }
+    return e;
+}
+
+/**********************************************
+ * Create an address for TLS variable `s`.
+ * Use PIE protocol.
+ * Params: s = variable's symbol
+ * Returns: elem created
+ */
+private elem *el_pieptr(Symbol *s)
+{
+    int x;
+
+    //printf("el_pieptr(s = '%s')\n", s.Sident.ptr);
+    symbol_debug(s);
+    type_debug(s.Stype);
+    auto e = el_calloc();
+    e.Eoper = OPrelconst;
+    e.EV.Vsym = s;
+    e.Ety = TYnptr;
+
+    elem* e0 = el_una(OPind, TYsize, el_long(TYsptr, 0)); // I64: FS:[0000], I32: GS:[0000]
+
+    if (I64)
+    {
+        Obj.refGOTsym();    // even though not used, generate reference to _GLOBAL_OFFSET_TABLE_
+        switch (s.Sclass)
+        {
+            case SCstatic:
+            case SClocstat:
+            case SCglobal:
+            {
+                /* Generate:
+                 *   mov RAX,FS:[0000]
+                 *   add EAX,offset FLAG:global_tls@TPOFF32
+                 */
+                e = el_bin(OPadd, TYnptr, e0, e);
+                break;
+            }
+
+            case SCcomdat:
+            case SCcomdef:
+            case SCextern:
+            {
+                /* Generate:
+                 *   mov RAX,extern_tls@GOTTPOFF[RIP]
+                 *   mov RDX,FS:[0000]
+                 *   add RAX,EDX
+                 */
+                e.Eoper = OPvar;
+                e = el_bin(OPadd, TYnptr, e0, e);
+                break;
+            }
+            default:
+                break;
+        }
+    }
+    else
+    {
+        switch (s.Sclass)
+        {
+            case SCstatic:
+            case SClocstat:
+            {
+                /* Generate:
+                 *   mov LEA,global_tls@TLS_LE[ECX]
+                 *   mov EDX,GS:[0000]
+                 *   add EAX,EDX
+                 */
+                e = el_bin(OPadd, TYnptr, e, el_var(el_alloc_localgot()));
+                e = el_bin(OPadd, TYnptr, e, e0);
+                break;
+            }
+
+            case SCglobal:
+            {
+                /* Generate:
+                 *   mov EAX,global_tls@TLS_LE[ECX]
+                 *   mov EDX,GS:[0000]
+                 *   add EAX,EDX
+                 */
+                e = el_bin(OPadd, TYnptr, e, el_var(el_alloc_localgot()));
+                e = el_una(OPind, TYnptr, e);
+                e = el_bin(OPadd, TYnptr, e, e0);
+                break;
+            }
+
+            case SCcomdat:
+            case SCcomdef:
+            case SCextern:
+            {
+                /* Generate:
+                 *   mov EAX,extern_tls@TLS_GOTIE[ECX]
+                 *   mov EDX,GS:[0000]
+                 *   add EAX,EDX
+                 */
+                e = el_bin(OPadd, TYnptr, e, el_var(el_alloc_localgot()));
+                e = el_una(OPind, TYnptr, e);
+                e = el_bin(OPadd, TYnptr, e, e0);
+                break;
+            }
+            default:
+                break;
+        }
+    }
     return e;
 }
 }
@@ -1703,10 +1915,13 @@ elem * el_var(Symbol *s)
     //printf("%x\n", s.Stype.Tty);
     static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
     {
+        if (config.flags3 & CFG3pie &&
+            s.Stype.Tty & mTYthread)
+            return el_pievar(s);            // Position Independent Executable
+
         if (config.flags3 & CFG3pic &&
             !tyfunc(s.ty()))
-            // Position Independent Code
-            return el_picvar(s);
+            return el_picvar(s);            // Position Independent Code
     }
 
     static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
@@ -1948,14 +2163,16 @@ static if (TARGET_WINDOS)
 }
 
 /**************************
- * Make a pointer to an elem out of a symbol.
+ * Make a pointer to a `Symbol`.
+ * Params: s = symbol
+ * Returns: `elem` with address of `s`
  */
 
 elem * el_ptr(Symbol *s)
 {
     elem *e;
 
-    //printf("el_ptr(s = '%s')\n", s.Sident);
+    //printf("el_ptr(s = '%s')\n", s.Sident.ptr);
     //printf("el_ptr\n");
     symbol_debug(s);
     type_debug(s.Stype);
@@ -1981,9 +2198,32 @@ elem * el_ptr(Symbol *s)
     static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD ||
                TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
     {
+        if (config.flags3 & CFG3pie &&
+            s.Stype.Tty & mTYthread)
+            return el_pieptr(s);            // Position Independent Executable
+
+        if (config.flags3 & CFG3pie &&
+            tyfunc(s.ty()) &&
+            (s.Sclass == SCglobal || s.Sclass == SCcomdat || s.Sclass == SCcomdef || s.Sclass == SCextern))
+        {
+            e = el_calloc();
+            e.Eoper = OPvar;
+            e.EV.Vsym = s;
+            e.Ety = TYnptr;
+            if (I32)
+            {
+                e.Eoper = OPrelconst;
+                e = el_bin(OPadd, TYnptr, e, el_var(el_alloc_localgot()));
+                e = el_una(OPind, TYnptr, e);
+            }
+            return e;
+        }
+
         if (config.flags3 & CFG3pic &&
             tyfunc(s.ty()))
+        {
             e = el_picvar(s);
+        }
         else
             e = el_var(s);
     }

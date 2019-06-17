@@ -5717,6 +5717,7 @@ void postoptelem(elem *e)
             {
                 version (MARS)
                 if (e.EV.E1.Eoper == OPconst &&
+                    tybasic(e.EV.E1.Ety) == TYnptr &&   // Allow TYsptr to reference GS:[0000] etc.
                     el_tolong(e.EV.E1) >= 0 && el_tolong(e.EV.E1) < 4096)
                 {
                     error(pos.Sfilename, pos.Slinnum, pos.Scharnum, "null dereference in function %s", funcsym_p.Sident.ptr);

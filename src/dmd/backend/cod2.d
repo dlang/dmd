@@ -4262,11 +4262,13 @@ void getoffset(ref CodeBuilder cdb,elem *e,reg_t reg)
                     /* Generate:
                      *   LEA DI,s@TLSGD[RIP]
                      */
-                    assert(reg == DI);
+                    //assert(reg == DI);
                     code css;
                     css.Irex = REX | REX_W;
                     css.Iop = LEA;
-                    css.Irm = modregrm(0,DI,5);
+                    css.Irm = modregrm(0,reg,5);
+                    if (reg & 8)
+                        css.Irex |= REX_R;
                     css.Iflags = CFopsize;
                     css.IFL1 = cast(ubyte)fl;
                     css.IEV1.Vsym = e.EV.Vsym;
