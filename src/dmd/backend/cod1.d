@@ -3000,24 +3000,35 @@ int FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, bool vararg, r
     type* t2 = null;
     tym_t ty2 = TYMAX;
 
-    tym_t tyb = tybasic(ty);
+    // SROA with mixed registers
+    if (ty & mTYxmmgpr)
+    {
+        ty = TYdouble;
+        ty2 = TYllong;
+    }
+    else if (ty & mTYgprxmm)
+    {
+        ty = TYllong;
+        ty2 = TYdouble;
+    }
 
     // Treat array of 1 the same as its element type
     // (Don't put volatile parameters in registers)
-    if (tyb == TYarray && tybasic(t.Tty) == TYarray && t.Tdim == 1 && !(t.Tty & mTYvolatile))
+    if (tybasic(ty) == TYarray && tybasic(t.Tty) == TYarray && t.Tdim == 1 && !(t.Tty & mTYvolatile))
     {
         t = t.Tnext;
-        tyb = tybasic(t.Tty);
+        ty = t.Tty;
     }
 
-    if (tyb == TYstruct && type_zeroSize(t, fpr.tyf))
+    if (tybasic(ty) == TYstruct && type_zeroSize(t, fpr.tyf))
         return 0;               // don't allocate into registers
 
     ++fpr.i;
 
-    // If struct just wraps another type
-    if (tyaggregate(tyb))
+    // If struct or array
+    if (tyaggregate(ty))
     {
+        assert(t);
         if (config.exe == EX_WIN64)
         {
             /* Structs occupy a general purpose register, regardless of the struct
@@ -3094,9 +3105,10 @@ int FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, bool vararg, r
             return 1;
         }
 
-        if (tybasic(ty) == TYcfloat
-            && fpr.numfloatregs - fpr.xmmcnt >= 1)
+        if (tybasic(ty) == TYcfloat)
         {
+            if (fpr.numfloatregs - fpr.xmmcnt < 1)
+                return 0;
             // Allocate XMM register
             *preg1 = fpr.floatregs[fpr.xmmcnt++];
             return 1;
@@ -3108,7 +3120,7 @@ int FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, bool vararg, r
         }
     }
 
-    for (int j = 0; j < 2; j++)
+    foreach (j; 0 .. 2)
     {
         if (fpr.regcnt < fpr.numintegerregs)
         {
@@ -3144,7 +3156,7 @@ int FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, bool vararg, r
         return 0;
 
      Lnext:
-        if (!t2)
+        if (tybasic(ty2) == TYMAX)
             break;
         preg = preg2;
         t = t2;

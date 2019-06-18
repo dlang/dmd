@@ -3365,7 +3365,8 @@ elem * elstruct(elem *e, goal_t goal)
 
         L1:
             if (ty == TYstruct || ty == TYarray)
-            {   // This needs to match what TypeFunction::retStyle() does
+            {
+                // This needs to match what TypeFunction::retStyle() does
                 if (config.exe == EX_WIN64)
                 {
                     //if (t.Ttag.Sstruct.Sflags & STRnotpod)
@@ -3390,6 +3391,10 @@ elem * elstruct(elem *e, goal_t goal)
                         tym = TYcdouble;
                     else
                         tym = TYucent;
+                    if ((0 == tyfloating(targ1.Tty)) ^ (0 == tyfloating(targ2.Tty)))
+                    {
+                        tym |= tyfloating(targ1.Tty) ? mTYxmmgpr : mTYgprxmm;
+                    }
                 }
                 else if (I32 && targ1 && targ2)
                     tym = TYllong;
@@ -5780,6 +5785,8 @@ private elem *elToPair(elem *e)
              */
             tym_t ty0;
             tym_t ty = e.Ety;
+            if (ty & (mTYxmmgpr | mTYgprxmm))
+                break; // register allocation doesn't support it yet.
             switch (tybasic(ty))
             {
                 case TYcfloat:      ty0 = TYfloat  | (ty & ~mTYbasic); goto L1;
@@ -5806,6 +5813,8 @@ private elem *elToPair(elem *e)
              */
             tym_t ty0;
             tym_t ty = e.Ety;
+            if (ty & (mTYxmmgpr | mTYgprxmm))
+                break; // register allocation doesn't support it yet.
             switch (tybasic(ty))
             {
                 case TYcfloat:      ty0 = TYfloat  | (ty & ~mTYbasic); goto L2;
