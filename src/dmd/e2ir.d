@@ -2224,7 +2224,7 @@ elem *toElem(Expression e, IRState *irs)
                     foreach (i; 1 .. depth - d)
                         e1 = (cast(CastExp)e1).e1;
 
-                    el = toElemCast(cast(CastExp)e1, el);
+                    el = toElemCast(cast(CastExp)e1, el, true);
                 }
             }
             else
@@ -4192,10 +4192,10 @@ elem *toElem(Expression e, IRState *irs)
             }
             elem *e = toElem(ce.e1, irs);
 
-            result = toElemCast(ce, e);
+            result = toElemCast(ce, e, false);
         }
 
-        elem *toElemCast(CastExp ce, elem *e)
+        elem *toElemCast(CastExp ce, elem *e, bool isLvalue)
         {
             tym_t ftym;
             tym_t ttym;
@@ -4460,7 +4460,19 @@ elem *toElem(Expression e, IRState *irs)
                     case X(Tbool,Tint16):
                     case X(Tbool,Tuns16):
                     case X(Tbool,Tint32):
-                    case X(Tbool,Tuns32):   eop = OPu8_16;  return Leop(ce, e, eop, ttym);
+                    case X(Tbool,Tuns32):
+                        if (isLvalue)
+                        {
+                            eop = OPu8_16;
+                            return Leop(ce, e, eop, ttym);
+                        }
+                        else
+                        {
+                            e = el_bin(OPand, TYuchar, e, el_long(TYuchar, 1));
+                            fty = Tuns8;
+                            continue;
+                        }
+
                     case X(Tbool,Tint64):
                     case X(Tbool,Tuns64):
                     case X(Tbool,Tfloat32):
@@ -4469,12 +4481,14 @@ elem *toElem(Expression e, IRState *irs)
                     case X(Tbool,Tcomplex32):
                     case X(Tbool,Tcomplex64):
                     case X(Tbool,Tcomplex80):
-                        e = el_una(OPu8_16, TYuint, e);
-                        fty = Tuns32;
+                        e = el_bin(OPand, TYuchar, e, el_long(TYuchar, 1));
+                        fty = Tuns8;
                         continue;
+
                     case X(Tbool,Timaginary32):
                     case X(Tbool,Timaginary64):
-                    case X(Tbool,Timaginary80): return Lzero(ce, e, ttym);
+                    case X(Tbool,Timaginary80):
+                        return Lzero(ce, e, ttym);
 
                         /* ============================= */
 
