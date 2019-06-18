@@ -343,9 +343,18 @@ extern(C++, N13337a.N13337b.N13337c)
   void foo13337(S13337 s);
 }
 
+extern(C++, `N13337a`, `N13337b`, `N13337c`)
+{
+    struct S13337_2{}
+    void foo13337_2(S13337 s);
+    void foo13337_3(S13337_2 s);
+}
+
 version (Posix)
 {
     static assert(foo13337.mangleof == "_ZN7N13337a7N13337b7N13337c8foo13337ENS1_6S13337E");
+    static assert(foo13337_2.mangleof == "_ZN7N13337a7N13337b7N13337c10foo13337_2ENS1_6S13337E");
+    static assert(foo13337_3.mangleof == "_ZN7N13337a7N13337b7N13337c10foo13337_3ENS1_8S13337_2E");
 }
 
 /**************************************/
@@ -425,9 +434,55 @@ extern (C++, std)
     struct test18957 {}
 }
 
+extern (C++, `std`)
+{
+    struct pair(T1, T2)
+    {
+        void swap(ref pair other);
+    }
+
+    struct allocator(T)
+    {
+        uint fooa() const;
+        uint foob();
+    }
+
+    struct basic_string(T1, T2, T3)
+    {
+        uint fooa();
+    }
+
+    struct basic_istream(T1, T2)
+    {
+        uint fooc();
+    }
+
+    struct basic_ostream(T1, T2)
+    {
+        uint food();
+    }
+
+    struct basic_iostream(T1, T2)
+    {
+        uint fooe();
+    }
+
+    struct char_traits(T)
+    {
+        uint foof();
+    }
+
+    struct vector (T);
+
+    struct Struct18957 {}
+}
+
 extern(C++)
 {
-    allocator!int func_18957_1(allocator!(int)* v);
+    // Nspace
+    std.allocator!int func_18957_1(std.allocator!(int)* v);
+    // CPPNamespaceAttribute
+    allocator!int func_18957_2(allocator!(int)* v);
     X func_18957_2(X)(X* v);
 }
 
@@ -435,7 +490,6 @@ version (Posix)
 {
     // https://issues.dlang.org/show_bug.cgi?id=17947
     static assert(std.pair!(void*, void*).swap.mangleof == "_ZNSt4pairIPvS0_E4swapERS1_");
-
     static assert(std.allocator!int.fooa.mangleof == "_ZNKSaIiE4fooaEv");
     static assert(std.allocator!int.foob.mangleof == "_ZNSaIiE4foobEv");
     static assert(std.basic_string!(char,int,uint).fooa.mangleof == "_ZNSbIcijE4fooaEv");
@@ -445,6 +499,19 @@ version (Posix)
     static assert(std.basic_iostream!(char, std.char_traits!char).fooe.mangleof == "_ZNSd4fooeEv");
 
     static assert(func_18957_1.mangleof == `_Z12func_18957_1PSaIiE`);
+    static assert(func_18957_2!(std.allocator!int).mangleof == `_Z12func_18957_2ISaIiEET_PS1_`);
+
+
+    static assert(pair!(void*, void*).swap.mangleof == "_ZNSt4pairIPvS0_E4swapERS1_");
+    static assert(allocator!int.fooa.mangleof == "_ZNKSaIiE4fooaEv");
+    static assert(allocator!int.foob.mangleof == "_ZNSaIiE4foobEv");
+    static assert(basic_string!(char,int,uint).fooa.mangleof == "_ZNSbIcijE4fooaEv");
+    static assert(basic_string!(char, char_traits!char, allocator!char).fooa.mangleof == "_ZNSs4fooaEv");
+    static assert(basic_istream!(char, char_traits!char).fooc.mangleof == "_ZNSi4foocEv");
+    static assert(basic_ostream!(char, char_traits!char).food.mangleof == "_ZNSo4foodEv");
+    static assert(basic_iostream!(char, char_traits!char).fooe.mangleof == "_ZNSd4fooeEv");
+
+    static assert(func_18957_2.mangleof == `_Z12func_18957_2PSaIiE`);
     static assert(func_18957_2!(allocator!int).mangleof == `_Z12func_18957_2ISaIiEET_PS1_`);
 }
 
@@ -465,8 +532,12 @@ version (Posix)
 extern(C++, SPACE)
 int test37(T)(){ return 0;}
 
+extern(C++, `SPACE`)
+int test37(T)(){ return 0;}
+
 version (Posix) // all non-Windows machines
 {
+    static assert(SPACE.test37!int.mangleof == "_ZN5SPACE6test37IiEEiv");
     static assert(test37!int.mangleof == "_ZN5SPACE6test37IiEEiv");
 }
 
@@ -741,15 +812,36 @@ version (Win64)
     static assert(TestOperators.opCall.mangleof          == "??RTestOperators@@QEAAHHM@Z");
 }
 
+import cppmangle2;
 extern(C++, Namespace18922)
 {
-    import cppmangle2;
-    void func18922(Struct18922) {}
+    // Nspace
+    void func18922(cppmangle2.Namespace18922.Struct18922) {}
+    // CPPNamespaceAttribute
+    void func18922_1(Struct18922) {}
+}
 
-    version (Posix)
-        static assert(func18922.mangleof == "_ZN14Namespace189229func18922ENS_11Struct18922E");
-    else version(Windows)
-        static assert(func18922.mangleof == "?func18922@Namespace18922@@YAXUStruct18922@1@@Z");
+extern(C++, `Namespace18922`)
+{
+    // Nspace
+    void func18922_2(cppmangle2.Namespace18922.Struct18922) {}
+    // CPPNamespaceAttribute
+    void func18922_3(Struct18922) {}
+}
+
+version (Posix)
+{
+    static assert(func18922.mangleof == "_ZN14Namespace189229func18922ENS_11Struct18922E");
+    static assert(func18922_1.mangleof == "_ZN14Namespace1892211func18922_1ENS_11Struct18922E");
+    static assert(func18922_2.mangleof == "_ZN14Namespace1892211func18922_2ENS_11Struct18922E");
+    static assert(func18922_3.mangleof == "_ZN14Namespace1892211func18922_3ENS_11Struct18922E");
+}
+else version(Windows)
+{
+    static assert(func18922.mangleof == "?func18922@Namespace18922@@YAXUStruct18922@1@@Z");
+    static assert(func18922_1.mangleof == "?func18922_1@Namespace18922@@YAXUStruct18922@1@@Z");
+    static assert(func18922_2.mangleof == "?func18922_2@Namespace18922@@YAXUStruct18922@1@@Z");
+    static assert(func18922_3.mangleof == "?func18922_3@Namespace18922@@YAXUStruct18922@1@@Z");
 }
 
 /**************************************/
@@ -766,9 +858,9 @@ version (Posix)
     }
     void test18957(const std::test18957& t) {}
     +/
-    extern (C++) void test18957(ref const(std.test18957) t) {}
+    extern (C++) void test18957(ref const(Struct18957) t) {}
 
-    static assert(test18957.mangleof == "_Z9test18957RKSt9test18957");
+    static assert(test18957.mangleof == "_Z9test18957RKSt11Struct18957");
 }
 
 /**************************************/
@@ -877,11 +969,14 @@ version (Posix) extern (C++)
      */
     extern(C++) void CPPPrinter16479(const(char)*);
     extern(C++, Namespace16479) void CPPPrinterNS16479(const(char)*);
+    extern(C++, `Namespace16479`) void CPPPrinterNS16479_1(const(char)*);
     void func16479_11 (alias Print) ();
     static assert(func16479_11!(CPPPrinter16479).mangleof
                   == `_Z12func16479_11IXadL_Z15CPPPrinter16479PKcEEEvv`);
     static assert(func16479_11!(CPPPrinterNS16479).mangleof
                   == `_Z12func16479_11IXadL_ZN14Namespace1647917CPPPrinterNS16479EPKcEEEvv`);
+    static assert(func16479_11!(CPPPrinterNS16479_1).mangleof
+                  == `_Z12func16479_11IXadL_ZN14Namespace1647919CPPPrinterNS16479_1EPKcEEEvv`);
 
     // Functions are fine, but templates are finer
     // ---
@@ -1021,4 +1116,17 @@ version (Posix)
     extern(C++, PR10021_NS) struct PR10021_Struct(T){}
     extern(C++) void PR10021_fun(int i)(PR10021_Struct!int);
     static assert(PR10021_fun!0.mangleof == `_Z11PR10021_funILi0EEvN10PR10021_NS14PR10021_StructIiEE`);
+}
+
+// https://github.com/dlang/dmd/pull/10021#discussion_r294095749
+version (Posix)
+{
+    extern(C++, "a", "b")
+    struct PR10021_Struct2
+    {
+        void func();
+        void func2(PR10021_Struct2*);
+    }
+    static assert(PR10021_Struct2.func.mangleof == `_ZN1a1b15PR10021_Struct24funcEv`);
+    static assert(PR10021_Struct2.func2.mangleof == `_ZN1a1b15PR10021_Struct25func2EPS1_`);
 }
