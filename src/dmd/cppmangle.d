@@ -542,8 +542,9 @@ private final class CppMangleVisitor : Visitor
      */
     void source_name(Dsymbol s, bool haveNE = false)
     {
-        //printf("source_name(%s)\n", s.toChars());
+        version (none)
         {
+            printf("source_name(%s)\n", s.toChars());
             auto sl = this.buf.peekSlice();
             assert(sl.length == 0 || haveNE || s.namespace is null || sl != "_ZN");
         }
