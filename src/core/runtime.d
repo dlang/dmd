@@ -829,23 +829,12 @@ version (Posix) private class DefaultTraceInfo : Throwable.TraceInfo
 
     override int opApply( scope int delegate(ref size_t, ref const(char[])) dg ) const
     {
-        version (Posix)
-        {
-            // NOTE: The first 4 frames with the current implementation are
-            //       inside core.runtime and the object code, so eliminate
-            //       these for readability.  The alternative would be to
-            //       exclude the first N frames that are in a list of
-            //       mangled function names.
-            enum FIRSTFRAME = 4;
-        }
-        else version (Windows)
-        {
-            // NOTE: On Windows, the number of frames to exclude is based on
-            //       whether the exception is user or system-generated, so
-            //       it may be necessary to exclude a list of function names
-            //       instead.
-            enum FIRSTFRAME = 0;
-        }
+        // NOTE: The first 4 frames with the current implementation are
+        //       inside core.runtime and the object code, so eliminate
+        //       these for readability.  The alternative would be to
+        //       exclude the first N frames that are in a list of
+        //       mangled function names.
+        enum FIRSTFRAME = 4;
 
         version (linux) enum enableDwarf = true;
         else version (FreeBSD) enum enableDwarf = true;
