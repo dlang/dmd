@@ -523,7 +523,7 @@ private final class CppMangleVisitor : Visitor
         if (p && !p.isModule())
         {
             buf.writestring("N");
-            source_name(p);
+            source_name(p, true);
             dg();
             buf.writestring("E");
         }
@@ -531,9 +531,23 @@ private final class CppMangleVisitor : Visitor
             dg();
     }
 
-    void source_name(Dsymbol s)
+    /**
+     * Write the name of `s` to the buffer
+     *
+     * Params:
+     *   s = Symbol to write the name of
+     *   haveNE = Whether `N..E` is already part of the mangling
+     *            Because `Nspace` and `CPPNamespaceAttribute` can be
+     *            mixed, this is a mandatory hack.
+     */
+    void source_name(Dsymbol s, bool haveNE = false)
     {
-        //printf("source_name(%s)\n", s.toChars());
+        version (none)
+        {
+            printf("source_name(%s)\n", s.toChars());
+            auto sl = this.buf.peekSlice();
+            assert(sl.length == 0 || haveNE || s.namespace is null || sl != "_ZN");
+        }
         if (TemplateInstance ti = s.isTemplateInstance())
         {
             bool needsTa = false;
@@ -551,11 +565,12 @@ private final class CppMangleVisitor : Visitor
                     s.namespace, () {
                         this.writeIdentifier(ti.tempdecl.toAlias().ident);
                         template_args(ti);
-                    });
+                    }, haveNE);
             }
         }
         else
-            this.writeNamespace(s.namespace, () => this.writeIdentifier(s.ident));
+            this.writeNamespace(s.namespace, () => this.writeIdentifier(s.ident),
+                                haveNE);
     }
 
     /********
@@ -665,6 +680,8 @@ private final class CppMangleVisitor : Visitor
         //printf("prefix_name(%s)\n", s.toChars());
         if (substitute(s))
             return;
+        if (isStd(s))
+            return buf.writestring("St");
 
         auto si = getInstance(s);
         Dsymbol p = getQualifier(si);
@@ -688,7 +705,7 @@ private final class CppMangleVisitor : Visitor
             else
                 prefix_name(p);
         }
-        source_name(si);
+        source_name(si, true);
         if (!isStd(si))
             /* Do this after the source_name() call to keep components[]
              * in the right order.
@@ -822,7 +839,7 @@ private final class CppMangleVisitor : Visitor
                             return;
                     }
                     buf.writestring("St");
-                    source_name(se);
+                    source_name(se, true);
                 }
             }
             else
@@ -835,7 +852,7 @@ private final class CppMangleVisitor : Visitor
                     else
                         prefix_name(p);
                 }
-                source_name(se);
+                source_name(se, true);
                 buf.writeByte('E');
             }
         }
@@ -879,7 +896,7 @@ private final class CppMangleVisitor : Visitor
         {
             buf.writestring("_ZN");
             prefix_name(p);
-            source_name(d);
+            source_name(d, true);
             buf.writeByte('E');
         }
         //char beta[6] should mangle as "beta"
@@ -935,7 +952,7 @@ private final class CppMangleVisitor : Visitor
                 else if (d.ident && d.ident == Id.call)
                     buf.writestring("cl");
                 else
-                    source_name(d);
+                    source_name(d, true);
                 buf.writeByte('E');
             }
             else
@@ -954,10 +971,12 @@ private final class CppMangleVisitor : Visitor
      * Parameters:
      *   ns = Namespace to mangle
      *   dg = A delegate to write the identifier in this namespace
-     *   nested = When `false`, do not nest the name within `N..E`
+     *   haveNE = When `false` (the default), surround the namespace / dg
+     *            call with nested name qualifier (`N..E`).
+     *            Otherwise, they are already present (e.g. `Nspace` was used).
      */
     void writeNamespace(CPPNamespaceDeclaration ns, scope void delegate() dg,
-                        bool nested = true)
+                        bool haveNE = false)
     {
         void runDg () { if (dg !is null) dg(); }
 
@@ -972,7 +991,7 @@ private final class CppMangleVisitor : Visitor
         }
         else if (dg !is null)
         {
-            if (nested)
+            if (!haveNE)
                 buf.writestring("N");
             if (!substitute(ns))
             {
@@ -981,7 +1000,7 @@ private final class CppMangleVisitor : Visitor
                 append(ns);
             }
             dg();
-            if (nested)
+            if (!haveNE)
                 buf.writestring("E");
         }
         else if (!substitute(ns))
@@ -1014,7 +1033,7 @@ private final class CppMangleVisitor : Visitor
             TypeFunction preSemantic = cast(TypeFunction)d.originalType;
             auto nspace = ti.toParent3();
             if (nspace && nspace.isNspace())
-                this.writeChained(ti.toParent3(), () => source_name(ti));
+                this.writeChained(ti.toParent3(), () => source_name(ti, true));
             else
                 source_name(ti);
             this.mangleReturnType(preSemantic);
@@ -1131,7 +1150,7 @@ private final class CppMangleVisitor : Visitor
                 break;
             }
             if (symName.length == 0)
-                source_name(ti);
+                source_name(ti, true);
             else
             {
                 buf.writestring(symName);
@@ -1363,15 +1382,8 @@ private final class CppMangleVisitor : Visitor
      * Helper function to write a `T..._` template index.
      *
      * Params:
-     *   ident = Identifier for which substitution is attempted
-     *           (e.g. `void func(T)(T param)` => `T` from `T param`)
-     *   params = `TemplateParameters` of the enclosing symbol
-     *           (in the previous example, `func`'s template parameters)
-     *   type = Resolved type of `T`, so that `void func(T)(const T)`
-     *          gets mangled correctly
-     *
-     * Returns:
-     *   `true` if something was written to the buffer
+     *   idx   = Index of `param` in the template argument list
+     *   param = Template parameter to mangle
      */
     private void writeTemplateArgIndex(size_t idx, TemplateParameter param)
     {
@@ -1389,10 +1401,15 @@ private final class CppMangleVisitor : Visitor
      * Given an array of template parameters and an identifier,
      * returns the index of the identifier in that array.
      *
+     * Params:
+     *   ident = Identifier for which substitution is attempted
+     *           (e.g. `void func(T)(T param)` => `T` from `T param`)
+     *   params = `TemplateParameters` of the enclosing symbol
+     *           (in the previous example, `func`'s template parameters)
      *
      * Returns:
      *   The index of the identifier match in `params`,
-     *   or `params.dim` if there wasn't any match.
+     *   or `params.length` if there wasn't any match.
      */
     private static size_t templateParamIndex(
         const ref Identifier ident, TemplateParameters* params)
@@ -1430,39 +1447,32 @@ private final class CppMangleVisitor : Visitor
         // Get the template instance
         auto sym = getQualifier(sym1);
         auto sym2 = getQualifier(sym);
-        if (sym2)
+        if (sym2 && isStd(sym2)) // Nspace path
         {
-            if (isStd(sym2))
-            {
-                bool unused;
-                assert(sym.isTemplateInstance());
-                if (this.writeStdSubstitution(sym.isTemplateInstance(), unused))
-                    return dg();
-                // std names don't require `N..E`
-                buf.writestring("St");
-                this.writeIdentifier(t.name);
-                this.append(t);
+            bool unused;
+            assert(sym.isTemplateInstance());
+            if (this.writeStdSubstitution(sym.isTemplateInstance(), unused))
                 return dg();
-            }
+            // std names don't require `N..E`
+            buf.writestring("St");
+            this.writeIdentifier(t.name);
+            this.append(t);
+            return dg();
+        }
+        else if (sym2)
+        {
             buf.writestring("N");
             if (!this.substitute(sym2))
                 sym2.accept(this);
-            dg();
         }
-        if (sym1 !is null)
-        {
-            this.writeNamespace(
-                sym1.namespace, () {
-                    this.writeIdentifier(t.name);
-                    this.append(t);
-                    dg();
-                });
-        }
-        else
-        {
-            this.writeIdentifier(t.name);
-            dg();
-        }
+        this.writeNamespace(
+            sym1.namespace, () {
+                this.writeIdentifier(t.name);
+                this.append(t);
+                dg();
+            });
+        if (sym2)
+            buf.writestring("E");
     }
 
 extern(C++):
