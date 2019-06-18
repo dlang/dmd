@@ -188,6 +188,10 @@ enum
     mTYshared       = 0x00100000,    // shared data
     mTYnothrow      = 0x00200000,    // nothrow function
 
+    // SROA types
+    mTYxmmgpr       = 0x00400000,    // first slice in XMM register, the other in GPR
+    mTYgprxmm       = 0x00800000,    // first slice in GPR register, the other in XMM
+
     // Used only by C/C++ compiler
 //#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
     mTYnoret        = 0x01000000,    // function has no return
