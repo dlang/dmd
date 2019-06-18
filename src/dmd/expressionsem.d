@@ -6889,9 +6889,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         // Check for unsafe casts
-        if (sc.func && !sc.intypeof &&
+        if (!sc.intypeof &&
             !isSafeCast(ex, t1b, tob) &&
-            sc.func.setUnsafe() && !(sc.flags & SCOPE.debug_))
+            (!sc.func && sc.stc & STC.safe || sc.func && sc.func.setUnsafe()) &&
+            !(sc.flags & SCOPE.debug_))
         {
             exp.error("cast from `%s` to `%s` not allowed in safe code", exp.e1.type.toChars(), exp.to.toChars());
             return setError();
