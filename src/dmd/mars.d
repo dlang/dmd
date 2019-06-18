@@ -597,13 +597,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (global.errors)
         fatal();
 
-    if (global.params.doCxxHdrGeneration)
-    {
-        gencpphdrfiles(&modules);
-    }
-    if (global.errors)
-        fatal();
-
     // Scan for functions to inline
     if (params.useInline)
     {
@@ -674,6 +667,14 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             File.write(cgFilename.ptr, buf[]);
         }
     }
+
+    if (global.params.doCxxHdrGeneration)
+    {
+        gencpphdrfiles(&modules);
+    }
+    if (global.errors)
+        fatal();
+
     if (!params.obj)
     {
     }

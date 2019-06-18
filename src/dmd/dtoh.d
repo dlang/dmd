@@ -370,7 +370,6 @@ version(BUILD_COMPILER)
         {
             return false;
         }
-
         return ((m.parent.ident == DMDModule.dmd && !m.parent.parent) ||
                 (m.parent.parent.ident == DMDModule.dmd && !m.parent.parent.parent));
     }
@@ -1228,7 +1227,7 @@ public:
             buf.writestring("};\n\n");
         }
         else
-        buf.writestring(";\n\n");
+            buf.writestring(";\n\n");
         tdparent = save;
     }
 
@@ -1313,7 +1312,7 @@ public:
     override void visit(AST.Expression e)
     {
         //e.print();
-        printf("====\n%s\n====\n", e.toChars());
+        //printf("====\n%s\n====\n", e.toChars());
         //printf("\n=============\n");
         //printf("%s\n", buf.peekChars());
         //printf("\n=============\n");
@@ -1521,6 +1520,14 @@ void gencpphdrfiles(Modules *ms)
 {
     import dmd.tokens;
 
+    DMDType._init();
+    version(BUILD_COMPILER)
+    {
+        DMDModule._init();
+        DMDClass._init();
+    }
+    setVersions();
+
     OutBuffer buf;
     buf.writestring("#pragma once\n");
     buf.writeByte('\n');
@@ -1590,6 +1597,7 @@ void gencpphdrfiles(Modules *ms)
         scope v = new ToCppBuffer!ASTCodegen(&check, &buf, &done, &decl);
         foreach (m; *ms)
         {
+            //printf("// Parsing module %s\n", m.toPrettyChars());
             buf.printf("// Parsing module %s\n", m.toPrettyChars());
             m.accept(v);
         }
@@ -1605,8 +1613,7 @@ void gencpphdrfiles(Modules *ms)
 
     if (global.params.cxxhdrname is null)
     {
-        //printf("%s\n", buf.peekChars());
-        //// Write to stdout; assume it succeeds
+        // Write to stdout; assume it succeeds
         size_t n = fwrite(buf.data, 1, buf.offset, stdout);
         assert(n == buf.offset); // keep gcc happy about return values
     }
