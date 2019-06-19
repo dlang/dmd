@@ -113,7 +113,7 @@ public:
     const char *kind() const;
     FileName setOutfilename(const char *name, const char *dir, const char *arg, const char *ext);
     void setDocfile();
-    bool read(Loc loc); // read file, returns 'true' if succeed, 'false' otherwise.
+    bool read(const Loc &loc); // read file, returns 'true' if succeed, 'false' otherwise.
     Module *parse();    // syntactic parse
     void importAll(Scope *sc);
     int needModuleInfo();
