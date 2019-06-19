@@ -75,8 +75,8 @@ public:
     void warning(const char *format, ...);
     void deprecation(const char *format, ...);
     virtual Statement *getRelatedLabeled() { return this; }
-    virtual bool hasBreak();
-    virtual bool hasContinue();
+    virtual bool hasBreak() const;
+    virtual bool hasContinue() const;
     bool usesEH();
     bool comeFrom();
     bool hasCode();
