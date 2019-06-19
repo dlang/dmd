@@ -339,7 +339,7 @@ BACK_DOBJS = bcomplex.o evalu8.o divcoeff.o dvec.o go.o gsroa.o glocal.o gdag.o 
 	gloop.o compress.o cgelem.o cgcs.o ee.o cod4.o cod5.o nteh.o blockopt.o mem.o cg.o cgreg.o \
 	dtype.o debugprint.o fp.o symbol.o elem.o dcode.o cgsched.o cg87.o cgxmm.o cgcod.o cod1.o cod2.o \
 	cod3.o cv8.o dcgcv.o pdata.o util2.o var.o md5.o backconfig.o ph2.o drtlsym.o dwarfeh.o ptrntab.o \
-	aarray.o dvarstats.o dwarfdbginf.o elfobj.o cgen.o os.o goh.o barray.o cgcse.o
+	aarray.o dvarstats.o dwarfdbginf.o elfobj.o cgen.o os.o goh.o barray.o cgcse.o elpicpie.o
 
 G_OBJS  = $(addprefix $G/, $(BACK_OBJS))
 G_DOBJS = $(addprefix $G/, $(BACK_DOBJS))
@@ -370,7 +370,7 @@ BACK_SRC = \
 	$C/compress.d $C/cgreg.d $C/var.d $C/cgcse.d \
 	$C/cgsched.d $C/cod1.d $C/cod2.d $C/cod3.d $C/cod4.d $C/cod5.d \
 	$C/dcode.d $C/symbol.d $C/debugprint.d $C/dt.d $C/ee.d $C/elem.d \
-	$C/evalu8.d $C/fp.d $C/go.d $C/gflow.d $C/gdag.d \
+	$C/evalu8.d $C/fp.d $C/go.d $C/gflow.d $C/gdag.d $C/elpicpie.d \
 	$C/gother.d $C/glocal.d $C/gloop.d $C/gsroa.d $C/newman.d \
 	$C/nteh.d $C/os.d $C/out.d $C/ptrntab.d $C/drtlsym.d \
 	$C/dtype.d \

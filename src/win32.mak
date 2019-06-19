@@ -176,7 +176,7 @@ GLUEOBJ=
 # D back end
 GBACKOBJ= $G/go.obj $G/gdag.obj $G/gother.obj $G/gflow.obj $G/gloop.obj $G/var.obj $G/elem.obj \
 	$G/newman.obj $G/glocal.obj $G/os.obj $G/nteh.obj $G/evalu8.obj $G/fp.obj $G/cgcs.obj \
-	$G/drtlsym.obj $G/cgelem.obj $G/cgen.obj $G/cgreg.obj $G/out.obj \
+	$G/drtlsym.obj $G/cgelem.obj $G/cgen.obj $G/cgreg.obj $G/out.obj $G/elpicpie.obj \
 	$G/blockopt.obj $G/cgobj.obj $G/cg.obj $G/dcgcv.obj $G/dtype.obj \
 	$G/debugprint.obj $G/dcode.obj $G/cg87.obj $G/cgxmm.obj $G/cgsched.obj $G/ee.obj $G/symbol.obj \
 	$G/cgcod.obj $G/cod1.obj $G/cod2.obj $G/cod3.obj $G/cod4.obj $G/cod5.obj $G/cgcse.obj \
@@ -212,7 +212,7 @@ BACKSRC= $C\optabgen.d \
 	$C\cgcod.d $C\cgcs.d $C\dcgcv.d $C\cgelem.d $C\cgen.d $C\cgobj.d \
 	$C\compress.d $C\cgreg.d $C\var.d $C\cgcse.d \
 	$C\cgsched.d $C\cod1.d $C\cod2.d $C\cod3.d $C\cod4.d $C\cod5.d \
-	$C\dcode.d $C\symbol.d $C\debugprint.d $C\ee.d $C\elem.d \
+	$C\dcode.d $C\symbol.d $C\debugprint.d $C\ee.d $C\elem.d $C\elpicpie.d \
 	$C\evalu8.d $C\fp.d $C\go.d $C\gflow.d $C\gdag.d \
 	$C\gother.d $C\glocal.d $C\gloop.d $C\gsroa.d $C\newman.d \
 	$C\nteh.d $C\os.d $C\out.d $C\ptrntab.d $C\drtlsym.d \
@@ -510,6 +510,9 @@ $G/ee.obj : $C\ee.d
 
 $G/elem.obj : $C\rtlsym.d $C\el.d $C\elem.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\elem
+
+$G/elpicpie.obj : $C\rtlsym.d $C\el.d $C\elpicpie.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\elpicpie
 
 $G/evalu8.obj : $C\evalu8.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\evalu8

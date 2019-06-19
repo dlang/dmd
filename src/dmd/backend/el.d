@@ -191,11 +191,8 @@ elem* el_unat(OPER, type*, elem*);
 elem* el_bin(OPER, tym_t, elem*, elem*);
 elem* el_una(OPER, tym_t, elem*);
 extern(C) elem *el_longt(type *,targ_llong);
-Symbol *el_alloc_localgot();
-elem *el_var(Symbol *);
 elem *el_settype(elem *,type *);
 elem *el_typesize(type *);
-elem *el_ptr(Symbol *);
 elem *el_ptr_offset(Symbol *s,targ_size_t offset);
 void el_replacesym(elem *,Symbol *,Symbol *);
 elem *el_nelems(type *);
@@ -236,4 +233,7 @@ void elem_print_const(const elem *);
 void el_hydrate(elem **);
 void el_dehydrate(elem **);
 
+// elpicpie.d
+elem *el_var(Symbol *);
+elem *el_ptr(Symbol *);
 
