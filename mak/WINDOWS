@@ -1196,3 +1196,6 @@ $(IMPDIR)\rt\array\equality.d : src\rt\array\equality.d
 
 $(IMPDIR)\rt\array\casting.d : src\rt\array\casting.d
 	copy $** $@
+
+$(IMPDIR)\rt\array\capacity.d : src\rt\array\capacity.d
+	copy $** $@

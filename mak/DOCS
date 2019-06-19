@@ -78,6 +78,9 @@ DOCS=\
     $(DOCDIR)\rt_aApplyR.html \
     $(DOCDIR)\rt_adi.html \
     $(DOCDIR)\rt_alloca.html \
+    \
+    $(DOCDIR)\rt_array_capacity.html \
+    \
     $(DOCDIR)\rt_arrayassign.html \
     $(DOCDIR)\rt_arraycat.html \
     \
