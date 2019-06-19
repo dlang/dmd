@@ -378,6 +378,76 @@ j = 12
 k = 13
 )
 
+
+$(H2 $(LNAME2 structs, Structs))
+
+    $(P C++ allows a struct to inherit from a base struct. This is done in D using
+    `alias this`:)
+
+---
+struct Base { ... members ... };
+
+struct Derived
+{
+    Base base;       // make it the first field
+    alias base this;
+
+    ... members ...
+}
+---
+
+    $(P In both C++ and D, if a struct has zero fields, the struct still has a
+    size of 1 byte. But, in C++ if the struct with zero fields is used as a base
+    struct, its size is zero (called the
+    $(LINK2 https://en.cppreference.com/w/cpp/language/ebo, Empty Base Optimization)).
+    There are two methods for emulating this behavior in D.
+    The first forwards references to a function returning a faked reference to the base:)
+
+---
+struct Base { ... members ... };
+
+struct DerivedStruct
+{
+    static if (Base.tupleof.length > 0)
+        Base base;
+    else
+        ref inout(Base) base() inout
+        {
+            return *cast(inout(Base)*)&this;
+        }
+    alias base this;
+
+    ... members ...
+}
+---
+
+    $(P The second makes use of template mixins:)
+
+---
+mixin template BaseMembers()
+{
+    void memberFunction() { ... }
+}
+
+struct Base
+{
+    mixin BaseMembers!();
+}
+
+struct Derived
+{
+    mixin BaseMembers!();
+
+    ... members ...
+}
+---
+
+    $(P Note that the template mixin is evaluated in the context of its
+    instantiation, not declaration. If this is a problem, the template mixin
+    can use local imports, or have the member functions forward to the
+    actual functions.)
+
+
 $(H2 $(LNAME2 cpp-templates, C++ Templates))
 
     $(P C++ function and type templates can be bound by using the
