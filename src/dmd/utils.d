@@ -56,7 +56,7 @@ const(char)* toWinPath(const(char)* src)
  *   loc = The line number information from where the call originates
  *   filename = Path to file
  */
-extern (C++) FileBuffer readFile(Loc loc, const(char)* filename)
+FileBuffer readFile(Loc loc, const(char)* filename)
 {
     auto result = File.read(filename);
     if (!result.success)
@@ -86,12 +86,6 @@ extern (D) void writeFile(Loc loc, const(char)[] filename, const void[] data)
     }
 }
 
-/// Ditto
-extern (C++) void writeFile(Loc loc, const(char)* filename, const(void)* data, size_t size)
-{
-    writeFile(loc, filename.toDString, data[0 .. size]);
-}
-
 
 /**
  * Ensure the root path (the path minus the name) of the provided path
@@ -115,11 +109,6 @@ void ensurePathToNameExists(Loc loc, const(char)[] name)
     FileName.free(pt.ptr);
 }
 
-///ditto
-extern (C++) void ensurePathToNameExists(Loc loc, const(char)* name)
-{
-    ensurePathToNameExists(loc, name.toDString);
-}
 
 /**
  * Takes a path, and escapes '(', ')' and backslashes
@@ -128,7 +117,7 @@ extern (C++) void ensurePathToNameExists(Loc loc, const(char)* name)
  *   buf = Buffer to write the escaped path to
  *   fname = Path to escape
  */
-extern (C++) void escapePath(OutBuffer* buf, const(char)* fname)
+void escapePath(OutBuffer* buf, const(char)* fname)
 {
     while (1)
     {
