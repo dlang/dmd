@@ -1,0 +1,8 @@
+Postblit and destructors are no longer called on members of anonymous unions.
+
+Due to a bug in dmd, members of anonymous `unions` inside `struct` declarations
+had their postblits/destructors called when an object of the containing
+`struct` type was copied/destroyed. With this release, the postblit/destructor
+is no longer called in such situations.
+
+Fixes: https://issues.dlang.org/show_bug.cgi?id=19122
