@@ -2614,6 +2614,22 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         return;
                     }
                 }
+                // Try Type.opDispatch (so the static version)
+                else if (ss.withstate.exp && ss.withstate.exp.op == TOK.type)
+                {
+                    if (Type t = ss.withstate.exp.isTypeExp().type)
+                    {
+                        Expression e;
+                        e = new TypeExp(exp.loc, t);
+                        e = new DotIdExp(exp.loc, e, exp.ident);
+                        e = e.trySemantic(sc);
+                        if (e)
+                        {
+                            result = e;
+                            return;
+                        }
+                    }
+                }
             }
         }
 
