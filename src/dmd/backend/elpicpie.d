@@ -57,6 +57,355 @@ extern (C++):
 
 nothrow:
 
+/**************************
+ * Make an elem out of a symbol.
+ */
+
+version (MARS)
+{
+elem * el_var(Symbol *s)
+{
+    elem *e;
+    //printf("el_var(s = '%s')\n", s.Sident);
+    //printf("%x\n", s.Stype.Tty);
+    static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+    {
+        if (config.flags3 & CFG3pie &&
+            s.Stype.Tty & mTYthread)
+            return el_pievar(s);            // Position Independent Executable
+
+        if (config.flags3 & CFG3pic &&
+            !tyfunc(s.ty()))
+            return el_picvar(s);            // Position Independent Code
+    }
+
+    static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+    {
+        if (config.flags3 & CFG3pic && tyfunc(s.ty()))
+        {
+            switch (s.Sclass)
+            {
+                case SCcomdat:
+                case SCcomdef:
+                case SCglobal:
+                case SCextern:
+                    el_alloc_localgot();
+                    break;
+
+                default:
+                    break;
+            }
+        }
+    }
+    symbol_debug(s);
+    type_debug(s.Stype);
+    e = el_calloc();
+    e.Eoper = OPvar;
+    e.EV.Vsym = s;
+    type_debug(s.Stype);
+    e.Ety = s.ty();
+    if (s.Stype.Tty & mTYthread)
+    {
+        //printf("thread local %s\n", s.Sident);
+static if (TARGET_OSX)
+{
+}
+else static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+{
+        /* For 32 bit:
+         * Generate for var locals:
+         *      MOV reg,GS:[00000000]   // add GS: override in back end
+         *      ADD reg, offset s@TLS_LE
+         *      e => *(&s + *(GS:0))
+         * For var globals:
+         *      MOV reg,GS:[00000000]
+         *      ADD reg, s@TLS_IE
+         *      e => *(s + *(GS:0))
+         * note different fixup
+         *****************************************
+         * For 64 bit:
+         * Generate for var locals:
+         *      MOV reg,FS:s@TPOFF32
+         * For var globals:
+         *      MOV RAX,s@GOTTPOFF[RIP]
+         *      MOV reg,FS:[RAX]
+         *
+         * For address of locals:
+         *      MOV RAX,FS:[00]
+         *      LEA reg,s@TPOFF32[RAX]
+         *      e => &s + *(FS:0)
+         * For address of globals:
+         *      MOV reg,FS:[00]
+         *      MOV RAX,s@GOTTPOFF[RIP]
+         *      ADD reg,RAX
+         *      e => s + *(FS:0)
+         * This leaves us with a problem, as the 'var' version cannot simply have
+         * its address taken, as what is the address of FS:s ? The (not so efficient)
+         * solution is to just use the second address form, and * it.
+         * Turns out that is identical to the 32 bit version, except GS => FS and the
+         * fixups are different.
+         * In the future, we should figure out a way to optimize to the 'var' version.
+         */
+        if (I64)
+            Obj.refGOTsym();
+        elem *e1 = el_calloc();
+        e1.EV.Vsym = s;
+        if (s.Sclass == SCstatic || s.Sclass == SClocstat)
+        {
+            e1.Eoper = OPrelconst;
+            e1.Ety = TYnptr;
+        }
+        else
+        {
+            e1.Eoper = OPvar;
+            e1.Ety = TYnptr;
+        }
+
+        /* Fake GS:[0000] as a load of _tls_array, and then in the back end recognize
+         * the fake and rewrite it as GS:[0000] (or FS:[0000] for I64), because there is
+         * no way to represent segment overrides in the elem nodes.
+         */
+        elem *e2 = el_calloc();
+        e2.Eoper = OPvar;
+        e2.EV.Vsym = getRtlsym(RTLSYM_TLS_ARRAY);
+        e2.Ety = e2.EV.Vsym.ty();
+
+        e.Eoper = OPind;
+        e.EV.E1 = el_bin(OPadd,e1.Ety,e2,e1);
+        e.EV.E2 = null;
+}
+else static if (TARGET_WINDOS)
+{
+        /*
+            Win32:
+                mov     EAX,FS:__tls_array
+                mov     ECX,__tls_index
+                mov     EAX,[ECX*4][EAX]
+                inc     dword ptr _t[EAX]
+
+                e => *(&s + *(FS:_tls_array + _tls_index * 4))
+
+                If this is an executable app, not a dll, _tls_index
+                can be assumed to be 0.
+
+            Win64:
+
+                mov     EAX,&s
+                mov     RDX,GS:__tls_array
+                mov     ECX,_tls_index[RIP]
+                mov     RCX,[RCX*8][RDX]
+                mov     EAX,[RCX][RAX]
+
+                e => *(&s + *(GS:[80] + _tls_index * 8))
+
+                If this is an executable app, not a dll, _tls_index
+                can be assumed to be 0.
+         */
+        elem* e1,e2,ea;
+
+        e1 = el_calloc();
+        e1.Eoper = OPrelconst;
+        e1.EV.Vsym = s;
+        e1.Ety = TYnptr;
+
+        if (config.wflags & WFexe)
+        {
+            // e => *(&s + *(FS:_tls_array))
+            e2 = el_var(getRtlsym(RTLSYM_TLS_ARRAY));
+        }
+        else
+        {
+            e2 = el_bin(OPmul,TYint,el_var(getRtlsym(RTLSYM_TLS_INDEX)),el_long(TYint,REGSIZE));
+            ea = el_var(getRtlsym(RTLSYM_TLS_ARRAY));
+            e2 = el_bin(OPadd,ea.Ety,ea,e2);
+        }
+        e2 = el_una(OPind,TYsize_t,e2);
+
+        e.Eoper = OPind;
+        e.EV.E1 = el_bin(OPadd,e1.Ety,e1,e2);
+        e.EV.E2 = null;
+}
+    }
+    return e;
+}
+}
+
+version (SCPP_HTOD)
+{
+elem * el_var(Symbol *s)
+{
+    elem *e;
+
+    //printf("el_var(s = '%s')\n", s.Sident);
+    static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD ||
+               TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+    {
+        if (config.flags3 & CFG3pic && !tyfunc(s.ty()))
+            return el_picvar(s);
+    }
+    symbol_debug(s);
+    type_debug(s.Stype);
+    e = el_calloc();
+    e.Eoper = OPvar;
+    e.EV.Vsym = s;
+
+    version (SCPP_HTOD)
+        enum scpp = true;
+    else
+        enum scpp = false;
+
+    if (scpp && PARSER)
+    {
+        type *t = s.Stype;
+        type_debug(t);
+        e.ET = t;
+        t.Tcount++;
+static if (TARGET_WINDOS)
+{
+        switch (t.Tty & (mTYimport | mTYthread))
+        {
+            case mTYimport:
+                Obj._import(e);
+                break;
+
+            case mTYthread:
+        /*
+                mov     EAX,FS:__tls_array
+                mov     ECX,__tls_index
+                mov     EAX,[ECX*4][EAX]
+                inc     dword ptr _t[EAX]
+
+                e => *(&s + *(FS:_tls_array + _tls_index * 4))
+         */
+        version (MARS)
+                assert(0);
+        else
+        {
+            {
+                elem* e1,e2,ea;
+                e1 = el_calloc();
+                e1.Eoper = OPrelconst;
+                e1.EV.Vsym = s;
+                e1.ET = newpointer(s.Stype);
+                e1.ET.Tcount++;
+
+                e2 = el_bint(OPmul,tstypes[TYint],el_var(getRtlsym(RTLSYM_TLS_INDEX)),el_longt(tstypes[TYint],4));
+                ea = el_var(getRtlsym(RTLSYM_TLS_ARRAY));
+                e2 = el_bint(OPadd,ea.ET,ea,e2);
+                e2 = el_unat(OPind,tstypes[TYint],e2);
+
+                e.Eoper = OPind;
+                e.EV.E1 = el_bint(OPadd,e1.ET,e1,e2);
+                e.EV.E2 = null;
+            }
+        }
+                break;
+
+            case mTYthread | mTYimport:
+                version (SCPP_HTOD) { } else assert(0);
+                tx86err(EM_thread_and_dllimport,s.Sident.ptr);     // can't be both thread and import
+                break;
+
+            default:
+                break;
+        }
+}
+    }
+    else
+        e.Ety = s.ty();
+    return e;
+}
+}
+
+/**************************
+ * Make a pointer to a `Symbol`.
+ * Params: s = symbol
+ * Returns: `elem` with address of `s`
+ */
+
+elem * el_ptr(Symbol *s)
+{
+    elem *e;
+
+    //printf("el_ptr(s = '%s')\n", s.Sident.ptr);
+    //printf("el_ptr\n");
+    symbol_debug(s);
+    type_debug(s.Stype);
+
+    static if (TARGET_OSX)
+    {
+        if (config.flags3 & CFG3pic && tyfunc(s.ty()) && I32)
+        {
+            /* Cannot access address of code from code.
+             * Instead, create a data variable, put the address of the
+             * code in that data variable, and return the elem for
+             * that data variable.
+             */
+            Symbol *sd = symboldata(Offset(DATA), TYnptr);
+            sd.Sseg = DATA;
+            Obj.data_start(sd, _tysize[TYnptr], DATA);
+            Offset(DATA) += Obj.reftoident(DATA, Offset(DATA), s, 0, CFoff);
+            e = el_picvar(sd);
+            return e;
+        }
+    }
+
+    static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD ||
+               TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+    {
+        if (config.flags3 & CFG3pie &&
+            s.Stype.Tty & mTYthread)
+            return el_pieptr(s);            // Position Independent Executable
+
+        if (config.flags3 & CFG3pie &&
+            tyfunc(s.ty()) &&
+            (s.Sclass == SCglobal || s.Sclass == SCcomdat || s.Sclass == SCcomdef || s.Sclass == SCextern))
+        {
+            e = el_calloc();
+            e.Eoper = OPvar;
+            e.EV.Vsym = s;
+            e.Ety = TYnptr;
+            if (I32)
+            {
+                e.Eoper = OPrelconst;
+                e = el_bin(OPadd, TYnptr, e, el_var(el_alloc_localgot()));
+                e = el_una(OPind, TYnptr, e);
+            }
+            return e;
+        }
+
+        if (config.flags3 & CFG3pic &&
+            tyfunc(s.ty()))
+        {
+            e = el_picvar(s);
+        }
+        else
+            e = el_var(s);
+    }
+    else
+        e = el_var(s);
+
+    version (SCPP_HTOD)
+    {
+        if (PARSER)
+        {   type_debug(e.ET);
+            e = el_unat(OPaddr,type_ptr(e,e.ET),e);
+            return e;
+        }
+    }
+
+    if (e.Eoper == OPvar)
+    {
+        e.Ety = TYnptr;
+        e.Eoper = OPrelconst;
+    }
+    else
+    {   e = el_una(OPaddr, TYnptr, e);
+        e = doptelem(e, GOALvalue | GOALflags);
+    }
+    return e;
+}
+
 
 /***************************************
  * Allocate localgot symbol.
@@ -655,354 +1004,5 @@ private elem *el_pieptr(Symbol *s)
 }
 }
 
-
-/**************************
- * Make an elem out of a symbol.
- */
-
-version (MARS)
-{
-elem * el_var(Symbol *s)
-{
-    elem *e;
-    //printf("el_var(s = '%s')\n", s.Sident);
-    //printf("%x\n", s.Stype.Tty);
-    static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-    {
-        if (config.flags3 & CFG3pie &&
-            s.Stype.Tty & mTYthread)
-            return el_pievar(s);            // Position Independent Executable
-
-        if (config.flags3 & CFG3pic &&
-            !tyfunc(s.ty()))
-            return el_picvar(s);            // Position Independent Code
-    }
-
-    static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-    {
-        if (config.flags3 & CFG3pic && tyfunc(s.ty()))
-        {
-            switch (s.Sclass)
-            {
-                case SCcomdat:
-                case SCcomdef:
-                case SCglobal:
-                case SCextern:
-                    el_alloc_localgot();
-                    break;
-
-                default:
-                    break;
-            }
-        }
-    }
-    symbol_debug(s);
-    type_debug(s.Stype);
-    e = el_calloc();
-    e.Eoper = OPvar;
-    e.EV.Vsym = s;
-    type_debug(s.Stype);
-    e.Ety = s.ty();
-    if (s.Stype.Tty & mTYthread)
-    {
-        //printf("thread local %s\n", s.Sident);
-static if (TARGET_OSX)
-{
-}
-else static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-{
-        /* For 32 bit:
-         * Generate for var locals:
-         *      MOV reg,GS:[00000000]   // add GS: override in back end
-         *      ADD reg, offset s@TLS_LE
-         *      e => *(&s + *(GS:0))
-         * For var globals:
-         *      MOV reg,GS:[00000000]
-         *      ADD reg, s@TLS_IE
-         *      e => *(s + *(GS:0))
-         * note different fixup
-         *****************************************
-         * For 64 bit:
-         * Generate for var locals:
-         *      MOV reg,FS:s@TPOFF32
-         * For var globals:
-         *      MOV RAX,s@GOTTPOFF[RIP]
-         *      MOV reg,FS:[RAX]
-         *
-         * For address of locals:
-         *      MOV RAX,FS:[00]
-         *      LEA reg,s@TPOFF32[RAX]
-         *      e => &s + *(FS:0)
-         * For address of globals:
-         *      MOV reg,FS:[00]
-         *      MOV RAX,s@GOTTPOFF[RIP]
-         *      ADD reg,RAX
-         *      e => s + *(FS:0)
-         * This leaves us with a problem, as the 'var' version cannot simply have
-         * its address taken, as what is the address of FS:s ? The (not so efficient)
-         * solution is to just use the second address form, and * it.
-         * Turns out that is identical to the 32 bit version, except GS => FS and the
-         * fixups are different.
-         * In the future, we should figure out a way to optimize to the 'var' version.
-         */
-        if (I64)
-            Obj.refGOTsym();
-        elem *e1 = el_calloc();
-        e1.EV.Vsym = s;
-        if (s.Sclass == SCstatic || s.Sclass == SClocstat)
-        {
-            e1.Eoper = OPrelconst;
-            e1.Ety = TYnptr;
-        }
-        else
-        {
-            e1.Eoper = OPvar;
-            e1.Ety = TYnptr;
-        }
-
-        /* Fake GS:[0000] as a load of _tls_array, and then in the back end recognize
-         * the fake and rewrite it as GS:[0000] (or FS:[0000] for I64), because there is
-         * no way to represent segment overrides in the elem nodes.
-         */
-        elem *e2 = el_calloc();
-        e2.Eoper = OPvar;
-        e2.EV.Vsym = getRtlsym(RTLSYM_TLS_ARRAY);
-        e2.Ety = e2.EV.Vsym.ty();
-
-        e.Eoper = OPind;
-        e.EV.E1 = el_bin(OPadd,e1.Ety,e2,e1);
-        e.EV.E2 = null;
-}
-else static if (TARGET_WINDOS)
-{
-        /*
-            Win32:
-                mov     EAX,FS:__tls_array
-                mov     ECX,__tls_index
-                mov     EAX,[ECX*4][EAX]
-                inc     dword ptr _t[EAX]
-
-                e => *(&s + *(FS:_tls_array + _tls_index * 4))
-
-                If this is an executable app, not a dll, _tls_index
-                can be assumed to be 0.
-
-            Win64:
-
-                mov     EAX,&s
-                mov     RDX,GS:__tls_array
-                mov     ECX,_tls_index[RIP]
-                mov     RCX,[RCX*8][RDX]
-                mov     EAX,[RCX][RAX]
-
-                e => *(&s + *(GS:[80] + _tls_index * 8))
-
-                If this is an executable app, not a dll, _tls_index
-                can be assumed to be 0.
-         */
-        elem* e1,e2,ea;
-
-        e1 = el_calloc();
-        e1.Eoper = OPrelconst;
-        e1.EV.Vsym = s;
-        e1.Ety = TYnptr;
-
-        if (config.wflags & WFexe)
-        {
-            // e => *(&s + *(FS:_tls_array))
-            e2 = el_var(getRtlsym(RTLSYM_TLS_ARRAY));
-        }
-        else
-        {
-            e2 = el_bin(OPmul,TYint,el_var(getRtlsym(RTLSYM_TLS_INDEX)),el_long(TYint,REGSIZE));
-            ea = el_var(getRtlsym(RTLSYM_TLS_ARRAY));
-            e2 = el_bin(OPadd,ea.Ety,ea,e2);
-        }
-        e2 = el_una(OPind,TYsize_t,e2);
-
-        e.Eoper = OPind;
-        e.EV.E1 = el_bin(OPadd,e1.Ety,e1,e2);
-        e.EV.E2 = null;
-}
-    }
-    return e;
-}
-}
-
-version (SCPP_HTOD)
-{
-elem * el_var(Symbol *s)
-{
-    elem *e;
-
-    //printf("el_var(s = '%s')\n", s.Sident);
-    static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD ||
-               TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-    {
-        if (config.flags3 & CFG3pic && !tyfunc(s.ty()))
-            return el_picvar(s);
-    }
-    symbol_debug(s);
-    type_debug(s.Stype);
-    e = el_calloc();
-    e.Eoper = OPvar;
-    e.EV.Vsym = s;
-
-    version (SCPP_HTOD)
-        enum scpp = true;
-    else
-        enum scpp = false;
-
-    if (scpp && PARSER)
-    {
-        type *t = s.Stype;
-        type_debug(t);
-        e.ET = t;
-        t.Tcount++;
-static if (TARGET_WINDOS)
-{
-        switch (t.Tty & (mTYimport | mTYthread))
-        {
-            case mTYimport:
-                Obj._import(e);
-                break;
-
-            case mTYthread:
-        /*
-                mov     EAX,FS:__tls_array
-                mov     ECX,__tls_index
-                mov     EAX,[ECX*4][EAX]
-                inc     dword ptr _t[EAX]
-
-                e => *(&s + *(FS:_tls_array + _tls_index * 4))
-         */
-        version (MARS)
-                assert(0);
-        else
-        {
-            {
-                elem* e1,e2,ea;
-                e1 = el_calloc();
-                e1.Eoper = OPrelconst;
-                e1.EV.Vsym = s;
-                e1.ET = newpointer(s.Stype);
-                e1.ET.Tcount++;
-
-                e2 = el_bint(OPmul,tstypes[TYint],el_var(getRtlsym(RTLSYM_TLS_INDEX)),el_longt(tstypes[TYint],4));
-                ea = el_var(getRtlsym(RTLSYM_TLS_ARRAY));
-                e2 = el_bint(OPadd,ea.ET,ea,e2);
-                e2 = el_unat(OPind,tstypes[TYint],e2);
-
-                e.Eoper = OPind;
-                e.EV.E1 = el_bint(OPadd,e1.ET,e1,e2);
-                e.EV.E2 = null;
-            }
-        }
-                break;
-
-            case mTYthread | mTYimport:
-                version (SCPP_HTOD) { } else assert(0);
-                tx86err(EM_thread_and_dllimport,s.Sident.ptr);     // can't be both thread and import
-                break;
-
-            default:
-                break;
-        }
-}
-    }
-    else
-        e.Ety = s.ty();
-    return e;
-}
-}
-
-/**************************
- * Make a pointer to a `Symbol`.
- * Params: s = symbol
- * Returns: `elem` with address of `s`
- */
-
-elem * el_ptr(Symbol *s)
-{
-    elem *e;
-
-    //printf("el_ptr(s = '%s')\n", s.Sident.ptr);
-    //printf("el_ptr\n");
-    symbol_debug(s);
-    type_debug(s.Stype);
-
-    static if (TARGET_OSX)
-    {
-        if (config.flags3 & CFG3pic && tyfunc(s.ty()) && I32)
-        {
-            /* Cannot access address of code from code.
-             * Instead, create a data variable, put the address of the
-             * code in that data variable, and return the elem for
-             * that data variable.
-             */
-            Symbol *sd = symboldata(Offset(DATA), TYnptr);
-            sd.Sseg = DATA;
-            Obj.data_start(sd, _tysize[TYnptr], DATA);
-            Offset(DATA) += Obj.reftoident(DATA, Offset(DATA), s, 0, CFoff);
-            e = el_picvar(sd);
-            return e;
-        }
-    }
-
-    static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD ||
-               TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
-    {
-        if (config.flags3 & CFG3pie &&
-            s.Stype.Tty & mTYthread)
-            return el_pieptr(s);            // Position Independent Executable
-
-        if (config.flags3 & CFG3pie &&
-            tyfunc(s.ty()) &&
-            (s.Sclass == SCglobal || s.Sclass == SCcomdat || s.Sclass == SCcomdef || s.Sclass == SCextern))
-        {
-            e = el_calloc();
-            e.Eoper = OPvar;
-            e.EV.Vsym = s;
-            e.Ety = TYnptr;
-            if (I32)
-            {
-                e.Eoper = OPrelconst;
-                e = el_bin(OPadd, TYnptr, e, el_var(el_alloc_localgot()));
-                e = el_una(OPind, TYnptr, e);
-            }
-            return e;
-        }
-
-        if (config.flags3 & CFG3pic &&
-            tyfunc(s.ty()))
-        {
-            e = el_picvar(s);
-        }
-        else
-            e = el_var(s);
-    }
-    else
-        e = el_var(s);
-
-    version (SCPP_HTOD)
-    {
-        if (PARSER)
-        {   type_debug(e.ET);
-            e = el_unat(OPaddr,type_ptr(e,e.ET),e);
-            return e;
-        }
-    }
-
-    if (e.Eoper == OPvar)
-    {
-        e.Ety = TYnptr;
-        e.Eoper = OPrelconst;
-    }
-    else
-    {   e = el_una(OPaddr, TYnptr, e);
-        e = doptelem(e, GOALvalue | GOALflags);
-    }
-    return e;
-}
 
 }
