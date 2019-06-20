@@ -788,6 +788,10 @@ $(H3 $(LNAME2 void-initialization, Void Initialization))
         Void initializations are an advanced technique and should only be used
         when profiling indicates that it matters.
         )
+        $(P to void initialise the elements of dynamic array use
+        $(REF uninitializedArray, std,array).
+        )
+
 
 $(H3 $(LNAME2 static-init-static, Static Initialization of Statically Allocated Arrays))
 
