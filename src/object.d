@@ -541,22 +541,14 @@ void destroy(bool initialize = true, T : U[n], U, size_t n)(ref T obj) if (!is(T
     }
 }
 
+import core.internal.traits: isStaticArray;
+
 /// ditto
 void destroy(bool initialize = true, T)(ref T obj)
-    if (!is(T == struct) && !is(T == interface) && !is(T == class) && !_isStaticArray!T)
+    if (!is(T == struct) && !is(T == interface) && !is(T == class) && !isStaticArray!T)
 {
     static if (initialize)
         obj = T.init;
-}
-
-template _isStaticArray(T : U[N], U, size_t N)
-{
-    enum bool _isStaticArray = true;
-}
-
-template _isStaticArray(T)
-{
-    enum bool _isStaticArray = false;
 }
 
 @safe unittest
