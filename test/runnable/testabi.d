@@ -891,7 +891,7 @@ TEST data2 = { 2, "RDI struct pointer" };
 
 T test2_asm( T, int n )( T t )
 {
-        typeof(.dump) dump;
+        typeof(.dump) dump = void;
         enum m = T.sizeof < 4 ? mask(T.sizeof) : ~0LU;
         asm {
 
@@ -1007,7 +1007,7 @@ TEST data4 = { 4, "Check Input Register value" };
 
 void test4_run( T, int n )( T t )
 {
-        typeof(.dump) dump;
+        typeof(.dump) dump = void;
         mixin( gen_reg_capture!(n,`["RDI","RSI"]`)() );
 
         if (RegValue[n] == null)
