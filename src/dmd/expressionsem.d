@@ -8662,7 +8662,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         else if (auto se = exp.e1.isSliceExp())
         {
             Type tn = se.type.nextOf();
-            if (exp.op == TOK.assign && !tn.isMutable())
+            const fun = sc.func;
+            if (exp.op == TOK.assign && !tn.isMutable() &&
+                // allow modifiation in module ctor, see
+                // https://issues.dlang.org/show_bug.cgi?id=9884
+                (!fun || (fun && !fun.isStaticCtorDeclaration())))
             {
                 exp.error("slice `%s` is not mutable", se.toChars());
                 return setError();
