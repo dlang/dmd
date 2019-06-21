@@ -227,6 +227,14 @@ void test_semantic()
     semantic2(m, NULL);
     semantic3(m, NULL);
 
+    Dsymbol *s = m->search(Loc(), Identifier::idPool("Error"));
+    assert(s);
+    AggregateDeclaration *ad = s->isAggregateDeclaration();
+    assert(ad && ad->ctor);
+    CtorDeclaration *ctor = ad->ctor->isCtorDeclaration();
+    assert(ctor->isMember() && !ctor->isNested());
+    assert(0 == strcmp(ctor->type->toChars(), "Error(string)"));
+
     assert(!global.endGagging(errors));
 }
 
