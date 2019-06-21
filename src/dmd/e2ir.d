@@ -915,10 +915,11 @@ private elem *setArray(Expression exp, elem *eptr, elem *edim, Type tb, elem *ev
 {
     assert(op == TOK.blit || op == TOK.assign || op == TOK.construct);
     const sz = cast(uint)tb.size();
+    Type tb2 = tb;
 
 Lagain:
     int r;
-    switch (tb.ty)
+    switch (tb2.ty)
     {
         case Tfloat80:
         case Timaginary80:
@@ -948,11 +949,11 @@ Lagain:
             if (!irs.params.is64bit)
                 goto default;
 
-            TypeStruct tc = cast(TypeStruct)tb;
+            TypeStruct tc = cast(TypeStruct)tb2;
             StructDeclaration sd = tc.sym;
             if (sd.arg1type && !sd.arg2type)
             {
-                tb = sd.arg1type;
+                tb2 = sd.arg1type;
                 goto Lagain;
             }
             goto default;
