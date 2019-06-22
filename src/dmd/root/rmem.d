@@ -306,7 +306,7 @@ static if (OVERRIDE_MEMALLOC)
 static if (!is(typeof(pureMalloc)))
 {
 private:
-    static import core.stdc.errno;
+    import dmd.root.errno : restoreErrno;
 
     /**
      * Pure variants of C's memory allocation functions `malloc`, `calloc`, and
@@ -322,33 +322,22 @@ private:
      */
     void* pureMalloc()(size_t size) @trusted pure @nogc nothrow
     {
-        const errnosave = fakePureErrno;
-        void* ret = fakePureMalloc(size);
-        fakePureErrno = errnosave;
-        return ret;
+        return restoreErrno!(() => fakePureMalloc(size));
     }
     /// ditto
     void* pureCalloc()(size_t nmemb, size_t size) @trusted pure @nogc nothrow
     {
-        const errnosave = fakePureErrno;
-        void* ret = fakePureCalloc(nmemb, size);
-        fakePureErrno = errnosave;
-        return ret;
+        return restoreErrno!(() => fakePureCalloc(nmemb, size));
     }
     /// ditto
     void* pureRealloc()(void* ptr, size_t size) @system pure @nogc nothrow
     {
-        const errnosave = fakePureErrno;
-        void* ret = fakePureRealloc(ptr, size);
-        fakePureErrno = errnosave;
-        return ret;
+        return restoreErrno!(() => fakePureRealloc(ptr, size));
     }
     /// ditto
     void pureFree()(void* ptr) @system pure @nogc nothrow
     {
-        const errnosave = fakePureErrno;
-        fakePureFree(ptr);
-        fakePureErrno = errnosave;
+        restoreErrno!(() => fakePureFree(ptr));
     }
 
     extern (C) private pure @system @nogc nothrow
@@ -360,34 +349,6 @@ private:
         pragma(mangle, "realloc") void* fakePureRealloc(void* ptr, size_t size);
 
         pragma(mangle, "free") void fakePureFree(void* ptr);
-    }
-
-    static if (__traits(getOverloads, core.stdc.errno, "errno").length == 1
-        && __traits(getLinkage, core.stdc.errno.errno) == "C")
-    {
-        extern(C) pragma(mangle, __traits(identifier, core.stdc.errno.errno))
-        private ref int fakePureErrno() @nogc nothrow pure @system;
-    }
-    else
-    {
-        extern(C) private @nogc nothrow pure @system
-        {
-            pragma(mangle, "getErrno")
-            private int fakePureGetErrno();
-
-            pragma(mangle, "setErrno")
-            private int fakePureSetErrno(int);
-        }
-
-        private @property int fakePureErrno()() @nogc nothrow pure @system
-        {
-            return fakePureGetErrno();
-        }
-
-        private @property void fakePureErrno()(int newValue) @nogc nothrow pure @system
-        {
-            cast(void) fakePureSetErrno(newValue);
-        }
     }
 }
 
