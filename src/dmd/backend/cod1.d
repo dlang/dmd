@@ -3992,8 +3992,13 @@ static if (0)
     }
 }
 
-    reg_t reg1, reg2;
-    retregs = allocretregs(e.Ety, e.ET, tym1, &reg1, &reg2);
+    reg_t reg1 = NOREG, reg2 = NOREG;
+
+    if (config.exe == EX_WIN64) // Win64 is currently broken
+        retregs = regmask(e.Ety, tym1);
+    else
+        retregs = allocretregs(e.Ety, e.ET, tym1, &reg1, &reg2);
+
     assert(retregs || !*pretregs);
 
     if (!usefuncarg)
@@ -4064,7 +4069,7 @@ static if (0)
             push87(cdb);
             push87(cdb);                // two items on 8087 stack
             fixresult_complex87(cdb, e, retregs, pretregs);
-            if (I64 && *pretregs & mST01)
+            if (*pretregs & mST01 && I64 && config.exe != EX_WIN64)
                 cdb.genf2(0xD9,0xC8 + 1);   // FXCH ST(1)
             return;
         }
@@ -4109,7 +4114,9 @@ static if (0)
 
     /* Special handling for functions which return complex float in XMM0 or RAX. */
 
-    if (I64 && *pretregs && tybasic(e.Ety) == TYcfloat)
+    if (I64
+        && config.exe != EX_WIN64 // broken
+        && *pretregs && tybasic(e.Ety) == TYcfloat)
     {
         assert(reg2 == NOREG);
         // spill
