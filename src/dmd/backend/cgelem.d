@@ -3442,7 +3442,7 @@ elem * elstruct(elem *e, goal_t goal)
             {
                  goto L1;
             }
-            if (e.Eoper == OPstrpar && I64 && ty == TYstruct)
+            if (I64 && config.exe != EX_WIN64)
             {
                 goto L1;
             }
@@ -3463,7 +3463,7 @@ elem * elstruct(elem *e, goal_t goal)
         case 13:
         case 14:
         case 15:
-            if (e.Eoper == OPstrpar && I64 && ty == TYstruct && config.exe != EX_WIN64)
+            if (I64 && config.exe != EX_WIN64)
             {
                 goto L1;
             }
@@ -3522,6 +3522,25 @@ elem * elstruct(elem *e, goal_t goal)
             switch (e.Eoper)
             {
                 case OPstreq:
+                    if (sz != tysize(tym))
+                    {
+                        // we can't optimize OPstreq in this case,
+                        // there will be memory corruption in the assignment
+                        elem *e2 = e.EV.E2;
+                        if (e2.Eoper != OPvar && e2.Eoper != OPind)
+                        {
+                            // the source may come in registers. ex: returned from a function.
+                            assert(tyaggregate(e2.Ety));
+                            e2 = optelem(e2, GOALvalue);
+                            e2 = elstruct(e2, GOALvalue);
+                            e2 = exp2_copytotemp(e2); // (tmp = e2, tmp)
+                            e2.EV.E2.EV.Vsym.Sfl = FLauto;
+                            e2.Ety = e2.EV.E2.Ety = e.Ety;
+                            e2.ET = e2.EV.E2.ET = e.ET;
+                            e.EV.E2 = e2;
+                        }
+                        break;
+                    }
                     e.Eoper = OPeq;
                     e.Ety = (e.Ety & ~mTYbasic) | tym;
                     elstructwalk(e.EV.E1,tym);
