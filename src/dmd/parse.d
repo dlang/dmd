@@ -2847,6 +2847,8 @@ final class Parser(AST) : Lexer
                 switch (token.value)
                 {
                 case TOK.rightParentheses:
+                    if (storageClass != 0 || udas !is null)
+                        error("basic type expected, not `)`");
                     break;
 
                 case TOK.dotDotDot:
