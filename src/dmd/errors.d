@@ -402,6 +402,16 @@ extern (C++) void message(const(char)* format, ...)
     va_end(ap);
 }
 
+/// The type of the diagnostic handler
+alias DiagnosticHandler = void delegate(const ref Loc location, Color headerColor, const(char)* header, const(char)* messageFormat, va_list args, const(char)* prefix1, const(char)* prefix2);
+
+/**
+ * The diagnostic handler.
+ * This will be called for every diagnostic message issued by the compiler.
+ * By default it will print the location and the message to stderr.
+ */
+DiagnosticHandler diagnosticHandler;
+
 /**
  * Print a tip message with the prefix and highlighting.
  * Params:
@@ -431,6 +441,11 @@ extern (C++) void tip(const(char)* format, ...)
 private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* header,
         const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)
 {
+    if (diagnosticHandler)
+    {
+        return diagnosticHandler(loc, headerColor, header, format, ap, p1, p2);
+    }
+
     Console* con = cast(Console*)global.console;
     const p = loc.toChars();
     if (con)

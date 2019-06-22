@@ -18,6 +18,7 @@ import dmd.astcodegen : ASTCodegen;
 import dmd.dmodule : Module;
 import dmd.errors : DiagnosticReporter;
 import dmd.globals : CHECKENABLE;
+import dmd.errors : DiagnosticHandler, diagnosticHandler;
 
 import std.range.primitives : isInputRange, ElementType;
 import std.traits : isNarrowString;
@@ -99,10 +100,12 @@ Initializes the global variables of the DMD compiler.
 This needs to be done $(I before) calling any function.
 
 Params:
+    handler = a delegate to configure what to do with diagnostics (other than printing to console or stderr).
     contractChecks = indicates which contracts should be enabled or not
     versionIdentifiers = a list of version identifiers that should be enabled
 */
 void initDMD(
+    DiagnosticHandler handler = null,
     const string[] versionIdentifiers = [],
     ContractChecks contractChecks = ContractChecks()
 )
@@ -128,6 +131,8 @@ void initDMD(
     import dmd.target : target;
 
     global._init();
+
+    diagnosticHandler = handler;
 
     with (global.params)
     {
