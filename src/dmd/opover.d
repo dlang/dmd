@@ -688,8 +688,7 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                 {
                     // If the non-aggregate expression ae.e1 is indexable or sliceable,
                     // convert it to the corresponding concrete expression.
-                    if (t1b.ty == Tpointer || t1b.ty == Tsarray || t1b.ty == Tarray || t1b.ty == Taarray ||
-                        t1b.ty == Ttuple || t1b.ty == Tvector || ae.e1.op == TOK.type)
+                    if (isIndexableNonAggregate(t1b) || ae.e1.op == TOK.type)
                     {
                         // Convert to SliceExp
                         if (maybeSlice)
