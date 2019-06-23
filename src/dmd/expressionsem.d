@@ -7383,8 +7383,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (isAggregate(exp.e1.type))
             exp.error("no `[]` operator overload for type `%s`", exp.e1.type.toChars());
-        else
+        else if (exp.e1.op == TOK.type && exp.e1.type.ty != Ttuple)
+            exp.error("static array of `%s` with multiple lengths not allowed", exp.e1.type.toChars());
+        else if (isIndexableNonAggregate(exp.e1.type))
             exp.error("only one index allowed to index `%s`", exp.e1.type.toChars());
+        else
+            exp.error("cannot use `[]` operator on expression of type `%s`", exp.e1.type.toChars());
+
         result = new ErrorExp();
     }
 

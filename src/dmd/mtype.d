@@ -6670,6 +6670,21 @@ extern (C++) AggregateDeclaration isAggregate(Type t)
 }
 
 /***************************************************
+ * Determine if type t can be indexed or sliced given that it is not an
+ * aggregate with operator overloads.
+ * Params:
+ *      t = type to check
+ * Returns:
+ *      true if an expression of type t can be e1 in an array expression
+ */
+bool isIndexableNonAggregate(Type t)
+{
+    t = t.toBasetype();
+    return (t.ty == Tpointer || t.ty == Tsarray || t.ty == Tarray || t.ty == Taarray ||
+            t.ty == Ttuple || t.ty == Tvector);
+}
+
+/***************************************************
  * Determine if type t is copyable.
  * Params:
  *      t = type to check

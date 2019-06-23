@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail15.d(24): Error: only one index allowed to index `void`
+fail_compilation/fail15.d(24): Error: cannot use `[]` operator on expression of type `void`
 ---
 */
 /*
