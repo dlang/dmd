@@ -164,6 +164,69 @@ template isInnerClass(T) if (is(T == class))
         enum isInnerClass = false;
 }
 
+/// Returns the type of `alias T` if it is not a type, or just returns `T`
+/// if it is a type
+private template Type(alias T)
+{
+    static if (is(typeof(T) == X, X))
+    {
+        alias Type = X;
+    }
+    else
+    {
+        alias Type = T;
+    }
+}
+
+/// Detect whether type `T` is a static array.
+template isStaticArray(alias T)
+{
+    enum isStaticArray = is(Type!T : U[N], U, size_t N) && __traits(getAliasThis, Type!T).length == 0;
+}
+
+///
+@safe unittest
+{
+    static assert( isStaticArray!(int[3]));
+    static assert( isStaticArray!(const(int)[5]));
+    static assert( isStaticArray!(const(int)[][5]));
+
+    static assert(!isStaticArray!(const(int)[]));
+    static assert(!isStaticArray!(immutable(int)[]));
+    static assert(!isStaticArray!(const(int)[4][]));
+    static assert(!isStaticArray!(int[]));
+    static assert(!isStaticArray!(int[char]));
+    static assert(!isStaticArray!(int[1][]));
+    static assert(!isStaticArray!(int[int]));
+    static assert(!isStaticArray!int);
+
+    // This should NOT be considered a static array
+    struct AliasThisStaticArray
+    {
+        int[1] x;
+        alias x this;
+    }
+
+    AliasThisStaticArray atsa;
+    static assert(!isStaticArray!AliasThisStaticArray);
+    static assert(!isStaticArray!atsa);
+
+    // This is an enumeration of static array, so they are indeed static arrays.
+    enum EnumStaticArray : int[2]
+    {
+        a = [1, 2],
+        b = [2, 3]
+    }
+
+    static assert(isStaticArray!EnumStaticArray);
+    static assert(isStaticArray!(EnumStaticArray.a));
+    static assert(isStaticArray!(EnumStaticArray.b));
+
+    int[1] x;
+
+    static assert(isStaticArray!(x));
+}
+
 template dtorIsNothrow(T)
 {
     enum dtorIsNothrow = is(typeof(function{T t=void;}) : void function() nothrow);
@@ -234,7 +297,7 @@ template Fields(T)
 // std.traits.hasElaborateDestructor
 template hasElaborateDestructor(S)
 {
-    static if (__traits(isStaticArray, S) && S.length)
+    static if (isStaticArray!S && S.length)
     {
         enum bool hasElaborateDestructor = hasElaborateDestructor!(typeof(S.init[0]));
     }
@@ -252,7 +315,7 @@ template hasElaborateDestructor(S)
 // std.traits.hasElaborateCopyDestructor
 template hasElaborateCopyConstructor(S)
 {
-    static if (__traits(isStaticArray, S) && S.length)
+    static if (isStaticArray!S && S.length)
     {
         enum bool hasElaborateCopyConstructor = hasElaborateCopyConstructor!(typeof(S.init[0]));
     }
@@ -268,7 +331,7 @@ template hasElaborateCopyConstructor(S)
 
 template hasElaborateAssign(S)
 {
-    static if (__traits(isStaticArray, S) && S.length)
+    static if (isStaticArray!S && S.length)
     {
         enum bool hasElaborateAssign = hasElaborateAssign!(typeof(S.init[0]));
     }
