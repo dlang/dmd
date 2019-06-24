@@ -739,7 +739,7 @@ public:
         visited[cast(void*)sd] = true;
 
         if (sd.alignment == 1)
-        buf.writestring("#pragma pack(push, 1)\n");
+            buf.writestring("#pragma pack(push, 1)\n");
         buf.writestring(sd.isUnionDeclaration() ? "union " : "struct ");
         buf.writestring(sd.ident.toChars());
         if (sd.members)
