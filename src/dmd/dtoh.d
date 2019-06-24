@@ -1300,11 +1300,12 @@ public:
             if (p.defaultArg)
             {
                 //printf("%s %d\n", p.defaultArg.toChars, p.defaultArg.op);
-                return;
-                // buf.writestring("/*");
-                //buf.writestring(" = ");
+                //return;
+                buf.writestring("/*");
+                buf.writestring(" = ");
+                buf.writestring(p.defaultArg.toChars());
                 //p.defaultArg.accept(this);
-                // buf.writestring("*/");
+                buf.writestring("*/");
             }
         }
     }
