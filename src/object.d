@@ -541,11 +541,9 @@ void destroy(bool initialize = true, T : U[n], U, size_t n)(ref T obj) if (!is(T
     }
 }
 
-import core.internal.traits: isStaticArray;
-
 /// ditto
 void destroy(bool initialize = true, T)(ref T obj)
-    if (!is(T == struct) && !is(T == interface) && !is(T == class) && !isStaticArray!T)
+    if (!is(T == struct) && !is(T == interface) && !is(T == class) && !__traits(isStaticArray, T))
 {
     static if (initialize)
         obj = T.init;
