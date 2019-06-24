@@ -553,9 +553,13 @@ if (!irs.params.is64bit) assert(tysize(TYnptr) == 4);
     else if (retmethod == RET.stack)
     {
         if (irs.params.isOSX && eresult)
+        {
             /* ABI quirk: hidden pointer is not returned in registers
              */
+            if (tyaggregate(tyret))
+                e.ET = Type_toCtype(tret);
             e = el_combine(e, el_copytree(eresult));
+        }
         e.Ety = TYnptr;
         e = el_una(OPind, tyret, e);
     }
