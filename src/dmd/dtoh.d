@@ -696,12 +696,16 @@ public:
 
     override void visit(AST.AnonDeclaration ad)
     {
-        buf.writestring(ad.isunion ? "union" : "struct");
-        buf.writestring("\n{\n");
+        indent();
+        buf.writestring(ad.isunion ? "union\n" : "struct\n");
+        indent();
+        buf.writestring("{\n");
         foreach (s; *ad.decl)
         {
+            indent();
             s.accept(this);
         }
+        indent();
         buf.writestring("};\n");
     }
 
