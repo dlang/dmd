@@ -229,7 +229,8 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
             auto ie = new ExpInitializer(i.loc, e);
             return ie.initializerSemantic(sc, t, needInterpret);
         }
-        error(i.loc, "a struct is not a valid initializer for a `%s`", t.toChars());
+        if (t.ty != Terror)
+            error(i.loc, "a struct is not a valid initializer for a `%s`", t.toChars());
         return new ErrorInitializer();
     }
 
