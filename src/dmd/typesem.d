@@ -723,6 +723,17 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
         Type tbn = tn.toBasetype();
         if (mtype.dim)
         {
+            //https://issues.dlang.org/show_bug.cgi?id=15478
+            if (mtype.dim.isDotVarExp())
+            {
+                if (Declaration vd = mtype.dim.isDotVarExp().var)
+                {
+                    FuncDeclaration fd = vd.toAlias().isFuncDeclaration();
+                    if (fd)
+                        mtype.dim = new CallExp(loc, fd, null);
+                }
+            }
+
             auto errors = global.errors;
             mtype.dim = semanticLength(sc, tbn, mtype.dim);
             if (errors != global.errors)
@@ -875,6 +886,14 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
             Type t;
             Dsymbol s;
             mtype.index.resolve(loc, sc, &e, &t, &s);
+
+            //https://issues.dlang.org/show_bug.cgi?id=15478
+            if (s)
+            {
+                if (FuncDeclaration fd = s.toAlias().isFuncDeclaration())
+                    e = new CallExp(loc, fd, null);
+            }
+
             if (e)
             {
                 // It was an expression -
