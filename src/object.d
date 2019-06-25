@@ -38,8 +38,13 @@ alias dstring = immutable(dchar)[];
 
 version (D_ObjectiveC) public import core.attribute : selector;
 
+/// See $(REF __cmp, rt,array,comparison)
 public import rt.array.comparison : __cmp;
-public import rt.array.equality : __ArrayEq, __equals;
+/// See $(REF __equals, rt,array,equality)
+public import rt.array.equality : __equals;
+/// See $(REF __ArrayEq, rt,array,equality)
+public import rt.array.equality : __ArrayEq;
+/// See $(REF __ArrayCast, rt,array,casting)
 public import rt.array.casting: __ArrayCast;
 
 /// See $(REF capacity, rt,array,capacity)
