@@ -575,10 +575,10 @@ private:
         buf.writeByte('?');
         mangleIdent(d);
         assert((d.storage_class & STC.field) || !d.needThis());
-        Dsymbol parent = d.toParent3();
+        Dsymbol parent = d.toParent();
         while (parent && parent.isNspace())
         {
-            parent = parent.toParent3();
+            parent = parent.toParent();
         }
         if (parent && parent.isModule()) // static member
         {
@@ -1036,9 +1036,9 @@ private:
         //                ::= $0<encoded integral number>
         //printf("mangleIdent('%s')\n", sym.toChars());
         Dsymbol p = sym;
-        if (p.toParent3() && p.toParent3().isTemplateInstance())
+        if (p.toParent() && p.toParent().isTemplateInstance())
         {
-            p = p.toParent3();
+            p = p.toParent();
         }
         while (p && !p.isModule())
         {
@@ -1046,10 +1046,10 @@ private:
             // Mangle our string namespaces as well
             for (auto ns = p.namespace; ns !is null; ns = ns.namespace)
                 mangleName(ns, dont_use_back_reference);
-            p = p.toParent3();
-            if (p.toParent3() && p.toParent3().isTemplateInstance())
+            p = p.toParent();
+            if (p.toParent() && p.toParent().isTemplateInstance())
             {
-                p = p.toParent3();
+                p = p.toParent();
             }
         }
         if (!dont_use_back_reference)
