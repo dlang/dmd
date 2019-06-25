@@ -1245,7 +1245,7 @@ int el_sideeffect(elem *e)
     const op = e.Eoper;
     assert(op < OPMAX);
     elem_debug(e);
-    return  typemask(e) & mTYvolatile ||
+    return  typemask(e) & (mTYvolatile | mTYshared) ||
             OTsideff(op) ||
             (OTunary(op) && el_sideeffect(e.EV.E1)) ||
             (OTbinary(op) && (el_sideeffect(e.EV.E1) ||

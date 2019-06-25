@@ -425,7 +425,7 @@ void ecom(elem **pe)
     /* don't CSE structures or unions or volatile stuff   */
     if (tym == TYstruct ||
         tym == TYvoid ||
-        e.Ety & mTYvolatile)
+        e.Ety & (mTYvolatile | mTYshared))
         return;
     if (tyfloating(tym) && config.inline8087)
     {
@@ -493,7 +493,7 @@ hash_t cs_comphash(const elem *e)
 {
     elem_debug(e);
     const op = e.Eoper;
-    hash_t hash = (e.Ety & (mTYbasic | mTYconst | mTYvolatile)) + (op << 8);
+    hash_t hash = (e.Ety & (mTYbasic | mTYconst | mTYvolatile | mTYshared)) + (op << 8);
     if (!OTleaf(op))
     {
         hash += cast(size_t) e.EV.E1;
