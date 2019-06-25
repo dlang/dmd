@@ -301,94 +301,34 @@ static if (OVERRIDE_MEMALLOC)
     }
 }
 
-// Copied from druntime. Remove these when GDC and LDC LTS is at a version
-// corresponding to 2.074.0 or later.
-static if (!is(typeof(pureMalloc)))
+extern (C) pure @nogc nothrow
 {
-private:
-    static import core.stdc.errno;
-
     /**
      * Pure variants of C's memory allocation functions `malloc`, `calloc`, and
      * `realloc` and deallocation function `free`.
      *
      * UNIX 98 requires that errno be set to ENOMEM upon failure.
-     * Purity is achieved by saving and restoring the value of `errno`, thus
-     * behaving as if it were never changed.
+     * https://linux.die.net/man/3/malloc
+     * However, this is irrelevant for DMD's purposes, and best practice
+     * protocol for using errno is to treat it as an `out` parameter, and not
+     * something with state that can be relied on across function calls.
+     * So, we'll ignore it.
      *
      * See_Also:
      *     $(LINK2 https://dlang.org/spec/function.html#pure-functions, D's rules for purity),
      *     which allow for memory allocation under specific circumstances.
      */
-    void* pureMalloc()(size_t size) @trusted pure @nogc nothrow
-    {
-        const errnosave = fakePureErrno;
-        void* ret = fakePureMalloc(size);
-        fakePureErrno = errnosave;
-        return ret;
-    }
+    pragma(mangle, "malloc") void* pureMalloc(size_t size) @trusted;
+
     /// ditto
-    void* pureCalloc()(size_t nmemb, size_t size) @trusted pure @nogc nothrow
-    {
-        const errnosave = fakePureErrno;
-        void* ret = fakePureCalloc(nmemb, size);
-        fakePureErrno = errnosave;
-        return ret;
-    }
+    pragma(mangle, "calloc") void* pureCalloc(size_t nmemb, size_t size) @trusted;
+
     /// ditto
-    void* pureRealloc()(void* ptr, size_t size) @system pure @nogc nothrow
-    {
-        const errnosave = fakePureErrno;
-        void* ret = fakePureRealloc(ptr, size);
-        fakePureErrno = errnosave;
-        return ret;
-    }
+    pragma(mangle, "realloc") void* pureRealloc(void* ptr, size_t size) @system;
+
     /// ditto
-    void pureFree()(void* ptr) @system pure @nogc nothrow
-    {
-        const errnosave = fakePureErrno;
-        fakePureFree(ptr);
-        fakePureErrno = errnosave;
-    }
+    pragma(mangle, "free") void pureFree(void* ptr) @system;
 
-    extern (C) private pure @system @nogc nothrow
-    {
-        static import core.stdc.errno;
-
-        pragma(mangle, "malloc") void* fakePureMalloc(size_t);
-        pragma(mangle, "calloc") void* fakePureCalloc(size_t nmemb, size_t size);
-        pragma(mangle, "realloc") void* fakePureRealloc(void* ptr, size_t size);
-
-        pragma(mangle, "free") void fakePureFree(void* ptr);
-    }
-
-    static if (__traits(getOverloads, core.stdc.errno, "errno").length == 1
-        && __traits(getLinkage, core.stdc.errno.errno) == "C")
-    {
-        extern(C) pragma(mangle, __traits(identifier, core.stdc.errno.errno))
-        private ref int fakePureErrno() @nogc nothrow pure @system;
-    }
-    else
-    {
-        extern(C) private @nogc nothrow pure @system
-        {
-            pragma(mangle, "getErrno")
-            private int fakePureGetErrno();
-
-            pragma(mangle, "setErrno")
-            private int fakePureSetErrno(int);
-        }
-
-        private @property int fakePureErrno()() @nogc nothrow pure @system
-        {
-            return fakePureGetErrno();
-        }
-
-        private @property void fakePureErrno()(int newValue) @nogc nothrow pure @system
-        {
-            cast(void) fakePureSetErrno(newValue);
-        }
-    }
 }
 
 /**
