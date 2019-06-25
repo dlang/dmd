@@ -422,8 +422,9 @@ private bool buildCopyCtor(StructDeclaration sd, Scope* sc)
     if (global.errors)
         return false;
 
+    bool hasPostblit;
     if (sd.postblit)
-        return false;
+        hasPostblit = true;
 
     auto ctor = sd.search(sd.loc, Id.ctor);
     CtorDeclaration cpCtor;
@@ -473,7 +474,9 @@ private bool buildCopyCtor(StructDeclaration sd, Scope* sc)
         return true;
     }
     else if (cpCtor)
-        return true;
+    {
+        return !hasPostblit;
+    }
 
 LcheckFields:
     VarDeclaration fieldWithCpCtor;
@@ -503,6 +506,9 @@ LcheckFields:
         return false;
     }
     else if (!fieldWithCpCtor)
+        return false;
+
+    if (hasPostblit)
         return false;
 
     //printf("generating copy constructor for %s\n", sd.toChars());
