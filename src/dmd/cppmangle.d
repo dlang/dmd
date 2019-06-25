@@ -582,7 +582,7 @@ private final class CppMangleVisitor : Visitor
      */
     static Dsymbol getInstance(Dsymbol s)
     {
-        Dsymbol p = s.toParent3();
+        Dsymbol p = s.toParent();
         if (p)
         {
             if (TemplateInstance ti = p.isTemplateInstance())
@@ -613,7 +613,7 @@ private final class CppMangleVisitor : Visitor
      */
     static Dsymbol getQualifier(Dsymbol s)
     {
-        Dsymbol p = s.toParent3();
+        Dsymbol p = s.toParent();
         return (p && !p.isModule()) ? p : null;
     }
 
@@ -645,7 +645,7 @@ private final class CppMangleVisitor : Visitor
         Dsymbol s = (cast(TypeStruct)t).toDsymbol(null);
         if (s.ident != ident)
             return false;
-        Dsymbol p = s.toParent3();
+        Dsymbol p = s.toParent();
         if (!p)
             return false;
         TemplateInstance ti = p.isTemplateInstance();
@@ -779,7 +779,7 @@ private final class CppMangleVisitor : Visitor
     void cpp_mangle_name(Dsymbol s, bool qualified)
     {
         //printf("cpp_mangle_name(%s, %d)\n", s.toChars(), qualified);
-        Dsymbol p = s.toParent3();
+        Dsymbol p = s.toParent();
         Dsymbol se = s;
         bool write_prefix = true;
         if (p && p.isTemplateInstance())
@@ -787,7 +787,7 @@ private final class CppMangleVisitor : Visitor
             se = p;
             if (find(p.isTemplateInstance().tempdecl) >= 0)
                 write_prefix = false;
-            p = p.toParent3();
+            p = p.toParent();
         }
         if (p && !p.isModule())
         {
@@ -891,7 +891,7 @@ private final class CppMangleVisitor : Visitor
             d.error("Internal Compiler Error: C++ static non-`__gshared` non-`extern` variables not supported");
             fatal();
         }
-        Dsymbol p = d.toParent3();
+        Dsymbol p = d.toParent();
         if (p && !p.isModule()) //for example: char Namespace1::beta[6] should be mangled as "_ZN10Namespace14betaE"
         {
             buf.writestring("_ZN");
@@ -934,7 +934,7 @@ private final class CppMangleVisitor : Visitor
         }
         else
         {
-            Dsymbol p = d.toParent3();
+            Dsymbol p = d.toParent();
             if (p && !p.isModule() && tf.linkage == LINK.cpp)
             {
                 this.mangleNestedFuncPrefix(tf, p);
@@ -1031,9 +1031,9 @@ private final class CppMangleVisitor : Visitor
             this.context.fd = d;
             this.context.res = d;
             TypeFunction preSemantic = cast(TypeFunction)d.originalType;
-            auto nspace = ti.toParent3();
+            auto nspace = ti.toParent();
             if (nspace && nspace.isNspace())
-                this.writeChained(ti.toParent3(), () => source_name(ti, true));
+                this.writeChained(ti.toParent(), () => source_name(ti, true));
             else
                 source_name(ti);
             this.mangleReturnType(preSemantic);
@@ -1291,7 +1291,7 @@ private final class CppMangleVisitor : Visitor
         else
         {
             Dsymbol s = t.toDsymbol(null);
-            Dsymbol p = s.toParent3();
+            Dsymbol p = s.toParent();
             if (p && p.isTemplateInstance())
             {
                  /* https://issues.dlang.org/show_bug.cgi?id=17947
@@ -1333,7 +1333,7 @@ private final class CppMangleVisitor : Visitor
 
         {
             Dsymbol s = t.toDsymbol(null);
-            Dsymbol p = s.toParent3();
+            Dsymbol p = s.toParent();
             if (p && p.isTemplateInstance())
             {
                  /* https://issues.dlang.org/show_bug.cgi?id=17947

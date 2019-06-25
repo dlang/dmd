@@ -436,7 +436,7 @@ extern (C++) class Dsymbol : ASTNode
      * `pastMixinAndNspace` does likewise, additionally skipping over Nspaces that
      * are mangleOnly.
      *
-     * See also `parent`, `toParent`, `toParent2` and `toParent3`.
+     * See also `parent`, `toParent` and `toParent2`.
      */
     final inout(Dsymbol) pastMixin() inout
     {
@@ -448,21 +448,15 @@ extern (C++) class Dsymbol : ASTNode
         return parent.pastMixin();
     }
 
-    /// ditto
-    alias pastMixinAndNspace = pastMixin;
-
     /**********************************
      * `parent` field returns a lexically enclosing scope symbol this is a member of.
      *
      * `toParent()` returns a logically enclosing scope symbol this is a member of.
-     * It skips over TemplateMixin's and Nspaces that are mangleOnly.
+     * It skips over TemplateMixin's.
      *
      * `toParent2()` returns an enclosing scope symbol this is living at runtime.
      * It skips over both TemplateInstance's and TemplateMixin's.
      * It's used when looking for the 'this' pointer of the enclosing function/class.
-     *
-     * `toParent3()` returns a logically enclosing scope symbol this is a member of.
-     * It skips over TemplateMixin's.
      *
      * `toParentDecl()` similar to `toParent2()` but always follows the template declaration scope
      * instead of the instantiation scope.
@@ -494,7 +488,7 @@ extern (C++) class Dsymbol : ASTNode
      */
     final inout(Dsymbol) toParent() inout
     {
-        return parent ? parent.pastMixinAndNspace() : null;
+        return parent ? parent.pastMixin() : null;
     }
 
     /// ditto
@@ -503,12 +497,6 @@ extern (C++) class Dsymbol : ASTNode
         if (!parent || !parent.isTemplateInstance && !parent.isForwardingAttribDeclaration())
             return parent;
         return parent.toParent2;
-    }
-
-    /// ditto
-    final inout(Dsymbol) toParent3() inout
-    {
-        return parent ? parent.pastMixin() : null;
     }
 
     /// ditto

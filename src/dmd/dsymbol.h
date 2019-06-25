@@ -177,10 +177,8 @@ public:
     Module *getModule();
     Module *getAccessModule();
     Dsymbol *pastMixin();
-    Dsymbol *pastMixinAndNspace();
     Dsymbol *toParent();
     Dsymbol *toParent2();
-    Dsymbol *toParent3();
     Dsymbol *toParentDecl();
     Dsymbol *toParentLocal();
     TemplateInstance *isInstantiated();
