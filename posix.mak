@@ -176,7 +176,7 @@ $(DOCDIR)/core_sys_darwin_netinet_%.html : src/core/sys/darwin/netinet/%.d $(DMD
 $(DOCDIR)/rt_%.html : src/rt/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
-$(DOCDIR)/rt_array_capacity.html : src/rt/array/capacity.d $(DMD)
+$(DOCDIR)/rt_array_%.html : src/rt/array/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOCDIR)/rt_backtrace_%.html : src/rt/backtrace/%.d $(DMD)
