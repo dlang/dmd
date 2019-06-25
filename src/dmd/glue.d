@@ -1551,30 +1551,7 @@ uint totym(Type tx)
             assert(0);
     }
 
-    // Add modifiers
-    switch (tx.mod)
-    {
-        case 0:
-            break;
-        case MODFlags.const_:
-        case MODFlags.wild:
-        case MODFlags.wildconst:
-            t |= mTYconst;
-            break;
-        case MODFlags.shared_:
-            t |= mTYshared;
-            break;
-        case MODFlags.shared_ | MODFlags.const_:
-        case MODFlags.shared_ | MODFlags.wild:
-        case MODFlags.shared_ | MODFlags.wildconst:
-            t |= mTYshared | mTYconst;
-            break;
-        case MODFlags.immutable_:
-            t |= mTYimmutable;
-            break;
-        default:
-            assert(0);
-    }
+    t |= modToTym(tx.mod);    // Add modifiers
 
     return t;
 }
