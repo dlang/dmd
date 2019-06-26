@@ -1,0 +1,10 @@
+Add a compiler trait allowing to get an unique identifier
+
+A new `getUniqueIdentifer` trait allows to obtain an unique identifier,
+suitable to name a variable or a custom type.
+It takes a single parameter that must, after CTFE, represent a string used a preffix.
+
+---
+enum prefix = "intField";
+mixin("int ", __traits(getUniqueIdentifier, prefix), ";");
+---

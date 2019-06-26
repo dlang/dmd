@@ -86,3 +86,15 @@ struct Outer
 static assert(__traits(getLocation, Outer.Nested)[1] == 82);
 static assert(__traits(getLocation, Outer.method)[1] == 84);
 
+/********************************************/
+enum prefix = "intField";
+
+struct StructMembers
+{
+static foreach (i; 0..10)
+    mixin ("const int ", __traits(getUniqueIdentifier, prefix), ";");
+}
+
+static assert(StructMembers.sizeof == 40);
+static foreach (m; __traits(allMembers, StructMembers))
+    static assert(m[0..8] == prefix);

@@ -1842,6 +1842,25 @@ Lnext:
         auto tup = new TupleExp(e.loc, exps);
         return tup.expressionSemantic(sc);
     }
+    if (e.ident == Id.getUniqueIdentifier)
+    {
+        if (dim != 1)
+            return dimError(1);
+        auto ex = isExpression((*e.args)[0]);
+        if (ex)
+        {
+            if (StringExp se = ex.ctfeInterpret().toStringExp())
+            {
+                StringExp s = new StringExp(e.loc, cast(char*) (Identifier.generateId(se.toStringz.ptr).toChars()));
+                return s.expressionSemantic(sc);
+            }
+        }
+        if (ex)
+            e.error("`getUniqueIdentifier` parameter must give a string, not `%s`", ex.toChars());
+        else
+            e.error("`getUniqueIdentifier` parameter must give a string");
+        return new ErrorExp();
+    }
 
     extern (D) const(char)* trait_search_fp(const(char)[] seed, ref int cost)
     {
