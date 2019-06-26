@@ -408,19 +408,6 @@ alias AssertHandler = void function(string file, size_t line, string msg) nothro
     _assertHandler = handler;
 }
 
-/**
- * Overrides the default assert hander with a user-supplied version.
- * $(RED Deprecated.
- *   Please use $(LREF assertHandler) instead.)
- *
- * Params:
- *  h = The new assert handler.  Set to null to use the default handler.
- */
-deprecated void setAssertHandler( AssertHandler h ) @trusted nothrow @nogc
-{
-    assertHandler = h;
-}
-
 
 ///////////////////////////////////////////////////////////////////////////////
 // Overridable Callbacks
