@@ -1,0 +1,7 @@
+Non-POSIX `CLOCK` enum members have been removed from `core.sys.posix.time`
+
+Namely `CLOCK_MONOTONIC_RAW`, `CLOCK_MONOTONIC_COARSE` (linux),
+`CLOCK_MONOTONIC_PRECISE`, `CLOCK_MONOTONIC_FAST` (FreeBSD, DragonflyBSD),
+and `CLOCK_MONOTONIC_COARSE` (CRuntime_Glibc).
+Those were deprecated in 2.067.
+They are available on their respective platform modules.

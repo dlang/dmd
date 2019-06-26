@@ -1,0 +1,4 @@
+Module `core.sys.linux.sys.netinet.tcp` has been removed
+
+This module had been deprecated since 2.077.0.
+`core.sys.linux.netinet.tcp` should be imported instead.

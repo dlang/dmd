@@ -281,9 +281,6 @@ version (CoreDdoc)
         seq,
     }
 
-    deprecated("Please use MemoryOrder instead.")
-    alias MemoryOrder msync;
-
     /**
      * Inserts a full load/store memory fence (on platforms that need it). This ensures
      * that all loads and stores before a call to this function are executed before any
@@ -495,9 +492,6 @@ else version (AsmX86_32)
         rel,
         seq,
     }
-
-    deprecated("Please use MemoryOrder instead.")
-    alias MemoryOrder msync;
 
 
     private
@@ -1032,9 +1026,6 @@ else version (AsmX86_64)
         rel,
         seq,
     }
-
-    deprecated("Please use MemoryOrder instead.")
-    alias MemoryOrder msync;
 
 
     private

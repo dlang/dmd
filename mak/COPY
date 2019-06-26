@@ -148,7 +148,6 @@ COPY=\
 	\
 	$(IMPDIR)\core\sys\linux\netinet\in_.d \
 	$(IMPDIR)\core\sys\linux\netinet\tcp.d \
-	$(IMPDIR)\core\sys\linux\sys\netinet\tcp.d \
 	\
 	$(IMPDIR)\core\sys\linux\sys\auxv.d \
 	$(IMPDIR)\core\sys\linux\sys\eventfd.d \

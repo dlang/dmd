@@ -148,13 +148,6 @@ struct Runtime
         return !!rt_init();
     }
 
-    deprecated("Please use the overload of Runtime.initialize that takes no argument.")
-    static bool initialize(ExceptionHandler dg = null)
-    {
-        return !!rt_init();
-    }
-
-
     /**
      * Terminates the runtime.  This call is to be used in instances where the
      * standard program termination process will not be not executed.  This is
@@ -168,13 +161,6 @@ struct Runtime
     {
         return !!rt_term();
     }
-
-    deprecated("Please use the overload of Runtime.terminate that takes no argument.")
-    static bool terminate(ExceptionHandler dg = null)
-    {
-        return !!rt_term();
-    }
-
 
     /**
      * Returns the arguments supplied when the process was started.

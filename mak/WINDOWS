@@ -44,7 +44,6 @@ copydir: $(IMPDIR)
 	mkdir $(IMPDIR)\core\sys\dragonflybsd\sys
 	mkdir $(IMPDIR)\core\sys\linux\netinet
 	mkdir $(IMPDIR)\core\sys\linux\sys
-	mkdir $(IMPDIR)\core\sys\linux\sys\netinet
 	mkdir src\core\sys\netbsd\sys
 	mkdir src\core\sys\netbsd\
 	mkdir $(IMPDIR)\core\sys\openbsd
@@ -448,9 +447,6 @@ $(IMPDIR)\core\sys\linux\netinet\in_.d : src\core\sys\linux\netinet\in_.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\linux\netinet\tcp.d : src\core\sys\linux\netinet\tcp.d
-	copy $** $@
-
-$(IMPDIR)\core\sys\linux\sys\netinet\tcp.d : src\core\sys\linux\sys\netinet\tcp.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\linux\sys\auxv.d : src\core\sys\linux\sys\auxv.d
