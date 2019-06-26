@@ -162,7 +162,7 @@ void test_visitors()
     Loc loc;
     Identifier *ident = Identifier::idPool("test");
 
-    IntegerExp *ie = IntegerExp::createi(loc, 42, Type::tint32);
+    IntegerExp *ie = IntegerExp::create(loc, 42, Type::tint32);
     ie->accept(&tv);
     assert(tv.expr == true);
 
@@ -235,7 +235,7 @@ void test_semantic()
 void test_expression()
 {
     Loc loc;
-    IntegerExp *ie = IntegerExp::createi(loc, 42, Type::tint32);
+    IntegerExp *ie = IntegerExp::create(loc, 42, Type::tint32);
     Expression *e = ie->ctfeInterpret();
 
     assert(e);
@@ -256,7 +256,7 @@ void test_emplace()
     Loc loc;
     UnionExp ue;
 
-    IntegerExp::emplacei(&ue, loc, 1065353216, Type::tint32);
+    IntegerExp::emplace(&ue, loc, 1065353216, Type::tint32);
     Expression *e = ue.exp();
     assert(e->op == TOKint64);
     assert(e->toInteger() == 1065353216);

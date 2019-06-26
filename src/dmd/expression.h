@@ -233,9 +233,7 @@ public:
     dinteger_t value;
 
     static IntegerExp *create(Loc loc, dinteger_t value, Type *type);
-    static IntegerExp *createi(Loc loc, int value, Type *type);
     static void emplace(UnionExp *pue, Loc loc, dinteger_t value, Type *type);
-    static void emplacei(UnionExp *pue, Loc loc, int value, Type *type);
     bool equals(RootObject *o);
     dinteger_t toInteger();
     real_t toReal();

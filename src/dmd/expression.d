@@ -1752,18 +1752,8 @@ extern (C++) final class IntegerExp : Expression
         return new IntegerExp(loc, value, type);
     }
 
-    static IntegerExp createi(Loc loc, int value, Type type)
-    {
-        return new IntegerExp(loc, value, type);
-    }
-
     // Same as create, but doesn't allocate memory.
     static void emplace(UnionExp* pue, Loc loc, dinteger_t value, Type type)
-    {
-        emplaceExp!(IntegerExp)(pue, loc, value, type);
-    }
-
-    static void emplacei(UnionExp* pue, Loc loc, int value, Type type)
     {
         emplaceExp!(IntegerExp)(pue, loc, value, type);
     }
