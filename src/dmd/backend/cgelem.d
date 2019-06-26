@@ -2195,7 +2195,7 @@ L2:
     int e1op = e1.Eoper;
 
   // c,e => e
-    if (OTleaf(e1op) && !OTsideff(e1op) && !(e1.Ety & mTYvolatile))
+    if (OTleaf(e1op) && !OTsideff(e1op) && !(e1.Ety & (mTYvolatile | mTYshared)))
     {
         e2.Ety = e.Ety;
         e = el_selecte2(e);
@@ -2602,7 +2602,7 @@ private elem * eloror(elem *e, goal_t goal)
         tysize(ty1) <= _tysize[TYint] &&
         !tyfloating(ty2) &&
         !tyfloating(ty1) &&
-        !(ty2 & mTYvolatile))
+        !(ty2 & (mTYvolatile | mTYshared)))
     {   /* Convert (e1 || e2) => (e1 | e2)      */
         e.Eoper = OPor;
         e.Ety = ty1;
@@ -5248,7 +5248,7 @@ beg:
     auto op = e.Eoper;
     if (OTleaf(op))                     // if not an operator node
     {
-        if (goal || OTsideff(op) || e.Ety & mTYvolatile)
+        if (goal || OTsideff(op) || e.Ety & (mTYvolatile | mTYshared))
         {
             return e;
         }
@@ -5615,7 +5615,7 @@ beg:
   else /* unary operator */
   {
         assert(!e.EV.E2 || op == OPinfo || op == OPddtor);
-        if (!goal && !OTsideff(op) && !(e.Ety & mTYvolatile))
+        if (!goal && !OTsideff(op) && !(e.Ety & (mTYvolatile | mTYshared)))
         {
             tym_t tym = e.EV.E1.Ety;
 

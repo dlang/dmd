@@ -2972,7 +2972,7 @@ elem *toElem(Expression e, IRState *irs)
 
             // Create a reference to e1.
             if (e1.Eoper == OPvar)
-                e1x = el_same(&e1);
+                e1x = el_copytree(e1);
             else
             {
                 /* Rewrite to:
