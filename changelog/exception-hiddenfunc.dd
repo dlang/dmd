@@ -1,0 +1,4 @@
+core.exception: Remove `onHiddenFuncError` / `HiddenFuncError`
+
+Those have been deprecated since 2.068,
+and are related to a language feature that is long gone.
