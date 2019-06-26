@@ -223,6 +223,7 @@ class Lexer
         bool doDocComment;      // collect doc comment information
         bool anyToken;          // seen at least one token
         bool commentToken;      // comments are TOK.comment's
+        bool handlePoundLine;   // let #line tokens actually affect parse location
         int lastDocLine;        // last line of previous doc comment
 
         DiagnosticReporter diagnosticReporter;
@@ -264,6 +265,7 @@ class Lexer
         line = p;
         this.doDocComment = doDocComment;
         this.commentToken = commentToken;
+        this.handlePoundLine = true;
         this.lastDocLine = 0;
         //initKeywords();
         /* If first line starts with '#!', ignore the line
@@ -1635,6 +1637,9 @@ class Lexer
         uint nest = 1;
         const start = loc();
         const pstart = ++p;
+        const oldHandlePoundLine = handlePoundLine;
+        handlePoundLine = false; // #line tokens in token strings have no effect
+        scope(exit) handlePoundLine = oldHandlePoundLine;
         while (1)
         {
             Token tok;
@@ -2384,9 +2389,12 @@ class Lexer
             case 0x1A:
             case '\n':
             Lnewline:
-                this.scanloc.linnum = linnum;
-                if (filespec)
-                    this.scanloc.filename = filespec;
+                if (handlePoundLine) 
+                {
+                    this.scanloc.linnum = linnum;
+                    if (filespec)
+                        this.scanloc.filename = filespec;
+                }
                 return;
             case '\r':
                 p++;
