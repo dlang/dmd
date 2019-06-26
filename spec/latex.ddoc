@@ -57,6 +57,10 @@ D_CODE=\begin{lstlisting}
 $0\end{lstlisting}
 _=
 
+OTHER_CODE=\lstset{language=$1}\begin{lstlisting}
+$+\end{lstlisting}\lstset{language=D}
+_=
+
 D_COMMENT=$0
 D_KEYWORD=$0
 D_PARAM = $(I $0)
