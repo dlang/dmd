@@ -1824,13 +1824,14 @@ Lnext:
         }
 
         const fd = s.isFuncDeclaration();
-        const td = s.isTemplateDeclaration();
-        if ((fd && fd.overnext) || (td && td.overnext))
+        // FIXME:td.overnext is always set, even when using an index on it
+        //const td = s.isTemplateDeclaration();
+        if ((fd && fd.overnext) /*|| (td && td.overnext)*/)
         {
             e.error("cannot get location of an overload set, " ~
                     "use `__traits(getOverloads, ..., \"%s\"%s)[N]` " ~
                     "to get the Nth overload",
-                    arg0.toChars(), td ? ", true".ptr : "".ptr);
+                    arg0.toChars(), /*td ? ", true".ptr :*/ "".ptr);
             return new ErrorExp();
         }
 
