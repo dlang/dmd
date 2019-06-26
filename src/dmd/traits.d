@@ -139,10 +139,11 @@ shared static this()
         "getVirtualIndex",
         "getPointerBitmap",
         "isZeroInit",
-        "getTargetInfo"
+        "getTargetInfo",
+        "getLocation",
     ];
 
-    traitsStringTable._init(48);
+    traitsStringTable._init(names.length);
 
     foreach (s; names)
     {
@@ -1809,6 +1810,37 @@ Lnext:
             return new ErrorExp();
         }
         return r.expressionSemantic(sc);
+    }
+    if (e.ident == Id.getLocation)
+    {
+        if (dim != 1)
+            return dimError(1);
+        auto arg0 = (*e.args)[0];
+        Dsymbol s = getDsymbolWithoutExpCtx(arg0);
+        if (!s)
+        {
+            e.error("can only get the location of a symbol, not `%s`", arg0.toChars());
+            return new ErrorExp();
+        }
+
+        const fd = s.isFuncDeclaration();
+        // FIXME:td.overnext is always set, even when using an index on it
+        //const td = s.isTemplateDeclaration();
+        if ((fd && fd.overnext) /*|| (td && td.overnext)*/)
+        {
+            e.error("cannot get location of an overload set, " ~
+                    "use `__traits(getOverloads, ..., \"%s\"%s)[N]` " ~
+                    "to get the Nth overload",
+                    arg0.toChars(), /*td ? ", true".ptr :*/ "".ptr);
+            return new ErrorExp();
+        }
+
+        auto exps = new Expressions(3);
+        exps.data[0] = new StringExp(e.loc, cast(void*)s.loc.filename, strlen(s.loc.filename));
+        exps.data[1] = new IntegerExp(e.loc, s.loc.linnum,Type.tint32);
+        exps.data[2] = new IntegerExp(e.loc, s.loc.charnum,Type.tint32);
+        auto tup = new TupleExp(e.loc, exps);
+        return tup.expressionSemantic(sc);
     }
 
     extern (D) const(char)* trait_search_fp(const(char)[] seed, ref int cost)
