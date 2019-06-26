@@ -130,11 +130,6 @@ public:
     virtual RootObject *defaultArg(Loc instLoc, Scope *sc) = 0;
     virtual bool hasDefaultArg() = 0;
 
-    /* Match actual argument against parameter.
-     */
-    virtual MATCH matchArg(Loc instLoc, Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
-    virtual MATCH matchArg(Scope *sc, RootObject *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam) = 0;
-
     /* Create dummy argument based on parameter.
      */
     virtual void *dummyArg() = 0;
@@ -146,7 +141,6 @@ public:
  */
 class TemplateTypeParameter : public TemplateParameter
 {
-    using TemplateParameter::matchArg;
 public:
     Type *specType;     // type parameter: if !=NULL, this is the type specialization
     Type *defaultType;
@@ -158,7 +152,6 @@ public:
     RootObject *specialization();
     RootObject *defaultArg(Loc instLoc, Scope *sc);
     bool hasDefaultArg();
-    MATCH matchArg(Scope *sc, RootObject *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -179,7 +172,6 @@ public:
  */
 class TemplateValueParameter : public TemplateParameter
 {
-    using TemplateParameter::matchArg;
 public:
     Type *valType;
     Expression *specValue;
@@ -192,7 +184,6 @@ public:
     RootObject *specialization();
     RootObject *defaultArg(Loc instLoc, Scope *sc);
     bool hasDefaultArg();
-    MATCH matchArg(Scope *sc, RootObject *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -202,7 +193,6 @@ public:
  */
 class TemplateAliasParameter : public TemplateParameter
 {
-    using TemplateParameter::matchArg;
 public:
     Type *specType;
     RootObject *specAlias;
@@ -215,7 +205,6 @@ public:
     RootObject *specialization();
     RootObject *defaultArg(Loc instLoc, Scope *sc);
     bool hasDefaultArg();
-    MATCH matchArg(Scope *sc, RootObject *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -233,8 +222,6 @@ public:
     RootObject *specialization();
     RootObject *defaultArg(Loc instLoc, Scope *sc);
     bool hasDefaultArg();
-    MATCH matchArg(Loc loc, Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
-    MATCH matchArg(Scope *sc, RootObject *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
     void accept(Visitor *v) { v->visit(this); }
 };
