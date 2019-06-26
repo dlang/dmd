@@ -515,6 +515,7 @@ if (!irs.params.is64bit) assert(tysize(TYnptr) == 4);
     {
         // CPP constructor returns void on Posix
         // https://itanium-cxx-abi.github.io/cxx-abi/abi.html#return-value-ctor
+        e.Ety = TYvoid;
         e = el_combine(e, el_same(&ethis));
     }
     else if (retmethod == RET.stack)
