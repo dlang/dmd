@@ -91,6 +91,3 @@ public:
 };
 
 Expression *initializerToExpression(Initializer *init, Type *t = NULL);
-
-Initializer *syntaxCopy(Initializer *inx);
-

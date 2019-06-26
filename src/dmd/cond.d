@@ -902,7 +902,7 @@ extern (C++) final class StaticIfCondition : Condition
  * Returns:
  *      true if found
  */
-extern (C++) bool findCondition(Identifiers* ids, Identifier ident)
+bool findCondition(Identifiers* ids, Identifier ident)
 {
     if (ids)
     {

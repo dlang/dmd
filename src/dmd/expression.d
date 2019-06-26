@@ -278,7 +278,7 @@ extern (C++) void expandTuples(Expressions* exps)
 /****************************************
  * Expand alias this tuples.
  */
-extern (C++) TupleDeclaration isAliasThisTuple(Expression e)
+TupleDeclaration isAliasThisTuple(Expression e)
 {
     if (!e.type)
         return null;
@@ -308,7 +308,7 @@ extern (C++) TupleDeclaration isAliasThisTuple(Expression e)
     }
 }
 
-extern (C++) int expandAliasThisTuples(Expressions* exps, size_t starti = 0)
+int expandAliasThisTuples(Expressions* exps, size_t starti = 0)
 {
     if (!exps || exps.dim == 0)
         return -1;
@@ -349,7 +349,7 @@ extern (C++) int expandAliasThisTuples(Expressions* exps, size_t starti = 0)
  * Returns:
  *      template for that function, otherwise null
  */
-extern (C++) TemplateDeclaration getFuncTemplateDecl(Dsymbol s)
+TemplateDeclaration getFuncTemplateDecl(Dsymbol s)
 {
     FuncDeclaration f = s.isFuncDeclaration();
     if (f && f.parent)

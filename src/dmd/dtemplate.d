@@ -132,7 +132,7 @@ extern (C++) bool isError(const RootObject o)
 /**************************************
  * Are any of the Objects an error?
  */
-extern (C++) bool arrayObjectIsError(const Objects* args)
+bool arrayObjectIsError(const Objects* args)
 {
     foreach (const o; *args)
     {
@@ -145,7 +145,7 @@ extern (C++) bool arrayObjectIsError(const Objects* args)
 /***********************
  * Try to get arg as a type.
  */
-extern (C++) inout(Type) getType(inout RootObject o)
+inout(Type) getType(inout RootObject o)
 {
     inout t = isType(o);
     if (!t)
@@ -158,7 +158,7 @@ extern (C++) inout(Type) getType(inout RootObject o)
 
 }
 
-extern (C++) Dsymbol getDsymbol(RootObject oarg)
+Dsymbol getDsymbol(RootObject oarg)
 {
     //printf("getDsymbol()\n");
     //printf("e %p s %p t %p v %p\n", isExpression(oarg), isDsymbol(oarg), isType(oarg), isTuple(oarg));

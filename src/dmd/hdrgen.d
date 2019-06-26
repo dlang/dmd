@@ -2749,28 +2749,12 @@ string stcToString(ref StorageClass stc)
     return null;
 }
 
-extern (C++) const(char)* stcToChars(ref StorageClass stc)
+const(char)* stcToChars(ref StorageClass stc)
 {
     const s = stcToString(stc);
     return &s[0];  // assume 0 terminated
 }
 
-
-extern (C++) void trustToBuffer(OutBuffer* buf, TRUST trust)
-{
-    buf.writestring(trustToString(trust));
-}
-
-/**
- * Returns:
- *   a human readable representation of `trust`,
- *   which is the token `trust` corresponds to
- */
-extern (C++) const(char)* trustToChars(TRUST trust)
-{
-    /// Works because we return a literal
-    return trustToString(trust).ptr;
-}
 
 /// Ditto
 extern (D) string trustToString(TRUST trust) pure nothrow
@@ -2799,7 +2783,7 @@ private void linkageToBuffer(OutBuffer* buf, LINK linkage)
     }
 }
 
-extern (C++) const(char)* linkageToChars(LINK linkage)
+const(char)* linkageToChars(LINK linkage)
 {
     /// Works because we return a literal
     return linkageToString(linkage).ptr;
@@ -2828,7 +2812,7 @@ string linkageToString(LINK linkage) pure nothrow
     }
 }
 
-extern (C++) void protectionToBuffer(OutBuffer* buf, Prot prot)
+void protectionToBuffer(OutBuffer* buf, Prot prot)
 {
     buf.writestring(protectionToString(prot.kind));
     if (prot.kind == Prot.Kind.package_ && prot.pkg)
@@ -2843,7 +2827,7 @@ extern (C++) void protectionToBuffer(OutBuffer* buf, Prot prot)
  * Returns:
  *   a human readable representation of `kind`
  */
-extern (C++) const(char)* protectionToChars(Prot.Kind kind)
+const(char)* protectionToChars(Prot.Kind kind)
 {
     // Null terminated because we return a literal
     return protectionToString(kind).ptr;
@@ -2932,7 +2916,7 @@ void arrayObjectsToBuffer(OutBuffer* buf, Objects* objects)
  *  pl = parameter list to print
  * Returns: Null-terminated string representing parameters.
  */
-extern (C++) const(char)* parametersTypeToChars(ParameterList pl)
+const(char)* parametersTypeToChars(ParameterList pl)
 {
     OutBuffer buf;
     HdrGenState hgs;
