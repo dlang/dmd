@@ -304,10 +304,11 @@ struct Global
 
 extern Global global;
 
-// Because int64_t and friends may be any integral type of the
-// correct size, we have to explicitly ask for the correct
-// integer type to get the correct mangling with dmd
-#if __LP64__
+// Because int64_t and friends may be any integral type of the correct size,
+// we have to explicitly ask for the correct integer type to get the correct
+// mangling with dmd. The #if logic here should match the mangling of
+// Tint64 and Tuns64 in cppmangle.d.
+#if __SIZEOF_LONG__ == 8
 // Be careful not to care about sign when using dinteger_t
 // use this instead of integer_t to
 // avoid conflicts with system #include's
