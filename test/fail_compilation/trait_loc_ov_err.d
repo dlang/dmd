@@ -2,8 +2,8 @@ module trait_loc_ov_err;
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/trait_loc_ov_err.d(28): Error: cannot get location of an overload set, use `__traits(getOverloads, ..., "ov1" )[N]` to get the Nth overload
-fail_compilation/trait_loc_ov_err.d(29): Error: cannot get location of an overload set, use `__traits(getOverloads, ..., "ov2" )[N]` to get the Nth overload
+fail_compilation/trait_loc_ov_err.d(24): Error: cannot get location of an overload set, use `__traits(getOverloads, ..., "ov1" )[N]` to get the Nth overload
+fail_compilation/trait_loc_ov_err.d(25): Error: cannot get location of an overload set, use `__traits(getOverloads, ..., "ov2" )[N]` to get the Nth overload
 ---
 */
 
