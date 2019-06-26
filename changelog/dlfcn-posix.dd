@@ -1,0 +1,4 @@
+`core.sys.posix.dlfcn : dladdr, dlvsym, Dl_info` have been removed
+
+They are linux extensions, not POSIX, and thus can be found in `core.sys.linux.dlfcn`.
+They had been deprecated since 2.063.
