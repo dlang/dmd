@@ -1,0 +1,4 @@
+`core.runtime : Runtime.initialize, Runtime.terminate` functions taking `ExceptionHandler` have been removed
+
+They were deprecated since 2.065 in favor of `rt_init` C functions,
+which allow to initialize the runtime from C code.
