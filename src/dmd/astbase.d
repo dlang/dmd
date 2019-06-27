@@ -672,7 +672,7 @@ struct ASTBase
             this.type = type;
             this._init = _init;
             this.loc = loc;
-            this.storage_class = storage_class;
+            this.storage_class = st;
             sequenceNumber = ++nextSequenceNumber;
             ctfeAdrOnStack = -1;
         }
