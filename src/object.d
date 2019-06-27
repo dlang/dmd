@@ -46,6 +46,10 @@ public import rt.array.equality : __equals;
 public import rt.array.equality : __ArrayEq;
 /// See $(REF __ArrayCast, rt,array,casting)
 public import rt.array.casting: __ArrayCast;
+/// See $(REF _d_arrayctor, rt,array,construction)
+public import rt.array.construction : _d_arrayctor;
+/// See $(REF _d_arraysetctor, rt,array,construction)
+public import rt.array.construction : _d_arraysetctor;
 
 /// See $(REF capacity, rt,array,capacity)
 public import rt.array.capacity: capacity;

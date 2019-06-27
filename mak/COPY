@@ -403,6 +403,7 @@ COPY=\
 	$(IMPDIR)\core\sys\windows\wtypes.d \
 	\
 	$(IMPDIR)\rt\array\comparison.d \
+	$(IMPDIR)\rt\array\construction.d \
 	$(IMPDIR)\rt\array\equality.d \
 	$(IMPDIR)\rt\array\casting.d \
 	$(IMPDIR)\rt\array\capacity.d \

@@ -1190,6 +1190,9 @@ $(IMPDIR)\etc\linux\memoryerror.d : src\etc\linux\memoryerror.d
 $(IMPDIR)\rt\array\comparison.d : src\rt\array\comparison.d
 	copy $** $@
 
+$(IMPDIR)\rt\array\construction.d : src\rt\array\construction.d
+	copy $** $@
+
 $(IMPDIR)\rt\array\equality.d : src\rt\array\equality.d
 	copy $** $@
 
