@@ -493,7 +493,7 @@ hash_t cs_comphash(const elem *e)
 {
     elem_debug(e);
     const op = e.Eoper;
-    hash_t hash = (e.Ety & (mTYbasic | mTYconst | mTYvolatile | mTYshared)) + (op << 8);
+    hash_t hash = (e.Ety & (mTYbasic | mTYconst | mTYvolatile | mTYshared | mTYimmutable)) + (op << 8);
     if (!OTleaf(op))
     {
         hash += cast(size_t) e.EV.E1;
@@ -634,7 +634,7 @@ void touchfunc(int flag)
                     case SCinline:
                     case SCsinline:
                     case SCeinline:
-                        if (!(he.EV.Vsym.ty() & mTYconst))
+                        if (!(he.EV.Vsym.ty() & (mTYconst | mTYimmutable)))
                             goto L1;
                         break;
 
@@ -649,6 +649,8 @@ void touchfunc(int flag)
             case OPstrcmp:
             case OPmemcmp:
             case OPbt:
+                if (he.Ety & mTYimmutable)
+                    break;
                 goto L1;
 
             case OPvp_fp:
@@ -677,7 +679,7 @@ void touchstar()
     foreach (ref hcs; hcstab[hcsarray.touchstari .. $])
     {
         const e = hcs.Helem;
-        if (e && (e.Eoper == OPind || e.Eoper == OPbt) )
+        if (e && (e.Eoper == OPind || e.Eoper == OPbt) && !(e.Ety & mTYimmutable))
             hcs.Helem = null;
     }
     hcsarray.touchstari = cast(uint)hcstab.length;

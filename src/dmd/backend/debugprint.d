@@ -147,6 +147,8 @@ void WRTYxx(tym_t t)
         printf("mTYvolatile|");
     if (t & mTYshared)
         printf("mTYshared|");
+    if (t & mTYimmutable)
+        printf("mTYimmutable|");
 //#if !MARS && (__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
 //    if (t & mTYtransu)
 //        printf("mTYtransu|");
