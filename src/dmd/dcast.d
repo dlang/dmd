@@ -367,6 +367,20 @@ MATCH implicitConvTo(Expression e, Type t)
             TY toty = t.toBasetype().ty;
             TY oldty = ty;
 
+            /* https://issues.dlang.org/show_bug.cgi?id=10560
+             *
+             * If a user has defined a type for an enum declaration,
+             * then the expression literal should be considered as of
+             * the type that the user provided. If the user has not
+             * provided a type of the enum, its members will be subject
+             * to VRP.
+             */
+            if (auto edType = e.type.isTypeEnum)
+            {
+                if (edType.sym.hasUserDefinedType && m == MATCH.nomatch)
+                    return;
+            }
+
             if (m == MATCH.nomatch && t.ty == Tenum)
                 return;
 

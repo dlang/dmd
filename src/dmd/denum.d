@@ -56,21 +56,23 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
     Expression defaultval;  // default initializer
     bool isdeprecated;
     bool added;
+    bool hasUserDefinedType;
     int inuse;
 
-    extern (D) this(const ref Loc loc, Identifier ident, Type memtype)
+    extern (D) this(const ref Loc loc, Identifier ident, Type memtype, bool hasUserDefinedType)
     {
         super(loc, ident);
         //printf("EnumDeclaration() %s\n", toChars());
         type = new TypeEnum(this);
         this.memtype = memtype;
+        this.hasUserDefinedType = hasUserDefinedType;
         protection = Prot(Prot.Kind.undefined);
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        auto ed = new EnumDeclaration(loc, ident, memtype ? memtype.syntaxCopy() : null);
+        auto ed = new EnumDeclaration(loc, ident, memtype ? memtype.syntaxCopy() : null, hasUserDefinedType);
         return ScopeDsymbol.syntaxCopy(ed);
     }
 

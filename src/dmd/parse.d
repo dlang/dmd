@@ -3093,7 +3093,7 @@ final class Parser(AST) : Lexer
             checkCstyleTypeSyntax(typeLoc, memtype, alt, null);
         }
 
-        e = new AST.EnumDeclaration(loc, id, memtype);
+        e = new AST.EnumDeclaration(loc, id, memtype, memtype ? true : false);
         if (token.value == TOK.semicolon && id)
             nextToken();
         else if (token.value == TOK.leftCurly)
