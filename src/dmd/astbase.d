@@ -5903,7 +5903,7 @@ struct ASTBase
 
         abstract TemplateParameter syntaxCopy(){ return null;}
 
-        void accept(Visitor v)
+        override void accept(Visitor v)
         {
             v.visit(this);
         }
