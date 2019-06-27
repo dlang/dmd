@@ -2,116 +2,15 @@
 DISABLED: win32 win64 osx32 linux32 freebsd32
 TEST_OUTPUT:
 ---
-S
-byte
-S
-short
-S
-int
-S
-long
-S
-ubyte
-S
-ushort
-S
-uint
-S
-ulong
-S
-ubyte
-S
-ushort
-S
-uint
-S
-float
-S
-double
-S
-real
-S
-void*
-S
-__vector(byte[16])
-S
-__vector(ubyte[16])
-S
-__vector(short[8])
-S
-__vector(ushort[8])
-S
-__vector(int[4])
-S
-__vector(uint[4])
-S
-__vector(long[2])
-S
-__vector(ulong[2])
-S
-__vector(float[4])
-S
-__vector(double[2])
-S
-short
-S
-short
-S
-int
-S
-long
-S
-int
-S
-int
-S
-long
-S
-long
-S
-long
-S
-long
-S1
-long
-long
-S2
-long
-S3
-long
-S4
-S5
-S6
-S7
-S8
-S9
-long
-int
-S9[1]
-long
-int
-S10
-long
-int
-S11
-double
-float
-RGB
-int
-int[3]
-long
-int
-S12
-int
 ---
 */
 
 void chkArgTypes(S, V...)()
 {
-    pragma(msg, S);
+    //pragma(msg, S);
     static if (is(S U == __argTypes))
     {
-        foreach (T; U) { pragma(msg, T); }
+        //foreach (T; U) { pragma(msg, T); }
         static assert(U.length == V.length);
         foreach (i, T; U)
             static assert(is(V[i] == T));
