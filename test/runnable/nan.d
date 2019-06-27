@@ -27,18 +27,7 @@ T byCTFE(T)()
     return x;
 }
 
-void printNaN(T)(T x)
-{
-    ubyte[] px = cast(ubyte[])((&x)[0..1]);
-
-    printf(T.stringof.ptr);
-    printf(".nan = 0x");
-    foreach_reverse(p; 0..T.sizeof)
-        printf("%02x", px[p]);
-    printf(" mantissa=%d\n", T.mant_dig);
-}
-
-bool bittst(ubyte[] ba, uint pos)
+bool bittst(const ubyte[] ba, uint pos)
 {
     uint mask = 1 << (pos % 8);
     version(LittleEndian)
@@ -50,16 +39,18 @@ bool bittst(ubyte[] ba, uint pos)
 void test2(T)()
 {
     T a = T.init, b = T.nan;
-    //printNaN(a);
-    ubyte[] pa = cast(ubyte[])((&a)[0..1]);
-    ubyte[] pb = cast(ubyte[])((&b)[0..1]);
-    assert(pa[] == pb[]);
+    assert(a is b);
 
     enum c = byCTFE!T();
-    a = c;
-    assert(pa[] == pb[]);
+    assert(a is c);
 
-    // the highest 2 bits of the mantissa should be set, everythng else zero
+    static if (T.mant_dig == 64 && T.max_exp == 16384)
+        enum size = 10; // x87, exclude padding
+    else
+        enum size = T.sizeof;
+    const pa = (cast(ubyte*) &a)[0 .. size];
+
+    // the highest 2 bits of the mantissa should be set, everything else zero
     assert(bittst(pa, T.mant_dig - 1));
     assert(bittst(pa, T.mant_dig - 2));
     foreach(p; 0..T.mant_dig - 2)
