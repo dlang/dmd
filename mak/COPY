@@ -407,4 +407,6 @@ COPY=\
 	$(IMPDIR)\rt\array\casting.d \
 	$(IMPDIR)\rt\array\capacity.d \
 	\
+	$(IMPDIR)\rt\util\array.d \
+	\
 	$(IMPDIR)\etc\linux\memoryerror.d

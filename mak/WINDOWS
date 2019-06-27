@@ -57,6 +57,7 @@ copydir: $(IMPDIR)
 	mkdir $(IMPDIR)\core\sys\windows
 	mkdir $(IMPDIR)\etc\linux
 	mkdir $(IMPDIR)\rt\array
+	mkdir $(IMPDIR)\rt\util
 
 copy: $(COPY)
 
@@ -1196,4 +1197,7 @@ $(IMPDIR)\rt\array\casting.d : src\rt\array\casting.d
 	copy $** $@
 
 $(IMPDIR)\rt\array\capacity.d : src\rt\array\capacity.d
+	copy $** $@
+
+$(IMPDIR)\rt\util\array.d : src\rt\util\array.d
 	copy $** $@
