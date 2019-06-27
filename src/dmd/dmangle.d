@@ -172,7 +172,12 @@ private extern (C++) final class Mangler : Visitor
     alias visit = Visitor.visit;
 public:
     static assert(Key.sizeof == size_t.sizeof);
-    AssocArray!(Type, size_t) types;
+    struct PreviousType
+    {
+        Type type;
+        size_t offset;
+    }
+    PreviousType[] types;
     AssocArray!(Identifier, size_t) idents;
     OutBuffer* buf;
 
@@ -226,13 +231,15 @@ public:
     {
         if (!t.isTypeBasic())
         {
-            auto p = types.getLvalue(t);
-            if (*p)
+            foreach (pair; types)
             {
-                writeBackRef(buf.offset - *p);
-                return true;
+                if (pair.type.equals(t))
+                {
+                    writeBackRef(buf.offset - pair.offset);
+                    return true;
+                }
             }
-            *p = buf.offset;
+            types ~= PreviousType(t, buf.offset);
         }
         return false;
     }
