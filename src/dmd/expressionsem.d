@@ -9795,6 +9795,85 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
          * `checkAssignExp` expects only AssignExps.
          */
         checkAssignEscape(sc, Expression.extractLast(res, tmp), false);
+
+        if (auto ae = res.isConstructExp())
+        {
+            Type t1b = ae.e1.type.toBasetype();
+            if (t1b.ty != Tsarray && t1b.ty != Tarray)
+                return setResult(res);
+
+            const isArrayCtor = (ae.e1.isSliceExp || ae.e1.type.ty == Tsarray)
+                && (ae.e2.isVarExp || ae.e2.isSliceExp)
+                && ae.e1.type.nextOf
+                && ae.e2.type.nextOf
+                && ae.e1.type.nextOf.mutableOf.equals(ae.e2.type.nextOf.mutableOf);
+            const isArraySetCtor = (ae.e1.isSliceExp || ae.e1.type.ty == Tsarray)
+                && (ae.e2.type.ty == Tstruct || ae.e2.type.ty == Tsarray)
+                && ae.e1.type.nextOf
+                && ae.e1.type.nextOf.mutableOf.equals(ae.e2.type.mutableOf);
+
+            if (isArrayCtor)
+            {
+                // Skip lowering if type does not have a postblit or destructor
+                auto ts = t1b.nextOf().baseElemOf().isTypeStruct();
+                if (!ts || (!ts.sym.postblit && !ts.sym.dtor))
+                    return setResult(res);
+
+                if (!verifyHookExist(exp.loc, *sc, Id._d_arrayctor, "construct array with other array", Id.object))
+                    return setError();
+
+                // Lower to object._d_arrayctor(e1, e2)
+                Expression id = new IdentifierExp(exp.loc, Id.empty);
+                id = new DotIdExp(exp.loc, id, Id.object);
+                id = new DotIdExp(exp.loc, id, Id._d_arrayctor);
+                id = id.expressionSemantic(sc);
+
+                auto arguments = new Expressions();
+                arguments.reserve(2);
+                arguments.push(new CastExp(ae.loc, ae.e1, ae.e1.type.nextOf.arrayOf).expressionSemantic(sc));
+                arguments.push(new CastExp(ae.loc, ae.e2, ae.e2.type.nextOf.arrayOf).expressionSemantic(sc));
+
+                Expression ce = new CallExp(exp.loc, id, arguments);
+                res = ce.expressionSemantic(sc);
+                if (global.params.verbose)
+                    message("lowered   %s =>\n          %s", exp.toChars(), res.toChars());
+            }
+            else if (isArraySetCtor)
+            {
+                // Skip lowering if type does not have a postblit or destructor
+                auto ts = t1b.nextOf().baseElemOf().isTypeStruct();
+                if (!ts || (!ts.sym.postblit && !ts.sym.dtor))
+                    return setResult(res);
+
+                if (!verifyHookExist(exp.loc, *sc, Id._d_arraysetctor, "construct array with value", Id.object))
+                    return setError();
+
+                // Lower to object._d_arraysetctor(e1, e2)
+                Expression id = new IdentifierExp(exp.loc, Id.empty);
+                id = new DotIdExp(exp.loc, id, Id.object);
+                id = new DotIdExp(exp.loc, id, Id._d_arraysetctor);
+                id = id.expressionSemantic(sc);
+
+                Expression e0;
+                auto arguments = new Expressions();
+                arguments.push(new CastExp(ae.loc, ae.e1, ae.e1.type.nextOf.arrayOf).expressionSemantic(sc));
+                // If ae.e2 is not a variable, construct a temp variable, as _d_arraysetctor requires `ref` access
+                if (!ae.e2.isVarExp)
+                {
+                    auto vd = copyToTemp(STC.scope_, "__setctor", ae.e2);
+                    e0 = new DeclarationExp(vd.loc, vd).expressionSemantic(sc);
+                    arguments.push(new VarExp(vd.loc, vd).expressionSemantic(sc));
+                }
+                else
+                    arguments.push(ae.e2);
+
+                Expression ce = new CallExp(exp.loc, id, arguments);
+                res = Expression.combine(e0, ce).expressionSemantic(sc);
+                if (global.params.verbose)
+                    message("lowered   %s =>\n          %s", exp.toChars(), res.toChars());
+            }
+        }
+
         return setResult(res);
     }
 
