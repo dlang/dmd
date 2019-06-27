@@ -616,6 +616,7 @@ regm_t regmask(tym_t tym, tym_t tyf)
         case TYstruct:
         case TYarray:
             return 0;
+
         case TYbool:
         case TYwchar_t:
         case TYchar16:
@@ -631,6 +632,8 @@ regm_t regmask(tym_t tym, tym_t tyf)
         case TYnref:
         case TYsptr:
         case TYcptr:
+        case TYimmutPtr:
+        case TYsharePtr:
             return mAX;
 
         case TYfloat:

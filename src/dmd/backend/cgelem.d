@@ -176,6 +176,8 @@ int elemisone(elem *e)
             case TYfptr:
             case TYvptr:
             case TYnptr:
+            case TYimmutPtr:
+            case TYsharePtr:
             case TYbool:
             case TYwchar_t:
             case TYdchar:
@@ -237,6 +239,8 @@ int elemisnegone(elem *e)
             case TYhptr:
             case TYfptr:
             case TYvptr:
+            case TYimmutPtr:
+            case TYsharePtr:
             case TYbool:
             case TYwchar_t:
             case TYdchar:
@@ -1168,7 +1172,9 @@ private elem * elmin(elem *e, goal_t goal)
             cnst(e1.EV.E2) && cnst(e2.EV.E2) &&
             (tyintegral(tym) ||
              tybasic(tym) == TYnptr ||
-             tybasic(tym) == TYsptr)
+             tybasic(tym) == TYsptr ||
+             tybasic(tym) == TYimmutPtr ||
+             tybasic(tym) == TYsharePtr)
            )
         {
             e.Eoper = OPadd;

@@ -174,8 +174,12 @@ void ecom(elem **pe)
     switch (op)
     {
         case OPconst:
-        case OPvar:
         case OPrelconst:
+            break;
+
+        case OPvar:
+            if (e.EV.Vsym.ty() & mTYshared)
+                return;         // don't cache shared variables
             break;
 
         case OPstreq:
@@ -325,6 +329,8 @@ void ecom(elem **pe)
             /* Generally, CSEing a *(double *) results in worse code        */
             if (tyfloating(tym))
                 return;
+            if (tybasic(e.EV.E1.Ety) == TYsharePtr)
+                return;
             break;
 
         case OPstrcpy:
@@ -425,7 +431,7 @@ void ecom(elem **pe)
     /* don't CSE structures or unions or volatile stuff   */
     if (tym == TYstruct ||
         tym == TYvoid ||
-        e.Ety & (mTYvolatile | mTYshared))
+        e.Ety & mTYvolatile)
         return;
     if (tyfloating(tym) && config.inline8087)
     {
@@ -493,7 +499,7 @@ hash_t cs_comphash(const elem *e)
 {
     elem_debug(e);
     const op = e.Eoper;
-    hash_t hash = (e.Ety & (mTYbasic | mTYconst | mTYvolatile | mTYshared)) + (op << 8);
+    hash_t hash = (e.Ety & (mTYbasic | mTYconst | mTYvolatile)) + (op << 8);
     if (!OTleaf(op))
     {
         hash += cast(size_t) e.EV.E1;
@@ -588,8 +594,8 @@ void touchlvalue(elem *e)
  * an indirect assignment.
  * Eliminate any subexpressions that are "starred" (they need to
  * be recomputed).
- * Input:
- *      flag    If !=0, then this is a function call.
+ * Params:
+ *      flag =  If 1, then this is a function call.
  *              If 0, then this is an indirect assignment.
  */
 
@@ -634,8 +640,8 @@ void touchfunc(int flag)
                     case SCinline:
                     case SCsinline:
                     case SCeinline:
-                        if (!(he.EV.Vsym.ty() & mTYconst))
-                            goto L1;
+                        if (!(he.EV.Vsym.ty() & (mTYconst | mTYimmutable)))
+                            goto Ltouch;
                         break;
 
                     default:
@@ -645,17 +651,21 @@ void touchfunc(int flag)
                 break;
 
             case OPind:
+                if (tybasic(he.EV.E1.Ety) == TYimmutPtr)
+                    break;
+                goto Ltouch;
+
             case OPstrlen:
             case OPstrcmp:
             case OPmemcmp:
             case OPbt:
-                goto L1;
+                goto Ltouch;
 
             case OPvp_fp:
             case OPcvp_fp:
                 if (flag == 0)          /* function calls destroy vptrfptr's, */
                     break;              /* not indirect assignments     */
-            L1:
+            Ltouch:
                 pe.Helem = null;
                 break;
 
@@ -677,7 +687,9 @@ void touchstar()
     foreach (ref hcs; hcstab[hcsarray.touchstari .. $])
     {
         const e = hcs.Helem;
-        if (e && (e.Eoper == OPind || e.Eoper == OPbt) )
+        if (e &&
+               (e.Eoper == OPind && tybasic(e.EV.E1.Ety) != TYimmutPtr ||
+                e.Eoper == OPbt) )
             hcs.Helem = null;
     }
     hcsarray.touchstari = cast(uint)hcstab.length;
