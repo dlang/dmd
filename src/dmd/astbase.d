@@ -722,7 +722,7 @@ struct ASTBase
             inferRetType = (type && type.nextOf() is null);
         }
 
-        FuncLiteralDeclaration* isFuncLiteralDeclaration()
+        FuncLiteralDeclaration isFuncLiteralDeclaration()
         {
             return null;
         }
