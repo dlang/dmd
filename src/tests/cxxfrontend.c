@@ -162,7 +162,7 @@ void test_visitors()
     Loc loc;
     Identifier *ident = Identifier::idPool("test");
 
-    IntegerExp *ie = IntegerExp::createi(loc, 42, Type::tint32);
+    IntegerExp *ie = IntegerExp::create(loc, 42, Type::tint32);
     ie->accept(&tv);
     assert(tv.expr == true);
 
@@ -243,7 +243,7 @@ void test_semantic()
 void test_expression()
 {
     Loc loc;
-    IntegerExp *ie = IntegerExp::createi(loc, 42, Type::tint32);
+    IntegerExp *ie = IntegerExp::create(loc, 42, Type::tint32);
     Expression *e = ie->ctfeInterpret();
 
     assert(e);
@@ -261,23 +261,38 @@ void test_target()
 
 void test_emplace()
 {
-  Loc loc;
-  UnionExp ue;
+    Loc loc;
+    UnionExp ue;
 
-  IntegerExp::emplacei(&ue, loc, 1065353216, Type::tint32);
-  Expression *e = ue.exp();
-  assert(e->op == TOKint64);
-  assert(e->toInteger() == 1065353216);
+    IntegerExp::emplace(&ue, loc, 1065353216, Type::tint32);
+    Expression *e = ue.exp();
+    assert(e->op == TOKint64);
+    assert(e->toInteger() == 1065353216);
 
-  UnionExp ure;
-  Expression *re = Compiler::paintAsType(&ure, e, Type::tfloat32);
-  assert(re->op == TOKfloat64);
-  assert(re->toReal() == CTFloat::one);
+    UnionExp ure;
+    Expression *re = Compiler::paintAsType(&ure, e, Type::tfloat32);
+    assert(re->op == TOKfloat64);
+    assert(re->toReal() == CTFloat::one);
 
-  UnionExp uie;
-  Expression *ie = Compiler::paintAsType(&uie, re, Type::tint32);
-  assert(ie->op == TOKint64);
-  assert(ie->toInteger() == e->toInteger());
+    UnionExp uie;
+    Expression *ie = Compiler::paintAsType(&uie, re, Type::tint32);
+    assert(ie->op == TOKint64);
+    assert(ie->toInteger() == e->toInteger());
+}
+
+/**********************************/
+
+void test_parameters()
+{
+    Parameters *args = new Parameters;
+    args->push(Parameter::create(STCundefined, Type::tint32, NULL, NULL, NULL));
+    args->push(Parameter::create(STCundefined, Type::tint64, NULL, NULL, NULL));
+
+    TypeFunction *tf = TypeFunction::create(args, Type::tvoid, VARARGnone, LINKc);
+
+    assert(tf->parameterList.length() == 2);
+    assert(tf->parameterList[0]->type == Type::tint32);
+    assert(tf->parameterList[1]->type == Type::tint64);
 }
 
 /**********************************/
@@ -291,6 +306,7 @@ int main(int argc, char **argv)
     test_expression();
     test_target();
     test_emplace();
+    test_parameters();
 
     frontend_term();
 

@@ -154,15 +154,19 @@ endif
 HOST_DMD_VERSION:=$(shell $(HOST_DMD_RUN) --version)
 ifneq (,$(findstring dmd,$(HOST_DMD_VERSION))$(findstring DMD,$(HOST_DMD_VERSION)))
 	HOST_DMD_KIND=dmd
+	HOST_DMD_VERNUM=$(shell echo 'pragma(msg, cast(int)__VERSION__);' | $(HOST_DMD_RUN) -o- - 2>&1)
 endif
 ifneq (,$(findstring gdc,$(HOST_DMD_VERSION))$(findstring GDC,$(HOST_DMD_VERSION)))
 	HOST_DMD_KIND=gdc
+	HOST_DMD_VERNUM=2
 endif
 ifneq (,$(findstring gdc,$(HOST_DMD_VERSION))$(findstring gdmd,$(HOST_DMD_VERSION)))
 	HOST_DMD_KIND=gdc
+	HOST_DMD_VERNUM=2
 endif
 ifneq (,$(findstring ldc,$(HOST_DMD_VERSION))$(findstring LDC,$(HOST_DMD_VERSION)))
 	HOST_DMD_KIND=ldc
+	HOST_DMD_VERNUM=2
 endif
 
 # Compiler Warnings
@@ -217,7 +221,7 @@ MMD=-MMD -MF $(basename $@).deps
 CXXFLAGS := $(WARNINGS) \
 	-fno-exceptions -fno-rtti \
 	-D__pascal= -DMARS=1 -DTARGET_$(OS_UPCASE)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1 \
-	$(MODEL_FLAG) $(PIC)
+	$(MODEL_FLAG) $(PIC) -DDMD_VERSION=$(HOST_DMD_VERNUM)
 # GCC Specific
 ifeq ($(CXX_KIND), g++)
 CXXFLAGS += \
@@ -598,7 +602,7 @@ dscanner: $(DSCANNER_DIR)/dsc
 
 ######################################################
 
-$G/cxxfrontend.o: $G/%.o: tests/%.c $(SRC) $(ROOT_SRC)
+$G/cxxfrontend.o: $G/%.o: tests/%.c $(SRC) $(ROOT_SRC) $(SRC_MAKE)
 	$(CXX) -c -o$@ $(CXXFLAGS) $(DMD_FLAGS) $(MMD) $<
 
 $G/cxx-unittest: $G/cxxfrontend.o $(DMD_SRCS) $(ROOT_SRCS) $G/lexer.a $(G_OBJS) $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
