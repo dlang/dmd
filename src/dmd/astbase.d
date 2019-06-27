@@ -5890,7 +5890,7 @@ struct ASTBase
         }
     }
 
-    extern (C++) class TemplateParameter
+    extern (C++) class TemplateParameter : ASTNode
     {
         Loc loc;
         Identifier ident;
