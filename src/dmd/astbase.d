@@ -5901,7 +5901,7 @@ struct ASTBase
             this.ident = ident;
         }
 
-        abstract TemplateParameter syntaxCopy(){ return null;}
+        TemplateParameter syntaxCopy(){ return null;}
 
         override void accept(Visitor v)
         {
