@@ -362,69 +362,81 @@ struct Global
 
     extern (C++) void _init()
     {
-        static if (TARGET.Windows)
+        _version = import("VERSION") ~ '\0';
+
+        version (MARS)
         {
-            obj_ext = "obj";
+            vendor = "Digital Mars D";
+            static if (TARGET.Windows)
+            {
+                obj_ext = "obj";
+            }
+            else static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
+            {
+                obj_ext = "o";
+            }
+            else
+            {
+                static assert(0, "fix this");
+            }
+            static if (TARGET.Windows)
+            {
+                lib_ext = "lib";
+            }
+            else static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
+            {
+                lib_ext = "a";
+            }
+            else
+            {
+                static assert(0, "fix this");
+            }
+            static if (TARGET.Windows)
+            {
+                dll_ext = "dll";
+            }
+            else static if (TARGET.Linux || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
+            {
+                dll_ext = "so";
+            }
+            else static if (TARGET.OSX)
+            {
+                dll_ext = "dylib";
+            }
+            else
+            {
+                static assert(0, "fix this");
+            }
+            static if (TARGET.Windows)
+            {
+                run_noext = false;
+            }
+            else static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
+            {
+                // Allow 'script' D source files to have no extension.
+                run_noext = true;
+            }
+            else
+            {
+                static assert(0, "fix this");
+            }
+            static if (TARGET.Windows)
+            {
+                params.mscoff = params.is64bit;
+            }
+
+            // -color=auto is the default value
+            import dmd.console : Console;
+            params.color = Console.detectTerminal();
         }
-        else static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
+        else version (IN_GCC)
         {
+            vendor = "GNU D";
             obj_ext = "o";
-        }
-        else
-        {
-            static assert(0, "fix this");
-        }
-        static if (TARGET.Windows)
-        {
-            lib_ext = "lib";
-        }
-        else static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-        {
             lib_ext = "a";
-        }
-        else
-        {
-            static assert(0, "fix this");
-        }
-        static if (TARGET.Windows)
-        {
-            dll_ext = "dll";
-        }
-        else static if (TARGET.Linux || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-        {
             dll_ext = "so";
-        }
-        else static if (TARGET.OSX)
-        {
-            dll_ext = "dylib";
-        }
-        else
-        {
-            static assert(0, "fix this");
-        }
-        static if (TARGET.Windows)
-        {
-            run_noext = false;
-        }
-        else static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-        {
-            // Allow 'script' D source files to have no extension.
             run_noext = true;
         }
-        else
-        {
-            static assert(0, "fix this");
-        }
-        static if (TARGET.Windows)
-        {
-            params.mscoff = params.is64bit;
-        }
-        _version = import("VERSION") ~ '\0';
-        vendor = "Digital Mars D";
-
-        // -color=auto is the default value
-        import dmd.console : Console;
-        params.color = Console.detectTerminal();
     }
 
     /**
