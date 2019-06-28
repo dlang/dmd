@@ -1072,7 +1072,7 @@ private extern(D) string determineCompilerInterface()
         return "dmd";
     if (global.vendor == "LDC")
         return "ldc";
-    if (global.vendor == "GNU")
+    if (global.vendor == "GNU D")
         return "gdc";
     if (global.vendor == "SDC")
         return "sdc";
