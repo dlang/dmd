@@ -2534,6 +2534,9 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
              *    int foo(int);
              *    int foo(int x) { ... }
              * then pick the one with the body.
+             *
+             * If none has a body then don't care because the same
+             * real function would be linked to the decl (e.g from object file)
              */
             if (tf.equals(m.lastf.type) &&
                 fd.storage_class == m.lastf.storage_class &&
@@ -2541,8 +2544,10 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
                 fd.protection == m.lastf.protection &&
                 fd.linkage == m.lastf.linkage)
             {
-                if (fd.fbody && !m.lastf.fbody) goto LfIsBetter;
-                if (!fd.fbody && m.lastf.fbody) goto LlastIsBetter;
+                if (fd.fbody && !m.lastf.fbody)
+                    goto LfIsBetter;
+                if (!fd.fbody)
+                    goto LlastIsBetter;
             }
 
             // https://issues.dlang.org/show_bug.cgi?id=14450
