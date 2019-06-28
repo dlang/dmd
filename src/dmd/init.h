@@ -63,8 +63,6 @@ public:
     Identifiers field;  // of Identifier *'s
     Initializers value; // parallel array of Initializer *'s
 
-    void addInit(Identifier *field, Initializer *value);
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -77,7 +75,6 @@ public:
     Type *type;         // type that array will be used to initialize
     bool sem;           // true if semantic() is run
 
-    void addInit(Expression *index, Initializer *value);
     bool isAssociativeArray() const;
     Expression *toAssocArrayLiteral();
 

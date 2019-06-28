@@ -752,8 +752,6 @@ public:
     bool needsNested();
     bool hasPointers();
     bool hasVoidInitPointers();
-    MATCH implicitConvToWithoutAliasThis(Type *to);
-    MATCH implicitConvToThroughAliasThis(Type *to);
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
     unsigned char deduceWild(Type *t, bool isRef);
@@ -810,8 +808,6 @@ public:
     Dsymbol *toDsymbol(Scope *sc);
     ClassDeclaration *isClassHandle();
     bool isBaseOf(Type *t, int *poffset);
-    MATCH implicitConvToWithoutAliasThis(Type *to);
-    MATCH implicitConvToThroughAliasThis(Type *to);
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
     unsigned char deduceWild(Type *t, bool isRef);

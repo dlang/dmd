@@ -42,12 +42,6 @@ public:
     virtual bool equals(RootObject *o);
 
     /**
-     * Return <0, ==0, or >0 if this is less than, equal to, or greater than obj.
-     * Useful for sorting Objects.
-     */
-    virtual int compare(RootObject *obj);
-
-    /**
      * Pretty-print an Object. Useful for debugging the old-fashioned way.
      */
     virtual const char *toChars();

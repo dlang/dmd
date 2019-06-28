@@ -155,7 +155,7 @@ extern (C++) final class ThrownExceptionExp : Expression
     }
 
     // Generate an error message when this exception is not caught
-    void generateUncaughtError()
+    extern (D) void generateUncaughtError()
     {
         UnionExp ue = void;
         Expression e = resolveSlice((*thrown.value.elements)[0], &ue);

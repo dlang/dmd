@@ -330,7 +330,7 @@ struct Target
      * Returns:
      *  true if xmm usage is supported
      */
-    extern (C++) bool isXmmSupported()
+    extern (D) bool isXmmSupported()
     {
         return global.params.is64bit || global.params.isOSX;
     }

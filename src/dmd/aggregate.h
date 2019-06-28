@@ -130,8 +130,6 @@ public:
     Type *getType();
     bool isDeprecated() const;         // is aggregate deprecated?
     bool isNested() const;
-    void makeNested();
-    void makeNested2();
     bool isExport() const;
     Dsymbol *searchCtor();
 
@@ -223,11 +221,7 @@ struct BaseClass
     DArray<BaseClass> baseInterfaces;   // if BaseClass is an interface, these
                                         // are a copy of the InterfaceDeclaration::interfaces
 
-    BaseClass();
-    BaseClass(Type *type);
-
     bool fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newinstance);
-    void copyBaseInterfaces(BaseClasses *);
 };
 
 struct ClassFlags

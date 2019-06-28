@@ -743,7 +743,7 @@ extern (C++) class Dsymbol : ASTNode
         return null;
     }
 
-    final Dsymbol search_correct(Identifier ident)
+    extern (D) final Dsymbol search_correct(Identifier ident)
     {
         /***************************************************
          * Search for symbol with correct spelling.
@@ -785,7 +785,7 @@ extern (C++) class Dsymbol : ASTNode
      * Returns:
      *      symbol found, NULL if not
      */
-    final Dsymbol searchX(const ref Loc loc, Scope* sc, RootObject id, int flags)
+    extern (D) final Dsymbol searchX(const ref Loc loc, Scope* sc, RootObject id, int flags)
     {
         //printf("Dsymbol::searchX(this=%p,%s, ident='%s')\n", this, toChars(), ident.toChars());
         Dsymbol s = toAlias();
@@ -1347,7 +1347,7 @@ public:
         return null;
     }
 
-    final OverloadSet mergeOverloadSet(Identifier ident, OverloadSet os, Dsymbol s)
+    extern (D) private OverloadSet mergeOverloadSet(Identifier ident, OverloadSet os, Dsymbol s)
     {
         if (!os)
         {
@@ -1420,7 +1420,7 @@ public:
         }
     }
 
-    final void addAccessiblePackage(Package p, Prot protection)
+    extern (D) final void addAccessiblePackage(Package p, Prot protection)
     {
         // https://issues.dlang.org/show_bug.cgi?id=17991
         // An import of truly empty file/package can happen

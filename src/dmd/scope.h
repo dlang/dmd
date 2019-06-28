@@ -125,20 +125,12 @@ struct Scope
     Scope *startCTFE();
     Scope *endCTFE();
 
-    void mergeCallSuper(Loc loc, unsigned cs);
-
-    unsigned *saveFieldInit();
-    void mergeFieldInit(Loc loc, unsigned *cses);
-
     Module *instantiatingModule();
 
     Dsymbol *search(const Loc &loc, Identifier *ident, Dsymbol **pscopesym, int flags = IgnoreNone);
-    Dsymbol *search_correct(Identifier *ident);
-    Dsymbol *insert(Dsymbol *s);
 
     ClassDeclaration *getClassScope();
     AggregateDeclaration *getStructClassScope();
-    void setNoFree();
 
     structalign_t alignment();
 

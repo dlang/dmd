@@ -111,8 +111,6 @@ public:
     static Module *load(Loc loc, Identifiers *packages, Identifier *ident);
 
     const char *kind() const;
-    FileName setOutfilename(const char *name, const char *dir, const char *arg, const char *ext);
-    void setDocfile();
     bool read(const Loc &loc); // read file, returns 'true' if succeed, 'false' otherwise.
     Module *parse();    // syntactic parse
     void importAll(Scope *sc);
@@ -121,13 +119,9 @@ public:
     bool isPackageAccessible(Package *p, Prot protection, int flags = 0);
     Dsymbol *symtabInsert(Dsymbol *s);
     void deleteObjFile();
-    static void addDeferredSemantic(Dsymbol *s);
-    static void addDeferredSemantic2(Dsymbol *s);
-    static void addDeferredSemantic3(Dsymbol *s);
     static void runDeferredSemantic();
     static void runDeferredSemantic2();
     static void runDeferredSemantic3();
-    static void clearCache();
     int imports(Module *m);
 
     bool isRoot() { return this->importedFrom == this; }

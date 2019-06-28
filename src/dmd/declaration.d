@@ -1375,7 +1375,7 @@ extern (C++) class VarDeclaration : Declaration
      * If a variable has a scope destructor call, return call for it.
      * Otherwise, return NULL.
      */
-    final Expression callScopeDtor(Scope* sc)
+    extern (D) final Expression callScopeDtor(Scope* sc)
     {
         //printf("VarDeclaration::callScopeDtor() %s\n", toChars());
 
@@ -1478,7 +1478,7 @@ extern (C++) class VarDeclaration : Declaration
      * If variable has a constant expression initializer, get it.
      * Otherwise, return null.
      */
-    final Expression getConstInitializer(bool needFullType = true)
+    extern (D) final Expression getConstInitializer(bool needFullType = true)
     {
         assert(type && _init);
 
@@ -1507,7 +1507,7 @@ extern (C++) class VarDeclaration : Declaration
     /*******************************************
      * Helper function for the expansion of manifest constant.
      */
-    final Expression expandInitializer(Loc loc)
+    extern (D) final Expression expandInitializer(Loc loc)
     {
         assert((storage_class & STC.manifest) && _init);
 

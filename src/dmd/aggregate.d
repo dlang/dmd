@@ -637,7 +637,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
     /* Append vthis field (this.tupleof[$-1]) to make this aggregate type nested.
      */
-    final void makeNested()
+    extern (D) final void makeNested()
     {
         if (enclosing) // if already nested
             return;
@@ -710,7 +710,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
     /* Append vthis2 field (this.tupleof[$-1]) to add a second context pointer.
      */
-    final void makeNested2()
+    extern (D) final void makeNested2()
     {
         if (vthis2)
             return;

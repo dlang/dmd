@@ -495,7 +495,7 @@ struct Scope
         return s;
     }
 
-    extern (C++) Dsymbol search_correct(Identifier ident)
+    extern (D) Dsymbol search_correct(Identifier ident)
     {
         if (global.gag)
             return null; // don't do it for speculative compiles; too time consuming
@@ -567,7 +567,7 @@ struct Scope
         return Token.toChars(tok);
     }
 
-    extern (C++) Dsymbol insert(Dsymbol s)
+    extern (D) Dsymbol insert(Dsymbol s)
     {
         if (VarDeclaration vd = s.isVarDeclaration())
         {
@@ -639,7 +639,7 @@ struct Scope
      * where it was declared. So mark the Scope as not
      * to be free'd.
      */
-    extern (C++) void setNoFree()
+    extern (D) void setNoFree()
     {
         //int i = 0;
         //printf("Scope::setNoFree(this = %p)\n", this);
