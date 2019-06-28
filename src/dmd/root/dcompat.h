@@ -17,4 +17,7 @@ struct DArray
 {
     size_t length;
     T *ptr;
+
+    DArray(size_t length_in, T *ptr_in)
+        : length(length_in), ptr(ptr_in) { }
 };
