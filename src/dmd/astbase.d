@@ -672,7 +672,7 @@ struct ASTBase
             this.type = type;
             this._init = _init;
             this.loc = loc;
-            this.storage_class = storage_class;
+            this.storage_class = st;
             sequenceNumber = ++nextSequenceNumber;
             ctfeAdrOnStack = -1;
         }
@@ -722,7 +722,7 @@ struct ASTBase
             inferRetType = (type && type.nextOf() is null);
         }
 
-        FuncLiteralDeclaration* isFuncLiteralDeclaration()
+        FuncLiteralDeclaration isFuncLiteralDeclaration()
         {
             return null;
         }
@@ -5890,7 +5890,7 @@ struct ASTBase
         }
     }
 
-    extern (C++) class TemplateParameter
+    extern (C++) class TemplateParameter : ASTNode
     {
         Loc loc;
         Identifier ident;
@@ -5901,9 +5901,9 @@ struct ASTBase
             this.ident = ident;
         }
 
-        abstract TemplateParameter syntaxCopy(){ return null;}
+        TemplateParameter syntaxCopy(){ return null;}
 
-        void accept(Visitor v)
+        override void accept(Visitor v)
         {
             v.visit(this);
         }
