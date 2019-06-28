@@ -68,8 +68,7 @@ static void frontend_init()
 
     global._init();
     global.params.isLinux = true;
-    global.vendor.ptr = "Front-End Tester";
-    global.vendor.length = strlen(global.vendor.ptr);
+    global.vendor = DArray<const char>(16, "Front-End Tester");
 
     Type::_init();
     Id::initialize();
@@ -213,8 +212,7 @@ void test_semantic()
         "class Error : Throwable { this(immutable(char)[]); }";
 
     FileBuffer *srcBuffer = FileBuffer::create(); // free'd in Module::parse()
-    srcBuffer->data.ptr = (unsigned char *)mem.xstrdup(buf);
-    srcBuffer->data.length = strlen(buf);
+    srcBuffer->data = DArray<unsigned char>(strlen(buf), (unsigned char *)mem.xstrdup(buf));
 
     Module *m = Module::create("object.d", Identifier::idPool("object"), 0, 0);
 
