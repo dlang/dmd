@@ -8709,7 +8709,37 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             Type tn = ale.e1.type.toBasetype().nextOf();
             checkDefCtor(ale.loc, tn);
-            semanticTypeInfo(sc, tn);
+
+            Identifier hook = global.params.tracegc ? Id._d_arraysetlengthTTrace : Id._d_arraysetlengthT;
+            if (!verifyHookExist(exp.loc, *sc, Id._d_arraysetlengthTImpl, "resizing arrays"))
+                return setError();
+
+            // Lower to object._d_arraysetlengthTImpl!(typeof(e1))._d_arraysetlengthT{,Trace}(e1, e2)
+            Expression id = new IdentifierExp(ale.loc, Id.empty);
+            id = new DotIdExp(ale.loc, id, Id.object);
+            auto tiargs = new Objects();
+            tiargs.push(ale.e1.type);
+            id = new DotTemplateInstanceExp(ale.loc, id, Id._d_arraysetlengthTImpl, tiargs);
+            id = new DotIdExp(ale.loc, id, hook);
+            id = id.expressionSemantic(sc);
+
+            auto arguments = new Expressions();
+            arguments.reserve(5);
+            if (global.params.tracegc)
+            {
+                auto funcname = (sc.callsc && sc.callsc.func) ? sc.callsc.func.toPrettyChars() : sc.func.toPrettyChars();
+                arguments.push(new StringExp(exp.loc, cast(char*)exp.loc.filename));
+                arguments.push(new IntegerExp(exp.loc, exp.loc.linnum, Type.tint32));
+                arguments.push(new StringExp(exp.loc, cast(char*)funcname));
+            }
+            arguments.push(ale.e1);
+            arguments.push(exp.e2);
+
+            Expression ce = new CallExp(ale.loc, id, arguments);
+            auto res = ce.expressionSemantic(sc);
+            if (global.params.verbose)
+                message("lowered   %s =>\n          %s", exp.toChars(), res.toChars());
+            return setResult(res);
         }
         else if (auto se = exp.e1.isSliceExp())
         {
