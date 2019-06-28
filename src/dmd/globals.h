@@ -351,7 +351,12 @@ struct Loc
         filename = NULL;
     }
 
-    Loc(const char *filename, unsigned linnum, unsigned charnum);
+    Loc(const char *filename, unsigned linnum, unsigned charnum)
+    {
+        this->linnum = linnum;
+        this->charnum = charnum;
+        this->filename = filename;
+    }
 
     const char *toChars(bool showColumns = global.params.showColumns) const;
     bool equals(const Loc& loc) const;
