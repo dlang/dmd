@@ -670,11 +670,18 @@ private final class CppMangleVisitor : Visitor
             TypeFunction tf = cast(TypeFunction)fd.type;
 
             Strings retTypeTags;
+            // Collect abi-tags from the returns type
+            if (!fd.inuse)
             {
+                // Avoid an infinite recursion
+                // in case this function is a parent of the return type
+                ++fd.inuse;
                 OutBuffer tmp;
                 scope CppMangleVisitor v = new CppMangleVisitor(&tmp, s.loc, &retTypeTags);
                 tf.nextOf().accept(v);
+                --fd.inuse;
             }
+            // See which tags don't appear in the parameter types, and apply them
             if (retTypeTags.dim)
             {
                 Strings paramsTags;

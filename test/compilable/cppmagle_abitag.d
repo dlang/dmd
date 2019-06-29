@@ -135,3 +135,11 @@ static assert(fun1.mangleof == "_Z4fun1B1CB1Dv");
 
 void fun2();
 static assert(fun2.mangleof == "_Z4fun2B1CB1Dv");
+
+auto fun3()
+{
+    @gnuAbiTag("Nested")
+    extern(C++) struct T {}
+    return T();
+}
+static assert(fun3.mangleof == "_Z4fun3B1CB1DB6Nestedv");
