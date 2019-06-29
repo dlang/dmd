@@ -47,7 +47,7 @@ public:
     virtual const char *toChars();
     /// This function is `extern(D)` and should not be called from C++,
     /// as the ABI does not match on some platforms
-    virtual DArray<const char> toString();
+    virtual DString toString();
     virtual void toBuffer(OutBuffer *buf);
 
     /**

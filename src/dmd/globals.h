@@ -178,13 +178,13 @@ struct Param
 
     unsigned errorLimit;
 
-    DArray<const char>  argv0;    // program name
+    DString  argv0;    // program name
     Array<const char *> modFileAliasStrings; // array of char*'s of -I module filename alias strings
     Array<const char *> *imppath;     // array of char*'s of where to look for import modules
     Array<const char *> *fileImppath; // array of char*'s of where to look for file import modules
-    DArray<const char> objdir;   // .obj/.lib file output directory
-    DArray<const char> objname;  // .obj file output name
-    DArray<const char> libname;  // .lib file output name
+    DString objdir;    // .obj/.lib file output directory
+    DString objname;   // .obj file output name
+    DString libname;   // .lib file output name
 
     bool doDocComments;  // process embedded documentation comments
     const char *docdir;  // write documentation file to docdir directory
@@ -192,12 +192,12 @@ struct Param
     Array<const char *> ddocfiles;  // macro include files for Ddoc
 
     bool doHdrGeneration;  // process embedded documentation comments
-    DArray<const char> hdrdir;    // write 'header' file to docdir directory
-    DArray<const char> hdrname;   // write 'header' file to docname
+    DString hdrdir;        // write 'header' file to docdir directory
+    DString hdrname;       // write 'header' file to docname
     bool hdrStripPlainFunctions; // strip the bodies of plain (non-template) functions
 
     bool doJsonGeneration;    // write JSON file
-    DArray<const char> jsonfilename; // write JSON file to jsonfilename
+    DString jsonfilename;     // write JSON file to jsonfilename
     unsigned jsonFieldFlags;  // JSON field flags to include
 
     OutBuffer *mixinOut;                // write expanded mixins for debugging
@@ -210,11 +210,11 @@ struct Param
     unsigned versionlevel; // version level
     Array<const char *> *versionids;   // version identifiers
 
-    DArray<const char> defaultlibname; // default library for non-debug builds
-    DArray<const char> debuglibname;   // default library for debug builds
-    DArray<const char> mscrtlib;       // MS C runtime library
+    DString defaultlibname;     // default library for non-debug builds
+    DString debuglibname;       // default library for debug builds
+    DString mscrtlib;           // MS C runtime library
 
-    DArray<const char> moduleDepsFile; // filename for deps output
+    DString moduleDepsFile;     // filename for deps output
     OutBuffer *moduleDeps;      // contents to be written to deps file
 
     // Hidden debug switches
@@ -233,10 +233,10 @@ struct Param
     Array<const char *> linkswitches;
     Array<const char *> libfiles;
     Array<const char *> dllfiles;
-    DArray<const char> deffile;
-    DArray<const char> resfile;
-    DArray<const char> exefile;
-    DArray<const char> mapfile;
+    DString deffile;
+    DString resfile;
+    DString exefile;
+    DString mapfile;
 };
 
 typedef unsigned structalign_t;
@@ -246,26 +246,26 @@ typedef unsigned structalign_t;
 
 struct Global
 {
-    DArray<const char> inifilename;
-    const DArray<const char> mars_ext;
-    DArray<const char> obj_ext;
-    DArray<const char> lib_ext;
-    DArray<const char> dll_ext;
-    const DArray<const char> doc_ext;  // for Ddoc generated files
-    const DArray<const char> ddoc_ext; // for Ddoc macro include files
-    const DArray<const char> hdr_ext;  // for D 'header' import files
-    const DArray<const char> json_ext; // for JSON files
-    const DArray<const char> map_ext;  // for .map files
+    DString inifilename;
+    const DString mars_ext;
+    DString obj_ext;
+    DString lib_ext;
+    DString dll_ext;
+    const DString doc_ext;      // for Ddoc generated files
+    const DString ddoc_ext;     // for Ddoc macro include files
+    const DString hdr_ext;      // for D 'header' import files
+    const DString json_ext;     // for JSON files
+    const DString map_ext;      // for .map files
     bool run_noext;             // allow -run sources without extensions.
 
 
-    const DArray<const char> copyright;
-    const DArray<const char> written;
+    const DString copyright;
+    const DString written;
     Array<const char *> *path;        // Array of char*'s which form the import lookup path
     Array<const char *> *filePath;    // Array of char*'s which form the file import lookup path
 
-    DArray<const char> version;     // Compiler version string
-    DArray<const char> vendor;             // Compiler backend name
+    DString version;         // Compiler version string
+    DString vendor;          // Compiler backend name
 
     Param params;
     unsigned errors;         // number of errors reported so far

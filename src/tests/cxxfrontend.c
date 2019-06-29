@@ -68,7 +68,7 @@ static void frontend_init()
 
     global._init();
     global.params.isLinux = true;
-    global.vendor = DArray<const char>(16, "Front-End Tester");
+    global.vendor = DString("Front-End Tester");
 
     Type::_init();
     Id::initialize();

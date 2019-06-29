@@ -17,7 +17,7 @@ class Identifier : public RootObject
 {
 private:
     int value;
-    DArray<const char> string;
+    DString string;
 
 public:
     static Identifier* anonymous();
