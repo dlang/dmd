@@ -23,6 +23,7 @@
 #include "aggregate.h"
 #include "aliasthis.h"
 #include "arraytypes.h"
+#include "ast_node.h"
 #include "attrib.h"
 #include "compiler.h"
 #include "complex_t.h"
@@ -297,6 +298,15 @@ void test_parameters()
 
 /**********************************/
 
+void test_location()
+{
+    Loc loc1 = Loc("test.d", 24, 42);
+    assert(loc1.equals(Loc("test.d", 24, 42)));
+    assert(strcmp(loc1.toChars(true), "test.d(24,42)") == 0);
+}
+
+/**********************************/
+
 int main(int argc, char **argv)
 {
     frontend_init();
@@ -307,6 +317,7 @@ int main(int argc, char **argv)
     test_target();
     test_emplace();
     test_parameters();
+    test_location();
 
     frontend_term();
 
