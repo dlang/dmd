@@ -92,7 +92,7 @@ extern (C++) final class Import : Dsymbol
         this.protection = Prot.Kind.private_; // default to private
     }
 
-    void addAlias(Identifier name, Identifier _alias)
+    extern (D) void addAlias(Identifier name, Identifier _alias)
     {
         if (isstatic)
             error("cannot have an import bind list");

@@ -292,7 +292,6 @@ public:
     const char* toPrettyCharsHelper();
     void printInstantiationTrace();
     Identifier *getIdent();
-    int compare(RootObject *o);
     hash_t toHash();
 
     bool needsCodegen();

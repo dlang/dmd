@@ -139,29 +139,6 @@ struct Array
         memset(data,0,dim * sizeof(data[0]));
     }
 
-    void sort()
-    {
-        struct ArraySort
-        {
-            static int
-    #if _WIN32
-              __cdecl
-    #endif
-            Array_sort_compare(const void *x, const void *y)
-            {
-                RootObject *ox = *(RootObject **)const_cast<void *>(x);
-                RootObject *oy = *(RootObject **)const_cast<void *>(y);
-
-                return ox->compare(oy);
-            }
-        };
-
-        if (dim)
-        {
-            qsort(data, dim, sizeof(RootObject *), &ArraySort::Array_sort_compare);
-        }
-    }
-
     TYPE *tdata()
     {
         return data;

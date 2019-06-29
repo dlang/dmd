@@ -1830,7 +1830,7 @@ extern (C++) final class IntegerExp : Expression
         this.value = normalize(type.toBasetype().ty, value);
     }
 
-    static dinteger_t normalize(TY ty, dinteger_t value)
+    extern (D) static dinteger_t normalize(TY ty, dinteger_t value)
     {
         /* 'Normalize' the value of the integer to be in range of the type
          */
@@ -2397,7 +2397,7 @@ extern (C++) final class StringExp : Expression
         {
             if (auto se = e.isStringExp())
             {
-                return comparex(se) == 0;
+                return compare(se) == 0;
             }
         }
         return false;
@@ -2577,7 +2577,7 @@ extern (C++) final class StringExp : Expression
         return this;
     }
 
-    int comparex(const StringExp se2) const nothrow pure @nogc
+    int compare(const StringExp se2) const nothrow pure @nogc
     {
         //printf("StringExp::compare()\n");
         // Used to sort case statement expressions so we can do an efficient lookup
@@ -5680,7 +5680,7 @@ extern (C++) final class IndexExp : BinExp
         return Expression.modifiableLvalue(sc, e);
     }
 
-    Expression markSettingAAElem()
+    extern (D) Expression markSettingAAElem()
     {
         if (e1.type.toBasetype().ty == Taarray)
         {

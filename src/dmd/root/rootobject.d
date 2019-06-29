@@ -47,11 +47,6 @@ extern (C++) class RootObject
         return o is this;
     }
 
-    int compare(RootObject)
-    {
-        assert(0);
-    }
-
     const(char)* toChars()
     {
         assert(0);

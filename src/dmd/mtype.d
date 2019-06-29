@@ -5610,7 +5610,7 @@ extern (C++) final class TypeStruct : Type
         return false;
     }
 
-    MATCH implicitConvToWithoutAliasThis(Type to)
+    extern (D) MATCH implicitConvToWithoutAliasThis(Type to)
     {
         MATCH m;
 
@@ -5668,7 +5668,7 @@ extern (C++) final class TypeStruct : Type
         return m;
     }
 
-    MATCH implicitConvToThroughAliasThis(Type to)
+    extern (D) MATCH implicitConvToThroughAliasThis(Type to)
     {
         MATCH m;
         if (!(ty == to.ty && sym == (cast(TypeStruct)to).sym) && sym.aliasthis && !(att & AliasThisRec.tracing))
@@ -5947,7 +5947,7 @@ extern (C++) final class TypeClass : Type
         return false;
     }
 
-    MATCH implicitConvToWithoutAliasThis(Type to)
+    extern (D) MATCH implicitConvToWithoutAliasThis(Type to)
     {
         MATCH m = constConv(to);
         if (m > MATCH.nomatch)
@@ -5970,7 +5970,7 @@ extern (C++) final class TypeClass : Type
         return MATCH.nomatch;
     }
 
-    MATCH implicitConvToThroughAliasThis(Type to)
+    extern (D) MATCH implicitConvToThroughAliasThis(Type to)
     {
         MATCH m;
         if (sym.aliasthis && !(att & AliasThisRec.tracing))

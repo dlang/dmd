@@ -410,7 +410,6 @@ public:
     VarDeclaration *lastVar;
 
     Statement *syntaxCopy();
-    int compare(RootObject *obj);
     CaseStatement *isCaseStatement() { return this; }
 
     void accept(Visitor *v) { v->visit(this); }

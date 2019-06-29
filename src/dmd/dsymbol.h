@@ -198,8 +198,6 @@ public:
     virtual void setScope(Scope *sc);
     virtual void importAll(Scope *sc);
     virtual Dsymbol *search(const Loc &loc, Identifier *ident, int flags = IgnoreNone);
-    Dsymbol *search_correct(Identifier *id);
-    Dsymbol *searchX(const Loc &loc, Scope *sc, RootObject *id);
     virtual bool overloadInsert(Dsymbol *s);
     virtual d_uns64 size(const Loc &loc);
     virtual bool isforwardRef();
@@ -301,9 +299,7 @@ private:
 public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
-    OverloadSet *mergeOverloadSet(Identifier *ident, OverloadSet *os, Dsymbol *s);
     virtual void importScope(Dsymbol *s, Prot protection);
-    void addAccessiblePackage(Package *p, Prot protection);
     virtual bool isPackageAccessible(Package *p, Prot protection, int flags = 0);
     bool isforwardRef();
     static void multiplyDefined(const Loc &loc, Dsymbol *s1, Dsymbol *s2);

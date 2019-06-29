@@ -2722,7 +2722,7 @@ else
 
                     auto se1 = ox.exp.isStringExp();
                     auto se2 = oy.exp.isStringExp();
-                    return (se1 && se2) ? se1.comparex(se2) : 0;
+                    return (se1 && se2) ? se1.compare(se2) : 0;
                 }
 
                 // Sort cases for efficient lookup

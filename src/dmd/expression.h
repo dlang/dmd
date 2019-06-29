@@ -244,7 +244,6 @@ public:
     void accept(Visitor *v) { v->visit(this); }
     dinteger_t getInteger() { return value; }
     void setInteger(dinteger_t value);
-    void normalize();
     template<int v>
     static IntegerExp literal();
 };
@@ -368,7 +367,6 @@ public:
     bool equals(RootObject *o);
     StringExp *toStringExp();
     StringExp *toUTF8(Scope *sc);
-    int compare(RootObject *obj);
     bool isBool(bool result);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -1009,8 +1007,6 @@ public:
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
-
-    Expression *markSettingAAElem();
 
     void accept(Visitor *v) { v->visit(this); }
 };
