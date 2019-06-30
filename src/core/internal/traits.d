@@ -294,6 +294,25 @@ template Fields(T)
         alias Fields = TypeTuple!T;
 }
 
+/// See $(REF hasElaborateMove, std,traits)
+template hasElaborateMove(S)
+{
+    static if (__traits(isStaticArray, S) && S.length)
+    {
+        enum bool hasElaborateMove = hasElaborateMove!(typeof(S.init[0]));
+    }
+    else static if (is(S == struct))
+    {
+        enum hasElaborateMove = (is(typeof(S.init.opPostMove(lvalueOf!S))) &&
+                                    !is(typeof(S.init.opPostMove(rvalueOf!S)))) ||
+                                anySatisfy!(.hasElaborateMove, Fields!S);
+    }
+    else
+    {
+        enum bool hasElaborateMove = false;
+    }
+}
+
 // std.traits.hasElaborateDestructor
 template hasElaborateDestructor(S)
 {
