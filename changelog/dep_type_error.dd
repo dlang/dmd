@@ -16,9 +16,9 @@ class D : C
 }
 ---
 
----
-Use typeof(super) or typeof(this) instead.
+Use `typeof(super)` or `typeof(this)` instead.
 
+---
 class C
 {
     shared(typeof(this)) x;
