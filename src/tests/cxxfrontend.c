@@ -234,6 +234,9 @@ void test_semantic()
     assert(ctor->isMember() && !ctor->isNested());
     assert(0 == strcmp(ctor->type->toChars(), "Error(string)"));
 
+    ClassDeclaration *cd = ad->isClassDeclaration();
+    assert(cd && cd->hasMonitor());
+
     assert(!global.endGagging(errors));
 }
 
