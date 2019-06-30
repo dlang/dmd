@@ -5019,6 +5019,33 @@ public:
                 result = interpret(ae, istate);
                 return;
             }
+            else if (fd.ident == Id._d_arraycatnTX)
+            {
+                assert(e.arguments.dim == 1);
+
+                Expression ea = (*e.arguments)[0];
+
+                while (true)
+                {
+                    if (auto ce = ea.isCastExp())
+                        ea = ce.e1;
+                    else
+                        break;
+                }
+                auto arr = interpret(ea, istate).isArrayLiteralExp().elements;
+
+                Expression e1 = (*arr)[0];
+                foreach (i; 1 .. arr.dim) {
+                    auto type = e1.type;
+                    e1 = new CatExp(e.loc, e1, (*arr)[i]);
+                    e1.type = type;
+                }
+
+                if (global.params.verbose)
+                    message("interpret  %s =>\n          %s", e.toChars(), e1.toChars());
+                result = interpret(e1, istate);
+                return;
+            }
         }
         else if (auto soe = ecall.isSymOffExp())
         {
