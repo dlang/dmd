@@ -326,23 +326,18 @@ Symbol *toSymbol(Dsymbol s)
                 f.Fflags |= Fvirtual;
             else if (fd.isMember2() && fd.isStatic())
                 f.Fflags |= Fstatic;
-            f.Fstartline.Slinnum = fd.loc.linnum;
-            f.Fstartline.Scharnum = fd.loc.charnum;
-            f.Fstartline.Sfilename = cast(char *)fd.loc.filename;
+
+            f.Fstartline.set(fd.loc.filename, fd.loc.linnum, fd.loc.charnum);
             if (fd.endloc.linnum)
             {
-                f.Fendline.Slinnum = fd.endloc.linnum;
-                f.Fendline.Scharnum = fd.endloc.charnum;
-                f.Fendline.Sfilename = cast(char *)fd.endloc.filename;
+                f.Fendline.set(fd.endloc.filename, fd.endloc.linnum, fd.endloc.charnum);
             }
             else
             {
-                f.Fendline.Slinnum = fd.loc.linnum;
-                f.Fendline.Scharnum = fd.loc.charnum;
-                f.Fendline.Sfilename = cast(char *)fd.loc.filename;
+                f.Fendline = f.Fstartline;
             }
-            auto t = Type_toCtype(fd.type);
 
+            auto t = Type_toCtype(fd.type);
             const msave = t.Tmangle;
             if (fd.isMain())
             {
