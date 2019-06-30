@@ -10,6 +10,7 @@
 #pragma once
 
 #include <stddef.h>
+#include <string.h>
 
 /// Represents a D [ ] array
 template<typename T>
@@ -20,4 +21,13 @@ struct DArray
 
     DArray(size_t length_in, T *ptr_in)
         : length(length_in), ptr(ptr_in) { }
+};
+
+struct DString : public DArray<const char>
+{
+    DString(const char *ptr)
+        : DArray(strlen(ptr), ptr) { }
+
+    DString(size_t length, const char *ptr)
+        : DArray(length, ptr) { }
 };

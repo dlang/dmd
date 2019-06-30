@@ -17,7 +17,7 @@ typedef Array<const char *> Strings;
 struct FileName
 {
 private:
-    DArray<const char> str;
+    DString str;
 public:
     static bool equals(const char *name1, const char *name2);
     static bool absolute(const char *name);
