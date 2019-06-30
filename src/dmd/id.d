@@ -347,6 +347,9 @@ immutable Msgtable[] msgtable =
     { "_d_arraysetlengthTImpl"},
     { "_d_arraysetlengthT"},
     { "_d_arraysetlengthTTrace"},
+    { "_d_arraycatnTXImpl" },
+    { "_d_arraycatnTX" },
+    { "_d_arraycatnTXTrace" },
 
     // varargs implementation
     { "va_start" },

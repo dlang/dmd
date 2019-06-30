@@ -9624,15 +9624,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 exp.e2 = exp.e2.implicitCastTo(sc, tb1next);
                 exp.type = tb1next.arrayOf();
             L2elem:
-                if (tb2.ty == Tarray || tb2.ty == Tsarray)
+                if (tb2.ty != Tarray && tb2.ty != Tsarray)
                 {
                     // Make e2 into [e2]
                     exp.e2 = new ArrayLiteralExp(exp.e2.loc, exp.type, exp.e2);
                 }
                 else if (checkNewEscape(sc, exp.e2, false))
                     return setError();
-                result = exp.optimize(WANTvalue);
-                return;
+                e = exp.optimize(WANTvalue);
+                goto Lrewrite;
             }
         }
         // Check for: element ~ array
@@ -9662,15 +9662,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 exp.e1 = exp.e1.implicitCastTo(sc, tb2next);
                 exp.type = tb2next.arrayOf();
             L1elem:
-                if (tb1.ty == Tarray || tb1.ty == Tsarray)
+                if (tb1.ty != Tarray && tb1.ty != Tsarray)
                 {
                     // Make e1 into [e1]
                     exp.e1 = new ArrayLiteralExp(exp.e1.loc, exp.type, exp.e1);
                 }
                 else if (checkNewEscape(sc, exp.e1, false))
                     return setError();
-                result = exp.optimize(WANTvalue);
-                return;
+                e = exp.optimize(WANTvalue);
+                goto Lrewrite;
             }
         }
 
@@ -9691,39 +9691,184 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (Expression ex = typeCombine(exp, sc))
         {
-            result = ex;
-            return;
+            e = ex;
+            goto Lrewrite;
         }
         exp.type = exp.type.toHeadMutable();
 
-        Type tb = exp.type.toBasetype();
-        if (tb.ty == Tsarray)
-            exp.type = tb.nextOf().arrayOf();
-        if (exp.type.ty == Tarray && tb1next && tb2next && tb1next.mod != tb2next.mod)
+        // new scope needed because of `goto Lrewrite`
         {
-            exp.type = exp.type.nextOf().toHeadMutable().arrayOf();
-        }
-        if (Type tbn = tb.nextOf())
-        {
-            if (exp.checkPostblit(sc, tbn))
-                return setError();
-        }
-        Type t1 = exp.e1.type.toBasetype();
-        Type t2 = exp.e2.type.toBasetype();
-        if ((t1.ty == Tarray || t1.ty == Tsarray) &&
-            (t2.ty == Tarray || t2.ty == Tsarray))
-        {
-            // Normalize to ArrayLiteralExp or StringExp as far as possible
-            e = exp.optimize(WANTvalue);
-        }
-        else
-        {
-            //printf("(%s) ~ (%s)\n", e1.toChars(), e2.toChars());
-            result = exp.incompatibleTypes();
-            return;
+            Type tb = exp.type.toBasetype();
+            if (tb.ty == Tsarray)
+                exp.type = tb.nextOf().arrayOf();
+            if (exp.type.ty == Tarray && tb1next && tb2next && tb1next.mod != tb2next.mod)
+            {
+                exp.type = exp.type.nextOf().toHeadMutable().arrayOf();
+            }
+            if (Type tbn = tb.nextOf())
+            {
+                if (exp.checkPostblit(sc, tbn))
+                    return setError();
+            }
+
+            Type t1 = exp.e1.type.toBasetype();
+            Type t2 = exp.e2.type.toBasetype();
+            if ((t1.ty == Tarray || t1.ty == Tsarray) &&
+                (t2.ty == Tarray || t2.ty == Tsarray))
+            {
+                // Normalize to ArrayLiteralExp or StringExp as far as possible
+                e = exp.optimize(WANTvalue);
+            }
+            else
+            {
+                //printf("(%s) ~ (%s)\n", e1.toChars(), e2.toChars());
+                result = exp.incompatibleTypes();
+                return;
+            }
         }
 
+    Lrewrite:
         result = e;
+        if (auto ce = e.isCatExp())
+        {
+            // Do not do anything during ctfe evaluations. Example of expression to ignore:
+            //  enum result1 = "abc"~func!("de")~"f";
+            if (sc.flags & SCOPE.ctfe)
+                return;
+
+            Identifier hook = global.params.tracegc ? Id._d_arraycatnTXTrace : Id._d_arraycatnTX;
+            if (!verifyHookExist(ce.loc, *sc, Id._d_arraycatnTXImpl, "construct array with other array"))
+                return setError();
+
+            bool applyScope = !(sc.stc & STC.static_ || sc.stc & STC.ctfe);
+            auto arrayItems = new Expressions();
+
+            /**
+             * Used to detect if `exp` was a previous call to _d_arraycatnTX, and in that case grab the items from
+             * its `__cat*` static array.
+             * Returns:
+             *  a bool if `exp` was a call to _d_arraycatnTX, and its items got added to `arrayItems`
+             */
+            bool appendPreviousExpression(Expression exp)
+            {
+                // if exp is a previous call to _d_arraycatnTX takes its elements and append them to arrayItems
+                while (exp.isCastExp())
+                    exp = exp.isCastExp().e1;
+
+                auto comma = exp.isCommaExp();
+                if (!comma)
+                    return false;
+                if (auto e2Call = comma.e2.isCallExp())
+                {
+                    if (auto ve = e2Call.e1.isVarExp())
+                    {
+                        auto fd = ve.var.isFuncDeclaration();
+
+                        if (fd.ident == Id._d_HookTraceImpl)
+                        {
+                            auto templateInstance = fd.parent.isTemplateInstance;
+                            RootObject hook = (*templateInstance.tiargs)[1];
+                            assert(hook.dyncast() == DYNCAST.dsymbol, "Expected _d_HookTraceImpl's second template parameter to be an alias to the hook!");
+                            fd = (cast(Dsymbol)hook).isFuncDeclaration;
+                        }
+                        if (fd.ident != Id._d_arraycatnTX)
+                            return false;
+                    }
+                }
+
+                auto declareExp = comma.e1.isDeclarationExp();
+                if (!declareExp)
+                    return false;
+
+                auto varDeclaration = cast(VarDeclaration)declareExp.declaration;
+                if (!varDeclaration)
+                    return false;
+
+                if (varDeclaration.storage_class & STC.static_)
+                    applyScope = false;
+
+                auto expInitializer = varDeclaration._init.isExpInitializer();
+                if (!expInitializer)
+                    return false;
+
+                // In some cases the .exp will be directly a ArrayLiteral instead of having a AssignExp
+                if (auto prevArrayExp = expInitializer.exp.isArrayLiteralExp())
+                {
+                    arrayItems.append(prevArrayExp.elements);
+                    return true;
+                }
+
+                AssignExp assignExp = expInitializer.exp.isAssignExp();
+                if (!assignExp)
+                    assignExp = expInitializer.exp.isConstructExp();
+                if (!assignExp)
+                    assignExp = expInitializer.exp.isBlitExp();
+                if (!assignExp)
+                    return false;
+
+                auto prevArrayExp = assignExp.e2.isArrayLiteralExp();
+                // This should not happen, but if it does _d_arraycatnTX will be be called where one
+                // array member is an another call to _d_arraycatnTX. For example:
+                //   _d_arraycatnTX([_d_arraycatnTX([a, b]), b])
+                // The final output will be correct, just sub-optimal done.
+                if (!prevArrayExp)
+                    return false;
+
+                arrayItems.append(prevArrayExp.elements);
+                return true;
+            }
+
+            // Use `e` to build to the CommaExp
+            e = null;
+
+            // Used to process ce's left and right children.
+            void processExpression(Expression exp) {
+                if (!appendPreviousExpression(exp.expressionSemantic(sc)))
+                {
+                    if (exp.type.arrayOf.mutableOf == ce.type.mutableOf)
+                    {
+                        auto item = new Expressions(1);
+                        (*item)[0] = exp;
+                        auto vd = copyToTemp(applyScope ? STC.scope_ : 0, "__catelem", new ArrayLiteralExp(ce.loc, exp.type.sarrayOf(item.dim), item).expressionSemantic(sc));
+                        e = Expression.combine(e, new DeclarationExp(ce.loc, vd).expressionSemantic(sc));
+                        arrayItems.push(new CastExp(ce.loc, new VarExp(ce.loc, vd), exp.type.arrayOf).expressionSemantic(sc));
+                    } else
+                        arrayItems.push(new CastExp(ce.loc, exp, exp.type.nextOf.arrayOf).expressionSemantic(sc));
+                }
+            }
+
+            processExpression(ce.e1);
+            processExpression(ce.e2);
+
+            auto vd = copyToTemp(applyScope ? STC.scope_ : 0, "__cat", new ArrayLiteralExp(ce.loc, ce.type.sarrayOf(arrayItems.dim), arrayItems).expressionSemantic(sc));
+            auto declareExp = new DeclarationExp(ce.loc, vd).expressionSemantic(sc);
+
+            // Lower to object._d_arraycatnTXImpl!(TArr)._d_arraycatnTX([e1, e2, ...])
+            Expression id = new IdentifierExp(ce.loc, Id.empty);
+            id = new DotIdExp(ce.loc, id, Id.object);
+            auto tiargs = new Objects();
+            tiargs.push(ce.type.arrayOf);
+            id = new DotTemplateInstanceExp(ce.loc, id, Id._d_arraycatnTXImpl, tiargs);
+            id = new DotIdExp(ce.loc, id, hook);
+            id = id.expressionSemantic(sc);
+
+            auto arguments = new Expressions();
+            if (global.params.tracegc)
+            {
+                auto funcname = (sc.callsc && sc.callsc.func) ? sc.callsc.func.toPrettyChars() : sc.func.toPrettyChars();
+                arguments.push(new StringExp(exp.loc, cast(char*)exp.loc.filename));
+                arguments.push(new IntegerExp(exp.loc, exp.loc.linnum, Type.tint32));
+                arguments.push(new StringExp(exp.loc, cast(char*)funcname));
+            }
+            arguments.push(new VarExp(ce.loc, vd).expressionSemantic(sc));
+
+            auto calle = new CallExp(ce.loc, id, arguments);
+            e = Expression.combine(e, declareExp);
+            e = Expression.combine(e, calle);
+            result = e.expressionSemantic(sc);
+            if (global.params.verbose)
+                message("lowered   %s =>\n          %s", ce.toChars(), result.toChars());
+        }
     }
 
     override void visit(MulExp exp)
