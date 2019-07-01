@@ -90,7 +90,7 @@ else version (MARS)
 }
 else version (IN_GCC)
 {
-    union tree_node;
+    extern (C++) union tree_node;
 
     alias Symbol = tree_node;
     alias code = tree_node;
