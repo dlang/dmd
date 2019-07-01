@@ -1414,9 +1414,9 @@ private bool onlyOneMain(Loc loc)
  * Return back end type corresponding to D front end type.
  */
 
-uint totym(Type tx)
+tym_t totym(Type tx)
 {
-    uint t;
+    tym_t t;
     switch (tx.ty)
     {
         case Tvoid:     t = TYvoid;     break;
@@ -1484,8 +1484,8 @@ uint totym(Type tx)
 
         case Tvector:
         {
-            TypeVector tv = cast(TypeVector)tx;
-            TypeBasic tb = tv.elementType();
+            auto tv = cast(TypeVector)tx;
+            const tb = tv.elementType();
             const s32 = tv.alignsize() == 32;   // if 32 byte, 256 bit vector
             switch (tb.ty)
             {
@@ -1508,12 +1508,12 @@ uint totym(Type tx)
 
         case Tfunction:
         {
-            TypeFunction tf = cast(TypeFunction)tx;
+            auto tf = cast(TypeFunction)tx;
             final switch (tf.linkage)
             {
                 case LINK.windows:
                     if (global.params.is64bit)
-                        goto Lc;
+                        goto case LINK.c;
                     t = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYnsfunc;
                     break;
 
@@ -1524,7 +1524,6 @@ uint totym(Type tx)
                 case LINK.c:
                 case LINK.cpp:
                 case LINK.objc:
-                Lc:
                     t = TYnfunc;
                     if (global.params.isWindows)
                     {
