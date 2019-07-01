@@ -1222,7 +1222,7 @@ private final class CppMangleVisitor : Visitor
             p = "`shared` ";
         else
             p = "";
-        .error(loc, "Internal Compiler Error: %stype `%s` can not be mapped to C++\n", p, t.toChars());
+        .error(loc, "Internal Compiler Error: %stype `%s` cannot be mapped to C++\n", p, t.toChars());
         fatal(); //Fatal, because this error should be handled in frontend
     }
 

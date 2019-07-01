@@ -65,7 +65,7 @@ private bool checkImmutableShared(Type type)
 {
     if (type.isImmutable() || type.isShared())
     {
-        error(Loc.initial, "Internal Compiler Error: `shared` or `immutable` types can not be mapped to C++ (%s)", type.toChars());
+        error(Loc.initial, "Internal Compiler Error: `shared` or `immutable` types cannot be mapped to C++ (%s)", type.toChars());
         fatal();
         return true;
     }
@@ -129,7 +129,7 @@ public:
         if (checkImmutableShared(type))
             return;
 
-        error(Loc.initial, "Internal Compiler Error: type `%s` can not be mapped to C++\n", type.toChars());
+        error(Loc.initial, "Internal Compiler Error: type `%s` cannot be mapped to C++\n", type.toChars());
         fatal(); //Fatal, because this error should be handled in frontend
     }
 
