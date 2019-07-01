@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS: -transition=checkimports -de
+REQUIRED_ARGS: -de
 */
 import imports.checkimports3a;
 import imports.checkimports3b;
