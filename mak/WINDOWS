@@ -44,6 +44,8 @@ copydir: $(IMPDIR)
 	mkdir $(IMPDIR)\core\sys\dragonflybsd\sys
 	mkdir $(IMPDIR)\core\sys\linux\netinet
 	mkdir $(IMPDIR)\core\sys\linux\sys
+	mkdir $(IMPDIR)\core\sys\netbsd
+	mkdir $(IMPDIR)\core\sys\netbsd\sys
 	mkdir src\core\sys\netbsd\sys
 	mkdir src\core\sys\netbsd\
 	mkdir $(IMPDIR)\core\sys\openbsd
