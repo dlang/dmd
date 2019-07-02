@@ -452,6 +452,11 @@ else
 }
     _tyalignsize[TYsptr] = LONGSIZE;
     _tyalignsize[TYcptr] = LONGSIZE;
+
+    _tysize[TYimmutPtr] = _tysize[TYnptr];
+    _tysize[TYsharePtr] = _tysize[TYnptr];
+    _tyalignsize[TYimmutPtr] = _tyalignsize[TYnptr];
+    _tyalignsize[TYsharePtr] = _tyalignsize[TYnptr];
 }
 
 /*******************************
@@ -535,5 +540,10 @@ else
     TYsize_t = TYullong;
     TYdelegate = TYcent;
     TYdarray = TYucent;
+
+    _tysize[TYimmutPtr] = _tysize[TYnptr];
+    _tysize[TYsharePtr] = _tysize[TYnptr];
+    _tyalignsize[TYimmutPtr] = _tyalignsize[TYnptr];
+    _tyalignsize[TYsharePtr] = _tyalignsize[TYnptr];
 }
 
