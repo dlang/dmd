@@ -386,9 +386,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                 }
                 else if (v2._init && i < j)
                 {
-                    // @@@DEPRECATED_v2.091@@@.
-                    // Made an error in 2.086.
-                    // Eligible for removal in 2.091.
+                    // @@@DEPRECATED_v2.086@@@.
                     .deprecation(v2.loc, "union field `%s` with default initialization `%s` must be before field `%s`",
                         v2.toChars(), v2._init.toChars(), vd.toChars());
                     //errors = true;
@@ -648,7 +646,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
     /* Append vthis field (this.tupleof[$-1]) to make this aggregate type nested.
      */
-    extern(D) final void makeNested()
+    extern (D) final void makeNested()
     {
         if (enclosing) // if already nested
             return;
@@ -721,7 +719,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
     /* Append vthis2 field (this.tupleof[$-1]) to add a second context pointer.
      */
-    extern(D) final void makeNested2()
+    extern (D) final void makeNested2()
     {
         if (vthis2)
             return;
