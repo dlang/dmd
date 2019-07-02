@@ -432,7 +432,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                 return;
             }
             // Keep lvalue-ness
-            if (expOptimize(e.e1, result, true))
+            if (e.e1.op != TOK.cast_ && expOptimize(e.e1, result, true))
                 return;
             // Convert &*ex to ex
             if (e.e1.op == TOK.star)
@@ -627,6 +627,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             Expression e1old = e.e1;
             if (expOptimize(e.e1, result))
                 return;
+
             e.e1 = fromConstInitializer(result, e.e1);
             if (e.e1 == e1old && e.e1.op == TOK.arrayLiteral && e.type.toBasetype().ty == Tpointer && e.e1.type.toBasetype().ty != Tsarray)
             {
