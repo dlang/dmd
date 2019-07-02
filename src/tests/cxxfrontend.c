@@ -171,31 +171,43 @@ void test_visitors()
     assert(tv.idexpr == true);
 
     Module *mod = Module::create("test", ident, 0, 0);
+    assert(mod->isModule() == mod);
     mod->accept(&tv);
     assert(tv.package == true);
 
     ExpStatement *es = ExpStatement::create(loc, ie);
+    assert(es->isExpStatement() == es);
     es->accept(&tv);
     assert(tv.stmt == true);
 
     TypePointer *tp = TypePointer::create(Type::tvoid);
+    assert(tp->hasPointers() == true);
     tp->accept(&tv);
     assert(tv.type == true);
 
     LinkDeclaration *ld = LinkDeclaration::create(LINKd, NULL);
+    assert(ld->isAttribDeclaration() == static_cast<AttribDeclaration *>(ld));
+    assert(ld->linkage == LINKd);
     ld->accept(&tv);
     assert(tv.attrib == true);
 
     ClassDeclaration *cd = ClassDeclaration::create(loc, Identifier::idPool("TypeInfo"), NULL, NULL, true);
+    assert(cd->isClassDeclaration() == cd);
+    assert(cd->vtblOffset() == 1);
     cd->accept(&tv);
-    assert(tv.aggr = true);
+    assert(tv.aggr == true);
 
     AliasDeclaration *ad = AliasDeclaration::create(loc, ident, tp);
+    assert(ad->isAliasDeclaration() == ad);
+    ad->storage_class = STCabstract;
+    assert(ad->isAbstract() == true);
     ad->accept(&tv);
     assert(tv.decl == true);
 
     cd = ClassDeclaration::create(loc, Identifier::idPool("TypeInfo_Pointer"), NULL, NULL, true);
     TypeInfoPointerDeclaration *ti = TypeInfoPointerDeclaration::create(tp);
+    assert(ti->isTypeInfoDeclaration() == ti);
+    assert(ti->tinfo == tp);
     ti->accept(&tv);
     assert(tv.typeinfo == true);
 }

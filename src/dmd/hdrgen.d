@@ -2119,7 +2119,7 @@ public:
     override void visit(SymOffExp e)
     {
         if (e.offset)
-            buf.printf("(& %s+%u)", e.var.toChars(), e.offset);
+            buf.printf("(& %s%+lld)", e.var.toChars(), e.offset);
         else if (e.var.isTypeInfoDeclaration())
             buf.writestring(e.var.toChars());
         else
