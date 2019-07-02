@@ -53,6 +53,10 @@ public import rt.array.capacity: capacity;
 public import rt.array.capacity: reserve;
 /// See $(REF assumeSafeAppend, rt,array,capacity)
 public import rt.array.capacity: assumeSafeAppend;
+/// See $(REF _d_arraysetlengthT, rt,array,capacity)
+public import rt.array.capacity: _d_arraysetlengthT;
+/// See $(REF _d_arraysetlengthTTrace, rt,array,capacity)
+public import rt.array.capacity: _d_arraysetlengthTTrace;
 
 // Compare class and interface objects for ordering.
 private int __cmp(Obj)(Obj lhs, Obj rhs)

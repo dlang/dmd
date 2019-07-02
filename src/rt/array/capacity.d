@@ -1,5 +1,5 @@
 /**
- This module contains support for controlling dynamic arrays' capacity
+ This module contains support for controlling dynamic arrays' capacity and length
 
   Copyright: Copyright Digital Mars 2000 - 2019.
   License: Distributed under the
@@ -194,4 +194,103 @@ auto ref inout(T[]) assumeSafeAppend(T)(auto ref inout(T[]) arr) nothrow @system
     assert(is(typeof(*b2) == immutable(int[])));
     assert(is(typeof(a3) == int[]));
     assert(is(typeof(b3) == immutable(int[])));
+}
+
+// HACK: `nothrow` and `pure` is faked.
+private extern (C) void[] _d_arraysetlengthT(const TypeInfo ti, size_t newlength, void[]* p) nothrow pure;
+private extern (C) void[] _d_arraysetlengthiT(const TypeInfo ti, size_t newlength, void[]* p) nothrow pure;
+
+/**
+ * Resize dynamic array
+ * Params:
+ *  arr = the array that will be resized, taken as a reference
+ *  newlength = new length of array
+ * Returns:
+ *  The new value of `arr`
+ * Bugs:
+ *   The safety level of this function is faked. It shows itself as `@trusted pure nothrow` to not break existing code.
+ */
+Tarr _d_arraysetlengthT(Tarr : T[], T)(return scope ref Tarr arr, size_t newlength) @trusted
+{
+    version (D_TypeInfo)
+    {
+        auto ti = typeid(Tarr);
+
+        static if (__traits(isZeroInit, T))
+            _d_arraysetlengthT(ti, newlength, cast(void[]*)&arr);
+        else
+            _d_arraysetlengthiT(ti, newlength, cast(void[]*)&arr);
+
+        return arr;
+    }
+    else
+        assert(0, "Cannot resize arrays if compiling without support for runtime type information!");
+}
+
+// This wrapper is needed because a externDFunc cannot be cast()ed directly.
+private void accumulate(string file, uint line, string funcname, string type, ulong sz) @nogc
+{
+    import core.internal.traits : externDFunc;
+
+    alias func = externDFunc!("rt.profilegc.accumulate", void function(string file, uint line, string funcname, string type, ulong sz) @nogc);
+    return func(file, line, funcname, type, sz);
+}
+
+/**
+ * TraceGC wrapper around $(REF _d_arraysetlengthT, rt,array,rt.array.capacity).
+ * Bugs:
+ *   The safety level of this function is faked. It shows itself as `@trusted pure nothrow` to not break existing code.
+ */
+Tarr _d_arraysetlengthTTrace(Tarr : T[], T)(string file, int line, string funcname, return scope ref Tarr arr, size_t newlength) @trusted
+{
+    import core.memory : GC;
+
+    auto accumulate = cast(void function(string file, uint line, string funcname, string type, ulong sz) @nogc nothrow pure)&accumulate;
+    auto gcStats = cast(GC.Stats function() nothrow pure)&GC.stats;
+
+    string name = Tarr.stringof;
+
+    // FIXME: use rt.tracegc.accumulator when it is accessable in the future.
+    version (tracegc)
+    {
+        import core.stdc.stdio;
+
+        printf("%s file = '%.*s' line = %d function = '%.*s' type = %.*s\n",
+            __FUNCTION__.ptr,
+            file.length, file.ptr,
+            line,
+            funcname.length, funcname.ptr,
+            name.length, name.ptr
+        );
+    }
+
+    ulong currentlyAllocated = gcStats().allocatedInCurrentThread;
+
+    scope(exit)
+    {
+        ulong size = gcStats().allocatedInCurrentThread - currentlyAllocated;
+        if (size > 0)
+            accumulate(file, line, funcname, name, size);
+    }
+    return _d_arraysetlengthT!Tarr(arr, newlength);
+}
+
+@safe unittest
+{
+    struct S
+    {
+        float f = 1.0;
+    }
+
+    int[] arr;
+    _d_arraysetlengthT(arr, 16);
+    assert(arr.length == 16);
+    foreach (int i; arr)
+        assert(i == int.init);
+
+    shared S[] arr2;
+    _d_arraysetlengthT(arr2, 16);
+    assert(arr2.length == 16);
+    foreach (s; arr2)
+        assert(s == S.init);
 }
