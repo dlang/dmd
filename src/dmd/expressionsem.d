@@ -5758,7 +5758,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         exp.e1 = exp.e1.expressionSemantic(sc);
-        exp.e1 = exp.e1.optimize(WANTvalue);
+        exp.e1 = exp.e1.optimize(WANTvalue, /*keepLvalue*/ true);
         exp.e1 = exp.e1.modifiableLvalue(sc, exp.e1);
         exp.type = exp.e1.type;
 
@@ -9206,8 +9206,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (checkIfIsStructLiteralDotExpr(e1x))
                 return setError();
 
-            if (e1x.op != TOK.variable)
-                e1x = e1x.optimize(WANTvalue);
+            e1x = e1x.optimize(WANTvalue, /*keepLvalue*/ true);
 
             if (e1x.op == TOK.error)
             {

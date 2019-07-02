@@ -306,9 +306,9 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             return expOptimize(e.e1, flags);
         }
 
-        bool binOptimize(BinExp e, int flags)
+        bool binOptimize(BinExp e, int flags, bool keepLhsLvalue = false)
         {
-            expOptimize(e.e1, flags);
+            expOptimize(e.e1, flags, keepLhsLvalue);
             expOptimize(e.e2, flags);
             return ret.op == TOK.error;
         }
@@ -732,12 +732,10 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             //printf(" returning6 %s\n", ret.toChars());
         }
 
-        override void visit(BinExp e)
+        override void visit(BinAssignExp e)
         {
-            //printf("BinExp::optimize(result = %d) %s\n", result, e.toChars());
-            // don't replace const variable with its initializer in e1
-            bool e2only = (e.op == TOK.construct || e.op == TOK.blit);
-            if (e2only ? expOptimize(e.e2, result) : binOptimize(e, result))
+            //printf("BinAssignExp::optimize(result = %d) %s\n", result, e.toChars());
+            if (binOptimize(e, result, /*keepLhsLvalue*/ true))
                 return;
             if (e.op == TOK.leftShiftAssign || e.op == TOK.rightShiftAssign || e.op == TOK.unsignedRightShiftAssign)
             {
@@ -754,6 +752,13 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                     }
                 }
             }
+        }
+
+        override void visit(BinExp e)
+        {
+            //printf("BinExp::optimize(result = %d) %s\n", result, e.toChars());
+            const keepLhsLvalue = (e.op == TOK.construct || e.op == TOK.blit || e.op == TOK.assign);
+            binOptimize(e, result, keepLhsLvalue);
         }
 
         override void visit(AddExp e)
