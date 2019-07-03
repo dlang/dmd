@@ -677,7 +677,10 @@ elem *addressElem(elem *e, Type t, bool alwaysCopy = false)
         elem *eeq = elAssign(el_var(stmp), e2, t, tx);
         *pe = el_bin(OPcomma,e2.Ety,eeq,el_var(stmp));
     }
-    e = el_una(OPaddr,TYnptr,e);
+    tym_t typ = TYnptr;
+    if (e.Eoper == OPind && tybasic(e.EV.E1.Ety) == TYimmutPtr)
+        typ = TYimmutPtr;
+    e = el_una(OPaddr,typ,e);
     return e;
 }
 
@@ -3616,11 +3619,15 @@ elem *toElem(Expression e, IRState *irs)
 
             elem *e = toElem(dve.e1, irs);
             Type tb1 = dve.e1.type.toBasetype();
+            tym_t typ = TYnptr;
             if (tb1.ty != Tclass && tb1.ty != Tpointer)
+            {
                 e = addressElem(e, tb1);
+                typ = tybasic(e.Ety);
+            }
             auto offset = el_long(TYsize_t, v.offset);
             offset = objc.getOffset(v, tb1, offset);
-            e = el_bin(OPadd, TYnptr, e, offset);
+            e = el_bin(OPadd, typ, e, offset);
             if (v.storage_class & (STC.out_ | STC.ref_))
                 e = el_una(OPind, TYnptr, e);
             e = el_una(OPind, totym(dve.type), e);
@@ -3985,6 +3992,12 @@ elem *toElem(Expression e, IRState *irs)
         {
             //printf("PtrExp.toElem() %s\n", pe.toChars());
             elem *e = toElem(pe.e1, irs);
+            if (tybasic(e.Ety) == TYnptr &&
+                pe.e1.type.nextOf() &&
+                pe.e1.type.nextOf().isImmutable())
+            {
+                e.Ety = TYimmutPtr;     // pointer to immutable
+            }
             e = el_una(OPind,totym(pe.type),e);
             if (tybasic(e.Ety) == TYstruct)
             {
