@@ -1379,11 +1379,6 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
             obj_includelib(libname);
         s.Sclass = SCglobal;
     }
-    else if (fd.ident == Id.tls_get_addr && fd.linkage == LINK.d)
-    {
-        // TODO: Change linkage in druntime to extern(C).
-        s.Sfunc.Fredirect = cast(char*)Id.tls_get_addr.toChars();
-    }
 }
 
 
