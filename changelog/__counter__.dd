@@ -1,0 +1,17 @@
+Added the `__COUNTER__` primary expression.
+
+The new `__COUNTER__` special token creates a counter expression.
+It is transformed at compile time to a `size_t` constant picked from a counter
+that is incremented after each use. This counter is the same that is already used
+during compilation to generate unique identifiers (to name temporaries for example)
+so that `__COUNTER__` can be used to do the same, with the help of meta programming
+to prepend an identifier.
+
+---
+// In this example the value generated is predictable
+// but it's not always the case since internal temporaries may be generated
+// after flaging the counter and before using the flag
+enum size_t counterFlag = __COUNTER__;
+static assert(__COUNTER__ == counterFlag + 1);
+static assert(__COUNTER__ == counterFlag + 2);
+---

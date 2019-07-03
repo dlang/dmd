@@ -1299,6 +1299,18 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
+/**
+ * Primary expression for `__COUNTER__`, interfacing the counter used
+ * when generating unique identifiers.
+ */
+class CounterExp : public Expression
+{
+    /// The unique value, assigned during expression semantic.
+    IntegerExp *value;
+    void accept(Visitor *v);
+    const char *toChars();
+};
+
 class FileInitExp : public DefaultInitExp
 {
 public:

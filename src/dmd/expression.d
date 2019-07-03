@@ -6588,6 +6588,31 @@ extern (C++) class DefaultInitExp : Expression
     }
 }
 
+/**
+ * Primary expression for `__COUNTER__`, interfacing the counter used
+ * when generating unique identifiers.
+ */
+extern (C++) final class CounterExp : Expression
+{
+    /// The unique value, assigned during expression semantic.
+    IntegerExp value;
+
+    extern (D) this(const ref Loc loc)
+    {
+        super(loc, TOK.counter, __traits(classInstanceSize, CounterExp));
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+
+    override const(char)* toChars()
+    {
+        return  value ? value.toChars() : "__COUNTER__";
+    }
+}
+
 /***********************************************************
  */
 extern (C++) final class FileInitExp : DefaultInitExp

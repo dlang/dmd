@@ -272,6 +272,7 @@ enum TOK : ubyte
     moduleString,
     functionString,
     prettyFunction,
+    counter,
     shared_,
     at,
     pow,
@@ -280,7 +281,7 @@ enum TOK : ubyte
     vector,
     pound,
 
-    interval = 231,
+    interval = 232,
     voidExpression,
     cantExpression,
     showCtfeContext,
@@ -418,6 +419,7 @@ private immutable TOK[] keywords =
     TOK.moduleString,
     TOK.functionString,
     TOK.prettyFunction,
+    TOK.counter,
     TOK.shared_,
     TOK.immutable_,
 ];
@@ -563,6 +565,7 @@ extern (C++) struct Token
         TOK.moduleString: "__MODULE__",
         TOK.functionString: "__FUNCTION__",
         TOK.prettyFunction: "__PRETTY_FUNCTION__",
+        TOK.counter: "__COUNTER__",
         TOK.shared_: "shared",
         TOK.immutable_: "immutable",
 

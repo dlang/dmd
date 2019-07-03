@@ -140,8 +140,15 @@ nothrow:
 
     static Identifier generateId(const(char)* prefix)
     {
-        __gshared size_t i;
-        return generateId(prefix, ++i);
+        return generateId(prefix, getNextGenIdCount());
+    }
+
+    static size_t getNextGenIdCount()
+    {
+        __gshared size_t generateIdCounter;
+        if (generateIdCounter == generateIdCounter.max)
+            assert(0, "identifier counter overflow");
+        return ++generateIdCounter;
     }
 
     static Identifier generateId(const(char)* prefix, size_t i)

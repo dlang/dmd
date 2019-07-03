@@ -278,6 +278,7 @@ class EqualExp;
 class IdentityExp;
 class CondExp;
 class DefaultInitExp;
+class CounterExp;
 class FileInitExp;
 class LineInitExp;
 class ModuleInitExp;
@@ -479,6 +480,7 @@ public:
     virtual void visit(SymbolExp *e) { visit((Expression *)e); }
     virtual void visit(TupleExp *e) { visit((Expression *)e); }
     virtual void visit(ThisExp *e) { visit((Expression *)e); }
+    virtual void visit(CounterExp *e) { visit((Expression *)e); }
 
     // Miscellaneous
     virtual void visit(VarExp *e) { visit((SymbolExp *)e); }

@@ -166,6 +166,7 @@ enum
         TOKmodulestring,
         TOKfuncstring,
         TOKprettyfunc,
+        TOKcounter,
         TOKshared,
         TOKat,
         TOKpow,
@@ -174,7 +175,7 @@ enum
         TOKvector,
         TOKpound,
 
-// 231
+// 232
         TOKinterval,
         TOKvoidexp,
         TOKcantexp,

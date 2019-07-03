@@ -74,6 +74,7 @@ __gshared PREC[TOK.max_] precedence =
     TOK.moduleString : PREC.primary,
     TOK.functionString : PREC.primary,
     TOK.prettyFunction : PREC.primary,
+    TOK.counter : PREC.primary,
     TOK.typeid_ : PREC.primary,
     TOK.is_ : PREC.primary,
     TOK.assert_ : PREC.primary,
@@ -2098,6 +2099,7 @@ final class Parser(AST) : Lexer
         case TOK.moduleString:
         case TOK.functionString:
         case TOK.prettyFunction:
+        case TOK.counter:
         case TOK.this_:
             {
                 // Template argument is an expression
@@ -5482,6 +5484,7 @@ final class Parser(AST) : Lexer
         case TOK.moduleString:
         case TOK.functionString:
         case TOK.prettyFunction:
+        case TOK.counter:
         Lexp:
             {
                 AST.Expression exp = parseExpression();
@@ -6907,6 +6910,7 @@ final class Parser(AST) : Lexer
                     case TOK.moduleString:
                     case TOK.functionString:
                     case TOK.prettyFunction:
+                    case TOK.counter:
                         goto L2;
 
                     default:
@@ -7730,6 +7734,11 @@ final class Parser(AST) : Lexer
 
         case TOK.prettyFunction:
             e = new AST.PrettyFuncInitExp(loc);
+            nextToken();
+            break;
+
+        case TOK.counter:
+            e = new AST.CounterExp(loc);
             nextToken();
             break;
 

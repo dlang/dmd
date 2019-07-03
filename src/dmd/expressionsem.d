@@ -10975,6 +10975,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = exp;
     }
 
+    override void visit(CounterExp e)
+    {
+        if (!e.value)
+            e.value = new IntegerExp(e.loc, Identifier.getNextGenIdCount(), Type.tsize_t);
+        result = e.value;
+    }
+
     override void visit(FileInitExp e)
     {
         //printf("FileInitExp::semantic()\n");
