@@ -47,7 +47,7 @@ import core.stdc.stdio;
 
 struct S
 {
-    int opStar() { return 7; }
+    int opUnary(string op)() if (op == "*") { return 7; }
 }
 
 void test1()
