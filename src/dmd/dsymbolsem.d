@@ -2270,6 +2270,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (sc.stc & STC.deprecated_)
             ed.isdeprecated = true;
         ed.userAttribDecl = sc.userAttribDecl;
+        ed.namespace = sc.namespace;
 
         ed.semanticRun = PASS.semantic;
 
