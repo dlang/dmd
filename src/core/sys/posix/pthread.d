@@ -880,6 +880,53 @@ else
 int pthread_condattr_getclock(in pthread_condattr_t*, clockid_t*);
 int pthread_condattr_setclock(pthread_condattr_t*, clockid_t);
 */
+version (CRuntime_Glibc)
+{
+    int pthread_condattr_getclock(in pthread_condattr_t*, clockid_t*);
+    int pthread_condattr_setclock(pthread_condattr_t*, clockid_t);
+}
+else version (FreeBSD)
+{
+    int pthread_condattr_getclock(in pthread_condattr_t*, clockid_t*);
+    int pthread_condattr_setclock(pthread_condattr_t*, clockid_t);
+}
+else version (DragonFlyBSD)
+{
+    int pthread_condattr_getclock(in pthread_condattr_t*, clockid_t*);
+    int pthread_condattr_setclock(pthread_condattr_t*, clockid_t);
+}
+else version (NetBSD)
+{
+    int pthread_condattr_setclock(pthread_condattr_t*, clockid_t);
+}
+else version (OpenBSD)
+{
+    int pthread_condattr_getclock(in pthread_condattr_t*, clockid_t*);
+    int pthread_condattr_setclock(pthread_condattr_t*, clockid_t);
+}
+else version (Darwin)
+{
+}
+else version (Solaris)
+{
+    int pthread_condattr_getclock(in pthread_condattr_t*, clockid_t*);
+    int pthread_condattr_setclock(pthread_condattr_t*, clockid_t);
+}
+else version (CRuntime_Bionic)
+{
+}
+else version (CRuntime_Musl)
+{
+}
+else version (CRuntime_UClibc)
+{
+    int pthread_condattr_getclock(in pthread_condattr_t*, clockid_t*);
+    int pthread_condattr_setclock(pthread_condattr_t*, clockid_t);
+}
+else
+{
+    static assert(false, "Unsupported platform");
+}
 
 //
 // Spinlock (SPI)
