@@ -206,11 +206,11 @@ private extern (C) void[] _d_arraysetlengthiT(const TypeInfo ti, size_t newlengt
  *  arr = the array that will be resized, taken as a reference
  *  newlength = new length of array
  * Returns:
- *  The new value of `arr`
+ *  The new length of the array
  * Bugs:
  *   The safety level of this function is faked. It shows itself as `@trusted pure nothrow` to not break existing code.
  */
-Tarr _d_arraysetlengthT(Tarr : T[], T)(return scope ref Tarr arr, size_t newlength) @trusted
+size_t _d_arraysetlengthT(Tarr : T[], T)(return scope ref Tarr arr, size_t newlength) @trusted
 {
     version (D_TypeInfo)
     {
@@ -221,7 +221,7 @@ Tarr _d_arraysetlengthT(Tarr : T[], T)(return scope ref Tarr arr, size_t newleng
         else
             _d_arraysetlengthiT(ti, newlength, cast(void[]*)&arr);
 
-        return arr;
+        return arr.length;
     }
     else
         assert(0, "Cannot resize arrays if compiling without support for runtime type information!");
@@ -241,7 +241,7 @@ private void accumulate(string file, uint line, string funcname, string type, ul
  * Bugs:
  *   The safety level of this function is faked. It shows itself as `@trusted pure nothrow` to not break existing code.
  */
-Tarr _d_arraysetlengthTTrace(Tarr : T[], T)(string file, int line, string funcname, return scope ref Tarr arr, size_t newlength) @trusted
+size_t _d_arraysetlengthTTrace(Tarr : T[], T)(string file, int line, string funcname, return scope ref Tarr arr, size_t newlength) @trusted
 {
     import core.memory : GC;
 
