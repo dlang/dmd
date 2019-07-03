@@ -3495,14 +3495,12 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
              */
             if (auto fd = search_function(sym, Id.opDot))
             {
-                /* Rewrite e.ident as:
-                 *  e.opDot().ident
-                 */
-                e = build_overload(e.loc, sc, e, null, fd);
-                // @@@DEPRECATED_2.087@@@.
-                e.deprecation("`opDot` is deprecated. Use `alias this`");
-                e = new DotIdExp(e.loc, e, ident);
-                return returnExp(e.expressionSemantic(sc));
+                // @@@DEPRECATED_2.094@@@.
+                // Deprecated in 2.082
+                // Made an error in 2.088
+                // Remove in 2.094
+                e.error("`opDot` is obsolete. Use `alias this`");
+                return returnExp(new ErrorExp());
             }
 
             /* Look for overloaded opDispatch to see if we should forward request

@@ -14,14 +14,6 @@ tuple(height)
 tuple(get, get)
 tuple(clear)
 tuple(draw, draw)
-runnable/xtest46.d(149): Deprecation: `opDot` is deprecated. Use `alias this`
-runnable/xtest46.d(151): Deprecation: `opDot` is deprecated. Use `alias this`
-runnable/xtest46.d(152): Deprecation: `opDot` is deprecated. Use `alias this`
-runnable/xtest46.d(154): Deprecation: `opDot` is deprecated. Use `alias this`
-runnable/xtest46.d(181): Deprecation: `opDot` is deprecated. Use `alias this`
-runnable/xtest46.d(183): Deprecation: `opDot` is deprecated. Use `alias this`
-runnable/xtest46.d(184): Deprecation: `opDot` is deprecated. Use `alias this`
-runnable/xtest46.d(186): Deprecation: `opDot` is deprecated. Use `alias this`
 const(int)
 string[]
 double[]
@@ -123,70 +115,6 @@ struct S5
 
 void test5()
 {
-}
-
-/***************************************************/
-
-struct S6
-{
-    int a, b, c;
-}
-
-struct T6
-{
-    S6 s;
-    int b = 7;
-
-    S6* opDot() return
-    {
-        return &s;
-    }
-}
-
-void test6()
-{
-    T6 t;
-    t.a = 4;
-    t.b = 5;
-    t.c = 6;
-    assert(t.a == 4);
-    assert(t.b == 5);
-    assert(t.c == 6);
-    assert(t.s.b == 0);
-    assert(t.sizeof == 4*4);
-    assert(t.init.sizeof == 4*4);
-}
-
-/***************************************************/
-
-struct S7
-{
-    int a, b, c;
-}
-
-class C7
-{
-    S7 s;
-    int b = 7;
-
-    S7* opDot()
-    {
-        return &s;
-    }
-}
-
-void test7()
-{
-    C7 t = new C7();
-    t.a = 4;
-    t.b = 5;
-    t.c = 6;
-    assert(t.a == 4);
-    assert(t.b == 5);
-    assert(t.c == 6);
-    assert(t.s.b == 0);
-    assert(t.sizeof == (void*).sizeof);
-    assert(t.init is null);
 }
 
 /***************************************************/
@@ -7987,8 +7915,6 @@ int main()
     test2();
     test4();
     test5();
-    test6();
-    test7();
     test8();
     test9();
     test10();
