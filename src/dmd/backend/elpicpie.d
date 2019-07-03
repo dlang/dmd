@@ -509,9 +509,9 @@ static if (1)
                 if (!tls_get_addr_sym)
                 {
                     /* void *___tls_get_addr(void *ptr);
-                     * Parameter ptr is passed in EAX, matching TYjfunc calling convention.
+                     * Parameter ptr is passed in RDI, matching TYnfunc calling convention.
                      */
-                    tls_get_addr_sym = symbol_name("___tls_get_addr",SCglobal,type_fake(TYjfunc));
+                    tls_get_addr_sym = symbol_name("___tls_get_addr",SCglobal,type_fake(TYnfunc));
                     symbol_keep(tls_get_addr_sym);
                 }
                 if (x == 1)
