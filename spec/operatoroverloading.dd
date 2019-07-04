@@ -1075,10 +1075,8 @@ void main()
 $(H2 $(LEGACY_LNAME2 Old-Style, old-style, D1 style operator overloading))
 
         $(P
-        While the preferred style for operator overloading is to use the above
-        mechanisms, the $(LINK2 http://digitalmars.com/d/1.0/operatoroverloading.html, D1 operator overload mechanisms)
-        are still allowed. There is no guarantee that these mechanisms will be
-        supported in the future.
+        The $(LINK2 http://digitalmars.com/d/1.0/operatoroverloading.html, D1 operator overload mechanisms)
+        are deprecated.
         )
 $(SPEC_SUBNAV_PREV_NEXT function, Functions, template, Templates)
 )
