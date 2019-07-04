@@ -698,8 +698,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                     goto L1;
                 }
             }
-            // We can convert 'head const' to mutable
-            if (e.to.mutableOf().constOf().equals(e.e1.type.mutableOf().constOf()))
+            if (e.e1.type.mutableOf().unSharedOf().equals(e.to.mutableOf().unSharedOf()))
             {
                 //printf(" returning5 %s\n", e.e1.toChars());
                 goto L1;
