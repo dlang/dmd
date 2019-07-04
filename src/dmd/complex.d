@@ -32,42 +32,50 @@ struct complex_t
         this.im = im;
     }
 
-    complex_t opAdd(complex_t y)
+    complex_t opBinary(string op)(complex_t y)
+        if (op == "+")
     {
         return complex_t(re + y.re, im + y.im);
     }
 
-    complex_t opSub(complex_t y)
+    complex_t opBinary(string op)(complex_t y)
+        if (op == "-")
     {
         return complex_t(re - y.re, im - y.im);
     }
 
-    complex_t opNeg()
+    complex_t opUnary(string op)()
+        if (op == "-")
     {
         return complex_t(-re, -im);
     }
 
-    complex_t opMul(complex_t y)
+    complex_t opBinary(string op)(complex_t y)
+        if (op == "*")
     {
         return complex_t(re * y.re - im * y.im, im * y.re + re * y.im);
     }
 
-    complex_t opMul_r(real_t x)
+    complex_t opBinaryRight(string op)(real_t x)
+        if (op == "*")
     {
         return complex_t(x) * this;
     }
 
-    complex_t opMul(real_t y)
+    complex_t opBinary(string op)(real_t y)
+        if (op == "*")
     {
         return this * complex_t(y);
     }
 
-    complex_t opDiv(real_t y)
+    complex_t opBinary(string op)(real_t y)
+        if (op == "/")
     {
         return this / complex_t(y);
     }
 
-    complex_t opDiv(complex_t y)
+    complex_t opBinary(string op)(complex_t y)
+        if (op == "/")
     {
         if (CTFloat.fabs(y.re) < CTFloat.fabs(y.im))
         {
