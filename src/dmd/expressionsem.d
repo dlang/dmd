@@ -1921,7 +1921,8 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                     : p.type;
 
                 const hasCopyCtor = (arg.type.ty == Tstruct) && (cast(TypeStruct)arg.type).sym.hasCopyCtor;
-                if (!(hasCopyCtor || tprm.equals(arg.type)))
+                const typesMatch = arg.type.mutableOf().unSharedOf().equals(tprm.mutableOf().unSharedOf());
+                if (!((hasCopyCtor && typesMatch) || tprm.equals(arg.type)))
                 {
                     //printf("arg.type = %s, p.type = %s\n", arg.type.toChars(), p.type.toChars());
                     arg = arg.implicitCastTo(sc, tprm);
