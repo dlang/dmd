@@ -30,6 +30,8 @@ import dmd.visitor;
 import dmd.root.outbuffer;
 import dmd.utils;
 
+//debug = Debug_DtoH;
+
 version(BUILD_COMPILER)
 {
     immutable string[] sources = [
@@ -419,6 +421,11 @@ public:
 
     override void visit(AST.Dsymbol s)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.Dsymbol enter] %s\n", s.toChars());
+            scope(exit) printf("[AST.Dsymbol exit] %s\n", s.toChars());
+        }
         version(BUILD_COMPILER)
         {
             if (s.getModule() && s.getModule().isFrontendModule())
@@ -430,12 +437,22 @@ public:
 
     }
 
-    override void visit(AST.Import)
+    override void visit(AST.Import i)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.Import enter] %s\n", i.toChars());
+            scope(exit) printf("[AST.Import exit] %s\n", i.toChars());
+        }
     }
 
     override void visit(AST.AttribDeclaration pd)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.AttribDeclaration enter] %s\n", pd.toChars());
+            scope(exit) printf("[AST.AttribDeclaration exit] %s\n", pd.toChars());
+        }
         Dsymbols* decl = pd.include(null);
         if (decl)
         {
@@ -450,6 +467,11 @@ public:
 
     override void visit(AST.LinkDeclaration ld)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.LinkDeclaration enter] %s\n", ld.toChars());
+            scope(exit) printf("[AST.LinkDeclaration exit] %s\n", ld.toChars());
+        }
         auto save = linkage;
         linkage = ld.linkage;
         if (ld.linkage != LINK.c && ld.linkage != LINK.cpp)
@@ -464,6 +486,11 @@ public:
 
     override void visit(AST.Module m)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.Module enter] %s\n", m.toChars());
+            scope(exit) printf("[AST.Module exit] %s\n", m.toChars());
+        }
         foreach (s; *m.members)
         {
             if (s.prot().kind < AST.Prot.Kind.public_)
@@ -474,6 +501,11 @@ public:
 
     override void visit(AST.FuncDeclaration fd)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.FuncDeclaration enter] %s\n", fd.toChars());
+            scope(exit) printf("[AST.FuncDeclaration exit] %s\n", fd.toChars());
+        }
         if (cast(void*)fd in visited)
             return;
         version(BUILD_COMPILER)
@@ -541,12 +573,22 @@ public:
             buf.printf("\n");
     }
 
-    override void visit(AST.UnitTestDeclaration fd)
+    override void visit(AST.UnitTestDeclaration utd)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.UnitTestDeclaration enter] %s\n", utd.toChars());
+            scope(exit) printf("[AST.UnitTestDeclaration exit] %s\n", utd.toChars());
+        }
     }
 
     override void visit(AST.VarDeclaration vd)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.VarDeclaration enter] %s\n", vd.toChars());
+            scope(exit) printf("[AST.VarDeclaration exit] %s\n", vd.toChars());
+        }
         if (cast(void*)vd in visited)
         return;
         version(BUILD_COMPILER)
@@ -618,6 +660,8 @@ public:
 
         if (adparent && vd.type && vd.type.deco)
         {
+            //printf("Here %s\n", vd.toChars());
+            //printf("Za buff\n====\n%s\n====\n", buf.peekChars());
             indent();
             auto save = cdparent;
             cdparent = vd.isField() ? adparent.isClassDeclaration() : null;
@@ -643,12 +687,22 @@ public:
         visit(cast(AST.Dsymbol)vd);
     }
 
-    override void visit(AST.TypeInfoDeclaration)
+    override void visit(AST.TypeInfoDeclaration tid)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.TypeInfoDeclaration enter] %s\n", tid.toChars());
+            scope(exit) printf("[AST.TypeInfoDeclaration exit] %s\n", tid.toChars());
+        }
     }
 
     override void visit(AST.AliasDeclaration ad)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.AliasDeclaration enter] %s\n", ad.toChars());
+            scope(exit) printf("[AST.AliasDeclaration exit] %s\n", ad.toChars());
+        }
         version(BUILD_COMPILER)
         {
             if (ad.getModule() && !ad.getModule().isFrontendModule())
@@ -696,6 +750,11 @@ public:
 
     override void visit(AST.AnonDeclaration ad)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.AnonDeclaration enter] %s\n", ad.toChars());
+            scope(exit) printf("[AST.AnonDeclaration exit] %s\n", ad.toChars());
+        }
         indent();
         buf.writestring(ad.isunion ? "union\n" : "struct\n");
         indent();
@@ -724,6 +783,11 @@ public:
 
     override void visit(AST.StructDeclaration sd)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.StructDeclaration enter] %s\n", sd.toChars());
+            scope(exit) printf("[AST.StructDeclaration exit] %s\n", sd.toChars());
+        }
         if (sd.isInstantiated())
             return;
         if (cast(void*)sd in visited)
@@ -825,6 +889,11 @@ public:
 
     private void includeSymbol(AST.Dsymbol ds)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[includeSymbol(AST.Dsymbol) enter] %s\n", ds.toChars());
+            scope(exit) printf("[includeSymbol(AST.Dsymbol) exit] %s\n", ds.toChars());
+        }
         // printf("Forward declaring %s %d\n", ds.toChars(), level);
         if (cast(void*)ds !in visited)
         {
@@ -839,6 +908,11 @@ public:
 
     override void visit(AST.ClassDeclaration cd)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.ClassDeclaration enter] %s\n", cd.toChars());
+            scope(exit) printf("[AST.ClassDeclaration exit] %s\n", cd.toChars());
+        }
         if (cast(void*)cd in visited)
         return;
         version(BUILD_COMPILER)
@@ -892,6 +966,11 @@ public:
 
     override void visit(AST.EnumDeclaration ed)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.EnumDeclaration enter] %s\n", ed.toChars());
+            scope(exit) printf("[AST.EnumDeclaration exit] %s\n", ed.toChars());
+        }
         if (cast(void*)ed in visited)
         return;
         version(BUILD_COMPILER)
@@ -935,6 +1014,11 @@ public:
 
     override void visit(AST.EnumMember em)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.EnumMember enter] %s\n", em.toChars());
+            scope(exit) printf("[AST.EnumMember exit] %s\n", em.toChars());
+        }
         buf.writestring(em.ident.toChars());
         buf.writestring(" = ");
         //if (cast(AST.StringExp)em.value)
@@ -948,8 +1032,19 @@ public:
 
     private void typeToBuffer(AST.Type t, Identifier ident)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[typeToBuffer(AST.Type) enter] %s ident %s\n", t.toChars(), ident.toChars());
+            scope(exit) printf("[typeToBuffer(AST.Type) exit] %s ident %s\n", t.toChars(), ident.toChars());
+        }
         this.ident = ident;
+        //printf("====\nBefore\n");
+        //printf("buf\n%s\n", buf.peekChars());
+        //printf("fwdbuf\n%s\n", fwdbuf.peekChars());
         t.accept(this);
+        //printf("After\n====\n");
+        //printf("fwdbuf\n%s\n", fwdbuf.peekChars());
+        //printf("\n====\n");
         if (this.ident)
         {
             buf.writeByte(' ');
@@ -967,17 +1062,32 @@ public:
 
     override void visit(AST.Type t)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.Type enter] %s\n", t.toChars());
+            scope(exit) printf("[AST.Type exit] %s\n", t.toChars());
+        }
         printf("Invalid type: %s\n", t.toPrettyChars());
         assert(0);
     }
 
     override void visit(AST.TypeIdentifier t)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.TypeIdentifier enter] %s\n", t.toChars());
+            scope(exit) printf("[AST.TypeIdentifier exit] %s\n", t.toChars());
+        }
         buf.writestring(t.ident.toChars());
     }
 
     override void visit(AST.TypeBasic t)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.TypeBasic enter] %s\n", t.toChars());
+            scope(exit) printf("[AST.TypeBasic exit] %s\n", t.toChars());
+        }
         if (!cdparent && t.isConst())
         buf.writestring("const ");
         switch (t.ty)
@@ -1000,6 +1110,11 @@ public:
 
     override void visit(AST.TypePointer t)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.TypePointer enter] %s\n", t.toChars());
+            scope(exit) printf("[AST.TypePointer exit] %s\n", t.toChars());
+        }
         if (t.next.ty == AST.Tstruct &&
         !strcmp((cast(AST.TypeStruct)t.next).sym.ident.toChars(), "__va_list_tag"))
         {
@@ -1015,16 +1130,31 @@ public:
 
     override void visit(AST.TypeSArray t)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.TypeSArray enter] %s\n", t.toChars());
+            scope(exit) printf("[AST.TypeSArray exit] %s\n", t.toChars());
+        }
         t.next.accept(this);
     }
 
     override void visit(AST.TypeAArray t)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.TypeAArray enter] %s\n", t.toChars());
+            scope(exit) printf("[AST.TypeAArray exit] %s\n", t.toChars());
+        }
         AST.Type.tvoidptr.accept(this);
     }
 
     override void visit(AST.TypeFunction tf)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.TypeFunction enter] %s\n", tf.toChars());
+            scope(exit) printf("[AST.TypeFunction exit] %s\n", tf.toChars());
+        }
         tf.next.accept(this);
         buf.writeByte('(');
         buf.writeByte('*');
@@ -1051,6 +1181,11 @@ public:
 
     private void enumToBuffer(AST.EnumDeclaration ed)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[enumToBuffer(AST.EnumDeclaration) enter] %s\n", ed.toChars());
+            scope(exit) printf("[enumToBuffer(AST.EnumDeclaration) exit] %s\n", ed.toChars());
+        }
         if (ed.isSpecial())
         {
             if (ed.ident == DMDType.c_long)
@@ -1075,11 +1210,17 @@ public:
 
     override void visit(AST.TypeEnum t)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.TypeEnum enter] %s\n", t.toChars());
+            scope(exit) printf("[AST.TypeEnum exit] %s\n", t.toChars());
+        }
         if (cast(void*)t.sym !in forwarded)
         {
             forwarded[cast(void*)t.sym] = true;
             auto save = buf;
             buf = fwdbuf;
+            //printf("Visiting enum %s from module %s %s\n", t.sym.toPrettyChars(), t.toChars(), t.sym.loc.toChars());
             t.sym.accept(this);
             buf = save;
         }
@@ -1090,6 +1231,11 @@ public:
 
     override void visit(AST.TypeStruct t)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.TypeStruct enter] %s\n", t.toChars());
+            scope(exit) printf("[AST.TypeStruct exit] %s\n", t.toChars());
+        }
         if (cast(void*)t.sym !in forwarded &&
         !t.sym.parent.isTemplateInstance())
         {
@@ -1111,6 +1257,11 @@ public:
 
     override void visit(AST.TypeDArray t)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.TypeDArray enter] %s\n", t.toChars());
+            scope(exit) printf("[AST.TypeDArray exit] %s\n", t.toChars());
+        }
         if (!cdparent && t.isConst())
         buf.writestring("const ");
         buf.writestring("DArray<");
@@ -1120,6 +1271,11 @@ public:
 
     private void visitTi(AST.TemplateInstance ti)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[visitTi(AST.TemplateInstance) enter] %s\n", ti.toChars());
+            scope(exit) printf("[visitTi(AST.TemplateInstance) exit] %s\n", ti.toChars());
+        }
         version(BUILD_COMPILER)
         {
             if (ti.tempdecl.ident == DMDType.AssocArray)
@@ -1169,6 +1325,11 @@ public:
 
     override void visit(AST.TemplateDeclaration td)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.TemplateDeclaration enter] %s\n", td.toChars());
+            scope(exit) printf("[AST.TemplateDeclaration exit] %s\n", td.toChars());
+        }
         if (cast(void*)td in visited)
             return;
         visited[cast(void*)td] = true;
@@ -1237,6 +1398,11 @@ public:
 
     override void visit(AST.TypeClass t)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.TypeClass enter] %s\n", t.toChars());
+            scope(exit) printf("[AST.TypeClass exit] %s\n", t.toChars());
+        }
         if (cast(void*)t.sym !in forwarded)
         {
             forwarded[cast(void*)t.sym] = true;
@@ -1255,6 +1421,11 @@ public:
 
     private void funcToBuffer(AST.TypeFunction tf, Identifier ident)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[funcToBuffer(AST.TypeFunction) enter] %s\n", tf.toChars());
+            scope(exit) printf("[funcToBuffer(AST.TypeFunction) exit] %s\n", tf.toChars());
+        }
         assert(tf.next);
         tf.next.accept(this);
         if (tf.isref)
@@ -1281,6 +1452,11 @@ public:
 
     override void visit(AST.Parameter p)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.Parameter enter] %s\n", p.toChars());
+            scope(exit) printf("[AST.Parameter exit] %s\n", p.toChars());
+        }
         ident = p.ident;
         p.type.accept(this);
         assert(!(p.storageClass & ~(AST.STC.ref_)));
@@ -1316,6 +1492,11 @@ public:
 
     override void visit(AST.Expression e)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.Expression enter] %s\n", e.toChars());
+            scope(exit) printf("[AST.Expression exit] %s\n", e.toChars());
+        }
         //e.print();
         //printf("====\n%s\n====\n", e.toChars());
         //printf("\n=============\n");
@@ -1326,16 +1507,31 @@ public:
 
     override void visit(AST.NullExp e)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.NullExp enter] %s\n", e.toChars());
+            scope(exit) printf("[AST.NullExp exit] %s\n", e.toChars());
+        }
         buf.writestring("_d_null");
     }
 
     override void visit(AST.ArrayLiteralExp e)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.ArrayLiteralExp enter] %s\n", e.toChars());
+            scope(exit) printf("[AST.ArrayLiteralExp exit] %s\n", e.toChars());
+        }
         buf.writestring("arrayliteral");
     }
 
     override void visit(AST.StringExp e)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.StringExp enter] %s\n", e.toChars());
+            scope(exit) printf("[AST.StringExp exit] %s\n", e.toChars());
+        }
         assert(e.sz == 1 || e.sz == 2);
         if (e.sz == 2)
         buf.writeByte('L');
@@ -1370,16 +1566,31 @@ public:
 
     override void visit(AST.RealExp e)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.RealExp enter] %s\n", e.toChars());
+            scope(exit) printf("[AST.RealExp exit] %s\n", e.toChars());
+        }
         buf.writestring("0");
     }
 
     override void visit(AST.IntegerExp e)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.IntegerExp enter] %s\n", e.toChars());
+            scope(exit) printf("[AST.IntegerExp exit] %s\n", e.toChars());
+        }
         visitInteger(e.toInteger, e.type);
     }
 
     private void visitInteger(dinteger_t v, AST.Type t)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[visitInteger(AST.Type) enter] %s\n", t.toChars());
+            scope(exit) printf("[visitInteger(AST.Type) exit] %s\n", t.toChars());
+        }
         switch (t.ty)
         {
             case AST.Tenum:
@@ -1425,6 +1636,11 @@ public:
 
     override void visit(AST.StructLiteralExp sle)
     {
+        debug (Debug_DtoH)
+        {
+            printf("[AST.StructLiteralExp enter] %s\n", sle.toChars());
+            scope(exit) printf("[AST.StructLiteralExp exit] %s\n", sle.toChars());
+        }
         buf.writestring(sle.sd.ident.toChars());
         buf.writeByte('(');
         foreach(i, e; *sle.elements)
