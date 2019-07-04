@@ -6299,6 +6299,27 @@ Laftersemantic:
 void aliasSemantic(AliasDeclaration ds, Scope* sc)
 {
     //printf("AliasDeclaration::semantic() %s\n", ds.toChars());
+
+    // handle nested "Context( __traits()[<index>] )" by rewritting them
+    //               "alias __aliasInnerTraits<N> = __traits();"
+    //               "Context(__aliasInnerTraits<N>[index])"
+    // Because otherwise the TypeTraits.inALiasDeclaration is not set correctly
+    // And a type is always expected, see https://issues.dlang.org/show_bug.cgi?id=19708
+    if (ds.type && ds.type.ty == Tsarray)
+    {
+        TypeSArray ts =  cast(TypeSArray) ds.type;
+        Type inner = ts.nextOf();
+        if (inner && inner.ty == Ttraits)
+        {
+            // create an alias in the scope
+            Identifier adi = Identifier.generateId("__aliasInnerTraits");
+            AliasDeclaration ad = new AliasDeclaration(ds.loc, adi, ts.next);
+            aliasSemantic(ad, sc);
+            sc.insert(ad);
+            // use the index on the new alias instead of on the traits
+            ts.next = new TypeIdentifier(ds.loc, adi);
+        }
+    }
     if (ds.type && ds.type.ty == Ttraits)
     {
         // TypeTraits is not a valid type, it's semantic is called manually to

@@ -1693,8 +1693,31 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                 mtype.sym = (cast(ScopeExp)e).sds;
                 break;
             case TOK.tuple:
-                mtype.sym = new TupleDeclaration(e.loc,
-                    Identifier.generateId("__aliastup"), cast(Objects*) e.toTupleExp.exps);
+                TupleExp te = e.toTupleExp();
+                Objects* elems = new Objects(te.exps.dim);
+                foreach (i; 0 .. elems.dim)
+                {
+                    auto src = (*te.exps)[i];
+                    switch (src.op)
+                    {
+                    case TOK.type:
+                        (*elems)[i] = (cast(TypeExp)src).type;
+                        break;
+                    case TOK.dotType:
+                        (*elems)[i] = (cast(DotTypeExp)src).sym.isType();
+                        break;
+                    case TOK.overloadSet:
+                        (*elems)[i] = (cast(OverExp)src).type;
+                        break;
+                    default:
+                        if (auto sym = isDsymbol(src))
+                            (*elems)[i] = sym;
+                        else
+                            (*elems)[i] = src;
+                    }
+                }
+                TupleDeclaration td = new TupleDeclaration(e.loc, Identifier.generateId("__aliastup"), elems);
+                mtype.sym = td;
                 break;
             case TOK.dotType:
                 result = (cast(DotTypeExp)e).sym.isType();
