@@ -82,7 +82,7 @@ struct HashTab(Key, Value)
 
     ref inout(Value) opIndex(Key key) inout
     {
-        return *opIn_r(key);
+        return *opBinaryRight!("in")(key);
     }
 
     void opIndexAssign(Value value, Key key)
@@ -90,7 +90,8 @@ struct HashTab(Key, Value)
         *get(key) = value;
     }
 
-    inout(Value)* opIn_r(in Key key) inout
+    inout(Value)* opBinaryRight(string op)(in Key key) inout
+        if (op == "in")
     {
         if (_buckets.length)
         {
@@ -125,7 +126,7 @@ private:
 
     Value* get(Key key)
     {
-        if (auto p = opIn_r(key))
+        if (auto p = opBinaryRight!("in")(key))
             return p;
 
         ensureNotInOpApply();
