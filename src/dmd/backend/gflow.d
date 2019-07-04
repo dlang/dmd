@@ -865,9 +865,8 @@ private void defstarkill()
             // Set bit in defkill if either the left or the
             // right variable is killed by an ambiguous def.
 
-            Symbol *s1 = n.EV.E1.EV.Vsym;
-            if (!(s1.Sflags & SFLunambig) ||
-                !(n.EV.E2.EV.Vsym.Sflags & SFLunambig))
+            if (Symbol_isAffected(*n.EV.E1.EV.Vsym) ||
+                Symbol_isAffected(*n.EV.E2.EV.Vsym))
             {
                 vec_setbit(i,go.defkill);
             }
@@ -882,45 +881,13 @@ private void defstarkill()
             switch (op)
             {
                 case OPvar:
-                    if (!(n.EV.Vsym.Sflags & SFLunambig))
+                    if (Symbol_isAffected(*n.EV.Vsym))
                         vec_setbit(i,go.defkill);
                     break;
 
                 case OPind:         // if a 'starred' ref
-                    static if (1)
-                    {
-                        /* The following program fails for this:
-                        import core.stdc.stdio;
-
-                        class Foo
-                        {
-                            string foo = "abc";
-                            size_t i = 0;
-
-                            void bar()
-                            {
-                                printf("%c\n", foo[i]);
-                                i++;
-                                printf("%c\n", foo[i]);
-                            }
-                        }
-
-                        void main()
-                        {
-                            auto f = new Foo();
-                            f.bar();
-                        }
-                        */
-
-                        // For C/C++, casting to 'const' doesn't mean it
-                        // actually is const,
-                        // but immutable really doesn't change
-                        if ((n.Ety & (mTYimmutable | mTYvolatile | mTYshared)) == mTYimmutable &&
-                            n.EV.E1.Eoper == OPvar &&
-                            n.EV.E1.EV.Vsym.Sflags & SFLunambig
-                           )
-                            break;
-                    }
+                    if (tybasic(n.EV.E1.Ety) == TYimmutPtr)
+                        break;
                     goto case OPstrlen;
 
                 case OPstrlen:
