@@ -612,7 +612,15 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             return funcroot.overloadInsert(this);
         }
 
-        TemplateDeclaration td = s.isTemplateDeclaration();
+        // https://issues.dlang.org/show_bug.cgi?id=15795
+        // if candidate is an alias and its sema is not run then
+        // insertion can fail because the thing it alias is not known
+        if (AliasDeclaration ad = s.isAliasDeclaration())
+        {
+            if (s._scope)
+                aliasSemantic(ad, s._scope);
+        }
+        TemplateDeclaration td = s.toAlias().isTemplateDeclaration();
         if (!td)
             return false;
 

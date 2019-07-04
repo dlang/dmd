@@ -690,6 +690,8 @@ extern (C++) class Dsymbol : ASTNode
         {
             if (!sds.symtabInsert(this)) // if name is already defined
             {
+                if (isAliasDeclaration() && !_scope)
+                    setScope(sc);
                 Dsymbol s2 = sds.symtabLookup(this,ident);
                 if (!s2.overloadInsert(this))
                 {
