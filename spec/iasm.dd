@@ -326,7 +326,7 @@ $(GNAME AsmBrExp):
     $(I AsmBrExp) $(D [) $(I AsmExp) $(D ])
 
 $(GNAME AsmUnaExp):
-    $(I AsmTypePrefix) $(I AsmExp)
+    $(GLINK AsmTypePrefix) $(I AsmExp)
     $(D offsetof) $(I AsmExp)
     $(D seg) $(I AsmExp)
     $(D +) $(I AsmUnaExp)
@@ -350,6 +350,7 @@ $(GNAME AsmPrimaryExp):
 $(GNAME DotIdentifier):
     $(GLINK_LEX Identifier)
     $(GLINK_LEX Identifier) $(D .) $(I DotIdentifier)
+    $(GLINK2 declaration, BasicTypeX) $(D .) $(GLINK_LEX Identifier)
 )
 
     $(P The operand syntax more or less follows the Intel CPU documentation
@@ -366,21 +367,21 @@ $(GNAME DotIdentifier):
         Instead, do a move from the relevant segment register.
     )
 
+    $(P A dotted expression is evaluated during the compilation and then
+        must either give a constant or indicate a higher level variable
+        that fits in the target register or variable.
+    )
+
 $(H3 $(LNAME2 operand_types, Operand Types))
 
 $(GRAMMAR
 $(GNAME AsmTypePrefix):
     $(D near ptr)
     $(D far ptr)
-    $(D byte ptr)
-    $(D short ptr)
-    $(D int ptr)
     $(D word ptr)
     $(D dword ptr)
     $(D qword ptr)
-    $(D float ptr)
-    $(D double ptr)
-    $(D real ptr)
+    $(GLINK2 declaration, BasicTypeX) $(D ptr)
 )
 
     $(P In cases where the operand size is ambiguous, as in:)
@@ -389,7 +390,7 @@ $(GNAME AsmTypePrefix):
 add [EAX],3     ;
 --------------
 
-    it can be disambiguated by using an $(I AsmTypePrefix):
+    it can be disambiguated by using an $(GLINK AsmTypePrefix):
 
         --------------
         add  byte ptr [EAX],3 ;
