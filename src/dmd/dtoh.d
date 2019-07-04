@@ -829,6 +829,8 @@ public:
                     varCount++;
                     if (!vd._init && !vd.type.isTypeBasic())
                         continue;
+                    if (vd._init && vd._init.isVoidInitializer())
+                        continue;
                     buf.printf(" this->%s = ", vd.ident.toChars());
                     if (vd._init)
                         AST.initializerToExpression(vd._init).accept(this);
