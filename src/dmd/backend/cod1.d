@@ -1194,10 +1194,15 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                 case TYsptr:                        /* if pointer to stack  */
                     if (config.wflags & WFssneds)   // if SS != DS
                         pcs.Iflags |= CFss;        /* then need SS: override */
-                    else if (I32)
+                    break;
+
+                case TYfgPtr:
+                    if (I32)
                         pcs.Iflags |= CFgs;
                     else if (I64)
                         pcs.Iflags |= CFfs;
+                    else
+                        assert(0);
                     break;
 
                 case TYcptr:                        /* if pointer to code   */
@@ -4284,10 +4289,15 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                             case TYsptr:
                                 if (config.wflags & WFssneds)
                                     seg = CFss;
-                                else if (I32)
+                                break;
+
+                            case TYfgPtr:
+                                if (I32)
                                      seg = CFgs;
                                 else if (I64)
                                      seg = CFfs;
+                                else
+                                     assert(0);
                                 break;
 
                             case TYcptr:

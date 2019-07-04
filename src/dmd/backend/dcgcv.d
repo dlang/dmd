@@ -477,6 +477,7 @@ void cv_init()
             dttab4[TYsptr] = 0x600;
             dttab4[TYimmutPtr] = 0x600;
             dttab4[TYsharePtr] = 0x600;
+            dttab4[TYfgPtr] = 0x600;
         }
         else
         {
@@ -485,6 +486,7 @@ void cv_init()
             dttab4[TYnptr] = 0x400;
             dttab4[TYimmutPtr] = 0x400;
             dttab4[TYsharePtr] = 0x400;
+            dttab4[TYfgPtr] = 0x400;
         }
         dttab4[TYcptr] = 0x400;
         dttab4[TYfptr] = 0x500;
@@ -1925,6 +1927,8 @@ L1:
             break;
 
         case TYnptr:
+        case TYimmutPtr:
+        case TYsharePtr:
 version (MARS)
 {
             if (t.Tkey)
@@ -1933,6 +1937,7 @@ version (MARS)
             goto Lptr;
         case TYsptr:
         case TYcptr:
+        case TYfgPtr:
         Lptr:
                         attribute |= I32 ? 10 : 0;      goto L2;
 

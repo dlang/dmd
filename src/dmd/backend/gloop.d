@@ -2063,6 +2063,7 @@ private famlist * newfamlist(tym_t ty)
         case TYnullptr:
         case TYimmutPtr:
         case TYsharePtr:
+        case TYfgPtr:
             ty = TYint;
             if (I64)
                 ty = TYllong;
@@ -3379,6 +3380,7 @@ private famlist * flcmp(famlist *f1,famlist *f2)
             case TYnptr:        // BUG: 64 bit pointers?
             case TYimmutPtr:
             case TYsharePtr:
+            case TYfgPtr:
             case TYnullptr:
             case TYint:
             case TYuint:

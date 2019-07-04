@@ -1032,6 +1032,7 @@ private void cpp_basic_data_type(type *t)
         case TYnptr:
         case TYimmutPtr:
         case TYsharePtr:
+        case TYfgPtr:
             c = cast(char)('P' + cpp_cvidx(t.Tty));
             CHAR(c);
             if(I64)

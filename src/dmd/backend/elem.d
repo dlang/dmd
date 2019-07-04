@@ -2205,6 +2205,7 @@ L1:
                     case TYcptr:
                     case TYimmutPtr:
                     case TYsharePtr:
+                    case TYfgPtr:
                         if (_tysize[TYnptr] == SHORTSIZE)
                             goto case_short;
                         else if (_tysize[TYnptr] == LONGSIZE)
@@ -2507,6 +2508,7 @@ version (SCPP_HTOD)
         case TYnref:
         case TYimmutPtr:
         case TYsharePtr:
+        case TYfgPtr:
             if (_tysize[TYnptr] == SHORTSIZE)
                 goto Ushort;
             if (_tysize[TYnptr] == LONGSIZE)
@@ -2904,6 +2906,7 @@ case_tym:
         case TYnref:
         case TYimmutPtr:
         case TYsharePtr:
+        case TYfgPtr:
             if (_tysize[TYnptr] == LONGSIZE)
                 goto L1;
             if (_tysize[TYnptr] == SHORTSIZE)

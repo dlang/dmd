@@ -2992,6 +2992,7 @@ void cdshtlng(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             // BUG: what about pointers to functions?
             switch (tym1)
             {
+                case TYimmutPtr:
                 case TYnptr:    segreg = SEG_DS;        break;
                 case TYcptr:    segreg = SEG_CS;        break;
                 case TYsptr:    segreg = SEG_SS;        break;

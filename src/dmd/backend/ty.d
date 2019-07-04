@@ -82,7 +82,7 @@ enum
     TYucent             = 0x3D, // 128 bit unsigned integer
 
     // Used for segmented architectures
-    TYsptr              = 0x1E, // stack segment relative pointer (I16) GS: (I32) FS: (I64)
+    TYsptr              = 0x1E, // stack segment relative pointer
     TYcptr              = 0x1F, // code segment relative pointer
     TYf16ptr            = 0x20, // special OS/2 far16 pointer
     TYfptr              = 0x21, // far pointer (has segment and offset)
@@ -140,8 +140,9 @@ enum
 
     TYsharePtr          = 0x5C, // pointer to shared data
     TYimmutPtr          = 0x5D, // pointer to immutable data
+    TYfgPtr             = 0x5E, // GS: pointer (I32) FS: pointer (I64)
 
-    TYMAX               = 0x5E,
+    TYMAX               = 0x5F,
 }
 
 alias TYerror = TYint;

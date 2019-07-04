@@ -455,8 +455,10 @@ else
 
     _tysize[TYimmutPtr] = _tysize[TYnptr];
     _tysize[TYsharePtr] = _tysize[TYnptr];
+    _tysize[TYfgPtr] = _tysize[TYnptr];
     _tyalignsize[TYimmutPtr] = _tyalignsize[TYnptr];
     _tyalignsize[TYsharePtr] = _tyalignsize[TYnptr];
+    _tyalignsize[TYfgPtr] = _tyalignsize[TYnptr];
 }
 
 /*******************************
@@ -543,7 +545,9 @@ else
 
     _tysize[TYimmutPtr] = _tysize[TYnptr];
     _tysize[TYsharePtr] = _tysize[TYnptr];
+    _tysize[TYfgPtr] = _tysize[TYnptr];
     _tyalignsize[TYimmutPtr] = _tyalignsize[TYnptr];
     _tyalignsize[TYsharePtr] = _tyalignsize[TYnptr];
+    _tyalignsize[TYfgPtr] = _tyalignsize[TYnptr];
 }
 
