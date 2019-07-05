@@ -197,9 +197,9 @@ $(H3 $(LNAME2 slice_unary_operators, Overloading Slice Unary Operators))
         )
         )
 
-        $(P For backward compatibility, if the above rewrites fail and
+        $(P For backward compatibility, if the above rewrites fail to compile and
         $(D opSliceUnary) is defined, then the rewrites
-        $(D a.opSliceUnary!(op)(a, i, j)) and
+        $(D a.opSliceUnary!(op)(i, j)) and
         $(D a.opSliceUnary!(op)) are tried instead, respectively.)
 
 $(H2 $(LEGACY_LNAME2 Cast, cast, Cast Operator Overloading))
