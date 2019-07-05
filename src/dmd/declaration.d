@@ -125,20 +125,8 @@ bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1)
                     else
                     {
                         const(char)* modStr = !var.type.isMutable() ? MODtoChars(var.type.mod) : MODtoChars(e1.type.mod);
-                        // Deprecated in 2018-04.
-                        // Change to error in 2019-04 by deleting the following
-                        // if-branch and the deprecate_18719 enum member in the
-                        // dmd.ctorflow.CSX enum.
-                        // @@@DEPRECATED_2019-01@@@.
-                        if (fi & CSX.deprecate_18719)
-                        {
-                            .deprecation(loc, "%s field `%s` was initialized in a previous constructor call", modStr, var.toChars());
-                        }
-                        else
-                        {
-                            .error(loc, "%s field `%s` initialized multiple times", modStr, var.toChars());
-                            .errorSupplemental(fieldInit.loc, "Previous initialization is here.");
-                        }
+                        .error(loc, "%s field `%s` initialized multiple times", modStr, var.toChars());
+                        .errorSupplemental(fieldInit.loc, "Previous initialization is here.");
                     }
                 }
                 else if (sc.inLoop || (fi & CSX.label))

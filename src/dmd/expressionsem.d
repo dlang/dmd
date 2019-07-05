@@ -4592,7 +4592,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 // initialized after this call.
                 foreach (ref field; sc.ctorflow.fieldinit)
                 {
-                    field.csx |= CSX.this_ctor | CSX.deprecate_18719;
+                    field.csx |= CSX.this_ctor;
                 }
             }
 
