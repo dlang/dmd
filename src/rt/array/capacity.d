@@ -200,33 +200,6 @@ auto ref inout(T[]) assumeSafeAppend(T)(auto ref inout(T[]) arr) nothrow @system
 private extern (C) void[] _d_arraysetlengthT(const TypeInfo ti, size_t newlength, void[]* p) nothrow pure;
 private extern (C) void[] _d_arraysetlengthiT(const TypeInfo ti, size_t newlength, void[]* p) nothrow pure;
 
-/**
- * Resize dynamic array
- * Params:
- *  arr = the array that will be resized, taken as a reference
- *  newlength = new length of array
- * Returns:
- *  The new length of the array
- * Bugs:
- *   The safety level of this function is faked. It shows itself as `@trusted pure nothrow` to not break existing code.
- */
-size_t _d_arraysetlengthT(Tarr : T[], T)(return scope ref Tarr arr, size_t newlength) @trusted
-{
-    version (D_TypeInfo)
-    {
-        auto ti = typeid(Tarr);
-
-        static if (__traits(isZeroInit, T))
-            _d_arraysetlengthT(ti, newlength, cast(void[]*)&arr);
-        else
-            _d_arraysetlengthiT(ti, newlength, cast(void[]*)&arr);
-
-        return arr.length;
-    }
-    else
-        assert(0, "Cannot resize arrays if compiling without support for runtime type information!");
-}
-
 // This wrapper is needed because a externDFunc cannot be cast()ed directly.
 private void accumulate(string file, uint line, string funcname, string type, ulong sz) @nogc
 {
@@ -236,43 +209,88 @@ private void accumulate(string file, uint line, string funcname, string type, ul
     return func(file, line, funcname, type, sz);
 }
 
-/**
- * TraceGC wrapper around $(REF _d_arraysetlengthT, rt,array,rt.array.capacity).
- * Bugs:
- *   The safety level of this function is faked. It shows itself as `@trusted pure nothrow` to not break existing code.
+/*
+ * This template is needed because there need to be a `_d_arraysetlengthTTrace!Tarr` instance for every
+ * `_d_arraysetlengthT!Tarr`. By wrapping both of these functions inside of this template we force the
+ * compiler to create a instance of both function for every type that is used.
  */
-size_t _d_arraysetlengthTTrace(Tarr : T[], T)(string file, int line, string funcname, return scope ref Tarr arr, size_t newlength) @trusted
+
+/// Implementation of `_d_arraysetlengthT` and `_d_arraysetlengthTTrace`
+template _d_arraysetlengthTImpl(Tarr : T[], T)
 {
-    import core.memory : GC;
-
-    auto accumulate = cast(void function(string file, uint line, string funcname, string type, ulong sz) @nogc nothrow pure)&accumulate;
-    auto gcStats = cast(GC.Stats function() nothrow pure)&GC.stats;
-
-    string name = Tarr.stringof;
-
-    // FIXME: use rt.tracegc.accumulator when it is accessable in the future.
-    version (tracegc)
+    /**
+     * Resize dynamic array
+     * Params:
+     *  arr = the array that will be resized, taken as a reference
+     *  newlength = new length of array
+     * Returns:
+     *  The new length of the array
+     * Bugs:
+     *   The safety level of this function is faked. It shows itself as `@trusted pure nothrow` to not break existing code.
+     */
+    size_t _d_arraysetlengthT(return scope ref Tarr arr, size_t newlength) @trusted pure nothrow
     {
-        import core.stdc.stdio;
+        pragma(inline, false);
+        version (D_TypeInfo)
+        {
+            auto ti = typeid(Tarr);
 
-        printf("%s file = '%.*s' line = %d function = '%.*s' type = %.*s\n",
-            __FUNCTION__.ptr,
-            file.length, file.ptr,
-            line,
-            funcname.length, funcname.ptr,
-            name.length, name.ptr
-        );
+            static if (__traits(isZeroInit, T))
+                ._d_arraysetlengthT(ti, newlength, cast(void[]*)&arr);
+            else
+                ._d_arraysetlengthiT(ti, newlength, cast(void[]*)&arr);
+
+            return arr.length;
+        }
+        else
+            assert(0, "Cannot resize arrays if compiling without support for runtime type information!");
     }
 
-    ulong currentlyAllocated = gcStats().allocatedInCurrentThread;
 
-    scope(exit)
+    /**
+    * TraceGC wrapper around $(REF _d_arraysetlengthT, rt,array,rt.array.capacity).
+    * Bugs:
+    *   The safety level of this function is faked. It shows itself as `@trusted pure nothrow` to not break existing code.
+    */
+    size_t _d_arraysetlengthTTrace(string file, int line, string funcname, return scope ref Tarr arr, size_t newlength) @trusted pure nothrow
     {
-        ulong size = gcStats().allocatedInCurrentThread - currentlyAllocated;
-        if (size > 0)
-            accumulate(file, line, funcname, name, size);
+        version (D_TypeInfo)
+        {
+            pragma(inline, false);
+            import core.memory : GC;
+
+            auto accumulate = cast(void function(string file, uint line, string funcname, string type, ulong sz) @nogc nothrow pure)&accumulate;
+            auto gcStats = cast(GC.Stats function() nothrow pure)&GC.stats;
+
+            string name = Tarr.stringof;
+
+            // FIXME: use rt.tracegc.accumulator when it is accessable in the future.
+            version (tracegc)
+            {
+                import core.stdc.stdio;
+
+                printf("%s file = '%.*s' line = %d function = '%.*s' type = %.*s\n",
+                    __FUNCTION__.ptr,
+                    file.length, file.ptr,
+                    line,
+                    funcname.length, funcname.ptr,
+                    name.length, name.ptr
+                );
+            }
+
+            ulong currentlyAllocated = gcStats().allocatedInCurrentThread;
+
+            scope(exit)
+            {
+                ulong size = gcStats().allocatedInCurrentThread - currentlyAllocated;
+                if (size > 0)
+                    accumulate(file, line, funcname, name, size);
+            }
+            return _d_arraysetlengthT(arr, newlength);
+        }
+        else
+            assert(0, "Cannot resize arrays if compiling without support for runtime type information!");
     }
-    return _d_arraysetlengthT!Tarr(arr, newlength);
 }
 
 @safe unittest
@@ -283,13 +301,13 @@ size_t _d_arraysetlengthTTrace(Tarr : T[], T)(string file, int line, string func
     }
 
     int[] arr;
-    _d_arraysetlengthT(arr, 16);
+    _d_arraysetlengthTImpl!(typeof(arr))._d_arraysetlengthT(arr, 16);
     assert(arr.length == 16);
     foreach (int i; arr)
         assert(i == int.init);
 
     shared S[] arr2;
-    _d_arraysetlengthT(arr2, 16);
+    _d_arraysetlengthTImpl!(typeof(arr2))._d_arraysetlengthT(arr2, 16);
     assert(arr2.length == 16);
     foreach (s; arr2)
         assert(s == S.init);
