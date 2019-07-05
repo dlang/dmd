@@ -5344,7 +5344,10 @@ extern (C++) final class CastExp : UnaExp
     override bool isLvalue()
     {
         //printf("e1.type = %s, to.type = %s\n", e1.type.toChars(), to.toChars());
-        return e1.isLvalue() && e1.type.mutableOf().unSharedOf().equals(to.mutableOf().unSharedOf());
+        if (!e1.isLvalue())
+            return false;
+        return (to.ty == Tsarray && (e1.type.ty == Tvector || e1.type.ty == Tsarray)) ||
+            e1.type.mutableOf().unSharedOf().equals(to.mutableOf().unSharedOf());
     }
 
     override Expression toLvalue(Scope* sc, Expression e)
@@ -5817,12 +5820,21 @@ extern (C++) final class IndexExp : BinExp
 
     override bool isLvalue()
     {
+        if (e1.op == TOK.arrayLiteral || e1.op == TOK.assocArrayLiteral)
+            return false;
+        if (e1.type.ty == Tsarray ||
+            (e1.op == TOK.index && e1.type.ty != Tarray))
+        {
+            return e1.isLvalue();
+        }
         return true;
     }
 
     override Expression toLvalue(Scope* sc, Expression e)
     {
-        return this;
+        if (isLvalue())
+            return this;
+        return Expression.toLvalue(sc, e);
     }
 
     override Expression modifiableLvalue(Scope* sc, Expression e)

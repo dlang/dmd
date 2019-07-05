@@ -5758,8 +5758,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         exp.e1 = exp.e1.expressionSemantic(sc);
-        exp.e1 = exp.e1.optimize(WANTvalue, /*keepLvalue*/ true);
         exp.e1 = exp.e1.modifiableLvalue(sc, exp.e1);
+        exp.e1 = exp.e1.optimize(WANTvalue, /*keepLvalue*/ true);
         exp.type = exp.e1.type;
 
         if (auto ad = isAggregate(exp.e1.type))
