@@ -994,10 +994,8 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             setLengthVarIfKnown(e.lengthVar, ex);
             if (expOptimize(e.e2, WANTvalue))
                 return;
-            if (keepLvalue)
-                return;
             ret = Index(e.type, ex, e.e2).copy();
-            if (CTFEExp.isCantExp(ret))
+            if (CTFEExp.isCantExp(ret) || (keepLvalue && !ret.isLvalue()))
                 ret = e;
         }
 
