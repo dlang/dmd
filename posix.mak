@@ -86,6 +86,8 @@ else
 	DFLAGS:=$(UDFLAGS) -inline # unittests don't compile with -inline
 endif
 
+UTFLAGS:=-version=CoreUnittest -unittest
+
 # Set PHOBOS_DFLAGS (for linking against Phobos)
 PHOBOS_PATH=../phobos
 SHARED=$(if $(findstring $(OS),linux freebsd),1,)
@@ -295,7 +297,7 @@ $(addprefix $(ROOT)/unittest/,$(DISABLED_TESTS)) :
 ifeq (,$(SHARED))
 
 $(ROOT)/unittest/test_runner: $(OBJS) $(SRCS) src/test_runner.d $(DMD)
-	$(DMD) $(UDFLAGS) -unittest -of$@ src/test_runner.d $(SRCS) $(OBJS) -debuglib= -defaultlib= -L-lpthread -L-lm
+	$(DMD) $(UDFLAGS) $(UTFLAGS) -of$@ src/test_runner.d $(SRCS) $(OBJS) -debuglib= -defaultlib= -L-lpthread -L-lm
 
 else
 
@@ -303,7 +305,7 @@ UT_DRUNTIME:=$(ROOT)/unittest/libdruntime-ut$(DOTDLL)
 
 $(UT_DRUNTIME): UDFLAGS+=-version=Shared -fPIC
 $(UT_DRUNTIME): $(OBJS) $(SRCS) $(DMD)
-	$(DMD) $(UDFLAGS) -shared -unittest -of$@ $(SRCS) $(OBJS) $(LINKDL) -debuglib= -defaultlib= -L-lpthread -L-lm
+	$(DMD) $(UDFLAGS) -shared $(UTFLAGS) -of$@ $(SRCS) $(OBJS) $(LINKDL) -debuglib= -defaultlib= -L-lpthread -L-lm
 
 $(ROOT)/unittest/test_runner: $(UT_DRUNTIME) src/test_runner.d $(DMD)
 	$(DMD) $(UDFLAGS) -of$@ src/test_runner.d -L$(UT_DRUNTIME) -debuglib= -defaultlib= -L-lpthread -L-lm
