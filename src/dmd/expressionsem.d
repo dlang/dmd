@@ -1288,7 +1288,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
     {
         VarExp ve = cast(VarExp)e1;
         VarDeclaration v = ve.var.isVarDeclaration();
-        if (v && ve.checkPurity(sc, v))
+        if (v && (ve.checkPurity(sc, v) || checkAccessShared(sc, ve.loc, v)))
             return new ErrorExp();
     }
     if (e2)
@@ -1603,6 +1603,27 @@ private bool preFunctionParameters(Scope* sc, Expressions* exps)
         }
     }
     return err;
+}
+
+/********************************************
+ * Issue an error if shared state is Accessed.
+ * Returns:
+ *      true    an error was issued
+ */
+private bool checkAccessShared(Scope* sc, Loc loc, VarDeclaration vd)
+{
+    if (!global.params.restrictiveshared)
+    {
+        return false;
+    }
+
+    if (vd.type && vd.type.isShared() && !(sc.flags & SCOPE.nosharedcheck))
+    {
+        loc.error("Trying to Access shared state `%s`", vd.toChars());
+        return true;
+    }
+
+    return false;
 }
 
 /********************************************
@@ -4011,8 +4032,45 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         return exp.expressionSemantic(sc);
     }
 
+    void checkAccessSharedCall(CallExp exp)
+    {
+        assert (exp.f);
+        auto params = exp.f.getParameterList().parameters;
+        if (exp.arguments && exp.arguments.dim && params && params.dim)
+        {
+            foreach (i, arg;*exp.arguments)
+            {
+                if (arg.op == TOK.variable)
+                {
+                    auto ve = cast (VarExp) arg;
+                    auto vd = ve.var.isVarDeclaration();
+                    if (vd &&
+                        vd.type &&
+                        vd.type.isShared() &&
+                        i < params.dim &&
+                        !(*params)[i].type.isShared)
+                    {
+                        checkAccessShared(sc, arg.loc, vd);
+                    }
+                }
+            }
+        }
+    }
+
     override void visit(CallExp exp)
     {
+        // @@@SHARED@@@
+        // we need to set allow shared for overload resolution
+        sc = sc.startRelaxShared();
+        // after resolution is done
+        scope (exit)
+        {
+            sc = sc.endRelaxShared();
+            if (exp.f && !exp.f.semantic3Errors
+                && exp.f.type.isTypeFunction() !is null)
+                checkAccessSharedCall(exp);
+        }
+
         static if (LOGSEMANTIC)
         {
             printf("CallExp::semantic() %s\n", exp.toChars());
@@ -6798,19 +6856,28 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
-        if (exp.e1.op == TOK.type)
-            exp.e1 = resolveAliasThis(sc, exp.e1);
-
-        auto e1x = resolveProperties(sc, exp.e1);
-        if (e1x.op == TOK.error)
+        // shared allowed for resolving this
+        // @@@SHARED@@@
         {
-            result = e1x;
-            return;
+            sc = sc.startRelaxShared();
+
+            // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
+            if (exp.e1.op == TOK.type)
+                exp.e1 = resolveAliasThis(sc, exp.e1);
+
+            auto e1x = resolveProperties(sc, exp.e1);
+
+            if (e1x.op == TOK.error)
+            {
+                result = e1x;
+                return;
+            }
+            if (e1x.checkType())
+                return setError();
+            exp.e1 = e1x;
+
+            sc = sc.endRelaxShared();
         }
-        if (e1x.checkType())
-            return setError();
-        exp.e1 = e1x;
 
         if (!exp.e1.type)
         {

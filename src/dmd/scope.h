@@ -41,6 +41,7 @@ class CPPNamespaceDeclaration;
 #define SCOPEctor           0x0001  // constructor type
 #define SCOPEcondition      0x0004  // inside static if/assert condition
 #define SCOPEdebug          0x0008  // inside debug conditional
+#define SCOPEnosharedcheck  0x0800  // allow shared access
 
 // Flags that would be inherited beyond scope nesting
 #define SCOPEnoaccesscheck  0x0002  // don't do access checks

@@ -57,6 +57,7 @@ enum SCOPE
     ignoresymbolvisibility    = 0x0200,   /// ignore symbol visibility
                                           /// https://issues.dlang.org/show_bug.cgi?id=15907
     onlysafeaccess = 0x0400,  /// unsafe access is not allowed for @safe code
+    nosharedcheck  = 0x0800, /// allow shared acsses for the sub-expressions
     free          = 0x8000,   /// is on free list
 
     fullinst      = 0x10000,  /// fully instantiate templates
@@ -272,6 +273,19 @@ struct Scope
         return pop();
     }
 
+
+    extern (C++) Scope* startRelaxShared()
+    {
+        Scope* sc = this.push();
+        sc.flags = this.flags | SCOPE.nosharedcheck;
+        return sc;
+    }
+
+    extern (C++) Scope* endRelaxShared()
+    {
+        assert(flags & SCOPE.nosharedcheck);
+        return pop();
+    }
 
     /*******************************
      * Merge results of `ctorflow` into `this`.
