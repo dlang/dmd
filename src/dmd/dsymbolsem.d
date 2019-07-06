@@ -6299,18 +6299,12 @@ Laftersemantic:
 void aliasSemantic(AliasDeclaration ds, Scope* sc)
 {
     //printf("AliasDeclaration::semantic() %s\n", ds.toChars());
-    if (ds.type && ds.type.ty == Ttraits)
-    {
-        // TypeTraits is not a valid type, it's semantic is called manually to
-        // have either a symbol or a valid type to alias.
-        TypeTraits tt = cast(TypeTraits) ds.type;
-        tt.inAliasDeclaration = true;
-        if (Type t = typeSemantic(tt, tt.loc, sc))
-            ds.type = t;
-        else if (tt.sym)
-            ds.aliassym = tt.sym;
-        tt.inAliasDeclaration = false;
-    }
+
+    // TypeTraits needs to know if it's located in an AliasDeclaration
+    sc.flags |= SCOPE.alias_;
+    scope(exit)
+        sc.flags &= ~SCOPE.alias_;
+
     if (ds.aliassym)
     {
         auto fd = ds.aliassym.isFuncLiteralDeclaration();

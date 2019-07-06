@@ -1645,6 +1645,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
         if (mtype.ty == Terror)
             return mtype;
 
+        const inAlias = (sc.flags & SCOPE.alias_) != 0;
         if (mtype.exp.ident != Id.allMembers &&
             mtype.exp.ident != Id.derivedMembers &&
             mtype.exp.ident != Id.getMember &&
@@ -1658,7 +1659,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
         {
             static immutable (const(char)*)[2] ctxt = ["as type", "in alias"];
             .error(mtype.loc, "trait `%s` is either invalid or not supported %s",
-                 mtype.exp.ident.toChars, ctxt[mtype.inAliasDeclaration]);
+                 mtype.exp.ident.toChars, ctxt[inAlias]);
             mtype.ty = Terror;
             return mtype;
         }
@@ -1693,8 +1694,31 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                 mtype.sym = (cast(ScopeExp)e).sds;
                 break;
             case TOK.tuple:
-                mtype.sym = new TupleDeclaration(e.loc,
-                    Identifier.generateId("__aliastup"), cast(Objects*) e.toTupleExp.exps);
+                TupleExp te = e.toTupleExp();
+                Objects* elems = new Objects(te.exps.dim);
+                foreach (i; 0 .. elems.dim)
+                {
+                    auto src = (*te.exps)[i];
+                    switch (src.op)
+                    {
+                    case TOK.type:
+                        (*elems)[i] = (cast(TypeExp)src).type;
+                        break;
+                    case TOK.dotType:
+                        (*elems)[i] = (cast(DotTypeExp)src).sym.isType();
+                        break;
+                    case TOK.overloadSet:
+                        (*elems)[i] = (cast(OverExp)src).type;
+                        break;
+                    default:
+                        if (auto sym = isDsymbol(src))
+                            (*elems)[i] = sym;
+                        else
+                            (*elems)[i] = src;
+                    }
+                }
+                TupleDeclaration td = new TupleDeclaration(e.loc, Identifier.generateId("__aliastup"), elems);
+                mtype.sym = td;
                 break;
             case TOK.dotType:
                 result = (cast(DotTypeExp)e).sym.isType();
@@ -1712,7 +1736,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
 
         if (result)
             result = result.addMod(mtype.mod);
-        if (!mtype.inAliasDeclaration && !result)
+        if (!inAlias && !result)
         {
             if (!global.errors)
                 .error(mtype.loc, "`%s` does not give a valid type", mtype.toChars);
@@ -2913,6 +2937,16 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
         }
     }
 
+    void visitTraits(TypeTraits tt)
+    {
+        if (Type t = typeSemantic(tt, loc, sc))
+            returnType(t);
+        else if (tt.sym)
+            returnSymbol(tt.sym);
+        else
+            return returnError();
+    }
+
     switch (mt.ty)
     {
         default:        visitType      (mt);                     break;
@@ -2924,6 +2958,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
         case Ttypeof:   visitTypeof    (cast(TypeTypeof)mt);     break;
         case Treturn:   visitReturn    (cast(TypeReturn)mt);     break;
         case Tslice:    visitSlice     (cast(TypeSlice)mt);      break;
+        case Ttraits:   visitTraits    (cast(TypeTraits)mt);     break;
     }
 }
 
