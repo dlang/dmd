@@ -1438,24 +1438,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
             {
                 static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
                 {
-                    // Rewrite as GS:[0000], or FS:[0000] for 64 bit
-                    if (I64)
-                    {
-                        pcs.Irm = modregrm(0, 0, 4);
-                        pcs.Isib = modregrm(0, 4, 5);  // don't use [RIP] addressing
-                        pcs.IFL1 = FLconst;
-                        pcs.IEV1.Vuns = 0;
-                        pcs.Iflags = CFfs;
-                        pcs.Irex |= REX_W;
-                    }
-                    else
-                    {
-                        pcs.Irm = modregrm(0, 0, BPRM);
-                        pcs.IFL1 = FLconst;
-                        pcs.IEV1.Vuns = 0;
-                        pcs.Iflags = CFgs;
-                    }
-                    break;
+                    assert(0);
                 }
                 else static if (TARGET_WINDOS)
                 {
