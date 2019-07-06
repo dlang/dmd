@@ -681,7 +681,7 @@ public:
             buf.writestring("_Dmain");
             return;
         }
-        if (fd.isWinMain() || fd.isDllMain() || fd.ident == Id.tls_get_addr)
+        if (fd.isWinMain() || fd.isDllMain())
         {
             buf.writestring(fd.ident.toString());
             return;
