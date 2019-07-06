@@ -4812,12 +4812,17 @@ extern (C++) final class DotVarExp : UnaExp
 
     override bool isLvalue()
     {
-        return true;
+        if (e1.op != TOK.structLiteral)
+            return true;
+        auto vd = var.isVarDeclaration();
+        return !(vd && vd.isField());
     }
 
     override Expression toLvalue(Scope* sc, Expression e)
     {
         //printf("DotVarExp::toLvalue(%s)\n", toChars());
+        if (!isLvalue())
+            return Expression.toLvalue(sc, e);
         if (e1.op == TOK.this_ && sc.ctorflow.fieldinit.length && !(sc.ctorflow.callSuper & CSX.any_ctor))
         {
             if (VarDeclaration vd = var.isVarDeclaration())
