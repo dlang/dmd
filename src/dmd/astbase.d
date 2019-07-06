@@ -4162,7 +4162,6 @@ struct ASTBase
     {
         TraitsExp exp;
         Loc loc;
-        bool inAliasDeclaration;
 
         extern (D) this(const ref Loc loc, TraitsExp exp)
         {
