@@ -614,39 +614,10 @@ void touchfunc(int flag)
         switch (he.Eoper)
         {
             case OPvar:
-                switch (he.EV.Vsym.Sclass)
+                if (Symbol_isAffected(*he.EV.Vsym))
                 {
-                    case SCregpar:
-                    case SCregister:
-                        break;
-
-                    case SCauto:
-                    case SCparameter:
-                    case SCfastpar:
-                    case SCshadowreg:
-                    case SCbprel:
-                        //printf("he = '%s'\n", he.EV.Vsym.Sident);
-                        if (he.EV.Vsym.Sflags & SFLunambig)
-                            break;
-                        goto case SCstatic;
-
-                    case SCstatic:
-                    case SCextern:
-                    case SCcomdef:
-                    case SCglobal:
-                    case SClocstat:
-                    case SCcomdat:
-                    case SCpseudo:
-                    case SCinline:
-                    case SCsinline:
-                    case SCeinline:
-                        if (!(he.EV.Vsym.ty() & (mTYconst | mTYimmutable)))
-                            goto Ltouch;
-                        break;
-
-                    default:
-                        //debug WRclass(cast(enum_SC)he.EV.Vsym.Sclass);
-                        assert(0);
+                    pe.Helem = null;
+                    continue;
                 }
                 break;
 

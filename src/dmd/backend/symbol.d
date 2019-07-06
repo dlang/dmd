@@ -293,6 +293,62 @@ int Symbol_needThis(const Symbol* s)
     return 0;
 }
 
+/************************************
+ * Determine if `s` may be affected if an assignment is done through
+ * a pointer.
+ * Params:
+ *      s = symbol to check
+ * Returns:
+ *      true if it may be modified by assignment through a pointer
+ */
+
+bool Symbol_isAffected(const ref Symbol s)
+{
+    //printf("s: %s %d\n", s.Sident.ptr, !(s.Sflags & SFLunambig) && !(s.ty() & (mTYconst | mTYimmutable)));
+    //symbol_print(s);
+
+    /* If nobody took its address and it's not statically allocated,
+     * then it is not accessible via pointer and so is not affected.
+     */
+    if (s.Sflags & SFLunambig)
+        return false;
+
+    /* If it's immutable, it can't be affected
+     */
+    if (s.ty() & (mTYconst | mTYimmutable))
+    {
+        /* Constructors can modify immutable variables:
+            struct S
+            {
+                int v = 1;
+                this(int x) { v = x * 2; }
+            }
+            void test()
+            {
+                const S cs = S(7);  // cs.v set to 1 before constructor call
+                assert(cs.v == 14); // cs.v is 1 because of CSE
+            }
+
+           Immutables can be changed inside static constructors:
+            immutable int x;
+            shared static this()
+            {
+                x += 3;
+            }
+
+           And regular constructors:
+            struct S
+            {
+                immutable int v;
+                this(int x) { v += v; }
+            }
+
+           So until we can detect these cases, we have to eshew this optimization.
+         */
+    }
+    return true;
+}
+
 
 /***********************************
  * Get user name of symbol.
