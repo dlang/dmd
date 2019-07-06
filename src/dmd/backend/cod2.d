@@ -3318,8 +3318,10 @@ void cdstrcmp(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     switch (tybasic(ty1))
     {
         case TYnptr:
+        case TYimmutPtr:
             need_DS = false;
             break;
+
         case TYsptr:
             if (config.wflags & WFssneds)       // if sptr can't use DS segment
                 segreg = SEG_SS;
@@ -3427,8 +3429,10 @@ void cdmemcmp(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     switch (tybasic(ty1))
     {
         case TYnptr:
+        case TYimmutPtr:
             need_DS = false;
             break;
+
         case TYsptr:
             if (config.wflags & WFssneds)       // if sptr can't use DS segment
                 segreg = SEG_SS;
@@ -3537,8 +3541,10 @@ void cdstrcpy(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     switch (ty2)
     {
         case TYnptr:
+        case TYimmutPtr:
             need_DS = false;
             break;
+
         case TYsptr:
             if (config.wflags & WFssneds)       // if sptr can't use DS segment
                 segreg = SEG_SS;
@@ -3647,6 +3653,7 @@ void cdmemcpy(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     switch (tybasic(ty2))
     {
         case TYnptr:
+        case TYimmutPtr:
             need_DS = false;
             break;
 

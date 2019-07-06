@@ -178,6 +178,7 @@ int elemisone(elem *e)
             case TYnptr:
             case TYimmutPtr:
             case TYsharePtr:
+            case TYfgPtr:
             case TYbool:
             case TYwchar_t:
             case TYdchar:
@@ -241,6 +242,7 @@ int elemisnegone(elem *e)
             case TYvptr:
             case TYimmutPtr:
             case TYsharePtr:
+            case TYfgPtr:
             case TYbool:
             case TYwchar_t:
             case TYdchar:
@@ -1173,6 +1175,7 @@ private elem * elmin(elem *e, goal_t goal)
             (tyintegral(tym) ||
              tybasic(tym) == TYnptr ||
              tybasic(tym) == TYsptr ||
+             tybasic(tym) == TYfgPtr ||
              tybasic(tym) == TYimmutPtr ||
              tybasic(tym) == TYsharePtr)
            )
@@ -5723,7 +5726,7 @@ void postoptelem(elem *e)
             {
                 version (MARS)
                 if (e.EV.E1.Eoper == OPconst &&
-                    tybasic(e.EV.E1.Ety) == TYnptr &&   // Allow TYsptr to reference GS:[0000] etc.
+                    tybasic(e.EV.E1.Ety) == TYnptr &&   // Allow TYfgptr to reference GS:[0000] etc.
                     el_tolong(e.EV.E1) >= 0 && el_tolong(e.EV.E1) < 4096)
                 {
                     error(pos.Sfilename, pos.Slinnum, pos.Scharnum, "null dereference in function %s", funcsym_p.Sident.ptr);

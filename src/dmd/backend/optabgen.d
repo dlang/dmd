@@ -750,7 +750,7 @@ enum DS = 3;
 void dotytab()
 {
     static tym_t[] _ptr      = [ TYnptr ];
-    static tym_t[] _ptr_nflat= [ TYsptr,TYcptr,TYf16ptr,TYfptr,TYhptr,TYvptr,TYimmutPtr,TYsharePtr ];
+    static tym_t[] _ptr_nflat= [ TYsptr,TYcptr,TYf16ptr,TYfptr,TYhptr,TYvptr,TYimmutPtr,TYsharePtr,TYfgPtr ];
     static tym_t[] _real     = [ TYfloat,TYdouble,TYdouble_alias,TYldouble,
                                  TYfloat4,TYdouble2,
                                  TYfloat8,TYdouble4,
@@ -919,6 +919,7 @@ void dotytab()
 {"__handle *",   TYvptr,         TYvptr,    TYvptr,      4,  0x40,       0x200},
 {"__immutable *", TYimmutPtr,    TYimmutPtr,TYimmutPtr,  2,  0x20,       0x100},
 {"__shared *",   TYsharePtr,     TYsharePtr,TYsharePtr,  2,  0x20,       0x100},
+{"__fg *",       TYfgPtr,        TYfgPtr,   TYfgPtr,     2,  0x20,       0x100},
 {"far C func",   TYffunc,        TYffunc,   TYffunc,     -1,     0x64,   0},
 {"far Pascal func", TYfpfunc,    TYfpfunc,  TYfpfunc,    -1,     0x73,   0},
 {"far std func", TYfsfunc,       TYfsfunc,  TYfsfunc,    -1,     0x64,   0},

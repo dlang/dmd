@@ -856,7 +856,7 @@ private elem *el_pievar(Symbol *s)
                  */
                 Obj.refGOTsym();
                 tym_t tym = e.Ety;
-                e.Ety = TYsptr;         // TYsptr means FS:
+                e.Ety = TYfgPtr;
 
                 e = el_una(OPind, tym, e);
                 break;
@@ -887,7 +887,7 @@ private elem *el_pievar(Symbol *s)
                 e.Ety = TYnptr;
 
                 e = el_bin(OPadd, TYnptr, e, el_var(el_alloc_localgot()));
-                e = el_una(OPind, TYsptr, e);
+                e = el_una(OPind, TYfgPtr, e);
                 e = el_una(OPind, tym, e);
                 break;
             }
@@ -916,7 +916,7 @@ private elem *el_pieptr(Symbol *s)
     e.EV.Vsym = s;
     e.Ety = TYnptr;
 
-    elem* e0 = el_una(OPind, TYsize, el_long(TYsptr, 0)); // I64: FS:[0000], I32: GS:[0000]
+    elem* e0 = el_una(OPind, TYsize, el_long(TYfgPtr, 0)); // I64: FS:[0000], I32: GS:[0000]
 
     if (I64)
     {
