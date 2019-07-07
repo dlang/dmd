@@ -43,7 +43,7 @@ nothrow:
 int REGSIZE();
 
 extern __gshared CGstate cgstate;
-extern __gshared ubyte[FLMAX] datafl;
+extern __gshared bool[FLMAX] datafl;
 
 private extern (D) uint mask(uint m) { return 1 << m; }
 

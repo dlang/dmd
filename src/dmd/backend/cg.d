@@ -1,4 +1,6 @@
 /**
+ * Various global symbols.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -49,111 +51,112 @@ Symbol *tls_get_addr_sym;       // function __tls_get_addr
 
 int TARGET_STACKALIGN = 2;      // default for 16 bit code
 int STACKALIGN = 2;             // varies for each function
+
+
+/// Is fl data?
+bool[FLMAX] datafl =
+() {
+    bool[FLMAX] datafl;
+    foreach (fl; [ FLdata,FLudata,FLreg,FLpseudo,FLauto,FLfast,FLpara,FLextern,
+                   FLcs,FLfltreg,FLallocatmp,FLdatseg,FLtlsdata,FLbprel,
+                   FLstack,FLregsave,FLfuncarg,
+                   FLndp, FLfardata,
+                 ])
+    {
+        datafl[fl] = true;
+    }
+    return datafl;
+} ();
+
+
+/// Is fl on the stack?
+bool[FLMAX] stackfl =
+() {
+    bool[FLMAX] stackfl;
+    foreach (fl; [ FLauto,FLfast,FLpara,FLcs,FLfltreg,FLallocatmp,FLbprel,FLstack,FLregsave,
+                   FLfuncarg,
+                   FLndp,
+                 ])
+    {
+        stackfl[fl] = true;
+    }
+    return stackfl;
+} ();
+
+/// What segment register is associated with it?
+ubyte[FLMAX] segfl =
+() {
+    ubyte[FLMAX] segfl;
+
+    // Segment registers
+    enum ES = 0;
+    enum CS = 1;
+    enum SS = 2;
+    enum DS = 3;
+    enum NO = ubyte.max;        // no register
+
+    foreach (fl, ref seg; segfl)
+    {
+        switch (fl)
+        {
+            case 0:              seg = NO;  break;
+            case FLconst:        seg = NO;  break;
+            case FLoper:         seg = NO;  break;
+            case FLfunc:         seg = CS;  break;
+            case FLdata:         seg = DS;  break;
+            case FLudata:        seg = DS;  break;
+            case FLreg:          seg = NO;  break;
+            case FLpseudo:       seg = NO;  break;
+            case FLauto:         seg = SS;  break;
+            case FLfast:         seg = SS;  break;
+            case FLstack:        seg = SS;  break;
+            case FLbprel:        seg = SS;  break;
+            case FLpara:         seg = SS;  break;
+            case FLextern:       seg = DS;  break;
+            case FLcode:         seg = CS;  break;
+            case FLblock:        seg = CS;  break;
+            case FLblockoff:     seg = CS;  break;
+            case FLcs:           seg = SS;  break;
+            case FLregsave:      seg = SS;  break;
+            case FLndp:          seg = SS;  break;
+            case FLswitch:       seg = NO;  break;
+            case FLfltreg:       seg = SS;  break;
+            case FLoffset:       seg = NO;  break;
+            case FLfardata:      seg = NO;  break;
+            case FLcsdata:       seg = CS;  break;
+            case FLdatseg:       seg = DS;  break;
+            case FLctor:         seg = NO;  break;
+            case FLdtor:         seg = NO;  break;
+            case FLdsymbol:      seg = NO;  break;
+            case FLgot:          seg = NO;  break;
+            case FLgotoff:       seg = NO;  break;
+            case FLtlsdata:      seg = NO;  break;
+            case FLlocalsize:    seg = NO;  break;
+            case FLframehandler: seg = NO;  break;
+            case FLasm:          seg = NO;  break;
+            case FLallocatmp:    seg = SS;  break;
+            case FLfuncarg:      seg = SS;  break;
+
+            default:
+                assert(0);
+        }
+    }
+
+    return segfl;
+} ();
+
+/// Is fl in the symbol table?
+bool[FLMAX] flinsymtab =
+() {
+    bool[FLMAX] flinsymtab;
+    foreach (fl; [ FLdata,FLudata,FLreg,FLpseudo,FLauto,FLfast,FLpara,FLextern,FLfunc,
+                   FLtlsdata,FLbprel,FLstack,
+                   FLfardata,FLcsdata,
+                 ])
+    {
+        flinsymtab[fl] = true;
+    }
+    return flinsymtab;
+} ();
+
 }
-
-import core.stdc.stdio;
-
-extern (C++) __gshared
-{
-    ubyte[FLMAX] datafl =
-    () {
-        ubyte[FLMAX] datafl;
-        foreach (fl; [ FLdata,FLudata,FLreg,FLpseudo,FLauto,FLfast,FLpara,FLextern,
-                       FLcs,FLfltreg,FLallocatmp,FLdatseg,FLtlsdata,FLbprel,
-                       FLstack,FLregsave,FLfuncarg,
-                       FLndp, FLfardata,
-                     ])
-        {
-            datafl[fl] = 1;
-        }
-        return datafl;
-    } ();
-
-
-    ubyte[FLMAX] stackfl =
-    () {
-        ubyte[FLMAX] stackfl;
-        foreach (fl; [ FLauto,FLfast,FLpara,FLcs,FLfltreg,FLallocatmp,FLbprel,FLstack,FLregsave,
-                       FLfuncarg,
-                       FLndp,
-                     ])
-        {
-            stackfl[fl] = 1;
-        }
-        return stackfl;
-    }();
-
-    ubyte[FLMAX] segfl =
-    () {
-        ubyte[FLMAX] segfl;
-
-        /* Segment registers    */
-        enum ES = 0;
-        enum CS = 1;
-        enum SS = 2;
-        enum DS = 3;
-
-        foreach (i;  0 .. FLMAX)
-        {   switch (i)
-            {
-                case 0:         segfl[i] = cast(byte)-1;  break;
-                case FLconst:   segfl[i] = cast(byte)-1;  break;
-                case FLoper:    segfl[i] = cast(byte)-1;  break;
-                case FLfunc:    segfl[i] = CS;  break;
-                case FLdata:    segfl[i] = DS;  break;
-                case FLudata:   segfl[i] = DS;  break;
-                case FLreg:     segfl[i] = cast(byte)-1;  break;
-                case FLpseudo:  segfl[i] = cast(byte)-1;  break;
-                case FLauto:    segfl[i] = SS;  break;
-                case FLfast:    segfl[i] = SS;  break;
-                case FLstack:   segfl[i] = SS;  break;
-                case FLbprel:   segfl[i] = SS;  break;
-                case FLpara:    segfl[i] = SS;  break;
-                case FLextern:  segfl[i] = DS;  break;
-                case FLcode:    segfl[i] = CS;  break;
-                case FLblock:   segfl[i] = CS;  break;
-                case FLblockoff: segfl[i] = CS; break;
-                case FLcs:      segfl[i] = SS;  break;
-                case FLregsave: segfl[i] = SS;  break;
-                case FLndp:     segfl[i] = SS;  break;
-                case FLswitch:  segfl[i] = cast(byte)-1;  break;
-                case FLfltreg:  segfl[i] = SS;  break;
-                case FLoffset:  segfl[i] = cast(byte)-1;  break;
-                case FLfardata: segfl[i] = cast(byte)-1;  break;
-                case FLcsdata:  segfl[i] = CS;  break;
-                case FLdatseg:  segfl[i] = DS;  break;
-                case FLctor:    segfl[i] = cast(byte)-1;  break;
-                case FLdtor:    segfl[i] = cast(byte)-1;  break;
-                case FLdsymbol: segfl[i] = cast(byte)-1;  break;
-                case FLgot:     segfl[i] = cast(byte)-1;  break;
-                case FLgotoff:  segfl[i] = cast(byte)-1;  break;
-                case FLlocalsize: segfl[i] = cast(byte)-1;        break;
-                case FLtlsdata: segfl[i] = cast(byte)-1;  break;
-                case FLframehandler:    segfl[i] = cast(byte)-1;  break;
-                case FLasm:     segfl[i] = cast(byte)-1;  break;
-                case FLallocatmp:       segfl[i] = SS;  break;
-                case FLfuncarg:         segfl[i] = SS;  break;
-                default:
-                        printf("error in segfl[%d]\n", i);
-                        assert(0);
-            }
-        }
-
-        return segfl;
-    }();
-
-    ubyte[FLMAX] flinsymtab =
-    () {
-        ubyte[FLMAX] flinsymtab;
-        foreach (fl; [ FLdata,FLudata,FLreg,FLpseudo,FLauto,FLfast,FLpara,FLextern,FLfunc,
-                       FLtlsdata,FLbprel,FLstack,
-                       FLfardata,FLcsdata,
-                     ])
-        {
-            flinsymtab[fl] = 1;
-        }
-        return flinsymtab;
-    }();
-}
-
-
