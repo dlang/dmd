@@ -54,7 +54,6 @@ src/rt/msvc* @rainers
 src/rt/sections_android.d @joakim-noah
 src/rt/sections_win* @rainers @CyberShadow
 src/rt/sections_osx* @jacob-carlborg @klickverbot
-src/rt/osx_tls.c @jacob-carlborg @klickverbot
 src/rt/sections_elf_shared* @Burgos
 src/rt/typeinfo/* @Geod24 @WalterBright @redstar
 src/rt/util/* @MartinNowak @WalterBright @klickverbot
