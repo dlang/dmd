@@ -31,6 +31,8 @@ import dmd.visitor;
 extern (C++) final class AliasThis : Dsymbol
 {
     Identifier ident;
+    /// The symbol this `alias this` resolves to
+    Dsymbol sym;
 
     extern (D) this(const ref Loc loc, Identifier ident)
     {
@@ -71,7 +73,7 @@ Expression resolveAliasThis(Scope* sc, Expression e, bool gag = false)
             Type tthis = (e.op == TOK.type ? e.type : null);
             e = new DotIdExp(loc, e, ad.aliasthis.ident);
             e = e.expressionSemantic(sc);
-            if (tthis && ad.aliasthis.needThis())
+            if (tthis && ad.aliasthis.sym.needThis())
             {
                 if (e.op == TOK.variable)
                 {

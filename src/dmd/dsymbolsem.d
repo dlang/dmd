@@ -723,7 +723,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
 
-        ad.aliasthis = s;
+        dsym.sym = s;
+        // Restore alias this
+        ad.aliasthis = dsym;
         dsym.semanticRun = PASS.semanticdone;
     }
 

@@ -15,6 +15,7 @@ module dmd.aggregate;
 import core.stdc.stdio;
 import core.checkedint;
 
+import dmd.aliasthis;
 import dmd.arraytypes;
 import dmd.gluelayer : Symbol;
 import dmd.declaration;
@@ -108,7 +109,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     // it would be stored in TypeInfo_Class.defaultConstructor
     CtorDeclaration defaultCtor;
 
-    Dsymbol aliasthis;      // forward unresolved lookups to aliasthis
+    AliasThis aliasthis;    // forward unresolved lookups to aliasthis
     bool noDefaultCtor;     // no default construction
 
     DtorDeclarations dtors; // Array of destructors

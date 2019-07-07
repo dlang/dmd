@@ -377,7 +377,7 @@ struct Scope
             if (!ad || !ad.aliasthis)
                 return null;
 
-            Declaration decl = ad.aliasthis.isDeclaration();
+            Declaration decl = ad.aliasthis.sym.isDeclaration();
             if (!decl)
                 return null;
 

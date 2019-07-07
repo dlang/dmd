@@ -20,6 +20,7 @@ class AliasThis : public Dsymbol
 public:
    // alias Identifier this;
     Identifier *ident;
+    Dsymbol    *sym;
 
     Dsymbol *syntaxCopy(Dsymbol *);
     const char *kind() const;
