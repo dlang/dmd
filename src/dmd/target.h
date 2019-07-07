@@ -24,6 +24,26 @@ class Type;
 class TypeTuple;
 class TypeFunction;
 
+struct TargetC
+{
+    unsigned longsize;            // size of a C 'long' or 'unsigned long' type
+    unsigned long_doublesize;     // size of a C 'long double'
+    unsigned criticalSectionSize; // size of os critical section
+};
+
+struct TargetCPP
+{
+    bool reverseOverloads;    // with dmc and cl, overloaded functions are grouped and in reverse order
+    bool exceptions;          // set if catching C++ exceptions is supported
+    bool twoDtorInVtable;     // target C++ ABI puts deleting and non-deleting destructor into vtable
+
+    const char *toMangle(Dsymbol *s);
+    const char *typeInfoMangle(ClassDeclaration *cd);
+    const char *typeMangle(Type *t);
+    Type *parameterType(Parameter *p);
+    bool fundamentalType(const Type *t, bool& isFundamental);
+};
+
 struct Target
 {
     // D ABI
@@ -35,14 +55,10 @@ struct Target
     unsigned long long maxStaticDataSize;  // maximum size of static data
 
     // C ABI
-    unsigned c_longsize;         // size of a C 'long' or 'unsigned long' type
-    unsigned c_long_doublesize;  // size of a C 'long double'
-    unsigned criticalSectionSize; // size of os critical section
+    TargetC c;
 
     // C++ ABI
-    bool reverseCppOverloads;    // with dmc and cl, overloaded functions are grouped and in reverse order
-    bool cppExceptions;          // set if catching C++ exceptions is supported
-    bool twoDtorInVtable;        // target C++ ABI puts deleting and non-deleting destructor into vtable
+    TargetCPP cpp;
 
     template <typename T>
     struct FPTypeProperties
@@ -59,8 +75,6 @@ struct Target
         d_int64 min_exp;
         d_int64 max_10_exp;
         d_int64 min_10_exp;
-
-        void _init();
     };
 
     FPTypeProperties<float> FloatProperties;
@@ -76,11 +90,6 @@ struct Target
     int isVectorTypeSupported(int sz, Type *type);
     bool isVectorOpSupported(Type *type, TOK op, Type *t2 = NULL);
     // ABI and backend.
-    const char *toCppMangle(Dsymbol *s);
-    const char *cppTypeInfoMangle(ClassDeclaration *cd);
-    const char *cppTypeMangle(Type *t);
-    Type *cppParameterType(Parameter *p);
-    bool cppFundamentalType(const Type *t, bool& isFundamental);
     LINK systemLinkage();
     TypeTuple *toArgTypes(Type *t);
     bool isReturnOnStack(TypeFunction *tf, bool needsThis);
