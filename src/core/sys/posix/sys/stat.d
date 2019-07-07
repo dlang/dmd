@@ -2012,9 +2012,9 @@ else version (Darwin)
 }
 else version (FreeBSD)
 {
-    int   fstat(int, stat_t*);
-    int   lstat(in char*, stat_t*);
-    int   stat(in char*, stat_t*);
+    pragma(mangle, "fstat@FBSD_1.0") int   fstat(int, stat_t*);
+    pragma(mangle, "lstat@FBSD_1.0") int   lstat(in char*, stat_t*);
+    pragma(mangle, "stat@FBSD_1.0")  int   stat(in char*, stat_t*);
 }
 else version (NetBSD)
 {
@@ -2134,7 +2134,7 @@ else version (FreeBSD)
     enum S_IFLNK    = 0xA000; // octal 0120000
     enum S_IFSOCK   = 0xC000; // octal 0140000
 
-    int mknod(in char*, mode_t, dev_t);
+    pragma(mangle, "mknod@FBSD_1.0") int mknod(in char*, mode_t, dev_t);
 }
 else version (NetBSD)
 {

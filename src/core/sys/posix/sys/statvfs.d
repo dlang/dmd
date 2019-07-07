@@ -277,8 +277,8 @@ else version (FreeBSD)
     enum uint ST_RDONLY = 0x1;
     enum uint ST_NOSUID = 0x2;
 
-    int fstatvfs(int, statvfs_t*);
-    int statvfs(const char*, statvfs_t*);
+    pragma(mangle, "fstatvfs@FBSD_1.0") int fstatvfs(int, statvfs_t*);
+    pragma(mangle, "statvfs@FBSD_1.0")  int statvfs(const char*, statvfs_t*);
 }
 else
 {
