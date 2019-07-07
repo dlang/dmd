@@ -165,7 +165,6 @@ int main()
     fdeb = fopen("debtab.d","w");
     dooptab();
     dotab();
-    fltables();
     dotytab();
     fclose(fdeb);
     return 0;
@@ -626,126 +625,6 @@ else
 }
 }
 
-void fltables()
-{       FILE *f;
-        int i;
-        char[FLMAX] segfl, datafl, stackfl, flinsymtab;
-
-        static char[] indatafl =        /* is FLxxxx a data type?       */
-        [ FLdata,FLudata,FLreg,FLpseudo,FLauto,FLfast,FLpara,FLextern,
-          FLcs,FLfltreg,FLallocatmp,FLdatseg,FLtlsdata,FLbprel,
-          FLstack,FLregsave,FLfuncarg,
-          FLndp,
-        ];
-        static char[] indatafl_s = [ FLfardata, ];
-
-        static char[] instackfl =       /* is FLxxxx a stack data type? */
-        [ FLauto,FLfast,FLpara,FLcs,FLfltreg,FLallocatmp,FLbprel,FLstack,FLregsave,
-          FLfuncarg,
-          FLndp,
-        ];
-
-        static char[] inflinsymtab =    /* is FLxxxx in the symbol table? */
-        [ FLdata,FLudata,FLreg,FLpseudo,FLauto,FLfast,FLpara,FLextern,FLfunc,
-          FLtlsdata,FLbprel,FLstack ];
-        static char[] inflinsymtab_s = [ FLfardata,FLcsdata, ];
-
-        for (i = 0; i < FLMAX; i++)
-                datafl[i] = stackfl[i] = flinsymtab[i] = 0;
-
-        for (i = 0; i < indatafl.length; i++)
-                datafl[indatafl[i]] = 1;
-
-        for (i = 0; i < instackfl.length; i++)
-                stackfl[instackfl[i]] = 1;
-
-        for (i = 0; i < inflinsymtab.length; i++)
-                flinsymtab[inflinsymtab[i]] = 1;
-
-        for (i = 0; i < indatafl_s.length; i++)
-                datafl[indatafl_s[i]] = 1;
-
-        for (i = 0; i < inflinsymtab_s.length; i++)
-                flinsymtab[inflinsymtab_s[i]] = 1;
-
-/* Segment registers    */
-enum ES = 0;
-enum CS = 1;
-enum SS = 2;
-enum DS = 3;
-
-        for (i = 0; i < FLMAX; i++)
-        {   switch (i)
-            {
-                case 0:         segfl[i] = cast(byte)-1;  break;
-                case FLconst:   segfl[i] = cast(byte)-1;  break;
-                case FLoper:    segfl[i] = cast(byte)-1;  break;
-                case FLfunc:    segfl[i] = CS;  break;
-                case FLdata:    segfl[i] = DS;  break;
-                case FLudata:   segfl[i] = DS;  break;
-                case FLreg:     segfl[i] = cast(byte)-1;  break;
-                case FLpseudo:  segfl[i] = cast(byte)-1;  break;
-                case FLauto:    segfl[i] = SS;  break;
-                case FLfast:    segfl[i] = SS;  break;
-                case FLstack:   segfl[i] = SS;  break;
-                case FLbprel:   segfl[i] = SS;  break;
-                case FLpara:    segfl[i] = SS;  break;
-                case FLextern:  segfl[i] = DS;  break;
-                case FLcode:    segfl[i] = CS;  break;
-                case FLblock:   segfl[i] = CS;  break;
-                case FLblockoff: segfl[i] = CS; break;
-                case FLcs:      segfl[i] = SS;  break;
-                case FLregsave: segfl[i] = SS;  break;
-                case FLndp:     segfl[i] = SS;  break;
-                case FLswitch:  segfl[i] = cast(byte)-1;  break;
-                case FLfltreg:  segfl[i] = SS;  break;
-                case FLoffset:  segfl[i] = cast(byte)-1;  break;
-                case FLfardata: segfl[i] = cast(byte)-1;  break;
-                case FLcsdata:  segfl[i] = CS;  break;
-                case FLdatseg:  segfl[i] = DS;  break;
-                case FLctor:    segfl[i] = cast(byte)-1;  break;
-                case FLdtor:    segfl[i] = cast(byte)-1;  break;
-                case FLdsymbol: segfl[i] = cast(byte)-1;  break;
-                case FLgot:     segfl[i] = cast(byte)-1;  break;
-                case FLgotoff:  segfl[i] = cast(byte)-1;  break;
-                case FLlocalsize: segfl[i] = cast(byte)-1;        break;
-                case FLtlsdata: segfl[i] = cast(byte)-1;  break;
-                case FLframehandler:    segfl[i] = cast(byte)-1;  break;
-                case FLasm:     segfl[i] = cast(byte)-1;  break;
-                case FLallocatmp:       segfl[i] = SS;  break;
-                case FLfuncarg:         segfl[i] = SS;  break;
-                default:
-                        printf("error in segfl[%d]\n", i);
-                        exit(1);
-            }
-        }
-
-        f = fopen("fltables.d","w");
-        fprintf(f, "extern (C++) __gshared {\n");
-
-        fprintf(f,"ubyte[FLMAX] datafl = \n\t[ ");
-        for (i = 0; i < FLMAX - 1; i++)
-                fprintf(f,"cast(ubyte)%d,",datafl[i]);
-        fprintf(f,"cast(ubyte)%d ];\n",datafl[i]);
-
-        fprintf(f,"ubyte[FLMAX] stackfl = \n\t[ ");
-        for (i = 0; i < FLMAX - 1; i++)
-                fprintf(f,"cast(ubyte)%d,",stackfl[i]);
-        fprintf(f,"cast(ubyte)%d ];\n",stackfl[i]);
-
-        fprintf(f,"ubyte[FLMAX] segfl = \n\t[ ");
-        for (i = 0; i < FLMAX - 1; i++)
-                fprintf(f,"cast(ubyte)%d,",segfl[i]);
-        fprintf(f,"cast(ubyte)%d ];\n",segfl[i]);
-
-        fprintf(f,"ubyte[FLMAX] flinsymtab = \n\t[ ");
-        for (i = 0; i < FLMAX - 1; i++)
-                fprintf(f,"cast(ubyte)%d,",flinsymtab[i]);
-        fprintf(f,"cast(ubyte)%d ];\n",flinsymtab[i]);
-
-        fprintf(f, "}\n");
-        fclose(f);
-}
 
 void dotytab()
 {

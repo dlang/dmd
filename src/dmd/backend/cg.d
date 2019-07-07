@@ -22,8 +22,6 @@ extern (C++):
 
 ///////////////////// GLOBALS /////////////////////
 
-mixin(import("fltables.d"));
-
 __gshared
 {
 targ_size_t     framehandleroffset;     // offset of C++ frame handler
@@ -52,3 +50,110 @@ Symbol *tls_get_addr_sym;       // function __tls_get_addr
 int TARGET_STACKALIGN = 2;      // default for 16 bit code
 int STACKALIGN = 2;             // varies for each function
 }
+
+import core.stdc.stdio;
+
+extern (C++) __gshared
+{
+    ubyte[FLMAX] datafl =
+    () {
+        ubyte[FLMAX] datafl;
+        foreach (fl; [ FLdata,FLudata,FLreg,FLpseudo,FLauto,FLfast,FLpara,FLextern,
+                       FLcs,FLfltreg,FLallocatmp,FLdatseg,FLtlsdata,FLbprel,
+                       FLstack,FLregsave,FLfuncarg,
+                       FLndp, FLfardata,
+                     ])
+        {
+            datafl[fl] = 1;
+        }
+        return datafl;
+    } ();
+
+
+    ubyte[FLMAX] stackfl =
+    () {
+        ubyte[FLMAX] stackfl;
+        foreach (fl; [ FLauto,FLfast,FLpara,FLcs,FLfltreg,FLallocatmp,FLbprel,FLstack,FLregsave,
+                       FLfuncarg,
+                       FLndp,
+                     ])
+        {
+            stackfl[fl] = 1;
+        }
+        return stackfl;
+    }();
+
+    ubyte[FLMAX] segfl =
+    () {
+        ubyte[FLMAX] segfl;
+
+        /* Segment registers    */
+        enum ES = 0;
+        enum CS = 1;
+        enum SS = 2;
+        enum DS = 3;
+
+        foreach (i;  0 .. FLMAX)
+        {   switch (i)
+            {
+                case 0:         segfl[i] = cast(byte)-1;  break;
+                case FLconst:   segfl[i] = cast(byte)-1;  break;
+                case FLoper:    segfl[i] = cast(byte)-1;  break;
+                case FLfunc:    segfl[i] = CS;  break;
+                case FLdata:    segfl[i] = DS;  break;
+                case FLudata:   segfl[i] = DS;  break;
+                case FLreg:     segfl[i] = cast(byte)-1;  break;
+                case FLpseudo:  segfl[i] = cast(byte)-1;  break;
+                case FLauto:    segfl[i] = SS;  break;
+                case FLfast:    segfl[i] = SS;  break;
+                case FLstack:   segfl[i] = SS;  break;
+                case FLbprel:   segfl[i] = SS;  break;
+                case FLpara:    segfl[i] = SS;  break;
+                case FLextern:  segfl[i] = DS;  break;
+                case FLcode:    segfl[i] = CS;  break;
+                case FLblock:   segfl[i] = CS;  break;
+                case FLblockoff: segfl[i] = CS; break;
+                case FLcs:      segfl[i] = SS;  break;
+                case FLregsave: segfl[i] = SS;  break;
+                case FLndp:     segfl[i] = SS;  break;
+                case FLswitch:  segfl[i] = cast(byte)-1;  break;
+                case FLfltreg:  segfl[i] = SS;  break;
+                case FLoffset:  segfl[i] = cast(byte)-1;  break;
+                case FLfardata: segfl[i] = cast(byte)-1;  break;
+                case FLcsdata:  segfl[i] = CS;  break;
+                case FLdatseg:  segfl[i] = DS;  break;
+                case FLctor:    segfl[i] = cast(byte)-1;  break;
+                case FLdtor:    segfl[i] = cast(byte)-1;  break;
+                case FLdsymbol: segfl[i] = cast(byte)-1;  break;
+                case FLgot:     segfl[i] = cast(byte)-1;  break;
+                case FLgotoff:  segfl[i] = cast(byte)-1;  break;
+                case FLlocalsize: segfl[i] = cast(byte)-1;        break;
+                case FLtlsdata: segfl[i] = cast(byte)-1;  break;
+                case FLframehandler:    segfl[i] = cast(byte)-1;  break;
+                case FLasm:     segfl[i] = cast(byte)-1;  break;
+                case FLallocatmp:       segfl[i] = SS;  break;
+                case FLfuncarg:         segfl[i] = SS;  break;
+                default:
+                        printf("error in segfl[%d]\n", i);
+                        assert(0);
+            }
+        }
+
+        return segfl;
+    }();
+
+    ubyte[FLMAX] flinsymtab =
+    () {
+        ubyte[FLMAX] flinsymtab;
+        foreach (fl; [ FLdata,FLudata,FLreg,FLpseudo,FLauto,FLfast,FLpara,FLextern,FLfunc,
+                       FLtlsdata,FLbprel,FLstack,
+                       FLfardata,FLcsdata,
+                     ])
+        {
+            flinsymtab[fl] = 1;
+        }
+        return flinsymtab;
+    }();
+}
+
+
