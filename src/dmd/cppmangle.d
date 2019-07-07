@@ -338,7 +338,7 @@ private final class CppMangleVisitor : Visitor
     {
         // First check the target whether some specific ABI is being followed.
         bool isFundamental = void;
-        if (target.cppFundamentalType(t, isFundamental))
+        if (target.cpp.fundamentalType(t, isFundamental))
             return isFundamental;
 
         if (auto te = t.isTypeEnum())
@@ -1180,7 +1180,7 @@ private final class CppMangleVisitor : Visitor
 
         int paramsCppMangleDg(size_t n, Parameter fparam)
         {
-            Type t = target.cppParameterType(fparam);
+            Type t = target.cpp.parameterType(fparam);
             if (t.ty == Tsarray)
             {
                 // Static arrays in D are passed by value; no counterpart in C++
@@ -1284,7 +1284,7 @@ private final class CppMangleVisitor : Visitor
         CV_qualifiers(t);
 
         // Handle any target-specific struct types.
-        if (auto tm = target.cppTypeMangle(t))
+        if (auto tm = target.cpp.typeMangle(t))
         {
             buf.writestring(tm);
         }
@@ -1493,7 +1493,7 @@ extern(C++):
             return error(t);
 
         // Handle any target-specific basic types.
-        if (auto tm = target.cppTypeMangle(t))
+        if (auto tm = target.cpp.typeMangle(t))
         {
             // Only do substitutions for non-fundamental types.
             if (!isFundamentalType(t) || t.isConst())
@@ -1551,10 +1551,10 @@ extern(C++):
             case Tuns32:                c = 'j';        break;
             case Tfloat32:              c = 'f';        break;
             case Tint64:
-                c = target.c_longsize == 8 ? 'l' : 'x';
+                c = target.c.longsize == 8 ? 'l' : 'x';
                 break;
             case Tuns64:
-                c = target.c_longsize == 8 ? 'm' : 'y';
+                c = target.c.longsize == 8 ? 'm' : 'y';
                 break;
             case Tint128:                c = 'n';       break;
             case Tuns128:                c = 'o';       break;
@@ -1588,7 +1588,7 @@ extern(C++):
         CV_qualifiers(t);
 
         // Handle any target-specific vector types.
-        if (auto tm = target.cppTypeMangle(t))
+        if (auto tm = target.cpp.typeMangle(t))
         {
             buf.writestring(tm);
         }

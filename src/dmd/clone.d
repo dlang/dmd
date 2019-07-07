@@ -1007,7 +1007,7 @@ DtorDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
 
     ad.primaryDtor = xdtor;
 
-    if (xdtor && xdtor.linkage == LINK.cpp && !target.twoDtorInVtable)
+    if (xdtor && xdtor.linkage == LINK.cpp && !target.cpp.twoDtorInVtable)
         xdtor = buildWindowsCppDtor(ad, xdtor, sc);
 
     // Add an __xdtor alias to make the inclusive dtor accessible

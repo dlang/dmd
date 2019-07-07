@@ -4259,7 +4259,7 @@ void catchSemantic(Catch c, Scope* sc)
         }
         else if (cd.isCPPclass())
         {
-            if (!target.cppExceptions)
+            if (!target.cpp.exceptions)
             {
                 error(c.loc, "catching C++ class objects not supported for this target");
                 c.errors = true;
