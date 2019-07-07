@@ -161,14 +161,7 @@ else static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGO
             e1.Ety = TYnptr;
         }
 
-        /* Fake GS:[0000] as a load of _tls_array, and then in the back end recognize
-         * the fake and rewrite it as GS:[0000] (or FS:[0000] for I64), because there is
-         * no way to represent segment overrides in the elem nodes.
-         */
-        elem *e2 = el_calloc();
-        e2.Eoper = OPvar;
-        e2.EV.Vsym = getRtlsym(RTLSYM_TLS_ARRAY);
-        e2.Ety = e2.EV.Vsym.ty();
+        elem* e2 = el_una(OPind, TYsize, el_long(TYfgPtr, 0)); // I64: FS:[0000], I32: GS:[0000]
 
         e.Eoper = OPind;
         e.EV.E1 = el_bin(OPadd,e1.Ety,e2,e1);
