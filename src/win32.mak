@@ -387,7 +387,7 @@ $(TOOLS_DIR)\checkwhitespace.d:
 	$(HOST_DC) -Df$@ $<
 
 ############################## Generated Source ##############################
-OPTABGENOUTPUT = $G\elxxx.d $G\cdxxx.d $G\optab.d $G\debtab.d $G\fltables.d $G\tytab.d
+OPTABGENOUTPUT = $G\elxxx.d $G\cdxxx.d $G\optab.d $G\debtab.d $G\tytab.d
 
 $(OPTABGENOUTPUT) : \
 	$C\optabgen.d
@@ -397,13 +397,11 @@ $(OPTABGENOUTPUT) : \
 	copy cdxxx.d "$G\"
 	copy debtab.d "$G\"
 	copy elxxx.d "$G\"
-	copy fltables.d "$G\"
 	copy tytab.d "$G\"
 	copy optab.d "$G\"
 	$(DEL) *.c
 	$(DEL) debtab.d
 	$(DEL) elxxx.d
-	$(DEL) fltables.d
 	$(DEL) cdxxx.d
 	$(DEL) tytab.d
 	$(DEL) optab.d
@@ -427,7 +425,7 @@ $G/bcomplex.obj : $C\bcomplex.d
 $G/blockopt.obj : $C\blockopt.d
 	$(HOST_DC) -c -betterC -of$@ $(DFLAGS) -mv=dmd.backend=$C $C\blockopt
 
-$G/cg.obj : $G\fltables.d $C\cg.d
+$G/cg.obj : $C\cg.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -J$G -betterC -mv=dmd.backend=$C $C\cg
 
 $G/cg87.obj : $C\cg87.d
