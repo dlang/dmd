@@ -2,13 +2,13 @@
 ---
 fail_compilation/fail17491.d(20): Error: `(S17491).init` is not an lvalue and cannot be modified
 fail_compilation/fail17491.d(21): Error: `S17491(0)` is not an lvalue and cannot be modified
+fail_compilation/fail17491.d(23): Error: cannot modify constant expression `S17491(0).field`
 fail_compilation/fail17491.d(29): Error: `S17491(0)` is not an lvalue and cannot be modified
 fail_compilation/fail17491.d(30): Error: `S17491(0)` is not an lvalue and cannot be modified
+fail_compilation/fail17491.d(32): Error: cannot modify constant expression `S17491(0).field`
 ---
 */
-
 // https://issues.dlang.org/show_bug.cgi?id=17491
-
 struct S17491
 {
     int field;
