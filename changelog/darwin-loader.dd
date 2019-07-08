@@ -1,0 +1,3 @@
+Add all missing symbols to `core.sys.darwin.mach.loader`
+
+This also updates the module to match header in the macOS 10.15 SDK.
