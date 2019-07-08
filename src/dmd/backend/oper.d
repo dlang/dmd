@@ -305,14 +305,6 @@ int convidx(OPER op) { return op - CNVOPMIN; }
  *      OTboolnop       operation is a nop if boolean result is desired
  */
 
-extern (C)
-{
-    extern __gshared ubyte[OPMAX] optab1;
-    extern __gshared ubyte[OPMAX] optab2;
-    extern __gshared ubyte[OPMAX] optab3;
-    extern __gshared ubyte[OPMAX] opcost;
-}
-
 /* optab1[]     */      /* Use byte arrays to avoid index scaling       */
 enum
 {
@@ -395,4 +387,270 @@ OPER swaprel(OPER);
 //#define Eunambig(e)     (OTassign((e)->Eoper) && (e)->E1->Eoper == OPvar)
 
 //#define EOP(e)  (!OTleaf((e)->Eoper))
+
+extern (D):
+
+extern (C) immutable ubyte[OPMAX] optab1 =
+() {
+    ubyte[OPMAX] tab;
+    foreach (i; Ebinary) { tab[i] |= _OTbinary; }
+    foreach (i; Eunary)  { tab[i] |= _OTunary;  }
+    foreach (i; Ecommut) { tab[i] |= _OTcommut; }
+    foreach (i; Eassoc)  { tab[i] |= _OTassoc;  }
+    foreach (i; Esideff) { tab[i] |= _OTsideff; }
+    foreach (i; Eeop0e)  { tab[i] |= _OTeop0e;  }
+    foreach (i; Eeop00)  { tab[i] |= _OTeop00;  }
+    foreach (i; Eeop1e)  { tab[i] |= _OTeop1e;  }
+    return tab;
+} ();
+
+immutable ubyte[OPMAX] optab2 =
+() {
+    ubyte[OPMAX] tab;
+    foreach (i; Elogical) { tab[i] |= _OTlogical; }
+    foreach (i; Ewid)     { tab[i] |= _OTwid;     }
+    foreach (i; Ecall)    { tab[i] |= _OTcall;    }
+    foreach (i; Ertol)    { tab[i] |= _OTrtol;    }
+    foreach (i; Eassign)  { tab[i] |= _OTassign;  }
+    foreach (i; Edef)     { tab[i] |= _OTdef;     }
+    foreach (i; Eae)      { tab[i] |= _OTae;      }
+    return tab;
+} ();
+
+immutable ubyte[OPMAX] optab3 =
+() {
+    ubyte[OPMAX] tab;
+    foreach (i; Eboolnop) { tab[i] |= _OTboolnop; }
+    return tab;
+} ();
+
+/*************************************
+ * Determine the cost of evaluating an operator.
+ *
+ * Used for reordering elem trees to minimize register usage.
+ */
+
+immutable ubyte[OPMAX] opcost =
+() {
+    ubyte[OPMAX] tab;
+    foreach (op; 0 .. OPMAX)
+    {
+        ubyte c = 0;        // default cost
+        foreach (o; Eunary)
+        {
+            if (o == op)
+            {
+                c += 2;
+                break;
+            }
+        }
+
+        foreach (o; Ebinary)
+        {
+            if (o == op)
+            {
+                c += 7;
+                break;
+            }
+        }
+
+        foreach (o; Elogical)
+        {
+            if (o == op)
+            {
+                c += 3;
+                break;
+            }
+        }
+
+        switch (op)
+        {
+            case OPvar: c += 1; break;
+            case OPmul: c += 3; break;
+            case OPdiv:
+            case OPmod: c += 4; break;
+            case OProl:
+            case OPror:
+            case OPshl:
+            case OPashr:
+            case OPshr: c += 2; break;
+            case OPcall:
+            case OPucall:
+            case OPcallns:
+            case OPucallns:
+                        c += 10; break; // very high cost for function calls
+            default:
+                break;
+        }
+        tab[op] = c;
+    }
+    return tab;
+} ();
+
+
+private:
+
+/****
+ * Different categories of operators.
+ */
+
+enum Ebinary =
+    [
+        OPadd,OPmul,OPand,OPmin,OPcond,OPcomma,OPdiv,OPmod,OPxor,
+        OPor,OPoror,OPandand,OPshl,OPshr,OPashr,OPstreq,OPstrcpy,OPstrcat,OPstrcmp,
+        OPpostinc,OPpostdec,OPeq,OPaddass,OPminass,OPmulass,OPdivass,
+        OPmodass,OPshrass,OPashrass,OPshlass,OPandass,OPxorass,OPorass,
+        OPle,OPgt,OPlt,OPge,OPeqeq,OPne,OPparam,OPcall,OPcallns,OPcolon,OPcolon2,
+        OPbit,OPbrack,OParrowstar,OPmemcpy,OPmemcmp,OPmemset,
+        OPunord,OPlg,OPleg,OPule,OPul,OPuge,OPug,OPue,OPngt,OPnge,
+        OPnlt,OPnle,OPord,OPnlg,OPnleg,OPnule,OPnul,OPnuge,OPnug,OPnue,
+        OPinfo,OPpair,OPrpair,
+        OPbt,OPbtc,OPbtr,OPbts,OPror,OProl,OPbtst,
+        OPremquo,OPcmpxchg,
+        OPoutp,OPscale,OPyl2x,OPyl2xp1,
+        OPvecsto,OPprefetch
+    ];
+
+enum Eunary =
+    [
+        OPnot,OPcom,OPind,OPaddr,OPneg,OPuadd,
+        OPabs,OPrndtol,OPrint,
+        OPpreinc,OPpredec,
+        OPbool,OPstrlen,
+        OPb_8,OPs16_32,OPu16_32,OPd_s32,OPd_u32,
+        OPs32_d,OPu32_d,OPd_s16,OPs16_d,OP32_16,
+        OPd_f,OPf_d,OPu8_16,OPs8_16,OP16_8,
+        OPd_ld, OPld_d,OPc_r,OPc_i,
+        OPu32_64,OPs32_64,OP64_32,OPmsw,
+        OPd_s64,OPs64_d,OPd_u64,OPu64_d,OPld_u64,
+        OP128_64,OPs64_128,OPu64_128,
+        OPucall,OPucallns,OPstrpar,OPstrctor,OPu16_d,OPd_u16,
+        OParrow,OPnegass,
+        OPctor,OPdtor,OPsetjmp,OPvoid,
+        OPbsf,OPbsr,OPbswap,OPpopcnt,
+        OPddtor,
+        OPvector,OPvecfill,
+        OPva_start,
+        OPsqrt,OPsin,OPcos,OPinp,
+        OPvp_fp,OPcvp_fp,OPnp_fp,OPnp_f16p,OPf16p_np,OPoffset,
+    ];
+
+enum Ecommut =
+    [
+        OPadd,OPand,OPor,OPxor,OPmul,OPeqeq,OPne,OPle,OPlt,OPge,OPgt,
+        OPunord,OPlg,OPleg,OPule,OPul,OPuge,OPug,OPue,OPngt,OPnge,
+        OPnlt,OPnle,OPord,OPnlg,OPnleg,OPnule,OPnul,OPnuge,OPnug,OPnue,
+    ];
+
+enum Eassoc = [ OPadd,OPand,OPor,OPxor,OPmul ];
+
+enum Esideff =
+    [
+        OPasm,OPucall,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,
+        OPcall,OPeq,OPstreq,OPpostinc,OPpostdec,
+        OPaddass,OPminass,OPmulass,OPdivass,OPmodass,OPandass,
+        OPorass,OPxorass,OPshlass,OPshrass,OPashrass,
+        OPnegass,OPctor,OPdtor,OPmark,OPvoid,
+        OPbtc,OPbtr,OPbts,
+        OPhalt,OPdctor,OPddtor,
+        OPcmpxchg,
+        OPva_start,
+        OPinp,OPoutp,OPvecsto,OPprefetch,
+    ];
+
+enum Eeop0e =
+    [
+        OPadd,OPmin,OPxor,OPor,OPshl,OPshr,OPashr,OPpostinc,OPpostdec,OPaddass,
+        OPminass,OPshrass,OPashrass,OPshlass,OPxorass,OPorass,
+        OPror,OProl,
+    ];
+
+enum Eeop00 = [ OPmul,OPand,OPmulass,OPandass ];
+
+enum Eeop1e = [ OPmul,OPdiv,OPmulass,OPdivass ];
+
+enum Elogical =
+    [
+        OPeqeq,OPne,OPle,OPlt,OPgt,OPge,OPandand,OPoror,OPnot,OPbool,
+        OPunord,OPlg,OPleg,OPule,OPul,OPuge,OPug,OPue,OPngt,OPnge,
+        OPnlt,OPnle,OPord,OPnlg,OPnleg,OPnule,OPnul,OPnuge,OPnug,OPnue,
+        OPbt,OPbtst,
+    ];
+
+enum Ewid =
+    [
+        OPadd,OPmin,OPand,OPor,OPxor,OPcom,OPneg,OPmul,OPaddass,OPnegass,
+        OPminass,OPandass,OPorass,OPxorass,OPmulass,OPshlass,OPshl,OPshrass,
+        OPashrass,
+    ];
+
+enum Ecall = [ OPcall,OPucall,OPcallns,OPucallns ];
+
+enum Ertol =
+    [
+        OPeq,OPstreq,OPstrcpy,OPmemcpy,OPpostinc,OPpostdec,OPaddass,
+        OPminass,OPmulass,OPdivass,OPmodass,OPandass,
+        OPorass,OPxorass,OPshlass,OPshrass,OPashrass,
+        OPcall,OPcallns,OPinfo,OPmemset,
+        OPvecsto,OPcmpxchg,
+    ];
+
+enum Eassign =
+    [
+        OPstreq,OPeq,OPaddass,OPminass,OPmulass,OPdivass,OPmodass,
+        OPshrass,OPashrass,OPshlass,OPandass,OPxorass,OPorass,OPpostinc,OPpostdec,
+        OPnegass,OPvecsto,OPcmpxchg,
+    ];
+
+enum Edef =
+    [
+        OPstreq,OPeq,OPaddass,OPminass,OPmulass,OPdivass,OPmodass,
+        OPshrass,OPashrass,OPshlass,OPandass,OPxorass,OPorass,
+        OPpostinc,OPpostdec,
+        OPcall,OPucall,OPasm,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,
+        OPnegass,
+        OPbtc,OPbtr,OPbts,
+        OPvecsto,OPcmpxchg,
+    ];
+
+enum Eae =
+    [
+        OPvar,OPconst,OPrelconst,OPneg,
+        OPabs,OPrndtol,OPrint,
+        OPstrlen,OPstrcmp,OPind,OPaddr,
+        OPnot,OPbool,OPcom,OPadd,OPmin,OPmul,OPand,OPor,OPmemcmp,
+        OPxor,OPdiv,OPmod,OPshl,OPshr,OPashr,OPeqeq,OPne,OPle,OPlt,OPge,OPgt,
+        OPunord,OPlg,OPleg,OPule,OPul,OPuge,OPug,OPue,OPngt,OPnge,
+        OPnlt,OPnle,OPord,OPnlg,OPnleg,OPnule,OPnul,OPnuge,OPnug,OPnue,
+        OPs16_32,OPu16_32,OPd_s32,OPd_u32,OPu16_d,OPd_u16,
+        OPs32_d,OPu32_d,OPd_s16,OPs16_d,OP32_16,
+        OPd_f,OPf_d,OPu8_16,OPs8_16,OP16_8,
+        OPd_ld,OPld_d,OPc_r,OPc_i,
+        OPu32_64,OPs32_64,OP64_32,OPmsw,
+        OPd_s64,OPs64_d,OPd_u64,OPu64_d,OPld_u64,
+        OP128_64,OPs64_128,OPu64_128,
+        OPsizeof,
+        OPcallns,OPucallns,OPpair,OPrpair,
+        OPbsf,OPbsr,OPbt,OPbswap,OPb_8,OPbtst,OPpopcnt,
+        OPgot,OPremquo,
+        OPnullptr,
+        OProl,OPror,
+        OPsqrt,OPsin,OPcos,OPscale,
+        OPvp_fp,OPcvp_fp,OPnp_fp,OPnp_f16p,OPf16p_np,OPoffset,OPvecfill,
+    ];
+
+enum Eboolnop =
+    [
+        OPuadd,OPbool,OPs16_32,OPu16_32,
+        OPs16_d,
+        OPf_d,OPu8_16,OPs8_16,
+        OPd_ld, OPld_d,
+        OPu32_64,OPs32_64,/*OP64_32,OPmsw,*/
+        OPs64_128,OPu64_128,
+        OPu16_d,OPb_8,
+        OPnullptr,
+        OPnp_fp,OPvp_fp,OPcvp_fp,
+        OPvecfill,
+    ];
+
 
