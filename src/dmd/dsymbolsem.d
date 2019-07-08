@@ -669,6 +669,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
 
         dsym.semanticRun = PASS.semantic;
+        dsym.isDeprecated_ = !!(sc.stc & STC.deprecated_);
 
         Dsymbol p = sc.parent.pastMixin();
         AggregateDeclaration ad = p.isAggregateDeclaration();

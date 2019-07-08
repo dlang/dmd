@@ -33,6 +33,8 @@ extern (C++) final class AliasThis : Dsymbol
     Identifier ident;
     /// The symbol this `alias this` resolves to
     Dsymbol sym;
+    /// Whether this `alias this` is deprecated or not
+    bool isDeprecated_;
 
     extern (D) this(const ref Loc loc, Identifier ident)
     {
@@ -59,6 +61,11 @@ extern (C++) final class AliasThis : Dsymbol
     override void accept(Visitor v)
     {
         v.visit(this);
+    }
+
+    override bool isDeprecated() const
+    {
+        return this.isDeprecated_;
     }
 }
 
@@ -107,7 +114,9 @@ Expression resolveAliasThis(Scope* sc, Expression e, bool gag = false)
                 e = e.expressionSemantic(sc);
             }
             e = resolveProperties(sc, e);
-            if (gag && global.endGagging(olderrors))
+            if (!gag)
+                ad.aliasthis.checkDeprecatedAliasThis(loc, sc);
+            else if (global.endGagging(olderrors))
                 e = null;
         }
 
@@ -121,4 +130,47 @@ Expression resolveAliasThis(Scope* sc, Expression e, bool gag = false)
         break;
     }
     return e;
+}
+
+/**
+ * Check if an `alias this` is deprecated
+ *
+ * Usually one would use `expression.checkDeprecated(scope, aliasthis)` to
+ * check if `expression` uses a deprecated `aliasthis`, but this calls
+ * `toPrettyChars` which lead to the following message:
+ * "Deprecation: alias this `fullyqualified.aggregate.__anonymous` is deprecated"
+ *
+ * Params:
+ *   at  = The `AliasThis` object to check
+ *   loc = `Loc` of the expression triggering the access to `at`
+ *   sc  = `Scope` of the expression
+ *         (deprecations do not trigger in deprecated scopes)
+ *
+ * Returns:
+ *   Whether the alias this was reported as deprecated.
+ */
+bool checkDeprecatedAliasThis(AliasThis at, const ref Loc loc, Scope* sc)
+{
+    import dmd.errors : deprecation;
+    import dmd.dsymbolsem : getMessage;
+
+    if (global.params.useDeprecated != DiagnosticReporting.off
+        && at.isDeprecated() && !sc.isDeprecated())
+    {
+            const(char)* message = null;
+            for (Dsymbol p = at; p; p = p.parent)
+            {
+                message = p.depdecl ? p.depdecl.getMessage() : null;
+                if (message)
+                    break;
+            }
+            if (message)
+                deprecation(loc, "`alias %s this` is deprecated - %s",
+                            at.sym.toChars(), message);
+            else
+                deprecation(loc, "`alias %s this` is deprecated",
+                            at.sym.toChars());
+        return true;
+    }
+    return false;
 }
