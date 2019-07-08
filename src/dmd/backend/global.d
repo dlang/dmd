@@ -262,15 +262,15 @@ type *topointer(type *);
 type *type_ptr(elem *, type *);
 int type_chksize(uint);
 tym_t tym_conv(const type *);
-type * type_arrayroot(type *);
+inout(type)* type_arrayroot(inout type *);
 void chklvalue(elem *);
 int tolvalue(elem **);
 void chkassign(elem *);
-void chknosu(elem *);
-void chkunass(elem *);
-void chknoabstract(type *);
+void chknosu(const elem *);
+void chkunass(const elem *);
+void chknoabstract(const type *);
 targ_llong msc_getnum();
-targ_size_t alignmember(type *,targ_size_t,targ_size_t);
+targ_size_t alignmember(const type *,targ_size_t,targ_size_t);
 extern (C) targ_size_t _align(targ_size_t,targ_size_t);
 
 /* nteh.c */
