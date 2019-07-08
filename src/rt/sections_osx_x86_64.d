@@ -95,11 +95,9 @@ void finiSections() nothrow @nogc
 
 void[] initTLSRanges() nothrow @nogc
 {
-    void* start = null;
-    size_t size = 0;
-    _d_dyld_getTLSRange(&dummyTlsSymbol, &start, &size);
-    assert(start && size, "Could not determine TLS range.");
-    return start[0 .. size];
+    auto range = getTLSRange();
+    assert(range.isValid, "Could not determine TLS range.");
+    return range.toArray;
 }
 
 void finiTLSRanges(void[] rng) nothrow @nogc
@@ -114,10 +112,7 @@ void scanTLSRanges(void[] rng, scope void delegate(void* pbeg, void* pend) nothr
 
 private:
 
-extern(C) void _d_dyld_getTLSRange(void*, void**, size_t*) nothrow @nogc;
-
 __gshared SectionGroup _sections;
-ubyte dummyTlsSymbol;
 
 extern (C) void sections_osx_onAddImage(in mach_header* h, intptr_t slide)
 {
@@ -182,4 +177,178 @@ ubyte[] getSection(in mach_header* header, intptr_t slide,
     if (sect !is null && sect.size > 0)
         return (cast(ubyte*)sect.addr + slide)[0 .. cast(size_t)sect.size];
     return null;
+}
+
+extern (C) size_t malloc_size(const void* ptr) nothrow @nogc;
+
+/// Represents a TLS range.
+struct TLSRange
+{
+    /// The start of the range.
+    void* start;
+
+    /// The size of the range.
+    size_t size;
+
+    /// Returns `true` if the range is valid.
+    bool isValid() const pure nothrow @nogc @safe
+    {
+        return start !is null && size > 0;
+    }
+
+    /// Returns the range as an array.
+    void[] toArray() pure nothrow @nogc
+    {
+        return start[0 .. size];
+    }
+}
+
+/// Returns the TLS range of the current image.
+TLSRange getTLSRange() nothrow @nogc
+{
+    static ubyte tlsAnchor;
+    const tlsSymbol = &tlsAnchor;
+
+    foreach (i ; 0 .. _dyld_image_count)
+    {
+        const header = cast(const(mach_header_64)*) _dyld_get_image_header(i);
+        auto tlvInfo = tlvInfo(header);
+
+        if (tlvInfo.foundTLSRange(tlsSymbol))
+            return TLSRange(tlvInfo.tlv_addr, tlvInfo.tlv_size);
+    }
+
+    return TLSRange.init;
+}
+
+/**
+ * Returns `true` if the correct TLS range was found.
+ *
+ * If the given `info` is located in the same image as the given `tlsSymbol`
+ * this will return `true`.
+ *
+ * Params:
+ *  info = the TLV info containing the TLV base address
+ *  tlsSymbol = the TLS symbol to search for
+ *
+ * Returns: `true` if the correct TLS range was found
+ */
+bool foundTLSRange(const ref dyld_tlv_info info, const void* tlsSymbol) pure nothrow @nogc
+{
+    return info.tlv_addr <= tlsSymbol &&
+        tlsSymbol < (info.tlv_addr + info.tlv_size);
+}
+
+
+/// TLV info.
+struct dyld_tlv_info
+{
+    /// sizeof(dyld_tlv_info)
+    size_t info_size;
+
+    /// Base address of TLV storage
+    void* tlv_addr;
+
+    // Byte size of TLV storage
+    size_t tlv_size;
+}
+
+/**
+ * Returns the TLV info for the given image.
+ *
+ * Asserts if no TLV address could be found.
+ *
+ * Params:
+ *  header = the image to look for the TLV info in
+ *
+ * Returns: the TLV info
+ */
+dyld_tlv_info tlvInfo(const mach_header_64* header) nothrow @nogc
+{
+    auto tlvAddress = pthread_getspecific(header.firstTLVKey);
+    assert(tlvAddress, "No TLV address found");
+
+    dyld_tlv_info info = {
+        info_size: dyld_tlv_info.sizeof,
+        tlv_addr: tlvAddress,
+        tlv_size: malloc_size(tlvAddress)
+    };
+
+    return info;
+}
+
+/**
+ * Returns the first TLV key for the given image.
+ *
+ * The TLV key is a key that associates a value of type `dyld_tlv_info` with a
+ * thread. Each thread local variable has an associates TLV key. The TLV keys
+ * are all the same for each image.
+ *
+ * Params:
+ *  header = the image to look for the TLV key in
+ *
+ * Returns: the first TLV key for the given image or `pthread_key_t.max` if no
+ *  key was found.
+ */
+pthread_key_t firstTLVKey(const mach_header_64* header) pure nothrow @nogc
+{
+    intptr_t slide = 0;
+    bool slideComputed = false;
+    const size = mach_header_64.sizeof;
+    auto command = cast(const(load_command)*)(cast(ubyte*) header + size);
+
+    foreach (_; 0 .. header.ncmds)
+    {
+        if (command.cmd == LC_SEGMENT_64)
+        {
+            auto segment = cast(const segment_command_64*) command;
+
+            if (!slideComputed && segment.filesize != 0)
+            {
+                slide = cast(uintptr_t) header - segment.vmaddr;
+                slideComputed = true;
+            }
+
+            foreach (const ref section; segment.sections)
+            {
+                if ((section.flags & SECTION_TYPE) != S_THREAD_LOCAL_VARIABLES)
+                    continue;
+
+                return section.firstTLVDescriptor(slide).key;
+            }
+        }
+
+        command = cast(const(load_command)*)(cast(ubyte*) command + command.cmdsize);
+    }
+
+    return pthread_key_t.max;
+}
+
+/**
+ * Returns the first TLV descriptor of the given section.
+ *
+ * Params:
+ *  section = the section to get the TLV descriptor from
+ *  slide = the slide
+ *
+ * Returns: the TLV descriptor
+ */
+const(tlv_descriptor)* firstTLVDescriptor(const ref section_64 section, intptr_t slide) pure nothrow @nogc
+{
+    return cast(const(tlv_descriptor)*)(section.addr + slide);
+}
+
+/**
+ * Returns the sections of the given segment.
+ *
+ * Params:
+ *  segment = the segment to get the sections from
+ *
+ * Returns: the sections.
+ */
+const(section_64)[] sections(const segment_command_64* segment) pure nothrow @nogc
+{
+    const size = segment_command_64.sizeof;
+    const firstSection = cast(const(section_64)*)(cast(ubyte*) segment + size);
+    return firstSection[0 .. segment.nsects];
 }
