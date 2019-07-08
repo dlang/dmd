@@ -137,7 +137,7 @@ void backend_init()
  * Return aligned 'offset' if it is of size 'size'.
  */
 
-extern (C) targ_size_t _align(targ_size_t size, targ_size_t offset)
+targ_size_t _align(targ_size_t size, targ_size_t offset)
 {
     switch (size)
     {
@@ -182,7 +182,7 @@ targ_size_t size(tym_t ty)
  * Generate symbol of type ty at DATA:offset
  */
 
-extern (C) Symbol *symboldata(targ_size_t offset,tym_t ty)
+Symbol *symboldata(targ_size_t offset,tym_t ty)
 {
     Symbol *s = symbol_generate(SClocstat, type_fake(ty));
     s.Sfl = FLdata;

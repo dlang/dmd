@@ -271,7 +271,7 @@ void chkunass(const elem *);
 void chknoabstract(const type *);
 targ_llong msc_getnum();
 targ_size_t alignmember(const type *,targ_size_t,targ_size_t);
-extern (C) targ_size_t _align(targ_size_t,targ_size_t);
+targ_size_t _align(targ_size_t,targ_size_t);
 
 /* nteh.c */
 ubyte *nteh_context_string();
@@ -456,7 +456,7 @@ int elemisone(elem *);
 
 /* msc.c */
 targ_size_t size(tym_t);
-extern (C) Symbol *symboldata(targ_size_t offset,tym_t ty);
+Symbol *symboldata(targ_size_t offset,tym_t ty);
 bool dom(block *A , block *B);
 uint revop(uint op);
 uint invrel(uint op);
