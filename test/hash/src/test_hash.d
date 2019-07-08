@@ -12,6 +12,7 @@ void main()
     issue19332(); // Support might be removed in the future!
     issue19568();
     issue19582();
+    issue20034();
     testTypeInfoArrayGetHash1();
     testTypeInfoArrayGetHash2();
     pr2243();
@@ -218,6 +219,17 @@ void issue19582()
             S[10] a;
             return ((const S[] a) @nogc nothrow pure @safe => toUbyte(a))(a);
         }();
+}
+
+/// Check core.internal.hash.hashOf works with enums of non-scalar values
+void issue20034()
+{
+    enum E
+    {
+        a = "foo"
+    }
+    // should compile
+    assert(hashOf(E.a, 1));
 }
 
 /// Tests ensure TypeInfo_Array.getHash uses element hash functions instead
