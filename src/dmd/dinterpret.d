@@ -4813,6 +4813,40 @@ public:
                 result = interpretRegion(ae, istate);
                 return;
             }
+            else if (fd.ident == Id._d_arrayctor)
+            {
+                assert(e.arguments.dim == 2);
+
+                Expression ea = (*e.arguments)[0];
+                assert(ea.isCastExp);
+                ea = ea.isCastExp.e1;
+                Expression eb = (*e.arguments)[1];
+                assert(eb.isCastExp);
+                eb = eb.isCastExp.e1;
+
+                // Rewrite ea = eb
+                ConstructExp ce = new ConstructExp(e.loc, ea, eb);
+                ce.type = ea.type;
+
+                result = interpret(ce, istate);
+                return;
+            }
+            else if (fd.ident == Id._d_arraysetctor)
+            {
+                assert(e.arguments.dim == 2);
+
+                Expression ea = (*e.arguments)[0];
+                assert(ea.isCastExp);
+                ea = ea.isCastExp.e1;
+                Expression eb = (*e.arguments)[1];
+
+                // Rewrite ea = eb
+                ConstructExp ce = new ConstructExp(e.loc, ea, eb);
+                ce.type = ea.type;
+
+                result = interpret(ce, istate);
+                return;
+            }
         }
         else if (auto soe = ecall.isSymOffExp())
         {
