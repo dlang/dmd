@@ -4018,13 +4018,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (sc.stc & STC.static_)
         {
-            // Deprecated in 2018-04.
-            // Change to error in 2019-04.
-            // @@@DEPRECATED_2019-04@@@.
             if (sc.stc & STC.shared_)
-                deprecation(ctd.loc, "`shared static` has no effect on a constructor inside a `shared static` block. Use `shared static this()`");
+                error(ctd.loc, "`shared static` has no effect on a constructor inside a `shared static` block. Use `shared static this()`");
             else
-                deprecation(ctd.loc, "`static` has no effect on a constructor inside a `static` block. Use `static this()`");
+                error(ctd.loc, "`static` has no effect on a constructor inside a `static` block. Use `static this()`");
         }
 
         sc.stc &= ~STC.static_; // not a static constructor
