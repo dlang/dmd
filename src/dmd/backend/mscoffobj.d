@@ -831,14 +831,22 @@ version (SCPP)
         {
             foffset = (foffset + 3) & ~3;
             assert(psechdr.PointerToRelocations == 0);
-            uint nreloc = cast(uint)(pseg.SDrel.size() / Relocation.sizeof);
-            if (nreloc)
+            auto nreloc = pseg.SDrel.size() / Relocation.sizeof;
+            if (nreloc > 0xffff)
+            {
+                // https://docs.microsoft.com/en-us/windows/win32/debug/pe-format#coff-relocations-object-only
+                psechdr.Characteristics |= IMAGE_SCN_LNK_NRELOC_OVFL;
+                psechdr.PointerToRelocations = foffset;
+                psechdr.NumberOfRelocations = 0xffff;
+                foffset += reloc.sizeof;
+            }
+            else if (nreloc)
             {
                 psechdr.PointerToRelocations = foffset;
                 //printf("seg = %d SDshtidx = %d psechdr = %p s_relptr = x%x\n", seg, pseg.SDshtidx, psechdr, cast(uint)psechdr.s_relptr);
                 psechdr.NumberOfRelocations = cast(ushort)nreloc;
-                foffset += nreloc * reloc.sizeof;
             }
+            foffset += nreloc * reloc.sizeof;
         }
     }
 
@@ -894,7 +902,8 @@ version (SCPP)
         seg_data *pseg = SegData[seg];
         IMAGE_SECTION_HEADER *psechdr = &ScnhdrTab[pseg.SDshtidx];   // corresponding section
         if (pseg.SDrel)
-        {   Relocation *r = cast(Relocation *)pseg.SDrel.buf;
+        {
+            Relocation *r = cast(Relocation *)pseg.SDrel.buf;
             size_t sz = pseg.SDrel.size();
             bool pdata = (strcmp(cast(const(char)* )psechdr.Name, ".pdata") == 0);
             Relocation *rend = cast(Relocation *)(pseg.SDrel.buf + sz);
@@ -903,8 +912,14 @@ version (SCPP)
             debug
             if (sz && foffset != psechdr.PointerToRelocations)
                 printf("seg = %d SDshtidx = %d psechdr = %p s_relptr = x%x, foffset = x%x\n", seg, pseg.SDshtidx, psechdr, cast(uint)psechdr.PointerToRelocations, cast(uint)foffset);
-
             assert(sz == 0 || foffset == psechdr.PointerToRelocations);
+
+            if (psechdr.Characteristics & IMAGE_SCN_LNK_NRELOC_OVFL)
+            {
+                auto rel = reloc(cast(uint)(sz / Relocation.sizeof) + 1);
+                fobjbuf.write((&rel)[0 .. 1]);
+                foffset += rel.sizeof;
+            }
             for (; r != rend; r++)
             {   reloc rel;
                 rel.r_vaddr = 0;
