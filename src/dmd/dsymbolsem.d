@@ -1583,14 +1583,16 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (sc.minst && sc.tinst)
             {
                 //printf("%s imports %s\n", sc.minst.toChars(), imp.mod.toChars());
-                sc.tinst.importedModules.push(imp.mod);
-                sc.minst.aimports.push(imp.mod);
+                if (!sc.tinst.importedModules.contains(imp.mod))
+                    sc.tinst.importedModules.push(imp.mod);
+                if (!sc.minst.aimports.contains(imp.mod))
+                    sc.minst.aimports.push(imp.mod);
             }
             else
             {
-
                 //printf("%s imports %s\n", sc._module.toChars(), imp.mod.toChars());
-                sc._module.aimports.push(imp.mod);
+                if (!sc._module.aimports.contains(imp.mod))
+                    sc._module.aimports.push(imp.mod);
             }
 
             if (sc.explicitProtection)
@@ -5928,7 +5930,10 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
         // modules imported by an existing instance should be added to the module
         // that instantiates the instance.
         if (tempinst.minst)
-            tempinst.minst.aimports.append(&tempinst.inst.importedModules);
+            foreach(imp; tempinst.inst.importedModules)
+                if (!tempinst.minst.aimports.contains(imp))
+                    tempinst.minst.aimports.push(imp);
+
         static if (LOG)
         {
             printf("\tit's a match with instance %p, %d\n", tempinst.inst, tempinst.inst.semanticRun);
