@@ -290,4 +290,98 @@ type *chartype;                 /* default 'char' type                  */
 
 Obj objmod = null;
 
+__gshared uint[256] tytab =
+() {
+    uint[256] tab;
+    foreach (i; TXptr)        { tab[i] |= TYFLptr; }
+    foreach (i; TXptr_nflat)  { tab[i] |= TYFLptr; }
+    foreach (i; TXreal)       { tab[i] |= TYFLreal; }
+    foreach (i; TXintegral)   { tab[i] |= TYFLintegral; }
+    foreach (i; TXimaginary)  { tab[i] |= TYFLimaginary; }
+    foreach (i; TXcomplex)    { tab[i] |= TYFLcomplex; }
+    foreach (i; TXuns)        { tab[i] |= TYFLuns; }
+    foreach (i; TXmptr)       { tab[i] |= TYFLmptr; }
+    foreach (i; TXfv)         { tab[i] |= TYFLfv; }
+    foreach (i; TXfarfunc)    { tab[i] |= TYFLfarfunc; }
+    foreach (i; TXpasfunc)    { tab[i] |= TYFLpascal; }
+    foreach (i; TXrevfunc)    { tab[i] |= TYFLrevparam; }
+    foreach (i; TXshort)      { tab[i] |= TYFLshort; }
+    foreach (i; TXaggregate)  { tab[i] |= TYFLaggregate; }
+    foreach (i; TXref)        { tab[i] |= TYFLref; }
+    foreach (i; TXfunc)       { tab[i] |= TYFLfunc; }
+    foreach (i; TXnullptr)    { tab[i] |= TYFLnullptr; }
+    foreach (i; TXpasfunc_nf) { tab[i] |= TYFLpascal; }
+    foreach (i; TXrevfunc_nf) { tab[i] |= TYFLrevparam; }
+    foreach (i; TXref_nflat)  { tab[i] |= TYFLref; }
+    foreach (i; TXfunc_nflat) { tab[i] |= TYFLfunc; }
+    foreach (i; TXxmmreg)     { tab[i] |= TYFLxmmreg; }
+    foreach (i; TXsimd)       { tab[i] |= TYFLsimd; }
+    return tab;
+} ();
+
+
+private:
+
+enum TXptr       = [ TYnptr ];
+enum TXptr_nflat = [ TYsptr,TYcptr,TYf16ptr,TYfptr,TYhptr,TYvptr,TYimmutPtr,TYsharePtr,TYfgPtr ];
+enum TXreal      = [ TYfloat,TYdouble,TYdouble_alias,TYldouble,
+                     TYfloat4,TYdouble2,
+                     TYfloat8,TYdouble4,
+                     TYfloat16,TYdouble8,
+                   ];
+enum TXimaginary = [ TYifloat,TYidouble,TYildouble, ];
+enum TXcomplex   = [ TYcfloat,TYcdouble,TYcldouble, ];
+enum TXintegral  = [ TYbool,TYchar,TYschar,TYuchar,TYshort,
+                     TYwchar_t,TYushort,TYenum,TYint,TYuint,
+                     TYlong,TYulong,TYllong,TYullong,TYdchar,
+                     TYschar16,TYuchar16,TYshort8,TYushort8,
+                     TYlong4,TYulong4,TYllong2,TYullong2,
+                     TYschar32,TYuchar32,TYshort16,TYushort16,
+                     TYlong8,TYulong8,TYllong4,TYullong4,
+                     TYschar64,TYuchar64,TYshort32,TYushort32,
+                     TYlong16,TYulong16,TYllong8,TYullong8,
+                     TYchar16,TYcent,TYucent,
+                   ];
+enum TXref       = [ TYnref,TYref ];
+enum TXfunc      = [ TYnfunc,TYnpfunc,TYnsfunc,TYifunc,TYmfunc,TYjfunc,TYhfunc ];
+enum TXref_nflat = [ TYfref ];
+enum TXfunc_nflat= [ TYffunc,TYfpfunc,TYf16func,TYfsfunc,TYnsysfunc,TYfsysfunc, ];
+enum TXuns       = [ TYuchar,TYushort,TYuint,TYulong,
+                     TYwchar_t,
+                     TYuchar16,TYushort8,TYulong4,TYullong2,
+                     TYdchar,TYullong,TYucent,TYchar16 ];
+enum TXmptr      = [ TYmemptr ];
+enum TXnullptr   = [ TYnullptr ];
+enum TXfv        = [ TYfptr, TYvptr ];
+enum TXfarfunc   = [ TYffunc,TYfpfunc,TYfsfunc,TYfsysfunc ];
+enum TXpasfunc   = [ TYnpfunc,TYnsfunc,TYmfunc,TYjfunc ];
+enum TXpasfunc_nf = [ TYfpfunc,TYf16func,TYfsfunc, ];
+enum TXrevfunc    = [ TYnpfunc,TYjfunc ];
+enum TXrevfunc_nf = [ TYfpfunc,TYf16func, ];
+enum TXshort      = [ TYbool,TYchar,TYschar,TYuchar,TYshort,
+                      TYwchar_t,TYushort,TYchar16 ];
+enum TXaggregate  = [ TYstruct,TYarray ];
+enum TXxmmreg     = [
+                     TYfloat,TYdouble,TYifloat,TYidouble,
+                     TYfloat4,TYdouble2,
+                     TYschar16,TYuchar16,TYshort8,TYushort8,
+                     TYlong4,TYulong4,TYllong2,TYullong2,
+                     TYfloat8,TYdouble4,
+                     TYschar32,TYuchar32,TYshort16,TYushort16,
+                     TYlong8,TYulong8,TYllong4,TYullong4,
+                     TYschar64,TYuchar64,TYshort32,TYushort32,
+                     TYlong16,TYulong16,TYllong8,TYullong8,
+                     TYfloat16,TYdouble8,
+                    ];
+enum TXsimd       = [
+                     TYfloat4,TYdouble2,
+                     TYschar16,TYuchar16,TYshort8,TYushort8,
+                     TYlong4,TYulong4,TYllong2,TYullong2,
+                     TYfloat8,TYdouble4,
+                     TYschar32,TYuchar32,TYshort16,TYushort16,
+                     TYlong8,TYulong8,TYllong4,TYullong4,
+                     TYschar64,TYuchar64,TYshort32,TYushort32,
+                     TYlong16,TYulong16,TYllong8,TYullong8,
+                     TYfloat16,TYdouble8,
+                    ];
 
