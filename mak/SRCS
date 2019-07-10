@@ -451,6 +451,7 @@ SRCS=\
 	src\rt\unwind.d \
 	\
 	src\rt\array\comparison.d \
+	src\rt\array\construction.d \
 	src\rt\array\equality.d \
 	src\rt\array\casting.d \
 	src\rt\array\capacity.d \

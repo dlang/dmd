@@ -44,6 +44,8 @@ copydir: $(IMPDIR)
 	mkdir $(IMPDIR)\core\sys\dragonflybsd\sys
 	mkdir $(IMPDIR)\core\sys\linux\netinet
 	mkdir $(IMPDIR)\core\sys\linux\sys
+	mkdir $(IMPDIR)\core\sys\netbsd
+	mkdir $(IMPDIR)\core\sys\netbsd\sys
 	mkdir src\core\sys\netbsd\sys
 	mkdir src\core\sys\netbsd\
 	mkdir $(IMPDIR)\core\sys\openbsd
@@ -55,6 +57,7 @@ copydir: $(IMPDIR)
 	mkdir $(IMPDIR)\core\sys\windows
 	mkdir $(IMPDIR)\etc\linux
 	mkdir $(IMPDIR)\rt\array
+	mkdir $(IMPDIR)\rt\util
 
 copy: $(COPY)
 
@@ -1187,6 +1190,9 @@ $(IMPDIR)\etc\linux\memoryerror.d : src\etc\linux\memoryerror.d
 $(IMPDIR)\rt\array\comparison.d : src\rt\array\comparison.d
 	copy $** $@
 
+$(IMPDIR)\rt\array\construction.d : src\rt\array\construction.d
+	copy $** $@
+
 $(IMPDIR)\rt\array\equality.d : src\rt\array\equality.d
 	copy $** $@
 
@@ -1194,4 +1200,7 @@ $(IMPDIR)\rt\array\casting.d : src\rt\array\casting.d
 	copy $** $@
 
 $(IMPDIR)\rt\array\capacity.d : src\rt\array\capacity.d
+	copy $** $@
+
+$(IMPDIR)\rt\util\array.d : src\rt\util\array.d
 	copy $** $@
