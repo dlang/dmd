@@ -161,7 +161,7 @@ else version (FreeBSD)
 
     alias void* DIR;
 
-    dirent* readdir(DIR*);
+    pragma(mangle, "readdir@FBSD_1.0") dirent* readdir(DIR*);
 }
 else version (NetBSD)
 {
@@ -473,7 +473,7 @@ else version (Darwin)
 }
 else version (FreeBSD)
 {
-    int readdir_r(DIR*, dirent*, dirent**);
+    pragma(mangle, "readdir_r@FBSD_1.0") int readdir_r(DIR*, dirent*, dirent**);
 }
 else version (DragonFlyBSD)
 {
@@ -540,8 +540,8 @@ version (CRuntime_Glibc)
 }
 else version (FreeBSD)
 {
-    void   seekdir(DIR*, c_long);
-    c_long telldir(DIR*);
+    pragma(mangle, "seekdir@@FBSD_1.0") void seekdir(DIR*, c_long);
+    pragma(mangle, "telldir@@FBSD_1.0") c_long telldir(DIR*);
 }
 else version (NetBSD)
 {
