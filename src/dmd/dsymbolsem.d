@@ -3589,8 +3589,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
                         debug foreach (const i, s; cd.vtbl)
                         {
+                            // a C++ dtor gets its vtblIndex later (and might even be added twice to the vtbl),
+                            // e.g. when compiling druntime with a debug compiler, namely with core.stdcpp.exception.
                             if (auto fd = s.isFuncDeclaration())
-                                assert(fd.vtblIndex == i);
+                                assert(fd.vtblIndex == i || (cd.classKind == ClassKind.cpp && fd.isDtorDeclaration));
                         }
                     }
                     else
