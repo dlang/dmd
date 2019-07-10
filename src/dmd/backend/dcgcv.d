@@ -244,17 +244,16 @@ debtyp_t * debtyp_alloc(uint length)
         length += pad;
     }
 
+    length < 0x10000 || assert(0);
+    const len = debtyp_t.sizeof - (d.data).sizeof + length;
 debug
 {
-    const len = debtyp_t.sizeof - (d.data).sizeof + length;
-    assert(len < 4 * 4096 - 100);
     d = cast(debtyp_t *) mem_malloc(len /*+ 1*/);
     memset(d, 0xAA, len);
 //    (cast(char*)d)[len] = 0x2E;
 }
 else
 {
-    assert(length < 0x10000);
     d = cast(debtyp_t *) malloc(debtyp_t.sizeof - (d.data).sizeof + length);
 }
     d.length = cast(ushort)length;
@@ -277,8 +276,8 @@ private void debtyp_free(debtyp_t *d)
     //fflush(stdout);
 debug
 {
+    assert(d.length < 0x10000);
     uint len = debtyp_t.sizeof - (d.data).sizeof + d.length;
-    assert(len < 4 * 4096 - 100);
 //    assert((cast(char*)d)[len] == 0x2E);
     memset(d, 0x55, len);
     mem_free(d);
