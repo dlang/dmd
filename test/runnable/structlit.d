@@ -942,8 +942,8 @@ union X3991
 
 union Y3991
 {
-    int   a = void;
     dchar b = 'a';
+    int   a = void;
 }
 
 union Z3991
