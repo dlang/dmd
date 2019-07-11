@@ -23,6 +23,8 @@ import dmd.declaration;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
+import dmd.dsymbolsem;
+import dmd.dtemplate;
 import dmd.errors;
 import dmd.escape;
 import dmd.expression;
@@ -72,6 +74,12 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
             MATCH match = e.implicitConvTo(t);
             if (match)
             {
+                if (match == MATCH.opConv)
+                {
+                    result = tryImplicitConversions(e, t, sc);
+                    return;
+                }
+
                 if (match == MATCH.constant && (e.type.constConv(t) || !e.isLvalue() && e.type.equivalent(t)))
                 {
                     /* Do not emit CastExp for const conversions and
@@ -129,6 +137,12 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
             if (result != e)
             {
                 result.accept(this);
+                return;
+            }
+
+            if (Expression opImpConv = tryImplicitConversions(e, t, sc))
+            {
+                result = opImpConv;
                 return;
             }
 
@@ -265,6 +279,13 @@ MATCH implicitConvTo(Expression e, Type t)
             if (match != MATCH.nomatch)
             {
                 result = match;
+                return;
+            }
+
+            /* See if opImplicitConvL/R can be used*/
+            if (Expression _ = tryImplicitConversions(e, t, null))
+            {
+                result = MATCH.opConv;
                 return;
             }
 
@@ -3800,4 +3821,85 @@ IntRange getIntRange(Expression e)
     scope IntRangeVisitor v = new IntRangeVisitor();
     e.accept(v);
     return v.range;
+}
+
+/**
+ * Try to implicitly convert an expression to a type using the
+ * `opImplicitConvR` or `opImplicitConvR` operator overloads.
+ *
+ * Params:
+ *      e = The expression to convert.
+ *      t = the new type.
+ *      sc = The scope. Can be null.
+ *
+ * Returns:
+ *      If the conversion is possible an expression that makes performs it and
+ *      null otherwise.
+ *
+ * Todo:
+ *      Verify the prototype ?
+ */
+Expression tryImplicitConversions(Expression e, Type t, Scope* sc)
+{
+
+    Dsymbol opConvR, opConvL;
+    Expression result;
+
+    if (e.type.ty == Tstruct)
+    {
+        TypeStruct ts = cast(TypeStruct) e.type;
+        opConvR = ts.sym.search(ts.sym.loc, Id.opImplicitConvR);
+    }
+    else if (t.ty == Tstruct)
+    {
+        TypeStruct ts = cast(TypeStruct) t;
+        opConvL = ts.sym.search(ts.sym.loc, Id.opImplicitConvL);
+    }
+    else if (e.type.ty == Tclass)
+    {
+        TypeClass tc = cast(TypeClass) e.type;
+        opConvR = tc.sym.search(tc.sym.loc, Id.opImplicitConvR);
+    }
+    else if (t.ty == Tclass)
+    {
+        TypeClass tc = cast(TypeClass) t;
+        opConvL = tc.sym.search(tc.sym.loc, Id.opImplicitConvL);
+    }
+    if (opConvR)
+    {
+        sc = sc ? sc : opConvR._scope;
+        if (TemplateDeclaration td = opConvR.isTemplateDeclaration())
+        {
+            Objects* tiargs = new Objects(1);
+            (*tiargs)[0] = t;
+            TemplateInstance ti = new TemplateInstance(e.loc, td, tiargs);
+            ti.templateInstanceSemantic(sc, null);
+            if (ti.inst)
+            {
+                result = new DotTemplateInstanceExp(e.loc, e, ti);
+                result = new CallExp(e.loc, result);
+                // printf("opImplicitConvR instantiated correctly : `%s` \n", result.toChars());
+                result = result.expressionSemantic(sc);
+            }
+        }
+    }
+    else if (opConvL)
+    {
+        sc = sc ? sc : opConvL._scope;
+        if (TemplateDeclaration td = opConvL.isTemplateDeclaration())
+        {
+            Objects* tiargs = new Objects(1);
+            (*tiargs)[0] = e.type;
+            TemplateInstance ti = new TemplateInstance(e.loc, td, tiargs);
+            ti.templateInstanceSemantic(sc, null);
+            if (ti.inst)
+            {
+                result = new DotTemplateInstanceExp(e.loc, new TypeExp(e.loc, t), ti);
+                result = new CallExp(e.loc, result, e);
+                // printf("opImplicitConvL instantiated correctly : `%s` \n", result.toChars());
+                result = result.expressionSemantic(sc);
+            }
+        }
+    }
+    return result;
 }

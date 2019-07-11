@@ -280,6 +280,8 @@ immutable Msgtable[] msgtable =
     { "opOpAssign" },
     { "opIndexOpAssign" },
     { "opSliceOpAssign" },
+    { "opImplicitConvL" },
+    { "opImplicitConvR" },
     { "pow", "opPow" },
     { "pow_r", "opPow_r" },
     { "powass", "opPowAssign" },

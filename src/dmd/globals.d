@@ -631,6 +631,7 @@ enum MATCH : int
     convert,   // match with conversions
     constant,  // match with conversion to const
     exact,     // exact match
+    opConv,    // use opImplicitConv{L|R}
 }
 
 enum PINLINE : int
