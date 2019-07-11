@@ -241,6 +241,7 @@ enum Classification
     gagged = Color.brightBlue,        /// for gagged errors
     warning = Color.brightYellow,     /// for warnings
     deprecation = Color.brightCyan,   /// for deprecations
+    tip = Color.brightGreen,          /// for tip messages
 }
 
 /**
@@ -397,6 +398,20 @@ extern (C++) void message(const(char)* format, ...)
     va_list ap;
     va_start(ap, format);
     vmessage(Loc.initial, format, ap);
+    va_end(ap);
+}
+
+/**
+ * Print a tip message with the prefix and highlighting.
+ * Params:
+ *      format = printf-style format specification
+ *      ...    = printf-style variadic arguments
+ */
+extern (C++) void tip(const(char)* format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    vtip(format, ap);
     va_end(ap);
 }
 
@@ -607,6 +622,21 @@ extern (C++) void vmessage(const ref Loc loc, const(char)* format, va_list ap)
     fputs(tmp.peekChars(), stdout);
     fputc('\n', stdout);
     fflush(stdout);     // ensure it gets written out in case of compiler aborts
+}
+
+/**
+ * Same as $(D tip), but takes a va_list parameter.
+ * Params:
+ *      format    = printf-style format specification
+ *      ap        = printf-style variadic arguments
+ */
+extern (C++) void vtip(const(char)* format, va_list ap)
+{
+    if (!global.gag)
+    {
+        Loc loc = Loc.init;
+        verrorPrint(loc, Classification.tip, "  Tip: ", format, ap);
+    }
 }
 
 /**
