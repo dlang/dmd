@@ -4262,6 +4262,13 @@ public:
                 lowerbound = 0;
                 upperbound = 0;
             }
+            else if (VectorExp ve = e1.isVectorExp())
+            {
+                // ve is not handled but a proper error message is returned
+                // this is to prevent https://issues.dlang.org/show_bug.cgi?id=20042
+                lowerbound = 0;
+                upperbound = ve.dim;
+            }
             else
                 assert(0);
 
