@@ -4269,7 +4269,8 @@ public:
                 lowerbound = 0;
                 upperbound = ve.dim;
             }
-            else assert(0);
+            else
+                assert(0);
 
             aggregate = e1;
             firstIndex = lowerbound;
