@@ -455,6 +455,7 @@ SRCS=\
 	src\rt\array\equality.d \
 	src\rt\array\casting.d \
 	src\rt\array\capacity.d \
+	src\rt\array\concatenation.d \
 	\
 	src\rt\backtrace\dwarf.d \
 	src\rt\backtrace\elf.d \
