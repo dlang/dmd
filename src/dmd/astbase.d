@@ -1880,13 +1880,58 @@ struct ASTBase
 
     }
 
+    enum STMT : ubyte
+    {
+        Error,
+        Peel,
+        Exp, DtorExp,
+        Compile,
+        Compound, CompoundDeclaration, CompoundAsm,
+        UnrolledLoop,
+        Scope,
+        Forwarding,
+        While,
+        Do,
+        For,
+        Foreach,
+        ForeachRange,
+        If,
+        Conditional,
+        StaticForeach,
+        Pragma,
+        StaticAssert,
+        Switch,
+        Case,
+        CaseRange,
+        Default,
+        GotoDefault,
+        GotoCase,
+        SwitchError,
+        Return,
+        Break,
+        Continue,
+        Synchronized,
+        With,
+        TryCatch,
+        TryFinally,
+        ScopeGuard,
+        Throw,
+        Debug,
+        Goto,
+        Label,
+        Asm, InlineAsm, GccAsm,
+        Import,
+    }
+
     extern (C++) abstract class Statement : ASTNode
     {
         Loc loc;
+        STMT stmt;
 
-        final extern (D) this(const ref Loc loc)
+        final extern (D) this(const ref Loc loc, STMT stmt)
         {
             this.loc = loc;
+            this.stmt = stmt;
         }
 
         ExpStatement isExpStatement()
@@ -1916,7 +1961,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc, Dsymbols* imports)
         {
-            super(loc);
+            super(loc, STMT.Import);
             this.imports = imports;
         }
 
@@ -1933,7 +1978,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc, Statement s, Loc endloc)
         {
-            super(loc);
+            super(loc, STMT.Scope);
             this.statement = s;
             this.endloc = endloc;
         }
@@ -1950,7 +1995,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc, Expression exp)
         {
-            super(loc);
+            super(loc, STMT.Return);
             this.exp = exp;
         }
 
@@ -1972,7 +2017,7 @@ struct ASTBase
 
         final extern (D) this(const ref Loc loc, Identifier ident, Statement statement)
         {
-            super(loc);
+            super(loc, STMT.Label);
             this.ident = ident;
             this.statement = statement;
         }
@@ -1989,7 +2034,7 @@ struct ASTBase
 
         final extern (D) this(StaticAssert sa)
         {
-            super(sa.loc);
+            super(sa.loc, STMT.StaticAssert);
             this.sa = sa;
         }
 
@@ -2005,7 +2050,7 @@ struct ASTBase
 
         final extern (D) this(const ref Loc loc, Expressions* exps)
         {
-            super(loc);
+            super(loc, STMT.Compile);
             this.exps = exps;
         }
 
@@ -2023,7 +2068,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc, Expression c, Statement b, Loc endloc)
         {
-            super(loc);
+            super(loc, STMT.While);
             condition = c;
             _body = b;
             this.endloc = endloc;
@@ -2045,7 +2090,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc, Statement _init, Expression condition, Expression increment, Statement _body, Loc endloc)
         {
-            super(loc);
+            super(loc, STMT.For);
             this._init = _init;
             this.condition = condition;
             this.increment = increment;
@@ -2067,7 +2112,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc, Statement b, Expression c, Loc endloc)
         {
-            super(loc);
+            super(loc, STMT.Do);
             _body = b;
             condition = c;
             this.endloc = endloc;
@@ -2091,7 +2136,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc, TOK op, Parameter prm, Expression lwr, Expression upr, Statement _body, Loc endloc)
         {
-            super(loc);
+            super(loc, STMT.ForeachRange);
             this.op = op;
             this.prm = prm;
             this.lwr = lwr;
@@ -2116,7 +2161,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc, TOK op, Parameters* parameters, Expression aggr, Statement _body, Loc endloc)
         {
-            super(loc);
+            super(loc, STMT.Foreach);
             this.op = op;
             this.parameters = parameters;
             this.aggr = aggr;
@@ -2141,7 +2186,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc, Parameter prm, Expression condition, Statement ifbody, Statement elsebody, Loc endloc)
         {
-            super(loc);
+            super(loc, STMT.If);
             this.prm = prm;
             this.condition = condition;
             this.ifbody = ifbody;
@@ -2162,7 +2207,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc, TOK tok, Statement statement)
         {
-            super(loc);
+            super(loc, STMT.ScopeGuard);
             this.tok = tok;
             this.statement = statement;
         }
@@ -2181,7 +2226,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc, Condition condition, Statement ifbody, Statement elsebody)
         {
-            super(loc);
+            super(loc, STMT.Conditional);
             this.condition = condition;
             this.ifbody = ifbody;
             this.elsebody = elsebody;
@@ -2199,7 +2244,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc, StaticForeach sfe)
         {
-            super(loc);
+            super(loc, STMT.StaticForeach);
             this.sfe = sfe;
         }
 
@@ -2217,7 +2262,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc, Identifier ident, Expressions* args, Statement _body)
         {
-            super(loc);
+            super(loc, STMT.Pragma);
             this.ident = ident;
             this.args = args;
             this._body = _body;
@@ -2237,7 +2282,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc, Expression c, Statement b, bool isFinal)
         {
-            super(loc);
+            super(loc, STMT.Switch);
             this.condition = c;
             this._body = b;
             this.isFinal = isFinal;
@@ -2257,7 +2302,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc, Expression first, Expression last, Statement s)
         {
-            super(loc);
+            super(loc, STMT.CaseRange);
             this.first = first;
             this.last = last;
             this.statement = s;
@@ -2276,7 +2321,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc, Expression exp, Statement s)
         {
-            super(loc);
+            super(loc, STMT.Case);
             this.exp = exp;
             this.statement = s;
         }
@@ -2293,7 +2338,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc, Statement s)
         {
-            super(loc);
+            super(loc, STMT.Default);
             this.statement = s;
         }
 
@@ -2309,7 +2354,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc, Identifier ident)
         {
-            super(loc);
+            super(loc, STMT.Break);
             this.ident = ident;
         }
 
@@ -2325,7 +2370,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc, Identifier ident)
         {
-            super(loc);
+            super(loc, STMT.Continue);
             this.ident = ident;
         }
 
@@ -2339,7 +2384,7 @@ struct ASTBase
     {
         extern (D) this(const ref Loc loc)
         {
-            super(loc);
+            super(loc, STMT.GotoDefault);
         }
 
         override void accept(Visitor v)
@@ -2354,7 +2399,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc, Expression exp)
         {
-            super(loc);
+            super(loc, STMT.GotoCase);
             this.exp = exp;
         }
 
@@ -2370,7 +2415,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc, Identifier ident)
         {
-            super(loc);
+            super(loc, STMT.Goto);
             this.ident = ident;
         }
 
@@ -2387,7 +2432,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc, Expression exp, Statement _body)
         {
-            super(loc);
+            super(loc, STMT.Synchronized);
             this.exp = exp;
             this._body = _body;
         }
@@ -2406,7 +2451,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc, Expression exp, Statement _body, Loc endloc)
         {
-            super(loc);
+            super(loc, STMT.With);
             this.exp = exp;
             this._body = _body;
             this.endloc = endloc;
@@ -2425,7 +2470,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc, Statement _body, Catches* catches)
         {
-            super(loc);
+            super(loc, STMT.TryCatch);
             this._body = _body;
             this.catches = catches;
         }
@@ -2443,7 +2488,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc, Statement _body, Statement finalbody)
         {
-            super(loc);
+            super(loc, STMT.TryFinally);
             this._body = _body;
             this.finalbody = finalbody;
         }
@@ -2460,7 +2505,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc, Expression exp)
         {
-            super(loc);
+            super(loc, STMT.Throw);
             this.exp = exp;
         }
 
@@ -2476,7 +2521,13 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc, Token* tokens)
         {
-            super(loc);
+            super(loc, STMT.Asm);
+            this.tokens = tokens;
+        }
+
+        extern (D) this(const ref Loc loc, Token* tokens, STMT stmt)
+        {
+            super(loc, stmt);
             this.tokens = tokens;
         }
 
@@ -2490,7 +2541,7 @@ struct ASTBase
     {
         extern (D) this(const ref Loc loc, Token* tokens)
         {
-            super(loc, tokens);
+            super(loc, tokens, STMT.InlineAsm);
         }
 
         override void accept(Visitor v)
@@ -2503,7 +2554,7 @@ struct ASTBase
     {
         extern (D) this(const ref Loc loc, Token* tokens)
         {
-            super(loc, tokens);
+            super(loc, tokens, STMT.GccAsm);
         }
 
         override void accept(Visitor v)
@@ -2518,12 +2569,12 @@ struct ASTBase
 
         final extern (D) this(const ref Loc loc, Expression exp)
         {
-            super(loc);
+            super(loc, STMT.Exp);
             this.exp = exp;
         }
         final extern (D) this(const ref Loc loc, Dsymbol declaration)
         {
-            super(loc);
+            super(loc, STMT.Exp);
             this.exp = new DeclarationExp(loc, declaration);
         }
 
@@ -2544,12 +2595,19 @@ struct ASTBase
 
         final extern (D) this(const ref Loc loc, Statements* statements)
         {
-            super(loc);
+            super(loc, STMT.Compound);
             this.statements = statements;
         }
+
+        final extern (D) this(const ref Loc loc, Statements* statements, STMT stmt)
+        {
+            super(loc, stmt);
+            this.statements = statements;
+        }
+
         final extern (D) this(const ref Loc loc, Statement[] sts...)
         {
-            super(loc);
+            super(loc, STMT.Compound);
             statements = new Statements();
             statements.reserve(sts.length);
             foreach (s; sts)
@@ -2571,7 +2629,7 @@ struct ASTBase
     {
         final extern (D) this(const ref Loc loc, Statements* statements)
         {
-            super(loc, statements);
+            super(loc, statements, STMT.CompoundDeclaration);
         }
 
         override void accept(Visitor v)
@@ -2586,7 +2644,7 @@ struct ASTBase
 
         final extern (D) this(const ref Loc loc, Statements* s, StorageClass stc)
         {
-            super(loc, s);
+            super(loc, s, STMT.CompoundAsm);
             this.stc = stc;
         }
 

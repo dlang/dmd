@@ -62,10 +62,55 @@ enum BE
     BEany = (BEfallthru | BEthrow | BEreturn | BEgoto | BEhalt)
 };
 
+typedef unsigned char STMT;
+enum
+{
+    STMTerror,
+    STMTpeel,
+    STMTexp, STMTdtorExp,
+    STMTcompile,
+    STMTcompound, STMTcompoundDeclaration, STMTcompoundAsm,
+    STMTunrolledLoop,
+    STMTscope,
+    STMTforwarding,
+    STMTwhile,
+    STMTdo,
+    STMTfor,
+    STMTforeach,
+    STMTforeachRange,
+    STMTif,
+    STMTconditional,
+    STMTstaticForeach,
+    STMTpragma,
+    STMTstaticAssert,
+    STMTswitch,
+    STMTcase,
+    STMTcaseRange,
+    STMTdefault,
+    STMTgotoDefault,
+    STMTgotoCase,
+    STMTswitchError,
+    STMTreturn,
+    STMTbreak,
+    STMTcontinue,
+    STMTsynchronized,
+    STMTwith,
+    STMTtryCatch,
+    STMTtryFinally,
+    STMTscopeGuard,
+    STMTthrow,
+    STMTdebug,
+    STMTgoto,
+    STMTlabel,
+    STMTasm, STMTinlineAsm, STMTgccAsm,
+    STMTimport,
+};
+
 class Statement : public ASTNode
 {
 public:
     Loc loc;
+    STMT stmt;
 
     virtual Statement *syntaxCopy();
 

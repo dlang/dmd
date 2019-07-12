@@ -74,6 +74,54 @@ TypeIdentifier getException()
     return tid;
 }
 
+/********************************
+ * Identify Statement types with this enum rather than
+ * virtual functions.
+ */
+
+enum STMT : ubyte
+{
+    Error,
+    Peel,
+    Exp, DtorExp,
+    Compile,
+    Compound, CompoundDeclaration, CompoundAsm,
+    UnrolledLoop,
+    Scope,
+    Forwarding,
+    While,
+    Do,
+    For,
+    Foreach,
+    ForeachRange,
+    If,
+    Conditional,
+    StaticForeach,
+    Pragma,
+    StaticAssert,
+    Switch,
+    Case,
+    CaseRange,
+    Default,
+    GotoDefault,
+    GotoCase,
+    SwitchError,
+    Return,
+    Break,
+    Continue,
+    Synchronized,
+    With,
+    TryCatch,
+    TryFinally,
+    ScopeGuard,
+    Throw,
+    Debug,
+    Goto,
+    Label,
+    Asm, InlineAsm, GccAsm,
+    Import,
+}
+
 
 /***********************************************************
  * Specification: http://dlang.org/spec/statement.html
@@ -81,15 +129,17 @@ TypeIdentifier getException()
 extern (C++) abstract class Statement : ASTNode
 {
     const Loc loc;
+    const STMT stmt;
 
     override final DYNCAST dyncast() const
     {
         return DYNCAST.statement;
     }
 
-    final extern (D) this(const ref Loc loc)
+    final extern (D) this(const ref Loc loc, STMT stmt)
     {
         this.loc = loc;
+        this.stmt = stmt;
         // If this is an in{} contract scope statement (skip for determining
         //  inlineStatus of a function body for header content)
     }
@@ -379,7 +429,7 @@ extern (C++) final class ErrorStatement : Statement
 {
     extern (D) this()
     {
-        super(Loc.initial);
+        super(Loc.initial, STMT.Error);
         assert(global.gaggedErrors || global.errors);
     }
 
@@ -407,7 +457,7 @@ extern (C++) final class PeelStatement : Statement
 
     extern (D) this(Statement s)
     {
-        super(s.loc);
+        super(s.loc, STMT.Peel);
         this.s = s;
     }
 
@@ -580,13 +630,19 @@ extern (C++) class ExpStatement : Statement
 
     final extern (D) this(const ref Loc loc, Expression exp)
     {
-        super(loc);
+        super(loc, STMT.Exp);
+        this.exp = exp;
+    }
+
+    final extern (D) this(const ref Loc loc, Expression exp, STMT stmt)
+    {
+        super(loc, stmt);
         this.exp = exp;
     }
 
     final extern (D) this(const ref Loc loc, Dsymbol declaration)
     {
-        super(loc);
+        super(loc, STMT.Exp);
         this.exp = new DeclarationExp(loc, declaration);
     }
 
@@ -682,7 +738,7 @@ extern (C++) final class DtorExpStatement : ExpStatement
 
     extern (D) this(const ref Loc loc, Expression exp, VarDeclaration var)
     {
-        super(loc, exp);
+        super(loc, exp, STMT.DtorExp);
         this.var = var;
     }
 
@@ -718,7 +774,7 @@ extern (C++) final class CompileStatement : Statement
 
     extern (D) this(const ref Loc loc, Expressions* exps)
     {
-        super(loc);
+        super(loc, STMT.Compile);
         this.exps = exps;
     }
 
@@ -792,7 +848,13 @@ extern (C++) class CompoundStatement : Statement
      */
     final extern (D) this(const ref Loc loc, Statements* statements)
     {
-        super(loc);
+        super(loc, STMT.Compound);
+        this.statements = statements;
+    }
+
+    final extern (D) this(const ref Loc loc, Statements* statements, STMT stmt)
+    {
+        super(loc, stmt);
         this.statements = statements;
     }
 
@@ -806,7 +868,7 @@ extern (C++) class CompoundStatement : Statement
      */
     final extern (D) this(const ref Loc loc, Statement[] sts...)
     {
-        super(loc);
+        super(loc, STMT.Compound);
         statements = new Statements();
         statements.reserve(sts.length);
         foreach (s; sts)
@@ -876,7 +938,7 @@ extern (C++) final class CompoundDeclarationStatement : CompoundStatement
 {
     extern (D) this(const ref Loc loc, Statements* statements)
     {
-        super(loc, statements);
+        super(loc, statements, STMT.CompoundDeclaration);
     }
 
     override Statement syntaxCopy()
@@ -905,7 +967,7 @@ extern (C++) final class UnrolledLoopStatement : Statement
 
     extern (D) this(const ref Loc loc, Statements* statements)
     {
-        super(loc);
+        super(loc, STMT.UnrolledLoop);
         this.statements = statements;
     }
 
@@ -944,7 +1006,7 @@ extern (C++) class ScopeStatement : Statement
 
     extern (D) this(const ref Loc loc, Statement statement, Loc endloc)
     {
-        super(loc);
+        super(loc, STMT.Scope);
         this.statement = statement;
         this.endloc = endloc;
     }
@@ -998,7 +1060,7 @@ extern (C++) final class ForwardingStatement : Statement
 
     extern (D) this(const ref Loc loc, ForwardingScopeDsymbol sym, Statement statement)
     {
-        super(loc);
+        super(loc, STMT.Forwarding);
         this.sym = sym;
         assert(statement);
         this.statement = statement;
@@ -1072,7 +1134,7 @@ extern (C++) final class WhileStatement : Statement
 
     extern (D) this(const ref Loc loc, Expression condition, Statement _body, Loc endloc)
     {
-        super(loc);
+        super(loc, STMT.While);
         this.condition = condition;
         this._body = _body;
         this.endloc = endloc;
@@ -1113,7 +1175,7 @@ extern (C++) final class DoStatement : Statement
 
     extern (D) this(const ref Loc loc, Statement _body, Expression condition, Loc endloc)
     {
-        super(loc);
+        super(loc, STMT.Do);
         this._body = _body;
         this.condition = condition;
         this.endloc = endloc;
@@ -1161,7 +1223,7 @@ extern (C++) final class ForStatement : Statement
 
     extern (D) this(const ref Loc loc, Statement _init, Expression condition, Expression increment, Statement _body, Loc endloc)
     {
-        super(loc);
+        super(loc, STMT.For);
         this._init = _init;
         this.condition = condition;
         this.increment = increment;
@@ -1229,7 +1291,7 @@ extern (C++) final class ForeachStatement : Statement
 
     extern (D) this(const ref Loc loc, TOK op, Parameters* parameters, Expression aggr, Statement _body, Loc endloc)
     {
-        super(loc);
+        super(loc, STMT.Foreach);
         this.op = op;
         this.parameters = parameters;
         this.aggr = aggr;
@@ -1278,7 +1340,7 @@ extern (C++) final class ForeachRangeStatement : Statement
 
     extern (D) this(const ref Loc loc, TOK op, Parameter prm, Expression lwr, Expression upr, Statement _body, Loc endloc)
     {
-        super(loc);
+        super(loc, STMT.ForeachRange);
         this.op = op;
         this.prm = prm;
         this.lwr = lwr;
@@ -1322,7 +1384,7 @@ extern (C++) final class IfStatement : Statement
 
     extern (D) this(const ref Loc loc, Parameter prm, Expression condition, Statement ifbody, Statement elsebody, Loc endloc)
     {
-        super(loc);
+        super(loc, STMT.If);
         this.prm = prm;
         this.condition = condition;
         this.ifbody = ifbody;
@@ -1362,7 +1424,7 @@ extern (C++) final class ConditionalStatement : Statement
 
     extern (D) this(const ref Loc loc, Condition condition, Statement ifbody, Statement elsebody)
     {
-        super(loc);
+        super(loc, STMT.Conditional);
         this.condition = condition;
         this.ifbody = ifbody;
         this.elsebody = elsebody;
@@ -1417,7 +1479,7 @@ extern (C++) final class StaticForeachStatement : Statement
 
     extern (D) this(const ref Loc loc, StaticForeach sfe)
     {
-        super(loc);
+        super(loc, STMT.StaticForeach);
         this.sfe = sfe;
     }
 
@@ -1467,7 +1529,7 @@ extern (C++) final class PragmaStatement : Statement
 
     extern (D) this(const ref Loc loc, const Identifier ident, Expressions* args, Statement _body)
     {
-        super(loc);
+        super(loc, STMT.Pragma);
         this.ident = ident;
         this.args = args;
         this._body = _body;
@@ -1493,7 +1555,7 @@ extern (C++) final class StaticAssertStatement : Statement
 
     extern (D) this(StaticAssert sa)
     {
-        super(sa.loc);
+        super(sa.loc, STMT.StaticAssert);
         this.sa = sa;
     }
 
@@ -1527,7 +1589,7 @@ extern (C++) final class SwitchStatement : Statement
 
     extern (D) this(const ref Loc loc, Expression condition, Statement _body, bool isFinal)
     {
-        super(loc);
+        super(loc, STMT.Switch);
         this.condition = condition;
         this._body = _body;
         this.isFinal = isFinal;
@@ -1602,7 +1664,7 @@ extern (C++) final class CaseStatement : Statement
 
     extern (D) this(const ref Loc loc, Expression exp, Statement statement)
     {
-        super(loc);
+        super(loc, STMT.Case);
         this.exp = exp;
         this.statement = statement;
     }
@@ -1634,7 +1696,7 @@ extern (C++) final class CaseRangeStatement : Statement
 
     extern (D) this(const ref Loc loc, Expression first, Expression last, Statement statement)
     {
-        super(loc);
+        super(loc, STMT.CaseRange);
         this.first = first;
         this.last = last;
         this.statement = statement;
@@ -1662,7 +1724,7 @@ extern (C++) final class DefaultStatement : Statement
 
     extern (D) this(const ref Loc loc, Statement statement)
     {
-        super(loc);
+        super(loc, STMT.Default);
         this.statement = statement;
     }
 
@@ -1691,7 +1753,7 @@ extern (C++) final class GotoDefaultStatement : Statement
 
     extern (D) this(const ref Loc loc)
     {
-        super(loc);
+        super(loc, STMT.GotoDefault);
     }
 
     override Statement syntaxCopy()
@@ -1721,7 +1783,7 @@ extern (C++) final class GotoCaseStatement : Statement
 
     extern (D) this(const ref Loc loc, Expression exp)
     {
-        super(loc);
+        super(loc, STMT.GotoCase);
         this.exp = exp;
     }
 
@@ -1749,12 +1811,12 @@ extern (C++) final class SwitchErrorStatement : Statement
 
     extern (D) this(const ref Loc loc)
     {
-        super(loc);
+        super(loc, STMT.SwitchError);
     }
 
     final extern (D) this(const ref Loc loc, Expression exp)
     {
-        super(loc);
+        super(loc, STMT.SwitchError);
         this.exp = exp;
     }
 
@@ -1774,7 +1836,7 @@ extern (C++) final class ReturnStatement : Statement
 
     extern (D) this(const ref Loc loc, Expression exp)
     {
-        super(loc);
+        super(loc, STMT.Return);
         this.exp = exp;
     }
 
@@ -1803,7 +1865,7 @@ extern (C++) final class BreakStatement : Statement
 
     extern (D) this(const ref Loc loc, Identifier ident)
     {
-        super(loc);
+        super(loc, STMT.Break);
         this.ident = ident;
     }
 
@@ -1832,7 +1894,7 @@ extern (C++) final class ContinueStatement : Statement
 
     extern (D) this(const ref Loc loc, Identifier ident)
     {
-        super(loc);
+        super(loc, STMT.Continue);
         this.ident = ident;
     }
 
@@ -1857,7 +1919,7 @@ extern (C++) final class SynchronizedStatement : Statement
 
     extern (D) this(const ref Loc loc, Expression exp, Statement _body)
     {
-        super(loc);
+        super(loc, STMT.Synchronized);
         this.exp = exp;
         this._body = _body;
     }
@@ -1895,7 +1957,7 @@ extern (C++) final class WithStatement : Statement
 
     extern (D) this(const ref Loc loc, Expression exp, Statement _body, Loc endloc)
     {
-        super(loc);
+        super(loc, STMT.With);
         this.exp = exp;
         this._body = _body;
         this.endloc = endloc;
@@ -1922,7 +1984,7 @@ extern (C++) final class TryCatchStatement : Statement
 
     extern (D) this(const ref Loc loc, Statement _body, Catches* catches)
     {
-        super(loc);
+        super(loc, STMT.TryCatch);
         this._body = _body;
         this.catches = catches;
     }
@@ -1993,7 +2055,7 @@ extern (C++) final class TryFinallyStatement : Statement
 
     extern (D) this(const ref Loc loc, Statement _body, Statement finalbody)
     {
-        super(loc);
+        super(loc, STMT.TryFinally);
         this._body = _body;
         this.finalbody = finalbody;
         this.bodyFallsThru = true;      // assume true until statementSemantic()
@@ -2035,7 +2097,7 @@ extern (C++) final class ScopeGuardStatement : Statement
 
     extern (D) this(const ref Loc loc, TOK tok, Statement statement)
     {
-        super(loc);
+        super(loc, STMT.ScopeGuard);
         this.tok = tok;
         this.statement = statement;
     }
@@ -2109,7 +2171,7 @@ extern (C++) final class ThrowStatement : Statement
 
     extern (D) this(const ref Loc loc, Expression exp)
     {
-        super(loc);
+        super(loc, STMT.Throw);
         this.exp = exp;
     }
 
@@ -2134,7 +2196,7 @@ extern (C++) final class DebugStatement : Statement
 
     extern (D) this(const ref Loc loc, Statement statement)
     {
-        super(loc);
+        super(loc, STMT.Debug);
         this.statement = statement;
     }
 
@@ -2175,7 +2237,7 @@ extern (C++) final class GotoStatement : Statement
 
     extern (D) this(const ref Loc loc, Identifier ident)
     {
-        super(loc);
+        super(loc, STMT.Goto);
         this.ident = ident;
     }
 
@@ -2265,7 +2327,7 @@ extern (C++) final class LabelStatement : Statement
 
     extern (D) this(const ref Loc loc, Identifier ident, Statement statement)
     {
-        super(loc);
+        super(loc, STMT.Label);
         this.ident = ident;
         this.statement = statement;
     }
@@ -2358,7 +2420,13 @@ extern (C++) class AsmStatement : Statement
 
     extern (D) this(const ref Loc loc, Token* tokens)
     {
-        super(loc);
+        super(loc, STMT.Asm);
+        this.tokens = tokens;
+    }
+
+    extern (D) this(const ref Loc loc, Token* tokens, STMT stmt)
+    {
+        super(loc, stmt);
         this.tokens = tokens;
     }
 
@@ -2386,7 +2454,7 @@ extern (C++) final class InlineAsmStatement : AsmStatement
 
     extern (D) this(const ref Loc loc, Token* tokens)
     {
-        super(loc, tokens);
+        super(loc, tokens, STMT.InlineAsm);
     }
 
     override Statement syntaxCopy()
@@ -2418,7 +2486,7 @@ extern (C++) final class GccAsmStatement : AsmStatement
 
     extern (D) this(const ref Loc loc, Token* tokens)
     {
-        super(loc, tokens);
+        super(loc, tokens, STMT.GccAsm);
     }
 
     override Statement syntaxCopy()
@@ -2441,7 +2509,7 @@ extern (C++) final class CompoundAsmStatement : CompoundStatement
 
     extern (D) this(const ref Loc loc, Statements* statements, StorageClass stc)
     {
-        super(loc, statements);
+        super(loc, statements, STMT.CompoundAsm);
         this.stc = stc;
     }
 
@@ -2475,7 +2543,7 @@ extern (C++) final class ImportStatement : Statement
 
     extern (D) this(const ref Loc loc, Dsymbols* imports)
     {
-        super(loc);
+        super(loc, STMT.Import);
         this.imports = imports;
     }
 
