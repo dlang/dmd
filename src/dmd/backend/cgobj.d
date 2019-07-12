@@ -460,24 +460,12 @@ version (X86ASM)
 {
 int insidx(char *p,uint index)
 {
-    // https://issues.dlang.org/show_bug.cgi?id=19974
-    static if (__VERSION__ >= 2086)
-        asm
-        {
-            naked                           ;
-            mov     EAX,index - [ESP]       ;
-            mov     ECX,p - [ESP]           ;
-        }
-    else
-        asm
-        {
-            naked                           ;
-            mov     EAX,index - [ESP+4]     ;
-            mov     ECX,p - [ESP+4]         ;
-        }
-
     asm
     {
+        naked                           ;
+        mov     EAX,[ESP+8]             ; // index
+        mov     ECX,[ESP+4]             ; // p
+
         cmp     EAX,0x7F                ;
         jae     L1                      ;
         mov     [ECX],AL                ;
