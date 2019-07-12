@@ -12,7 +12,7 @@
 module optabgen;
 
 /* Generate op-code tables
- * Creates optab.d,tytab.d,debtab.d,cdxxx.d,elxxx.d
+ * Creates optab.d,tytab.d,debtab.d,elxxx.d
  */
 
 import core.stdc.stdio;
@@ -381,13 +381,13 @@ void doreltables(FILE *f)
 /********************************************************
  */
 
-string[OPMAX] debtab, cdxxx, elxxx;
+string[OPMAX] debtab, elxxx;
 
 void dotab()
 { int i;
   FILE *f;
 
-  void X(string d, string e, string c) { debtab[i]=d; cdxxx[i]=c; elxxx[i]=e; }
+  void X(string d, string e, string c) { debtab[i]=d; elxxx[i]=e; }
 
   for (i = 0; i < OPMAX; i++)
   {
@@ -593,13 +593,6 @@ void dotab()
   for (i = 0; i < OPMAX - 1; i++)
         fprintf(fdeb,"\t\"%.*s\",\n",cast(int)debtab[i].length, debtab[i].ptr);
   fprintf(fdeb,"\t\"%.*s\"\n\t];\n",cast(int)debtab[i].length, debtab[i].ptr);
-
-  f = fopen("cdxxx.d","w");
-  fprintf(f,"__gshared void function (ref CodeBuilder,elem *,regm_t *)[OPMAX] cdxxx = \n\t[\n");
-  for (i = 0; i < OPMAX - 1; i++)
-        fprintf(f,"\t&%.*s,\n",cast(int)cdxxx[i].length, cdxxx[i].ptr);
-  fprintf(f,"\t&%.*s\n\t];\n", cast(int)cdxxx[i].length, cdxxx[i].ptr);
-  fclose(f);
 
 static if (1)
 {

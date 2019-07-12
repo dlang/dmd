@@ -363,7 +363,6 @@ extern __gshared int refparam;
 extern __gshared int reflocal;
 extern __gshared bool anyiasm;
 extern __gshared char calledafunc;
-extern __gshared void function(ref CodeBuilder,elem *,regm_t *)[OPMAX] cdxxx;
 extern __gshared bool calledFinally;
 
 void stackoffsets(int);
