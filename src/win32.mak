@@ -387,14 +387,13 @@ $(TOOLS_DIR)\checkwhitespace.d:
 	$(HOST_DC) -Df$@ $<
 
 ############################## Generated Source ##############################
-OPTABGENOUTPUT = $G\elxxx.d $G\cdxxx.d $G\optab.d $G\debtab.d $G\tytab.d
+OPTABGENOUTPUT = $G\elxxx.d $G\optab.d $G\debtab.d $G\tytab.d
 
 $(OPTABGENOUTPUT) : \
 	$C\optabgen.d
 	$(HOST_DC) -of$G\optabgen.exe -betterC $(DFLAGS) -mv=dmd.backend=$C $C\optabgen
 	$G\optabgen.exe
 	copy *.c "$G\"
-	copy cdxxx.d "$G\"
 	copy debtab.d "$G\"
 	copy elxxx.d "$G\"
 	copy tytab.d "$G\"
@@ -402,7 +401,6 @@ $(OPTABGENOUTPUT) : \
 	$(DEL) *.c
 	$(DEL) debtab.d
 	$(DEL) elxxx.d
-	$(DEL) cdxxx.d
 	$(DEL) tytab.d
 	$(DEL) optab.d
 
@@ -431,7 +429,7 @@ $G/cg.obj : $C\cg.d
 $G/cg87.obj : $C\cg87.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\cg87
 
-$G/cgcod.obj : $G\cdxxx.d $C\cgcod.d
+$G/cgcod.obj : $C\cgcod.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -J$G -betterC -mv=dmd.backend=$C $C\cgcod
 
 $G/cgcs.obj : $C\cgcs.d
