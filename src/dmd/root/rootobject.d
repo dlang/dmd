@@ -60,11 +60,6 @@ extern (C++) class RootObject
         return p[0 .. strlen(p)];
     }
 
-    void toBuffer(OutBuffer* buf) nothrow pure @nogc @safe
-    {
-        assert(0);
-    }
-
     DYNCAST dyncast() const nothrow pure @nogc @safe
     {
         return DYNCAST.object;
