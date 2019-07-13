@@ -200,15 +200,6 @@ auto ref inout(T[]) assumeSafeAppend(T)(auto ref inout(T[]) arr) nothrow @system
 private extern (C) void[] _d_arraysetlengthT(const TypeInfo ti, size_t newlength, void[]* p) nothrow pure;
 private extern (C) void[] _d_arraysetlengthiT(const TypeInfo ti, size_t newlength, void[]* p) nothrow pure;
 
-// This wrapper is needed because a externDFunc cannot be cast()ed directly.
-private void accumulate(string file, uint line, string funcname, string type, ulong sz) @nogc
-{
-    import core.internal.traits : externDFunc;
-
-    alias func = externDFunc!("rt.profilegc.accumulate", void function(string file, uint line, string funcname, string type, ulong sz) @nogc);
-    return func(file, line, funcname, type, sz);
-}
-
 /*
  * This template is needed because there need to be a `_d_arraysetlengthTTrace!Tarr` instance for every
  * `_d_arraysetlengthT!Tarr`. By wrapping both of these functions inside of this template we force the
@@ -218,6 +209,10 @@ private void accumulate(string file, uint line, string funcname, string type, ul
 /// Implementation of `_d_arraysetlengthT` and `_d_arraysetlengthTTrace`
 template _d_arraysetlengthTImpl(Tarr : T[], T)
 {
+    import rt.array.utils : HookTraceImpl;
+
+    private enum errorMessage = "Cannot resize arrays if compiling without support for runtime type information!";
+
     /**
      * Resize dynamic array
      * Params:
@@ -243,54 +238,17 @@ template _d_arraysetlengthTImpl(Tarr : T[], T)
             return arr.length;
         }
         else
-            assert(0, "Cannot resize arrays if compiling without support for runtime type information!");
+            assert(0, errorMessage);
     }
-
 
     /**
     * TraceGC wrapper around $(REF _d_arraysetlengthT, rt,array,rt.array.capacity).
     * Bugs:
-    *   The safety level of this function is faked. It shows itself as `@trusted pure nothrow` to not break existing code.
+    *  This function template was ported from a much older runtime hook that bypassed safety,
+    *  purity, and throwabilty checks. To prevent breaking existing code, this function template
+    *  is temporarily declared `@trusted pure nothrow` until the implementation can be brought up to modern D expectations.
     */
-    size_t _d_arraysetlengthTTrace(string file, int line, string funcname, return scope ref Tarr arr, size_t newlength) @trusted pure nothrow
-    {
-        version (D_TypeInfo)
-        {
-            pragma(inline, false);
-            import core.memory : GC;
-
-            auto accumulate = cast(void function(string file, uint line, string funcname, string type, ulong sz) @nogc nothrow pure)&accumulate;
-            auto gcStats = cast(GC.Stats function() nothrow pure)&GC.stats;
-
-            string name = Tarr.stringof;
-
-            // FIXME: use rt.tracegc.accumulator when it is accessable in the future.
-            version (tracegc)
-            {
-                import core.stdc.stdio;
-
-                printf("%s file = '%.*s' line = %d function = '%.*s' type = %.*s\n",
-                    __FUNCTION__.ptr,
-                    file.length, file.ptr,
-                    line,
-                    funcname.length, funcname.ptr,
-                    name.length, name.ptr
-                );
-            }
-
-            ulong currentlyAllocated = gcStats().allocatedInCurrentThread;
-
-            scope(exit)
-            {
-                ulong size = gcStats().allocatedInCurrentThread - currentlyAllocated;
-                if (size > 0)
-                    accumulate(file, line, funcname, name, size);
-            }
-            return _d_arraysetlengthT(arr, newlength);
-        }
-        else
-            assert(0, "Cannot resize arrays if compiling without support for runtime type information!");
-    }
+    alias _d_arraysetlengthTTrace = HookTraceImpl!(Tarr, _d_arraysetlengthT, errorMessage);
 }
 
 @safe unittest
