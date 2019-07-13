@@ -1205,5 +1205,8 @@ $(IMPDIR)\rt\array\capacity.d : src\rt\array\capacity.d
 $(IMPDIR)\rt\array\concatenation.d : src\rt\array\concatenation.d
 	copy $** $@
 
+$(IMPDIR)\rt\array\utils.d : src\rt\array\utils.d
+	copy $** $@
+
 $(IMPDIR)\rt\util\array.d : src\rt\util\array.d
 	copy $** $@

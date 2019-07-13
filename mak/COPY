@@ -408,6 +408,7 @@ COPY=\
 	$(IMPDIR)\rt\array\casting.d \
 	$(IMPDIR)\rt\array\capacity.d \
 	$(IMPDIR)\rt\array\concatenation.d \
+	$(IMPDIR)\rt\array\utils.d \
 	\
 	$(IMPDIR)\rt\util\array.d \
 	\
