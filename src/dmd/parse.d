@@ -1342,7 +1342,7 @@ final class Parser(AST) : Lexer
     {
         static bool isIn (StorageClass stc)
         {
-            enum SC = (AST.STC.const_ | AST.STC.scope_);
+            enum SC = (AST.STC.const_);
             return !!(stc & AST.STC.in_ || ((stc & SC) == SC));
         }
 

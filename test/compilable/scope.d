@@ -2,6 +2,10 @@
  PERMUTE_FIXME_ARGS: -preview=dip1000
 */
 
+/// https://issues.dlang.org/show_bug.cgi?id=17408
+void f(in scope int x) {}
+void g(scope in int x) {}
+
 struct Cache
 {
     ubyte[1] v;
