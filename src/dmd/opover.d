@@ -2119,5 +2119,3 @@ private TOK reverseRelation(TOK op) pure
     }
     return op;
 }
-
-

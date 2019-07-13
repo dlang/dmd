@@ -6702,4 +6702,3 @@ bool isCopyable(const Type t) pure nothrow @nogc
     }
     return true;
 }
-

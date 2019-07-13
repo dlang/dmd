@@ -48,7 +48,6 @@ public:
     /// This function is `extern(D)` and should not be called from C++,
     /// as the ABI does not match on some platforms
     virtual DString toString();
-    virtual void toBuffer(OutBuffer *buf);
 
     /**
      * Used as a replacement for dynamic_cast. Returns a unique number
