@@ -1340,7 +1340,13 @@ final class Parser(AST) : Lexer
      */
     private StorageClass appendStorageClass(StorageClass storageClass, StorageClass stc)
     {
-        if ((storageClass & stc) || (storageClass & AST.STC.in_ && stc & (AST.STC.const_ | AST.STC.scope_)) || (stc & AST.STC.in_ && storageClass & (AST.STC.const_ | AST.STC.scope_)))
+        static bool isIn (StorageClass stc)
+        {
+            enum SC = (AST.STC.const_ | AST.STC.scope_);
+            return !!(stc & AST.STC.in_ || ((stc & SC) == SC));
+        }
+
+        if ((storageClass & stc) || (isIn(storageClass) && isIn(stc)))
         {
             OutBuffer buf;
             AST.stcToBuffer(&buf, stc);
