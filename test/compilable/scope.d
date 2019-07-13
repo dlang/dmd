@@ -1,5 +1,5 @@
 /*
- PERMUTE_FIXME_ARGS: -preview=dip1000
+REQUIRED_ARGS: -preview=dip1000
 */
 
 struct Cache
@@ -51,4 +51,3 @@ auto callWrappedOops(scope string dArgs) {
 }
 
 /************************************/
-
