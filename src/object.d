@@ -882,6 +882,21 @@ nothrow @safe @nogc unittest
     }
 }
 
+// Test to ensure proper behavior of `nothrow` destructors
+nothrow unittest
+{
+    class C
+    {
+        static int dtorCount = 0;
+        this() nothrow {}
+        ~this() nothrow { dtorCount++; }
+    }
+
+    auto c = new C;
+    destroy(c);
+    assert(C.dtorCount == 1);
+}
+
 /// ditto
 void destroy(bool initialize = true, T : U[n], U, size_t n)(ref T obj) if (!is(T == struct))
 {
