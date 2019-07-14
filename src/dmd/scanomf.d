@@ -39,10 +39,7 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
     {
         printf("scanOmfObjModule(%s)\n", module_name);
     }
-    const buf = base.ptr;
-    const buflen = base.length;
     int easyomf;
-    ubyte result = 0;
     char[LIBIDMAX + 1] name;
     Strings names;
     scope(exit)
@@ -50,7 +47,7 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
             free(cast(void*)names[u]);
     names.push(null); // don't use index 0
     easyomf = 0; // assume not EASY-OMF
-    auto pend = cast(const(ubyte)*)base.ptr + buflen;
+    auto pend = cast(const(ubyte)*)base.ptr + base.length;
     const(ubyte)* pnext;
     for (auto p = cast(const(ubyte)*)base.ptr; 1; p = pnext)
     {
@@ -140,7 +137,6 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
             break;
         case MODEND:
         case M386END:
-            result = 1;
             return;
         case COMENT:
             // Recognize Phar Lap EASY-OMF format
@@ -190,7 +186,6 @@ bool scanOmfLib(void delegate(char* name, void* base, size_t length) pAddObjModu
     /* Split up the buffer buf[0..buflen] into multiple object modules,
      * each aligned on a pagesize boundary.
      */
-    bool first_module = true;
     const(ubyte)* base = null;
     char[LIBIDMAX + 1] name;
     auto p = cast(const(ubyte)*)buf;

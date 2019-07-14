@@ -374,7 +374,6 @@ private final class CppMangleVisitor : Visitor
         TemplateParameter tp = (*td.parameters)[arg];
         RootObject o = (*ti.tiargs)[arg];
 
-        Objects* pctx;
         auto prev = this.context.push({
                 TemplateInstance parentti;
                 if (this.context.res.dyncast() == DYNCAST.dsymbol)

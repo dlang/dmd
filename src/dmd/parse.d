@@ -871,7 +871,6 @@ final class Parser(AST) : Lexer
 
             case TOK.deprecated_:
                 {
-                    AST.Expression e;
                     if (StorageClass _stc = parseDeprecatedAttribute(pAttrs.depmsg))
                     {
                         stc = _stc;

@@ -607,7 +607,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         // Ensure no overflow
         bool overflow;
         const sz = addu(memsize, actualAlignment, overflow);
-        const sum = addu(ofs, sz, overflow);
+        addu(ofs, sz, overflow);
         if (overflow) assert(0);
 
         alignmember(alignment, memalignsize, &ofs);
