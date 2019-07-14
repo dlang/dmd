@@ -417,7 +417,7 @@ extern (C++) abstract class Declaration : Dsymbol
     override final Dsymbol search(const ref Loc loc, Identifier ident, int flags = SearchLocalsOnly)
     {
         Dsymbol s = Dsymbol.search(loc, ident, flags);
-        if (!s && type)
+        if (!s && type && _scope)
         {
             s = type.toDsymbol(_scope);
             if (s)
