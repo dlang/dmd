@@ -387,7 +387,7 @@ $(TOOLS_DIR)\checkwhitespace.d:
 	$(HOST_DC) -Df$@ $<
 
 ############################## Generated Source ##############################
-OPTABGENOUTPUT = $G\elxxx.d $G\optab.d $G\debtab.d $G\tytab.d
+OPTABGENOUTPUT = $G\optab.d $G\debtab.d $G\tytab.d
 
 $(OPTABGENOUTPUT) : \
 	$C\optabgen.d
@@ -395,12 +395,10 @@ $(OPTABGENOUTPUT) : \
 	$G\optabgen.exe
 	copy *.c "$G\"
 	copy debtab.d "$G\"
-	copy elxxx.d "$G\"
 	copy tytab.d "$G\"
 	copy optab.d "$G\"
 	$(DEL) *.c
 	$(DEL) debtab.d
-	$(DEL) elxxx.d
 	$(DEL) tytab.d
 	$(DEL) optab.d
 
@@ -441,7 +439,7 @@ $G/cgcse.obj : $C\cgcse.d
 $G/dcgcv.obj : $C\dcgcv.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\dcgcv
 
-$G/cgelem.obj : $G\elxxx.d $C\cgelem.d
+$G/cgelem.obj : $C\cgelem.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -J$G -betterC -mv=dmd.backend=$C $C\cgelem
 
 $G/cgen.obj : $C\cgen.d

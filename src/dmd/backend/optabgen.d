@@ -12,7 +12,7 @@
 module optabgen;
 
 /* Generate op-code tables
- * Creates optab.d,tytab.d,debtab.d,elxxx.d
+ * Creates optab.d,tytab.d,debtab.d
  */
 
 import core.stdc.stdio;
@@ -153,13 +153,13 @@ void doreltables(FILE *f)
 /********************************************************
  */
 
-string[OPMAX] debtab, elxxx;
+string[OPMAX] debtab;
 
 void dotab()
 { int i;
   FILE *f;
 
-  void X(string d, string e, string c) { debtab[i]=d; elxxx[i]=e; }
+  void X(string d, string e, string c) { debtab[i]=d; }
 
   for (i = 0; i < OPMAX; i++)
   {
@@ -365,29 +365,6 @@ void dotab()
   for (i = 0; i < OPMAX - 1; i++)
         fprintf(fdeb,"\t\"%.*s\",\n",cast(int)debtab[i].length, debtab[i].ptr);
   fprintf(fdeb,"\t\"%.*s\"\n\t];\n",cast(int)debtab[i].length, debtab[i].ptr);
-
-static if (1)
-{
-    {
-        f = fopen("elxxx.d","w");
-        fprintf(f,"extern (C++) __gshared nothrow elem *function(elem *, goal_t)[OPMAX] elxxx = \n\t[\n");
-        for (i = 0; i < OPMAX - 1; i++)
-            fprintf(f,"\t&%s,\n",elxxx[i].ptr);
-        fprintf(f,"\t&%s\n\t];\n",elxxx[i].ptr);
-        fclose(f);
-    }
-}
-else
-{
-    {
-        f = fopen("elxxx.c","w");
-        fprintf(f,"static elem *(*elxxx[OPMAX]) (elem *, goal_t) = \n\t{\n");
-        for (i = 0; i < OPMAX - 1; i++)
-            fprintf(f,"\t%s,\n",elxxx[i].ptr);
-        fprintf(f,"\t%s\n\t};\n",elxxx[i].ptr);
-        fclose(f);
-    }
-}
 }
 
 
