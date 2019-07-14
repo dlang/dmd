@@ -1928,6 +1928,12 @@ Type merge(Type type)
         case Tinstance:
             return type;
 
+        case Tsarray:
+            // prevents generating the mangle if the array dim is not yet known
+            if (!(cast(TypeSArray) type).dim.isIntegerExp())
+                return type;
+            goto default;
+
         case Tenum:
             break;
 
