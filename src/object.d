@@ -882,9 +882,9 @@ nothrow @safe @nogc unittest
     }
 }
 
-// Test to ensure proper behavior of `nothrow` destructors
 nothrow unittest
 {
+    // Bugzilla 20049: Test to ensure proper behavior of `nothrow` destructors
     class C
     {
         static int dtorCount = 0;
