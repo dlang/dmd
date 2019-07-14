@@ -1143,41 +1143,14 @@ extern (C++) abstract class Expression : ASTNode
             if (v.ident == Id.gate)
                 return false;
 
-            /* Accessing global mutable state.
-             * Therefore, this function and all its immediately enclosing
-             * functions must be pure.
-             */
-            /* Today, static local functions are impure by default, but they cannot
-             * violate purity of enclosing functions.
-             *
-             *  auto foo() pure {      // non instantiated function
-             *    static auto bar() {  // static, without pure attribute
-             *      globalData++;      // impure access
-             *      // Although globalData is accessed inside bar,
-             *      // it is not accessible inside pure foo.
-             *    }
-             *  }
-             */
-            for (Dsymbol s = sc.func; s; s = s.toParent2())
+            FuncDeclaration ff = sc.func.isFuncDeclaration();
+            if (ff && (sc.flags & SCOPE.compile
+                ? ff.isPureBypassingInference() >= PURE.weak
+                : ff.setImpure()))
             {
-                FuncDeclaration ff = s.isFuncDeclaration();
-                if (!ff)
-                    break;
-                if (sc.flags & SCOPE.compile ? ff.isPureBypassingInference() >= PURE.weak : ff.setImpure())
-                {
-                    error("`pure` %s `%s` cannot access mutable static data `%s`",
-                        ff.kind(), ff.toPrettyChars(), v.toChars());
-                    err = true;
-                    break;
-                }
-
-                /* If the enclosing is an instantiated function or a lambda, its
-                 * attribute inference result is preferred.
-                 */
-                if (ff.isInstantiated())
-                    break;
-                if (ff.isFuncLiteralDeclaration())
-                    break;
+                error("`pure` %s `%s` cannot access mutable static data `%s`",
+                    ff.kind(), ff.toPrettyChars(), v.toChars());
+                err = true;
             }
         }
         else
