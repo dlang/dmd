@@ -1,7 +1,7 @@
 include ../common.mak
 
 TESTS=stderr_msg unittest_assert invalid_memory_operation unknown_gc static_dtor \
-	  future_message rt_trap_exceptions_drt catch_in_finally
+	  future_message rt_trap_exceptions_drt catch_in_finally nothrow_dtor
 
 ifeq ($(OS)-$(BUILD),linux-debug)
 	TESTS+=line_trace long_backtrace_trunc rt_trap_exceptions
