@@ -1089,77 +1089,15 @@ extern (C++) abstract class Expression : ASTNode
         if (sc.flags & (SCOPE.ctfe | SCOPE.debug_))
             return false;
 
-        /* Given:
-         * void f() {
-         *   pure void g() {
-         *     /+pure+/ void h() {
-         *       /+pure+/ void i() { }
-         *     }
-         *   }
-         * }
-         * g() can call h() but not f()
-         * i() can call h() and g() but not f()
-         */
-
-        // Find the closest pure parent of the calling function
-        FuncDeclaration outerfunc = sc.func;
-        FuncDeclaration calledparent = f;
-
-        if (outerfunc.isInstantiated())
+        // If the call has a pure parent, then the called func must be pure.
+        FuncDeclaration ff = sc.func;
+        if (!f.isPure() && (sc.flags & SCOPE.compile
+            ? ff.isPureBypassingInference() >= PURE.weak
+            : ff.setImpure()))
         {
-            // The attributes of outerfunc should be inferred from the call of f.
-        }
-        else if (f.isInstantiated())
-        {
-            // The attributes of f are inferred from its body.
-        }
-        else if (f.isFuncLiteralDeclaration())
-        {
-            // The attributes of f are always inferred in its declared place.
-        }
-        else
-        {
-            /* Today, static local functions are impure by default, but they cannot
-             * violate purity of enclosing functions.
-             *
-             *  auto foo() pure {      // non instantiated function
-             *    static auto bar() {  // static, without pure attribute
-             *      impureFunc();      // impure call
-             *      // Although impureFunc is called inside bar, f(= impureFunc)
-             *      // is not callable inside pure outerfunc(= foo <- bar).
-             *    }
-             *
-             *    bar();
-             *    // Although bar is called inside foo, f(= bar) is callable
-             *    // bacause calledparent(= foo) is same with outerfunc(= foo).
-             *  }
-             */
-
-            while (outerfunc.toParent2() && outerfunc.isPureBypassingInference() == PURE.impure && outerfunc.toParent2().isFuncDeclaration())
-            {
-                outerfunc = outerfunc.toParent2().isFuncDeclaration();
-                if (outerfunc.type.ty == Terror)
-                    return true;
-            }
-            while (calledparent.toParent2() && calledparent.isPureBypassingInference() == PURE.impure && calledparent.toParent2().isFuncDeclaration())
-            {
-                calledparent = calledparent.toParent2().isFuncDeclaration();
-                if (calledparent.type.ty == Terror)
-                    return true;
-            }
-        }
-
-        // If the caller has a pure parent, then either the called func must be pure,
-        // OR, they must have the same pure parent.
-        if (!f.isPure() && calledparent != outerfunc)
-        {
-            FuncDeclaration ff = outerfunc;
-            if (sc.flags & SCOPE.compile ? ff.isPureBypassingInference() >= PURE.weak : ff.setImpure())
-            {
-                error("`pure` %s `%s` cannot call impure %s `%s`",
-                    ff.kind(), ff.toPrettyChars(), f.kind(), f.toPrettyChars());
-                return true;
-            }
+            error("`pure` %s `%s` cannot call impure %s `%s`",
+                ff.kind(), ff.toPrettyChars(), f.kind(), f.toPrettyChars());
+            return true;
         }
         return false;
     }
