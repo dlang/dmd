@@ -1679,7 +1679,8 @@ else
                 if (a32)
                 {
                     if (rm == 4)
-                    {   sib = c.Isib;
+                    {
+                        sib = c.Isib;
                         if ((sib & modregrm(0,7,0)) != modregrm(0,4,0))
                             ci.a |= mask((sib >> 3) & 7);      // index register
                         if ((sib & 7) != 5)
@@ -1689,7 +1690,8 @@ else
                         ci.a |= mask(rm);
                 }
                 else
-                {   immutable ubyte[8] ea16 = [mBX|mSI,mBX|mDI,mBP|mSI,mBP|mDI,mSI,mDI,0,mBX];
+                {
+                    immutable ubyte[8] ea16 = [mBX|mSI,mBX|mDI,mBP|mSI,mBP|mDI,mSI,mDI,0,mBX];
                     ci.a |= ea16[rm];
                 }
                 goto Lmem;
@@ -1699,7 +1701,8 @@ else
                 if (a32)
                 {
                     if (rm == 4)
-                    {   sib = c.Isib;
+                    {
+                        sib = c.Isib;
                         if ((sib & modregrm(0,7,0)) != modregrm(0,4,0))
                             ci.a |= mask((sib >> 3) & 7);      // index register
                         ci.a |= mask(sib & 7);                 // base register
@@ -1708,7 +1711,8 @@ else
                         ci.a |= mask(rm);
                 }
                 else
-                {   immutable ubyte[8] ea16 = [mBX|mSI,mBX|mDI,mBP|mSI,mBP|mDI,mSI,mDI,mBP,mBX];
+                {
+                    immutable ubyte[8] ea16 = [mBX|mSI,mBX|mDI,mBP|mSI,mBP|mDI,mSI,mDI,mBP,mBX];
                     ci.a |= ea16[rm];
                 }
 
@@ -1737,20 +1741,22 @@ else
             if (irm != modregrm(0,0,5))
             {
                 switch (mod)
-                {   case 0:
-                        if ((sib & 7) != 5)     // if not disp32[index]
-                        {   c.IFL1 = FLconst;
-                            c.IEV1.Vpointer = 0;
-                            irm |= 0x80;
-                        }
-                        break;
-                    case 1:
-                        c.IEV1.Vpointer = cast(byte) c.IEV1.Vpointer;
-                        irm = modregrm(2,0,rm);
-                        break;
+                {
+                case 0:
+                    if ((sib & 7) != 5)     // if not disp32[index]
+                    {
+                        c.IFL1 = FLconst;
+                        c.IEV1.Vpointer = 0;
+                        irm |= 0x80;
+                    }
+                    break;
+                case 1:
+                    c.IEV1.Vpointer = cast(byte) c.IEV1.Vpointer;
+                    irm = modregrm(2, 0, rm);
+                    break;
 
-                    default:
-                        break;
+                default:
+                    break;
                 }
             }
         }
@@ -1759,14 +1765,15 @@ else
             if (irm != modregrm(0,0,6))
             {
                 switch (mod)
-                {   case 0:
+                {
+                    case 0:
                         c.IFL1 = FLconst;
                         c.IEV1.Vpointer = 0;
                         irm |= 0x80;
                         break;
                     case 1:
                         c.IEV1.Vpointer = cast(byte) c.IEV1.Vpointer;
-                        irm = modregrm(2,0,rm);
+                        irm = modregrm(2, 0, rm);
                         break;
 
                     default:
@@ -1801,7 +1808,8 @@ Lret:
  */
 
 private int pair_test(Cinfo *cu,Cinfo *cv)
-{   uint pcu;
+{
+    uint pcu;
     uint pcv;
     uint r1,w1;
     uint r2,w2;
@@ -1847,10 +1855,9 @@ Lnopair:
  *      !=0 if they have an AGI
  */
 
-private int pair_agi(Cinfo *c1,Cinfo *c2)
-{   uint x;
-
-    x = c1.w & c2.a;
+private int pair_agi(Cinfo *c1, Cinfo *c2)
+{
+    uint x = c1.w & c2.a;
     return x && !(x == mSP && c1.pair & c2.pair & PE);
 }
 
@@ -1864,13 +1871,12 @@ private int pair_agi(Cinfo *c1,Cinfo *c2)
  *      !=0 if they can decode simultaneously
  */
 
-private int triple_test(Cinfo *c0,Cinfo *c1,Cinfo *c2)
-{   int c2isz;
-
+private int triple_test(Cinfo *c0, Cinfo *c1, Cinfo *c2)
+{
     assert(c0);
     if (!c1)
         return 0;
-    c2isz = c2 ? c2.isz : 0;
+    int c2isz = c2 ? c2.isz : 0;
     if (c0.isz > 7 || c1.isz > 7 || c2isz > 7 ||
         c0.isz + c1.isz + c2isz > 16)
         return 0;
@@ -2205,11 +2211,9 @@ Lconflict:
             delay_clocks = 7;
     }
     else if ((w1 | r1) & (w2 | r2) & (C | S))
-    {   int reg;
-        int op;
-
-        op = c1.Iop;
-        reg = c1.Irm & modregrm(0,7,0);
+    {
+        int op = c1.Iop;
+        int reg = c1.Irm & modregrm(0,7,0);
         if (ci1.fp_op == FP.fld ||
             (op == 0xD9 && (c1.Irm & 0xF8) == 0xC0)
            )
@@ -2243,12 +2247,12 @@ nothrow:
 
     int fpustackused;           // number of slots in FPU stack that are used
 
-void initialize(int fpustackinit)          // initialize scheduler
-{
-    //printf("Schedule::initialize(fpustackinit = %d)\n", fpustackinit);
-    memset(&this,0,Schedule.sizeof);
-    fpustackused = fpustackinit;
-}
+    void initialize(int fpustackinit)          // initialize scheduler
+    {
+        //printf("Schedule::initialize(fpustackinit = %d)\n", fpustackinit);
+        memset(&this, 0, Schedule.sizeof);
+        fpustackused = fpustackinit;
+    }
 
 code **assemble(code **pc)  // reassemble scheduled instructions
 {
