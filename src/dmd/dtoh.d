@@ -1315,9 +1315,9 @@ public:
         }
         if (!cdparent && t.isConst())
         buf.writestring("const ");
-        buf.writestring("DArray<");
+        buf.writestring("DArray< ");
         t.next.accept(this);
-        buf.writestring(">");
+        buf.writestring(" >");
     }
 
     private void visitTi(AST.TemplateInstance ti)
@@ -1835,6 +1835,7 @@ void gencpphdrfiles(Modules *ms)
     buf.writestring("#define _d_char char\n");
     buf.writestring("#define _d_wchar wchar_t\n");
     buf.writestring("#define _d_dchar unsigned\n");
+    buf.writestring("typedef _d_long d_int64;\n");
     buf.writestring("\n");
     buf.writestring("#define _d_null NULL\n");
     buf.writestring("\n");
