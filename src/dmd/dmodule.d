@@ -667,7 +667,7 @@ extern (C++) final class Module : Package
         if (readResult.success)
             return true;
 
-        if (FileName.equals(srcfile.toString(), "object.d"))
+        if (FileName.equals(srcfile.toString(), "object.d") && !global.params.dnostdlib)
         {
             .error(loc, "cannot find source code for runtime library file 'object.d'");
             errorSupplemental(loc, "dmd might not be correctly installed. Run 'dmd -man' for installation instructions.");
