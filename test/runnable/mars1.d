@@ -1937,6 +1937,28 @@ void testNegConst()
 
 ////////////////////////////////////////////////////////////////////////
 
+// https://issues.dlang.org/show_bug.cgi?id=20050
+
+int test20050_g = 0;
+void test20050_impure_function_1() { ++test20050_g; }
+void function() test20050_get_impure_function() pure
+{
+    static void impure_function_2()
+    {
+        ++test20050_g;
+        test20050_impure_function_1();
+    }
+    return &impure_function_2;
+}
+void test20050()
+{
+    auto f = test20050_get_impure_function();
+    f();
+    assert(test20050_g == 2);
+}
+
+////////////////////////////////////////////////////////////////////////
+
 int main()
 {
     testgoto();
@@ -2006,6 +2028,7 @@ int main()
     test18794();
     testfastpar();
     testNegConst();
+    test20050();
 
     printf("Success\n");
     return 0;
