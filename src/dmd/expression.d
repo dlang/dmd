@@ -1090,13 +1090,11 @@ extern (C++) abstract class Expression : ASTNode
             return false;
 
         // If the call has a pure parent, then the called func must be pure.
-        FuncDeclaration ff = sc.func;
-        if (!f.isPure() && (sc.flags & SCOPE.compile
-            ? ff.isPureBypassingInference() >= PURE.weak
-            : ff.setImpure()))
+        if (!f.isPure() && checkImpure(sc))
         {
             error("`pure` %s `%s` cannot call impure %s `%s`",
-                ff.kind(), ff.toPrettyChars(), f.kind(), f.toPrettyChars());
+                sc.func.kind(), sc.func.toPrettyChars(), f.kind(),
+                f.toPrettyChars());
             return true;
         }
         return false;
@@ -1143,13 +1141,10 @@ extern (C++) abstract class Expression : ASTNode
             if (v.ident == Id.gate)
                 return false;
 
-            FuncDeclaration ff = sc.func.isFuncDeclaration();
-            if (ff && (sc.flags & SCOPE.compile
-                ? ff.isPureBypassingInference() >= PURE.weak
-                : ff.setImpure()))
+            if (checkImpure(sc))
             {
                 error("`pure` %s `%s` cannot access mutable static data `%s`",
-                    ff.kind(), ff.toPrettyChars(), v.toChars());
+                    sc.func.kind(), sc.func.toPrettyChars(), v.toChars());
                 err = true;
             }
         }
@@ -1217,6 +1212,17 @@ extern (C++) abstract class Expression : ASTNode
         }
 
         return err;
+    }
+
+    /*
+    Check if sc.func is impure or can be made impure.
+    Returns true on error, i.e. if sc.func is pure and cannot be made impure.
+    */
+    private static bool checkImpure(Scope* sc)
+    {
+        return sc.func && (sc.flags & SCOPE.compile
+                ? sc.func.isPureBypassingInference() >= PURE.weak
+                : sc.func.setImpure());
     }
 
     /*********************************************
