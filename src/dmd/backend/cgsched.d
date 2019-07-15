@@ -49,7 +49,7 @@ private uint mask(uint m) { return 1 << m; }
 //
 // Note: even for linux targets, CFaddrsize can be set by the inline
 // assembler.
-static bool is32bitaddr(bool x, uint Iflags) { return I64 || (x ^ ((Iflags & CFaddrsize) != 0)); }
+private bool is32bitaddr(bool x, uint Iflags) { return I64 || (x ^ ((Iflags & CFaddrsize) != 0)); }
 
 // If we use Pentium Pro scheduler
 private bool PRO() { return config.target_cpu >= TARGET_PentiumPro; }
