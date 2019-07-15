@@ -348,6 +348,34 @@ struct DMDType
         return false;
     }
 
+    private bool isIgnoredModule(ASTCodegen.Module m)
+    {
+        //if (!m || !m.parent)
+        if (!m)
+            return true;
+
+        // Ignore dmd.root
+        if (m.parent && m.parent.ident == DMDModule.root &&
+            m.parent.parent && m.parent.parent.ident == DMDModule.dmd &&
+            !m.parent.parent.parent)
+        {
+            return true;
+        }
+
+        // Ignore dmd.visitor and derivatives
+        if ((m.ident == DMDModule.visitor ||
+             m.ident == DMDModule.parsetimevisitor ||
+             m.ident == DMDModule.permissivevisitor ||
+             m.ident == DMDModule.strictvisitor ||
+             m.ident == DMDModule.transitivevisitor) &&
+             m.parent && m.parent.ident == DMDModule.dmd &&
+             !m.parent.parent)
+        {
+            return true;
+        }
+        return false;
+    }
+
     private bool isFrontendModule(ASTCodegen.Module m)
     {
         if (!m || !m.parent)
@@ -510,7 +538,8 @@ public:
             return;
         //version(BUILD_COMPILER)
         //{
-            if (fd.getModule() && !fd.getModule().isFrontendModule())
+            //if (fd.getModule() && !fd.getModule().isFrontendModule())
+            if (fd.getModule() && fd.getModule().isIgnoredModule())
             return;
         //}
 
@@ -593,7 +622,8 @@ public:
         return;
         //version(BUILD_COMPILER)
         //{
-            if (vd.getModule() && !vd.getModule().isFrontendModule())
+            //if (vd.getModule() && !vd.getModule().isFrontendModule())
+            if (vd.getModule() && vd.getModule().isIgnoredModule())
                 return;
         //}
 
@@ -705,7 +735,8 @@ public:
         }
         //version(BUILD_COMPILER)
         //{
-            if (ad.getModule() && !ad.getModule().isFrontendModule())
+            //if (ad.getModule() && !ad.getModule().isFrontendModule())
+            if (ad.getModule() && ad.getModule().isIgnoredModule())
             return;
         //}
 
@@ -796,7 +827,8 @@ public:
             return;
         //version(BUILD_COMPILER)
         //{
-            if (sd.getModule() && !sd.getModule().isFrontendModule())
+            //if (sd.getModule() && !sd.getModule().isFrontendModule())
+            if (sd.getModule() && sd.getModule().isIgnoredModule())
             return;
         //}
 
@@ -925,7 +957,8 @@ public:
         return;
         //version(BUILD_COMPILER)
         //{
-            if (cd.getModule() && !cd.getModule().isFrontendModule())
+            //if (cd.getModule() && !cd.getModule().isFrontendModule())
+            if (cd.getModule() && cd.getModule().isIgnoredModule())
             return;
             if (cd.isVisitorClass())
             return;
@@ -984,7 +1017,8 @@ public:
 
         //version(BUILD_COMPILER)
         //{
-            if (ed.getModule() && !ed.getModule().isFrontendModule())
+            //if (ed.getModule() && !ed.getModule().isFrontendModule())
+            if (ed.getModule() && ed.getModule().isIgnoredModule())
             return;
         //}
 
@@ -1352,7 +1386,8 @@ public:
         visited[cast(void*)td] = true;
         //version(BUILD_COMPILER)
         //{
-            if (td.getModule() && !td.getModule().isFrontendModule())
+            //if (td.getModule() && !td.getModule().isFrontendModule())
+            if (td.getModule() && td.getModule().isIgnoredModule())
                 return;
         //}
 
