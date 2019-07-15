@@ -1933,15 +1933,32 @@ void refIntrinsics()
 
 /*****************************************/
 
-void test6()
+void test6a()
 {
     version (D_AVX2)
     {
         // stack occasionally misaligned
         float f = 0;
         long4 v;
+        assert((cast(size_t)&v) % 32 == 0);
         v += 1;
     }
+}
+
+void test6b()
+{
+    version (D_AVX2)
+    {
+        struct S {long4 v;}
+        S s;
+        assert((cast(size_t)&s) % 32 == 0);
+    }
+}
+
+void test6()
+{
+    test6a();
+    test6b();
 }
 
 /*****************************************/
@@ -1963,6 +1980,19 @@ void test7()
         double4 r = test7r(v);
         assert(v[2] == r[2]);
         assert(v[3] == r[3]);
+    }
+}
+
+/*****************************************/
+
+
+auto test20052()
+{
+    version (D_AVX2)
+    {
+        struct S { long4 v; }
+        S s;
+        return s;
     }
 }
 
@@ -2007,6 +2037,7 @@ int main()
     test10447();
     test17344();
     test17356();
+    test20052();
 
     test6();
     test7();

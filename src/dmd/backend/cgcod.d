@@ -291,32 +291,6 @@ tryagain:
         regcon.params &= ~noparams;
     }
 
-    // See if we need to enforce a particular stack alignment
-    foreach (i; 0 .. globsym.top)
-    {
-        Symbol *s = globsym.tab[i];
-
-        switch (s.Sclass)
-        {
-            case SCregister:
-            case SCauto:
-            case SCfastpar:
-                if (s.Sfl == FLreg)
-                    break;
-
-                const sz = type_alignsize(s.Stype);
-                if (sz > STACKALIGN && (I64 || config.exe == EX_OSX))
-                {
-                    STACKALIGN = sz;
-                    enforcealign = true;
-                }
-                break;
-
-            default:
-                break;
-        }
-    }
-
     if (config.flags4 & CFG4optimized)
     {
         if (nretblocks == 0 &&                  // if no return blocks in function
@@ -374,6 +348,35 @@ tryagain:
     {
         if (CPP)
             cgcod_eh();
+    }
+
+    // See if we need to enforce a particular stack alignment
+    foreach (i; 0 .. globsym.top)
+    {
+        Symbol *s = globsym.tab[i];
+
+        if (Symbol_Sisdead(s, anyiasm))
+            continue;
+
+        switch (s.Sclass)
+        {
+            case SCregister:
+            case SCauto:
+            case SCfastpar:
+                if (s.Sfl == FLreg)
+                    break;
+
+                const sz = type_alignsize(s.Stype);
+                if (sz > STACKALIGN && (I64 || config.exe == EX_OSX))
+                {
+                    STACKALIGN = sz;
+                    enforcealign = true;
+                }
+                break;
+
+            default:
+                break;
+        }
     }
 
     stackoffsets(1);            // compute addresses of stack variables
@@ -1003,7 +1006,14 @@ else
     }
 
     /* Determine if we need BP set up   */
-    if (config.flags & CFGalwaysframe)
+    if (enforcealign)
+    {
+        // we need BP to reset the stack before return
+        // otherwise the return address is lost
+        needframe = 1;
+
+    }
+    else if (config.flags & CFGalwaysframe)
         needframe = 1;
     else
     {
