@@ -61,13 +61,13 @@ private enum FP : ubyte
     fop  = 3,       /// Fop ST0,mem or Fop ST0
 }
 
-enum
+private enum CIFL : ubyte
 {
-    CIFLarraybounds = 1,     /// this instruction is a jmp to array bounds
-    CIFLea          = 2,     /// this instruction has a memory-referencing
+    arraybounds = 1,     /// this instruction is a jmp to array bounds
+    ea          = 2,     /// this instruction has a memory-referencing
                              /// modregrm EA byte
-    CIFLnostage     = 4,     /// don't stage these instructions
-    CIFLpush        = 8,     /// it's a push we can swap around
+    nostage     = 4,     /// don't stage these instructions
+    push        = 8,     /// it's a push we can swap around
 }
 
 // Struct where we gather information about an instruction
@@ -83,7 +83,7 @@ struct Cinfo
     ubyte fxch_post;
     FP fp_op;           /// FPxxxx
 
-    ubyte flags;        /// CIFLxxx
+    ubyte flags;         /// CIFLxxx
 
     uint r;             // read mask
     uint w;             // write mask
@@ -108,15 +108,15 @@ struct Cinfo
 
         printf("Cinfo %p:  c %p, pair %x, sz %d, isz %d, flags - ",
                ci,c,pair,sz,isz);
-        if (ci.flags & CIFLarraybounds)
+        if (ci.flags & CIFL.arraybounds)
             printf("arraybounds,");
-        if (ci.flags & CIFLea)
+        if (ci.flags & CIFL.ea)
             printf("ea,");
-        if (ci.flags & CIFLnostage)
+        if (ci.flags & CIFL.nostage)
             printf("nostage,");
-        if (ci.flags & CIFLpush)
+        if (ci.flags & CIFL.push)
             printf("push,");
-        if (ci.flags & ~(CIFLarraybounds|CIFLnostage|CIFLpush|CIFLea))
+        if (ci.flags & ~(CIFL.arraybounds|CIFL.nostage|CIFL.push|CIFL.ea))
             printf("bad flag,");
         printf("\n\tr %lx w %lx a %lx reg %x uops %x sibmodrm %x spadjust %ld\n",
                 cast(int)r,cast(int)w,cast(int)a,reg,uops,sibmodrm,cast(int)spadjust);
@@ -1330,7 +1330,7 @@ private void getinfo(Cinfo *ci,code *c)
         case 0x55:
         case 0x56:
         case 0x57:                              // PUSH reg
-            ci.flags |= CIFLpush;
+            ci.flags |= CIFL.push;
             goto Lpush;
 
         case 0x54:                              // PUSH ESP
@@ -1398,7 +1398,7 @@ private void getinfo(Cinfo *ci,code *c)
         case 0xA2:
         case 0xA3:
             // Fake having an EA to simplify code in conflict()
-            ci.flags |= CIFLea;
+            ci.flags |= CIFL.ea;
             ci.reg = 0;
             ci.sibmodrm = a32 ? modregrm(0,0,5) : modregrm(0,0,6);
             c.IFL1 = c.IFL2;
@@ -1591,7 +1591,7 @@ else
                 (op == 0xD9 && (irm & 0xF8) == 0xC0))
             { }                                // FLD ST(i)
             else
-                ci.flags |= CIFLnostage;
+                ci.flags |= CIFL.nostage;
 
             switch (op)
             {
@@ -1717,7 +1717,7 @@ else
                     ci.r |= mMEM;
                 if (w & EA)
                     ci.w |= mMEM;
-                ci.flags |= CIFLea;
+                ci.flags |= CIFL.ea;
                 break;
 
             case 3:
@@ -2029,7 +2029,7 @@ if (c2.IEV1.Vpointer + sz2 <= c1.IEV1.Vpointer) printf("t5\n");
              c1.Iop == 0x68 ||                 // PUSH imm16/imm32
              (c1.Iop == 0xFF && ci1.reg == 6) // PUSH EA
             ) &&
-            ci2.flags & CIFLea && !(a2 & mSP) &&
+            ci2.flags & CIFL.ea && !(a2 & mSP) &&
             !(a2 & mBP && cast(int)c2.IEV1.Vpointer < 0)
            )
         {
@@ -2049,7 +2049,7 @@ if (c2.IEV1.Vpointer + sz2 <= c1.IEV1.Vpointer) printf("t5\n");
              c2.Iop == 0x68 ||                 // PUSH imm16/imm32
              (c2.Iop == 0xFF && ci2.reg == 6) // PUSH EA
             ) &&
-            ci1.flags & CIFLea && !(a1 & mSP) &&
+            ci1.flags & CIFL.ea && !(a1 & mSP) &&
             !(a2 & mBP && cast(int)c2.IEV1.Vpointer < 0)
            )
         {
@@ -2063,7 +2063,7 @@ if (c2.IEV1.Vpointer + sz2 <= c1.IEV1.Vpointer) printf("t5\n");
         }
 
         // If not both an EA addressing mode, conflict
-        if (!(ci1.flags & ci2.flags & CIFLea))
+        if (!(ci1.flags & ci2.flags & CIFL.ea))
         {   if (i) printf("\t2\n");
             goto Lconflict;
         }
@@ -2723,7 +2723,7 @@ bool stage(code *c)
         if (!cs)
             continue;
         if (conflict(cs,ci,0) &&                // if conflict
-            !(cs.flags & ci.flags & CIFLpush))
+            !(cs.flags & ci.flags & CIFL.push))
         {
             if (cs.spadjust)
             {
@@ -2746,7 +2746,7 @@ bool stage(code *c)
     }
 
     // If floating point opcode, don't stage it, send it right out
-    if (!agi && ci.flags & CIFLnostage)
+    if (!agi && ci.flags & CIFL.nostage)
     {
         if (!insert(ci))
             goto Lnostage;
