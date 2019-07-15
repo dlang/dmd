@@ -1,0 +1,17 @@
+`in` as parameter storage class is temporarily discouraged
+
+`in` as a parameter storage class is defined as `scope const`.  However `in` has not yet
+been properly implemented so its current implementation is equivalent to `const`.  Properly
+implementing `in` now will likely break code, so it is recommended to avoid using `in`, and
+explicitly use `const` or `scope const` instead, until `in` is properly implemented.
+
+---
+void f(in ref T t);  // Deprecation: `in` is defined as `scope const`.  However, `in` has not
+                     // yet been properly implemented, so its current implementation is equivalent to
+                     // `const`. It is recommended to avoid using `in`, and explicitly use `scope
+                     // const` or `const` instead, until `in` is properly implemented.
+---
+
+Beginning with this release, any usage of `in` as a parameter storage class will result in a
+deprecation message.  Replace `in` with `const` or `scope const` until a future release provides a
+proper implementation of `in`.

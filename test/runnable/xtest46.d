@@ -6158,7 +6158,7 @@ static assert(!__traits(compiles, foo8220(typeof(0)))); // fail
 
 /***************************************************/
 
-void func8105(in ref int x) { }
+void func8105(const ref int x) { }
 
 void test8105()
 {

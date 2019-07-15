@@ -2901,6 +2901,14 @@ final class Parser(AST) : Lexer
                     }
                 case TOK.in_:
                     stc = AST.STC.in_;
+                    // @@@DEPRECATED_2.094@@@
+                    // Deprecated in 2.088
+                    // Remove this message after sufficient time has passed (e.g. 1 or 2 years) so `in` can be
+                    // properly implemented as `scope const` without too much risk of breakage
+                    deprecation("`in` is defined as `scope const`.  However, `in` has not yet been properly " ~
+                        "implemented, so its current implementation is equivalent to `const`. It is recommended " ~
+                        "to avoid using `in`, and explicitly use `scope const` or `const` instead, until `in` " ~
+                        "is properly implemented.");
                     goto L2;
 
                 case TOK.out_:
