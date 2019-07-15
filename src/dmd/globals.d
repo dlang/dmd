@@ -242,6 +242,7 @@ struct Param
     Array!(const(char)*)* versionids;   // version identifiers
 
     const(char)[] defaultlibname;        // default library for non-debug builds
+    bool dnostdlib;                      // Do not use the standard library
     const(char)[] debuglibname;          // default library for debug builds
     const(char)[] mscrtlib;              // MS C runtime library
 
@@ -493,7 +494,7 @@ struct Global
     */
     const(char)[] finalDefaultlibname() const
     {
-        return params.betterC ? null :
+        return params.betterC || params.dnostdlib ? null :
             params.symdebug ? params.debuglibname : params.defaultlibname;
     }
 }

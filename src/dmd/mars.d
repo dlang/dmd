@@ -2368,6 +2368,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         {
             params.defaultlibname = (p + 1 + 11).toDString;
         }
+        else if (arg == "-dnostdlib")
+        {
+            params.dnostdlib = true;
+        }
         else if (startsWith(p + 1, "debuglib="))     // https://dlang.org/dmd.html#switch-debuglib
         {
             params.debuglibname = (p + 1 + 9).toDString;

@@ -296,6 +296,11 @@ dmd -cov -unittest myprog.d
             not compiling for symbolic debugging instead of $(B $(LIB)).
             If $(I libname) is not supplied, then no default library is linked in.`,
         ),
+        Option("dnostdlib",
+            "Do not use the standard library",
+            `This flag will prevent the link to standard libraries,
+            any use of -defaultlib will be ignored (as if it were "-defaultlib= ").`,
+        ),
         Option("deps",
             "print module dependencies (imports/file/version/debug/lib)"
         ),

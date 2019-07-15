@@ -211,6 +211,7 @@ struct Param
     Array<const char *> *versionids;   // version identifiers
 
     DString defaultlibname;     // default library for non-debug builds
+    bool dnostdlib;             // Do not use the standard library
     DString debuglibname;       // default library for debug builds
     DString mscrtlib;           // MS C runtime library
 
