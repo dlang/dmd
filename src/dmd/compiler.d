@@ -66,7 +66,7 @@ struct Compiler
      */
     extern (C++) static void genCmain(Scope* sc)
     {
-        if (entrypoint)
+        if (entrypoint || global.params.dnostdlib)
             return;
         /* The D code to be generated is provided as D source code in the form of a string.
          * Note that Solaris, for unknown reasons, requires both a main() and an _main()
