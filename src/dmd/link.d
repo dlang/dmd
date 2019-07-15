@@ -689,6 +689,12 @@ public int runLINK()
             }
             message(buf.peekChars());
         }
+        if (global.params.dnostdlib)
+        {
+            argv.push("-nostdlib");
+            argv.push("-nodefaultlibs");
+            argv.push("-nostartfiles");
+        }
         argv.push(null);
         // set up pipes
         int[2] fds;
