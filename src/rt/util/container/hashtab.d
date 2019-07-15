@@ -90,7 +90,7 @@ struct HashTab(Key, Value)
         *get(key) = value;
     }
 
-    inout(Value)* opBinaryRight(string op)(in Key key) inout
+    inout(Value)* opBinaryRight(string op)(const scope Key key) inout
         if (op == "in")
     {
         if (_buckets.length)
@@ -145,7 +145,7 @@ private:
         return &p._value;
     }
 
-    static hash_t hashOf(in ref Key key) @trusted
+    static hash_t hashOf(const scope ref Key key) @trusted
     {
         static if (is(Key U : U[]))
             return .hashOf(key, 0);
