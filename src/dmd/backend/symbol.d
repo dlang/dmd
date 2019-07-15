@@ -317,34 +317,7 @@ bool Symbol_isAffected(const ref Symbol s)
      */
     if (s.ty() & (mTYconst | mTYimmutable))
     {
-        /* Constructors can modify immutable variables:
-            struct S
-            {
-                int v = 1;
-                this(int x) { v = x * 2; }
-            }
-            void test()
-            {
-                const S cs = S(7);  // cs.v set to 1 before constructor call
-                assert(cs.v == 14); // cs.v is 1 because of CSE
-            }
-
-           Immutables can be changed inside static constructors:
-            immutable int x;
-            shared static this()
-            {
-                x += 3;
-            }
-
-           And regular constructors:
-            struct S
-            {
-                immutable int v;
-                this(int x) { v += v; }
-            }
-
-           So until we can detect these cases, we have to eshew this optimization.
-         */
+        return false;
     }
     return true;
 }
