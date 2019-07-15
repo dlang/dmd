@@ -1003,7 +1003,14 @@ else
     }
 
     /* Determine if we need BP set up   */
-    if (config.flags & CFGalwaysframe)
+    if (enforcealign)
+    {
+        // we need BP to reset the stack before return
+        // otherwise the return address is lost
+        needframe = 1;
+
+    }
+    else if (config.flags & CFGalwaysframe)
         needframe = 1;
     else
     {
