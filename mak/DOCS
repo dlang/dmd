@@ -85,6 +85,7 @@ DOCS=\
     $(DOCDIR)\rt_array_construction.html \
     $(DOCDIR)\rt_array_equality.html \
     $(DOCDIR)\rt_array_concatenation.html \
+    $(DOCDIR)\rt_array_utils.html \
     \
     $(DOCDIR)\rt_arrayassign.html \
     $(DOCDIR)\rt_arraycat.html \

@@ -11,18 +11,13 @@ module rt.array.concatenation;
 /// See $(REF _d_arraycatnTX, rt,lifetime)
 private extern (C) void[] _d_arraycatnTX(const TypeInfo ti, byte[][] arrs) pure nothrow;
 
-// This wrapper is needed because a externDFunc cannot be cast()ed directly.
-private void accumulate(string file, uint line, string funcname, string type, ulong sz) @nogc
-{
-    import core.internal.traits : externDFunc;
-
-    alias func = externDFunc!("rt.profilegc.accumulate", void function(string file, uint line, string funcname, string type, ulong sz) @nogc);
-    return func(file, line, funcname, type, sz);
-}
-
 /// Implementation of `_d_arraycatnTX` and `_d_arraycatnTXTrace`
 template _d_arraycatnTXImpl(Tarr : ResultArrT[], ResultArrT : T[], T)
 {
+    import rt.array.utils : HookTraceImpl;
+
+    private enum errorMessage = "Cannot concatenate arrays if compiling without support for runtime type information!";
+
     /**
     * Concatenating the arrays inside of `arrs`.
     * `_d_arraycatnTX([a, b, c])` means `a ~ b ~ c`.
@@ -47,7 +42,7 @@ template _d_arraycatnTXImpl(Tarr : ResultArrT[], ResultArrT : T[], T)
             return (cast(T*)result.ptr)[0 .. result.length];
         }
         else
-            assert(0, "Cannot concatenate arrays if compiling without support for runtime type information!");
+            assert(0, errorMessage);
     }
 
     /**
@@ -57,44 +52,7 @@ template _d_arraycatnTXImpl(Tarr : ResultArrT[], ResultArrT : T[], T)
     *  purity, and throwabilty checks. To prevent breaking existing code, this function template
     *  is temporarily declared `@trusted pure nothrow` until the implementation can be brought up to modern D expectations.
     */
-    ResultArrT _d_arraycatnTXTrace(string file, int line, string funcname, scope const Tarr arrs) @trusted pure nothrow
-    {
-        pragma(inline, false);
-        version (D_TypeInfo)
-        {
-            import core.memory : GC;
-            auto accumulate = cast(void function(string file, uint line, string funcname, string type, ulong sz) @nogc nothrow pure)&accumulate;
-            auto gcStats = cast(GC.Stats function() nothrow pure)&GC.stats;
-
-            string name = ResultArrT.stringof;
-
-            // FIXME: use rt.tracegc.accumulator when it is accessable in the future.
-            version (tracegc)
-            {
-                import core.stdc.stdio;
-
-                printf("%s file = '%.*s' line = %d function = '%.*s' type = %.*s\n",
-                    __FUNCTION__.ptr,
-                    file.length, file.ptr,
-                    line,
-                    funcname.length, funcname.ptr,
-                    name.length, name.ptr
-                );
-            }
-
-            ulong currentlyAllocated = gcStats().allocatedInCurrentThread;
-
-            scope(exit)
-            {
-                ulong size = gcStats().allocatedInCurrentThread - currentlyAllocated;
-                if (size > 0)
-                    accumulate(file, line, funcname, name, size);
-            }
-            return _d_arraycatnTX(arrs);
-        }
-        else
-            assert(0, "Cannot concatenate arrays if compiling without support for runtime type information!");
-    }
+    alias _d_arraycatnTXTrace = HookTraceImpl!(ResultArrT, _d_arraycatnTX, errorMessage);
 }
 
 @safe unittest
