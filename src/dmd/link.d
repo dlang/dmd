@@ -668,16 +668,21 @@ public int runLINK()
                 argv.push(getbuf(libname));
             }
         }
-        //argv.push("-ldruntime");
-        argv.push("-lpthread");
-        argv.push("-lm");
-        version (linux)
+
+        if (!global.params.dnostdlib)
         {
-            // Changes in ld for Ubuntu 11.10 require this to appear after phobos2
-            argv.push("-lrt");
-            // Link against libdl for phobos usage of dlopen
-            argv.push("-ldl");
+            //argv.push("-ldruntime");
+            argv.push("-lpthread");
+            argv.push("-lm");
+            version (linux)
+            {
+                // Changes in ld for Ubuntu 11.10 require this to appear after phobos2
+                argv.push("-lrt");
+                // Link against libdl for phobos usage of dlopen
+                argv.push("-ldl");
+            }
         }
+
         if (global.params.verbose)
         {
             // Print it
