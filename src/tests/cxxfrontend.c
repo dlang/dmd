@@ -13,61 +13,60 @@
 #include "root/dcompat.h"
 #include "root/file.h"
 #include "root/filename.h"
-#include "root/longdouble.h"
-#include "root/object.h"
-#include "root/outbuffer.h"
-#include "root/port.h"
-#include "root/rmem.h"
-#include "root/root.h"
+/*#include "root/longdouble.h"*/
+/*#include "root/object.h"*/
+/*#include "root/outbuffer.h"*/
+/*#include "root/port.h"*/
+/*#include "root/rmem.h"*/
+/*#include "root/root.h"*/
 
-#include "aggregate.h"
-#include "aliasthis.h"
-#include "arraytypes.h"
-#include "ast_node.h"
-#include "attrib.h"
-#include "compiler.h"
-#include "complex_t.h"
-#include "cond.h"
-#include "ctfe.h"
-#include "declaration.h"
-#include "doc.h"
-#include "dsymbol.h"
-#include "enum.h"
-#include "errors.h"
-#include "expression.h"
-#include "globals.h"
-#include "hdrgen.h"
-#include "identifier.h"
-#include "id.h"
-#include "import.h"
-#include "init.h"
-#include "json.h"
-#include "mangle.h"
-#include "module.h"
-#include "mtype.h"
-#include "nspace.h"
-#include "objc.h"
-#include "scope.h"
-#include "statement.h"
-#include "staticassert.h"
-#include "target.h"
-#include "template.h"
-#include "tokens.h"
-#include "version.h"
+/*#include "aggregate.h"*/
+/*#include "aliasthis.h"*/
+/*#include "arraytypes.h"*/
+/*#include "attrib.h"*/
+/*#include "compiler.h"*/
+/*#include "complex_t.h"*/
+/*#include "cond.h"*/
+/*#include "ctfe.h"*/
+/*#include "declaration.h"*/
+/*#include "doc.h"*/
+/*#include "dsymbol.h"*/
+/*#include "enum.h"*/
+/*#include "errors.h"*/
+/*#include "expression.h"*/
+/*#include "globals.h"*/
+/*#include "hdrgen.h"*/
+/*#include "identifier.h"*/
+/*#include "id.h"*/
+/*#include "import.h"*/
+/*#include "init.h"*/
+/*#include "json.h"*/
+/*#include "mangle.h"*/
+/*#include "module.h"*/
+/*#include "mtype.h"*/
+/*#include "nspace.h"*/
+/*#include "objc.h"*/
+/*#include "scope.h"*/
+/*#include "statement.h"*/
+/*#include "staticassert.h"*/
+/*#include "target.h"*/
+/*#include "template.h"*/
+/*#include "tokens.h"*/
+/*#include "version.h"*/
 
-#include "array.h"
-#include "ctfloat.h"
-#include "file.h"
-#include "filename.h"
-#include "longdouble.h"
-#include "object.h"
-// FIXME: UINT64_MAX
-//#include "outbuffer.h"
-//#include "port.h"
-#include "rmem.h"
-//#include "root.h"
-//#include "stringtable.h"
-#include "thread.h"
+/*#include "array.h"*/
+/*#include "ctfloat.h"*/
+/*#include "file.h"*/
+/*#include "filename.h"*/
+/*#include "longdouble.h"*/
+/*#include "object.h"*/
+/*// FIXME: UINT64_MAX*/
+/*//#include "outbuffer.h"*/
+/*//#include "port.h"*/
+/*#include "rmem.h"*/
+/*//#include "root.h"*/
+/*//#include "stringtable.h"*/
+/*#include "thread.h"*/
 
 #include "visitor.h"
 #include "frontend.h"
@@ -313,54 +312,30 @@ void test_expression()
 
 void test_target()
 {
-    assert(target.isVectorOpSupported(Type::tint32, TOKpow));
+    assert(target.isVectorOpSupported(Type::tint32, TOKpow, NULL));
 }
 
 /**********************************/
 
 void test_emplace()
 {
-    Loc loc;
-    UnionExp ue;
+  Loc loc;
+  UnionExp ue;
 
-    IntegerExp::emplace(&ue, loc, 1065353216, Type::tint32);
-    Expression *e = ue.exp();
-    assert(e->op == TOKint64);
-    assert(e->toInteger() == 1065353216);
+  IntegerExp::emplacei(&ue, loc, 1065353216, Type::tint32);
+  Expression *e = ue.exp();
+  assert((unsigned char) e->op == TOKint64);
+  assert(e->toInteger() == 1065353216);
 
-    UnionExp ure;
-    Expression *re = Compiler::paintAsType(&ure, e, Type::tfloat32);
-    assert(re->op == TOKfloat64);
-    assert(re->toReal() == CTFloat::one);
+  UnionExp ure;
+  Expression *re = Compiler::paintAsType(&ure, e, Type::tfloat32);
+  assert((unsigned char) re->op == TOKfloat64);
+  assert(re->toReal() == CTFloat::one);
 
-    UnionExp uie;
-    Expression *ie = Compiler::paintAsType(&uie, re, Type::tint32);
-    assert(ie->op == TOKint64);
-    assert(ie->toInteger() == e->toInteger());
-}
-
-/**********************************/
-
-void test_parameters()
-{
-    Parameters *args = new Parameters;
-    args->push(Parameter::create(STCundefined, Type::tint32, NULL, NULL, NULL));
-    args->push(Parameter::create(STCundefined, Type::tint64, NULL, NULL, NULL));
-
-    TypeFunction *tf = TypeFunction::create(args, Type::tvoid, VARARGnone, LINKc);
-
-    assert(tf->parameterList.length() == 2);
-    assert(tf->parameterList[0]->type == Type::tint32);
-    assert(tf->parameterList[1]->type == Type::tint64);
-}
-
-/**********************************/
-
-void test_location()
-{
-    Loc loc1 = Loc("test.d", 24, 42);
-    assert(loc1.equals(Loc("test.d", 24, 42)));
-    assert(strcmp(loc1.toChars(true), "test.d(24,42)") == 0);
+  UnionExp uie;
+  Expression *ie = Compiler::paintAsType(&uie, re, Type::tint32);
+  assert((unsigned char) ie->op == TOKint64);
+  assert(ie->toInteger() == e->toInteger());
 }
 
 /**********************************/

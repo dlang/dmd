@@ -270,11 +270,11 @@ struct DMDType
     __gshared static Identifier c_longlong;
     __gshared static Identifier c_ulonglong;
     __gshared static Identifier c_long_double;
-    version(BUILD_COMPILER)
-    {
+    //version(BUILD_COMPILER)
+    //{
         __gshared static Identifier AssocArray;
         __gshared static Identifier Array;
-    }
+    //}
     static void _init()
     {
         c_long          = Identifier.idPool("__c_long");
@@ -282,16 +282,16 @@ struct DMDType
         c_longlong      = Identifier.idPool("__c_longlong");
         c_ulonglong     = Identifier.idPool("__c_ulonglong");
         c_long_double   = Identifier.idPool("__c_long_double");
-        version(BUILD_COMPILER)
-        {
+        //version(BUILD_COMPILER)
+        //{
             AssocArray      = Identifier.idPool("AssocArray");
             Array           = Identifier.idPool("Array");
-        }
+        //}
 
     }
 }
-version(BUILD_COMPILER)
-{
+//version(BUILD_COMPILER)
+//{
     struct DMDModule
     {
         __gshared static Identifier identifier;
@@ -385,7 +385,7 @@ version(BUILD_COMPILER)
 
         return __FILE_FULL_PATH__.dirName.buildPath(path);
     }*/
-}
+//}
 
 /****************************************************
  */
@@ -508,11 +508,11 @@ public:
         }
         if (cast(void*)fd in visited)
             return;
-        version(BUILD_COMPILER)
-        {
+        //version(BUILD_COMPILER)
+        //{
             if (fd.getModule() && !fd.getModule().isFrontendModule())
             return;
-        }
+        //}
 
         // printf("FuncDeclaration %s %s\n", fd.toPrettyChars(), fd.type.toChars());
         visited[cast(void*)fd] = true;
@@ -591,11 +591,11 @@ public:
         }
         if (cast(void*)vd in visited)
         return;
-        version(BUILD_COMPILER)
-        {
+        //version(BUILD_COMPILER)
+        //{
             if (vd.getModule() && !vd.getModule().isFrontendModule())
                 return;
-        }
+        //}
 
         visited[cast(void*)vd] = true;
 
@@ -703,11 +703,11 @@ public:
             printf("[AST.AliasDeclaration enter] %s\n", ad.toChars());
             scope(exit) printf("[AST.AliasDeclaration exit] %s\n", ad.toChars());
         }
-        version(BUILD_COMPILER)
-        {
+        //version(BUILD_COMPILER)
+        //{
             if (ad.getModule() && !ad.getModule().isFrontendModule())
             return;
-        }
+        //}
 
         if (auto t = ad.type)
         {
@@ -794,13 +794,18 @@ public:
             return;
         if (!sd.type || !sd.type.deco)
             return;
-        version(BUILD_COMPILER)
-        {
+        //version(BUILD_COMPILER)
+        //{
             if (sd.getModule() && !sd.getModule().isFrontendModule())
             return;
-        }
+        //}
 
         visited[cast(void*)sd] = true;
+        if (linkage != LINK.c && linkage != LINK.cpp)
+        {
+            buf.printf("// ignoring non-cpp struct %s because of linkage\n", sd.toChars());
+            return;
+        }
 
         if (sd.alignment == 1)
             buf.writestring("#pragma pack(push, 1)\n");
@@ -827,6 +832,7 @@ public:
                     if (!memberField(vd))
                         continue;
                     varCount++;
+
                     if (!vd._init && !vd.type.isTypeBasic())
                         continue;
                     if (vd._init && vd._init.isVoidInitializer())
@@ -917,13 +923,13 @@ public:
         }
         if (cast(void*)cd in visited)
         return;
-        version(BUILD_COMPILER)
-        {
+        //version(BUILD_COMPILER)
+        //{
             if (cd.getModule() && !cd.getModule().isFrontendModule())
             return;
             if (cd.isVisitorClass())
             return;
-        }
+        //}
 
         visited[cast(void*)cd] = true;
         if (!cd.isCPPclass())
@@ -951,14 +957,14 @@ public:
                 m.accept(this);
             }
             adparent = save;
-            version(BUILD_COMPILER)
-            {
+            //version(BUILD_COMPILER)
+            //{
                 // Generate special static inline function.
                 if (cd.isIdentifierClass())
                 {
                     buf.writestring("    static inline Identifier *idPool(const char *s) { return idPool(s, strlen(s)); }\n");
                 }
-            }
+            //}
 
             buf.writestring("};\n\n");
         }
@@ -974,14 +980,22 @@ public:
             scope(exit) printf("[AST.EnumDeclaration exit] %s\n", ed.toChars());
         }
         if (cast(void*)ed in visited)
-        return;
-        version(BUILD_COMPILER)
-        {
+            return;
+
+        //version(BUILD_COMPILER)
+        //{
             if (ed.getModule() && !ed.getModule().isFrontendModule())
             return;
-        }
+        //}
 
         visited[cast(void*)ed] = true;
+
+        //if (linkage != LINK.c && linkage != LINK.cpp)
+        //{
+            //buf.printf("// ignoring non-cpp enum %s because of linkage\n", ed.toChars());
+            //return;
+        //}
+
         if (ed.isSpecial())
             return;
         buf.writestring("enum");
@@ -1012,6 +1026,7 @@ public:
         }
         else
             buf.writestring(";\n\n");
+        //printf("Enum %s min %d max %d\n", ident, ed.minval.toInteger(), ed.maxval.toInteger());
     }
 
     override void visit(AST.EnumMember em)
@@ -1278,8 +1293,8 @@ public:
             printf("[visitTi(AST.TemplateInstance) enter] %s\n", ti.toChars());
             scope(exit) printf("[visitTi(AST.TemplateInstance) exit] %s\n", ti.toChars());
         }
-        version(BUILD_COMPILER)
-        {
+        //version(BUILD_COMPILER)
+        //{
             if (ti.tempdecl.ident == DMDType.AssocArray)
             {
                 buf.writestring("AA*");
@@ -1296,16 +1311,16 @@ public:
                 }
                 buf.writestring(ti.tempdecl.ident.toChars());
             }
-        }
-        else
-        {
-            foreach (o; *ti.tiargs)
-            {
-                if (!AST.isType(o))
-                return;
-            }
-            buf.writestring(ti.tempdecl.ident.toChars());
-        }
+        //}
+        //else
+        //{
+            //foreach (o; *ti.tiargs)
+            //{
+                //if (!AST.isType(o))
+                //return;
+            //}
+            //buf.writestring(ti.tempdecl.ident.toChars());
+        //}
         buf.writeByte('<');
         foreach (i, o; *ti.tiargs)
         {
@@ -1335,11 +1350,11 @@ public:
         if (cast(void*)td in visited)
             return;
         visited[cast(void*)td] = true;
-        version(BUILD_COMPILER)
-        {
+        //version(BUILD_COMPILER)
+        //{
             if (td.getModule() && !td.getModule().isFrontendModule())
                 return;
-        }
+        //}
 
         if (!td.parameters || !td.onemember || !td.onemember.isStructDeclaration())
         {
@@ -1744,11 +1759,11 @@ void gencpphdrfiles(Modules *ms)
     import dmd.tokens;
 
     DMDType._init();
-    version(BUILD_COMPILER)
-    {
+    //version(BUILD_COMPILER)
+    //{
         DMDModule._init();
         DMDClass._init();
-    }
+    //}
     setVersions();
 
     OutBuffer buf;
@@ -1788,7 +1803,7 @@ void gencpphdrfiles(Modules *ms)
     buf.writestring("\n");
     buf.writestring("#define _d_null NULL\n");
     buf.writestring("\n");
-    version(BUILD_COMPILER)
+    //version(BUILD_COMPILER)
         buf.writestring("struct AA;\n");
     buf.writestring("\n");
 
@@ -1826,6 +1841,7 @@ void gencpphdrfiles(Modules *ms)
         }
         buf.write(&done);
         buf.write(&decl);
+        //printf("%s\n", decl.peekSlice().ptr);
 
         check.writestring(`
     }
