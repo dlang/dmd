@@ -6437,7 +6437,7 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
     }
     if (global.gag && errors != global.errors)
     {
-        ds.type = oldtype;
+        ds.type = Type.terror;
         ds.aliassym = null;
     }
     ds.inuse = 0;
