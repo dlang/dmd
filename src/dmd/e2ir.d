@@ -983,7 +983,8 @@ Lagain:
                     /* Need to do postblit/destructor.
                      *   void *_d_arraysetassign(void *p, void *value, int dim, TypeInfo ti);
                      */
-                    r = (op == TOK.construct) ? RTLSYM_ARRAYSETCTOR : RTLSYM_ARRAYSETASSIGN;
+                    assert(op != TOK.construct, "Trying reference _d_arraysetctor, this should not happen!");
+                    r = RTLSYM_ARRAYSETASSIGN;
                     evalue = el_una(OPaddr, TYnptr, evalue);
                     // This is a hack so we can call postblits on const/immutable objects.
                     elem *eti = getTypeInfo(exp.loc, tb.unSharedOf().mutableOf(), irs);
@@ -2917,7 +2918,8 @@ elem *toElem(Expression e, IRState *irs)
                             efrom = addressElem(efrom, Type.tvoid.arrayOf());
                         }
                         elem *ep = el_params(eto, efrom, eti, null);
-                        int rtl = (ae.op == TOK.construct) ? RTLSYM_ARRAYCTOR : RTLSYM_ARRAYASSIGN;
+                        assert(ae.op != TOK.construct, "Trying reference _d_arrayctor, this should not happen!");
+                        int rtl = RTLSYM_ARRAYASSIGN;
                         elem* e = el_bin(OPcall, totym(ae.type), el_var(getRtlsym(rtl)), ep);
                         return setResult(e);
                     }
@@ -3202,21 +3204,7 @@ elem *toElem(Expression e, IRState *irs)
                 }
                 else if (ae.op == TOK.construct)
                 {
-                    e1 = sarray_toDarray(ae.e1.loc, ae.e1.type, null, e1);
-                    e2 = sarray_toDarray(ae.e2.loc, ae.e2.type, null, e2);
-
-                    /* Generate:
-                     *      _d_arrayctor(ti, e2, e1)
-                     */
-                    elem *eti = getTypeInfo(ae.e1.loc, t1b.nextOf().toBasetype(), irs);
-                    if (config.exe == EX_WIN64)
-                    {
-                        e1 = addressElem(e1, Type.tvoid.arrayOf());
-                        e2 = addressElem(e2, Type.tvoid.arrayOf());
-                    }
-                    elem *ep = el_params(e1, e2, eti, null);
-                    elem* e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYCTOR)), ep);
-                    return setResult2(e);
+                    assert(0, "Trying reference _d_arrayctor, this should not happen!");
                 }
                 else
                 {
