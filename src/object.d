@@ -38,29 +38,29 @@ alias dstring = immutable(dchar)[];
 
 version (D_ObjectiveC) public import core.attribute : selector;
 
-/// See $(REF __cmp, rt,array,comparison)
-public import rt.array.comparison : __cmp;
-/// See $(REF __equals, rt,array,equality)
-public import rt.array.equality : __equals;
-/// See $(REF __ArrayEq, rt,array,equality)
-public import rt.array.equality : __ArrayEq;
-/// See $(REF __ArrayCast, rt,array,casting)
-public import rt.array.casting: __ArrayCast;
-/// See $(REF _d_arraycatnTXImpl, rt,array,concatenation)
-public import rt.array.concatenation : _d_arraycatnTXImpl;
-/// See $(REF _d_arrayctor, rt,array,construction)
-public import rt.array.construction : _d_arrayctor;
-/// See $(REF _d_arraysetctor, rt,array,construction)
-public import rt.array.construction : _d_arraysetctor;
+/// See $(REF __cmp, core,internal,array,comparison)
+public import core.internal.array.comparison : __cmp;
+/// See $(REF __equals, core,internal,array,equality)
+public import core.internal.array.equality : __equals;
+/// See $(REF __ArrayEq, core,internal,array,equality)
+public import core.internal.array.equality : __ArrayEq;
+/// See $(REF __ArrayCast, core,internal,array,casting)
+public import core.internal.array.casting: __ArrayCast;
+/// See $(REF _d_arraycatnTXImpl, core,internal,array,concatenation)
+public import core.internal.array.concatenation : _d_arraycatnTXImpl;
+/// See $(REF _d_arrayctor, core,internal,array,construction)
+public import core.internal.array.construction : _d_arrayctor;
+/// See $(REF _d_arraysetctor, core,internal,array,construction)
+public import core.internal.array.construction : _d_arraysetctor;
 
-/// See $(REF capacity, rt,array,capacity)
-public import rt.array.capacity: capacity;
-/// See $(REF reserve, rt,array,capacity)
-public import rt.array.capacity: reserve;
-/// See $(REF assumeSafeAppend, rt,array,capacity)
-public import rt.array.capacity: assumeSafeAppend;
-/// See $(REF _d_arraysetlengthTImpl, rt,array,capacity)
-public import rt.array.capacity: _d_arraysetlengthTImpl;
+/// See $(REF capacity, core,internal,array,capacity)
+public import core.internal.array.capacity: capacity;
+/// See $(REF reserve, core,internal,array,capacity)
+public import core.internal.array.capacity: reserve;
+/// See $(REF assumeSafeAppend, core,internal,array,capacity)
+public import core.internal.array.capacity: assumeSafeAppend;
+/// See $(REF _d_arraysetlengthTImpl, core,internal,array,capacity)
+public import core.internal.array.capacity: _d_arraysetlengthTImpl;
 
 // Compare class and interface objects for ordering.
 private int __cmp(Obj)(Obj lhs, Obj rhs)

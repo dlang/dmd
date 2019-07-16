@@ -178,10 +178,13 @@ $(DOCDIR)/core_sys_darwin_mach_%.html : src/core/sys/darwin/mach/%.d $(DMD)
 $(DOCDIR)/core_sys_darwin_netinet_%.html : src/core/sys/darwin/netinet/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
-$(DOCDIR)/rt_%.html : src/rt/%.d $(DMD)
+$(DOCDIR)/core_internal_array_%.html : src/core/internal/array/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
-$(DOCDIR)/rt_array_%.html : src/rt/array/%.d $(DMD)
+$(DOCDIR)/core_internal_util_%.html : src/core/internal/util/%.d $(DMD)
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+
+$(DOCDIR)/rt_%.html : src/rt/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOCDIR)/rt_backtrace_%.html : src/rt/backtrace/%.d $(DMD)

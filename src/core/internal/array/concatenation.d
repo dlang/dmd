@@ -6,7 +6,7 @@
      (See accompanying file LICENSE)
   Source: $(DRUNTIMESRC rt/_array/_concatenation.d)
 */
-module rt.array.concatenation;
+module core.internal.array.concatenation;
 
 /// See $(REF _d_arraycatnTX, rt,lifetime)
 private extern (C) void[] _d_arraycatnTX(const TypeInfo ti, byte[][] arrs) pure nothrow;
@@ -14,7 +14,7 @@ private extern (C) void[] _d_arraycatnTX(const TypeInfo ti, byte[][] arrs) pure 
 /// Implementation of `_d_arraycatnTX` and `_d_arraycatnTXTrace`
 template _d_arraycatnTXImpl(Tarr : ResultArrT[], ResultArrT : T[], T)
 {
-    import rt.array.utils : HookTraceImpl;
+    import core.internal.array.utils : HookTraceImpl;
 
     private enum errorMessage = "Cannot concatenate arrays if compiling without support for runtime type information!";
 
@@ -46,7 +46,7 @@ template _d_arraycatnTXImpl(Tarr : ResultArrT[], ResultArrT : T[], T)
     }
 
     /**
-    * TraceGC wrapper around $(REF _d_arraycatnTX, rt,array,concat).
+    * TraceGC wrapper around $(REF _d_arraycatnTX, core,internal,array,concat).
     * Bugs:
     *  This function template was ported from a much older runtime hook that bypassed safety,
     *  purity, and throwabilty checks. To prevent breaking existing code, this function template

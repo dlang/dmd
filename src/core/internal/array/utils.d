@@ -7,7 +7,7 @@
      (See accompanying file LICENSE)
   Source: $(DRUNTIMESRC rt/_array/_utils.d)
 */
-module rt.array.utils;
+module core.internal.array.utils;
 
 import core.internal.traits : Parameters;
 

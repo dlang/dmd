@@ -33,6 +33,15 @@ SRCS=\
 	src\core\internal\utf.d \
 	src\core\internal\lifetime.d \
 	\
+	src\core\internal\array\comparison.d \
+	src\core\internal\array\construction.d \
+	src\core\internal\array\equality.d \
+	src\core\internal\array\casting.d \
+	src\core\internal\array\capacity.d \
+	src\core\internal\array\concatenation.d \
+	src\core\internal\array\utils.d \
+	src\core\internal\util\array.d \
+	\
 	src\core\stdc\assert_.d \
 	src\core\stdc\complex.d \
 	src\core\stdc\config.d \
@@ -450,19 +459,10 @@ SRCS=\
 	src\rt\tracegc.d \
 	src\rt\unwind.d \
 	\
-	src\rt\array\comparison.d \
-	src\rt\array\construction.d \
-	src\rt\array\equality.d \
-	src\rt\array\casting.d \
-	src\rt\array\capacity.d \
-	src\rt\array\concatenation.d \
-	src\rt\array\utils.d \
-	\
 	src\rt\backtrace\dwarf.d \
 	src\rt\backtrace\elf.d \
 	src\rt\backtrace\macho.d \
 	\
-	src\rt\util\array.d \
 	src\rt\util\random.d \
 	src\rt\util\typeinfo.d \
 	src\rt\util\container\array.d \

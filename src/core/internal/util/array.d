@@ -6,7 +6,7 @@ License: $(HTTP boost.org/LICENSE_1_0.txt, Boost License 1.0).
 Authors: Denis Shelomovskij
 Source: $(DRUNTIMESRC rt/util/_array.d)
 */
-module rt.util.array;
+module core.internal.util.array;
 
 
 import core.internal.string;

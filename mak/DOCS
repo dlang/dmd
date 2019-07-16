@@ -73,19 +73,20 @@ DOCS=\
 	$(DOCDIR)\core_sys_darwin_mach_thread_act.html \
 	$(DOCDIR)\core_sys_darwin_netinet_in_.html \
 	\
+    $(DOCDIR)\core_internal_array_capacity.html \
+    $(DOCDIR)\core_internal_array_casting.html \
+    $(DOCDIR)\core_internal_array_comparison.html \
+    $(DOCDIR)\core_internal_array_construction.html \
+    $(DOCDIR)\core_internal_array_equality.html \
+    $(DOCDIR)\core_internal_array_concatenation.html \
+    $(DOCDIR)\core_internal_array_utils.html \
+    $(DOCDIR)\core_internal_util_array.html \
+    \
     $(DOCDIR)\rt_aaA.html \
     $(DOCDIR)\rt_aApply.html \
     $(DOCDIR)\rt_aApplyR.html \
     $(DOCDIR)\rt_adi.html \
     $(DOCDIR)\rt_alloca.html \
-    \
-    $(DOCDIR)\rt_array_capacity.html \
-    $(DOCDIR)\rt_array_casting.html \
-    $(DOCDIR)\rt_array_comparison.html \
-    $(DOCDIR)\rt_array_construction.html \
-    $(DOCDIR)\rt_array_equality.html \
-    $(DOCDIR)\rt_array_concatenation.html \
-    $(DOCDIR)\rt_array_utils.html \
     \
     $(DOCDIR)\rt_arrayassign.html \
     $(DOCDIR)\rt_arraycat.html \
@@ -166,7 +167,6 @@ DOCS=\
 	\
     $(DOCDIR)\rt_unwind.html \
 	\
-    $(DOCDIR)\rt_util_array.html \
     $(DOCDIR)\rt_util_container_array.html \
     $(DOCDIR)\rt_util_container_common.html \
     $(DOCDIR)\rt_util_container_hashtab.html \
