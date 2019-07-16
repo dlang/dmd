@@ -327,6 +327,7 @@ final class Parser(AST) : Lexer
     {
         const comment = token.blockComment;
         bool isdeprecated = false;
+        bool isnoobject = false;
         AST.Expression msg = null;
         AST.Expressions* udas = null;
         AST.Dsymbols* decldefs;
@@ -366,6 +367,8 @@ final class Parser(AST) : Lexer
                         }
                         else
                         {
+                            if (stc == AST.STC.noobject)
+                                isnoobject = true;
                             udas = AST.UserAttributeDeclaration.concat(udas, exps);
                         }
                         if (stc)
@@ -418,7 +421,7 @@ final class Parser(AST) : Lexer
                 id = token.ident;
             }
 
-            md = new AST.ModuleDeclaration(loc, a, id, msg, isdeprecated);
+            md = new AST.ModuleDeclaration(loc, a, id, msg, isdeprecated, isnoobject);
 
             if (token.value != TOK.semicolon)
                 error("`;` expected following module declaration instead of `%s`", token.toChars());
@@ -1402,6 +1405,8 @@ final class Parser(AST) : Lexer
                 stc = AST.STC.disable;
             else if (token.ident == Id.future)
                 stc = AST.STC.future;
+            else if (token.ident == Id.noobject)
+                stc = AST.STC.noobject;
             else
             {
                 // Allow identifier, template instantiation, or function call

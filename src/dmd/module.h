@@ -156,6 +156,7 @@ struct ModuleDeclaration
     Identifier *id;
     Identifiers *packages;            // array of Identifier's representing packages
     bool isdeprecated;  // if it is a deprecated module
+    bool isnoobject;    // if it contains the @noobject attribute
     Expression *msg;
 
     const char *toChars() const;

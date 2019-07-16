@@ -1128,8 +1128,8 @@ extern (C++) final class Module : Package
         // If it isn't there, some compiler rewrites, like
         //    classinst == classinst -> .object.opEquals(classinst, classinst)
         // would fail inside object.d.
-        if (members.dim == 0 || (*members)[0].ident != Id.object ||
-            (*members)[0].isImport() is null)
+        if ((!md || !md.isnoobject) && (members.dim == 0 || (*members)[0].ident != Id.object ||
+            (*members)[0].isImport() is null))
         {
             auto im = new Import(Loc.initial, null, Id.object, null, 0);
             members.shift(im);
@@ -1450,15 +1450,17 @@ struct ModuleDeclaration
     Identifier id;
     Identifiers* packages;  // array of Identifier's representing packages
     bool isdeprecated;      // if it is a deprecated module
+    bool isnoobject;        // if it contians the @noobject attribute
     Expression msg;
 
-    extern (D) this(const ref Loc loc, Identifiers* packages, Identifier id, Expression msg, bool isdeprecated)
+    extern (D) this(const ref Loc loc, Identifiers* packages, Identifier id, Expression msg, bool isdeprecated, bool isnoobject)
     {
         this.loc = loc;
         this.packages = packages;
         this.id = id;
         this.msg = msg;
         this.isdeprecated = isdeprecated;
+        this.isnoobject = isnoobject;
     }
 
     extern (C++) const(char)* toChars() const
