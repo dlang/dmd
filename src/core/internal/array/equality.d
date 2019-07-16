@@ -8,7 +8,7 @@
  * Source: $(DRUNTIMESRC rt/_array.d)
  */
 
-module rt.array.equality;
+module core.internal.array.equality;
 
 // compiler frontend lowers dynamic array comparison to this
 bool __ArrayEq(T1, T2)(T1[] a, T2[] b)

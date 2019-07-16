@@ -7,7 +7,7 @@
      (See accompanying file LICENSE)
   Source: $(DRUNTIMESRC rt/_array/_capacity.d)
 */
-module rt.array.capacity;
+module core.internal.array.capacity;
 
 // HACK:  This is a lie.  `_d_arraysetcapacity` is neither `nothrow` nor `pure`, but this lie is
 // necessary for now to prevent breaking code.
@@ -209,7 +209,7 @@ private extern (C) void[] _d_arraysetlengthiT(const TypeInfo ti, size_t newlengt
 /// Implementation of `_d_arraysetlengthT` and `_d_arraysetlengthTTrace`
 template _d_arraysetlengthTImpl(Tarr : T[], T)
 {
-    import rt.array.utils : HookTraceImpl;
+    import core.internal.array.utils : HookTraceImpl;
 
     private enum errorMessage = "Cannot resize arrays if compiling without support for runtime type information!";
 
@@ -242,7 +242,7 @@ template _d_arraysetlengthTImpl(Tarr : T[], T)
     }
 
     /**
-    * TraceGC wrapper around $(REF _d_arraysetlengthT, rt,array,rt.array.capacity).
+    * TraceGC wrapper around $(REF _d_arraysetlengthT, core,internal,array,core.internal.array.capacity).
     * Bugs:
     *  This function template was ported from a much older runtime hook that bypassed safety,
     *  purity, and throwabilty checks. To prevent breaking existing code, this function template

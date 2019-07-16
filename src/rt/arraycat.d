@@ -13,7 +13,7 @@ module rt.arraycat;
 private
 {
     import core.stdc.string;
-    import rt.util.array;
+    import core.internal.util.array;
     debug(PRINTF) import core.stdc.stdio;
 }
 

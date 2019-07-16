@@ -7,7 +7,7 @@
      (See accompanying file LICENSE)
   Source: $(DRUNTIMESRC rt/_array/_construction.d)
 */
-module rt.array.construction;
+module core.internal.array.construction;
 
 /**
  * Does array initialization (not assignment) from another array of the same element type.
@@ -31,7 +31,7 @@ Tarr _d_arrayctor(Tarr : T[], T)(return scope Tarr to, scope Tarr from) @trusted
     // Force `enforceRawArraysConformable` to be `pure`
     void enforceRawArraysConformable(const char[] action, in size_t elementSize, const void[] a1, const void[] a2, in bool allowOverlap = false) @trusted
     {
-        import rt.util.array : enforceRawArraysConformable;
+        import core.internal.util.array : enforceRawArraysConformable;
 
         alias Type = void function(const char[] action, in size_t elementSize, const void[] a1, const void[] a2, in bool allowOverlap = false) pure nothrow;
         (cast(Type)&enforceRawArraysConformable)(action, elementSize, a1, a2, allowOverlap);

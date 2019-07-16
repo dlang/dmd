@@ -34,6 +34,7 @@ copydir: $(IMPDIR)
 	mkdir $(IMPDIR)\core\stdc
 	mkdir $(IMPDIR)\core\stdcpp
 	mkdir $(IMPDIR)\core\internal
+	mkdir $(IMPDIR)\core\internal\array
 	mkdir $(IMPDIR)\core\sys\bionic
 	mkdir $(IMPDIR)\core\sys\darwin\mach
 	mkdir $(IMPDIR)\core\sys\darwin\netinet
@@ -55,8 +56,8 @@ copydir: $(IMPDIR)
 	mkdir $(IMPDIR)\core\sys\posix\sys
 	mkdir $(IMPDIR)\core\sys\solaris\sys
 	mkdir $(IMPDIR)\core\sys\windows
+	mkdir $(IMPDIR)\core\util
 	mkdir $(IMPDIR)\etc\linux
-	mkdir $(IMPDIR)\rt\array
 	mkdir $(IMPDIR)\rt\util
 
 copy: $(COPY)
@@ -150,6 +151,30 @@ $(IMPDIR)\core\internal\utf.d : src\core\internal\utf.d
 	copy $** $@
 
 $(IMPDIR)\core\internal\lifetime.d : src\core\internal\lifetime.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\array\comparison.d : src\core\internal\array\comparison.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\array\construction.d : src\core\internal\array\construction.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\array\equality.d : src\core\internal\array\equality.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\array\casting.d : src\core\internal\array\casting.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\array\capacity.d : src\core\internal\array\capacity.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\array\concatenation.d : src\core\internal\array\concatenation.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\array\utils.d : src\core\internal\array\utils.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\util\array.d : src\core\internal\util\array.d
 	copy $** $@
 
 $(IMPDIR)\core\stdc\assert_.d : src\core\stdc\assert_.d
@@ -1185,28 +1210,4 @@ $(IMPDIR)\core\sys\windows\wtypes.d : src\core\sys\windows\wtypes.d
 	copy $** $@
 
 $(IMPDIR)\etc\linux\memoryerror.d : src\etc\linux\memoryerror.d
-	copy $** $@
-
-$(IMPDIR)\rt\array\comparison.d : src\rt\array\comparison.d
-	copy $** $@
-
-$(IMPDIR)\rt\array\construction.d : src\rt\array\construction.d
-	copy $** $@
-
-$(IMPDIR)\rt\array\equality.d : src\rt\array\equality.d
-	copy $** $@
-
-$(IMPDIR)\rt\array\casting.d : src\rt\array\casting.d
-	copy $** $@
-
-$(IMPDIR)\rt\array\capacity.d : src\rt\array\capacity.d
-	copy $** $@
-
-$(IMPDIR)\rt\array\concatenation.d : src\rt\array\concatenation.d
-	copy $** $@
-
-$(IMPDIR)\rt\array\utils.d : src\rt\array\utils.d
-	copy $** $@
-
-$(IMPDIR)\rt\util\array.d : src\rt\util\array.d
 	copy $** $@

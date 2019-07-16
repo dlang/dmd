@@ -8,7 +8,7 @@
  * Source: $(DRUNTIMESRC rt/_array.d)
  */
 
-module rt.array.comparison;
+module core.internal.array.comparison;
 
 int __cmp(T)(scope const T[] lhs, scope const T[] rhs) @trusted
     if (__traits(isScalar, T))

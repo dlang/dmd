@@ -1753,7 +1753,7 @@ private:
     __gshared Thread    sm_tbeg;
     __gshared size_t    sm_tlen;
 
-    // can't use rt.util.array in public code
+    // can't use core.internal.util.array in public code
     __gshared Thread* pAboutToStart;
     __gshared size_t nAboutToStart;
 
