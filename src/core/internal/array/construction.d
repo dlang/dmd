@@ -5,7 +5,7 @@
   License: Distributed under the
        $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
      (See accompanying file LICENSE)
-  Source: $(DRUNTIMESRC rt/_array/_construction.d)
+  Source: $(DRUNTIMESRC core/internal/_array/_construction.d)
 */
 module core.internal.array.construction;
 
