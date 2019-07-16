@@ -41,7 +41,8 @@ bool checkAccess(AggregateDeclaration ad, Loc loc, Scope* sc, Dsymbol smember)
         printf("AggregateDeclaration::checkAccess() for %s.%s in function %s() in scope %s\n", ad.toChars(), smember.toChars(), f ? f.toChars() : null, cdscope ? cdscope.toChars() : null);
     }
 
-    if (smember.toParent().isTemplateInstance())
+    const p = smember.toParent();
+    if (p && p.isTemplateInstance())
     {
         return false; // for backward compatibility
     }
