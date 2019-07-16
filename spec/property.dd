@@ -146,8 +146,7 @@ $(H2 $(LNAME2 stringof, .stringof Property))
         source representation of its prefix.
         If applied to a type, it is the string for that type.
         If applied to an expression, it is the source representation
-        of that expression. Semantic analysis is not done
-        for that expression.
+        of that expression. The expression will not be evaluated.
         )
 
     ---
@@ -158,15 +157,20 @@ $(H2 $(LNAME2 stringof, .stringof Property))
 
     enum Color { Red }
 
+    int b = 4;
+
     void main()
     {
         writeln((1+2).stringof);       // "1 + 2"
         writeln(Dog.stringof);         // "Dog"
         writeln(test.Dog.stringof);    // "Dog"
         writeln(int.stringof);         // "int"
-        writeln((int*[5][]).stringof); // "int*[5u][]"
-        writeln(Color.Red.stringof);   // "cast(Color)0"
+        writeln((int*[5][]).stringof); // "int*[5][]"
+        writeln(Color.Red.stringof);   // "Red"
         writeln((5).stringof);         // "5"
+
+        writeln((++i).stringof);       // "i += 1"
+        writeln(i);                    // 4
     }
     ---
 
