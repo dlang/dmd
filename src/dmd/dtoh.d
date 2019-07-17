@@ -1030,16 +1030,54 @@ public:
             //return;
         //}
 
+        bool hasBaseType = false;
+
+        switch (ed.memtype.ty)
+        {
+            case AST.Tbool, AST.Tvoid:
+            case AST.Tchar, AST.Twchar, AST.Tdchar:
+            case AST.Tint8, AST.Tuns8:
+            case AST.Tint16, AST.Tuns16:
+            case AST.Tint64, AST.Tuns64:
+            case AST.Tfloat32, AST.Tfloat64, AST.Tfloat80:
+                //buf.writestring("_d_");
+                //buf.writestring(t.dstring);
+                //printf("Jaa _d_%s\n", ed.memtype.kind);
+                hasBaseType = true;
+                break;
+            case AST.Tint32, AST.Tuns32, AST.Tenum: // by default, the base is an int
+                break;
+            default:
+                printf ("%s\n", ed.ident.toChars());
+                assert(0, ed.memtype.kind.toDString);
+        }
+
         if (ed.isSpecial())
             return;
-        buf.writestring("enum");
         const(char)* ident = null;
         if (ed.ident)
             ident = ed.ident.toChars();
-        if (ident)
+        if (!ident)
         {
-            buf.writeByte(' ');
-            buf.writestring(ident);
+            buf.writestring("enum");
+        }
+        else
+        {
+            if (hasBaseType)
+            {
+                //printf("typedef _d_%s %s;\n", ed.memtype.kind, ident);
+                buf.writestring("typedef _d_");
+                buf.writestring(ed.memtype.kind);
+                buf.writeByte(' ');
+                buf.writestring(ident);
+                buf.writestring(";\n");
+                buf.writestring("enum");
+            }
+            else
+            {
+                buf.writestring("enum ");
+                buf.writestring(ident);
+            }
         }
         if (ed.members)
         {
