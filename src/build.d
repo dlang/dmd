@@ -229,7 +229,7 @@ DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@
 alias opTabGen = memoize!defineOpTabGen;
 auto defineOpTabGen()
 {
-    auto opTabFiles = ["debtab.d", "optab.d", "tytab.d"];
+    auto opTabFiles = ["debtab.d", "tytab.d"];
     auto opTabFilesBin = opTabFiles.map!(e => env["G"].buildPath(e)).array;
     auto opTabBin = env["G"].buildPath("optabgen").exeName;
     auto opTabSourceFile = env["C"].buildPath("optabgen.d");

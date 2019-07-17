@@ -31,102 +31,10 @@ int main()
 {
     printf("OPTABGEN... generating files\n");
     fdeb = fopen("debtab.d","w");
-    dooptab();
     dotab();
     dotytab();
     fclose(fdeb);
     return 0;
-}
-
-void dooptab()
-{
-    auto f = fopen("optab.d","w");
-    doreltables(f);
-    fclose(f);
-}
-
-/********************************************************
- */
-
-void doreltables(FILE *f)
-{
-        struct RelTables
-        {   OPER op;            /* operator                             */
-            OPER inot;          /* for logical negation                 */
-            OPER swap;          /* if operands are swapped              */
-            OPER integral;      /* if operands are integral types       */
-            int exception;      /* if invalid exception is generated    */
-            int unord;          /* result of unordered operand(s)       */
-        }
-        static RelTables[26] reltables =
-        [ /*    op      not     swap    int     exc     unord   */
-            { OPeqeq,   OPne,   OPeqeq, OPeqeq, 0,      0 },
-            { OPne,     OPeqeq, OPne,   OPne,   0,      1 },
-            { OPgt,     OPngt,  OPlt,   OPgt,   1,      0 },
-            { OPge,     OPnge,  OPle,   OPge,   1,      0 },
-            { OPlt,     OPnlt,  OPgt,   OPlt,   1,      0 },
-            { OPle,     OPnle,  OPge,   OPle,   1,      0 },
-
-            { OPunord, OPord,   OPunord, cast(OPER)0,0,1 },
-            { OPlg,     OPnlg,  OPlg,   OPne,   1,      0 },
-            { OPleg,    OPnleg, OPleg,  cast(OPER)1,1, 0 },
-            { OPule,    OPnule, OPuge,  OPle,   0,      1 },
-            { OPul,     OPnul,  OPug,   OPlt,   0,      1 },
-            { OPuge,    OPnuge, OPule,  OPge,   0,      1 },
-            { OPug,     OPnug,  OPul,   OPgt,   0,      1 },
-            { OPue,     OPnue,  OPue,   OPeqeq, 0,      1 },
-
-            { OPngt,    OPgt,   OPnlt,  OPle,   1,      1 },
-            { OPnge,    OPge,   OPnle,  OPlt,   1,      1 },
-            { OPnlt,    OPlt,   OPngt,  OPge,   1,      1 },
-            { OPnle,    OPle,   OPnge,  OPgt,   1,      1 },
-            { OPord,    OPunord, OPord, cast(OPER)1,0, 0 },
-            { OPnlg,    OPlg,   OPnlg,  OPeqeq, 1,      1 },
-            { OPnleg,   OPleg,  OPnleg, cast(OPER)0,1, 1 },
-            { OPnule,   OPule,  OPnuge, OPgt,   0,      0 },
-            { OPnul,    OPul,   OPnug,  OPge,   0,      0 },
-            { OPnuge,   OPuge,  OPnule, OPlt,   0,      0 },
-            { OPnug,    OPug,   OPnul,  OPle,   0,      0 },
-            { OPnue,    OPue,   OPnue,  OPne,   0,      0 },
-        ];
-        enum RELMAX = reltables.length;
-        OPER[RELMAX] rel_not;
-        OPER[RELMAX] rel_swap;
-        OPER[RELMAX] rel_integral;
-        int i;
-
-        for (i = 0; i < RELMAX; i++)
-        {   int j = cast(int)(reltables[i].op) - RELOPMIN;
-
-            assert(j >= 0 && j < RELMAX);
-            rel_not      [j] = reltables[i].inot;
-            rel_swap     [j] = reltables[i].swap;
-            rel_integral [j] = reltables[i].integral;
-        }
-
-    fprintf(f,"__gshared ubyte[%d] _rel_not =\n[ ", RELMAX);
-    for (i = 0; i < rel_not.length; i++)
-    {   fprintf(f,"0x%02x,",rel_not[i]);
-        if ((i & 7) == 7 && i < rel_not.length - 1)
-            fprintf(f,"\n  ");
-    }
-    fprintf(f,"\n];\n");
-
-    fprintf(f,"__gshared ubyte[%d] _rel_swap =\n[ ", RELMAX);
-    for (i = 0; i < rel_swap.length; i++)
-    {   fprintf(f,"0x%02x,",rel_swap[i]);
-        if ((i & 7) == 7 && i < rel_swap.length - 1)
-            fprintf(f,"\n  ");
-    }
-    fprintf(f,"\n];\n");
-
-    fprintf(f,"__gshared ubyte[%d] _rel_integral =\n[ ", RELMAX);
-    for (i = 0; i < rel_integral.length; i++)
-    {   fprintf(f,"0x%02x,",rel_integral[i]);
-        if ((i & 7) == 7 && i < rel_integral.length - 1)
-            fprintf(f,"\n  ");
-    }
-    fprintf(f,"\n];\n");
 }
 
 
