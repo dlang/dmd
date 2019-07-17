@@ -526,7 +526,7 @@ else version (FreeBSD)
         int     function(void*)                 _close;
         int     function(void*, char*, int)     _read;
         fpos_t  function(void*, fpos_t, int)    _seek;
-        int     function(void*, in char*, int)  _write;
+        int     function(void*, const scope char*, int)  _write;
 
         __sbuf          _ub;
         ubyte*          _up;
@@ -572,7 +572,7 @@ else version (NetBSD)
         int     function(void*)                 _close;
         ssize_t     function(void*, char*, size_t)     _read;
         fpos_t  function(void*, fpos_t, int)    _seek;
-        ssize_t     function(void*, in char*, size_t)  _write;
+        ssize_t     function(void*, const scope char*, size_t)  _write;
 
         __sbuf          _ub;
         ubyte*          _up;
@@ -1476,9 +1476,9 @@ else version (NetBSD)
   }
 
     ///
-    int  snprintf(char* s, size_t n, in char* format, ...);
+    int  snprintf(char* s, size_t n, const scope char* format, ...);
     ///
-    int  vsnprintf(char* s, size_t n, in char* format, va_list arg);
+    int  vsnprintf(char* s, size_t n, const scope char* format, va_list arg);
 }
 else version (OpenBSD)
 {
