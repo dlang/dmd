@@ -93,8 +93,6 @@ void doreltables(FILE *f)
         OPER[RELMAX] rel_not;
         OPER[RELMAX] rel_swap;
         OPER[RELMAX] rel_integral;
-        int[RELMAX] rel_exception;
-        int[RELMAX] rel_unord;
         int i;
 
         for (i = 0; i < RELMAX; i++)
@@ -104,8 +102,6 @@ void doreltables(FILE *f)
             rel_not      [j] = reltables[i].inot;
             rel_swap     [j] = reltables[i].swap;
             rel_integral [j] = reltables[i].integral;
-            rel_exception[j] = reltables[i].exception;
-            rel_unord    [j] = reltables[i].unord;
         }
 
     fprintf(f,"__gshared ubyte[%d] _rel_not =\n[ ", RELMAX);
@@ -128,22 +124,6 @@ void doreltables(FILE *f)
     for (i = 0; i < rel_integral.length; i++)
     {   fprintf(f,"0x%02x,",rel_integral[i]);
         if ((i & 7) == 7 && i < rel_integral.length - 1)
-            fprintf(f,"\n  ");
-    }
-    fprintf(f,"\n];\n");
-
-    fprintf(f,"__gshared ubyte[%d] _rel_exception =\n[ ", RELMAX);
-    for (i = 0; i < rel_exception.length; i++)
-    {   fprintf(f,"0x%02x,",rel_exception[i]);
-        if ((i & 7) == 7 && i < rel_exception.length - 1)
-            fprintf(f,"\n  ");
-    }
-    fprintf(f,"\n];\n");
-
-    fprintf(f,"__gshared ubyte[%d] _rel_unord =\n[ ", RELMAX);
-    for (i = 0; i < rel_unord.length; i++)
-    {   fprintf(f,"0x%02x,",rel_unord[i]);
-        if ((i & 7) == 7 && i < rel_unord.length - 1)
             fprintf(f,"\n  ");
     }
     fprintf(f,"\n];\n");
