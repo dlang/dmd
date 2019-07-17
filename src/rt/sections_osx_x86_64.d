@@ -119,7 +119,7 @@ extern(C) void _d_dyld_getTLSRange(void*, void**, size_t*) nothrow @nogc;
 __gshared SectionGroup _sections;
 ubyte dummyTlsSymbol;
 
-extern (C) void sections_osx_onAddImage(in mach_header* h, intptr_t slide)
+extern (C) void sections_osx_onAddImage(const scope mach_header* h, intptr_t slide)
 {
     foreach (e; dataSegs)
     {
