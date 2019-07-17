@@ -251,11 +251,6 @@ enum
  * Determine things about relational operators.
  */
 
-extern __gshared ubyte[RELOPMAX - RELOPMIN + 1]
-        _rel_not,
-        _rel_swap,
-        _rel_integral;
-
 OPER rel_not(OPER op)       { return _rel_not      [op - RELOPMIN]; }
 OPER rel_swap(OPER op)      { return _rel_swap     [op - RELOPMIN]; }
 OPER rel_integral(OPER op)  { return _rel_integral [op - RELOPMIN]; }
@@ -422,17 +417,170 @@ immutable ubyte[OPMAX] optab3 =
     return tab;
 } ();
 
-immutable ubyte[RELOPMAX] _rel_exception =
+private enum RELMAX = RELOPMAX - RELOPMIN + 1;
+
+immutable ubyte[RELMAX] _rel_exception =
 () {
-    ubyte[RELOPMAX] tab;
+    ubyte[RELMAX] tab;
     foreach (i; Eexception) { tab[cast(int)i - RELOPMIN] = 1; }
     return tab;
 } ();
 
-immutable ubyte[RELOPMAX] _rel_unord =
+immutable ubyte[RELMAX] _rel_unord =
 () {
-    ubyte[RELOPMAX] tab;
+    ubyte[RELMAX] tab;
     foreach (i; Eunord) { tab[cast(int)i - RELOPMIN] = 1; }
+    return tab;
+} ();
+
+/// Logical negation
+immutable ubyte[RELMAX] _rel_not =
+() {
+    ubyte[RELMAX] tab;
+    foreach (op; RELOPMIN .. RELOPMAX + 1)
+    {
+        OPER opnot;
+        switch (op)
+        {
+            case OPeqeq:  opnot = OPne;    break;
+            case OPne:    opnot = OPeqeq;  break;
+            case OPgt:    opnot = OPngt;   break;
+            case OPge:    opnot = OPnge;   break;
+            case OPlt:    opnot = OPnlt;   break;
+            case OPle:    opnot = OPnle;   break;
+
+            case OPunord: opnot = OPord;   break;
+            case OPlg:    opnot = OPnlg;   break;
+            case OPleg:   opnot = OPnleg;  break;
+            case OPule:   opnot = OPnule;  break;
+            case OPul:    opnot = OPnul;   break;
+            case OPuge:   opnot = OPnuge;  break;
+            case OPug:    opnot = OPnug;   break;
+            case OPue:    opnot = OPnue;   break;
+
+            case OPngt:   opnot = OPgt;    break;
+            case OPnge:   opnot = OPge;    break;
+            case OPnlt:   opnot = OPlt;    break;
+            case OPnle:   opnot = OPle;    break;
+            case OPord:   opnot = OPunord; break;
+            case OPnlg:   opnot = OPlg;    break;
+            case OPnleg:  opnot = OPleg;   break;
+            case OPnule:  opnot = OPule;   break;
+            case OPnul:   opnot = OPul;    break;
+            case OPnuge:  opnot = OPuge;   break;
+            case OPnug:   opnot = OPug;    break;
+            case OPnue:   opnot = OPue;    break;
+
+            default:
+                assert(0);
+        }
+        tab[cast(int)op - RELOPMIN] = cast(ubyte)opnot;
+    }
+
+    foreach (op; RELOPMIN .. RELOPMAX + 1)
+    {
+        OPER opnot = tab[cast(int)op - RELOPMIN];
+        assert(op == tab[cast(int)opnot - RELOPMIN]);  // symmetry check
+    }
+    return tab;
+} ();
+
+
+/// Operand swap
+immutable ubyte[RELMAX] _rel_swap =
+() {
+    ubyte[RELMAX] tab;
+    foreach (op; RELOPMIN .. RELOPMAX + 1)
+    {
+        OPER opswap;
+        switch (op)
+        {
+            case OPeqeq:  opswap = op;      break;
+            case OPne:    opswap = op;      break;
+            case OPgt:    opswap = OPlt;    break;
+            case OPge:    opswap = OPle;    break;
+            case OPlt:    opswap = OPgt;    break;
+            case OPle:    opswap = OPge;    break;
+
+            case OPunord: opswap = op;      break;
+            case OPlg:    opswap = op;      break;
+            case OPleg:   opswap = op;      break;
+            case OPule:   opswap = OPuge;   break;
+            case OPul:    opswap = OPug;    break;
+            case OPuge:   opswap = OPule;   break;
+            case OPug:    opswap = OPul;    break;
+            case OPue:    opswap = op;      break;
+
+            case OPngt:   opswap = OPnlt;   break;
+            case OPnge:   opswap = OPnle;   break;
+            case OPnlt:   opswap = OPngt;   break;
+            case OPnle:   opswap = OPnge;   break;
+            case OPord:   opswap = op;      break;
+            case OPnlg:   opswap = op;      break;
+            case OPnleg:  opswap = op;      break;
+            case OPnule:  opswap = OPnuge;  break;
+            case OPnul:   opswap = OPnug;   break;
+            case OPnuge:  opswap = OPnule;  break;
+            case OPnug:   opswap = OPnul;   break;
+            case OPnue:   opswap = op;      break;
+
+            default:
+                assert(0);
+        }
+        tab[cast(int)op - RELOPMIN] = cast(ubyte)opswap;
+    }
+
+    foreach (op; RELOPMIN .. RELOPMAX + 1)
+    {
+        OPER opswap = tab[cast(int)op - RELOPMIN];
+        assert(op == tab[cast(int)opswap - RELOPMIN]);  // symmetry check
+    }
+    return tab;
+} ();
+
+/// If operands are integral types
+immutable ubyte[RELMAX] _rel_integral =
+() {
+    ubyte[RELMAX] tab;
+    foreach (op; RELOPMIN .. RELOPMAX + 1)
+    {
+        OPER opintegral;
+        switch (op)
+        {
+            case OPeqeq:  opintegral = op;          break;
+            case OPne:    opintegral = op;          break;
+            case OPgt:    opintegral = op;          break;
+            case OPge:    opintegral = op;          break;
+            case OPlt:    opintegral = op;          break;
+            case OPle:    opintegral = op;          break;
+
+            case OPunord: opintegral = cast(OPER)0; break;
+            case OPlg:    opintegral = OPne;        break;
+            case OPleg:   opintegral = cast(OPER)1; break;
+            case OPule:   opintegral = OPle;        break;
+            case OPul:    opintegral = OPlt;        break;
+            case OPuge:   opintegral = OPge;        break;
+            case OPug:    opintegral = OPgt;        break;
+            case OPue:    opintegral = OPeqeq;      break;
+
+            case OPngt:   opintegral = OPle;        break;
+            case OPnge:   opintegral = OPlt;        break;
+            case OPnlt:   opintegral = OPge;        break;
+            case OPnle:   opintegral = OPgt;        break;
+            case OPord:   opintegral = cast(OPER)1; break;
+            case OPnlg:   opintegral = OPeqeq;      break;
+            case OPnleg:  opintegral = cast(OPER)0; break;
+            case OPnule:  opintegral = OPgt;        break;
+            case OPnul:   opintegral = OPge;        break;
+            case OPnuge:  opintegral = OPlt;        break;
+            case OPnug:   opintegral = OPle;        break;
+            case OPnue:   opintegral = OPne;        break;
+
+            default:
+                assert(0);
+        }
+        tab[cast(int)op - RELOPMIN] = cast(ubyte)opintegral;
+    }
     return tab;
 } ();
 

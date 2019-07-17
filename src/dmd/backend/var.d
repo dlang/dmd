@@ -45,7 +45,6 @@ extern (C++):
 
 nothrow:
 
-mixin(import("optab.d"));
 mixin(import("tytab.d"));
 
 __gshared:
