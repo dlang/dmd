@@ -494,7 +494,6 @@ void dotytab()
     static tym_t[TYMAX] _tyrelax;
     static tym_t[TYMAX] _tyequiv;
     static byte[64 * 4] _tysize;
-    static string[TYMAX] tystring;
     static ubyte[TYMAX] dttab;
     static ushort[TYMAX] dttab4;
     int i;
@@ -596,16 +595,6 @@ else
     for (i = 0; i < _tyequiv.length; i++)
     {   fprintf(f,"0x%02x,",_tyequiv[i]);
         if ((i & 7) == 7 && i < _tyequiv.length - 1)
-            fprintf(f,"\n  ");
-    }
-    fprintf(f,"\n];\n");
-
-    for (i = 0; i < typetab.length; i++)
-        tystring[typetab[i].ty] = typetab[i].str;
-    fprintf(f,"extern (C) __gshared const(char)*[TYMAX] tystring =\n[ ");
-    for (i = 0; i < tystring.length; i++)
-    {   fprintf(f,"\"%s\",",tystring[i].ptr);
-        if ((i & 7) == 7 && i < tystring.length - 1)
             fprintf(f,"\n  ");
     }
     fprintf(f,"\n];\n");
