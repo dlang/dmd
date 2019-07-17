@@ -724,7 +724,7 @@ $(GNAME ShiftExpression):
     $(I ShiftExpression) $(D >)$(D >)$(D >) $(GLINK AddExpression)
 )
 
-    $(P The operands must be integral types, and undergo the $(USUAL_ARITHMETIC_CONVERSIONS).
+    $(P The operands must be integral types, and undergo the $(INTEGER_PROMOTIONS).
         The result type is the type of the left operand after
         the promotions. The result value is the result of shifting the bits
         by the right operand's value.
