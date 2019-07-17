@@ -2880,6 +2880,15 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         Scope* scy = sc.push(tm);
         scy.parent = tm;
 
+        /* https://issues.dlang.org/show_bug.cgi?id=930
+         *
+         * If the template that is to be mixed in is in the scope of a template
+         * instance, we have to also declare the type aliases in the new mixin scope.
+         */
+        auto parentInstance = tempdecl.parent ? tempdecl.parent.isTemplateInstance() : null;
+        if (parentInstance)
+            parentInstance.declareParameters(scy);
+
         tm.argsym = new ScopeDsymbol();
         tm.argsym.parent = scy.parent;
         Scope* argscope = scy.push(tm.argsym);
