@@ -3225,7 +3225,13 @@ else
                     }
                     else if (rs.exp.op != TOK.error)
                     {
-                        rs.error("mismatched function return type inference of `%s` and `%s`", rs.exp.type.toChars(), tret.toChars());
+                        rs.error("Expected return type of `%s`, not `%s`:",
+                                 tret.toChars(),
+                                 rs.exp.type.toChars());
+                        errorSupplemental((fd.returns) ? (*fd.returns)[0].loc : fd.loc,
+                                          "Return type of `%s` inferred here.",
+                                          tret.toChars());
+
                         errors = true;
                         tf.next = Type.terror;
                     }
