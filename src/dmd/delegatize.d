@@ -86,6 +86,25 @@ private void lambdaSetParent(Expression e, FuncDeclaration fd)
         alias visit = typeof(super).visit;
         FuncDeclaration fd;
 
+        private void setParent(Dsymbol s)
+        {
+            VarDeclaration vd = s.isVarDeclaration();
+            FuncDeclaration pfd = s.parent ? s.parent.isFuncDeclaration() : null;
+            s.parent = fd;
+            if (!vd || !pfd)
+                return;
+            // move to fd's closure when applicable
+            foreach (i; 0 .. pfd.closureVars.dim)
+            {
+                if (vd == pfd.closureVars[i])
+                {
+                    pfd.closureVars.remove(i);
+                    fd.closureVars.push(vd);
+                    break;
+                }
+            }
+        }
+
     public:
         extern (D) this(FuncDeclaration fd)
         {
@@ -98,7 +117,7 @@ private void lambdaSetParent(Expression e, FuncDeclaration fd)
 
         override void visit(DeclarationExp e)
         {
-            e.declaration.parent = fd;
+            setParent(e.declaration);
             e.declaration.accept(this);
         }
 
@@ -107,7 +126,7 @@ private void lambdaSetParent(Expression e, FuncDeclaration fd)
             if (e.lengthVar)
             {
                 //printf("lengthVar\n");
-                e.lengthVar.parent = fd;
+                setParent(e.lengthVar);
                 e.lengthVar.accept(this);
             }
         }
@@ -117,7 +136,7 @@ private void lambdaSetParent(Expression e, FuncDeclaration fd)
             if (e.lengthVar)
             {
                 //printf("lengthVar\n");
-                e.lengthVar.parent = fd;
+                setParent(e.lengthVar);
                 e.lengthVar.accept(this);
             }
         }
