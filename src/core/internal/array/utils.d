@@ -40,16 +40,16 @@ private ulong accumulatePure(string file, int line, string funcname, string name
  *  T = Type of hook to report to accumulate
  *  Hook = The hook to wrap
  *  errorMessage = The error message incase `version != D_TypeInfo`
- *  file = File that called `HookTraceImpl`
- *  line = Line inside of `file` that called `HookTraceImpl`
- *  funcname = Function that called `HookTraceImpl`
+ *  file = File that called `_d_HookTraceImpl`
+ *  line = Line inside of `file` that called `_d_HookTraceImpl`
+ *  funcname = Function that called `_d_HookTraceImpl`
  *  parameters = Parameters that will be used to call `Hook`
  * Bugs:
  *  This function template was ported from a much older runtime hook that bypassed safety,
  *  purity, and throwabilty checks. To prevent breaking existing code, this function template
  *  is temporarily declared `@trusted pure nothrow` until the implementation can be brought up to modern D expectations.
 */
-auto HookTraceImpl(T, alias Hook, string errorMessage)(string file, int line, string funcname, Parameters!Hook parameters) @trusted pure nothrow
+auto _d_HookTraceImpl(T, alias Hook, string errorMessage)(string file, int line, string funcname, Parameters!Hook parameters) @trusted pure nothrow
 {
     version (D_TypeInfo)
     {

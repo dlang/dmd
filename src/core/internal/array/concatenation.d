@@ -14,7 +14,7 @@ private extern (C) void[] _d_arraycatnTX(const TypeInfo ti, byte[][] arrs) pure 
 /// Implementation of `_d_arraycatnTX` and `_d_arraycatnTXTrace`
 template _d_arraycatnTXImpl(Tarr : ResultArrT[], ResultArrT : T[], T)
 {
-    import core.internal.array.utils : HookTraceImpl;
+    import core.internal.array.utils : _d_HookTraceImpl;
 
     private enum errorMessage = "Cannot concatenate arrays if compiling without support for runtime type information!";
 
@@ -52,7 +52,7 @@ template _d_arraycatnTXImpl(Tarr : ResultArrT[], ResultArrT : T[], T)
     *  purity, and throwabilty checks. To prevent breaking existing code, this function template
     *  is temporarily declared `@trusted pure nothrow` until the implementation can be brought up to modern D expectations.
     */
-    alias _d_arraycatnTXTrace = HookTraceImpl!(ResultArrT, _d_arraycatnTX, errorMessage);
+    alias _d_arraycatnTXTrace = _d_HookTraceImpl!(ResultArrT, _d_arraycatnTX, errorMessage);
 }
 
 @safe unittest
