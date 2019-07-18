@@ -625,6 +625,8 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         {
             if (s._scope)
                 aliasSemantic(ad, s._scope);
+            if (ad.aliassym && ad.aliassym is this)
+                return false;
         }
         TemplateDeclaration td = s.toAlias().isTemplateDeclaration();
         if (!td)
