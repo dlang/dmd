@@ -2679,23 +2679,7 @@ elem *toElem(Expression e, IRState *irs)
             // Look for array.length = n
             if (auto ale = ae.e1.isArrayLengthExp())
             {
-                // Generate:
-                //      _d_arraysetlength(e2, sizeelem, &ale.e1);
-
-                elem *p1 = toElem(ae.e2, irs);
-                elem *p3 = toElem(ale.e1, irs);
-                p3 = addressElem(p3, null);
-                Type t1 = ale.e1.type.toBasetype();
-
-                // call _d_arraysetlengthT(ti, e2, &ale.e1);
-                elem *p2 = getTypeInfo(ae.loc, t1, irs);
-                elem *ep = el_params(p3, p1, p2, null); // c function
-                int r = t1.nextOf().isZeroInit(Loc.initial) ? RTLSYM_ARRAYSETLENGTHT : RTLSYM_ARRAYSETLENGTHIT;
-
-                auto e = el_bin(OPcall, totym(ae.type), el_var(getRtlsym(r)), ep);
-                toTraceGC(irs, e, ae.loc);
-
-                return setResult(e);
+                assert(0, "This case should have been rewritten to `_d_arraysetlengthT` in the semantic phase");
             }
 
             // Look for array[]=n
