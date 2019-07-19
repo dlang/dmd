@@ -365,6 +365,7 @@ void freesymtab(Symbol **stab, SYMIDX n1, SYMIDX n2);
 Symbol *symbol_copy(Symbol *s);
 Symbol *symbol_searchlist(symlist_t sl, const(char)* vident);
 void symbol_reset(Symbol *s);
+tym_t symbol_pointerType(const Symbol* s);
 
 // cg87.c
 void cg87_reset();

@@ -2530,4 +2530,18 @@ void symbol_reset(Symbol *s)
     }
 }
 
+/****************************************
+ * Determine pointer type needed to access a Symbol,
+ * essentially what type an OPrelconst should get
+ * for that Symbol.
+ * Params:
+ *      s = pointer to Symbol
+ * Returns:
+ *      pointer type to access it
+ */
+tym_t symbol_pointerType(const Symbol* s)
+{
+    return s.Stype.Tty & mTYimmutable ? TYimmutPtr : TYnptr;
+}
+
 }
