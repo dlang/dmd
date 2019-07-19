@@ -2029,10 +2029,19 @@ public:
         {
             printf("%s Expression::interpret() '%s' %s\n", e.loc.toChars(), Token.toChars(e.op), e.toChars());
             printf("type = %s\n", e.type.toChars());
-            e.print();
+            showCtfeExpr(e);
         }
         e.error("cannot interpret `%s` at compile time", e.toChars());
         result = CTFEExp.cantexp;
+    }
+
+    override void visit(TypeExp e)
+    {
+        debug (LOG)
+        {
+            printf("%s TypeExp.interpret() %s\n", e.loc.toChars(), e.toChars());
+        }
+        result = e;
     }
 
     override void visit(ThisExp e)
