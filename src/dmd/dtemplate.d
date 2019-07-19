@@ -962,12 +962,9 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 tf.fargs = fargs;
                 uint olderrors = global.startGagging();
                 fd.type = tf.typeSemantic(loc, paramscope);
-                if (global.endGagging(olderrors))
-                {
-                    assert(fd.type.ty != Tfunction);
+                global.endGagging(olderrors);
+                if (fd.type.ty != Tfunction)
                     goto Lnomatch;
-                }
-                assert(fd.type.ty == Tfunction);
                 fd.originalType = fd.type; // for mangling
             }
 
