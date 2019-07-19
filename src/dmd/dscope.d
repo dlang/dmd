@@ -57,7 +57,7 @@ enum SCOPE
     ignoresymbolvisibility    = 0x0200,   /// ignore symbol visibility
                                           /// https://issues.dlang.org/show_bug.cgi?id=15907
     onlysafeaccess = 0x0400,  /// unsafe access is not allowed for @safe code
-    nosharedcheck  = 0x0800, /// allow shared acsses for the sub-expressions
+    allowsharedaccess  = 0x0800, /// allow shared access for the sub-expressions
     free          = 0x8000,   /// is on free list
 
     fullinst      = 0x10000,  /// fully instantiate templates
@@ -274,16 +274,16 @@ struct Scope
     }
 
 
-    extern (C++) Scope* startRelaxShared()
+    extern (C++) Scope* startAllowSharedAccess()
     {
         Scope* sc = this.push();
-        sc.flags = this.flags | SCOPE.nosharedcheck;
+        sc.flags = this.flags | SCOPE.allowsharedaccess;
         return sc;
     }
 
-    extern (C++) Scope* endRelaxShared()
+    extern (C++) Scope* endAllowSharedAccess()
     {
-        assert(flags & SCOPE.nosharedcheck);
+        assert(flags & SCOPE.allowsharedaccess);
         return pop();
     }
 

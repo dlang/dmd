@@ -1617,9 +1617,9 @@ private bool checkAccessShared(Scope* sc, Loc loc, VarDeclaration vd)
         return false;
     }
 
-    if (vd.type && vd.type.isShared() && !(sc.flags & SCOPE.nosharedcheck))
+    if (vd.type && vd.type.isShared() && !(sc.flags & SCOPE.allowsharedaccess))
     {
-        loc.error("Trying to Access shared state `%s`", vd.toChars());
+        loc.error("Invalid access to shared data `%s`", vd.toChars());
         return true;
     }
 
@@ -4036,7 +4036,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     {
         assert (exp.f);
         auto params = exp.f.getParameterList().parameters;
-        if (exp.arguments && exp.arguments.dim && params && params.dim)
+        if (!exp.arguments || !exp.arguments.dim || !params || !params.dim)
+            return ;
+
         {
             foreach (i, arg;*exp.arguments)
             {
@@ -4059,13 +4061,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(CallExp exp)
     {
+
         // @@@SHARED@@@
-        // we need to set allow shared for overload resolution
-        sc = sc.startRelaxShared();
+        // overload resolution calls `resolvePropertiesX` which
+        // checks for shared access.
+        // We need to set allow shared for overload resolution
+        sc = sc.startAllowSharedAccess();
         // after resolution is done
         scope (exit)
         {
-            sc = sc.endRelaxShared();
+            sc = sc.endAllowSharedAccess();
             if (exp.f && !exp.f.semantic3Errors
                 && exp.f.type.isTypeFunction() !is null)
                 checkAccessSharedCall(exp);
@@ -6859,7 +6864,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         // shared allowed for resolving this
         // @@@SHARED@@@
         {
-            sc = sc.startRelaxShared();
+            sc = sc.startAllowSharedAccess();
 
             // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
             if (exp.e1.op == TOK.type)
@@ -6876,7 +6881,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
             exp.e1 = e1x;
 
-            sc = sc.endRelaxShared();
+            sc = sc.endAllowSharedAccess();
         }
 
         if (!exp.e1.type)
