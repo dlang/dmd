@@ -6144,6 +6144,21 @@ extern (C++) final class TypeTuple : Type
         arguments.push(new Parameter(0, t2, null, null, null));
     }
 
+    static TypeTuple create()
+    {
+        return new TypeTuple();
+    }
+
+    static TypeTuple create(Type t1)
+    {
+        return new TypeTuple(t1);
+    }
+
+    static TypeTuple create(Type t1, Type t2)
+    {
+        return new TypeTuple(t1, t2);
+    }
+
     override const(char)* kind() const
     {
         return "tuple";

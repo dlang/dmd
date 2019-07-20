@@ -827,6 +827,9 @@ public:
     Parameters *arguments;      // types making up the tuple
 
     static TypeTuple *create(Parameters *arguments);
+    static TypeTuple *create();
+    static TypeTuple *create(Type *t1);
+    static TypeTuple *create(Type *t1, Type *t2);
     const char *kind();
     Type *syntaxCopy();
     bool equals(RootObject *o);
