@@ -470,11 +470,12 @@ LtargetsLoop:
 
             default:
                 // check this last, target paths should be checked after predefined names
+                const tAbsolute = t.absolutePath.buildNormalizedPath;
                 foreach (dep; DependencyRange(rootDeps.map!(a => a()).array))
                 {
                     foreach (depTarget; dep.targets)
                     {
-                        if (depTarget.endsWith(t))
+                        if (depTarget.endsWith(t) || depTarget.endsWith(tAbsolute))
                         {
                             newTargets.put(&dep.run);
                             continue LtargetsLoop;
@@ -709,37 +710,42 @@ auto sourceFiles()
     {
         assert(0, "Unknown TARGET_CPU: " ~ env["TARGET_CPU"]);
     }
+    const lexerDmdFiles = [
+        "console",
+        "entity",
+        "errors",
+        "globals",
+        "id",
+        "identifier",
+        "lexer",
+        "tokens",
+        "utf",
+    ];
+    const lexerRootFiles = [
+        "array",
+        "ctfloat",
+        "file",
+        "filename",
+        "hash",
+        "outbuffer",
+        "port",
+        "rmem",
+        "rootobject",
+        "stringtable",
+    ];
     Sources sources = {
         frontend:
             dirEntries(env["D"], "*.d", SpanMode.shallow)
                 .map!(e => e.name)
-                .filter!(e => !e.canFind("asttypename.d", "frontend.d"))
+                .filter!(e => !lexerDmdFiles.chain(["asttypename", "frontend"]).canFind(e.baseName.stripExtension))
                 .array,
-        lexer: [
-            "console",
-            "entity",
-            "errors",
-            "globals",
-            "id",
-            "identifier",
-            "lexer",
-            "tokens",
-            "utf",
-        ].map!(e => env["D"].buildPath(e ~ ".d")).chain([
-            "array",
-            "ctfloat",
-            "file",
-            "filename",
-            "hash",
-            "outbuffer",
-            "port",
-            "rmem",
-            "rootobject",
-            "stringtable",
-        ].map!(e => env["ROOT"].buildPath(e ~ ".d"))).array,
+        lexer:
+            lexerDmdFiles.map!(e => env["D"].buildPath(e ~ ".d")).chain(
+            lexerRootFiles.map!(e => env["ROOT"].buildPath(e ~ ".d"))).array,
         root:
             dirEntries(env["ROOT"], "*.d", SpanMode.shallow)
                 .map!(e => e.name)
+                .filter!(e => !lexerRootFiles.canFind(e.baseName.stripExtension))
                 .array,
         backend:
             dirEntries(env["C"], "*.d", SpanMode.shallow)
