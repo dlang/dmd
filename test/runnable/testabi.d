@@ -674,7 +674,7 @@ void test1()
         foreach( int n, T; ALL_T )
                 test1_asm!(T,n)(12);
 
-        check( data1 );
+        assert( check( data1 ) );
 }
 
 /************************************************************************/
@@ -733,7 +733,7 @@ void test2()
                 test2f_asm!(T,n2)( T.init, 12 );
         }
 
-        check( data2 );
+        assert( check( data2 ) );
 }
 
 /************************************************************************/
@@ -774,7 +774,7 @@ void test3()
         foreach( int n, T; ALL_T )
                 test3_run!(T,n)( );
 
-        check( data3 );
+        assert( check( data3 ) );
 }
 
 // 0xFF n times
@@ -826,7 +826,7 @@ void test4()
                 foreach( i, ref e; t.tupleof )  e = i+1;
                 test4_run!(T,n)( t );
         }
-        check( data4 );
+        assert( check( data4 ) );
 }
 
 
