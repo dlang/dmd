@@ -157,12 +157,7 @@ string targetsHelp()
 D build dependencies
 ====================
 
-The strategy of this script is to emulate what the Makefile is doing,
-but without a complicated dependency and dependency system.
-The "dependency system" used here is rather naive and only parallelizes the
-build of the backend and lexer (writing a few config files doesn't take much time).
-However, it does skip steps when the source files are younger than the target
-and thus supports partial rebuilds.
+The strategy of this script is to emulate what the Makefile is doing.
 
 Below all individual dependencies of DMD are defined.
 They have a target path, sources paths and an optional name.
@@ -171,13 +166,10 @@ A dependency will be skipped if all targets are older than all sources.
 This script is by default part of the sources and thus any change to the build script,
 will trigger a full rebuild.
 
-The function buildDMD defines the build order of its dependencies.
 */
 
 /// Returns: the dependency that builds the lexer
-alias lexer = memoize!defineLexer;
-auto defineLexer()
-{
+alias lexer = memoize!(function() {
     Dependency dependency = {
         name: "lexer",
         target: env["G"].buildPath("lexer").libName,
@@ -192,12 +184,10 @@ auto defineLexer()
         ].chain(flags["DFLAGS"], "$<".only).array
     };
     return new DependencyRef(dependency);
-}
+});
 
 /// Returns: the dependency that generates the dmd.conf file in the output folder
-alias dmdConf = memoize!defineDmdConf;
-auto defineDmdConf()
-{
+alias dmdConf = memoize!(function() {
     // TODO: add support for Windows
     string exportDynamic;
     version(OSX) {} else
@@ -223,12 +213,10 @@ DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@
         commandFunction: commandFunction,
     };
     return new DependencyRef(dependency);
-}
+});
 
 /// Returns: the dependency that builds and executes the optabgen utility
-alias opTabGen = memoize!defineOpTabGen;
-auto defineOpTabGen()
-{
+alias opTabGen = memoize!(function() {
     auto opTabFiles = ["tytab.d"];
     auto opTabFilesBin = opTabFiles.map!(e => env["G"].buildPath(e)).array;
     auto opTabBin = env["G"].buildPath("optabgen").exeName;
@@ -255,12 +243,10 @@ auto defineOpTabGen()
         commandFunction: commandFunction,
     };
     return new DependencyRef(dependency);
-}
+});
 
 /// Returns: the dependencies that build the D backend
-alias dBackend = memoize!defineDBackend;
-auto defineDBackend()
-{
+alias dBackend = memoize!(function () {
     Dependency dependency = {
         name: "dbackend",
         target: env["G"].buildPath("dbackend").objName,
@@ -275,12 +261,10 @@ auto defineDBackend()
         ].chain(flags["DFLAGS"], "$<".only).array
     };
     return new DependencyRef(dependency);
-}
+});
 
 /// Execute the sub-dependencies of the backend and pack everything into one object file
-alias backend = memoize!defineBackend;
-auto defineBackend()
-{
+alias backend = memoize!(function() {
     // Pack the backend
     Dependency dependency = {
         name: "backend",
@@ -291,12 +275,10 @@ auto defineBackend()
         command: [env["HOST_DMD_RUN"], env["MODEL_FLAG"], "-lib", "-of$@", "$<"]
     };
     return new DependencyRef(dependency);
-}
+});
 
 /// Returns: the dependencies that generate required string files: VERSION and SYSCONFDIR.imp
-alias versionFile = memoize!defineVersionFile;
-auto defineVersionFile()
-{
+alias versionFile = memoize!(function() {
     const versionFile = env["G"].buildPath("VERSION");
     auto commandFunction = (){
         "(TX) VERSION".writeln;
@@ -307,10 +289,8 @@ auto defineVersionFile()
         commandFunction: commandFunction,
     };
     return new DependencyRef(dependency);
-}
-alias sysconfDirFile = memoize!defineSysconfDirFile;
-auto defineSysconfDirFile()
-{
+});
+alias sysconfDirFile = memoize!(function() {
     const sysconfDirFile = env["G"].buildPath("SYSCONFDIR.imp");
     auto commandFunction = (){
         "(TX) SYSCONFDIR".writeln;
@@ -322,7 +302,7 @@ auto defineSysconfDirFile()
         commandFunction: commandFunction,
     };
     return new DependencyRef(dependency);
-}
+});
 
 
 /**
@@ -331,8 +311,7 @@ Dependency for the DMD executable.
 Params:
   extra_flags = Flags to apply to the main build but not the dependencies
 */
-auto defineDmdExe(string targetSuffix, string[] extraFlags...)
-{
+alias dmdExe = memoize!(function(string targetSuffix, string[] extraFlags...) {
     // Main DMD build dependency
     Dependency dependency = {
         // newdelete.o + lexer.a + backend.a
@@ -349,29 +328,25 @@ auto defineDmdExe(string targetSuffix, string[] extraFlags...)
         ].chain(extraFlags).chain(flags["DFLAGS"], "$<".only).array
     };
     return new DependencyRef(dependency);
-}
+});
 
-auto dmdDefault() { return memoize!defineDmdDefault(); }
-auto defineDmdDefault()
-{
+alias dmdDefault = memoize!(function() {
     Dependency dependency = {
         name: "dmd",
         description: "Build dmd",
-        deps: [dmdConf, memoize!defineDmdExe(null, null)],
+        deps: [dmdConf, dmdExe(null, null)],
     };
     return new DependencyRef(dependency);
-}
+});
 
 /// Dependency for the DMD unittest executable
 auto dmdUnittestExe()
 {
-    return memoize!defineDmdExe("-unittest", ["-version=NoMain", "-unittest", "-main"]);
+    return dmdExe("-unittest", ["-version=NoMain", "-unittest", "-main"]);
 }
 
 /// Dependency to run the DMD unittest executable.
-alias runDmdUnittest = memoize!defineRunDmdUnittest;
-auto defineRunDmdUnittest()
-{
+alias runDmdUnittest = memoize!(function() {
     auto commandFunction = (){
         spawnProcess(dmdUnittestExe.targets[0]);
     };
@@ -383,11 +358,9 @@ auto defineRunDmdUnittest()
         commandFunction: commandFunction.toDelegate,
     };
     return new DependencyRef(dependency);
-}
+});
 
-alias clean = memoize!defineClean;
-auto defineClean()
-{
+alias clean = memoize!(function() {
     auto commandFunction = (){
         if (env["G"].exists)
             env["G"].rmdirRecurse;
@@ -399,7 +372,7 @@ auto defineClean()
         commandFunction: commandFunction.toDelegate,
     };
     return new DependencyRef(dependency);
-}
+});
 
 /**
 Goes through the target list and replaces short-hand targets with their expanded version.
@@ -475,7 +448,7 @@ LtargetsLoop:
                 {
                     foreach (depTarget; dep.targets)
                     {
-                        if (depTarget.endsWith(t) || depTarget.endsWith(tAbsolute))
+                        if (depTarget.endsWith(t, tAbsolute))
                         {
                             newTargets.put(&dep.run);
                             continue LtargetsLoop;
@@ -584,9 +557,9 @@ void parseEnvironment()
     env.getDefault("HOST_DMD", "dmd");
 
     // Auto-bootstrapping of a specific host compiler
-    if (env.getDefault("AUTO_BOOTSTRAP", "0") != "0")
+    if (env.getDefault("AUTO_BOOTSTRAP", null) == "1")
     {
-        auto hostDMDVer = "2.074.1";
+        auto hostDMDVer = "2.079.1";
         writefln("Using Bootstrap compiler: %s", hostDMDVer);
         auto hostDMDRoot = env["G"].buildPath("host_dmd-"~hostDMDVer);
         auto hostDMDBase = hostDMDVer~"."~os;
@@ -637,7 +610,9 @@ void processEnvironment()
     string[] warnings;
 
       // TODO: allow adding new flags from the environment
-    string[] dflags = ["-version=MARS", "-w", "-de", "-dip25", env["PIC_FLAG"], env["MODEL_FLAG"], "-J"~env["G"]];
+    string[] dflags = ["-version=MARS", "-w", "-de", env["PIC_FLAG"], env["MODEL_FLAG"], "-J"~env["G"]];
+    if (env["HOST_DMD_KIND"] != "gdc")
+        dflags ~= ["-dip25"]; // gdmd doesn't support -dip25
 
     flags["BACK_FLAGS"] = ["-I"~env["ROOT"], "-I"~env["C"], "-I"~env["G"], "-I"~env["D"], "-DDMDV2=1"];
 
@@ -714,6 +689,7 @@ auto sourceFiles()
         "console",
         "entity",
         "errors",
+        "filecache",
         "globals",
         "id",
         "identifier",
@@ -1135,7 +1111,11 @@ Params:
 auto runCanThrow(T)(T args)
 {
     auto res = run(args);
-    enforce(!res.status, res.output);
+    if (res.status)
+    {
+        writeln(res.output ? res.output : format("last command failed with exit code %s", res.status));
+        exit(1);
+    }
     return res.output;
 }
 
