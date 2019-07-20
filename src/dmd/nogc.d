@@ -81,6 +81,17 @@ public:
             }
             f.printGCUsage(e.loc, "setting `length` may cause a GC allocation");
         }
+        else if (fd.ident == Id._d_arraycatnTX)
+        {
+            if (f.setGC())
+            {
+                e.error("cannot use operator `~` in `@nogc` %s `%s`",
+                    f.kind(), f.toPrettyChars());
+                err = true;
+                return;
+            }
+            f.printGCUsage(e.loc, "operator `~` may cause a GC allocation");
+        }
     }
 
     override void visit(ArrayLiteralExp e)
