@@ -1485,7 +1485,6 @@ void main()
 
 
 $(SPEC_SUBNAV_PREV_NEXT version, Conditional Compilation, errors, Error Handling)
-)
 
 Macros:
         CHAPTER=25
