@@ -45,11 +45,11 @@ private ulong accumulatePure(string file, int line, string funcname, string name
  *  funcname = Function that called `_d_HookTraceImpl`
  *  parameters = Parameters that will be used to call `Hook`
  * Bugs:
- *  This function template was ported from a much older runtime hook that bypassed safety,
+ *  This function template needs be between the compiler and a much older runtime hook that bypassed safety,
  *  purity, and throwabilty checks. To prevent breaking existing code, this function template
- *  is temporarily declared `@trusted pure nothrow` until the implementation can be brought up to modern D expectations.
+ *  is temporarily declared `@trusted pure` until the implementation can be brought up to modern D expectations.
 */
-auto _d_HookTraceImpl(T, alias Hook, string errorMessage)(string file, int line, string funcname, Parameters!Hook parameters) @trusted pure nothrow
+auto _d_HookTraceImpl(T, alias Hook, string errorMessage)(string file, int line, string funcname, Parameters!Hook parameters) @trusted pure
 {
     version (D_TypeInfo)
     {
@@ -92,3 +92,30 @@ auto _d_HookTraceImpl(T, alias Hook, string errorMessage)(string file, int line,
         assert(0, errorMessage);
 }
 
+/**
+ * Check if the function `F` is calleable in a `nothrow` scope.
+ * Params:
+ *  F = Function that does not take any parameters
+ * Returns:
+ *  if the function is callable in a `nothrow` scope.
+ */
+enum isNoThrow(alias F) = is(typeof(() nothrow { F(); }));
+
+/**
+ * Check if the type `T`'s postblit is called in nothrow, if it exist
+ * Params:
+ *  T = Type to check
+ * Returns:
+ *  if the postblit is callable in a `nothrow` scope, if it exist.
+ *  if it does not exist, return true.
+ */
+template isPostblitNoThrow(T) {
+    static if (__traits(isStaticArray, T))
+        enum isPostblitNoThrow = isPostblitNoThrow!(typeof(T.init[0]));
+    else static if (__traits(hasMember, T, "__xpostblit") &&
+        // Bugzilla 14746: Check that it's the exact member of S.
+        __traits(isSame, T, __traits(parent, T.init.__xpostblit)))
+        enum isPostblitNoThrow = isNoThrow!(T.init.__xpostblit);
+    else
+        enum isPostblitNoThrow = true;
+};

@@ -33,6 +33,7 @@ SRCS=\
 	src\core\internal\utf.d \
 	src\core\internal\lifetime.d \
 	\
+	src\core\internal\array\appending.d \
 	src\core\internal\array\comparison.d \
 	src\core\internal\array\construction.d \
 	src\core\internal\array\equality.d \

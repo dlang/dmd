@@ -73,6 +73,7 @@ DOCS=\
 	$(DOCDIR)\core_sys_darwin_mach_thread_act.html \
 	$(DOCDIR)\core_sys_darwin_netinet_in_.html \
 	\
+    $(DOCDIR)\core_internal_array_appending.html \
     $(DOCDIR)\core_internal_array_capacity.html \
     $(DOCDIR)\core_internal_array_casting.html \
     $(DOCDIR)\core_internal_array_comparison.html \

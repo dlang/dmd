@@ -153,6 +153,9 @@ $(IMPDIR)\core\internal\utf.d : src\core\internal\utf.d
 $(IMPDIR)\core\internal\lifetime.d : src\core\internal\lifetime.d
 	copy $** $@
 
+$(IMPDIR)\core\internal\array\appending.d : src\core\internal\array\appending.d
+	copy $** $@
+
 $(IMPDIR)\core\internal\array\comparison.d : src\core\internal\array\comparison.d
 	copy $** $@
 

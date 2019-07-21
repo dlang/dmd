@@ -33,6 +33,7 @@ COPY=\
 	$(IMPDIR)\core\internal\utf.d \
 	$(IMPDIR)\core\internal\lifetime.d \
 	\
+	$(IMPDIR)\core\internal\array\appending.d \
 	$(IMPDIR)\core\internal\array\comparison.d \
 	$(IMPDIR)\core\internal\array\construction.d \
 	$(IMPDIR)\core\internal\array\equality.d \
