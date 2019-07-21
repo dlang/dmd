@@ -689,6 +689,12 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
      */
     extern (D) bool evaluateConstraint(TemplateInstance ti, Scope* sc, Scope* paramscope, Objects* dedargs, FuncDeclaration fd)
     {
+        // circular evaluation of the constraint, see https://issues.dlang.org/show_bug.cgi?id=11856
+        if (constraint.inuse == constraint.inuse.max)
+            return false;
+        constraint.inuse++;
+        scope(exit)
+            constraint.inuse--;
         /* Detect recursive attempts to instantiate this template declaration,
          * https://issues.dlang.org/show_bug.cgi?id=4072
          *  void foo(T)(T x) if (is(typeof(foo(x)))) { }
