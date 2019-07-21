@@ -642,6 +642,7 @@ extern (C++) abstract class Expression : ASTNode
     ubyte parens;   // if this is a parenthesized expression
     Type type;      // !=null means that semantic() has been run
     Loc loc;        // file location
+    ubyte inuse;    // detect expressionSemantic() loops
 
     extern (D) this(const ref Loc loc, TOK op, int size)
     {
