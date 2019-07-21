@@ -426,6 +426,49 @@ extern (C) __gshared const(char)*[TYMAX] tystring =
     TYvtshape  : "vtshape",
 ];
 
+// Map to unsigned version of type
+__gshared tym_t[256] tytouns =
+() {
+    tym_t[256] tab;
+    foreach (ty; 0 .. TYMAX)
+    {
+        tym_t tym;
+        switch (ty)
+        {
+            case TYchar:      tym = TYuchar;    break;
+            case TYschar:     tym = TYuchar;    break;
+            case TYshort:     tym = TYushort;   break;
+            case TYushort:    tym = TYushort;   break;
+
+            case TYenum:      tym = TYuint;     break;
+            case TYint:       tym = TYuint;     break;
+
+            case TYlong:      tym = TYulong;    break;
+            case TYllong:     tym = TYullong;   break;
+            case TYcent:      tym = TYucent;    break;
+
+            case TYschar16:   tym = TYuchar16;  break;
+            case TYshort8:    tym = TYushort8;  break;
+            case TYlong4:     tym = TYulong4;   break;
+            case TYllong2:    tym = TYullong2;  break;
+
+            case TYschar32:   tym = TYuchar32;  break;
+            case TYshort16:   tym = TYushort16; break;
+            case TYlong8:     tym = TYulong8;   break;
+            case TYllong4:    tym = TYullong4;  break;
+
+            case TYschar64:   tym = TYuchar64;  break;
+            case TYshort32:   tym = TYushort32; break;
+            case TYlong16:    tym = TYulong16;  break;
+            case TYllong8:    tym = TYullong8;  break;
+
+            default:          tym = ty;         break;
+        }
+        tab[ty] = tym;
+    }
+    return tab;
+} ();
+
 
 private:
 

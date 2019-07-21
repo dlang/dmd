@@ -171,17 +171,6 @@ void dotytab()
     f = fopen("tytab.d","w");
 
     for (i = 0; i < typetab.length; i++)
-    {   tytouns[typetab[i].ty] = typetab[i].unsty;
-    }
-    fprintf(f,"__gshared tym_t[256] tytouns =\n[ ");
-    for (i = 0; i < tytouns.length; i++)
-    {   fprintf(f,"0x%02x,",tytouns[i]);
-        if ((i & 7) == 7 && i < tytouns.length - 1)
-            fprintf(f,"\n  ");
-    }
-    fprintf(f,"\n];\n");
-
-    for (i = 0; i < typetab.length; i++)
     {   _tysize[typetab[i].ty | 0x00] = cast(byte)typetab[i].size;
         /*printf("_tysize[%d] = %d\n",typetab[i].ty,typetab[i].size);*/
     }
