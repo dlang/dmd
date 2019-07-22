@@ -25,6 +25,104 @@ else version (TVOS)
 else version (WatchOS)
     version = Darwin;
 
+package
+{
+    version (D_InlineAsm_X86)
+    {
+        version (Windows)
+            version = AsmX86_Windows;
+        else version (Posix)
+            version = AsmX86_Posix;
+
+        version = AlignFiberStackTo16Byte;
+    }
+    else version (D_InlineAsm_X86_64)
+    {
+        version (Windows)
+        {
+            version = AsmX86_64_Windows;
+            version = AlignFiberStackTo16Byte;
+        }
+        else version (Posix)
+        {
+            version = AsmX86_64_Posix;
+            version = AlignFiberStackTo16Byte;
+        }
+    }
+    else version (PPC)
+    {
+        version (Posix)
+        {
+            version = AsmPPC_Posix;
+            version = AsmExternal;
+        }
+    }
+    else version (PPC64)
+    {
+        version (Posix)
+        {
+            version = AlignFiberStackTo16Byte;
+        }
+    }
+    else version (MIPS_O32)
+    {
+        version (Posix)
+        {
+            version = AsmMIPS_O32_Posix;
+            version = AsmExternal;
+        }
+    }
+    else version (AArch64)
+    {
+        version (Posix)
+        {
+            version = AsmAArch64_Posix;
+            version = AsmExternal;
+            version = AlignFiberStackTo16Byte;
+        }
+    }
+    else version (ARM)
+    {
+        version (Posix)
+        {
+            version = AsmARM_Posix;
+            version = AsmExternal;
+        }
+    }
+    else version (SPARC)
+    {
+        // NOTE: The SPARC ABI specifies only doubleword alignment.
+        version = AlignFiberStackTo16Byte;
+    }
+    else version (SPARC64)
+    {
+        version = AlignFiberStackTo16Byte;
+    }
+
+    version (Posix)
+    {
+        import core.sys.posix.unistd;   // for sysconf
+
+        version (AsmX86_Windows)    {} else
+        version (AsmX86_Posix)      {} else
+        version (AsmX86_64_Windows) {} else
+        version (AsmX86_64_Posix)   {} else
+        version (AsmExternal)       {} else
+        {
+            // NOTE: The ucontext implementation requires architecture specific
+            //       data definitions to operate so testing for it must be done
+            //       by checking for the existence of ucontext_t rather than by
+            //       a version identifier.  Please note that this is considered
+            //       an obsolescent feature according to the POSIX spec, so a
+            //       custom solution is still preferred.
+            import core.sys.posix.ucontext;
+        }
+    }
+
+    static immutable size_t PAGESIZE;
+    version (Posix) static immutable size_t PTHREAD_STACK_MIN;
+}
+
 private
 {
     // interface to rt.tlsgc
@@ -1580,8 +1678,27 @@ private:
         sm_this = t;
     }
 
+package:
+    static struct Context
+    {
+        void*           bstack,
+                        tstack;
 
-private:
+        /// Slot for the EH implementation to keep some state for each stack
+        /// (will be necessary for exception chaining, etc.). Opaque as far as
+        /// we are concerned here.
+        void*           ehContext;
+
+        Context*        within;
+        Context*        next,
+                        prev;
+    }
+
+    Context             m_main;
+    Context*            m_curr;
+    bool                m_lock;
+    void*               m_tlsgcdata;
+
     ///////////////////////////////////////////////////////////////////////////
     // Thread Context and GC Scanning Support
     ///////////////////////////////////////////////////////////////////////////
@@ -1613,6 +1730,7 @@ private:
         c.within = null;
     }
 
+private:
 
     final Context* topContext() nothrow @nogc
     in
@@ -1624,63 +1742,41 @@ private:
         return m_curr;
     }
 
-
-    static struct Context
-    {
-        void*           bstack,
-                        tstack;
-
-        /// Slot for the EH implementation to keep some state for each stack
-        /// (will be necessary for exception chaining, etc.). Opaque as far as
-        /// we are concerned here.
-        void*           ehContext;
-
-        Context*        within;
-        Context*        next,
-                        prev;
-    }
-
-
-    Context             m_main;
-    Context*            m_curr;
-    bool                m_lock;
-    void*               m_tlsgcdata;
-
     version (Windows)
     {
-      version (X86)
-      {
-        uint[8]         m_reg; // edi,esi,ebp,esp,ebx,edx,ecx,eax
-      }
-      else version (X86_64)
-      {
-        ulong[16]       m_reg; // rdi,rsi,rbp,rsp,rbx,rdx,rcx,rax
-                               // r8,r9,r10,r11,r12,r13,r14,r15
-      }
-      else
-      {
-        static assert(false, "Architecture not supported." );
-      }
+        version (X86)
+        {
+            uint[8]         m_reg; // edi,esi,ebp,esp,ebx,edx,ecx,eax
+        }
+        else version (X86_64)
+        {
+            ulong[16]       m_reg; // rdi,rsi,rbp,rsp,rbx,rdx,rcx,rax
+                                   // r8,r9,r10,r11,r12,r13,r14,r15
+        }
+        else
+        {
+            static assert(false, "Architecture not supported." );
+        }
     }
     else version (Darwin)
     {
-      version (X86)
-      {
-        uint[8]         m_reg; // edi,esi,ebp,esp,ebx,edx,ecx,eax
-      }
-      else version (X86_64)
-      {
-        ulong[16]       m_reg; // rdi,rsi,rbp,rsp,rbx,rdx,rcx,rax
-                               // r8,r9,r10,r11,r12,r13,r14,r15
-      }
-      else
-      {
-        static assert(false, "Architecture not supported." );
-      }
+        version (X86)
+        {
+            uint[8]         m_reg; // edi,esi,ebp,esp,ebx,edx,ecx,eax
+        }
+        else version (X86_64)
+        {
+            ulong[16]       m_reg; // rdi,rsi,rbp,rsp,rbx,rdx,rcx,rax
+                                   // r8,r9,r10,r11,r12,r13,r14,r15
+        }
+        else
+        {
+            static assert(false, "Architecture not supported." );
+        }
     }
 
 
-private:
+package:
     ///////////////////////////////////////////////////////////////////////////
     // GC Scanning Support
     ///////////////////////////////////////////////////////////////////////////
@@ -1792,7 +1888,6 @@ private:
         }
         sm_cbeg = c;
     }
-
 
     //
     // Remove a context from the global context list.
@@ -3243,7 +3338,7 @@ extern (C) @nogc nothrow
 }
 
 
-private void* getStackTop() nothrow @nogc
+package void* getStackTop() nothrow @nogc
 {
     version (D_InlineAsm_X86)
         asm pure nothrow @nogc { naked; mov EAX, ESP; ret; }
@@ -3256,7 +3351,7 @@ private void* getStackTop() nothrow @nogc
 }
 
 
-private void* getStackBottom() nothrow @nogc
+package void* getStackBottom() nothrow @nogc
 {
     version (Windows)
     {
