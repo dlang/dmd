@@ -13,37 +13,108 @@ module core.thread.fiber;
 
 import core.thread.osthread;
 
-
 ///////////////////////////////////////////////////////////////////////////////
-// Fiber Platform Detection and Memory Allocation
+// Fiber Platform Detection
 ///////////////////////////////////////////////////////////////////////////////
 
-shared static this()
+private
 {
-    version (Windows)
+    version (D_InlineAsm_X86)
     {
-        SYSTEM_INFO info;
-        GetSystemInfo(&info);
+        version (Windows)
+            version = AsmX86_Windows;
+        else version (Posix)
+            version = AsmX86_Posix;
 
-        PAGESIZE = info.dwPageSize;
-        assert(PAGESIZE < int.max);
+        version = AlignFiberStackTo16Byte;
     }
-    else version (Posix)
+    else version (D_InlineAsm_X86_64)
     {
-        PAGESIZE = cast(size_t)sysconf(_SC_PAGESIZE);
-        PTHREAD_STACK_MIN = cast(size_t)sysconf(_SC_THREAD_STACK_MIN);
+        version (Windows)
+        {
+            version = AsmX86_64_Windows;
+            version = AlignFiberStackTo16Byte;
+        }
+        else version (Posix)
+        {
+            version = AsmX86_64_Posix;
+            version = AlignFiberStackTo16Byte;
+        }
     }
-    else
+    else version (PPC)
     {
-        static assert(0, "unimplemented");
+        version (Posix)
+        {
+            version = AsmPPC_Posix;
+            version = AsmExternal;
+        }
+    }
+    else version (PPC64)
+    {
+        version (Posix)
+        {
+            version = AlignFiberStackTo16Byte;
+        }
+    }
+    else version (MIPS_O32)
+    {
+        version (Posix)
+        {
+            version = AsmMIPS_O32_Posix;
+            version = AsmExternal;
+        }
+    }
+    else version (AArch64)
+    {
+        version (Posix)
+        {
+            version = AsmAArch64_Posix;
+            version = AsmExternal;
+            version = AlignFiberStackTo16Byte;
+        }
+    }
+    else version (ARM)
+    {
+        version (Posix)
+        {
+            version = AsmARM_Posix;
+            version = AsmExternal;
+        }
+    }
+    else version (SPARC)
+    {
+        // NOTE: The SPARC ABI specifies only doubleword alignment.
+        version = AlignFiberStackTo16Byte;
+    }
+    else version (SPARC64)
+    {
+        version = AlignFiberStackTo16Byte;
+    }
+
+    version (Posix)
+    {
+        import core.sys.posix.unistd;   // for sysconf
+
+        version (AsmX86_Windows)    {} else
+        version (AsmX86_Posix)      {} else
+        version (AsmX86_64_Windows) {} else
+        version (AsmX86_64_Posix)   {} else
+        version (AsmExternal)       {} else
+        {
+            // NOTE: The ucontext implementation requires architecture specific
+            //       data definitions to operate so testing for it must be done
+            //       by checking for the existence of ucontext_t rather than by
+            //       a version identifier.  Please note that this is considered
+            //       an obsolescent feature according to the POSIX spec, so a
+            //       custom solution is still preferred.
+            import core.sys.posix.ucontext;
+        }
     }
 }
-
 
 ///////////////////////////////////////////////////////////////////////////////
 // Fiber Entry Point and Context Switch
 ///////////////////////////////////////////////////////////////////////////////
-
 
 private
 {

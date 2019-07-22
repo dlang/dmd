@@ -12,9 +12,12 @@
 
 module core.thread.osthread;
 
-
-public import core.time; // for Duration
+import core.time : Duration, dur;
 import core.exception : onOutOfMemoryError;
+
+///////////////////////////////////////////////////////////////////////////////
+// Platform Detection and Memory Allocation
+///////////////////////////////////////////////////////////////////////////////
 
 version (OSX)
     version = Darwin;
@@ -33,75 +36,22 @@ package
             version = AsmX86_Windows;
         else version (Posix)
             version = AsmX86_Posix;
-
-        version = AlignFiberStackTo16Byte;
     }
     else version (D_InlineAsm_X86_64)
     {
         version (Windows)
         {
             version = AsmX86_64_Windows;
-            version = AlignFiberStackTo16Byte;
         }
         else version (Posix)
         {
             version = AsmX86_64_Posix;
-            version = AlignFiberStackTo16Byte;
         }
-    }
-    else version (PPC)
-    {
-        version (Posix)
-        {
-            version = AsmPPC_Posix;
-            version = AsmExternal;
-        }
-    }
-    else version (PPC64)
-    {
-        version (Posix)
-        {
-            version = AlignFiberStackTo16Byte;
-        }
-    }
-    else version (MIPS_O32)
-    {
-        version (Posix)
-        {
-            version = AsmMIPS_O32_Posix;
-            version = AsmExternal;
-        }
-    }
-    else version (AArch64)
-    {
-        version (Posix)
-        {
-            version = AsmAArch64_Posix;
-            version = AsmExternal;
-            version = AlignFiberStackTo16Byte;
-        }
-    }
-    else version (ARM)
-    {
-        version (Posix)
-        {
-            version = AsmARM_Posix;
-            version = AsmExternal;
-        }
-    }
-    else version (SPARC)
-    {
-        // NOTE: The SPARC ABI specifies only doubleword alignment.
-        version = AlignFiberStackTo16Byte;
-    }
-    else version (SPARC64)
-    {
-        version = AlignFiberStackTo16Byte;
     }
 
     version (Posix)
     {
-        import core.sys.posix.unistd;   // for sysconf
+        import core.sys.posix.unistd;
 
         version (AsmX86_Windows)    {} else
         version (AsmX86_Posix)      {} else
@@ -122,6 +72,28 @@ package
     static immutable size_t PAGESIZE;
     version (Posix) static immutable size_t PTHREAD_STACK_MIN;
 }
+
+shared static this()
+{
+    version (Windows)
+    {
+        SYSTEM_INFO info;
+        GetSystemInfo(&info);
+
+        PAGESIZE = info.dwPageSize;
+        assert(PAGESIZE < int.max);
+    }
+    else version (Posix)
+    {
+        PAGESIZE = cast(size_t)sysconf(_SC_PAGESIZE);
+        PTHREAD_STACK_MIN = cast(size_t)sysconf(_SC_THREAD_STACK_MIN);
+    }
+    else
+    {
+        static assert(0, "unimplemented");
+    }
+}
+
 
 private
 {
@@ -2549,7 +2521,7 @@ else
         // put on the stack so they'll be scanned. We only need to push
         // the callee-save registers.
         void *sp = void;
-
+        
         version (GNU)
         {
             __builtin_unwind_init();
