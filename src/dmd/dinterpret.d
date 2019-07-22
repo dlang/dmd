@@ -2085,7 +2085,7 @@ public:
                 }
                 return;
             }
-            assert(result.op == TOK.structLiteral || result.op == TOK.classReference);
+            assert(result.op == TOK.structLiteral || result.op == TOK.classReference || result.op == TOK.type);
             return;
         }
         e.error("value of `this` is not known at compile time");
@@ -5071,7 +5071,8 @@ public:
                 result = CTFEExp.cantexp;
                 return;
             }
-            assert(pthis.op == TOK.structLiteral || pthis.op == TOK.classReference);
+
+            assert(pthis.op == TOK.structLiteral || pthis.op == TOK.classReference || pthis.op == TOK.type);
 
             if (fd.isVirtual() && !e.directcall)
             {
