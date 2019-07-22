@@ -1112,14 +1112,8 @@ static if (NTEXCEPTIONS)
 
         case BCretexp:
             reg_t reg1, reg2, lreg, mreg;
-            reg1 = reg2 = NOREG;
-            if (config.exe == EX_WIN64) // broken
-                retregs = regmask(e.Ety, funcsym_p.ty());
-            else
-            {
-                retregs = allocretregs(e.Ety, e.ET, funcsym_p.ty(), &reg1, &reg2);
-                assert(reg1 != NOREG || !retregs);
-            }
+            retregs = allocretregs(e.Ety, e.ET, funcsym_p.ty(), &reg1, &reg2);
+            assert(reg1 != NOREG || !retregs);
 
             lreg = mreg = NOREG;
             if (reg1 == NOREG)
@@ -1140,8 +1134,7 @@ static if (NTEXCEPTIONS)
                 lreg = mask(reg1) & mLSW ? reg1 : AX;
                 mreg = mask(reg2) & mMSW ? reg2 : DX;
             }
-            if (reg1 != NOREG)
-                retregs = (mask(lreg) | mask(mreg)) & ~mask(NOREG);
+            retregs = (mask(lreg) | mask(mreg)) & ~mask(NOREG);
 
             // For the final load into the return regs, don't set regcon.used,
             // so that the optimizer can potentially use retregs for register
@@ -1223,8 +1216,7 @@ static if (NTEXCEPTIONS)
                 else
                     genmovreg(cdb, reg2, mreg);
             }
-            if (reg1 != NOREG)
-                retregs = (mask(reg1) | mask(reg2)) & ~mask(NOREG);
+            retregs = (mask(reg1) | mask(reg2)) & ~mask(NOREG);
             goto L4;
 
         case BCret:
