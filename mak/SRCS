@@ -412,7 +412,7 @@ SRCS=\
 	src\core\sys\windows\winver.d \
 	src\core\sys\windows\wtsapi32.d \
 	src\core\sys\windows\wtypes.d \
-    \
+	\
 	src\core\thread\fiber.d \
 	src\core\thread\osthread.d \
 	\

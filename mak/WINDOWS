@@ -1216,10 +1216,10 @@ $(IMPDIR)\core\sys\windows\wtypes.d : src\core\sys\windows\wtypes.d
 	copy $** $@
 
 $(IMPDIR)\core\thread\fiber.d : src\core\thread\fiber.d
-    copy $** $@
+	copy $** $@
 
 $(IMPDIR)\core\thread\osthread.d : src\core\thread\osthread.d
-    copy $** $@
+	copy $** $@
 
 $(IMPDIR)\etc\linux\memoryerror.d : src\etc\linux\memoryerror.d
 	copy $** $@
