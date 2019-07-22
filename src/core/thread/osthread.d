@@ -2521,7 +2521,6 @@ else
         // put on the stack so they'll be scanned. We only need to push
         // the callee-save registers.
         void *sp = void;
-        
         version (GNU)
         {
             __builtin_unwind_init();
