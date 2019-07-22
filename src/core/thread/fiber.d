@@ -118,7 +118,7 @@ private
 
 private
 {
-    import core.atomic : atomicStore, MemoryOrder;
+    import core.atomic : atomicStore, cas, MemoryOrder;
     import core.exception : onOutOfMemoryError;
     import core.stdc.stdlib : abort;
 
