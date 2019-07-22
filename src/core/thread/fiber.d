@@ -1853,6 +1853,7 @@ unittest
 unittest
 {
     import core.memory;
+    import core.time : dur;
 
     static void unreferencedThreadObject()
     {
