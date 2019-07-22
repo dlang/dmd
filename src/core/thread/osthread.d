@@ -12,7 +12,7 @@
 
 module core.thread.osthread;
 
-import core.time : Duration, dur;
+import core.time;
 import core.exception : onOutOfMemoryError;
 
 ///////////////////////////////////////////////////////////////////////////////
