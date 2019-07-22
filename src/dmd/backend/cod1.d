@@ -915,6 +915,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                     break;
 
                 default:
+                    printf("function: %s\n", funcsym_p.Sident.ptr);
                     elem_print(e);
                     assert(0);
             }
