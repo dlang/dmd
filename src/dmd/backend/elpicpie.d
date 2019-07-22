@@ -318,12 +318,12 @@ static if (TARGET_WINDOS)
 
 elem * el_ptr(Symbol *s)
 {
-    elem *e;
-
     //printf("el_ptr(s = '%s')\n", s.Sident.ptr);
     //printf("el_ptr\n");
     symbol_debug(s);
     type_debug(s.Stype);
+
+    const typtr = s.symbol_pointerType();
 
     static if (TARGET_OSX)
     {
@@ -334,11 +334,12 @@ elem * el_ptr(Symbol *s)
              * code in that data variable, and return the elem for
              * that data variable.
              */
-            Symbol *sd = symboldata(Offset(DATA), TYnptr);
+            Symbol *sd = symboldata(Offset(DATA), typtr);
             sd.Sseg = DATA;
             Obj.data_start(sd, _tysize[TYnptr], DATA);
             Offset(DATA) += Obj.reftoident(DATA, Offset(DATA), s, 0, CFoff);
-            e = el_picvar(sd);
+            elem* e = el_picvar(sd);
+            e.Ety = typtr;
             return e;
         }
     }
@@ -348,25 +349,34 @@ elem * el_ptr(Symbol *s)
     {
         if (config.flags3 & CFG3pie &&
             s.Stype.Tty & mTYthread)
-            return el_pieptr(s);            // Position Independent Executable
+        {
+            elem* e = el_pieptr(s);            // Position Independent Executable
+            e.Ety = typtr;
+            return e;
+        }
 
         if (config.flags3 & CFG3pie &&
             tyfunc(s.ty()) &&
             (s.Sclass == SCglobal || s.Sclass == SCcomdat || s.Sclass == SCcomdef || s.Sclass == SCextern))
         {
-            e = el_calloc();
+            elem* e = el_calloc();
             e.Eoper = OPvar;
             e.EV.Vsym = s;
-            e.Ety = TYnptr;
-            if (I32)
+            if (I64)
+                e.Ety = typtr;
+            else if (I32)
             {
+                e.Ety = TYnptr;
                 e.Eoper = OPrelconst;
                 e = el_bin(OPadd, TYnptr, e, el_var(el_alloc_localgot()));
-                e = el_una(OPind, TYnptr, e);
+                e = el_una(OPind, typtr, e);
             }
+            else
+                assert(0);
             return e;
         }
 
+        elem *e;
         if (config.flags3 & CFG3pic &&
             tyfunc(s.ty()))
         {
@@ -376,7 +386,7 @@ elem * el_ptr(Symbol *s)
             e = el_var(s);
     }
     else
-        e = el_var(s);
+        elem* e = el_var(s);
 
     version (SCPP_HTOD)
     {
@@ -389,11 +399,12 @@ elem * el_ptr(Symbol *s)
 
     if (e.Eoper == OPvar)
     {
-        e.Ety = TYnptr;
+        e.Ety = typtr;
         e.Eoper = OPrelconst;
     }
     else
-    {   e = el_una(OPaddr, TYnptr, e);
+    {
+        e = el_una(OPaddr, typtr, e);
         e = doptelem(e, GOALvalue | GOALflags);
     }
     return e;
