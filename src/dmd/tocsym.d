@@ -201,6 +201,38 @@ Symbol *toSymbol(Dsymbol s)
                 t.Tcount++;
             }
 
+            /* Even if a symbol is immutable, if it has a constructor then
+             * the constructor mutates it. Remember that constructors can
+             * be inlined into other code.
+             * Just can't rely on it being immutable.
+             */
+            if (t.Tty & (mTYimmutable | mTYconst))
+            {
+                if (vd.ctorinit)
+                {
+                    /* It was initialized in a constructor, so not really immutable
+                     * as far as the optimizer is concerned, as in this case:
+                     *   immutable int x;
+                     *   shared static this() { x += 3; }
+                     */
+                    t = type_setty(&t, t.Tty & ~(mTYimmutable | mTYconst));
+                }
+                else if (auto ts = vd.type.isTypeStruct())
+                {
+                    if (!ts.isMutable() && ts.sym.ctor)
+                    {
+                        t = type_setty(&t, t.Tty & ~(mTYimmutable | mTYconst));
+                    }
+                }
+                else if (auto tc = vd.type.isTypeClass())
+                {
+                    if (!tc.isMutable() && tc.sym.ctor)
+                    {
+                        t = type_setty(&t, t.Tty & ~(mTYimmutable | mTYconst));
+                    }
+                }
+            }
+
             if (vd.isDataseg())
             {
                 if (vd.isThreadlocal() && !(vd.storage_class & STC.temp))

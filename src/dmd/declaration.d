@@ -356,6 +356,13 @@ extern (C++) abstract class Declaration : Dsymbol
     /*************************************
      * Check to see if declaration can be modified in this context (sc).
      * Issue error if not.
+     * Params:
+     *  loc  = location for error messages
+     *  e1   = `null` or `this` expression when this declaration is a field
+     *  sc   = context
+     *  flag = !=0 means do not issue error message for invalid modification
+     * Returns:
+     *  Modifiable.yes or Modifiable.initialization
      */
     extern (D) final Modifiable checkModify(Loc loc, Scope* sc, Expression e1, int flag)
     {
