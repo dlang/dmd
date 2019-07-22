@@ -2171,7 +2171,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                     auto flag = tryParseJsonField(p + 4);
                     if (!flag)
                     {
-                        error("unknown JSON field `-Xi=%s`, expected one of " ~ jsonFieldNames, p + 4);
+                        error(cast(const(char)*)("unknown JSON field `-Xi=%s`, expected one of " ~ jsonFieldNames), p + 4);
                         continue;
                     }
                     global.params.jsonFieldFlags |= flag;
