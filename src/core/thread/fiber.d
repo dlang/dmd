@@ -306,6 +306,7 @@ private
         }
         else version (AsmX86_64_Posix)
         {
+            // POINT 3
             asm pure nothrow @nogc
             {
                 naked;
@@ -665,7 +666,7 @@ class Fiber
 
         setThis( this );
         this.switchIn();
-        /*
+        /* POINT 1
         setThis( cur );
 
         static if ( __traits( compiles, ucontext_t ) )
@@ -1499,6 +1500,7 @@ private:
         atomicStore!(MemoryOrder.raw)(*cast(shared)&tobj.m_lock, true);
         tobj.pushContext( m_ctxt );
 
+        // POINT 2
         fiber_switchContext( oldp, newp );
         /*
 
