@@ -3151,6 +3151,7 @@ else
                 rs.exp = inferType(rs.exp, fld.treq.nextOf().nextOf());
 
             rs.exp = rs.exp.expressionSemantic(sc);
+            rs.exp.checkSharedAccess(sc);
 
             // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
             if (rs.exp.op == TOK.type)

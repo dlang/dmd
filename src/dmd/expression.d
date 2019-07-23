@@ -4277,6 +4277,13 @@ extern (C++) abstract class BinExp : Expression
         return (r1 || r2);
     }
 
+    extern (D) final bool checkSharedAccessBin(Scope* sc)
+    {
+        const r1 = e1.checkSharedAccess(sc);
+        const r2 = e2.checkSharedAccess(sc);
+        return (r1 || r2);
+    }
+
     /*********************
      * Mark the operands as will never be dereferenced,
      * which is useful info for @safe checks.
