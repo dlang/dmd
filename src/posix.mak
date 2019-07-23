@@ -345,9 +345,7 @@ BACK_DOBJS = bcomplex.o evalu8.o divcoeff.o dvec.o go.o gsroa.o glocal.o gdag.o 
 	cod3.o cv8.o dcgcv.o pdata.o util2.o var.o md5.o backconfig.o ph2.o drtlsym.o dwarfeh.o ptrntab.o \
 	aarray.o dvarstats.o dwarfdbginf.o elfobj.o cgen.o os.o goh.o barray.o cgcse.o elpicpie.o
 
-G_OBJS  = $(addprefix $G/, $(BACK_OBJS))
 G_DOBJS = $(addprefix $G/, $(BACK_DOBJS))
-#$(info $$G_OBJS is [${G_OBJS}])
 
 ifeq (osx,$(OS))
 	BACK_DOBJS += machobj.o
@@ -441,21 +439,21 @@ toolchain-info:
 	@echo '==== Toolchain Information ===='
 	@echo
 
-$G/backend.a: $(G_OBJS) $(G_DOBJS) $(SRC_MAKE)
-	$(AR) rcs $@ $(G_OBJS) $(G_DOBJS)
+$G/backend.a: $(G_DOBJS) $(SRC_MAKE)
+	$(AR) rcs $@ $(G_DOBJS)
 
 $G/dmd_frontend: $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	$(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^) -version=NoBackend
 
 ifdef ENABLE_LTO
-$G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/lexer.a $(G_OBJS) $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+$G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/lexer.a $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	$(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 else
 $G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/backend.a $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	$(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $(LEXER_ROOT),$^)
 endif
 
-$G/dmd-unittest: $(DMD_SRCS) $(ROOT_SRCS) $(LEXER_SRCS) $(G_OBJS) $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+$G/dmd-unittest: $(DMD_SRCS) $(ROOT_SRCS) $(LEXER_SRCS) $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	$(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) $(DFLAGS) -g -unittest -main -version=NoMain $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 
 unittest: $G/dmd-unittest
@@ -607,7 +605,7 @@ dscanner: $(DSCANNER_DIR)/dsc
 $G/cxxfrontend.o: $G/%.o: tests/%.c $(SRC) $(ROOT_SRC) $(SRC_MAKE)
 	$(CXX) -c -o$@ $(CXXFLAGS) $(DMD_FLAGS) $(MMD) $<
 
-$G/cxx-unittest: $G/cxxfrontend.o $(DMD_SRCS) $(ROOT_SRCS) $G/lexer.a $(G_OBJS) $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+$G/cxx-unittest: $G/cxxfrontend.o $(DMD_SRCS) $(ROOT_SRCS) $G/lexer.a $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) -L-lstdc++ $(DFLAGS) -version=NoMain $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 
 cxx-unittest: $G/cxx-unittest
