@@ -245,6 +245,8 @@ CH=
 # Makefiles
 MAKEFILES=win32.mak posix.mak osmodel.mak
 
+RUN_BUILD=$(GEN)\build.exe --called-from-make OS=$(OS) BUILD=$(BUILD) MODEL=$(MODEL) HOST_DMD=$(HOST_DMD) HOST_DC=$(HOST_DC)
+
 ############################## Release Targets ###############################
 
 defaulttarget: $G debdmd
@@ -252,6 +254,9 @@ defaulttarget: $G debdmd
 auto-tester-build: $G dmd checkwhitespace $(DMDFRONTENDEXE)
 
 dmd: $G reldmd
+
+$(GEN)\build.exe: build.d $(HOST_DMD_PATH)
+	$(HOST_DC) -of$@ -debug build.d
 
 release:
 	$(DMDMAKE) clean
@@ -294,8 +299,8 @@ LIBS=$G\backend.lib $G\lexer.lib
 $G\backend.lib: $(GBACKOBJ) $(OBJ_MSVC)
 	$(LIB) -p512 -n -c $@ $(GBACKOBJ) $(OBJ_MSVC)
 
-$G\lexer.lib: $(LEXER_SRCS) $(ROOT_SRCS) $(STRING_IMPORT_FILES) $G
-	$(HOST_DC) -of$@ -vtls -lib -J$G $(DFLAGS) $(LEXER_SRCS) $(ROOT_SRCS)
+$G\lexer.lib: $(GEN)\build.exe
+	$(RUN_BUILD) $@
 
 $G\parser.lib: $(PARSER_SRCS) $G\lexer.lib $G
 	$(HOST_DC) -of$@ -vtls -lib $(DFLAGS) $(PARSER_SRCS) $G\lexer.lib
