@@ -28,7 +28,7 @@ else version (TVOS)
 else version (WatchOS)
     version = Darwin;
 
-package
+package(core.thread)
 {
     version (D_InlineAsm_X86)
     {
@@ -93,7 +93,6 @@ shared static this()
         static assert(0, "unimplemented");
     }
 }
-
 
 private
 {
@@ -1650,7 +1649,7 @@ private:
         sm_this = t;
     }
 
-package:
+package(core.thread):
     static struct Context
     {
         void*           bstack,
@@ -1748,7 +1747,7 @@ private:
     }
 
 
-package:
+package(core.thread):
     ///////////////////////////////////////////////////////////////////////////
     // GC Scanning Support
     ///////////////////////////////////////////////////////////////////////////
@@ -3309,7 +3308,7 @@ extern (C) @nogc nothrow
 }
 
 
-package void* getStackTop() nothrow @nogc
+package(core.thread) void* getStackTop() nothrow @nogc
 {
     version (D_InlineAsm_X86)
         asm pure nothrow @nogc { naked; mov EAX, ESP; ret; }
@@ -3322,7 +3321,7 @@ package void* getStackTop() nothrow @nogc
 }
 
 
-package void* getStackBottom() nothrow @nogc
+package(core.thread) void* getStackBottom() nothrow @nogc
 {
     version (Windows)
     {

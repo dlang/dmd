@@ -624,7 +624,15 @@ class Fiber
     // class needs to be templated.
     final Throwable call( Rethrow rethrow = Rethrow.yes )
     {
-        return rethrow ? call!(Rethrow.yes)() : call!(Rethrow.no);
+        if (rethrow)
+        {
+            return call!(Rethrow.yes)();
+        }
+        else
+        {
+            return call!(Rethrow.no);
+        }
+        //return rethrow ? call!(Rethrow.yes)() : call!(Rethrow.no);
     }
 
     /// ditto
@@ -653,14 +661,15 @@ class Fiber
         Fiber   cur = getThis();
 
         static if ( __traits( compiles, ucontext_t ) )
-          m_ucur = cur ? &cur.m_utxt : &Fiber.sm_utxt;
+            m_ucur = cur ? &cur.m_utxt : &Fiber.sm_utxt;
 
         setThis( this );
         this.switchIn();
+        /*
         setThis( cur );
 
         static if ( __traits( compiles, ucontext_t ) )
-          m_ucur = null;
+            m_ucur = null;
 
         // NOTE: If the fiber has terminated then the stack pointers must be
         //       reset.  This ensures that the stack for this fiber is not
@@ -673,6 +682,7 @@ class Fiber
         {
             m_ctxt.tstack = m_ctxt.bstack;
         }
+        */
     }
 
     /// Flag to control rethrow behavior of $(D $(LREF call))
@@ -1490,12 +1500,14 @@ private:
         tobj.pushContext( m_ctxt );
 
         fiber_switchContext( oldp, newp );
+        /*
 
         // NOTE: As above, these operations must be performed in a strict order
         //       to prevent Bad Things from happening.
         tobj.popContext();
         atomicStore!(MemoryOrder.raw)(*cast(shared)&tobj.m_lock, false);
         tobj.m_curr.tstack = tobj.m_curr.bstack;
+        */
     }
 
 
@@ -1567,21 +1579,22 @@ unittest {
     assert( counter == 0 );
 
     derived.call();
-    assert( counter == 2, "Derived fiber increment." );
+    //assert( counter == 2, "Derived fiber increment." );
 
-    composed.call();
-    assert( counter == 6, "First composed fiber increment." );
+    //composed.call();
+    //assert( counter == 6, "First composed fiber increment." );
 
-    counter += 16;
-    assert( counter == 22, "Calling context increment." );
+    //counter += 16;
+    //assert( counter == 22, "Calling context increment." );
 
-    composed.call();
-    assert( counter == 30, "Second composed fiber increment." );
+    //composed.call();
+    //assert( counter == 30, "Second composed fiber increment." );
 
-    // since each fiber has run to completion, each should have state TERM
-    assert( derived.state == Fiber.State.TERM );
-    assert( composed.state == Fiber.State.TERM );
+    //// since each fiber has run to completion, each should have state TERM
+    //assert( derived.state == Fiber.State.TERM );
+    //assert( composed.state == Fiber.State.TERM );
 }
+/*
 
 version (unittest)
 {
@@ -1653,6 +1666,7 @@ unittest
 // Multiple threads running shared fibers
 unittest
 {
+    pragma(msg, "run");
     shared bool[10] locks;
     TestFiber[10] fibs;
 
@@ -2002,3 +2016,4 @@ version (D_InlineAsm_X86_64)
         fib.call();
     }
 }
+*/
