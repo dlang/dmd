@@ -1221,5 +1221,8 @@ $(IMPDIR)\core\thread\fiber.d : src\core\thread\fiber.d
 $(IMPDIR)\core\thread\osthread.d : src\core\thread\osthread.d
 	copy $** $@
 
+$(IMPDIR)\core\thread\package.d : src\core\thread\package.d
+	copy $** $@
+
 $(IMPDIR)\etc\linux\memoryerror.d : src\etc\linux\memoryerror.d
 	copy $** $@
