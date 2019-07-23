@@ -50,6 +50,9 @@ struct S
     float a = 1;
 }
 
+struct S3 { byte a, b, c; }
+struct S4 { byte a, b, c, d; }
+struct S5 { byte a, b, c, d, e; }
 struct S8 { int a; float b; }
 struct S16 { int a, b; float c, d; }
 
@@ -94,6 +97,9 @@ version(D_AVX2) float8 passthrough(float8 value);
 S      passthrough(S      value);
 test19248 passthrough(const(test19248) value);
 std.test19248_ passthrough(const(std.test19248_) value);
+S3     passthrough(S3     value);
+S4     passthrough(S4     value);
+S5     passthrough(S5     value);
 S8     passthrough(S8     value);
 S16    passthrough(S16    value);
 
@@ -120,6 +126,9 @@ version(D_AVX2) float8 passthrough_ptr(float8 *value);
 S      passthrough_ptr(S      *value);
 test19248 passthrough_ptr(const(test19248)* value);
 std.test19248_ passthrough_ptr(const(std.test19248_)* value);
+S3     passthrough_ptr(S3     *value);
+S4     passthrough_ptr(S4     *value);
+S5     passthrough_ptr(S5     *value);
 S8     passthrough_ptr(S8     *value);
 S16    passthrough_ptr(S16    *value);
 
@@ -146,6 +155,9 @@ version(D_AVX2) float8 passthrough_ref(ref float8 value);
 S      passthrough_ref(ref S      value);
 test19248 passthrough_ref(ref const(test19248) value);
 std.test19248_ passthrough_ref(ref const(std.test19248_) value);
+S3     passthrough_ref(ref S3     value);
+S4     passthrough_ref(ref S4     value);
+S5     passthrough_ref(ref S5     value);
 S8     passthrough_ref(ref S8     value);
 S16    passthrough_ref(ref S16    value);
 }
@@ -325,6 +337,9 @@ version(D_AVX2) foreach(float8 val; values!float8()) check(val);
     check(S());
     check(test19248());
     check(std.test19248_());
+    check(S3(1, 2, 3));
+    check(S4(1, 2, 3, 4));
+    check(S5(1, 2, 3, 4, 5));
     check(S8(1, 2));
     check(S16(1, 2, 3, 4));
 

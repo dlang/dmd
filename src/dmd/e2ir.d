@@ -111,6 +111,7 @@ bool ISX64REF(Declaration var)
         if (config.exe == EX_WIN64)
         {
             return var.type.size(Loc.initial) > REGSIZE
+                || (!var.type.isTypeBasic() && var.type.size() & (var.type.size() - 1))
                 || (var.storage_class & STC.lazy_)
                 || (var.type.isTypeStruct() && !var.type.isTypeStruct().sym.isPOD());
         }
@@ -130,6 +131,7 @@ bool ISX64REF(IRState* irs, Expression exp)
     if (config.exe == EX_WIN64)
     {
         return exp.type.size(Loc.initial) > REGSIZE
+            || (!exp.type.isTypeBasic() && exp.type.size() & (exp.type.size() - 1))
             || (exp.type.isTypeStruct() && !exp.type.isTypeStruct().sym.isPOD());
     }
     else if (!irs.params.isWindows)

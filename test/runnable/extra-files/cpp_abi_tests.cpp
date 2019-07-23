@@ -35,6 +35,9 @@ struct S{
     float a;
 };
 
+struct S3 { signed char a, b, c; };
+struct S4 { signed char a, b, c, d; };
+struct S5 { signed char a, b, c, d, e; };
 struct S8 { int a; float b; };
 struct S16 { int a, b; float c, d; };
 
@@ -90,6 +93,9 @@ float8_t           passthrough(float8_t            value)     { return value; }
 S                  passthrough(S                   value)     { return value; }
 std::test19248     passthrough(const std::test19248 value)    { return value; }
 std::test19248_    passthrough(const std::test19248_ value)   { return value; }
+S3                 passthrough(S3                  value)     { return value; }
+S4                 passthrough(S4                  value)     { return value; }
+S5                 passthrough(S5                  value)     { return value; }
 S8                 passthrough(S8                  value)     { return value; }
 S16                passthrough(S16                 value)     { return value; }
 
@@ -120,6 +126,9 @@ float8_t           passthrough_ptr(float8_t           *value) { return *value; }
 S                  passthrough_ptr(S                  *value) { return *value; }
 std::test19248     passthrough_ptr(const std::test19248 *value) { return *value; }
 std::test19248_    passthrough_ptr(const std::test19248_ *value) { return *value; }
+S3                 passthrough_ptr(S3                 *value) { return *value; }
+S4                 passthrough_ptr(S4                 *value) { return *value; }
+S5                 passthrough_ptr(S5                 *value) { return *value; }
 S8                 passthrough_ptr(S8                 *value) { return *value; }
 S16                passthrough_ptr(S16                *value) { return *value; }
 
@@ -150,6 +159,9 @@ float8_t           passthrough_ref(float8_t           &value) { return value; }
 S                  passthrough_ref(S                  &value) { return value; }
 std::test19248     passthrough_ref(const std::test19248 &value) { return value; }
 std::test19248_    passthrough_ref(const std::test19248_ &value) { return value; }
+S3                 passthrough_ref(S3                 &value) { return value; }
+S4                 passthrough_ref(S4                 &value) { return value; }
+S5                 passthrough_ref(S5                 &value) { return value; }
 S8                 passthrough_ref(S8                 &value) { return value; }
 S16                passthrough_ref(S16                &value) { return value; }
 
