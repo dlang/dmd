@@ -1934,20 +1934,14 @@ struct ASTBase
             this.stmt = stmt;
         }
 
-        ExpStatement isExpStatement()
-        {
-            return null;
-        }
+        nothrow pure @nogc
+        inout(ExpStatement) isExpStatement() inout { return stmt == STMT.Exp ? cast(typeof(return))this : null; }
 
-        inout(CompoundStatement) isCompoundStatement() inout nothrow pure
-        {
-            return null;
-        }
+        nothrow pure @nogc
+        inout(CompoundStatement) isCompoundStatement() inout { return stmt == STMT.Compound ? cast(typeof(return))this : null; }
 
-        inout(ReturnStatement) isReturnStatement() inout nothrow pure
-        {
-            return null;
-        }
+        nothrow pure @nogc
+        inout(ReturnStatement) isReturnStatement() inout { return stmt == STMT.Return ? cast(typeof(return))this : null; }
 
         override void accept(Visitor v)
         {
@@ -1997,11 +1991,6 @@ struct ASTBase
         {
             super(loc, STMT.Return);
             this.exp = exp;
-        }
-
-        override inout(ReturnStatement) isReturnStatement() inout nothrow pure
-        {
-            return this;
         }
 
         override void accept(Visitor v)
@@ -2578,11 +2567,6 @@ struct ASTBase
             this.exp = new DeclarationExp(loc, declaration);
         }
 
-        override final ExpStatement isExpStatement()
-        {
-            return this;
-        }
-
         override void accept(Visitor v)
         {
             v.visit(this);
@@ -2612,11 +2596,6 @@ struct ASTBase
             statements.reserve(sts.length);
             foreach (s; sts)
                 statements.push(s);
-        }
-
-        override final inout(CompoundStatement) isCompoundStatement() inout nothrow pure
-        {
-            return this;
         }
 
         override void accept(Visitor v)
