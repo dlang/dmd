@@ -264,6 +264,9 @@ $(IMPDIR)\core\stdcpp\exception.d : src\core\stdcpp\exception.d
 $(IMPDIR)\core\stdcpp\new_.d : src\core\stdcpp\new_.d
 	copy $** $@
 
+$(IMPDIR)\core\stdcpp\optional.d : src\core\stdcpp\optional.d
+	copy $** $@
+
 $(IMPDIR)\core\stdcpp\string.d : src\core\stdcpp\string.d
 	copy $** $@
 

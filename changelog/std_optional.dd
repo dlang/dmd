@@ -1,0 +1,3 @@
+Added `core.stdcpp.optional`.
+
+Added `core.stdcpp.optional`, which links against C++ `std::optional`
