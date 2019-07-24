@@ -3727,6 +3727,13 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
         buf.writestring("typeof(null)");
     }
 
+    void visitMixin(TypeMixin t)
+    {
+        buf.writestring("mixin(");
+        argsToBuffer(t.exps, buf, hgs, null);
+        buf.writeByte(')');
+    }
+
     switch (t.ty)
     {
         default:        return t.isTypeBasic() ?
@@ -3753,5 +3760,6 @@ private void typeToBufferx(Type t, OutBuffer* buf, HdrGenState* hgs)
         case Ttuple:     return visitTuple (cast(TypeTuple)t);
         case Tslice:     return visitSlice(cast(TypeSlice)t);
         case Tnull:      return visitNull(cast(TypeNull)t);
+        case Tmixin:     return visitMixin(cast(TypeMixin)t);
     }
 }

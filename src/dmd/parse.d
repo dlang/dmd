@@ -1929,25 +1929,25 @@ final class Parser(AST) : Lexer
         // Get TemplateArgumentList
         while (token.value != endtok)
         {
-            // See if it is an Expression or a Type
-            if (isDeclaration(&token, NeedDeclaratorId.no, TOK.reserved, null))
-            {
-                // Template argument is a type
-                AST.Type ta = parseType();
-                tiargs.push(ta);
-            }
-            else
-            {
-                // Template argument is an expression
-                AST.Expression ea = parseAssignExp();
-                tiargs.push(ea);
-            }
+            tiargs.push(parseTypeOrAssignExp());
             if (token.value != TOK.comma)
                 break;
             nextToken();
         }
         check(endtok, "template argument list");
         return tiargs;
+    }
+
+    /***************************************
+     * Parse a Type or an Expression
+     * Returns:
+     *  RootObject representing the AST
+     */
+    RootObject parseTypeOrAssignExp()
+    {
+        return isDeclaration(&token, NeedDeclaratorId.no, TOK.reserved, null)
+            ? parseType()           // argument is a type
+            : parseAssignExp();     // argument is an expression
     }
 
     /*****************************
@@ -3510,7 +3510,7 @@ final class Parser(AST) : Lexer
         return decldefs;
     }
 
-    private AST.Type parseType(Identifier* pident = null, AST.TemplateParameters** ptpl = null)
+    AST.Type parseType(Identifier* pident = null, AST.TemplateParameters** ptpl = null)
     {
         /* Take care of the storage class prefixes that
          * serve as type attributes:
@@ -3710,6 +3710,15 @@ final class Parser(AST) : Lexer
             {
                 t = parseBasicTypeStartingAt(new AST.TypeIdentifier(loc, id), dontLookDotIdents);
             }
+            break;
+
+        case TOK.mixin_:
+            // https://dlang.org/spec/expression.html#mixin_types
+            nextToken();
+            if (token.value != TOK.leftParentheses)
+                error("found `%s` when expecting `%s` following %s", token.toChars(), Token.toChars(TOK.leftParentheses), "`mixin`".ptr);
+            auto exps = parseArguments();
+            t = new AST.TypeMixin(exps);
             break;
 
         case TOK.dot:
@@ -5630,6 +5639,8 @@ final class Parser(AST) : Lexer
             }
         case TOK.mixin_:
             {
+                if (isDeclaration(&token, NeedDeclaratorId.mustIfDstyle, TOK.reserved, null))
+                    goto Ldeclaration;
                 Token* t = peek(&token);
                 if (t.value == TOK.leftParentheses)
                 {
@@ -6921,6 +6932,7 @@ final class Parser(AST) : Lexer
 
         case TOK.typeof_:
         case TOK.vector:
+        case TOK.mixin_:
             /* typeof(exp).identifier...
              */
             t = peek(t);
@@ -7923,17 +7935,7 @@ final class Parser(AST) : Lexer
             {
                 nextToken();
                 check(TOK.leftParentheses, "`typeid`");
-                RootObject o;
-                if (isDeclaration(&token, NeedDeclaratorId.no, TOK.reserved, null))
-                {
-                    // argument is a type
-                    o = parseType();
-                }
-                else
-                {
-                    // argument is an expression
-                    o = parseAssignExp();
-                }
+                RootObject o = parseTypeOrAssignExp();
                 check(TOK.rightParentheses);
                 e = new AST.TypeidExp(loc, o);
                 break;

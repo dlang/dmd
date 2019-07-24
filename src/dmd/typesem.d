@@ -21,6 +21,7 @@ import dmd.aggregate;
 import dmd.aliasthis;
 import dmd.arrayop;
 import dmd.arraytypes;
+import dmd.astcodegen;
 import dmd.complex;
 import dmd.dcast;
 import dmd.dclass;
@@ -48,6 +49,7 @@ import dmd.visitor;
 import dmd.mtype;
 import dmd.objc;
 import dmd.opover;
+import dmd.parse;
 import dmd.root.ctfloat;
 import dmd.root.rmem;
 import dmd.root.outbuffer;
@@ -1586,7 +1588,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
         Type t;
         Expression e;
         Dsymbol s;
-        //printf("TypeIdentifier::semantic(%s)\n", toChars());
+        //printf("TypeIdentifier::semantic(%s)\n", mtype.toChars());
         mtype.resolve(loc, sc, &e, &t, &s);
         if (t)
         {
@@ -1880,6 +1882,16 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
         return t.typeSemantic(loc, sc);
     }
 
+    Type visitMixin(TypeMixin mtype)
+    {
+        //printf("TypeMixin::semantic() %s\n", toChars());
+        Type t = mtype.compileTypeMixin(loc, sc);
+        if (!t)
+            return error();
+
+        return t.typeSemantic(loc, sc);
+    }
+
     switch (t.ty)
     {
         default:         return visitType(t);
@@ -1901,8 +1913,49 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
         case Tclass:     return visitClass(cast(TypeClass)t);
         case Ttuple:     return visitTuple (cast(TypeTuple)t);
         case Tslice:     return visitSlice(cast(TypeSlice)t);
+        case Tmixin:     return visitMixin(cast(TypeMixin)t);
     }
 }
+
+/******************************************
+ * Compile the MixinType, returning the type AST.
+ *
+ * Doesn't run semantic() on the returned type.
+ * Params:
+ *      tm = mixin to compile as a type
+ *      loc = location for error messages
+ *      sc = context
+ * Return:
+ *      null if error, else type AST as parsed
+ */
+Type compileTypeMixin(TypeMixin tm, Loc loc, Scope* sc)
+{
+    OutBuffer buf;
+    if (expressionsToString(buf, sc, tm.exps))
+        return null;
+
+    const errors = global.errors;
+    const len = buf.offset;
+    const str = buf.extractChars()[0 .. len];
+    scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
+    scope p = new Parser!ASTCodegen(loc, sc._module, str, false, diagnosticReporter);
+    p.nextToken();
+    //printf("p.loc.linnum = %d\n", p.loc.linnum);
+
+    Type t = p.parseType();
+    if (p.errors)
+    {
+        assert(global.errors != errors); // should have caught all these cases
+        return null;
+    }
+    if (p.token.value != TOK.endOfFile)
+    {
+        .error(loc, "incomplete mixin type `%s`", str.ptr);
+        return null;
+    }
+    return t;
+}
+
 
 /************************************
  * If an identical type to `type` is in `type.stringtable`, return
@@ -1921,6 +1974,7 @@ Type merge(Type type)
         case Ttypeof:
         case Tident:
         case Tinstance:
+        case Tmixin:
             return type;
 
         case Tenum:
@@ -2932,6 +2986,23 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
         }
     }
 
+    void visitMixin(TypeMixin mt)
+    {
+        auto ta = mt.compileTypeMixin(loc, sc);
+        if (ta)
+        {
+            auto tt = ta.isTypeTraits();
+            if (tt && tt.exp)
+            {
+                *pe = tt.exp;
+            }
+            else
+                resolve(ta, loc, sc, pe, pt, ps, intypeid);
+        }
+        else
+            returnError();
+    }
+
     switch (mt.ty)
     {
         default:        visitType      (mt);                     break;
@@ -2943,6 +3014,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
         case Ttypeof:   visitTypeof    (cast(TypeTypeof)mt);     break;
         case Treturn:   visitReturn    (cast(TypeReturn)mt);     break;
         case Tslice:    visitSlice     (cast(TypeSlice)mt);      break;
+        case Tmixin:    visitMixin     (cast(TypeMixin)mt);      break;
     }
 }
 

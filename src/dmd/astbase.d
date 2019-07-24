@@ -188,6 +188,7 @@ struct ASTBase
         Tvector,
         Tint128,
         Tuns128,
+        Tmixin,
         TMAX
     }
 
@@ -235,6 +236,7 @@ struct ASTBase
     alias Tvector = ENUMTY.Tvector;
     alias Tint128 = ENUMTY.Tint128;
     alias Tuns128 = ENUMTY.Tuns128;
+    alias Tmixin = ENUMTY.Tmixin;
     alias TMAX = ENUMTY.TMAX;
 
     alias TY = ubyte;
@@ -2758,6 +2760,7 @@ struct ASTBase
                 sizeTy[Terror] = __traits(classInstanceSize, TypeError);
                 sizeTy[Tnull] = __traits(classInstanceSize, TypeNull);
                 sizeTy[Tvector] = __traits(classInstanceSize, TypeVector);
+                sizeTy[Tmixin] = __traits(classInstanceSize, TypeMixin);
                 return sizeTy;
             }();
 
@@ -4240,6 +4243,41 @@ struct ASTBase
             TypeTraits tt = new TypeTraits(loc, te);
             tt.mod = mod;
             return tt;
+        }
+    }
+
+    extern (C++) final class TypeMixin : Type
+    {
+        Expressions* exps;
+
+        extern (D) this(Expressions* exps)
+        {
+            super(Tmixin);
+            this.exps = exps;
+        }
+
+        override Type syntaxCopy()
+        {
+            static Expressions* arraySyntaxCopy(Expressions* exps)
+            {
+                Expressions* a = null;
+                if (exps)
+                {
+                    a = new Expressions(exps.dim);
+                    foreach (i, e; *exps)
+                    {
+                        (*a)[i] = e ? e.syntaxCopy() : null;
+                    }
+                }
+                return a;
+            }
+
+            return new TypeMixin(arraySyntaxCopy(exps));
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
         }
     }
 
