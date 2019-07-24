@@ -469,14 +469,14 @@ int insidx(char *p,uint index)
             mov     ECX,p - [ESP]           ;
         }
     else
-        asm
+        asm nothrow
         {
             naked                           ;
             mov     EAX,index - [ESP+4]     ;
             mov     ECX,p - [ESP+4]         ;
         }
 
-    asm
+    asm nothrow
     {
         cmp     EAX,0x7F                ;
         jae     L1                      ;
