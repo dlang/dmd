@@ -1602,10 +1602,20 @@ public:
             buf.writeByte(' ');
         }
         TypeFunction tf = cast(TypeFunction)f.type;
-        // Don't print tf.mod, tf.trust, and tf.linkage
+
         if (!f.inferRetType && tf.next)
             typeToBuffer(tf.next, null, buf, hgs);
         parametersToBuffer(tf.parameterList, buf, hgs);
+
+        // https://issues.dlang.org/show_bug.cgi?id=20074
+        void printAttribute(string str)
+        {
+            buf.writeByte(' ');
+            buf.writestring(str);
+        }
+        tf.attributesApply(&printAttribute);
+
+
         CompoundStatement cs = f.fbody.isCompoundStatement();
         Statement s1;
         if (f.semanticRun >= PASS.semantic3done && cs)
