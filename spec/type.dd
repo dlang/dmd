@@ -305,6 +305,29 @@ $(P The C style syntax for declaring pointers to functions is deprecated:)
 int (*fp)(int);  // fp is pointer to a function
 -------------------
 
+$(H2 $(LNAME2 mixin_types, $(D Mixin Types)))
+
+$(GRAMMAR
+$(GNAME MixinType):
+    $(D mixin $(LPAREN)) $(GLINK ArgumentList) $(D $(RPAREN))
+)
+
+    $(P Each $(GLINK AssignExpression) in the $(I ArgumentList) is
+        evaluated at compile time, and the result must be representable
+        as a string.
+        The resulting strings are concatenated to form a string.
+        The text contents of the string must be compilable as a valid
+        $(GLINK2 declaration, Type), and is compiled as such.)
+
+        ---
+        void test(mixin("int")* p) // int* p
+        {
+            mixin("int")[] a;      // int[] a;
+            mixin("int[]") b;      // int[] b;
+        }
+        ---
+
+
 $(H2 $(LNAME2 size_t, $(D size_t)))
 
     $(P $(D size_t) is an alias to one of the unsigned integral basic types,
