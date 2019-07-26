@@ -53,8 +53,8 @@ SCHED_OTHER
 
 int sched_getparam(pid_t, sched_param*);
 int sched_getscheduler(pid_t);
-int sched_setparam(pid_t, in sched_param*);
-int sched_setscheduler(pid_t, int, in sched_param*);
+int sched_setparam(pid_t, const scope sched_param*);
+int sched_setscheduler(pid_t, int, const scope sched_param*);
 */
 
 version (CRuntime_Glibc)
@@ -189,8 +189,8 @@ else
 
 int sched_getparam(pid_t, sched_param*);
 int sched_getscheduler(pid_t);
-int sched_setparam(pid_t, in sched_param*);
-int sched_setscheduler(pid_t, int, in sched_param*);
+int sched_setparam(pid_t, const scope sched_param*);
+int sched_setscheduler(pid_t, int, const scope sched_param*);
 
 //
 // Thread (THR)

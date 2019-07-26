@@ -1829,8 +1829,8 @@ else version (CRuntime_UClibc)
 /*
 int  getcontext(ucontext_t*);
 void makecontext(ucontext_t*, void function(), int, ...);
-int  setcontext(in ucontext_t*);
-int  swapcontext(ucontext_t*, in ucontext_t*);
+int  setcontext(const scope ucontext_t*);
+int  swapcontext(ucontext_t*, const scope ucontext_t*);
 */
 
 static if ( is( ucontext_t ) )
@@ -1850,13 +1850,13 @@ static if ( is( ucontext_t ) )
     else
         void makecontext(ucontext_t*, void function(), int, ...);
 
-    int  setcontext(in ucontext_t*);
-    int  swapcontext(ucontext_t*, in ucontext_t*);
+    int  setcontext(const scope ucontext_t*);
+    int  swapcontext(ucontext_t*, const scope ucontext_t*);
 }
 
 version (Solaris)
 {
-    int walkcontext(in ucontext_t*, int function(uintptr_t, int, void*), void*);
+    int walkcontext(const scope ucontext_t*, int function(uintptr_t, int, void*), void*);
     int addrtosymstr(uintptr_t, char*, int);
     int printstack(int);
 }

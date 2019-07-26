@@ -65,44 +65,44 @@ int    fflush(FILE*);
 int    fgetc(FILE*);
 int    fgetpos(FILE*, fpos_t *);
 char*  fgets(char*, int, FILE*);
-FILE*  fopen(in char*, in char*);
-int    fprintf(FILE*, in char*, ...);
+FILE*  fopen(const scope char*, const scope char*);
+int    fprintf(FILE*, const scope char*, ...);
 int    fputc(int, FILE*);
-int    fputs(in char*, FILE*);
+int    fputs(const scope char*, FILE*);
 size_t fread(void *, size_t, size_t, FILE*);
-FILE*  freopen(in char*, in char*, FILE*);
-int    fscanf(FILE*, in char*, ...);
+FILE*  freopen(const scope char*, const scope char*, FILE*);
+int    fscanf(FILE*, const scope char*, ...);
 int    fseek(FILE*, c_long, int);
-int    fsetpos(FILE*, in fpos_t*);
+int    fsetpos(FILE*, const scope fpos_t*);
 c_long ftell(FILE*);
 size_t fwrite(in void *, size_t, size_t, FILE*);
 int    getc(FILE*);
 int    getchar();
 char*  gets(char*);
-void   perror(in char*);
-int    printf(in char*, ...);
+void   perror(const scope char*);
+int    printf(const scope char*, ...);
 int    putc(int, FILE*);
 int    putchar(int);
-int    puts(in char*);
-int    remove(in char*);
-int    rename(in char*, in char*);
+int    puts(const scope char*);
+int    remove(const scope char*);
+int    rename(const scope char*, const scope char*);
 void   rewind(FILE*);
-int    scanf(in char*, ...);
+int    scanf(const scope char*, ...);
 void   setbuf(FILE*, char*);
 int    setvbuf(FILE*, char*, int, size_t);
-int    snprintf(char*, size_t, in char*, ...);
-int    sprintf(char*, in char*, ...);
-int    sscanf(in char*, in char*, int ...);
+int    snprintf(char*, size_t, const scope char*, ...);
+int    sprintf(char*, const scope char*, ...);
+int    sscanf(const scope char*, const scope char*, int ...);
 FILE*  tmpfile();
 char*  tmpnam(char*);
 int    ungetc(int, FILE*);
-int    vfprintf(FILE*, in char*, va_list);
-int    vfscanf(FILE*, in char*, va_list);
-int    vprintf(in char*, va_list);
-int    vscanf(in char*, va_list);
-int    vsnprintf(char*, size_t, in char*, va_list);
-int    vsprintf(char*, in char*, va_list);
-int    vsscanf(in char*, in char*, va_list arg);
+int    vfprintf(FILE*, const scope char*, va_list);
+int    vfscanf(FILE*, const scope char*, va_list);
+int    vprintf(const scope char*, va_list);
+int    vscanf(const scope char*, va_list);
+int    vsnprintf(char*, size_t, const scope char*, va_list);
+int    vsprintf(char*, const scope char*, va_list);
+int    vsscanf(const scope char*, const scope char*, va_list arg);
 */
 
 version (CRuntime_Glibc)
@@ -117,15 +117,15 @@ version (CRuntime_Glibc)
         int   fgetpos64(FILE*, fpos_t *);
         alias fgetpos64 fgetpos;
 
-        FILE* fopen64(in char*, in char*);
+        FILE* fopen64(const scope char*, const scope char*);
         alias fopen64 fopen;
 
-        FILE* freopen64(in char*, in char*, FILE*);
+        FILE* freopen64(const scope char*, const scope char*, FILE*);
         alias freopen64 freopen;
 
         int   fseek(FILE*, c_long, int);
 
-        int   fsetpos64(FILE*, in fpos_t*);
+        int   fsetpos64(FILE*, const scope fpos_t*);
         alias fsetpos64 fsetpos;
 
         FILE* tmpfile64();
@@ -134,20 +134,20 @@ version (CRuntime_Glibc)
     else
     {
         int   fgetpos(FILE*, fpos_t *);
-        FILE* fopen(in char*, in char*);
-        FILE* freopen(in char*, in char*, FILE*);
+        FILE* fopen(const scope char*, const scope char*);
+        FILE* freopen(const scope char*, const scope char*, FILE*);
         int   fseek(FILE*, c_long, int);
-        int   fsetpos(FILE*, in fpos_t*);
+        int   fsetpos(FILE*, const scope fpos_t*);
         FILE* tmpfile();
     }
 }
 else version (CRuntime_Bionic)
 {
     int   fgetpos(FILE*, fpos_t *);
-    FILE* fopen(in char*, in char*);
-    FILE* freopen(in char*, in char*, FILE*);
+    FILE* fopen(const scope char*, const scope char*);
+    FILE* freopen(const scope char*, const scope char*, FILE*);
     int   fseek(FILE*, c_long, int);
-    int   fsetpos(FILE*, in fpos_t*);
+    int   fsetpos(FILE*, const scope fpos_t*);
 }
 else version (CRuntime_UClibc)
 {
@@ -156,15 +156,15 @@ else version (CRuntime_UClibc)
         int   fgetpos64(FILE*, fpos_t *);
         alias fgetpos64 fgetpos;
 
-        FILE* fopen64(in char*, in char*);
+        FILE* fopen64(const scope char*, const scope char*);
         alias fopen64 fopen;
 
-        FILE* freopen64(in char*, in char*, FILE*);
+        FILE* freopen64(const scope char*, const scope char*, FILE*);
         alias freopen64 freopen;
 
         int   fseek(FILE*, c_long, int);
 
-        int   fsetpos64(FILE*, in fpos_t*);
+        int   fsetpos64(FILE*, const scope fpos_t*);
         alias fsetpos64 fsetpos;
 
         FILE* tmpfile64();
@@ -173,10 +173,10 @@ else version (CRuntime_UClibc)
     else
     {
         int   fgetpos(FILE*, fpos_t *);
-        FILE* fopen(in char*, in char*);
-        FILE* freopen(in char*, in char*, FILE*);
+        FILE* fopen(const scope char*, const scope char*);
+        FILE* freopen(const scope char*, const scope char*, FILE*);
         int   fseek(FILE*, c_long, int);
-        int   fsetpos(FILE*, in fpos_t*);
+        int   fsetpos(FILE*, const scope fpos_t*);
         FILE* tmpfile();
     }
 }
@@ -187,15 +187,15 @@ else version (Solaris)
         int   fgetpos64(FILE*, fpos_t *);
         alias fgetpos = fgetpos64;
 
-        FILE* fopen64(in char*, in char*);
+        FILE* fopen64(const scope char*, const scope char*);
         alias fopen = fopen64;
 
-        FILE* freopen64(in char*, in char*, FILE*);
+        FILE* freopen64(const scope char*, const scope char*, FILE*);
         alias freopen = freopen64;
 
         int   fseek(FILE*, c_long, int);
 
-        int   fsetpos64(FILE*, in fpos_t*);
+        int   fsetpos64(FILE*, const scope fpos_t*);
         alias fsetpos = fsetpos64;
 
         FILE* tmpfile64();
@@ -204,10 +204,10 @@ else version (Solaris)
     else
     {
         int   fgetpos(FILE*, fpos_t *);
-        FILE* fopen(in char*, in char*);
-        FILE* freopen(in char*, in char*, FILE*);
+        FILE* fopen(const scope char*, const scope char*);
+        FILE* freopen(const scope char*, const scope char*, FILE*);
         int   fseek(FILE*, c_long, int);
-        int   fsetpos(FILE*, in fpos_t*);
+        int   fsetpos(FILE*, const scope fpos_t*);
         FILE* tmpfile();
     }
 }
@@ -219,13 +219,13 @@ else version (Solaris)
 L_ctermid
 
 char*  ctermid(char*);
-FILE*  fdopen(int, in char*);
+FILE*  fdopen(int, const scope char*);
 int    fileno(FILE*);
 int    fseeko(FILE*, off_t, int);
 off_t  ftello(FILE*);
 char*  gets(char*);
 int    pclose(FILE*);
-FILE*  popen(in char*, in char*);
+FILE*  popen(const scope char*, const scope char*);
 */
 
 version (CRuntime_Glibc)
@@ -309,13 +309,13 @@ else version (Posix)
 }
 
 char*  ctermid(char*);
-FILE*  fdopen(int, in char*);
+FILE*  fdopen(int, const scope char*);
 int    fileno(FILE*);
 //int    fseeko(FILE*, off_t, int);
 //off_t  ftello(FILE*);
 char*  gets(char*);
 int    pclose(FILE*);
-FILE*  popen(in char*, in char*);
+FILE*  popen(const scope char*, const scope char*);
 
 
 // memstream functions are conforming to POSIX.1-2008.  These functions are
@@ -334,7 +334,7 @@ else version (CRuntime_UClibc)
 
 version (HaveMemstream)
 {
-    FILE*  fmemopen(in void* buf, in size_t size, in char* mode);
+    FILE*  fmemopen(const scope void* buf, in size_t size, const scope char* mode);
     FILE*  open_memstream(char** ptr, size_t* sizeloc);
     version (CRuntime_UClibc) {} else
     FILE*  open_wmemstream(wchar_t** ptr, size_t* sizeloc);
@@ -401,10 +401,10 @@ else version (CRuntime_UClibc)
 P_tmpdir
 va_list (defined in core.stdc.stdarg)
 
-char*  tempnam(in char*, in char*);
+char*  tempnam(const scope char*, const scope char*);
 */
 
-char*  tempnam(in char*, in char*);
+char*  tempnam(const scope char*, const scope char*);
 
 version (CRuntime_Glibc)
 {

@@ -44,7 +44,7 @@ struct dirent
 }
 
 int     closedir(DIR*);
-DIR*    opendir(in char*);
+DIR*    opendir(const scope char*);
 dirent* readdir(DIR*);
 void    rewinddir(DIR*);
 */
@@ -418,7 +418,7 @@ version (OSX)
     version (D_LP64)
     {
         int closedir(DIR*);
-        pragma(mangle, "opendir$INODE64")   DIR* opendir(in char*);
+        pragma(mangle, "opendir$INODE64")   DIR* opendir(const scope char*);
         pragma(mangle, "rewinddir$INODE64") void rewinddir(DIR*);
     }
     else
@@ -426,21 +426,21 @@ version (OSX)
         // 32-bit mangles __DARWIN_UNIX03 specific functions with $UNIX2003 to
         // maintain backward compatibility with binaries build pre 10.5
         pragma(mangle, "closedir$UNIX2003")          int closedir(DIR*);
-        pragma(mangle, "opendir$INODE64$UNIX2003")   DIR* opendir(in char*);
+        pragma(mangle, "opendir$INODE64$UNIX2003")   DIR* opendir(const scope char*);
         pragma(mangle, "rewinddir$INODE64$UNIX2003") void rewinddir(DIR*);
     }
 }
 else version (NetBSD)
 {
     int     closedir(DIR*);
-    DIR*    __opendir30(in char*);
+    DIR*    __opendir30(const scope char*);
     alias __opendir30 opendir;
     void    rewinddir(DIR*);
 }
 else
 {
     int     closedir(DIR*);
-    DIR*    opendir(in char*);
+    DIR*    opendir(const scope char*);
     //dirent* readdir(DIR*);
     void    rewinddir(DIR*);
 }
