@@ -1685,7 +1685,7 @@ class TypeInfo_Class : TypeInfo
      * Search all modules for TypeInfo_Class corresponding to classname.
      * Returns: null if not found
      */
-    static const(TypeInfo_Class) find(in char[] classname)
+    static const(TypeInfo_Class) find(const scope char[] classname)
     {
         foreach (m; ModuleInfo)
         {
@@ -2149,7 +2149,7 @@ struct ModuleInfo
     version (all)
     {
         deprecated("ModuleInfo cannot be copy-assigned because it is a variable-sized struct.")
-        void opAssign(in ModuleInfo m) { _flags = m._flags; _index = m._index; }
+        void opAssign(const scope ModuleInfo m) { _flags = m._flags; _index = m._index; }
     }
     else
     {
@@ -2743,12 +2743,12 @@ extern (C)
 
     private struct AA { void* impl; }
     // size_t _aaLen(in AA aa) pure nothrow @nogc;
-    private void* _aaGetY(AA* paa, const TypeInfo_AssociativeArray ti, in size_t valsz, in void* pkey) pure nothrow;
-    private void* _aaGetX(AA* paa, const TypeInfo_AssociativeArray ti, in size_t valsz, in void* pkey, out bool found) pure nothrow;
+    private void* _aaGetY(AA* paa, const TypeInfo_AssociativeArray ti, const size_t valsz, const scope void* pkey) pure nothrow;
+    private void* _aaGetX(AA* paa, const TypeInfo_AssociativeArray ti, const size_t valsz, const scope void* pkey, out bool found) pure nothrow;
     // inout(void)* _aaGetRvalueX(inout AA aa, in TypeInfo keyti, in size_t valsz, in void* pkey);
-    inout(void[]) _aaValues(inout AA aa, in size_t keysz, in size_t valsz, const TypeInfo tiValueArray) pure nothrow;
-    inout(void[]) _aaKeys(inout AA aa, in size_t keysz, const TypeInfo tiKeyArray) pure nothrow;
-    void* _aaRehash(AA* paa, in TypeInfo keyti) pure nothrow;
+    inout(void[]) _aaValues(inout AA aa, const size_t keysz, const size_t valsz, const TypeInfo tiValueArray) pure nothrow;
+    inout(void[]) _aaKeys(inout AA aa, const size_t keysz, const TypeInfo tiKeyArray) pure nothrow;
+    void* _aaRehash(AA* paa, const scope TypeInfo keyti) pure nothrow;
     void _aaClear(AA aa) pure nothrow;
 
     // alias _dg_t = extern(D) int delegate(void*);
@@ -3979,7 +3979,7 @@ private inout(TypeInfo) getElement(inout TypeInfo value) @trusted pure nothrow
     return cast(inout) element;
 }
 
-private size_t getArrayHash(in TypeInfo element, in void* ptr, in size_t count) @trusted nothrow
+private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr, const size_t count) @trusted nothrow
 {
     if (!count)
         return 0;
@@ -3988,7 +3988,7 @@ private size_t getArrayHash(in TypeInfo element, in void* ptr, in size_t count) 
     if (!elementSize)
         return 0;
 
-    static bool hasCustomToHash(in TypeInfo value) @trusted pure nothrow
+    static bool hasCustomToHash(const scope TypeInfo value) @trusted pure nothrow
     {
         const element = getElement(value);
 
