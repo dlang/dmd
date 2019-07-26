@@ -52,7 +52,7 @@ IPC_RMID
 IPC_SET
 IPC_STAT
 
-key_t ftok(in char*, int);
+key_t ftok(const scope char*, int);
 */
 
 version (CRuntime_Glibc)
@@ -82,7 +82,7 @@ version (CRuntime_Glibc)
     enum IPC_SET        = 1;
     enum IPC_STAT       = 2;
 
-    key_t ftok(in char*, int);
+    key_t ftok(const scope char*, int);
 }
 else version (Darwin)
 {
@@ -122,7 +122,7 @@ else version (FreeBSD)
     enum IPC_SET        = 1;
     enum IPC_STAT       = 2;
 
-    key_t ftok(in char*, int);
+    key_t ftok(const scope char*, int);
 }
 else version (NetBSD)
 {
@@ -147,7 +147,7 @@ else version (NetBSD)
     enum IPC_SET        = 1;
     enum IPC_STAT       = 2;
 
-    key_t ftok(in char*, int);
+    key_t ftok(const scope char*, int);
 }
 else version (OpenBSD)
 {
@@ -172,7 +172,7 @@ else version (OpenBSD)
     enum IPC_SET        = 1;
     enum IPC_STAT       = 2;
 
-    key_t ftok(in char*, int);
+    key_t ftok(const scope char*, int);
 }
 else version (DragonFlyBSD)
 {
@@ -197,7 +197,7 @@ else version (DragonFlyBSD)
     enum IPC_SET        = 1;
     enum IPC_STAT       = 2;
 
-    key_t ftok(in char*, int);
+    key_t ftok(const scope char*, int);
 }
 else version (CRuntime_Bionic)
 {
@@ -240,7 +240,7 @@ else version (CRuntime_Bionic)
     enum IPC_SET        = 1;
     enum IPC_STAT       = 2;
 
-    key_t ftok(in char*, int);
+    key_t ftok(const scope char*, int);
 }
 else version (CRuntime_UClibc)
 {
@@ -270,5 +270,5 @@ else version (CRuntime_UClibc)
     enum IPC_STAT       = 2;
     enum IPC_INFO       = 3;
 
-    key_t ftok(in char*, int);
+    key_t ftok(const scope char*, int);
 }
