@@ -80,13 +80,13 @@ S_TYPEISMQ(buf)
 S_TYPEISSEM(buf)
 S_TYPEISSHM(buf)
 
-int    chmod(in char*, mode_t);
+int    chmod(const scope char*, mode_t);
 int    fchmod(int, mode_t);
 int    fstat(int, stat*);
-int    lstat(in char*, stat*);
-int    mkdir(in char*, mode_t);
-int    mkfifo(in char*, mode_t);
-int    stat(in char*, stat*);
+int    lstat(const scope char*, stat*);
+int    mkdir(const scope char*, mode_t);
+int    mkfifo(const scope char*, mode_t);
+int    stat(const scope char*, stat*);
 mode_t umask(mode_t);
  */
 
@@ -1928,13 +1928,13 @@ else
     static assert(false, "Unsupported platform");
 }
 
-int    chmod(in char*, mode_t);
+int    chmod(const scope char*, mode_t);
 int    fchmod(int, mode_t);
 //int    fstat(int, stat_t*);
-//int    lstat(in char*, stat_t*);
-int    mkdir(in char*, mode_t);
-int    mkfifo(in char*, mode_t);
-//int    stat(in char*, stat_t*);
+//int    lstat(const scope char*, stat_t*);
+int    mkdir(const scope char*, mode_t);
+int    mkfifo(const scope char*, mode_t);
+//int    stat(const scope char*, stat_t*);
 mode_t umask(mode_t);
 
 version (CRuntime_Glibc)
@@ -1944,17 +1944,17 @@ version (CRuntime_Glibc)
     int   fstat64(int, stat_t*) @trusted;
     alias fstat64 fstat;
 
-    int   lstat64(in char*, stat_t*);
+    int   lstat64(const scope char*, stat_t*);
     alias lstat64 lstat;
 
-    int   stat64(in char*, stat_t*);
+    int   stat64(const scope char*, stat_t*);
     alias stat64 stat;
   }
   else
   {
     int   fstat(int, stat_t*) @trusted;
-    int   lstat(in char*, stat_t*);
-    int   stat(in char*, stat_t*);
+    int   lstat(const scope char*, stat_t*);
+    int   stat(const scope char*, stat_t*);
   }
 }
 else version (Solaris)
@@ -1962,8 +1962,8 @@ else version (Solaris)
     version (D_LP64)
     {
         int fstat(int, stat_t*) @trusted;
-        int lstat(in char*, stat_t*);
-        int stat(in char*, stat_t*);
+        int lstat(const scope char*, stat_t*);
+        int stat(const scope char*, stat_t*);
 
         static if (__USE_LARGEFILE64)
         {
@@ -1979,17 +1979,17 @@ else version (Solaris)
             int   fstat64(int, stat_t*) @trusted;
             alias fstat64 fstat;
 
-            int   lstat64(in char*, stat_t*);
+            int   lstat64(const scope char*, stat_t*);
             alias lstat64 lstat;
 
-            int   stat64(in char*, stat_t*);
+            int   stat64(const scope char*, stat_t*);
             alias stat64 stat;
         }
         else
         {
             int fstat(int, stat_t*) @trusted;
-            int lstat(in char*, stat_t*);
-            int stat(in char*, stat_t*);
+            int lstat(const scope char*, stat_t*);
+            int stat(const scope char*, stat_t*);
         }
     }
 }
@@ -2000,27 +2000,27 @@ else version (Darwin)
     version (OSX)
     {
         pragma(mangle, "fstat$INODE64") int fstat(int, stat_t*);
-        pragma(mangle, "lstat$INODE64") int lstat(in char*, stat_t*);
-        pragma(mangle, "stat$INODE64")  int stat(in char*, stat_t*);
+        pragma(mangle, "lstat$INODE64") int lstat(const scope char*, stat_t*);
+        pragma(mangle, "stat$INODE64")  int stat(const scope char*, stat_t*);
     }
     else
     {
         int fstat(int, stat_t*);
-        int lstat(in char*, stat_t*);
-        int stat(in char*, stat_t*);
+        int lstat(const scope char*, stat_t*);
+        int stat(const scope char*, stat_t*);
     }
 }
 else version (FreeBSD)
 {
     pragma(mangle, "fstat@FBSD_1.0") int   fstat(int, stat_t*);
-    pragma(mangle, "lstat@FBSD_1.0") int   lstat(in char*, stat_t*);
-    pragma(mangle, "stat@FBSD_1.0")  int   stat(in char*, stat_t*);
+    pragma(mangle, "lstat@FBSD_1.0") int   lstat(const scope char*, stat_t*);
+    pragma(mangle, "stat@FBSD_1.0")  int   stat(const scope char*, stat_t*);
 }
 else version (NetBSD)
 {
     int   __fstat50(int, stat_t*);
-    int   __lstat50(in char*, stat_t*);
-    int   __stat50(in char*, stat_t*);
+    int   __lstat50(const scope char*, stat_t*);
+    int   __stat50(const scope char*, stat_t*);
     alias __fstat50 fstat;
     alias __lstat50 lstat;
     alias __stat50 stat;
@@ -2028,26 +2028,26 @@ else version (NetBSD)
 else version (OpenBSD)
 {
     int   fstat(int, stat_t*);
-    int   lstat(in char*, stat_t*);
-    int   stat(in char*, stat_t*);
+    int   lstat(const scope char*, stat_t*);
+    int   stat(const scope char*, stat_t*);
 }
 else version (DragonFlyBSD)
 {
     int   fstat(int, stat_t*);
-    int   lstat(in char*, stat_t*);
-    int   stat(in char*, stat_t*);
+    int   lstat(const scope char*, stat_t*);
+    int   stat(const scope char*, stat_t*);
 }
 else version (CRuntime_Bionic)
 {
     int   fstat(int, stat_t*) @trusted;
-    int   lstat(in char*, stat_t*);
-    int   stat(in char*, stat_t*);
+    int   lstat(const scope char*, stat_t*);
+    int   stat(const scope char*, stat_t*);
 }
 else version (CRuntime_Musl)
 {
-    int stat(in char*, stat_t*);
+    int stat(const scope char*, stat_t*);
     int fstat(int, stat_t*);
-    int lstat(in char*, stat_t*);
+    int lstat(const scope char*, stat_t*);
 
     alias fstat fstat64;
     alias lstat lstat64;
@@ -2060,17 +2060,17 @@ else version (CRuntime_UClibc)
     int   fstat64(int, stat_t*) @trusted;
     alias fstat64 fstat;
 
-    int   lstat64(in char*, stat_t*);
+    int   lstat64(const scope char*, stat_t*);
     alias lstat64 lstat;
 
-    int   stat64(in char*, stat_t*);
+    int   stat64(const scope char*, stat_t*);
     alias stat64 stat;
   }
   else
   {
     int   fstat(int, stat_t*) @trusted;
-    int   lstat(in char*, stat_t*);
-    int   stat(in char*, stat_t*);
+    int   lstat(const scope char*, stat_t*);
+    int   stat(const scope char*, stat_t*);
   }
 }
 
@@ -2108,7 +2108,7 @@ version (CRuntime_Glibc)
     enum S_IFLNK    = 0xA000; // octal 0120000
     enum S_IFSOCK   = 0xC000; // octal 0140000
 
-    int mknod(in char*, mode_t, dev_t);
+    int mknod(const scope char*, mode_t, dev_t);
 }
 else version (Darwin)
 {
@@ -2121,7 +2121,7 @@ else version (Darwin)
     enum S_IFLNK    = 0xA000; // octal 0120000
     enum S_IFSOCK   = 0xC000; // octal 0140000
 
-    int mknod(in char*, mode_t, dev_t);
+    int mknod(const scope char*, mode_t, dev_t);
 }
 else version (FreeBSD)
 {
@@ -2134,7 +2134,7 @@ else version (FreeBSD)
     enum S_IFLNK    = 0xA000; // octal 0120000
     enum S_IFSOCK   = 0xC000; // octal 0140000
 
-    pragma(mangle, "mknod@FBSD_1.0") int mknod(in char*, mode_t, dev_t);
+    pragma(mangle, "mknod@FBSD_1.0") int mknod(const scope char*, mode_t, dev_t);
 }
 else version (NetBSD)
 {
@@ -2147,7 +2147,7 @@ else version (NetBSD)
     enum S_IFLNK    = 0xA000; // octal 0120000
     enum S_IFSOCK   = 0xC000; // octal 0140000
 
-    int mknod(in char*, mode_t, dev_t);
+    int mknod(const scope char*, mode_t, dev_t);
 }
 else version (OpenBSD)
 {
@@ -2160,7 +2160,7 @@ else version (OpenBSD)
     enum S_IFLNK    = 0xA000; // octal 0120000
     enum S_IFSOCK   = 0xC000; // octal 0140000
 
-    int mknod(in char*, mode_t, dev_t);
+    int mknod(const scope char*, mode_t, dev_t);
 }
 else version (DragonFlyBSD)
 {
@@ -2173,7 +2173,7 @@ else version (DragonFlyBSD)
     enum S_IFLNK    = 0xA000; // octal 0120000
     enum S_IFSOCK   = 0xC000; // octal 0140000
 
-    int mknod(in char*, mode_t, dev_t);
+    int mknod(const scope char*, mode_t, dev_t);
 }
 else version (Solaris)
 {
@@ -2188,7 +2188,7 @@ else version (Solaris)
     enum S_IFDOOR = 0xD000;
     enum S_IFPORT = 0xE000;
 
-    int mknod(in char*, mode_t, dev_t);
+    int mknod(const scope char*, mode_t, dev_t);
 }
 else version (CRuntime_Bionic)
 {
@@ -2201,7 +2201,7 @@ else version (CRuntime_Bionic)
     enum S_IFLNK    = 0xA000; // octal 0120000
     enum S_IFSOCK   = 0xC000; // octal 0140000
 
-    int mknod(in char*, mode_t, dev_t);
+    int mknod(const scope char*, mode_t, dev_t);
 }
 else version (CRuntime_Musl)
 {
@@ -2216,7 +2216,7 @@ else version (CRuntime_Musl)
         S_IFSOCK   = 0xC000, // octal 0140000
     }
 
-    int mknod(in char*, mode_t, dev_t);
+    int mknod(const scope char*, mode_t, dev_t);
 }
 else version (CRuntime_UClibc)
 {
@@ -2229,7 +2229,7 @@ else version (CRuntime_UClibc)
     enum S_IFLNK    = 0xA000; // octal 0120000
     enum S_IFSOCK   = 0xC000; // octal 0140000
 
-    int mknod(in char*, mode_t, dev_t);
+    int mknod(const scope char*, mode_t, dev_t);
 }
 else
 {
