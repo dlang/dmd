@@ -229,54 +229,5 @@ else
     }
     fprintf(f,"\n];\n");
 
-    for (i = 0; i < typetab.length; i++)
-    {   _tyrelax[typetab[i].ty] = typetab[i].relty;
-        /*printf("_tyrelax[%d] = %d\n",typetab[i].ty,typetab[i].relty);*/
-    }
-    fprintf(f,"__gshared ubyte[TYMAX] _tyrelax =\n[ ");
-    for (i = 0; i < _tyrelax.length; i++)
-    {   fprintf(f,"0x%02x,",_tyrelax[i]);
-        if ((i & 7) == 7 && i < _tyrelax.length - 1)
-            fprintf(f,"\n  ");
-    }
-    fprintf(f,"\n];\n");
-
-    /********** tyequiv ************/
-    for (i = 0; i < _tyequiv.length; i++)
-        _tyequiv[i] = i;
-    _tyequiv[TYchar] = TYschar;         /* chars are signed by default  */
-
-    // These values are adjusted in util_set32() for 32 bit ints
-    _tyequiv[TYint] = TYshort;
-    _tyequiv[TYuint] = TYushort;
-
-    fprintf(f,"__gshared ubyte[TYMAX] tyequiv =\n[ ");
-    for (i = 0; i < _tyequiv.length; i++)
-    {   fprintf(f,"0x%02x,",_tyequiv[i]);
-        if ((i & 7) == 7 && i < _tyequiv.length - 1)
-            fprintf(f,"\n  ");
-    }
-    fprintf(f,"\n];\n");
-
-    for (i = 0; i < typetab.length; i++)
-        dttab[typetab[i].ty] = cast(ubyte)typetab[i].debtyp;
-    fprintf(f,"__gshared ubyte[TYMAX] dttab =\n[ ");
-    for (i = 0; i < dttab.length; i++)
-    {   fprintf(f,"0x%02x,",dttab[i]);
-        if ((i & 7) == 7 && i < dttab.length - 1)
-            fprintf(f,"\n  ");
-    }
-    fprintf(f,"\n];\n");
-
-    for (i = 0; i < typetab.length; i++)
-        dttab4[typetab[i].ty] = cast(ushort)typetab[i].debtyp4;
-    fprintf(f,"__gshared ushort[TYMAX] dttab4 =\n[ ");
-    for (i = 0; i < dttab4.length; i++)
-    {   fprintf(f,"0x%02x,",dttab4[i]);
-        if ((i & 7) == 7 && i < dttab4.length - 1)
-            fprintf(f,"\n  ");
-    }
-    fprintf(f,"\n];\n");
-
     fclose(f);
 }
