@@ -3545,7 +3545,7 @@ void POINTSTOPOINT()(out POINT p, LONG ps) {
     p.y = HIWORD(ps);
 }
 
-POINTS POINTTOPOINTS()(in POINT p) {
+POINTS POINTTOPOINTS()(const POINT p) {
     return MAKELONG(p.x, p.y);
 }
 

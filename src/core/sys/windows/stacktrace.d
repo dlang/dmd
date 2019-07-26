@@ -307,7 +307,7 @@ private:
     }
 
     static char[] formatStackFrame(void* pc, char* symName,
-                                   in char* fileName, uint lineNum)
+                                   const scope char* fileName, uint lineNum)
     {
         import core.stdc.stdio : snprintf;
         char[11] buf=void;
