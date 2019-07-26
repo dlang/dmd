@@ -325,6 +325,7 @@ extern (C) __gshared const(char)*[TYMAX] tystring =
     TYchar    : "char",
     TYschar   : "signed char",
     TYuchar   : "unsigned char",
+    TYchar8   : "char8_t",
     TYchar16  : "char16_t",
     TYshort   : "short",
     TYwchar_t : "wchar_t",
@@ -426,7 +427,7 @@ extern (C) __gshared const(char)*[TYMAX] tystring =
     TYvtshape  : "vtshape",
 ];
 
-// Map to unsigned version of type
+/// Map to unsigned version of type
 __gshared tym_t[256] tytouns =
 () {
     tym_t[256] tab;
@@ -468,6 +469,280 @@ __gshared tym_t[256] tytouns =
     }
     return tab;
 } ();
+
+/// Map to relaxed version of type
+__gshared ubyte[TYMAX] _tyrelax =
+() {
+    ubyte[TYMAX] tab;
+    foreach (ty; 0 .. TYMAX)
+    {
+        tym_t tym;
+        switch (ty)
+        {
+            case TYbool:      tym = TYchar;  break;
+            case TYschar:     tym = TYchar;  break;
+            case TYuchar:     tym = TYchar;  break;
+            case TYchar8:     tym = TYchar;  break;
+            case TYchar16:    tym = TYint;   break;
+
+            case TYshort:     tym = TYint;   break;
+            case TYushort:    tym = TYint;   break;
+            case TYwchar_t:   tym = TYint;   break;
+
+            case TYenum:      tym = TYint;   break;
+            case TYuint:      tym = TYint;   break;
+
+            case TYulong:     tym = TYlong;  break;
+            case TYdchar:     tym = TYlong;  break;
+            case TYullong:    tym = TYllong; break;
+            case TYucent:     tym = TYcent;  break;
+
+            case TYnullptr:   tym = TYptr;   break;
+
+            default:          tym = ty;      break;
+        }
+        tab[ty] = cast(ubyte)tym;
+    }
+    return tab;
+} ();
+
+/// Map to equivalent version of type
+__gshared ubyte[TYMAX] tyequiv =
+() {
+    ubyte[TYMAX] tab;
+    foreach (ty; 0 .. TYMAX)
+    {
+        tym_t tym;
+        switch (ty)
+        {
+            case TYchar:      tym = TYschar;  break;    // chars are signed by default
+            case TYint:       tym = TYshort;  break;    // adjusted in util_set32()
+            case TYuint:      tym = TYushort; break;    // adjusted in util_set32()
+
+            default:          tym = ty;       break;
+        }
+        tab[ty] = cast(ubyte)tym;
+    }
+    return tab;
+} ();
+
+/// Map to Codeview 1 type in debugger record
+__gshared ubyte[TYMAX] dttab =
+[
+    TYbool    : 0x80,
+    TYchar    : 0x80,
+    TYschar   : 0x80,
+    TYuchar   : 0x84,
+    TYchar8   : 0x84,
+    TYchar16  : 0x85,
+    TYshort   : 0x81,
+    TYwchar_t : 0x85,
+    TYushort  : 0x85,
+
+    TYenum    : 0x81,
+    TYint     : 0x85,
+    TYuint    : 0x85,
+
+    TYlong    : 0x82,
+    TYulong   : 0x86,
+    TYdchar   : 0x86,
+    TYllong   : 0x82,
+    TYullong  : 0x86,
+    TYcent    : 0x82,
+    TYucent   : 0x86,
+    TYfloat   : 0x88,
+    TYdouble  : 0x89,
+    TYdouble_alias : 0x89,
+    TYldouble : 0x89,
+
+    TYifloat   : 0x88,
+    TYidouble  : 0x89,
+    TYildouble : 0x89,
+
+    TYcfloat   : 0x88,
+    TYcdouble  : 0x89,
+    TYcldouble : 0x89,
+
+    TYfloat4  : 0x00,
+    TYdouble2 : 0x00,
+    TYschar16 : 0x00,
+    TYuchar16 : 0x00,
+    TYshort8  : 0x00,
+    TYushort8 : 0x00,
+    TYlong4   : 0x00,
+    TYulong4  : 0x00,
+    TYllong2  : 0x00,
+    TYullong2 : 0x00,
+
+    TYfloat8  : 0x00,
+    TYdouble4 : 0x00,
+    TYschar32 : 0x00,
+    TYuchar32 : 0x00,
+    TYshort16 : 0x00,
+    TYushort16 : 0x00,
+    TYlong8   : 0x00,
+    TYulong8  : 0x00,
+    TYllong4  : 0x00,
+    TYullong4 : 0x00,
+
+    TYfloat16 : 0x00,
+    TYdouble8 : 0x00,
+    TYschar64 : 0x00,
+    TYuchar64 : 0x00,
+    TYshort32 : 0x00,
+    TYushort32 : 0x00,
+    TYlong16  : 0x00,
+    TYulong16 : 0x00,
+    TYllong8  : 0x00,
+    TYullong8 : 0x00,
+
+    TYnullptr : 0x20,
+    TYnptr    : 0x20,
+    TYref     : 0x00,
+    TYvoid    : 0x85,
+    TYstruct  : 0x00,
+    TYarray   : 0x78,
+    TYnfunc   : 0x63,
+    TYnpfunc  : 0x74,
+    TYnsfunc  : 0x63,
+    TYptr     : 0x20,
+    TYmfunc   : 0x64,
+    TYjfunc   : 0x74,
+    TYhfunc   : 0x00,
+    TYnref    : 0x00,
+
+    TYsptr     : 0x20,
+    TYcptr     : 0x20,
+    TYf16ptr   : 0x40,
+    TYfptr     : 0x40,
+    TYhptr     : 0x40,
+    TYvptr     : 0x40,
+    TYimmutPtr : 0x20,
+    TYsharePtr : 0x20,
+    TYfgPtr    : 0x20,
+    TYffunc    : 0x64,
+    TYfpfunc   : 0x73,
+    TYfsfunc   : 0x64,
+    TYf16func  : 0x63,
+    TYnsysfunc : 0x63,
+    TYfsysfunc : 0x64,
+    TYfref     : 0x00,
+
+    TYifunc    : 0x64,
+    TYmemptr   : 0x00,
+    TYident    : 0x00,
+    TYtemplate : 0x00,
+    TYvtshape  : 0x00,
+];
+
+/// Map to Codeview 4 type in debugger record
+__gshared ushort[TYMAX] dttab4 =
+[
+    TYbool    : 0x30,
+    TYchar    : 0x70,
+    TYschar   : 0x10,
+    TYuchar   : 0x20,
+    TYchar8   : 0x20,
+    TYchar16  : 0x21,
+    TYshort   : 0x11,
+    TYwchar_t : 0x71,
+    TYushort  : 0x21,
+
+    TYenum    : 0x72,
+    TYint     : 0x72,
+    TYuint    : 0x73,
+
+    TYlong    : 0x12,
+    TYulong   : 0x22,
+    TYdchar   : 0x22,
+    TYllong   : 0x13,
+    TYullong  : 0x23,
+    TYcent    : 0x603,
+    TYucent   : 0x603,
+    TYfloat   : 0x40,
+    TYdouble  : 0x41,
+    TYdouble_alias : 0x41,
+    TYldouble : 0x42,
+
+    TYifloat   : 0x40,
+    TYidouble  : 0x41,
+    TYildouble : 0x42,
+
+    TYcfloat   : 0x50,
+    TYcdouble  : 0x51,
+    TYcldouble : 0x52,
+
+    TYfloat4  : 0x00,
+    TYdouble2 : 0x00,
+    TYschar16 : 0x00,
+    TYuchar16 : 0x00,
+    TYshort8  : 0x00,
+    TYushort8 : 0x00,
+    TYlong4   : 0x00,
+    TYulong4  : 0x00,
+    TYllong2  : 0x00,
+    TYullong2 : 0x00,
+
+    TYfloat8  : 0x00,
+    TYdouble4 : 0x00,
+    TYschar32 : 0x00,
+    TYuchar32 : 0x00,
+    TYshort16 : 0x00,
+    TYushort16 : 0x00,
+    TYlong8   : 0x00,
+    TYulong8  : 0x00,
+    TYllong4  : 0x00,
+    TYullong4 : 0x00,
+
+    TYfloat16 : 0x00,
+    TYdouble8 : 0x00,
+    TYschar64 : 0x00,
+    TYuchar64 : 0x00,
+    TYshort32 : 0x00,
+    TYushort32 : 0x00,
+    TYlong16  : 0x00,
+    TYulong16 : 0x00,
+    TYllong8  : 0x00,
+    TYullong8 : 0x00,
+
+    TYnullptr : 0x100,
+    TYnptr    : 0x100,
+    TYref     : 0x00,
+    TYvoid    : 0x03,
+    TYstruct  : 0x00,
+    TYarray   : 0x00,
+    TYnfunc   : 0x00,
+    TYnpfunc  : 0x00,
+    TYnsfunc  : 0x00,
+    TYptr     : 0x100,
+    TYmfunc   : 0x00,
+    TYjfunc   : 0x00,
+    TYhfunc   : 0x00,
+    TYnref    : 0x00,
+
+    TYsptr     : 0x100,
+    TYcptr     : 0x100,
+    TYf16ptr   : 0x200,
+    TYfptr     : 0x200,
+    TYhptr     : 0x300,
+    TYvptr     : 0x200,
+    TYimmutPtr : 0x100,
+    TYsharePtr : 0x100,
+    TYfgPtr    : 0x100,
+    TYffunc    : 0x00,
+    TYfpfunc   : 0x00,
+    TYfsfunc   : 0x00,
+    TYf16func  : 0x00,
+    TYnsysfunc : 0x00,
+    TYfsysfunc : 0x00,
+    TYfref     : 0x00,
+
+    TYifunc    : 0x00,
+    TYmemptr   : 0x00,
+    TYident    : 0x00,
+    TYtemplate : 0x00,
+    TYvtshape  : 0x00,
+];
 
 
 private:
