@@ -162,6 +162,12 @@ private void MODtoDecoBuffer(OutBuffer* buf, MOD mod)
     case MODFlags.shared_ | MODFlags.wildconst:
         buf.writestring("ONgx");
         break;
+    case MODFlags.scope_:
+        buf.writestring("M");
+        break;
+    case MODFlags.scope_ | MODFlags.const_:
+        buf.writestring("Mx");
+        break;
     default:
         assert(0);
     }

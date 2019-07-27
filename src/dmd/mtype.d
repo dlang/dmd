@@ -203,6 +203,12 @@ string MODtoString(MOD mod) nothrow pure
 
     case MODFlags.wildconst:
         return "inout const";
+
+    case MODFlags.scope_:
+        return "scope";
+
+    case MODFlags.scope_ | MODFlags.const_:
+        return "scope const";
     }
 }
 
@@ -221,6 +227,8 @@ StorageClass ModToStc(uint mod) pure nothrow @nogc @safe
         stc |= STC.wild;
     if (mod & MODFlags.shared_)
         stc |= STC.shared_;
+    if (mod & MODFlags.scope_)
+        stc |= STC.scope_;
     return stc;
 }
 
@@ -341,11 +349,12 @@ alias TY = ubyte;
 enum MODFlags : int
 {
     const_       = 1,    // type is const
-    immutable_   = 4,    // type is immutable
-    shared_      = 2,    // type is shared
-    wild         = 8,    // type is wild
+    shared_      = (1 << 1),    // type is shared
+    immutable_   = (1 << 2),    // type is immutable
+    wild         = (1 << 3),    // type is wild
     wildconst    = (MODFlags.wild | MODFlags.const_), // type is wild const
-    mutable      = 0x10, // type is mutable (only used in wildcard matching)
+    mutable      = (1 << 4), // type is mutable (only used in wildcard matching)
+    scope_       = (1 << 5)
 }
 
 alias MOD = ubyte;
@@ -394,6 +403,8 @@ extern (C++) abstract class Type : ASTNode
     Type wcto;      // MODFlags.wildconst             ? naked version of this type : wild const version
     Type swto;      // MODFlags.shared_ | MODFlags.wild      ? naked version of this type : shared wild version
     Type swcto;     // MODFlags.shared_ | MODFlags.wildconst ? naked version of this type : shared wild const version
+    Type scopeTypeOf;      // MODFlags.scope_ ? naked version of this type : scope version
+    Type scopeConstTypeOf; // MODFlags.scope_ | MODFlags.const_ ? naked version of this type : scope const version
 
     Type pto;       // merged pointer to this type
     Type rto;       // reference to this type
@@ -1114,6 +1125,16 @@ extern (C++) abstract class Type : ASTNode
         return (mod & (MODFlags.shared_ | MODFlags.wild)) == (MODFlags.shared_ | MODFlags.wild);
     }
 
+    final bool isScope() const nothrow pure @nogc @safe
+    {
+        return (mod & MODFlags.scope_) != 0;
+    }
+
+    final bool isScopeConst() const nothrow pure @nogc @safe
+    {
+        return (mod & (MODFlags.scope_ | MODFlags.const_)) == (MODFlags.scope_ | MODFlags.const_);
+    }
+
     final bool isNaked() const nothrow pure @nogc @safe
     {
         return mod == 0;
@@ -1143,6 +1164,8 @@ extern (C++) abstract class Type : ASTNode
         t.swcto = null;
         t.vtinfo = null;
         t.ctype = null;
+        t.scopeTypeOf = null;
+        t.scopeConstTypeOf = null;
         if (t.ty == Tstruct)
             (cast(TypeStruct)t).att = AliasThisRec.fwdref;
         if (t.ty == Tclass)
@@ -1211,12 +1234,17 @@ extern (C++) abstract class Type : ASTNode
                 else
                     t = sto; // shared const => shared
             }
+            else if (isWild())
+            {
+                t = wcto; // wild const -> naked
+            }
+            else if (isScope())
+            {
+                t = scopeConstTypeOf;  // scope const -> naked
+            }
             else
             {
-                if (isWild())
-                    t = wcto; // wild const -> naked
-                else
-                    t = cto; // const => naked
+                t = cto; // const => naked               
             }
             assert(!t || t.isMutable());
         }
@@ -1395,6 +1423,40 @@ extern (C++) abstract class Type : ASTNode
         return t;
     }
 
+    final Type scopeOf()
+    {
+        //printf("Type::scopeOf() %p, %s\n", this, toChars());
+        if (mod == MODFlags.scope_)
+            return this;
+        if (scopeTypeOf)
+        {
+            assert(scopeTypeOf.mod == MODFlags.scope_);
+            return scopeTypeOf;
+        }
+        Type t = makeScope();
+        t = t.merge();
+        t.fixTo(this);
+        //printf("\t%p\n", t);
+        return t;
+    }
+
+    final Type scopeConstOf()
+    {
+        //printf("Type::scopeConstOf() %p, %s\n", this, toChars());
+        if (mod == (MODFlags.scope_ | MODFlags.const_))
+            return this;
+        if (scopeConstTypeOf)
+        {
+            assert(scopeConstTypeOf.mod == (MODFlags.scope_ | MODFlags.const_));
+            return scopeConstTypeOf;
+        }
+        Type t = makeScopeConst();
+        t = t.merge();
+        t.fixTo(this);
+        //printf("\t%p\n", t);
+        return t;
+    }
+
     /**********************************
      * For our new type 'this', which is type-constructed from t,
      * fill in the cto, ito, sto, scto, wto shortcuts.
@@ -1439,6 +1501,14 @@ extern (C++) abstract class Type : ASTNode
 
             case MODFlags.shared_ | MODFlags.wildconst:
                 swcto = t;
+                break;
+
+            case MODFlags.scope_:
+                scopeTypeOf = t;
+                break;
+
+            case MODFlags.scope_ | MODFlags.const_:
+                scopeConstTypeOf = t;
                 break;
 
             case MODFlags.immutable_:
@@ -1496,6 +1566,16 @@ extern (C++) abstract class Type : ASTNode
             t.swcto = this;
             break;
 
+        case MODFlags.scope_:
+            scopeTypeOf = mto;
+            t.scopeTypeOf = this;
+            break;
+
+        case MODFlags.scope_ | MODFlags.const_:
+            scopeConstTypeOf = mto;
+            t.scopeConstTypeOf = this;
+            break;
+
         case MODFlags.immutable_:
             t.ito = this;
             if (t.cto)
@@ -1512,6 +1592,10 @@ extern (C++) abstract class Type : ASTNode
                 t.swto.ito = this;
             if (t.swcto)
                 t.swcto.ito = this;
+            if (t.scopeTypeOf)
+                t.scopeTypeOf.ito = this;
+            if (t.scopeConstTypeOf)
+                t.scopeConstTypeOf.ito = this;
             break;
 
         default:
@@ -1547,6 +1631,10 @@ extern (C++) abstract class Type : ASTNode
                 assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
             if (swcto)
                 assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+            if (scopeTypeOf)
+                assert(scopeTypeOf.mod == MODFlags.scope_);
+            if (scopeConstTypeOf)
+                assert(scopeConstTypeOf.mod == (MODFlags.scope_ | MODFlags.const_));
             break;
 
         case MODFlags.const_:
@@ -1566,6 +1654,10 @@ extern (C++) abstract class Type : ASTNode
                 assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
             if (swcto)
                 assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+            if (scopeTypeOf)
+                assert(scopeTypeOf.mod == MODFlags.scope_);
+            if (scopeConstTypeOf)
+                assert(scopeConstTypeOf.mod == (MODFlags.scope_ | MODFlags.const_));
             break;
 
         case MODFlags.wild:
@@ -1585,6 +1677,10 @@ extern (C++) abstract class Type : ASTNode
                 assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
             if (swcto)
                 assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+            if (scopeTypeOf)
+                assert(scopeTypeOf.mod == MODFlags.scope_);
+            if (scopeConstTypeOf)
+                assert(scopeConstTypeOf.mod == (MODFlags.scope_ | MODFlags.const_));
             break;
 
         case MODFlags.wildconst:
@@ -1596,6 +1692,7 @@ extern (C++) abstract class Type : ASTNode
             assert(!wcto || wcto.mod == 0);
             assert(!swto || swto.mod == (MODFlags.shared_ | MODFlags.wild));
             assert(!swcto || swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+            assert(!scopeConstTypeOf.mod || scopeConstTypeOf.mod == (MODFlags.scope_ | MODFlags.const_));
             break;
 
         case MODFlags.shared_:
@@ -1615,6 +1712,10 @@ extern (C++) abstract class Type : ASTNode
                 assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
             if (swcto)
                 assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+            if (scopeTypeOf)
+                assert(scopeTypeOf.mod == MODFlags.scope_);
+            if (scopeConstTypeOf)
+                assert(scopeConstTypeOf.mod == (MODFlags.scope_ | MODFlags.const_));
             break;
 
         case MODFlags.shared_ | MODFlags.const_:
@@ -1634,6 +1735,10 @@ extern (C++) abstract class Type : ASTNode
                 assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
             if (swcto)
                 assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+            if (scopeTypeOf)
+                assert(scopeTypeOf.mod == MODFlags.scope_);
+            if (scopeConstTypeOf)
+                assert(scopeConstTypeOf.mod == (MODFlags.scope_ | MODFlags.const_));
             break;
 
         case MODFlags.shared_ | MODFlags.wild:
@@ -1653,6 +1758,10 @@ extern (C++) abstract class Type : ASTNode
                 assert(swto.mod == 0);
             if (swcto)
                 assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+            if (scopeTypeOf)
+                assert(scopeTypeOf.mod == MODFlags.scope_);
+            if (scopeConstTypeOf)
+                assert(scopeConstTypeOf.mod == (MODFlags.scope_ | MODFlags.const_));
             break;
 
         case MODFlags.shared_ | MODFlags.wildconst:
@@ -1664,6 +1773,54 @@ extern (C++) abstract class Type : ASTNode
             assert(!wcto || wcto.mod == MODFlags.wildconst);
             assert(!swto || swto.mod == (MODFlags.shared_ | MODFlags.wild));
             assert(!swcto || swcto.mod == 0);
+            assert(!scopeTypeOf.mod || scopeTypeOf.mod == MODFlags.scope_);
+            assert(!scopeConstTypeOf.mod || scopeConstTypeOf.mod == (MODFlags.scope_ | MODFlags.const_));
+            break;
+
+        case MODFlags.scope_:
+            if (cto)
+                assert(cto.mod == MODFlags.const_);
+            if (ito)
+                assert(ito.mod == MODFlags.immutable_);
+            if (sto)
+                assert(sto.mod == MODFlags.shared_);
+            if (scto)
+                assert(scto.mod == (MODFlags.shared_ | MODFlags.const_));
+            if (wto)
+                assert(wto.mod == MODFlags.wild);
+            if (wcto)
+                assert(wcto.mod == MODFlags.wildconst);
+            if (swto)
+                assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
+            if (swcto)
+                assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+            if (scopeTypeOf)
+                assert(scopeTypeOf.mod == 0);
+            if (scopeConstTypeOf)
+                assert(scopeConstTypeOf.mod == (MODFlags.scope_ | MODFlags.const_));
+            break;
+
+        case MODFlags.scope_ | MODFlags.const_:
+            if (cto)
+                assert(cto.mod == MODFlags.const_);
+            if (ito)
+                assert(ito.mod == MODFlags.immutable_);
+            if (sto)
+                assert(sto.mod == MODFlags.shared_);
+            if (scto)
+                assert(scto.mod == (MODFlags.shared_ | MODFlags.const_));
+            if (wto)
+                assert(wto.mod == MODFlags.wild);
+            if (wcto)
+                assert(wcto.mod == MODFlags.wildconst);
+            if (swto)
+                assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
+            if (swcto)
+                assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+            if (scopeTypeOf)
+                assert(scopeTypeOf.mod == MODFlags.scope_);
+            if (scopeConstTypeOf)
+                assert(scopeConstTypeOf.mod == 0);
             break;
 
         case MODFlags.immutable_:
@@ -1683,6 +1840,10 @@ extern (C++) abstract class Type : ASTNode
                 assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
             if (swcto)
                 assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+            if (scopeTypeOf)
+                assert(scopeTypeOf.mod == MODFlags.scope_);
+            if (scopeConstTypeOf)
+                assert(scopeConstTypeOf.mod == (MODFlags.scope_ | MODFlags.const_));
             break;
 
         default:
@@ -1703,6 +1864,8 @@ extern (C++) abstract class Type : ASTNode
             case MODFlags.shared_ | MODFlags.const_:
             case MODFlags.shared_ | MODFlags.wild:
             case MODFlags.shared_ | MODFlags.wildconst:
+            case MODFlags.scope_:
+            case MODFlags.scope_ | MODFlags.const_:
             case MODFlags.immutable_:
                 assert(tn.mod == MODFlags.immutable_ || (tn.mod & mod) == mod);
                 break;
@@ -1781,6 +1944,13 @@ extern (C++) abstract class Type : ASTNode
                         t = t.makeWild();
                 }
             }
+            if ((stc & STC.scope_) && !t.isScope())
+            {
+                if (t.isConst())
+                    t = t.makeScopeConst();
+                else
+                    t = t.makeScope();
+            }
         }
         return t;
     }
@@ -1825,6 +1995,14 @@ extern (C++) abstract class Type : ASTNode
             t = sharedWildConstOf();
             break;
 
+        case MODFlags.scope_:
+            t = unSharedOf().scopeOf();
+            break;
+
+        case MODFlags.scope_ | MODFlags.const_:
+            t = unSharedOf().scopeConstOf();
+            break;
+
         case MODFlags.immutable_:
             t = immutableOf();
             break;
@@ -1861,12 +2039,17 @@ extern (C++) abstract class Type : ASTNode
                     else
                         t = sharedConstOf();
                 }
+                else if (isWild())
+                {
+                    t = wildConstOf();
+                }
+                else if (isScope())
+                {
+                    t = scopeConstOf();
+                }
                 else
                 {
-                    if (isWild())
-                        t = wildConstOf();
-                    else
-                        t = constOf();
+                    t = constOf();
                 }
                 break;
 
@@ -1929,6 +2112,17 @@ extern (C++) abstract class Type : ASTNode
                 t = sharedWildConstOf();
                 break;
 
+            case MODFlags.scope_:
+                if (isConst())
+                    t = scopeConstOf();
+                else
+                    t = scopeOf();
+                break;
+
+            case MODFlags.scope_ | MODFlags.const_:
+                t = scopeConstOf();
+                break;
+
             case MODFlags.immutable_:
                 t = immutableOf();
                 break;
@@ -1958,6 +2152,8 @@ extern (C++) abstract class Type : ASTNode
                 mod |= MODFlags.wild;
             if (stc & STC.shared_)
                 mod |= MODFlags.shared_;
+            if (stc & STC.scope_)
+                mod |= MODFlags.scope_;
         }
         return addMod(mod);
     }
@@ -2166,6 +2362,24 @@ extern (C++) abstract class Type : ASTNode
             return swcto;
         Type t = this.nullAttributes();
         t.mod = MODFlags.shared_ | MODFlags.wildconst;
+        return t;
+    }
+
+    Type makeScope()
+    {
+        if (scopeTypeOf)
+            return scopeTypeOf;
+        Type t = this.nullAttributes();
+        t.mod = MODFlags.scope_;
+        return t;
+    }
+
+    Type makeScopeConst()
+    {
+        if (scopeConstTypeOf)
+            return scopeConstTypeOf;
+        Type t = this.nullAttributes();
+        t.mod = MODFlags.scope_ | MODFlags.const_;
         return t;
     }
 
@@ -2927,6 +3141,43 @@ extern (C++) abstract class TypeNext : Type
             t.next = next.sharedWildConstOf();
         }
         //printf("TypeNext::makeSharedWildConst() returns %p, %s\n", t, t.toChars());
+        return t;
+    }
+
+    override final Type makeScope()
+    {
+        //printf("TypeNext::makeScope() %p, %s\n", this, toChars());
+        if (scopeTypeOf)
+        {
+            assert(scopeTypeOf.mod == MODFlags.scope_);
+            return scopeTypeOf;
+        }
+        TypeNext t = cast(TypeNext)Type.makeScope();
+        if (ty != Tfunction && next.ty != Tfunction && !next.isImmutable())
+        {
+            if (next.isConst())
+                t.next = next.scopeConstOf();
+            else
+                t.next = next.scopeOf();
+        }
+        //printf("TypeNext::makeScope() returns %p, %s\n", t, t.toChars());
+        return t;
+    }
+
+    override final Type makeScopeConst()
+    {
+        //printf("TypeNext::makeScopeConst() %p, %s\n", this, toChars());
+        if (scopeConstTypeOf)
+        {
+            assert(scopeConstTypeOf.mod == MODFlags.scope_);
+            return scopeConstTypeOf;
+        }
+        TypeNext t = cast(TypeNext)Type.makeScopeConst();
+        if (ty != Tfunction && next.ty != Tfunction && !next.isImmutable())
+        {
+            t.next = next.scopeConstOf();
+        }
+        //printf("TypeNext::makeScopeConst() returns %p, %s\n", t, t.toChars());
         return t;
     }
 

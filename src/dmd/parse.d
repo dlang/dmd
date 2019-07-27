@@ -3556,6 +3556,11 @@ final class Parser(AST) : Lexer
                 nextToken();
                 continue;
 
+            case TOK.scope_:
+                stc |= AST.STC.scope_;
+                nextToken();
+                continue;
+
             default:
                 break;
             }
@@ -6746,7 +6751,12 @@ final class Parser(AST) : Lexer
 
         while (1)
         {
-            if ((t.value == TOK.const_ || t.value == TOK.immutable_ || t.value == TOK.inout_ || t.value == TOK.shared_) && peek(t).value != TOK.leftParentheses)
+            if ((t.value == TOK.const_
+                || t.value == TOK.immutable_
+                || t.value == TOK.inout_
+                || t.value == TOK.shared_
+                || t.value == TOK.scope_)
+                && peek(t).value != TOK.leftParentheses)
             {
                 /* const type
                  * immutable type
