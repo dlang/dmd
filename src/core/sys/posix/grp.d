@@ -43,7 +43,7 @@ struct group
     char**  gr_mem;
 }
 
-group* getgrnam(in char*);
+group* getgrnam(const scope char*);
 group* getgrgid(gid_t);
 */
 
@@ -152,50 +152,50 @@ else
     static assert(false, "Unsupported platform");
 }
 
-group* getgrnam(in char*);
+group* getgrnam(const scope char*);
 group* getgrgid(gid_t);
 
 //
 // Thread-Safe Functions (TSF)
 //
 /*
-int getgrnam_r(in char*, group*, char*, size_t, group**);
+int getgrnam_r(const scope char*, group*, char*, size_t, group**);
 int getgrgid_r(gid_t, group*, char*, size_t, group**);
 */
 
 version (CRuntime_Glibc)
 {
-    int getgrnam_r(in char*, group*, char*, size_t, group**);
+    int getgrnam_r(const scope char*, group*, char*, size_t, group**);
     int getgrgid_r(gid_t, group*, char*, size_t, group**);
 }
 else version (Darwin)
 {
-    int getgrnam_r(in char*, group*, char*, size_t, group**);
+    int getgrnam_r(const scope char*, group*, char*, size_t, group**);
     int getgrgid_r(gid_t, group*, char*, size_t, group**);
 }
 else version (FreeBSD)
 {
-    int getgrnam_r(in char*, group*, char*, size_t, group**);
+    int getgrnam_r(const scope char*, group*, char*, size_t, group**);
     int getgrgid_r(gid_t, group*, char*, size_t, group**);
 }
 else version (NetBSD)
 {
-    int getgrnam_r(in char*, group*, char*, size_t, group**);
+    int getgrnam_r(const scope char*, group*, char*, size_t, group**);
     int getgrgid_r(gid_t, group*, char*, size_t, group**);
 }
 else version (OpenBSD)
 {
-    int getgrnam_r(in char*, group*, char*, size_t, group**);
+    int getgrnam_r(const scope char*, group*, char*, size_t, group**);
     int getgrgid_r(gid_t, group*, char*, size_t, group**);
 }
 else version (DragonFlyBSD)
 {
-    int getgrnam_r(in char*, group*, char*, size_t, group**);
+    int getgrnam_r(const scope char*, group*, char*, size_t, group**);
     int getgrgid_r(gid_t, group*, char*, size_t, group**);
 }
 else version (Solaris)
 {
-    int getgrnam_r(in char*, group*, char*, int, group**);
+    int getgrnam_r(const scope char*, group*, char*, int, group**);
     int getgrgid_r(gid_t, group*, char*, int, group**);
 }
 else version (CRuntime_Bionic)
@@ -203,12 +203,12 @@ else version (CRuntime_Bionic)
 }
 else version (CRuntime_UClibc)
 {
-    int getgrnam_r(in char*, group*, char*, size_t, group**);
+    int getgrnam_r(const scope char*, group*, char*, size_t, group**);
     int getgrgid_r(gid_t, group*, char*, size_t, group**);
 }
 else version (CRuntime_Musl)
 {
-    int getgrnam_r(in char*, group*, char*, size_t, group**);
+    int getgrnam_r(const scope char*, group*, char*, size_t, group**);
     int getgrgid_r(gid_t, group*, char*, size_t, group**);
 }
 else
