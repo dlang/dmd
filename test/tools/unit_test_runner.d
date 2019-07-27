@@ -274,8 +274,14 @@ bool missingTestFiles(Range)(Range givenFiles)
 
 void execute(const string[] args ...)
 {
-    enforce(spawnProcess(args).wait() == 0,
-        "Failed to execute command: " ~ args.join(" "));
+    try
+    {
+        enforce(spawnProcess(args).wait() == 0);
+    }
+    catch(Exception e)
+    {
+        throw new Exception("Failed to execute command: " ~ args.join(" "), e);
+    }
 }
 
 bool usesOptlink()
