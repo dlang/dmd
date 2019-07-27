@@ -480,8 +480,11 @@ auto objName(T)(T name)
 /// Return the correct pic flags as an array of strings
 string[] getPicFlags(string[string] env)
 {
-    const picFlags = env["PIC_FLAG"];
-    if (picFlags.length)
-        return picFlags.split();
+    version(Windows) {} else
+    {
+        const picFlags = env["PIC_FLAG"];
+        if (picFlags.length)
+            return picFlags.split();
+    }
     return cast(string[])[];
 }
