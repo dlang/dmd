@@ -45,8 +45,6 @@ extern (C++):
 
 nothrow:
 
-mixin(import("tytab.d"));
-
 __gshared:
 
 /* Global flags:
@@ -742,6 +740,235 @@ __gshared ushort[TYMAX] dttab4 =
     TYident    : 0x00,
     TYtemplate : 0x00,
     TYvtshape  : 0x00,
+];
+
+/// Size of a type
+__gshared byte[256] _tysize =
+[
+    TYbool    : 1,
+    TYchar    : 1,
+    TYschar   : 1,
+    TYuchar   : 1,
+    TYchar8   : 1,
+    TYchar16  : 2,
+    TYshort   : SHORTSIZE,
+    TYwchar_t : 2,
+    TYushort  : SHORTSIZE,
+
+    TYenum    : -1,
+    TYint     : 2,
+    TYuint    : 2,
+
+    TYlong    : LONGSIZE,
+    TYulong   : LONGSIZE,
+    TYdchar   : 4,
+    TYllong   : LLONGSIZE,
+    TYullong  : LLONGSIZE,
+    TYcent    : 16,
+    TYucent   : 16,
+    TYfloat   : FLOATSIZE,
+    TYdouble  : DOUBLESIZE,
+    TYdouble_alias : 8,
+    TYldouble : -1,
+
+    TYifloat   : FLOATSIZE,
+    TYidouble  : DOUBLESIZE,
+    TYildouble : -1,
+
+    TYcfloat   : 2*FLOATSIZE,
+    TYcdouble  : 2*DOUBLESIZE,
+    TYcldouble : -1,
+
+    TYfloat4  : 16,
+    TYdouble2 : 16,
+    TYschar16 : 16,
+    TYuchar16 : 16,
+    TYshort8  : 16,
+    TYushort8 : 16,
+    TYlong4   : 16,
+    TYulong4  : 16,
+    TYllong2  : 16,
+    TYullong2 : 16,
+
+    TYfloat8  : 32,
+    TYdouble4 : 32,
+    TYschar32 : 32,
+    TYuchar32 : 32,
+    TYshort16 : 32,
+    TYushort16 : 32,
+    TYlong8   : 32,
+    TYulong8  : 32,
+    TYllong4  : 32,
+    TYullong4 : 32,
+
+    TYfloat16 : 64,
+    TYdouble8 : 64,
+    TYschar64 : 64,
+    TYuchar64 : 64,
+    TYshort32 : 64,
+    TYushort32 : 64,
+    TYlong16  : 64,
+    TYulong16 : 64,
+    TYllong8  : 64,
+    TYullong8 : 64,
+
+    TYnullptr : 2,
+    TYnptr    : 2,
+    TYref     : -1,
+    TYvoid    : -1,
+    TYstruct  : -1,
+    TYarray   : -1,
+    TYnfunc   : -1,
+    TYnpfunc  : -1,
+    TYnsfunc  : -1,
+    TYptr     : 2,
+    TYmfunc   : -1,
+    TYjfunc   : -1,
+    TYhfunc   : -1,
+    TYnref    : 2,
+
+    TYsptr     : 2,
+    TYcptr     : 2,
+    TYf16ptr   : 4,
+    TYfptr     : 4,
+    TYhptr     : 4,
+    TYvptr     : 4,
+    TYimmutPtr : 2,
+    TYsharePtr : 2,
+    TYfgPtr    : 2,
+    TYffunc    : -1,
+    TYfpfunc   : -1,
+    TYfsfunc   : -1,
+    TYf16func  : -1,
+    TYnsysfunc : -1,
+    TYfsysfunc : -1,
+    TYfref     : 4,
+
+    TYifunc    : -1,
+    TYmemptr   : -1,
+    TYident    : -1,
+    TYtemplate : -1,
+    TYvtshape  : -1,
+];
+
+// Alignment of long doubles varies by target
+static if (TARGET_OSX)
+    enum LDOUBLE_ALIGN = 16;
+else static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
+    enum LDOUBLE_ALIGN = 4;
+else static if (TARGET_WINDOS)
+    enum LDOUBLE_ALIGN = 2;
+else
+    static assert(0, "fix this");
+
+
+/// Size of a type to use for alignment
+__gshared byte[256] _tyalignsize =
+[
+    TYbool    : 1,
+    TYchar    : 1,
+    TYschar   : 1,
+    TYuchar   : 1,
+    TYchar8   : 1,
+    TYchar16  : 2,
+    TYshort   : SHORTSIZE,
+    TYwchar_t : 2,
+    TYushort  : SHORTSIZE,
+
+    TYenum    : -1,
+    TYint     : 2,
+    TYuint    : 2,
+
+    TYlong    : LONGSIZE,
+    TYulong   : LONGSIZE,
+    TYdchar   : 4,
+    TYllong   : LLONGSIZE,
+    TYullong  : LLONGSIZE,
+    TYcent    : 8,
+    TYucent   : 8,
+    TYfloat   : FLOATSIZE,
+    TYdouble  : DOUBLESIZE,
+    TYdouble_alias : 8,
+    TYldouble : LDOUBLE_ALIGN,
+
+    TYifloat   : FLOATSIZE,
+    TYidouble  : DOUBLESIZE,
+    TYildouble : LDOUBLE_ALIGN,
+
+    TYcfloat   : 2*FLOATSIZE,
+    TYcdouble  : 2*DOUBLESIZE,
+    TYcldouble : LDOUBLE_ALIGN,
+
+    TYfloat4  : 16,
+    TYdouble2 : 16,
+    TYschar16 : 16,
+    TYuchar16 : 16,
+    TYshort8  : 16,
+    TYushort8 : 16,
+    TYlong4   : 16,
+    TYulong4  : 16,
+    TYllong2  : 16,
+    TYullong2 : 16,
+
+    TYfloat8  : 32,
+    TYdouble4 : 32,
+    TYschar32 : 32,
+    TYuchar32 : 32,
+    TYshort16 : 32,
+    TYushort16 : 32,
+    TYlong8   : 32,
+    TYulong8  : 32,
+    TYllong4  : 32,
+    TYullong4 : 32,
+
+    TYfloat16 : 64,
+    TYdouble8 : 64,
+    TYschar64 : 64,
+    TYuchar64 : 64,
+    TYshort32 : 64,
+    TYushort32 : 64,
+    TYlong16  : 64,
+    TYulong16 : 64,
+    TYllong8  : 64,
+    TYullong8 : 64,
+
+    TYnullptr : 2,
+    TYnptr    : 2,
+    TYref     : -1,
+    TYvoid    : -1,
+    TYstruct  : -1,
+    TYarray   : -1,
+    TYnfunc   : -1,
+    TYnpfunc  : -1,
+    TYnsfunc  : -1,
+    TYptr     : 2,
+    TYmfunc   : -1,
+    TYjfunc   : -1,
+    TYhfunc   : -1,
+    TYnref    : 2,
+
+    TYsptr     : 2,
+    TYcptr     : 2,
+    TYf16ptr   : 4,
+    TYfptr     : 4,
+    TYhptr     : 4,
+    TYvptr     : 4,
+    TYimmutPtr : 2,
+    TYsharePtr : 2,
+    TYfgPtr    : 2,
+    TYffunc    : -1,
+    TYfpfunc   : -1,
+    TYfsfunc   : -1,
+    TYf16func  : -1,
+    TYnsysfunc : -1,
+    TYfsysfunc : -1,
+    TYfref     : 4,
+
+    TYifunc    : -1,
+    TYmemptr   : -1,
+    TYident    : -1,
+    TYtemplate : -1,
+    TYvtshape  : -1,
 ];
 
 

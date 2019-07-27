@@ -170,6 +170,7 @@ void dotytab()
 
     f = fopen("tytab.d","w");
 
+/+
     for (i = 0; i < typetab.length; i++)
     {   _tysize[typetab[i].ty | 0x00] = cast(byte)typetab[i].size;
         /*printf("_tysize[%d] = %d\n",typetab[i].ty,typetab[i].size);*/
@@ -228,6 +229,6 @@ else
             fprintf(f,"\n  ");
     }
     fprintf(f,"\n];\n");
-
++/
     fclose(f);
 }
