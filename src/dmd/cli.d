@@ -721,6 +721,8 @@ dmd -cov -unittest myprog.d
             "destruct fields of partially constructed objects"),
         Feature("rvaluerefparam", "rvalueRefParam",
             "enable rvalue arguments to ref parameters"),
+        Feature("nosharedaccess", "noSharedAccess",
+            "disable access to shared memory objects"),
     ];
 }
 
