@@ -20,12 +20,13 @@ import tools.paths;
 
 const scriptDir = __FILE_FULL_PATH__.dirName.buildNormalizedPath;
 auto testPath(R)(R path) { return buildNormalizedPath(scriptDir, path); }
-string resultsDir = testPath("test_results");
+shared string resultsDir = testPath("test_results");
 immutable testDirs = ["runnable", "compilable", "fail_compilation", "dshell"];
 shared bool verbose; // output verbose logging
 shared bool force; // always run all tests (ignores timestamp checking)
 shared string hostDMD; // path to host DMD binary (used for building the tools)
 shared string unitTestRunnerCommand;
+int jobs = 1;
 
 enum toolsDir = testPath("tools");
 
@@ -54,7 +55,7 @@ immutable struct TestTool
 int main(string[] args)
 {
     bool runUnitTests;
-    int jobs = totalCPUs;
+    jobs = totalCPUs;
     auto res = getopt(args,
         std.getopt.config.passThrough,
         "j|jobs", "Specifies the number of jobs (commands) to run simultaneously (default: %d)".format(totalCPUs), &jobs,
@@ -156,6 +157,8 @@ void ensureToolsExists(string[string] env, const TestTool[] tools ...)
     resultsDir.mkdirRecurse;
 
     shared uint failCount = 0;
+    auto taskPool = new TaskPool(jobs);
+    scope(exit) taskPool.finish();
     foreach (tool; tools.parallel(1))
     {
         string targetBin;
