@@ -400,6 +400,7 @@ string[string] getEnvironment()
     env["RESULTS_DIR"] = resultsDir;
     env["OS"] = os;
     env["MODEL"] = model;
+    env["DMD_MODEL"] = dmdModel;
     env["BUILD"] = build;
     env["EXE"] = exeExtension;
     env["DMD"] = dmdPath;
