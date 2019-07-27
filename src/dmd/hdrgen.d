@@ -1614,7 +1614,7 @@ public:
         }
         else
             s1 = !cs ? f.fbody : null;
-        ReturnStatement rs = s1 ? s1.isReturnStatement() : null;
+        ReturnStatement rs = s1 ? s1.endsWithReturnStatement() : null;
         if (rs && rs.exp)
         {
             buf.writestring(" => ");

@@ -398,27 +398,38 @@ extern (C++) abstract class Statement : ASTNode
         v.visit(this);
     }
 
-  pure nothrow @nogc:
+    /************************************
+     * Does this statement end with a return statement?
+     *
+     * I.e. is it a single return statement or some compound statement
+     * that unconditionally hits a return statement.
+     * Returns:
+     *  return statement it ends with, otherwise null
+     */
+    pure nothrow @nogc
+    inout(ReturnStatement) endsWithReturnStatement() inout { return null; }
+
+  final pure inout nothrow @nogc:
 
     /********************
      * A cheaper method of doing downcasting of Statements.
      * Returns:
      *    the downcast statement if it can be downcasted, otherwise `null`
      */
-    inout(ErrorStatement)       isErrorStatement()       inout { return null; }
-    inout(ScopeStatement)       isScopeStatement()       inout { return null; }
-    inout(ExpStatement)         isExpStatement()         inout { return null; }
-    inout(CompoundStatement)    isCompoundStatement()    inout { return null; }
-    inout(ReturnStatement)      isReturnStatement()      inout { return null; }
-    inout(IfStatement)          isIfStatement()          inout { return null; }
-    inout(CaseStatement)        isCaseStatement()        inout { return null; }
-    inout(DefaultStatement)     isDefaultStatement()     inout { return null; }
-    inout(LabelStatement)       isLabelStatement()       inout { return null; }
-    inout(GotoDefaultStatement) isGotoDefaultStatement() inout { return null; }
-    inout(GotoCaseStatement)    isGotoCaseStatement()    inout { return null; }
-    inout(BreakStatement)       isBreakStatement()       inout { return null; }
-    inout(DtorExpStatement)     isDtorExpStatement()     inout { return null; }
-    inout(ForwardingStatement)  isForwardingStatement()  inout { return null; }
+    inout(ErrorStatement)       isErrorStatement()       { return stmt == STMT.Error       ? cast(typeof(return))this : null; }
+    inout(ScopeStatement)       isScopeStatement()       { return stmt == STMT.Scope       ? cast(typeof(return))this : null; }
+    inout(ExpStatement)         isExpStatement()         { return stmt == STMT.Exp         ? cast(typeof(return))this : null; }
+    inout(CompoundStatement)    isCompoundStatement()    { return stmt == STMT.Compound    ? cast(typeof(return))this : null; }
+    inout(ReturnStatement)      isReturnStatement()      { return stmt == STMT.Return      ? cast(typeof(return))this : null; }
+    inout(IfStatement)          isIfStatement()          { return stmt == STMT.If          ? cast(typeof(return))this : null; }
+    inout(CaseStatement)        isCaseStatement()        { return stmt == STMT.Case        ? cast(typeof(return))this : null; }
+    inout(DefaultStatement)     isDefaultStatement()     { return stmt == STMT.Default     ? cast(typeof(return))this : null; }
+    inout(LabelStatement)       isLabelStatement()       { return stmt == STMT.Label       ? cast(typeof(return))this : null; }
+    inout(GotoDefaultStatement) isGotoDefaultStatement() { return stmt == STMT.GotoDefault ? cast(typeof(return))this : null; }
+    inout(GotoCaseStatement)    isGotoCaseStatement()    { return stmt == STMT.GotoCase    ? cast(typeof(return))this : null; }
+    inout(BreakStatement)       isBreakStatement()       { return stmt == STMT.Break       ? cast(typeof(return))this : null; }
+    inout(DtorExpStatement)     isDtorExpStatement()     { return stmt == STMT.DtorExp     ? cast(typeof(return))this : null; }
+    inout(ForwardingStatement)  isForwardingStatement()  { return stmt == STMT.Forwarding  ? cast(typeof(return))this : null; }
 }
 
 /***********************************************************
@@ -434,11 +445,6 @@ extern (C++) final class ErrorStatement : Statement
     }
 
     override Statement syntaxCopy()
-    {
-        return this;
-    }
-
-    override inout(ErrorStatement) isErrorStatement() inout pure nothrow
     {
         return this;
     }
@@ -718,11 +724,6 @@ extern (C++) class ExpStatement : Statement
         return null;
     }
 
-    override final inout(ExpStatement) isExpStatement() inout pure nothrow
-    {
-        return this;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -750,11 +751,6 @@ extern (C++) final class DtorExpStatement : ExpStatement
     override void accept(Visitor v)
     {
         v.visit(this);
-    }
-
-    override inout(DtorExpStatement) isDtorExpStatement() inout pure nothrow
-    {
-        return this;
     }
 }
 
@@ -890,19 +886,17 @@ extern (C++) class CompoundStatement : Statement
         return statements;
     }
 
-    override final inout(ReturnStatement) isReturnStatement() inout nothrow pure
+    override final inout(ReturnStatement) endsWithReturnStatement() inout nothrow pure
     {
-        ReturnStatement rs = null;
         foreach (s; *statements)
         {
             if (s)
             {
-                rs = cast(ReturnStatement)s.isReturnStatement();
-                if (rs)
-                    break;
+                if (inout rs = s.endsWithReturnStatement())
+                    return rs;
             }
         }
-        return cast(inout)rs;
+        return null;
     }
 
     override final inout(Statement) last() inout nothrow pure
@@ -919,11 +913,6 @@ extern (C++) class CompoundStatement : Statement
             }
         }
         return cast(inout)s;
-    }
-
-    override final inout(CompoundStatement) isCompoundStatement() inout nothrow pure
-    {
-        return this;
     }
 
     override void accept(Visitor v)
@@ -1015,15 +1004,10 @@ extern (C++) class ScopeStatement : Statement
         return new ScopeStatement(loc, statement ? statement.syntaxCopy() : null, endloc);
     }
 
-    override inout(ScopeStatement) isScopeStatement() inout nothrow pure
-    {
-        return this;
-    }
-
-    override inout(ReturnStatement) isReturnStatement() inout nothrow pure
+    override inout(ReturnStatement) endsWithReturnStatement() inout nothrow pure
     {
         if (statement)
-            return statement.isReturnStatement();
+            return statement.endsWithReturnStatement();
         return null;
     }
 
@@ -1109,11 +1093,6 @@ extern (C++) final class ForwardingStatement : Statement
             (*b)[i] = s ? new ForwardingStatement(s.loc, sym, s) : null;
         }
         return b;
-    }
-
-    override inout(ForwardingStatement) isForwardingStatement() inout pure nothrow
-    {
-        return this;
     }
 
     override void accept(Visitor v)
@@ -1402,11 +1381,6 @@ extern (C++) final class IfStatement : Statement
             endloc);
     }
 
-    override inout(IfStatement) isIfStatement() inout pure nothrow
-    {
-        return this;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1674,11 +1648,6 @@ extern (C++) final class CaseStatement : Statement
         return new CaseStatement(loc, exp.syntaxCopy(), statement.syntaxCopy());
     }
 
-    override inout(CaseStatement) isCaseStatement() inout pure nothrow
-    {
-        return this;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1733,11 +1702,6 @@ extern (C++) final class DefaultStatement : Statement
         return new DefaultStatement(loc, statement.syntaxCopy());
     }
 
-    override inout(DefaultStatement) isDefaultStatement() inout pure nothrow
-    {
-        return this;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1759,11 +1723,6 @@ extern (C++) final class GotoDefaultStatement : Statement
     override Statement syntaxCopy()
     {
         return new GotoDefaultStatement(loc);
-    }
-
-    override inout(GotoDefaultStatement) isGotoDefaultStatement() inout pure nothrow
-    {
-        return this;
     }
 
     override void accept(Visitor v)
@@ -1790,11 +1749,6 @@ extern (C++) final class GotoCaseStatement : Statement
     override Statement syntaxCopy()
     {
         return new GotoCaseStatement(loc, exp ? exp.syntaxCopy() : null);
-    }
-
-    override inout(GotoCaseStatement) isGotoCaseStatement() inout pure nothrow
-    {
-        return this;
     }
 
     override void accept(Visitor v)
@@ -1845,7 +1799,7 @@ extern (C++) final class ReturnStatement : Statement
         return new ReturnStatement(loc, exp ? exp.syntaxCopy() : null);
     }
 
-    override inout(ReturnStatement) isReturnStatement() inout nothrow pure
+    override inout(ReturnStatement) endsWithReturnStatement() inout nothrow pure
     {
         return this;
     }
@@ -1872,11 +1826,6 @@ extern (C++) final class BreakStatement : Statement
     override Statement syntaxCopy()
     {
         return new BreakStatement(loc, ident);
-    }
-
-    override inout(BreakStatement) isBreakStatement() inout nothrow pure
-    {
-        return this;
     }
 
     override void accept(Visitor v)
@@ -2369,11 +2318,6 @@ extern (C++) final class LabelStatement : Statement
             *sexit = null;
             *sfinally = null;
         }
-        return this;
-    }
-
-    override inout(LabelStatement) isLabelStatement() inout pure nothrow
-    {
         return this;
     }
 
