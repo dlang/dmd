@@ -313,79 +313,21 @@ extern (C) CArgs rt_cArgs() @nogc
     return _cArgs;
 }
 
-/***********************************
- * Run the given main function.
- * Its purpose is to wrap the D main()
- * function and catch any unhandled exceptions.
- */
+/// Type of the D main() function (`_Dmain`).
 private alias extern(C) int function(char[][] args) MainFunc;
 
-extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
+/**
+ * Sets up the D char[][] command-line args, initializes druntime,
+ * runs embedded unittests and then runs the given D main() function,
+ * optionally catching and printing any unhandled exceptions.
+ */
+extern (C) int _d_run_main(int argc, char** argv, MainFunc mainFunc)
 {
+    // Set up _cArgs and array of D char[] slices, then forward to _d_run_main2
+
     // Remember the original C argc/argv
     _cArgs.argc = argc;
     _cArgs.argv = argv;
-
-    int result;
-
-    version (OSX)
-    {   /* OSX does not provide a way to get at the top of the
-         * stack, except for the magic value 0xC0000000.
-         * But as far as the gc is concerned, argv is at the top
-         * of the main thread's stack, so save the address of that.
-         */
-        __osx_stack_end = cast(void*)&argv;
-    }
-
-    version (FreeBSD) version (D_InlineAsm_X86)
-    {
-        /*
-         * FreeBSD/i386 sets the FPU precision mode to 53 bit double.
-         * Make it 64 bit extended.
-         */
-        ushort fpucw;
-        asm
-        {
-            fstsw   fpucw;
-            or      fpucw, 0b11_00_111111; // 11: use 64 bit extended-precision
-                                           // 111111: mask all FP exceptions
-            fldcw   fpucw;
-        }
-    }
-    version (CRuntime_Microsoft)
-    {
-        // enable full precision for reals
-        version (GNU)
-        {
-            size_t fpu_cw;
-            asm { "fstcw %0" : "=m" (fpu_cw); }
-            fpu_cw |= 0b11_00_111111;  // 11: use 64 bit extended-precision
-                                       // 111111: mask all FP exceptions
-            asm { "fldcw %0" : "=m" (fpu_cw); }
-        }
-        else version (Win64)
-            asm
-            {
-                push    RAX;
-                fstcw   word ptr [RSP];
-                or      [RSP], 0b11_00_111111; // 11: use 64 bit extended-precision
-                                               // 111111: mask all FP exceptions
-                fldcw   word ptr [RSP];
-                pop     RAX;
-            }
-        else version (Win32)
-        {
-            asm
-            {
-                push    EAX;
-                fstcw   word ptr [ESP];
-                or      [ESP], 0b11_00_111111; // 11: use 64 bit extended-precision
-                // 111111: mask all FP exceptions
-                fldcw   word ptr [ESP];
-                pop     EAX;
-            }
-        }
-    }
 
     version (Windows)
     {
@@ -441,6 +383,72 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
     }
     else
         static assert(0);
+
+    return _d_run_main2(args, totalArgsLength, mainFunc);
+}
+
+private extern (C) int _d_run_main2(char[][] args, size_t totalArgsLength, MainFunc mainFunc)
+{
+    int result;
+
+    version (OSX)
+    {   /* OSX does not provide a way to get at the top of the
+         * stack, except for the magic value 0xC0000000.
+         * But as far as the gc is concerned, `args` is at the top
+         * of the main thread's stack, so save the address of that.
+         */
+        __osx_stack_end = cast(void*)&args;
+    }
+
+    version (FreeBSD) version (D_InlineAsm_X86)
+    {
+        /*
+         * FreeBSD/i386 sets the FPU precision mode to 53 bit double.
+         * Make it 64 bit extended.
+         */
+        ushort fpucw;
+        asm
+        {
+            fstsw   fpucw;
+            or      fpucw, 0b11_00_111111; // 11: use 64 bit extended-precision
+                                           // 111111: mask all FP exceptions
+            fldcw   fpucw;
+        }
+    }
+    version (CRuntime_Microsoft)
+    {
+        // enable full precision for reals
+        version (GNU)
+        {
+            size_t fpu_cw;
+            asm { "fstcw %0" : "=m" (fpu_cw); }
+            fpu_cw |= 0b11_00_111111;  // 11: use 64 bit extended-precision
+                                       // 111111: mask all FP exceptions
+            asm { "fldcw %0" : "=m" (fpu_cw); }
+        }
+        else version (Win64)
+            asm
+            {
+                push    RAX;
+                fstcw   word ptr [RSP];
+                or      [RSP], 0b11_00_111111; // 11: use 64 bit extended-precision
+                                               // 111111: mask all FP exceptions
+                fldcw   word ptr [RSP];
+                pop     RAX;
+            }
+        else version (Win32)
+        {
+            asm
+            {
+                push    EAX;
+                fstcw   word ptr [ESP];
+                or      [ESP], 0b11_00_111111; // 11: use 64 bit extended-precision
+                // 111111: mask all FP exceptions
+                fldcw   word ptr [ESP];
+                pop     EAX;
+            }
+        }
+    }
 
     /* Create a copy of args[] on the stack to be used for main, so that rt_args()
      * cannot be modified by the user.
