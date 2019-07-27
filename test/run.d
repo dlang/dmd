@@ -19,8 +19,6 @@ import core.stdc.stdlib : exit;
 import tools.paths;
 
 const scriptDir = __FILE_FULL_PATH__.dirName.buildNormalizedPath;
-auto testPath(R)(R path) { return buildNormalizedPath(scriptDir, path); }
-shared string resultsDir = testPath("test_results");
 immutable testDirs = ["runnable", "compilable", "fail_compilation", "dshell"];
 shared bool verbose; // output verbose logging
 shared bool force; // always run all tests (ignores timestamp checking)
@@ -87,7 +85,6 @@ Options:
     args2Environment(args);
 
     // allow overwrites from the environment
-    resultsDir = environment.get("RESULTS_DIR", resultsDir);
     hostDMD = environment.get("HOST_DMD", "dmd");
     unitTestRunnerCommand = resultsDir.buildPath("unit_test_runner");
 
