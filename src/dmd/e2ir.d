@@ -230,7 +230,8 @@ private elem *callfunc(const ref Loc loc,
         auto pe = (n <= elems_array.length)
                 ? elems_array.ptr
                 : cast(elem**)malloc(arguments.dim * (elem*).sizeof);
-        assert(pe);
+        if (!pe)
+            Mem.error();
         elem*[] elems = pe[0 .. n];
 
         /* Fill elems[] with arguments converted to elems

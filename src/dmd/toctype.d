@@ -18,6 +18,8 @@ import dmd.backend.cc : Classsym, Symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 
+import dmd.root.rmem;
+
 import dmd.declaration;
 import dmd.denum;
 import dmd.dstruct;
@@ -127,7 +129,8 @@ public:
         type** ptypes = (nparams <= tmp.length)
                         ? tmp.ptr
                         : cast(type**)malloc((type*).sizeof * nparams);
-        assert(ptypes);
+        if (!ptypes)
+            Mem.error();
         type*[] types = ptypes[0 .. nparams];
 
         foreach (i; 0 .. nparams)

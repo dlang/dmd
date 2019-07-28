@@ -177,7 +177,8 @@ final class LibElf : Library
                                 break;
                         }
                         auto n = cast(char*)malloc(i + 1);
-                        assert(n);
+                        if (!n)
+                            Mem.error();
                         memcpy(n, filenametab + foff, i);
                         n[i] = 0;
                         om.name = n[0 .. i];
@@ -187,7 +188,8 @@ final class LibElf : Library
                         /* Pick short name out of header
                          */
                         auto n = cast(char*)malloc(ELF_OBJECT_NAME_SIZE);
-                        assert(n);
+                        if (!n)
+                            Mem.error();
                         for (int i = 0; 1; i++)
                         {
                             if (i == ELF_OBJECT_NAME_SIZE)

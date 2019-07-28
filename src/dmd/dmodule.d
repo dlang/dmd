@@ -37,6 +37,7 @@ import dmd.root.file;
 import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.root.port;
+import dmd.root.rmem;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.utils;
@@ -1295,7 +1296,8 @@ extern (C++) final class Module : Package
             else
             {
                 todo = cast(Dsymbol*)malloc(len * Dsymbol.sizeof);
-                assert(todo);
+                if (!todo)
+                    Mem.error();
                 todoalloc = todo;
             }
             memcpy(todo, deferred.tdata(), len * Dsymbol.sizeof);

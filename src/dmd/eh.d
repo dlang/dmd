@@ -20,6 +20,8 @@ import core.stdc.string;
 import dmd.globals;
 import dmd.errors;
 
+import dmd.root.rmem;
+
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
@@ -320,7 +322,8 @@ void except_fillInEHTable(Symbol *s)
                 if (stacki == stackmax)
                 {   // stack[] is out of space; enlarge it
                     int *pi = cast(int *)malloc((stackmax + STACKINC) * int.sizeof);
-                    assert(pi);
+                    if (!pi)
+                        Mem.error();
                     memcpy(pi, stack, stackmax * int.sizeof);
                     if (stack != stackbuf.ptr)
                         free(stack);
