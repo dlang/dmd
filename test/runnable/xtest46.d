@@ -1,5 +1,5 @@
 // REQUIRED_ARGS: -preview=rvaluerefparam
-// PERMUTE_ARGS: -unittest -O -release -inline -fPIC -g
+//
 /* TEST_OUTPUT:
 ---
 Boo!double
@@ -14,14 +14,14 @@ tuple(height)
 tuple(get, get)
 tuple(clear)
 tuple(draw, draw)
-runnable/xtest46.d(179): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(149): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(151): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(152): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(154): Deprecation: `opDot` is deprecated. Use `alias this`
 runnable/xtest46.d(181): Deprecation: `opDot` is deprecated. Use `alias this`
-runnable/xtest46.d(182): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(183): Deprecation: `opDot` is deprecated. Use `alias this`
 runnable/xtest46.d(184): Deprecation: `opDot` is deprecated. Use `alias this`
-runnable/xtest46.d(211): Deprecation: `opDot` is deprecated. Use `alias this`
-runnable/xtest46.d(213): Deprecation: `opDot` is deprecated. Use `alias this`
-runnable/xtest46.d(214): Deprecation: `opDot` is deprecated. Use `alias this`
-runnable/xtest46.d(216): Deprecation: `opDot` is deprecated. Use `alias this`
+runnable/xtest46.d(186): Deprecation: `opDot` is deprecated. Use `alias this`
 const(int)
 string[]
 double[]
@@ -30,13 +30,6 @@ double[]
 tuple("m")
 true
 TFunction1: extern (C) void function()
-f
-toString
-toHash
-opCmp
-opEquals
-Monitor
-factory
 ---
 */
 
@@ -81,29 +74,6 @@ void foo2(T...)(T args)
 void bar2(D)(const(void)* arg)
 {
     D obj = *cast(D*) arg;
-}
-
-/***************************************************/
-
-void test3()
-{
-    version (unittest)
-    {
-        printf("unittest!\n");
-    }
-    else
-    {
-        printf("no unittest!\n");
-    }
-
-    version (assert)
-    {
-        printf("assert!\n");
-    }
-    else
-    {
-        printf("no assert!\n");
-    }
 }
 
 
@@ -6108,27 +6078,6 @@ class B1175 : A1175
 }
 
 /***************************************************/
-// https://issues.dlang.org/show_bug.cgi?id=7983
-
-class A7983 {
-        void f() {
-                g7983(this);
-        }
-        unittest {
-        }
-}
-
-void g7983(T)(T a)
-{
-        foreach (name; __traits(allMembers, T)) {
-                pragma(msg, name);
-                static if (__traits(compiles, &__traits(getMember, a, name)))
-                {
-                }
-        }
-}
-
-/***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=8004
 
 void test8004()
@@ -8036,7 +7985,6 @@ int main()
 {
     test1();
     test2();
-    test3();
     test4();
     test5();
     test6();
