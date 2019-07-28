@@ -96,6 +96,7 @@ bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool 
 
         e = e.expressionSemantic(sc);
         e = resolveProperties(sc, e);
+        e = e.toBoolean(sc);
 
         sc = sc.endCTFE();
         e = e.optimize(WANTvalue);
