@@ -444,11 +444,17 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
     fputs(header, stderr);
     if (con)
         con.resetColor();
-    if (p1)
-        fprintf(stderr, "%s ", p1);
-    if (p2)
-        fprintf(stderr, "%s ", p2);
     OutBuffer tmp;
+    if (p1)
+    {
+        tmp.writestring(p1);
+        tmp.writestring(" ");
+    }
+    if (p2)
+    {
+        tmp.writestring(p2);
+        tmp.writestring(" ");
+    }
     tmp.vprintf(format, ap);
 
     if (con && strchr(tmp.peekChars(), '`'))
