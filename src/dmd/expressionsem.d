@@ -11092,12 +11092,6 @@ Expression binSemanticProp(BinExp e, Scope* sc)
 // entrypoint for semantic ExpressionSemanticVisitor
 extern (C++) Expression expressionSemantic(Expression e, Scope* sc)
 {
-    const inConstraint = sc ? (sc.flags & SCOPE.constraint) == SCOPE.constraint : false;
-    if (e.inuse == 2 && inConstraint)
-    {
-        e.error("circular evaluation of constraint `%s`", e.toChars());
-        return new ErrorExp();
-    }
     scope v = new ExpressionSemanticVisitor(sc);
     e.accept(v);
     return v.result;

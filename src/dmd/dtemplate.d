@@ -689,12 +689,6 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
      */
     extern (D) bool evaluateConstraint(TemplateInstance ti, Scope* sc, Scope* paramscope, Objects* dedargs, FuncDeclaration fd)
     {
-        // circular evaluation of the constraint, see https://issues.dlang.org/show_bug.cgi?id=11856
-        if (constraint.inuse == constraint.inuse.max)
-            return false;
-        constraint.inuse++;
-        scope(exit)
-            constraint.inuse--;
         /* Detect recursive attempts to instantiate this template declaration,
          * https://issues.dlang.org/show_bug.cgi?id=4072
          *  void foo(T)(T x) if (is(typeof(foo(x)))) { }
@@ -715,8 +709,11 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 //printf("recursive, no match p.sc=%p %p %s\n", p.sc, this, this.toChars());
                 /* It must be a subscope of p.sc, other scope chains are not recursive
                  * instantiations.
+                 * the chain of enclosing scopes is broken by paramscope (its enclosing
+                 * scope is _scope, but paramscope.callsc is the instantiating scope). So
+                 * it's good enough to check the chain of callsc
                  */
-                for (Scope* scx = sc; scx; scx = scx.enclosing)
+                for (Scope* scx = paramscope.callsc; scx; scx = scx.callsc)
                 {
                     if (scx == p.sc)
                         return false;
@@ -728,7 +725,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
         TemplatePrevious pr;
         pr.prev = previous;
-        pr.sc = paramscope;
+        pr.sc = paramscope.callsc;
         pr.dedargs = dedargs;
         previous = &pr; // add this to threaded list
 
