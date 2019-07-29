@@ -2926,178 +2926,180 @@ void cdd_u64(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     assert(I32 || I64);
     assert(*pretregs);
     if (I32)
-    {
-        /* Generate:
-                mov         EDX,0x8000_0000
-                mov         floatreg+0,0
-                mov         floatreg+4,EDX
-                mov         floatreg+8,0x0FBF403e       // (roundTo0<<16) | adjust
-                fld         real ptr floatreg           // adjust (= 1/real.epsilon)
-                fcomp
-                fstsw       AX
-                fstcw       floatreg+12
-                fldcw       floatreg+10                 // roundTo0
-                test        AH,1
-                jz          L1                          // jae L1
-
-                fld         real ptr floatreg           // adjust
-                fsubp       ST(1), ST
-                fistp       floatreg
-                mov         EAX,floatreg
-                add         EDX,floatreg+4
-                fldcw       floatreg+12
-                jmp         L2
-
-        L1:
-                fistp       floatreg
-                mov         EAX,floatreg
-                mov         EDX,floatreg+4
-                fldcw       floatreg+12
-        L2:
-         */
-        regm_t retregs = mST0;
-        codelem(cdb,e.EV.E1, &retregs, false);
-        tym_t tym = e.Ety;
-        retregs = *pretregs;
-        if (!retregs)
-            retregs = ALLREGS;
-        reg_t reg, reg2;
-        allocreg(cdb,&retregs,&reg,tym);
-        reg  = findreglsw(retregs);
-        reg2 = findregmsw(retregs);
-        movregconst(cdb,reg2,0x80000000,0);
-        getregs(cdb,mask(reg2) | mAX);
-
-        cdb.genfltreg(0xC7,0,0);
-        code *cf1 = cdb.last();
-        cf1.IFL2 = FLconst;
-        cf1.IEV2.Vint = 0;                             // MOV floatreg+0,0
-        cdb.genfltreg(STO,reg2,4);                      // MOV floatreg+4,EDX
-        cdb.genfltreg(0xC7,0,8);
-        code *cf3 = cdb.last();
-        cf3.IFL2 = FLconst;
-        cf3.IEV2.Vint = 0xFBF403E;                     // MOV floatreg+8,(roundTo0<<16)|adjust
-
-        push87(cdb);
-        cdb.genfltreg(0xDB,5,0);                        // FLD real ptr floatreg
-        cdb.gen2(0xD8,0xD9);                            // FCOMP
-        pop87();
-        cdb.gen2(0xDF,0xE0);                            // FSTSW AX
-        cdb.genfltreg(0xD9,7,12);                       // FSTCW floatreg+12
-        cdb.genfltreg(0xD9,5,10);                       // FLDCW floatreg+10
-        cdb.genc2(0xF6,modregrm(3,0,4),1);              // TEST AH,1
-        code *cnop1 = gennop(null);
-        genjmp(cdb,JE,FLcode,cast(block *)cnop1);       // JZ L1
-
-        cdb.genfltreg(0xDB,5,0);                        // FLD real ptr floatreg
-        cdb.genf2(0xDE,0xE8+1);                         // FSUBP ST(1),ST
-        cdb.genfltreg(0xDF,7,0);                        // FISTP dword ptr floatreg
-        cdb.genfltreg(LOD,reg,0);                       // MOV reg,floatreg
-        cdb.genfltreg(0x03,reg2,4);                     // ADD reg,floatreg+4
-        cdb.genfltreg(0xD9,5,12);                       // FLDCW floatreg+12
-        code *cnop2 = gennop(null);
-        genjmp(cdb,JMP,FLcode,cast(block *)cnop2);      // JMP L2
-
-        cdb.append(cnop1);
-        cdb.genfltreg(0xDF,7,0);                        // FISTP dword ptr floatreg
-        cdb.genfltreg(LOD,reg,0);                       // MOV reg,floatreg
-        cdb.genfltreg(LOD,reg2,4);                      // MOV reg,floatreg+4
-        cdb.genfltreg(0xD9,5,12);                       // FLDCW floatreg+12
-        cdb.append(cnop2);
-
-        pop87();
-        fixresult(cdb,e,retregs,pretregs);
-        return;
-    }
-    else if (I64)
-    {
-        /* Generate:
-                mov         EDX,0x8000_0000
-                mov         floatreg+0,0
-                mov         floatreg+4,EDX
-                mov         floatreg+8,0x0FBF403e       // (roundTo0<<16) | adjust
-                fld         real ptr floatreg           // adjust
-                fcomp
-                fstsw       AX
-                fstcw       floatreg+12
-                fldcw       floatreg+10                 // roundTo0
-                test        AH,1
-                jz          L1                          // jae L1
-
-                fld         real ptr floatreg           // adjust
-                fsubp       ST(1), ST
-                fistp       floatreg
-                mov         RAX,floatreg
-                shl         RDX,32
-                add         RAX,RDX
-                fldcw       floatreg+12
-                jmp         L2
-
-        L1:
-                fistp       floatreg
-                mov         RAX,floatreg
-                fldcw       floatreg+12
-        L2:
-         */
-        regm_t retregs = mST0;
-        codelem(cdb,e.EV.E1, &retregs, false);
-        tym_t tym = e.Ety;
-        retregs = *pretregs;
-        if (!retregs)
-            retregs = ALLREGS;
-        reg_t reg;
-        allocreg(cdb,&retregs,&reg,tym);
-        regm_t regm2 = ALLREGS & ~retregs & ~mAX;
-        reg_t reg2;
-        allocreg(cdb,&regm2,&reg2,tym);
-        movregconst(cdb,reg2,0x80000000,0);
-        getregs(cdb,mask(reg2) | mAX);
-
-        cdb.genfltreg(0xC7,0,0);
-        code *cf1 = cdb.last();
-        cf1.IFL2 = FLconst;
-        cf1.IEV2.Vint = 0;                             // MOV floatreg+0,0
-        cdb.genfltreg(STO,reg2,4);                      // MOV floatreg+4,EDX
-        cdb.genfltreg(0xC7,0,8);
-        code *cf3 = cdb.last();
-        cf3.IFL2 = FLconst;
-        cf3.IEV2.Vint = 0xFBF403E;                     // MOV floatreg+8,(roundTo0<<16)|adjust
-
-        push87(cdb);
-        cdb.genfltreg(0xDB,5,0);                        // FLD real ptr floatreg
-        cdb.gen2(0xD8,0xD9);                            // FCOMP
-        pop87();
-        cdb.gen2(0xDF,0xE0);                            // FSTSW AX
-        cdb.genfltreg(0xD9,7,12);                       // FSTCW floatreg+12
-        cdb.genfltreg(0xD9,5,10);                       // FLDCW floatreg+10
-        cdb.genc2(0xF6,modregrm(3,0,4),1);              // TEST AH,1
-        code *cnop1 = gennop(null);
-        genjmp(cdb,JE,FLcode,cast(block *)cnop1);       // JZ L1
-
-        cdb.genfltreg(0xDB,5,0);                        // FLD real ptr floatreg
-        cdb.genf2(0xDE,0xE8+1);                         // FSUBP ST(1),ST
-        cdb.genfltreg(0xDF,7,0);                        // FISTP dword ptr floatreg
-        cdb.genfltreg(LOD,reg,0);                       // MOV reg,floatreg
-        code_orrex(cdb.last(), REX_W);
-        cdb.genc2(0xC1,(REX_W << 16) | modregrmx(3,4,reg2),32); // SHL reg2,32
-        cdb.gen2(0x03,(REX_W << 16) | modregxrmx(3,reg,reg2));  // ADD reg,reg2
-        cdb.genfltreg(0xD9,5,12);                       // FLDCW floatreg+12
-        code *cnop2 = gennop(null);
-        genjmp(cdb,JMP,FLcode,cast(block *)cnop2);      // JMP L2
-
-        cdb.append(cnop1);
-        cdb.genfltreg(0xDF,7,0);                        // FISTP dword ptr floatreg
-        cdb.genfltreg(LOD,reg,0);                       // MOV reg,floatreg
-        code_orrex(cdb.last(), REX_W);
-        cdb.genfltreg(0xD9,5,12);                       // FLDCW floatreg+12
-        cdb.append(cnop2);
-
-        pop87();
-        fixresult(cdb,e,retregs,pretregs);
-        return;
-    }
+        cdd_u64_I32(cdb, e, pretregs);
     else
-        assert(0);
+        cdd_u64_I64(cdb, e, pretregs);
+}
+
+private void cdd_u64_I32(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
+{
+    /* Generate:
+            mov         EDX,0x8000_0000
+            mov         floatreg+0,0
+            mov         floatreg+4,EDX
+            mov         floatreg+8,0x0FBF403e       // (roundTo0<<16) | adjust
+            fld         real ptr floatreg           // adjust (= 1/real.epsilon)
+            fcomp
+            fstsw       AX
+            fstcw       floatreg+12
+            fldcw       floatreg+10                 // roundTo0
+            test        AH,1
+            jz          L1                          // jae L1
+
+            fld         real ptr floatreg           // adjust
+            fsubp       ST(1), ST
+            fistp       floatreg
+            mov         EAX,floatreg
+            add         EDX,floatreg+4
+            fldcw       floatreg+12
+            jmp         L2
+
+    L1:
+            fistp       floatreg
+            mov         EAX,floatreg
+            mov         EDX,floatreg+4
+            fldcw       floatreg+12
+    L2:
+     */
+    regm_t retregs = mST0;
+    codelem(cdb,e.EV.E1, &retregs, false);
+    tym_t tym = e.Ety;
+    retregs = *pretregs;
+    if (!retregs)
+        retregs = ALLREGS;
+    reg_t reg, reg2;
+    allocreg(cdb,&retregs,&reg,tym);
+    reg  = findreglsw(retregs);
+    reg2 = findregmsw(retregs);
+    movregconst(cdb,reg2,0x80000000,0);
+    getregs(cdb,mask(reg2) | mAX);
+
+    cdb.genfltreg(0xC7,0,0);
+    code *cf1 = cdb.last();
+    cf1.IFL2 = FLconst;
+    cf1.IEV2.Vint = 0;                             // MOV floatreg+0,0
+    cdb.genfltreg(STO,reg2,4);                      // MOV floatreg+4,EDX
+    cdb.genfltreg(0xC7,0,8);
+    code *cf3 = cdb.last();
+    cf3.IFL2 = FLconst;
+    cf3.IEV2.Vint = 0xFBF403E;                     // MOV floatreg+8,(roundTo0<<16)|adjust
+
+    push87(cdb);
+    cdb.genfltreg(0xDB,5,0);                        // FLD real ptr floatreg
+    cdb.gen2(0xD8,0xD9);                            // FCOMP
+    pop87();
+    cdb.gen2(0xDF,0xE0);                            // FSTSW AX
+    cdb.genfltreg(0xD9,7,12);                       // FSTCW floatreg+12
+    cdb.genfltreg(0xD9,5,10);                       // FLDCW floatreg+10
+    cdb.genc2(0xF6,modregrm(3,0,4),1);              // TEST AH,1
+    code *cnop1 = gennop(null);
+    genjmp(cdb,JE,FLcode,cast(block *)cnop1);       // JZ L1
+
+    cdb.genfltreg(0xDB,5,0);                        // FLD real ptr floatreg
+    cdb.genf2(0xDE,0xE8+1);                         // FSUBP ST(1),ST
+    cdb.genfltreg(0xDF,7,0);                        // FISTP dword ptr floatreg
+    cdb.genfltreg(LOD,reg,0);                       // MOV reg,floatreg
+    cdb.genfltreg(0x03,reg2,4);                     // ADD reg,floatreg+4
+    cdb.genfltreg(0xD9,5,12);                       // FLDCW floatreg+12
+    code *cnop2 = gennop(null);
+    genjmp(cdb,JMP,FLcode,cast(block *)cnop2);      // JMP L2
+
+    cdb.append(cnop1);
+    cdb.genfltreg(0xDF,7,0);                        // FISTP dword ptr floatreg
+    cdb.genfltreg(LOD,reg,0);                       // MOV reg,floatreg
+    cdb.genfltreg(LOD,reg2,4);                      // MOV reg,floatreg+4
+    cdb.genfltreg(0xD9,5,12);                       // FLDCW floatreg+12
+    cdb.append(cnop2);
+
+    pop87();
+    fixresult(cdb,e,retregs,pretregs);
+}
+
+private void cdd_u64_I64(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
+{
+    /* Generate:
+            mov         EDX,0x8000_0000
+            mov         floatreg+0,0
+            mov         floatreg+4,EDX
+            mov         floatreg+8,0x0FBF403e       // (roundTo0<<16) | adjust
+            fld         real ptr floatreg           // adjust
+            fcomp
+            fstsw       AX
+            fstcw       floatreg+12
+            fldcw       floatreg+10                 // roundTo0
+            test        AH,1
+            jz          L1                          // jae L1
+
+            fld         real ptr floatreg           // adjust
+            fsubp       ST(1), ST
+            fistp       floatreg
+            mov         RAX,floatreg
+            shl         RDX,32
+            add         RAX,RDX
+            fldcw       floatreg+12
+            jmp         L2
+
+    L1:
+            fistp       floatreg
+            mov         RAX,floatreg
+            fldcw       floatreg+12
+    L2:
+     */
+    regm_t retregs = mST0;
+    codelem(cdb,e.EV.E1, &retregs, false);
+    tym_t tym = e.Ety;
+    retregs = *pretregs;
+    if (!retregs)
+        retregs = ALLREGS;
+    reg_t reg;
+    allocreg(cdb,&retregs,&reg,tym);
+    regm_t regm2 = ALLREGS & ~retregs & ~mAX;
+    reg_t reg2;
+    allocreg(cdb,&regm2,&reg2,tym);
+    movregconst(cdb,reg2,0x80000000,0);
+    getregs(cdb,mask(reg2) | mAX);
+
+    cdb.genfltreg(0xC7,0,0);
+    code *cf1 = cdb.last();
+    cf1.IFL2 = FLconst;
+    cf1.IEV2.Vint = 0;                             // MOV floatreg+0,0
+    cdb.genfltreg(STO,reg2,4);                      // MOV floatreg+4,EDX
+    cdb.genfltreg(0xC7,0,8);
+    code *cf3 = cdb.last();
+    cf3.IFL2 = FLconst;
+    cf3.IEV2.Vint = 0xFBF403E;                     // MOV floatreg+8,(roundTo0<<16)|adjust
+
+    push87(cdb);
+    cdb.genfltreg(0xDB,5,0);                        // FLD real ptr floatreg
+    cdb.gen2(0xD8,0xD9);                            // FCOMP
+    pop87();
+    cdb.gen2(0xDF,0xE0);                            // FSTSW AX
+    cdb.genfltreg(0xD9,7,12);                       // FSTCW floatreg+12
+    cdb.genfltreg(0xD9,5,10);                       // FLDCW floatreg+10
+    cdb.genc2(0xF6,modregrm(3,0,4),1);              // TEST AH,1
+    code *cnop1 = gennop(null);
+    genjmp(cdb,JE,FLcode,cast(block *)cnop1);       // JZ L1
+
+    cdb.genfltreg(0xDB,5,0);                        // FLD real ptr floatreg
+    cdb.genf2(0xDE,0xE8+1);                         // FSUBP ST(1),ST
+    cdb.genfltreg(0xDF,7,0);                        // FISTP dword ptr floatreg
+    cdb.genfltreg(LOD,reg,0);                       // MOV reg,floatreg
+    code_orrex(cdb.last(), REX_W);
+    cdb.genc2(0xC1,(REX_W << 16) | modregrmx(3,4,reg2),32); // SHL reg2,32
+    cdb.gen2(0x03,(REX_W << 16) | modregxrmx(3,reg,reg2));  // ADD reg,reg2
+    cdb.genfltreg(0xD9,5,12);                       // FLDCW floatreg+12
+    code *cnop2 = gennop(null);
+    genjmp(cdb,JMP,FLcode,cast(block *)cnop2);      // JMP L2
+
+    cdb.append(cnop1);
+    cdb.genfltreg(0xDF,7,0);                        // FISTP dword ptr floatreg
+    cdb.genfltreg(LOD,reg,0);                       // MOV reg,floatreg
+    code_orrex(cdb.last(), REX_W);
+    cdb.genfltreg(0xD9,5,12);                       // FLDCW floatreg+12
+    cdb.append(cnop2);
+
+    pop87();
+    fixresult(cdb,e,retregs,pretregs);
 }
 
 /************************
