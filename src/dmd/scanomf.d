@@ -17,6 +17,7 @@ version(Windows):
 import core.stdc.string;
 import core.stdc.stdlib;
 import dmd.globals;
+import dmd.root.rmem;
 import dmd.root.outbuffer;
 import dmd.arraytypes;
 import dmd.errors;
@@ -64,7 +65,10 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
             while (p + 1 < pnext)
             {
                 parseName(&p, name.ptr);
-                names.push(strdup(name.ptr));
+                char* copy = strdup(name.ptr);
+                if (!copy)
+                    Mem.error();
+                names.push(copy);
             }
             break;
         case PUBDEF:

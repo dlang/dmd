@@ -15,6 +15,9 @@ module dmd.scanmscoff;
 version(Windows):
 
 import core.stdc.string, core.stdc.stdlib, core.sys.windows.winnt;
+
+import dmd.root.rmem;
+
 import dmd.globals, dmd.errors;
 
 private enum LOG = false;
@@ -55,8 +58,12 @@ void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) pAddSymb
         is_old_coff = true;
         IMAGE_FILE_HEADER* header_old;
         header_old = cast(IMAGE_FILE_HEADER*)malloc(IMAGE_FILE_HEADER.sizeof);
+        if (!header_old)
+            Mem.error();
         memcpy(header_old, buf, IMAGE_FILE_HEADER.sizeof);
         header = cast(BIGOBJ_HEADER*)malloc(BIGOBJ_HEADER.sizeof);
+        if (!header)
+            Mem.error();
         *header = BIGOBJ_HEADER.init;
         header.Machine = header_old.Machine;
         header.NumberOfSections = header_old.NumberOfSections;
@@ -113,8 +120,12 @@ void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) pAddSymb
         {
             SymbolTable* n2;
             n2 = cast(SymbolTable*)malloc(SymbolTable.sizeof);
+            if (!n2)
+                Mem.error();
             memcpy(n2, (buf + off), SymbolTable.sizeof);
             n = cast(SymbolTable32*)malloc(SymbolTable32.sizeof);
+            if (!n)
+                Mem.error();
             memcpy(n, n2, (n2.Name).sizeof);
             n.Value = n2.Value;
             n.SectionNumber = n2.SectionNumber;

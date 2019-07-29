@@ -418,6 +418,8 @@ public int runLINK()
         {
             // Split CC command to support link driver arguments such as -fpie or -flto.
             char *arg = strdup(cc);
+            if (!arg)
+                Mem.error();
             const(char)* tok = strtok(arg, " ");
             while (tok)
             {
@@ -639,6 +641,8 @@ public int runLINK()
         {
             const bufsize = 2 + libname.length + 1;
             auto buf = (cast(char*) malloc(bufsize))[0 .. bufsize];
+            if (!buf)
+                Mem.error();
             buf[0 .. 2] = "-l";
 
             char* getbuf(const(char)[] suffix)

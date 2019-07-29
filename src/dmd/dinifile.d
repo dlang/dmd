@@ -21,11 +21,11 @@ import core.sys.windows.windef;
 
 import dmd.errors;
 import dmd.globals;
+import dmd.root.rmem;
 import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.root.port;
 import dmd.root.stringtable;
-import dmd.root.rmem : xarraydup;
 import dmd.utils;
 
 version (Windows) extern (C) int putenv(const char*) nothrow;
@@ -151,7 +151,8 @@ void updateRealEnvironment(ref StringTable environment)
             return 0;
         const valuelen = strlen(value);
         auto s = cast(char*)malloc(namelen + 1 + valuelen + 1);
-        assert(s);
+        if (!s)
+            Mem.error();
         memcpy(s, name, namelen);
         s[namelen] = '=';
         memcpy(s + namelen + 1, value, valuelen);
@@ -247,6 +248,8 @@ void parseConfFile(ref StringTable environment, const(char)[] filename, const(ch
                     {
                         auto len2 = j - k;
                         auto p = cast(char*)malloc(len2);
+                        if (!p)
+                            Mem.error();
                         len2--;
                         memcpy(p, &line[k + 1], len2);
                         p[len2] = 0;
@@ -352,7 +355,10 @@ void parseConfFile(ref StringTable environment, const(char)[] filename, const(ch
                 }
                 if (pn)
                 {
-                    if (!writeToEnv(environment, strdup(pn)))
+                    auto pns = strdup(pn);
+                    if (!pns)
+                        Mem.error();
+                    if (!writeToEnv(environment, pns))
                     {
                         error(Loc(filename.xarraydup.ptr, lineNum, 0), "Use `NAME=value` syntax, not `%s`", pn);
                         fatal();

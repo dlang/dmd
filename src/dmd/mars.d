@@ -419,6 +419,8 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (params.mixinFile)
     {
         params.mixinOut = cast(OutBuffer*)calloc(1, OutBuffer.sizeof);
+        if (!params.mixinOut)
+            Mem.error();
         atexit(&flushMixins); // see comment for flushMixins
     }
     scope(exit) flushMixins();
