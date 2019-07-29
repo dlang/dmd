@@ -210,7 +210,7 @@ struct Runtime
      * Returns:
      *  A reference to the library or null on error.
      */
-    static void* loadLibrary()(in char[] name)
+    static void* loadLibrary()(const scope char[] name)
     {
         import core.stdc.stdlib : free, malloc;
         version (Windows)
