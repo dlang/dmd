@@ -5,6 +5,8 @@ MODEL=64
 DRUNTIMELIB=druntime64.lib
 CC=cl
 
+_MSC_VER = $(file < ..\..\ver.txt)
+
 TESTS= array allocator new string
 
 test: $(TESTS)

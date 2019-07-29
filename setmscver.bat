@@ -1,7 +1,7 @@
 @echo off
 echo _MSC_VER > ver.c
-cl /nologo /EP ver.c > ver.txt
-findstr /v /r /c:"^$" "ver.txt" > "ver_trim.txt"
-set /P _MSC_VER=< ver_trim.txt
+cl /nologo /EP ver.c > ver_raw.txt
+findstr /v /r /c:"^$" "ver_raw.txt" > "ver.txt"
+set /P _MSC_VER=< ver.txt
 echo set _MSC_VER=%_MSC_VER%
-del ver.c ver.txt ver_trim.txt
+del ver.c ver_raw.txt

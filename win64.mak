@@ -109,7 +109,7 @@ test_hash:
 
 test_stdcpp:
 	setmscver.bat
-	"$(MAKE)" -f test\stdcpp\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) "VCDIR=$(VCDIR)" DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" "_MSC_VER=$(_MSC_VER)" test
+	"$(MAKE)" -f test\stdcpp\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) "VCDIR=$(VCDIR)" DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
 
 test_gc:
 	"$(MAKE)" -f test\gc\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) "VCDIR=$(VCDIR)" DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
