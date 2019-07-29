@@ -29,11 +29,11 @@ Tarr _d_arrayctor(Tarr : T[], T)(return scope Tarr to, scope Tarr from) @trusted
     debug(PRINTF) import core.stdc.stdio;
 
     // Force `enforceRawArraysConformable` to be `pure`
-    void enforceRawArraysConformable(const char[] action, in size_t elementSize, const void[] a1, const void[] a2, in bool allowOverlap = false) @trusted
+    void enforceRawArraysConformable(const char[] action, const size_t elementSize, const void[] a1, const void[] a2, in bool allowOverlap = false) @trusted
     {
         import core.internal.util.array : enforceRawArraysConformable;
 
-        alias Type = void function(const char[] action, in size_t elementSize, const void[] a1, const void[] a2, in bool allowOverlap = false) pure nothrow;
+        alias Type = void function(const char[] action, const size_t elementSize, const void[] a1, const void[] a2, in bool allowOverlap = false) pure nothrow;
         (cast(Type)&enforceRawArraysConformable)(action, elementSize, a1, a2, allowOverlap);
     }
 
