@@ -48,10 +48,10 @@ extern(D):
                 import core.stdcpp.xutility : _Xbad_alloc;
                 if (count == 0)
                     return null;
-                T* mem;
-                if ((size_t.max / T.sizeof < count) || (mem = __cpp_new(count * T.sizeof)) == 0)
+                void* mem;
+                if ((size_t.max / T.sizeof < count) || (mem = __cpp_new(count * T.sizeof)) is null)
                     _Xbad_alloc();
-                return mem;
+                return cast(T*)mem;
             }
             else
             {
@@ -67,7 +67,10 @@ extern(D):
                         return _Max_possible < _Count ? size_t.max : _Count * T.sizeof;
                     }
                 }
+
                 const size_t _Bytes = _Get_size_of_n!T(count);
+                if (_Bytes == 0)
+                    return null;
 
                 static if (!__cpp_aligned_new || _Align <= __STDCPP_DEFAULT_NEW_ALIGNMENT__)
                 {
@@ -76,12 +79,10 @@ extern(D):
                         if (_Bytes >= _Big_allocation_threshold)
                             return cast(T*)_Allocate_manually_vector_aligned(_Bytes);
                     }
-                    return _Bytes ? cast(T*)__cpp_new(_Bytes) : null;
+                    return cast(T*)__cpp_new(_Bytes);
                 }
                 else
                 {
-                    if (_Bytes == 0)
-                        return null;
                     size_t _Passed_align = _Align;
                     version (INTEL_ARCH)
                     {
