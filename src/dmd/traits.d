@@ -17,6 +17,7 @@ import core.stdc.string;
 
 import dmd.aggregate;
 import dmd.arraytypes;
+import dmd.astcodegen;
 import dmd.attrib;
 import dmd.canthrow;
 import dmd.dclass;
@@ -38,6 +39,7 @@ import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
 import dmd.nogc;
+import dmd.parse;
 import dmd.root.array;
 import dmd.root.speller;
 import dmd.root.stringtable;
@@ -46,6 +48,7 @@ import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
 import dmd.root.rootobject;
+import dmd.root.outbuffer;
 
 enum LOGSEMANTIC = false;
 
@@ -1518,33 +1521,69 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             bool err = false;
 
             auto t = isType(o);
-            auto ex = t ? t.typeToExpression() : isExpression(o);
-            if (!ex && t)
+            while (t)
             {
-                Dsymbol s;
-                t.resolve(e.loc, sc2, &ex, &t, &s);
-                if (t)
+                if (auto tm = t.isTypeMixin())
                 {
-                    t.typeSemantic(e.loc, sc2);
-                    if (t.ty == Terror)
+                    /* The mixin string could be a type or an expression.
+                     * Have to try compiling it to see.
+                     */
+                    OutBuffer buf;
+                    if (expressionsToString(buf, sc, tm.exps))
+                    {
+                        err = true;
+                        break;
+                    }
+                    const len = buf.offset;
+                    const str = buf.extractChars()[0 .. len];
+                    scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
+                    scope p = new Parser!ASTCodegen(e.loc, sc._module, str, false, diagnosticReporter);
+                    p.nextToken();
+                    //printf("p.loc.linnum = %d\n", p.loc.linnum);
+
+                    o = p.parseTypeOrAssignExp();
+                    if (p.errors ||
+                        p.token.value != TOK.endOfFile)
+                    {
+                        err = true;
+                        break;
+                    }
+                    t = o.isType();
+                }
+                else
+                    break;
+            }
+
+            if (!err)
+            {
+                auto ex = t ? t.typeToExpression() : isExpression(o);
+                if (!ex && t)
+                {
+                    Dsymbol s;
+                    t.resolve(e.loc, sc2, &ex, &t, &s);
+                    if (t)
+                    {
+                        t.typeSemantic(e.loc, sc2);
+                        if (t.ty == Terror)
+                            err = true;
+                    }
+                    else if (s && s.errors)
                         err = true;
                 }
-                else if (s && s.errors)
-                    err = true;
-            }
-            if (ex)
-            {
-                ex = ex.expressionSemantic(sc2);
-                ex = resolvePropertiesOnly(sc2, ex);
-                ex = ex.optimize(WANTvalue);
-                if (sc2.func && sc2.func.type.ty == Tfunction)
+                if (ex)
                 {
-                    const tf = cast(TypeFunction)sc2.func.type;
-                    err |= tf.isnothrow && canThrow(ex, sc2.func, false);
+                    ex = ex.expressionSemantic(sc2);
+                    ex = resolvePropertiesOnly(sc2, ex);
+                    ex = ex.optimize(WANTvalue);
+                    if (sc2.func && sc2.func.type.ty == Tfunction)
+                    {
+                        const tf = cast(TypeFunction)sc2.func.type;
+                        err |= tf.isnothrow && canThrow(ex, sc2.func, false);
+                    }
+                    ex = checkGC(sc2, ex);
+                    if (ex.op == TOK.error)
+                        err = true;
                 }
-                ex = checkGC(sc2, ex);
-                if (ex.op == TOK.error)
-                    err = true;
             }
 
             // Carefully detach the scope from the parent and throw it away as

@@ -6413,6 +6413,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             if (ta)
             {
                 //printf("type %s\n", ta.toChars());
+
                 // It might really be an Expression or an Alias
                 ta.resolve(loc, sc, &ea, &ta, &sa, (flags & 1) != 0);
                 if (ea)
