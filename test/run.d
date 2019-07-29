@@ -26,7 +26,6 @@ shared bool verbose; // output verbose logging
 shared bool force; // always run all tests (ignores timestamp checking)
 shared string hostDMD; // path to host DMD binary (used for building the tools)
 shared string unitTestRunnerCommand;
-int jobs = 1;
 
 enum toolsDir = testPath("tools");
 
@@ -55,7 +54,7 @@ immutable struct TestTool
 int main(string[] args)
 {
     bool runUnitTests;
-    jobs = totalCPUs;
+    int jobs = totalCPUs;
     auto res = getopt(args,
         std.getopt.config.passThrough,
         "j|jobs", "Specifies the number of jobs (commands) to run simultaneously (default: %d)".format(totalCPUs), &jobs,
@@ -81,6 +80,8 @@ Options:
         "\nSee the README.md for a more in-depth explanation of the test-runner.".writeln;
         return 0;
     }
+
+    defaultPoolThreads = jobs;
 
     // parse arguments
     args.popFront;
@@ -123,10 +124,8 @@ Options:
         }
 
         int ret;
-        auto taskPool = new TaskPool(jobs);
-        scope(exit) taskPool.finish();
         ensureToolsExists(env, EnumMembers!TestTools);
-        foreach (target; taskPool.parallel(targets, 1))
+        foreach (target; parallel(targets, 1))
         {
             log("run: %-(%s %)", target.args);
             ret |= spawnProcess(target.args, env, Config.none, scriptDir).wait;
@@ -157,8 +156,6 @@ void ensureToolsExists(string[string] env, const TestTool[] tools ...)
     resultsDir.mkdirRecurse;
 
     shared uint failCount = 0;
-    auto taskPool = new TaskPool(jobs);
-    scope(exit) taskPool.finish();
     foreach (tool; tools.parallel(1))
     {
         string targetBin;
