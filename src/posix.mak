@@ -366,6 +366,7 @@ BACK_HDRS=$C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/glob
 	$C/dlist.d $C/melf.d $C/varstats.di $C/dt.d
 
 BACK_SRC = \
+	$C/optabgen.d \
 	$C/bcomplex.d $C/blockopt.d $C/cg.d $C/cg87.d $C/cgxmm.d \
 	$C/cgcod.d $C/cgcs.d $C/dcgcv.d $C/cgelem.d $C/cgen.d $C/cgobj.d \
 	$C/compress.d $C/cgreg.d $C/var.d $C/cgcse.d \
@@ -475,6 +476,7 @@ build-examples: $(EXAMPLES)
 
 clean:
 	rm -Rf $(GENERATED)
+	rm -f $(addprefix $D/backend/, $(optabgen_output))
 	@[ ! -d ${PGO_DIR} ] || echo You should issue manually: rm -rf ${PGO_DIR}
 
 ######## Download and install the last dmd buildable without dmd
@@ -506,6 +508,19 @@ export DEFAULT_DMD_CONF
 $G/dmd.conf: $(SRC_MAKE)
 	echo "$$DEFAULT_DMD_CONF" > $@
 
+######## optabgen generates some source
+optabgen_output = tytab.d
+
+$G/optabgen: $C/optabgen.d $C/cc.d $C/oper.d $(HOST_DMD_PATH)
+	$(HOST_DMD_RUN) -of$@ $(DFLAGS) $(MODEL_FLAG) $(BACK_MV) $<
+	$G/optabgen
+	mv $(optabgen_output) $G
+
+optabgen_files = $(addprefix $G/, $(optabgen_output))
+$(optabgen_files): optabgen.out
+.INTERMEDIATE: optabgen.out
+optabgen.out : $G/optabgen
+
 ######## VERSION
 ########################################################################
 # The version file should be updated on every build
@@ -531,7 +546,7 @@ FORCE: ;
 
 -include $(DEPS)
 
-$(G_DOBJS): $G/%.o: $C/%.d posix.mak $(HOST_DMD_PATH)
+$(G_DOBJS): $G/%.o: $C/%.d $(optabgen_files) posix.mak $(HOST_DMD_PATH)
 	@echo "  (HOST_DMD_RUN)  BACK_DOBJS  $<"
 	$(HOST_DMD_RUN) -c -of$@ $(DFLAGS) $(MODEL_FLAG) $(BACK_BETTERC) $(BACK_DFLAGS) $<
 
