@@ -21,7 +21,7 @@ IMPDIR=import
 MAKE=make
 
 DFLAGS=-m$(MODEL) -conf= -O -release -dip1000 -preview=fieldwise -inline -w -Isrc -Iimport
-UDFLAGS=-m$(MODEL) -conf= -O -release -dip1000 -preview=fieldwise -w -Isrc -Iimport
+UDFLAGS=-m$(MODEL) -conf= -O -release -dip1000 -preview=fieldwise -w -version=_MSC_VER_$(_MSC_VER) -Isrc -Iimport
 DDOCFLAGS=-conf= -c -w -o- -Isrc -Iimport -version=CoreDdoc
 
 UTFLAGS=-version=CoreUnittest -unittest
@@ -108,6 +108,7 @@ test_hash:
 	"$(DMD)" -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIME) -run test\hash\src\test_hash.d
 
 test_stdcpp:
+	setmscver.bat
 	"$(MAKE)" -f test\stdcpp\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) "VCDIR=$(VCDIR)" DRUNTIMELIB=$(DRUNTIME) "CC=$(CC)" test
 
 test_gc:

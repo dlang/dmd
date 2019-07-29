@@ -57,7 +57,7 @@ build_script:
   - call "c:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"
 
   - cd c:\projects\dmd\src
-  - msbuild vcbuild\dmd.sln /p:Configuration=Release;Platform=x64
+  - msbuild vcbuild\dmd.sln /m /p:Configuration=Release;Platform=x64
   - cd c:\projects\druntime
   - make -f win64.mak DMD=../dmd/generated/Windows/Release/x64/dmd CC=cl auto-tester-build auto-tester-test
 
