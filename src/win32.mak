@@ -206,7 +206,7 @@ GLUESRC= \
 	$(GLUE_SRCS)
 
 # D back end
-BACKSRC= $C\optabgen.d \
+BACKSRC= \
 	$C/code_stub.h $C/platform_stub.c \
 	$C\bcomplex.d $C\blockopt.d $C\cg.d $C\cg87.d $C\cgxmm.d \
 	$C\cgcod.d $C\cgcs.d $C\dcgcv.d $C\cgelem.d $C\cgen.d $C\cgobj.d \
@@ -326,7 +326,7 @@ $(TARGETEXE): $(DMD_SRCS) $(ROOT_SRCS) $(LIBS) $(STRING_IMPORT_FILES)
 clean:
 	$(RD) /s /q $(GEN)
 	$(DEL) $D\msgs.h $D\msgs.c
-	$(DEL) optabgen.exe parser_test.exe example_avg.exe
+	$(DEL) parser_test.exe example_avg.exe
 	$(DEL) $(TARGETEXE) $(DMDFRONTENDEXE) *.map *.obj *.exe
 
 install: detab install-copy
@@ -392,16 +392,6 @@ $(TOOLS_DIR)\checkwhitespace.d:
 	$(HOST_DC) -Df$@ $<
 
 ############################## Generated Source ##############################
-OPTABGENOUTPUT = $G\tytab.d
-
-$(OPTABGENOUTPUT) : \
-	$C\optabgen.d
-	$(HOST_DC) -of$G\optabgen.exe -betterC $(DFLAGS) -mv=dmd.backend=$C $C\optabgen
-	$G\optabgen.exe
-	copy *.c "$G\"
-	copy tytab.d "$G\"
-	$(DEL) *.c
-	$(DEL) tytab.d
 
 $G\VERSION : ..\VERSION $G
 	copy ..\VERSION $@
@@ -423,13 +413,13 @@ $G/blockopt.obj : $C\blockopt.d
 	$(HOST_DC) -c -betterC -of$@ $(DFLAGS) -mv=dmd.backend=$C $C\blockopt
 
 $G/cg.obj : $C\cg.d
-	$(HOST_DC) -c -of$@ $(DFLAGS) -J$G -betterC -mv=dmd.backend=$C $C\cg
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\cg
 
 $G/cg87.obj : $C\cg87.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\cg87
 
 $G/cgcod.obj : $C\cgcod.d
-	$(HOST_DC) -c -of$@ $(DFLAGS) -J$G -betterC -mv=dmd.backend=$C $C\cgcod
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\cgcod
 
 $G/cgcs.obj : $C\cgcs.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\cgcs
@@ -441,7 +431,7 @@ $G/dcgcv.obj : $C\dcgcv.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\dcgcv
 
 $G/cgelem.obj : $C\cgelem.d
-	$(HOST_DC) -c -of$@ $(DFLAGS) -J$G -betterC -mv=dmd.backend=$C $C\cgelem
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\cgelem
 
 $G/cgen.obj : $C\cgen.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\cgen
@@ -581,8 +571,8 @@ $G/dtype.obj : $C\dtype.d
 $G/util2.obj : $C\util2.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\util2
 
-$G/var.obj : $C\var.d $G\tytab.d
-	$(HOST_DC) -c -of$@ $(DFLAGS) -J$G -betterC -mv=dmd.backend=$C $C\var
+$G/var.obj : $C\var.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\var
 
 $G/dvarstats.obj : $C\dvarstats.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\dvarstats

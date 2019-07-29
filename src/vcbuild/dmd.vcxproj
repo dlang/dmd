@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -211,23 +211,10 @@
     </DCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <DCompile Include="../dmd/**/*.d" Exclude="../dmd/backend/optabgen.d;../dmd/frontend.d;../dmd/asttypename.d" />
+    <DCompile Include="../dmd/**/*.d" Exclude="../dmd/frontend.d;../dmd/asttypename.d" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="../dmd/**/*.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <CustomBuild Include="..\dmd\backend\optabgen.d">
-      <Message>Building and running $(IntDir)%(Filename).exe</Message>
-      <Command>$(_DCompilerExe) -I.. -version=MARS -of"$(IntDir)generated\%(Filename).exe" "%(FullPath)"
-if errorlevel 1 exit /B %ERRORLEVEL%
-pushd $(IntDir)generated
-"%(Filename).exe"
-if errorlevel 1 exit /B %ERRORLEVEL%
-popd</Command>
-      <Outputs>$(IntDir)generated\optab.d;$(IntDir)generated\debtab.d;$(IntDir)generated\cdxxx.d;$(IntDir)generated\elxxx.d;$(IntDir)generated\tytab.d;$(IntDir)generated\\fltables.d;%(Outputs)</Outputs>
-      <AdditionalInputs>..\dmd\backend\cc.d;..\dmd\backend\cdef.d;..\dmd\backend\oper.d;..\dmd\backend\ty.d;%(AdditionalInputs)</AdditionalInputs>
-    </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

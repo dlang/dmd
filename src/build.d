@@ -235,36 +235,6 @@ DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@
     return new DependencyRef(dependency);
 });
 
-/// Returns: the dependency that builds and executes the optabgen utility
-alias opTabGen = memoize!(function() {
-    auto opTabFiles = ["tytab.d"];
-    auto opTabFilesBin = opTabFiles.map!(e => env["G"].buildPath(e)).array;
-    auto opTabBin = env["G"].buildPath("optabgen").exeName;
-    auto opTabSourceFile = env["C"].buildPath("optabgen.d");
-
-    auto commandFunction = (){
-        auto args = [env["HOST_DMD_RUN"], opTabSourceFile, "-of" ~ opTabBin];
-        args ~= flags["DFLAGS"];
-
-        writefln("(DC) OPTABGEN %s", opTabSourceFile.baseName);
-        args.runCanThrow;
-
-        writefln("(RUN) OPTABBIN %-(%s, %)", opTabFiles);
-        [opTabBin].runCanThrow;
-
-        // move the generated files to the generated folder
-        opTabFiles.map!(a => srcDir.buildPath(a)).zip(opTabFilesBin).each!(a => a.expand.rename);
-    }; // defined separately to support older D compilers
-    Dependency dependency = {
-        name: "optabgen",
-        description: "Generate source files for the backend",
-        targets: opTabFilesBin,
-        sources: [opTabSourceFile],
-        commandFunction: commandFunction,
-    };
-    return new DependencyRef(dependency);
-});
-
 /// Returns: the dependencies that build the D backend
 alias dBackend = memoize!(function () {
     Dependency dependency = {
@@ -272,7 +242,6 @@ alias dBackend = memoize!(function () {
         target: env["G"].buildPath("dbackend").objName,
         sources: sources.backend,
         msg: "(DC) D_BACK_OBJS %-(%s, %)".format(sources.backend.map!(e => e.baseName).array),
-        deps: [opTabGen],
         command: [
             env["HOST_DMD_RUN"],
             "-c",
@@ -291,7 +260,7 @@ alias backend = memoize!(function() {
         msg: "(LIB) %s".format("BACKEND".libName),
         sources: [ env["G"].buildPath("dbackend").objName ],
         target: env["G"].buildPath("backend").libName,
-        deps: [opTabGen, dBackend],
+        deps: [dBackend],
         command: [env["HOST_DMD_RUN"], env["MODEL_FLAG"], "-lib", "-of$@", "$<"]
     };
     return new DependencyRef(dependency);
@@ -758,7 +727,7 @@ auto sourceFiles()
         backend:
             dirEntries(env["C"], "*.d", SpanMode.shallow)
                 .map!(e => e.name)
-                .filter!(e => !e.baseName.among("dt.d", "obj.d", "optabgen.d"))
+                .filter!(e => !e.baseName.among("dt.d", "obj.d"))
                 .array,
         backendHeaders: [
             // can't be built with -betterC
