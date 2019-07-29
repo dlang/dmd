@@ -141,12 +141,12 @@ private
     extern (C) GC.Stats gc_stats ( ) nothrow @nogc;
     extern (C) GC.ProfileStats gc_profileStats ( ) nothrow @nogc @safe;
 
-    extern (C) void gc_addRoot( in void* p ) nothrow @nogc;
-    extern (C) void gc_addRange( in void* p, size_t sz, const TypeInfo ti = null ) nothrow @nogc;
+    extern (C) void gc_addRoot( const scope void* p ) nothrow @nogc;
+    extern (C) void gc_addRange( const scope void* p, size_t sz, const TypeInfo ti = null ) nothrow @nogc;
 
-    extern (C) void gc_removeRoot( in void* p ) nothrow @nogc;
-    extern (C) void gc_removeRange( in void* p ) nothrow @nogc;
-    extern (C) void gc_runFinalizers( in void[] segment );
+    extern (C) void gc_removeRoot( const scope void* p ) nothrow @nogc;
+    extern (C) void gc_removeRange( const scope void* p ) nothrow @nogc;
+    extern (C) void gc_runFinalizers( const scope void[] segment );
 
     package extern (C) bool gc_inFinalizer();
 }
@@ -309,7 +309,7 @@ struct GC
      *  A bit field containing any bits set for the memory block referenced by
      *  p or zero on error.
      */
-    static uint getAttr( in void* p ) nothrow
+    static uint getAttr( const scope void* p ) nothrow
     {
         return getAttr(cast()p);
     }
@@ -336,7 +336,7 @@ struct GC
      *  The result of a call to getAttr after the specified bits have been
      *  set.
      */
-    static uint setAttr( in void* p, uint a ) nothrow
+    static uint setAttr( const scope void* p, uint a ) nothrow
     {
         return setAttr(cast()p, a);
     }
@@ -363,7 +363,7 @@ struct GC
      *  The result of a call to getAttr after the specified bits have been
      *  cleared.
      */
-    static uint clrAttr( in void* p, uint a ) nothrow
+    static uint clrAttr( const scope void* p, uint a ) nothrow
     {
         return clrAttr(cast()p, a);
     }
@@ -651,7 +651,7 @@ struct GC
      * Returns:
      *  The size in bytes of the memory block referenced by p or zero on error.
      */
-    static size_t sizeOf( in void* p ) nothrow @nogc /* FIXME pure */
+    static size_t sizeOf( const scope void* p ) nothrow @nogc /* FIXME pure */
     {
         return gc_sizeOf(cast(void*)p);
     }
@@ -689,7 +689,7 @@ struct GC
      *  Information regarding the memory block referenced by p or BlkInfo.init
      *  on error.
      */
-    static BlkInfo query( in void* p ) nothrow
+    static BlkInfo query( const scope void* p ) nothrow
     {
         return gc_query(cast(void*)p);
     }
@@ -764,7 +764,7 @@ struct GC
      * }
      * ---
      */
-    static void addRoot( in void* p ) nothrow @nogc /* FIXME pure */
+    static void addRoot( const scope void* p ) nothrow @nogc /* FIXME pure */
     {
         gc_addRoot( p );
     }
@@ -778,7 +778,7 @@ struct GC
      * Params:
      *  p = A pointer into a GC-managed memory block or null.
      */
-    static void removeRoot( in void* p ) nothrow @nogc /* FIXME pure */
+    static void removeRoot( const scope void* p ) nothrow @nogc /* FIXME pure */
     {
         gc_removeRoot( p );
     }
@@ -812,7 +812,7 @@ struct GC
      * // rawMemory will be recognized on collection.
      * ---
      */
-    static void addRange( in void* p, size_t sz, const TypeInfo ti = null ) @nogc nothrow /* FIXME pure */
+    static void addRange( const scope void* p, size_t sz, const TypeInfo ti = null ) @nogc nothrow /* FIXME pure */
     {
         gc_addRange( p, sz, ti );
     }
@@ -827,7 +827,7 @@ struct GC
      * Params:
      *  p  = A pointer to a valid memory address or to null.
      */
-    static void removeRange( in void* p ) nothrow @nogc /* FIXME pure */
+    static void removeRange( const scope void* p ) nothrow @nogc /* FIXME pure */
     {
         gc_removeRange( p );
     }
@@ -843,7 +843,7 @@ struct GC
      * Params:
      *  segment = address range of a code segment.
      */
-    static void runFinalizers( in void[] segment )
+    static void runFinalizers( const scope void[] segment )
     {
         gc_runFinalizers( segment );
     }
