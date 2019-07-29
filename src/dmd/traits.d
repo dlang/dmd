@@ -1533,12 +1533,9 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             }
             if (ex)
             {
-                const bool inConstraint = (sc2.flags & SCOPE.constraint) == SCOPE.constraint;
-                ex.inuse += inConstraint;
                 ex = ex.expressionSemantic(sc2);
                 ex = resolvePropertiesOnly(sc2, ex);
                 ex = ex.optimize(WANTvalue);
-                ex.inuse -= inConstraint;
                 if (sc2.func && sc2.func.type.ty == Tfunction)
                 {
                     const tf = cast(TypeFunction)sc2.func.type;
