@@ -236,10 +236,10 @@ DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@
 });
 
 /// Returns: the dependencies that build the D backend
-alias dBackend = memoize!(function () {
+alias backendObj = memoize!(function () {
     Dependency dependency = {
-        name: "dbackend",
-        target: env["G"].buildPath("dbackend").objName,
+        name: "backendObj",
+        target: env["G"].buildPath("backend").objName,
         sources: sources.backend,
         msg: "(DC) D_BACK_OBJS %-(%s, %)".format(sources.backend.map!(e => e.baseName).array),
         command: [
@@ -258,9 +258,9 @@ alias backend = memoize!(function() {
     Dependency dependency = {
         name: "backend",
         msg: "(LIB) %s".format("BACKEND".libName),
-        sources: [ env["G"].buildPath("dbackend").objName ],
+        sources: [ env["G"].buildPath("backend").objName ],
         target: env["G"].buildPath("backend").libName,
-        deps: [dBackend],
+        deps: [backendObj],
         command: [env["HOST_DMD_RUN"], env["MODEL_FLAG"], "-lib", "-of$@", "$<"]
     };
     return new DependencyRef(dependency);
@@ -312,11 +312,12 @@ Params:
 */
 alias dmdExe = memoize!(function(string targetSuffix, string[] extraFlags...) {
     // Main DMD build dependency
+    const dmdSources = sources.dmd.chain(sources.root).array;
     Dependency dependency = {
         // newdelete.o + lexer.a + backend.a
-        sources: sources.dmd.chain(sources.root, lexer.targets, backend.targets).array,
+        sources: dmdSources.chain(lexer.targets, backend.targets).array,
         target: env["DMD_PATH"] ~ targetSuffix,
-        msg: "(DC) DMD%s %-(%s, %)".format(targetSuffix, sources.dmd.map!(e => e.baseName).array),
+        msg: "(DC) DMD%s %-(%s, %)".format(targetSuffix, dmdSources.map!(e => e.baseName).array),
         deps: [versionFile, sysconfDirFile, lexer, backend],
         command: [
             env["HOST_DMD_RUN"],
@@ -497,6 +498,31 @@ struct DependencyRange
 /// Sets the environment variables
 void parseEnvironment()
 {
+    // This block is temporary until we can remove the windows make files
+    {
+        const ddebug = env.get("DDEBUG", null);
+        if (ddebug.length)
+        {
+            writefln("WARNING: the DDEBUG variable is deprecated");
+            if (ddebug == "-debug -g -unittest -cov")
+            {
+                environment["ENABLE_DEBUG"] = "1";
+                environment["ENABLE_UNITTEST"] = "1";
+                environment["ENABLE_COVERAGE"] = "1";
+            }
+            else if (ddebug == "-debug -g -unittest")
+            {
+                environment["ENABLE_DEBUG"] = "1";
+                environment["ENABLE_UNITTEST"] = "1";
+            }
+            else
+            {
+                writefln("Error: DDEBUG is not an expected value '%s'", ddebug);
+                exit(1);
+            }
+        }
+    }
+
     env.getDefault("TARGET_CPU", "X86");
     version (Windows)
     {
@@ -729,16 +755,23 @@ auto sourceFiles()
                 .map!(e => e.name)
                 .filter!(e => !lexerRootFiles.canFind(e.baseName.stripExtension))
                 .array,
-        backend:
-            dirEntries(env["C"], "*.d", SpanMode.shallow)
-                .map!(e => e.name)
-                .filter!(e => !e.baseName.among("dt.d", "obj.d"))
-                .array,
-        backendHeaders: [
-            // can't be built with -betterC
-            "dt",
-            "obj",
-        ].map!(e => env["C"].buildPath(e ~ ".d")).array,
+        backend: ("
+            bcomplex.d evalu8.d divcoeff.d dvec.d go.d gsroa.d glocal.d gdag.d gother.d gflow.d
+            out.d
+            gloop.d compress.d cgelem.d cgcs.d ee.d cod4.d cod5.d nteh.d blockopt.d mem.d cg.d cgreg.d
+            dtype.d debugprint.d fp.d symbol.d elem.d dcode.d cgsched.d cg87.d cgxmm.d cgcod.d cod1.d cod2.d
+            cod3.d cv8.d dcgcv.d pdata.d util2.d var.d md5.d backconfig.d ph2.d drtlsym.d dwarfeh.d ptrntab.d
+            dvarstats.d dwarfdbginf.d cgen.d os.d goh.d barray.d cgcse.d elpicpie.d
+            machobj.d elfobj.d
+            ".split
+            ~ ( (env["OS"] == "windows") ? "cgobj.d filespec.d mscoffobj.d newman.d".split : ["aarray.d"] )
+        ).map!(e => env["C"].buildPath(e)).array,
+        backendHeaders: "
+            cc.d cdef.d cgcv.d code.d cv4.d dt.d el.d global.d
+            obj.d oper.d outbuf.d rtlsym.d code_x86.d iasm.d codebuilder.d
+            ty.d type.d exh.d mach.d mscoff.d dwarf.d dwarf2.d xmm.d
+            dlist.d melf.d varstats.di
+        ".split.map!(e => env["C"].buildPath(e)).array,
     };
     sources.dmd = sources.frontend ~ sources.backendHeaders;
 
