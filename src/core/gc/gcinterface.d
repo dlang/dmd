@@ -182,7 +182,7 @@ interface GC
     /**
      * run finalizers
      */
-    void runFinalizers(in void[] segment) nothrow;
+    void runFinalizers(const scope void[] segment) nothrow;
 
     /*
      *

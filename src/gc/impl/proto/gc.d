@@ -24,8 +24,8 @@ private
     extern (C) void*    gc_realloc( void* p, size_t sz, uint ba = 0, const TypeInfo = null ) pure nothrow;
     extern (C) size_t   gc_reserve( size_t sz ) nothrow;
 
-    extern (C) void gc_addRange( void* p, size_t sz, const TypeInfo ti = null ) nothrow @nogc;
-    extern (C) void gc_addRoot( void* p ) nothrow @nogc;
+    extern (C) void gc_addRange(const void* p, size_t sz, const TypeInfo ti = null ) nothrow @nogc;
+    extern (C) void gc_addRoot(const void* p ) nothrow @nogc;
 }
 
 class ProtoGC : GC
@@ -232,7 +232,7 @@ class ProtoGC : GC
         return 0;
     }
 
-    void runFinalizers(in void[] segment) nothrow
+    void runFinalizers(const scope void[] segment) nothrow
     {
     }
 

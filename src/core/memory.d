@@ -141,11 +141,11 @@ private
     extern (C) GC.Stats gc_stats ( ) nothrow @nogc;
     extern (C) GC.ProfileStats gc_profileStats ( ) nothrow @nogc @safe;
 
-    extern (C) void gc_addRoot( const scope void* p ) nothrow @nogc;
-    extern (C) void gc_addRange( const scope void* p, size_t sz, const TypeInfo ti = null ) nothrow @nogc;
+    extern (C) void gc_addRoot(const void* p ) nothrow @nogc;
+    extern (C) void gc_addRange(const void* p, size_t sz, const TypeInfo ti = null ) nothrow @nogc;
 
-    extern (C) void gc_removeRoot( const scope void* p ) nothrow @nogc;
-    extern (C) void gc_removeRange( const scope void* p ) nothrow @nogc;
+    extern (C) void gc_removeRoot(const void* p ) nothrow @nogc;
+    extern (C) void gc_removeRange(const void* p ) nothrow @nogc;
     extern (C) void gc_runFinalizers( const scope void[] segment );
 
     package extern (C) bool gc_inFinalizer();
@@ -764,7 +764,7 @@ struct GC
      * }
      * ---
      */
-    static void addRoot( const scope void* p ) nothrow @nogc /* FIXME pure */
+    static void addRoot(const void* p ) nothrow @nogc /* FIXME pure */
     {
         gc_addRoot( p );
     }
@@ -778,7 +778,7 @@ struct GC
      * Params:
      *  p = A pointer into a GC-managed memory block or null.
      */
-    static void removeRoot( const scope void* p ) nothrow @nogc /* FIXME pure */
+    static void removeRoot(const void* p ) nothrow @nogc /* FIXME pure */
     {
         gc_removeRoot( p );
     }
@@ -812,7 +812,7 @@ struct GC
      * // rawMemory will be recognized on collection.
      * ---
      */
-    static void addRange( const scope void* p, size_t sz, const TypeInfo ti = null ) @nogc nothrow /* FIXME pure */
+    static void addRange(const void* p, size_t sz, const TypeInfo ti = null ) @nogc nothrow /* FIXME pure */
     {
         gc_addRange( p, sz, ti );
     }
@@ -827,7 +827,7 @@ struct GC
      * Params:
      *  p  = A pointer to a valid memory address or to null.
      */
-    static void removeRange( const scope void* p ) nothrow @nogc /* FIXME pure */
+    static void removeRange(const void* p ) nothrow @nogc /* FIXME pure */
     {
         gc_removeRange( p );
     }
