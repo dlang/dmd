@@ -432,6 +432,7 @@ public:
     AST.TemplateDeclaration tdparent;
     Identifier ident;
     LINK linkage = LINK.d;
+    bool forwardedAA;
 
     this(OutBuffer* checkbuf, OutBuffer* fwdbuf, OutBuffer* donebuf, OutBuffer* buf)
     {
@@ -628,6 +629,12 @@ public:
         //}
 
         visited[cast(void*)vd] = true;
+
+        if (vd.alignment != uint.max)
+        {
+            indent();
+            buf.printf("// Ignoring var %s alignment %u\n", vd.toChars(), vd.alignment);
+        }
 
         if (vd.storage_class & AST.STC.manifest &&
             vd.type.isintegral() &&
@@ -828,7 +835,7 @@ public:
         //version(BUILD_COMPILER)
         //{
             //if (sd.getModule() && !sd.getModule().isFrontendModule())
-            if (sd.getModule() && sd.getModule().isIgnoredModule())
+        if (sd.getModule() && sd.getModule().isIgnoredModule())
             return;
         //}
 
@@ -839,8 +846,8 @@ public:
             return;
         }
 
-        if (sd.alignment == 1)
-            buf.writestring("#pragma pack(push, 1)\n");
+        pushAlignToBuffer(sd.alignment);
+
         buf.writestring(sd.isUnionDeclaration() ? "union " : "struct ");
         buf.writestring(sd.ident.toChars());
         if (sd.members)
@@ -910,11 +917,10 @@ public:
                 }
                 buf.printf(" }\n");
             }
+            buf.writestring("};\n");
 
-            buf.writestring("};\n\n");
-
-            if (sd.alignment == 1)
-                buf.writestring("#pragma pack(pop)\n");
+            popAlignToBuffer(sd.alignment);
+            buf.writestring("\n");
 
             auto savex = buf;
             buf = checkbuf;
@@ -925,6 +931,25 @@ public:
         }
         else
             buf.writestring(";\n\n");
+    }
+
+    private void pushAlignToBuffer(uint alignment)
+    {
+        // DMD ensures alignment is a power of two
+        //assert(alignment > 0 && ((alignment & (alignment - 1)) == 0),
+        //       "Invalid alignment size");
+
+        // When no alignment is specified, `uint.max` is the default
+        if (alignment != uint.max)
+        {
+            buf.printf("#pragma pack(push, %d)\n", alignment);
+        }
+    }
+
+    private void popAlignToBuffer(uint alignment)
+    {
+        if (alignment != uint.max)
+            buf.writestring("#pragma pack(pop)\n");
     }
 
     private void includeSymbol(AST.Dsymbol ds)
@@ -1127,13 +1152,7 @@ public:
             scope(exit) printf("[typeToBuffer(AST.Type) exit] %s ident %s\n", t.toChars(), ident.toChars());
         }
         this.ident = ident;
-        //printf("====\nBefore\n");
-        //printf("buf\n%s\n", buf.peekChars());
-        //printf("fwdbuf\n%s\n", fwdbuf.peekChars());
         t.accept(this);
-        //printf("After\n====\n");
-        //printf("fwdbuf\n%s\n", fwdbuf.peekChars());
-        //printf("\n====\n");
         if (this.ident)
         {
             buf.writeByte(' ');
@@ -1369,6 +1388,11 @@ public:
         //{
             if (ti.tempdecl.ident == DMDType.AssocArray)
             {
+                if (!forwardedAA)
+                {
+                    forwardedAA = true;
+                    fwdbuf.writestring("struct AA;\n");
+                }
                 buf.writestring("AA*");
                 return;
             }
@@ -1878,7 +1902,7 @@ void gencpphdrfiles(Modules *ms)
     buf.writestring("#define _d_null NULL\n");
     buf.writestring("\n");
     //version(BUILD_COMPILER)
-        buf.writestring("struct AA;\n");
+        //buf.writestring("struct AA;\n");
     buf.writestring("\n");
 
     OutBuffer check;
