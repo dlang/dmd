@@ -512,14 +512,8 @@ $G/dmd.conf: $(SRC_MAKE)
 # However, the version check script only touches the VERSION file if it
 # actually has changed.
 
-$G/version_check: ../config.d $(HOST_DMD_PATH)
-	@echo "  (HOST_DMD_RUN)  $<  $<"
-	$(HOST_DMD_RUN) $< -of$@
-
-$G/VERSION: $G/version_check ../VERSION FORCE
-	@$< $G ../VERSION $(SYSCONFDIR)
-
-$G/SYSCONFDIR.imp: $G/VERSION
+$G/VERSION: $(GENERATED)/build ../VERSION FORCE
+	$(RUN_BUILD) -f $@
 
 FORCE: ;
 
