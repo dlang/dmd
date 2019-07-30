@@ -1559,16 +1559,8 @@ extern (C++) class VarDeclaration : Declaration
             return false;
 
         // Add fdthis to nestedrefs[] if not already there
-        for (size_t i = 0; 1; i++)
-        {
-            if (i == nestedrefs.dim)
-            {
-                nestedrefs.push(fdthis);
-                break;
-            }
-            if (nestedrefs[i] == fdthis)
-                break;
-        }
+        if (!nestedrefs.contains(fdthis))
+            nestedrefs.push(fdthis);
 
         /* __require and __ensure will always get called directly,
          * so they never make outer functions closure.
@@ -1590,16 +1582,8 @@ extern (C++) class VarDeclaration : Declaration
             (fdv.flags & FUNCFLAG.compileTimeOnly || !(fdthis.flags & FUNCFLAG.compileTimeOnly))
            )
         {
-            for (size_t i = 0; 1; i++)
-            {
-                if (i == fdv.closureVars.dim)
-                {
-                    fdv.closureVars.push(this);
-                    break;
-                }
-                if (fdv.closureVars[i] == this)
-                    break;
-            }
+            if (!fdv.closureVars.contains(this))
+                fdv.closureVars.push(this);
         }
 
         //printf("fdthis is %s\n", fdthis.toChars());
