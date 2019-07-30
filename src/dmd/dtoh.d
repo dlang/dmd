@@ -846,9 +846,8 @@ public:
             return;
         }
 
+        buf.writestring(sd.isUnionDeclaration() ? "union" : "struct");
         pushAlignToBuffer(sd.alignment);
-
-        buf.writestring(sd.isUnionDeclaration() ? "union " : "struct ");
         buf.writestring(sd.ident.toChars());
         if (sd.members)
         {
@@ -942,14 +941,33 @@ public:
         // When no alignment is specified, `uint.max` is the default
         if (alignment != uint.max)
         {
-            buf.printf("#pragma pack(push, %d)\n", alignment);
+            buf.writestring("\n#if defined(__GNUC__) || defined(__clang__)\n");
+            // The equivalent of `#pragma pack(push, n)` is `__attribute__((packed, aligned(n)))`
+            // NOTE: removing the packed attribute will might change the resulting size
+            buf.printf("    __attribute__((packed, aligned(%d)))\n", alignment);
+            buf.writestring("#elif defined(_MSC_VER)\n");
+            buf.printf("    __declspec(align(%d))\n", alignment);
+            buf.writestring("#elif defined(__DMC__)\n");
+            buf.printf("    #pragma pack(push, %d)\n", alignment);
+            //buf.printf("#pragma pack(%d)\n", alignment);
+            buf.writestring("#endif\n");
         }
+        else
+        {
+            buf.writeByte(' ');
+        }
+
     }
 
     private void popAlignToBuffer(uint alignment)
     {
         if (alignment != uint.max)
-            buf.writestring("#pragma pack(pop)\n");
+        {
+            buf.writestring("#if defined(__DMC__)\n");
+            buf.writestring("    #pragma pack(pop)\n");
+            //buf.writestring("#pragma pack()\n");
+            buf.writestring("#endif\n");
+        }
     }
 
     private void includeSymbol(AST.Dsymbol ds)
