@@ -273,8 +273,13 @@ alias versionFile = memoize!(function() {
         "(TX) VERSION".writeln;
         string ver;
         if (srcDir.dirName.buildPath(".git").exists)
-            ver = ["git", "describe", "--dirty", "--always"].runCanThrow;
-        else
+        {
+            auto gitResult = ["git", "describe", "--dirty"].run;
+            if (gitResult.status == 0)
+                ver = gitResult.output.strip;
+        }
+        // version fallback
+        if (ver.length == 0)
             ver = srcDir.dirName.buildPath("VERSION").readText;
         updateIfChanged(versionFile, ver);
     };
