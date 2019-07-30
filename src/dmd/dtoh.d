@@ -1109,12 +1109,21 @@ public:
             if (hasBaseType)
             {
                 //printf("typedef _d_%s %s;\n", ed.memtype.kind, ident);
-                buf.writestring("typedef _d_");
-                buf.writestring(ed.memtype.kind);
-                buf.writeByte(' ');
-                buf.writestring(ident);
-                buf.writestring(";\n");
-                buf.writestring("enum");
+                if (global.params.cplusplus >= CppStdRevision.cpp11)
+                {
+                    //printf("Using cpp 11 and beyond\n");
+                    buf.printf("enum %s : %s", ident, ed.memtype.kind);
+                }
+                else
+                {
+                    //printf("Using cpp 98\n");
+                    buf.writestring("typedef _d_");
+                    buf.writestring(ed.memtype.kind);
+                    buf.writeByte(' ');
+                    buf.writestring(ident);
+                    buf.writestring(";\n");
+                    buf.writestring("enum");
+                }
             }
             else
             {
@@ -1130,7 +1139,7 @@ public:
                 if (i)
                 buf.writestring(",\n");
                 buf.writestring("    ");
-                if (ident)
+                if (ident && global.params.cplusplus == CppStdRevision.cpp98)
                 {
                     foreach (c; ident[0 .. strlen(ident)])
                     buf.writeByte(toupper(c));
