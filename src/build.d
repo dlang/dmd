@@ -271,10 +271,12 @@ alias versionFile = memoize!(function() {
     const versionFile = env["G"].buildPath("VERSION");
     auto commandFunction = (){
         "(TX) VERSION".writeln;
+        string ver;
         if (srcDir.dirName.buildPath(".git").exists)
-            ["git", "describe", "--dirty", "--always"].runCanThrow.toFile(versionFile);
+            ver = ["git", "describe", "--dirty", "--always"].runCanThrow;
         else
-            copy(srcDir.dirName.buildPath("VERSION"), versionFile);
+            ver = srcDir.dirName.buildPath("VERSION").readText;
+        updateIfChanged(versionFile, ver);
     };
     Dependency dependency = {
         target: versionFile,
@@ -286,7 +288,7 @@ alias sysconfDirFile = memoize!(function() {
     const sysconfDirFile = env["G"].buildPath("SYSCONFDIR.imp");
     auto commandFunction = (){
         "(TX) SYSCONFDIR".writeln;
-        env["SYSCONFDIR"].toFile(sysconfDirFile);
+        updateIfChanged(sysconfDirFile, env["SYSCONFDIR"]);
     };
     Dependency dependency = {
         sources: [thisBuildScript],
@@ -986,6 +988,30 @@ auto isUpToDate(string[] targets, string[][] sources...)
     }
 
     return true;
+}
+
+/**
+Writes given the content to the given file.
+
+The content will only be written to the file specified in `path` if that file
+doesn't exist, or the content of the existing file is different from the given
+content.
+
+This makes sure the timestamp of the file is only updated when the
+content has changed. This will avoid rebuilding when the content hasn't changed.
+
+Params:
+    path = the path to the file to write the content to
+    content = the content to write to the file
+*/
+void updateIfChanged(const string path, const string content)
+{
+    import std.file : exists, readText, write;
+
+    const existingContent = path.exists ? path.readText : "";
+
+    if (content != existingContent)
+        write(path, content);
 }
 
 /**
