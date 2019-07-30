@@ -75,6 +75,7 @@ COPY=\
 	$(IMPDIR)\core\stdcpp\string_view.d \
 	$(IMPDIR)\core\stdcpp\typeinfo.d \
 	$(IMPDIR)\core\stdcpp\type_traits.d \
+	$(IMPDIR)\core\stdcpp\vector.d \
 	$(IMPDIR)\core\stdcpp\xutility.d \
 	\
 	$(IMPDIR)\core\sync\event.d \

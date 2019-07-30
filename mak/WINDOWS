@@ -270,6 +270,9 @@ $(IMPDIR)\core\stdcpp\typeinfo.d : src\core\stdcpp\typeinfo.d
 $(IMPDIR)\core\stdcpp\type_traits.d : src\core\stdcpp\type_traits.d
 	copy $** $@
 
+$(IMPDIR)\core\stdcpp\vector.d : src\core\stdcpp\vector.d
+	copy $** $@
+
 $(IMPDIR)\core\stdcpp\xutility.d : src\core\stdcpp\xutility.d
 	copy $** $@
 

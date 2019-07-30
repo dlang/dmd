@@ -7,16 +7,16 @@ TESTS17:=
 OLDABITESTS:=
 
 ifeq (osx,$(OS))
-#	TESTS+=string
+#	TESTS+=string vector
 #	TESTS14+=string_view
 endif
 ifeq (linux,$(OS))
-#	TESTS+=string
-#	OLDABITESTS+=string
+#	TESTS+=string vector
+#	OLDABITESTS+=string vector
 #	TESTS14+=string_view
 endif
 ifeq (freebsd,$(OS))
-#	TESTS+=string
+#	TESTS+=string vector
 #	TESTS14+=string_view
 endif
 

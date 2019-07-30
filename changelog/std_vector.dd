@@ -1,0 +1,3 @@
+Added `core.stdcpp.vector`.
+
+Added `core.stdcpp.vector`, which links against C++ `std::vector`

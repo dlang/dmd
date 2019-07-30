@@ -7,7 +7,7 @@ CC=cl
 
 _MSC_VER = $(file < ..\..\ver.txt)
 
-TESTS= array allocator new string
+TESTS= array allocator new string vector
 
 test: $(TESTS)
 
