@@ -136,13 +136,13 @@ extern (C++) struct Mem
             _isGCEnabled = false;
         }
 
-        static void addRange(const(void)* p, size_t size) nothrow @nogc
+        static void addRange(void* p, size_t size) nothrow @nogc
         {
             if (isGCEnabled)
                 GC.addRange(p, size);
         }
 
-        static void removeRange(const(void)* p) nothrow @nogc
+        static void removeRange(void* p) nothrow @nogc
         {
             if (isGCEnabled)
                 GC.removeRange(p);
