@@ -280,6 +280,8 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0)
 /**************************************
  * Runs semantic on se.lwr and se.upr. Declares a temporary variable
  * if '$' was used.
+ * Returns:
+ *      ae, or ErrorExp if errors occurred
  */
 Expression resolveOpDollar(Scope* sc, ArrayExp ae, IntervalExp ie, Expression* pe0)
 {
@@ -288,24 +290,27 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, IntervalExp ie, Expression* p
         return ae;
 
     VarDeclaration lengthVar = ae.lengthVar;
+    bool errors = false;
 
     // create scope for '$'
     auto sym = new ArrayScopeSymbol(sc, ae);
     sym.parent = sc.scopesym;
     sc = sc.push(sym);
 
-    foreach (i; 0 .. 2)
+    Expression sem(Expression e)
     {
-        Expression e = i == 0 ? ie.lwr : ie.upr;
         e = e.expressionSemantic(sc);
         e = resolveProperties(sc, e);
         if (!e.type)
         {
             ae.error("`%s` has no value", e.toChars());
-            return new ErrorExp();
+            errors = true;
         }
-        (i == 0 ? ie.lwr : ie.upr) = e;
+        return e;
     }
+
+    ie.lwr = sem(ie.lwr);
+    ie.upr = sem(ie.upr);
 
     if (lengthVar != ae.lengthVar && sc.func)
     {
@@ -317,7 +322,7 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, IntervalExp ie, Expression* p
 
     sc = sc.pop();
 
-    return ae;
+    return errors ? new ErrorExp() : ae;
 }
 
 /******************************
