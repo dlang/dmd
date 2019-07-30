@@ -1130,3 +1130,28 @@ version (Posix)
     static assert(PR10021_Struct2.func.mangleof == `_ZN1a1b15PR10021_Struct24funcEv`);
     static assert(PR10021_Struct2.func2.mangleof == `_ZN1a1b15PR10021_Struct25func2EPS1_`);
 }
+
+/// https://issues.dlang.org/show_bug.cgi?id=20022
+version (Posix)
+{
+    extern(C++, `ns20022`) enum Enum20022_1 { A = 1, }
+    extern(C++) void fun20022_1(Enum20022_1);
+    extern(C++, `ns20022`) void fun20022_2(Enum20022_1);
+
+    extern(C++, ns20022)
+    {
+        enum Enum20022_2 { A = 1, }
+        void fun20022_5(Enum20022_1);
+        void fun20022_6(Enum20022_2);
+    }
+    extern(C++) void fun20022_3(Enum20022_2);
+    extern(C++, `ns20022`) void fun20022_4(Enum20022_2);
+
+    static assert(fun20022_1.mangleof == `_Z10fun20022_1N7ns2002211Enum20022_1E`);
+    static assert(fun20022_2.mangleof == `_ZN7ns2002210fun20022_2ENS_11Enum20022_1E`);
+
+    static assert(fun20022_3.mangleof == `_Z10fun20022_3N7ns2002211Enum20022_2E`);
+    static assert(fun20022_4.mangleof == `_ZN7ns2002210fun20022_4ENS_11Enum20022_2E`);
+    static assert(fun20022_5.mangleof == `_ZN7ns2002210fun20022_5ENS_11Enum20022_1E`);
+    static assert(fun20022_6.mangleof == `_ZN7ns2002210fun20022_6ENS_11Enum20022_2E`);
+}

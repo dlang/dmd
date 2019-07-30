@@ -2029,10 +2029,19 @@ public:
         {
             printf("%s Expression::interpret() '%s' %s\n", e.loc.toChars(), Token.toChars(e.op), e.toChars());
             printf("type = %s\n", e.type.toChars());
-            e.print();
+            showCtfeExpr(e);
         }
         e.error("cannot interpret `%s` at compile time", e.toChars());
         result = CTFEExp.cantexp;
+    }
+
+    override void visit(TypeExp e)
+    {
+        debug (LOG)
+        {
+            printf("%s TypeExp.interpret() %s\n", e.loc.toChars(), e.toChars());
+        }
+        result = e;
     }
 
     override void visit(ThisExp e)
@@ -2076,7 +2085,7 @@ public:
                 }
                 return;
             }
-            assert(result.op == TOK.structLiteral || result.op == TOK.classReference);
+            assert(result.op == TOK.structLiteral || result.op == TOK.classReference || result.op == TOK.type);
             return;
         }
         e.error("value of `this` is not known at compile time");
@@ -4262,6 +4271,13 @@ public:
                 lowerbound = 0;
                 upperbound = 0;
             }
+            else if (VectorExp ve = e1.isVectorExp())
+            {
+                // ve is not handled but a proper error message is returned
+                // this is to prevent https://issues.dlang.org/show_bug.cgi?id=20042
+                lowerbound = 0;
+                upperbound = ve.dim;
+            }
             else
                 assert(0);
 
@@ -5077,7 +5093,8 @@ public:
                 result = CTFEExp.cantexp;
                 return;
             }
-            assert(pthis.op == TOK.structLiteral || pthis.op == TOK.classReference);
+
+            assert(pthis.op == TOK.structLiteral || pthis.op == TOK.classReference || pthis.op == TOK.type);
 
             if (fd.isVirtual() && !e.directcall)
             {

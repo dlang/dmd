@@ -5109,8 +5109,6 @@ extern (C++) final class TypeTraits : Type
     TraitsExp exp;
     /// After `typeSemantic` the symbol when `exp` doesn't represent a type.
     Dsymbol sym;
-    /// Indicates wether we are in an alias or not.
-    bool inAliasDeclaration;
 
     final extern (D) this(const ref Loc loc, TraitsExp exp)
     {

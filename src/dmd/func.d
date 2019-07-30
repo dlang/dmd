@@ -1396,7 +1396,7 @@ extern (C++) class FuncDeclaration : Declaration
     }
 
     /**************************************
-     * The function is doing something unsave,
+     * The function is doing something unsafe,
      * so mark it as unsafe.
      * If there's a safe error, return true.
      */
