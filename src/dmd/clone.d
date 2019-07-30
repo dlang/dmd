@@ -450,8 +450,8 @@ Lneed:
  */
 private FuncDeclaration hasIdentityOpEquals(AggregateDeclaration ad, Scope* sc)
 {
-    Dsymbol eq = search_function(ad, Id.eq);
-    if (eq)
+    FuncDeclaration f;
+    if (Dsymbol eq = search_function(ad, Id.eq))
     {
         /* check identity opEquals exists
          */
@@ -459,41 +459,42 @@ private FuncDeclaration hasIdentityOpEquals(AggregateDeclaration ad, Scope* sc)
         scope el = new IdentifierExp(ad.loc, Id.p); // dummy lvalue
         Expressions a;
         a.setDim(1);
-        foreach (i; 0 .. 5)
+
+        bool hasIt(Type tthis)
         {
-            Type tthis = null; // dead-store to prevent spurious warning
-            final switch (i)
-            {
-                case 0:  tthis = ad.type;                 break;
-                case 1:  tthis = ad.type.constOf();       break;
-                case 2:  tthis = ad.type.immutableOf();   break;
-                case 3:  tthis = ad.type.sharedOf();      break;
-                case 4:  tthis = ad.type.sharedConstOf(); break;
-            }
-            FuncDeclaration f = null;
-            const errors = global.startGagging(); // Do not report errors, even if the template opAssign fbody makes it.
+            const errors = global.startGagging(); // Do not report errors, even if the template opAssign fbody makes it
             sc = sc.push();
             sc.tinst = null;
             sc.minst = null;
-            foreach (j; 0 .. 2)
+
+            FuncDeclaration rfc(Expression e)
             {
-                a[0] = (j == 0 ? er : el);
+                a[0] = e;
                 a[0].type = tthis;
-                f = resolveFuncCall(ad.loc, sc, eq, null, tthis, &a, FuncResolveFlag.quiet);
-                if (f)
-                    break;
+                return resolveFuncCall(ad.loc, sc, eq, null, tthis, &a, FuncResolveFlag.quiet);
             }
+
+            f = rfc(er);
+            if (!f)
+                f = rfc(el);
+
             sc = sc.pop();
             global.endGagging(errors);
-            if (f)
-            {
-                if (f.errors)
-                    return null;
-                return f;
-            }
+
+            return f !is null;
+        }
+
+        if (hasIt(ad.type)               ||
+            hasIt(ad.type.constOf())     ||
+            hasIt(ad.type.immutableOf()) ||
+            hasIt(ad.type.sharedOf())    ||
+            hasIt(ad.type.sharedConstOf()))
+        {
+            if (f.errors)
+                return null;
         }
     }
-    return null;
+    return f;
 }
 
 /******************************************
