@@ -2,7 +2,7 @@
 TEST_OUTPUT:
 ---
 fail_compilation/ice11856_1.d(13): Error: template `ice11856_1.g` cannot deduce function from argument types `!()(A)`, candidates are:
-fail_compilation/ice11856_1.d(11):        `ice11856_1.g(T)(T x) if (is(typeof(x.f())))`
+fail_compilation/ice11856_1.d(11):        `g(T)(T x)`
 ---
 */
 struct A {}
