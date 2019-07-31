@@ -2029,6 +2029,9 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 return false;
             }
 
+            if (params.useDIP1021)
+                params.vsafe = true;    // dip1021 implies dip1000
+
             // copy previously standalone flags from -transition
             // -preview=dip1000 implies -preview=dip25 too
             if (params.vsafe)
