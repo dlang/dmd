@@ -17,6 +17,18 @@ import core.thread.osthread;
 // Fiber Platform Detection
 ///////////////////////////////////////////////////////////////////////////////
 
+version (GNU)
+{
+    import gcc.builtins;
+    version (GNU_StackGrowsDown)
+        version = StackGrowsDown;
+}
+else
+{
+    // this should be true for most architectures
+    version = StackGrowsDown;
+}
+
 private
 {
     version (D_InlineAsm_X86)
@@ -306,7 +318,6 @@ private
         }
         else version (AsmX86_64_Posix)
         {
-            // POINT 3
             asm pure nothrow @nogc
             {
                 naked;
@@ -666,7 +677,6 @@ class Fiber
 
         setThis( this );
         this.switchIn();
-        /* POINT 1
         setThis( cur );
 
         static if ( __traits( compiles, ucontext_t ) )
@@ -683,7 +693,6 @@ class Fiber
         {
             m_ctxt.tstack = m_ctxt.bstack;
         }
-        */
     }
 
     /// Flag to control rethrow behavior of $(D $(LREF call))
@@ -1500,16 +1509,13 @@ private:
         atomicStore!(MemoryOrder.raw)(*cast(shared)&tobj.m_lock, true);
         tobj.pushContext( m_ctxt );
 
-        // POINT 2
         fiber_switchContext( oldp, newp );
-        /*
 
         // NOTE: As above, these operations must be performed in a strict order
         //       to prevent Bad Things from happening.
         tobj.popContext();
         atomicStore!(MemoryOrder.raw)(*cast(shared)&tobj.m_lock, false);
         tobj.m_curr.tstack = tobj.m_curr.bstack;
-        */
     }
 
 
@@ -1581,22 +1587,21 @@ unittest {
     assert( counter == 0 );
 
     derived.call();
-    //assert( counter == 2, "Derived fiber increment." );
+    assert( counter == 2, "Derived fiber increment." );
 
-    //composed.call();
-    //assert( counter == 6, "First composed fiber increment." );
+    composed.call();
+    assert( counter == 6, "First composed fiber increment." );
 
-    //counter += 16;
-    //assert( counter == 22, "Calling context increment." );
+    counter += 16;
+    assert( counter == 22, "Calling context increment." );
 
-    //composed.call();
-    //assert( counter == 30, "Second composed fiber increment." );
+    composed.call();
+    assert( counter == 30, "Second composed fiber increment." );
 
-    //// since each fiber has run to completion, each should have state TERM
-    //assert( derived.state == Fiber.State.TERM );
-    //assert( composed.state == Fiber.State.TERM );
+    // since each fiber has run to completion, each should have state TERM
+    assert( derived.state == Fiber.State.TERM );
+    assert( composed.state == Fiber.State.TERM );
 }
-/*
 
 version (unittest)
 {
@@ -2018,4 +2023,3 @@ version (D_InlineAsm_X86_64)
         fib.call();
     }
 }
-*/
