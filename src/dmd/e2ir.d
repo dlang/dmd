@@ -4093,7 +4093,7 @@ elem *toElem(Expression e, IRState *irs)
 
                 foreach (const i; 0 .. ve.dim)
                 {
-                    Expression elem = (cast(ArrayLiteralExp)ve.e1).getElement(i);
+                    Expression elem = ve.e1.isArrayLiteralExp()[i];
                     const complex = elem.toComplex();
                     const integer = elem.toInteger();
                     switch (elem.type.toBasetype().ty)

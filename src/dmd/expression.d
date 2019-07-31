@@ -2813,6 +2813,11 @@ extern (C++) final class ArrayLiteralExp : Expression
 
     Expression getElement(size_t i)
     {
+        return this[i];
+    }
+
+    Expression opIndex(size_t i)
+    {
         auto el = (*elements)[i];
         return el ? el : basis;
     }
@@ -2840,7 +2845,7 @@ extern (C++) final class ArrayLiteralExp : Expression
             {
                 foreach (i; 0 .. elements.dim)
                 {
-                    auto ch = getElement(i);
+                    auto ch = this[i];
                     if (ch.op != TOK.int64)
                         return null;
                     if (sz == 1)

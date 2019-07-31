@@ -425,7 +425,7 @@ private hash_t expressionHash(Expression e)
         auto ae = cast(ArrayLiteralExp)e;
         size_t hash;
         foreach (i; 0 .. ae.elements.dim)
-            hash = mixHash(hash, expressionHash(ae.getElement(i)));
+            hash = mixHash(hash, expressionHash(ae[i]));
         return hash;
     }
 
