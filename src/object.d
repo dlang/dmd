@@ -571,6 +571,21 @@ nothrow @safe @nogc unittest
     }
 }
 
+nothrow unittest
+{
+    // Bugzilla 20049: Test to ensure proper behavior of `nothrow` destructors
+    class C
+    {
+        static int dtorCount = 0;
+        this() nothrow {}
+        ~this() nothrow { dtorCount++; }
+    }
+
+    auto c = new C;
+    destroy(c);
+    assert(C.dtorCount == 1);
+}
+
 /// ditto
 void destroy(bool initialize = true, T : U[n], U, size_t n)(ref T obj) if (!is(T == struct))
 {
@@ -667,7 +682,7 @@ void destroy(bool initialize = true, T)(ref T obj)
 private
 {
     extern (C) Object _d_newclass(const TypeInfo_Class ci);
-    extern (C) void rt_finalize(void *data, bool det=true);
+    extern (C) void rt_finalize(void *data, bool det=true) nothrow;
 }
 
 public @trusted @nogc nothrow pure extern (C) void _d_delThrowable(scope Throwable);

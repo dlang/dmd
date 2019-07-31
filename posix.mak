@@ -127,12 +127,6 @@ SRCS:=$(subst \,/,$(SRCS))
 
 OBJS= $(ROOT)/errno_c.o $(ROOT)/threadasm.o
 
-ifeq ($(OS),osx)
-ifeq ($(MODEL), 64)
-	OBJS+=$(ROOT)/osx_tls.o
-endif
-endif
-
 # use timelimit to avoid deadlocks if available
 TIMELIMIT:=$(if $(shell which timelimit 2>/dev/null || true),timelimit -t 10 ,)
 
