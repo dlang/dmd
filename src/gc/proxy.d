@@ -240,7 +240,7 @@ extern (C)
         return instance.removeRange( p );
     }
 
-    void gc_runFinalizers( in void[] segment ) nothrow
+    void gc_runFinalizers(const scope void[] segment ) nothrow
     {
         return instance.runFinalizers( segment );
     }

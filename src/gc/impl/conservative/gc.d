@@ -970,9 +970,9 @@ class ConservativeGC : GC
     }
 
 
-    void runFinalizers(in void[] segment) nothrow
+    void runFinalizers(const scope void[] segment) nothrow
     {
-        static void go(Gcx* gcx, in void[] segment) nothrow
+        static void go(Gcx* gcx, const scope void[] segment) nothrow
         {
             gcx.runFinalizers(segment);
         }
@@ -1459,7 +1459,7 @@ struct Gcx
     /**
      *
      */
-    void runFinalizers(in void[] segment) nothrow
+    void runFinalizers(const scope void[] segment) nothrow
     {
         ConservativeGC._inFinalizer = true;
         scope (failure) ConservativeGC._inFinalizer = false;
@@ -3641,7 +3641,7 @@ struct LargeObjectPool
         return info;
     }
 
-    void runFinalizers(in void[] segment) nothrow
+    void runFinalizers(const scope void[] segment) nothrow
     {
         foreach (pn; 0 .. npages)
         {
@@ -3755,7 +3755,7 @@ struct SmallObjectPool
         return info;
     }
 
-    void runFinalizers(in void[] segment) nothrow
+    void runFinalizers(const scope void[] segment) nothrow
     {
         foreach (pn; 0 .. npages)
         {

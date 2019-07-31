@@ -164,7 +164,7 @@ nothrow @nogc:
         return null;
     }
 
-    void runFinalizers(in void[] segment) nothrow
+    void runFinalizers(const scope void[] segment) nothrow
     {
     }
 
