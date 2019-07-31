@@ -217,17 +217,20 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             return 0;
         }
 
-        for (size_t i = 0; i < members.dim; i++)
+        if (members)
         {
-            auto s = (*members)[i];
-            if (s.apply(&func, cast(void*)this))
+            for (size_t i = 0; i < members.dim; i++)
             {
-                if (sizeok != Sizeok.none)
+                auto s = (*members)[i];
+                if (s.apply(&func, cast(void*)this))
                 {
-                    // recursive determineFields already finished
-                    return true;
+                    if (sizeok != Sizeok.none)
+                    {
+                        // recursive determineFields already finished
+                        return true;
+                    }
+                    return false;
                 }
-                return false;
             }
         }
 

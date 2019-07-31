@@ -1835,6 +1835,8 @@ bool isCtfeValueValid(Expression newval)
         return true; //((StructLiteralExp *)newval)->ownedByCtfe;
     if (newval.op == TOK.classReference)
         return true;
+    if (newval.op == TOK.type)
+        return true;
     if (newval.op == TOK.vector)
         return true; // vector literal
     if (newval.op == TOK.function_)
