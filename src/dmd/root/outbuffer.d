@@ -407,6 +407,11 @@ struct OutBuffer
 
     extern (D) const(char)[] peekSlice() pure nothrow @nogc
     {
+        return this[];
+    }
+
+    extern (D) const(char)[] opSlice() pure nothrow @nogc
+    {
         return (cast(const char*)data)[0 .. offset];
     }
 
