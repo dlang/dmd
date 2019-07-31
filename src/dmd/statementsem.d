@@ -1178,7 +1178,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             }
         }
 
-        Statement s = fs;
+        Statement s;
         switch (tab.ty)
         {
         case Tarray:
@@ -1679,15 +1679,14 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     goto case Terror;
 
                 // Resolve any forward referenced goto's
-                foreach (i; 0 .. fs.gotos.dim)
+                foreach (ScopeStatement ss; *fs.gotos)
                 {
-                    GotoStatement gs = cast(GotoStatement)(*fs.gotos)[i].statement;
+                    GotoStatement gs = ss.statement.isGotoStatement();
                     if (!gs.label.statement)
                     {
                         // 'Promote' it to this scope, and replace with a return
                         fs.cases.push(gs);
-                        s = new ReturnStatement(Loc.initial, new IntegerExp(fs.cases.dim + 1));
-                        (*fs.gotos)[i].statement = s;
+                        ss.statement = new ReturnStatement(Loc.initial, new IntegerExp(fs.cases.dim + 1));
                     }
                 }
 
