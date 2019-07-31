@@ -648,7 +648,7 @@ private bool _isZeroInit(Expression exp)
 
             foreach (i; 0 .. dim)
             {
-                if (!_isZeroInit(ale.getElement(i)))
+                if (!_isZeroInit(ale[i]))
                     return false;
             }
 

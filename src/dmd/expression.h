@@ -412,7 +412,8 @@ public:
     static void emplace(UnionExp *pue, Loc loc, Expressions *elements);
     Expression *syntaxCopy();
     bool equals(RootObject *o);
-    Expression *getElement(d_size_t i);
+    Expression *getElement(d_size_t i); // use opIndex instead
+    Expression *opIndex(d_size_t i);
     bool isBool(bool result);
     StringExp *toStringExp();
 

@@ -422,7 +422,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
         auto dtbarray = DtBuilder(0);
         foreach (i; 0 .. e.elements.dim)
         {
-            Expression_toDt(e.getElement(i), dtbarray);
+            Expression_toDt(e[i], dtbarray);
         }
 
         Type t = e.type.toBasetype();
@@ -522,7 +522,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
         {
             Expression elem;
             if (auto ale = e.e1.isArrayLiteralExp())
-                elem = ale.getElement(i);
+                elem = ale[i];
             else
                 elem = e.e1;
             Expression_toDt(elem, dtb);

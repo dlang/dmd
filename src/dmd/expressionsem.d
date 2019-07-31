@@ -7033,7 +7033,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             foreach (i; 0 .. exp.dim)
             {
                 // Do not stop on first error - check all AST nodes even if error found
-                res |= checkElem((cast(ArrayLiteralExp)exp.e1).getElement(i));
+                res |= checkElem(exp.e1.isArrayLiteralExp()[i]);
             }
         }
         else if (exp.e1.type.ty == Tvoid)
