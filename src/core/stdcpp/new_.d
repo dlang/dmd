@@ -17,7 +17,10 @@ import core.stdcpp.exception : exception;
 @nogc:
 
 // TODO: this really should come from __traits(getTargetInfo, "defaultNewAlignment")
-enum size_t __STDCPP_DEFAULT_NEW_ALIGNMENT__ = 16;
+version (D_LP64)
+    enum size_t __STDCPP_DEFAULT_NEW_ALIGNMENT__ = 16;
+else
+    enum size_t __STDCPP_DEFAULT_NEW_ALIGNMENT__ = 8;
 
 extern (C++, "std")
 {
