@@ -1155,3 +1155,16 @@ version (Posix)
     static assert(fun20022_5.mangleof == `_ZN7ns2002210fun20022_5ENS_11Enum20022_1E`);
     static assert(fun20022_6.mangleof == `_ZN7ns2002210fun20022_6ENS_11Enum20022_2E`);
 }
+
+// https://issues.dlang.org/show_bug.cgi?id=20094
+version (Posix)
+{
+    extern(C++, "ns20094")
+    {
+        struct xvector20094 (T) {}
+        alias V20094 = xvector20094!(ubyte);
+    }
+
+    extern(C++) void test20094(xvector20094!(V20094)* v);
+    static assert(test20094.mangleof == `_Z9test20094PN7ns2009412xvector20094IS0_IhEEE`);
+}

@@ -560,10 +560,10 @@ private final class CppMangleVisitor : Visitor
             }
             else
             {
-                append(ti.tempdecl);
                 this.writeNamespace(
                     s.namespace, () {
                         this.writeIdentifier(ti.tempdecl.toAlias().ident);
+                        append(ti.tempdecl);
                         template_args(ti);
                     }, haveNE);
             }
