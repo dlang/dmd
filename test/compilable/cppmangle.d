@@ -1166,5 +1166,5 @@ version (Posix)
     }
 
     extern(C++) void test20094(xvector20094!(V20094)* v);
-    static assert(test20094.mangleof == `_Z9test20094PN7ns2009412xvector20094IS0_IhEEE`);
+    static assert(test20094.mangleof == `_Z9test20094PN7ns2009412xvector20094INS0_IhEEEE`);
 }
