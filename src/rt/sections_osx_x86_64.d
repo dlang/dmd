@@ -29,8 +29,10 @@ import core.stdc.string, core.stdc.stdlib;
 import core.sys.posix.pthread;
 import core.sys.darwin.mach.dyld;
 import core.sys.darwin.mach.getsect;
+
 import rt.deh, rt.minfo;
 import rt.util.container.array;
+import rt.util.utility : safeAssert;
 
 struct SectionGroup
 {
@@ -95,8 +97,10 @@ void finiSections() nothrow @nogc
 
 void[] initTLSRanges() nothrow @nogc
 {
-    auto range = getTLSRange();
-    assert(range.length > 0, "Could not determine TLS range.");
+    static ubyte tlsAnchor;
+
+    auto range = getTLSRange(&tlsAnchor);
+    safeAssert(range !is null, "Could not determine TLS range.");
     return range;
 }
 
@@ -182,11 +186,8 @@ ubyte[] getSection(in mach_header* header, intptr_t slide,
 extern (C) size_t malloc_size(const void* ptr) nothrow @nogc;
 
 /// Returns the TLS range of the current image.
-void[] getTLSRange() nothrow @nogc
+void[] getTLSRange(const void* tlsSymbol) nothrow @nogc
 {
-    static ubyte tlsAnchor;
-    const tlsSymbol = &tlsAnchor;
-
     foreach (i ; 0 .. _dyld_image_count)
     {
         const header = cast(const(mach_header_64)*) _dyld_get_image_header(i);
@@ -243,13 +244,13 @@ struct dyld_tlv_info
  */
 dyld_tlv_info tlvInfo(const mach_header_64* header) nothrow @nogc
 {
-    auto tlvAddress = pthread_getspecific(header.firstTLVKey);
-    assert(tlvAddress, "No TLV address found");
+    const key = header.firstTLVKey;
+    auto tlvAddress = key == pthread_key_t.max ? null : pthread_getspecific(key);
 
     dyld_tlv_info info = {
         info_size: dyld_tlv_info.sizeof,
         tlv_addr: tlvAddress,
-        tlv_size: malloc_size(tlvAddress)
+        tlv_size: tlvAddress ? malloc_size(tlvAddress) : 0
     };
 
     return info;
