@@ -50,9 +50,6 @@ extern(D):
     ///
     alias const_pointer = const(T)*;
 
-    ///
-    alias as_array this;
-
     /// MSVC allocates on default initialisation in debug, which can't be modelled by D `struct`
     @disable this();
 
@@ -62,27 +59,52 @@ extern(D):
     alias opDollar = length;
 
     ///
-    ref inout(T) front() inout pure nothrow @safe @nogc                     { return this[0]; }
+    size_t[2] opSlice(size_t dim : 0)(size_t start, size_t end) const pure nothrow @safe @nogc { return [start, end]; }
+
     ///
-    ref inout(T) back() inout pure nothrow @safe @nogc                      { return this[$-1]; }
+    ref inout(T) opIndex(size_t index) inout pure nothrow @safe @nogc       { return as_array[index]; }
+    ///
+    inout(T)[] opIndex(size_t[2] slice) inout pure nothrow @safe @nogc      { return as_array[slice[0] .. slice[1]]; }
+    ///
+    inout(T)[] opIndex() inout pure nothrow @safe @nogc                     { return as_array(); }
 
+    ///
+    ref vector opAssign(U)(auto ref vector!(U, Alloc) s)                    { opAssign(s.as_array); return this; }
+    ///
+    ref vector opAssign(T[] array)
+    {
+        clear();
+        reserve(array.length);
+        insert(0, array);
+        return this;
+    }
 
-    // WIP...
+    ///
+    void opIndexAssign()(auto ref T val, size_t index)                      { as_array[index] = val; }
+    ///
+    void opIndexAssign()(auto ref T val, size_t[2] slice)                   { as_array[slice[0] .. slice[1]] = val; }
+    ///
+    void opIndexAssign(T[] val, size_t[2] slice)                            { as_array[slice[0] .. slice[1]] = val[]; }
+    ///
+    void opIndexAssign()(auto ref T val)                                    { as_array[] = val; }
+    ///
+    void opIndexAssign(T[] val)                                             { as_array[] = val[]; }
 
-//    this(size_type count);
-//    this(size_type count, ref const(value_type) val);
-//    this(size_type count, ref const(value_type) val, ref const(allocator_type) al);
-//    this(ref const(vector) x);
-//    this(iterator first, iterator last);
-//    this(iterator first, iterator last, ref const(allocator_type) al = defaultAlloc);
-//    this(const_iterator first, const_iterator last);
-//    this(const_iterator first, const_iterator last, ref const(allocator_type) al = defaultAlloc);
-//    this(T[] arr)                                                     { this(arr.ptr, arr.ptr + arr.length); }
-//    this(T[] arr, ref const(allocator_type) al = defaultAlloc)        { this(arr.ptr, arr.ptr + arr.length); }
-//    this(const(T)[] arr)                                              { this(arr.ptr, arr.ptr + arr.length); }
-//    this(const(T)[] arr, ref const(allocator_type) al = defaultAlloc) { this(arr.ptr, arr.ptr + arr.length); }
+    ///
+    void opIndexOpAssign(string op)(auto ref T val, size_t index)           { mixin("as_array[index] " ~ op ~ "= val;"); }
+    ///
+    void opIndexOpAssign(string op)(auto ref T val, size_t[2] slice)        { mixin("as_array[slice[0] .. slice[1]] " ~ op ~ "= val;"); }
+    ///
+    void opIndexOpAssign(string op)(T[] val, size_t[2] slice)               { mixin("as_array[slice[0] .. slice[1]] " ~ op ~ "= val[];"); }
+    ///
+    void opIndexOpAssign(string op)(auto ref T val)                         { mixin("as_array[] " ~ op ~ "= val;"); }
+    ///
+    void opIndexOpAssign(string op)(T[] val)                                { mixin("as_array[] " ~ op ~ "= val[];"); }
 
-//    ref vector opAssign(ref const(vector) s);
+    ///
+    ref inout(T) front() inout pure nothrow @safe @nogc                     { return as_array[0]; }
+    ///
+    ref inout(T) back() inout pure nothrow @safe @nogc                      { return as_array[$-1]; }
 
     ///
     ref vector opOpAssign(string op : "~")(auto ref T item)                 { push_back(forward!item); return this; }
@@ -109,7 +131,7 @@ extern(D):
         ///
         this(DefaultConstruct) @nogc                                        { _Alloc_proxy(); }
         ///
-        this(size_t count)
+        this()(size_t count)
         {
             _Alloc_proxy();
             _Buy(count);
@@ -125,7 +147,7 @@ extern(D):
             _Get_data()._Mylast = _Ufill(_Get_data()._Myfirst, count, val);
         }
         ///
-        this(T[] array)
+        this()(T[] array)
         {
             _Alloc_proxy();
             _Buy(array.length);
@@ -209,7 +231,7 @@ extern(D):
         }
 
         ///
-        void clear() nothrow
+        void clear()
         {
             _Base._Orphan_all();
             _Destroy(_Get_data()._Myfirst, _Get_data()._Mylast);
@@ -217,8 +239,9 @@ extern(D):
         }
 
         ///
-        void resize(const size_type newsize)
+        void resize()(const size_type newsize)
         {
+            static assert(is(typeof({static T i;})), T.stringof ~ ".this() is annotated with @disable.");
             _Resize(newsize, (pointer _Dest, size_type _Count) => _Udefault(_Dest, _Count));
         }
 
@@ -267,7 +290,7 @@ extern(D):
                 // nothing to do, avoid invalidating iterators
             }
             else if (_Count > _Unused_capacity())
-            {    // reallocate
+            {   // reallocate
                 const size_type _Oldsize = size();
 
 //                if (_Count > max_size() - _Oldsize)
@@ -306,7 +329,7 @@ extern(D):
                 _Change_array(_Newvec, _Newsize, _Newcapacity);
             }
             else
-            {    // Attempt to provide the strong guarantee for EmplaceConstructible failure.
+            {   // Attempt to provide the strong guarantee for EmplaceConstructible failure.
                 // If we encounter copy/move construction/assignment failure, provide the basic guarantee.
                 // (For one-at-back, this provides the strong guarantee.)
 
@@ -347,7 +370,7 @@ extern(D):
                     }
                 }
                 else
-                {    // affected elements don't overlap before/after
+                {   // affected elements don't overlap before/after
                     pointer _Relocated = _Where + _Count;
                     _Get_data()._Mylast = _Utransfer!true(_Where, _Oldlast, _Relocated);
                     _Destroy(_Where, _Oldlast);
@@ -650,7 +673,7 @@ extern(D):
                 _Backout._Emplace_back(val);
             return _Backout._Release();
         }
-        pointer _Udefault(pointer _Dest, size_t _Count)
+        pointer _Udefault()(pointer _Dest, size_t _Count)
         {
             // TODO: if zero init, then fast-path to zeromem
             auto _Backout = _Uninitialized_backout(_Dest);
@@ -716,10 +739,6 @@ extern(D):
     {
         static assert(false, "C++ runtime not supported");
     }
-
-private:
-    // HACK: because no rvalue->ref
-    __gshared static immutable allocator_type defaultAlloc;
 }
 
 
