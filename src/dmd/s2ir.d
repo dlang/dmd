@@ -1114,28 +1114,18 @@ private extern (C++) class S2irVisitor : Visitor
                  * log index in Action Table (i.e. switch case table)
                  */
                 func_t *f = blx.funcsym.Sfunc;
-                for (size_t j = 0; 1; ++j)
-                {
-                    if (j < f.typesTableDim)
-                    {
-                        if (catchtype != f.typesTable[j])
-                            continue;
-                    }
-                    else
-                    {
-                        if (j == f.typesTableCapacity)
-                        {   // enlarge typesTable[]
-                            f.typesTableCapacity = f.typesTableCapacity * 2 + 4;
-                            f.typesTable = cast(Symbol **).realloc(f.typesTable, f.typesTableCapacity * (Symbol *).sizeof);
-                            assert(f.typesTable);
-                        }
-                        f.typesTableDim = j + 1;
-                        f.typesTable[j] = catchtype;
-                    }
-                    bswitch.Bswitch[1 + i] = 1 + j;  // index starts at 1
-                    break;
-                }
 
+                foreach (j, ct; f.typesTable[])
+                {
+                    if (ct == catchtype)
+                    {
+                        bswitch.Bswitch[1 + i] = 1 + j;  // index starts at 1
+                        goto L1;
+                    }
+                }
+                f.typesTable.push(catchtype);
+                bswitch.Bswitch[1 + i] = f.typesTable.length;  // index starts at 1
+           L1:
                 block *bcase = blx.curblock;
                 bswitch.appendSucc(bcase);
 
