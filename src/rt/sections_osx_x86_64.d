@@ -29,8 +29,10 @@ import core.stdc.string, core.stdc.stdlib;
 import core.sys.posix.pthread;
 import core.sys.darwin.mach.dyld;
 import core.sys.darwin.mach.getsect;
+
 import rt.deh, rt.minfo;
 import rt.util.container.array;
+import rt.util.utility : safeAssert;
 
 struct SectionGroup
 {
@@ -95,9 +97,11 @@ void finiSections() nothrow @nogc
 
 void[] initTLSRanges() nothrow @nogc
 {
-    auto range = getTLSRange();
-    assert(range.isValid, "Could not determine TLS range.");
-    return range.toArray;
+    static ubyte tlsAnchor;
+
+    auto range = getTLSRange(&tlsAnchor);
+    safeAssert(range !is null, "Could not determine TLS range.");
+    return range;
 }
 
 void finiTLSRanges(void[] rng) nothrow @nogc
@@ -181,44 +185,19 @@ ubyte[] getSection(in mach_header* header, intptr_t slide,
 
 extern (C) size_t malloc_size(const void* ptr) nothrow @nogc;
 
-/// Represents a TLS range.
-struct TLSRange
-{
-    /// The start of the range.
-    void* start;
-
-    /// The size of the range.
-    size_t size;
-
-    /// Returns `true` if the range is valid.
-    bool isValid() const pure nothrow @nogc @safe
-    {
-        return start !is null && size > 0;
-    }
-
-    /// Returns the range as an array.
-    void[] toArray() pure nothrow @nogc
-    {
-        return start[0 .. size];
-    }
-}
-
 /// Returns the TLS range of the current image.
-TLSRange getTLSRange() nothrow @nogc
+void[] getTLSRange(const void* tlsSymbol) nothrow @nogc
 {
-    static ubyte tlsAnchor;
-    const tlsSymbol = &tlsAnchor;
-
     foreach (i ; 0 .. _dyld_image_count)
     {
         const header = cast(const(mach_header_64)*) _dyld_get_image_header(i);
         auto tlvInfo = tlvInfo(header);
 
         if (tlvInfo.foundTLSRange(tlsSymbol))
-            return TLSRange(tlvInfo.tlv_addr, tlvInfo.tlv_size);
+            return tlvInfo.tlv_addr[0 .. tlvInfo.tlv_size];
     }
 
-    return TLSRange.init;
+    return null;
 }
 
 /**
@@ -265,13 +244,13 @@ struct dyld_tlv_info
  */
 dyld_tlv_info tlvInfo(const mach_header_64* header) nothrow @nogc
 {
-    auto tlvAddress = pthread_getspecific(header.firstTLVKey);
-    assert(tlvAddress, "No TLV address found");
+    const key = header.firstTLVKey;
+    auto tlvAddress = key == pthread_key_t.max ? null : pthread_getspecific(key);
 
     dyld_tlv_info info = {
         info_size: dyld_tlv_info.sizeof,
         tlv_addr: tlvAddress,
-        tlv_size: malloc_size(tlvAddress)
+        tlv_size: tlvAddress ? malloc_size(tlvAddress) : 0
     };
 
     return info;
