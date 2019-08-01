@@ -26,6 +26,7 @@ import core.stdc.string;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
+import dmd.backend.cg87;
 import dmd.backend.cgcse;
 import dmd.backend.code;
 import dmd.backend.code_x86;
@@ -1150,11 +1151,11 @@ static if (NTEXCEPTIONS)
             gencodelem(cdb,e,&retregs,true);
         L4:
             if (retregs == mST0)
-            {   assert(stackused == 1);
+            {   assert(global87.stackused == 1);
                 pop87();                // account for return value
             }
             else if (retregs == mST01)
-            {   assert(stackused == 2);
+            {   assert(global87.stackused == 2);
                 pop87();
                 pop87();                // account for return value
             }

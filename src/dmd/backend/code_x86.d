@@ -562,8 +562,6 @@ struct NDP
     __gshared int savetop;         // # of entries used in save[]
 }
 
-extern __gshared NDP[8] _8087elems;
-
 void getlvalue_msw(code *);
 void getlvalue_lsw(code *);
 void getlvalue(ref CodeBuilder cdb, code *pcs, elem *e, regm_t keepmsk);

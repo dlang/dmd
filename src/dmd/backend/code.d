@@ -636,7 +636,6 @@ void cnvt87(ref CodeBuilder cdb, elem *e , regm_t *pretregs );
 void neg87(ref CodeBuilder cdb, elem *e , regm_t *pretregs);
 void neg_complex87(ref CodeBuilder cdb, elem *e, regm_t *pretregs);
 void cdind87(ref CodeBuilder cdb,elem *e,regm_t *pretregs);
-extern __gshared { int stackused; }
 void cload87(ref CodeBuilder cdb, elem *e, regm_t *pretregs);
 void cdd_u64(ref CodeBuilder cdb, elem *e, regm_t *pretregs);
 void cdd_u32(ref CodeBuilder cdb, elem *e, regm_t *pretregs);
