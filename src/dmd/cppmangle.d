@@ -236,6 +236,21 @@ private final class CppMangleVisitor : Visitor
         }
     }
 
+    /**
+     * Attempt to perform substitution on `p`
+     *
+     * If `p` already appeared in the mangling, it is stored as
+     * a 'part', and short references in the form of `SX_` can be used.
+     * Note that `p` can be anything: template declaration, struct declaration,
+     * class declaration, namespace...
+     *
+     * Params:
+     *   p = The object to attempt to substitute
+     *
+     * Returns:
+     *   Whether `p` already appeared in the mangling,
+     *   and substitution has been written to `this.buf`.
+     */
     bool substitute(RootObject p)
     {
         //printf("substitute %s\n", p ? p.toChars() : null);
