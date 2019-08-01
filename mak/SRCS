@@ -458,6 +458,7 @@ SRCS=\
 	src\rt\util\array.d \
 	src\rt\util\random.d \
 	src\rt\util\typeinfo.d \
+	src\rt\util\utility.d \
 	src\rt\util\container\array.d \
 	src\rt\util\container\common.d \
 	src\rt\util\container\hashtab.d \
