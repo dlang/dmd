@@ -812,7 +812,6 @@ private final class CppMangleVisitor : Visitor
                         isChar((*ti.tiargs)[0]) &&
                         isChar_traits_char((*ti.tiargs)[1]) &&
                         isAllocator_char((*ti.tiargs)[2]))
-
                     {
                         buf.writestring("Ss");
                         return;
