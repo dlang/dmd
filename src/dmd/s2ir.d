@@ -433,15 +433,7 @@ private extern (C++) class S2irVisitor : Visitor
         block_setLoc(b, s.loc);
 
         // Check that bdest is in an enclosing try block
-        for (block *bt = b.Btry; bt != bdest.Btry; bt = bt.Btry)
-        {
-            if (!bt)
-            {
-                //printf("b.Btry = %p, bdest.Btry = %p\n", b.Btry, bdest.Btry);
-                s.error("cannot `goto` into `try` block");
-                break;
-            }
-        }
+        bdest.checkEnclosedInTry(b, s);
 
         block_next(blx,BCgoto,null);
     }
@@ -466,16 +458,7 @@ private extern (C++) class S2irVisitor : Visitor
             if (b.Btry != label.lblock.Btry)
             {
                 // Check that lblock is in an enclosing try block
-                for (block *bt = b.Btry; bt != label.lblock.Btry; bt = bt.Btry)
-                {
-                    if (!bt)
-                    {
-                        //printf("b.Btry = %p, label.lblock.Btry = %p\n", b.Btry, label.lblock.Btry);
-                        s.error("cannot `goto` into `try` block");
-                        break;
-                    }
-
-                }
+                label.lblock.checkEnclosedInTry(b, s);
             }
         }
         block_next(blx, BCgoto, label.lblock);
@@ -632,15 +615,7 @@ private extern (C++) class S2irVisitor : Visitor
         if (b.Btry != bdest.Btry)
         {
             // Check that bdest is in an enclosing try block
-            for (block *bt = b.Btry; bt != bdest.Btry; bt = bt.Btry)
-            {
-                if (!bt)
-                {
-                    //printf("b.Btry = %p, bdest.Btry = %p\n", b.Btry, bdest.Btry);
-                    s.error("cannot `goto` into `try` block");
-                    break;
-                }
-            }
+            bdest.checkEnclosedInTry(b, s);
 
             //setScopeIndex(blx, b, bdest.Btry ? bdest.Btry.Bscope_index : -1);
         }
@@ -663,15 +638,7 @@ private extern (C++) class S2irVisitor : Visitor
         if (b.Btry != bdest.Btry)
         {
             // Check that bdest is in an enclosing try block
-            for (block *bt = b.Btry; bt != bdest.Btry; bt = bt.Btry)
-            {
-                if (!bt)
-                {
-                    //printf("b.Btry = %p, bdest.Btry = %p\n", b.Btry, bdest.Btry);
-                    s.error("cannot `goto` into `try` block");
-                    break;
-                }
-            }
+            bdest.checkEnclosedInTry(b, s);
 
             //setScopeIndex(blx, b, bdest.Btry ? bdest.Btry.Bscope_index : -1);
         }
@@ -1838,3 +1805,24 @@ void insertFinallyBlockGotos(block *startblock)
         printf("-------------------------\n");
     }
 }
+
+/***************************************************
+ * Issue error if bd is not enclosed in a try block.
+ * Params:
+ *      bd = block to check
+ *      bcurrent = current block (starting point)
+ *      s = statement to use for error messages
+ */
+private void checkEnclosedInTry(const block* bd, const block* bcurrent, Statement s)
+{
+    for (const(block)* bt = bcurrent.Btry; bt != bd.Btry; bt = bt.Btry)
+    {
+        if (!bt)
+        {
+            //printf("b.Btry = %p, bdest.Btry = %p\n", b.Btry, bdest.Btry);
+            s.error("cannot `goto` into `try` block");
+            break;
+        }
+    }
+}
+
