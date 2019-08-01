@@ -10,6 +10,8 @@
 
 module core.atomic;
 
+import core.internal.attributes : betterC;
+
 version (D_InlineAsm_X86)
 {
     version = AsmX86;
@@ -1471,7 +1473,7 @@ version (unittest)
         testLoadStore!(MemoryOrder.raw, T)( val );
     }
 
-    @safe pure nothrow unittest
+    @betterC @safe pure nothrow unittest
     {
         testType!(bool)();
 
@@ -1483,6 +1485,10 @@ version (unittest)
 
         testType!(int)();
         testType!(uint)();
+    }
+
+    @safe pure nothrow unittest
+    {
 
         testType!(shared int*)();
 
@@ -1518,7 +1524,7 @@ version (unittest)
         }
     }
 
-    pure nothrow unittest
+    @betterC pure nothrow unittest
     {
         static if (has128BitCAS)
         {
@@ -1558,7 +1564,7 @@ version (unittest)
         }
     }
 
-    pure nothrow unittest
+    @betterC pure nothrow unittest
     {
         static struct S { int val; }
         auto s = shared(S)(1);
@@ -1621,7 +1627,7 @@ version (unittest)
     }
 
     // === atomicFetchAdd and atomicFetchSub operations ====
-    pure nothrow @nogc @safe unittest
+    @betterC pure nothrow @nogc @safe unittest
     {
         shared ubyte u8 = 1;
         shared ushort u16 = 2;
@@ -1645,7 +1651,7 @@ version (unittest)
         }
     }
 
-    pure nothrow @nogc @safe unittest
+    @betterC pure nothrow @nogc @safe unittest
     {
         shared ubyte u8 = 1;
         shared ushort u16 = 2;
@@ -1669,7 +1675,7 @@ version (unittest)
         }
     }
 
-    pure nothrow @nogc @safe unittest // issue 16651
+    @betterC pure nothrow @nogc @safe unittest // issue 16651
     {
         shared ulong a = 2;
         uint b = 1;
