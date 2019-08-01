@@ -86,8 +86,6 @@ extern(D):
     alias const_pointer = const(value_type)*;
 
     ///
-    alias as_array this;
-    ///
     alias toString = as_array;
 
     /// MSVC allocates on default initialisation in debug, which can't be modelled by D `struct`
@@ -99,6 +97,16 @@ extern(D):
     alias opDollar = length;
     ///
     bool empty() const nothrow @safe                                        { return size() == 0; }
+
+    ///
+    size_t[2] opSlice(size_t dim : 0)(size_t start, size_t end) const pure nothrow @safe @nogc { return [start, end]; }
+
+    ///
+    ref inout(T) opIndex(size_t index) inout pure nothrow @safe @nogc       { return as_array[index]; }
+    ///
+    inout(T)[] opIndex(size_t[2] slice) inout pure nothrow @safe @nogc      { return as_array[slice[0] .. slice[1]]; }
+    ///
+    inout(T)[] opIndex() inout pure nothrow @safe @nogc                     { return as_array(); }
 
     ///
     void clear()                                                            { eos(0); } // TODO: bounds-check
@@ -123,11 +131,35 @@ extern(D):
     const(T)* c_str() const nothrow @safe                                   { return data(); }
 
     // Modifiers
+    ///
+    ref basic_string opAssign()(auto ref basic_string str)                  { return assign(str.as_array); }
 //    ref basic_string assign(size_type n, T c);
     ///
     ref basic_string opAssign(const(T)[] str)                               { return assign(str); }
     ///
     ref basic_string opAssign(T c)                                          { return assign((&c)[0 .. 1]); }
+
+    ///
+    ref basic_string opIndexAssign(T c, size_t index)                       { as_array[index] = c; return this; }
+    ///
+    ref basic_string opIndexAssign(T c, size_t[2] slice)                    { as_array[slice[0] .. slice[1]] = c; return this; }
+    ///
+    ref basic_string opIndexAssign(const(T)[] str, size_t[2] slice)         { as_array[slice[0] .. slice[1]] = str[]; return this; }
+    ///
+    ref basic_string opIndexAssign(T c)                                     { as_array[] = c; return this; }
+    ///
+    ref basic_string opIndexAssign(const(T)[] str)                          { as_array[] = str[]; return this; }
+
+    ///
+    ref basic_string opIndexOpAssign(string op)(T c, size_t index)          { mixin("as_array[index] " ~ op ~ "= c;"); return this; }
+    ///
+    ref basic_string opIndexOpAssign(string op)(T c, size_t[2] slice)       { mixin("as_array[slice[0] .. slice[1]] " ~ op ~ "= c;"); return this; }
+    ///
+    ref basic_string opIndexOpAssign(string op)(const(T)[] str, size_t[2] slice)    { mixin("as_array[slice[0] .. slice[1]] " ~ op ~ "= str[];"); return this; }
+    ///
+    ref basic_string opIndexOpAssign(string op)(T c)                        { mixin("as_array[] " ~ op ~ "= c;"); return this; }
+    ///
+    ref basic_string opIndexOpAssign(string op)(const(T)[] str)             { mixin("as_array[] " ~ op ~ "= str[];"); return this; }
 
 //    ref basic_string append(size_type n, T c);
     ///
