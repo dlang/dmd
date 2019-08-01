@@ -1856,7 +1856,7 @@ Lnext:
             return dimError(1);
         auto arg0 = (*e.args)[0];
         Dsymbol s = getDsymbolWithoutExpCtx(arg0);
-        if (!s)
+        if (!s || !s.loc.isValid())
         {
             e.error("can only get the location of a symbol, not `%s`", arg0.toChars());
             return new ErrorExp();
