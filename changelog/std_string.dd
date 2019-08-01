@@ -1,3 +1,5 @@
 Added `core.stdcpp.string`.
 
 Added `core.stdcpp.string`, which links against C++ `std::string`
+
+Currently only supported and tested for the Visual Studio C++ runtime library. Other runtimes coming soon(tm)!
