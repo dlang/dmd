@@ -96,8 +96,8 @@ void finiSections() nothrow @nogc
 void[] initTLSRanges() nothrow @nogc
 {
     auto range = getTLSRange();
-    assert(range.isValid, "Could not determine TLS range.");
-    return range.toArray;
+    assert(range.length > 0, "Could not determine TLS range.");
+    return range;
 }
 
 void finiTLSRanges(void[] rng) nothrow @nogc
@@ -181,30 +181,8 @@ ubyte[] getSection(in mach_header* header, intptr_t slide,
 
 extern (C) size_t malloc_size(const void* ptr) nothrow @nogc;
 
-/// Represents a TLS range.
-struct TLSRange
-{
-    /// The start of the range.
-    void* start;
-
-    /// The size of the range.
-    size_t size;
-
-    /// Returns `true` if the range is valid.
-    bool isValid() const pure nothrow @nogc @safe
-    {
-        return start !is null && size > 0;
-    }
-
-    /// Returns the range as an array.
-    void[] toArray() pure nothrow @nogc
-    {
-        return start[0 .. size];
-    }
-}
-
 /// Returns the TLS range of the current image.
-TLSRange getTLSRange() nothrow @nogc
+void[] getTLSRange() nothrow @nogc
 {
     static ubyte tlsAnchor;
     const tlsSymbol = &tlsAnchor;
@@ -215,10 +193,10 @@ TLSRange getTLSRange() nothrow @nogc
         auto tlvInfo = tlvInfo(header);
 
         if (tlvInfo.foundTLSRange(tlsSymbol))
-            return TLSRange(tlvInfo.tlv_addr, tlvInfo.tlv_size);
+            return tlvInfo.tlv_addr[0 .. tlvInfo.tlv_size];
     }
 
-    return TLSRange.init;
+    return null;
 }
 
 /**
