@@ -585,10 +585,12 @@ public int runLINK()
                e.g. --whole-archive "lib.a" --no-whole-archive     (global.params.linkswitches)
          *  2. static libraries ending with *.a     (global.params.libfiles)
          *  3. link switches passed with -L command line switch  (global.params.linkswitches)
+         *     except for pthread, m, rt and dl
          *  4. libraries specified by pragma(lib), which were appended
          *     to global.params.libfiles. These are prefixed with "-l"
          *  5. dynamic libraries passed to the command line (global.params.dllfiles)
          *  6. standard libraries.
+         *  7. pthread/m/rt/dl if specified earlier
          */
         foreach (p; global.params.linkswitches)
         {
@@ -603,10 +605,44 @@ public int runLINK()
             if (FileName.equalsExt(p, "a"))
                 argv.push(p);
         }
+        version (linux)
+        {
+            static immutable coreLibs = [
+                "-L-lpthread",
+                "-L-lm",
+                "-L-lrt",
+                // Link against libdl for phobos usage of dlopen
+                "-L-ldl",
+            ];
+        }
+        else
+        {
+            static immutable coreLibs = [
+                "-L-lpthread",
+                "-L-lm",
+            ];
+        }
+        bool[coreLibs.length] coreLibsToAdd;
+        static size_t getlibid(const(char)* p)
+        {
+            const pStr = p.toDString;
+            foreach (i, coreLib; coreLibs)
+            {
+                if (pStr == coreLib)
+                    return i;
+            }
+            return coreLibs.length;
+        }
         foreach (p; global.params.linkswitches)
         {
             if (!p || !p[0] || flagIsLibraryRelated(p))
             {
+                const libid = getlibid(p);
+                if (libid != coreLibs.length)
+                {
+                    coreLibsToAdd[libid] = true;
+                    continue;
+                }
                 if (!(p && p[0] == '-' && (p[1] == 'l' || p[1] == 'L')))
                 {
                     // Don't need -Xlinker if switch starts with -l or -L.
@@ -671,16 +707,16 @@ public int runLINK()
                 argv.push(getbuf(libname));
             }
             //argv.push("-ldruntime");
-
-            argv.push("-lpthread");
-            argv.push("-lm");
-            version (linux)
+            foreach (i; 0 .. coreLibsToAdd.length)
             {
-                // Changes in ld for Ubuntu 11.10 require this to appear after phobos2
-                argv.push("-lrt");
-                // Link against libdl for phobos usage of dlopen
-                argv.push("-ldl");
+                coreLibsToAdd[i] = true;
             }
+        }
+        // Changes in ld for Ubuntu 11.10 require this to appear after phobos2
+        foreach (i; 0 .. coreLibs.length)
+        {
+            if (coreLibsToAdd[i])
+                argv.push(coreLibs[i][2..$].ptr);
         }
         if (global.params.verbose)
         {
