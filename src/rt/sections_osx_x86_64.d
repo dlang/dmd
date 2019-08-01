@@ -173,7 +173,7 @@ static immutable SegRef[] dataSegs = [{SEG_DATA, SECT_DATA},
 ubyte[] getSection(in mach_header* header, intptr_t slide,
                    in char* segmentName, in char* sectionName)
 {
-    assert(header.magic == MH_MAGIC_64);
+    safeAssert(header.magic == MH_MAGIC_64, "Unsupported header.");
     auto sect = getsectbynamefromheader_64(cast(mach_header_64*)header,
                                         segmentName,
                                         sectionName);
@@ -185,7 +185,10 @@ ubyte[] getSection(in mach_header* header, intptr_t slide,
 
 extern (C) size_t malloc_size(const void* ptr) nothrow @nogc;
 
-/// Returns the TLS range of the current image.
+/**
+ * Returns the TLS range of the image containing the specified TLS symbol,
+ * or null if none was found.
+ */
 void[] getTLSRange(const void* tlsSymbol) nothrow @nogc
 {
     foreach (i ; 0 .. _dyld_image_count)
@@ -228,14 +231,12 @@ struct dyld_tlv_info
     /// Base address of TLV storage
     void* tlv_addr;
 
-    // Byte size of TLV storage
+    /// Byte size of TLV storage
     size_t tlv_size;
 }
 
 /**
  * Returns the TLV info for the given image.
- *
- * Asserts if no TLV address could be found.
  *
  * Params:
  *  header = the image to look for the TLV info in
