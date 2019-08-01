@@ -246,12 +246,14 @@ private final class CppMangleVisitor : Visitor
      *
      * Params:
      *   p = The object to attempt to substitute
+     *   nested = Whether or not `p` is to be considered nested.
+     *            When `true`, `N` will be prepended before the substitution.
      *
      * Returns:
      *   Whether `p` already appeared in the mangling,
      *   and substitution has been written to `this.buf`.
      */
-    bool substitute(RootObject p)
+    bool substitute(RootObject p, bool nested = false)
     {
         //printf("substitute %s\n", p ? p.toChars() : null);
         auto i = find(p);
@@ -260,6 +262,8 @@ private final class CppMangleVisitor : Visitor
             //printf("\tmatch\n");
             /* Sequence is S_, S0_, .., S9_, SA_, ..., SZ_, S10_, ...
              */
+            if (nested)
+                buf.writeByte('N');
             buf.writeByte('S');
             writeSequenceFromIndex(i);
             buf.writeByte('_');
@@ -566,8 +570,13 @@ private final class CppMangleVisitor : Visitor
         if (TemplateInstance ti = s.isTemplateInstance())
         {
             bool needsTa = false;
-            if (substitute(ti.tempdecl))
+            const isNested = !!ti.tempdecl.namespace || !!getQualifier(ti.tempdecl);
+            if (substitute(ti.tempdecl, !haveNE && isNested))
+            {
                 template_args(ti);
+                if (!haveNE && isNested)
+                    buf.writeByte('E');
+            }
             else if (this.writeStdSubstitution(ti, needsTa))
             {
                 if (needsTa)
