@@ -711,3 +711,10 @@ static foreach(m; __traits(allMembers, staticforeach))
 {
     pragma(msg, m);
 }
+
+//https://issues.dlang.org/show_bug.cgi?id=20072
+struct T2{
+    static foreach(i;0..1)
+        struct S{}
+}
+static assert(is(__traits(parent,T2.S)==T2));

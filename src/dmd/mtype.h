@@ -647,8 +647,6 @@ class TypeTraits : public Type
     TraitsExp *exp;
     /// The symbol when exp doesn't represent a type.
     Dsymbol *sym;
-    /// Indicates wether we are in an alias or not.
-    bool inAliasDeclaration;
 
     Type *syntaxCopy();
     d_uns64 size(const Loc &loc);

@@ -2647,7 +2647,7 @@ elem *toElem(Expression e, IRState *irs)
             elem *ea = toElem(re.e1, irs);
             elem *ekey = toElem(re.e2, irs);
 
-            ekey = addressElem(ekey, re.e1.type);
+            ekey = addressElem(ekey, re.e2.type);
             Symbol *s = aaGetSymbol(taa, "DelX", 0);
             elem *keyti = getTypeInfo(re.loc, taa.index, irs);
             elem *ep = el_params(ekey, keyti, ea, null);

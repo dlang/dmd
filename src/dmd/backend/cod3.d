@@ -4187,7 +4187,7 @@ void epilog(block *b)
         {
         L4:
             assert(hasframe);
-            if (xlocalsize)
+            if (xlocalsize || enforcealign)
             {
                 if (config.flags2 & CFG2stomp)
                 {   /*   MOV  ECX,0xBEAF

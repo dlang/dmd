@@ -155,3 +155,25 @@ void main()
     (new Two).test();
     (new SingleSymTuple).test();
 }
+
+/* https://issues.dlang.org/show_bug.cgi?id=19708 */
+struct Foo19708 {}
+struct Bar19708 {}
+template Baz19708(T) { struct Baz19708{T t;} }
+int symbol19708;
+
+@Foo19708 @Bar19708 @Baz19708 @symbol19708 int bar19708;
+
+alias TR19708 = __traits(getAttributes, bar19708);
+alias TRT = __traits(getAttributes, bar19708)[2];
+
+TR19708[0] a119708;
+TR19708[1] a219708;
+alias A3 = TRT!int;
+
+alias C19708 = TR19708[0];
+alias D19708 = TR19708[1];
+C19708 c1;
+D19708 d1;
+
+static assert(__traits(isSame, TR19708[3], symbol19708));

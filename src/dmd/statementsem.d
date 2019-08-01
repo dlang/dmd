@@ -1528,7 +1528,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     if (auto f = resolveFuncCall(loc, sc, td, null, tab, &a, FuncResolveFlag.quiet))
                         tfront = f.type;
                 }
-                else if (auto d = sfront.isDeclaration())
+                else if (auto d = sfront.toAlias().isDeclaration())
                 {
                     tfront = d.type;
                 }

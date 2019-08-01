@@ -266,15 +266,15 @@ private bool match(RootObject o1, RootObject o2)
 
         static if (log)
         {
-            printf("\te1 = %s '%s' %s\n", e1.type.toChars(), Token.toChars(e1.op), e1.toChars());
-            printf("\te2 = %s '%s' %s\n", e2.type.toChars(), Token.toChars(e2.op), e2.toChars());
+            printf("\te1 = %s '%s' %s\n", e1.type ? e1.type.toChars() : "null", Token.toChars(e1.op), e1.toChars());
+            printf("\te2 = %s '%s' %s\n", e2.type ? e2.type.toChars() : "null", Token.toChars(e2.op), e2.toChars());
         }
 
         // two expressions can be equal although they do not have the same
         // type; that happens when they have the same value. So check type
         // as well as expression equality to ensure templates are properly
         // matched.
-        if (!e1.type.equals(e2.type) || !e1.equals(e2))
+        if (!(e1.type && e2.type && e1.type.equals(e2.type)) || !e1.equals(e2))
             goto Lnomatch;
 
         goto Lmatch;
@@ -758,8 +758,11 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 //printf("recursive, no match p.sc=%p %p %s\n", p.sc, this, this.toChars());
                 /* It must be a subscope of p.sc, other scope chains are not recursive
                  * instantiations.
+                 * the chain of enclosing scopes is broken by paramscope (its enclosing
+                 * scope is _scope, but paramscope.callsc is the instantiating scope). So
+                 * it's good enough to check the chain of callsc
                  */
-                for (Scope* scx = sc; scx; scx = scx.enclosing)
+                for (Scope* scx = paramscope.callsc; scx; scx = scx.callsc)
                 {
                     if (scx == p.sc)
                         return false;
@@ -771,7 +774,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
         TemplatePrevious pr;
         pr.prev = previous;
-        pr.sc = paramscope;
+        pr.sc = paramscope.callsc;
         pr.dedargs = dedargs;
         previous = &pr; // add this to threaded list
 
@@ -1128,12 +1131,9 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 tf.fargs = fargs;
                 uint olderrors = global.startGagging();
                 fd.type = tf.typeSemantic(loc, paramscope);
-                if (global.endGagging(olderrors))
-                {
-                    assert(fd.type.ty != Tfunction);
+                global.endGagging(olderrors);
+                if (fd.type.ty != Tfunction)
                     goto Lnomatch;
-                }
-                assert(fd.type.ty == Tfunction);
                 fd.originalType = fd.type; // for mangling
             }
 
