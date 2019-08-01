@@ -306,7 +306,12 @@ endif
 
 ifneq (gdc, $(HOST_DMD_KIND))
   BACK_MV = -mv=dmd.backend=$C
+# Don't enable -betterC for compiling the backend for coverage reports
+ifndef ENABLE_COVERAGE
   BACK_BETTERC = $(BACK_MV) -betterC
+else
+  BACK_BETTERC = $(BACK_MV)
+endif
   # gdmd doesn't support -dip25
   override DFLAGS  += -dip25
 endif
