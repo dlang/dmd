@@ -88,8 +88,7 @@ void main()
 {
     test18772();
 
-    version(none) // failing
-        test!cfloat();
+    test!cfloat();
     test!cdouble();
     test!creal();
 }
