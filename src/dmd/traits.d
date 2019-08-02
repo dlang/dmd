@@ -607,8 +607,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 sm => sm.isTemplateDeclaration() !is null) != 0;
         });
     }
-    if (e.ident == Id.isPOD ||
-        e.ident == Id.hasElaborateCopyConstructor)
+    if (e.ident == Id.isPOD)
     {
         if (dim != 1)
             return dimError(1);
@@ -625,16 +624,30 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         Type tb = t.baseElemOf();
         if (auto sd = tb.ty == Tstruct ? (cast(TypeStruct)tb).sym : null)
         {
-            if (e.ident == Id.isPOD)
-            {
-                return sd.isPOD() ? True() : False();
-            }
-            else if (e.ident == Id.hasElaborateCopyConstructor)
-            {
-                return sd.hasCopyCtor ? True() : False();
-            }
+            return sd.isPOD() ? True() : False();
         }
         return True();
+    }
+    if (e.ident == Id.hasElaborateCopyConstructor)
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        auto o = (*e.args)[0];
+        auto t = isType(o);
+        if (!t)
+        {
+            e.error("type expected as second argument of __traits `%s` instead of `%s`",
+                e.ident.toChars(), o.toChars());
+            return new ErrorExp();
+        }
+
+        Type tb = t.baseElemOf();
+        if (auto sd = tb.ty == Tstruct ? (cast(TypeStruct)tb).sym : null)
+        {
+            return sd.hasCopyCtor || sd.postblit ? True() : False();
+        }
+        return False();
     }
     if (e.ident == Id.isNested)
     {
