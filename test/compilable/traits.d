@@ -101,6 +101,8 @@ struct OuterS
     {
         this (ref S rhs) {}
     }
+
+    S s;
 }
 
 void foo(T)()
@@ -112,19 +114,28 @@ void foo(T)()
     static assert (__traits(hasElaborateCopyConstructor, S!int));
 }
 
-struct U(T) {
+struct U(T)
+{
     this (ref U rhs) {}
 }
 
-struct SPostblit {
+struct SPostblit
+{
     this(this) {}
 }
 
+struct NoCpCtor { }
+class C19902 { }
+
 static assert(__traits(hasElaborateCopyConstructor, S));
 static assert(__traits(hasElaborateCopyConstructor, OuterS.S));
+static assert(__traits(hasElaborateCopyConstructor, OuterS));
 static assert(__traits(compiles, foo!int));
 static assert(__traits(compiles, foo!S));
 static assert(__traits(hasElaborateCopyConstructor, U!int));
 static assert(__traits(hasElaborateCopyConstructor, U!S));
+static assert(__traits(hasElaborateCopyConstructor, SPostblit));
 
-static assert(!__traits(hasElaborateCopyConstructor, SPostblit));
+static assert(!__traits(hasElaborateCopyConstructor, NoCpCtor));
+static assert(!__traits(hasElaborateCopyConstructor, C19902));
+static assert(!__traits(hasElaborateCopyConstructor, int));
