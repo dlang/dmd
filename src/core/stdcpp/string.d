@@ -47,7 +47,7 @@ enum Default = DefaultConstruct();
  * Character traits classes specify character properties and provide specific
  * semantics for certain operations on characters and sequences of characters.
  */
-extern(C++, "std") struct char_traits(CharT) {}
+extern(C++, (StdNamespace)) struct char_traits(CharT) {}
 
 // I don't think we can have these here, otherwise symbols are emit to druntime, and we don't want that...
 //alias std_string = basic_string!char;
@@ -1306,10 +1306,6 @@ extern(D):
     {
         static assert(false, "C++ runtime not supported");
     }
-
-private:
-    // HACK: because no rvalue->ref
-    __gshared static immutable allocator_type defaultAlloc;
 }
 
 
