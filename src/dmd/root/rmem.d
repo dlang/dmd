@@ -32,24 +32,15 @@ extern (C++) struct Mem
 {
     static char* xstrdup(const(char)* s) nothrow
     {
-        if (!s)
-            return null;
-
         version (GC)
             if (isGCEnabled)
-                return s[0 .. strlen(s) + 1].dup.ptr;
+                return s ? s[0 .. strlen(s) + 1].dup.ptr : null;
 
-        auto p = .strdup(s);
-        if (!p)
-            error();
-        return p;
+        return s ? cast(char*)check(.strdup(s)) : null;
     }
 
     static void xfree(void* p) pure nothrow
     {
-        if (!p)
-            return;
-
         version (GC)
             if (isGCEnabled)
                 return GC.free(p);
@@ -59,33 +50,20 @@ extern (C++) struct Mem
 
     static void* xmalloc(size_t size) pure nothrow
     {
-        if (!size)
-            return null;
-
         version (GC)
             if (isGCEnabled)
-                return GC.malloc(size);
+                return size ? GC.malloc(size) : null;
 
-        auto p = pureMalloc(size);
-        if (!p)
-            error();
-        return p;
+        return size ? check(pureMalloc(size)) : null;
     }
 
     static void* xcalloc(size_t size, size_t n) pure nothrow
     {
-        const totalSize = size * n;
-        if (!totalSize)
-            return null;
-
         version (GC)
             if (isGCEnabled)
-                return GC.calloc(totalSize);
+                return size * n ? GC.calloc(size * n) : null;
 
-        auto p = pureCalloc(size, n);
-        if (!p)
-            error();
-        return p;
+        return (size && n) ? check(pureCalloc(size, n)) : null;
     }
 
     static void* xrealloc(void* p, size_t size) pure nothrow
@@ -96,28 +74,30 @@ extern (C++) struct Mem
 
         if (!size)
         {
-            if (p)
-                pureFree(p);
+            pureFree(p);
             return null;
         }
 
-        if (!p)
-        {
-            p = pureMalloc(size);
-            if (!p)
-                error();
-            return p;
-        }
-
-        p = pureRealloc(p, size);
-        if (!p)
-            error();
-        return p;
+        return check(pureRealloc(p, size));
     }
 
-    static void error() pure nothrow @nogc
+    static void* error() pure nothrow @nogc
     {
         onOutOfMemoryError();
+        assert(0);
+    }
+
+    /**
+     * Check p for null. If it is, issue out of memory error
+     * and exit program.
+     * Params:
+     *  p = pointer to check for null
+     * Returns:
+     *  p if not null
+     */
+    static void* check(void* p) pure nothrow @nogc
+    {
+        return p ? p : error();
     }
 
     version (GC)
@@ -174,22 +154,11 @@ extern (C) void* allocmemory(size_t m_size) nothrow @nogc
 
     if (m_size > CHUNK_SIZE)
     {
-        auto p = malloc(m_size);
-        if (p)
-        {
-            return p;
-        }
-        printf("Error: out of memory\n");
-        exit(EXIT_FAILURE);
+        return Mem.check(malloc(m_size));
     }
 
     heapleft = CHUNK_SIZE;
-    heapp = malloc(CHUNK_SIZE);
-    if (!heapp)
-    {
-        printf("Error: out of memory\n");
-        exit(EXIT_FAILURE);
-    }
+    heapp = Mem.check(malloc(CHUNK_SIZE));
     goto L1;
 }
 
