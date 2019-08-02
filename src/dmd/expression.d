@@ -3422,6 +3422,7 @@ extern (C++) final class SymOffExp : SymbolExp
  */
 extern (C++) final class VarExp : SymbolExp
 {
+    bool delegateWasExtracted;
     extern (D) this(const ref Loc loc, Declaration var, bool hasOverloads = true)
     {
         if (var.isVarDeclaration())
@@ -3473,7 +3474,7 @@ extern (C++) final class VarExp : SymbolExp
             error("manifest constant `%s` cannot be modified", var.toChars());
             return new ErrorExp();
         }
-        if (var.storage_class & STC.lazy_)
+        if (var.storage_class & STC.lazy_ && !delegateWasExtracted)
         {
             error("lazy variable `%s` cannot be modified", var.toChars());
             return new ErrorExp();
