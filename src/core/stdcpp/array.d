@@ -11,6 +11,8 @@
 
 module core.stdcpp.array;
 
+import core.stdcpp.xutility : StdNamespace;
+
 // hacks to support DMD on Win32
 version (CppRuntime_Microsoft)
 {
@@ -20,15 +22,6 @@ else version (CppRuntime_DigitalMars)
 {
     version = CppRuntime_Windows; // use the MS runtime ABI for win32
     pragma(msg, "std::array not supported by DMC");
-}
-version (CppRuntime_Clang)
-{
-    private alias AliasSeq(Args...) = Args;
-    private enum StdNamespace = AliasSeq!("std", "__1");
-}
-else
-{
-    private enum StdNamespace = "std";
 }
 
 extern(C++, (StdNamespace)):
@@ -97,7 +90,7 @@ pure nothrow @nogc:
         ///
         inout(T)* data() inout @safe                    { static if (N > 0) { return &_M_elems[0]; } else { return null; } }
         ///
-        ref inout(T)[N] as_array() inout @trusted       { return cast(inout(T)[N])data()[0 .. N]; }
+        ref inout(T)[N] as_array() inout @trusted       { return data()[0 .. N]; }
         ///
         ref inout(T) at(size_type i) inout @trusted     { return data()[0 .. N][i]; }
 
@@ -117,7 +110,7 @@ pure nothrow @nogc:
         ///
         inout(T)* data() inout @trusted                 { static if (N > 0) { return &__elems_[0]; } else { return cast(inout(T)*)__elems_.ptr; } }
         ///
-        ref inout(T)[N] as_array() inout @trusted       { return cast(inout(T)[N])data()[0 .. N]; }
+        ref inout(T)[N] as_array() inout @trusted       { return data()[0 .. N]; }
         ///
         ref inout(T) at(size_type i) inout @trusted     { return data()[0 .. N][i]; }
 

@@ -12,6 +12,7 @@
 module core.stdcpp.string_view;
 
 import core.stdc.stddef : wchar_t;
+import core.stdcpp.xutility : StdNamespace;
 
 // hacks to support DMD on Win32
 version (CppRuntime_Microsoft)
@@ -22,15 +23,6 @@ else version (CppRuntime_DigitalMars)
 {
     version = CppRuntime_Windows; // use the MS runtime ABI for win32
     pragma(msg, "std::basic_string_view not supported by DMC");
-}
-version (CppRuntime_Clang)
-{
-    private alias AliasSeq(Args...) = Args;
-    private enum StdNamespace = AliasSeq!("std", "__1");
-}
-else
-{
-    private enum StdNamespace = "std";
 }
 
 extern(C++, (StdNamespace)):

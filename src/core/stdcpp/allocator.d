@@ -12,15 +12,7 @@
 module core.stdcpp.allocator;
 
 import core.stdcpp.new_;
-import core.stdcpp.xutility : __cpp_sized_deallocation, __cpp_aligned_new;
-
-version (CppRuntime_Clang)
-{
-    private alias AliasSeq(Args...) = Args;
-    private enum StdNamespace = AliasSeq!("std", "__1");
-}
-else
-    private enum StdNamespace = "std";
+import core.stdcpp.xutility : StdNamespace, __cpp_sized_deallocation, __cpp_aligned_new;
 
 /**
  * Allocators are classes that define memory models to be used by some parts of
