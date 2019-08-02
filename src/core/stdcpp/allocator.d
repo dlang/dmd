@@ -12,14 +12,14 @@
 module core.stdcpp.allocator;
 
 import core.stdcpp.new_;
-import core.stdcpp.xutility : __cpp_sized_deallocation, __cpp_aligned_new;
+import core.stdcpp.xutility : StdNamespace, __cpp_sized_deallocation, __cpp_aligned_new;
 
 /**
  * Allocators are classes that define memory models to be used by some parts of
  * the C++ Standard Library, and most specifically, by STL containers.
  */
 extern(C++, class)
-extern(C++, "std")
+extern(C++, (StdNamespace))
 struct allocator(T)
 {
     static assert(!is(T == const), "The C++ Standard forbids containers of const elements because allocator!(const T) is ill-formed.");

@@ -15,12 +15,7 @@ module core.stdcpp.string;
 import core.stdcpp.allocator;
 import core.stdc.stddef : wchar_t;
 
-version (CppRuntime_Clang)
-{
-    private alias AliasSeq(Args...) = Args;
-    private enum StdNamespace = AliasSeq!("std", "__1");
-}
-else version (CppRuntime_Gcc)
+version (CppRuntime_Gcc)
 {
     version (_GLIBCXX_USE_CXX98_ABI)
     {
@@ -29,25 +24,26 @@ else version (CppRuntime_Gcc)
     }
     else
     {
-        private alias AliasSeq(Args...) = Args;
+        import core.internal.traits : AliasSeq;
         private enum StdNamespace = AliasSeq!("std", "__cxx11");
     }
 }
 else
-{
-    private enum StdNamespace = "std";
-}
+    import core.stdcpp.xutility : StdNamespace;
 
 enum DefaultConstruct { value }
 
 /// Constructor argument for default construction
 enum Default = DefaultConstruct();
 
+extern(C++, (StdNamespace)):
+@nogc:
+
 /**
  * Character traits classes specify character properties and provide specific
  * semantics for certain operations on characters and sequences of characters.
  */
-extern(C++, "std") struct char_traits(CharT) {}
+struct char_traits(CharT) {}
 
 // I don't think we can have these here, otherwise symbols are emit to druntime, and we don't want that...
 //alias std_string = basic_string!char;
@@ -61,7 +57,6 @@ extern(C++, "std") struct char_traits(CharT) {}
  * C++ reference: $(LINK2 https://en.cppreference.com/w/cpp/string/basic_string)
  */
 extern(C++, class)
-extern(C++, (StdNamespace))
 struct basic_string(T, Traits = char_traits!T, Alloc = allocator!T)
 {
 extern(D):
@@ -1306,10 +1301,6 @@ extern(D):
     {
         static assert(false, "C++ runtime not supported");
     }
-
-private:
-    // HACK: because no rvalue->ref
-    __gshared static immutable allocator_type defaultAlloc;
 }
 
 

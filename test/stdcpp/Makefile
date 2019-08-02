@@ -1,23 +1,29 @@
 include ../common.mak
 
+HASCPP17:=`echo wow | $(CXX) -std=c++17 -E -xc++ - > /dev/null 2>&1 && echo yes`
+
 TESTS:=allocator new
 TESTS11:=array
-TESTS14:=
-TESTS17:=
+TESTS17:=string_view
 OLDABITESTS:=
+LIBCPPTESTS:=
 
 ifeq (osx,$(OS))
-#	TESTS+=string vector
-#	TESTS14+=string_view
+	TESTS+=string
+#	TESTS+=vector
 endif
 ifeq (linux,$(OS))
 #	TESTS+=string vector
 #	OLDABITESTS+=string vector
-#	TESTS14+=string_view
+#	LIBCPPTESTS:=string
 endif
 ifeq (freebsd,$(OS))
-#	TESTS+=string vector
-#	TESTS14+=string_view
+	TESTS+=string
+#	TESTS+=vector
+endif
+
+ifneq (yes,$(HASCPP17))
+TESTS17:=
 endif
 
 .PHONY: all clean
@@ -30,7 +36,7 @@ all:
 clean:
 
 else
-all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS))) $(addprefix $(ROOT)/,$(addsuffix _11.done,$(TESTS11))) $(addprefix $(ROOT)/,$(addsuffix _14.done,$(TESTS14))) $(addprefix $(ROOT)/,$(addsuffix _17.done,$(TESTS17))) $(addprefix $(ROOT)/,$(addsuffix _old.done,$(OLDABITESTS)))
+all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS))) $(addprefix $(ROOT)/,$(addsuffix _11.done,$(TESTS11))) $(addprefix $(ROOT)/,$(addsuffix _17.done,$(TESTS17))) $(addprefix $(ROOT)/,$(addsuffix _old.done,$(OLDABITESTS))) $(addprefix $(ROOT)/,$(addsuffix _libcpp.done,$(LIBCPPTESTS)))
 
 # run C++98 tests
 $(ROOT)/%.done : $(ROOT)/%
@@ -42,11 +48,6 @@ $(ROOT)/%_11.done : $(ROOT)/%_11
 	@echo Testing $*_11
 	$(QUIET)$(TIMELIMIT)$(ROOT)/$*_11 $(RUN_ARGS)
 	@touch $@
-# run C++14 tests
-$(ROOT)/%_14.done : $(ROOT)/%_14
-	@echo Testing $*_14
-	$(QUIET)$(TIMELIMIT)$(ROOT)/$*_14 $(RUN_ARGS)
-	@touch $@
 # run C++17 tests
 $(ROOT)/%_17.done : $(ROOT)/%_17
 	@echo Testing $*_17
@@ -56,6 +57,11 @@ $(ROOT)/%_17.done : $(ROOT)/%_17
 $(ROOT)/%_old.done : $(ROOT)/%_old
 	@echo Testing $*_old
 	$(QUIET)$(TIMELIMIT)$(ROOT)/$*_old $(RUN_ARGS)
+	@touch $@
+# run libc++ tests with GCC
+$(ROOT)/%_libcpp.done : $(ROOT)/%_libcpp
+	@echo Testing $*_libcpp
+	$(QUIET)$(TIMELIMIT)$(ROOT)/$*_libcpp $(RUN_ARGS)
 	@touch $@
 
 # build C++98 tests
@@ -68,11 +74,6 @@ $(ROOT)/%_11: $(SRC)/%.cpp $(SRC)/%_test.d
 	mkdir -p $(dir $@)
 	$(QUIET)$(DMD) $(DFLAGS) -extern-std=c++11 -main -unittest -c -of=$(ROOT)/$*_11_d.o $(SRC)/$*_test.d
 	$(QUIET)$(CXX) $(CXXFLAGS_BASE) -std=c++11 -o $@ $< $(ROOT)/$*_11_d.o $(DRUNTIME) -lpthread
-# build C++14 tests
-$(ROOT)/%_14: $(SRC)/%.cpp $(SRC)/%_test.d
-	mkdir -p $(dir $@)
-	$(QUIET)$(DMD) $(DFLAGS) -extern-std=c++14 -main -unittest -c -of=$(ROOT)/$*_14_d.o $(SRC)/$*_test.d
-	$(QUIET)$(CXX) $(CXXFLAGS_BASE) -std=c++14 -o $@ $< $(ROOT)/$*_14_d.o $(DRUNTIME) -lpthread
 # build C++17 tests
 $(ROOT)/%_17: $(SRC)/%.cpp $(SRC)/%_test.d
 	mkdir -p $(dir $@)
@@ -83,6 +84,11 @@ $(ROOT)/%_old: $(SRC)/%.cpp $(SRC)/%_test.d
 	mkdir -p $(dir $@)
 	$(QUIET)$(DMD) $(DFLAGS) -version=_GLIBCXX_USE_CXX98_ABI -main -unittest -c -of=$(ROOT)/$*_old_d.o $(SRC)/$*_test.d
 	$(QUIET)$(CXX) $(CXXFLAGS_BASE) -D_GLIBCXX_USE_CXX11_ABI=0 -o $@ $< $(ROOT)/$*_old_d.o $(DRUNTIME) -lpthread
+# build libc++ tests with GCC
+$(ROOT)/%_libcpp: $(SRC)/%.cpp $(SRC)/%_test.d
+	mkdir -p $(dir $@)
+	$(QUIET)$(DMD) $(DFLAGS) -version=CppRuntime_Clang -main -unittest -c -of=$(ROOT)/$*_libcpp_d.o $(SRC)/$*_test.d
+	$(QUIET)$(CXX) $(CXXFLAGS_BASE) -stdlib=libc++ -o $@ $< $(ROOT)/$*_libcpp_d.o $(DRUNTIME) -lpthread
 
 clean:
 	rm -rf $(GENERATED)

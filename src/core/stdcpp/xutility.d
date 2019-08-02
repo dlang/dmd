@@ -11,8 +11,17 @@
 
 module core.stdcpp.xutility;
 
-
 @nogc:
+
+version (CppRuntime_Clang)
+{
+    import core.internal.traits : AliasSeq;
+    enum StdNamespace = AliasSeq!("std", "__1");
+}
+else
+{
+    enum StdNamespace = "std";
+}
 
 enum CppStdRevision : uint
 {
