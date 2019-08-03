@@ -6,6 +6,8 @@
 QUIET:=
 
 DMD_DIR=../dmd
+DUB=dub
+TOOLS_DIR=../tools
 
 include $(DMD_DIR)/src/osmodel.mak
 
@@ -315,6 +317,9 @@ $(ROOT)/unittest/test_runner: $(UT_DRUNTIME) src/test_runner.d $(DMD)
 
 endif
 
+TESTS_EXTRACTOR=$(ROOT)/tests_extractor
+BETTERCTESTS_DIR=$(ROOT)/betterctests
+
 # macro that returns the module name given the src path
 moduleName=$(subst rt.invariant,invariant,$(subst object_,object,$(subst /,.,$(1))))
 
@@ -384,6 +389,42 @@ clean: $(addsuffix /.clean,$(ADDITIONAL_TESTS))
 
 test/%/.clean: test/%/Makefile
 	$(MAKE) -C test/$* clean
+
+%/.directory :
+	mkdir -p $* || exists $*
+	touch $@
+
+################################################################################
+# Build the test extractor.
+# - extracts and runs public unittest examples to checks for missing imports
+# - extracts and runs @betterC unittests
+################################################################################
+
+$(TESTS_EXTRACTOR): $(TOOLS_DIR)/tests_extractor.d | $(LIB)
+	$(DUB) build --force --single $<
+	mv $(TOOLS_DIR)/tests_extractor $@
+
+test_extractor: $(TESTS_EXTRACTOR)
+
+################################################################################
+# Check and run @betterC tests
+# ----------------------------
+#
+# Extract @betterC tests of a module and run them in -betterC
+#
+#   make -f betterc -j20                       # all tests
+#   make -f posix.mak src/core/memory.betterc  # individual module
+################################################################################
+
+betterc: | $(TESTS_EXTRACTOR) $(BETTERCTESTS_DIR)/.directory
+	$(MAKE) -f posix.mak $$(find src -type f -name '*.d' | sed 's/[.]d/.betterc/')
+
+%.betterc: %.d | $(TESTS_EXTRACTOR) $(BETTERCTESTS_DIR)/.directory
+	@$(TESTS_EXTRACTOR) --betterC --attributes betterC \
+		--inputdir  $< --outputdir $(BETTERCTESTS_DIR)
+	@$(DMD) $(NODEFAULTLIB) -betterC $(UDFLAGS) $(UTFLAGS) -od$(BETTERCTESTS_DIR) -run $(BETTERCTESTS_DIR)/$(subst /,_,$<)
+
+################################################################################
 
 # Submission to Druntime are required to conform to the DStyle
 # The tests below automate some, but not all parts of the DStyle guidelines.

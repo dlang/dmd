@@ -22,3 +22,6 @@ jobs:
       - run:
           command: ./.circleci/run.sh codecov
           name: Upload coverage files to CodeCov
+      - run:
+          command: ./.circleci/run.sh betterc
+          name: Run @betterC tests

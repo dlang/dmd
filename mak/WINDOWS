@@ -123,6 +123,9 @@ $(IMPDIR)\core\internal\abort.d : src\core\internal\abort.d
 $(IMPDIR)\core\internal\arrayop.d : src\core\internal\arrayop.d
 	copy $** $@
 
+$(IMPDIR)\core\internal\attributes.d : src\core\internal\attributes.d
+	copy $** $@
+
 $(IMPDIR)\core\internal\convert.d : src\core\internal\convert.d
 	copy $** $@
 
