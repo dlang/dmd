@@ -2959,6 +2959,19 @@ elem* toElem(Expression e, IRState *irs)
 
     elem* visitCond(CondExp ce)
     {
+        if (auto ve = ce.econd.isVarExp)
+            if (ve.var.ident == Id.ctfe)
+            {
+                elem *e = toElem(ce.e2, irs);
+                if (irs.params.cov && ce.e2.loc.linnum)
+                    e = el_combine(incUsageElem(irs, ce.e2.loc), e);
+                if (tybasic(e.Ety) == TYstruct)
+                    e.ET = Type_toCtype(ce.e2.type);
+                elem_setLoc(e, ce.loc);
+                result = e;
+                return;
+            }
+
         elem *ec = toElem(ce.econd, irs);
 
         elem *eleft = toElem(ce.e1, irs);
