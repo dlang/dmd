@@ -14,7 +14,8 @@ ifeq (osx,$(OS))
 endif
 ifeq (linux,$(OS))
 #	TESTS+=string vector
-#	OLDABITESTS+=string vector
+	OLDABITESTS+=string
+#	OLDABITESTS+=vector
 #	LIBCPPTESTS:=string
 endif
 ifeq (freebsd,$(OS))
