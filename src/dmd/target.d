@@ -432,7 +432,7 @@ struct Target
 
         if (global.params.isWindows && global.params.is64bit)
         {
-            // http://msdn.microsoft.com/en-us/library/7572ztz4.aspx
+            // https://docs.microsoft.com/en-us/cpp/build/x64-calling-convention?view=vs-2019#return-values
             if (tns.ty == Tcomplex32)
                 return false;
             if (tns.iscomplex())
