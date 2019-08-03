@@ -6,23 +6,22 @@ TESTS:=allocator new
 TESTS11:=array
 TESTS17:=string_view
 OLDABITESTS:=
-LIBCPPTESTS:=
 
 ifeq (osx,$(OS))
-	TESTS+=string
+#	TESTS+=string
 #	TESTS+=vector
 endif
 ifeq (linux,$(OS))
-#	TESTS+=string vector
+#	TESTS+=string
+#	TESTS+=vector
 	OLDABITESTS+=string
-#	OLDABITESTS+=vector
-#	LIBCPPTESTS:=string
 endif
 ifeq (freebsd,$(OS))
 	TESTS+=string
 #	TESTS+=vector
 endif
 
+# some build machines have ancient compilers, so we need to disable C++17 tests
 ifneq (yes,$(HASCPP17))
 TESTS17:=
 endif
@@ -59,11 +58,6 @@ $(ROOT)/%_old.done : $(ROOT)/%_old
 	@echo Testing $*_old
 	$(QUIET)$(TIMELIMIT)$(ROOT)/$*_old $(RUN_ARGS)
 	@touch $@
-# run libc++ tests with GCC
-$(ROOT)/%_libcpp.done : $(ROOT)/%_libcpp
-	@echo Testing $*_libcpp
-	$(QUIET)$(TIMELIMIT)$(ROOT)/$*_libcpp $(RUN_ARGS)
-	@touch $@
 
 # build C++98 tests
 $(ROOT)/%: $(SRC)/%.cpp $(SRC)/%_test.d
@@ -85,11 +79,6 @@ $(ROOT)/%_old: $(SRC)/%.cpp $(SRC)/%_test.d
 	mkdir -p $(dir $@)
 	$(QUIET)$(DMD) $(DFLAGS) -version=_GLIBCXX_USE_CXX98_ABI -main -unittest -c -of=$(ROOT)/$*_old_d.o $(SRC)/$*_test.d
 	$(QUIET)$(CXX) $(CXXFLAGS_BASE) -D_GLIBCXX_USE_CXX11_ABI=0 -o $@ $< $(ROOT)/$*_old_d.o $(DRUNTIME) -lpthread
-# build libc++ tests with GCC
-$(ROOT)/%_libcpp: $(SRC)/%.cpp $(SRC)/%_test.d
-	mkdir -p $(dir $@)
-	$(QUIET)$(DMD) $(DFLAGS) -version=CppRuntime_Clang -main -unittest -c -of=$(ROOT)/$*_libcpp_d.o $(SRC)/$*_test.d
-	$(QUIET)$(CXX) $(CXXFLAGS_BASE) -stdlib=libc++ -o $@ $< $(ROOT)/$*_libcpp_d.o $(DRUNTIME) -lpthread
 
 clean:
 	rm -rf $(GENERATED)
