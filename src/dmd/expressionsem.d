@@ -5806,12 +5806,30 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     Expression comp = new StringExp(loc, cast(char*) compMsg.ptr);
                     comp = comp.expressionSemantic(sc);
                     (*tiargs)[0] = comp;
-                    (*tiargs)[1] = (*args)[0].type;
-                    (*tiargs)[2] = (*args)[1].type;
 
-                    // runtime args
-                    (*es)[0] = (*args)[0];
-                    (*es)[1] = (*args)[1];
+                    // structs with opEquals get rewritten to a DotVarExp:
+                    // a.opEquals(b)
+                    // https://issues.dlang.org/show_bug.cgi?id=20100
+                    if (args.length == 1)
+                    {
+                        auto dv = callExp.e1.isDotVarExp();
+                        assert(dv);
+                        (*tiargs)[1] = dv.e1.type;
+                        (*tiargs)[2] = (*args)[0].type;
+
+                        // runtime args
+                        (*es)[0] = dv.e1;
+                        (*es)[1] = (*args)[0];
+                    }
+                    else
+                    {
+                        (*tiargs)[1] = (*args)[0].type;
+                        (*tiargs)[2] = (*args)[1].type;
+
+                        // runtime args
+                        (*es)[0] = (*args)[0];
+                        (*es)[1] = (*args)[1];
+                    }
                 }
                 else
                 {
