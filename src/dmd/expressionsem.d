@@ -5764,6 +5764,161 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         exp.e1 = exp.e1.optimize(WANTvalue);
         exp.e1 = exp.e1.toBoolean(sc);
 
+        enum NegatedState { none, equals, notEquals }
+        /*
+        DMD lowers struct equality comparison for complex fields into a
+        conjunctive form of their individual fields.
+
+        Example:
+            S  { int a; float f;}
+            S s1, s2;
+            s1 == s2;
+            ->
+            s1.a == s2.a && s1.f == s2.f
+
+        Here, we try to conservatively detect such a pattern and return the respective
+        structs as `left` and `right`.
+
+        Params:
+            e = expression to start the equality check from
+            left = left expression of the struct equality comparison (ref-return)
+            right = right expression of the struct equality comparison (ref-return)
+
+        Returns: `true` if a struct equality was detected.
+        */
+        static bool isStructEquals(Expression e, ref Expression left, ref Expression right,
+                                   ref NegatedState negated)
+        {
+            /*
+            Reduce an Expression to its DotVarExp expression.
+            Ignores casts.
+            */
+            static Expression toDotVarFieldExp(Expression e)
+            {
+                // might be wrapped in a cast
+                if (e is null) { return null; }
+
+                if (auto ce = e.isCastExp())
+                {
+                    e = ce.e1;
+                }
+
+                if (auto dotVar = e.isDotVarExp())
+                {
+                    return dotVar.e1;
+                }
+
+                return null;
+            }
+            /*
+            Ensures that either we compare the same structs (`left` is `newLeft`) or
+            it is the first comparison and `left` needs to be set (was `null`).
+            And respectively for `right` and `newRight`.
+            Note: Ignores casts.
+            */
+            static bool structCompare(ref Expression left, ref Expression right,
+                                      Expression newLeft, Expression newRight)
+            {
+                auto leftDotVarField = toDotVarFieldExp(newLeft);
+                auto rightDotVarField = toDotVarFieldExp(newRight);
+
+                // new fields can't be null
+                if (leftDotVarField is null || rightDotVarField is null)
+                    return false;
+
+                // left and right might are null for the first check
+                if (left is null && right is null)
+                {
+                    // first check: set `left` and `right`
+                    left = leftDotVarField;
+                    right = rightDotVarField;
+                    return true;
+                } else if (left is null || right is null)
+                    return false;
+
+                return leftDotVarField is left && rightDotVarField is right;
+            }
+
+            /*
+            Ensures that once the negated state has been set, only the same state follows.
+            In other words, once `==` has been used, only `==` can follow.
+            */
+            static bool checkNegate(ref NegatedState state, NegatedState newState)
+            {
+                if (state == NegatedState.none)
+                {
+                    state = newState;
+                    return true;
+                }
+                return state == newState;
+            }
+
+            auto binExp = cast(BinExp) e;
+            if (e.op == TOK.andAnd) // s1.float == s2.float && s1.str == s2.str
+            {
+                //printf("structEquals.andAnd\n");
+                if (!checkNegate(negated, NegatedState.equals))
+                    return false;
+
+                return isStructEquals(binExp.e1, left, right, negated) &&
+                       isStructEquals(binExp.e2, left, right, negated);
+            }
+            else if (e.op == TOK.orOr) // s1.float == s2.float || s1.str == s2.str
+            {
+                //printf("structEquals.orOr\n");
+                if (!checkNegate(negated, NegatedState.notEquals))
+                    return false;
+
+                return isStructEquals(binExp.e1, left, right, negated) &&
+                       isStructEquals(binExp.e2, left, right, negated);
+            }
+            else if (e.op == TOK.equal) // s1.float == s2.float
+            {
+                //printf("structEquals.equal\n");
+                if (!checkNegate(negated, NegatedState.equals))
+                    return false;
+
+                return structCompare(left, right, binExp.e1, binExp.e2);
+            }
+            else if (e.op == TOK.notEqual) // s1.float != s2.float
+            {
+                //printf("structEquals.notEqual\n");
+                if (!checkNegate(negated, NegatedState.notEquals))
+                    return false;
+
+                return structCompare(left, right, binExp.e1, binExp.e2);
+            }
+            else if (auto callExp = e.isCallExp()) // equals(s1.str, s2.str)
+            {
+                //printf("structEquals.call\n");
+                if (!checkNegate(negated, NegatedState.equals))
+                    return false;
+
+                auto args = callExp.arguments;
+                if (args.length != 2)
+                    return false;
+
+                return structCompare(left, right, (*args)[0], (*args)[1]);
+            }
+            else if (auto notExp = e.isNotExp()) // ! equals(s1.str, s2.str)
+            {
+                //printf("structEquals.not\n");
+                if (!checkNegate(negated, NegatedState.notEquals))
+                    return false;
+
+                // ! can only be followed by a CallExp
+                if (auto callExp = notExp.e1.isCallExp())
+                {
+                    auto args = callExp.arguments;
+                    if (args.length != 2)
+                        return false;
+                    return structCompare(left, right, (*args)[0], (*args)[1]);
+                }
+            }
+            // conservative approach -> abort if unknown nodes appear
+            return false;
+        }
+
         if (!exp.msg && global.params.checkAction == CHECKACTION.context)
         // no message - use assert expression as msg
         {
@@ -5775,6 +5930,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             */
             const tok = exp.e1.op;
             bool isEqualsCallExpression;
+            Expression structEqualsLeft, structEqualsRight;
+            NegatedState structEqualsNegated;
+            bool isFromStructEquals = isStructEquals(exp.e1,
+                structEqualsLeft, structEqualsRight, structEqualsNegated);
             if (tok == TOK.call)
             {
                 const callExp = cast(CallExp) exp.e1;
@@ -5787,7 +5946,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 tok == TOK.lessOrEqual || tok == TOK.greaterOrEqual ||
                 tok == TOK.identity || tok == TOK.notIdentity ||
                 tok == TOK.in_ ||
-                isEqualsCallExpression)
+                isEqualsCallExpression ||
+                isFromStructEquals)
             {
                 if (!verifyHookExist(exp.loc, *sc, Id._d_assert_fail, "generating assert messages"))
                     return setError();
@@ -5796,22 +5956,40 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 auto tiargs = new Objects(3);
                 Loc loc = exp.e1.loc;
 
-                if (isEqualsCallExpression)
+                if (isEqualsCallExpression || isFromStructEquals)
                 {
                     auto callExp = cast(CallExp) exp.e1;
                     auto args = callExp.arguments;
 
                     // template args
-                    static immutable compMsg = "==";
+                    string compMsg;
+                    if (structEqualsNegated == NegatedState.notEquals)
+                    {
+                        static immutable compMsgNotEqual = "!=";
+                        compMsg = compMsgNotEqual;
+                    }
+                    else
+                    {
+                        static immutable compMsgEqual = "==";
+                        compMsg = compMsgEqual;
+                    }
                     Expression comp = new StringExp(loc, cast(char*) compMsg.ptr);
                     comp = comp.expressionSemantic(sc);
                     (*tiargs)[0] = comp;
 
+                    if (isFromStructEquals)
+                    {
+                        (*tiargs)[1] = structEqualsLeft.type;
+                        (*tiargs)[2] = structEqualsRight.type;
+
+                        // runtime args
+                        (*es)[0] = structEqualsLeft;
+                        (*es)[1] = structEqualsRight;
+                    }
                     // structs with opEquals get rewritten to a DotVarExp:
                     // a.opEquals(b)
                     // https://issues.dlang.org/show_bug.cgi?id=20100
-                    if (args.length == 1)
-                    {
+                    else if (args.length == 1)
                         auto dv = callExp.e1.isDotVarExp();
                         assert(dv);
                         (*tiargs)[1] = dv.e1.type;
