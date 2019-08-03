@@ -10200,6 +10200,128 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             global.params.useDIP1000 == FeatureState.enabled)
             checkAssignEscape(sc, res, false, false);
         result = res;
+
+        if (!exp.isCTFEHookPart &&
+            (exp.op == TOK.concatenateAssign || exp.op == TOK.concatenateElemAssign) &&
+            !(sc.flags & (SCOPE.ctfe | SCOPE.compile)))
+        {
+            // if aa ordering is triggered, `res` will be a CommaExp
+            // and `.e2` will be the rewritten original expression.
+
+            // `output` will point to the expression that the lowering will overwrite
+            Expression* output;
+            if (auto comma = res.isCommaExp())
+            {
+                output = &comma.e2;
+                // manual cast because it could be either CatAssignExp or CatElemAssignExp
+                exp = cast(CatAssignExp)comma.e2;
+            }
+            else
+            {
+                output = &result;
+                exp = cast(CatAssignExp)result;
+            }
+
+            if (exp.op == TOK.concatenateAssign)
+            {
+                Identifier hook = global.params.tracegc ? Id._d_arrayappendTTrace : Id._d_arrayappendT;
+
+                if (!verifyHookExist(exp.loc, *sc, Id._d_arrayappendTImpl, "appending array to arrays", Id.object))
+                    return setError();
+
+                // Lower to object._d_arrayappendTImpl!(typeof(e1))._d_arrayappendT{,Trace}(e1, e2)
+                Expression id = new IdentifierExp(exp.loc, Id.empty);
+                id = new DotIdExp(exp.loc, id, Id.object);
+                auto tiargs = new Objects();
+                tiargs.push(exp.e1.type);
+                id = new DotTemplateInstanceExp(exp.loc, id, Id._d_arrayappendTImpl, tiargs);
+                id = new DotIdExp(exp.loc, id, hook);
+                id = id.expressionSemantic(sc);
+
+                auto arguments = new Expressions();
+                arguments.reserve(5);
+                if (global.params.tracegc)
+                {
+                    auto funcname = (sc.callsc && sc.callsc.func) ? sc.callsc.func.toPrettyChars() : sc.func.toPrettyChars();
+                    arguments.push(new StringExp(exp.loc, cast(char*)exp.loc.filename));
+                    arguments.push(new IntegerExp(exp.loc, exp.loc.linnum, Type.tint32));
+                    arguments.push(new StringExp(exp.loc, cast(char*)funcname));
+                }
+                arguments.push(exp.e1);
+                arguments.push(exp.e2);
+
+                exp.isCTFEHookPart = true;
+                Expression ce = new CallExp(exp.loc, id, arguments).expressionSemantic(sc);
+                auto cond = new IdentifierExp(exp.loc, Id.ctfe).expressionSemantic(sc);
+                ce = new CondExp(exp.loc, cond, exp, ce);
+
+                *output = ce.expressionSemantic(sc);
+            }
+            else if (exp.op == TOK.concatenateElemAssign)
+            {
+                if (auto ve = exp.e1.isVarExp)
+                {
+                    import core.stdc.ctype : isdigit;
+                    // The name of the indices array that static foreach loops uses.
+                    // See dmd.cond.lowerNonArrayAggregate
+                    enum varName = "__res";
+                    const(char)[] id = ve.var.ident.toString;
+                    if (id.length > varName.length && id[0 .. varName.length] == varName && id[varName.length].isdigit)
+                        return;
+                }
+
+                Identifier hook = global.params.tracegc ? Id._d_arrayappendcTXTrace : Id._d_arrayappendcTX;
+                if (!verifyHookExist(exp.loc, *sc, Id._d_arrayappendcTXImpl, "appending element to arrays", Id.object))
+                    return setError();
+
+                // Lower to object._d_arrayappendcTXImpl!(typeof(e1))._d_arrayappendcTX{,Trace}(e1, 1), e1[$-1]=e2
+                Expression id = new IdentifierExp(exp.loc, Id.empty);
+                id = new DotIdExp(exp.loc, id, Id.object);
+                auto tiargs = new Objects();
+                tiargs.push(exp.e1.type);
+                id = new DotTemplateInstanceExp(exp.loc, id, Id._d_arrayappendcTXImpl, tiargs);
+                id = new DotIdExp(exp.loc, id, hook);
+                id = id.expressionSemantic(sc);
+
+                auto arguments = new Expressions();
+                arguments.reserve(5);
+                if (global.params.tracegc)
+                {
+                    auto funcname = (sc.callsc && sc.callsc.func) ? sc.callsc.func.toPrettyChars() : sc.func.toPrettyChars();
+                    arguments.push(new StringExp(exp.loc, cast(char*)exp.loc.filename));
+                    arguments.push(new IntegerExp(exp.loc, exp.loc.linnum, Type.tint32));
+                    arguments.push(new StringExp(exp.loc, cast(char*)funcname));
+                }
+                arguments.push(exp.e1);
+                arguments.push(new IntegerExp(exp.loc, 1, Type.tsize_t));
+
+                Expression ce = new CallExp(exp.loc, id, arguments);
+                ce = ce.expressionSemantic(sc);
+
+                Expression eValue;
+                Expression value = exp.e2;
+                if (!value.isVarExp && !value.isIntegerExp && !value.isStructLiteralExp && !value.isArrayLiteralExp && !value.isAssocArrayLiteralExp)
+                {
+                    value = extractSideEffect(sc, "__appendtmp", eValue, value, true);
+                    exp.e2 = value;
+                }
+
+                exp.isCTFEHookPart = true;
+                auto elem = new IndexExp(exp.loc, exp.e1, new MinExp(exp.loc, new DollarExp(exp.loc), IntegerExp.literal!1));
+                auto ae = new ConstructExp(exp.loc, elem, value);
+                ae = cast(ConstructExp)ae.expressionSemantic(sc);
+
+                auto e0 = Expression.combine(ce, ae).expressionSemantic(sc);
+                e0 = Expression.combine(e0, exp.e1).expressionSemantic(sc);
+
+                auto cond = new IdentifierExp(exp.loc, Id.ctfe).expressionSemantic(sc);
+                e0 = new CondExp(exp.loc, cond, exp, e0.expressionSemantic(sc));
+                e0 = Expression.combine(eValue, e0);
+
+                *output = e0.expressionSemantic(sc);
+            }
+        }
+
     }
 
     override void visit(AddExp exp)

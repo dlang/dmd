@@ -6256,6 +6256,7 @@ extern (C++) final class UshrAssignExp : BinAssignExp
  */
 extern (C++) class CatAssignExp : BinAssignExp
 {
+    bool isCTFEHookPart;
     extern (D) this(const ref Loc loc, Expression e1, Expression e2)
     {
         super(loc, EXP.concatenateAssign, __traits(classInstanceSize, CatAssignExp), e1, e2);
