@@ -2709,68 +2709,12 @@ elem* toElem(Expression e, IRState *irs)
 
             case EXP.concatenateAssign:
             {
-                // Append array
-                assert(tb2.ty == Tarray || tb2.ty == Tsarray);
-
-                assert(tb1n.equals(tb2.nextOf().toBasetype()));
-
-                /* e1 ~= e2 becomes
-                 * _d_arrayappendT(e2, ev, typeinfo), *ev
-                 */
-
-                if (irs.target.os == Target.OS.Windows && target.is64bit)
-                    e2 = addressElem(e2, tb2, true);
-                else
-                    e2 = useOPstrpar(e2);
-                elem *ep = el_params(e2, el_copytree(ev), getTypeInfo(ce.e1.loc, ce.e1.type, irs), null);
-                e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM.ARRAYAPPENDT)), ep);
-                toTraceGC(irs, e, ce.loc);
-                break;
+                assert(0, "This case should have been rewritten to `_d_arrayappendT` in the semantic phase");
             }
 
             case EXP.concatenateElemAssign:
             {
-                // Append element
-                assert(tb1n.equals(tb2));
-
-                elem *e2x = null;
-
-                if (e2.Eoper != OPvar && e2.Eoper != OPconst)
-                {
-                    // Evaluate e2 and assign result to temporary s2.
-                    // Do this because of:
-                    //    a ~= a[$-1]
-                    // because $ changes its value
-                    type* tx = Type_toCtype(tb2);
-                    Symbol *s2 = symbol_genauto(tx);
-                    e2x = elAssign(el_var(s2), e2, tb1n, tx);
-
-                    e2 = el_var(s2);
-                }
-
-                // Extend array with _d_arrayappendcTX(TypeInfo ti, e1, 1)
-                elem *ep = el_param(el_copytree(ev), getTypeInfo(ce.e1.loc, ce.e1.type, irs));
-                ep = el_param(el_long(TYsize_t, 1), ep);
-                e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM.ARRAYAPPENDCTX)), ep);
-                toTraceGC(irs, e, ce.loc);
-                Symbol *stmp = symbol_genauto(Type_toCtype(tb1));
-                e = el_bin(OPeq, TYdarray, el_var(stmp), e);
-
-                // Assign e2 to last element in stmp[]
-                // *(stmp.ptr + (stmp.length - 1) * szelem) = e2
-
-                elem *eptr = array_toPtr(tb1, el_var(stmp));
-                elem *elength = el_una(target.is64bit ? OP128_64 : OP64_32, TYsize_t, el_var(stmp));
-                elength = el_bin(OPmin, TYsize_t, elength, el_long(TYsize_t, 1));
-                elength = el_bin(OPmul, TYsize_t, elength, el_long(TYsize_t, ce.e2.type.size()));
-                eptr = el_bin(OPadd, TYnptr, eptr, elength);
-                elem *ederef = el_una(OPind, e2.Ety, eptr);
-
-                elem *eeq = elAssign(ederef, e2, tb1n, null);
-                e = el_combine(e2x, e);
-                e = el_combine(e, eeq);
-                e = el_combine(e, el_var(stmp));
-                break;
+                assert(0, "This case should have been rewritten to `_d_arrayappendcTX` in the semantic phase");
             }
 
             default:
