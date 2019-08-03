@@ -622,8 +622,6 @@ void processEnvironment()
     if (env["HOST_DMD_KIND"] != "gdc")
         dflags ~= ["-dip25"]; // gdmd doesn't support -dip25
 
-    flags["BACK_FLAGS"] = ["-I"~env["ROOT"], "-I"~env["C"], "-I"~env["G"], "-I"~env["D"], "-DDMDV2=1"];
-
     // TODO: add support for dObjc
     auto dObjc = false;
     version(OSX) version(X86_64)
