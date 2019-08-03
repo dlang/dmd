@@ -1,7 +1,4 @@
 # Learn more: https://aka.ms/yaml
-variables:
-  HOST_DMD_VERSION: 2.084.1
-
 jobs:
   - job: Windows
     timeoutInMinutes: 120
@@ -9,6 +6,7 @@ jobs:
       vmImage: 'vs2017-win2016'
     variables:
       VSINSTALLDIR: C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\
+      HOST_DMD_VERSION: 2.084.1
     strategy:
       matrix:
         x64:
@@ -16,11 +14,22 @@ jobs:
           MODEL: 64
           ARCH: x64
           D_COMPILER: dmd
-        #x86:
-          #OS: Win_32
-          #MODEL: 32
-          #ARCH: x86
-          #D_COMPILER: dmd
+    steps:
+      - template: .azure-pipelines/windows.yml
+  - job: Windows_OMF
+    timeoutInMinutes: 120
+    pool:
+      vmImage: 'vs2017-win2016'
+    variables:
+      VSINSTALLDIR: C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\
+      HOST_DMD_VERSION: LATEST
+    strategy:
+      matrix:
+        x64:
+          OS: Win_32
+          MODEL: 32
+          ARCH: x86
+          D_COMPILER: dmd
     steps:
       - template: .azure-pipelines/windows.yml
   - job: Windows_VisualD

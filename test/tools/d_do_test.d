@@ -426,6 +426,20 @@ string execute(ref File f, string command, bool expectpass, string result_path)
     return output;
 }
 
+/// add quotes around the whole string if it contains spaces that are not in quotes
+string quoteSpaces(string str)
+{
+    if (str.indexOf(' ') < 0)
+        return str;
+    bool inquote = false;
+    foreach(dchar c; str)
+        if (c == '"')
+            inquote = !inquote;
+        else if (c == ' ' && !inquote)
+            return "\"" ~ str ~ "\"";
+    return str;
+}
+
 string unifyNewLine(string str)
 {
     // On Windows, Outbuffer.writenl() puts `\r\n` into the buffer,
@@ -464,7 +478,7 @@ bool collectExtraSources (in string input_dir, in string output_dir, in string[]
     {
         auto curSrc = input_dir ~ envData.sep ~"extra-files" ~ envData.sep ~ cur;
         auto curObj = output_dir ~ envData.sep ~ cur ~ envData.obj;
-        string command = compiler;
+        string command = quoteSpaces(compiler);
         if (envData.compiler == "dmd")
         {
             if (envData.usingMicrosoftCompiler)
