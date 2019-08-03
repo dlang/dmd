@@ -338,6 +338,22 @@ void testStructEquals6()
     test(t1, t3, "T(false, 0, 0, \"\", [], `null`) != T(false, 0, 0, \"\", [], C())");
 }
 
+void testContextPointer()
+{
+    int i;
+    struct T
+    {
+        int j;
+        int get()
+        {
+            return i * j;
+        }
+    }
+    T t = T(1);
+    t.tupleof[$-1] = cast(void*) 0xABCD; // Deterministic context pointer
+    test(t, t, `T(1, <context>: 0xABCD) != T(1, <context>: 0xABCD)`);
+}
+
 void main()
 {
     testIntegers();
@@ -361,5 +377,7 @@ void main()
     testStructEquals4();
     testStructEquals5();
     testStructEquals6();
+    testContextPointer();
+
     fprintf(stderr, "success.\n");
 }

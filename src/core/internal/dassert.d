@@ -349,11 +349,17 @@ private string miniFormat(V)(const scope ref V v)
     }
     else static if (is(V == struct))
     {
+        enum ctxPtr = __traits(isNested, V);
         string msg = V.stringof ~ "(";
         foreach (i, ref field; v.tupleof)
         {
             if (i > 0)
                 msg ~= ", ";
+
+            // Mark context pointer
+            static if (ctxPtr && i == v.tupleof.length - 1)
+                msg ~= "<context>: ";
+
             msg ~= miniFormat(field);
         }
         msg ~= ")";
