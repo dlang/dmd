@@ -450,7 +450,7 @@ struct Target
                 StructDeclaration sd = (cast(TypeStruct)tns).sym;
                 if (tf.linkage == LINK.cpp && needsThis)
                     return true;
-                if (!sd.isPOD() || sz > 8)
+                if (!sd.isCPP03POD() || sz > 8)
                     return true;
                 if (sd.fields.dim == 0)
                     return false;
@@ -516,11 +516,16 @@ struct Target
                 //printf("  2 true\n");
                 return true;            // 32 bit C/C++ structs always on stack
             }
-            if (global.params.isWindows && tf.linkage == LINK.cpp && !global.params.is64bit &&
-                     sd.isPOD() && sd.ctor)
+            if (global.params.isWindows && !global.params.is64bit && tf.linkage == LINK.cpp)
             {
-                // win32 returns otherwise POD structs with ctors via memory
-                return true;
+                if (!global.params.mscoff)
+                {
+                    // DMC bug: it considers struct with private fields a POD contrary to C++03 POD rules.
+                    if (!sd.isCPPDMCPOD())
+                        return true;
+                }
+                else if (!sd.isCPP03POD())
+                    return true; // win32 returns otherwise C++03 POD structs via memory
             }
             if (sd.arg1type && !sd.arg2type)
             {

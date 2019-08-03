@@ -71,6 +71,24 @@ extern(C++, `std`)
     struct test19248 {int a = 34;}
 }
 
+// Non C++03 POD structs
+struct S030
+{
+    int i;
+    private int j;
+}
+
+struct S031
+{
+    private int i, j;
+}
+
+struct S032
+{
+    int i;
+    this(int);
+}
+
 struct S0 { }
 S0 passthrough(S0, ref int);
 
@@ -102,6 +120,9 @@ S4     passthrough(S4     value);
 S5     passthrough(S5     value);
 S8     passthrough(S8     value);
 S16    passthrough(S16    value);
+S030   passthrough(S030   value);
+S031   passthrough(S031   value);
+S032   passthrough(S032   value);
 
 bool   passthrough_ptr(bool   *value);
 byte   passthrough_ptr(byte   *value);
@@ -131,6 +152,9 @@ S4     passthrough_ptr(S4     *value);
 S5     passthrough_ptr(S5     *value);
 S8     passthrough_ptr(S8     *value);
 S16    passthrough_ptr(S16    *value);
+S030   passthrough_ptr(S030   *value);
+S031   passthrough_ptr(S031   *value);
+S032   passthrough_ptr(S032   *value);
 
 bool   passthrough_ref(ref bool   value);
 byte   passthrough_ref(ref byte   value);
@@ -160,6 +184,9 @@ S4     passthrough_ref(ref S4     value);
 S5     passthrough_ref(ref S5     value);
 S8     passthrough_ref(ref S8     value);
 S16    passthrough_ref(ref S16    value);
+S030   passthrough_ref(ref S030   value);
+S031   passthrough_ref(ref S031   value);
+S032   passthrough_ref(ref S032   value);
 }
 
 template IsSigned(T)
@@ -342,6 +369,9 @@ version(D_AVX2) foreach(float8 val; values!float8()) check(val);
     check(S5(1, 2, 3, 4, 5));
     check(S8(1, 2));
     check(S16(1, 2, 3, 4));
+    check(S030(1, 2));
+    check(S031(1, 2));
+    check(S032(1));
 
     assert(constFunction1(null, null) == 1);
     assert(constFunction2(null, null) == 2);

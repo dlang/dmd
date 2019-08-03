@@ -217,6 +217,8 @@ extern (C++) class StructDeclaration : AggregateDeclaration
 
     structalign_t alignment;    // alignment applied outside of the struct
     StructPOD ispod;            // if struct is POD
+    StructPOD iscpp03pod;       // if struct is C++03 POD
+    StructPOD iscppdmcpod;      // if struct is DMC C++ POD
 
     // For 64 bit Efl function call/return ABI
     Type arg1type;
@@ -232,6 +234,8 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         super(loc, id);
         zeroInit = false; // assume false until we do semantic processing
         ispod = StructPOD.fwd;
+        iscpp03pod = StructPOD.fwd;
+        iscppdmcpod = StructPOD.fwd;
         // For forward references
         type = new TypeStruct(this);
 
@@ -589,6 +593,79 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         }
 
         return (ispod == StructPOD.yes);
+    }
+
+    /***************************************
+     * Determine if struct is C++03 POD (Plain Old Data).
+     *
+     * C++03 POD is defined as:
+     *      $(OL
+     *      $(LI no constructors, postblits, destructors, or assignment operators)
+     *      $(LI no `ref` fields or fields that are themselves non-POD)
+     *      $(LI no non-public fields)
+     *      )
+     *
+     * Returns:
+     *     true if struct is C++03 POD
+     */
+    final bool isCPP03POD()
+    {
+        if (iscpp03pod == StructPOD.fwd)
+        {
+            iscpp03pod = isCPPPODImpl(false) ? StructPOD.yes : StructPOD.no;
+        }
+        return (iscpp03pod == StructPOD.yes);
+    }
+
+    /***************************************
+     * Determine if struct is C++ POD (Plain Old Data) according to DMC.
+     *
+     * DMC defines a C++ POD as:
+     *      $(OL
+     *      $(LI no constructors, postblits, destructors, or assignment operators)
+     *      $(LI no `ref` fields or fields that are themselves non-POD)
+     *      )
+     *
+     * Returns:
+     *     true if struct is DMC C++ POD
+     */
+    final bool isCPPDMCPOD()
+    {
+        if (iscppdmcpod == StructPOD.fwd)
+        {
+            iscppdmcpod = isCPPPODImpl(true) ? StructPOD.yes : StructPOD.no;
+        }
+        return (iscppdmcpod == StructPOD.yes);
+
+    }
+
+    private bool isCPPPODImpl(bool allowPrivateFields)
+    {
+        if (!isPOD() || ctor)
+        {
+            return false;
+        }
+
+        // Recursively check all fields are C++ POD.
+        foreach (v; fields)
+        {
+            if (!allowPrivateFields && v.prot().isMoreRestrictiveThan(Prot(Prot.Kind.public_)))
+            {
+                return false;
+            }
+
+            Type tv = v.type.baseElemOf();
+            if (auto ts = tv.isTypeStruct())
+            {
+                StructDeclaration sd = ts.sym;
+                if (!sd.isCPPPODImpl(allowPrivateFields))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     override final inout(StructDeclaration) isStructDeclaration() inout

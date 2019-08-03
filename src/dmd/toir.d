@@ -994,7 +994,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
         strcat(strcat(closname, name1), name2);
 
         /* Build type for closure */
-        type *Closstru = type_struct_class(closname, target.ptrsize, 0, null, null, false, false, true, false);
+        type *Closstru = type_struct_class(closname, target.ptrsize, 0, null, null, false, false, true, false, 0);
         free(closname);
         auto chaintype = getParentClosureType(irs.sthis, fd);
         symbol_struct_addField(Closstru.Ttag, "__chain", chaintype, 0);
@@ -1146,7 +1146,7 @@ void buildCapture(FuncDeclaration fd)
         strcat(strcat(capturename, name1), name2);
 
         /* Build type for struct */
-        type *capturestru = type_struct_class(capturename, target.ptrsize, 0, null, null, false, false, true, false);
+        type *capturestru = type_struct_class(capturename, target.ptrsize, 0, null, null, false, false, true, false, 0);
         free(capturename);
 
         foreach (v; fd.closureVars)

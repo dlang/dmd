@@ -1432,7 +1432,13 @@ regm_t allocretregs(tym_t ty, type *t, tym_t tyf, reg_t *reg1, reg_t *reg2)
                     ty2 = targ2.Tty;
                 break;
             }
-            else if (!(t.Ttag.Sstruct.Sflags & STRnotpod))
+            else if ((config.exe == EX_WIN32 && config.objfmt == OBJ_OMF && tybasic(tyf) != TYjfunc &&
+                      (t.Ttag.Sstruct.Sflags & STRnotcppdmcpod)) || // DMC doesn't follow C++03 POD rules
+                     (t.Ttag.Sstruct.Sflags & STRnotcpp03pod))      // Windows follows C++03 POD rules
+            {
+                return 0; // return non POD in memory
+            }
+            else
             {
                 // windows only, return POD of 1, 2, 4, or 8 bytes on EAX(:EDX)
                 if (!(config.exe & (EX_WIN64 | EX_WIN32)))
@@ -1457,7 +1463,7 @@ regm_t allocretregs(tym_t ty, type *t, tym_t tyf, reg_t *reg1, reg_t *reg2)
 
                 break;
             }
-            return 0;
+            assert(0);
 
         default:
             break;

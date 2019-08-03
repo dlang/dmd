@@ -63,6 +63,27 @@ struct S18784
 
 S18784::S18784(int n) : i(n) {}
 
+struct S030
+{
+    int i;
+private:
+    int j;
+};
+
+struct S031
+{
+private:
+    int i, j;
+};
+
+struct S032
+{
+    int i;
+    S032(int);
+};
+
+S032::S032(int i) : i(i) {}
+
 struct S0 { };
 S0 passthrough(S0 s, int &i) { ++i; return s; }
 
@@ -98,6 +119,9 @@ S4                 passthrough(S4                  value)     { return value; }
 S5                 passthrough(S5                  value)     { return value; }
 S8                 passthrough(S8                  value)     { return value; }
 S16                passthrough(S16                 value)     { return value; }
+S030               passthrough(S030                value)     { return value; }
+S031               passthrough(S031                value)     { return value; }
+S032               passthrough(S032                value)     { return value; }
 
 bool               passthrough_ptr(bool               *value) { return *value; }
 signed char        passthrough_ptr(signed char        *value) { return *value; }
@@ -131,6 +155,9 @@ S4                 passthrough_ptr(S4                 *value) { return *value; }
 S5                 passthrough_ptr(S5                 *value) { return *value; }
 S8                 passthrough_ptr(S8                 *value) { return *value; }
 S16                passthrough_ptr(S16                *value) { return *value; }
+S030               passthrough_ptr(S030               *value) { return *value; }
+S031               passthrough_ptr(S031               *value) { return *value; }
+S032               passthrough_ptr(S032               *value) { return *value; }
 
 bool               passthrough_ref(bool               &value) { return value; }
 signed char        passthrough_ref(signed char        &value) { return value; }
@@ -164,6 +191,9 @@ S4                 passthrough_ref(S4                 &value) { return value; }
 S5                 passthrough_ref(S5                 &value) { return value; }
 S8                 passthrough_ref(S8                 &value) { return value; }
 S16                passthrough_ref(S16                &value) { return value; }
+S030               passthrough_ref(S030               &value) { return value; }
+S031               passthrough_ref(S031               &value) { return value; }
+S032               passthrough_ref(S032               &value) { return value; }
 
 namespace ns1
 {
