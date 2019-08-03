@@ -5314,7 +5314,8 @@ elem *toElem(Expression e, IRState *irs)
                 else
                 {
                     Symbol *sp = toSymbol(s);
-                    symbol_add(sp);
+                    if (sp.Ssymnum == -1)
+                        symbol_add(sp);
                     //printf("\tadding symbol '%s'\n", sp.Sident);
                     if (vd._init)
                     {
