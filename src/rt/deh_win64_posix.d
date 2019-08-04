@@ -493,4 +493,3 @@ extern (C) void _d_throwc(Throwable h)
     }
     terminate();
 }
-

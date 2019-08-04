@@ -34,4 +34,3 @@ else version (Posix)
     public import rt.deh_win64_posix;
 else
     static assert (0, "Unsupported architecture");
-

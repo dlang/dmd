@@ -956,4 +956,3 @@ struct CppExceptionHeader
         return cast(CppExceptionHeader*)(eo + 1) - 1;
     }
 }
-
