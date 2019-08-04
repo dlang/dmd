@@ -13,37 +13,42 @@
 module core.stdcpp.string;
 
 import core.stdcpp.allocator;
+import core.stdcpp.xutility : StdNamespace;
 import core.stdc.stddef : wchar_t;
 
+version (OSX)
+{
+    // Apple decided to rock a different ABI... good for them!
+    version = _LIBCPP_ABI_ALTERNATE_STRING_LAYOUT;
+}
 version (CppRuntime_Gcc)
 {
     version (_GLIBCXX_USE_CXX98_ABI)
     {
-        private enum StdNamespace = "std";
+        private enum StringNamespace = "std";
 //        version = __GTHREADS; // TODO: we need to make ref-count interactions atomic
     }
     else
     {
         import core.internal.traits : AliasSeq;
-        private enum StdNamespace = AliasSeq!("std", "__cxx11");
+        private enum StringNamespace = AliasSeq!("std", "__cxx11");
     }
 }
 else
-    import core.stdcpp.xutility : StdNamespace;
+    alias StringNamespace = StdNamespace;
 
 enum DefaultConstruct { value }
 
 /// Constructor argument for default construction
 enum Default = DefaultConstruct();
 
-extern(C++, (StdNamespace)):
 @nogc:
 
 /**
  * Character traits classes specify character properties and provide specific
  * semantics for certain operations on characters and sequences of characters.
  */
-struct char_traits(CharT) {}
+extern(C++, (StdNamespace)) struct char_traits(CharT) {}
 
 // I don't think we can have these here, otherwise symbols are emit to druntime, and we don't want that...
 //alias std_string = basic_string!char;
@@ -57,6 +62,7 @@ struct char_traits(CharT) {}
  * C++ reference: $(LINK2 https://en.cppreference.com/w/cpp/string/basic_string)
  */
 extern(C++, class)
+extern(C++, (StringNamespace))
 struct basic_string(T, Traits = char_traits!T, Alloc = allocator!T)
 {
 extern(D):
@@ -727,6 +733,8 @@ extern(D):
         }
         else
         {
+            pragma(msg, "libstdc++ std::__cxx11::basic_string is not yet supported; the struct contains an interior pointer which breaks D move semantics!");
+
             //----------------------------------------------------------------------------------
             // GCC/libstdc++ modern implementation
             //----------------------------------------------------------------------------------
@@ -1309,8 +1317,8 @@ private:
 version (CppRuntime_Microsoft)
 {
     import core.stdcpp.xutility : _ITERATOR_DEBUG_LEVEL;
-extern(C++, "std"):
 
+extern(C++, (StdNamespace)):
     extern (C++) struct _String_base_types(_Elem, _Alloc)
     {
         alias Ty = _Elem;
