@@ -122,7 +122,7 @@
     </Link>
     <DCompile>
       <VersionIdentifiers>MARS</VersionIdentifiers>
-      <StringImportPaths>..\..\res;$(OutDir)\dmd\generated</StringImportPaths>
+      <StringImportPaths>..\..\res;$(OutDir)</StringImportPaths>
       <CRuntimeLibrary>MultiThreadedDebug</CRuntimeLibrary>
       <CompilationModel>Package</CompilationModel>
       <ImportPaths>..</ImportPaths>
@@ -146,7 +146,7 @@
     </Link>
     <DCompile>
       <VersionIdentifiers>MARS</VersionIdentifiers>
-      <StringImportPaths>..\..\res;$(OutDir)\dmd\generated</StringImportPaths>
+      <StringImportPaths>..\..\res;$(OutDir)</StringImportPaths>
       <CRuntimeLibrary>MultiThreadedDebug</CRuntimeLibrary>
       <CompilationModel>Package</CompilationModel>
       <ImportPaths>..</ImportPaths>
@@ -175,7 +175,7 @@
     </Link>
     <DCompile>
       <VersionIdentifiers>MARS</VersionIdentifiers>
-      <StringImportPaths>..\..\res;$(OutDir)\dmd\generated</StringImportPaths>
+      <StringImportPaths>..\..\res;$(OutDir)</StringImportPaths>
       <CompilationModel>Package</CompilationModel>
       <ImportPaths>..</ImportPaths>
       <Optimizer>true</Optimizer>
@@ -204,7 +204,7 @@
     </Link>
     <DCompile>
       <VersionIdentifiers>MARS</VersionIdentifiers>
-      <StringImportPaths>..\..\res;$(OutDir)\dmd\generated</StringImportPaths>
+      <StringImportPaths>..\..\res;$(OutDir)</StringImportPaths>
       <CompilationModel>Package</CompilationModel>
       <ImportPaths>..</ImportPaths>
       <Optimizer>true</Optimizer>
@@ -222,8 +222,8 @@
   <ItemGroup>
     <CustomBuild Include="..\..\VERSION">
       <Message>Creating VERSION...</Message>
-      <Command>$(_rdmdExe) ..\..\config.d $(IntDir)generated ..\..\VERSION</Command>
-      <Outputs>$(IntDir)generated\VERSION;%(Outputs)</Outputs>
+      <Command>$(_rdmdExe) ..\..\config.d $(OutDir) ..\..\VERSION</Command>
+      <Outputs>$(OutDir)VERSION;%(Outputs)</Outputs>
     </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
