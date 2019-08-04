@@ -77,6 +77,9 @@
     <_DCompilerExe Condition="'$(DCompiler)' == 'LDC' and '$(Platform)'=='x64'">$(LDCBinDir)ldmd2.exe -m64</_DCompilerExe>
     <_DCompilerExe Condition="'$(DCompiler)' == 'LDC' and '$(Platform)'=='Win32'">$(LDCBinDir)ldmd2.exe -m32</_DCompilerExe>
     <_DCompilerExe Condition="'$(_DCompilerExe)' == ''">$(DMDBinDir)dmd.exe</_DCompilerExe>
+    <_rdmdExe Condition="'$(DCompiler)' == 'LDC' and '$(Platform)'=='x64'">$(LDCBinDir)rdmd.exe -m64</_rdmdExe>
+    <_rdmdExe Condition="'$(DCompiler)' == 'LDC' and '$(Platform)'=='Win32'">$(LDCBinDir)rdmd.exe -m32</_rdmdExe>
+    <_rdmdExe Condition="'$(_rdmdExe)' == '' ">$(DMDBinDir)rdmd.exe</_rdmdExe>
   </PropertyGroup>
   <PropertyGroup>
     <CustomBuildBeforeTargets>_DMD</CustomBuildBeforeTargets>
@@ -119,7 +122,7 @@
     </Link>
     <DCompile>
       <VersionIdentifiers>MARS</VersionIdentifiers>
-      <StringImportPaths>..\..;..\..\res;$(OutDir)\dmd\generated</StringImportPaths>
+      <StringImportPaths>..\..\res;$(OutDir)\dmd\generated</StringImportPaths>
       <CRuntimeLibrary>MultiThreadedDebug</CRuntimeLibrary>
       <CompilationModel>Package</CompilationModel>
       <ImportPaths>..</ImportPaths>
@@ -143,7 +146,7 @@
     </Link>
     <DCompile>
       <VersionIdentifiers>MARS</VersionIdentifiers>
-      <StringImportPaths>..\..;..\..\res;$(OutDir)\dmd\generated</StringImportPaths>
+      <StringImportPaths>..\..\res;$(OutDir)\dmd\generated</StringImportPaths>
       <CRuntimeLibrary>MultiThreadedDebug</CRuntimeLibrary>
       <CompilationModel>Package</CompilationModel>
       <ImportPaths>..</ImportPaths>
@@ -172,7 +175,7 @@
     </Link>
     <DCompile>
       <VersionIdentifiers>MARS</VersionIdentifiers>
-      <StringImportPaths>..\..;..\..\res;$(OutDir)\dmd\generated</StringImportPaths>
+      <StringImportPaths>..\..\res;$(OutDir)\dmd\generated</StringImportPaths>
       <CompilationModel>Package</CompilationModel>
       <ImportPaths>..</ImportPaths>
       <Optimizer>true</Optimizer>
@@ -201,7 +204,7 @@
     </Link>
     <DCompile>
       <VersionIdentifiers>MARS</VersionIdentifiers>
-      <StringImportPaths>..\..;..\..\res;$(OutDir)\dmd\generated</StringImportPaths>
+      <StringImportPaths>..\..\res;$(OutDir)\dmd\generated</StringImportPaths>
       <CompilationModel>Package</CompilationModel>
       <ImportPaths>..</ImportPaths>
       <Optimizer>true</Optimizer>
@@ -215,6 +218,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="../dmd/**/*.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="..\..\VERSION">
+      <Message>Creating VERSION...</Message>
+      <Command>$(_rdmdExe) ..\..\config.d $(IntDir)generated ..\..\VERSION</Command>
+      <Outputs>$(IntDir)generated\VERSION;%(Outputs)</Outputs>
+    </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
