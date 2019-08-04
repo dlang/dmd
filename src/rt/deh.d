@@ -14,10 +14,8 @@ module rt.deh;
 extern (C)
 {
     Throwable.TraceInfo _d_traceContext(void* ptr = null);
-    void _d_createTrace(Object o, void* context)
+    void _d_createTrace(Throwable t, void* context)
     {
-        auto t = cast(Throwable) o;
-
         if (t !is null && t.info is null &&
             cast(byte*) t !is typeid(t).initializer.ptr)
         {
