@@ -70,9 +70,6 @@ steps:
       cd "%DMD_DIR%\..\phobos"
       "%DM_MAKE%" -f win64.mak MODEL=32mscoff "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "AR=%MSVC_AR%" "MAKE=%DM_MAKE%" || exit /B 5
 
-      REM Build DMD VERSION + string imports (not built by VisualD)
-      copy "%DMD_DIR%\VERSION" "%DMD_DIR%\generated\Windows\Release\Win32\VERSION"
-
       REM Run DMD testsuite
       cd "%DMD_DIR%\test"
       cp %DMD_DIR%\..\phobos\phobos32mscoff.lib .
