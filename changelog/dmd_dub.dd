@@ -1,0 +1,3 @@
+Full DMD compiler is now available as dub library
+
+See the code generation example [here](https://github.com/dlang/dmd/blob/master/test/dub_package/full.d).
