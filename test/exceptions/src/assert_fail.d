@@ -241,6 +241,103 @@ void testTuple()
     test(_d_assert_fail(">="), "() < ()");
 }
 
+void testStructEquals()
+{
+    struct T {
+        bool b;
+        int i;
+        float f1 = 2.5;
+        float f2 = 0;
+        string s1 = "bar";
+        string s2;
+    }
+
+    T t1;
+    test!"!="(t1, t1, `T(false, 0, 2.5, 0, "bar", "") == T(false, 0, 2.5, 0, "bar", "")`);
+    T t2 = {s1: "bari"};
+    test(t1, t2, `T(false, 0, 2.5, 0, "bar", "") != T(false, 0, 2.5, 0, "bari", "")`);
+}
+
+void testStructEquals2()
+{
+    struct T {
+        bool b;
+        int i;
+        float f1 = 2.5;
+        float f2 = 0;
+    }
+
+    T t1;
+    test!"!="(t1, t1, `T(false, 0, 2.5, 0) == T(false, 0, 2.5, 0)`);
+    T t2 = {i: 2};
+    test(t1, t2, `T(false, 0, 2.5, 0) != T(false, 2, 2.5, 0)`);
+}
+
+void testStructEquals3()
+{
+    struct T {
+        bool b;
+        int i;
+        string s1 = "bar";
+        string s2;
+    }
+
+    T t1;
+    test!"!="(t1, t1, `T(false, 0, "bar", "") == T(false, 0, "bar", "")`);
+    T t2 = {s1: "bari"};
+    test(t1, t2, `T(false, 0, "bar", "") != T(false, 0, "bari", "")`);
+}
+
+void testStructEquals4()
+{
+    struct T {
+        float f1 = 2.5;
+        float f2 = 0;
+        string s1 = "bar";
+        string s2;
+    }
+
+    T t1;
+    test!"!="(t1, t1, `T(2.5, 0, "bar", "") == T(2.5, 0, "bar", "")`);
+    T t2 = {s1: "bari"};
+    test(t1, t2, `T(2.5, 0, "bar", "") != T(2.5, 0, "bari", "")`);
+}
+
+void testStructEquals5()
+{
+    struct T {
+        bool b;
+        int i;
+        float f2 = 0;
+        string s2;
+    }
+
+    T t1;
+    test!"!="(t1, t1, `T(false, 0, 0, "") == T(false, 0, 0, "")`);
+    T t2 = {b: true};
+    test(t1, t2, `T(false, 0, 0, "") != T(true, 0, 0, "")`);
+}
+
+void testStructEquals6()
+{
+    class C { override string toString() { return "C()"; }}
+    struct T {
+        bool b;
+        int i;
+        float f2 = 0;
+        string s2;
+        int[] arr;
+        C c;
+    }
+
+    T t1;
+    test!"!="(t1, t1, "T(false, 0, 0, \"\", [], `null`) == T(false, 0, 0, \"\", [], `null`)");
+    T t2 = {arr: [1]};
+    test(t1, t2, "T(false, 0, 0, \"\", [], `null`) != T(false, 0, 0, \"\", [1], `null`)");
+    T t3 = {c: new C()};
+    test(t1, t3, "T(false, 0, 0, \"\", [], `null`) != T(false, 0, 0, \"\", [], C())");
+}
+
 void main()
 {
     testIntegers();
@@ -258,5 +355,11 @@ void main()
     testEnum();
     testUnary();
     testTuple();
+    testStructEquals();
+    testStructEquals2();
+    testStructEquals3();
+    testStructEquals4();
+    testStructEquals5();
+    testStructEquals6();
     fprintf(stderr, "success.\n");
 }
