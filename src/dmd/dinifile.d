@@ -19,6 +19,7 @@ import core.sys.posix.stdlib;
 import core.sys.windows.winbase;
 import core.sys.windows.windef;
 
+import dmd.env;
 import dmd.errors;
 import dmd.globals;
 import dmd.root.rmem;
@@ -28,7 +29,6 @@ import dmd.root.port;
 import dmd.root.stringtable;
 import dmd.utils;
 
-version (Windows) extern (C) int putenv(const char*) nothrow;
 private enum LOG = false;
 
 /*****************************
@@ -145,20 +145,11 @@ void updateRealEnvironment(ref StringTable environment)
     static int envput(const(StringValue)* sv) nothrow
     {
         const name = sv.toDchars();
-        const namelen = strlen(name);
         const value = cast(const(char)*)sv.ptrvalue;
         if (!value) // deleted?
             return 0;
-        const valuelen = strlen(value);
-        auto s = cast(char*)malloc(namelen + 1 + valuelen + 1);
-        if (!s)
-            Mem.error();
-        memcpy(s, name, namelen);
-        s[namelen] = '=';
-        memcpy(s + namelen + 1, value, valuelen);
-        s[namelen + 1 + valuelen] = 0;
-        //printf("envput('%s')\n", s);
-        putenv(s);
+        if (putenvRestorable(name.toDString, value.toDString))
+            assert(0);
         return 0; // do all of them
     }
 

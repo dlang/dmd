@@ -317,7 +317,7 @@ FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argt
 	arraytypes astcodegen ast_node attrib builtin canthrow cli clone compiler complex cond constfold	\
 	cppmangle cppmanglewin ctfeexpr ctorflow dcast dclass declaration delegatize denum dimport	\
 	dinifile dinterpret dmacro dmangle dmodule doc dscope dstruct dsymbol dsymbolsem	\
-	dtemplate dversion escape expression expressionsem func			\
+	dtemplate dversion env escape expression expressionsem func			\
 	hdrgen id impcnvtab imphint init initsem inline inlinecost intrange	\
 	json lambdacomp lib libelf libmach link mars mtype nogc nspace objc opover optimize parse permissivevisitor sapply templateparamsem	\
 	sideeffect statement staticassert target typesem traits transitivevisitor parsetimevisitor visitor	\
