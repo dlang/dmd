@@ -53,8 +53,13 @@ dm_make() {
     cp "$DMC" "$DM_MAKE" "dm/path"
 }
 
-echo "[STEP]: Downloading LDC"
-ldc
+if [ "$D_COMPILER" == "dmd" ]; then
+    echo "[STEP]: Downloading DMD"
+    install_host_dmd
+elif [ "$D_COMPILER" == "ldc" ]; then
+    echo "[STEP]: Downloading LDC"
+    ldc
+fi
 
 echo "[STEP]: Downloading VisualD"
 visuald
