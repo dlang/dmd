@@ -59,18 +59,7 @@ import rt.dmain2;
 import rt.minfo;
 import rt.util.container.array;
 import rt.util.container.hashtab;
-
-/****
- * Asserts the specified condition, independent from -release, by abort()ing.
- * Regular assertions throw an AssertError and thus require an initialized
- * GC, which isn't the case (yet or anymore) for the startup/shutdown code in
- * this module (called by CRT ctors/dtors etc.).
- */
-private void safeAssert(bool condition, scope string msg, size_t line = __LINE__) @nogc nothrow @safe
-{
-    import core.internal.abort;
-    condition || abort(msg, __FILE__, line);
-}
+import rt.util.utility : safeAssert;
 
 alias DSO SectionGroup;
 struct DSO
