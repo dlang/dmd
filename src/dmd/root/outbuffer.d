@@ -448,13 +448,10 @@ struct OutBuffer
 /****** copied from core.internal.string *************/
 
 private:
-pure:
-nothrow:
-@nogc:
 
 alias UnsignedStringBuf = char[20];
 
-char[] unsignedToTempString(ulong value, char[] buf, uint radix = 10) @safe
+char[] unsignedToTempString(ulong value, char[] buf, uint radix = 10) @safe pure nothrow @nogc
 {
     size_t i = buf.length;
     do
@@ -473,4 +470,71 @@ char[] unsignedToTempString(ulong value, char[] buf, uint radix = 10) @safe
         }
     } while (value);
     return buf[i .. $];
+}
+
+/************* unit tests **************************************************/
+
+unittest
+{
+    OutBuffer buf;
+    buf.printf("betty");
+    buf.insert(1, "xx".ptr, 2);
+    buf.insert(3, "yy");
+    buf.remove(4, 1);
+    buf.bracket('(', ')');
+    const char[] s = buf.peekSlice();
+    assert(s == "(bxxyetty)");
+    buf.destroy();
+}
+
+unittest
+{
+    OutBuffer buf;
+    buf.writestring("abc".ptr);
+    buf.prependstring("def");
+    buf.prependbyte('x');
+    OutBuffer buf2;
+    buf2.writestring("mmm");
+    buf.write(&buf2);
+    char[] s = buf.extractSlice();
+    assert(s == "xdefabcmmm");
+}
+
+unittest
+{
+    OutBuffer buf;
+    buf.writeByte('a');
+    char[] s = buf.extractSlice();
+    assert(s == "a");
+
+    buf.writeByte('b');
+    char[] t = buf.extractSlice();
+    assert(t == "b");
+}
+
+unittest
+{
+    OutBuffer buf;
+    char* p = buf.peekChars();
+    assert(*p == 0);
+
+    buf.writeByte('s');
+    char* q = buf.peekChars();
+    assert(strcmp(q, "s") == 0);
+}
+
+unittest
+{
+    char[10] buf;
+    char[] s = unsignedToTempString(278, buf[], 10);
+    assert(s == "278");
+
+    s = unsignedToTempString(1, buf[], 10);
+    assert(s == "1");
+
+    s = unsignedToTempString(8, buf[], 2);
+    assert(s == "1000");
+
+    s = unsignedToTempString(29, buf[], 16);
+    assert(s == "1d");
 }
