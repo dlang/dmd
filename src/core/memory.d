@@ -884,12 +884,21 @@ void* pureRealloc()(void* ptr, size_t size) @system pure @nogc nothrow
     fakePureErrno = errnosave;
     return ret;
 }
+
 /// ditto
 void pureFree()(void* ptr) @system pure @nogc nothrow
 {
-    const errnosave = fakePureErrno;
-    fakePureFree(ptr);
-    fakePureErrno = errnosave;
+    version (Posix)
+    {
+        // POSIX free doesn't set errno
+        fakePureFree(ptr);
+    }
+    else
+    {
+        const errnosave = fakePureErrno;
+        fakePureFree(ptr);
+        fakePureErrno = errnosave;
+    }
 }
 
 ///
