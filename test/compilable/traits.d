@@ -139,3 +139,7 @@ static assert(__traits(hasElaborateCopyConstructor, SPostblit));
 static assert(!__traits(hasElaborateCopyConstructor, NoCpCtor));
 static assert(!__traits(hasElaborateCopyConstructor, C19902));
 static assert(!__traits(hasElaborateCopyConstructor, int));
+
+// Check that invalid use cases don't compile
+static assert(!__traits(compiles, __traits(hasElaborateCopyConstructor)));
+static assert(!__traits(compiles, __traits(hasElaborateCopyConstructor, S())));
