@@ -1099,11 +1099,11 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
 
                     if (ad1.fields.dim == 1 || (ad1.fields.dim == 2 && ad1.vthis))
                     {
-                        auto var = ad1.aliasthis.isVarDeclaration();
+                        auto var = ad1.aliasthis.sym.isVarDeclaration();
                         if (var && var.type == ad1.fields[0].type)
                             return;
 
-                        auto func = ad1.aliasthis.isFuncDeclaration();
+                        auto func = ad1.aliasthis.sym.isFuncDeclaration();
                         auto tf = cast(TypeFunction)(func.type);
                         if (tf.isref && ad1.fields[0].type == tf.next)
                             return;

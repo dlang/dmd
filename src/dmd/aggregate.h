@@ -13,6 +13,7 @@
 #include "dsymbol.h"
 #include "objc.h"
 
+class AliasThis;
 class Identifier;
 class Type;
 class TypeFunction;
@@ -108,7 +109,7 @@ public:
     // it would be stored in TypeInfo_Class.defaultConstructor
     CtorDeclaration *defaultCtor;
 
-    Dsymbol *aliasthis;         // forward unresolved lookups to aliasthis
+    AliasThis *aliasthis;       // forward unresolved lookups to aliasthis
     bool noDefaultCtor;         // no default construction
 
     DtorDeclarations dtors;     // Array of destructors

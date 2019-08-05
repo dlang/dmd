@@ -2024,7 +2024,7 @@ extern (C++) abstract class Type : ASTNode
         if (!ad || !ad.aliasthis)
             return null;
 
-        auto s = ad.aliasthis;
+        auto s = ad.aliasthis.sym;
         if (s.isAliasDeclaration())
             s = s.toAlias();
 

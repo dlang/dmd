@@ -290,7 +290,7 @@ extern (C++) TupleDeclaration isAliasThisTuple(Expression e)
         {
             if (auto ad = s.isAggregateDeclaration())
             {
-                s = ad.aliasthis;
+                s = ad.aliasthis ? ad.aliasthis.sym : null;
                 if (s && s.isVarDeclaration())
                 {
                     TupleDeclaration td = s.isVarDeclaration().toAlias().isTupleDeclaration();

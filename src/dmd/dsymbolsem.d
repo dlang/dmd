@@ -669,6 +669,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
 
         dsym.semanticRun = PASS.semantic;
+        dsym.isDeprecated_ = !!(sc.stc & STC.deprecated_);
 
         Dsymbol p = sc.parent.pastMixin();
         AggregateDeclaration ad = p.isAggregateDeclaration();
@@ -723,7 +724,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
 
-        ad.aliasthis = s;
+        dsym.sym = s;
+        // Restore alias this
+        ad.aliasthis = dsym;
         dsym.semanticRun = PASS.semanticdone;
     }
 
