@@ -43,7 +43,7 @@ nothrow:
 int REGSIZE();
 
 extern __gshared CGstate cgstate;
-extern __gshared ubyte[FLMAX] datafl;
+extern __gshared bool[FLMAX] datafl;
 
 private extern (D) uint mask(uint m) { return 1 << m; }
 
@@ -2992,6 +2992,7 @@ void cdshtlng(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             // BUG: what about pointers to functions?
             switch (tym1)
             {
+                case TYimmutPtr:
                 case TYnptr:    segreg = SEG_DS;        break;
                 case TYcptr:    segreg = SEG_CS;        break;
                 case TYsptr:    segreg = SEG_SS;        break;

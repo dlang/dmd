@@ -201,6 +201,38 @@ Symbol *toSymbol(Dsymbol s)
                 t.Tcount++;
             }
 
+            /* Even if a symbol is immutable, if it has a constructor then
+             * the constructor mutates it. Remember that constructors can
+             * be inlined into other code.
+             * Just can't rely on it being immutable.
+             */
+            if (t.Tty & (mTYimmutable | mTYconst))
+            {
+                if (vd.ctorinit)
+                {
+                    /* It was initialized in a constructor, so not really immutable
+                     * as far as the optimizer is concerned, as in this case:
+                     *   immutable int x;
+                     *   shared static this() { x += 3; }
+                     */
+                    t = type_setty(&t, t.Tty & ~(mTYimmutable | mTYconst));
+                }
+                else if (auto ts = vd.type.isTypeStruct())
+                {
+                    if (!ts.isMutable() && ts.sym.ctor)
+                    {
+                        t = type_setty(&t, t.Tty & ~(mTYimmutable | mTYconst));
+                    }
+                }
+                else if (auto tc = vd.type.isTypeClass())
+                {
+                    if (!tc.isMutable() && tc.sym.ctor)
+                    {
+                        t = type_setty(&t, t.Tty & ~(mTYimmutable | mTYconst));
+                    }
+                }
+            }
+
             if (vd.isDataseg())
             {
                 if (vd.isThreadlocal() && !(vd.storage_class & STC.temp))
@@ -326,23 +358,18 @@ Symbol *toSymbol(Dsymbol s)
                 f.Fflags |= Fvirtual;
             else if (fd.isMember2() && fd.isStatic())
                 f.Fflags |= Fstatic;
-            f.Fstartline.Slinnum = fd.loc.linnum;
-            f.Fstartline.Scharnum = fd.loc.charnum;
-            f.Fstartline.Sfilename = cast(char *)fd.loc.filename;
+
+            f.Fstartline.set(fd.loc.filename, fd.loc.linnum, fd.loc.charnum);
             if (fd.endloc.linnum)
             {
-                f.Fendline.Slinnum = fd.endloc.linnum;
-                f.Fendline.Scharnum = fd.endloc.charnum;
-                f.Fendline.Sfilename = cast(char *)fd.endloc.filename;
+                f.Fendline.set(fd.endloc.filename, fd.endloc.linnum, fd.endloc.charnum);
             }
             else
             {
-                f.Fendline.Slinnum = fd.loc.linnum;
-                f.Fendline.Scharnum = fd.loc.charnum;
-                f.Fendline.Sfilename = cast(char *)fd.loc.filename;
+                f.Fendline = f.Fstartline;
             }
-            auto t = Type_toCtype(fd.type);
 
+            auto t = Type_toCtype(fd.type);
             const msave = t.Tmangle;
             if (fd.isMain())
             {
@@ -736,7 +763,7 @@ Symbol* toSymbolCpp(ClassDeclaration cd)
  */
 Symbol *toSymbolCppTypeInfo(ClassDeclaration cd)
 {
-    const id = target.cppTypeInfoMangle(cd);
+    const id = target.cpp.typeInfoMangle(cd);
     auto s = symbol_calloc(id, cast(uint)strlen(id));
     s.Sclass = SCextern;
     s.Sfl = FLextern;          // C++ code will provide the definition

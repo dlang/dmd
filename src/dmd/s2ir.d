@@ -82,9 +82,7 @@ private void block_setLoc(block *b, const ref Loc loc) pure nothrow
 
 private void srcpos_setLoc(ref Srcpos s, const ref Loc loc) pure nothrow
 {
-    s.Sfilename = cast(char *)loc.filename;
-    s.Slinnum = loc.linnum;
-    s.Scharnum = loc.charnum;
+    s.set(loc.filename, loc.linnum, loc.charnum);
 }
 
 

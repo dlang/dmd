@@ -262,16 +262,16 @@ type *topointer(type *);
 type *type_ptr(elem *, type *);
 int type_chksize(uint);
 tym_t tym_conv(const type *);
-type * type_arrayroot(type *);
+inout(type)* type_arrayroot(inout type *);
 void chklvalue(elem *);
 int tolvalue(elem **);
 void chkassign(elem *);
-void chknosu(elem *);
-void chkunass(elem *);
-void chknoabstract(type *);
+void chknosu(const elem *);
+void chkunass(const elem *);
+void chknoabstract(const type *);
 targ_llong msc_getnum();
-targ_size_t alignmember(type *,targ_size_t,targ_size_t);
-extern (C) targ_size_t _align(targ_size_t,targ_size_t);
+targ_size_t alignmember(const type *,targ_size_t,targ_size_t);
+targ_size_t _align(targ_size_t,targ_size_t);
 
 /* nteh.c */
 ubyte *nteh_context_string();
@@ -365,6 +365,7 @@ void freesymtab(Symbol **stab, SYMIDX n1, SYMIDX n2);
 Symbol *symbol_copy(Symbol *s);
 Symbol *symbol_searchlist(symlist_t sl, const(char)* vident);
 void symbol_reset(Symbol *s);
+tym_t symbol_pointerType(const Symbol* s);
 
 // cg87.c
 void cg87_reset();
@@ -456,7 +457,7 @@ int elemisone(elem *);
 
 /* msc.c */
 targ_size_t size(tym_t);
-extern (C) Symbol *symboldata(targ_size_t offset,tym_t ty);
+Symbol *symboldata(targ_size_t offset,tym_t ty);
 bool dom(block *A , block *B);
 uint revop(uint op);
 uint invrel(uint op);

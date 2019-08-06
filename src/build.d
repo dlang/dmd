@@ -33,15 +33,18 @@ __gshared typeof(sourceFiles()) sources;
 immutable rootDeps = [
     &dmdDefault,
     &runDmdUnittest,
+    &clean,
 ];
 
 void main(string[] args)
 {
     int jobs = totalCPUs;
+    bool calledFromMake = false;
     auto res = getopt(args,
         "j|jobs", "Specifies the number of jobs (commands) to run simultaneously (default: %d)".format(totalCPUs), &jobs,
         "v", "Verbose command output", (cast(bool*) &verbose),
         "f", "Force run (ignore timestamps and always run all tests)", (cast(bool*) &force),
+        "called-from-make", "Calling the build script from the Makefile", &calledFromMake
     );
     void showHelp()
     {
@@ -78,11 +81,7 @@ ENABLE_SANITIZERS     Build dmd with sanitizer (e.g. ENABLE_SANITIZERS=address,u
 
 Targets
 -------
-
-all                   Build dmd
-unittest              Run all unittest blocks
-clean                 Remove all generated files
-
+` ~ targetsHelp ~ `
 The generated files will be in generated/$(OS)/$(BUILD)/$(MODEL)
 
 Command-line parameters
@@ -103,7 +102,7 @@ Command-line parameters
 
     // default target
     if (!args.length)
-        args = ["all"];
+        args = ["dmd"];
 
     auto targets = args
         .predefinedTargets // preprocess
@@ -119,20 +118,65 @@ Command-line parameters
             log("%s=%s", key, value);
         log("================================================================================");
     }
-    foreach (target; targets.parallel(1))
-        target();
+    {
+        File lockFile;
+        if (calledFromMake)
+        {
+            // If called from make, use an interprocess lock so that parallel builds don't stomp on each other
+            lockFile = File(env["GENERATED"].buildPath("build.lock"), "w");
+            lockFile.lock();
+        }
+        scope (exit)
+        {
+            if (calledFromMake)
+            {
+                lockFile.unlock();
+                lockFile.close();
+            }
+        }
+        foreach (target; targets.parallel(1))
+            target();
+    }
+
+    writeln("Success");
+}
+
+/// Generate list of targets for use in the help message
+string targetsHelp()
+{
+    string result = "";
+    foreach (dep; DependencyRange(rootDeps.map!(a => a()).array))
+    {
+        if (dep.name)
+        {
+            enum defaultPrefix = "\n                      ";
+            result ~= dep.name;
+            string prefix = defaultPrefix[1 + dep.name.length .. $];
+            void add(string msg)
+            {
+                result ~= format("%s%s", prefix, msg);
+                prefix = defaultPrefix;
+            }
+            if (dep.description)
+                add(dep.description);
+            else if (dep.targets)
+            {
+                foreach (target; dep.targets)
+                {
+                    add(target.relativePath);
+                }
+            }
+            result ~= "\n";
+        }
+    }
+    return result;
 }
 
 /**
 D build dependencies
 ====================
 
-The strategy of this script is to emulate what the Makefile is doing,
-but without a complicated dependency and dependency system.
-The "dependency system" used here is rather naive and only parallelizes the
-build of the backend and lexer (writing a few config files doesn't take much time).
-However, it does skip steps when the source files are younger than the target
-and thus supports partial rebuilds.
+The strategy of this script is to emulate what the Makefile is doing.
 
 Below all individual dependencies of DMD are defined.
 They have a target path, sources paths and an optional name.
@@ -141,32 +185,29 @@ A dependency will be skipped if all targets are older than all sources.
 This script is by default part of the sources and thus any change to the build script,
 will trigger a full rebuild.
 
-The function buildDMD defines the build order of its dependencies.
 */
 
 /// Returns: the dependency that builds the lexer
-alias lexer = memoize!defineLexer;
-auto defineLexer()
-{
+alias lexer = memoize!(function() {
     Dependency dependency = {
+        name: "lexer",
         target: env["G"].buildPath("lexer").libName,
         sources: sources.lexer,
-        deps: stringFiles,
+        deps: [versionFile, sysconfDirFile],
         msg: "(DC) D_LEXER_OBJ %-(%s, %)".format(sources.lexer.map!(e => e.baseName).array),
         command: [
             env["HOST_DMD_RUN"],
             "-of$@",
             "-lib",
+            "-vtls",
             "-J"~env["G"], "-J../res",
         ].chain(flags["DFLAGS"], "$<".only).array
     };
     return new DependencyRef(dependency);
-}
+});
 
 /// Returns: the dependency that generates the dmd.conf file in the output folder
-alias dmdConf = memoize!defineDmdConf;
-auto defineDmdConf()
-{
+alias dmdConf = memoize!(function() {
     // TODO: add support for Windows
     string exportDynamic;
     version(OSX) {} else
@@ -186,18 +227,17 @@ DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@
         conf.toFile(target);
     }; // defined separately to support older D compilers
     Dependency dependency = {
+        name: "dmdconf",
         target: target,
         msg: "(TX) DMD_CONF",
         commandFunction: commandFunction,
     };
     return new DependencyRef(dependency);
-}
+});
 
 /// Returns: the dependency that builds and executes the optabgen utility
-alias opTabGen = memoize!defineOpTabGen;
-auto defineOpTabGen()
-{
-    auto opTabFiles = ["debtab.d", "optab.d", "cdxxx.d", "elxxx.d", "fltables.d", "tytab.d"];
+alias opTabGen = memoize!(function() {
+    auto opTabFiles = ["tytab.d"];
     auto opTabFilesBin = opTabFiles.map!(e => env["G"].buildPath(e)).array;
     auto opTabBin = env["G"].buildPath("optabgen").exeName;
     auto opTabSourceFile = env["C"].buildPath("optabgen.d");
@@ -216,18 +256,19 @@ auto defineOpTabGen()
         opTabFiles.map!(a => srcDir.buildPath(a)).zip(opTabFilesBin).each!(a => a.expand.rename);
     }; // defined separately to support older D compilers
     Dependency dependency = {
+        name: "optabgen",
+        description: "Generate source files for the backend",
         targets: opTabFilesBin,
         sources: [opTabSourceFile],
         commandFunction: commandFunction,
     };
     return new DependencyRef(dependency);
-}
+});
 
 /// Returns: the dependencies that build the D backend
-alias dBackend = memoize!defineDBackend;
-auto defineDBackend()
-{
+alias dBackend = memoize!(function () {
     Dependency dependency = {
+        name: "dbackend",
         target: env["G"].buildPath("dbackend").objName,
         sources: sources.backend,
         msg: "(DC) D_BACK_OBJS %-(%s, %)".format(sources.backend.map!(e => e.baseName).array),
@@ -240,14 +281,13 @@ auto defineDBackend()
         ].chain(flags["DFLAGS"], "$<".only).array
     };
     return new DependencyRef(dependency);
-}
+});
 
 /// Execute the sub-dependencies of the backend and pack everything into one object file
-alias backend = memoize!defineBackend;
-auto defineBackend()
-{
+alias backend = memoize!(function() {
     // Pack the backend
     Dependency dependency = {
+        name: "backend",
         msg: "(LIB) %s".format("BACKEND".libName),
         sources: [ env["G"].buildPath("dbackend").objName ],
         target: env["G"].buildPath("backend").libName,
@@ -255,33 +295,38 @@ auto defineBackend()
         command: [env["HOST_DMD_RUN"], env["MODEL_FLAG"], "-lib", "-of$@", "$<"]
     };
     return new DependencyRef(dependency);
-}
+});
 
 /// Returns: the dependencies that generate required string files: VERSION and SYSCONFDIR.imp
-alias stringFiles = memoize!defineStringFiles;
-auto defineStringFiles()
-{
+alias versionFile = memoize!(function() {
     const versionFile = env["G"].buildPath("VERSION");
     auto commandFunction = (){
         "(TX) VERSION".writeln;
-        ["git", "describe", "--dirty"].runCanThrow.toFile(versionFile);
+        if (srcDir.dirName.buildPath(".git").exists)
+            ["git", "describe", "--dirty", "--always"].runCanThrow.toFile(versionFile);
+        else
+            copy(srcDir.dirName.buildPath("VERSION"), versionFile);
     };
-    Dependency versionDependency = {
+    Dependency dependency = {
         target: versionFile,
         commandFunction: commandFunction,
     };
+    return new DependencyRef(dependency);
+});
+alias sysconfDirFile = memoize!(function() {
     const sysconfDirFile = env["G"].buildPath("SYSCONFDIR.imp");
-    commandFunction = (){
+    auto commandFunction = (){
         "(TX) SYSCONFDIR".writeln;
         env["SYSCONFDIR"].toFile(sysconfDirFile);
     };
-    Dependency sysconfDirDependency = {
+    Dependency dependency = {
         sources: [thisBuildScript],
         target: sysconfDirFile,
         commandFunction: commandFunction,
     };
-    return [new DependencyRef(versionDependency), new DependencyRef(sysconfDirDependency)];
-}
+    return new DependencyRef(dependency);
+});
+
 
 /**
 Dependency for the DMD executable.
@@ -289,15 +334,14 @@ Dependency for the DMD executable.
 Params:
   extra_flags = Flags to apply to the main build but not the dependencies
 */
-auto defineDmdExe(string targetSuffix, string[] extraFlags...)
-{
+alias dmdExe = memoize!(function(string targetSuffix, string[] extraFlags...) {
     // Main DMD build dependency
     Dependency dependency = {
         // newdelete.o + lexer.a + backend.a
         sources: sources.dmd.chain(sources.root, lexer.targets, backend.targets).array,
         target: env["DMD_PATH"] ~ targetSuffix,
         msg: "(DC) DMD%s %-(%s, %)".format(targetSuffix, sources.dmd.map!(e => e.baseName).array),
-        deps: stringFiles ~ [lexer, backend],
+        deps: [versionFile, sysconfDirFile, lexer, backend],
         command: [
             env["HOST_DMD_RUN"],
             "-of$@",
@@ -307,38 +351,51 @@ auto defineDmdExe(string targetSuffix, string[] extraFlags...)
         ].chain(extraFlags).chain(flags["DFLAGS"], "$<".only).array
     };
     return new DependencyRef(dependency);
-}
+});
 
-/// Dependency for the DMD executable and conf file.
-alias dmdDefault = memoize!defineDmdDefault;
-auto defineDmdDefault()
-{
+alias dmdDefault = memoize!(function() {
     Dependency dependency = {
-        deps: [dmdConf, memoize!defineDmdExe(null, null)],
+        name: "dmd",
+        description: "Build dmd",
+        deps: [dmdConf, dmdExe(null, null)],
     };
     return new DependencyRef(dependency);
-}
+});
 
 /// Dependency for the DMD unittest executable
 auto dmdUnittestExe()
 {
-    return memoize!defineDmdExe("-unittest", ["-version=NoMain", "-unittest", "-main"]);
+    return dmdExe("-unittest", ["-version=NoMain", "-unittest", "-main"]);
 }
 
 /// Dependency to run the DMD unittest executable.
-alias runDmdUnittest = memoize!defineRunDmdUnittest;
-auto defineRunDmdUnittest()
-{
+alias runDmdUnittest = memoize!(function() {
     auto commandFunction = (){
         spawnProcess(dmdUnittestExe.targets[0]);
     };
     Dependency dependency = {
+        name: "unittest",
+        description: "Run the dmd unittests",
         msg: "(RUN) DMD-UNITTEST",
         deps: [dmdUnittestExe],
         commandFunction: commandFunction.toDelegate,
     };
     return new DependencyRef(dependency);
-}
+});
+
+alias clean = memoize!(function() {
+    auto commandFunction = (){
+        if (env["G"].exists)
+            env["G"].rmdirRecurse;
+    };
+    Dependency dependency = {
+        name: "clean",
+        description: "Remove the generated directory",
+        msg: "(RM) " ~ env["G"],
+        commandFunction: commandFunction.toDelegate,
+    };
+    return new DependencyRef(dependency);
+});
 
 /**
 Goes through the target list and replaces short-hand targets with their expanded version.
@@ -358,18 +415,29 @@ LtargetsLoop:
     foreach (t; targets)
     {
         t = t.buildNormalizedPath; // remove trailing slashes
+
+        // check if `t` matches any dependency names first
+        foreach (dep; DependencyRange(rootDeps.map!(a => a()).array))
+        {
+            if (t == dep.name)
+            {
+                newTargets.put(&dep.run);
+                continue LtargetsLoop;
+            }
+        }
+
         switch (t)
         {
+            case "all":
+                t = "dmd";
+                goto default;
+
             case "auto-tester-build":
                 "TODO: auto-tester-all".writeln; // TODO
                 break;
 
             case "toolchain-info":
                 "TODO: info".writeln; // TODO
-                break;
-
-            case "unittest":
-                newTargets.put(&runDmdUnittest.run);
                 break;
 
             case "cxx-unittest":
@@ -400,26 +468,14 @@ LtargetsLoop:
                 "TODO: man".writeln; // TODO
                 break;
 
-            dmd:
-            case "dmd":
-                newTargets.put(&dmdDefault.run);
-                break;
-
-            case "clean":
-                if (env["G"].exists)
-                    env["G"].rmdirRecurse;
-                exit(0);
-                break;
-
-            case "all":
-                goto dmd;
             default:
                 // check this last, target paths should be checked after predefined names
+                const tAbsolute = t.absolutePath.buildNormalizedPath;
                 foreach (dep; DependencyRange(rootDeps.map!(a => a()).array))
                 {
                     foreach (depTarget; dep.targets)
                     {
-                        if (depTarget.endsWith(t))
+                        if (depTarget.endsWith(t, tAbsolute))
                         {
                             newTargets.put(&dep.run);
                             continue LtargetsLoop;
@@ -428,6 +484,7 @@ LtargetsLoop:
                 }
                 writefln("ERROR: Target `%s` is unknown.", t);
                 writeln;
+                exit(1);
                 break;
         }
     }
@@ -520,17 +577,21 @@ void parseEnvironment()
     auto d = env.getDefault("D", srcDir.buildPath("dmd"));
     env.getDefault("C", d.buildPath("backend"));
     env.getDefault("ROOT", d.buildPath("root"));
-    env.getDefault("EX", d.buildPath("examples"));
+    env.getDefault("EX", srcDir.buildPath("examples"));
     auto generated = env.getDefault("GENERATED", srcDir.dirName.buildPath("generated"));
     auto g = env.getDefault("G", generated.buildPath(os, build, model));
     mkdirRecurse(g);
 
-    env.getDefault("HOST_DMD", "dmd");
+    if (env.get("HOST_DMD", null).length == 0)
+    {
+        const hostDmd = env.get("HOST_DC", null);
+        env["HOST_DMD"] = hostDmd.length ? hostDmd : "dmd";
+    }
 
     // Auto-bootstrapping of a specific host compiler
-    if (env.getDefault("AUTO_BOOTSTRAP", "0") != "0")
+    if (env.getDefault("AUTO_BOOTSTRAP", null) == "1")
     {
-        auto hostDMDVer = "2.074.1";
+        auto hostDMDVer = "2.079.1";
         writefln("Using Bootstrap compiler: %s", hostDMDVer);
         auto hostDMDRoot = env["G"].buildPath("host_dmd-"~hostDMDVer);
         auto hostDMDBase = hostDMDVer~"."~os;
@@ -566,11 +627,11 @@ void processEnvironment()
     const os = env["OS"];
 
     auto hostDMDVersion = [env["HOST_DMD_RUN"], "--version"].execute.output;
-    if (hostDMDVersion.find("DMD"))
+    if (hostDMDVersion.canFind("DMD"))
         env["HOST_DMD_KIND"] = "dmd";
-    else if (hostDMDVersion.find("LDC"))
+    else if (hostDMDVersion.canFind("LDC"))
         env["HOST_DMD_KIND"] = "ldc";
-    else if (!hostDMDVersion.find("GDC", "gdmd")[0].empty)
+    else if (hostDMDVersion.canFind("GDC", "gdmd", "gdc"))
         env["HOST_DMD_KIND"] = "gdc";
     else
         enforce(0, "Invalid Host DMD found: " ~ hostDMDVersion);
@@ -581,7 +642,9 @@ void processEnvironment()
     string[] warnings;
 
       // TODO: allow adding new flags from the environment
-    string[] dflags = ["-version=MARS", "-w", "-de", "-dip25", env["PIC_FLAG"], env["MODEL_FLAG"], "-J"~env["G"]];
+    string[] dflags = ["-version=MARS", "-w", "-de", env["PIC_FLAG"], env["MODEL_FLAG"], "-J"~env["G"]];
+    if (env["HOST_DMD_KIND"] != "gdc")
+        dflags ~= ["-dip25"]; // gdmd doesn't support -dip25
 
     flags["BACK_FLAGS"] = ["-I"~env["ROOT"], "-I"~env["C"], "-I"~env["G"], "-I"~env["D"], "-DDMDV2=1"];
 
@@ -654,37 +717,43 @@ auto sourceFiles()
     {
         assert(0, "Unknown TARGET_CPU: " ~ env["TARGET_CPU"]);
     }
+    const lexerDmdFiles = [
+        "console",
+        "entity",
+        "errors",
+        "filecache",
+        "globals",
+        "id",
+        "identifier",
+        "lexer",
+        "tokens",
+        "utf",
+    ];
+    const lexerRootFiles = [
+        "array",
+        "ctfloat",
+        "file",
+        "filename",
+        "hash",
+        "outbuffer",
+        "port",
+        "rmem",
+        "rootobject",
+        "stringtable",
+    ];
     Sources sources = {
         frontend:
             dirEntries(env["D"], "*.d", SpanMode.shallow)
                 .map!(e => e.name)
-                .filter!(e => !e.canFind("asttypename.d", "frontend.d"))
+                .filter!(e => !lexerDmdFiles.chain(["asttypename", "frontend"]).canFind(e.baseName.stripExtension))
                 .array,
-        lexer: [
-            "console",
-            "entity",
-            "errors",
-            "globals",
-            "id",
-            "identifier",
-            "lexer",
-            "tokens",
-            "utf",
-        ].map!(e => env["D"].buildPath(e ~ ".d")).chain([
-            "array",
-            "ctfloat",
-            "file",
-            "filename",
-            "hash",
-            "outbuffer",
-            "port",
-            "rmem",
-            "rootobject",
-            "stringtable",
-        ].map!(e => env["ROOT"].buildPath(e ~ ".d"))).array,
+        lexer:
+            lexerDmdFiles.map!(e => env["D"].buildPath(e ~ ".d")).chain(
+            lexerRootFiles.map!(e => env["ROOT"].buildPath(e ~ ".d"))).array,
         root:
             dirEntries(env["ROOT"], "*.d", SpanMode.shallow)
                 .map!(e => e.name)
+                .filter!(e => !lexerRootFiles.canFind(e.baseName.stripExtension))
                 .array,
         backend:
             dirEntries(env["C"], "*.d", SpanMode.shallow)
@@ -779,9 +848,9 @@ auto detectModel()
     else
         uname = ["uname", "-m"].execute.output;
 
-    if (!uname.find("x86_64", "amd64", "64-bit", "64 bit")[0].empty)
+    if (uname.canFind("x86_64", "amd64", "64-bit", "64 bit"))
         return "64";
-    if (!uname.find("i386", "i586", "i686", "32-bit", "32 bit")[0].empty)
+    if (uname.canFind("i386", "i586", "i686", "32-bit", "32 bit"))
         return "32";
 
     throw new Exception(`Cannot figure 32/64 model from "` ~ uname ~ `"`);
@@ -799,7 +868,11 @@ auto getHostDMDPath(string hostDmd)
     version(Posix)
         return ["which", hostDmd].execute.output;
     else version(Windows)
+    {
+        if (hostDmd.canFind("/", "\\"))
+            return hostDmd;
         return ["where", hostDmd].execute.output.lineSplitter.front;
+    }
     else
         static assert(false, "Unrecognized or unsupported OS.");
 }
@@ -858,7 +931,10 @@ void args2Environment(ref string[] args)
             return false;
 
         auto sp = arg.splitter("=");
-        environment[sp.front] = sp.dropOne.front;
+        auto key = sp.front;
+        auto value = sp.dropOne.front;
+        environment[key] = value;
+        env[key] = value;
         return true;
     }
     args = args.filter!(a => !tryToAdd(a)).array;
@@ -963,6 +1039,8 @@ struct Dependency
     string[] command; // the dependency command
     void delegate() commandFunction; // a custom dependency command which gets called instead of command
     string msg; // msg of the dependency that is e.g. written to the CLI when it's executed
+    string name; /// optional string that can be used to identify this dependency
+    string description; /// optional string to describe this dependency rather than printing the target files
     string[] trackSources;
 }
 
@@ -1004,7 +1082,7 @@ class DependencyRef
         if (targets && targets.isUpToDate(dep.sources, [thisBuildScript], rebuildSources))
         {
             if (dep.sources !is null)
-                log("Skipping build of %-(%s%) as it's newer than %-(%s%)", targets, sources);
+                log("Skipping build of %-(%s%) as it's newer than %-(%s%)", targets, dep.sources);
             return;
         }
 
@@ -1032,7 +1110,7 @@ class DependencyRef
             command[i] = c.replace("$@", target);
 
         // Support $< (shortcut for the source path)
-        if (!command[$ - 1].find("$<").empty)
+        if (command[$ - 1].canFind("$<"))
             command = command.remove(command.length - 1) ~ dep.sources;
     }
 }
@@ -1072,7 +1150,11 @@ Params:
 auto runCanThrow(T)(T args)
 {
     auto res = run(args);
-    enforce(!res.status, res.output);
+    if (res.status)
+    {
+        writeln(res.output ? res.output : format("last command failed with exit code %s", res.status));
+        exit(1);
+    }
     return res.output;
 }
 

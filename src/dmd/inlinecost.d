@@ -207,11 +207,11 @@ public:
                 Statement s3;
                 if ((ifs = s2.isIfStatement()) !is null &&
                     ifs.ifbody &&
-                    ifs.ifbody.isReturnStatement() &&
+                    ifs.ifbody.endsWithReturnStatement() &&
                     !ifs.elsebody &&
                     i + 1 < s.statements.dim &&
                     (s3 = (*s.statements)[i + 1]) !is null &&
-                    s3.isReturnStatement()
+                    s3.endsWithReturnStatement()
                    )
                 {
                     if (ifs.prm)       // if variables are declared
@@ -272,7 +272,7 @@ public:
          *      return exp2;
          * Otherwise, we can't handle return statements nested in if's.
          */
-        if (s.elsebody && s.ifbody && s.ifbody.isReturnStatement() && s.elsebody.isReturnStatement())
+        if (s.elsebody && s.ifbody && s.ifbody.endsWithReturnStatement() && s.elsebody.endsWithReturnStatement())
         {
             s.ifbody.accept(this);
             s.elsebody.accept(this);

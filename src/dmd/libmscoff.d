@@ -110,7 +110,6 @@ final class LibMSCoff : Library
             buflen = data.length;
             fromfile = 1;
         }
-        int reason = 0;
         if (buflen < 16)
         {
             static if (LOG)
@@ -119,7 +118,7 @@ final class LibMSCoff : Library
             }
             return corrupt(__LINE__);
         }
-        if (memcmp(buf, cast(char*)"!<arch>\n", 8) == 0)
+        if (memcmp(buf, "!<arch>\n".ptr, 8) == 0)
         {
             /* It's a library file.
              * Pull each object module out of the library and add it

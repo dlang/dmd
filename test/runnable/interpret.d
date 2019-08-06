@@ -2200,12 +2200,12 @@ struct Q
 {
     int x;
     char y;
-    int opAddAssign(int w)
+    int opOpAssign(string op)(int w) if (op == "+")
     {
         x += w;
         return x + w;
     }
-    Q opSubAssign(int w)
+    Q opOpAssign(string op)(int w) if (op == "-")
     {
         x -= w;
         version(D_Version2) { mixin("return this;"); } else { mixin("return *this;"); }

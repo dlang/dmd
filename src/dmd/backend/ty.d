@@ -138,7 +138,11 @@ enum
     TYllong8            = 0x5A, // long[8]
     TYullong8           = 0x5B, // ulong[8]
 
-    TYMAX               = 0x5C,
+    TYsharePtr          = 0x5C, // pointer to shared data
+    TYimmutPtr          = 0x5D, // pointer to immutable data
+    TYfgPtr             = 0x5E, // GS: pointer (I32) FS: pointer (I64)
+
+    TYMAX               = 0x5F,
 }
 
 alias TYerror = TYint;

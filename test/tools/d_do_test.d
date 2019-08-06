@@ -5,6 +5,7 @@ import std.algorithm;
 import std.array;
 import std.conv;
 import std.datetime.stopwatch;
+import std.datetime.systime;
 import std.exception;
 import std.file;
 import std.format;
@@ -17,7 +18,7 @@ import std.stdio;
 import std.string;
 import core.sys.posix.sys.wait;
 
-const scriptDir = __FILE_FULL_PATH__.dirName.dirName;
+const dmdTestDir = __FILE_FULL_PATH__.dirName.dirName;
 
 version(Win32)
 {
@@ -55,7 +56,8 @@ enum TestMode
 {
     COMPILE,
     FAIL_COMPILE,
-    RUN
+    RUN,
+    DSHELL,
 }
 
 struct TestArgs
@@ -567,7 +569,7 @@ int tryMain(string[] args)
         return 1;
     }
 
-    auto test_file = args[1];
+    const test_file = args[1];
     string input_dir = test_file.dirName();
 
     TestArgs testArgs;
@@ -576,8 +578,9 @@ int tryMain(string[] args)
         case "compilable":              testArgs.mode = TestMode.COMPILE;      break;
         case "fail_compilation":        testArgs.mode = TestMode.FAIL_COMPILE; break;
         case "runnable":                testArgs.mode = TestMode.RUN;          break;
+        case "dshell":                  testArgs.mode = TestMode.DSHELL;       break;
         default:
-            writefln("Error: invalid test directory '%s', expected 'compilable', 'fail_compilation', or 'runnable'", input_dir);
+            writefln("Error: invalid test directory '%s', expected 'compilable', 'fail_compilation', 'runnable' or 'dshell'", input_dir);
             return 1;
     }
 
@@ -609,6 +612,9 @@ int tryMain(string[] args)
     string output_dir     = result_path ~ input_dir;
     string output_file    = result_path ~ input_file ~ ".out";
     string test_app_dmd_base = output_dir ~ envData.sep ~ test_name ~ "_";
+
+    if (testArgs.mode == TestMode.DSHELL)
+        return runDShellTest(input_dir, test_name, envData, output_dir, output_file);
 
     // envData.sep is required as the results_dir path can be `generated`
     const absoluteResultDirPath = envData.results_dir.absolutePath ~ envData.sep;
@@ -965,11 +971,125 @@ int runBashTest(string input_dir, string test_name)
     version(Windows)
     {
         auto process = spawnShell(format("bash %s %s %s",
-            buildPath(scriptDir, "tools", "sh_do_test.sh"), input_dir, test_name));
+            buildPath(dmdTestDir, "tools", "sh_do_test.sh"), input_dir, test_name));
     }
     else
     {
-        auto process = spawnProcess([scriptDir.buildPath("tools", "sh_do_test.sh"), input_dir, test_name]);
+        auto process = spawnProcess([dmdTestDir.buildPath("tools", "sh_do_test.sh"), input_dir, test_name]);
     }
     return process.wait();
+}
+
+/// Return the correct pic flags
+string[] getPicFlags()
+{
+    version (Windows) { } else
+    {
+        version(X86_64)
+            return ["-fPIC"];
+        if (environment.get("PIC", null) == "1")
+            return ["-fPIC"];
+    }
+    return cast(string[])[];
+}
+
+/// Run a dshell test
+int runDShellTest(string input_dir, string test_name, const ref EnvData envData,
+    string output_dir, string output_file)
+{
+    const testScriptDir = buildPath(dmdTestDir, input_dir);
+    const testScriptPath = buildPath(testScriptDir, test_name ~ ".d");
+    const testOutDir = buildPath(output_dir, test_name);
+    const testLogName = format("%s/%s.d", input_dir, test_name);
+
+    writefln(" ... %s", testLogName);
+
+    removeIfExists(output_file);
+    if (exists(testOutDir))
+        rmdirRecurse(testOutDir);
+    mkdirRecurse(testOutDir);
+
+    // create the "dshell" module for the tests
+    {
+        auto dshellFile = File(buildPath(testOutDir, "dshell.d"), "w");
+        dshellFile.writeln(`module dshell;
+public import dshell_prebuilt;
+static this()
+{
+    dshellPrebuiltInit("` ~ input_dir ~ `", "`, test_name , `");
+}
+`);
+    }
+
+    const testScriptExe = buildPath(testOutDir, "run" ~ envData.exe);
+    const output_file_temp = output_file ~ ".tmp";
+
+    //
+    // compile the test
+    //
+    {
+        auto outfile = File(output_file_temp, "w");
+        const compile = [envData.dmd, "-conf=", "-m"~envData.model] ~
+            getPicFlags ~ [
+            "-od" ~ testOutDir,
+            "-of" ~ testScriptExe,
+            "-I=" ~ testScriptDir,
+            "-I=" ~ testOutDir,
+            "-I=" ~ buildPath(dmdTestDir, "tools", "dshell_prebuilt"),
+            "-i",
+            // Causing linker errors for some reason?
+            "-i=-dshell_prebuilt", buildPath(envData.results_dir, "dshell_prebuilt" ~ envData.obj),
+            testScriptPath,
+        ];
+        outfile.writeln("[COMPILE_TEST] ", escapeShellCommand(compile));
+        // Note that spawnprocess closes the file, so it will need to be re-opened
+        // below when we run the test
+        auto compileProc = std.process.spawnProcess(compile, stdin, outfile, outfile);
+        const exitCode = wait(compileProc);
+        if (exitCode != 0)
+        {
+            printTestFailure(testLogName, output_file_temp);
+            return exitCode;
+        }
+    }
+
+    //
+    // run the test
+    //
+    {
+        auto outfile = File(output_file_temp, "a");
+        const runTest = [testScriptExe];
+        outfile.writeln("[RUN_TEST] ", escapeShellCommand(runTest));
+        auto runTestProc = std.process.spawnProcess(runTest, stdin, outfile, outfile);
+        const exitCode = wait(runTestProc);
+        if (exitCode != 0)
+        {
+            printTestFailure(testLogName, output_file_temp);
+            return exitCode;
+        }
+    }
+
+    rename(output_file_temp, output_file);
+    // TODO: should we remove all the test artifacts if the test passes? rmdirRecurse(testOutDir)?
+    return 0;
+}
+
+void printTestFailure(string testLogName, string output_file_temp)
+{
+    writeln("==============================");
+    writefln("Test '%s' failed. The logged output:", testLogName);
+    const output = readText(output_file_temp);
+    write(output);
+    if (!output.endsWith("\n"))
+          writeln();
+    writeln("==============================");
+    remove(output_file_temp);
+}
+
+/// Make any parent diretories needed for the given `filename`
+void mkdirsFor(string filename)
+{
+    auto dir = dirName(filename);
+    if (!exists(dir))
+        mkdirRecurse(dir);
 }

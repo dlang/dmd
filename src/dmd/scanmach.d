@@ -92,33 +92,15 @@ void scanMachObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol
     else
         return corrupt(__LINE__);
 
-    segment_command* segment_commands = null;
-    segment_command_64* segment_commands64 = null;
-    symtab_command* symtab_commands = null;
-    dysymtab_command* dysymtab_commands = null;
+    symtab_command* symtab_commands;
     // Commands immediately follow mach_header
     char* commands = cast(char*)buf + (header.magic == MH_MAGIC_64 ? mach_header_64.sizeof : mach_header.sizeof);
     for (uint32_t i = 0; i < ncmds; i++)
     {
         load_command* command = cast(load_command*)commands;
         //printf("cmd = 0x%02x, cmdsize = %u\n", command.cmd, command.cmdsize);
-        switch (command.cmd)
-        {
-        case LC_SEGMENT:
-            segment_commands = cast(segment_command*)command;
-            break;
-        case LC_SEGMENT_64:
-            segment_commands64 = cast(segment_command_64*)command;
-            break;
-        case LC_SYMTAB:
+        if (command.cmd == LC_SYMTAB)
             symtab_commands = cast(symtab_command*)command;
-            break;
-        case LC_DYSYMTAB:
-            dysymtab_commands = cast(dysymtab_command*)command;
-            break;
-        default:
-            break;
-        }
         commands += command.cmdsize;
     }
 

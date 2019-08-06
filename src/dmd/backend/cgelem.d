@@ -176,6 +176,9 @@ int elemisone(elem *e)
             case TYfptr:
             case TYvptr:
             case TYnptr:
+            case TYimmutPtr:
+            case TYsharePtr:
+            case TYfgPtr:
             case TYbool:
             case TYwchar_t:
             case TYdchar:
@@ -237,6 +240,9 @@ int elemisnegone(elem *e)
             case TYhptr:
             case TYfptr:
             case TYvptr:
+            case TYimmutPtr:
+            case TYsharePtr:
+            case TYfgPtr:
             case TYbool:
             case TYwchar_t:
             case TYdchar:
@@ -1168,7 +1174,10 @@ private elem * elmin(elem *e, goal_t goal)
             cnst(e1.EV.E2) && cnst(e2.EV.E2) &&
             (tyintegral(tym) ||
              tybasic(tym) == TYnptr ||
-             tybasic(tym) == TYsptr)
+             tybasic(tym) == TYsptr ||
+             tybasic(tym) == TYfgPtr ||
+             tybasic(tym) == TYimmutPtr ||
+             tybasic(tym) == TYsharePtr)
            )
         {
             e.Eoper = OPadd;
@@ -2195,7 +2204,7 @@ L2:
     int e1op = e1.Eoper;
 
   // c,e => e
-    if (OTleaf(e1op) && !OTsideff(e1op) && !(e1.Ety & mTYvolatile))
+    if (OTleaf(e1op) && !OTsideff(e1op) && !(e1.Ety & (mTYvolatile | mTYshared)))
     {
         e2.Ety = e.Ety;
         e = el_selecte2(e);
@@ -2602,7 +2611,7 @@ private elem * eloror(elem *e, goal_t goal)
         tysize(ty1) <= _tysize[TYint] &&
         !tyfloating(ty2) &&
         !tyfloating(ty1) &&
-        !(ty2 & mTYvolatile))
+        !(ty2 & (mTYvolatile | mTYshared)))
     {   /* Convert (e1 || e2) => (e1 | e2)      */
         e.Eoper = OPor;
         e.Ety = ty1;
@@ -3335,22 +3344,6 @@ elem * elstruct(elem *e, goal_t goal)
             goto Ldefault;
 
         case 16:
-            if (config.fpxmmregs && e.Eoper == OPstreq)
-            {
-                elem *e2 = e.EV.E2;
-                if (tybasic(e2.Ety) == TYstruct &&
-                    (OTbinary(e2.Eoper) || OTunary(e2.Eoper)) &&
-                    tysimd(e2.EV.E1.Ety))   // is a vector type
-                {   tym = tybasic(e2.EV.E1.Ety);
-
-                    /* This has problems if the destination is not aligned, as happens with
-                     *   float4 a,b;
-                     *   float[4] c;
-                     *   c = cast(float[4])(a + b);
-                     */
-                    goto L1;
-                }
-            }
             if (I64 && (ty == TYstruct || (ty == TYarray && config.exe == EX_WIN64)))
             {
                 tym = TYucent;
@@ -5229,8 +5222,6 @@ private elem * elparam(elem *e, goal_t goal)
 
 private elem * optelem(elem *e, goal_t goal)
 {
-    mixin(import("elxxx.d"));                     /* jump table                   */
-
 beg:
     //{ printf("xoptelem: %p ",e); WROP(e.Eoper); print(" goal x%x\n", goal); }
     assert(e);
@@ -5248,7 +5239,7 @@ beg:
     auto op = e.Eoper;
     if (OTleaf(op))                     // if not an operator node
     {
-        if (goal || OTsideff(op) || e.Ety & mTYvolatile)
+        if (goal || OTsideff(op) || e.Ety & (mTYvolatile | mTYshared))
         {
             return e;
         }
@@ -5615,7 +5606,7 @@ beg:
   else /* unary operator */
   {
         assert(!e.EV.E2 || op == OPinfo || op == OPddtor);
-        if (!goal && !OTsideff(op) && !(e.Ety & mTYvolatile))
+        if (!goal && !OTsideff(op) && !(e.Ety & (mTYvolatile | mTYshared)))
         {
             tym_t tym = e.EV.E1.Ety;
 
@@ -5717,6 +5708,7 @@ void postoptelem(elem *e)
             {
                 version (MARS)
                 if (e.EV.E1.Eoper == OPconst &&
+                    tybasic(e.EV.E1.Ety) == TYnptr &&   // Allow TYfgptr to reference GS:[0000] etc.
                     el_tolong(e.EV.E1) >= 0 && el_tolong(e.EV.E1) < 4096)
                 {
                     error(pos.Sfilename, pos.Slinnum, pos.Scharnum, "null dereference in function %s", funcsym_p.Sident.ptr);
@@ -5852,5 +5844,205 @@ private bool canHappenAfter(elem* a, elem* b)
 
            !(el_sideeffect(a) || el_sideeffect(b));
 }
+
+
+/***************************************************
+ * Call table, index is OPER
+ */
+
+private extern (C++) alias elfp_t = elem *function(elem *, goal_t) nothrow;
+
+private extern (D) immutable elfp_t[OPMAX] elxxx =
+[
+    OPunde:    &elerr,
+    OPadd:     &eladd,
+    OPmul:     &elmul,
+    OPand:     &elbitwise,
+    OPmin:     &elmin,
+    OPnot:     &elnot,
+    OPcom:     &elcom,
+    OPcond:    &elcond,
+    OPcomma:   &elcomma,
+    OPremquo:  &elremquo,
+    OPdiv:     &eldiv,
+    OPmod:     &elmod,
+    OPxor:     &elxor,
+    OPstring:  &elstring,
+    OPrelconst: &elzot,
+    OPinp:     &elzot,
+    OPoutp:    &elzot,
+    OPasm:     &elzot,
+    OPinfo:    &elinfo,
+    OPdctor:   &elzot,
+    OPddtor:   &elddtor,
+    OPctor:    &elinfo,
+    OPdtor:    &elinfo,
+    OPmark:    &elinfo,
+    OPvoid:    &elzot,
+    OPhalt:    &elzot,
+    OPnullptr: &elerr,
+    OPpair:    &elpair,
+    OPrpair:   &elpair,
+
+    OPor:      &elor,
+    OPoror:    &eloror,
+    OPandand:  &elandand,
+    OProl:     &elshl,
+    OPror:     &elshl,
+    OPshl:     &elshl,
+    OPshr:     &elshr,
+    OPashr:    &elshr,
+    OPbit:     &elbit,
+    OPind:     &elind,
+    OPaddr:    &eladdr,
+    OPneg:     &elneg,
+    OPuadd:    &elzot,
+    OPabs:     &evalu8,
+    OPsqrt:    &evalu8,
+    OPsin:     &evalu8,
+    OPcos:     &evalu8,
+    OPscale:   &elzot,
+    OPyl2x:    &elzot,
+    OPyl2xp1:  &elzot,
+    OPcmpxchg:     &elzot,
+    OPrint:    &evalu8,
+    OPrndtol:  &evalu8,
+    OPstrlen:  &elzot,
+    OPstrcpy:  &elstrcpy,
+    OPmemcpy:  &elmemcpy,
+    OPmemset:  &elmemset,
+    OPstrcat:  &elzot,
+    OPstrcmp:  &elstrcmp,
+    OPmemcmp:  &elmemcmp,
+    OPsetjmp:  &elzot,
+    OPnegass:  &elnegass,
+    OPpreinc:  &elzot,
+    OPpredec:  &elzot,
+    OPstreq:   &elstruct,
+    OPpostinc: &elpost,
+    OPpostdec: &elpost,
+    OPeq:      &eleq,
+    OPaddass:  &elopass,
+    OPminass:  &elopass,
+    OPmulass:  &elopass,
+    OPdivass:  &elopass,
+    OPmodass:  &elopass,
+    OPshrass:  &elopass,
+    OPashrass: &elopass,
+    OPshlass:  &elopass,
+    OPandass:  &elopass,
+    OPxorass:  &elopass,
+    OPorass:   &elopass,
+
+    OPle:      &elcmp,
+    OPgt:      &elcmp,
+    OPlt:      &elcmp,
+    OPge:      &elcmp,
+    OPeqeq:    &elcmp,
+    OPne:      &elcmp,
+
+    OPunord:   &elcmp,
+    OPlg:      &elcmp,
+    OPleg:     &elcmp,
+    OPule:     &elcmp,
+    OPul:      &elcmp,
+    OPuge:     &elcmp,
+    OPug:      &elcmp,
+    OPue:      &elcmp,
+    OPngt:     &elcmp,
+    OPnge:     &elcmp,
+    OPnlt:     &elcmp,
+    OPnle:     &elcmp,
+    OPord:     &elcmp,
+    OPnlg:     &elcmp,
+    OPnleg:    &elcmp,
+    OPnule:    &elcmp,
+    OPnul:     &elcmp,
+    OPnuge:    &elcmp,
+    OPnug:     &elcmp,
+    OPnue:     &elcmp,
+
+    OPvp_fp:   &elvptrfptr,
+    OPcvp_fp:  &elvptrfptr,
+    OPoffset:  &ellngsht,
+    OPnp_fp:   &elptrlptr,
+    OPnp_f16p: &elzot,
+    OPf16p_np: &elzot,
+
+    OPs16_32:  &evalu8,
+    OPu16_32:  &evalu8,
+    OPd_s32:   &evalu8,
+    OPb_8:     &evalu8,
+    OPs32_d:   &evalu8,
+    OPd_s16:   &evalu8,
+    OPs16_d:   &evalu8,
+    OPd_u16:   &evalu8,
+    OPu16_d:   &evalu8,
+    OPd_u32:   &evalu8,
+    OPu32_d:   &evalu8,
+    OP32_16:   &ellngsht,
+    OPd_f:     &evalu8,
+    OPf_d:     &evalu8,
+    OPd_ld:    &evalu8,
+    OPld_d:    &evalu8,
+    OPc_r:     &elc_r,
+    OPc_i:     &elc_i,
+    OPu8_16:   &elbyteint,
+    OPs8_16:   &elbyteint,
+    OP16_8:    &ellngsht,
+    OPu32_64:  &el32_64,
+    OPs32_64:  &el32_64,
+    OP64_32:   &el64_32,
+    OPu64_128: &evalu8,
+    OPs64_128: &evalu8,
+    OP128_64:  &el64_32,
+    OPmsw:     &elmsw,
+
+    OPd_s64:   &evalu8,
+    OPs64_d:   &evalu8,
+    OPd_u64:   &evalu8,
+    OPu64_d:   &elu64_d,
+    OPld_u64:  &evalu8,
+    OPparam:   &elparam,
+    OPsizeof:  &elzot,
+    OParrow:   &elzot,
+    OParrowstar: &elzot,
+    OPcolon:   &elzot,
+    OPcolon2:  &elzot,
+    OPbool:    &elbool,
+    OPcall:    &elcall,
+    OPucall:   &elcall,
+    OPcallns:  &elcall,
+    OPucallns: &elcall,
+    OPstrpar:  &elstruct,
+    OPstrctor: &elzot,
+    OPstrthis: &elzot,
+    OPconst:   &elerr,
+    OPvar:     &elerr,
+    OPreg:     &elerr,
+    OPnew:     &elerr,
+    OPanew:    &elerr,
+    OPdelete:  &elerr,
+    OPadelete: &elerr,
+    OPbrack:   &elerr,
+    OPframeptr: &elzot,
+    OPgot:     &elzot,
+
+    OPbsf:     &elzot,
+    OPbsr:     &elzot,
+    OPbtst:    &elzot,
+    OPbt:      &elzot,
+    OPbtc:     &elzot,
+    OPbtr:     &elzot,
+    OPbts:     &elzot,
+
+    OPbswap:   &evalu8,
+    OPpopcnt:  &evalu8,
+    OPvector:  &elzot,
+    OPvecsto:  &elzot,
+    OPvecfill: &elzot,
+    OPva_start: &elvalist,
+    OPprefetch: &elzot,
+];
 
 }

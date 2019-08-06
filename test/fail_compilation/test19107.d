@@ -2,8 +2,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test19107.d(20): Error: template `test19107.all` cannot deduce function from argument types `!((c) => c)(string[])`, candidates are:
-fail_compilation/test19107.d(14):        `test19107.all(alias pred, T)(T t) if (is(typeof(I!pred(t))))`
+fail_compilation/test19107.d(24): Error: template `test19107.all` cannot deduce function from argument types `!((c) => c)(string[])`, candidates are:
+fail_compilation/test19107.d(18):        `all(alias pred, T)(T t)`
+  with `pred = __lambda2,
+       T = string[]`
+  must satisfy the following constraint:
+`       is(typeof(I!pred(t)))`
 ---
 */
 

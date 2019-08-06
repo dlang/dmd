@@ -422,8 +422,9 @@ private bool buildCopyCtor(StructDeclaration sd, Scope* sc)
     if (global.errors)
         return false;
 
+    bool hasPostblit;
     if (sd.postblit)
-        return false;
+        hasPostblit = true;
 
     auto ctor = sd.search(sd.loc, Id.ctor);
     CtorDeclaration cpCtor;
@@ -473,7 +474,9 @@ private bool buildCopyCtor(StructDeclaration sd, Scope* sc)
         return true;
     }
     else if (cpCtor)
-        return true;
+    {
+        return !hasPostblit;
+    }
 
 LcheckFields:
     VarDeclaration fieldWithCpCtor;
@@ -503,6 +506,9 @@ LcheckFields:
         return false;
     }
     else if (!fieldWithCpCtor)
+        return false;
+
+    if (hasPostblit)
         return false;
 
     //printf("generating copy constructor for %s\n", sd.toChars());
@@ -754,6 +760,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (dsym.semanticRun >= PASS.semanticdone)
             return;
+
+        if (sc && sc.inunion && sc.inunion.isAnonDeclaration())
+            dsym.overlapped = true;
 
         Scope* scx = null;
         if (dsym._scope)
@@ -1574,14 +1583,16 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (sc.minst && sc.tinst)
             {
                 //printf("%s imports %s\n", sc.minst.toChars(), imp.mod.toChars());
-                sc.tinst.importedModules.push(imp.mod);
-                sc.minst.aimports.push(imp.mod);
+                if (!sc.tinst.importedModules.contains(imp.mod))
+                    sc.tinst.importedModules.push(imp.mod);
+                if (!sc.minst.aimports.contains(imp.mod))
+                    sc.minst.aimports.push(imp.mod);
             }
             else
             {
-
                 //printf("%s imports %s\n", sc._module.toChars(), imp.mod.toChars());
-                sc._module.aimports.push(imp.mod);
+                if (!sc._module.aimports.contains(imp.mod))
+                    sc._module.aimports.push(imp.mod);
             }
 
             if (sc.explicitProtection)
@@ -1787,7 +1798,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             sc = sc.push();
             sc.stc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.tls | STC.gshared);
-            sc.inunion = scd.isunion;
+            sc.inunion = scd.isunion ? scd : null;
             sc.flags = 0;
             for (size_t i = 0; i < scd.decl.dim; i++)
             {
@@ -3574,7 +3585,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     //printf("\tintroducing function %s\n", funcdecl.toChars());
                     funcdecl.introducing = 1;
-                    if (cd.classKind == ClassKind.cpp && target.reverseCppOverloads)
+                    if (cd.classKind == ClassKind.cpp && target.cpp.reverseOverloads)
                     {
                         /* Overloaded functions with same name are grouped and in reverse order.
                          * Search for first function of overload group, and insert
@@ -4021,13 +4032,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (sc.stc & STC.static_)
         {
-            // Deprecated in 2018-04.
-            // Change to error in 2019-04.
-            // @@@DEPRECATED_2019-04@@@.
             if (sc.stc & STC.shared_)
-                deprecation(ctd.loc, "`shared static` has no effect on a constructor inside a `shared static` block. Use `shared static this()`");
+                error(ctd.loc, "`shared static` has no effect on a constructor inside a `shared static` block. Use `shared static this()`");
             else
-                deprecation(ctd.loc, "`static` has no effect on a constructor inside a `static` block. Use `static this()`");
+                error(ctd.loc, "`static` has no effect on a constructor inside a `static` block. Use `static this()`");
         }
 
         sc.stc &= ~STC.static_; // not a static constructor
@@ -4175,7 +4183,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         // reserve the dtor slot for the destructor (which we'll create later)
                         cldec.cppDtorVtblIndex = cast(int)cldec.vtbl.dim;
                         cldec.vtbl.push(dd);
-                        if (target.twoDtorInVtable)
+                        if (target.cpp.twoDtorInVtable)
                             cldec.vtbl.push(dd); // deleting destructor uses a second slot
                     }
                 }
@@ -5341,7 +5349,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             cldec.dtor.vtblIndex = cldec.cppDtorVtblIndex;
             cldec.vtbl[cldec.cppDtorVtblIndex] = cldec.dtor;
 
-            if (target.twoDtorInVtable)
+            if (target.cpp.twoDtorInVtable)
             {
                 // TODO: create a C++ compatible deleting destructor (call out to `operator delete`)
                 //       for the moment, we'll call the non-deleting destructor and leak
@@ -5931,7 +5939,10 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
         // modules imported by an existing instance should be added to the module
         // that instantiates the instance.
         if (tempinst.minst)
-            tempinst.minst.aimports.append(&tempinst.inst.importedModules);
+            foreach(imp; tempinst.inst.importedModules)
+                if (!tempinst.minst.aimports.contains(imp))
+                    tempinst.minst.aimports.push(imp);
+
         static if (LOG)
         {
             printf("\tit's a match with instance %p, %d\n", tempinst.inst, tempinst.inst.semanticRun);

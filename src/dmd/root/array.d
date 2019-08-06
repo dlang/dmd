@@ -180,6 +180,19 @@ public:
         length = newdim;
     }
 
+    size_t find(T ptr) const nothrow pure
+    {
+        for (size_t i = 0; i < length; i++)
+            if (data[i] is ptr)
+                return i;
+        return size_t.max;
+    }
+
+    bool contains(T ptr) const nothrow pure
+    {
+        return find(ptr) != size_t.max;
+    }
+
     ref inout(T) opIndex(size_t i) inout nothrow pure
     {
         return data[i];

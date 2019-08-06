@@ -134,8 +134,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         auto sc2 = sc.push(this);
         sc2.stc &= STC.safe | STC.trusted | STC.system;
         sc2.parent = this;
-        if (isUnionDeclaration())
-            sc2.inunion = true;
+        sc2.inunion = isUnionDeclaration();
         sc2.protection = Prot(Prot.Kind.public_);
         sc2.explicitProtection = 0;
         sc2.aligndecl = null;
@@ -349,9 +348,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                 continue;
             }
 
-            auto vx = vd;
-            if (vd._init && vd._init.isVoidInitializer())
-                vx = null;
+            const vdIsVoidInit = vd._init && vd._init.isVoidInitializer();
 
             // Find overlapped fields with the hole [vd.offset .. vd.offset.size()].
             foreach (j; 0 .. nfields)
@@ -376,15 +373,26 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                 if (!MODimplicitConv(v2.type.mod, vd.type.mod))
                     vd.overlapUnsafe = true;
 
-                if (!vx)
-                    continue;
-                if (v2._init && v2._init.isVoidInitializer())
+                if (i > j)
                     continue;
 
-                if (vx._init && v2._init)
+                if (!v2._init)
+                    continue;
+
+                if (v2._init.isVoidInitializer())
+                    continue;
+
+                if (vd._init && !vdIsVoidInit && v2._init)
                 {
                     .error(loc, "overlapping default initialization for field `%s` and `%s`", v2.toChars(), vd.toChars());
                     errors = true;
+                }
+                else if (v2._init && i < j)
+                {
+                    // @@@DEPRECATED_v2.086@@@.
+                    .deprecation(v2.loc, "union field `%s` with default initialization `%s` must be before field `%s`",
+                        v2.toChars(), v2._init.toChars(), vd.toChars());
+                    //errors = true;
                 }
             }
         }
@@ -602,7 +610,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         // Ensure no overflow
         bool overflow;
         const sz = addu(memsize, actualAlignment, overflow);
-        const sum = addu(ofs, sz, overflow);
+        addu(ofs, sz, overflow);
         if (overflow) assert(0);
 
         alignmember(alignment, memalignsize, &ofs);
@@ -641,7 +649,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
     /* Append vthis field (this.tupleof[$-1]) to make this aggregate type nested.
      */
-    final void makeNested()
+    extern (D) final void makeNested()
     {
         if (enclosing) // if already nested
             return;
@@ -714,7 +722,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
     /* Append vthis2 field (this.tupleof[$-1]) to add a second context pointer.
      */
-    final void makeNested2()
+    extern (D) final void makeNested2()
     {
         if (vthis2)
             return;

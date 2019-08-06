@@ -5608,7 +5608,7 @@ extern (C++) final class TypeStruct : Type
         return false;
     }
 
-    MATCH implicitConvToWithoutAliasThis(Type to)
+    extern (D) MATCH implicitConvToWithoutAliasThis(Type to)
     {
         MATCH m;
 
@@ -5666,7 +5666,7 @@ extern (C++) final class TypeStruct : Type
         return m;
     }
 
-    MATCH implicitConvToThroughAliasThis(Type to)
+    extern (D) MATCH implicitConvToThroughAliasThis(Type to)
     {
         MATCH m;
         if (!(ty == to.ty && sym == (cast(TypeStruct)to).sym) && sym.aliasthis && !(att & AliasThisRec.tracing))
@@ -5945,7 +5945,7 @@ extern (C++) final class TypeClass : Type
         return false;
     }
 
-    MATCH implicitConvToWithoutAliasThis(Type to)
+    extern (D) MATCH implicitConvToWithoutAliasThis(Type to)
     {
         MATCH m = constConv(to);
         if (m > MATCH.nomatch)
@@ -5968,7 +5968,7 @@ extern (C++) final class TypeClass : Type
         return MATCH.nomatch;
     }
 
-    MATCH implicitConvToThroughAliasThis(Type to)
+    extern (D) MATCH implicitConvToThroughAliasThis(Type to)
     {
         MATCH m;
         if (sym.aliasthis && !(att & AliasThisRec.tracing))
@@ -6140,6 +6140,21 @@ extern (C++) final class TypeTuple : Type
         arguments = new Parameters();
         arguments.push(new Parameter(0, t1, null, null, null));
         arguments.push(new Parameter(0, t2, null, null, null));
+    }
+
+    static TypeTuple create()
+    {
+        return new TypeTuple();
+    }
+
+    static TypeTuple create(Type t1)
+    {
+        return new TypeTuple(t1);
+    }
+
+    static TypeTuple create(Type t1, Type t2)
+    {
+        return new TypeTuple(t1, t2);
     }
 
     override const(char)* kind() const
@@ -6668,6 +6683,21 @@ extern (C++) AggregateDeclaration isAggregate(Type t)
 }
 
 /***************************************************
+ * Determine if type t can be indexed or sliced given that it is not an
+ * aggregate with operator overloads.
+ * Params:
+ *      t = type to check
+ * Returns:
+ *      true if an expression of type t can be e1 in an array expression
+ */
+bool isIndexableNonAggregate(Type t)
+{
+    t = t.toBasetype();
+    return (t.ty == Tpointer || t.ty == Tsarray || t.ty == Tarray || t.ty == Taarray ||
+            t.ty == Ttuple || t.ty == Tvector);
+}
+
+/***************************************************
  * Determine if type t is copyable.
  * Params:
  *      t = type to check
@@ -6685,4 +6715,3 @@ bool isCopyable(const Type t) pure nothrow @nogc
     }
     return true;
 }
-

@@ -38,7 +38,6 @@ public:
 
     AliasDeclarations aliasdecls; // corresponding AliasDeclarations for alias=name pairs
 
-    void addAlias(Identifier *name, Identifier *alias);
     const char *kind() const;
     Prot prot();
     Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees

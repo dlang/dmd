@@ -125,20 +125,8 @@ bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1)
                     else
                     {
                         const(char)* modStr = !var.type.isMutable() ? MODtoChars(var.type.mod) : MODtoChars(e1.type.mod);
-                        // Deprecated in 2018-04.
-                        // Change to error in 2019-04 by deleting the following
-                        // if-branch and the deprecate_18719 enum member in the
-                        // dmd.ctorflow.CSX enum.
-                        // @@@DEPRECATED_2019-01@@@.
-                        if (fi & CSX.deprecate_18719)
-                        {
-                            .deprecation(loc, "%s field `%s` was initialized in a previous constructor call", modStr, var.toChars());
-                        }
-                        else
-                        {
-                            .error(loc, "%s field `%s` initialized multiple times", modStr, var.toChars());
-                            .errorSupplemental(fieldInit.loc, "Previous initialization is here.");
-                        }
+                        .error(loc, "%s field `%s` initialized multiple times", modStr, var.toChars());
+                        .errorSupplemental(fieldInit.loc, "Previous initialization is here.");
                     }
                 }
                 else if (sc.inLoop || (fi & CSX.label))
@@ -368,6 +356,13 @@ extern (C++) abstract class Declaration : Dsymbol
     /*************************************
      * Check to see if declaration can be modified in this context (sc).
      * Issue error if not.
+     * Params:
+     *  loc  = location for error messages
+     *  e1   = `null` or `this` expression when this declaration is a field
+     *  sc   = context
+     *  flag = !=0 means do not issue error message for invalid modification
+     * Returns:
+     *  Modifiable.yes or Modifiable.initialization
      */
     extern (D) final Modifiable checkModify(Loc loc, Scope* sc, Expression e1, int flag)
     {
@@ -1375,7 +1370,7 @@ extern (C++) class VarDeclaration : Declaration
      * If a variable has a scope destructor call, return call for it.
      * Otherwise, return NULL.
      */
-    final Expression callScopeDtor(Scope* sc)
+    extern (D) final Expression callScopeDtor(Scope* sc)
     {
         //printf("VarDeclaration::callScopeDtor() %s\n", toChars());
 
@@ -1478,7 +1473,7 @@ extern (C++) class VarDeclaration : Declaration
      * If variable has a constant expression initializer, get it.
      * Otherwise, return null.
      */
-    final Expression getConstInitializer(bool needFullType = true)
+    extern (D) final Expression getConstInitializer(bool needFullType = true)
     {
         assert(type && _init);
 
@@ -1507,7 +1502,7 @@ extern (C++) class VarDeclaration : Declaration
     /*******************************************
      * Helper function for the expansion of manifest constant.
      */
-    final Expression expandInitializer(Loc loc)
+    extern (D) final Expression expandInitializer(Loc loc)
     {
         assert((storage_class & STC.manifest) && _init);
 

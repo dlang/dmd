@@ -76,6 +76,13 @@ enum CPU
     native              // the machine the compiler is being run on
 }
 
+enum PIC : ubyte
+{
+    fixed,              /// located at a specific address
+    pic,                /// Position Independent Code
+    pie,                /// Position Independent Executable
+}
+
 /**
 Each flag represents a field that can be included in the JSON output.
 
@@ -141,7 +148,7 @@ struct Param
     bool release;           // build release version
     bool preservePaths;     // true means don't strip path from source file
     DiagnosticReporting warnings = DiagnosticReporting.off;  // how compiler warnings are handled
-    bool pic;               // generate position-independent-code for shared libs
+    PIC pic = PIC.fixed;    // generate fixed, pic or pie code
     bool color;             // use ANSI colors in console output
     bool cov;               // generate code coverage data
     ubyte covPercent;       // 0..100 code coverage percentage required
@@ -150,11 +157,12 @@ struct Param
     bool useModuleInfo = true;   // generate runtime module information
     bool useTypeInfo = true;     // generate runtime type information
     bool useExceptions = true;   // support exception handling
+    bool noSharedAccess;         // read/write access to shared memory objects
     bool betterC;           // be a "better C" compiler; no dependency on D runtime
     bool addMain;           // add a default main() function
     bool allInst;           // generate code for all template instantiations
-    bool check10378;        // check for issues transitioning to 10738 @@@DEPRECATED@@@ Remove in 2010-05 or later
-    bool bug10378;          // use pre- https://issues.dlang.org/show_bug.cgi?id=10378 search strategy  @@@DEPRECATED@@@ Remove in 2010-05 or later
+    bool check10378;        // check for issues transitioning to 10738 @@@DEPRECATED@@@ Remove in 2020-05 or later
+    bool bug10378;          // use pre- https://issues.dlang.org/show_bug.cgi?id=10378 search strategy  @@@DEPRECATED@@@ Remove in 2020-05 or later
     bool fix16997;          // fix integral promotions for unary + - ~ operators
                             // https://issues.dlang.org/show_bug.cgi?id=16997
     bool fixAliasThis;      // if the current scope has an alias this, check it before searching upper scopes
@@ -355,69 +363,81 @@ struct Global
 
     extern (C++) void _init()
     {
-        static if (TARGET.Windows)
+        _version = import("VERSION") ~ '\0';
+
+        version (MARS)
         {
-            obj_ext = "obj";
+            vendor = "Digital Mars D";
+            static if (TARGET.Windows)
+            {
+                obj_ext = "obj";
+            }
+            else static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
+            {
+                obj_ext = "o";
+            }
+            else
+            {
+                static assert(0, "fix this");
+            }
+            static if (TARGET.Windows)
+            {
+                lib_ext = "lib";
+            }
+            else static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
+            {
+                lib_ext = "a";
+            }
+            else
+            {
+                static assert(0, "fix this");
+            }
+            static if (TARGET.Windows)
+            {
+                dll_ext = "dll";
+            }
+            else static if (TARGET.Linux || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
+            {
+                dll_ext = "so";
+            }
+            else static if (TARGET.OSX)
+            {
+                dll_ext = "dylib";
+            }
+            else
+            {
+                static assert(0, "fix this");
+            }
+            static if (TARGET.Windows)
+            {
+                run_noext = false;
+            }
+            else static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
+            {
+                // Allow 'script' D source files to have no extension.
+                run_noext = true;
+            }
+            else
+            {
+                static assert(0, "fix this");
+            }
+            static if (TARGET.Windows)
+            {
+                params.mscoff = params.is64bit;
+            }
+
+            // -color=auto is the default value
+            import dmd.console : Console;
+            params.color = Console.detectTerminal();
         }
-        else static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
+        else version (IN_GCC)
         {
+            vendor = "GNU D";
             obj_ext = "o";
-        }
-        else
-        {
-            static assert(0, "fix this");
-        }
-        static if (TARGET.Windows)
-        {
-            lib_ext = "lib";
-        }
-        else static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-        {
             lib_ext = "a";
-        }
-        else
-        {
-            static assert(0, "fix this");
-        }
-        static if (TARGET.Windows)
-        {
-            dll_ext = "dll";
-        }
-        else static if (TARGET.Linux || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-        {
             dll_ext = "so";
-        }
-        else static if (TARGET.OSX)
-        {
-            dll_ext = "dylib";
-        }
-        else
-        {
-            static assert(0, "fix this");
-        }
-        static if (TARGET.Windows)
-        {
-            run_noext = false;
-        }
-        else static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-        {
-            // Allow 'script' D source files to have no extension.
             run_noext = true;
         }
-        else
-        {
-            static assert(0, "fix this");
-        }
-        static if (TARGET.Windows)
-        {
-            params.mscoff = params.is64bit;
-        }
-        _version = import("VERSION") ~ '\0';
-        vendor = "Digital Mars D";
-
-        // -color=auto is the default value
-        import dmd.console : Console;
-        params.color = Console.detectTerminal();
     }
 
     /**

@@ -860,7 +860,7 @@ struct Composer(T) {
         }
         return result;
     }
-    public void opAddAssign(Fun f) {
+    public void opOpAssign(string op)(Fun f) if (op == "+") {
         funs ~= f;
     }
 }

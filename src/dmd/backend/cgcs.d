@@ -174,8 +174,12 @@ void ecom(elem **pe)
     switch (op)
     {
         case OPconst:
-        case OPvar:
         case OPrelconst:
+            break;
+
+        case OPvar:
+            if (e.EV.Vsym.ty() & mTYshared)
+                return;         // don't cache shared variables
             break;
 
         case OPstreq:
@@ -324,6 +328,8 @@ void ecom(elem **pe)
             ecom(&e.EV.E1);
             /* Generally, CSEing a *(double *) results in worse code        */
             if (tyfloating(tym))
+                return;
+            if (tybasic(e.EV.E1.Ety) == TYsharePtr)
                 return;
             break;
 
@@ -588,8 +594,8 @@ void touchlvalue(elem *e)
  * an indirect assignment.
  * Eliminate any subexpressions that are "starred" (they need to
  * be recomputed).
- * Input:
- *      flag    If !=0, then this is a function call.
+ * Params:
+ *      flag =  If 1, then this is a function call.
  *              If 0, then this is an indirect assignment.
  */
 
@@ -608,54 +614,29 @@ void touchfunc(int flag)
         switch (he.Eoper)
         {
             case OPvar:
-                switch (he.EV.Vsym.Sclass)
+                if (Symbol_isAffected(*he.EV.Vsym))
                 {
-                    case SCregpar:
-                    case SCregister:
-                        break;
-
-                    case SCauto:
-                    case SCparameter:
-                    case SCfastpar:
-                    case SCshadowreg:
-                    case SCbprel:
-                        //printf("he = '%s'\n", he.EV.Vsym.Sident);
-                        if (he.EV.Vsym.Sflags & SFLunambig)
-                            break;
-                        goto case SCstatic;
-
-                    case SCstatic:
-                    case SCextern:
-                    case SCcomdef:
-                    case SCglobal:
-                    case SClocstat:
-                    case SCcomdat:
-                    case SCpseudo:
-                    case SCinline:
-                    case SCsinline:
-                    case SCeinline:
-                        if (!(he.EV.Vsym.ty() & mTYconst))
-                            goto L1;
-                        break;
-
-                    default:
-                        //debug WRclass(cast(enum_SC)he.EV.Vsym.Sclass);
-                        assert(0);
+                    pe.Helem = null;
+                    continue;
                 }
                 break;
 
             case OPind:
+                if (tybasic(he.EV.E1.Ety) == TYimmutPtr)
+                    break;
+                goto Ltouch;
+
             case OPstrlen:
             case OPstrcmp:
             case OPmemcmp:
             case OPbt:
-                goto L1;
+                goto Ltouch;
 
             case OPvp_fp:
             case OPcvp_fp:
                 if (flag == 0)          /* function calls destroy vptrfptr's, */
                     break;              /* not indirect assignments     */
-            L1:
+            Ltouch:
                 pe.Helem = null;
                 break;
 
@@ -677,7 +658,9 @@ void touchstar()
     foreach (ref hcs; hcstab[hcsarray.touchstari .. $])
     {
         const e = hcs.Helem;
-        if (e && (e.Eoper == OPind || e.Eoper == OPbt) )
+        if (e &&
+               (e.Eoper == OPind && tybasic(e.EV.E1.Ety) != TYimmutPtr ||
+                e.Eoper == OPbt) )
             hcs.Helem = null;
     }
     hcsarray.touchstari = cast(uint)hcstab.length;

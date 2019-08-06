@@ -1,4 +1,6 @@
 /**
+ * Various global symbols.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -21,8 +23,6 @@ import dmd.backend.type;
 extern (C++):
 
 ///////////////////// GLOBALS /////////////////////
-
-mixin(import("fltables.d"));
 
 __gshared
 {
@@ -51,4 +51,112 @@ Symbol *tls_get_addr_sym;       // function __tls_get_addr
 
 int TARGET_STACKALIGN = 2;      // default for 16 bit code
 int STACKALIGN = 2;             // varies for each function
+
+
+/// Is fl data?
+bool[FLMAX] datafl =
+() {
+    bool[FLMAX] datafl;
+    foreach (fl; [ FLdata,FLudata,FLreg,FLpseudo,FLauto,FLfast,FLpara,FLextern,
+                   FLcs,FLfltreg,FLallocatmp,FLdatseg,FLtlsdata,FLbprel,
+                   FLstack,FLregsave,FLfuncarg,
+                   FLndp, FLfardata,
+                 ])
+    {
+        datafl[fl] = true;
+    }
+    return datafl;
+} ();
+
+
+/// Is fl on the stack?
+bool[FLMAX] stackfl =
+() {
+    bool[FLMAX] stackfl;
+    foreach (fl; [ FLauto,FLfast,FLpara,FLcs,FLfltreg,FLallocatmp,FLbprel,FLstack,FLregsave,
+                   FLfuncarg,
+                   FLndp,
+                 ])
+    {
+        stackfl[fl] = true;
+    }
+    return stackfl;
+} ();
+
+/// What segment register is associated with it?
+ubyte[FLMAX] segfl =
+() {
+    ubyte[FLMAX] segfl;
+
+    // Segment registers
+    enum ES = 0;
+    enum CS = 1;
+    enum SS = 2;
+    enum DS = 3;
+    enum NO = ubyte.max;        // no register
+
+    foreach (fl, ref seg; segfl)
+    {
+        switch (fl)
+        {
+            case 0:              seg = NO;  break;
+            case FLconst:        seg = NO;  break;
+            case FLoper:         seg = NO;  break;
+            case FLfunc:         seg = CS;  break;
+            case FLdata:         seg = DS;  break;
+            case FLudata:        seg = DS;  break;
+            case FLreg:          seg = NO;  break;
+            case FLpseudo:       seg = NO;  break;
+            case FLauto:         seg = SS;  break;
+            case FLfast:         seg = SS;  break;
+            case FLstack:        seg = SS;  break;
+            case FLbprel:        seg = SS;  break;
+            case FLpara:         seg = SS;  break;
+            case FLextern:       seg = DS;  break;
+            case FLcode:         seg = CS;  break;
+            case FLblock:        seg = CS;  break;
+            case FLblockoff:     seg = CS;  break;
+            case FLcs:           seg = SS;  break;
+            case FLregsave:      seg = SS;  break;
+            case FLndp:          seg = SS;  break;
+            case FLswitch:       seg = NO;  break;
+            case FLfltreg:       seg = SS;  break;
+            case FLoffset:       seg = NO;  break;
+            case FLfardata:      seg = NO;  break;
+            case FLcsdata:       seg = CS;  break;
+            case FLdatseg:       seg = DS;  break;
+            case FLctor:         seg = NO;  break;
+            case FLdtor:         seg = NO;  break;
+            case FLdsymbol:      seg = NO;  break;
+            case FLgot:          seg = NO;  break;
+            case FLgotoff:       seg = NO;  break;
+            case FLtlsdata:      seg = NO;  break;
+            case FLlocalsize:    seg = NO;  break;
+            case FLframehandler: seg = NO;  break;
+            case FLasm:          seg = NO;  break;
+            case FLallocatmp:    seg = SS;  break;
+            case FLfuncarg:      seg = SS;  break;
+
+            default:
+                assert(0);
+        }
+    }
+
+    return segfl;
+} ();
+
+/// Is fl in the symbol table?
+bool[FLMAX] flinsymtab =
+() {
+    bool[FLMAX] flinsymtab;
+    foreach (fl; [ FLdata,FLudata,FLreg,FLpseudo,FLauto,FLfast,FLpara,FLextern,FLfunc,
+                   FLtlsdata,FLbprel,FLstack,
+                   FLfardata,FLcsdata,
+                 ])
+    {
+        flinsymtab[fl] = true;
+    }
+    return flinsymtab;
+} ();
+
 }

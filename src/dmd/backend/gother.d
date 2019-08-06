@@ -407,7 +407,7 @@ private void chkrd(elem *n,list_t rdlist)
     assert(sytab[sv.Sclass] & SCRD);
     if (sv.Sflags & SFLnord)           // if already printed a warning
         return;
-    if (sv.ty() & mTYvolatile)
+    if (sv.ty() & (mTYvolatile | mTYshared))
         return;
     unambig = sv.Sflags & SFLunambig;
     foreach (l; ListRange(rdlist))
@@ -1402,8 +1402,8 @@ void rmdeadass()
             //printf("\tDEAD=%d, live=%d\n",vec_testbit(j,DEAD),vec_testbit(v.Ssymnum,b.Boutlv));
             if (!vec_testbit(j,DEAD) && vec_testbit(v.Ssymnum,b.Boutlv))
                 continue;
-            /* volatile variables are not dead              */
-            if ((v.ty() | nv.Ety) & mTYvolatile)
+            /* volatile/shared variables are not dead              */
+            if ((v.ty() | nv.Ety) & (mTYvolatile | mTYshared))
                 continue;
             debug if (debugc)
             {
@@ -1685,7 +1685,7 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
                         if (ti.EV.Vsym == t.EV.Vsym &&
                             ti.EV.Voffset == t.EV.Voffset &&
                             tisz == tsz &&
-                            !(t.Ety & mTYvolatile) &&
+                            !(t.Ety & (mTYvolatile | mTYshared)) &&
                             //t.EV.Vsym.Sflags & SFLunambig &&
                             vec_testbit(i,POSS))
                         {

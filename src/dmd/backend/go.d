@@ -147,8 +147,6 @@ int go_flag(char *cp)
         0,0,MFreg,0,MFtime,MFtime,MFtree,MFvbe
     ];
 
-    uint i = GL.MAX;
-
     //printf("go_flag('%s')\n", cp);
     uint flag = binary(cp + 1,cast(const(char)**)flagtab.ptr,GL.MAX);
     if (go.mfoptim == 0 && flag != -1)

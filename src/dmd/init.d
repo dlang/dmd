@@ -147,7 +147,7 @@ extern (C++) final class StructInitializer : Initializer
         super(loc, InitKind.struct_);
     }
 
-    void addInit(Identifier field, Initializer value)
+    extern (D) void addInit(Identifier field, Initializer value)
     {
         //printf("StructInitializer::addInit(field = %p, value = %p)\n", field, value);
         this.field.push(field);
@@ -175,7 +175,7 @@ extern (C++) final class ArrayInitializer : Initializer
         super(loc, InitKind.array);
     }
 
-    void addInit(Expression index, Initializer value)
+    extern (D) void addInit(Expression index, Initializer value)
     {
         this.index.push(index);
         this.value.push(value);

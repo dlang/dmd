@@ -154,15 +154,19 @@ endif
 HOST_DMD_VERSION:=$(shell $(HOST_DMD_RUN) --version)
 ifneq (,$(findstring dmd,$(HOST_DMD_VERSION))$(findstring DMD,$(HOST_DMD_VERSION)))
 	HOST_DMD_KIND=dmd
+	HOST_DMD_VERNUM=$(shell echo 'pragma(msg, cast(int)__VERSION__);' | $(HOST_DMD_RUN) -o- - 2>&1)
 endif
 ifneq (,$(findstring gdc,$(HOST_DMD_VERSION))$(findstring GDC,$(HOST_DMD_VERSION)))
 	HOST_DMD_KIND=gdc
+	HOST_DMD_VERNUM=2
 endif
 ifneq (,$(findstring gdc,$(HOST_DMD_VERSION))$(findstring gdmd,$(HOST_DMD_VERSION)))
 	HOST_DMD_KIND=gdc
+	HOST_DMD_VERNUM=2
 endif
 ifneq (,$(findstring ldc,$(HOST_DMD_VERSION))$(findstring LDC,$(HOST_DMD_VERSION)))
 	HOST_DMD_KIND=ldc
+	HOST_DMD_VERNUM=2
 endif
 
 # Compiler Warnings
@@ -217,7 +221,7 @@ MMD=-MMD -MF $(basename $@).deps
 CXXFLAGS := $(WARNINGS) \
 	-fno-exceptions -fno-rtti \
 	-D__pascal= -DMARS=1 -DTARGET_$(OS_UPCASE)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1 \
-	$(MODEL_FLAG) $(PIC)
+	$(MODEL_FLAG) $(PIC) -DDMD_VERSION=$(HOST_DMD_VERNUM)
 # GCC Specific
 ifeq ($(CXX_KIND), g++)
 CXXFLAGS += \
@@ -339,11 +343,9 @@ BACK_DOBJS = bcomplex.o evalu8.o divcoeff.o dvec.o go.o gsroa.o glocal.o gdag.o 
 	gloop.o compress.o cgelem.o cgcs.o ee.o cod4.o cod5.o nteh.o blockopt.o mem.o cg.o cgreg.o \
 	dtype.o debugprint.o fp.o symbol.o elem.o dcode.o cgsched.o cg87.o cgxmm.o cgcod.o cod1.o cod2.o \
 	cod3.o cv8.o dcgcv.o pdata.o util2.o var.o md5.o backconfig.o ph2.o drtlsym.o dwarfeh.o ptrntab.o \
-	aarray.o dvarstats.o dwarfdbginf.o elfobj.o cgen.o os.o goh.o barray.o cgcse.o
+	aarray.o dvarstats.o dwarfdbginf.o elfobj.o cgen.o os.o goh.o barray.o cgcse.o elpicpie.o
 
-G_OBJS  = $(addprefix $G/, $(BACK_OBJS))
 G_DOBJS = $(addprefix $G/, $(BACK_DOBJS))
-#$(info $$G_OBJS is [${G_OBJS}])
 
 ifeq (osx,$(OS))
 	BACK_DOBJS += machobj.o
@@ -370,7 +372,7 @@ BACK_SRC = \
 	$C/compress.d $C/cgreg.d $C/var.d $C/cgcse.d \
 	$C/cgsched.d $C/cod1.d $C/cod2.d $C/cod3.d $C/cod4.d $C/cod5.d \
 	$C/dcode.d $C/symbol.d $C/debugprint.d $C/dt.d $C/ee.d $C/elem.d \
-	$C/evalu8.d $C/fp.d $C/go.d $C/gflow.d $C/gdag.d \
+	$C/evalu8.d $C/fp.d $C/go.d $C/gflow.d $C/gdag.d $C/elpicpie.d \
 	$C/gother.d $C/glocal.d $C/gloop.d $C/gsroa.d $C/newman.d \
 	$C/nteh.d $C/os.d $C/out.d $C/ptrntab.d $C/drtlsym.d \
 	$C/dtype.d \
@@ -407,6 +409,8 @@ STRING_IMPORT_FILES = $G/VERSION $G/SYSCONFDIR.imp $(RES)/default_ddoc_theme.ddo
 
 DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(BACK_OBJS) $(BACK_DOBJS))
 
+RUN_BUILD = $(GENERATED)/build HOST_DMD="$(HOST_DMD)" OS=$(OS) BUILD=$(BUILD) MODEL=$(MODEL) AUTO_BOOTSTRAP="$(AUTO_BOOTSTRAP)" --called-from-make
+
 ######## Begin build targets
 
 
@@ -415,6 +419,9 @@ all: dmd
 
 dmd: $G/dmd $G/dmd.conf
 .PHONY: dmd
+
+$(GENERATED)/build: build.d $(HOST_DMD_PATH)
+	$(HOST_DMD_RUN) -of$@ -debug build.d
 
 auto-tester-build: dmd checkwhitespace cxx-unittest $G/dmd_frontend
 .PHONY: auto-tester-build
@@ -432,24 +439,21 @@ toolchain-info:
 	@echo '==== Toolchain Information ===='
 	@echo
 
-$G/backend.a: $(G_OBJS) $(G_DOBJS) $(SRC_MAKE)
-	$(AR) rcs $@ $(G_OBJS) $(G_DOBJS)
-
-$G/lexer.a: $(LEXER_SRCS) $(LEXER_ROOT) $(HOST_DMD_PATH) $(SRC_MAKE) $(STRING_IMPORT_FILES)
-	$(HOST_DMD_RUN) -lib -of$@ $(MODEL_FLAG) -J$G $(DFLAGS) $(LEXER_SRCS) $(LEXER_ROOT)
+$G/backend.a: $(G_DOBJS) $(SRC_MAKE)
+	$(AR) rcs $@ $(G_DOBJS)
 
 $G/dmd_frontend: $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	$(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^) -version=NoBackend
 
 ifdef ENABLE_LTO
-$G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/lexer.a $(G_OBJS) $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+$G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/lexer.a $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	$(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 else
 $G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/backend.a $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	$(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $(LEXER_ROOT),$^)
 endif
 
-$G/dmd-unittest: $(DMD_SRCS) $(ROOT_SRCS) $(LEXER_SRCS) $(G_OBJS) $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+$G/dmd-unittest: $(DMD_SRCS) $(ROOT_SRCS) $(LEXER_SRCS) $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	$(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) $(DFLAGS) -g -unittest -main -version=NoMain $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 
 unittest: $G/dmd-unittest
@@ -505,7 +509,7 @@ $G/dmd.conf: $(SRC_MAKE)
 	echo "$$DEFAULT_DMD_CONF" > $@
 
 ######## optabgen generates some source
-optabgen_output = debtab.d optab.d cdxxx.d elxxx.d fltables.d tytab.d
+optabgen_output = tytab.d
 
 $G/optabgen: $C/optabgen.d $C/cc.d $C/oper.d $(HOST_DMD_PATH)
 	$(HOST_DMD_RUN) -of$@ $(DFLAGS) $(MODEL_FLAG) $(BACK_MV) $<
@@ -598,10 +602,10 @@ dscanner: $(DSCANNER_DIR)/dsc
 
 ######################################################
 
-$G/cxxfrontend.o: $G/%.o: tests/%.c $(SRC) $(ROOT_SRC)
+$G/cxxfrontend.o: $G/%.o: tests/%.c $(SRC) $(ROOT_SRC) $(SRC_MAKE)
 	$(CXX) -c -o$@ $(CXXFLAGS) $(DMD_FLAGS) $(MMD) $<
 
-$G/cxx-unittest: $G/cxxfrontend.o $(DMD_SRCS) $(ROOT_SRCS) $G/lexer.a $(G_OBJS) $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+$G/cxx-unittest: $G/cxxfrontend.o $(DMD_SRCS) $(ROOT_SRCS) $G/lexer.a $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) -L-lstdc++ $(DFLAGS) -version=NoMain $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 
 cxx-unittest: $G/cxx-unittest
@@ -617,6 +621,12 @@ zip:
 
 gitzip:
 	git archive --format=zip HEAD > $(ZIPFILE)
+
+######################################################
+# Default rule to forward targets to build.d
+
+$G/%: $(GENERATED)/build FORCE
+	$(RUN_BUILD) $@
 
 ################################################################################
 # DDoc documentation generation

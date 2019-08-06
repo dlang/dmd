@@ -124,7 +124,9 @@ bool isSafeCast(Expression e, Type tfrom, Type tto)
         ClassDeclaration cdto = ttob.isClassHandle();
 
         int offset;
-        if (!cdfrom.isBaseOf(cdto, &offset))
+        if (!cdfrom.isBaseOf(cdto, &offset) &&
+            !((cdfrom.isInterfaceDeclaration() || cdto.isInterfaceDeclaration())
+                && cdfrom.classKind == ClassKind.d && cdto.classKind == ClassKind.d))
             return false;
 
         if (cdfrom.isCPPinterface() || cdto.isCPPinterface())

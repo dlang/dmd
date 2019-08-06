@@ -32,6 +32,7 @@ import dmd.utils : toDString;
 import dmd.root.ctfloat;
 import dmd.root.outbuffer;
 
+////////////////////////////////////////////////////////////////////////////////
 /**
  * Describes a back-end target. At present it is incomplete, but in the future
  * it should grow to contain most or all target machine and target O/S specific
@@ -52,14 +53,10 @@ struct Target
     ulong maxStaticDataSize;  /// maximum size of static data
 
     // C ABI
-    uint c_longsize;          /// size of a C `long` or `unsigned long` type
-    uint c_long_doublesize;   /// size of a C `long double`
-    uint criticalSectionSize; /// size of os critical section
+    TargetC c;
 
     // C++ ABI
-    bool reverseCppOverloads; /// set if overloaded functions are grouped and in reverse order (such as in dmc and cl)
-    bool cppExceptions;       /// set if catching C++ exceptions is supported
-    bool twoDtorInVtable;     /// target C++ ABI puts deleting and non-deleting destructor into vtable
+    TargetCPP cpp;
 
     /**
      * Values representing all properties for floating point types
@@ -79,7 +76,7 @@ struct Target
         d_int64 max_10_exp = T.max_10_exp;  /// maximum int value such that 10$(SUPERSCRIPT `max_10_exp` is representable)
         d_int64 min_10_exp = T.min_10_exp;  /// minimum int value such that 10$(SUPERSCRIPT `min_10_exp`) is representable as a normalized value
 
-        void _init()
+        extern (D) void initialize()
         {
             max = T.max;
             min_normal = T.min_normal;
@@ -98,9 +95,9 @@ struct Target
      */
     extern (C++) void _init(ref const Param params)
     {
-        FloatProperties._init();
-        DoubleProperties._init();
-        RealProperties._init();
+        FloatProperties.initialize();
+        DoubleProperties.initialize();
+        RealProperties.initialize();
 
         // These have default values for 32 bit code, they get
         // adjusted for 64 bit code.
@@ -125,25 +122,18 @@ struct Target
             realsize = 12;
             realpad = 2;
             realalignsize = 4;
-            c_longsize = 4;
-            twoDtorInVtable = true;
         }
         else if (params.isOSX)
         {
             realsize = 16;
             realpad = 6;
             realalignsize = 16;
-            c_longsize = 4;
-            twoDtorInVtable = true;
         }
         else if (params.isWindows)
         {
             realsize = 10;
             realpad = 0;
             realalignsize = 2;
-            reverseCppOverloads = true;
-            twoDtorInVtable = false;
-            c_longsize = 4;
             if (ptrsize == 4)
             {
                 /* Optlink cannot deal with individual data chunks
@@ -161,21 +151,11 @@ struct Target
                 realsize = 16;
                 realpad = 6;
                 realalignsize = 16;
-                c_longsize = 8;
-            }
-            else if (params.isOSX)
-            {
-                c_longsize = 8;
             }
         }
-        c_long_doublesize = realsize;
-        if (params.is64bit && params.isWindows)
-            c_long_doublesize = 8;
 
-        criticalSectionSize = getCriticalSectionSize(params);
-
-        cppExceptions = params.isLinux || params.isFreeBSD ||
-            params.isDragonFlyBSD || params.isOSX;
+        c.initialize(params, this);
+        cpp.initialize(params, this);
     }
 
     /**
@@ -249,50 +229,7 @@ struct Target
      */
     extern (C++) uint critsecsize()
     {
-        return criticalSectionSize;
-    }
-
-    private static uint getCriticalSectionSize(ref const Param params) pure
-    {
-        if (params.isWindows)
-        {
-            // sizeof(CRITICAL_SECTION) for Windows.
-            return params.isLP64 ? 40 : 24;
-        }
-        else if (params.isLinux)
-        {
-            // sizeof(pthread_mutex_t) for Linux.
-            if (params.is64bit)
-                return params.isLP64 ? 40 : 32;
-            else
-                return params.isLP64 ? 40 : 24;
-        }
-        else if (params.isFreeBSD)
-        {
-            // sizeof(pthread_mutex_t) for FreeBSD.
-            return params.isLP64 ? 8 : 4;
-        }
-        else if (params.isOpenBSD)
-        {
-            // sizeof(pthread_mutex_t) for OpenBSD.
-            return params.isLP64 ? 8 : 4;
-        }
-        else if (params.isDragonFlyBSD)
-        {
-            // sizeof(pthread_mutex_t) for DragonFlyBSD.
-            return params.isLP64 ? 8 : 4;
-        }
-        else if (params.isOSX)
-        {
-            // sizeof(pthread_mutex_t) for OSX.
-            return params.isLP64 ? 64 : 44;
-        }
-        else if (params.isSolaris)
-        {
-            // sizeof(pthread_mutex_t) for Solaris.
-            return 24;
-        }
-        assert(0);
+        return c.criticalSectionSize;
     }
 
     /**
@@ -324,15 +261,6 @@ struct Target
         {
             assert(0);
         }
-    }
-
-    /******************
-     * Returns:
-     *  true if xmm usage is supported
-     */
-    extern (C++) bool isXmmSupported()
-    {
-        return global.params.is64bit || global.params.isOSX;
     }
 
     /**
@@ -449,89 +377,6 @@ struct Target
             assert(0, "unhandled op " ~ Token.toString(cast(TOK)op));
         }
         return supported;
-    }
-
-    /**
-     * Mangle the given symbol for C++ ABI.
-     * Params:
-     *      s = declaration with C++ linkage
-     * Returns:
-     *      string mangling of symbol
-     */
-    extern (C++) const(char)* toCppMangle(Dsymbol s)
-    {
-        static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.DragonFlyBSD || TARGET.Solaris)
-            return toCppMangleItanium(s);
-        else static if (TARGET.Windows)
-            return toCppMangleMSVC(s);
-        else
-            static assert(0, "fix this");
-    }
-
-    /**
-     * Get RTTI mangling of the given class declaration for C++ ABI.
-     * Params:
-     *      cd = class with C++ linkage
-     * Returns:
-     *      string mangling of C++ typeinfo
-     */
-    extern (C++) const(char)* cppTypeInfoMangle(ClassDeclaration cd)
-    {
-        static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
-            return cppTypeInfoMangleItanium(cd);
-        else static if (TARGET.Windows)
-            return cppTypeInfoMangleMSVC(cd);
-        else
-            static assert(0, "fix this");
-    }
-
-    /**
-     * Gets vendor-specific type mangling for C++ ABI.
-     * Params:
-     *      t = type to inspect
-     * Returns:
-     *      string if type is mangled specially on target
-     *      null if unhandled
-     */
-    extern (C++) const(char)* cppTypeMangle(Type t)
-    {
-        return null;
-    }
-
-    /**
-     * Get the type that will really be used for passing the given argument
-     * to an `extern(C++)` function.
-     * Params:
-     *      p = parameter to be passed.
-     * Returns:
-     *      `Type` to use for parameter `p`.
-     */
-    extern (C++) Type cppParameterType(Parameter p)
-    {
-        Type t = p.type.merge2();
-        if (p.storageClass & (STC.out_ | STC.ref_))
-            t = t.referenceTo();
-        else if (p.storageClass & STC.lazy_)
-        {
-            // Mangle as delegate
-            Type td = new TypeFunction(ParameterList(), t, LINK.d);
-            td = new TypeDelegate(td);
-            t = merge(t);
-        }
-        return t;
-    }
-
-    /**
-     * Checks whether type is a vendor-specific fundamental type.
-     * Params:
-     *      t = type to inspect
-     *      isFundamental = where to store result
-     * Returns:
-     *      true if isFundamental was set by function
-     */
-    extern (C++) bool cppFundamentalType(const Type t, ref bool isFundamental)
-    {
-        return false;
     }
 
     /**
@@ -791,6 +636,208 @@ struct Target
                 return null;
         }
     }
+
+    ////////////////////////////////////////////////////////////////////////////
+    /* All functions after this point are extern (D), as they are only relevant
+     * for targets of DMD, and should not be used in front-end code.
+     */
+
+    /******************
+     * Returns:
+     *  true if xmm usage is supported
+     */
+    extern (D) bool isXmmSupported()
+    {
+        return global.params.is64bit || global.params.isOSX;
+    }
 }
 
+////////////////////////////////////////////////////////////////////////////////
+/**
+ * Functions and variables specific to interfacing with extern(C) ABI.
+ */
+struct TargetC
+{
+    uint longsize;            /// size of a C `long` or `unsigned long` type
+    uint long_doublesize;     /// size of a C `long double`
+    uint criticalSectionSize; /// size of os critical section
+
+    extern (D) void initialize(ref const Param params, ref const Target target)
+    {
+        if (params.isLinux || params.isFreeBSD || params.isOpenBSD || params.isDragonFlyBSD || params.isSolaris)
+            longsize = 4;
+        else if (params.isOSX)
+            longsize = 4;
+        else if (params.isWindows)
+            longsize = 4;
+        else
+            assert(0);
+        if (params.is64bit)
+        {
+            if (params.isLinux || params.isFreeBSD || params.isDragonFlyBSD || params.isSolaris)
+                longsize = 8;
+            else if (params.isOSX)
+                longsize = 8;
+        }
+        if (params.is64bit && params.isWindows)
+            long_doublesize = 8;
+        else
+            long_doublesize = target.realsize;
+
+        criticalSectionSize = getCriticalSectionSize(params);
+    }
+
+    private static uint getCriticalSectionSize(ref const Param params) pure
+    {
+        if (params.isWindows)
+        {
+            // sizeof(CRITICAL_SECTION) for Windows.
+            return params.isLP64 ? 40 : 24;
+        }
+        else if (params.isLinux)
+        {
+            // sizeof(pthread_mutex_t) for Linux.
+            if (params.is64bit)
+                return params.isLP64 ? 40 : 32;
+            else
+                return params.isLP64 ? 40 : 24;
+        }
+        else if (params.isFreeBSD)
+        {
+            // sizeof(pthread_mutex_t) for FreeBSD.
+            return params.isLP64 ? 8 : 4;
+        }
+        else if (params.isOpenBSD)
+        {
+            // sizeof(pthread_mutex_t) for OpenBSD.
+            return params.isLP64 ? 8 : 4;
+        }
+        else if (params.isDragonFlyBSD)
+        {
+            // sizeof(pthread_mutex_t) for DragonFlyBSD.
+            return params.isLP64 ? 8 : 4;
+        }
+        else if (params.isOSX)
+        {
+            // sizeof(pthread_mutex_t) for OSX.
+            return params.isLP64 ? 64 : 44;
+        }
+        else if (params.isSolaris)
+        {
+            // sizeof(pthread_mutex_t) for Solaris.
+            return 24;
+        }
+        assert(0);
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/**
+ * Functions and variables specific to interface with extern(C++) ABI.
+ */
+struct TargetCPP
+{
+    bool reverseOverloads;    /// set if overloaded functions are grouped and in reverse order (such as in dmc and cl)
+    bool exceptions;          /// set if catching C++ exceptions is supported
+    bool twoDtorInVtable;     /// target C++ ABI puts deleting and non-deleting destructor into vtable
+
+    extern (D) void initialize(ref const Param params, ref const Target target)
+    {
+        if (params.isLinux || params.isFreeBSD || params.isOpenBSD || params.isDragonFlyBSD || params.isSolaris)
+            twoDtorInVtable = true;
+        else if (params.isOSX)
+            twoDtorInVtable = true;
+        else if (params.isWindows)
+            reverseOverloads = true;
+        else
+            assert(0);
+        exceptions = params.isLinux || params.isFreeBSD ||
+            params.isDragonFlyBSD || params.isOSX;
+    }
+
+    /**
+     * Mangle the given symbol for C++ ABI.
+     * Params:
+     *      s = declaration with C++ linkage
+     * Returns:
+     *      string mangling of symbol
+     */
+    extern (C++) const(char)* toMangle(Dsymbol s)
+    {
+        static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.DragonFlyBSD || TARGET.Solaris)
+            return toCppMangleItanium(s);
+        else static if (TARGET.Windows)
+            return toCppMangleMSVC(s);
+        else
+            static assert(0, "fix this");
+    }
+
+    /**
+     * Get RTTI mangling of the given class declaration for C++ ABI.
+     * Params:
+     *      cd = class with C++ linkage
+     * Returns:
+     *      string mangling of C++ typeinfo
+     */
+    extern (C++) const(char)* typeInfoMangle(ClassDeclaration cd)
+    {
+        static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
+            return cppTypeInfoMangleItanium(cd);
+        else static if (TARGET.Windows)
+            return cppTypeInfoMangleMSVC(cd);
+        else
+            static assert(0, "fix this");
+    }
+
+    /**
+     * Gets vendor-specific type mangling for C++ ABI.
+     * Params:
+     *      t = type to inspect
+     * Returns:
+     *      string if type is mangled specially on target
+     *      null if unhandled
+     */
+    extern (C++) const(char)* typeMangle(Type t)
+    {
+        return null;
+    }
+
+    /**
+     * Get the type that will really be used for passing the given argument
+     * to an `extern(C++)` function.
+     * Params:
+     *      p = parameter to be passed.
+     * Returns:
+     *      `Type` to use for parameter `p`.
+     */
+    extern (C++) Type parameterType(Parameter p)
+    {
+        Type t = p.type.merge2();
+        if (p.storageClass & (STC.out_ | STC.ref_))
+            t = t.referenceTo();
+        else if (p.storageClass & STC.lazy_)
+        {
+            // Mangle as delegate
+            Type td = new TypeFunction(ParameterList(), t, LINK.d);
+            td = new TypeDelegate(td);
+            t = merge(t);
+        }
+        return t;
+    }
+
+    /**
+     * Checks whether type is a vendor-specific fundamental type.
+     * Params:
+     *      t = type to inspect
+     *      isFundamental = where to store result
+     * Returns:
+     *      true if isFundamental was set by function
+     */
+    extern (C++) bool fundamentalType(const Type t, ref bool isFundamental)
+    {
+        return false;
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
 extern (C++) __gshared Target target;

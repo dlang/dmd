@@ -23,6 +23,7 @@
 #include "aggregate.h"
 #include "aliasthis.h"
 #include "arraytypes.h"
+#include "ast_node.h"
 #include "attrib.h"
 #include "compiler.h"
 #include "complex_t.h"
@@ -67,8 +68,7 @@ static void frontend_init()
 
     global._init();
     global.params.isLinux = true;
-    global.vendor.ptr = "Front-End Tester";
-    global.vendor.length = strlen(global.vendor.ptr);
+    global.vendor = DString("Front-End Tester");
 
     Type::_init();
     Id::initialize();
@@ -162,7 +162,7 @@ void test_visitors()
     Loc loc;
     Identifier *ident = Identifier::idPool("test");
 
-    IntegerExp *ie = IntegerExp::createi(loc, 42, Type::tint32);
+    IntegerExp *ie = IntegerExp::create(loc, 42, Type::tint32);
     ie->accept(&tv);
     assert(tv.expr == true);
 
@@ -224,8 +224,7 @@ void test_semantic()
         "class Error : Throwable { this(immutable(char)[]); }";
 
     FileBuffer *srcBuffer = FileBuffer::create(); // free'd in Module::parse()
-    srcBuffer->data.ptr = (unsigned char *)mem.xstrdup(buf);
-    srcBuffer->data.length = strlen(buf);
+    srcBuffer->data = DArray<unsigned char>(strlen(buf), (unsigned char *)mem.xstrdup(buf));
 
     Module *m = Module::create("object.d", Identifier::idPool("object"), 0, 0);
 
@@ -239,6 +238,17 @@ void test_semantic()
     semantic2(m, NULL);
     semantic3(m, NULL);
 
+    Dsymbol *s = m->search(Loc(), Identifier::idPool("Error"));
+    assert(s);
+    AggregateDeclaration *ad = s->isAggregateDeclaration();
+    assert(ad && ad->ctor);
+    CtorDeclaration *ctor = ad->ctor->isCtorDeclaration();
+    assert(ctor->isMember() && !ctor->isNested());
+    assert(0 == strcmp(ctor->type->toChars(), "Error(string)"));
+
+    ClassDeclaration *cd = ad->isClassDeclaration();
+    assert(cd && cd->hasMonitor());
+
     assert(!global.endGagging(errors));
 }
 
@@ -247,7 +257,7 @@ void test_semantic()
 void test_expression()
 {
     Loc loc;
-    IntegerExp *ie = IntegerExp::createi(loc, 42, Type::tint32);
+    IntegerExp *ie = IntegerExp::create(loc, 42, Type::tint32);
     Expression *e = ie->ctfeInterpret();
 
     assert(e);
@@ -265,23 +275,47 @@ void test_target()
 
 void test_emplace()
 {
-  Loc loc;
-  UnionExp ue;
+    Loc loc;
+    UnionExp ue;
 
-  IntegerExp::emplacei(&ue, loc, 1065353216, Type::tint32);
-  Expression *e = ue.exp();
-  assert(e->op == TOKint64);
-  assert(e->toInteger() == 1065353216);
+    IntegerExp::emplace(&ue, loc, 1065353216, Type::tint32);
+    Expression *e = ue.exp();
+    assert(e->op == TOKint64);
+    assert(e->toInteger() == 1065353216);
 
-  UnionExp ure;
-  Expression *re = Compiler::paintAsType(&ure, e, Type::tfloat32);
-  assert(re->op == TOKfloat64);
-  assert(re->toReal() == CTFloat::one);
+    UnionExp ure;
+    Expression *re = Compiler::paintAsType(&ure, e, Type::tfloat32);
+    assert(re->op == TOKfloat64);
+    assert(re->toReal() == CTFloat::one);
 
-  UnionExp uie;
-  Expression *ie = Compiler::paintAsType(&uie, re, Type::tint32);
-  assert(ie->op == TOKint64);
-  assert(ie->toInteger() == e->toInteger());
+    UnionExp uie;
+    Expression *ie = Compiler::paintAsType(&uie, re, Type::tint32);
+    assert(ie->op == TOKint64);
+    assert(ie->toInteger() == e->toInteger());
+}
+
+/**********************************/
+
+void test_parameters()
+{
+    Parameters *args = new Parameters;
+    args->push(Parameter::create(STCundefined, Type::tint32, NULL, NULL, NULL));
+    args->push(Parameter::create(STCundefined, Type::tint64, NULL, NULL, NULL));
+
+    TypeFunction *tf = TypeFunction::create(args, Type::tvoid, VARARGnone, LINKc);
+
+    assert(tf->parameterList.length() == 2);
+    assert(tf->parameterList[0]->type == Type::tint32);
+    assert(tf->parameterList[1]->type == Type::tint64);
+}
+
+/**********************************/
+
+void test_location()
+{
+    Loc loc1 = Loc("test.d", 24, 42);
+    assert(loc1.equals(Loc("test.d", 24, 42)));
+    assert(strcmp(loc1.toChars(true), "test.d(24,42)") == 0);
 }
 
 /**********************************/
@@ -295,6 +329,8 @@ int main(int argc, char **argv)
     test_expression();
     test_target();
     test_emplace();
+    test_parameters();
+    test_location();
 
     frontend_term();
 

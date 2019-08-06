@@ -725,9 +725,10 @@ private int numaeelems(elem *n)
     else
         ae = true;
 
-    if (ae && OTae(op) && !(n.Ety & mTYvolatile) &&
+    if (ae && OTae(op) && !(n.Ety & (mTYvolatile | mTYshared)) &&
         // Disallow struct AEs, because we can't handle CSEs that are structs
-        tybasic(n.Ety) != TYstruct)
+        tybasic(n.Ety) != TYstruct &&
+        tybasic(n.Ety) != TYarray)
     {
         n.Nflags |= NFLaecp;           /* remember for asgexpelems()   */
         go.exptop++;
@@ -764,7 +765,7 @@ private int numcpelems(elem *n)
             if ((op == OPeq || op == OPstreq) &&
                 n.EV.E1.Eoper == OPvar &&
                 n.EV.E2.Eoper == OPvar &&
-                !((n.EV.E1.Ety | n.EV.E2.Ety) & mTYvolatile) &&
+                !((n.EV.E1.Ety | n.EV.E2.Ety) & (mTYvolatile | mTYshared)) &&
                 n.EV.E1.EV.Vsym != n.EV.E2.EV.Vsym)
             {
                 n.Nflags |= NFLaecp;
@@ -864,9 +865,8 @@ private void defstarkill()
             // Set bit in defkill if either the left or the
             // right variable is killed by an ambiguous def.
 
-            Symbol *s1 = n.EV.E1.EV.Vsym;
-            if (!(s1.Sflags & SFLunambig) ||
-                !(n.EV.E2.EV.Vsym.Sflags & SFLunambig))
+            if (Symbol_isAffected(*n.EV.E1.EV.Vsym) ||
+                Symbol_isAffected(*n.EV.E2.EV.Vsym))
             {
                 vec_setbit(i,go.defkill);
             }
@@ -881,45 +881,13 @@ private void defstarkill()
             switch (op)
             {
                 case OPvar:
-                    if (!(n.EV.Vsym.Sflags & SFLunambig))
+                    if (Symbol_isAffected(*n.EV.Vsym))
                         vec_setbit(i,go.defkill);
                     break;
 
                 case OPind:         // if a 'starred' ref
-                    static if (1)
-                    {
-                        /* The following program fails for this:
-                        import core.stdc.stdio;
-
-                        class Foo
-                        {
-                            string foo = "abc";
-                            size_t i = 0;
-
-                            void bar()
-                            {
-                                printf("%c\n", foo[i]);
-                                i++;
-                                printf("%c\n", foo[i]);
-                            }
-                        }
-
-                        void main()
-                        {
-                            auto f = new Foo();
-                            f.bar();
-                        }
-                        */
-
-                        // For C/C++, casting to 'const' doesn't mean it
-                        // actually is const,
-                        // but immutable really doesn't change
-                        if ((n.Ety & (mTYimmutable | mTYvolatile)) == mTYimmutable &&
-                            n.EV.E1.Eoper == OPvar &&
-                            n.EV.E1.EV.Vsym.Sflags & SFLunambig
-                           )
-                            break;
-                    }
+                    if (tybasic(n.EV.E1.Ety) == TYimmutPtr)
+                        break;
                     goto case OPstrlen;
 
                 case OPstrlen:

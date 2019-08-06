@@ -2722,7 +2722,7 @@ else
 
                     auto se1 = ox.exp.isStringExp();
                     auto se2 = oy.exp.isStringExp();
-                    return (se1 && se2) ? se1.comparex(se2) : 0;
+                    return (se1 && se2) ? se1.compare(se2) : 0;
                 }
 
                 // Sort cases for efficient lookup
@@ -3151,6 +3151,7 @@ else
                 rs.exp = inferType(rs.exp, fld.treq.nextOf().nextOf());
 
             rs.exp = rs.exp.expressionSemantic(sc);
+            rs.exp.checkSharedAccess(sc);
 
             // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
             if (rs.exp.op == TOK.type)
@@ -3225,7 +3226,13 @@ else
                     }
                     else if (rs.exp.op != TOK.error)
                     {
-                        rs.error("mismatched function return type inference of `%s` and `%s`", rs.exp.type.toChars(), tret.toChars());
+                        rs.error("Expected return type of `%s`, not `%s`:",
+                                 tret.toChars(),
+                                 rs.exp.type.toChars());
+                        errorSupplemental((fd.returns) ? (*fd.returns)[0].loc : fd.loc,
+                                          "Return type of `%s` inferred here.",
+                                          tret.toChars());
+
                         errors = true;
                         tf.next = Type.terror;
                     }
@@ -4259,7 +4266,7 @@ void catchSemantic(Catch c, Scope* sc)
         }
         else if (cd.isCPPclass())
         {
-            if (!target.cppExceptions)
+            if (!target.cpp.exceptions)
             {
                 error(c.loc, "catching C++ class objects not supported for this target");
                 c.errors = true;

@@ -515,6 +515,7 @@ if (!irs.params.is64bit) assert(tysize(TYnptr) == 4);
     {
         // CPP constructor returns void on Posix
         // https://itanium-cxx-abi.github.io/cxx-abi/abi.html#return-value-ctor
+        e.Ety = TYvoid;
         e = el_combine(e, el_same(&ethis));
     }
     else if (retmethod == RET.stack)
@@ -676,7 +677,10 @@ elem *addressElem(elem *e, Type t, bool alwaysCopy = false)
         elem *eeq = elAssign(el_var(stmp), e2, t, tx);
         *pe = el_bin(OPcomma,e2.Ety,eeq,el_var(stmp));
     }
-    e = el_una(OPaddr,TYnptr,e);
+    tym_t typ = TYnptr;
+    if (e.Eoper == OPind && tybasic(e.EV.E1.Ety) == TYimmutPtr)
+        typ = TYimmutPtr;
+    e = el_una(OPaddr,typ,e);
     return e;
 }
 
@@ -2223,7 +2227,7 @@ elem *toElem(Expression e, IRState *irs)
                     foreach (i; 1 .. depth - d)
                         e1 = (cast(CastExp)e1).e1;
 
-                    el = toElemCast(cast(CastExp)e1, el);
+                    el = toElemCast(cast(CastExp)e1, el, true);
                 }
             }
             else
@@ -2675,23 +2679,7 @@ elem *toElem(Expression e, IRState *irs)
             // Look for array.length = n
             if (auto ale = ae.e1.isArrayLengthExp())
             {
-                // Generate:
-                //      _d_arraysetlength(e2, sizeelem, &ale.e1);
-
-                elem *p1 = toElem(ae.e2, irs);
-                elem *p3 = toElem(ale.e1, irs);
-                p3 = addressElem(p3, null);
-                Type t1 = ale.e1.type.toBasetype();
-
-                // call _d_arraysetlengthT(ti, e2, &ale.e1);
-                elem *p2 = getTypeInfo(ae.loc, t1, irs);
-                elem *ep = el_params(p3, p1, p2, null); // c function
-                int r = t1.nextOf().isZeroInit(Loc.initial) ? RTLSYM_ARRAYSETLENGTHT : RTLSYM_ARRAYSETLENGTHIT;
-
-                auto e = el_bin(OPcall, totym(ae.type), el_var(getRtlsym(r)), ep);
-                toTraceGC(irs, e, ae.loc);
-
-                return setResult(e);
+                assert(0, "This case should have been rewritten to `_d_arraysetlengthT` in the semantic phase");
             }
 
             // Look for array[]=n
@@ -2971,7 +2959,7 @@ elem *toElem(Expression e, IRState *irs)
 
             // Create a reference to e1.
             if (e1.Eoper == OPvar)
-                e1x = el_same(&e1);
+                e1x = el_copytree(e1);
             else
             {
                 /* Rewrite to:
@@ -3615,11 +3603,15 @@ elem *toElem(Expression e, IRState *irs)
 
             elem *e = toElem(dve.e1, irs);
             Type tb1 = dve.e1.type.toBasetype();
+            tym_t typ = TYnptr;
             if (tb1.ty != Tclass && tb1.ty != Tpointer)
+            {
                 e = addressElem(e, tb1);
+                typ = tybasic(e.Ety);
+            }
             auto offset = el_long(TYsize_t, v.offset);
             offset = objc.getOffset(v, tb1, offset);
-            e = el_bin(OPadd, TYnptr, e, offset);
+            e = el_bin(OPadd, typ, e, offset);
             if (v.storage_class & (STC.out_ | STC.ref_))
                 e = el_una(OPind, TYnptr, e);
             e = el_una(OPind, totym(dve.type), e);
@@ -3984,6 +3976,12 @@ elem *toElem(Expression e, IRState *irs)
         {
             //printf("PtrExp.toElem() %s\n", pe.toChars());
             elem *e = toElem(pe.e1, irs);
+            if (tybasic(e.Ety) == TYnptr &&
+                pe.e1.type.nextOf() &&
+                pe.e1.type.nextOf().isImmutable())
+            {
+                e.Ety = TYimmutPtr;     // pointer to immutable
+            }
             e = el_una(OPind,totym(pe.type),e);
             if (tybasic(e.Ety) == TYstruct)
             {
@@ -4191,10 +4189,10 @@ elem *toElem(Expression e, IRState *irs)
             }
             elem *e = toElem(ce.e1, irs);
 
-            result = toElemCast(ce, e);
+            result = toElemCast(ce, e, false);
         }
 
-        elem *toElemCast(CastExp ce, elem *e)
+        elem *toElemCast(CastExp ce, elem *e, bool isLvalue)
         {
             tym_t ftym;
             tym_t ttym;
@@ -4219,6 +4217,8 @@ elem *toElem(Expression e, IRState *irs)
                 // Adjust for any type paints
                 Type t = ce.type.toBasetype();
                 e.Ety = totym(t);
+                if (tyaggregate(e.Ety))
+                    e.ET = Type_toCtype(t);
 
                 elem_setLoc(e, ce.loc);
                 return e;
@@ -4394,7 +4394,16 @@ elem *toElem(Expression e, IRState *irs)
             if (fty == Tvector && tty == Tsarray)
             {
                 if (tfrom.size() == t.size())
+                {
+                    if (e.Eoper != OPvar && e.Eoper != OPind)
+                    {
+                        // can't perform array ops on it unless it's in memory
+                        e = addressElem(e, tfrom);
+                        e = el_una(OPind, TYarray, e);
+                        e.ET = Type_toCtype(t);
+                    }
                     return Lret(ce, e);
+                }
             }
 
             ftym = tybasic(e.Ety);
@@ -4459,7 +4468,19 @@ elem *toElem(Expression e, IRState *irs)
                     case X(Tbool,Tint16):
                     case X(Tbool,Tuns16):
                     case X(Tbool,Tint32):
-                    case X(Tbool,Tuns32):   eop = OPu8_16;  return Leop(ce, e, eop, ttym);
+                    case X(Tbool,Tuns32):
+                        if (isLvalue)
+                        {
+                            eop = OPu8_16;
+                            return Leop(ce, e, eop, ttym);
+                        }
+                        else
+                        {
+                            e = el_bin(OPand, TYuchar, e, el_long(TYuchar, 1));
+                            fty = Tuns8;
+                            continue;
+                        }
+
                     case X(Tbool,Tint64):
                     case X(Tbool,Tuns64):
                     case X(Tbool,Tfloat32):
@@ -4468,12 +4489,14 @@ elem *toElem(Expression e, IRState *irs)
                     case X(Tbool,Tcomplex32):
                     case X(Tbool,Tcomplex64):
                     case X(Tbool,Tcomplex80):
-                        e = el_una(OPu8_16, TYuint, e);
-                        fty = Tuns32;
+                        e = el_bin(OPand, TYuchar, e, el_long(TYuchar, 1));
+                        fty = Tuns8;
                         continue;
+
                     case X(Tbool,Timaginary32):
                     case X(Tbool,Timaginary64):
-                    case X(Tbool,Timaginary80): return Lzero(ce, e, ttym);
+                    case X(Tbool,Timaginary80):
+                        return Lzero(ce, e, ttym);
 
                         /* ============================= */
 

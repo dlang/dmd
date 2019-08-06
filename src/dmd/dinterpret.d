@@ -4979,6 +4979,9 @@ public:
             fd = ve.var.isFuncDeclaration();
             assert(fd);
 
+            // If `_d_HookTraceImpl` is found, resolve the underlying hook and replace `e` and `fd` with it.
+            removeHookTraceImpl(e, fd);
+
             if (fd.ident == Id.__ArrayPostblit || fd.ident == Id.__ArrayDtor)
             {
                 assert(e.arguments.dim == 1);
@@ -5011,6 +5014,25 @@ public:
                     result = evaluateDtor(istate, result);
                 if (!result)
                     result = CTFEExp.voidexp;
+                return;
+            }
+            else if (fd.ident == Id._d_arraysetlengthT)
+            {
+                // In expressionsem.d `ea.length = eb;` got lowered to `_d_arraysetlengthT(ea, eb);`.
+                // The following code will rewrite it back to `ea.length = eb` and then interpret that expression.
+                assert(e.arguments.dim == 2);
+
+                Expression ea = (*e.arguments)[0];
+                Expression eb = (*e.arguments)[1];
+
+                auto ale = new ArrayLengthExp(e.loc, ea);
+                ale.type = Type.tsize_t;
+                AssignExp ae = new AssignExp(e.loc, ale, eb);
+                ae.type = ea.type;
+
+                if (global.params.verbose)
+                    message("interpret  %s =>\n          %s", e.toChars(), ae.toChars());
+                result = interpret(ae, istate);
                 return;
             }
         }
@@ -7435,4 +7457,38 @@ private void setValue(VarDeclaration vd, Expression newval)
     }
     assert((vd.storage_class & (STC.out_ | STC.ref_)) ? isCtfeReferenceValid(newval) : isCtfeValueValid(newval));
     ctfeStack.setValue(vd, newval);
+}
+
+/**
+ * Removes `_d_HookTraceImpl` if found from `ce` and `fd`.
+ * This is needed for the CTFE interception code to be able to find hooks that are called though the hook's `*Trace`
+ * wrapper.
+ *
+ * This is done by replacing `_d_HookTraceImpl!(T, Hook, errMsg)(..., parameters)` with `Hook(parameters)`.
+ * Parameters:
+ *  ce = The CallExp that possible will be be replaced
+ *  fd = Fully resolve function declaration that `ce` would call
+ */
+private void removeHookTraceImpl(ref CallExp ce, ref FuncDeclaration fd)
+{
+    if (fd.ident != Id._d_HookTraceImpl)
+        return;
+
+    auto oldCE = ce;
+
+    // Get the Hook from the second template parameter
+    TemplateInstance templateInstance = fd.parent.isTemplateInstance;
+    RootObject hook = (*templateInstance.tiargs)[1];
+    assert(hook.dyncast() == DYNCAST.dsymbol, "Expected _d_HookTraceImpl's second template parameter to be an alias to the hook!");
+    fd = (cast(Dsymbol)hook).isFuncDeclaration;
+
+    // Remove the first three trace parameters
+    auto arguments = new Expressions();
+    arguments.reserve(ce.arguments.dim - 3);
+    arguments.pushSlice((*ce.arguments)[3 .. $]);
+
+    ce = new CallExp(ce.loc, new VarExp(ce.loc, fd, false), arguments);
+
+    if (global.params.verbose)
+        message("strip     %s =>\n          %s", oldCE.toChars(), ce.toChars());
 }

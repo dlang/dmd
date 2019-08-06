@@ -293,6 +293,35 @@ int Symbol_needThis(const Symbol* s)
     return 0;
 }
 
+/************************************
+ * Determine if `s` may be affected if an assignment is done through
+ * a pointer.
+ * Params:
+ *      s = symbol to check
+ * Returns:
+ *      true if it may be modified by assignment through a pointer
+ */
+
+bool Symbol_isAffected(const ref Symbol s)
+{
+    //printf("s: %s %d\n", s.Sident.ptr, !(s.Sflags & SFLunambig) && !(s.ty() & (mTYconst | mTYimmutable)));
+    //symbol_print(s);
+
+    /* If nobody took its address and it's not statically allocated,
+     * then it is not accessible via pointer and so is not affected.
+     */
+    if (s.Sflags & SFLunambig)
+        return false;
+
+    /* If it's immutable, it can't be affected
+     */
+    if (s.ty() & (mTYconst | mTYimmutable))
+    {
+        return false;
+    }
+    return true;
+}
+
 
 /***********************************
  * Get user name of symbol.
@@ -2472,6 +2501,20 @@ void symbol_reset(Symbol *s)
     {   s.Sclass = SCextern;
         s.Sfl = FLextern;
     }
+}
+
+/****************************************
+ * Determine pointer type needed to access a Symbol,
+ * essentially what type an OPrelconst should get
+ * for that Symbol.
+ * Params:
+ *      s = pointer to Symbol
+ * Returns:
+ *      pointer type to access it
+ */
+tym_t symbol_pointerType(const Symbol* s)
+{
+    return s.Stype.Tty & mTYimmutable ? TYimmutPtr : TYnptr;
 }
 
 }

@@ -1,10 +1,11 @@
 // https://issues.dlang.org/show_bug.cgi?id=18719
 
-// REQUIRED_ARGS: -de
+// REQUIRED_ARGS:
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail18719.d(29): Deprecation: immutable field `x` was initialized in a previous constructor call
+fail_compilation/fail18719.d(30): Error: immutable field `x` initialized multiple times
+       Previous initialization is here.
 ---
 */
 

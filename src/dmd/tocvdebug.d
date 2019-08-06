@@ -422,7 +422,7 @@ void toDebug(StructDeclaration sd)
     const len1 = numidx + cv4_numericbytes(cast(uint)size);
     debtyp_t *d = debtyp_alloc(len1 + cv_stringbytes(id));
     cv4_storenumeric(d.data.ptr + numidx, cast(uint)size);
-    const uint len = len1 + cv_namestring(d.data.ptr + len1,id);
+    cv_namestring(d.data.ptr + len1, id);
 
     if (leaf == LF_STRUCTURE)
     {
@@ -557,7 +557,7 @@ void toDebug(ClassDeclaration cd)
     const uint len1 = numidx + cv4_numericbytes(cast(uint)size);
     debtyp_t *d = debtyp_alloc(len1 + cv_stringbytes(id));
     cv4_storenumeric(d.data.ptr + numidx, cast(uint)size);
-    const uint len = len1 + cv_namestring(d.data.ptr + len1,id);
+    cv_namestring(d.data.ptr + len1, id);
 
     idx_t vshapeidx = 0;
     if (1)
@@ -573,7 +573,6 @@ void toDebug(ClassDeclaration cd)
             ubyte descriptor = 0;
             for (size_t i = 0; i < cd.vtbl.dim; i++)
             {
-                FuncDeclaration fd = cast(FuncDeclaration)cd.vtbl[i];
                 //if (intsize == 4)
                     descriptor |= 5;
                 vshape.data.ptr[4 + n / 2] = descriptor;

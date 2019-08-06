@@ -17,13 +17,12 @@ class Identifier : public RootObject
 {
 private:
     int value;
-    DArray<const char> string;
+    DString string;
 
 public:
     static Identifier* anonymous();
     static Identifier* create(const char *string);
     bool equals(RootObject *o);
-    int compare(RootObject *o);
     const char *toChars();
     int getValue() const;
     const char *toHChars2();

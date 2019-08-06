@@ -20,12 +20,13 @@ import tools.paths;
 
 const scriptDir = __FILE_FULL_PATH__.dirName.buildNormalizedPath;
 auto testPath(R)(R path) { return buildNormalizedPath(scriptDir, path); }
-string resultsDir = testPath("test_results");
-immutable testDirs = ["runnable", "compilable", "fail_compilation"];
+shared string resultsDir = testPath("test_results");
+immutable testDirs = ["runnable", "compilable", "fail_compilation", "dshell"];
 shared bool verbose; // output verbose logging
 shared bool force; // always run all tests (ignores timestamp checking)
 shared string hostDMD; // path to host DMD binary (used for building the tools)
 shared string unitTestRunnerCommand;
+int jobs = 1;
 
 enum toolsDir = testPath("tools");
 
@@ -33,7 +34,8 @@ enum TestTools
 {
     unitTestRunner = TestTool("unit_test_runner", [toolsDir.buildPath("paths")]),
     testRunner = TestTool("d_do_test"),
-    jsonSanitizer = TestTool("sanitize_json")
+    jsonSanitizer = TestTool("sanitize_json"),
+    dshellPrebuilt = TestTool("dshell_prebuilt", null, Yes.linksWithTests),
 }
 
 immutable struct TestTool
@@ -44,13 +46,16 @@ immutable struct TestTool
     /// Extra arguments that should be supplied to the compiler when compiling the tool.
     string[] extraArgs;
 
+    /// Indicates the tool is a binary that links with tests
+    Flag!"linksWithTests" linksWithTests;
+
     alias name this;
 }
 
 int main(string[] args)
 {
     bool runUnitTests;
-    int jobs = totalCPUs;
+    jobs = totalCPUs;
     auto res = getopt(args,
         std.getopt.config.passThrough,
         "j|jobs", "Specifies the number of jobs (commands) to run simultaneously (default: %d)".format(totalCPUs), &jobs,
@@ -92,7 +97,7 @@ Options:
     if (runUnitTests)
     {
         verifyCompilerExists(env);
-        ensureToolsExists(TestTools.unitTestRunner);
+        ensureToolsExists(env, TestTools.unitTestRunner);
         return spawnProcess(unitTestRunnerCommand ~ args).wait();
     }
 
@@ -120,7 +125,7 @@ Options:
         int ret;
         auto taskPool = new TaskPool(jobs);
         scope(exit) taskPool.finish();
-        ensureToolsExists(EnumMembers!TestTools);
+        ensureToolsExists(env, EnumMembers!TestTools);
         foreach (target; taskPool.parallel(targets, 1))
         {
             log("run: %-(%s %)", target.args);
@@ -147,27 +152,58 @@ void verifyCompilerExists(string[string] env)
 Builds the binary of the tools required by the testsuite.
 Does nothing if the tools already exist and are newer than their source.
 */
-void ensureToolsExists(const TestTool[] tools ...)
+void ensureToolsExists(string[string] env, const TestTool[] tools ...)
 {
     resultsDir.mkdirRecurse;
 
     shared uint failCount = 0;
+    auto taskPool = new TaskPool(jobs);
+    scope(exit) taskPool.finish();
     foreach (tool; tools.parallel(1))
     {
-        const targetBin = resultsDir.buildPath(tool).exeName;
-        const sourceFile = toolsDir.buildPath(tool ~ ".d");
+        string targetBin;
+        string sourceFile;
+        if (tool.linksWithTests)
+        {
+            targetBin = resultsDir.buildPath(tool).objName;
+            sourceFile = toolsDir.buildPath(tool, tool ~ ".d");
+        }
+        else
+        {
+            targetBin = resultsDir.buildPath(tool).exeName;
+            sourceFile = toolsDir.buildPath(tool ~ ".d");
+        }
         if (targetBin.timeLastModified.ifThrown(SysTime.init) >= sourceFile.timeLastModified)
             writefln("%s is already up-to-date", tool);
         else
         {
-            const command = [
-                hostDMD,
-                "-of"~targetBin,
-                sourceFile
-            ] ~ tool.extraArgs;
+            string[] command;
+            string[string] commandEnv = null;
+            if (tool.linksWithTests)
+            {
+                // This will compile the dshell library thus needs the actual
+                // DMD compiler under test
+                command = [
+                    env["DMD"],
+                    "-conf=",
+                    "-m"~env["MODEL"],
+                    "-of" ~ targetBin,
+                    "-c",
+                    sourceFile
+                ] ~ getPicFlags(env);
+                commandEnv = env;
+            }
+            else
+            {
+                command = [
+                    hostDMD,
+                    "-of"~targetBin,
+                    sourceFile
+                ] ~ tool.extraArgs;
+            }
 
             writefln("Executing: %-(%s %)", command);
-            if (spawnProcess(command).wait)
+            if (spawnProcess(command, commandEnv).wait)
             {
                 stderr.writefln("failed to build '%s'", targetBin);
                 atomicOp!"+="(failCount, 1);
@@ -364,6 +400,7 @@ string[string] getEnvironment()
     env["RESULTS_DIR"] = resultsDir;
     env["OS"] = os;
     env["MODEL"] = model;
+    env["DMD_MODEL"] = dmdModel;
     env["BUILD"] = build;
     env["EXE"] = exeExtension;
     env["DMD"] = dmdPath;
@@ -430,4 +467,25 @@ auto exeName(T)(T name)
     version(Windows)
         name ~= ".exe";
     return name;
+}
+
+// Add the object filename extension to the given `name` for the current OS.
+auto objName(T)(T name)
+{
+    version(Windows)
+        return name ~ ".obj";
+    else
+        return name ~ ".o";
+}
+
+/// Return the correct pic flags as an array of strings
+string[] getPicFlags(string[string] env)
+{
+    version(Windows) {} else
+    {
+        const picFlags = env["PIC_FLAG"];
+        if (picFlags.length)
+            return picFlags.split();
+    }
+    return cast(string[])[];
 }
