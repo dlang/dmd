@@ -150,7 +150,7 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
                 break;
 
             default:
-                return;
+                assert(0);  // error should have been detected by semantic()
             }
 
             if (ad.dtor)
