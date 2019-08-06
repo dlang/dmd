@@ -102,6 +102,7 @@ struct Barray(T)
 unittest
 {
     Barray!int a;
+
     a.setLength(10);
     assert(a.length == 10);
     a.setLength(4);
@@ -110,4 +111,9 @@ unittest
         v = cast(int) i * 2;
     foreach (i, ref const v; a[])
         assert(v == i * 2);
+    a.remove(3);
+    assert(a.length == 3);
+    a.push(50);
+    a.remove(1);
+    assert(a[1] == 50);
 }
