@@ -456,7 +456,6 @@ else version (Posix)
             {
                 obj.m_unhandled = Throwable.chainTogether(obj.m_unhandled, t);
             }
-
             try
             {
                 rt_moduleTlsCtor();
