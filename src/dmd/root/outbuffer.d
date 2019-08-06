@@ -167,25 +167,6 @@ struct OutBuffer
             this.data[offset + 3] = cast(ubyte)((b & 0x3F) | 0x80);
             offset += 4;
         }
-        else if (b <= 0x3FFFFFF)
-        {
-            this.data[offset + 0] = cast(ubyte)((b >> 24) | 0xF8);
-            this.data[offset + 1] = cast(ubyte)(((b >> 18) & 0x3F) | 0x80);
-            this.data[offset + 2] = cast(ubyte)(((b >> 12) & 0x3F) | 0x80);
-            this.data[offset + 3] = cast(ubyte)(((b >> 6) & 0x3F) | 0x80);
-            this.data[offset + 4] = cast(ubyte)((b & 0x3F) | 0x80);
-            offset += 5;
-        }
-        else if (b <= 0x7FFFFFFF)
-        {
-            this.data[offset + 0] = cast(ubyte)((b >> 30) | 0xFC);
-            this.data[offset + 1] = cast(ubyte)(((b >> 24) & 0x3F) | 0x80);
-            this.data[offset + 2] = cast(ubyte)(((b >> 18) & 0x3F) | 0x80);
-            this.data[offset + 3] = cast(ubyte)(((b >> 12) & 0x3F) | 0x80);
-            this.data[offset + 4] = cast(ubyte)(((b >> 6) & 0x3F) | 0x80);
-            this.data[offset + 5] = cast(ubyte)((b & 0x3F) | 0x80);
-            offset += 6;
-        }
         else
             assert(0);
     }
