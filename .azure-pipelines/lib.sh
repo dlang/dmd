@@ -57,8 +57,12 @@ install_grep() {
 ################################################################################
 
 clone_repos() {
-    local REPO_BRANCH="$SYSTEM_PULLREQUEST_TARGETBRANCH"
-
+    if [ -z ${SYSTEM_PULLREQUEST_TARGETBRANCH+x} ]; then
+        local REPO_BRANCH="$SYSTEM_PULLREQUEST_TARGETBRANCH"
+    else
+        local REPO_BRANCH="$BUILD_SOURCEBRANCHNAME"
+    fi
+    
     for proj in druntime phobos; do
         if [ "$REPO_BRANCH" != master ] && [ "$REPO_BRANCH" != stable ] &&
                 ! git ls-remote --exit-code --heads "https://github.com/dlang/$proj.git" "$REPO_BRANCH" > /dev/null; then
