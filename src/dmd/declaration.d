@@ -249,12 +249,13 @@ enum STC : long
     future              = (1L << 50),   // introducing new base class function
     local               = (1L << 51),   // do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
     returninferred      = (1L << 52),   // 'return' has been inferred and should not be part of mangling
+    live                = (1L << 53),   // function @live attribute
 
     // Group members are mutually exclusive (there can be only one)
     safeGroup = STC.safe | STC.trusted | STC.system,
 
     TYPECTOR = (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild),
-    FUNCATTR = (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.property |
+    FUNCATTR = (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.property | STC.live |
                 STC.safeGroup),
 }
 
@@ -262,7 +263,7 @@ enum STCStorageClass =
     (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.const_ | STC.final_ | STC.abstract_ | STC.synchronized_ |
      STC.deprecated_ | STC.future | STC.override_ | STC.lazy_ | STC.alias_ | STC.out_ | STC.in_ | STC.manifest |
      STC.immutable_ | STC.shared_ | STC.wild | STC.nothrow_ | STC.nogc | STC.pure_ | STC.ref_ | STC.return_ | STC.tls | STC.gshared |
-     STC.property | STC.safeGroup | STC.disable | STC.local);
+     STC.property | STC.safeGroup | STC.disable | STC.local | STC.live);
 
 /* Accumulator for successive matches.
  */

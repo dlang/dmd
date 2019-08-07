@@ -1421,7 +1421,7 @@ private void inferReturn(FuncDeclaration fd, VarDeclaration v)
  *      e = expression to be returned by value
  *      er = where to place collected data
  */
-private void escapeByValue(Expression e, EscapeByResults* er)
+void escapeByValue(Expression e, EscapeByResults* er)
 {
     //printf("[%s] escapeByValue, e: %s\n", e.loc.toChars(), e.toChars());
     extern (C++) final class EscapeVisitor : Visitor
@@ -1753,7 +1753,7 @@ private void escapeByValue(Expression e, EscapeByResults* er)
  *      e = expression to be returned by 'ref'
  *      er = where to place collected data
  */
-private void escapeByRef(Expression e, EscapeByResults* er)
+void escapeByRef(Expression e, EscapeByResults* er)
 {
     //printf("[%s] escapeByRef, e: %s\n", e.loc.toChars(), e.toChars());
     extern (C++) final class EscapeRefVisitor : Visitor
@@ -1979,7 +1979,7 @@ private void escapeByRef(Expression e, EscapeByResults* er)
 /************************************
  * Aggregate the data collected by the escapeBy??() functions.
  */
-private struct EscapeByResults
+struct EscapeByResults
 {
     VarDeclarations byref;      // array into which variables being returned by ref are inserted
     VarDeclarations byvalue;    // array into which variables with values containing pointers are inserted

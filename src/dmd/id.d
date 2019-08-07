@@ -203,6 +203,7 @@ immutable Msgtable[] msgtable =
     { "future", "__future" },
     { "property" },
     { "nogc" },
+    { "live" },
     { "safe" },
     { "trusted" },
     { "system" },

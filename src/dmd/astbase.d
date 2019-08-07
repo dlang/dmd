@@ -130,15 +130,20 @@ struct ASTBase
         future              = (1L << 50),   // introducing new base class function
         local               = (1L << 51),   // do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
         returninferred      = (1L << 52),   // 'return' has been inferred and should not be part of mangling
+        live                = (1L << 53),   // function @live attribute
 
         safeGroup = STC.safe | STC.trusted | STC.system,
         TYPECTOR = (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild),
-        FUNCATTR = (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.property |
+        FUNCATTR = (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.property | STC.live |
                     safeGroup),
     }
 
     extern (C++) __gshared const(StorageClass) STCStorageClass =
-        (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.const_ | STC.final_ | STC.abstract_ | STC.synchronized_ | STC.deprecated_ | STC.override_ | STC.lazy_ | STC.alias_ | STC.out_ | STC.in_ | STC.manifest | STC.immutable_ | STC.shared_ | STC.wild | STC.nothrow_ | STC.nogc | STC.pure_ | STC.ref_ | STC.return_ | STC.tls | STC.gshared | STC.property |
+        (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.const_ | STC.final_ |
+         STC.abstract_ | STC.synchronized_ | STC.deprecated_ | STC.override_ | STC.lazy_ |
+         STC.alias_ | STC.out_ | STC.in_ | STC.manifest | STC.immutable_ | STC.shared_ |
+         STC.wild | STC.nothrow_ | STC.nogc | STC.pure_ | STC.ref_ | STC.return_ | STC.tls |
+         STC.gshared | STC.property | STC.live |
          STC.safeGroup | STC.disable);
 
     enum ENUMTY : int
@@ -275,6 +280,7 @@ struct ASTBase
         system     = 1,    // @system (same as TRUST.default)
         trusted    = 2,    // @trusted
         safe       = 3,    // @safe
+        live       = 4,    // @live
     }
 
     enum PURE : int
@@ -3930,6 +3936,7 @@ struct ASTBase
         bool isref;                 // true: returns a reference
         bool isreturn;              // true: 'this' is returned by ref
         bool isscope;               // true: 'this' is scope
+        bool islive;                // true: function is @live
         LINK linkage;               // calling convention
         TRUST trust;                // level of trust
         PURE purity = PURE.impure;
@@ -3952,6 +3959,8 @@ struct ASTBase
                 this.isnogc = true;
             if (stc & STC.property)
                 this.isproperty = true;
+            if (stc & STC.live)
+                this.islive = true;
 
             if (stc & STC.ref_)
                 this.isref = true;
@@ -6470,6 +6479,7 @@ struct ASTBase
             SCstring(STC.safe, TOK.at, "@safe"),
             SCstring(STC.trusted, TOK.at, "@trusted"),
             SCstring(STC.system, TOK.at, "@system"),
+            SCstring(STC.live, TOK.at, "@live"),
             SCstring(STC.disable, TOK.at, "@disable"),
             SCstring(STC.future, TOK.at, "@__future"),
             SCstring(0, TOK.reserved)

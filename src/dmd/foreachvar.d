@@ -125,7 +125,7 @@ void foreachVar(Expression e, void delegate(VarDeclaration) dgVar)
  *      dgExp = delegate to pass found Expressions to
  *      dgVar = delegate to pass found VarDeclarations to
  */
-private void foreachExpAndVar(Statement s,
+void foreachExpAndVar(Statement s,
         void delegate(Expression) dgExp,
         void delegate(VarDeclaration) dgVar)
 {
@@ -301,6 +301,7 @@ private void foreachExpAndVar(Statement s,
             case STMT.Goto:
             case STMT.Pragma:
             case STMT.Import:
+            case STMT.Error:
                 break;          // ignore these
 
             case STMT.ScopeGuard:
@@ -313,7 +314,6 @@ private void foreachExpAndVar(Statement s,
             case STMT.Conditional:
             case STMT.While:
             case STMT.Forwarding:
-            case STMT.Error:
             case STMT.Compile:
             case STMT.Peel:
             case STMT.Synchronized:
