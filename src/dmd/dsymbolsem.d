@@ -3616,7 +3616,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                             // a C++ dtor gets its vtblIndex later (and might even be added twice to the vtbl),
                             // e.g. when compiling druntime with a debug compiler, namely with core.stdcpp.exception.
                             if (auto fd = s.isFuncDeclaration())
-                                assert(fd.vtblIndex == i || (cd.classKind == ClassKind.cpp && fd.isDtorDeclaration));
+                                assert(fd.vtblIndex == i ||
+                                       (cd.classKind == ClassKind.cpp && fd.isDtorDeclaration) ||
+                                       funcdecl.parent.isInterfaceDeclaration); // interface functions can be in multiple vtbls
                         }
                     }
                     else
