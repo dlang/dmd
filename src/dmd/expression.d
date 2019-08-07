@@ -1353,7 +1353,7 @@ extern (C++) abstract class Expression : ASTNode
     extern (D) final bool checkReadModifyWrite(TOK rmwOp, Expression ex = null)
     {
         //printf("Expression::checkReadModifyWrite() %s %s", toChars(), ex ? ex.toChars() : "");
-        if (!type || !type.isShared())
+        if (!type || !type.isShared() || type.isTypeStruct() || type.isTypeClass())
             return false;
 
         // atomicOp uses opAssign (+=/-=) rather than opOp (++/--) for the CT string literal.
