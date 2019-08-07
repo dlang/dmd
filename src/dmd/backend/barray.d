@@ -102,7 +102,6 @@ struct Barray(T)
 unittest
 {
     Barray!int a;
-
     a.setLength(10);
     assert(a.length == 10);
     a.setLength(4);
