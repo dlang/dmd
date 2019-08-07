@@ -174,7 +174,7 @@ private final class CppMangleVisitor : Visitor
     {
         if (VarDeclaration vd = s.isVarDeclaration())
         {
-            mangle_variable(vd, vd.namespace !is null);
+            mangle_variable(vd, vd.cppnamespace !is null);
         }
         else if (FuncDeclaration fd = s.isFuncDeclaration())
         {
@@ -343,7 +343,7 @@ private final class CppMangleVisitor : Visitor
     /// Ditto
     static bool isStd(CPPNamespaceDeclaration s)
     {
-        return s && s.namespace is null && s.ident == Id.std;
+        return s && s.cppnamespace is null && s.ident == Id.std;
     }
 
     /************************
@@ -564,12 +564,12 @@ private final class CppMangleVisitor : Visitor
         {
             printf("source_name(%s)\n", s.toChars());
             auto sl = this.buf.peekSlice();
-            assert(sl.length == 0 || haveNE || s.namespace is null || sl != "_ZN");
+            assert(sl.length == 0 || haveNE || s.cppnamespace is null || sl != "_ZN");
         }
         if (TemplateInstance ti = s.isTemplateInstance())
         {
             bool needsTa = false;
-            const isNested = !!ti.tempdecl.namespace || !!getQualifier(ti.tempdecl);
+            const isNested = !!ti.tempdecl.cppnamespace || !!getQualifier(ti.tempdecl);
             if (substitute(ti.tempdecl, !haveNE && isNested))
             {
                 template_args(ti);
@@ -584,7 +584,7 @@ private final class CppMangleVisitor : Visitor
             else
             {
                 this.writeNamespace(
-                    s.namespace, () {
+                    s.cppnamespace, () {
                         this.writeIdentifier(ti.tempdecl.toAlias().ident);
                         append(ti.tempdecl);
                         template_args(ti);
@@ -592,7 +592,7 @@ private final class CppMangleVisitor : Visitor
             }
         }
         else
-            this.writeNamespace(s.namespace, () => this.writeIdentifier(s.ident),
+            this.writeNamespace(s.cppnamespace, () => this.writeIdentifier(s.ident),
                                 haveNE);
     }
 
@@ -618,9 +618,9 @@ private final class CppMangleVisitor : Visitor
     CPPNamespaceDeclaration getTiNamespace(TemplateInstance ti)
     {
         // If we receive a pre-semantic `TemplateInstance`,
-        // `namespace` is always `null`
-        return ti.tempdecl ? ti.namespace
-            : this.context.res.asType().toDsymbol(null).namespace;
+        // `cppnamespace` is always `null`
+        return ti.tempdecl ? ti.cppnamespace
+            : this.context.res.asType().toDsymbol(null).cppnamespace;
     }
 
     /********
@@ -1017,7 +1017,7 @@ private final class CppMangleVisitor : Visitor
                 buf.writestring("N");
             if (!substitute(ns))
             {
-                this.writeNamespace(ns.namespace, null);
+                this.writeNamespace(ns.cppnamespace, null);
                 this.writeIdentifier(ns.ident);
                 append(ns);
             }
@@ -1027,7 +1027,7 @@ private final class CppMangleVisitor : Visitor
         }
         else if (!substitute(ns))
         {
-            this.writeNamespace(ns.namespace, null);
+            this.writeNamespace(ns.cppnamespace, null);
             this.writeIdentifier(ns.ident);
             append(ns);
         }
@@ -1488,7 +1488,7 @@ private final class CppMangleVisitor : Visitor
                 sym2.accept(this);
         }
         this.writeNamespace(
-            sym1.namespace, () {
+            sym1.cppnamespace, () {
                 this.writeIdentifier(t.name);
                 this.append(t);
                 dg();
@@ -2136,9 +2136,9 @@ private bool isNamespaceEqual (CPPNamespaceDeclaration a, Nspace b, size_t idx =
 
     // We need to see if there's more ident enclosing
     if (auto pb = b.toParent().isNspace())
-        return isNamespaceEqual(a.namespace, pb);
+        return isNamespaceEqual(a.cppnamespace, pb);
     else
-        return a.namespace is null;
+        return a.cppnamespace is null;
 }
 
 /// Returns:
@@ -2148,9 +2148,9 @@ private bool isNamespaceEqual (CPPNamespaceDeclaration a, CPPNamespaceDeclaratio
     if (a is null || b is null)
         return false;
 
-    if ((a.namespace is null) != (b.namespace is null))
+    if ((a.cppnamespace is null) != (b.cppnamespace is null))
         return false;
     if (a.ident != b.ident)
         return false;
-    return a.namespace is null ? true : isNamespaceEqual(a.namespace, b.namespace);
+    return a.cppnamespace is null ? true : isNamespaceEqual(a.cppnamespace, b.cppnamespace);
 }

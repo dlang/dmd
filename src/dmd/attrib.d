@@ -497,14 +497,14 @@ extern (C++) final class CPPNamespaceDeclaration : AttribDeclaration
         super(decl);
         this.ident = ident;
         this.exp = exp;
-        this.namespace = parent;
+        this.cppnamespace = parent;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
         return new CPPNamespaceDeclaration(
-            this.ident, this.exp, Dsymbol.arraySyntaxCopy(this.decl), this.namespace);
+            this.ident, this.exp, Dsymbol.arraySyntaxCopy(this.decl), this.cppnamespace);
     }
 
     /**
