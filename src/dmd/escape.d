@@ -557,14 +557,19 @@ ByRef:
 
         if (global.params.vsafe)
         {
-            if (va && va.isScope() && va.storage_class & STC.return_ &&
-                (v.storage_class & (STC.ref_ | STC.out_)) == 0 &&
-                sc.func.setUnsafe())
+            if (va && va.isScope() && (v.storage_class & (STC.ref_ | STC.out_)) == 0)
             {
-                if (!gag)
-                    error(ae.loc, "address of local variable `%s` assigned to return scope `%s`", v.toChars(), va.toChars());
-                result = true;
-                continue;
+                if (!(va.storage_class & STC.return_))
+                {
+                    va.doNotInferReturn = true;
+                }
+                else if (sc.func.setUnsafe())
+                {
+                    if (!gag)
+                        error(ae.loc, "address of local variable `%s` assigned to return scope `%s`", v.toChars(), va.toChars());
+                    result = true;
+                    continue;
+                }
             }
         }
 
@@ -991,6 +996,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
         if ((v.isScope() || (v.storage_class & STC.maybescope)) &&
             !(v.storage_class & STC.return_) &&
             v.isParameter() &&
+            !v.doNotInferReturn &&
             sc.func.flags & FUNCFLAG.returnInprocess &&
             p == sc.func)
         {
