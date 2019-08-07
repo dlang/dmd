@@ -58,9 +58,9 @@ install_grep() {
 
 clone_repos() {
     if [ -z ${SYSTEM_PULLREQUEST_TARGETBRANCH+x} ]; then
-        local REPO_BRANCH="$SYSTEM_PULLREQUEST_TARGETBRANCH"
-    else
         local REPO_BRANCH="$BUILD_SOURCEBRANCHNAME"
+    else
+        local REPO_BRANCH="$SYSTEM_PULLREQUEST_TARGETBRANCH"
     fi
     
     for proj in druntime phobos; do
