@@ -788,7 +788,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             dsym.error("extern symbols cannot have initializers");
 
         dsym.userAttribDecl = sc.userAttribDecl;
-        dsym.namespace = sc.namespace;
+        dsym.cppnamespace = sc.namespace;
 
         AggregateDeclaration ad = dsym.isThis();
         if (ad)
@@ -2139,7 +2139,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (ns.ident is null)
         {
-            ns.namespace = sc.namespace;
+            ns.cppnamespace = sc.namespace;
             sc = sc.startCTFE();
             ns.exp = ns.exp.expressionSemantic(sc);
             ns.exp = resolveProperties(sc, ns.exp);
@@ -2149,16 +2149,16 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (auto te = ns.exp.isTupleExp())
             {
                 expandTuples(te.exps);
-                CPPNamespaceDeclaration current = ns.namespace;
+                CPPNamespaceDeclaration current = ns.cppnamespace;
                 for (size_t d = 0; d < te.exps.dim; ++d)
                 {
                     auto exp = (*te.exps)[d];
-                    auto prev = d ? current : ns.namespace;
+                    auto prev = d ? current : ns.cppnamespace;
                     current = (d + 1) != te.exps.dim
                         ? new CPPNamespaceDeclaration(exp, null)
                         : ns;
                     current.exp = exp;
-                    current.namespace = prev;
+                    current.cppnamespace = prev;
                     if (auto se = exp.toStringExp())
                     {
                         current.ident = identFromSE(se);
@@ -2284,7 +2284,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (sc.stc & STC.deprecated_)
             ed.isdeprecated = true;
         ed.userAttribDecl = sc.userAttribDecl;
-        ed.namespace = sc.namespace;
+        ed.cppnamespace = sc.namespace;
 
         ed.semanticRun = PASS.semantic;
 
@@ -2703,7 +2703,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         tempdecl.parent = sc.parent;
         tempdecl.protection = sc.protection;
-        tempdecl.namespace = sc.namespace;
+        tempdecl.cppnamespace = sc.namespace;
         tempdecl.isstatic = tempdecl.toParent().isModule() || (tempdecl._scope.stc & STC.static_);
 
         if (!tempdecl.isstatic)
@@ -3187,7 +3187,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (!sc || funcdecl.errors)
             return;
 
-        funcdecl.namespace = sc.namespace;
+        funcdecl.cppnamespace = sc.namespace;
         funcdecl.parent = sc.parent;
         Dsymbol parent = funcdecl.toParent();
 
@@ -4625,7 +4625,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (sc.linkage == LINK.cpp)
                 sd.classKind = ClassKind.cpp;
-            sd.namespace = sc.namespace;
+            sd.cppnamespace = sc.namespace;
         }
         else if (sd.symtab && !scx)
             return;
@@ -4845,7 +4845,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (sc.linkage == LINK.cpp)
                 cldec.classKind = ClassKind.cpp;
-            cldec.namespace = sc.namespace;
+            cldec.cppnamespace = sc.namespace;
             if (sc.linkage == LINK.objc)
                 objc.setObjc(cldec);
         }
@@ -5564,7 +5564,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (!idec.baseclasses.dim && sc.linkage == LINK.cpp)
                 idec.classKind = ClassKind.cpp;
-            idec.namespace = sc.namespace;
+            idec.cppnamespace = sc.namespace;
 
             if (sc.linkage == LINK.objc)
             {
@@ -5857,7 +5857,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
         goto Lerror;
 
     // Copy the tempdecl namespace (not the scope one)
-    tempinst.namespace = tempdecl.namespace;
+    tempinst.cppnamespace = tempdecl.cppnamespace;
 
     /* See if there is an existing TemplateInstantiation that already
      * implements the typeargs. If so, just refer to that one instead.

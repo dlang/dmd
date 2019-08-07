@@ -1044,7 +1044,7 @@ private:
         {
             mangleName(p, dont_use_back_reference);
             // Mangle our string namespaces as well
-            for (auto ns = p.namespace; ns !is null; ns = ns.namespace)
+            for (auto ns = p.cppnamespace; ns !is null; ns = ns.cppnamespace)
                 mangleName(ns, dont_use_back_reference);
             p = p.toParent();
             if (p.toParent() && p.toParent().isTemplateInstance())

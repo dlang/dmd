@@ -229,7 +229,7 @@ extern (C++) class Dsymbol : ASTNode
     Identifier ident;
     Dsymbol parent;
     /// C++ namespace this symbol belongs to
-    CPPNamespaceDeclaration namespace;
+    CPPNamespaceDeclaration cppnamespace;
     Symbol* csym;           // symbol for code generator
     Symbol* isym;           // import version of csym
     const(char)* comment;   // documentation comment for this Dsymbol
