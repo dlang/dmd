@@ -39,6 +39,9 @@ version (Windows)
     extern (Windows) DWORD GetFullPathNameW(LPCWSTR, DWORD, LPWSTR, LPWSTR*) nothrow @nogc;
     extern (Windows) void SetLastError(DWORD) nothrow @nogc;
     extern (C) char* getcwd(char* buffer, size_t maxlen) nothrow;
+
+    // assume filenames encoded in system default Windows ANSI code page
+    private enum codepage = CP_ACP;
 }
 
 version (CRuntime_Glibc)
@@ -997,25 +1000,25 @@ nothrow:
                  * GetFullPathName isn't it, but use it anyway.
                  */
                 // First find out how long the buffer has to be.
-                auto fullPathLength = GetFullPathNameW(&wname[0], 0, null, null);
+                const fullPathLength = GetFullPathNameW(&wname[0], 0, null, null);
                 if (!fullPathLength) return null;
                 auto fullPath = new wchar[fullPathLength];
 
                 // Actually get the full path name
                 const fullPathLengthNoTerminator = GetFullPathNameW(
-                    &wname[0], cast(uint)fullPath.length, &fullPath[0], null /*filePart*/);
+                    &wname[0], fullPathLength, &fullPath[0], null /*filePart*/);
                 // Unfortunately, when the buffer is large enough the return value is the number of characters
                 // _not_ counting the null terminator, so fullPathLengthNoTerminator should be smaller
                 assert(fullPathLength > fullPathLengthNoTerminator);
 
                 // Find out size of the converted string
                 const retLength = WideCharToMultiByte(
-                    0 /*codepage*/, 0 /*flags*/, &fullPath[0], fullPathLength, null, 0, null, null);
+                    codepage, 0 /*flags*/, &fullPath[0], fullPathLength, null, 0, null, null);
                 auto ret = new char[retLength];
 
                 // Actually convert to char
                 const retLength2 = WideCharToMultiByte(
-                    0 /*codepage*/, 0 /*flags*/, &fullPath[0], cast(int)fullPath.length, &ret[0], cast(int)ret.length, null, null);
+                    codepage, 0 /*flags*/, &fullPath[0], fullPathLength, &ret[0], retLength, null, null);
                 assert(retLength == retLength2);
 
                 return ret;
@@ -1173,17 +1176,15 @@ version(Windows)
     {
         if (!str.length) return F(""w.ptr);
 
-        import core.stdc.string: strlen;
         import core.stdc.stdlib: malloc, free;
-        import core.sys.windows.winnls: MultiByteToWideChar;
-        wchar[1024] buf;
-        // first find out how long the buffer must be to store the result
+        wchar[1024] buf = void;
 
-        const length = MultiByteToWideChar(0 /*codepage*/, 0 /*flags*/, &str[0], cast(int)str.length, null, 0);
+        // first find out how long the buffer must be to store the result
+        const length = MultiByteToWideChar(codepage, 0 /*flags*/, &str[0], cast(int)str.length, null, 0);
         if (!length) return F(""w);
 
         wchar[] ret = length >= buf.length
-            ? (cast(wchar*)malloc(length * wchar.sizeof))[0 .. length + 1]
+            ? (cast(wchar*)malloc((length + 1) * wchar.sizeof))[0 .. length + 1]
             : buf[0 .. length + 1];
         scope (exit)
         {
@@ -1192,8 +1193,8 @@ version(Windows)
         }
         // actually do the conversion
         const length2 = MultiByteToWideChar(
-            0 /*codepage*/, 0 /*flags*/, &str[0], cast(int)str.length, &ret[0], cast(int)length);
-        assert(str.length == length2); // should always be true according to the API
+            codepage, 0 /*flags*/, &str[0], cast(int)str.length, &ret[0], length);
+        assert(length == length2); // should always be true according to the API
         // Add terminating `\0`
         ret[$ - 1] = '\0';
 
