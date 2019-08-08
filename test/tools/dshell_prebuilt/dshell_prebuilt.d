@@ -14,6 +14,7 @@ public import std.string;
 public import std.format;
 public import std.path;
 public import std.file;
+public import std.regex;
 public import std.stdio;
 public import std.process;
 
@@ -274,7 +275,6 @@ GrepResult grep(GrepResult lastResult, string pattern)
 
 private GrepResult grepLines(T)(T lineRange, string finalPattern)
 {
-    import std.regex;
     auto matches = appender!(string[])();
     foreach(line; lineRange)
     {
@@ -288,4 +288,15 @@ private GrepResult grepLines(T)(T lineRange, string finalPattern)
     }
     writefln("[GREP] matched %s lines", matches.data.length);
     return GrepResult(matches.data);
+}
+
+/**
+read the the given `file` and remove \r and the compiler debug header.
+*/
+string readOutput(string file)
+{
+    string output = readText(file);
+    output = std.string.replace(output, "\r", "");
+    output = std.regex.replaceAll(output, regex(`^DMD v2\.[0-9]+.*\n? DEBUG\n`, "m"), "");
+    return output;
 }
