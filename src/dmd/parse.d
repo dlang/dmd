@@ -1361,9 +1361,9 @@ final class Parser(AST) : Lexer
             if (u & (u - 1))
                 error("conflicting attribute `%s`", Token.toChars(token.value));
         }
-        if (stc & (AST.STC.safe | AST.STC.system | AST.STC.trusted))
+        if (stc & AST.STC.safeGroup)
         {
-            StorageClass u = storageClass & (AST.STC.safe | AST.STC.system | AST.STC.trusted);
+            StorageClass u = storageClass & AST.STC.safeGroup;
             if (u & (u - 1))
                 error("conflicting attribute `@%s`", token.toChars());
         }
@@ -4723,7 +4723,7 @@ final class Parser(AST) : Lexer
                      *   alias @safe void function() FP2;    // FP2 is not @safe
                      *   alias void function() @safe FP3;
                      */
-                    pAttrs.storageClass &= (AST.STC.safe | AST.STC.system | AST.STC.trusted);
+                    pAttrs.storageClass &= AST.STC.safeGroup;
                 }
                 AST.Dsymbol s = v;
 
