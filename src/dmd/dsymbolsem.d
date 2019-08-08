@@ -3304,7 +3304,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (tf.purity == PURE.fwdref)
                 sc.stc |= STC.pure_;
             if (tf.trust != TRUST.default_)
-                sc.stc &= ~(STC.safe | STC.system | STC.trusted);
+                sc.stc &= ~STC.safeGroup;
             if (tf.trust == TRUST.safe)
                 sc.stc |= STC.safe;
             if (tf.trust == TRUST.system)
