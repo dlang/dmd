@@ -53,7 +53,7 @@ char[] unsignedToTempString()(ulong value, return scope char[] buf, uint radix =
     return buf[i .. $];
 }
 
-private struct TempStringNoAlloc
+private struct TempStringNoAlloc()
 {
     // need to handle 65 bytes for radix of 2 with negative sign.
     private char[65] _buf = void;
@@ -79,7 +79,7 @@ Returns:
 */
 auto unsignedToTempString()(ulong value, uint radix = 10) @safe
 {
-    TempStringNoAlloc result = void;
+    TempStringNoAlloc!() result = void;
     result._len = unsignedToTempString(value, result._buf, radix).length & 0xff;
     return result;
 }
