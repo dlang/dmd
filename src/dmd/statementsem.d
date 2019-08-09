@@ -4109,6 +4109,7 @@ else
              * so we can patch it later, and add it to a 'look at this later'
              * list.
              */
+            gs.label.deleted = true;
             auto ss = new ScopeStatement(gs.loc, gs, gs.loc);
             sc.fes.gotos.push(ss); // 'look at this later' list
             result = ss;
