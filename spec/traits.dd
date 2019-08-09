@@ -53,6 +53,7 @@ $(GNAME TraitsKeyword):
     $(GLINK getFunctionAttributes)
     $(GLINK getFunctionVariadicStyle)
     $(GLINK getLinkage)
+    $(GLINK getLocation)
     $(GLINK getMember)
     $(GLINK getOverloads)
     $(GLINK getParameterStorageClasses)
@@ -884,6 +885,13 @@ static assert(__traits(getLinkage, FooCPPInterface) == "C++");
 ---
 )
 
+$(H2 $(GNAME getLocation))
+        $(P Takes one argument which is a symbol.
+        To disambiguate between overloads, pass the result of $(GLINK getOverloads) with the desired index, to `getLocation`.
+        Returns a `tuple(string, int, int)` whose entries correspond to the filename, line number and column number where the argument
+        was declared.
+        )
+
 $(H2 $(GNAME getMember))
 
         $(P Takes two arguments, the second must be a string.
@@ -1477,7 +1485,6 @@ void main()
 
 
 $(SPEC_SUBNAV_PREV_NEXT version, Conditional Compilation, errors, Error Handling)
-)
 
 Macros:
         CHAPTER=25
