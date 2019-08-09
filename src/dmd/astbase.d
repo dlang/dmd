@@ -6330,7 +6330,7 @@ struct ASTBase
             {
                 for (size_t i = 0; i < packages.dim; i++)
                 {
-                    Identifier pid = (*packages)[i];
+                    const Identifier pid = (*packages)[i];
                     buf.writestring(pid.toString());
                     buf.writeByte('.');
                 }
