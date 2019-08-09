@@ -214,32 +214,6 @@ unittest
 }
 
 /**
- * Thrown on hidden function error.
- * $(RED Deprecated.
- *   This feature is not longer part of the language.)
- */
-deprecated class HiddenFuncError : Error
-{
-    @safe pure nothrow this( ClassInfo ci )
-    {
-        super( "Hidden method called for " ~ ci.name );
-    }
-}
-
-deprecated unittest
-{
-    ClassInfo info = new ClassInfo;
-    info.name = "testInfo";
-
-    {
-        auto hfe = new HiddenFuncError(info);
-        assert(hfe.next is null);
-        assert(hfe.msg == "Hidden method called for testInfo");
-    }
-}
-
-
-/**
  * Thrown on an out of memory error.
  */
 class OutOfMemoryError : Error
@@ -434,19 +408,6 @@ alias AssertHandler = void function(string file, size_t line, string msg) nothro
     _assertHandler = handler;
 }
 
-/**
- * Overrides the default assert hander with a user-supplied version.
- * $(RED Deprecated.
- *   Please use $(LREF assertHandler) instead.)
- *
- * Params:
- *  h = The new assert handler.  Set to null to use the default handler.
- */
-deprecated void setAssertHandler( AssertHandler h ) @trusted nothrow @nogc
-{
-    assertHandler = h;
-}
-
 
 ///////////////////////////////////////////////////////////////////////////////
 // Overridable Callbacks
@@ -542,22 +503,6 @@ extern (C) void onFinalizeError( TypeInfo info, Throwable e, string file = __FIL
     //  generating this object. So we use a preallocated instance
     throw staticError!FinalizeError(info, e, file, line);
 }
-
-
-/**
- * A callback for hidden function errors in D.  A $(LREF HiddenFuncError) will be
- * thrown.
- * $(RED Deprecated.
- *   This feature is not longer part of the language.)
- *
- * Throws:
- *  $(LREF HiddenFuncError).
- */
-deprecated extern (C) void onHiddenFuncError( Object o ) @safe pure nothrow
-{
-    throw new HiddenFuncError( typeid(o) );
-}
-
 
 /**
  * A callback for out of memory errors in D.  An $(LREF OutOfMemoryError) will be

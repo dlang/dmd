@@ -2064,24 +2064,24 @@ extern (C) void[] _d_arrayappendcd(ref byte[] x, dchar c)
 {
     // c could encode into from 1 to 4 characters
     char[4] buf = void;
-    byte[] appendthis; // passed to appendT
+    char[] appendthis; // passed to appendT
     if (c <= 0x7F)
     {
         buf.ptr[0] = cast(char)c;
-        appendthis = (cast(byte *)buf.ptr)[0..1];
+        appendthis = buf[0..1];
     }
     else if (c <= 0x7FF)
     {
         buf.ptr[0] = cast(char)(0xC0 | (c >> 6));
         buf.ptr[1] = cast(char)(0x80 | (c & 0x3F));
-        appendthis = (cast(byte *)buf.ptr)[0..2];
+        appendthis = buf[0..2];
     }
     else if (c <= 0xFFFF)
     {
         buf.ptr[0] = cast(char)(0xE0 | (c >> 12));
         buf.ptr[1] = cast(char)(0x80 | ((c >> 6) & 0x3F));
         buf.ptr[2] = cast(char)(0x80 | (c & 0x3F));
-        appendthis = (cast(byte *)buf.ptr)[0..3];
+        appendthis = buf[0..3];
     }
     else if (c <= 0x10FFFF)
     {
@@ -2089,7 +2089,7 @@ extern (C) void[] _d_arrayappendcd(ref byte[] x, dchar c)
         buf.ptr[1] = cast(char)(0x80 | ((c >> 12) & 0x3F));
         buf.ptr[2] = cast(char)(0x80 | ((c >> 6) & 0x3F));
         buf.ptr[3] = cast(char)(0x80 | (c & 0x3F));
-        appendthis = (cast(byte *)buf.ptr)[0..4];
+        appendthis = buf[0..4];
     }
     else
     {
@@ -2102,7 +2102,12 @@ extern (C) void[] _d_arrayappendcd(ref byte[] x, dchar c)
     // get a typeinfo from the compiler.  Assuming shared is the safest option.
     // Once the compiler is fixed, the proper typeinfo should be forwarded.
     //
-    return _d_arrayappendT(typeid(shared char[]), x, appendthis);
+
+    // Hack because _d_arrayappendT takes `x` as a reference
+    auto xx = cast(shared(char)[])x;
+    object._d_arrayappendTImpl!(shared(char)[])._d_arrayappendT(xx, cast(shared(char)[])appendthis);
+    x = cast(byte[])xx;
+    return x;
 }
 
 unittest
@@ -2141,21 +2146,17 @@ extern (C) void[] _d_arrayappendwd(ref byte[] x, dchar c)
 {
     // c could encode into from 1 to 2 w characters
     wchar[2] buf = void;
-    byte[] appendthis; // passed to appendT
+    wchar[] appendthis; // passed to appendT
     if (c <= 0xFFFF)
     {
         buf.ptr[0] = cast(wchar) c;
-        // note that although we are passing only 1 byte here, appendT
-        // interprets this as being an array of wchar, making the necessary
-        // casts.
-        appendthis = (cast(byte *)buf.ptr)[0..1];
+        appendthis = buf[0..1];
     }
     else
     {
         buf.ptr[0] = cast(wchar) ((((c - 0x10000) >> 10) & 0x3FF) + 0xD800);
         buf.ptr[1] = cast(wchar) (((c - 0x10000) & 0x3FF) + 0xDC00);
-        // ditto from above.
-        appendthis = (cast(byte *)buf.ptr)[0..2];
+        appendthis = buf[0..2];
     }
 
     //
@@ -2163,7 +2164,11 @@ extern (C) void[] _d_arrayappendwd(ref byte[] x, dchar c)
     // get a typeinfo from the compiler.  Assuming shared is the safest option.
     // Once the compiler is fixed, the proper typeinfo should be forwarded.
     //
-    return _d_arrayappendT(typeid(shared wchar[]), x, appendthis);
+
+    auto xx = (cast(shared(wchar)*)x.ptr)[0 .. x.length];
+    object._d_arrayappendTImpl!(shared(wchar)[])._d_arrayappendT(xx, cast(shared(wchar)[])appendthis);
+    x = (cast(byte*)xx.ptr)[0 .. xx.length];
+    return x;
 }
 
 

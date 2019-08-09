@@ -84,7 +84,7 @@ static immutable UTF8stride =
  *      0xFF meaning s[i] is not the start of of UTF-8 sequence.
  */
 @safe @nogc pure nothrow
-uint stride(in char[] s, size_t i)
+uint stride(const scope char[] s, size_t i)
 {
     return UTF8stride[s[i]];
 }
@@ -94,7 +94,7 @@ uint stride(in char[] s, size_t i)
  * in string s.
  */
 @safe @nogc pure nothrow
-uint stride(in wchar[] s, size_t i)
+uint stride(const scope wchar[] s, size_t i)
 {   uint u = s[i];
     return 1 + (u >= 0xD800 && u <= 0xDBFF);
 }
@@ -105,7 +105,7 @@ uint stride(in wchar[] s, size_t i)
  * Returns: The return value will always be 1.
  */
 @safe @nogc pure nothrow
-uint stride(in dchar[] s, size_t i)
+uint stride(const scope dchar[] s, size_t i)
 {
     return 1;
 }
@@ -116,7 +116,7 @@ uint stride(in dchar[] s, size_t i)
  * determine the number of UCS characters up to that index i.
  */
 @safe pure
-size_t toUCSindex(in char[] s, size_t i)
+size_t toUCSindex(const scope char[] s, size_t i)
 {
     size_t n;
     size_t j;
@@ -135,7 +135,7 @@ size_t toUCSindex(in char[] s, size_t i)
 
 /** ditto */
 @safe pure
-size_t toUCSindex(in wchar[] s, size_t i)
+size_t toUCSindex(const scope wchar[] s, size_t i)
 {
     size_t n;
     size_t j;
@@ -154,7 +154,7 @@ size_t toUCSindex(in wchar[] s, size_t i)
 
 /** ditto */
 @safe @nogc pure nothrow
-size_t toUCSindex(in dchar[] s, size_t i)
+size_t toUCSindex(const scope dchar[] s, size_t i)
 {
     return i;
 }
@@ -163,7 +163,7 @@ size_t toUCSindex(in dchar[] s, size_t i)
  * Given a UCS index n into an array of characters s[], return the UTF index.
  */
 @safe pure
-size_t toUTFindex(in char[] s, size_t n)
+size_t toUTFindex(const scope char[] s, size_t n)
 {
     size_t i;
 
@@ -179,7 +179,7 @@ size_t toUTFindex(in char[] s, size_t n)
 
 /** ditto */
 @safe @nogc pure nothrow
-size_t toUTFindex(in wchar[] s, size_t n)
+size_t toUTFindex(const scope wchar[] s, size_t n)
 {
     size_t i;
 
@@ -193,7 +193,7 @@ size_t toUTFindex(in wchar[] s, size_t n)
 
 /** ditto */
 @safe @nogc pure nothrow
-size_t toUTFindex(in dchar[] s, size_t n)
+size_t toUTFindex(const scope dchar[] s, size_t n)
 {
     return n;
 }
@@ -206,7 +206,7 @@ size_t toUTFindex(in dchar[] s, size_t n)
  * thrown and idx remains unchanged.
  */
 @safe pure
-dchar decode(in char[] s, ref size_t idx)
+dchar decode(const scope char[] s, ref size_t idx)
     in
     {
         assert(idx >= 0 && idx < s.length);
@@ -347,7 +347,7 @@ unittest
 
 /** ditto */
 @safe pure
-dchar decode(in wchar[] s, ref size_t idx)
+dchar decode(const scope wchar[] s, ref size_t idx)
     in
     {
         assert(idx >= 0 && idx < s.length);
@@ -405,7 +405,7 @@ dchar decode(in wchar[] s, ref size_t idx)
 
 /** ditto */
 @safe pure
-dchar decode(in dchar[] s, ref size_t idx)
+dchar decode(const scope dchar[] s, ref size_t idx)
     in
     {
         assert(idx >= 0 && idx < s.length);
@@ -571,7 +571,7 @@ Checks to see if string is well formed or not. $(D S) can be an array
  if it is not. Use to check all untrusted input for correctness.
  */
 @safe pure
-void validate(S)(in S s)
+void validate(S)(const scope S s)
 {
     auto len = s.length;
     for (size_t i = 0; i < len; )
@@ -635,7 +635,7 @@ string toUTF8(string s)
 
 /** ditto */
 @trusted pure
-string toUTF8(in wchar[] s)
+string toUTF8(const scope wchar[] s)
 {
     char[] r;
     size_t i;
@@ -663,7 +663,7 @@ string toUTF8(in wchar[] s)
 
 /** ditto */
 @trusted pure
-string toUTF8(in dchar[] s)
+string toUTF8(const scope dchar[] s)
 {
     char[] r;
     size_t i;
@@ -718,7 +718,7 @@ wchar[] toUTF16(wchar[] buf, dchar c)
  * an LPWSTR or LPCWSTR argument.
  */
 @trusted pure
-wstring toUTF16(in char[] s)
+wstring toUTF16(const scope char[] s)
 {
     wchar[] r;
     size_t slen = s.length;
@@ -751,7 +751,7 @@ wstring toUTF16(in char[] s)
 alias const(wchar)* wptr;
 /** ditto */
 @safe pure
-wptr toUTF16z(in char[] s)
+wptr toUTF16z(const scope char[] s)
 {
     wchar[] r;
     size_t slen = s.length;
@@ -796,7 +796,7 @@ wstring toUTF16(wstring s)
 
 /** ditto */
 @trusted pure nothrow
-wstring toUTF16(in dchar[] s)
+wstring toUTF16(const scope dchar[] s)
 {
     wchar[] r;
     size_t slen = s.length;
@@ -822,7 +822,7 @@ wstring toUTF16(in dchar[] s)
  * Encodes string s into UTF-32 and returns the encoded string.
  */
 @trusted pure
-dstring toUTF32(in char[] s)
+dstring toUTF32(const scope char[] s)
 {
     dchar[] r;
     size_t slen = s.length;
@@ -843,7 +843,7 @@ dstring toUTF32(in char[] s)
 
 /** ditto */
 @trusted pure
-dstring toUTF32(in wchar[] s)
+dstring toUTF32(const scope wchar[] s)
 {
     dchar[] r;
     size_t slen = s.length;

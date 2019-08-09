@@ -118,7 +118,7 @@ private:
 
 __gshared SectionGroup _sections;
 
-extern (C) void sections_osx_onAddImage(in mach_header* h, intptr_t slide)
+extern (C) void sections_osx_onAddImage(const scope mach_header* h, intptr_t slide)
 {
     foreach (e; dataSegs)
     {

@@ -120,8 +120,7 @@ void scanTLSRanges(void[]* rng, scope void delegate(void* pbeg, void* pend) noth
 //       is expected to translate an address into the TLS static data to
 //       the corresponding address in the TLS dynamic per-thread data.
 
-// NB: the compiler mangles this function as '___tls_get_addr' even though it is extern(D)
-extern(D) void* ___tls_get_addr( void* p )
+extern(C) void* __tls_get_addr( void* p )
 {
     immutable off = tlsOffset(p);
     auto tls = getTLSBlockAlloc();
@@ -191,7 +190,7 @@ ref void[] getTLSBlockAlloc()
 
 __gshared SectionGroup _sections;
 
-extern (C) void sections_osx_onAddImage(in mach_header* h, intptr_t slide)
+extern (C) void sections_osx_onAddImage(const scope mach_header* h, intptr_t slide)
 {
     foreach (e; dataSegs)
     {

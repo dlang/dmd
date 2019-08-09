@@ -58,9 +58,19 @@ auto miniFormat(V)(V v)
         const len = sprintf(&val[0], "%g", v);
         return val.idup[0 .. len];
     }
+    // special-handling for void-arrays
+    else static if (is(V == typeof(null)))
+    {
+        return "`null`";
+    }
     else static if (__traits(compiles, { string s = V.init.toString(); }))
     {
         return v.toString();
+    }
+    // special-handling for void-arrays
+    else static if (is(V == void[]))
+    {
+        return "";
     }
     // anything string-like
     else static if (__traits(compiles, V.init ~ ""))

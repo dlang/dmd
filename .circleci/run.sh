@@ -103,6 +103,12 @@ coverage() {
     TEST_COVERAGE="1" make -j$N -C . -f posix.mak MODEL=$MODEL unittest-debug
 }
 
+betterc()
+{
+    clone https://github.com/dlang/tools.git ../tools master --depth 1
+    make -f posix.mak betterc -j$N DUB="$HOME/dlang/dmd-${HOST_DMD_VER}/linux/bin64/dub"
+}
+
 codecov()
 {
     # CodeCov gets confused by lst files which it can't matched
@@ -115,6 +121,7 @@ case $1 in
     install-deps) install_deps ;;
     setup-repos) setup_repos ;;
     style) style ;;
+    betterc) betterc ;;
     coverage) coverage ;;
     codecov) codecov ;;
 esac

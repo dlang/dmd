@@ -1,0 +1,9 @@
+Added `core.stdcpp.string`.
+
+Added `core.stdcpp.string`, which links against C++ `std::basic_string`
+
+Known issues:
+
+Currently, the GCC (`libstdc++`) implementation has a known issue with the modern `__cxx11` ABI, because the C++ struct contains an interior pointer which is illegal in D, and incompatible with D move semantics.
+To use `core.stdcpp.string` on linux/GCC, you must use the old string ABI by supplying `-D_GLIBCXX_USE_CXX11_ABI=0` to `g++`, and also `-version=_GLIBCXX_USE_CXX98_ABI` to your D compiler.
+Work to define D move constructors is ongoing and expected to resolve this issue when it arrives.

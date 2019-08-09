@@ -119,6 +119,17 @@ void testAttributes() @safe pure @nogc nothrow
     assert(a == 0);
 }
 
+// https://issues.dlang.org/show_bug.cgi?id=20066
+void testVoidArray()()
+{
+    assert([] is null);
+    assert(null is null);
+    test([1], null, "[1] != []");
+    test("s", null, `"s" != ""`);
+    test(['c'], null, `"c" != ""`);
+    test!"!="(null, null, "`null` == `null`");
+}
+
 void main()
 {
     testIntegers();
@@ -130,5 +141,6 @@ void main()
     testStruct();
     testAA();
     testAttributes();
+    testVoidArray();
     fprintf(stderr, "success.\n");
 }

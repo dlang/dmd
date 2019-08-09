@@ -45,7 +45,7 @@ extern (C) void profilegc_setlogfilename(string name)
     logfilename = name ~ "\0";
 }
 
-public void accumulate(string file, uint line, string funcname, string type, ulong sz) @nogc
+public void accumulate(string file, uint line, string funcname, string type, ulong sz) @nogc nothrow
 {
     if (sz == 0)
         return;

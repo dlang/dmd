@@ -30,31 +30,32 @@ $(IMPDIR)\core\sync\semaphore.di : src\core\sync\semaphore.d
 ######################## Header .di file copy ##############################
 
 copydir: $(IMPDIR)
-	mkdir $(IMPDIR)\core\gc
-	mkdir $(IMPDIR)\core\stdc
-	mkdir $(IMPDIR)\core\stdcpp
-	mkdir $(IMPDIR)\core\internal
-	mkdir $(IMPDIR)\core\sys\bionic
-	mkdir $(IMPDIR)\core\sys\darwin\mach
-	mkdir $(IMPDIR)\core\sys\darwin\netinet
-	mkdir $(IMPDIR)\core\sys\darwin\sys
-	mkdir $(IMPDIR)\core\sys\freebsd\netinet
-	mkdir $(IMPDIR)\core\sys\freebsd\sys
-	mkdir $(IMPDIR)\core\sys\dragonflybsd\netinet
-	mkdir $(IMPDIR)\core\sys\dragonflybsd\sys
-	mkdir $(IMPDIR)\core\sys\linux\netinet
-	mkdir $(IMPDIR)\core\sys\linux\sys
-	mkdir $(IMPDIR)\core\sys\linux\sys\netinet
-	mkdir src\core\sys\netbsd\sys
-	mkdir src\core\sys\netbsd\
-	mkdir $(IMPDIR)\core\sys\openbsd
-	mkdir $(IMPDIR)\core\sys\posix\arpa
-	mkdir $(IMPDIR)\core\sys\posix\net
-	mkdir $(IMPDIR)\core\sys\posix\netinet
-	mkdir $(IMPDIR)\core\sys\posix\sys
-	mkdir $(IMPDIR)\core\sys\solaris\sys
-	mkdir $(IMPDIR)\core\sys\windows
-	mkdir $(IMPDIR)\etc\linux
+	@if not exist $(IMPDIR)\core\gc                         mkdir $(IMPDIR)\core\gc
+	@if not exist $(IMPDIR)\core\stdc                       mkdir $(IMPDIR)\core\stdc
+	@if not exist $(IMPDIR)\core\stdcpp                     mkdir $(IMPDIR)\core\stdcpp
+	@if not exist $(IMPDIR)\core\internal                   mkdir $(IMPDIR)\core\internal
+	@if not exist $(IMPDIR)\core\internal\array             mkdir $(IMPDIR)\core\internal\array
+	@if not exist $(IMPDIR)\core\internal\util              mkdir $(IMPDIR)\core\internal\util
+	@if not exist $(IMPDIR)\core\sys\bionic                 mkdir $(IMPDIR)\core\sys\bionic
+	@if not exist $(IMPDIR)\core\sys\darwin\mach            mkdir $(IMPDIR)\core\sys\darwin\mach
+	@if not exist $(IMPDIR)\core\sys\darwin\netinet         mkdir $(IMPDIR)\core\sys\darwin\netinet
+	@if not exist $(IMPDIR)\core\sys\darwin\sys             mkdir $(IMPDIR)\core\sys\darwin\sys
+	@if not exist $(IMPDIR)\core\sys\freebsd\netinet        mkdir $(IMPDIR)\core\sys\freebsd\netinet
+	@if not exist $(IMPDIR)\core\sys\freebsd\sys            mkdir $(IMPDIR)\core\sys\freebsd\sys
+	@if not exist $(IMPDIR)\core\sys\dragonflybsd\netinet   mkdir $(IMPDIR)\core\sys\dragonflybsd\netinet
+	@if not exist $(IMPDIR)\core\sys\dragonflybsd\sys       mkdir $(IMPDIR)\core\sys\dragonflybsd\sys
+	@if not exist $(IMPDIR)\core\sys\linux\netinet          mkdir $(IMPDIR)\core\sys\linux\netinet
+	@if not exist $(IMPDIR)\core\sys\linux\sys              mkdir $(IMPDIR)\core\sys\linux\sys
+	@if not exist $(IMPDIR)\core\sys\netbsd                 mkdir $(IMPDIR)\core\sys\netbsd
+	@if not exist $(IMPDIR)\core\sys\netbsd\sys             mkdir $(IMPDIR)\core\sys\netbsd\sys
+	@if not exist $(IMPDIR)\core\sys\openbsd                mkdir $(IMPDIR)\core\sys\openbsd
+	@if not exist $(IMPDIR)\core\sys\posix\arpa             mkdir $(IMPDIR)\core\sys\posix\arpa
+	@if not exist $(IMPDIR)\core\sys\posix\net              mkdir $(IMPDIR)\core\sys\posix\net
+	@if not exist $(IMPDIR)\core\sys\posix\netinet          mkdir $(IMPDIR)\core\sys\posix\netinet
+	@if not exist $(IMPDIR)\core\sys\posix\sys              mkdir $(IMPDIR)\core\sys\posix\sys
+	@if not exist $(IMPDIR)\core\sys\solaris\sys            mkdir $(IMPDIR)\core\sys\solaris\sys
+	@if not exist $(IMPDIR)\core\sys\windows                mkdir $(IMPDIR)\core\sys\windows
+	@if not exist $(IMPDIR)\etc\linux                       mkdir $(IMPDIR)\etc\linux
 
 copy: $(COPY)
 
@@ -122,6 +123,9 @@ $(IMPDIR)\core\internal\abort.d : src\core\internal\abort.d
 $(IMPDIR)\core\internal\arrayop.d : src\core\internal\arrayop.d
 	copy $** $@
 
+$(IMPDIR)\core\internal\attributes.d : src\core\internal\attributes.d
+	copy $** $@
+
 $(IMPDIR)\core\internal\convert.d : src\core\internal\convert.d
 	copy $** $@
 
@@ -147,6 +151,33 @@ $(IMPDIR)\core\internal\utf.d : src\core\internal\utf.d
 	copy $** $@
 
 $(IMPDIR)\core\internal\lifetime.d : src\core\internal\lifetime.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\array\appending.d : src\core\internal\array\appending.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\array\comparison.d : src\core\internal\array\comparison.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\array\construction.d : src\core\internal\array\construction.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\array\equality.d : src\core\internal\array\equality.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\array\casting.d : src\core\internal\array\casting.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\array\capacity.d : src\core\internal\array\capacity.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\array\concatenation.d : src\core\internal\array\concatenation.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\array\utils.d : src\core\internal\array\utils.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\util\array.d : src\core\internal\util\array.d
 	copy $** $@
 
 $(IMPDIR)\core\stdc\assert_.d : src\core\stdc\assert_.d
@@ -230,6 +261,9 @@ $(IMPDIR)\core\stdcpp\exception.d : src\core\stdcpp\exception.d
 $(IMPDIR)\core\stdcpp\new_.d : src\core\stdcpp\new_.d
 	copy $** $@
 
+$(IMPDIR)\core\stdcpp\string.d : src\core\stdcpp\string.d
+	copy $** $@
+
 $(IMPDIR)\core\stdcpp\string_view.d : src\core\stdcpp\string_view.d
 	copy $** $@
 
@@ -237,6 +271,9 @@ $(IMPDIR)\core\stdcpp\typeinfo.d : src\core\stdcpp\typeinfo.d
 	copy $** $@
 
 $(IMPDIR)\core\stdcpp\type_traits.d : src\core\stdcpp\type_traits.d
+	copy $** $@
+
+$(IMPDIR)\core\stdcpp\vector.d : src\core\stdcpp\vector.d
 	copy $** $@
 
 $(IMPDIR)\core\stdcpp\xutility.d : src\core\stdcpp\xutility.d
@@ -447,9 +484,6 @@ $(IMPDIR)\core\sys\linux\netinet\in_.d : src\core\sys\linux\netinet\in_.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\linux\netinet\tcp.d : src\core\sys\linux\netinet\tcp.d
-	copy $** $@
-
-$(IMPDIR)\core\sys\linux\sys\netinet\tcp.d : src\core\sys\linux\sys\netinet\tcp.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\linux\sys\auxv.d : src\core\sys\linux\sys\auxv.d

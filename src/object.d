@@ -38,78 +38,33 @@ alias dstring = immutable(dchar)[];
 
 version (D_ObjectiveC) public import core.attribute : selector;
 
-int __cmp(T)(scope const T[] lhs, scope const T[] rhs) @trusted
-    if (__traits(isScalar, T))
-{
-    // Compute U as the implementation type for T
-    static if (is(T == ubyte) || is(T == void) || is(T == bool))
-        alias U = char;
-    else static if (is(T == wchar))
-        alias U = ushort;
-    else static if (is(T == dchar))
-        alias U = uint;
-    else static if (is(T == ifloat))
-        alias U = float;
-    else static if (is(T == idouble))
-        alias U = double;
-    else static if (is(T == ireal))
-        alias U = real;
-    else
-        alias U = T;
+/// See $(REF _d_arrayappendTImpl, core,internal,array,appending)
+public import core.internal.array.appending : _d_arrayappendTImpl;
+/// See $(REF _d_arrayappendcTXImpl, core,internal,array,appending)
+public import core.internal.array.appending : _d_arrayappendcTXImpl;
+/// See $(REF __cmp, core,internal,array,comparison)
+public import core.internal.array.comparison : __cmp;
+/// See $(REF __equals, core,internal,array,equality)
+public import core.internal.array.equality : __equals;
+/// See $(REF __ArrayEq, core,internal,array,equality)
+public import core.internal.array.equality : __ArrayEq;
+/// See $(REF __ArrayCast, core,internal,array,casting)
+public import core.internal.array.casting: __ArrayCast;
+/// See $(REF _d_arraycatnTXImpl, core,internal,array,concatenation)
+public import core.internal.array.concatenation : _d_arraycatnTXImpl;
+/// See $(REF _d_arrayctor, core,internal,array,construction)
+public import core.internal.array.construction : _d_arrayctor;
+/// See $(REF _d_arraysetctor, core,internal,array,construction)
+public import core.internal.array.construction : _d_arraysetctor;
 
-    static if (is(U == char))
-    {
-        import core.internal.string : dstrcmp;
-        return dstrcmp(cast(char[]) lhs, cast(char[]) rhs);
-    }
-    else static if (!is(U == T))
-    {
-        // Reuse another implementation
-        return __cmp(cast(U[]) lhs, cast(U[]) rhs);
-    }
-    else
-    {
-        version (BigEndian)
-        static if (__traits(isUnsigned, T) ? !is(T == __vector) : is(T : P*, P))
-        {
-            if (!__ctfe)
-            {
-                import core.stdc.string : memcmp;
-                int c = memcmp(lhs.ptr, rhs.ptr, (lhs.length <= rhs.length ? lhs.length : rhs.length) * T.sizeof);
-                if (c)
-                    return c;
-                static if (size_t.sizeof <= uint.sizeof && T.sizeof >= 2)
-                    return cast(int) lhs.length - cast(int) rhs.length;
-                else
-                    return int(lhs.length > rhs.length) - int(lhs.length < rhs.length);
-            }
-        }
-
-        immutable len = lhs.length <= rhs.length ? lhs.length : rhs.length;
-        foreach (const u; 0 .. len)
-        {
-            static if (__traits(isFloating, T))
-            {
-                immutable a = lhs.ptr[u], b = rhs.ptr[u];
-                static if (is(T == cfloat) || is(T == cdouble)
-                    || is(T == creal))
-                {
-                    // Use rt.cmath2._Ccmp instead ?
-                    auto r = (a.re > b.re) - (a.re < b.re);
-                    if (!r) r = (a.im > b.im) - (a.im < b.im);
-                }
-                else
-                {
-                    const r = (a > b) - (a < b);
-                }
-                if (r) return r;
-            }
-            else if (lhs.ptr[u] != rhs.ptr[u])
-                return lhs.ptr[u] < rhs.ptr[u] ? -1 : 1;
-        }
-        return lhs.length < rhs.length ? -1 : (lhs.length > rhs.length);
-    }
-}
+/// See $(REF capacity, core,internal,array,capacity)
+public import core.internal.array.capacity: capacity;
+/// See $(REF reserve, core,internal,array,capacity)
+public import core.internal.array.capacity: reserve;
+/// See $(REF assumeSafeAppend, core,internal,array,capacity)
+public import core.internal.array.capacity: assumeSafeAppend;
+/// See $(REF _d_arraysetlengthTImpl, core,internal,array,capacity)
+public import core.internal.array.capacity: _d_arraysetlengthTImpl;
 
 // Compare class and interface objects for ordering.
 private int __cmp(Obj)(Obj lhs, Obj rhs)
@@ -123,170 +78,6 @@ if (is(Obj : Object))
     if (!rhs)
         return 1;
     return lhs.opCmp(rhs);
-}
-
-// This function is called by the compiler when dealing with array
-// comparisons in the semantic analysis phase of CmpExp. The ordering
-// comparison is lowered to a call to this template.
-int __cmp(T1, T2)(T1[] s1, T2[] s2)
-if (!__traits(isScalar, T1) && !__traits(isScalar, T2))
-{
-    import core.internal.traits : Unqual;
-    alias U1 = Unqual!T1;
-    alias U2 = Unqual!T2;
-
-    static if (is(U1 == void) && is(U2 == void))
-        static @trusted ref inout(ubyte) at(inout(void)[] r, size_t i) { return (cast(inout(ubyte)*) r.ptr)[i]; }
-    else
-        static @trusted ref R at(R)(R[] r, size_t i) { return r.ptr[i]; }
-
-    // All unsigned byte-wide types = > dstrcmp
-    immutable len = s1.length <= s2.length ? s1.length : s2.length;
-
-    foreach (const u; 0 .. len)
-    {
-        static if (__traits(compiles, __cmp(at(s1, u), at(s2, u))))
-        {
-            auto c = __cmp(at(s1, u), at(s2, u));
-            if (c != 0)
-                return c;
-        }
-        else static if (__traits(compiles, at(s1, u).opCmp(at(s2, u))))
-        {
-            auto c = at(s1, u).opCmp(at(s2, u));
-            if (c != 0)
-                return c;
-        }
-        else static if (__traits(compiles, at(s1, u) < at(s2, u)))
-        {
-            if (at(s1, u) != at(s2, u))
-                return at(s1, u) < at(s2, u) ? -1 : 1;
-        }
-        else
-        {
-            // TODO: fix this legacy bad behavior, see
-            // https://issues.dlang.org/show_bug.cgi?id=17244
-            static assert(is(U1 == U2), "Internal error.");
-            import core.stdc.string : memcmp;
-            auto c = (() @trusted => memcmp(&at(s1, u), &at(s2, u), U1.sizeof))();
-            if (c != 0)
-                return c;
-        }
-    }
-    return s1.length < s2.length ? -1 : (s1.length > s2.length);
-}
-
-// integral types
-@safe unittest
-{
-    void compareMinMax(T)()
-    {
-        T[2] a = [T.max, T.max];
-        T[2] b = [T.min, T.min];
-
-        assert(__cmp(a, b) > 0);
-        assert(__cmp(b, a) < 0);
-    }
-
-    compareMinMax!int;
-    compareMinMax!uint;
-    compareMinMax!long;
-    compareMinMax!ulong;
-    compareMinMax!short;
-    compareMinMax!ushort;
-    compareMinMax!byte;
-    compareMinMax!dchar;
-    compareMinMax!wchar;
-}
-
-// char types (dstrcmp)
-@safe unittest
-{
-    void compareMinMax(T)()
-    {
-        T[2] a = [T.max, T.max];
-        T[2] b = [T.min, T.min];
-
-        assert(__cmp(a, b) > 0);
-        assert(__cmp(b, a) < 0);
-    }
-
-    compareMinMax!ubyte;
-    compareMinMax!bool;
-    compareMinMax!char;
-    compareMinMax!(const char);
-
-    string s1 = "aaaa";
-    string s2 = "bbbb";
-    assert(__cmp(s2, s1) > 0);
-    assert(__cmp(s1, s2) < 0);
-}
-
-// fp types
-@safe unittest
-{
-    void compareMinMax(T)()
-    {
-        T[2] a = [T.max, T.max];
-        T[2] b = [T.min_normal, T.min_normal];
-        T[2] c = [T.max, T.min_normal];
-        T[1] d = [T.max];
-
-        assert(__cmp(a, b) > 0);
-        assert(__cmp(b, a) < 0);
-        assert(__cmp(a, c) > 0);
-        assert(__cmp(a, d) > 0);
-        assert(__cmp(d, c) < 0);
-        assert(__cmp(c, c) == 0);
-    }
-
-    compareMinMax!real;
-    compareMinMax!float;
-    compareMinMax!double;
-    compareMinMax!ireal;
-    compareMinMax!ifloat;
-    compareMinMax!idouble;
-    compareMinMax!creal;
-    //compareMinMax!cfloat;
-    compareMinMax!cdouble;
-
-    // qualifiers
-    compareMinMax!(const real);
-    compareMinMax!(immutable real);
-}
-
-// void[]
-@safe unittest
-{
-    void[] a;
-    const(void)[] b;
-
-    (() @trusted
-    {
-        a = cast(void[]) "bb";
-        b = cast(const(void)[]) "aa";
-    })();
-
-    assert(__cmp(a, b) > 0);
-    assert(__cmp(b, a) < 0);
-}
-
-// arrays of arrays with mixed modifiers
-@safe unittest
-{
-    // https://issues.dlang.org/show_bug.cgi?id=17876
-    bool less1(immutable size_t[][] a, size_t[][] b) { return a < b; }
-    bool less2(const void[][] a, void[][] b) { return a < b; }
-    bool less3(inout size_t[][] a, size_t[][] b) { return a < b; }
-
-    immutable size_t[][] a = [[1, 2], [3, 4]];
-    size_t[][] b = [[1, 2], [3, 5]];
-    assert(less1(a, b));
-    assert(less3(a, b));
-
-    auto va = [cast(immutable void[])a[0], a[1]];
-    auto vb = [cast(void[])b[0], b[1]];
-    assert(less2(va, vb));
 }
 
 // objects
@@ -348,185 +139,83 @@ if (!__traits(isScalar, T1) && !__traits(isScalar, T2))
     assert(a <  "я");
 }
 
-// `lhs == rhs` lowers to `__equals(lhs, rhs)` for dynamic arrays
-bool __equals(T1, T2)(T1[] lhs, T2[] rhs)
+/**
+ * Recursively calls the `opPostMove` callbacks of a struct and its members if
+ * they're defined.
+ *
+ * When moving a struct instance, the compiler emits a call to this function
+ * after blitting the instance and before releasing the original instance's
+ * memory.
+ *
+ * Params:
+ *      newLocation = reference to struct instance being moved into
+ *      oldLocation = reference to the original instance
+ *
+ * Note:
+ *      This function is tentatively defined as `nothrow` to prevent
+ *      `opPostMove` from being defined without `nothrow`, which would allow
+ *      for possibly confusing changes in program flow.
+ */
+void __move_post_blt(S)(ref S newLocation, ref S oldLocation) nothrow
+    if (is(S == struct))
 {
-    import core.internal.traits : Unqual;
-    alias U1 = Unqual!T1;
-    alias U2 = Unqual!T2;
-
-    static @trusted ref R at(R)(R[] r, size_t i) { return r.ptr[i]; }
-    static @trusted R trustedCast(R, S)(S[] r) { return cast(R) r; }
-
-    if (lhs.length != rhs.length)
-        return false;
-
-    if (lhs.length == 0 && rhs.length == 0)
-        return true;
-
-    static if (is(U1 == void) && is(U2 == void))
+    static foreach (memberName; __traits(allMembers, S))
     {
-        return __equals(trustedCast!(ubyte[])(lhs), trustedCast!(ubyte[])(rhs));
-    }
-    else static if (is(U1 == void))
-    {
-        return __equals(trustedCast!(ubyte[])(lhs), rhs);
-    }
-    else static if (is(U2 == void))
-    {
-        return __equals(lhs, trustedCast!(ubyte[])(rhs));
-    }
-    else static if (!is(U1 == U2))
-    {
-        // This should replace src/object.d _ArrayEq which
-        // compares arrays of different types such as long & int,
-        // char & wchar.
-        // Compiler lowers to __ArrayEq in dmd/src/opover.d
-        foreach (const u; 0 .. lhs.length)
+        static if (is(typeof(__traits(getMember, S, memberName)) == struct))
         {
-            if (at(lhs, u) != at(rhs, u))
-                return false;
-        }
-        return true;
-    }
-    else static if (__traits(isIntegral, U1))
-    {
-
-        if (!__ctfe)
-        {
-            import core.stdc.string : memcmp;
-            return () @trusted { return memcmp(cast(void*)lhs.ptr, cast(void*)rhs.ptr, lhs.length * U1.sizeof) == 0; }();
-        }
-        else
-        {
-            foreach (const u; 0 .. lhs.length)
-            {
-                if (at(lhs, u) != at(rhs, u))
-                    return false;
-            }
-            return true;
+            __move_post_blt(__traits(getMember, newLocation, memberName), __traits(getMember, oldLocation, memberName));
         }
     }
-    else
-    {
-        foreach (const u; 0 .. lhs.length)
-        {
-            static if (__traits(compiles, __equals(at(lhs, u), at(rhs, u))))
-            {
-                if (!__equals(at(lhs, u), at(rhs, u)))
-                    return false;
-            }
-            else static if (__traits(isFloating, U1))
-            {
-                if (at(lhs, u) != at(rhs, u))
-                    return false;
-            }
-            else static if (is(U1 : Object) && is(U2 : Object))
-            {
-                if (!(cast(Object)at(lhs, u) is cast(Object)at(rhs, u)
-                    || at(lhs, u) && (cast(Object)at(lhs, u)).opEquals(cast(Object)at(rhs, u))))
-                    return false;
-            }
-            else static if (__traits(hasMember, U1, "opEquals"))
-            {
-                if (!at(lhs, u).opEquals(at(rhs, u)))
-                    return false;
-            }
-            else static if (is(U1 == delegate))
-            {
-                if (at(lhs, u) != at(rhs, u))
-                    return false;
-            }
-            else static if (is(U1 == U11*, U11))
-            {
-                if (at(lhs, u) != at(rhs, u))
-                    return false;
-            }
-            else static if (__traits(isAssociativeArray, U1))
-            {
-                if (at(lhs, u) != at(rhs, u))
-                    return false;
-            }
-            else
-            {
-                if (at(lhs, u).tupleof != at(rhs, u).tupleof)
-                    return false;
-            }
-        }
 
-        return true;
+    static if (__traits(hasMember, S, "opPostMove"))
+    {
+        import core.internal.traits : lvalueOf, rvalueOf;
+        static assert( is(typeof(S.init.opPostMove(lvalueOf!S))) &&
+                      !is(typeof(S.init.opPostMove(rvalueOf!S))),
+                "`" ~ S.stringof ~ ".opPostMove` must take exactly one argument of type `" ~ S.stringof ~ "` by reference");
+
+        newLocation.opPostMove(oldLocation);
     }
 }
 
-@safe unittest
-{
-    assert(__equals([], []));
-    assert(!__equals([1, 2], [1, 2, 3]));
-}
-
-@safe unittest
-{
-    auto a = "hello"c;
-
-    assert(a != "hel");
-    assert(a != "helloo");
-    assert(a != "betty");
-    assert(a == "hello");
-    assert(a != "hxxxx");
-
-    float[] fa = [float.nan];
-    assert(fa != fa);
-}
-
-@safe unittest
+@safe nothrow unittest
 {
     struct A
     {
-        int a;
+        bool movedInto;
+        void opPostMove(const ref A oldLocation)
+        {
+            movedInto = true;
+        }
     }
-
-    auto arr1 = [A(0), A(2)];
-    auto arr2 = [A(0), A(1)];
-    auto arr3 = [A(0), A(1)];
-
-    assert(arr1 != arr2);
-    assert(arr2 == arr3);
+    A src, dest;
+    __move_post_blt(dest, src);
+    assert(dest.movedInto);
 }
 
-@safe unittest
+@safe nothrow unittest
 {
     struct A
     {
-        int a;
-        int b;
-
-        bool opEquals(const A other)
+        bool movedInto;
+        void opPostMove(const ref A oldLocation)
         {
-            return this.a == other.b && this.b == other.a;
+            movedInto = true;
         }
     }
+    struct B
+    {
+        A a;
 
-    auto arr1 = [A(1, 0), A(0, 1)];
-    auto arr2 = [A(1, 0), A(0, 1)];
-    auto arr3 = [A(0, 1), A(1, 0)];
-
-    assert(arr1 != arr2);
-    assert(arr2 == arr3);
-}
-
-// https://issues.dlang.org/show_bug.cgi?id=18252
-@safe unittest
-{
-    string[int][] a1, a2;
-    assert(__equals(a1, a2));
-    assert(a1 == a2);
-    a1 ~= [0: "zero"];
-    a2 ~= [0: "zero"];
-    assert(__equals(a1, a2));
-    assert(a1 == a2);
-    a2[0][1] = "one";
-    assert(!__equals(a1, a2));
-    assert(a1 != a2);
+        bool movedInto;
+        void opPostMove(const ref B oldLocation)
+        {
+            movedInto = true;
+        }
+    }
+    B src, dest;
+    __move_post_blt(dest, src);
+    assert(dest.movedInto && dest.a.movedInto);
 }
 
 /**
@@ -965,20 +654,10 @@ void destroy(bool initialize = true, T : U[n], U, size_t n)(ref T obj) if (!is(T
 
 /// ditto
 void destroy(bool initialize = true, T)(ref T obj)
-    if (!is(T == struct) && !is(T == interface) && !is(T == class) && !_isStaticArray!T)
+    if (!is(T == struct) && !is(T == interface) && !is(T == class) && !__traits(isStaticArray, T))
 {
     static if (initialize)
         obj = T.init;
-}
-
-template _isStaticArray(T : U[N], U, size_t N)
-{
-    enum bool _isStaticArray = true;
-}
-
-template _isStaticArray(T)
-{
-    enum bool _isStaticArray = false;
 }
 
 @safe unittest
@@ -1115,6 +794,8 @@ bool opEquals(Object lhs, Object rhs)
     // If either is null => non-equal
     if (lhs is null || rhs is null) return false;
 
+    if (!lhs.opEquals(rhs)) return false;
+
     // If same exact type => one call to method opEquals
     if (typeid(lhs) is typeid(rhs) ||
         !__ctfe && typeid(lhs).opEquals(typeid(rhs)))
@@ -1122,11 +803,11 @@ bool opEquals(Object lhs, Object rhs)
             (issue 7147). But CTFE also guarantees that equal TypeInfos are
             always identical. So, no opEquals needed during CTFE. */
     {
-        return lhs.opEquals(rhs);
+        return true;
     }
 
     // General case => symmetric calls to method opEquals
-    return lhs.opEquals(rhs) && rhs.opEquals(lhs);
+    return rhs.opEquals(lhs);
 }
 
 /************************
@@ -2019,7 +1700,7 @@ class TypeInfo_Class : TypeInfo
      * Search all modules for TypeInfo_Class corresponding to classname.
      * Returns: null if not found
      */
-    static const(TypeInfo_Class) find(in char[] classname)
+    static const(TypeInfo_Class) find(const scope char[] classname)
     {
         foreach (m; ModuleInfo)
         {
@@ -2483,7 +2164,7 @@ struct ModuleInfo
     version (all)
     {
         deprecated("ModuleInfo cannot be copy-assigned because it is a variable-sized struct.")
-        void opAssign(in ModuleInfo m) { _flags = m._flags; _index = m._index; }
+        void opAssign(const scope ModuleInfo m) { _flags = m._flags; _index = m._index; }
     }
     else
     {
@@ -3077,12 +2758,12 @@ extern (C)
 
     private struct AA { void* impl; }
     // size_t _aaLen(in AA aa) pure nothrow @nogc;
-    private void* _aaGetY(AA* paa, const TypeInfo_AssociativeArray ti, in size_t valsz, in void* pkey) pure nothrow;
-    private void* _aaGetX(AA* paa, const TypeInfo_AssociativeArray ti, in size_t valsz, in void* pkey, out bool found) pure nothrow;
+    private void* _aaGetY(AA* paa, const TypeInfo_AssociativeArray ti, const size_t valsz, const scope void* pkey) pure nothrow;
+    private void* _aaGetX(AA* paa, const TypeInfo_AssociativeArray ti, const size_t valsz, const scope void* pkey, out bool found) pure nothrow;
     // inout(void)* _aaGetRvalueX(inout AA aa, in TypeInfo keyti, in size_t valsz, in void* pkey);
-    inout(void[]) _aaValues(inout AA aa, in size_t keysz, in size_t valsz, const TypeInfo tiValueArray) pure nothrow;
-    inout(void[]) _aaKeys(inout AA aa, in size_t keysz, const TypeInfo tiKeyArray) pure nothrow;
-    void* _aaRehash(AA* paa, in TypeInfo keyti) pure nothrow;
+    inout(void[]) _aaValues(inout AA aa, const size_t keysz, const size_t valsz, const TypeInfo tiValueArray) pure nothrow;
+    inout(void[]) _aaKeys(inout AA aa, const size_t keysz, const TypeInfo tiKeyArray) pure nothrow;
+    void* _aaRehash(AA* paa, const scope TypeInfo keyti) pure nothrow;
     void _aaClear(AA aa) pure nothrow;
 
     // alias _dg_t = extern(D) int delegate(void*);
@@ -3970,191 +3651,6 @@ nothrow @safe @nogc unittest
     assert(postblitRecurseOrder == order);
 }
 
-private
-{
-    extern (C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) nothrow;
-    extern (C) size_t _d_arraysetcapacity(const TypeInfo ti, size_t newcapacity, void[]* arrptr) pure nothrow;
-}
-
-/**
- * (Property) Gets the current _capacity of a slice. The _capacity is the size
- * that the slice can grow to before the underlying array must be
- * reallocated or extended.
- *
- * If an append must reallocate a slice with no possibility of extension, then
- * `0` is returned. This happens when the slice references a static array, or
- * if another slice references elements past the end of the current slice.
- *
- * Note: The _capacity of a slice may be impacted by operations on other slices.
- */
-@property size_t capacity(T)(T[] arr) pure nothrow @trusted
-{
-    return _d_arraysetcapacity(typeid(T[]), 0, cast(void[]*)&arr);
-}
-
-///
-@safe unittest
-{
-    //Static array slice: no capacity
-    int[4] sarray = [1, 2, 3, 4];
-    int[]  slice  = sarray[];
-    assert(sarray.capacity == 0);
-    //Appending to slice will reallocate to a new array
-    slice ~= 5;
-    assert(slice.capacity >= 5);
-
-    //Dynamic array slices
-    int[] a = [1, 2, 3, 4];
-    int[] b = a[1 .. $];
-    int[] c = a[1 .. $ - 1];
-    debug(SENTINEL) {} else // non-zero capacity very much depends on the array and GC implementation
-    {
-        assert(a.capacity != 0);
-        assert(a.capacity == b.capacity + 1); //both a and b share the same tail
-    }
-    assert(c.capacity == 0);              //an append to c must relocate c.
-}
-
-/**
- * Reserves capacity for a slice. The capacity is the size
- * that the slice can grow to before the underlying array must be
- * reallocated or extended.
- *
- * Returns: The new capacity of the array (which may be larger than
- * the requested capacity).
- */
-size_t reserve(T)(ref T[] arr, size_t newcapacity) pure nothrow @trusted
-{
-    if (__ctfe)
-        return newcapacity;
-    else
-        return _d_arraysetcapacity(typeid(T[]), newcapacity, cast(void[]*)&arr);
-}
-
-///
-@safe unittest
-{
-    //Static array slice: no capacity. Reserve relocates.
-    int[4] sarray = [1, 2, 3, 4];
-    int[]  slice  = sarray[];
-    auto u = slice.reserve(8);
-    assert(u >= 8);
-    assert(&sarray[0] !is &slice[0]);
-    assert(slice.capacity == u);
-
-    //Dynamic array slices
-    int[] a = [1, 2, 3, 4];
-    a.reserve(8); //prepare a for appending 4 more items
-    auto p = &a[0];
-    u = a.capacity;
-    a ~= [5, 6, 7, 8];
-    assert(p == &a[0]);      //a should not have been reallocated
-    assert(u == a.capacity); //a should not have been extended
-}
-
-// https://issues.dlang.org/show_bug.cgi?id=12330, reserve() at CTFE time
-@safe unittest
-{
-    int[] foo() {
-        int[] result;
-        auto a = result.reserve = 5;
-        assert(a == 5);
-        return result;
-    }
-    enum r = foo();
-}
-
-// Issue 6646: should be possible to use array.reserve from SafeD.
-@safe unittest
-{
-    int[] a;
-    a.reserve(10);
-}
-
-/**
- * Assume that it is safe to append to this array. Appends made to this array
- * after calling this function may append in place, even if the array was a
- * slice of a larger array to begin with.
- *
- * Use this only when it is certain there are no elements in use beyond the
- * array in the memory block.  If there are, those elements will be
- * overwritten by appending to this array.
- *
- * Warning: Calling this function, and then using references to data located after the
- * given array results in undefined behavior.
- *
- * Returns:
- *   The input is returned.
- */
-auto ref inout(T[]) assumeSafeAppend(T)(auto ref inout(T[]) arr) nothrow @system
-{
-    _d_arrayshrinkfit(typeid(T[]), *(cast(void[]*)&arr));
-    return arr;
-}
-
-///
-@system unittest
-{
-    int[] a = [1, 2, 3, 4];
-
-    // Without assumeSafeAppend. Appending relocates.
-    int[] b = a [0 .. 3];
-    b ~= 5;
-    assert(a.ptr != b.ptr);
-
-    debug(SENTINEL) {} else
-    {
-        // With assumeSafeAppend. Appending overwrites.
-        int[] c = a [0 .. 3];
-        c.assumeSafeAppend() ~= 5;
-        assert(a.ptr == c.ptr);
-    }
-}
-
-@system unittest
-{
-    int[] arr;
-    auto newcap = arr.reserve(2000);
-    assert(newcap >= 2000);
-    assert(newcap == arr.capacity);
-    auto ptr = arr.ptr;
-    foreach (i; 0..2000)
-        arr ~= i;
-    assert(ptr == arr.ptr);
-    arr = arr[0..1];
-    arr.assumeSafeAppend();
-    arr ~= 5;
-    assert(ptr == arr.ptr);
-}
-
-@system unittest
-{
-    int[] arr = [1, 2, 3];
-    void foo(ref int[] i)
-    {
-        i ~= 5;
-    }
-    arr = arr[0 .. 2];
-    foo(assumeSafeAppend(arr)); //pass by ref
-    assert(arr[]==[1, 2, 5]);
-    arr = arr[0 .. 1].assumeSafeAppend(); //pass by value
-}
-
-// https://issues.dlang.org/show_bug.cgi?id=10574
-@system unittest
-{
-    int[] a;
-    immutable(int[]) b;
-    auto a2 = &assumeSafeAppend(a);
-    auto b2 = &assumeSafeAppend(b);
-    auto a3 = assumeSafeAppend(a[]);
-    auto b3 = assumeSafeAppend(b[]);
-    assert(is(typeof(*a2) == int[]));
-    assert(is(typeof(*b2) == immutable(int[])));
-    assert(is(typeof(a3) == int[]));
-    assert(is(typeof(b3) == immutable(int[])));
-}
-
 version (none)
 {
     // enforce() copied from Phobos std.contracts for destroy(), left out until
@@ -4498,7 +3994,7 @@ private inout(TypeInfo) getElement(inout TypeInfo value) @trusted pure nothrow
     return cast(inout) element;
 }
 
-private size_t getArrayHash(in TypeInfo element, in void* ptr, in size_t count) @trusted nothrow
+private size_t getArrayHash(const scope TypeInfo element, const scope void* ptr, const size_t count) @trusted nothrow
 {
     if (!count)
         return 0;
@@ -4507,7 +4003,7 @@ private size_t getArrayHash(in TypeInfo element, in void* ptr, in size_t count) 
     if (!elementSize)
         return 0;
 
-    static bool hasCustomToHash(in TypeInfo value) @trusted pure nothrow
+    static bool hasCustomToHash(const scope TypeInfo value) @trusted pure nothrow
     {
         const element = getElement(value);
 
@@ -4812,19 +4308,6 @@ private void _doPostblit(T)(T[] arr)
     auto a = arr.dup; // dup does escape
 }
 
-// compiler frontend lowers dynamic array comparison to this
-bool __ArrayEq(T1, T2)(T1[] a, T2[] b)
-{
-    if (a.length != b.length)
-        return false;
-    foreach (size_t i; 0 .. a.length)
-    {
-        if (a[i] != b[i])
-            return false;
-    }
-    return true;
-}
-
 // compiler frontend lowers struct array postblitting to this
 void __ArrayPostblit(T)(T[] a)
 {
@@ -4837,111 +4320,6 @@ void __ArrayDtor(T)(T[] a)
 {
     foreach_reverse (ref T e; a)
         e.__xdtor();
-}
-
-/**
-Used by `__ArrayCast` to emit a descriptive error message.
-
-It is a template so it can be used by `__ArrayCast` in -betterC
-builds.  It is separate from `__ArrayCast` to minimize code
-bloat.
-
-Params:
-    fromType = name of the type being cast from
-    fromSize = total size in bytes of the array being cast from
-    toType   = name of the type being cast o
-    toSize   = total size in bytes of the array being cast to
- */
-private void onArrayCastError()(string fromType, size_t fromSize, string toType, size_t toSize) @trusted
-{
-    import core.internal.string : unsignedToTempString;
-
-    const(char)[][9] msgComponents =
-    [
-        "An array of size "
-        , unsignedToTempString(fromSize)
-        , " does not align on an array of size "
-        , unsignedToTempString(toSize)
-        , ", so `"
-        , fromType
-        , "` cannot be cast to `"
-        , toType
-        , "`"
-    ];
-
-    // convert discontiguous `msgComponents` to contiguous string on the stack
-    enum msgLength = 2048;
-    char[msgLength] msg;
-
-    size_t index = 0;
-    foreach (m; msgComponents)
-    {
-        foreach (c; m)
-        {
-            msg[index++] = c;
-            if (index >= (msgLength - 1))
-                break;
-        }
-
-        if (index >= (msgLength - 1))
-            break;
-    }
-    msg[index] = '\0'; // null-termination
-
-    // first argument must evaluate to `false` at compile-time to maintain memory safety in release builds
-    assert(false, msg);
-}
-
-/**
-The compiler lowers expressions of `cast(TTo[])TFrom[]` to
-this implementation.
-
-Params:
-    from = the array to reinterpret-cast
-
-Returns:
-    `from` reinterpreted as `TTo[]`
- */
-TTo[] __ArrayCast(TFrom, TTo)(TFrom[] from) @nogc pure @trusted
-{
-    const fromSize = from.length * TFrom.sizeof;
-    const toLength = fromSize / TTo.sizeof;
-
-    if ((fromSize % TTo.sizeof) != 0)
-    {
-        onArrayCastError(TFrom.stringof, fromSize, TTo.stringof, toLength * TTo.sizeof);
-    }
-
-    struct Array
-    {
-        size_t length;
-        void* ptr;
-    }
-    auto a = cast(Array*)&from;
-    a.length = toLength; // jam new length
-    return *cast(TTo[]*)a;
-}
-
-@safe @nogc pure nothrow unittest
-{
-    byte[int.sizeof * 3] b = cast(byte) 0xab;
-    int[] i;
-    short[] s;
-
-    i = __ArrayCast!(byte, int)(b);
-    assert(i.length == 3);
-    foreach (v; i)
-        assert(v == cast(int) 0xabab_abab);
-
-    s = __ArrayCast!(byte, short)(b);
-    assert(s.length == 6);
-    foreach (v; s)
-        assert(v == cast(short) 0xabab);
-
-    s = __ArrayCast!(int, short)(i);
-    assert(s.length == 6);
-    foreach (v; s)
-        assert(v == cast(short) 0xabab);
 }
 
 // Allows customized assert error messages

@@ -1753,7 +1753,7 @@ private:
     __gshared Thread    sm_tbeg;
     __gshared size_t    sm_tlen;
 
-    // can't use rt.util.array in public code
+    // can't use core.internal.util.array in public code
     __gshared Thread* pAboutToStart;
     __gshared size_t nAboutToStart;
 
@@ -4232,13 +4232,6 @@ class Fiber
         return null;
     }
 
-    /// ditto
-    deprecated("Please pass Fiber.Rethrow.yes or .no instead of a boolean.")
-    final Throwable call( bool rethrow )
-    {
-        return rethrow ? call!(Rethrow.yes)() : call!(Rethrow.no);
-    }
-
     private void callImpl() nothrow @nogc
     in
     {
@@ -5334,12 +5327,6 @@ unittest
 {
     new Fiber({}).call(Fiber.Rethrow.yes);
     new Fiber({}).call(Fiber.Rethrow.no);
-}
-
-deprecated unittest
-{
-    new Fiber({}).call(true);
-    new Fiber({}).call(false);
 }
 
 version (Win32) {

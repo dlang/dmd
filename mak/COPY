@@ -23,6 +23,7 @@ COPY=\
 	\
 	$(IMPDIR)\core\internal\abort.d \
 	$(IMPDIR)\core\internal\arrayop.d \
+	$(IMPDIR)\core\internal\attributes.d \
 	$(IMPDIR)\core\internal\convert.d \
 	$(IMPDIR)\core\internal\dassert.d \
 	$(IMPDIR)\core\internal\hash.d \
@@ -32,6 +33,17 @@ COPY=\
 	$(IMPDIR)\core\internal\traits.d \
 	$(IMPDIR)\core\internal\utf.d \
 	$(IMPDIR)\core\internal\lifetime.d \
+	\
+	$(IMPDIR)\core\internal\array\appending.d \
+	$(IMPDIR)\core\internal\array\comparison.d \
+	$(IMPDIR)\core\internal\array\construction.d \
+	$(IMPDIR)\core\internal\array\equality.d \
+	$(IMPDIR)\core\internal\array\casting.d \
+	$(IMPDIR)\core\internal\array\capacity.d \
+	$(IMPDIR)\core\internal\array\concatenation.d \
+	$(IMPDIR)\core\internal\array\utils.d \
+	\
+	$(IMPDIR)\core\internal\util\array.d \
 	\
 	$(IMPDIR)\core\stdc\assert_.d \
 	$(IMPDIR)\core\stdc\complex.d \
@@ -60,9 +72,11 @@ COPY=\
 	$(IMPDIR)\core\stdcpp\array.d \
 	$(IMPDIR)\core\stdcpp\exception.d \
 	$(IMPDIR)\core\stdcpp\new_.d \
+	$(IMPDIR)\core\stdcpp\string.d \
 	$(IMPDIR)\core\stdcpp\string_view.d \
 	$(IMPDIR)\core\stdcpp\typeinfo.d \
 	$(IMPDIR)\core\stdcpp\type_traits.d \
+	$(IMPDIR)\core\stdcpp\vector.d \
 	$(IMPDIR)\core\stdcpp\xutility.d \
 	\
 	$(IMPDIR)\core\sync\event.d \
@@ -148,7 +162,6 @@ COPY=\
 	\
 	$(IMPDIR)\core\sys\linux\netinet\in_.d \
 	$(IMPDIR)\core\sys\linux\netinet\tcp.d \
-	$(IMPDIR)\core\sys\linux\sys\netinet\tcp.d \
 	\
 	$(IMPDIR)\core\sys\linux\sys\auxv.d \
 	$(IMPDIR)\core\sys\linux\sys\eventfd.d \

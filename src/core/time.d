@@ -776,7 +776,7 @@ public:
         Params:
             rhs = The duration to add to or subtract from this $(D Duration).
       +/
-    ref Duration opOpAssign(string op, D)(in D rhs) nothrow @nogc
+    ref Duration opOpAssign(string op, D)(const scope D rhs) nothrow @nogc
         if (((op == "+" || op == "-" || op == "%") && is(_Unqual!D == Duration)) ||
            ((op == "+" || op == "-") && is(_Unqual!D == TickDuration)))
     {
@@ -2287,7 +2287,7 @@ assert(before + timeElapsed == after);
 
     unittest
     {
-        static void test(in MonoTimeImpl before, in MonoTimeImpl after, in Duration min)
+        static void test(const scope MonoTimeImpl before, const scope MonoTimeImpl after, const scope Duration min)
         {
             immutable diff = after - before;
             assert(diff >= min);

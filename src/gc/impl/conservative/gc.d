@@ -88,7 +88,7 @@ private
         // to allow compilation of this module without access to the rt package,
         //  make these functions available from rt.lifetime
         void rt_finalizeFromGC(void* p, size_t size, uint attr) nothrow;
-        int rt_hasFinalizerInSegment(void* p, size_t size, uint attr, in void[] segment) nothrow;
+        int rt_hasFinalizerInSegment(void* p, size_t size, uint attr, const scope void[] segment) nothrow;
 
         // Declared as an extern instead of importing core.exception
         // to avoid inlining - see issue 13725.
@@ -970,9 +970,9 @@ class ConservativeGC : GC
     }
 
 
-    void runFinalizers(in void[] segment) nothrow
+    void runFinalizers(const scope void[] segment) nothrow
     {
-        static void go(Gcx* gcx, in void[] segment) nothrow
+        static void go(Gcx* gcx, const scope void[] segment) nothrow
         {
             gcx.runFinalizers(segment);
         }
@@ -1459,7 +1459,7 @@ struct Gcx
     /**
      *
      */
-    void runFinalizers(in void[] segment) nothrow
+    void runFinalizers(const scope void[] segment) nothrow
     {
         ConservativeGC._inFinalizer = true;
         scope (failure) ConservativeGC._inFinalizer = false;
@@ -3191,7 +3191,7 @@ struct Pool
         }
     }
 
-    void freePageBits(size_t pagenum, in ref PageBits toFree) nothrow
+    void freePageBits(size_t pagenum, const scope ref PageBits toFree) nothrow
     {
         assert(!isLargeObject);
         assert(!nointerior.nbits); // only for large objects
@@ -3641,7 +3641,7 @@ struct LargeObjectPool
         return info;
     }
 
-    void runFinalizers(in void[] segment) nothrow
+    void runFinalizers(const scope void[] segment) nothrow
     {
         foreach (pn; 0 .. npages)
         {
@@ -3755,7 +3755,7 @@ struct SmallObjectPool
         return info;
     }
 
-    void runFinalizers(in void[] segment) nothrow
+    void runFinalizers(const scope void[] segment) nothrow
     {
         foreach (pn; 0 .. npages)
         {
