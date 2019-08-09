@@ -114,7 +114,7 @@ public:
 
     virtual Statement *syntaxCopy();
 
-    const char *toChars();
+    const char *toChars() const;
 
     void error(const char *format, ...);
     void warning(const char *format, ...);

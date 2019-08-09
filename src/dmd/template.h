@@ -36,7 +36,7 @@ public:
     // kludge for template.isType()
     DYNCAST dyncast() const { return DYNCAST_TUPLE; }
 
-    const char *toChars() { return objects.toChars(); }
+    const char *toChars() const { return objects.toChars(); }
 };
 
 struct TemplatePrevious
@@ -75,7 +75,7 @@ public:
     bool overloadInsert(Dsymbol *s);
     bool hasStaticCtorOrDtor();
     const char *kind() const;
-    const char *toChars();
+    const char *toChars() const;
 
     Prot prot();
 
@@ -275,7 +275,7 @@ public:
     Dsymbol *toAlias();                 // resolve real symbol
     const char *kind() const;
     bool oneMember(Dsymbol **ps, Identifier *ident);
-    const char *toChars();
+    const char *toChars() const;
     const char* toPrettyCharsHelper();
     void printInstantiationTrace();
     Identifier *getIdent();
@@ -298,7 +298,7 @@ public:
     int apply(Dsymbol_apply_ft_t fp, void *param);
     bool hasPointers();
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
-    const char *toChars();
+    const char *toChars() const;
 
     TemplateMixin *isTemplateMixin() { return this; }
     void accept(Visitor *v) { v->visit(this); }
