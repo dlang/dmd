@@ -274,6 +274,7 @@ private bool writeMixin(const(char)[] s, ref Loc loc)
 final class Parser(AST) : Lexer
 {
     AST.ModuleDeclaration* md;
+    alias STC = AST.STC;
 
     private
     {
@@ -358,9 +359,9 @@ final class Parser(AST) : Lexer
                     {
                         AST.Expressions* exps = null;
                         const stc = parseAttribute(&exps);
-                        if (stc == AST.STC.property || stc == AST.STC.nogc
-                          || stc == AST.STC.disable || stc == AST.STC.safe
-                          || stc == AST.STC.trusted || stc == AST.STC.system)
+                        if (stc == STC.property || stc == STC.nogc
+                          || stc == STC.disable || stc == STC.safe
+                          || stc == STC.trusted || stc == STC.system)
                         {
                             error("`@%s` attribute for module declaration is not supported", token.toChars());
                         }
@@ -444,7 +445,7 @@ final class Parser(AST) : Lexer
     private StorageClass parseDeprecatedAttribute(ref AST.Expression msg)
     {
         if (peek(&token).value != TOK.leftParentheses)
-            return AST.STC.deprecated_;
+            return STC.deprecated_;
 
         nextToken();
         check(TOK.leftParentheses);
@@ -455,7 +456,7 @@ final class Parser(AST) : Lexer
             error("conflicting storage class `deprecated(%s)` and `deprecated(%s)`", msg.toChars(), e.toChars());
         }
         msg = e;
-        return AST.STC.undefined_;
+        return STC.undefined_;
     }
 
     AST.Dsymbols* parseDeclDefs(int once, AST.Dsymbol* pLastDecl = null, PrefixAttributes!AST* pAttrs = null)
@@ -646,7 +647,7 @@ final class Parser(AST) : Lexer
                     }
                     // Workaround 14894. Add an empty unittest declaration to keep
                     // the number of symbols in this scope independent of -unittest.
-                    s = new AST.UnitTestDeclaration(loc, token.loc, AST.STC.undefined_, null);
+                    s = new AST.UnitTestDeclaration(loc, token.loc, STC.undefined_, null);
                 }
                 break;
 
@@ -712,7 +713,7 @@ final class Parser(AST) : Lexer
                     }
                     else
                     {
-                        stc = AST.STC.static_;
+                        stc = STC.static_;
                         goto Lstc;
                     }
                     break;
@@ -720,13 +721,13 @@ final class Parser(AST) : Lexer
             case TOK.const_:
                 if (peekNext() == TOK.leftParentheses)
                     goto Ldeclaration;
-                stc = AST.STC.const_;
+                stc = STC.const_;
                 goto Lstc;
 
             case TOK.immutable_:
                 if (peekNext() == TOK.leftParentheses)
                     goto Ldeclaration;
-                stc = AST.STC.immutable_;
+                stc = STC.immutable_;
                 goto Lstc;
 
             case TOK.shared_:
@@ -748,53 +749,53 @@ final class Parser(AST) : Lexer
                             break;
                         }
                     }
-                    stc = AST.STC.shared_;
+                    stc = STC.shared_;
                     goto Lstc;
                 }
             case TOK.inout_:
                 if (peekNext() == TOK.leftParentheses)
                     goto Ldeclaration;
-                stc = AST.STC.wild;
+                stc = STC.wild;
                 goto Lstc;
 
             case TOK.final_:
-                stc = AST.STC.final_;
+                stc = STC.final_;
                 goto Lstc;
 
             case TOK.auto_:
-                stc = AST.STC.auto_;
+                stc = STC.auto_;
                 goto Lstc;
 
             case TOK.scope_:
-                stc = AST.STC.scope_;
+                stc = STC.scope_;
                 goto Lstc;
 
             case TOK.override_:
-                stc = AST.STC.override_;
+                stc = STC.override_;
                 goto Lstc;
 
             case TOK.abstract_:
-                stc = AST.STC.abstract_;
+                stc = STC.abstract_;
                 goto Lstc;
 
             case TOK.synchronized_:
-                stc = AST.STC.synchronized_;
+                stc = STC.synchronized_;
                 goto Lstc;
 
             case TOK.nothrow_:
-                stc = AST.STC.nothrow_;
+                stc = STC.nothrow_;
                 goto Lstc;
 
             case TOK.pure_:
-                stc = AST.STC.pure_;
+                stc = STC.pure_;
                 goto Lstc;
 
             case TOK.ref_:
-                stc = AST.STC.ref_;
+                stc = STC.ref_;
                 goto Lstc;
 
             case TOK.gshared:
-                stc = AST.STC.gshared;
+                stc = STC.gshared;
                 goto Lstc;
 
             //case TOK.manifest:   stc = STC.manifest;     goto Lstc;
@@ -853,7 +854,7 @@ final class Parser(AST) : Lexer
 
                 a = parseBlock(pLastDecl, pAttrs);
                 auto stc2 = getStorageClass!AST(pAttrs);
-                if (stc2 != AST.STC.undefined_)
+                if (stc2 != STC.undefined_)
                 {
                     s = new AST.StorageClassDeclaration(stc2, a);
                 }
@@ -905,7 +906,7 @@ final class Parser(AST) : Lexer
                 {
                     if (peek(&token).value != TOK.leftParentheses)
                     {
-                        stc = AST.STC.extern_;
+                        stc = STC.extern_;
                         goto Lstc;
                     }
 
@@ -1339,7 +1340,7 @@ final class Parser(AST) : Lexer
      */
     private StorageClass appendStorageClass(StorageClass storageClass, StorageClass stc)
     {
-        if ((storageClass & stc) || (storageClass & AST.STC.in_ && stc & (AST.STC.const_ | AST.STC.scope_)) || (stc & AST.STC.in_ && storageClass & (AST.STC.const_ | AST.STC.scope_)))
+        if ((storageClass & stc) || (storageClass & STC.in_ && stc & (STC.const_ | STC.scope_)) || (stc & STC.in_ && storageClass & (STC.const_ | STC.scope_)))
         {
             OutBuffer buf;
             AST.stcToBuffer(&buf, stc);
@@ -1349,21 +1350,21 @@ final class Parser(AST) : Lexer
 
         storageClass |= stc;
 
-        if (stc & (AST.STC.const_ | AST.STC.immutable_ | AST.STC.manifest))
+        if (stc & (STC.const_ | STC.immutable_ | STC.manifest))
         {
-            StorageClass u = storageClass & (AST.STC.const_ | AST.STC.immutable_ | AST.STC.manifest);
+            StorageClass u = storageClass & (STC.const_ | STC.immutable_ | STC.manifest);
             if (u & (u - 1))
                 error("conflicting attribute `%s`", Token.toChars(token.value));
         }
-        if (stc & (AST.STC.gshared | AST.STC.shared_ | AST.STC.tls))
+        if (stc & (STC.gshared | STC.shared_ | STC.tls))
         {
-            StorageClass u = storageClass & (AST.STC.gshared | AST.STC.shared_ | AST.STC.tls);
+            StorageClass u = storageClass & (STC.gshared | STC.shared_ | STC.tls);
             if (u & (u - 1))
                 error("conflicting attribute `%s`", Token.toChars(token.value));
         }
-        if (stc & AST.STC.safeGroup)
+        if (stc & STC.safeGroup)
         {
-            StorageClass u = storageClass & AST.STC.safeGroup;
+            StorageClass u = storageClass & STC.safeGroup;
             if (u & (u - 1))
                 error("conflicting attribute `@%s`", token.toChars());
         }
@@ -1389,19 +1390,19 @@ final class Parser(AST) : Lexer
         if (token.value == TOK.identifier)
         {
             if (token.ident == Id.property)
-                stc = AST.STC.property;
+                stc = STC.property;
             else if (token.ident == Id.nogc)
-                stc = AST.STC.nogc;
+                stc = STC.nogc;
             else if (token.ident == Id.safe)
-                stc = AST.STC.safe;
+                stc = STC.safe;
             else if (token.ident == Id.trusted)
-                stc = AST.STC.trusted;
+                stc = STC.trusted;
             else if (token.ident == Id.system)
-                stc = AST.STC.system;
+                stc = STC.system;
             else if (token.ident == Id.disable)
-                stc = AST.STC.disable;
+                stc = STC.disable;
             else if (token.ident == Id.future)
-                stc = AST.STC.future;
+                stc = STC.future;
             else
             {
                 // Allow identifier, template instantiation, or function call
@@ -1452,35 +1453,35 @@ final class Parser(AST) : Lexer
             switch (token.value)
             {
             case TOK.const_:
-                stc = AST.STC.const_;
+                stc = STC.const_;
                 break;
 
             case TOK.immutable_:
-                stc = AST.STC.immutable_;
+                stc = STC.immutable_;
                 break;
 
             case TOK.shared_:
-                stc = AST.STC.shared_;
+                stc = STC.shared_;
                 break;
 
             case TOK.inout_:
-                stc = AST.STC.wild;
+                stc = STC.wild;
                 break;
 
             case TOK.nothrow_:
-                stc = AST.STC.nothrow_;
+                stc = STC.nothrow_;
                 break;
 
             case TOK.pure_:
-                stc = AST.STC.pure_;
+                stc = STC.pure_;
                 break;
 
             case TOK.return_:
-                stc = AST.STC.return_;
+                stc = STC.return_;
                 break;
 
             case TOK.scope_:
-                stc = AST.STC.scope_;
+                stc = STC.scope_;
                 break;
 
             case TOK.at:
@@ -1512,7 +1513,7 @@ final class Parser(AST) : Lexer
 
     private StorageClass parseTypeCtor()
     {
-        StorageClass storageClass = AST.STC.undefined_;
+        StorageClass storageClass = STC.undefined_;
 
         while (1)
         {
@@ -1523,19 +1524,19 @@ final class Parser(AST) : Lexer
             switch (token.value)
             {
             case TOK.const_:
-                stc = AST.STC.const_;
+                stc = STC.const_;
                 break;
 
             case TOK.immutable_:
-                stc = AST.STC.immutable_;
+                stc = STC.immutable_;
                 break;
 
             case TOK.shared_:
-                stc = AST.STC.shared_;
+                stc = STC.shared_;
                 break;
 
             case TOK.inout_:
-                stc = AST.STC.wild;
+                stc = STC.wild;
                 break;
 
             default:
@@ -2438,13 +2439,13 @@ final class Parser(AST) : Lexer
             check(TOK.rightParentheses);
 
             stc = parsePostfix(stc, &udas);
-            if (stc & AST.STC.immutable_)
+            if (stc & STC.immutable_)
                 deprecation("`immutable` postblit is deprecated. Please use an unqualified postblit.");
-            if (stc & AST.STC.shared_)
+            if (stc & STC.shared_)
                 deprecation("`shared` postblit is deprecated. Please use an unqualified postblit.");
-            if (stc & AST.STC.const_)
+            if (stc & STC.const_)
                 deprecation("`const` postblit is deprecated. Please use an unqualified postblit.");
-            if (stc & AST.STC.static_)
+            if (stc & STC.static_)
                 error(loc, "postblit cannot be `static`");
 
             auto f = new AST.PostBlitDeclaration(loc, Loc.initial, stc, Id.postblit);
@@ -2476,14 +2477,14 @@ final class Parser(AST) : Lexer
 
         if (varargs != AST.VarArg.none || AST.Parameter.dim(parameters) != 0)
         {
-            if (stc & AST.STC.static_)
+            if (stc & STC.static_)
                 error(loc, "constructor cannot be static");
         }
-        else if (StorageClass ss = stc & (AST.STC.shared_ | AST.STC.static_)) // this()
+        else if (StorageClass ss = stc & (STC.shared_ | STC.static_)) // this()
         {
-            if (ss == AST.STC.static_)
+            if (ss == STC.static_)
                 error(loc, "use `static this()` to declare a static constructor");
-            else if (ss == (AST.STC.shared_ | AST.STC.static_))
+            else if (ss == (STC.shared_ | STC.static_))
                 error(loc, "use `shared static this()` to declare a shared static constructor");
         }
 
@@ -2529,11 +2530,11 @@ final class Parser(AST) : Lexer
         check(TOK.rightParentheses);
 
         stc = parsePostfix(stc, &udas);
-        if (StorageClass ss = stc & (AST.STC.shared_ | AST.STC.static_))
+        if (StorageClass ss = stc & (STC.shared_ | STC.static_))
         {
-            if (ss == AST.STC.static_)
+            if (ss == STC.static_)
                 error(loc, "use `static ~this()` to declare a static destructor");
-            else if (ss == (AST.STC.shared_ | AST.STC.static_))
+            else if (ss == (STC.shared_ | STC.static_))
                 error(loc, "use `shared static ~this()` to declare a shared static destructor");
         }
 
@@ -2564,18 +2565,18 @@ final class Parser(AST) : Lexer
         check(TOK.leftParentheses);
         check(TOK.rightParentheses);
 
-        stc = parsePostfix(stc & ~AST.STC.TYPECTOR, null) | stc;
-        if (stc & AST.STC.shared_)
+        stc = parsePostfix(stc & ~STC.TYPECTOR, null) | stc;
+        if (stc & STC.shared_)
             error(loc, "use `shared static this()` to declare a shared static constructor");
-        else if (stc & AST.STC.static_)
-            appendStorageClass(stc, AST.STC.static_); // complaint for the redundancy
-        else if (StorageClass modStc = stc & AST.STC.TYPECTOR)
+        else if (stc & STC.static_)
+            appendStorageClass(stc, STC.static_); // complaint for the redundancy
+        else if (StorageClass modStc = stc & STC.TYPECTOR)
         {
             OutBuffer buf;
             AST.stcToBuffer(&buf, modStc);
             error(loc, "static constructor cannot be `%s`", buf.peekChars());
         }
-        stc &= ~(AST.STC.static_ | AST.STC.TYPECTOR);
+        stc &= ~(STC.static_ | STC.TYPECTOR);
 
         auto f = new AST.StaticCtorDeclaration(loc, Loc.initial, stc);
         AST.Dsymbol s = parseContracts(f);
@@ -2599,18 +2600,18 @@ final class Parser(AST) : Lexer
         check(TOK.leftParentheses);
         check(TOK.rightParentheses);
 
-        stc = parsePostfix(stc & ~AST.STC.TYPECTOR, &udas) | stc;
-        if (stc & AST.STC.shared_)
+        stc = parsePostfix(stc & ~STC.TYPECTOR, &udas) | stc;
+        if (stc & STC.shared_)
             error(loc, "use `shared static ~this()` to declare a shared static destructor");
-        else if (stc & AST.STC.static_)
-            appendStorageClass(stc, AST.STC.static_); // complaint for the redundancy
-        else if (StorageClass modStc = stc & AST.STC.TYPECTOR)
+        else if (stc & STC.static_)
+            appendStorageClass(stc, STC.static_); // complaint for the redundancy
+        else if (StorageClass modStc = stc & STC.TYPECTOR)
         {
             OutBuffer buf;
             AST.stcToBuffer(&buf, modStc);
             error(loc, "static destructor cannot be `%s`", buf.peekChars());
         }
-        stc &= ~(AST.STC.static_ | AST.STC.TYPECTOR);
+        stc &= ~(STC.static_ | STC.TYPECTOR);
 
         auto f = new AST.StaticDtorDeclaration(loc, Loc.initial, stc);
         AST.Dsymbol s = parseContracts(f);
@@ -2640,16 +2641,16 @@ final class Parser(AST) : Lexer
         check(TOK.leftParentheses);
         check(TOK.rightParentheses);
 
-        stc = parsePostfix(stc & ~AST.STC.TYPECTOR, null) | stc;
-        if (StorageClass ss = stc & (AST.STC.shared_ | AST.STC.static_))
+        stc = parsePostfix(stc & ~STC.TYPECTOR, null) | stc;
+        if (StorageClass ss = stc & (STC.shared_ | STC.static_))
             appendStorageClass(stc, ss); // complaint for the redundancy
-        else if (StorageClass modStc = stc & AST.STC.TYPECTOR)
+        else if (StorageClass modStc = stc & STC.TYPECTOR)
         {
             OutBuffer buf;
             AST.stcToBuffer(&buf, modStc);
             error(loc, "shared static constructor cannot be `%s`", buf.peekChars());
         }
-        stc &= ~(AST.STC.static_ | AST.STC.TYPECTOR);
+        stc &= ~(STC.static_ | STC.TYPECTOR);
 
         auto f = new AST.SharedStaticCtorDeclaration(loc, Loc.initial, stc);
         AST.Dsymbol s = parseContracts(f);
@@ -2674,16 +2675,16 @@ final class Parser(AST) : Lexer
         check(TOK.leftParentheses);
         check(TOK.rightParentheses);
 
-        stc = parsePostfix(stc & ~AST.STC.TYPECTOR, &udas) | stc;
-        if (StorageClass ss = stc & (AST.STC.shared_ | AST.STC.static_))
+        stc = parsePostfix(stc & ~STC.TYPECTOR, &udas) | stc;
+        if (StorageClass ss = stc & (STC.shared_ | STC.static_))
             appendStorageClass(stc, ss); // complaint for the redundancy
-        else if (StorageClass modStc = stc & AST.STC.TYPECTOR)
+        else if (StorageClass modStc = stc & STC.TYPECTOR)
         {
             OutBuffer buf;
             AST.stcToBuffer(&buf, modStc);
             error(loc, "shared static destructor cannot be `%s`", buf.peekChars());
         }
-        stc &= ~(AST.STC.static_ | AST.STC.TYPECTOR);
+        stc &= ~(STC.static_ | STC.TYPECTOR);
 
         auto f = new AST.SharedStaticDtorDeclaration(loc, Loc.initial, stc);
         AST.Dsymbol s = parseContracts(f);
@@ -2858,33 +2859,33 @@ final class Parser(AST) : Lexer
                 case TOK.const_:
                     if (peek(&token).value == TOK.leftParentheses)
                         goto default;
-                    stc = AST.STC.const_;
+                    stc = STC.const_;
                     goto L2;
 
                 case TOK.immutable_:
                     if (peek(&token).value == TOK.leftParentheses)
                         goto default;
-                    stc = AST.STC.immutable_;
+                    stc = STC.immutable_;
                     goto L2;
 
                 case TOK.shared_:
                     if (peek(&token).value == TOK.leftParentheses)
                         goto default;
-                    stc = AST.STC.shared_;
+                    stc = STC.shared_;
                     goto L2;
 
                 case TOK.inout_:
                     if (peek(&token).value == TOK.leftParentheses)
                         goto default;
-                    stc = AST.STC.wild;
+                    stc = STC.wild;
                     goto L2;
                 case TOK.at:
                     {
                         AST.Expressions* exps = null;
                         StorageClass stc2 = parseAttribute(&exps);
-                        if (stc2 == AST.STC.property || stc2 == AST.STC.nogc ||
-                            stc2 == AST.STC.disable || stc2 == AST.STC.safe ||
-                            stc2 == AST.STC.trusted || stc2 == AST.STC.system)
+                        if (stc2 == STC.property || stc2 == STC.nogc ||
+                            stc2 == STC.disable || stc2 == STC.safe ||
+                            stc2 == STC.trusted || stc2 == STC.system)
                         {
                             error("`@%s` attribute for function parameter is not supported", token.toChars());
                         }
@@ -2900,35 +2901,35 @@ final class Parser(AST) : Lexer
                         // Don't call nextToken again.
                     }
                 case TOK.in_:
-                    stc = AST.STC.in_;
+                    stc = STC.in_;
                     goto L2;
 
                 case TOK.out_:
-                    stc = AST.STC.out_;
+                    stc = STC.out_;
                     goto L2;
 
                 case TOK.ref_:
-                    stc = AST.STC.ref_;
+                    stc = STC.ref_;
                     goto L2;
 
                 case TOK.lazy_:
-                    stc = AST.STC.lazy_;
+                    stc = STC.lazy_;
                     goto L2;
 
                 case TOK.scope_:
-                    stc = AST.STC.scope_;
+                    stc = STC.scope_;
                     goto L2;
 
                 case TOK.final_:
-                    stc = AST.STC.final_;
+                    stc = STC.final_;
                     goto L2;
 
                 case TOK.auto_:
-                    stc = AST.STC.auto_;
+                    stc = STC.auto_;
                     goto L2;
 
                 case TOK.return_:
-                    stc = AST.STC.return_;
+                    stc = STC.return_;
                     goto L2;
                 L2:
                     storageClass = appendStorageClass(storageClass, stc);
@@ -2973,9 +2974,9 @@ final class Parser(AST) : Lexer
                     }
                 default:
                     {
-                        stc = storageClass & (AST.STC.in_ | AST.STC.out_ | AST.STC.ref_ | AST.STC.lazy_);
+                        stc = storageClass & (STC.in_ | STC.out_ | STC.ref_ | STC.lazy_);
                         // if stc is not a power of 2
-                        if (stc & (stc - 1) && !(stc == (AST.STC.in_ | AST.STC.ref_)))
+                        if (stc & (stc - 1) && !(stc == (STC.in_ | STC.ref_)))
                             error("incompatible parameter storage classes");
                         //if ((storageClass & STC.scope_) && (storageClass & (STC.ref_ | STC.out_)))
                             //error("scope cannot be ref or out");
@@ -3026,9 +3027,9 @@ final class Parser(AST) : Lexer
                         {
                             AST.Expressions* exps = null;
                             StorageClass stc2 = parseAttribute(&exps);
-                            if (stc2 == AST.STC.property || stc2 == AST.STC.nogc ||
-                                stc2 == AST.STC.disable || stc2 == AST.STC.safe ||
-                                stc2 == AST.STC.trusted || stc2 == AST.STC.system)
+                            if (stc2 == STC.property || stc2 == STC.nogc ||
+                                stc2 == STC.disable || stc2 == STC.safe ||
+                                stc2 == STC.trusted || stc2 == STC.system)
                             {
                                 error("`@%s` attribute for function parameter is not supported", token.toChars());
                             }
@@ -3044,7 +3045,7 @@ final class Parser(AST) : Lexer
                             /* This is:
                              *      at ai ...
                              */
-                            if (storageClass & (AST.STC.out_ | AST.STC.ref_))
+                            if (storageClass & (STC.out_ | STC.ref_))
                                 error("variadic argument cannot be `out` or `ref`");
                             varargs = AST.VarArg.typesafe;
                             parameters.push(param);
@@ -3137,7 +3138,7 @@ final class Parser(AST) : Lexer
                         case TOK.at:
                             if (StorageClass _stc = parseAttribute(&udas))
                             {
-                                if (_stc == AST.STC.disable)
+                                if (_stc == STC.disable)
                                     stc |= _stc;
                                 else
                                 {
@@ -3216,7 +3217,7 @@ final class Parser(AST) : Lexer
                 if (deprecationMessage)
                 {
                     dd = new AST.DeprecatedDeclaration(deprecationMessage, null);
-                    stc |= AST.STC.deprecated_;
+                    stc |= STC.deprecated_;
                 }
 
                 auto em = new AST.EnumMember(loc, ident, value, type, stc, uad, dd);
@@ -3531,28 +3532,28 @@ final class Parser(AST) : Lexer
             case TOK.const_:
                 if (peekNext() == TOK.leftParentheses)
                     break; // const as type constructor
-                stc |= AST.STC.const_; // const as storage class
+                stc |= STC.const_; // const as storage class
                 nextToken();
                 continue;
 
             case TOK.immutable_:
                 if (peekNext() == TOK.leftParentheses)
                     break;
-                stc |= AST.STC.immutable_;
+                stc |= STC.immutable_;
                 nextToken();
                 continue;
 
             case TOK.shared_:
                 if (peekNext() == TOK.leftParentheses)
                     break;
-                stc |= AST.STC.shared_;
+                stc |= STC.shared_;
                 nextToken();
                 continue;
 
             case TOK.inout_:
                 if (peekNext() == TOK.leftParentheses)
                     break;
-                stc |= AST.STC.wild;
+                stc |= STC.wild;
                 nextToken();
                 continue;
 
@@ -3749,7 +3750,7 @@ final class Parser(AST) : Lexer
             // const(type)
             nextToken();
             check(TOK.leftParentheses);
-            t = parseType().addSTC(AST.STC.const_);
+            t = parseType().addSTC(STC.const_);
             check(TOK.rightParentheses);
             break;
 
@@ -3757,7 +3758,7 @@ final class Parser(AST) : Lexer
             // immutable(type)
             nextToken();
             check(TOK.leftParentheses);
-            t = parseType().addSTC(AST.STC.immutable_);
+            t = parseType().addSTC(STC.immutable_);
             check(TOK.rightParentheses);
             break;
 
@@ -3765,7 +3766,7 @@ final class Parser(AST) : Lexer
             // shared(type)
             nextToken();
             check(TOK.leftParentheses);
-            t = parseType().addSTC(AST.STC.shared_);
+            t = parseType().addSTC(STC.shared_);
             check(TOK.rightParentheses);
             break;
 
@@ -3773,7 +3774,7 @@ final class Parser(AST) : Lexer
             // wild(type)
             nextToken();
             check(TOK.leftParentheses);
-            t = parseType().addSTC(AST.STC.wild);
+            t = parseType().addSTC(STC.wild);
             check(TOK.rightParentheses);
             break;
 
@@ -3993,9 +3994,9 @@ final class Parser(AST) : Lexer
                     AST.VarArg varargs;
                     AST.Parameters* parameters = parseParameters(&varargs);
 
-                    StorageClass stc = parsePostfix(AST.STC.undefined_, null);
+                    StorageClass stc = parsePostfix(STC.undefined_, null);
                     auto tf = new AST.TypeFunction(AST.ParameterList(parameters, varargs), t, linkage, stc);
-                    if (stc & (AST.STC.const_ | AST.STC.immutable_ | AST.STC.shared_ | AST.STC.wild | AST.STC.return_))
+                    if (stc & (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild | STC.return_))
                     {
                         if (save == TOK.function_)
                             error("`const`/`immutable`/`shared`/`inout`/`return` attributes are only valid for non-static member functions");
@@ -4159,7 +4160,7 @@ final class Parser(AST) : Lexer
                     AST.Type tf = new AST.TypeFunction(AST.ParameterList(parameters, varargs), t, linkage, stc);
                     tf = tf.addSTC(stc);
                     if (pdisable)
-                        *pdisable = stc & AST.STC.disable ? 1 : 0;
+                        *pdisable = stc & STC.disable ? 1 : 0;
 
                     /* Insert tf into
                      *   ts -> ... -> t
@@ -4194,73 +4195,73 @@ final class Parser(AST) : Lexer
             case TOK.const_:
                 if (peek(&token).value == TOK.leftParentheses)
                     break; // const as type constructor
-                stc = AST.STC.const_; // const as storage class
+                stc = STC.const_; // const as storage class
                 goto L1;
 
             case TOK.immutable_:
                 if (peek(&token).value == TOK.leftParentheses)
                     break;
-                stc = AST.STC.immutable_;
+                stc = STC.immutable_;
                 goto L1;
 
             case TOK.shared_:
                 if (peek(&token).value == TOK.leftParentheses)
                     break;
-                stc = AST.STC.shared_;
+                stc = STC.shared_;
                 goto L1;
 
             case TOK.inout_:
                 if (peek(&token).value == TOK.leftParentheses)
                     break;
-                stc = AST.STC.wild;
+                stc = STC.wild;
                 goto L1;
 
             case TOK.static_:
-                stc = AST.STC.static_;
+                stc = STC.static_;
                 goto L1;
 
             case TOK.final_:
-                stc = AST.STC.final_;
+                stc = STC.final_;
                 goto L1;
 
             case TOK.auto_:
-                stc = AST.STC.auto_;
+                stc = STC.auto_;
                 goto L1;
 
             case TOK.scope_:
-                stc = AST.STC.scope_;
+                stc = STC.scope_;
                 goto L1;
 
             case TOK.override_:
-                stc = AST.STC.override_;
+                stc = STC.override_;
                 goto L1;
 
             case TOK.abstract_:
-                stc = AST.STC.abstract_;
+                stc = STC.abstract_;
                 goto L1;
 
             case TOK.synchronized_:
-                stc = AST.STC.synchronized_;
+                stc = STC.synchronized_;
                 goto L1;
 
             case TOK.deprecated_:
-                stc = AST.STC.deprecated_;
+                stc = STC.deprecated_;
                 goto L1;
 
             case TOK.nothrow_:
-                stc = AST.STC.nothrow_;
+                stc = STC.nothrow_;
                 goto L1;
 
             case TOK.pure_:
-                stc = AST.STC.pure_;
+                stc = STC.pure_;
                 goto L1;
 
             case TOK.ref_:
-                stc = AST.STC.ref_;
+                stc = STC.ref_;
                 goto L1;
 
             case TOK.gshared:
-                stc = AST.STC.gshared;
+                stc = STC.gshared;
                 goto L1;
 
             case TOK.enum_:
@@ -4274,7 +4275,7 @@ final class Parser(AST) : Lexer
                         if (t.value == TOK.leftCurly || t.value == TOK.colon || t.value == TOK.semicolon)
                             break;
                     }
-                    stc = AST.STC.manifest;
+                    stc = STC.manifest;
                     goto L1;
                 }
 
@@ -4294,7 +4295,7 @@ final class Parser(AST) : Lexer
                 {
                     if (peek(&token).value != TOK.leftParentheses)
                     {
-                        stc = AST.STC.extern_;
+                        stc = STC.extern_;
                         goto L1;
                     }
 
@@ -4344,7 +4345,7 @@ final class Parser(AST) : Lexer
      */
     private AST.Dsymbols* parseDeclarations(bool autodecl, PrefixAttributes!AST* pAttrs, const(char)* comment)
     {
-        StorageClass storage_class = AST.STC.undefined_;
+        StorageClass storage_class = STC.undefined_;
         TOK tok = TOK.reserved;
         LINK link = linkage;
         bool setAlignment = false;
@@ -4416,7 +4417,7 @@ final class Parser(AST) : Lexer
                             return;
                         hasParsedAttributes = true;
                         udas = null;
-                        storage_class = AST.STC.undefined_;
+                        storage_class = STC.undefined_;
                         link = linkage;
                         setAlignment = false;
                         ealign = null;
@@ -4723,7 +4724,7 @@ final class Parser(AST) : Lexer
                      *   alias @safe void function() FP2;    // FP2 is not @safe
                      *   alias void function() @safe FP3;
                      */
-                    pAttrs.storageClass &= AST.STC.safeGroup;
+                    pAttrs.storageClass &= STC.safeGroup;
                 }
                 AST.Dsymbol s = v;
 
@@ -4755,9 +4756,9 @@ final class Parser(AST) : Lexer
             {
                 AST.Expression constraint = null;
                 //printf("%s funcdecl t = %s, storage_class = x%lx\n", loc.toChars(), t.toChars(), storage_class);
-                auto f = new AST.FuncDeclaration(loc, Loc.initial, ident, storage_class | (disable ? AST.STC.disable : 0), t);
+                auto f = new AST.FuncDeclaration(loc, Loc.initial, ident, storage_class | (disable ? STC.disable : 0), t);
                 if (pAttrs)
-                    pAttrs.storageClass = AST.STC.undefined_;
+                    pAttrs.storageClass = STC.undefined_;
                 if (tpl)
                     constraint = parseConstraint();
                 AST.Dsymbol s = parseContracts(f);
@@ -4786,13 +4787,13 @@ final class Parser(AST) : Lexer
                     auto tempdecl = new AST.TemplateDeclaration(loc, tplIdent, tpl, constraint, decldefs);
                     s = tempdecl;
 
-                    if (storage_class & AST.STC.static_)
+                    if (storage_class & STC.static_)
                     {
-                        assert(f.storage_class & AST.STC.static_);
-                        f.storage_class &= ~AST.STC.static_;
+                        assert(f.storage_class & STC.static_);
+                        f.storage_class &= ~STC.static_;
                         auto ax = new AST.Dsymbols();
                         ax.push(s);
-                        s = new AST.StorageClassDeclaration(AST.STC.static_, ax);
+                        s = new AST.StorageClassDeclaration(STC.static_, ax);
                     }
                 }
                 a.push(s);
@@ -4810,7 +4811,7 @@ final class Parser(AST) : Lexer
                 auto v = new AST.VarDeclaration(loc, t, ident, _init);
                 v.storage_class = storage_class;
                 if (pAttrs)
-                    pAttrs.storageClass = AST.STC.undefined_;
+                    pAttrs.storageClass = STC.undefined_;
 
                 AST.Dsymbol s = v;
 
@@ -4882,7 +4883,7 @@ final class Parser(AST) : Lexer
             {
                 // function ref (parameters) { statements... }
                 // delegate ref (parameters) { statements... }
-                stc = AST.STC.ref_;
+                stc = STC.ref_;
                 nextToken();
             }
             if (token.value != TOK.leftParentheses && token.value != TOK.leftCurly)
@@ -4910,7 +4911,7 @@ final class Parser(AST) : Lexer
             {
                 // ref (parameters) => expression
                 // ref (parameters) { statements... }
-                stc = AST.STC.ref_;
+                stc = STC.ref_;
                 nextToken();
                 goto case TOK.leftParentheses;
             }
@@ -4920,7 +4921,7 @@ final class Parser(AST) : Lexer
                 // (parameters) { statements... }
                 parameters = parseParameters(&varargs, &tpl);
                 stc = parsePostfix(stc, null);
-                if (StorageClass modStc = stc & AST.STC.TYPECTOR)
+                if (StorageClass modStc = stc & STC.TYPECTOR)
                 {
                     if (save == TOK.function_)
                     {
@@ -5247,22 +5248,22 @@ final class Parser(AST) : Lexer
             switch (token.value)
             {
                 case TOK.ref_:
-                    stc = AST.STC.ref_;
+                    stc = STC.ref_;
                     goto Lagain;
 
                 case TOK.enum_:
-                    stc = AST.STC.manifest;
+                    stc = STC.manifest;
                     goto Lagain;
 
                 case TOK.alias_:
-                    storageClass = appendStorageClass(storageClass, AST.STC.alias_);
+                    storageClass = appendStorageClass(storageClass, STC.alias_);
                     nextToken();
                     break;
 
                 case TOK.const_:
                     if (peekNext() != TOK.leftParentheses)
                     {
-                        stc = AST.STC.const_;
+                        stc = STC.const_;
                         goto Lagain;
                     }
                     break;
@@ -5270,7 +5271,7 @@ final class Parser(AST) : Lexer
                 case TOK.immutable_:
                     if (peekNext() != TOK.leftParentheses)
                     {
-                        stc = AST.STC.immutable_;
+                        stc = STC.immutable_;
                         goto Lagain;
                     }
                     break;
@@ -5278,7 +5279,7 @@ final class Parser(AST) : Lexer
                 case TOK.shared_:
                     if (peekNext() != TOK.leftParentheses)
                     {
-                        stc = AST.STC.shared_;
+                        stc = STC.shared_;
                         goto Lagain;
                     }
                     break;
@@ -5286,7 +5287,7 @@ final class Parser(AST) : Lexer
                 case TOK.inout_:
                     if (peekNext() != TOK.leftParentheses)
                     {
-                        stc = AST.STC.wild;
+                        stc = STC.wild;
                         goto Lagain;
                     }
                     break;
@@ -5806,17 +5807,17 @@ final class Parser(AST) : Lexer
                 switch (token.value)
                 {
                 case TOK.ref_:
-                    stc = AST.STC.ref_;
+                    stc = STC.ref_;
                     goto LagainStc;
 
                 case TOK.auto_:
-                    stc = AST.STC.auto_;
+                    stc = STC.auto_;
                     goto LagainStc;
 
                 case TOK.const_:
                     if (peekNext() != TOK.leftParentheses)
                     {
-                        stc = AST.STC.const_;
+                        stc = STC.const_;
                         goto LagainStc;
                     }
                     break;
@@ -5824,7 +5825,7 @@ final class Parser(AST) : Lexer
                 case TOK.immutable_:
                     if (peekNext() != TOK.leftParentheses)
                     {
-                        stc = AST.STC.immutable_;
+                        stc = STC.immutable_;
                         goto LagainStc;
                     }
                     break;
@@ -5832,7 +5833,7 @@ final class Parser(AST) : Lexer
                 case TOK.shared_:
                     if (peekNext() != TOK.leftParentheses)
                     {
-                        stc = AST.STC.shared_;
+                        stc = STC.shared_;
                         goto LagainStc;
                     }
                     break;
@@ -5840,7 +5841,7 @@ final class Parser(AST) : Lexer
                 case TOK.inout_:
                     if (peekNext() != TOK.leftParentheses)
                     {
-                        stc = AST.STC.wild;
+                        stc = STC.wild;
                         goto LagainStc;
                     }
                     break;
@@ -6276,8 +6277,8 @@ final class Parser(AST) : Lexer
                 Loc labelloc;
 
                 nextToken();
-                StorageClass stc = parsePostfix(AST.STC.undefined_, null);
-                if (stc & (AST.STC.const_ | AST.STC.immutable_ | AST.STC.shared_ | AST.STC.wild))
+                StorageClass stc = parsePostfix(STC.undefined_, null);
+                if (stc & (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild))
                     error("`const`/`immutable`/`shared`/`inout` attributes are not allowed on `asm` blocks");
 
                 check(TOK.leftCurly);
