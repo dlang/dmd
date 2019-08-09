@@ -784,7 +784,7 @@ extern (C++) abstract class Type : ASTNode
     /********************************
      * For pretty-printing a type.
      */
-    final override const(char)* toChars()
+    final override const(char)* toChars() const
     {
         OutBuffer buf;
         buf.reserve(16);
@@ -2382,11 +2382,12 @@ extern (C++) abstract class Type : ASTNode
     /**************************
      * Return type with the top level of it being mutable.
      */
-    Type toHeadMutable()
+    inout(Type) toHeadMutable() inout
     {
         if (!mod)
             return this;
-        return mutableOf();
+        Type unqualThis = cast(Type) this;
+        return cast(inout(Type)) unqualThis.mutableOf();
     }
 
     inout(ClassDeclaration) isClassHandle() inout
@@ -5754,7 +5755,7 @@ extern (C++) final class TypeStruct : Type
         return wm;
     }
 
-    override Type toHeadMutable()
+    override inout(Type) toHeadMutable() inout
     {
         return this;
     }
@@ -6068,7 +6069,7 @@ extern (C++) final class TypeClass : Type
         return wm;
     }
 
-    override Type toHeadMutable()
+    override inout(Type) toHeadMutable() inout
     {
         return this;
     }

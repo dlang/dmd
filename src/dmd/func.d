@@ -558,14 +558,14 @@ extern (C++) class FuncDeclaration : Declaration
         return HiddenParameters.init;
     }
 
-    override final bool equals(RootObject o)
+    override final bool equals(RootObject o) const
     {
         if (this == o)
             return true;
 
         if (auto s = isDsymbol(o))
         {
-            auto fd1 = this;
+            auto fd1 = cast(FuncDeclaration) this;
             auto fd2 = s.isFuncDeclaration();
             if (!fd2)
                 return false;

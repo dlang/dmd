@@ -45,7 +45,7 @@ public:
             mem.xfree(data);
     }
     ///returns elements comma separated in []
-    extern(D) const(char)[] toString()
+    extern(D) const(char)[] toString() const
     {
         static if (is(typeof(T.init.toString())))
         {
@@ -53,7 +53,15 @@ public:
             size_t len = 2; // [ and ]
             foreach (u; 0 .. length)
             {
-                buf[u] = data[u].toString();
+                static if (is(typeof(this) == const(A), A) && is (A == Array!UnqualT, UnqualT))
+                {
+                    UnqualT* unqualData = cast(UnqualT*) data;
+                    buf[u] = unqualData[u].toString();
+                }
+                else
+                {
+                    buf[u] = data[u].toString();
+                }
                 len += buf[u].length + 1; //length + ',' or null terminator
             }
             char[] str = (cast(char*)mem.xmalloc(len))[0..len];
@@ -79,7 +87,7 @@ public:
         }
     }
     ///ditto
-    const(char)* toChars()
+    const(char)* toChars() const
     {
         return toString.ptr;
     }
