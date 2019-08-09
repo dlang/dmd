@@ -1162,6 +1162,14 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     }
 
     Statement_toIR(sbody, &irs);
+
+    if (global.errors)
+    {
+        // Restore symbol table
+        cstate.CSpsymtab = symtabsave;
+        return;
+    }
+
     bx.curblock.BC = BCret;
 
     f.Fstartblock = bx.startblock;
