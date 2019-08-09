@@ -8,16 +8,18 @@ clone() {
     local url="$1"
     local path="$2"
     local branch="$3"
-    for i in {0..4}; do
-        if git clone --depth 1 --branch "$branch" "$url" "$path" "${@:4}" --quiet; then
-            break
-        elif [ $i -lt 4 ]; then
-            sleep $((1 << $i))
-        else
-            echo "Failed to clone: ${url}"
-            exit 1
-        fi
-    done
+    if [ ! -d $path ]; then
+        for i in {0..4}; do
+            if git clone --depth 1 --branch "$branch" "$url" "$path" "${@:4}" --quiet; then
+                break
+            elif [ $i -lt 4 ]; then
+                sleep $((1 << $i))
+            else
+                echo "Failed to clone: ${url}"
+                exit 1
+            fi
+        done
+    fi
 }
 
 download() {
@@ -43,8 +45,10 @@ install_grep() {
     local tools_dir="${DMD_DIR}/tools"
     mkdir -p "$tools_dir"
     cd "$tools_dir"
-    download "http://downloads.dlang.org/other/grep-3.1.zip" "grep-3.1.zip"
-    unzip "grep-3.1.zip" # contains grep.exe
+    if [ ! -f grep.exe ]; then
+        download "http://downloads.dlang.org/other/grep-3.1.zip" "grep-3.1.zip"
+        unzip "grep-3.1.zip" # contains grep.exe
+    fi
     export PATH="${tools_dir}:$PATH"
 }
 
@@ -53,8 +57,12 @@ install_grep() {
 ################################################################################
 
 clone_repos() {
-    local REPO_BRANCH="$SYSTEM_PULLREQUEST_TARGETBRANCH"
-
+    if [ -z ${SYSTEM_PULLREQUEST_TARGETBRANCH+x} ]; then
+        local REPO_BRANCH="$BUILD_SOURCEBRANCHNAME"
+    else
+        local REPO_BRANCH="$SYSTEM_PULLREQUEST_TARGETBRANCH"
+    fi
+    
     for proj in druntime phobos; do
         if [ "$REPO_BRANCH" != master ] && [ "$REPO_BRANCH" != stable ] &&
                 ! git ls-remote --exit-code --heads "https://github.com/dlang/$proj.git" "$REPO_BRANCH" > /dev/null; then

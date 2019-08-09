@@ -125,20 +125,8 @@ bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1)
                     else
                     {
                         const(char)* modStr = !var.type.isMutable() ? MODtoChars(var.type.mod) : MODtoChars(e1.type.mod);
-                        // Deprecated in 2018-04.
-                        // Change to error in 2019-04 by deleting the following
-                        // if-branch and the deprecate_18719 enum member in the
-                        // dmd.ctorflow.CSX enum.
-                        // @@@DEPRECATED_2019-01@@@.
-                        if (fi & CSX.deprecate_18719)
-                        {
-                            .deprecation(loc, "%s field `%s` was initialized in a previous constructor call", modStr, var.toChars());
-                        }
-                        else
-                        {
-                            .error(loc, "%s field `%s` initialized multiple times", modStr, var.toChars());
-                            .errorSupplemental(fieldInit.loc, "Previous initialization is here.");
-                        }
+                        .error(loc, "%s field `%s` initialized multiple times", modStr, var.toChars());
+                        .errorSupplemental(fieldInit.loc, "Previous initialization is here.");
                     }
                 }
                 else if (sc.inLoop || (fi & CSX.label))
@@ -262,15 +250,19 @@ enum STC : long
     local               = (1L << 51),   // do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
     returninferred      = (1L << 52),   // 'return' has been inferred and should not be part of mangling
 
+    // Group members are mutually exclusive (there can be only one)
+    safeGroup = STC.safe | STC.trusted | STC.system,
+
     TYPECTOR = (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild),
-    FUNCATTR = (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.property | STC.safe | STC.trusted | STC.system),
+    FUNCATTR = (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.property |
+                STC.safeGroup),
 }
 
 enum STCStorageClass =
     (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.const_ | STC.final_ | STC.abstract_ | STC.synchronized_ |
      STC.deprecated_ | STC.future | STC.override_ | STC.lazy_ | STC.alias_ | STC.out_ | STC.in_ | STC.manifest |
      STC.immutable_ | STC.shared_ | STC.wild | STC.nothrow_ | STC.nogc | STC.pure_ | STC.ref_ | STC.return_ | STC.tls | STC.gshared |
-     STC.property | STC.safe | STC.trusted | STC.system | STC.disable | STC.local);
+     STC.property | STC.safeGroup | STC.disable | STC.local);
 
 /* Accumulator for successive matches.
  */
@@ -368,6 +360,13 @@ extern (C++) abstract class Declaration : Dsymbol
     /*************************************
      * Check to see if declaration can be modified in this context (sc).
      * Issue error if not.
+     * Params:
+     *  loc  = location for error messages
+     *  e1   = `null` or `this` expression when this declaration is a field
+     *  sc   = context
+     *  flag = !=0 means do not issue error message for invalid modification
+     * Returns:
+     *  Modifiable.yes or Modifiable.initialization
      */
     extern (D) final Modifiable checkModify(Loc loc, Scope* sc, Expression e1, int flag)
     {
@@ -1376,7 +1375,7 @@ extern (C++) class VarDeclaration : Declaration
      * If a variable has a scope destructor call, return call for it.
      * Otherwise, return NULL.
      */
-    final Expression callScopeDtor(Scope* sc)
+    extern (D) final Expression callScopeDtor(Scope* sc)
     {
         //printf("VarDeclaration::callScopeDtor() %s\n", toChars());
 
@@ -1479,7 +1478,7 @@ extern (C++) class VarDeclaration : Declaration
      * If variable has a constant expression initializer, get it.
      * Otherwise, return null.
      */
-    final Expression getConstInitializer(bool needFullType = true)
+    extern (D) final Expression getConstInitializer(bool needFullType = true)
     {
         assert(type && _init);
 
@@ -1508,7 +1507,7 @@ extern (C++) class VarDeclaration : Declaration
     /*******************************************
      * Helper function for the expansion of manifest constant.
      */
-    final Expression expandInitializer(Loc loc)
+    extern (D) final Expression expandInitializer(Loc loc)
     {
         assert((storage_class & STC.manifest) && _init);
 
@@ -1565,16 +1564,8 @@ extern (C++) class VarDeclaration : Declaration
             return false;
 
         // Add fdthis to nestedrefs[] if not already there
-        for (size_t i = 0; 1; i++)
-        {
-            if (i == nestedrefs.dim)
-            {
-                nestedrefs.push(fdthis);
-                break;
-            }
-            if (nestedrefs[i] == fdthis)
-                break;
-        }
+        if (!nestedrefs.contains(fdthis))
+            nestedrefs.push(fdthis);
 
         /* __require and __ensure will always get called directly,
          * so they never make outer functions closure.
@@ -1596,16 +1587,8 @@ extern (C++) class VarDeclaration : Declaration
             (fdv.flags & FUNCFLAG.compileTimeOnly || !(fdthis.flags & FUNCFLAG.compileTimeOnly))
            )
         {
-            for (size_t i = 0; 1; i++)
-            {
-                if (i == fdv.closureVars.dim)
-                {
-                    fdv.closureVars.push(this);
-                    break;
-                }
-                if (fdv.closureVars[i] == this)
-                    break;
-            }
+            if (!fdv.closureVars.contains(this))
+                fdv.closureVars.push(this);
         }
 
         //printf("fdthis is %s\n", fdthis.toChars());

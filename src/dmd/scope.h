@@ -72,7 +72,7 @@ struct Scope
     Statement *scontinue;       // enclosing statement that supports "continue"
     ForeachStatement *fes;      // if nested function for ForeachStatement, this is it
     Scope *callsc;              // used for __FUNCTION__, __PRETTY_FUNCTION__ and __MODULE__
-    bool inunion;               // true if processing members of a union
+    Dsymbol *inunion;           // !=null if processing members of a union
     bool nofree;                // true if shouldn't free it
     bool inLoop;                // true if inside a loop (where constructor calls aren't allowed)
     int intypeof;               // in typeof(exp)
@@ -125,20 +125,12 @@ struct Scope
     Scope *startCTFE();
     Scope *endCTFE();
 
-    void mergeCallSuper(Loc loc, unsigned cs);
-
-    unsigned *saveFieldInit();
-    void mergeFieldInit(Loc loc, unsigned *cses);
-
     Module *instantiatingModule();
 
     Dsymbol *search(const Loc &loc, Identifier *ident, Dsymbol **pscopesym, int flags = IgnoreNone);
-    Dsymbol *search_correct(Identifier *ident);
-    Dsymbol *insert(Dsymbol *s);
 
     ClassDeclaration *getClassScope();
     AggregateDeclaration *getStructClassScope();
-    void setNoFree();
 
     structalign_t alignment();
 

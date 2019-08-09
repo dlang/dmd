@@ -968,7 +968,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (pi + 2 > paramsbuf.length)      // allow extra 2 for sthis and shidden
     {
         params = cast(Symbol **)malloc((pi + 2) * (Symbol *).sizeof);
-        assert(params);
+        if (!params)
+            Mem.error();
     }
 
     // Get the actual number of parameters, pi, and fill in the params[]
@@ -1063,138 +1064,135 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         free(params);
     params = null;
 
-    if (fd.fbody)
+    localgot = null;
+
+    Statement sbody = fd.fbody;
+
+    Blockx bx;
+    bx.startblock = block_calloc();
+    bx.curblock = bx.startblock;
+    bx.funcsym = s;
+    bx.scope_index = -1;
+    bx.classdec = cast(void*)cd;
+    bx.member = cast(void*)fd;
+    bx._module = cast(void*)fd.getModule();
+    irs.blx = &bx;
+
+    // Initialize argptr
+    if (fd.v_argptr)
     {
-        localgot = null;
-
-        Statement sbody = fd.fbody;
-
-        Blockx bx;
-        bx.startblock = block_calloc();
-        bx.curblock = bx.startblock;
-        bx.funcsym = s;
-        bx.scope_index = -1;
-        bx.classdec = cast(void*)cd;
-        bx.member = cast(void*)fd;
-        bx._module = cast(void*)fd.getModule();
-        irs.blx = &bx;
-
-        // Initialize argptr
-        if (fd.v_argptr)
+        // Declare va_argsave
+        if (global.params.is64bit &&
+            !global.params.isWindows)
         {
-            // Declare va_argsave
-            if (global.params.is64bit &&
-                !global.params.isWindows)
-            {
-                type *t = type_struct_class("__va_argsave_t", 16, 8 * 6 + 8 * 16 + 8 * 3, null, null, false, false, true, false);
-                // The backend will pick this up by name
-                Symbol *sv = symbol_name("__va_argsave", SCauto, t);
-                sv.Stype.Tty |= mTYvolatile;
-                symbol_add(sv);
-            }
-
-            Symbol *sa = toSymbol(fd.v_argptr);
-            symbol_add(sa);
-            elem *e = el_una(OPva_start, TYnptr, el_ptr(sa));
-            block_appendexp(irs.blx.curblock, e);
+            type *t = type_struct_class("__va_argsave_t", 16, 8 * 6 + 8 * 16 + 8 * 3, null, null, false, false, true, false);
+            // The backend will pick this up by name
+            Symbol *sv = symbol_name("__va_argsave", SCauto, t);
+            sv.Stype.Tty |= mTYvolatile;
+            symbol_add(sv);
         }
 
-        /* Doing this in semantic3() caused all kinds of problems:
-         * 1. couldn't reliably get the final mangling of the function name due to fwd refs
-         * 2. impact on function inlining
-         * 3. what to do when writing out .di files, or other pretty printing
-         */
-        if (global.params.trace && !fd.isCMain() && !fd.naked)
-        {
-            /* The profiler requires TLS, and TLS may not be set up yet when C main()
-             * gets control (i.e. OSX), leading to a crash.
-             */
-            /* Wrap the entire function body in:
-             *   trace_pro("funcname");
-             *   try
-             *     body;
-             *   finally
-             *     _c_trace_epi();
-             */
-            StringExp se = StringExp.create(Loc.initial, s.Sident.ptr);
-            se.type = Type.tstring;
-            se.type = se.type.typeSemantic(Loc.initial, null);
-            Expressions *exps = new Expressions();
-            exps.push(se);
-            FuncDeclaration fdpro = FuncDeclaration.genCfunc(null, Type.tvoid, "trace_pro");
-            Expression ec = VarExp.create(Loc.initial, fdpro);
-            Expression e = CallExp.create(Loc.initial, ec, exps);
-            e.type = Type.tvoid;
-            Statement sp = ExpStatement.create(fd.loc, e);
-
-            FuncDeclaration fdepi = FuncDeclaration.genCfunc(null, Type.tvoid, "_c_trace_epi");
-            ec = VarExp.create(Loc.initial, fdepi);
-            e = CallExp.create(Loc.initial, ec);
-            e.type = Type.tvoid;
-            Statement sf = ExpStatement.create(fd.loc, e);
-
-            Statement stf;
-            if (sbody.blockExit(fd, false) == BE.fallthru)
-                stf = CompoundStatement.create(Loc.initial, sbody, sf);
-            else
-                stf = TryFinallyStatement.create(Loc.initial, sbody, sf);
-            sbody = CompoundStatement.create(Loc.initial, sp, stf);
-        }
-
-        if (fd.interfaceVirtual)
-        {
-            // Adjust the 'this' pointer instead of using a thunk
-            assert(irs.sthis);
-            elem *ethis = el_var(irs.sthis);
-            ethis = fixEthis2(ethis, fd);
-            elem *e = el_bin(OPminass, TYnptr, ethis, el_long(TYsize_t, fd.interfaceVirtual.offset));
-            block_appendexp(irs.blx.curblock, e);
-        }
-
-        buildClosure(fd, &irs);
-
-        if (config.ehmethod == EHmethod.EH_WIN32 && fd.isSynchronized() && cd &&
-            !fd.isStatic() && !sbody.usesEH() && !global.params.trace)
-        {
-            /* The "jmonitor" hack uses an optimized exception handling frame
-             * which is a little shorter than the more general EH frame.
-             */
-            s.Sfunc.Fflags3 |= Fjmonitor;
-        }
-
-        Statement_toIR(sbody, &irs);
-
-        if (global.errors)
-        {
-            // Restore symbol table
-            cstate.CSpsymtab = symtabsave;
-            return;
-        }
-
-        bx.curblock.BC = BCret;
-
-        f.Fstartblock = bx.startblock;
-//      einit = el_combine(einit,bx.init);
-
-        if (fd.isCtorDeclaration())
-        {
-            assert(sthis);
-            foreach (b; BlockRange(f.Fstartblock))
-            {
-                if (b.BC == BCret)
-                {
-                    elem *ethis = el_var(sthis);
-                    ethis = fixEthis2(ethis, fd);
-                    b.BC = BCretexp;
-                    b.Belem = el_combine(b.Belem, ethis);
-                }
-            }
-        }
-        if (config.ehmethod == EHmethod.EH_NONE || f.Fflags3 & Feh_none)
-            insertFinallyBlockGotos(f.Fstartblock);
-        else if (config.ehmethod == EHmethod.EH_DWARF)
-            insertFinallyBlockCalls(f.Fstartblock);
+        Symbol *sa = toSymbol(fd.v_argptr);
+        symbol_add(sa);
+        elem *e = el_una(OPva_start, TYnptr, el_ptr(sa));
+        block_appendexp(irs.blx.curblock, e);
     }
+
+    /* Doing this in semantic3() caused all kinds of problems:
+     * 1. couldn't reliably get the final mangling of the function name due to fwd refs
+     * 2. impact on function inlining
+     * 3. what to do when writing out .di files, or other pretty printing
+     */
+    if (global.params.trace && !fd.isCMain() && !fd.naked)
+    {
+        /* The profiler requires TLS, and TLS may not be set up yet when C main()
+         * gets control (i.e. OSX), leading to a crash.
+         */
+        /* Wrap the entire function body in:
+         *   trace_pro("funcname");
+         *   try
+         *     body;
+         *   finally
+         *     _c_trace_epi();
+         */
+        StringExp se = StringExp.create(Loc.initial, s.Sident.ptr);
+        se.type = Type.tstring;
+        se.type = se.type.typeSemantic(Loc.initial, null);
+        Expressions *exps = new Expressions();
+        exps.push(se);
+        FuncDeclaration fdpro = FuncDeclaration.genCfunc(null, Type.tvoid, "trace_pro");
+        Expression ec = VarExp.create(Loc.initial, fdpro);
+        Expression e = CallExp.create(Loc.initial, ec, exps);
+        e.type = Type.tvoid;
+        Statement sp = ExpStatement.create(fd.loc, e);
+
+        FuncDeclaration fdepi = FuncDeclaration.genCfunc(null, Type.tvoid, "_c_trace_epi");
+        ec = VarExp.create(Loc.initial, fdepi);
+        e = CallExp.create(Loc.initial, ec);
+        e.type = Type.tvoid;
+        Statement sf = ExpStatement.create(fd.loc, e);
+
+        Statement stf;
+        if (sbody.blockExit(fd, false) == BE.fallthru)
+            stf = CompoundStatement.create(Loc.initial, sbody, sf);
+        else
+            stf = TryFinallyStatement.create(Loc.initial, sbody, sf);
+        sbody = CompoundStatement.create(Loc.initial, sp, stf);
+    }
+
+    if (fd.interfaceVirtual)
+    {
+        // Adjust the 'this' pointer instead of using a thunk
+        assert(irs.sthis);
+        elem *ethis = el_var(irs.sthis);
+        ethis = fixEthis2(ethis, fd);
+        elem *e = el_bin(OPminass, TYnptr, ethis, el_long(TYsize_t, fd.interfaceVirtual.offset));
+        block_appendexp(irs.blx.curblock, e);
+    }
+
+    buildClosure(fd, &irs);
+
+    if (config.ehmethod == EHmethod.EH_WIN32 && fd.isSynchronized() && cd &&
+        !fd.isStatic() && !sbody.usesEH() && !global.params.trace)
+    {
+        /* The "jmonitor" hack uses an optimized exception handling frame
+         * which is a little shorter than the more general EH frame.
+         */
+        s.Sfunc.Fflags3 |= Fjmonitor;
+    }
+
+    Statement_toIR(sbody, &irs);
+
+    if (global.errors)
+    {
+        // Restore symbol table
+        cstate.CSpsymtab = symtabsave;
+        return;
+    }
+
+    bx.curblock.BC = BCret;
+
+    f.Fstartblock = bx.startblock;
+//  einit = el_combine(einit,bx.init);
+
+    if (fd.isCtorDeclaration())
+    {
+        assert(sthis);
+        foreach (b; BlockRange(f.Fstartblock))
+        {
+            if (b.BC == BCret)
+            {
+                elem *ethis = el_var(sthis);
+                ethis = fixEthis2(ethis, fd);
+                b.BC = BCretexp;
+                b.Belem = el_combine(b.Belem, ethis);
+            }
+        }
+    }
+    if (config.ehmethod == EHmethod.EH_NONE || f.Fflags3 & Feh_none)
+        insertFinallyBlockGotos(f.Fstartblock);
+    else if (config.ehmethod == EHmethod.EH_DWARF)
+        insertFinallyBlockCalls(f.Fstartblock);
 
     // If static constructor
     if (fd.isSharedStaticCtorDeclaration())        // must come first because it derives from StaticCtorDeclaration
@@ -1387,11 +1385,6 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
             obj_includelib(libname);
         s.Sclass = SCglobal;
     }
-    else if (fd.ident == Id.tls_get_addr && fd.linkage == LINK.d)
-    {
-        // TODO: Change linkage in druntime to extern(C).
-        s.Sfunc.Fredirect = cast(char*)Id.tls_get_addr.toChars();
-    }
 }
 
 
@@ -1422,9 +1415,9 @@ private bool onlyOneMain(Loc loc)
  * Return back end type corresponding to D front end type.
  */
 
-uint totym(Type tx)
+tym_t totym(Type tx)
 {
-    uint t;
+    tym_t t;
     switch (tx.ty)
     {
         case Tvoid:     t = TYvoid;     break;
@@ -1481,6 +1474,7 @@ uint totym(Type tx)
 
         case Tident:
         case Ttypeof:
+        case Tmixin:
             //printf("ty = %d, '%s'\n", tx.ty, tx.toChars());
             error(Loc.initial, "forward reference of `%s`", tx.toChars());
             t = TYint;
@@ -1492,8 +1486,8 @@ uint totym(Type tx)
 
         case Tvector:
         {
-            TypeVector tv = cast(TypeVector)tx;
-            TypeBasic tb = tv.elementType();
+            auto tv = cast(TypeVector)tx;
+            const tb = tv.elementType();
             const s32 = tv.alignsize() == 32;   // if 32 byte, 256 bit vector
             switch (tb.ty)
             {
@@ -1516,12 +1510,12 @@ uint totym(Type tx)
 
         case Tfunction:
         {
-            TypeFunction tf = cast(TypeFunction)tx;
+            auto tf = cast(TypeFunction)tx;
             final switch (tf.linkage)
             {
                 case LINK.windows:
                     if (global.params.is64bit)
-                        goto Lc;
+                        goto case LINK.c;
                     t = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYnsfunc;
                     break;
 
@@ -1532,7 +1526,6 @@ uint totym(Type tx)
                 case LINK.c:
                 case LINK.cpp:
                 case LINK.objc:
-                Lc:
                     t = TYnfunc;
                     if (global.params.isWindows)
                     {
@@ -1559,30 +1552,7 @@ uint totym(Type tx)
             assert(0);
     }
 
-    // Add modifiers
-    switch (tx.mod)
-    {
-        case 0:
-            break;
-        case MODFlags.const_:
-        case MODFlags.wild:
-        case MODFlags.wildconst:
-            t |= mTYconst;
-            break;
-        case MODFlags.shared_:
-            t |= mTYshared;
-            break;
-        case MODFlags.shared_ | MODFlags.const_:
-        case MODFlags.shared_ | MODFlags.wild:
-        case MODFlags.shared_ | MODFlags.wildconst:
-            t |= mTYshared | mTYconst;
-            break;
-        case MODFlags.immutable_:
-            t |= mTYimmutable;
-            break;
-        default:
-            assert(0);
-    }
+    t |= modToTym(tx.mod);    // Add modifiers
 
     return t;
 }

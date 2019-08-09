@@ -419,6 +419,8 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (params.mixinFile)
     {
         params.mixinOut = cast(OutBuffer*)calloc(1, OutBuffer.sizeof);
+        if (!params.mixinOut)
+            Mem.error();
         atexit(&flushMixins); // see comment for flushMixins
     }
     scope(exit) flushMixins();
@@ -1279,8 +1281,8 @@ void addDefaultVersionIdentifiers(const ref Param params)
         VersionCondition.addPredefinedGlobalIdent("D_Ddoc");
     if (params.cov)
         VersionCondition.addPredefinedGlobalIdent("D_Coverage");
-    if (params.pic)
-        VersionCondition.addPredefinedGlobalIdent("D_PIC");
+    if (params.pic != PIC.fixed)
+        VersionCondition.addPredefinedGlobalIdent(params.pic == PIC.pic ? "D_PIC" : "D_PIE");
     if (params.useUnitTests)
         VersionCondition.addPredefinedGlobalIdent("unittest");
     if (params.useAssert == CHECKENABLE.on)
@@ -1744,7 +1746,18 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         {
             static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
             {
-                params.pic = 1;
+                params.pic = PIC.pic;
+            }
+            else
+            {
+                goto Lerror;
+            }
+        }
+        else if (arg == "-fPIE")
+        {
+            static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
+            {
+                params.pic = PIC.pie;
             }
             else
             {
@@ -2445,7 +2458,7 @@ private void reconcileCommands(ref Param params, size_t numSrcFiles)
 {
     static if (TARGET.OSX)
     {
-        params.pic = 1;
+        params.pic = PIC.pic;
     }
     static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
     {

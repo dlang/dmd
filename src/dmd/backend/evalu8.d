@@ -107,6 +107,9 @@ version (SCPP)
                 case TYfptr:
                 case TYvptr:
                 case TYnptr:
+                case TYimmutPtr:
+                case TYsharePtr:
+                case TYfgPtr:
                     b = el_tolong(e) != 0;
                     break;
                 case TYnref: // reference can't be converted to bool

@@ -460,7 +460,7 @@ version (X86ASM)
 {
 int insidx(char *p,uint index)
 {
-    asm
+    asm nothrow
     {
         naked                           ;
         mov     EAX,[ESP+8]             ; // index

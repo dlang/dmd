@@ -47,11 +47,6 @@ extern (C++) class RootObject
         return o is this;
     }
 
-    int compare(RootObject)
-    {
-        assert(0);
-    }
-
     const(char)* toChars()
     {
         assert(0);
@@ -63,11 +58,6 @@ extern (C++) class RootObject
         import core.stdc.string : strlen;
         auto p = this.toChars();
         return p[0 .. strlen(p)];
-    }
-
-    void toBuffer(OutBuffer* buf) nothrow pure @nogc @safe
-    {
-        assert(0);
     }
 
     DYNCAST dyncast() const nothrow pure @nogc @safe

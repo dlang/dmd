@@ -123,7 +123,7 @@ struct BaseClass
         return result;
     }
 
-    extern (C++) void copyBaseInterfaces(BaseClasses* vtblInterfaces)
+    extern (D) void copyBaseInterfaces(BaseClasses* vtblInterfaces)
     {
         //printf("+copyBaseInterfaces(), %s\n", sym.toChars());
         //    if (baseInterfaces.length)

@@ -233,9 +233,7 @@ public:
     dinteger_t value;
 
     static IntegerExp *create(Loc loc, dinteger_t value, Type *type);
-    static IntegerExp *createi(Loc loc, int value, Type *type);
     static void emplace(UnionExp *pue, Loc loc, dinteger_t value, Type *type);
-    static void emplacei(UnionExp *pue, Loc loc, int value, Type *type);
     bool equals(RootObject *o);
     dinteger_t toInteger();
     real_t toReal();
@@ -246,7 +244,6 @@ public:
     void accept(Visitor *v) { v->visit(this); }
     dinteger_t getInteger() { return value; }
     void setInteger(dinteger_t value);
-    void normalize();
     template<int v>
     static IntegerExp literal();
 };
@@ -370,7 +367,6 @@ public:
     bool equals(RootObject *o);
     StringExp *toStringExp();
     StringExp *toUTF8(Scope *sc);
-    int compare(RootObject *obj);
     bool isBool(bool result);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -416,7 +412,8 @@ public:
     static void emplace(UnionExp *pue, Loc loc, Expressions *elements);
     Expression *syntaxCopy();
     bool equals(RootObject *o);
-    Expression *getElement(d_size_t i);
+    Expression *getElement(d_size_t i); // use opIndex instead
+    Expression *opIndex(d_size_t i);
     bool isBool(bool result);
     StringExp *toStringExp();
 
@@ -1012,8 +1009,6 @@ public:
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
-
-    Expression *markSettingAAElem();
 
     void accept(Visitor *v) { v->visit(this); }
 };

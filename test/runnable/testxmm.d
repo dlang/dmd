@@ -795,6 +795,7 @@ void test7951_2()
     f1.array = v1;
     f2.array = v2;
     f3 = f1 + f2;
+    assert((cast(float[4])f3)[2] == 6);
 }
 
 /*****************************************/
@@ -1499,6 +1500,9 @@ void test15144()
         __gshared ubyte16 csXMM2 = ['a','b','c',0,0,0,0,0];
         immutable ubyte16 csXMM3 = ['a','b','c',0,0,0,0,0];
         version (D_PIC)
+        {
+        }
+        else version (D_PIE)
         {
         }
         else

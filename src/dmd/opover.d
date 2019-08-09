@@ -620,9 +620,14 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                     // Old way, kept for compatibility with D1
                     if (e.op != TOK.prePlusPlus && e.op != TOK.preMinusMinus)
                     {
-                        fd = search_function(ad, opId(e));
+                        auto id = opId(e);
+                        fd = search_function(ad, id);
                         if (fd)
                         {
+                            // @@@DEPRECATED_2.094@@@.
+                            // Deprecated in 2.088
+                            // Make an error in 2.094
+                            e.deprecation("`%s` is deprecated.  Use `opUnary(string op)() if (op == \"%s\")` instead.", id.toChars(), Token.toChars(e.op));
                             // Rewrite +e1 as e1.add()
                             result = build_overload(e.loc, sc, e.e1, null, fd);
                             return;
@@ -688,8 +693,7 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                 {
                     // If the non-aggregate expression ae.e1 is indexable or sliceable,
                     // convert it to the corresponding concrete expression.
-                    if (t1b.ty == Tpointer || t1b.ty == Tsarray || t1b.ty == Tarray || t1b.ty == Taarray ||
-                        t1b.ty == Ttuple || t1b.ty == Tvector || ae.e1.op == TOK.type)
+                    if (isIndexableNonAggregate(t1b) || ae.e1.op == TOK.type)
                     {
                         // Convert to SliceExp
                         if (maybeSlice)
@@ -856,6 +860,16 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                 if (ad1 && id)
                 {
                     s = search_function(ad1, id);
+                    if (s && id != Id.assign)
+                    {
+                        // @@@DEPRECATED_2.094@@@.
+                        // Deprecated in 2.088
+                        // Make an error in 2.094
+                        if (id == Id.postinc || id == Id.postdec)
+                            e.deprecation("`%s` is deprecated.  Use `opUnary(string op)() if (op == \"%s\")` instead.", id.toChars(), Token.toChars(e.op));
+                        else
+                            e.deprecation("`%s` is deprecated.  Use `opBinary(string op)(...) if (op == \"%s\")` instead.", id.toChars(), Token.toChars(e.op));
+                    }
                 }
                 if (ad2 && id_r)
                 {
@@ -865,6 +879,13 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                     // and they are exactly same symbol, x.opBinary(y) should be preferred.
                     if (s_r && s_r == s)
                         s_r = null;
+                    if (s_r)
+                    {
+                        // @@@DEPRECATED_2.094@@@.
+                        // Deprecated in 2.088
+                        // Make an error in 2.094
+                        e.deprecation("`%s` is deprecated.  Use `opBinaryRight(string op)(...) if (op == \"%s\")` instead.", id_r.toChars(), Token.toChars(e.op));
+                    }
                 }
             }
             Objects* tiargs = null;
@@ -1078,11 +1099,11 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
 
                     if (ad1.fields.dim == 1 || (ad1.fields.dim == 2 && ad1.vthis))
                     {
-                        auto var = ad1.aliasthis.isVarDeclaration();
+                        auto var = ad1.aliasthis.sym.isVarDeclaration();
                         if (var && var.type == ad1.fields[0].type)
                             return;
 
-                        auto func = ad1.aliasthis.isFuncDeclaration();
+                        auto func = ad1.aliasthis.sym.isFuncDeclaration();
                         auto tf = cast(TypeFunction)(func.type);
                         if (tf.isref && ad1.fields[0].type == tf.next)
                             return;
@@ -1484,6 +1505,15 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                 if (ad1 && id)
                 {
                     s = search_function(ad1, id);
+                    if (s)
+                    {
+                        // @@@DEPRECATED_2.094@@@.
+                        // Deprecated in 2.088
+                        // Make an error in 2.094
+                        scope char[] op = Token.toString(e.op).dup;
+                        op[$-1] = '\0'; // remove trailing `=`
+                        e.deprecation("`%s` is deprecated.  Use `opOpAssign(string op)(...) if (op == \"%s\")` instead.", id.toChars(), op.ptr);
+                    }
                 }
             }
             Objects* tiargs = null;
@@ -2089,5 +2119,3 @@ private TOK reverseRelation(TOK op) pure
     }
     return op;
 }
-
-

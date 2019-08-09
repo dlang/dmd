@@ -103,6 +103,7 @@ private immutable char[TMAX] mangleChar =
     Treturn      : '@',
     Tvector      : '@',
     Ttraits      : '@',
+    Tmixin       : '@',
 ];
 
 unittest
@@ -558,7 +559,7 @@ public:
                     return d.ident.toString();
                 case LINK.cpp:
                 {
-                    const p = target.toCppMangle(d);
+                    const p = target.cpp.toMangle(d);
                     return p[0 .. strlen(p)];
                 }
                 case LINK.default_:
@@ -681,7 +682,7 @@ public:
             buf.writestring("_Dmain");
             return;
         }
-        if (fd.isWinMain() || fd.isDllMain() || fd.ident == Id.tls_get_addr)
+        if (fd.isWinMain() || fd.isDllMain())
         {
             buf.writestring(fd.ident.toString());
             return;
@@ -1023,7 +1024,7 @@ public:
         buf.print(dim);
         foreach (i; 0 .. dim)
         {
-            e.getElement(i).accept(this);
+            e[i].accept(this);
         }
     }
 

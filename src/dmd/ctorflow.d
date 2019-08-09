@@ -28,7 +28,6 @@ enum CSX : ushort
     return_         = 0x08,     /// seen a return statement
     any_ctor        = 0x10,     /// either this() or super() was called
     halt            = 0x20,     /// assert(0)
-    deprecate_18719 = 0x40,    // issue deprecation for Issue 18719 - delete when deprecation period is over
 }
 
 /// Individual field in the Ctor with information about its callees and location.

@@ -25,6 +25,7 @@ import dmd.lib;
 import dmd.root.array;
 import dmd.root.file;
 import dmd.root.filename;
+import dmd.root.rmem;
 import dmd.root.outbuffer;
 import dmd.root.stringtable;
 
@@ -148,6 +149,8 @@ final class LibOMF : Library
             {
                 // Remove path and extension
                 auto n = strdup(FileName.name(module_name));
+                if (!n)
+                    Mem.error();
                 om.name = n[0 .. strlen(n)];
                 char* ext = cast(char*)FileName.ext(n);
                 if (ext)
@@ -159,6 +162,8 @@ final class LibOMF : Library
                  * removing path and extension.
                  */
                 auto n = strdup(FileName.name(name));
+                if (!n)
+                    Mem.error();
                 om.name = n[0 .. strlen(n)];
                 char* ext = cast(char*)FileName.ext(n);
                 if (ext)
@@ -174,32 +179,38 @@ final class LibOMF : Library
 
     /*****************************************************************************/
 
-    void addSymbol(OmfObjModule* om, const(char)* name, int pickAny = 0)
+    void addSymbol(OmfObjModule* om, const(char)[] name, int pickAny = 0)
     {
+        assert(name.length == strlen(name.ptr));
         static if (LOG)
         {
-            printf("LibOMF::addSymbol(%s, %s, %d)\n", om.name.ptr, name, pickAny);
+            printf("LibOMF::addSymbol(%.*s, %.*s, %d)\n",
+                cast(int)om.name.length, om.name.ptr,
+                cast(int)name.length, name.ptr, pickAny);
         }
-        const namelen = strlen(name);
-        StringValue* s = tab.insert(name, namelen, null);
-        if (!s)
+        if (auto s = tab.insert(name, null))
+        {
+            auto os = new OmfObjSymbol();
+            os.name = strdup(name.ptr);
+            if (!os.name)
+                Mem.error();
+            os.om = om;
+            s.ptrvalue = cast(void*)os;
+            objsymbols.push(os);
+        }
+        else
         {
             // already in table
             if (!pickAny)
             {
-                const s2 = tab.lookup(name, namelen);
+                const s2 = tab.lookup(name);
                 assert(s2);
                 const os = cast(const(OmfObjSymbol)*)s2.ptrvalue;
-                error("multiple definition of %s: %s and %s: %s", om.name.ptr, name, os.om.name.ptr, os.name);
+                error("multiple definition of %.*s: %.*s and %.*s: %s",
+                    cast(int)om.name.length, om.name.ptr,
+                    cast(int)name.length, name.ptr,
+                    cast(int)os.om.name.length, os.om.name.ptr, os.name);
             }
-        }
-        else
-        {
-            auto os = new OmfObjSymbol();
-            os.name = strdup(name);
-            os.om = om;
-            s.ptrvalue = cast(void*)os;
-            objsymbols.push(os);
         }
     }
 
@@ -217,7 +228,7 @@ private:
 
         extern (D) void addSymbol(const(char)[] name, int pickAny)
         {
-            this.addSymbol(om, name.ptr, pickAny);
+            this.addSymbol(om, name, pickAny);
         }
 
         scanOmfObjModule(&addSymbol, om.base[0 .. om.length], om.name.ptr, loc);
@@ -449,7 +460,8 @@ private:
                 bucketsP = cast(ubyte*)realloc(bucketsP, ndicpages * BUCKETPAGE);
             else
                 bucketsP = cast(ubyte*)malloc(ndicpages * BUCKETPAGE);
-            assert(bucketsP);
+            if (!bucketsP)
+                Mem.error();
             memset(bucketsP, 0, ndicpages * BUCKETPAGE);
             for (uint u = 0; u < ndicpages; u++)
             {

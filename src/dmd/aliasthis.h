@@ -20,9 +20,12 @@ class AliasThis : public Dsymbol
 public:
    // alias Identifier this;
     Identifier *ident;
+    Dsymbol    *sym;
+    bool       isDeprecated_;
 
     Dsymbol *syntaxCopy(Dsymbol *);
     const char *kind() const;
     AliasThis *isAliasThis() { return this; }
     void accept(Visitor *v) { v->visit(this); }
+    bool isDeprecated() const { return this->isDeprecated_; }
 };

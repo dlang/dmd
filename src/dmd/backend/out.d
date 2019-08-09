@@ -970,7 +970,7 @@ void out_regcand(symtab_t *psymtab)
         symbol_debug(s);
         //assert(sytab[s.Sclass] & SCSS);      // only stack variables
         s.Ssymnum = si;                        // Ssymnum trashed by cpp_inlineexpand
-        if (!(s.ty() & mTYvolatile) &&
+        if (!(s.ty() & (mTYvolatile | mTYshared)) &&
             !(ifunc && (s.Sclass == SCparameter || s.Sclass == SCregpar)) &&
             s.Sclass != SCstatic)
             s.Sflags |= (GTregcand | SFLunambig);      // assume register candidate
@@ -1281,7 +1281,7 @@ else
                     break;
                 }
             L3:
-                if (!(s.ty() & mTYvolatile))
+                if (!(s.ty() & (mTYvolatile | mTYshared)))
                     s.Sflags |= GTregcand | SFLunambig; // assume register candidate   */
                 break;
 

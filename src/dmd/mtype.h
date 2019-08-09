@@ -551,15 +551,36 @@ enum PURE
     PUREstrong = 4      // parameters are values or immutable
 };
 
+class Parameter : public ASTNode
+{
+public:
+    StorageClass storageClass;
+    Type *type;
+    Identifier *ident;
+    Expression *defaultArg;
+    UserAttributeDeclaration *userAttribDecl;   // user defined attributes
+
+    static Parameter *create(StorageClass storageClass, Type *type, Identifier *ident,
+                             Expression *defaultArg, UserAttributeDeclaration *userAttribDecl);
+    Parameter *syntaxCopy();
+    Type *isLazyArray();
+    // kludge for template.isType()
+    DYNCAST dyncast() const { return DYNCAST_PARAMETER; }
+    void accept(Visitor *v) { v->visit(this); }
+
+    static size_t dim(Parameters *parameters);
+    static Parameter *getNth(Parameters *parameters, d_size_t nth, d_size_t *pn = NULL);
+    const char *toChars();
+    bool isCovariant(bool returnByRef, const Parameter *p) const;
+};
+
 struct ParameterList
 {
     Parameters* parameters;
     VarArg varargs;
 
     size_t length();
-    Parameter *opIndex(size_t i);
-
-    Parameter *operator[](size_t i) { return opIndex(i); }
+    Parameter *operator[](size_t i) { return Parameter::getNth(parameters, i); }
 };
 
 class TypeFunction : public TypeNext
@@ -730,8 +751,6 @@ public:
     bool needsNested();
     bool hasPointers();
     bool hasVoidInitPointers();
-    MATCH implicitConvToWithoutAliasThis(Type *to);
-    MATCH implicitConvToThroughAliasThis(Type *to);
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
     unsigned char deduceWild(Type *t, bool isRef);
@@ -788,8 +807,6 @@ public:
     Dsymbol *toDsymbol(Scope *sc);
     ClassDeclaration *isClassHandle();
     bool isBaseOf(Type *t, int *poffset);
-    MATCH implicitConvToWithoutAliasThis(Type *to);
-    MATCH implicitConvToThroughAliasThis(Type *to);
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
     unsigned char deduceWild(Type *t, bool isRef);
@@ -808,6 +825,9 @@ public:
     Parameters *arguments;      // types making up the tuple
 
     static TypeTuple *create(Parameters *arguments);
+    static TypeTuple *create();
+    static TypeTuple *create(Type *t1);
+    static TypeTuple *create(Type *t1, Type *t2);
     const char *kind();
     Type *syntaxCopy();
     bool equals(RootObject *o);
@@ -839,32 +859,6 @@ public:
 };
 
 /**************************************************************/
-
-//enum InOut { None, In, Out, InOut, Lazy };
-
-class Parameter : public ASTNode
-{
-public:
-    //enum InOut inout;
-    StorageClass storageClass;
-    Type *type;
-    Identifier *ident;
-    Expression *defaultArg;
-    UserAttributeDeclaration *userAttribDecl;   // user defined attributes
-
-    static Parameter *create(StorageClass storageClass, Type *type, Identifier *ident,
-                             Expression *defaultArg, UserAttributeDeclaration *userAttribDecl);
-    Parameter *syntaxCopy();
-    Type *isLazyArray();
-    // kludge for template.isType()
-    DYNCAST dyncast() const { return DYNCAST_PARAMETER; }
-    void accept(Visitor *v) { v->visit(this); }
-
-    static size_t dim(Parameters *parameters);
-    static Parameter *getNth(Parameters *parameters, d_size_t nth, d_size_t *pn = NULL);
-    const char *toChars();
-    bool isCovariant(bool returnByRef, const Parameter *p) const;
-};
 
 bool arrayTypeCompatible(Loc loc, Type *t1, Type *t2);
 bool arrayTypeCompatibleWithoutCasting(Type *t1, Type *t2);

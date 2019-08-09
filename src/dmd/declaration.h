@@ -102,7 +102,7 @@ public:
     Prot protection;
     LINK linkage;
     int inuse;                  // used to detect cycles
-    DArray<const char> mangleOverride;      // overridden symbol with pragma(mangle, "...")
+    DString mangleOverride;     // overridden symbol with pragma(mangle, "...")
 
     const char *kind() const;
     d_uns64 size(const Loc &loc);
@@ -258,9 +258,6 @@ public:
     bool canTakeAddressOf();
     bool needsScopeDtor();
     bool enclosesLifetimeOf(VarDeclaration *v) const;
-    Expression *callScopeDtor(Scope *sc);
-    Expression *getConstInitializer(bool needFullType = true);
-    Expression *expandInitializer(Loc loc);
     void checkCtorConstInit();
     Dsymbol *toAlias();
     // Eliminate need for dynamic_cast
@@ -564,17 +561,12 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *);
     bool functionSemantic();
     bool functionSemantic3();
-    // called from semantic3
-    HiddenParameters declareThis(Scope *sc, AggregateDeclaration *ad);
     bool equals(RootObject *o);
 
     int overrides(FuncDeclaration *fd);
     int findVtblIndex(Dsymbols *vtbl, int dim, bool fix17349 = true);
     BaseClass *overrideInterface();
     bool overloadInsert(Dsymbol *s);
-    FuncDeclaration *overloadExactMatch(Type *t);
-    FuncDeclaration *overloadModMatch(const Loc &loc, Type *tthis, bool &hasOverloads);
-    TemplateDeclaration *findTemplateDeclRoot();
     bool inUnittest();
     MATCH leastAsSpecialized(FuncDeclaration *g);
     LabelDsymbol *searchLabel(Identifier *ident);
@@ -593,19 +585,13 @@ public:
     bool isAbstract();
     PURE isPure();
     PURE isPureBypassingInference();
-    bool setImpure();
     bool isSafe();
     bool isSafeBypassingInference();
     bool isTrusted();
-    bool setUnsafe();
 
     bool isNogc();
     bool isNogcBypassingInference();
-    bool setGC();
 
-    void printGCUsage(const Loc &loc, const char *warn);
-    bool isolateReturn();
-    bool parametersIntersect(Type *t);
     virtual bool isNested() const;
     AggregateDeclaration *isThis();
     bool needThis();
@@ -618,9 +604,6 @@ public:
     bool isUnique();
     bool needsClosure();
     bool hasNestedFrameRefs();
-    void buildResultVar(Scope *sc, Type *tret);
-    Statement *mergeFrequire(Statement *, Expressions *);
-    Statement *mergeFensure(Statement *, Identifier *oid, Expressions *);
     ParameterList getParameterList();
 
     static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, const char *name, StorageClass stc=0);

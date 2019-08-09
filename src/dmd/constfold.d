@@ -795,8 +795,8 @@ UnionExp Equal(TOK op, const ref Loc loc, Type type, Expression e1, Expression e
         {
             for (size_t i = 0; i < es1.elements.dim; i++)
             {
-                auto ee1 = es1.getElement(i);
-                auto ee2 = es2.getElement(i);
+                auto ee1 = es1[i];
+                auto ee2 = es2[i];
                 ue = Equal(TOK.equal, loc, Type.tint32, ee1, ee2);
                 if (CTFEExp.isCantExp(ue.exp()))
                     return ue;
@@ -829,7 +829,7 @@ UnionExp Equal(TOK op, const ref Loc loc, Type type, Expression e1, Expression e
             for (size_t i = 0; i < dim1; i++)
             {
                 uinteger_t c = es1.charAt(i);
-                auto ee2 = es2.getElement(i);
+                auto ee2 = es2[i];
                 if (ee2.isConst() != 1)
                 {
                     cantExp(ue);
@@ -1247,7 +1247,7 @@ UnionExp Index(Type type, Expression e1, Expression e2)
         else if (e1.op == TOK.arrayLiteral)
         {
             ArrayLiteralExp ale = cast(ArrayLiteralExp)e1;
-            auto e = ale.getElement(cast(size_t)i);
+            auto e = ale[cast(size_t)i];
             e.type = type;
             e.loc = loc;
             if (hasSideEffect(e))
@@ -1271,7 +1271,7 @@ UnionExp Index(Type type, Expression e1, Expression e2)
             }
             else
             {
-                auto e = ale.getElement(cast(size_t)i);
+                auto e = ale[cast(size_t)i];
                 e.type = type;
                 e.loc = loc;
                 if (hasSideEffect(e))
@@ -1400,7 +1400,7 @@ void sliceAssignStringFromArrayLiteral(StringExp existingSE, ArrayLiteralExp new
     assert(existingSE.ownedByCtfe != OwnedBy.code);
     foreach (j; 0 .. newae.elements.dim)
     {
-        existingSE.setCodeUnit(firstIndex + j, cast(dchar)newae.getElement(j).toInteger());
+        existingSE.setCodeUnit(firstIndex + j, cast(dchar)newae[j].toInteger());
     }
 }
 
@@ -1432,7 +1432,7 @@ int sliceCmpStringWithArray(const StringExp se1, ArrayLiteralExp ae2, size_t lo1
 {
     foreach (j; 0 .. len)
     {
-        const val2 = cast(dchar)ae2.getElement(j + lo2).toInteger();
+        const val2 = cast(dchar)ae2[j + lo2].toInteger();
         const val1 = se1.getCodeUnit(j + lo1);
         const int c = val1 - val2;
         if (c)
@@ -1602,7 +1602,7 @@ UnionExp Cat(Type type, Expression e1, Expression e2)
         auto elems = new Expressions(len);
         for (size_t i = 0; i < ea.elements.dim; ++i)
         {
-            (*elems)[i] = ea.getElement(i);
+            (*elems)[i] = ea[i];
         }
         emplaceExp!(ArrayLiteralExp)(&ue, e1.loc, type, elems);
         ArrayLiteralExp dest = cast(ArrayLiteralExp)ue.exp();
@@ -1619,7 +1619,7 @@ UnionExp Cat(Type type, Expression e1, Expression e2)
         auto elems = new Expressions(len);
         for (size_t i = 0; i < ea.elements.dim; ++i)
         {
-            (*elems)[es.len + i] = ea.getElement(i);
+            (*elems)[es.len + i] = ea[i];
         }
         emplaceExp!(ArrayLiteralExp)(&ue, e1.loc, type, elems);
         ArrayLiteralExp dest = cast(ArrayLiteralExp)ue.exp();

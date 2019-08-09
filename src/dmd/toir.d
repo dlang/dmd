@@ -991,6 +991,8 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
         const char *name2 = fd.toPrettyChars();
         size_t namesize = strlen(name1)+strlen(name2)+1;
         char *closname = cast(char *) calloc(namesize, char.sizeof);
+        if (!closname)
+            Mem.error();
         strcat(strcat(closname, name1), name2);
 
         /* Build type for closure */
@@ -1143,6 +1145,8 @@ void buildCapture(FuncDeclaration fd)
         const char *name2 = fd.toPrettyChars();
         size_t namesize = strlen(name1)+strlen(name2)+1;
         char *capturename = cast(char *) calloc(namesize, char.sizeof);
+        if (!capturename)
+            Mem.error();
         strcat(strcat(capturename, name1), name2);
 
         /* Build type for struct */

@@ -241,6 +241,7 @@ enum Classification
     gagged = Color.brightBlue,        /// for gagged errors
     warning = Color.brightYellow,     /// for warnings
     deprecation = Color.brightCyan,   /// for deprecations
+    tip = Color.brightGreen,          /// for tip messages
 }
 
 /**
@@ -401,6 +402,20 @@ extern (C++) void message(const(char)* format, ...)
 }
 
 /**
+ * Print a tip message with the prefix and highlighting.
+ * Params:
+ *      format = printf-style format specification
+ *      ...    = printf-style variadic arguments
+ */
+extern (C++) void tip(const(char)* format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    vtip(format, ap);
+    va_end(ap);
+}
+
+/**
  * Just print to stderr, doesn't care about gagging.
  * (format,ap) text within backticks gets syntax highlighted.
  * Params:
@@ -429,11 +444,17 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
     fputs(header, stderr);
     if (con)
         con.resetColor();
-    if (p1)
-        fprintf(stderr, "%s ", p1);
-    if (p2)
-        fprintf(stderr, "%s ", p2);
     OutBuffer tmp;
+    if (p1)
+    {
+        tmp.writestring(p1);
+        tmp.writestring(" ");
+    }
+    if (p2)
+    {
+        tmp.writestring(p2);
+        tmp.writestring(" ");
+    }
     tmp.vprintf(format, ap);
 
     if (con && strchr(tmp.peekChars(), '`'))
@@ -607,6 +628,21 @@ extern (C++) void vmessage(const ref Loc loc, const(char)* format, va_list ap)
     fputs(tmp.peekChars(), stdout);
     fputc('\n', stdout);
     fflush(stdout);     // ensure it gets written out in case of compiler aborts
+}
+
+/**
+ * Same as $(D tip), but takes a va_list parameter.
+ * Params:
+ *      format    = printf-style format specification
+ *      ap        = printf-style variadic arguments
+ */
+extern (C++) void vtip(const(char)* format, va_list ap)
+{
+    if (!global.gag)
+    {
+        Loc loc = Loc.init;
+        verrorPrint(loc, Classification.tip, "  Tip: ", format, ap);
+    }
 }
 
 /**

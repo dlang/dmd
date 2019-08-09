@@ -82,9 +82,7 @@ private void block_setLoc(block *b, const ref Loc loc) pure nothrow
 
 private void srcpos_setLoc(ref Srcpos s, const ref Loc loc) pure nothrow
 {
-    s.Sfilename = cast(char *)loc.filename;
-    s.Slinnum = loc.linnum;
-    s.Scharnum = loc.charnum;
+    s.set(loc.filename, loc.linnum, loc.charnum);
 }
 
 
@@ -435,15 +433,7 @@ private extern (C++) class S2irVisitor : Visitor
         block_setLoc(b, s.loc);
 
         // Check that bdest is in an enclosing try block
-        for (block *bt = b.Btry; bt != bdest.Btry; bt = bt.Btry)
-        {
-            if (!bt)
-            {
-                //printf("b.Btry = %p, bdest.Btry = %p\n", b.Btry, bdest.Btry);
-                s.error("cannot `goto` into `try` block");
-                break;
-            }
-        }
+        bdest.checkEnclosedInTry(b, s);
 
         block_next(blx,BCgoto,null);
     }
@@ -468,16 +458,7 @@ private extern (C++) class S2irVisitor : Visitor
             if (b.Btry != label.lblock.Btry)
             {
                 // Check that lblock is in an enclosing try block
-                for (block *bt = b.Btry; bt != label.lblock.Btry; bt = bt.Btry)
-                {
-                    if (!bt)
-                    {
-                        //printf("b.Btry = %p, label.lblock.Btry = %p\n", b.Btry, label.lblock.Btry);
-                        s.error("cannot `goto` into `try` block");
-                        break;
-                    }
-
-                }
+                label.lblock.checkEnclosedInTry(b, s);
             }
         }
         block_next(blx, BCgoto, label.lblock);
@@ -565,6 +546,8 @@ private extern (C++) class S2irVisitor : Visitor
         // Corresponding free is in block_free
         alias TCase = typeof(mystate.switchBlock.Bswitch[0]);
         auto pu = cast(TCase *)(.malloc(TCase.sizeof * (numcases + 1)));
+        if (!pu)
+            Mem.error();
         mystate.switchBlock.Bswitch = pu;
         /* First pair is the number of cases, and the default block
          */
@@ -632,15 +615,7 @@ private extern (C++) class S2irVisitor : Visitor
         if (b.Btry != bdest.Btry)
         {
             // Check that bdest is in an enclosing try block
-            for (block *bt = b.Btry; bt != bdest.Btry; bt = bt.Btry)
-            {
-                if (!bt)
-                {
-                    //printf("b.Btry = %p, bdest.Btry = %p\n", b.Btry, bdest.Btry);
-                    s.error("cannot `goto` into `try` block");
-                    break;
-                }
-            }
+            bdest.checkEnclosedInTry(b, s);
 
             //setScopeIndex(blx, b, bdest.Btry ? bdest.Btry.Bscope_index : -1);
         }
@@ -663,15 +638,7 @@ private extern (C++) class S2irVisitor : Visitor
         if (b.Btry != bdest.Btry)
         {
             // Check that bdest is in an enclosing try block
-            for (block *bt = b.Btry; bt != bdest.Btry; bt = bt.Btry)
-            {
-                if (!bt)
-                {
-                    //printf("b.Btry = %p, bdest.Btry = %p\n", b.Btry, bdest.Btry);
-                    s.error("cannot `goto` into `try` block");
-                    break;
-                }
-            }
+            bdest.checkEnclosedInTry(b, s);
 
             //setScopeIndex(blx, b, bdest.Btry ? bdest.Btry.Bscope_index : -1);
         }
@@ -1073,7 +1040,8 @@ private extern (C++) class S2irVisitor : Visitor
 
             const numcases = s.catches.dim;
             bswitch.Bswitch = cast(targ_llong *) .malloc((targ_llong).sizeof * (numcases + 1));
-            assert(bswitch.Bswitch);
+            if (!bswitch.Bswitch)
+                Mem.error();
             bswitch.Bswitch[0] = numcases;
             bswitch.appendSucc(defaultblock);
             block_next(blx, BCswitch, null);
@@ -1113,28 +1081,18 @@ private extern (C++) class S2irVisitor : Visitor
                  * log index in Action Table (i.e. switch case table)
                  */
                 func_t *f = blx.funcsym.Sfunc;
-                for (size_t j = 0; 1; ++j)
-                {
-                    if (j < f.typesTableDim)
-                    {
-                        if (catchtype != f.typesTable[j])
-                            continue;
-                    }
-                    else
-                    {
-                        if (j == f.typesTableCapacity)
-                        {   // enlarge typesTable[]
-                            f.typesTableCapacity = f.typesTableCapacity * 2 + 4;
-                            f.typesTable = cast(Symbol **).realloc(f.typesTable, f.typesTableCapacity * (Symbol *).sizeof);
-                            assert(f.typesTable);
-                        }
-                        f.typesTableDim = j + 1;
-                        f.typesTable[j] = catchtype;
-                    }
-                    bswitch.Bswitch[1 + i] = 1 + j;  // index starts at 1
-                    break;
-                }
 
+                foreach (j, ct; f.typesTable[])
+                {
+                    if (ct == catchtype)
+                    {
+                        bswitch.Bswitch[1 + i] = 1 + j;  // index starts at 1
+                        goto L1;
+                    }
+                }
+                f.typesTable.push(catchtype);
+                bswitch.Bswitch[1 + i] = f.typesTable.length;  // index starts at 1
+           L1:
                 block *bcase = blx.curblock;
                 bswitch.appendSucc(bcase);
 
@@ -1191,7 +1149,8 @@ private extern (C++) class S2irVisitor : Visitor
              */
             alias TAction = typeof(bcatch.actionTable[0]);
             bcatch.actionTable = cast(TAction*).malloc(TAction.sizeof * (numcases + 1));
-            assert(bcatch.actionTable);
+            if (!bcatch.actionTable)
+                Mem.error();
             foreach (i; 0 .. numcases + 1)
                 bcatch.actionTable[i] = cast(TAction)bswitch.Bswitch[i];
 
@@ -1836,3 +1795,24 @@ void insertFinallyBlockGotos(block *startblock)
         printf("-------------------------\n");
     }
 }
+
+/***************************************************
+ * Issue error if bd is not enclosed in a try block.
+ * Params:
+ *      bd = block to check
+ *      bcurrent = current block (starting point)
+ *      s = statement to use for error messages
+ */
+private void checkEnclosedInTry(const block* bd, const block* bcurrent, Statement s)
+{
+    for (const(block)* bt = bcurrent.Btry; bt != bd.Btry; bt = bt.Btry)
+    {
+        if (!bt)
+        {
+            //printf("b.Btry = %p, bdest.Btry = %p\n", b.Btry, bdest.Btry);
+            s.error("cannot `goto` into `try` block");
+            break;
+        }
+    }
+}
+

@@ -18,6 +18,8 @@ import dmd.backend.cc : Classsym, Symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 
+import dmd.root.rmem;
+
 import dmd.declaration;
 import dmd.denum;
 import dmd.dstruct;
@@ -27,6 +29,42 @@ import dmd.id;
 import dmd.mtype;
 import dmd.tocvdebug;
 import dmd.visitor;
+
+
+/*******************
+ * Determine backend tym bits corresponding to MOD
+ * Params:
+ *  mod = mod bits
+ * Returns:
+ *  corresponding tym_t bits
+ */
+tym_t modToTym(MOD mod) pure
+{
+    switch (mod)
+    {
+        case 0:
+            return 0;
+
+        case MODFlags.const_:
+        case MODFlags.wild:
+        case MODFlags.wildconst:
+            return mTYconst;
+
+        case MODFlags.shared_:
+            return mTYshared;
+
+        case MODFlags.shared_ | MODFlags.const_:
+        case MODFlags.shared_ | MODFlags.wild:
+        case MODFlags.shared_ | MODFlags.wildconst:
+            return mTYshared | mTYconst;
+
+        case MODFlags.immutable_:
+            return mTYimmutable;
+
+        default:
+            assert(0);
+    }
+}
 
 
 /************************************
@@ -91,7 +129,8 @@ public:
         type** ptypes = (nparams <= tmp.length)
                         ? tmp.ptr
                         : cast(type**)malloc((type*).sizeof * nparams);
-        assert(ptypes);
+        if (!ptypes)
+            Mem.error();
         type*[] types = ptypes[0 .. nparams];
 
         foreach (i; 0 .. nparams)
@@ -116,38 +155,6 @@ public:
     override void visit(TypeDelegate t)
     {
         t.ctype = type_delegate(Type_toCtype(t.next));
-    }
-
-    /*******************
-     * Add D modification bits for `Type t` to the corresponding backend type `t.ctype`
-     * Params:
-     *  t = front end Type
-     */
-    static void addMod(Type t)
-    {
-        switch (t.mod)
-        {
-        case 0:
-            assert(0);
-        case MODFlags.const_:
-        case MODFlags.wild:
-        case MODFlags.wildconst:
-            t.ctype.Tty |= mTYconst;
-            break;
-        case MODFlags.shared_:
-            t.ctype.Tty |= mTYshared;
-            break;
-        case MODFlags.shared_ | MODFlags.const_:
-        case MODFlags.shared_ | MODFlags.wild:
-        case MODFlags.shared_ | MODFlags.wildconst:
-            t.ctype.Tty |= mTYshared | mTYconst;
-            break;
-        case MODFlags.immutable_:
-            t.ctype.Tty |= mTYimmutable;
-            break;
-        default:
-            assert(0);
-        }
     }
 
     override void visit(TypeStruct t)
@@ -183,7 +190,7 @@ public:
         {
             t.ctype.Ttag = mctype.Ttag; // structure tag name
         }
-        addMod(t);
+        t.ctype.Tty |= modToTym(t.mod);
         //printf("t = %p, Tflags = x%x\n", ctype, ctype.Tflags);
     }
 
@@ -229,7 +236,7 @@ public:
             t.ctype = type_allocn(TYenum, mctype.Tnext);
             t.ctype.Ttag = s; // enum tag name
             t.ctype.Tcount++;
-            addMod(t);
+            t.ctype.Tty |= modToTym(t.mod);
         }
         else
             t.ctype = mctype;
@@ -264,6 +271,6 @@ public:
         type* mctype = Type_toCtype(t.castMod(0));
         t.ctype = type_allocn(tybasic(mctype.Tty), mctype.Tnext); // pointer to class instance
         t.ctype.Tcount++;
-        addMod(t);
+        t.ctype.Tty |= modToTym(t.mod);
     }
 }

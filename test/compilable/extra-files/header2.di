@@ -131,6 +131,16 @@ const levar = new class LeClass, LeInterface
 {
 }
 ;
+class CC
+{
+	@safe void fun()()
+	{
+		() pure @trusted
+		{
+		}
+		();
+	}
+}
 private struct Export
 {
 }

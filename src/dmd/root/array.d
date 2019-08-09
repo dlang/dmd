@@ -180,6 +180,19 @@ public:
         length = newdim;
     }
 
+    size_t find(T ptr) const nothrow pure
+    {
+        foreach (i; 0 .. length)
+            if (data[i] is ptr)
+                return i;
+        return size_t.max;
+    }
+
+    bool contains(T ptr) const nothrow pure
+    {
+        return find(ptr) != size_t.max;
+    }
+
     ref inout(T) opIndex(size_t i) inout nothrow pure
     {
         return data[i];
@@ -194,7 +207,7 @@ public:
     {
         auto a = new Array!T();
         a.setDim(length);
-        memcpy(a.data, data, length * (void*).sizeof);
+        memcpy(a.data, data, length * T.sizeof);
         return a;
     }
 
@@ -229,6 +242,65 @@ public:
 
     alias opDollar = length;
     alias dim = length;
+}
+
+unittest
+{
+    static struct S
+    {
+        int s = -1;
+        string toString()
+        {
+            return "S";
+        }
+    }
+    auto array = Array!S(4);
+    assert(array.toString() == "[S,S,S,S]");
+}
+
+unittest
+{
+    auto array = Array!double(4);
+    array.shift(10);
+    array.push(20);
+    array[2] = 15;
+    assert(array[0] == 10);
+    assert(array.find(10) == 0);
+    assert(array.find(20) == 5);
+    assert(!array.contains(99));
+    array.remove(1);
+    assert(array.length == 5);
+    assert(array[1] == 15);
+    assert(array.pop() == 20);
+    assert(array.length == 4);
+    array.insert(1, 30);
+    assert(array[1] == 30);
+    assert(array[2] == 15);
+}
+
+unittest
+{
+    auto arrayA = Array!int(0);
+    int[3] buf = [10, 15, 20];
+    arrayA.pushSlice(buf);
+    assert(arrayA[] == buf[]);
+    auto arrayPtr = arrayA.copy();
+    assert(arrayPtr);
+    assert((*arrayPtr)[] == arrayA[]);
+    assert(arrayPtr.tdata != arrayA.tdata);
+
+    arrayPtr.setDim(0);
+    int[2] buf2 = [100, 200];
+    arrayPtr.pushSlice(buf2);
+
+    arrayA.append(arrayPtr);
+    assert(arrayA[3..$] == buf2[]);
+    arrayA.insert(0, arrayPtr);
+    assert(arrayA[] == [100, 200, 10, 15, 20, 100, 200]);
+
+    arrayA.zero();
+    foreach(e; arrayA)
+        assert(e == 0);
 }
 
 struct BitArray
@@ -280,6 +352,18 @@ nothrow:
 private:
     size_t len;
     size_t *ptr;
+}
+
+unittest
+{
+    BitArray array;
+    array.length = 20;
+    assert(array[19] == 0);
+    array[10] = 1;
+    assert(array[10] == 1);
+    array[10] = 0;
+    assert(array[10] == 0);
+    assert(array.length == 20);
 }
 
 /**

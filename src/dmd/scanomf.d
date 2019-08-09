@@ -17,6 +17,7 @@ version(Windows):
 import core.stdc.string;
 import core.stdc.stdlib;
 import dmd.globals;
+import dmd.root.rmem;
 import dmd.root.outbuffer;
 import dmd.arraytypes;
 import dmd.errors;
@@ -39,10 +40,7 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
     {
         printf("scanOmfObjModule(%s)\n", module_name);
     }
-    const buf = base.ptr;
-    const buflen = base.length;
     int easyomf;
-    ubyte result = 0;
     char[LIBIDMAX + 1] name;
     Strings names;
     scope(exit)
@@ -50,7 +48,7 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
             free(cast(void*)names[u]);
     names.push(null); // don't use index 0
     easyomf = 0; // assume not EASY-OMF
-    auto pend = cast(const(ubyte)*)base.ptr + buflen;
+    auto pend = cast(const(ubyte)*)base.ptr + base.length;
     const(ubyte)* pnext;
     for (auto p = cast(const(ubyte)*)base.ptr; 1; p = pnext)
     {
@@ -67,7 +65,10 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
             while (p + 1 < pnext)
             {
                 parseName(&p, name.ptr);
-                names.push(strdup(name.ptr));
+                char* copy = strdup(name.ptr);
+                if (!copy)
+                    Mem.error();
+                names.push(copy);
             }
             break;
         case PUBDEF:
@@ -116,7 +117,7 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
                 }
                 //printf("[s] name='%s'\n",name);
                 const(char)* n = names[idx];
-                pAddSymbol(n[0 .. strlen(name.ptr)], pickAny);
+                pAddSymbol(n[0 .. strlen(n)], pickAny);
                 break;
             }
         case COMDEF:
@@ -140,7 +141,6 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
             break;
         case MODEND:
         case M386END:
-            result = 1;
             return;
         case COMENT:
             // Recognize Phar Lap EASY-OMF format
@@ -190,7 +190,6 @@ bool scanOmfLib(void delegate(char* name, void* base, size_t length) pAddObjModu
     /* Split up the buffer buf[0..buflen] into multiple object modules,
      * each aligned on a pagesize boundary.
      */
-    bool first_module = true;
     const(ubyte)* base = null;
     char[LIBIDMAX + 1] name;
     auto p = cast(const(ubyte)*)buf;

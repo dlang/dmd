@@ -62,10 +62,55 @@ enum BE
     BEany = (BEfallthru | BEthrow | BEreturn | BEgoto | BEhalt)
 };
 
+typedef unsigned char STMT;
+enum
+{
+    STMTerror,
+    STMTpeel,
+    STMTexp, STMTdtorExp,
+    STMTcompile,
+    STMTcompound, STMTcompoundDeclaration, STMTcompoundAsm,
+    STMTunrolledLoop,
+    STMTscope,
+    STMTforwarding,
+    STMTwhile,
+    STMTdo,
+    STMTfor,
+    STMTforeach,
+    STMTforeachRange,
+    STMTif,
+    STMTconditional,
+    STMTstaticForeach,
+    STMTpragma,
+    STMTstaticAssert,
+    STMTswitch,
+    STMTcase,
+    STMTcaseRange,
+    STMTdefault,
+    STMTgotoDefault,
+    STMTgotoCase,
+    STMTswitchError,
+    STMTreturn,
+    STMTbreak,
+    STMTcontinue,
+    STMTsynchronized,
+    STMTwith,
+    STMTtryCatch,
+    STMTtryFinally,
+    STMTscopeGuard,
+    STMTthrow,
+    STMTdebug,
+    STMTgoto,
+    STMTlabel,
+    STMTasm, STMTinlineAsm, STMTgccAsm,
+    STMTimport,
+};
+
 class Statement : public ASTNode
 {
 public:
     Loc loc;
+    STMT stmt;
 
     virtual Statement *syntaxCopy();
 
@@ -75,8 +120,8 @@ public:
     void warning(const char *format, ...);
     void deprecation(const char *format, ...);
     virtual Statement *getRelatedLabeled() { return this; }
-    virtual bool hasBreak();
-    virtual bool hasContinue();
+    virtual bool hasBreak() const;
+    virtual bool hasContinue() const;
     bool usesEH();
     bool comeFrom();
     bool hasCode();
@@ -84,21 +129,36 @@ public:
     virtual Statements *flatten(Scope *sc);
     virtual Statement *last();
 
-    // Avoid dynamic_cast
-    virtual ErrorStatement *isErrorStatement() { return NULL; }
-    virtual ScopeStatement *isScopeStatement() { return NULL; }
-    virtual ExpStatement *isExpStatement() { return NULL; }
-    virtual CompoundStatement *isCompoundStatement() { return NULL; }
-    virtual ReturnStatement *isReturnStatement() { return NULL; }
-    virtual IfStatement *isIfStatement() { return NULL; }
-    virtual CaseStatement *isCaseStatement() { return NULL; }
-    virtual DefaultStatement *isDefaultStatement() { return NULL; }
-    virtual LabelStatement *isLabelStatement() { return NULL; }
-    virtual GotoDefaultStatement *isGotoDefaultStatement() { return NULL; }
-    virtual GotoCaseStatement *isGotoCaseStatement() { return NULL; }
-    virtual BreakStatement *isBreakStatement() { return NULL; }
-    virtual DtorExpStatement *isDtorExpStatement() { return NULL; }
-    virtual ForwardingStatement *isForwardingStatement() { return NULL; }
+    virtual ReturnStatement *endsWithReturnStatement() { return NULL; }
+
+    ErrorStatement       *isErrorStatement()       { return stmt == STMTerror       ? (ErrorStatement*)this       : NULL; }
+    ScopeStatement       *isScopeStatement()       { return stmt == STMTscope       ? (ScopeStatement*)this       : NULL; }
+    ExpStatement         *isExpStatement()         { return stmt == STMTexp         ? (ExpStatement*)this         : NULL; }
+    CompoundStatement    *isCompoundStatement()    { return stmt == STMTcompound    ? (CompoundStatement*)this    : NULL; }
+    ReturnStatement      *isReturnStatement()      { return stmt == STMTreturn      ? (ReturnStatement*)this      : NULL; }
+    IfStatement          *isIfStatement()          { return stmt == STMTif          ? (IfStatement*)this          : NULL; }
+    CaseStatement        *isCaseStatement()        { return stmt == STMTcase        ? (CaseStatement*)this        : NULL; }
+    DefaultStatement     *isDefaultStatement()     { return stmt == STMTdefault     ? (DefaultStatement*)this     : NULL; }
+    LabelStatement       *isLabelStatement()       { return stmt == STMTlabel       ? (LabelStatement*)this       : NULL; }
+    GotoDefaultStatement *isGotoDefaultStatement() { return stmt == STMTgotoDefault ? (GotoDefaultStatement*)this : NULL; }
+    GotoCaseStatement    *isGotoCaseStatement()    { return stmt == STMTgotoCase    ? (GotoCaseStatement*)this    : NULL; }
+    BreakStatement       *isBreakStatement()       { return stmt == STMTbreak       ? (BreakStatement*)this       : NULL; }
+    DtorExpStatement     *isDtorExpStatement()     { return stmt == STMTdtorExp     ? (DtorExpStatement*)this     : NULL; }
+    ForwardingStatement  *isForwardingStatement()  { return stmt == STMTforwarding  ? (ForwardingStatement*)this  : NULL; }
+    DoStatement          *isDoStatement()          { return stmt == STMTdo          ? (DoStatement*)this          : NULL; }
+    ForStatement         *isForStatement()         { return stmt == STMTfor         ? (ForStatement*)this         : NULL; }
+    ForeachStatement     *isForeachStatement()     { return stmt == STMTforeach     ? (ForeachStatement*)this     : NULL; }
+    SwitchStatement      *isSwitchStatement()      { return stmt == STMTswitch      ? (SwitchStatement*)this      : NULL; }
+    ContinueStatement    *isContinueStatement()    { return stmt == STMTcontinue    ? (ContinueStatement*)this    : NULL; }
+    WithStatement        *isWithStatement()        { return stmt == STMTwith        ? (WithStatement*)this        : NULL; }
+    TryCatchStatement    *isTryCatchStatement()    { return stmt == STMTtryCatch    ? (TryCatchStatement*)this    : NULL; }
+    ThrowStatement       *isThrowStatement()       { return stmt == STMTthrow       ? (ThrowStatement*)this       : NULL; }
+    TryFinallyStatement  *isTryFinallyStatement()  { return stmt == STMTtryFinally  ? (TryFinallyStatement*)this  : NULL; }
+    SwitchErrorStatement  *isSwitchErrorStatement()  { return stmt == STMTswitchError  ? (SwitchErrorStatement*)this  : NULL; }
+    UnrolledLoopStatement *isUnrolledLoopStatement() { return stmt == STMTunrolledLoop ? (UnrolledLoopStatement*)this : NULL; }
+    ForeachRangeStatement *isForeachRangeStatement() { return stmt == STMTforeachRange ? (ForeachRangeStatement*)this : NULL; }
+    CompoundDeclarationStatement *isCompoundDeclarationStatement() { return stmt == STMTcompoundDeclaration ? (CompoundDeclarationStatement*)this : NULL; }
+
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -110,7 +170,6 @@ class ErrorStatement : public Statement
 public:
     Statement *syntaxCopy();
 
-    ErrorStatement *isErrorStatement() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -132,7 +191,6 @@ public:
     Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
     Statements *flatten(Scope *sc);
 
-    ExpStatement *isExpStatement() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -146,8 +204,6 @@ public:
 
     Statement *syntaxCopy();
     void accept(Visitor *v) { v->visit(this); }
-
-    DtorExpStatement *isDtorExpStatement() { return this; }
 };
 
 class CompileStatement : public Statement
@@ -168,10 +224,9 @@ public:
     static CompoundStatement *create(Loc loc, Statement *s1, Statement *s2);
     Statement *syntaxCopy();
     Statements *flatten(Scope *sc);
-    ReturnStatement *isReturnStatement();
+    ReturnStatement *endsWithReturnStatement();
     Statement *last();
 
-    CompoundStatement *isCompoundStatement() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -204,8 +259,7 @@ public:
     Loc endloc;                 // location of closing curly bracket
 
     Statement *syntaxCopy();
-    ScopeStatement *isScopeStatement() { return this; }
-    ReturnStatement *isReturnStatement();
+    ReturnStatement *endsWithReturnStatement();
     bool hasBreak() const;
     bool hasContinue() const;
 
@@ -219,7 +273,6 @@ class ForwardingStatement : public Statement
 
     Statement *syntaxCopy();
     Statements *flatten(Scope *sc);
-    ForwardingStatement *isForwardingStatement() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -328,7 +381,6 @@ public:
     Loc endloc;                 // location of closing curly bracket
 
     Statement *syntaxCopy();
-    IfStatement *isIfStatement() { return this; }
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -410,8 +462,6 @@ public:
     VarDeclaration *lastVar;
 
     Statement *syntaxCopy();
-    int compare(RootObject *obj);
-    CaseStatement *isCaseStatement() { return this; }
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -436,7 +486,6 @@ public:
     VarDeclaration *lastVar;
 
     Statement *syntaxCopy();
-    DefaultStatement *isDefaultStatement() { return this; }
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -447,7 +496,6 @@ public:
     SwitchStatement *sw;
 
     Statement *syntaxCopy();
-    GotoDefaultStatement *isGotoDefaultStatement() { return this; }
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -459,7 +507,6 @@ public:
     CaseStatement *cs;          // case statement it resolves to
 
     Statement *syntaxCopy();
-    GotoCaseStatement *isGotoCaseStatement() { return this; }
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -480,7 +527,7 @@ public:
 
     Statement *syntaxCopy();
 
-    ReturnStatement *isReturnStatement() { return this; }
+    ReturnStatement *endsWithReturnStatement() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -491,7 +538,6 @@ public:
 
     Statement *syntaxCopy();
 
-    BreakStatement *isBreakStatement() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -642,8 +688,6 @@ public:
     Statement *syntaxCopy();
     Statements *flatten(Scope *sc);
     Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
-
-    LabelStatement *isLabelStatement() { return this; }
 
     void accept(Visitor *v) { v->visit(this); }
 };

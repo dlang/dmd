@@ -331,7 +331,7 @@ else
                 atbuf.size());
         uint sz = start + TTbase;
         TTbase += -sz & 3;      // align to 4
-        TTbase += sfunc.Sfunc.typesTableDim * 4;
+        TTbase += sfunc.Sfunc.typesTable.length * 4;
     } while (TTbase != oldTTbase);
 
     if (TType != DW_EH_PE_omit)
@@ -360,8 +360,8 @@ else
         et.writeByte(0);
 
     /* Write out Types Table in reverse */
-    Symbol **typesTable = sfunc.Sfunc.typesTable;
-    for (int i = cast(int)sfunc.Sfunc.typesTableDim; i--; )
+    auto typesTable = sfunc.Sfunc.typesTable[];
+    for (int i = cast(int)typesTable.length; i--; )
     {
         Symbol *s = typesTable[i];
         /* MACHOBJ 64: pcrel 1 length 1 extern 1 RELOC_GOT

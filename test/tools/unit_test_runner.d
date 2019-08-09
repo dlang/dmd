@@ -274,8 +274,14 @@ bool missingTestFiles(Range)(Range givenFiles)
 
 void execute(const string[] args ...)
 {
-    enforce(spawnProcess(args).wait() == 0,
-        "Failed to execute command: " ~ args.join(" "));
+    try
+    {
+        enforce(spawnProcess(args).wait() == 0);
+    }
+    catch(Exception e)
+    {
+        throw new Exception("Failed to execute command: " ~ args.join(" "), e);
+    }
 }
 
 bool usesOptlink()
@@ -297,7 +303,7 @@ int main(string[] args)
     if (missingTestFiles(givenFiles))
         return 1;
 
-    enum runnerPath = resultsDir.buildPath("runner.d");
+    const runnerPath = resultsDir.buildPath("runner.d");
     const testFiles = givenFiles.testFiles;
 
     mkdirRecurse(resultsDir);
@@ -305,8 +311,8 @@ int main(string[] args)
         .moduleNames
         .writeRunnerFile(runnerPath, unitTestFilter);
 
-    enum cmdfilePath = resultsDir.buildPath("cmdfile");
-    enum outputPath = resultsDir.buildPath("runner").setExtension(exeExtension);
+    const cmdfilePath = resultsDir.buildPath("cmdfile");
+    const outputPath = resultsDir.buildPath("runner").setExtension(exeExtension);
     writeCmdfile(cmdfilePath, runnerPath, outputPath, testFiles);
 
     execute(dmdPath, "@" ~ cmdfilePath);

@@ -83,7 +83,7 @@ struct Scope
     Statement scontinue;            /// enclosing statement that supports "continue"
     ForeachStatement fes;           /// if nested function for ForeachStatement, this is it
     Scope* callsc;                  /// used for __FUNCTION__, __PRETTY_FUNCTION__ and __MODULE__
-    bool inunion;                   /// true if processing members of a union
+    Dsymbol inunion;                /// != null if processing members of a union
     bool nofree;                    /// true if shouldn't free it
     bool inLoop;                    /// true if inside a loop (where constructor calls aren't allowed)
     int intypeof;                   /// in typeof(exp)
@@ -377,7 +377,7 @@ struct Scope
             if (!ad || !ad.aliasthis)
                 return null;
 
-            Declaration decl = ad.aliasthis.isDeclaration();
+            Declaration decl = ad.aliasthis.sym.isDeclaration();
             if (!decl)
                 return null;
 
@@ -496,7 +496,7 @@ struct Scope
         return s;
     }
 
-    extern (C++) Dsymbol search_correct(Identifier ident)
+    extern (D) Dsymbol search_correct(Identifier ident)
     {
         if (global.gag)
             return null; // don't do it for speculative compiles; too time consuming
@@ -568,7 +568,7 @@ struct Scope
         return Token.toChars(tok);
     }
 
-    extern (C++) Dsymbol insert(Dsymbol s)
+    extern (D) Dsymbol insert(Dsymbol s)
     {
         if (VarDeclaration vd = s.isVarDeclaration())
         {
@@ -640,7 +640,7 @@ struct Scope
      * where it was declared. So mark the Scope as not
      * to be free'd.
      */
-    extern (C++) void setNoFree()
+    extern (D) void setNoFree()
     {
         //int i = 0;
         //printf("Scope::setNoFree(this = %p)\n", this);

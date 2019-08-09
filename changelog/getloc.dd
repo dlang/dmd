@@ -1,0 +1,13 @@
+add `__traits(getLocation, symbol)`
+
+Takes one argument which is a symbol. Returns a `tuple(string, int, int)` whose entries correspond to the filename, line number and column number where the argument
+was declared.
+
+To disambiguate between overloads, pass the result of getOverloads with the desired index, to getLocation:
+---
+module m;
+int foo();
+int foo(int);
+enum loc = __traits(getLocation, __traits(getOverloads, m, "foo")[0]);
+---
+         

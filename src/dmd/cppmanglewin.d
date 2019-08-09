@@ -65,7 +65,7 @@ private bool checkImmutableShared(Type type)
 {
     if (type.isImmutable() || type.isShared())
     {
-        error(Loc.initial, "Internal Compiler Error: `shared` or `immutable` types can not be mapped to C++ (%s)", type.toChars());
+        error(Loc.initial, "Internal Compiler Error: `shared` or `immutable` types cannot be mapped to C++ (%s)", type.toChars());
         fatal();
         return true;
     }
@@ -129,7 +129,7 @@ public:
         if (checkImmutableShared(type))
             return;
 
-        error(Loc.initial, "Internal Compiler Error: type `%s` can not be mapped to C++\n", type.toChars());
+        error(Loc.initial, "Internal Compiler Error: type `%s` cannot be mapped to C++\n", type.toChars());
         fatal(); //Fatal, because this error should be handled in frontend
     }
 
@@ -575,10 +575,10 @@ private:
         buf.writeByte('?');
         mangleIdent(d);
         assert((d.storage_class & STC.field) || !d.needThis());
-        Dsymbol parent = d.toParent3();
+        Dsymbol parent = d.toParent();
         while (parent && parent.isNspace())
         {
-            parent = parent.toParent3();
+            parent = parent.toParent();
         }
         if (parent && parent.isModule()) // static member
         {
@@ -1036,20 +1036,20 @@ private:
         //                ::= $0<encoded integral number>
         //printf("mangleIdent('%s')\n", sym.toChars());
         Dsymbol p = sym;
-        if (p.toParent3() && p.toParent3().isTemplateInstance())
+        if (p.toParent() && p.toParent().isTemplateInstance())
         {
-            p = p.toParent3();
+            p = p.toParent();
         }
         while (p && !p.isModule())
         {
             mangleName(p, dont_use_back_reference);
             // Mangle our string namespaces as well
-            for (auto ns = p.namespace; ns !is null; ns = ns.namespace)
+            for (auto ns = p.cppnamespace; ns !is null; ns = ns.cppnamespace)
                 mangleName(ns, dont_use_back_reference);
-            p = p.toParent3();
-            if (p.toParent3() && p.toParent3().isTemplateInstance())
+            p = p.toParent();
+            if (p.toParent() && p.toParent().isTemplateInstance())
             {
-                p = p.toParent3();
+                p = p.toParent();
             }
         }
         if (!dont_use_back_reference)

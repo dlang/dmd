@@ -63,7 +63,8 @@ else
 int REGSIZE();
 
 extern __gshared CGstate cgstate;
-extern __gshared ubyte[FLMAX] segfl, stackfl, flinsymtab;
+extern __gshared ubyte[FLMAX] segfl;
+extern __gshared bool[FLMAX] stackfl, flinsymtab;
 
 private extern (D) uint mask(uint m) { return 1 << m; }
 
@@ -616,6 +617,7 @@ regm_t regmask(tym_t tym, tym_t tyf)
         case TYstruct:
         case TYarray:
             return 0;
+
         case TYbool:
         case TYwchar_t:
         case TYchar16:
@@ -631,6 +633,9 @@ regm_t regmask(tym_t tym, tym_t tyf)
         case TYnref:
         case TYsptr:
         case TYcptr:
+        case TYimmutPtr:
+        case TYsharePtr:
+        case TYfgPtr:
             return mAX;
 
         case TYfloat:
@@ -2595,21 +2600,74 @@ code *genmovreg(uint to,uint from)
 
 void genmovreg(ref CodeBuilder cdb,uint to,uint from)
 {
-    debug
-        if (to > ES || from > ES)
-            printf("genmovreg(to = %d, from = %d)\n",to,from);
+    genmovreg(cdb, to, from, TYMAX);
+}
 
-    assert(to <= ES && from <= ES);
+void genmovreg(ref CodeBuilder cdb, uint to, uint from, tym_t tym)
+{
+    // register kind. ex: GPR,XMM,SEG
+    static uint _K(uint reg)
+    {
+        switch (reg)
+        {
+        case ES:                   return ES;
+        case XMM15:
+        case XMM0: .. case XMM7:   return XMM0;
+        case AX:   .. case R15:    return AX;
+        default:                   return reg;
+        }
+    }
+
+    // kind combination (order kept)
+    static uint _X(uint to, uint from) { return (_K(to) << 8) + _K(from); }
+
     if (to != from)
     {
-        if (to == ES)
-            genregs(cdb,0x8E,0,from);
-        else if (from == ES)
-            genregs(cdb,0x8C,0,to);
-        else
-            genregs(cdb,0x89,from,to);
-        if (I64)
-            code_orrex(cdb.last(), REX_W);
+        if (tym == TYMAX) tym = TYsize_t; // avoid register slicing
+        switch (_X(to, from))
+        {
+            case _X(AX, AX):
+                genregs(cdb, 0x89, from, to);    // MOV to,from
+                if (I64 && tysize(tym) >= 8)
+                    code_orrex(cdb.last(), REX_W);
+                else if (tysize(tym) == 2)
+                    code_orflag(cdb.last(), CFopsize);
+                break;
+
+            case _X(XMM0, XMM0):             // MOVD/Q to,from
+                genregs(cdb, xmmload(tym), to-XMM0, from-XMM0);
+                checkSetVex(cdb.last(), tym);
+                break;
+
+            case _X(AX, XMM0):               // MOVD/Q to,from
+                genregs(cdb, STOD, from-XMM0, to);
+                if (I64 && tysize(tym) >= 8)
+                    code_orrex(cdb.last(), REX_W);
+                checkSetVex(cdb.last(), tym);
+                break;
+
+            case _X(XMM0, AX):               // MOVD/Q to,from
+                genregs(cdb, LODD, to-XMM0, from);
+                if (I64 && tysize(tym) >= 8)
+                    code_orrex(cdb.last(),  REX_W);
+                checkSetVex(cdb.last(), tym);
+                break;
+
+            case _X(ES, AX):
+                assert(tysize(tym) <= REGSIZE);
+                genregs(cdb, 0x8E, 0, from);
+                break;
+
+            case _X(AX, ES):
+                assert(tysize(tym) <= REGSIZE);
+                genregs(cdb, 0x8C, 0, to);
+                break;
+
+            default:
+                debug printf("genmovreg(to = %s, from = %s)\n"
+                    , regm_str(mask(to)), regm_str(mask(from)));
+                assert(0);
+        }
     }
 }
 
@@ -5098,12 +5156,12 @@ void assignaddrc(code *c)
 
             case FLcs:
                 sn = c.IEV1.Vuns;
-                if (!CSE_loaded(sn))            // if never loaded
+                if (!CSE.loaded(sn))            // if never loaded
                 {
                     c.Iop = NOP;
                     continue;
                 }
-                c.IEV1.Vpointer = CSE_offset(sn) + CSoff + BPoff;
+                c.IEV1.Vpointer = CSE.offset(sn) + CSoff + BPoff;
                 c.Iflags |= CFunambig;
                 goto L2;
 

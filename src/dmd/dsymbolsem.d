@@ -422,8 +422,9 @@ private bool buildCopyCtor(StructDeclaration sd, Scope* sc)
     if (global.errors)
         return false;
 
+    bool hasPostblit;
     if (sd.postblit)
-        return false;
+        hasPostblit = true;
 
     auto ctor = sd.search(sd.loc, Id.ctor);
     CtorDeclaration cpCtor;
@@ -473,7 +474,9 @@ private bool buildCopyCtor(StructDeclaration sd, Scope* sc)
         return true;
     }
     else if (cpCtor)
-        return true;
+    {
+        return !hasPostblit;
+    }
 
 LcheckFields:
     VarDeclaration fieldWithCpCtor;
@@ -503,6 +506,9 @@ LcheckFields:
         return false;
     }
     else if (!fieldWithCpCtor)
+        return false;
+
+    if (hasPostblit)
         return false;
 
     //printf("generating copy constructor for %s\n", sd.toChars());
@@ -663,6 +669,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
 
         dsym.semanticRun = PASS.semantic;
+        dsym.isDeprecated_ = !!(sc.stc & STC.deprecated_);
 
         Dsymbol p = sc.parent.pastMixin();
         AggregateDeclaration ad = p.isAggregateDeclaration();
@@ -717,7 +724,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
 
-        ad.aliasthis = s;
+        dsym.sym = s;
+        // Restore alias this
+        ad.aliasthis = dsym;
         dsym.semanticRun = PASS.semanticdone;
     }
 
@@ -755,6 +764,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (dsym.semanticRun >= PASS.semanticdone)
             return;
 
+        if (sc && sc.inunion && sc.inunion.isAnonDeclaration())
+            dsym.overlapped = true;
+
         Scope* scx = null;
         if (dsym._scope)
         {
@@ -776,7 +788,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             dsym.error("extern symbols cannot have initializers");
 
         dsym.userAttribDecl = sc.userAttribDecl;
-        dsym.namespace = sc.namespace;
+        dsym.cppnamespace = sc.namespace;
 
         AggregateDeclaration ad = dsym.isThis();
         if (ad)
@@ -1574,14 +1586,16 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (sc.minst && sc.tinst)
             {
                 //printf("%s imports %s\n", sc.minst.toChars(), imp.mod.toChars());
-                sc.tinst.importedModules.push(imp.mod);
-                sc.minst.aimports.push(imp.mod);
+                if (!sc.tinst.importedModules.contains(imp.mod))
+                    sc.tinst.importedModules.push(imp.mod);
+                if (!sc.minst.aimports.contains(imp.mod))
+                    sc.minst.aimports.push(imp.mod);
             }
             else
             {
-
                 //printf("%s imports %s\n", sc._module.toChars(), imp.mod.toChars());
-                sc._module.aimports.push(imp.mod);
+                if (!sc._module.aimports.contains(imp.mod))
+                    sc._module.aimports.push(imp.mod);
             }
 
             if (sc.explicitProtection)
@@ -1787,7 +1801,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             sc = sc.push();
             sc.stc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.tls | STC.gshared);
-            sc.inunion = scd.isunion;
+            sc.inunion = scd.isunion ? scd : null;
             sc.flags = 0;
             for (size_t i = 0; i < scd.decl.dim; i++)
             {
@@ -2125,7 +2139,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (ns.ident is null)
         {
-            ns.namespace = sc.namespace;
+            ns.cppnamespace = sc.namespace;
             sc = sc.startCTFE();
             ns.exp = ns.exp.expressionSemantic(sc);
             ns.exp = resolveProperties(sc, ns.exp);
@@ -2135,16 +2149,16 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (auto te = ns.exp.isTupleExp())
             {
                 expandTuples(te.exps);
-                CPPNamespaceDeclaration current = ns.namespace;
+                CPPNamespaceDeclaration current = ns.cppnamespace;
                 for (size_t d = 0; d < te.exps.dim; ++d)
                 {
                     auto exp = (*te.exps)[d];
-                    auto prev = d ? current : ns.namespace;
+                    auto prev = d ? current : ns.cppnamespace;
                     current = (d + 1) != te.exps.dim
                         ? new CPPNamespaceDeclaration(exp, null)
                         : ns;
                     current.exp = exp;
-                    current.namespace = prev;
+                    current.cppnamespace = prev;
                     if (auto se = exp.toStringExp())
                     {
                         current.ident = identFromSE(se);
@@ -2270,7 +2284,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (sc.stc & STC.deprecated_)
             ed.isdeprecated = true;
         ed.userAttribDecl = sc.userAttribDecl;
-        ed.namespace = sc.namespace;
+        ed.cppnamespace = sc.namespace;
 
         ed.semanticRun = PASS.semantic;
 
@@ -2689,7 +2703,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         tempdecl.parent = sc.parent;
         tempdecl.protection = sc.protection;
-        tempdecl.namespace = sc.namespace;
+        tempdecl.cppnamespace = sc.namespace;
         tempdecl.isstatic = tempdecl.toParent().isModule() || (tempdecl._scope.stc & STC.static_);
 
         if (!tempdecl.isstatic)
@@ -3173,7 +3187,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (!sc || funcdecl.errors)
             return;
 
-        funcdecl.namespace = sc.namespace;
+        funcdecl.cppnamespace = sc.namespace;
         funcdecl.parent = sc.parent;
         Dsymbol parent = funcdecl.toParent();
 
@@ -3290,7 +3304,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (tf.purity == PURE.fwdref)
                 sc.stc |= STC.pure_;
             if (tf.trust != TRUST.default_)
-                sc.stc &= ~(STC.safe | STC.system | STC.trusted);
+                sc.stc &= ~STC.safeGroup;
             if (tf.trust == TRUST.safe)
                 sc.stc |= STC.safe;
             if (tf.trust == TRUST.system)
@@ -3574,7 +3588,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     //printf("\tintroducing function %s\n", funcdecl.toChars());
                     funcdecl.introducing = 1;
-                    if (cd.classKind == ClassKind.cpp && target.reverseCppOverloads)
+                    if (cd.classKind == ClassKind.cpp && target.cpp.reverseOverloads)
                     {
                         /* Overloaded functions with same name are grouped and in reverse order.
                          * Search for first function of overload group, and insert
@@ -4021,13 +4035,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (sc.stc & STC.static_)
         {
-            // Deprecated in 2018-04.
-            // Change to error in 2019-04.
-            // @@@DEPRECATED_2019-04@@@.
             if (sc.stc & STC.shared_)
-                deprecation(ctd.loc, "`shared static` has no effect on a constructor inside a `shared static` block. Use `shared static this()`");
+                error(ctd.loc, "`shared static` has no effect on a constructor inside a `shared static` block. Use `shared static this()`");
             else
-                deprecation(ctd.loc, "`static` has no effect on a constructor inside a `static` block. Use `static this()`");
+                error(ctd.loc, "`static` has no effect on a constructor inside a `static` block. Use `static this()`");
         }
 
         sc.stc &= ~STC.static_; // not a static constructor
@@ -4175,7 +4186,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         // reserve the dtor slot for the destructor (which we'll create later)
                         cldec.cppDtorVtblIndex = cast(int)cldec.vtbl.dim;
                         cldec.vtbl.push(dd);
-                        if (target.twoDtorInVtable)
+                        if (target.cpp.twoDtorInVtable)
                             cldec.vtbl.push(dd); // deleting destructor uses a second slot
                     }
                 }
@@ -4614,7 +4625,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (sc.linkage == LINK.cpp)
                 sd.classKind = ClassKind.cpp;
-            sd.namespace = sc.namespace;
+            sd.cppnamespace = sc.namespace;
         }
         else if (sd.symtab && !scx)
             return;
@@ -4834,7 +4845,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (sc.linkage == LINK.cpp)
                 cldec.classKind = ClassKind.cpp;
-            cldec.namespace = sc.namespace;
+            cldec.cppnamespace = sc.namespace;
             if (sc.linkage == LINK.objc)
                 objc.setObjc(cldec);
         }
@@ -5341,7 +5352,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             cldec.dtor.vtblIndex = cldec.cppDtorVtblIndex;
             cldec.vtbl[cldec.cppDtorVtblIndex] = cldec.dtor;
 
-            if (target.twoDtorInVtable)
+            if (target.cpp.twoDtorInVtable)
             {
                 // TODO: create a C++ compatible deleting destructor (call out to `operator delete`)
                 //       for the moment, we'll call the non-deleting destructor and leak
@@ -5553,7 +5564,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (!idec.baseclasses.dim && sc.linkage == LINK.cpp)
                 idec.classKind = ClassKind.cpp;
-            idec.namespace = sc.namespace;
+            idec.cppnamespace = sc.namespace;
 
             if (sc.linkage == LINK.objc)
             {
@@ -5846,7 +5857,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
         goto Lerror;
 
     // Copy the tempdecl namespace (not the scope one)
-    tempinst.namespace = tempdecl.namespace;
+    tempinst.cppnamespace = tempdecl.cppnamespace;
 
     /* See if there is an existing TemplateInstantiation that already
      * implements the typeargs. If so, just refer to that one instead.
@@ -5931,7 +5942,10 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
         // modules imported by an existing instance should be added to the module
         // that instantiates the instance.
         if (tempinst.minst)
-            tempinst.minst.aimports.append(&tempinst.inst.importedModules);
+            foreach(imp; tempinst.inst.importedModules)
+                if (!tempinst.minst.aimports.contains(imp))
+                    tempinst.minst.aimports.push(imp);
+
         static if (LOG)
         {
             printf("\tit's a match with instance %p, %d\n", tempinst.inst, tempinst.inst.semanticRun);

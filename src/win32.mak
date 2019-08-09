@@ -139,7 +139,7 @@ FRONT_SRCS=$D/access.d $D/aggregate.d $D/aliasthis.d $D/apply.d $D/argtypes.d $D
 	$D/cond.d $D/constfold.d $D/cppmangle.d $D/cppmanglewin.d $D/ctfeexpr.d $D/ctorflow.d $D/dcast.d $D/dclass.d		\
 	$D/declaration.d $D/delegatize.d $D/denum.d $D/dimport.d $D/dinifile.d $D/dinterpret.d	\
 	$D/dmacro.d $D/dmangle.d $D/dmodule.d $D/doc.d $D/dscope.d $D/dstruct.d $D/dsymbol.d $D/dsymbolsem.d		\
-	$D/lambdacomp.d $D/dtemplate.d $D/dversion.d $D/escape.d			\
+	$D/lambdacomp.d $D/dtemplate.d $D/dversion.d $D/env.d $D/escape.d			\
 	$D/expression.d $D/expressionsem.d $D/func.d $D/hdrgen.d $D/id.d $D/imphint.d	\
 	$D/impcnvtab.d $D/init.d $D/initsem.d $D/inline.d $D/inlinecost.d $D/intrange.d $D/json.d $D/lib.d $D/link.d	\
 	$D/mars.d $D/mtype.d $D/nogc.d $D/nspace.d $D/objc.d $D/opover.d $D/optimize.d $D/parse.d	\
@@ -176,7 +176,7 @@ GLUEOBJ=
 # D back end
 GBACKOBJ= $G/go.obj $G/gdag.obj $G/gother.obj $G/gflow.obj $G/gloop.obj $G/var.obj $G/elem.obj \
 	$G/newman.obj $G/glocal.obj $G/os.obj $G/nteh.obj $G/evalu8.obj $G/fp.obj $G/cgcs.obj \
-	$G/drtlsym.obj $G/cgelem.obj $G/cgen.obj $G/cgreg.obj $G/out.obj \
+	$G/drtlsym.obj $G/cgelem.obj $G/cgen.obj $G/cgreg.obj $G/out.obj $G/elpicpie.obj \
 	$G/blockopt.obj $G/cgobj.obj $G/cg.obj $G/dcgcv.obj $G/dtype.obj \
 	$G/debugprint.obj $G/dcode.obj $G/cg87.obj $G/cgxmm.obj $G/cgsched.obj $G/ee.obj $G/symbol.obj \
 	$G/cgcod.obj $G/cod1.obj $G/cod2.obj $G/cod3.obj $G/cod4.obj $G/cod5.obj $G/cgcse.obj \
@@ -206,13 +206,13 @@ GLUESRC= \
 	$(GLUE_SRCS)
 
 # D back end
-BACKSRC= $C\optabgen.d \
+BACKSRC= \
 	$C/code_stub.h $C/platform_stub.c \
 	$C\bcomplex.d $C\blockopt.d $C\cg.d $C\cg87.d $C\cgxmm.d \
 	$C\cgcod.d $C\cgcs.d $C\dcgcv.d $C\cgelem.d $C\cgen.d $C\cgobj.d \
 	$C\compress.d $C\cgreg.d $C\var.d $C\cgcse.d \
 	$C\cgsched.d $C\cod1.d $C\cod2.d $C\cod3.d $C\cod4.d $C\cod5.d \
-	$C\dcode.d $C\symbol.d $C\debugprint.d $C\ee.d $C\elem.d \
+	$C\dcode.d $C\symbol.d $C\debugprint.d $C\ee.d $C\elem.d $C\elpicpie.d \
 	$C\evalu8.d $C\fp.d $C\go.d $C\gflow.d $C\gdag.d \
 	$C\gother.d $C\glocal.d $C\gloop.d $C\gsroa.d $C\newman.d \
 	$C\nteh.d $C\os.d $C\out.d $C\ptrntab.d $C\drtlsym.d \
@@ -245,6 +245,8 @@ CH=
 # Makefiles
 MAKEFILES=win32.mak posix.mak osmodel.mak
 
+RUN_BUILD=$(GEN)\build.exe --called-from-make OS=$(OS) BUILD=$(BUILD) MODEL=$(MODEL) HOST_DMD=$(HOST_DMD) HOST_DC=$(HOST_DC)
+
 ############################## Release Targets ###############################
 
 defaulttarget: $G debdmd
@@ -252,6 +254,9 @@ defaulttarget: $G debdmd
 auto-tester-build: $G dmd checkwhitespace $(DMDFRONTENDEXE)
 
 dmd: $G reldmd
+
+$(GEN)\build.exe: build.d $(HOST_DMD_PATH)
+	$(HOST_DC) -of$@ -debug build.d
 
 release:
 	$(DMDMAKE) clean
@@ -294,8 +299,8 @@ LIBS=$G\backend.lib $G\lexer.lib
 $G\backend.lib: $(GBACKOBJ) $(OBJ_MSVC)
 	$(LIB) -p512 -n -c $@ $(GBACKOBJ) $(OBJ_MSVC)
 
-$G\lexer.lib: $(LEXER_SRCS) $(ROOT_SRCS) $(STRING_IMPORT_FILES) $G
-	$(HOST_DC) -of$@ -vtls -lib -J$G $(DFLAGS) $(LEXER_SRCS) $(ROOT_SRCS)
+$G\lexer.lib: $(GEN)\build.exe
+	$(RUN_BUILD) $@
 
 $G\parser.lib: $(PARSER_SRCS) $G\lexer.lib $G
 	$(HOST_DC) -of$@ -vtls -lib $(DFLAGS) $(PARSER_SRCS) $G\lexer.lib
@@ -321,7 +326,7 @@ $(TARGETEXE): $(DMD_SRCS) $(ROOT_SRCS) $(LIBS) $(STRING_IMPORT_FILES)
 clean:
 	$(RD) /s /q $(GEN)
 	$(DEL) $D\msgs.h $D\msgs.c
-	$(DEL) optabgen.exe parser_test.exe example_avg.exe
+	$(DEL) parser_test.exe example_avg.exe
 	$(DEL) $(TARGETEXE) $(DMDFRONTENDEXE) *.map *.obj *.exe
 
 install: detab install-copy
@@ -387,26 +392,6 @@ $(TOOLS_DIR)\checkwhitespace.d:
 	$(HOST_DC) -Df$@ $<
 
 ############################## Generated Source ##############################
-OPTABGENOUTPUT = $G\elxxx.d $G\cdxxx.d $G\optab.d $G\debtab.d $G\fltables.d $G\tytab.d
-
-$(OPTABGENOUTPUT) : \
-	$C\optabgen.d
-	$(HOST_DC) -of$G\optabgen.exe -betterC $(DFLAGS) -mv=dmd.backend=$C $C\optabgen
-	$G\optabgen.exe
-	copy *.c "$G\"
-	copy cdxxx.d "$G\"
-	copy debtab.d "$G\"
-	copy elxxx.d "$G\"
-	copy fltables.d "$G\"
-	copy tytab.d "$G\"
-	copy optab.d "$G\"
-	$(DEL) *.c
-	$(DEL) debtab.d
-	$(DEL) elxxx.d
-	$(DEL) fltables.d
-	$(DEL) cdxxx.d
-	$(DEL) tytab.d
-	$(DEL) optab.d
 
 $G\VERSION : ..\VERSION $G
 	copy ..\VERSION $@
@@ -427,14 +412,14 @@ $G/bcomplex.obj : $C\bcomplex.d
 $G/blockopt.obj : $C\blockopt.d
 	$(HOST_DC) -c -betterC -of$@ $(DFLAGS) -mv=dmd.backend=$C $C\blockopt
 
-$G/cg.obj : $G\fltables.d $C\cg.d
-	$(HOST_DC) -c -of$@ $(DFLAGS) -J$G -betterC -mv=dmd.backend=$C $C\cg
+$G/cg.obj : $C\cg.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\cg
 
 $G/cg87.obj : $C\cg87.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\cg87
 
-$G/cgcod.obj : $G\cdxxx.d $C\cgcod.d
-	$(HOST_DC) -c -of$@ $(DFLAGS) -J$G -betterC -mv=dmd.backend=$C $C\cgcod
+$G/cgcod.obj : $C\cgcod.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\cgcod
 
 $G/cgcs.obj : $C\cgcs.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\cgcs
@@ -445,8 +430,8 @@ $G/cgcse.obj : $C\cgcse.d
 $G/dcgcv.obj : $C\dcgcv.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\dcgcv
 
-$G/cgelem.obj : $G\elxxx.d $C\cgelem.d
-	$(HOST_DC) -c -of$@ $(DFLAGS) -J$G -betterC -mv=dmd.backend=$C $C\cgelem
+$G/cgelem.obj : $C\cgelem.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\cgelem
 
 $G/cgen.obj : $C\cgen.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\cgen
@@ -490,8 +475,8 @@ $G/symbol.obj : $C\symbol.d
 $G/cv8.obj : $C\cv8.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\cv8
 
-$G/debugprint.obj : $G\debtab.d $C\debugprint.d
-	$(HOST_DC) -c -of$@ $(DFLAGS) -J$G -betterC $C\debugprint
+$G/debugprint.obj : $C\debugprint.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC $C\debugprint
 
 $G/divcoeff.obj : $C\divcoeff.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC $C\divcoeff
@@ -510,6 +495,9 @@ $G/ee.obj : $C\ee.d
 
 $G/elem.obj : $C\rtlsym.d $C\el.d $C\elem.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\elem
+
+$G/elpicpie.obj : $C\rtlsym.d $C\el.d $C\elpicpie.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\elpicpie
 
 $G/evalu8.obj : $C\evalu8.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\evalu8
@@ -583,8 +571,8 @@ $G/dtype.obj : $C\dtype.d
 $G/util2.obj : $C\util2.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\util2
 
-$G/var.obj : $C\var.d $G\optab.d $G\tytab.d
-	$(HOST_DC) -c -of$@ $(DFLAGS) -J$G -betterC -mv=dmd.backend=$C $C\var
+$G/var.obj : $C\var.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\var
 
 $G/dvarstats.obj : $C\dvarstats.d
 	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend=$C $C\dvarstats

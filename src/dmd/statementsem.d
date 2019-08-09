@@ -1178,7 +1178,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             }
         }
 
-        Statement s = fs;
+        Statement s;
         switch (tab.ty)
         {
         case Tarray:
@@ -1679,15 +1679,14 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     goto case Terror;
 
                 // Resolve any forward referenced goto's
-                foreach (i; 0 .. fs.gotos.dim)
+                foreach (ScopeStatement ss; *fs.gotos)
                 {
-                    GotoStatement gs = cast(GotoStatement)(*fs.gotos)[i].statement;
+                    GotoStatement gs = ss.statement.isGotoStatement();
                     if (!gs.label.statement)
                     {
                         // 'Promote' it to this scope, and replace with a return
                         fs.cases.push(gs);
-                        s = new ReturnStatement(Loc.initial, new IntegerExp(fs.cases.dim + 1));
-                        (*fs.gotos)[i].statement = s;
+                        ss.statement = new ReturnStatement(Loc.initial, new IntegerExp(fs.cases.dim + 1));
                     }
                 }
 
@@ -2722,7 +2721,7 @@ else
 
                     auto se1 = ox.exp.isStringExp();
                     auto se2 = oy.exp.isStringExp();
-                    return (se1 && se2) ? se1.comparex(se2) : 0;
+                    return (se1 && se2) ? se1.compare(se2) : 0;
                 }
 
                 // Sort cases for efficient lookup
@@ -3151,6 +3150,7 @@ else
                 rs.exp = inferType(rs.exp, fld.treq.nextOf().nextOf());
 
             rs.exp = rs.exp.expressionSemantic(sc);
+            rs.exp.checkSharedAccess(sc);
 
             // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
             if (rs.exp.op == TOK.type)
@@ -3225,7 +3225,13 @@ else
                     }
                     else if (rs.exp.op != TOK.error)
                     {
-                        rs.error("mismatched function return type inference of `%s` and `%s`", rs.exp.type.toChars(), tret.toChars());
+                        rs.error("Expected return type of `%s`, not `%s`:",
+                                 tret.toChars(),
+                                 rs.exp.type.toChars());
+                        errorSupplemental((fd.returns) ? (*fd.returns)[0].loc : fd.loc,
+                                          "Return type of `%s` inferred here.",
+                                          tret.toChars());
+
                         errors = true;
                         tf.next = Type.terror;
                     }
@@ -4259,7 +4265,7 @@ void catchSemantic(Catch c, Scope* sc)
         }
         else if (cd.isCPPclass())
         {
-            if (!target.cppExceptions)
+            if (!target.cpp.exceptions)
             {
                 error(c.loc, "catching C++ class objects not supported for this target");
                 c.errors = true;

@@ -99,7 +99,7 @@ struct Pair
        return this;
    }
 
-   Pair opDiv(Pair other)
+   Pair opBinary(string op)(Pair other) if (op == "/")
    {
        Pair result;
 
@@ -1391,6 +1391,18 @@ void test19758()
 }
 
 /************************************/
+// https://issues.dlang.org/show_bug.cgi?id=19968
+
+@safe void test19968()
+{
+    int[2] array = [16, 678];
+    union U { int i; bool b; }
+    U u;
+    u.i = 0xDEADBEEF;
+    assert(array[u.b] == 678);
+}
+
+/************************************/
 
 int main()
 {
@@ -1460,6 +1472,7 @@ int main()
     test71();
     test72();
     test19758();
+    test19968();
 
     printf("Success\n");
     return 0;

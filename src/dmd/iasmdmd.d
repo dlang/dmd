@@ -2462,8 +2462,8 @@ void asm_merge_symbol(ref OPND o1, Dsymbol s)
         }
         if (v.isThreadlocal())
             error(asmstate.loc, "cannot directly load TLS variable `%s`", v.toChars());
-        else if (v.isDataseg() && global.params.pic)
-            error(asmstate.loc, "cannot directly load global variable `%s` with PIC code", v.toChars());
+        else if (v.isDataseg() && global.params.pic != PIC.fixed)
+            error(asmstate.loc, "cannot directly load global variable `%s` with PIC or PIE code", v.toChars());
     }
     em = s.isEnumMember();
     if (em)
@@ -4304,28 +4304,83 @@ JUMP_REF2:
             o1.ajt = ajt;
             break;
 
+        case TOK.void_:
+            ptype = Type.tvoid;
+            goto TYPE_REF;
+
+        case TOK.bool_:
+            ptype = Type.tbool;
+            goto TYPE_REF;
+
+        case TOK.char_:
+            ptype = Type.tchar;
+            goto TYPE_REF;
+        case TOK.wchar_:
+            ptype = Type.twchar;
+            goto TYPE_REF;
+        case TOK.dchar_:
+            ptype = Type.tdchar;
+            goto TYPE_REF;
+
+        case TOK.uns8:
+            ptype = Type.tuns8;
+            goto TYPE_REF;
+        case TOK.uns16:
+            ptype = Type.tuns16;
+            goto TYPE_REF;
+        case TOK.uns32:
+            ptype = Type.tuns32;
+            goto TYPE_REF;
+        case TOK.uns64 :
+            ptype = Type.tuns64;
+            goto TYPE_REF;
+
         case TOK.int8:
             ptype = Type.tint8;
+            goto TYPE_REF;
+        case ASMTKword:
+            ptype = Type.tint16;
             goto TYPE_REF;
         case TOK.int32:
         case ASMTKdword:
             ptype = Type.tint32;
             goto TYPE_REF;
+        case TOK.int64:
+        case ASMTKqword:
+            ptype = Type.tint64;
+            goto TYPE_REF;
+
         case TOK.float32:
             ptype = Type.tfloat32;
             goto TYPE_REF;
-        case ASMTKqword:
         case TOK.float64:
             ptype = Type.tfloat64;
             goto TYPE_REF;
         case TOK.float80:
             ptype = Type.tfloat80;
             goto TYPE_REF;
-        case ASMTKword:
-            ptype = Type.tint16;
 TYPE_REF:
             bPtr = true;
             asm_token();
+            // try: <BasicType>.<min/max etc>
+            if (asmstate.tokValue == TOK.dot)
+            {
+                asm_token();
+                if (asmstate.tokValue == TOK.identifier)
+                {
+                    TypeExp te = new TypeExp(asmstate.loc, ptype);
+                    DotIdExp did = new DotIdExp(asmstate.loc, te, asmstate.tok.ident);
+                    Dsymbol s;
+                    tryExpressionToOperand(did, o1, s);
+                }
+                else
+                {
+                    asmerr("property of basic type `%s` expected", ptype.toChars());
+                }
+                asm_token();
+                break;
+            }
+            // else: ptr <BasicType>
             asm_chktok(cast(TOK) ASMTKptr, "ptr expected");
             asm_cond_exp(o1);
             o1.ptype = ptype;
@@ -4432,10 +4487,7 @@ void asm_primary_exp(out OPND o1)
                 asm_token();
                 if (asmstate.tokValue == TOK.dot)
                 {
-                    Expression e;
-                    VarExp v;
-
-                    e = IdentifierExp.create(asmstate.loc, id);
+                    Expression e = IdentifierExp.create(asmstate.loc, id);
                     while (1)
                     {
                         asm_token();
@@ -4452,37 +4504,9 @@ void asm_primary_exp(out OPND o1)
                             break;
                         }
                     }
-                    Scope *sc = asmstate.sc.startCTFE();
-                    e = e.expressionSemantic(sc);
-                    sc.endCTFE();
-                    e = e.ctfeInterpret();
-                    if (e.isConst())
-                    {
-                        if (e.type.isintegral())
-                        {
-                            o1.disp = e.toInteger();
-                            goto Lpost;
-                        }
-                        else if (e.type.isreal())
-                        {
-                            o1.vreal = e.toReal();
-                            o1.ptype = e.type;
-                            goto Lpost;
-                        }
-                        else
-                        {
-                            asmerr("bad type/size of operands `%s`", e.toChars());
-                        }
-                    }
-                    else if (e.op == TOK.variable)
-                    {
-                        v = cast(VarExp)(e);
-                        s = v.var;
-                    }
-                    else
-                    {
-                        asmerr("bad type/size of operands `%s`", e.toChars());
-                    }
+                    TOK e2o = tryExpressionToOperand(e, o1, s);
+                    if (e2o == TOK.const_)
+                        goto Lpost;
                 }
 
                 asm_merge_symbol(o1,s);
@@ -4553,6 +4577,51 @@ void asm_primary_exp(out OPND o1)
             asmerr("expression expected not `%s`", asmstate.tok ? asmstate.tok.toChars() : ";");
             break;
     }
+}
+
+/**
+ * Using an expression, try to set an ASM operand as a constant or as an access
+ * to a higher level variable.
+ *
+ * Params:
+ *      e =     Input. The expression to evaluate. This can be an arbitrarily complex expression
+ *              but it must either represent a constant after CTFE or give a higher level variable.
+ *      o1 =    Output. The ASM operand to define from `e`.
+ *      s =     Output. The symbol when `e` represents a variable.
+ *
+ * Returns:
+ *      `TOK.variable` if `s` was set to a variable,
+ *      `TOK.const_` if `e` was evaluated to a valid constant,
+ *      `TOK.error` otherwise.
+ */
+TOK tryExpressionToOperand(Expression e, ref OPND o1, ref Dsymbol s)
+{
+    Scope *sc = asmstate.sc.startCTFE();
+    e = e.expressionSemantic(sc);
+    sc.endCTFE();
+    e = e.ctfeInterpret();
+    if (e.op == TOK.variable)
+    {
+        VarExp v = cast(VarExp) e;
+        s = v.var;
+        return TOK.variable;
+    }
+    if (e.isConst())
+    {
+        if (e.type.isintegral())
+        {
+            o1.disp = e.toInteger();
+            return TOK.const_;
+        }
+        if (e.type.isreal())
+        {
+            o1.vreal = e.toReal();
+            o1.ptype = e.type;
+            return TOK.const_;
+        }
+    }
+    asmerr("bad type/size of operands `%s`", e.toChars());
+    return TOK.error;
 }
 
 /**********************

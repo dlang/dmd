@@ -99,9 +99,8 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb)
         uint size = cast(uint)tn.size();
 
         uint length = 0;
-        for (size_t i = 0; i < ai.index.dim; i++)
+        foreach (i, idx; ai.index)
         {
-            Expression idx = ai.index[i];
             if (idx)
                 length = cast(uint)idx.toInteger();
             //printf("\tindex[%d] = %p, length = %u, dim = %u\n", i, idx, length, ai.dim);
@@ -122,10 +121,10 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb)
         dt_t* dtdefault = null;
 
         auto dtbarray = DtBuilder(0);
-        for (size_t i = 0; i < ai.dim; i++)
+        foreach (dt; dts)
         {
-            if (dts[i])
-                dtbarray.cat(dts[i]);
+            if (dt)
+                dtbarray.cat(dt);
             else
             {
                 if (!dtdefault)
@@ -179,8 +178,8 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb)
                     dtb.size(ai.dim);
                 Symbol* s = dtb.dtoff(dtbarray.finish(), 0);
                 if (tn.isMutable())
-                    for (int i = 0; i < ai.dim; i++)
-                        write_pointers(tn, s, size * i);
+                    foreach (i; 0 .. ai.dim)
+                        write_pointers(tn, s, size * cast(int)i);
                 break;
             }
 
@@ -422,7 +421,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
         auto dtbarray = DtBuilder(0);
         foreach (i; 0 .. e.elements.dim)
         {
-            Expression_toDt(e.getElement(i), dtbarray);
+            Expression_toDt(e[i], dtbarray);
         }
 
         Type t = e.type.toBasetype();
@@ -522,7 +521,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
         {
             Expression elem;
             if (auto ale = e.e1.isArrayLiteralExp())
-                elem = ale.getElement(i);
+                elem = ale[i];
             else
                 elem = e.e1;
             Expression_toDt(elem, dtb);
@@ -650,9 +649,8 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
     version (none)
     {
         printf(" interfaces.length = %d\n", cast(int)cd.interfaces.length);
-        for (size_t i = 0; i < cd.vtblInterfaces.dim; i++)
+        foreach (i, b; cd.vtblInterfaces[])
         {
-            BaseClass* b = (*cd.vtblInterfaces)[i];
             printf("  vbtblInterfaces[%d] b = %p, b.sym = %s\n", cast(int)i, b, b.sym.toChars());
         }
     }
@@ -717,12 +715,12 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
             ppb = &pb;
         }
 
-        for (size_t i = 0; i < cd.interfaces.length; ++i)
+        foreach (si; cd.interfaces[])
         {
             BaseClass* b = **ppb;
             if (offset < b.offset)
                 dtb.nzeros(b.offset - offset);
-            membersToDt(cd.interfaces.ptr[i].sym, dtb, elements, firstFieldIndex, concreteType, ppb);
+            membersToDt(si.sym, dtb, elements, firstFieldIndex, concreteType, ppb);
             //printf("b.offset = %d, b.sym.structsize = %d\n", (int)b.offset, (int)b.sym.structsize);
             offset = b.offset + b.sym.structsize;
         }
@@ -734,20 +732,20 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
            firstFieldIndex <= elements.dim &&
            firstFieldIndex + ad.fields.dim <= elements.dim);
 
-    for (size_t i = 0; i < ad.fields.dim; i++)
+    foreach (i, field; ad.fields)
     {
         if (elements && !(*elements)[firstFieldIndex + i])
             continue;
 
         if (!elements || !(*elements)[firstFieldIndex + i])
         {
-            if (ad.fields[i]._init && ad.fields[i]._init.isVoidInitializer())
+            if (field._init && field._init.isVoidInitializer())
                 continue;
         }
 
         VarDeclaration vd;
         size_t k;
-        for (size_t j = i; j < ad.fields.dim; j++)
+        foreach (j; i .. ad.fields.length)
         {
             VarDeclaration v2 = ad.fields[j];
             if (v2.offset < offset)

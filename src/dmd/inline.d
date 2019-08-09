@@ -220,11 +220,11 @@ public:
                 Statement s3;
                 if ((ifs = sx.isIfStatement()) !is null &&
                     ifs.ifbody &&
-                    ifs.ifbody.isReturnStatement() &&
+                    ifs.ifbody.endsWithReturnStatement() &&
                     !ifs.elsebody &&
                     i + 1 < s.statements.dim &&
                     (s3 = (*s.statements)[i + 1]) !is null &&
-                    s3.isReturnStatement()
+                    s3.endsWithReturnStatement()
                    )
                 {
                     /* Rewrite as ?:

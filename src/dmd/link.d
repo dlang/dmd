@@ -21,6 +21,7 @@ import core.sys.posix.unistd;
 import core.sys.windows.winbase;
 import core.sys.windows.windef;
 import core.sys.windows.winreg;
+import dmd.env;
 import dmd.errors;
 import dmd.globals;
 import dmd.root.file;
@@ -30,7 +31,6 @@ import dmd.root.rmem;
 import dmd.utils;
 
 version (Posix) extern (C) int pipe(int*);
-version (Windows) extern (C) int putenv(const char*);
 version (Windows) extern (C) int spawnlp(int, const char*, const char*, const char*, const char*);
 version (Windows) extern (C) int spawnl(int, const char*, const char*, const char*, const char*);
 version (Windows) extern (C) int spawnv(int, const char*, const char**);
@@ -418,6 +418,8 @@ public int runLINK()
         {
             // Split CC command to support link driver arguments such as -fpie or -flto.
             char *arg = strdup(cc);
+            if (!arg)
+                Mem.error();
             const(char)* tok = strtok(arg, " ");
             while (tok)
             {
@@ -639,6 +641,8 @@ public int runLINK()
         {
             const bufsize = 2 + libname.length + 1;
             auto buf = (cast(char*) malloc(bufsize))[0 .. bufsize];
+            if (!buf)
+                Mem.error();
             buf[0 .. 2] = "-l";
 
             char* getbuf(const(char)[] suffix)
@@ -765,17 +769,11 @@ version (Windows)
         {
             if ((len = strlen(args)) > 255)
             {
-                char* q = cast(char*)alloca(8 + len + 1);
-                sprintf(q, "_CMDLINE=%s", args);
-                status = putenv(q);
+                status = putenvRestorable("_CMDLINE", args[0 .. len]);
                 if (status == 0)
-                {
                     args = "@_CMDLINE";
-                }
                 else
-                {
                     error(Loc.initial, "command line length of %d is too long", len);
-                }
             }
         }
         // Normalize executable path separators
@@ -893,6 +891,7 @@ public int runProgram()
         argv.push(a);
     }
     argv.push(null);
+    restoreEnvVars();
     version (Windows)
     {
         const(char)[] ex = FileName.name(global.params.exefile);
@@ -1049,16 +1048,18 @@ version (Windows)
                 {
                     // debug info needs DLLs from $(VSInstallDir)\Common7\IDE for most linker versions
                     //  so prepend it too the PATH environment variable
-                    const char* path = getenv("PATH");
+                    const path = getenv("PATH");
                     const pathlen = strlen(path);
                     const addpathlen = strlen(addpath);
 
-                    char* npath = cast(char*)mem.xmalloc(5 + pathlen + 1 + addpathlen + 1);
-                    memcpy(npath, "PATH=".ptr, 5);
-                    memcpy(npath + 5, addpath, addpathlen);
-                    npath[5 + addpathlen] = ';';
-                    memcpy(npath + 5 + addpathlen + 1, path, pathlen + 1);
-                    putenv(npath);
+                    const length = addpathlen + 1 + pathlen;
+                    char* npath = cast(char*)mem.xmalloc(length);
+                    memcpy(npath, addpath, addpathlen);
+                    npath[addpathlen] = ';';
+                    memcpy(npath + addpathlen + 1, path, pathlen);
+                    if (putenvRestorable("PATH", npath[0 .. length]))
+                        assert(0);
+                    mem.xfree(npath);
                 }
                 return cmdbuf.extractChars();
             }

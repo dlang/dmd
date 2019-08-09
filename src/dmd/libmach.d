@@ -99,7 +99,6 @@ final class LibMach : Library
             buflen = data.length;
             fromfile = 1;
         }
-        int reason = 0;
         if (buflen < 16)
         {
             static if (LOG)

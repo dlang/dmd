@@ -50,8 +50,6 @@ class ThrownExceptionExp : public Expression
 public:
     ClassReferenceExp *thrown; // the thing being tossed
     const char *toChars();
-    /// Generate an error message when this exception is not caught
-    void generateUncaughtError();
     void accept(Visitor *v) { v->visit(this); }
 };
 

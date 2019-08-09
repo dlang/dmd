@@ -32,7 +32,6 @@ else
 
 enum projectRootDir = __FILE_FULL_PATH__.dirName.buildNormalizedPath("..", "..");
 enum generatedDir = projectRootDir.buildPath("generated");
-enum resultsDir = testPath("test_results");
 
 enum dmdFilename = "dmd".setExtension(exeExtension);
 
@@ -74,4 +73,11 @@ string dmdPath()
 {
     static string dmdPath;
     return  dmdPath ? dmdPath : (dmdPath = buildOutputPath.buildPath(dmdFilename));
+}
+
+string resultsDir()
+{
+    static string resultsDir;
+    enum def = testPath("test_results");
+    return resultsDir ? resultsDir : (resultsDir = environment.get("RESULTS_DIR", def));
 }

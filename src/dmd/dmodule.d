@@ -37,6 +37,7 @@ import dmd.root.file;
 import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.root.port;
+import dmd.root.rmem;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.utils;
@@ -603,12 +604,6 @@ extern (C++) final class Module : Package
      *      global.params.preservePaths     get output path from arg
      *      srcfile Input file - output file name must not match input file
      */
-    FileName setOutfilename(const(char)* name, const(char)* dir, const(char)* arg, const(char)* ext)
-    {
-        return setOutfilename(name.toDString(), dir.toDString(), arg.toDString(), ext.toDString());
-    }
-
-    /// Ditto
     extern(D) FileName setOutfilename(const(char)[] name, const(char)[] dir, const(char)[] arg, const(char)[] ext)
     {
         const(char)[] docfilename;
@@ -649,7 +644,7 @@ extern (C++) final class Module : Package
         return FileName(docfilename);
     }
 
-    void setDocfile()
+    extern (D) void setDocfile()
     {
         docfile = setOutfilename(global.params.docname.toDString, global.params.docdir.toDString, arg, global.doc_ext);
     }
@@ -1251,19 +1246,19 @@ extern (C++) final class Module : Package
     /*******************************************
      * Can't run semantic on s now, try again later.
      */
-    static void addDeferredSemantic(Dsymbol s)
+    extern (D) static void addDeferredSemantic(Dsymbol s)
     {
         //printf("Module::addDeferredSemantic('%s')\n", s.toChars());
         deferred.push(s);
     }
 
-    static void addDeferredSemantic2(Dsymbol s)
+    extern (D) static void addDeferredSemantic2(Dsymbol s)
     {
         //printf("Module::addDeferredSemantic2('%s')\n", s.toChars());
         deferred2.push(s);
     }
 
-    static void addDeferredSemantic3(Dsymbol s)
+    extern (D) static void addDeferredSemantic3(Dsymbol s)
     {
         //printf("Module::addDeferredSemantic3('%s')\n", s.toChars());
         deferred3.push(s);
@@ -1301,7 +1296,8 @@ extern (C++) final class Module : Package
             else
             {
                 todo = cast(Dsymbol*)malloc(len * Dsymbol.sizeof);
-                assert(todo);
+                if (!todo)
+                    Mem.error();
                 todoalloc = todo;
             }
             memcpy(todo, deferred.tdata(), len * Dsymbol.sizeof);
@@ -1356,7 +1352,7 @@ extern (C++) final class Module : Package
         a.setDim(0);
     }
 
-    static void clearCache()
+    extern (D) static void clearCache()
     {
         for (size_t i = 0; i < amodules.dim; i++)
         {

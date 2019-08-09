@@ -376,7 +376,7 @@ extern (C++) class FuncDeclaration : Declaration
                 return false;
         }
 
-        this.namespace = _scope.namespace;
+        this.cppnamespace = _scope.namespace;
 
         // if inferring return type, sematic3 needs to be run
         // - When the function body contains any errors, we cannot assume
@@ -469,7 +469,7 @@ extern (C++) class FuncDeclaration : Declaration
      * Hidden parameters include the `this` parameter of a class, struct or
      * nested function and the selector parameter for Objective-C methods.
      */
-    final HiddenParameters declareThis(Scope* sc, AggregateDeclaration ad)
+    extern (D) final HiddenParameters declareThis(Scope* sc, AggregateDeclaration ad)
     {
         if (toParent2() != toParentLocal())
         {
@@ -804,7 +804,7 @@ extern (C++) class FuncDeclaration : Declaration
     /********************************************
      * Find function in overload list that exactly matches t.
      */
-    final FuncDeclaration overloadExactMatch(Type t)
+    extern (D) final FuncDeclaration overloadExactMatch(Type t)
     {
         FuncDeclaration fd;
         overloadApply(this, (Dsymbol s)
@@ -855,7 +855,7 @@ extern (C++) class FuncDeclaration : Declaration
      * 4. If there's no candidates, it's "no match" and returns null with error report.
      *      e.g. If 'tthis' is const but there's no const methods.
      */
-    final FuncDeclaration overloadModMatch(const ref Loc loc, Type tthis, ref bool hasOverloads)
+    extern (D) final FuncDeclaration overloadModMatch(const ref Loc loc, Type tthis, ref bool hasOverloads)
     {
         //printf("FuncDeclaration::overloadModMatch('%s')\n", toChars());
         MatchAccumulator m;
@@ -945,7 +945,7 @@ extern (C++) class FuncDeclaration : Declaration
     /********************************************
      * find function template root in overload list
      */
-    final TemplateDeclaration findTemplateDeclRoot()
+    extern (D) final TemplateDeclaration findTemplateDeclRoot()
     {
         FuncDeclaration f = this;
         while (f && f.overnext)
@@ -1363,7 +1363,7 @@ extern (C++) class FuncDeclaration : Declaration
      * so mark it as impure.
      * If there's a purity error, return true.
      */
-    final bool setImpure()
+    extern (D) final bool setImpure()
     {
         if (flags & FUNCFLAG.purityInprocess)
         {
@@ -1400,7 +1400,7 @@ extern (C++) class FuncDeclaration : Declaration
      * so mark it as unsafe.
      * If there's a safe error, return true.
      */
-    final bool setUnsafe()
+    extern (D) final bool setUnsafe()
     {
         if (flags & FUNCFLAG.safetyInprocess)
         {
@@ -1433,7 +1433,7 @@ extern (C++) class FuncDeclaration : Declaration
      * Returns:
      *      true if function is marked as @nogc, meaning a user error occurred
      */
-    final bool setGC()
+    extern (D) final bool setGC()
     {
         //printf("setGC() %s\n", toChars());
         if (flags & FUNCFLAG.nogcInprocess && semanticRun < PASS.semantic3 && _scope)
@@ -1454,7 +1454,7 @@ extern (C++) class FuncDeclaration : Declaration
         return false;
     }
 
-    final void printGCUsage(const ref Loc loc, const(char)* warn)
+    extern (D) final void printGCUsage(const ref Loc loc, const(char)* warn)
     {
         if (!global.params.vgc)
             return;
@@ -1473,7 +1473,7 @@ extern (C++) class FuncDeclaration : Declaration
      *   true if the function return value is isolated from
      *   any inputs to the function
      */
-    final bool isReturnIsolated()
+    extern (D) final bool isReturnIsolated()
     {
         TypeFunction tf = type.toTypeFunction();
         assert(tf.next);
@@ -1494,7 +1494,7 @@ extern (C++) class FuncDeclaration : Declaration
      *   true if `t` is isolated from
      *   any inputs to the function
      */
-    final bool isTypeIsolated(Type t)
+    extern (D) final bool isTypeIsolated(Type t)
     {
         //printf("isTypeIsolated(t: %s)\n", t.toChars());
 
@@ -2052,7 +2052,7 @@ extern (C++) class FuncDeclaration : Declaration
     /****************************************************
      * Declare result variable lazily.
      */
-    final void buildResultVar(Scope* sc, Type tret)
+    extern (D) final void buildResultVar(Scope* sc, Type tret)
     {
         if (!vresult)
         {
@@ -2091,7 +2091,7 @@ extern (C++) class FuncDeclaration : Declaration
      * Merge into this function the 'in' contracts of all it overrides.
      * 'in's are OR'd together, i.e. only one of them needs to pass.
      */
-    final Statement mergeFrequire(Statement sf, Expressions* params)
+    extern (D) final Statement mergeFrequire(Statement sf, Expressions* params)
     {
         /* If a base function and its override both have an IN contract, then
          * only one of them needs to succeed. This is done by generating:
@@ -2330,7 +2330,7 @@ extern (C++) class FuncDeclaration : Declaration
      * Merge into this function the 'out' contracts of all it overrides.
      * 'out's are AND'd together, i.e. all of them need to pass.
      */
-    final Statement mergeFensure(Statement sf, Identifier oid, Expressions* params)
+    extern (D) final Statement mergeFensure(Statement sf, Identifier oid, Expressions* params)
     {
         /* Same comments as for mergeFrequire(), except that we take care
          * of generating a consistent reference to the 'result' local by
@@ -2839,9 +2839,6 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
     if (tthis)
         tthis.modToBuffer(&fargsBuf);
 
-    // max num of overloads to print (-v overrides this).
-    enum int numOverloadsDisplay = 5;
-
     if (!m.lastf && !(flags & FuncResolveFlag.quiet)) // no match
     {
         if (!fd && !td && !od)
@@ -2964,6 +2961,7 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
 {
     // max num of overloads to print (-v overrides this).
     int numToDisplay = 5;
+    const(char)* constraintsTip;
 
     overloadApply(declaration, (Dsymbol s)
     {
@@ -2981,7 +2979,14 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
         }
         else if (auto td = s.isTemplateDeclaration())
         {
-            .errorSupplemental(td.loc, "`%s`", td.toPrettyChars());
+            import dmd.staticcond;
+
+            const tmsg = td.toCharsNoConstraints();
+            const cmsg = td.getConstraintEvalError(constraintsTip);
+            if (cmsg)
+                .errorSupplemental(td.loc, "`%s`\n%s", tmsg, cmsg);
+            else
+                .errorSupplemental(td.loc, "`%s`", tmsg);
             nextOverload = td.overnext;
         }
 
@@ -2997,6 +3002,9 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
             .errorSupplemental(loc, "... (%d more, -v to show) ...", num);
         return 1;   // stop iterating
     });
+    // should be only in verbose mode
+    if (constraintsTip)
+        .tip(constraintsTip);
 }
 
 /**************************************

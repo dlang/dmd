@@ -47,7 +47,8 @@ nothrow:
 int REGSIZE();
 
 extern __gshared CGstate cgstate;
-extern __gshared ubyte[FLMAX] segfl, stackfl;
+extern __gshared ubyte[FLMAX] segfl;
+extern __gshared bool[FLMAX] stackfl;
 
 private extern (D) uint mask(uint m) { return 1 << m; }
 
@@ -914,6 +915,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                     break;
 
                 default:
+                    printf("function: %s\n", funcsym_p.Sident.ptr);
                     elem_print(e);
                     assert(0);
             }
@@ -929,12 +931,34 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
              *      EA =    [ES:] &v+idxreg
              */
             f = FLconst;
+
+            /* Is address of `s` relative to RIP ?
+             */
+            static bool relativeToRIP(Symbol* s)
+            {
+                if (!I64)
+                    return false;
+                if (config.exe == EX_WIN64)
+                    return true;
+                if (config.flags3 & CFG3pie)
+                {
+                    if (s.Sfl == FLtlsdata || s.ty() & mTYthread)
+                    {
+                        if (s.Sclass == SCglobal || s.Sclass == SCstatic || s.Sclass == SClocstat)
+                            return false;
+                    }
+                    return true;
+                }
+                else
+                    return (config.flags3 & CFG3pic) != 0;
+            }
+
             if (e1isadd &&
-                ((e12.Eoper == OPrelconst
-                  && (f = el_fl(e12)) != FLfardata
+                ((e12.Eoper == OPrelconst &&
+                  !relativeToRIP(e12.EV.Vsym) &&
+                  (f = el_fl(e12)) != FLfardata
                  ) ||
                  (e12.Eoper == OPconst && !I16 && !e1.Ecount && (!I64 || el_signx32(e12)))) &&
-                !(I64 && (config.flags3 & CFG3pic || config.exe == EX_WIN64)) &&
                 e1.Ecount == e1.Ecomsub &&
                 (!e1.Ecount || (~keepmsk & ALLREGS & mMSW) || (e1ty != TYfptr && e1ty != TYhptr)) &&
                 tysize(e11.Ety) == REGSIZE
@@ -1174,6 +1198,15 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                         pcs.Iflags |= CFss;        /* then need SS: override */
                     break;
 
+                case TYfgPtr:
+                    if (I32)
+                        pcs.Iflags |= CFgs;
+                    else if (I64)
+                        pcs.Iflags |= CFfs;
+                    else
+                        assert(0);
+                    break;
+
                 case TYcptr:                        /* if pointer to code   */
                     pcs.Iflags |= CFcs;            /* then need CS: override */
                     break;
@@ -1407,24 +1440,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
             {
                 static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
                 {
-                    // Rewrite as GS:[0000], or FS:[0000] for 64 bit
-                    if (I64)
-                    {
-                        pcs.Irm = modregrm(0, 0, 4);
-                        pcs.Isib = modregrm(0, 4, 5);  // don't use [RIP] addressing
-                        pcs.IFL1 = FLconst;
-                        pcs.IEV1.Vuns = 0;
-                        pcs.Iflags = CFfs;
-                        pcs.Irex |= REX_W;
-                    }
-                    else
-                    {
-                        pcs.Irm = modregrm(0, 0, BPRM);
-                        pcs.IFL1 = FLconst;
-                        pcs.IEV1.Vuns = 0;
-                        pcs.Iflags = CFgs;
-                    }
-                    break;
+                    assert(0);
                 }
                 else static if (TARGET_WINDOS)
                 {
@@ -1511,11 +1527,31 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
             {
                 pcs.Iflags |= CFcs | CFoff;
             }
-            if (I64 && config.flags3 & CFG3pic &&
+            if (config.flags3 & CFG3pic &&
                 (fl == FLtlsdata || s.ty() & mTYthread))
             {
-                pcs.Iflags |= CFopsize;
-                pcs.Irex = 0x48;
+                if (I32)
+                {
+                    if (config.flags3 & CFG3pie)
+                    {
+                        pcs.Iflags |= CFgs;
+                    }
+                }
+                else if (I64)
+                {
+                    if (config.flags3 & CFG3pie &&
+                        (s.Sclass == SCglobal || s.Sclass == SCstatic || s.Sclass == SClocstat))
+                    {
+                        pcs.Iflags |= CFfs;
+                        pcs.Irm = modregrm(0, 0, 4);
+                        pcs.Isib = modregrm(0, 4, 5);  // don't use [RIP] addressing
+                    }
+                    else
+                    {
+                        pcs.Iflags |= CFopsize;
+                        pcs.Irex = 0x48;
+                    }
+                }
             }
             pcs.IEV1.Vsym = s;
             pcs.IEV1.Voffset = e.EV.Voffset;
@@ -3410,37 +3446,17 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
                     if (targ2)
                         ty2 = targ2.Tty;
                 }
+                else if (tyrelax(ty1) == TYcent)
+                    ty1 = ty2 = TYllong;
+                else if (tybasic(ty1) == TYcdouble)
+                    ty1 = ty2 = TYdouble;
 
-                for (int v = 0; v < 2; v++)
+                foreach (v; 0 .. 2)
                 {
                     if (v ^ (preg != mreg))
-                    {
-                        if (preg != lreg)
-                        {
-                            if (mask(preg) & XMMREGS)
-                            {
-                                const op = xmmload(ty1);            // MOVSS/D preg,lreg
-                                cdb.gen2(op, modregxrmx(3, preg-XMM0, lreg-XMM0));
-                                checkSetVex(cdb.last(),ty1);
-                            }
-                            else
-                                genmovreg(cdb, preg, lreg);
-                        }
-                    }
+                        genmovreg(cdb, preg, lreg, ty1);
                     else
-                    {
-                        if (preg2 != mreg)
-                        {
-                            if (mask(preg2) & XMMREGS)
-                            {
-                                const op = xmmload(ty2);            // MOVSS/D preg2,mreg
-                                cdb.gen2(op, modregxrmx(3, preg2-XMM0, mreg-XMM0));
-                                checkSetVex(cdb.last(),ty2);
-                            }
-                            else
-                                genmovreg(cdb, preg2, mreg);
-                        }
-                    }
+                        genmovreg(cdb, preg2, mreg, ty2);
                 }
 
                 retregs = mask(preg) | mask(preg2);
@@ -4206,7 +4222,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                 goto L1;
             }
             docommas(cdb,&e1);             // skip over any commas
-            uint seg = 0;              // assume no seg override
+            code_flags_t seg = 0;          // assume no seg override
             regm_t retregs = sz ? IDXREGS : 0;
             bool doneoff = false;
             uint pushsize = REGSIZE;
@@ -4238,6 +4254,15 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                             case TYsptr:
                                 if (config.wflags & WFssneds)
                                     seg = CFss;
+                                break;
+
+                            case TYfgPtr:
+                                if (I32)
+                                     seg = CFgs;
+                                else if (I64)
+                                     seg = CFfs;
+                                else
+                                     assert(0);
                                 break;
 
                             case TYcptr:

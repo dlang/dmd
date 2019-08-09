@@ -160,7 +160,7 @@ public:
         }
 
         // Now the function body can be serialized.
-        ReturnStatement rs = fld.fbody.isReturnStatement();
+        ReturnStatement rs = fld.fbody.endsWithReturnStatement();
         if (rs && rs.exp)
         {
             rs.exp.accept(this);

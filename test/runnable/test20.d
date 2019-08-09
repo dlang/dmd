@@ -805,7 +805,7 @@ struct S45
 {
     double x = 0, y = 0;
     static S45 opCall(int i) { S45 r; r.x = i; return r; }
-    S45 opMul(S45 s)
+    S45 opBinary(string op)(S45 s) if (op == "*")
     {
         S45 r;
         r.x = x * s.x;
@@ -1031,7 +1031,7 @@ struct S54
         return S54.foo() * S54.foo();
     }
 
-    S54 opMul(S54 s)
+    S54 opBinary(string op)(S54 s) if (op == "*")
     {
         return s;
     }

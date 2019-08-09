@@ -2134,7 +2134,7 @@ private int funcsideeffect_walk(elem *e)
 {
     assert(e);
     elem_debug(e);
-    if (typemask(e) & mTYvolatile)
+    if (typemask(e) & (mTYvolatile | mTYshared))
         return 1;
     int op = e.Eoper;
     switch (op)

@@ -13,6 +13,7 @@ module dmd.backend.cc;
 
 // Online documentation: https://dlang.org/phobos/dmd_backend_cc.html
 
+import dmd.backend.barray;
 import dmd.backend.cdef;        // host and target compiler definition
 import dmd.backend.code_x86;
 import dmd.backend.dlist;
@@ -227,6 +228,20 @@ nothrow:
             sp.Slinnum = linnum;
             sp.Scharnum = charnum;
             return sp;
+        }
+
+        /*******
+         * Set fields of Srcpos
+         * Params:
+         *      filename = file name
+         *      linnum = line number
+         *      charnum = character number
+         */
+        void set(const(char)* filename, uint linnum, int charnum) pure
+        {
+            Sfilename = filename;
+            Slinnum = linnum;
+            Scharnum = charnum;
         }
     }
 
@@ -806,9 +821,7 @@ struct func_t
     char *Fredirect;            // redirect function name to this name in object
 
     // Array of catch types for EH_DWARF Types Table generation
-    Symbol **typesTable;
-    size_t typesTableDim;       // number used in typesTable[]
-    size_t typesTableCapacity;  // allocated capacity of typesTable[]
+    Barray!(Symbol*) typesTable;
 
     union
     {
@@ -1443,6 +1456,7 @@ void symbol_debug(const Symbol* s)
 int Symbol_Salignsize(Symbol* s);
 bool Symbol_Sisdead(const Symbol* s, bool anyInlineAsm);
 int Symbol_needThis(const Symbol* s);
+bool Symbol_isAffected(const ref Symbol s);
 
 bool isclassmember(const Symbol* s) { return s.Sscope && s.Sscope.Sclass == SCstruct; }
 
