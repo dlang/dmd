@@ -291,11 +291,10 @@ private GrepResult grepLines(T)(T lineRange, string finalPattern)
 }
 
 /**
-read the the given `file` and remove \r and the compiler debug header.
+remove \r and the compiler debug header from the given string.
 */
-string readOutput(string file)
+string filterCompilerOutput(string output)
 {
-    string output = readText(file);
     output = std.string.replace(output, "\r", "");
     output = std.regex.replaceAll(output, regex(`^DMD v2\.[0-9]+.*\n? DEBUG\n`, "m"), "");
     return output;
