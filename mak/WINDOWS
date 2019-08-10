@@ -55,6 +55,7 @@ copydir: $(IMPDIR)
 	@if not exist $(IMPDIR)\core\sys\posix\sys              mkdir $(IMPDIR)\core\sys\posix\sys
 	@if not exist $(IMPDIR)\core\sys\solaris\sys            mkdir $(IMPDIR)\core\sys\solaris\sys
 	@if not exist $(IMPDIR)\core\sys\windows                mkdir $(IMPDIR)\core\sys\windows
+	@if not exist $(IMPDIR)\core\thread                     mkdir $(IMPDIR)\core\thread
 	@if not exist $(IMPDIR)\etc\linux                       mkdir $(IMPDIR)\etc\linux
 
 copy: $(COPY)
