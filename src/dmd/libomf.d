@@ -148,9 +148,7 @@ final class LibOMF : Library
             if (firstmodule && module_name && !islibrary)
             {
                 // Remove path and extension
-                auto n = strdup(FileName.name(module_name));
-                if (!n)
-                    Mem.error();
+                auto n = cast(char*)Mem.check(strdup(FileName.name(module_name)));
                 om.name = n[0 .. strlen(n)];
                 char* ext = cast(char*)FileName.ext(n);
                 if (ext)
@@ -161,9 +159,7 @@ final class LibOMF : Library
                 /* Use THEADR name as module name,
                  * removing path and extension.
                  */
-                auto n = strdup(FileName.name(name));
-                if (!n)
-                    Mem.error();
+                auto n = cast(char*)Mem.check(strdup(FileName.name(name)));
                 om.name = n[0 .. strlen(n)];
                 char* ext = cast(char*)FileName.ext(n);
                 if (ext)
@@ -191,9 +187,7 @@ final class LibOMF : Library
         if (auto s = tab.insert(name, null))
         {
             auto os = new OmfObjSymbol();
-            os.name = strdup(name.ptr);
-            if (!os.name)
-                Mem.error();
+            os.name = cast(char*)Mem.check(strdup(name.ptr));
             os.om = om;
             s.ptrvalue = cast(void*)os;
             objsymbols.push(os);
@@ -457,11 +451,9 @@ private:
             }
             // Allocate dictionary
             if (bucketsP)
-                bucketsP = cast(ubyte*)realloc(bucketsP, ndicpages * BUCKETPAGE);
+                bucketsP = cast(ubyte*)Mem.check(realloc(bucketsP, ndicpages * BUCKETPAGE));
             else
-                bucketsP = cast(ubyte*)malloc(ndicpages * BUCKETPAGE);
-            if (!bucketsP)
-                Mem.error();
+                bucketsP = cast(ubyte*)Mem.check(malloc(ndicpages * BUCKETPAGE));
             memset(bucketsP, 0, ndicpages * BUCKETPAGE);
             for (uint u = 0; u < ndicpages; u++)
             {

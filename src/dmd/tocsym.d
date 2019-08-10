@@ -85,9 +85,7 @@ Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, int sclass, type *t, const(ch
     char *id = &idbuf[0];
     if (idlen > idbuf.sizeof)
     {
-        id = cast(char *)malloc(idlen);
-        if (!id)
-            Mem.error();
+        id = cast(char *)Mem.check(malloc(idlen));
     }
 
     int nwritten = sprintf(id,"_D%.*s%d%.*s%.*s",

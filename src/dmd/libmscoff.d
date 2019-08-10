@@ -238,9 +238,7 @@ final class LibMSCoff : Library
                             if (c == 0)
                                 break;
                         }
-                        char* oname = cast(char*)malloc(i + 1);
-                        if (!oname)
-                            Mem.error();
+                        char* oname = cast(char*)Mem.check(malloc(i + 1));
                         memcpy(oname, longnames + foff, i);
                         oname[i] = 0;
                         om.name = oname[0 .. i];
@@ -250,9 +248,7 @@ final class LibMSCoff : Library
                     {
                         /* Pick short name out of header
                          */
-                        char* oname = cast(char*)malloc(MSCOFF_OBJECT_NAME_SIZE);
-                        if (!oname)
-                            Mem.error();
+                        char* oname = cast(char*)Mem.check(malloc(MSCOFF_OBJECT_NAME_SIZE));
                         int i;
                         for (i = 0; 1; i++)
                         {

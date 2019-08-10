@@ -967,9 +967,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     Symbol **params = paramsbuf.ptr;    // allocate on stack if possible
     if (pi + 2 > paramsbuf.length)      // allow extra 2 for sthis and shidden
     {
-        params = cast(Symbol **)malloc((pi + 2) * (Symbol *).sizeof);
-        if (!params)
-            Mem.error();
+        params = cast(Symbol **)Mem.check(malloc((pi + 2) * (Symbol *).sizeof));
     }
 
     // Get the actual number of parameters, pi, and fill in the params[]

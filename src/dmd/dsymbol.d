@@ -605,9 +605,7 @@ extern (C++) class Dsymbol : ASTNode
 
         // Allocate temporary array comp[]
         alias T = const(char)[];
-        auto compptr = cast(T*)malloc(complength * T.sizeof);
-        if (!compptr)
-            Mem.error();
+        auto compptr = cast(T*)Mem.check(malloc(complength * T.sizeof));
         auto comp = compptr[0 .. complength];
 
         // Fill in comp[] and compute length of final result
