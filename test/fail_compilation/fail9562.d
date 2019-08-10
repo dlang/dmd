@@ -5,7 +5,7 @@ TEST_OUTPUT:
 ---
 fail_compilation/fail9562.d(17): Error: `int[]` is not an expression
 fail_compilation/fail9562.d(18): Error: no property `reverse` for type `int[]`
-fail_compilation/fail9562.d(19): Error: no property `sort` for type `int[]`
+fail_compilation/fail9562.d(19): Error: no property `sort` for type `int[]`, perhaps `import std.algorithm;` is needed?
 fail_compilation/fail9562.d(20): Error: no property `dup` for type `int[]`
 fail_compilation/fail9562.d(21): Error: no property `idup` for type `int[]`
 ---

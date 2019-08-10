@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail7234.d(14): Error: no property `empty` for type `Contract*`
+fail_compilation/fail7234.d(14): Error: no property `empty` for type `Contract*`, perhaps `import std.range;` is needed?
 ---
 */
 

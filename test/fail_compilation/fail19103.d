@@ -1,8 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail19103.d(12): Error: no property `writeln` for type `fail19103.C`
-fail_compilation/fail19103.d(14): Error: no property `writeln` for type `S1`
+fail_compilation/fail19103.d(12): Error: no property `writeln` for type `fail19103.C`, perhaps `import std.stdio;` is needed?
+fail_compilation/fail19103.d(14): Error: no property `writeln` for type `S1`, perhaps `import std.stdio;` is needed?
 fail_compilation/fail19103.d(16): Error: no property `writeln` for type `S2`, did you mean `std.stdio.writeln(T...)(T args)`?
 ---
 */
