@@ -284,8 +284,7 @@ Ldone:
 public Statement gccAsmSemantic(GccAsmStatement s, Scope *sc)
 {
     //printf("GccAsmStatement.semantic()\n");
-    scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-    scope p = new Parser!ASTCodegen(sc._module, ";", false, diagnosticReporter);
+    scope p = new Parser!ASTCodegen(sc._module, ";", false);
 
     // Make a safe copy of the token list before parsing.
     Token *toklist = null;
@@ -302,8 +301,9 @@ public Statement gccAsmSemantic(GccAsmStatement s, Scope *sc)
     p.scanloc = s.loc;
 
     // Parse the gcc asm statement.
+    const errors = global.errors;
     s = p.parseGccAsm(s);
-    if (p.errors)
+    if (errors != global.errors)
         return null;
     s.stc = sc.stc;
 
@@ -370,20 +370,19 @@ unittest
     // Immitates asmSemantic if version = IN_GCC.
     static int semanticAsm(Token* tokens)
     {
+        const errors = global.errors;
         scope gas = new GccAsmStatement(Loc.initial, tokens);
-        scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-        scope p = new Parser!ASTCodegen(null, ";", false, diagnosticReporter);
+        scope p = new Parser!ASTCodegen(null, ";", false);
         p.token = *tokens;
         p.parseGccAsm(gas);
-        return p.errors;
+        return global.errors - errors;
     }
 
     // Immitates parseStatement for asm statements.
     static void parseAsm(string input, bool expectError)
     {
         // Generate tokens from input test.
-        scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-        scope p = new Parser!ASTCodegen(null, input, false, diagnosticReporter);
+        scope p = new Parser!ASTCodegen(null, input, false);
         p.nextToken();
 
         Token* toklist = null;

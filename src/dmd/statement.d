@@ -815,19 +815,15 @@ extern (C++) final class CompileStatement : Statement
         const len = buf.length;
         buf.writeByte(0);
         const str = buf.extractSlice()[0 .. len];
-        scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-        scope p = new Parser!ASTCodegen(loc, sc._module, str, false, diagnosticReporter);
+        scope p = new Parser!ASTCodegen(loc, sc._module, str, false);
         p.nextToken();
 
         auto a = new Statements();
         while (p.token.value != TOK.endOfFile)
         {
             Statement s = p.parseStatement(ParseStatementFlags.semi | ParseStatementFlags.curlyScope);
-            if (!s || p.errors)
-            {
-                assert(!p.errors || global.errors != errors); // make sure we caught all the cases
+            if (!s || global.errors != errors)
                 return errorStatements();
-            }
             a.push(s);
         }
         return a;
