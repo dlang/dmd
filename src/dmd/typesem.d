@@ -2132,7 +2132,12 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
                     if (ident == Id.call && mt.ty == Tclass)
                         error(loc, "no property `%s` for type `%s`, did you mean `new %s`?", ident.toChars(), mt.toChars(), mt.toPrettyChars());
                     else
-                        error(loc, "no property `%s` for type `%s`", ident.toChars(), mt.toChars());
+                    {
+                        if (const n = importHint(ident.toString()))
+                            error(loc, "no property `%s` for type `%s`, perhaps `import %.*s;` is needed?", ident.toChars(), mt.toChars(), cast(int)n.length, n.ptr);
+                        else
+                            error(loc, "no property `%s` for type `%s`", ident.toChars(), mt.toChars());
+                    }
                 }
             }
             e = new ErrorExp();
