@@ -548,11 +548,7 @@ struct Target
             //printf("  3 true\n");
             return true;
         }
-        else if ((global.params.isLinux || global.params.isOSX ||
-                  global.params.isFreeBSD || global.params.isSolaris ||
-                  global.params.isDragonFlyBSD) &&
-                 tf.linkage == LINK.c &&
-                 tns.iscomplex())
+        else if (tf.linkage != LINK.d && tns.iscomplex())
         {
             if (tns.ty == Tcomplex32)
                 return false;     // in EDX:EAX, not ST1:ST0

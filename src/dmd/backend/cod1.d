@@ -3998,7 +3998,12 @@ static if (0)
 
     reg_t reg1, reg2;
     retregs = allocretregs(e.Ety, e.ET, tym1, &reg1, &reg2);
-    assert(retregs || !*pretregs);
+    if (tycomplex(e.Ety) && I32 && tybasic(tym1) != TYjfunc)
+    {
+        // C functions return on the stack but the backend API expects it in the FPU
+    }
+    else
+        assert(retregs || !*pretregs);
 
     if (!usefuncarg)
     {
@@ -4134,6 +4139,58 @@ static if (0)
         push87(cdb);
         cdb.genfltreg(0xD9, 0, tysize(TYfloat));
         genfwait(cdb);
+
+        retregs = mST01;
+    }
+
+    /* Special handling for complex numbers returned from C++ functions on 32 bits systems.
+       Move it into the FPU stack.
+     */
+    if (I32 && tybasic(tym1) != TYjfunc && *pretregs && tycomplex(e.Ety))
+    {
+        if (retregs == (mask(AX) | mask(DX)))
+        {
+            assert(tybasic(e.Ety) == TYcfloat);
+            // spill
+            cdb.genfltreg(STO, AX ,0);         // MOV fltreg,EAX
+            cdb.genfltreg(STO, DX ,4);         // MOV fltreg,EDX
+            // reload real
+            push87(cdb);
+            cdb.genfltreg(0xD9, 0, 0);         // FLD float ptr floatreg
+            genfwait(cdb);
+            // reload imaginary
+            push87(cdb);
+            cdb.genfltreg(0xD9, 0, 4);         // FLD float ptr floatreg+4
+            genfwait(cdb);
+        }
+        else
+        {
+            // returned on the stack
+            assert(!retregs);
+            uint op, reg;
+            switch (tybasic(e.Ety))
+            {
+                case TYcdouble:
+                    op = 0xDD;
+                    break;
+
+                case TYcldouble:
+                    op = 0xDB;
+                    reg = 5;
+                    break;
+
+                default:
+                    assert(0);
+            }
+            // load real
+            push87(cdb);
+            cdb.genc1(op, modregxrm(2, reg, AX), FLconst, 0); // FLD double/real ptr [EAX]
+            genfwait(cdb);
+            // load imaginary
+            push87(cdb);
+            cdb.genc1(op, modregxrm(2, reg, AX), FLconst, tysize(e.Ety) / 2); // FLD double/real ptr [EAX+offset]
+            genfwait(cdb);
+        }
 
         retregs = mST01;
     }
