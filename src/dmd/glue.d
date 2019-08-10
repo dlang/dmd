@@ -827,6 +827,18 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     {
         if (p.isTemplateInstance())
         {
+            // functions without D or C++ name mangling mixed in at global scope
+            // shouldn't have multiple definitions
+            if (p.isTemplateMixin() && (fd.linkage == LINK.c || fd.linkage == LINK.windows ||
+                fd.linkage == LINK.pascal || fd.linkage == LINK.objc))
+            {
+                const q = p.toParent();
+                if (q && q.isModule())
+                {
+                    s.Sclass = SCglobal;
+                    break;
+                }
+            }
             s.Sclass = SCcomdat;
             break;
         }

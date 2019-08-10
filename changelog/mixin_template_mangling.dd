@@ -1,7 +1,7 @@
-Template mixins now mangle extern(C) declarations when mixed in at global scope
+`extern(C)` declarations in template mixins now mangle as C symbols when mixed in at global scope
 
-This was already true for string mixins, but since template mixins introduce a new namespace they also get mangled as D symbols.
-However, users often use extern(C) inside a mixin template to automatically generate boilerplate code that should be accessible from C.
+This was already true for string mixins, but since template mixins introduce a new scope, symbols inside them got mangled as D symbols.
+However, users often use `extern(C)` inside a mixin template to automatically generate boilerplate code that should be accessible from C.
 
 -------
 // library code
@@ -24,10 +24,11 @@ static assert(_start.mangleof == "_start");
 static assert(NvOptimusEnablement.mangleof == "NvOptimusEnablement");
 -------
 
-Previously, _start would be mangled as _D9onlineapp8__mixin46_startUkZv and users had to manually add pragma(mangle, "_start") or use a string mixin instead.
-With the new behavior this is not necessary anymore.
-extern(C++) declarations and mixed in member functions or nested functions are unaffected.
-There is a possibility this breaks code if you have an extern(C) function or variable that you use in multiple modules.
+Previously, _start would be mangled like `_D9onlineapp8__mixin46_startUkZv` and users had to manually add `pragma(mangle, "_start")` or use a string mixin instead.
+With the new behavior this is not necessary anymore for `extern(C)`, as well as `extern(Windows)` and `extern(Objective-C)`.
+`extern(C++)` remains unchanged since it already always mangles to C++, even in nested scopes.
+
+There is a possibility this breaks code if you mix in different `extern(C)` declarations with the same name in the global scope of multiple modules.
 
 -------
 import core.stdc.stdio;
@@ -51,10 +52,8 @@ mixin GenPrintCallback!"foo";
 mixin GenPrintCallback!"bar";
 -------
 
-In this case, textLength and textPointer will be defined multiple times and give a linker error.
-callBackOnly will be defined multiple times, but because functions in templates have weak linkage that is allowed.
-It does mean that the linker will just pick one "callBackOnly" and print e.g. "foo" for both foo and bar.
-The solution is to not make variables extern(C) and make C callback functions anonymous.
+In this case textLength, textPointer and callBackOnly will be defined multiple times, so the linker either picks one or raises and error.
+The solution is to not make variables `extern(C)` and make C callback functions anonymous:
 
 -------
 import core.stdc.stdio;
