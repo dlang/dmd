@@ -545,9 +545,7 @@ private extern (C++) class S2irVisitor : Visitor
 
         // Corresponding free is in block_free
         alias TCase = typeof(mystate.switchBlock.Bswitch[0]);
-        auto pu = cast(TCase *)(.malloc(TCase.sizeof * (numcases + 1)));
-        if (!pu)
-            Mem.error();
+        auto pu = cast(TCase *)Mem.check(.malloc(TCase.sizeof * (numcases + 1)));
         mystate.switchBlock.Bswitch = pu;
         /* First pair is the number of cases, and the default block
          */
@@ -1039,9 +1037,7 @@ private extern (C++) class S2irVisitor : Visitor
                                         el_combine(e3, el_var(shandler)));
 
             const numcases = s.catches.dim;
-            bswitch.Bswitch = cast(targ_llong *) .malloc((targ_llong).sizeof * (numcases + 1));
-            if (!bswitch.Bswitch)
-                Mem.error();
+            bswitch.Bswitch = cast(targ_llong *) Mem.check(.malloc((targ_llong).sizeof * (numcases + 1)));
             bswitch.Bswitch[0] = numcases;
             bswitch.appendSucc(defaultblock);
             block_next(blx, BCswitch, null);
@@ -1148,9 +1144,7 @@ private extern (C++) class S2irVisitor : Visitor
              * Need a copy since the bswitch may get rewritten by the optimizer.
              */
             alias TAction = typeof(bcatch.actionTable[0]);
-            bcatch.actionTable = cast(TAction*).malloc(TAction.sizeof * (numcases + 1));
-            if (!bcatch.actionTable)
-                Mem.error();
+            bcatch.actionTable = cast(TAction*)Mem.check(.malloc(TAction.sizeof * (numcases + 1)));
             foreach (i; 0 .. numcases + 1)
                 bcatch.actionTable[i] = cast(TAction)bswitch.Bswitch[i];
 

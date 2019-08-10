@@ -128,9 +128,7 @@ public:
         type*[10] tmp = void;
         type** ptypes = (nparams <= tmp.length)
                         ? tmp.ptr
-                        : cast(type**)malloc((type*).sizeof * nparams);
-        if (!ptypes)
-            Mem.error();
+                        : cast(type**)Mem.check(malloc((type*).sizeof * nparams));
         type*[] types = ptypes[0 .. nparams];
 
         foreach (i; 0 .. nparams)

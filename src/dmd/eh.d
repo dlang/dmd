@@ -321,9 +321,7 @@ void except_fillInEHTable(Symbol *s)
                     dtb.coff(foffset);  // finally handler address
                 if (stacki == stackmax)
                 {   // stack[] is out of space; enlarge it
-                    int *pi = cast(int *)malloc((stackmax + STACKINC) * int.sizeof);
-                    if (!pi)
-                        Mem.error();
+                    int *pi = cast(int *)Mem.check(malloc((stackmax + STACKINC) * int.sizeof));
                     memcpy(pi, stack, stackmax * int.sizeof);
                     if (stack != stackbuf.ptr)
                         free(stack);

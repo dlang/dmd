@@ -417,9 +417,7 @@ public int runLINK()
         else
         {
             // Split CC command to support link driver arguments such as -fpie or -flto.
-            char *arg = strdup(cc);
-            if (!arg)
-                Mem.error();
+            char* arg = cast(char*)Mem.check(strdup(cc));
             const(char)* tok = strtok(arg, " ");
             while (tok)
             {
