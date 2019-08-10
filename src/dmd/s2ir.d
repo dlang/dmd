@@ -580,8 +580,6 @@ private extern (C++) class S2irVisitor : Visitor
         if (bsw.BC == BCswitch)
             bsw.appendSucc(clabel.lblock);   // second entry in pair
         bcase.appendSucc(clabel.lblock);
-        if (blx.tryblock != bsw.Btry)
-            s.error("case cannot be in different `try` block level from `switch`");
         incUsage(irs, s.loc);
         if (s.statement)
             Statement_toIR(s.statement, irs);
@@ -594,8 +592,6 @@ private extern (C++) class S2irVisitor : Visitor
         block *bdefault = irs.getDefaultBlock();
         block_next(blx,BCgoto,bdefault);
         bcase.appendSucc(blx.curblock);
-        if (blx.tryblock != irs.getSwitchBlock().Btry)
-            s.error("default cannot be in different `try` block level from `switch`");
         incUsage(irs, s.loc);
         if (s.statement)
             Statement_toIR(s.statement, irs);

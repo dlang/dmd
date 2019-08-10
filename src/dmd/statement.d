@@ -1568,7 +1568,8 @@ extern (C++) final class SwitchStatement : Statement
     bool isFinal;                   /// https://dlang.org/spec/statement.html#final-switch-statement
 
     DefaultStatement sdefault;      /// default:
-    TryFinallyStatement tf;         ///
+    Statement tryBody;              /// set to TryCatchStatement or TryFinallyStatement if in _body portion
+    TryFinallyStatement tf;         /// set if in the 'finally' block of a TryFinallyStatement
     GotoCaseStatements gotoCases;   /// array of unresolved GotoCaseStatement's
     CaseStatements* cases;          /// array of CaseStatement's
     int hasNoDefault;               /// !=0 if no default statement

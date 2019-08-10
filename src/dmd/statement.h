@@ -439,6 +439,7 @@ public:
     bool isFinal;
 
     DefaultStatement *sdefault;
+    Statement *tryBody;            // set to TryCatchStatement or TryFinallyStatement if in _body portion
     TryFinallyStatement *tf;
     GotoCaseStatements gotoCases;  // array of unresolved GotoCaseStatement's
     CaseStatements *cases;         // array of CaseStatement's
