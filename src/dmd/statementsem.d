@@ -2481,6 +2481,7 @@ else
          */
 
         //printf("SwitchStatement::semantic(%p)\n", ss);
+        ss.tryBody = sc.tryBody;
         ss.tf = sc.tf;
         if (ss.cases)
         {
@@ -2878,6 +2879,11 @@ else
                 cs.error("`switch` and `case` are in different `finally` blocks");
                 errors = true;
             }
+            if (sc.sw.tryBody != sc.tryBody)
+            {
+                cs.error("case cannot be in different `try` block level from `switch`");
+                errors = true;
+            }
         }
         else
         {
@@ -2998,6 +3004,11 @@ else
             if (sc.sw.tf != sc.tf)
             {
                 ds.error("`switch` and `default` are in different `finally` blocks");
+                errors = true;
+            }
+            if (sc.sw.tryBody != sc.tryBody)
+            {
+                ds.error("default cannot be in different `try` block level from `switch`");
                 errors = true;
             }
             if (sc.sw.isFinal)
@@ -3851,8 +3862,11 @@ else
         enum FLAGcpp = 1;
         enum FLAGd = 2;
 
+        scope sc2 = sc.push();
+        sc2.tryBody = tcs;
         tcs._body = tcs._body.semanticScope(sc, null, null);
         assert(tcs._body);
+        sc2.pop();
 
         /* Even if body is empty, still do semantic analysis on catches
          */
@@ -3933,7 +3947,10 @@ else
     override void visit(TryFinallyStatement tfs)
     {
         //printf("TryFinallyStatement::semantic()\n");
+        auto sc2 = sc.push();
+        sc.tryBody = tfs;
         tfs._body = tfs._body.statementSemantic(sc);
+        sc2.pop();
 
         sc = sc.push();
         sc.tf = tfs;
