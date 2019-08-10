@@ -178,7 +178,6 @@ unittest
 {
     import std.conv;
     import std.algorithm : each;
-    import std.functional : toDelegate;
 
     import core.stdc.stdarg : va_list;
 
@@ -189,15 +188,16 @@ unittest
 
     string[] diagnosticMessages;
 
-    nothrow void diagnosticHandler(const ref Loc loc, Color headerColor, const(char)* header,
+    nothrow bool diagnosticHandler(const ref Loc loc, Color headerColor, const(char)* header,
                                    const(char)* format, va_list ap, const(char)* p1, const(char)* p2)
     {
         OutBuffer tmp;
         tmp.vprintf(format, ap);
         diagnosticMessages ~= to!string(tmp.peekChars());
+        return true;
     }
 
-    initDMD(toDelegate(&diagnosticHandler));
+    initDMD(&diagnosticHandler);
     defaultImportPaths.each!addImport;
 
     parseModule("test.d", q{
