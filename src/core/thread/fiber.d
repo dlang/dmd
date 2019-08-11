@@ -552,10 +552,6 @@ class Fiber
           size_t guardPageSize = PAGESIZE ) nothrow
     in
     {
-        import core.sys.windows.winbase;
-        SYSTEM_INFO info;
-        GetSystemInfo(&info);
-        assert(PAGESIZE == info.dwPageSize);
         assert( fn );
     }
     do
