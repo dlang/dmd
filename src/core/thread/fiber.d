@@ -29,6 +29,11 @@ else
     version = StackGrowsDown;
 }
 
+version (Windows)
+{
+    import core.stdc.stdlib : malloc, free;
+}
+
 private
 {
     version (D_InlineAsm_X86)
@@ -547,6 +552,10 @@ class Fiber
           size_t guardPageSize = PAGESIZE ) nothrow
     in
     {
+        import core.sys.windows.winbase;
+        SYSTEM_INFO info;
+        GetSystemInfo(&info);
+        assert(PAGESIZE == info.dwPageSize);
         assert( fn );
     }
     do
@@ -636,15 +645,7 @@ class Fiber
     // class needs to be templated.
     final Throwable call( Rethrow rethrow = Rethrow.yes )
     {
-        if (rethrow)
-        {
-            return call!(Rethrow.yes)();
-        }
-        else
-        {
-            return call!(Rethrow.no);
-        }
-        //return rethrow ? call!(Rethrow.yes)() : call!(Rethrow.no);
+        return rethrow ? call!(Rethrow.yes)() : call!(Rethrow.no);
     }
 
     /// ditto
