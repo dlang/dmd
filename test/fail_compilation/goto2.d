@@ -3,6 +3,7 @@ TEST_OUTPUT:
 ---
 fail_compilation/goto2.d(1024): Error: case cannot be in different `try` block level from `switch`
 fail_compilation/goto2.d(1026): Error: default cannot be in different `try` block level from `switch`
+fail_compilation/goto2.d(1003): Error: cannot `goto` into `try` block
 ---
  */
 

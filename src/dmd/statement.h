@@ -584,6 +584,8 @@ public:
     Statement *_body;
     Catches *catches;
 
+    Statement *tryBody;   /// set to enclosing TryCatchStatement or TryFinallyStatement if in _body portion
+
     Statement *syntaxCopy();
     bool hasBreak() const;
 
@@ -615,7 +617,8 @@ public:
     Statement *_body;
     Statement *finalbody;
 
-    bool bodyFallsThru;         // true if _body falls through to finally
+    Statement *tryBody;   // set to enclosing TryCatchStatement or TryFinallyStatement if in _body portion
+    bool bodyFallsThru;   // true if _body falls through to finally
 
     static TryFinallyStatement *create(Loc loc, Statement *body, Statement *finalbody);
     Statement *syntaxCopy();
@@ -665,6 +668,7 @@ class GotoStatement : public Statement
 public:
     Identifier *ident;
     LabelDsymbol *label;
+    Statement *tryBody;   /// set to enclosing TryCatchStatement or TryFinallyStatement if in _body portion
     TryFinallyStatement *tf;
     ScopeGuardStatement *os;
     VarDeclaration *lastVar;
@@ -679,6 +683,7 @@ class LabelStatement : public Statement
 public:
     Identifier *ident;
     Statement *statement;
+    Statement *tryBody;   /// set to enclosing TryCatchStatement or TryFinallyStatement if in _body portion
     TryFinallyStatement *tf;
     ScopeGuardStatement *os;
     VarDeclaration *lastVar;
