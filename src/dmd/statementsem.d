@@ -3862,6 +3862,8 @@ else
         enum FLAGcpp = 1;
         enum FLAGd = 2;
 
+        tcs.tryBody = sc.tryBody;
+
         scope sc2 = sc.push();
         sc2.tryBody = tcs;
         tcs._body = tcs._body.semanticScope(sc, null, null);
@@ -3947,6 +3949,8 @@ else
     override void visit(TryFinallyStatement tfs)
     {
         //printf("TryFinallyStatement::semantic()\n");
+        tfs.tryBody = sc.tryBody;
+
         auto sc2 = sc.push();
         sc.tryBody = tfs;
         tfs._body = tfs._body.statementSemantic(sc);
@@ -4097,6 +4101,7 @@ else
 
         gs.ident = fixupLabelName(sc, gs.ident);
         gs.label = fd.searchLabel(gs.ident);
+        gs.tryBody = sc.tryBody;
         gs.tf = sc.tf;
         gs.os = sc.os;
         gs.lastVar = sc.lastVar;
@@ -4135,6 +4140,7 @@ else
         FuncDeclaration fd = sc.parent.isFuncDeclaration();
 
         ls.ident = fixupLabelName(sc, ls.ident);
+        ls.tryBody = sc.tryBody;
         ls.tf = sc.tf;
         ls.os = sc.os;
         ls.lastVar = sc.lastVar;

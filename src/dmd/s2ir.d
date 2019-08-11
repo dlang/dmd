@@ -430,9 +430,6 @@ private extern (C++) class S2irVisitor : Visitor
         b.appendSucc(bdest);
         block_setLoc(b, s.loc);
 
-        // Check that bdest is in an enclosing try block
-        bdest.checkEnclosedInTry(b, s);
-
         block_next(blx,BCgoto,null);
     }
 
@@ -448,17 +445,6 @@ private extern (C++) class S2irVisitor : Visitor
         // At last, we know which try block this label is inside
         label.lblock.Btry = blx.tryblock;
 
-        // Go through the forward references and check.
-        if (label.fwdrefs)
-        {
-            block *b = label.fwdrefs;
-
-            if (b.Btry != label.lblock.Btry)
-            {
-                // Check that lblock is in an enclosing try block
-                label.lblock.checkEnclosedInTry(b, s);
-            }
-        }
         block_next(blx, BCgoto, label.lblock);
         bc.appendSucc(blx.curblock);
         if (s.statement)
@@ -603,15 +589,6 @@ private extern (C++) class S2irVisitor : Visitor
 
         // The rest is equivalent to GotoStatement
 
-        // Adjust exception handler scope index if in different try blocks
-        if (b.Btry != bdest.Btry)
-        {
-            // Check that bdest is in an enclosing try block
-            bdest.checkEnclosedInTry(b, s);
-
-            //setScopeIndex(blx, b, bdest.Btry ? bdest.Btry.Bscope_index : -1);
-        }
-
         b.appendSucc(bdest);
         incUsage(irs, s.loc);
         block_next(blx,BCgoto,null);
@@ -625,15 +602,6 @@ private extern (C++) class S2irVisitor : Visitor
         block *b = blx.curblock;
 
         // The rest is equivalent to GotoStatement
-
-        // Adjust exception handler scope index if in different try blocks
-        if (b.Btry != bdest.Btry)
-        {
-            // Check that bdest is in an enclosing try block
-            bdest.checkEnclosedInTry(b, s);
-
-            //setScopeIndex(blx, b, bdest.Btry ? bdest.Btry.Bscope_index : -1);
-        }
 
         b.appendSucc(bdest);
         incUsage(irs, s.loc);
@@ -1783,26 +1751,3 @@ void insertFinallyBlockGotos(block *startblock)
         printf("-------------------------\n");
     }
 }
-
-/***************************************************
- * Issue error if bd is not enclosed in a try block.
- * Params:
- *      bd = block to check (destination of goto)
- *      bcurrent = current block (where the goto is)
- *      s = statement to use for error messages
- */
-private void checkEnclosedInTry(const block* bd, const block* bcurrent, Statement s)
-{
-    //printf("checkEnclosedInTry() bd: %p bcurrent %p `%s`\n", bd, bcurrent, s.toChars());
-
-    for (const(block)* bt = bcurrent.Btry; bt != bd.Btry; bt = bt.Btry)
-    {
-        if (!bt)
-        {
-            //printf("b.Btry = %p, bdest.Btry = %p\n", b.Btry, bdest.Btry);
-            s.error("cannot `goto` into `try` block");
-            break;
-        }
-    }
-}
-
