@@ -408,7 +408,7 @@ private hash_t expressionHash(Expression e)
 
     case TOK.string_:
         auto se = cast(StringExp)e;
-        return calcHash(se.string, se.len * se.sz);
+        return calcHash(se.string[0 .. se.len * se.sz]);
 
     case TOK.tuple:
     {

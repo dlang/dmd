@@ -12,38 +12,34 @@
 
 module dmd.root.hash;
 
-pure:
-nothrow:
-@nogc:
-
 // MurmurHash2 was written by Austin Appleby, and is placed in the public
 // domain. The author hereby disclaims copyright to this source code.
 // https://sites.google.com/site/murmurhash/
-uint calcHash(const(char)* data, size_t len)
+uint calcHash(scope const(char)[] data) @nogc nothrow pure @safe
 {
-    return calcHash(cast(const(ubyte)*)data, len);
+    return calcHash(cast(const(ubyte)[])data);
 }
 
-uint calcHash(const(ubyte)* data, size_t len)
+/// ditto
+uint calcHash(scope const(ubyte)[] data) @nogc nothrow pure @safe
 {
     // 'm' and 'r' are mixing constants generated offline.
     // They're not really 'magic', they just happen to work well.
     enum uint m = 0x5bd1e995;
     enum int r = 24;
     // Initialize the hash to a 'random' value
-    uint h = cast(uint)len;
+    uint h = cast(uint) data.length;
     // Mix 4 bytes at a time into the hash
-    while (len >= 4)
+    while (data.length >= 4)
     {
         uint k = data[3] << 24 | data[2] << 16 | data[1] << 8 | data[0];
         k *= m;
         k ^= k >> r;
         h = (h * m) ^ (k * m);
-        data += 4;
-        len -= 4;
+        data = data[4..$];
     }
     // Handle the last few bytes of the input array
-    switch (len & 3)
+    switch (data.length & 3)
     {
     case 3:
         h ^= data[2] << 16;
@@ -67,7 +63,7 @@ uint calcHash(const(ubyte)* data, size_t len)
 }
 
 // combine and mix two words (boost::hash_combine)
-size_t mixHash(size_t h, size_t k) @safe
+size_t mixHash(size_t h, size_t k) @nogc nothrow pure @safe
 {
     return h ^ (k + 0x9e3779b9 + (h << 6) + (h >> 2));
 }
