@@ -2213,10 +2213,7 @@ extern (C++) final class GotoStatement : Statement
     extern (D) bool checkLabel()
     {
         if (!label.statement)
-        {
-            error("label `%s` is undefined", label.toChars());
-            return true;
-        }
+            return true;        // error should have been issued for this already
 
         if (label.statement.os != os)
         {
@@ -2347,6 +2344,9 @@ extern (C++) final class LabelStatement : Statement
 extern (C++) final class LabelDsymbol : Dsymbol
 {
     LabelStatement statement;
+
+    bool deleted;           // set if rewritten to return in foreach delegate
+    bool iasm;              // set if used by inline assembler
 
     extern (D) this(Identifier ident)
     {

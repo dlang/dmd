@@ -698,6 +698,9 @@ class LabelDsymbol : public Dsymbol
 public:
     LabelStatement *statement;
 
+    bool deleted;           // set if rewritten to return in foreach delegate
+    bool iasm;              // set if used by inline assembler
+
     static LabelDsymbol *create(Identifier *ident);
     LabelDsymbol *isLabel();
     void accept(Visitor *v) { v->visit(this); }

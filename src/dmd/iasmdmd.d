@@ -3526,6 +3526,8 @@ code *asm_da_parse(OP *pop)
             LabelDsymbol label = asmstate.sc.func.searchLabel(asmstate.tok.ident);
             if (!label)
                 error(asmstate.loc, "label `%s` not found", asmstate.tok.ident.toChars());
+            else
+                label.iasm = true;
 
             if (global.params.symdebug)
                 cdb.genlinnum(Srcpos.create(asmstate.loc.filename, asmstate.loc.linnum, asmstate.loc.charnum));
@@ -4480,9 +4482,11 @@ void asm_primary_exp(out OPND o1)
                     // Assume it is a label, and define that label
                     s = asmstate.sc.func.searchLabel(asmstate.tok.ident);
                 }
-                if (s.isLabel())
+                if (auto label = s.isLabel())
+                {
                     o1.segreg = &regtab[25]; // Make it use CS as a base for a label
-
+                    label.iasm = true;
+                }
                 Identifier id = asmstate.tok.ident;
                 asm_token();
                 if (asmstate.tokValue == TOK.dot)

@@ -133,10 +133,8 @@ private Label *getLabel(IRState *irs, Blockx *blx, Statement s)
 private block *labelToBlock(IRState *irs, const ref Loc loc, Blockx *blx, LabelDsymbol label, int flag = 0)
 {
     if (!label.statement)
-    {
-        error(loc, "undefined label `%s`", label.toChars());
-        return null;
-    }
+        assert(0);              // should have been caught by GotoStatement.checkLabel()
+
     Label *l = getLabel(irs, null, label.statement);
     if (flag)
     {
@@ -440,7 +438,7 @@ private extern (C++) class S2irVisitor : Visitor
 
     override void visit(LabelStatement s)
     {
-        //printf("LabelStatement.toIR() %p, statement = %p\n", this, statement);
+        //printf("LabelStatement.toIR() %p, statement: `%s`\n", this, s.statement.toChars());
         Blockx *blx = irs.blx;
         block *bc = blx.curblock;
         IRState mystate = IRState(irs,s);
@@ -1789,12 +1787,14 @@ void insertFinallyBlockGotos(block *startblock)
 /***************************************************
  * Issue error if bd is not enclosed in a try block.
  * Params:
- *      bd = block to check
- *      bcurrent = current block (starting point)
+ *      bd = block to check (destination of goto)
+ *      bcurrent = current block (where the goto is)
  *      s = statement to use for error messages
  */
 private void checkEnclosedInTry(const block* bd, const block* bcurrent, Statement s)
 {
+    //printf("checkEnclosedInTry() bd: %p bcurrent %p `%s`\n", bd, bcurrent, s.toChars());
+
     for (const(block)* bt = bcurrent.Btry; bt != bd.Btry; bt = bt.Btry)
     {
         if (!bt)
