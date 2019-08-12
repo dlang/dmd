@@ -1005,8 +1005,8 @@ else version (AsmX86_64)
                 asm pure nothrow @nogc @trusted
                 {
                     mov exchangeWith, EAX;
+                    movss XMM0, exchangeWith;
                 }
-                return exchangeWith;
             }
         }
         else static if ( T.sizeof == long.sizeof )
@@ -1022,8 +1022,8 @@ else version (AsmX86_64)
                 asm pure nothrow @nogc @trusted
                 {
                     mov exchangeWith, RAX;
+                    movsd XMM0, exchangeWith;
                 }
-                return exchangeWith;
             }
         }
         else
