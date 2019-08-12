@@ -16,6 +16,7 @@ version (D_InlineAsm_X86)
 {
     version = AsmX86;
     version = AsmX86_32;
+    enum has64BitXCHG = false;
     enum has64BitCAS = true;
     enum has128BitCAS = false;
 }
@@ -23,11 +24,13 @@ else version (D_InlineAsm_X86_64)
 {
     version = AsmX86;
     version = AsmX86_64;
+    enum has64BitXCHG = true;
     enum has64BitCAS = true;
     enum has128BitCAS = true;
 }
 else
 {
+    enum has64BitXCHG = false;
     enum has64BitCAS = false;
     enum has128BitCAS = false;
 }
@@ -189,6 +192,27 @@ version (CoreDdoc)
         return TailShared!T.init;
     }
 
+    /**
+     * Exchange `exchangeWith` with the memory referenced by `here`.
+     * This operation is both lock-free and atomic.
+     *
+     * Params:
+     *  here         = The address of the destination variable.
+     *  exchangeWith = The value to exchange.
+     *
+     * Returns:
+     *  The value held previously by `here`.
+     */
+    shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)( shared(T)* here, V exchangeWith ) pure nothrow @nogc @safe
+        if ( !is(T == class) && !is(T U : U*) && __traits( compiles, { *here = exchangeWith; } ) );
+
+    /// Ditto
+    shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)( shared(T)* here, shared(V) exchangeWith ) pure nothrow @nogc @safe
+        if ( is(T == class) && __traits( compiles, { *here = exchangeWith; } ) );
+
+    /// Ditto
+    shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)( shared(T)* here, shared(V)* exchangeWith ) pure nothrow @nogc @safe
+        if ( is(T U : U*) && __traits( compiles, { *here = exchangeWith; } ) );
 
     /**
      * Stores 'writeThis' to the memory referenced by 'here' if the value
@@ -372,6 +396,68 @@ else version (AsmX86_32)
         else
         {
             static assert( false, "Operation not supported." );
+        }
+    }
+
+    shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)( shared(T)* here, V exchangeWith ) pure nothrow @nogc @safe
+        if ( !is(T == class) && !is(T U : U*) && __traits( compiles, { *here = exchangeWith; } ) )
+    {
+        return atomicExchangeImpl(here, exchangeWith);
+    }
+
+    shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)( shared(T)* here, shared(V) exchangeWith ) pure nothrow @nogc @safe
+        if ( is(T == class) && __traits( compiles, { *here = exchangeWith; } ) )
+    {
+        return atomicExchangeImpl(here, exchangeWith);
+    }
+
+    shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)( shared(T)* here, shared(V)* exchangeWith ) pure nothrow @nogc @safe
+        if ( is(T U : U*) && __traits( compiles, { *here = exchangeWith; } ) )
+    {
+        return atomicExchangeImpl(here, exchangeWith);
+    }
+
+    private shared(T) atomicExchangeImpl(T,V)( shared(T)* here, V exchangeWith ) pure nothrow @nogc @safe
+        in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
+    {
+        static if ( T.sizeof == byte.sizeof )
+        {
+            asm pure nothrow @nogc @trusted
+            {
+                mov AL, exchangeWith;
+                mov ECX, here;
+                xchg [ECX], AL;
+            }
+        }
+        else static if ( T.sizeof == short.sizeof )
+        {
+            asm pure nothrow @nogc @trusted
+            {
+                mov AX, exchangeWith;
+                mov ECX, here;
+                xchg [ECX], AX;
+            }
+        }
+        else static if ( T.sizeof == int.sizeof )
+        {
+            asm pure nothrow @nogc @trusted
+            {
+                mov EAX, exchangeWith;
+                mov ECX, here;
+                xchg [ECX], EAX;
+            }
+            static if ( __traits(isFloating, T) )
+            {
+                asm pure nothrow @nogc @trusted
+                {
+                    mov exchangeWith, EAX;
+                }
+                return exchangeWith;
+            }
+        }
+        else
+        {
+            static assert( false, "Invalid template type specified." );
         }
     }
 
@@ -866,6 +952,85 @@ else version (AsmX86_64)
         }
     }
 
+    shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)( shared(T)* here, V exchangeWith ) pure nothrow @nogc @safe
+        if ( !is(T == class) && !is(T U : U*) &&  __traits( compiles, { *here = exchangeWith; } ) )
+    {
+        return atomicExchangeImpl(here, exchangeWith);
+    }
+
+    shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)( shared(T)* here, shared(V) exchangeWith ) pure nothrow @nogc @safe
+        if ( is(T == class) && __traits( compiles, { *here = exchangeWith; } ) )
+    {
+        return atomicExchangeImpl(here, exchangeWith);
+    }
+
+    shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)( shared(T)* here, shared(V)* exchangeWith ) pure nothrow @nogc @safe
+        if ( is(T U : U*) && __traits( compiles, { *here = exchangeWith; } ) )
+    {
+        return atomicExchangeImpl(here, exchangeWith);
+    }
+
+    private shared(T) atomicExchangeImpl(T,V)( shared(T)* here, V exchangeWith ) pure nothrow @nogc @safe
+        in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
+    do
+    {
+        static if ( T.sizeof == byte.sizeof )
+        {
+            asm pure nothrow @nogc @trusted
+            {
+                mov AL, exchangeWith;
+                mov RCX, here;
+                xchg [RCX], AL;
+            }
+        }
+        else static if ( T.sizeof == short.sizeof )
+        {
+            asm pure nothrow @nogc @trusted
+            {
+                mov AX, exchangeWith;
+                mov RCX, here;
+                xchg [RCX], AX;
+            }
+        }
+        else static if ( T.sizeof == int.sizeof )
+        {
+            asm pure nothrow @nogc @trusted
+            {
+                mov EAX, exchangeWith;
+                mov RCX, here;
+                xchg [RCX], EAX;
+            }
+            static if ( __traits(isFloating, T) )
+            {
+                asm pure nothrow @nogc @trusted
+                {
+                    mov exchangeWith, EAX;
+                }
+                return exchangeWith;
+            }
+        }
+        else static if ( T.sizeof == long.sizeof )
+        {
+            asm pure nothrow @nogc @trusted
+            {
+                mov RAX, exchangeWith;
+                mov RCX, here;
+                xchg [RCX], RAX;
+            }
+            static if ( __traits(isFloating, T) )
+            {
+                asm pure nothrow @nogc @trusted
+                {
+                    mov exchangeWith, RAX;
+                }
+                return exchangeWith;
+            }
+        }
+        else
+        {
+            static assert( false, "Invalid template type specified." );
+        }
+    }
 
     bool casByRef(T,V1,V2)( ref T value, V1 ifThis, V2 writeThis ) pure nothrow @nogc @trusted
     {
@@ -1432,6 +1597,23 @@ if (__traits(isFloating, T))
 
 version (unittest)
 {
+    void testXCHG(T)( T val ) pure nothrow @nogc @trusted
+    in
+    {
+        assert(val !is T.init);
+    }
+    do
+    {
+        T         base = cast(T)null;
+        shared(T) atom = cast(shared(T))null;
+
+        assert( base !is val, T.stringof );
+        assert( atom is base, T.stringof );
+
+        assert( atomicExchange( &atom, val ) is base, T.stringof );
+        assert( atom is val, T.stringof );
+    }
+
     void testCAS(T)( T val ) pure nothrow @nogc @trusted
     in
     {
@@ -1468,6 +1650,8 @@ version (unittest)
 
     void testType(T)( T val = T.init + 1 ) pure nothrow @nogc @safe
     {
+        static if ( T.sizeof < 8 || has64BitXCHG )
+            testXCHG!(T)( val );
         testCAS!(T)( val );
         testLoadStore!(MemoryOrder.seq, T)( val );
         testLoadStore!(MemoryOrder.raw, T)( val );
@@ -1493,6 +1677,7 @@ version (unittest)
         testType!(shared int*)();
 
         static class Klass {}
+        testXCHG!(shared Klass)( new shared(Klass) );
         testCAS!(shared Klass)( new shared(Klass) );
 
         testType!(float)(1.0f);
