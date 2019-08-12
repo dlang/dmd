@@ -62,8 +62,22 @@ uint calcHash(scope const(ubyte)[] data) @nogc nothrow pure @safe
     return h;
 }
 
+unittest
+{
+    char[10] data = "0123456789";
+    assert(calcHash(data[0..$]) ==   439_272_720);
+    assert(calcHash(data[1..$]) == 3_704_291_687);
+    assert(calcHash(data[2..$]) == 2_125_368_748);
+    assert(calcHash(data[3..$]) == 3_631_432_225);
+}
+
 // combine and mix two words (boost::hash_combine)
 size_t mixHash(size_t h, size_t k) @nogc nothrow pure @safe
 {
     return h ^ (k + 0x9e3779b9 + (h << 6) + (h >> 2));
+}
+
+unittest
+{
+    assert(mixHash(0xDE00_1540, 0xF571_1A47) == 247_315_954_704);
 }
