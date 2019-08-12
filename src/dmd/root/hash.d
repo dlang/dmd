@@ -79,5 +79,6 @@ size_t mixHash(size_t h, size_t k) @nogc nothrow pure @safe
 
 unittest
 {
-    assert(mixHash(0xDE00_1540, 0xF571_1A47) == 247_315_954_704);
+    // & uint.max because mixHash output is truncated on 32-bit targets
+    assert((mixHash(0xDE00_1540, 0xF571_1A47) & uint.max) == 0x952D_FC10);
 }
