@@ -1,0 +1,3 @@
+Added `core.atomic.atomicExchange`.
+
+Added missing `core.atomic.atomicExchange` function to the atomic suite.
