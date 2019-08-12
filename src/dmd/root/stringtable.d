@@ -22,7 +22,7 @@ private enum POOL_SIZE = (1U << POOL_BITS);
 Returns the smallest integer power of 2 larger than val.
 if val > 2^^63 it enters and endless loop since 2^^64 does not fit in a size_t
 */
-private size_t nextpow2(size_t val) pure nothrow @nogc @safe
+private size_t nextpow2(size_t val) @nogc nothrow pure @safe
 {
     size_t res = 1;
     while (res < val)
@@ -54,26 +54,24 @@ struct StringValue
     void* ptrvalue;
     private size_t length;
 
-nothrow:
-pure:
 @nogc:
-    char* lstring() return
+    char* lstring() nothrow pure return
     {
         return cast(char*)(&this + 1);
     }
 
-    size_t len() const @safe
+    size_t len() const nothrow pure @safe
     {
         return length;
     }
 
-    const(char)* toDchars() const return
+    const(char)* toDchars() const nothrow pure return
     {
         return cast(const(char)*)(&this + 1);
     }
 
     /// Returns: The content of this entry as a D slice
-    inout(char)[] toString() inout
+    inout(char)[] toString() inout nothrow pure
     {
         return (cast(inout(char)*)(&this + 1))[0 .. length];
     }
@@ -89,8 +87,7 @@ private:
     size_t countTrigger;   // amount which will trigger growing the table
 
 public:
-nothrow:
-    void _init(size_t size = 0) pure
+    void _init(size_t size = 0) nothrow pure
     {
         size = nextpow2((size * loadFactorDenominator) / loadFactorNumerator);
         if (size < 32)
@@ -102,13 +99,13 @@ nothrow:
         count = 0;
     }
 
-    void reset(size_t size = 0) pure
+    void reset(size_t size = 0) nothrow pure
     {
         freeMem();
         _init(size);
     }
 
-    ~this() pure
+    ~this() nothrow pure
     {
         freeMem();
     }
@@ -125,7 +122,7 @@ nothrow:
     Returns: the string's associated value, or `null` if the string doesn't
      exist in the string table
     */
-    inout(StringValue)* lookup(const(char)[] str) inout pure @nogc
+    inout(StringValue)* lookup(const(char)[] str) inout @nogc nothrow pure
     {
         const(size_t) hash = calcHash(str);
         const(size_t) i = findSlot(hash, str);
@@ -134,7 +131,7 @@ nothrow:
     }
 
     /// ditto
-    inout(StringValue)* lookup(const(char)* s, size_t length) inout pure @nogc
+    inout(StringValue)* lookup(const(char)* s, size_t length) inout @nogc nothrow pure
     {
         return lookup(s[0 .. length]);
     }
@@ -153,7 +150,7 @@ nothrow:
     Returns: the newly inserted value, or `null` if the string table already
      contains the string
     */
-    StringValue* insert(const(char)[] str, void* ptrvalue) pure
+    StringValue* insert(const(char)[] str, void* ptrvalue) nothrow pure
     {
         const(size_t) hash = calcHash(str);
         size_t i = findSlot(hash, str);
@@ -171,12 +168,12 @@ nothrow:
     }
 
     /// ditto
-    StringValue* insert(const(char)* s, size_t length, void* value) pure
+    StringValue* insert(const(char)* s, size_t length, void* value) nothrow pure
     {
         return insert(s[0 .. length], value);
     }
 
-    StringValue* update(const(char)[] str) pure
+    StringValue* update(const(char)[] str) nothrow pure
     {
         const(size_t) hash = calcHash(str);
         size_t i = findSlot(hash, str);
@@ -194,7 +191,7 @@ nothrow:
         return getValue(table[i].vptr);
     }
 
-    StringValue* update(const(char)* s, size_t length) pure
+    StringValue* update(const(char)* s, size_t length) nothrow pure
     {
         return update(s[0 .. length]);
     }
@@ -207,7 +204,7 @@ nothrow:
      * Returns:
      *      last return value of fp call
      */
-    int apply(int function(const(StringValue)*) nothrow fp)
+    int apply(int function(const(StringValue)*) nothrow fp) nothrow
     {
         foreach (const se; table)
         {
@@ -222,7 +219,7 @@ nothrow:
     }
 
     /// ditto
-    extern(D) int opApply(scope int delegate(const(StringValue)*) nothrow dg)
+    extern(D) int opApply(scope int delegate(const(StringValue)*) nothrow dg) nothrow
     {
         foreach (const se; table)
         {
@@ -237,10 +234,8 @@ nothrow:
     }
 
 private:
-nothrow:
-pure:
     /// Free all memory in use by this StringTable
-    void freeMem()
+    void freeMem() nothrow pure
     {
         foreach (pool; pools)
             mem.xfree(pool);
@@ -250,7 +245,7 @@ pure:
         pools = null;
     }
 
-    uint allocValue(const(char)[] str, void* ptrvalue)
+    uint allocValue(const(char)[] str, void* ptrvalue) nothrow pure
     {
         const(size_t) nbytes = StringValue.sizeof + str.length + 1;
         if (!pools.length || nfill + nbytes > POOL_SIZE)
@@ -269,7 +264,7 @@ pure:
         return vptr;
     }
 
-    inout(StringValue)* getValue(uint vptr) inout @nogc
+    inout(StringValue)* getValue(uint vptr) inout @nogc nothrow pure
     {
         if (!vptr)
             return null;
@@ -278,7 +273,7 @@ pure:
         return cast(inout(StringValue)*)&pools[idx][off];
     }
 
-    size_t findSlot(hash_t hash, const(char)[] str) const pure @nogc
+    size_t findSlot(hash_t hash, const(char)[] str) const @nogc nothrow pure
     {
         // quadratic probing using triangular numbers
         // http://stackoverflow.com/questions/2348187/moving-from-linear-probing-to-quadratic-probing-hash-collisons/2349774#2349774
@@ -292,7 +287,7 @@ pure:
         }
     }
 
-    void grow()
+    void grow() nothrow pure
     {
         const odim = table.length;
         auto otab = table;
