@@ -20,7 +20,8 @@ private enum POOL_SIZE = (1U << POOL_BITS);
 
 /*
 Returns the smallest integer power of 2 larger than val.
-if val > 2^^63 it enters and endless loop since 2^^64 does not fit in a size_t
+if val > 2^^63 on 64-bit targets or val > 2^^31 on 32-bit targets it enters an
+endless loop because of overflow.
 */
 private size_t nextpow2(size_t val) @nogc nothrow pure @safe
 {
@@ -34,7 +35,7 @@ unittest
 {
     assert(nextpow2(0) == 1);
     assert(nextpow2(0xFFFF) == (1 << 16));
-    assert(nextpow2(1UL << 63) == 1UL << 63);
+    assert(nextpow2(size_t.max / 2) == size_t.max / 2 + 1);
     // note: nextpow2((1UL << 63) + 1) results in an endless loop
 }
 
@@ -54,24 +55,23 @@ struct StringValue
     void* ptrvalue;
     private size_t length;
 
-@nogc:
-    char* lstring() nothrow pure return
+    char* lstring() @nogc nothrow pure return
     {
         return cast(char*)(&this + 1);
     }
 
-    size_t len() const nothrow pure @safe
+    size_t len() const @nogc nothrow pure @safe
     {
         return length;
     }
 
-    const(char)* toDchars() const nothrow pure return
+    const(char)* toDchars() const @nogc nothrow pure return
     {
         return cast(const(char)*)(&this + 1);
     }
 
     /// Returns: The content of this entry as a D slice
-    inout(char)[] toString() inout nothrow pure
+    inout(char)[] toString() inout @nogc nothrow pure
     {
         return (cast(inout(char)*)(&this + 1))[0 .. length];
     }
