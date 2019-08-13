@@ -3249,45 +3249,20 @@ ref V require(K, V)(ref V[K] aa, K key, lazy V value = V.init)
     assert(aa["k2"] == 0);
 }
 
-// Constraints for aa update. Delegates, Functions or Functors (classes that
-// provide opCall) are allowed. See unittest for an example.
-private
-{
-    template isCreateOperation(C, V)
-    {
-        static if (is(C : V delegate()) || is(C : V function()))
-            enum bool isCreateOperation = true;
-        else static if (isCreateOperation!(typeof(&C.opCall), V))
-            enum bool isCreateOperation = true;
-        else
-            enum bool isCreateOperation = false;
-    }
-
-    template isUpdateOperation(U, V)
-    {
-        static if (is(U : V delegate(ref V)) || is(U : V function(ref V)))
-            enum bool isUpdateOperation = true;
-        else static if (isUpdateOperation!(typeof(&U.opCall), V))
-            enum bool isUpdateOperation = true;
-        else
-            enum bool isUpdateOperation = false;
-    }
-}
-
 // Tests whether T can be @safe-ly copied. Use a union to exclude destructor from the test.
 private enum bool isSafeCopyable(T) = is(typeof(() @safe { union U { T x; } T *x; auto u = U(*x); }));
 
 /***********************************
- * Looks up key; if it exists applies the update delegate else evaluates the
- * create delegate and adds it to the associative array
+ * Looks up key; if it exists applies the update callable else evaluates the
+ * create callabel and adds it to the associative array
  * Params:
  *      aa =     The associative array.
  *      key =    The key.
- *      create = The delegate to apply on create.
- *      update = The delegate to apply on update.
+ *      create = The callable to apply on create.
+ *      update = The callable to apply on update.
  */
 void update(K, V, C, U)(ref V[K] aa, K key, scope C create, scope U update)
-if (isCreateOperation!(C, V) && isUpdateOperation!(U, V))
+if (is(typeof(create()) : V) && is(typeof(update(aa[K.init])) : V))
 {
     bool found;
     // if key is @safe-ly copyable, `update` may infer @safe
@@ -3356,6 +3331,40 @@ if (isCreateOperation!(C, V) && isUpdateOperation!(U, V))
     static assert(is(typeof(() { aais.update(S(1234), { return 1234; }, (ref int x) { x++; return x; }); })));
     static assert(!is(typeof(() @safe { aais.require(S(1234), 1234); })));
     static assert(!is(typeof(() @safe { aais.update(S(1234), { return 1234; }, (ref int x) { x++; return x; }); })));
+}
+
+@safe unittest
+{
+    struct S0
+    {
+        int opCall(ref int v)
+        {
+            return v + 1;
+        }
+    }
+
+    struct S1
+    {
+        int opCall()()
+        {
+            return -2;
+        }
+
+        T opCall(T)(ref T v)
+        {
+            return v + 1;
+        }
+    }
+
+    int[string] a = ["2" : 1];
+    a.update("2", () => -1, S0.init);
+    assert(a["2"] == 2);
+    a.update("0", () => -1, S0.init);
+    assert(a["0"] == -1);
+    a.update("2", S1.init, S1.init);
+    assert(a["2"] == 3);
+    a.update("1", S1.init, S1.init);
+    assert(a["1"] == -2);
 }
 
 private void _destructRecurse(E, size_t n)(ref E[n] arr)
