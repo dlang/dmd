@@ -1,0 +1,4 @@
+Added overloads for `core.atomic.cas` which don't discard their result.
+
+Existing `core.atomic.cas` functions discard the result, which make it impossible to implement certain operations.
+A new set of overloads was added which take `ifThis` by pointer and write the result back to the argument.
