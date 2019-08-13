@@ -1096,7 +1096,8 @@ extern (C) void* _d_newitemU(in TypeInfo _ti)
     auto ti = unqualify(_ti);
     auto flags = !(ti.flags & 1) ? BlkAttr.NO_SCAN : 0;
     immutable tiSize = structTypeInfoSize(ti);
-    immutable size = ti.tsize + tiSize;
+    immutable itemSize = ti.tsize;
+    immutable size = itemSize + tiSize;
     if (tiSize)
         flags |= BlkAttr.STRUCTFINAL | BlkAttr.FINALIZE;
 
@@ -1104,7 +1105,10 @@ extern (C) void* _d_newitemU(in TypeInfo _ti)
     auto p = blkInf.base;
 
     if (tiSize)
+    {
+        *cast(TypeInfo*)(p + itemSize) = null; // the GC might not have cleared this area
         *cast(TypeInfo*)(p + blkInf.size - tiSize) = cast() ti;
+    }
 
     return p;
 }
@@ -2675,6 +2679,41 @@ deprecated unittest
         aa3 = null;
         GC.runFinalizers((cast(char*)(&entryDtor))[0..1]);
         assert(dtorCount == 4);
+    }
+}
+
+// test struct dtor handling not causing false pointers
+unittest
+{
+    if (!callStructDtorsDuringGC)
+        return;
+
+    // for 64-bit, allocate a struct of size 40
+    static struct S
+    {
+        size_t[4] data;
+        S* ptr4;
+    }
+    auto p1 = new S;
+    auto p2 = new S;
+    p2.ptr4 = p1;
+
+    // a struct with a dtor with size 32, but the dtor will cause
+    //  allocation to be larger by a pointer
+    static struct A
+    {
+        size_t[3] data;
+        S* ptr3;
+
+        ~this() {}
+    }
+
+    GC.free(p2);
+    auto a = new A; // reuse same memory
+    if (cast(void*)a is cast(void*)p2) // reusage not guaranteed
+    {
+        auto ptr = cast(S**)(a + 1);
+        assert(*ptr != p1); // still same data as p2.ptr4?
     }
 }
 
