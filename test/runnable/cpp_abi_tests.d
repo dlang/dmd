@@ -90,7 +90,8 @@ struct S032
 }
 
 struct S0 { }
-S0 passthrough(S0, ref int);
+S0 passthrough(S0, int, int, int, int, int, int, S0, int);
+S0 passthrough2(S0, int, int, int, int, int, int, S0 s, int i) { assert(i == 10); return s; }
 
 bool   passthrough(bool   value);
 byte   passthrough(byte   value);
@@ -383,10 +384,5 @@ version(D_AVX2) foreach(float8 val; values!float8()) check(val);
     assert(ss.i == 42);
     assert(S18784(1).i == 1);
 
-version(Windows) // fails on Posix
-{
-    int i = 10;
-    passthrough(S0(), i);
-    assert(i == 11);
-}
+    passthrough(S0(), 1, 2, 3, 4, 5, 6, S0(), 10);
 }

@@ -223,7 +223,7 @@ private elem *callfunc(const ref Loc loc,
 
         /* Convert arguments[] to elems[] in left-to-right order
          */
-        const n = arguments.dim;
+        auto n = arguments.dim;
         debug
             elem*[2] elems_array = void;
         else
@@ -242,6 +242,15 @@ private elem *callfunc(const ref Loc loc,
 
         foreach (const i, arg; *arguments)
         {
+            auto ts = arg.type.isTypeStruct();
+            const nofieldspod = ts && ts.sym.hasNoFields && ts.sym.isPOD();
+            if (nofieldspod && irs.params.is64bit && irs.params.isPOSIX && tf.linkage != LINK.d)
+            {
+                // Skipped on POSIX 64 C++
+                elems[i] = null;
+                continue;
+            }
+
             elem *ea = toElem(arg, irs);
 
             //printf("\targ[%d]: %s\n", i, arg.toChars());
@@ -274,6 +283,15 @@ private elem *callfunc(const ref Loc loc,
             }
             elems[i] = ea;
         }
+        /* remove nulls */
+        n = 0;
+        foreach (e; elems)
+        {
+            if (e !is null)
+                elems[n++] = e;
+        }
+        elems = elems[0 .. n];
+
         if (!left_to_right)
         {
             /* Avoid 'fixing' side effects of _array... functions as
@@ -533,10 +551,19 @@ if (!irs.params.is64bit) assert(tysize(TYnptr) == 4);
         e = el_una(OPind, tyret, e);
     }
 
+    auto ts = tret.isTypeStruct();
+    const nofieldspod = ts && ts.sym.hasNoFields && ts.sym.isPOD();
     if (tf.isref)
     {
         e.Ety = TYnptr;
         e = el_una(OPind, tyret, e);
+    }
+    else if (nofieldspod && irs.params.is64bit && irs.params.isPOSIX() && tf.linkage != LINK.d)
+    {
+        // Zero sized struct is treated like void on POSIX x86_64
+        e.Ety = TYvoid;
+        Symbol *stmp = symbol_genauto(Type_toCtype(tret));
+        e = el_combine(e, el_var(stmp));
     }
 
     if (tybasic(tyret) == TYstruct)

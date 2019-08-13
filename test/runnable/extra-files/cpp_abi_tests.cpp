@@ -85,7 +85,18 @@ struct S032
 S032::S032(int i) : i(i) {}
 
 struct S0 { };
-S0 passthrough(S0 s, int &i) { ++i; return s; }
+S0 passthrough2(S0, int, int, int, int, int, int, S0 s, int i);
+S0 passthrough(S0, int, int, int, int, int, int, S0 s, int i)
+{
+#if !defined(__clang__) && defined(__GNUC__) && (__GNUC__ < 8)
+    // GCC pre 8 had a different ABI for zero sized parameters.
+    // DMD supports the clang ABI which GCC adopted since 8.0.
+    return S0();
+#else
+    assert(i == 10);
+    return passthrough2(s, 1, 2, 3, 4, 5, 6, s, i);
+#endif
+}
 
 bool               passthrough(bool                value)     { return value; }
 signed char        passthrough(signed char         value)     { return value; }

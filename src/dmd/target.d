@@ -470,6 +470,12 @@ struct Target
         }
         else if (global.params.is64bit && global.params.isPOSIX)
         {
+            if (tf.linkage != LINK.d && tn.isTypeStruct())
+            {
+                auto ts = cast(TypeStruct) tn;
+                if (ts.sym.hasNoFields && ts.sym.isPOD())
+                    return false;
+            }
             TypeTuple tt = .toArgTypes_sysv_x64(tn);
             if (!tt)
                 return false; // void

@@ -1036,9 +1036,17 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
 
     foreach (sp; params[0 .. pi])
     {
-        sp.Sclass = SCparameter;
-        sp.Sflags &= ~SFLspill;
-        sp.Sfl = FLpara;
+        auto nofieldspod = tybasic(sp.Stype.Tty) == TYstruct && ((sp.Stype.Ttag.Sstruct.Sflags & (STR0size|STRnotpod)) == STR0size);
+        if (nofieldspod && global.params.is64bit && global.params.isPOSIX && fd.linkage != LINK.d)
+        {
+            // zero sized parameters are ignored on POSIX x86_64
+        }
+        else
+        {
+            sp.Sclass = SCparameter;
+            sp.Sflags &= ~SFLspill;
+            sp.Sfl = FLpara;
+        }
         symbol_add(sp);
     }
 
@@ -1049,6 +1057,12 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
 
         foreach (sp; params[0 .. pi])
         {
+            auto nofieldspod = tybasic(sp.Stype.Tty) == TYstruct && ((sp.Stype.Ttag.Sstruct.Sflags & (STR0size|STRnotpod)) == STR0size);
+            if (nofieldspod && global.params.is64bit && global.params.isPOSIX && fd.linkage != LINK.d)
+            {
+                // zero sized parameters are ignored on POSIX x86_64
+                continue;
+            }
             if (fpr.alloc(sp.Stype, sp.Stype.Tty, &sp.Spreg, &sp.Spreg2))
             {
                 sp.Sclass = (config.exe == EX_WIN64) ? SCshadowreg : SCfastpar;
