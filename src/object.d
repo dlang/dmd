@@ -3254,7 +3254,7 @@ private enum bool isSafeCopyable(T) = is(typeof(() @safe { union U { T x; } T *x
 
 /***********************************
  * Looks up key; if it exists applies the update callable else evaluates the
- * create callabel and adds it to the associative array
+ * create callable and adds it to the associative array
  * Params:
  *      aa =     The associative array.
  *      key =    The key.
