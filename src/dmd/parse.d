@@ -480,7 +480,7 @@ final class Parser(AST) : Lexer
             if (!once || !pAttrs)
             {
                 pAttrs = &attrs;
-                pAttrs.comment = token.blockComment;
+                pAttrs.comment = token.blockComment.ptr;
             }
             AST.Prot.Kind prot;
             StorageClass stc;
@@ -3110,7 +3110,7 @@ final class Parser(AST) : Lexer
             //printf("enum definition\n");
             e.members = new AST.Dsymbols();
             nextToken();
-            const(char)* comment = token.blockComment;
+            const(char)[] comment = token.blockComment;
             while (token.value != TOK.rightCurly)
             {
                 /* Can take the following forms...
@@ -4353,7 +4353,7 @@ final class Parser(AST) : Lexer
 
         //printf("parseDeclarations() %s\n", token.toChars());
         if (!comment)
-            comment = token.blockComment;
+            comment = token.blockComment.ptr;
 
         if (token.value == TOK.alias_)
         {
@@ -9022,8 +9022,14 @@ final class Parser(AST) : Lexer
     private void addComment(AST.Dsymbol s, const(char)* blockComment)
     {
         if (s !is null)
+            this.addComment(s, blockComment.toDString());
+    }
+
+    private void addComment(AST.Dsymbol s, const(char)[] blockComment)
+    {
+        if (s !is null)
         {
-            s.addComment(combineComments(blockComment.toDString(), token.lineComment.toDString(), true));
+            s.addComment(combineComments(blockComment, token.lineComment, true));
             token.lineComment = null;
         }
     }
