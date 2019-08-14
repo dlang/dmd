@@ -24,6 +24,7 @@ import dmd.root.outbuffer;
 import dmd.root.rmem;
 import dmd.root.rootobject;
 import dmd.tokens;
+import dmd.utils;
 
 // How multiple declarations are parsed.
 // If 1, treat as C.
@@ -9022,7 +9023,7 @@ final class Parser(AST) : Lexer
     {
         if (s !is null)
         {
-            s.addComment(combineComments(blockComment, token.lineComment, true));
+            s.addComment(combineComments(blockComment.toDString(), token.lineComment.toDString(), true));
             token.lineComment = null;
         }
     }

@@ -50,6 +50,7 @@ import dmd.root.rootobject;
 import dmd.root.speller;
 import dmd.statement;
 import dmd.tokens;
+import dmd.utils;
 import dmd.visitor;
 
 /***************************************
@@ -1087,7 +1088,7 @@ extern (C++) class Dsymbol : ASTNode
         else if (comment && strcmp(cast(char*)comment, cast(char*)this.comment) != 0)
         {
             // Concatenate the two
-            this.comment = Lexer.combineComments(this.comment, comment, true);
+            this.comment = Lexer.combineComments(this.comment.toDString(), comment.toDString(), true);
         }
     }
 
