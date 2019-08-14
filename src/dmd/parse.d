@@ -45,8 +45,10 @@ private enum CARRAYDECL = 1;
 
 /**********************************
  * Set operator precedence for each operator.
+ *
+ * Used by hdrgen
  */
-__gshared PREC[TOK.max_] precedence =
+immutable PREC[TOK.max_] precedence =
 [
     TOK.type : PREC.expr,
     TOK.error : PREC.expr,
