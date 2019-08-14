@@ -2640,33 +2640,29 @@ class Lexer
     static const(char)* combineComments(const(char)* c1, const(char)* c2, bool newParagraph) pure
     {
         //printf("Lexer::combineComments('%s', '%s', '%i')\n", c1, c2, newParagraph);
-        auto c = c2;
         const(int) newParagraphSize = newParagraph ? 1 : 0; // Size of the combining '\n'
-        if (c1)
+        if (!c1)
+            return c2;
+        if (!c2)
+            return c1;
+
+        size_t len1 = strlen(c1);
+        size_t len2 = strlen(c2);
+        int insertNewLine = 0;
+        if (len1 && c1[len1 - 1] != '\n')
         {
-            c = c1;
-            if (c2)
-            {
-                size_t len1 = strlen(c1);
-                size_t len2 = strlen(c2);
-                int insertNewLine = 0;
-                if (len1 && c1[len1 - 1] != '\n')
-                {
-                    ++len1;
-                    insertNewLine = 1;
-                }
-                auto p = cast(char*)mem.xmalloc(len1 + newParagraphSize + len2 + 1);
-                memcpy(p, c1, len1 - insertNewLine);
-                if (insertNewLine)
-                    p[len1 - 1] = '\n';
-                if (newParagraph)
-                    p[len1] = '\n';
-                memcpy(p + len1 + newParagraphSize, c2, len2);
-                p[len1 + newParagraphSize + len2] = 0;
-                c = p;
-            }
+            ++len1;
+            insertNewLine = 1;
         }
-        return c;
+        auto p = cast(char*)mem.xmalloc(len1 + newParagraphSize + len2 + 1);
+        memcpy(p, c1, len1 - insertNewLine);
+        if (insertNewLine)
+            p[len1 - 1] = '\n';
+        if (newParagraph)
+            p[len1] = '\n';
+        memcpy(p + len1 + newParagraphSize, c2, len2);
+        p[len1 + newParagraphSize + len2] = 0;
+        return p;
     }
 
 private:
