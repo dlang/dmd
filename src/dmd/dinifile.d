@@ -238,9 +238,7 @@ void parseConfFile(ref StringTable environment, const(char)[] filename, const(ch
                     else
                     {
                         auto len2 = j - k;
-                        auto p = cast(char*)malloc(len2);
-                        if (!p)
-                            Mem.error();
+                        auto p = cast(char*)Mem.check(malloc(len2));
                         len2--;
                         memcpy(p, &line[k + 1], len2);
                         p[len2] = 0;
@@ -346,9 +344,7 @@ void parseConfFile(ref StringTable environment, const(char)[] filename, const(ch
                 }
                 if (pn)
                 {
-                    auto pns = strdup(pn);
-                    if (!pns)
-                        Mem.error();
+                    auto pns = cast(char*)Mem.check(strdup(pn));
                     if (!writeToEnv(environment, pns))
                     {
                         error(Loc(filename.xarraydup.ptr, lineNum, 0), "Use `NAME=value` syntax, not `%s`", pn);

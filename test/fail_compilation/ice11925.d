@@ -1,3 +1,10 @@
+/* TEST_OUTPUT:
+---
+fail_compilation/ice11925.d(23): Error: cannot `goto` into `try` block
+fail_compilation/ice11925.d(31): Error: cannot `goto` into `try` block
+---
+*/
+
 void test11925a()
 {
     try

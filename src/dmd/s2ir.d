@@ -133,10 +133,8 @@ private Label *getLabel(IRState *irs, Blockx *blx, Statement s)
 private block *labelToBlock(IRState *irs, const ref Loc loc, Blockx *blx, LabelDsymbol label, int flag = 0)
 {
     if (!label.statement)
-    {
-        error(loc, "undefined label `%s`", label.toChars());
-        return null;
-    }
+        assert(0);              // should have been caught by GotoStatement.checkLabel()
+
     Label *l = getLabel(irs, null, label.statement);
     if (flag)
     {
@@ -432,15 +430,12 @@ private extern (C++) class S2irVisitor : Visitor
         b.appendSucc(bdest);
         block_setLoc(b, s.loc);
 
-        // Check that bdest is in an enclosing try block
-        bdest.checkEnclosedInTry(b, s);
-
         block_next(blx,BCgoto,null);
     }
 
     override void visit(LabelStatement s)
     {
-        //printf("LabelStatement.toIR() %p, statement = %p\n", this, statement);
+        //printf("LabelStatement.toIR() %p, statement: `%s`\n", this, s.statement.toChars());
         Blockx *blx = irs.blx;
         block *bc = blx.curblock;
         IRState mystate = IRState(irs,s);
@@ -450,17 +445,6 @@ private extern (C++) class S2irVisitor : Visitor
         // At last, we know which try block this label is inside
         label.lblock.Btry = blx.tryblock;
 
-        // Go through the forward references and check.
-        if (label.fwdrefs)
-        {
-            block *b = label.fwdrefs;
-
-            if (b.Btry != label.lblock.Btry)
-            {
-                // Check that lblock is in an enclosing try block
-                label.lblock.checkEnclosedInTry(b, s);
-            }
-        }
         block_next(blx, BCgoto, label.lblock);
         bc.appendSucc(blx.curblock);
         if (s.statement)
@@ -545,9 +529,7 @@ private extern (C++) class S2irVisitor : Visitor
 
         // Corresponding free is in block_free
         alias TCase = typeof(mystate.switchBlock.Bswitch[0]);
-        auto pu = cast(TCase *)(.malloc(TCase.sizeof * (numcases + 1)));
-        if (!pu)
-            Mem.error();
+        auto pu = cast(TCase *)Mem.check(.malloc(TCase.sizeof * (numcases + 1)));
         mystate.switchBlock.Bswitch = pu;
         /* First pair is the number of cases, and the default block
          */
@@ -580,8 +562,6 @@ private extern (C++) class S2irVisitor : Visitor
         if (bsw.BC == BCswitch)
             bsw.appendSucc(clabel.lblock);   // second entry in pair
         bcase.appendSucc(clabel.lblock);
-        if (blx.tryblock != bsw.Btry)
-            s.error("case cannot be in different `try` block level from `switch`");
         incUsage(irs, s.loc);
         if (s.statement)
             Statement_toIR(s.statement, irs);
@@ -594,8 +574,6 @@ private extern (C++) class S2irVisitor : Visitor
         block *bdefault = irs.getDefaultBlock();
         block_next(blx,BCgoto,bdefault);
         bcase.appendSucc(blx.curblock);
-        if (blx.tryblock != irs.getSwitchBlock().Btry)
-            s.error("default cannot be in different `try` block level from `switch`");
         incUsage(irs, s.loc);
         if (s.statement)
             Statement_toIR(s.statement, irs);
@@ -611,15 +589,6 @@ private extern (C++) class S2irVisitor : Visitor
 
         // The rest is equivalent to GotoStatement
 
-        // Adjust exception handler scope index if in different try blocks
-        if (b.Btry != bdest.Btry)
-        {
-            // Check that bdest is in an enclosing try block
-            bdest.checkEnclosedInTry(b, s);
-
-            //setScopeIndex(blx, b, bdest.Btry ? bdest.Btry.Bscope_index : -1);
-        }
-
         b.appendSucc(bdest);
         incUsage(irs, s.loc);
         block_next(blx,BCgoto,null);
@@ -633,15 +602,6 @@ private extern (C++) class S2irVisitor : Visitor
         block *b = blx.curblock;
 
         // The rest is equivalent to GotoStatement
-
-        // Adjust exception handler scope index if in different try blocks
-        if (b.Btry != bdest.Btry)
-        {
-            // Check that bdest is in an enclosing try block
-            bdest.checkEnclosedInTry(b, s);
-
-            //setScopeIndex(blx, b, bdest.Btry ? bdest.Btry.Bscope_index : -1);
-        }
 
         b.appendSucc(bdest);
         incUsage(irs, s.loc);
@@ -1039,9 +999,7 @@ private extern (C++) class S2irVisitor : Visitor
                                         el_combine(e3, el_var(shandler)));
 
             const numcases = s.catches.dim;
-            bswitch.Bswitch = cast(targ_llong *) .malloc((targ_llong).sizeof * (numcases + 1));
-            if (!bswitch.Bswitch)
-                Mem.error();
+            bswitch.Bswitch = cast(targ_llong *) Mem.check(.malloc((targ_llong).sizeof * (numcases + 1)));
             bswitch.Bswitch[0] = numcases;
             bswitch.appendSucc(defaultblock);
             block_next(blx, BCswitch, null);
@@ -1148,9 +1106,7 @@ private extern (C++) class S2irVisitor : Visitor
              * Need a copy since the bswitch may get rewritten by the optimizer.
              */
             alias TAction = typeof(bcatch.actionTable[0]);
-            bcatch.actionTable = cast(TAction*).malloc(TAction.sizeof * (numcases + 1));
-            if (!bcatch.actionTable)
-                Mem.error();
+            bcatch.actionTable = cast(TAction*)Mem.check(.malloc(TAction.sizeof * (numcases + 1)));
             foreach (i; 0 .. numcases + 1)
                 bcatch.actionTable[i] = cast(TAction)bswitch.Bswitch[i];
 
@@ -1795,24 +1751,3 @@ void insertFinallyBlockGotos(block *startblock)
         printf("-------------------------\n");
     }
 }
-
-/***************************************************
- * Issue error if bd is not enclosed in a try block.
- * Params:
- *      bd = block to check
- *      bcurrent = current block (starting point)
- *      s = statement to use for error messages
- */
-private void checkEnclosedInTry(const block* bd, const block* bcurrent, Statement s)
-{
-    for (const(block)* bt = bcurrent.Btry; bt != bd.Btry; bt = bt.Btry)
-    {
-        if (!bt)
-        {
-            //printf("b.Btry = %p, bdest.Btry = %p\n", b.Btry, bdest.Btry);
-            s.error("cannot `goto` into `try` block");
-            break;
-        }
-    }
-}
-

@@ -2481,6 +2481,7 @@ else
          */
 
         //printf("SwitchStatement::semantic(%p)\n", ss);
+        ss.tryBody = sc.tryBody;
         ss.tf = sc.tf;
         if (ss.cases)
         {
@@ -2878,6 +2879,11 @@ else
                 cs.error("`switch` and `case` are in different `finally` blocks");
                 errors = true;
             }
+            if (sc.sw.tryBody != sc.tryBody)
+            {
+                cs.error("case cannot be in different `try` block level from `switch`");
+                errors = true;
+            }
         }
         else
         {
@@ -2998,6 +3004,11 @@ else
             if (sc.sw.tf != sc.tf)
             {
                 ds.error("`switch` and `default` are in different `finally` blocks");
+                errors = true;
+            }
+            if (sc.sw.tryBody != sc.tryBody)
+            {
+                ds.error("default cannot be in different `try` block level from `switch`");
                 errors = true;
             }
             if (sc.sw.isFinal)
@@ -3851,8 +3862,13 @@ else
         enum FLAGcpp = 1;
         enum FLAGd = 2;
 
+        tcs.tryBody = sc.tryBody;
+
+        scope sc2 = sc.push();
+        sc2.tryBody = tcs;
         tcs._body = tcs._body.semanticScope(sc, null, null);
         assert(tcs._body);
+        sc2.pop();
 
         /* Even if body is empty, still do semantic analysis on catches
          */
@@ -3933,7 +3949,12 @@ else
     override void visit(TryFinallyStatement tfs)
     {
         //printf("TryFinallyStatement::semantic()\n");
+        tfs.tryBody = sc.tryBody;
+
+        auto sc2 = sc.push();
+        sc.tryBody = tfs;
         tfs._body = tfs._body.statementSemantic(sc);
+        sc2.pop();
 
         sc = sc.push();
         sc.tf = tfs;
@@ -4080,6 +4101,7 @@ else
 
         gs.ident = fixupLabelName(sc, gs.ident);
         gs.label = fd.searchLabel(gs.ident);
+        gs.tryBody = sc.tryBody;
         gs.tf = sc.tf;
         gs.os = sc.os;
         gs.lastVar = sc.lastVar;
@@ -4092,6 +4114,7 @@ else
              * so we can patch it later, and add it to a 'look at this later'
              * list.
              */
+            gs.label.deleted = true;
             auto ss = new ScopeStatement(gs.loc, gs, gs.loc);
             sc.fes.gotos.push(ss); // 'look at this later' list
             result = ss;
@@ -4117,6 +4140,7 @@ else
         FuncDeclaration fd = sc.parent.isFuncDeclaration();
 
         ls.ident = fixupLabelName(sc, ls.ident);
+        ls.tryBody = sc.tryBody;
         ls.tf = sc.tf;
         ls.os = sc.os;
         ls.lastVar = sc.lastVar;

@@ -1295,9 +1295,7 @@ extern (C++) final class Module : Package
             }
             else
             {
-                todo = cast(Dsymbol*)malloc(len * Dsymbol.sizeof);
-                if (!todo)
-                    Mem.error();
+                todo = cast(Dsymbol*)Mem.check(malloc(len * Dsymbol.sizeof));
                 todoalloc = todo;
             }
             memcpy(todo, deferred.tdata(), len * Dsymbol.sizeof);

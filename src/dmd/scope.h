@@ -66,6 +66,7 @@ struct Scope
     Dsymbol *parent;            // parent to use
     LabelStatement *slabel;     // enclosing labelled statement
     SwitchStatement *sw;        // enclosing switch statement
+    Statement *tryBody;         // enclosing _body of TryCatchStatement or TryFinallyStatement
     TryFinallyStatement *tf;    // enclosing try finally statement
     ScopeGuardStatement *os;       // enclosing scope(xxx) statement
     Statement *sbreak;          // enclosing statement that supports "break"

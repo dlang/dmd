@@ -1184,6 +1184,18 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     funcdecl.fbody = sbody;
             }
 
+            // Check for undefined labels
+            if (funcdecl.labtab)
+                foreach (keyValue; funcdecl.labtab.tab.asRange)
+                {
+                    //printf("  KV: %s = %s\n", keyValue.key.toChars(), keyValue.value.toChars());
+                    LabelDsymbol label = cast(LabelDsymbol)keyValue.value;
+                    if (!label.statement && (!label.deleted || label.iasm))
+                    {
+                        funcdecl.error("label `%s` is undefined", label.toChars());
+                    }
+                }
+
             // Fix up forward-referenced gotos
             if (funcdecl.gotos)
             {

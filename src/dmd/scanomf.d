@@ -65,9 +65,7 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
             while (p + 1 < pnext)
             {
                 parseName(&p, name.ptr);
-                char* copy = strdup(name.ptr);
-                if (!copy)
-                    Mem.error();
+                char* copy = cast(char*)Mem.check(strdup(name.ptr));
                 names.push(copy);
             }
             break;

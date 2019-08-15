@@ -137,7 +137,7 @@ extern (C++) struct CTFloat
         if (isNaN(a))
             a = real_t.nan;
         enum sz = (real_t.mant_dig == 64) ? 10 : real_t.sizeof;
-        return calcHash(cast(ubyte*) &a, sz);
+        return calcHash((cast(ubyte*) &a)[0 .. sz]);
     }
 
     pure

@@ -128,7 +128,7 @@ public:
     */
     inout(StringValue)* lookup(const(char)[] str) inout nothrow pure @nogc
     {
-        const(hash_t) hash = calcHash(str.ptr, str.length);
+        const(hash_t) hash = calcHash(str);
         const(size_t) i = findSlot(hash, str);
         // printf("lookup %.*s %p\n", cast(int)str.length, str.ptr, table[i].value ?: null);
         return getValue(table[i].vptr);
@@ -156,7 +156,7 @@ public:
     */
     StringValue* insert(const(char)[] str, void* ptrvalue) nothrow
     {
-        const(hash_t) hash = calcHash(str.ptr, str.length);
+        const(hash_t) hash = calcHash(str);
         size_t i = findSlot(hash, str);
         if (table[i].vptr)
             return null; // already in table
@@ -179,7 +179,7 @@ public:
 
     StringValue* update(const(char)[] str) nothrow
     {
-        const(hash_t) hash = calcHash(str.ptr, str.length);
+        const(hash_t) hash = calcHash(str);
         size_t i = findSlot(hash, str);
         if (!table[i].vptr)
         {

@@ -1568,7 +1568,8 @@ extern (C++) final class SwitchStatement : Statement
     bool isFinal;                   /// https://dlang.org/spec/statement.html#final-switch-statement
 
     DefaultStatement sdefault;      /// default:
-    TryFinallyStatement tf;         ///
+    Statement tryBody;              /// set to TryCatchStatement or TryFinallyStatement if in _body portion
+    TryFinallyStatement tf;         /// set if in the 'finally' block of a TryFinallyStatement
     GotoCaseStatements gotoCases;   /// array of unresolved GotoCaseStatement's
     CaseStatements* cases;          /// array of CaseStatement's
     int hasNoDefault;               /// !=0 if no default statement
@@ -1945,6 +1946,8 @@ extern (C++) final class TryCatchStatement : Statement
     Statement _body;
     Catches* catches;
 
+    Statement tryBody;   /// set to enclosing TryCatchStatement or TryFinallyStatement if in _body portion
+
     extern (D) this(const ref Loc loc, Statement _body, Catches* catches)
     {
         super(loc, STMT.TryCatch);
@@ -2014,7 +2017,8 @@ extern (C++) final class TryFinallyStatement : Statement
     Statement _body;
     Statement finalbody;
 
-    bool bodyFallsThru;         // true if _body falls through to finally
+    Statement tryBody;   /// set to enclosing TryCatchStatement or TryFinallyStatement if in _body portion
+    bool bodyFallsThru;  /// true if _body falls through to finally
 
     extern (D) this(const ref Loc loc, Statement _body, Statement finalbody)
     {
@@ -2194,6 +2198,7 @@ extern (C++) final class GotoStatement : Statement
 {
     Identifier ident;
     LabelDsymbol label;
+    Statement tryBody;              /// set to TryCatchStatement or TryFinallyStatement if in _body portion
     TryFinallyStatement tf;
     ScopeGuardStatement os;
     VarDeclaration lastVar;
@@ -2212,10 +2217,7 @@ extern (C++) final class GotoStatement : Statement
     extern (D) bool checkLabel()
     {
         if (!label.statement)
-        {
-            error("label `%s` is undefined", label.toChars());
-            return true;
-        }
+            return true;        // error should have been issued for this already
 
         if (label.statement.os != os)
         {
@@ -2237,6 +2239,22 @@ extern (C++) final class GotoStatement : Statement
         {
             error("cannot `goto` in or out of `finally` block");
             return true;
+        }
+
+        Statement stbnext;
+        for (auto stb = tryBody; stb != label.statement.tryBody; stb = stbnext)
+        {
+            if (!stb)
+            {
+                error("cannot `goto` into `try` block");
+                return true;
+            }
+            if (auto stf = stb.isTryFinallyStatement())
+                stbnext = stf.tryBody;
+            else if (auto stc = stb.isTryCatchStatement())
+                stbnext = stc.tryBody;
+            else
+                assert(0);
         }
 
         VarDeclaration vd = label.statement.lastVar;
@@ -2282,6 +2300,7 @@ extern (C++) final class LabelStatement : Statement
     Identifier ident;
     Statement statement;
 
+    Statement tryBody;              /// set to TryCatchStatement or TryFinallyStatement if in _body portion
     TryFinallyStatement tf;
     ScopeGuardStatement os;
     VarDeclaration lastVar;
@@ -2346,6 +2365,9 @@ extern (C++) final class LabelStatement : Statement
 extern (C++) final class LabelDsymbol : Dsymbol
 {
     LabelStatement statement;
+
+    bool deleted;           // set if rewritten to return in foreach delegate
+    bool iasm;              // set if used by inline assembler
 
     extern (D) this(Identifier ident)
     {

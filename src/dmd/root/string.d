@@ -30,7 +30,7 @@ module dmd.root.string;
  *
  * This function will also strip `\n\r`.
  */
-string stripLeadingLineTerminator(string str)
+string stripLeadingLineTerminator(string str) pure nothrow @nogc @safe
 {
     enum nextLine = "\xC2\x85";
     enum lineSeparator = "\xE2\x80\xA8";
@@ -76,6 +76,10 @@ string stripLeadingLineTerminator(string str)
 
 unittest
 {
+    assert("".stripLeadingLineTerminator == "");
+    assert("foo".stripLeadingLineTerminator == "foo");
+    assert("\xC2foo".stripLeadingLineTerminator == "\xC2foo");
+    assert("\xE2foo".stripLeadingLineTerminator == "\xE2foo");
     assert("\nfoo".stripLeadingLineTerminator == "foo");
     assert("\vfoo".stripLeadingLineTerminator == "foo");
     assert("\ffoo".stripLeadingLineTerminator == "foo");

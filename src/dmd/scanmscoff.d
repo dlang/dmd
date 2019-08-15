@@ -57,13 +57,9 @@ void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) pAddSymb
     {
         is_old_coff = true;
         IMAGE_FILE_HEADER* header_old;
-        header_old = cast(IMAGE_FILE_HEADER*)malloc(IMAGE_FILE_HEADER.sizeof);
-        if (!header_old)
-            Mem.error();
+        header_old = cast(IMAGE_FILE_HEADER*)Mem.check(malloc(IMAGE_FILE_HEADER.sizeof));
         memcpy(header_old, buf, IMAGE_FILE_HEADER.sizeof);
-        header = cast(BIGOBJ_HEADER*)malloc(BIGOBJ_HEADER.sizeof);
-        if (!header)
-            Mem.error();
+        header = cast(BIGOBJ_HEADER*)Mem.check(malloc(BIGOBJ_HEADER.sizeof));
         *header = BIGOBJ_HEADER.init;
         header.Machine = header_old.Machine;
         header.NumberOfSections = header_old.NumberOfSections;
@@ -119,13 +115,9 @@ void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) pAddSymb
         if (is_old_coff)
         {
             SymbolTable* n2;
-            n2 = cast(SymbolTable*)malloc(SymbolTable.sizeof);
-            if (!n2)
-                Mem.error();
+            n2 = cast(SymbolTable*)Mem.check(malloc(SymbolTable.sizeof));
             memcpy(n2, (buf + off), SymbolTable.sizeof);
-            n = cast(SymbolTable32*)malloc(SymbolTable32.sizeof);
-            if (!n)
-                Mem.error();
+            n = cast(SymbolTable32*)Mem.check(malloc(SymbolTable32.sizeof));
             memcpy(n, n2, (n2.Name).sizeof);
             n.Value = n2.Value;
             n.SectionNumber = n2.SectionNumber;

@@ -2433,9 +2433,7 @@ extern (C++) abstract class Type : ASTNode
         // Allocate buffer on stack, fail over to using malloc()
         char[128] namebuf;
         const namelen = 19 + size_t.sizeof * 3 + slice.length + 1;
-        auto name = namelen <= namebuf.length ? namebuf.ptr : cast(char*)malloc(namelen);
-        if (!name)
-            Mem.error();
+        auto name = namelen <= namebuf.length ? namebuf.ptr : cast(char*)Mem.check(malloc(namelen));
 
         const length = sprintf(name, "_D%lluTypeInfo_%.*s6__initZ",
                 cast(ulong)(9 + slice.length), cast(int)slice.length, slice.ptr);

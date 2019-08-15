@@ -6885,20 +6885,6 @@ static assert(()
 
 static assert(()
 {
-    // enter forward to TryFinallyStatement.body
-    {
-        bool c = false;
-        goto L0;
-        c = true;
-        try
-        {
-          L0:
-            ;
-        }
-        finally {}
-        assert(!c);
-    }
-
     // enter back to TryFinallyStatement.body
     {
         bool c = false;

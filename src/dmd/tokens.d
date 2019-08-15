@@ -220,11 +220,10 @@ enum TOK : ubyte
     lazy_,
     auto_,
     package_,
-    manifest,
     immutable_,
 
     // Statements
-    if_ = 183,
+    if_ = 182,
     else_,
     while_,
     for_,
@@ -250,7 +249,7 @@ enum TOK : ubyte
     onScopeSuccess,
 
     // Contracts
-    invariant_ = 207,
+    invariant_ = 206,
 
     // Testing
     unittest_,
@@ -260,7 +259,7 @@ enum TOK : ubyte
     ref_,
     macro_,
 
-    parameters = 212,
+    parameters = 211,
     traits,
     overloadSet,
     pure_,
@@ -280,7 +279,7 @@ enum TOK : ubyte
     vector,
     pound,
 
-    interval = 231,
+    interval = 230,
     voidExpression,
     cantExpression,
     showCtfeContext,
@@ -690,7 +689,6 @@ extern (C++) struct Token
 
         TOK.halt: "halt",
         TOK.hexadecimalString: "xstring",
-        TOK.manifest: "manifest",
 
         TOK.interval: "interval",
         TOK.voidExpression: "voidexp",
