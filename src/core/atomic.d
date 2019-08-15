@@ -628,6 +628,7 @@ else version (AsmX86_32)
 
             asm pure nothrow @nogc @trusted
             {
+                push EDI;
                 mov DL, writeThis;
                 mov EDI, ifThis;
                 mov AL, [EDI];
@@ -636,6 +637,7 @@ else version (AsmX86_32)
                 cmpxchg [ECX], DL;
                 mov [EDI], AL;
                 setz AL;
+                pop EDI;
             }
         }
         else static if ( T.sizeof == short.sizeof )
@@ -646,6 +648,7 @@ else version (AsmX86_32)
 
             asm pure nothrow @nogc @trusted
             {
+                push EDI;
                 mov DX, writeThis;
                 mov EDI, ifThis;
                 mov AX, [EDI];
@@ -654,6 +657,7 @@ else version (AsmX86_32)
                 cmpxchg [ECX], DX;
                 mov [EDI], AX;
                 setz AL;
+                pop EDI;
             }
         }
         else static if ( T.sizeof == int.sizeof )
@@ -664,6 +668,7 @@ else version (AsmX86_32)
 
             asm pure nothrow @nogc @trusted
             {
+                push EDI;
                 mov EDX, writeThis;
                 mov EDI, ifThis;
                 mov EAX, [EDI];
@@ -672,6 +677,7 @@ else version (AsmX86_32)
                 cmpxchg [ECX], EDX;
                 mov [EDI], EAX;
                 setz AL;
+                pop EDI;
             }
         }
         else static if ( T.sizeof == long.sizeof && has64BitCAS )
@@ -1357,12 +1363,12 @@ else version (AsmX86_64)
             asm pure nothrow @nogc @trusted
             {
                 mov DL, writeThis;
-                mov RDI, ifThis;
-                mov AL, [RDI];
+                mov R8, ifThis;
+                mov AL, [R8];
                 mov RCX, here;
                 lock; // lock always needed to make this op atomic
                 cmpxchg [RCX], DL;
-                mov [RDI], AL;
+                mov [R8], AL;
                 setz AL;
             }
         }
@@ -1375,12 +1381,12 @@ else version (AsmX86_64)
             asm pure nothrow @nogc @trusted
             {
                 mov DX, writeThis;
-                mov RDI, ifThis;
-                mov AX, [RDI];
+                mov R8, ifThis;
+                mov AX, [R8];
                 mov RCX, here;
                 lock; // lock always needed to make this op atomic
                 cmpxchg [RCX], DX;
-                mov [RDI], AX;
+                mov [R8], AX;
                 setz AL;
             }
         }
@@ -1393,12 +1399,12 @@ else version (AsmX86_64)
             asm pure nothrow @nogc @trusted
             {
                 mov EDX, writeThis;
-                mov RDI, ifThis;
-                mov EAX, [RDI];
+                mov R8, ifThis;
+                mov EAX, [R8];
                 mov RCX, here;
                 lock; // lock always needed to make this op atomic
                 cmpxchg [RCX], EDX;
-                mov [RDI], EAX;
+                mov [R8], EAX;
                 setz AL;
             }
         }
@@ -1411,12 +1417,12 @@ else version (AsmX86_64)
             asm pure nothrow @nogc @trusted
             {
                 mov RDX, writeThis;
-                mov RDI, ifThis;
-                mov RAX, [RDI];
+                mov R8, ifThis;
+                mov RAX, [R8];
                 mov RCX, here;
                 lock; // lock always needed to make this op atomic
                 cmpxchg [RCX], RDX;
-                mov [RDI], RAX;
+                mov [R8], RAX;
                 setz AL;
             }
         }
