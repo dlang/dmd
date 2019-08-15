@@ -396,14 +396,27 @@ struct OutBuffer
         return (cast(const char*)data)[0 .. offset];
     }
 
-    /***********************************
+    /**
      * Extract the data as a slice and take ownership of it.
+     *
+     * When `true` is passed as an argument, this function behaves
+     * like `dmd.utils.toDString(thisbuffer.extractChars())`.
+     *
+     * Params:
+     *   nullTerminate = When `true`, the data will be `null` terminated.
+     *                   This is useful to call C functions or store
+     *                   the result in `Strings`. Defaults to `false`.
      */
-    extern (D) char[] extractSlice() pure nothrow @nogc
+    extern (D) char[] extractSlice(bool nullTerminate = false) pure nothrow
     {
-        auto length = offset;
-        auto p = extractData();
-        return p[0 .. length];
+        const length = offset;
+        if (!nullTerminate)
+            return extractData()[0 .. length];
+        // There's already a terminating `'\0'`
+        if (length && data[length - 1] == '\0')
+            return extractData()[0 .. length - 1];
+        writeByte(0);
+        return extractData()[0 .. length];
     }
 
     // Append terminating null if necessary and get view of internal buffer
