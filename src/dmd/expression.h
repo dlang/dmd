@@ -868,6 +868,8 @@ public:
     unsigned char mod;          // MODxxxxx
 
     Expression *syntaxCopy();
+    bool isLvalue();
+    Expression *toLvalue(Scope *sc, Expression *e);
 
     void accept(Visitor *v) { v->visit(this); }
 };

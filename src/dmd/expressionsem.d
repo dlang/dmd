@@ -9198,14 +9198,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // Try to do a decent error message with the expression
             // before it got constant folded
 
-            if (e1x.op != TOK.variable)
-                e1x = e1x.optimize(WANTvalue);
-
+            // https://issues.dlang.org/show_bug.cgi?id=19754
+            // first see if the unoptimized expression is modifiable
             if (exp.op == TOK.assign)
                 e1x = e1x.modifiableLvalue(sc, e1old);
 
             if (checkIfIsStructLiteralDotExpr(e1x))
                 return setError();
+
+            if (e1x.op != TOK.variable)
+                e1x = e1x.optimize(WANTvalue);
 
             if (e1x.op == TOK.error)
             {

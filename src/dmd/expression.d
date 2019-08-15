@@ -5341,6 +5341,19 @@ extern (C++) final class CastExp : UnaExp
         return to ? new CastExp(loc, e1.syntaxCopy(), to.syntaxCopy()) : new CastExp(loc, e1.syntaxCopy(), mod);
     }
 
+    override bool isLvalue()
+    {
+        //printf("e1.type = %s, to.type = %s\n", e1.type.toChars(), to.toChars());
+        return e1.isLvalue() && e1.type.mutableOf().unSharedOf().equals(to.mutableOf().unSharedOf());
+    }
+
+    override Expression toLvalue(Scope* sc, Expression e)
+    {
+        if (isLvalue())
+            return this;
+        return Expression.toLvalue(sc, e);
+    }
+
     override Expression addDtorHook(Scope* sc)
     {
         if (to.toBasetype().ty == Tvoid)        // look past the cast(void)

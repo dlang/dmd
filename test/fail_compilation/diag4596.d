@@ -1,10 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag4596.d(15): Error: `this` is not an lvalue and cannot be modified
-fail_compilation/diag4596.d(16): Error: `1 ? this : this` is not an lvalue and cannot be modified
-fail_compilation/diag4596.d(18): Error: `super` is not an lvalue and cannot be modified
-fail_compilation/diag4596.d(19): Error: `1 ? super : super` is not an lvalue and cannot be modified
+fail_compilation/diag4596.d(17): Error: `this` is not an lvalue and cannot be modified
+fail_compilation/diag4596.d(18): Error: `this` is not an lvalue and cannot be modified
+fail_compilation/diag4596.d(18): Error: `this` is not an lvalue and cannot be modified
+fail_compilation/diag4596.d(20): Error: `super` is not an lvalue and cannot be modified
+fail_compilation/diag4596.d(21): Error: `super` is not an lvalue and cannot be modified
+fail_compilation/diag4596.d(21): Error: `super` is not an lvalue and cannot be modified
 ---
 */
 

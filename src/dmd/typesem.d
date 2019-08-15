@@ -1278,6 +1278,13 @@ extern(C++) Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                 e = new AddrExp(e.loc, e);
                 e = e.expressionSemantic(sc);
             }
+            if (isRefOrOut && (!isAuto || e.isLvalue())
+                && !MODimplicitConv(e.type.mod, fparam.type.mod))
+            {
+                const(char)* errTxt = fparam.storageClass & STC.ref_ ? "ref" : "out";
+                .error(e.loc, "expression `%s` of type `%s` is not implicitly convertible to type `%s %s` of parameter `%s`",
+                      e.toChars(), e.type.toChars(), errTxt, fparam.type.toChars(), fparam.toChars());
+            }
             e = e.implicitCastTo(sc, fparam.type);
 
             // default arg must be an lvalue
