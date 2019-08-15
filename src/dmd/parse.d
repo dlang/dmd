@@ -798,8 +798,6 @@ final class Parser(AST) : Lexer
                 stc = STC.gshared;
                 goto Lstc;
 
-            //case TOK.manifest:   stc = STC.manifest;     goto Lstc;
-
             case TOK.at:
                 {
                     AST.Expressions* exps = null;
@@ -7501,7 +7499,6 @@ final class Parser(AST) : Lexer
             case TOK.ref_:
             case TOK.gshared:
             case TOK.return_:
-            //case TOK.manifest:
                 break;
 
             case TOK.at:
