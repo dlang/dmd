@@ -1589,6 +1589,14 @@ static if (_WIN32_WINNT >= 0x410) {
     alias DWORD EXECUTION_STATE;
 }
 
+// CreateSymbolicLink
+static if (_WIN32_WINNT >= 0x600) {
+    enum {
+        SYMBOLIC_LINK_FLAG_DIRECTORY = 0x1,
+        SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE = 0x2
+    }
+}
+
 // Callbacks
 extern (Windows) {
     alias DWORD function(LPVOID) LPTHREAD_START_ROUTINE;
@@ -2479,6 +2487,11 @@ WINBASEAPI BOOL WINAPI SetEvent(HANDLE);
     static if (_WIN32_WINNT >= 0x510) {
         VOID RestoreLastError(DWORD);
     }
+
+    static if (_WIN32_WINNT >= 0x600) {
+        BOOL CreateSymbolicLinkA(LPCSTR, LPCSTR, DWORD);
+        BOOL CreateSymbolicLinkW(LPCWSTR, LPCWSTR, DWORD);
+    }
 }
 
 // For compatibility with old core.sys.windows.windows:
@@ -2664,6 +2677,10 @@ version (Unicode) {
         alias GetDllDirectoryW GetDllDirectory;
     }
 
+    static if (_WIN32_WINNT >= 0x600) {
+        alias CreateSymbolicLinkW CreateSymbolicLink;
+    }
+
 } else {
     //alias STARTUPINFOA STARTUPINFO;
     alias WIN32_FIND_DATAA WIN32_FIND_DATA;
@@ -2837,6 +2854,10 @@ version (Unicode) {
         alias GetDllDirectoryA GetDllDirectory;
         alias SetDllDirectoryA SetDllDirectory;
         alias SetFirmwareEnvironmentVariableA SetFirmwareEnvironmentVariable;
+    }
+
+    static if (_WIN32_WINNT >= 0x600) {
+        alias CreateSymbolicLinkA CreateSymbolicLink;
     }
 }
 
