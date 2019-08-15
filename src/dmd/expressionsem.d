@@ -5749,8 +5749,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         exp.e1 = exp.e1.expressionSemantic(sc);
-        exp.e1 = exp.e1.modifiableLvalue(sc, exp.e1);
         exp.e1 = exp.e1.optimize(WANTvalue, /*keepLvalue*/ true);
+        exp.e1 = exp.e1.modifiableLvalue(sc, exp.e1);
         exp.type = exp.e1.type;
 
         if (auto ad = isAggregate(exp.e1.type))
@@ -9189,12 +9189,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // Try to do a decent error message with the expression
             // before it got constant folded
 
-            // https://issues.dlang.org/show_bug.cgi?id=19754
-            // first see if the unoptimized expression is modifiable
+            e1x = e1x.optimize(WANTvalue, /*keepLvalue*/ true);
+
             if (exp.op == TOK.assign)
                 e1x = e1x.modifiableLvalue(sc, e1old);
-
-            e1x = e1x.optimize(WANTvalue, /*keepLvalue*/ true);
 
             if (e1x.op == TOK.error)
             {
