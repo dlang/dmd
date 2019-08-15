@@ -110,6 +110,7 @@ endif
 # Clang Specific
 ifeq ($(CXX_KIND), clang++)
 WARNINGS += \
+	-Wno-c++11-narrowing \
 	-Wno-undefined-var-template \
 	-Wno-absolute-value \
 	-Wno-missing-braces \
@@ -133,6 +134,7 @@ BACK_WARNINGS := $(GLUE_WARNINGS) \
 # Clang Specific
 ifeq ($(CXX_KIND), clang++)
 WARNINGS += \
+	-Wno-c++11-narrowing \
 	-Wno-undefined-var-template \
 	-Wno-absolute-value
 GLUE_WARNINGS += \
@@ -165,7 +167,7 @@ endif
 # Clang Specific
 ifeq ($(CXX_KIND), clang++)
 CXXFLAGS += \
-	-xc++
+	-xc++ -std=c++11
 endif
 # Default D compiler flags for all source files
 DFLAGS := -version=MARS $(PIC)

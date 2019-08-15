@@ -4264,7 +4264,7 @@ static OPND *asm_primary_exp()
 
     REG *regp;
 
-    switch (tok_value)
+    switch ((int)tok_value)
     {
         case TOKdollar:
             o1 = new OPND();
@@ -4566,7 +4566,7 @@ Statement* inlineAsmSemantic(InlineAsmStatement *s, Scope *sc)
     asmtok = s->tokens;
     asm_token_trans(asmtok);
 
-    switch (tok_value)
+    switch ((int)tok_value)
     {
         case ASMTKnaked:
             s->naked = true;
