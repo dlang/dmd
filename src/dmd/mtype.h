@@ -228,7 +228,7 @@ public:
     virtual const char *kind();
     Type *copy() const;
     virtual Type *syntaxCopy();
-    bool equals(RootObject *o) const;
+    bool equals(const RootObject *o) const;
     bool equivalent(Type *t);
     // kludge for template.isType()
     DYNCAST dyncast() const { return DYNCAST_TYPE; }
@@ -830,7 +830,7 @@ public:
     static TypeTuple *create(Type *t1, Type *t2);
     const char *kind();
     Type *syntaxCopy();
-    bool equals(RootObject *o) const;
+    bool equals(const RootObject *o) const;
     void accept(Visitor *v) { v->visit(this); }
 };
 

@@ -296,7 +296,7 @@ extern (C++) class Dsymbol : ASTNode
         return getLoc().toChars();
     }
 
-    override bool equals(RootObject o) const
+    override bool equals(const RootObject o) const
     {
         if (this == o)
             return true;

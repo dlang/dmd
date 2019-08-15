@@ -980,7 +980,7 @@ extern (C++) final class OverDeclaration : Declaration
         return "overload alias"; // todo
     }
 
-    override bool equals(RootObject o) const
+    override bool equals(const RootObject o) const
     {
         if (this == o)
             return true;
@@ -1000,7 +1000,8 @@ extern (C++) final class OverDeclaration : Declaration
                 return true;
             if (auto fd = s.isFuncDeclaration())
             {
-                return fd.isUnique();
+                // isUnique is not callable using a const object
+                return (cast() fd).isUnique();
             }
             if (auto td = s.isTemplateDeclaration())
             {

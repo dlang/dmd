@@ -167,7 +167,7 @@ public:
     virtual const char *toPrettyCharsHelper(); // helper to print fully qualified (template) arguments
     Loc getLoc();
     const char *locToChars();
-    bool equals(RootObject *o) const;
+    bool equals(const RootObject *o) const;
     virtual bool isAnonymous();
     void error(const Loc &loc, const char *format, ...);
     void error(const char *format, ...);

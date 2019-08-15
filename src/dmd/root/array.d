@@ -53,15 +53,7 @@ public:
             size_t len = 2; // [ and ]
             foreach (u; 0 .. length)
             {
-                static if (is(typeof(this) == const(A), A) && is (A == Array!UnqualT, UnqualT))
-                {
-                    UnqualT* unqualData = cast(UnqualT*) data;
-                    buf[u] = unqualData[u].toString();
-                }
-                else
-                {
-                    buf[u] = data[u].toString();
-                }
+                buf[u] = data[u].toString();
                 len += buf[u].length + 1; //length + ',' or null terminator
             }
             char[] str = (cast(char*)mem.xmalloc(len))[0..len];

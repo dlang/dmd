@@ -517,7 +517,7 @@ extern (C++) abstract class Type : ASTNode
         assert(0);
     }
 
-    override bool equals(RootObject o) const
+    override bool equals(const RootObject o) const
     {
         Type t = cast(Type)o;
         //printf("Type::equals(%s, %s)\n", toChars(), t.toChars());
@@ -6206,7 +6206,7 @@ extern (C++) final class TypeTuple : Type
         return t;
     }
 
-    override bool equals(RootObject o) const
+    override bool equals(const RootObject o) const
     {
         Type t = cast(Type)o;
         //printf("TypeTuple::equals(%s, %s)\n", toChars(), t.toChars());

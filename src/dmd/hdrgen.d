@@ -2632,14 +2632,12 @@ public:
 void toCBuffer(const Statement s, OutBuffer* buf, HdrGenState* hgs)
 {
     scope v = new StatementPrettyPrintVisitor(buf, hgs);
-    Statement unqualS = cast(Statement) s;
-    unqualS.accept(v);
+    (cast() s).accept(v);
 }
 
 void toCBuffer(const Type t, OutBuffer* buf, const Identifier ident, HdrGenState* hgs)
 {
-    Type unqualT = cast(Type) t;
-    typeToBuffer(unqualT, ident, buf, hgs);
+    typeToBuffer(cast() t, ident, buf, hgs);
 }
 
 void toCBuffer(Dsymbol s, OutBuffer* buf, HdrGenState* hgs)
@@ -2654,13 +2652,12 @@ void toCBufferInstance(const TemplateInstance ti, OutBuffer* buf, bool qualifyTy
     HdrGenState hgs;
     hgs.fullQual = qualifyTypes;
     scope v = new DsymbolPrettyPrintVisitor(buf, &hgs);
-    v.visit(cast(TemplateInstance) ti);
+    v.visit(cast() ti);
 }
 
 void toCBuffer(const Initializer iz, OutBuffer* buf, HdrGenState* hgs)
 {
-    Initializer unqualIz = cast(Initializer) iz;
-    initializerToBuffer(unqualIz, buf, hgs);
+    initializerToBuffer(cast() iz, buf, hgs);
 }
 
 bool stcToBuffer(OutBuffer* buf, StorageClass stc)
@@ -2891,8 +2888,7 @@ void functionToBufferWithIdent(TypeFunction tf, OutBuffer* buf, const(char)* ide
 void toCBuffer(const Expression e, OutBuffer* buf, HdrGenState* hgs)
 {
     scope v = new ExpressionPrettyPrintVisitor(buf, hgs);
-    Expression unqualE = cast(Expression) e;
-    unqualE.accept(v);
+    (cast() e).accept(v);
 }
 
 /**************************************************
@@ -2914,8 +2910,7 @@ void argExpTypesToCBuffer(OutBuffer* buf, Expressions* arguments)
 void toCBuffer(const TemplateParameter tp, OutBuffer* buf, HdrGenState* hgs)
 {
     scope v = new TemplateParameterPrettyPrintVisitor(buf, hgs);
-    TemplateParameter unqualTP = cast(TemplateParameter) tp;
-    unqualTP.accept(v);
+    (cast() tp).accept(v);
 }
 
 void arrayObjectsToBuffer(OutBuffer* buf, Objects* objects)

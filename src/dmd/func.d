@@ -558,14 +558,14 @@ extern (C++) class FuncDeclaration : Declaration
         return HiddenParameters.init;
     }
 
-    override final bool equals(RootObject o) const
+    override final bool equals(const RootObject o) const
     {
         if (this == o)
             return true;
 
         if (auto s = isDsymbol(o))
         {
-            auto fd1 = cast(FuncDeclaration) this;
+            auto fd1 = this;
             auto fd2 = s.isFuncDeclaration();
             if (!fd2)
                 return false;
@@ -582,11 +582,12 @@ extern (C++) class FuncDeclaration : Declaration
             }
 
             bool b1 = fa1 !is null;
-            if (b1 && faf1.isUnique() && !fa1.hasOverloads)
+            // isUnique is not callable using a const object
+            if (b1 && (cast() faf1).isUnique() && !fa1.hasOverloads)
                 b1 = false;
 
             bool b2 = fa2 !is null;
-            if (b2 && faf2.isUnique() && !fa2.hasOverloads)
+            if (b2 && (cast() faf2).isUnique() && !fa2.hasOverloads)
                 b2 = false;
 
             if (b1 != b2)

@@ -5267,7 +5267,7 @@ extern (C++) class TemplateParameter : ASTNode
 
     abstract bool hasDefaultArg();
 
-    override const(char)* toChars()  const
+    override const(char)* toChars() const
     {
         return this.ident.toChars();
     }

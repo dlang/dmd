@@ -22,7 +22,7 @@ private:
 public:
     static Identifier* anonymous();
     static Identifier* create(const char *string);
-    bool equals(RootObject *o) const;
+    bool equals(const RootObject *o) const;
     const char *toChars() const;
     int getValue() const;
     const char *toHChars2() const;

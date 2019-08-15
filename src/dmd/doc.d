@@ -98,6 +98,11 @@ private class Section
     size_t bodylen;
     int nooutput;
 
+    override string toString() const
+    {
+        assert(0);
+    }
+
     void write(Loc loc, DocComment* dc, Scope* sc, Dsymbols* a, OutBuffer* buf)
     {
         assert(a.dim);

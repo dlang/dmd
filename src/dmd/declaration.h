@@ -193,7 +193,7 @@ public:
     bool hasOverloads;
 
     const char *kind() const;
-    bool equals(RootObject *o) const;
+    bool equals(const RootObject *o) const;
     bool overloadInsert(Dsymbol *s);
 
     Dsymbol *toAlias();
@@ -561,7 +561,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *);
     bool functionSemantic();
     bool functionSemantic3();
-    bool equals(RootObject *o) const;
+    bool equals(const RootObject *o) const;
 
     int overrides(FuncDeclaration *fd);
     int findVtblIndex(Dsymbols *vtbl, int dim, bool fix17349 = true);
