@@ -1179,45 +1179,73 @@ else version (AsmX86_64)
         return cas(&value, ifThis, writeThis);
     }
 
-    bool cas(T,V1,V2)( shared(T)* here, const V1 ifThis, V2 writeThis ) pure nothrow @nogc @safe
+    bool cas(T,V1,V2)( shared(T)* here, const V1 ifThis, V2 writeThis ) pure nothrow @nogc @trusted
         if ( !is(T == class) && !is(T U : U*) &&  __traits( compiles, { *here = writeThis; } ) )
+    in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
     {
-        return casImplNoResult(here, ifThis, writeThis);
+        static assert (V1.sizeof == V2.sizeof, "Mismatching argument sizes");
+        static if ( V2.sizeof == 4 && __traits(isFloating, V2) )
+        {
+            uint cmp = *cast(uint*)&ifThis;
+            uint arg = *cast(uint*)&writeThis;
+        }
+        else static if ( V2.sizeof == 8 && __traits(isFloating, V2) )
+        {
+            ulong cmp = *cast(ulong*)&ifThis;
+            ulong arg = *cast(ulong*)&writeThis;
+        }
+        else
+        {
+            alias cmp = ifThis;
+            alias arg = writeThis;
+        }
+        return casImplNoResult(here, cmp, arg);
     }
 
     bool cas(T,V1,V2)( shared(T)* here, const shared(V1) ifThis, shared(V2) writeThis ) pure nothrow @nogc @safe
         if ( is(T == class) && __traits( compiles, { *here = writeThis; } ) )
+    in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
     {
         return casImplNoResult(here, ifThis, writeThis);
     }
 
     bool cas(T,V1,V2)( shared(T)* here, const shared(V1)* ifThis, shared(V2)* writeThis ) pure nothrow @nogc @safe
         if ( is(T U : U*) && __traits( compiles, { *here = writeThis; } ) )
+    in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
     {
         return casImplNoResult(here, ifThis, writeThis);
     }
 
     private bool casImplNoResult(T,V1,V2)( shared(T)* here, V1 ifThis, V2 writeThis ) pure nothrow @nogc @safe
-    in
     {
-        assert( atomicPtrIsProperlyAligned( here ) );
-    }
-    do
-    {
+        // Windows: here = *R8, ifThis = RDX, writeThis = RCX
+        // Posix:   here = *RDX, ifThis = RSI, writeThis = RDI
         static if ( T.sizeof == byte.sizeof )
         {
             //////////////////////////////////////////////////////////////////
             // 1 Byte CAS
             //////////////////////////////////////////////////////////////////
-
-            asm pure nothrow @nogc @trusted
+            version (Windows)
             {
-                mov DL, writeThis;
-                mov AL, ifThis;
-                mov RCX, here;
-                lock; // lock always needed to make this op atomic
-                cmpxchg [RCX], DL;
-                setz AL;
+                asm pure nothrow @nogc @trusted
+                {
+                    naked;
+                    mov AL, DL;
+                    lock; cmpxchg [R8], CL;
+                    setz AL;
+                    ret;
+                }
+            }
+            else
+            {
+                asm pure nothrow @nogc @trusted
+                {
+                    naked;
+                    mov AL, SIL;
+                    lock; cmpxchg [RDX], DIL;
+                    setz AL;
+                    ret;
+                }
             }
         }
         else static if ( T.sizeof == short.sizeof )
@@ -1225,15 +1253,27 @@ else version (AsmX86_64)
             //////////////////////////////////////////////////////////////////
             // 2 Byte CAS
             //////////////////////////////////////////////////////////////////
-
-            asm pure nothrow @nogc @trusted
+            version (Windows)
             {
-                mov DX, writeThis;
-                mov AX, ifThis;
-                mov RCX, here;
-                lock; // lock always needed to make this op atomic
-                cmpxchg [RCX], DX;
-                setz AL;
+                asm pure nothrow @nogc @trusted
+                {
+                    naked;
+                    mov AX, DX;
+                    lock; cmpxchg [R8], CX;
+                    setz AL;
+                    ret;
+                }
+            }
+            else
+            {
+                asm pure nothrow @nogc @trusted
+                {
+                    naked;
+                    mov AX, SI;
+                    lock; cmpxchg [RDX], DI;
+                    setz AL;
+                    ret;
+                }
             }
         }
         else static if ( T.sizeof == int.sizeof )
@@ -1241,15 +1281,27 @@ else version (AsmX86_64)
             //////////////////////////////////////////////////////////////////
             // 4 Byte CAS
             //////////////////////////////////////////////////////////////////
-
-            asm pure nothrow @nogc @trusted
+            version (Windows)
             {
-                mov EDX, writeThis;
-                mov EAX, ifThis;
-                mov RCX, here;
-                lock; // lock always needed to make this op atomic
-                cmpxchg [RCX], EDX;
-                setz AL;
+                asm pure nothrow @nogc @trusted
+                {
+                    naked;
+                    mov EAX, EDX;
+                    lock; cmpxchg [R8], ECX;
+                    setz AL;
+                    ret;
+                }
+            }
+            else
+            {
+                asm pure nothrow @nogc @trusted
+                {
+                    naked;
+                    mov EAX, ESI;
+                    lock; cmpxchg [RDX], EDI;
+                    setz AL;
+                    ret;
+                }
             }
         }
         else static if ( T.sizeof == long.sizeof )
@@ -1257,15 +1309,27 @@ else version (AsmX86_64)
             //////////////////////////////////////////////////////////////////
             // 8 Byte CAS on a 64-Bit Processor
             //////////////////////////////////////////////////////////////////
-
-            asm pure nothrow @nogc @trusted
+            version (Windows)
             {
-                mov RDX, writeThis;
-                mov RAX, ifThis;
-                mov RCX, here;
-                lock; // lock always needed to make this op atomic
-                cmpxchg [RCX], RDX;
-                setz AL;
+                asm pure nothrow @nogc @trusted
+                {
+                    naked;
+                    mov RAX, RDX;
+                    lock; cmpxchg [R8], RCX;
+                    setz AL;
+                    ret;
+                }
+            }
+            else
+            {
+                asm pure nothrow @nogc @trusted
+                {
+                    naked;
+                    mov RAX, RSI;
+                    lock; cmpxchg [RDX], RDI;
+                    setz AL;
+                    ret;
+                }
             }
         }
         else static if ( T.sizeof == long.sizeof*2 && has128BitCAS)
@@ -1274,52 +1338,38 @@ else version (AsmX86_64)
             // 16 Byte CAS on a 64-Bit Processor
             //////////////////////////////////////////////////////////////////
 
-            version (Win64)
+            // Windows: here = *R8, ifThis = *RDX, writeThis = *RCX
+            // Posix:   here = *R8, ifThis = RCX:RDX, writeThis = RSI:RDI
+            version (Windows)
             {
-                //Windows 64 calling convention uses different registers.
-                //DMD appears to reverse the register order.
                 asm pure nothrow @nogc @trusted
                 {
-                    push RDI;
+                    naked;
                     push RBX;
-                    mov R9, writeThis;
-                    mov R10, ifThis;
-                    mov R11, here;
-
-                    mov RDI, R9;
-                    mov RBX, [RDI];
-                    mov RCX, 8[RDI];
-
-                    mov RDI, R10;
-                    mov RAX, [RDI];
-                    mov RDX, 8[RDI];
-
-                    mov RDI, R11;
-                    lock;
-                    cmpxchg16b [RDI];
+                    mov RAX, [RDX];
+                    mov RDX, 8[RDX];
+                    mov RBX, [RCX];
+                    mov RCX, 8[RCX];
+                    lock; cmpxchg16b [R8];
                     setz AL;
                     pop RBX;
-                    pop RDI;
+                    ret;
                 }
             }
             else
             {
                 asm pure nothrow @nogc @trusted
                 {
-                    push RDI;
+                    naked;
                     push RBX;
-                    lea RDI, writeThis;
-                    mov RBX, [RDI];
-                    mov RCX, 8[RDI];
-                    lea RDI, ifThis;
-                    mov RAX, [RDI];
-                    mov RDX, 8[RDI];
-                    mov RDI, here;
-                    lock; // lock always needed to make this op atomic
-                    cmpxchg16b [RDI];
+                    mov RAX, RDX;
+                    mov RDX, RCX;
+                    mov RBX, RDI;
+                    mov RCX, RSI;
+                    lock; cmpxchg16b [R8];
                     setz AL;
                     pop RBX;
-                    pop RDI;
+                    ret;
                 }
             }
         }
@@ -1329,47 +1379,73 @@ else version (AsmX86_64)
         }
     }
 
-    bool cas(T,V1,V2)( shared(T)* here, V1* ifThis, V2 writeThis ) pure nothrow @nogc @safe
+    bool cas(T,V1,V2)( shared(T)* here, V1* ifThis, V2 writeThis ) pure nothrow @nogc @trusted
         if ( !is(T == class) && !is(T U : U*) &&  __traits( compiles, { *here = writeThis; } ) )
+    in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
     {
-        return casImplWithResult(here, *ifThis, writeThis);
+        static if ( V2.sizeof == 4 && __traits(isFloating, V2) )
+            uint arg = *cast(uint*)&writeThis;
+        else static if ( V2.sizeof == 8 && __traits(isFloating, V2) )
+            ulong arg = *cast(ulong*)&writeThis;
+        else
+            alias arg = writeThis;
+        return casImplWithResult(here, *ifThis, arg);
     }
 
     bool cas(T,V1,V2)( shared(T)* here, shared(V1)* ifThis, shared(V2) writeThis ) pure nothrow @nogc @safe
         if ( is(T == class) && __traits( compiles, { *here = writeThis; } ) )
+    in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
     {
         return casImplWithResult(here, *ifThis, writeThis);
     }
 
     bool cas(T,V1,V2)( shared(T)* here, shared(V1*)* ifThis, shared(V2)* writeThis ) pure nothrow @nogc @safe
         if ( is(T U : U*) && __traits( compiles, { *here = writeThis; } ) )
+    in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
     {
         return casImplWithResult(here, *ifThis, writeThis);
     }
 
     private bool casImplWithResult(T,V1,V2)( shared(T)* here, ref V1 ifThis, V2 writeThis ) pure nothrow @nogc @safe
-    in
     {
-        assert( atomicPtrIsProperlyAligned( here ) );
-    }
-    do
-    {
+        // Windows: here = *R8, ifThis = *RDX, writeThis = RCX
+        // Posix:   here = *RDX, ifThis = *RSI, writeThis = RDI
         static if ( T.sizeof == byte.sizeof )
         {
             //////////////////////////////////////////////////////////////////
             // 1 Byte CAS
             //////////////////////////////////////////////////////////////////
-
-            asm pure nothrow @nogc @trusted
+            version (Windows)
             {
-                mov DL, writeThis;
-                mov R8, ifThis;
-                mov AL, [R8];
-                mov RCX, here;
-                lock; // lock always needed to make this op atomic
-                cmpxchg [RCX], DL;
-                mov [R8], AL;
-                setz AL;
+                asm pure nothrow @nogc @trusted
+                {
+                    naked;
+                    mov AL, [RDX];
+                    lock; cmpxchg [R8], CL;
+                    jne compare_fail;
+                    mov AL, 1;
+                    ret;
+                compare_fail:
+                    mov [RDX], AL;
+                    xor AL, AL;
+                    ret;
+                }
+            }
+            else
+            {
+                asm pure nothrow @nogc @trusted
+                {
+                    naked;
+                    mov AL, [RSI];
+                    lock; cmpxchg [RDX], DIL;
+                    jne compare_fail;
+                    mov AL, 1;
+                    ret;
+                compare_fail:
+                    mov [RSI], AL;
+                    xor AL, AL;
+                    ret;
+                }
             }
         }
         else static if ( T.sizeof == short.sizeof )
@@ -1377,17 +1453,37 @@ else version (AsmX86_64)
             //////////////////////////////////////////////////////////////////
             // 2 Byte CAS
             //////////////////////////////////////////////////////////////////
-
-            asm pure nothrow @nogc @trusted
+            version (Windows)
             {
-                mov DX, writeThis;
-                mov R8, ifThis;
-                mov AX, [R8];
-                mov RCX, here;
-                lock; // lock always needed to make this op atomic
-                cmpxchg [RCX], DX;
-                mov [R8], AX;
-                setz AL;
+                asm pure nothrow @nogc @trusted
+                {
+                    naked;
+                    mov AX, [RDX];
+                    lock; cmpxchg [R8], CX;
+                    jne compare_fail;
+                    mov AL, 1;
+                    ret;
+                compare_fail:
+                    mov [RDX], AX;
+                    xor AL, AL;
+                    ret;
+                }
+            }
+            else
+            {
+                asm pure nothrow @nogc @trusted
+                {
+                    naked;
+                    mov AX, [RSI];
+                    lock; cmpxchg [RDX], DI;
+                    jne compare_fail;
+                    mov AL, 1;
+                    ret;
+                compare_fail:
+                    mov [RSI], AX;
+                    xor AL, AL;
+                    ret;
+                }
             }
         }
         else static if ( T.sizeof == int.sizeof )
@@ -1395,17 +1491,37 @@ else version (AsmX86_64)
             //////////////////////////////////////////////////////////////////
             // 4 Byte CAS
             //////////////////////////////////////////////////////////////////
-
-            asm pure nothrow @nogc @trusted
+            version (Windows)
             {
-                mov EDX, writeThis;
-                mov R8, ifThis;
-                mov EAX, [R8];
-                mov RCX, here;
-                lock; // lock always needed to make this op atomic
-                cmpxchg [RCX], EDX;
-                mov [R8], EAX;
-                setz AL;
+                asm pure nothrow @nogc @trusted
+                {
+                    naked;
+                    mov EAX, [RDX];
+                    lock; cmpxchg [R8], ECX;
+                    jne compare_fail;
+                    mov AL, 1;
+                    ret;
+                compare_fail:
+                    mov [RDX], EAX;
+                    xor AL, AL;
+                    ret;
+                }
+            }
+            else
+            {
+                asm pure nothrow @nogc @trusted
+                {
+                    naked;
+                    mov EAX, [RSI];
+                    lock; cmpxchg [RDX], EDI;
+                    jne compare_fail;
+                    mov AL, 1;
+                    ret;
+                compare_fail:
+                    mov [RSI], EAX;
+                    xor AL, AL;
+                    ret;
+                }
             }
         }
         else static if ( T.sizeof == long.sizeof )
@@ -1413,17 +1529,37 @@ else version (AsmX86_64)
             //////////////////////////////////////////////////////////////////
             // 8 Byte CAS on a 64-Bit Processor
             //////////////////////////////////////////////////////////////////
-
-            asm pure nothrow @nogc @trusted
+            version (Windows)
             {
-                mov RDX, writeThis;
-                mov R8, ifThis;
-                mov RAX, [R8];
-                mov RCX, here;
-                lock; // lock always needed to make this op atomic
-                cmpxchg [RCX], RDX;
-                mov [R8], RAX;
-                setz AL;
+                asm pure nothrow @nogc @trusted
+                {
+                    naked;
+                    mov RAX, [RDX];
+                    lock; cmpxchg [R8], RCX;
+                    jne compare_fail;
+                    mov AL, 1;
+                    ret;
+                compare_fail:
+                    mov [RDX], RAX;
+                    xor AL, AL;
+                    ret;
+                }
+            }
+            else
+            {
+                asm pure nothrow @nogc @trusted
+                {
+                    naked;
+                    mov RAX, [RSI];
+                    lock; cmpxchg [RDX], RDI;
+                    jne compare_fail;
+                    mov AL, 1;
+                    ret;
+                compare_fail:
+                    mov [RSI], RAX;
+                    xor AL, AL;
+                    ret;
+                }
             }
         }
         else static if ( T.sizeof == long.sizeof*2 && has128BitCAS)
@@ -1432,60 +1568,53 @@ else version (AsmX86_64)
             // 16 Byte CAS on a 64-Bit Processor
             //////////////////////////////////////////////////////////////////
 
-            version (Win64)
+            // Windows: here = *R8, ifThis = *RDX, writeThis = *RCX
+            // Posix:   here = *RCX, ifThis = *RDX, writeThis = RSI:RDI
+            version (Windows)
             {
-                //Windows 64 calling convention uses different registers.
-                //DMD appears to reverse the register order.
                 asm pure nothrow @nogc @trusted
                 {
-                    push RDI;
+                    naked;
                     push RBX;
-                    mov R9, writeThis;
-                    mov R10, ifThis;
-                    mov R11, here;
-
-                    mov RDI, R9;
-                    mov RBX, [RDI];
-                    mov RCX, 8[RDI];
-
-                    mov RDI, R10;
-                    mov RAX, [RDI];
-                    mov RDX, 8[RDI];
-
-                    mov RDI, R11;
-                    lock;
-                    cmpxchg16b [RDI];
-
-                    mov RDI, R10;
-                    mov [RDI], RAX;
-                    mov 8[RDI], RDX;
-
-                    setz AL;
+                    mov R9, RDX;
+                    mov RAX, [RDX];
+                    mov RDX, 8[RDX];
+                    mov RBX, [RCX];
+                    mov RCX, 8[RCX];
+                    lock; cmpxchg16b [R8];
                     pop RBX;
-                    pop RDI;
+                    jne compare_fail;
+                    mov AL, 1;
+                    ret;
+                compare_fail:
+                    mov [R9], RAX;
+                    mov 8[R9], RDX;
+                    xor AL, AL;
+                    ret;
                 }
             }
             else
             {
                 asm pure nothrow @nogc @trusted
                 {
-                    push RDI;
+                    naked;
                     push RBX;
-                    lea RDI, writeThis;
-                    mov RBX, [RDI];
-                    mov RCX, 8[RDI];
-                    lea RDI, ifThis;
-                    mov RAX, [RDI];
-                    mov RDX, 8[RDI];
-                    mov RDI, here;
-                    lock; // lock always needed to make this op atomic
-                    cmpxchg16b [RDI];
-                    lea RDI, ifThis;
-                    mov [RDI], RAX;
-                    mov 8[RDI], RDX;
-                    setz AL;
+                    mov R8, RCX;
+                    mov R9, RDX;
+                    mov RAX, [RDX];
+                    mov RDX, 8[RDX];
+                    mov RBX, RDI;
+                    mov RCX, RSI;
+                    lock; cmpxchg16b [R8];
                     pop RBX;
-                    pop RDI;
+                    jne compare_fail;
+                    mov AL, 1;
+                    ret;
+                compare_fail:
+                    mov [R9], RAX;
+                    mov 8[R9], RDX;
+                    xor AL, AL;
+                    ret;
                 }
             }
         }
@@ -2009,6 +2138,33 @@ version (unittest)
             testType!(double)(1.0);
             testType!(long)();
             testType!(ulong)();
+        }
+        static if (has128BitCAS)
+        {
+            () @trusted
+            {
+                struct Big { long a, b; }
+
+                shared(Big) atom;
+                shared(Big) base;
+                shared(Big) arg;
+                shared(Big) val = Big(1, 2);
+
+                assert( cas( &atom, arg, val ), Big.stringof );
+                assert( atom is val, Big.stringof );
+                assert( !cas( &atom, arg, val ), Big.stringof );
+                assert( atom is val, Big.stringof );
+
+                atom = Big();
+                assert( cas( &atom, &arg, val ), Big.stringof );
+                assert( arg is base, Big.stringof );
+                assert( atom is val, Big.stringof );
+
+                arg = Big();
+                assert( !cas( &atom, &arg, base ), Big.stringof );
+                assert( arg is val, Big.stringof );
+                assert( atom is val, Big.stringof );
+            }();
         }
 
         shared(size_t) i;
