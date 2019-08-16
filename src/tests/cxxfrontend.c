@@ -92,6 +92,19 @@ static void frontend_term()
 
 /**********************************/
 
+void test_tokens()
+{
+    // First valid TOK value
+    assert(TOKlparen == 1);
+    assert(strcmp(Token::toChars(TOKlparen), "(") == 0);
+
+    // Last valid TOK value
+    assert(TOKvectorarray == TOKMAX - 1);
+    assert(strcmp(Token::toChars(TOKvectorarray), "vectorarray") == 0);
+}
+
+/**********************************/
+
 class TestVisitor : public Visitor
 {
   public:
@@ -324,6 +337,7 @@ int main(int argc, char **argv)
 {
     frontend_init();
 
+    test_tokens();
     test_visitors();
     test_semantic();
     test_expression();
