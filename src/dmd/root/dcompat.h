@@ -19,12 +19,16 @@ struct DArray
     size_t length;
     T *ptr;
 
+    DArray() : length(0), ptr(NULL) { }
+
     DArray(size_t length_in, T *ptr_in)
         : length(length_in), ptr(ptr_in) { }
 };
 
 struct DString : public DArray<const char>
 {
+    DString() : DArray() { }
+
     DString(const char *ptr)
         : DArray(strlen(ptr), ptr) { }
 
