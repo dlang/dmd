@@ -1,3 +1,5 @@
+version (DigitalMars)
+{
 
 struct S
 {
@@ -11,4 +13,6 @@ void main()
     class C {}
 
     S().f!(() => new C()).handleLazily;
+}
+
 }

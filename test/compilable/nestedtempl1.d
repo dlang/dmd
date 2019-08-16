@@ -1,3 +1,6 @@
+version (DigitalMars)
+{
+
 class K
 {
     class B(alias a)
@@ -22,4 +25,6 @@ void main()
     auto k = new K;
     auto d = k.new K.D!a;
     auto e = k.new K.E!a;
+}
+
 }

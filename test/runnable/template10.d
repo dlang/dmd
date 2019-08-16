@@ -1,5 +1,8 @@
 // PERMUTE_ARGS: -inline
 
+version (DigitalMars)
+{
+
 /********************************************/
 
 void test1a()
@@ -745,4 +748,10 @@ void main()
 {
     runTests();          // runtime
     enum _ = runTests(); // ctfe
+}
+
+}
+else
+{
+    void main() {}
 }

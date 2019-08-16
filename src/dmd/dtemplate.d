@@ -57,6 +57,9 @@ private enum LOG = false;
 
 enum IDX_NOTFOUND = 0x12345678;
 
+version (MARS)
+    version = NonGlobalTemplate;
+
 pure nothrow @nogc
 {
 
@@ -7055,6 +7058,16 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 Declaration d = sa.isDeclaration();
                 if ((td && td.literal) || (ti && ti.enclosing) || (d && !d.isDataseg() && !(d.storage_class & STC.manifest) && (!d.isFuncDeclaration() || d.isFuncDeclaration().isNested()) && !isTemplateMixin()))
                 {
+                    version (NonGlobalTemplate) {} else
+                    {
+                        if (!isstatic)
+                        {
+                            error("cannot use local `%s` as parameter to non-global template `%s`", sa.toChars(), tempdecl.toChars());
+                            errors = true;
+                            return nested != 0;
+                        }
+                    }
+
                     Dsymbol dparent = sa.toParent2();
                     if (!dparent)
                         goto L1;
