@@ -1094,77 +1094,132 @@ else version (AsmX86_64)
         }
     }
 
-    shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)( shared(T)* here, V exchangeWith ) pure nothrow @nogc @safe
+    shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)( shared(T)* here, V exchangeWith ) pure nothrow @nogc @trusted
         if ( !is(T == class) && !is(T U : U*) &&  __traits( compiles, { *here = exchangeWith; } ) )
+    in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
     {
-        return atomicExchangeImpl(here, exchangeWith);
+        static if ( __traits(isFloating, V) )
+        {
+            static if ( V.sizeof == 4 )
+                alias I = uint;
+            else static if ( V.sizeof == 8 )
+                alias I = ulong;
+            else
+                static assert( false, "Float type " ~ V.stringof ~ " not supported.");
+            I r = atomicExchangeImpl(cast(shared(I)*)here, *cast(I*)&exchangeWith);
+            return *cast(shared(T)*)&r;
+        }
+        else
+            return atomicExchangeImpl(here, exchangeWith);
     }
 
     shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)( shared(T)* here, shared(V) exchangeWith ) pure nothrow @nogc @safe
         if ( is(T == class) && __traits( compiles, { *here = exchangeWith; } ) )
+    in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
     {
         return atomicExchangeImpl(here, exchangeWith);
     }
 
     shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)( shared(T)* here, shared(V)* exchangeWith ) pure nothrow @nogc @safe
         if ( is(T U : U*) && __traits( compiles, { *here = exchangeWith; } ) )
+    in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
     {
         return atomicExchangeImpl(here, exchangeWith);
     }
 
     private shared(T) atomicExchangeImpl(T,V)( shared(T)* here, V exchangeWith ) pure nothrow @nogc @safe
-        in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
-    do
     {
+        // Windows: here = RDX, exchangeWith = RCX
+        // Posix:   here = RSI, exchangeWith = RDI
         static if ( T.sizeof == byte.sizeof )
         {
-            asm pure nothrow @nogc @trusted
+            version (Windows)
             {
-                mov AL, exchangeWith;
-                mov RCX, here;
-                xchg [RCX], AL;
+                asm pure nothrow @nogc @trusted
+                {
+                    naked;
+                    xchg [RDX], CL;
+                    mov AL, CL;
+                    ret;
+                }
+            }
+            else
+            {
+                asm pure nothrow @nogc @trusted
+                {
+                    naked;
+                    xchg [RSI], DIL;
+                    mov AL, DIL;
+                    ret;
+                }
             }
         }
         else static if ( T.sizeof == short.sizeof )
         {
-            asm pure nothrow @nogc @trusted
+            version (Windows)
             {
-                mov AX, exchangeWith;
-                mov RCX, here;
-                xchg [RCX], AX;
+                asm pure nothrow @nogc @trusted
+                {
+                    naked;
+                    xchg [RDX], CX;
+                    mov AX, CX;
+                    ret;
+                }
+            }
+            else
+            {
+                asm pure nothrow @nogc @trusted
+                {
+                    naked;
+                    xchg [RSI], DI;
+                    mov AX, DI;
+                    ret;
+                }
             }
         }
         else static if ( T.sizeof == int.sizeof )
         {
-            asm pure nothrow @nogc @trusted
-            {
-                mov EAX, exchangeWith;
-                mov RCX, here;
-                xchg [RCX], EAX;
-            }
-            static if ( __traits(isFloating, T) )
+            version (Windows)
             {
                 asm pure nothrow @nogc @trusted
                 {
-                    mov exchangeWith, EAX;
-                    movss XMM0, exchangeWith;
+                    naked;
+                    xchg [RDX], ECX;
+                    mov EAX, ECX;
+                    ret;
+                }
+            }
+            else
+            {
+                asm pure nothrow @nogc @trusted
+                {
+                    naked;
+                    xchg [RSI], EDI;
+                    mov EAX, EDI;
+                    ret;
                 }
             }
         }
         else static if ( T.sizeof == long.sizeof )
         {
-            asm pure nothrow @nogc @trusted
-            {
-                mov RAX, exchangeWith;
-                mov RCX, here;
-                xchg [RCX], RAX;
-            }
-            static if ( __traits(isFloating, T) )
+            version (Windows)
             {
                 asm pure nothrow @nogc @trusted
                 {
-                    mov exchangeWith, RAX;
-                    movsd XMM0, exchangeWith;
+                    naked;
+                    xchg [RDX], RCX;
+                    mov RAX, RCX;
+                    ret;
+                }
+            }
+            else
+            {
+                asm pure nothrow @nogc @trusted
+                {
+                    naked;
+                    xchg [RSI], RDI;
+                    mov RAX, RDI;
+                    ret;
                 }
             }
         }
