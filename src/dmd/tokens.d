@@ -429,8 +429,8 @@ extern (C++) struct Token
     Loc loc;
     const(char)* ptr; // pointer to first character of this token within buffer
     TOK value;
-    const(char)* blockComment; // doc comment string prior to this token
-    const(char)* lineComment; // doc comment for previous token
+    const(char)[] blockComment; // doc comment string prior to this token
+    const(char)[] lineComment; // doc comment for previous token
 
     union
     {

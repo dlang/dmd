@@ -1065,7 +1065,7 @@ private void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
                 if (isDitto(td.comment))
                     com = td.comment;
                 else
-                    com = Lexer.combineComments(td.comment, com, true);
+                    com = Lexer.combineComments(td.comment.toDString(), com.toDString(), true);
             }
             else
             {
@@ -1097,7 +1097,7 @@ private void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
                 if (isDitto(td.comment))
                     com = td.comment;
                 else
-                    com = Lexer.combineComments(td.comment, com, true);
+                    com = Lexer.combineComments(td.comment.toDString(), com.toDString(), true);
             }
             else
             {

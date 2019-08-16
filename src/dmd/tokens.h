@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "root/dcompat.h"
 #include "root/port.h"
 #include "globals.h"
 
@@ -198,10 +199,10 @@ struct Token
 {
     Token *next;
     Loc loc;
-    const utf8_t *ptr;         // pointer to first character of this token within buffer
+    const utf8_t *ptr;    // pointer to first character of this token within buffer
     TOK value;
-    const utf8_t *blockComment; // doc comment string prior to this token
-    const utf8_t *lineComment;  // doc comment for previous token
+    DString blockComment; // doc comment string prior to this token
+    DString lineComment;  // doc comment for previous token
     union
     {
         // Integers

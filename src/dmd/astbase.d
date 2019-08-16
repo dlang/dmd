@@ -332,7 +332,7 @@ struct ASTBase
             if (!this.comment)
                 this.comment = comment;
             else if (comment && strcmp(cast(char*)comment, cast(char*)this.comment) != 0)
-                this.comment = Lexer.combineComments(this.comment, comment, true);
+                this.comment = Lexer.combineComments(this.comment.toDString(), comment.toDString(), true);
         }
 
         override const(char)* toChars()
