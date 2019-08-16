@@ -456,11 +456,8 @@ bool CTFloat::isNaN(real_t r)
 #else
     return __inline_isnan(r);
 #endif
-#elif __FreeBSD__ || __OpenBSD__
-    return isnan(r);
 #else
-    #undef isnan
-    return ::isnan(r);
+    return isnan(r);
 #endif
 }
 
@@ -476,11 +473,8 @@ bool CTFloat::isInfinity(real_t r)
 {
 #if __APPLE__
     return fpclassify(r) == FP_INFINITE;
-#elif __FreeBSD__ || __OpenBSD__
-    return isinf(r);
 #else
-    #undef isinf
-    return ::isinf(r);
+    return isinf(r);
 #endif
 }
 
