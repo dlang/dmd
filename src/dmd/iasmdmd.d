@@ -2898,6 +2898,8 @@ void asm_make_modrm_byte(
          ASM_GET_amod(popnd2.usFlags) == _rseg ||
          ASM_GET_amod(popnd2.usFlags) == _rspecial))
     {
+        if (popnd2.base.isSIL_DIL_BPL_SPL())
+            pc.Irex |= REX;
         mrmb.reg =  popnd2.base.val & NUM_MASK;
         if (popnd2.base.val & NUM_MASKR)
             pc.Irex |= REX_R;

@@ -2211,7 +2211,8 @@ void test22()
     static ubyte[] data =
     [
         0x0F, 0xC7, 0x4D, 0xE0, // cmpxchg8b
-0x48,   0x0F, 0xC7, 0x4D, 0xF0  // cmpxchg16b
+0x48,   0x0F, 0xC7, 0x4D, 0xF0, // cmpxchg16b
+0x40,   0x0F, 0xB0, 0x3A        // cmpxchg [RDX],DIL
     ];
     int i;
     M64  m64;
@@ -2223,6 +2224,7 @@ void test22()
 
         cmpxchg8b  m64                  ;
         cmpxchg16b m128                 ;
+        cmpxchg [RDX],DIL               ;
 L1:
         pop     RBX                     ;
         mov     p[RBP],RBX              ;
