@@ -63,6 +63,14 @@ struct File
         {
             return buffer.extractData();
         }
+
+        /// ditto
+        /// Include the null-terminator at the end of the buffer in the returned array.
+        ubyte[] extractDataZ() @nogc nothrow pure
+        {
+            auto result = buffer.extractData();
+            return result.ptr[0 .. result.length + 1];
+        }
     }
 
 nothrow:

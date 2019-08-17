@@ -152,7 +152,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             goto Largs;
         arguments[i] = argv[i];
     }
-    if (response_expand(arguments)) // expand response files
+    if (!responseExpand(arguments)) // expand response files
         error(Loc.initial, "can't open response file");
     //for (size_t i = 0; i < arguments.dim; ++i) printf("arguments[%d] = '%s'\n", i, arguments[i]);
     files.reserve(arguments.dim - 1);
