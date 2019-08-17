@@ -900,12 +900,12 @@ nothrow:
         return p;
     }
 
-    static const(char)* toChars(TOK value)
+    static const(char)* toChars(ubyte value)
     {
         return toString(value).ptr;
     }
 
-    extern (D) static string toString(TOK value) pure nothrow @nogc @safe
+    extern (D) static string toString(ubyte value) pure nothrow @nogc @safe
     {
         return tochars[value];
     }

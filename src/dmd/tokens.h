@@ -131,9 +131,9 @@ enum
         TOKalign, TOKextern, TOKprivate, TOKprotected, TOKpublic, TOKexport,
         TOKstatic, TOKfinal, TOKconst, TOKabstract,
         TOKdebug, TOKdeprecated, TOKin, TOKout, TOKinout, TOKlazy,
-        TOKauto, TOKpackage, TOKmanifest, TOKimmutable,
+        TOKauto, TOKpackage, TOKimmutable,
 
-// 183
+// 182
         // Statements
         TOKif, TOKelse, TOKwhile, TOKfor, TOKdo, TOKswitch,
         TOKcase, TOKdefault, TOKbreak, TOKcontinue, TOKwith,
@@ -142,7 +142,7 @@ enum
         TOKscope,
         TOKon_scope_exit, TOKon_scope_failure, TOKon_scope_success,
 
-// 207
+// 206
         // Contracts
         TOKinvariant,
 
@@ -154,7 +154,7 @@ enum
         TOKref,
         TOKmacro,
 
-// 212
+// 211
         TOKparameters,
         TOKtraits,
         TOKoverloadset,
@@ -175,7 +175,7 @@ enum
         TOKvector,
         TOKpound,
 
-// 231
+// 230
         TOKinterval,
         TOKvoidexp,
         TOKcantexp,
