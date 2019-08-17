@@ -74,6 +74,7 @@ targ_size_t paramsize(elem *e, tym_t tyf);
  */
 bool regParamInPreg(Symbol* s)
 {
+    //printf("regPAramInPreg %s\n", s.Sident.ptr);
     return (s.Sclass == SCfastpar || s.Sclass == SCshadowreg) &&
         (!(config.flags4 & CFG4optimized) || !(s.Sflags & GTregcand));
 }
@@ -1373,7 +1374,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                  */
                 if (regcon.params & pregm /*&& s.Spreg2 == NOREG && !(pregm & XMMREGS)*/)
                 {
-                    if (keepmsk & RMload)
+                    if (keepmsk & RMload && !anyiasm)
                     {
                         auto voffset = e.EV.Voffset;
                         if (sz <= REGSIZE)
@@ -5173,6 +5174,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         // See if we can use register that parameter was passed in
         if (regcon.params &&
             regParamInPreg(e.EV.Vsym) &&
+            !anyiasm &&   // may have written to the memory for the parameter
             (regcon.params & mask(e.EV.Vsym.Spreg) && e.EV.Voffset == 0 ||
              regcon.params & mask(e.EV.Vsym.Spreg2) && e.EV.Voffset == REGSIZE) &&
             sz <= REGSIZE)                  // make sure no 'paint' to a larger size happened
