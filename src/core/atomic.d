@@ -193,6 +193,32 @@ version (CoreDdoc)
     }
 
     /**
+     * Atomically adds `mod` to the value referenced by `val` and returns the value `val` held previously.
+     * This operation is both lock-free and atomic.
+     *
+     * Params:
+     *  val = Reference to the value to modify.
+     *  mod = The value to add.
+     *
+     * Returns:
+     *  The value held previously by `val`.
+     */
+    TailShared!(T) atomicFetchAdd(T)( ref shared T val, size_t mod ) pure nothrow @nogc @safe;
+
+    /**
+     * Atomically subtracts `mod` from the value referenced by `val` and returns the value `val` held previously.
+     * This operation is both lock-free and atomic.
+     *
+     * Params:
+     *  val = Reference to the value to modify.
+     *  mod = The value to subtract.
+     *
+     * Returns:
+     *  The value held previously by `val`.
+     */
+    TailShared!(T) atomicFetchSub(T)( ref shared T val, size_t mod ) pure nothrow @nogc @safe;
+
+    /**
      * Exchange `exchangeWith` with the memory referenced by `here`.
      * This operation is both lock-free and atomic.
      *
@@ -342,28 +368,20 @@ version (CoreDdoc)
 else version (AsmX86_32)
 {
     // Uses specialized asm for fast fetch and add operations
-    private TailShared!(T) atomicFetchAdd(T)( ref shared T val, size_t mod ) pure nothrow @nogc @safe
+    TailShared!(T) atomicFetchAdd(T)( ref shared T val, size_t mod ) pure nothrow @nogc @safe
         if ( T.sizeof <= 4 )
     {
-        size_t tmp = mod;
         asm pure nothrow @nogc @trusted
         {
-            mov EAX, tmp;
+            mov EAX, mod;
             mov EDX, val;
         }
         static if (T.sizeof == 1) asm pure nothrow @nogc @trusted { lock; xadd[EDX], AL; }
         else static if (T.sizeof == 2) asm pure nothrow @nogc @trusted { lock; xadd[EDX], AX; }
         else static if (T.sizeof == 4) asm pure nothrow @nogc @trusted { lock; xadd[EDX], EAX; }
-
-        asm pure nothrow @nogc @trusted
-        {
-            mov tmp, EAX;
-        }
-
-        return cast(T)tmp;
     }
 
-    private TailShared!(T) atomicFetchSub(T)( ref shared T val, size_t mod ) pure nothrow @nogc @safe
+    TailShared!(T) atomicFetchSub(T)( ref shared T val, size_t mod ) pure nothrow @nogc @safe
         if ( T.sizeof <= 4)
     {
         return atomicFetchAdd(val, -mod);
@@ -1006,37 +1024,39 @@ else version (AsmX86_32)
 else version (AsmX86_64)
 {
     // Uses specialized asm for fast fetch and add operations
-    private TailShared!(T) atomicFetchAdd(T)( ref shared T val, size_t mod ) pure nothrow @nogc @trusted
+    TailShared!(T) atomicFetchAdd(T)( ref shared T val, size_t mod ) pure nothrow @nogc @trusted
         if ( __traits(isIntegral, T) )
-    in
+    in ( atomicValueIsProperlyAligned(val) )
     {
-        assert( atomicValueIsProperlyAligned(val));
+        return atomicFetchAddImpl( val, mod );
     }
-    do
+    TailShared!(T) atomicFetchAddImpl(T)( ref shared T val, size_t mod ) pure nothrow @nogc @trusted
     {
-        size_t tmp = mod;
-        asm pure nothrow @nogc @trusted
+        asm pure nothrow @nogc @trusted { naked; }
+        version (Windows)
         {
-            mov RAX, tmp;
-            mov RDX, val;
+            asm pure nothrow @nogc @trusted { mov RAX, RCX; }
+            static if (T.sizeof == 1) asm pure nothrow @nogc @trusted { lock; xadd[RDX], AL; }
+            else static if (T.sizeof == 2) asm pure nothrow @nogc @trusted { lock; xadd[RDX], AX; }
+            else static if (T.sizeof == 4) asm pure nothrow @nogc @trusted { lock; xadd[RDX], EAX; }
+            else static if (T.sizeof == 8) asm pure nothrow @nogc @trusted { lock; xadd[RDX], RAX; }
         }
-        static if (T.sizeof == 1) asm pure nothrow @nogc @trusted { lock; xadd[RDX], AL; }
-        else static if (T.sizeof == 2) asm pure nothrow @nogc @trusted { lock; xadd[RDX], AX; }
-        else static if (T.sizeof == 4) asm pure nothrow @nogc @trusted { lock; xadd[RDX], EAX; }
-        else static if (T.sizeof == 8) asm pure nothrow @nogc @trusted { lock; xadd[RDX], RAX; }
-
-        asm pure nothrow @nogc @trusted
+        else
         {
-            mov tmp, RAX;
+            asm pure nothrow @nogc @trusted { mov RAX, RDI; }
+            static if (T.sizeof == 1) asm pure nothrow @nogc @trusted { lock; xadd[RSI], AL; }
+            else static if (T.sizeof == 2) asm pure nothrow @nogc @trusted { lock; xadd[RSI], AX; }
+            else static if (T.sizeof == 4) asm pure nothrow @nogc @trusted { lock; xadd[RSI], EAX; }
+            else static if (T.sizeof == 8) asm pure nothrow @nogc @trusted { lock; xadd[RSI], RAX; }
         }
-
-        return cast(T)tmp;
+        asm pure nothrow @nogc @trusted { ret; }
     }
 
-    private TailShared!(T) atomicFetchSub(T)( ref shared T val, size_t mod ) pure nothrow @nogc @safe
+    TailShared!(T) atomicFetchSub(T)( ref shared T val, size_t mod ) pure nothrow @nogc @safe
         if ( __traits(isIntegral, T) )
+    in ( atomicValueIsProperlyAligned(val) )
     {
-        return atomicFetchAdd(val, -mod);
+        return atomicFetchAddImpl(val, -mod);
     }
 
     TailShared!T atomicOp(string op, T, V1)( ref shared T val, V1 mod ) pure nothrow @nogc
