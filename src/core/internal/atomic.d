@@ -47,7 +47,7 @@ private
     enum SizedReg(int reg, T = size_t) = registerNames[reg][RegIndex!T];
 }
 
-T atomicLoad(MemoryOrder order = MemoryOrder.seq, T)(T* src) pure nothrow @nogc @trusted
+inout(T) atomicLoad(MemoryOrder order = MemoryOrder.seq, T)(inout(T)* src) pure nothrow @nogc @trusted
     if (CanCAS!T)
 {
     static assert(order != MemoryOrder.rel, "invalid MemoryOrder for atomicLoad()");

@@ -12,50 +12,7 @@ module core.atomic;
 
 import core.internal.atomic;
 import core.internal.attributes : betterC;
-
-version (D_InlineAsm_X86)
-{
-    version = AsmX86;
-    version = AsmX86_32;
-    enum has64BitXCHG = false;
-    enum has64BitCAS = true;
-    enum has128BitCAS = false;
-}
-else version (D_InlineAsm_X86_64)
-{
-    version = AsmX86;
-    version = AsmX86_64;
-    enum has64BitXCHG = true;
-    enum has64BitCAS = true;
-    enum has128BitCAS = true;
-}
-else
-{
-    enum has64BitXCHG = false;
-    enum has64BitCAS = false;
-    enum has128BitCAS = false;
-}
-
-version (AsmX86)
-{
-    // NOTE: Strictly speaking, the x86 supports atomic operations on
-    //       unaligned values.  However, this is far slower than the
-    //       common case, so such behavior should be prohibited.
-    private bool atomicValueIsProperlyAligned(T)( ref T val ) pure nothrow @nogc @trusted
-    {
-        return atomicPtrIsProperlyAligned(&val);
-    }
-
-    private bool atomicPtrIsProperlyAligned(T)( T* ptr ) pure nothrow @nogc @safe
-    {
-        // NOTE: 32 bit x86 systems support 8 byte CAS, which only requires
-        //       4 byte alignment, so use size_t as the align type here.
-        static if ( T.sizeof > size_t.sizeof )
-            return cast(size_t)ptr % size_t.sizeof == 0;
-        else
-            return cast(size_t)ptr % T.sizeof == 0;
-    }
-}
+import core.internal.traits : hasUnsharedIndirections;
 
 /**
  * Specifies the memory ordering semantics of an atomic operation.
@@ -109,7 +66,8 @@ enum MemoryOrder
  * Returns:
  *  The value of 'val'.
  */
-TailShared!T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref const shared T val ) pure nothrow @nogc @trusted
+T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref T val ) pure nothrow @nogc @trusted
+    if ( !is( T == shared U, U ) && !is( T == shared inout U, U ) && !is( T == shared const U, U ) )
 {
     static if ( __traits(isFloating, T) )
     {
@@ -118,10 +76,30 @@ TailShared!T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref const shared T
         return *cast(T*)&r;
     }
     else
-    {
-        T r = core.internal.atomic.atomicLoad!ms(cast(T*)&val);
-        return *cast(TailShared!T*)&r;
-    }
+        return core.internal.atomic.atomicLoad!ms(&val);
+}
+
+/// Ditto
+T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref shared T val ) pure nothrow @nogc @trusted
+    if ( !hasUnsharedIndirections!T )
+{
+    import core.internal.traits : hasUnsharedIndirections;
+    static assert(!hasUnsharedIndirections!T, "Copying `shared " ~ T.stringof ~ "` would violate shared.");
+
+    return atomicLoad!ms(*cast(T*)&val);
+}
+
+/// Ditto
+TailShared!T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref shared T val ) pure nothrow @nogc @trusted
+    if ( hasUnsharedIndirections!T )
+{
+    // HACK: DEPRECATE THIS FUNCTION, IT IS INVALID TO DO ATOMIC LOAD OF SHARED CLASS
+    // this is here because code exists in the wild that does this...
+
+    import core.lifetime : move;
+
+    T r = core.internal.atomic.atomicLoad!ms(cast(T*)&val);
+    return move(*cast(TailShared!T*)&r);
 }
 
 /**
@@ -134,8 +112,8 @@ TailShared!T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref const shared T
  *  val    = The target variable.
  *  newval = The value to store.
  */
-void atomicStore(MemoryOrder ms = MemoryOrder.seq, T, V)( ref shared T val, V newval ) pure nothrow @nogc @trusted
-    if ( __traits( compiles, { val = newval; } ) )
+void atomicStore(MemoryOrder ms = MemoryOrder.seq, T, V)( ref T val, V newval ) pure nothrow @nogc @trusted
+    if ( __traits( compiles, { val = newval; } ) && !is(T == shared S, S) && !is(V == shared U, U) )
 {
     static if ( __traits(isFloating, T) )
     {
@@ -144,7 +122,31 @@ void atomicStore(MemoryOrder ms = MemoryOrder.seq, T, V)( ref shared T val, V ne
         core.internal.atomic.atomicStore!ms(cast(IntTy*)&val, *cast(IntTy*)&newval);
     }
     else
-        core.internal.atomic.atomicStore!ms(cast(T*)&val, newval);
+        core.internal.atomic.atomicStore!ms(&val, newval);
+}
+
+/// Ditto
+void atomicStore(MemoryOrder ms = MemoryOrder.seq, T, V)( ref shared T val, V newval ) pure nothrow @nogc @trusted
+    if ( __traits( compiles, { val = newval; } ) && !is( T == class ) )
+{
+    static if ( is ( V == shared U, U ) )
+        alias Thunk = U;
+    else
+    {
+        import core.internal.traits : hasUnsharedIndirections;
+        static assert(!hasUnsharedIndirections!V, "Copying unshared argument `newval` to shared `val` would violate shared.");
+        alias Thunk = V;
+    }
+    atomicStore!ms(*cast(T*)&val, *cast(Thunk*)&newval);
+}
+
+/// Ditto
+void atomicStore(MemoryOrder ms = MemoryOrder.seq, T, V)( ref shared T val, shared V newval ) pure nothrow @nogc @trusted
+    if ( is( T == class ) )
+{
+    static assert ( is ( V : T ), "Can't assign `newval` of type `shared " ~ V.stringof ~ "` to `shared " ~ T.stringof ~ "`.");
+
+    core.internal.atomic.atomicStore!ms(cast(T*)&val, cast(V)newval);
 }
 
 /**
@@ -158,7 +160,7 @@ void atomicStore(MemoryOrder ms = MemoryOrder.seq, T, V)( ref shared T val, V ne
  * Returns:
  *  The value held previously by `val`.
  */
-TailShared!(T) atomicFetchAdd(MemoryOrder ms = MemoryOrder.seq, T)( ref shared T val, size_t mod ) pure nothrow @nogc @trusted
+TailShared!T atomicFetchAdd(MemoryOrder ms = MemoryOrder.seq, T)( ref shared T val, size_t mod ) pure nothrow @nogc @trusted
     if ( __traits(isIntegral, T) )
 in ( atomicValueIsProperlyAligned(val) )
 {
@@ -176,7 +178,7 @@ in ( atomicValueIsProperlyAligned(val) )
  * Returns:
  *  The value held previously by `val`.
  */
-TailShared!(T) atomicFetchSub(MemoryOrder ms = MemoryOrder.seq, T)( ref shared T val, size_t mod ) pure nothrow @nogc @trusted
+TailShared!T atomicFetchSub(MemoryOrder ms = MemoryOrder.seq, T)( ref shared T val, size_t mod ) pure nothrow @nogc @trusted
     if ( __traits(isIntegral, T) )
 in ( atomicValueIsProperlyAligned(val) )
 {
@@ -323,7 +325,6 @@ void atomicFence() nothrow @nogc @safe
     core.internal.atomic.atomicFence();
 }
 
-
 /**
  * Performs the binary operation 'op' on val using 'mod' as the modifier.
  *
@@ -385,17 +386,88 @@ in ( atomicValueIsProperlyAligned( val ) )
     }
 }
 
+
+version (X86)
+{
+    version = IsX86;
+    enum has64BitXCHG = false;
+    enum has64BitCAS = true;
+    enum has128BitCAS = false;
+}
+else version (X86_64)
+{
+    version = IsX86;
+    enum has64BitXCHG = true;
+    enum has64BitCAS = true;
+    enum has128BitCAS = true;
+}
+else
+{
+    enum has64BitXCHG = false;
+    enum has64BitCAS = false;
+    enum has128BitCAS = false;
+}
+
 private
 {
-    template IntForFloat(F)
+    version (IsX86)
     {
-        static assert ( __traits(isFloating, F), "Not a floating point type: " ~ F.stringof );
+        // NOTE: Strictly speaking, the x86 supports atomic operations on
+        //       unaligned values.  However, this is far slower than the
+        //       common case, so such behavior should be prohibited.
+        bool atomicValueIsProperlyAligned(T)( ref T val ) pure nothrow @nogc @trusted
+        {
+            return atomicPtrIsProperlyAligned(&val);
+        }
+
+        bool atomicPtrIsProperlyAligned(T)( T* ptr ) pure nothrow @nogc @safe
+        {
+            // NOTE: 32 bit x86 systems support 8 byte CAS, which only requires
+            //       4 byte alignment, so use size_t as the align type here.
+            static if ( T.sizeof > size_t.sizeof )
+                return cast(size_t)ptr % size_t.sizeof == 0;
+            else
+                return cast(size_t)ptr % T.sizeof == 0;
+        }
+    }
+
+    template IntForFloat(F)
+        if (__traits(isFloating, F))
+    {
         static if ( F.sizeof == 4 )
             alias IntForFloat = uint;
         else static if ( F.sizeof == 8 )
             alias IntForFloat = ulong;
         else
             static assert ( false, "Invalid floating point type: " ~ F.stringof ~ ", only support `float` and `double`." );
+    }
+
+    template IntForStruct(S)
+        if (is(S == struct))
+    {
+        static if ( S.sizeof == 1 )
+            alias IntForFloat = ubyte;
+        else static if ( F.sizeof == 2 )
+            alias IntForFloat = ushort;
+        else static if ( F.sizeof == 4 )
+            alias IntForFloat = uint;
+        else static if ( F.sizeof == 8 )
+            alias IntForFloat = ulong;
+        else static if ( F.sizeof == 16 )
+            alias IntForFloat = ulong[2]; // TODO: what's the best type here? slice/delegates pass in registers...
+        else
+            static assert (ValidateStruct!S);
+    }
+
+    template ValidateStruct(S)
+        if (is(S == struct))
+    {
+        import core.internal.traits : hasElaborateAssign;
+
+        static assert (S.sizeof <= size_t*2 && (S.sizeof & (S.sizeof - 1)) == 0, S.stringof ~ " has invalid size for atomic operations.");
+        static assert (!hasElaborateAssign!S, S.stringof ~ " may not have an elaborate assignment when used with atomic operations.");
+
+        enum ValidateStruct = true;
     }
 
     // TODO: it'd be nice if we had @trusted scopes; we could remove this...
@@ -795,7 +867,7 @@ version (unittest)
         assert(atomicOp!"+="(i8, 8) == 13);
         assert(atomicOp!"+="(i16, 8) == 14);
         assert(atomicOp!"+="(i32, 8) == 15);
-        version (AsmX86_64)
+        version (D_LP64)
         {
             shared ulong u64 = 4;
             shared long i64 = 8;
@@ -819,7 +891,7 @@ version (unittest)
         assert(atomicOp!"-="(i8, 1) == 4);
         assert(atomicOp!"-="(i16, 1) == 5);
         assert(atomicOp!"-="(i32, 1) == 6);
-        version (AsmX86_64)
+        version (D_LP64)
         {
             shared ulong u64 = 4;
             shared long i64 = 8;
