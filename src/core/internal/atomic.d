@@ -47,16 +47,127 @@ private
     enum SizedReg(int reg, T = size_t) = registerNames[reg][RegIndex!T];
 }
 
-T atomicLoad(MemoryOrder order = MemoryOrder.seq, T)(T* src) pure nothrow @nogc @safe
+T atomicLoad(MemoryOrder order = MemoryOrder.seq, T)(T* src) pure nothrow @nogc @trusted
+    if (CanCAS!T)
 {
+    static assert(order != MemoryOrder.rel, "invalid MemoryOrder for atomicLoad()");
 
+    static if (T.sizeof == size_t.sizeof * 2)
+    {
+        version (D_InlineAsm_X86)
+        {
+            asm pure nothrow @nogc @trusted
+            {
+                push EDI;
+                push EBX;
+                mov EBX, 0;
+                mov ECX, 0;
+                mov EAX, 0;
+                mov EDX, 0;
+                mov EDI, src;
+                lock; cmpxchg8b [EDI];
+                pop EBX;
+                pop EDI;
+            }
+        }
+        else version (D_InlineAsm_X86_64)
+        {
+            version (Windows)
+            {
+                static if (RegisterReturn!T)
+                {
+                    enum SrcPtr = SizedReg!CX;
+                    enum RetPtr = null;
+                }
+                else
+                {
+                    enum SrcPtr = SizedReg!DX;
+                    enum RetPtr = SizedReg!CX;
+                }
+
+                mixin (simpleFormat(q{
+                    asm pure nothrow @nogc @trusted
+                    {
+                        naked;
+                        push RBX;
+                        mov R8, %0;
+?1                        mov R9, %1;
+                        mov RBX, 0;
+                        mov RCX, 0;
+                        mov RAX, 0;
+                        mov RDX, 0;
+                        lock; cmpxchg16b [R8];
+?1                        mov [R9], RAX;
+?1                        mov 8[R9], RDX;
+                        pop RBX;
+                        ret;
+                    }
+                }, SrcPtr, RetPtr));
+            }
+            else
+            {
+                asm pure nothrow @nogc @trusted
+                {
+                    naked;
+                    push RBX;
+                    mov RBX, 0;
+                    mov RCX, 0;
+                    mov RAX, 0;
+                    mov RDX, 0;
+                    lock; cmpxchg16b [RDI];
+                    pop RBX;
+                    ret;
+                }
+            }
+        }
+    }
+    else static if (needsLoadBarrier!order)
+    {
+        version (D_InlineAsm_X86)
+        {
+            enum SrcReg = SizedReg!CX;
+            enum ZeroReg = SizedReg!(DX, T);
+            enum ResReg = SizedReg!(AX, T);
+
+            mixin (simpleFormat(q{
+                asm pure nothrow @nogc @trusted
+                {
+                    mov %1, 0;
+                    mov %2, 0;
+                    mov %0, src;
+                    lock; cmpxchg [%0], %1;
+                }
+            }, SrcReg, ZeroReg, ResReg));
+        }
+        else version (D_InlineAsm_X86_64)
+        {
+            version (Windows)
+                enum SrcReg = SizedReg!CX;
+            else
+                enum SrcReg = SizedReg!DI;
+            enum ZeroReg = SizedReg!(DX, T);
+            enum ResReg = SizedReg!(AX, T);
+
+            mixin (simpleFormat(q{
+                asm pure nothrow @nogc @trusted
+                {
+                    naked;
+                    mov %1, 0;
+                    mov %2, 0;
+                    lock; cmpxchg [%0], %1;
+                    ret;
+                }
+            }, SrcReg, ZeroReg, ResReg));
+        }
+    }
+    else
+        return *src;
 }
 
 void atomicStore(MemoryOrder order = MemoryOrder.seq, T)(T* dest, T value) pure nothrow @nogc @safe
     if (CanCAS!T)
 {
     static assert(order != MemoryOrder.acq, "Invalid MemoryOrder for atomicStore()");
-    static assert(__traits(isPOD, T), "Argument to atomicStore() must be POD");
 
     static if (T.sizeof == size_t.sizeof * 2)
     {
@@ -78,7 +189,7 @@ void atomicStore(MemoryOrder order = MemoryOrder.seq, T)(T* dest, T value) pure 
                 pop EDI;
             }
         }
-        else version(D_InlineAsm_X86_64)
+        else version (D_InlineAsm_X86_64)
         {
             version (Windows)
             {
@@ -537,9 +648,16 @@ void atomicFence(MemoryOrder order = MemoryOrder.seq)() nothrow @nogc @safe
 
 private:
 
+version (Windows)
+{
+    enum RegisterReturn(T) = is(T : U[], U) || is(T : R delegate(A), R, A...);
+}
+
 enum CanCAS(T) = is(T : ulong) ||
                  is(T == class) ||
                  is(T : U*, U) ||
+                 is(T : U[], U) ||
+                 is(T : R delegate(A), R, A...) ||
                  (is(T == struct) && __traits(isPOD, T) &&
                   T.sizeof <= size_t.sizeof*2 && // no more than 2 words
                   (T.sizeof & (T.sizeof - 1)) == 0 // is power of 2

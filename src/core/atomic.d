@@ -98,6 +98,33 @@ enum MemoryOrder
 }
 
 /**
+ * Loads 'val' from memory and returns it.  The memory barrier specified
+ * by 'ms' is applied to the operation, which is fully sequenced by
+ * default.  Valid memory orders are MemoryOrder.raw, MemoryOrder.acq,
+ * and MemoryOrder.seq.
+ *
+ * Params:
+ *  val = The target variable.
+ *
+ * Returns:
+ *  The value of 'val'.
+ */
+TailShared!T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref const shared T val ) pure nothrow @nogc @trusted
+{
+    static if ( __traits(isFloating, T) )
+    {
+        alias IntTy = IntForFloat!T;
+        IntTy r = core.internal.atomic.atomicLoad!ms(cast(IntTy*)&val);
+        return *cast(T*)&r;
+    }
+    else
+    {
+        T r = core.internal.atomic.atomicLoad!ms(cast(T*)&val);
+        return *cast(TailShared!T*)&r;
+    }
+}
+
+/**
  * Writes 'newval' into 'val'.  The memory barrier specified by 'ms' is
  * applied to the operation, which is fully sequenced by default.
  * Valid memory orders are MemoryOrder.raw, MemoryOrder.rel, and
@@ -114,10 +141,10 @@ void atomicStore(MemoryOrder ms = MemoryOrder.seq, T, V)( ref shared T val, V ne
     {
         static assert ( __traits(isFloating, V) && V.sizeof == T.sizeof, "Mismatching argument types." );
         alias IntTy = IntForFloat!T;
-        core.internal.atomic.atomicStore(cast(IntTy*)&val, *cast(IntTy*)&newval);
+        core.internal.atomic.atomicStore!ms(cast(IntTy*)&val, *cast(IntTy*)&newval);
     }
     else
-        core.internal.atomic.atomicStore(cast(T*)&val, newval);
+        core.internal.atomic.atomicStore!ms(cast(T*)&val, newval);
 }
 
 /**
@@ -131,11 +158,11 @@ void atomicStore(MemoryOrder ms = MemoryOrder.seq, T, V)( ref shared T val, V ne
  * Returns:
  *  The value held previously by `val`.
  */
-TailShared!(T) atomicFetchAdd(T)( ref shared T val, size_t mod ) pure nothrow @nogc @trusted
+TailShared!(T) atomicFetchAdd(MemoryOrder ms = MemoryOrder.seq, T)( ref shared T val, size_t mod ) pure nothrow @nogc @trusted
     if ( __traits(isIntegral, T) )
 in ( atomicValueIsProperlyAligned(val) )
 {
-    return core.internal.atomic.atomicFetchAdd( &val, cast(T)mod );
+    return core.internal.atomic.atomicFetchAdd!ms( &val, cast(T)mod );
 }
 
 /**
@@ -149,11 +176,11 @@ in ( atomicValueIsProperlyAligned(val) )
  * Returns:
  *  The value held previously by `val`.
  */
-TailShared!(T) atomicFetchSub(T)( ref shared T val, size_t mod ) pure nothrow @nogc @trusted
+TailShared!(T) atomicFetchSub(MemoryOrder ms = MemoryOrder.seq, T)( ref shared T val, size_t mod ) pure nothrow @nogc @trusted
     if ( __traits(isIntegral, T) )
 in ( atomicValueIsProperlyAligned(val) )
 {
-    return core.internal.atomic.atomicFetchSub( &val, cast(T)mod );
+    return core.internal.atomic.atomicFetchSub!ms( &val, cast(T)mod );
 }
 
 /**
@@ -175,11 +202,11 @@ in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligne
     {
         static assert ( __traits(isFloating, V) && V.sizeof == T.sizeof, "Mismatching argument types." );
         alias IntTy = IntForFloat!T;
-        IntTy r = core.internal.atomic.atomicExchange(cast(IntTy*)here, *cast(IntTy*)&exchangeWith);
+        IntTy r = core.internal.atomic.atomicExchange!ms(cast(IntTy*)here, *cast(IntTy*)&exchangeWith);
         return *cast(shared(T)*)&r;
     }
     else
-        return core.internal.atomic.atomicExchange(here, exchangeWith);
+        return core.internal.atomic.atomicExchange!ms(here, exchangeWith);
 }
 
 /// Ditto
@@ -187,7 +214,7 @@ shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)( shared(T)* here,
     if ( is(T == class) && __traits( compiles, { *here = exchangeWith; } ) )
 in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
 {
-    return core.internal.atomic.atomicExchange(here, exchangeWith);
+    return core.internal.atomic.atomicExchange!ms(here, exchangeWith);
 }
 
 /// Ditto
@@ -195,7 +222,7 @@ shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)( shared(T)* here,
     if ( is(T U : U*) && __traits( compiles, { *here = exchangeWith; } ) )
 in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
 {
-    return core.internal.atomic.atomicExchange(here, exchangeWith);
+    return core.internal.atomic.atomicExchange!ms(here, exchangeWith);
 }
 
 /**
@@ -333,11 +360,11 @@ in ( atomicValueIsProperlyAligned( val ) )
     // |=   ^=  <<= >>= >>>=    ~=
     static if ( op == "+=" && __traits(isIntegral, T) && __traits(isIntegral, V1) && T.sizeof <= size_t.sizeof && V1.sizeof <= size_t.sizeof)
     {
-        return cast(T)( atomicFetchAdd!(T)( val, mod ) + mod );
+        return cast(T)( atomicFetchAdd!(MemoryOrder.seq, T)( val, mod ) + mod );
     }
     else static if ( op == "-=" && __traits(isIntegral, T) && __traits(isIntegral, V1) && T.sizeof <= size_t.sizeof && V1.sizeof <= size_t.sizeof)
     {
-        return cast(T)( atomicFetchSub!(T)( val, mod ) - mod );
+        return cast(T)( atomicFetchSub!(MemoryOrder.seq, T)( val, mod ) - mod );
     }
     else static if ( op == "+=" || op == "-="  || op == "*="  || op == "/=" ||
                 op == "%=" || op == "^^=" || op == "&="  || op == "|=" ||
@@ -358,341 +385,6 @@ in ( atomicValueIsProperlyAligned( val ) )
     }
 }
 
-
-version (CoreDdoc)
-{
-    /**
-     * Loads 'val' from memory and returns it.  The memory barrier specified
-     * by 'ms' is applied to the operation, which is fully sequenced by
-     * default.  Valid memory orders are MemoryOrder.raw, MemoryOrder.acq,
-     * and MemoryOrder.seq.
-     *
-     * Params:
-     *  val = The target variable.
-     *
-     * Returns:
-     *  The value of 'val'.
-     */
-    TailShared!T atomicLoad(MemoryOrder ms = MemoryOrder.seq,T)( ref const shared T val ) pure nothrow @nogc @safe
-    {
-        return TailShared!T.init;
-    }
-}
-else version (AsmX86_32)
-{
-    TailShared!T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref const shared T val ) pure nothrow @nogc @safe
-    if (!__traits(isFloating, T))
-    {
-        static assert( ms != MemoryOrder.rel, "invalid MemoryOrder for atomicLoad()" );
-        static assert( __traits(isPOD, T), "argument to atomicLoad() must be POD" );
-
-        static if ( T.sizeof == byte.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 1 Byte Load
-            //////////////////////////////////////////////////////////////////
-
-            static if ( needsLoadBarrier!(ms) )
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov DL, 0;
-                    mov AL, 0;
-                    mov ECX, val;
-                    lock; // lock always needed to make this op atomic
-                    cmpxchg [ECX], DL;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov EAX, val;
-                    mov AL, [EAX];
-                }
-            }
-        }
-        else static if ( T.sizeof == short.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 2 Byte Load
-            //////////////////////////////////////////////////////////////////
-
-            static if ( needsLoadBarrier!(ms) )
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov DX, 0;
-                    mov AX, 0;
-                    mov ECX, val;
-                    lock; // lock always needed to make this op atomic
-                    cmpxchg [ECX], DX;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov EAX, val;
-                    mov AX, [EAX];
-                }
-            }
-        }
-        else static if ( T.sizeof == int.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 4 Byte Load
-            //////////////////////////////////////////////////////////////////
-
-            static if ( needsLoadBarrier!(ms) )
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov EDX, 0;
-                    mov EAX, 0;
-                    mov ECX, val;
-                    lock; // lock always needed to make this op atomic
-                    cmpxchg [ECX], EDX;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov EAX, val;
-                    mov EAX, [EAX];
-                }
-            }
-        }
-        else static if ( T.sizeof == long.sizeof && has64BitCAS )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 8 Byte Load on a 32-Bit Processor
-            //////////////////////////////////////////////////////////////////
-
-            asm pure nothrow @nogc @trusted
-            {
-                push EDI;
-                push EBX;
-                mov EBX, 0;
-                mov ECX, 0;
-                mov EAX, 0;
-                mov EDX, 0;
-                mov EDI, val;
-                lock; // lock always needed to make this op atomic
-                cmpxchg8b [EDI];
-                pop EBX;
-                pop EDI;
-            }
-        }
-        else
-        {
-            static assert( false, "Invalid template type specified." );
-        }
-    }
-}
-else version (AsmX86_64)
-{
-    TailShared!T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref const shared T val ) pure nothrow @nogc @safe
-    if (!__traits(isFloating, T))
-    {
-        static assert( ms != MemoryOrder.rel, "invalid MemoryOrder for atomicLoad()" );
-        static assert( __traits(isPOD, T), "argument to atomicLoad() must be POD" );
-
-        static if ( T.sizeof == byte.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 1 Byte Load
-            //////////////////////////////////////////////////////////////////
-
-            static if ( needsLoadBarrier!(ms) )
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov DL, 0;
-                    mov AL, 0;
-                    mov RCX, val;
-                    lock; // lock always needed to make this op atomic
-                    cmpxchg [RCX], DL;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov RAX, val;
-                    mov AL, [RAX];
-                }
-            }
-        }
-        else static if ( T.sizeof == short.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 2 Byte Load
-            //////////////////////////////////////////////////////////////////
-
-            static if ( needsLoadBarrier!(ms) )
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov DX, 0;
-                    mov AX, 0;
-                    mov RCX, val;
-                    lock; // lock always needed to make this op atomic
-                    cmpxchg [RCX], DX;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov RAX, val;
-                    mov AX, [RAX];
-                }
-            }
-        }
-        else static if ( T.sizeof == int.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 4 Byte Load
-            //////////////////////////////////////////////////////////////////
-
-            static if ( needsLoadBarrier!(ms) )
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov EDX, 0;
-                    mov EAX, 0;
-                    mov RCX, val;
-                    lock; // lock always needed to make this op atomic
-                    cmpxchg [RCX], EDX;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov RAX, val;
-                    mov EAX, [RAX];
-                }
-            }
-        }
-        else static if ( T.sizeof == long.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 8 Byte Load
-            //////////////////////////////////////////////////////////////////
-
-            static if ( needsLoadBarrier!(ms) )
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov RDX, 0;
-                    mov RAX, 0;
-                    mov RCX, val;
-                    lock; // lock always needed to make this op atomic
-                    cmpxchg [RCX], RDX;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov RAX, val;
-                    mov RAX, [RAX];
-                }
-            }
-        }
-        else static if ( T.sizeof == long.sizeof*2 && has128BitCAS )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 16 Byte Load on a 64-Bit Processor
-            //////////////////////////////////////////////////////////////////
-            version (Win64){
-                size_t[2] retVal;
-                asm pure nothrow @nogc @trusted
-                {
-                    push RDI;
-                    push RBX;
-                    mov RDI, val;
-                    mov RBX, 0;
-                    mov RCX, 0;
-                    mov RAX, 0;
-                    mov RDX, 0;
-                    lock; // lock always needed to make this op atomic
-                    cmpxchg16b [RDI];
-                    lea RDI, retVal;
-                    mov [RDI], RAX;
-                    mov 8[RDI], RDX;
-                    pop RBX;
-                    pop RDI;
-                }
-
-                static if (is(T:U[], U))
-                {
-                    pragma(inline, true)
-                    static typeof(return) toTrusted(size_t[2] retVal) @trusted
-                    {
-                        return *(cast(typeof(return)*) retVal.ptr);
-                    }
-
-                    return toTrusted(retVal);
-                }
-                else
-                {
-                    return cast(typeof(return)) retVal;
-                }
-            }else{
-                asm pure nothrow @nogc @trusted
-                {
-                    push RDI;
-                    push RBX;
-                    mov RBX, 0;
-                    mov RCX, 0;
-                    mov RAX, 0;
-                    mov RDX, 0;
-                    mov RDI, val;
-                    lock; // lock always needed to make this op atomic
-                    cmpxchg16b [RDI];
-                    pop RBX;
-                    pop RDI;
-                }
-            }
-        }
-        else
-        {
-            static assert( false, "Invalid template type specified." );
-        }
-    }
-}
-
-// This is an ABI adapter that works on all architectures.  It type puns
-// floats and doubles to ints and longs, atomically loads them, then puns
-// them back.  This is necessary so that they get returned in floating
-// point instead of integer registers.
-TailShared!T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref const shared T val ) pure nothrow @nogc @trusted
-    if (__traits(isFloating, T))
-{
-    static if (T.sizeof == int.sizeof)
-    {
-        static assert(is(T : float));
-        auto ptr = cast(const shared int*) &val;
-        auto asInt = atomicLoad!(ms)(*ptr);
-        return *(cast(typeof(return)*) &asInt);
-    }
-    else static if (T.sizeof == long.sizeof)
-    {
-        static assert(is(T : double));
-        auto ptr = cast(const shared long*) &val;
-        auto asLong = atomicLoad!(ms)(*ptr);
-        return *(cast(typeof(return)*) &asLong);
-    }
-    else
-    {
-        static assert(0, "Cannot atomically load 80-bit reals.");
-    }
-}
-
 private
 {
     template IntForFloat(F)
@@ -704,21 +396,6 @@ private
             alias IntForFloat = ulong;
         else
             static assert ( false, "Invalid floating point type: " ~ F.stringof ~ ", only support `float` and `double`." );
-    }
-
-    // NOTE: x86 loads implicitly have acquire semantics so a memory
-    //       barrier is only necessary on releases.
-    template needsLoadBarrier( MemoryOrder ms )
-    {
-        enum bool needsLoadBarrier = ms == MemoryOrder.seq;
-    }
-
-
-    // NOTE: x86 stores implicitly have release semantics so a memory
-    //       barrier is only necessary on acquires.
-    template needsStoreBarrier( MemoryOrder ms )
-    {
-        enum bool needsStoreBarrier = ms == MemoryOrder.seq;
     }
 
     // TODO: it'd be nice if we had @trusted scopes; we could remove this...
