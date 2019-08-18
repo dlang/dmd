@@ -3281,10 +3281,14 @@ private MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
     case X(MODFlags.shared_, MODFlags.shared_ | MODFlags.const_):
     case X(MODFlags.shared_, MODFlags.shared_ | MODFlags.wild):
     case X(MODFlags.shared_, MODFlags.shared_ | MODFlags.wildconst):
-    case X(MODFlags.shared_ | MODFlags.const_, MODFlags.shared_):
         // foo(shared(U))               shared(const(T))        => const(T)
         // foo(shared(U))               shared(inout(T))        => inout(T)
         // foo(shared(U))               shared(inout(const(T))) => inout(const(T))
+        {
+            *at = t.unSharedOf();
+            return MATCH.exact;
+        }
+    case X(MODFlags.shared_ | MODFlags.const_, MODFlags.shared_):
         // foo(shared(const(U)))        shared(T)               => T
         {
             *at = t.unSharedOf();
@@ -3545,7 +3549,6 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 // Found the corresponding parameter tp
                 if (!tp.isTemplateTypeParameter())
                     goto Lnomatch;
-
                 Type at = cast(Type)(*dedtypes)[i];
                 Type tt;
                 if (ubyte wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
