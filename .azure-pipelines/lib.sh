@@ -36,6 +36,8 @@ install_host_dmd() {
     if [ ! -f dmd2/README.TXT ]; then
         download "http://downloads.dlang.org/releases/2.x/${HOST_DMD_VERSION}/dmd.${HOST_DMD_VERSION}.windows.7z" dmd2.7z
         7z x dmd2.7z > /dev/null
+        download "https://ci.appveyor.com/api/buildjobs/nogriv1wq32h4jr0/artifacts/libcurl-7.65.3-WinSSL-zlib-x86-x64.zip" libcurl.zip
+        7z -y x libcurl.zip > /dev/null
     fi
     export PATH="$PWD/dmd2/windows/bin/:$PATH"
     export HOST_DC="$PWD/dmd2/windows/bin/dmd.exe"
