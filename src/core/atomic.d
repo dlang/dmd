@@ -98,6 +98,29 @@ enum MemoryOrder
 }
 
 /**
+ * Writes 'newval' into 'val'.  The memory barrier specified by 'ms' is
+ * applied to the operation, which is fully sequenced by default.
+ * Valid memory orders are MemoryOrder.raw, MemoryOrder.rel, and
+ * MemoryOrder.seq.
+ *
+ * Params:
+ *  val    = The target variable.
+ *  newval = The value to store.
+ */
+void atomicStore(MemoryOrder ms = MemoryOrder.seq, T, V)( ref shared T val, V newval ) pure nothrow @nogc @trusted
+    if ( __traits( compiles, { val = newval; } ) )
+{
+    static if ( __traits(isFloating, T) )
+    {
+        static assert ( __traits(isFloating, V) && V.sizeof == T.sizeof, "Mismatching argument types." );
+        alias IntTy = IntForFloat!T;
+        core.internal.atomic.atomicStore(cast(IntTy*)&val, *cast(IntTy*)&newval);
+    }
+    else
+        core.internal.atomic.atomicStore(cast(T*)&val, newval);
+}
+
+/**
  * Atomically adds `mod` to the value referenced by `val` and returns the value `val` held previously.
  * This operation is both lock-free and atomic.
  *
@@ -148,15 +171,11 @@ shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)( shared(T)* here,
     if ( !is(T == class) && !is(T U : U*) &&  __traits( compiles, { *here = exchangeWith; } ) )
 in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
 {
-    static if ( __traits(isFloating, V) )
+    static if ( __traits(isFloating, T) )
     {
-        static if ( V.sizeof == 4 )
-            alias I = uint;
-        else static if ( V.sizeof == 8 )
-            alias I = ulong;
-        else
-            static assert( false, "Float type " ~ V.stringof ~ " not supported.");
-        I r = core.internal.atomic.atomicExchange(cast(shared(I)*)here, *cast(I*)&exchangeWith);
+        static assert ( __traits(isFloating, V) && V.sizeof == T.sizeof, "Mismatching argument types." );
+        alias IntTy = IntForFloat!T;
+        IntTy r = core.internal.atomic.atomicExchange(cast(IntTy*)here, *cast(IntTy*)&exchangeWith);
         return *cast(shared(T)*)&r;
     }
     else
@@ -198,11 +217,9 @@ in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligne
 {
     static if ( __traits(isFloating, T) )
     {
-        static assert ( __traits(isFloating, V1) && __traits(isFloating, V2), "Mismatching argument types." );
-        static if ( T.sizeof == 4 )
-            alias IntTy = uint;
-        else static if ( T.sizeof == 8 )
-            alias IntTy = ulong;
+        static assert ( __traits(isFloating, V1) && V1.sizeof == T.sizeof, "Mismatching argument types." );
+        static assert ( __traits(isFloating, V2) && V2.sizeof == T.sizeof, "Mismatching argument types." );
+        alias IntTy = IntForFloat!T;
         return atomicCompareExchangeStrongNoResult( cast(IntTy*)here, *cast(IntTy*)&ifThis, *cast(IntTy*)&writeThis );
     }
     else
@@ -245,11 +262,8 @@ in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligne
 {
     static if ( __traits(isFloating, T) )
     {
-        static assert ( __traits(isFloating, V), "Mismatching argument types." );
-        static if ( T.sizeof == 4 )
-            alias IntTy = uint;
-        else static if ( T.sizeof == 8 )
-            alias IntTy = ulong;
+        static assert ( __traits(isFloating, V) && V.sizeof == T.sizeof, "Mismatching argument types." );
+        alias IntTy = IntForFloat!T;
         return atomicCompareExchangeStrong( cast(IntTy*)here, cast(IntTy*)ifThis, *cast(IntTy*)&writeThis );
     }
     else
@@ -363,23 +377,6 @@ version (CoreDdoc)
     {
         return TailShared!T.init;
     }
-
-
-    /**
-     * Writes 'newval' into 'val'.  The memory barrier specified by 'ms' is
-     * applied to the operation, which is fully sequenced by default.
-     * Valid memory orders are MemoryOrder.raw, MemoryOrder.rel, and
-     * MemoryOrder.seq.
-     *
-     * Params:
-     *  val    = The target variable.
-     *  newval = The value to store.
-     */
-    void atomicStore(MemoryOrder ms = MemoryOrder.seq,T,V1)( ref shared T val, V1 newval ) pure nothrow @nogc @safe
-        if ( __traits( compiles, { val = newval; } ) )
-    {
-
-    }
 }
 else version (AsmX86_32)
 {
@@ -484,119 +481,6 @@ else version (AsmX86_32)
                 mov EDI, val;
                 lock; // lock always needed to make this op atomic
                 cmpxchg8b [EDI];
-                pop EBX;
-                pop EDI;
-            }
-        }
-        else
-        {
-            static assert( false, "Invalid template type specified." );
-        }
-    }
-
-    void atomicStore(MemoryOrder ms = MemoryOrder.seq, T, V1)( ref shared T val, V1 newval ) pure nothrow @nogc @safe
-        if ( __traits( compiles, { val = newval; } ) )
-    {
-        static assert( ms != MemoryOrder.acq, "invalid MemoryOrder for atomicStore()" );
-        static assert( __traits(isPOD, T), "argument to atomicStore() must be POD" );
-
-        static if ( T.sizeof == byte.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 1 Byte Store
-            //////////////////////////////////////////////////////////////////
-
-            static if ( needsStoreBarrier!(ms) )
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov EAX, val;
-                    mov DL, newval;
-                    lock;
-                    xchg [EAX], DL;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov EAX, val;
-                    mov DL, newval;
-                    mov [EAX], DL;
-                }
-            }
-        }
-        else static if ( T.sizeof == short.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 2 Byte Store
-            //////////////////////////////////////////////////////////////////
-
-            static if ( needsStoreBarrier!(ms) )
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov EAX, val;
-                    mov DX, newval;
-                    lock;
-                    xchg [EAX], DX;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov EAX, val;
-                    mov DX, newval;
-                    mov [EAX], DX;
-                }
-            }
-        }
-        else static if ( T.sizeof == int.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 4 Byte Store
-            //////////////////////////////////////////////////////////////////
-
-            static if ( needsStoreBarrier!(ms) )
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov EAX, val;
-                    mov EDX, newval;
-                    lock;
-                    xchg [EAX], EDX;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov EAX, val;
-                    mov EDX, newval;
-                    mov [EAX], EDX;
-                }
-            }
-        }
-        else static if ( T.sizeof == long.sizeof && has64BitCAS )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 8 Byte Store on a 32-Bit Processor
-            //////////////////////////////////////////////////////////////////
-
-            asm pure nothrow @nogc @trusted
-            {
-                push EDI;
-                push EBX;
-                lea EDI, newval;
-                mov EBX, [EDI];
-                mov ECX, 4[EDI];
-                mov EDI, val;
-                mov EAX, [EDI];
-                mov EDX, 4[EDI];
-            L1: lock; // lock always needed to make this op atomic
-                cmpxchg8b [EDI];
-                jne L1;
                 pop EBX;
                 pop EDI;
             }
@@ -780,169 +664,6 @@ else version (AsmX86_64)
             static assert( false, "Invalid template type specified." );
         }
     }
-
-
-    void atomicStore(MemoryOrder ms = MemoryOrder.seq, T, V1)( ref shared T val, V1 newval ) pure nothrow @nogc @safe
-        if ( __traits( compiles, { val = newval; } ) )
-    {
-        static assert( ms != MemoryOrder.acq, "invalid MemoryOrder for atomicStore()" );
-        static assert( __traits(isPOD, T), "argument to atomicStore() must be POD" );
-
-        static if ( T.sizeof == byte.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 1 Byte Store
-            //////////////////////////////////////////////////////////////////
-
-            static if ( needsStoreBarrier!(ms) )
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov RAX, val;
-                    mov DL, newval;
-                    lock;
-                    xchg [RAX], DL;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov RAX, val;
-                    mov DL, newval;
-                    mov [RAX], DL;
-                }
-            }
-        }
-        else static if ( T.sizeof == short.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 2 Byte Store
-            //////////////////////////////////////////////////////////////////
-
-            static if ( needsStoreBarrier!(ms) )
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov RAX, val;
-                    mov DX, newval;
-                    lock;
-                    xchg [RAX], DX;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov RAX, val;
-                    mov DX, newval;
-                    mov [RAX], DX;
-                }
-            }
-        }
-        else static if ( T.sizeof == int.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 4 Byte Store
-            //////////////////////////////////////////////////////////////////
-
-            static if ( needsStoreBarrier!(ms) )
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov RAX, val;
-                    mov EDX, newval;
-                    lock;
-                    xchg [RAX], EDX;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov RAX, val;
-                    mov EDX, newval;
-                    mov [RAX], EDX;
-                }
-            }
-        }
-        else static if ( T.sizeof == long.sizeof && has64BitCAS )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 8 Byte Store on a 64-Bit Processor
-            //////////////////////////////////////////////////////////////////
-
-            static if ( needsStoreBarrier!(ms) )
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov RAX, val;
-                    mov RDX, newval;
-                    lock;
-                    xchg [RAX], RDX;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov RAX, val;
-                    mov RDX, newval;
-                    mov [RAX], RDX;
-                }
-            }
-        }
-        else static if ( T.sizeof == long.sizeof*2 && has128BitCAS )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 16 Byte Store on a 64-Bit Processor
-            //////////////////////////////////////////////////////////////////
-            version (Win64){
-                asm pure nothrow @nogc @trusted
-                {
-                    push RDI;
-                    push RBX;
-                    mov R9, val;
-                    mov R10, newval;
-
-                    mov RDI, R10;
-                    mov RBX, [RDI];
-                    mov RCX, 8[RDI];
-
-                    mov RDI, R9;
-                    mov RAX, [RDI];
-                    mov RDX, 8[RDI];
-
-                    L1: lock; // lock always needed to make this op atomic
-                    cmpxchg16b [RDI];
-                    jne L1;
-                    pop RBX;
-                    pop RDI;
-                }
-            }else{
-                asm pure nothrow @nogc @trusted
-                {
-                    push RDI;
-                    push RBX;
-                    lea RDI, newval;
-                    mov RBX, [RDI];
-                    mov RCX, 8[RDI];
-                    mov RDI, val;
-                    mov RAX, [RDI];
-                    mov RDX, 8[RDI];
-                    L1: lock; // lock always needed to make this op atomic
-                    cmpxchg16b [RDI];
-                    jne L1;
-                    pop RBX;
-                    pop RDI;
-                }
-            }
-        }
-        else
-        {
-            static assert( false, "Invalid template type specified." );
-        }
-    }
 }
 
 // This is an ABI adapter that works on all architectures.  It type puns
@@ -974,6 +695,17 @@ TailShared!T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref const shared T
 
 private
 {
+    template IntForFloat(F)
+    {
+        static assert ( __traits(isFloating, F), "Not a floating point type: " ~ F.stringof );
+        static if ( F.sizeof == 4 )
+            alias IntForFloat = uint;
+        else static if ( F.sizeof == 8 )
+            alias IntForFloat = ulong;
+        else
+            static assert ( false, "Invalid floating point type: " ~ F.stringof ~ ", only support `float` and `double`." );
+    }
+
     // NOTE: x86 loads implicitly have acquire semantics so a memory
     //       barrier is only necessary on releases.
     template needsLoadBarrier( MemoryOrder ms )
@@ -1224,7 +956,7 @@ version (unittest)
         {
             () @trusted
             {
-                struct Big { long a, b; }
+                align(16) struct Big { long a, b; }
 
                 shared(Big) atom;
                 shared(Big) base;

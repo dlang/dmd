@@ -52,9 +52,74 @@ T atomicLoad(MemoryOrder order = MemoryOrder.seq, T)(T* src) pure nothrow @nogc 
 
 }
 
-void atomicStore(MemoryOrder order = MemoryOrder.seq, T)(T* src, T value) pure nothrow @nogc @safe
+void atomicStore(MemoryOrder order = MemoryOrder.seq, T)(T* dest, T value) pure nothrow @nogc @safe
+    if (CanCAS!T)
 {
+    static assert(order != MemoryOrder.acq, "Invalid MemoryOrder for atomicStore()");
+    static assert(__traits(isPOD, T), "Argument to atomicStore() must be POD");
 
+    static if (T.sizeof == size_t.sizeof * 2)
+    {
+        version (D_InlineAsm_X86)
+        {
+            asm pure nothrow @nogc @trusted
+            {
+                push EDI;
+                push EBX;
+                lea EDI, value;
+                mov EBX, [EDI];
+                mov ECX, 4[EDI];
+                mov EDI, dest;
+                mov EAX, [EDI];
+                mov EDX, 4[EDI];
+            L1: lock; cmpxchg8b [EDI];
+                jne L1;
+                pop EBX;
+                pop EDI;
+            }
+        }
+        else version(D_InlineAsm_X86_64)
+        {
+            version (Windows)
+            {
+                asm pure nothrow @nogc @trusted
+                {
+                    naked;
+                    push RBX;
+                    mov R8, RDX;
+                    mov RAX, [RDX];
+                    mov RDX, 8[RDX];
+                    mov RBX, [RCX];
+                    mov RCX, 8[RCX];
+                L1: lock; cmpxchg16b [R8];
+                    jne L1;
+                    pop RBX;
+                    ret;
+                }
+            }
+            else
+            {
+                asm pure nothrow @nogc @trusted
+                {
+                    naked;
+                    push RBX;
+                    mov RBX, RDI;
+                    mov RCX, RSI;
+                    mov RDI, RDX;
+                    mov RAX, [RDX];
+                    mov RDX, 8[RDX];
+                L1: lock; cmpxchg16b [RDI];
+                    jne L1;
+                    pop RBX;
+                    ret;
+                }
+            }
+        }
+    }
+    else static if (needsStoreBarrier!order)
+        atomicExchange!(order, false)(dest, value);
+    else
+        *dest = value;
 }
 
 T atomicFetchAdd(MemoryOrder order = MemoryOrder.seq, bool result = true, T)(T* dest, T value) pure nothrow @nogc @safe
@@ -300,7 +365,7 @@ bool atomicCompareExchangeStrong(MemoryOrder succ = MemoryOrder.seq, MemoryOrder
         static assert (false, "Unsupported architecture.");
 }
 
-bool atomicCompareExchangeStrongNoResult(MemoryOrder succ = MemoryOrder.seq, MemoryOrder fail = MemoryOrder.seq, T)(T* dest, T compare, T value) pure nothrow @nogc @safe
+bool atomicCompareExchangeStrongNoResult(MemoryOrder succ = MemoryOrder.seq, MemoryOrder fail = MemoryOrder.seq, T)(T* dest, const T compare, T value) pure nothrow @nogc @safe
     if (CanCAS!T)
 {
     version (D_InlineAsm_X86)
@@ -475,7 +540,10 @@ private:
 enum CanCAS(T) = is(T : ulong) ||
                  is(T == class) ||
                  is(T : U*, U) ||
-                 (is(T == struct) && T.sizeof <= 16 && (T.sizeof & (T.sizeof - 1)) == 0);
+                 (is(T == struct) && __traits(isPOD, T) &&
+                  T.sizeof <= size_t.sizeof*2 && // no more than 2 words
+                  (T.sizeof & (T.sizeof - 1)) == 0 // is power of 2
+                 );
 
 template IntOrLong(T)
 {
@@ -483,6 +551,21 @@ template IntOrLong(T)
         alias IntOrLong = long;
     else
         alias IntOrLong = int;
+}
+
+// NOTE: x86 loads implicitly have acquire semantics so a memory
+//       barrier is only necessary on releases.
+template needsLoadBarrier( MemoryOrder ms )
+{
+    enum bool needsLoadBarrier = ms == MemoryOrder.seq;
+}
+
+
+// NOTE: x86 stores implicitly have release semantics so a memory
+//       barrier is only necessary on acquires.
+template needsStoreBarrier( MemoryOrder ms )
+{
+    enum bool needsStoreBarrier = ms == MemoryOrder.seq;
 }
 
 // this is a helper to build asm blocks
