@@ -41,7 +41,7 @@ enum Abstract : int
 
 /***********************************************************
  */
-struct BaseClass
+extern (C++) struct BaseClass
 {
     Type type;          // (before semantic processing)
 

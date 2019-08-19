@@ -106,7 +106,7 @@ enum CppStdRevision : uint
 }
 
 // Put command line switches in here
-struct Param
+extern (C++) struct Param
 {
     bool obj = true;        // write object file
     bool link = true;       // perform link
@@ -290,7 +290,7 @@ alias structalign_t = uint;
 // other values are all powers of 2
 enum STRUCTALIGN_DEFAULT = (cast(structalign_t)~0);
 
-struct Global
+extern (C++) struct Global
 {
     const(char)[] inifilename;
     string mars_ext = "d";
@@ -446,7 +446,7 @@ struct Global
      * This can be used to restore the state set by `_init` to its original
      * state.
      */
-    void deinitialize()
+    extern (D) void deinitialize()
     {
         this = this.init;
     }
@@ -492,7 +492,7 @@ struct Global
     /**
     Returns: the final defaultlibname based on the command-line parameters
     */
-    const(char)[] finalDefaultlibname() const
+    extern (D) const(char)[] finalDefaultlibname() const
     {
         return params.betterC ? null :
             params.symdebug ? params.debuglibname : params.defaultlibname;

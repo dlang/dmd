@@ -42,7 +42,7 @@ import dmd.root.outbuffer;
  * sizes since cross compiling is supported and would end up using the host
  * sizes rather than the target sizes.
  */
-struct Target
+extern (C++) struct Target
 {
     // D ABI
     uint ptrsize;             /// size of a pointer in bytes

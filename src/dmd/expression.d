@@ -484,7 +484,7 @@ extern (D) Expression doCopyOrMove(Scope *sc, Expression e, Type t = null)
  * to serve essentially as a Variant that will sit on the stack
  * during CTFE to reduce memory consumption.
  */
-struct UnionExp
+extern (C++) struct UnionExp
 {
     // yes, default constructor does nothing
     extern (D) this(Expression e)

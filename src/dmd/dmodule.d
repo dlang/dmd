@@ -1444,7 +1444,7 @@ extern (C++) final class Module : Package
 
 /***********************************************************
  */
-struct ModuleDeclaration
+extern (C++) struct ModuleDeclaration
 {
     Loc loc;
     Identifier id;
