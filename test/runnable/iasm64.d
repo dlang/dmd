@@ -6809,6 +6809,29 @@ L1:     pop     RAX;
 }
 
 /****************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=20126
+
+extern(C) float floop(float* r, float x)
+{
+    asm
+    {
+        mov  EAX, x;
+        mov  RCX, r;
+        xchg [RCX], EAX;
+        mov  x, EAX;
+    }
+    return x;
+}
+
+void test20126()
+{
+    float r = 1.0;
+    float x = 2.0;
+    float f = floop(&r, x);
+    assert(f == 1.0);
+}
+
+/****************************************************/
 
 int main()
 {
@@ -6885,6 +6908,7 @@ int main()
     testconst();
     test17027();
     test18553();
+    test20126();
 
     printf("Success\n");
     return 0;
