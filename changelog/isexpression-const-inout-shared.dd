@@ -1,0 +1,22 @@
+$(I IsExpression)s now correctly match combinations of `const`, `inout`, and `shared`.
+
+With $(BUGZILLA 20138) fixed,
+$(LINK2 $(ROOT_DIR)spec/expression.html#is_expression, $(I IsExpression)s) now
+correctly match combinations of the qualifiers `const`, `inout`, and `shared`.
+
+Examples that failed previously but pass now:
+
+----
+static assert(is(shared(const int) U == shared U) && is(U == const int));
+static assert(is(shared(inout int) U == inout U) && is(U == shared int));
+----
+
+Note that the behavior of code like the following changes:
+
+----
+static if (is(T U == const U) { ...}
+else static if (is(T U == shared const U)) { ... }
+----
+
+The second case will never be reached, because the first one now matches when
+`T` is `shared const`. To get the old behavior, switch the order.
