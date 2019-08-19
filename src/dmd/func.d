@@ -582,12 +582,11 @@ extern (C++) class FuncDeclaration : Declaration
             }
 
             bool b1 = fa1 !is null;
-            // isUnique is not callable using a const object
-            if (b1 && (cast() faf1).isUnique() && !fa1.hasOverloads)
+            if (b1 && faf1.isUnique() && !fa1.hasOverloads)
                 b1 = false;
 
             bool b2 = fa2 !is null;
-            if (b2 && (cast() faf2).isUnique() && !fa2.hasOverloads)
+            if (b2 && faf2.isUnique() && !fa2.hasOverloads)
                 b2 = false;
 
             if (b1 != b2)
@@ -1744,10 +1743,10 @@ extern (C++) class FuncDeclaration : Declaration
      * Returns:
      *  true if there are no overloads of this function
      */
-    final bool isUnique()
+    final bool isUnique() const
     {
         bool result = false;
-        overloadApply(this, (Dsymbol s)
+        overloadApply(cast() this, (Dsymbol s)
         {
             auto f = s.isFuncDeclaration();
             if (!f)

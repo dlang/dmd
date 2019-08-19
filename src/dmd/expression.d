@@ -2796,8 +2796,8 @@ extern (C++) final class ArrayLiteralExp : Expression
             {
                 return false;
             }
-            Expressions* unqualElements = cast(Expressions*) elements;
-            foreach (i, e1; *unqualElements)
+
+            foreach (i, e1; *elements)
             {
                 auto e2 = (*ae.elements)[i];
                 auto e1x = e1 ? e1 : basis;

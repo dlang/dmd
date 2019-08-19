@@ -249,7 +249,7 @@ unittest
     static struct S
     {
         int s = -1;
-        string toString()
+        string toString() const
         {
             return "S";
         }

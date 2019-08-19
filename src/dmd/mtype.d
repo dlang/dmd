@@ -2387,6 +2387,7 @@ extern (C++) abstract class Type : ASTNode
         if (!mod)
             return this;
         Type unqualThis = cast(Type) this;
+        // `mutableOf` needs a mutable `this` only for caching
         return cast(inout(Type)) unqualThis.mutableOf();
     }
 

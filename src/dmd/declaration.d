@@ -1000,8 +1000,7 @@ extern (C++) final class OverDeclaration : Declaration
                 return true;
             if (auto fd = s.isFuncDeclaration())
             {
-                // isUnique is not callable using a const object
-                return (cast() fd).isUnique();
+                return fd.isUnique();
             }
             if (auto td = s.isTemplateDeclaration())
             {
