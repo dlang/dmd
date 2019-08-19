@@ -7440,10 +7440,10 @@ extern (C++) final class TemplateMixin : TemplateInstance
         return members.foreachDsymbol( (s) { return s && s.apply(fp, param); } );
     }
 
-    override bool hasPointers()
+    override bool hasPointers() const
     {
         //printf("TemplateMixin.hasPointers() %s\n", toChars());
-        return members.foreachDsymbol( (s) { return s.hasPointers(); } ) != 0;
+        return (cast(Dsymbols*) members).foreachDsymbol( (s) { return s.hasPointers(); } ) != 0;
     }
 
     override void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)

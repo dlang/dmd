@@ -912,13 +912,13 @@ extern (C++) abstract class Type : ASTNode
         return size(Loc.initial);
     }
 
-    d_uns64 size(const ref Loc loc)
+    d_uns64 size(const ref Loc loc) const
     {
-        error(loc, "no size for type `%s`", toChars());
+        error(loc, "no size for type `%s`", (cast() this).toChars());
         return SIZE_INVALID;
     }
 
-    uint alignsize()
+    uint alignsize() const
     {
         return cast(uint)size(Loc.initial);
     }
@@ -994,48 +994,48 @@ extern (C++) abstract class Type : ASTNode
         return buf.extractChars();
     }
 
-    bool isintegral()
+    bool isintegral() const
     {
         return false;
     }
 
     // real, imaginary, or complex
-    bool isfloating()
+    bool isfloating() const
     {
         return false;
     }
 
-    bool isreal()
+    bool isreal() const
     {
         return false;
     }
 
-    bool isimaginary()
+    bool isimaginary() const
     {
         return false;
     }
 
-    bool iscomplex()
+    bool iscomplex() const
     {
         return false;
     }
 
-    bool isscalar()
+    bool isscalar() const
     {
         return false;
     }
 
-    bool isunsigned()
+    bool isunsigned() const
     {
         return false;
     }
 
-    bool ischar()
+    bool ischar() const
     {
         return false;
     }
 
-    bool isscope()
+    bool isscope() const
     {
         return false;
     }
@@ -1061,7 +1061,7 @@ extern (C++) abstract class Type : ASTNode
     /**************************
      * Returns true if T can be converted to boolean value.
      */
-    bool isBoolean()
+    bool isBoolean() const
     {
         return isscalar();
     }
@@ -2416,7 +2416,7 @@ extern (C++) abstract class Type : ASTNode
     }
 
     // if initializer is 0
-    bool isZeroInit(const ref Loc loc)
+    bool isZeroInit(const ref Loc loc) const
     {
         return false; // assume not
     }
@@ -2459,7 +2459,7 @@ extern (C++) abstract class Type : ASTNode
      * Return !=0 if type has pointers that need to
      * be scanned by the GC during a collection cycle.
      */
-    bool hasPointers()
+    bool hasPointers() const
     {
         //printf("Type::hasPointers() %s, %d\n", toChars(), ty);
         return false;
@@ -2565,7 +2565,7 @@ extern (C++) abstract class Type : ASTNode
      * true if when type goes out of scope, it needs a destructor applied.
      * Only applies to value types, not ref types.
      */
-    bool needsDestruction()
+    bool needsDestruction() const
     {
         return false;
     }
@@ -2697,7 +2697,7 @@ extern (C++) final class TypeError : Type
         return this;
     }
 
-    override d_uns64 size(const ref Loc loc)
+    override d_uns64 size(const ref Loc loc) const
     {
         return SIZE_INVALID;
     }
@@ -3241,12 +3241,12 @@ extern (C++) final class TypeBasic : Type
         return size;
     }
 
-    override uint alignsize()
+    override uint alignsize() const
     {
-        return target.alignsize(this);
+        return target.alignsize(cast() this);
     }
 
-    override bool isintegral()
+    override bool isintegral() const
     {
         //printf("TypeBasic::isintegral('%s') x%x\n", toChars(), flags);
         return (flags & TFlags.integral) != 0;
@@ -3444,35 +3444,35 @@ extern (C++) final class TypeVector : Type
         return new TypeVector(basetype.syntaxCopy());
     }
 
-    override d_uns64 size(const ref Loc loc)
+    override d_uns64 size(const ref Loc loc) const
     {
-        return basetype.size();
+        return (cast() basetype).size();
     }
 
-    override uint alignsize()
+    override uint alignsize() const
     {
-        return cast(uint)basetype.size();
+        return cast(uint) (cast() basetype).size();
     }
 
-    override bool isintegral()
+    override bool isintegral() const
     {
         //printf("TypeVector::isintegral('%s') x%x\n", toChars(), flags);
-        return basetype.nextOf().isintegral();
+        return (cast() basetype).nextOf().isintegral();
     }
 
-    override bool isfloating()
+    override bool isfloating() const
     {
-        return basetype.nextOf().isfloating();
+        return (cast() basetype).nextOf().isfloating();
     }
 
-    override bool isscalar()
+    override bool isscalar() const
     {
-        return basetype.nextOf().isscalar();
+        return (cast() basetype).nextOf().isscalar();
     }
 
-    override bool isunsigned()
+    override bool isunsigned() const
     {
-        return basetype.nextOf().isunsigned();
+        return (cast() basetype).nextOf().isunsigned();
     }
 
     override bool isBoolean() const
@@ -3510,9 +3510,9 @@ extern (C++) final class TypeVector : Type
         return tb;
     }
 
-    override bool isZeroInit(const ref Loc loc)
+    override bool isZeroInit(const ref Loc loc) const
     {
-        return basetype.isZeroInit(loc);
+        return (cast() basetype).isZeroInit(loc);
     }
 
     override void accept(Visitor v)
@@ -3564,23 +3564,23 @@ extern (C++) final class TypeSArray : TypeArray
         return t;
     }
 
-    override d_uns64 size(const ref Loc loc)
+    override d_uns64 size(const ref Loc loc) const
     {
         //printf("TypeSArray::size()\n");
-        const n = numberOfElems(loc);
-        const elemsize = baseElemOf().size(loc);
+        const n = (cast() this).numberOfElems(loc);
+        const elemsize = (cast() this).baseElemOf().size(loc);
         bool overflow = false;
         const sz = mulu(n, elemsize, overflow);
         if (overflow || sz >= uint.max)
         {
             if (elemsize != SIZE_INVALID && n != uint.max)
-                error(loc, "static array `%s` size overflowed to %lld", toChars(), cast(long)sz);
+                error(loc, "static array `%s` size overflowed to %lld", (cast() this).toChars(), cast(long)sz);
             return SIZE_INVALID;
         }
         return sz;
     }
 
-    override uint alignsize()
+    override uint alignsize() const
     {
         return next.alignsize();
     }
@@ -3591,9 +3591,9 @@ extern (C++) final class TypeSArray : TypeArray
         return nty == Tchar || nty == Twchar || nty == Tdchar;
     }
 
-    override bool isZeroInit(const ref Loc loc)
+    override bool isZeroInit(const ref Loc loc) const
     {
-        return next.isZeroInit(loc);
+        return (cast() next).isZeroInit(loc);
     }
 
     override structalign_t alignment()
@@ -3676,7 +3676,7 @@ extern (C++) final class TypeSArray : TypeArray
         return ae;
     }
 
-    override bool hasPointers()
+    override bool hasPointers() const
     {
         /* Don't want to do this, because:
          *    struct S { T* array[0]; }
@@ -3694,7 +3694,7 @@ extern (C++) final class TypeSArray : TypeArray
             return next.hasPointers();
     }
 
-    override bool needsDestruction()
+    override bool needsDestruction() const
     {
         return next.needsDestruction();
     }
@@ -5128,7 +5128,7 @@ extern (C++) final class TypeTraits : Type
         v.visit(this);
     }
 
-    override d_uns64 size(const ref Loc loc)
+    override d_uns64 size(const ref Loc loc) const
     {
         return SIZE_INVALID;
     }
@@ -5225,9 +5225,9 @@ extern (C++) abstract class TypeQualified : Type
         idents.push(e);
     }
 
-    override d_uns64 size(const ref Loc loc)
+    override d_uns64 size(const ref Loc loc) const
     {
-        error(this.loc, "size of type `%s` is not known", toChars());
+        error(this.loc, "size of type `%s` is not known", (cast() this).toChars());
         return SIZE_INVALID;
     }
 
@@ -5375,7 +5375,7 @@ extern (C++) final class TypeTypeof : TypeQualified
         return s;
     }
 
-    override d_uns64 size(const ref Loc loc)
+    override d_uns64 size(const ref Loc loc) const
     {
         if (exp.type)
             return exp.type.size(loc);
@@ -5461,14 +5461,14 @@ extern (C++) final class TypeStruct : Type
         return "struct";
     }
 
-    override d_uns64 size(const ref Loc loc)
+    override d_uns64 size(const ref Loc loc) const
     {
-        return sym.size(loc);
+        return (cast() sym).size(loc);
     }
 
-    override uint alignsize()
+    override uint alignsize() const
     {
-        sym.size(Loc.initial); // give error for forward references
+        (cast() sym).size(Loc.initial); // give error for forward references
         return sym.alignsize;
     }
 
@@ -5611,15 +5611,15 @@ extern (C++) final class TypeStruct : Type
         return false;
     }
 
-    override bool hasPointers()
+    override bool hasPointers() const
     {
         // Probably should cache this information in sym rather than recompute
-        StructDeclaration s = sym;
+        auto s = sym;
 
-        if (sym.members && !sym.determineFields() && sym.type != Type.terror)
+        if (sym.members && !(cast() sym).determineFields() && sym.type != Type.terror)
             error(sym.loc, "no size because of forward references");
 
-        foreach (VarDeclaration v; s.fields)
+        foreach (VarDeclaration v; (cast() s.fields))
         {
             if (v.storage_class & STC.ref_ || v.hasPointers())
                 return true;
@@ -5787,18 +5787,18 @@ extern (C++) final class TypeEnum : Type
         return this;
     }
 
-    override d_uns64 size(const ref Loc loc)
+    override d_uns64 size(const ref Loc loc) const
     {
-        return sym.getMemtype(loc).size(loc);
+        return (cast() sym).getMemtype(loc).size(loc);
     }
 
     Type memType(const ref Loc loc = Loc.initial)
     {
         return sym.getMemtype(loc);
     }
-    override uint alignsize()
+    override uint alignsize() const
     {
-        Type t = memType();
+        Type t = (cast() this).memType();
         if (t.ty == Terror)
             return 4;
         return t.alignsize();
@@ -5809,49 +5809,49 @@ extern (C++) final class TypeEnum : Type
         return sym;
     }
 
-    override bool isintegral()
+    override bool isintegral() const
     {
-        return memType().isintegral();
+        return (cast() this).memType().isintegral();
     }
 
-    override bool isfloating()
+    override bool isfloating() const
     {
-        return memType().isfloating();
+        return (cast() this).memType().isfloating();
     }
 
-    override bool isreal()
+    override bool isreal() const
     {
-        return memType().isreal();
+        return (cast() this).memType().isreal();
     }
 
-    override bool isimaginary()
+    override bool isimaginary() const
     {
-        return memType().isimaginary();
+        return (cast() this).memType().isimaginary();
     }
 
-    override bool iscomplex()
+    override bool iscomplex() const
     {
-        return memType().iscomplex();
+        return (cast() this).memType().iscomplex();
     }
 
-    override bool isscalar()
+    override bool isscalar() const
     {
-        return memType().isscalar();
+        return (cast() this).memType().isscalar();
     }
 
-    override bool isunsigned()
+    override bool isunsigned() const
     {
-        return memType().isunsigned();
+        return (cast() this).memType().isunsigned();
     }
 
-    override bool ischar()
+    override bool ischar() const
     {
-        return memType().ischar();
+        return (cast() this).memType().ischar();
     }
 
-    override bool isBoolean()
+    override bool isBoolean() const
     {
-        return memType().isBoolean();
+        return (cast() this).memType().isBoolean();
     }
 
     override bool isString()
@@ -5864,9 +5864,9 @@ extern (C++) final class TypeEnum : Type
         return memType().isAssignable();
     }
 
-    override bool needsDestruction()
+    override bool needsDestruction() const
     {
-        return memType().needsDestruction();
+        return (cast() this).memType().needsDestruction();
     }
 
     override bool needsNested()
@@ -5904,14 +5904,14 @@ extern (C++) final class TypeEnum : Type
         return tb.castMod(mod);         // retain modifier bits from 'this'
     }
 
-    override bool isZeroInit(const ref Loc loc)
+    override bool isZeroInit(const ref Loc loc) const
     {
-        return sym.getDefaultValue(loc).isBool(false);
+        return (cast() sym).getDefaultValue(loc).isBool(false);
     }
 
-    override bool hasPointers()
+    override bool hasPointers() const
     {
-        return memType().hasPointers();
+        return (cast() this).memType().hasPointers();
     }
 
     override bool hasVoidInitPointers()
@@ -6309,7 +6309,7 @@ extern (C++) final class TypeNull : Type
         return MATCH.nomatch;
     }
 
-    override bool hasPointers()
+    override bool hasPointers() const
     {
         /* Although null isn't dereferencable, treat it as a pointer type for
          * attribute inference, generic code, etc.

@@ -3438,7 +3438,7 @@ struct ASTBase
         }
 
         // TypeBasic, TypeVector, TypePointer, TypeEnum override this method
-        bool isscalar()
+        bool isscalar() const
         {
             return false;
         }

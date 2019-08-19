@@ -26,7 +26,7 @@ class Nspace : public ScopeDsymbol
     bool oneMember(Dsymbol **ps, Identifier *ident);
     Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
     int apply(Dsymbol_apply_ft_t fp, void *param);
-    bool hasPointers();
+    bool hasPointers() const;
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     const char *kind() const;
     Nspace *isNspace() { return this; }

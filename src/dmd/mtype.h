@@ -238,25 +238,25 @@ public:
     static void _init();
 
     d_uns64 size();
-    virtual d_uns64 size(const Loc &loc);
-    virtual unsigned alignsize();
+    virtual d_uns64 size(const Loc &loc) const;
+    virtual unsigned alignsize() const;
     Type *trySemantic(const Loc &loc, Scope *sc);
     Type *merge2();
     void modToBuffer(OutBuffer *buf) const;
     char *modToChars() const;
 
-    virtual bool isintegral();
-    virtual bool isfloating();   // real, imaginary, or complex
-    virtual bool isreal();
-    virtual bool isimaginary();
-    virtual bool iscomplex();
-    virtual bool isscalar();
-    virtual bool isunsigned();
+    virtual bool isintegral() const;
+    virtual bool isfloating() const;   // real, imaginary, or complex
+    virtual bool isreal() const;
+    virtual bool isimaginary() const;
+    virtual bool iscomplex() const;
+    virtual bool isscalar() const;
+    virtual bool isunsigned() const;
     virtual bool ischar();
-    virtual bool isscope();
+    virtual bool isscope() const;
     virtual bool isString();
     virtual bool isAssignable();
-    virtual bool isBoolean();
+    virtual bool isBoolean() const;
     virtual void checkDeprecated(const Loc &loc, Scope *sc);
     bool isConst() const       { return (mod & MODconst) != 0; }
     bool isImmutable() const   { return (mod & MODimmutable) != 0; }
@@ -312,15 +312,15 @@ public:
     virtual ClassDeclaration *isClassHandle();
     virtual structalign_t alignment();
     virtual Expression *defaultInitLiteral(const Loc &loc);
-    virtual bool isZeroInit(const Loc &loc = Loc());                // if initializer is 0
+    virtual bool isZeroInit(const Loc &loc = Loc()) const;                // if initializer is 0
     Identifier *getTypeInfoIdent();
     virtual int hasWild() const;
-    virtual bool hasPointers();
+    virtual bool hasPointers() const;
     virtual bool hasVoidInitPointers();
     virtual Type *nextOf();
     Type *baseElemOf();
     uinteger_t sizemask();
-    virtual bool needsDestruction();
+    virtual bool needsDestruction() const;
     virtual bool needsNested();
 
     // For eliminating dynamic_cast
@@ -353,7 +353,7 @@ class TypeError : public Type
 public:
     Type *syntaxCopy();
 
-    d_uns64 size(const Loc &loc);
+    d_uns64 size(const Loc &loc) const;
     Expression *defaultInitLiteral(const Loc &loc);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -389,18 +389,18 @@ public:
 
     const char *kind();
     Type *syntaxCopy();
-    d_uns64 size(const Loc &loc) /*const*/;
-    unsigned alignsize();
-    bool isintegral();
-    bool isfloating() /*const*/;
-    bool isreal() /*const*/;
-    bool isimaginary() /*const*/;
-    bool iscomplex() /*const*/;
-    bool isscalar() /*const*/;
-    bool isunsigned() /*const*/;
-    bool ischar() /*const*/;
+    d_uns64 size(const Loc &loc) const;
+    unsigned alignsize() const;
+    bool isintegral() const;
+    bool isfloating() const;
+    bool isreal() const;
+    bool isimaginary() const;
+    bool iscomplex() const;
+    bool isscalar() const;
+    bool isunsigned() const;
+    bool ischar() const;
     MATCH implicitConvTo(Type *to);
-    bool isZeroInit(const Loc &loc) /*const*/;
+    bool isZeroInit(const Loc &loc) const;
 
     // For eliminating dynamic_cast
     TypeBasic *isTypeBasic();
@@ -415,17 +415,17 @@ public:
     static TypeVector *create(Type *basetype);
     const char *kind();
     Type *syntaxCopy();
-    d_uns64 size(const Loc &loc);
-    unsigned alignsize();
-    bool isintegral();
-    bool isfloating();
-    bool isscalar();
-    bool isunsigned();
-    bool isBoolean() /*const*/;
+    d_uns64 size(const Loc &loc) const;
+    unsigned alignsize() const;
+    bool isintegral() const;
+    bool isfloating() const;
+    bool isscalar() const;
+    bool isunsigned() const;
+    bool isBoolean() const;
     MATCH implicitConvTo(Type *to);
     Expression *defaultInitLiteral(const Loc &loc);
     TypeBasic *elementType();
-    bool isZeroInit(const Loc &loc);
+    bool isZeroInit(const Loc &loc) const;
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -444,16 +444,16 @@ public:
 
     const char *kind();
     Type *syntaxCopy();
-    d_uns64 size(const Loc &loc);
-    unsigned alignsize();
+    d_uns64 size(const Loc &loc) const;
+    unsigned alignsize() const;
     bool isString();
-    bool isZeroInit(const Loc &loc);
+    bool isZeroInit(const Loc &loc) const;
     structalign_t alignment();
     MATCH constConv(Type *to);
     MATCH implicitConvTo(Type *to);
     Expression *defaultInitLiteral(const Loc &loc);
-    bool hasPointers();
-    bool needsDestruction();
+    bool hasPointers() const;
+    bool needsDestruction() const;
     bool needsNested();
 
     void accept(Visitor *v) { v->visit(this); }
@@ -465,13 +465,13 @@ class TypeDArray : public TypeArray
 public:
     const char *kind();
     Type *syntaxCopy();
-    d_uns64 size(const Loc &loc) /*const*/;
-    unsigned alignsize() /*const*/;
+    d_uns64 size(const Loc &loc) const;
+    unsigned alignsize() const;
     bool isString();
-    bool isZeroInit(const Loc &loc) /*const*/;
-    bool isBoolean() /*const*/;
+    bool isZeroInit(const Loc &loc) const;
+    bool isBoolean() const;
     MATCH implicitConvTo(Type *to);
-    bool hasPointers() /*const*/;
+    bool hasPointers() const;
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -486,10 +486,10 @@ public:
     static TypeAArray *create(Type *t, Type *index);
     const char *kind();
     Type *syntaxCopy();
-    d_uns64 size(const Loc &loc);
-    bool isZeroInit(const Loc &loc) /*const*/;
-    bool isBoolean() /*const*/;
-    bool hasPointers() /*const*/;
+    d_uns64 size(const Loc &loc) const;
+    bool isZeroInit(const Loc &loc) const;
+    bool isBoolean() const;
+    bool hasPointers() const;
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
 
@@ -502,12 +502,12 @@ public:
     static TypePointer *create(Type *t);
     const char *kind();
     Type *syntaxCopy();
-    d_uns64 size(const Loc &loc) /*const*/;
+    d_uns64 size(const Loc &loc) const;
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
-    bool isscalar() /*const*/;
-    bool isZeroInit(const Loc &loc) /*const*/;
-    bool hasPointers() /*const*/;
+    bool isscalar() const;
+    bool isZeroInit(const Loc &loc) const;
+    bool hasPointers() const;
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -517,8 +517,8 @@ class TypeReference : public TypeNext
 public:
     const char *kind();
     Type *syntaxCopy();
-    d_uns64 size(const Loc &loc) /*const*/;
-    bool isZeroInit(const Loc &loc) /*const*/;
+    d_uns64 size(const Loc &loc) const;
+    bool isZeroInit(const Loc &loc) const;
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -630,12 +630,12 @@ public:
     const char *kind();
     Type *syntaxCopy();
     Type *addStorageClass(StorageClass stc);
-    d_uns64 size(const Loc &loc) /*const*/;
-    unsigned alignsize() /*const*/;
+    d_uns64 size(const Loc &loc) const;
+    unsigned alignsize() const;
     MATCH implicitConvTo(Type *to);
-    bool isZeroInit(const Loc &loc) /*const*/;
-    bool isBoolean() /*const*/;
-    bool hasPointers() /*const*/;
+    bool isZeroInit(const Loc &loc) const;
+    bool isBoolean() const;
+    bool hasPointers() const;
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -649,7 +649,7 @@ class TypeTraits : public Type
     Dsymbol *sym;
 
     Type *syntaxCopy();
-    d_uns64 size(const Loc &loc);
+    d_uns64 size(const Loc &loc) const;
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -665,7 +665,7 @@ public:
     void addIdent(Identifier *ident);
     void addInst(TemplateInstance *inst);
     void addIndex(RootObject *expr);
-    d_uns64 size(const Loc &loc);
+    d_uns64 size(const Loc &loc) const;
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -704,7 +704,7 @@ public:
     const char *kind();
     Type *syntaxCopy();
     Dsymbol *toDsymbol(Scope *sc);
-    d_uns64 size(const Loc &loc);
+    d_uns64 size(const Loc &loc) const;
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -738,18 +738,18 @@ public:
 
     static TypeStruct *create(StructDeclaration *sym);
     const char *kind();
-    d_uns64 size(const Loc &loc);
-    unsigned alignsize();
+    d_uns64 size(const Loc &loc) const;
+    unsigned alignsize() const;
     Type *syntaxCopy();
     Dsymbol *toDsymbol(Scope *sc);
     structalign_t alignment();
     Expression *defaultInitLiteral(const Loc &loc);
-    bool isZeroInit(const Loc &loc) /*const*/;
+    bool isZeroInit(const Loc &loc) const;
     bool isAssignable();
-    bool isBoolean() /*const*/;
-    bool needsDestruction() /*const*/;
+    bool isBoolean() const;
+    bool needsDestruction() const;
     bool needsNested();
-    bool hasPointers();
+    bool hasPointers() const;
     bool hasVoidInitPointers();
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
@@ -766,28 +766,28 @@ public:
 
     const char *kind();
     Type *syntaxCopy();
-    d_uns64 size(const Loc &loc);
-    unsigned alignsize();
+    d_uns64 size(const Loc &loc) const;
+    unsigned alignsize() const;
     Type *memType(const Loc &loc = Loc());
     Dsymbol *toDsymbol(Scope *sc);
-    bool isintegral();
-    bool isfloating();
-    bool isreal();
-    bool isimaginary();
-    bool iscomplex();
-    bool isscalar();
-    bool isunsigned();
-    bool ischar();
-    bool isBoolean();
+    bool isintegral() const;
+    bool isfloating() const;
+    bool isreal() const;
+    bool isimaginary() const;
+    bool iscomplex() const;
+    bool isscalar() const;
+    bool isunsigned() const;
+    bool ischar() const;
+    bool isBoolean() const;
     bool isString();
     bool isAssignable();
-    bool needsDestruction();
+    bool needsDestruction() const;
     bool needsNested();
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
     Type *toBasetype();
-    bool isZeroInit(const Loc &loc);
-    bool hasPointers();
+    bool isZeroInit(const Loc &loc) const;
+    bool hasPointers() const;
     bool hasVoidInitPointers();
     Type *nextOf();
 
@@ -802,7 +802,7 @@ public:
     CPPMANGLE cppmangle;
 
     const char *kind();
-    d_uns64 size(const Loc &loc) /*const*/;
+    d_uns64 size(const Loc &loc) const;
     Type *syntaxCopy();
     Dsymbol *toDsymbol(Scope *sc);
     ClassDeclaration *isClassHandle();
@@ -811,10 +811,10 @@ public:
     MATCH constConv(Type *to);
     unsigned char deduceWild(Type *t, bool isRef);
     Type *toHeadMutable();
-    bool isZeroInit(const Loc &loc) /*const*/;
-    bool isscope() /*const*/;
-    bool isBoolean() /*const*/;
-    bool hasPointers() /*const*/;
+    bool isZeroInit(const Loc &loc) const;
+    bool isscope() const;
+    bool isBoolean() const;
+    bool hasPointers() const;
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -852,9 +852,9 @@ public:
 
     Type *syntaxCopy();
     MATCH implicitConvTo(Type *to);
-    bool isBoolean() /*const*/;
+    bool isBoolean() const;
 
-    d_uns64 size(const Loc &loc) /*const*/;
+    d_uns64 size(const Loc &loc) const;
     void accept(Visitor *v) { v->visit(this); }
 };
 

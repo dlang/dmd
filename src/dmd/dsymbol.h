@@ -218,7 +218,7 @@ public:
     virtual Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees
     virtual bool oneMember(Dsymbol **ps, Identifier *ident);
     virtual void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
-    virtual bool hasPointers();
+    virtual bool hasPointers() const;
     virtual bool hasStaticCtorOrDtor();
     virtual void addLocalClass(ClassDeclarations *) { }
     virtual void addObjcSymbols(ClassDeclarations *, ClassDeclarations *) { }

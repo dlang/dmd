@@ -1051,7 +1051,7 @@ extern (C++) class Dsymbol : ASTNode
     /*****************************************
      * Is Dsymbol a variable that contains pointers?
      */
-    bool hasPointers()
+    bool hasPointers() const
     {
         //printf("Dsymbol::hasPointers() %s\n", toChars());
         return false;

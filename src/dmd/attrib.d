@@ -168,9 +168,9 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         include(null).foreachDsymbol( s => s.setFieldOffset(ad, poffset, isunion) );
     }
 
-    override final bool hasPointers()
+    override final bool hasPointers() const
     {
-        return include(null).foreachDsymbol( (s) { return s.hasPointers(); } ) != 0;
+        return (cast() this).include(null).foreachDsymbol( (s) { return s.hasPointers(); } ) != 0;
     }
 
     override final bool hasStaticCtorOrDtor()
