@@ -160,7 +160,7 @@ public extern (C++) void printCtfePerformanceStats()
 /*********
  * Typesafe PIMPL idiom so we can keep CompiledCtfeFunction private.
  */
-struct CompiledCtfeFunctionPimpl
+extern (C++) struct CompiledCtfeFunctionPimpl
 {
     private CompiledCtfeFunction* pimpl;
     private alias pimpl this;

@@ -48,7 +48,7 @@ extern (C++) __gshared
  * A data structure that describes a back-end compiler and implements
  * compiler-specific actions.
  */
-struct Compiler
+extern (C++) struct Compiler
 {
     /**
      * Generate C main() in response to seeing D main().
