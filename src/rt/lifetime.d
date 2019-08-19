@@ -47,7 +47,14 @@ extern (C) void lifetime_init()
     import rt.config;
     string s = rt_configOption("callStructDtorsDuringGC");
     if (s != null)
+    {
+        // @@@DEPRECATED_v2.094@@@
+        // Deprecated in v2.088.
+        // To be removed in v2.094, if not earlier.
+        import core.stdc.stdio : fprintf, stderr;
+        fprintf(stderr, "Deprecation: The `callStructDtorsDuringGC` option has been deprecated and will be removed in a future release.\n");
         cast() callStructDtorsDuringGC = s[0] == '1' || s[0] == 'y' || s[0] == 'Y';
+    }
     else
         cast() callStructDtorsDuringGC = true;
 }

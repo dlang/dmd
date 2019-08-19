@@ -1,0 +1,4 @@
+The druntime option `callStructDtorsDuringGC` has been deprecated.
+
+Starting with this release utilizing the `callStructDtorsDuringGC` runtime option will result in a
+deprecation message printed to `stderr`.  The option will be removed in a future release.
