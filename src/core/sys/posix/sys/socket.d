@@ -2304,6 +2304,10 @@ else version (CRuntime_Bionic)
 }
 else version (CRuntime_Musl)
 {
+    enum
+    {
+        SOCK_RAW    = 3
+    }
 }
 else version (CRuntime_UClibc)
 {
