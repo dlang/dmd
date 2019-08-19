@@ -119,7 +119,6 @@ private Label *getLabel(IRState *irs, Blockx *blx, Statement s)
     {
         Label *label = new Label();
         label.lblock = blx ? block_calloc(blx) : dmd.backend.global.block_calloc();
-        label.fwdrefs = null;
         irs.insertLabel(s, label);
         return label;
     }
@@ -130,18 +129,12 @@ private Label *getLabel(IRState *irs, Blockx *blx, Statement s)
  * Convert label to block.
  */
 
-private block *labelToBlock(IRState *irs, const ref Loc loc, Blockx *blx, LabelDsymbol label, int flag = 0)
+private block *labelToBlock(IRState *irs, const ref Loc loc, Blockx *blx, LabelDsymbol label)
 {
     if (!label.statement)
         assert(0);              // should have been caught by GotoStatement.checkLabel()
 
     Label *l = getLabel(irs, null, label.statement);
-    if (flag)
-    {
-        // Keep track of the forward reference to this block, so we can check it later
-        if (!l.fwdrefs)
-            l.fwdrefs = blx.curblock;
-    }
     return l.lblock;
 }
 
@@ -422,7 +415,7 @@ private extern (C++) class S2irVisitor : Visitor
         assert(s.label.statement);
         assert(s.tf == s.label.statement.tf);
 
-        block *bdest = labelToBlock(irs, s.loc, blx, s.label, 1);
+        block *bdest = labelToBlock(irs, s.loc, blx, s.label);
         if (!bdest)
             return;
         block *b = blx.curblock;
