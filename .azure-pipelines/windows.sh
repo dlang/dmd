@@ -8,25 +8,6 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 GNU_MAKE="$(which make)"
 
-install_host_dmd() {
-    if [ ! -f dmd2/README.TXT ]; then
-        download "http://downloads.dlang.org/releases/2.x/${HOST_DMD_VERSION}/dmd.${HOST_DMD_VERSION}.windows.7z" dmd2.7z
-        7z x dmd2.7z > /dev/null
-    fi
-    export PATH="$PWD/dmd2/windows/bin/:$PATH"
-    export HOST_DC="$PWD/dmd2/windows/bin/dmd.exe"
-    export DM_MAKE="$PWD/dmd2/windows/bin/make.exe"
-    dmd --version
-}
-
-install_host_dmc() {
-    if [ ! -f dm/README.TXT ]; then
-        download "http://downloads.dlang.org/other/dm857c.zip" dmc.zip
-        7z x dmc.zip > /dev/null
-    fi
-    dm/bin/dmc | head -n 1 || true
-}
-
 ################################################################################
 # Setup required tools
 ################################################################################

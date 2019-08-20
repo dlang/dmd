@@ -586,10 +586,14 @@ public:
         {
             const slice = buf.peekSlice();
             assert(slice.length);
-            foreach (const char c; slice)
+            for (size_t pos; pos < slice.length; )
             {
+                dchar c;
+                auto ppos = pos;
+                auto p = utf_decodeChar(slice.ptr, slice.length, pos, c);
+                assert(p is null, p[0..strlen(p)]);
                 assert(c.isValidMangling, "The mangled name '" ~ slice ~ "' " ~
-                    "contains an invalid character: " ~ c);
+                    "contains an invalid character: " ~ slice[ppos..pos]);
             }
         }
     }
@@ -1110,7 +1114,8 @@ package bool isValidMangling(dchar c) nothrow
         c >= 'A' && c <= 'Z' ||
         c >= 'a' && c <= 'z' ||
         c >= '0' && c <= '9' ||
-        c != 0 && strchr("$%().:?@[]_", c);
+        c != 0 && strchr("$%().:?@[]_", c) ||
+        isUniAlpha(c);
 }
 
 // valid mangled characters
