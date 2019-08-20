@@ -3248,25 +3248,29 @@ private MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
             *at = t.mutableOf().unSharedOf();
             return MATCH.exact;
         }
+    case X(MODFlags.const_, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.wild, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.wildconst, MODFlags.shared_ | MODFlags.wildconst):
+        // foo(const(U))                shared(const(T))        => shared(T)
+        // foo(inout(U))                shared(inout(T))        => shared(T)
+        // foo(inout(const(U)))         shared(inout(const(T))) => shared(T)
+        {
+            *at = t.mutableOf();
+            return MATCH.exact;
+        }
     case X(MODFlags.const_, 0):
     case X(MODFlags.const_, MODFlags.wild):
     case X(MODFlags.const_, MODFlags.wildconst):
-    case X(MODFlags.const_, MODFlags.shared_ | MODFlags.const_):
     case X(MODFlags.const_, MODFlags.shared_ | MODFlags.wild):
     case X(MODFlags.const_, MODFlags.shared_ | MODFlags.wildconst):
     case X(MODFlags.const_, MODFlags.immutable_):
-    case X(MODFlags.wild, MODFlags.shared_ | MODFlags.wild):
-    case X(MODFlags.wildconst, MODFlags.shared_ | MODFlags.wildconst):
     case X(MODFlags.shared_ | MODFlags.const_, MODFlags.immutable_):
         // foo(const(U))                T                       => T
         // foo(const(U))                inout(T)                => T
         // foo(const(U))                inout(const(T))         => T
-        // foo(const(U))                shared(const(T))        => shared(T)
         // foo(const(U))                shared(inout(T))        => shared(T)
         // foo(const(U))                shared(inout(const(T))) => shared(T)
         // foo(const(U))                immutable(T)            => T
-        // foo(inout(U))                shared(inout(T))        => shared(T)
-        // foo(inout(const(U)))         shared(inout(const(T))) => shared(T)
         // foo(shared(const(U)))        immutable(T)            => T
         {
             *at = t.mutableOf();
@@ -3281,10 +3285,14 @@ private MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
     case X(MODFlags.shared_, MODFlags.shared_ | MODFlags.const_):
     case X(MODFlags.shared_, MODFlags.shared_ | MODFlags.wild):
     case X(MODFlags.shared_, MODFlags.shared_ | MODFlags.wildconst):
-    case X(MODFlags.shared_ | MODFlags.const_, MODFlags.shared_):
         // foo(shared(U))               shared(const(T))        => const(T)
         // foo(shared(U))               shared(inout(T))        => inout(T)
         // foo(shared(U))               shared(inout(const(T))) => inout(const(T))
+        {
+            *at = t.unSharedOf();
+            return MATCH.exact;
+        }
+    case X(MODFlags.shared_ | MODFlags.const_, MODFlags.shared_):
         // foo(shared(const(U)))        shared(T)               => T
         {
             *at = t.unSharedOf();
@@ -3545,7 +3553,6 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 // Found the corresponding parameter tp
                 if (!tp.isTemplateTypeParameter())
                     goto Lnomatch;
-
                 Type at = cast(Type)(*dedtypes)[i];
                 Type tt;
                 if (ubyte wx = wm ? deduceWildHelper(t, &tt, tparam) : 0)
