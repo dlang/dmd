@@ -831,6 +831,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             break;
         }
     }
+    s.Sclass = SCcomdat;
 
     /* Vector operations should be comdat's
      */
