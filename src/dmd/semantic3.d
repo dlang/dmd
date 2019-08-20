@@ -547,7 +547,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                 if ((needEnsure && global.params.useOut == CHECKENABLE.on) || fpostinv)
                 {
-                    funcdecl.returnLabel = new LabelDsymbol(Id.returnLabel);
+                    funcdecl.returnLabel = funcdecl.searchLabel(Id.returnLabel);
                 }
 
                 // scope of out contract (need for vresult.semantic)
