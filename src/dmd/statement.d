@@ -166,7 +166,7 @@ extern (C++) abstract class Statement : ASTNode
         return b;
     }
 
-    override final const(char)* toChars()
+    override final const(char)* toChars() const
     {
         HdrGenState hgs;
         OutBuffer buf;

@@ -80,7 +80,7 @@ public:
     // kludge for template.isExpression()
     DYNCAST dyncast() const { return DYNCAST_EXPRESSION; }
 
-    const char *toChars();
+    const char *toChars() const;
     void error(const char *format, ...) const;
     void warning(const char *format, ...) const;
     void deprecation(const char *format, ...) const;
@@ -234,7 +234,7 @@ public:
 
     static IntegerExp *create(Loc loc, dinteger_t value, Type *type);
     static void emplace(UnionExp *pue, Loc loc, dinteger_t value, Type *type);
-    bool equals(RootObject *o);
+    bool equals(const RootObject *o) const;
     dinteger_t toInteger();
     real_t toReal();
     real_t toImaginary();
@@ -264,7 +264,7 @@ public:
 
     static RealExp *create(Loc loc, real_t value, Type *type);
     static void emplace(UnionExp *pue, Loc loc, real_t value, Type *type);
-    bool equals(RootObject *o);
+    bool equals(const RootObject *o) const;
     dinteger_t toInteger();
     uinteger_t toUInteger();
     real_t toReal();
@@ -281,7 +281,7 @@ public:
 
     static ComplexExp *create(Loc loc, complex_t value, Type *type);
     static void emplace(UnionExp *pue, Loc loc, complex_t value, Type *type);
-    bool equals(RootObject *o);
+    bool equals(const RootObject *o) const;
     dinteger_t toInteger();
     uinteger_t toUInteger();
     real_t toReal();
@@ -344,7 +344,7 @@ class NullExp : public Expression
 public:
     unsigned char committed;    // !=0 if type is committed
 
-    bool equals(RootObject *o);
+    bool equals(const RootObject *o) const;
     bool isBool(bool result);
     StringExp *toStringExp();
     void accept(Visitor *v) { v->visit(this); }
@@ -364,7 +364,7 @@ public:
     static StringExp *create(Loc loc, void *s, size_t len);
     static void emplace(UnionExp *pue, Loc loc, char *s);
     static void emplace(UnionExp *pue, Loc loc, void *s, size_t len);
-    bool equals(RootObject *o);
+    bool equals(const RootObject *o) const;
     StringExp *toStringExp();
     StringExp *toUTF8(Scope *sc);
     bool isBool(bool result);
@@ -396,7 +396,7 @@ public:
     static TupleExp *create(Loc loc, Expressions *exps);
     TupleExp *toTupleExp();
     Expression *syntaxCopy();
-    bool equals(RootObject *o);
+    bool equals(const RootObject *o) const;
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -411,7 +411,7 @@ public:
     static ArrayLiteralExp *create(Loc loc, Expressions *elements);
     static void emplace(UnionExp *pue, Loc loc, Expressions *elements);
     Expression *syntaxCopy();
-    bool equals(RootObject *o);
+    bool equals(const RootObject *o) const;
     Expression *getElement(d_size_t i); // use opIndex instead
     Expression *opIndex(d_size_t i);
     bool isBool(bool result);
@@ -427,7 +427,7 @@ public:
     Expressions *values;
     OwnedBy ownedByCtfe;
 
-    bool equals(RootObject *o);
+    bool equals(const RootObject *o) const;
     Expression *syntaxCopy();
     bool isBool(bool result);
 
@@ -464,7 +464,7 @@ public:
     OwnedBy ownedByCtfe;
 
     static StructLiteralExp *create(Loc loc, StructDeclaration *sd, void *elements, Type *stype = NULL);
-    bool equals(RootObject *o);
+    bool equals(const RootObject *o) const;
     Expression *syntaxCopy();
     Expression *getField(Type *type, unsigned offset);
     int getFieldIndex(Type *type, unsigned offset);
@@ -571,7 +571,7 @@ class VarExp : public SymbolExp
 {
 public:
     static VarExp *create(Loc loc, Declaration *var, bool hasOverloads = true);
-    bool equals(RootObject *o);
+    bool equals(const RootObject *o) const;
     int checkModifiable(Scope *sc, int flag);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -601,9 +601,9 @@ public:
     TemplateDeclaration *td;
     TOK tok;
 
-    bool equals(RootObject *o);
+    bool equals(const RootObject *o) const;
     Expression *syntaxCopy();
-    const char *toChars();
+    const char *toChars() const;
     bool checkType();
     bool checkValue();
 

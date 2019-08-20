@@ -139,7 +139,7 @@ extern (C++) final class VersionSymbol : Dsymbol
         return ds;
     }
 
-    override const(char)* toChars() nothrow
+    override const(char)* toChars() const nothrow
     {
         if (ident)
             return ident.toChars();

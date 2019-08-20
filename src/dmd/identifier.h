@@ -22,10 +22,10 @@ private:
 public:
     static Identifier* anonymous();
     static Identifier* create(const char *string);
-    bool equals(RootObject *o);
-    const char *toChars();
+    bool equals(const RootObject *o) const;
+    const char *toChars() const;
     int getValue() const;
-    const char *toHChars2();
+    const char *toHChars2() const;
     DYNCAST dyncast() const;
 
     static Identifier *generateId(const char *prefix);

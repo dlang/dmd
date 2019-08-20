@@ -63,7 +63,7 @@ extern (C++) class Initializer : ASTNode
         this.kind = kind;
     }
 
-    override final const(char)* toChars()
+    override final const(char)* toChars() const
     {
         OutBuffer buf;
         HdrGenState hgs;

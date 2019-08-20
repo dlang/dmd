@@ -272,7 +272,7 @@ extern (C++) class Dsymbol : ASTNode
         return new Dsymbol(ident);
     }
 
-    override const(char)* toChars()
+    override const(char)* toChars() const
     {
         return ident ? ident.toChars() : "__anonymous";
     }
@@ -296,7 +296,7 @@ extern (C++) class Dsymbol : ASTNode
         return getLoc().toChars();
     }
 
-    override bool equals(RootObject o)
+    override bool equals(const RootObject o) const
     {
         if (this == o)
             return true;

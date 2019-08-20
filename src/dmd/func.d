@@ -558,7 +558,7 @@ extern (C++) class FuncDeclaration : Declaration
         return HiddenParameters.init;
     }
 
-    override final bool equals(RootObject o)
+    override final bool equals(const RootObject o) const
     {
         if (this == o)
             return true;
@@ -1743,10 +1743,10 @@ extern (C++) class FuncDeclaration : Declaration
      * Returns:
      *  true if there are no overloads of this function
      */
-    final bool isUnique()
+    final bool isUnique() const
     {
         bool result = false;
-        overloadApply(this, (Dsymbol s)
+        overloadApply(cast() this, (Dsymbol s)
         {
             auto f = s.isFuncDeclaration();
             if (!f)

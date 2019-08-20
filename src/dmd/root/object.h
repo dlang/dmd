@@ -39,12 +39,12 @@ class RootObject
 public:
     RootObject() { }
 
-    virtual bool equals(RootObject *o);
+    virtual bool equals(const RootObject *o) const;
 
     /**
      * Pretty-print an Object. Useful for debugging the old-fashioned way.
      */
-    virtual const char *toChars();
+    virtual const char *toChars() const;
     /// This function is `extern(D)` and should not be called from C++,
     /// as the ABI does not match on some platforms
     virtual DString toString();

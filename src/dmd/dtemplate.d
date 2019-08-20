@@ -494,7 +494,7 @@ extern (C++) final class Tuple : RootObject
         return DYNCAST.tuple;
     }
 
-    override const(char)* toChars()
+    override const(char)* toChars() const
     {
         return objects.toChars();
     }
@@ -657,7 +657,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         return (onemember && onemember.isAggregateDeclaration()) ? onemember.kind() : "template";
     }
 
-    override const(char)* toChars()
+    override const(char)* toChars() const
     {
         if (literal)
             return Dsymbol.toChars();
@@ -669,7 +669,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         buf.writeByte('(');
         for (size_t i = 0; i < parameters.dim; i++)
         {
-            TemplateParameter tp = (*parameters)[i];
+            const TemplateParameter tp = (*parameters)[i];
             if (i)
                 buf.writestring(", ");
             .toCBuffer(tp, &buf, &hgs);
@@ -678,7 +678,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
         if (onemember)
         {
-            FuncDeclaration fd = onemember.isFuncDeclaration();
+            const FuncDeclaration fd = onemember.isFuncDeclaration();
             if (fd && fd.type)
             {
                 TypeFunction tf = cast(TypeFunction)fd.type;
@@ -5267,7 +5267,11 @@ extern (C++) class TemplateParameter : ASTNode
 
     abstract bool hasDefaultArg();
 
-    override const(char)* toChars() { return this.ident.toChars(); }
+    override const(char)* toChars() const
+    {
+        return this.ident.toChars();
+    }
+
     override DYNCAST dyncast() const pure @nogc nothrow @safe
     {
         return DYNCAST.templateparameter;
@@ -5826,7 +5830,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         return true;
     }
 
-    override const(char)* toChars()
+    override const(char)* toChars() const
     {
         OutBuffer buf;
         toCBufferInstance(this, &buf);
@@ -7455,7 +7459,7 @@ extern (C++) final class TemplateMixin : TemplateInstance
         members.foreachDsymbol( (s) { s.setFieldOffset(ad, poffset, isunion); } );
     }
 
-    override const(char)* toChars()
+    override const(char)* toChars() const
     {
         OutBuffer buf;
         toCBufferInstance(this, &buf);

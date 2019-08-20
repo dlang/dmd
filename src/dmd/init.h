@@ -32,7 +32,7 @@ public:
     Loc loc;
     unsigned char kind;
 
-    const char *toChars();
+    const char *toChars() const;
 
     ErrorInitializer   *isErrorInitializer();
     VoidInitializer    *isVoidInitializer();

@@ -517,7 +517,7 @@ extern (C++) abstract class Type : ASTNode
         assert(0);
     }
 
-    override bool equals(RootObject o) const
+    override bool equals(const RootObject o) const
     {
         Type t = cast(Type)o;
         //printf("Type::equals(%s, %s)\n", toChars(), t.toChars());
@@ -784,7 +784,7 @@ extern (C++) abstract class Type : ASTNode
     /********************************
      * For pretty-printing a type.
      */
-    final override const(char)* toChars()
+    final override const(char)* toChars() const
     {
         OutBuffer buf;
         buf.reserve(16);
@@ -2382,11 +2382,13 @@ extern (C++) abstract class Type : ASTNode
     /**************************
      * Return type with the top level of it being mutable.
      */
-    Type toHeadMutable()
+    inout(Type) toHeadMutable() inout
     {
         if (!mod)
             return this;
-        return mutableOf();
+        Type unqualThis = cast(Type) this;
+        // `mutableOf` needs a mutable `this` only for caching
+        return cast(inout(Type)) unqualThis.mutableOf();
     }
 
     inout(ClassDeclaration) isClassHandle() inout
@@ -5754,7 +5756,7 @@ extern (C++) final class TypeStruct : Type
         return wm;
     }
 
-    override Type toHeadMutable()
+    override inout(Type) toHeadMutable() inout
     {
         return this;
     }
@@ -6068,7 +6070,7 @@ extern (C++) final class TypeClass : Type
         return wm;
     }
 
-    override Type toHeadMutable()
+    override inout(Type) toHeadMutable() inout
     {
         return this;
     }
@@ -6205,7 +6207,7 @@ extern (C++) final class TypeTuple : Type
         return t;
     }
 
-    override bool equals(RootObject o) const
+    override bool equals(const RootObject o) const
     {
         Type t = cast(Type)o;
         //printf("TypeTuple::equals(%s, %s)\n", toChars(), t.toChars());

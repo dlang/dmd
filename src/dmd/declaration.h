@@ -193,7 +193,7 @@ public:
     bool hasOverloads;
 
     const char *kind() const;
-    bool equals(RootObject *o);
+    bool equals(const RootObject *o) const;
     bool overloadInsert(Dsymbol *s);
 
     Dsymbol *toAlias();
@@ -286,7 +286,7 @@ public:
 
     static TypeInfoDeclaration *create(Type *tinfo);
     Dsymbol *syntaxCopy(Dsymbol *);
-    const char *toChars();
+    const char *toChars() const;
 
     TypeInfoDeclaration *isTypeInfoDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -561,7 +561,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *);
     bool functionSemantic();
     bool functionSemantic3();
-    bool equals(RootObject *o);
+    bool equals(const RootObject *o) const;
 
     int overrides(FuncDeclaration *fd);
     int findVtblIndex(Dsymbols *vtbl, int dim, bool fix17349 = true);
@@ -658,7 +658,7 @@ public:
     bool isCpCtor;
     Dsymbol *syntaxCopy(Dsymbol *);
     const char *kind() const;
-    const char *toChars();
+    const char *toChars() const;
     bool isVirtual() const;
     bool addPreInvariant();
     bool addPostInvariant();
@@ -685,7 +685,7 @@ class DtorDeclaration : public FuncDeclaration
 public:
     Dsymbol *syntaxCopy(Dsymbol *);
     const char *kind() const;
-    const char *toChars();
+    const char *toChars() const;
     bool isVirtual() const;
     bool addPreInvariant();
     bool addPostInvariant();

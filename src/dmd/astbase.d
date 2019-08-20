@@ -335,7 +335,7 @@ struct ASTBase
                 this.comment = Lexer.combineComments(this.comment.toDString(), comment.toDString(), true);
         }
 
-        override const(char)* toChars()
+        override const(char)* toChars() const
         {
             return ident ? ident.toChars() : "__anonymous";
         }
@@ -2768,7 +2768,7 @@ struct ASTBase
             this.ty = ty;
         }
 
-        override const(char)* toChars()
+        override const(char)* toChars() const
         {
             return "type";
         }
@@ -6295,7 +6295,7 @@ struct ASTBase
             return DYNCAST.tuple;
         }
 
-        override const(char)* toChars()
+        override const(char)* toChars() const
         {
             return objects.toChars();
         }
@@ -6323,14 +6323,14 @@ struct ASTBase
             this.isdeprecated = isdeprecated;
         }
 
-        extern (C++) const(char)* toChars()
+        extern (C++) const(char)* toChars() const
         {
             OutBuffer buf;
             if (packages && packages.dim)
             {
                 for (size_t i = 0; i < packages.dim; i++)
                 {
-                    Identifier pid = (*packages)[i];
+                    const Identifier pid = (*packages)[i];
                     buf.writestring(pid.toString());
                     buf.writeByte('.');
                 }

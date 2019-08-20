@@ -19,7 +19,7 @@ public:
 
     Dsymbol *syntaxCopy(Dsymbol *);
 
-    const char *toChars();
+    const char *toChars() const;
     void addMember(Scope *sc, ScopeDsymbol *sds);
     const char *kind() const;
     void accept(Visitor *v) { v->visit(this); }
@@ -32,7 +32,7 @@ public:
 
     Dsymbol *syntaxCopy(Dsymbol *);
 
-    const char *toChars();
+    const char *toChars() const;
     void addMember(Scope *sc, ScopeDsymbol *sds);
     const char *kind() const;
     void accept(Visitor *v) { v->visit(this); }

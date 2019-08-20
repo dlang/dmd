@@ -45,7 +45,7 @@ public:
             mem.xfree(data);
     }
     ///returns elements comma separated in []
-    extern(D) const(char)[] toString()
+    extern(D) const(char)[] toString() const
     {
         static if (is(typeof(T.init.toString())))
         {
@@ -79,7 +79,7 @@ public:
         }
     }
     ///ditto
-    const(char)* toChars()
+    const(char)* toChars() const
     {
         return toString.ptr;
     }
@@ -249,7 +249,7 @@ unittest
     static struct S
     {
         int s = -1;
-        string toString()
+        string toString() const
         {
             return "S";
         }
