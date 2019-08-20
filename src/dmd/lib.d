@@ -89,7 +89,7 @@ class Library
         if (!arg.length)
         {
             // Generate lib file name from first obj name
-            const(char)[] n = global.params.objfiles[0].toDString;
+            const(char)[] n = global.params.objfiles[0];
             n = FileName.name(n);
             arg = FileName.forceExt(n, global.lib_ext);
         }

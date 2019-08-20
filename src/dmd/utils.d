@@ -18,11 +18,11 @@ module dmd.utils;
 import core.stdc.string;
 import dmd.errors;
 import dmd.globals;
+import dmd.root.array;
 import dmd.root.file;
 import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.root.rmem;
-
 
 /**
  * Normalize path by turning forward slashes into backslashes
@@ -142,6 +142,12 @@ void escapePath(OutBuffer* buf, const(char)* fname)
 inout(char)[] toDString (inout(char)* s) pure nothrow @nogc
 {
     return s ? s[0 .. strlen(s)] : null;
+}
+
+/// Slices a `\0`-terminated C-string, including the terminator
+inout(char)[] toDCString (inout(char)* s) pure nothrow @nogc
+{
+    return s ? s[0 .. strlen(s) + 1] : null;
 }
 
 /**

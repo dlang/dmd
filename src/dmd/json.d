@@ -919,7 +919,7 @@ public:
         arrayStart();
         foreach (objfile; global.params.objfiles)
         {
-            item(objfile.toDString);
+            item(objfile);
         }
         arrayEnd();
 
@@ -927,7 +927,7 @@ public:
         arrayStart();
         foreach (lib; global.params.libfiles)
         {
-            item(lib.toDString);
+            item(lib);
         }
         arrayEnd();
 

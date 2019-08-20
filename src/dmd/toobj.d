@@ -56,6 +56,7 @@ import dmd.tokens;
 import dmd.traits;
 import dmd.typinf;
 import dmd.visitor;
+import dmd.utils;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
@@ -751,7 +752,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                      * so instead append the library name to the list to be passed
                      * to the linker.
                      */
-                    global.params.libfiles.push(name);
+                    global.params.libfiles ~= name.toDString.dup;
                 }
             }
             else if (pd.ident == Id.startaddress)

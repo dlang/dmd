@@ -164,7 +164,7 @@ public int runLINK()
         /* Generate exe file name from first obj name.
          * No need to add it to cmdbuf because the linker will default to it.
          */
-        const char[] n = FileName.name(global.params.objfiles[0].toDString);
+        const char[] n = FileName.name(global.params.objfiles[0]);
         global.params.exefile = FileName.forceExt(n, "exe");
     }
 
@@ -426,7 +426,10 @@ public int runLINK()
             }
             free(arg);
         }
-        argv.append(&global.params.objfiles);
+
+        foreach(o; global.params.objfiles)
+            argv.push(o.ptr);
+
         version (OSX)
         {
             // If we are on Mac OS X and linking a dynamic library,
@@ -483,7 +486,7 @@ public int runLINK()
         else
         {
             // Generate exe file name from first obj name
-            const(char)[] n = global.params.objfiles[0].toDString();
+            const(char)[] n = global.params.objfiles[0];
             const(char)[] ex;
             n = FileName.name(n);
             if (const e = FileName.ext(n))
@@ -563,9 +566,8 @@ public int runLINK()
             argv.push("--gc-sections");
         }
         // return true if flagp should be ordered in with the library flags
-        static bool flagIsLibraryRelated(const char* flagp)
+        static bool flagIsLibraryRelated(string flag)
         {
-            const flag = flagp[0 .. strlen(flagp)];
             bool startsWith(string needle)
             {
                 return flag.length >= needle.length && flag[0 .. needle.length] == needle;
@@ -574,7 +576,7 @@ public int runLINK()
             return startsWith("-l") || startsWith("-L")
                 || flag == "-(" || flag == "-)"
                 || flag == "--start-group" || flag == "--end-group"
-                || FileName.equalsExt(flagp, "a")
+                || FileName.equalsExt(flag, "a")
             ;
         }
         /* Add libraries. The order of libraries passed is:
@@ -587,18 +589,19 @@ public int runLINK()
          *  5. dynamic libraries passed to the command line (global.params.dllfiles)
          *  6. standard libraries.
          */
+        
         foreach (p; global.params.linkswitches)
         {
             if (p && p[0] && !flagIsLibraryRelated(p))
             {
                 argv.push("-Xlinker");
-                argv.push(p);
+                argv.push(p.ptr);
             }
         }
         foreach (p; global.params.libfiles)
         {
             if (FileName.equalsExt(p, "a"))
-                argv.push(p);
+                argv.push(p.ptr);
         }
         foreach (p; global.params.linkswitches)
         {
@@ -612,24 +615,20 @@ public int runLINK()
                     // All other link switches were already added in step 1.
                     argv.push("-Xlinker");
                 }
-                argv.push(p);
+                argv.push(p.ptr);
             }
         }
         foreach (p; global.params.libfiles)
         {
             if (!FileName.equalsExt(p, "a"))
             {
-                const plen = strlen(p);
-                char* s = cast(char*)mem.xmalloc(plen + 3);
-                s[0] = '-';
-                s[1] = 'l';
-                memcpy(s + 2, p, plen + 1);
-                argv.push(s);
+                string s = "-l" ~ p ~ '\0';
+                argv.push(s.ptr);
             }
         }
         foreach (p; global.params.dllfiles)
         {
-            argv.push(p);
+            argv.push(p.ptr);
         }
         /* D runtime libraries must go after user specified libraries
          * passed with -l.

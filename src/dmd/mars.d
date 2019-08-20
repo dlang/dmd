@@ -463,6 +463,19 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     size_t filecount = modules.dim;
     for (size_t filei = 0, modi = 0; filei < filecount; filei++, modi++)
     {
+        /// Removes `s` from `a`
+        string[] removeItem(string[] a, const(char)[] s)
+        {
+            string[] r;
+            r.reserve(a.length);
+            foreach(i; a)
+            {
+                if (s != i)
+                    r ~= i;
+            }
+            return r;
+        }
+
         Module m = modules[modi];
         if (params.verbose)
             message("parse     %s", m.toChars());
@@ -483,15 +496,8 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         if (m.isHdrFile)
         {
             // Remove m's object file from list of object files
-            for (size_t j = 0; j < params.objfiles.dim; j++)
-            {
-                if (m.objfile.toChars() == params.objfiles[j])
-                {
-                    params.objfiles.remove(j);
-                    break;
-                }
-            }
-            if (params.objfiles.dim == 0)
+            params.objfiles = removeItem(params.objfiles, m.objfile.toString());
+            if (params.objfiles.length == 0)
                 params.link = false;
         }
         if (m.isDocFile)
@@ -501,16 +507,10 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             // Remove m from list of modules
             modules.remove(modi);
             modi--;
+
             // Remove m's object file from list of object files
-            for (size_t j = 0; j < params.objfiles.dim; j++)
-            {
-                if (m.objfile.toChars() == params.objfiles[j])
-                {
-                    params.objfiles.remove(j);
-                    break;
-                }
-            }
-            if (params.objfiles.dim == 0)
+            params.objfiles = removeItem(params.objfiles, m.objfile.toString());
+            if (params.objfiles.length == 0)
                 params.link = false;
         }
     }
@@ -647,7 +647,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     Library library = null;
     if (params.lib)
     {
-        if (params.objfiles.dim == 0)
+        if (params.objfiles.length == 0)
         {
             error(Loc.initial, "no input files");
             return EXIT_FAILURE;
@@ -734,7 +734,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (global.errors)
         fatal();
     int status = EXIT_SUCCESS;
-    if (!params.objfiles.dim)
+    if (params.objfiles.length == 0)
     {
         if (params.link)
             error(Loc.initial, "no object files to link");
@@ -829,13 +829,13 @@ extern (C++) void generateJson(Modules* modules)
         }
         else
         {
-            if (global.params.objfiles.dim == 0)
+            if (global.params.objfiles.length == 0)
             {
                 error(Loc.initial, "cannot determine JSON filename, use `-Xf=<file>` or provide a source file");
                 fatal();
             }
             // Generate json file name from first obj name
-            const(char)[] n = global.params.objfiles[0].toDString;
+            const(char)[] n = global.params.objfiles[0];
             n = FileName.name(n);
             //if (!FileName::absolute(name))
             //    name = FileName::combine(dir, name);
@@ -2357,7 +2357,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.debugy = true;
         else if (p[1] == 'L')                        // https://dlang.org/dmd.html#switch-L
         {
-            params.linkswitches.push(p + 2 + (p[2] == '='));
+            params.linkswitches ~= (p + 2 + (p[2] == '=')).toDCString.dup;
         }
         else if (startsWith(p + 1, "defaultlib="))   // https://dlang.org/dmd.html#switch-defaultlib
         {
@@ -2619,13 +2619,13 @@ Modules createModules(ref Strings files, ref Strings libmodules)
              */
             if (FileName.equals(ext, global.obj_ext))
             {
-                global.params.objfiles.push(files[i]);
+                global.params.objfiles ~= files[i].toDCString;
                 libmodules.push(files[i]);
                 continue;
             }
             if (FileName.equals(ext, global.lib_ext))
             {
-                global.params.libfiles.push(files[i]);
+                global.params.libfiles ~= files[i].toDCString;
                 libmodules.push(files[i]);
                 continue;
             }
@@ -2633,7 +2633,7 @@ Modules createModules(ref Strings files, ref Strings libmodules)
             {
                 if (FileName.equals(ext, global.dll_ext))
                 {
-                    global.params.dllfiles.push(files[i]);
+                    global.params.dllfiles ~= files[i].toDCString;
                     libmodules.push(files[i]);
                     continue;
                 }
@@ -2704,7 +2704,7 @@ Modules createModules(ref Strings files, ref Strings libmodules)
         modules.push(m);
         if (firstmodule)
         {
-            global.params.objfiles.push(m.objfile.toChars());
+            global.params.objfiles ~= m.objfile.toString.dup;
             firstmodule = false;
         }
     }

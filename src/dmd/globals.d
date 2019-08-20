@@ -261,10 +261,10 @@ struct Param
     Strings runargs; // arguments for executable
 
     // Linker stuff
-    Array!(const(char)*) objfiles;
-    Array!(const(char)*) linkswitches;
-    Array!(const(char)*) libfiles;
-    Array!(const(char)*) dllfiles;
+    string[] objfiles;
+    string[] linkswitches;
+    string[] libfiles;
+    string[] dllfiles;
     const(char)[] deffile;
     const(char)[] resfile;
     const(char)[] exefile;
