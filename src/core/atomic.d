@@ -10,20 +10,393 @@
 
 module core.atomic;
 
+import core.internal.atomic;
 import core.internal.attributes : betterC;
+import core.internal.traits : hasUnsharedIndirections;
 
-version (D_InlineAsm_X86)
+/**
+ * Specifies the memory ordering semantics of an atomic operation.
+ *
+ * See_Also:
+ *     $(HTTP en.cppreference.com/w/cpp/atomic/memory_order)
+ */
+enum MemoryOrder
 {
-    version = AsmX86;
-    version = AsmX86_32;
+    /**
+     * Not sequenced.
+     * Corresponds to $(LINK2 https://llvm.org/docs/Atomics.html#monotonic, LLVM AtomicOrdering.Monotonic)
+     * and C++11/C11 `memory_order_relaxed`.
+     */
+    raw,
+    /**
+     * Hoist-load + hoist-store barrier.
+     * Corresponds to $(LINK2 https://llvm.org/docs/Atomics.html#acquire, LLVM AtomicOrdering.Acquire)
+     * and C++11/C11 `memory_order_acquire`.
+     */
+    acq,
+    /**
+     * Sink-load + sink-store barrier.
+     * Corresponds to $(LINK2 https://llvm.org/docs/Atomics.html#release, LLVM AtomicOrdering.Release)
+     * and C++11/C11 `memory_order_release`.
+     */
+    rel,
+    /**
+     * Acquire + release barrier.
+     * Corresponds to $(LINK2 https://llvm.org/docs/Atomics.html#acquirerelease, LLVM AtomicOrdering.AcquireRelease)
+     * and C++11/C11 `memory_order_acq_rel`.
+     */
+    acq_rel,
+    /**
+     * Fully sequenced (acquire + release). Corresponds to
+     * $(LINK2 https://llvm.org/docs/Atomics.html#sequentiallyconsistent, LLVM AtomicOrdering.SequentiallyConsistent)
+     * and C++11/C11 `memory_order_seq_cst`.
+     */
+    seq,
+}
+
+/**
+ * Loads 'val' from memory and returns it.  The memory barrier specified
+ * by 'ms' is applied to the operation, which is fully sequenced by
+ * default.  Valid memory orders are MemoryOrder.raw, MemoryOrder.acq,
+ * and MemoryOrder.seq.
+ *
+ * Params:
+ *  val = The target variable.
+ *
+ * Returns:
+ *  The value of 'val'.
+ */
+T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref T val ) pure nothrow @nogc @trusted
+    if ( !is( T == shared U, U ) && !is( T == shared inout U, U ) && !is( T == shared const U, U ) )
+{
+    static if ( __traits(isFloating, T) )
+    {
+        alias IntTy = IntForFloat!T;
+        IntTy r = core.internal.atomic.atomicLoad!ms(cast(IntTy*)&val);
+        return *cast(T*)&r;
+    }
+    else
+        return core.internal.atomic.atomicLoad!ms(&val);
+}
+
+/// Ditto
+T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref shared T val ) pure nothrow @nogc @trusted
+    if ( !hasUnsharedIndirections!T )
+{
+    import core.internal.traits : hasUnsharedIndirections;
+    static assert(!hasUnsharedIndirections!T, "Copying `shared " ~ T.stringof ~ "` would violate shared.");
+
+    return atomicLoad!ms(*cast(T*)&val);
+}
+
+/// Ditto
+TailShared!T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref shared T val ) pure nothrow @nogc @trusted
+    if ( hasUnsharedIndirections!T )
+{
+    // HACK: DEPRECATE THIS FUNCTION, IT IS INVALID TO DO ATOMIC LOAD OF SHARED CLASS
+    // this is here because code exists in the wild that does this...
+
+    import core.lifetime : move;
+
+    T r = core.internal.atomic.atomicLoad!ms(cast(T*)&val);
+    return move(*cast(TailShared!T*)&r);
+}
+
+/**
+ * Writes 'newval' into 'val'.  The memory barrier specified by 'ms' is
+ * applied to the operation, which is fully sequenced by default.
+ * Valid memory orders are MemoryOrder.raw, MemoryOrder.rel, and
+ * MemoryOrder.seq.
+ *
+ * Params:
+ *  val    = The target variable.
+ *  newval = The value to store.
+ */
+void atomicStore(MemoryOrder ms = MemoryOrder.seq, T, V)( ref T val, V newval ) pure nothrow @nogc @trusted
+    if ( __traits( compiles, { val = newval; } ) && !is(T == shared S, S) && !is(V == shared U, U) )
+{
+    static if ( __traits(isFloating, T) )
+    {
+        static assert ( __traits(isFloating, V) && V.sizeof == T.sizeof, "Mismatching argument types." );
+        alias IntTy = IntForFloat!T;
+        core.internal.atomic.atomicStore!ms(cast(IntTy*)&val, *cast(IntTy*)&newval);
+    }
+    else
+        core.internal.atomic.atomicStore!ms(&val, newval);
+}
+
+/// Ditto
+void atomicStore(MemoryOrder ms = MemoryOrder.seq, T, V)( ref shared T val, V newval ) pure nothrow @nogc @trusted
+    if ( __traits( compiles, { val = newval; } ) && !is( T == class ) )
+{
+    static if ( is ( V == shared U, U ) )
+        alias Thunk = U;
+    else
+    {
+        import core.internal.traits : hasUnsharedIndirections;
+        static assert(!hasUnsharedIndirections!V, "Copying unshared argument `newval` to shared `val` would violate shared.");
+        alias Thunk = V;
+    }
+    atomicStore!ms(*cast(T*)&val, *cast(Thunk*)&newval);
+}
+
+/// Ditto
+void atomicStore(MemoryOrder ms = MemoryOrder.seq, T, V)( ref shared T val, shared V newval ) pure nothrow @nogc @trusted
+    if ( is( T == class ) )
+{
+    static assert ( is ( V : T ), "Can't assign `newval` of type `shared " ~ V.stringof ~ "` to `shared " ~ T.stringof ~ "`.");
+
+    core.internal.atomic.atomicStore!ms(cast(T*)&val, cast(V)newval);
+}
+
+/**
+ * Atomically adds `mod` to the value referenced by `val` and returns the value `val` held previously.
+ * This operation is both lock-free and atomic.
+ *
+ * Params:
+ *  val = Reference to the value to modify.
+ *  mod = The value to add.
+ *
+ * Returns:
+ *  The value held previously by `val`.
+ */
+TailShared!T atomicFetchAdd(MemoryOrder ms = MemoryOrder.seq, T)( ref shared T val, size_t mod ) pure nothrow @nogc @trusted
+    if ( __traits(isIntegral, T) )
+in ( atomicValueIsProperlyAligned(val) )
+{
+    return core.internal.atomic.atomicFetchAdd!ms( &val, cast(T)mod );
+}
+
+/**
+ * Atomically subtracts `mod` from the value referenced by `val` and returns the value `val` held previously.
+ * This operation is both lock-free and atomic.
+ *
+ * Params:
+ *  val = Reference to the value to modify.
+ *  mod = The value to subtract.
+ *
+ * Returns:
+ *  The value held previously by `val`.
+ */
+TailShared!T atomicFetchSub(MemoryOrder ms = MemoryOrder.seq, T)( ref shared T val, size_t mod ) pure nothrow @nogc @trusted
+    if ( __traits(isIntegral, T) )
+in ( atomicValueIsProperlyAligned(val) )
+{
+    return core.internal.atomic.atomicFetchSub!ms( &val, cast(T)mod );
+}
+
+/**
+ * Exchange `exchangeWith` with the memory referenced by `here`.
+ * This operation is both lock-free and atomic.
+ *
+ * Params:
+ *  here         = The address of the destination variable.
+ *  exchangeWith = The value to exchange.
+ *
+ * Returns:
+ *  The value held previously by `here`.
+ */
+shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)( shared(T)* here, V exchangeWith ) pure nothrow @nogc @trusted
+    if ( !is(T == class) && !is(T U : U*) &&  __traits( compiles, { *here = exchangeWith; } ) )
+in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
+{
+    static if ( __traits(isFloating, T) )
+    {
+        static assert ( __traits(isFloating, V) && V.sizeof == T.sizeof, "Mismatching argument types." );
+        alias IntTy = IntForFloat!T;
+        IntTy r = core.internal.atomic.atomicExchange!ms(cast(IntTy*)here, *cast(IntTy*)&exchangeWith);
+        return *cast(shared(T)*)&r;
+    }
+    else
+        return core.internal.atomic.atomicExchange!ms(here, exchangeWith);
+}
+
+/// Ditto
+shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)( shared(T)* here, shared(V) exchangeWith ) pure nothrow @nogc @safe
+    if ( is(T == class) && __traits( compiles, { *here = exchangeWith; } ) )
+in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
+{
+    return core.internal.atomic.atomicExchange!ms(here, exchangeWith);
+}
+
+/// Ditto
+shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)( shared(T)* here, shared(V)* exchangeWith ) pure nothrow @nogc @safe
+    if ( is(T U : U*) && __traits( compiles, { *here = exchangeWith; } ) )
+in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
+{
+    return core.internal.atomic.atomicExchange!ms(here, exchangeWith);
+}
+
+/**
+ * Stores 'writeThis' to the memory referenced by 'here' if the value
+ * referenced by 'here' is equal to 'ifThis'.  This operation is both
+ * lock-free and atomic.
+ *
+ * Params:
+ *  here      = The address of the destination variable.
+ *  writeThis = The value to store.
+ *  ifThis    = The comparison value.
+ *
+ * Returns:
+ *  true if the store occurred, false if not.
+ */
+bool cas(T,V1,V2)( shared(T)* here, const V1 ifThis, V2 writeThis ) pure nothrow @nogc @trusted
+    if ( !is(T == class) && !is(T U : U*) &&  __traits( compiles, { *here = writeThis; } ) )
+in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
+{
+    static if ( __traits(isFloating, T) )
+    {
+        static assert ( __traits(isFloating, V1) && V1.sizeof == T.sizeof, "Mismatching argument types." );
+        static assert ( __traits(isFloating, V2) && V2.sizeof == T.sizeof, "Mismatching argument types." );
+        alias IntTy = IntForFloat!T;
+        return atomicCompareExchangeStrongNoResult( cast(IntTy*)here, *cast(IntTy*)&ifThis, *cast(IntTy*)&writeThis );
+    }
+    else
+        return atomicCompareExchangeStrongNoResult!( MemoryOrder.seq, MemoryOrder.seq, T )( cast(T*)here, cast()ifThis, cast()writeThis );
+}
+
+/// Ditto
+bool cas(T,V1,V2)( shared(T)* here, const shared(V1) ifThis, shared(V2) writeThis ) pure nothrow @nogc @safe
+    if ( is(T == class) && __traits( compiles, { *here = writeThis; } ) )
+in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
+{
+    return atomicCompareExchangeStrongNoResult( here, ifThis, writeThis );
+}
+
+/// Ditto
+bool cas(T,V1,V2)( shared(T)* here, const shared(V1)* ifThis, shared(V2)* writeThis ) pure nothrow @nogc @safe
+    if ( is(T U : U*) && __traits( compiles, { *here = writeThis; } ) )
+in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
+{
+    return atomicCompareExchangeStrongNoResult( here, ifThis, writeThis );
+}
+
+/**
+ * Stores 'writeThis' to the memory referenced by 'here' if the value
+ * referenced by 'here' is equal to the value referenced by 'ifThis'.
+ * The prior value referenced by 'here' is written to `ifThis` and
+ * returned to the user.  This operation is both lock-free and atomic.
+ *
+ * Params:
+ *  here      = The address of the destination variable.
+ *  writeThis = The value to store.
+ *  ifThis    = The address of the value to compare, and receives the prior value of `here` as output.
+ *
+ * Returns:
+ *  true if the store occurred, false if not.
+ */
+bool cas(T,V)( shared(T)* here, shared(T)* ifThis, V writeThis ) pure nothrow @nogc @trusted
+    if ( !is(T == class) && !is(T U : U*) &&  __traits( compiles, { *here = writeThis; *ifThis = *here; } ) )
+in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
+{
+    static if ( __traits(isFloating, T) )
+    {
+        static assert ( __traits(isFloating, V) && V.sizeof == T.sizeof, "Mismatching argument types." );
+        alias IntTy = IntForFloat!T;
+        return atomicCompareExchangeStrong( cast(IntTy*)here, cast(IntTy*)ifThis, *cast(IntTy*)&writeThis );
+    }
+    else
+        return atomicCompareExchangeStrong!( MemoryOrder.seq, MemoryOrder.seq, T )( cast(T*)here, cast(T*)ifThis, cast()writeThis );
+}
+
+/// Ditto
+bool cas(T,V)( shared(T)* here, shared(T)* ifThis, shared(V) writeThis ) pure nothrow @nogc @trusted
+    if ( is(T == class) && __traits( compiles, { *here = writeThis; *ifThis = *here; } ) )
+in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
+{
+    return atomicCompareExchangeStrong( cast(T*)here, cast(T*)ifThis, cast()writeThis );
+}
+
+/// Ditto
+bool cas(T,V)( shared(T)* here, shared(T)* ifThis, shared(V)* writeThis ) pure nothrow @nogc @trusted
+    if ( is(T U : U*) && __traits( compiles, { *here = writeThis; *ifThis = *here; } ) )
+in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
+{
+    return atomicCompareExchangeStrong!( MemoryOrder.seq, MemoryOrder.seq, T )( cast(T*)here, cast(T*)ifThis, writeThis );
+}
+
+/**
+ * Inserts a full load/store memory fence (on platforms that need it). This ensures
+ * that all loads and stores before a call to this function are executed before any
+ * loads and stores after the call.
+ */
+void atomicFence() nothrow @nogc @safe
+{
+    core.internal.atomic.atomicFence();
+}
+
+/**
+ * Performs the binary operation 'op' on val using 'mod' as the modifier.
+ *
+ * Params:
+ *  val = The target variable.
+ *  mod = The modifier to apply.
+ *
+ * Returns:
+ *  The result of the operation.
+ */
+TailShared!T atomicOp(string op, T, V1)( ref shared T val, V1 mod ) pure nothrow @nogc @safe
+    if ( __traits( compiles, mixin( "*cast(T*)&val" ~ op ~ "mod" ) ) )
+in ( atomicValueIsProperlyAligned( val ) )
+{
+    // binary operators
+    //
+    // +    -   *   /   %   ^^  &
+    // |    ^   <<  >>  >>> ~   in
+    // ==   !=  <   <=  >   >=
+    static if ( op == "+"  || op == "-"  || op == "*"  || op == "/"   ||
+                op == "%"  || op == "^^" || op == "&"  || op == "|"   ||
+                op == "^"  || op == "<<" || op == ">>" || op == ">>>" ||
+                op == "~"  || // skip "in"
+                op == "==" || op == "!=" || op == "<"  || op == "<="  ||
+                op == ">"  || op == ">=" )
+    {
+        TailShared!T get = atomicLoad!(MemoryOrder.raw)( val );
+        mixin( "return get " ~ op ~ " mod;" );
+    }
+    else
+    // assignment operators
+    //
+    // +=   -=  *=  /=  %=  ^^= &=
+    // |=   ^=  <<= >>= >>>=    ~=
+    static if ( op == "+=" && __traits(isIntegral, T) && __traits(isIntegral, V1) && T.sizeof <= size_t.sizeof && V1.sizeof <= size_t.sizeof)
+    {
+        return cast(T)( atomicFetchAdd!(MemoryOrder.seq, T)( val, mod ) + mod );
+    }
+    else static if ( op == "-=" && __traits(isIntegral, T) && __traits(isIntegral, V1) && T.sizeof <= size_t.sizeof && V1.sizeof <= size_t.sizeof)
+    {
+        return cast(T)( atomicFetchSub!(MemoryOrder.seq, T)( val, mod ) - mod );
+    }
+    else static if ( op == "+=" || op == "-="  || op == "*="  || op == "/=" ||
+                op == "%=" || op == "^^=" || op == "&="  || op == "|=" ||
+                op == "^=" || op == "<<=" || op == ">>=" || op == ">>>=" ) // skip "~="
+    {
+        TailShared!T get, set;
+
+        do
+        {
+            get = set = atomicLoad!(MemoryOrder.raw)( val );
+            mixin( "set " ~ op ~ " mod;" );
+        } while ( !casByRef( val, get, set ) );
+        return set;
+    }
+    else
+    {
+        static assert( false, "Operation not supported." );
+    }
+}
+
+
+version (X86)
+{
+    version = IsX86;
     enum has64BitXCHG = false;
     enum has64BitCAS = true;
     enum has128BitCAS = false;
 }
-else version (D_InlineAsm_X86_64)
+else version (X86_64)
 {
-    version = AsmX86;
-    version = AsmX86_64;
+    version = IsX86;
     enum has64BitXCHG = true;
     enum has64BitCAS = true;
     enum has128BitCAS = true;
@@ -37,6 +410,72 @@ else
 
 private
 {
+    version (IsX86)
+    {
+        // NOTE: Strictly speaking, the x86 supports atomic operations on
+        //       unaligned values.  However, this is far slower than the
+        //       common case, so such behavior should be prohibited.
+        bool atomicValueIsProperlyAligned(T)( ref T val ) pure nothrow @nogc @trusted
+        {
+            return atomicPtrIsProperlyAligned(&val);
+        }
+
+        bool atomicPtrIsProperlyAligned(T)( T* ptr ) pure nothrow @nogc @safe
+        {
+            // NOTE: 32 bit x86 systems support 8 byte CAS, which only requires
+            //       4 byte alignment, so use size_t as the align type here.
+            static if ( T.sizeof > size_t.sizeof )
+                return cast(size_t)ptr % size_t.sizeof == 0;
+            else
+                return cast(size_t)ptr % T.sizeof == 0;
+        }
+    }
+
+    template IntForFloat(F)
+        if (__traits(isFloating, F))
+    {
+        static if ( F.sizeof == 4 )
+            alias IntForFloat = uint;
+        else static if ( F.sizeof == 8 )
+            alias IntForFloat = ulong;
+        else
+            static assert ( false, "Invalid floating point type: " ~ F.stringof ~ ", only support `float` and `double`." );
+    }
+
+    template IntForStruct(S)
+        if (is(S == struct))
+    {
+        static if ( S.sizeof == 1 )
+            alias IntForFloat = ubyte;
+        else static if ( F.sizeof == 2 )
+            alias IntForFloat = ushort;
+        else static if ( F.sizeof == 4 )
+            alias IntForFloat = uint;
+        else static if ( F.sizeof == 8 )
+            alias IntForFloat = ulong;
+        else static if ( F.sizeof == 16 )
+            alias IntForFloat = ulong[2]; // TODO: what's the best type here? slice/delegates pass in registers...
+        else
+            static assert (ValidateStruct!S);
+    }
+
+    template ValidateStruct(S)
+        if (is(S == struct))
+    {
+        import core.internal.traits : hasElaborateAssign;
+
+        static assert (S.sizeof <= size_t*2 && (S.sizeof & (S.sizeof - 1)) == 0, S.stringof ~ " has invalid size for atomic operations.");
+        static assert (!hasElaborateAssign!S, S.stringof ~ " may not have an elaborate assignment when used with atomic operations.");
+
+        enum ValidateStruct = true;
+    }
+
+    // TODO: it'd be nice if we had @trusted scopes; we could remove this...
+    bool casByRef(T,V1,V2)( ref T value, V1 ifThis, V2 writeThis ) pure nothrow @nogc @trusted
+    {
+        return cas( &value, ifThis, writeThis );
+    }
+
     /* Construct a type with a shared tail, and if possible with an unshared
     head. */
     template TailShared(U) if (!is(U == shared))
@@ -152,1958 +591,6 @@ private
 }
 
 
-version (AsmX86)
-{
-    // NOTE: Strictly speaking, the x86 supports atomic operations on
-    //       unaligned values.  However, this is far slower than the
-    //       common case, so such behavior should be prohibited.
-    private bool atomicValueIsProperlyAligned(T)( ref T val ) pure nothrow @nogc @trusted
-    {
-        return atomicPtrIsProperlyAligned(&val);
-    }
-
-    private bool atomicPtrIsProperlyAligned(T)( T* ptr ) pure nothrow @nogc @safe
-    {
-        // NOTE: 32 bit x86 systems support 8 byte CAS, which only requires
-        //       4 byte alignment, so use size_t as the align type here.
-        static if ( T.sizeof > size_t.sizeof )
-            return cast(size_t)ptr % size_t.sizeof == 0;
-        else
-            return cast(size_t)ptr % T.sizeof == 0;
-    }
-}
-
-
-version (CoreDdoc)
-{
-    /**
-     * Performs the binary operation 'op' on val using 'mod' as the modifier.
-     *
-     * Params:
-     *  val = The target variable.
-     *  mod = The modifier to apply.
-     *
-     * Returns:
-     *  The result of the operation.
-     */
-    TailShared!T atomicOp(string op, T, V1)( ref shared T val, V1 mod ) pure nothrow @nogc @safe
-        if ( __traits( compiles, mixin( "*cast(T*)&val" ~ op ~ "mod" ) ) )
-    {
-        return TailShared!T.init;
-    }
-
-    /**
-     * Atomically adds `mod` to the value referenced by `val` and returns the value `val` held previously.
-     * This operation is both lock-free and atomic.
-     *
-     * Params:
-     *  val = Reference to the value to modify.
-     *  mod = The value to add.
-     *
-     * Returns:
-     *  The value held previously by `val`.
-     */
-    TailShared!(T) atomicFetchAdd(T)( ref shared T val, size_t mod ) pure nothrow @nogc @safe;
-
-    /**
-     * Atomically subtracts `mod` from the value referenced by `val` and returns the value `val` held previously.
-     * This operation is both lock-free and atomic.
-     *
-     * Params:
-     *  val = Reference to the value to modify.
-     *  mod = The value to subtract.
-     *
-     * Returns:
-     *  The value held previously by `val`.
-     */
-    TailShared!(T) atomicFetchSub(T)( ref shared T val, size_t mod ) pure nothrow @nogc @safe;
-
-    /**
-     * Exchange `exchangeWith` with the memory referenced by `here`.
-     * This operation is both lock-free and atomic.
-     *
-     * Params:
-     *  here         = The address of the destination variable.
-     *  exchangeWith = The value to exchange.
-     *
-     * Returns:
-     *  The value held previously by `here`.
-     */
-    shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)( shared(T)* here, V exchangeWith ) pure nothrow @nogc @safe
-        if ( !is(T == class) && !is(T U : U*) && __traits( compiles, { *here = exchangeWith; } ) );
-
-    /// Ditto
-    shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)( shared(T)* here, shared(V) exchangeWith ) pure nothrow @nogc @safe
-        if ( is(T == class) && __traits( compiles, { *here = exchangeWith; } ) );
-
-    /// Ditto
-    shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)( shared(T)* here, shared(V)* exchangeWith ) pure nothrow @nogc @safe
-        if ( is(T U : U*) && __traits( compiles, { *here = exchangeWith; } ) );
-
-    /**
-     * Stores 'writeThis' to the memory referenced by 'here' if the value
-     * referenced by 'here' is equal to 'ifThis'.  This operation is both
-     * lock-free and atomic.
-     *
-     * Params:
-     *  here      = The address of the destination variable.
-     *  writeThis = The value to store.
-     *  ifThis    = The comparison value.
-     *
-     * Returns:
-     *  true if the store occurred, false if not.
-     */
-    bool cas(T,V1,V2)( shared(T)* here, const V1 ifThis, V2 writeThis ) pure nothrow @nogc @safe
-        if ( !is(T == class) && !is(T U : U*) && __traits( compiles, { *here = writeThis; } ) );
-
-    /// Ditto
-    bool cas(T,V1,V2)( shared(T)* here, const shared(V1) ifThis, shared(V2) writeThis ) pure nothrow @nogc @safe
-        if ( is(T == class) && __traits( compiles, { *here = writeThis; } ) );
-
-    /// Ditto
-    bool cas(T,V1,V2)( shared(T)* here, const shared(V1)* ifThis, shared(V2)* writeThis ) pure nothrow @nogc @safe
-        if ( is(T U : U*) && __traits( compiles, { *here = writeThis; } ) );
-
-    /**
-    * Stores 'writeThis' to the memory referenced by 'here' if the value
-    * referenced by 'here' is equal to the value referenced by 'ifThis'.
-    * The prior value referenced by 'here' is written to `ifThis` and
-    * returned to the user.  This operation is both lock-free and atomic.
-    *
-    * Params:
-    *  here      = The address of the destination variable.
-    *  writeThis = The value to store.
-    *  ifThis    = The address of the value to compare, and receives the prior value of `here` as output.
-    *
-    * Returns:
-    *  true if the store occurred, false if not.
-    */
-    bool cas(T,V1,V2)( shared(T)* here, V1* ifThis, V2 writeThis ) pure nothrow @nogc @safe
-        if ( !is(T == class) && !is(T U : U*) && __traits( compiles, { *here = writeThis; } ) );
-
-    /// Ditto
-    bool cas(T,V1,V2)( shared(T)* here, shared(V1)* ifThis, shared(V2) writeThis ) pure nothrow @nogc @safe
-        if ( is(T == class) && __traits( compiles, { *here = writeThis; } ) );
-
-    /// Ditto
-    bool cas(T,V1,V2)( shared(T)* here, shared(V1)** ifThis, shared(V2)* writeThis ) pure nothrow @nogc @safe
-        if ( is(T U : U*) && __traits( compiles, { *here = writeThis; } ) );
-
-    /**
-     * Loads 'val' from memory and returns it.  The memory barrier specified
-     * by 'ms' is applied to the operation, which is fully sequenced by
-     * default.  Valid memory orders are MemoryOrder.raw, MemoryOrder.acq,
-     * and MemoryOrder.seq.
-     *
-     * Params:
-     *  val = The target variable.
-     *
-     * Returns:
-     *  The value of 'val'.
-     */
-    TailShared!T atomicLoad(MemoryOrder ms = MemoryOrder.seq,T)( ref const shared T val ) pure nothrow @nogc @safe
-    {
-        return TailShared!T.init;
-    }
-
-
-    /**
-     * Writes 'newval' into 'val'.  The memory barrier specified by 'ms' is
-     * applied to the operation, which is fully sequenced by default.
-     * Valid memory orders are MemoryOrder.raw, MemoryOrder.rel, and
-     * MemoryOrder.seq.
-     *
-     * Params:
-     *  val    = The target variable.
-     *  newval = The value to store.
-     */
-    void atomicStore(MemoryOrder ms = MemoryOrder.seq,T,V1)( ref shared T val, V1 newval ) pure nothrow @nogc @safe
-        if ( __traits( compiles, { val = newval; } ) )
-    {
-
-    }
-
-
-    /**
-     * Specifies the memory ordering semantics of an atomic operation.
-     *
-     * See_Also:
-     *     $(HTTP en.cppreference.com/w/cpp/atomic/memory_order)
-     */
-    enum MemoryOrder
-    {
-        /++
-        Not sequenced.
-        Corresponds to $(LINK2 https://llvm.org/docs/Atomics.html#monotonic, LLVM AtomicOrdering.Monotonic)
-        and C++11/C11 `memory_order_relaxed`.
-        +/
-        raw,
-        /++
-        Hoist-load + hoist-store barrier.
-        Corresponds to $(LINK2 https://llvm.org/docs/Atomics.html#acquire, LLVM AtomicOrdering.Acquire)
-        and C++11/C11 `memory_order_acquire`.
-        +/
-        acq,
-        /++
-        Sink-load + sink-store barrier.
-        Corresponds to $(LINK2 https://llvm.org/docs/Atomics.html#release, LLVM AtomicOrdering.Release)
-        and C++11/C11 `memory_order_release`.
-        +/
-        rel,
-        /++
-        Fully sequenced (acquire + release). Corresponds to
-        $(LINK2 https://llvm.org/docs/Atomics.html#sequentiallyconsistent, LLVM AtomicOrdering.SequentiallyConsistent)
-        and C++11/C11 `memory_order_seq_cst`.
-        +/
-        seq,
-    }
-
-    /**
-     * Inserts a full load/store memory fence (on platforms that need it). This ensures
-     * that all loads and stores before a call to this function are executed before any
-     * loads and stores after the call.
-     */
-    void atomicFence() nothrow @nogc;
-}
-else version (AsmX86_32)
-{
-    // Uses specialized asm for fast fetch and add operations
-    TailShared!(T) atomicFetchAdd(T)( ref shared T val, size_t mod ) pure nothrow @nogc @safe
-        if ( T.sizeof <= 4 )
-    {
-        asm pure nothrow @nogc @trusted
-        {
-            mov EAX, mod;
-            mov EDX, val;
-        }
-        static if (T.sizeof == 1) asm pure nothrow @nogc @trusted { lock; xadd[EDX], AL; }
-        else static if (T.sizeof == 2) asm pure nothrow @nogc @trusted { lock; xadd[EDX], AX; }
-        else static if (T.sizeof == 4) asm pure nothrow @nogc @trusted { lock; xadd[EDX], EAX; }
-    }
-
-    TailShared!(T) atomicFetchSub(T)( ref shared T val, size_t mod ) pure nothrow @nogc @safe
-        if ( T.sizeof <= 4)
-    {
-        return atomicFetchAdd(val, -mod);
-    }
-
-    TailShared!T atomicOp(string op, T, V1)( ref shared T val, V1 mod ) pure nothrow @nogc
-        if ( __traits( compiles, mixin( "*cast(T*)&val" ~ op ~ "mod" ) ) )
-    in
-    {
-        assert(atomicValueIsProperlyAligned(val));
-    }
-    do
-    {
-        // binary operators
-        //
-        // +    -   *   /   %   ^^  &
-        // |    ^   <<  >>  >>> ~   in
-        // ==   !=  <   <=  >   >=
-        static if (op == "+"  || op == "-"  || op == "*"  || op == "/"   ||
-                   op == "%"  || op == "^^" || op == "&"  || op == "|"   ||
-                   op == "^"  || op == "<<" || op == ">>" || op == ">>>" ||
-                   op == "~"  || // skip "in"
-                   op == "==" || op == "!=" || op == "<"  || op == "<="  ||
-                   op == ">"  || op == ">=")
-        {
-            TailShared!T get = atomicLoad!(MemoryOrder.raw)( val );
-            mixin( "return get " ~ op ~ " mod;" );
-        }
-        else
-        // assignment operators
-        //
-        // +=   -=  *=  /=  %=  ^^= &=
-        // |=   ^=  <<= >>= >>>=    ~=
-        static if ( op == "+=" && __traits(isIntegral, T) && T.sizeof <= 4 && V1.sizeof <= 4)
-        {
-            return cast(T)(atomicFetchAdd!(T)(val, mod) + mod);
-        }
-        else static if ( op == "-=" && __traits(isIntegral, T) && T.sizeof <= 4 && V1.sizeof <= 4)
-        {
-            return cast(T)(atomicFetchSub!(T)(val, mod) - mod);
-        }
-        else static if ( op == "+=" || op == "-="  || op == "*="  || op == "/=" ||
-                   op == "%=" || op == "^^=" || op == "&="  || op == "|=" ||
-                   op == "^=" || op == "<<=" || op == ">>=" || op == ">>>=" ) // skip "~="
-        {
-            TailShared!T get, set;
-
-            do
-            {
-                get = set = atomicLoad!(MemoryOrder.raw)( val );
-                mixin( "set " ~ op ~ " mod;" );
-            } while ( !casByRef( val, get, set ) );
-            return set;
-        }
-        else
-        {
-            static assert( false, "Operation not supported." );
-        }
-    }
-
-    shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)( shared(T)* here, V exchangeWith ) pure nothrow @nogc @safe
-        if ( !is(T == class) && !is(T U : U*) && __traits( compiles, { *here = exchangeWith; } ) )
-    {
-        return atomicExchangeImpl(here, exchangeWith);
-    }
-
-    shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)( shared(T)* here, shared(V) exchangeWith ) pure nothrow @nogc @safe
-        if ( is(T == class) && __traits( compiles, { *here = exchangeWith; } ) )
-    {
-        return atomicExchangeImpl(here, exchangeWith);
-    }
-
-    shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)( shared(T)* here, shared(V)* exchangeWith ) pure nothrow @nogc @safe
-        if ( is(T U : U*) && __traits( compiles, { *here = exchangeWith; } ) )
-    {
-        return atomicExchangeImpl(here, exchangeWith);
-    }
-
-    private shared(T) atomicExchangeImpl(T,V)( shared(T)* here, V exchangeWith ) pure nothrow @nogc @safe
-        in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
-    {
-        static if ( T.sizeof == byte.sizeof )
-        {
-            asm pure nothrow @nogc @trusted
-            {
-                mov AL, exchangeWith;
-                mov ECX, here;
-                xchg [ECX], AL;
-            }
-        }
-        else static if ( T.sizeof == short.sizeof )
-        {
-            asm pure nothrow @nogc @trusted
-            {
-                mov AX, exchangeWith;
-                mov ECX, here;
-                xchg [ECX], AX;
-            }
-        }
-        else static if ( T.sizeof == int.sizeof )
-        {
-            asm pure nothrow @nogc @trusted
-            {
-                mov EAX, exchangeWith;
-                mov ECX, here;
-                xchg [ECX], EAX;
-            }
-            static if ( __traits(isFloating, T) )
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov exchangeWith, EAX;
-                }
-                return exchangeWith;
-            }
-        }
-        else
-        {
-            static assert( false, "Invalid template type specified." );
-        }
-    }
-
-    bool casByRef(T,V1,V2)( ref T value, V1 ifThis, V2 writeThis ) pure nothrow @nogc @trusted
-    {
-        return cas(&value, ifThis, writeThis);
-    }
-
-    bool cas(T,V1,V2)( shared(T)* here, const V1 ifThis, V2 writeThis ) pure nothrow @nogc @safe
-        if ( !is(T == class) && !is(T U : U*) && __traits( compiles, { *here = writeThis; } ) )
-    {
-        return casImplNoResult(here, ifThis, writeThis);
-    }
-
-    bool cas(T,V1,V2)( shared(T)* here, const shared(V1) ifThis, shared(V2) writeThis ) pure nothrow @nogc @safe
-        if ( is(T == class) && __traits( compiles, { *here = writeThis; } ) )
-    {
-        return casImplNoResult(here, ifThis, writeThis);
-    }
-
-    bool cas(T,V1,V2)( shared(T)* here, const shared(V1)* ifThis, shared(V2)* writeThis ) pure nothrow @nogc @safe
-        if ( is(T U : U*) && __traits( compiles, { *here = writeThis; } ) )
-    {
-        return casImplNoResult(here, ifThis, writeThis);
-    }
-
-    private bool casImplNoResult(T,V1,V2)( shared(T)* here, V1 ifThis, V2 writeThis ) pure nothrow @nogc @safe
-    in
-    {
-        assert( atomicPtrIsProperlyAligned( here ) );
-    }
-    do
-    {
-        static if ( T.sizeof == byte.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 1 Byte CAS
-            //////////////////////////////////////////////////////////////////
-
-            asm pure nothrow @nogc @trusted
-            {
-                mov DL, writeThis;
-                mov AL, ifThis;
-                mov ECX, here;
-                lock; // lock always needed to make this op atomic
-                cmpxchg [ECX], DL;
-                setz AL;
-            }
-        }
-        else static if ( T.sizeof == short.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 2 Byte CAS
-            //////////////////////////////////////////////////////////////////
-
-            asm pure nothrow @nogc @trusted
-            {
-                mov DX, writeThis;
-                mov AX, ifThis;
-                mov ECX, here;
-                lock; // lock always needed to make this op atomic
-                cmpxchg [ECX], DX;
-                setz AL;
-            }
-        }
-        else static if ( T.sizeof == int.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 4 Byte CAS
-            //////////////////////////////////////////////////////////////////
-
-            asm pure nothrow @nogc @trusted
-            {
-                mov EDX, writeThis;
-                mov EAX, ifThis;
-                mov ECX, here;
-                lock; // lock always needed to make this op atomic
-                cmpxchg [ECX], EDX;
-                setz AL;
-            }
-        }
-        else static if ( T.sizeof == long.sizeof && has64BitCAS )
-        {
-
-            //////////////////////////////////////////////////////////////////
-            // 8 Byte CAS on a 32-Bit Processor
-            //////////////////////////////////////////////////////////////////
-
-            asm pure nothrow @nogc @trusted
-            {
-                push EDI;
-                push EBX;
-                lea EDI, writeThis;
-                mov EBX, [EDI];
-                mov ECX, 4[EDI];
-                lea EDI, ifThis;
-                mov EAX, [EDI];
-                mov EDX, 4[EDI];
-                mov EDI, here;
-                lock; // lock always needed to make this op atomic
-                cmpxchg8b [EDI];
-                setz AL;
-                pop EBX;
-                pop EDI;
-            }
-        }
-        else
-        {
-            static assert( false, "Invalid template type specified." );
-        }
-    }
-
-    bool cas(T,V1,V2)( shared(T)* here, V1* ifThis, V2 writeThis ) pure nothrow @nogc @safe
-        if ( !is(T == class) && !is(T U : U*) && __traits( compiles, { *here = writeThis; } ) )
-    {
-        return casImplWithResult(here, *ifThis, writeThis);
-    }
-
-    bool cas(T,V1,V2)( shared(T)* here, shared(V1)* ifThis, shared(V2) writeThis ) pure nothrow @nogc @safe
-        if ( is(T == class) && __traits( compiles, { *here = writeThis; } ) )
-    {
-        return casImplWithResult(here, *ifThis, writeThis);
-    }
-
-    bool cas(T,V1,V2)( shared(T)* here, shared(V1*)* ifThis, shared(V2)* writeThis ) pure nothrow @nogc @safe
-        if ( is(T U : U*) && __traits( compiles, { *here = writeThis; } ) )
-    {
-        return casImplWithResult(here, *ifThis, writeThis);
-    }
-
-    private bool casImplWithResult(T,V1,V2)( shared(T)* here, ref V1 ifThis, V2 writeThis ) pure nothrow @nogc @safe
-    in
-    {
-        assert( atomicPtrIsProperlyAligned( here ) );
-    }
-    do
-    {
-        static if ( T.sizeof == byte.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 1 Byte CAS
-            //////////////////////////////////////////////////////////////////
-
-            asm pure nothrow @nogc @trusted
-            {
-                push EDI;
-                mov DL, writeThis;
-                mov EDI, ifThis;
-                mov AL, [EDI];
-                mov ECX, here;
-                lock; // lock always needed to make this op atomic
-                cmpxchg [ECX], DL;
-                mov [EDI], AL;
-                setz AL;
-                pop EDI;
-            }
-        }
-        else static if ( T.sizeof == short.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 2 Byte CAS
-            //////////////////////////////////////////////////////////////////
-
-            asm pure nothrow @nogc @trusted
-            {
-                push EDI;
-                mov DX, writeThis;
-                mov EDI, ifThis;
-                mov AX, [EDI];
-                mov ECX, here;
-                lock; // lock always needed to make this op atomic
-                cmpxchg [ECX], DX;
-                mov [EDI], AX;
-                setz AL;
-                pop EDI;
-            }
-        }
-        else static if ( T.sizeof == int.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 4 Byte CAS
-            //////////////////////////////////////////////////////////////////
-
-            asm pure nothrow @nogc @trusted
-            {
-                push EDI;
-                mov EDX, writeThis;
-                mov EDI, ifThis;
-                mov EAX, [EDI];
-                mov ECX, here;
-                lock; // lock always needed to make this op atomic
-                cmpxchg [ECX], EDX;
-                mov [EDI], EAX;
-                setz AL;
-                pop EDI;
-            }
-        }
-        else static if ( T.sizeof == long.sizeof && has64BitCAS )
-        {
-
-            //////////////////////////////////////////////////////////////////
-            // 8 Byte CAS on a 32-Bit Processor
-            //////////////////////////////////////////////////////////////////
-
-            asm pure nothrow @nogc @trusted
-            {
-                push EDI;
-                push EBX;
-                lea EDI, writeThis;
-                mov EBX, [EDI];
-                mov ECX, 4[EDI];
-                mov EDI, ifThis;
-                mov EAX, [EDI];
-                mov EDX, 4[EDI];
-                mov EDI, here;
-                lock; // lock always needed to make this op atomic
-                cmpxchg8b [EDI];
-                mov EDI, ifThis;
-                mov [EDI], EAX;
-                mov 4[EDI], EDX;
-                setz AL;
-                pop EBX;
-                pop EDI;
-            }
-        }
-        else
-        {
-            static assert( false, "Invalid template type specified." );
-        }
-    }
-
-
-    enum MemoryOrder
-    {
-        raw,
-        acq,
-        rel,
-        seq,
-    }
-
-
-    private
-    {
-        // NOTE: x86 loads implicitly have acquire semantics so a memory
-        //       barrier is only necessary on releases.
-        template needsLoadBarrier( MemoryOrder ms )
-        {
-            enum bool needsLoadBarrier = ms == MemoryOrder.seq;
-        }
-
-
-        // NOTE: x86 stores implicitly have release semantics so a memory
-        //       barrier is only necessary on acquires.
-        template needsStoreBarrier( MemoryOrder ms )
-        {
-            enum bool needsStoreBarrier = ms == MemoryOrder.seq;
-        }
-    }
-
-
-    TailShared!T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref const shared T val ) pure nothrow @nogc @safe
-    if (!__traits(isFloating, T))
-    {
-        static assert( ms != MemoryOrder.rel, "invalid MemoryOrder for atomicLoad()" );
-        static assert( __traits(isPOD, T), "argument to atomicLoad() must be POD" );
-
-        static if ( T.sizeof == byte.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 1 Byte Load
-            //////////////////////////////////////////////////////////////////
-
-            static if ( needsLoadBarrier!(ms) )
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov DL, 0;
-                    mov AL, 0;
-                    mov ECX, val;
-                    lock; // lock always needed to make this op atomic
-                    cmpxchg [ECX], DL;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov EAX, val;
-                    mov AL, [EAX];
-                }
-            }
-        }
-        else static if ( T.sizeof == short.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 2 Byte Load
-            //////////////////////////////////////////////////////////////////
-
-            static if ( needsLoadBarrier!(ms) )
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov DX, 0;
-                    mov AX, 0;
-                    mov ECX, val;
-                    lock; // lock always needed to make this op atomic
-                    cmpxchg [ECX], DX;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov EAX, val;
-                    mov AX, [EAX];
-                }
-            }
-        }
-        else static if ( T.sizeof == int.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 4 Byte Load
-            //////////////////////////////////////////////////////////////////
-
-            static if ( needsLoadBarrier!(ms) )
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov EDX, 0;
-                    mov EAX, 0;
-                    mov ECX, val;
-                    lock; // lock always needed to make this op atomic
-                    cmpxchg [ECX], EDX;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov EAX, val;
-                    mov EAX, [EAX];
-                }
-            }
-        }
-        else static if ( T.sizeof == long.sizeof && has64BitCAS )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 8 Byte Load on a 32-Bit Processor
-            //////////////////////////////////////////////////////////////////
-
-            asm pure nothrow @nogc @trusted
-            {
-                push EDI;
-                push EBX;
-                mov EBX, 0;
-                mov ECX, 0;
-                mov EAX, 0;
-                mov EDX, 0;
-                mov EDI, val;
-                lock; // lock always needed to make this op atomic
-                cmpxchg8b [EDI];
-                pop EBX;
-                pop EDI;
-            }
-        }
-        else
-        {
-            static assert( false, "Invalid template type specified." );
-        }
-    }
-
-    void atomicStore(MemoryOrder ms = MemoryOrder.seq, T, V1)( ref shared T val, V1 newval ) pure nothrow @nogc @safe
-        if ( __traits( compiles, { val = newval; } ) )
-    {
-        static assert( ms != MemoryOrder.acq, "invalid MemoryOrder for atomicStore()" );
-        static assert( __traits(isPOD, T), "argument to atomicStore() must be POD" );
-
-        static if ( T.sizeof == byte.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 1 Byte Store
-            //////////////////////////////////////////////////////////////////
-
-            static if ( needsStoreBarrier!(ms) )
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov EAX, val;
-                    mov DL, newval;
-                    lock;
-                    xchg [EAX], DL;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov EAX, val;
-                    mov DL, newval;
-                    mov [EAX], DL;
-                }
-            }
-        }
-        else static if ( T.sizeof == short.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 2 Byte Store
-            //////////////////////////////////////////////////////////////////
-
-            static if ( needsStoreBarrier!(ms) )
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov EAX, val;
-                    mov DX, newval;
-                    lock;
-                    xchg [EAX], DX;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov EAX, val;
-                    mov DX, newval;
-                    mov [EAX], DX;
-                }
-            }
-        }
-        else static if ( T.sizeof == int.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 4 Byte Store
-            //////////////////////////////////////////////////////////////////
-
-            static if ( needsStoreBarrier!(ms) )
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov EAX, val;
-                    mov EDX, newval;
-                    lock;
-                    xchg [EAX], EDX;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov EAX, val;
-                    mov EDX, newval;
-                    mov [EAX], EDX;
-                }
-            }
-        }
-        else static if ( T.sizeof == long.sizeof && has64BitCAS )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 8 Byte Store on a 32-Bit Processor
-            //////////////////////////////////////////////////////////////////
-
-            asm pure nothrow @nogc @trusted
-            {
-                push EDI;
-                push EBX;
-                lea EDI, newval;
-                mov EBX, [EDI];
-                mov ECX, 4[EDI];
-                mov EDI, val;
-                mov EAX, [EDI];
-                mov EDX, 4[EDI];
-            L1: lock; // lock always needed to make this op atomic
-                cmpxchg8b [EDI];
-                jne L1;
-                pop EBX;
-                pop EDI;
-            }
-        }
-        else
-        {
-            static assert( false, "Invalid template type specified." );
-        }
-    }
-
-
-    void atomicFence() nothrow @nogc @safe
-    {
-        import core.cpuid;
-
-        asm pure nothrow @nogc @trusted
-        {
-            naked;
-
-            call sse2;
-            test AL, AL;
-            jne Lcpuid;
-
-            // Fast path: We have SSE2, so just use mfence.
-            mfence;
-            jmp Lend;
-
-        Lcpuid:
-
-            // Slow path: We use cpuid to serialize. This is
-            // significantly slower than mfence, but is the
-            // only serialization facility we have available
-            // on older non-SSE2 chips.
-            push EBX;
-
-            mov EAX, 0;
-            cpuid;
-
-            pop EBX;
-
-        Lend:
-
-            ret;
-        }
-    }
-}
-else version (AsmX86_64)
-{
-    // Uses specialized asm for fast fetch and add operations
-    TailShared!(T) atomicFetchAdd(T)( ref shared T val, size_t mod ) pure nothrow @nogc @trusted
-        if ( __traits(isIntegral, T) )
-    in ( atomicValueIsProperlyAligned(val) )
-    {
-        return atomicFetchAddImpl( val, mod );
-    }
-    TailShared!(T) atomicFetchAddImpl(T)( ref shared T val, size_t mod ) pure nothrow @nogc @trusted
-    {
-        asm pure nothrow @nogc @trusted { naked; }
-        version (Windows)
-        {
-            asm pure nothrow @nogc @trusted { mov RAX, RCX; }
-            static if (T.sizeof == 1) asm pure nothrow @nogc @trusted { lock; xadd[RDX], AL; }
-            else static if (T.sizeof == 2) asm pure nothrow @nogc @trusted { lock; xadd[RDX], AX; }
-            else static if (T.sizeof == 4) asm pure nothrow @nogc @trusted { lock; xadd[RDX], EAX; }
-            else static if (T.sizeof == 8) asm pure nothrow @nogc @trusted { lock; xadd[RDX], RAX; }
-        }
-        else
-        {
-            asm pure nothrow @nogc @trusted { mov RAX, RDI; }
-            static if (T.sizeof == 1) asm pure nothrow @nogc @trusted { lock; xadd[RSI], AL; }
-            else static if (T.sizeof == 2) asm pure nothrow @nogc @trusted { lock; xadd[RSI], AX; }
-            else static if (T.sizeof == 4) asm pure nothrow @nogc @trusted { lock; xadd[RSI], EAX; }
-            else static if (T.sizeof == 8) asm pure nothrow @nogc @trusted { lock; xadd[RSI], RAX; }
-        }
-        asm pure nothrow @nogc @trusted { ret; }
-    }
-
-    TailShared!(T) atomicFetchSub(T)( ref shared T val, size_t mod ) pure nothrow @nogc @safe
-        if ( __traits(isIntegral, T) )
-    in ( atomicValueIsProperlyAligned(val) )
-    {
-        return atomicFetchAddImpl(val, -mod);
-    }
-
-    TailShared!T atomicOp(string op, T, V1)( ref shared T val, V1 mod ) pure nothrow @nogc
-        if ( __traits( compiles, mixin( "*cast(T*)&val" ~ op ~ "mod" ) ) )
-    in
-    {
-        assert( atomicValueIsProperlyAligned(val));
-    }
-    do
-    {
-        // binary operators
-        //
-        // +    -   *   /   %   ^^  &
-        // |    ^   <<  >>  >>> ~   in
-        // ==   !=  <   <=  >   >=
-        static if ( op == "+"  || op == "-"  || op == "*"  || op == "/"   ||
-                   op == "%"  || op == "^^" || op == "&"  || op == "|"   ||
-                   op == "^"  || op == "<<" || op == ">>" || op == ">>>" ||
-                   op == "~"  || // skip "in"
-                   op == "==" || op == "!=" || op == "<"  || op == "<="  ||
-                   op == ">"  || op == ">=" )
-        {
-            TailShared!T get = atomicLoad!(MemoryOrder.raw)( val );
-            mixin( "return get " ~ op ~ " mod;" );
-        }
-        else
-        // assignment operators
-        //
-        // +=   -=  *=  /=  %=  ^^= &=
-        // |=   ^=  <<= >>= >>>=    ~=
-        static if ( op == "+=" && __traits(isIntegral, T) && __traits(isIntegral, V1))
-        {
-            return cast(T)(atomicFetchAdd!(T)(val, mod) + mod);
-        }
-        else static if ( op == "-=" && __traits(isIntegral, T) && __traits(isIntegral, V1))
-        {
-            return cast(T)(atomicFetchSub!(T)(val, mod) - mod);
-        }
-        else static if ( op == "+=" || op == "-="  || op == "*="  || op == "/=" ||
-                   op == "%=" || op == "^^=" || op == "&="  || op == "|=" ||
-                   op == "^=" || op == "<<=" || op == ">>=" || op == ">>>=" ) // skip "~="
-        {
-            TailShared!T get, set;
-
-            do
-            {
-                get = set = atomicLoad!(MemoryOrder.raw)( val );
-                mixin( "set " ~ op ~ " mod;" );
-            } while ( !casByRef( val, get, set ) );
-            return set;
-        }
-        else
-        {
-            static assert( false, "Operation not supported." );
-        }
-    }
-
-    shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)( shared(T)* here, V exchangeWith ) pure nothrow @nogc @trusted
-        if ( !is(T == class) && !is(T U : U*) &&  __traits( compiles, { *here = exchangeWith; } ) )
-    in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
-    {
-        static if ( __traits(isFloating, V) )
-        {
-            static if ( V.sizeof == 4 )
-                alias I = uint;
-            else static if ( V.sizeof == 8 )
-                alias I = ulong;
-            else
-                static assert( false, "Float type " ~ V.stringof ~ " not supported.");
-            I r = atomicExchangeImpl(cast(shared(I)*)here, *cast(I*)&exchangeWith);
-            return *cast(shared(T)*)&r;
-        }
-        else
-            return atomicExchangeImpl(here, exchangeWith);
-    }
-
-    shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)( shared(T)* here, shared(V) exchangeWith ) pure nothrow @nogc @safe
-        if ( is(T == class) && __traits( compiles, { *here = exchangeWith; } ) )
-    in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
-    {
-        return atomicExchangeImpl(here, exchangeWith);
-    }
-
-    shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)( shared(T)* here, shared(V)* exchangeWith ) pure nothrow @nogc @safe
-        if ( is(T U : U*) && __traits( compiles, { *here = exchangeWith; } ) )
-    in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
-    {
-        return atomicExchangeImpl(here, exchangeWith);
-    }
-
-    private shared(T) atomicExchangeImpl(T,V)( shared(T)* here, V exchangeWith ) pure nothrow @nogc @safe
-    {
-        // Windows: here = RDX, exchangeWith = RCX
-        // Posix:   here = RSI, exchangeWith = RDI
-        static if ( T.sizeof == byte.sizeof )
-        {
-            version (Windows)
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    naked;
-                    xchg [RDX], CL;
-                    mov AL, CL;
-                    ret;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    naked;
-                    xchg [RSI], DIL;
-                    mov AL, DIL;
-                    ret;
-                }
-            }
-        }
-        else static if ( T.sizeof == short.sizeof )
-        {
-            version (Windows)
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    naked;
-                    xchg [RDX], CX;
-                    mov AX, CX;
-                    ret;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    naked;
-                    xchg [RSI], DI;
-                    mov AX, DI;
-                    ret;
-                }
-            }
-        }
-        else static if ( T.sizeof == int.sizeof )
-        {
-            version (Windows)
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    naked;
-                    xchg [RDX], ECX;
-                    mov EAX, ECX;
-                    ret;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    naked;
-                    xchg [RSI], EDI;
-                    mov EAX, EDI;
-                    ret;
-                }
-            }
-        }
-        else static if ( T.sizeof == long.sizeof )
-        {
-            version (Windows)
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    naked;
-                    xchg [RDX], RCX;
-                    mov RAX, RCX;
-                    ret;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    naked;
-                    xchg [RSI], RDI;
-                    mov RAX, RDI;
-                    ret;
-                }
-            }
-        }
-        else
-        {
-            static assert( false, "Invalid template type specified." );
-        }
-    }
-
-    bool casByRef(T,V1,V2)( ref T value, V1 ifThis, V2 writeThis ) pure nothrow @nogc @trusted
-    {
-        return cas(&value, ifThis, writeThis);
-    }
-
-    bool cas(T,V1,V2)( shared(T)* here, const V1 ifThis, V2 writeThis ) pure nothrow @nogc @trusted
-        if ( !is(T == class) && !is(T U : U*) &&  __traits( compiles, { *here = writeThis; } ) )
-    in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
-    {
-        static assert (V1.sizeof == V2.sizeof, "Mismatching argument sizes");
-        static if ( V2.sizeof == 4 && __traits(isFloating, V2) )
-        {
-            uint cmp = *cast(uint*)&ifThis;
-            uint arg = *cast(uint*)&writeThis;
-        }
-        else static if ( V2.sizeof == 8 && __traits(isFloating, V2) )
-        {
-            ulong cmp = *cast(ulong*)&ifThis;
-            ulong arg = *cast(ulong*)&writeThis;
-        }
-        else
-        {
-            alias cmp = ifThis;
-            alias arg = writeThis;
-        }
-        return casImplNoResult(here, cmp, arg);
-    }
-
-    bool cas(T,V1,V2)( shared(T)* here, const shared(V1) ifThis, shared(V2) writeThis ) pure nothrow @nogc @safe
-        if ( is(T == class) && __traits( compiles, { *here = writeThis; } ) )
-    in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
-    {
-        return casImplNoResult(here, ifThis, writeThis);
-    }
-
-    bool cas(T,V1,V2)( shared(T)* here, const shared(V1)* ifThis, shared(V2)* writeThis ) pure nothrow @nogc @safe
-        if ( is(T U : U*) && __traits( compiles, { *here = writeThis; } ) )
-    in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
-    {
-        return casImplNoResult(here, ifThis, writeThis);
-    }
-
-    private bool casImplNoResult(T,V1,V2)( shared(T)* here, V1 ifThis, V2 writeThis ) pure nothrow @nogc @safe
-    {
-        // Windows: here = *R8, ifThis = RDX, writeThis = RCX
-        // Posix:   here = *RDX, ifThis = RSI, writeThis = RDI
-        static if ( T.sizeof == byte.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 1 Byte CAS
-            //////////////////////////////////////////////////////////////////
-            version (Windows)
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    naked;
-                    mov AL, DL;
-                    lock; cmpxchg [R8], CL;
-                    setz AL;
-                    ret;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    naked;
-                    mov AL, SIL;
-                    lock; cmpxchg [RDX], DIL;
-                    setz AL;
-                    ret;
-                }
-            }
-        }
-        else static if ( T.sizeof == short.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 2 Byte CAS
-            //////////////////////////////////////////////////////////////////
-            version (Windows)
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    naked;
-                    mov AX, DX;
-                    lock; cmpxchg [R8], CX;
-                    setz AL;
-                    ret;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    naked;
-                    mov AX, SI;
-                    lock; cmpxchg [RDX], DI;
-                    setz AL;
-                    ret;
-                }
-            }
-        }
-        else static if ( T.sizeof == int.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 4 Byte CAS
-            //////////////////////////////////////////////////////////////////
-            version (Windows)
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    naked;
-                    mov EAX, EDX;
-                    lock; cmpxchg [R8], ECX;
-                    setz AL;
-                    ret;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    naked;
-                    mov EAX, ESI;
-                    lock; cmpxchg [RDX], EDI;
-                    setz AL;
-                    ret;
-                }
-            }
-        }
-        else static if ( T.sizeof == long.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 8 Byte CAS on a 64-Bit Processor
-            //////////////////////////////////////////////////////////////////
-            version (Windows)
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    naked;
-                    mov RAX, RDX;
-                    lock; cmpxchg [R8], RCX;
-                    setz AL;
-                    ret;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    naked;
-                    mov RAX, RSI;
-                    lock; cmpxchg [RDX], RDI;
-                    setz AL;
-                    ret;
-                }
-            }
-        }
-        else static if ( T.sizeof == long.sizeof*2 && has128BitCAS)
-        {
-            //////////////////////////////////////////////////////////////////
-            // 16 Byte CAS on a 64-Bit Processor
-            //////////////////////////////////////////////////////////////////
-
-            // Windows: here = *R8, ifThis = *RDX, writeThis = *RCX
-            // Posix:   here = *R8, ifThis = RCX:RDX, writeThis = RSI:RDI
-            version (Windows)
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    naked;
-                    push RBX;
-                    mov RAX, [RDX];
-                    mov RDX, 8[RDX];
-                    mov RBX, [RCX];
-                    mov RCX, 8[RCX];
-                    lock; cmpxchg16b [R8];
-                    setz AL;
-                    pop RBX;
-                    ret;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    naked;
-                    push RBX;
-                    mov RAX, RDX;
-                    mov RDX, RCX;
-                    mov RBX, RDI;
-                    mov RCX, RSI;
-                    lock; cmpxchg16b [R8];
-                    setz AL;
-                    pop RBX;
-                    ret;
-                }
-            }
-        }
-        else
-        {
-            static assert( false, "Invalid template type specified." );
-        }
-    }
-
-    bool cas(T,V1,V2)( shared(T)* here, V1* ifThis, V2 writeThis ) pure nothrow @nogc @trusted
-        if ( !is(T == class) && !is(T U : U*) &&  __traits( compiles, { *here = writeThis; } ) )
-    in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
-    {
-        static if ( V2.sizeof == 4 && __traits(isFloating, V2) )
-            uint arg = *cast(uint*)&writeThis;
-        else static if ( V2.sizeof == 8 && __traits(isFloating, V2) )
-            ulong arg = *cast(ulong*)&writeThis;
-        else
-            alias arg = writeThis;
-        return casImplWithResult(here, *ifThis, arg);
-    }
-
-    bool cas(T,V1,V2)( shared(T)* here, shared(V1)* ifThis, shared(V2) writeThis ) pure nothrow @nogc @safe
-        if ( is(T == class) && __traits( compiles, { *here = writeThis; } ) )
-    in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
-    {
-        return casImplWithResult(here, *ifThis, writeThis);
-    }
-
-    bool cas(T,V1,V2)( shared(T)* here, shared(V1*)* ifThis, shared(V2)* writeThis ) pure nothrow @nogc @safe
-        if ( is(T U : U*) && __traits( compiles, { *here = writeThis; } ) )
-    in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
-    {
-        return casImplWithResult(here, *ifThis, writeThis);
-    }
-
-    private bool casImplWithResult(T,V1,V2)( shared(T)* here, ref V1 ifThis, V2 writeThis ) pure nothrow @nogc @safe
-    {
-        // Windows: here = *R8, ifThis = *RDX, writeThis = RCX
-        // Posix:   here = *RDX, ifThis = *RSI, writeThis = RDI
-        static if ( T.sizeof == byte.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 1 Byte CAS
-            //////////////////////////////////////////////////////////////////
-            version (Windows)
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    naked;
-                    mov AL, [RDX];
-                    lock; cmpxchg [R8], CL;
-                    jne compare_fail;
-                    mov AL, 1;
-                    ret;
-                compare_fail:
-                    mov [RDX], AL;
-                    xor AL, AL;
-                    ret;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    naked;
-                    mov AL, [RSI];
-                    lock; cmpxchg [RDX], DIL;
-                    jne compare_fail;
-                    mov AL, 1;
-                    ret;
-                compare_fail:
-                    mov [RSI], AL;
-                    xor AL, AL;
-                    ret;
-                }
-            }
-        }
-        else static if ( T.sizeof == short.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 2 Byte CAS
-            //////////////////////////////////////////////////////////////////
-            version (Windows)
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    naked;
-                    mov AX, [RDX];
-                    lock; cmpxchg [R8], CX;
-                    jne compare_fail;
-                    mov AL, 1;
-                    ret;
-                compare_fail:
-                    mov [RDX], AX;
-                    xor AL, AL;
-                    ret;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    naked;
-                    mov AX, [RSI];
-                    lock; cmpxchg [RDX], DI;
-                    jne compare_fail;
-                    mov AL, 1;
-                    ret;
-                compare_fail:
-                    mov [RSI], AX;
-                    xor AL, AL;
-                    ret;
-                }
-            }
-        }
-        else static if ( T.sizeof == int.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 4 Byte CAS
-            //////////////////////////////////////////////////////////////////
-            version (Windows)
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    naked;
-                    mov EAX, [RDX];
-                    lock; cmpxchg [R8], ECX;
-                    jne compare_fail;
-                    mov AL, 1;
-                    ret;
-                compare_fail:
-                    mov [RDX], EAX;
-                    xor AL, AL;
-                    ret;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    naked;
-                    mov EAX, [RSI];
-                    lock; cmpxchg [RDX], EDI;
-                    jne compare_fail;
-                    mov AL, 1;
-                    ret;
-                compare_fail:
-                    mov [RSI], EAX;
-                    xor AL, AL;
-                    ret;
-                }
-            }
-        }
-        else static if ( T.sizeof == long.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 8 Byte CAS on a 64-Bit Processor
-            //////////////////////////////////////////////////////////////////
-            version (Windows)
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    naked;
-                    mov RAX, [RDX];
-                    lock; cmpxchg [R8], RCX;
-                    jne compare_fail;
-                    mov AL, 1;
-                    ret;
-                compare_fail:
-                    mov [RDX], RAX;
-                    xor AL, AL;
-                    ret;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    naked;
-                    mov RAX, [RSI];
-                    lock; cmpxchg [RDX], RDI;
-                    jne compare_fail;
-                    mov AL, 1;
-                    ret;
-                compare_fail:
-                    mov [RSI], RAX;
-                    xor AL, AL;
-                    ret;
-                }
-            }
-        }
-        else static if ( T.sizeof == long.sizeof*2 && has128BitCAS)
-        {
-            //////////////////////////////////////////////////////////////////
-            // 16 Byte CAS on a 64-Bit Processor
-            //////////////////////////////////////////////////////////////////
-
-            // Windows: here = *R8, ifThis = *RDX, writeThis = *RCX
-            // Posix:   here = *RCX, ifThis = *RDX, writeThis = RSI:RDI
-            version (Windows)
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    naked;
-                    push RBX;
-                    mov R9, RDX;
-                    mov RAX, [RDX];
-                    mov RDX, 8[RDX];
-                    mov RBX, [RCX];
-                    mov RCX, 8[RCX];
-                    lock; cmpxchg16b [R8];
-                    pop RBX;
-                    jne compare_fail;
-                    mov AL, 1;
-                    ret;
-                compare_fail:
-                    mov [R9], RAX;
-                    mov 8[R9], RDX;
-                    xor AL, AL;
-                    ret;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    naked;
-                    push RBX;
-                    mov R8, RCX;
-                    mov R9, RDX;
-                    mov RAX, [RDX];
-                    mov RDX, 8[RDX];
-                    mov RBX, RDI;
-                    mov RCX, RSI;
-                    lock; cmpxchg16b [R8];
-                    pop RBX;
-                    jne compare_fail;
-                    mov AL, 1;
-                    ret;
-                compare_fail:
-                    mov [R9], RAX;
-                    mov 8[R9], RDX;
-                    xor AL, AL;
-                    ret;
-                }
-            }
-        }
-        else
-        {
-            static assert( false, "Invalid template type specified." );
-        }
-    }
-
-
-    enum MemoryOrder
-    {
-        raw,
-        acq,
-        rel,
-        seq,
-    }
-
-
-    private
-    {
-        // NOTE: x86 loads implicitly have acquire semantics so a memory
-        //       barrier is only necessary on releases.
-        template needsLoadBarrier( MemoryOrder ms )
-        {
-            enum bool needsLoadBarrier = ms == MemoryOrder.seq;
-        }
-
-
-        // NOTE: x86 stores implicitly have release semantics so a memory
-        //       barrier is only necessary on acquires.
-        template needsStoreBarrier( MemoryOrder ms )
-        {
-            enum bool needsStoreBarrier = ms == MemoryOrder.seq;
-        }
-    }
-
-
-    TailShared!T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref const shared T val ) pure nothrow @nogc @safe
-    if (!__traits(isFloating, T))
-    {
-        static assert( ms != MemoryOrder.rel, "invalid MemoryOrder for atomicLoad()" );
-        static assert( __traits(isPOD, T), "argument to atomicLoad() must be POD" );
-
-        static if ( T.sizeof == byte.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 1 Byte Load
-            //////////////////////////////////////////////////////////////////
-
-            static if ( needsLoadBarrier!(ms) )
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov DL, 0;
-                    mov AL, 0;
-                    mov RCX, val;
-                    lock; // lock always needed to make this op atomic
-                    cmpxchg [RCX], DL;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov RAX, val;
-                    mov AL, [RAX];
-                }
-            }
-        }
-        else static if ( T.sizeof == short.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 2 Byte Load
-            //////////////////////////////////////////////////////////////////
-
-            static if ( needsLoadBarrier!(ms) )
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov DX, 0;
-                    mov AX, 0;
-                    mov RCX, val;
-                    lock; // lock always needed to make this op atomic
-                    cmpxchg [RCX], DX;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov RAX, val;
-                    mov AX, [RAX];
-                }
-            }
-        }
-        else static if ( T.sizeof == int.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 4 Byte Load
-            //////////////////////////////////////////////////////////////////
-
-            static if ( needsLoadBarrier!(ms) )
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov EDX, 0;
-                    mov EAX, 0;
-                    mov RCX, val;
-                    lock; // lock always needed to make this op atomic
-                    cmpxchg [RCX], EDX;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov RAX, val;
-                    mov EAX, [RAX];
-                }
-            }
-        }
-        else static if ( T.sizeof == long.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 8 Byte Load
-            //////////////////////////////////////////////////////////////////
-
-            static if ( needsLoadBarrier!(ms) )
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov RDX, 0;
-                    mov RAX, 0;
-                    mov RCX, val;
-                    lock; // lock always needed to make this op atomic
-                    cmpxchg [RCX], RDX;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov RAX, val;
-                    mov RAX, [RAX];
-                }
-            }
-        }
-        else static if ( T.sizeof == long.sizeof*2 && has128BitCAS )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 16 Byte Load on a 64-Bit Processor
-            //////////////////////////////////////////////////////////////////
-            version (Win64){
-                size_t[2] retVal;
-                asm pure nothrow @nogc @trusted
-                {
-                    push RDI;
-                    push RBX;
-                    mov RDI, val;
-                    mov RBX, 0;
-                    mov RCX, 0;
-                    mov RAX, 0;
-                    mov RDX, 0;
-                    lock; // lock always needed to make this op atomic
-                    cmpxchg16b [RDI];
-                    lea RDI, retVal;
-                    mov [RDI], RAX;
-                    mov 8[RDI], RDX;
-                    pop RBX;
-                    pop RDI;
-                }
-
-                static if (is(T:U[], U))
-                {
-                    pragma(inline, true)
-                    static typeof(return) toTrusted(size_t[2] retVal) @trusted
-                    {
-                        return *(cast(typeof(return)*) retVal.ptr);
-                    }
-
-                    return toTrusted(retVal);
-                }
-                else
-                {
-                    return cast(typeof(return)) retVal;
-                }
-            }else{
-                asm pure nothrow @nogc @trusted
-                {
-                    push RDI;
-                    push RBX;
-                    mov RBX, 0;
-                    mov RCX, 0;
-                    mov RAX, 0;
-                    mov RDX, 0;
-                    mov RDI, val;
-                    lock; // lock always needed to make this op atomic
-                    cmpxchg16b [RDI];
-                    pop RBX;
-                    pop RDI;
-                }
-            }
-        }
-        else
-        {
-            static assert( false, "Invalid template type specified." );
-        }
-    }
-
-
-    void atomicStore(MemoryOrder ms = MemoryOrder.seq, T, V1)( ref shared T val, V1 newval ) pure nothrow @nogc @safe
-        if ( __traits( compiles, { val = newval; } ) )
-    {
-        static assert( ms != MemoryOrder.acq, "invalid MemoryOrder for atomicStore()" );
-        static assert( __traits(isPOD, T), "argument to atomicStore() must be POD" );
-
-        static if ( T.sizeof == byte.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 1 Byte Store
-            //////////////////////////////////////////////////////////////////
-
-            static if ( needsStoreBarrier!(ms) )
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov RAX, val;
-                    mov DL, newval;
-                    lock;
-                    xchg [RAX], DL;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov RAX, val;
-                    mov DL, newval;
-                    mov [RAX], DL;
-                }
-            }
-        }
-        else static if ( T.sizeof == short.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 2 Byte Store
-            //////////////////////////////////////////////////////////////////
-
-            static if ( needsStoreBarrier!(ms) )
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov RAX, val;
-                    mov DX, newval;
-                    lock;
-                    xchg [RAX], DX;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov RAX, val;
-                    mov DX, newval;
-                    mov [RAX], DX;
-                }
-            }
-        }
-        else static if ( T.sizeof == int.sizeof )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 4 Byte Store
-            //////////////////////////////////////////////////////////////////
-
-            static if ( needsStoreBarrier!(ms) )
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov RAX, val;
-                    mov EDX, newval;
-                    lock;
-                    xchg [RAX], EDX;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov RAX, val;
-                    mov EDX, newval;
-                    mov [RAX], EDX;
-                }
-            }
-        }
-        else static if ( T.sizeof == long.sizeof && has64BitCAS )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 8 Byte Store on a 64-Bit Processor
-            //////////////////////////////////////////////////////////////////
-
-            static if ( needsStoreBarrier!(ms) )
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov RAX, val;
-                    mov RDX, newval;
-                    lock;
-                    xchg [RAX], RDX;
-                }
-            }
-            else
-            {
-                asm pure nothrow @nogc @trusted
-                {
-                    mov RAX, val;
-                    mov RDX, newval;
-                    mov [RAX], RDX;
-                }
-            }
-        }
-        else static if ( T.sizeof == long.sizeof*2 && has128BitCAS )
-        {
-            //////////////////////////////////////////////////////////////////
-            // 16 Byte Store on a 64-Bit Processor
-            //////////////////////////////////////////////////////////////////
-            version (Win64){
-                asm pure nothrow @nogc @trusted
-                {
-                    push RDI;
-                    push RBX;
-                    mov R9, val;
-                    mov R10, newval;
-
-                    mov RDI, R10;
-                    mov RBX, [RDI];
-                    mov RCX, 8[RDI];
-
-                    mov RDI, R9;
-                    mov RAX, [RDI];
-                    mov RDX, 8[RDI];
-
-                    L1: lock; // lock always needed to make this op atomic
-                    cmpxchg16b [RDI];
-                    jne L1;
-                    pop RBX;
-                    pop RDI;
-                }
-            }else{
-                asm pure nothrow @nogc @trusted
-                {
-                    push RDI;
-                    push RBX;
-                    lea RDI, newval;
-                    mov RBX, [RDI];
-                    mov RCX, 8[RDI];
-                    mov RDI, val;
-                    mov RAX, [RDI];
-                    mov RDX, 8[RDI];
-                    L1: lock; // lock always needed to make this op atomic
-                    cmpxchg16b [RDI];
-                    jne L1;
-                    pop RBX;
-                    pop RDI;
-                }
-            }
-        }
-        else
-        {
-            static assert( false, "Invalid template type specified." );
-        }
-    }
-
-
-    void atomicFence() nothrow @nogc @safe
-    {
-        // SSE2 is always present in 64-bit x86 chips.
-        asm nothrow @nogc @trusted
-        {
-            naked;
-
-            mfence;
-            ret;
-        }
-    }
-}
-
-// This is an ABI adapter that works on all architectures.  It type puns
-// floats and doubles to ints and longs, atomically loads them, then puns
-// them back.  This is necessary so that they get returned in floating
-// point instead of integer registers.
-TailShared!T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref const shared T val ) pure nothrow @nogc @trusted
-if (__traits(isFloating, T))
-{
-    static if (T.sizeof == int.sizeof)
-    {
-        static assert(is(T : float));
-        auto ptr = cast(const shared int*) &val;
-        auto asInt = atomicLoad!(ms)(*ptr);
-        return *(cast(typeof(return)*) &asInt);
-    }
-    else static if (T.sizeof == long.sizeof)
-    {
-        static assert(is(T : double));
-        auto ptr = cast(const shared long*) &val;
-        auto asLong = atomicLoad!(ms)(*ptr);
-        return *(cast(typeof(return)*) &asLong);
-    }
-    else
-    {
-        static assert(0, "Cannot atomically load 80-bit reals.");
-    }
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 // Unit Tests
 ////////////////////////////////////////////////////////////////////////////////
@@ -2148,7 +635,7 @@ version (unittest)
 
         atom = cast(shared(T))null;
 
-        T arg = base;
+        shared(T) arg = base;
         assert( cas( &atom, &arg, val ), T.stringof );
         assert( arg is base, T.stringof );
         assert( atom is val, T.stringof );
@@ -2218,7 +705,7 @@ version (unittest)
         {
             () @trusted
             {
-                struct Big { long a, b; }
+                align(16) struct Big { long a, b; }
 
                 shared(Big) atom;
                 shared(Big) base;
@@ -2380,7 +867,7 @@ version (unittest)
         assert(atomicOp!"+="(i8, 8) == 13);
         assert(atomicOp!"+="(i16, 8) == 14);
         assert(atomicOp!"+="(i32, 8) == 15);
-        version (AsmX86_64)
+        version (D_LP64)
         {
             shared ulong u64 = 4;
             shared long i64 = 8;
@@ -2404,7 +891,7 @@ version (unittest)
         assert(atomicOp!"-="(i8, 1) == 4);
         assert(atomicOp!"-="(i16, 1) == 5);
         assert(atomicOp!"-="(i32, 1) == 6);
-        version (AsmX86_64)
+        version (D_LP64)
         {
             shared ulong u64 = 4;
             shared long i64 = 8;

@@ -8,23 +8,22 @@
  */
 module core.internal.traits;
 
-/// taken from std.typetuple.TypeTuple
-template TypeTuple(TList...)
-{
-    alias TypeTuple = TList;
-}
-alias AliasSeq = TypeTuple;
 
-template FieldTypeTuple(T)
+// TODO: deprecate these old names...?
+alias TypeTuple = AliasSeq;
+alias FieldTypeTuple = Fields;
+
+
+alias AliasSeq(TList...) = TList;
+
+template Fields(T)
 {
     static if (is(T == struct) || is(T == union))
-        alias FieldTypeTuple = typeof(T.tupleof[0 .. $ - __traits(isNested, T)]);
+        alias Fields = typeof(T.tupleof[0 .. $ - __traits(isNested, T)]);
     else static if (is(T == class))
-        alias FieldTypeTuple = typeof(T.tupleof);
+        alias Fields = typeof(T.tupleof);
     else
-    {
-        alias FieldTypeTuple = TypeTuple!T;
-    }
+        alias Fields = AliasSeq!T;
 }
 
 T trustedCast(T, U)(auto ref U u) @trusted pure nothrow
@@ -64,6 +63,20 @@ template Unqual(T)
         else static if (is(T U ==              const U)) alias Unqual = U;
         else                                             alias Unqual = T;
     }
+}
+
+// [For internal use]
+package template ModifyTypePreservingTQ(alias Modifier, T)
+{
+         static if (is(T U ==          immutable U)) alias ModifyTypePreservingTQ =          immutable Modifier!U;
+    else static if (is(T U == shared inout const U)) alias ModifyTypePreservingTQ = shared inout const Modifier!U;
+    else static if (is(T U == shared inout       U)) alias ModifyTypePreservingTQ = shared inout       Modifier!U;
+    else static if (is(T U == shared       const U)) alias ModifyTypePreservingTQ = shared       const Modifier!U;
+    else static if (is(T U == shared             U)) alias ModifyTypePreservingTQ = shared             Modifier!U;
+    else static if (is(T U ==        inout const U)) alias ModifyTypePreservingTQ =        inout const Modifier!U;
+    else static if (is(T U ==        inout       U)) alias ModifyTypePreservingTQ =              inout Modifier!U;
+    else static if (is(T U ==              const U)) alias ModifyTypePreservingTQ =              const Modifier!U;
+    else                                             alias ModifyTypePreservingTQ =                    Modifier!T;
 }
 
 // Substitute all `inout` qualifiers that appears in T to `const`
@@ -187,12 +200,12 @@ template allSatisfy(alias F, T...)
 }
 
 // taken from std.meta.anySatisfy
-template anySatisfy(alias F, T...)
+template anySatisfy(alias F, Ts...)
 {
-    static foreach (Ti; T)
+    static foreach (T; Ts)
     {
         static if (!is(typeof(anySatisfy) == bool) && // not yet defined
-                   F!(Ti))
+                   F!T)
         {
             enum anySatisfy = true;
         }
@@ -218,17 +231,6 @@ template maxAlignment(U...)
         enum b = maxAlignment!(U[($+1)/2 .. $]);
         enum maxAlignment = a > b ? a : b;
     }
-}
-
-// std.traits.Fields
-template Fields(T)
-{
-    static if (is(T == struct) || is(T == union))
-        alias Fields = typeof(T.tupleof[0 .. $ - __traits(isNested, T)]);
-    else static if (is(T == class))
-        alias Fields = typeof(T.tupleof);
-    else
-        alias Fields = TypeTuple!T;
 }
 
 /// See $(REF hasElaborateMove, std,traits)
@@ -301,6 +303,110 @@ template hasElaborateAssign(S)
     {
         enum bool hasElaborateAssign = false;
     }
+}
+
+template hasIndirections(T)
+{
+    static if (is(T == struct) || is(T == union))
+        enum hasIndirections = anySatisfy!(.hasIndirections, Fields!T);
+    else static if (__traits(isStaticArray, T) && is(T : E[N], E, size_t N))
+        enum hasIndirections = is(E == void) ? true : hasIndirections!E;
+    else static if (isFunctionPointer!T)
+        enum hasIndirections = false;
+    else
+        enum hasIndirections = isPointer!T || isDelegate!T || isDynamicArray!T ||
+            __traits(isAssociativeArray, T) || is (T == class) || is(T == interface);
+}
+
+template hasUnsharedIndirections(T)
+{
+    static if (is(T == struct) || is(T == union))
+        enum hasUnsharedIndirections = anySatisfy!(.hasUnsharedIndirections, Fields!T);
+    else static if (is(T : E[N], E, size_t N))
+        enum hasUnsharedIndirections = is(E == void) ? false : hasUnsharedIndirections!E;
+    else static if (isFunctionPointer!T)
+        enum hasUnsharedIndirections = false;
+    else static if (isPointer!T)
+        enum hasUnsharedIndirections = !is(T : shared(U)*, U);
+    else static if (isDynamicArray!T)
+        enum hasUnsharedIndirections = !is(T : shared(V)[], V);
+    else static if (is(T == class) || is(T == interface))
+        enum hasUnsharedIndirections = !is(T : shared(W), W);
+    else
+        enum hasUnsharedIndirections = isDelegate!T || __traits(isAssociativeArray, T); // TODO: how to handle these?
+}
+
+enum bool isAggregateType(T) = is(T == struct) || is(T == union) ||
+                               is(T == class) || is(T == interface);
+
+enum bool isPointer(T) = is(T == U*, U) && !isAggregateType!T;
+
+enum bool isDynamicArray(T) = is(DynamicArrayTypeOf!T) && !isAggregateType!T;
+
+template OriginalType(T)
+{
+    template Impl(T)
+    {
+        static if (is(T U == enum)) alias Impl = OriginalType!U;
+        else                        alias Impl =              T;
+    }
+
+    alias OriginalType = ModifyTypePreservingTQ!(Impl, T);
+}
+
+template DynamicArrayTypeOf(T)
+{
+    static if (is(AliasThisTypeOf!T AT) && !is(AT[] == AT))
+        alias X = DynamicArrayTypeOf!AT;
+    else
+        alias X = OriginalType!T;
+
+    static if (is(Unqual!X : E[], E) && !is(typeof({ enum n = X.length; })))
+        alias DynamicArrayTypeOf = X;
+    else
+        static assert(0, T.stringof ~ " is not a dynamic array");
+}
+
+private template AliasThisTypeOf(T)
+    if (isAggregateType!T)
+{
+    alias members = __traits(getAliasThis, T);
+
+    static if (members.length == 1)
+        alias AliasThisTypeOf = typeof(__traits(getMember, T.init, members[0]));
+    else
+        static assert(0, T.stringof~" does not have alias this type");
+}
+
+template isFunctionPointer(T...)
+    if (T.length == 1)
+{
+    static if (is(T[0] U) || is(typeof(T[0]) U))
+    {
+        static if (is(U F : F*) && is(F == function))
+            enum bool isFunctionPointer = true;
+        else
+            enum bool isFunctionPointer = false;
+    }
+    else
+        enum bool isFunctionPointer = false;
+}
+
+template isDelegate(T...)
+    if (T.length == 1)
+{
+    static if (is(typeof(& T[0]) U : U*) && is(typeof(& T[0]) U == delegate))
+    {
+        // T is a (nested) function symbol.
+        enum bool isDelegate = true;
+    }
+    else static if (is(T[0] W) || is(typeof(T[0]) W))
+    {
+        // T is an expression or a type.  Take the type of it and examine.
+        enum bool isDelegate = is(W == delegate);
+    }
+    else
+        enum bool isDelegate = false;
 }
 
 // std.meta.Filter
