@@ -8,7 +8,7 @@ TEST_OUTPUT:
 ---
 */
 
-struct S
+extern (C++) struct S
 {
     union
     {

@@ -19,7 +19,7 @@ StructDeclaration has the following issues:
   * a struct should only define ctors if it’s extern (C++)
 */
 
-struct S
+extern (C++) struct S
 {
     byte a;
     int b;
@@ -44,7 +44,7 @@ extern (C) struct S3
     this(int a) {}
 }
 
-align(1) struct Aligned
+extern (C++) align(1) struct Aligned
 {
     //align(1):
     byte a;
@@ -54,12 +54,12 @@ align(1) struct Aligned
     this(int a) {}
 }
 
-struct A
+extern (C++) struct A
 {
     int a;
     S s;
 
-    void foo();
+    extern (D) void foo();
     extern (C) void bar() {}
     extern (C++) void baz(int x = 42) {}
 
