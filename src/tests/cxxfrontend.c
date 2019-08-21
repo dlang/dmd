@@ -110,12 +110,12 @@ static void frontend_term()
 void test_tokens()
 {
     // First valid TOK value
-    assert(TOKlparen == 1);
-    assert(strcmp(Token::toChars(TOKlparen), "(") == 0);
+    assert(TOKleftParentheses == 1);
+    assert(strcmp(Token::toChars(TOKleftParentheses), "(") == 0);
 
     // Last valid TOK value
-    assert(TOKvectorarray == TOKMAX - 1);
-    assert(strcmp(Token::toChars(TOKvectorarray), "vectorarray") == 0);
+    assert(TOKvectorArray == TOKmax_ - 1);
+    assert(strcmp(Token::toChars(TOKvectorArray), "vectorarray") == 0);
 }
 
 /**********************************/
@@ -234,7 +234,7 @@ void test_visitors()
 
     AliasDeclaration *ad = AliasDeclaration::create(loc, ident, tp);
     assert(ad->isAliasDeclaration() == ad);
-    ad->storage_class = STCabstract;
+    ad->storage_class = STCabstract_;
     assert(ad->isAbstract() == true);
     ad->accept(&tv);
     assert(tv.decl == true);
@@ -282,7 +282,7 @@ void test_semantic()
     semantic2(m, NULL);
     semantic3(m, NULL);
 
-    Dsymbol *s = m->search(Loc(), Identifier::idPool("Error"));
+    Dsymbol *s = m->search(Loc(), Identifier::idPool("Error"), SearchLocalsOnly);
     assert(s);
     AggregateDeclaration *ad = s->isAggregateDeclaration();
     assert(ad && ad->ctor);
@@ -322,7 +322,7 @@ void test_emplace()
   Loc loc;
   UnionExp ue;
 
-  IntegerExp::emplacei(&ue, loc, 1065353216, Type::tint32);
+  IntegerExp::emplace(&ue, loc, 1065353216, Type::tint32);
   Expression *e = ue.exp();
   assert(e->op == TOKint64);
   assert(e->toInteger() == 1065353216);
