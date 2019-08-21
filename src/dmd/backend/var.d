@@ -652,7 +652,7 @@ __gshared ushort[TYMAX] dttab4 =
 
     TYlong    : 0x12,
     TYulong   : 0x22,
-    TYdchar   : 0x22,
+    TYdchar   : 0x7b, // UTF32
     TYllong   : 0x13,
     TYullong  : 0x23,
     TYcent    : 0x603,
