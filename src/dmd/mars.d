@@ -670,7 +670,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     if (global.params.doCxxHdrGeneration)
     {
-        gencpphdrfiles(&modules);
+        genCppHdrFiles(modules);
     }
     if (global.errors)
         fatal();

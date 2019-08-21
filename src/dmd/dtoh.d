@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dtohd, _dtoh.d)
@@ -32,238 +32,7 @@ import dmd.utils;
 
 //debug = Debug_DtoH;
 
-version(BUILD_COMPILER)
-{
-    immutable string[] sources = [
-        "access.d", "aggregate.d", "aliasthis.d", "apply.d", "argtypes.d", "arrayop.d", "arraytypes.d", "attrib.d",
-        "blockexit.d", "builtin.d",
-        "canthrow.d", "clone.d", "compiler.d", "complex.d", "cond.d", "console.d", "constfold.d", "cppmangle.d", "cppmanglewin.d", "ctfeexpr.d", "ctorflow.d",
-        "dcast.d", "dclass.d", "declaration.d", "delegatize.d", "denum.d", "dimport.d", "dinterpret.d",
-        "dmacro.d", "dmangle.d", "dmodule.d", "doc.d", "dscope.d", "dstruct.d", "dsymbol.d", "dsymbolsem.d", "dtemplate.d", "dversion.d",
-        "entity.d", "errors.d", "escape.d", "expression.d", "expressionsem.d",
-        "func.d",
-        "globals.d", "gluelayer.d",
-        "hdrgen.d",
-        "iasm.d", "id.d", "identifier.d", "impcnvtab.d", "imphint.d", "init.d", "initsem.d", "inline.d", "inlinecost.d", "intrange.d",
-        "json.d",
-        "lambdacomp.d", "lexer.d",
-        "mtype.d",
-        "nogc.d", "nspace.d",
-        "objc.d", "opover.d", "optimize.d",
-        "parse.d", "printast.d",
-        "safe.d", "sapply.d", "semantic2.d", "semantic3.d", "sideeffect.d", "statement.d",
-        "statementsem.d", "staticassert.d", "staticcond.d",
-        "target.d", "templateparamsem.d", "tokens.d", "traits.d", "typesem.d", "typinf.d",
-        "utf.d", "utils.d",
-    ];
-}
-
-version(none)
-{
-int main(string[] args)
-{
-    import std.algorithm.sorting : sort;
-    import std.array : array;
-    import std.file : readText;
-    import std.path : baseName, buildPath, dirName;
-    import std.string : toStringz;
-
-    import dmd.dsymbolsem;
-    import dmd.errors;
-    import dmd.id;
-    import dmd.dinifile;
-    import dmd.parse;
-
-    import dmd.semantic2;
-    import dmd.semantic3;
-    import dmd.builtin : builtin_init;
-    import dmd.dmodule : Module;
-    import dmd.expression : Expression;
-    import dmd.frontend;
-    import dmd.objc : Objc;
-    import dmd.root.response;
-    import dmd.root.stringtable;
-    import dmd.target : Target;
-
-    import core.memory;
-    import core.stdc.stdio : printf;
-
-    GC.disable();
-    initDMD();
-
-    Strings arguments = Strings(args.length);
-    for (size_t i = 0; i < args.length; i++)
-    {
-        arguments[i] = args[i].ptr;
-    }
-    if (response_expand(&arguments)) // expand response files
-        error(Loc.initial, "can't open response file");
-    auto files = Strings(arguments.dim - 1);
-    global.params.argv0 = args[0];
-
-    global.inifilename = parse_conf_arg(&arguments);
-    if (global.inifilename)
-    {
-        // can be empty as in -conf=
-        if (strlen(global.inifilename) && !FileName.exists(global.inifilename))
-        error(Loc.initial, "Config file '%s' does not exist.", global.inifilename);
-    }
-    else
-    {
-        version (Windows)
-        {
-            global.inifilename = findConfFile(global.params.argv0, "sc.ini").ptr;
-        }
-        else version (Posix)
-        {
-            global.inifilename = findConfFile(global.params.argv0, "dmd.conf").ptr;
-        }
-        else
-        {
-            static assert(0, "fix this");
-        }
-    }
-    // Read the configurarion file
-    auto inifile = File(global.inifilename);
-    inifile.read();
-    /* Need path of configuration file, for use in expanding @P macro
-     */
-    const(char)* inifilepath = FileName.path(global.inifilename);
-    Strings sections;
-    StringTable environment;
-    environment._init(7);
-    /* Read the [Environment] section, so we can later
-     * pick up any DFLAGS settings.
-     */
-    sections.push("Environment");
-    parseConfFile(&environment, global.inifilename, inifilepath, inifile.len, inifile.buffer, &sections);
-
-    const(char)* arch = global.params.is64bit ? "64" : "32"; // use default
-    arch = parse_arch_arg(&arguments, arch);
-
-    // parse architecture from DFLAGS read from [Environment] section
-    {
-        Strings dflags;
-        getenv_setargv(readFromEnv(&environment, "DFLAGS"), &dflags);
-        environment.reset(7); // erase cached environment updates
-        arch = parse_arch_arg(&dflags, arch);
-    }
-
-    bool is64bit = arch[0] == '6';
-
-    version(Windows) // delete LIB entry in [Environment] (necessary for optlink) to allow inheriting environment for MS-COFF
-    if (is64bit || strcmp(arch, "32mscoff") == 0)
-        environment.update("LIB", 3).ptrvalue = null;
-
-    // read from DFLAGS in [Environment{arch}] section
-    char[80] envsection = void;
-    sprintf(envsection.ptr, "Environment%s", arch);
-    sections.push(envsection.ptr);
-    parseConfFile(&environment, global.inifilename, inifilepath, inifile.len, inifile.buffer, &sections);
-    getenv_setargv(readFromEnv(&environment, "DFLAGS"), &arguments);
-    updateRealEnvironment(&environment);
-    environment.reset(1); // don't need environment cache any more
-
-    if (parseCommandLine(arguments, args.length, global.params, files))
-    {
-        Loc loc;
-        errorSupplemental(loc, "run 'dmd -man' to open browser on manual");
-        return 1;
-    }
-
-
-    /*version(BUILD_COMPILER)
-    {
-        global.path.push(druntimeFullPath.toStringz());
-        //TODO: fixme for LDC
-        global.filePath.push(__FILE_FULL_PATH__.dirName.buildPath("../../").toStringz());
-        global.filePath.push(__FILE_FULL_PATH__.dirName.buildPath("../../res/").toStringz());
-    }*/
-
-    DMDType._init();
-    version(BUILD_COMPILER)
-    {
-        DMDModule._init();
-        DMDClass._init();
-    }
-
-    setVersions();
-
-    Modules modules;
-
-    string path = __FILE_FULL_PATH__.dirName.buildPath("../dmd/");
-    version (BUILD_COMPILER)
-        auto srcs = sources;
-    else
-        auto srcs = args [1 .. $];
-    foreach (f; srcs)
-    {
-        string fn = buildPath(path, f);
-
-        auto id = Identifier.idPool(baseName(fn, ".d"));
-        auto m = new Module(fn.toStringz(), id, false, false);
-        auto input = readText(fn);
-
-        if (!Module.rootModule)
-            Module.rootModule = m;
-
-        m.importedFrom = m;
-        m.srcfile.setbuffer(cast(void*)input.ptr, input.length);
-        m.srcfile._ref = 1;
-        m.parse();
-        modules.push(m);
-    }
-
-    foreach (m; modules)
-        m.importAll(null);
-    foreach (m; modules)
-        m.dsymbolSemantic(null);
-
-    Module.dprogress = 1;
-    Module.runDeferredSemantic();
-
-    foreach (m; modules)
-        m.semantic2(null);
-    Module.runDeferredSemantic2();
-
-    foreach (m; modules)
-        m.semantic3(null);
-    Module.runDeferredSemantic3();
-
-    OutBuffer buf;
-    genCppFiles(&buf, &modules);
-
-    printf("%s\n", buf.peekString());
-    return 0;
-}
-}
-
-void setVersions()
-{
-    import dmd.cond : VersionCondition;
-    version(BUILD_COMPILER)
-    {
-        VersionCondition.addPredefinedGlobalIdent("NoBackend");
-        VersionCondition.addPredefinedGlobalIdent("NoMain");
-    }
-}
-
-string dirName(string path)
-{
-    version (Windows)
-        enum char separator = '\\';
-    else
-        enum char separator = '/';
-
-    for (size_t i = path.length - 1; i > 0; i--)
-    {
-        if (path[i] == separator)
-        return path[0..i];
-    }
-    return path;
-}
-
-struct DMDType
+private struct DMDType
 {
     __gshared static Identifier c_long;
     __gshared static Identifier c_ulong;
@@ -275,6 +44,7 @@ struct DMDType
         __gshared static Identifier AssocArray;
         __gshared static Identifier Array;
     //}
+
     static void _init()
     {
         c_long          = Identifier.idPool("__c_long");
@@ -292,7 +62,7 @@ struct DMDType
 }
 //version(BUILD_COMPILER)
 //{
-    struct DMDModule
+    private struct DMDModule
     {
         __gshared static Identifier identifier;
         __gshared static Identifier root;
@@ -314,7 +84,8 @@ struct DMDType
             dmd                 = Identifier.idPool("dmd");
         }
     }
-    struct DMDClass
+
+    private struct DMDClass
     {
         __gshared static Identifier ID; ////Identifier
         __gshared static Identifier Visitor;
@@ -403,17 +174,113 @@ struct DMDType
         return ((m.parent.ident == DMDModule.dmd && !m.parent.parent) ||
                 (m.parent.parent.ident == DMDModule.dmd && !m.parent.parent.parent));
     }
-
-    /*string druntimeFullPath()
-    {
-        version (IN_LLVM)
-            string path = "../runtime/druntime/src";
-        else
-            string path = "../../../druntime/src/";
-
-        return __FILE_FULL_PATH__.dirName.buildPath(path);
-    }*/
 //}
+
+void genCppHdrFiles(ref Modules ms)
+{
+    import dmd.tokens;
+
+    DMDType._init();
+    //version(BUILD_COMPILER)
+    //{
+        DMDModule._init();
+        DMDClass._init();
+    //}
+
+    OutBuffer buf;
+    buf.writestring("#pragma once\n");
+    buf.writeByte('\n');
+    buf.printf("// Automatically generated by dmd -HC\n");
+    buf.writeByte('\n');
+    buf.writestring("#include <assert.h>\n");
+    buf.writestring("#include <stddef.h>\n");
+    buf.writestring("#include <stdio.h>\n");
+    buf.writestring("#include <string.h>\n");
+    buf.writeByte('\n');
+    buf.writestring("#define _d_void void\n");
+    buf.writestring("#define _d_bool bool\n");
+    buf.writestring("#define _d_byte signed char\n");
+    buf.writestring("#define _d_ubyte unsigned char\n");
+    buf.writestring("#define _d_short short\n");
+    buf.writestring("#define _d_ushort unsigned short\n");
+    buf.writestring("#define _d_int int\n");
+    buf.writestring("#define _d_uint unsigned\n");
+    if (global.params.isLP64)
+    {
+        buf.writestring("#define _d_long long\n");
+        buf.writestring("#define _d_ulong unsigned long\n");
+    }
+    else
+    {
+        buf.writestring("#define _d_long long long\n");
+        buf.writestring("#define _d_ulong unsigned long long\n");
+    }
+    buf.writestring("#define _d_float float\n");
+    buf.writestring("#define _d_double double\n");
+    buf.writestring("#define _d_real long double\n");
+    buf.writestring("#define _d_char char\n");
+    buf.writestring("#define _d_wchar wchar_t\n");
+    buf.writestring("#define _d_dchar unsigned\n");
+    buf.writestring("typedef _d_long d_int64;\n");
+    buf.writestring("\n");
+    buf.writestring("#define _d_null NULL\n");
+    buf.writestring("\n\n");
+
+    OutBuffer check;
+    check.writestring(`
+    #if OFFSETS
+
+    template <class T>
+    size_t getSlotNumber(int dummy, ...)
+    {
+        T c;
+        va_list ap;
+        va_start(ap, dummy);
+        void *f = va_arg(ap, void*);
+        for (size_t i = 0; ; i++)
+        {
+            if ( (*(void***)&c)[i] == f)
+            return i;
+        }
+        va_end(ap);
+    }
+
+    void testOffsets()
+    {
+        `);
+
+        OutBuffer done;
+        OutBuffer decl;
+        scope v = new ToCppBuffer!ASTCodegen(&check, &buf, &done, &decl);
+        foreach (m; ms)
+        {
+            //printf("// Parsing module %s\n", m.toPrettyChars());
+            buf.printf("// Parsing module %s\n", m.toPrettyChars());
+            m.accept(v);
+        }
+        buf.write(&done);
+        buf.write(&decl);
+        //printf("%s\n", decl.peekSlice().ptr);
+
+        check.writestring(`
+    }
+    #endif
+    `);
+
+    debug buf.write(&check);
+
+    if (global.params.cxxhdrname is null)
+    {
+        // Write to stdout; assume it succeeds
+        size_t n = fwrite(buf.data, 1, buf.offset, stdout);
+        assert(n == buf.offset); // keep gcc happy about return values
+    }
+    else
+    {
+        const(char)[] name = FileName.combine(global.params.cxxhdrdir, global.params.cxxhdrname);
+        writeFile(Loc.initial, name, buf.peekSlice());
+    }
+}
 
 /****************************************************
  */
@@ -463,7 +330,6 @@ public:
                 buf.printf("// ignored %s %s\n", s.kind(), s.toPrettyChars());
             }
         }
-
     }
 
     override void visit(AST.Import i)
@@ -509,7 +375,9 @@ public:
             buf.printf("// ignoring %s block because of linkage\n", ld.toPrettyChars());
         }
         else
+        {
             visit(cast(AST.AttribDeclaration)ld);
+        }
         linkage = save;
     }
 
@@ -539,9 +407,8 @@ public:
             return;
         //version(BUILD_COMPILER)
         //{
-            //if (fd.getModule() && !fd.getModule().isFrontendModule())
             if (fd.getModule() && fd.getModule().isIgnoredModule())
-            return;
+                return;
         //}
 
         // printf("FuncDeclaration %s %s\n", fd.toPrettyChars(), fd.type.toChars());
@@ -574,7 +441,7 @@ public:
         if (adparent && fd.vtblIndex != -1)
         {
             if (!fd.isOverride())
-            buf.writestring("virtual ");
+                buf.writestring("virtual ");
 
             auto s = adparent.search(Loc.initial, fd.ident);
             if (!(adparent.storage_class & AST.STC.abstract_) &&
@@ -620,10 +487,9 @@ public:
             scope(exit) printf("[AST.VarDeclaration exit] %s\n", vd.toChars());
         }
         if (cast(void*)vd in visited)
-        return;
+            return;
         //version(BUILD_COMPILER)
         //{
-            //if (vd.getModule() && !vd.getModule().isFrontendModule())
             if (vd.getModule() && vd.getModule().isIgnoredModule())
                 return;
         //}
@@ -697,8 +563,6 @@ public:
 
         if (adparent && vd.type && vd.type.deco)
         {
-            //printf("Here %s\n", vd.toChars());
-            //printf("Za buff\n====\n%s\n====\n", buf.peekChars());
             indent();
             auto save = cdparent;
             cdparent = vd.isField() ? adparent.isClassDeclaration() : null;
@@ -720,7 +584,6 @@ public:
             buf = savex;
             return;
         }
-
         visit(cast(AST.Dsymbol)vd);
     }
 
@@ -742,9 +605,8 @@ public:
         }
         //version(BUILD_COMPILER)
         //{
-            //if (ad.getModule() && !ad.getModule().isFrontendModule())
             if (ad.getModule() && ad.getModule().isIgnoredModule())
-            return;
+                return;
         //}
 
         if (auto t = ad.type)
@@ -763,7 +625,6 @@ public:
         }
         if (!ad.aliassym)
         {
-            //ad.print();
             assert(0);
         }
         if (auto ti = ad.aliassym.isTemplateInstance())
@@ -834,9 +695,8 @@ public:
             return;
         //version(BUILD_COMPILER)
         //{
-            //if (sd.getModule() && !sd.getModule().isFrontendModule())
-        if (sd.getModule() && sd.getModule().isIgnoredModule())
-            return;
+            if (sd.getModule() && sd.getModule().isIgnoredModule())
+                return;
         //}
 
         visited[cast(void*)sd] = true;
@@ -929,7 +789,9 @@ public:
             buf = savex;
         }
         else
+        {
             buf.writestring(";\n\n");
+        }
     }
 
     private void pushAlignToBuffer(uint alignment)
@@ -956,7 +818,6 @@ public:
         {
             buf.writeByte(' ');
         }
-
     }
 
     private void popAlignToBuffer(uint alignment)
@@ -977,7 +838,6 @@ public:
             printf("[includeSymbol(AST.Dsymbol) enter] %s\n", ds.toChars());
             scope(exit) printf("[includeSymbol(AST.Dsymbol) exit] %s\n", ds.toChars());
         }
-        // printf("Forward declaring %s %d\n", ds.toChars(), level);
         if (cast(void*)ds !in visited)
         {
             OutBuffer decl;
@@ -997,14 +857,13 @@ public:
             scope(exit) printf("[AST.ClassDeclaration exit] %s\n", cd.toChars());
         }
         if (cast(void*)cd in visited)
-        return;
+            return;
         //version(BUILD_COMPILER)
         //{
-            //if (cd.getModule() && !cd.getModule().isFrontendModule())
             if (cd.getModule() && cd.getModule().isIgnoredModule())
-            return;
+                return;
             if (cd.isVisitorClass())
-            return;
+                return;
         //}
 
         visited[cast(void*)cd] = true;
@@ -1045,7 +904,9 @@ public:
             buf.writestring("};\n\n");
         }
         else
+        {
             buf.writestring(";\n\n");
+        }
     }
 
     override void visit(AST.EnumDeclaration ed)
@@ -1060,9 +921,8 @@ public:
 
         //version(BUILD_COMPILER)
         //{
-            //if (ed.getModule() && !ed.getModule().isFrontendModule())
             if (ed.getModule() && ed.getModule().isIgnoredModule())
-            return;
+                return;
         //}
 
         visited[cast(void*)ed] = true;
@@ -1083,9 +943,6 @@ public:
             case AST.Tint16, AST.Tuns16:
             case AST.Tint64, AST.Tuns64:
             case AST.Tfloat32, AST.Tfloat64, AST.Tfloat80:
-                //buf.writestring("_d_");
-                //buf.writestring(t.dstring);
-                //printf("Jaa _d_%s\n", ed.memtype.kind);
                 hasBaseType = true;
                 break;
             case AST.Tint32, AST.Tuns32, AST.Tenum: // by default, the base is an int
@@ -1137,19 +994,21 @@ public:
             foreach (i, m; *ed.members)
             {
                 if (i)
-                buf.writestring(",\n");
+                    buf.writestring(",\n");
                 buf.writestring("    ");
                 if (ident && global.params.cplusplus == CppStdRevision.cpp98)
                 {
                     foreach (c; ident[0 .. strlen(ident)])
-                    buf.writeByte(toupper(c));
+                        buf.writeByte(toupper(c));
                 }
                 m.accept(this);
             }
             buf.writestring("\n};\n\n");
         }
         else
+        {
             buf.writestring(";\n\n");
+        }
         //printf("Enum %s min %d max %d\n", ident, ed.minval.toInteger(), ed.maxval.toInteger());
     }
 
@@ -1224,7 +1083,7 @@ public:
             scope(exit) printf("[AST.TypeBasic exit] %s\n", t.toChars());
         }
         if (!cdparent && t.isConst())
-        buf.writestring("const ");
+            buf.writestring("const ");
         switch (t.ty)
         {
             case AST.Tbool, AST.Tvoid:
@@ -1251,16 +1110,16 @@ public:
             scope(exit) printf("[AST.TypePointer exit] %s\n", t.toChars());
         }
         if (t.next.ty == AST.Tstruct &&
-        !strcmp((cast(AST.TypeStruct)t.next).sym.ident.toChars(), "__va_list_tag"))
+            !strcmp((cast(AST.TypeStruct)t.next).sym.ident.toChars(), "__va_list_tag"))
         {
             buf.writestring("va_list");
             return;
         }
         t.next.accept(this);
         if (t.next.ty != AST.Tfunction)
-        buf.writeByte('*');
+            buf.writeByte('*');
         if (!cdparent && t.isConst())
-        buf.writestring(" const");
+            buf.writestring(" const");
     }
 
     override void visit(AST.TypeSArray t)
@@ -1308,7 +1167,7 @@ public:
         if (tf.parameterList.varargs)
         {
             if (tf.parameterList.parameters.dim && tf.parameterList.varargs == 1)
-            buf.writestring(", ");
+                buf.writestring(", ");
             buf.writestring("...");
         }
         buf.writeByte(')');
@@ -1340,7 +1199,9 @@ public:
             }
         }
         else
+        {
             buf.writestring(ed.toChars());
+        }
     }
 
     override void visit(AST.TypeEnum t)
@@ -1360,7 +1221,7 @@ public:
             buf = save;
         }
         if (!cdparent && t.isConst())
-        buf.writestring("const ");
+            buf.writestring("const ");
         enumToBuffer(t.sym);
     }
 
@@ -1371,8 +1232,7 @@ public:
             printf("[AST.TypeStruct enter] %s\n", t.toChars());
             scope(exit) printf("[AST.TypeStruct exit] %s\n", t.toChars());
         }
-        if (cast(void*)t.sym !in forwarded &&
-        !t.sym.parent.isTemplateInstance())
+        if (cast(void*)t.sym !in forwarded && !t.sym.parent.isTemplateInstance())
         {
             forwarded[cast(void*)t.sym] = true;
             fwdbuf.writestring(t.sym.isUnionDeclaration() ? "union " : "struct ");
@@ -1381,7 +1241,7 @@ public:
         }
 
         if (!cdparent && t.isConst())
-        buf.writestring("const ");
+            buf.writestring("const ");
         if (auto ti = t.sym.parent.isTemplateInstance())
         {
             visitTi(ti);
@@ -1398,7 +1258,7 @@ public:
             scope(exit) printf("[AST.TypeDArray exit] %s\n", t.toChars());
         }
         if (!cdparent && t.isConst())
-        buf.writestring("const ");
+            buf.writestring("const ");
         buf.writestring("DArray< ");
         t.next.accept(this);
         buf.writestring(" >");
@@ -1424,13 +1284,15 @@ public:
                 return;
             }
             if (ti.tempdecl.ident == DMDType.Array)
+            {
                 buf.writestring("Array");
+            }
             else
             {
                 foreach (o; *ti.tiargs)
                 {
                     if (!AST.isType(o))
-                    return;
+                        return;
                 }
                 buf.writestring(ti.tempdecl.ident.toChars());
             }
@@ -1448,7 +1310,7 @@ public:
         foreach (i, o; *ti.tiargs)
         {
             if (i)
-            buf.writestring(", ");
+                buf.writestring(", ");
             if (auto tt = AST.isType(o))
             {
                 tt.accept(this);
@@ -1475,7 +1337,6 @@ public:
         visited[cast(void*)td] = true;
         //version(BUILD_COMPILER)
         //{
-            //if (td.getModule() && !td.getModule().isFrontendModule())
             if (td.getModule() && td.getModule().isIgnoredModule())
                 return;
         //}
@@ -1533,7 +1394,9 @@ public:
             buf.writestring("};\n\n");
         }
         else
+        {
             buf.writestring(";\n\n");
+        }
         tdparent = save;
     }
 
@@ -1570,7 +1433,7 @@ public:
         assert(tf.next);
         tf.next.accept(this);
         if (tf.isref)
-        buf.writeByte('&');
+            buf.writeByte('&');
         buf.writeByte(' ');
         buf.writestring(ident.toChars());
 
@@ -1578,14 +1441,14 @@ public:
         foreach (i; 0 .. AST.Parameter.dim(tf.parameterList.parameters))
         {
             if (i)
-            buf.writestring(", ");
+                buf.writestring(", ");
             auto fparam = AST.Parameter.getNth(tf.parameterList.parameters, i);
             fparam.accept(this);
         }
         if (tf.parameterList.varargs)
         {
             if (tf.parameterList.parameters.dim && tf.parameterList.varargs == 1)
-            buf.writestring(", ");
+                buf.writestring(", ");
             buf.writestring("...");
         }
         buf.writeByte(')');
@@ -1638,11 +1501,6 @@ public:
             printf("[AST.Expression enter] %s\n", e.toChars());
             scope(exit) printf("[AST.Expression exit] %s\n", e.toChars());
         }
-        //e.print();
-        //printf("====\n%s\n====\n", e.toChars());
-        //printf("\n=============\n");
-        //printf("%s\n", buf.peekChars());
-        //printf("\n=============\n");
         assert(0);
     }
 
@@ -1675,7 +1533,7 @@ public:
         }
         assert(e.sz == 1 || e.sz == 2);
         if (e.sz == 2)
-        buf.writeByte('L');
+            buf.writeByte('L');
         buf.writeByte('"');
         size_t o = buf.offset;
         for (size_t i = 0; i < e.len; i++)
@@ -1685,21 +1543,26 @@ public:
             {
                 case '"':
                 case '\\':
-                buf.writeByte('\\');
-                goto default;
+                    buf.writeByte('\\');
+                    goto default;
                 default:
-                if (c <= 0xFF)
-                {
-                    if (c <= 0x7F && isprint(c))
-                    buf.writeByte(c);
+                    if (c <= 0xFF)
+                    {
+                        if (c <= 0x7F && isprint(c))
+                            buf.writeByte(c);
+                        else
+                            buf.printf("\\x%02x", c);
+                    }
+                    else if (c <= 0xFFFF)
+                    {
+                        buf.printf("\\x%02x\\x%02x", c & 0xFF, c >> 8);
+                    }
                     else
-                    buf.printf("\\x%02x", c);
-                }
-                else if (c <= 0xFFFF)
-                    buf.printf("\\x%02x\\x%02x", c & 0xFF, c >> 8);
-                else
-                    buf.printf("\\x%02x\\x%02x\\x%02x\\x%02x", c & 0xFF, (c >> 8) & 0xFF, (c >> 16) & 0xFF, c >> 24);
-                break;
+                    {
+                        buf.printf("\\x%02x\\x%02x\\x%02x\\x%02x",
+                                   c & 0xFF, (c >> 8) & 0xFF, (c >> 16) & 0xFF, c >> 24);
+                    }
+                    break;
             }
         }
         buf.writeByte('"');
@@ -1787,203 +1650,9 @@ public:
         foreach(i, e; *sle.elements)
         {
             if (i)
-            buf.writestring(", ");
+                buf.writestring(", ");
             e.accept(this);
         }
         buf.writeByte(')');
-    }
-}
-void genCppFiles(OutBuffer* buf, Modules *ms)
-{
-    import dmd.tokens;
-
-    buf.writeByte('\n');
-    buf.printf("// Automatically generated by dtoh\n");
-    buf.writeByte('\n');
-    buf.writestring("#include <assert.h>\n");
-    buf.writestring("#include <stddef.h>\n");
-    buf.writestring("#include <stdio.h>\n");
-    buf.writestring("#include <string.h>\n");
-    buf.writeByte('\n');
-    buf.writestring("#define _d_void void\n");
-    buf.writestring("#define _d_bool bool\n");
-    buf.writestring("#define _d_byte signed char\n");
-    buf.writestring("#define _d_ubyte unsigned char\n");
-    buf.writestring("#define _d_short short\n");
-    buf.writestring("#define _d_ushort unsigned short\n");
-    buf.writestring("#define _d_int int\n");
-    buf.writestring("#define _d_uint unsigned\n");
-    if (global.params.isLP64)
-    {
-        buf.writestring("#define _d_long long\n");
-        buf.writestring("#define _d_ulong unsigned long\n");
-    }
-    else
-    {
-        buf.writestring("#define _d_long long long\n");
-        buf.writestring("#define _d_ulong unsigned long long\n");
-    }
-    buf.writestring("#define _d_float float\n");
-    buf.writestring("#define _d_double double\n");
-    buf.writestring("#define _d_real long double\n");
-    buf.writestring("#define _d_char char\n");
-    buf.writestring("#define _d_wchar wchar_t\n");
-    buf.writestring("#define _d_dchar unsigned\n");
-    buf.writestring("\n");
-    buf.writestring("#define _d_null NULL\n");
-    buf.writestring("\n");
-    version(BUILD_COMPILER)
-        buf.writestring("struct AA;\n");
-    buf.writestring("\n");
-
-    OutBuffer check;
-    check.writestring(`
-    #if OFFSETS
-
-    template <class T>
-    size_t getSlotNumber(int dummy, ...)
-    {
-        T c;
-        va_list ap;
-        va_start(ap, dummy);
-        void *f = va_arg(ap, void*);
-        for (size_t i = 0; ; i++)
-        {
-            if ( (*(void***)&c)[i] == f)
-            return i;
-        }
-        va_end(ap);
-    }
-
-    void testOffsets()
-    {
-        `);
-
-        OutBuffer done;
-        OutBuffer decl;
-        scope v = new ToCppBuffer!ASTCodegen(&check, buf, &done, &decl);
-        foreach (m; *ms)
-        {
-            buf.printf("// Parsing module %s\n", m.toPrettyChars());
-            m.accept(v);
-        }
-        buf.write(&done);
-        buf.write(&decl);
-
-        check.writestring(`
-    }
-    #endif
-    `);
-
-    debug buf.write(&check);
-}
-
-void gencpphdrfiles(Modules *ms)
-{
-    import dmd.tokens;
-
-    DMDType._init();
-    //version(BUILD_COMPILER)
-    //{
-        DMDModule._init();
-        DMDClass._init();
-    //}
-    setVersions();
-
-    OutBuffer buf;
-    buf.writestring("#pragma once\n");
-    buf.writeByte('\n');
-    buf.printf("// Automatically generated by dmd -HC\n");
-    buf.writeByte('\n');
-    buf.writestring("#include <assert.h>\n");
-    buf.writestring("#include <stddef.h>\n");
-    buf.writestring("#include <stdio.h>\n");
-    buf.writestring("#include <string.h>\n");
-    buf.writeByte('\n');
-    buf.writestring("#define _d_void void\n");
-    buf.writestring("#define _d_bool bool\n");
-    buf.writestring("#define _d_byte signed char\n");
-    buf.writestring("#define _d_ubyte unsigned char\n");
-    buf.writestring("#define _d_short short\n");
-    buf.writestring("#define _d_ushort unsigned short\n");
-    buf.writestring("#define _d_int int\n");
-    buf.writestring("#define _d_uint unsigned\n");
-    if (global.params.isLP64)
-    {
-        buf.writestring("#define _d_long long\n");
-        buf.writestring("#define _d_ulong unsigned long\n");
-    }
-    else
-    {
-        buf.writestring("#define _d_long long long\n");
-        buf.writestring("#define _d_ulong unsigned long long\n");
-    }
-    buf.writestring("#define _d_float float\n");
-    buf.writestring("#define _d_double double\n");
-    buf.writestring("#define _d_real long double\n");
-    buf.writestring("#define _d_char char\n");
-    buf.writestring("#define _d_wchar wchar_t\n");
-    buf.writestring("#define _d_dchar unsigned\n");
-    buf.writestring("typedef _d_long d_int64;\n");
-    buf.writestring("\n");
-    buf.writestring("#define _d_null NULL\n");
-    buf.writestring("\n");
-    //version(BUILD_COMPILER)
-        //buf.writestring("struct AA;\n");
-    buf.writestring("\n");
-
-    OutBuffer check;
-    check.writestring(`
-    #if OFFSETS
-
-    template <class T>
-    size_t getSlotNumber(int dummy, ...)
-    {
-        T c;
-        va_list ap;
-        va_start(ap, dummy);
-        void *f = va_arg(ap, void*);
-        for (size_t i = 0; ; i++)
-        {
-            if ( (*(void***)&c)[i] == f)
-            return i;
-        }
-        va_end(ap);
-    }
-
-    void testOffsets()
-    {
-        `);
-
-        OutBuffer done;
-        OutBuffer decl;
-        scope v = new ToCppBuffer!ASTCodegen(&check, &buf, &done, &decl);
-        foreach (m; *ms)
-        {
-            //printf("// Parsing module %s\n", m.toPrettyChars());
-            buf.printf("// Parsing module %s\n", m.toPrettyChars());
-            m.accept(v);
-        }
-        buf.write(&done);
-        buf.write(&decl);
-        //printf("%s\n", decl.peekSlice().ptr);
-
-        check.writestring(`
-    }
-    #endif
-    `);
-
-    debug buf.write(&check);
-
-    if (global.params.cxxhdrname is null)
-    {
-        // Write to stdout; assume it succeeds
-        size_t n = fwrite(buf.data, 1, buf.offset, stdout);
-        assert(n == buf.offset); // keep gcc happy about return values
-    }
-    else
-    {
-        const(char)[] name = FileName.combine(global.params.cxxhdrdir, global.params.cxxhdrname);
-        writeFile(Loc.initial, name, buf.peekSlice());
     }
 }
