@@ -1736,7 +1736,50 @@ static if (SYMDEB_TDB)
 }
 
 }
+else
+{
+private uint cv4_fwdenum(type* t)
+{
+    Symbol* s = t.Ttag;
 
+    if (s.Stypidx)                 // if reference already generated
+        return s.Stypidx;          // use already existing reference
+
+    // write a forward reference enum record that is enough for the linker to
+    // fold with original definition from EnumDeclaration
+    uint bty = dttab4[tybasic(t.Tnext.Tty)];
+    const id = prettyident(s);
+    uint len = config.fulltypes == CV8 ? 14 : 10;
+    debtyp_t* d = debtyp_alloc(len + cv_stringbytes(id));
+    switch (config.fulltypes)
+    {
+        case CV8:
+            TOWORD(d.data.ptr, LF_ENUM_V3);
+            TOLONG(d.data.ptr + 2, 0);    // count
+            TOWORD(d.data.ptr + 4, 0x80); // property : forward reference
+            TOLONG(d.data.ptr + 6, bty);  // memtype
+            TOLONG(d.data.ptr + 10, 0);   // fieldlist
+            break;
+
+        case CV4:
+            TOWORD(d.data.ptr,LF_ENUM);
+            TOWORD(d.data.ptr + 2, 0);    // count
+            TOWORD(d.data.ptr + 4, bty);  // memtype
+            TOLONG(d.data.ptr + 6, 0);    // fieldlist
+            TOWORD(d.data.ptr + 8, 0x80); // property : forward reference
+            break;
+
+        default:
+            assert(0);
+    }
+    len += cv_namestring(d.data.ptr + len, id);
+    d.length = 0;                    // so cv_debtyp() will allocate new
+    s.Stypidx = cv_debtyp(d);
+    d.length = cast(ushort)len;      // restore length
+    return s.Stypidx;
+}
+
+}
 /************************************************
  * Return 'calling convention' type of function.
  */
@@ -2261,7 +2304,7 @@ version (SCPP)
 }
             }
             else
-                typidx = dttab4[tybasic(t.Tnext.Tty)];
+                typidx = cv4_fwdenum(t);
             break;
 
 version (SCPP)
