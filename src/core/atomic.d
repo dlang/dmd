@@ -66,7 +66,7 @@ enum MemoryOrder
  * Returns:
  *  The value of 'val'.
  */
-T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref T val ) pure nothrow @nogc @trusted
+T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref const T val ) pure nothrow @nogc @trusted
     if ( !is( T == shared U, U ) && !is( T == shared inout U, U ) && !is( T == shared const U, U ) )
 {
     static if ( __traits(isFloating, T) )
@@ -76,11 +76,11 @@ T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref T val ) pure nothrow @nog
         return *cast(T*)&r;
     }
     else
-        return core.internal.atomic.atomicLoad!ms(&val);
+        return core.internal.atomic.atomicLoad!ms(cast(T*)&val);
 }
 
 /// Ditto
-T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref shared T val ) pure nothrow @nogc @trusted
+T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref const shared T val ) pure nothrow @nogc @trusted
     if ( !hasUnsharedIndirections!T )
 {
     import core.internal.traits : hasUnsharedIndirections;
@@ -90,7 +90,7 @@ T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref shared T val ) pure nothr
 }
 
 /// Ditto
-TailShared!T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref shared T val ) pure nothrow @nogc @trusted
+TailShared!T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref const shared T val ) pure nothrow @nogc @trusted
     if ( hasUnsharedIndirections!T )
 {
     // HACK: DEPRECATE THIS FUNCTION, IT IS INVALID TO DO ATOMIC LOAD OF SHARED CLASS
