@@ -44,8 +44,10 @@ void main(string[] args)
         S18984 s = test18984(session, globals);
 
         test19307(session, globals);
-      
+
         test19318(session, globals);
+
+        testE982(session, globals);
 
         source.Release();
         session.Release();
@@ -222,7 +224,7 @@ int foo19307()
     return nested()();
 }
 
-string toUTF8(wstring ws)
+string toUTF8(const(wchar)[] ws)
 {
     string s;
     foreach(dchar c; ws)
@@ -331,6 +333,32 @@ void test19318(IDiaSession session, IDiaSymbol globals)
     int off;
     sym.get_offset(&off);
     assert(off == C19318_px - C19318_capture);
+}
+
+///////////////////////////////////////////////
+enum E982
+{
+    E1, E2, E3
+}
+
+void testE982(IDiaSession session, IDiaSymbol globals)
+{
+    E982 ee = E982.E1;
+
+    IDiaSymbol funcSym = searchSymbol(globals, "testpdb.testE982");
+    funcSym || assert(false, "testpdb.testE982 not found");
+
+    string varName = "testpdb.testE982.ee";
+    IDiaSymbol varSym = searchSymbol(funcSym, "ee");
+    varSym || assert(false, varName ~ " not found");
+
+    IDiaSymbol varType;
+    varSym.get_type(&varType) == S_OK || assert(false, varName ~ ": no type");
+    BSTR typename;
+    varType.get_name(&typename) == S_OK || assert(false, varName ~ ": no type name");
+    scope(exit) SysFreeString(typename);
+    wchar[] wtypename = typename[0..wcslen(typename)];
+    wcscmp(typename, "testpdb.E982") == 0 || assert(false, varName ~ ": unexpected type name " ~ toUTF8(wtypename));
 }
 
 ///////////////////////////////////////////////
