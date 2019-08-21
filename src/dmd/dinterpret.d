@@ -77,13 +77,6 @@ public Expression ctfeInterpret(Expression e)
     if (e.type.ty == Terror)
         return new ErrorExp();
 
-    // This code is outside a function, but still needs to be compiled
-    // (there are compiler-generated temporary variables such as __dollar).
-    // However, this will only be run once and can then be discarded.
-    auto ctfeCodeGlobal = CompiledCtfeFunction(null);
-    ctfeCodeGlobal.callingloc = e.loc;
-    ctfeCodeGlobal.onExpression(e);
-
     Expression result = interpret(e, null);
 
     if (!CTFEExp.isCantExp(result))
