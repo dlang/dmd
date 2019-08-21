@@ -1052,7 +1052,14 @@ private final class CppMangleVisitor : Visitor
             this.context.ti = ti;
             this.context.fd = d;
             this.context.res = d;
-            TypeFunction preSemantic = cast(TypeFunction)d.originalType;
+            TypeFunction preSemantic = cast(TypeFunction)d.originalType.syntaxCopy();
+            foreach (i; 0 .. preSemantic.parameterList.length)
+            {
+                // Hack: copy the rvalue ref status to the pre-semantic type
+                Parameter pparam = preSemantic.parameterList[i];
+                Parameter fparam = tf.parameterList[i];
+                pparam.isCPPRvalueRef = fparam.isCPPRvalueRef;
+            }
             auto nspace = ti.toParent();
             if (nspace && nspace.isNspace())
                 this.writeChained(ti.toParent(), () => source_name(ti, true));
@@ -1667,7 +1674,10 @@ extern(C++):
     {
         if (substitute(t))
             return;
-        buf.writeByte('R');
+        if (t.isRvalueRef)
+            buf.writeByte('O');
+        else
+            buf.writeByte('R');
         auto prev = this.context.push(this.context.res.asType().nextOf());
         scope (exit) this.context.pop(prev);
         t.next.accept(this);

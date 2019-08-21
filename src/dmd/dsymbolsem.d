@@ -3999,7 +3999,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             Parameter param = f.parameterList[i];
             if (param && param.userAttribDecl)
+            {
                 param.userAttribDecl.dsymbolSemantic(sc);
+                udaRvalueRefSemantic(sc, param, funcdecl);
+            }
         }
     }
 
@@ -6471,5 +6474,63 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
         ds.overnext = null;
         if (!ds.overloadInsert(sx))
             ScopeDsymbol.multiplyDefined(Loc.initial, sx, ds);
+    }
+}
+
+/********************************
+ * Semantic of special UDA `rvalue_ref`.
+ * Params:
+ *  sc = scope
+ *  p = function parameter
+ *  fd = function
+ */
+private void udaRvalueRefSemantic(Scope* sc, Parameter p, FuncDeclaration fd)
+{
+    if (!p.userAttribDecl)
+        return;
+
+    /// Returns `true` if expression is the special UDA `rvalue_ref`.
+    static bool isUdaRvalueRef(Expression e)
+    {
+        Type t = e.type;
+        if (!t || !t.isTypeStruct())
+            return false;
+        auto sd = (cast(TypeStruct)t).sym;
+        if (sd.ident != Id.udaRvalueRef || !sd.parent)
+            return false;
+        version (none)
+        {
+            // activate when the UDA is added to druntime
+            Module m = sd.parent.isModule();
+            if (!m || !m.isCoreModule(Id.attribute))
+                return false;
+        }
+        return true;
+    }
+
+    auto udas = p.userAttribDecl.getAttributes();
+    expandTuples(udas);
+    foreach (e; *udas)
+    {
+        assert(e.op != TOK.tuple);
+        if (isUdaRvalueRef(e))
+        {
+            if (fd.linkage != LINK.cpp)
+            {
+                e.error("`@%s` can only apply to C++ function parameters", Id.udaRvalueRef.toChars());
+                return;
+            }
+            if (p.storageClass & STC.autoref)
+            {
+                e.error("`@%s` cannot apply to auto ref parameters", Id.udaRvalueRef.toChars());
+                return;
+            }
+            if (!(p.storageClass & (STC.ref_ | STC.out_)))
+            {
+                e.error("`@%s` can only apply to `ref` or `out` parameters", Id.udaRvalueRef.toChars());
+                return;
+            }
+            p.isCPPRvalueRef = true;
+        }
     }
 }

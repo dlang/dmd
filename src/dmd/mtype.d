@@ -4052,6 +4052,8 @@ extern (C++) final class TypePointer : TypeNext
  */
 extern (C++) final class TypeReference : TypeNext
 {
+    bool isRvalueRef;
+
     extern (D) this(Type t)
     {
         super(Treference, t);
@@ -6367,6 +6369,7 @@ extern (C++) final class Parameter : ASTNode
     Identifier ident;
     Expression defaultArg;
     UserAttributeDeclaration userAttribDecl; // user defined attributes
+    bool isCPPRvalueRef;
 
     extern (D) this(StorageClass storageClass, Type type, Identifier ident, Expression defaultArg, UserAttributeDeclaration userAttribDecl)
     {

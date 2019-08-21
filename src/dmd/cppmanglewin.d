@@ -351,7 +351,10 @@ public:
         if (checkImmutableShared(type))
             return;
 
-        buf.writeByte('A'); // mutable
+        if (type.isRvalueRef)
+            buf.writestring("$$Q"); // rvalue ref
+        else
+            buf.writeByte('A'); // mutable
         if (global.params.is64bit)
             buf.writeByte('E');
         flags |= IS_NOT_TOP_TYPE;
@@ -1232,6 +1235,8 @@ private:
                 if (p.storageClass & (STC.out_ | STC.ref_))
                 {
                     t = t.referenceTo();
+                    if (p.isCPPRvalueRef)
+                        (cast(TypeReference)t).isRvalueRef = true;
                 }
                 else if (p.storageClass & STC.lazy_)
                 {

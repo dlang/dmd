@@ -814,7 +814,11 @@ struct TargetCPP
     {
         Type t = p.type.merge2();
         if (p.storageClass & (STC.out_ | STC.ref_))
+        {
             t = t.referenceTo();
+            if (p.isCPPRvalueRef)
+                (cast(TypeReference)t).isRvalueRef = true;
+        }
         else if (p.storageClass & STC.lazy_)
         {
             // Mangle as delegate

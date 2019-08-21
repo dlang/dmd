@@ -18,6 +18,12 @@ namespace std
 #define TEST_UNICODE
 #endif
 
+#ifdef __DMC__
+// DMC doesn't support c++11
+#else
+#define TEST_RVALUE_REF
+#endif
+
 struct S18784
 {
     int i;
@@ -94,6 +100,31 @@ double             passthrough_ref(double             &value) { return value; }
 S                  passthrough_ref(S                  &value) { return value; }
 std::test19248     passthrough_ref(const std::test19248 &value) { return value; }
 std::test19248_    passthrough_ref(const std::test19248_ &value) { return value; }
+
+#ifdef TEST_RVALUE_REF
+bool               passthrough_rref(bool               &&value) { return value; }
+signed char        passthrough_rref(signed char        &&value) { return value; }
+unsigned char      passthrough_rref(unsigned char      &&value) { return value; }
+char               passthrough_rref(char               &&value) { return value; }
+#ifdef TEST_UNICODE
+char16_t           passthrough_rref(char16_t           &&value) { return value; }
+char32_t           passthrough_rref(char32_t           &&value) { return value; }
+#endif
+wchar_t            passthrough_rref(wchar_t            &&value) { return value; }
+short              passthrough_rref(short              &&value) { return value; }
+unsigned short     passthrough_rref(unsigned short     &&value) { return value; }
+int                passthrough_rref(int                &&value) { return value; }
+unsigned int       passthrough_rref(unsigned int       &&value) { return value; }
+long               passthrough_rref(long               &&value) { return value; }
+unsigned long      passthrough_rref(unsigned long      &&value) { return value; }
+long long          passthrough_rref(long long          &&value) { return value; }
+unsigned long long passthrough_rref(unsigned long long &&value) { return value; }
+float              passthrough_rref(float              &&value) { return value; }
+double             passthrough_rref(double             &&value) { return value; }
+S                  passthrough_rref(S                  &&value) { return value; }
+std::test19248     passthrough_rref(const std::test19248 &&value) { return value; }
+std::test19248_    passthrough_rref(const std::test19248_ &&value) { return value; }
+#endif // TEST_RVALUE_REF
 
 namespace ns1
 {

@@ -439,6 +439,7 @@ immutable Msgtable[] msgtable =
 
     // Compiler recognized UDA's
     { "udaSelector", "selector" },
+    { "udaRvalueRef", "rvalue_ref" },
 
     // C names, for undefined identifier error messages
     { "NULL" },

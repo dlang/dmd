@@ -10,6 +10,8 @@ else version(Windows)
     enum __c_wchar_t : wchar;
 alias wchar_t = __c_wchar_t;
 
+struct rvalue_ref {}
+
 extern(C++) {
 
 struct S
@@ -88,6 +90,25 @@ double passthrough_ref(ref double value);
 S      passthrough_ref(ref S      value);
 test19248 passthrough_ref(ref const(test19248) value);
 std.test19248_ passthrough_ref(ref const(std.test19248_) value);
+
+bool   passthrough_rref(@rvalue_ref ref bool   value);
+byte   passthrough_rref(@rvalue_ref ref byte   value);
+ubyte  passthrough_rref(@rvalue_ref ref ubyte  value);
+char   passthrough_rref(@rvalue_ref ref char   value);
+wchar  passthrough_rref(@rvalue_ref ref wchar  value);
+dchar  passthrough_rref(@rvalue_ref ref dchar  value);
+wchar_t passthrough_rref(@rvalue_ref ref wchar_t value);
+short  passthrough_rref(@rvalue_ref ref short  value);
+ushort passthrough_rref(@rvalue_ref ref ushort value);
+int    passthrough_rref(@rvalue_ref ref int    value);
+uint   passthrough_rref(@rvalue_ref ref uint   value);
+long   passthrough_rref(@rvalue_ref ref long   value);
+ulong  passthrough_rref(@rvalue_ref ref ulong  value);
+float  passthrough_rref(@rvalue_ref ref float  value);
+double passthrough_rref(@rvalue_ref ref double value);
+S      passthrough_rref(@rvalue_ref ref S      value);
+test19248 passthrough_rref(@rvalue_ref ref const(test19248) value);
+std.test19248_ passthrough_rref(@rvalue_ref ref const(std.test19248_) value);
 }
 
 template IsSigned(T)
@@ -136,6 +157,8 @@ void check(T)(T value)
     check(passthrough(value), value);
     check(passthrough_ptr(&value), value);
     check(passthrough_ref(value), value);
+    version (CppRuntime_DigitalMars) {} else
+        check(passthrough_rref(value), value);
 }
 
 T[] values(T)()
