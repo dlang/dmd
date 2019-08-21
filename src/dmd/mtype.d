@@ -3166,7 +3166,7 @@ extern (C++) final class TypeBasic : Type
         return this;
     }
 
-    override d_uns64 size(const ref Loc loc) const
+    override d_uns64 size(const ref Loc loc)/*FIXME: see dmd PR 10319 const*/
     {
         uint size;
         //printf("TypeBasic::size()\n");
@@ -3254,37 +3254,37 @@ extern (C++) final class TypeBasic : Type
         return (flags & TFlags.integral) != 0;
     }
 
-    override bool isfloating() const
+    override bool isfloating()/*FIXME: see dmd PR 10319 const*/
     {
         return (flags & TFlags.floating) != 0;
     }
 
-    override bool isreal() const
+    override bool isreal()/*FIXME: see dmd PR 10319 const*/
     {
         return (flags & TFlags.real_) != 0;
     }
 
-    override bool isimaginary() const
+    override bool isimaginary()/*FIXME: see dmd PR 10319 const*/
     {
         return (flags & TFlags.imaginary) != 0;
     }
 
-    override bool iscomplex() const
+    override bool iscomplex()/*FIXME: see dmd PR 10319 const*/
     {
         return (flags & TFlags.complex) != 0;
     }
 
-    override bool isscalar() const
+    override bool isscalar()/*FIXME: see dmd PR 10319 const*/
     {
         return (flags & (TFlags.integral | TFlags.floating)) != 0;
     }
 
-    override bool isunsigned() const
+    override bool isunsigned()/*FIXME: see dmd PR 10319 const*/
     {
         return (flags & TFlags.unsigned) != 0;
     }
 
-    override bool ischar() const
+    override bool ischar()/*FIXME: see dmd PR 10319 const*/
     {
         return (flags & TFlags.char_) != 0;
     }
@@ -3381,7 +3381,7 @@ extern (C++) final class TypeBasic : Type
         return MATCH.convert;
     }
 
-    override bool isZeroInit(const ref Loc loc) const
+    override bool isZeroInit(const ref Loc loc)/*FIXME: see dmd PR 10319 const*/
     {
         switch (ty)
         {
@@ -3477,7 +3477,7 @@ extern (C++) final class TypeVector : Type
         return basetype.nextOf().isunsigned();
     }
 
-    override bool isBoolean() const
+    override bool isBoolean()/*FIXME: see dmd PR 10319 const*/
     {
         return false;
     }
@@ -3744,13 +3744,13 @@ extern (C++) final class TypeDArray : TypeArray
         return t;
     }
 
-    override d_uns64 size(const ref Loc loc) const
+    override d_uns64 size(const ref Loc loc)/*FIXME: see dmd PR 10319 const*/
     {
         //printf("TypeDArray::size()\n");
         return target.ptrsize * 2;
     }
 
-    override uint alignsize() const
+    override uint alignsize()/*FIXME: see dmd PR 10319 const*/
     {
         // A DArray consists of two ptr-sized values, so align it on pointer size
         // boundary
@@ -3763,12 +3763,12 @@ extern (C++) final class TypeDArray : TypeArray
         return nty == Tchar || nty == Twchar || nty == Tdchar;
     }
 
-    override bool isZeroInit(const ref Loc loc) const
+    override bool isZeroInit(const ref Loc loc)/*FIXME: see dmd PR 10319 const*/
     {
         return true;
     }
 
-    override bool isBoolean() const
+    override bool isBoolean()/*FIXME: see dmd PR 10319 const*/
     {
         return true;
     }
@@ -3802,7 +3802,7 @@ extern (C++) final class TypeDArray : TypeArray
         return Type.implicitConvTo(to);
     }
 
-    override bool hasPointers() const
+    override bool hasPointers()/*FIXME: see dmd PR 10319 const*/
     {
         return true;
     }
@@ -3851,22 +3851,22 @@ extern (C++) final class TypeAArray : TypeArray
         return t;
     }
 
-    override d_uns64 size(const ref Loc loc) const
+    override d_uns64 size(const ref Loc loc)/*FIXME: see dmd PR 10319 const*/
     {
         return target.ptrsize;
     }
 
-    override bool isZeroInit(const ref Loc loc) const
+    override bool isZeroInit(const ref Loc loc)/*FIXME: see dmd PR 10319 const*/
     {
         return true;
     }
 
-    override bool isBoolean() const
+    override bool isBoolean()/*FIXME: see dmd PR 10319 const*/
     {
         return true;
     }
 
-    override bool hasPointers() const
+    override bool hasPointers()/*FIXME: see dmd PR 10319 const*/
     {
         return true;
     }
@@ -3945,7 +3945,7 @@ extern (C++) final class TypePointer : TypeNext
         return t;
     }
 
-    override d_uns64 size(const ref Loc loc) const
+    override d_uns64 size(const ref Loc loc)/*FIXME: see dmd PR 10319 const*/
     {
         return target.ptrsize;
     }
@@ -4029,17 +4029,17 @@ extern (C++) final class TypePointer : TypeNext
         return TypeNext.constConv(to);
     }
 
-    override bool isscalar() const
+    override bool isscalar()/*FIXME: see dmd PR 10319 const*/
     {
         return true;
     }
 
-    override bool isZeroInit(const ref Loc loc) const
+    override bool isZeroInit(const ref Loc loc)/*FIXME: see dmd PR 10319 const*/
     {
         return true;
     }
 
-    override bool hasPointers() const
+    override bool hasPointers()/*FIXME: see dmd PR 10319 const*/
     {
         return true;
     }
@@ -4078,12 +4078,12 @@ extern (C++) final class TypeReference : TypeNext
         return t;
     }
 
-    override d_uns64 size(const ref Loc loc) const
+    override d_uns64 size(const ref Loc loc)/*FIXME: see dmd PR 10319 const*/
     {
         return target.ptrsize;
     }
 
-    override bool isZeroInit(const ref Loc loc) const
+    override bool isZeroInit(const ref Loc loc)/*FIXME: see dmd PR 10319 const*/
     {
         return true;
     }
@@ -5031,12 +5031,12 @@ extern (C++) final class TypeDelegate : TypeNext
         return t;
     }
 
-    override d_uns64 size(const ref Loc loc) const
+    override d_uns64 size(const ref Loc loc)/*FIXME: see dmd PR 10319 const*/
     {
         return target.ptrsize * 2;
     }
 
-    override uint alignsize() const
+    override uint alignsize()/*FIXME: see dmd PR 10319 const*/
     {
         return target.ptrsize;
     }
@@ -5075,17 +5075,17 @@ extern (C++) final class TypeDelegate : TypeNext
         return MATCH.nomatch;
     }
 
-    override bool isZeroInit(const ref Loc loc) const
+    override bool isZeroInit(const ref Loc loc)/*FIXME: see dmd PR 10319 const*/
     {
         return true;
     }
 
-    override bool isBoolean() const
+    override bool isBoolean()/*FIXME: see dmd PR 10319 const*/
     {
         return true;
     }
 
-    override bool hasPointers() const
+    override bool hasPointers()/*FIXME: see dmd PR 10319 const*/
     {
         return true;
     }
@@ -5545,7 +5545,7 @@ extern (C++) final class TypeStruct : Type
         return structinit;
     }
 
-    override bool isZeroInit(const ref Loc loc) const
+    override bool isZeroInit(const ref Loc loc)/*FIXME: see dmd PR 10319 const*/
     {
         return sym.zeroInit;
     }
@@ -5589,12 +5589,12 @@ extern (C++) final class TypeStruct : Type
         return assignable;
     }
 
-    override bool isBoolean() const
+    override bool isBoolean()/*FIXME: see dmd PR 10319 const*/
     {
         return false;
     }
 
-    override bool needsDestruction() const
+    override bool needsDestruction()/*FIXME: see dmd PR 10319 const*/
     {
         return sym.dtor !is null;
     }
@@ -5951,7 +5951,7 @@ extern (C++) final class TypeClass : Type
         return "class";
     }
 
-    override d_uns64 size(const ref Loc loc) const
+    override d_uns64 size(const ref Loc loc)/*FIXME: see dmd PR 10319 const*/
     {
         return target.ptrsize;
     }
@@ -6075,22 +6075,22 @@ extern (C++) final class TypeClass : Type
         return this;
     }
 
-    override bool isZeroInit(const ref Loc loc) const
+    override bool isZeroInit(const ref Loc loc)/*FIXME: see dmd PR 10319 const*/
     {
         return true;
     }
 
-    override bool isscope() const
+    override bool isscope()/*FIXME: see dmd PR 10319 const*/
     {
         return sym.stack;
     }
 
-    override bool isBoolean() const
+    override bool isBoolean()/*FIXME: see dmd PR 10319 const*/
     {
         return true;
     }
 
-    override bool hasPointers() const
+    override bool hasPointers()/*FIXME: see dmd PR 10319 const*/
     {
         return true;
     }
@@ -6319,12 +6319,12 @@ extern (C++) final class TypeNull : Type
         return true;
     }
 
-    override bool isBoolean() const
+    override bool isBoolean()/*FIXME: see dmd PR 10319 const*/
     {
         return true;
     }
 
-    override d_uns64 size(const ref Loc loc) const
+    override d_uns64 size(const ref Loc loc)/*FIXME: see dmd PR 10319 const*/
     {
         return tvoidptr.size(loc);
     }
