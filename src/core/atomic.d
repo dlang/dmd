@@ -385,6 +385,133 @@ in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 }
 
 /**
+* Stores 'writeThis' to the memory referenced by 'here' if the value
+* referenced by 'here' is equal to 'ifThis'.
+* The 'weak' version of cas may spuriously fail. It is recommended to
+* use `casWeak` only when `cas` would be used in a loop.
+* This operation is both
+* lock-free and atomic.
+*
+* Params:
+*  here      = The address of the destination variable.
+*  writeThis = The value to store.
+*  ifThis    = The comparison value.
+*
+* Returns:
+*  true if the store occurred, false if not.
+*/
+bool casWeak(MemoryOrder succ = MemoryOrder.seq,MemoryOrder fail = MemoryOrder.seq,T,V1,V2)(T* here, V1 ifThis, V2 writeThis) pure nothrow @nogc @trusted
+    if (!is(T == shared S, S) && is(T : V1))
+in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
+{
+    // resolve implicit conversions
+    T arg1 = ifThis;
+    T arg2 = writeThis;
+
+    static if (__traits(isFloating, T))
+    {
+        alias IntTy = IntForFloat!T;
+        return atomicCompareExchangeWeakNoResult!(succ, fail)(cast(IntTy*)here, *cast(IntTy*)&arg1, *cast(IntTy*)&arg2);
+    }
+    else
+        return atomicCompareExchangeWeakNoResult!(succ, fail)(here, arg1, arg2);
+}
+
+/// Ditto
+bool casWeak(MemoryOrder succ = MemoryOrder.seq,MemoryOrder fail = MemoryOrder.seq,T,V1,V2)(shared(T)* here, V1 ifThis, V2 writeThis) pure nothrow @nogc @trusted
+    if (!is(T == class) && (is(T : V1) || is(shared T : V1)))
+in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
+{
+    static if (is (V1 == shared U1, U1))
+        alias Thunk1 = U1;
+    else
+        alias Thunk1 = V1;
+    static if (is (V2 == shared U2, U2))
+        alias Thunk2 = U2;
+    else
+    {
+        import core.internal.traits : hasUnsharedIndirections;
+        static assert(!hasUnsharedIndirections!V2, "Copying `" ~ V2.stringof ~ "* writeThis` to `" ~ shared(T).stringof ~ "* here` would violate shared.");
+        alias Thunk2 = V2;
+    }
+    return casWeak!(succ, fail)(cast(T*)here, *cast(Thunk1*)&ifThis, *cast(Thunk2*)&writeThis);
+}
+
+/// Ditto
+bool casWeak(MemoryOrder succ = MemoryOrder.seq,MemoryOrder fail = MemoryOrder.seq,T,V1,V2)(shared(T)* here, shared(V1) ifThis, shared(V2) writeThis) pure nothrow @nogc @trusted
+    if (is(T == class))
+in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
+{
+    return atomicCompareExchangeWeakNoResult!(succ, fail)(cast(T*)here, cast(V1)ifThis, cast(V2)writeThis);
+}
+
+/**
+* Stores 'writeThis' to the memory referenced by 'here' if the value
+* referenced by 'here' is equal to the value referenced by 'ifThis'.
+* The prior value referenced by 'here' is written to `ifThis` and
+* returned to the user.
+* The 'weak' version of cas may spuriously fail. It is recommended to
+* use `casWeak` only when `cas` would be used in a loop.
+* This operation is both lock-free and atomic.
+*
+* Params:
+*  here      = The address of the destination variable.
+*  writeThis = The value to store.
+*  ifThis    = The address of the value to compare, and receives the prior value of `here` as output.
+*
+* Returns:
+*  true if the store occurred, false if not.
+*/
+bool casWeak(MemoryOrder succ = MemoryOrder.seq,MemoryOrder fail = MemoryOrder.seq,T,V)(T* here, T* ifThis, V writeThis) pure nothrow @nogc @trusted
+if (!is(T == shared S, S) && !is(V == shared U, U))
+in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
+{
+    // resolve implicit conversions
+    T arg1 = writeThis;
+
+    static if (__traits(isFloating, T))
+    {
+        alias IntTy = IntForFloat!T;
+        return atomicCompareExchangeWeak!(succ, fail)(cast(IntTy*)here, cast(IntTy*)ifThis, *cast(IntTy*)&writeThis);
+    }
+    else
+        return atomicCompareExchangeWeak!(succ, fail)(here, ifThis, writeThis);
+}
+
+/// Ditto
+bool casWeak(MemoryOrder succ = MemoryOrder.seq,MemoryOrder fail = MemoryOrder.seq,T,V1,V2)(shared(T)* here, V1* ifThis, V2 writeThis) pure nothrow @nogc @trusted
+if (!is(T == class) && (is(T : V1) || is(shared T : V1)))
+in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
+{
+    static if (is (V1 == shared U1, U1))
+        alias Thunk1 = U1;
+    else
+    {
+        import core.internal.traits : hasUnsharedIndirections;
+        static assert(!hasUnsharedIndirections!V1, "Copying `" ~ shared(T).stringof ~ "* here` to `" ~ V1.stringof ~ "* ifThis` would violate shared.");
+        alias Thunk1 = V1;
+    }
+    static if (is (V2 == shared U2, U2))
+        alias Thunk2 = U2;
+    else
+    {
+        import core.internal.traits : hasUnsharedIndirections;
+        static assert(!hasUnsharedIndirections!V2, "Copying `" ~ V2.stringof ~ "* writeThis` to `" ~ shared(T).stringof ~ "* here` would violate shared.");
+        alias Thunk2 = V2;
+    }
+    static assert (is(T : Thunk1), "Mismatching types for `here` and `ifThis`: `" ~ shared(T).stringof ~ "` and `" ~ V1.stringof ~ "`.");
+    return casWeak!(succ, fail)(cast(T*)here, cast(Thunk1*)ifThis, *cast(Thunk2*)&writeThis);
+}
+
+/// Ditto
+bool casWeak(MemoryOrder succ = MemoryOrder.seq,MemoryOrder fail = MemoryOrder.seq,T,V)(shared(T)* here, shared(T)* ifThis, shared(V) writeThis) pure nothrow @nogc @trusted
+if (is(T == class))
+in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
+{
+    return atomicCompareExchangeWeak!(succ, fail)(cast(T*)here, cast(T*)ifThis, cast(V)writeThis);
+}
+
+/**
  * Inserts a full load/store memory fence (on platforms that need it). This ensures
  * that all loads and stores before a call to this function are executed before any
  * loads and stores after the call.
@@ -445,7 +572,7 @@ in (atomicValueIsProperlyAligned(val))
         {
             set = get;
             mixin("set " ~ op ~ " mod;");
-        } while (!casByRef(val, get, set));
+        } while (!casWeakByRef(val, get, set));
         return set;
     }
     else
@@ -539,9 +666,9 @@ private
     }
 
     // TODO: it'd be nice if we had @trusted scopes; we could remove this...
-    bool casByRef(T,V1,V2)(ref T value, V1 ifThis, V2 writeThis) pure nothrow @nogc @trusted
+    bool casWeakByRef(T,V1,V2)(ref T value, ref V1 ifThis, V2 writeThis) pure nothrow @nogc @trusted
     {
-        return cas(&value, ifThis, writeThis);
+        return casWeak(&value, &ifThis, writeThis);
     }
 
     /* Construct a type with a shared tail, and if possible with an unshared
