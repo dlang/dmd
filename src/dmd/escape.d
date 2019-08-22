@@ -1078,6 +1078,10 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
 
         Dsymbol p = v.toParent2();
 
+        // https://issues.dlang.org/show_bug.cgi?id=19965
+        if (!refs && sc.func.vthis == v)
+            notMaybeScope(v);
+
         if ((v.storage_class & (STC.ref_ | STC.out_)) == 0)
         {
             if (p == sc.func)
