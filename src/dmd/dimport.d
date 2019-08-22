@@ -214,7 +214,7 @@ extern (C++) final class Import : Dsymbol
         if (!mod) return; // Failed
 
         mod.importAll(null);
-        if (mod.md && mod.md.isdeprecated)
+        if (mod.md && mod.md.isdeprecated && !sc.isDeprecated)
         {
             Expression msg = mod.md.msg;
             if (StringExp se = msg ? msg.toStringExp() : null)

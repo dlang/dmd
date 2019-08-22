@@ -725,6 +725,10 @@ struct Scope
             if (sc2.stc & STC.deprecated_)
                 return true;
         }
+        if (_module.md && _module.md.isdeprecated)
+        {
+            return true;
+        }
         return false;
     }
 }
