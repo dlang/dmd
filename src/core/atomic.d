@@ -276,7 +276,7 @@ in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
  * Returns:
  *  true if the store occurred, false if not.
  */
-bool cas(T,V1,V2)(T* here, V1 ifThis, V2 writeThis) pure nothrow @nogc @trusted
+bool cas(MemoryOrder succ = MemoryOrder.seq,MemoryOrder fail = MemoryOrder.seq,T,V1,V2)(T* here, V1 ifThis, V2 writeThis) pure nothrow @nogc @trusted
     if (!is(T == shared S, S) && is(T : V1))
 in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 {
@@ -287,14 +287,14 @@ in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
     static if (__traits(isFloating, T))
     {
         alias IntTy = IntForFloat!T;
-        return atomicCompareExchangeStrongNoResult(cast(IntTy*)here, *cast(IntTy*)&arg1, *cast(IntTy*)&arg2);
+        return atomicCompareExchangeStrongNoResult!(succ, fail)(cast(IntTy*)here, *cast(IntTy*)&arg1, *cast(IntTy*)&arg2);
     }
     else
-        return atomicCompareExchangeStrongNoResult(here, arg1, arg2);
+        return atomicCompareExchangeStrongNoResult!(succ, fail)(here, arg1, arg2);
 }
 
 /// Ditto
-bool cas(T,V1,V2)(shared(T)* here, V1 ifThis, V2 writeThis) pure nothrow @nogc @trusted
+bool cas(MemoryOrder succ = MemoryOrder.seq,MemoryOrder fail = MemoryOrder.seq,T,V1,V2)(shared(T)* here, V1 ifThis, V2 writeThis) pure nothrow @nogc @trusted
     if (!is(T == class) && (is(T : V1) || is(shared T : V1)))
 in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 {
@@ -310,15 +310,15 @@ in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
         static assert(!hasUnsharedIndirections!V2, "Copying `" ~ V2.stringof ~ "* writeThis` to `" ~ shared(T).stringof ~ "* here` would violate shared.");
         alias Thunk2 = V2;
     }
-    return cas(cast(T*)here, *cast(Thunk1*)&ifThis, *cast(Thunk2*)&writeThis);
+    return cas!(succ, fail)(cast(T*)here, *cast(Thunk1*)&ifThis, *cast(Thunk2*)&writeThis);
 }
 
 /// Ditto
-bool cas(T,V1,V2)(shared(T)* here, shared(V1) ifThis, shared(V2) writeThis) pure nothrow @nogc @trusted
+bool cas(MemoryOrder succ = MemoryOrder.seq,MemoryOrder fail = MemoryOrder.seq,T,V1,V2)(shared(T)* here, shared(V1) ifThis, shared(V2) writeThis) pure nothrow @nogc @trusted
     if (is(T == class))
 in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 {
-    return atomicCompareExchangeStrongNoResult(cast(T*)here, cast(V1)ifThis, cast(V2)writeThis);
+    return atomicCompareExchangeStrongNoResult!(succ, fail)(cast(T*)here, cast(V1)ifThis, cast(V2)writeThis);
 }
 
 /**
@@ -335,7 +335,7 @@ in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
  * Returns:
  *  true if the store occurred, false if not.
  */
-bool cas(T,V)(T* here, T* ifThis, V writeThis) pure nothrow @nogc @trusted
+bool cas(MemoryOrder succ = MemoryOrder.seq,MemoryOrder fail = MemoryOrder.seq,T,V)(T* here, T* ifThis, V writeThis) pure nothrow @nogc @trusted
     if (!is(T == shared S, S) && !is(V == shared U, U))
 in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 {
@@ -345,14 +345,14 @@ in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
     static if (__traits(isFloating, T))
     {
         alias IntTy = IntForFloat!T;
-        return atomicCompareExchangeStrong(cast(IntTy*)here, cast(IntTy*)ifThis, *cast(IntTy*)&writeThis);
+        return atomicCompareExchangeStrong!(succ, fail)(cast(IntTy*)here, cast(IntTy*)ifThis, *cast(IntTy*)&writeThis);
     }
     else
-        return atomicCompareExchangeStrong(here, ifThis, writeThis);
+        return atomicCompareExchangeStrong!(succ, fail)(here, ifThis, writeThis);
 }
 
 /// Ditto
-bool cas(T,V1,V2)(shared(T)* here, V1* ifThis, V2 writeThis) pure nothrow @nogc @trusted
+bool cas(MemoryOrder succ = MemoryOrder.seq,MemoryOrder fail = MemoryOrder.seq,T,V1,V2)(shared(T)* here, V1* ifThis, V2 writeThis) pure nothrow @nogc @trusted
     if (!is(T == class) && (is(T : V1) || is(shared T : V1)))
 in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 {
@@ -373,15 +373,15 @@ in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
         alias Thunk2 = V2;
     }
     static assert (is(T : Thunk1), "Mismatching types for `here` and `ifThis`: `" ~ shared(T).stringof ~ "` and `" ~ V1.stringof ~ "`.");
-    return cas(cast(T*)here, cast(Thunk1*)ifThis, *cast(Thunk2*)&writeThis);
+    return cas!(succ, fail)(cast(T*)here, cast(Thunk1*)ifThis, *cast(Thunk2*)&writeThis);
 }
 
 /// Ditto
-bool cas(T,V)(shared(T)* here, shared(T)* ifThis, shared(V) writeThis) pure nothrow @nogc @trusted
+bool cas(MemoryOrder succ = MemoryOrder.seq,MemoryOrder fail = MemoryOrder.seq,T,V)(shared(T)* here, shared(T)* ifThis, shared(V) writeThis) pure nothrow @nogc @trusted
     if (is(T == class))
 in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 {
-    return atomicCompareExchangeStrong(cast(T*)here, cast(T*)ifThis, cast(V)writeThis);
+    return atomicCompareExchangeStrong!(succ, fail)(cast(T*)here, cast(T*)ifThis, cast(V)writeThis);
 }
 
 /**
