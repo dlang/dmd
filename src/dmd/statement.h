@@ -100,7 +100,7 @@ enum
     STMTgoto,
     STMTlabel,
     STMTasm, STMTinlineAsm, STMTgccAsm,
-    STMTimport,
+    STMTimport
 };
 
 class Statement : public ASTNode
