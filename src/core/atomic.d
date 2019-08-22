@@ -404,7 +404,7 @@ void atomicFence() nothrow @nogc @safe
  * Returns:
  *  The result of the operation.
  */
-TailShared!T atomicOp(string op, T, V1)(ref shared T val, V1 mod) pure nothrow @nogc @safe
+T atomicOp(string op, T, V1)(ref shared T val, V1 mod) pure nothrow @nogc @safe
     if (__traits(compiles, mixin("*cast(T*)&val" ~ op ~ "mod")))
 in (atomicValueIsProperlyAligned(val))
 {
@@ -420,7 +420,7 @@ in (atomicValueIsProperlyAligned(val))
                 op == "==" || op == "!=" || op == "<"  || op == "<="  ||
                 op == ">"  || op == ">=")
     {
-        TailShared!T get = atomicLoad!(MemoryOrder.raw)(val);
+        T get = atomicLoad!(MemoryOrder.raw, T)(val);
         mixin("return get " ~ op ~ " mod;");
     }
     else
@@ -430,21 +430,20 @@ in (atomicValueIsProperlyAligned(val))
     // |=   ^=  <<= >>= >>>=    ~=
     static if (op == "+=" && __traits(isIntegral, T) && __traits(isIntegral, V1) && T.sizeof <= size_t.sizeof && V1.sizeof <= size_t.sizeof)
     {
-        return cast(T)(atomicFetchAdd!(MemoryOrder.seq, T)(val, mod) + mod);
+        return cast(T)(atomicFetchAdd(val, mod) + mod);
     }
     else static if (op == "-=" && __traits(isIntegral, T) && __traits(isIntegral, V1) && T.sizeof <= size_t.sizeof && V1.sizeof <= size_t.sizeof)
     {
-        return cast(T)(atomicFetchSub!(MemoryOrder.seq, T)(val, mod) - mod);
+        return cast(T)(atomicFetchSub(val, mod) - mod);
     }
     else static if (op == "+=" || op == "-="  || op == "*="  || op == "/=" ||
                 op == "%=" || op == "^^=" || op == "&="  || op == "|=" ||
                 op == "^=" || op == "<<=" || op == ">>=" || op == ">>>=") // skip "~="
     {
-        TailShared!T get, set;
-
+        T set, get = atomicLoad!(MemoryOrder.raw, T)(val);
         do
         {
-            get = set = atomicLoad!(MemoryOrder.raw)(val);
+            set = get;
             mixin("set " ~ op ~ " mod;");
         } while (!casByRef(val, get, set));
         return set;
