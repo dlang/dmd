@@ -357,7 +357,7 @@ void escape15() @safe
     int arg;
     const(void)*[1] argsAddresses;
     argsAddresses[0] = // MUST be an array assignment
-        (ref arg)@trusted{ return cast(const void*) &arg; }(arg);
+        (return ref arg)@trusted{ return cast(const void*) &arg; }(arg);
 }
 
 /******************************************/

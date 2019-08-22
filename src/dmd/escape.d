@@ -1113,8 +1113,9 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
             {
                 inferReturn(sc.func, v);        // infer addition of 'return'
             }
-            else if (global.params.useDIP25 &&
-                     sc._module && sc._module.isRoot())
+
+            if (global.params.useDIP25 &&
+                sc._module && sc._module.isRoot())
             {
                 // https://dlang.org/spec/function.html#return-ref-parameters
                 // Only look for errors if in module listed on command line

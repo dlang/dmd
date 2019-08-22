@@ -121,7 +121,7 @@ ref int fun15192_2(return ref int x) @safe
 ref int foo15193()@safe{
     struct S{
         int x;
-        ref int bar() { return x; }
+        ref int bar() return { return x; }
     }
     S s;
     return s.bar();
@@ -138,7 +138,7 @@ ref int test16226() @safe
 }
 
 
-ref foo16226(ref int bar) @safe
+ref foo16226(return ref int bar) @safe
 {
     return bar;
 }

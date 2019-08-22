@@ -17,10 +17,10 @@ struct S {
     int x;
 
     void bar() { }
-    auto foo() { return &this.bar; }
-    auto def() { return &bar; }
-    auto abc() { return &x; }
-    auto ghi(ref S s) { return &s.bar; }
+    auto foo() return { return &this.bar; }
+    auto def() return { return &bar; }
+    auto abc() return { return &x; }
+    auto ghi(return ref S s) { return &s.bar; }
 }
 
 auto f(S s) {
