@@ -389,9 +389,9 @@ in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
  * that all loads and stores before a call to this function are executed before any
  * loads and stores after the call.
  */
-void atomicFence() nothrow @nogc @safe
+void atomicFence(MemoryOrder order = MemoryOrder.seq)() nothrow @nogc @safe
 {
-    core.internal.atomic.atomicFence();
+    core.internal.atomic.atomicFence!order();
 }
 
 /**
@@ -404,7 +404,7 @@ void atomicFence() nothrow @nogc @safe
  * Returns:
  *  The result of the operation.
  */
-T atomicOp(string op, T, V1)(ref shared T val, V1 mod) pure nothrow @nogc @safe
+TailShared!T atomicOp(string op, T, V1)(ref shared T val, V1 mod) pure nothrow @nogc @safe
     if (__traits(compiles, mixin("*cast(T*)&val" ~ op ~ "mod")))
 in (atomicValueIsProperlyAligned(val))
 {
