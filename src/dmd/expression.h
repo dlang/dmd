@@ -46,13 +46,7 @@ struct Symbol;          // back end symbol
 #endif
 
 void expandTuples(Expressions *exps);
-TupleDeclaration *isAliasThisTuple(Expression *e);
-int expandAliasThisTuples(Expressions *exps, size_t starti = 0);
-bool arrayExpressionSemantic(Expressions *exps, Scope *sc, bool preserveErrors = false);
-TemplateDeclaration *getFuncTemplateDecl(Dsymbol *s);
 bool isTrivialExp(Expression *e);
-
-Expression *toDelegate(Expression *e, Type* t, Scope *sc);
 bool hasSideEffect(Expression *e);
 bool canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow);
 
@@ -335,7 +329,6 @@ public:
 class SuperExp : public ThisExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -649,7 +642,6 @@ public:
 class HaltExp : public Expression
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -705,7 +697,6 @@ public:
 class BinAssignExp : public BinExp
 {
 public:
-
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *ex);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -821,7 +812,6 @@ public:
 class AddrExp : public UnaExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -839,21 +829,18 @@ public:
 class NegExp : public UnaExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class UAddExp : public UnaExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class ComExp : public UnaExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1140,91 +1127,78 @@ public:
 class AddExp : public BinExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class MinExp : public BinExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class CatExp : public BinExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class MulExp : public BinExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class DivExp : public BinExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class ModExp : public BinExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class PowExp : public BinExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class ShlExp : public BinExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class ShrExp : public BinExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class UshrExp : public BinExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class AndExp : public BinExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class OrExp : public BinExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class XorExp : public BinExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1238,14 +1212,12 @@ public:
 class CmpExp : public BinExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class InExp : public BinExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1260,7 +1232,6 @@ public:
 class EqualExp : public BinExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 

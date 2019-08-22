@@ -6391,7 +6391,7 @@ struct ASTBase
     }
 
 
-    extern (C++) static const(char)* protectionToChars(Prot.Kind kind)
+    static const(char)* protectionToChars(Prot.Kind kind)
     {
         final switch (kind)
         {
@@ -6412,7 +6412,7 @@ struct ASTBase
         }
     }
 
-    extern (C++) static bool stcToBuffer(OutBuffer* buf, StorageClass stc)
+    static bool stcToBuffer(OutBuffer* buf, StorageClass stc)
     {
         bool result = false;
         if ((stc & (STC.return_ | STC.scope_)) == (STC.return_ | STC.scope_))
@@ -6436,7 +6436,7 @@ struct ASTBase
         return t.toExpression;
     }
 
-    extern (C++) static const(char)* stcToChars(ref StorageClass stc)
+    static const(char)* stcToChars(ref StorageClass stc)
     {
         struct SCstring
         {
@@ -6499,7 +6499,7 @@ struct ASTBase
         return null;
     }
 
-    extern (C++) static const(char)* linkageToChars(LINK linkage)
+    static const(char)* linkageToChars(LINK linkage)
     {
         final switch (linkage)
         {

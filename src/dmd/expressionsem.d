@@ -328,7 +328,7 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, IntervalExp ie, Expression* p
 /******************************
  * Perform semantic() on an array of Expressions.
  */
-extern (C++) bool arrayExpressionSemantic(Expressions* exps, Scope* sc, bool preserveErrors = false)
+bool arrayExpressionSemantic(Expressions* exps, Scope* sc, bool preserveErrors = false)
 {
     bool err = false;
     if (exps)

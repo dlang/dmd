@@ -114,15 +114,6 @@ enum MODFlags
 };
 typedef unsigned char MOD;
 
-// These tables are for implicit conversion of binary ops;
-// the indices are the type of operand one, followed by operand two.
-extern unsigned char impcnvResult[TMAX][TMAX];
-extern unsigned char impcnvType1[TMAX][TMAX];
-extern unsigned char impcnvType2[TMAX][TMAX];
-
-// If !=0, give warning on implicit conversion
-extern unsigned char impcnvWarn[TMAX][TMAX];
-
 enum VarArg
 {
     VARARGnone     = 0,  /// fixed number of arguments

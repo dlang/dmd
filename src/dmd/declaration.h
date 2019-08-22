@@ -448,9 +448,6 @@ enum BUILTIN
 
 Expression *eval_builtin(Loc loc, FuncDeclaration *fd, Expressions *arguments);
 BUILTIN isBuiltin(FuncDeclaration *fd);
-
-typedef Expression *(*builtin_fp)(Loc loc, FuncDeclaration *fd, Expressions *arguments);
-void add_builtin(const char *mangle, builtin_fp fp);
 void builtin_init();
 
 class FuncDeclaration : public Declaration
