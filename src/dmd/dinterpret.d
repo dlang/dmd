@@ -454,269 +454,212 @@ struct CompiledCtfeFunction
     }
 }
 
-private extern (C++) final class CtfeCompiler : SemanticTimeTransitiveVisitor
+/***************
+ * Transitively walk Statement s, pass Expressions to dgExp(), VarDeclarations to dgVar().
+ * Params:
+ *      s = Statement to traverse
+ *      dgExp = delegate to pass found Expressions to
+ *      dgVar = delegate to pass found VarDeclarations to
+ */
+private void foreachExpAndVar(Statement s,
+        void delegate(Expression) dgExp,
+        void delegate(VarDeclaration) dgVar)
 {
-    alias visit = SemanticTimeTransitiveVisitor.visit;
-public:
-    CompiledCtfeFunction* ccf;
-
-    extern (D) this(CompiledCtfeFunction* ccf)
+    void visit(Statement s)
     {
-        this.ccf = ccf;
-    }
+        void visitExp(ExpStatement s)
+        {
+            if (s.exp)
+                dgExp(s.exp);
+        }
 
-    override void visit(Statement s)
-    {
-        debug (LOGCOMPILE)
+        void visitDtorExp(DtorExpStatement s)
         {
-            printf("%s Statement::ctfeCompile %s\n", s.loc.toChars(), s.toChars());
+            if (s.exp)
+                dgExp(s.exp);
         }
-        assert(0);
-    }
 
-    override void visit(ExpStatement s)
-    {
-        debug (LOGCOMPILE)
+        void visitIf(IfStatement s)
         {
-            printf("%s ExpStatement::ctfeCompile\n", s.loc.toChars());
+            dgExp(s.condition);
+            visit(s.ifbody);
+            visit(s.elsebody);
         }
-        if (s.exp)
-            ccf.onExpression(s.exp);
-    }
 
-    override void visit(IfStatement s)
-    {
-        debug (LOGCOMPILE)
+        void visitDo(DoStatement s)
         {
-            printf("%s IfStatement::ctfeCompile\n", s.loc.toChars());
+            dgExp(s.condition);
+            visit(s._body);
         }
-        ccf.onExpression(s.condition);
-        if (s.ifbody)
-            ctfeCompile(s.ifbody);
-        if (s.elsebody)
-            ctfeCompile(s.elsebody);
-    }
 
-    override void visit(ScopeGuardStatement s)
-    {
-        debug (LOGCOMPILE)
+        void visitFor(ForStatement s)
         {
-            printf("%s ScopeGuardStatement::ctfeCompile\n", s.loc.toChars());
+            visit(s._init);
+            if (s.condition)
+                dgExp(s.condition);
+            if (s.increment)
+                dgExp(s.increment);
+            visit(s._body);
         }
-        // rewritten to try/catch/finally
-        assert(0);
-    }
 
-    override void visit(DoStatement s)
-    {
-        debug (LOGCOMPILE)
+        void visitSwitch(SwitchStatement s)
         {
-            printf("%s DoStatement::ctfeCompile\n", s.loc.toChars());
+            dgExp(s.condition);
+            // Note that the body contains the Case and Default
+            // statements, so we only need to compile the expressions
+            foreach (cs; *s.cases)
+            {
+                dgExp(cs.exp);
+            }
+            visit(s._body);
         }
-        ccf.onExpression(s.condition);
-        if (s._body)
-            ctfeCompile(s._body);
-    }
 
-    override void visit(WhileStatement s)
-    {
-        debug (LOGCOMPILE)
+        void visitCase(CaseStatement s)
         {
-            printf("%s WhileStatement::ctfeCompile\n", s.loc.toChars());
+            visit(s.statement);
         }
-        // rewritten to ForStatement
-        assert(0);
-    }
 
-    override void visit(ForStatement s)
-    {
-        debug (LOGCOMPILE)
+        void visitReturn(ReturnStatement s)
         {
-            printf("%s ForStatement::ctfeCompile\n", s.loc.toChars());
+            if (s.exp)
+                dgExp(s.exp);
         }
-        if (s._init)
-            ctfeCompile(s._init);
-        if (s.condition)
-            ccf.onExpression(s.condition);
-        if (s.increment)
-            ccf.onExpression(s.increment);
-        if (s._body)
-            ctfeCompile(s._body);
-    }
 
-    override void visit(ForeachStatement s)
-    {
-        debug (LOGCOMPILE)
+        void visitCompound(CompoundStatement s)
         {
-            printf("%s ForeachStatement::ctfeCompile\n", s.loc.toChars());
+            if (s.statements)
+            {
+                foreach (s2; *s.statements)
+                {
+                    visit(s2);
+                }
+            }
         }
-        // rewritten for ForStatement
-        assert(0);
-    }
 
-    override void visit(SwitchStatement s)
-    {
-        debug (LOGCOMPILE)
+        void visitCompoundDeclaration(CompoundDeclarationStatement s)
         {
-            printf("%s SwitchStatement::ctfeCompile\n", s.loc.toChars());
+            visitCompound(s);
         }
-        ccf.onExpression(s.condition);
-        // Note that the body contains the the Case and Default
-        // statements, so we only need to compile the expressions
-        foreach (cs; *s.cases)
-        {
-            ccf.onExpression(cs.exp);
-        }
-        if (s._body)
-            ctfeCompile(s._body);
-    }
 
-    override void visit(CaseStatement s)
-    {
-        debug (LOGCOMPILE)
+        void visitUnrolledLoop(UnrolledLoopStatement s)
         {
-            printf("%s CaseStatement::ctfeCompile\n", s.loc.toChars());
+            foreach (s2; *s.statements)
+            {
+                visit(s2);
+            }
         }
-        if (s.statement)
-            ctfeCompile(s.statement);
-    }
 
-    override void visit(GotoDefaultStatement s)
-    {
-        debug (LOGCOMPILE)
+        void visitScope(ScopeStatement s)
         {
-            printf("%s GotoDefaultStatement::ctfeCompile\n", s.loc.toChars());
+            visit(s.statement);
         }
-    }
 
-    override void visit(GotoCaseStatement s)
-    {
-        debug (LOGCOMPILE)
+        void visitDefault(DefaultStatement s)
         {
-            printf("%s GotoCaseStatement::ctfeCompile\n", s.loc.toChars());
+            visit(s.statement);
         }
-    }
 
-    override void visit(SwitchErrorStatement s)
-    {
-        debug (LOGCOMPILE)
+        void visitWith(WithStatement s)
         {
-            printf("%s SwitchErrorStatement::ctfeCompile\n", s.loc.toChars());
+            // If it is with(Enum) {...}, just execute the body.
+            if (s.exp.op == TOK.scope_ || s.exp.op == TOK.type)
+            {
+            }
+            else
+            {
+                dgVar(s.wthis);
+                dgExp(s.exp);
+            }
+            visit(s._body);
         }
-    }
 
-    override void visit(ReturnStatement s)
-    {
-        debug (LOGCOMPILE)
+        void visitTryCatch(TryCatchStatement s)
         {
-            printf("%s ReturnStatement::ctfeCompile\n", s.loc.toChars());
+            visit(s._body);
+            foreach (ca; *s.catches)
+            {
+                if (ca.var)
+                    dgVar(ca.var);
+                visit(ca.handler);
+            }
         }
-        if (s.exp)
-            ccf.onExpression(s.exp);
-    }
 
-    override void visit(BreakStatement s)
-    {
-        debug (LOGCOMPILE)
+        void visitTryFinally(TryFinallyStatement s)
         {
-            printf("%s BreakStatement::ctfeCompile\n", s.loc.toChars());
+            visit(s._body);
+            visit(s.finalbody);
         }
-    }
 
-    override void visit(ContinueStatement s)
-    {
-        debug (LOGCOMPILE)
+        void visitThrow(ThrowStatement s)
         {
-            printf("%s ContinueStatement::ctfeCompile\n", s.loc.toChars());
+            dgExp(s.exp);
         }
-    }
 
-    override void visit(WithStatement s)
-    {
-        debug (LOGCOMPILE)
+        void visitLabel(LabelStatement s)
         {
-            printf("%s WithStatement::ctfeCompile\n", s.loc.toChars());
+            visit(s.statement);
         }
-        // If it is with(Enum) {...}, just execute the body.
-        if (s.exp.op == TOK.scope_ || s.exp.op == TOK.type)
-        {
-        }
-        else
-        {
-            ccf.onDeclaration(s.wthis);
-            ccf.onExpression(s.exp);
-        }
-        if (s._body)
-            ctfeCompile(s._body);
-    }
 
-    override void visit(TryCatchStatement s)
-    {
-        debug (LOGCOMPILE)
+        if (!s)
+            return;
+
+        final switch (s.stmt)
         {
-            printf("%s TryCatchStatement::ctfeCompile\n", s.loc.toChars());
-        }
-        if (s._body)
-            ctfeCompile(s._body);
-        foreach (ca; *s.catches)
-        {
-            if (ca.var)
-                ccf.onDeclaration(ca.var);
-            if (ca.handler)
-                ctfeCompile(ca.handler);
+            case STMT.Exp:                 visitExp(s.isExpStatement()); break;
+            case STMT.DtorExp:             visitDtorExp(s.isDtorExpStatement()); break;
+            case STMT.Compound:            visitCompound(s.isCompoundStatement()); break;
+            case STMT.CompoundDeclaration: visitCompoundDeclaration(s.isCompoundDeclarationStatement()); break;
+            case STMT.UnrolledLoop:        visitUnrolledLoop(s.isUnrolledLoopStatement()); break;
+            case STMT.Scope:               visitScope(s.isScopeStatement()); break;
+            case STMT.Do:                  visitDo(s.isDoStatement()); break;
+            case STMT.For:                 visitFor(s.isForStatement()); break;
+            case STMT.If:                  visitIf(s.isIfStatement()); break;
+            case STMT.Switch:              visitSwitch(s.isSwitchStatement()); break;
+            case STMT.Case:                visitCase(s.isCaseStatement()); break;
+            case STMT.Default:             visitDefault(s.isDefaultStatement()); break;
+            case STMT.Return:              visitReturn(s.isReturnStatement()); break;
+            case STMT.With:                visitWith(s.isWithStatement()); break;
+            case STMT.TryCatch:            visitTryCatch(s.isTryCatchStatement()); break;
+            case STMT.TryFinally:          visitTryFinally(s.isTryFinallyStatement()); break;
+            case STMT.Throw:               visitThrow(s.isThrowStatement()); break;
+            case STMT.Label:               visitLabel(s.isLabelStatement()); break;
+
+            case STMT.CompoundAsm:
+            case STMT.Asm:
+            case STMT.InlineAsm:
+            case STMT.GccAsm:
+
+            case STMT.Break:
+            case STMT.Continue:
+            case STMT.GotoDefault:
+            case STMT.GotoCase:
+            case STMT.SwitchError:
+            case STMT.Goto:
+            case STMT.Pragma:
+            case STMT.Import:
+                break;          // ignore these
+
+            case STMT.ScopeGuard:
+            case STMT.Foreach:
+            case STMT.ForeachRange:
+            case STMT.Debug:
+            case STMT.CaseRange:
+            case STMT.StaticForeach:
+            case STMT.StaticAssert:
+            case STMT.Conditional:
+            case STMT.While:
+            case STMT.Forwarding:
+            case STMT.Error:
+            case STMT.Compile:
+            case STMT.Peel:
+            case STMT.Synchronized:
+                assert(0);              // should have been rewritten
         }
     }
 
-    override void visit(ThrowStatement s)
-    {
-        debug (LOGCOMPILE)
-        {
-            printf("%s ThrowStatement::ctfeCompile\n", s.loc.toChars());
-        }
-        ccf.onExpression(s.exp);
-    }
-
-    override void visit(GotoStatement s)
-    {
-        debug (LOGCOMPILE)
-        {
-            printf("%s GotoStatement::ctfeCompile\n", s.loc.toChars());
-        }
-    }
-
-    override void visit(ImportStatement s)
-    {
-        debug (LOGCOMPILE)
-        {
-            printf("%s ImportStatement::ctfeCompile\n", s.loc.toChars());
-        }
-        // Contains no variables or executable code
-    }
-
-    override void visit(ForeachRangeStatement s)
-    {
-        debug (LOGCOMPILE)
-        {
-            printf("%s ForeachRangeStatement::ctfeCompile\n", s.loc.toChars());
-        }
-        // rewritten for ForStatement
-        assert(0);
-    }
-
-    override void visit(AsmStatement s)
-    {
-        debug (LOGCOMPILE)
-        {
-            printf("%s AsmStatement::ctfeCompile\n", s.loc.toChars());
-        }
-        // we can't compile asm statements
-    }
-
-    void ctfeCompile(Statement s)
-    {
-        s.accept(this);
-    }
+    visit(s);
 }
+
 
 /*************************************
  * Compile this function for CTFE.
@@ -744,8 +687,10 @@ private void ctfeCompile(FuncDeclaration fd)
     }
     if (fd.vresult)
         fd.ctfeCode.onDeclaration(fd.vresult);
-    scope CtfeCompiler v = new CtfeCompiler(fd.ctfeCode);
-    v.ctfeCompile(fd.fbody);
+
+    foreachExpAndVar(fd.fbody,
+        (e) => fd.ctfeCode.onExpression(e),
+        (v) => fd.ctfeCode.onDeclaration(v));
 }
 
 /*************************************
