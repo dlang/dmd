@@ -460,9 +460,30 @@ public:
                 buf = save;
             }
         }
+
         funcToBuffer(tf, fd.ident);
         if (adparent && tf.isConst())
-            buf.writestring(" const");
+        {
+            bool fdOverridesAreConst = true;
+            foreach (fdv; fd.foverrides)
+            {
+                auto tfv = cast(AST.TypeFunction)fdv.type;
+                if (!tfv.isConst())
+                {
+                    fdOverridesAreConst = false;
+                    break;
+                }
+            }
+
+            if (fdOverridesAreConst)
+            {
+                buf.writestring(" const");
+            }
+            else
+            {
+                buf.writestring(" /* const */");
+            }
+        }
         if (adparent && fd.isAbstract())
             buf.writestring(" = 0");
         buf.printf(";\n");
