@@ -1125,7 +1125,7 @@ extern (C++) class FuncDeclaration : Declaration
                     return LevelError;
             }
 
-            s = toParentP(s, fd);
+            s = s.toParentP(fd);
             assert(s);
             level++;
         }
@@ -1906,7 +1906,7 @@ extern (C++) class FuncDeclaration : Declaration
                  * so does f.
                  * Mark all affected functions as requiring closures.
                  */
-                for (Dsymbol s = f; s && s != this; s = toParentP(s, this))
+                for (Dsymbol s = f; s && s != this; s = s.toParentP(this))
                 {
                     FuncDeclaration fx = s.isFuncDeclaration();
                     if (!fx)
@@ -1917,7 +1917,7 @@ extern (C++) class FuncDeclaration : Declaration
 
                         /* Mark as needing closure any functions between this and f
                          */
-                        markAsNeedingClosure((fx == f) ? toParentP(fx, this) : fx, this);
+                        markAsNeedingClosure((fx == f) ? fx.toParentP(this) : fx, this);
 
                         requiresClosure = true;
                     }
@@ -1979,7 +1979,7 @@ extern (C++) class FuncDeclaration : Declaration
                 assert(f !is this);
 
             LcheckAncestorsOfANestedRef:
-                for (Dsymbol s = f; s && s !is this; s = toParentP(s, this))
+                for (Dsymbol s = f; s && s !is this; s = s.toParentP(this))
                 {
                     auto fx = s.isFuncDeclaration();
                     if (!fx)
@@ -3146,7 +3146,7 @@ private bool traverseIndirections(Type ta, Type tb)
  */
 private void markAsNeedingClosure(Dsymbol f, FuncDeclaration outerFunc)
 {
-    for (Dsymbol sx = f; sx && sx != outerFunc; sx = toParentP(sx, outerFunc))
+    for (Dsymbol sx = f; sx && sx != outerFunc; sx = sx.toParentP(outerFunc))
     {
         FuncDeclaration fy = sx.isFuncDeclaration();
         if (fy && fy.closureVars.dim)
@@ -3196,7 +3196,7 @@ private bool checkEscapingSiblings(FuncDeclaration f, FuncDeclaration outerFunc,
             bAnyClosures = true;
         }
 
-        for (auto parent = toParentP(g, outerFunc); parent && parent !is outerFunc; parent = toParentP(parent, outerFunc))
+        for (auto parent = g.toParentP(outerFunc); parent && parent !is outerFunc; parent = parent.toParentP(outerFunc))
         {
             // A parent of the sibling had its address taken.
             // Assume escaping of parent affects its children, so needs propagating.
@@ -3224,60 +3224,6 @@ private bool checkEscapingSiblings(FuncDeclaration f, FuncDeclaration outerFunc,
     }
     //printf("\t%d\n", bAnyClosures);
     return bAnyClosures;
-}
-
-/***
- * Returns true if any of the symbols `p` resides in the enclosing instantiation scope of `s`.
- */
-bool followInstantiationContext(D...)(Dsymbol s, D p)
-{
-    static bool has2This(Dsymbol s)
-    {
-        if (auto f = s.isFuncDeclaration())
-            return f.isThis2;
-        if (auto ad = s.isAggregateDeclaration())
-            return ad.vthis2 !is null;
-        return false;
-    }
-
-    assert(s);
-    if (has2This(s))
-    {
-        assert(p.length);
-        auto parent = s.toParent();
-        while (parent)
-        {
-            auto ti = parent.isTemplateInstance();
-            if (!ti) break;
-            foreach (oarg; *ti.tiargs)
-            {
-                auto sa = getDsymbol(oarg);
-                if (!sa)
-                    continue;
-                sa = sa.toAlias().toParent2();
-                if (!sa)
-                    continue;
-                foreach (ps; p)
-                {
-                    if (sa == ps)
-                        return true;
-                }
-            }
-            parent = ti.tempdecl.toParent();
-        }
-        return false;
-    }
-    return false;
-}
-
-/*
- * Returns the declaration scope scope of `s`
- * unless any of the symbols `p` resides in its enclosing instantiation scope
- * then the latter is returned.
- */
-Dsymbol toParentP(D...)(Dsymbol s, D p)
-{
-    return followInstantiationContext(s, p) ? s.toParent2() : s.toParentLocal();
 }
 
 /***********************************************************

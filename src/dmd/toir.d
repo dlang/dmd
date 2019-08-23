@@ -266,7 +266,7 @@ elem *getEthis(const ref Loc loc, IRState *irs, Dsymbol fd, Dsymbol fdp = null, 
                 assert(thisfd.isNested() || thisfd.vthis);
 
                 // pick one context
-                ethis = fixEthis2(ethis, thisfd, followInstantiationContext(thisfd, ctxt0, ctxt1));
+                ethis = fixEthis2(ethis, thisfd, thisfd.followInstantiationContext(ctxt0, ctxt1));
             }
             else
             {
@@ -290,23 +290,23 @@ elem *getEthis(const ref Loc loc, IRState *irs, Dsymbol fd, Dsymbol fdp = null, 
                 if (!ad.isNested() || !(ad.vthis || ad.vthis2))
                     goto Lnoframe;
 
-                bool i = followInstantiationContext(ad, ctxt0, ctxt1);
+                bool i = ad.followInstantiationContext(ctxt0, ctxt1);
                 const voffset = i ? ad.vthis2.offset : ad.vthis.offset;
                 ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYsize_t, voffset));
                 ethis = el_una(OPind, TYnptr, ethis);
             }
-            if (fdparent == toParentP(s, ctxt0, ctxt1))
+            if (fdparent == s.toParentP(ctxt0, ctxt1))
                 break;
 
             /* Remember that frames for functions that have no
              * nested references are skipped in the linked list
              * of frames.
              */
-            FuncDeclaration fdp2 = toParentP(s, ctxt0, ctxt1).isFuncDeclaration();
+            FuncDeclaration fdp2 = s.toParentP(ctxt0, ctxt1).isFuncDeclaration();
             if (fdp2 && fdp2.hasNestedFrameRefs())
                 ethis = el_una(OPind, TYnptr, ethis);
 
-            s = toParentP(s, ctxt0, ctxt1);
+            s = s.toParentP(ctxt0, ctxt1);
             assert(s);
         }
     }

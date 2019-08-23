@@ -1165,7 +1165,7 @@ extern (C++) abstract class Expression : ASTNode
              */
 
             Dsymbol vparent = v.toParent2();
-            for (Dsymbol s = sc.func; !err && s; s = toParentP(s, vparent))
+            for (Dsymbol s = sc.func; !err && s; s = s.toParentP(vparent))
             {
                 if (s == vparent)
                     break;

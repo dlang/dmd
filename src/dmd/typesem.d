@@ -4209,7 +4209,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                     /* returns: true to continue, false to return */
                     if (f.isThis2)
                     {
-                        if (followInstantiationContext(f, ad))
+                        if (f.followInstantiationContext(ad))
                         {
                             e1 = new VarExp(e.loc, f.vthis);
                             e1 = new PtrExp(e1.loc, e1);
@@ -4244,7 +4244,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                         /* e1 is the 'this' pointer for an inner class: tcd.
                          * Rewrite it as the 'this' pointer for the outer class.
                          */
-                        auto vthis = followInstantiationContext(tcd, ad) ? tcd.vthis2 : tcd.vthis;
+                        auto vthis = tcd.followInstantiationContext(ad) ? tcd.vthis2 : tcd.vthis;
                         e1 = new DotVarExp(e.loc, e1, vthis);
                         e1.type = vthis.type;
                         e1.type = e1.type.addMod(t.mod);
@@ -4253,7 +4253,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
 
                         // Skip up over nested functions, and get the enclosing
                         // class type.
-                        e1 = getThisSkipNestedFuncs(e1.loc, sc, toParentP(tcd, ad), ad, e1, t, d, true);
+                        e1 = getThisSkipNestedFuncs(e1.loc, sc, tcd.toParentP(ad), ad, e1, t, d, true);
                         if (!e1)
                         {
                             e = new VarExp(e.loc, d);

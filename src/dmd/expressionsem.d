@@ -1039,7 +1039,7 @@ L1:
         FuncDeclaration f = hasThis(sc);
         if (f && f.isThis2)
         {
-            if (followInstantiationContext(f, ad))
+            if (f.followInstantiationContext(ad))
             {
                 e1 = new VarExp(loc, f.vthis);
                 e1 = new PtrExp(loc, e1);
@@ -1073,7 +1073,7 @@ L1:
                 /* e1 is the 'this' pointer for an inner class: tcd.
                  * Rewrite it as the 'this' pointer for the outer class.
                  */
-                auto vthis = followInstantiationContext(tcd, ad) ? tcd.vthis2 : tcd.vthis;
+                auto vthis = tcd.followInstantiationContext(ad) ? tcd.vthis2 : tcd.vthis;
                 e1 = new DotVarExp(loc, e1, vthis);
                 e1.type = vthis.type;
                 e1.type = e1.type.addMod(t.mod);
@@ -1082,7 +1082,7 @@ L1:
 
                 // Skip up over nested functions, and get the enclosing
                 // class type.
-                e1 = getThisSkipNestedFuncs(loc, sc, toParentP(tcd, ad), ad, e1, t, var);
+                e1 = getThisSkipNestedFuncs(loc, sc, tcd.toParentP(ad), ad, e1, t, var);
                 if (e1.op == TOK.error)
                     return e1;
                 goto L1;
@@ -11931,9 +11931,9 @@ Expression getThisSkipNestedFuncs(const ref Loc loc, Scope* sc, Dsymbol s, Aggre
                 if (n > 1)
                     e1 = e1.expressionSemantic(sc);
                 e1 = new PtrExp(loc, e1);
-                uint i = followInstantiationContext(f, ad);
+                uint i = f.followInstantiationContext(ad);
                 e1 = new IndexExp(loc, e1, new IntegerExp(i));
-                s = toParentP(f, ad);
+                s = f.toParentP(ad);
                 continue;
             }
         }

@@ -523,6 +523,16 @@ extern (C++) class Dsymbol : ASTNode
         return parent.toParentDeclImpl(localOnly);
     }
 
+    /**
+     * Returns the declaration scope scope of `this` unless any of the symbols
+     * `p1` or `p2` resides in its enclosing instantiation scope then the
+     * latter is returned.
+     */
+    final Dsymbol toParentP(Dsymbol p1, Dsymbol p2 = null)
+    {
+        return followInstantiationContext(p1, p2) ? toParent2() : toParentLocal();
+    }
+
     final inout(TemplateInstance) isInstantiated() inout
     {
         if (!parent)
@@ -531,6 +541,50 @@ extern (C++) class Dsymbol : ASTNode
         if (ti && !ti.isTemplateMixin())
             return ti;
         return parent.isInstantiated();
+    }
+
+    /***
+     * Returns true if any of the symbols `p1` or `p2` resides in the enclosing
+     * instantiation scope of `this`.
+     */
+    final bool followInstantiationContext(Dsymbol p1, Dsymbol p2 = null)
+    {
+        static bool has2This(Dsymbol s)
+        {
+            if (auto f = s.isFuncDeclaration())
+                return f.isThis2;
+            if (auto ad = s.isAggregateDeclaration())
+                return ad.vthis2 !is null;
+            return false;
+        }
+
+        if (has2This(this))
+        {
+            assert(p1);
+            auto outer = toParent();
+            while (outer)
+            {
+                auto ti = outer.isTemplateInstance();
+                if (!ti)
+                    break;
+                foreach (oarg; *ti.tiargs)
+                {
+                    auto sa = getDsymbol(oarg);
+                    if (!sa)
+                        continue;
+                    sa = sa.toAlias().toParent2();
+                    if (!sa)
+                        continue;
+                    if (sa == p1)
+                        return true;
+                    else if (p2 && sa == p2)
+                        return true;
+                }
+                outer = ti.tempdecl.toParent();
+            }
+            return false;
+        }
+        return false;
     }
 
     // Check if this function is a member of a template which has only been
