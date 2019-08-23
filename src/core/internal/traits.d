@@ -66,7 +66,7 @@ template Unqual(T)
 }
 
 // [For internal use]
-package template ModifyTypePreservingTQ(alias Modifier, T)
+template ModifyTypePreservingTQ(alias Modifier, T)
 {
          static if (is(T U ==          immutable U)) alias ModifyTypePreservingTQ =          immutable Modifier!U;
     else static if (is(T U == shared inout const U)) alias ModifyTypePreservingTQ = shared inout const Modifier!U;
@@ -77,6 +77,19 @@ package template ModifyTypePreservingTQ(alias Modifier, T)
     else static if (is(T U ==        inout       U)) alias ModifyTypePreservingTQ =              inout Modifier!U;
     else static if (is(T U ==              const U)) alias ModifyTypePreservingTQ =              const Modifier!U;
     else                                             alias ModifyTypePreservingTQ =                    Modifier!T;
+}
+@safe unittest
+{
+    alias Intify(T) = int;
+    static assert(is(ModifyTypePreservingTQ!(Intify,                    real) ==                    int));
+    static assert(is(ModifyTypePreservingTQ!(Intify,              const real) ==              const int));
+    static assert(is(ModifyTypePreservingTQ!(Intify,        inout       real) ==        inout       int));
+    static assert(is(ModifyTypePreservingTQ!(Intify,        inout const real) ==        inout const int));
+    static assert(is(ModifyTypePreservingTQ!(Intify, shared             real) == shared             int));
+    static assert(is(ModifyTypePreservingTQ!(Intify, shared       const real) == shared       const int));
+    static assert(is(ModifyTypePreservingTQ!(Intify, shared inout       real) == shared inout       int));
+    static assert(is(ModifyTypePreservingTQ!(Intify, shared inout const real) == shared inout const int));
+    static assert(is(ModifyTypePreservingTQ!(Intify,          immutable real) ==          immutable int));
 }
 
 // Substitute all `inout` qualifiers that appears in T to `const`
