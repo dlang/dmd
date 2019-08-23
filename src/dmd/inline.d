@@ -513,7 +513,7 @@ public:
                             result.type = f.vthis.type;
                         }
                         // (*__this)[i]
-                        uint i = followInstantiationContext(f, fdv);
+                        uint i = f.followInstantiationContext(fdv);
                         if (i == 1 && f == ids.fd)
                         {
                             auto ve = cast(VarExp)e.copy();
@@ -527,7 +527,7 @@ public:
                         ie.indexIsInBounds = true; // no runtime bounds checking
                         result = ie;
                         result.type = Type.tvoidptr;
-                        s = toParentP(f, fdv);
+                        s = f.toParentP(fdv);
                         ad = s.isAggregateDeclaration();
                         if (ad)
                             goto Lad;
@@ -539,11 +539,11 @@ public:
                         while (ad)
                         {
                             assert(ad.vthis);
-                            bool i = followInstantiationContext(ad, fdv);
+                            bool i = ad.followInstantiationContext(fdv);
                             auto vthis = i ? ad.vthis2 : ad.vthis;
                             result = new DotVarExp(e.loc, result, vthis);
                             result.type = vthis.type;
-                            s = toParentP(ad, fdv);
+                            s = ad.toParentP(fdv);
                             ad = s.isAggregateDeclaration();
                         }
                     }

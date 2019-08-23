@@ -176,7 +176,7 @@ bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1)
         {
             if (s)
             {
-                s = toParentP(s, var.toParent2());
+                s = s.toParentP(var.toParent2());
                 continue;
             }
         }
