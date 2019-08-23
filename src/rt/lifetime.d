@@ -407,6 +407,22 @@ size_t __arrayPad(size_t size, const TypeInfo tinext) nothrow pure @trusted
 }
 
 /**
+  clear padding that might not be zeroed by the GC (it assumes it is within the
+  requested size from the start, but it is actually at the end of the allocated block)
+  */
+private void __arrayClearPad(ref BlkInfo info, size_t arrsize, size_t padsize) nothrow pure
+{
+    import core.stdc.string;
+    if (padsize > MEDPAD && !(info.attr & BlkAttr.NO_SCAN) && info.base)
+    {
+        if (info.size < PAGESIZE)
+            memset(info.base + arrsize, 0, padsize);
+        else
+            memset(info.base, 0, LARGEPREFIX);
+    }
+}
+
+/**
   allocate an array memory block by applying the proper padding and
   assigning block attributes if not inherited from the existing block
   */
@@ -426,7 +442,10 @@ BlkInfo __arrayAlloc(size_t arrsize, const TypeInfo ti, const TypeInfo tinext) n
     uint attr = (!(tinext.flags & 1) ? BlkAttr.NO_SCAN : 0) | BlkAttr.APPENDABLE;
     if (typeInfoSize)
         attr |= BlkAttr.STRUCTFINAL | BlkAttr.FINALIZE;
-    return GC.qalloc(padded_size, attr, tinext);
+
+    auto bi = GC.qalloc(padded_size, attr, tinext);
+    __arrayClearPad(bi, arrsize, padsize);
+    return bi;
 }
 
 BlkInfo __arrayAlloc(size_t arrsize, ref BlkInfo info, const TypeInfo ti, const TypeInfo tinext)
@@ -436,14 +455,17 @@ BlkInfo __arrayAlloc(size_t arrsize, ref BlkInfo info, const TypeInfo ti, const 
     if (!info.base)
         return __arrayAlloc(arrsize, ti, tinext);
 
+    immutable padsize = __arrayPad(arrsize, tinext);
     bool overflow;
-    auto padded_size = addu(arrsize, __arrayPad(arrsize, tinext), overflow);
+    auto padded_size = addu(arrsize, padsize, overflow);
     if (overflow)
     {
         return BlkInfo();
     }
 
-    return GC.qalloc(padded_size, info.attr, tinext);
+    auto bi = GC.qalloc(padded_size, info.attr, tinext);
+    __arrayClearPad(bi, arrsize, padsize);
+    return bi;
 }
 
 /**
@@ -2714,6 +2736,45 @@ unittest
     {
         auto ptr = cast(S**)(a + 1);
         assert(*ptr != p1); // still same data as p2.ptr4?
+    }
+
+    // small array
+    static struct SArr
+    {
+        void*[10] data;
+    }
+    auto arr1 = new SArr;
+    arr1.data[] = p1;
+    GC.free(arr1);
+
+    // allocates 2*A.sizeof + (void*).sizeof (TypeInfo) + 1 (array length)
+    auto arr2 = new A[2];
+    if (cast(void*)arr1 is cast(void*)arr2.ptr) // reusage not guaranteed
+    {
+        auto ptr = cast(S**)(arr2.ptr + 2);
+        assert(*ptr != p1); // still same data as p2.ptr4?
+    }
+
+    // large array
+    static struct LArr
+    {
+        void*[1023] data;
+    }
+    auto larr1 = new LArr;
+    larr1.data[] = p1;
+    GC.free(larr1);
+
+    auto larr2 = new S[255];
+    if (cast(void*)larr1 is cast(void*)larr2.ptr - LARGEPREFIX) // reusage not guaranteed
+    {
+        auto ptr = cast(S**)larr1;
+        assert(ptr[0] != p1); // 16 bytes array header
+        assert(ptr[1] != p1);
+        version (D_LP64) {} else
+        {
+            assert(ptr[2] != p1);
+            assert(ptr[3] != p1);
+        }
     }
 }
 
