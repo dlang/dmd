@@ -845,7 +845,8 @@ auto getHostDMDPath(string hostDmd)
     {
         if (hostDmd.canFind("/", "\\"))
             return hostDmd;
-        return ["where", hostDmd].execute.output.lineSplitter.front;
+        return ["where", hostDmd].execute.output
+            .lineSplitter.filter!(file => file != srcDir.buildPath("dmd.exe")).front;
     }
     else
         static assert(false, "Unrecognized or unsupported OS.");
