@@ -550,12 +550,12 @@ void parseEnvironment()
     env.getDefault("GIT_HOME", "https://github.com/dlang");
     env.getDefault("SYSCONFDIR", "/etc");
     env.getDefault("TMP", tempDir);
-    auto d = env.getDefault("D", srcDir.buildPath("dmd"));
-    env.getDefault("C", d.buildPath("backend"));
-    env.getDefault("ROOT", d.buildPath("root"));
-    env.getDefault("EX", srcDir.buildPath("examples"));
-    auto generated = env.getDefault("GENERATED", srcDir.dirName.buildPath("generated"));
-    auto g = env.getDefault("G", generated.buildPath(os, build, model));
+    auto d = env["D"] = srcDir.buildPath("dmd");
+    env["C"] = d.buildPath("backend");
+    env["ROOT"] = d.buildPath("root");
+    env["EX"] = srcDir.buildPath("examples");
+    auto generated = env["GENERATED"] = srcDir.dirName.buildPath("generated");
+    auto g = env["G"] = generated.buildPath(os, build, model);
     mkdirRecurse(g);
 
     if (env.get("HOST_DMD", null).length == 0)
