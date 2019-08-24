@@ -2814,14 +2814,16 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
      */
     if (m.last <= MATCH.nomatch)
     {
-        // error was caused on matched function
+        // error was caused on matched function, not on the matching itself,
+        // so return the function to produce a better diagnostic
         if (m.count == 1)
             return m.lastf;
-
-        // if do not print error messages
-        if (flags & FuncResolveFlag.quiet)
-            return null; // no match
     }
+
+    // We are done at this point, as the rest of this function generate
+    // a diagnostic on invalid match
+    if (flags & FuncResolveFlag.quiet)
+        return null;
 
     auto fd = s.isFuncDeclaration();
     auto od = s.isOverDeclaration();
@@ -2857,9 +2859,6 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
             m.nextf.loc.toChars(), m.nextf.toPrettyChars(), nextprms, mod2);
         return null;
     }
-
-    if (flags & FuncResolveFlag.quiet)
-        return null;
 
     // no match, generate an error messages
     if (!fd)
