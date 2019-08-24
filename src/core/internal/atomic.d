@@ -640,9 +640,9 @@ void atomicFence(MemoryOrder order = MemoryOrder.seq)() nothrow @nogc @safe
                 ret;
             }
         }
+        else
+            static assert (false, "Unsupported architecture.");
     }
-    else
-        static assert (false, "Unsupported architecture.");
 }
 
 
