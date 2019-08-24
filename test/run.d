@@ -306,6 +306,10 @@ auto predefinedTargets(string[] targets)
                 newTargets.put(findFiles("compilable").map!createTestTarget);
                 break;
 
+            case "run_dshell_tests", "dshell":
+                newTargets.put(findFiles("dshell").map!createTestTarget);
+                break;
+
             case "all":
                 newTargets ~= createUnitTestTarget();
                 foreach (testDir; testDirs)
