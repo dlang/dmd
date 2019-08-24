@@ -1,5 +1,5 @@
 module core.internal.arrayop;
-import core.internal.traits : Filter, staticMap, TypeTuple, Unqual;
+import core.internal.traits : Filter, staticMap, Unqual;
 
 version (GNU) version = GNU_OR_LDC;
 version (LDC) version = GNU_OR_LDC;

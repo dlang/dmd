@@ -986,7 +986,7 @@ extern (C) void[] _d_newarrayT(const TypeInfo ti, size_t length) pure nothrow
  */
 extern (C) void[] _d_newarrayiT(const TypeInfo ti, size_t length) pure nothrow
 {
-    import core.internal.traits : TypeTuple;
+    import core.internal.traits : AliasSeq;
 
     void[] result = _d_newarrayU(ti, length);
     auto tinext = unqualify(ti.next);
@@ -996,7 +996,7 @@ extern (C) void[] _d_newarrayiT(const TypeInfo ti, size_t length) pure nothrow
 
     switch (init.length)
     {
-    foreach (T; TypeTuple!(ubyte, ushort, uint, ulong))
+    foreach (T; AliasSeq!(ubyte, ushort, uint, ulong))
     {
     case T.sizeof:
         (cast(T*)result.ptr)[0 .. size * length / T.sizeof] = *cast(T*)init.ptr;
