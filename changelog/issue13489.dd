@@ -1,0 +1,12 @@
+Boolean semantic of floating point now respects NaN
+
+Before this change, the following assert would pass:
+---
+assert(double.nan);
+---
+While this is keeping with C and C++ semantic,
+it was also at odds with the rest of the language
+and unintuitive.
+Using floating point numbers (`float`, `double`, `real`)
+as boolean will now be equivalent to checking for `NaN`
+and for `0.0[f]`.

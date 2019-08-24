@@ -1431,6 +1431,23 @@ extern (C++) abstract class Expression : ASTNode
             break;
         }
 
+        // Rewrite floating point types to check for `NaN`
+        // This diverge from C / C++ approach but is more friendly to the user
+        if (t.isfloating() && !t.iscomplex())
+        {
+            if (global.params.vfpbool)
+                message(e.loc, "Expression `%s` implicitly converts `%s` to `bool`",
+                        e.toChars(), t.toChars());
+
+            if (global.params.fixfpbool)
+            {
+                Expression zero = new RealExp(e.loc, CTFloat.zero, e.type);
+                Expression eq = new EqualExp(TOK.equal, e.loc, e, e);
+                Expression nz = new EqualExp(TOK.notEqual, e.loc, e, zero.expressionSemantic(sc));
+                return new AndExp(e.loc, eq, nz).expressionSemantic(sc);
+            }
+        }
+
         if (!t.isBoolean())
         {
             if (tb != Type.terror)

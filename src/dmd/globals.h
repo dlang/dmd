@@ -100,6 +100,8 @@ struct Param
     bool vgc;           // identify gc usage
     bool vfield;        // identify non-mutable field variables
     bool vcomplex;      // identify complex/imaginary type usage
+    bool vfpbool;       // identify usage of floating point types as boolean
+    bool fixfpbool;     // check for NaNs when implicitly converting floating points to boolean
     unsigned char symdebug;  // insert debug symbolic information
     bool symdebugref;   // insert debug information for all referenced types, too
     bool alwaysframe;   // always emit standard stack frame

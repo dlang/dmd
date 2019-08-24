@@ -695,6 +695,8 @@ dmd -cov -unittest myprog.d
             "list all variables going into thread local storage"),
         Feature("vmarkdown", "vmarkdown",
             "list instances of Markdown replacements in Ddoc"),
+        Feature("vfpbool", "vfpbool",
+            "list places where floating-point types are used as boolean"),
     ];
 
     /// Returns all available reverts
@@ -723,6 +725,8 @@ dmd -cov -unittest myprog.d
             "enable rvalue arguments to ref parameters"),
         Feature("nosharedaccess", "noSharedAccess",
             "disable access to shared memory objects"),
+        Feature("fpbool", "fixfpbool",
+            "take `NaN` into account when implicitly converting floating point types to `bool`"),
     ];
 }
 
