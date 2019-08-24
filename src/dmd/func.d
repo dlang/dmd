@@ -2862,95 +2862,91 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
         return null;
 
     // no match, generate an error messages
-    if (!fd && !td && !od)
+    if (!fd)
     {
+        // all of overloads are templates
+        if (td)
+        {
+            .error(loc, "%s `%s.%s` cannot deduce function from argument types `!(%s)%s`, candidates are:",
+                   td.kind(), td.parent.toPrettyChars(), td.ident.toChars(),
+                   tiargsBuf.peekChars(), fargsBuf.peekChars());
+
+            printCandidates(loc, td);
+            return null;
+        }
         /* This case happens when several ctors are mixed in an agregate.
            A (bad) error message is already generated in overloadApply().
            see https://issues.dlang.org/show_bug.cgi?id=19729
         */
+        if (!od)
+            return null;
     }
-    else if (td && !fd) // all of overloads are templates
-    {
-        .error(loc, "%s `%s.%s` cannot deduce function from argument types `!(%s)%s`, candidates are:",
-               td.kind(), td.parent.toPrettyChars(), td.ident.toChars(),
-               tiargsBuf.peekChars(), fargsBuf.peekChars());
 
-        printCandidates(loc, td);
-    }
-    else if (od)
+    if (od)
     {
         .error(loc, "none of the overloads of `%s` are callable using argument types `!(%s)%s`",
                od.ident.toChars(), tiargsBuf.peekChars(), fargsBuf.peekChars());
+        return null;
     }
-    else
+
+    // remove when deprecation period of class allocators and deallocators is over
+    if (fd.isNewDeclaration() && fd.checkDisabled(loc, sc))
+        return null;
+
+    bool hasOverloads = fd.overnext !is null;
+    auto tf = fd.type.toTypeFunction();
+    if (tthis && !MODimplicitConv(tthis.mod, tf.mod)) // modifier mismatch
     {
-        assert(fd);
-
-        // remove when deprecation period of class allocators and deallocators is over
-        if (fd.isNewDeclaration() && fd.checkDisabled(loc, sc))
-            return null;
-
-        bool hasOverloads = fd.overnext !is null;
-        auto tf = fd.type.toTypeFunction();
-        if (tthis && !MODimplicitConv(tthis.mod, tf.mod)) // modifier mismatch
-        {
-            OutBuffer thisBuf, funcBuf;
-            MODMatchToBuffer(&thisBuf, tthis.mod, tf.mod);
-            auto mismatches = MODMatchToBuffer(&funcBuf, tf.mod, tthis.mod);
-            if (hasOverloads)
-            {
-                .error(loc, "none of the overloads of `%s` are callable using a %sobject, candidates are:",
-                       fd.ident.toChars(), thisBuf.peekChars());
-            }
-            else
-            {
-                const(char)* failMessage;
-                functionResolve(m, orig_s, loc, sc, tiargs, tthis, fargs, &failMessage);
-                if (failMessage)
-                {
-                    .error(loc, "%s `%s%s%s` is not callable using argument types `%s`",
-                           fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameterList),
-                           tf.modToChars(), fargsBuf.peekChars());
-                    errorSupplemental(loc, failMessage);
-                }
-                else
-                {
-                    auto fullFdPretty = fd.toPrettyChars();
-                    .error(loc, "%smethod `%s` is not callable using a %sobject",
-                           funcBuf.peekChars(), fullFdPretty,
-                           thisBuf.peekChars());
-
-                    if (mismatches.isNotShared)
-                        .errorSupplemental(loc, "Consider adding `shared` to %s", fullFdPretty);
-                    else if (mismatches.isMutable)
-                        .errorSupplemental(loc, "Consider adding `const` or `inout` to %s", fullFdPretty);
-                }
-            }
-        }
-        else
-        {
-            //printf("tf = %s, args = %s\n", tf.deco, (*fargs)[0].type.deco);
-            if (hasOverloads)
-            {
-                .error(loc, "none of the overloads of `%s` are callable using argument types `%s`, candidates are:",
-                       fd.toChars(), fargsBuf.peekChars());
-            }
-            else
-            {
-                .error(loc, "%s `%s%s%s` is not callable using argument types `%s`",
-                     fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameterList),
-                     tf.modToChars(), fargsBuf.peekChars());
-                // re-resolve to check for supplemental message
-                const(char)* failMessage;
-                functionResolve(m, orig_s, loc, sc, tiargs, tthis, fargs, &failMessage);
-                if (failMessage)
-                    errorSupplemental(loc, failMessage);
-            }
-        }
-
+        OutBuffer thisBuf, funcBuf;
+        MODMatchToBuffer(&thisBuf, tthis.mod, tf.mod);
+        auto mismatches = MODMatchToBuffer(&funcBuf, tf.mod, tthis.mod);
         if (hasOverloads)
+        {
+            .error(loc, "none of the overloads of `%s` are callable using a %sobject, candidates are:",
+                   fd.ident.toChars(), thisBuf.peekChars());
             printCandidates(loc, fd);
+            return null;
+        }
+
+        const(char)* failMessage;
+        functionResolve(m, orig_s, loc, sc, tiargs, tthis, fargs, &failMessage);
+        if (failMessage)
+        {
+            .error(loc, "%s `%s%s%s` is not callable using argument types `%s`",
+                   fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameterList),
+                   tf.modToChars(), fargsBuf.peekChars());
+            errorSupplemental(loc, failMessage);
+            return null;
+        }
+
+        auto fullFdPretty = fd.toPrettyChars();
+        .error(loc, "%smethod `%s` is not callable using a %sobject",
+               funcBuf.peekChars(), fullFdPretty, thisBuf.peekChars());
+
+        if (mismatches.isNotShared)
+            .errorSupplemental(loc, "Consider adding `shared` to %s", fullFdPretty);
+        else if (mismatches.isMutable)
+            .errorSupplemental(loc, "Consider adding `const` or `inout` to %s", fullFdPretty);
+        return null;
     }
+
+    //printf("tf = %s, args = %s\n", tf.deco, (*fargs)[0].type.deco);
+    if (hasOverloads)
+    {
+        .error(loc, "none of the overloads of `%s` are callable using argument types `%s`, candidates are:",
+               fd.toChars(), fargsBuf.peekChars());
+        printCandidates(loc, fd);
+        return null;
+    }
+
+    .error(loc, "%s `%s%s%s` is not callable using argument types `%s`",
+           fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameterList),
+           tf.modToChars(), fargsBuf.peekChars());
+    // re-resolve to check for supplemental message
+    const(char)* failMessage;
+    functionResolve(m, orig_s, loc, sc, tiargs, tthis, fargs, &failMessage);
+    if (failMessage)
+        errorSupplemental(loc, failMessage);
     return null;
 }
 
