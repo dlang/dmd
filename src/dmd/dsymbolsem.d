@@ -1574,7 +1574,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             loadErrored = imp.load(sc);
             if (imp.mod)
+            {
                 imp.mod.importAll(null);
+                imp.mod.checkImportDeprecation(imp.loc, sc);
+            }
         }
         if (imp.mod)
         {
