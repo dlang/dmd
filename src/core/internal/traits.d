@@ -8,11 +8,6 @@
  */
 module core.internal.traits;
 
-
-// TODO: deprecate these old names...?
-alias FieldTypeTuple = Fields;
-
-
 alias AliasSeq(TList...) = TList;
 
 template Fields(T)
@@ -309,7 +304,7 @@ template hasElaborateAssign(S)
     {
         enum hasElaborateAssign = is(typeof(S.init.opAssign(rvalueOf!S))) ||
                                   is(typeof(S.init.opAssign(lvalueOf!S))) ||
-                                  anySatisfy!(.hasElaborateAssign, FieldTypeTuple!S);
+                                  anySatisfy!(.hasElaborateAssign, Fields!S);
     }
     else
     {
