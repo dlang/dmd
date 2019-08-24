@@ -578,18 +578,14 @@ public int runLINK()
         }
 
         // return true if flagp should be ordered in with the library flags
-        static bool flagIsLibraryRelated(const char* flagp)
+        static bool flagIsLibraryRelated(const char* p)
         {
-            const flag = flagp[0 .. strlen(flagp)];
-            bool startsWith(string needle)
-            {
-                return flag.length >= needle.length && flag[0 .. needle.length] == needle;
-            }
+            const flag = p[0 .. strlen(p)];
 
-            return startsWith("-l") || startsWith("-L")
+            return startsWith(p, "-l") || startsWith(p, "-L")
                 || flag == "-(" || flag == "-)"
                 || flag == "--start-group" || flag == "--end-group"
-                || FileName.equalsExt(flagp, "a")
+                || FileName.equalsExt(p, "a")
             ;
         }
 
