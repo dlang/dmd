@@ -8,12 +8,6 @@
  */
 module core.internal.traits;
 
-
-// TODO: deprecate these old names...?
-alias TypeTuple = AliasSeq;
-alias FieldTypeTuple = Fields;
-
-
 alias AliasSeq(TList...) = TList;
 
 template Fields(T)
@@ -148,17 +142,17 @@ template staticIota(int beg, int end)
     {
         static if (beg >= end)
         {
-            alias staticIota = TypeTuple!();
+            alias staticIota = AliasSeq!();
         }
         else
         {
-            alias staticIota = TypeTuple!(+beg);
+            alias staticIota = AliasSeq!(+beg);
         }
     }
     else
     {
         enum mid = beg + (end - beg) / 2;
-        alias staticIota = TypeTuple!(staticIota!(beg, mid), staticIota!(mid, end));
+        alias staticIota = AliasSeq!(staticIota!(beg, mid), staticIota!(mid, end));
     }
 }
 
@@ -310,7 +304,7 @@ template hasElaborateAssign(S)
     {
         enum hasElaborateAssign = is(typeof(S.init.opAssign(rvalueOf!S))) ||
                                   is(typeof(S.init.opAssign(lvalueOf!S))) ||
-                                  anySatisfy!(.hasElaborateAssign, FieldTypeTuple!S);
+                                  anySatisfy!(.hasElaborateAssign, Fields!S);
     }
     else
     {
@@ -427,19 +421,19 @@ template Filter(alias pred, TList...)
 {
     static if (TList.length == 0)
     {
-        alias Filter = TypeTuple!();
+        alias Filter = AliasSeq!();
     }
     else static if (TList.length == 1)
     {
         static if (pred!(TList[0]))
-            alias Filter = TypeTuple!(TList[0]);
+            alias Filter = AliasSeq!(TList[0]);
         else
-            alias Filter = TypeTuple!();
+            alias Filter = AliasSeq!();
     }
     else
     {
         alias Filter =
-            TypeTuple!(
+            AliasSeq!(
                 Filter!(pred, TList[ 0  .. $/2]),
                 Filter!(pred, TList[$/2 ..  $ ]));
     }
@@ -450,16 +444,16 @@ template staticMap(alias F, T...)
 {
     static if (T.length == 0)
     {
-        alias staticMap = TypeTuple!();
+        alias staticMap = AliasSeq!();
     }
     else static if (T.length == 1)
     {
-        alias staticMap = TypeTuple!(F!(T[0]));
+        alias staticMap = AliasSeq!(F!(T[0]));
     }
     else
     {
         alias staticMap =
-            TypeTuple!(
+            AliasSeq!(
                 staticMap!(F, T[ 0  .. $/2]),
                 staticMap!(F, T[$/2 ..  $ ]));
     }
