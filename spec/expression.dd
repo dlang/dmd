@@ -2304,7 +2304,7 @@ void main()
     static if (is(Tup : Template!Args, alias Template, Args...))
     {
         writeln(__traits(isSame, Template, Tuple)); // true
-        writeln(is(Template!(int, long) == Tup));  // true
+        writeln(is(Template!(int, string) == Tup));  // true
         writeln(typeid(Args[0]));  // int
         writeln(typeid(Args[1]));  // immutable(char)[]
     }
