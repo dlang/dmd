@@ -609,11 +609,11 @@ public int runLINK()
                 // link switches with a prepended "-Xlinker" should be
                 // be pushed together to `linkerArgs`
 
-                if (strcmp(p, "-Xlinker") != 0)
+                if (p && p[0] && strcmp(p, "-Xlinker") != 0)
                 {
-                    if (p && p[0] && !flagIsLibraryRelated(p))
+                    if (!flagIsLibraryRelated(p))
                     {
-                        if (strcmp(prior, "-Xlinker") == 0)
+                        if (prior && prior[0] && strcmp(prior, "-Xlinker") == 0)
                             argv.push(p);
                         argv.push(p);
                     }

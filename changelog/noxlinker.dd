@@ -1,0 +1,27 @@
+New `-preview=noXlinker` compiler flag to address issue 6952
+
+On Posix, `dmd` currently passes `-L`-prefixed compiler flags through the linker driver (e.g. `cc`)
+to the linker (e.g. `ld`) by prepending them with `-Xlinker`.  Therefore, it is currently
+not possible to pass flags directly to the linker driver.  Some flags affected by this are
+`-static`, `-nostartfiles`, `-nodefaultlibs`, and `-nostdlib` to name a few.
+
+With this release, a new compiler flag, `-preview=noXlinker`, has been added to remedy
+the issue.  It will prevent the compiler from prepending `-Xlinker` to any `-L`-prefixed flags so
+the user can pass flags direclty to the linker driver.  Users who would like to pass `-L`-prefixed
+flags through the linker driver to the linker should explicitly prepend them with `-L-Xlinker`.
+
+Examples:
+- `dmd -L-nostartfiles` will invoke the linker driver as `cc -Xlinker -nostartfiles` which is not
+correct.
+- `dmd -preview=noXlinker -L-nostartfiles` will invoke the linker driver as `cc -nostartfiles` which
+will achieve the desired result.
+- `dmd -L-e -Lstart` will invoke the linker driver as `cc -Xlinker -e -Xlinker start`.
+- `dmd -preview=noXlinker -L-Xlinker -L-e -L-Xlinker -Lstart` will invoke thee linker driver as
+`cc -Xlinker -e -Xlinker start`.
+
+It is hoped that `-preview=noXlinker` will some day become the default. If and when that happens
+a `-revert=noXlinker` flag can be added to revert back to the old behavior.
+
+See also:
+- $(LINK2 https://issues.dlang.org/show_bug.cgi?id=6952, Issue 6952)
+- $(LINK2 https://gcc.gnu.org/onlinedocs/gcc/Link-Options.html, GCC Link Options)
