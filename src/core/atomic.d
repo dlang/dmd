@@ -113,8 +113,11 @@ TailShared!T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)(ref shared const T 
  *  newval = The value to store.
  */
 void atomicStore(MemoryOrder ms = MemoryOrder.seq, T, V)(ref T val, V newval) pure nothrow @nogc @trusted
-    if (!is(T == shared S, S) && !is(V == shared U, U))
+    if (!is(T == shared) && !is(V == shared))
 {
+    import core.internal.traits : hasElaborateCopyConstructor;
+    static assert (!hasElaborateCopyConstructor!T, "`T` may not have an elaborate copy: atomic operations override regular copying semantics.");
+
     // resolve implicit conversions
     T arg = newval;
 
@@ -163,7 +166,7 @@ void atomicStore(MemoryOrder ms = MemoryOrder.seq, T, V)(ref shared T val, share
  *  The value held previously by `val`.
  */
 T atomicFetchAdd(MemoryOrder ms = MemoryOrder.seq, T)(ref T val, size_t mod) pure nothrow @nogc @trusted
-    if ((__traits(isIntegral, T) || is(T == U*, U)) && !is(T == shared V, V))
+    if ((__traits(isIntegral, T) || is(T == U*, U)) && !is(T == shared))
 in (atomicValueIsProperlyAligned(val))
 {
     static if (is(T == U*, U))
@@ -192,7 +195,7 @@ in (atomicValueIsProperlyAligned(val))
  *  The value held previously by `val`.
  */
 T atomicFetchSub(MemoryOrder ms = MemoryOrder.seq, T)(ref T val, size_t mod) pure nothrow @nogc @trusted
-    if ((__traits(isIntegral, T) || is(T == U*, U)) && !is(T == shared U, U))
+    if ((__traits(isIntegral, T) || is(T == U*, U)) && !is(T == shared))
 in (atomicValueIsProperlyAligned(val))
 {
     static if (is(T == U*, U))
@@ -221,7 +224,7 @@ in (atomicValueIsProperlyAligned(val))
  *  The value held previously by `here`.
  */
 T atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)(T* here, V exchangeWith) pure nothrow @nogc @trusted
-    if (!is(T == shared S, S) && !is(V == shared U, U))
+    if (!is(T == shared) && !is(V == shared))
 in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 {
     // resolve implicit conversions
@@ -242,7 +245,7 @@ TailShared!T atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)(shared(T)* her
     if (!is(T == class))
 in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 {
-    static if (is (V == shared U, U))
+    static if (is (V == shared))
         alias Thunk = U;
     else
     {
@@ -277,7 +280,7 @@ in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
  *  true if the store occurred, false if not.
  */
 bool cas(MemoryOrder succ = MemoryOrder.seq,MemoryOrder fail = MemoryOrder.seq,T,V1,V2)(T* here, V1 ifThis, V2 writeThis) pure nothrow @nogc @trusted
-    if (!is(T == shared S, S) && is(T : V1))
+    if (!is(T == shared) && is(T : V1))
 in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 {
     // resolve implicit conversions
@@ -336,7 +339,7 @@ in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
  *  true if the store occurred, false if not.
  */
 bool cas(MemoryOrder succ = MemoryOrder.seq,MemoryOrder fail = MemoryOrder.seq,T,V)(T* here, T* ifThis, V writeThis) pure nothrow @nogc @trusted
-    if (!is(T == shared S, S) && !is(V == shared U, U))
+    if (!is(T == shared) && !is(V == shared))
 in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 {
     // resolve implicit conversions
@@ -401,7 +404,7 @@ in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 *  true if the store occurred, false if not.
 */
 bool casWeak(MemoryOrder succ = MemoryOrder.seq,MemoryOrder fail = MemoryOrder.seq,T,V1,V2)(T* here, V1 ifThis, V2 writeThis) pure nothrow @nogc @trusted
-    if (!is(T == shared S, S) && is(T : V1))
+    if (!is(T == shared) && is(T : V1))
 in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 {
     // resolve implicit conversions
