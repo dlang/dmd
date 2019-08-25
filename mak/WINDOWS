@@ -135,6 +135,9 @@ $(IMPDIR)\core\internal\convert.d : src\core\internal\convert.d
 $(IMPDIR)\core\internal\dassert.d : src\core\internal\dassert.d
 	copy $** $@
 
+$(IMPDIR)\core\internal\entrypoint.d : src\core\internal\entrypoint.d
+	copy $** $@
+
 $(IMPDIR)\core\internal\hash.d : src\core\internal\hash.d
 	copy $** $@
 
