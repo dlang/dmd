@@ -10,8 +10,7 @@
 
 #pragma once
 
-#include <stddef.h>
-
+#include "root/dsystem.h"
 #include "arraytypes.h"
 
 class AggregateDeclaration;
