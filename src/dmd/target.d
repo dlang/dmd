@@ -650,6 +650,22 @@ extern (C++) struct Target
     {
         return global.params.is64bit || global.params.isOSX;
     }
+
+    /**
+     * Returns:
+     *  true if generating code for POSIX
+     */
+    extern (D) @property bool isPOSIX() scope const nothrow @nogc
+    out(result) { assert(result || global.params.isWindows); }
+    do
+    {
+        return global.params.isLinux
+            || global.params.isOSX
+            || global.params.isFreeBSD
+            || global.params.isOpenBSD
+            || global.params.isDragonFlyBSD
+            || global.params.isSolaris;
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
