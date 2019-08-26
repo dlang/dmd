@@ -144,7 +144,7 @@ public Expression ctfeInterpretForPragmaMsg(Expression e)
 
 public extern (C++) Expression getValue(VarDeclaration vd)
 {
-    return ctfeStack.getValue(vd);
+    return ctfeGlobals.stack.getValue(vd);
 }
 
 /*************************************************
@@ -168,7 +168,7 @@ public extern (C++) void printCtfePerformanceStats()
     debug (SHOWPERFORMANCE)
     {
         printf("        ---- CTFE Performance ----\n");
-        printf("max call depth = %d\tmax stack = %d\n", CtfeStatus.maxCallDepth, ctfeStack.maxStackUsage());
+        printf("max call depth = %d\tmax stack = %d\n", CtfeStatus.maxCallDepth, ctfeGlobals.stack.maxStackUsage());
         printf("array allocs = %d\tassignments = %d\n\n", CtfeStatus.numArrayAllocs, CtfeStatus.numAssignments);
     }
 }
@@ -193,6 +193,8 @@ struct CtfeGlobals
 {
     Region region;
     int count;          // reference count CtfeGlobals instance
+
+    CtfeStack stack;
 }
 
 __gshared CtfeGlobals ctfeGlobals;
@@ -375,8 +377,6 @@ private struct InterState
      */
     Statement gotoTarget;
 }
-
-private __gshared CtfeStack ctfeStack;
 
 /***********************************************************
  * CTFE-object code for a single function
@@ -769,7 +769,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
     // Func literals report isNested() even if they are in global scope,
     // so we need to check that the parent is a function.
     if (fd.isNested() && fd.toParentLocal().isFuncDeclaration() && !thisarg && istate)
-        thisarg = ctfeStack.getThis();
+        thisarg = ctfeGlobals.stack.getThis();
 
     if (fd.needThis() && !thisarg)
     {
@@ -860,7 +860,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
         }
         auto elements = new Expressions(2);
         (*elements)[0] = arg0;
-        (*elements)[1] = ctfeStack.getThis();
+        (*elements)[1] = ctfeGlobals.stack.getThis();
         Type t2 = Type.tvoidptr.sarrayOf(2);
         const loc = thisarg ? thisarg.loc : fd.loc;
         thisarg = new ArrayLiteralExp(loc, t2, elements);
@@ -868,10 +868,10 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
         thisarg.type = t2.pointerTo();
     }
 
-    ctfeStack.startFrame(thisarg);
+    ctfeGlobals.stack.startFrame(thisarg);
     if (fd.vthis && thisarg)
     {
-        ctfeStack.push(fd.vthis);
+        ctfeGlobals.stack.push(fd.vthis);
         setValue(fd.vthis, thisarg);
     }
 
@@ -884,7 +884,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
         {
             printf("arg[%d] = %s\n", i, earg.toChars());
         }
-        ctfeStack.push(v);
+        ctfeGlobals.stack.push(v);
 
         if ((fparam.storageClass & (STC.out_ | STC.ref_)) && earg.op == TOK.variable &&
             (cast(VarExp)earg).var.toParent2() == fd)
@@ -910,7 +910,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
              */
             int oldadr = vx.ctfeAdrOnStack;
 
-            ctfeStack.push(vx);
+            ctfeGlobals.stack.push(vx);
             assert(!hasValue(vx)); // vx is made uninitialized
 
             // https://issues.dlang.org/show_bug.cgi?id=14299
@@ -937,7 +937,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
     }
 
     if (fd.vresult)
-        ctfeStack.push(fd.vresult);
+        ctfeGlobals.stack.push(fd.vresult);
 
     // Enter the function
     ++CtfeStatus.callDepth;
@@ -1015,7 +1015,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
     // Leave the function
     --CtfeStatus.callDepth;
 
-    ctfeStack.endFrame();
+    ctfeGlobals.stack.endFrame();
 
     // If it generated an uncaught exception, report error.
     if (!istate && e.op == TOK.thrownException)
@@ -1253,7 +1253,7 @@ public:
                         eaddr.e1 = x;
                     continue;
                 }
-                if (ctfeStack.isInCurrentFrame(v))
+                if (ctfeGlobals.stack.isInCurrentFrame(v))
                 {
                     error(loc, "returning a pointer to a local stack variable");
                     return false;
@@ -1754,7 +1754,7 @@ public:
                 // Execute the handler
                 if (ca.var)
                 {
-                    ctfeStack.push(ca.var);
+                    ctfeGlobals.stack.push(ca.var);
                     setValue(ca.var, ex.thrown);
                 }
                 e = interpret(ca.handler, istate);
@@ -1938,7 +1938,7 @@ public:
         {
             e = new AddrExp(s.loc, e, s.wthis.type);
         }
-        ctfeStack.push(s.wthis);
+        ctfeGlobals.stack.push(s.wthis);
         setValue(s.wthis, e);
         e = interpret(s._body, istate);
         if (CTFEExp.isGotoExp(e))
@@ -1959,7 +1959,7 @@ public:
                 e = ex;
             }
         }
-        ctfeStack.pop(s.wthis);
+        ctfeGlobals.stack.pop(s.wthis);
         result = e;
     }
 
@@ -2042,7 +2042,7 @@ public:
             return;
         }
 
-        result = ctfeStack.getThis();
+        result = ctfeGlobals.stack.getThis();
         if (result)
         {
             if (istate && istate.fd.isThis2)
@@ -2371,7 +2371,7 @@ public:
                      * Mark as "cached", and use it directly during interpretation.
                      */
                     e = scrubCacheValue(e);
-                    ctfeStack.saveGlobalConstant(v, e);
+                    ctfeGlobals.stack.saveGlobalConstant(v, e);
                 }
                 else
                 {
@@ -2540,7 +2540,7 @@ public:
                     if (v2.isDataseg() && !v2.isCTFE())
                         continue;
 
-                    ctfeStack.push(v2);
+                    ctfeGlobals.stack.push(v2);
                     if (v2._init)
                     {
                         Expression einit;
@@ -2572,7 +2572,7 @@ public:
                 return;
             }
             if (!(v.isDataseg() || v.storage_class & STC.manifest) || v.isCTFE())
-                ctfeStack.push(v);
+                ctfeGlobals.stack.push(v);
             if (v._init)
             {
                 if (ExpInitializer ie = v._init.isExpInitializer())
@@ -4181,25 +4181,25 @@ public:
                 if (se.lengthVar)
                 {
                     Expression dollarExp = new IntegerExp(e1.loc, dollar, Type.tsize_t);
-                    ctfeStack.push(se.lengthVar);
+                    ctfeGlobals.stack.push(se.lengthVar);
                     setValue(se.lengthVar, dollarExp);
                 }
                 Expression lwr = interpret(se.lwr, istate);
                 if (exceptionOrCantInterpret(lwr))
                 {
                     if (se.lengthVar)
-                        ctfeStack.pop(se.lengthVar);
+                        ctfeGlobals.stack.pop(se.lengthVar);
                     return lwr;
                 }
                 Expression upr = interpret(se.upr, istate);
                 if (exceptionOrCantInterpret(upr))
                 {
                     if (se.lengthVar)
-                        ctfeStack.pop(se.lengthVar);
+                        ctfeGlobals.stack.pop(se.lengthVar);
                     return upr;
                 }
                 if (se.lengthVar)
-                    ctfeStack.pop(se.lengthVar); // $ is defined only in [L..U]
+                    ctfeGlobals.stack.pop(se.lengthVar); // $ is defined only in [L..U]
 
                 const dim = dollar;
                 lowerbound = lwr ? lwr.toInteger() : 0;
@@ -5136,7 +5136,7 @@ public:
         InterState istateComma;
         if (!istate && firstComma(e.e1).op == TOK.declaration)
         {
-            ctfeStack.startFrame(null);
+            ctfeGlobals.stack.startFrame(null);
             istate = &istateComma;
         }
 
@@ -5144,7 +5144,7 @@ public:
         {
             // If we created a temporary stack frame, end it now.
             if (istate == &istateComma)
-                ctfeStack.endFrame();
+                ctfeGlobals.stack.endFrame();
         }
 
         result = CTFEExp.cantexp;
@@ -5158,7 +5158,7 @@ public:
         {
             VarExp ve = cast(VarExp)e.e2;
             VarDeclaration v = ve.var.isVarDeclaration();
-            ctfeStack.push(v);
+            ctfeGlobals.stack.push(v);
             if (!v._init && !getValue(v))
             {
                 setValue(v, copyLiteral(v.type.defaultInitLiteral(e.loc)).copy());
@@ -5440,12 +5440,12 @@ public:
         if (e.lengthVar)
         {
             Expression dollarExp = new IntegerExp(e.loc, len, Type.tsize_t);
-            ctfeStack.push(e.lengthVar);
+            ctfeGlobals.stack.push(e.lengthVar);
             setValue(e.lengthVar, dollarExp);
         }
         Expression e2 = interpret(e.e2, istate);
         if (e.lengthVar)
-            ctfeStack.pop(e.lengthVar); // $ is defined only inside []
+            ctfeGlobals.stack.pop(e.lengthVar); // $ is defined only inside []
         if (exceptionOrCantInterpret(e2))
             return false;
         if (e2.op != TOK.int64)
@@ -5720,7 +5720,7 @@ public:
         if (e.lengthVar)
         {
             auto dollarExp = new IntegerExp(e.loc, dollar, Type.tsize_t);
-            ctfeStack.push(e.lengthVar);
+            ctfeGlobals.stack.push(e.lengthVar);
             setValue(e.lengthVar, dollarExp);
         }
 
@@ -5730,18 +5730,18 @@ public:
         if (exceptionOrCant(lwr))
         {
             if (e.lengthVar)
-                ctfeStack.pop(e.lengthVar);
+                ctfeGlobals.stack.pop(e.lengthVar);
             return;
         }
         Expression upr = interpret(e.upr, istate);
         if (exceptionOrCant(upr))
         {
             if (e.lengthVar)
-                ctfeStack.pop(e.lengthVar);
+                ctfeGlobals.stack.pop(e.lengthVar);
             return;
         }
         if (e.lengthVar)
-            ctfeStack.pop(e.lengthVar); // $ is defined only inside [L..U]
+            ctfeGlobals.stack.pop(e.lengthVar); // $ is defined only inside [L..U]
 
         uinteger_t ilwr = lwr.toInteger();
         uinteger_t iupr = upr.toInteger();
@@ -7548,7 +7548,7 @@ private bool hasValue(VarDeclaration vd)
 // Don't check for validity
 private void setValueWithoutChecking(VarDeclaration vd, Expression newval)
 {
-    ctfeStack.setValue(vd, newval);
+    ctfeGlobals.stack.setValue(vd, newval);
 }
 
 private void setValue(VarDeclaration vd, Expression newval)
@@ -7561,7 +7561,7 @@ private void setValue(VarDeclaration vd, Expression newval)
         }
     }
     assert((vd.storage_class & (STC.out_ | STC.ref_)) ? isCtfeReferenceValid(newval) : isCtfeValueValid(newval));
-    ctfeStack.setValue(vd, newval);
+    ctfeGlobals.stack.setValue(vd, newval);
 }
 
 /**
