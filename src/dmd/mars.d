@@ -702,8 +702,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             if (params.verbose)
                 message("code      %s", m.toChars());
             genObjFile(m, false);
-            if (entrypoint && m == rootHasMain)
-                genObjFile(entrypoint, false);
         }
         if (!global.errors && firstm)
         {
@@ -720,8 +718,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
                 message("code      %s", m.toChars());
             obj_start(m.srcfile.toChars());
             genObjFile(m, params.multiobj);
-            if (entrypoint && m == rootHasMain)
-                genObjFile(entrypoint, params.multiobj);
             obj_end(library, m.objfile.toChars());
             obj_write_deferred(library);
             if (global.errors && !params.lib)
