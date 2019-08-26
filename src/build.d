@@ -711,6 +711,7 @@ auto sourceFiles()
         "hash",
         "outbuffer",
         "port",
+        "region",
         "rmem",
         "rootobject",
         "stringtable",

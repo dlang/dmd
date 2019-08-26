@@ -37,6 +37,7 @@ import dmd.init;
 import dmd.initsem;
 import dmd.mtype;
 import dmd.root.array;
+import dmd.root.region;
 import dmd.root.rootobject;
 import dmd.statement;
 import dmd.tokens;
@@ -77,12 +78,20 @@ public Expression ctfeInterpret(Expression e)
     if (e.type.ty == Terror)
         return new ErrorExp();
 
+    auto g = &ctfeGlobals;
+    ++g.count;
+
     Expression result = interpret(e, null);
+
+    result = copyRegionExp(result);
 
     if (!CTFEExp.isCantExp(result))
         result = scrubReturnValue(e.loc, result);
     if (CTFEExp.isCantExp(result))
         result = new ErrorExp();
+
+    if (--g.count == 0)         // if no more users of g.region
+        g.region.release();     // release all memory in the region
 
     return result;
 }
@@ -138,6 +147,20 @@ public extern (C++) Expression getValue(VarDeclaration vd)
     return ctfeStack.getValue(vd);
 }
 
+/*************************************************
+ * Allocate an Expression in the ctfe region.
+ * Params:
+ *      T = type of Expression to allocate
+ *      args = arguments to Expression's constructor
+ * Returns:
+ *      allocated Expression
+ */
+T ctfeEmplaceExp(T : Expression, Args...)(Args args)
+{
+    auto p = ctfeGlobals.region.malloc(__traits(classInstanceSize, T));
+    emplaceExp!T(p, args);
+    return cast(T)p;
+}
 
 // CTFE diagnostic information
 public extern (C++) void printCtfePerformanceStats()
@@ -162,6 +185,17 @@ extern (C++) struct CompiledCtfeFunctionPimpl
 /* ================================================ Implementation ======================================= */
 
 private:
+
+/***************
+ * Collect together globals used by CTFE
+ */
+struct CtfeGlobals
+{
+    Region region;
+    int count;          // reference count CtfeGlobals instance
+}
+
+__gshared CtfeGlobals ctfeGlobals;
 
 enum CtfeGoal : int
 {
@@ -3037,7 +3071,9 @@ public:
                 }
                 sd.fill(e.loc, exps, false);
 
-                auto se = new StructLiteralExp(e.loc, sd, exps, e.newtype);
+                auto se = ctfeEmplaceExp!StructLiteralExp(e.loc, sd, exps, e.newtype);
+                se.origin = se;
+//                auto se = new StructLiteralExp(e.loc, sd, exps, e.newtype);
                 se.type = e.newtype;
                 se.ownedByCtfe = OwnedBy.ctfe;
                 result = interpret(pue, se, istate);
@@ -6777,6 +6813,137 @@ private Expression scrubCacheValue(Expression e)
             if (auto ex = scrubArrayCache(ale.elements))
                 return ex;
         }
+    }
+    return e;
+}
+
+/********************************************
+ * Transitively replace all Expressions allocated in ctfeGlobals.region
+ * with Mem owned copies.
+ * Params:
+ *      e = possible ctfeGlobals.region owned expression
+ * Returns:
+ *      Mem owned expression
+ */
+private Expression copyRegionExp(Expression e)
+{
+    if (!e)
+        return e;
+
+    static void copyArray(Expressions* elems)
+    {
+        foreach (ref e; *elems)
+            e = copyRegionExp(e);
+    }
+
+    static void copySE(StructLiteralExp sle)
+    {
+        sle.ownedByCtfe = OwnedBy.cache;
+        if (!(sle.stageflags & stageScrub))
+        {
+            const old = sle.stageflags;
+            sle.stageflags |= stageScrub;       // prevent infinite recursion
+            copyArray(sle.elements);
+            sle.stageflags = old;
+        }
+    }
+
+    switch (e.op)
+    {
+        case TOK.classReference:
+            copyRegionExp(e.isClassReferenceExp().value);
+            break;
+
+        case TOK.structLiteral:
+        {
+            auto sle = e.isStructLiteralExp();
+            copySE(sle);
+            if (ctfeGlobals.region.contains(cast(void*)e))
+            {
+                // Some ugly code because .origin can be self-referencial
+                bool copyOrigin = (sle.origin == sle);
+                e = e.copy();
+                if (copyOrigin)
+                {
+                    auto s = e.isStructLiteralExp();
+                    s.origin = s;
+                }
+            }
+            return e;
+        }
+
+        case TOK.arrayLiteral:
+            copyArray(e.isArrayLiteralExp().elements);
+            break;
+
+        case TOK.assocArrayLiteral:
+            copyArray(e.isAssocArrayLiteralExp().keys);
+            copyArray(e.isAssocArrayLiteralExp().values);
+            break;
+
+        case TOK.slice:
+        {
+            auto se = e.isSliceExp();
+            se.e1  = copyRegionExp(se.e1);
+            se.upr = copyRegionExp(se.upr);
+            se.lwr = copyRegionExp(se.lwr);
+            break;
+        }
+
+        case TOK.tuple:
+        {
+            auto te = e.isTupleExp();
+            te.e0 = copyRegionExp(te.e0);
+            copyArray(te.exps);
+            break;
+        }
+
+        case TOK.address:
+        case TOK.delegate_:
+        case TOK.vector:
+        {
+            UnaExp ue = cast(UnaExp)e;
+            ue.e1 = copyRegionExp(ue.e1);
+            break;
+        }
+
+        case TOK.index:
+        {
+            BinExp be = cast(BinExp)e;
+            be.e1 = copyRegionExp(be.e1);
+            be.e2 = copyRegionExp(be.e2);
+            break;
+        }
+
+        case TOK.this_:
+        case TOK.super_:
+        case TOK.variable:
+        case TOK.type:
+        case TOK.function_:
+        case TOK.typeid_:
+        case TOK.string_:
+        case TOK.int64:
+        case TOK.error:
+        case TOK.float64:
+        case TOK.complex80:
+        case TOK.null_:
+        case TOK.void_:
+        case TOK.symbolOffset:
+            break;
+
+        case TOK.cantExpression:
+        case TOK.voidExpression:
+        case TOK.showCtfeContext:
+            return e;
+
+        default:
+            printf("e: %d, %s\n", e.op, e.toChars());
+            assert(0);
+    }
+
+    if (ctfeGlobals.region.contains(cast(void*)e))
+    {
+        return e.copy();
     }
     return e;
 }
