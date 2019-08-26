@@ -1685,7 +1685,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         // https://issues.dlang.org/show_bug.cgi?id=11117
         // https://issues.dlang.org/show_bug.cgi?id=11164
         if (global.params.moduleDeps !is null && !(imp.id == Id.object && sc._module.ident == Id.object) &&
-            sc._module.ident != Id.entrypoint &&
             strcmp(sc._module.ident.toChars(), "__main") != 0)
         {
             /* The grammar of the file is:
@@ -3992,7 +3991,29 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
 
         if (funcdecl.fbody && funcdecl.isMain() && sc._module.isRoot())
-            Compiler.genCmain(sc);
+        {
+            // check if `_d_cmain` is defined
+            bool cmainTemplateExists()
+            {
+                auto rootSymbol = sc.search(funcdecl.loc, Id.empty, null);
+                if (auto moduleSymbol = rootSymbol.search(funcdecl.loc, Id.object))
+                    if (moduleSymbol.search(funcdecl.loc, Id.CMain))
+                        return true;
+
+                return false;
+            }
+
+            // Only mixin `_d_cmain` if it is defined
+            if (cmainTemplateExists())
+            {
+                // add `mixin _d_cmain!();` to the declaring module
+                auto tqual = new TypeIdentifier(funcdecl.loc, Id.CMain);
+                auto tm = new TemplateMixin(funcdecl.loc, null, tqual, null);
+                sc._module.members.push(tm);
+            }
+
+            rootHasMain = sc._module;
+        }
 
         assert(funcdecl.type.ty != Terror || funcdecl.errors);
 
