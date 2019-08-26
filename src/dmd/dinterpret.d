@@ -61,8 +61,13 @@ public Expression ctfeInterpret(Expression e)
         case TOK.float64:
         case TOK.complex80:
         case TOK.null_:
+        case TOK.void_:
         case TOK.string_:
-            if (e.type.ty == Terror)
+        case TOK.this_:
+        case TOK.super_:
+        case TOK.type:
+        case TOK.typeid_:
+             if (e.type.ty == Terror)
                 return new ErrorExp();
             goto case TOK.error;
 
