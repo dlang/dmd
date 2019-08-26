@@ -1906,7 +1906,7 @@ public:
             return;
 
         assert(e.op == TOK.classReference);
-        result = new ThrownExceptionExp(s.loc, cast(ClassReferenceExp)e);
+        result = ctfeEmplaceExp!ThrownExceptionExp(s.loc, e.isClassReferenceExp());
     }
 
     override void visit(ScopeGuardStatement s)
@@ -1941,7 +1941,7 @@ public:
 
         if (s.wthis.type.ty == Tpointer && s.exp.type.ty != Tpointer)
         {
-            e = new AddrExp(s.loc, e, s.wthis.type);
+            e = ctfeEmplaceExp!AddrExp(s.loc, e, s.wthis.type);
         }
         ctfeStack.push(s.wthis);
         setValue(s.wthis, e);
@@ -2033,7 +2033,7 @@ public:
             // https://issues.dlang.org/show_bug.cgi?id=16382
             if (istate && istate.fd.vthis)
             {
-                result = new VarExp(e.loc, istate.fd.vthis);
+                result = ctfeEmplaceExp!VarExp(e.loc, istate.fd.vthis);
                 if (istate.fd.isThis2)
                 {
                     result = new PtrExp(e.loc, result);
@@ -2182,11 +2182,11 @@ public:
             if (val.type.ty == Tsarray && pointee.ty == Tsarray && elemsize == pointee.nextOf().size())
             {
                 size_t d = cast(size_t)(cast(TypeSArray)pointee).dim.toInteger();
-                Expression elwr = new IntegerExp(e.loc, e.offset / elemsize, Type.tsize_t);
-                Expression eupr = new IntegerExp(e.loc, e.offset / elemsize + d, Type.tsize_t);
+                Expression elwr = ctfeEmplaceExp!IntegerExp(e.loc, e.offset / elemsize, Type.tsize_t);
+                Expression eupr = ctfeEmplaceExp!IntegerExp(e.loc, e.offset / elemsize + d, Type.tsize_t);
 
                 // Create a CTFE pointer &val[ofs..ofs+d]
-                auto se = new SliceExp(e.loc, val, elwr, eupr);
+                auto se = ctfeEmplaceExp!SliceExp(e.loc, val, elwr, eupr);
                 se.type = pointee;
                 emplaceExp!(AddrExp)(pue, e.loc, se, e.type);
                 result = pue.exp();
@@ -2199,7 +2199,7 @@ public:
                 if (e.offset == 0 && isSafePointerCast(e.var.type, pointee))
                 {
                     // Create a CTFE pointer &var
-                    auto ve = new VarExp(e.loc, e.var);
+                    auto ve = ctfeEmplaceExp!VarExp(e.loc, e.var);
                     ve.type = elemtype;
                     emplaceExp!(AddrExp)(pue, e.loc, ve, e.type);
                     result = pue.exp();
@@ -2228,8 +2228,8 @@ public:
             if (aggregate)
             {
                 // Create a CTFE pointer &aggregate[ofs]
-                auto ofs = new IntegerExp(e.loc, indx, Type.tsize_t);
-                auto ei = new IndexExp(e.loc, aggregate, ofs);
+                auto ofs = ctfeEmplaceExp!IntegerExp(e.loc, indx, Type.tsize_t);
+                auto ei = ctfeEmplaceExp!IndexExp(e.loc, aggregate, ofs);
                 ei.type = elemtype;
                 emplaceExp!(AddrExp)(pue, e.loc, ei, e.type);
                 result = pue.exp();
@@ -2239,7 +2239,7 @@ public:
         else if (e.offset == 0 && isSafePointerCast(e.var.type, pointee))
         {
             // Create a CTFE pointer &var
-            auto ve = new VarExp(e.loc, e.var);
+            auto ve = ctfeEmplaceExp!VarExp(e.loc, e.var);
             ve.type = e.var.type;
             emplaceExp!(AddrExp)(pue, e.loc, ve, e.type);
             result = pue.exp();
