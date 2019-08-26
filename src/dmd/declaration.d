@@ -1567,12 +1567,6 @@ extern (C++) class VarDeclaration : Declaration
         if (!nestedrefs.contains(fdthis))
             nestedrefs.push(fdthis);
 
-        /* __require and __ensure will always get called directly,
-         * so they never make outer functions closure.
-         */
-        if (fdthis.ident == Id.require || fdthis.ident == Id.ensure)
-            return false;
-
         //printf("\tfdv = %s\n", fdv.toChars());
         //printf("\tfdthis = %s\n", fdthis.toChars());
         if (loc.isValid())
