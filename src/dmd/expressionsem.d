@@ -1167,7 +1167,10 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
                     assert(fd.type.ty == Tfunction);
                     TypeFunction tf = cast(TypeFunction)fd.type;
                     if (!tf.isref && e2)
-                        goto Leproplvalue;
+                    {
+                        error(loc, "%s is not an lvalue", e1.toChars());
+                        return new ErrorExp();
+                    }
                 }
             }
             if (fd)
@@ -1341,10 +1344,6 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
 
 Leprop:
     error(loc, "not a property %s", e1.toChars());
-    return new ErrorExp();
-
-Leproplvalue:
-    error(loc, "%s is not an lvalue", e1.toChars());
     return new ErrorExp();
 }
 
