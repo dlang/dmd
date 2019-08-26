@@ -563,6 +563,7 @@ public:
 class VarExp : public SymbolExp
 {
 public:
+    bool delegateWasExtracted;
     static VarExp *create(Loc loc, Declaration *var, bool hasOverloads = true);
     bool equals(const RootObject *o) const;
     int checkModifiable(Scope *sc, int flag);
