@@ -1176,6 +1176,26 @@ extern (C++) final class Module : Package
         return needmoduleinfo || global.params.cov;
     }
 
+    /*******************************************
+     * Print deprecation warning if we're deprecated, when
+     * this module is imported from scope sc.
+     *
+     * Params:
+     *  sc = the scope into which we are imported
+     *  loc = the location of the import statement
+     */
+    void checkImportDeprecation(const ref Loc loc, Scope* sc)
+    {
+        if (md && md.isdeprecated && !sc.isDeprecated)
+        {
+            Expression msg = md.msg;
+            if (StringExp se = msg ? msg.toStringExp() : null)
+                deprecation(loc, "is deprecated - %s", se.string);
+            else
+                deprecation(loc, "is deprecated");
+        }
+    }
+
     override Dsymbol search(const ref Loc loc, Identifier ident, int flags = SearchLocalsOnly)
     {
         /* Since modules can be circularly referenced,

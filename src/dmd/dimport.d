@@ -214,14 +214,7 @@ extern (C++) final class Import : Dsymbol
         if (!mod) return; // Failed
 
         mod.importAll(null);
-        if (mod.md && mod.md.isdeprecated && !sc.isDeprecated)
-        {
-            Expression msg = mod.md.msg;
-            if (StringExp se = msg ? msg.toStringExp() : null)
-                mod.deprecation(loc, "is deprecated - %s", se.string);
-            else
-                mod.deprecation(loc, "is deprecated");
-        }
+        mod.checkImportDeprecation(loc, sc);
         if (sc.explicitProtection)
             protection = sc.protection;
         if (!isstatic && !aliasId && !names.dim)
