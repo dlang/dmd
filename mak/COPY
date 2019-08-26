@@ -27,6 +27,7 @@ COPY=\
 	$(IMPDIR)\core\internal\attributes.d \
 	$(IMPDIR)\core\internal\convert.d \
 	$(IMPDIR)\core\internal\dassert.d \
+	$(IMPDIR)\core\internal\entrypoint.d \
 	$(IMPDIR)\core\internal\hash.d \
 	$(IMPDIR)\core\internal\parseoptions.d \
 	$(IMPDIR)\core\internal\spinlock.d \

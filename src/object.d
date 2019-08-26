@@ -38,6 +38,9 @@ alias dstring = immutable(dchar)[];
 
 version (D_ObjectiveC) public import core.attribute : selector;
 
+/// See $(REF _d_cmain, core,internal,entrypoint)
+public import core.internal.entrypoint : _d_cmain;
+
 /// See $(REF _d_arrayappendTImpl, core,internal,array,appending)
 public import core.internal.array.appending : _d_arrayappendTImpl;
 /// See $(REF _d_arrayappendcTXImpl, core,internal,array,appending)
