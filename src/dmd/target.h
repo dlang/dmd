@@ -44,6 +44,11 @@ struct TargetCPP
     bool fundamentalType(const Type *t, bool& isFundamental);
 };
 
+struct TargetObjC
+{
+    bool supported;     // set if compiler can interface with Objective-C
+};
+
 struct Target
 {
     // D ABI
@@ -59,6 +64,9 @@ struct Target
 
     // C++ ABI
     TargetCPP cpp;
+
+    // Objective-C ABI
+    TargetObjC objc;
 
     template <typename T>
     struct FPTypeProperties
