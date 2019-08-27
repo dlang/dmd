@@ -33,6 +33,7 @@ import dmd.id;
 import dmd.identifier;
 import dmd.init;
 import dmd.mtype;
+import dmd.opover;
 import dmd.statement;
 import dmd.target;
 import dmd.tokens;
@@ -458,6 +459,25 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
                 e = new DotIdExp(i.loc, e, Id.ctor);
                 e = new CallExp(i.loc, e, i.exp);
                 e = e.expressionSemantic(sc);
+                if (needInterpret)
+                    i.exp = e.ctfeInterpret();
+                else
+                    i.exp = e.optimize(WANTvalue);
+            }
+            else if (search_function(sd, Id.call))
+            {
+                /* https://issues.dlang.org/show_bug.cgi?id=1547
+                 *
+                 * Look for static opCall
+                 *
+                 * Rewrite as:
+                 *  i.exp = typeof(sd).opCall(arguments)
+                 */
+
+                Expression e = typeDotIdExp(i.loc, sd.type, Id.call);
+                e = new CallExp(i.loc, e, i.exp);
+                e = e.expressionSemantic(sc);
+                e = resolveProperties(sc, e);
                 if (needInterpret)
                     i.exp = e.ctfeInterpret();
                 else
