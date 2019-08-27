@@ -1009,8 +1009,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         pi++;
     }
 
-    if ((global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isDragonFlyBSD || global.params.isSolaris) &&
-         fd.linkage != LINK.d && shidden && sthis)
+    if (target.isPOSIX && fd.linkage != LINK.d && shidden && sthis)
     {
         /* swap shidden and sthis
          */
@@ -1282,8 +1281,7 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
     // Pull in RTL startup code (but only once)
     if (fd.isMain() && onlyOneMain(fd.loc))
     {
-        if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD ||
-            global.params.isOpenBSD || global.params.isDragonFlyBSD || global.params.isSolaris)
+        if (target.isPOSIX)
         {
             objmod.external_def("_main");
         }
@@ -1302,9 +1300,7 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
     }
     else if (fd.isRtInit())
     {
-        if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD ||
-            global.params.isOpenBSD || global.params.isDragonFlyBSD || global.params.isSolaris ||
-            global.params.mscoff)
+        if (target.isPOSIX || global.params.mscoff)
         {
             objmod.ehsections();   // initialize exception handling sections
         }
