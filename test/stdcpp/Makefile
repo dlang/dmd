@@ -4,7 +4,7 @@ HASCPP17:=`echo wow | $(CXX) -std=c++17 -E -xc++ - > /dev/null 2>&1 && echo yes`
 
 TESTS:=allocator new
 TESTS11:=array
-TESTS17:=optional string_view
+TESTS17:=string_view
 OLDABITESTS:=
 
 ifeq (osx,$(OS))
