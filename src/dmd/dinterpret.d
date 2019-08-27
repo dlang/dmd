@@ -3093,7 +3093,6 @@ public:
 
                 auto se = ctfeEmplaceExp!StructLiteralExp(e.loc, sd, exps, e.newtype);
                 se.origin = se;
-//                auto se = new StructLiteralExp(e.loc, sd, exps, e.newtype);
                 se.type = e.newtype;
                 se.ownedByCtfe = OwnedBy.ctfe;
                 result = interpret(pue, se, istate);
@@ -4200,6 +4199,7 @@ public:
                 uinteger_t dollar = resolveArrayLength(oldval);
                 if (se.lengthVar)
                 {
+                    //Expression dollarExp = ctfeEmplaceExp!IntegerExp(e1.loc, dollar, Type.tsize_t);
                     Expression dollarExp = new IntegerExp(e1.loc, dollar, Type.tsize_t);
                     ctfeGlobals.stack.push(se.lengthVar);
                     setValue(se.lengthVar, dollarExp);
@@ -4348,7 +4348,9 @@ public:
             }
             if (goal == ctfeNeedNothing)
                 return null; // avoid creating an unused literal
-            auto retslice = new SliceExp(e.loc, existingSE, new IntegerExp(e.loc, firstIndex, Type.tsize_t), new IntegerExp(e.loc, firstIndex + upperbound - lowerbound, Type.tsize_t));
+            auto retslice = new SliceExp(e.loc, existingSE,
+                        new IntegerExp(e.loc, firstIndex, Type.tsize_t),
+                        new IntegerExp(e.loc, firstIndex + upperbound - lowerbound, Type.tsize_t));
             retslice.type = e.type;
             return interpret(pue, retslice, istate);
         }
@@ -4552,7 +4554,9 @@ public:
 
             if (goal == ctfeNeedNothing)
                 return null; // avoid creating an unused literal
-            auto retslice = new SliceExp(e.loc, existingAE, new IntegerExp(e.loc, firstIndex, Type.tsize_t), new IntegerExp(e.loc, firstIndex + upperbound - lowerbound, Type.tsize_t));
+            auto retslice = new SliceExp(e.loc, existingAE,
+                new IntegerExp(e.loc, firstIndex, Type.tsize_t),
+                new IntegerExp(e.loc, firstIndex + upperbound - lowerbound, Type.tsize_t));
             retslice.type = e.type;
             return interpret(pue, retslice, istate);
         }
@@ -6893,8 +6897,12 @@ private Expression copyRegionExp(Expression e)
         }
 
         case TOK.arrayLiteral:
-            copyArray(e.isArrayLiteralExp().elements);
+        {
+            auto ale = e.isArrayLiteralExp();
+            ale.basis = copyRegionExp(ale.basis);
+            copyArray(ale.elements);
             break;
+        }
 
         case TOK.assocArrayLiteral:
             copyArray(e.isAssocArrayLiteralExp().keys);
