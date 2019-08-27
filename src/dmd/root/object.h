@@ -9,10 +9,8 @@
 
 #pragma once
 
-#define POSIX (__linux__ || __GLIBC__ || __gnu_hurd__ || __APPLE__ || __FreeBSD__ || __DragonFly__ || __OpenBSD__ || __sun)
-
+#include "dsystem.h"
 #include "dcompat.h"
-#include <stddef.h>
 
 typedef size_t hash_t;
 

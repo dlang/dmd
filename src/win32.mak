@@ -176,7 +176,7 @@ GLUEOBJ=
 # Root package
 ROOT_SRCS=$(ROOT)/aav.d $(ROOT)/array.d $(ROOT)/ctfloat.d $(ROOT)/file.d \
 	$(ROOT)/filename.d $(ROOT)/longdouble.d $(ROOT)/man.d $(ROOT)/outbuffer.d $(ROOT)/port.d \
-	$(ROOT)/response.d $(ROOT)/rmem.d $(ROOT)/rootobject.d \
+	$(ROOT)/response.d $(ROOT)/rmem.d $(ROOT)/rootobject.d $(ROOT)/region.d \
 	$(ROOT)/speller.d $(ROOT)/stringtable.d $(ROOT)/strtold.d $(ROOT)/hash.d $(ROOT)/string.d
 
 # D front end
@@ -217,7 +217,7 @@ ROOTSRCC=
 ROOTSRCD=$(ROOT)\rmem.d $(ROOT)\stringtable.d $(ROOT)\hash.d $(ROOT)\man.d $(ROOT)\port.d \
 	$(ROOT)\response.d $(ROOT)\rootobject.d $(ROOT)\speller.d $(ROOT)\aav.d \
 	$(ROOT)\ctfloat.d $(ROOT)\longdouble.d $(ROOT)\outbuffer.d $(ROOT)\filename.d \
-	$(ROOT)\file.d $(ROOT)\array.d $(ROOT)\strtold.d
+	$(ROOT)\file.d $(ROOT)\array.d $(ROOT)\strtold.d $(ROOT)\region.d
 ROOTSRC= $(ROOT)\root.h \
 	$(ROOT)\longdouble.h $(ROOT)\outbuffer.h $(ROOT)\object.h $(ROOT)\ctfloat.h \
 	$(ROOT)\filename.h $(ROOT)\file.h $(ROOT)\array.h $(ROOT)\rmem.h $(ROOTSRCC) \

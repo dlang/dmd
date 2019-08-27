@@ -325,21 +325,6 @@ void genObjFile(Module m, bool multiobj)
 
     //printf("Module.genobjfile(multiobj = %d) %s\n", multiobj, m.toChars());
 
-    if (m.ident == Id.entrypoint)
-    {
-        bool v = global.params.verbose;
-        global.params.verbose = false;
-
-        foreach (member; *m.members)
-        {
-            //printf("toObjFile %s %s\n", member.kind(), member.toChars());
-            toObjFile(member, multiobj);
-        }
-
-        global.params.verbose = v;
-        return;
-    }
-
     lastmname = m.srcfile.toChars();
 
     objmod.initfile(lastmname, null, m.toPrettyChars());

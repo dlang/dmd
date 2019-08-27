@@ -21,8 +21,6 @@ class Type;
 struct Scope;
 struct UnionExp;
 
-// DMD-generated module `__entrypoint` where the C main resides
-extern Module *entrypoint;
 // Module in which the D main is
 extern Module *rootHasMain;
 
@@ -37,6 +35,5 @@ struct Compiler
     static Expression *paintAsType(UnionExp *, Expression *, Type *);
     // Backend
     static void loadModule(Module *);
-    static void genCmain(Scope *);
     static bool onImport(Module *);
 };

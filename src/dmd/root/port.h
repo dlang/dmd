@@ -12,8 +12,7 @@
 // Portable wrapper around compiler/system specific things.
 // The idea is to minimize #ifdef's in the app code.
 
-#include <stddef.h>
-#include <stdint.h>
+#include "dsystem.h"
 
 typedef unsigned char utf8_t;
 

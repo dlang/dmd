@@ -37,6 +37,7 @@ import dmd.init;
 import dmd.initsem;
 import dmd.mtype;
 import dmd.root.array;
+import dmd.root.region;
 import dmd.root.rootobject;
 import dmd.statement;
 import dmd.tokens;
@@ -60,8 +61,13 @@ public Expression ctfeInterpret(Expression e)
         case TOK.float64:
         case TOK.complex80:
         case TOK.null_:
+        case TOK.void_:
         case TOK.string_:
-            if (e.type.ty == Terror)
+        case TOK.this_:
+        case TOK.super_:
+        case TOK.type:
+        case TOK.typeid_:
+             if (e.type.ty == Terror)
                 return new ErrorExp();
             goto case TOK.error;
 
@@ -77,12 +83,20 @@ public Expression ctfeInterpret(Expression e)
     if (e.type.ty == Terror)
         return new ErrorExp();
 
+    auto g = &ctfeGlobals;
+    ++g.count;
+
     Expression result = interpret(e, null);
+
+    result = copyRegionExp(result);
 
     if (!CTFEExp.isCantExp(result))
         result = scrubReturnValue(e.loc, result);
     if (CTFEExp.isCantExp(result))
         result = new ErrorExp();
+
+    if (--g.count == 0)         // if no more users of g.region
+        g.region.release();     // release all memory in the region
 
     return result;
 }
@@ -135,9 +149,23 @@ public Expression ctfeInterpretForPragmaMsg(Expression e)
 
 public extern (C++) Expression getValue(VarDeclaration vd)
 {
-    return ctfeStack.getValue(vd);
+    return ctfeGlobals.stack.getValue(vd);
 }
 
+/*************************************************
+ * Allocate an Expression in the ctfe region.
+ * Params:
+ *      T = type of Expression to allocate
+ *      args = arguments to Expression's constructor
+ * Returns:
+ *      allocated Expression
+ */
+T ctfeEmplaceExp(T : Expression, Args...)(Args args)
+{
+    auto p = ctfeGlobals.region.malloc(__traits(classInstanceSize, T));
+    emplaceExp!T(p, args);
+    return cast(T)p;
+}
 
 // CTFE diagnostic information
 public extern (C++) void printCtfePerformanceStats()
@@ -145,7 +173,7 @@ public extern (C++) void printCtfePerformanceStats()
     debug (SHOWPERFORMANCE)
     {
         printf("        ---- CTFE Performance ----\n");
-        printf("max call depth = %d\tmax stack = %d\n", CtfeStatus.maxCallDepth, ctfeStack.maxStackUsage());
+        printf("max call depth = %d\tmax stack = %d\n", CtfeStatus.maxCallDepth, ctfeGlobals.stack.maxStackUsage());
         printf("array allocs = %d\tassignments = %d\n\n", CtfeStatus.numArrayAllocs, CtfeStatus.numAssignments);
     }
 }
@@ -162,6 +190,19 @@ extern (C++) struct CompiledCtfeFunctionPimpl
 /* ================================================ Implementation ======================================= */
 
 private:
+
+/***************
+ * Collect together globals used by CTFE
+ */
+struct CtfeGlobals
+{
+    Region region;
+    int count;          // reference count CtfeGlobals instance
+
+    CtfeStack stack;
+}
+
+__gshared CtfeGlobals ctfeGlobals;
 
 enum CtfeGoal : int
 {
@@ -342,8 +383,6 @@ private struct InterState
     Statement gotoTarget;
 }
 
-private __gshared CtfeStack ctfeStack;
-
 /***********************************************************
  * CTFE-object code for a single function
  *
@@ -365,351 +404,292 @@ struct CompiledCtfeFunction
         //printf("%s CTFE declare %s\n", v.loc.toChars(), v.toChars());
         ++numVars;
     }
-
-    extern (C++) void onExpression(Expression e)
-    {
-        extern (C++) final class VarWalker : StoppableVisitor
-        {
-            alias visit = typeof(super).visit;
-        public:
-            CompiledCtfeFunction* ccf;
-
-            extern (D) this(CompiledCtfeFunction* ccf)
-            {
-                this.ccf = ccf;
-            }
-
-            override void visit(Expression e)
-            {
-            }
-
-            override void visit(ErrorExp e)
-            {
-                // Currently there's a front-end bug: silent errors
-                // can occur inside delegate literals inside is(typeof()).
-                // Suppress the check in this case.
-                if (global.gag && ccf.func)
-                {
-                    stop = 1;
-                    return;
-                }
-                .error(e.loc, "CTFE internal error: ErrorExp in `%s`\n", ccf.func ? ccf.func.loc.toChars() : ccf.callingloc.toChars());
-                assert(0);
-            }
-
-            override void visit(DeclarationExp e)
-            {
-                VarDeclaration v = e.declaration.isVarDeclaration();
-                if (!v)
-                    return;
-                TupleDeclaration td = v.toAlias().isTupleDeclaration();
-                if (td)
-                {
-                    if (!td.objects)
-                        return;
-                    foreach (o; *td.objects)
-                    {
-                        Expression ex = isExpression(o);
-                        DsymbolExp s = ex ? ex.isDsymbolExp() : null;
-                        assert(s);
-                        VarDeclaration v2 = s.s.isVarDeclaration();
-                        assert(v2);
-                        if (!v2.isDataseg() || v2.isCTFE())
-                            ccf.onDeclaration(v2);
-                    }
-                }
-                else if (!(v.isDataseg() || v.storage_class & STC.manifest) || v.isCTFE())
-                    ccf.onDeclaration(v);
-                Dsymbol s = v.toAlias();
-                if (s == v && !v.isStatic() && v._init)
-                {
-                    ExpInitializer ie = v._init.isExpInitializer();
-                    if (ie)
-                        ccf.onExpression(ie.exp);
-                }
-            }
-
-            override void visit(IndexExp e)
-            {
-                if (e.lengthVar)
-                    ccf.onDeclaration(e.lengthVar);
-            }
-
-            override void visit(SliceExp e)
-            {
-                if (e.lengthVar)
-                    ccf.onDeclaration(e.lengthVar);
-            }
-        }
-
-        scope VarWalker v = new VarWalker(&this);
-        walkPostorder(e, v);
-    }
 }
 
-private extern (C++) final class CtfeCompiler : SemanticTimeTransitiveVisitor
+/*********************************************
+ * Visit each Expression in e, and call dgVar() on each variable declared in it.
+ * Params:
+ *      dgVar = call when a variable is declared
+ */
+void foreachVar(Expression e, void delegate(VarDeclaration) dgVar)
 {
-    alias visit = SemanticTimeTransitiveVisitor.visit;
-public:
-    CompiledCtfeFunction* ccf;
+    if (!e)
+        return;
 
-    extern (D) this(CompiledCtfeFunction* ccf)
+    extern (C++) final class VarWalker : StoppableVisitor
     {
-        this.ccf = ccf;
-    }
+        alias visit = typeof(super).visit;
+        extern (D) void delegate(VarDeclaration) dgVar;
 
-    override void visit(Statement s)
-    {
-        debug (LOGCOMPILE)
+        extern (D) this(void delegate(VarDeclaration) dgVar)
         {
-            printf("%s Statement::ctfeCompile %s\n", s.loc.toChars(), s.toChars());
+            this.dgVar = dgVar;
         }
-        assert(0);
-    }
 
-    override void visit(ExpStatement s)
-    {
-        debug (LOGCOMPILE)
+        override void visit(Expression e)
         {
-            printf("%s ExpStatement::ctfeCompile\n", s.loc.toChars());
         }
-        if (s.exp)
-            ccf.onExpression(s.exp);
-    }
 
-    override void visit(IfStatement s)
-    {
-        debug (LOGCOMPILE)
+        override void visit(ErrorExp e)
         {
-            printf("%s IfStatement::ctfeCompile\n", s.loc.toChars());
+            .error(e.loc, "CTFE internal error: ErrorExp");
+            assert(0);
         }
-        ccf.onExpression(s.condition);
-        if (s.ifbody)
-            ctfeCompile(s.ifbody);
-        if (s.elsebody)
-            ctfeCompile(s.elsebody);
-    }
 
-    override void visit(ScopeGuardStatement s)
-    {
-        debug (LOGCOMPILE)
+        override void visit(DeclarationExp e)
         {
-            printf("%s ScopeGuardStatement::ctfeCompile\n", s.loc.toChars());
+            VarDeclaration v = e.declaration.isVarDeclaration();
+            if (!v)
+                return;
+            TupleDeclaration td = v.toAlias().isTupleDeclaration();
+            if (td)
+            {
+                if (!td.objects)
+                    return;
+                foreach (o; *td.objects)
+                {
+                    Expression ex = isExpression(o);
+                    DsymbolExp s = ex ? ex.isDsymbolExp() : null;
+                    assert(s);
+                    VarDeclaration v2 = s.s.isVarDeclaration();
+                    assert(v2);
+                    if (!v2.isDataseg() || v2.isCTFE())
+                        dgVar(v2);
+                }
+            }
+            else if (!(v.isDataseg() || v.storage_class & STC.manifest) || v.isCTFE())
+                dgVar(v);
+            Dsymbol s = v.toAlias();
+            if (s == v && !v.isStatic() && v._init)
+            {
+                if (auto ie = v._init.isExpInitializer())
+                    ie.exp.foreachVar(dgVar);
+            }
         }
-        // rewritten to try/catch/finally
-        assert(0);
-    }
 
-    override void visit(DoStatement s)
-    {
-        debug (LOGCOMPILE)
+        override void visit(IndexExp e)
         {
-            printf("%s DoStatement::ctfeCompile\n", s.loc.toChars());
+            if (e.lengthVar)
+                dgVar(e.lengthVar);
         }
-        ccf.onExpression(s.condition);
-        if (s._body)
-            ctfeCompile(s._body);
-    }
 
-    override void visit(WhileStatement s)
-    {
-        debug (LOGCOMPILE)
+        override void visit(SliceExp e)
         {
-            printf("%s WhileStatement::ctfeCompile\n", s.loc.toChars());
-        }
-        // rewritten to ForStatement
-        assert(0);
-    }
-
-    override void visit(ForStatement s)
-    {
-        debug (LOGCOMPILE)
-        {
-            printf("%s ForStatement::ctfeCompile\n", s.loc.toChars());
-        }
-        if (s._init)
-            ctfeCompile(s._init);
-        if (s.condition)
-            ccf.onExpression(s.condition);
-        if (s.increment)
-            ccf.onExpression(s.increment);
-        if (s._body)
-            ctfeCompile(s._body);
-    }
-
-    override void visit(ForeachStatement s)
-    {
-        debug (LOGCOMPILE)
-        {
-            printf("%s ForeachStatement::ctfeCompile\n", s.loc.toChars());
-        }
-        // rewritten for ForStatement
-        assert(0);
-    }
-
-    override void visit(SwitchStatement s)
-    {
-        debug (LOGCOMPILE)
-        {
-            printf("%s SwitchStatement::ctfeCompile\n", s.loc.toChars());
-        }
-        ccf.onExpression(s.condition);
-        // Note that the body contains the the Case and Default
-        // statements, so we only need to compile the expressions
-        foreach (cs; *s.cases)
-        {
-            ccf.onExpression(cs.exp);
-        }
-        if (s._body)
-            ctfeCompile(s._body);
-    }
-
-    override void visit(CaseStatement s)
-    {
-        debug (LOGCOMPILE)
-        {
-            printf("%s CaseStatement::ctfeCompile\n", s.loc.toChars());
-        }
-        if (s.statement)
-            ctfeCompile(s.statement);
-    }
-
-    override void visit(GotoDefaultStatement s)
-    {
-        debug (LOGCOMPILE)
-        {
-            printf("%s GotoDefaultStatement::ctfeCompile\n", s.loc.toChars());
+            if (e.lengthVar)
+                dgVar(e.lengthVar);
         }
     }
 
-    override void visit(GotoCaseStatement s)
-    {
-        debug (LOGCOMPILE)
-        {
-            printf("%s GotoCaseStatement::ctfeCompile\n", s.loc.toChars());
-        }
-    }
-
-    override void visit(SwitchErrorStatement s)
-    {
-        debug (LOGCOMPILE)
-        {
-            printf("%s SwitchErrorStatement::ctfeCompile\n", s.loc.toChars());
-        }
-    }
-
-    override void visit(ReturnStatement s)
-    {
-        debug (LOGCOMPILE)
-        {
-            printf("%s ReturnStatement::ctfeCompile\n", s.loc.toChars());
-        }
-        if (s.exp)
-            ccf.onExpression(s.exp);
-    }
-
-    override void visit(BreakStatement s)
-    {
-        debug (LOGCOMPILE)
-        {
-            printf("%s BreakStatement::ctfeCompile\n", s.loc.toChars());
-        }
-    }
-
-    override void visit(ContinueStatement s)
-    {
-        debug (LOGCOMPILE)
-        {
-            printf("%s ContinueStatement::ctfeCompile\n", s.loc.toChars());
-        }
-    }
-
-    override void visit(WithStatement s)
-    {
-        debug (LOGCOMPILE)
-        {
-            printf("%s WithStatement::ctfeCompile\n", s.loc.toChars());
-        }
-        // If it is with(Enum) {...}, just execute the body.
-        if (s.exp.op == TOK.scope_ || s.exp.op == TOK.type)
-        {
-        }
-        else
-        {
-            ccf.onDeclaration(s.wthis);
-            ccf.onExpression(s.exp);
-        }
-        if (s._body)
-            ctfeCompile(s._body);
-    }
-
-    override void visit(TryCatchStatement s)
-    {
-        debug (LOGCOMPILE)
-        {
-            printf("%s TryCatchStatement::ctfeCompile\n", s.loc.toChars());
-        }
-        if (s._body)
-            ctfeCompile(s._body);
-        foreach (ca; *s.catches)
-        {
-            if (ca.var)
-                ccf.onDeclaration(ca.var);
-            if (ca.handler)
-                ctfeCompile(ca.handler);
-        }
-    }
-
-    override void visit(ThrowStatement s)
-    {
-        debug (LOGCOMPILE)
-        {
-            printf("%s ThrowStatement::ctfeCompile\n", s.loc.toChars());
-        }
-        ccf.onExpression(s.exp);
-    }
-
-    override void visit(GotoStatement s)
-    {
-        debug (LOGCOMPILE)
-        {
-            printf("%s GotoStatement::ctfeCompile\n", s.loc.toChars());
-        }
-    }
-
-    override void visit(ImportStatement s)
-    {
-        debug (LOGCOMPILE)
-        {
-            printf("%s ImportStatement::ctfeCompile\n", s.loc.toChars());
-        }
-        // Contains no variables or executable code
-    }
-
-    override void visit(ForeachRangeStatement s)
-    {
-        debug (LOGCOMPILE)
-        {
-            printf("%s ForeachRangeStatement::ctfeCompile\n", s.loc.toChars());
-        }
-        // rewritten for ForStatement
-        assert(0);
-    }
-
-    override void visit(AsmStatement s)
-    {
-        debug (LOGCOMPILE)
-        {
-            printf("%s AsmStatement::ctfeCompile\n", s.loc.toChars());
-        }
-        // we can't compile asm statements
-    }
-
-    void ctfeCompile(Statement s)
-    {
-        s.accept(this);
-    }
+    scope VarWalker v = new VarWalker(dgVar);
+    walkPostorder(e, v);
 }
+
+/***************
+ * Transitively walk Statement s, pass Expressions to dgExp(), VarDeclarations to dgVar().
+ * Params:
+ *      s = Statement to traverse
+ *      dgExp = delegate to pass found Expressions to
+ *      dgVar = delegate to pass found VarDeclarations to
+ */
+private void foreachExpAndVar(Statement s,
+        void delegate(Expression) dgExp,
+        void delegate(VarDeclaration) dgVar)
+{
+    void visit(Statement s)
+    {
+        void visitExp(ExpStatement s)
+        {
+            if (s.exp)
+                dgExp(s.exp);
+        }
+
+        void visitDtorExp(DtorExpStatement s)
+        {
+            if (s.exp)
+                dgExp(s.exp);
+        }
+
+        void visitIf(IfStatement s)
+        {
+            dgExp(s.condition);
+            visit(s.ifbody);
+            visit(s.elsebody);
+        }
+
+        void visitDo(DoStatement s)
+        {
+            dgExp(s.condition);
+            visit(s._body);
+        }
+
+        void visitFor(ForStatement s)
+        {
+            visit(s._init);
+            if (s.condition)
+                dgExp(s.condition);
+            if (s.increment)
+                dgExp(s.increment);
+            visit(s._body);
+        }
+
+        void visitSwitch(SwitchStatement s)
+        {
+            dgExp(s.condition);
+            // Note that the body contains the Case and Default
+            // statements, so we only need to compile the expressions
+            foreach (cs; *s.cases)
+            {
+                dgExp(cs.exp);
+            }
+            visit(s._body);
+        }
+
+        void visitCase(CaseStatement s)
+        {
+            visit(s.statement);
+        }
+
+        void visitReturn(ReturnStatement s)
+        {
+            if (s.exp)
+                dgExp(s.exp);
+        }
+
+        void visitCompound(CompoundStatement s)
+        {
+            if (s.statements)
+            {
+                foreach (s2; *s.statements)
+                {
+                    visit(s2);
+                }
+            }
+        }
+
+        void visitCompoundDeclaration(CompoundDeclarationStatement s)
+        {
+            visitCompound(s);
+        }
+
+        void visitUnrolledLoop(UnrolledLoopStatement s)
+        {
+            foreach (s2; *s.statements)
+            {
+                visit(s2);
+            }
+        }
+
+        void visitScope(ScopeStatement s)
+        {
+            visit(s.statement);
+        }
+
+        void visitDefault(DefaultStatement s)
+        {
+            visit(s.statement);
+        }
+
+        void visitWith(WithStatement s)
+        {
+            // If it is with(Enum) {...}, just execute the body.
+            if (s.exp.op == TOK.scope_ || s.exp.op == TOK.type)
+            {
+            }
+            else
+            {
+                dgVar(s.wthis);
+                dgExp(s.exp);
+            }
+            visit(s._body);
+        }
+
+        void visitTryCatch(TryCatchStatement s)
+        {
+            visit(s._body);
+            foreach (ca; *s.catches)
+            {
+                if (ca.var)
+                    dgVar(ca.var);
+                visit(ca.handler);
+            }
+        }
+
+        void visitTryFinally(TryFinallyStatement s)
+        {
+            visit(s._body);
+            visit(s.finalbody);
+        }
+
+        void visitThrow(ThrowStatement s)
+        {
+            dgExp(s.exp);
+        }
+
+        void visitLabel(LabelStatement s)
+        {
+            visit(s.statement);
+        }
+
+        if (!s)
+            return;
+
+        final switch (s.stmt)
+        {
+            case STMT.Exp:                 visitExp(s.isExpStatement()); break;
+            case STMT.DtorExp:             visitDtorExp(s.isDtorExpStatement()); break;
+            case STMT.Compound:            visitCompound(s.isCompoundStatement()); break;
+            case STMT.CompoundDeclaration: visitCompoundDeclaration(s.isCompoundDeclarationStatement()); break;
+            case STMT.UnrolledLoop:        visitUnrolledLoop(s.isUnrolledLoopStatement()); break;
+            case STMT.Scope:               visitScope(s.isScopeStatement()); break;
+            case STMT.Do:                  visitDo(s.isDoStatement()); break;
+            case STMT.For:                 visitFor(s.isForStatement()); break;
+            case STMT.If:                  visitIf(s.isIfStatement()); break;
+            case STMT.Switch:              visitSwitch(s.isSwitchStatement()); break;
+            case STMT.Case:                visitCase(s.isCaseStatement()); break;
+            case STMT.Default:             visitDefault(s.isDefaultStatement()); break;
+            case STMT.Return:              visitReturn(s.isReturnStatement()); break;
+            case STMT.With:                visitWith(s.isWithStatement()); break;
+            case STMT.TryCatch:            visitTryCatch(s.isTryCatchStatement()); break;
+            case STMT.TryFinally:          visitTryFinally(s.isTryFinallyStatement()); break;
+            case STMT.Throw:               visitThrow(s.isThrowStatement()); break;
+            case STMT.Label:               visitLabel(s.isLabelStatement()); break;
+
+            case STMT.CompoundAsm:
+            case STMT.Asm:
+            case STMT.InlineAsm:
+            case STMT.GccAsm:
+
+            case STMT.Break:
+            case STMT.Continue:
+            case STMT.GotoDefault:
+            case STMT.GotoCase:
+            case STMT.SwitchError:
+            case STMT.Goto:
+            case STMT.Pragma:
+            case STMT.Import:
+                break;          // ignore these
+
+            case STMT.ScopeGuard:
+            case STMT.Foreach:
+            case STMT.ForeachRange:
+            case STMT.Debug:
+            case STMT.CaseRange:
+            case STMT.StaticForeach:
+            case STMT.StaticAssert:
+            case STMT.Conditional:
+            case STMT.While:
+            case STMT.Forwarding:
+            case STMT.Error:
+            case STMT.Compile:
+            case STMT.Peel:
+            case STMT.Synchronized:
+                assert(0);              // should have been rewritten
+        }
+    }
+
+    visit(s);
+}
+
 
 /*************************************
  * Compile this function for CTFE.
@@ -737,8 +717,10 @@ private void ctfeCompile(FuncDeclaration fd)
     }
     if (fd.vresult)
         fd.ctfeCode.onDeclaration(fd.vresult);
-    scope CtfeCompiler v = new CtfeCompiler(fd.ctfeCode);
-    v.ctfeCompile(fd.fbody);
+
+    foreachExpAndVar(fd.fbody,
+        (e) => e.foreachVar((v) => fd.ctfeCode.onDeclaration(v)),
+        (v) => fd.ctfeCode.onDeclaration(v));
 }
 
 /*************************************
@@ -790,7 +772,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
     // Func literals report isNested() even if they are in global scope,
     // so we need to check that the parent is a function.
     if (fd.isNested() && fd.toParentLocal().isFuncDeclaration() && !thisarg && istate)
-        thisarg = ctfeStack.getThis();
+        thisarg = ctfeGlobals.stack.getThis();
 
     if (fd.needThis() && !thisarg)
     {
@@ -881,7 +863,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
         }
         auto elements = new Expressions(2);
         (*elements)[0] = arg0;
-        (*elements)[1] = ctfeStack.getThis();
+        (*elements)[1] = ctfeGlobals.stack.getThis();
         Type t2 = Type.tvoidptr.sarrayOf(2);
         const loc = thisarg ? thisarg.loc : fd.loc;
         thisarg = new ArrayLiteralExp(loc, t2, elements);
@@ -889,10 +871,10 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
         thisarg.type = t2.pointerTo();
     }
 
-    ctfeStack.startFrame(thisarg);
+    ctfeGlobals.stack.startFrame(thisarg);
     if (fd.vthis && thisarg)
     {
-        ctfeStack.push(fd.vthis);
+        ctfeGlobals.stack.push(fd.vthis);
         setValue(fd.vthis, thisarg);
     }
 
@@ -905,7 +887,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
         {
             printf("arg[%d] = %s\n", i, earg.toChars());
         }
-        ctfeStack.push(v);
+        ctfeGlobals.stack.push(v);
 
         if ((fparam.storageClass & (STC.out_ | STC.ref_)) && earg.op == TOK.variable &&
             (cast(VarExp)earg).var.toParent2() == fd)
@@ -931,7 +913,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
              */
             int oldadr = vx.ctfeAdrOnStack;
 
-            ctfeStack.push(vx);
+            ctfeGlobals.stack.push(vx);
             assert(!hasValue(vx)); // vx is made uninitialized
 
             // https://issues.dlang.org/show_bug.cgi?id=14299
@@ -958,7 +940,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
     }
 
     if (fd.vresult)
-        ctfeStack.push(fd.vresult);
+        ctfeGlobals.stack.push(fd.vresult);
 
     // Enter the function
     ++CtfeStatus.callDepth;
@@ -1036,7 +1018,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
     // Leave the function
     --CtfeStatus.callDepth;
 
-    ctfeStack.endFrame();
+    ctfeGlobals.stack.endFrame();
 
     // If it generated an uncaught exception, report error.
     if (!istate && e.op == TOK.thrownException)
@@ -1274,7 +1256,7 @@ public:
                         eaddr.e1 = x;
                     continue;
                 }
-                if (ctfeStack.isInCurrentFrame(v))
+                if (ctfeGlobals.stack.isInCurrentFrame(v))
                 {
                     error(loc, "returning a pointer to a local stack variable");
                     return false;
@@ -1775,7 +1757,7 @@ public:
                 // Execute the handler
                 if (ca.var)
                 {
-                    ctfeStack.push(ca.var);
+                    ctfeGlobals.stack.push(ca.var);
                     setValue(ca.var, ex.thrown);
                 }
                 e = interpret(ca.handler, istate);
@@ -1922,7 +1904,7 @@ public:
             return;
 
         assert(e.op == TOK.classReference);
-        result = new ThrownExceptionExp(s.loc, cast(ClassReferenceExp)e);
+        result = ctfeEmplaceExp!ThrownExceptionExp(s.loc, e.isClassReferenceExp());
     }
 
     override void visit(ScopeGuardStatement s)
@@ -1957,9 +1939,9 @@ public:
 
         if (s.wthis.type.ty == Tpointer && s.exp.type.ty != Tpointer)
         {
-            e = new AddrExp(s.loc, e, s.wthis.type);
+            e = ctfeEmplaceExp!AddrExp(s.loc, e, s.wthis.type);
         }
-        ctfeStack.push(s.wthis);
+        ctfeGlobals.stack.push(s.wthis);
         setValue(s.wthis, e);
         e = interpret(s._body, istate);
         if (CTFEExp.isGotoExp(e))
@@ -1980,7 +1962,7 @@ public:
                 e = ex;
             }
         }
-        ctfeStack.pop(s.wthis);
+        ctfeGlobals.stack.pop(s.wthis);
         result = e;
     }
 
@@ -2049,7 +2031,7 @@ public:
             // https://issues.dlang.org/show_bug.cgi?id=16382
             if (istate && istate.fd.vthis)
             {
-                result = new VarExp(e.loc, istate.fd.vthis);
+                result = ctfeEmplaceExp!VarExp(e.loc, istate.fd.vthis);
                 if (istate.fd.isThis2)
                 {
                     result = new PtrExp(e.loc, result);
@@ -2063,7 +2045,7 @@ public:
             return;
         }
 
-        result = ctfeStack.getThis();
+        result = ctfeGlobals.stack.getThis();
         if (result)
         {
             if (istate && istate.fd.isThis2)
@@ -2198,11 +2180,11 @@ public:
             if (val.type.ty == Tsarray && pointee.ty == Tsarray && elemsize == pointee.nextOf().size())
             {
                 size_t d = cast(size_t)(cast(TypeSArray)pointee).dim.toInteger();
-                Expression elwr = new IntegerExp(e.loc, e.offset / elemsize, Type.tsize_t);
-                Expression eupr = new IntegerExp(e.loc, e.offset / elemsize + d, Type.tsize_t);
+                Expression elwr = ctfeEmplaceExp!IntegerExp(e.loc, e.offset / elemsize, Type.tsize_t);
+                Expression eupr = ctfeEmplaceExp!IntegerExp(e.loc, e.offset / elemsize + d, Type.tsize_t);
 
                 // Create a CTFE pointer &val[ofs..ofs+d]
-                auto se = new SliceExp(e.loc, val, elwr, eupr);
+                auto se = ctfeEmplaceExp!SliceExp(e.loc, val, elwr, eupr);
                 se.type = pointee;
                 emplaceExp!(AddrExp)(pue, e.loc, se, e.type);
                 result = pue.exp();
@@ -2215,7 +2197,7 @@ public:
                 if (e.offset == 0 && isSafePointerCast(e.var.type, pointee))
                 {
                     // Create a CTFE pointer &var
-                    auto ve = new VarExp(e.loc, e.var);
+                    auto ve = ctfeEmplaceExp!VarExp(e.loc, e.var);
                     ve.type = elemtype;
                     emplaceExp!(AddrExp)(pue, e.loc, ve, e.type);
                     result = pue.exp();
@@ -2244,8 +2226,8 @@ public:
             if (aggregate)
             {
                 // Create a CTFE pointer &aggregate[ofs]
-                auto ofs = new IntegerExp(e.loc, indx, Type.tsize_t);
-                auto ei = new IndexExp(e.loc, aggregate, ofs);
+                auto ofs = ctfeEmplaceExp!IntegerExp(e.loc, indx, Type.tsize_t);
+                auto ei = ctfeEmplaceExp!IndexExp(e.loc, aggregate, ofs);
                 ei.type = elemtype;
                 emplaceExp!(AddrExp)(pue, e.loc, ei, e.type);
                 result = pue.exp();
@@ -2255,7 +2237,7 @@ public:
         else if (e.offset == 0 && isSafePointerCast(e.var.type, pointee))
         {
             // Create a CTFE pointer &var
-            auto ve = new VarExp(e.loc, e.var);
+            auto ve = ctfeEmplaceExp!VarExp(e.loc, e.var);
             ve.type = e.var.type;
             emplaceExp!(AddrExp)(pue, e.loc, ve, e.type);
             result = pue.exp();
@@ -2392,7 +2374,7 @@ public:
                      * Mark as "cached", and use it directly during interpretation.
                      */
                     e = scrubCacheValue(e);
-                    ctfeStack.saveGlobalConstant(v, e);
+                    ctfeGlobals.stack.saveGlobalConstant(v, e);
                 }
                 else
                 {
@@ -2561,7 +2543,7 @@ public:
                     if (v2.isDataseg() && !v2.isCTFE())
                         continue;
 
-                    ctfeStack.push(v2);
+                    ctfeGlobals.stack.push(v2);
                     if (v2._init)
                     {
                         Expression einit;
@@ -2593,7 +2575,7 @@ public:
                 return;
             }
             if (!(v.isDataseg() || v.storage_class & STC.manifest) || v.isCTFE())
-                ctfeStack.push(v);
+                ctfeGlobals.stack.push(v);
             if (v._init)
             {
                 if (ExpInitializer ie = v._init.isExpInitializer())
@@ -3092,7 +3074,9 @@ public:
                 }
                 sd.fill(e.loc, exps, false);
 
-                auto se = new StructLiteralExp(e.loc, sd, exps, e.newtype);
+                auto se = ctfeEmplaceExp!StructLiteralExp(e.loc, sd, exps, e.newtype);
+                se.origin = se;
+//                auto se = new StructLiteralExp(e.loc, sd, exps, e.newtype);
                 se.type = e.newtype;
                 se.ownedByCtfe = OwnedBy.ctfe;
                 result = interpret(pue, se, istate);
@@ -4200,25 +4184,25 @@ public:
                 if (se.lengthVar)
                 {
                     Expression dollarExp = new IntegerExp(e1.loc, dollar, Type.tsize_t);
-                    ctfeStack.push(se.lengthVar);
+                    ctfeGlobals.stack.push(se.lengthVar);
                     setValue(se.lengthVar, dollarExp);
                 }
                 Expression lwr = interpret(se.lwr, istate);
                 if (exceptionOrCantInterpret(lwr))
                 {
                     if (se.lengthVar)
-                        ctfeStack.pop(se.lengthVar);
+                        ctfeGlobals.stack.pop(se.lengthVar);
                     return lwr;
                 }
                 Expression upr = interpret(se.upr, istate);
                 if (exceptionOrCantInterpret(upr))
                 {
                     if (se.lengthVar)
-                        ctfeStack.pop(se.lengthVar);
+                        ctfeGlobals.stack.pop(se.lengthVar);
                     return upr;
                 }
                 if (se.lengthVar)
-                    ctfeStack.pop(se.lengthVar); // $ is defined only in [L..U]
+                    ctfeGlobals.stack.pop(se.lengthVar); // $ is defined only in [L..U]
 
                 const dim = dollar;
                 lowerbound = lwr ? lwr.toInteger() : 0;
@@ -5155,7 +5139,7 @@ public:
         InterState istateComma;
         if (!istate && firstComma(e.e1).op == TOK.declaration)
         {
-            ctfeStack.startFrame(null);
+            ctfeGlobals.stack.startFrame(null);
             istate = &istateComma;
         }
 
@@ -5163,7 +5147,7 @@ public:
         {
             // If we created a temporary stack frame, end it now.
             if (istate == &istateComma)
-                ctfeStack.endFrame();
+                ctfeGlobals.stack.endFrame();
         }
 
         result = CTFEExp.cantexp;
@@ -5177,7 +5161,7 @@ public:
         {
             VarExp ve = cast(VarExp)e.e2;
             VarDeclaration v = ve.var.isVarDeclaration();
-            ctfeStack.push(v);
+            ctfeGlobals.stack.push(v);
             if (!v._init && !getValue(v))
             {
                 setValue(v, copyLiteral(v.type.defaultInitLiteral(e.loc)).copy());
@@ -5459,12 +5443,12 @@ public:
         if (e.lengthVar)
         {
             Expression dollarExp = new IntegerExp(e.loc, len, Type.tsize_t);
-            ctfeStack.push(e.lengthVar);
+            ctfeGlobals.stack.push(e.lengthVar);
             setValue(e.lengthVar, dollarExp);
         }
         Expression e2 = interpret(e.e2, istate);
         if (e.lengthVar)
-            ctfeStack.pop(e.lengthVar); // $ is defined only inside []
+            ctfeGlobals.stack.pop(e.lengthVar); // $ is defined only inside []
         if (exceptionOrCantInterpret(e2))
             return false;
         if (e2.op != TOK.int64)
@@ -5739,7 +5723,7 @@ public:
         if (e.lengthVar)
         {
             auto dollarExp = new IntegerExp(e.loc, dollar, Type.tsize_t);
-            ctfeStack.push(e.lengthVar);
+            ctfeGlobals.stack.push(e.lengthVar);
             setValue(e.lengthVar, dollarExp);
         }
 
@@ -5749,18 +5733,18 @@ public:
         if (exceptionOrCant(lwr))
         {
             if (e.lengthVar)
-                ctfeStack.pop(e.lengthVar);
+                ctfeGlobals.stack.pop(e.lengthVar);
             return;
         }
         Expression upr = interpret(e.upr, istate);
         if (exceptionOrCant(upr))
         {
             if (e.lengthVar)
-                ctfeStack.pop(e.lengthVar);
+                ctfeGlobals.stack.pop(e.lengthVar);
             return;
         }
         if (e.lengthVar)
-            ctfeStack.pop(e.lengthVar); // $ is defined only inside [L..U]
+            ctfeGlobals.stack.pop(e.lengthVar); // $ is defined only inside [L..U]
 
         uinteger_t ilwr = lwr.toInteger();
         uinteger_t iupr = upr.toInteger();
@@ -6836,6 +6820,137 @@ private Expression scrubCacheValue(Expression e)
     return e;
 }
 
+/********************************************
+ * Transitively replace all Expressions allocated in ctfeGlobals.region
+ * with Mem owned copies.
+ * Params:
+ *      e = possible ctfeGlobals.region owned expression
+ * Returns:
+ *      Mem owned expression
+ */
+private Expression copyRegionExp(Expression e)
+{
+    if (!e)
+        return e;
+
+    static void copyArray(Expressions* elems)
+    {
+        foreach (ref e; *elems)
+            e = copyRegionExp(e);
+    }
+
+    static void copySE(StructLiteralExp sle)
+    {
+        sle.ownedByCtfe = OwnedBy.cache;
+        if (!(sle.stageflags & stageScrub))
+        {
+            const old = sle.stageflags;
+            sle.stageflags |= stageScrub;       // prevent infinite recursion
+            copyArray(sle.elements);
+            sle.stageflags = old;
+        }
+    }
+
+    switch (e.op)
+    {
+        case TOK.classReference:
+            copyRegionExp(e.isClassReferenceExp().value);
+            break;
+
+        case TOK.structLiteral:
+        {
+            auto sle = e.isStructLiteralExp();
+            copySE(sle);
+            if (ctfeGlobals.region.contains(cast(void*)e))
+            {
+                // Some ugly code because .origin can be self-referencial
+                bool copyOrigin = (sle.origin == sle);
+                e = e.copy();
+                if (copyOrigin)
+                {
+                    auto s = e.isStructLiteralExp();
+                    s.origin = s;
+                }
+            }
+            return e;
+        }
+
+        case TOK.arrayLiteral:
+            copyArray(e.isArrayLiteralExp().elements);
+            break;
+
+        case TOK.assocArrayLiteral:
+            copyArray(e.isAssocArrayLiteralExp().keys);
+            copyArray(e.isAssocArrayLiteralExp().values);
+            break;
+
+        case TOK.slice:
+        {
+            auto se = e.isSliceExp();
+            se.e1  = copyRegionExp(se.e1);
+            se.upr = copyRegionExp(se.upr);
+            se.lwr = copyRegionExp(se.lwr);
+            break;
+        }
+
+        case TOK.tuple:
+        {
+            auto te = e.isTupleExp();
+            te.e0 = copyRegionExp(te.e0);
+            copyArray(te.exps);
+            break;
+        }
+
+        case TOK.address:
+        case TOK.delegate_:
+        case TOK.vector:
+        {
+            UnaExp ue = cast(UnaExp)e;
+            ue.e1 = copyRegionExp(ue.e1);
+            break;
+        }
+
+        case TOK.index:
+        {
+            BinExp be = cast(BinExp)e;
+            be.e1 = copyRegionExp(be.e1);
+            be.e2 = copyRegionExp(be.e2);
+            break;
+        }
+
+        case TOK.this_:
+        case TOK.super_:
+        case TOK.variable:
+        case TOK.type:
+        case TOK.function_:
+        case TOK.typeid_:
+        case TOK.string_:
+        case TOK.int64:
+        case TOK.error:
+        case TOK.float64:
+        case TOK.complex80:
+        case TOK.null_:
+        case TOK.void_:
+        case TOK.symbolOffset:
+            break;
+
+        case TOK.cantExpression:
+        case TOK.voidExpression:
+        case TOK.showCtfeContext:
+            return e;
+
+        default:
+            printf("e: %d, %s\n", e.op, e.toChars());
+            assert(0);
+    }
+
+    if (ctfeGlobals.region.contains(cast(void*)e))
+    {
+        return e.copy();
+    }
+    return e;
+}
+
 /******************************* Special Functions ***************************/
 
 private Expression interpret_length(UnionExp* pue, InterState* istate, Expression earg)
@@ -7436,7 +7551,7 @@ private bool hasValue(VarDeclaration vd)
 // Don't check for validity
 private void setValueWithoutChecking(VarDeclaration vd, Expression newval)
 {
-    ctfeStack.setValue(vd, newval);
+    ctfeGlobals.stack.setValue(vd, newval);
 }
 
 private void setValue(VarDeclaration vd, Expression newval)
@@ -7449,7 +7564,7 @@ private void setValue(VarDeclaration vd, Expression newval)
         }
     }
     assert((vd.storage_class & (STC.out_ | STC.ref_)) ? isCtfeReferenceValid(newval) : isCtfeValueValid(newval));
-    ctfeStack.setValue(vd, newval);
+    ctfeGlobals.stack.setValue(vd, newval);
 }
 
 /**

@@ -293,9 +293,8 @@ private Expressions* copyLiteralArray(Expressions* oldelems, Expression basis = 
 UnionExp copyLiteral(Expression e)
 {
     UnionExp ue = void;
-    if (e.op == TOK.string_) // syntaxCopy doesn't make a copy for StringExp!
+    if (auto se = e.isStringExp()) // syntaxCopy doesn't make a copy for StringExp!
     {
-        StringExp se = cast(StringExp)e;
         char* s = cast(char*)mem.xcalloc(se.len + 1, se.sz);
         memcpy(s, se.string, se.len * se.sz);
         emplaceExp!(StringExp)(&ue, se.loc, s, se.len);
@@ -307,9 +306,8 @@ UnionExp copyLiteral(Expression e)
         se2.ownedByCtfe = OwnedBy.ctfe;
         return ue;
     }
-    if (e.op == TOK.arrayLiteral)
+    if (auto ale = e.isArrayLiteralExp())
     {
-        auto ale = cast(ArrayLiteralExp)e;
         auto elements = copyLiteralArray(ale.elements, ale.basis);
 
         emplaceExp!(ArrayLiteralExp)(&ue, e.loc, e.type, elements);
@@ -318,22 +316,20 @@ UnionExp copyLiteral(Expression e)
         r.ownedByCtfe = OwnedBy.ctfe;
         return ue;
     }
-    if (e.op == TOK.assocArrayLiteral)
+    if (auto aae = e.isAssocArrayLiteralExp())
     {
-        AssocArrayLiteralExp aae = cast(AssocArrayLiteralExp)e;
         emplaceExp!(AssocArrayLiteralExp)(&ue, e.loc, copyLiteralArray(aae.keys), copyLiteralArray(aae.values));
         AssocArrayLiteralExp r = cast(AssocArrayLiteralExp)ue.exp();
         r.type = e.type;
         r.ownedByCtfe = OwnedBy.ctfe;
         return ue;
     }
-    if (e.op == TOK.structLiteral)
+    if (auto sle = e.isStructLiteralExp())
     {
         /* syntaxCopy doesn't work for struct literals, because of a nasty special
          * case: block assignment is permitted inside struct literals, eg,
          * an int[4] array can be initialized with a single int.
          */
-        auto sle = cast(StructLiteralExp)e;
         auto oldelems = sle.elements;
         auto newelems = new Expressions(oldelems.dim);
         foreach (i, ref el; *newelems)
@@ -358,7 +354,7 @@ UnionExp copyLiteral(Expression e)
                 // Block assignment from inside struct literals
                 if (v.type.ty != m.type.ty && v.type.ty == Tsarray)
                 {
-                    auto tsa = cast(TypeSArray)v.type;
+                    auto tsa = v.type.isTypeSArray();
                     auto len = cast(size_t)tsa.dim.toInteger();
                     UnionExp uex = void;
                     m = createBlockDuplicatedArrayLiteral(&uex, e.loc, v.type, m, len);
@@ -369,10 +365,10 @@ UnionExp copyLiteral(Expression e)
             el = m;
         }
         emplaceExp!(StructLiteralExp)(&ue, e.loc, sle.sd, newelems, sle.stype);
-        auto r = cast(StructLiteralExp)ue.exp();
+        auto r = ue.exp().isStructLiteralExp();
         r.type = e.type;
         r.ownedByCtfe = OwnedBy.ctfe;
-        r.origin = (cast(StructLiteralExp)e).origin;
+        r.origin = sle.origin;
         return ue;
     }
     if (e.op == TOK.function_ || e.op == TOK.delegate_ || e.op == TOK.symbolOffset || e.op == TOK.null_ || e.op == TOK.variable || e.op == TOK.dotVariable || e.op == TOK.int64 || e.op == TOK.float64 || e.op == TOK.char_ || e.op == TOK.complex80 || e.op == TOK.void_ || e.op == TOK.vector || e.op == TOK.typeid_)
@@ -384,9 +380,8 @@ UnionExp copyLiteral(Expression e)
         r.type = e.type;
         return ue;
     }
-    if (e.op == TOK.slice)
+    if (auto se = e.isSliceExp())
     {
-        SliceExp se = cast(SliceExp)e;
         if (se.type.toBasetype().ty == Tsarray)
         {
             // same with resolveSlice()
@@ -396,8 +391,7 @@ UnionExp copyLiteral(Expression e)
                 return ue;
             }
             ue = Slice(se.type, se.e1, se.lwr, se.upr);
-            assert(ue.exp().op == TOK.arrayLiteral);
-            ArrayLiteralExp r = cast(ArrayLiteralExp)ue.exp();
+            auto r = ue.exp().isArrayLiteralExp();
             r.elements = copyLiteralArray(r.elements);
             r.ownedByCtfe = OwnedBy.ctfe;
             return ue;
@@ -414,13 +408,13 @@ UnionExp copyLiteral(Expression e)
     if (isPointer(e.type))
     {
         // For pointers, we only do a shallow copy.
-        if (e.op == TOK.address)
-            emplaceExp!(AddrExp)(&ue, e.loc, (cast(AddrExp)e).e1);
-        else if (e.op == TOK.index)
-            emplaceExp!(IndexExp)(&ue, e.loc, (cast(IndexExp)e).e1, (cast(IndexExp)e).e2);
-        else if (e.op == TOK.dotVariable)
+        if (auto ae = e.isAddrExp())
+            emplaceExp!(AddrExp)(&ue, e.loc, ae.e1);
+        else if (auto ie = e.isIndexExp())
+            emplaceExp!(IndexExp)(&ue, e.loc, ie.e1, ie.e2);
+        else if (auto dve = e.isDotVarExp())
         {
-            emplaceExp!(DotVarExp)(&ue, e.loc, (cast(DotVarExp)e).e1, (cast(DotVarExp)e).var, (cast(DotVarExp)e).hasOverloads);
+            emplaceExp!(DotVarExp)(&ue, e.loc, dve.e1, dve.var, dve.hasOverloads);
         }
         else
             assert(0);
@@ -429,9 +423,9 @@ UnionExp copyLiteral(Expression e)
         r.type = e.type;
         return ue;
     }
-    if (e.op == TOK.classReference)
+    if (auto cre = e.isClassReferenceExp())
     {
-        emplaceExp!(ClassReferenceExp)(&ue, e.loc, (cast(ClassReferenceExp)e).value, e.type);
+        emplaceExp!(ClassReferenceExp)(&ue, e.loc, cre.value, e.type);
         return ue;
     }
     if (e.op == TOK.error)
@@ -479,14 +473,12 @@ private UnionExp paintTypeOntoLiteralCopy(Type type, Expression lit)
         ue.exp().type = type;
         return ue;
     }
-    if (lit.op == TOK.slice)
+    if (auto se = lit.isSliceExp())
     {
-        SliceExp se = cast(SliceExp)lit;
         emplaceExp!(SliceExp)(&ue, lit.loc, se.e1, se.lwr, se.upr);
     }
-    else if (lit.op == TOK.index)
+    else if (auto ie = lit.isIndexExp())
     {
-        IndexExp ie = cast(IndexExp)lit;
         emplaceExp!(IndexExp)(&ue, lit.loc, ie.e1, ie.e2);
     }
     else if (lit.op == TOK.arrayLiteral)
@@ -498,9 +490,8 @@ private UnionExp paintTypeOntoLiteralCopy(Type type, Expression lit)
         // For strings, we need to introduce another level of indirection
         emplaceExp!(SliceExp)(&ue, lit.loc, lit, new IntegerExp(Loc.initial, 0, Type.tsize_t), ArrayLength(Type.tsize_t, lit).copy());
     }
-    else if (lit.op == TOK.assocArrayLiteral)
+    else if (auto aae = lit.isAssocArrayLiteralExp())
     {
-        AssocArrayLiteralExp aae = cast(AssocArrayLiteralExp)lit;
         // TODO: we should be creating a reference to this AAExp, not
         // just a ref to the keys and values.
         OwnedBy wasOwned = aae.ownedByCtfe;
@@ -530,9 +521,9 @@ private UnionExp paintTypeOntoLiteralCopy(Type type, Expression lit)
  */
 Expression resolveSlice(Expression e, UnionExp* pue = null)
 {
-    if (e.op != TOK.slice)
+    SliceExp se = e.isSliceExp();
+    if (!se)
         return e;
-    SliceExp se = cast(SliceExp)e;
     if (se.e1.op == TOK.null_)
         return se.e1;
     if (pue)
@@ -554,31 +545,31 @@ uinteger_t resolveArrayLength(const Expression e)
     switch (e.op)
     {
         case TOK.vector:
-            return (cast(VectorExp)e).dim;
+            return e.isVectorExp().dim;
 
         case TOK.null_:
             return 0;
 
         case TOK.slice:
         {
-            const ilo = (cast(SliceExp)e).lwr.toInteger();
-            const iup = (cast(SliceExp)e).upr.toInteger();
+            auto se = cast(SliceExp)e;
+            const ilo = se.lwr.toInteger();
+            const iup = se.upr.toInteger();
             return iup - ilo;
         }
 
         case TOK.string_:
-            return (cast(StringExp)e).len;
+            return e.isStringExp().len;
 
         case TOK.arrayLiteral:
         {
-            const ale = cast(ArrayLiteralExp)e;
+            const ale = e.isArrayLiteralExp();
             return ale.elements ? ale.elements.dim : 0;
         }
 
         case TOK.assocArrayLiteral:
         {
-            const ale = cast(AssocArrayLiteralExp)e;
-            return ale.keys.dim;
+            return e.isAssocArrayLiteralExp().keys.dim;
         }
 
         default:
@@ -603,7 +594,7 @@ ArrayLiteralExp createBlockDuplicatedArrayLiteral(UnionExp* pue, const ref Loc l
     if (type.ty == Tsarray && type.nextOf().ty == Tsarray && elem.type.ty != Tsarray)
     {
         // If it is a multidimensional array literal, do it recursively
-        auto tsa = cast(TypeSArray)type.nextOf();
+        auto tsa = type.nextOf().isTypeSArray();
         const len = cast(size_t)tsa.dim.toInteger();
         UnionExp ue = void;
         elem = createBlockDuplicatedArrayLiteral(&ue, loc, type.nextOf(), elem, len);
@@ -621,7 +612,7 @@ ArrayLiteralExp createBlockDuplicatedArrayLiteral(UnionExp* pue, const ref Loc l
         el = mustCopy && i ? copyLiteral(elem).copy() : elem;
     }
     emplaceExp!(ArrayLiteralExp)(pue, loc, type, elements);
-    auto ale = cast(ArrayLiteralExp)pue.exp();
+    auto ale = pue.exp().isArrayLiteralExp();
     ale.ownedByCtfe = OwnedBy.ctfe;
     return ale;
 }
@@ -651,7 +642,7 @@ StringExp createBlockDuplicatedStringLiteral(UnionExp* pue, const ref Loc loc, T
         }
     }
     emplaceExp!(StringExp)(pue, loc, s, dim);
-    auto se= cast(StringExp)pue.exp();
+    auto se = pue.exp().isStringExp();
     se.type = type;
     se.sz = sz;
     se.committed = true;
@@ -662,26 +653,21 @@ StringExp createBlockDuplicatedStringLiteral(UnionExp* pue, const ref Loc loc, T
 // Return true if t is an AA
 bool isAssocArray(Type t)
 {
-    t = t.toBasetype();
-    if (t.ty == Taarray)
-        return true;
-    return false;
+    return t.toBasetype().isTypeAArray() !is null;
 }
 
 // Given a template AA type, extract the corresponding built-in AA type
 TypeAArray toBuiltinAAType(Type t)
 {
-    t = t.toBasetype();
-    if (t.ty == Taarray)
-        return cast(TypeAArray)t;
-    assert(0);
+    return t.toBasetype().isTypeAArray();
 }
 
 /************** TypeInfo operations ************************************/
 // Return true if type is TypeInfo_Class
 bool isTypeInfo_Class(const Type type)
 {
-    return type.ty == Tclass && (Type.dtypeinfo == (cast(TypeClass)type).sym || Type.dtypeinfo.isBaseOf((cast(TypeClass)type).sym, null));
+    auto tc = cast()type.isTypeClass();
+    return tc && (Type.dtypeinfo == tc.sym || Type.dtypeinfo.isBaseOf(tc.sym, null));
 }
 
 /************** Pointer operations ************************************/
@@ -738,14 +724,14 @@ bool isSafePointerCast(Type srcPointee, Type destPointee)
 Expression getAggregateFromPointer(Expression e, dinteger_t* ofs)
 {
     *ofs = 0;
-    if (e.op == TOK.address)
-        e = (cast(AddrExp)e).e1;
-    if (e.op == TOK.symbolOffset)
-        *ofs = (cast(SymOffExp)e).offset;
-    if (e.op == TOK.dotVariable)
+    if (auto ae = e.isAddrExp())
+        e = ae.e1;
+    if (auto soe = e.isSymOffExp())
+        *ofs = soe.offset;
+    if (auto dve = e.isDotVarExp())
     {
-        const ex = (cast(DotVarExp)e).e1;
-        const v = (cast(DotVarExp)e).var.isVarDeclaration();
+        const ex = dve.e1;
+        const v = dve.var.isVarDeclaration();
         assert(v);
         StructLiteralExp se = (ex.op == TOK.classReference)
             ? (cast(ClassReferenceExp)ex).value
@@ -757,9 +743,8 @@ Expression getAggregateFromPointer(Expression e, dinteger_t* ofs)
             : se.getFieldIndex(e.type, v.offset);
         e = (*se.elements)[i];
     }
-    if (e.op == TOK.index)
+    if (auto ie = e.isIndexExp())
     {
-        IndexExp ie = cast(IndexExp)e;
         // Note that each AA element is part of its own memory block
         if ((ie.e1.type.ty == Tarray || ie.e1.type.ty == Tsarray || ie.e1.op == TOK.string_ || ie.e1.op == TOK.arrayLiteral) && ie.e2.op == TOK.int64)
         {
@@ -767,10 +752,10 @@ Expression getAggregateFromPointer(Expression e, dinteger_t* ofs)
             return ie.e1;
         }
     }
-    if (e.op == TOK.slice && e.type.toBasetype().ty == Tsarray)
+    if (auto se = e.isSliceExp())
     {
-        SliceExp se = cast(SliceExp)e;
-        if ((se.e1.type.ty == Tarray || se.e1.type.ty == Tsarray || se.e1.op == TOK.string_ || se.e1.op == TOK.arrayLiteral) && se.lwr.op == TOK.int64)
+        if (se && e.type.toBasetype().ty == Tsarray &&
+           (se.e1.type.ty == Tarray || se.e1.type.ty == Tsarray || se.e1.op == TOK.string_ || se.e1.op == TOK.arrayLiteral) && se.lwr.op == TOK.int64)
         {
             *ofs = se.lwr.toInteger();
             return se.e1;
