@@ -404,86 +404,84 @@ struct CompiledCtfeFunction
         //printf("%s CTFE declare %s\n", v.loc.toChars(), v.toChars());
         ++numVars;
     }
+}
 
-    extern (C++) void onExpression(Expression e)
+/*********************************************
+ * Visit each Expression in e, and call dgVar() on each variable declared in it.
+ * Params:
+ *      dgVar = call when a variable is declared
+ */
+void foreachVar(Expression e, void delegate(VarDeclaration) dgVar)
+{
+    if (!e)
+        return;
+
+    extern (C++) final class VarWalker : StoppableVisitor
     {
-        extern (C++) final class VarWalker : StoppableVisitor
+        alias visit = typeof(super).visit;
+        extern (D) void delegate(VarDeclaration) dgVar;
+
+        extern (D) this(void delegate(VarDeclaration) dgVar)
         {
-            alias visit = typeof(super).visit;
-        public:
-            CompiledCtfeFunction* ccf;
+            this.dgVar = dgVar;
+        }
 
-            extern (D) this(CompiledCtfeFunction* ccf)
-            {
-                this.ccf = ccf;
-            }
+        override void visit(Expression e)
+        {
+        }
 
-            override void visit(Expression e)
-            {
-            }
+        override void visit(ErrorExp e)
+        {
+            .error(e.loc, "CTFE internal error: ErrorExp");
+            assert(0);
+        }
 
-            override void visit(ErrorExp e)
+        override void visit(DeclarationExp e)
+        {
+            VarDeclaration v = e.declaration.isVarDeclaration();
+            if (!v)
+                return;
+            TupleDeclaration td = v.toAlias().isTupleDeclaration();
+            if (td)
             {
-                // Currently there's a front-end bug: silent errors
-                // can occur inside delegate literals inside is(typeof()).
-                // Suppress the check in this case.
-                if (global.gag && ccf.func)
-                {
-                    stop = 1;
+                if (!td.objects)
                     return;
-                }
-                .error(e.loc, "CTFE internal error: ErrorExp in `%s`\n", ccf.func ? ccf.func.loc.toChars() : ccf.callingloc.toChars());
-                assert(0);
-            }
-
-            override void visit(DeclarationExp e)
-            {
-                VarDeclaration v = e.declaration.isVarDeclaration();
-                if (!v)
-                    return;
-                TupleDeclaration td = v.toAlias().isTupleDeclaration();
-                if (td)
+                foreach (o; *td.objects)
                 {
-                    if (!td.objects)
-                        return;
-                    foreach (o; *td.objects)
-                    {
-                        Expression ex = isExpression(o);
-                        DsymbolExp s = ex ? ex.isDsymbolExp() : null;
-                        assert(s);
-                        VarDeclaration v2 = s.s.isVarDeclaration();
-                        assert(v2);
-                        if (!v2.isDataseg() || v2.isCTFE())
-                            ccf.onDeclaration(v2);
-                    }
-                }
-                else if (!(v.isDataseg() || v.storage_class & STC.manifest) || v.isCTFE())
-                    ccf.onDeclaration(v);
-                Dsymbol s = v.toAlias();
-                if (s == v && !v.isStatic() && v._init)
-                {
-                    ExpInitializer ie = v._init.isExpInitializer();
-                    if (ie)
-                        ccf.onExpression(ie.exp);
+                    Expression ex = isExpression(o);
+                    DsymbolExp s = ex ? ex.isDsymbolExp() : null;
+                    assert(s);
+                    VarDeclaration v2 = s.s.isVarDeclaration();
+                    assert(v2);
+                    if (!v2.isDataseg() || v2.isCTFE())
+                        dgVar(v2);
                 }
             }
-
-            override void visit(IndexExp e)
+            else if (!(v.isDataseg() || v.storage_class & STC.manifest) || v.isCTFE())
+                dgVar(v);
+            Dsymbol s = v.toAlias();
+            if (s == v && !v.isStatic() && v._init)
             {
-                if (e.lengthVar)
-                    ccf.onDeclaration(e.lengthVar);
-            }
-
-            override void visit(SliceExp e)
-            {
-                if (e.lengthVar)
-                    ccf.onDeclaration(e.lengthVar);
+                if (auto ie = v._init.isExpInitializer())
+                    ie.exp.foreachVar(dgVar);
             }
         }
 
-        scope VarWalker v = new VarWalker(&this);
-        walkPostorder(e, v);
+        override void visit(IndexExp e)
+        {
+            if (e.lengthVar)
+                dgVar(e.lengthVar);
+        }
+
+        override void visit(SliceExp e)
+        {
+            if (e.lengthVar)
+                dgVar(e.lengthVar);
+        }
     }
+
+    scope VarWalker v = new VarWalker(dgVar);
+    walkPostorder(e, v);
 }
 
 /***************
@@ -721,7 +719,7 @@ private void ctfeCompile(FuncDeclaration fd)
         fd.ctfeCode.onDeclaration(fd.vresult);
 
     foreachExpAndVar(fd.fbody,
-        (e) => fd.ctfeCode.onExpression(e),
+        (e) => e.foreachVar((v) => fd.ctfeCode.onDeclaration(v)),
         (v) => fd.ctfeCode.onDeclaration(v));
 }
 
