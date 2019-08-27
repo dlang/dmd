@@ -343,21 +343,6 @@ GLUE_SRCS=$(addsuffix .d, $(addprefix $D/,irstate toctype glue gluelayer todt to
 
 DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS)
 
-BACK_DOBJS = bcomplex.o evalu8.o divcoeff.o dvec.o go.o gsroa.o glocal.o gdag.o gother.o gflow.o \
-	out.o \
-	gloop.o compress.o cgelem.o cgcs.o ee.o cod4.o cod5.o nteh.o blockopt.o mem.o cg.o cgreg.o \
-	dtype.o debugprint.o fp.o symbol.o elem.o dcode.o cgsched.o cg87.o cgxmm.o cgcod.o cod1.o cod2.o \
-	cod3.o cv8.o dcgcv.o pdata.o util2.o var.o md5.o backconfig.o ph2.o drtlsym.o dwarfeh.o ptrntab.o \
-	aarray.o dvarstats.o dwarfdbginf.o elfobj.o cgen.o os.o goh.o barray.o cgcse.o elpicpie.o
-
-G_DOBJS = $(addprefix $G/, $(BACK_DOBJS))
-
-ifeq (osx,$(OS))
-	BACK_DOBJS += machobj.o
-else
-#	BACK_DOBJS += elfobj.o
-endif
-
 ######## DMD glue layer and backend
 
 GLUE_SRC = \
@@ -411,7 +396,7 @@ SRC_MAKE = posix.mak osmodel.mak
 
 STRING_IMPORT_FILES = $G/VERSION $G/SYSCONFDIR.imp $(RES)/default_ddoc_theme.ddoc
 
-DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(BACK_OBJS) $(BACK_DOBJS))
+DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS))
 
 RUN_BUILD = $(GENERATED)/build HOST_DMD="$(HOST_DMD)" OS=$(OS) BUILD=$(BUILD) MODEL=$(MODEL) AUTO_BOOTSTRAP="$(AUTO_BOOTSTRAP)" --called-from-make
 
@@ -443,21 +428,13 @@ toolchain-info:
 	@echo '==== Toolchain Information ===='
 	@echo
 
-$G/backend.a: $(G_DOBJS) $(SRC_MAKE)
-	$(AR) rcs $@ $(G_DOBJS)
-
 $G/dmd_frontend: $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	$(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^) -version=NoBackend
 
-ifdef ENABLE_LTO
-$G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/lexer.a $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
-	$(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
-else
-$G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/backend.a $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+$G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/lexer.a $G/backend.o $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	$(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $(LEXER_ROOT),$^)
-endif
 
-$G/dmd-unittest: $(DMD_SRCS) $(ROOT_SRCS) $(LEXER_SRCS) $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+$G/dmd-unittest: $(DMD_SRCS) $(ROOT_SRCS) $(LEXER_SRCS) $G/backend.o $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	$(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) $(DFLAGS) -g -unittest -main -version=NoMain $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 
 unittest: $G/dmd-unittest
@@ -530,10 +507,6 @@ FORCE: ;
 
 -include $(DEPS)
 
-$(G_DOBJS): $G/%.o: $C/%.d posix.mak $(HOST_DMD_PATH)
-	@echo "  (HOST_DMD_RUN)  BACK_DOBJS  $<"
-	$(HOST_DMD_RUN) -c -of$@ $(DFLAGS) $(MODEL_FLAG) $(BACK_BETTERC) $(BACK_DFLAGS) $<
-
 ################################################################################
 # Generate the man pages
 ################################################################################
@@ -589,7 +562,7 @@ dscanner: $(DSCANNER_DIR)/dsc
 $G/cxxfrontend.o: $G/%.o: tests/%.c $(SRC) $(ROOT_SRC) $(SRC_MAKE)
 	$(CXX) -c -o$@ $(CXXFLAGS) $(DMD_FLAGS) $(MMD) $<
 
-$G/cxx-unittest: $G/cxxfrontend.o $(DMD_SRCS) $(ROOT_SRCS) $G/lexer.a $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+$G/cxx-unittest: $G/cxxfrontend.o $(DMD_SRCS) $(ROOT_SRCS) $G/lexer.a $G/backend.o $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) -L-lstdc++ $(DFLAGS) -version=NoMain $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 
 cxx-unittest: $G/cxx-unittest
