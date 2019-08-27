@@ -34,20 +34,6 @@ import dmd.root.rmem;
 import dmd.tokens;
 import dmd.visitor;
 
-/***********************************************************
- * Global status of the CTFE engine. Mostly used for performance diagnostics
- */
-struct CtfeStatus
-{
-    __gshared int callDepth = 0;        // current number of recursive calls
-
-    // When printing a stack trace, suppress this number of calls
-    __gshared int stackTraceCallsToSuppress = 0;
-
-    __gshared int maxCallDepth = 0;     // highest number of recursive calls
-    __gshared int numArrayAllocs = 0;   // Number of allocated arrays
-    __gshared int numAssignments = 0;   // total number of assignments executed
-}
 
 /***********************************************************
  * A reference to a class, or an interface. We need this when we
@@ -279,7 +265,7 @@ private Expressions* copyLiteralArray(Expressions* oldelems, Expression basis = 
 {
     if (!oldelems)
         return oldelems;
-    CtfeStatus.numArrayAllocs++;
+    incArrayAllocs();
     auto newelems = new Expressions(oldelems.dim);
     foreach (i, el; *oldelems)
     {

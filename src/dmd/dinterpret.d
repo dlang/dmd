@@ -173,8 +173,8 @@ public extern (C++) void printCtfePerformanceStats()
     debug (SHOWPERFORMANCE)
     {
         printf("        ---- CTFE Performance ----\n");
-        printf("max call depth = %d\tmax stack = %d\n", CtfeStatus.maxCallDepth, ctfeGlobals.stack.maxStackUsage());
-        printf("array allocs = %d\tassignments = %d\n\n", CtfeStatus.numArrayAllocs, CtfeStatus.numAssignments);
+        printf("max call depth = %d\tmax stack = %d\n", ctfeGlobals.maxCallDepth, ctfeGlobals.stack.maxStackUsage());
+        printf("array allocs = %d\tassignments = %d\n\n", ctfeGlobals.numArrayAllocs, ctfeGlobals.numAssignments);
     }
 }
 
@@ -185,6 +185,14 @@ extern (C++) struct CompiledCtfeFunctionPimpl
 {
     private CompiledCtfeFunction* pimpl;
     private alias pimpl this;
+}
+
+/**************************
+ */
+
+void incArrayAllocs()
+{
+    ++ctfeGlobals.numArrayAllocs;
 }
 
 /* ================================================ Implementation ======================================= */
@@ -200,6 +208,15 @@ struct CtfeGlobals
     int count;          // reference count CtfeGlobals instance
 
     CtfeStack stack;
+
+    int callDepth = 0;        // current number of recursive calls
+
+    // When printing a stack trace, suppress this number of calls
+    int stackTraceCallsToSuppress = 0;
+
+    int maxCallDepth = 0;     // highest number of recursive calls
+    int numArrayAllocs = 0;   // Number of allocated arrays
+    int numAssignments = 0;   // total number of assignments executed
 }
 
 __gshared CtfeGlobals ctfeGlobals;
@@ -943,14 +960,14 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
         ctfeGlobals.stack.push(fd.vresult);
 
     // Enter the function
-    ++CtfeStatus.callDepth;
-    if (CtfeStatus.callDepth > CtfeStatus.maxCallDepth)
-        CtfeStatus.maxCallDepth = CtfeStatus.callDepth;
+    ++ctfeGlobals.callDepth;
+    if (ctfeGlobals.callDepth > ctfeGlobals.maxCallDepth)
+        ctfeGlobals.maxCallDepth = ctfeGlobals.callDepth;
 
     Expression e = null;
     while (1)
     {
-        if (CtfeStatus.callDepth > CTFE_RECURSION_LIMIT)
+        if (ctfeGlobals.callDepth > CTFE_RECURSION_LIMIT)
         {
             // This is a compiler error. It must not be suppressed.
             global.gag = 0;
@@ -1016,7 +1033,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
     assert(e !is null);
 
     // Leave the function
-    --CtfeStatus.callDepth;
+    --ctfeGlobals.callDepth;
 
     ctfeGlobals.stack.endFrame();
 
@@ -1069,7 +1086,7 @@ public:
                 exps = new Expressions();
             else
                 exps = original.copy();
-            ++CtfeStatus.numArrayAllocs;
+            ++ctfeGlobals.numArrayAllocs;
         }
         return exps;
     }
@@ -2381,7 +2398,7 @@ public:
                     v.inuse++;
                     e = interpret(e, istate);
                     v.inuse--;
-                    if (CTFEExp.isCantExp(e) && !global.gag && !CtfeStatus.stackTraceCallsToSuppress)
+                    if (CTFEExp.isCantExp(e) && !global.gag && !ctfeGlobals.stackTraceCallsToSuppress)
                         errorSupplemental(loc, "while evaluating %s.init", v.toChars());
                     if (exceptionOrCantInterpret(e))
                         return e;
@@ -3510,7 +3527,7 @@ public:
             return;
         }
 
-        ++CtfeStatus.numAssignments;
+        ++ctfeGlobals.numAssignments;
 
         /* Before we begin, we need to know if this is a reference assignment
          * (dynamic array, AA, or class) or a value assignment.
@@ -4883,14 +4900,14 @@ public:
     // To shorten the stack trace, try to detect recursion.
     private void showCtfeBackTrace(CallExp callingExp, FuncDeclaration fd)
     {
-        if (CtfeStatus.stackTraceCallsToSuppress > 0)
+        if (ctfeGlobals.stackTraceCallsToSuppress > 0)
         {
-            --CtfeStatus.stackTraceCallsToSuppress;
+            --ctfeGlobals.stackTraceCallsToSuppress;
             return;
         }
         errorSupplemental(callingExp.loc, "called from here: `%s`", callingExp.toChars());
         // Quit if it's not worth trying to compress the stack trace
-        if (CtfeStatus.callDepth < 6 || global.params.verbose)
+        if (ctfeGlobals.callDepth < 6 || global.params.verbose)
             return;
         // Recursion happens if the current function already exists in the call stack.
         int numToSuppress = 0;
@@ -4925,7 +4942,7 @@ public:
             lastRecurse = lastRecurse.caller;
             ++numToSuppress;
         }
-        CtfeStatus.stackTraceCallsToSuppress = numToSuppress;
+        ctfeGlobals.stackTraceCallsToSuppress = numToSuppress;
     }
 
     override void visit(CallExp e)
