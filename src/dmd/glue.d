@@ -1256,14 +1256,6 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         }
     }
 
-    if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD ||
-        global.params.isDragonFlyBSD || global.params.isSolaris)
-    {
-        // A hack to get a pointer to this function put in the .dtors segment
-        if (fd.ident && memcmp(fd.ident.toChars(), "_STD".ptr, 4) == 0)
-            objmod.staticdtor(s);
-    }
-
     if (irs.startaddress)
     {
         //printf("Setting start address\n");
