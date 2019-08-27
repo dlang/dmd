@@ -147,6 +147,9 @@ $(IMPDIR)\core\internal\spinlock.d : src\core\internal\spinlock.d
 $(IMPDIR)\core\internal\string.d : src\core\internal\string.d
 	copy $** $@
 
+$(IMPDIR)\core\internal\switch_.d : src\core\internal\switch_.d
+	copy $** $@
+
 $(IMPDIR)\core\internal\traits.d : src\core\internal\traits.d
 	copy $** $@
 
