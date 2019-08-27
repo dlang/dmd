@@ -1,3 +1,13 @@
+/**
+ This module contains the code for C main and any call(s) to initialize the
+ D runtime and call D main.
+
+  Copyright: Copyright Digital Mars 2000 - 2019.
+  License: Distributed under the
+       $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
+     (See accompanying file LICENSE)
+  Source: $(DRUNTIMESRC core/_internal/_entrypoint.d)
+*/
 module core.internal.entrypoint;
 
 /**
