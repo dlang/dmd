@@ -47,7 +47,6 @@ DOCS=\
 	$(DOCDIR)\core_stdcpp_array.html \
 	$(DOCDIR)\core_stdcpp_exception.html \
 	$(DOCDIR)\core_stdcpp_new_.html \
-	$(DOCDIR)\core_stdcpp_optional.html \
 	$(DOCDIR)\core_stdcpp_string.html \
 	$(DOCDIR)\core_stdcpp_string_view.html \
 	$(DOCDIR)\core_stdcpp_typeinfo.html \
