@@ -22,7 +22,6 @@ COPY=\
 	$(IMPDIR)\core\vararg.d \
 	\
 	$(IMPDIR)\core\internal\abort.d \
-	$(IMPDIR)\core\internal\arrayop.d \
 	$(IMPDIR)\core\internal\atomic.d \
 	$(IMPDIR)\core\internal\attributes.d \
 	$(IMPDIR)\core\internal\convert.d \
@@ -43,6 +42,7 @@ COPY=\
 	$(IMPDIR)\core\internal\array\casting.d \
 	$(IMPDIR)\core\internal\array\capacity.d \
 	$(IMPDIR)\core\internal\array\concatenation.d \
+	$(IMPDIR)\core\internal\array\operations.d \
 	$(IMPDIR)\core\internal\array\utils.d \
 	\
 	$(IMPDIR)\core\internal\util\array.d \

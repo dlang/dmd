@@ -82,6 +82,7 @@ DOCS=\
     $(DOCDIR)\core_internal_array_construction.html \
     $(DOCDIR)\core_internal_array_equality.html \
     $(DOCDIR)\core_internal_array_concatenation.html \
+    $(DOCDIR)\core_internal_array_operations.html \
     $(DOCDIR)\core_internal_array_utils.html \
     $(DOCDIR)\core_internal_util_array.html \
     \

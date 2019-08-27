@@ -3804,7 +3804,7 @@ enum immutable(void)* rtinfoHasPointers = cast(void*)1;
 // Compiler hook into the runtime implementation of array (vector) operations.
 template _arrayOp(Args...)
 {
-    import core.internal.arrayop;
+    import core.internal.array.operations;
     alias _arrayOp = arrayOp!Args;
 }
 

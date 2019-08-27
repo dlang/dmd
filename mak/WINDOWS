@@ -120,9 +120,6 @@ $(IMPDIR)\core\gc\registry.d : src\core\gc\registry.d
 $(IMPDIR)\core\internal\abort.d : src\core\internal\abort.d
 	copy $** $@
 
-$(IMPDIR)\core\internal\arrayop.d : src\core\internal\arrayop.d
-	copy $** $@
-
 $(IMPDIR)\core\internal\atomic.d : src\core\internal\atomic.d
 	copy $** $@
 
@@ -181,6 +178,9 @@ $(IMPDIR)\core\internal\array\concatenation.d : src\core\internal\array\concaten
 	copy $** $@
 
 $(IMPDIR)\core\internal\array\utils.d : src\core\internal\array\utils.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\array\operations.d : src\core\internal\array\operations.d
 	copy $** $@
 
 $(IMPDIR)\core\internal\util\array.d : src\core\internal\util\array.d
