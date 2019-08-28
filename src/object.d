@@ -38,117 +38,12 @@ alias dstring = immutable(dchar)[];
 
 version (D_ObjectiveC) public import core.attribute : selector;
 
-/// See $(REF _d_cmain, core,internal,entrypoint)
-public import core.internal.entrypoint : _d_cmain;
-
-/// See $(REF _d_arrayappendTImpl, core,internal,array,appending)
-public import core.internal.array.appending : _d_arrayappendTImpl;
-/// See $(REF _d_arrayappendcTXImpl, core,internal,array,appending)
-public import core.internal.array.appending : _d_arrayappendcTXImpl;
-/// See $(REF __cmp, core,internal,array,comparison)
-public import core.internal.array.comparison : __cmp;
-/// See $(REF __equals, core,internal,array,equality)
-public import core.internal.array.equality : __equals;
-/// See $(REF __ArrayEq, core,internal,array,equality)
-public import core.internal.array.equality : __ArrayEq;
-/// See $(REF __ArrayCast, core,internal,array,casting)
-public import core.internal.array.casting: __ArrayCast;
-/// See $(REF _d_arraycatnTXImpl, core,internal,array,concatenation)
-public import core.internal.array.concatenation : _d_arraycatnTXImpl;
-/// See $(REF _d_arrayctor, core,internal,array,construction)
-public import core.internal.array.construction : _d_arrayctor;
-/// See $(REF _d_arraysetctor, core,internal,array,construction)
-public import core.internal.array.construction : _d_arraysetctor;
-
 /// See $(REF capacity, core,internal,array,capacity)
 public import core.internal.array.capacity: capacity;
 /// See $(REF reserve, core,internal,array,capacity)
 public import core.internal.array.capacity: reserve;
 /// See $(REF assumeSafeAppend, core,internal,array,capacity)
 public import core.internal.array.capacity: assumeSafeAppend;
-/// See $(REF _d_arraysetlengthTImpl, core,internal,array,capacity)
-public import core.internal.array.capacity: _d_arraysetlengthTImpl;
-
-/// See $(REF _d_assert_fail, core,internal,dassert)
-public import core.internal.dassert: _d_assert_fail;
-
-/// See $(REF __switch, core,internal,switch_)
-public import core.internal.switch_: __switch;
-/// See $(REF __switch_error, core,internal,switch_)
-public import core.internal.switch_: __switch_error;
-
-// Compare class and interface objects for ordering.
-private int __cmp(Obj)(Obj lhs, Obj rhs)
-if (is(Obj : Object))
-{
-    if (lhs is rhs)
-        return 0;
-    // Regard null references as always being "less than"
-    if (!lhs)
-        return -1;
-    if (!rhs)
-        return 1;
-    return lhs.opCmp(rhs);
-}
-
-// objects
-@safe unittest
-{
-    class C
-    {
-        int i;
-        this(int i) { this.i = i; }
-
-        override int opCmp(Object c) const @safe
-        {
-            return i - (cast(C)c).i;
-        }
-    }
-
-    auto c1 = new C(1);
-    auto c2 = new C(2);
-    assert(__cmp(c1, null) > 0);
-    assert(__cmp(null, c1) < 0);
-    assert(__cmp(c1, c1) == 0);
-    assert(__cmp(c1, c2) < 0);
-    assert(__cmp(c2, c1) > 0);
-
-    assert(__cmp([c1, c1][], [c2, c2][]) < 0);
-    assert(__cmp([c2, c2], [c1, c1]) > 0);
-}
-
-// structs
-@safe unittest
-{
-    struct C
-    {
-        ubyte i;
-        this(ubyte i) { this.i = i; }
-    }
-
-    auto c1 = C(1);
-    auto c2 = C(2);
-
-    assert(__cmp([c1, c1][], [c2, c2][]) < 0);
-    assert(__cmp([c2, c2], [c1, c1]) > 0);
-    assert(__cmp([c2, c2], [c2, c1]) > 0);
-}
-
-@safe unittest
-{
-    auto a = "hello"c;
-
-    assert(a >  "hel");
-    assert(a >= "hel");
-    assert(a <  "helloo");
-    assert(a <= "helloo");
-    assert(a >  "betty");
-    assert(a >= "betty");
-    assert(a == "hello");
-    assert(a <= "hello");
-    assert(a >= "hello");
-    assert(a <  "я");
-}
 
 /**
  * Recursively calls the `opPostMove` callbacks of a struct and its members if
@@ -4177,4 +4072,109 @@ void __ArrayDtor(T)(T[] a)
 {
     foreach_reverse (ref T e; a)
         e.__xdtor();
+}
+
+/// See $(REF _d_cmain, core,internal,entrypoint)
+public import core.internal.entrypoint : _d_cmain;
+
+/// See $(REF _d_arrayappendTImpl, core,internal,array,appending)
+public import core.internal.array.appending : _d_arrayappendTImpl;
+/// See $(REF _d_arrayappendcTXImpl, core,internal,array,appending)
+public import core.internal.array.appending : _d_arrayappendcTXImpl;
+/// See $(REF __cmp, core,internal,array,comparison)
+public import core.internal.array.comparison : __cmp;
+/// See $(REF __equals, core,internal,array,equality)
+public import core.internal.array.equality : __equals;
+/// See $(REF __ArrayEq, core,internal,array,equality)
+public import core.internal.array.equality : __ArrayEq;
+/// See $(REF __ArrayCast, core,internal,array,casting)
+public import core.internal.array.casting: __ArrayCast;
+/// See $(REF _d_arraycatnTXImpl, core,internal,array,concatenation)
+public import core.internal.array.concatenation : _d_arraycatnTXImpl;
+/// See $(REF _d_arrayctor, core,internal,array,construction)
+public import core.internal.array.construction : _d_arrayctor;
+/// See $(REF _d_arraysetctor, core,internal,array,construction)
+public import core.internal.array.construction : _d_arraysetctor;
+/// See $(REF _d_arraysetlengthTImpl, core,internal,array,capacity)
+public import core.internal.array.capacity: _d_arraysetlengthTImpl;
+
+/// See $(REF _d_assert_fail, core,internal,dassert)
+public import core.internal.dassert: _d_assert_fail;
+
+/// See $(REF __switch, core,internal,switch_)
+public import core.internal.switch_: __switch;
+/// See $(REF __switch_error, core,internal,switch_)
+public import core.internal.switch_: __switch_error;
+
+// Compare class and interface objects for ordering.
+private int __cmp(Obj)(Obj lhs, Obj rhs)
+if (is(Obj : Object))
+{
+    if (lhs is rhs)
+        return 0;
+    // Regard null references as always being "less than"
+    if (!lhs)
+        return -1;
+    if (!rhs)
+        return 1;
+    return lhs.opCmp(rhs);
+}
+
+// objects
+@safe unittest
+{
+    class C
+    {
+        int i;
+        this(int i) { this.i = i; }
+
+        override int opCmp(Object c) const @safe
+        {
+            return i - (cast(C)c).i;
+        }
+    }
+
+    auto c1 = new C(1);
+    auto c2 = new C(2);
+    assert(__cmp(c1, null) > 0);
+    assert(__cmp(null, c1) < 0);
+    assert(__cmp(c1, c1) == 0);
+    assert(__cmp(c1, c2) < 0);
+    assert(__cmp(c2, c1) > 0);
+
+    assert(__cmp([c1, c1][], [c2, c2][]) < 0);
+    assert(__cmp([c2, c2], [c1, c1]) > 0);
+}
+
+// structs
+@safe unittest
+{
+    struct C
+    {
+        ubyte i;
+        this(ubyte i) { this.i = i; }
+    }
+
+    auto c1 = C(1);
+    auto c2 = C(2);
+
+    assert(__cmp([c1, c1][], [c2, c2][]) < 0);
+    assert(__cmp([c2, c2], [c1, c1]) > 0);
+    assert(__cmp([c2, c2], [c2, c1]) > 0);
+}
+
+@safe unittest
+{
+    auto a = "hello"c;
+
+    assert(a >  "hel");
+    assert(a >= "hel");
+    assert(a <  "helloo");
+    assert(a <= "helloo");
+    assert(a >  "betty");
+    assert(a >= "betty");
+    assert(a == "hello");
+    assert(a <= "hello");
+    assert(a >= "hello");
+    assert(a <  "я");
 }
