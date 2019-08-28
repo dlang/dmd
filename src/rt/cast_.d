@@ -14,6 +14,9 @@
 module rt.cast_;
 
 extern (C):
+@nogc:
+nothrow:
+pure:
 
 /******************************************
  * Given a pointer:
@@ -74,7 +77,7 @@ void* _d_dynamic_cast(Object o, ClassInfo c)
     return res;
 }
 
-int _d_isbaseof2(ClassInfo oc, ClassInfo c, ref size_t offset)
+int _d_isbaseof2(scope ClassInfo oc, scope const ClassInfo c, scope ref size_t offset) @safe
 {
     if (oc is c)
         return true;
@@ -101,7 +104,7 @@ int _d_isbaseof2(ClassInfo oc, ClassInfo c, ref size_t offset)
     return false;
 }
 
-int _d_isbaseof(ClassInfo oc, ClassInfo c)
+int _d_isbaseof(scope ClassInfo oc, scope const ClassInfo c) @safe
 {
     if (oc is c)
         return true;
