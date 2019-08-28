@@ -138,6 +138,9 @@ $(IMPDIR)\core\internal\entrypoint.d : src\core\internal\entrypoint.d
 $(IMPDIR)\core\internal\hash.d : src\core\internal\hash.d
 	copy $** $@
 
+$(IMPDIR)\core\internal\moving.d : src\core\internal\moving.d
+	copy $** $@
+
 $(IMPDIR)\core\internal\parseoptions.d : src\core\internal\parseoptions.d
 	copy $** $@
 
