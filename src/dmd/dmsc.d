@@ -74,31 +74,17 @@ void backend_init()
     Param *params = &global.params;
 
     bool exe;
-    if (global.params.isWindows)
+    if (params.dll || params.pic != PIC.fixed)
     {
-        exe = false;
-        if (params.dll)
-        {
-        }
-        else if (params.run)
-            exe = true;         // EXE file only optimizations
-        else if (params.link && !global.params.deffile)
-            exe = true;         // EXE file only optimizations
-        else if (params.exefile.length)           // if writing out EXE file
-        {
-            if (params.exefile.length >= 4 && FileName.equals(params.exefile[$-3 .. $], "exe"))
-                exe = true;
-        }
     }
-    else if (global.params.isLinux   ||
-             global.params.isOSX     ||
-             global.params.isFreeBSD ||
-             global.params.isOpenBSD ||
-             global.params.isDragonFlyBSD ||
-             global.params.isSolaris)
-    {
-        exe = params.pic == PIC.fixed;
-    }
+    else if (params.run)
+        exe = true;         // EXE file only optimizations
+    else if (params.link && !params.deffile)
+        exe = true;         // EXE file only optimizations
+    else if (params.exefile.length &&
+             params.exefile.length >= 4 &&
+             FileName.equals(FileName.ext(params.exefile), "exe"))
+        exe = true;         // if writing out EXE file
 
     out_config_init(
         (params.is64bit ? 64 : 32) | (params.mscoff ? 1 : 0),
