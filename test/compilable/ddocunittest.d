@@ -221,6 +221,10 @@ public import core.stdc.string : copy = memcpy, compare = memcmp;
 /// This is a public renamed import
 public import str = core.stdc.string;
 
+// This is a public import without a DDoc comment.
+// It should not be emitted to the documentation file.
+public import core.stdc.stdlib;
+
 
 // ------------------------------------
 // documented unittest after conditional declarations

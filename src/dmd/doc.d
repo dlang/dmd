@@ -1057,7 +1057,8 @@ private void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
             if (imp.prot().kind != Prot.Kind.public_ && sc.protection.kind != Prot.Kind.export_)
                 return;
 
-            emit(sc, imp, imp.comment);
+            if (imp.comment)
+                emit(sc, imp, imp.comment);
         }
 
         override void visit(Declaration d)
