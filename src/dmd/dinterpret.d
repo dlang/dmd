@@ -458,8 +458,7 @@ void foreachVar(Expression e, void delegate(VarDeclaration) dgVar)
             VarDeclaration v = e.declaration.isVarDeclaration();
             if (!v)
                 return;
-            TupleDeclaration td = v.toAlias().isTupleDeclaration();
-            if (td)
+            if (TupleDeclaration td = v.toAlias().isTupleDeclaration())
             {
                 if (!td.objects)
                     return;
@@ -470,11 +469,10 @@ void foreachVar(Expression e, void delegate(VarDeclaration) dgVar)
                     assert(s);
                     VarDeclaration v2 = s.s.isVarDeclaration();
                     assert(v2);
-                    if (!v2.isDataseg() || v2.isCTFE())
-                        dgVar(v2);
+                    dgVar(v2);
                 }
             }
-            else if (!(v.isDataseg() || v.storage_class & STC.manifest) || v.isCTFE())
+            else
                 dgVar(v);
             Dsymbol s = v.toAlias();
             if (s == v && !v.isStatic() && v._init)
@@ -735,9 +733,14 @@ private void ctfeCompile(FuncDeclaration fd)
     if (fd.vresult)
         fd.ctfeCode.onDeclaration(fd.vresult);
 
+    void dgVar(VarDeclaration v)
+    {
+        if (!(v.isDataseg() || v.storage_class & STC.manifest) || v.isCTFE())
+            fd.ctfeCode.onDeclaration(v);
+    }
+
     foreachExpAndVar(fd.fbody,
-        (e) => e.foreachVar((v) => fd.ctfeCode.onDeclaration(v)),
-        (v) => fd.ctfeCode.onDeclaration(v));
+        (e) => e.foreachVar(&dgVar), &dgVar);
 }
 
 /*************************************
