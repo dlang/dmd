@@ -76,6 +76,7 @@ DOCS=\
 	$(DOCDIR)\core_sys_darwin_netinet_in_.html \
     \
     $(DOCDIR)\core_internal_dassert.html \
+    $(DOCDIR)\core_internal_moving.html \
     $(DOCDIR)\core_internal_switch_.html \
 	\
     $(DOCDIR)\core_internal_array_appending.html \
