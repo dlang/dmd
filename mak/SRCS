@@ -25,10 +25,12 @@ SRCS=\
 	src\core\internal\atomic.d \
 	src\core\internal\convert.d \
 	src\core\internal\dassert.d \
+	src\core\internal\destruction.d \
 	src\core\internal\entrypoint.d \
 	src\core\internal\hash.d \
 	src\core\internal\moving.d \
 	src\core\internal\parseoptions.d \
+	src\core\internal\postblit.d \
 	src\core\internal\spinlock.d \
 	src\core\internal\string.d \
 	src\core\internal\switch_.d \

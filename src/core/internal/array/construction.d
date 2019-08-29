@@ -24,6 +24,7 @@ module core.internal.array.construction;
 Tarr _d_arrayctor(Tarr : T[], T)(return scope Tarr to, scope Tarr from) @trusted
 {
     pragma(inline, false);
+    import core.internal.postblit : postblitRecurse;
     import core.internal.traits : Unqual;
     import core.stdc.string : memcpy;
     debug(PRINTF) import core.stdc.stdio;
@@ -53,7 +54,7 @@ Tarr _d_arrayctor(Tarr : T[], T)(return scope Tarr to, scope Tarr from) @trusted
             auto elem = cast(Unqual!T*)&to[i];
             // Copy construction is defined as bit copy followed by postblit.
             memcpy(elem, &from[i], element_size);
-            _postblitRecurse(*elem);
+            postblitRecurse(*elem);
         }
     }
     catch (Exception o)
@@ -158,6 +159,7 @@ Tarr _d_arrayctor(Tarr : T[], T)(return scope Tarr to, scope Tarr from) @trusted
 void _d_arraysetctor(Tarr : T[], T)(scope Tarr p, scope ref T value) @trusted
 {
     pragma(inline, false);
+    import core.internal.postblit : postblitRecurse;
     import core.stdc.string : memcpy;
     import core.internal.traits : Unqual;
     size_t walker;
@@ -170,7 +172,7 @@ void _d_arraysetctor(Tarr : T[], T)(scope Tarr p, scope ref T value) @trusted
             auto elem = cast(Unqual!T*)&p[walker];
             // Copy construction is defined as bit copy followed by postblit.
             memcpy(elem, &value, element_size);
-            _postblitRecurse(*elem);
+            postblitRecurse(*elem);
             walker++;
         }
     }
