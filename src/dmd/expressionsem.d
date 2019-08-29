@@ -709,7 +709,6 @@ Expression resolvePropertiesOnly(Scope* sc, Expression e1)
 {
     //printf("e1 = %s %s\n", Token::toChars(e1.op), e1.toChars());
     FuncDeclaration fd;
-    TemplateDeclaration td;
 
     Expression handleOverloadSet(OverloadSet os)
     {
@@ -717,13 +716,29 @@ Expression resolvePropertiesOnly(Scope* sc, Expression e1)
         foreach (s; os.a)
         {
             fd = s.isFuncDeclaration();
-            td = s.isTemplateDeclaration();
+            auto td = s.isTemplateDeclaration();
             if (fd)
             {
                 if ((cast(TypeFunction)fd.type).isproperty)
                     return resolveProperties(sc, e1);
             }
             else if (td && td.onemember && (fd = td.onemember.isFuncDeclaration()) !is null)
+            {
+                if ((cast(TypeFunction)fd.type).isproperty ||
+                    (fd.storage_class2 & STC.property) ||
+                    (td._scope.stc & STC.property))
+                    return resolveProperties(sc, e1);
+            }
+        }
+        return e1;
+    }
+
+    Expression handleTemplateDecl(TemplateDeclaration td)
+    {
+        assert(td);
+        if (td.onemember)
+        {
+            if (auto fd = td.onemember.isFuncDeclaration())
             {
                 if ((cast(TypeFunction)fd.type).isproperty ||
                     (fd.storage_class2 & STC.property) ||
@@ -745,37 +760,22 @@ Expression resolvePropertiesOnly(Scope* sc, Expression e1)
     else if (e1.op == TOK.dotTemplateInstance)
     {
         DotTemplateInstanceExp dti = cast(DotTemplateInstanceExp)e1;
-        if (dti.ti.tempdecl && (td = dti.ti.tempdecl.isTemplateDeclaration()) !is null)
-            goto Ltd;
+        if (dti.ti.tempdecl)
+            if (auto td = dti.ti.tempdecl.isTemplateDeclaration())
+                return handleTemplateDecl(td);
     }
     else if (e1.op == TOK.dotTemplateDeclaration)
-    {
-        td = (cast(DotTemplateExp)e1).td;
-        goto Ltd;
-    }
+        return handleTemplateDecl((cast(DotTemplateExp)e1).td);
     else if (e1.op == TOK.scope_)
     {
         Dsymbol s = (cast(ScopeExp)e1).sds;
         TemplateInstance ti = s.isTemplateInstance();
         if (ti && !ti.semanticRun && ti.tempdecl)
-        {
-            if ((td = ti.tempdecl.isTemplateDeclaration()) !is null)
-                goto Ltd;
-        }
+            if (auto td = ti.tempdecl.isTemplateDeclaration())
+                return handleTemplateDecl(td);
     }
     else if (e1.op == TOK.template_)
-    {
-        td = (cast(TemplateExp)e1).td;
-    Ltd:
-        assert(td);
-        if (td.onemember && (fd = td.onemember.isFuncDeclaration()) !is null)
-        {
-            if ((cast(TypeFunction)fd.type).isproperty || (fd.storage_class2 & STC.property) || (td._scope.stc & STC.property))
-            {
-                return resolveProperties(sc, e1);
-            }
-        }
-    }
+        return handleTemplateDecl((cast(TemplateExp)e1).td);
     else if (e1.op == TOK.dotVariable && e1.type.ty == Tfunction)
     {
         DotVarExp dve = cast(DotVarExp)e1;
