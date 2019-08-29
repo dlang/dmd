@@ -708,14 +708,13 @@ private Expression resolveUFCSProperties(Scope* sc, Expression e1, Expression e2
 Expression resolvePropertiesOnly(Scope* sc, Expression e1)
 {
     //printf("e1 = %s %s\n", Token::toChars(e1.op), e1.toChars());
-    FuncDeclaration fd;
 
     Expression handleOverloadSet(OverloadSet os)
     {
         assert(os);
         foreach (s; os.a)
         {
-            fd = s.isFuncDeclaration();
+            auto fd = s.isFuncDeclaration();
             auto td = s.isTemplateDeclaration();
             if (fd)
             {
@@ -749,23 +748,29 @@ Expression resolvePropertiesOnly(Scope* sc, Expression e1)
         return e1;
     }
 
-    if (e1.op == TOK.dot)
+    Expression handleFuncDecl(FuncDeclaration fd)
     {
-        DotExp de = cast(DotExp)e1;
-        if (de.e2.op == TOK.overloadSet)
-            return handleOverloadSet((cast(OverExp)de.e2).vars);
+        assert(fd);
+        if ((cast(TypeFunction)fd.type).isproperty)
+            return resolveProperties(sc, e1);
+        return e1;
     }
-    else if (e1.op == TOK.overloadSet)
-        return handleOverloadSet((cast(OverExp)e1).vars);
-    else if (e1.op == TOK.dotTemplateInstance)
+
+    if (auto de = e1.isDotExp())
     {
-        DotTemplateInstanceExp dti = cast(DotTemplateInstanceExp)e1;
+        if (auto os = de.e2.isOverExp())
+            return handleOverloadSet(os.vars);
+    }
+    else if (auto oe = e1.isOverExp())
+        return handleOverloadSet(oe.vars);
+    else if (auto dti = e1.isDotTemplateInstanceExp())
+    {
         if (dti.ti.tempdecl)
             if (auto td = dti.ti.tempdecl.isTemplateDeclaration())
                 return handleTemplateDecl(td);
     }
-    else if (e1.op == TOK.dotTemplateDeclaration)
-        return handleTemplateDecl((cast(DotTemplateExp)e1).td);
+    else if (auto dte = e1.isDotTemplateExp())
+        return handleTemplateDecl(dte.td);
     else if (e1.op == TOK.scope_)
     {
         Dsymbol s = (cast(ScopeExp)e1).sds;
@@ -779,17 +784,10 @@ Expression resolvePropertiesOnly(Scope* sc, Expression e1)
     else if (e1.op == TOK.dotVariable && e1.type.ty == Tfunction)
     {
         DotVarExp dve = cast(DotVarExp)e1;
-        fd = dve.var.isFuncDeclaration();
-        goto Lfd;
+        return handleFuncDecl(dve.var.isFuncDeclaration());
     }
     else if (e1.op == TOK.variable && e1.type && e1.type.ty == Tfunction && (sc.intypeof || !(cast(VarExp)e1).var.needThis()))
-    {
-        fd = (cast(VarExp)e1).var.isFuncDeclaration();
-    Lfd:
-        assert(fd);
-        if ((cast(TypeFunction)fd.type).isproperty)
-            return resolveProperties(sc, e1);
-    }
+        return handleFuncDecl((cast(VarExp)e1).var.isFuncDeclaration());
     return e1;
 }
 
