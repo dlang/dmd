@@ -454,6 +454,7 @@ public:
     int stageflags;
 
     bool useStaticInit;         // if this is true, use the StructDeclaration's init symbol
+    bool isOriginal;            // used when moving instances to indicate `this is this.origin`
     OwnedBy ownedByCtfe;
 
     static StructLiteralExp *create(Loc loc, StructDeclaration *sd, void *elements, Type *stype = NULL);

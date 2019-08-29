@@ -2990,6 +2990,7 @@ extern (C++) final class StructLiteralExp : Expression
     int stageflags;
 
     bool useStaticInit;     /// if this is true, use the StructDeclaration's init symbol
+    bool isOriginal = false; /// used when moving instances to indicate `this is this.origin`
     OwnedBy ownedByCtfe = OwnedBy.code;
 
     extern (D) this(const ref Loc loc, StructDeclaration sd, Expressions* elements, Type stype = null)
