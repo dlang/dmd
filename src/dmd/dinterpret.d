@@ -6935,6 +6935,7 @@ private Expression copyRegionExp(Expression e)
         case TOK.address:
         case TOK.delegate_:
         case TOK.vector:
+        case TOK.dotVariable:
         {
             UnaExp ue = cast(UnaExp)e;
             ue.e1 = copyRegionExp(ue.e1);
@@ -6971,7 +6972,7 @@ private Expression copyRegionExp(Expression e)
             return e;
 
         default:
-            printf("e: %d, %s\n", e.op, e.toChars());
+            printf("e: %s, %s\n", Token.toChars(e.op), e.toChars());
             assert(0);
     }
 
