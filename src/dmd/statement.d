@@ -2305,6 +2305,7 @@ extern (C++) final class LabelStatement : Statement
     ScopeGuardStatement os;
     VarDeclaration lastVar;
     Statement gotoTarget;       // interpret
+    void* extra;                // used by Statement_toIR()
     bool breaks;                // someone did a 'break ident'
 
     extern (D) this(const ref Loc loc, Identifier ident, Statement statement)

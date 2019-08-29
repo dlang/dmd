@@ -685,7 +685,7 @@ public:
     ScopeGuardStatement *os;
     VarDeclaration *lastVar;
     Statement *gotoTarget;      // interpret
-
+    void* extra;                // used by Statement_toIR()
     bool breaks;                // someone did a 'break ident'
 
     Statement *syntaxCopy();
