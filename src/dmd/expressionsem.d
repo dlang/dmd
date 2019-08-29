@@ -708,23 +708,11 @@ private Expression resolveUFCSProperties(Scope* sc, Expression e1, Expression e2
 Expression resolvePropertiesOnly(Scope* sc, Expression e1)
 {
     //printf("e1 = %s %s\n", Token::toChars(e1.op), e1.toChars());
-    OverloadSet os;
     FuncDeclaration fd;
     TemplateDeclaration td;
 
-    if (e1.op == TOK.dot)
+    Expression handleOverloadSet(OverloadSet os)
     {
-        DotExp de = cast(DotExp)e1;
-        if (de.e2.op == TOK.overloadSet)
-        {
-            os = (cast(OverExp)de.e2).vars;
-            goto Los;
-        }
-    }
-    else if (e1.op == TOK.overloadSet)
-    {
-        os = (cast(OverExp)e1).vars;
-    Los:
         assert(os);
         foreach (s; os.a)
         {
@@ -737,13 +725,23 @@ Expression resolvePropertiesOnly(Scope* sc, Expression e1)
             }
             else if (td && td.onemember && (fd = td.onemember.isFuncDeclaration()) !is null)
             {
-                if ((cast(TypeFunction)fd.type).isproperty || (fd.storage_class2 & STC.property) || (td._scope.stc & STC.property))
-                {
+                if ((cast(TypeFunction)fd.type).isproperty ||
+                    (fd.storage_class2 & STC.property) ||
+                    (td._scope.stc & STC.property))
                     return resolveProperties(sc, e1);
-                }
             }
         }
+        return e1;
     }
+
+    if (e1.op == TOK.dot)
+    {
+        DotExp de = cast(DotExp)e1;
+        if (de.e2.op == TOK.overloadSet)
+            return handleOverloadSet((cast(OverExp)de.e2).vars);
+    }
+    else if (e1.op == TOK.overloadSet)
+        return handleOverloadSet((cast(OverExp)e1).vars);
     else if (e1.op == TOK.dotTemplateInstance)
     {
         DotTemplateInstanceExp dti = cast(DotTemplateInstanceExp)e1;
