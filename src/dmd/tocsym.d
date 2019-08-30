@@ -686,6 +686,7 @@ Symbol *aaGetSymbol(TypeAArray taa, const(char)* func, int flags)
 
 Symbol* toSymbol(StructLiteralExp sle)
 {
+    //printf("toSymbol() %p.sym: %p\n", sle, sle.sym);
     if (sle.sym)
         return sle.sym;
     auto t = type_alloc(TYint);
@@ -705,8 +706,9 @@ Symbol* toSymbol(StructLiteralExp sle)
 
 Symbol* toSymbol(ClassReferenceExp cre)
 {
-    if (cre.value.sym)
-        return cre.value.sym;
+    //printf("toSymbol() %p.value.sym: %p\n", cre, cre.value.sym);
+    if (cre.value.origin.sym)
+        return cre.value.origin.sym;
     auto t = type_alloc(TYint);
     t.Tcount++;
     auto s = symbol_calloc("internal", 8);
@@ -715,6 +717,7 @@ Symbol* toSymbol(ClassReferenceExp cre)
     s.Sflags |= SFLnodebug;
     s.Stype = t;
     cre.value.sym = s;
+    cre.value.origin.sym = s;
     auto dtb = DtBuilder(0);
     ClassReferenceExp_toInstanceDt(cre, dtb);
     s.Sdt = dtb.finish();

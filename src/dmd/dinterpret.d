@@ -3143,9 +3143,9 @@ public:
             }
             // Hack: we store a ClassDeclaration instead of a StructDeclaration.
             // We probably won't get away with this.
-            auto se = new StructLiteralExp(e.loc, cast(StructDeclaration)cd, elems, e.newtype);
-//            auto se = ctfeEmplaceExp!StructLiteralExp(e.loc, cast(StructDeclaration)cd, elems, e.newtype);
-//            se.origin = se;
+//            auto se = new StructLiteralExp(e.loc, cast(StructDeclaration)cd, elems, e.newtype);
+            auto se = ctfeEmplaceExp!StructLiteralExp(e.loc, cast(StructDeclaration)cd, elems, e.newtype);
+            se.origin = se;
             se.ownedByCtfe = OwnedBy.ctfe;
             emplaceExp!(ClassReferenceExp)(pue, e.loc, se, e.type);
             Expression eref = pue.exp();
@@ -6881,25 +6881,40 @@ private Expression copyRegionExp(Expression e)
     switch (e.op)
     {
         case TOK.classReference:
-            copyRegionExp(e.isClassReferenceExp().value);
+        {
+            auto cre = e.isClassReferenceExp();
+            cre.value = copyRegionExp(cre.value).isStructLiteralExp();
             break;
+        }
 
         case TOK.structLiteral:
         {
             auto sle = e.isStructLiteralExp();
-            copySE(sle);
-            if (ctfeGlobals.region.contains(cast(void*)e))
+
+            /* The following is to take care of updating sle.origin correctly,
+             * which may have multiple objects pointing to it.
+             */
+            if (sle.isOriginal && !ctfeGlobals.region.contains(cast(void*)sle.origin))
             {
-                // Some ugly code because .origin can be self-referencial
-                bool copyOrigin = (sle.origin == sle);
-                e = e.copy();
-                if (copyOrigin)
-                {
-                    auto s = e.isStructLiteralExp();
-                    s.origin = s;
-                }
+                /* This means sle has already been moved out of the region,
+                 * and sle.origin is the new location.
+                 */
+                return sle.origin;
             }
-            return e;
+            copySE(sle);
+            sle.isOriginal = sle is sle.origin;
+
+            auto slec = ctfeGlobals.region.contains(cast(void*)e)
+                ? e.copy().isStructLiteralExp()         // move sle out of region to slec
+                : sle;
+
+            if (ctfeGlobals.region.contains(cast(void*)sle.origin))
+            {
+                auto sleo = sle.origin == sle ? slec : sle.origin.copy().isStructLiteralExp();
+                sle.origin = sleo;
+                slec.origin = sleo;
+            }
+            return slec;
         }
 
         case TOK.arrayLiteral:
