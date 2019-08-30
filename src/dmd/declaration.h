@@ -230,8 +230,8 @@ public:
     unsigned endlinnum;         // line number of end of scope that this var lives in
 
     // When interpreting, these point to the value (NULL if value not determinable)
-    // The index of this variable on the CTFE stack, -1 if not allocated
-    int ctfeAdrOnStack;
+    // The index of this variable on the CTFE stack, ~0u if not allocated
+    unsigned ctfeAdrOnStack;
     Expression *edtor;          // if !=NULL, does the destruction of the variable
     IntRange *range;            // if !NULL, the variable is known to be within the range
 

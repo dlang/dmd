@@ -667,7 +667,8 @@ struct ASTBase
         Type type;
         Initializer _init;
         StorageClass storage_class;
-        int ctfeAdrOnStack;
+        enum AdrOnStackNone = ~0u;
+        uint ctfeAdrOnStack;
         uint sequenceNumber;
         __gshared uint nextSequenceNumber;
 
@@ -679,7 +680,7 @@ struct ASTBase
             this.loc = loc;
             this.storage_class = st;
             sequenceNumber = ++nextSequenceNumber;
-            ctfeAdrOnStack = -1;
+            ctfeAdrOnStack = AdrOnStackNone;
         }
 
         override final inout(VarDeclaration) isVarDeclaration() inout

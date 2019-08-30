@@ -321,31 +321,31 @@ public:
     {
         if ((v.isDataseg() || v.storage_class & STC.manifest) && !v.isCTFE())
         {
-            assert(v.ctfeAdrOnStack >= 0 && v.ctfeAdrOnStack < globalValues.dim);
+            assert(v.ctfeAdrOnStack < globalValues.dim);
             return globalValues[v.ctfeAdrOnStack];
         }
-        assert(v.ctfeAdrOnStack >= 0 && v.ctfeAdrOnStack < stackPointer());
+        assert(v.ctfeAdrOnStack < stackPointer());
         return values[v.ctfeAdrOnStack];
     }
 
     extern (C++) void setValue(VarDeclaration v, Expression e)
     {
         assert(!v.isDataseg() || v.isCTFE());
-        assert(v.ctfeAdrOnStack >= 0 && v.ctfeAdrOnStack < stackPointer());
+        assert(v.ctfeAdrOnStack < stackPointer());
         values[v.ctfeAdrOnStack] = e;
     }
 
     extern (C++) void push(VarDeclaration v)
     {
         assert(!v.isDataseg() || v.isCTFE());
-        if (v.ctfeAdrOnStack != cast(size_t)-1 && v.ctfeAdrOnStack >= framepointer)
+        if (v.ctfeAdrOnStack != VarDeclaration.AdrOnStackNone && v.ctfeAdrOnStack >= framepointer)
         {
             // Already exists in this frame, reuse it.
             values[v.ctfeAdrOnStack] = null;
             return;
         }
         savedId.push(cast(void*)cast(size_t)v.ctfeAdrOnStack);
-        v.ctfeAdrOnStack = cast(int)values.dim;
+        v.ctfeAdrOnStack = cast(uint)values.dim;
         vars.push(v);
         values.push(null);
     }
@@ -354,8 +354,8 @@ public:
     {
         assert(!v.isDataseg() || v.isCTFE());
         assert(!(v.storage_class & (STC.ref_ | STC.out_)));
-        int oldid = v.ctfeAdrOnStack;
-        v.ctfeAdrOnStack = cast(int)cast(size_t)savedId[oldid];
+        const oldid = v.ctfeAdrOnStack;
+        v.ctfeAdrOnStack = cast(uint)cast(size_t)savedId[oldid];
         if (v.ctfeAdrOnStack == values.dim - 1)
         {
             values.pop();
@@ -372,7 +372,7 @@ public:
         for (size_t i = stackpointer; i < values.dim; ++i)
         {
             VarDeclaration v = vars[i];
-            v.ctfeAdrOnStack = cast(int)cast(size_t)savedId[i];
+            v.ctfeAdrOnStack = cast(uint)cast(size_t)savedId[i];
         }
         values.setDim(stackpointer);
         vars.setDim(stackpointer);
@@ -382,7 +382,7 @@ public:
     extern (C++) void saveGlobalConstant(VarDeclaration v, Expression e)
     {
         assert(v._init && (v.isConst() || v.isImmutable() || v.storage_class & STC.manifest) && !v.isCTFE());
-        v.ctfeAdrOnStack = cast(int)globalValues.dim;
+        v.ctfeAdrOnStack = cast(uint)globalValues.dim;
         globalValues.push(e);
     }
 }
@@ -931,7 +931,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
              * The old value of vx on the stack in fd(1)
              * should be saved at the start of fd(2, vx) call.
              */
-            int oldadr = vx.ctfeAdrOnStack;
+            const oldadr = vx.ctfeAdrOnStack;
 
             ctfeGlobals.stack.push(vx);
             assert(!hasValue(vx)); // vx is made uninitialized
@@ -7589,9 +7589,8 @@ private Expression evaluateDtor(InterState* istate, Expression e)
  */
 private bool hasValue(VarDeclaration vd)
 {
-    if (vd.ctfeAdrOnStack == cast(size_t)-1)
-        return false;
-    return null !is getValue(vd);
+    return vd.ctfeAdrOnStack != VarDeclaration.AdrOnStackNone &&
+           getValue(vd) !is null;
 }
 
 // Don't check for validity

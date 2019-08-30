@@ -1095,8 +1095,9 @@ extern (C++) class VarDeclaration : Declaration
     uint endlinnum;                 // line number of end of scope that this var lives in
 
     // When interpreting, these point to the value (NULL if value not determinable)
-    // The index of this variable on the CTFE stack, -1 if not allocated
-    int ctfeAdrOnStack;
+    // The index of this variable on the CTFE stack, AdrOnStackNone if not allocated
+    enum AdrOnStackNone = ~0u;
+    uint ctfeAdrOnStack;
 
     Expression edtor;               // if !=null, does the destruction of the variable
     IntRange* range;                // if !=null, the variable is known to be within the range
@@ -1127,7 +1128,7 @@ extern (C++) class VarDeclaration : Declaration
         assert(type || _init);
         this.type = type;
         this._init = _init;
-        ctfeAdrOnStack = -1;
+        ctfeAdrOnStack = AdrOnStackNone;
         this.storage_class = storage_class;
         sequenceNumber = ++nextSequenceNumber;
     }
