@@ -2461,7 +2461,7 @@ const(char)[] passthrough(const(char)[] x)
     return x;
 }
 
-sizediff_t checkPass(Char1)(const(Char1)[] s)
+ptrdiff_t checkPass(Char1)(const(Char1)[] s)
 {
     const(Char1)[] balance = s[1 .. $];
     return passthrough(balance).ptr - s.ptr;
