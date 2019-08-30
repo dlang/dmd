@@ -433,6 +433,9 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             }
 
             ss.statement = ss.statement.statementSemantic(sc);
+            if (sc.has_label) {
+                sc.enclosing.has_label = true;
+            }
             if (ss.statement)
             {
                 if (ss.statement.isErrorStatement())
@@ -2262,6 +2265,10 @@ else
         CtorFlow ctorflow_root = scd.ctorflow.clone();
 
         ifs.ifbody = ifs.ifbody.semanticNoScope(scd);
+        if (scd.has_label) {
+            ifs.ifbody.has_label = true;
+            scd.enclosing.has_label = true;
+        }
         scd.pop();
 
         CtorFlow ctorflow_then = sc.ctorflow;   // move flow results
@@ -4136,6 +4143,7 @@ else
 
     override void visit(LabelStatement ls)
     {
+        sc.has_label = true;
         //printf("LabelStatement::semantic()\n");
         FuncDeclaration fd = sc.parent.isFuncDeclaration();
 

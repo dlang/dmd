@@ -75,6 +75,7 @@ struct Scope
     ScopeDsymbol scopesym;          /// current symbol
     FuncDeclaration func;           /// function we are in
     Dsymbol parent;                 /// parent to use
+    bool has_label;                 /// There is a label somewhere inside (in any nesting level)
     LabelStatement slabel;          /// enclosing labelled statement
     SwitchStatement sw;             /// enclosing switch statement
     Statement tryBody;              /// enclosing _body of TryCatchStatement or TryFinallyStatement
@@ -182,6 +183,10 @@ struct Scope
     extern (C++) Scope* push()
     {
         Scope* s = copy();
+        // Keep the info when we're going backwards (i.e. popping scopes)
+        // so that previous statements get it, but reset it when we push
+        // again.
+        s.has_label = false;
         //printf("Scope::push(this = %p) new = %p\n", this, s);
         assert(!(flags & SCOPE.free));
         s.scopesym = null;
