@@ -108,6 +108,7 @@ class Statement : public ASTNode
 public:
     Loc loc;
     STMT stmt;
+    bool has_label;
 
     virtual Statement *syntaxCopy();
 
@@ -119,6 +120,7 @@ public:
     virtual Statement *getRelatedLabeled() { return this; }
     virtual bool hasBreak() const;
     virtual bool hasContinue() const;
+    bool hasLabel() const;
     bool usesEH();
     bool comeFrom();
     bool hasCode();
