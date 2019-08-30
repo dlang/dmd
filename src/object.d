@@ -2125,14 +2125,6 @@ class Error : Throwable
     }
 }
 
-/* Used in Exception Handling LSDA tables to 'wrap' C++ type info
- * so it can be distinguished from D TypeInfo
- */
-class __cpp_type_info_ptr
-{
-    void* ptr;          // opaque pointer to C++ RTTI type info
-}
-
 extern (C)
 {
     // from druntime/src/rt/aaA.d
@@ -2821,8 +2813,6 @@ bool _xopCmp(in void*, in void*)
     throw new Error("TypeInfo.compare is not implemented");
 }
 
-void __ctfeWrite(scope const(char)[] s) @nogc @safe pure nothrow {}
-
 /******************************************
  * Create RTInfo for type T
  */
@@ -2852,14 +2842,6 @@ template RTInfo(T)
 */
 enum immutable(void)* rtinfoNoPointers  = null;
 enum immutable(void)* rtinfoHasPointers = cast(void*)1;
-
-// Compiler hook into the runtime implementation of array (vector) operations.
-template _arrayOp(Args...)
-{
-    import core.internal.array.operations;
-    alias _arrayOp = arrayOp!Args;
-}
-
 
 // Helper functions
 
@@ -3301,3 +3283,19 @@ if (is(Obj : Object))
     assert(a >= "hello");
     assert(a <  "я");
 }
+
+// Used in Exception Handling LSDA tables to 'wrap' C++ type info
+// so it can be distinguished from D TypeInfo
+class __cpp_type_info_ptr
+{
+    void* ptr;          // opaque pointer to C++ RTTI type info
+}
+
+// Compiler hook into the runtime implementation of array (vector) operations.
+template _arrayOp(Args...)
+{
+    import core.internal.array.operations;
+    alias _arrayOp = arrayOp!Args;
+}
+
+void __ctfeWrite(scope const(char)[] s) @nogc @safe pure nothrow {}
