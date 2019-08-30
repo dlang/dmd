@@ -128,7 +128,7 @@ public:
     */
     inout(StringValue)* lookup(const(char)[] str) inout nothrow pure @nogc
     {
-        const(hash_t) hash = calcHash(str);
+        const(size_t) hash = calcHash(str);
         const(size_t) i = findSlot(hash, str);
         // printf("lookup %.*s %p\n", cast(int)str.length, str.ptr, table[i].value ?: null);
         return getValue(table[i].vptr);
@@ -156,7 +156,7 @@ public:
     */
     StringValue* insert(const(char)[] str, void* ptrvalue) nothrow
     {
-        const(hash_t) hash = calcHash(str);
+        const(size_t) hash = calcHash(str);
         size_t i = findSlot(hash, str);
         if (table[i].vptr)
             return null; // already in table
@@ -179,7 +179,7 @@ public:
 
     StringValue* update(const(char)[] str) nothrow
     {
-        const(hash_t) hash = calcHash(str);
+        const(size_t) hash = calcHash(str);
         size_t i = findSlot(hash, str);
         if (!table[i].vptr)
         {
@@ -266,7 +266,7 @@ nothrow:
         return cast(inout(StringValue)*)&pools[idx][off];
     }
 
-    size_t findSlot(hash_t hash, const(char)[] str) const pure @nogc
+    size_t findSlot(size_t hash, const(char)[] str) const pure @nogc
     {
         // quadratic probing using triangular numbers
         // http://stackoverflow.com/questions/2348187/moving-from-linear-probing-to-quadratic-probing-hash-collisons/2349774#2349774
