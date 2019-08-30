@@ -144,6 +144,7 @@ shared static this()
         "isZeroInit",
         "getTargetInfo",
         "getLocation",
+        "getRvalue",
     ];
 
     traitsStringTable._init(names.length);
@@ -1880,6 +1881,20 @@ Lnext:
         exps.data[2] = new IntegerExp(e.loc, s.loc.charnum,Type.tint32);
         auto tup = new TupleExp(e.loc, exps);
         return tup.expressionSemantic(sc);
+    }
+    if (e.ident == Id.getRvalue)
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        auto ex = isExpression((*e.args)[0]);
+        if (!ex)
+        {
+            e.error("expression expected as argument of __traits `%s`", e.ident.toChars());
+            return new ErrorExp();
+        }
+
+        return toRvalueExp(e.loc, sc, ex).expressionSemantic(sc);
     }
 
     extern (D) const(char)* trait_search_fp(const(char)[] seed, ref int cost)

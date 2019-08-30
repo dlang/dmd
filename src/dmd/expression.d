@@ -480,6 +480,25 @@ extern (D) Expression doCopyOrMove(Scope *sc, Expression e, Type t = null)
 }
 
 /****************************************************************/
+/* Cast expression to rvalue.
+ */
+Expression toRvalueExp(const ref Loc loc, Scope* sc, Expression e)
+{
+    if (!e.isLvalue())
+        return e;
+
+    e = e.expressionSemantic(sc);
+    if (e.op == TOK.error || e.type == Type.terror)
+        return e;
+
+    Type t = e.type;
+    assert(t);
+    e = new AddrExp(loc, e, t.pointerTo());
+    e = new PtrExp(loc, e, t, /* isRvalue */ true);
+    return e;
+}
+
+/****************************************************************/
 /* A type meant as a union of all the Expression types,
  * to serve essentially as a Variant that will sit on the stack
  * during CTFE to reduce memory consumption.
@@ -4962,17 +4981,21 @@ extern (C++) final class AddrExp : UnaExp
  */
 extern (C++) final class PtrExp : UnaExp
 {
-    extern (D) this(const ref Loc loc, Expression e)
+    bool isRvalue;
+
+    extern (D) this(const ref Loc loc, Expression e, bool isRvalue = false)
     {
         super(loc, TOK.star, __traits(classInstanceSize, PtrExp), e);
         //if (e.type)
         //  type = ((TypePointer *)e.type).next;
+        this.isRvalue = isRvalue;
     }
 
-    extern (D) this(const ref Loc loc, Expression e, Type t)
+    extern (D) this(const ref Loc loc, Expression e, Type t, bool isRvalue = false)
     {
         super(loc, TOK.star, __traits(classInstanceSize, PtrExp), e);
         type = t;
+        this.isRvalue = isRvalue;
     }
 
     override Modifiable checkModifiable(Scope* sc, int flag)
@@ -4990,7 +5013,7 @@ extern (C++) final class PtrExp : UnaExp
 
     override bool isLvalue()
     {
-        return true;
+        return isRvalue ? false : true;
     }
 
     override Expression toLvalue(Scope* sc, Expression e)

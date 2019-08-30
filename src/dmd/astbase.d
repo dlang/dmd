@@ -5172,14 +5172,18 @@ struct ASTBase
 
     extern (C++) final class PtrExp : UnaExp
     {
-        extern (D) this(const ref Loc loc, Expression e)
+        bool isRvalue;
+
+        extern (D) this(const ref Loc loc, Expression e, bool isRvalue = false)
         {
             super(loc, TOK.star, __traits(classInstanceSize, PtrExp), e);
+            this.isRvalue = isRvalue;
         }
-        extern (D) this(const ref Loc loc, Expression e, Type t)
+        extern (D) this(const ref Loc loc, Expression e, Type t, bool isRvalue = false)
         {
             super(loc, TOK.star, __traits(classInstanceSize, PtrExp), e);
             type = t;
+            this.isRvalue = isRvalue;
         }
 
         override void accept(Visitor v)
