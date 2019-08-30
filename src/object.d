@@ -3229,43 +3229,37 @@ private void _doPostblit(T)(T[] arr)
     auto a = arr.dup; // dup does escape
 }
 
-/// See $(REF _d_cmain, core,internal,entrypoint)
+/* ************************************************************************
+                           COMPILER SUPPORT
+The compiler lowers certain expressions to instantiations of the following
+templates.  They must be implicitly imported, which is why they are here
+in this file. They must also be `public` as they must be visible from the
+scope in which they are instantiated.  They are explicitly undocumented as
+they are only intended to be instantiated by the compiler, not the user.
+**************************************************************************/
+
 public import core.internal.entrypoint : _d_cmain;
 
-/// See $(REF _d_arrayappendTImpl, core,internal,array,appending)
 public import core.internal.array.appending : _d_arrayappendTImpl;
-/// See $(REF _d_arrayappendcTXImpl, core,internal,array,appending)
 public import core.internal.array.appending : _d_arrayappendcTXImpl;
-/// See $(REF __cmp, core,internal,array,comparison)
 public import core.internal.array.comparison : __cmp;
-/// See $(REF __equals, core,internal,array,equality)
 public import core.internal.array.equality : __equals;
-/// See $(REF __ArrayEq, core,internal,array,equality)
 public import core.internal.array.equality : __ArrayEq;
-/// See $(REF __ArrayCast, core,internal,array,casting)
 public import core.internal.array.casting: __ArrayCast;
-/// See $(REF _d_arraycatnTXImpl, core,internal,array,concatenation)
 public import core.internal.array.concatenation : _d_arraycatnTXImpl;
-/// See $(REF _d_arrayctor, core,internal,array,construction)
 public import core.internal.array.construction : _d_arrayctor;
-/// See $(REF _d_arraysetctor, core,internal,array,construction)
 public import core.internal.array.construction : _d_arraysetctor;
-/// See $(REF _d_arraysetlengthTImpl, core,internal,array,capacity)
 public import core.internal.array.capacity: _d_arraysetlengthTImpl;
 
-/// See $(REF _d_assert_fail, core,internal,dassert)
 public import core.internal.dassert: _d_assert_fail;
 
 public import core.internal.destruction: __ArrayDtor;
 
-/// See $(REF __move_post_blt, core,internal,moving)
 public import core.internal.moving: __move_post_blt;
 
 public import core.internal.postblit: __ArrayPostblit;
 
-/// See $(REF __switch, core,internal,switch_)
 public import core.internal.switch_: __switch;
-/// See $(REF __switch_error, core,internal,switch_)
 public import core.internal.switch_: __switch_error;
 
 // Compare class and interface objects for ordering.
