@@ -351,11 +351,11 @@ private bool arrayObjectMatch(Objects* oa1, Objects* oa2)
 /************************************
  * Return hash of Objects.
  */
-private hash_t arrayObjectHash(Objects* oa1)
+private size_t arrayObjectHash(Objects* oa1)
 {
     import dmd.root.hash : mixHash;
 
-    hash_t hash = 0;
+    size_t hash = 0;
     foreach (o1; *oa1)
     {
         /* Must follow the logic of match()
@@ -383,7 +383,7 @@ private hash_t arrayObjectHash(Objects* oa1)
  * Handles all Expression classes and MUST match their equals method,
  * i.e. e1.equals(e2) implies expressionHash(e1) == expressionHash(e2).
  */
-private hash_t expressionHash(Expression e)
+private size_t expressionHash(Expression e)
 {
     import dmd.root.ctfloat : CTFloat;
     import dmd.root.hash : calcHash, mixHash;
@@ -5726,7 +5726,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     bool semantictiargsdone;    // has semanticTiargs() been done?
     bool havetempdecl;          // if used second constructor
     bool gagged;                // if the instantiation is done with error gagging
-    hash_t hash;                // cached result of toHash()
+    size_t hash;                // cached result of toHash()
     Expressions* fargs;         // for function template, these are the function arguments
 
     TemplateInstances* deferred;
@@ -6001,7 +6001,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         return false;
     }
 
-    final hash_t toHash()
+    final size_t toHash()
     {
         if (!hash)
         {
