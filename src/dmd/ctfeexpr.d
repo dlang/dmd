@@ -469,12 +469,12 @@ private UnionExp paintTypeOntoLiteralCopy(Type type, Expression lit)
     }
     else if (lit.op == TOK.arrayLiteral)
     {
-        emplaceExp!(SliceExp)(&ue, lit.loc, lit, new IntegerExp(Loc.initial, 0, Type.tsize_t), ArrayLength(Type.tsize_t, lit).copy());
+        emplaceExp!(SliceExp)(&ue, lit.loc, lit, ctfeEmplaceExp!IntegerExp(Loc.initial, 0, Type.tsize_t), ArrayLength(Type.tsize_t, lit).copy());
     }
     else if (lit.op == TOK.string_)
     {
         // For strings, we need to introduce another level of indirection
-        emplaceExp!(SliceExp)(&ue, lit.loc, lit, new IntegerExp(Loc.initial, 0, Type.tsize_t), ArrayLength(Type.tsize_t, lit).copy());
+        emplaceExp!(SliceExp)(&ue, lit.loc, lit, ctfeEmplaceExp!IntegerExp(Loc.initial, 0, Type.tsize_t), ArrayLength(Type.tsize_t, lit).copy());
     }
     else if (auto aae = lit.isAssocArrayLiteralExp())
     {
@@ -884,15 +884,17 @@ UnionExp pointerArithmetic(const ref Loc loc, TOK op, Type type, Expression eptr
     {
         dinteger_t dim = (cast(TypeSArray)eptr.type.toBasetype()).dim.toInteger();
         // Create a CTFE pointer &agg1[indx .. indx+dim]
-        auto se = new SliceExp(loc, agg1, new IntegerExp(loc, indx, Type.tsize_t), new IntegerExp(loc, indx + dim, Type.tsize_t));
+        auto se = ctfeEmplaceExp!SliceExp(loc, agg1,
+                ctfeEmplaceExp!IntegerExp(loc, indx, Type.tsize_t),
+                ctfeEmplaceExp!IntegerExp(loc, indx + dim, Type.tsize_t));
         se.type = type.toBasetype().nextOf();
         emplaceExp!(AddrExp)(&ue, loc, se);
         ue.exp().type = type;
         return ue;
     }
     // Create a CTFE pointer &agg1[indx]
-    auto ofs = new IntegerExp(loc, indx, Type.tsize_t);
-    Expression ie = new IndexExp(loc, agg1, ofs);
+    auto ofs = ctfeEmplaceExp!IntegerExp(loc, indx, Type.tsize_t);
+    Expression ie = ctfeEmplaceExp!IndexExp(loc, agg1, ofs);
     ie.type = type.toBasetype().nextOf(); // https://issues.dlang.org/show_bug.cgi?id=13992
     emplaceExp!(AddrExp)(&ue, loc, ie);
     ue.exp().type = type;
@@ -1533,7 +1535,7 @@ Expression ctfeIndex(const ref Loc loc, Type type, Expression e1, uinteger_t ind
             error(loc, "string index %llu is out of bounds `[0 .. %llu]`", indx, cast(ulong)es1.len);
             return CTFEExp.cantexp;
         }
-        return new IntegerExp(loc, es1.charAt(indx), type);
+        return ctfeEmplaceExp!IntegerExp(loc, es1.charAt(indx), type);
     }
     assert(e1.op == TOK.arrayLiteral);
     {
