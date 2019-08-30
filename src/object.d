@@ -38,23 +38,6 @@ alias dstring = immutable(dchar)[];
 
 version (D_ObjectiveC) public import core.attribute : selector;
 
-/// See $(REF capacity, core,internal,array,capacity)
-public import core.internal.array.capacity: capacity;
-/// See $(REF reserve, core,internal,array,capacity)
-public import core.internal.array.capacity: reserve;
-/// See $(REF assumeSafeAppend, core,internal,array,capacity)
-public import core.internal.array.capacity: assumeSafeAppend;
-
-/// See $(REF destroy, core,internal,destruction)
-public import core.internal.destruction: destroy;
-
-private
-{
-    extern (C) Object _d_newclass(const TypeInfo_Class ci);
-}
-
-public @trusted @nogc nothrow pure extern (C) void _d_delThrowable(scope Throwable);
-
 /**
  * All D class objects inherit from Object.
  */
@@ -974,6 +957,8 @@ class TypeInfo_Delegate : TypeInfo
 
     override @property immutable(void)* rtInfo() nothrow pure const @safe { return RTInfo!(int delegate()); }
 }
+
+private extern (C) Object _d_newclass(const TypeInfo_Class ci);
 
 /**
  * Runtime type information about a class.
@@ -2125,6 +2110,16 @@ class Error : Throwable
     }
 }
 
+/// See $(REF capacity, core,internal,array,capacity)
+public import core.internal.array.capacity: capacity;
+/// See $(REF reserve, core,internal,array,capacity)
+public import core.internal.array.capacity: reserve;
+/// See $(REF assumeSafeAppend, core,internal,array,capacity)
+public import core.internal.array.capacity: assumeSafeAppend;
+
+/// See $(REF destroy, core,internal,destruction)
+public import core.internal.destruction: destroy;
+
 extern (C)
 {
     // from druntime/src/rt/aaA.d
@@ -3210,6 +3205,8 @@ public import core.internal.postblit: __ArrayPostblit;
 
 public import core.internal.switch_: __switch;
 public import core.internal.switch_: __switch_error;
+
+public @trusted @nogc nothrow pure extern (C) void _d_delThrowable(scope Throwable);
 
 // Compare class and interface objects for ordering.
 private int __cmp(Obj)(Obj lhs, Obj rhs)
