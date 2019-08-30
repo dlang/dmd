@@ -48,11 +48,6 @@ public import core.internal.array.capacity: assumeSafeAppend;
 /// See $(REF destroy, core,internal,destruction)
 public import core.internal.destruction: destroy;
 
-private
-{
-    extern (C) Object _d_newclass(const TypeInfo_Class ci);
-}
-
 /**
  * All D class objects inherit from Object.
  */
@@ -972,6 +967,8 @@ class TypeInfo_Delegate : TypeInfo
 
     override @property immutable(void)* rtInfo() nothrow pure const @safe { return RTInfo!(int delegate()); }
 }
+
+private extern (C) Object _d_newclass(const TypeInfo_Class ci);
 
 /**
  * Runtime type information about a class.
