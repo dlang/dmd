@@ -38,16 +38,6 @@ alias dstring = immutable(dchar)[];
 
 version (D_ObjectiveC) public import core.attribute : selector;
 
-/// See $(REF capacity, core,internal,array,capacity)
-public import core.internal.array.capacity: capacity;
-/// See $(REF reserve, core,internal,array,capacity)
-public import core.internal.array.capacity: reserve;
-/// See $(REF assumeSafeAppend, core,internal,array,capacity)
-public import core.internal.array.capacity: assumeSafeAppend;
-
-/// See $(REF destroy, core,internal,destruction)
-public import core.internal.destruction: destroy;
-
 /**
  * All D class objects inherit from Object.
  */
@@ -2119,6 +2109,16 @@ class Error : Throwable
         assert(e.bypassedException is null);
     }
 }
+
+/// See $(REF capacity, core,internal,array,capacity)
+public import core.internal.array.capacity: capacity;
+/// See $(REF reserve, core,internal,array,capacity)
+public import core.internal.array.capacity: reserve;
+/// See $(REF assumeSafeAppend, core,internal,array,capacity)
+public import core.internal.array.capacity: assumeSafeAppend;
+
+/// See $(REF destroy, core,internal,destruction)
+public import core.internal.destruction: destroy;
 
 extern (C)
 {
