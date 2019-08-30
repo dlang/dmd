@@ -339,7 +339,9 @@ dmd -cov -unittest myprog.d
             )`,
         ),
         Option("gf",
-            "emit debug info for all referenced types"
+            "emit debug info for all referenced types",
+            `Symbolic debug info is emitted for all types referenced by the compiled code,
+             even if the definition is in an imported file not currently being compiled.`,
         ),
         Option("gs",
             "always emit stack frame"
