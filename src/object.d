@@ -2748,39 +2748,6 @@ if (is(typeof(create()) : V) && is(typeof(update(aa[K.init])) : V))
     assert(a["1"] == -2);
 }
 
-version (none)
-{
-    // enforce() copied from Phobos std.contracts for destroy(), left out until
-    // we decide whether to use it.
-
-
-    T _enforce(T, string file = __FILE__, int line = __LINE__)
-        (T value, lazy const(char)[] msg = null)
-    {
-        if (!value) bailOut(file, line, msg);
-        return value;
-    }
-
-    T _enforce(T, string file = __FILE__, int line = __LINE__)
-        (T value, scope void delegate() dg)
-    {
-        if (!value) dg();
-        return value;
-    }
-
-    T _enforce(T)(T value, lazy Exception ex)
-    {
-        if (!value) throw ex();
-        return value;
-    }
-
-    private void _bailOut(string file, int line, in char[] msg)
-    {
-        char[21] buf = void;
-        throw new Exception(cast(string)(file ~ "(" ~ ulongToString(buf[], line) ~ "): " ~ (msg ? msg : "Enforcement failed")));
-    }
-}
-
 version (CoreDdoc)
 {
     // This lets DDoc produce better documentation.
