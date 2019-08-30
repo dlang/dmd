@@ -178,15 +178,6 @@ public extern (C++) void printCtfePerformanceStats()
     }
 }
 
-/*********
- * Typesafe PIMPL idiom so we can keep CompiledCtfeFunction private.
- */
-extern (C++) struct CompiledCtfeFunctionPimpl
-{
-    private CompiledCtfeFunction* pimpl;
-    private alias pimpl this;
-}
-
 /**************************
  */
 
@@ -398,29 +389,6 @@ private struct InterState
      * CTFEExp. (null if no label).
      */
     Statement gotoTarget;
-}
-
-/***********************************************************
- * CTFE-object code for a single function
- *
- * Currently only counts the number of local variables in the function
- */
-struct CompiledCtfeFunction
-{
-    FuncDeclaration func; // Function being compiled, NULL if global scope
-    int numVars; // Number of variables declared in this function
-    Loc callingloc;
-
-    extern (D) this(FuncDeclaration f)
-    {
-        func = f;
-    }
-
-    extern (C++) void onDeclaration(VarDeclaration v)
-    {
-        //printf("%s CTFE declare %s\n", v.loc.toChars(), v.toChars());
-        ++numVars;
-    }
 }
 
 /*********************************************
@@ -707,43 +675,6 @@ private void foreachExpAndVar(Statement s,
 
 
 /*************************************
- * Compile this function for CTFE.
- * At present, this merely allocates variables.
- */
-private void ctfeCompile(FuncDeclaration fd)
-{
-    debug (LOGCOMPILE)
-    {
-        printf("\n%s FuncDeclaration::ctfeCompile %s\n", fd.loc.toChars(), fd.toChars());
-    }
-    assert(!fd.ctfeCode);
-    assert(!fd.semantic3Errors);
-    assert(fd.semanticRun == PASS.semantic3done);
-
-    fd.ctfeCode = new CompiledCtfeFunction(fd);
-    if (fd.parameters)
-    {
-        Type tb = fd.type.toBasetype().isTypeFunction();
-        assert(tb);
-        foreach (v; *fd.parameters)
-        {
-            fd.ctfeCode.onDeclaration(v);
-        }
-    }
-    if (fd.vresult)
-        fd.ctfeCode.onDeclaration(fd.vresult);
-
-    void dgVar(VarDeclaration v)
-    {
-        if (!(v.isDataseg() || v.storage_class & STC.manifest) || v.isCTFE())
-            fd.ctfeCode.onDeclaration(v);
-    }
-
-    foreachExpAndVar(fd.fbody,
-        (e) => e.foreachVar(&dgVar), &dgVar);
-}
-
-/*************************************
  * Attempt to interpret a function given the arguments.
  * Params:
  *      pue       = storage for result
@@ -772,10 +703,6 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
         return CTFEExp.cantexp;
     if (fd.semanticRun < PASS.semantic3done)
         return CTFEExp.cantexp;
-
-    // CTFE-compile the function
-    if (!fd.ctfeCode)
-        ctfeCompile(fd);
 
     Type tb = fd.type.toBasetype();
     assert(tb.ty == Tfunction);

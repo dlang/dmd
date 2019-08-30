@@ -26,7 +26,6 @@ struct Ensure
 };
 class FuncDeclaration;
 class StructDeclaration;
-struct CompiledCtfeFunction;
 struct ObjcSelector;
 struct IntRange;
 
@@ -503,7 +502,6 @@ public:
     ILS inlineStatusExp;
     PINLINE inlining;
 
-    CompiledCtfeFunction *ctfeCode;     // Compiled code for interpreter
     int inlineNest;                     // !=0 if nested inline
     bool isArrayOp;                     // true if array operation
     bool eh_none;                       /// true if no exception unwinding is needed

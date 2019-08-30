@@ -263,7 +263,6 @@ extern (C++) class FuncDeclaration : Declaration
     ILS inlineStatusExp = ILS.uninitialized;
     PINLINE inlining = PINLINE.default_;
 
-    CompiledCtfeFunctionPimpl ctfeCode; /// Local data (i.e. CompileCtfeFunction*) for module dinterpret
     int inlineNest;                     /// !=0 if nested inline
     bool isArrayOp;                     /// true if array operation
     bool eh_none;                       /// true if no exception unwinding is needed
