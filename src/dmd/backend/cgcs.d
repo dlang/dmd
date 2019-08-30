@@ -126,7 +126,7 @@ public extern (C++) void cgcs_term()
 
 private:
 
-alias hash_t = uint;    // for hash values
+alias size_t = uint;    // for hash values
 
 /*********************************
  * Struct for each elem:
@@ -137,7 +137,7 @@ alias hash_t = uint;    // for hash values
 struct HCS
 {
     elem* Helem;
-    hash_t Hhash;
+    size_t Hhash;
 }
 
 struct HCSArray
@@ -495,11 +495,11 @@ void ecom(elem **pe)
  * Compute hash function for elem e.
  */
 
-hash_t cs_comphash(const elem *e)
+size_t cs_comphash(const elem *e)
 {
     elem_debug(e);
     const op = e.Eoper;
-    hash_t hash = (e.Ety & (mTYbasic | mTYconst | mTYvolatile)) + (op << 8);
+    size_t hash = (e.Ety & (mTYbasic | mTYconst | mTYvolatile)) + (op << 8);
     if (!OTleaf(op))
     {
         hash += cast(size_t) e.EV.E1;
@@ -519,7 +519,7 @@ hash_t cs_comphash(const elem *e)
  * Add an elem to the common subexpression table.
  */
 
-void addhcstab(elem *e, hash_t hash)
+void addhcstab(elem *e, size_t hash)
 {
     hcstab.push(HCS(e, hash));
 }

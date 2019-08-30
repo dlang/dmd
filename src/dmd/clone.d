@@ -768,7 +768,7 @@ Lneed:
 
 /******************************************
  * Build __xtoHash for non-bitwise hashing
- *      static hash_t xtoHash(ref const S p) nothrow @trusted;
+ *      static size_t xtoHash(ref const S p) nothrow @trusted;
  */
 FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
 {
@@ -777,7 +777,7 @@ FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
         __gshared TypeFunction tftohash;
         if (!tftohash)
         {
-            tftohash = new TypeFunction(ParameterList(), Type.thash_t, LINK.d);
+            tftohash = new TypeFunction(ParameterList(), Type.tsize_t, LINK.d);
             tftohash.mod = MODFlags.const_;
             tftohash = cast(TypeFunction)tftohash.merge();
         }
@@ -796,7 +796,7 @@ FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
     Loc loc; // internal code should have no loc to prevent coverage
     auto parameters = new Parameters();
     parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.p, null, null));
-    auto tf = new TypeFunction(ParameterList(parameters), Type.thash_t, LINK.d, STC.nothrow_ | STC.trusted);
+    auto tf = new TypeFunction(ParameterList(parameters), Type.tsize_t, LINK.d, STC.nothrow_ | STC.trusted);
     Identifier id = Id.xtoHash;
     auto fop = new FuncDeclaration(declLoc, Loc.initial, id, STC.static_, tf);
     fop.generated = true;

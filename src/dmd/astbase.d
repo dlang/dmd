@@ -2699,7 +2699,7 @@ struct ASTBase
 
         extern (C++) __gshared Type tsize_t;     // matches size_t alias
         extern (C++) __gshared Type tptrdiff_t;  // matches ptrdiff_t alias
-        extern (C++) __gshared Type thash_t;     // matches hash_t alias
+        extern (C++) __gshared Type tsize_t;     // matches size_t alias
 
 
 
@@ -2860,7 +2860,7 @@ struct ASTBase
 
             tsize_t    = basic[isLP64 ? Tuns64 : Tuns32];
             tptrdiff_t = basic[isLP64 ? Tint64 : Tint32];
-            thash_t = tsize_t;
+            tsize_t = tsize_t;
         }
 
         final Type pointerTo()

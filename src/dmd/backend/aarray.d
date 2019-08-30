@@ -15,7 +15,7 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
-alias hash_t = size_t;
+alias size_t = size_t;
 
 nothrow:
 
@@ -25,7 +25,7 @@ nothrow:
 private struct aaA
 {
     aaA *next;
-    hash_t hash;        // hash of the key
+    size_t hash;        // hash of the key
     /* key   */         // key value goes here
     /* value */         // value value goes here
 }
@@ -101,7 +101,7 @@ nothrow:
             buckets = p[0 .. len];
         }
 
-        hash_t key_hash = tkey.getHash(pkey);
+        size_t key_hash = tkey.getHash(pkey);
         const i = key_hash % buckets.length;
         //printf("key_hash = %x, buckets.length = %d, i = %d\n", key_hash, buckets.length, i);
         aaA* e;
@@ -380,9 +380,9 @@ public struct Tinfo(K)
 nothrow:
     alias Key = K;
 
-    static hash_t getHash(Key* pk)
+    static size_t getHash(Key* pk)
     {
-        return cast(hash_t)*pk;
+        return cast(size_t)*pk;
     }
 
     static bool equals(Key* pk1, Key* pk2)
@@ -401,10 +401,10 @@ public struct TinfoChars
 nothrow:
     alias Key = const(char)[];
 
-    static hash_t getHash(Key* pk)
+    static size_t getHash(Key* pk)
     {
         auto buf = *pk;
-        hash_t hash = 0;
+        size_t hash = 0;
         foreach (v; buf)
             hash = hash * 11 + v;
         return hash;
@@ -464,10 +464,10 @@ nothrow:
 
     ubyte** pbase;
 
-    hash_t getHash(Key* pk)
+    size_t getHash(Key* pk)
     {
         auto buf = (*pbase)[pk.start .. pk.end];
-        hash_t hash = 0;
+        size_t hash = 0;
         foreach (v; buf)
             hash = hash * 11 + v;
         return hash;
