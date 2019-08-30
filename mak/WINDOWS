@@ -294,6 +294,9 @@ $(IMPDIR)\core\stdcpp\vector.d : src\core\stdcpp\vector.d
 $(IMPDIR)\core\stdcpp\xutility.d : src\core\stdcpp\xutility.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\bionic\err.d : src\core\sys\bionic\err.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\bionic\string.d : src\core\sys\bionic\string.d
 	copy $** $@
 
@@ -301,6 +304,9 @@ $(IMPDIR)\core\sys\darwin\crt_externs.d : src\core\sys\darwin\crt_externs.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\darwin\dlfcn.d : src\core\sys\darwin\dlfcn.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\darwin\err.d : src\core\sys\darwin\err.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\darwin\execinfo.d : src\core\sys\darwin\execinfo.d
@@ -346,6 +352,9 @@ $(IMPDIR)\core\sys\darwin\sys\mman.d : src\core\sys\darwin\sys\mman.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\freebsd\dlfcn.d : src\core\sys\freebsd\dlfcn.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\freebsd\err.d : src\core\sys\freebsd\err.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\freebsd\execinfo.d : src\core\sys\freebsd\execinfo.d
@@ -400,6 +409,9 @@ $(IMPDIR)\core\sys\freebsd\unistd.d : src\core\sys\freebsd\unistd.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\dragonflybsd\dlfcn.d : src\core\sys\dragonflybsd\dlfcn.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\dragonflybsd\err.d : src\core\sys\dragonflybsd\err.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\dragonflybsd\execinfo.d : src\core\sys\dragonflybsd\execinfo.d
@@ -457,6 +469,9 @@ $(IMPDIR)\core\sys\linux\elf.d : src\core\sys\linux\elf.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\linux\epoll.d : src\core\sys\linux\epoll.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\linux\err.d : src\core\sys\linux\err.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\linux\errno.d : src\core\sys\linux\errno.d
@@ -534,6 +549,9 @@ $(IMPDIR)\core\sys\linux\sys\xattr.d : src\core\sys\linux\sys\xattr.d
 $(IMPDIR)\core\sys\linux\sys\time.d : src\core\sys\linux\sys\time.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\netbsd\err.d : src\core\sys\netbsd\err.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\netbsd\sys\featuretest.d : src\core\sys\netbsd\sys\featuretest.d
 	copy $** $@
 
@@ -541,6 +559,9 @@ $(IMPDIR)\core\sys\netbsd\string.d : src\core\sys\netbsd\string.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\openbsd\dlfcn.d : src\core\sys\openbsd\dlfcn.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\openbsd\err.d : src\core\sys\openbsd\err.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\openbsd\string.d : src\core\sys\openbsd\string.d
@@ -694,6 +715,9 @@ $(IMPDIR)\core\sys\solaris\dlfcn.d : src\core\sys\solaris\dlfcn.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\solaris\elf.d : src\core\sys\solaris\elf.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\solaris\err.d : src\core\sys\solaris\err.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\solaris\execinfo.d : src\core\sys\solaris\execinfo.d

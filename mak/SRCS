@@ -90,10 +90,12 @@ SRCS=\
 	src\core\sync\rwmutex.d \
 	src\core\sync\semaphore.d \
 	\
+	src\core\sys\bionic\err.d \
 	src\core\sys\bionic\string.d \
 	\
 	src\core\sys\darwin\crt_externs.d \
 	src\core\sys\darwin\dlfcn.d \
+	src\core\sys\darwin\err.d \
 	src\core\sys\darwin\execinfo.d \
 	src\core\sys\darwin\pthread.d \
 	src\core\sys\darwin\string.d \
@@ -111,6 +113,7 @@ SRCS=\
 	src\core\sys\darwin\sys\mman.d \
 	\
 	src\core\sys\freebsd\dlfcn.d \
+	src\core\sys\freebsd\err.d \
 	src\core\sys\freebsd\execinfo.d \
 	src\core\sys\freebsd\netinet\in_.d \
 	src\core\sys\freebsd\pthread_np.d \
@@ -130,6 +133,7 @@ SRCS=\
 	src\core\sys\freebsd\unistd.d \
 	\
 	src\core\sys\dragonflybsd\dlfcn.d \
+	src\core\sys\dragonflybsd\err.d \
 	src\core\sys\dragonflybsd\execinfo.d \
 	src\core\sys\dragonflybsd\netinet\in_.d \
 	src\core\sys\dragonflybsd\pthread_np.d \
@@ -150,6 +154,7 @@ SRCS=\
 	src\core\sys\linux\dlfcn.d \
 	src\core\sys\linux\elf.d \
 	src\core\sys\linux\epoll.d \
+	src\core\sys\linux\err.d \
 	src\core\sys\linux\errno.d \
 	src\core\sys\linux\execinfo.d \
 	src\core\sys\linux\fcntl.d \
@@ -178,10 +183,12 @@ SRCS=\
 	src\core\sys\linux\sys\time.d \
 	src\core\sys\linux\sys\prctl.d \
 	\
+	src\core\sys\netbsd\err.d \
 	src\core\sys\netbsd\sys\featuretest.d \
 	src\core\sys\netbsd\string.d \
 	\
 	src\core\sys\openbsd\dlfcn.d \
+	src\core\sys\openbsd\err.d \
 	src\core\sys\openbsd\string.d \
 	\
 	src\core\sys\posix\arpa\inet.d \
@@ -238,6 +245,7 @@ SRCS=\
 	\
 	src\core\sys\solaris\dlfcn.d \
 	src\core\sys\solaris\elf.d \
+	src\core\sys\solaris\err.d \
 	src\core\sys\solaris\execinfo.d \
 	src\core\sys\solaris\libelf.d \
 	src\core\sys\solaris\link.d \
