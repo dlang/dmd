@@ -53,8 +53,6 @@ private
     extern (C) Object _d_newclass(const TypeInfo_Class ci);
 }
 
-public @trusted @nogc nothrow pure extern (C) void _d_delThrowable(scope Throwable);
-
 /**
  * All D class objects inherit from Object.
  */
@@ -3210,6 +3208,8 @@ public import core.internal.postblit: __ArrayPostblit;
 
 public import core.internal.switch_: __switch;
 public import core.internal.switch_: __switch_error;
+
+public @trusted @nogc nothrow pure extern (C) void _d_delThrowable(scope Throwable);
 
 // Compare class and interface objects for ordering.
 private int __cmp(Obj)(Obj lhs, Obj rhs)
