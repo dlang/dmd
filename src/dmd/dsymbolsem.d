@@ -536,6 +536,16 @@ LcheckFields:
     return true;
 }
 
+/* Returns:
+ *  `true` if `struct` sd defines a move constructor (explicitly or generated),
+ *  `false` otherwise.
+ */
+private MoveCtorDeclaration buildMoveCtor(StructDeclaration sd, Scope* sc)
+{
+    auto s = sd.search(sd.loc, Id.moveCtor);
+    return s ? s.isMoveCtorDeclaration() : null;
+}
+
 private uint setMangleOverride(Dsymbol s, const(char)[] sym)
 {
     if (s.isFuncDeclaration() || s.isVarDeclaration())
@@ -4133,6 +4143,38 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
     }
 
+    override void visit(MoveCtorDeclaration mctd)
+    {
+        //printf("MoveCtorDeclaration::semantic() %s\n", toChars());
+        if (mctd.semanticRun >= PASS.semanticdone)
+            return;
+        if (mctd._scope)
+        {
+            sc = mctd._scope;
+            mctd._scope = null;
+        }
+
+        mctd.parent = sc.parent;
+        Dsymbol p = mctd.toParentDecl();
+        StructDeclaration ad = p.isStructDeclaration();
+        if (!ad)
+        {
+            error(mctd.loc, "move constructor can only be a member of struct, not %s `%s`", p.kind(), p.toChars());
+            mctd.type = Type.terror;
+            mctd.errors = true;
+            return;
+        }
+
+        sc = sc.push();
+        sc.stc &= ~STC.static_; // not static
+        sc.flags |= SCOPE.ctor;
+        sc.linkage = LINK.d;
+
+        funcDeclarationSemantic(mctd);
+
+        sc.pop();
+    }
+
     override void visit(PostBlitDeclaration pbd)
     {
         //printf("PostBlitDeclaration::semantic() %s\n", toChars());
@@ -4730,6 +4772,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         sd.tidtor = buildExternDDtor(sd, sc2);
         sd.postblit = buildPostBlit(sd, sc2);
         sd.hasCopyCtor = buildCopyCtor(sd, sc2);
+        sd.moveCtor = buildMoveCtor(sd, sc2);
 
         buildOpAssign(sd, sc2);
         buildOpEquals(sd, sc2);

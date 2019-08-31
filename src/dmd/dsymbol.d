@@ -1199,6 +1199,7 @@ extern (C++) class Dsymbol : ASTNode
     inout(OverDeclaration)             isOverDeclaration()             inout { return null; }
     inout(FuncLiteralDeclaration)      isFuncLiteralDeclaration()      inout { return null; }
     inout(CtorDeclaration)             isCtorDeclaration()             inout { return null; }
+    inout(MoveCtorDeclaration)         isMoveCtorDeclaration()         inout { return null; }
     inout(PostBlitDeclaration)         isPostBlitDeclaration()         inout { return null; }
     inout(DtorDeclaration)             isDtorDeclaration()             inout { return null; }
     inout(StaticCtorDeclaration)       isStaticCtorDeclaration()       inout { return null; }

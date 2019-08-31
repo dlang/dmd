@@ -138,6 +138,52 @@ FuncDeclaration hasIdentityOpAssign(AggregateDeclaration ad, Scope* sc)
     return null;
 }
 
+
+/*******************************************
+ * Check given aggregate defines an opMoveAssign.
+ * Params:
+ *      sd = struct
+ *      sc = current scope
+ * Returns:
+ *      if found, returns FuncDeclaration of opMoveAssign, otherwise null
+ */
+FuncDeclaration hasMoveAssign(StructDeclaration sd, Scope* sc)
+{
+    Dsymbol massign = search_function(sd, Id.moveassign);
+    if (massign)
+    {
+        // check it
+        scope el = new IdentifierExp(sd.loc, Id.p); // dummy lvalue
+        el.type = sd.type;
+        Expressions a;
+        a.setDim(1);
+        const errors = global.startGagging(); // Do not report errors, even if the template opAssign fbody makes it.
+        sc = sc.push();
+        sc.tinst = null;
+        sc.minst = null;
+
+        a[0] = el;
+        auto f = resolveFuncCall(sd.loc, sc, massign, null, sd.type, &a, FuncResolveFlag.quiet);
+
+        sc = sc.pop();
+        global.endGagging(errors);
+        if (f)
+        {
+            if (f.errors)
+                return null;
+            auto fparams = f.getParameterList();
+            if (fparams.length)
+            {
+                auto fparam0 = fparams[0];
+                if (fparam0.type.toDsymbol(null) != sd)
+                    f = null;
+            }
+        }
+        return f;
+    }
+    return null;
+}
+
 /*******************************************
  * We need an opAssign for the struct if
  * it has a destructor or a postblit.
@@ -254,6 +300,11 @@ FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     if (FuncDeclaration f = hasIdentityOpAssign(sd, sc))
     {
         sd.hasIdentityAssign = true;
+        return f;
+    }
+    if (FuncDeclaration f = hasMoveAssign(sd, sc))
+    {
+        sd.hasMoveAssign = true;
         return f;
     }
     // Even if non-identity opAssign is defined, built-in identity opAssign

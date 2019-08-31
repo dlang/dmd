@@ -8409,7 +8409,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         result = e;
                         return;
                     }
-                    if (sd.postblit || sd.hasCopyCtor)
+                    if (sd.postblit || sd.hasCopyCtor || sd.moveCtor)
                     {
                         /* We have a copy constructor for this
                          */
@@ -8474,10 +8474,34 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         }
                         else
                         {
-                            /* The struct value returned from the function is transferred
-                             * so should not call the destructor on it.
-                             */
-                            e2x = valueNoDtor(e2x);
+                            if (sd.moveCtor)
+                            {
+                                /* Rewrite as:
+                                 * e1 = init, e1.moveCtor(e2);
+                                 */
+                                Expression einit = new BlitExp(exp.loc, exp.e1, getInitExp(sd, exp.loc, sc, t1));
+                                einit.type = e1x.type;
+
+                                // convert to lvalue
+                                Expression e2l = toLvalueExp(e2x.loc, sc, e2x);
+
+                                Expression e;
+                                e = new DotIdExp(exp.loc, e1x, Id.moveCtor);
+                                e = new CallExp(exp.loc, e, e2l);
+                                e = new CommaExp(exp.loc, einit, e);
+
+                                //printf("e: %s\n", e.toChars());
+
+                                result = e.expressionSemantic(sc);
+                                return;
+                            }
+                            else
+                            {
+                                /* The struct value returned from the function is transferred
+                                 * so should not call the destructor on it.
+                                 */
+                                e2x = valueNoDtor(e2x);
+                            }
                         }
                     }
 

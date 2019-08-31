@@ -499,6 +499,25 @@ Expression toRvalueExp(const ref Loc loc, Scope* sc, Expression e)
 }
 
 /****************************************************************/
+/* Cast expression to lvalue.
+ */
+Expression toLvalueExp(const ref Loc loc, Scope* sc, Expression e)
+{
+    if (e.isLvalue())
+        return e;
+
+    e = e.expressionSemantic(sc);
+    if (e.op == TOK.error || e.type == Type.terror)
+        return e;
+
+    Type t = e.type;
+    assert(t);
+    e = new AddrExp(loc, e, t.pointerTo());
+    e = new PtrExp(loc, e, t, /* isRvalue */ false);
+    return e;
+}
+
+/****************************************************************/
 /* A type meant as a union of all the Expression types,
  * to serve essentially as a Variant that will sit on the stack
  * during CTFE to reduce memory consumption.

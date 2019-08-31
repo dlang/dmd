@@ -846,10 +846,18 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
             if (e.op == TOK.assign && ad1 == ad2)
             {
                 StructDeclaration sd = ad1.isStructDeclaration();
-                if (sd && !sd.hasIdentityAssign)
+                if (sd && !sd.hasIdentityAssign && !sd.hasMoveAssign)
                 {
                     /* This is bitwise struct assignment. */
                     return;
+                }
+                if (id == Id.assign)
+                {
+                    if (!e.e2.isLvalue())
+                    {
+                        id = Id.moveassign;
+                        e.e2 = toLvalueExp(e.e2.loc, sc, e.e2);
+                    }
                 }
             }
             Dsymbol s = null;
@@ -860,7 +868,7 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                 if (ad1 && id)
                 {
                     s = search_function(ad1, id);
-                    if (s && id != Id.assign)
+                    if (s && id != Id.assign && id != Id.moveassign)
                     {
                         // @@@DEPRECATED_2.094@@@.
                         // Deprecated in 2.088

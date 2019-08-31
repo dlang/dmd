@@ -136,6 +136,7 @@ immutable Msgtable[] msgtable =
     { "_assert", "assert" },
     { "_unittest", "unittest" },
     { "_body", "body" },
+    { "moveCtor", "__move_ctor" },
 
     { "TypeInfo" },
     { "TypeInfo_Class" },
@@ -249,6 +250,7 @@ immutable Msgtable[] msgtable =
     { "cat",     "opCat" },
     { "cat_r",   "opCat_r" },
     { "assign",  "opAssign" },
+    { "moveassign", "opMoveAssign" },
     { "addass",  "opAddAssign" },
     { "subass",  "opSubAssign" },
     { "mulass",  "opMulAssign" },

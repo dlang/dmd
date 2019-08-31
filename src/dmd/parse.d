@@ -545,6 +545,13 @@ final class Parser(AST) : Lexer
                     }
                     break;
                 }
+            case TOK.identifier:
+                if (token.ident == Id.moveCtor)
+                {
+                    s = parseCtor(pAttrs);
+                    break;
+                }
+                goto case;
             case TOK.wchar_:
             case TOK.dchar_:
             case TOK.bool_:
@@ -570,7 +577,6 @@ final class Parser(AST) : Lexer
             case TOK.complex80:
             case TOK.void_:
             case TOK.alias_:
-            case TOK.identifier:
             case TOK.super_:
             case TOK.typeof_:
             case TOK.dot:
@@ -2429,6 +2435,10 @@ final class Parser(AST) : Lexer
         const loc = token.loc;
         StorageClass stc = getStorageClass!AST(pAttrs);
 
+        bool isMoveCtor;
+        if (token.value == TOK.identifier && token.ident == Id.moveCtor)
+            isMoveCtor = true;
+
         nextToken();
         if (token.value == TOK.leftParentheses && peekNext() == TOK.this_ && peekNext2() == TOK.rightParentheses)
         {
@@ -2492,7 +2502,11 @@ final class Parser(AST) : Lexer
         AST.Type tf = new AST.TypeFunction(AST.ParameterList(parameters, varargs), null, linkage, stc); // RetrunType -> auto
         tf = tf.addSTC(stc);
 
-        auto f = new AST.CtorDeclaration(loc, Loc.initial, stc, tf);
+        AST.CtorDeclaration f;
+        if (isMoveCtor)
+            f = new AST.MoveCtorDeclaration(loc, Loc.initial, stc, tf);
+        else
+            f = new AST.CtorDeclaration(loc, Loc.initial, stc, tf);
         AST.Dsymbol s = parseContracts(f);
         if (udas)
         {

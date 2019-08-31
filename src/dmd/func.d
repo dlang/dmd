@@ -3410,7 +3410,7 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
 
 /***********************************************************
  */
-extern (C++) final class CtorDeclaration : FuncDeclaration
+extern (C++) class CtorDeclaration : FuncDeclaration
 {
     bool isCpCtor;
     extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, Type type, bool isCpCtor = false)
@@ -3453,6 +3453,59 @@ extern (C++) final class CtorDeclaration : FuncDeclaration
     }
 
     override inout(CtorDeclaration) isCtorDeclaration() inout
+    {
+        return this;
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
+ */
+extern (C++) final class MoveCtorDeclaration : CtorDeclaration
+{
+    extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, Type type)
+    {
+        super(loc, endloc, stc, type);
+        this.ident = Id.moveCtor;
+    }
+
+    override Dsymbol syntaxCopy(Dsymbol s)
+    {
+        assert(!s);
+        auto f = new MoveCtorDeclaration(loc, endloc, storage_class, type.syntaxCopy());
+        return FuncDeclaration.syntaxCopy(f);
+    }
+
+    override const(char)* kind() const
+    {
+        return "move constructor";
+    }
+
+    override const(char)* toChars() const
+    {
+        return "__move_ctor";
+    }
+
+    override bool isVirtual() const
+    {
+        return false;
+    }
+
+    override bool addPreInvariant()
+    {
+        return false;
+    }
+
+    override bool addPostInvariant()
+    {
+        return (isThis() && vthis && global.params.useInvariants == CHECKENABLE.on);
+    }
+
+    override inout(MoveCtorDeclaration) isMoveCtorDeclaration() inout
     {
         return this;
     }

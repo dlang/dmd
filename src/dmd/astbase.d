@@ -833,11 +833,25 @@ struct ASTBase
         }
     }
 
-    extern (C++) final class CtorDeclaration : FuncDeclaration
+    extern (C++) class CtorDeclaration : FuncDeclaration
     {
         extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc, Type type, bool isCopyCtor = false)
         {
             super(loc, endloc, Id.ctor, stc, type);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class MoveCtorDeclaration : CtorDeclaration
+    {
+        extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc, Type type)
+        {
+            super(loc, endloc, stc, type);
+            this.ident = Id.moveCtor;
         }
 
         override void accept(Visitor v)
