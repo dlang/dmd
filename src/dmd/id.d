@@ -137,6 +137,8 @@ immutable Msgtable[] msgtable =
     { "_unittest", "unittest" },
     { "_body", "body" },
     { "moveCtor", "__move_ctor" },
+    { "rvalue" },
+    { "__move" },
 
     { "TypeInfo" },
     { "TypeInfo_Class" },

@@ -419,6 +419,7 @@ private immutable TOK[] keywords =
     TOK.prettyFunction,
     TOK.shared_,
     TOK.immutable_,
+
 ];
 
 /***********************************************************
@@ -697,6 +698,7 @@ extern (C++) struct Token
 
         TOK.objcClassReference: "class",
         TOK.vectorArray: "vectorarray",
+
     ];
 
     static assert(() {

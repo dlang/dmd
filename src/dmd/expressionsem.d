@@ -4074,6 +4074,19 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
 
+        if (exp.e1.op == TOK.identifier && (cast(IdentifierExp)exp.e1).ident == Id.__move)
+        {
+            expandTuples(exp.arguments);
+            if (exp.arguments.length > 1)
+            {
+                exp.error("`%s` takes only one argument`", Id.__move.toChars());
+                return setError();
+            }
+            result = toRvalueExp(exp.loc, sc, (*exp.arguments)[0])
+                    .expressionSemantic(sc);
+            return;
+        }
+
         if (Expression ex = resolveUFCS(sc, exp))
         {
             result = ex;
@@ -6845,6 +6858,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (exp.type)
         {
             result = exp;
+            return;
+        }
+
+        if (exp.toRvalue)
+        {
+            result = toRvalueExp(exp.loc, sc, exp.e1)
+                    .expressionSemantic(sc);
             return;
         }
 

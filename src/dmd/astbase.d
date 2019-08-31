@@ -5278,6 +5278,7 @@ struct ASTBase
     {
         Type to;
         ubyte mod = cast(ubyte)~0;
+        bool toRvalue;
 
         extern (D) this(const ref Loc loc, Expression e, Type t)
         {

@@ -8251,6 +8251,7 @@ final class Parser(AST) : Lexer
                  * cast(shared), cast(shared const), cast(wild), cast(shared wild)
                  */
                 ubyte m = 0;
+                bool toRvalue;
                 while (1)
                 {
                     switch (token.value)
@@ -8283,12 +8284,28 @@ final class Parser(AST) : Lexer
                         nextToken();
                         continue;
 
+                    case TOK.identifier:
+                        if (token.ident == Id.rvalue)
+                        {
+                            toRvalue = true;
+                            nextToken();
+                            check(TOK.rightParentheses);
+                        }
+                        break;
+
                     default:
                         break;
                     }
                     break;
                 }
-                if (token.value == TOK.rightParentheses)
+                if (toRvalue)
+                {
+                    auto e1 = parseUnaryExp();
+                    auto ce = new AST.CastExp(loc, e1, 0);
+                    ce.toRvalue = true;
+                    e = ce;
+                }
+                else if (token.value == TOK.rightParentheses)
                 {
                     nextToken();
                     e = parseUnaryExp();

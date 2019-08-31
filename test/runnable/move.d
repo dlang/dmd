@@ -35,4 +35,13 @@ void main()
     S a;
     a = get();
     assert(moveAssign == 1);
+
+    S c = cast(rvalue) a;
+    assert(moveCtor == 2);
+
+    b = __move(c);
+    assert(moveAssign == 2);
+
+    a = __traits(getRvalue, b);
+    assert(moveAssign == 3);
 }
