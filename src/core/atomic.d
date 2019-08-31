@@ -66,10 +66,10 @@ enum MemoryOrder
  * Returns:
  *  The value of 'val'.
  */
-T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref const T val ) pure nothrow @nogc @trusted
-    if ( !is( T == shared U, U ) && !is( T == shared inout U, U ) && !is( T == shared const U, U ) )
+T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)(ref const T val) pure nothrow @nogc @trusted
+    if (!is(T == shared U, U) && !is(T == shared inout U, U) && !is(T == shared const U, U))
 {
-    static if ( __traits(isFloating, T) )
+    static if (__traits(isFloating, T))
     {
         alias IntTy = IntForFloat!T;
         IntTy r = core.internal.atomic.atomicLoad!ms(cast(IntTy*)&val);
@@ -80,18 +80,18 @@ T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref const T val ) pure nothro
 }
 
 /// Ditto
-T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref const shared T val ) pure nothrow @nogc @trusted
-    if ( !hasUnsharedIndirections!T )
+T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)(ref shared const T val) pure nothrow @nogc @trusted
+    if (!hasUnsharedIndirections!T)
 {
     import core.internal.traits : hasUnsharedIndirections;
-    static assert(!hasUnsharedIndirections!T, "Copying `shared " ~ T.stringof ~ "` would violate shared.");
+    static assert(!hasUnsharedIndirections!T, "Copying `" ~ shared(const(T)).stringof ~ "` would violate shared.");
 
     return atomicLoad!ms(*cast(T*)&val);
 }
 
 /// Ditto
-TailShared!T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref const shared T val ) pure nothrow @nogc @trusted
-    if ( hasUnsharedIndirections!T )
+TailShared!T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)(ref shared const T val) pure nothrow @nogc @trusted
+    if (hasUnsharedIndirections!T)
 {
     // HACK: DEPRECATE THIS FUNCTION, IT IS INVALID TO DO ATOMIC LOAD OF SHARED CLASS
     // this is here because code exists in the wild that does this...
@@ -112,39 +112,44 @@ TailShared!T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref const shared T
  *  val    = The target variable.
  *  newval = The value to store.
  */
-void atomicStore(MemoryOrder ms = MemoryOrder.seq, T, V)( ref T val, V newval ) pure nothrow @nogc @trusted
-    if ( __traits( compiles, { val = newval; } ) && !is(T == shared S, S) && !is(V == shared U, U) )
+void atomicStore(MemoryOrder ms = MemoryOrder.seq, T, V)(ref T val, V newval) pure nothrow @nogc @trusted
+    if (!is(T == shared) && !is(V == shared))
 {
-    static if ( __traits(isFloating, T) )
+    import core.internal.traits : hasElaborateCopyConstructor;
+    static assert (!hasElaborateCopyConstructor!T, "`T` may not have an elaborate copy: atomic operations override regular copying semantics.");
+
+    // resolve implicit conversions
+    T arg = newval;
+
+    static if (__traits(isFloating, T))
     {
-        static assert ( __traits(isFloating, V) && V.sizeof == T.sizeof, "Mismatching argument types." );
         alias IntTy = IntForFloat!T;
-        core.internal.atomic.atomicStore!ms(cast(IntTy*)&val, *cast(IntTy*)&newval);
+        core.internal.atomic.atomicStore!ms(cast(IntTy*)&val, *cast(IntTy*)&arg);
     }
     else
-        core.internal.atomic.atomicStore!ms(&val, newval);
+        core.internal.atomic.atomicStore!ms(&val, arg);
 }
 
 /// Ditto
-void atomicStore(MemoryOrder ms = MemoryOrder.seq, T, V)( ref shared T val, V newval ) pure nothrow @nogc @trusted
-    if ( __traits( compiles, { val = newval; } ) && !is( T == class ) )
+void atomicStore(MemoryOrder ms = MemoryOrder.seq, T, V)(ref shared T val, V newval) pure nothrow @nogc @trusted
+    if (!is(T == class))
 {
-    static if ( is ( V == shared U, U ) )
+    static if (is (V == shared U, U))
         alias Thunk = U;
     else
     {
         import core.internal.traits : hasUnsharedIndirections;
-        static assert(!hasUnsharedIndirections!V, "Copying unshared argument `newval` to shared `val` would violate shared.");
+        static assert(!hasUnsharedIndirections!V, "Copying argument `" ~ V.stringof ~ " newval` to `" ~ shared(T).stringof ~ " here` would violate shared.");
         alias Thunk = V;
     }
     atomicStore!ms(*cast(T*)&val, *cast(Thunk*)&newval);
 }
 
 /// Ditto
-void atomicStore(MemoryOrder ms = MemoryOrder.seq, T, V)( ref shared T val, shared V newval ) pure nothrow @nogc @trusted
-    if ( is( T == class ) )
+void atomicStore(MemoryOrder ms = MemoryOrder.seq, T, V)(ref shared T val, shared V newval) pure nothrow @nogc @trusted
+    if (is(T == class))
 {
-    static assert ( is ( V : T ), "Can't assign `newval` of type `shared " ~ V.stringof ~ "` to `shared " ~ T.stringof ~ "`.");
+    static assert (is (V : T), "Can't assign `newval` of type `shared " ~ V.stringof ~ "` to `shared " ~ T.stringof ~ "`.");
 
     core.internal.atomic.atomicStore!ms(cast(T*)&val, cast(V)newval);
 }
@@ -160,11 +165,22 @@ void atomicStore(MemoryOrder ms = MemoryOrder.seq, T, V)( ref shared T val, shar
  * Returns:
  *  The value held previously by `val`.
  */
-TailShared!T atomicFetchAdd(MemoryOrder ms = MemoryOrder.seq, T)( ref shared T val, size_t mod ) pure nothrow @nogc @trusted
-    if ( __traits(isIntegral, T) )
-in ( atomicValueIsProperlyAligned(val) )
+T atomicFetchAdd(MemoryOrder ms = MemoryOrder.seq, T)(ref T val, size_t mod) pure nothrow @nogc @trusted
+    if ((__traits(isIntegral, T) || is(T == U*, U)) && !is(T == shared))
+in (atomicValueIsProperlyAligned(val))
 {
-    return core.internal.atomic.atomicFetchAdd!ms( &val, cast(T)mod );
+    static if (is(T == U*, U))
+        return cast(T)core.internal.atomic.atomicFetchAdd!ms(cast(size_t*)&val, mod * U.sizeof);
+    else
+        return core.internal.atomic.atomicFetchAdd!ms(&val, cast(T)mod);
+}
+
+/// Ditto
+T atomicFetchAdd(MemoryOrder ms = MemoryOrder.seq, T)(ref shared T val, size_t mod) pure nothrow @nogc @trusted
+    if (__traits(isIntegral, T) || is(T == U*, U))
+in (atomicValueIsProperlyAligned(val))
+{
+    return atomicFetchAdd!ms(*cast(T*)&val, mod);
 }
 
 /**
@@ -178,11 +194,22 @@ in ( atomicValueIsProperlyAligned(val) )
  * Returns:
  *  The value held previously by `val`.
  */
-TailShared!T atomicFetchSub(MemoryOrder ms = MemoryOrder.seq, T)( ref shared T val, size_t mod ) pure nothrow @nogc @trusted
-    if ( __traits(isIntegral, T) )
-in ( atomicValueIsProperlyAligned(val) )
+T atomicFetchSub(MemoryOrder ms = MemoryOrder.seq, T)(ref T val, size_t mod) pure nothrow @nogc @trusted
+    if ((__traits(isIntegral, T) || is(T == U*, U)) && !is(T == shared))
+in (atomicValueIsProperlyAligned(val))
 {
-    return core.internal.atomic.atomicFetchSub!ms( &val, cast(T)mod );
+    static if (is(T == U*, U))
+        return cast(T)core.internal.atomic.atomicFetchAdd!ms(cast(size_t*)&val, mod * U.sizeof);
+    else
+        return core.internal.atomic.atomicFetchSub!ms(&val, cast(T)mod);
+}
+
+/// Ditto
+T atomicFetchSub(MemoryOrder ms = MemoryOrder.seq, T)(ref shared T val, size_t mod) pure nothrow @nogc @trusted
+    if (__traits(isIntegral, T) || is(T == U*, U))
+in (atomicValueIsProperlyAligned(val))
+{
+    return atomicFetchSub!ms(*cast(T*)&val, mod);
 }
 
 /**
@@ -196,35 +223,47 @@ in ( atomicValueIsProperlyAligned(val) )
  * Returns:
  *  The value held previously by `here`.
  */
-shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)( shared(T)* here, V exchangeWith ) pure nothrow @nogc @trusted
-    if ( !is(T == class) && !is(T U : U*) &&  __traits( compiles, { *here = exchangeWith; } ) )
-in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
+T atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)(T* here, V exchangeWith) pure nothrow @nogc @trusted
+    if (!is(T == shared) && !is(V == shared))
+in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 {
-    static if ( __traits(isFloating, T) )
+    // resolve implicit conversions
+    T arg = exchangeWith;
+
+    static if (__traits(isFloating, T))
     {
-        static assert ( __traits(isFloating, V) && V.sizeof == T.sizeof, "Mismatching argument types." );
         alias IntTy = IntForFloat!T;
-        IntTy r = core.internal.atomic.atomicExchange!ms(cast(IntTy*)here, *cast(IntTy*)&exchangeWith);
+        IntTy r = core.internal.atomic.atomicExchange!ms(cast(IntTy*)here, *cast(IntTy*)&arg);
         return *cast(shared(T)*)&r;
     }
     else
-        return core.internal.atomic.atomicExchange!ms(here, exchangeWith);
+        return core.internal.atomic.atomicExchange!ms(here, arg);
 }
 
 /// Ditto
-shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)( shared(T)* here, shared(V) exchangeWith ) pure nothrow @nogc @safe
-    if ( is(T == class) && __traits( compiles, { *here = exchangeWith; } ) )
-in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
+TailShared!T atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)(shared(T)* here, V exchangeWith) pure nothrow @nogc @trusted
+    if (!is(T == class))
+in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 {
-    return core.internal.atomic.atomicExchange!ms(here, exchangeWith);
+    static if (is (V == shared))
+        alias Thunk = U;
+    else
+    {
+        import core.internal.traits : hasUnsharedIndirections;
+        static assert(!hasUnsharedIndirections!V, "Copying `exchangeWith` of type `" ~ V.stringof ~ "` to `" ~ shared(T).stringof ~ "` would violate shared.");
+        alias Thunk = V;
+    }
+    return atomicExchange!ms(cast(T*)here, *cast(Thunk*)&exchangeWith);
 }
 
 /// Ditto
-shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)( shared(T)* here, shared(V)* exchangeWith ) pure nothrow @nogc @safe
-    if ( is(T U : U*) && __traits( compiles, { *here = exchangeWith; } ) )
-in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
+shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)(shared(T)* here, shared(V) exchangeWith) pure nothrow @nogc @trusted
+    if (is(T == class))
+in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 {
-    return core.internal.atomic.atomicExchange!ms(here, exchangeWith);
+    static assert (is (V : T), "Can't assign `exchangeWith` of type `" ~ shared(V).stringof ~ "` to `" ~ shared(T).stringof ~ "`.");
+
+    return cast(shared)core.internal.atomic.atomicExchange!ms(cast(T*)here, cast(V)exchangeWith);
 }
 
 /**
@@ -240,35 +279,49 @@ in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligne
  * Returns:
  *  true if the store occurred, false if not.
  */
-bool cas(T,V1,V2)( shared(T)* here, const V1 ifThis, V2 writeThis ) pure nothrow @nogc @trusted
-    if ( !is(T == class) && !is(T U : U*) &&  __traits( compiles, { *here = writeThis; } ) )
-in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
+bool cas(MemoryOrder succ = MemoryOrder.seq,MemoryOrder fail = MemoryOrder.seq,T,V1,V2)(T* here, V1 ifThis, V2 writeThis) pure nothrow @nogc @trusted
+    if (!is(T == shared) && is(T : V1))
+in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 {
-    static if ( __traits(isFloating, T) )
+    // resolve implicit conversions
+    T arg1 = ifThis;
+    T arg2 = writeThis;
+
+    static if (__traits(isFloating, T))
     {
-        static assert ( __traits(isFloating, V1) && V1.sizeof == T.sizeof, "Mismatching argument types." );
-        static assert ( __traits(isFloating, V2) && V2.sizeof == T.sizeof, "Mismatching argument types." );
         alias IntTy = IntForFloat!T;
-        return atomicCompareExchangeStrongNoResult( cast(IntTy*)here, *cast(IntTy*)&ifThis, *cast(IntTy*)&writeThis );
+        return atomicCompareExchangeStrongNoResult!(succ, fail)(cast(IntTy*)here, *cast(IntTy*)&arg1, *cast(IntTy*)&arg2);
     }
     else
-        return atomicCompareExchangeStrongNoResult!( MemoryOrder.seq, MemoryOrder.seq, T )( cast(T*)here, cast()ifThis, cast()writeThis );
+        return atomicCompareExchangeStrongNoResult!(succ, fail)(here, arg1, arg2);
 }
 
 /// Ditto
-bool cas(T,V1,V2)( shared(T)* here, const shared(V1) ifThis, shared(V2) writeThis ) pure nothrow @nogc @safe
-    if ( is(T == class) && __traits( compiles, { *here = writeThis; } ) )
-in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
+bool cas(MemoryOrder succ = MemoryOrder.seq,MemoryOrder fail = MemoryOrder.seq,T,V1,V2)(shared(T)* here, V1 ifThis, V2 writeThis) pure nothrow @nogc @trusted
+    if (!is(T == class) && (is(T : V1) || is(shared T : V1)))
+in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 {
-    return atomicCompareExchangeStrongNoResult( here, ifThis, writeThis );
+    static if (is (V1 == shared U1, U1))
+        alias Thunk1 = U1;
+    else
+        alias Thunk1 = V1;
+    static if (is (V2 == shared U2, U2))
+        alias Thunk2 = U2;
+    else
+    {
+        import core.internal.traits : hasUnsharedIndirections;
+        static assert(!hasUnsharedIndirections!V2, "Copying `" ~ V2.stringof ~ "* writeThis` to `" ~ shared(T).stringof ~ "* here` would violate shared.");
+        alias Thunk2 = V2;
+    }
+    return cas!(succ, fail)(cast(T*)here, *cast(Thunk1*)&ifThis, *cast(Thunk2*)&writeThis);
 }
 
 /// Ditto
-bool cas(T,V1,V2)( shared(T)* here, const shared(V1)* ifThis, shared(V2)* writeThis ) pure nothrow @nogc @safe
-    if ( is(T U : U*) && __traits( compiles, { *here = writeThis; } ) )
-in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
+bool cas(MemoryOrder succ = MemoryOrder.seq,MemoryOrder fail = MemoryOrder.seq,T,V1,V2)(shared(T)* here, shared(V1) ifThis, shared(V2) writeThis) pure nothrow @nogc @trusted
+    if (is(T == class))
+in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 {
-    return atomicCompareExchangeStrongNoResult( here, ifThis, writeThis );
+    return atomicCompareExchangeStrongNoResult!(succ, fail)(cast(T*)here, cast(V1)ifThis, cast(V2)writeThis);
 }
 
 /**
@@ -285,34 +338,180 @@ in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligne
  * Returns:
  *  true if the store occurred, false if not.
  */
-bool cas(T,V)( shared(T)* here, shared(T)* ifThis, V writeThis ) pure nothrow @nogc @trusted
-    if ( !is(T == class) && !is(T U : U*) &&  __traits( compiles, { *here = writeThis; *ifThis = *here; } ) )
-in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
+bool cas(MemoryOrder succ = MemoryOrder.seq,MemoryOrder fail = MemoryOrder.seq,T,V)(T* here, T* ifThis, V writeThis) pure nothrow @nogc @trusted
+    if (!is(T == shared) && !is(V == shared))
+in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 {
-    static if ( __traits(isFloating, T) )
+    // resolve implicit conversions
+    T arg1 = writeThis;
+
+    static if (__traits(isFloating, T))
     {
-        static assert ( __traits(isFloating, V) && V.sizeof == T.sizeof, "Mismatching argument types." );
         alias IntTy = IntForFloat!T;
-        return atomicCompareExchangeStrong( cast(IntTy*)here, cast(IntTy*)ifThis, *cast(IntTy*)&writeThis );
+        return atomicCompareExchangeStrong!(succ, fail)(cast(IntTy*)here, cast(IntTy*)ifThis, *cast(IntTy*)&writeThis);
     }
     else
-        return atomicCompareExchangeStrong!( MemoryOrder.seq, MemoryOrder.seq, T )( cast(T*)here, cast(T*)ifThis, cast()writeThis );
+        return atomicCompareExchangeStrong!(succ, fail)(here, ifThis, writeThis);
 }
 
 /// Ditto
-bool cas(T,V)( shared(T)* here, shared(T)* ifThis, shared(V) writeThis ) pure nothrow @nogc @trusted
-    if ( is(T == class) && __traits( compiles, { *here = writeThis; *ifThis = *here; } ) )
-in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
+bool cas(MemoryOrder succ = MemoryOrder.seq,MemoryOrder fail = MemoryOrder.seq,T,V1,V2)(shared(T)* here, V1* ifThis, V2 writeThis) pure nothrow @nogc @trusted
+    if (!is(T == class) && (is(T : V1) || is(shared T : V1)))
+in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 {
-    return atomicCompareExchangeStrong( cast(T*)here, cast(T*)ifThis, cast()writeThis );
+    static if (is (V1 == shared U1, U1))
+        alias Thunk1 = U1;
+    else
+    {
+        import core.internal.traits : hasUnsharedIndirections;
+        static assert(!hasUnsharedIndirections!V1, "Copying `" ~ shared(T).stringof ~ "* here` to `" ~ V1.stringof ~ "* ifThis` would violate shared.");
+        alias Thunk1 = V1;
+    }
+    static if (is (V2 == shared U2, U2))
+        alias Thunk2 = U2;
+    else
+    {
+        import core.internal.traits : hasUnsharedIndirections;
+        static assert(!hasUnsharedIndirections!V2, "Copying `" ~ V2.stringof ~ "* writeThis` to `" ~ shared(T).stringof ~ "* here` would violate shared.");
+        alias Thunk2 = V2;
+    }
+    static assert (is(T : Thunk1), "Mismatching types for `here` and `ifThis`: `" ~ shared(T).stringof ~ "` and `" ~ V1.stringof ~ "`.");
+    return cas!(succ, fail)(cast(T*)here, cast(Thunk1*)ifThis, *cast(Thunk2*)&writeThis);
 }
 
 /// Ditto
-bool cas(T,V)( shared(T)* here, shared(T)* ifThis, shared(V)* writeThis ) pure nothrow @nogc @trusted
-    if ( is(T U : U*) && __traits( compiles, { *here = writeThis; *ifThis = *here; } ) )
-in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligned" )
+bool cas(MemoryOrder succ = MemoryOrder.seq,MemoryOrder fail = MemoryOrder.seq,T,V)(shared(T)* here, shared(T)* ifThis, shared(V) writeThis) pure nothrow @nogc @trusted
+    if (is(T == class))
+in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 {
-    return atomicCompareExchangeStrong!( MemoryOrder.seq, MemoryOrder.seq, T )( cast(T*)here, cast(T*)ifThis, writeThis );
+    return atomicCompareExchangeStrong!(succ, fail)(cast(T*)here, cast(T*)ifThis, cast(V)writeThis);
+}
+
+/**
+* Stores 'writeThis' to the memory referenced by 'here' if the value
+* referenced by 'here' is equal to 'ifThis'.
+* The 'weak' version of cas may spuriously fail. It is recommended to
+* use `casWeak` only when `cas` would be used in a loop.
+* This operation is both
+* lock-free and atomic.
+*
+* Params:
+*  here      = The address of the destination variable.
+*  writeThis = The value to store.
+*  ifThis    = The comparison value.
+*
+* Returns:
+*  true if the store occurred, false if not.
+*/
+bool casWeak(MemoryOrder succ = MemoryOrder.seq,MemoryOrder fail = MemoryOrder.seq,T,V1,V2)(T* here, V1 ifThis, V2 writeThis) pure nothrow @nogc @trusted
+    if (!is(T == shared) && is(T : V1))
+in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
+{
+    // resolve implicit conversions
+    T arg1 = ifThis;
+    T arg2 = writeThis;
+
+    static if (__traits(isFloating, T))
+    {
+        alias IntTy = IntForFloat!T;
+        return atomicCompareExchangeWeakNoResult!(succ, fail)(cast(IntTy*)here, *cast(IntTy*)&arg1, *cast(IntTy*)&arg2);
+    }
+    else
+        return atomicCompareExchangeWeakNoResult!(succ, fail)(here, arg1, arg2);
+}
+
+/// Ditto
+bool casWeak(MemoryOrder succ = MemoryOrder.seq,MemoryOrder fail = MemoryOrder.seq,T,V1,V2)(shared(T)* here, V1 ifThis, V2 writeThis) pure nothrow @nogc @trusted
+    if (!is(T == class) && (is(T : V1) || is(shared T : V1)))
+in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
+{
+    static if (is (V1 == shared U1, U1))
+        alias Thunk1 = U1;
+    else
+        alias Thunk1 = V1;
+    static if (is (V2 == shared U2, U2))
+        alias Thunk2 = U2;
+    else
+    {
+        import core.internal.traits : hasUnsharedIndirections;
+        static assert(!hasUnsharedIndirections!V2, "Copying `" ~ V2.stringof ~ "* writeThis` to `" ~ shared(T).stringof ~ "* here` would violate shared.");
+        alias Thunk2 = V2;
+    }
+    return casWeak!(succ, fail)(cast(T*)here, *cast(Thunk1*)&ifThis, *cast(Thunk2*)&writeThis);
+}
+
+/// Ditto
+bool casWeak(MemoryOrder succ = MemoryOrder.seq,MemoryOrder fail = MemoryOrder.seq,T,V1,V2)(shared(T)* here, shared(V1) ifThis, shared(V2) writeThis) pure nothrow @nogc @trusted
+    if (is(T == class))
+in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
+{
+    return atomicCompareExchangeWeakNoResult!(succ, fail)(cast(T*)here, cast(V1)ifThis, cast(V2)writeThis);
+}
+
+/**
+* Stores 'writeThis' to the memory referenced by 'here' if the value
+* referenced by 'here' is equal to the value referenced by 'ifThis'.
+* The prior value referenced by 'here' is written to `ifThis` and
+* returned to the user.
+* The 'weak' version of cas may spuriously fail. It is recommended to
+* use `casWeak` only when `cas` would be used in a loop.
+* This operation is both lock-free and atomic.
+*
+* Params:
+*  here      = The address of the destination variable.
+*  writeThis = The value to store.
+*  ifThis    = The address of the value to compare, and receives the prior value of `here` as output.
+*
+* Returns:
+*  true if the store occurred, false if not.
+*/
+bool casWeak(MemoryOrder succ = MemoryOrder.seq,MemoryOrder fail = MemoryOrder.seq,T,V)(T* here, T* ifThis, V writeThis) pure nothrow @nogc @trusted
+if (!is(T == shared S, S) && !is(V == shared U, U))
+in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
+{
+    // resolve implicit conversions
+    T arg1 = writeThis;
+
+    static if (__traits(isFloating, T))
+    {
+        alias IntTy = IntForFloat!T;
+        return atomicCompareExchangeWeak!(succ, fail)(cast(IntTy*)here, cast(IntTy*)ifThis, *cast(IntTy*)&writeThis);
+    }
+    else
+        return atomicCompareExchangeWeak!(succ, fail)(here, ifThis, writeThis);
+}
+
+/// Ditto
+bool casWeak(MemoryOrder succ = MemoryOrder.seq,MemoryOrder fail = MemoryOrder.seq,T,V1,V2)(shared(T)* here, V1* ifThis, V2 writeThis) pure nothrow @nogc @trusted
+if (!is(T == class) && (is(T : V1) || is(shared T : V1)))
+in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
+{
+    static if (is (V1 == shared U1, U1))
+        alias Thunk1 = U1;
+    else
+    {
+        import core.internal.traits : hasUnsharedIndirections;
+        static assert(!hasUnsharedIndirections!V1, "Copying `" ~ shared(T).stringof ~ "* here` to `" ~ V1.stringof ~ "* ifThis` would violate shared.");
+        alias Thunk1 = V1;
+    }
+    static if (is (V2 == shared U2, U2))
+        alias Thunk2 = U2;
+    else
+    {
+        import core.internal.traits : hasUnsharedIndirections;
+        static assert(!hasUnsharedIndirections!V2, "Copying `" ~ V2.stringof ~ "* writeThis` to `" ~ shared(T).stringof ~ "* here` would violate shared.");
+        alias Thunk2 = V2;
+    }
+    static assert (is(T : Thunk1), "Mismatching types for `here` and `ifThis`: `" ~ shared(T).stringof ~ "` and `" ~ V1.stringof ~ "`.");
+    return casWeak!(succ, fail)(cast(T*)here, cast(Thunk1*)ifThis, *cast(Thunk2*)&writeThis);
+}
+
+/// Ditto
+bool casWeak(MemoryOrder succ = MemoryOrder.seq,MemoryOrder fail = MemoryOrder.seq,T,V)(shared(T)* here, shared(T)* ifThis, shared(V) writeThis) pure nothrow @nogc @trusted
+if (is(T == class))
+in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
+{
+    return atomicCompareExchangeWeak!(succ, fail)(cast(T*)here, cast(T*)ifThis, cast(V)writeThis);
 }
 
 /**
@@ -320,9 +519,9 @@ in ( atomicPtrIsProperlyAligned( here ), "Argument `here` is not properly aligne
  * that all loads and stores before a call to this function are executed before any
  * loads and stores after the call.
  */
-void atomicFence() nothrow @nogc @safe
+void atomicFence(MemoryOrder order = MemoryOrder.seq)() nothrow @nogc @safe
 {
-    core.internal.atomic.atomicFence();
+    core.internal.atomic.atomicFence!order();
 }
 
 /**
@@ -335,54 +534,53 @@ void atomicFence() nothrow @nogc @safe
  * Returns:
  *  The result of the operation.
  */
-TailShared!T atomicOp(string op, T, V1)( ref shared T val, V1 mod ) pure nothrow @nogc @safe
-    if ( __traits( compiles, mixin( "*cast(T*)&val" ~ op ~ "mod" ) ) )
-in ( atomicValueIsProperlyAligned( val ) )
+TailShared!T atomicOp(string op, T, V1)(ref shared T val, V1 mod) pure nothrow @nogc @safe
+    if (__traits(compiles, mixin("*cast(T*)&val" ~ op ~ "mod")))
+in (atomicValueIsProperlyAligned(val))
 {
     // binary operators
     //
     // +    -   *   /   %   ^^  &
     // |    ^   <<  >>  >>> ~   in
     // ==   !=  <   <=  >   >=
-    static if ( op == "+"  || op == "-"  || op == "*"  || op == "/"   ||
+    static if (op == "+"  || op == "-"  || op == "*"  || op == "/"   ||
                 op == "%"  || op == "^^" || op == "&"  || op == "|"   ||
                 op == "^"  || op == "<<" || op == ">>" || op == ">>>" ||
                 op == "~"  || // skip "in"
                 op == "==" || op == "!=" || op == "<"  || op == "<="  ||
-                op == ">"  || op == ">=" )
+                op == ">"  || op == ">=")
     {
-        TailShared!T get = atomicLoad!(MemoryOrder.raw)( val );
-        mixin( "return get " ~ op ~ " mod;" );
+        T get = atomicLoad!(MemoryOrder.raw, T)(val);
+        mixin("return get " ~ op ~ " mod;");
     }
     else
     // assignment operators
     //
     // +=   -=  *=  /=  %=  ^^= &=
     // |=   ^=  <<= >>= >>>=    ~=
-    static if ( op == "+=" && __traits(isIntegral, T) && __traits(isIntegral, V1) && T.sizeof <= size_t.sizeof && V1.sizeof <= size_t.sizeof)
+    static if (op == "+=" && __traits(isIntegral, T) && __traits(isIntegral, V1) && T.sizeof <= size_t.sizeof && V1.sizeof <= size_t.sizeof)
     {
-        return cast(T)( atomicFetchAdd!(MemoryOrder.seq, T)( val, mod ) + mod );
+        return cast(T)(atomicFetchAdd(val, mod) + mod);
     }
-    else static if ( op == "-=" && __traits(isIntegral, T) && __traits(isIntegral, V1) && T.sizeof <= size_t.sizeof && V1.sizeof <= size_t.sizeof)
+    else static if (op == "-=" && __traits(isIntegral, T) && __traits(isIntegral, V1) && T.sizeof <= size_t.sizeof && V1.sizeof <= size_t.sizeof)
     {
-        return cast(T)( atomicFetchSub!(MemoryOrder.seq, T)( val, mod ) - mod );
+        return cast(T)(atomicFetchSub(val, mod) - mod);
     }
-    else static if ( op == "+=" || op == "-="  || op == "*="  || op == "/=" ||
+    else static if (op == "+=" || op == "-="  || op == "*="  || op == "/=" ||
                 op == "%=" || op == "^^=" || op == "&="  || op == "|=" ||
-                op == "^=" || op == "<<=" || op == ">>=" || op == ">>>=" ) // skip "~="
+                op == "^=" || op == "<<=" || op == ">>=" || op == ">>>=") // skip "~="
     {
-        TailShared!T get, set;
-
+        T set, get = atomicLoad!(MemoryOrder.raw, T)(val);
         do
         {
-            get = set = atomicLoad!(MemoryOrder.raw)( val );
-            mixin( "set " ~ op ~ " mod;" );
-        } while ( !casByRef( val, get, set ) );
+            set = get;
+            mixin("set " ~ op ~ " mod;");
+        } while (!casWeakByRef(val, get, set));
         return set;
     }
     else
     {
-        static assert( false, "Operation not supported." );
+        static assert(false, "Operation not supported.");
     }
 }
 
@@ -415,16 +613,16 @@ private
         // NOTE: Strictly speaking, the x86 supports atomic operations on
         //       unaligned values.  However, this is far slower than the
         //       common case, so such behavior should be prohibited.
-        bool atomicValueIsProperlyAligned(T)( ref T val ) pure nothrow @nogc @trusted
+        bool atomicValueIsProperlyAligned(T)(ref T val) pure nothrow @nogc @trusted
         {
             return atomicPtrIsProperlyAligned(&val);
         }
 
-        bool atomicPtrIsProperlyAligned(T)( T* ptr ) pure nothrow @nogc @safe
+        bool atomicPtrIsProperlyAligned(T)(T* ptr) pure nothrow @nogc @safe
         {
             // NOTE: 32 bit x86 systems support 8 byte CAS, which only requires
             //       4 byte alignment, so use size_t as the align type here.
-            static if ( T.sizeof > size_t.sizeof )
+            static if (T.sizeof > size_t.sizeof)
                 return cast(size_t)ptr % size_t.sizeof == 0;
             else
                 return cast(size_t)ptr % T.sizeof == 0;
@@ -434,26 +632,26 @@ private
     template IntForFloat(F)
         if (__traits(isFloating, F))
     {
-        static if ( F.sizeof == 4 )
+        static if (F.sizeof == 4)
             alias IntForFloat = uint;
-        else static if ( F.sizeof == 8 )
+        else static if (F.sizeof == 8)
             alias IntForFloat = ulong;
         else
-            static assert ( false, "Invalid floating point type: " ~ F.stringof ~ ", only support `float` and `double`." );
+            static assert (false, "Invalid floating point type: " ~ F.stringof ~ ", only support `float` and `double`.");
     }
 
     template IntForStruct(S)
         if (is(S == struct))
     {
-        static if ( S.sizeof == 1 )
+        static if (S.sizeof == 1)
             alias IntForFloat = ubyte;
-        else static if ( F.sizeof == 2 )
+        else static if (F.sizeof == 2)
             alias IntForFloat = ushort;
-        else static if ( F.sizeof == 4 )
+        else static if (F.sizeof == 4)
             alias IntForFloat = uint;
-        else static if ( F.sizeof == 8 )
+        else static if (F.sizeof == 8)
             alias IntForFloat = ulong;
-        else static if ( F.sizeof == 16 )
+        else static if (F.sizeof == 16)
             alias IntForFloat = ulong[2]; // TODO: what's the best type here? slice/delegates pass in registers...
         else
             static assert (ValidateStruct!S);
@@ -471,9 +669,9 @@ private
     }
 
     // TODO: it'd be nice if we had @trusted scopes; we could remove this...
-    bool casByRef(T,V1,V2)( ref T value, V1 ifThis, V2 writeThis ) pure nothrow @nogc @trusted
+    bool casWeakByRef(T,V1,V2)(ref T value, ref V1 ifThis, V2 writeThis) pure nothrow @nogc @trusted
     {
-        return cas( &value, ifThis, writeThis );
+        return casWeak(&value, &ifThis, writeThis);
     }
 
     /* Construct a type with a shared tail, and if possible with an unshared
@@ -598,7 +796,7 @@ private
 
 version (unittest)
 {
-    void testXCHG(T)( T val ) pure nothrow @nogc @trusted
+    void testXCHG(T)(T val) pure nothrow @nogc @trusted
     in
     {
         assert(val !is T.init);
@@ -608,14 +806,14 @@ version (unittest)
         T         base = cast(T)null;
         shared(T) atom = cast(shared(T))null;
 
-        assert( base !is val, T.stringof );
-        assert( atom is base, T.stringof );
+        assert(base !is val, T.stringof);
+        assert(atom is base, T.stringof);
 
-        assert( atomicExchange( &atom, val ) is base, T.stringof );
-        assert( atom is val, T.stringof );
+        assert(atomicExchange(&atom, val) is base, T.stringof);
+        assert(atom is val, T.stringof);
     }
 
-    void testCAS(T)( T val ) pure nothrow @nogc @trusted
+    void testCAS(T)(T val) pure nothrow @nogc @trusted
     in
     {
         assert(val !is T.init);
@@ -625,49 +823,49 @@ version (unittest)
         T         base = cast(T)null;
         shared(T) atom = cast(shared(T))null;
 
-        assert( base !is val, T.stringof );
-        assert( atom is base, T.stringof );
+        assert(base !is val, T.stringof);
+        assert(atom is base, T.stringof);
 
-        assert( cas( &atom, base, val ), T.stringof );
-        assert( atom is val, T.stringof );
-        assert( !cas( &atom, base, base ), T.stringof );
-        assert( atom is val, T.stringof );
+        assert(cas(&atom, base, val), T.stringof);
+        assert(atom is val, T.stringof);
+        assert(!cas(&atom, base, base), T.stringof);
+        assert(atom is val, T.stringof);
 
         atom = cast(shared(T))null;
 
         shared(T) arg = base;
-        assert( cas( &atom, &arg, val ), T.stringof );
-        assert( arg is base, T.stringof );
-        assert( atom is val, T.stringof );
+        assert(cas(&atom, &arg, val), T.stringof);
+        assert(arg is base, T.stringof);
+        assert(atom is val, T.stringof);
 
         arg = base;
-        assert( !cas( &atom, &arg, base ), T.stringof );
-        assert( arg is val, T.stringof );
-        assert( atom is val, T.stringof );
+        assert(!cas(&atom, &arg, base), T.stringof);
+        assert(arg is val, T.stringof);
+        assert(atom is val, T.stringof);
     }
 
-    void testLoadStore(MemoryOrder ms = MemoryOrder.seq, T)( T val = T.init + 1 ) pure nothrow @nogc @trusted
+    void testLoadStore(MemoryOrder ms = MemoryOrder.seq, T)(T val = T.init + 1) pure nothrow @nogc @trusted
     {
         T         base = cast(T) 0;
         shared(T) atom = cast(T) 0;
 
-        assert( base !is val );
-        assert( atom is base );
-        atomicStore!(ms)( atom, val );
-        base = atomicLoad!(ms)( atom );
+        assert(base !is val);
+        assert(atom is base);
+        atomicStore!(ms)(atom, val);
+        base = atomicLoad!(ms)(atom);
 
-        assert( base is val, T.stringof );
-        assert( atom is val );
+        assert(base is val, T.stringof);
+        assert(atom is val);
     }
 
 
-    void testType(T)( T val = T.init + 1 ) pure nothrow @nogc @safe
+    void testType(T)(T val = T.init + 1) pure nothrow @nogc @safe
     {
-        static if ( T.sizeof < 8 || has64BitXCHG )
-            testXCHG!(T)( val );
-        testCAS!(T)( val );
-        testLoadStore!(MemoryOrder.seq, T)( val );
-        testLoadStore!(MemoryOrder.raw, T)( val );
+        static if (T.sizeof < 8 || has64BitXCHG)
+            testXCHG!(T)(val);
+        testCAS!(T)(val);
+        testLoadStore!(MemoryOrder.seq, T)(val);
+        testLoadStore!(MemoryOrder.raw, T)(val);
     }
 
     @betterC @safe pure nothrow unittest
@@ -690,12 +888,12 @@ version (unittest)
         testType!(shared int*)();
 
         static class Klass {}
-        testXCHG!(shared Klass)( new shared(Klass) );
-        testCAS!(shared Klass)( new shared(Klass) );
+        testXCHG!(shared Klass)(new shared(Klass));
+        testCAS!(shared Klass)(new shared(Klass));
 
         testType!(float)(1.0f);
 
-        static if ( has64BitCAS )
+        static if (has64BitCAS)
         {
             testType!(double)(1.0);
             testType!(long)();
@@ -712,40 +910,40 @@ version (unittest)
                 shared(Big) arg;
                 shared(Big) val = Big(1, 2);
 
-                assert( cas( &atom, arg, val ), Big.stringof );
-                assert( atom is val, Big.stringof );
-                assert( !cas( &atom, arg, val ), Big.stringof );
-                assert( atom is val, Big.stringof );
+                assert(cas(&atom, arg, val), Big.stringof);
+                assert(atom is val, Big.stringof);
+                assert(!cas(&atom, arg, val), Big.stringof);
+                assert(atom is val, Big.stringof);
 
                 atom = Big();
-                assert( cas( &atom, &arg, val ), Big.stringof );
-                assert( arg is base, Big.stringof );
-                assert( atom is val, Big.stringof );
+                assert(cas(&atom, &arg, val), Big.stringof);
+                assert(arg is base, Big.stringof);
+                assert(atom is val, Big.stringof);
 
                 arg = Big();
-                assert( !cas( &atom, &arg, base ), Big.stringof );
-                assert( arg is val, Big.stringof );
-                assert( atom is val, Big.stringof );
+                assert(!cas(&atom, &arg, base), Big.stringof);
+                assert(arg is val, Big.stringof);
+                assert(atom is val, Big.stringof);
             }();
         }
 
         shared(size_t) i;
 
-        atomicOp!"+="( i, cast(size_t) 1 );
-        assert( i == 1 );
+        atomicOp!"+="(i, cast(size_t) 1);
+        assert(i == 1);
 
-        atomicOp!"-="( i, cast(size_t) 1 );
-        assert( i == 0 );
+        atomicOp!"-="(i, cast(size_t) 1);
+        assert(i == 0);
 
         shared float f = 0;
-        atomicOp!"+="( f, 1 );
-        assert( f == 1 );
+        atomicOp!"+="(f, 1);
+        assert(f == 1);
 
-        static if ( has64BitCAS )
+        static if (has64BitCAS)
         {
             shared double d = 0;
-            atomicOp!"+="( d, 1 );
-            assert( d == 1 );
+            atomicOp!"+="(d, 1);
+            assert(d == 1);
         }
     }
 
@@ -808,11 +1006,6 @@ version (unittest)
         shared(S*) writeThis2 = null;
         assert(cas(&ptr, ifThis2, writeThis2));
         assert(ptr is null);
-
-        // head unshared target doesn't want atomic CAS
-        shared(S)* ptr2;
-        static assert(!__traits(compiles, cas(&ptr2, ifThis, writeThis)));
-        static assert(!__traits(compiles, cas(&ptr2, ifThis2, writeThis2)));
     }
 
     unittest
@@ -904,12 +1097,12 @@ version (unittest)
     {
         shared ulong a = 2;
         uint b = 1;
-        atomicOp!"-="( a, b );
+        atomicOp!"-="(a, b);
         assert(a == 1);
 
         shared uint c = 2;
         ubyte d = 1;
-        atomicOp!"-="( c, d );
+        atomicOp!"-="(c, d);
         assert(c == 1);
     }
 
