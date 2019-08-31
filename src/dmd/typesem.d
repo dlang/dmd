@@ -1261,6 +1261,26 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                     continue;
                 }
 
+                if (global.params.vin)
+                {
+                    // Only display warning message for types in the module being compiled
+                    if (sc._module is sc._module.rootModule)
+                    {
+                        if (fparam.storageClass & STC.in_)
+                        {
+                            static showSupplemental = true;
+                            warning(loc, "`in` is not yet implemented.  Use `const` or `scope const` explicitly instead.");
+                            if (showSupplemental)
+                            {
+                                warningSupplemental(loc, "`in` is currently defined as `scope const`, but it is implemented as `const`."
+                                    ~ "  Using `in` could cause code to break in the future when it is implemented, so it is recommended"
+                                    ~ " to use `const` or `const scope` explicitly until `in` is properly implemented.");
+                                showSupplemental = false;
+                            }
+                        }
+                    }
+                }
+
                 fparam.type = fparam.type.addStorageClass(fparam.storageClass);
 
                 if (fparam.storageClass & (STC.auto_ | STC.alias_ | STC.static_))

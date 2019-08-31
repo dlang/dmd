@@ -1,0 +1,14 @@
+New compiler flag `-transition=in` to locate usages of the `in` storage class
+
+The `in` storage class has is defined as `const scope`, but it is currently implemented as `const`.  Implementing
+it as `const scope` make cause breakage and there is not yet a concrete plan for `in`.  Therefore it is higly
+recommended that it not be used, and instead explicitlly use `const` or `const scope` to reduce the risk of
+breakage if and when `in` is properly designed and implemented.
+
+To help users transition away from `in`, the `-transtion=in` compiler flag was created.  Passing `-transition=in`,
+along with `-w` or `-wi`, to any compiler invocation will cause the compiler to emit warning messages for any usage of `in`.
+
+---
+void test (in void* a) // Warning: `in` is not yet implemented.  Use `const` or `scope const` explicitly instead.
+{ }
+---

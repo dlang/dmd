@@ -184,6 +184,7 @@ extern (C++) struct Param
     bool vmarkdown;         // list instances of Markdown replacements in Ddoc
 
     bool noXlinker;         // do not prepend `-Xlinker` to `-L` command-line options when invoking the linker
+    bool vin;               // emit deprecation message for any usage of `in`
 
     bool showGaggedErrors;  // print gagged errors anyway
     bool printErrorContext;  // print errors with the error context (the error line in the source file)
