@@ -166,6 +166,9 @@ public:
     FuncDeclarations postblits; // Array of postblit functions
     FuncDeclaration *postblit;  // aggregate postblit
 
+    FuncDeclaration* moveCtor;  // aggregate move constructor
+    bool hasMoveAssign;         // true if has opMoveAssign
+
     bool hasCopyCtor;           // copy constructor
 
     FuncDeclaration *xeq;       // TypeInfo_Struct.xopEquals

@@ -662,6 +662,21 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
+
+class MoveCtorDeclaration : public FuncDeclaration
+{
+public:
+    Dsymbol *syntaxCopy(Dsymbol *);
+    const char *kind() const;
+    const char *toChars() const;
+    bool isVirtual() const;
+    bool addPreInvariant();
+    bool addPostInvariant();
+
+    MoveCtorDeclaration *isMoveCtorDeclaration() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
+};
+
 class PostBlitDeclaration : public FuncDeclaration
 {
 public:

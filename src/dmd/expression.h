@@ -820,6 +820,8 @@ public:
 class PtrExp : public UnaExp
 {
 public:
+    bool isRvalue;
+
     int checkModifiable(Scope *sc, int flag);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -866,6 +868,7 @@ public:
     // Possible to cast to one type while painting to another type
     Type *to;                   // type to cast to
     unsigned char mod;          // MODxxxxx
+    bool toRvalue;              // cast lvalue to rvalue
 
     Expression *syntaxCopy();
 
