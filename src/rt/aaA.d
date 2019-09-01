@@ -48,7 +48,7 @@ struct AA
 private struct Impl
 {
 private:
-    this(in TypeInfo_AssociativeArray ti, size_t sz = INIT_NUM_BUCKETS)
+    this(scope const TypeInfo_AssociativeArray ti, size_t sz = INIT_NUM_BUCKETS)
     {
         keysz = cast(uint) ti.key.tsize;
         valsz = cast(uint) ti.value.tsize;
@@ -111,7 +111,7 @@ private:
     }
 
     // lookup a key
-    inout(Bucket)* findSlotLookup(size_t hash, in void* pkey, in TypeInfo keyti) inout
+    inout(Bucket)* findSlotLookup(size_t hash, scope const void* pkey, scope const TypeInfo keyti) inout
     {
         for (size_t i = hash & mask, j = 1;; ++j)
         {
@@ -123,7 +123,7 @@ private:
         }
     }
 
-    void grow(in TypeInfo keyti)
+    void grow(scope const TypeInfo keyti)
     {
         // If there are so many deleted entries, that growing would push us
         // below the shrink threshold, we just purge deleted entries instead.
@@ -133,7 +133,7 @@ private:
             resize(GROW_FAC * dim);
     }
 
-    void shrink(in TypeInfo keyti)
+    void shrink(scope const TypeInfo keyti)
     {
         if (dim > INIT_NUM_BUCKETS)
             resize(dim / GROW_FAC);
@@ -201,7 +201,7 @@ Bucket[] allocBuckets(size_t dim) @trusted pure nothrow
 // Entry
 //------------------------------------------------------------------------------
 
-private void* allocEntry(in Impl* aa, in void* pkey)
+private void* allocEntry(scope const Impl* aa, scope const void* pkey)
 {
     import rt.lifetime : _d_newitemU;
     import core.stdc.string : memcpy, memset;
@@ -454,14 +454,14 @@ private size_t mix(size_t h) @safe pure nothrow @nogc
     return h;
 }
 
-private size_t calcHash(in void* pkey, in TypeInfo keyti)
+private size_t calcHash(scope const void* pkey, scope const TypeInfo keyti)
 {
     immutable hash = keyti.getHash(pkey);
     // highest bit is set to distinguish empty/deleted from filled buckets
     return mix(hash) | HASH_FILLED_MARK;
 }
 
-private size_t nextpow2(in size_t n) pure nothrow @nogc
+private size_t nextpow2(const size_t n) pure nothrow @nogc
 {
     import core.bitop : bsr;
 
@@ -494,7 +494,7 @@ private T max(T)(T a, T b) pure nothrow @nogc
 //------------------------------------------------------------------------------
 
 /// Determine number of entries in associative array.
-extern (C) size_t _aaLen(in AA aa) pure nothrow @nogc
+extern (C) size_t _aaLen(scope const AA aa) pure nothrow @nogc
 {
     return aa ? aa.length : 0;
 }
@@ -513,7 +513,7 @@ extern (C) size_t _aaLen(in AA aa) pure nothrow @nogc
  *      is set to all zeros
  */
 extern (C) void* _aaGetY(AA* aa, const TypeInfo_AssociativeArray ti,
-    in size_t valsz, in void* pkey)
+    const size_t valsz, scope const void* pkey)
 {
     bool found;
     return _aaGetX(aa, ti, valsz, pkey, found);
@@ -534,7 +534,7 @@ extern (C) void* _aaGetY(AA* aa, const TypeInfo_AssociativeArray ti,
  *      is set to all zeros
  */
 extern (C) void* _aaGetX(AA* aa, const TypeInfo_AssociativeArray ti,
-    in size_t valsz, in void* pkey, out bool found)
+    const size_t valsz, scope const void* pkey, out bool found)
 {
     // lazily alloc implementation
     if (aa.impl is null)
@@ -587,8 +587,8 @@ extern (C) void* _aaGetX(AA* aa, const TypeInfo_AssociativeArray ti,
  * Returns:
  *      pointer to value if present, null otherwise
  */
-extern (C) inout(void)* _aaGetRvalueX(inout AA aa, in TypeInfo keyti, in size_t valsz,
-    in void* pkey)
+extern (C) inout(void)* _aaGetRvalueX(inout AA aa, scope const TypeInfo keyti, const size_t valsz,
+    scope const void* pkey)
 {
     return _aaInX(aa, keyti, pkey);
 }
@@ -603,7 +603,7 @@ extern (C) inout(void)* _aaGetRvalueX(inout AA aa, in TypeInfo keyti, in size_t 
  * Returns:
  *      pointer to value if present, null otherwise
  */
-extern (C) inout(void)* _aaInX(inout AA aa, in TypeInfo keyti, in void* pkey)
+extern (C) inout(void)* _aaInX(inout AA aa, scope const TypeInfo keyti, scope const void* pkey)
 {
     if (aa.empty)
         return null;
@@ -614,8 +614,8 @@ extern (C) inout(void)* _aaInX(inout AA aa, in TypeInfo keyti, in void* pkey)
     return null;
 }
 
-/// Delete entry in AA, return true if it was present
-extern (C) bool _aaDelX(AA aa, in TypeInfo keyti, in void* pkey)
+/// Delete entry scope const AA, return true if it was present
+extern (C) bool _aaDelX(AA aa, scope const TypeInfo keyti, scope const void* pkey)
 {
     if (aa.empty)
         return false;
@@ -646,7 +646,7 @@ extern (C) void _aaClear(AA aa) pure nothrow
 }
 
 /// Rehash AA
-extern (C) void* _aaRehash(AA* paa, in TypeInfo keyti) pure nothrow
+extern (C) void* _aaRehash(AA* paa, scope const TypeInfo keyti) pure nothrow
 {
     if (!paa.empty)
         paa.resize(nextpow2(INIT_DEN * paa.length / INIT_NUM));
@@ -654,7 +654,7 @@ extern (C) void* _aaRehash(AA* paa, in TypeInfo keyti) pure nothrow
 }
 
 /// Return a GC allocated array of all values
-extern (C) inout(void[]) _aaValues(inout AA aa, in size_t keysz, in size_t valsz,
+extern (C) inout(void[]) _aaValues(inout AA aa, const size_t keysz, const size_t valsz,
     const TypeInfo tiValueArray) pure nothrow
 {
     if (aa.empty)
@@ -678,7 +678,7 @@ extern (C) inout(void[]) _aaValues(inout AA aa, in size_t keysz, in size_t valsz
 }
 
 /// Return a GC allocated array of all keys
-extern (C) inout(void[]) _aaKeys(inout AA aa, in size_t keysz, const TypeInfo tiKeyArray) pure nothrow
+extern (C) inout(void[]) _aaKeys(inout AA aa, const size_t keysz, const TypeInfo tiKeyArray) pure nothrow
 {
     if (aa.empty)
         return null;
@@ -704,7 +704,7 @@ extern (D) alias dg_t = int delegate(void*);
 extern (D) alias dg2_t = int delegate(void*, void*);
 
 /// foreach opApply over all values
-extern (C) int _aaApply(AA aa, in size_t keysz, dg_t dg)
+extern (C) int _aaApply(AA aa, const size_t keysz, dg_t dg)
 {
     if (aa.empty)
         return 0;
@@ -721,7 +721,7 @@ extern (C) int _aaApply(AA aa, in size_t keysz, dg_t dg)
 }
 
 /// foreach opApply over all key/value pairs
-extern (C) int _aaApply2(AA aa, in size_t keysz, dg2_t dg)
+extern (C) int _aaApply2(AA aa, const size_t keysz, dg2_t dg)
 {
     if (aa.empty)
         return 0;
@@ -786,7 +786,7 @@ extern (C) Impl* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti, void
 }
 
 /// compares 2 AAs for equality
-extern (C) int _aaEqual(in TypeInfo tiRaw, in AA aa1, in AA aa2)
+extern (C) int _aaEqual(scope const TypeInfo tiRaw, scope const AA aa1, scope const AA aa2)
 {
     if (aa1.impl is aa2.impl)
         return true;
@@ -816,7 +816,7 @@ extern (C) int _aaEqual(in TypeInfo tiRaw, in AA aa1, in AA aa2)
 }
 
 /// compute a hash
-extern (C) hash_t _aaGetHash(in AA* aa, in TypeInfo tiRaw) nothrow
+extern (C) hash_t _aaGetHash(scope const AA* aa, scope const TypeInfo tiRaw) nothrow
 {
     if (aa.empty)
         return 0;
@@ -903,7 +903,7 @@ extern (C) pure nothrow @nogc @safe
     }
 }
 
-// Most tests are now in in test_aa.d
+// Most tests are now in test_aa.d
 
 // test postblit for AA literals
 unittest

@@ -414,8 +414,8 @@ class TypeInfo_Enum : TypeInfo
     }
 
     override size_t getHash(scope const void* p) const { return base.getHash(p); }
-    override bool equals(in void* p1, in void* p2) const { return base.equals(p1, p2); }
-    override int compare(in void* p1, in void* p2) const { return base.compare(p1, p2); }
+    override bool equals(scope const void* p1, scope const void* p2) const { return base.equals(p1, p2); }
+    override int compare(scope const void* p1, scope const void* p2) const { return base.compare(p1, p2); }
     override @property size_t tsize() nothrow pure const { return base.tsize; }
     override void swap(void* p1, void* p2) const { return base.swap(p1, p2); }
 
@@ -2147,8 +2147,8 @@ extern (C)
     void* _aaRangeFrontValue(AARange r) pure nothrow @nogc @safe;
     void _aaRangePopFront(ref AARange r) pure nothrow @nogc @safe;
 
-    int _aaEqual(in TypeInfo tiRaw, in AA aa1, in AA aa2);
-    hash_t _aaGetHash(in AA* aa, in TypeInfo tiRaw) nothrow;
+    int _aaEqual(scope const TypeInfo tiRaw, scope const AA aa1, scope const AA aa2);
+    hash_t _aaGetHash(scope const AA* aa, scope const TypeInfo tiRaw) nothrow;
 
     /*
         _d_assocarrayliteralTX marked as pure, because aaLiteral can be called from pure code.
