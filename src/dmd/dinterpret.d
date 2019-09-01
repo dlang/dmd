@@ -2653,7 +2653,7 @@ public:
             if (ex !is exp)
             {
                 expsx = copyArrayOnWrite(expsx, e.exps);
-                (*expsx)[i] = ex;
+                (*expsx)[i] = copyRegionExp(ex);
             }
         }
 
@@ -6877,6 +6877,7 @@ private Expression copyRegionExp(Expression e)
         case TOK.address:
         case TOK.delegate_:
         case TOK.vector:
+        case TOK.dotVariable:
         {
             UnaExp ue = cast(UnaExp)e;
             ue.e1 = copyRegionExp(ue.e1);
@@ -6905,6 +6906,7 @@ private Expression copyRegionExp(Expression e)
         case TOK.null_:
         case TOK.void_:
         case TOK.symbolOffset:
+        case TOK.char_:
             break;
 
         case TOK.cantExpression:
