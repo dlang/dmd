@@ -227,7 +227,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     // For those, today TypeInfo_Struct is generated in COMDAT.
     bool requestTypeInfo;
 
-    extern (D) this(const ref Loc loc, Identifier id, bool inObject)
+    extern (D) this(const ref Loc loc, Identifier id)
     {
         super(loc, id);
         zeroInit = false; // assume false until we do semantic processing
@@ -235,23 +235,20 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         // For forward references
         type = new TypeStruct(this);
 
-        if (inObject)
-        {
-            if (id == Id.ModuleInfo && !Module.moduleinfo)
-                Module.moduleinfo = this;
-        }
+        if (id == Id.ModuleInfo && !Module.moduleinfo)
+            Module.moduleinfo = this;
     }
 
-    static StructDeclaration create(Loc loc, Identifier id, bool inObject)
+    static StructDeclaration create(Loc loc, Identifier id)
     {
-        return new StructDeclaration(loc, id, inObject);
+        return new StructDeclaration(loc, id);
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         StructDeclaration sd =
             s ? cast(StructDeclaration)s
-              : new StructDeclaration(loc, ident, false);
+              : new StructDeclaration(loc, ident);
         return ScopeDsymbol.syntaxCopy(sd);
     }
 
@@ -698,7 +695,7 @@ extern (C++) final class UnionDeclaration : StructDeclaration
 {
     extern (D) this(const ref Loc loc, Identifier id)
     {
-        super(loc, id, false);
+        super(loc, id);
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)

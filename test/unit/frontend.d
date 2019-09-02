@@ -33,7 +33,7 @@ unittest
 
             extern (D) this(const ref Loc loc, Identifier id, BaseClasses* baseclasses)
             {
-                super(loc, id, baseclasses, null, false);
+                super(loc, id, baseclasses, null);
                 created = true;
             }
         }

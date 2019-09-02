@@ -235,7 +235,7 @@ extern (C++) final class StaticForeach : RootObject
     private extern(D) TypeStruct createTupleType(const ref Loc loc, Expressions* e, Scope* sc)
     {   // TODO: move to druntime?
         auto sid = Identifier.generateId("Tuple");
-        auto sdecl = new StructDeclaration(loc, sid, false);
+        auto sdecl = new StructDeclaration(loc, sid);
         sdecl.storage_class |= STC.static_;
         sdecl.members = new Dsymbols();
         auto fid = Identifier.idPool(tupleFieldName.ptr, tupleFieldName.length);

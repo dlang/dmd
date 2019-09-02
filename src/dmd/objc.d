@@ -660,7 +660,7 @@ extern(C++) private final class Supported : Objc
     {
         auto newMetaclass(Loc loc, BaseClasses* metaBases)
         {
-            return new ClassDeclaration(loc, null, metaBases, new Dsymbols(), 0);
+            return new ClassDeclaration(loc, null, metaBases, new Dsymbols());
         }
 
         .setMetaclass!newMetaclass(classDeclaration, sc);
