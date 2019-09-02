@@ -174,25 +174,10 @@ $(DOCDIR)/core_sys_darwin_mach_%.html : src/core/sys/darwin/mach/%.d $(DMD)
 $(DOCDIR)/core_sys_darwin_netinet_%.html : src/core/sys/darwin/netinet/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
-$(DOCDIR)/core_internal_dassert.html : src/core/internal/dassert.d $(DMD)
-	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
-
 $(DOCDIR)/core_internal_destruction.html : src/core/internal/destruction.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
-$(DOCDIR)/core_internal_moving.html : src/core/internal/moving.d $(DMD)
-	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
-
-$(DOCDIR)/core_internal_postblit.html : src/core/internal/postblit.d $(DMD)
-	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
-
-$(DOCDIR)/core_internal_switch_.html : src/core/internal/switch_.d $(DMD)
-	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
-
-$(DOCDIR)/core_internal_array_%.html : src/core/internal/array/%.d $(DMD)
-	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
-
-$(DOCDIR)/core_internal_util_%.html : src/core/internal/util/%.d $(DMD)
+$(DOCDIR)/core_internal_array_capacity.html : src/core/internal/array/capacity.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOCDIR)/rt_%.html : src/rt/%.d $(DMD)
