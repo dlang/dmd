@@ -29,7 +29,7 @@ struct Region
     void[] available;   // available to allocate
 
     enum ChunkSize = 4096;
-    enum OverheadSize = (void*).sizeof;
+    enum OverheadSize = 16;
     enum MaxAllocSize = ChunkSize - OverheadSize;
 
   nothrow:
@@ -46,6 +46,7 @@ struct Region
         if (!nbytes)
             return null;
 
+        nbytes = (nbytes + 15) & ~15;
         if (nbytes > available.length)
         {
             assert(nbytes <= MaxAllocSize);
@@ -72,7 +73,7 @@ struct Region
         for (auto h = head; h; h = next)
         {
             next = *cast(void**)h;
-            memset(h, 0xC5, ChunkSize);
+            memset(h, 0xFC, ChunkSize);
             .free(h);
         }
 
