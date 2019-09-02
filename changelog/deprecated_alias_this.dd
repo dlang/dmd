@@ -1,4 +1,0 @@
-`deprecated` now applies to `alias this` as well
-
-Before this release, `deprecated` on `alias this` was accepted by the parser
-but did not trigger a deprecation mesage on usage.
