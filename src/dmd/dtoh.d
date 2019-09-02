@@ -461,7 +461,7 @@ public:
             }
         }
 
-        funcToBuffer(tf, fd.ident);
+        funcToBuffer(tf, fd.ident, fd.isCtorDeclaration() !is null);
         if (adparent && tf.isConst())
         {
             bool fdOverridesAreConst = true;
@@ -740,6 +740,8 @@ public:
                 m.accept(this);
             }
             adparent = save;
+            version (none)
+            {
             // Generate default ctor
             buf.printf("    %s(", sd.ident.toChars());
             buf.printf(") {");
@@ -796,6 +798,7 @@ public:
                     }
                 }
                 buf.printf(" }\n");
+            }
             }
             buf.writestring("};\n");
 
@@ -1444,19 +1447,34 @@ public:
             buf.writestring(" const");
     }
 
-    private void funcToBuffer(AST.TypeFunction tf, Identifier ident)
+    private void funcToBuffer(AST.TypeFunction tf, Identifier ident, bool isCtor)
     {
         debug (Debug_DtoH)
         {
             printf("[funcToBuffer(AST.TypeFunction) enter] %s\n", tf.toChars());
             scope(exit) printf("[funcToBuffer(AST.TypeFunction) exit] %s\n", tf.toChars());
         }
+
         assert(tf.next);
-        tf.next.accept(this);
-        if (tf.isref)
-            buf.writeByte('&');
-        buf.writeByte(' ');
-        buf.writestring(ident.toChars());
+        if (isCtor)
+        {
+            if (tf.next.isTypeStruct())
+            {
+                buf.writestring(tf.next.isTypeStruct().sym.toChars());
+            }
+            else
+            {
+                buf.writestring(tf.next.isTypeClass().sym.toChars());
+            }
+        }
+        else
+        {
+            tf.next.accept(this);
+            if (tf.isref)
+                buf.writeByte('&');
+            buf.writeByte(' ');
+            buf.writestring(ident.toChars());
+        }
 
         buf.writeByte('(');
         foreach (i; 0 .. AST.Parameter.dim(tf.parameterList.parameters))
