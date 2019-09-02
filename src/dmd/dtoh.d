@@ -26,6 +26,7 @@ import dmd.root.file;
 import dmd.root.filename;
 import dmd.root.rmem;
 import dmd.visitor;
+import dmd.tokens;
 
 import dmd.root.outbuffer;
 import dmd.utils;
@@ -178,8 +179,6 @@ private struct DMDType
 
 void genCppHdrFiles(ref Modules ms)
 {
-    import dmd.tokens;
-
     DMDType._init();
     //version(BUILD_COMPILER)
     //{
@@ -1509,9 +1508,9 @@ public:
         if (ident)
             buf.writestring(ident.toChars());
         ident = null;
-        version (none)
+        version (all)
         {
-            if (p.defaultArg && p.defaultArg.op >= 105 && p.defaultArg.op < 152)
+            if (p.defaultArg && p.defaultArg.op >= TOK.int32Literal && p.defaultArg.op < TOK.struct_)
             {
                 //printf("%s %d\n", p.defaultArg.toChars, p.defaultArg.op);
                 buf.writestring(" = ");
