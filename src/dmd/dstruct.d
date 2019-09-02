@@ -591,6 +591,23 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         return (ispod == StructPOD.yes);
     }
 
+    /***************************************
+     * Determine if `struct` has an elaborate copy constructor.
+     *
+     * A `struct` has an elaborate copy constructor if:
+     *      $(OL
+     *      $(LI has a copy constructor)
+     *      $(LI or has postblit)
+     *      )
+     *
+     * Returns:
+     *     `true` if struct has an elaborate copy constructor
+     */
+    final bool hasElaborateCopyCtor()
+    {
+        return postblit || hasCopyCtor;
+    }
+
     override final inout(StructDeclaration) isStructDeclaration() inout
     {
         return this;

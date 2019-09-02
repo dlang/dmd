@@ -635,7 +635,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         Type tb = t.baseElemOf();
         if (auto sd = tb.ty == Tstruct ? (cast(TypeStruct)tb).sym : null)
         {
-            return sd.hasCopyCtor || sd.postblit ? True() : False();
+            return sd.hasElaborateCopyCtor() ? True() : False();
         }
         return False();
     }

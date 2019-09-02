@@ -431,7 +431,7 @@ private Expression callCpCtor(Scope* sc, Expression e, Type destinationType)
     if (auto ts = e.type.baseElemOf().isTypeStruct())
     {
         StructDeclaration sd = ts.sym;
-        if (sd.postblit || sd.hasCopyCtor)
+        if (sd.hasElaborateCopyCtor())
         {
             /* Create a variable tmp, and replace the argument e with:
              *      (tmp = e),tmp
