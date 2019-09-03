@@ -855,8 +855,8 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                 {
                     if (!e.e2.isLvalue())
                     {
-                        id = Id.moveassign;
-                        e.e2 = toLvalueExp(e.e2.loc, sc, e.e2);
+                        //id = Id.moveassign;
+                        //e.e2 = toLvalueExp(e.e2.loc, sc, e.e2);
                     }
                 }
             }

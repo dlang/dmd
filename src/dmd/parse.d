@@ -1408,6 +1408,8 @@ final class Parser(AST) : Lexer
                 stc = STC.disable;
             else if (token.ident == Id.future)
                 stc = STC.future;
+            else if (token.ident == Id.rvalue)
+                stc = STC.rvalue;
             else
             {
                 // Allow identifier, template instantiation, or function call
@@ -1448,7 +1450,7 @@ final class Parser(AST) : Lexer
     }
 
     /***********************************************
-     * Parse const/immutable/shared/inout/nothrow/pure postfix
+     * Parse const/immutable/shared/inout/nothrow/pure/@move postfix
      */
     private StorageClass parsePostfix(StorageClass storageClass, AST.Expressions** pudas)
     {
@@ -1491,6 +1493,16 @@ final class Parser(AST) : Lexer
 
             case TOK.at:
                 {
+                    {
+                        // @move
+                        auto t = peek(&token);
+                        if (t.value == TOK.identifier && t.ident == Id.move)
+                        {
+                            stc = STC.move;
+                            nextToken();
+                            break;
+                        }
+                    }
                     AST.Expressions* udas = null;
                     stc = parseAttribute(&udas);
                     if (udas)
@@ -2435,9 +2447,10 @@ final class Parser(AST) : Lexer
         const loc = token.loc;
         StorageClass stc = getStorageClass!AST(pAttrs);
 
-        bool isMoveCtor;
         if (token.value == TOK.identifier && token.ident == Id.moveCtor)
-            isMoveCtor = true;
+        {
+            stc |= STC.move;
+        }
 
         nextToken();
         if (token.value == TOK.leftParentheses && peekNext() == TOK.this_ && peekNext2() == TOK.rightParentheses)
@@ -2502,11 +2515,7 @@ final class Parser(AST) : Lexer
         AST.Type tf = new AST.TypeFunction(AST.ParameterList(parameters, varargs), null, linkage, stc); // RetrunType -> auto
         tf = tf.addSTC(stc);
 
-        AST.CtorDeclaration f;
-        if (isMoveCtor)
-            f = new AST.MoveCtorDeclaration(loc, Loc.initial, stc, tf);
-        else
-            f = new AST.CtorDeclaration(loc, Loc.initial, stc, tf);
+        AST.CtorDeclaration f = new AST.CtorDeclaration(loc, Loc.initial, stc, tf);
         AST.Dsymbol s = parseContracts(f);
         if (udas)
         {
@@ -2908,6 +2917,11 @@ final class Parser(AST) : Lexer
                         }
                         if (token.value == TOK.dotDotDot)
                             error("variadic parameter cannot have user-defined attributes");
+                        if (stc2 == STC.rvalue)
+                        {
+                            stc = stc2;
+                            goto L2;
+                        }
                         if (stc2)
                             nextToken();
                         goto L3;
@@ -4036,7 +4050,15 @@ final class Parser(AST) : Lexer
         {
         case TOK.identifier:
             if (pident)
-                *pident = token.ident;
+            {
+                Identifier ident = token.ident;
+                if (ident == Id.moveassign)
+                {
+                    ident = Id.assign;
+                    storageClass |= STC.move;
+                }
+                *pident = ident;
+            }
             else
                 error("unexpected identifier `%s` in declarator", token.ident.toChars());
             ts = t;

@@ -78,7 +78,7 @@ private immutable char[TMAX] mangleChar =
     Taarray      : 'H',
     Tident       : 'I',
     //              J   // out
-    //              K   // ref
+    //              K   // K:ref KK:rvalue ref
     //              L   // lazy
     //              M   // has this, or scope
     //              N   // Nh:vector Ng:wild
@@ -1092,6 +1092,8 @@ public:
             break;
         case STC.ref_:
             buf.writeByte('K');
+            if (p.storageClass & STC.rvalue)
+                buf.writeByte('K');
             break;
         case STC.lazy_:
             buf.writeByte('L');

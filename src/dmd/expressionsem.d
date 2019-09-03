@@ -1937,16 +1937,25 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             }
             if (p.storageClass & STC.ref_)
             {
-                if (global.params.rvalueRefParam &&
+                if ((global.params.rvalueRefParam &&
                     !arg.isLvalue() &&
-                    targ.isCopyable())
+                    targ.isCopyable()) ||
+                    ((p.storageClass & STC.rvalue) &&
+                     !arg.isLvalue() && targ.isMovable()))
                 {   /* allow rvalues to be passed to ref parameters by copying
                      * them to a temp, then pass the temp as the argument
                      */
-                    auto v = copyToTemp(0, "__rvalue", arg);
-                    Expression ev = new DeclarationExp(arg.loc, v);
-                    ev = new CommaExp(arg.loc, ev, new VarExp(arg.loc, v));
-                    arg = ev.expressionSemantic(sc);
+                    if (arg.isRvalueRef())
+                    {
+                        arg = toLvalueExp(arg.loc, sc, arg);
+                    }
+                    else
+                    {
+                        auto v = copyToTemp(0, "__rvalue", arg);
+                        Expression ev = new DeclarationExp(arg.loc, v);
+                        ev = new CommaExp(arg.loc, ev, new VarExp(arg.loc, v));
+                        arg = ev.expressionSemantic(sc);
+                    }
                 }
                 arg = arg.toLvalue(sc, arg);
 
@@ -8429,7 +8438,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         result = e;
                         return;
                     }
-                    if (sd.postblit || sd.hasCopyCtor || sd.moveCtor)
+                    if (sd.postblit || sd.hasCopyCtor || sd.hasMoveCtor)
                     {
                         /* We have a copy constructor for this
                          */
@@ -8494,7 +8503,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         }
                         else
                         {
-                            if (sd.moveCtor)
+                            if (sd.hasMoveCtor && !e2x.isCallExp())
                             {
                                 /* Rewrite as:
                                  * e1 = init, e1.moveCtor(e2);
@@ -8503,11 +8512,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                                 einit.type = e1x.type;
 
                                 // convert to lvalue
-                                Expression e2l = toLvalueExp(e2x.loc, sc, e2x);
+                                //Expression e2l = toLvalueExp(e2x.loc, sc, e2x);
 
                                 Expression e;
-                                e = new DotIdExp(exp.loc, e1x, Id.moveCtor);
-                                e = new CallExp(exp.loc, e, e2l);
+                                e = new DotIdExp(exp.loc, e1x, Id.ctor);
+                                e = new CallExp(exp.loc, e, e2x);
                                 e = new CommaExp(exp.loc, einit, e);
 
                                 //printf("e: %s\n", e.toChars());

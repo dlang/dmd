@@ -139,6 +139,7 @@ immutable Msgtable[] msgtable =
     { "moveCtor", "__move_ctor" },
     { "rvalue" },
     { "__move" },
+    { "move" },
 
     { "TypeInfo" },
     { "TypeInfo_Class" },

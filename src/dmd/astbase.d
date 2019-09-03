@@ -130,6 +130,7 @@ struct ASTBase
         future              = (1L << 50),   // introducing new base class function
         local               = (1L << 51),   // do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
         returninferred      = (1L << 52),   // 'return' has been inferred and should not be part of mangling
+        move                = (1L << 53),   // for annotating move constructor and move opAssign
 
         safeGroup = STC.safe | STC.trusted | STC.system,
         TYPECTOR = (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild),

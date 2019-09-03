@@ -4142,6 +4142,7 @@ extern (C++) final class TypeFunction : TypeNext
     bool isscope;               // true: 'this' is scope
     bool isreturninferred;      // true: 'this' is return from inference
     bool isscopeinferred;       // true: 'this' is scope from inference
+    bool ismove;                // true: 'this' is a move function
     LINK linkage;               // calling convention
     TRUST trust;                // level of trust
     PURE purity = PURE.impure;
@@ -4186,6 +4187,9 @@ extern (C++) final class TypeFunction : TypeNext
             this.trust = TRUST.system;
         if (stc & STC.trusted)
             this.trust = TRUST.trusted;
+
+        if (stc & STC.move)
+            this.ismove = true;
     }
 
     static TypeFunction create(Parameters* parameters, Type treturn, VarArg varargs, LINK linkage, StorageClass stc = 0)
@@ -4463,7 +4467,8 @@ extern (C++) final class TypeFunction : TypeNext
             (stc & STC.nothrow_ && !t.isnothrow) ||
             (stc & STC.nogc && !t.isnogc) ||
             (stc & STC.scope_ && !t.isscope) ||
-            (stc & STC.safe && t.trust < TRUST.trusted))
+            (stc & STC.safe && t.trust < TRUST.trusted) ||
+            (stc & STC.move) && !t.ismove)
         {
             // Klunky to change these
             auto tf = new TypeFunction(t.parameterList, t.next, t.linkage, 0);
@@ -4480,6 +4485,7 @@ extern (C++) final class TypeFunction : TypeNext
             tf.isscopeinferred = t.isscopeinferred;
             tf.trust = t.trust;
             tf.iswild = t.iswild;
+            tf.ismove = t.ismove;
 
             if (stc & STC.pure_)
                 tf.purity = PURE.fwdref;
@@ -4495,6 +4501,8 @@ extern (C++) final class TypeFunction : TypeNext
                 if (stc & STC.scopeinferred)
                     tf.isscopeinferred = true;
             }
+            if (stc && STC.move)
+                tf.ismove = true;
 
             tf.deco = tf.merge().deco;
             t = tf;
@@ -4752,7 +4760,7 @@ extern (C++) final class TypeFunction : TypeNext
                 }
 
                 // Non-lvalues do not match ref or out parameters
-                if (p.storageClass & (STC.ref_ | STC.out_))
+                if ((p.storageClass & (STC.ref_ | STC.out_) && !(p.storageClass & STC.rvalue)))
                 {
                     // https://issues.dlang.org/show_bug.cgi?id=13783
                     // Don't use toBasetype() to handle enum types.
@@ -4824,6 +4832,16 @@ extern (C++) final class TypeFunction : TypeNext
                      *  ref T[dim] <- an lvalue of const(T[dim]) argument
                      */
                     if (!ta.constConv(tp))
+                    {
+                        if (pMessage) *pMessage = getParamError(arg, p);
+                        goto Nomatch;
+                    }
+                }
+
+                // lvalues do not match rvalue ref parameter
+                if ((p.storageClass & (STC.ref_ | STC.out_) && (p.storageClass & STC.rvalue)))
+                {
+                    if (m && arg.isLvalue())
                     {
                         if (pMessage) *pMessage = getParamError(arg, p);
                         goto Nomatch;
@@ -6751,4 +6769,17 @@ bool isCopyable(const Type t) pure nothrow @nogc
             return false;
     }
     return true;
+}
+
+/***************************************************
+ * Determine if type t is movable.
+ * Params:
+ *      t = type to check
+ * Returns:
+ *      true if we can copy it
+ */
+bool isMovable(const Type t) pure nothrow @nogc
+{
+    //printf("isMovable() %s\n", t.toChars());
+    return t.isCopyable();
 }

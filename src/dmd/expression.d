@@ -377,6 +377,8 @@ Expression valueNoDtor(Expression e)
 {
     auto ex = lastComma(e);
 
+version(none)
+{
     if (auto ce = ex.isCallExp())
     {
         /* The struct value returned from the function is transferred
@@ -414,6 +416,7 @@ Expression valueNoDtor(Expression e)
             vtmp.storage_class |= STC.nodtor;
         }
     }
+}
     return e;
 }
 
@@ -498,6 +501,7 @@ Expression toRvalueExp(const ref Loc loc, Scope* sc, Expression e)
     return e;
 }
 
+
 /****************************************************************/
 /* Cast expression to lvalue.
  */
@@ -505,6 +509,21 @@ Expression toLvalueExp(const ref Loc loc, Scope* sc, Expression e)
 {
     if (e.isLvalue())
         return e;
+
+    if (e.isRvalueRef())
+    {
+        auto pe = e.isPtrExp();
+        assert(pe);
+        if (auto ae = pe.e1.isAddExp())
+        {
+            assert(ae.e1.isLvalue());
+            return ae.e1;
+        }
+        if (auto se = pe.e1.isSymOffExp())
+        {
+            return new VarExp(loc, se.var);
+        }
+    }
 
     e = e.expressionSemantic(sc);
     if (e.op == TOK.error || e.type == Type.terror)
@@ -515,6 +534,14 @@ Expression toLvalueExp(const ref Loc loc, Scope* sc, Expression e)
     e = new AddrExp(loc, e, t.pointerTo());
     e = new PtrExp(loc, e, t, /* isRvalue */ false);
     return e;
+}
+
+/****************************************************************/
+/* Returns: `true` if expression is an lvalue made from an rvalue.
+ */
+bool isRvalueRef(Expression e)
+{
+    return !e.isLvalue() && e.isPtrExp();
 }
 
 /****************************************************************/
@@ -5037,6 +5064,36 @@ extern (C++) final class PtrExp : UnaExp
 
     override Expression toLvalue(Scope* sc, Expression e)
     {
+        if (isLvalue())
+            return this;
+        return Expression.toLvalue(sc, e);
+    }
+
+    override Expression addDtorHook(Scope* sc)
+    {
+        /* Only need to add dtor hook if it's a type that needs destruction.
+         */
+
+        if (!this.isRvalueRef())
+            return this;
+
+        Type tv = type.baseElemOf();
+        if (auto ts = tv.isTypeStruct())
+        {
+            StructDeclaration sd = ts.sym;
+            if (sd.dtor)
+            {
+                /* Type needs destruction, so declare a tmp
+                 * which the back end will recognize and call dtor on
+                 */
+                auto tmp = copyToTemp(0, "__tmpfordtor", this);
+                auto de = new DeclarationExp(loc, tmp);
+                auto ve = new VarExp(loc, tmp);
+                Expression e = new CommaExp(loc, de, ve);
+                e = e.expressionSemantic(sc);
+                return e;
+            }
+        }
         return this;
     }
 

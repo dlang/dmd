@@ -466,7 +466,7 @@ private bool buildCopyCtor(StructDeclaration sd, Scope* sc)
         return 0;
     });
 
-    if (cpCtor && rvalueCtor)
+    if (cpCtor && rvalueCtor && !rvalueCtor.isMvCtor)
     {
         .error(sd.loc, "`struct %s` may not define both a rvalue constructor and a copy constructor", sd.toChars());
         errorSupplemental(rvalueCtor.loc,"rvalue constructor defined here");
@@ -498,7 +498,7 @@ LcheckFields:
         }
     }
 
-    if (fieldWithCpCtor && rvalueCtor)
+    if (fieldWithCpCtor && rvalueCtor && !rvalueCtor.isMvCtor)
     {
         .error(sd.loc, "`struct %s` may not define a rvalue constructor and have fields with copy constructors", sd.toChars());
         errorSupplemental(rvalueCtor.loc,"rvalue constructor defined here");
@@ -540,10 +540,39 @@ LcheckFields:
  *  `true` if `struct` sd defines a move constructor (explicitly or generated),
  *  `false` otherwise.
  */
-private MoveCtorDeclaration buildMoveCtor(StructDeclaration sd, Scope* sc)
+private bool buildMoveCtor(StructDeclaration sd, Scope* sc)
 {
-    auto s = sd.search(sd.loc, Id.moveCtor);
-    return s ? s.isMoveCtorDeclaration() : null;
+
+    if (global.errors)
+        return false;
+
+    auto ctor = sd.search(sd.loc, Id.ctor);
+    CtorDeclaration moveCtor;
+    if (ctor)
+    {
+        if (ctor.isOverloadSet())
+            return false;
+        if (auto td = ctor.isTemplateDeclaration())
+            ctor = td.funcroot;
+    }
+
+    if (!ctor)
+        return false;
+
+    overloadApply(ctor, (Dsymbol s)
+    {
+        if (s.isTemplateDeclaration())
+            return 0;
+        auto ctorDecl = s.isCtorDeclaration();
+        assert(ctorDecl);
+        if (ctorDecl.isMvCtor)
+        {
+            moveCtor = ctorDecl;
+            return 1;
+        }
+        return 0;
+    });
+    return moveCtor !is null;
 }
 
 private uint setMangleOverride(Dsymbol s, const(char)[] sym)
@@ -4129,7 +4158,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     //printf("tf: %s\n", tf.toChars());
                     auto param = Parameter.getNth(tf.parameterList, 0);
-                    if (param.storageClass & STC.ref_ && param.type.mutableOf().unSharedOf() == sd.type.mutableOf().unSharedOf())
+                    if ((param.storageClass & (STC.rvalue | STC.ref_)) == (STC.rvalue | STC.ref_) && param.type.mutableOf().unSharedOf() == sd.type.mutableOf().unSharedOf())
+                    {
+                        //printf("move constructor\n");
+                        ctd.isMvCtor = true;
+                    }
+                    else if (param.storageClass & STC.ref_ && param.type.mutableOf().unSharedOf() == sd.type.mutableOf().unSharedOf())
                     {
                         //printf("copy constructor\n");
                         ctd.isCpCtor = true;
@@ -4772,7 +4806,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         sd.tidtor = buildExternDDtor(sd, sc2);
         sd.postblit = buildPostBlit(sd, sc2);
         sd.hasCopyCtor = buildCopyCtor(sd, sc2);
-        sd.moveCtor = buildMoveCtor(sd, sc2);
+        sd.hasMoveCtor = buildMoveCtor(sd, sc2);
 
         buildOpAssign(sd, sc2);
         buildOpEquals(sd, sc2);

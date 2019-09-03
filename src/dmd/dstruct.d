@@ -208,7 +208,8 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     FuncDeclaration postblit;   // aggregate postblit
 
     FuncDeclaration moveCtor;   // aggregate move constructor
-    bool hasMoveAssign;         // true if has opMoveAssign
+    bool hasMoveAssign;         // true if has move opAssign
+    bool hasMoveCtor;           // true if has move constructor
 
     bool hasCopyCtor;       // copy constructor
 
