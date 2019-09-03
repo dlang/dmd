@@ -5072,7 +5072,7 @@ public:
         }
         if (!exceptionOrCantInterpret(result))
         {
-            result = paintTypeOntoLiteral(e.type, result);
+            result = paintTypeOntoLiteral(pue, e.type, result);
             result.loc = e.loc;
         }
         else if (CTFEExp.isCantExp(result) && !global.gag)
@@ -5472,7 +5472,7 @@ public:
                 result = interpret(agg, istate, goal);
                 if (exceptionOrCant(result))
                     return;
-                result = paintTypeOntoLiteral(e.type, result);
+                result = paintTypeOntoLiteral(pue, e.type, result);
                 return;
             }
         }
@@ -5549,7 +5549,7 @@ public:
             result = CTFEExp.cantexp;
             return;
         }
-        result = paintTypeOntoLiteral(e.type, result);
+        result = paintTypeOntoLiteral(pue, e.type, result);
     }
 
     override void visit(SliceExp e)
@@ -5645,7 +5645,7 @@ public:
 
         if (!e.lwr)
         {
-            result = paintTypeOntoLiteral(e.type, e1);
+            result = paintTypeOntoLiteral(pue, e.type, e1);
             return;
         }
         if (auto ve = e1.isVectorExp())
