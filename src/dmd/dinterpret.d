@@ -7115,7 +7115,8 @@ private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression
         return pue.exp();
     }
 
-    str = resolveSlice(str);
+    UnionExp strTmp = void;
+    str = resolveSlice(str, &strTmp);
 
     auto se = str.isStringExp();
     auto ale = str.isArrayLiteralExp();
