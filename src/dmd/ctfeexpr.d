@@ -1092,22 +1092,25 @@ private int ctfeCmpArrays(const ref Loc loc, Expression e1, Expression e2, uinte
     // Resolve slices, if necessary
     uinteger_t lo1 = 0;
     uinteger_t lo2 = 0;
-    Expression x = e1;
-    if (x.op == TOK.slice)
+
+    Expression x1 = e1;
+    if (auto sle1 = x1.isSliceExp())
     {
-        lo1 = (cast(SliceExp)x).lwr.toInteger();
-        x = (cast(SliceExp)x).e1;
+        lo1 = sle1.lwr.toInteger();
+        x1 = sle1.e1;
     }
-    StringExp se1 = (x.op == TOK.string_) ? cast(StringExp)x : null;
-    ArrayLiteralExp ae1 = (x.op == TOK.arrayLiteral) ? cast(ArrayLiteralExp)x : null;
-    x = e2;
-    if (x.op == TOK.slice)
+    auto se1 = x1.isStringExp();
+    auto ae1 = x1.isArrayLiteralExp();
+
+    Expression x2 = e2;
+    if (auto sle2 = x2.isSliceExp())
     {
-        lo2 = (cast(SliceExp)x).lwr.toInteger();
-        x = (cast(SliceExp)x).e1;
+        lo2 = sle2.lwr.toInteger();
+        x2 = sle2.e1;
     }
-    StringExp se2 = (x.op == TOK.string_) ? cast(StringExp)x : null;
-    ArrayLiteralExp ae2 = (x.op == TOK.arrayLiteral) ? cast(ArrayLiteralExp)x : null;
+    auto se2 = x2.isStringExp();
+    auto ae2 = x2.isArrayLiteralExp();
+
     // Now both must be either TOK.arrayLiteral or TOK.string_
     if (se1 && se2)
         return sliceCmpStringWithString(se1, se2, cast(size_t)lo1, cast(size_t)lo2, cast(size_t)len);
@@ -1147,10 +1150,10 @@ private int ctfeCmpArrays(const ref Loc loc, Expression e1, Expression e2, uinte
 private FuncDeclaration funcptrOf(Expression e)
 {
     assert(e.type.ty == Tdelegate);
-    if (e.op == TOK.delegate_)
-        return (cast(DelegateExp)e).func;
-    if (e.op == TOK.function_)
-        return (cast(FuncExp)e).fd;
+    if (auto de = e.isDelegateExp())
+        return de.func;
+    if (auto fe = e.isFuncExp())
+        return fe.fd;
     assert(e.op == TOK.null_);
     return null;
 }
@@ -1174,7 +1177,8 @@ private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2, bool ide
 {
     if (e1.op == TOK.classReference || e2.op == TOK.classReference)
     {
-        if (e1.op == TOK.classReference && e2.op == TOK.classReference && (cast(ClassReferenceExp)e1).value == (cast(ClassReferenceExp)e2).value)
+        if (e1.op == TOK.classReference && e2.op == TOK.classReference &&
+            (cast(ClassReferenceExp)e1).value == (cast(ClassReferenceExp)e2).value)
             return 0;
         return 1;
     }
