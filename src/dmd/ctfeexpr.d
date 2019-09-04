@@ -1527,31 +1527,33 @@ Expression findKeyInAA(const ref Loc loc, AssocArrayLiteralExp ae, Expression e2
  * dynamic arrays, and strings. We know that e1 is an
  * interpreted CTFE expression, so it cannot have side-effects.
  */
-Expression ctfeIndex(const ref Loc loc, Type type, Expression e1, uinteger_t indx)
+Expression ctfeIndex(UnionExp* pue, const ref Loc loc, Type type, Expression e1, uinteger_t indx)
 {
     //printf("ctfeIndex(e1 = %s)\n", e1.toChars());
     assert(e1.type);
-    if (e1.op == TOK.string_)
+    if (auto es1 = e1.isStringExp())
     {
-        StringExp es1 = cast(StringExp)e1;
         if (indx >= es1.len)
         {
             error(loc, "string index %llu is out of bounds `[0 .. %llu]`", indx, cast(ulong)es1.len);
             return CTFEExp.cantexp;
         }
-        return ctfeEmplaceExp!IntegerExp(loc, es1.charAt(indx), type);
+        emplaceExp!IntegerExp(pue, loc, es1.charAt(indx), type);
+        return pue.exp();
     }
-    assert(e1.op == TOK.arrayLiteral);
+
+    if (auto ale = e1.isArrayLiteralExp())
     {
-        ArrayLiteralExp ale = cast(ArrayLiteralExp)e1;
         if (indx >= ale.elements.dim)
         {
             error(loc, "array index %llu is out of bounds `%s[0 .. %llu]`", indx, e1.toChars(), cast(ulong)ale.elements.dim);
             return CTFEExp.cantexp;
         }
         Expression e = (*ale.elements)[cast(size_t)indx];
-        return paintTypeOntoLiteral(type, e);
+        return paintTypeOntoLiteral(pue, type, e);
     }
+
+    assert(0);
 }
 
 Expression ctfeCast(UnionExp* pue, const ref Loc loc, Type type, Type to, Expression e)

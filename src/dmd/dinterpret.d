@@ -5463,7 +5463,7 @@ public:
                     result.type = e.type;
                     return;
                 }
-                result = ctfeIndex(e.loc, e.type, agg, indexToAccess);
+                result = ctfeIndex(pue, e.loc, e.type, agg, indexToAccess);
                 return;
             }
             else
@@ -5539,7 +5539,7 @@ public:
             return;
         }
 
-        result = ctfeIndex(e.loc, e.type, agg, indexToAccess);
+        result = ctfeIndex(pue, e.loc, e.type, agg, indexToAccess);
         if (exceptionOrCant(result))
             return;
         if (result.op == TOK.void_)
@@ -5549,7 +5549,8 @@ public:
             result = CTFEExp.cantexp;
             return;
         }
-        result = paintTypeOntoLiteral(pue, e.type, result);
+        if (result == pue.exp())
+            result = result.copy();
     }
 
     override void visit(SliceExp e)
