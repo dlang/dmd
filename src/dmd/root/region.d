@@ -18,21 +18,24 @@ import core.stdc.string;
 import core.stdc.stdlib;
 
 import dmd.root.rmem;
+import dmd.root.array;
 
 /*****
  * Simple region storage allocator.
  */
 struct Region
 {
-    void* head;         // beginning of first pool
-    void* last;         // beginning of last pool
-    void[] available;   // available to allocate
-
-    enum ChunkSize = 4096 * 32;
-    enum OverheadSize = 16;
-    enum MaxAllocSize = ChunkSize - OverheadSize;
-
   nothrow:
+  private:
+
+    Array!(void*) array; // array of chunks
+    int used;            // number of chunks used in array[]
+    void[] available;    // slice of chunk that's available to allocate
+
+    enum ChunkSize = 4096 * 1024;
+    enum MaxAllocSize = ChunkSize;
+
+  public:
 
     /******
      * Allocate nbytes. Aborts on failure.
@@ -50,22 +53,14 @@ struct Region
         if (nbytes > available.length)
         {
             assert(nbytes <= MaxAllocSize);
-            void* next = last ? *cast(void**)last : null;
-            if (next)
-            {   // Reuse next page
-                last = next;
-                available = (last + OverheadSize)[0 .. MaxAllocSize];
-            }
-            else
-            {   // Allocate next page
+            if (used == array.length)
+            {
                 auto h = Mem.check(.malloc(ChunkSize));
-                *cast(void**)h = null;
-                if (!head)
-                    last = cast(void*)&head;
-                *cast(void**)last = h;
-                last = h;
-                available = (h + OverheadSize)[0 .. MaxAllocSize];
+                array.push(h);
             }
+
+            available = array[used][0 .. MaxAllocSize];
+            ++used;
         }
 
         auto p = available.ptr;
@@ -78,32 +73,8 @@ struct Region
      */
     void release()
     {
-        if (!head)
-            return;
-
-        version (all)
-        {
-            /* Keep the memory for next time
-             */
-            last = head;
-            available = (last + OverheadSize)[0 .. MaxAllocSize];
-        }
-        else
-        {
-            /* Free the memory
-             */
-            void* next;
-            for (auto h = head; h; h = next)
-            {
-                next = *cast(void**)h;
-                memset(h, 0xFC, ChunkSize); // 0xFC is larger than TOK.max
-                .free(h);
-            }
-
-            head = null;
-            last = null;
-            available = null;
-        }
+        used = 0;
+        available = null;
     }
 
     /****************************
@@ -115,10 +86,7 @@ struct Region
      */
     bool contains(void* p)
     {
-        if (!p)
-            return false;
-
-        for (auto h = head; h; h = *cast(void**)h)
+        foreach (h; array[0 .. used])
         {
             if (h <= p && p < h + ChunkSize)
                 return true;
@@ -131,12 +99,7 @@ struct Region
      */
     size_t size()
     {
-        size_t size;
-        for (auto h = head; h; h = *cast(void**)h)
-        {
-            size += ChunkSize;
-        }
-        return size;
+        return used * MaxAllocSize - available.length;
     }
 }
 
@@ -158,7 +121,7 @@ unittest
     assert(reg.contains(p));
     memset(p, 0, 100);
 
-    assert(reg.size() > 0 && reg.size() >= Region.ChunkSize);
+    assert(reg.size() > 0);
     assert(!reg.contains(&reg));
 
     reg.release();
