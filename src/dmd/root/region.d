@@ -31,6 +31,7 @@ struct Region
     Array!(void*) array; // array of chunks
     int used;            // number of chunks used in array[]
     void[] available;    // slice of chunk that's available to allocate
+    bool isSorted;       // true if `array` is sorted
 
     enum ChunkSize = 4096 * 1024;
     enum MaxAllocSize = ChunkSize;
@@ -53,10 +54,12 @@ struct Region
         if (nbytes > available.length)
         {
             assert(nbytes <= MaxAllocSize);
+
             if (used == array.length)
             {
                 auto h = Mem.check(.malloc(ChunkSize));
                 array.push(h);
+                isSorted = false;
             }
 
             available = array[used][0 .. MaxAllocSize];
@@ -86,9 +89,28 @@ struct Region
      */
     bool contains(void* p)
     {
-        foreach (h; array[0 .. used])
+        if (!used)
+            return false;
+        if (!isSorted)
+            sort();
+
+        size_t low = 0;
+        if (p < array[low])
+            return false;
+
+        size_t high = array.length - 1;
+        if (array[high] + MaxAllocSize < p)
+            return false;
+
+        // Binary search
+        while (low <= high)
         {
-            if (h <= p && p < h + ChunkSize)
+            const mid = (low + high) >> 1;
+            if (p < array[mid])
+                high = mid - 1;
+            else if (array[mid] + MaxAllocSize < p)
+                low = mid + 1;
+            else
                 return true;
         }
         return false;
@@ -101,8 +123,33 @@ struct Region
     {
         return used * MaxAllocSize - available.length;
     }
+
+    /***********************
+     * Sort array so contains() can do faster lookups
+     */
+    void sort()
+    {
+        extern (C) static int sort_compare(const(void*) x, const(void*) y) @trusted
+        {
+            auto p1 = *cast(void* *)x;
+            auto p2 = *cast(void* *)y;
+
+            return (p1 < p2) ? -1 :
+                   (p1 > p2) ?  1 :
+                                0;
+        }
+
+        // Sort cases for efficient lookup
+        import core.stdc.stdlib : _compare_fp_t;
+        qsort(array.data, array.length, array[0].sizeof, cast(_compare_fp_t)&sort_compare);
+
+        isSorted = true;
+    }
 }
 
+// Declare C's qsort ourselves so it is nothrow
+private extern (C) nothrow @nogc
+void qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar);
 
 unittest
 {
