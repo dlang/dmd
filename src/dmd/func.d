@@ -481,6 +481,12 @@ extern (C++) class FuncDeclaration : Declaration
             if (type.ty == Tfunction)
             {
                 TypeFunction tf = cast(TypeFunction)type;
+                // if member function is marked 'inout', then this is 'return ref'
+                if (tf.iswild & 2)
+                {
+                    tf.isreturn = true;
+                    tf.isreturninferred = true;
+                }
                 if (tf.isreturn)
                     v2.storage_class |= STC.return_;
                 if (tf.isscope)
@@ -506,6 +512,18 @@ extern (C++) class FuncDeclaration : Declaration
             if (thandle.ty == Tstruct)
             {
                 v.storage_class |= STC.ref_;
+                if (type.ty == Tfunction)
+                {
+                    auto tf = cast(TypeFunction)type;
+                    // if member function is marked 'inout', then 'this' is 'return ref'
+                    if (tf.iswild & 2)
+                    {
+                        tf.isreturn = true;
+                        tf.isreturninferred = true;
+                    }
+                    if (tf.isreturn)
+                        v.storage_class |= STC.return_;
+                }
             }
             if (type.ty == Tfunction)
             {
