@@ -4142,7 +4142,8 @@ extern (C++) final class TypeFunction : TypeNext
     bool isscope;               // true: 'this' is scope
     bool isreturninferred;      // true: 'this' is return from inference
     bool isscopeinferred;       // true: 'this' is scope from inference
-    bool ismove;                // true: 'this' is a move function
+    bool ismove;                // true: a move function
+    bool isrvalueref;           // true: returns an rvalue ref
     LINK linkage;               // calling convention
     TRUST trust;                // level of trust
     PURE purity = PURE.impure;
@@ -4190,6 +4191,8 @@ extern (C++) final class TypeFunction : TypeNext
 
         if (stc & STC.move)
             this.ismove = true;
+        if (stc & STC.rvalueref)
+            this.isrvalueref = true;
     }
 
     static TypeFunction create(Parameters* parameters, Type treturn, VarArg varargs, LINK linkage, StorageClass stc = 0)
@@ -4220,6 +4223,8 @@ extern (C++) final class TypeFunction : TypeNext
         t.iswild = iswild;
         t.trust = trust;
         t.fargs = fargs;
+        t.ismove = ismove;
+        t.isrvalueref = isrvalueref;
         return t;
     }
 
@@ -4486,6 +4491,7 @@ extern (C++) final class TypeFunction : TypeNext
             tf.trust = t.trust;
             tf.iswild = t.iswild;
             tf.ismove = t.ismove;
+            tf.isrvalueref = t.isrvalueref;
 
             if (stc & STC.pure_)
                 tf.purity = PURE.fwdref;
@@ -4503,6 +4509,8 @@ extern (C++) final class TypeFunction : TypeNext
             }
             if (stc && STC.move)
                 tf.ismove = true;
+            if (stc && STC.rvalueref)
+                tf.isrvalueref = true;
 
             tf.deco = tf.merge().deco;
             t = tf;
@@ -4760,7 +4768,7 @@ extern (C++) final class TypeFunction : TypeNext
                 }
 
                 // Non-lvalues do not match ref or out parameters
-                if ((p.storageClass & (STC.ref_ | STC.out_) && !(p.storageClass & STC.rvalue)))
+                if ((p.storageClass & (STC.ref_ | STC.out_) && !(p.storageClass & STC.rvalueref)))
                 {
                     // https://issues.dlang.org/show_bug.cgi?id=13783
                     // Don't use toBasetype() to handle enum types.
@@ -4839,7 +4847,7 @@ extern (C++) final class TypeFunction : TypeNext
                 }
 
                 // lvalues do not match rvalue ref parameter
-                if ((p.storageClass & (STC.ref_ | STC.out_) && (p.storageClass & STC.rvalue)))
+                if ((p.storageClass & (STC.ref_ | STC.out_) && (p.storageClass & STC.rvalueref)))
                 {
                     if (m && arg.isLvalue())
                     {
@@ -6703,6 +6711,8 @@ void attributesApply(const TypeFunction tf, void delegate(string) dg, TRUSTforma
         dg("@nogc");
     if (tf.isproperty)
         dg("@property");
+    if (tf.isrvalueref)
+        dg("@rvalue");
     if (tf.isref)
         dg("ref");
     if (tf.isreturn && !tf.isreturninferred)

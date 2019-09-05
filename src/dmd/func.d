@@ -2076,6 +2076,8 @@ extern (C++) class FuncDeclaration : Declaration
             TypeFunction tf = type.toTypeFunction();
             if (tf.isref)
                 vresult.storage_class |= STC.ref_;
+            if (tf.isrvalueref)
+                vresult.storage_class |= STC.rvalueref;
             vresult.type = tret;
 
             vresult.dsymbolSemantic(sc);

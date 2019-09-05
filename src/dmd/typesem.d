@@ -1263,7 +1263,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
 
                 if (i == 0 && tf.ismove && (fparam.storageClass & STC.ref_))
                 {
-                    fparam.storageClass |= STC.rvalue;
+                    fparam.storageClass |= STC.rvalueref;
                 }
 
                 fparam.type = fparam.type.addStorageClass(fparam.storageClass);
@@ -1491,7 +1491,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                             // ref parameter
                         }
                         else
-                            fparam.storageClass &= ~STC.ref_; // value parameter
+                            fparam.storageClass |= STC.rvalueref; // rvalue ref parameter
                         fparam.storageClass &= ~STC.auto_;    // https://issues.dlang.org/show_bug.cgi?id=14656
                         fparam.storageClass |= STC.autoref;
                     }

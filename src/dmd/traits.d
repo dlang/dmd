@@ -710,6 +710,13 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         return isDeclX(d => d.isRef());
     }
+    if (e.ident == Id.isRvalueRef)
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        return isDeclX(d => d.isRvalueRef());
+    }
     if (e.ident == Id.isOut)
     {
         if (dim != 1)

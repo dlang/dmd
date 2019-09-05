@@ -1940,7 +1940,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 if ((global.params.rvalueRefParam &&
                     !arg.isLvalue() &&
                     targ.isCopyable()) ||
-                    ((p.storageClass & STC.rvalue) &&
+                    ((p.storageClass & STC.rvalueref) &&
                      !arg.isLvalue() && targ.isMovable()))
                 {   /* allow rvalues to be passed to ref parameters by copying
                      * them to a temp, then pass the temp as the argument
@@ -8503,7 +8503,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         }
                         else
                         {
-                            if (sd.hasMoveCtor && !e2x.isCallExp())
+                            if (sd.hasMoveCtor && (!e2x.isCallExp() || e2x.isRvalueRef()))
                             {
                                 /* Rewrite as:
                                  * e1 = init, e1.moveCtor(e2);

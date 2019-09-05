@@ -383,7 +383,9 @@ public:
             buf.writestring("Na");
         if (ta.isnothrow)
             buf.writestring("Nb");
-        if (ta.isref)
+        if (ta.isrvalueref)
+            buf.writestring("Nm");
+        else if (ta.isref)
             buf.writestring("Nc");
         if (ta.isproperty)
             buf.writestring("Nd");
@@ -1092,7 +1094,7 @@ public:
             break;
         case STC.ref_:
             buf.writeByte('K');
-            if (p.storageClass & STC.rvalue)
+            if (p.storageClass & STC.rvalueref)
                 buf.writeByte('K');
             break;
         case STC.lazy_:

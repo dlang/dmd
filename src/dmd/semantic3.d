@@ -460,7 +460,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     }
                     if (funcdecl.flags & FUNCFLAG.inferScope && !(fparam.storageClass & STC.scope_))
                         stc |= STC.maybescope;
-                    stc |= fparam.storageClass & (STC.in_ | STC.out_ | STC.ref_ | STC.return_ | STC.scope_ | STC.lazy_ | STC.final_ | STC.TYPECTOR | STC.nodtor);
+                    stc |= fparam.storageClass & (STC.in_ | STC.out_ | STC.ref_ | STC.rvalueref | STC.return_ | STC.scope_ | STC.lazy_ | STC.final_ | STC.TYPECTOR | STC.nodtor);
                     v.storage_class = stc;
                     v.dsymbolSemantic(sc2);
                     if (!sc2.insert(v))
@@ -891,7 +891,21 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         if (!hasCopyCtor)
                             exp = exp.implicitCastTo(sc2, tret);
 
-                        if (f.isref)
+                        if (f.isrvalueref)
+                        {
+                            // Function returns an rvalue reference
+                            if (exp.isLvalue())
+                                exp.error("lvalues cannot be returned by @rvalue ref");
+                            else if (exp.isRvalueRef())
+                            {
+                                exp = toLvalueExp(exp.loc, sc2, exp);
+                            }
+                            else
+                            {
+                                exp.error("escaping reference to local temporary variable");
+                            }
+                        }
+                        else if (f.isref)
                         {
                             // Function returns a reference
                             exp = exp.toLvalue(sc2, exp);

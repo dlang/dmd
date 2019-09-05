@@ -87,6 +87,8 @@ struct IntRange;
 #define STCfuture        0x4000000000000LL // introducing new base class function
 #define STClocal         0x8000000000000LL // do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
 #define STCreturninferred 0x10000000000000LL   // 'return' has been inferred and should not be part of mangling
+#define STCmove          0x20000000000000LL    // for annotating move constructor and move opAssign
+#define STCrvalueref     0x40000000000000LL    // rvalue ref
 
 void ObjectNotFound(Identifier *id);
 
@@ -131,6 +133,7 @@ public:
     bool isIn()  const  { return (storage_class & STCin) != 0; }
     bool isOut() const  { return (storage_class & STCout) != 0; }
     bool isRef() const  { return (storage_class & STCref) != 0; }
+    bool isRvalueRef() const { return (storage_class & STCrvalueref) != 0; }
 
     bool isFuture() const { return (storage_class & STCfuture) != 0; }
 

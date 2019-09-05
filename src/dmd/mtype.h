@@ -589,6 +589,8 @@ public:
     bool isscope;       // true: 'this' is scope
     bool isreturninferred;      // true: 'this' is return from inference
     bool isscopeinferred; // true: 'this' is scope from inference
+    bool ismove;        // true: a move function
+    bool isrvalueref;   // true: returns an rvalue ref
     LINK linkage;  // calling convention
     TRUST trust;   // level of trust
     PURE purity;   // PURExxxx

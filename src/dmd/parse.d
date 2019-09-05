@@ -1409,7 +1409,7 @@ final class Parser(AST) : Lexer
             else if (token.ident == Id.future)
                 stc = STC.future;
             else if (token.ident == Id.rvalue)
-                stc = STC.rvalue;
+                stc = STC.rvalueref;
             else
             {
                 // Allow identifier, template instantiation, or function call
@@ -2917,7 +2917,7 @@ final class Parser(AST) : Lexer
                         }
                         if (token.value == TOK.dotDotDot)
                             error("variadic parameter cannot have user-defined attributes");
-                        if (stc2 == STC.rvalue)
+                        if (stc2 == STC.rvalueref)
                         {
                             stc = stc2;
                             goto L2;
@@ -7548,7 +7548,7 @@ final class Parser(AST) : Lexer
                      * any of the above followed by (arglist)
                      * @predefined_attribute
                      */
-                    if (t.ident == Id.property || t.ident == Id.nogc || t.ident == Id.safe || t.ident == Id.trusted || t.ident == Id.system || t.ident == Id.disable)
+                    if (t.ident == Id.property || t.ident == Id.nogc || t.ident == Id.safe || t.ident == Id.trusted || t.ident == Id.system || t.ident == Id.disable || t.ident == Id.rvalue)
                         break;
                     t = peek(t);
                     if (t.value == TOK.not)

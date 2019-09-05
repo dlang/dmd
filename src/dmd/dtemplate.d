@@ -5983,12 +5983,12 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                             goto Lnotequals;
                         if (farg.isLvalue())
                         {
-                            if (!(fparam.storageClass & STC.ref_))
+                            if ((fparam.storageClass & (STC.ref_ | STC.rvalueref)) != STC.ref_)
                                 goto Lnotequals; // auto ref's don't match
                         }
                         else
                         {
-                            if (fparam.storageClass & STC.ref_)
+                            if ((fparam.storageClass & (STC.ref_ | STC.rvalueref)) == STC.ref_)
                                 goto Lnotequals; // auto ref's don't match
                         }
                     }

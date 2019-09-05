@@ -4158,7 +4158,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     //printf("tf: %s\n", tf.toChars());
                     auto param = Parameter.getNth(tf.parameterList, 0);
-                    if ((param.storageClass & (STC.rvalue | STC.ref_)) == (STC.rvalue | STC.ref_) && param.type.mutableOf().unSharedOf() == sd.type.mutableOf().unSharedOf())
+                    if ((param.storageClass & STC.rvalueref) && param.type.mutableOf().unSharedOf() == sd.type.mutableOf().unSharedOf())
                     {
                         //printf("move constructor\n");
                         ctd.isMvCtor = true;

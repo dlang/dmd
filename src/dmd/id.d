@@ -437,6 +437,7 @@ immutable Msgtable[] msgtable =
     { "getTargetInfo" },
     { "getLocation" },
     { "getRvalue" },
+    { "isRvalueRef" },
 
     // For C++ mangling
     { "allocator" },

@@ -3014,6 +3014,8 @@ private void parameterToBuffer(Parameter p, OutBuffer* buf, HdrGenState* hgs)
 
     if (p.storageClass & STC.out_)
         buf.writestring("out ");
+    else if (p.storageClass & STC.rvalueref)
+        buf.writestring("@rvalue ref ");
     else if (p.storageClass & STC.ref_)
         buf.writestring("ref ");
     else if (p.storageClass & STC.in_)

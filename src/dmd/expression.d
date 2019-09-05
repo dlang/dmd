@@ -510,10 +510,9 @@ Expression toLvalueExp(const ref Loc loc, Scope* sc, Expression e)
     if (e.isLvalue())
         return e;
 
-    if (e.isRvalueRef())
+    if (e.isRvalueRef() && e.isPtrExp())
     {
-        auto pe = e.isPtrExp();
-        assert(pe);
+        auto pe = cast(PtrExp) e;
         if (auto ae = pe.e1.isAddExp())
         {
             assert(ae.e1.isLvalue());
@@ -541,6 +540,18 @@ Expression toLvalueExp(const ref Loc loc, Scope* sc, Expression e)
  */
 bool isRvalueRef(Expression e)
 {
+    if (auto ce = e.isCallExp())
+    {
+        if (auto t = ce.e1.type)
+        {
+            Type tb = t.toBasetype();
+            if (tb.ty == Tdelegate || tb.ty == Tpointer)
+                tb = tb.nextOf();
+            if (auto tf = tb.isTypeFunction())
+                return tf.isrvalueref;
+        }
+        return false;
+    }
     return !e.isLvalue() && e.isPtrExp();
 }
 
@@ -4911,6 +4922,8 @@ extern (C++) final class CallExp : UnaExp
         if (tb.ty == Tdelegate || tb.ty == Tpointer)
             tb = tb.nextOf();
         auto tf = tb.isTypeFunction();
+        if (tf && tf.isrvalueref)
+            return false;
         if (tf && tf.isref)
         {
             if (auto dve = e1.isDotVarExp())
