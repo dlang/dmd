@@ -5,7 +5,7 @@ MODEL=64
 DRUNTIMELIB=druntime64.lib
 CC=cl
 
-TESTS=array allocator new string vector
+TESTS=array allocator new string utility vector
 
 _MSC_VER=$(file < ..\..\ver.txt)
 ADD_CFLAGS=$(file < ..\..\cflags.txt)
