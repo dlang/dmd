@@ -28,7 +28,7 @@ struct Region
     void* last;         // beginning of last pool
     void[] available;   // available to allocate
 
-    enum ChunkSize = 4096;
+    enum ChunkSize = 4096 * 32;
     enum OverheadSize = 16;
     enum MaxAllocSize = ChunkSize - OverheadSize;
 
@@ -50,13 +50,22 @@ struct Region
         if (nbytes > available.length)
         {
             assert(nbytes <= MaxAllocSize);
-            auto h = Mem.check(.malloc(ChunkSize));
-            *cast(void**)h = null;
-            if (!head)
-                last = cast(void*)&head;
-            *cast(void**)last = h;
-            last = h;
-            available = (h + OverheadSize)[0 .. MaxAllocSize];
+            void* next = last ? *cast(void**)last : null;
+            if (next)
+            {   // Reuse next page
+                last = next;
+                available = (last + OverheadSize)[0 .. MaxAllocSize];
+            }
+            else
+            {   // Allocate next page
+                auto h = Mem.check(.malloc(ChunkSize));
+                *cast(void**)h = null;
+                if (!head)
+                    last = cast(void*)&head;
+                *cast(void**)last = h;
+                last = h;
+                available = (h + OverheadSize)[0 .. MaxAllocSize];
+            }
         }
 
         auto p = available.ptr;
@@ -69,17 +78,32 @@ struct Region
      */
     void release()
     {
-        void* next;
-        for (auto h = head; h; h = next)
-        {
-            next = *cast(void**)h;
-            memset(h, 0xFC, ChunkSize);
-            .free(h);
-        }
+        if (!head)
+            return;
 
-        head = null;
-        last = null;
-        available = null;
+        version (all)
+        {
+            /* Keep the memory for next time
+             */
+            last = head;
+            available = (last + OverheadSize)[0 .. MaxAllocSize];
+        }
+        else
+        {
+            /* Free the memory
+             */
+            void* next;
+            for (auto h = head; h; h = next)
+            {
+                next = *cast(void**)h;
+                memset(h, 0xFC, ChunkSize); // 0xFC is larger than TOK.max
+                .free(h);
+            }
+
+            head = null;
+            last = null;
+            available = null;
+        }
     }
 
     /****************************

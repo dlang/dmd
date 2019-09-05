@@ -13,6 +13,7 @@
 module dmd.ctfeexpr;
 
 import core.stdc.stdio;
+import core.stdc.stdlib;
 import core.stdc.string;
 import dmd.arraytypes;
 import dmd.complex;
@@ -1629,7 +1630,11 @@ Expression ctfeCast(UnionExp* pue, const ref Loc loc, Type type, Type to, Expres
  */
 void assignInPlace(Expression dest, Expression src)
 {
-    assert(dest.op == TOK.structLiteral || dest.op == TOK.arrayLiteral || dest.op == TOK.string_);
+    if (!(dest.op == TOK.structLiteral || dest.op == TOK.arrayLiteral || dest.op == TOK.string_))
+    {
+        printf("invalid op %d %d\n", src.op, dest.op);
+        assert(0);
+    }
     Expressions* oldelems;
     Expressions* newelems;
     if (dest.op == TOK.structLiteral)
@@ -1665,7 +1670,10 @@ void assignInPlace(Expression dest, Expression src)
         return;
     }
     else
+    {
+        printf("invalid op %d %d\n", src.op, dest.op);
         assert(0);
+    }
     assert(oldelems.dim == newelems.dim);
     foreach (size_t i; 0 .. oldelems.dim)
     {
