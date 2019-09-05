@@ -174,18 +174,6 @@ char[] foo9(return out char[4] buf)
 
 /********************************************/
 
-struct S10
-{
-    int x;
-
-    ref inout(int) foo() inout
-    {
-        return x;
-    }
-}
-
-/********************************************/
-
 struct RC
 {
     this(this) { }

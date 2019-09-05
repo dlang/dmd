@@ -485,9 +485,6 @@ extern (C++) class FuncDeclaration : Declaration
                     v2.storage_class |= STC.return_;
                 if (tf.isscope)
                     v2.storage_class |= STC.scope_;
-                // if member function is marked 'inout', then this is 'return ref'
-                if (tf.iswild & 2)
-                    v2.storage_class |= STC.return_;
             }
             if (flags & FUNCFLAG.inferScope && !(v2.storage_class & STC.scope_))
                 v2.storage_class |= STC.maybescope;
@@ -509,9 +506,6 @@ extern (C++) class FuncDeclaration : Declaration
             if (thandle.ty == Tstruct)
             {
                 v.storage_class |= STC.ref_;
-                // if member function is marked 'inout', then 'this' is 'return ref'
-                if (type.ty == Tfunction && (cast(TypeFunction)type).iswild & 2)
-                    v.storage_class |= STC.return_;
             }
             if (type.ty == Tfunction)
             {
