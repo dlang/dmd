@@ -550,10 +550,10 @@ private:
  *      x1 = first operand
  *      x2 = second operand
  * Returns:
- *      1 if x1 is x2
- *      else 0
+ *      true if x1 is x2
+ *      else false
  */
-int RealIdentical(real_t x1, real_t x2)
+bool RealIdentical(real_t x1, real_t x2)
 {
     return (CTFloat.isNaN(x1) && CTFloat.isNaN(x2)) || CTFloat.isIdentical(x1, x2);
 }
@@ -4081,7 +4081,7 @@ extern (C++) abstract class UnaExp : Expression
 }
 
 alias fp_t = UnionExp function(const ref Loc loc, Type, Expression, Expression);
-alias fp2_t = int function(const ref Loc loc, TOK, Expression, Expression);
+alias fp2_t = bool function(const ref Loc loc, TOK, Expression, Expression);
 
 /***********************************************************
  */

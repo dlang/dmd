@@ -1042,25 +1042,25 @@ private bool numCmp(N)(TOK op, N n1, N n2)
 }
 
 /// Returns cmp OP 0; where OP is ==, !=, <, >=, etc. Result is 0 or 1
-int specificCmp(TOK op, int rawCmp)
+bool specificCmp(TOK op, int rawCmp)
 {
     return numCmp!int(op, rawCmp, 0);
 }
 
 /// Returns e1 OP e2; where OP is ==, !=, <, >=, etc. Result is 0 or 1
-int intUnsignedCmp(TOK op, dinteger_t n1, dinteger_t n2)
+bool intUnsignedCmp(TOK op, dinteger_t n1, dinteger_t n2)
 {
     return numCmp!dinteger_t(op, n1, n2);
 }
 
 /// Returns e1 OP e2; where OP is ==, !=, <, >=, etc. Result is 0 or 1
-int intSignedCmp(TOK op, sinteger_t n1, sinteger_t n2)
+bool intSignedCmp(TOK op, sinteger_t n1, sinteger_t n2)
 {
     return numCmp!sinteger_t(op, n1, n2);
 }
 
 /// Returns e1 OP e2; where OP is ==, !=, <, >=, etc. Result is 0 or 1
-int realCmp(TOK op, real_t r1, real_t r2)
+bool realCmp(TOK op, real_t r1, real_t r2)
 {
     // Don't rely on compiler, handle NAN arguments separately
     if (CTFloat.isNaN(r1) || CTFloat.isNaN(r2)) // if unordered
@@ -1071,7 +1071,7 @@ int realCmp(TOK op, real_t r1, real_t r2)
         case TOK.lessOrEqual:
         case TOK.greaterThan:
         case TOK.greaterOrEqual:
-            return 0;
+            return false;
 
         default:
             assert(0);
@@ -1087,6 +1087,8 @@ int realCmp(TOK op, real_t r1, real_t r2)
  * e1 and e2 may be strings, arrayliterals, or slices.
  * For string types, return <0 if e1 < e2, 0 if e1==e2, >0 if e1 > e2.
  * For all other types, return 0 if e1 == e2, !=0 if e1 != e2.
+ * Returns:
+ *      -1,0,1
  */
 private int ctfeCmpArrays(const ref Loc loc, Expression e1, Expression e2, uinteger_t len)
 {
@@ -1351,25 +1353,25 @@ private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2, bool ide
 }
 
 /// Evaluate ==, !=.  Resolves slices before comparing. Returns 0 or 1
-int ctfeEqual(const ref Loc loc, TOK op, Expression e1, Expression e2)
+bool ctfeEqual(const ref Loc loc, TOK op, Expression e1, Expression e2)
 {
     return !ctfeRawCmp(loc, e1, e2) ^ (op == TOK.notEqual);
 }
 
 /// Evaluate is, !is.  Resolves slices before comparing. Returns 0 or 1
-int ctfeIdentity(const ref Loc loc, TOK op, Expression e1, Expression e2)
+bool ctfeIdentity(const ref Loc loc, TOK op, Expression e1, Expression e2)
 {
     //printf("ctfeIdentity %s %s\n", e1.toChars(), e2.toChars());
     //printf("ctfeIdentity op = '%s', e1 = %s %s, e2 = %s %s\n", Token::toChars(op),
     //    Token::toChars(e1.op), e1.toChars(), Token::toChars(e2.op), e1.toChars());
-    int cmp;
+    bool cmp;
     if (e1.op == TOK.null_)
     {
         cmp = (e2.op == TOK.null_);
     }
     else if (e2.op == TOK.null_)
     {
-        cmp = 0;
+        cmp = false;
     }
     else if (e1.op == TOK.symbolOffset && e2.op == TOK.symbolOffset)
     {
@@ -1392,12 +1394,12 @@ int ctfeIdentity(const ref Loc loc, TOK op, Expression e1, Expression e2)
         cmp = !ctfeRawCmp(loc, e1, e2, true);
     }
     if (op == TOK.notIdentity || op == TOK.notEqual)
-        cmp ^= 1;
+        cmp ^= true;
     return cmp;
 }
 
 /// Evaluate >,<=, etc. Resolves slices before comparing. Returns 0 or 1
-int ctfeCmp(const ref Loc loc, TOK op, Expression e1, Expression e2)
+bool ctfeCmp(const ref Loc loc, TOK op, Expression e1, Expression e2)
 {
     Type t1 = e1.type.toBasetype();
     Type t2 = e2.type.toBasetype();
