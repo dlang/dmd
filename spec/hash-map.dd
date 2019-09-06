@@ -364,7 +364,7 @@ $(H2 $(LNAME2 runtime_initialization, Runtime Initialization of Immutable AAs))
         ---------
         immutable long[string] aa;
 
-        static this()
+        shared static this()
         {
             import std.exception : assumeUnique;
             import std.conv : to;
