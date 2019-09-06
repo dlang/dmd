@@ -3318,8 +3318,13 @@ public:
                 result = CTFEExp.cantexp;
                 return;
             }
-            emplaceExp!(IntegerExp)(pue, e.loc, cmp, e.type);
-            result = (*pue).exp();
+            if (e.type.equals(Type.tbool))
+                result = IntegerExp.createBool(cmp != 0);
+            else
+            {
+                emplaceExp!(IntegerExp)(pue, e.loc, cmp, e.type);
+                result = (*pue).exp();
+            }
             return;
         }
         Expression e1 = interpret(&ue1, e.e1, istate);
@@ -3341,8 +3346,13 @@ public:
             return;
         }
         const cmp = (*fp)(e.loc, e.op, e1, e2);
-        emplaceExp!(IntegerExp)(pue, e.loc, cmp, e.type);
-        result = (*pue).exp();
+        if (e.type.equals(Type.tbool))
+            result = IntegerExp.createBool(cmp);
+        else
+        {
+            emplaceExp!(IntegerExp)(pue, e.loc, cmp, e.type);
+            result = (*pue).exp();
+        }
     }
 
     override void visit(BinExp e)
