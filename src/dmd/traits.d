@@ -438,12 +438,12 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
     IntegerExp True()
     {
-        return new IntegerExp(e.loc, true, Type.tbool);
+        return IntegerExp.createBool(true);
     }
 
     IntegerExp False()
     {
-        return new IntegerExp(e.loc, false, Type.tbool);
+        return IntegerExp.createBool(false);
     }
 
     /********
@@ -1195,7 +1195,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         }
 
         bool value = target.isReturnOnStack(tf, fd && fd.needThis());
-        return new IntegerExp(e.loc, value, Type.tbool);
+        return IntegerExp.createBool(value);
     }
     if (e.ident == Id.getFunctionVariadicStyle)
     {

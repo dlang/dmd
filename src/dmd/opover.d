@@ -1344,7 +1344,7 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                 if (dim == 0)
                 {
                     // zero-length tuple comparison should always return true or false.
-                    result = new IntegerExp(e.loc, (e.op == TOK.equal), Type.tbool);
+                    result = IntegerExp.createBool(e.op == TOK.equal);
                 }
                 else
                 {

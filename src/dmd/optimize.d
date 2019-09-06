@@ -1101,7 +1101,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             if (e.e1.isBool(oror))
             {
                 // Replace with (e1, oror)
-                ret = new IntegerExp(e.loc, oror, Type.tbool);
+                ret = IntegerExp.createBool(oror);
                 ret = Expression.combine(e.e1, ret);
                 if (e.type.toBasetype().ty == Tvoid)
                 {

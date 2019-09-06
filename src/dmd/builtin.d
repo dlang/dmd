@@ -225,14 +225,14 @@ Expression eval_isnan(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.float64);
-    return new IntegerExp(loc, CTFloat.isNaN(arg0.toReal()), Type.tbool);
+    return IntegerExp.createBool(CTFloat.isNaN(arg0.toReal()));
 }
 
 Expression eval_isinfinity(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.float64);
-    return new IntegerExp(loc, CTFloat.isInfinity(arg0.toReal()), Type.tbool);
+    return IntegerExp.createBool(CTFloat.isInfinity(arg0.toReal()));
 }
 
 Expression eval_isfinite(Loc loc, FuncDeclaration fd, Expressions* arguments)
@@ -240,7 +240,7 @@ Expression eval_isfinite(Loc loc, FuncDeclaration fd, Expressions* arguments)
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.float64);
     const value = !CTFloat.isNaN(arg0.toReal()) && !CTFloat.isInfinity(arg0.toReal());
-    return new IntegerExp(loc, value, Type.tbool);
+    return IntegerExp.createBool(value);
 }
 
 Expression eval_bsf(Loc loc, FuncDeclaration fd, Expressions* arguments)
