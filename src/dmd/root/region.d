@@ -35,7 +35,13 @@ struct Region
     enum ChunkSize = 4096 * 1024;
     enum MaxAllocSize = ChunkSize;
 
-  public:
+    struct RegionPos
+    {
+        int used;
+        void[] available;
+    }
+
+public:
 
     /******
      * Allocate nbytes. Aborts on failure.
@@ -68,13 +74,25 @@ struct Region
         return p;
     }
 
-    /********************
-     * Release all the memory in this pool.
+    /****************************
+     * Return stack position for allocations in this region.
+     * Returns:
+     *  an opaque struct to be passed to `release()`
      */
-    void release()
+    RegionPos savePos()
     {
-        used = 0;
-        available = null;
+        return RegionPos(used, available);
+    }
+
+    /********************
+     * Release the memory that was allocated after the respective call to `savePos()`.
+     * Params:
+     *  pos = position returned by `savePos()`
+     */
+    void release(RegionPos pos)
+    {
+        used = pos.used;
+        available = pos.available;
     }
 
     /****************************
@@ -107,6 +125,8 @@ struct Region
 unittest
 {
     Region reg;
+    auto rgnpos = reg.savePos();
+
     void* p = reg.malloc(0);
     assert(p == null);
     assert(!reg.contains(p));
@@ -124,5 +144,5 @@ unittest
     assert(reg.size() > 0);
     assert(!reg.contains(&reg));
 
-    reg.release();
+    reg.release(rgnpos);
 }

@@ -85,8 +85,7 @@ public Expression ctfeInterpret(Expression e)
     if (e.type.ty == Terror)
         return new ErrorExp();
 
-    auto g = &ctfeGlobals;
-    ++g.count;
+    auto rgnpos = ctfeGlobals.region.savePos();
 
     Expression result = interpret(e, null);
 
@@ -97,8 +96,7 @@ public Expression ctfeInterpret(Expression e)
     if (CTFEExp.isCantExp(result))
         result = new ErrorExp();
 
-    if (--g.count == 0)         // if no more users of g.region
-        g.region.release();     // release all memory in the region
+    ctfeGlobals.region.release(rgnpos);
 
     return result;
 }
@@ -200,7 +198,6 @@ private:
 struct CtfeGlobals
 {
     Region region;
-    int count;          // reference count CtfeGlobals instance
 
     CtfeStack stack;
 
