@@ -4792,17 +4792,18 @@ public:
         if (result)
             return;
 
-        result = interpretRegion(e.e1, istate);
+        UnionExp ue1 = void;
+        result = interpret(&ue1, e.e1, istate);
         if (exceptionOrCant(result))
             return;
 
-        int res;
+        bool res;
         const andand = e.op == TOK.andAnd;
         if (andand ? result.isBool(false) : isTrueBool(result))
             res = !andand;
         else if (andand ? isTrueBool(result) : result.isBool(false))
         {
-            UnionExp ue2;
+            UnionExp ue2 = void;
             result = interpret(&ue2, e.e2, istate);
             if (exceptionOrCant(result))
                 return;
@@ -4813,26 +4814,31 @@ public:
                 return;
             }
             if (result.isBool(false))
-                res = 0;
+                res = false;
             else if (isTrueBool(result))
-                res = 1;
+                res = true;
             else
             {
-                result.error("`%s` does not evaluate to a `bool`", result.toChars());
+                e.error("`%s` does not evaluate to a `bool`", result.toChars());
                 result = CTFEExp.cantexp;
                 return;
             }
         }
         else
         {
-            result.error("`%s` cannot be interpreted as a `bool`", result.toChars());
+            e.error("`%s` cannot be interpreted as a `bool`", result.toChars());
             result = CTFEExp.cantexp;
             return;
         }
         if (goal != ctfeNeedNothing)
         {
-            emplaceExp!(IntegerExp)(pue, e.loc, res, e.type);
-            result = pue.exp();
+            if (e.type.equals(Type.tbool))
+                result = IntegerExp.createBool(res);
+            else
+            {
+                emplaceExp!(IntegerExp)(pue, e.loc, res, e.type);
+                result = pue.exp();
+            }
         }
     }
 
