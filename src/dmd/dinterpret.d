@@ -2281,7 +2281,7 @@ public:
             /* Magic variable __ctfe always returns true when interpreting
              */
             if (v.ident == Id.ctfe)
-                return ctfeEmplaceExp!IntegerExp(loc, 1, Type.tbool);
+                return IntegerExp.createBool(true);
 
             if (!v.originalType && v.semanticRun < PASS.semanticdone) // semantic() not yet run
             {
@@ -5167,8 +5167,7 @@ public:
         {
             if (econd.op != TOK.null_)
             {
-                emplaceExp!(IntegerExp)(&uecond, e.loc, 1, Type.tbool);
-                econd = uecond.exp();
+                econd = IntegerExp.createBool(true);
             }
         }
 
@@ -6492,8 +6491,7 @@ public:
         }
         valuesx.dim = valuesx.dim - removed;
         keysx.dim = keysx.dim - removed;
-        emplaceExp!(IntegerExp)(pue, e.loc, removed ? 1 : 0, Type.tbool);
-        result = pue.exp();
+        result = IntegerExp.createBool(removed != 0);
     }
 
     override void visit(ClassReferenceExp e)

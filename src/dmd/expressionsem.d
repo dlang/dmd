@@ -2259,7 +2259,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                  */
                 if (i == lastthrow)
                 {
-                    auto e = new AssignExp(gate.loc, new VarExp(gate.loc, gate), new IntegerExp(gate.loc, 1, Type.tbool));
+                    auto e = new AssignExp(gate.loc, new VarExp(gate.loc, gate), IntegerExp.createBool(true));
                     eprefix = Expression.combine(eprefix, e.expressionSemantic(sc));
                     gate = null;
                 }
@@ -5499,12 +5499,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             unSpeculative(sc, s);
         }
         //printf("Lyes\n");
-        result = new IntegerExp(e.loc, 1, Type.tbool);
+        result = IntegerExp.createBool(true);
         return;
 
     Lno:
         //printf("Lno\n");
-        result = new IntegerExp(e.loc, 0, Type.tbool);
+        result = IntegerExp.createBool(false);
     }
 
     override void visit(BinAssignExp exp)
@@ -10476,7 +10476,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             e1x = e1x.optimize(WANTvalue);
             if (e1x.isBool(exp.op == TOK.orOr))
             {
-                result = new IntegerExp(exp.loc, exp.op == TOK.orOr, Type.tbool);
+                result = IntegerExp.createBool(exp.op == TOK.orOr);
                 return;
             }
         }
@@ -10768,7 +10768,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (ve1.var == ve2.var)
                 {
                     // They are the same, result is 'true' for ==, 'false' for !=
-                    result = new IntegerExp(exp.loc, (exp.op == TOK.equal), Type.tbool);
+                    result = IntegerExp.createBool(exp.op == TOK.equal);
                     return;
                 }
             }

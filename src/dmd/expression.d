@@ -1833,6 +1833,25 @@ extern (C++) final class IntegerExp : Expression
             theConstant = new IntegerExp(v);
         return theConstant;
     }
+
+    /**
+     * Use this instead of creating new instances for commonly used bools.
+     *
+     * Parameters:
+     *      b = The value of the expression
+     * Returns:
+     *      A static instance of the expression, typed as `Type.tbool`.
+     */
+    static IntegerExp createBool(bool b)
+    {
+        __gshared IntegerExp trueExp, falseExp;
+        if (!trueExp)
+        {
+            trueExp = new IntegerExp(Loc.initial, 1, Type.tbool);
+            falseExp = new IntegerExp(Loc.initial, 0, Type.tbool);
+        }
+        return b ? trueExp : falseExp;
+    }
 }
 
 /***********************************************************

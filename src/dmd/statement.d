@@ -2100,11 +2100,11 @@ extern (C++) final class ScopeGuardStatement : Statement
                  *  sexception:    x = true;
                  *  sfinally: if (!x) statement;
                  */
-                auto v = copyToTemp(0, "__os", new IntegerExp(Loc.initial, 0, Type.tbool));
+                auto v = copyToTemp(0, "__os", IntegerExp.createBool(false));
                 v.dsymbolSemantic(sc);
                 *sentry = new ExpStatement(loc, v);
 
-                Expression e = new IntegerExp(Loc.initial, 1, Type.tbool);
+                Expression e = IntegerExp.createBool(true);
                 e = new AssignExp(Loc.initial, new VarExp(Loc.initial, v), e);
                 *sexception = new ExpStatement(Loc.initial, e);
 
