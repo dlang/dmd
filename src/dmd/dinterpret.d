@@ -6972,7 +6972,7 @@ private Expression copyRegionExp(Expression e)
             return e;
 
         default:
-            printf("e: %d, %s\n", e.op, e.toChars());
+            printf("e: %s, %s\n", Token.toChars(e.op), e.toChars());
             assert(0);
     }
 
