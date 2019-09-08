@@ -68,10 +68,11 @@ enum SCOPE
     scanf         = 0x8_0000, /// scanf-style function
 }
 
-// Flags that are carried along with a scope push()
-enum SCOPEpush = SCOPE.contract | SCOPE.debug_ | SCOPE.ctfe | SCOPE.compile | SCOPE.constraint |
-                 SCOPE.noaccesscheck | SCOPE.onlysafeaccess | SCOPE.ignoresymbolvisibility |
-                 SCOPE.printf | SCOPE.scanf;
+/// Flags that are carried along with a scope push()
+private enum PersistentFlags =
+    SCOPE.contract | SCOPE.debug_ | SCOPE.ctfe | SCOPE.compile | SCOPE.constraint |
+    SCOPE.noaccesscheck | SCOPE.onlysafeaccess | SCOPE.ignoresymbolvisibility |
+    SCOPE.printf | SCOPE.scanf;
 
 struct Scope
 {
@@ -208,7 +209,7 @@ struct Scope
         s.slabel = null;
         s.nofree = false;
         s.ctorflow.fieldinit = ctorflow.fieldinit.arraydup;
-        s.flags = (flags & SCOPEpush);
+        s.flags = (flags & PersistentFlags);
         s.lastdc = null;
         assert(&this != s);
         return s;
