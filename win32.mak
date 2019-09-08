@@ -12,7 +12,7 @@ auto-tester-build:
 
 auto-tester-test:
 	cd test
-	$(MAKE)
+	gmake -j1 start_all_tests "DMD_TESTSUITE_MAKE_ARGS=-j$(PARALLELISM)"
 	cd ..
 	cd samples
 	gmake -f win32.mak DMD=..\src\dmd.exe MODEL=$(MODEL) "LIB=..\..\phobos;$(LIB)" \

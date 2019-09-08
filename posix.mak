@@ -35,7 +35,7 @@ clean:
 test:
 	$(QUIET)$(MAKE) -C src -f posix.mak build-examples
 	$(QUIET)$(MAKE) -C src -f posix.mak unittest
-	$(QUIET)$(MAKE) -C test -f Makefile
+	$(QUIET)$(MAKE) -C test -f Makefile start_all_tests
 
 html:
 	$(QUIET)$(MAKE) -C src -f posix.mak html
