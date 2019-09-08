@@ -320,6 +320,21 @@ class Lexer
         tokenFreelist = token;
     }
 
+    Token front()
+    {
+        return token;
+    }
+
+    bool empty()
+    {
+        return token.value == TOK.endOfFile;
+    }
+
+    void popFront()
+    {
+        nextToken();
+    }
+
     final TOK nextToken()
     {
         prevloc = token.loc;
