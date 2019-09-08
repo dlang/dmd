@@ -41,7 +41,7 @@ import dmd.tokens;
 //version=LOGSEARCH;
 
 
-// Flags that would not be inherited beyond scope nesting
+// List of flags that can be applied to this `Scope`
 enum SCOPE
 {
     ctor          = 0x0001,   /// constructor type
