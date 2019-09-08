@@ -1,8 +1,32 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Defines `TemplateDeclaration`, `TemplateInstance` and a few utilities
  *
- * Template implementation.
+ * This modules holds the two main template types:
+ * `TemplateDeclaration`, which is the user-provided declaration of a template,
+ * and `TemplateInstance`, which is an instance of a `TemplateDeclaration`
+ * with specific arguments.
+ *
+ * Template_Parameter:
+ * Additionally, the classes for template parameters are defined in this module.
+ * The base class, `TemplateParameter`, is inherited by:
+ * - `TemplateTypeParameter`
+ * - `TemplateThisParameter`
+ * - `TemplateValueParameter`
+ * - `TemplateAliasParameter`
+ * - `TemplateTupleParameter`
+ *
+ * Templates_semantic:
+ * The start of the template instantiation process looks like this:
+ * - A `TypeInstance` or `TypeIdentifier` is encountered.
+ *   `TypeInstance` have a bang (e.g. `Foo!(arg)`) while `TypeIdentifier` don't.
+ * - A `TemplateInstance` is instantiated
+ * - Semantic is run on the `TemplateInstance` (see `dmd.dsymbolsem`)
+ * - The `TemplateInstance` search for its `TemplateDeclaration`,
+ *   runs semantic on the template arguments and deduce the best match
+ *   among the possible overloads.
+ * - The `TemplateInstance` search for existing instances with the same
+ *   arguments, and uses it if found.
+ * - Otherwise, the rest of semantic is run on the `TemplateInstance`.
  *
  * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
