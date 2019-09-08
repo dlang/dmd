@@ -603,6 +603,9 @@ $(IMPDIR)\core\sys\posix\inttypes.d : src\core\sys\posix\inttypes.d
 $(IMPDIR)\core\sys\posix\libgen.d : src\core\sys\posix\libgen.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\posix\locale.d : src\core\sys\posix\locale.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\posix\netdb.d : src\core\sys\posix\netdb.d
 	copy $** $@
 
@@ -643,6 +646,12 @@ $(IMPDIR)\core\sys\posix\stdio.d : src\core\sys\posix\stdio.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\posix\stdlib.d : src\core\sys\posix\stdlib.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\string.d : src\core\sys\posix\string.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\strings.d : src\core\sys\posix\strings.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\posix\syslog.d : src\core\sys\posix\syslog.d
