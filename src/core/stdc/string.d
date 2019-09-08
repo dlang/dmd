@@ -66,14 +66,25 @@ size_t strcspn(scope const char* s1, scope const char* s2) pure;
 char*  strdup(scope const char *s);
 ///
 char*  strerror(int errnum);
+// This `strerror_r` definition is not following the POSIX standard
+version (ReturnStrerrorR)
+{
+    ///
+    const(char)* strerror_r(int errnum, return char* buf, size_t buflen);
+}
+// This one is
+else
+{
+    int strerror_r(int errnum, scope char* buf, size_t buflen);
+}
 ///
-char*  strncpy(return char* s1, scope const char* s2, size_t n) pure;
+size_t strlen(scope const char* s) pure;
 ///
 char*  strncat(return char* s1, scope const char* s2, size_t n) pure;
 ///
 int    strncmp(scope const char* s1, scope const char* s2, size_t n) pure;
 ///
-size_t strxfrm(scope char* s1, scope const char* s2, size_t n);
+char*  strncpy(return char* s1, scope const char* s2, size_t n) pure;
 ///
 inout(char)*  strpbrk(return inout(char)* s1, scope const char* s2) pure;
 ///
@@ -84,17 +95,5 @@ size_t strspn(scope const char* s1, scope const char* s2) pure;
 inout(char)*  strstr(return inout(char)* s1, scope const char* s2) pure;
 ///
 char*  strtok(return char* s1, scope const char* s2);
-// This `strerror_r` definition is not following the POSIX standard
-version (ReturnStrerrorR)
-{
-    ///
-    const(char)* strerror_r(int errnum, return char* buf, size_t buflen);
-}
-// This one is
-else
-{
-    ///
-    int strerror_r(int errnum, scope char* buf, size_t buflen);
-}
 ///
-size_t strlen(scope const char* s) pure;
+size_t strxfrm(scope char* s1, scope const char* s2, size_t n);
