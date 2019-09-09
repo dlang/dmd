@@ -2265,9 +2265,26 @@ else
         CtorFlow ctorflow_root = scd.ctorflow.clone();
 
         ifs.ifbody = ifs.ifbody.semanticNoScope(scd);
-        if (scd.has_label) {
+        // We found an actual label in some enclosed scope.
+        bool has_label_because_of_label = scd.has_label;
+        // We found a Case/DefaultStatement in some enclosed scope
+        // whose parent `switch` is parent of this `if` too. Meaning,
+        // they're both inside the same switch, and thus the `case/default`
+        // acts as a label (we can jump inside this `if` without ever
+        // coming across the `if` condition). E.g.
+        //     switch (x) {
+        //          if (... some cond) {  <- we may never evaluate this but still
+        //                                   execute the if body.
+        //      case 1: // ... whatever code;
+        //          }
+        //      }
+        bool has_label_because_of_case = scd.has_case && scd.sw &&
+                                         scd.has_case == scd.sw;
+        bool has_label = has_label_because_of_label || has_label_because_of_case;
+        if (has_label) {
             ifs.ifbody.has_label = true;
             scd.enclosing.has_label = true;
+            printf("If %s has label\n", ifs.condition.toChars());
         }
         scd.pop();
 
@@ -2787,6 +2804,7 @@ else
 
         if (sw)
         {
+            sc.has_case = sw;
             cs.exp = cs.exp.implicitCastTo(sc, sw.condition.type);
             cs.exp = cs.exp.optimize(WANTvalue | WANTexpand);
 
@@ -2920,7 +2938,7 @@ else
             crs.error("case range not in `switch` statement");
             return setError();
         }
-
+        sc.has_case = sw;
         //printf("CaseRangeStatement::semantic() %s\n", toChars());
         bool errors = false;
         if (sw.isFinal)
@@ -3001,6 +3019,7 @@ else
         bool errors = false;
         if (sc.sw)
         {
+            sc.has_case = sc.sw;
             if (sc.sw.sdefault)
             {
                 ds.error("`switch` statement already has a default");
