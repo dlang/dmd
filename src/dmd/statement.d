@@ -130,7 +130,7 @@ extern (C++) abstract class Statement : ASTNode
 {
     const Loc loc;
     const STMT stmt;
-    bool has_label;
+    bool haslabel;
 
     override final DYNCAST dyncast() const
     {
@@ -141,7 +141,7 @@ extern (C++) abstract class Statement : ASTNode
     {
         this.loc = loc;
         this.stmt = stmt;
-        this.has_label = false;
+        this.haslabel = false;
         // If this is an in{} contract scope statement (skip for determining
         //  inlineStatus of a function body for header content)
     }
@@ -234,7 +234,7 @@ extern (C++) abstract class Statement : ASTNode
     */
     bool hasLabel() const pure nothrow
     {
-        return has_label;
+        return haslabel;
     }
 
     /**********************************

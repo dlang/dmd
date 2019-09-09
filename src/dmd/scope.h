@@ -64,8 +64,8 @@ struct Scope
     ScopeDsymbol *scopesym;     // current symbol
     FuncDeclaration *func;      // function we are in
     Dsymbol *parent;            // parent to use
-    bool has_label;             // There is a label somewhere inside (in any nesting level)
-    SwitchStatement *has_case;  // Used to check if we found some `case/default` somewhere
+    bool hasLabel;              // There is a label somewhere inside (in any nesting level)
+    SwitchStatement *hasCase;   // Used to check if we found some `case/default` somewhere
                                 // inside (in any nesting level). If we did, we save its
                                 // parent switch here.
     LabelStatement *slabel;     // enclosing labelled statement

@@ -108,7 +108,7 @@ class Statement : public ASTNode
 public:
     Loc loc;
     STMT stmt;
-    bool has_label;
+    bool haslabel;
 
     virtual Statement *syntaxCopy();
 

@@ -433,8 +433,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             }
 
             ss.statement = ss.statement.statementSemantic(sc);
-            if (sc.has_label) {
-                sc.enclosing.has_label = true;
+            if (sc.hasLabel) {
+                sc.enclosing.hasLabel = true;
             }
             if (ss.statement)
             {
@@ -2266,7 +2266,7 @@ else
 
         ifs.ifbody = ifs.ifbody.semanticNoScope(scd);
         // We found an actual label in some enclosed scope.
-        bool has_label_because_of_label = scd.has_label;
+        bool hasLabelBecauseOfLabel = scd.hasLabel;
         // We found a Case/DefaultStatement in some enclosed scope
         // whose parent `switch` is parent of this `if` too. Meaning,
         // they're both inside the same switch, and thus the `case/default`
@@ -2278,12 +2278,12 @@ else
         //      case 1: // ... whatever code;
         //          }
         //      }
-        bool has_label_because_of_case = scd.has_case && scd.sw &&
-                                         scd.has_case == scd.sw;
-        bool has_label = has_label_because_of_label || has_label_because_of_case;
-        if (has_label) {
-            ifs.ifbody.has_label = true;
-            scd.enclosing.has_label = true;
+        bool hasLabelBecauseOfCase = scd.hasCase && scd.sw &&
+                                     scd.hasCase == scd.sw;
+        bool hasLabel = hasLabelBecauseOfLabel || hasLabelBecauseOfCase;
+        if (hasLabel) {
+            ifs.ifbody.haslabel = true;
+            scd.enclosing.hasLabel = true;
             //printf("If %s has label\n", ifs.condition.toChars());
         }
         scd.pop();
@@ -2804,7 +2804,7 @@ else
 
         if (sw)
         {
-            sc.has_case = sw;
+            sc.hasCase = sw;
             cs.exp = cs.exp.implicitCastTo(sc, sw.condition.type);
             cs.exp = cs.exp.optimize(WANTvalue | WANTexpand);
 
@@ -2938,7 +2938,7 @@ else
             crs.error("case range not in `switch` statement");
             return setError();
         }
-        sc.has_case = sw;
+        sc.hasCase = sw;
         //printf("CaseRangeStatement::semantic() %s\n", toChars());
         bool errors = false;
         if (sw.isFinal)
@@ -3019,7 +3019,7 @@ else
         bool errors = false;
         if (sc.sw)
         {
-            sc.has_case = sc.sw;
+            sc.hasCase = sc.sw;
             if (sc.sw.sdefault)
             {
                 ds.error("`switch` statement already has a default");
@@ -4162,7 +4162,7 @@ else
 
     override void visit(LabelStatement ls)
     {
-        sc.has_label = true;
+        sc.hasLabel = true;
         //printf("LabelStatement::semantic()\n");
         FuncDeclaration fd = sc.parent.isFuncDeclaration();
 
