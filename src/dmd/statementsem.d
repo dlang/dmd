@@ -2284,7 +2284,7 @@ else
         if (has_label) {
             ifs.ifbody.has_label = true;
             scd.enclosing.has_label = true;
-            printf("If %s has label\n", ifs.condition.toChars());
+            //printf("If %s has label\n", ifs.condition.toChars());
         }
         scd.pop();
 
