@@ -1699,6 +1699,14 @@ private void escapeByRef(Expression e, EscapeByResults* er)
                 if (e.e1.op == TOK.dotVariable && t1.ty == Tfunction)
                 {
                     DotVarExp dve = cast(DotVarExp)e.e1;
+
+                    // https://issues.dlang.org/show_bug.cgi?id=20149#c10
+                    if (dve.var.isCtorDeclaration())
+                    {
+                        er.byexp.push(e);
+                        return;
+                    }
+
                     if (dve.var.storage_class & STC.return_ || tf.isreturn)
                     {
                         if (dve.var.storage_class & STC.scope_ || tf.isscope)
