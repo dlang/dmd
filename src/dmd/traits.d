@@ -425,8 +425,17 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         e.ident != Id.getProtection &&
         e.ident != Id.getAttributes)
     {
+        // Pretend we're in a deprecated scope so that deprecation messages
+        // aren't triggered when checking if a symbol is deprecated
+        const save = sc.stc;
+        if (e.ident == Id.isDeprecated)
+            sc.stc |= STC.deprecated_;
         if (!TemplateInstance.semanticTiargs(e.loc, sc, e.args, 1))
+        {
+            sc.stc = save;
             return new ErrorExp();
+        }
+        sc.stc = save;
     }
     size_t dim = e.args ? e.args.dim : 0;
 
