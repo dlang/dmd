@@ -205,6 +205,7 @@ COPY=\
 	$(IMPDIR)\core\sys\posix\iconv.d \
 	$(IMPDIR)\core\sys\posix\inttypes.d \
 	$(IMPDIR)\core\sys\posix\libgen.d \
+	$(IMPDIR)\core\sys\posix\locale.d \
 	$(IMPDIR)\core\sys\posix\netdb.d \
 	$(IMPDIR)\core\sys\posix\poll.d \
 	$(IMPDIR)\core\sys\posix\pthread.d \
@@ -216,6 +217,8 @@ COPY=\
 	$(IMPDIR)\core\sys\posix\spawn.d \
 	$(IMPDIR)\core\sys\posix\stdio.d \
 	$(IMPDIR)\core\sys\posix\stdlib.d \
+	$(IMPDIR)\core\sys\posix\string.d \
+	$(IMPDIR)\core\sys\posix\strings.d \
 	$(IMPDIR)\core\sys\posix\syslog.d \
 	$(IMPDIR)\core\sys\posix\termios.d \
 	$(IMPDIR)\core\sys\posix\time.d \

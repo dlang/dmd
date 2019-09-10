@@ -203,6 +203,7 @@ SRCS=\
 	src\core\sys\posix\iconv.d \
 	src\core\sys\posix\inttypes.d \
 	src\core\sys\posix\libgen.d \
+	src\core\sys\posix\locale.d \
 	src\core\sys\posix\netdb.d \
 	src\core\sys\posix\poll.d \
 	src\core\sys\posix\pthread.d \
@@ -214,6 +215,8 @@ SRCS=\
 	src\core\sys\posix\spawn.d \
 	src\core\sys\posix\stdio.d \
 	src\core\sys\posix\stdlib.d \
+	src\core\sys\posix\string.d \
+	src\core\sys\posix\strings.d \
 	src\core\sys\posix\syslog.d \
 	src\core\sys\posix\termios.d \
 	src\core\sys\posix\time.d \
