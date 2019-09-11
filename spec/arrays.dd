@@ -812,7 +812,7 @@ int[3] a = [ 1:2, 3 ]; // a[0] = 0, a[1] = 2, a[2] = 3
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
-enum Color { red, blue, green };
+enum Color { red, blue, green }
 
 int[Color.max + 1] value =
   [ Color.blue :6,
