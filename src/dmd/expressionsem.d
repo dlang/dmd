@@ -5038,7 +5038,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 else
                 {
                     // Disallow shadowing
-                    for (Scope* scx = sc.enclosing; scx && scx.func == sc.func; scx = scx.enclosing)
+                    for (Scope* scx = sc.enclosing; scx && (scx.func == sc.func || (scx.func && sc.func.fes)); scx = scx.enclosing)
                     {
                         Dsymbol s2;
                         if (scx.scopesym && scx.scopesym.symtab && (s2 = scx.scopesym.symtab.lookup(s.ident)) !is null && s != s2)
@@ -5048,8 +5048,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                             auto decl = s2.isDeclaration();
                             if (!decl || !(decl.storage_class & STC.local))
                             {
-                                e.error("%s `%s` is shadowing %s `%s`", s.kind(), s.ident.toChars(), s2.kind(), s2.toPrettyChars());
-                                return setError();
+                                if (sc.func.fes)
+                                {
+                                    e.deprecation("%s `%s` is shadowing %s `%s`. Rename the `foreach` variable.", s.kind(), s.ident.toChars(), s2.kind(), s2.toPrettyChars());
+                                }
+                                else
+                                {
+                                    e.error("%s `%s` is shadowing %s `%s`", s.kind(), s.ident.toChars(), s2.kind(), s2.toPrettyChars());
+                                    return setError();
+                                }
                             }
                         }
                     }
