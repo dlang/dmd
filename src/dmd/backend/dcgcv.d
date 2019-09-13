@@ -1742,9 +1742,6 @@ private uint cv4_fwdenum(type* t)
 {
     Symbol* s = t.Ttag;
 
-    if (s.Stypidx)                 // if reference already generated
-        return s.Stypidx;          // use already existing reference
-
     // write a forward reference enum record that is enough for the linker to
     // fold with original definition from EnumDeclaration
     uint bty = dttab4[tybasic(t.Tnext.Tty)];
