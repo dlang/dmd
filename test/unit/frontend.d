@@ -248,3 +248,101 @@ unittest
 
     assert(global.errors == 0);
 }
+
+@("hasLabel")
+unittest
+{
+    import std.algorithm : each;
+    import dmd.frontend;
+    import dmd.statement : IfStatement;
+    import dmd.visitor : SemanticTimeTransitiveVisitor;
+
+    initDMD();
+    defaultImportPaths.each!addImport;
+
+    auto t = parseModule("test.d", q{
+        void foo(int x) {
+            switch (x) {
+            case 1:
+                if (1) {  // Has label
+            case 2: assert(0);
+                }
+                break;
+            default: assert(0);
+            }
+        }
+        
+        void bar(int x) {
+            if (2) {  // Doesn't have label
+                switch (x) {
+                case 1:
+                case 2: assert(0);
+                    break;
+                default: assert(0);
+                }
+            }
+        }
+        
+        void three(int a, int b, int c) {
+        L1:
+            if (5) {  // Has label
+                if (3) {  // Has label
+                L2:
+                    int d;
+                }
+                if (4) {  // Doesn't have label
+                    int d = 2;
+                }
+            }
+        }
+        
+        void four(int a, int b, int c) {
+        L1:
+            if (7) {  // Has label
+                if (6) {  // Has label
+                L2:
+                    int d;
+                }
+                
+            }
+            if (8) {  // Doesn't have label
+                int d = 2;
+            }
+        }
+    });
+
+    assert(!t.diagnostics.hasErrors);
+    assert(!t.diagnostics.hasWarnings);
+
+    t.module_.fullSemantic();
+
+    extern (C++) static class Visitor : SemanticTimeTransitiveVisitor
+    {
+        alias visit = typeof(super).visit;
+
+        override void visit(IfStatement ifs)
+        {
+            auto ifbody = ifs.ifbody;
+            import std.conv;
+            string str = to!string(ifs.condition.toChars());
+            switch (str) {
+                case "1":
+                case "3":
+                case "5":
+                case "6":
+                case "7":
+                    assert(ifbody.hasLabel());
+                    break;
+                case "2":
+                case "4":
+                case "8":
+                    assert(ifbody.hasLabel() == false);
+                    break;
+                default: break;
+            }
+        }
+    }
+
+    scope visitor = new Visitor;
+    t.module_.accept(visitor);
+}
