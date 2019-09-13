@@ -44,7 +44,7 @@ private void _enforceSameLength(const char[] action,
     msg ~= length1.unsignedToTempString(tmpBuff, 10);
     msg ~= " != ";
     msg ~= length2.unsignedToTempString(tmpBuff, 10);
-    throw new Error(msg);
+    assert(0, msg);
 }
 
 private void _enforceNoOverlap(const char[] action,
@@ -62,7 +62,7 @@ private void _enforceNoOverlap(const char[] action,
     msg ~= overlappedBytes.unsignedToTempString(tmpBuff, 10);
     msg ~= " byte(s) overlap of ";
     msg ~= bytes.unsignedToTempString(tmpBuff, 10);
-    throw new Error(msg);
+    assert(0, msg);
 }
 
 private uintptr_t arrayToPtr(const void[] array) @trusted
