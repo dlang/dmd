@@ -12,7 +12,6 @@ DOCS=\
 	$(DOCDIR)\core_memory.html \
 	$(DOCDIR)\core_runtime.html \
 	$(DOCDIR)\core_simd.html \
-	$(DOCDIR)\core_thread.html \
 	$(DOCDIR)\core_time.html \
 	$(DOCDIR)\core_vararg.html \
 	$(DOCDIR)\core_volatile.html \
@@ -77,6 +76,9 @@ DOCS=\
 	$(DOCDIR)\core_sys_darwin_netinet_in_.html \
     \
     $(DOCDIR)\core_internal_destruction.html \
+	\
+	$(DOCDIR)\core_thread_fiber.html \
+	$(DOCDIR)\core_thread_osthread.html \
 	\
     $(DOCDIR)\core_internal_array_capacity.html \
     \

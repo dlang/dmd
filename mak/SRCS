@@ -13,7 +13,6 @@ SRCS=\
 	src\core\memory.d \
 	src\core\runtime.d \
 	src\core\simd.d \
-	src\core\thread.d \
 	src\core\time.d \
 	src\core\vararg.d \
 	src\core\volatile.d \
@@ -431,6 +430,10 @@ SRCS=\
 	src\core\sys\windows\winver.d \
 	src\core\sys\windows\wtsapi32.d \
 	src\core\sys\windows\wtypes.d \
+	\
+	src\core\thread\fiber.d \
+	src\core\thread\osthread.d \
+	src\core\thread\package.d \
 	\
 	src\gc\bits.d \
 	src\gc\impl\conservative\gc.d \
