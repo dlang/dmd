@@ -15,7 +15,7 @@
 
 src/checkedint.d @redstar @andralex @JackStouffer
 
-src/core/atomic.d @WalterBright @ibuclaw
+src/core/atomic.d @WalterBright @ibuclaw @TurkeyMan
 src/core/attribute.d @jacob-carlborg
 src/core/bitop.d @schveiguy @tsbockman @Geod24
 src/core/cpuid.d @WalterBright @ibuclaw @JackStouffer
@@ -26,7 +26,7 @@ src/core/math.d @ibuclaw @redstar
 src/core/runtime.d @MartinNowak @Abscissa
 src/core/simd.d @WalterBright @MartinNowak
 src/core/stdc/* @schveiguy @ibuclaw
-src/core/stdcpp/* @WalterBright @Darredevil
+src/core/stdcpp/* @WalterBright @Darredevil @TurkeyMan
 src/core/sync/* @MartinNowak @Geod24 @WalterBright @ZombineDev
 src/core/sys/bionic/* @joakim-noah
 src/core/sys/darwin/* @jacob-carlborg @klickverbot @etcimon @MartinNowak

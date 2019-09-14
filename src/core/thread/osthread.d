@@ -3889,12 +3889,12 @@ private
 
 /**
  * Create a thread not under control of the runtime, i.e. TLS module constructors are
- * not run and the GC does not suspend it during a collection
+ * not run and the GC does not suspend it during a collection.
  *
  * Params:
- *  dg        = delegate to execute in the created thread
+ *  dg        = delegate to execute in the created thread.
  *  stacksize = size of the stack of the created thread. The default of 0 will select the
- *              platform-specific default size
+ *              platform-specific default size.
  *  cbDllUnload = Windows only: if running in a dynamically loaded DLL, this delegate will be called
  *              if the DLL is supposed to be unloaded, but the thread is still running.
  *              The thread must be terminated via `joinLowLevelThread` by the callback.
@@ -3977,14 +3977,14 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
 }
 
 /**
- * Wait for a thread created with `createLowLevelThread` to terminate
+ * Wait for a thread created with `createLowLevelThread` to terminate.
  *
  * Note: In a Windows DLL, if this function is called via DllMain with
  *       argument DLL_PROCESS_DETACH, the thread is terminated forcefully
- *       without prooper cleanup as a deadlock would be happen otherwise.
+ *       without proper cleanup as a deadlock would happen otherwise.
  *
  * Params:
- *  tid = the thread ID returned by `createLowLevelThread`
+ *  tid = the thread ID returned by `createLowLevelThread`.
  */
 void joinLowLevelThread(ThreadID tid) nothrow @nogc
 {
@@ -4015,12 +4015,12 @@ void joinLowLevelThread(ThreadID tid) nothrow @nogc
 }
 
 /**
- * Check whether a thread was created by `createLowLevelThread`
+ * Check whether a thread was created by `createLowLevelThread`.
  *
  * Params:
- *  tid = the platform specific thread ID
+ *  tid = the platform specific thread ID.
  *
- * Returns: `true` if the thread was created by `createLowLevelThread` and is still running
+ * Returns: `true` if the thread was created by `createLowLevelThread` and is still running.
  */
 bool findLowLevelThread(ThreadID tid) nothrow @nogc
 {

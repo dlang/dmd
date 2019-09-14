@@ -4,6 +4,33 @@ on assertion failures
 */
 module core.internal.dassert;
 
+/// Allows customized assert error messages
+string _d_assert_fail(string comp, A, B)(A a, B b) @nogc @safe nothrow pure
+{
+    /*
+    The program will be terminated after the assertion error message has
+    been printed and its not considered part of the "main" program.
+    Also, catching an AssertError is Undefined Behavior
+    Hence, we can fake purity and @nogc-ness here.
+    */
+
+    auto valA = miniFormatFakeAttributes(a);
+    auto valB = miniFormatFakeAttributes(b);
+    enum token = invertCompToken(comp);
+
+    const totalLen = valA.length + token.length + valB.length + 2;
+    char[] buffer = cast(char[]) pureAlloc(totalLen)[0 .. totalLen];
+    // @nogc-concat of "<valA> <comp> <valB>"
+    auto n = valA.length;
+    buffer[0 .. n] = valA;
+    buffer[n++] = ' ';
+    buffer[n .. n + token.length] = token;
+    n += token.length;
+    buffer[n++] = ' ';
+    buffer[n .. n + valB.length] = valB;
+    return (() @trusted => cast(string) buffer)();
+}
+
 // Yields the appropriate printf format token for a type T
 // Indended to be used by miniFormat
 private template getPrintfFormat(T)
@@ -37,7 +64,7 @@ private template getPrintfFormat(T)
 Minimalistic formatting for use in _d_assert_fail to keep the compilation
 overhead small and avoid the use of Phobos.
 */
-auto miniFormat(V)(V v)
+private auto miniFormat(V)(V v)
 {
     import core.stdc.stdio : sprintf;
     import core.stdc.string : strlen;
@@ -134,7 +161,7 @@ auto miniFormat(V)(V v)
 }
 
 // Inverts a comparison token for use in _d_assert_fail
-string invertCompToken(string comp)
+private string invertCompToken(string comp)
 {
     switch (comp)
     {
@@ -172,13 +199,13 @@ private auto assumeFakeAttributes(T)(T t) @trusted
     return cast(type) t;
 }
 
-auto miniFormatFakeAttributes(T)(T t)
+private auto miniFormatFakeAttributes(T)(T t)
 {
     alias miniT = miniFormat!T;
     return assumeFakeAttributes(&miniT)(t);
 }
 
-auto pureAlloc(size_t t)
+private auto pureAlloc(size_t t)
 {
     static auto alloc(size_t len)
     {

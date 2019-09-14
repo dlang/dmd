@@ -14,6 +14,7 @@ DOCS=\
 	$(DOCDIR)\core_simd.html \
 	$(DOCDIR)\core_time.html \
 	$(DOCDIR)\core_vararg.html \
+	$(DOCDIR)\core_volatile.html \
 	\
 	$(DOCDIR)\core_gc_config.html \
 	$(DOCDIR)\core_gc_gcinterface.html \
@@ -73,19 +74,13 @@ DOCS=\
 	$(DOCDIR)\core_sys_darwin_mach_semaphore.html \
 	$(DOCDIR)\core_sys_darwin_mach_thread_act.html \
 	$(DOCDIR)\core_sys_darwin_netinet_in_.html \
+    \
+    $(DOCDIR)\core_internal_destruction.html \
 	\
 	$(DOCDIR)\core_thread_fiber.html \
 	$(DOCDIR)\core_thread_osthread.html \
 	\
-    $(DOCDIR)\core_internal_array_appending.html \
     $(DOCDIR)\core_internal_array_capacity.html \
-    $(DOCDIR)\core_internal_array_casting.html \
-    $(DOCDIR)\core_internal_array_comparison.html \
-    $(DOCDIR)\core_internal_array_construction.html \
-    $(DOCDIR)\core_internal_array_equality.html \
-    $(DOCDIR)\core_internal_array_concatenation.html \
-    $(DOCDIR)\core_internal_array_utils.html \
-    $(DOCDIR)\core_internal_util_array.html \
     \
     $(DOCDIR)\rt_aaA.html \
     $(DOCDIR)\rt_aApply.html \

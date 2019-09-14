@@ -177,10 +177,10 @@ $(DOCDIR)/core_sys_darwin_netinet_%.html : src/core/sys/darwin/netinet/%.d $(DMD
 $(DOCDIR)/core_thread_%.html : src/core/thread/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
-$(DOCDIR)/core_internal_array_%.html : src/core/internal/array/%.d $(DMD)
+$(DOCDIR)/core_internal_destruction.html : src/core/internal/destruction.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
-$(DOCDIR)/core_internal_util_%.html : src/core/internal/util/%.d $(DMD)
+$(DOCDIR)/core_internal_array_capacity.html : src/core/internal/array/capacity.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOCDIR)/rt_%.html : src/rt/%.d $(DMD)

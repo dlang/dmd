@@ -106,6 +106,9 @@ $(IMPDIR)\core\time.d : src\core\time.d
 $(IMPDIR)\core\vararg.d : src\core\vararg.d
 	copy $** $@
 
+$(IMPDIR)\core\volatile.d : src\core\volatile.d
+	copy $** $@
+
 $(IMPDIR)\core\gc\config.d : src\core\gc\config.d
 	copy $** $@
 
@@ -118,7 +121,7 @@ $(IMPDIR)\core\gc\registry.d : src\core\gc\registry.d
 $(IMPDIR)\core\internal\abort.d : src\core\internal\abort.d
 	copy $** $@
 
-$(IMPDIR)\core\internal\arrayop.d : src\core\internal\arrayop.d
+$(IMPDIR)\core\internal\atomic.d : src\core\internal\atomic.d
 	copy $** $@
 
 $(IMPDIR)\core\internal\attributes.d : src\core\internal\attributes.d
@@ -130,16 +133,31 @@ $(IMPDIR)\core\internal\convert.d : src\core\internal\convert.d
 $(IMPDIR)\core\internal\dassert.d : src\core\internal\dassert.d
 	copy $** $@
 
+$(IMPDIR)\core\internal\destruction.d : src\core\internal\destruction.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\entrypoint.d : src\core\internal\entrypoint.d
+	copy $** $@
+
 $(IMPDIR)\core\internal\hash.d : src\core\internal\hash.d
 	copy $** $@
 
+$(IMPDIR)\core\internal\moving.d : src\core\internal\moving.d
+	copy $** $@
+
 $(IMPDIR)\core\internal\parseoptions.d : src\core\internal\parseoptions.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\postblit.d : src\core\internal\postblit.d
 	copy $** $@
 
 $(IMPDIR)\core\internal\spinlock.d : src\core\internal\spinlock.d
 	copy $** $@
 
 $(IMPDIR)\core\internal\string.d : src\core\internal\string.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\switch_.d : src\core\internal\switch_.d
 	copy $** $@
 
 $(IMPDIR)\core\internal\traits.d : src\core\internal\traits.d
@@ -173,6 +191,9 @@ $(IMPDIR)\core\internal\array\concatenation.d : src\core\internal\array\concaten
 	copy $** $@
 
 $(IMPDIR)\core\internal\array\utils.d : src\core\internal\array\utils.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\array\operations.d : src\core\internal\array\operations.d
 	copy $** $@
 
 $(IMPDIR)\core\internal\util\array.d : src\core\internal\util\array.d
@@ -277,6 +298,9 @@ $(IMPDIR)\core\stdcpp\vector.d : src\core\stdcpp\vector.d
 $(IMPDIR)\core\stdcpp\xutility.d : src\core\stdcpp\xutility.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\bionic\err.d : src\core\sys\bionic\err.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\bionic\string.d : src\core\sys\bionic\string.d
 	copy $** $@
 
@@ -284,6 +308,9 @@ $(IMPDIR)\core\sys\darwin\crt_externs.d : src\core\sys\darwin\crt_externs.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\darwin\dlfcn.d : src\core\sys\darwin\dlfcn.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\darwin\err.d : src\core\sys\darwin\err.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\darwin\execinfo.d : src\core\sys\darwin\execinfo.d
@@ -329,6 +356,9 @@ $(IMPDIR)\core\sys\darwin\sys\mman.d : src\core\sys\darwin\sys\mman.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\freebsd\dlfcn.d : src\core\sys\freebsd\dlfcn.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\freebsd\err.d : src\core\sys\freebsd\err.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\freebsd\execinfo.d : src\core\sys\freebsd\execinfo.d
@@ -383,6 +413,9 @@ $(IMPDIR)\core\sys\freebsd\unistd.d : src\core\sys\freebsd\unistd.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\dragonflybsd\dlfcn.d : src\core\sys\dragonflybsd\dlfcn.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\dragonflybsd\err.d : src\core\sys\dragonflybsd\err.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\dragonflybsd\execinfo.d : src\core\sys\dragonflybsd\execinfo.d
@@ -440,6 +473,9 @@ $(IMPDIR)\core\sys\linux\elf.d : src\core\sys\linux\elf.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\linux\epoll.d : src\core\sys\linux\epoll.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\linux\err.d : src\core\sys\linux\err.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\linux\errno.d : src\core\sys\linux\errno.d
@@ -517,6 +553,9 @@ $(IMPDIR)\core\sys\linux\sys\xattr.d : src\core\sys\linux\sys\xattr.d
 $(IMPDIR)\core\sys\linux\sys\time.d : src\core\sys\linux\sys\time.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\netbsd\err.d : src\core\sys\netbsd\err.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\netbsd\sys\featuretest.d : src\core\sys\netbsd\sys\featuretest.d
 	copy $** $@
 
@@ -524,6 +563,9 @@ $(IMPDIR)\core\sys\netbsd\string.d : src\core\sys\netbsd\string.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\openbsd\dlfcn.d : src\core\sys\openbsd\dlfcn.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\openbsd\err.d : src\core\sys\openbsd\err.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\openbsd\string.d : src\core\sys\openbsd\string.d
@@ -557,6 +599,9 @@ $(IMPDIR)\core\sys\posix\inttypes.d : src\core\sys\posix\inttypes.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\posix\libgen.d : src\core\sys\posix\libgen.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\locale.d : src\core\sys\posix\locale.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\posix\netdb.d : src\core\sys\posix\netdb.d
@@ -599,6 +644,12 @@ $(IMPDIR)\core\sys\posix\stdio.d : src\core\sys\posix\stdio.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\posix\stdlib.d : src\core\sys\posix\stdlib.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\string.d : src\core\sys\posix\string.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\strings.d : src\core\sys\posix\strings.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\posix\syslog.d : src\core\sys\posix\syslog.d
@@ -677,6 +728,9 @@ $(IMPDIR)\core\sys\solaris\dlfcn.d : src\core\sys\solaris\dlfcn.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\solaris\elf.d : src\core\sys\solaris\elf.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\solaris\err.d : src\core\sys\solaris\err.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\solaris\execinfo.d : src\core\sys\solaris\execinfo.d
