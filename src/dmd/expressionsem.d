@@ -7498,7 +7498,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = e.expressionSemantic(sc);
             return;
         }
-        if (!exp.type)
+        if (!exp.type || exp.e1.op == TOK.this_)
             exp.type = exp.e2.type;
         result = exp;
     }
