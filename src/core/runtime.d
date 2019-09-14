@@ -745,8 +745,16 @@ unittest
     }
 }
 
-/// Default implementation for POSIX systems
-version (Posix) private class DefaultTraceInfo : Throwable.TraceInfo
+version (CRuntime_Glibc)       version = HasBacktrace;
+else version (Darwin)          version = HasBacktrace;
+else version (FreeBSD)         version = HasBacktrace;
+else version (NetBSD)          version = HasBacktrace;
+else version (DragonFlyBSD)    version = HasBacktrace;
+else version (Solaris)         version = HasBacktrace;
+else version (CRuntime_UClibc) version = HasBacktrace;
+
+/// Default implementation for most POSIX systems
+version (HasBacktrace) private class DefaultTraceInfo : Throwable.TraceInfo
 {
     // backtrace
     version (CRuntime_Glibc)
