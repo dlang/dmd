@@ -2280,6 +2280,12 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
     }
     //if (eprefix) printf("eprefix: %s\n", eprefix.toChars());
 
+    /* Test compliance with DIP1021
+     */
+    if (global.params.useDIP1021 &&
+        tf.trust != TRUST.system && tf.trust != TRUST.trusted)
+        err |= checkMutableArguments(sc, fd, tf, ethis, arguments, false);
+
     // If D linkage and variadic, add _arguments[] as first argument
     if (tf.linkage == LINK.d && tf.parameterList.varargs == VarArg.variadic)
     {

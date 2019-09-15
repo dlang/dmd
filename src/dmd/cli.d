@@ -713,6 +713,8 @@ dmd -cov -unittest myprog.d
             "implement https://github.com/dlang/DIPs/blob/master/DIPs/other/DIP1000.md (Scoped Pointers)"),
         Feature("dip1008", "ehnogc",
             "implement https://github.com/dlang/DIPs/blob/master/DIPs/DIP1008.md (@nogc Throwable)"),
+        Feature("dip1021", "useDIP1021",
+            "implement https://github.com/dlang/DIPs/blob/master/DIPs/DIP1021.md (Mutable function arguments)"),
         Feature("fieldwise", "fieldwise", "use fieldwise comparisons for struct equality"),
         Feature("markdown", "markdown", "enable Markdown replacements in Ddoc"),
         Feature("fixAliasThis", "fixAliasThis",

@@ -306,8 +306,16 @@ extern (C++) class FuncDeclaration : Declaration
 
     bool requiresClosure;               // this function needs a closure
 
-    /// local variables in this function which are referenced by nested functions
+    /** local variables in this function which are referenced by nested functions
+     * (They'll get put into the "closure" for this function.)
+     */
     VarDeclarations closureVars;
+
+    /** Outer variables which are referenced by this nested function
+     * (the inverse of closureVars)
+     */
+    VarDeclarations outerVars;
+
     /// Sibling nested functions which called this one
     FuncDeclarations siblingCallers;
 

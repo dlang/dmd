@@ -1537,7 +1537,8 @@ extern (C++) class VarDeclaration : Declaration
     /************************************
      * Check to see if this variable is actually in an enclosing function
      * rather than the current one.
-     * Returns true if error occurs.
+     * Update nestedrefs[], closureVars[] and outerVars[].
+     * Returns: true if error occurs.
      */
     extern (D) final bool checkNestedReference(Scope* sc, Loc loc)
     {
@@ -1582,7 +1583,7 @@ extern (C++) class VarDeclaration : Declaration
                 return true;
         }
 
-        // Add this to fdv.closureVars[] if not already there
+        // Add this VarDeclaration to fdv.closureVars[] if not already there
         if (!sc.intypeof && !(sc.flags & SCOPE.compile) &&
             // https://issues.dlang.org/show_bug.cgi?id=17605
             (fdv.flags & FUNCFLAG.compileTimeOnly || !(fdthis.flags & FUNCFLAG.compileTimeOnly))
@@ -1591,6 +1592,9 @@ extern (C++) class VarDeclaration : Declaration
             if (!fdv.closureVars.contains(this))
                 fdv.closureVars.push(this);
         }
+
+        if (!fdthis.outerVars.contains(this))
+            fdthis.outerVars.push(this);
 
         //printf("fdthis is %s\n", fdthis.toChars());
         //printf("var %s in function %s is nested ref\n", toChars(), fdv.toChars());
