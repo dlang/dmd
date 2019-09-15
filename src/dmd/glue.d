@@ -1309,7 +1309,7 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
     {
         if (global.params.mscoff)
         {
-            if (global.params.mscrtlib && global.params.mscrtlib[0])
+            if (global.params.mscrtlib.length && global.params.mscrtlib[0])
                 obj_includelib(global.params.mscrtlib);
             objmod.includelib("OLDNAMES");
         }
@@ -1325,7 +1325,7 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
         if (global.params.mscoff)
         {
             objmod.includelib("uuid");
-            if (global.params.mscrtlib && global.params.mscrtlib[0])
+            if (global.params.mscrtlib.length && global.params.mscrtlib[0])
                 obj_includelib(global.params.mscrtlib);
             objmod.includelib("OLDNAMES");
         }
@@ -1344,7 +1344,7 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
         if (global.params.mscoff)
         {
             objmod.includelib("uuid");
-            if (global.params.mscrtlib && global.params.mscrtlib[0])
+            if (global.params.mscrtlib.length && global.params.mscrtlib[0])
                 obj_includelib(global.params.mscrtlib);
             objmod.includelib("OLDNAMES");
         }
