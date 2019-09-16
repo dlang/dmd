@@ -32,6 +32,8 @@ struct OutBuffer
         mem.xfree(data);
     }
 
+    extern (C++) size_t length() const pure @nogc @safe { return offset; }
+
     extern (C++) char* extractData() pure nothrow @nogc @safe
     {
         char* p;
@@ -391,12 +393,22 @@ struct OutBuffer
         return this[];
     }
 
-    extern (D) const(char)[] opSlice() pure nothrow @nogc
+    extern (D) const(char)[] opSlice() const pure nothrow @nogc
     {
         return (cast(const char*)data)[0 .. offset];
     }
 
-    /**
+    extern (D) const(char)[] opSlice(size_t lwr, size_t upr) const pure @nogc
+    {
+        return (cast(const char*)data)[lwr .. upr];
+    }
+
+    extern (D) char opIndex(size_t i) const pure @nogc
+    {
+        return (cast(const char*)data)[i];
+    }
+
+    /***********************************
      * Extract the data as a slice and take ownership of it.
      *
      * When `true` is passed as an argument, this function behaves
