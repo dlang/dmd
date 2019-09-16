@@ -7,7 +7,7 @@ DMD
 [![license](https://img.shields.io/github/license/dlang/dmd.svg?style=flat)](https://github.com/dlang/dmd/blob/master/LICENSE.txt)
 
 [![CircleCI](https://img.shields.io/circleci/project/github/dlang/dmd/master.svg?style=flat&label=circleci&logo=circleci)](https://circleci.com/gh/dlang/dmd/tree/master)
-[![AppVeyor](https://img.shields.io/appveyor/ci/greenify/dmd/master.svg?style=flat&label=appveyor&logo=appveyor)](https://ci.appveyor.com/project/greenify/dmd)
+[![Build Status](https://dev.azure.com/dlanguage/dmd/_apis/build/status/Azure%20pipelines?branchName=master)](https://dev.azure.com/dlanguage/dmd/_build/latest?definitionId=1&branchName=master)
 [![Buildkite](https://img.shields.io/buildkite/01239dde8424d69809d08769015bbdb9b90d05082e534d2f82/master.svg?style=flat&logo=dependabot&label=buildkite)](https://buildkite.com/dlang/dmd)
 [![SemaphoreCI](https://semaphoreci.com/api/v1/dlang/dmd-2/branches/master/badge.svg)](https://semaphoreci.com/dlang/dmd-2)
 
