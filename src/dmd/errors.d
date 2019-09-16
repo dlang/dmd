@@ -459,8 +459,8 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
 
     if (con && strchr(tmp.peekChars(), '`'))
     {
-        colorSyntaxHighlight(&tmp);
-        writeHighlights(con, &tmp);
+        colorSyntaxHighlight(tmp);
+        writeHighlights(con, tmp);
     }
     else
         fputs(tmp.peekChars(), stderr);
@@ -690,7 +690,7 @@ extern (C++) void halt()
  * Params:
  *      buf = text containing `...` code to highlight
  */
-private void colorSyntaxHighlight(OutBuffer* buf)
+private void colorSyntaxHighlight(ref OutBuffer buf)
 {
     //printf("colorSyntaxHighlight('%.*s')\n", cast(int)buf.offset, buf.data);
     bool inBacktick = false;
@@ -709,7 +709,7 @@ private void colorSyntaxHighlight(OutBuffer* buf)
                     codebuf.write(buf.peekSlice().ptr + iCodeStart + 1, i - (iCodeStart + 1));
                     codebuf.writeByte(0);
                     // escape the contents, but do not perform highlighting except for DDOC_PSYMBOL
-                    colorHighlightCode(&codebuf);
+                    colorHighlightCode(codebuf);
                     buf.remove(iCodeStart, i - iCodeStart + 1); // also trimming off the current `
                     immutable pre = "";
                     i = buf.insert(iCodeStart, pre);
@@ -749,7 +749,7 @@ enum HIGHLIGHT : ubyte
  * Analogous to doc.highlightCode2()
  */
 
-private void colorHighlightCode(OutBuffer* buf)
+private void colorHighlightCode(ref OutBuffer buf)
 {
     import dmd.lexer;
     import dmd.tokens;
@@ -825,7 +825,7 @@ private void colorHighlightCode(OutBuffer* buf)
  * Params:
  *      buf = highlighted text
  */
-private void writeHighlights(Console* con, const OutBuffer *buf)
+private void writeHighlights(Console* con, ref const OutBuffer buf)
 {
     bool colors;
     scope (exit)
