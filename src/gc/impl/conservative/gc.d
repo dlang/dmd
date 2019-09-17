@@ -2716,6 +2716,7 @@ struct Gcx
     Event evDone;
 
     shared uint busyThreads;
+    shared uint stoppedThreads;
     bool stopGC;
 
     void markParallel(bool nostack) nothrow
@@ -2838,8 +2839,17 @@ struct Gcx
             return;
 
         debug(PARALLEL_PRINTF) printf("stopScanThreads\n");
+        int startedThreads = 0;
+        for (int idx = 0; idx < numScanThreads; idx++)
+            if (scanThreadData[idx].tid != scanThreadData[idx].tid.init)
+                startedThreads++;
+
         stopGC = true;
-        evStart.set();
+        while (atomicLoad(stoppedThreads) < startedThreads)
+        {
+            evStart.set();
+            evDone.wait(dur!"msecs"(1));
+        }
 
         for (int idx = 0; idx < numScanThreads; idx++)
         {
@@ -2866,10 +2876,11 @@ struct Gcx
     {
         while (!stopGC)
         {
-            evStart.wait(dur!"msecs"(10));
+            evStart.wait();
             pullFromScanStack();
             evDone.set();
         }
+        stoppedThreads.atomicOp!"+="(1);
     }
 
     void pullFromScanStack() nothrow
