@@ -711,7 +711,7 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
         BaseClass** pb;
         if (!ppb)
         {
-            pb = cd.vtblInterfaces.data;
+            pb = (*cd.vtblInterfaces)[].ptr;
             ppb = &pb;
         }
 

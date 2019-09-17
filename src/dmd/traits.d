@@ -1884,9 +1884,9 @@ Lnext:
         }
 
         auto exps = new Expressions(3);
-        exps.data[0] = new StringExp(e.loc, cast(void*)s.loc.filename, strlen(s.loc.filename));
-        exps.data[1] = new IntegerExp(e.loc, s.loc.linnum,Type.tint32);
-        exps.data[2] = new IntegerExp(e.loc, s.loc.charnum,Type.tint32);
+        (*exps)[0] = new StringExp(e.loc, cast(void*)s.loc.filename, strlen(s.loc.filename));
+        (*exps)[1] = new IntegerExp(e.loc, s.loc.linnum,Type.tint32);
+        (*exps)[2] = new IntegerExp(e.loc, s.loc.charnum,Type.tint32);
         auto tup = new TupleExp(e.loc, exps);
         return tup.expressionSemantic(sc);
     }

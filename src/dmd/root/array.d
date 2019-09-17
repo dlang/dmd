@@ -19,9 +19,9 @@ import dmd.root.rmem;
 extern (C++) struct Array(T)
 {
     size_t length;
-    T* data;
 
 private:
+    T* data;
     size_t allocdim;
     enum SMALLARRAYCAP = 1;
     T[SMALLARRAYCAP] smallarray; // inline storage for small arrays

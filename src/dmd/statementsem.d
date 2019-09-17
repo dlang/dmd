@@ -2727,7 +2727,7 @@ else
 
                 // Sort cases for efficient lookup
                 import core.stdc.stdlib : qsort, _compare_fp_t;
-                qsort(csCopy.data, numcases, CaseStatement.sizeof, cast(_compare_fp_t)&sort_compare);
+                qsort((*csCopy)[].ptr, numcases, CaseStatement.sizeof, cast(_compare_fp_t)&sort_compare);
             }
 
             // The actual lowering

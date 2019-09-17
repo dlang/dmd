@@ -306,7 +306,8 @@ private void createMatchNodes()
         {
             auto index = findSortedIndexToAddForDepth(1);
             matchNodes.split(index, defaultDepth1MatchNodes.length);
-            matchNodes.data[index .. index + defaultDepth1MatchNodes.length] = defaultDepth1MatchNodes[];
+            auto slice = matchNodes[];
+            slice[index .. index + defaultDepth1MatchNodes.length] = defaultDepth1MatchNodes[];
         }
     }
 }
