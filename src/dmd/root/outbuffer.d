@@ -85,26 +85,31 @@ struct OutBuffer
 
     extern (C++) void write(const(void)* data, size_t nbytes) pure nothrow
     {
+        write(data[0 .. nbytes]);
+    }
+
+    void write(const(void)[] buf) pure nothrow
+    {
         if (doindent && !notlinehead)
             indent();
-        reserve(nbytes);
-        memcpy(this.data + offset, data, nbytes);
-        offset += nbytes;
+        reserve(buf.length);
+        memcpy(this.data + offset, buf.ptr, buf.length);
+        offset += buf.length;
     }
 
     extern (C++) void writestring(const(char)* string) pure nothrow
     {
-        write(string, strlen(string));
+        write(string[0 .. strlen(string)]);
     }
 
     void writestring(const(char)[] s) pure nothrow
     {
-        write(s.ptr, s.length);
+        write(s);
     }
 
     void writestring(string s) pure nothrow
     {
-        write(s.ptr, s.length);
+        write(s);
     }
 
     extern (C++) void prependstring(const(char)* string) pure nothrow
@@ -274,8 +279,8 @@ struct OutBuffer
     extern (C++) void vprintf(const(char)* format, va_list args) nothrow
     {
         int count;
-        if (doindent)
-            write(null, 0); // perform indent
+        if (doindent && !notlinehead)
+            indent();
         uint psize = 128;
         for (;;)
         {
