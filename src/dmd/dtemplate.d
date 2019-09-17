@@ -334,8 +334,8 @@ private bool arrayObjectMatch(Objects* oa1, Objects* oa2)
     if (oa1.dim != oa2.dim)
         return false;
     immutable oa1dim = oa1.dim;
-    auto oa1d = (*oa1).data;
-    auto oa2d = (*oa2).data;
+    auto oa1d = (*oa1)[].ptr;
+    auto oa2d = (*oa2)[].ptr;
     foreach (j; 0 .. oa1dim)
     {
         RootObject o1 = oa1d[j];

@@ -7446,9 +7446,9 @@ private Expression evaluateIfBuiltin(UnionExp* pue, InterState* istate, const re
                 else // (nargs == 3)
                 {
                     if (id == Id._aaApply)
-                        return interpret_aaApply(pue, istate, firstarg, arguments.data[2]);
+                        return interpret_aaApply(pue, istate, firstarg, (*arguments)[2]);
                     if (id == Id._aaApply2)
-                        return interpret_aaApply(pue, istate, firstarg, arguments.data[2]);
+                        return interpret_aaApply(pue, istate, firstarg, (*arguments)[2]);
                 }
             }
         }
