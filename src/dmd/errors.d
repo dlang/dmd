@@ -692,11 +692,11 @@ extern (C++) void halt()
  */
 private void colorSyntaxHighlight(ref OutBuffer buf)
 {
-    //printf("colorSyntaxHighlight('%.*s')\n", cast(int)buf.offset, buf.data);
+    //printf("colorSyntaxHighlight('%.*s')\n", cast(int)buf.length, buf.data);
     bool inBacktick = false;
     size_t iCodeStart = 0;
     size_t offset = 0;
-    for (size_t i = offset; i < buf.offset; ++i)
+    for (size_t i = offset; i < buf.length; ++i)
     {
         char c = buf.data[i];
         switch (c)
@@ -765,11 +765,11 @@ private void colorHighlightCode(ref OutBuffer buf)
 
     auto gaggedErrorsSave = global.startGagging();
     scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-    scope Lexer lex = new Lexer(null, cast(char*)buf.data, 0, buf.offset - 1, 0, 1, diagnosticReporter);
+    scope Lexer lex = new Lexer(null, cast(char*)buf.data, 0, buf.length - 1, 0, 1, diagnosticReporter);
     OutBuffer res;
     const(char)* lastp = cast(char*)buf.data;
-    //printf("colorHighlightCode('%.*s')\n", cast(int)(buf.offset - 1), buf.data);
-    res.reserve(buf.offset);
+    //printf("colorHighlightCode('%.*s')\n", cast(int)(buf.length - 1), buf.data);
+    res.reserve(buf.length);
     res.writeByte(HIGHLIGHT.Escape);
     res.writeByte(HIGHLIGHT.Other);
     while (1)
@@ -813,7 +813,7 @@ private void colorHighlightCode(ref OutBuffer buf)
     }
     res.writeByte(HIGHLIGHT.Escape);
     res.writeByte(HIGHLIGHT.Default);
-    //printf("res = '%.*s'\n", cast(int)buf.offset, buf.data);
+    //printf("res = '%.*s'\n", cast(int)buf.length, buf.data);
     buf.setsize(0);
     buf.write(&res);
     global.endGagging(gaggedErrorsSave);
@@ -836,7 +836,7 @@ private void writeHighlights(Console* con, ref const OutBuffer buf)
             con.resetColor();
     }
 
-    for (size_t i = 0; i < buf.offset; ++i)
+    for (size_t i = 0; i < buf.length; ++i)
     {
         const c = buf.data[i];
         if (c == HIGHLIGHT.Escape)

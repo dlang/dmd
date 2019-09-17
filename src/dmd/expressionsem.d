@@ -5646,7 +5646,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return null;
 
         uint errors = global.errors;
-        const len = buf.offset;
+        const len = buf.length;
         const str = buf.extractChars()[0 .. len];
         scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
         scope p = new Parser!ASTCodegen(exp.loc, sc._module, str, false, diagnosticReporter);

@@ -91,7 +91,7 @@ public:
         nest++;
         size_t end = *pend;
         assert(start <= end);
-        assert(end <= buf.offset);
+        assert(end <= buf.length);
         /* First pass - replace $0
          */
         arg = memdup(arg);

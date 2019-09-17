@@ -72,7 +72,7 @@ Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, int sclass, type *t, const(ch
 
     OutBuffer buf;
     mangleToBuffer(ds, &buf);
-    size_t nlen = buf.offset;
+    size_t nlen = buf.length;
     const(char)* n = buf.peekChars();
     assert(n);
 
@@ -144,7 +144,7 @@ Symbol *toSymbol(Dsymbol s)
             if (vd.isDataseg())
             {
                 mangleToBuffer(vd, &buf);
-                id = buf.peekChars()[0..buf.offset]; // symbol_calloc needs zero termination
+                id = buf.peekChars()[0..buf.length]; // symbol_calloc needs zero termination
             }
             else
             {
@@ -155,7 +155,7 @@ Symbol *toSymbol(Dsymbol s)
                     {
                         buf.writestring("__nrvo_");
                         buf.writestring(id);
-                        id = buf.peekChars()[0..buf.offset]; // symbol_calloc needs zero termination
+                        id = buf.peekChars()[0..buf.length]; // symbol_calloc needs zero termination
                         isNRVO = true;
                     }
                 }

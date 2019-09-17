@@ -2892,7 +2892,7 @@ extern (C++) final class ArrayLiteralExp : Expression
                 buf.write4(0);
             }
 
-            const size_t len = buf.offset / sz - 1;
+            const size_t len = buf.length / sz - 1;
             auto se = new StringExp(loc, buf.extractData(), len, prefix);
             se.sz = sz;
             se.type = type;

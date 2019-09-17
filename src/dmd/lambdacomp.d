@@ -97,7 +97,7 @@ private string getSerialization(FuncLiteralDeclaration fld, Scope* sc)
 {
     scope serVisitor = new SerializeVisitor(fld.parent._scope);
     fld.accept(serVisitor);
-    const len = serVisitor.buf.offset;
+    const len = serVisitor.buf.length;
     if (len == 0)
         return null;
 
@@ -167,7 +167,7 @@ public:
         }
         else
         {
-            buf.offset = 0;
+            buf.setsize(0);
         }
     }
 
@@ -175,7 +175,7 @@ public:
     {
         static if (LOG)
             printf("DotIdExp: %s\n", exp.toChars());
-        if (buf.offset == 0)
+        if (buf.length == 0)
             return;
 
         // First we need to see what kind of expression e1 is.
@@ -183,7 +183,7 @@ public:
         // an argument (argX.value) if the argument is an aggregate
         // type. This is reported through the et variable.
         exp.e1.accept(this);
-        if (buf.offset == 0)
+        if (buf.length == 0)
             return;
 
         if (et == ExpType.EnumDecl)
@@ -202,7 +202,7 @@ public:
 
         else if (et == ExpType.Arg)
         {
-            buf.setsize(buf.offset -1);
+            buf.setsize(buf.length -1);
             buf.writeByte('.');
             buf.writestring(exp.ident.toString());
             buf.writeByte('_');
@@ -230,7 +230,7 @@ public:
         static if (LOG)
             printf("IdentifierExp: %s\n", exp.toChars());
 
-        if (buf.offset == 0)
+        if (buf.length == 0)
             return;
 
         auto id = exp.ident.toChars();
@@ -279,10 +279,10 @@ public:
                     exp.var.toChars(), exp.e1.toChars());
 
         exp.e1.accept(this);
-        if (buf.offset == 0)
+        if (buf.length == 0)
             return;
 
-        buf.setsize(buf.offset -1);
+        buf.setsize(buf.length -1);
         buf.writeByte('.');
         buf.writestring(exp.var.toChars());
         buf.writeByte('_');
@@ -293,13 +293,13 @@ public:
         static if (LOG)
             printf("VarExp: %s, var: %s\n", exp.toChars(), exp.var.toChars());
 
-        if (buf.offset == 0)
+        if (buf.length == 0)
             return;
 
         auto id = exp.var.ident.toChars();
         if (!checkArgument(id))
         {
-            buf.offset = 0;
+            buf.setsize(0);
         }
     }
 
@@ -309,7 +309,7 @@ public:
         static if (LOG)
             printf("CallExp: %s\n", exp.toChars());
 
-        if (buf.offset == 0)
+        if (buf.length == 0)
             return;
 
         if (!exp.f)
@@ -331,19 +331,19 @@ public:
 
     override void visit(UnaExp exp)
     {
-        if (buf.offset == 0)
+        if (buf.length == 0)
             return;
 
         buf.writeByte('(');
         buf.writestring(Token.toString(exp.op));
         exp.e1.accept(this);
-        if (buf.offset != 0)
+        if (buf.length != 0)
             buf.writestring(")_");
     }
 
     override void visit(IntegerExp exp)
     {
-        if (buf.offset == 0)
+        if (buf.length == 0)
             return;
 
         buf.print(exp.toInteger());
@@ -352,7 +352,7 @@ public:
 
     override void visit(RealExp exp)
     {
-        if (buf.offset == 0)
+        if (buf.length == 0)
             return;
 
         buf.writestring(exp.toChars());
@@ -364,18 +364,18 @@ public:
         static if (LOG)
             printf("BinExp: %s\n", exp.toChars());
 
-        if (buf.offset == 0)
+        if (buf.length == 0)
             return;
 
         buf.writeByte('(');
         buf.writestring(Token.toChars(exp.op));
 
         exp.e1.accept(this);
-        if (buf.offset == 0)
+        if (buf.length == 0)
             return;
 
         exp.e2.accept(this);
-        if (buf.offset == 0)
+        if (buf.length == 0)
             return;
 
         buf.writeByte(')');

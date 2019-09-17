@@ -170,7 +170,7 @@ private const(char)[] getFilename(Identifiers* packages, Identifier ident)
         {
             const q = strchr(m, '=');
             assert(q);
-            if (dotmods.offset == q - m && memcmp(dotmods.peekChars(), m, q - m) == 0)
+            if (dotmods.length == q - m && memcmp(dotmods.peekChars(), m, q - m) == 0)
             {
                 buf.reset();
                 auto rhs = q[1 .. strlen(q)];

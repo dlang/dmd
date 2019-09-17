@@ -21,7 +21,7 @@ import dmd.root.rootobject;
 struct OutBuffer
 {
     ubyte* data;
-    size_t offset;
+    private size_t offset;
     size_t size;
     int level;
     bool doindent;
@@ -32,7 +32,7 @@ struct OutBuffer
         mem.xfree(data);
     }
 
-    extern (C++) size_t length() const pure @nogc @safe { return offset; }
+    extern (C++) size_t length() const pure @nogc @safe nothrow { return offset; }
 
     extern (C++) char* extractData() pure nothrow @nogc @safe
     {

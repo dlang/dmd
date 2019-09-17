@@ -343,10 +343,10 @@ public int runLINK()
             /* Eliminate unnecessary trailing commas    */
             while (1)
             {
-                const size_t i = cmdbuf.offset;
-                if (!i || cmdbuf.data[i - 1] != ',')
+                const size_t i = cmdbuf.length;
+                if (!i || cmdbuf[i - 1] != ',')
                     break;
-                cmdbuf.offset--;
+                cmdbuf.setsize(cmdbuf.length - 1);
             }
             if (global.params.resfile)
             {
