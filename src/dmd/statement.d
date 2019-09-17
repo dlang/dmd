@@ -793,47 +793,10 @@ extern (C++) final class CompileStatement : Statement
         return new CompileStatement(loc, Expression.arraySyntaxCopy(exps));
     }
 
-    private Statements* compileIt(Scope* sc)
-    {
-        //printf("CompileStatement::compileIt() %s\n", exp.toChars());
-
-        auto errorStatements()
-        {
-            auto a = new Statements();
-            a.push(new ErrorStatement());
-            return a;
-        }
-
-
-        OutBuffer buf;
-        if (expressionsToString(buf, sc, exps))
-            return errorStatements();
-
-        const errors = global.errors;
-        const len = buf.offset;
-        const str = buf.extractChars()[0 .. len];
-        scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-        scope p = new Parser!ASTCodegen(loc, sc._module, str, false, diagnosticReporter);
-        p.nextToken();
-
-        auto a = new Statements();
-        while (p.token.value != TOK.endOfFile)
-        {
-            Statement s = p.parseStatement(ParseStatementFlags.semi | ParseStatementFlags.curlyScope);
-            if (!s || p.errors)
-            {
-                assert(!p.errors || global.errors != errors); // make sure we caught all the cases
-                return errorStatements();
-            }
-            a.push(s);
-        }
-        return a;
-    }
-
     override Statements* flatten(Scope* sc)
     {
         //printf("CompileStatement::flatten() %s\n", exp.toChars());
-        return compileIt(sc);
+        return compileIt(this, sc);
     }
 
     override void accept(Visitor v)

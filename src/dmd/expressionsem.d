@@ -5639,34 +5639,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = (cast(BinExp)e).reorderSettingAAElem(sc);
     }
 
-    private Expression compileIt(CompileExp exp)
-    {
-        OutBuffer buf;
-        if (expressionsToString(buf, sc, exp.exps))
-            return null;
-
-        uint errors = global.errors;
-        const len = buf.offset;
-        const str = buf.extractChars()[0 .. len];
-        scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-        scope p = new Parser!ASTCodegen(exp.loc, sc._module, str, false, diagnosticReporter);
-        p.nextToken();
-        //printf("p.loc.linnum = %d\n", p.loc.linnum);
-
-        Expression e = p.parseExpression();
-        if (p.errors)
-        {
-            assert(global.errors != errors); // should have caught all these cases
-            return null;
-        }
-        if (p.token.value != TOK.endOfFile)
-        {
-            exp.error("incomplete mixin expression `%s`", str.ptr);
-            return null;
-        }
-        return e;
-    }
-
     override void visit(CompileExp exp)
     {
         /* https://dlang.org/spec/expression.html#mixin_expressions
@@ -5677,7 +5649,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("CompileExp::semantic('%s')\n", exp.toChars());
         }
 
-        auto e = compileIt(exp);
+        auto e = compileIt(exp, sc);
         if (!e)
             return setError();
         result = e.expressionSemantic(sc);

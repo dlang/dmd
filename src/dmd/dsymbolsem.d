@@ -555,6 +555,87 @@ private uint setMangleOverride(Dsymbol s, const(char)[] sym)
     return 0;
 }
 
+/*
+  Compiles the mixin content of CompileExp, CompileDeclaration
+  and CompileStatement.
+
+  Params:
+    CompileEntity = the type of mixin
+    sc            = the scope containing the mixin
+
+  Returs:
+    The resulting AST after the parsing phase
+*/
+auto compileIt(CompileEntity)(CompileEntity ce, Scope* sc)
+if (is(CompileEntity == CompileExp) ||
+    is(CompileEntity == CompileDeclaration) ||
+    is(CompileEntity == CompileStatement))
+{
+    static if (is(CompileEntity == CompileStatement))
+    {
+        auto errorStatements()
+        {
+            auto a = new Statements();
+            a.push(new ErrorStatement());
+            return a;
+        }
+
+        OutBuffer buf;
+        if (expressionsToString(buf, sc, ce.exps))
+            return errorStatements();
+    }
+    else
+    {
+        OutBuffer buf;
+        if (expressionsToString(buf, sc, ce.exps))
+            return null;
+    }
+
+    const errors = global.errors;
+    const len = buf.offset;
+    const str = buf.extractChars()[0 .. len];
+    scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
+    scope p = new Parser!ASTCodegen(ce.loc, sc._module, str, false, diagnosticReporter);
+    p.nextToken();
+    //printf("p.loc.linnum = %d\n", p.loc.linnum);
+
+    static if (is(CompileEntity == CompileExp) || is(CompileEntity == CompileDeclaration))
+    {
+        static if (is(CompileEntity == CompileExp))
+            auto d = p.parseExpression();
+        else
+            auto d = p.parseDeclDefs(0);
+
+        if (p.errors)
+        {
+            assert(global.errors != errors); // should have caught all these cases
+            return null;
+        }
+        if (p.token.value != TOK.endOfFile)
+        {
+            ce.error("incomplete mixin %s `%s`", is(typeof(ce) == CompileExp) ? "expression".ptr : "declaration".ptr,
+                        str.ptr);
+            return null;
+        }
+        return d;
+    }
+    else
+    {
+        auto a = new Statements();
+        while (p.token.value != TOK.endOfFile)
+        {
+            Statement s = p.parseStatement(ParseStatementFlags.semi | ParseStatementFlags.curlyScope);
+            if (!s || p.errors)
+            {
+                assert(!p.errors || global.errors != errors); // make sure we caught all the cases
+                return errorStatements();
+            }
+            a.push(s);
+        }
+        return a;
+    }
+}
+
 /*************************************
  * Does semantic analysis on the public face of declarations.
  */
@@ -2072,34 +2153,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         attribSemantic(sfd);
     }
 
-    private Dsymbols* compileIt(CompileDeclaration cd)
-    {
-        //printf("CompileDeclaration::compileIt(loc = %d) %s\n", cd.loc.linnum, cd.exp.toChars());
-        OutBuffer buf;
-        if (expressionsToString(buf, sc, cd.exps))
-            return null;
-
-        const errors = global.errors;
-        const len = buf.offset;
-        const str = buf.extractChars()[0 .. len];
-        scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-        scope p = new Parser!ASTCodegen(cd.loc, sc._module, str, false, diagnosticReporter);
-        p.nextToken();
-
-        auto d = p.parseDeclDefs(0);
-        if (p.errors)
-        {
-            assert(global.errors != errors);    // should have caught all these cases
-            return null;
-        }
-        if (p.token.value != TOK.endOfFile)
-        {
-            cd.error("incomplete mixin declaration `%s`", str.ptr);
-            return null;
-        }
-        return d;
-    }
-
     /***********************************************************
      * https://dlang.org/spec/module.html#mixin-declaration
      */
@@ -2108,7 +2161,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         //printf("CompileDeclaration::semantic()\n");
         if (!cd.compiled)
         {
-            cd.decl = compileIt(cd);
+            cd.decl = compileIt(cd, sc);
             cd.AttribDeclaration.addMember(sc, cd.scopesym);
             cd.compiled = true;
 
