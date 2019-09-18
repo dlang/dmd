@@ -76,10 +76,6 @@ DOCS=\
 	$(DOCDIR)\core_sys_darwin_mach_thread_act.html \
 	$(DOCDIR)\core_sys_darwin_netinet_in_.html \
     \
-    $(DOCDIR)\core_internal_destruction.html \
-	\
-    $(DOCDIR)\core_internal_array_capacity.html \
-    \
     $(DOCDIR)\rt_aaA.html \
     $(DOCDIR)\rt_aApply.html \
     $(DOCDIR)\rt_aApplyR.html \
