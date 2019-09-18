@@ -406,23 +406,23 @@ private:
             libbuf.writestring(os.name);
             libbuf.writeByte(0);
         }
-        while (libbuf.offset & 3)
+        while (libbuf.length & 3)
             libbuf.writeByte(0);
-        //if (libbuf.offset & 4)
+        //if (libbuf.length & 4)
         //    libbuf.write(pad, 4);
         static if (LOG)
         {
-            printf("\tlibbuf.moffset = x%x\n", libbuf.offset);
+            printf("\tlibbuf.moffset = x%x\n", libbuf.length);
         }
-        assert(libbuf.offset == hoffset);
+        assert(libbuf.length == hoffset);
         /* Write out each of the object modules
          */
         for (size_t i = 0; i < objmodules.dim; i++)
         {
             MachObjModule* om2 = objmodules[i];
-            if (libbuf.offset & 1)
+            if (libbuf.length & 1)
                 libbuf.writeByte('\n'); // module alignment
-            assert(libbuf.offset == om2.offset);
+            assert(libbuf.length == om2.offset);
             if (om2.scan)
             {
                 MachOmToHeader(&h, om2);
@@ -447,9 +447,9 @@ private:
         }
         static if (LOG)
         {
-            printf("moffset = x%x, libbuf.offset = x%x\n", moffset, libbuf.offset);
+            printf("moffset = x%x, libbuf.length = x%x\n", moffset, libbuf.length);
         }
-        assert(libbuf.offset == moffset);
+        assert(libbuf.length == moffset);
     }
 }
 

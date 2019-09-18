@@ -476,7 +476,7 @@ private:
         om.group_id = 0;
         om.file_mode = 0;
         /*** Write out First Linker Member ***/
-        assert(libbuf.offset == firstLinkerMemberOffset);
+        assert(libbuf.length == firstLinkerMemberOffset);
         MSCoffLibHeader h;
         MSCoffOmToHeader(&h, &om);
         libbuf.write(&h, h.sizeof);
@@ -506,9 +506,9 @@ private:
             libbuf.writeByte(0);
         }
         /*** Write out Second Linker Member ***/
-        if (libbuf.offset & 1)
+        if (libbuf.length & 1)
             libbuf.writeByte('\n');
-        assert(libbuf.offset == secondLinkerMemberOffset);
+        assert(libbuf.length == secondLinkerMemberOffset);
         om.length = cast(uint)(4 + objmodules.dim * 4 + 4 + objsymbols.dim * 2 + slength);
         MSCoffOmToHeader(&h, &om);
         libbuf.write(&h, h.sizeof);
@@ -538,10 +538,10 @@ private:
             libbuf.writeByte(0);
         }
         /*** Write out longnames Member ***/
-        if (libbuf.offset & 1)
+        if (libbuf.length & 1)
             libbuf.writeByte('\n');
-        //printf("libbuf %x longnames %x\n", (int)libbuf.offset, (int)LongnamesMemberOffset);
-        assert(libbuf.offset == LongnamesMemberOffset);
+        //printf("libbuf %x longnames %x\n", (int)libbuf.length, (int)LongnamesMemberOffset);
+        assert(libbuf.length == LongnamesMemberOffset);
         // header
         memset(&h, ' ', MSCoffLibHeader.sizeof);
         h.object_name[0] = '/';
@@ -566,10 +566,10 @@ private:
         for (size_t i = 0; i < objmodules.dim; i++)
         {
             MSCoffObjModule* om2 = objmodules[i];
-            if (libbuf.offset & 1)
+            if (libbuf.length & 1)
                 libbuf.writeByte('\n'); // module alignment
-            //printf("libbuf %x om %x\n", (int)libbuf.offset, (int)om2.offset);
-            assert(libbuf.offset == om2.offset);
+            //printf("libbuf %x om %x\n", (int)libbuf.length, (int)om2.offset);
+            assert(libbuf.length == om2.offset);
             if (om2.scan)
             {
                 MSCoffOmToHeader(&h, om2);
@@ -584,9 +584,9 @@ private:
         }
         static if (LOG)
         {
-            printf("moffset = x%x, libbuf.offset = x%x\n", cast(uint)moffset, cast(uint)libbuf.offset);
+            printf("moffset = x%x, libbuf.length = x%x\n", cast(uint)moffset, cast(uint)libbuf.length);
         }
-        assert(libbuf.offset == moffset);
+        assert(libbuf.length == moffset);
     }
 }
 

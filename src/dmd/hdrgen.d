@@ -1810,7 +1810,7 @@ public:
                 goto case;
             case Tchar:
                 {
-                    size_t o = buf.offset;
+                    size_t o = buf.length;
                     if (v == '\'')
                         buf.writestring("'\\''");
                     else if (isprint(cast(int)v) && v != '\\')
@@ -1972,7 +1972,7 @@ public:
     override void visit(StringExp e)
     {
         buf.writeByte('"');
-        const o = buf.offset;
+        const o = buf.length;
         for (size_t i = 0; i < e.len; i++)
         {
             const c = e.charAt(i);

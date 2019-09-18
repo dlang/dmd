@@ -811,8 +811,8 @@ extern (C++) void generateJson(Modules* modules)
     if (name == "-")
     {
         // Write to stdout; assume it succeeds
-        size_t n = fwrite(buf.data, 1, buf.offset, stdout);
-        assert(n == buf.offset); // keep gcc happy about return values
+        size_t n = fwrite(buf[].ptr, 1, buf.length, stdout);
+        assert(n == buf.length); // keep gcc happy about return values
     }
     else
     {

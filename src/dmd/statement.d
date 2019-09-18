@@ -810,7 +810,7 @@ extern (C++) final class CompileStatement : Statement
             return errorStatements();
 
         const errors = global.errors;
-        const len = buf.offset;
+        const len = buf.length;
         const str = buf.extractChars()[0 .. len];
         scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
         scope p = new Parser!ASTCodegen(loc, sc._module, str, false, diagnosticReporter);

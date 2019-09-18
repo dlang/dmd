@@ -750,7 +750,7 @@ nothrow:
      */
     void setString(const ref OutBuffer buf)
     {
-        setString(cast(const(char)*)buf.data, buf.offset);
+        setString(cast(const(char)*)buf.data, buf.length);
     }
 
     /****

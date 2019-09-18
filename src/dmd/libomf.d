@@ -420,19 +420,19 @@ private:
          */
         foreach (om; objmodules)
         {
-            uint page = cast(uint)(libbuf.offset / g_page_size);
+            uint page = cast(uint)(libbuf.length / g_page_size);
             assert(page <= 0xFFFF);
             om.page = cast(ushort)page;
             // Write out the object module om
             writeOMFObj(libbuf, om.base, om.length, om.name.ptr);
             // Round the size of the file up to the next page size
             // by filling with 0s
-            uint n = (g_page_size - 1) & libbuf.offset;
+            uint n = (g_page_size - 1) & libbuf.length;
             if (n)
                 libbuf.fill0(g_page_size - n);
         }
         // File offset of start of dictionary
-        uint offset = cast(uint)libbuf.offset;
+        uint offset = cast(uint)libbuf.length;
         // Write dictionary header, then round it to a BUCKETPAGE boundary
         ushort size = (BUCKETPAGE - (cast(short)offset + 3)) & (BUCKETPAGE - 1);
         libbuf.writeByte(0xF1);

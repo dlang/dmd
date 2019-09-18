@@ -1543,7 +1543,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                         err = true;
                         break;
                     }
-                    const len = buf.offset;
+                    const len = buf.length;
                     const str = buf.extractChars()[0 .. len];
                     scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
                     scope p = new Parser!ASTCodegen(e.loc, sc._module, str, false, diagnosticReporter);

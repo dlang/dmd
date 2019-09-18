@@ -6014,12 +6014,12 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
             buf.writestring("__");
             mangleToBuffer(se, &buf);   // recycle how strings are mangled for templates
 
-            if (buf.offset >= 32 + 2)
+            if (buf.length >= 32 + 2)
             {   // Replace long string with hash of that string
                 import dmd.backend.md5;
                 MD5_CTX mdContext = void;
                 MD5Init(&mdContext);
-                MD5Update(&mdContext, cast(ubyte*)buf.peekChars(), cast(uint)buf.offset);
+                MD5Update(&mdContext, cast(ubyte*)buf.peekChars(), cast(uint)buf.length);
                 MD5Final(&mdContext);
                 buf.setsize(2);
                 foreach (u; mdContext.digest)
@@ -6031,7 +6031,7 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
                 }
             }
 
-            si = symbol_calloc(buf.peekChars(), cast(uint)buf.offset);
+            si = symbol_calloc(buf.peekChars(), cast(uint)buf.length);
             si.Sclass = SCcomdat;
             si.Stype = type_static_array(cast(uint)(len * sz), tstypes[TYchar]);
             si.Stype.Tcount++;
