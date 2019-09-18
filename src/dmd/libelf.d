@@ -405,7 +405,7 @@ private:
         }
         libbuf.reserve(moffset);
         /************* Write the library ******************/
-        libbuf.write("!<arch>\n".ptr, 8);
+        libbuf.write("!<arch>\n");
         ElfObjModule om;
         om.name_offset = -1;
         om.base = null;
@@ -418,14 +418,14 @@ private:
         om.file_mode = 0;
         ElfLibHeader h;
         ElfOmToHeader(&h, &om);
-        libbuf.write(&h, h.sizeof);
+        libbuf.write((&h)[0 .. 1]);
         char[4] buf;
         Port.writelongBE(cast(uint)objsymbols.dim, buf.ptr);
-        libbuf.write(buf.ptr, 4);
+        libbuf.write(buf[0 .. 4]);
         foreach (os; objsymbols)
         {
             Port.writelongBE(os.om.offset, buf.ptr);
-            libbuf.write(buf.ptr, 4);
+            libbuf.write(buf[0 .. 4]);
         }
         foreach (os; objsymbols)
         {
@@ -451,7 +451,7 @@ private:
             h.file_size[len] = ' ';
             h.trailer[0] = '`';
             h.trailer[1] = '\n';
-            libbuf.write(&h, h.sizeof);
+            libbuf.write((&h)[0 .. 1]);
             foreach (om2; objmodules)
             {
                 if (om2.name_offset >= 0)
@@ -470,8 +470,8 @@ private:
                 libbuf.writeByte('\n'); // module alignment
             assert(libbuf.length == om2.offset);
             ElfOmToHeader(&h, om2);
-            libbuf.write(&h, h.sizeof); // module header
-            libbuf.write(om2.base, om2.length); // module contents
+            libbuf.write((&h)[0 .. 1]); // module header
+            libbuf.write(om2.base[0 .. om2.length]); // module contents
         }
         static if (LOG)
         {

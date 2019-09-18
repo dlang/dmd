@@ -273,9 +273,9 @@ void writeOMFObj(OutBuffer* buf, const(void)* base, uint length, const(char)* na
             p++;
         }
         *p = checksum;
-        buf.write(header.ptr, len + 5);
+        buf.write(header.ptr[0 .. len + 5]);
     }
-    buf.write(base, length);
+    buf.write(base[0 .. length]);
 }
 
 private: // for the remainder of this module

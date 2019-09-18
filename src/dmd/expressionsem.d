@@ -5730,7 +5730,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             ob.writestring(") : ");
             if (global.params.moduleDepsFile)
                 ob.writestring("string : ");
-            ob.write(se.string, se.len);
+            ob.write(se.string[0 .. se.len]);
             ob.writestring(" (");
             escapePath(ob, name);
             ob.writestring(")");

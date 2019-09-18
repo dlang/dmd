@@ -438,7 +438,7 @@ class Lexer
                 auto start = p;
                 auto hexString = new OutBuffer();
                 t.value = hexStringConstant(t);
-                hexString.write(start, p - start);
+                hexString.write(start[0 .. p - start]);
                 error("Built-in hex string literals are obsolete, use `std.conv.hexString!%s` instead.", hexString.extractChars());
                 return;
             case 'q':
