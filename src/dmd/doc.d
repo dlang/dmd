@@ -150,7 +150,7 @@ private class Section
         }
     L1:
         size_t o = buf.length;
-        buf.write(_body, bodylen);
+        buf.write(_body[0 .. bodylen]);
         escapeStrayParenthesis(loc, buf, o, true);
         highlightText(sc, a, loc, *buf, o);
         buf.writestring(")");
@@ -255,7 +255,7 @@ private final class ParamSection : Section
                             {
                                 warning(s.loc, "Ddoc: function declaration has no parameter '%.*s'", cast(int)namelen, namestart);
                             }
-                            buf.write(namestart, namelen);
+                            buf.write(namestart[0 .. namelen]);
                         }
                         escapeStrayParenthesis(loc, buf, o, true);
                         highlightCode(sc, a, *buf, o);
@@ -264,7 +264,7 @@ private final class ParamSection : Section
                     buf.writestring("$(DDOC_PARAM_DESC ");
                     {
                         size_t o = buf.length;
-                        buf.write(textstart, textlen);
+                        buf.write(textstart[0 .. textlen]);
                         escapeStrayParenthesis(loc, buf, o, true);
                         highlightText(sc, a, loc, *buf, o);
                     }
@@ -393,7 +393,7 @@ extern(C++) void gendocfile(Module m)
             // BUG: convert file contents to UTF-8 before use
             const data = buffer.data;
             //printf("file: '%.*s'\n", cast(int)data.length, data.ptr);
-            mbuf.write(data.ptr, data.length);
+            mbuf.write(data);
         }
     }
     DocComment.parseMacros(m.escapetable, &m.macrotable, mbuf.peekSlice().ptr, mbuf.peekSlice().length);
@@ -442,7 +442,7 @@ extern(C++) void gendocfile(Module m)
             commentlen = dc.macros.name - m.comment;
             dc.macros.write(loc, dc, sc, &a, &buf);
         }
-        buf.write(m.comment, commentlen);
+        buf.write(m.comment[0 .. commentlen]);
         highlightText(sc, &a, loc, buf, 0);
     }
     else
@@ -1895,7 +1895,7 @@ struct DocComment
             {
                 buf.writestring("$(DDOC_SUMMARY ");
                 size_t o = buf.length;
-                buf.write(sec._body, sec.bodylen);
+                buf.write(sec._body[0 .. sec.bodylen]);
                 escapeStrayParenthesis(loc, buf, o, true);
                 highlightText(sc, a, loc, *buf, o);
                 buf.writestring(")");
@@ -2011,7 +2011,7 @@ private size_t skipChars(ref OutBuffer buf, size_t i, string chars)
 unittest {
     OutBuffer buf;
     string data = "test ---\r\n\r\nend";
-    buf.write(data.ptr, data.length);
+    buf.write(data);
 
     assert(skipChars(buf, 0, "-") == 0);
     assert(skipChars(buf, 4, "-") == 4);
@@ -4480,7 +4480,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, ref OutBuffer buf, s
                     inBacktick = 0;
                     inCode = 0;
                     OutBuffer codebuf;
-                    codebuf.write(buf.peekSlice().ptr + iCodeStart + count, i - (iCodeStart + count));
+                    codebuf.write(buf[iCodeStart + count .. i]);
                     // escape the contents, but do not perform highlighting except for DDOC_PSYMBOL
                     highlightCode(sc, a, codebuf, 0);
                     escapeStrayParenthesis(loc, &codebuf, 0, false);
@@ -4664,7 +4664,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, ref OutBuffer buf, s
                     inCode = 0;
                     // The code section is from iCodeStart to i
                     OutBuffer codebuf;
-                    codebuf.write(buf.data + iCodeStart, i - iCodeStart);
+                    codebuf.write(buf[iCodeStart .. i]);
                     codebuf.writeByte(0);
                     // Remove leading indentations from all lines
                     bool lineStart = true;

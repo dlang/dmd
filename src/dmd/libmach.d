@@ -368,7 +368,7 @@ private:
         }
         libbuf.reserve(moffset);
         /************* Write the library ******************/
-        libbuf.write(cast(const(char)*)"!<arch>\n", 8);
+        libbuf.write("!<arch>\n");
         MachObjModule om;
         om.base = null;
         om.length = cast(uint)(hoffset - (8 + MachLibHeader.sizeof));
@@ -384,22 +384,22 @@ private:
         int len = sprintf(h.file_size.ptr, "%u", om.length);
         assert(len <= 10);
         memset(h.file_size.ptr + len, ' ', 10 - len);
-        libbuf.write(&h, h.sizeof);
+        libbuf.write((&h)[0 .. 1]);
         char[4] buf;
         Port.writelongLE(cast(uint)(objsymbols.dim * 8), buf.ptr);
-        libbuf.write(buf.ptr, 4);
+        libbuf.write(buf[0 .. 4]);
         int stringoff = 0;
         for (size_t i = 0; i < objsymbols.dim; i++)
         {
             MachObjSymbol* os = objsymbols[i];
             Port.writelongLE(stringoff, buf.ptr);
-            libbuf.write(buf.ptr, 4);
+            libbuf.write(buf[0 .. 4]);
             Port.writelongLE(os.om.offset, buf.ptr);
-            libbuf.write(buf.ptr, 4);
+            libbuf.write(buf[0 .. 4]);
             stringoff += os.name.length + 1;
         }
         Port.writelongLE(stringoff, buf.ptr);
-        libbuf.write(buf.ptr, 4);
+        libbuf.write(buf[0 .. 4]);
         for (size_t i = 0; i < objsymbols.dim; i++)
         {
             MachObjSymbol* os = objsymbols[i];
@@ -409,7 +409,7 @@ private:
         while (libbuf.length & 3)
             libbuf.writeByte(0);
         //if (libbuf.length & 4)
-        //    libbuf.write(pad, 4);
+        //    libbuf.write(pad[0 .. 4]);
         static if (LOG)
         {
             printf("\tlibbuf.moffset = x%x\n", libbuf.length);
@@ -426,23 +426,23 @@ private:
             if (om2.scan)
             {
                 MachOmToHeader(&h, om2);
-                libbuf.write(&h, h.sizeof); // module header
-                libbuf.write(om2.name.ptr, om2.name.length);
+                libbuf.write((&h)[0 .. 1]); // module header
+                libbuf.write(om2.name.ptr[0 .. om2.name.length]);
                 int nzeros = 8 - ((om2.name.length + 4) & 7);
                 if (nzeros < 4)
                     nzeros += 8; // emulate mysterious behavior of ar
                 libbuf.fill0(nzeros);
-                libbuf.write(om2.base, om2.length); // module contents
+                libbuf.write(om2.base[0 .. om2.length]); // module contents
                 // obj modules are padded out to 8 bytes in length with 0x0A
                 int filealign = om2.length & 7;
                 if (filealign)
                 {
-                    libbuf.write(pad, 8 - filealign);
+                    libbuf.write(pad[0 .. 8 - filealign]);
                 }
             }
             else
             {
-                libbuf.write(om2.base, om2.length); // module contents
+                libbuf.write(om2.base[0 .. om2.length]); // module contents
             }
         }
         static if (LOG)

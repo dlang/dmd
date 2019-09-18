@@ -706,7 +706,7 @@ private void colorSyntaxHighlight(ref OutBuffer buf)
                 {
                     inBacktick = false;
                     OutBuffer codebuf;
-                    codebuf.write(buf.peekSlice().ptr + iCodeStart + 1, i - (iCodeStart + 1));
+                    codebuf.write(buf[iCodeStart + 1 .. i]);
                     codebuf.writeByte(0);
                     // escape the contents, but do not perform highlighting except for DDOC_PSYMBOL
                     colorHighlightCode(codebuf);

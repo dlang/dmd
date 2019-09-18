@@ -83,11 +83,6 @@ struct OutBuffer
         notlinehead = true;
     }
 
-    extern (C++) void write(const(void)* data, size_t nbytes) pure nothrow
-    {
-        write(data[0 .. nbytes]);
-    }
-
     void write(const(void)[] buf) pure nothrow
     {
         if (doindent && !notlinehead)
@@ -403,7 +398,7 @@ struct OutBuffer
         return (cast(const char*)data)[0 .. offset];
     }
 
-    extern (D) const(char)[] opSlice(size_t lwr, size_t upr) const pure @nogc
+    extern (D) const(char)[] opSlice(size_t lwr, size_t upr) const pure nothrow @nogc
     {
         return (cast(const char*)data)[lwr .. upr];
     }

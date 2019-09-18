@@ -465,7 +465,7 @@ private:
             padding += 16; // try again with more margins
         }
         // Write dictionary
-        libbuf.write(bucketsP, ndicpages * BUCKETPAGE);
+        libbuf.write(bucketsP[0 .. ndicpages * BUCKETPAGE]);
         if (bucketsP)
             free(bucketsP);
         // Create library header

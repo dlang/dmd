@@ -462,7 +462,7 @@ private:
         }
         libbuf.reserve(moffset);
         /************* Write the library ******************/
-        libbuf.write("!<arch>\n".ptr, 8);
+        libbuf.write("!<arch>\n");
         MSCoffObjModule om;
         om.name_offset = -1;
         om.base = null;
@@ -479,10 +479,10 @@ private:
         assert(libbuf.length == firstLinkerMemberOffset);
         MSCoffLibHeader h;
         MSCoffOmToHeader(&h, &om);
-        libbuf.write(&h, h.sizeof);
+        libbuf.write((&h)[0 .. 1]);
         char[4] buf;
         Port.writelongBE(cast(uint)objsymbols.dim, buf.ptr);
-        libbuf.write(buf.ptr, 4);
+        libbuf.write(buf[0 .. 4]);
         // Sort objsymbols[] in module offset order
         qsort(objsymbols[].ptr, objsymbols.dim, (objsymbols[0]).sizeof, cast(_compare_fp_t)&MSCoffObjSymbol_offset_cmp);
         uint lastoffset;
@@ -497,7 +497,7 @@ private:
             }
             lastoffset = os.om.offset;
             Port.writelongBE(lastoffset, buf.ptr);
-            libbuf.write(buf.ptr, 4);
+            libbuf.write(buf[0 .. 4]);
         }
         for (size_t i = 0; i < objsymbols.dim; i++)
         {
@@ -511,25 +511,25 @@ private:
         assert(libbuf.length == secondLinkerMemberOffset);
         om.length = cast(uint)(4 + objmodules.dim * 4 + 4 + objsymbols.dim * 2 + slength);
         MSCoffOmToHeader(&h, &om);
-        libbuf.write(&h, h.sizeof);
+        libbuf.write((&h)[0 .. 1]);
         Port.writelongLE(cast(uint)objmodules.dim, buf.ptr);
-        libbuf.write(buf.ptr, 4);
+        libbuf.write(buf[0 .. 4]);
         for (size_t i = 0; i < objmodules.dim; i++)
         {
             MSCoffObjModule* om2 = objmodules[i];
             om2.index = cast(ushort)i;
             Port.writelongLE(om2.offset, buf.ptr);
-            libbuf.write(buf.ptr, 4);
+            libbuf.write(buf[0 .. 4]);
         }
         Port.writelongLE(cast(uint)objsymbols.dim, buf.ptr);
-        libbuf.write(buf.ptr, 4);
+        libbuf.write(buf[0 .. 4]);
         // Sort objsymbols[] in lexical order
         qsort(objsymbols[].ptr, objsymbols.dim, (objsymbols[0]).sizeof, cast(_compare_fp_t)&MSCoffObjSymbol_cmp);
         for (size_t i = 0; i < objsymbols.dim; i++)
         {
             MSCoffObjSymbol* os = objsymbols[i];
             Port.writelongLE(os.om.index + 1, buf.ptr);
-            libbuf.write(buf.ptr, 2);
+            libbuf.write(buf[0 .. 2]);
         }
         for (size_t i = 0; i < objsymbols.dim; i++)
         {
@@ -551,7 +551,7 @@ private:
         h.file_size[len] = ' ';
         h.trailer[0] = '`';
         h.trailer[1] = '\n';
-        libbuf.write(&h, h.sizeof);
+        libbuf.write((&h)[0 .. 1]);
         for (size_t i = 0; i < objmodules.dim; i++)
         {
             MSCoffObjModule* om2 = objmodules[i];
@@ -573,13 +573,13 @@ private:
             if (om2.scan)
             {
                 MSCoffOmToHeader(&h, om2);
-                libbuf.write(&h, h.sizeof); // module header
-                libbuf.write(om2.base, om2.length); // module contents
+                libbuf.write((&h)[0 .. 1]); // module header
+                libbuf.write(om2.base[0 .. om2.length]); // module contents
             }
             else
             {
                 // Header is included in om.base[0..length]
-                libbuf.write(om2.base, om2.length); // module contents
+                libbuf.write(om2.base[0 .. om2.length]); // module contents
             }
         }
         static if (LOG)
