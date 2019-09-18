@@ -366,6 +366,10 @@ final class Parser(AST) : Lexer
                         {
                             error("`@%s` attribute for module declaration is not supported", token.toChars());
                         }
+                        else if (stc == STC.rvalueref)
+                        {
+                            error("`@rvalue ref` for module declaration is not supported", token.toChars());
+                        }
                         else
                         {
                             udas = AST.UserAttributeDeclaration.concat(udas, exps);
@@ -1389,6 +1393,13 @@ final class Parser(AST) : Lexer
         if (token.value == TOK.identifier)
         {
             stc = isBuiltinAtAttribute(token.ident);
+            if (!stc && token.ident == Id.rvalue && global.params.rvalueAttribute)
+            {
+                nextToken();
+                if (token.value != TOK.ref_)
+                    error("`ref` expected after `@rvalue`, not `%s`", token.toChars());
+                stc = STC.rvalueref;
+            }
             if (!stc)
             {
                 // Allow identifier, template instantiation, or function call
@@ -1474,6 +1485,10 @@ final class Parser(AST) : Lexer
                 {
                     AST.Expressions* udas = null;
                     stc = parseAttribute(&udas);
+                    if (stc == STC.rvalueref)
+                    {
+                        error("`@rvalue ref` cannot appear as postfix");
+                    }
                     if (udas)
                     {
                         if (pudas)
@@ -2879,6 +2894,11 @@ final class Parser(AST) : Lexer
                         }
                         if (token.value == TOK.dotDotDot)
                             error("variadic parameter cannot have user-defined attributes");
+                        if (stc2 == STC.rvalueref)
+                        {
+                            stc = stc2;
+                            goto L2;
+                        }
                         if (stc2)
                             nextToken();
                         goto L3;
@@ -2958,9 +2978,9 @@ final class Parser(AST) : Lexer
                     }
                 default:
                     {
-                        stc = storageClass & (STC.in_ | STC.out_ | STC.ref_ | STC.lazy_);
+                        stc = storageClass & (STC.in_ | STC.out_ | STC.ref_ | STC.rvalueref | STC.lazy_);
                         // if stc is not a power of 2
-                        if (stc & (stc - 1) && !(stc == (STC.in_ | STC.ref_)))
+                        if (stc & (stc - 1) && !(stc == (STC.in_ | STC.ref_) || stc == (STC.in_ | STC.rvalueref)))
                             error("incompatible parameter storage classes");
                         //if ((storageClass & STC.scope_) && (storageClass & (STC.ref_ | STC.out_)))
                             //error("scope cannot be ref or out");
@@ -3015,6 +3035,10 @@ final class Parser(AST) : Lexer
                             {
                                 error("`@%s` attribute for function parameter is not supported", token.toChars());
                             }
+                            else if (stc2 == STC.rvalueref)
+                            {
+                                error("`@rvalue ref` cannot appear as postfix");
+                            }
                             else
                             {
                                 error("user-defined attributes cannot appear as postfixes", token.toChars());
@@ -3029,6 +3053,8 @@ final class Parser(AST) : Lexer
                              */
                             if (storageClass & (STC.out_ | STC.ref_))
                                 error("variadic argument cannot be `out` or `ref`");
+                            if (storageClass & STC.rvalueref)
+                                error("variadic argument cannot be `@rvalue ref`");
                             varargs = AST.VarArg.typesafe;
                             parameters.push(param);
                             nextToken();
@@ -4444,7 +4470,10 @@ final class Parser(AST) : Lexer
                             (tk.value == TOK.goesTo || tk.value == TOK.leftCurly) ||
                         token.value == TOK.leftCurly ||
                         token.value == TOK.identifier && peekNext() == TOK.goesTo ||
-                        token.value == TOK.ref_ && peekNext() == TOK.leftParentheses &&
+                        (token.value == TOK.ref_ || global.params.rvalueAttribute &&
+                                token.value == TOK.at && peekNext() == TOK.identifier &&
+                                peek(&token).ident == Id.rvalue && peekNext2() == TOK.ref_) && // ref or @rvalue ref
+                            peekNext() == TOK.leftParentheses &&
                             skipAttributes(peekPastParen(peek(&token)), &tk) &&
                             (tk.value == TOK.goesTo || tk.value == TOK.leftCurly)
                        )
@@ -4457,6 +4486,8 @@ final class Parser(AST) : Lexer
                         // identifier => expression
                         // ref (parameters) { statements... }
                         // ref (parameters) => expression
+                        // @rvalue ref (parameters) { statements... }
+                        // @rvalue ref (parameters) => expression
 
                         s = parseFunctionLiteral();
 
@@ -4868,6 +4899,21 @@ final class Parser(AST) : Lexer
                 stc = STC.ref_;
                 nextToken();
             }
+            if (token.value == TOK.at && global.params.rvalueAttribute)
+            {
+                nextToken();
+                if (token.value != TOK.identifier || token.ident != Id.rvalue ||
+                    peekNext() != TOK.ref_)
+                {
+                    error("expected `@rvalue ref`, not `@%s`", token.toChars());
+                }
+
+                // function @rvalue ref (parameters) { statements... }
+                // delegate @rvalue ref (parameters) { statements... }
+                stc = STC.rvalueref;
+                nextToken();
+                nextToken();
+            }
             if (token.value != TOK.leftParentheses && token.value != TOK.leftCurly)
             {
                 // function type (parameters) { statements... }
@@ -4897,6 +4943,26 @@ final class Parser(AST) : Lexer
                 nextToken();
                 goto case TOK.leftParentheses;
             }
+
+        case TOK.at:
+            {
+                if (!global.params.rvalueAttribute)
+                    goto default;
+
+                nextToken();
+                if (token.value != TOK.identifier || token.ident != Id.rvalue ||
+                    peekNext() != TOK.ref_)
+                {
+                    error("expected `@rvalue ref`, not `@%s`", token.toChars());
+                }
+                // @rvalue ref (parameters) => expression
+                // @rvalue ref (parameters) { statements... }
+                stc = STC.rvalueref;
+                nextToken();
+                nextToken();
+                goto case TOK.leftParentheses;
+            }
+
         case TOK.leftParentheses:
             {
                 // (parameters) => expression
@@ -7231,6 +7297,19 @@ final class Parser(AST) : Lexer
             case TOK.return_:
                 continue;
 
+            case TOK.at:
+                if (!global.params.rvalueAttribute)
+                    goto default;
+                auto t2 = peek(t);
+                if (t2.value == TOK.identifier && t2.ident == Id.rvalue &&
+                    peek(t2).value == TOK.ref_)
+                {
+                    t = peek(t2);
+                    continue;
+                }
+                t = peek(t);
+                goto default;
+
             case TOK.const_:
             case TOK.immutable_:
             case TOK.shared_:
@@ -7497,6 +7576,11 @@ final class Parser(AST) : Lexer
                      */
                     if (isBuiltinAtAttribute(t.ident))
                         break;
+                    if (global.params.rvalueAttribute && t.ident == Id.rvalue && peek(t).value == TOK.ref_)
+                    {
+                        t = peek(t);
+                        break;
+                    }
                     t = peek(t);
                     if (t.value == TOK.not)
                     {
@@ -8076,6 +8160,30 @@ final class Parser(AST) : Lexer
                 error("found `%s` when expecting function literal following `ref`", token.toChars());
                 goto Lerr;
             }
+        case TOK.at:
+            {
+                if (global.params.rvalueAttribute &&
+                    peekNext() == TOK.identifier && peek(&token).ident == Id.rvalue &&
+                    peekNext2() == TOK.ref_)
+                {
+                    nextToken();
+                    nextToken();
+                    nextToken();
+                    if (token.value == TOK.leftParentheses)
+                    {
+                        Token* tk = peekPastParen(&token);
+                        if (skipAttributes(tk, &tk) && (tk.value == TOK.goesTo || tk.value == TOK.leftCurly))
+                        {
+                            // @rvalue ref (arguments) => expression
+                            // @rvalue ref (arguments) { statements... }
+                            goto case_delegate;
+                        }
+                    }
+                    error("found `%s` when expecting function literal following `@rvalue ref`", token.toChars());
+                    goto Lerr;
+                }
+                goto default;
+            }
         case TOK.leftParentheses:
             {
                 Token* tk = peekPastParen(&token);
@@ -8223,6 +8331,7 @@ final class Parser(AST) : Lexer
                  * cast(shared), cast(shared const), cast(wild), cast(shared wild)
                  */
                 ubyte m = 0;
+                bool rvalueRef;
                 while (1)
                 {
                     switch (token.value)
@@ -8254,6 +8363,25 @@ final class Parser(AST) : Lexer
                         m |= AST.MODFlags.wild;
                         nextToken();
                         continue;
+
+                    case TOK.at:
+                        if (global.params.rvalueAttribute &&
+                            !m && peekNext() == TOK.identifier &&
+                            peek(&token).ident == Id.rvalue)
+                        {
+                            nextToken();
+                            nextToken();
+                            if (token.value != TOK.ref_)
+                                error("found `%s` when expecting `ref` following `@rvalue`", token.toChars());
+                            else
+                            {
+                                nextToken();
+                                if (token.value != TOK.rightParentheses)
+                                    error("found `%s` when expecting `)` following `cast(@rvalue ref`", token.toChars());
+                                rvalueRef = true;
+                            }
+                        }
+                        break;
 
                     default:
                         break;

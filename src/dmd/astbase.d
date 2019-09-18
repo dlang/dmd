@@ -130,16 +130,17 @@ struct ASTBase
         future              = (1L << 50),   // introducing new base class function
         local               = (1L << 51),   // do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
         returninferred      = (1L << 52),   // 'return' has been inferred and should not be part of mangling
+        rvalueref           = (1L << 53),   // @rvalue ref
 
         safeGroup = STC.safe | STC.trusted | STC.system,
         TYPECTOR = (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild),
-        FUNCATTR = (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.property |
+        FUNCATTR = (STC.ref_ | STC.rvalueref | STC.nothrow_ | STC.nogc | STC.pure_ | STC.property |
                     safeGroup),
     }
 
     extern (C++) __gshared const(StorageClass) STCStorageClass =
         (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.const_ | STC.final_ | STC.abstract_ | STC.synchronized_ | STC.deprecated_ | STC.override_ | STC.lazy_ | STC.alias_ | STC.out_ | STC.in_ | STC.manifest | STC.immutable_ | STC.shared_ | STC.wild | STC.nothrow_ | STC.nogc | STC.pure_ | STC.ref_ | STC.return_ | STC.tls | STC.gshared | STC.property |
-         STC.safeGroup | STC.disable);
+         STC.safeGroup | STC.disable | STC.rvalueref);
 
     enum ENUMTY : int
     {
@@ -6470,6 +6471,7 @@ struct ASTBase
             SCstring(STC.system, TOK.at, "@system"),
             SCstring(STC.disable, TOK.at, "@disable"),
             SCstring(STC.future, TOK.at, "@__future"),
+            SCstring(STC.rvalueref, TOK.at, "@rvalue ref"),
             SCstring(0, TOK.reserved)
         ];
         for (int i = 0; table[i].stc; i++)

@@ -2728,6 +2728,7 @@ string stcToString(ref StorageClass stc)
         SCstring(STC.disable, TOK.at, "@disable"),
         SCstring(STC.future, TOK.at, "@__future"),
         SCstring(STC.local, TOK.at, "__local"),
+        SCstring(STC.rvalueref, TOK.at, "@rvalue ref"),
         SCstring(0, TOK.reserved)
     ];
     for (int i = 0; table[i].stc; i++)
