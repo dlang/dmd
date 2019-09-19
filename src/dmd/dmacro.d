@@ -97,7 +97,7 @@ public:
         arg = memdup(arg);
         for (size_t u = start; u + 1 < end;)
         {
-            char* p = cast(char*)buf.data; // buf.data is not loop invariant
+            char* p = cast(char*)(*buf)[].ptr; // buf.data is not loop invariant
             /* Look for $0, but not $$0, and replace it with arg.
              */
             if (p[u] == '$' && (isdigit(p[u + 1]) || p[u + 1] == '+'))
@@ -143,8 +143,9 @@ public:
                 {
                     // Replace '$1' with '\xFF{arg\xFF}'
                     //printf("Replacing '$%c' with '\xFF{%.*s\xFF}'\n", p[u + 1], cast(int)marg.length, marg.ptr);
-                    buf.data[u] = 0xFF;
-                    buf.data[u + 1] = '{';
+                    ubyte[] slice = cast(ubyte[])(*buf)[];
+                    slice[u] = 0xFF;
+                    slice[u + 1] = '{';
                     buf.insert(u + 2, marg);
                     buf.insert(u + 2 + marg.length, "\xFF}");
                     end += -2 + 2 + marg.length + 2;
@@ -164,7 +165,7 @@ public:
          */
         for (size_t u = start; u + 4 < end;)
         {
-            char* p = cast(char*)buf.data; // buf.data is not loop invariant
+            char* p = cast(char*)(*buf)[].ptr; // buf.data is not loop invariant
             /* A valid start of macro expansion is $(c, where c is
              * an id start character, and not $$(c.
              */
@@ -247,11 +248,12 @@ public:
                             marg = memdup(marg);
                             // Insert replacement text
                             buf.spread(v + 1, 2 + m.text.length + 2);
-                            buf.data[v + 1] = 0xFF;
-                            buf.data[v + 2] = '{';
-                            buf.data[v + 3 .. v + 3 + m.text.length] = cast(ubyte[])m.text[];
-                            buf.data[v + 3 + m.text.length] = 0xFF;
-                            buf.data[v + 3 + m.text.length + 1] = '}';
+                            ubyte[] slice = cast(ubyte[])(*buf)[];
+                            slice[v + 1] = 0xFF;
+                            slice[v + 2] = '{';
+                            slice[v + 3 .. v + 3 + m.text.length] = cast(ubyte[])m.text[];
+                            slice[v + 3 + m.text.length] = 0xFF;
+                            slice[v + 3 + m.text.length + 1] = '}';
                             end += 2 + m.text.length + 2;
                             // Scan replaced text for further expansion
                             m.inuse++;

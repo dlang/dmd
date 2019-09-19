@@ -20,7 +20,7 @@ import dmd.root.rootobject;
 
 struct OutBuffer
 {
-    ubyte* data;
+    private ubyte* data;
     private size_t offset;
     size_t size;
     int level;
@@ -403,7 +403,7 @@ struct OutBuffer
         return (cast(const char*)data)[lwr .. upr];
     }
 
-    extern (D) char opIndex(size_t i) const pure @nogc
+    extern (D) char opIndex(size_t i) const pure nothrow @nogc
     {
         return (cast(const char*)data)[i];
     }

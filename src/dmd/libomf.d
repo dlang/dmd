@@ -489,7 +489,7 @@ private:
         libHeader.ndicpages = ndicpages;
         libHeader.flags = 1; // always case sensitive
         // Write library header at start of buffer
-        memcpy(libbuf.data, &libHeader, (libHeader).sizeof);
+        memcpy(cast(void*)(*libbuf)[].ptr, &libHeader, (libHeader).sizeof);
     }
 }
 

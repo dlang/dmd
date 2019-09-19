@@ -60,14 +60,14 @@ public:
 
     void indent()
     {
-        if (buf.length >= 1 && buf.data[buf.length - 1] == '\n')
+        if (buf.length >= 1 && (*buf)[buf.length - 1] == '\n')
             for (int i = 0; i < indentLevel; i++)
                 buf.writeByte(' ');
     }
 
     void removeComma()
     {
-        if (buf.length >= 2 && buf.data[buf.length - 2] == ',' && (buf.data[buf.length - 1] == '\n' || buf.data[buf.length - 1] == ' '))
+        if (buf.length >= 2 && (*buf)[buf.length - 2] == ',' && ((*buf)[buf.length - 1] == '\n' || (*buf)[buf.length - 1] == ' '))
             buf.setsize(buf.length - 2);
     }
 
@@ -189,9 +189,9 @@ public:
     {
         indentLevel--;
         removeComma();
-        if (buf.length >= 2 && buf.data[buf.length - 2] == '[' && buf.data[buf.length - 1] == '\n')
+        if (buf.length >= 2 && (*buf)[buf.length - 2] == '[' && (*buf)[buf.length - 1] == '\n')
             buf.setsize(buf.length - 1);
-        else if (!(buf.length >= 1 && buf.data[buf.length - 1] == '['))
+        else if (!(buf.length >= 1 && (*buf)[buf.length - 1] == '['))
         {
             buf.writestring("\n");
             indent();
@@ -212,7 +212,7 @@ public:
     {
         indentLevel--;
         removeComma();
-        if (buf.length >= 2 && buf.data[buf.length - 2] == '{' && buf.data[buf.length - 1] == '\n')
+        if (buf.length >= 2 && (*buf)[buf.length - 2] == '{' && (*buf)[buf.length - 1] == '\n')
             buf.setsize(buf.length - 1);
         else
         {
