@@ -698,7 +698,7 @@ private void colorSyntaxHighlight(ref OutBuffer buf)
     size_t offset = 0;
     for (size_t i = offset; i < buf.length; ++i)
     {
-        char c = buf.data[i];
+        char c = buf[i];
         switch (c)
         {
             case '`':
@@ -765,9 +765,9 @@ private void colorHighlightCode(ref OutBuffer buf)
 
     auto gaggedErrorsSave = global.startGagging();
     scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-    scope Lexer lex = new Lexer(null, cast(char*)buf.data, 0, buf.length - 1, 0, 1, diagnosticReporter);
+    scope Lexer lex = new Lexer(null, cast(char*)buf[].ptr, 0, buf.length - 1, 0, 1, diagnosticReporter);
     OutBuffer res;
-    const(char)* lastp = cast(char*)buf.data;
+    const(char)* lastp = cast(char*)buf[].ptr;
     //printf("colorHighlightCode('%.*s')\n", cast(int)(buf.length - 1), buf.data);
     res.reserve(buf.length);
     res.writeByte(HIGHLIGHT.Escape);
@@ -838,10 +838,10 @@ private void writeHighlights(Console* con, ref const OutBuffer buf)
 
     for (size_t i = 0; i < buf.length; ++i)
     {
-        const c = buf.data[i];
+        const c = buf[i];
         if (c == HIGHLIGHT.Escape)
         {
-            const color = buf.data[++i];
+            const color = buf[++i];
             if (color == HIGHLIGHT.Default)
             {
                 con.resetColor();

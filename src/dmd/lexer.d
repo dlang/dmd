@@ -2216,7 +2216,7 @@ class Lexer
             ++pstart;
         }
         stringbuffer.writeByte(0);
-        auto sbufptr = cast(const(char)*)stringbuffer.data;
+        auto sbufptr = cast(const(char)*)stringbuffer[].ptr;
         TOK result;
         bool isOutOfRange = false;
         t.floatvalue = (isWellformedString ? CTFloat.parse(sbufptr, &isOutOfRange) : CTFloat.zero);
@@ -2436,7 +2436,7 @@ class Lexer
                         goto Lerr;
                     case '"':
                         stringbuffer.writeByte(0);
-                        filespec = mem.xstrdup(cast(const(char)*)stringbuffer.data);
+                        filespec = mem.xstrdup(cast(const(char)*)stringbuffer[].ptr);
                         p++;
                         break;
                     default:

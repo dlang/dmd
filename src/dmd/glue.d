@@ -143,7 +143,7 @@ void obj_write_deferred(Library library)
         }
         else
         {
-            idbuf.data = null;
+            idbuf.extractData();
             Identifier id = Identifier.create(idstr);
 
             Module md = new Module(mname.toDString, id, 0, 0);

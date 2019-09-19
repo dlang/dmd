@@ -122,7 +122,7 @@ struct ObjcSelector
         }
     Lcomplete:
         buf.writeByte('\0');
-        return lookup(cast(const(char)*)buf.data, buf.size, pcount);
+        return lookup(cast(const(char)*)buf[].ptr, buf.size, pcount);
     }
 
     extern (D) const(char)[] toString() const pure

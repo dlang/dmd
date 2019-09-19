@@ -1011,7 +1011,7 @@ public:
         buf.print(q.length);
         buf.writeByte('_');    // nbytes <= 11
         size_t qi = 0;
-        for (char* p = cast(char*)buf.data + buf.length, pend = p + 2 * q.length; p < pend; p += 2, ++qi)
+        for (char* p = cast(char*)(*buf)[].ptr + buf.length, pend = p + 2 * q.length; p < pend; p += 2, ++qi)
         {
             char hi = (q[qi] >> 4) & 0xF;
             p[0] = cast(char)(hi < 10 ? hi + '0' : hi - 10 + 'a');
