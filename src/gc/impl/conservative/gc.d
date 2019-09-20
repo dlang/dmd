@@ -2823,6 +2823,13 @@ struct Gcx
 
         for (int idx = 0; idx < numScanThreads; idx++)
             scanThreadData[idx].tid = createLowLevelThread(&scanBackground, 0x4000, &stopScanThreads);
+
+        version (Posix)
+        {
+            import core.sys.posix.pthread;
+            forkedGcx = &this;
+            pthread_atfork(null, null, &initChildAfterFork);
+        }
     }
 
     void stopScanThreads() nothrow
@@ -2849,6 +2856,8 @@ struct Gcx
         cstdlib.free(scanThreadData);
         // scanThreadData = null; // keep non-null to not start again after shutdown
         numScanThreads = 0;
+        version (Posix)
+            forkedGcx = null;
 
         debug(PARALLEL_PRINTF) printf("stopScanThreads done\n");
     }
@@ -2901,6 +2910,26 @@ struct Gcx
             busyThreads.atomicOp!"-="(1);
         }
         debug(PARALLEL_PRINTF) printf("scanBackground thread %d done\n", threadId);
+    }
+
+    version (Posix)
+    {
+        // make sure the threads and event handles are reinitialized in a fork
+        __gshared Gcx* forkedGcx;
+
+        extern(C) static void initChildAfterFork()
+        {
+            if (forkedGcx && forkedGcx.scanThreadData)
+            {
+                cstdlib.free(forkedGcx.scanThreadData);
+                forkedGcx.numScanThreads = 0;
+                forkedGcx.scanThreadData = null;
+                forkedGcx.busyThreads = 0;
+
+                memset(&forkedGcx.evStart, 0, Event.sizeof);
+                memset(&forkedGcx.evDone, 0, Event.sizeof);
+            }
+        }
     }
 }
 
