@@ -254,7 +254,7 @@ unittest
 {
     import std.algorithm : each;
     import dmd.frontend;
-    import dmd.statement : IfStatement;
+    import dmd.statement : IfStatement, ScopeStatement;
     import dmd.visitor : SemanticTimeTransitiveVisitor;
 
     initDMD();
@@ -322,7 +322,8 @@ unittest
 
         override void visit(IfStatement ifs)
         {
-            auto ifbody = ifs.ifbody;
+            ScopeStatement ifbody = ifs.ifbody.isScopeStatement();
+            assert(ifbody);
             import std.conv;
             string str = to!string(ifs.condition.toChars());
             switch (str) {
@@ -331,12 +332,12 @@ unittest
                 case "5":
                 case "6":
                 case "7":
-                    assert(ifbody.hasLabel());
+                    assert(ifbody.hasMultipleEntryPoints());
                     break;
                 case "2":
                 case "4":
                 case "8":
-                    assert(ifbody.hasLabel() == false);
+                    assert(ifbody.hasMultipleEntryPoints() == false);
                     break;
                 default: break;
             }

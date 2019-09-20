@@ -130,7 +130,6 @@ extern (C++) abstract class Statement : ASTNode
 {
     const Loc loc;
     const STMT stmt;
-    bool haslabel;
 
     override final DYNCAST dyncast() const
     {
@@ -141,7 +140,6 @@ extern (C++) abstract class Statement : ASTNode
     {
         this.loc = loc;
         this.stmt = stmt;
-        this.haslabel = false;
         // If this is an in{} contract scope statement (skip for determining
         //  inlineStatus of a function body for header content)
     }
@@ -226,15 +224,6 @@ extern (C++) abstract class Statement : ASTNode
     bool hasContinue() const pure nothrow
     {
         return false;
-    }
-
-    /**
-    Returns:
-        `true` if it has an enclosed label in any nesting level
-    */
-    bool hasLabel() const pure nothrow
-    {
-        return haslabel;
     }
 
     /**********************************
@@ -1016,13 +1005,15 @@ extern (C++) final class UnrolledLoopStatement : Statement
 extern (C++) class ScopeStatement : Statement
 {
     Statement statement;
-    Loc endloc;                 // location of closing curly bracket
+    Loc endloc;                      // location of closing curly bracket
+    bool hasMultipleEntryPoints_;
 
     extern (D) this(const ref Loc loc, Statement statement, Loc endloc)
     {
         super(loc, STMT.Scope);
         this.statement = statement;
         this.endloc = endloc;
+        this.hasMultipleEntryPoints_ = false;
     }
     override Statement syntaxCopy()
     {
@@ -1045,6 +1036,15 @@ extern (C++) class ScopeStatement : Statement
     override bool hasContinue() const pure nothrow
     {
         return statement ? statement.hasContinue() : false;
+    }
+
+    /**
+    Returns:
+        `true` if it has multiple entry points.
+    */
+    bool hasMultipleEntryPoints() const pure nothrow
+    {
+        return hasMultipleEntryPoints_;
     }
 
     override void accept(Visitor v)

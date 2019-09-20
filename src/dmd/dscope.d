@@ -190,6 +190,7 @@ struct Scope
         // so that previous statements get it, but reset it when we push
         // again.
         s.hasLabel = false;
+        s.hasCase = null;
         //printf("Scope::push(this = %p) new = %p\n", this, s);
         assert(!(flags & SCOPE.free));
         s.scopesym = null;

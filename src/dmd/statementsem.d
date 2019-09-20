@@ -433,7 +433,35 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             }
 
             ss.statement = ss.statement.statementSemantic(sc);
-            if (sc.hasLabel) {
+            // Check if it has Multiple Entry Points (MEP):
+            // This scope may be entered in more than one ways.
+            // The normal way is by reaching the start of the scope.
+            // But, if there is a label inside the scope or a `case`
+            // that acts as a label (see below), then can be "jumped" in.
+
+            // We found an actual label in some enclosed scope.
+            bool hasMEPbecauseOfLabel = sc.hasLabel;
+            // We found a Case/DefaultStatement in some enclosed scope
+            // whose parent `switch` is parent of this scope too. Meaning,
+            // they're both inside the same switch (but the `case` is inside
+            // the scope), and thus the `case/default`
+            // acts as a label (we can jump inside this scope without ever
+            // coming across the scope start). E.g.
+            //     switch (x) {
+            //          if (... some cond) {  <- we may never evaluate this but still
+            //                                   execute the if body.
+            //      case 1: // ... whatever code;
+            //          }
+            //      }
+            bool hasMEPbecauseOfCase = sc.hasCase && sc.sw &&
+                                       sc.hasCase == sc.sw;
+            bool hasLabel = hasMEPbecauseOfLabel || hasMEPbecauseOfCase;
+            if (hasLabel) {
+                ss.hasMultipleEntryPoints_ = true;
+                // pass the info up - to the enclosing scope.
+                // Note: At this point, we don't care to inform the enclosing
+                // scope why (hasLabel or hasCase) it has MEP.
+                // So, we just set its `hasLabel`.
                 sc.enclosing.hasLabel = true;
             }
             if (ss.statement)
@@ -2265,33 +2293,27 @@ else
         CtorFlow ctorflow_root = scd.ctorflow.clone();
 
         ifs.ifbody = ifs.ifbody.semanticNoScope(scd);
-        // We found an actual label in some enclosed scope.
-        bool hasLabelBecauseOfLabel = scd.hasLabel;
-        // We found a Case/DefaultStatement in some enclosed scope
-        // whose parent `switch` is parent of this `if` too. Meaning,
-        // they're both inside the same switch, and thus the `case/default`
-        // acts as a label (we can jump inside this `if` without ever
-        // coming across the `if` condition). E.g.
-        //     switch (x) {
-        //          if (... some cond) {  <- we may never evaluate this but still
-        //                                   execute the if body.
-        //      case 1: // ... whatever code;
-        //          }
-        //      }
-        bool hasLabelBecauseOfCase = scd.hasCase && scd.sw &&
-                                     scd.hasCase == scd.sw;
-        bool hasLabel = hasLabelBecauseOfLabel || hasLabelBecauseOfCase;
-        if (hasLabel) {
-            ifs.ifbody.haslabel = true;
+        ScopeStatement ss = ifs.ifbody.isScopeStatement();
+        if (ss && ss.hasMultipleEntryPoints()) {
             scd.enclosing.hasLabel = true;
-            //printf("If %s has label\n", ifs.condition.toChars());
         }
         scd.pop();
 
         CtorFlow ctorflow_then = sc.ctorflow;   // move flow results
         sc.ctorflow = ctorflow_root;            // reset flow analysis back to root
-        if (ifs.elsebody)
+        if (ifs.elsebody) {
             ifs.elsebody = ifs.elsebody.semanticScope(sc, null, null);
+            ss = ifs.ifbody.isScopeStatement();
+            if (ss && ss.hasMultipleEntryPoints()) {
+
+                sc.enclosing.hasLabel = true;
+            }
+        }
+
+        // Note: Both when we check for multiple entry points in
+        // ifbody or else body, we pass the info up to the enclosing scope.
+        // We don't care to inform the enclosing scope why (hasLabel or hasCase)
+        // it has MEP. So, we just set its `hasLabel`.
 
         // Merge 'then' results into 'else' results
         sc.merge(ifs.loc, ctorflow_then);

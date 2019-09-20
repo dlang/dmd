@@ -108,7 +108,6 @@ class Statement : public ASTNode
 public:
     Loc loc;
     STMT stmt;
-    bool haslabel;
 
     virtual Statement *syntaxCopy();
 
@@ -120,7 +119,6 @@ public:
     virtual Statement *getRelatedLabeled() { return this; }
     virtual bool hasBreak() const;
     virtual bool hasContinue() const;
-    bool hasLabel() const;
     bool usesEH();
     bool comeFrom();
     bool hasCode();
@@ -255,12 +253,14 @@ class ScopeStatement : public Statement
 {
 public:
     Statement *statement;
-    Loc endloc;                 // location of closing curly bracket
+    Loc endloc;                      // location of closing curly bracket
+    bool hasMultipleEntryPoints_;
 
     Statement *syntaxCopy();
     ReturnStatement *endsWithReturnStatement();
     bool hasBreak() const;
     bool hasContinue() const;
+    bool hasMultipleEntryPoints() const;
 
     void accept(Visitor *v) { v->visit(this); }
 };
