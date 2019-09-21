@@ -487,7 +487,7 @@ extern (C++) final class Module : Package
     Identifiers* versionids;    // version identifiers
     Identifiers* versionidsNot; // forward referenced version identifiers
 
-    Macro* macrotable;          // document comment macros
+    MacroTable macrotable;      // document comment macros
     Escape* escapetable;        // document comment escapes
 
     size_t nameoffset;          // offset of module name from start of ModuleInfo

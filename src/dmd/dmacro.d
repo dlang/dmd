@@ -1,4 +1,6 @@
 /**
+ * Text macro processor for Ddoc.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -20,57 +22,34 @@ import dmd.globals;
 import dmd.root.outbuffer;
 import dmd.root.rmem;
 
-struct Macro
+struct MacroTable
 {
-private:
-    Macro* next;            // next in list
-    const(char)[] name;     // macro name
-    const(char)[] text;     // macro replacement text
-    int inuse;              // macro is in use (don't expand)
-
-    this(const(char)[] name, const(char)[] text)
+    /**********************************
+     * Define name=text macro.
+     * If macro `name` already exists, replace the text for it.
+     * Params:
+     *  name = name of macro
+     *  text = text of macro
+     */
+    void define(const(char)[] name, const(char)[] text)
     {
-        this.name = name;
-        this.text = text;
-    }
-
-    Macro* search(const(char)[] name)
-    {
+        //printf("MacroTable::define('%.*s' = '%.*s')\n", cast(int)name.length, name.ptr, text.length, text.ptr);
         Macro* table;
-        //printf("Macro::search(%.*s)\n", cast(int)name.length, name.ptr);
-        for (table = &this; table; table = table.next)
-        {
-            if (table.name == name)
-            {
-                //printf("\tfound %d\n", table.textlen);
-                break;
-            }
-        }
-        return table;
-    }
-
-public:
-    static Macro* define(Macro** ptable, const(char)[] name, const(char)[] text)
-    {
-        //printf("Macro::define('%.*s' = '%.*s')\n", cast(int)name.length, name.ptr, text.length, text.ptr);
-        Macro* table;
-        //assert(ptable);
-        for (table = *ptable; table; table = table.next)
+        for (table = mactab; table; table = table.next)
         {
             if (table.name == name)
             {
                 table.text = text;
-                return table;
+                return;
             }
         }
         table = new Macro(name, text);
-        table.next = *ptable;
-        *ptable = table;
-        return table;
+        table.next = mactab;
+        mactab = table;
     }
 
     /*****************************************************
-     * Expand macro in place in buf.
+     * Look for macros in buf and expand them in place.
      * Only look at the text in buf from start to pend.
      */
     void expand(ref OutBuffer buf, size_t start, ref size_t pend, const(char)[] arg)
@@ -285,6 +264,43 @@ public:
         pend = end;
         nest--;
     }
+
+  private:
+
+    Macro* search(const(char)[] name)
+    {
+        Macro* table;
+        //printf("Macro::search(%.*s)\n", cast(int)name.length, name.ptr);
+        for (table = mactab; table; table = table.next)
+        {
+            if (table.name == name)
+            {
+                //printf("\tfound %d\n", table.textlen);
+                break;
+            }
+        }
+        return table;
+    }
+
+    Macro* mactab;
+}
+
+/* ************************************************************************ */
+
+private:
+
+struct Macro
+{
+    Macro* next;            // next in list
+    const(char)[] name;     // macro name
+    const(char)[] text;     // macro replacement text
+    int inuse;              // macro is in use (don't expand)
+
+    this(const(char)[] name, const(char)[] text)
+    {
+        this.name = name;
+        this.text = text;
+    }
 }
 
 /************************
@@ -295,7 +311,7 @@ public:
  *      copy allocated with mem.xmalloc()
  */
 
-private char[] memdup(const(char)[] p)
+char[] memdup(const(char)[] p)
 {
     size_t len = p.length;
     return (cast(char*)memcpy(mem.xmalloc(len), p.ptr, len))[0 .. len];
@@ -310,7 +326,7 @@ private char[] memdup(const(char)[] p)
  *              1..9:   get nth argument
  *              -1:     get 2nd through end
  */
-private size_t extractArgN(const(char)[] buf, out const(char)[] marg, int n)
+size_t extractArgN(const(char)[] buf, out const(char)[] marg, int n)
 {
     /* Scan forward for matching right parenthesis.
      * Nest parentheses.
