@@ -115,6 +115,7 @@ shared static this()
         "isModule",
         "isPackage",
         "isRef",
+        "isRvalueRef",
         "isOut",
         "isLazy",
         "isReturnOnStack",
@@ -742,7 +743,14 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (dim != 1)
             return dimError(1);
 
-        return isDeclX(d => d.isRef());
+        return isDeclX(d => d.isRef() && !d.isRvalueRef());
+    }
+    if (e.ident == Id.isRvalueRef)
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        return isDeclX(d => d.isRvalueRef());
     }
     if (e.ident == Id.isOut)
     {

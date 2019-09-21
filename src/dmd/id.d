@@ -403,6 +403,7 @@ immutable Msgtable[] msgtable =
     { "isModule" },
     { "isPackage" },
     { "isRef" },
+    { "isRvalueRef" },
     { "isOut" },
     { "isLazy" },
     { "hasMember" },
