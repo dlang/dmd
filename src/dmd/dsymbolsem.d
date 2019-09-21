@@ -2790,6 +2790,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 tempdecl.onemember = s;
                 s.parent = tempdecl;
+
+                if (auto fd = s.isFuncDeclaration())
+                    fd.checkLifetimeAttributes(sc);
             }
         }
 
@@ -3399,23 +3402,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if ((funcdecl.storage_class & STC.auto_) && !f.isref && !funcdecl.inferRetType)
             funcdecl.error("storage class `auto` has no effect if return type is not inferred");
 
-        /* Functions can only be 'scope' if they have a 'this'
-         */
-        if (f.isscope && !funcdecl.isNested() && !ad)
-        {
-            funcdecl.error("functions cannot be `scope`");
-        }
-
-        if (f.isreturn && !funcdecl.needThis() && !funcdecl.isNested())
-        {
-            /* Non-static nested functions have a hidden 'this' pointer to which
-             * the 'return' applies
-             */
-            if (sc.scopesym && sc.scopesym.isAggregateDeclaration())
-                funcdecl.error("`static` member has no `this` to which `return` can apply");
-            else
-                error(funcdecl.loc, "Top-level function `%s` has no `this` to which `return` can apply", funcdecl.toChars());
-        }
+        funcdecl.checkLifetimeAttributes(sc);
 
         if (funcdecl.isAbstract() && !funcdecl.isVirtual())
         {
@@ -6497,5 +6484,42 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
         ds.overnext = null;
         if (!ds.overloadInsert(sx))
             ScopeDsymbol.multiplyDefined(Loc.initial, sx, ds);
+    }
+}
+
+/**
+Checks if a function declaration's lifetime attributes (e.g. `scope` and `return`)
+are valid
+Params:
+    fd = The function declaration to check
+    sc = The semantic scope in which to check
+*/
+private void checkLifetimeAttributes(FuncDeclaration fd, Scope* sc)
+{
+    if (!fd.type)
+        return;
+
+    auto td = fd.parent.isTemplateDeclaration();
+
+    // Functions can only be 'scope' or `return` if they have a 'this'
+    if (!fd.needThis() && !fd.isNested() && !fd.isThis() && (!td || td.isstatic))
+    {
+        static void emitError(FuncDeclaration fd, Scope* sc, string name)
+        {
+            // Non-static nested functions have a hidden 'this' pointer to which
+            // the 'scope' or `return` applies
+            if (sc.scopesym && sc.scopesym.isAggregateDeclaration())
+                fd.error("`static` member has no `this` to which `%s` can apply", name.ptr);
+            else
+                error(fd.loc, "top-level function `%s` has no `this` to which `%s` can apply", fd.toChars(), name.ptr);
+        }
+
+        auto ft = cast(TypeFunction)fd.type;
+
+        if (ft.isscope)
+            emitError(fd, sc, "scope");
+
+        if (ft.isreturn)
+            emitError(fd, sc, "return");
     }
 }

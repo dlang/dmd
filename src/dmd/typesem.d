@@ -1231,11 +1231,6 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
             }
             if (tf.next.hasWild())
                 wildreturn = true;
-
-            if (tf.isreturn && !tf.isref && !tf.next.hasPointers())
-            {
-                tf.isreturn = false;
-            }
         }
 
         ubyte wildparams = 0;
