@@ -3797,6 +3797,8 @@ struct ASTBase
 
     extern (C++) final class TypeReference : TypeNext
     {
+        bool isRvalueRef;
+
         extern (D) this(Type t)
         {
             super(Treference, t);

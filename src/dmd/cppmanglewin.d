@@ -351,7 +351,10 @@ public:
         if (checkImmutableShared(type))
             return;
 
-        buf.writeByte('A'); // mutable
+        if (type.isRvalueRef)
+            buf.writestring("$$Q"); // rvalue ref
+        else
+            buf.writeByte('A'); // mutable
         if (global.params.is64bit)
             buf.writeByte('E');
         flags |= IS_NOT_TOP_TYPE;
@@ -1229,9 +1232,10 @@ private:
             int mangleParameterDg(size_t n, Parameter p)
             {
                 Type t = p.type;
-                if (p.storageClass & (STC.out_ | STC.ref_))
+                if (p.storageClass & (STC.out_ | STC.ref_ | STC.rvalueref))
                 {
                     t = t.referenceTo();
+                    (cast(TypeReference)t).isRvalueRef = (p.storageClass & STC.rvalueref) != 0;
                 }
                 else if (p.storageClass & STC.lazy_)
                 {

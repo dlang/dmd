@@ -1667,7 +1667,10 @@ extern(C++):
     {
         if (substitute(t))
             return;
-        buf.writeByte('R');
+        if (t.isRvalueRef)
+            buf.writeByte('O');
+        else
+            buf.writeByte('R');         auto prev = this.context.push(this.context.res.asType().nextOf());
         CV_qualifiers(t.nextOf());
         headOfType(t.nextOf());
         if (t.nextOf().isConst())

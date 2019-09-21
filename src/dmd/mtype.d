@@ -4057,6 +4057,8 @@ extern (C++) final class TypePointer : TypeNext
  */
 extern (C++) final class TypeReference : TypeNext
 {
+    bool isRvalueRef;
+
     extern (D) this(Type t)
     {
         super(Treference, t);

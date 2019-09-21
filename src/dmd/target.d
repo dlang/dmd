@@ -833,8 +833,11 @@ struct TargetCPP
     extern (C++) Type parameterType(Parameter p)
     {
         Type t = p.type.merge2();
-        if (p.storageClass & (STC.out_ | STC.ref_))
+        if (p.storageClass & (STC.out_ | STC.ref_ | STC.rvalueref))
+        {
             t = t.referenceTo();
+            (cast(TypeReference)t).isRvalueRef = (p.storageClass & STC.rvalueref) != 0;
+        }
         else if (p.storageClass & STC.lazy_)
         {
             // Mangle as delegate
