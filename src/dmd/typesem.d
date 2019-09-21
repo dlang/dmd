@@ -1171,6 +1171,8 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
             tf.isnogc = true;
         if (sc.stc & STC.ref_)
             tf.isref = true;
+        if (sc.stc & STC.rvalueref)
+            tf.isrvalueref = true;
         if (sc.stc & STC.return_)
             tf.isreturn = true;
         if (sc.stc & STC.returninferred)
@@ -1239,6 +1241,9 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
             }
         }
 
+        if (tf.isrvalueref)
+            tf.isref = true;
+
         ubyte wildparams = 0;
         if (tf.parameterList.parameters)
         {
@@ -1261,6 +1266,9 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                     errors = true;
                     continue;
                 }
+
+                if (fparam.storageClass & STC.rvalueref)
+                    fparam.storageClass |= STC.ref_;
 
                 fparam.type = fparam.type.addStorageClass(fparam.storageClass);
 
@@ -1377,7 +1385,8 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                     Expression e = fparam.defaultArg;
                     const isRefOrOut = fparam.storageClass & (STC.ref_ | STC.out_);
                     const isAuto = fparam.storageClass & (STC.auto_ | STC.autoref);
-                    if (isRefOrOut && !isAuto)
+                    const isRvalueRef = fparam.storageClass & STC.rvalueref;
+                    if (isRefOrOut && !isAuto && !(isRvalueRef && !e.isLvalue()))
                     {
                         e = e.expressionSemantic(argsc);
                         e = resolveProperties(argsc, e);
@@ -1402,7 +1411,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                     e = e.implicitCastTo(argsc, fparam.type);
 
                     // default arg must be an lvalue
-                    if (isRefOrOut && !isAuto)
+                    if (isRefOrOut && !isRvalueRef && !isAuto)
                         e = e.toLvalue(argsc, e);
 
                     fparam.defaultArg = e;
@@ -1436,8 +1445,8 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                             // If the storage classes of narg
                             // conflict with the ones in fparam, it's ignored.
                             StorageClass stc  = fparam.storageClass | narg.storageClass;
-                            StorageClass stc1 = fparam.storageClass & (STC.ref_ | STC.out_ | STC.lazy_);
-                            StorageClass stc2 =   narg.storageClass & (STC.ref_ | STC.out_ | STC.lazy_);
+                            StorageClass stc1 = fparam.storageClass & (STC.ref_ | STC.rvalueref | STC.out_ | STC.lazy_);
+                            StorageClass stc2 =   narg.storageClass & (STC.ref_ | STC.rvalueref | STC.out_ | STC.lazy_);
                             if (stc1 && stc2 && stc1 != stc2)
                             {
                                 OutBuffer buf1;  stcToBuffer(&buf1, stc1 | ((stc1 & STC.ref_) ? (fparam.storageClass & STC.auto_) : 0));
@@ -1446,7 +1455,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                                 .error(loc, "incompatible parameter storage classes `%s` and `%s`",
                                     buf1.peekChars(), buf2.peekChars());
                                 errors = true;
-                                stc = stc1 | (stc & ~(STC.ref_ | STC.out_ | STC.lazy_));
+                                stc = stc1 | (stc & ~(STC.ref_ | STC.rvalueref | STC.out_ | STC.lazy_));
                             }
 
                             /* https://issues.dlang.org/show_bug.cgi?id=18572

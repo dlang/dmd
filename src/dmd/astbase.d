@@ -3929,6 +3929,7 @@ struct ASTBase
         bool isnogc;                // true: is @nogc
         bool isproperty;            // can be called without parentheses
         bool isref;                 // true: returns a reference
+        bool isrvalueref;           // true: returns a and rvalue reference
         bool isreturn;              // true: 'this' is returned by ref
         bool isscope;               // true: 'this' is scope
         LINK linkage;               // calling convention
@@ -3956,6 +3957,8 @@ struct ASTBase
 
             if (stc & STC.ref_)
                 this.isref = true;
+            if (stc & STC.rvalueref)
+                this.isrvalueref = true;
             if (stc & STC.return_)
                 this.isreturn = true;
             if (stc & STC.scope_)
@@ -3981,6 +3984,7 @@ struct ASTBase
             t.purity = purity;
             t.isproperty = isproperty;
             t.isref = isref;
+            t.isrvalueref = isrvalueref;
             t.isreturn = isreturn;
             t.isscope = isscope;
             t.iswild = iswild;
@@ -5253,16 +5257,18 @@ struct ASTBase
     {
         Type to;
         ubyte mod = cast(ubyte)~0;
+        bool rvalueRef;
 
         extern (D) this(const ref Loc loc, Expression e, Type t)
         {
             super(loc, TOK.cast_, __traits(classInstanceSize, CastExp), e);
             this.to = t;
         }
-        extern (D) this(const ref Loc loc, Expression e, ubyte mod)
+        extern (D) this(const ref Loc loc, Expression e, ubyte mod, bool rvalueRef = false)
         {
             super(loc, TOK.cast_, __traits(classInstanceSize, CastExp), e);
             this.mod = mod;
+            this.rvalueRef = rvalueRef;
         }
 
         override void accept(Visitor v)

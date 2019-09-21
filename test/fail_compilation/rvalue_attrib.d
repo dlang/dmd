@@ -5,7 +5,7 @@ TEST_OUTPUT:
 fail_compilation/rvalue_attrib.d(31): Error: `@rvalue ref` for module declaration is not supported
 fail_compilation/rvalue_attrib.d(35): Error: `ref` expected after `@rvalue`, not `int`
 fail_compilation/rvalue_attrib.d(35): Error: function declaration without return type. (Note that constructors are always named `this`)
-fail_compilation/rvalue_attrib.d(35): Error: no identifier for declarator `func()`
+fail_compilation/rvalue_attrib.d(35): Error: no identifier for declarator `@rvalue ref func()`
 fail_compilation/rvalue_attrib.d(36): Error: `ref` expected after `@rvalue`, not `int`
 fail_compilation/rvalue_attrib.d(36): Error: basic type expected, not `)`
 fail_compilation/rvalue_attrib.d(38): Error: `@rvalue ref` cannot appear as postfix

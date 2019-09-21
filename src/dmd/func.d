@@ -1032,7 +1032,7 @@ extern (C++) class FuncDeclaration : Declaration
         {
             Parameter p = tf.parameterList[u];
             Expression e;
-            if (p.storageClass & (STC.ref_ | STC.out_))
+            if (p.storageClass & (STC.ref_ | STC.out_) && !(p.storageClass & STC.rvalueref))
             {
                 e = new IdentifierExp(Loc.initial, p.ident);
                 e.type = p.type;
@@ -2084,6 +2084,8 @@ extern (C++) class FuncDeclaration : Declaration
             TypeFunction tf = type.toTypeFunction();
             if (tf.isref)
                 vresult.storage_class |= STC.ref_;
+            if (tf.isrvalueref)
+                vresult.storage_class |= STC.rvalueref;
             vresult.type = tret;
 
             vresult.dsymbolSemantic(sc);
@@ -2249,7 +2251,7 @@ extern (C++) class FuncDeclaration : Declaration
             {
                 p = p.syntaxCopy();
                 if (!(p.storageClass & STC.lazy_))
-                    p.storageClass = (p.storageClass | STC.ref_) & ~STC.out_;
+                    p.storageClass = (p.storageClass | STC.ref_) & ~(STC.out_ | STC.rvalueref);
                 p.defaultArg = null; // won't be the same with ref
                 result.push(p);
                 return 0;

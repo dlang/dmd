@@ -700,6 +700,9 @@ extern (C++) abstract class Type : ASTNode
         if (t1.isref != t2.isref)
             goto Lnotcovariant;
 
+        if (t1.isrvalueref != t2.isrvalueref)
+            goto Lnotcovariant;
+
         if (!t1.isref && (t1.isscope || t2.isscope))
         {
             StorageClass stc1 = t1.isscope ? STC.scope_ : 0;
@@ -4138,6 +4141,7 @@ extern (C++) final class TypeFunction : TypeNext
     bool isnogc;                // true: is @nogc
     bool isproperty;            // can be called without parentheses
     bool isref;                 // true: returns a reference
+    bool isrvalueref;           // true: returns a and rvalue reference
     bool isreturn;              // true: 'this' is returned by ref
     bool isscope;               // true: 'this' is scope
     bool isreturninferred;      // true: 'this' is return from inference
@@ -4170,6 +4174,8 @@ extern (C++) final class TypeFunction : TypeNext
 
         if (stc & STC.ref_)
             this.isref = true;
+        if (stc & STC.rvalueref)
+            this.isrvalueref = true;
         if (stc & STC.return_)
             this.isreturn = true;
         if (stc & STC.returninferred)
@@ -4209,6 +4215,7 @@ extern (C++) final class TypeFunction : TypeNext
         t.purity = purity;
         t.isproperty = isproperty;
         t.isref = isref;
+        t.isrvalueref = isrvalueref;
         t.isreturn = isreturn;
         t.isscope = isscope;
         t.isreturninferred = isreturninferred;
@@ -4485,6 +4492,7 @@ extern (C++) final class TypeFunction : TypeNext
             tf.isnogc = t.isnogc;
             tf.isproperty = t.isproperty;
             tf.isref = t.isref;
+            tf.isrvalueref = t.isrvalueref;
             tf.isreturn = t.isreturn;
             tf.isscope = t.isscope;
             tf.isreturninferred = t.isreturninferred;
@@ -4549,6 +4557,7 @@ extern (C++) final class TypeFunction : TypeNext
         t.purity = purity;
         t.isproperty = isproperty;
         t.isref = isref;
+        t.isrvalueref = isrvalueref;
         t.isreturn = isreturn;
         t.isscope = isscope;
         t.isreturninferred = isreturninferred;
@@ -4560,7 +4569,7 @@ extern (C++) final class TypeFunction : TypeNext
     }
 
     // arguments get specially formatted
-    private const(char)* getParamError(Expression arg, Parameter par)
+    private const(char)* getParamError(Expression arg, Parameter par, int m = 0)
     {
         if (global.gag && !global.params.showGaggedErrors)
             return null;
@@ -4571,10 +4580,22 @@ extern (C++) final class TypeFunction : TypeNext
             at = arg.type.toPrettyChars(true);
         OutBuffer buf;
         // only mention rvalue if it's relevant
-        const rv = !arg.isLvalue() && par.storageClass & (STC.ref_ | STC.out_);
+        const(char)* v = "".ptr;
+        if (!arg.isLvalue() && par.storageClass & (STC.ref_ | STC.out_))
+            v = "rvalue ".ptr;
+        else if (arg.isLvalue() && par.storageClass & STC.rvalueref && !arg.isRvalueRef())
+            v = "lvalue ".ptr;
+        else if (arg.isRvalueRef() && (par.storageClass & (STC.ref_ | STC.rvalueref)) == STC.ref_)
+            v = "`@rvalue ref` ".ptr;
         buf.printf("cannot pass %sargument `%s` of type `%s` to parameter `%s`",
-            rv ? "rvalue ".ptr : "".ptr, arg.toChars(), at,
+            v, arg.toChars(), at,
             parameterToChars(par, this, qual));
+        if (m && par.storageClass & STC.rvalueref && arg.isLvalue() && !arg.isRvalueRef())
+        {
+            OutBuffer buf2;
+            buf2.printf(", perhaps you meant `cast(@rvalue ref)%s`", arg.toChars());
+            buf.write(&buf2);
+        }
         return buf.extractChars();
     }
 
@@ -4763,13 +4784,18 @@ extern (C++) final class TypeFunction : TypeNext
                 }
 
                 // Non-lvalues do not match ref or out parameters
-                if (p.storageClass & (STC.ref_ | STC.out_))
+                if (p.storageClass & (STC.ref_ | STC.out_) && !(p.storageClass & STC.rvalueref))
                 {
                     // https://issues.dlang.org/show_bug.cgi?id=13783
                     // Don't use toBasetype() to handle enum types.
                     Type ta = targ;
                     Type tp = tprm;
                     //printf("fparam[%d] ta = %s, tp = %s\n", u, ta.toChars(), tp.toChars());
+                    if (m && arg.isRvalueRef())
+                    {
+                        if (pMessage) *pMessage = getParamError(arg, p);
+                        goto Nomatch;
+                    }
 
                     if (m && !arg.isLvalue())
                     {
@@ -4837,6 +4863,15 @@ extern (C++) final class TypeFunction : TypeNext
                     if (!ta.constConv(tp))
                     {
                         if (pMessage) *pMessage = getParamError(arg, p);
+                        goto Nomatch;
+                    }
+                }
+
+                if (p.storageClass & STC.rvalueref)
+                {
+                    if (m && arg.isLvalue() && !arg.isRvalueRef())
+                    {
+                        if (pMessage) *pMessage = getParamError(arg, p, m);
                         goto Nomatch;
                     }
                 }
@@ -6547,7 +6582,7 @@ extern (C++) final class Parameter : ASTNode
      */
     bool isCovariant(bool returnByRef, const Parameter p) const pure nothrow @nogc @safe
     {
-        enum stc = STC.ref_ | STC.in_ | STC.out_ | STC.lazy_;
+        enum stc = STC.ref_ | STC.rvalueref | STC.in_ | STC.out_ | STC.lazy_;
         if ((this.storageClass & stc) != (p.storageClass & stc))
             return false;
         return isCovariantScope(returnByRef, this.storageClass, p.storageClass);
@@ -6696,7 +6731,9 @@ void attributesApply(const TypeFunction tf, void delegate(string) dg, TRUSTforma
         dg("@nogc");
     if (tf.isproperty)
         dg("@property");
-    if (tf.isref)
+    if (tf.isrvalueref)
+        dg("@rvalue ref");
+    else if (tf.isref)
         dg("ref");
     if (tf.isreturn && !tf.isreturninferred)
         dg("return");

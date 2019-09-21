@@ -1345,6 +1345,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         if (stc & STC.out_)
             push("out");
+        else if (stc & STC.rvalueref)
+            push("@rvalue ref");
         else if (stc & STC.ref_)
             push("ref");
         else if (stc & STC.in_)

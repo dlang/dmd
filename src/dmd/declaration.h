@@ -132,6 +132,7 @@ public:
     bool isIn()  const  { return (storage_class & STCin) != 0; }
     bool isOut() const  { return (storage_class & STCout) != 0; }
     bool isRef() const  { return (storage_class & STCref) != 0; }
+    bool isRvalueRef() const { return (storage_class & STCrvalueref) != 0; }
 
     bool isFuture() const { return (storage_class & STCfuture) != 0; }
 

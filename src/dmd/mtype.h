@@ -585,6 +585,7 @@ public:
     bool isnogc;        // true: is @nogc
     bool isproperty;    // can be called without parentheses
     bool isref;         // true: returns a reference
+    bool isrvalueref;   // true: returns an rvalue reference
     bool isreturn;      // true: 'this' is returned by ref
     bool isscope;       // true: 'this' is scope
     bool isreturninferred;      // true: 'this' is return from inference

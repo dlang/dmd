@@ -8392,7 +8392,7 @@ final class Parser(AST) : Lexer
                 {
                     nextToken();
                     e = parseUnaryExp();
-                    e = new AST.CastExp(loc, e, m);
+                    e = new AST.CastExp(loc, e, m, rvalueRef);
                 }
                 else
                 {

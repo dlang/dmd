@@ -541,6 +541,11 @@ extern (C++) abstract class Declaration : Dsymbol
         return (storage_class & STC.ref_) != 0;
     }
 
+    final bool isRvalueRef() const pure nothrow @nogc @safe
+    {
+        return (storage_class & STC.rvalueref) != 0;
+    }
+
     final bool isFuture() const pure nothrow @nogc @safe
     {
         return (storage_class & STC.future) != 0;

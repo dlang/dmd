@@ -1169,6 +1169,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             dsym.error("only parameters or `foreach` declarations can be `ref`");
         }
 
+        if ((dsym.storage_class & (STC.rvalueref | STC.parameter | STC.temp | STC.result)) == STC.rvalueref)
+        {
+            dsym.error("only parameters can be `@rvalue ref`");
+        }
+
         if (dsym.type.hasWild())
         {
             if (dsym.storage_class & (STC.static_ | STC.extern_ | STC.tls | STC.gshared | STC.manifest | STC.field) || dsym.isDataseg())
@@ -1322,7 +1327,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (dsym._init)
         {
             sc = sc.push();
-            sc.stc &= ~(STC.TYPECTOR | STC.pure_ | STC.nothrow_ | STC.nogc | STC.ref_ | STC.disable);
+            sc.stc &= ~(STC.TYPECTOR | STC.pure_ | STC.nothrow_ | STC.nogc | STC.ref_ | STC.rvalueref | STC.disable);
 
             ExpInitializer ei = dsym._init.isExpInitializer();
             if (ei) // https://issues.dlang.org/show_bug.cgi?id=13424
@@ -3201,7 +3206,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         funcdecl.foverrides.setDim(0); // reset in case semantic() is being retried for this function
 
-        funcdecl.storage_class |= sc.stc & ~STC.ref_;
+        funcdecl.storage_class |= sc.stc & ~(STC.ref_ | STC.rvalueref);
         ad = funcdecl.isThis();
         // Don't nest structs b/c of generated methods which should not access the outer scopes.
         // https://issues.dlang.org/show_bug.cgi?id=16627
@@ -3301,6 +3306,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (tf.isref)
                 sc.stc |= STC.ref_;
+            if (tf.isrvalueref)
+                sc.stc |= STC.rvalueref;
             if (tf.isscope)
                 sc.stc |= STC.scope_;
             if (tf.isnothrow)
@@ -3391,6 +3398,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             tfo.isreturninferred = tfx.isreturninferred;
             tfo.isscopeinferred = tfx.isscopeinferred;
             tfo.isref = tfx.isref;
+            tfo.isrvalueref = tfx.isrvalueref;
             tfo.isnothrow = tfx.isnothrow;
             tfo.isnogc = tfx.isnogc;
             tfo.isproperty = tfx.isproperty;
@@ -4125,7 +4133,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     //printf("tf: %s\n", tf.toChars());
                     auto param = Parameter.getNth(tf.parameterList, 0);
-                    if (param.storageClass & STC.ref_ && param.type.mutableOf().unSharedOf() == sd.type.mutableOf().unSharedOf())
+                    if ((param.storageClass & (STC.ref_ | STC.rvalueref)) == STC.ref_ && param.type.mutableOf().unSharedOf() == sd.type.mutableOf().unSharedOf())
                     {
                         //printf("copy constructor\n");
                         ctd.isCpCtor = true;
@@ -6448,12 +6456,12 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
         Type t;
         Expression e;
         Scope* sc2 = sc;
-        if (ds.storage_class & (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.disable))
+        if (ds.storage_class & (STC.ref_ | STC.rvalueref | STC.nothrow_ | STC.nogc | STC.pure_ | STC.disable))
         {
             // For 'ref' to be attached to function types, and picked
             // up by Type.resolve(), it has to go into sc.
             sc2 = sc.push();
-            sc2.stc |= ds.storage_class & (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.shared_ | STC.disable);
+            sc2.stc |= ds.storage_class & (STC.ref_ | STC.rvalueref | STC.nothrow_ | STC.nogc | STC.pure_ | STC.shared_ | STC.disable);
         }
         ds.type = ds.type.addSTC(ds.storage_class);
         ds.type.resolve(ds.loc, sc2, &e, &t, &s);

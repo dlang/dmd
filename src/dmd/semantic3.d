@@ -315,7 +315,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             sc2.fes = funcdecl.fes;
             sc2.linkage = LINK.d;
             sc2.stc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.abstract_ | STC.deprecated_ | STC.override_ |
-                         STC.TYPECTOR | STC.final_ | STC.tls | STC.gshared | STC.ref_ | STC.return_ | STC.property |
+                         STC.TYPECTOR | STC.final_ | STC.tls | STC.gshared | STC.ref_ | STC.rvalueref | STC.return_ | STC.property |
                          STC.nothrow_ | STC.pure_ | STC.safe | STC.trusted | STC.system);
             sc2.protection = Prot(Prot.Kind.public_);
             sc2.explicitProtection = 0;
@@ -460,7 +460,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     }
                     if (funcdecl.flags & FUNCFLAG.inferScope && !(fparam.storageClass & STC.scope_))
                         stc |= STC.maybescope;
-                    stc |= fparam.storageClass & (STC.in_ | STC.out_ | STC.ref_ | STC.return_ | STC.scope_ | STC.lazy_ | STC.final_ | STC.TYPECTOR | STC.nodtor);
+                    stc |= fparam.storageClass & (STC.in_ | STC.out_ | STC.ref_ | STC.rvalueref | STC.return_ | STC.scope_ | STC.lazy_ | STC.final_ | STC.TYPECTOR | STC.nodtor);
                     v.storage_class = stc;
                     v.dsymbolSemantic(sc2);
                     if (!sc2.insert(v))
@@ -891,7 +891,19 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         if (!hasCopyCtor)
                             exp = exp.implicitCastTo(sc2, tret);
 
-                        if (f.isref)
+                        if (f.isrvalueref)
+                        {
+                            // Function returns a reference
+                            if (!exp.isRvalueRef())
+                            {
+                                if (!exp.isLvalue())
+                                    exp = exp.toLvalue(sc2, exp);
+                                if (exp.isLvalue())
+                                    exp.error("lvalue cannot be `@rvalue ref`, perhaps you meant `cast(@rvalue ref) %s`", exp.toChars());
+                            }
+                            checkReturnEscapeRef(sc2, exp, false);
+                        }
+                        else if (f.isref)
                         {
                             // Function returns a reference
                             exp = exp.toLvalue(sc2, exp);

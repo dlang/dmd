@@ -480,6 +480,28 @@ extern (D) Expression doCopyOrMove(Scope *sc, Expression e, Type t = null)
 }
 
 /****************************************************************/
+bool isRvalueRef(Expression exp)
+{
+    if (auto ce = exp.isCastExp())
+    {
+        if (ce.rvalueRef)
+            return true;
+        return false;
+    }
+    if (auto ce = exp.isCallExp())
+    {
+        Type tb = ce.e1.type.toBasetype();
+        if (tb.ty == Tdelegate || tb.ty == Tpointer)
+            tb = tb.nextOf();
+        auto tf = tb.isTypeFunction();
+        if (tf && tf.isrvalueref)
+            return true; // function returns a reference
+        return false;
+    }
+    return false;
+}
+
+/****************************************************************/
 /* A type meant as a union of all the Expression types,
  * to serve essentially as a Variant that will sit on the stack
  * during CTFE to reduce memory consumption.
@@ -5148,6 +5170,7 @@ extern (C++) final class CastExp : UnaExp
 {
     Type to;                    // type to cast to
     ubyte mod = cast(ubyte)~0;  // MODxxxxx
+    bool rvalueRef;             // @rvalue ref
 
     extern (D) this(const ref Loc loc, Expression e, Type t)
     {
@@ -5157,10 +5180,11 @@ extern (C++) final class CastExp : UnaExp
 
     /* For cast(const) and cast(immutable)
      */
-    extern (D) this(const ref Loc loc, Expression e, ubyte mod)
+    extern (D) this(const ref Loc loc, Expression e, ubyte mod, bool rvalueRef = false)
     {
         super(loc, TOK.cast_, __traits(classInstanceSize, CastExp), e);
         this.mod = mod;
+        this.rvalueRef = rvalueRef;
     }
 
     override Expression syntaxCopy()
@@ -5173,6 +5197,43 @@ extern (C++) final class CastExp : UnaExp
         if (to.toBasetype().ty == Tvoid)        // look past the cast(void)
             e1 = e1.addDtorHook(sc);
         return this;
+    }
+
+    override Modifiable checkModifiable(Scope* sc, int flag)
+    {
+        if (rvalueRef)
+            return e1.checkModifiable(sc, flag);
+        return Expression.checkModifiable(sc, flag);
+    }
+
+    override bool isLvalue()
+    {
+        if (rvalueRef)
+        {
+            assert(e1.isLvalue());
+            return true;
+        }
+        return Expression.isLvalue();
+    }
+
+    override Expression toLvalue(Scope* sc, Expression e)
+    {
+        if (rvalueRef)
+        {
+            e1 = e1.toLvalue(sc, e);
+            return this;
+        }
+        return Expression.toLvalue(sc, e);
+    }
+
+    override Expression modifiableLvalue(Scope* sc, Expression e)
+    {
+        if (rvalueRef)
+        {
+            e1 = e1.modifiableLvalue(sc, e);
+            return this;
+        }
+        return Expression.modifiableLvalue(sc, e);
     }
 
     override void accept(Visitor v)

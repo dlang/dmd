@@ -798,7 +798,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             for (size_t i = 0; i < nfparams; i++)
             {
                 Parameter fparam = tf.parameterList[i];
-                fparam.storageClass &= (STC.in_ | STC.out_ | STC.ref_ | STC.lazy_ | STC.final_ | STC.TYPECTOR | STC.nodtor);
+                fparam.storageClass &= (STC.in_ | STC.out_ | STC.ref_ | STC.rvalueref | STC.lazy_ | STC.final_ | STC.TYPECTOR | STC.nodtor);
                 fparam.storageClass |= STC.parameter;
                 if (tf.parameterList.varargs == VarArg.typesafe && i + 1 == nfparams)
                 {
@@ -1591,7 +1591,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
                             /* Remove top const for dynamic array types and pointer types
                              */
-                            if ((tt.ty == Tarray || tt.ty == Tpointer) && !tt.isMutable() && (!(fparam.storageClass & STC.ref_) || (fparam.storageClass & STC.auto_) && !farg.isLvalue()))
+                            if ((tt.ty == Tarray || tt.ty == Tpointer) && !tt.isMutable() && (!(fparam.storageClass & STC.ref_) || (fparam.storageClass & (STC.auto_ | STC.rvalueref)) && !farg.isLvalue()))
                             {
                                 tt = tt.mutableOf();
                             }
@@ -1865,7 +1865,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                         }
                     }
 
-                    if (m > MATCH.nomatch && (fparam.storageClass & (STC.ref_ | STC.auto_)) == STC.ref_)
+                    if (m > MATCH.nomatch && (fparam.storageClass & (STC.ref_ | STC.auto_ | STC.rvalueref)) == STC.ref_)
                     {
                         if (!farg.isLvalue())
                         {
@@ -1876,6 +1876,11 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                             else
                                 goto Lnomatch;
                         }
+                    }
+                    if (m > MATCH.nomatch && (fparam.storageClass & STC.rvalueref))
+                    {
+                        if (farg.isLvalue() && !farg.isRvalueRef())
+                            goto Lnomatch;
                     }
                     if (m > MATCH.nomatch && (fparam.storageClass & STC.out_))
                     {

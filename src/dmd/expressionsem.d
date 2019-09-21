@@ -1938,7 +1938,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             }
             if (p.storageClass & STC.ref_)
             {
-                if (global.params.rvalueRefParam &&
+                if ((global.params.rvalueRefParam || p.storageClass & STC.rvalueref) &&
                     !arg.isLvalue() &&
                     targ.isCopyable())
                 {   /* allow rvalues to be passed to ref parameters by copying
@@ -6914,6 +6914,24 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (auto e = unaSemantic(exp, sc))
         {
             result = e;
+            return;
+        }
+
+        if (exp.rvalueRef)
+        {
+            if (exp.e1.isRvalueRef())
+            {
+                result = exp.e1;
+                return;
+            }
+            if (!exp.e1.isLvalue())
+            {
+                exp.error("cannot cast rvalue `%s` to `@rvalue ref`", exp.toChars());
+                return setError();
+            }
+            exp.to = exp.e1.type;
+            exp.type = exp.e1.type;
+            result = exp;
             return;
         }
 

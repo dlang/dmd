@@ -627,6 +627,11 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             Expression e1old = e.e1;
             if (expOptimize(e.e1, result))
                 return;
+            if (e.rvalueRef)
+            {
+                ret = e;
+                return;
+            }
             e.e1 = fromConstInitializer(result, e.e1);
             if (e.e1 == e1old && e.e1.op == TOK.arrayLiteral && e.type.toBasetype().ty == Tpointer && e.e1.type.toBasetype().ty != Tsarray)
             {
