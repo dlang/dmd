@@ -71,14 +71,14 @@ public:
 
     /*****************************************************
      * Expand macro in place in buf.
-     * Only look at the text in buf from start to end.
+     * Only look at the text in buf from start to pend.
      */
-    void expand(OutBuffer* buf, size_t start, size_t* pend, const(char)[] arg)
+    void expand(ref OutBuffer buf, size_t start, ref size_t pend, const(char)[] arg)
     {
         version (none)
         {
-            printf("Macro::expand(buf[%d..%d], arg = '%.*s')\n", start, *pend, cast(int)arg.length, arg.ptr);
-            printf("Buf is: '%.*s'\n", cast(int)(*pend - start), buf.data + start);
+            printf("Macro::expand(buf[%d..%d], arg = '%.*s')\n", start, pend, cast(int)arg.length, arg.ptr);
+            printf("Buf is: '%.*s'\n", cast(int)(pend - start), buf.data + start);
         }
         // limit recursive expansion
         __gshared int nest;
@@ -89,7 +89,7 @@ public:
             return;
         }
         nest++;
-        size_t end = *pend;
+        size_t end = pend;
         assert(start <= end);
         assert(end <= buf.length);
         /* First pass - replace $0
@@ -97,7 +97,7 @@ public:
         arg = memdup(arg);
         for (size_t u = start; u + 1 < end;)
         {
-            char* p = cast(char*)(*buf)[].ptr; // buf.data is not loop invariant
+            char* p = cast(char*)buf[].ptr; // buf.data is not loop invariant
             /* Look for $0, but not $$0, and replace it with arg.
              */
             if (p[u] == '$' && (isdigit(p[u + 1]) || p[u + 1] == '+'))
@@ -135,7 +135,7 @@ public:
                     end += marg.length - 2;
                     // Scan replaced text for further expansion
                     size_t mend = u + marg.length;
-                    expand(buf, u, &mend, null);
+                    expand(buf, u, mend, null);
                     end += mend - (u + marg.length);
                     u = mend;
                 }
@@ -143,7 +143,7 @@ public:
                 {
                     // Replace '$1' with '\xFF{arg\xFF}'
                     //printf("Replacing '$%c' with '\xFF{%.*s\xFF}'\n", p[u + 1], cast(int)marg.length, marg.ptr);
-                    ubyte[] slice = cast(ubyte[])(*buf)[];
+                    ubyte[] slice = cast(ubyte[])buf[];
                     slice[u] = 0xFF;
                     slice[u + 1] = '{';
                     buf.insert(u + 2, marg);
@@ -151,7 +151,7 @@ public:
                     end += -2 + 2 + marg.length + 2;
                     // Scan replaced text for further expansion
                     size_t mend = u + 2 + marg.length;
-                    expand(buf, u + 2, &mend, null);
+                    expand(buf, u + 2, mend, null);
                     end += mend - (u + 2 + marg.length);
                     u = mend;
                 }
@@ -165,7 +165,7 @@ public:
          */
         for (size_t u = start; u + 4 < end;)
         {
-            char* p = cast(char*)(*buf)[].ptr; // buf.data is not loop invariant
+            char* p = cast(char*)buf[].ptr; // buf.data is not loop invariant
             /* A valid start of macro expansion is $(c, where c is
              * an id start character, and not $$(c.
              */
@@ -248,7 +248,7 @@ public:
                             marg = memdup(marg);
                             // Insert replacement text
                             buf.spread(v + 1, 2 + m.text.length + 2);
-                            ubyte[] slice = cast(ubyte[])(*buf)[];
+                            ubyte[] slice = cast(ubyte[])buf[];
                             slice[v + 1] = 0xFF;
                             slice[v + 2] = '{';
                             slice[v + 3 .. v + 3 + m.text.length] = cast(ubyte[])m.text[];
@@ -258,7 +258,7 @@ public:
                             // Scan replaced text for further expansion
                             m.inuse++;
                             size_t mend = v + 1 + 2 + m.text.length + 2;
-                            expand(buf, v + 1, &mend, marg);
+                            expand(buf, v + 1, mend, marg);
                             end += mend - (v + 1 + 2 + m.text.length + 2);
                             m.inuse--;
                             buf.remove(u, v + 1 - u);
@@ -282,7 +282,7 @@ public:
             u++;
         }
         mem.xfree(cast(char*)arg);
-        *pend = end;
+        pend = end;
         nest--;
     }
 }
