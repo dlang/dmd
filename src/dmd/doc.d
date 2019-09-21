@@ -322,7 +322,7 @@ private final class MacroSection : Section
     override void write(Loc loc, DocComment* dc, Scope* sc, Dsymbols* a, OutBuffer* buf)
     {
         //printf("MacroSection::write()\n");
-        DocComment.parseMacros(dc.escapetable, dc.pmacrotable, _body, bodylen);
+        DocComment.parseMacros(dc.escapetable, *dc.pmacrotable, _body, bodylen);
     }
 }
 
@@ -396,7 +396,7 @@ extern(C++) void gendocfile(Module m)
             mbuf.write(data);
         }
     }
-    DocComment.parseMacros(m.escapetable, &m.macrotable, mbuf.peekSlice().ptr, mbuf.peekSlice().length);
+    DocComment.parseMacros(m.escapetable, m.macrotable, mbuf.peekSlice().ptr, mbuf.peekSlice().length);
     Scope* sc = Scope.createGlobal(m); // create root scope
     DocComment* dc = DocComment.parse(m, m.comment);
     dc.pmacrotable = &m.macrotable;
@@ -406,7 +406,7 @@ extern(C++) void gendocfile(Module m)
     // Set the title to be the name of the module
     {
         const p = m.toPrettyChars().toDString;
-        Macro.define(&m.macrotable, "TITLE", p);
+        m.macrotable.define("TITLE", p);
     }
     // Set time macros
     {
@@ -414,17 +414,17 @@ extern(C++) void gendocfile(Module m)
         time(&t);
         char* p = ctime(&t);
         p = mem.xstrdup(p);
-        Macro.define(&m.macrotable, "DATETIME", p[0 .. strlen(p)]);
-        Macro.define(&m.macrotable, "YEAR", p[20 .. 20 + 4]);
+        m.macrotable.define("DATETIME", p[0 .. strlen(p)]);
+        m.macrotable.define("YEAR", p[20 .. 20 + 4]);
     }
     const srcfilename = m.srcfile.toString();
-    Macro.define(&m.macrotable, "SRCFILENAME", srcfilename);
+    m.macrotable.define("SRCFILENAME", srcfilename);
     const docfilename = m.docfile.toString();
-    Macro.define(&m.macrotable, "DOCFILENAME", docfilename);
+    m.macrotable.define("DOCFILENAME", docfilename);
     if (dc.copyright)
     {
         dc.copyright.nooutput = 1;
-        Macro.define(&m.macrotable, "COPYRIGHT", dc.copyright._body[0 .. dc.copyright.bodylen]);
+        m.macrotable.define("COPYRIGHT", dc.copyright._body[0 .. dc.copyright.bodylen]);
     }
     if (m.isDocFile)
     {
@@ -453,7 +453,7 @@ extern(C++) void gendocfile(Module m)
         emitMemberComments(m, buf, sc);
     }
     //printf("BODY= '%.*s'\n", cast(int)buf.length, buf.data);
-    Macro.define(&m.macrotable, "BODY", buf.peekSlice());
+    m.macrotable.define("BODY", buf.peekSlice());
     OutBuffer buf2;
     buf2.writestring("$(DDOC)");
     size_t end = buf2.length;
@@ -1545,7 +1545,7 @@ struct DocComment
     Section summary;
     Section copyright;
     Section macros;
-    Macro** pmacrotable;
+    MacroTable* pmacrotable;
     Escape* escapetable;
     Dsymbols a;
 
@@ -1579,7 +1579,7 @@ struct DocComment
      *
      *      name2 = value2
      */
-    static void parseMacros(Escape* escapetable, Macro** pmacrotable, const(char)* m, size_t mlen)
+    static void parseMacros(Escape* escapetable, ref MacroTable pmacrotable, const(char)* m, size_t mlen)
     {
         const(char)* p = m;
         size_t len = mlen;
@@ -1651,7 +1651,7 @@ struct DocComment
                 if (iequals("ESCAPES", namestart[0 .. namelen]))
                     parseEscapes(escapetable, textstart, textlen);
                 else
-                    Macro.define(pmacrotable, namestart[0 ..namelen], textstart[0 .. textlen]);
+                    pmacrotable.define(namestart[0 .. namelen], textstart[0 .. textlen]);
                 namelen = 0;
                 if (p >= pend)
                     break;
