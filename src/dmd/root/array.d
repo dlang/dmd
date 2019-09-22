@@ -56,7 +56,7 @@ public:
                 buf[u] = data[u].toString();
                 len += buf[u].length + 1; //length + ',' or null terminator
             }
-            char[] str = (cast(char*)mem.xmalloc(len))[0..len];
+            char[] str = (cast(char*)mem.xmalloc_noscan(len))[0..len];
 
             str[0] = '[';
             char* p = str.ptr + 1;

@@ -735,7 +735,7 @@ nothrow:
      */
     void setString(const(char)* ptr, size_t length)
     {
-        auto s = cast(char*)mem.xmalloc(length + 1);
+        auto s = cast(char*)mem.xmalloc_noscan(length + 1);
         memcpy(s, ptr, length);
         s[length] = 0;
         ustring = s;

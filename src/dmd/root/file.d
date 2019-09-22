@@ -99,7 +99,7 @@ nothrow:
                 return result;
             }
             size = cast(size_t)buf.st_size;
-            ubyte* buffer = cast(ubyte*)mem.xmalloc(size + 2);
+            ubyte* buffer = cast(ubyte*)mem.xmalloc_noscan(size + 2);
             if (!buffer)
                 goto err2;
             numread = .read(fd, buffer, size);
@@ -143,7 +143,7 @@ nothrow:
             if (h == INVALID_HANDLE_VALUE)
                 return result;
             size = GetFileSize(h, null);
-            ubyte* buffer = cast(ubyte*)mem.xmalloc(size + 2);
+            ubyte* buffer = cast(ubyte*)mem.xmalloc_noscan(size + 2);
             if (!buffer)
                 goto err2;
             if (ReadFile(h, buffer, size, &numread, null) != TRUE)

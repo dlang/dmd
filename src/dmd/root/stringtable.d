@@ -293,7 +293,7 @@ private:
         auto otab = table;
         const ndim = table.length * 2;
         countTrigger = (ndim * loadFactorNumerator) / loadFactorDenominator;
-        table = (cast(StringEntry*)mem.xcalloc(ndim, (table[0]).sizeof))[0 .. ndim];
+        table = (cast(StringEntry*)mem.xcalloc_noscan(ndim, (table[0]).sizeof))[0 .. ndim];
         foreach (const se; otab[0 .. odim])
         {
             if (!se.vptr)

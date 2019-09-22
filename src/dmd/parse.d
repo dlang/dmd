@@ -2772,7 +2772,7 @@ final class Parser(AST) : Lexer
             size_t len = endPtr - begPtr;
             if (len > 0)
             {
-                docline = cast(char*)mem.xmalloc(len + 2);
+                docline = cast(char*)mem.xmalloc_noscan(len + 2);
                 memcpy(docline, begPtr, len);
                 docline[len] = '\n'; // Terminate all lines by LF
                 docline[len + 1] = '\0';
@@ -7796,7 +7796,7 @@ final class Parser(AST) : Lexer
                         const len1 = len;
                         const len2 = token.len;
                         len = len1 + len2;
-                        auto s2 = cast(char*)mem.xmalloc(len * char.sizeof);
+                        auto s2 = cast(char*)mem.xmalloc_noscan(len * char.sizeof);
                         memcpy(s2, s, len1 * char.sizeof);
                         memcpy(s2 + len1, token.ustring, len2 * char.sizeof);
                         s = s2;
