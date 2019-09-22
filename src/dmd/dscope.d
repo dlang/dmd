@@ -223,6 +223,8 @@ struct Scope
         Scope* enc = enclosing;
         if (!nofree)
         {
+            if (mem.isGCEnabled)
+                this = this.init;
             enclosing = freelist;
             freelist = &this;
             flags |= SCOPE.free;

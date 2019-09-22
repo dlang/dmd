@@ -59,6 +59,8 @@ struct OutBuffer
              */
             size = (((offset + nbytes) * 3 + 30) / 2) & ~15;
             data = cast(ubyte*)mem.xrealloc(data, size);
+            if (mem.isGCEnabled) // clear currently unused data to avoid false pointers
+                memset(data + offset + nbytes, 0xff, size - offset - nbytes);
         }
     }
 
@@ -315,6 +317,8 @@ struct OutBuffer
             }
         }
         offset += count;
+        if (mem.isGCEnabled)
+            memset(data + offset, 0xff, psize - count);
     }
 
     extern (C++) void printf(const(char)* format, ...) nothrow

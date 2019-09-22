@@ -140,6 +140,9 @@ public:
                 allocdim = length + increment;
                 data = cast(T*)mem.xrealloc(data, allocdim * (*data).sizeof);
             }
+            if (mem.isGCEnabled)
+                if (length + nentries < allocdim)
+                    memset(data + length + nentries, 0, (allocdim - length - nentries) * data[0].sizeof);
         }
     }
 
