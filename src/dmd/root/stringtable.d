@@ -252,6 +252,8 @@ private:
         {
             pools = (cast(ubyte**) mem.xrealloc(pools.ptr, (pools.length + 1) * (pools[0]).sizeof))[0 .. pools.length + 1];
             pools[$-1] = cast(ubyte*) mem.xmalloc(nbytes > POOL_SIZE ? nbytes : POOL_SIZE);
+            if (mem.isGCEnabled)
+                memset(pools[$ - 1], 0xff, POOL_SIZE); // 0xff less likely to produce GC pointer
             nfill = 0;
         }
         StringValue* sv = cast(StringValue*)&pools[$ - 1][nfill];

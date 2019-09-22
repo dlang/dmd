@@ -122,10 +122,11 @@ extern (C++) struct Mem
     {
         __gshared bool _isGCEnabled = true;
 
-        static bool isGCEnabled() pure nothrow @nogc
+        // fake purity by making global variable immutable (_isGCEnabled only modified before startup)
+        enum _pIsGCEnabled = cast(immutable bool*) &_isGCEnabled;
+
+        static bool isGCEnabled() pure nothrow @nogc @safe
         {
-            // fake purity by making global variable immutable (_isGCEnabled only modified before startup)
-            enum _pIsGCEnabled = cast(immutable bool*) &_isGCEnabled;
             return *_pIsGCEnabled;
         }
 
