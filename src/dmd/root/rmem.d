@@ -57,11 +57,29 @@ extern (C++) struct Mem
         return size ? check(pureMalloc(size)) : null;
     }
 
+    static void* xmalloc_noscan(size_t size) pure nothrow
+    {
+        version (GC)
+            if (isGCEnabled)
+                return size ? GC.malloc(size, GC.BlkAttr.NO_SCAN) : null;
+
+        return size ? check(pureMalloc(size)) : null;
+    }
+
     static void* xcalloc(size_t size, size_t n) pure nothrow
     {
         version (GC)
             if (isGCEnabled)
                 return size * n ? GC.calloc(size * n) : null;
+
+        return (size && n) ? check(pureCalloc(size, n)) : null;
+    }
+
+    static void* xcalloc_noscan(size_t size, size_t n) pure nothrow
+    {
+        version (GC)
+            if (isGCEnabled)
+                return size * n ? GC.calloc(size * n, GC.BlkAttr.NO_SCAN) : null;
 
         return (size && n) ? check(pureCalloc(size, n)) : null;
     }
@@ -315,7 +333,7 @@ extern (D) char[] xarraydup(const(char)[] s) pure nothrow
     if (!s)
         return null;
 
-    auto p = cast(char*)mem.xmalloc(s.length + 1);
+    auto p = cast(char*)mem.xmalloc_noscan(s.length + 1);
     char[] a = p[0 .. s.length];
     a[] = s[0 .. s.length];
     p[s.length] = 0;    // preserve 0 terminator semantics

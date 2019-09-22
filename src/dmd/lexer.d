@@ -2651,7 +2651,7 @@ class Lexer
         if (c1.length && c1[$ - 1] != '\n')
             insertNewLine = 1;
         const retSize = c1.length + insertNewLine + newParagraphSize + c2.length;
-        auto p = cast(char*)mem.xmalloc(retSize + 1);
+        auto p = cast(char*)mem.xmalloc_noscan(retSize + 1);
         p[0 .. c1.length] = c1[];
         if (insertNewLine)
             p[c1.length] = '\n';

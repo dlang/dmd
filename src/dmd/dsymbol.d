@@ -675,7 +675,7 @@ extern (C++) class Dsymbol : ASTNode
             length += len + 1;
         }
 
-        auto s = cast(char*)mem.xmalloc(length);
+        auto s = cast(char*)mem.xmalloc_noscan(length);
         auto q = s + length - 1;
         *q = 0;
         foreach (j; 0 .. complength)
