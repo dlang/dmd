@@ -99,6 +99,21 @@ extern (C++) struct Mem
         return check(pureRealloc(p, size));
     }
 
+    static void* xrealloc_noscan(void* p, size_t size) pure nothrow
+    {
+        version (GC)
+            if (isGCEnabled)
+                return GC.realloc(p, size, GC.BlkAttr.NO_SCAN);
+
+        if (!size)
+        {
+            pureFree(p);
+            return null;
+        }
+
+        return check(pureRealloc(p, size));
+    }
+
     static void* error() pure nothrow @nogc
     {
         onOutOfMemoryError();
