@@ -1668,10 +1668,11 @@ extern(C++):
         if (substitute(t))
             return;
         buf.writeByte('R');
-        auto prev = this.context.push(this.context.res.asType().nextOf());
-        scope (exit) this.context.pop(prev);
-        t.next.accept(this);
+        CV_qualifiers(t.nextOf());
+        headOfType(t.nextOf());
         append(t);
+        if (t.nextOf().isConst())
+            append(t.nextOf());
     }
 
     override void visit(TypeFunction t)
