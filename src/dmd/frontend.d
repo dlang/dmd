@@ -464,7 +464,7 @@ string prettyPrint(Module m)
     import std.string : replace, fromStringz;
     import std.exception : assumeUnique;
 
-    auto generated = buf.extractData.fromStringz.replace("\t", "    ");
+    auto generated = buf.extractSlice.replace("\t", "    ");
     return generated.assumeUnique;
 }
 
