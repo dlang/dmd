@@ -117,6 +117,7 @@ extern (C++) final class Import : Dsymbol
     {
         assert(!s);
         auto si = new Import(loc, packages, id, aliasId, isstatic);
+        si.comment = comment;
         for (size_t i = 0; i < names.dim; i++)
         {
             si.addAlias(names[i], aliases[i]);

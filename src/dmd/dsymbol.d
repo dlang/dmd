@@ -1265,6 +1265,7 @@ public:
     {
         //printf("ScopeDsymbol::syntaxCopy('%s')\n", toChars());
         ScopeDsymbol sds = s ? cast(ScopeDsymbol)s : new ScopeDsymbol(ident);
+        sds.comment = comment;
         sds.members = arraySyntaxCopy(members);
         sds.endlinnum = endlinnum;
         return sds;
