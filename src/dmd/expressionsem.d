@@ -8614,7 +8614,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                      *          ? __aatmp[__aakey].opAssign(__aaval)
                      *          : ConstructExp(__aatmp[__aakey], __aaval));
                      */
-                    IndexExp ie = cast(IndexExp)e1x;
+                    // ensure we keep the expr modifiable
+                    Expression esetting = (cast(IndexExp)e1x).markSettingAAElem();
+                    if (esetting.op == TOK.error)
+                    {
+                        result = esetting;
+                        return;
+                    }
+                    assert(esetting.op == TOK.index);
+                    IndexExp ie = cast(IndexExp) esetting;
                     Type t2 = e2x.type.toBasetype();
 
                     Expression e0 = null;
