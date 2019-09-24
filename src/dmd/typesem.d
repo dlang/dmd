@@ -2022,7 +2022,7 @@ Type merge(Type type)
 
         mangleToBuffer(type, &buf);
 
-        StringValue* sv = type.stringtable.update(buf.extractSlice());
+        StringValue* sv = type.stringtable.update(buf.peekSlice());
         if (sv.ptrvalue)
         {
             Type t = cast(Type)sv.ptrvalue;
