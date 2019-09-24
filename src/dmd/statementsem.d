@@ -3262,6 +3262,7 @@ else
                 void turnOffRef()
                 {
                     tf.isref = false;    // return by value
+                    tf.isrvalueref = false; // ignore `@rvalue ref` attribute
                     tf.isreturn = false; // ignore 'return' attribute, whether explicit or inferred
                     fd.storage_class &= ~STC.return_;
                 }
@@ -3274,6 +3275,8 @@ else
                         turnOffRef();
                     else if (!rs.exp.type.constConv(tf.next))
                         turnOffRef();
+                    else if (tf.isrvalueref && !rs.exp.isRvalueRef())
+                        tf.isrvalueref = false;
                 }
                 else
                     turnOffRef();
@@ -3282,6 +3285,10 @@ else
                  * This means:
                  *    return 3; return x;  // ok, x can be a value
                  *    return x; return 3;  // ok, x can be a value
+                 *    return x; return x;  // returns ref
+                 *    return cast(@rvalue ref)x; return 3;  // returns value
+                 *    return cast(@rvalue ref)x; return x;  // returns ref
+                 *    return cast(@rvalue ref)x; return cast(@rvalue ref)x;  // returns @rvalue ref
                  */
             }
 
@@ -3339,7 +3346,10 @@ else
             }
 
             if (inferRef) // deduce 'auto ref'
+            {
                 tf.isref = false;
+                tf.isrvalueref = false;
+            }
 
             if (tbret.ty != Tvoid) // if non-void return
             {

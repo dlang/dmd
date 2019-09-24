@@ -581,6 +581,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     funcdecl.nrvo_can = 0;
 
                 bool inferRef = (f.isref && (funcdecl.storage_class & STC.auto_));
+                if (inferRef)
+                    f.isrvalueref = true;
 
                 funcdecl.fbody = funcdecl.fbody.statementSemantic(sc2);
                 if (!funcdecl.fbody)
@@ -622,7 +624,10 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             continue;
                         }
                         if (inferRef && f.isref && !exp.type.constConv(f.next)) // https://issues.dlang.org/show_bug.cgi?id=13336
+                        {
                             f.isref = false;
+                            f.isrvalueref = false;
+                        }
                         i++;
                     }
                 }

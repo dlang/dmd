@@ -1489,18 +1489,23 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                 if (fparam.storageClass & STC.auto_)
                 {
                     Expression farg = mtype.fargs && i < mtype.fargs.dim ? (*mtype.fargs)[i] : fparam.defaultArg;
-                    if (farg && (fparam.storageClass & STC.ref_))
+                    if (farg && (fparam.storageClass & (STC.ref_ | STC.rvalueref)))
                     {
-                        if (farg.isLvalue())
+                        if (farg.isLvalue() && !farg.isRvalueRef())
                         {
                             // ref parameter
+                            fparam.storageClass &= ~STC.rvalueref;
                         }
                         else
-                            fparam.storageClass &= ~STC.ref_; // value parameter
+                        {
+                            // value or rvalue ref parameter
+                            if (!(fparam.storageClass & STC.rvalueref))
+                                fparam.storageClass &= ~STC.ref_;
+                        }
                         fparam.storageClass &= ~STC.auto_;    // https://issues.dlang.org/show_bug.cgi?id=14656
                         fparam.storageClass |= STC.autoref;
                     }
-                    else if (mtype.incomplete && (fparam.storageClass & STC.ref_))
+                    else if (mtype.incomplete && (fparam.storageClass & (STC.ref_ | STC.rvalueref)))
                     {
                         // the default argument may have been temporarily removed,
                         // see usage of `TypeFunction.incomplete`.
