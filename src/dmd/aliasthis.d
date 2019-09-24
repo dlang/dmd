@@ -45,7 +45,9 @@ extern (C++) final class AliasThis : Dsymbol
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        return new AliasThis(loc, ident);
+        auto at = new AliasThis(loc, ident);
+        at.comment = comment;
+        return at;
     }
 
     override const(char)* kind() const
