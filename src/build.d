@@ -188,26 +188,30 @@ will trigger a full rebuild.
 */
 
 /// Returns: the dependency that builds the lexer
-alias lexer = memoize!(function() {
-    Dependency dependency = {
-        name: "lexer",
-        target: env["G"].buildPath("lexer").libName,
-        sources: sources.lexer,
-        deps: [versionFile, sysconfDirFile],
-        msg: "(DC) D_LEXER_OBJ %-(%s, %)".format(sources.lexer.map!(e => e.baseName).array),
-        command: [
+alias lexer = memoize!(function()
+{
+    Dependency dep;
+    with (dep)
+    {
+        name = "lexer";
+        target = env["G"].buildPath("lexer").libName;
+        sources = .sources.lexer;
+        deps = [versionFile, sysconfDirFile];
+        msg = "(DC) D_LEXER_OBJ %-(%s, %)".format(sources.map!(e => e.baseName).array);
+        command = [
             env["HOST_DMD_RUN"],
-            "-of$@",
+            "-of" ~ target,
             "-lib",
             "-vtls",
             "-J"~env["G"], "-J../res",
-        ].chain(flags["DFLAGS"], "$<".only).array
-    };
-    return new DependencyRef(dependency);
+        ].chain(flags["DFLAGS"], sources).array;
+    }
+    return new DependencyRef(dep);
 });
 
 /// Returns: the dependency that generates the dmd.conf file in the output folder
-alias dmdConf = memoize!(function() {
+alias dmdConf = memoize!(function()
+{
     // TODO: add support for Windows
     string exportDynamic;
     version(OSX) {} else
@@ -222,85 +226,96 @@ DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@
         .replace("{BUILD}", env["BUILD"])
         .replace("{OS}", env["OS"]);
 
-    auto target = env["G"].buildPath("dmd.conf");
-    auto commandFunction = (){
-        conf.toFile(target);
-    }; // defined separately to support older D compilers
-    Dependency dependency = {
-        name: "dmdconf",
-        target: target,
-        msg: "(TX) DMD_CONF",
-        commandFunction: commandFunction,
-    };
-    return new DependencyRef(dependency);
+    Dependency dep;
+    with (dep)
+    {
+        name = "dmdconf";
+        target = env["G"].buildPath("dmd.conf");
+        msg = "(TX) DMD_CONF";
+        commandFunction = ()
+        {
+            conf.toFile(target);
+        }; // defined separately to support older D compilers
+    }
+    return new DependencyRef(dep);
 });
 
 /// Returns: the dependencies that build the D backend
-alias backendObj = memoize!(function () {
-    Dependency dependency = {
-        name: "backendObj",
-        target: env["G"].buildPath("backend").objName,
-        sources: sources.backend,
-        msg: "(DC) D_BACK_OBJS %-(%s, %)".format(sources.backend.map!(e => e.baseName).array),
-        command: [
+alias backendObj = memoize!(function ()
+{
+    Dependency dep;
+    with (dep)
+    {
+        name = "backendObj";
+        target = env["G"].buildPath("backend").objName;
+        sources = .sources.backend;
+        msg = "(DC) D_BACK_OBJS %-(%s, %)".format(sources.map!(e => e.baseName).array);
+        command = [
             env["HOST_DMD_RUN"],
             "-c",
-            "-of$@",
+            "-of" ~ target,
             "-betterC",
-        ].chain(flags["DFLAGS"], "$<".only).array
-    };
-    return new DependencyRef(dependency);
+        ].chain(flags["DFLAGS"], sources).array;
+    }
+    return new DependencyRef(dep);
 });
 
 /// Execute the sub-dependencies of the backend and pack everything into one object file
-alias backend = memoize!(function() {
-    // Pack the backend
-    Dependency dependency = {
-        name: "backend",
-        msg: "(LIB) %s".format("BACKEND".libName),
-        sources: [ env["G"].buildPath("backend").objName ],
-        target: env["G"].buildPath("backend").libName,
-        deps: [backendObj],
-        command: [env["HOST_DMD_RUN"], env["MODEL_FLAG"], "-lib", "-of$@", "$<"]
-    };
-    return new DependencyRef(dependency);
+alias backend = memoize!(function()
+{
+    Dependency dep;
+    with (dep)
+    {
+        name = "backend";
+        msg = "(LIB) %s".format("BACKEND".libName);
+        sources = [ env["G"].buildPath("backend").objName ];
+        target = env["G"].buildPath("backend").libName;
+        deps = [backendObj];
+        command = [env["HOST_DMD_RUN"], env["MODEL_FLAG"], "-lib", "-of" ~ target].chain(sources).array;
+    }
+    return new DependencyRef(dep);
 });
 
 /// Returns: the dependencies that generate required string files: VERSION and SYSCONFDIR.imp
-alias versionFile = memoize!(function() {
-    const versionFile = env["G"].buildPath("VERSION");
-    auto commandFunction = (){
-        "(TX) VERSION".writeln;
-        string ver;
-        if (srcDir.dirName.buildPath(".git").exists)
+alias versionFile = memoize!(function() 
+{
+    Dependency dep;
+    with (dep)
+    {
+        target = env["G"].buildPath("VERSION");
+        commandFunction = ()
         {
-            auto gitResult = ["git", "describe", "--dirty"].run;
-            if (gitResult.status == 0)
-                ver = gitResult.output.strip;
-        }
-        // version fallback
-        if (ver.length == 0)
-            ver = srcDir.dirName.buildPath("VERSION").readText;
-        updateIfChanged(versionFile, ver);
-    };
-    Dependency dependency = {
-        target: versionFile,
-        commandFunction: commandFunction,
-    };
-    return new DependencyRef(dependency);
+            "(TX) VERSION".writeln;
+            string ver;
+            if (srcDir.dirName.buildPath(".git").exists)
+            {
+                auto gitResult = ["git", "describe", "--dirty"].run;
+                if (gitResult.status == 0)
+                    ver = gitResult.output.strip;
+            }
+            // version fallback
+            if (ver.length == 0)
+                ver = srcDir.dirName.buildPath("VERSION").readText;
+            updateIfChanged(target, ver);
+        };
+    }
+    return new DependencyRef(dep);
 });
-alias sysconfDirFile = memoize!(function() {
-    const sysconfDirFile = env["G"].buildPath("SYSCONFDIR.imp");
-    auto commandFunction = (){
-        "(TX) SYSCONFDIR".writeln;
-        updateIfChanged(sysconfDirFile, env["SYSCONFDIR"]);
-    };
-    Dependency dependency = {
-        sources: [thisBuildScript],
-        target: sysconfDirFile,
-        commandFunction: commandFunction,
-    };
-    return new DependencyRef(dependency);
+
+alias sysconfDirFile = memoize!(function()
+{
+    Dependency dep;
+    with(dep)
+    {
+        sources = [thisBuildScript];
+        target = env["G"].buildPath("SYSCONFDIR.imp");
+        commandFunction = ()
+        {
+            "(TX) SYSCONFDIR".writeln;
+            updateIfChanged(target, env["SYSCONFDIR"]);
+        };
+    }
+    return new DependencyRef(dep);
 });
 
 
@@ -310,68 +325,77 @@ Dependency for the DMD executable.
 Params:
   extra_flags = Flags to apply to the main build but not the dependencies
 */
-alias dmdExe = memoize!(function(string targetSuffix, string[] extraFlags...) {
-    // Main DMD build dependency
+alias dmdExe = memoize!(function(string targetSuffix, string[] extraFlags...)
+{
     const dmdSources = sources.dmd.chain(sources.root).array;
-    Dependency dependency = {
+
+    // Main DMD build dependency
+    Dependency dep;
+    with (dep)
+    {
         // newdelete.o + lexer.a + backend.a
-        sources: dmdSources.chain(lexer.targets, backend.targets).array,
-        target: env["DMD_PATH"] ~ targetSuffix,
-        msg: "(DC) DMD%s %-(%s, %)".format(targetSuffix, dmdSources.map!(e => e.baseName).array),
-        deps: [versionFile, sysconfDirFile, lexer, backend],
-        command: [
+        sources = dmdSources.chain(lexer.targets, backend.targets).array;
+        target = env["DMD_PATH"] ~ targetSuffix;
+        msg = "(DC) DMD%s %-(%s, %)".format(targetSuffix, dmdSources.map!(e => e.baseName).array);
+        deps = [versionFile, sysconfDirFile, lexer, backend];
+        command = [
             env["HOST_DMD_RUN"],
-            "-of$@",
+            "-of" ~ target,
             "-vtls",
             "-J"~env["G"],
             "-J../res",
-        ].chain(extraFlags).chain(flags["DFLAGS"], "$<".only).array
-    };
-    return new DependencyRef(dependency);
+        ].chain(extraFlags).chain(flags["DFLAGS"], sources).array;
+    }
+    return new DependencyRef(dep);
 });
 
-alias dmdDefault = memoize!(function() {
-    Dependency dependency = {
-        name: "dmd",
-        description: "Build dmd",
-        deps: [dmdConf, dmdExe(null, null)],
-    };
-    return new DependencyRef(dependency);
-});
-
-/// Dependency for the DMD unittest executable
-auto dmdUnittestExe()
+alias dmdDefault = memoize!(function()
 {
-    return dmdExe("-unittest", ["-version=NoMain", "-unittest", "-main"]);
-}
+    Dependency dep;
+    with (dep)
+    {
+        name = "dmd";
+        description = "Build dmd";
+        deps = [dmdConf, dmdExe(null, null)];
+    }
+    return new DependencyRef(dep);
+});
 
 /// Dependency to run the DMD unittest executable.
-alias runDmdUnittest = memoize!(function() {
-    auto commandFunction = (){
-        spawnProcess(dmdUnittestExe.targets[0]);
-    };
-    Dependency dependency = {
-        name: "unittest",
-        description: "Run the dmd unittests",
-        msg: "(RUN) DMD-UNITTEST",
-        deps: [dmdUnittestExe],
-        commandFunction: commandFunction.toDelegate,
-    };
-    return new DependencyRef(dependency);
+alias runDmdUnittest = memoize!(function()
+{
+    auto dmdUnittestExe = dmdExe("-unittest", ["-version=NoMain", "-unittest", "-main"]);
+
+    Dependency dep;
+    with (dep)
+    {
+        name = "unittest";
+        description = "Run the dmd unittests";
+        msg = "(RUN) DMD-UNITTEST";
+        deps = [dmdUnittestExe];
+        commandFunction = ()
+        {
+            spawnProcess(dmdUnittestExe.targets[0]);
+        };
+    }
+    return new DependencyRef(dep);
 });
 
-alias clean = memoize!(function() {
-    auto commandFunction = (){
-        if (env["G"].exists)
-            env["G"].rmdirRecurse;
-    };
-    Dependency dependency = {
-        name: "clean",
-        description: "Remove the generated directory",
-        msg: "(RM) " ~ env["G"],
-        commandFunction: commandFunction.toDelegate,
-    };
-    return new DependencyRef(dependency);
+alias clean = memoize!(function()
+{
+    Dependency dep;
+    with (dep)
+    {
+        name = "clean";
+        description = "Remove the generated directory";
+        msg = "(RM) " ~ env["G"];
+        commandFunction = ()
+        {
+            if (env["G"].exists)
+                env["G"].rmdirRecurse;
+        };
+    }
+    return new DependencyRef(dep);
 });
 
 /**
@@ -1058,9 +1082,6 @@ It knows how to build these target by invoking either the external command or
 the commandFunction.
 
 If a run fails, the entire build stops.
-
-Command strings support the Make-like $@ (target path) and $< (source path)
-shortcut variables.
 */
 struct Dependency
 {
@@ -1128,23 +1149,8 @@ class DependencyRef
 
         if (command)
         {
-            resolveShorthands();
             command.runCanThrow;
         }
-    }
-
-    /**
-    Resolves variables shorthands like $@ (target) and $< (source)
-    */
-    void resolveShorthands()
-    {
-        // Support $@ (shortcut for the target path)
-        foreach (i, c; command)
-            command[i] = c.replace("$@", target);
-
-        // Support $< (shortcut for the source path)
-        if (command[$ - 1].canFind("$<"))
-            command = command.remove(command.length - 1) ~ dep.sources;
     }
 }
 
