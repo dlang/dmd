@@ -257,6 +257,11 @@ static if (0)
 else static if (TARGET_OSX)
 {
 }
+else
+{
+    version(Windows)
+        config.flags4 |= CFG4allcomdat;
+}
     if (trace)
         config.flags |= CFGtrace;       // turn on profiler
     if (nofloat)
