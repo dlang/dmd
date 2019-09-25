@@ -362,9 +362,7 @@ final class Parser(AST) : Lexer
                     {
                         AST.Expressions* exps = null;
                         const stc = parseAttribute(&exps);
-                        if (stc == STC.property || stc == STC.nogc
-                          || stc == STC.disable || stc == STC.safe
-                          || stc == STC.trusted || stc == STC.system)
+                        if (stc & atAttrGroup)
                         {
                             error("`@%s` attribute for module declaration is not supported", token.toChars());
                         }
@@ -1390,21 +1388,8 @@ final class Parser(AST) : Lexer
         StorageClass stc = 0;
         if (token.value == TOK.identifier)
         {
-            if (token.ident == Id.property)
-                stc = STC.property;
-            else if (token.ident == Id.nogc)
-                stc = STC.nogc;
-            else if (token.ident == Id.safe)
-                stc = STC.safe;
-            else if (token.ident == Id.trusted)
-                stc = STC.trusted;
-            else if (token.ident == Id.system)
-                stc = STC.system;
-            else if (token.ident == Id.disable)
-                stc = STC.disable;
-            else if (token.ident == Id.future)
-                stc = STC.future;
-            else
+            stc = isBuiltinAtAttribute(token.ident);
+            if (!stc)
             {
                 // Allow identifier, template instantiation, or function call
                 AST.Expression exp = parsePrimaryExp();
@@ -2884,9 +2869,7 @@ final class Parser(AST) : Lexer
                     {
                         AST.Expressions* exps = null;
                         StorageClass stc2 = parseAttribute(&exps);
-                        if (stc2 == STC.property || stc2 == STC.nogc ||
-                            stc2 == STC.disable || stc2 == STC.safe ||
-                            stc2 == STC.trusted || stc2 == STC.system)
+                        if (stc2 & atAttrGroup)
                         {
                             error("`@%s` attribute for function parameter is not supported", token.toChars());
                         }
@@ -3028,9 +3011,7 @@ final class Parser(AST) : Lexer
                         {
                             AST.Expressions* exps = null;
                             StorageClass stc2 = parseAttribute(&exps);
-                            if (stc2 == STC.property || stc2 == STC.nogc ||
-                                stc2 == STC.disable || stc2 == STC.safe ||
-                                stc2 == STC.trusted || stc2 == STC.system)
+                            if (stc2 & atAttrGroup)
                             {
                                 error("`@%s` attribute for function parameter is not supported", token.toChars());
                             }
@@ -7514,7 +7495,7 @@ final class Parser(AST) : Lexer
                      * any of the above followed by (arglist)
                      * @predefined_attribute
                      */
-                    if (t.ident == Id.property || t.ident == Id.nogc || t.ident == Id.safe || t.ident == Id.trusted || t.ident == Id.system || t.ident == Id.disable)
+                    if (isBuiltinAtAttribute(t.ident))
                         break;
                     t = peek(t);
                     if (t.value == TOK.not)
@@ -9035,7 +9016,35 @@ final class Parser(AST) : Lexer
             token.lineComment = null;
         }
     }
-}
+
+    /**********************************************
+     * Recognize builtin @ attributes
+     * Params:
+     *  ident = identifier
+     * Returns:
+     *  storage class for attribute, 0 if not
+     */
+    static StorageClass isBuiltinAtAttribute(Identifier ident)
+    {
+        return (ident == Id.property) ? AST.STC.property :
+               (ident == Id.nogc)     ? AST.STC.nogc     :
+               (ident == Id.safe)     ? AST.STC.safe     :
+               (ident == Id.trusted)  ? AST.STC.trusted  :
+               (ident == Id.system)   ? AST.STC.system   :
+               (ident == Id.future)   ? AST.STC.future   :
+               (ident == Id.disable)  ? AST.STC.disable  :
+               0;
+    }
+
+    enum StorageClass atAttrGroup =
+                AST.STC.property |
+                AST.STC.nogc     |
+                AST.STC.safe     |
+                AST.STC.trusted  |
+                AST.STC.system   |
+                /*AST.STC.future   |*/ // probably should be included
+                AST.STC.disable;
+    }
 
 enum PREC : int
 {
