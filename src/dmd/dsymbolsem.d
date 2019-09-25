@@ -2794,7 +2794,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
 
         /* BUG: should check:
-         *  o no virtual functions or non-static data members of classes
+         *  1. template functions must not introduce virtual functions, as they
+         *     cannot be accomodated in the vtbl[]
+         *  2. templates cannot introduce non-static data members (i.e. fields)
+         *     as they would change the instance size of the aggregate.
          */
 
         tempdecl.semanticRun = PASS.semanticdone;
