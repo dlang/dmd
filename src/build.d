@@ -20,6 +20,8 @@ import core.stdc.stdlib : exit;
 
 const thisBuildScript = __FILE_FULL_PATH__;
 const srcDir = thisBuildScript.dirName.buildNormalizedPath;
+const gitHome = "https://github.com/dlang";
+
 shared bool verbose; // output verbose logging
 shared bool force; // always build everything (ignores timestamp checking)
 
@@ -32,6 +34,7 @@ immutable rootDeps = [
     &dmdDefault,
     &runDmdUnittest,
     &clean,
+    &checkWhitespace
 ];
 
 void main(string[] args)
@@ -397,6 +400,49 @@ alias clean = memoize!(function()
     return new DependencyRef(dep);
 });
 
+/// Dependency that clones the tools repository
+alias cloneTools = memoize!(function()
+{
+    Dependency dep;
+    with (dep)
+    {
+        name = "tools";
+        target = buildPath(srcDir, "../../tools/");
+        description = "Clones the tools repository";
+        msg = "Cloning the tools repository";
+        command = [
+            "git",
+            "clone",
+            "--depth=1",
+            gitHome ~ "/tools",
+            target,
+        ];
+    }
+    return new DependencyRef(dep);
+});
+
+/// Dependency that checks files for proper whitespace formatting
+alias checkWhitespace = memoize!(function()
+{
+    Dependency dep;
+    with (dep)
+    {
+        name = "checkwhitespace";
+        description = "Checks files for proper whitespace formatting";
+        msg = "Checking whitespace";
+        deps = [cloneTools];
+        command = [
+            env["HOST_DMD_RUN"],
+            "-run",
+            buildPath(cloneTools.target, "checkwhitespace.d")
+        ].chain(dirEntries(getcwd, "*.d", SpanMode.depth)
+                .map!(e => e.name))
+                .filter!(e => !e.startsWith(buildPath(getcwd, "test")))
+                .array;
+    }
+    return new DependencyRef(dep);
+});
+
 /**
 Goes through the target list and replaces short-hand targets with their expanded version.
 Special targets:
@@ -450,10 +496,6 @@ LtargetsLoop:
 
             case "build-examples":
                 "TODO: build-examples".writeln; // TODO
-                break;
-
-            case "checkwhitespace":
-                "TODO: checkwhitespace".writeln; // TODO
                 break;
 
             case "html":
@@ -595,8 +637,6 @@ void parseEnvironment()
         env["PIC_FLAG"] = "";
     }
 
-    env.getDefault("GIT", "git");
-    env.getDefault("GIT_HOME", "https://github.com/dlang");
     env.getDefault("SYSCONFDIR", "/etc");
     env.getDefault("TMP", tempDir);
     auto d = env["D"] = srcDir.buildPath("dmd");
@@ -722,7 +762,7 @@ auto sourceFiles()
 {
     struct Sources
     {
-        string[] frontend, lexer, root, glue, dmd, backend;
+        string[] frontend, lexer, root, dmd, backend;
         string[] backendHeaders, backendObjects;
     }
     string targetCH;
@@ -1040,7 +1080,7 @@ auto isUpToDate(string[] targets, string[][] sources...)
     {
         auto sourceTime = target.timeLastModified.ifThrown(SysTime.init);
         // if a target has no sources, it only needs to be built once
-        if (sources.empty || sources.length == 1 && sources.front.empty)
+        if (sources.empty || sources.all!"a.length == 0")
             return sourceTime > SysTime.init;
         foreach (arg; sources)
             foreach (a; arg)
@@ -1132,7 +1172,7 @@ class DependencyRef
             dep.run();
         }
 
-        if (targets && targets.isUpToDate(dep.sources, [thisBuildScript], rebuildSources))
+        if (targets && targets.isUpToDate(dep.sources, rebuildSources))
         {
             if (dep.sources !is null)
                 log("Skipping build of %-(%s%) as it's newer than %-(%s%)", targets, dep.sources);
