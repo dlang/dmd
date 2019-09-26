@@ -8,8 +8,6 @@ Usage:
 TODO:
 - add all posix.mak Makefile targets
 - support 32-bit builds
-- test on OSX
-- test on Windows
 - allow appending DFLAGS via the environment
 - test the script with LDC or GDC as host compiler
 */
@@ -235,7 +233,7 @@ DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@
         commandFunction = ()
         {
             conf.toFile(target);
-        }; // defined separately to support older D compilers
+        };
     }
     return new DependencyRef(dep);
 });
@@ -277,7 +275,7 @@ alias backend = memoize!(function()
 });
 
 /// Returns: the dependencies that generate required string files: VERSION and SYSCONFDIR.imp
-alias versionFile = memoize!(function() 
+alias versionFile = memoize!(function()
 {
     Dependency dep;
     with (dep)
@@ -381,6 +379,7 @@ alias runDmdUnittest = memoize!(function()
     return new DependencyRef(dep);
 });
 
+/// Dependency that removes all generated files
 alias clean = memoize!(function()
 {
     Dependency dep;
