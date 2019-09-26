@@ -732,6 +732,8 @@ dmd -cov -unittest myprog.d
             "enable rvalue arguments to ref parameters"),
         Feature("rvalueattribute", "rvalueAttribute",
             "enable the @rvalue attribute for ref parameters and ref returns"),
+        Feature("rvaluetype", "rvalueType",
+            "enable the @rvalue / __rvalue type constructor"),
         Feature("nosharedaccess", "noSharedAccess",
             "disable access to shared memory objects"),
     ];

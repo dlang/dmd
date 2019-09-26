@@ -250,6 +250,7 @@ enum STC : long
     local               = (1L << 51),   // do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
     returninferred      = (1L << 52),   // 'return' has been inferred and should not be part of mangling
     rvalueref           = (1L << 53),   // @rvalue ref
+    rvaluetype          = (1L << 54),   // @rvalue type constructor
 
     // Group members are mutually exclusive (there can be only one)
     safeGroup = STC.safe | STC.trusted | STC.system,

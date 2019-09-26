@@ -179,6 +179,7 @@ extern (C++) struct Param
     bool fieldwise;         // do struct equality testing field-wise rather than by memcmp()
     bool rvalueRefParam;    // allow rvalues to be arguments to ref parameters
     bool rvalueAttribute;   // @rvalue attribute for ref parameters and ref returns
+    bool rvalueType;        // @rvalue type constructor
 
     CppStdRevision cplusplus = CppStdRevision.cpp98;    // version of C++ standard to support
 

@@ -131,6 +131,7 @@ struct ASTBase
         local               = (1L << 51),   // do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
         returninferred      = (1L << 52),   // 'return' has been inferred and should not be part of mangling
         rvalueref           = (1L << 53),   // @rvalue ref
+        rvaluetype          = (1L << 54),   // @rvalue type constructor
 
         safeGroup = STC.safe | STC.trusted | STC.system,
         TYPECTOR = (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild),
@@ -6480,6 +6481,7 @@ struct ASTBase
             SCstring(STC.disable, TOK.at, "@disable"),
             SCstring(STC.future, TOK.at, "@__future"),
             SCstring(STC.rvalueref, TOK.at, "@rvalue ref"),
+            SCstring(STC.rvaluetype, TOK.at, "@rvalue"),
             SCstring(0, TOK.reserved)
         ];
         for (int i = 0; table[i].stc; i++)
