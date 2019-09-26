@@ -727,8 +727,6 @@ dmd -cov -unittest myprog.d
             "enable rvalue arguments to ref parameters"),
         Feature("nosharedaccess", "noSharedAccess",
             "disable access to shared memory objects"),
-        Feature("noXlinker", "noXlinker",
-            "do not prepend `-Xlinker` to `-L` command-line arguments when invoking the linker"),
     ];
 }
 
