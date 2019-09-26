@@ -418,7 +418,7 @@ dmd -cov -unittest myprog.d
             "pass linkerflag to link",
             `Pass $(I linkerflag) to the
             $(WINDOWS linker $(OPTLINK))
-            $(UNIX linker), for example,`,
+            $(UNIX linker), for example, ld`,
         ),
         Option("lib",
             "generate library rather than object files",
@@ -672,6 +672,11 @@ dmd -cov -unittest myprog.d
         ),
         Option("Xf=<filename>",
             "write JSON file to filename"
+        ),
+        Option("Xcc=<driverflag>",
+            "pass driverflag to linker driver (cc)",
+            "Pass $(I driverflag) to the linker driver (`$CC` or `cc`)",
+            TargetOS.all & ~TargetOS.windows
         ),
     ];
 

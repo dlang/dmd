@@ -601,11 +601,12 @@ public int runLINK()
          */
 
         // STEP 1
-        foreach (p; global.params.linkswitches)
+        foreach (pi, p; global.params.linkswitches)
         {
             if (p && p[0] && !flagIsLibraryRelated(p))
             {
-                argv.push("-Xlinker");
+                if (!global.params.linkswitchIsForCC[pi])
+                    argv.push("-Xlinker");
                 argv.push(p);
             }
         }
@@ -618,11 +619,11 @@ public int runLINK()
         }
 
         // STEP 3
-        foreach (p; global.params.linkswitches)
+        foreach (pi, p; global.params.linkswitches)
         {
             if (p && p[0] && flagIsLibraryRelated(p))
             {
-                if (!startsWith(p, "-l") && !startsWith(p, "-L"))
+                if (!startsWith(p, "-l") && !startsWith(p, "-L") && !global.params.linkswitchIsForCC[pi])
                 {
                     // Don't need -Xlinker if switch starts with -l or -L.
                     // Eliding -Xlinker is significant for -L since it allows our paths

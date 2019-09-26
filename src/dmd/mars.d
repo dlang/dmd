@@ -2143,6 +2143,19 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 goto Lerror;
             }
         }
+        else if (startsWith(p + 1, "Xcc="))
+        {
+            // Linking code is guarded by version (Posix):
+            static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
+            {
+                params.linkswitches.push(p + 5);
+                params.linkswitchIsForCC.push(true);
+            }
+            else
+            {
+                goto Lerror;
+            }
+        }
         else if (p[1] == 'X')       // https://dlang.org/dmd.html#switch-X
         {
             params.doJsonGeneration = true;
@@ -2357,6 +2370,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         else if (p[1] == 'L')                        // https://dlang.org/dmd.html#switch-L
         {
             params.linkswitches.push(p + 2 + (p[2] == '='));
+            params.linkswitchIsForCC.push(false);
         }
         else if (startsWith(p + 1, "defaultlib="))   // https://dlang.org/dmd.html#switch-defaultlib
         {
