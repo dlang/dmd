@@ -614,7 +614,7 @@ public int runLINK()
                     if (!flagIsLibraryRelated(p))
                     {
                         if (prior && prior[0] && strcmp(prior, "-Xlinker") == 0)
-                            argv.push(p);
+                            argv.push(prior);
                         argv.push(p);
                     }
                 }

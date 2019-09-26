@@ -19,6 +19,11 @@ will achieve the desired result.
 - `dmd -preview=noXlinker -L-Xlinker -L-e -L-Xlinker -Lstart` will invoke thee linker driver as
 `cc -Xlinker -e -Xlinker start`.
 
+If `-preview=noXlinker` is used with the existing `dmd.conf` file, it may be necessary to prepend
+`-L-Xlinker` for any existing arguments that need it.  For example, if the `dmd.conf` file reads
+`--export-dyamic`, and the compiler is invoked with `-preview=noXlinker`, modify the `dmd.conf` file
+to read `-L-Xlinker -L--export-dynamic`.
+
 It is hoped that `-preview=noXlinker` will some day become the default. If and when that happens
 a `-revert=noXlinker` flag can be added to revert back to the old behavior.
 
