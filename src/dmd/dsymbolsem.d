@@ -2006,6 +2006,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 buf.writestring(pd.ident.toString());
                 if (pd.args)
                 {
+                    const errors_save = global.startGagging();
                     for (size_t i = 0; i < pd.args.dim; i++)
                     {
                         Expression e = (*pd.args)[i];
@@ -2022,10 +2023,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     }
                     if (pd.args.dim)
                         buf.writeByte(')');
+                    global.endGagging(errors_save);
                 }
                 message("pragma    %s", buf.peekChars());
             }
-            goto Lnodecl;
         }
         else
             error(pd.loc, "unrecognized `pragma(%s)`", pd.ident.toChars());
