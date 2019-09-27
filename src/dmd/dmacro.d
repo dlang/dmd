@@ -345,8 +345,8 @@ size_t extractArgN(const(char)[] buf, out const(char)[] marg, int n)
     const p = buf.ptr;
     const end = buf.length;
 Largstart:
-    // Skip first space, if any, to find the start of the macro argument
-    if (n != 1 && v < end && isspace(p[v]))
+    // Skip first blank, if any, to find the start of the macro argument
+    if (n != 1 && v < end && isblank(p[v]))
         v++;
     size_t vstart = v;
     for (; v < end; v++)
