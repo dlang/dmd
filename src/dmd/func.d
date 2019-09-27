@@ -1900,6 +1900,7 @@ extern (C++) class FuncDeclaration : Declaration
         {
             VarDeclaration v = closureVars[i];
             //printf("\tv = %s\n", v.toChars());
+            bool putVarInClosure;
 
             for (size_t j = 0; j < v.nestedrefs.dim; j++)
             {
@@ -1927,6 +1928,7 @@ extern (C++) class FuncDeclaration : Declaration
                         markAsNeedingClosure((fx == f) ? fx.toParentP(this) : fx, this);
 
                         requiresClosure = true;
+                        putVarInClosure = true;
                     }
 
                     /* We also need to check if any sibling functions that
@@ -1934,7 +1936,10 @@ extern (C++) class FuncDeclaration : Declaration
                      * to check the callers of our siblings.
                      */
                     if (checkEscapingSiblings(fx, this))
+                    {
                         requiresClosure = true;
+                        putVarInClosure = true;
+                    }
 
                     /* https://issues.dlang.org/show_bug.cgi?id=12406
                      * Iterate all closureVars to mark all descendant
@@ -1942,7 +1947,13 @@ extern (C++) class FuncDeclaration : Declaration
                      */
                 }
             }
+            if (putVarInClosure)
+                continue;
+
+            closureVars.remove(i);
+            --i;
         }
+
         if (requiresClosure)
             goto Lyes;
 
