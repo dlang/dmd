@@ -5171,6 +5171,7 @@ extern (C++) final class CastExp : UnaExp
     Type to;                    // type to cast to
     ubyte mod = cast(ubyte)~0;  // MODxxxxx
     bool rvalueRef;             // @rvalue ref
+    bool rvalueType;            // @rvalue type modifier
 
     extern (D) this(const ref Loc loc, Expression e, Type t)
     {
@@ -5189,7 +5190,10 @@ extern (C++) final class CastExp : UnaExp
 
     override Expression syntaxCopy()
     {
-        return to ? new CastExp(loc, e1.syntaxCopy(), to.syntaxCopy()) : new CastExp(loc, e1.syntaxCopy(), mod);
+        CastExp ce = to ? new CastExp(loc, e1.syntaxCopy(), to.syntaxCopy()) : new CastExp(loc, e1.syntaxCopy(), mod);
+        ce.rvalueRef = rvalueRef;
+        ce.rvalueType = rvalueType;
+        return ce;
     }
 
     override Expression addDtorHook(Scope* sc)

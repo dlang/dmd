@@ -88,6 +88,7 @@ struct IntRange;
 #define STClocal         0x8000000000000LL // do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
 #define STCreturninferred 0x10000000000000LL   // 'return' has been inferred and should not be part of mangling
 #define STCrvalueref      0x20000000000000LL   // @rvalue ref
+#define STCrvaluetype     0x40000000000000LL   // @rvalue type constructor
 
 void ObjectNotFound(Identifier *id);
 

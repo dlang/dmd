@@ -891,6 +891,9 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             }
                         }
 
+                        if (f.isref && tret.isrvalue && !exp.type.isrvalue && exp.isLvalue())
+                            exp.error("cannot return lvalue as `@rvalue`, perhaps you meant `cast(@rvalue)%s`", exp.toChars());
+
                         const hasCopyCtor = exp.type.ty == Tstruct && (cast(TypeStruct)exp.type).sym.hasCopyCtor;
                         // if a copy constructor is present, the return type conversion will be handled by it
                         if (!hasCopyCtor)

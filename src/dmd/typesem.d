@@ -829,6 +829,11 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
             .error(loc, "cannot have array of scope `%s`", tbn.toChars());
             return error();
         }
+        if (tbn.isrvalue)
+        {
+            .error(loc, "cannot have array of `@rvalue` type");
+            return error();
+        }
 
         /* Ensure things like const(immutable(T)[3]) become immutable(T[3])
          * and const(T)[3] become const(T[3])
@@ -861,6 +866,11 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
         if (tn.isscope())
         {
             .error(loc, "cannot have array of scope `%s`", tn.toChars());
+            return error();
+        }
+        if (tn.isrvalue)
+        {
+            .error(loc, "cannot have array of `@rvalue` type");
             return error();
         }
         mtype.next = tn;
@@ -1050,6 +1060,11 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                 }
             }
         }
+        if (mtype.index.isrvalue)
+        {
+            .error(loc, "cannot have associative array key of `@rvalue` type");
+            return error();
+        }
         mtype.next = mtype.next.typeSemantic(loc, sc).merge2();
         mtype.transitive();
 
@@ -1069,6 +1084,11 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
         if (mtype.next.isscope())
         {
             .error(loc, "cannot have array of scope `%s`", mtype.next.toChars());
+            return error();
+        }
+        if (mtype.next.isrvalue)
+        {
+            .error(loc, "cannot have associative array of `@rvalue` type");
             return error();
         }
         return merge(mtype);
@@ -1232,6 +1252,11 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                 .error(loc, "functions cannot return `scope %s`", tf.next.toChars());
                 errors = true;
             }
+            if (tf.next.isrvalue && !tf.isref)
+            {
+                .error(loc, "functions cannot return `@rvalue` types except by `ref`");
+                errors = true;
+            }
             if (tf.next.hasWild())
                 wildreturn = true;
 
@@ -1276,6 +1301,12 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                 {
                     if (!fparam.type)
                         continue;
+                }
+
+                if (fparam.type.isrvalue && !(fparam.storageClass & STC.ref_))
+                {
+                    .error(loc, "only `ref` parameters can be `@rvalue`");
+                    errors = true;
                 }
 
                 Type t = fparam.type.toBasetype();
@@ -1601,7 +1632,10 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
         if (t)
         {
             //printf("\tit's a type %d, %s, %s\n", t.ty, t.toChars(), t.deco);
-            return t.addMod(mtype.mod);
+            t = t.addMod(mtype.mod);
+            if (mtype.isrvalue)
+                t = t.rvalueOf();
+            return t;
         }
         else
         {
@@ -1681,7 +1715,11 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
         Dsymbol s;
         mtype.resolve(loc, sc, &e, &t, &s);
         if (s && (t = s.getType()) !is null)
+        {
             t = t.addMod(mtype.mod);
+            if (mtype.isrvalue)
+                t = t.rvalueOf();
+        }
         if (!t)
         {
             .error(loc, "`%s` is used as a type", mtype.toChars());
@@ -1804,7 +1842,11 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
         Dsymbol s;
         mtype.resolve(loc, sc, &e, &t, &s);
         if (s && (t = s.getType()) !is null)
+        {
             t = t.addMod(mtype.mod);
+            if (mtype.isrvalue)
+                t = t.rvalueOf();
+        }
         if (!t)
         {
             .error(loc, "`%s` is used as a type", mtype.toChars());
@@ -2829,7 +2871,11 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
 
         mt.resolveHelper(loc, sc, s, scopesym, pe, pt, ps, intypeid);
         if (*pt)
+        {
             (*pt) = (*pt).addMod(mt.mod);
+            if (mt.isrvalue)
+                (*pt) = (*pt).rvalueOf();
+        }
     }
 
     void visitInstance(TypeInstance mt)
@@ -2843,7 +2889,11 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
 
         mt.resolveHelper(loc, sc, mt.tempinst, null, pe, pt, ps, intypeid);
         if (*pt)
+        {
             *pt = (*pt).addMod(mt.mod);
+            if (mt.isrvalue)
+                (*pt) = (*pt).rvalueOf();
+        }
         //if (*pt) printf("*pt = %d '%s'\n", (*pt).ty, (*pt).toChars());
     }
 
@@ -2929,7 +2979,10 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
         }
         if (mt.idents.dim == 0)
         {
-            returnType(t.addMod(mt.mod));
+            t = t.addMod(mt.mod);
+            if (mt.isrvalue)
+                t = t.rvalueOf();
+            returnType(t);
         }
         else
         {
@@ -2942,7 +2995,11 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
                 resolveExp(e, pt, pe, ps);
             }
             if (*pt)
+            {
                 (*pt) = (*pt).addMod(mt.mod);
+                if (mt.isrvalue)
+                    (*pt) = (*pt).rvalueOf();
+            }
         }
         mt.inuse--;
     }
@@ -2969,7 +3026,10 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
         }
         if (mt.idents.dim == 0)
         {
-            return returnType(t.addMod(mt.mod));
+            t = t.addMod(mt.mod);
+            if (mt.isrvalue)
+                t = t.rvalueOf();
+            return returnType(t);
         }
         else
         {
@@ -2982,7 +3042,11 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
                 resolveExp(e, pt, pe, ps);
             }
             if (*pt)
+            {
                 (*pt) = (*pt).addMod(mt.mod);
+                if (mt.isrvalue)
+                    (*pt) = (*pt).rvalueOf();
+            }
         }
     }
 

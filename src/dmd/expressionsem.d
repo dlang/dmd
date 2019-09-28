@@ -1938,7 +1938,9 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             }
             if (p.storageClass & STC.ref_)
             {
-                if ((global.params.rvalueRefParam || p.storageClass & STC.rvalueref) &&
+                if ((global.params.rvalueRefParam
+                     || p.storageClass & STC.rvalueref
+                     || p.type.isrvalue) &&
                     !arg.isLvalue() &&
                     targ.isCopyable())
                 {   /* allow rvalues to be passed to ref parameters by copying
@@ -5395,6 +5397,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 tded = (cast(TypeVector)e.targ).basetype;
                 break;
 
+            case TOK.rvalue:
+                if (!e.targ.isrvalue)
+                    goto Lno;
+                tded = e.targ;
+                break;
+
             default:
                 assert(0);
             }
@@ -6969,7 +6977,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (!exp.to) // Handle cast(const) and cast(immutable), etc.
         {
-            exp.to = exp.e1.type.castMod(exp.mod);
+            if (exp.rvalueType)
+            {
+                exp.to = exp.e1.type.rvalueOf();
+                if (exp.mod && exp.mod != cast(ubyte)~0)
+                    exp.to = exp.to.castMod(exp.mod);
+            }
+            else
+                exp.to = exp.e1.type.castMod(exp.mod);
             exp.to = exp.to.typeSemantic(exp.loc, sc);
 
             if (exp.to == Type.terror)

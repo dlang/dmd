@@ -2375,6 +2375,12 @@ public:
             typeToBuffer(e.to, null, buf, hgs);
         else
         {
+            if (e.rvalueType)
+            {
+                buf.writestring("@rvalue");
+                if (e.mod && e.mod != cast(ubyte)~0)
+                    buf.writeByte(' ');
+            }
             MODtoBuffer(buf, e.mod);
         }
         buf.writeByte(')');
@@ -3199,12 +3205,17 @@ private void typeToBuffer(Type t, const Identifier ident, OutBuffer* buf, HdrGen
 private void visitWithMask(Type t, ubyte modMask, OutBuffer* buf, HdrGenState* hgs)
 {
     // Tuples and functions don't use the type constructor syntax
-    if (modMask == t.mod || t.ty == Tfunction || t.ty == Ttuple)
+    if (!t.isrvalue && modMask == t.mod || t.ty == Tfunction || t.ty == Ttuple)
     {
         typeToBufferx(t, buf, hgs);
     }
     else
     {
+        if (t.isrvalue)
+        {
+            stcToBuffer(buf, STC.rvaluetype);
+            buf.writeByte('(');
+        }
         ubyte m = t.mod & ~(t.mod & modMask);
         if (m & MODFlags.shared_)
         {
@@ -3227,6 +3238,8 @@ private void visitWithMask(Type t, ubyte modMask, OutBuffer* buf, HdrGenState* h
         if (m & MODFlags.wild)
             buf.writeByte(')');
         if (m & MODFlags.shared_)
+            buf.writeByte(')');
+        if (t.isrvalue)
             buf.writeByte(')');
     }
 }

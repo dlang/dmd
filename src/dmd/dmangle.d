@@ -81,7 +81,7 @@ private immutable char[TMAX] mangleChar =
     //              K   // K:ref KK:rvalue ref
     //              L   // lazy
     //              M   // has this, or scope
-    //              N   // Nh:vector Ng:wild
+    //              N   // Nh:vector Ng:wild Nr:rvalue
     //              O   // shared
     Tpointer     : 'P',
     //              Q   // Type/symbol/identifier backward reference
@@ -166,6 +166,11 @@ private void MODtoDecoBuffer(OutBuffer* buf, MOD mod)
     default:
         assert(0);
     }
+}
+
+private void rvalueToDecoBuffer(OutBuffer* buf)
+{
+    buf.writestring("Nr");
 }
 
 private extern (C++) final class Mangler : Visitor
@@ -286,6 +291,8 @@ public:
      */
     void visitWithMask(Type t, ubyte modMask)
     {
+        if (t.isrvalue)
+            rvalueToDecoBuffer(buf);
         if (modMask != t.mod)
         {
             MODtoDecoBuffer(buf, t.mod);
@@ -350,6 +357,8 @@ public:
             return;
         }
         t.inuse++;
+        if (t.isrvalue)
+            rvalueToDecoBuffer(buf);
         if (modMask != t.mod)
             MODtoDecoBuffer(buf, t.mod);
 

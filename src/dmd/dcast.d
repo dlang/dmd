@@ -1565,6 +1565,13 @@ Expression castTo(Expression e, Scope* sc, Type t)
             const(bool) tob_isA = (tob.isintegral() || tob.isfloating());
             const(bool) t1b_isA = (t1b.isintegral() || t1b.isfloating());
 
+            if (t1b.isrvalue != tob.isrvalue && t1b.rvalueOf().equals(tob.rvalueOf()))
+            {
+                result = e.copy();
+                result.type = t;
+                return;
+            }
+
             bool hasAliasThis;
             if (AggregateDeclaration t1ad = isAggregate(t1b))
             {
@@ -2500,8 +2507,10 @@ Expression castTo(Expression e, Scope* sc, Type t)
             Type tb = t.toBasetype();
             Type typeb = e.type.toBasetype();
 
-            if (e.type.equals(t) || typeb.ty != Tarray ||
-                (tb.ty != Tarray && tb.ty != Tsarray))
+            if (e.type.equals(t)
+                || e.type.isrvalue != t.isrvalue && e.type.rvalueOf().equals(t.rvalueOf())
+                || typeb.ty != Tarray
+                || (tb.ty != Tarray && tb.ty != Tsarray))
             {
                 visit(cast(Expression)e);
                 return;

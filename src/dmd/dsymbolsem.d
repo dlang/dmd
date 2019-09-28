@@ -809,7 +809,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             //printf("inferring type for %s with init %s\n", toChars(), _init.toChars());
             dsym._init = dsym._init.inferType(sc);
-            dsym.type = dsym._init.initializerToExpression().type;
+            dsym.type = dsym._init.initializerToExpression().type.lvalueOf();
             if (needctfe)
                 sc = sc.endCTFE();
 
@@ -1077,6 +1077,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             dsym.storage_class |= STC.shared_;
         else if (dsym.type.isWild())
             dsym.storage_class |= STC.wild;
+        if (dsym.type.isrvalue)
+            dsym.storage_class |= STC.rvaluetype;
+
+        if (dsym.storage_class & STC.rvaluetype && !(dsym.storage_class & (STC.ref_ | STC.temp | STC.result)))
+            dsym.error("`@rvalue` types can only be used in `ref` function parameters or with pointer types");
 
         if (StorageClass stc = dsym.storage_class & (STC.synchronized_ | STC.override_ | STC.abstract_ | STC.final_))
         {
@@ -2340,6 +2345,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (ed.memtype.ty == Tvoid)
             {
                 ed.error("base type must not be `void`");
+                ed.memtype = Type.terror;
+            }
+            if (ed.memtype.isrvalue)
+            {
+                ed.error("base type cannot be `%s`", Token.toChars(TOK.rvalue));
                 ed.memtype = Type.terror;
             }
             if (ed.memtype.ty == Terror)
