@@ -836,7 +836,7 @@ struct TargetCPP
         if (p.storageClass & (STC.out_ | STC.ref_ | STC.rvalueref))
         {
             t = t.referenceTo();
-            (cast(TypeReference)t).isRvalueRef = (p.storageClass & STC.rvalueref) != 0;
+            (cast(TypeReference)t).isRvalueRef = (p.storageClass & STC.rvalueref) != 0 || p.type.isrvalue;
         }
         else if (p.storageClass & STC.lazy_)
         {
