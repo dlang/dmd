@@ -1,0 +1,73 @@
+`extern(C)` declarations in template mixins now mangle as C symbols when mixed in at global scope
+
+This was already true for string mixins, but since template mixins introduce a new scope, symbols inside them got mangled as D symbols.
+However, users often use `extern(C)` inside a mixin template to automatically generate boilerplate code that should be accessible from C.
+
+-------
+// library code
+mixin template WasmEntryPoint() {
+    extern(C) export void _start() {
+        // boilerplate code
+    }
+}
+
+mixin template UseGpuInsteadOfIntegratedGraphics() {
+    extern(C) export uint NvOptimusEnablement = 0x00000001;
+    extern(C) export int AmdPowerXpressRequestHighPerformance = 1;
+}
+
+// application code
+mixin WasmEntryPoint;
+mixin UseGpuInsteadOfIntegratedGraphics;
+
+static assert(_start.mangleof == "_start");
+static assert(NvOptimusEnablement.mangleof == "NvOptimusEnablement");
+-------
+
+Previously, _start would be mangled like `_D9onlineapp8__mixin46_startUkZv` and users had to manually add `pragma(mangle, "_start")` or use a string mixin instead.
+With the new behavior this is not necessary anymore for `extern(C)`, as well as `extern(Windows)` and `extern(Objective-C)`.
+`extern(C++)` remains unchanged since it already always mangles to C++, even in nested scopes.
+
+There is a possibility this breaks code if you mix in different `extern(C)` declarations with the same name in the global scope of multiple modules.
+
+-------
+import core.stdc.stdio;
+
+mixin template GenPrintCallback(string text) {
+    extern(C):
+
+    auto textLength = text.length;
+    auto textPointer = text.ptr;
+
+    void callBackOnly() {
+        printf("%.*s\n", textLength, textPointer);
+    }
+
+    mixin(`auto `, text, ` = &callBackOnly;`);
+}
+
+mixin GenPrintCallback!"foo";
+
+// in a different module:
+mixin GenPrintCallback!"bar";
+-------
+
+In this case textLength, textPointer and callBackOnly will be defined multiple times, so the linker either picks one or raises and error.
+The solution is to not make variables `extern(C)` and make C callback functions anonymous:
+
+-------
+import core.stdc.stdio;
+
+mixin template GenPrintCallback(string text) {
+
+    auto textLength = text.length; // not below an extern(C): anymore
+    auto textPointer = text.ptr;
+
+    alias FunT = extern(C) void function();
+    enum FunT callBackOnly = () {
+        printf("%.*s\n", textLength, textPointer);
+    };
+
+    mixin(`auto `, text, ` = callBackOnly;`);
+}
+-------
