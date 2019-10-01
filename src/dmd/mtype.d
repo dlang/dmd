@@ -538,7 +538,7 @@ extern (C++) abstract class Type : ASTNode
 
     final bool equivalent(Type t)
     {
-        return immutableOf().equals(t.immutableOf());
+        return immutableOf().lvalueOf().equals(t.immutableOf().lvalueOf());
     }
 
     // kludge for template.isType()

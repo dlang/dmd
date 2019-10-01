@@ -1588,7 +1588,7 @@ Expression ctfeCast(UnionExp* pue, const ref Loc loc, Type type, Type to, Expres
         return paint();
 
     // Allow casting away const for struct literals
-    if (e.op == TOK.structLiteral && e.type.toBasetype().castMod(0) == to.toBasetype().castMod(0))
+    if (e.op == TOK.structLiteral && e.type.toBasetype().equivalent(to.toBasetype()))
         return paint();
 
     Expression r;

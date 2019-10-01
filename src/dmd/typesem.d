@@ -197,7 +197,7 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
     {
         /* Look for what user might have intended
          */
-        const p = mt.mutableOf().unSharedOf().toChars();
+        const p = mt.mutableOf().unSharedOf().lvalueOf().toChars();
         auto id = Identifier.idPool(p, cast(uint)strlen(p));
         if (const n = importHint(id.toString()))
             error(loc, "`%s` is not defined, perhaps `import %.*s;` ?", p, cast(int)n.length, n.ptr);
