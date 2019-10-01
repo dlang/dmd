@@ -1011,6 +1011,20 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         dtb.xoff(toSymbol(tm.vtinfo), 0);
     }
 
+    override void visit(TypeInfoRvalueDeclaration d)
+    {
+        //printf("TypeInfoRvalueDeclaration.toDt() %s\n", toChars());
+        verifyStructSize(Type.typeinforvalue, 3 * target.ptrsize);
+
+        dtb.xoff(toVtblSymbol(Type.typeinforvalue), 0);   // vtbl for TypeInfo_Rvalue
+        if (Type.typeinforvalue.hasMonitor())
+            dtb.size(0);                                 // monitor
+        Type tm = d.tinfo.lvalueOf();
+        tm = tm.merge();
+        genTypeInfo(d.loc, tm, null);
+        dtb.xoff(toSymbol(tm.vtinfo), 0);
+    }
+
     override void visit(TypeInfoEnumDeclaration d)
     {
         //printf("TypeInfoEnumDeclaration.toDt()\n");

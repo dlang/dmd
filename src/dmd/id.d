@@ -155,6 +155,7 @@ immutable Msgtable[] msgtable =
     { "TypeInfo_Invariant" },
     { "TypeInfo_Shared" },
     { "TypeInfo_Wild", "TypeInfo_Inout" },
+    { "TypeInfo_Rvalue" },
     { "elements" },
     { "_arguments_typeinfo" },
     { "_arguments" },

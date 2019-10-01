@@ -414,6 +414,14 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
+class TypeInfoRvalueDeclaration : public TypeInfoDeclaration
+{
+public:
+    static TypeInfoRvalueDeclaration *create(Type *tinfo);
+
+    void accept(Visitor *v) { v->visit(this); }
+};
+
 class TypeInfoVectorDeclaration : public TypeInfoDeclaration
 {
 public:

@@ -2130,6 +2130,31 @@ extern (C++) final class TypeInfoWildDeclaration : TypeInfoDeclaration
 
 /***********************************************************
  */
+extern (C++) final class TypeInfoRvalueDeclaration : TypeInfoDeclaration
+{
+    extern (D) this(Type tinfo)
+    {
+        super(tinfo);
+        if (!Type.typeinforvalue)
+        {
+            ObjectNotFound(Id.TypeInfo_Rvalue);
+        }
+        type = Type.typeinforvalue.type;
+    }
+
+    static TypeInfoRvalueDeclaration create(Type tinfo)
+    {
+        return new TypeInfoRvalueDeclaration(tinfo);
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
+ */
 extern (C++) final class TypeInfoVectorDeclaration : TypeInfoDeclaration
 {
     extern (D) this(Type tinfo)

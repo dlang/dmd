@@ -150,6 +150,7 @@ class TypeInfoTupleDeclaration;
 class TypeInfoConstDeclaration;
 class TypeInfoInvariantDeclaration;
 class TypeInfoSharedDeclaration;
+class TypeInfoRvalueDeclaration;
 class TypeInfoWildDeclaration;
 class TypeInfoVectorDeclaration;
 
@@ -606,6 +607,7 @@ public:
     virtual void visit(TypeInfoInvariantDeclaration *s) { visit((TypeInfoDeclaration *)s); }
     virtual void visit(TypeInfoSharedDeclaration *s) { visit((TypeInfoDeclaration *)s); }
     virtual void visit(TypeInfoWildDeclaration *s) { visit((TypeInfoDeclaration *)s); }
+    virtual void visit(TypeInfoRvalueDeclaration *s) { visit((TypeInfoDeclaration *)s); }
     virtual void visit(TypeInfoVectorDeclaration *s) { visit((TypeInfoDeclaration *)s); }
     virtual void visit(FuncAliasDeclaration *s) { visit((FuncDeclaration *)s); }
     virtual void visit(ErrorInitializer *i) { visit((Initializer *)i); }

@@ -464,6 +464,7 @@ extern (C++) abstract class Type : ASTNode
     extern (C++) __gshared ClassDeclaration typeinfoinvariant;
     extern (C++) __gshared ClassDeclaration typeinfoshared;
     extern (C++) __gshared ClassDeclaration typeinfowild;
+    extern (C++) __gshared ClassDeclaration typeinforvalue;
 
     extern (C++) __gshared TemplateDeclaration rtinfo;
 

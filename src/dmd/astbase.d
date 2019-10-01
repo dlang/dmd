@@ -1690,6 +1690,12 @@ struct ASTBase
                             error("%s", msg);
                         Type.typeinfowild = this;
                     }
+                    if (id == Id.TypeInfo_Rvalue)
+                    {
+                        if (!inObject)
+                            error("%s", msg);
+                        Type.typeinforvalue = this;
+                    }
                     if (id == Id.TypeInfo_Vector)
                     {
                         if (!inObject)
@@ -2723,6 +2729,7 @@ struct ASTBase
         extern (C++) __gshared ClassDeclaration typeinfoinvariant;
         extern (C++) __gshared ClassDeclaration typeinfoshared;
         extern (C++) __gshared ClassDeclaration typeinfowild;
+        extern (C++) __gshared ClassDeclaration typeinforvalue;
         extern (C++) __gshared StringTable!Type stringtable;
         extern (C++) __gshared ubyte[TMAX] sizeTy = ()
             {
