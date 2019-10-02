@@ -361,13 +361,16 @@ alias dmdExe = memoize!(function(string targetSuffix, string[] extraFlags...)
         target = env["DMD_PATH"] ~ targetSuffix;
         msg = "(DC) DMD%s %-(%s, %)".format(targetSuffix, dmdSources.map!(e => e.baseName).array);
         deps = [versionFile, sysconfDirFile, lexer, backend];
+        string[] platformArgs;
+        version (Windows)
+            platformArgs = ["-L/STACK:8388608"];
         command = [
             env["HOST_DMD_RUN"],
             "-of" ~ target,
             "-vtls",
             "-J"~env["G"],
             "-J../res",
-        ].chain(extraFlags).chain(flags["DFLAGS"], sources).array;
+        ].chain(extraFlags, platformArgs, flags["DFLAGS"], sources).array;
     }
     return new DependencyRef(dep);
 });

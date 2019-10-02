@@ -428,12 +428,6 @@ toolchain-info:
 	@echo '==== Toolchain Information ===='
 	@echo
 
-$G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/lexer.a $G/backend.o $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
-	$(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $(LEXER_ROOT),$^)
-
-$G/dmd-unittest: $(DMD_SRCS) $(ROOT_SRCS) $(LEXER_SRCS) $G/backend.o $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
-	$(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) $(DFLAGS) -g -unittest -main -version=NoMain $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
-
 unittest: $G/dmd-unittest
 	$<
 
@@ -481,9 +475,6 @@ DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@
 endef
 
 export DEFAULT_DMD_CONF
-
-$G/dmd.conf: $(SRC_MAKE)
-	echo "$$DEFAULT_DMD_CONF" > $@
 
 ######## VERSION
 ########################################################################
