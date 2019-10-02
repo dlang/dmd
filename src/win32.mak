@@ -301,8 +301,8 @@ example_avg: $G\libparser.lib examples\avg.d
 
 DMDFRONTENDEXE = $G\dmd_frontend.exe
 
-$(DMDFRONTENDEXE): $(FRONT_SRCS) $D\gluelayer.d $(ROOT_SRCS) $G\lexer.lib $(STRING_IMPORT_FILES)
-	$(HOST_DC) $(DSRC) -of$@ -vtls -J$G -J../res -L/STACK:8388608 $(DFLAGS) $(LFLAGS) $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) -version=NoBackend
+$(DMDFRONTENDEXE): $(GEN)\build.exe
+	$(RUN_BUILD) $@
 	copy $(DMDFRONTENDEXE) .
 
 $(TARGETEXE): $(DMD_SRCS) $(ROOT_SRCS) $(LIBS) $(STRING_IMPORT_FILES)

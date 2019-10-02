@@ -32,6 +32,7 @@ immutable rootDeps = [
     &dmdDefault,
     &runDmdUnittest,
     &clean,
+    &dmdFrontend,
 ];
 
 void main(string[] args)
@@ -316,6 +317,30 @@ alias sysconfDirFile = memoize!(function()
     return new DependencyRef(dep);
 });
 
+alias dmdFrontend = memoize!(function()
+{
+    Dependency dep;
+    with (dep)
+    {
+        name = "dmd_frontend";
+        sources = .sources.frontend.chain([env["D"].buildPath("gluelayer.d")], .sources.root, [lexer.target]).array;
+        target = env["G"].buildPath("dmd_frontend");
+        deps = [versionFile, sysconfDirFile, lexer];
+        msg = "(DC) DMD-FRONTEND %-(%s, %)".format(.sources.frontend.map!(e => e.baseName).array);
+        string[] platformArgs;
+        version (Windows)
+            platformArgs = ["-L/STACK:8388608"];
+        command = [
+            env["HOST_DMD_RUN"],
+            "-of" ~ target,
+            "-version=NoBackend",
+            "-vtls",
+            "-J"~env["G"],
+            "-J../res",
+        ].chain(flags["DFLAGS"], platformArgs, sources).array;
+    }
+    return new DependencyRef(dep);
+});
 
 /**
 Dependency for the DMD executable.
@@ -765,11 +790,17 @@ auto sourceFiles()
         "rootobject",
         "stringtable",
     ];
+    const glueFiles = "
+        irstate toctype glue gluelayer todt tocsym toir dmsc
+        tocvdebug s2ir toobj e2ir eh iasm iasmdmd iasmgcc objc_glue
+    ".split;
     Sources sources = {
+        glue:
+            glueFiles.map!(e => env["D"].buildPath(e ~ ".d")).array,
         frontend:
             dirEntries(env["D"], "*.d", SpanMode.shallow)
                 .map!(e => e.name)
-                .filter!(e => !lexerDmdFiles.chain(["asttypename", "frontend"]).canFind(e.baseName.stripExtension))
+                .filter!(e => !lexerDmdFiles.chain(["asttypename", "frontend"], glueFiles).canFind(e.baseName.stripExtension))
                 .array,
         lexer:
             lexerDmdFiles.map!(e => env["D"].buildPath(e ~ ".d")).chain(
@@ -797,7 +828,7 @@ auto sourceFiles()
             dlist.d melf.d varstats.di
         ".split.map!(e => env["C"].buildPath(e)).array,
     };
-    sources.dmd = sources.frontend ~ sources.backendHeaders;
+    sources.dmd = sources.frontend ~ sources.glue ~ sources.backendHeaders;
 
     return sources;
 }
