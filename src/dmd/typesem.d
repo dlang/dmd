@@ -1531,15 +1531,17 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                     Expression farg = mtype.fargs && i < mtype.fargs.dim ? (*mtype.fargs)[i] : fparam.defaultArg;
                     if (farg && (fparam.storageClass & (STC.ref_ | STC.rvalueref)))
                     {
-                        if (farg.isLvalue() && !farg.isRvalueRef())
+                        if (farg.isLvalue() && !farg.type.isrvalue && !farg.isRvalueRef())
                         {
                             // ref parameter
                             fparam.storageClass &= ~STC.rvalueref;
+                            fparam.storageClass &= ~STC.rvaluetype;
+                            fparam.type = fparam.type.lvalueOf();
                         }
                         else
                         {
                             // value or rvalue ref parameter
-                            if (!(fparam.storageClass & STC.rvalueref))
+                            if (!fparam.type.isrvalue && !(fparam.storageClass & STC.rvalueref))
                                 fparam.storageClass &= ~STC.ref_;
                         }
                         fparam.storageClass &= ~STC.auto_;    // https://issues.dlang.org/show_bug.cgi?id=14656

@@ -582,7 +582,12 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                 bool inferRef = (f.isref && (funcdecl.storage_class & STC.auto_));
                 if (inferRef)
+                {
+                    // consider `@rvalue ref` as candidate
                     f.isrvalueref = true;
+                    if (f.next)
+                        f.next = f.next.rvalueOf();
+                }
 
                 funcdecl.fbody = funcdecl.fbody.statementSemantic(sc2);
                 if (!funcdecl.fbody)
