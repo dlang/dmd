@@ -22,3 +22,5 @@ static assert(is(typeof(cast(@rvalue)0) == @rvalue(int)));
 static assert(is(typeof(cast(@rvalue const)0) == const(@rvalue(int))));
 
 ref @rvalue(int) func(ref int a) { return cast(@rvalue)a; }
+int g;
+void fun(ref @rvalue int a = 1, ref @rvalue int b = cast(@rvalue)g);

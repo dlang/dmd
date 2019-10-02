@@ -1416,7 +1416,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                     Expression e = fparam.defaultArg;
                     const isRefOrOut = fparam.storageClass & (STC.ref_ | STC.out_);
                     const isAuto = fparam.storageClass & (STC.auto_ | STC.autoref);
-                    const isRvalueRef = fparam.storageClass & STC.rvalueref;
+                    const isRvalueRef = fparam.storageClass & STC.rvalueref || fparam.type.isrvalue;
                     if (isRefOrOut && !isAuto && !(isRvalueRef && !e.isLvalue()))
                     {
                         e = e.expressionSemantic(argsc);
@@ -1439,6 +1439,15 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                         e = new AddrExp(e.loc, e);
                         e = e.expressionSemantic(argsc);
                     }
+
+                    // default arg must be an rvalue
+                    if (isRvalueRef && !isAuto &&
+                        e.isLvalue() && !e.type.isrvalue && !e.isRvalueRef())
+                    {
+                        .error(loc, "cannot pass lvalue default argument `%s` to parameter `%s`", e.toChars(), parameterToChars(fparam, tf, false));
+                        errors = true;
+                    }
+
                     e = e.implicitCastTo(argsc, fparam.type);
 
                     // default arg must be an lvalue
