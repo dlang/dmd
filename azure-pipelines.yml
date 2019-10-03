@@ -1,7 +1,7 @@
 # Learn more: https://aka.ms/yaml
 
 variables:
-  DMD_BRANCH: master
+  DMD_BRANCH: $[ coalesce(variables['System.PullRequest.TargetBranch'], variables['Build.SourceBranchName'], 'master') ]
 
 jobs:
   - job: Windows
