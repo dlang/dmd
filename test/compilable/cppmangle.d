@@ -1168,3 +1168,50 @@ version (Posix)
     extern(C++) void test20094(xvector20094!(V20094)* v);
     static assert(test20094.mangleof == `_Z9test20094PN7ns2009412xvector20094INS0_IhEEEE`);
 }
+
+// https://issues.dlang.org/show_bug.cgi?id=20223
+version (Posix)
+{
+    extern(C++)
+    {
+        int test20223_1(T)(int function(const(T)* value));
+        int test20223_2(T)(int function(ref const(T) value));
+
+        struct Struct20223_1 {}
+        struct Struct20223_2 {}
+        int test20223_3(ref const Struct20223_1, Struct20223_2*, Struct20223_2*);
+        int test20223_4(ref const Struct20223_1, const ref Struct20223_2, Struct20223_2*);
+
+        struct Struct20223_3 (T) {}
+        void test20223_5(ref Struct20223_1, ref Struct20223_3!(const(char)*),
+                         ref Struct20223_3!(const(char)*));
+    }
+    static assert(test20223_1!int.mangleof == `_Z11test20223_1IiEiPFiPKT_E`);
+    static assert(test20223_2!int.mangleof == `_Z11test20223_2IiEiPFiRKT_E`);
+    static assert(test20223_1!(int*).mangleof == `_Z11test20223_1IPiEiPFiPKT_E`);
+    static assert(test20223_2!(int*).mangleof == `_Z11test20223_2IPiEiPFiRKT_E`);
+    static assert(test20223_3.mangleof == `_Z11test20223_3RK13Struct20223_1P13Struct20223_2S3_`);
+    static assert(test20223_4.mangleof == `_Z11test20223_4RK13Struct20223_1RK13Struct20223_2PS2_`);
+    static assert(test20223_5.mangleof == `_Z11test20223_5R13Struct20223_1R13Struct20223_3IPKcES5_`);
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=20224
+version (Posix)
+{
+    extern(C++) public int test20224_1(T)(set20224!T set);  // ok
+    extern(C++) public int test20224_2(T)(ref set20224!T set);  // segfault
+
+    extern(C++) struct set20224 (T)
+    {
+        void test ()
+        {
+            test20224_1!T(this);
+            test20224_2!T(this);  // segfaults
+        }
+    }
+
+    extern(D) void func20224 ()
+    {
+        set20224!int x;
+    }
+}
