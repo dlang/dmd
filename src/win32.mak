@@ -75,9 +75,6 @@ G = $(GEN)\$(OS)\$(BUILD)\$(MODEL)
 
 ##### Tools
 
-GIT_HOME=https://github.com/dlang
-TOOLS_DIR=..\..\tools
-
 # D compiler (set with env variable)
 #HOST_DC=dmd
 # Make program
@@ -367,12 +364,8 @@ pvs:
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /Tp $(ROOTSRCC) --source-file $(ROOTSRCC)
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$C /Tp $(BACKSRC) --source-file $(BACKSRC)
 
-checkwhitespace: $(TOOLS_DIR)\checkwhitespace.d
-	$(HOST_DC) -run $(TOOLS_DIR)\checkwhitespace $(SRCS) $(GLUESRC) $(ROOTSRC) $(BACKSRC)
-
-# Extra test here, wine attempts to execute git even if file already exists
-$(TOOLS_DIR)\checkwhitespace.d:
-	if not exist $(TOOLS_DIR)\checkwhitespace.d git clone --depth=1 $(GIT_HOME)/tools $(TOOLS_DIR)
+checkwhitespace: $(GEN)\build.exe
+	$(RUN_BUILD) $@
 
 ######################################################
 
