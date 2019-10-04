@@ -22,4 +22,11 @@ void main() {
         assert(MyException.numInstances == 1);
 
     assert(MyException.numInstances == 0);
+
+    try
+        throw new MyException("oops I did it again");
+    catch(MyException)
+        assert(MyException.numInstances == 1);
+
+    assert(MyException.numInstances == 0);
 }
