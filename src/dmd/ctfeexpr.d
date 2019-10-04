@@ -1803,102 +1803,135 @@ UnionExp changeArrayLiteralLength(const ref Loc loc, TypeArray arrayType, Expres
 }
 
 /*************************** CTFE Sanity Checks ***************************/
+
 bool isCtfeValueValid(Expression newval)
 {
     Type tb = newval.type.toBasetype();
-    if (newval.op == TOK.int64 || newval.op == TOK.float64 || newval.op == TOK.char_ || newval.op == TOK.complex80)
+    switch (newval.op)
     {
-        return tb.isscalar();
+        case TOK.int64:
+        case TOK.float64:
+        case TOK.char_:
+        case TOK.complex80:
+            return tb.isscalar();
+
+        case TOK.null_:
+            return tb.ty == Tnull    ||
+                   tb.ty == Tpointer ||
+                   tb.ty == Tarray   ||
+                   tb.ty == Taarray  ||
+                   tb.ty == Tclass   ||
+                   tb.ty == Tdelegate;
+
+        case TOK.string_:
+            return true; // CTFE would directly use the StringExp in AST.
+
+        case TOK.arrayLiteral:
+            return true; //((ArrayLiteralExp *)newval)->ownedByCtfe;
+
+        case TOK.assocArrayLiteral:
+            return true; //((AssocArrayLiteralExp *)newval)->ownedByCtfe;
+
+        case TOK.structLiteral:
+            return true; //((StructLiteralExp *)newval)->ownedByCtfe;
+
+        case TOK.classReference:
+            return true;
+
+        case TOK.type:
+            return true;
+
+        case TOK.vector:
+            return true; // vector literal
+
+        case TOK.function_:
+            return true; // function literal or delegate literal
+
+        case TOK.delegate_:
+        {
+            // &struct.func or &clasinst.func
+            // &nestedfunc
+            Expression ethis = (cast(DelegateExp)newval).e1;
+            return (ethis.op == TOK.structLiteral || ethis.op == TOK.classReference || ethis.op == TOK.variable && (cast(VarExp)ethis).var == (cast(DelegateExp)newval).func);
+        }
+
+        case TOK.symbolOffset:
+        {
+            // function pointer, or pointer to static variable
+            Declaration d = (cast(SymOffExp)newval).var;
+            return d.isFuncDeclaration() || d.isDataseg();
+        }
+
+        case TOK.typeid_:
+        {
+            // always valid
+            return true;
+        }
+
+        case TOK.address:
+        {
+            // e1 should be a CTFE reference
+            Expression e1 = (cast(AddrExp)newval).e1;
+            return tb.ty == Tpointer &&
+            (
+                (e1.op == TOK.structLiteral || e1.op == TOK.arrayLiteral) && isCtfeValueValid(e1) ||
+                 e1.op == TOK.variable ||
+                 e1.op == TOK.dotVariable && isCtfeReferenceValid(e1) ||
+                 e1.op == TOK.index && isCtfeReferenceValid(e1) ||
+                 e1.op == TOK.slice && e1.type.toBasetype().ty == Tsarray
+            );
+        }
+
+        case TOK.slice:
+        {
+            // e1 should be an array aggregate
+            const SliceExp se = cast(SliceExp)newval;
+            assert(se.lwr && se.lwr.op == TOK.int64);
+            assert(se.upr && se.upr.op == TOK.int64);
+            return (tb.ty == Tarray || tb.ty == Tsarray) && (se.e1.op == TOK.string_ || se.e1.op == TOK.arrayLiteral);
+        }
+
+        case TOK.void_:
+            return true; // uninitialized value
+
+        default:
+            newval.error("CTFE internal error: illegal CTFE value `%s`", newval.toChars());
+            return false;
     }
-    if (newval.op == TOK.null_)
-    {
-        return tb.ty == Tnull || tb.ty == Tpointer || tb.ty == Tarray || tb.ty == Taarray || tb.ty == Tclass || tb.ty == Tdelegate;
-    }
-    if (newval.op == TOK.string_)
-        return true; // CTFE would directly use the StringExp in AST.
-    if (newval.op == TOK.arrayLiteral)
-        return true; //((ArrayLiteralExp *)newval)->ownedByCtfe;
-    if (newval.op == TOK.assocArrayLiteral)
-        return true; //((AssocArrayLiteralExp *)newval)->ownedByCtfe;
-    if (newval.op == TOK.structLiteral)
-        return true; //((StructLiteralExp *)newval)->ownedByCtfe;
-    if (newval.op == TOK.classReference)
-        return true;
-    if (newval.op == TOK.type)
-        return true;
-    if (newval.op == TOK.vector)
-        return true; // vector literal
-    if (newval.op == TOK.function_)
-        return true; // function literal or delegate literal
-    if (newval.op == TOK.delegate_)
-    {
-        // &struct.func or &clasinst.func
-        // &nestedfunc
-        Expression ethis = (cast(DelegateExp)newval).e1;
-        return (ethis.op == TOK.structLiteral || ethis.op == TOK.classReference || ethis.op == TOK.variable && (cast(VarExp)ethis).var == (cast(DelegateExp)newval).func);
-    }
-    if (newval.op == TOK.symbolOffset)
-    {
-        // function pointer, or pointer to static variable
-        Declaration d = (cast(SymOffExp)newval).var;
-        return d.isFuncDeclaration() || d.isDataseg();
-    }
-    if (newval.op == TOK.typeid_)
-    {
-        // always valid
-        return true;
-    }
-    if (newval.op == TOK.address)
-    {
-        // e1 should be a CTFE reference
-        Expression e1 = (cast(AddrExp)newval).e1;
-        return tb.ty == Tpointer &&
-        (
-            (e1.op == TOK.structLiteral || e1.op == TOK.arrayLiteral) && isCtfeValueValid(e1) ||
-             e1.op == TOK.variable ||
-             e1.op == TOK.dotVariable && isCtfeReferenceValid(e1) ||
-             e1.op == TOK.index && isCtfeReferenceValid(e1) ||
-             e1.op == TOK.slice && e1.type.toBasetype().ty == Tsarray
-        );
-    }
-    if (newval.op == TOK.slice)
-    {
-        // e1 should be an array aggregate
-        const SliceExp se = cast(SliceExp)newval;
-        assert(se.lwr && se.lwr.op == TOK.int64);
-        assert(se.upr && se.upr.op == TOK.int64);
-        return (tb.ty == Tarray || tb.ty == Tsarray) && (se.e1.op == TOK.string_ || se.e1.op == TOK.arrayLiteral);
-    }
-    if (newval.op == TOK.void_)
-        return true; // uninitialized value
-    newval.error("CTFE internal error: illegal CTFE value `%s`", newval.toChars());
-    return false;
 }
 
 bool isCtfeReferenceValid(Expression newval)
 {
-    if (newval.op == TOK.this_)
-        return true;
-    if (newval.op == TOK.variable)
+    switch (newval.op)
     {
-        const VarDeclaration v = (cast(VarExp)newval).var.isVarDeclaration();
-        assert(v);
-        // Must not be a reference to a reference
-        return true;
+        case TOK.this_:
+            return true;
+
+        case TOK.variable:
+        {
+            const VarDeclaration v = (cast(VarExp)newval).var.isVarDeclaration();
+            assert(v);
+            // Must not be a reference to a reference
+            return true;
+        }
+
+        case TOK.index:
+        {
+            const Expression eagg = (cast(IndexExp)newval).e1;
+            return eagg.op == TOK.string_ || eagg.op == TOK.arrayLiteral || eagg.op == TOK.assocArrayLiteral;
+        }
+
+        case TOK.dotVariable:
+        {
+            Expression eagg = (cast(DotVarExp)newval).e1;
+            return (eagg.op == TOK.structLiteral || eagg.op == TOK.classReference) && isCtfeValueValid(eagg);
+        }
+
+        default:
+            // Internally a ref variable may directly point a stack memory.
+            // e.g. ref int v = 1;
+            return isCtfeValueValid(newval);
     }
-    if (newval.op == TOK.index)
-    {
-        const Expression eagg = (cast(IndexExp)newval).e1;
-        return eagg.op == TOK.string_ || eagg.op == TOK.arrayLiteral || eagg.op == TOK.assocArrayLiteral;
-    }
-    if (newval.op == TOK.dotVariable)
-    {
-        Expression eagg = (cast(DotVarExp)newval).e1;
-        return (eagg.op == TOK.structLiteral || eagg.op == TOK.classReference) && isCtfeValueValid(eagg);
-    }
-    // Internally a ref variable may directly point a stack memory.
-    // e.g. ref int v = 1;
-    return isCtfeValueValid(newval);
 }
 
 // Used for debugging only
