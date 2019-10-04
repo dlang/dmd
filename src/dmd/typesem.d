@@ -29,6 +29,7 @@ import dmd.declaration;
 import dmd.denum;
 import dmd.dimport;
 import dmd.dmangle;
+import dmd.dmodule : Module;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
@@ -1600,6 +1601,27 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                 else
                     .error(loc, "%s `%s` is used as a type", s.kind, s.toPrettyChars);
                 //assert(0);
+            }
+            else if (e.op == TOK.variable) // special case: variable is used as a type
+            {
+                Dsymbol varDecl = mtype.toDsymbol(sc);
+                const(Loc) varDeclLoc = varDecl.getLoc();
+                Module varDeclModule = varDecl.getModule();
+
+                .error(loc, "variable `%s` is used as a type", mtype.toChars());
+
+                if (varDeclModule != sc._module) // variable is imported
+                {
+                    const(Loc) varDeclModuleImportLoc = varDeclModule.getLoc();
+                    .errorSupplemental(
+                        varDeclModuleImportLoc,
+                        "variable `%s` is imported here from: `%s`",
+                        varDecl.toChars,
+                        varDeclModule.toPrettyChars,
+                    );
+                }
+
+                .errorSupplemental(varDeclLoc, "variable `%s` is declared here", varDecl.toChars);
             }
             else
                 .error(loc, "`%s` is used as a type", mtype.toChars());
