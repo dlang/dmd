@@ -768,52 +768,39 @@ auto sourceFiles()
     {
         assert(0, "Unknown TARGET_CPU: " ~ env["TARGET_CPU"]);
     }
-    const lexerDmdFiles = [
-        "console",
-        "entity",
-        "errors",
-        "filecache",
-        "globals",
-        "id",
-        "identifier",
-        "lexer",
-        "tokens",
-        "utf",
-    ];
-    const lexerRootFiles = [
-        "array",
-        "ctfloat",
-        "file",
-        "filename",
-        "hash",
-        "outbuffer",
-        "port",
-        "region",
-        "rmem",
-        "rootobject",
-        "stringtable",
-    ];
-    const glueFiles = "
-        irstate toctype glue gluelayer todt tocsym toir dmsc
-        tocvdebug s2ir toobj e2ir eh iasm iasmdmd iasmgcc objc_glue
-    ".split;
+    static string[] fileArray(string dir, string files)
+    {
+        return files.split.map!(e => dir.buildPath(e)).array;
+    }
     Sources sources = {
-        glue:
-            glueFiles.map!(e => env["D"].buildPath(e ~ ".d")).array,
-        frontend:
-            dirEntries(env["D"], "*.d", SpanMode.shallow)
-                .map!(e => e.name)
-                .filter!(e => !lexerDmdFiles.chain(["asttypename", "frontend"], glueFiles).canFind(e.baseName.stripExtension))
-                .array,
-        lexer:
-            lexerDmdFiles.map!(e => env["D"].buildPath(e ~ ".d")).chain(
-            lexerRootFiles.map!(e => env["ROOT"].buildPath(e ~ ".d"))).array,
-        root:
-            dirEntries(env["ROOT"], "*.d", SpanMode.shallow)
-                .map!(e => e.name)
-                .filter!(e => !lexerRootFiles.canFind(e.baseName.stripExtension))
-                .array,
-        backend: ("
+        glue: fileArray(env["D"], "
+            irstate.d toctype.d glue.d gluelayer.d todt.d tocsym.d toir.d dmsc.d
+            tocvdebug.d s2ir.d toobj.d e2ir.d eh.d iasm.d iasmdmd.d iasmgcc.d objc_glue.d
+        "),
+        frontend: fileArray(env["D"], "
+            access.d aggregate.d aliasthis.d apply.d argtypes.d argtypes_sysv_x64.d arrayop.d
+            arraytypes.d ast_node.d astbase.d astcodegen.d attrib.d blockexit.d builtin.d canthrow.d
+            cli.d clone.d compiler.d complex.d cond.d constfold.d cppmangle.d cppmanglewin.d ctfeexpr.d
+            ctorflow.d dcast.d dclass.d declaration.d delegatize.d denum.d dimport.d dinifile.d
+            dinterpret.d dmacro.d dmangle.d dmodule.d doc.d dscope.d dstruct.d dsymbol.d dsymbolsem.d
+            dtemplate.d dversion.d env.d escape.d expression.d expressionsem.d func.d hdrgen.d impcnvtab.d
+            imphint.d init.d initsem.d inline.d inlinecost.d intrange.d json.d lambdacomp.d lib.d libelf.d
+            libmach.d libmscoff.d libomf.d link.d mars.d mtype.d nogc.d nspace.d objc.d opover.d optimize.d
+            parse.d parsetimevisitor.d permissivevisitor.d printast.d safe.d sapply.d scanelf.d scanmach.d
+            scanmscoff.d scanomf.d semantic2.d semantic3.d sideeffect.d statement.d statement_rewrite_walker.d
+            statementsem.d staticassert.d staticcond.d strictvisitor.d target.d templateparamsem.d traits.d
+            transitivevisitor.d typesem.d typinf.d utils.d visitor.d
+        "),
+        lexer: fileArray(env["D"], "
+            console.d entity.d errors.d filecache.d globals.d id.d identifier.d lexer.d tokens.d utf.d
+        ") ~ fileArray(env["ROOT"], "
+            array.d ctfloat.d file.d filename.d hash.d outbuffer.d port.d region.d rmem.d
+            rootobject.d stringtable.d
+        "),
+        root: fileArray(env["ROOT"], "
+            aav.d longdouble.d man.d response.d speller.d string.d strtold.d
+        "),
+        backend: fileArray(env["C"], "
             bcomplex.d evalu8.d divcoeff.d dvec.d go.d gsroa.d glocal.d gdag.d gother.d gflow.d
             out.d
             gloop.d compress.d cgelem.d cgcs.d ee.d cod4.d cod5.d nteh.d blockopt.d mem.d cg.d cgreg.d
@@ -821,15 +808,14 @@ auto sourceFiles()
             cod3.d cv8.d dcgcv.d pdata.d util2.d var.d md5.d backconfig.d ph2.d drtlsym.d dwarfeh.d ptrntab.d
             dvarstats.d dwarfdbginf.d cgen.d os.d goh.d barray.d cgcse.d elpicpie.d
             machobj.d elfobj.d
-            ".split
-            ~ ( (env["OS"] == "windows") ? "cgobj.d filespec.d mscoffobj.d newman.d".split : ["aarray.d"] )
-        ).map!(e => env["C"].buildPath(e)).array,
-        backendHeaders: "
+            " ~ ((env["OS"] == "windows") ? "cgobj.d filespec.d mscoffobj.d newman.d" : "aarray.d")
+        ),
+        backendHeaders: fileArray(env["C"], "
             cc.d cdef.d cgcv.d code.d cv4.d dt.d el.d global.d
             obj.d oper.d outbuf.d rtlsym.d code_x86.d iasm.d codebuilder.d
             ty.d type.d exh.d mach.d mscoff.d dwarf.d dwarf2.d xmm.d
             dlist.d melf.d varstats.di
-        ".split.map!(e => env["C"].buildPath(e)).array,
+        "),
     };
     sources.dmd = sources.frontend ~ sources.glue ~ sources.backendHeaders;
 
