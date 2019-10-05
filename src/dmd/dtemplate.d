@@ -3183,14 +3183,16 @@ private Type rawTypeMerge(Type t1, Type t2)
     if (t1.equals(t2))
         return t1;
     if (t1.equivalent(t2))
-        return t1.castMod(MODmerge(t1.mod, t2.mod));
+        return t1.castMod(MODmerge(t1.mod, t2.mod))
+                 .castRvalue(rvalueMerge(t1.isrvalue, t2.isrvalue));
 
     auto t1b = t1.toBasetype();
     auto t2b = t2.toBasetype();
     if (t1b.equals(t2b))
         return t1b;
     if (t1b.equivalent(t2b))
-        return t1b.castMod(MODmerge(t1b.mod, t2b.mod));
+        return t1b.castMod(MODmerge(t1b.mod, t2b.mod))
+                  .castRvalue(rvalueMerge(t1b.isrvalue, t2b.isrvalue));
 
     auto ty = cast(TY)impcnvResult[t1b.ty][t2b.ty];
     if (ty != Terror)

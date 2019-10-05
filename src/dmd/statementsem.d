@@ -3223,7 +3223,7 @@ else
                 {
                     tf.next = rs.exp.type;
                     inferRvalueRef = inferRef;
-                    if (inferRvalueRef)
+                    if (inferRvalueRef || !inferRef)
                         tf.next = tf.next.lvalueOf();
                 }
                 else if (tret.ty != Terror && !rs.exp.type.equals(tret))

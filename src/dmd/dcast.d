@@ -2899,13 +2899,16 @@ bool typeMerge(Scope* sc, TOK op, Type* pt, Expression* pe1, Expression* pe2)
     }
     assert(t2);
 
-    if (t1.mod != t2.mod &&
+    if ((t1.mod != t2.mod || t1.isrvalue != t2.isrvalue) &&
         t1.ty == Tenum && t2.ty == Tenum &&
         (cast(TypeEnum)t1).sym == (cast(TypeEnum)t2).sym)
     {
         ubyte mod = MODmerge(t1.mod, t2.mod);
-        t1 = t1.castMod(mod);
-        t2 = t2.castMod(mod);
+        bool isrvalue = t1.isrvalue;
+        if (t1.isrvalue != t2.isrvalue)
+            isrvalue = rvalueMerge(t1.isrvalue || !e1.isLvalue(), t2.isrvalue || !e2.isLvalue());
+        t1 = t1.castMod(mod).castRvalue(isrvalue);
+        t2 = t2.castMod(mod).castRvalue(isrvalue);
     }
 
 Lagain:
@@ -2953,6 +2956,14 @@ Lagain:
         // merging can not result in new enum type
         if (t.ty == Tenum)
             t = t1b;
+    }
+    else if (t1.isrvalue != t2.isrvalue)
+    {
+        bool isrvalue = rvalueMerge(t1.isrvalue || !e1.isLvalue(), t2.isrvalue || !e2.isLvalue());
+        t1 = t1.castRvalue(isrvalue);
+        t2 = t2.castRvalue(isrvalue);
+        t = t1;
+        goto Lagain;
     }
     else if ((t1.ty == Tpointer && t2.ty == Tpointer) || (t1.ty == Tdelegate && t2.ty == Tdelegate))
     {
@@ -3017,6 +3028,14 @@ Lagain:
                 return Lret();
             }
             return Lincompatible();
+        }
+        else if (t1n.isrvalue != t2n.isrvalue)
+        {
+            bool isrvalue = rvalueMerge(t1n.isrvalue, t2n.isrvalue);
+            t1 = t1n.castRvalue(isrvalue).pointerTo();
+            t2 = t2n.castRvalue(isrvalue).pointerTo();
+            t = t1;
+            goto Lagain;
         }
         else if (t1n.mod != t2n.mod)
         {
@@ -3125,15 +3144,17 @@ Lagain:
         else
             mod = MODmerge(t1n.mod, t2n.mod);
 
+        bool isrvalue = rvalueMerge(t1n.isrvalue, t2n.isrvalue);
+
         if (t1.ty == Tpointer)
-            t1 = t1n.castMod(mod).pointerTo();
+            t1 = t1n.castMod(mod).castRvalue(isrvalue).pointerTo();
         else
-            t1 = t1n.castMod(mod).arrayOf();
+            t1 = t1n.castMod(mod).castRvalue(isrvalue).arrayOf();
 
         if (t2.ty == Tpointer)
-            t2 = t2n.castMod(mod).pointerTo();
+            t2 = t2n.castMod(mod).castRvalue(isrvalue).pointerTo();
         else
-            t2 = t2n.castMod(mod).arrayOf();
+            t2 = t2n.castMod(mod).castRvalue(isrvalue).arrayOf();
         t = t1;
         goto Lagain;
     }
@@ -3214,6 +3235,7 @@ Lagain:
                 //printf("att tmerge(c || c) e1 = %s\n", e1.type.toChars());
                 e1 = resolveAliasThis(sc, e1);
                 t1 = e1.type;
+                t1 = t1.castRvalue(rvalueMerge(t1.isrvalue || !e1.isLvalue(), t2.isrvalue || !e2.isLvalue()));
                 continue;
             }
             else if (t2.ty == Tstruct && (cast(TypeStruct)t2).sym.aliasthis)
@@ -3225,6 +3247,7 @@ Lagain:
                 //printf("att tmerge(c || c) e2 = %s\n", e2.type.toChars());
                 e2 = resolveAliasThis(sc, e2);
                 t2 = e2.type;
+                t2 = t2.castRvalue(rvalueMerge(t1.isrvalue || !e1.isLvalue(), t2.isrvalue || !e2.isLvalue()));
                 continue;
             }
             else
@@ -3264,6 +3287,7 @@ Lagain:
                     att2 = e2.type;
                 //printf("att tmerge(s && s) e2 = %s\n", e2.type.toChars());
                 e2b = resolveAliasThis(sc, e2);
+                t1 = t1.castRvalue(rvalueMerge(t1.isrvalue || !e1.isLvalue(), e2b.type.isrvalue || !e2b.isLvalue()));
                 i1 = e2b.implicitConvTo(t1);
             }
             if (ts1.sym.aliasthis)
@@ -3274,6 +3298,7 @@ Lagain:
                     att1 = e1.type;
                 //printf("att tmerge(s && s) e1 = %s\n", e1.type.toChars());
                 e1b = resolveAliasThis(sc, e1);
+                t2 = t2.castRvalue(rvalueMerge(e1b.type.isrvalue || !e1b.isLvalue(), t2.isrvalue || !e2.isLvalue()));
                 i2 = e1b.implicitConvTo(t2);
             }
             if (i1 && i2)
@@ -3425,11 +3450,11 @@ LmodCompare:
             e2 = e2.castTo(sc, t1.nextOf());
             t = t1.nextOf().arrayOf();
         }
-        else if (t1.nextOf().implicitConvTo(e2.type))
+        else if (t1.nextOf().implicitConvTo(e2.type.lvalueOf()))
         {
             // (cast(T)U)[] op T    (https://issues.dlang.org/show_bug.cgi?id=12780)
             // e1 is left as U[], it will be handled in arrayOp() later.
-            t = e2.type.arrayOf();
+            t = e2.type.lvalueOf().arrayOf();
         }
         else if (t2.ty == Tarray && isArrayOpOperand(e2))
         {
@@ -3460,11 +3485,11 @@ LmodCompare:
             e1 = e1.castTo(sc, t2.nextOf());
             t = t2.nextOf().arrayOf();
         }
-        else if (t2.nextOf().implicitConvTo(e1.type))
+        else if (t2.nextOf().implicitConvTo(e1.type.lvalueOf()))
         {
             // T op (cast(T)U)[]    (https://issues.dlang.org/show_bug.cgi?id=12780)
             // e2 is left as U[], it will be handled in arrayOp() later.
-            t = e1.type.arrayOf();
+            t = e1.type.lvalueOf().arrayOf();
         }
         else
             return Lincompatible();

@@ -153,6 +153,15 @@ MOD MODmerge(MOD mod1, MOD mod2) pure nothrow @nogc @safe
     return result;
 }
 
+/***************************
+ * Merge rvalueness.
+ * Returns: true if both are rvalue, false otherwise.
+ */
+bool rvalueMerge(bool isrvalue1, bool isrvalue2) pure nothrow @nogc @safe
+{
+    return isrvalue1 & isrvalue2;
+}
+
 /*********************************
  * Store modifier name into buf.
  */
@@ -600,7 +609,7 @@ extern (C++) abstract class Type : ASTNode
                 Parameter fparam1 = t1.parameterList[i];
                 Parameter fparam2 = t2.parameterList[i];
 
-                if (!fparam1.type.equals(fparam2.type))
+                if (!fparam1.type.lvalueOf().equals(fparam2.type.lvalueOf()))
                 {
                     if (!fix17349)
                         goto Ldistinct;
@@ -703,7 +712,8 @@ extern (C++) abstract class Type : ASTNode
     Lcovariant:
         if (t1.isref != t2.isref)
             goto Lnotcovariant;
-
+        if (!t1.next.isrvalue && t2.next.isrvalue)
+            goto Lnotcovariant;
         if (t1.isrvalueref != t2.isrvalueref)
             goto Lnotcovariant;
 
@@ -2005,6 +2015,14 @@ extern (C++) abstract class Type : ASTNode
             }
         }
         return t;
+    }
+
+    /************************************
+     * Apply or remove rvalue.
+     */
+    final Type castRvalue(bool on)
+    {
+        return on ? rvalueOf() : lvalueOf();
     }
 
     /************************************
@@ -6746,6 +6764,8 @@ extern (C++) final class Parameter : ASTNode
     {
         enum stc = STC.ref_ | STC.rvalueref | STC.in_ | STC.out_ | STC.lazy_;
         if ((this.storageClass & stc) != (p.storageClass & stc))
+            return false;
+        if (this.type.isrvalue && !p.type.isrvalue)
             return false;
         return isCovariantScope(returnByRef, this.storageClass, p.storageClass);
     }

@@ -280,6 +280,7 @@ public:
     Type *addSTC(StorageClass stc);
     Type *castMod(MOD mod);
     Type *addMod(MOD mod);
+    Type *castRvalue(bool on);
     virtual Type *addStorageClass(StorageClass stc);
     Type *pointerTo();
     Type *referenceTo();
