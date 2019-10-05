@@ -305,8 +305,8 @@ $(DMDFRONTENDEXE): $(GEN)\build.exe
 	$(RUN_BUILD) $@
 	copy $(DMDFRONTENDEXE) .
 
-$(TARGETEXE): $(GEN)\build.exe
-	$(RUN_BUILD) $@
+$(TARGETEXE): $(DMD_SRCS) $(ROOT_SRCS) $(LIBS) $(STRING_IMPORT_FILES)
+	$(HOST_DC) $(DSRC) -of$@ -vtls -J$G -J../res -L/STACK:8388608 $(DFLAGS) $(LFLAGS) $(DMD_SRCS) $(ROOT_SRCS) $(LIBS)
 	copy $(TARGETEXE) .
 
 ############################ Maintenance Targets #############################
