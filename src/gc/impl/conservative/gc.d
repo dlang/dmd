@@ -2822,8 +2822,25 @@ struct Gcx
         evStart.initialize(false, false);
         evDone.initialize(false, false);
 
+        version (Posix)
+        {
+            import core.sys.posix.signal;
+            // block all signals, scanBackground inherits this mask.
+            // see https://issues.dlang.org/show_bug.cgi?id=20256
+            sigset_t new_mask, old_mask;
+            sigfillset(&new_mask);
+            auto sigmask_rc = pthread_sigmask(SIG_BLOCK, &new_mask, &old_mask);
+            assert(sigmask_rc == 0, "failed to set up GC scan thread sigmask");
+        }
+
         for (int idx = 0; idx < numScanThreads; idx++)
             scanThreadData[idx].tid = createLowLevelThread(&scanBackground, 0x4000, &stopScanThreads);
+
+        version (Posix)
+        {
+            sigmask_rc = pthread_sigmask(SIG_SETMASK, &old_mask, null);
+            assert(sigmask_rc == 0, "failed to set up GC scan thread sigmask");
+        }
 
         version (Posix)
         {
