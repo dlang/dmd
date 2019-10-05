@@ -3835,6 +3835,7 @@ extern (C++) final class FuncExp : Expression
             auto tfy = new TypeFunction(tfx.parameterList, tof.next,
                         tfx.linkage, STC.undefined_);
             tfy.mod = tfx.mod;
+            tfy.isrvalue = tfx.isrvalue;
             tfy.isnothrow = tfx.isnothrow;
             tfy.isnogc = tfx.isnogc;
             tfy.purity = tfx.purity;
@@ -3860,7 +3861,7 @@ extern (C++) final class FuncExp : Expression
         }
         //printf("\ttx = %s, to = %s\n", tx.toChars(), to.toChars());
 
-        MATCH m = tx.implicitConvTo(to);
+        MATCH m = tx.implicitConvTo(to.lvalueOf());
         if (m > MATCH.nomatch)
         {
             // MATCH.exact:      exact type match

@@ -4,7 +4,7 @@ struct S {}
 
 static assert(is(@rvalue(S)));
 static assert(is(@rvalue(S) : S));
-static assert(is(S : @rvalue(S)));
+static assert(!is(S : @rvalue(S)));
 static assert(!is(S == @rvalue(S)));
 
 static assert(is(@rvalue(S) == @rvalue));

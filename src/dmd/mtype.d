@@ -2313,6 +2313,8 @@ extern (C++) abstract class Type : ASTNode
         //printf("Type::constConv(this = %s, to = %s)\n", toChars(), to.toChars());
         if (equals(to))
             return MATCH.exact;
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
         if (ty == to.ty && MODimplicitConv(mod, to.mod))
             return MATCH.constant;
         return MATCH.nomatch;
@@ -3040,6 +3042,9 @@ extern (C++) abstract class TypeNext : Type
         if (equals(to))
             return MATCH.exact;
 
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
+
         if (!(ty == to.ty && MODimplicitConv(mod, to.mod)))
             return MATCH.nomatch;
 
@@ -3381,6 +3386,9 @@ extern (C++) final class TypeBasic : Type
         if (this == to)
             return MATCH.exact;
 
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
+
         if (ty == to.ty)
         {
             if (mod == to.mod)
@@ -3575,6 +3583,8 @@ extern (C++) final class TypeVector : Type
         //printf("TypeVector::implicitConvTo(%s) from %s\n", to.toChars(), toChars());
         if (this == to)
             return MATCH.exact;
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
         if (ty == to.ty)
             return MATCH.convert;
         return MATCH.nomatch;
@@ -3705,6 +3715,8 @@ extern (C++) final class TypeSArray : TypeArray
     override MATCH implicitConvTo(Type to)
     {
         //printf("TypeSArray::implicitConvTo(to = %s) this = %s\n", to.toChars(), toChars());
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
         if (auto ta = to.isTypeDArray())
         {
             if (!MODimplicitConv(next.mod, ta.next.mod))
@@ -3869,6 +3881,9 @@ extern (C++) final class TypeDArray : TypeArray
         if (equals(to))
             return MATCH.exact;
 
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
+
         if (auto ta = to.isTypeDArray())
         {
             if (!MODimplicitConv(next.mod, ta.next.mod))
@@ -3968,6 +3983,9 @@ extern (C++) final class TypeAArray : TypeArray
         if (equals(to))
             return MATCH.exact;
 
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
+
         if (auto ta = to.isTypeAArray())
         {
             if (!MODimplicitConv(next.mod, ta.next.mod))
@@ -3988,6 +4006,8 @@ extern (C++) final class TypeAArray : TypeArray
 
     override MATCH constConv(Type to)
     {
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
         if (auto taa = to.isTypeAArray())
         {
             MATCH mindex = index.constConv(taa.index);
@@ -4047,6 +4067,9 @@ extern (C++) final class TypePointer : TypeNext
         //printf("TypePointer::implicitConvTo(to = %s) %s\n", to.toChars(), toChars());
         if (equals(to))
             return MATCH.exact;
+
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
 
         if (next.ty == Tfunction)
         {
@@ -4114,6 +4137,8 @@ extern (C++) final class TypePointer : TypeNext
 
     override MATCH constConv(Type to)
     {
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
         if (next.ty == Tfunction)
         {
             if (to.nextOf() && next.equals((cast(TypeNext)to).next))
@@ -4836,7 +4861,10 @@ extern (C++) final class TypeFunction : TypeNext
                     if (flag)
                     {
                         // for partial ordering, value is an irrelevant mockup, just look at the type
-                        m = targ.implicitConvTo(tprm);
+                        Type t = targ;
+                        if (tprm.isrvalue && !targ.isrvalue && !arg.isLvalue())
+                            t = t.rvalueOf();
+                        m = t.implicitConvTo(tprm);
                     }
                     else
                     {
@@ -5807,6 +5835,9 @@ extern (C++) final class TypeStruct : Type
     {
         MATCH m;
 
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
+
         if (ty == to.ty && sym == (cast(TypeStruct)to).sym)
         {
             m = MATCH.exact; // exact match
@@ -5889,6 +5920,8 @@ extern (C++) final class TypeStruct : Type
     {
         if (equals(to))
             return MATCH.exact;
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
         if (ty == to.ty && sym == (cast(TypeStruct)to).sym && MODimplicitConv(mod, to.mod))
             return MATCH.constant;
         return MATCH.nomatch;
@@ -6037,7 +6070,9 @@ extern (C++) final class TypeEnum : Type
     override MATCH implicitConvTo(Type to)
     {
         MATCH m;
-        //printf("TypeEnum::implicitConvTo() %s to %s\n", toChars(), to.toChars());
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
+       //printf("TypeEnum::implicitConvTo() %s to %s\n", toChars(), to.toChars());
         if (ty == to.ty && sym == (cast(TypeEnum)to).sym)
             m = (mod == to.mod) ? MATCH.exact : MATCH.constant;
         else if (sym.getMemtype(Loc.initial).implicitConvTo(to))
@@ -6051,6 +6086,8 @@ extern (C++) final class TypeEnum : Type
     {
         if (equals(to))
             return MATCH.exact;
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
         if (ty == to.ty && sym == (cast(TypeEnum)to).sym && MODimplicitConv(mod, to.mod))
             return MATCH.constant;
         return MATCH.nomatch;
@@ -6149,6 +6186,9 @@ extern (C++) final class TypeClass : Type
         if (m > MATCH.nomatch)
             return m;
 
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
+
         ClassDeclaration cdto = to.isClassHandle();
         if (cdto)
         {
@@ -6192,6 +6232,8 @@ extern (C++) final class TypeClass : Type
     {
         if (equals(to))
             return MATCH.exact;
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
         if (ty == to.ty && sym == (cast(TypeClass)to).sym && MODimplicitConv(mod, to.mod))
             return MATCH.constant;
 
@@ -6462,6 +6504,9 @@ extern (C++) final class TypeNull : Type
         MATCH m = Type.implicitConvTo(to);
         if (m != MATCH.nomatch)
             return m;
+
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
 
         // NULL implicitly converts to any pointer type or dynamic array
         //if (type.ty == Tpointer && type.nextOf().ty == Tvoid)

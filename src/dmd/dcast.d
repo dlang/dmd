@@ -261,7 +261,10 @@ MATCH implicitConvTo(Expression e, Type t)
                 return;
             }
 
-            MATCH match = e.type.implicitConvTo(t);
+            Type te = e.type;
+            if (t.isrvalue && !te.isrvalue && !e.isLvalue())
+                te = te.rvalueOf();
+            MATCH match = te.implicitConvTo(t);
             if (match != MATCH.nomatch)
             {
                 result = match;
@@ -323,13 +326,15 @@ MATCH implicitConvTo(Expression e, Type t)
             {
                 // ptr + offset
                 // ptr - offset
-                MATCH m = e.e1.implicitConvTo(t);
+                Type tl = t.lvalueOf(); // +/- is an rvalue exp even if 'pointer' isn't
+                MATCH m = e.e1.implicitConvTo(tl);
                 return (m > MATCH.constant) ? MATCH.constant : m;
             }
             if (t2b.ty == Tpointer && t1b.isintegral() && t2b.equivalent(tb))
             {
                 // offset + ptr
-                MATCH m = e.e2.implicitConvTo(t);
+                Type tl = t.lvalueOf(); // +/- is an rvalue exp even if 'pointer' isn't
+                MATCH m = e.e2.implicitConvTo(tl);
                 return (m > MATCH.constant) ? MATCH.constant : m;
             }
 
@@ -364,7 +369,8 @@ MATCH implicitConvTo(Expression e, Type t)
             {
                 printf("IntegerExp::implicitConvTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
             }
-            MATCH m = e.type.implicitConvTo(t);
+            Type te = t.isrvalue ? e.type.rvalueOf() : e.type; // IntegerExp is an rvalue exp
+            MATCH m = te.implicitConvTo(t);
             if (m >= MATCH.constant)
             {
                 result = m;
@@ -533,7 +539,7 @@ MATCH implicitConvTo(Expression e, Type t)
             {
                 printf("NullExp::implicitConvTo(this=%s, type=%s, t=%s, committed = %d)\n", e.toChars(), e.type.toChars(), t.toChars(), e.committed);
             }
-            if (e.type.equals(t))
+            if (e.type.equals(t) || e.type.rvalueOf().equals(t))
             {
                 result = MATCH.exact;
                 return;
@@ -763,7 +769,10 @@ MATCH implicitConvTo(Expression e, Type t)
                 }
 
                 if (!result)
-                    result = e.type.implicitConvTo(t);
+                {
+                    Type te = t.isrvalue ? e.type.rvalueOf() : e.type;
+                    result = te.implicitConvTo(t);
+                }
 
                 return;
             }
@@ -854,7 +863,8 @@ MATCH implicitConvTo(Expression e, Type t)
                  e.f.toParent2() == ClassDeclaration.object.toParent())
                )
             {
-                result = e.type.immutableOf().implicitConvTo(t);
+                Type type = t.isrvalue && !e.isLvalue() ? e.type.rvalueOf() : e.type;
+                result = type.immutableOf().implicitConvTo(t);
                 if (result > MATCH.constant) // Match level is MATCH.constant at best.
                     result = MATCH.constant;
                 return;
@@ -893,7 +903,8 @@ MATCH implicitConvTo(Expression e, Type t)
              *    int* mp = foo();            // should be disallowed
              *  }
              */
-            if (e.type.immutableOf().implicitConvTo(t) < MATCH.constant && e.type.addMod(MODFlags.shared_).implicitConvTo(t) < MATCH.constant && e.type.implicitConvTo(t.addMod(MODFlags.shared_)) < MATCH.constant)
+            Type type = t.isrvalue && !e.isLvalue() ? e.type.rvalueOf() : e.type;
+            if (type.immutableOf().implicitConvTo(t) < MATCH.constant && type.addMod(MODFlags.shared_).implicitConvTo(t) < MATCH.constant && type.implicitConvTo(t.addMod(MODFlags.shared_)) < MATCH.constant)
             {
                 return;
             }
@@ -977,7 +988,8 @@ MATCH implicitConvTo(Expression e, Type t)
             {
                 printf("AddrExp::implicitConvTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
             }
-            result = e.type.implicitConvTo(t);
+            Type te = t.isrvalue ? e.type.rvalueOf() : e.type;
+            result = te.implicitConvTo(t);
             //printf("\tresult = %d\n", result);
 
             if (result != MATCH.nomatch)
@@ -1033,7 +1045,8 @@ MATCH implicitConvTo(Expression e, Type t)
             {
                 printf("SymOffExp::implicitConvTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
             }
-            result = e.type.implicitConvTo(t);
+            Type te = t.isrvalue ? e.type.rvalueOf() : e.type;
+            result = te.implicitConvTo(t);
             //printf("\tresult = %d\n", result);
             if (result != MATCH.nomatch)
                 return;
@@ -1067,7 +1080,8 @@ MATCH implicitConvTo(Expression e, Type t)
             {
                 printf("DelegateExp::implicitConvTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
             }
-            result = e.type.implicitConvTo(t);
+            Type te = t.isrvalue ? e.type.rvalueOf() : e.type;
+            result = te.implicitConvTo(t);
             if (result != MATCH.nomatch)
                 return;
 
@@ -1154,7 +1168,8 @@ MATCH implicitConvTo(Expression e, Type t)
             {
                 printf("CastExp::implicitConvTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
             }
-            result = e.type.implicitConvTo(t);
+            Type te = t.isrvalue ? e.type.rvalueOf() : e.type;
+            result = te.implicitConvTo(t);
             if (result != MATCH.nomatch)
                 return;
 
@@ -1186,7 +1201,7 @@ MATCH implicitConvTo(Expression e, Type t)
 
             /* See if fail only because of mod bits
              */
-            if (e.type.immutableOf().implicitConvTo(t.immutableOf()) == MATCH.nomatch)
+            if (e.type.immutableOf().lvalueOf().implicitConvTo(t.immutableOf().lvalueOf()) == MATCH.nomatch)
                 return;
 
             /* Get mod bits of what we're converting to
@@ -1230,7 +1245,9 @@ MATCH implicitConvTo(Expression e, Type t)
 
                 if (fd == e.member)
                 {
-                    if (e.type.immutableOf().implicitConvTo(t) < MATCH.constant && e.type.addMod(MODFlags.shared_).implicitConvTo(t) < MATCH.constant && e.type.implicitConvTo(t.addMod(MODFlags.shared_)) < MATCH.constant)
+                    if (e.type.immutableOf().lvalueOf().implicitConvTo(t.lvalueOf()) < MATCH.constant
+                        && e.type.addMod(MODFlags.shared_).lvalueOf().implicitConvTo(t.lvalueOf()) < MATCH.constant
+                        && e.type.lvalueOf().implicitConvTo(t.addMod(MODFlags.shared_).lvalueOf()) < MATCH.constant)
                     {
                         return;
                     }
@@ -1261,6 +1278,7 @@ MATCH implicitConvTo(Expression e, Type t)
                             continue;
                         if (fparam.storageClass & (STC.out_ | STC.ref_))
                         {
+                            Type ta = tparam.isrvalue && !earg.isLvalue() ? targ.rvalueOf() : targ;
                             if (targ.constConv(tparam.castMod(mod)) == MATCH.nomatch)
                                 return;
                             continue;
@@ -1392,7 +1410,17 @@ MATCH implicitConvTo(Expression e, Type t)
             {
                 typeb = toStaticArrayType(e);
                 if (typeb)
+                {
+                    if (t.isrvalue && !typeb.isrvalue)
+                    {
+                        Expression e1 = e.e1;
+                        while (e1.isSliceExp())
+                            e1 = (cast(SliceExp)e1).e1;
+                        if (!e1.isLvalue())
+                            typeb = typeb.rvalueOf();
+                    }
                     result = typeb.implicitConvTo(t);
+                }
                 return;
             }
 
