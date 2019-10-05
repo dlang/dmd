@@ -13,10 +13,12 @@ module dmd.optimize;
 
 import core.stdc.stdio;
 
+import dmd.printast;
 import dmd.constfold;
 import dmd.ctfeexpr;
 import dmd.dclass;
 import dmd.declaration;
+import dmd.dinterpret;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.errors;
@@ -270,12 +272,14 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
 
         Expression ret;
         private const int result;
+        private const int want;
         private const bool keepLvalue;
 
         extern (D) this(Expression e, int result, bool keepLvalue)
         {
             this.ret = e;               // default result is original expression
             this.result = result;
+            this.want = result & WANTnoctfe;
             this.keepLvalue = keepLvalue;
         }
 
@@ -331,10 +335,10 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
 
         override void visit(TupleExp e)
         {
-            expOptimize(e.e0, WANTvalue);
+            expOptimize(e.e0, want);
             for (size_t i = 0; i < e.exps.dim; i++)
             {
-                expOptimize((*e.exps)[i], WANTvalue);
+                expOptimize((*e.exps)[i], want);
             }
         }
 
@@ -575,42 +579,84 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
 
         override void visit(NewExp e)
         {
-            expOptimize(e.thisexp, WANTvalue);
+            expOptimize(e.thisexp, want);
             // Optimize parameters
             if (e.newargs)
             {
                 for (size_t i = 0; i < e.newargs.dim; i++)
                 {
-                    expOptimize((*e.newargs)[i], WANTvalue);
+                    expOptimize((*e.newargs)[i], want);
                 }
             }
             if (e.arguments)
             {
                 for (size_t i = 0; i < e.arguments.dim; i++)
                 {
-                    expOptimize((*e.arguments)[i], WANTvalue);
+                    expOptimize((*e.arguments)[i], want);
                 }
             }
         }
 
         override void visit(CallExp e)
         {
-            //printf("CallExp::optimize(result = %d) %s\n", result, e.toChars());
+            enum log = false;
+            //if (log) printf("CallExp::optimize(result = %d) %s\n", result, e.toChars());
             // Optimize parameters with keeping lvalue-ness
             if (expOptimize(e.e1, result))
                 return;
+            Type t1 = e.e1.type.toBasetype();
+            if (t1.ty == Tdelegate)
+                t1 = t1.nextOf();
+            auto tf = t1.isTypeFunction();
+            bool tryCTFE = !(want & WANTnoctfe) &&
+                           (tf.purity == PURE.strong || tf.purity == PURE.weak || tf.purity == PURE.const_);
+
+            /* A @nogc function that tries to return an array literal is going
+             * go cause an error in checkGC()
+             */
+            if (tf.isnogc)
+            {
+                const ty = e.type.toBasetype().ty;
+                if (ty == Tarray || ty == Taarray)
+                    tryCTFE = false;
+            }
+
             if (e.arguments)
             {
-                Type t1 = e.e1.type.toBasetype();
-                if (t1.ty == Tdelegate)
-                    t1 = t1.nextOf();
-                assert(t1.ty == Tfunction);
-                TypeFunction tf = cast(TypeFunction)t1;
-                for (size_t i = 0; i < e.arguments.dim; i++)
+                foreach (i; 0 .. e.arguments.dim)
                 {
                     Parameter p = tf.parameterList[i];
                     bool keep = p && p.isReference();
-                    expOptimize((*e.arguments)[i], WANTvalue, keep);
+                    expOptimize((*e.arguments)[i], want, keep);
+                    auto ea = (*e.arguments)[i];
+
+                    /* Attempting CTFE is slow, so try to quickly eliminate
+                     * cases where it won't work anyway
+                     */
+                    tryCTFE = tryCTFE && !keep &&
+                          (ea.op == TOK.int64 ||
+                           ea.op == TOK.null_ ||
+                           ea.op == TOK.string_ ||
+                           ea.op == TOK.arrayLiteral ||
+                           ea.op == TOK.assocArrayLiteral ||
+                           ea.op == TOK.structLiteral ||
+                           ea.op == TOK.float64 ||
+                           ea.op == TOK.complex80);
+                }
+            }
+            if (tryCTFE)
+            {
+                if (log) printf("trying CTFE %d %s %s\n", tf.purity, tf.toChars(), e.toChars());
+                const gaggedErrorsSave = global.startGagging();
+                auto ex = ctfeInterpret(e);
+                if (!global.endGagging(gaggedErrorsSave) && ex.op != TOK.error)
+                {
+                    if (log) printf("succeeded %p %d\n", ex, ex.op);
+                    ret = ex;
+                }
+                else
+                {
+                    if (log) printf("failed\n");
                 }
             }
         }
@@ -917,7 +963,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             // otherwise we must NOT attempt to constant-fold them.
             // In particular, if the comma returns a temporary variable, it needs
             // to be an lvalue (this is particularly important for struct constructors)
-            expOptimize(e.e1, WANTvalue);
+            expOptimize(e.e1, want);
             expOptimize(e.e2, result, keepLvalue);
             if (ret.op == TOK.error)
                 return;
@@ -954,7 +1000,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         override void visit(EqualExp e)
         {
             //printf("EqualExp::optimize(result = %x) %s\n", result, e.toChars());
-            if (binOptimize(e, WANTvalue))
+            if (binOptimize(e, want))
                 return;
             Expression e1 = fromConstInitializer(result, e.e1);
             Expression e2 = fromConstInitializer(result, e.e2);
@@ -976,7 +1022,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         override void visit(IdentityExp e)
         {
             //printf("IdentityExp::optimize(result = %d) %s\n", result, e.toChars());
-            if (binOptimize(e, WANTvalue))
+            if (binOptimize(e, want))
                 return;
             if ((e.e1.isConst() && e.e2.isConst()) || (e.e1.op == TOK.null_ && e.e2.op == TOK.null_))
             {
@@ -994,7 +1040,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             Expression ex = fromConstInitializer(result, e.e1);
             // We might know $ now
             setLengthVarIfKnown(e.lengthVar, ex);
-            if (expOptimize(e.e2, WANTvalue))
+            if (expOptimize(e.e2, want))
                 return;
             // Don't optimize to an array literal element directly in case an lvalue is requested
             if (keepLvalue && ex.op == TOK.arrayLiteral)
@@ -1024,8 +1070,8 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                 e.e1 = fromConstInitializer(result, e.e1);
                 // We might know $ now
                 setLengthVarIfKnown(e.lengthVar, e.e1);
-                expOptimize(e.lwr, WANTvalue);
-                expOptimize(e.upr, WANTvalue);
+                expOptimize(e.lwr, want);
+                expOptimize(e.upr, want);
                 if (ret.op == TOK.error)
                     return;
                 ret = Slice(e.type, e.e1, e.lwr, e.upr).copy();
@@ -1050,7 +1096,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         override void visit(LogicalExp e)
         {
             //printf("LogicalExp::optimize(%d) %s\n", result, e.toChars());
-            if (expOptimize(e.e1, WANTvalue))
+            if (expOptimize(e.e1, want))
                 return;
             const oror = e.op == TOK.orOr;
             if (e.e1.isBool(oror))
@@ -1066,7 +1112,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                 ret = Expression_optimize(ret, result, false);
                 return;
             }
-            if (expOptimize(e.e2, WANTvalue))
+            if (expOptimize(e.e2, want))
                 return;
             if (e.e1.isConst())
             {
@@ -1092,7 +1138,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         override void visit(CmpExp e)
         {
             //printf("CmpExp::optimize() %s\n", e.toChars());
-            if (binOptimize(e, WANTvalue))
+            if (binOptimize(e, want))
                 return;
             Expression e1 = fromConstInitializer(result, e.e1);
             Expression e2 = fromConstInitializer(result, e.e2);
@@ -1140,7 +1186,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
 
         override void visit(CondExp e)
         {
-            if (expOptimize(e.econd, WANTvalue))
+            if (expOptimize(e.econd, want))
                 return;
             if (e.econd.isBool(true))
                 ret = Expression_optimize(e.e1, result, keepLvalue);

@@ -202,8 +202,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             if (discardValue(s.exp))
                 s.exp = ErrorExp.get();
 
-            s.exp = s.exp.optimize(WANTvalue);
             s.exp = checkGC(sc, s.exp);
+            s.exp = s.exp.optimize(WANTvalue);
             if (s.exp.op == TOK.error)
                 return setError();
         }
@@ -529,8 +529,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         ds.condition = resolveProperties(sc, ds.condition);
         if (checkNonAssignmentArrayOp(ds.condition))
             ds.condition = ErrorExp.get();
-        ds.condition = ds.condition.optimize(WANTvalue);
         ds.condition = checkGC(sc, ds.condition);
+        ds.condition = ds.condition.optimize(WANTvalue);
 
         ds.condition = ds.condition.toBoolean(sc);
 
@@ -602,8 +602,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             fs.condition = resolveProperties(sc, fs.condition);
             if (checkNonAssignmentArrayOp(fs.condition))
                 fs.condition = ErrorExp.get();
-            fs.condition = fs.condition.optimize(WANTvalue);
             fs.condition = checkGC(sc, fs.condition);
+            fs.condition = fs.condition.optimize(WANTvalue);
 
             fs.condition = fs.condition.toBoolean(sc);
         }
@@ -614,8 +614,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             fs.increment = resolveProperties(sc, fs.increment);
             if (checkNonAssignmentArrayOp(fs.increment))
                 fs.increment = ErrorExp.get();
-            fs.increment = fs.increment.optimize(WANTvalue);
             fs.increment = checkGC(sc, fs.increment);
+            fs.increment = fs.increment.optimize(WANTvalue);
         }
 
         sc.sbreak = fs;
@@ -2566,8 +2566,8 @@ else
         }
         if (checkNonAssignmentArrayOp(ss.condition))
             ss.condition = ErrorExp.get();
-        ss.condition = ss.condition.optimize(WANTvalue);
         ss.condition = checkGC(sc, ss.condition);
+        ss.condition = ss.condition.optimize(WANTvalue);
         if (ss.condition.op == TOK.error)
             conditionError = true;
 
@@ -3214,7 +3214,10 @@ else
                 rs.exp = valueNoDtor(rs.exp);
 
             if (e0)
+            {
+                e0 = checkGC(sc, e0);
                 e0 = e0.optimize(WANTvalue);
+            }
 
             /* Void-return function can have void typed expression
              * on return statement.
@@ -3228,6 +3231,7 @@ else
                     rs.exp = new CastExp(rs.loc, rs.exp, Type.tvoid);
                     rs.exp = rs.exp.expressionSemantic(sc);
                 }
+                rs.exp = checkGC(sc, rs.exp);
 
                 /* Replace:
                  *      return exp;
@@ -3237,8 +3241,6 @@ else
                 e0 = Expression.combine(e0, rs.exp);
                 rs.exp = null;
             }
-            if (e0)
-                e0 = checkGC(sc, e0);
         }
 
         if (rs.exp)
@@ -3624,8 +3626,8 @@ else
         {
             ss.exp = ss.exp.expressionSemantic(sc);
             ss.exp = resolveProperties(sc, ss.exp);
-            ss.exp = ss.exp.optimize(WANTvalue);
             ss.exp = checkGC(sc, ss.exp);
+            ss.exp = ss.exp.optimize(WANTvalue);
             if (ss.exp.op == TOK.error)
             {
                 if (ss._body)
@@ -3745,8 +3747,8 @@ else
         //printf("WithStatement::semantic()\n");
         ws.exp = ws.exp.expressionSemantic(sc);
         ws.exp = resolveProperties(sc, ws.exp);
-        ws.exp = ws.exp.optimize(WANTvalue);
         ws.exp = checkGC(sc, ws.exp);
+        ws.exp = ws.exp.optimize(WANTvalue);
         if (ws.exp.op == TOK.error)
             return setError();
         if (ws.exp.op == TOK.scope_)

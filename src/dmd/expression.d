@@ -641,6 +641,7 @@ enum OwnedBy : ubyte
 
 enum WANTvalue  = 0;    // default
 enum WANTexpand = 1;    // expand const/immutable variables if possible
+enum WANTnoctfe = 2;    // do not run CTFE on pure functions
 
 /***********************************************************
  * http://dlang.org/spec/expression.html#expression

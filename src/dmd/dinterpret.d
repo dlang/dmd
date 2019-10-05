@@ -2084,8 +2084,9 @@ public:
                     if (v._init.isVoidInitializer())
                     {
                         // var should have been initialized when it was created
+                        // But this can happen with __swap=void generation
                         error(loc, "CTFE internal error: trying to access uninitialized var");
-                        assert(0);
+                        return CTFEExp.cantexp;
                     }
                     e = v._init.initializerToExpression();
                 }
@@ -6199,10 +6200,10 @@ public:
         }
 
         // We can't use getField, because it makes a copy
-        if (ex.op == TOK.classReference)
+        if (auto cre = ex.isClassReferenceExp())
         {
-            se = (cast(ClassReferenceExp)ex).value;
-            i = (cast(ClassReferenceExp)ex).findFieldIndexByName(v);
+            se = cre.value;
+            i = cre.findFieldIndexByName(v);
         }
         else if (ex.op == TOK.typeid_)
         {
@@ -6223,7 +6224,7 @@ public:
         }
         else
         {
-            se = cast(StructLiteralExp)ex;
+            se = ex.isStructLiteralExp();
             i = findFieldIndexByName(se.sd, v);
         }
         if (i == -1)
@@ -6253,6 +6254,7 @@ public:
             return;
         }
 
+        assert(i < se.elements.dim);
         result = (*se.elements)[i];
         if (!result)
         {
@@ -6260,6 +6262,8 @@ public:
             result = CTFEExp.cantexp;
             return;
         }
+
+        assert(result.op != 0xFF);
         if (auto vie = result.isVoidInitExp())
         {
             const s = vie.var.toChars();
@@ -6661,6 +6665,8 @@ private Expression copyRegionExp(Expression e)
 {
     if (!e)
         return e;
+
+    assert(e.op != 0xFF);
 
     static void copyArray(Expressions* elems)
     {

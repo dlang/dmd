@@ -261,7 +261,7 @@ MATCH implicitConvTo(Expression e, Type t)
                 e.type = Type.terror;
             }
 
-            Expression ex = e.optimize(WANTvalue);
+            Expression ex = e.optimize(WANTvalue | WANTnoctfe);
             if (ex.type.equals(t))
             {
                 result = MATCH.exact;

@@ -1741,13 +1741,13 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 {
                     ex = ex.expressionSemantic(sc2);
                     ex = resolvePropertiesOnly(sc2, ex);
+                    ex = checkGC(sc2, ex);
                     ex = ex.optimize(WANTvalue);
                     if (sc2.func && sc2.func.type.ty == Tfunction)
                     {
                         const tf = cast(TypeFunction)sc2.func.type;
                         err |= tf.isnothrow && canThrow(ex, sc2.func, false);
                     }
-                    ex = checkGC(sc2, ex);
                     if (ex.op == TOK.error)
                         err = true;
                 }
