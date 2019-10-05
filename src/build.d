@@ -800,19 +800,26 @@ auto sourceFiles()
     Sources sources = {
         glue:
             glueFiles.map!(e => env["D"].buildPath(e ~ ".d")).array,
-        frontend:
-            dirEntries(env["D"], "*.d", SpanMode.shallow)
-                .map!(e => e.name)
-                .filter!(e => !lexerDmdFiles.chain(["asttypename", "frontend"], glueFiles).canFind(e.baseName.stripExtension))
-                .array,
+        frontend: "
+            access.d aggregate.d aliasthis.d apply.d argtypes.d argtypes_sysv_x64.d arrayop.d
+            arraytypes.d ast_node.d astbase.d astcodegen.d attrib.d blockexit.d builtin.d canthrow.d
+            cli.d clone.d compiler.d complex.d cond.d constfold.d cppmangle.d cppmanglewin.d ctfeexpr.d
+            ctorflow.d dcast.d dclass.d declaration.d delegatize.d denum.d dimport.d dinifile.d
+            dinterpret.d dmacro.d dmangle.d dmodule.d doc.d dscope.d dstruct.d dsymbol.d dsymbolsem.d
+            dtemplate.d dversion.d env.d escape.d expression.d expressionsem.d func.d hdrgen.d impcnvtab.d
+            imphint.d init.d initsem.d inline.d inlinecost.d intrange.d json.d lambdacomp.d lib.d libelf.d
+            libmach.d libmscoff.d libomf.d link.d mars.d mtype.d nogc.d nspace.d objc.d opover.d optimize.d
+            parse.d parsetimevisitor.d permissivevisitor.d printast.d safe.d sapply.d scanelf.d scanmach.d
+            scanmscoff.d scanomf.d semantic2.d semantic3.d sideeffect.d statement.d statement_rewrite_walker.d
+            statementsem.d staticassert.d staticcond.d strictvisitor.d target.d templateparamsem.d traits.d
+            transitivevisitor.d typesem.d typinf.d utils.d visitor.d
+        ".split.map!(e => env["D"].buildPath(e)).array,
         lexer:
             lexerDmdFiles.map!(e => env["D"].buildPath(e ~ ".d")).chain(
             lexerRootFiles.map!(e => env["ROOT"].buildPath(e ~ ".d"))).array,
-        root:
-            dirEntries(env["ROOT"], "*.d", SpanMode.shallow)
-                .map!(e => e.name)
-                .filter!(e => !lexerRootFiles.canFind(e.baseName.stripExtension))
-                .array,
+        root: "
+            aav.d longdouble.d man.d response.d speller.d string.d strtold.d
+        ".split.map!(e => env["ROOT"].buildPath(e)).array,
         backend: ("
             bcomplex.d evalu8.d divcoeff.d dvec.d go.d gsroa.d glocal.d gdag.d gother.d gflow.d
             out.d
