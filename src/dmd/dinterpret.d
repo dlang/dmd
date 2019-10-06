@@ -375,7 +375,7 @@ public:
     {
         assert(v._init && (v.isConst() || v.isImmutable() || v.storage_class & STC.manifest) && !v.isCTFE());
         v.ctfeAdrOnStack = cast(uint)globalValues.dim;
-        globalValues.push(e);
+        globalValues.push(copyRegionExp(e));
     }
 }
 
