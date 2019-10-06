@@ -2597,6 +2597,15 @@ struct Gcx
         //printf("\tpool address range = %p .. %p\n", minAddr, maxAddr);
 
         {
+            version (COLLECT_PARALLEL)
+            {
+                bool doParallel = config.parallel > 0;
+                if (doParallel && !scanThreadData)
+                    startScanThreads();
+            }
+            else
+                enum doParallel = false;
+
             // lock roots and ranges around suspending threads b/c they're not reentrant safe
             rangesLock.lock();
             rootsLock.lock();
@@ -2614,11 +2623,6 @@ struct Gcx
             stop = currTime;
             prepTime += (stop - start);
             start = stop;
-
-            version (COLLECT_PARALLEL)
-                bool doParallel = config.parallel > 0;
-            else
-                enum doParallel = false;
 
             if (doParallel)
             {
@@ -2743,9 +2747,6 @@ struct Gcx
 
         void** pbot = toscanRoots._p;
         void** ptop = toscanRoots._p + toscanRoots._length;
-
-        if (!scanThreadData)
-            startScanThreads();
 
         debug(PARALLEL_PRINTF) printf("markParallel\n");
 
