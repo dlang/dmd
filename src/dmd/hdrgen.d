@@ -3148,6 +3148,11 @@ private void expToBuffer(Expression e, PREC pr, OutBuffer* buf, HdrGenState* hgs
         if (precedence[e.op] == PREC.zero)
             printf("precedence not defined for token '%s'\n", Token.toChars(e.op));
     }
+    if (e.op == 0xFF)
+    {
+        buf.writestring("<FF>");
+        return;
+    }
     assert(precedence[e.op] != PREC.zero);
     assert(pr != PREC.zero);
     /* Despite precedence, we don't allow a<b<c expressions.

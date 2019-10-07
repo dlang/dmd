@@ -14,6 +14,7 @@
 
 module dmd.root.region;
 
+import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.stdlib;
 
@@ -91,8 +92,23 @@ public:
      */
     void release(RegionPos pos)
     {
-        used = pos.used;
-        available = pos.available;
+        version (all)
+        {
+            /* Recycle the memory. There better not be
+             * any live pointers to it.
+             */
+            used = pos.used;
+            available = pos.available;
+        }
+        else
+        {
+            /* Instead of recycling the memory, stomp on it
+             * to flush out any remaining live pointers to it.
+             */
+            (cast(ubyte[])pos.available)[] = 0xFF;
+            foreach (h; array[pos.used .. used])
+                (cast(ubyte*)h)[0 .. ChunkSize] = 0xFF;
+        }
     }
 
     /****************************
