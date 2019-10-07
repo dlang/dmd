@@ -466,6 +466,12 @@ public:
      */
     StructLiteralExp *origin;
 
+    /** Used when moving an instance out of Region memory -
+     * this is where it is copied to.
+     * Need it because CTFE can have multiple parents to SLEs
+     */
+    StructLiteralExp *copied;
+
     // those fields need to prevent a infinite recursion when one field of struct initialized with 'this' pointer.
     StructLiteralExp *inlinecopy;
 
