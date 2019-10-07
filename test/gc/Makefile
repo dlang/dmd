@@ -1,6 +1,6 @@
 include ../common.mak
 
-TESTS := sentinel printf memstomp invariant logging precise precisegc forkgc sigmaskgc
+TESTS := sentinel printf memstomp invariant logging precise precisegc forkgc forkgc2 sigmaskgc
 
 SRC_GC = ../../src/gc/impl/conservative/gc.d
 SRC = $(SRC_GC) ../../src/rt/lifetime.d
@@ -39,6 +39,9 @@ $(ROOT)/precisegc: $(SRC)
 
 $(ROOT)/forkgc: forkgc.d
 	$(DMD) $(UDFLAGS) -of$@ forkgc.d
+
+$(ROOT)/forkgc2: forkgc2.d
+	$(DMD) $(UDFLAGS) -of$@ forkgc2.d
 
 $(ROOT)/sigmaskgc: sigmaskgc.d
 	$(DMD) $(UDFLAGS) -of$@ sigmaskgc.d

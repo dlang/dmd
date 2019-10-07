@@ -1251,6 +1251,7 @@ struct Gcx
         alias leakDetector = LeakDetector;
 
     SmallObjectPool*[B_NUMSMALL] recoverPool;
+    version (Posix) __gshared Gcx* instance;
 
     void initialize()
     {
@@ -1262,9 +1263,22 @@ struct Gcx
         usedSmallPages = usedLargePages = 0;
         mappedPages = 0;
         //printf("gcx = %p, self = %x\n", &this, self);
+        version (Posix)
+        {
+            import core.sys.posix.pthread : pthread_atfork;
+            instance = &this;
+            __gshared atforkHandlersInstalled = false;
+            if (!atforkHandlersInstalled)
+            {
+                pthread_atfork(
+                    &_d_gcx_atfork_prepare,
+                    &_d_gcx_atfork_parent,
+                    &_d_gcx_atfork_child);
+                atforkHandlersInstalled = true;
+            }
+        }
         debug(INVARIANT) initialized = true;
     }
-
 
     void Dtor()
     {
@@ -1310,6 +1324,8 @@ struct Gcx
                    pauseTime, maxPause, apitxt.ptr);
         }
 
+        version (Posix)
+            instance = null;
         version (COLLECT_PARALLEL)
             stopScanThreads();
 
@@ -2841,13 +2857,6 @@ struct Gcx
             sigmask_rc = pthread_sigmask(SIG_SETMASK, &old_mask, null);
             assert(sigmask_rc == 0, "failed to set up GC scan thread sigmask");
         }
-
-        version (Posix)
-        {
-            import core.sys.posix.pthread;
-            forkedGcx = &this;
-            pthread_atfork(null, null, &initChildAfterFork);
-        }
     }
 
     void stopScanThreads() nothrow
@@ -2883,8 +2892,6 @@ struct Gcx
         cstdlib.free(scanThreadData);
         // scanThreadData = null; // keep non-null to not start again after shutdown
         numScanThreads = 0;
-        version (Posix)
-            forkedGcx = null;
 
         debug(PARALLEL_PRINTF) printf("stopScanThreads done\n");
     }
@@ -2942,20 +2949,40 @@ struct Gcx
 
     version (Posix)
     {
-        // make sure the threads and event handles are reinitialized in a fork
-        __gshared Gcx* forkedGcx;
+        // A fork might happen while GC code is running in a different thread.
+        // Because that would leave the GC in an inconsistent state,
+        // make sure no GC code is running by acquiring the lock here,
+        // before a fork.
 
-        extern(C) static void initChildAfterFork()
+        extern(C) static void _d_gcx_atfork_prepare()
         {
-            if (forkedGcx && forkedGcx.scanThreadData)
-            {
-                cstdlib.free(forkedGcx.scanThreadData);
-                forkedGcx.numScanThreads = 0;
-                forkedGcx.scanThreadData = null;
-                forkedGcx.busyThreads = 0;
+            if (instance)
+                ConservativeGC.lockNR();
+        }
 
-                memset(&forkedGcx.evStart, 0, Event.sizeof);
-                memset(&forkedGcx.evDone, 0, Event.sizeof);
+        extern(C) static void _d_gcx_atfork_parent()
+        {
+            if (instance)
+                ConservativeGC.gcLock.unlock();
+        }
+
+        extern(C) static void _d_gcx_atfork_child()
+        {
+            if (instance)
+            {
+                ConservativeGC.gcLock.unlock();
+
+                // make sure the threads and event handles are reinitialized in a fork
+                if (Gcx.instance.scanThreadData)
+                {
+                    cstdlib.free(Gcx.instance.scanThreadData);
+                    Gcx.instance.numScanThreads = 0;
+                    Gcx.instance.scanThreadData = null;
+                    Gcx.instance.busyThreads = 0;
+
+                    memset(&Gcx.instance.evStart, 0, Gcx.instance.evStart.sizeof);
+                    memset(&Gcx.instance.evDone, 0, Gcx.instance.evDone.sizeof);
+                }
             }
         }
     }
