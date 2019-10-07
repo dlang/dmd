@@ -55,6 +55,8 @@ copydir: $(IMPDIR)
 	@if not exist $(IMPDIR)\core\sys\posix\sys              mkdir $(IMPDIR)\core\sys\posix\sys
 	@if not exist $(IMPDIR)\core\sys\solaris\sys            mkdir $(IMPDIR)\core\sys\solaris\sys
 	@if not exist $(IMPDIR)\core\sys\windows                mkdir $(IMPDIR)\core\sys\windows
+	@if not exist $(IMPDIR)\core\sys\windows                mkdir $(IMPDIR)\core\sys\windows
+	@if not exist $(IMPDIR)\core\thread                     mkdir $(IMPDIR)\core\thread
 	@if not exist $(IMPDIR)\etc\linux                       mkdir $(IMPDIR)\etc\linux
 
 copy: $(COPY)
@@ -97,9 +99,6 @@ $(IMPDIR)\core\runtime.d : src\core\runtime.d
 	copy $** $@
 
 $(IMPDIR)\core\simd.d : src\core\simd.d
-	copy $** $@
-
-$(IMPDIR)\core\thread.d : src\core\thread.d
 	copy $** $@
 
 $(IMPDIR)\core\time.d : src\core\time.d
@@ -1270,6 +1269,15 @@ $(IMPDIR)\core\sys\windows\wtsapi32.d : src\core\sys\windows\wtsapi32.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\windows\wtypes.d : src\core\sys\windows\wtypes.d
+	copy $** $@
+
+$(IMPDIR)\core\thread\fiber.d : src\core\thread\fiber.d
+	copy $** $@
+
+$(IMPDIR)\core\thread\osthread.d : src\core\thread\osthread.d
+	copy $** $@
+
+$(IMPDIR)\core\thread\package.d : src\core\thread\package.d
 	copy $** $@
 
 $(IMPDIR)\etc\linux\memoryerror.d : src\etc\linux\memoryerror.d

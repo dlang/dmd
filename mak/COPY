@@ -17,7 +17,6 @@ COPY=\
 	$(IMPDIR)\core\memory.d \
 	$(IMPDIR)\core\runtime.d \
 	$(IMPDIR)\core\simd.d \
-	$(IMPDIR)\core\thread.d \
 	$(IMPDIR)\core\time.d \
 	$(IMPDIR)\core\vararg.d \
 	$(IMPDIR)\core\volatile.d \
@@ -433,5 +432,9 @@ COPY=\
 	$(IMPDIR)\core\sys\windows\winver.d \
 	$(IMPDIR)\core\sys\windows\wtsapi32.d \
 	$(IMPDIR)\core\sys\windows\wtypes.d \
+	\
+	$(IMPDIR)\core\thread\fiber.d \
+	$(IMPDIR)\core\thread\osthread.d \
+	$(IMPDIR)\core\thread\package.d \
 	\
 	$(IMPDIR)\etc\linux\memoryerror.d
