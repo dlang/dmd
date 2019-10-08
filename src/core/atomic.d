@@ -466,7 +466,7 @@ in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 *  true if the store occurred, false if not.
 */
 bool casWeak(MemoryOrder succ = MemoryOrder.seq,MemoryOrder fail = MemoryOrder.seq,T,V)(T* here, T* ifThis, V writeThis) pure nothrow @nogc @trusted
-if (!is(T == shared S, S) && !is(V == shared U, U))
+    if (!is(T == shared S, S) && !is(V == shared U, U))
 in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 {
     // resolve implicit conversions
@@ -483,7 +483,7 @@ in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 
 /// Ditto
 bool casWeak(MemoryOrder succ = MemoryOrder.seq,MemoryOrder fail = MemoryOrder.seq,T,V1,V2)(shared(T)* here, V1* ifThis, V2 writeThis) pure nothrow @nogc @trusted
-if (!is(T == class) && (is(T : V1) || is(shared T : V1)))
+    if (!is(T == class) && (is(T : V1) || is(shared T : V1)))
 in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 {
     static if (is (V1 == shared U1, U1))
@@ -508,7 +508,7 @@ in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 
 /// Ditto
 bool casWeak(MemoryOrder succ = MemoryOrder.seq,MemoryOrder fail = MemoryOrder.seq,T,V)(shared(T)* here, shared(T)* ifThis, shared(V) writeThis) pure nothrow @nogc @trusted
-if (is(T == class))
+    if (is(T == class))
 in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 {
     return atomicCompareExchangeWeak!(succ, fail)(cast(T*)here, cast(T*)ifThis, cast(V)writeThis);
@@ -519,9 +519,18 @@ in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
  * that all loads and stores before a call to this function are executed before any
  * loads and stores after the call.
  */
-void atomicFence(MemoryOrder order = MemoryOrder.seq)() nothrow @nogc @safe
+void atomicFence(MemoryOrder order = MemoryOrder.seq)() pure nothrow @nogc @safe
 {
     core.internal.atomic.atomicFence!order();
+}
+
+/**
+ * Gives a hint to the processor that the calling thread is in a 'spin-wait' loop,
+ * allowing to more efficiently allocate resources.
+ */
+void pause() pure nothrow @nogc @safe
+{
+    core.internal.atomic.pause();
 }
 
 /**

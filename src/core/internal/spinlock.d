@@ -52,7 +52,7 @@ shared struct SpinLock
     {
         import core.time;
         if (k < pauseThresh)
-            return pause();
+            return core.atomic.pause();
         else if (k < 32)
             return Thread.yield();
         Thread.sleep(1.msecs);
@@ -67,25 +67,9 @@ private:
         enum X86 = false;
 
     static if (X86)
-    {
         enum pauseThresh = 16;
-        void pause()
-        {
-            asm @trusted @nogc nothrow
-            {
-                // pause instruction
-                rep;
-                nop;
-            }
-        }
-    }
     else
-    {
         enum pauseThresh = 4;
-        void pause()
-        {
-        }
-    }
 
     size_t val;
     Contention contention;

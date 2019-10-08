@@ -589,7 +589,7 @@ bool atomicCompareExchangeStrongNoResult(MemoryOrder succ = MemoryOrder.seq, Mem
         static assert (false, "Unsupported architecture.");
 }
 
-void atomicFence(MemoryOrder order = MemoryOrder.seq)() nothrow @nogc @safe
+void atomicFence(MemoryOrder order = MemoryOrder.seq)() pure nothrow @nogc @safe
 {
     // TODO: `mfence` should only be required for seq_cst operations, but this depends on
     //       the compiler's backend knowledge to not reorder code inappropriately,
@@ -633,7 +633,7 @@ void atomicFence(MemoryOrder order = MemoryOrder.seq)() nothrow @nogc @safe
         }
         else version (D_InlineAsm_X86_64)
         {
-            asm nothrow @nogc @trusted
+            asm pure nothrow @nogc @trusted
             {
                 naked;
                 mfence;
@@ -645,6 +645,33 @@ void atomicFence(MemoryOrder order = MemoryOrder.seq)() nothrow @nogc @safe
     }
 }
 
+void pause() pure nothrow @nogc @safe
+{
+    version (D_InlineAsm_X86)
+    {
+        asm pure nothrow @nogc @trusted
+        {
+            naked;
+            rep; nop;
+            ret;
+        }
+    }
+    else version (D_InlineAsm_X86_64)
+    {
+        asm pure nothrow @nogc @trusted
+        {
+            naked;
+//            pause; // TODO: DMD should add this opcode to its inline asm
+            rep; nop;
+            ret;
+        }
+    }
+    else
+    {
+        // ARM should `yield`
+        // other architectures? otherwise some sort of nop...
+    }
+}
 
 private:
 

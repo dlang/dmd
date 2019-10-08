@@ -1,6 +1,6 @@
-Added `core.stdcpp.string`.
+Added `core.stdcpp : string`
 
-Added `core.stdcpp.string`, which links against C++ `std::basic_string`
+Added `core.stdcpp : string`, which links against C++ `std::basic_string`.
 
 Known issues:
 
