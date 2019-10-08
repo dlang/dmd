@@ -1804,7 +1804,7 @@ public:
                 // BUG: need to cast(dchar)
                 if (cast(uinteger_t)v > 0xFF)
                 {
-                    buf.printf("'\\U%08x'", v);
+                    buf.printf("'\\U%08llx'", cast(long)v);
                     break;
                 }
                 goto case;
