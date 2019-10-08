@@ -1823,8 +1823,10 @@ class Throwable : Object
      *  mutable reference to the reference count, which is
      *  0 - allocated by the GC, 1 - allocated by _d_newThrowable(),
      *  and >=2 which is the reference count + 1
+     * Note:
+     *  Marked as `@system` to discourage casual use of it.
      */
-    @system @nogc final pure nothrow ref uint refcount() return scope { return _refcount; }
+    @system @nogc final pure nothrow ref uint refcount() return { return _refcount; }
 
     /**
      * Loop over the chain of Throwables.
