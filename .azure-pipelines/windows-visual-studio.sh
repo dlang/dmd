@@ -72,3 +72,6 @@ install_grep
 
 echo "[STEP]: Cloning repositories"
 clone_repos
+
+echo "[STEP]: Patching registry"
+patch_registry

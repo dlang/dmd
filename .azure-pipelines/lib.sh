@@ -96,3 +96,11 @@ clone_repos() {
     done
 }
 
+################################################################################
+# Workaround for fibers not working on Windows Server
+################################################################################
+
+patch_registry() {
+    reg add "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\test15779_0.exe" -v DisableExceptionChainValidation -t REG_DWORD -d 3 -f
+    reg add "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\unittest.exe" -v DisableExceptionChainValidation -t REG_DWORD -d 3 -f
+}
