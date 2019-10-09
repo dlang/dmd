@@ -122,6 +122,7 @@ struct ObjcSelector
         }
     Lcomplete:
         buf.writeByte('\0');
+        // the slice is not expected to include a terminating 0
         return lookup(cast(const(char)*)buf[].ptr, buf.length - 1, pcount);
     }
 
