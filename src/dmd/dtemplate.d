@@ -7218,7 +7218,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         OutBuffer buf;
         mangleToBuffer(this, &buf);
         //printf("\tgenIdent = %s\n", buf.peekChars());
-        return Identifier.idPool(buf.peekSlice());
+        return Identifier.idPool(buf[]);
     }
 
     extern (D) final void expandMembers(Scope* sc2)

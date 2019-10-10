@@ -2563,7 +2563,7 @@ class Lexer
 
         void trimTrailingWhitespace()
         {
-            const s = buf.peekSlice();
+            const s = buf[];
             auto len = s.length;
             while (len && (s[len - 1] == ' ' || s[len - 1] == '\t'))
                 --len;
@@ -2622,7 +2622,7 @@ class Lexer
         trimTrailingWhitespace();
 
         // Always end with a newline
-        const s = buf.peekSlice();
+        const s = buf[];
         if (s.length == 0 || s[$ - 1] != '\n')
             buf.writeByte('\n');
 
@@ -2631,7 +2631,7 @@ class Lexer
         auto dc = (lineComment && anyToken) ? &t.lineComment : &t.blockComment;
         // Combine with previous doc comment, if any
         if (*dc)
-            *dc = combineComments(*dc, buf.peekSlice(), newParagraph).toDString();
+            *dc = combineComments(*dc, buf[], newParagraph).toDString();
         else
             *dc = buf.extractSlice(true);
     }

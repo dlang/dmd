@@ -390,11 +390,10 @@ struct OutBuffer
         this.offset -= nbytes;
     }
 
-    extern (D) const(char)[] peekSlice() pure nothrow @nogc
-    {
-        return this[];
-    }
-
+    /**
+     * Returns:
+     *   a non-owning const slice of the buffer contents
+     */
     extern (D) const(char)[] opSlice() const pure nothrow @nogc
     {
         return cast(const(char)[])data[0 .. offset];
@@ -490,7 +489,7 @@ unittest
     buf.insert(3, "yy");
     buf.remove(4, 1);
     buf.bracket('(', ')');
-    const char[] s = buf.peekSlice();
+    const char[] s = buf[];
     assert(s == "(bxxyetty)");
     buf.destroy();
 }

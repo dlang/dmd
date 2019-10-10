@@ -1015,7 +1015,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
                 OutBuffer buf;
                 buf.printf("__%s_field_%llu", dsym.ident.toChars(), cast(ulong)i);
-                auto id = Identifier.idPool(buf.peekSlice());
+                auto id = Identifier.idPool(buf[]);
 
                 Initializer ti;
                 if (ie)
