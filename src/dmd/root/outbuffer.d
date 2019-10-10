@@ -20,27 +20,24 @@ import dmd.root.rootobject;
 
 struct OutBuffer
 {
-    private ubyte* data;
+    private ubyte[] data;
     private size_t offset;
-    size_t size;
     int level;
     bool doindent;
     private bool notlinehead;
 
     extern (C++) ~this() pure nothrow
     {
-        mem.xfree(data);
+        mem.xfree(data.ptr);
     }
 
     extern (C++) size_t length() const pure @nogc @safe nothrow { return offset; }
 
-    extern (C++) char* extractData() pure nothrow @nogc @safe
+    extern (C++) char* extractData() pure nothrow @nogc @trusted
     {
-        char* p;
-        p = cast(char*)data;
+        char* p = cast(char*)data.ptr;
         data = null;
         offset = 0;
-        size = 0;
         return p;
     }
 
@@ -52,15 +49,16 @@ struct OutBuffer
     extern (C++) void reserve(size_t nbytes) pure nothrow
     {
         //printf("OutBuffer::reserve: size = %d, offset = %d, nbytes = %d\n", size, offset, nbytes);
-        if (size - offset < nbytes)
+        if (data.length - offset < nbytes)
         {
             /* Increase by factor of 1.5; round up to 16 bytes.
              * The odd formulation is so it will map onto single x86 LEA instruction.
              */
-            size = (((offset + nbytes) * 3 + 30) / 2) & ~15;
-            data = cast(ubyte*)mem.xrealloc(data, size);
+            const size = (((offset + nbytes) * 3 + 30) / 2) & ~15;
+            auto p = cast(ubyte*)mem.xrealloc(data.ptr, size);
             if (mem.isGCEnabled) // clear currently unused data to avoid false pointers
-                memset(data + offset + nbytes, 0xff, size - offset - nbytes);
+                memset(p + offset + nbytes, 0xff, size - offset - nbytes);
+            data = p[0 .. size];
         }
     }
 
@@ -90,7 +88,7 @@ struct OutBuffer
         if (doindent && !notlinehead)
             indent();
         reserve(buf.length);
-        memcpy(this.data + offset, buf.ptr, buf.length);
+        memcpy(this.data.ptr + offset, buf.ptr, buf.length);
         offset += buf.length;
     }
 
@@ -113,8 +111,8 @@ struct OutBuffer
     {
         size_t len = strlen(string);
         reserve(len);
-        memmove(data + len, data, offset);
-        memcpy(data, string, len);
+        memmove(data.ptr + len, data.ptr, offset);
+        memcpy(data.ptr, string, len);
         offset += len;
     }
 
@@ -178,7 +176,7 @@ struct OutBuffer
     extern (C++) void prependbyte(uint b) pure nothrow
     {
         reserve(1);
-        memmove(data + 1, data, offset);
+        memmove(data.ptr + 1, data.ptr, offset);
         data[0] = cast(ubyte)b;
         offset++;
     }
@@ -209,7 +207,7 @@ struct OutBuffer
             indent();
 
         reserve(2);
-        *cast(ushort*)(this.data + offset) = cast(ushort)w;
+        *cast(ushort*)(this.data.ptr + offset) = cast(ushort)w;
         offset += 2;
     }
 
@@ -218,13 +216,13 @@ struct OutBuffer
         reserve(4);
         if (w <= 0xFFFF)
         {
-            *cast(ushort*)(this.data + offset) = cast(ushort)w;
+            *cast(ushort*)(this.data.ptr + offset) = cast(ushort)w;
             offset += 2;
         }
         else if (w <= 0x10FFFF)
         {
-            *cast(ushort*)(this.data + offset) = cast(ushort)((w >> 10) + 0xD7C0);
-            *cast(ushort*)(this.data + offset + 2) = cast(ushort)((w & 0x3FF) | 0xDC00);
+            *cast(ushort*)(this.data.ptr + offset) = cast(ushort)((w >> 10) + 0xD7C0);
+            *cast(ushort*)(this.data.ptr + offset + 2) = cast(ushort)((w & 0x3FF) | 0xDC00);
             offset += 4;
         }
         else
@@ -244,7 +242,7 @@ struct OutBuffer
         if (doindent && !notlinehead && notnewline)
             indent();
         reserve(4);
-        *cast(uint*)(this.data + offset) = w;
+        *cast(uint*)(this.data.ptr + offset) = w;
         offset += 4;
     }
 
@@ -253,7 +251,7 @@ struct OutBuffer
         if (buf)
         {
             reserve(buf.offset);
-            memcpy(data + offset, buf.data, buf.offset);
+            memcpy(data.ptr + offset, buf.data.ptr, buf.offset);
             offset += buf.offset;
         }
     }
@@ -269,7 +267,7 @@ struct OutBuffer
     extern (C++) void fill0(size_t nbytes) pure nothrow
     {
         reserve(nbytes);
-        memset(data + offset, 0, nbytes);
+        memset(data.ptr + offset, 0, nbytes);
         offset += nbytes;
     }
 
@@ -284,7 +282,7 @@ struct OutBuffer
             reserve(psize);
             version (Windows)
             {
-                count = _vsnprintf(cast(char*)data + offset, psize, format, args);
+                count = _vsnprintf(cast(char*)data.ptr + offset, psize, format, args);
                 if (count != -1)
                     break;
                 psize *= 2;
@@ -302,7 +300,7 @@ struct OutBuffer
                  of ap is undefined after the call. The application should call
                  va_end(ap) itself afterwards.
                  */
-                count = vsnprintf(cast(char*)data + offset, psize, format, va);
+                count = vsnprintf(cast(char*)data.ptr + offset, psize, format, va);
                 va_end(va);
                 if (count == -1)
                     psize *= 2;
@@ -318,7 +316,7 @@ struct OutBuffer
         }
         offset += count;
         if (mem.isGCEnabled)
-            memset(data + offset, 0xff, psize - count);
+            memset(data.ptr + offset, 0xff, psize - count);
     }
 
     extern (C++) void printf(const(char)* format, ...) nothrow
@@ -344,7 +342,7 @@ struct OutBuffer
     extern (C++) void bracket(char left, char right) pure nothrow
     {
         reserve(2);
-        memmove(data + 1, data, offset);
+        memmove(data.ptr + 1, data.ptr, offset);
         data[0] = left;
         data[offset + 1] = right;
         offset += 2;
@@ -367,7 +365,7 @@ struct OutBuffer
     extern (C++) void spread(size_t offset, size_t nbytes) pure nothrow
     {
         reserve(nbytes);
-        memmove(data + offset + nbytes, data + offset, this.offset - offset);
+        memmove(data.ptr + offset + nbytes, data.ptr + offset, this.offset - offset);
         this.offset += nbytes;
     }
 
@@ -377,7 +375,7 @@ struct OutBuffer
     extern (C++) size_t insert(size_t offset, const(void)* p, size_t nbytes) pure nothrow
     {
         spread(offset, nbytes);
-        memmove(data + offset, p, nbytes);
+        memmove(data.ptr + offset, p, nbytes);
         return offset + nbytes;
     }
 
@@ -388,7 +386,7 @@ struct OutBuffer
 
     extern (C++) void remove(size_t offset, size_t nbytes) pure nothrow @nogc
     {
-        memmove(data + offset, data + offset + nbytes, this.offset - (offset + nbytes));
+        memmove(data.ptr + offset, data.ptr + offset + nbytes, this.offset - (offset + nbytes));
         this.offset -= nbytes;
     }
 
@@ -399,17 +397,17 @@ struct OutBuffer
 
     extern (D) const(char)[] opSlice() const pure nothrow @nogc
     {
-        return (cast(const char*)data)[0 .. offset];
+        return cast(const(char)[])data[0 .. offset];
     }
 
     extern (D) const(char)[] opSlice(size_t lwr, size_t upr) const pure nothrow @nogc
     {
-        return (cast(const char*)data)[lwr .. upr];
+        return cast(const(char)[])data[lwr .. upr];
     }
 
     extern (D) char opIndex(size_t i) const pure nothrow @nogc
     {
-        return (cast(const char*)data)[i];
+        return cast(char)data[i];
     }
 
     /***********************************
@@ -443,7 +441,7 @@ struct OutBuffer
             writeByte(0);
             offset--; // allow appending more
         }
-        return cast(char*)data;
+        return cast(char*)data.ptr;
     }
 
     // Append terminating null if necessary and take ownership of data
