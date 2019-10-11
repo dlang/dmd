@@ -2870,7 +2870,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
             }
             buffer.write4(0);
-            e.dstring = cast(dchar*)buffer.extractData();
+            e.dstring = cast(dchar*)buffer.extractSlice().ptr;
             e.len = newlen;
             e.sz = 4;
             e.type = new TypeDArray(Type.tdchar.immutableOf());
@@ -2895,7 +2895,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
             }
             buffer.writeUTF16(0);
-            e.wstring = cast(wchar*)buffer.extractData();
+            e.wstring = cast(wchar*)buffer.extractSlice().ptr;
             e.len = newlen;
             e.sz = 2;
             e.type = new TypeDArray(Type.twchar.immutableOf());
@@ -5747,7 +5747,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             else
             {
                 // take ownership of buffer (probably leaking)
-                auto data = readResult.extractData();
+                auto data = readResult.extractSlice();
                 se = new StringExp(e.loc, data.ptr, data.length);
             }
         }

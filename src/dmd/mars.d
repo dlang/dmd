@@ -437,7 +437,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         else if (m.srcfile.toString() == "__stdin.d")
         {
             auto buffer = readFromStdin();
-            m.srcBuffer = new FileBuffer(buffer.extractData());
+            m.srcBuffer = new FileBuffer(buffer.extractSlice());
         }
     }
     static if (ASYNCREAD)

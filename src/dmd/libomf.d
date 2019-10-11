@@ -88,7 +88,7 @@ final class LibOMF : Library
         {
             assert(module_name);
             // read file and take buffer ownership
-            auto data = readFile(Loc.initial, module_name).extractData();
+            auto data = readFile(Loc.initial, module_name).extractSlice();
             buf = data.ptr;
             buflen = data.length;
         }

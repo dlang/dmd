@@ -36,7 +36,7 @@ struct FileBuffer
     }
 
     /// Transfers ownership of the buffer to the caller.
-    ubyte[] extractData() pure nothrow @nogc @safe
+    ubyte[] extractSlice() pure nothrow @nogc @safe
     {
         auto result = data;
         data = null;
@@ -59,16 +59,16 @@ struct File
         FileBuffer buffer;
 
         /// Transfers ownership of the buffer to the caller.
-        ubyte[] extractData() pure nothrow @nogc @safe
+        ubyte[] extractSlice() pure nothrow @nogc @safe
         {
-            return buffer.extractData();
+            return buffer.extractSlice();
         }
 
         /// ditto
         /// Include the null-terminator at the end of the buffer in the returned array.
         ubyte[] extractDataZ() @nogc nothrow pure
         {
-            auto result = buffer.extractData();
+            auto result = buffer.extractSlice();
             return result.ptr[0 .. result.length + 1];
         }
     }

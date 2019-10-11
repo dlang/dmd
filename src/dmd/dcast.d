@@ -2012,7 +2012,7 @@ Expression castTo(Expression e, Scope* sc, Type t)
                         se = cast(StringExp)e.copy();
                         copied = 1;
                     }
-                    se.string = buffer.extractData();
+                    se.string = buffer.extractSlice().ptr;   // already 0 terminated
                     se.len = newlen;
 
                     {
