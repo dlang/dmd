@@ -131,20 +131,18 @@ void obj_write_deferred(Library library)
          */
         OutBuffer idbuf;
         idbuf.printf("%s.%d", m ? m.ident.toChars() : mname, count);
-        char *idstr = idbuf.peekChars();
 
         if (!m)
         {
             // it doesn't make sense to make up a module if we don't know where to put the symbol
             //  so output it into it's own object file without ModuleInfo
-            objmod.initfile(idstr, null, mname);
+            objmod.initfile(idbuf.peekChars(), null, mname);
             toObjFile(s, false);
             objmod.termfile();
         }
         else
         {
-            idbuf.extractData();
-            Identifier id = Identifier.create(idstr);
+            Identifier id = Identifier.create(idbuf.extractChars());
 
             Module md = new Module(mname.toDString, id, 0, 0);
             md.members = new Dsymbols();

@@ -621,7 +621,7 @@ extern (C++) final class TupleDeclaration : Declaration
                 {
                     buf.printf("_%s_%d", ident.toChars(), i);
                     const len = buf.offset;
-                    const name = cast(const(char)*)buf.extractData();
+                    const name = buf.extractSlice().ptr;
                     auto id = Identifier.idPool(name, len);
                     auto arg = new Parameter(STC.in_, t, id, null);
                 }

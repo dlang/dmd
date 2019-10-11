@@ -664,7 +664,7 @@ extern (C++) final class Module : Package
     {
         //printf("Module::loadSourceBuffer('%s') file '%s'\n", toChars(), srcfile.toChars());
         // take ownership of buffer
-        srcBuffer = new FileBuffer(readResult.extractData());
+        srcBuffer = new FileBuffer(readResult.extractSlice());
         if (readResult.success)
             return true;
 

@@ -860,7 +860,7 @@ nothrow:
                 if (postfix)
                     buf.writeByte(postfix);
                 buf.writeByte(0);
-                p = buf.extractData();
+                p = buf.extractSlice().ptr;
                 break;
             }
         case TOK.identifier:
