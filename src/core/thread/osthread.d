@@ -2111,6 +2111,16 @@ extern (C) void thread_init() @nogc
 
     version (Darwin)
     {
+        // thread id different in forked child process
+        static extern(C) void initChildAfterFork()
+        {
+            auto thisThread = Thread.getThis();
+            thisThread.m_addr = pthread_self();
+            assert( thisThread.m_addr != thisThread.m_addr.init );
+            thisThread.m_tmach = pthread_mach_thread_np( thisThread.m_addr );
+            assert( thisThread.m_tmach != thisThread.m_tmach.init );
+       }
+        pthread_atfork(null, null, &initChildAfterFork);
     }
     else version (Posix)
     {

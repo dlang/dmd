@@ -1250,6 +1250,7 @@ struct Gcx
         alias leakDetector = LeakDetector;
 
     SmallObjectPool*[B_NUMSMALL] recoverPool;
+    version (Posix) __gshared Gcx* instance;
 
     void initialize()
     {
@@ -1261,9 +1262,22 @@ struct Gcx
         usedSmallPages = usedLargePages = 0;
         mappedPages = 0;
         //printf("gcx = %p, self = %x\n", &this, self);
+        version (Posix)
+        {
+            import core.sys.posix.pthread : pthread_atfork;
+            instance = &this;
+            __gshared atforkHandlersInstalled = false;
+            if (!atforkHandlersInstalled)
+            {
+                pthread_atfork(
+                    &_d_gcx_atfork_prepare,
+                    &_d_gcx_atfork_parent,
+                    &_d_gcx_atfork_child);
+                atforkHandlersInstalled = true;
+            }
+        }
         debug(INVARIANT) initialized = true;
     }
-
 
     void Dtor()
     {
@@ -1309,6 +1323,8 @@ struct Gcx
                    pauseTime, maxPause, apitxt.ptr);
         }
 
+        version (Posix)
+            instance = null;
         version (COLLECT_PARALLEL)
             stopScanThreads();
 
@@ -2715,6 +2731,7 @@ struct Gcx
     Event evDone;
 
     shared uint busyThreads;
+    shared uint stoppedThreads;
     bool stopGC;
 
     void markParallel(bool nostack) nothrow
@@ -2820,8 +2837,25 @@ struct Gcx
         evStart.initialize(false, false);
         evDone.initialize(false, false);
 
+        version (Posix)
+        {
+            import core.sys.posix.signal;
+            // block all signals, scanBackground inherits this mask.
+            // see https://issues.dlang.org/show_bug.cgi?id=20256
+            sigset_t new_mask, old_mask;
+            sigfillset(&new_mask);
+            auto sigmask_rc = pthread_sigmask(SIG_BLOCK, &new_mask, &old_mask);
+            assert(sigmask_rc == 0, "failed to set up GC scan thread sigmask");
+        }
+
         for (int idx = 0; idx < numScanThreads; idx++)
             scanThreadData[idx].tid = createLowLevelThread(&scanBackground, 0x4000, &stopScanThreads);
+
+        version (Posix)
+        {
+            sigmask_rc = pthread_sigmask(SIG_SETMASK, &old_mask, null);
+            assert(sigmask_rc == 0, "failed to set up GC scan thread sigmask");
+        }
     }
 
     void stopScanThreads() nothrow
@@ -2830,8 +2864,17 @@ struct Gcx
             return;
 
         debug(PARALLEL_PRINTF) printf("stopScanThreads\n");
+        int startedThreads = 0;
+        for (int idx = 0; idx < numScanThreads; idx++)
+            if (scanThreadData[idx].tid != scanThreadData[idx].tid.init)
+                startedThreads++;
+
         stopGC = true;
-        evStart.set();
+        while (atomicLoad(stoppedThreads) < startedThreads)
+        {
+            evStart.set();
+            evDone.wait(dur!"msecs"(1));
+        }
 
         for (int idx = 0; idx < numScanThreads; idx++)
         {
@@ -2856,10 +2899,11 @@ struct Gcx
     {
         while (!stopGC)
         {
-            evStart.wait(dur!"msecs"(10));
+            evStart.wait();
             pullFromScanStack();
             evDone.set();
         }
+        stoppedThreads.atomicOp!"+="(1);
     }
 
     void pullFromScanStack() nothrow
@@ -2900,6 +2944,46 @@ struct Gcx
             busyThreads.atomicOp!"-="(1);
         }
         debug(PARALLEL_PRINTF) printf("scanBackground thread %d done\n", threadId);
+    }
+
+    version (Posix)
+    {
+        // A fork might happen while GC code is running in a different thread.
+        // Because that would leave the GC in an inconsistent state,
+        // make sure no GC code is running by acquiring the lock here,
+        // before a fork.
+
+        extern(C) static void _d_gcx_atfork_prepare()
+        {
+            if (instance)
+                ConservativeGC.lockNR();
+        }
+
+        extern(C) static void _d_gcx_atfork_parent()
+        {
+            if (instance)
+                ConservativeGC.gcLock.unlock();
+        }
+
+        extern(C) static void _d_gcx_atfork_child()
+        {
+            if (instance)
+            {
+                ConservativeGC.gcLock.unlock();
+
+                // make sure the threads and event handles are reinitialized in a fork
+                if (Gcx.instance.scanThreadData)
+                {
+                    cstdlib.free(Gcx.instance.scanThreadData);
+                    Gcx.instance.numScanThreads = 0;
+                    Gcx.instance.scanThreadData = null;
+                    Gcx.instance.busyThreads = 0;
+
+                    memset(&Gcx.instance.evStart, 0, Gcx.instance.evStart.sizeof);
+                    memset(&Gcx.instance.evDone, 0, Gcx.instance.evDone.sizeof);
+                }
+            }
+        }
     }
 }
 
