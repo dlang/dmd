@@ -1214,13 +1214,14 @@ private:
             pstack -= reserve;
             *(cast(EXCEPTION_REGISTRATION*)pstack) =
                 EXCEPTION_REGISTRATION( sehChainEnd, finalHandler );
+            auto pChainEnd = pstack;
 
             push( cast(size_t) &fiber_entryPoint );                 // EIP
             push( cast(size_t) m_ctxt.bstack - reserve );           // EBP
             push( 0x00000000 );                                     // EDI
             push( 0x00000000 );                                     // ESI
             push( 0x00000000 );                                     // EBX
-            push( cast(size_t) m_ctxt.bstack - reserve );           // FS:[0]
+            push( cast(size_t) pChainEnd );                         // FS:[0]
             push( cast(size_t) m_ctxt.bstack );                     // FS:[4]
             push( cast(size_t) m_ctxt.bstack - m_size );            // FS:[8]
             push( 0x00000000 );                                     // EAX
@@ -1718,9 +1719,8 @@ unittest
 
 
 // Test exception handling inside fibers.
-version (Win32) {
-    // broken on win32 under windows server 2012: bug 13821
-} else unittest {
+unittest
+{
     enum MSG = "Test message.";
     string caughtMsg;
     (new Fiber({
@@ -1758,9 +1758,8 @@ unittest
     new Fiber({}).call(Fiber.Rethrow.no);
 }
 
-version (Win32) {
-    // broken on win32 under windows server 2012: bug 13821
-} else unittest {
+unittest
+{
     enum MSG = "Test message.";
 
     try
