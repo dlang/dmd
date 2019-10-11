@@ -64,7 +64,7 @@ private template getPrintfFormat(T)
 Minimalistic formatting for use in _d_assert_fail to keep the compilation
 overhead small and avoid the use of Phobos.
 */
-private auto miniFormat(V)(V v)
+private string miniFormat(V)(V v)
 {
     import core.stdc.stdio : sprintf;
     import core.stdc.string : strlen;
@@ -102,7 +102,7 @@ private auto miniFormat(V)(V v)
     // anything string-like
     else static if (__traits(compiles, V.init ~ ""))
     {
-        return `"` ~ v ~ `"`;
+        return (`"` ~ v ~ `"`).idup;
     }
     else static if (is(V : U[], U))
     {

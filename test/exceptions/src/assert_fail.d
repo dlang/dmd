@@ -102,7 +102,9 @@ void testArray()()
 void testStruct()()
 {
     struct S { int s; }
+    struct T { T[] t; }
     test(S(0), S(1), "S(0) !is S(1)");
+    test(T([T(null)]), T(null), "[T([])] != []");
 }
 
 void testAA()()
