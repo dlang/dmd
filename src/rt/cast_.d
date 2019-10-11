@@ -116,17 +116,17 @@ int _d_isbaseof2(scope ClassInfo oc, scope const ClassInfo c, scope ref size_t o
 
 int _d_isbaseof(scope ClassInfo oc, scope const ClassInfo c) @safe
 {
-    if (oc is c)
+    if (oc.compareClassInfo(c))
         return true;
 
     do
     {
-        if (oc.base is c)
+        if (oc.base.compareClassInfo(c))
             return true;
 
         foreach (iface; oc.interfaces)
         {
-            if (iface.classinfo is c || _d_isbaseof(iface.classinfo, c))
+            if (iface.classinfo.compareClassInfo(c) || _d_isbaseof(iface.classinfo, c))
                 return true;
         }
 
