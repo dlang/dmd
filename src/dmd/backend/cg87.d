@@ -39,8 +39,6 @@ extern (C++):
 
 nothrow:
 
-private:
-
 int REGSIZE();
 
 private extern (D) uint mask(uint m) { return 1 << m; }
@@ -70,7 +68,7 @@ enum
     MFword          = 3
 }
 
-public __gshared
+__gshared
 {
     NDP[8] _8087elems;              // 8087 stack
     NDP ndp_zero;
