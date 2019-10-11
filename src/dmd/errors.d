@@ -713,7 +713,7 @@ private void colorSyntaxHighlight(ref OutBuffer buf)
                     buf.remove(iCodeStart, i - iCodeStart + 1); // also trimming off the current `
                     immutable pre = "";
                     i = buf.insert(iCodeStart, pre);
-                    i = buf.insert(i, codebuf.peekSlice());
+                    i = buf.insert(i, codebuf[]);
                     i--; // point to the ending ) so when the for loop does i++, it will see the next character
                     break;
                 }

@@ -77,7 +77,7 @@ extern (C++) void genhdrfile(Module m)
     HdrGenState hgs;
     hgs.hdrgen = true;
     toCBuffer(m, &buf, &hgs);
-    writeFile(m.loc, m.hdrfile.toString(), buf.peekSlice());
+    writeFile(m.loc, m.hdrfile.toString(), buf[]);
 }
 
 /**

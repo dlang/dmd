@@ -149,7 +149,7 @@ nothrow:
         OutBuffer buf;
         buf.writestring(prefix);
         buf.print(i);
-        return idPool(buf.peekSlice());
+        return idPool(buf[]);
     }
 
     /***************************************
@@ -213,7 +213,7 @@ nothrow:
                 counters[key] = 1;
         }
 
-        return idPool(idBuf.peekSlice());
+        return idPool(idBuf[]);
     }
 
     /********************************************

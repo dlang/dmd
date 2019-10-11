@@ -601,7 +601,7 @@ public:
         mangleDecl(d);
         debug
         {
-            const slice = buf.peekSlice();
+            const slice = (*buf)[];
             assert(slice.length);
             for (size_t pos; pos < slice.length; )
             {
@@ -1006,7 +1006,7 @@ public:
                 else
                     tmp.writeUTF8(c);
             }
-            q = tmp.peekSlice();
+            q = tmp[];
             break;
         case 4:
             m = 'd';
@@ -1018,7 +1018,7 @@ public:
                 else
                     tmp.writeUTF8(c);
             }
-            q = tmp.peekSlice();
+            q = tmp[];
             break;
         default:
             assert(0);

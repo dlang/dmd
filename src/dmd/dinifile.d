@@ -253,7 +253,7 @@ void parseConfFile(ref StringTable environment, const(char)[] filename, const(ch
         }
 
         // Remove trailing spaces
-        const slice = buf.peekSlice();
+        const slice = buf[];
         auto slicelen = slice.length;
         while (slicelen && isspace(slice[slicelen - 1]))
             --slicelen;

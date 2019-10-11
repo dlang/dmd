@@ -2721,22 +2721,22 @@ unittest
 {
     OutBuffer buf;
     auto mismatches = MODMatchToBuffer(&buf, MODFlags.shared_, 0);
-    assert(buf.peekSlice == "`shared` ");
+    assert(buf[] == "`shared` ");
     assert(!mismatches.isNotShared);
 
     buf.reset;
     mismatches = MODMatchToBuffer(&buf, 0, MODFlags.shared_);
-    assert(buf.peekSlice == "non-shared ");
+    assert(buf[] == "non-shared ");
     assert(mismatches.isNotShared);
 
     buf.reset;
     mismatches = MODMatchToBuffer(&buf, MODFlags.const_, 0);
-    assert(buf.peekSlice == "`const` ");
+    assert(buf[] == "`const` ");
     assert(!mismatches.isMutable);
 
     buf.reset;
     mismatches = MODMatchToBuffer(&buf, 0, MODFlags.const_);
-    assert(buf.peekSlice == "mutable ");
+    assert(buf[] == "mutable ");
     assert(mismatches.isMutable);
 }
 

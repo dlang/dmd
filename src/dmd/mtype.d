@@ -2430,7 +2430,7 @@ extern (C++) abstract class Type : ASTNode
         buf.reserve(32);
         mangleToBuffer(this, &buf);
 
-        const slice = buf.peekSlice();
+        const slice = buf[];
 
         // Allocate buffer on stack, fail over to using malloc()
         char[128] namebuf;

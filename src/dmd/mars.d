@@ -635,7 +635,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         foreach (i; 1 .. modules[0].aimports.dim)
             semantic3OnDependencies(modules[0].aimports[i]);
 
-        const data = ob.peekSlice();
+        const data = (*ob)[];
         if (params.moduleDepsFile)
             writeFile(Loc.initial, params.moduleDepsFile, data);
         else
@@ -681,7 +681,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
             // write the output to $(filename).cg
             auto cgFilename = FileName.addExt(mod.srcfile.toString(), "cg");
-            File.write(cgFilename.ptr, buf.peekSlice());
+            File.write(cgFilename.ptr, buf[]);
         }
     }
     if (!params.obj)
@@ -837,7 +837,7 @@ extern (C++) void generateJson(Modules* modules)
             //    name = FileName::combine(dir, name);
             jsonfilename = FileName.forceExt(n, global.json_ext);
         }
-        writeFile(Loc.initial, jsonfilename, buf.peekSlice());
+        writeFile(Loc.initial, jsonfilename, buf[]);
     }
 }
 
@@ -1338,7 +1338,7 @@ extern(C) void printGlobalConfigs(FILE* stream)
                 buf.printf("%s ", flag);
         }
 
-        auto res = buf.peekSlice() ? buf.peekSlice()[0 .. $ - 1] : "(none)";
+        auto res = buf[] ? buf[][0 .. $ - 1] : "(none)";
         stream.fprintf("DFLAGS    %.*s\n", cast(int)res.length, res.ptr);
     }
 }
@@ -1390,7 +1390,7 @@ extern(C) void flushMixins()
         return;
 
     assert(global.params.mixinFile);
-    File.write(global.params.mixinFile, global.params.mixinOut.peekSlice());
+    File.write(global.params.mixinFile, (*global.params.mixinOut)[]);
 
     global.params.mixinOut.destroy();
     global.params.mixinOut = null;

@@ -393,7 +393,7 @@ public:
         {
             OutBuffer mangledName;
             mangleToBuffer(s, &mangledName);
-            buf.writestring(mangledName.peekSlice);
+            buf.writestring(mangledName[]);
             buf.writeByte('_');
         }
         else

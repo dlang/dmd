@@ -11275,7 +11275,7 @@ Expression semanticX(DotIdExp exp, Scope* sc)
                 }
                 OutBuffer buf;
                 mangleToBuffer(ds, &buf);
-                const s = buf.peekSlice();
+                const s = buf[];
                 Expression e = new StringExp(exp.loc, buf.extractChars(), s.length);
                 e = e.expressionSemantic(sc);
                 return e;

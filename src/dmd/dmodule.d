@@ -622,7 +622,7 @@ extern (C++) final class Module : Package
                 else version (Windows)
                     import core.sys.windows.winbase : getpid = GetCurrentProcessId;
                 buf.printf("__stdin_%d.d", getpid());
-                arg = buf.peekSlice();
+                arg = buf[];
             }
             if (global.params.preservePaths)
                 argdoc = arg;

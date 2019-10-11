@@ -396,7 +396,7 @@ extern(C++) void gendocfile(Module m)
             mbuf.write(data);
         }
     }
-    DocComment.parseMacros(m.escapetable, m.macrotable, mbuf.peekSlice().ptr, mbuf.peekSlice().length);
+    DocComment.parseMacros(m.escapetable, m.macrotable, mbuf[].ptr, mbuf[].length);
     Scope* sc = Scope.createGlobal(m); // create root scope
     DocComment* dc = DocComment.parse(m, m.comment);
     dc.pmacrotable = &m.macrotable;
@@ -453,7 +453,7 @@ extern(C++) void gendocfile(Module m)
         emitMemberComments(m, buf, sc);
     }
     //printf("BODY= '%.*s'\n", cast(int)buf.length, buf.data);
-    m.macrotable.define("BODY", buf.peekSlice());
+    m.macrotable.define("BODY", buf[]);
     OutBuffer buf2;
     buf2.writestring("$(DDOC)");
     size_t end = buf2.length;
@@ -464,7 +464,7 @@ extern(C++) void gendocfile(Module m)
          * and make CR-LF the newline.
          */
         {
-            const slice = buf2.peekSlice();
+            const slice = buf2[];
             buf.setsize(0);
             buf.reserve(slice.length);
             auto p = slice.ptr;
@@ -490,7 +490,7 @@ extern(C++) void gendocfile(Module m)
                 buf.writeByte(c);
             }
         }
-        writeFile(m.loc, m.docfile.toString(), buf.peekSlice());
+        writeFile(m.loc, m.docfile.toString(), buf[]);
     }
     else
     {
@@ -511,7 +511,7 @@ extern(C++) void gendocfile(Module m)
             }
             buf2.setsize(i);
         }
-        writeFile(m.loc, m.docfile.toString(), buf2.peekSlice());
+        writeFile(m.loc, m.docfile.toString(), buf2[]);
     }
 }
 
@@ -723,7 +723,7 @@ private void emitAnchor(ref OutBuffer buf, Dsymbol s, Scope* sc, bool forHeader 
     {
         OutBuffer anc;
         emitAnchorName(anc, s, skipNonQualScopes(sc), true);
-        ident = Identifier.idPool(anc.peekSlice());
+        ident = Identifier.idPool(anc[]);
     }
 
     auto pcount = cast(void*)ident in sc.anchorCounts;
@@ -831,7 +831,7 @@ private void emitAnchor(ref OutBuffer buf, Dsymbol s, Scope* sc, bool forHeader 
             {
                 OutBuffer anc;
                 emitAnchorName(anc, s, skipNonQualScopes(sc), false);
-                shortIdent = Identifier.idPool(anc.peekSlice());
+                shortIdent = Identifier.idPool(anc[]);
             }
 
             auto shortName = shortIdent.toString();
@@ -1996,7 +1996,7 @@ private const(char)[] skipwhitespace(const(char)[] p)
 private size_t skipChars(ref OutBuffer buf, size_t i, string chars)
 {
     Outer:
-    foreach (j, c; buf.peekSlice()[i..$])
+    foreach (j, c; buf[][i..$])
     {
         foreach (d; chars)
         {
@@ -2114,7 +2114,7 @@ unittest
  */
 private int getMarkdownIndent(ref OutBuffer buf, size_t from, size_t to)
 {
-    const slice = buf.peekSlice();
+    const slice = buf[];
     if (to > slice.length)
         to = slice.length;
     int indent = 0;
@@ -2131,7 +2131,7 @@ private int getMarkdownIndent(ref OutBuffer buf, size_t from, size_t to)
  */
 size_t skiptoident(ref OutBuffer buf, size_t i)
 {
-    const slice = buf.peekSlice();
+    const slice = buf[];
     while (i < slice.length)
     {
         dchar c;
@@ -2160,7 +2160,7 @@ size_t skiptoident(ref OutBuffer buf, size_t i)
  */
 private size_t skippastident(ref OutBuffer buf, size_t i)
 {
-    const slice = buf.peekSlice();
+    const slice = buf[];
     while (i < slice.length)
     {
         dchar c;
@@ -2190,7 +2190,7 @@ private size_t skippastident(ref OutBuffer buf, size_t i)
  */
 private size_t skipPastIdentWithDots(ref OutBuffer buf, size_t i)
 {
-    const slice = buf.peekSlice();
+    const slice = buf[];
     bool lastCharWasDot;
     while (i < slice.length)
     {
@@ -2252,7 +2252,7 @@ private size_t skipPastIdentWithDots(ref OutBuffer buf, size_t i)
  */
 private size_t skippastURL(ref OutBuffer buf, size_t i)
 {
-    const slice = buf.peekSlice()[i .. $];
+    const slice = buf[][i .. $];
     size_t j;
     bool sawdot = false;
     if (slice.length > 7 && Port.memicmp(slice.ptr, "http://", 7) == 0)
@@ -2325,7 +2325,7 @@ private bool replaceMarkdownThematicBreak(ref OutBuffer buf, ref size_t i, size_
     if (!global.params.markdown)
         return false;
 
-    const slice = buf.peekSlice();
+    const slice = buf[];
     const c = buf[i];
     size_t j = i + 1;
     int repeat = 1;
@@ -2342,7 +2342,7 @@ private bool replaceMarkdownThematicBreak(ref OutBuffer buf, ref size_t i, size_
         {
             if (global.params.vmarkdown)
             {
-                const s = buf.peekSlice()[i..j];
+                const s = buf[][i..j];
                 message(loc, "Ddoc: converted '%.*s' to a thematic break", cast(int)s.length, s.ptr);
             }
 
@@ -2396,7 +2396,7 @@ private void removeAnyAtxHeadingSuffix(ref OutBuffer buf, size_t i)
     size_t j = i;
     size_t iSuffixStart = 0;
     size_t iWhitespaceStart = j;
-    const slice = buf.peekSlice();
+    const slice = buf[];
     for (; j < slice.length; j++)
     {
         switch (slice[j])
@@ -2442,7 +2442,7 @@ private void endMarkdownHeading(ref OutBuffer buf, size_t iStart, ref size_t iEn
         return;
     if (global.params.vmarkdown)
     {
-        const s = buf.peekSlice()[iStart..iEnd];
+        const s = buf[][iStart..iEnd];
         message(loc, "Ddoc: added heading '%.*s'", cast(int)s.length, s.ptr);
     }
 
@@ -2528,7 +2528,7 @@ private size_t replaceMarkdownEmphasis(ref OutBuffer buf, const ref Loc loc, ref
 
         if (global.params.vmarkdown)
         {
-            const s = buf.peekSlice()[iStart + count..iEnd];
+            const s = buf[][iStart + count..iEnd];
             message(loc, "Ddoc: emphasized text '%.*s'", cast(int)s.length, s.ptr);
         }
 
@@ -2944,7 +2944,7 @@ private struct MarkdownList
             size_t iEnd = iStart;
             while (iEnd < buf.length && buf[iEnd] != '\r' && buf[iEnd] != '\n')
                 ++iEnd;
-            const s = buf.peekSlice()[iStart..iEnd];
+            const s = buf[][iStart..iEnd];
             message(loc, "Ddoc: starting list item '%.*s'", cast(int)s.length, s.ptr);
         }
 
@@ -3059,7 +3059,7 @@ private struct MarkdownList
             size_t iNumberStart = skipChars(buf, i, "0");
             if (iNumberStart == iAfterNumbers)
                 --iNumberStart;
-            auto orderedStart = buf.peekSlice()[iNumberStart .. iAfterNumbers];
+            auto orderedStart = buf[][iNumberStart .. iAfterNumbers];
             if (orderedStart == "1")
                 orderedStart = null;
             return MarkdownList(orderedStart.idup, iLineStart, iContentStart, delimiterIndent, contentIndent, 0, buf[iAfterNumbers]);
@@ -3133,7 +3133,7 @@ private struct MarkdownLink
 
         if (global.params.vmarkdown)
         {
-            const s = buf.peekSlice()[delimiter.iStart..iEnd];
+            const s = buf[][delimiter.iStart..iEnd];
             message(loc, "Ddoc: linking '%.*s' to '%.*s'", cast(int)s.length, s.ptr, cast(int)link.href.length, link.href.ptr);
         }
 
@@ -3288,7 +3288,7 @@ private struct MarkdownLink
         if (buf[i] != '[')
             return false;
 
-        const slice = buf.peekSlice();
+        const slice = buf[];
         size_t j = i + 1;
 
         // Some labels have already been en-symboled; handle that
@@ -3355,7 +3355,7 @@ private struct MarkdownLink
         size_t iHrefStart = j;
         size_t parenDepth = 1;
         bool inPointy = false;
-        const slice = buf.peekSlice();
+        const slice = buf[];
         for (; j < slice.length; j++)
         {
             switch (slice[j])
@@ -3430,7 +3430,7 @@ private struct MarkdownLink
 
         const iTitleStart = j + 1;
         size_t iNewline = 0;
-        const slice = buf.peekSlice();
+        const slice = buf[];
         for (j = iTitleStart; j < slice.length; j++)
         {
             const c = slice[j];
@@ -4057,7 +4057,7 @@ private size_t replaceTableRow(ref OutBuffer buf, size_t iStart, size_t iEnd, co
 
     if (headerRow && global.params.vmarkdown)
     {
-        const s = buf.peekSlice()[iStart..iEnd];
+        const s = buf[][iStart..iEnd];
         message(loc, "Ddoc: formatting table '%.*s'", cast(int)s.length, s.ptr);
     }
 
@@ -4326,7 +4326,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, ref OutBuffer buf, s
                 leadingBlank = false;
                 if (inCode)
                     break;
-                const slice = buf.peekSlice();
+                const slice = buf[];
                 auto p = &slice[i];
                 const se = sc._module.escapetable.escapeChar('<');
                 if (se == "&lt;")
@@ -4391,7 +4391,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, ref OutBuffer buf, s
                         size_t iEnd = i + 1;
                         while (iEnd < buf.length && buf[iEnd] != '\n')
                             ++iEnd;
-                        const s = buf.peekSlice()[i .. iEnd];
+                        const s = buf[][i .. iEnd];
                         message(loc, "Ddoc: starting quote block with '%.*s'", cast(int)s.length, s.ptr);
                     }
 
@@ -4487,7 +4487,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, ref OutBuffer buf, s
                     buf.remove(iCodeStart, i - iCodeStart + count); // also trimming off the current `
                     immutable pre = "$(DDOC_BACKQUOTED ";
                     i = buf.insert(iCodeStart, pre);
-                    i = buf.insert(i, codebuf.peekSlice());
+                    i = buf.insert(i, codebuf[]);
                     i = buf.insert(i, ")");
                     i--; // point to the ending ) so when the for loop does i++, it will see the next character
                     break;
@@ -4694,7 +4694,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, ref OutBuffer buf, s
                         codebuf.remove(codebuf.length-1, 1);    // remove the trailing 0 byte
                     escapeStrayParenthesis(loc, &codebuf, 0, false);
                     buf.remove(iCodeStart, i - iCodeStart);
-                    i = buf.insert(iCodeStart, codebuf.peekSlice());
+                    i = buf.insert(iCodeStart, codebuf[]);
                     i = buf.insert(i, ")\n");
                     i -= 2; // in next loop, c should be '\n'
                 }
@@ -4947,7 +4947,7 @@ private void highlightText(Scope* sc, Dsymbols* a, Loc loc, ref OutBuffer buf, s
             leadingBlank = false;
             if (inCode || inBacktick)
                 break;
-            const slice = buf.peekSlice();
+            const slice = buf[];
             auto p = &slice[i];
             if (p[1] == '(' && isIdStart(&p[2]))
                 ++macroLevel;
@@ -5098,7 +5098,7 @@ private void highlightCode(Scope* sc, Dsymbol s, ref OutBuffer buf, size_t offse
     {
         OutBuffer ancbuf;
         emitAnchor(ancbuf, s, sc);
-        buf.insert(offset, ancbuf.peekSlice());
+        buf.insert(offset, ancbuf[]);
         offset += ancbuf.length;
 
         Dsymbols a;
@@ -5197,7 +5197,7 @@ private void highlightCode(Scope* sc, Dsymbols* a, ref OutBuffer buf, size_t off
                 }
                 parametersBuf.writeByte(')');
 
-                const templateParams = parametersBuf.peekSlice();
+                const templateParams = parametersBuf[];
 
                 //printf("templateDecl: %s\ntemplateParams: %s\nstart: %s\n", td.toChars(), templateParams, start);
                 if (start[0 .. templateParams.length] == templateParams)
