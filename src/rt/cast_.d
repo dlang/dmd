@@ -14,6 +14,15 @@
  */
 module rt.cast_;
 
+// because using == does a dynamic cast, but we
+// are trying to implement dynamic cast.
+bool compareClassInfo(ClassInfo a, ClassInfo b)
+{
+    if (a is b)
+        return true;
+    return a.info.name == b.info.name;
+}
+
 extern (C):
 @nogc:
 nothrow:
@@ -80,19 +89,19 @@ void* _d_dynamic_cast(Object o, ClassInfo c)
 
 int _d_isbaseof2(scope ClassInfo oc, scope const ClassInfo c, scope ref size_t offset) @safe
 {
-    if (oc is c)
+    if (oc.compareClassInfo(c))
         return true;
 
     do
     {
-        if (oc.base is c)
+        if (oc.base.compareClassInfo(c))
             return true;
 
         // Bugzilla 2013: Use depth-first search to calculate offset
         // from the derived (oc) to the base (c).
         foreach (iface; oc.interfaces)
         {
-            if (iface.classinfo is c || _d_isbaseof2(iface.classinfo, c, offset))
+            if (iface.classinfo.compareClassInfo(c) || _d_isbaseof2(iface.classinfo, c, offset))
             {
                 offset += iface.offset;
                 return true;
