@@ -1336,7 +1336,7 @@ class Lexer
         Loc start = loc();
         auto terminator = p[0];
         p++;
-        stringbuffer.reset();
+        stringbuffer.setsize(0);
         while (1)
         {
             dchar c = p[0];
@@ -1392,7 +1392,7 @@ class Lexer
         uint n = 0;
         uint v = ~0; // dead assignment, needed to suppress warning
         p++;
-        stringbuffer.reset();
+        stringbuffer.setsize(0);
         while (1)
         {
             dchar c = *p++;
@@ -1486,7 +1486,7 @@ class Lexer
         uint blankrol = 0;
         uint startline = 0;
         p++;
-        stringbuffer.reset();
+        stringbuffer.setsize(0);
         while (1)
         {
             dchar c = *p++;
@@ -1683,7 +1683,7 @@ class Lexer
 
         const start = loc();
         p++;
-        stringbuffer.reset();
+        stringbuffer.setsize(0);
         while (1)
         {
             dchar c = *p++;
@@ -2137,7 +2137,7 @@ class Lexer
             assert(*p == '.' || isdigit(*p));
         }
         bool isWellformedString = true;
-        stringbuffer.reset();
+        stringbuffer.setsize(0);
         auto pstart = p;
         bool hex = false;
         dchar c = *p++;
@@ -2423,7 +2423,7 @@ class Lexer
             case '"':
                 if (filespec)
                     goto Lerr;
-                stringbuffer.reset();
+                stringbuffer.setsize(0);
                 p++;
                 while (1)
                 {

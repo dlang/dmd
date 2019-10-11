@@ -2724,17 +2724,17 @@ unittest
     assert(buf[] == "`shared` ");
     assert(!mismatches.isNotShared);
 
-    buf.reset;
+    buf.setsize(0);
     mismatches = MODMatchToBuffer(&buf, 0, MODFlags.shared_);
     assert(buf[] == "non-shared ");
     assert(mismatches.isNotShared);
 
-    buf.reset;
+    buf.setsize(0);
     mismatches = MODMatchToBuffer(&buf, MODFlags.const_, 0);
     assert(buf[] == "`const` ");
     assert(!mismatches.isMutable);
 
-    buf.reset;
+    buf.setsize(0);
     mismatches = MODMatchToBuffer(&buf, 0, MODFlags.const_);
     assert(buf[] == "mutable ");
     assert(mismatches.isMutable);

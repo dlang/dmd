@@ -1027,15 +1027,15 @@ public:
         buf.writeByte(m);
         buf.print(q.length);
         buf.writeByte('_');    // nbytes <= 11
-        size_t qi = 0;
-        for (char* p = cast(char*)(*buf)[].ptr + buf.length, pend = p + 2 * q.length; p < pend; p += 2, ++qi)
+        const len = buf.length;
+        auto slice = buf.allocate(2 * q.length);
+        foreach (i, c; q)
         {
-            char hi = (q[qi] >> 4) & 0xF;
-            p[0] = cast(char)(hi < 10 ? hi + '0' : hi - 10 + 'a');
-            char lo = q[qi] & 0xF;
-            p[1] = cast(char)(lo < 10 ? lo + '0' : lo - 10 + 'a');
+            char hi = (c >> 4) & 0xF;
+            slice[i * 2] = cast(char)(hi < 10 ? hi + '0' : hi - 10 + 'a');
+            char lo = c & 0xF;
+            slice[i * 2 + 1] = cast(char)(lo < 10 ? lo + '0' : lo - 10 + 'a');
         }
-        buf.setsize(buf.length + 2 * q.length);
     }
 
     override void visit(ArrayLiteralExp e)

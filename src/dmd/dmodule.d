@@ -172,7 +172,7 @@ private const(char)[] getFilename(Identifiers* packages, Identifier ident)
             assert(q);
             if (dotmods.length == q - m && memcmp(dotmods.peekChars(), m, q - m) == 0)
             {
-                buf.reset();
+                buf.setsize(0);
                 auto rhs = q[1 .. strlen(q)];
                 if (rhs.length > 0 && (rhs[$ - 1] == '/' || rhs[$ - 1] == '\\'))
                     rhs = rhs[0 .. $ - 1]; // remove trailing separator
