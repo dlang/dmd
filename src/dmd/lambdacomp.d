@@ -29,6 +29,7 @@ import dmd.func;
 import dmd.dmangle;
 import dmd.mtype;
 import dmd.root.outbuffer;
+import dmd.root.rmem;
 import dmd.root.stringtable;
 import dmd.dscope;
 import dmd.statement;
@@ -60,17 +61,20 @@ private enum ExpType
  */
 bool isSameFuncLiteral(FuncLiteralDeclaration l1, FuncLiteralDeclaration l2, Scope* sc)
 {
+    bool result;
     if (auto ser1 = getSerialization(l1, sc))
     {
-        //printf("l1 serialization: %s\n", &ser1[0]);
+        //printf("l1 serialization: %.*s\n", cast(int)ser1.length, &ser1[0]);
         if (auto ser2 = getSerialization(l2, sc))
         {
-            //printf("l2 serialization: %s\n", &ser2[0]);
+            //printf("l2 serialization: %.*s\n", cast(int)ser2.length, &ser2[0]);
             if (ser1 == ser2)
-                return true;
+                result = true;
+            mem.xfree(cast(void*)ser2.ptr);
         }
+        mem.xfree(cast(void*)ser1.ptr);
     }
-    return false;
+    return result;
 }
 
 /**
@@ -91,7 +95,7 @@ bool isSameFuncLiteral(FuncLiteralDeclaration l1, FuncLiteralDeclaration l2, Sco
  *  sc = the scope in which the lambda function is located
  *
  * Returns:
- *  The serielization of `fld`.
+ *  The serialization of `fld` allocated with mem.
  */
 private string getSerialization(FuncLiteralDeclaration fld, Scope* sc)
 {
@@ -101,7 +105,7 @@ private string getSerialization(FuncLiteralDeclaration fld, Scope* sc)
     if (len == 0)
         return null;
 
-    return cast(string)serVisitor.buf.extractChars()[0 .. len];
+    return cast(string)serVisitor.buf.extractSlice();
 }
 
 private extern (C++) class SerializeVisitor : SemanticTimeTransitiveVisitor

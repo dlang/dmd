@@ -842,7 +842,8 @@ nothrow:
                 buf.writeByte('"');
                 if (postfix)
                     buf.writeByte(postfix);
-                p = buf.extractChars();
+                buf.writeByte(0);
+                p = buf.extractSlice().ptr;
             }
             break;
         case TOK.hexadecimalString:

@@ -1975,7 +1975,8 @@ Type compileTypeMixin(TypeMixin tm, Loc loc, Scope* sc)
 
     const errors = global.errors;
     const len = buf.length;
-    const str = buf.extractChars()[0 .. len];
+    buf.writeByte(0);
+    const str = buf.extractSlice()[0 .. len];
     scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
     scope p = new Parser!ASTCodegen(loc, sc._module, str, false, diagnosticReporter);
     p.nextToken();
