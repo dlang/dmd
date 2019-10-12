@@ -18,6 +18,11 @@ import core.stdc.string;
 import dmd.root.rmem;
 import dmd.root.rootobject;
 
+debug
+{
+    debug = stomp; // flush out dangling pointer problems by stomping on unused memory
+}
+
 struct OutBuffer
 {
     private ubyte[] data;
@@ -28,6 +33,7 @@ struct OutBuffer
 
     extern (C++) ~this() pure nothrow
     {
+        debug (stomp) memset(data.ptr, 0xFF, data.length);
         mem.xfree(data.ptr);
     }
 
@@ -43,21 +49,34 @@ struct OutBuffer
 
     extern (C++) void destroy() pure nothrow @trusted
     {
+        debug (stomp) memset(data.ptr, 0xFF, data.length);
         mem.xfree(extractData());
     }
 
     extern (C++) void reserve(size_t nbytes) pure nothrow
     {
-        //printf("OutBuffer::reserve: size = %d, offset = %d, nbytes = %d\n", size, offset, nbytes);
+        //debug (stomp) printf("OutBuffer::reserve: size = %lld, offset = %lld, nbytes = %lld\n", data.length, offset, nbytes);
         if (data.length - offset < nbytes)
         {
             /* Increase by factor of 1.5; round up to 16 bytes.
              * The odd formulation is so it will map onto single x86 LEA instruction.
              */
             const size = (((offset + nbytes) * 3 + 30) / 2) & ~15;
-            auto p = cast(ubyte*)mem.xrealloc(data.ptr, size);
-            if (mem.isGCEnabled) // clear currently unused data to avoid false pointers
-                memset(p + offset + nbytes, 0xff, size - offset - nbytes);
+
+            debug (stomp)
+            {
+                auto p = cast(ubyte*)mem.xmalloc(size);
+                memcpy(p, data.ptr, offset);
+                memset(data.ptr, 0xFF, data.length);  // stomp old location
+                mem.xfree(data.ptr);
+                memset(p + offset, 0xff, size - offset); // stomp unused data
+            }
+            else
+            {
+                auto p = cast(ubyte*)mem.xrealloc(data.ptr, size);
+                if (mem.isGCEnabled) // clear currently unused data to avoid false pointers
+                    memset(p + offset + nbytes, 0xff, size - offset - nbytes);
+            }
             data = p[0 .. size];
         }
     }
