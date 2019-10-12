@@ -233,6 +233,7 @@ struct Param
     // Linker stuff
     Array<const char *> objfiles;
     Array<const char *> linkswitches;
+    Array<bool> linkswitchIsForCC;
     Array<const char *> libfiles;
     Array<const char *> dllfiles;
     DString deffile;
