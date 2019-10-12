@@ -171,7 +171,8 @@ extern (C++) abstract class Statement : ASTNode
         HdrGenState hgs;
         OutBuffer buf;
         .toCBuffer(this, &buf, &hgs);
-        return buf.extractChars();
+        buf.writeByte(0);
+        return buf.extractSlice().ptr;
     }
 
     final void error(const(char)* format, ...)
@@ -812,7 +813,8 @@ extern (C++) final class CompileStatement : Statement
 
         const errors = global.errors;
         const len = buf.length;
-        const str = buf.extractChars()[0 .. len];
+        buf.writeByte(0);
+        const str = buf.extractSlice()[0 .. len];
         scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
         scope p = new Parser!ASTCodegen(loc, sc._module, str, false, diagnosticReporter);
         p.nextToken();
