@@ -386,6 +386,25 @@ void test_array()
         assert(arrayA[i] == 0);
 }
 
+void test_outbuffer()
+{
+    OutBuffer buf;
+    mangleToBuffer(Type::tint64, &buf);
+    assert(strcmp(buf.peekChars(), "l") == 0);
+    buf.reset();
+
+    buf.reserve(16);
+    buf.writestring("hello");
+    buf.writeByte(' ');
+    buf.write(&buf);
+    buf.writenl();
+    assert(buf.length() == 13);
+
+    const char *data = buf.extractChars();
+    assert(buf.length() == 0);
+    assert(strcmp(data, "hello hello \n") == 0);
+}
+
 /**********************************/
 
 int main(int argc, char **argv)
@@ -401,6 +420,7 @@ int main(int argc, char **argv)
     test_parameters();
     test_location();
     test_array();
+    test_outbuffer();
 
     frontend_term();
 
