@@ -2870,8 +2870,12 @@ struct Gcx
             if (scanThreadData[idx].tid != scanThreadData[idx].tid.init)
                 startedThreads++;
 
+        version (Windows)
+            alias allThreadsDead = thread_DLLProcessDetaching;
+        else
+            enum allThreadsDead = false;
         stopGC = true;
-        while (atomicLoad(stoppedThreads) < startedThreads)
+        while (atomicLoad(stoppedThreads) < startedThreads && !allThreadsDead)
         {
             evStart.set();
             evDone.wait(dur!"msecs"(1));
