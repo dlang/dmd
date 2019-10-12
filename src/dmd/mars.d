@@ -425,7 +425,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     // Create Modules
     Modules modules = createModules(files, libmodules);
     // Read files
-    enum ASYNCREAD = false;
     // Start by "reading" the special files (__main.d, __stdin.d)
     foreach (m; modules)
     {
@@ -440,24 +439,12 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             m.srcBuffer = new FileBuffer(buffer.extractSlice());
         }
     }
-    static if (ASYNCREAD)
+
+    foreach (m; modules)
     {
-        // Multi threaded
-        AsyncRead* aw = AsyncRead.create(modules.dim);
-        foreach (m; modules)
-        {
-            aw.addFile(m.srcfile);
-        }
-        aw.start();
+        m.read(Loc.initial);
     }
-    else
-    {
-        // Single threaded
-        foreach (m; modules)
-        {
-            m.read(Loc.initial);
-        }
-    }
+
     // Parse files
     bool anydocfiles = false;
     size_t filecount = modules.dim;
@@ -471,14 +458,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         m.importedFrom = m; // m.isRoot() == true
         if (!params.oneobj || modi == 0 || m.isDocFile)
             m.deleteObjFile();
-        static if (ASYNCREAD)
-        {
-            if (aw.read(filei))
-            {
-                error(Loc.initial, "cannot read file %s", m.srcfile.toChars());
-                fatal();
-            }
-        }
+
         m.parse();
         if (m.isHdrFile)
         {
@@ -514,10 +494,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
                 params.link = false;
         }
     }
-    static if (ASYNCREAD)
-    {
-        AsyncRead.dispose(aw);
-    }
+
     if (anydocfiles && modules.dim && (params.oneobj || params.objname))
     {
         error(Loc.initial, "conflicting Ddoc and obj generation options");
