@@ -8831,8 +8831,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             Expression ce = new CallExp(ale.loc, id, arguments);
             auto res = ce.expressionSemantic(sc);
-            if (global.params.verbose)
-                message("lowered   %s =>\n          %s", exp.toChars(), res.toChars());
+            // if (global.params.verbose)
+            //     message("lowered   %s =>\n          %s", exp.toChars(), res.toChars());
             return setResult(res);
         }
         else if (auto se = exp.e1.isSliceExp())

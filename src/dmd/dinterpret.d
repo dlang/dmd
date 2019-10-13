@@ -4978,8 +4978,8 @@ public:
                 AssignExp ae = ctfeEmplaceExp!AssignExp(e.loc, ale, eb);
                 ae.type = ea.type;
 
-                if (global.params.verbose)
-                    message("interpret  %s =>\n          %s", e.toChars(), ae.toChars());
+                // if (global.params.verbose)
+                //     message("interpret  %s =>\n          %s", e.toChars(), ae.toChars());
                 result = interpretRegion(ae, istate);
                 return;
             }
