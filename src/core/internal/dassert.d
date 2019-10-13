@@ -102,7 +102,12 @@ private string miniFormat(V)(V v)
     // anything string-like
     else static if (__traits(compiles, V.init ~ ""))
     {
-        return (`"` ~ v ~ `"`).idup;
+        auto s = `"` ~ v ~ `"`;
+        // v could be a mutable char[]
+        static if (is(s : string))
+            return s;
+        else
+            return s.idup;
     }
     else static if (is(V : U[], U))
     {
