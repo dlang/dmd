@@ -19,7 +19,7 @@ struct OutBuffer
 {
 private:
     DArray<unsigned char> data;
-    size_t offset;
+    d_size_t offset;
     bool notlinehead;
 public:
     bool doindent;
@@ -38,12 +38,12 @@ public:
     {
         mem.xfree(data.ptr);
     }
-    size_t length() const { return offset; }
+    d_size_t length() const { return offset; }
     char *extractData();
     void destroy();
 
-    void reserve(size_t nbytes);
-    void setsize(size_t size);
+    void reserve(d_size_t nbytes);
+    void setsize(d_size_t size);
     void reset();
     void writestring(const char *string);
     void prependstring(const char *string);
@@ -57,14 +57,14 @@ public:
     void write4(unsigned w);
     void write(const OutBuffer *buf);
     void write(RootObject *obj);
-    void fill0(size_t nbytes);
+    void fill0(d_size_t nbytes);
     void vprintf(const char *format, va_list args);
     void printf(const char *format, ...);
     void bracket(char left, char right);
-    size_t bracket(size_t i, const char *left, size_t j, const char *right);
-    void spread(size_t offset, size_t nbytes);
-    size_t insert(size_t offset, const void *data, size_t nbytes);
-    void remove(size_t offset, size_t nbytes);
+    d_size_t bracket(d_size_t i, const char *left, d_size_t j, const char *right);
+    void spread(d_size_t offset, d_size_t nbytes);
+    d_size_t insert(d_size_t offset, const void *data, d_size_t nbytes);
+    void remove(d_size_t offset, d_size_t nbytes);
     // Append terminating null if necessary and get view of internal buffer
     char *peekChars();
     // Append terminating null if necessary and take ownership of data
