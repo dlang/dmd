@@ -27,31 +27,31 @@ enum MemoryOrder
      * Corresponds to $(LINK2 https://llvm.org/docs/Atomics.html#monotonic, LLVM AtomicOrdering.Monotonic)
      * and C++11/C11 `memory_order_relaxed`.
      */
-    raw,
+    raw = 0,
     /**
      * Hoist-load + hoist-store barrier.
      * Corresponds to $(LINK2 https://llvm.org/docs/Atomics.html#acquire, LLVM AtomicOrdering.Acquire)
      * and C++11/C11 `memory_order_acquire`.
      */
-    acq,
+    acq = 2,
     /**
      * Sink-load + sink-store barrier.
      * Corresponds to $(LINK2 https://llvm.org/docs/Atomics.html#release, LLVM AtomicOrdering.Release)
      * and C++11/C11 `memory_order_release`.
      */
-    rel,
+    rel = 3,
     /**
      * Acquire + release barrier.
      * Corresponds to $(LINK2 https://llvm.org/docs/Atomics.html#acquirerelease, LLVM AtomicOrdering.AcquireRelease)
      * and C++11/C11 `memory_order_acq_rel`.
      */
-    acq_rel,
+    acq_rel = 4,
     /**
      * Fully sequenced (acquire + release). Corresponds to
      * $(LINK2 https://llvm.org/docs/Atomics.html#sequentiallyconsistent, LLVM AtomicOrdering.SequentiallyConsistent)
      * and C++11/C11 `memory_order_seq_cst`.
      */
-    seq,
+    seq = 5,
 }
 
 /**
@@ -594,16 +594,16 @@ in (atomicValueIsProperlyAligned(val))
 }
 
 
-version (X86)
+version (D_InlineAsm_X86)
 {
-    version = IsX86;
+    version = AsmX86;
     enum has64BitXCHG = false;
     enum has64BitCAS = true;
     enum has128BitCAS = false;
 }
-else version (X86_64)
+else version (D_InlineAsm_X86_64)
 {
-    version = IsX86;
+    version = AsmX86;
     enum has64BitXCHG = true;
     enum has64BitCAS = true;
     enum has128BitCAS = true;
@@ -617,7 +617,7 @@ else
 
 private
 {
-    version (IsX86)
+    version (AsmX86)
     {
         // NOTE: Strictly speaking, the x86 supports atomic operations on
         //       unaligned values.  However, this is far slower than the
@@ -635,6 +635,18 @@ private
                 return cast(size_t)ptr % size_t.sizeof == 0;
             else
                 return cast(size_t)ptr % T.sizeof == 0;
+        }
+    }
+    else
+    {
+        bool atomicValueIsProperlyAligned(T)(ref T val) pure nothrow @nogc @trusted
+        {
+            return true;
+        }
+
+        bool atomicPtrIsProperlyAligned(T)(T*) pure nothrow @nogc @safe
+        {
+            return true;
         }
     }
 

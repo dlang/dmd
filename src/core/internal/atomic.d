@@ -164,7 +164,7 @@ inout(T) atomicLoad(MemoryOrder order = MemoryOrder.seq, T)(inout(T)* src) pure 
         return *src;
 }
 
-void atomicStore(MemoryOrder order = MemoryOrder.seq, T)(T* dest, T value) pure nothrow @nogc @safe
+void atomicStore(MemoryOrder order = MemoryOrder.seq, T)(T* dest, T value) pure nothrow @nogc @trusted
     if (CanCAS!T)
 {
     static assert(order != MemoryOrder.acq, "Invalid MemoryOrder for atomicStore()");
@@ -233,7 +233,7 @@ void atomicStore(MemoryOrder order = MemoryOrder.seq, T)(T* dest, T value) pure 
         *dest = value;
 }
 
-T atomicFetchAdd(MemoryOrder order = MemoryOrder.seq, bool result = true, T)(T* dest, T value) pure nothrow @nogc @safe
+T atomicFetchAdd(MemoryOrder order = MemoryOrder.seq, bool result = true, T)(T* dest, T value) pure nothrow @nogc @trusted
     if (is(T : ulong))
 {
     version (D_InlineAsm_X86)
@@ -280,13 +280,13 @@ T atomicFetchAdd(MemoryOrder order = MemoryOrder.seq, bool result = true, T)(T* 
         static assert (false, "Unsupported architecture.");
 }
 
-T atomicFetchSub(MemoryOrder order = MemoryOrder.seq, bool result = true, T)(T* dest, T value) pure nothrow @nogc @safe
+T atomicFetchSub(MemoryOrder order = MemoryOrder.seq, bool result = true, T)(T* dest, T value) pure nothrow @nogc @trusted
     if (is(T : ulong))
 {
     return atomicFetchAdd(dest, cast(T)-cast(IntOrLong!T)value);
 }
 
-T atomicExchange(MemoryOrder order = MemoryOrder.seq, bool result = true, T)(T* dest, T value) pure nothrow @nogc @safe
+T atomicExchange(MemoryOrder order = MemoryOrder.seq, bool result = true, T)(T* dest, T value) pure nothrow @nogc @trusted
     if (is(T : ulong) || is(T == class) || is(T U : U*))
 {
     version (D_InlineAsm_X86)
@@ -335,7 +335,7 @@ T atomicExchange(MemoryOrder order = MemoryOrder.seq, bool result = true, T)(T* 
 
 alias atomicCompareExchangeWeak = atomicCompareExchangeStrong;
 
-bool atomicCompareExchangeStrong(MemoryOrder succ = MemoryOrder.seq, MemoryOrder fail = MemoryOrder.seq, T)(T* dest, T* compare, T value) pure nothrow @nogc @safe
+bool atomicCompareExchangeStrong(MemoryOrder succ = MemoryOrder.seq, MemoryOrder fail = MemoryOrder.seq, T)(T* dest, T* compare, T value) pure nothrow @nogc @trusted
     if (CanCAS!T)
 {
     version (D_InlineAsm_X86)
@@ -476,7 +476,7 @@ bool atomicCompareExchangeStrong(MemoryOrder succ = MemoryOrder.seq, MemoryOrder
         static assert (false, "Unsupported architecture.");
 }
 
-bool atomicCompareExchangeStrongNoResult(MemoryOrder succ = MemoryOrder.seq, MemoryOrder fail = MemoryOrder.seq, T)(T* dest, const T compare, T value) pure nothrow @nogc @safe
+bool atomicCompareExchangeStrongNoResult(MemoryOrder succ = MemoryOrder.seq, MemoryOrder fail = MemoryOrder.seq, T)(T* dest, const T compare, T value) pure nothrow @nogc @trusted
     if (CanCAS!T)
 {
     version (D_InlineAsm_X86)
@@ -589,7 +589,7 @@ bool atomicCompareExchangeStrongNoResult(MemoryOrder succ = MemoryOrder.seq, Mem
         static assert (false, "Unsupported architecture.");
 }
 
-void atomicFence(MemoryOrder order = MemoryOrder.seq)() pure nothrow @nogc @safe
+void atomicFence(MemoryOrder order = MemoryOrder.seq)() pure nothrow @nogc @trusted
 {
     // TODO: `mfence` should only be required for seq_cst operations, but this depends on
     //       the compiler's backend knowledge to not reorder code inappropriately,
@@ -645,7 +645,7 @@ void atomicFence(MemoryOrder order = MemoryOrder.seq)() pure nothrow @nogc @safe
     }
 }
 
-void pause() pure nothrow @nogc @safe
+void pause() pure nothrow @nogc @trusted
 {
     version (D_InlineAsm_X86)
     {
