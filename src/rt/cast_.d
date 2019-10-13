@@ -20,7 +20,7 @@ bool compareClassInfo(ClassInfo a, ClassInfo b)
 {
     if (a is b)
         return true;
-    return a.info.name == b.info.name;
+    return (a && b) && a.info.name == b.info.name;
 }
 
 extern (C):
