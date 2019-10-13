@@ -601,36 +601,13 @@ public int runLINK()
          */
 
         // STEP 1
-        if (global.params.noXlinker) // See https://issues.dlang.org/show_bug.cgi?id=6952
+        foreach (pi, p; global.params.linkswitches)
         {
-            const(char)* prior;
-            foreach (p; global.params.linkswitches)
+            if (p && p[0] && !flagIsLibraryRelated(p))
             {
-                // link switches with a prepended "-Xlinker" should be
-                // be pushed together to `linkerArgs`
-
-                if (p && p[0] && strcmp(p, "-Xlinker") != 0)
-                {
-                    if (!flagIsLibraryRelated(p))
-                    {
-                        if (prior && prior[0] && strcmp(prior, "-Xlinker") == 0)
-                            argv.push(prior);
-                        argv.push(p);
-                    }
-                }
-
-                prior = p;
-            }
-        }
-        else
-        {
-            foreach (p; global.params.linkswitches)
-            {
-                if (p && p[0] && !flagIsLibraryRelated(p))
-                {
+                if (!global.params.linkswitchIsForCC[pi])
                     argv.push("-Xlinker");
-                    argv.push(p);
-                }
+                argv.push(p);
             }
         }
 
@@ -642,32 +619,19 @@ public int runLINK()
         }
 
         // STEP 3
-        if (global.params.noXlinker) // See https://issues.dlang.org/show_bug.cgi?id=6952
+        foreach (pi, p; global.params.linkswitches)
         {
-            foreach (p; global.params.linkswitches)
+            if (p && p[0] && flagIsLibraryRelated(p))
             {
-                if (p && p[0] && flagIsLibraryRelated(p))
+                if (!startsWith(p, "-l") && !startsWith(p, "-L") && !global.params.linkswitchIsForCC[pi])
                 {
-                    argv.push(p);
+                    // Don't need -Xlinker if switch starts with -l or -L.
+                    // Eliding -Xlinker is significant for -L since it allows our paths
+                    // to take precedence over gcc defaults.
+                    // All other link switches were already added in step 1.
+                    argv.push("-Xlinker");
                 }
-            }
-        }
-        else
-        {
-            foreach (p; global.params.linkswitches)
-            {
-                if (flagIsLibraryRelated(p))
-                {
-                    if (!startsWith(p, "-l") && !startsWith(p, "-L"))
-                    {
-                        // Don't need -Xlinker if switch starts with -l or -L.
-                        // Eliding -Xlinker is significant for -L since it allows our paths
-                        // to take precedence over gcc defaults.
-                        // All other link switches were already added in step 1.
-                        argv.push("-Xlinker");
-                    }
-                    argv.push(p);
-                }
+                argv.push(p);
             }
         }
 

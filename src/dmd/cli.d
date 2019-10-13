@@ -418,7 +418,7 @@ dmd -cov -unittest myprog.d
             "pass linkerflag to link",
             `Pass $(I linkerflag) to the
             $(WINDOWS linker $(OPTLINK))
-            $(UNIX linker), for example,`,
+            $(UNIX linker), for example, ld`,
         ),
         Option("lib",
             "generate library rather than object files",
@@ -673,6 +673,11 @@ dmd -cov -unittest myprog.d
         Option("Xf=<filename>",
             "write JSON file to filename"
         ),
+        Option("Xcc=<driverflag>",
+            "pass driverflag to linker driver (cc)",
+            "Pass $(I driverflag) to the linker driver (`$CC` or `cc`)",
+            TargetOS.all & ~TargetOS.windows
+        ),
     ];
 
     /// Representation of a CLI feature
@@ -727,8 +732,6 @@ dmd -cov -unittest myprog.d
             "enable rvalue arguments to ref parameters"),
         Feature("nosharedaccess", "noSharedAccess",
             "disable access to shared memory objects"),
-        Feature("noXlinker", "noXlinker",
-            "do not prepend `-Xlinker` to `-L` command-line arguments when invoking the linker"),
     ];
 }
 

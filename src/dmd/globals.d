@@ -184,8 +184,6 @@ extern (C++) struct Param
     bool markdown;          // enable Markdown replacements in Ddoc
     bool vmarkdown;         // list instances of Markdown replacements in Ddoc
 
-    bool noXlinker;         // do not prepend `-Xlinker` to `-L` command-line options when invoking the linker
-
     bool showGaggedErrors;  // print gagged errors anyway
     bool printErrorContext;  // print errors with the error context (the error line in the source file)
     bool manual;            // open browser on compiler manual
@@ -266,6 +264,7 @@ extern (C++) struct Param
     // Linker stuff
     Array!(const(char)*) objfiles;
     Array!(const(char)*) linkswitches;
+    Array!bool linkswitchIsForCC;
     Array!(const(char)*) libfiles;
     Array!(const(char)*) dllfiles;
     const(char)[] deffile;
