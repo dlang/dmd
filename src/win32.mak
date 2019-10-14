@@ -244,7 +244,7 @@ auto-tester-build: $G dmd checkwhitespace $(DMDFRONTENDEXE)
 dmd: $G reldmd
 
 $(GEN)\build.exe: build.d $(HOST_DMD_PATH)
-	$(HOST_DC) -m$(MODEL) -of$@ -debug build.d
+	$(HOST_DC) -m$(MODEL) -of$@ build.d
 
 release:
 	$(DMDMAKE) clean
