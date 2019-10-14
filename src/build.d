@@ -679,15 +679,17 @@ void processEnvironment()
 {
     const os = env["OS"];
 
-    auto hostDMDVersion = [env["HOST_DMD_RUN"], "--version"].execute.output;
-    if (hostDMDVersion.canFind("DMD"))
+    const hostDMDVersion = [env["HOST_DMD_RUN"], "--version"].execute.output;
+    const kindIdx = hostDMDVersion.canFind("DMD", "LDC", "GDC", "gdmd", "gdc");
+
+    enforce(kindIdx, "Invalid Host DMD found: " ~ hostDMDVersion);
+
+    if (kindIdx == 1)
         env["HOST_DMD_KIND"] = "dmd";
-    else if (hostDMDVersion.canFind("LDC"))
+    else if (kindIdx == 2)
         env["HOST_DMD_KIND"] = "ldc";
-    else if (hostDMDVersion.canFind("GDC", "gdmd", "gdc"))
-        env["HOST_DMD_KIND"] = "gdc";
     else
-        enforce(0, "Invalid Host DMD found: " ~ hostDMDVersion);
+        env["HOST_DMD_KIND"] = "gdc";
 
     env["DMD_PATH"] = env["G"].buildPath("dmd").exeName;
 
