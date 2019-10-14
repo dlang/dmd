@@ -286,7 +286,7 @@ public int runLINK()
                 cmdbuf.writeByte(' ');
                 cmdbuf.writestring("/DLL");
             }
-            for (size_t i = 0; i < global.params.linkswitches.dim; i++)
+            for (size_t i = 0; i < global.params.linkswitches.length; i++)
             {
                 cmdbuf.writeByte(' ');
                 cmdbuf.writeQuotedArgIfNeeded(global.params.linkswitches[i]);
@@ -415,7 +415,7 @@ public int runLINK()
                     cmdbuf.writestring("/co");
             }
             cmdbuf.writestring("/noi");
-            for (size_t i = 0; i < global.params.linkswitches.dim; i++)
+            for (size_t i = 0; i < global.params.linkswitches.length; i++)
             {
                 cmdbuf.writestring(global.params.linkswitches[i]);
             }
