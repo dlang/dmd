@@ -18,8 +18,8 @@ struct Array
     d_size_t length;
 
   private:
-    TYPE *data;
     d_size_t allocdim;
+    TYPE *data;
     #define SMALLARRAYCAP       1
     TYPE smallarray[SMALLARRAYCAP];    // inline storage for small arrays
 
