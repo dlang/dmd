@@ -261,7 +261,7 @@ public int runLINK()
                 cmdbuf.writestring("/MAP:");
                 writeFilename(&cmdbuf, getMapFilename());
             }
-            for (size_t i = 0; i < global.params.libfiles.dim; i++)
+            for (size_t i = 0; i < global.params.libfiles.length; i++)
             {
                 cmdbuf.writeByte(' ');
                 cmdbuf.writestring("/DEFAULTLIB:");
@@ -372,7 +372,7 @@ public int runLINK()
             else
                 cmdbuf.writestring("nul");
             cmdbuf.writeByte(',');
-            for (size_t i = 0; i < global.params.libfiles.dim; i++)
+            for (size_t i = 0; i < global.params.libfiles.length; i++)
             {
                 if (i)
                     cmdbuf.writeByte('+');
