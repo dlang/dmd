@@ -271,13 +271,13 @@ void genCppHdrFiles(ref Modules ms)
     if (global.params.cxxhdrname is null)
     {
         // Write to stdout; assume it succeeds
-        size_t n = fwrite(buf.data, 1, buf.offset, stdout);
-        assert(n == buf.offset); // keep gcc happy about return values
+        size_t n = fwrite(buf[].ptr, 1, buf.length, stdout);
+        assert(n == buf.length); // keep gcc happy about return values
     }
     else
     {
         const(char)[] name = FileName.combine(global.params.cxxhdrdir, global.params.cxxhdrname);
-        writeFile(Loc.initial, name, buf.peekSlice());
+        writeFile(Loc.initial, name, buf[]);
     }
 }
 
@@ -1577,7 +1577,7 @@ public:
         if (e.sz == 2)
             buf.writeByte('L');
         buf.writeByte('"');
-        size_t o = buf.offset;
+        size_t o = buf.length;
         for (size_t i = 0; i < e.len; i++)
         {
             uint c = e.charAt(i);
