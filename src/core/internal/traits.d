@@ -240,6 +240,12 @@ template maxAlignment(U...)
     }
 }
 
+template classInstanceAlignment(T)
+if (is(T == class))
+{
+    alias classInstanceAlignment = maxAlignment!(void*, typeof(T.tupleof));
+}
+
 /// See $(REF hasElaborateMove, std,traits)
 template hasElaborateMove(S)
 {
