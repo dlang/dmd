@@ -227,7 +227,7 @@ public int runLINK()
         {
             OutBuffer cmdbuf;
             cmdbuf.writestring("/NOLOGO");
-            for (size_t i = 0; i < global.params.objfiles.dim; i++)
+            for (size_t i = 0; i < global.params.objfiles.length; i++)
             {
                 cmdbuf.writeByte(' ');
                 const(char)* p = global.params.objfiles[i];
@@ -337,7 +337,7 @@ public int runLINK()
             OutBuffer cmdbuf;
             global.params.libfiles.push("user32");
             global.params.libfiles.push("kernel32");
-            for (size_t i = 0; i < global.params.objfiles.dim; i++)
+            for (size_t i = 0; i < global.params.objfiles.length; i++)
             {
                 if (i)
                     cmdbuf.writeByte('+');

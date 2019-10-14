@@ -486,7 +486,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         if (m.isHdrFile)
         {
             // Remove m's object file from list of object files
-            for (size_t j = 0; j < params.objfiles.dim; j++)
+            for (size_t j = 0; j < params.objfiles.length; j++)
             {
                 if (m.objfile.toChars() == params.objfiles[j])
                 {
@@ -494,7 +494,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
                     break;
                 }
             }
-            if (params.objfiles.dim == 0)
+            if (params.objfiles.length == 0)
                 params.link = false;
         }
         if (m.isDocFile)
@@ -505,7 +505,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             modules.remove(modi);
             modi--;
             // Remove m's object file from list of object files
-            for (size_t j = 0; j < params.objfiles.dim; j++)
+            for (size_t j = 0; j < params.objfiles.length; j++)
             {
                 if (m.objfile.toChars() == params.objfiles[j])
                 {
@@ -513,7 +513,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
                     break;
                 }
             }
-            if (params.objfiles.dim == 0)
+            if (params.objfiles.length == 0)
                 params.link = false;
         }
     }
@@ -647,7 +647,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     Library library = null;
     if (params.lib)
     {
-        if (params.objfiles.dim == 0)
+        if (params.objfiles.length == 0)
         {
             error(Loc.initial, "no input files");
             return EXIT_FAILURE;
@@ -730,7 +730,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (global.errors)
         fatal();
     int status = EXIT_SUCCESS;
-    if (!params.objfiles.dim)
+    if (!params.objfiles.length)
     {
         if (params.link)
             error(Loc.initial, "no object files to link");
@@ -826,7 +826,7 @@ extern (C++) void generateJson(Modules* modules)
         }
         else
         {
-            if (global.params.objfiles.dim == 0)
+            if (global.params.objfiles.length == 0)
             {
                 error(Loc.initial, "cannot determine JSON filename, use `-Xf=<file>` or provide a source file");
                 fatal();
