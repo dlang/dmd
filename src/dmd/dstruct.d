@@ -208,6 +208,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     FuncDeclaration postblit;   // aggregate postblit
 
     bool hasCopyCtor;       // copy constructor
+    bool hasMoveCtor;       // move constructor
 
     FuncDeclaration xeq;        // TypeInfo_Struct.xopEquals
     FuncDeclaration xcmp;       // TypeInfo_Struct.xopCmp
@@ -564,7 +565,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
 
         ispod = StructPOD.yes;
 
-        if (enclosing || postblit || dtor || hasCopyCtor)
+        if (enclosing || postblit || dtor || hasCopyCtor || hasMoveCtor)
             ispod = StructPOD.no;
 
         // Recursively check all fields are POD.

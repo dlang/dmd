@@ -3423,23 +3423,27 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
 extern (C++) final class CtorDeclaration : FuncDeclaration
 {
     bool isCpCtor;
-    extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, Type type, bool isCpCtor = false)
+    bool isMvCtor;
+    extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, Type type, int isCpCtor = 0)
     {
         super(loc, endloc, Id.ctor, stc, type);
-        this.isCpCtor = isCpCtor;
+        if (isCpCtor == 1)
+            this.isCpCtor = true;
+        else if (isCpCtor == 2)
+            this.isMvCtor = true;
         //printf("CtorDeclaration(loc = %s) %s\n", loc.toChars(), toChars());
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        auto f = new CtorDeclaration(loc, endloc, storage_class, type.syntaxCopy());
+        auto f = new CtorDeclaration(loc, endloc, storage_class, type.syntaxCopy(), isMvCtor ? 2 : isCpCtor);
         return FuncDeclaration.syntaxCopy(f);
     }
 
     override const(char)* kind() const
     {
-        return isCpCtor ? "copy constructor" : "constructor";
+        return isCpCtor ? "copy constructor" : isMvCtor ? "move constructor" : "constructor";
     }
 
     override const(char)* toChars() const

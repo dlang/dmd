@@ -962,7 +962,7 @@ private final class CppMangleVisitor : Visitor
                 this.mangleNestedFuncPrefix(tf, p);
 
                 if (auto ctor = d.isCtorDeclaration())
-                    buf.writestring(ctor.isCpCtor ? "C2" : "C1");
+                    buf.writestring(ctor.isCpCtor || ctor.isMvCtor ? "C2" : "C1");
                 else if (d.isPrimaryDtor())
                     buf.writestring("D1");
                 else if (d.ident && d.ident == Id.assign)

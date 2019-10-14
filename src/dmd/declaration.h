@@ -668,6 +668,7 @@ class CtorDeclaration : public FuncDeclaration
 {
 public:
     bool isCpCtor;
+    bool isMvCtor;
     Dsymbol *syntaxCopy(Dsymbol *);
     const char *kind() const;
     const char *toChars() const;

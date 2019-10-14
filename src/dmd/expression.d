@@ -454,6 +454,37 @@ private Expression callCpCtor(Scope* sc, Expression e, Type destinationType)
     return e;
 }
 
+/*********************************************
+ * If e is an instance of a struct, and that struct has a move constructor,
+ * rewrite e as:
+ *    (tmp = e),tmp
+ * Input:
+ *      sc = just used to specify the scope of created temporary variable
+ *      destinationType = the type of the object on which the copy constructor is called
+ */
+private Expression callMvCtor(Scope* sc, Expression e, Type destinationType)
+{
+    if (auto ts = e.type.baseElemOf().isTypeStruct())
+    {
+        StructDeclaration sd = ts.sym;
+        if (sd.hasMoveCtor)
+        {
+            /* (tmp = e),tmp */
+            auto tmp = copyToTemp(STC.rvalue, "__movetmp", e);
+            if (destinationType)
+                tmp.type = destinationType;
+            tmp.storage_class |= STC.nodtor;
+            tmp.dsymbolSemantic(sc);
+            Expression de = new DeclarationExp(e.loc, tmp);
+            Expression ve = new VarExp(e.loc, tmp);
+            de.type = Type.tvoid;
+            ve.type = e.type;
+            return Expression.combine(de, ve);
+        }
+    }
+    return valueNoDtor(e);
+}
+
 /************************************************
  * Handle the postblit call on lvalue, or the move of rvalue.
  *
@@ -474,7 +505,7 @@ extern (D) Expression doCopyOrMove(Scope *sc, Expression e, Type t = null)
     }
     else
     {
-        e = e.isLvalue() ? callCpCtor(sc, e, t) : valueNoDtor(e);
+        e = e.isLvalue() && !e.type.isrvalue && !e.isRvalueRef() ? callCpCtor(sc, e, t) : callMvCtor(sc, e, t);
     }
     return e;
 }
@@ -499,6 +530,19 @@ bool isRvalueRef(Expression exp)
         return false;
     }
     return false;
+}
+
+/****************************************************************/
+Expression moveExp(const ref Loc loc, Expression exp)
+{
+    if (!exp.isLvalue())
+        return exp;
+    auto ce = new CastExp(loc, exp, null);
+    if (global.params.rvalueType)
+        ce.rvalueType = true;
+    else
+        ce.rvalueRef = true;
+    return ce;
 }
 
 /****************************************************************/
