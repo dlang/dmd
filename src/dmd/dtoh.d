@@ -460,7 +460,7 @@ public:
             }
         }
 
-        funcToBuffer(tf, fd.ident, fd.isCtorDeclaration() !is null);
+        funcToBuffer(tf, fd);
         if (adparent && tf.isConst())
         {
             bool fdOverridesAreConst = true;
@@ -663,6 +663,11 @@ public:
                 buf.printf("\n");
             return;
         }
+        if (auto fd = ad.aliassym.isDtorDeclaration())
+        {
+            // Ignore. It's taken care of while visiting FuncDeclaration
+            return;
+        }
         indent();
         buf.printf("// ignored %s %s\n", ad.aliassym.kind(), ad.aliassym.toPrettyChars());
     }
@@ -739,8 +744,6 @@ public:
                 m.accept(this);
             }
             adparent = save;
-            version (none)
-            {
             // Generate default ctor
             buf.printf("    %s(", sd.ident.toChars());
             buf.printf(") {");
@@ -767,37 +770,39 @@ public:
             }
             buf.printf(" }\n");
 
-            if (varCount)
+            version (none)
             {
-                buf.printf("    %s(", sd.ident.toChars());
-                bool first = true;
-                foreach (m; *sd.members)
+                if (varCount)
                 {
-                    if (auto vd = m.isVarDeclaration())
+                    buf.printf("    %s(", sd.ident.toChars());
+                    bool first = true;
+                    foreach (m; *sd.members)
                     {
-                        if (!memberField(vd))
-                            continue;
-                        if (first)
-                            first = false;
-                        else
-                            buf.writestring(", ");
-                        assert(vd.type);
-                        assert(vd.ident);
-                        typeToBuffer(vd.type, vd.ident);
+                        if (auto vd = m.isVarDeclaration())
+                        {
+                            if (!memberField(vd))
+                                continue;
+                            if (first)
+                                first = false;
+                            else
+                                buf.writestring(", ");
+                            assert(vd.type);
+                            assert(vd.ident);
+                            typeToBuffer(vd.type, vd.ident);
+                        }
                     }
-                }
-                buf.printf(") {");
-                foreach (m; *sd.members)
-                {
-                    if (auto vd = m.isVarDeclaration())
+                    buf.printf(") {");
+                    foreach (m; *sd.members)
                     {
-                        if (!memberField(vd))
-                            continue;
-                        buf.printf(" this->%s = %s;", vd.ident.toChars(), vd.ident.toChars());
+                        if (auto vd = m.isVarDeclaration())
+                        {
+                            if (!memberField(vd))
+                                continue;
+                            buf.printf(" this->%s = %s;", vd.ident.toChars(), vd.ident.toChars());
+                        }
                     }
+                    buf.printf(" }\n");
                 }
-                buf.printf(" }\n");
-            }
             }
             buf.writestring("};\n");
 
@@ -1446,7 +1451,7 @@ public:
             buf.writestring(" const");
     }
 
-    private void funcToBuffer(AST.TypeFunction tf, Identifier ident, bool isCtor)
+    private void funcToBuffer(AST.TypeFunction tf, AST.FuncDeclaration fd)
     {
         debug (Debug_DtoH)
         {
@@ -1454,17 +1459,16 @@ public:
             scope(exit) printf("[funcToBuffer(AST.TypeFunction) exit] %s\n", tf.toChars());
         }
 
+        Identifier ident = fd.ident;
+
         assert(tf.next);
-        if (isCtor)
+        if (fd.isCtorDeclaration() || fd.isDtorDeclaration())
         {
-            if (tf.next.isTypeStruct())
+            if (fd.isDtorDeclaration())
             {
-                buf.writestring(tf.next.isTypeStruct().sym.toChars());
+                buf.writeByte('~');
             }
-            else
-            {
-                buf.writestring(tf.next.isTypeClass().sym.toChars());
-            }
+            buf.writestring(adparent.toChars());
         }
         else
         {
