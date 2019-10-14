@@ -1671,7 +1671,6 @@ unittest
 // Multiple threads running shared fibers
 unittest
 {
-    pragma(msg, "run");
     shared bool[10] locks;
     TestFiber[10] fibs;
 
