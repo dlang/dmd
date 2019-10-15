@@ -196,7 +196,7 @@ GLUESRC= \
 # D back end
 BACKSRC= \
 	$C/code_stub.h $C/platform_stub.c \
-	$C\bcomplex.d $C\blockopt.d $C\cg.d $C\cg87.d $C\cgxmm.d \
+	$C\backend.d $C\bcomplex.d $C\blockopt.d $C\cg.d $C\cg87.d $C\cgxmm.d \
 	$C\cgcod.d $C\cgcs.d $C\dcgcv.d $C\cgelem.d $C\cgen.d $C\cgobj.d \
 	$C\compress.d $C\cgreg.d $C\var.d $C\cgcse.d \
 	$C\cgsched.d $C\cod1.d $C\cod2.d $C\cod3.d $C\cod4.d $C\cod5.d \
