@@ -2622,7 +2622,7 @@ extern (C++) final class StringExp : Expression
         return s[0 .. nbytes];
     }
 
-    extern (D) const(char)[] peekSlice() const
+    extern (D) const(char)[] peekString() const
     {
         assert(sz == 1);
         return this.string[0 .. len];

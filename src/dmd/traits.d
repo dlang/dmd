@@ -905,7 +905,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             e.error("string must be chars");
             return new ErrorExp();
         }
-        auto id = Identifier.idPool(se.peekSlice());
+        auto id = Identifier.idPool(se.peekString());
 
         /* Prefer dsymbol, because it might need some runtime contexts.
          */

@@ -1120,7 +1120,7 @@ private final class CppMangleVisitor : Visitor
                 switch (whichOp)
                 {
                 case CppOperator.Unary:
-                    switch (str.peekSlice())
+                    switch (str.peekString())
                     {
                     case "*":   symName = "de"; goto continue_template;
                     case "++":  symName = "pp"; goto continue_template;
@@ -1132,7 +1132,7 @@ private final class CppMangleVisitor : Visitor
                     }
                     break;
                 case CppOperator.Binary:
-                    switch (str.peekSlice())
+                    switch (str.peekString())
                     {
                     case ">>":  symName = "rs"; goto continue_template;
                     case "<<":  symName = "ls"; goto continue_template;
@@ -1148,7 +1148,7 @@ private final class CppMangleVisitor : Visitor
                     }
                     break;
                 case CppOperator.OpAssign:
-                    switch (str.peekSlice())
+                    switch (str.peekString())
                     {
                     case "*":   symName = "mL"; goto continue_template;
                     case "+":   symName = "pL"; goto continue_template;
