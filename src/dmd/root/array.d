@@ -19,9 +19,9 @@ import dmd.root.rmem;
 extern (C++) struct Array(T)
 {
     size_t length;
-    T* data;
 
 private:
+    T* data;
     size_t allocdim;
     enum SMALLARRAYCAP = 1;
     T[SMALLARRAYCAP] smallarray; // inline storage for small arrays
@@ -45,7 +45,7 @@ public:
             mem.xfree(data);
     }
     ///returns elements comma separated in []
-    extern(D) const(char)[] toString()
+    extern(D) const(char)[] toString() const
     {
         static if (is(typeof(T.init.toString())))
         {
@@ -56,7 +56,7 @@ public:
                 buf[u] = data[u].toString();
                 len += buf[u].length + 1; //length + ',' or null terminator
             }
-            char[] str = (cast(char*)mem.xmalloc(len))[0..len];
+            char[] str = (cast(char*)mem.xmalloc_noscan(len))[0..len];
 
             str[0] = '[';
             char* p = str.ptr + 1;
@@ -79,7 +79,7 @@ public:
         }
     }
     ///ditto
-    const(char)* toChars()
+    const(char)* toChars() const
     {
         return toString.ptr;
     }
@@ -140,6 +140,9 @@ public:
                 allocdim = length + increment;
                 data = cast(T*)mem.xrealloc(data, allocdim * (*data).sizeof);
             }
+            if (mem.isGCEnabled)
+                if (length + nentries < allocdim)
+                    memset(data + length + nentries, 0, (allocdim - length - nentries) * data[0].sizeof);
         }
     }
 
@@ -249,7 +252,7 @@ unittest
     static struct S
     {
         int s = -1;
-        string toString()
+        string toString() const
         {
             return "S";
         }
@@ -316,7 +319,7 @@ nothrow:
         immutable obytes = (len + 7) / 8;
         immutable nbytes = (nlen + 7) / 8;
         // bt*() access memory in size_t chunks, so round up.
-        ptr = cast(size_t*)mem.xrealloc(ptr,
+        ptr = cast(size_t*)mem.xrealloc_noscan(ptr,
             (nbytes + (size_t.sizeof - 1)) & ~(size_t.sizeof - 1));
         if (nbytes > obytes)
             (cast(ubyte*)ptr)[obytes .. nbytes] = 0;

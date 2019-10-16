@@ -105,7 +105,7 @@ final class LibMSCoff : Library
         {
             assert(module_name[0]);
             // read file and take buffer ownership
-            auto data = readFile(Loc.initial, module_name).extractData();
+            auto data = readFile(Loc.initial, module_name).extractSlice();
             buf = data.ptr;
             buflen = data.length;
             fromfile = 1;
@@ -462,7 +462,7 @@ private:
         }
         libbuf.reserve(moffset);
         /************* Write the library ******************/
-        libbuf.write("!<arch>\n".ptr, 8);
+        libbuf.write("!<arch>\n");
         MSCoffObjModule om;
         om.name_offset = -1;
         om.base = null;
@@ -476,15 +476,15 @@ private:
         om.group_id = 0;
         om.file_mode = 0;
         /*** Write out First Linker Member ***/
-        assert(libbuf.offset == firstLinkerMemberOffset);
+        assert(libbuf.length == firstLinkerMemberOffset);
         MSCoffLibHeader h;
         MSCoffOmToHeader(&h, &om);
-        libbuf.write(&h, h.sizeof);
+        libbuf.write((&h)[0 .. 1]);
         char[4] buf;
         Port.writelongBE(cast(uint)objsymbols.dim, buf.ptr);
-        libbuf.write(buf.ptr, 4);
+        libbuf.write(buf[0 .. 4]);
         // Sort objsymbols[] in module offset order
-        qsort(objsymbols.data, objsymbols.dim, (objsymbols.data[0]).sizeof, cast(_compare_fp_t)&MSCoffObjSymbol_offset_cmp);
+        qsort(objsymbols[].ptr, objsymbols.dim, (objsymbols[0]).sizeof, cast(_compare_fp_t)&MSCoffObjSymbol_offset_cmp);
         uint lastoffset;
         for (size_t i = 0; i < objsymbols.dim; i++)
         {
@@ -497,7 +497,7 @@ private:
             }
             lastoffset = os.om.offset;
             Port.writelongBE(lastoffset, buf.ptr);
-            libbuf.write(buf.ptr, 4);
+            libbuf.write(buf[0 .. 4]);
         }
         for (size_t i = 0; i < objsymbols.dim; i++)
         {
@@ -506,30 +506,30 @@ private:
             libbuf.writeByte(0);
         }
         /*** Write out Second Linker Member ***/
-        if (libbuf.offset & 1)
+        if (libbuf.length & 1)
             libbuf.writeByte('\n');
-        assert(libbuf.offset == secondLinkerMemberOffset);
+        assert(libbuf.length == secondLinkerMemberOffset);
         om.length = cast(uint)(4 + objmodules.dim * 4 + 4 + objsymbols.dim * 2 + slength);
         MSCoffOmToHeader(&h, &om);
-        libbuf.write(&h, h.sizeof);
+        libbuf.write((&h)[0 .. 1]);
         Port.writelongLE(cast(uint)objmodules.dim, buf.ptr);
-        libbuf.write(buf.ptr, 4);
+        libbuf.write(buf[0 .. 4]);
         for (size_t i = 0; i < objmodules.dim; i++)
         {
             MSCoffObjModule* om2 = objmodules[i];
             om2.index = cast(ushort)i;
             Port.writelongLE(om2.offset, buf.ptr);
-            libbuf.write(buf.ptr, 4);
+            libbuf.write(buf[0 .. 4]);
         }
         Port.writelongLE(cast(uint)objsymbols.dim, buf.ptr);
-        libbuf.write(buf.ptr, 4);
+        libbuf.write(buf[0 .. 4]);
         // Sort objsymbols[] in lexical order
-        qsort(objsymbols.data, objsymbols.dim, (objsymbols.data[0]).sizeof, cast(_compare_fp_t)&MSCoffObjSymbol_cmp);
+        qsort(objsymbols[].ptr, objsymbols.dim, (objsymbols[0]).sizeof, cast(_compare_fp_t)&MSCoffObjSymbol_cmp);
         for (size_t i = 0; i < objsymbols.dim; i++)
         {
             MSCoffObjSymbol* os = objsymbols[i];
             Port.writelongLE(os.om.index + 1, buf.ptr);
-            libbuf.write(buf.ptr, 2);
+            libbuf.write(buf[0 .. 2]);
         }
         for (size_t i = 0; i < objsymbols.dim; i++)
         {
@@ -538,10 +538,10 @@ private:
             libbuf.writeByte(0);
         }
         /*** Write out longnames Member ***/
-        if (libbuf.offset & 1)
+        if (libbuf.length & 1)
             libbuf.writeByte('\n');
-        //printf("libbuf %x longnames %x\n", (int)libbuf.offset, (int)LongnamesMemberOffset);
-        assert(libbuf.offset == LongnamesMemberOffset);
+        //printf("libbuf %x longnames %x\n", (int)libbuf.length, (int)LongnamesMemberOffset);
+        assert(libbuf.length == LongnamesMemberOffset);
         // header
         memset(&h, ' ', MSCoffLibHeader.sizeof);
         h.object_name[0] = '/';
@@ -551,7 +551,7 @@ private:
         h.file_size[len] = ' ';
         h.trailer[0] = '`';
         h.trailer[1] = '\n';
-        libbuf.write(&h, h.sizeof);
+        libbuf.write((&h)[0 .. 1]);
         for (size_t i = 0; i < objmodules.dim; i++)
         {
             MSCoffObjModule* om2 = objmodules[i];
@@ -566,27 +566,27 @@ private:
         for (size_t i = 0; i < objmodules.dim; i++)
         {
             MSCoffObjModule* om2 = objmodules[i];
-            if (libbuf.offset & 1)
+            if (libbuf.length & 1)
                 libbuf.writeByte('\n'); // module alignment
-            //printf("libbuf %x om %x\n", (int)libbuf.offset, (int)om2.offset);
-            assert(libbuf.offset == om2.offset);
+            //printf("libbuf %x om %x\n", (int)libbuf.length, (int)om2.offset);
+            assert(libbuf.length == om2.offset);
             if (om2.scan)
             {
                 MSCoffOmToHeader(&h, om2);
-                libbuf.write(&h, h.sizeof); // module header
-                libbuf.write(om2.base, om2.length); // module contents
+                libbuf.write((&h)[0 .. 1]); // module header
+                libbuf.write(om2.base[0 .. om2.length]); // module contents
             }
             else
             {
                 // Header is included in om.base[0..length]
-                libbuf.write(om2.base, om2.length); // module contents
+                libbuf.write(om2.base[0 .. om2.length]); // module contents
             }
         }
         static if (LOG)
         {
-            printf("moffset = x%x, libbuf.offset = x%x\n", cast(uint)moffset, cast(uint)libbuf.offset);
+            printf("moffset = x%x, libbuf.length = x%x\n", cast(uint)moffset, cast(uint)libbuf.length);
         }
-        assert(libbuf.offset == moffset);
+        assert(libbuf.length == moffset);
     }
 }
 

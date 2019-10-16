@@ -10,8 +10,7 @@
 
 #pragma once
 
-#include <stdarg.h>
-#include <stddef.h>
+#include "root/dsystem.h"
 
 struct Loc;
 

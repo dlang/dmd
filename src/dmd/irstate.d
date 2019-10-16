@@ -29,13 +29,12 @@ import dmd.backend.cc;
 import dmd.backend.el;
 
 /****************************************
- * Our label symbol, with vector to keep track of forward references.
+ * Our label symbol
  */
 
 struct Label
 {
     block *lblock;      // The block to which the label is defined.
-    block *fwdrefs;     // The first use of the label before it is defined.
 }
 
 /***********************************************************

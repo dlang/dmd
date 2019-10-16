@@ -30,6 +30,7 @@ import dmd.root.port;
 import dmd.root.rmem;
 import dmd.tokens;
 import dmd.utf;
+import dmd.utils;
 
 nothrow:
 
@@ -315,6 +316,8 @@ class Lexer
     /// Frees the given token by returning it to the freelist.
     private void releaseToken(Token* token) pure nothrow @nogc @safe
     {
+        if (mem.isGCEnabled)
+            *token = Token.init;
         token.next = tokenFreelist;
         tokenFreelist = token;
     }
@@ -437,7 +440,7 @@ class Lexer
                 auto start = p;
                 auto hexString = new OutBuffer();
                 t.value = hexStringConstant(t);
-                hexString.write(start, p - start);
+                hexString.write(start[0 .. p - start]);
                 error("Built-in hex string literals are obsolete, use `std.conv.hexString!%s` instead.", hexString.extractChars());
                 return;
             case 'q':
@@ -2215,7 +2218,7 @@ class Lexer
             ++pstart;
         }
         stringbuffer.writeByte(0);
-        auto sbufptr = cast(const(char)*)stringbuffer.data;
+        auto sbufptr = cast(const(char)*)stringbuffer[].ptr;
         TOK result;
         bool isOutOfRange = false;
         t.floatvalue = (isWellformedString ? CTFloat.parse(sbufptr, &isOutOfRange) : CTFloat.zero);
@@ -2435,7 +2438,7 @@ class Lexer
                         goto Lerr;
                     case '"':
                         stringbuffer.writeByte(0);
-                        filespec = mem.xstrdup(cast(const(char)*)stringbuffer.data);
+                        filespec = mem.xstrdup(cast(const(char)*)stringbuffer[].ptr);
                         p++;
                         break;
                     default:
@@ -2560,7 +2563,7 @@ class Lexer
 
         void trimTrailingWhitespace()
         {
-            const s = buf.peekSlice();
+            const s = buf[];
             auto len = s.length;
             while (len && (s[len - 1] == ' ' || s[len - 1] == '\t'))
                 --len;
@@ -2619,7 +2622,7 @@ class Lexer
         trimTrailingWhitespace();
 
         // Always end with a newline
-        const s = buf.peekSlice();
+        const s = buf[];
         if (s.length == 0 || s[$ - 1] != '\n')
             buf.writeByte('\n');
 
@@ -2628,45 +2631,37 @@ class Lexer
         auto dc = (lineComment && anyToken) ? &t.lineComment : &t.blockComment;
         // Combine with previous doc comment, if any
         if (*dc)
-            *dc = combineComments(*dc, buf.peekChars(), newParagraph);
+            *dc = combineComments(*dc, buf[], newParagraph).toDString();
         else
-            *dc = buf.extractChars();
+            *dc = buf.extractSlice(true);
     }
 
     /********************************************
      * Combine two document comments into one,
      * separated by an extra newline if newParagraph is true.
      */
-    static const(char)* combineComments(const(char)* c1, const(char)* c2, bool newParagraph) pure
+    static const(char)* combineComments(const(char)[] c1, const(char)[] c2, bool newParagraph) pure
     {
         //printf("Lexer::combineComments('%s', '%s', '%i')\n", c1, c2, newParagraph);
-        auto c = c2;
         const(int) newParagraphSize = newParagraph ? 1 : 0; // Size of the combining '\n'
-        if (c1)
-        {
-            c = c1;
-            if (c2)
-            {
-                size_t len1 = strlen(c1);
-                size_t len2 = strlen(c2);
-                int insertNewLine = 0;
-                if (len1 && c1[len1 - 1] != '\n')
-                {
-                    ++len1;
-                    insertNewLine = 1;
-                }
-                auto p = cast(char*)mem.xmalloc(len1 + newParagraphSize + len2 + 1);
-                memcpy(p, c1, len1 - insertNewLine);
-                if (insertNewLine)
-                    p[len1 - 1] = '\n';
-                if (newParagraph)
-                    p[len1] = '\n';
-                memcpy(p + len1 + newParagraphSize, c2, len2);
-                p[len1 + newParagraphSize + len2] = 0;
-                c = p;
-            }
-        }
-        return c;
+        if (!c1)
+            return c2.ptr;
+        if (!c2)
+            return c1.ptr;
+
+        int insertNewLine = 0;
+        if (c1.length && c1[$ - 1] != '\n')
+            insertNewLine = 1;
+        const retSize = c1.length + insertNewLine + newParagraphSize + c2.length;
+        auto p = cast(char*)mem.xmalloc_noscan(retSize + 1);
+        p[0 .. c1.length] = c1[];
+        if (insertNewLine)
+            p[c1.length] = '\n';
+        if (newParagraph)
+            p[c1.length + insertNewLine] = '\n';
+        p[retSize - c2.length .. retSize] = c2[];
+        p[retSize] = 0;
+        return p;
     }
 
 private:

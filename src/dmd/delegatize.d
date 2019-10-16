@@ -41,7 +41,7 @@ import dmd.visitor;
  * Returns:
  *  A delegate literal
  */
-extern (C++) Expression toDelegate(Expression e, Type t, Scope* sc)
+Expression toDelegate(Expression e, Type t, Scope* sc)
 {
     //printf("Expression::toDelegate(t = %s) %s\n", t.toChars(), e.toChars());
     Loc loc = e.loc;
@@ -297,7 +297,7 @@ bool ensureStaticLinkTo(Dsymbol s, Dsymbol p)
             if (ad.storage_class & STC.static_)
                 break;
         }
-        s = toParentP(s, p);
+        s = s.toParentP(p);
     }
     return false;
 }

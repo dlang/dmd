@@ -50,6 +50,7 @@ import dmd.root.rootobject;
 import dmd.root.speller;
 import dmd.statement;
 import dmd.tokens;
+import dmd.utils;
 import dmd.visitor;
 
 /***************************************
@@ -271,7 +272,7 @@ extern (C++) class Dsymbol : ASTNode
         return new Dsymbol(ident);
     }
 
-    override const(char)* toChars()
+    override const(char)* toChars() const
     {
         return ident ? ident.toChars() : "__anonymous";
     }
@@ -295,7 +296,7 @@ extern (C++) class Dsymbol : ASTNode
         return getLoc().toChars();
     }
 
-    override bool equals(RootObject o)
+    override bool equals(const RootObject o) const
     {
         if (this == o)
             return true;
@@ -522,6 +523,16 @@ extern (C++) class Dsymbol : ASTNode
         return parent.toParentDeclImpl(localOnly);
     }
 
+    /**
+     * Returns the declaration scope scope of `this` unless any of the symbols
+     * `p1` or `p2` resides in its enclosing instantiation scope then the
+     * latter is returned.
+     */
+    final Dsymbol toParentP(Dsymbol p1, Dsymbol p2 = null)
+    {
+        return followInstantiationContext(p1, p2) ? toParent2() : toParentLocal();
+    }
+
     final inout(TemplateInstance) isInstantiated() inout
     {
         if (!parent)
@@ -530,6 +541,50 @@ extern (C++) class Dsymbol : ASTNode
         if (ti && !ti.isTemplateMixin())
             return ti;
         return parent.isInstantiated();
+    }
+
+    /***
+     * Returns true if any of the symbols `p1` or `p2` resides in the enclosing
+     * instantiation scope of `this`.
+     */
+    final bool followInstantiationContext(Dsymbol p1, Dsymbol p2 = null)
+    {
+        static bool has2This(Dsymbol s)
+        {
+            if (auto f = s.isFuncDeclaration())
+                return f.isThis2;
+            if (auto ad = s.isAggregateDeclaration())
+                return ad.vthis2 !is null;
+            return false;
+        }
+
+        if (has2This(this))
+        {
+            assert(p1);
+            auto outer = toParent();
+            while (outer)
+            {
+                auto ti = outer.isTemplateInstance();
+                if (!ti)
+                    break;
+                foreach (oarg; *ti.tiargs)
+                {
+                    auto sa = getDsymbol(oarg);
+                    if (!sa)
+                        continue;
+                    sa = sa.toAlias().toParent2();
+                    if (!sa)
+                        continue;
+                    if (sa == p1)
+                        return true;
+                    else if (p2 && sa == p2)
+                        return true;
+                }
+                outer = ti.tempdecl.toParent();
+            }
+            return false;
+        }
+        return false;
     }
 
     // Check if this function is a member of a template which has only been
@@ -620,7 +675,7 @@ extern (C++) class Dsymbol : ASTNode
             length += len + 1;
         }
 
-        auto s = cast(char*)mem.xmalloc(length);
+        auto s = cast(char*)mem.xmalloc_noscan(length);
         auto q = s + length - 1;
         *q = 0;
         foreach (j; 0 .. complength)
@@ -1087,7 +1142,7 @@ extern (C++) class Dsymbol : ASTNode
         else if (comment && strcmp(cast(char*)comment, cast(char*)this.comment) != 0)
         {
             // Concatenate the two
-            this.comment = Lexer.combineComments(this.comment, comment, true);
+            this.comment = Lexer.combineComments(this.comment.toDString(), comment.toDString(), true);
         }
     }
 
@@ -1210,6 +1265,7 @@ public:
     {
         //printf("ScopeDsymbol::syntaxCopy('%s')\n", toChars());
         ScopeDsymbol sds = s ? cast(ScopeDsymbol)s : new ScopeDsymbol(ident);
+        sds.comment = comment;
         sds.members = arraySyntaxCopy(members);
         sds.endlinnum = endlinnum;
         return sds;

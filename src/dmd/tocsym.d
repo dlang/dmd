@@ -72,7 +72,7 @@ Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, int sclass, type *t, const(ch
 
     OutBuffer buf;
     mangleToBuffer(ds, &buf);
-    size_t nlen = buf.offset;
+    size_t nlen = buf.length;
     const(char)* n = buf.peekChars();
     assert(n);
 
@@ -144,7 +144,7 @@ Symbol *toSymbol(Dsymbol s)
             if (vd.isDataseg())
             {
                 mangleToBuffer(vd, &buf);
-                id = buf.peekChars()[0..buf.offset]; // symbol_calloc needs zero termination
+                id = buf.peekChars()[0..buf.length]; // symbol_calloc needs zero termination
             }
             else
             {
@@ -155,7 +155,7 @@ Symbol *toSymbol(Dsymbol s)
                     {
                         buf.writestring("__nrvo_");
                         buf.writestring(id);
-                        id = buf.peekChars()[0..buf.offset]; // symbol_calloc needs zero termination
+                        id = buf.peekChars()[0..buf.length]; // symbol_calloc needs zero termination
                         isNRVO = true;
                     }
                 }
@@ -686,6 +686,7 @@ Symbol *aaGetSymbol(TypeAArray taa, const(char)* func, int flags)
 
 Symbol* toSymbol(StructLiteralExp sle)
 {
+    //printf("toSymbol() %p.sym: %p\n", sle, sle.sym);
     if (sle.sym)
         return sle.sym;
     auto t = type_alloc(TYint);
@@ -705,8 +706,9 @@ Symbol* toSymbol(StructLiteralExp sle)
 
 Symbol* toSymbol(ClassReferenceExp cre)
 {
-    if (cre.value.sym)
-        return cre.value.sym;
+    //printf("toSymbol() %p.value.sym: %p\n", cre, cre.value.sym);
+    if (cre.value.origin.sym)
+        return cre.value.origin.sym;
     auto t = type_alloc(TYint);
     t.Tcount++;
     auto s = symbol_calloc("internal", 8);
@@ -715,6 +717,7 @@ Symbol* toSymbol(ClassReferenceExp cre)
     s.Sflags |= SFLnodebug;
     s.Stype = t;
     cre.value.sym = s;
+    cre.value.origin.sym = s;
     auto dtb = DtBuilder(0);
     ClassReferenceExp_toInstanceDt(cre, dtb);
     s.Sdt = dtb.finish();

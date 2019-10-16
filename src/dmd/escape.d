@@ -15,6 +15,10 @@
 module dmd.escape;
 
 import core.stdc.stdio : printf;
+import core.stdc.stdlib;
+import core.stdc.string;
+
+import dmd.root.rmem;
 
 import dmd.aggregate;
 import dmd.declaration;
@@ -32,6 +36,199 @@ import dmd.root.rootobject;
 import dmd.tokens;
 import dmd.visitor;
 import dmd.arraytypes;
+
+/******************************************************
+ * Checks memory objects passed to a function.
+ * Checks that if a memory object is passed by ref or by pointer,
+ * all of the refs or pointers are const, or there is only one mutable
+ * ref or pointer to it.
+ * References:
+ *      DIP 1021
+ * Params:
+ *      sc = used to determine current function and module
+ *      fd = function being called
+ *      tf = fd's type
+ *      ethis = if not null, the `this` pointer
+ *      arguments = actual arguments to function
+ *      gag = do not print error messages
+ * Returns:
+ *      `true` if error
+ */
+bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
+    Expression ethis, Expressions* arguments, bool gag)
+{
+    enum log = false;
+    if (log) printf("[%s] checkMutableArguments, fd: `%s`\n", fd.loc.toChars(), fd.toChars());
+    if (log && ethis) printf("ethis: `%s`\n", ethis.toChars());
+    bool errors = false;
+
+    /* Outer variable references are treated as if they are extra arguments
+     * passed by ref to the function (which they essentially are via the static link).
+     */
+    VarDeclaration[] outerVars = fd ? fd.outerVars[] : null;
+
+    const len = arguments.length + (ethis !is null) + outerVars.length;
+    if (len <= 1)
+        return errors;
+
+    struct EscapeBy
+    {
+        EscapeByResults er;
+        Parameter param;        // null if no Parameter for this argument
+        bool isMutable;         // true if reference to mutable
+    }
+
+    /* Store escapeBy as static data escapeByStorage so we can keep reusing the same
+     * arrays rather than reallocating them.
+     */
+    __gshared EscapeBy[] escapeByStorage;
+    auto escapeBy = escapeByStorage;
+    if (escapeBy.length < len)
+    {
+        auto newPtr = cast(EscapeBy*)mem.xrealloc(escapeBy.ptr, len * EscapeBy.sizeof);
+        // Clear the new section
+        memset(newPtr + escapeBy.length, 0, (len - escapeBy.length) * EscapeBy.sizeof);
+        escapeBy = newPtr[0 .. len];
+        escapeByStorage = escapeBy;
+    }
+
+    const paramLength = tf.parameterList.length;
+
+    // Fill in escapeBy[] with arguments[], ethis, and outerVars[]
+    foreach (const i, ref eb; escapeBy)
+    {
+        bool refs;
+        Expression arg;
+        if (i < arguments.length)
+        {
+            arg = (*arguments)[i];
+            if (i < paramLength)
+            {
+                eb.param = tf.parameterList[i];
+                refs = (eb.param.storageClass & (STC.out_ | STC.ref_)) != 0;
+                eb.isMutable = eb.param.isReferenceToMutable(arg.type);
+            }
+            else
+            {
+                eb.param = null;
+                refs = false;
+                eb.isMutable = arg.type.isReferenceToMutable();
+            }
+        }
+        else if (ethis)
+        {
+            /* ethis is passed by value if a class reference,
+             * by ref if a struct value
+             */
+            eb.param = null;
+            arg = ethis;
+            auto ad = fd.isThis();
+            assert(ad);
+            assert(ethis);
+            if (ad.isClassDeclaration())
+            {
+                refs = false;
+                eb.isMutable = arg.type.isReferenceToMutable();
+            }
+            else
+            {
+                assert(ad.isStructDeclaration());
+                refs = true;
+                eb.isMutable = arg.type.isMutable();
+            }
+        }
+        else
+        {
+            // outer variables are passed by ref
+            eb.param = null;
+            refs = true;
+            auto var = outerVars[i - (len - outerVars.length)];
+            eb.isMutable = var.type.isMutable();
+            eb.er.byref.push(var);
+            continue;
+        }
+
+        if (refs)
+            escapeByRef(arg, &eb.er);
+        else
+            escapeByValue(arg, &eb.er);
+    }
+
+    foreach (const i, ref eb; escapeBy[0 .. $ - 1])
+    {
+        foreach (VarDeclaration v; eb.er.byvalue)
+        {
+            if (log) printf("byvalue `%s`\n", v.toChars());
+            if (!v.type.hasPointers())
+                continue;
+            foreach (ref eb2; escapeBy[i + 1 .. $])
+            {
+                foreach (VarDeclaration v2; eb2.er.byvalue)
+                {
+                    if (log) printf("v2: `%s`\n", v2.toChars());
+                    if (v2 != v)
+                        continue;
+                    if (eb.isMutable || eb2.isMutable)
+                    {
+                        if (global.params.vsafe && sc.func.setUnsafe())
+                        {
+                            if (!gag)
+                            {
+                                const(char)* msg = eb.isMutable && eb2.isMutable
+                                    ? "more than one mutable reference of `%s` in arguments to `%s()`"
+                                    : "mutable and const references of `%s` in arguments to `%s()`";
+                                error((*arguments)[i].loc, msg,
+                                    v.toChars(),
+                                    fd ? fd.toPrettyChars() : "indirectly");
+                            }
+                            errors = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        foreach (VarDeclaration v; eb.er.byref)
+        {
+            if (log) printf("byref `%s`\n", v.toChars());
+            foreach (ref eb2; escapeBy[i + 1 .. $])
+            {
+                foreach (VarDeclaration v2; eb2.er.byref)
+                {
+                    if (log) printf("v2: `%s`\n", v2.toChars());
+                    if (v2 != v)
+                        continue;
+                    //printf("v %d v2 %d\n", eb.isMutable, eb2.isMutable);
+                    if (eb.isMutable || eb2.isMutable)
+                    {
+                        if (global.params.vsafe && sc.func.setUnsafe())
+                        {
+                            if (!gag)
+                            {
+                                const(char)* msg = eb.isMutable && eb2.isMutable
+                                    ? "more than one mutable reference to `%s` in arguments to `%s()`"
+                                    : "mutable and const references to `%s` in arguments to `%s()`";
+                                error((*arguments)[i].loc, msg,
+                                    v.toChars(),
+                                    fd ? fd.toPrettyChars() : "indirectly");
+                            }
+                            errors = true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /* Reset the arrays in escapeBy[] so we can reuse them next time through
+     */
+    foreach (ref eb; escapeBy)
+    {
+        eb.er.reset();
+    }
+
+    return errors;
+}
 
 /******************************************
  * Array literal is going to be allocated on the GC heap.
@@ -1078,6 +1275,10 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
 
         Dsymbol p = v.toParent2();
 
+        // https://issues.dlang.org/show_bug.cgi?id=19965
+        if (!refs && sc.func.vthis == v)
+            notMaybeScope(v);
+
         if ((v.storage_class & (STC.ref_ | STC.out_)) == 0)
         {
             if (p == sc.func)
@@ -1760,6 +1961,16 @@ private struct EscapeByResults
     VarDeclarations byvalue;    // array into which variables with values containing pointers are inserted
     FuncDeclarations byfunc;    // nested functions that are turned into delegates
     Expressions byexp;          // array into which temporaries being returned by ref are inserted
+
+    /** Reset arrays so the storage can be used again
+     */
+    void reset()
+    {
+        byref.setDim(0);
+        byvalue.setDim(0);
+        byfunc.setDim(0);
+        byexp.setDim(0);
+    }
 }
 
 /*************************
@@ -1871,3 +2082,83 @@ public void eliminateMaybeScopes(VarDeclaration[] array)
     } while (changes);
 }
 
+/************************************************
+ * Is type a reference to a mutable value?
+ *
+ * This is used to determine if an argument that does not have a corresponding
+ * Parameter, i.e. a variadic argument, is a pointer to mutable data.
+ * Params:
+ *      t = type of the argument
+ * Returns:
+ *      true if it's a pointer (or reference) to mutable data
+ */
+bool isReferenceToMutable(Type t)
+{
+    t = t.baseElemOf();
+
+    if (!t.isMutable() ||
+        !t.hasPointers())
+        return false;
+
+    switch (t.ty)
+    {
+        case Tpointer:
+            if (t.nextOf().isTypeFunction())
+                break;
+            goto case;
+
+        case Tarray:
+        case Taarray:
+        case Tdelegate:
+            if (t.nextOf().isMutable())
+                return true;
+            break;
+
+        case Tclass:
+            return true;        // even if the class fields are not mutable
+
+        case Tstruct:
+            // Have to look at each field
+            foreach (VarDeclaration v; t.isTypeStruct().sym.fields)
+            {
+                if (v.storage_class & STC.ref_)
+                {
+                    if (v.type.isMutable())
+                        return true;
+                }
+                else if (v.type.isReferenceToMutable())
+                    return true;
+            }
+            break;
+
+        default:
+            assert(0);
+    }
+    return false;
+}
+
+/****************************************
+ * Is parameter a reference to a mutable value?
+ *
+ * This is used if an argument has a corresponding Parameter.
+ * The argument type is necessary if the Parameter is inout.
+ * Params:
+ *      p = Parameter to check
+ *      t = type of corresponding argument
+ * Returns:
+ *      true if it's a pointer (or reference) to mutable data
+ */
+bool isReferenceToMutable(Parameter p, Type t)
+{
+    if (p.storageClass & (STC.ref_ | STC.out_))
+    {
+        if (p.type.isConst() || p.type.isImmutable())
+            return false;
+        if (p.type.isWild())
+        {
+            return t.isMutable();
+        }
+        return p.type.isMutable();
+    }
+    return isReferenceToMutable(p.type);
+}

@@ -8,8 +8,8 @@ void main()
     run("$OUTPUT_BASE/printenv$EXE", File(envFromExe, "wb"));
     run("$DMD -m$MODEL -run $EXTRA_FILES/printenv.d", File(envFromRun, "wb"));
 
-    const fromExe = readText(envFromExe);
-    const fromRun = readText(envFromRun);
+    const fromExe = readText(envFromExe).filterCompilerOutput;
+    const fromRun = readText(envFromRun).filterCompilerOutput;
     if (fromExe != fromRun)
     {
         writefln("FromExe:");

@@ -86,7 +86,7 @@ private Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
     return getDsymbol(oarg);
 }
 
-private __gshared StringTable traitsStringTable;
+private const StringTable traitsStringTable;
 
 shared static this()
 {
@@ -146,11 +146,12 @@ shared static this()
         "getLocation",
     ];
 
-    traitsStringTable._init(names.length);
+    StringTable* stringTable = cast(StringTable*) &traitsStringTable;
+    stringTable._init(names.length);
 
     foreach (s; names)
     {
-        auto sv = traitsStringTable.insert(s, cast(void*)s.ptr);
+        auto sv = stringTable.insert(s, cast(void*)s.ptr);
         assert(sv);
     }
 }
@@ -425,8 +426,17 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         e.ident != Id.getProtection &&
         e.ident != Id.getAttributes)
     {
+        // Pretend we're in a deprecated scope so that deprecation messages
+        // aren't triggered when checking if a symbol is deprecated
+        const save = sc.stc;
+        if (e.ident == Id.isDeprecated)
+            sc.stc |= STC.deprecated_;
         if (!TemplateInstance.semanticTiargs(e.loc, sc, e.args, 1))
+        {
+            sc.stc = save;
             return new ErrorExp();
+        }
+        sc.stc = save;
     }
     size_t dim = e.args ? e.args.dim : 0;
 
@@ -438,12 +448,12 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
     IntegerExp True()
     {
-        return new IntegerExp(e.loc, true, Type.tbool);
+        return IntegerExp.createBool(true);
     }
 
     IntegerExp False()
     {
-        return new IntegerExp(e.loc, false, Type.tbool);
+        return IntegerExp.createBool(false);
     }
 
     /********
@@ -1195,7 +1205,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         }
 
         bool value = target.isReturnOnStack(tf, fd && fd.needThis());
-        return new IntegerExp(e.loc, value, Type.tbool);
+        return IntegerExp.createBool(value);
     }
     if (e.ident == Id.getFunctionVariadicStyle)
     {
@@ -1534,8 +1544,9 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                         err = true;
                         break;
                     }
-                    const len = buf.offset;
-                    const str = buf.extractChars()[0 .. len];
+                    const len = buf.length;
+                    buf.writeByte(0);
+                    const str = buf.extractSlice()[0 .. len];
                     scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
                     scope p = new Parser!ASTCodegen(e.loc, sc._module, str, false, diagnosticReporter);
                     p.nextToken();
@@ -1875,9 +1886,9 @@ Lnext:
         }
 
         auto exps = new Expressions(3);
-        exps.data[0] = new StringExp(e.loc, cast(void*)s.loc.filename, strlen(s.loc.filename));
-        exps.data[1] = new IntegerExp(e.loc, s.loc.linnum,Type.tint32);
-        exps.data[2] = new IntegerExp(e.loc, s.loc.charnum,Type.tint32);
+        (*exps)[0] = new StringExp(e.loc, cast(void*)s.loc.filename, strlen(s.loc.filename));
+        (*exps)[1] = new IntegerExp(e.loc, s.loc.linnum,Type.tint32);
+        (*exps)[2] = new IntegerExp(e.loc, s.loc.charnum,Type.tint32);
         auto tup = new TupleExp(e.loc, exps);
         return tup.expressionSemantic(sc);
     }
@@ -1888,7 +1899,7 @@ Lnext:
         if (!seed.length)
             return null;
         cost = 0;
-        StringValue* sv = traitsStringTable.lookup(seed);
+        const sv = traitsStringTable.lookup(seed);
         return sv ? cast(const(char)*)sv.ptrvalue : null;
     }
 

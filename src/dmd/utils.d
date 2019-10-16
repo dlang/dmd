@@ -64,7 +64,7 @@ FileBuffer readFile(Loc loc, const(char)* filename)
         error(loc, "Error reading file '%s'", filename);
         fatal();
     }
-    return FileBuffer(result.extractData());
+    return FileBuffer(result.extractSlice());
 }
 
 

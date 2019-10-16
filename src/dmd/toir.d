@@ -266,7 +266,7 @@ elem *getEthis(const ref Loc loc, IRState *irs, Dsymbol fd, Dsymbol fdp = null, 
                 assert(thisfd.isNested() || thisfd.vthis);
 
                 // pick one context
-                ethis = fixEthis2(ethis, thisfd, followInstantiationContext(thisfd, ctxt0, ctxt1));
+                ethis = fixEthis2(ethis, thisfd, thisfd.followInstantiationContext(ctxt0, ctxt1));
             }
             else
             {
@@ -290,23 +290,23 @@ elem *getEthis(const ref Loc loc, IRState *irs, Dsymbol fd, Dsymbol fdp = null, 
                 if (!ad.isNested() || !(ad.vthis || ad.vthis2))
                     goto Lnoframe;
 
-                bool i = followInstantiationContext(ad, ctxt0, ctxt1);
+                bool i = ad.followInstantiationContext(ctxt0, ctxt1);
                 const voffset = i ? ad.vthis2.offset : ad.vthis.offset;
                 ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYsize_t, voffset));
                 ethis = el_una(OPind, TYnptr, ethis);
             }
-            if (fdparent == toParentP(s, ctxt0, ctxt1))
+            if (fdparent == s.toParentP(ctxt0, ctxt1))
                 break;
 
             /* Remember that frames for functions that have no
              * nested references are skipped in the linked list
              * of frames.
              */
-            FuncDeclaration fdp2 = toParentP(s, ctxt0, ctxt1).isFuncDeclaration();
+            FuncDeclaration fdp2 = s.toParentP(ctxt0, ctxt1).isFuncDeclaration();
             if (fdp2 && fdp2.hasNestedFrameRefs())
                 ethis = el_una(OPind, TYnptr, ethis);
 
-            s = toParentP(s, ctxt0, ctxt1);
+            s = s.toParentP(ctxt0, ctxt1);
             assert(s);
         }
     }
@@ -444,7 +444,7 @@ int intrinsic_op(FuncDeclaration fd)
         OPyl2xp1,
     ];
 
-    __gshared immutable char*[70] core_namearray =
+    __gshared immutable char*[62] core_namearray =
     [
         //cos
         "4math3cosFNaNbNiNfdZd",
@@ -493,17 +493,6 @@ int intrinsic_op(FuncDeclaration fd)
         "4simd6__simdFNaNbNiNfEQBbQz3XMMdZNhG16v",
         "4simd6__simdFNaNbNiNfEQBbQz3XMMfZNhG16v",
         "4simd9__simd_ibFNaNbNiNfEQBeQBc3XMMNhG16vhZQi",
-
-        // @deprecated volatileLoad
-        "5bitop12volatileLoadFNbNiNfPhZh",
-        "5bitop12volatileLoadFNbNiNfPkZk",
-        "5bitop12volatileLoadFNbNiNfPmZm",
-        "5bitop12volatileLoadFNbNiNfPtZt",
-        // @deprecated volatileStore
-        "5bitop13volatileStoreFNbNiNfPhhZv",
-        "5bitop13volatileStoreFNbNiNfPkkZv",
-        "5bitop13volatileStoreFNbNiNfPmmZv",
-        "5bitop13volatileStoreFNbNiNfPttZv",
 
         "5bitop3bsfFNaNbNiNfkZi",
         "5bitop3bsfFNaNbNiNfmZi",
@@ -534,7 +523,7 @@ int intrinsic_op(FuncDeclaration fd)
         "8volatile13volatileStoreFNbNiNfPmmZv",
         "8volatile13volatileStoreFNbNiNfPttZv",
     ];
-    __gshared immutable char*[70] core_namearray64 =
+    __gshared immutable char*[62] core_namearray64 =
     [
         //cos
         "4math3cosFNaNbNiNfdZd",
@@ -584,17 +573,6 @@ int intrinsic_op(FuncDeclaration fd)
         "4simd6__simdFNaNbNiNfEQBbQz3XMMfZNhG16v",
         "4simd9__simd_ibFNaNbNiNfEQBeQBc3XMMNhG16vhZQi",
 
-        // @deprecated volatileLoad
-        "5bitop12volatileLoadFNbNiNfPhZh",
-        "5bitop12volatileLoadFNbNiNfPkZk",
-        "5bitop12volatileLoadFNbNiNfPmZm",
-        "5bitop12volatileLoadFNbNiNfPtZt",
-        // @deprecated volatileStore
-        "5bitop13volatileStoreFNbNiNfPhhZv",
-        "5bitop13volatileStoreFNbNiNfPkkZv",
-        "5bitop13volatileStoreFNbNiNfPmmZv",
-        "5bitop13volatileStoreFNbNiNfPttZv",
-
         "5bitop3bsfFNaNbNiNfkZi",
         "5bitop3bsfFNaNbNiNfmZi",
         "5bitop3bsrFNaNbNiNfkZi",
@@ -624,7 +602,7 @@ int intrinsic_op(FuncDeclaration fd)
         "8volatile13volatileStoreFNbNiNfPmmZv",
         "8volatile13volatileStoreFNbNiNfPttZv",
     ];
-    __gshared immutable ubyte[70] core_ioptab =
+    __gshared immutable ubyte[62] core_ioptab =
     [
         OPcos,
         OPcos,
@@ -672,16 +650,6 @@ int intrinsic_op(FuncDeclaration fd)
         OPvector,
         OPvector,
         OPvector,
-
-        OPind,
-        OPind,
-        OPind,
-        OPind,
-
-        OPeq,
-        OPeq,
-        OPeq,
-        OPeq,
 
         OPbsf,
         OPbsf,

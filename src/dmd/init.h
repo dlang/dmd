@@ -32,7 +32,7 @@ public:
     Loc loc;
     unsigned char kind;
 
-    const char *toChars();
+    const char *toChars() const;
 
     ErrorInitializer   *isErrorInitializer();
     VoidInitializer    *isVoidInitializer();
@@ -91,6 +91,3 @@ public:
 };
 
 Expression *initializerToExpression(Initializer *init, Type *t = NULL);
-
-Initializer *syntaxCopy(Initializer *inx);
-

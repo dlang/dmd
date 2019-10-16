@@ -100,12 +100,12 @@ struct ObjcSelector
                 firstChar = cast(char)(firstChar - 'a' + 'A');
             buf.writestring("set");
             buf.writeByte(firstChar);
-            buf.write(id.ptr + 1, id.length - 1);
+            buf.write(id[1 .. id.length - 1]);
             buf.writeByte(':');
             goto Lcomplete;
         }
         // write identifier in selector
-        buf.write(id.ptr, id.length);
+        buf.write(id[]);
         // add mangled type and colon for each parameter
         if (ftype.parameterList.parameters && ftype.parameterList.parameters.dim)
         {
@@ -122,7 +122,7 @@ struct ObjcSelector
         }
     Lcomplete:
         buf.writeByte('\0');
-        return lookup(cast(const(char)*)buf.data, buf.size, pcount);
+        return lookup(cast(const(char)*)buf[].ptr, buf.length - 1, pcount);
     }
 
     extern (D) const(char)[] toString() const pure

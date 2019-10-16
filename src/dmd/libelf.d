@@ -94,7 +94,7 @@ final class LibElf : Library
         {
             assert(module_name[0]);
             // read file and take buffer ownership
-            auto data = readFile(Loc.initial, module_name).extractData();
+            auto data = readFile(Loc.initial, module_name).extractSlice();
             buf = data.ptr;
             buflen = data.length;
             fromfile = 1;
@@ -405,7 +405,7 @@ private:
         }
         libbuf.reserve(moffset);
         /************* Write the library ******************/
-        libbuf.write("!<arch>\n".ptr, 8);
+        libbuf.write("!<arch>\n");
         ElfObjModule om;
         om.name_offset = -1;
         om.base = null;
@@ -418,14 +418,14 @@ private:
         om.file_mode = 0;
         ElfLibHeader h;
         ElfOmToHeader(&h, &om);
-        libbuf.write(&h, h.sizeof);
+        libbuf.write((&h)[0 .. 1]);
         char[4] buf;
         Port.writelongBE(cast(uint)objsymbols.dim, buf.ptr);
-        libbuf.write(buf.ptr, 4);
+        libbuf.write(buf[0 .. 4]);
         foreach (os; objsymbols)
         {
             Port.writelongBE(os.om.offset, buf.ptr);
-            libbuf.write(buf.ptr, 4);
+            libbuf.write(buf[0 .. 4]);
         }
         foreach (os; objsymbols)
         {
@@ -434,13 +434,13 @@ private:
         }
         static if (LOG)
         {
-            printf("\tlibbuf.moffset = x%x\n", libbuf.offset);
+            printf("\tlibbuf.moffset = x%x\n", libbuf.length);
         }
         /* Write out the string section
          */
         if (noffset)
         {
-            if (libbuf.offset & 1)
+            if (libbuf.length & 1)
                 libbuf.writeByte('\n');
             // header
             memset(&h, ' ', ElfLibHeader.sizeof);
@@ -451,7 +451,7 @@ private:
             h.file_size[len] = ' ';
             h.trailer[0] = '`';
             h.trailer[1] = '\n';
-            libbuf.write(&h, h.sizeof);
+            libbuf.write((&h)[0 .. 1]);
             foreach (om2; objmodules)
             {
                 if (om2.name_offset >= 0)
@@ -466,18 +466,18 @@ private:
          */
         foreach (om2; objmodules)
         {
-            if (libbuf.offset & 1)
+            if (libbuf.length & 1)
                 libbuf.writeByte('\n'); // module alignment
-            assert(libbuf.offset == om2.offset);
+            assert(libbuf.length == om2.offset);
             ElfOmToHeader(&h, om2);
-            libbuf.write(&h, h.sizeof); // module header
-            libbuf.write(om2.base, om2.length); // module contents
+            libbuf.write((&h)[0 .. 1]); // module header
+            libbuf.write(om2.base[0 .. om2.length]); // module contents
         }
         static if (LOG)
         {
-            printf("moffset = x%x, libbuf.offset = x%x\n", moffset, libbuf.offset);
+            printf("moffset = x%x, libbuf.length = x%x\n", moffset, libbuf.length);
         }
-        assert(libbuf.offset == moffset);
+        assert(libbuf.length == moffset);
     }
 }
 

@@ -117,6 +117,7 @@ extern (C++) final class Import : Dsymbol
     {
         assert(!s);
         auto si = new Import(loc, packages, id, aliasId, isstatic);
+        si.comment = comment;
         for (size_t i = 0; i < names.dim; i++)
         {
             si.addAlias(names[i], aliases[i]);
@@ -214,14 +215,7 @@ extern (C++) final class Import : Dsymbol
         if (!mod) return; // Failed
 
         mod.importAll(null);
-        if (mod.md && mod.md.isdeprecated)
-        {
-            Expression msg = mod.md.msg;
-            if (StringExp se = msg ? msg.toStringExp() : null)
-                mod.deprecation(loc, "is deprecated - %s", se.string);
-            else
-                mod.deprecation(loc, "is deprecated");
-        }
+        mod.checkImportDeprecation(loc, sc);
         if (sc.explicitProtection)
             protection = sc.protection;
         if (!isstatic && !aliasId && !names.dim)

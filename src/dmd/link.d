@@ -343,10 +343,10 @@ public int runLINK()
             /* Eliminate unnecessary trailing commas    */
             while (1)
             {
-                const size_t i = cmdbuf.offset;
-                if (!i || cmdbuf.data[i - 1] != ',')
+                const size_t i = cmdbuf.length;
+                if (!i || cmdbuf[i - 1] != ',')
                     break;
-                cmdbuf.offset--;
+                cmdbuf.setsize(cmdbuf.length - 1);
             }
             if (global.params.resfile)
             {
@@ -562,49 +562,68 @@ public int runLINK()
             argv.push("-Xlinker");
             argv.push("--gc-sections");
         }
-        // return true if flagp should be ordered in with the library flags
-        static bool flagIsLibraryRelated(const char* flagp)
-        {
-            const flag = flagp[0 .. strlen(flagp)];
-            bool startsWith(string needle)
-            {
-                return flag.length >= needle.length && flag[0 .. needle.length] == needle;
-            }
 
-            return startsWith("-l") || startsWith("-L")
+        /**
+        Checks if C string `p` starts with `needle`.
+        Params:
+            p = the C string to check
+            needle = the string to look for
+        Returns
+            `true` if `p` starts with `needle`
+        */
+        static bool startsWith(const(char)* p, string needle)
+        {
+            const f = p[0 .. strlen(p)];
+            return f.length >= needle.length && f[0 .. needle.length] == needle;
+        }
+
+        // return true if flagp should be ordered in with the library flags
+        static bool flagIsLibraryRelated(const char* p)
+        {
+            const flag = p[0 .. strlen(p)];
+
+            return startsWith(p, "-l") || startsWith(p, "-L")
                 || flag == "-(" || flag == "-)"
                 || flag == "--start-group" || flag == "--end-group"
-                || FileName.equalsExt(flagp, "a")
+                || FileName.equalsExt(p, "a")
             ;
         }
+
         /* Add libraries. The order of libraries passed is:
-         *  1. link switches others than with -L command line switch,
+         *  1. link switches without a -L prefix,
                e.g. --whole-archive "lib.a" --no-whole-archive     (global.params.linkswitches)
          *  2. static libraries ending with *.a     (global.params.libfiles)
-         *  3. link switches passed with -L command line switch  (global.params.linkswitches)
+         *  3. link switches with a -L prefix  (global.params.linkswitches)
          *  4. libraries specified by pragma(lib), which were appended
          *     to global.params.libfiles. These are prefixed with "-l"
          *  5. dynamic libraries passed to the command line (global.params.dllfiles)
          *  6. standard libraries.
          */
-        foreach (p; global.params.linkswitches)
+
+        // STEP 1
+        foreach (pi, p; global.params.linkswitches)
         {
             if (p && p[0] && !flagIsLibraryRelated(p))
             {
-                argv.push("-Xlinker");
+                if (!global.params.linkswitchIsForCC[pi])
+                    argv.push("-Xlinker");
                 argv.push(p);
             }
         }
+
+        // STEP 2
         foreach (p; global.params.libfiles)
         {
             if (FileName.equalsExt(p, "a"))
                 argv.push(p);
         }
-        foreach (p; global.params.linkswitches)
+
+        // STEP 3
+        foreach (pi, p; global.params.linkswitches)
         {
-            if (!p || !p[0] || flagIsLibraryRelated(p))
+            if (p && p[0] && flagIsLibraryRelated(p))
             {
-                if (!(p && p[0] == '-' && (p[1] == 'l' || p[1] == 'L')))
+                if (!startsWith(p, "-l") && !startsWith(p, "-L") && !global.params.linkswitchIsForCC[pi])
                 {
                     // Don't need -Xlinker if switch starts with -l or -L.
                     // Eliding -Xlinker is significant for -L since it allows our paths
@@ -615,6 +634,8 @@ public int runLINK()
                 argv.push(p);
             }
         }
+
+        // STEP 4
         foreach (p; global.params.libfiles)
         {
             if (!FileName.equalsExt(p, "a"))
@@ -627,10 +648,14 @@ public int runLINK()
                 argv.push(s);
             }
         }
+
+        // STEP 5
         foreach (p; global.params.dllfiles)
         {
             argv.push(p);
         }
+
+        // STEP 6
         /* D runtime libraries must go after user specified libraries
          * passed with -l.
          */

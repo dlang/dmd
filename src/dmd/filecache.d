@@ -45,7 +45,7 @@ class FileAndLines
         auto readResult = File.read(file.toChars());
         // FIXME: check success
         // take ownership of buffer
-        buffer = new FileBuffer(readResult.extractData());
+        buffer = new FileBuffer(readResult.extractSlice());
         ubyte* buf = buffer.data.ptr;
         // slice into lines
         while (*buf)

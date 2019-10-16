@@ -88,7 +88,7 @@ final class LibOMF : Library
         {
             assert(module_name);
             // read file and take buffer ownership
-            auto data = readFile(Loc.initial, module_name).extractData();
+            auto data = readFile(Loc.initial, module_name).extractSlice();
             buf = data.ptr;
             buflen = data.length;
         }
@@ -420,19 +420,19 @@ private:
          */
         foreach (om; objmodules)
         {
-            uint page = cast(uint)(libbuf.offset / g_page_size);
+            uint page = cast(uint)(libbuf.length / g_page_size);
             assert(page <= 0xFFFF);
             om.page = cast(ushort)page;
             // Write out the object module om
             writeOMFObj(libbuf, om.base, om.length, om.name.ptr);
             // Round the size of the file up to the next page size
             // by filling with 0s
-            uint n = (g_page_size - 1) & libbuf.offset;
+            uint n = (g_page_size - 1) & libbuf.length;
             if (n)
                 libbuf.fill0(g_page_size - n);
         }
         // File offset of start of dictionary
-        uint offset = cast(uint)libbuf.offset;
+        uint offset = cast(uint)libbuf.length;
         // Write dictionary header, then round it to a BUCKETPAGE boundary
         ushort size = (BUCKETPAGE - (cast(short)offset + 3)) & (BUCKETPAGE - 1);
         libbuf.writeByte(0xF1);
@@ -465,7 +465,7 @@ private:
             padding += 16; // try again with more margins
         }
         // Write dictionary
-        libbuf.write(bucketsP, ndicpages * BUCKETPAGE);
+        libbuf.write(bucketsP[0 .. ndicpages * BUCKETPAGE]);
         if (bucketsP)
             free(bucketsP);
         // Create library header
@@ -489,7 +489,7 @@ private:
         libHeader.ndicpages = ndicpages;
         libHeader.flags = 1; // always case sensitive
         // Write library header at start of buffer
-        memcpy(libbuf.data, &libHeader, (libHeader).sizeof);
+        memcpy(cast(void*)(*libbuf)[].ptr, &libHeader, (libHeader).sizeof);
     }
 }
 

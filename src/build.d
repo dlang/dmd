@@ -8,8 +8,6 @@ Usage:
 TODO:
 - add all posix.mak Makefile targets
 - support 32-bit builds
-- test on OSX
-- test on Windows
 - allow appending DFLAGS via the environment
 - test the script with LDC or GDC as host compiler
 */
@@ -34,6 +32,7 @@ immutable rootDeps = [
     &dmdDefault,
     &runDmdUnittest,
     &clean,
+    &dmdFrontend,
 ];
 
 void main(string[] args)
@@ -188,26 +187,30 @@ will trigger a full rebuild.
 */
 
 /// Returns: the dependency that builds the lexer
-alias lexer = memoize!(function() {
-    Dependency dependency = {
-        name: "lexer",
-        target: env["G"].buildPath("lexer").libName,
-        sources: sources.lexer,
-        deps: [versionFile, sysconfDirFile],
-        msg: "(DC) D_LEXER_OBJ %-(%s, %)".format(sources.lexer.map!(e => e.baseName).array),
-        command: [
+alias lexer = memoize!(function()
+{
+    Dependency dep;
+    with (dep)
+    {
+        name = "lexer";
+        target = env["G"].buildPath("lexer").libName;
+        sources = .sources.lexer;
+        deps = [versionFile, sysconfDirFile];
+        msg = "(DC) D_LEXER_OBJ %-(%s, %)".format(sources.map!(e => e.baseName).array);
+        command = [
             env["HOST_DMD_RUN"],
-            "-of$@",
+            "-of" ~ target,
             "-lib",
             "-vtls",
             "-J"~env["G"], "-J../res",
-        ].chain(flags["DFLAGS"], "$<".only).array
-    };
-    return new DependencyRef(dependency);
+        ].chain(flags["DFLAGS"], sources).array;
+    }
+    return new DependencyRef(dep);
 });
 
 /// Returns: the dependency that generates the dmd.conf file in the output folder
-alias dmdConf = memoize!(function() {
+alias dmdConf = memoize!(function()
+{
     // TODO: add support for Windows
     string exportDynamic;
     version(OSX) {} else
@@ -222,87 +225,122 @@ DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@
         .replace("{BUILD}", env["BUILD"])
         .replace("{OS}", env["OS"]);
 
-    auto target = env["G"].buildPath("dmd.conf");
-    auto commandFunction = (){
-        conf.toFile(target);
-    }; // defined separately to support older D compilers
-    Dependency dependency = {
-        name: "dmdconf",
-        target: target,
-        msg: "(TX) DMD_CONF",
-        commandFunction: commandFunction,
-    };
-    return new DependencyRef(dependency);
+    Dependency dep;
+    with (dep)
+    {
+        name = "dmdconf";
+        target = env["G"].buildPath("dmd.conf");
+        msg = "(TX) DMD_CONF";
+        commandFunction = ()
+        {
+            conf.toFile(target);
+        };
+    }
+    return new DependencyRef(dep);
 });
 
 /// Returns: the dependencies that build the D backend
-alias dBackend = memoize!(function () {
-    Dependency dependency = {
-        name: "dbackend",
-        target: env["G"].buildPath("dbackend").objName,
-        sources: sources.backend,
-        msg: "(DC) D_BACK_OBJS %-(%s, %)".format(sources.backend.map!(e => e.baseName).array),
-        command: [
+alias backendObj = memoize!(function ()
+{
+    Dependency dep;
+    with (dep)
+    {
+        name = "backendObj";
+        target = env["G"].buildPath("backend").objName;
+        sources = .sources.backend;
+        msg = "(DC) D_BACK_OBJS %-(%s, %)".format(sources.map!(e => e.baseName).array);
+        command = [
             env["HOST_DMD_RUN"],
             "-c",
-            "-of$@",
+            "-of" ~ target,
             "-betterC",
-        ].chain(flags["DFLAGS"], "$<".only).array
-    };
-    return new DependencyRef(dependency);
+        ].chain(flags["DFLAGS"], sources).array;
+    }
+    return new DependencyRef(dep);
 });
 
 /// Execute the sub-dependencies of the backend and pack everything into one object file
-alias backend = memoize!(function() {
-    // Pack the backend
-    Dependency dependency = {
-        name: "backend",
-        msg: "(LIB) %s".format("BACKEND".libName),
-        sources: [ env["G"].buildPath("dbackend").objName ],
-        target: env["G"].buildPath("backend").libName,
-        deps: [dBackend],
-        command: [env["HOST_DMD_RUN"], env["MODEL_FLAG"], "-lib", "-of$@", "$<"]
-    };
-    return new DependencyRef(dependency);
+alias backend = memoize!(function()
+{
+    Dependency dep;
+    with (dep)
+    {
+        name = "backend";
+        msg = "(LIB) %s".format("BACKEND".libName);
+        sources = [ env["G"].buildPath("backend").objName ];
+        target = env["G"].buildPath("backend").libName;
+        deps = [backendObj];
+        command = [env["HOST_DMD_RUN"], env["MODEL_FLAG"], "-lib", "-of" ~ target].chain(sources).array;
+    }
+    return new DependencyRef(dep);
 });
 
 /// Returns: the dependencies that generate required string files: VERSION and SYSCONFDIR.imp
-alias versionFile = memoize!(function() {
-    const versionFile = env["G"].buildPath("VERSION");
-    auto commandFunction = (){
-        "(TX) VERSION".writeln;
-        string ver;
-        if (srcDir.dirName.buildPath(".git").exists)
+alias versionFile = memoize!(function()
+{
+    Dependency dep;
+    with (dep)
+    {
+        target = env["G"].buildPath("VERSION");
+        commandFunction = ()
         {
-            auto gitResult = ["git", "describe", "--dirty"].run;
-            if (gitResult.status == 0)
-                ver = gitResult.output.strip;
-        }
-        // version fallback
-        if (ver.length == 0)
-            ver = srcDir.dirName.buildPath("VERSION").readText;
-        updateIfChanged(versionFile, ver);
-    };
-    Dependency dependency = {
-        target: versionFile,
-        commandFunction: commandFunction,
-    };
-    return new DependencyRef(dependency);
-});
-alias sysconfDirFile = memoize!(function() {
-    const sysconfDirFile = env["G"].buildPath("SYSCONFDIR.imp");
-    auto commandFunction = (){
-        "(TX) SYSCONFDIR".writeln;
-        updateIfChanged(sysconfDirFile, env["SYSCONFDIR"]);
-    };
-    Dependency dependency = {
-        sources: [thisBuildScript],
-        target: sysconfDirFile,
-        commandFunction: commandFunction,
-    };
-    return new DependencyRef(dependency);
+            "(TX) VERSION".writeln;
+            string ver;
+            if (srcDir.dirName.buildPath(".git").exists)
+            {
+                auto gitResult = ["git", "describe", "--dirty"].run;
+                if (gitResult.status == 0)
+                    ver = gitResult.output.strip;
+            }
+            // version fallback
+            if (ver.length == 0)
+                ver = srcDir.dirName.buildPath("VERSION").readText;
+            updateIfChanged(target, ver);
+        };
+    }
+    return new DependencyRef(dep);
 });
 
+alias sysconfDirFile = memoize!(function()
+{
+    Dependency dep;
+    with(dep)
+    {
+        sources = [thisBuildScript];
+        target = env["G"].buildPath("SYSCONFDIR.imp");
+        commandFunction = ()
+        {
+            "(TX) SYSCONFDIR".writeln;
+            updateIfChanged(target, env["SYSCONFDIR"]);
+        };
+    }
+    return new DependencyRef(dep);
+});
+
+alias dmdFrontend = memoize!(function()
+{
+    Dependency dep;
+    with (dep)
+    {
+        name = "dmd_frontend";
+        sources = .sources.frontend.chain([env["D"].buildPath("gluelayer.d")], .sources.root, [lexer.target]).array;
+        target = env["G"].buildPath("dmd_frontend");
+        deps = [versionFile, sysconfDirFile, lexer];
+        msg = "(DC) DMD-FRONTEND %-(%s, %)".format(.sources.frontend.map!(e => e.baseName).array);
+        string[] platformArgs;
+        version (Windows)
+            platformArgs = ["-L/STACK:8388608"];
+        command = [
+            env["HOST_DMD_RUN"],
+            "-of" ~ target,
+            "-version=NoBackend",
+            "-vtls",
+            "-J"~env["G"],
+            "-J../res",
+        ].chain(flags["DFLAGS"], platformArgs, sources).array;
+    }
+    return new DependencyRef(dep);
+});
 
 /**
 Dependency for the DMD executable.
@@ -310,67 +348,81 @@ Dependency for the DMD executable.
 Params:
   extra_flags = Flags to apply to the main build but not the dependencies
 */
-alias dmdExe = memoize!(function(string targetSuffix, string[] extraFlags...) {
+alias dmdExe = memoize!(function(string targetSuffix, string[] extraFlags...)
+{
+    const dmdSources = sources.dmd.chain(sources.root).array;
+
     // Main DMD build dependency
-    Dependency dependency = {
+    Dependency dep;
+    with (dep)
+    {
         // newdelete.o + lexer.a + backend.a
-        sources: sources.dmd.chain(sources.root, lexer.targets, backend.targets).array,
-        target: env["DMD_PATH"] ~ targetSuffix,
-        msg: "(DC) DMD%s %-(%s, %)".format(targetSuffix, sources.dmd.map!(e => e.baseName).array),
-        deps: [versionFile, sysconfDirFile, lexer, backend],
-        command: [
+        sources = dmdSources.chain(lexer.targets, backend.targets).array;
+        target = env["DMD_PATH"] ~ targetSuffix;
+        msg = "(DC) DMD%s %-(%s, %)".format(targetSuffix, dmdSources.map!(e => e.baseName).array);
+        deps = [versionFile, sysconfDirFile, lexer, backend];
+        string[] platformArgs;
+        version (Windows)
+            platformArgs = ["-L/STACK:8388608"];
+        command = [
             env["HOST_DMD_RUN"],
-            "-of$@",
+            "-of" ~ target,
             "-vtls",
             "-J"~env["G"],
             "-J../res",
-        ].chain(extraFlags).chain(flags["DFLAGS"], "$<".only).array
-    };
-    return new DependencyRef(dependency);
+        ].chain(extraFlags, platformArgs, flags["DFLAGS"], sources).array;
+    }
+    return new DependencyRef(dep);
 });
 
-alias dmdDefault = memoize!(function() {
-    Dependency dependency = {
-        name: "dmd",
-        description: "Build dmd",
-        deps: [dmdConf, dmdExe(null, null)],
-    };
-    return new DependencyRef(dependency);
-});
-
-/// Dependency for the DMD unittest executable
-auto dmdUnittestExe()
+alias dmdDefault = memoize!(function()
 {
-    return dmdExe("-unittest", ["-version=NoMain", "-unittest", "-main"]);
-}
+    Dependency dep;
+    with (dep)
+    {
+        name = "dmd";
+        description = "Build dmd";
+        deps = [dmdConf, dmdExe(null, null)];
+    }
+    return new DependencyRef(dep);
+});
 
 /// Dependency to run the DMD unittest executable.
-alias runDmdUnittest = memoize!(function() {
-    auto commandFunction = (){
-        spawnProcess(dmdUnittestExe.targets[0]);
-    };
-    Dependency dependency = {
-        name: "unittest",
-        description: "Run the dmd unittests",
-        msg: "(RUN) DMD-UNITTEST",
-        deps: [dmdUnittestExe],
-        commandFunction: commandFunction.toDelegate,
-    };
-    return new DependencyRef(dependency);
+alias runDmdUnittest = memoize!(function()
+{
+    auto dmdUnittestExe = dmdExe("-unittest", ["-version=NoMain", "-unittest", "-main"]);
+
+    Dependency dep;
+    with (dep)
+    {
+        name = "unittest";
+        description = "Run the dmd unittests";
+        msg = "(RUN) DMD-UNITTEST";
+        deps = [dmdUnittestExe];
+        commandFunction = ()
+        {
+            spawnProcess(dmdUnittestExe.targets[0]);
+        };
+    }
+    return new DependencyRef(dep);
 });
 
-alias clean = memoize!(function() {
-    auto commandFunction = (){
-        if (env["G"].exists)
-            env["G"].rmdirRecurse;
-    };
-    Dependency dependency = {
-        name: "clean",
-        description: "Remove the generated directory",
-        msg: "(RM) " ~ env["G"],
-        commandFunction: commandFunction.toDelegate,
-    };
-    return new DependencyRef(dependency);
+/// Dependency that removes all generated files
+alias clean = memoize!(function()
+{
+    Dependency dep;
+    with (dep)
+    {
+        name = "clean";
+        description = "Remove the generated directory";
+        msg = "(RM) " ~ env["G"];
+        commandFunction = ()
+        {
+            if (env["G"].exists)
+                env["G"].rmdirRecurse;
+        };
+    }
+    return new DependencyRef(dep);
 });
 
 /**
@@ -497,6 +549,31 @@ struct DependencyRange
 /// Sets the environment variables
 void parseEnvironment()
 {
+    // This block is temporary until we can remove the windows make files
+    {
+        const ddebug = env.get("DDEBUG", null);
+        if (ddebug.length)
+        {
+            writefln("WARNING: the DDEBUG variable is deprecated");
+            if (ddebug == "-debug -g -unittest -cov")
+            {
+                environment["ENABLE_DEBUG"] = "1";
+                environment["ENABLE_UNITTEST"] = "1";
+                environment["ENABLE_COVERAGE"] = "1";
+            }
+            else if (ddebug == "-debug -g -unittest")
+            {
+                environment["ENABLE_DEBUG"] = "1";
+                environment["ENABLE_UNITTEST"] = "1";
+            }
+            else
+            {
+                writefln("Error: DDEBUG is not an expected value '%s'", ddebug);
+                exit(1);
+            }
+        }
+    }
+
     env.getDefault("TARGET_CPU", "X86");
     version (Windows)
     {
@@ -550,12 +627,12 @@ void parseEnvironment()
     env.getDefault("GIT_HOME", "https://github.com/dlang");
     env.getDefault("SYSCONFDIR", "/etc");
     env.getDefault("TMP", tempDir);
-    auto d = env.getDefault("D", srcDir.buildPath("dmd"));
-    env.getDefault("C", d.buildPath("backend"));
-    env.getDefault("ROOT", d.buildPath("root"));
-    env.getDefault("EX", srcDir.buildPath("examples"));
-    auto generated = env.getDefault("GENERATED", srcDir.dirName.buildPath("generated"));
-    auto g = env.getDefault("G", generated.buildPath(os, build, model));
+    auto d = env["D"] = srcDir.buildPath("dmd");
+    env["C"] = d.buildPath("backend");
+    env["ROOT"] = d.buildPath("root");
+    env["EX"] = srcDir.buildPath("examples");
+    auto generated = env["GENERATED"] = srcDir.dirName.buildPath("generated");
+    auto g = env["G"] = generated.buildPath(os, build, model);
     mkdirRecurse(g);
 
     if (env.get("HOST_DMD", null).length == 0)
@@ -691,56 +768,56 @@ auto sourceFiles()
     {
         assert(0, "Unknown TARGET_CPU: " ~ env["TARGET_CPU"]);
     }
-    const lexerDmdFiles = [
-        "console",
-        "entity",
-        "errors",
-        "filecache",
-        "globals",
-        "id",
-        "identifier",
-        "lexer",
-        "tokens",
-        "utf",
-    ];
-    const lexerRootFiles = [
-        "array",
-        "ctfloat",
-        "file",
-        "filename",
-        "hash",
-        "outbuffer",
-        "port",
-        "rmem",
-        "rootobject",
-        "stringtable",
-    ];
+    static string[] fileArray(string dir, string files)
+    {
+        return files.split.map!(e => dir.buildPath(e)).array;
+    }
     Sources sources = {
-        frontend:
-            dirEntries(env["D"], "*.d", SpanMode.shallow)
-                .map!(e => e.name)
-                .filter!(e => !lexerDmdFiles.chain(["asttypename", "frontend"]).canFind(e.baseName.stripExtension))
-                .array,
-        lexer:
-            lexerDmdFiles.map!(e => env["D"].buildPath(e ~ ".d")).chain(
-            lexerRootFiles.map!(e => env["ROOT"].buildPath(e ~ ".d"))).array,
-        root:
-            dirEntries(env["ROOT"], "*.d", SpanMode.shallow)
-                .map!(e => e.name)
-                .filter!(e => !lexerRootFiles.canFind(e.baseName.stripExtension))
-                .array,
-        backend:
-            dirEntries(env["C"], "*.d", SpanMode.shallow)
-                .map!(e => e.name)
-                .filter!(e => !e.baseName.among("dt.d", "obj.d"))
-                .array,
-        backendHeaders: [
-            // can't be built with -betterC
-            "dt",
-            "obj",
-        ].map!(e => env["C"].buildPath(e ~ ".d")).array,
+        glue: fileArray(env["D"], "
+            irstate.d toctype.d glue.d gluelayer.d todt.d tocsym.d toir.d dmsc.d
+            tocvdebug.d s2ir.d toobj.d e2ir.d eh.d iasm.d iasmdmd.d iasmgcc.d objc_glue.d
+        "),
+        frontend: fileArray(env["D"], "
+            access.d aggregate.d aliasthis.d apply.d argtypes.d argtypes_sysv_x64.d arrayop.d
+            arraytypes.d ast_node.d astbase.d astcodegen.d attrib.d blockexit.d builtin.d canthrow.d
+            cli.d clone.d compiler.d complex.d cond.d constfold.d cppmangle.d cppmanglewin.d ctfeexpr.d
+            ctorflow.d dcast.d dclass.d declaration.d delegatize.d denum.d dimport.d dinifile.d
+            dinterpret.d dmacro.d dmangle.d dmodule.d doc.d dscope.d dstruct.d dsymbol.d dsymbolsem.d
+            dtemplate.d dversion.d env.d escape.d expression.d expressionsem.d func.d hdrgen.d impcnvtab.d
+            imphint.d init.d initsem.d inline.d inlinecost.d intrange.d json.d lambdacomp.d lib.d libelf.d
+            libmach.d libmscoff.d libomf.d link.d mars.d mtype.d nogc.d nspace.d objc.d opover.d optimize.d
+            parse.d parsetimevisitor.d permissivevisitor.d printast.d safe.d sapply.d scanelf.d scanmach.d
+            scanmscoff.d scanomf.d semantic2.d semantic3.d sideeffect.d statement.d statement_rewrite_walker.d
+            statementsem.d staticassert.d staticcond.d strictvisitor.d target.d templateparamsem.d traits.d
+            transitivevisitor.d typesem.d typinf.d utils.d visitor.d
+        "),
+        lexer: fileArray(env["D"], "
+            console.d entity.d errors.d filecache.d globals.d id.d identifier.d lexer.d tokens.d utf.d
+        ") ~ fileArray(env["ROOT"], "
+            array.d ctfloat.d file.d filename.d hash.d outbuffer.d port.d region.d rmem.d
+            rootobject.d stringtable.d
+        "),
+        root: fileArray(env["ROOT"], "
+            aav.d longdouble.d man.d response.d speller.d string.d strtold.d
+        "),
+        backend: fileArray(env["C"], "
+            backend.d bcomplex.d evalu8.d divcoeff.d dvec.d go.d gsroa.d glocal.d gdag.d gother.d gflow.d
+            out.d
+            gloop.d compress.d cgelem.d cgcs.d ee.d cod4.d cod5.d nteh.d blockopt.d mem.d cg.d cgreg.d
+            dtype.d debugprint.d fp.d symbol.d elem.d dcode.d cgsched.d cg87.d cgxmm.d cgcod.d cod1.d cod2.d
+            cod3.d cv8.d dcgcv.d pdata.d util2.d var.d md5.d backconfig.d ph2.d drtlsym.d dwarfeh.d ptrntab.d
+            dvarstats.d dwarfdbginf.d cgen.d os.d goh.d barray.d cgcse.d elpicpie.d
+            machobj.d elfobj.d
+            " ~ ((env["OS"] == "windows") ? "cgobj.d filespec.d mscoffobj.d newman.d" : "aarray.d")
+        ),
+        backendHeaders: fileArray(env["C"], "
+            cc.d cdef.d cgcv.d code.d cv4.d dt.d el.d global.d
+            obj.d oper.d outbuf.d rtlsym.d code_x86.d iasm.d codebuilder.d
+            ty.d type.d exh.d mach.d mscoff.d dwarf.d dwarf2.d xmm.d
+            dlist.d melf.d varstats.di
+        "),
     };
-    sources.dmd = sources.frontend ~ sources.backendHeaders;
+    sources.dmd = sources.frontend ~ sources.glue ~ sources.backendHeaders;
 
     return sources;
 }
@@ -822,9 +899,9 @@ auto detectModel()
     else
         uname = ["uname", "-m"].execute.output;
 
-    if (uname.canFind("x86_64", "amd64", "64-bit", "64 bit"))
+    if (uname.canFind("x86_64", "amd64", "64-bit", "64-Bit", "64 bit"))
         return "64";
-    if (uname.canFind("i386", "i586", "i686", "32-bit", "32 bit"))
+    if (uname.canFind("i386", "i586", "i686", "32-bit", "32-Bit", "32 bit"))
         return "32";
 
     throw new Exception(`Cannot figure 32/64 model from "` ~ uname ~ `"`);
@@ -845,7 +922,8 @@ auto getHostDMDPath(string hostDmd)
     {
         if (hostDmd.canFind("/", "\\"))
             return hostDmd;
-        return ["where", hostDmd].execute.output.lineSplitter.front;
+        return ["where", hostDmd].execute.output
+            .lineSplitter.filter!(file => file != srcDir.buildPath("dmd.exe")).front;
     }
     else
         static assert(false, "Unrecognized or unsupported OS.");
@@ -1023,9 +1101,6 @@ It knows how to build these target by invoking either the external command or
 the commandFunction.
 
 If a run fails, the entire build stops.
-
-Command strings support the Make-like $@ (target path) and $< (source path)
-shortcut variables.
 */
 struct Dependency
 {
@@ -1093,23 +1168,8 @@ class DependencyRef
 
         if (command)
         {
-            resolveShorthands();
             command.runCanThrow;
         }
-    }
-
-    /**
-    Resolves variables shorthands like $@ (target) and $< (source)
-    */
-    void resolveShorthands()
-    {
-        // Support $@ (shortcut for the target path)
-        foreach (i, c; command)
-            command[i] = c.replace("$@", target);
-
-        // Support $< (shortcut for the source path)
-        if (command[$ - 1].canFind("$<"))
-            command = command.remove(command.length - 1) ~ dep.sources;
     }
 }
 

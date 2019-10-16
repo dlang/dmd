@@ -221,7 +221,7 @@
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="..\..\VERSION">
-      <Message>Creating VERSION...</Message>
+      <Message>Creating VERSION: $(_rdmdExe) ..\..\config.d $(OutDir) ..\..\VERSION</Message>
       <Command>$(_rdmdExe) ..\..\config.d $(OutDir) ..\..\VERSION</Command>
       <Outputs>$(OutDir)VERSION;%(Outputs)</Outputs>
     </CustomBuild>

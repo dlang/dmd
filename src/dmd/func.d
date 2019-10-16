@@ -263,7 +263,6 @@ extern (C++) class FuncDeclaration : Declaration
     ILS inlineStatusExp = ILS.uninitialized;
     PINLINE inlining = PINLINE.default_;
 
-    CompiledCtfeFunctionPimpl ctfeCode; /// Local data (i.e. CompileCtfeFunction*) for module dinterpret
     int inlineNest;                     /// !=0 if nested inline
     bool isArrayOp;                     /// true if array operation
     bool eh_none;                       /// true if no exception unwinding is needed
@@ -307,8 +306,16 @@ extern (C++) class FuncDeclaration : Declaration
 
     bool requiresClosure;               // this function needs a closure
 
-    /// local variables in this function which are referenced by nested functions
+    /** local variables in this function which are referenced by nested functions
+     * (They'll get put into the "closure" for this function.)
+     */
     VarDeclarations closureVars;
+
+    /** Outer variables which are referenced by this nested function
+     * (the inverse of closureVars)
+     */
+    VarDeclarations outerVars;
+
     /// Sibling nested functions which called this one
     FuncDeclarations siblingCallers;
 
@@ -558,7 +565,7 @@ extern (C++) class FuncDeclaration : Declaration
         return HiddenParameters.init;
     }
 
-    override final bool equals(RootObject o)
+    override final bool equals(const RootObject o) const
     {
         if (this == o)
             return true;
@@ -1125,7 +1132,7 @@ extern (C++) class FuncDeclaration : Declaration
                     return LevelError;
             }
 
-            s = toParentP(s, fd);
+            s = s.toParentP(fd);
             assert(s);
             level++;
         }
@@ -1743,10 +1750,10 @@ extern (C++) class FuncDeclaration : Declaration
      * Returns:
      *  true if there are no overloads of this function
      */
-    final bool isUnique()
+    final bool isUnique() const
     {
         bool result = false;
-        overloadApply(this, (Dsymbol s)
+        overloadApply(cast() this, (Dsymbol s)
         {
             auto f = s.isFuncDeclaration();
             if (!f)
@@ -1906,7 +1913,7 @@ extern (C++) class FuncDeclaration : Declaration
                  * so does f.
                  * Mark all affected functions as requiring closures.
                  */
-                for (Dsymbol s = f; s && s != this; s = toParentP(s, this))
+                for (Dsymbol s = f; s && s != this; s = s.toParentP(this))
                 {
                     FuncDeclaration fx = s.isFuncDeclaration();
                     if (!fx)
@@ -1917,7 +1924,7 @@ extern (C++) class FuncDeclaration : Declaration
 
                         /* Mark as needing closure any functions between this and f
                          */
-                        markAsNeedingClosure((fx == f) ? toParentP(fx, this) : fx, this);
+                        markAsNeedingClosure((fx == f) ? fx.toParentP(this) : fx, this);
 
                         requiresClosure = true;
                     }
@@ -1979,7 +1986,7 @@ extern (C++) class FuncDeclaration : Declaration
                 assert(f !is this);
 
             LcheckAncestorsOfANestedRef:
-                for (Dsymbol s = f; s && s !is this; s = toParentP(s, this))
+                for (Dsymbol s = f; s && s !is this; s = s.toParentP(this))
                 {
                     auto fx = s.isFuncDeclaration();
                     if (!fx)
@@ -2714,22 +2721,22 @@ unittest
 {
     OutBuffer buf;
     auto mismatches = MODMatchToBuffer(&buf, MODFlags.shared_, 0);
-    assert(buf.peekSlice == "`shared` ");
+    assert(buf[] == "`shared` ");
     assert(!mismatches.isNotShared);
 
     buf.reset;
     mismatches = MODMatchToBuffer(&buf, 0, MODFlags.shared_);
-    assert(buf.peekSlice == "non-shared ");
+    assert(buf[] == "non-shared ");
     assert(mismatches.isNotShared);
 
     buf.reset;
     mismatches = MODMatchToBuffer(&buf, MODFlags.const_, 0);
-    assert(buf.peekSlice == "`const` ");
+    assert(buf[] == "`const` ");
     assert(!mismatches.isMutable);
 
     buf.reset;
     mismatches = MODMatchToBuffer(&buf, 0, MODFlags.const_);
-    assert(buf.peekSlice == "mutable ");
+    assert(buf[] == "mutable ");
     assert(mismatches.isMutable);
 }
 
@@ -2814,14 +2821,16 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
      */
     if (m.last <= MATCH.nomatch)
     {
-        // error was caused on matched function
+        // error was caused on matched function, not on the matching itself,
+        // so return the function to produce a better diagnostic
         if (m.count == 1)
             return m.lastf;
-
-        // if do not print error messages
-        if (flags & FuncResolveFlag.quiet)
-            return null; // no match
     }
+
+    // We are done at this point, as the rest of this function generate
+    // a diagnostic on invalid match
+    if (flags & FuncResolveFlag.quiet)
+        return null;
 
     auto fd = s.isFuncDeclaration();
     auto od = s.isOverDeclaration();
@@ -2839,99 +2848,8 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
     if (tthis)
         tthis.modToBuffer(&fargsBuf);
 
-    if (!m.lastf && !(flags & FuncResolveFlag.quiet)) // no match
-    {
-        if (!fd && !td && !od)
-        {
-            /* This case happens when several ctors are mixed in an agregate.
-               A (bad) error message is already generated in overloadApply().
-               see https://issues.dlang.org/show_bug.cgi?id=19729
-            */
-        }
-        else if (td && !fd) // all of overloads are templates
-        {
-            .error(loc, "%s `%s.%s` cannot deduce function from argument types `!(%s)%s`, candidates are:",
-                td.kind(), td.parent.toPrettyChars(), td.ident.toChars(),
-                tiargsBuf.peekChars(), fargsBuf.peekChars());
-
-            printCandidates(loc, td);
-        }
-        else if (od)
-        {
-            .error(loc, "none of the overloads of `%s` are callable using argument types `!(%s)%s`",
-                od.ident.toChars(), tiargsBuf.peekChars(), fargsBuf.peekChars());
-        }
-        else
-        {
-            assert(fd);
-
-            // remove when deprecation period of class allocators and deallocators is over
-            if (fd.isNewDeclaration() && fd.checkDisabled(loc, sc))
-                return null;
-
-            bool hasOverloads = fd.overnext !is null;
-            auto tf = fd.type.toTypeFunction();
-            if (tthis && !MODimplicitConv(tthis.mod, tf.mod)) // modifier mismatch
-            {
-                OutBuffer thisBuf, funcBuf;
-                MODMatchToBuffer(&thisBuf, tthis.mod, tf.mod);
-                auto mismatches = MODMatchToBuffer(&funcBuf, tf.mod, tthis.mod);
-                if (hasOverloads)
-                {
-                    .error(loc, "none of the overloads of `%s` are callable using a %sobject, candidates are:",
-                        fd.ident.toChars(), thisBuf.peekChars());
-                }
-                else
-                {
-                    const(char)* failMessage;
-                    functionResolve(m, orig_s, loc, sc, tiargs, tthis, fargs, &failMessage);
-                    if (failMessage)
-                    {
-                        .error(loc, "%s `%s%s%s` is not callable using argument types `%s`",
-                            fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameterList),
-                            tf.modToChars(), fargsBuf.peekChars());
-                        errorSupplemental(loc, failMessage);
-                    }
-                    else
-                    {
-                        auto fullFdPretty = fd.toPrettyChars();
-                        .error(loc, "%smethod `%s` is not callable using a %sobject",
-                            funcBuf.peekChars(), fullFdPretty,
-                            thisBuf.peekChars());
-
-                        if (mismatches.isNotShared)
-                            .errorSupplemental(loc, "Consider adding `shared` to %s", fullFdPretty);
-                        else if (mismatches.isMutable)
-                            .errorSupplemental(loc, "Consider adding `const` or `inout` to %s", fullFdPretty);
-                    }
-                }
-            }
-            else
-            {
-                //printf("tf = %s, args = %s\n", tf.deco, (*fargs)[0].type.deco);
-                if (hasOverloads)
-                {
-                    .error(loc, "none of the overloads of `%s` are callable using argument types `%s`, candidates are:",
-                        fd.toChars(), fargsBuf.peekChars());
-                }
-                else
-                {
-                    .error(loc, "%s `%s%s%s` is not callable using argument types `%s`",
-                        fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameterList),
-                        tf.modToChars(), fargsBuf.peekChars());
-                    // re-resolve to check for supplemental message
-                    const(char)* failMessage;
-                    functionResolve(m, orig_s, loc, sc, tiargs, tthis, fargs, &failMessage);
-                    if (failMessage)
-                        errorSupplemental(loc, failMessage);
-                }
-            }
-
-            if (hasOverloads)
-                printCandidates(loc, fd);
-        }
-    }
-    else if (m.nextf)
+    // The call is ambiguous
+    if (m.lastf && m.nextf)
     {
         TypeFunction tf1 = m.lastf.type.toTypeFunction();
         TypeFunction tf2 = m.nextf.type.toTypeFunction();
@@ -2946,7 +2864,95 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
             fargsBuf.peekChars(),
             m.lastf.loc.toChars(), m.lastf.toPrettyChars(), lastprms, mod1,
             m.nextf.loc.toChars(), m.nextf.toPrettyChars(), nextprms, mod2);
+        return null;
     }
+
+    // no match, generate an error messages
+    if (!fd)
+    {
+        // all of overloads are templates
+        if (td)
+        {
+            .error(loc, "%s `%s.%s` cannot deduce function from argument types `!(%s)%s`, candidates are:",
+                   td.kind(), td.parent.toPrettyChars(), td.ident.toChars(),
+                   tiargsBuf.peekChars(), fargsBuf.peekChars());
+
+            printCandidates(loc, td);
+            return null;
+        }
+        /* This case happens when several ctors are mixed in an agregate.
+           A (bad) error message is already generated in overloadApply().
+           see https://issues.dlang.org/show_bug.cgi?id=19729
+        */
+        if (!od)
+            return null;
+    }
+
+    if (od)
+    {
+        .error(loc, "none of the overloads of `%s` are callable using argument types `!(%s)%s`",
+               od.ident.toChars(), tiargsBuf.peekChars(), fargsBuf.peekChars());
+        return null;
+    }
+
+    // remove when deprecation period of class allocators and deallocators is over
+    if (fd.isNewDeclaration() && fd.checkDisabled(loc, sc))
+        return null;
+
+    bool hasOverloads = fd.overnext !is null;
+    auto tf = fd.type.toTypeFunction();
+    if (tthis && !MODimplicitConv(tthis.mod, tf.mod)) // modifier mismatch
+    {
+        OutBuffer thisBuf, funcBuf;
+        MODMatchToBuffer(&thisBuf, tthis.mod, tf.mod);
+        auto mismatches = MODMatchToBuffer(&funcBuf, tf.mod, tthis.mod);
+        if (hasOverloads)
+        {
+            .error(loc, "none of the overloads of `%s` are callable using a %sobject, candidates are:",
+                   fd.ident.toChars(), thisBuf.peekChars());
+            printCandidates(loc, fd);
+            return null;
+        }
+
+        const(char)* failMessage;
+        functionResolve(m, orig_s, loc, sc, tiargs, tthis, fargs, &failMessage);
+        if (failMessage)
+        {
+            .error(loc, "%s `%s%s%s` is not callable using argument types `%s`",
+                   fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameterList),
+                   tf.modToChars(), fargsBuf.peekChars());
+            errorSupplemental(loc, failMessage);
+            return null;
+        }
+
+        auto fullFdPretty = fd.toPrettyChars();
+        .error(loc, "%smethod `%s` is not callable using a %sobject",
+               funcBuf.peekChars(), fullFdPretty, thisBuf.peekChars());
+
+        if (mismatches.isNotShared)
+            .errorSupplemental(loc, "Consider adding `shared` to %s", fullFdPretty);
+        else if (mismatches.isMutable)
+            .errorSupplemental(loc, "Consider adding `const` or `inout` to %s", fullFdPretty);
+        return null;
+    }
+
+    //printf("tf = %s, args = %s\n", tf.deco, (*fargs)[0].type.deco);
+    if (hasOverloads)
+    {
+        .error(loc, "none of the overloads of `%s` are callable using argument types `%s`, candidates are:",
+               fd.toChars(), fargsBuf.peekChars());
+        printCandidates(loc, fd);
+        return null;
+    }
+
+    .error(loc, "%s `%s%s%s` is not callable using argument types `%s`",
+           fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameterList),
+           tf.modToChars(), fargsBuf.peekChars());
+    // re-resolve to check for supplemental message
+    const(char)* failMessage;
+    functionResolve(m, orig_s, loc, sc, tiargs, tthis, fargs, &failMessage);
+    if (failMessage)
+        errorSupplemental(loc, failMessage);
     return null;
 }
 
@@ -3146,7 +3152,7 @@ private bool traverseIndirections(Type ta, Type tb)
  */
 private void markAsNeedingClosure(Dsymbol f, FuncDeclaration outerFunc)
 {
-    for (Dsymbol sx = f; sx && sx != outerFunc; sx = toParentP(sx, outerFunc))
+    for (Dsymbol sx = f; sx && sx != outerFunc; sx = sx.toParentP(outerFunc))
     {
         FuncDeclaration fy = sx.isFuncDeclaration();
         if (fy && fy.closureVars.dim)
@@ -3196,7 +3202,7 @@ private bool checkEscapingSiblings(FuncDeclaration f, FuncDeclaration outerFunc,
             bAnyClosures = true;
         }
 
-        for (auto parent = toParentP(g, outerFunc); parent && parent !is outerFunc; parent = toParentP(parent, outerFunc))
+        for (auto parent = g.toParentP(outerFunc); parent && parent !is outerFunc; parent = parent.toParentP(outerFunc))
         {
             // A parent of the sibling had its address taken.
             // Assume escaping of parent affects its children, so needs propagating.
@@ -3224,60 +3230,6 @@ private bool checkEscapingSiblings(FuncDeclaration f, FuncDeclaration outerFunc,
     }
     //printf("\t%d\n", bAnyClosures);
     return bAnyClosures;
-}
-
-/***
- * Returns true if any of the symbols `p` resides in the enclosing instantiation scope of `s`.
- */
-bool followInstantiationContext(D...)(Dsymbol s, D p)
-{
-    static bool has2This(Dsymbol s)
-    {
-        if (auto f = s.isFuncDeclaration())
-            return f.isThis2;
-        if (auto ad = s.isAggregateDeclaration())
-            return ad.vthis2 !is null;
-        return false;
-    }
-
-    assert(s);
-    if (has2This(s))
-    {
-        assert(p.length);
-        auto parent = s.toParent();
-        while (parent)
-        {
-            auto ti = parent.isTemplateInstance();
-            if (!ti) break;
-            foreach (oarg; *ti.tiargs)
-            {
-                auto sa = getDsymbol(oarg);
-                if (!sa)
-                    continue;
-                sa = sa.toAlias().toParent2();
-                if (!sa)
-                    continue;
-                foreach (ps; p)
-                {
-                    if (sa == ps)
-                        return true;
-                }
-            }
-            parent = ti.tempdecl.toParent();
-        }
-        return false;
-    }
-    return false;
-}
-
-/*
- * Returns the declaration scope scope of `s`
- * unless any of the symbols `p` resides in its enclosing instantiation scope
- * then the latter is returned.
- */
-Dsymbol toParentP(D...)(Dsymbol s, D p)
-{
-    return followInstantiationContext(s, p) ? s.toParent2() : s.toParentLocal();
 }
 
 /***********************************************************

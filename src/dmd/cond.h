@@ -22,8 +22,6 @@ class DebugCondition;
 class ForeachStatement;
 class ForeachRangeStatement;
 
-int findCondition(Strings *ids, Identifier *ident);
-
 enum Include
 {
     INCLUDEnotComputed, /// not computed yet

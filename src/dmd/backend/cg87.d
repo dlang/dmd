@@ -3646,6 +3646,20 @@ void fixresult_complex87(ref CodeBuilder cdb,elem *e,regm_t retregs,regm_t *pret
         cdb.genf2(0xDD,modregrm(3,3,0));        // FPOP
         pop87();
     }
+    else if (tym == TYllong)
+    {
+        // passing cfloat through register for I64
+        assert(retregs & mST01, "this float expression is not implemented");
+        pop87();
+        cdb.genfltreg(ESC(MFfloat,1),BX,4);     // FSTP floatreg
+        pop87();
+        cdb.genfltreg(ESC(MFfloat,1),BX,0);     // FSTP floatreg+4
+        genfwait(cdb);
+        const reg = findreg(*pretregs);
+        getregs(cdb,reg);
+        cdb.genfltreg(LOD, reg, 0);             // MOV ECX,floatreg
+        code_orrex(cdb.last(), REX_W);          // extend to RCX
+    }
     else if (tym == TYcfloat && *pretregs & (mAX|mDX) && retregs & mST01)
     {
         if (*pretregs & mPSW && !(retregs & mPSW))

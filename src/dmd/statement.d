@@ -166,12 +166,13 @@ extern (C++) abstract class Statement : ASTNode
         return b;
     }
 
-    override final const(char)* toChars()
+    override final const(char)* toChars() const
     {
         HdrGenState hgs;
         OutBuffer buf;
         .toCBuffer(this, &buf, &hgs);
-        return buf.extractChars();
+        buf.writeByte(0);
+        return buf.extractSlice().ptr;
     }
 
     final void error(const(char)* format, ...)
@@ -432,6 +433,7 @@ extern (C++) abstract class Statement : ASTNode
     inout(DtorExpStatement)     isDtorExpStatement()     { return stmt == STMT.DtorExp     ? cast(typeof(return))this : null; }
     inout(ForwardingStatement)  isForwardingStatement()  { return stmt == STMT.Forwarding  ? cast(typeof(return))this : null; }
     inout(DoStatement)          isDoStatement()          { return stmt == STMT.Do          ? cast(typeof(return))this : null; }
+    inout(WhileStatement)       isWhileStatement()       { return stmt == STMT.While       ? cast(typeof(return))this : null; }
     inout(ForStatement)         isForStatement()         { return stmt == STMT.For         ? cast(typeof(return))this : null; }
     inout(ForeachStatement)     isForeachStatement()     { return stmt == STMT.Foreach     ? cast(typeof(return))this : null; }
     inout(SwitchStatement)      isSwitchStatement()      { return stmt == STMT.Switch      ? cast(typeof(return))this : null; }
@@ -810,8 +812,9 @@ extern (C++) final class CompileStatement : Statement
             return errorStatements();
 
         const errors = global.errors;
-        const len = buf.offset;
-        const str = buf.extractChars()[0 .. len];
+        const len = buf.length;
+        buf.writeByte(0);
+        const str = buf.extractSlice()[0 .. len];
         scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
         scope p = new Parser!ASTCodegen(loc, sc._module, str, false, diagnosticReporter);
         p.nextToken();
@@ -2100,11 +2103,11 @@ extern (C++) final class ScopeGuardStatement : Statement
                  *  sexception:    x = true;
                  *  sfinally: if (!x) statement;
                  */
-                auto v = copyToTemp(0, "__os", new IntegerExp(Loc.initial, 0, Type.tbool));
+                auto v = copyToTemp(0, "__os", IntegerExp.createBool(false));
                 v.dsymbolSemantic(sc);
                 *sentry = new ExpStatement(loc, v);
 
-                Expression e = new IntegerExp(Loc.initial, 1, Type.tbool);
+                Expression e = IntegerExp.createBool(true);
                 e = new AssignExp(Loc.initial, new VarExp(Loc.initial, v), e);
                 *sexception = new ExpStatement(Loc.initial, e);
 
@@ -2305,6 +2308,7 @@ extern (C++) final class LabelStatement : Statement
     ScopeGuardStatement os;
     VarDeclaration lastVar;
     Statement gotoTarget;       // interpret
+    void* extra;                // used by Statement_toIR()
     bool breaks;                // someone did a 'break ident'
 
     extern (D) this(const ref Loc loc, Identifier ident, Statement statement)

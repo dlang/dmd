@@ -77,7 +77,7 @@ extern (C++) void genhdrfile(Module m)
     HdrGenState hgs;
     hgs.hdrgen = true;
     toCBuffer(m, &buf, &hgs);
-    writeFile(m.loc, m.hdrfile.toString(), buf.peekSlice());
+    writeFile(m.loc, m.hdrfile.toString(), buf[]);
 }
 
 /**
@@ -1810,7 +1810,7 @@ public:
                 goto case;
             case Tchar:
                 {
-                    size_t o = buf.offset;
+                    size_t o = buf.length;
                     if (v == '\'')
                         buf.writestring("'\\''");
                     else if (isprint(cast(int)v) && v != '\\')
@@ -1972,7 +1972,7 @@ public:
     override void visit(StringExp e)
     {
         buf.writeByte('"');
-        const o = buf.offset;
+        const o = buf.length;
         for (size_t i = 0; i < e.len; i++)
         {
             const c = e.charAt(i);
@@ -2629,15 +2629,15 @@ public:
     }
 }
 
-void toCBuffer(Statement s, OutBuffer* buf, HdrGenState* hgs)
+void toCBuffer(const Statement s, OutBuffer* buf, HdrGenState* hgs)
 {
     scope v = new StatementPrettyPrintVisitor(buf, hgs);
-    s.accept(v);
+    (cast() s).accept(v);
 }
 
-void toCBuffer(Type t, OutBuffer* buf, const Identifier ident, HdrGenState* hgs)
+void toCBuffer(const Type t, OutBuffer* buf, const Identifier ident, HdrGenState* hgs)
 {
-    typeToBuffer(t, ident, buf, hgs);
+    typeToBuffer(cast() t, ident, buf, hgs);
 }
 
 void toCBuffer(Dsymbol s, OutBuffer* buf, HdrGenState* hgs)
@@ -2647,17 +2647,17 @@ void toCBuffer(Dsymbol s, OutBuffer* buf, HdrGenState* hgs)
 }
 
 // used from TemplateInstance::toChars() and TemplateMixin::toChars()
-void toCBufferInstance(TemplateInstance ti, OutBuffer* buf, bool qualifyTypes = false)
+void toCBufferInstance(const TemplateInstance ti, OutBuffer* buf, bool qualifyTypes = false)
 {
     HdrGenState hgs;
     hgs.fullQual = qualifyTypes;
     scope v = new DsymbolPrettyPrintVisitor(buf, &hgs);
-    v.visit(ti);
+    v.visit(cast() ti);
 }
 
-void toCBuffer(Initializer iz, OutBuffer* buf, HdrGenState* hgs)
+void toCBuffer(const Initializer iz, OutBuffer* buf, HdrGenState* hgs)
 {
-    initializerToBuffer(iz, buf, hgs);
+    initializerToBuffer(cast() iz, buf, hgs);
 }
 
 bool stcToBuffer(OutBuffer* buf, StorageClass stc)
@@ -2749,28 +2749,12 @@ string stcToString(ref StorageClass stc)
     return null;
 }
 
-extern (C++) const(char)* stcToChars(ref StorageClass stc)
+const(char)* stcToChars(ref StorageClass stc)
 {
     const s = stcToString(stc);
     return &s[0];  // assume 0 terminated
 }
 
-
-extern (C++) void trustToBuffer(OutBuffer* buf, TRUST trust)
-{
-    buf.writestring(trustToString(trust));
-}
-
-/**
- * Returns:
- *   a human readable representation of `trust`,
- *   which is the token `trust` corresponds to
- */
-extern (C++) const(char)* trustToChars(TRUST trust)
-{
-    /// Works because we return a literal
-    return trustToString(trust).ptr;
-}
 
 /// Ditto
 extern (D) string trustToString(TRUST trust) pure nothrow
@@ -2799,7 +2783,7 @@ private void linkageToBuffer(OutBuffer* buf, LINK linkage)
     }
 }
 
-extern (C++) const(char)* linkageToChars(LINK linkage)
+const(char)* linkageToChars(LINK linkage)
 {
     /// Works because we return a literal
     return linkageToString(linkage).ptr;
@@ -2828,7 +2812,7 @@ string linkageToString(LINK linkage) pure nothrow
     }
 }
 
-extern (C++) void protectionToBuffer(OutBuffer* buf, Prot prot)
+void protectionToBuffer(OutBuffer* buf, Prot prot)
 {
     buf.writestring(protectionToString(prot.kind));
     if (prot.kind == Prot.Kind.package_ && prot.pkg)
@@ -2843,7 +2827,7 @@ extern (C++) void protectionToBuffer(OutBuffer* buf, Prot prot)
  * Returns:
  *   a human readable representation of `kind`
  */
-extern (C++) const(char)* protectionToChars(Prot.Kind kind)
+const(char)* protectionToChars(Prot.Kind kind)
 {
     // Null terminated because we return a literal
     return protectionToString(kind).ptr;
@@ -2885,10 +2869,10 @@ void functionToBufferWithIdent(TypeFunction tf, OutBuffer* buf, const(char)* ide
     visitFuncIdentWithPostfix(tf, ident.toDString(), buf, &hgs);
 }
 
-void toCBuffer(Expression e, OutBuffer* buf, HdrGenState* hgs)
+void toCBuffer(const Expression e, OutBuffer* buf, HdrGenState* hgs)
 {
     scope v = new ExpressionPrettyPrintVisitor(buf, hgs);
-    e.accept(v);
+    (cast() e).accept(v);
 }
 
 /**************************************************
@@ -2907,10 +2891,10 @@ void argExpTypesToCBuffer(OutBuffer* buf, Expressions* arguments)
     }
 }
 
-void toCBuffer(TemplateParameter tp, OutBuffer* buf, HdrGenState* hgs)
+void toCBuffer(const TemplateParameter tp, OutBuffer* buf, HdrGenState* hgs)
 {
     scope v = new TemplateParameterPrettyPrintVisitor(buf, hgs);
-    tp.accept(v);
+    (cast() tp).accept(v);
 }
 
 void arrayObjectsToBuffer(OutBuffer* buf, Objects* objects)
@@ -2932,7 +2916,7 @@ void arrayObjectsToBuffer(OutBuffer* buf, Objects* objects)
  *  pl = parameter list to print
  * Returns: Null-terminated string representing parameters.
  */
-extern (C++) const(char)* parametersTypeToChars(ParameterList pl)
+const(char)* parametersTypeToChars(ParameterList pl)
 {
     OutBuffer buf;
     HdrGenState hgs;
@@ -3163,6 +3147,11 @@ private void expToBuffer(Expression e, PREC pr, OutBuffer* buf, HdrGenState* hgs
     {
         if (precedence[e.op] == PREC.zero)
             printf("precedence not defined for token '%s'\n", Token.toChars(e.op));
+    }
+    if (e.op == 0xFF)
+    {
+        buf.writestring("<FF>");
+        return;
     }
     assert(precedence[e.op] != PREC.zero);
     assert(pr != PREC.zero);

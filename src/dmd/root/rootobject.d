@@ -42,18 +42,18 @@ extern (C++) class RootObject
     {
     }
 
-    bool equals(RootObject o)
+    bool equals(const RootObject o) const
     {
         return o is this;
     }
 
-    const(char)* toChars()
+    const(char)* toChars() const
     {
         assert(0);
     }
 
     ///
-    extern(D) const(char)[] toString()
+    extern(D) const(char)[] toString() const
     {
         import core.stdc.string : strlen;
         auto p = this.toChars();

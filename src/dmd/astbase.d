@@ -332,10 +332,10 @@ struct ASTBase
             if (!this.comment)
                 this.comment = comment;
             else if (comment && strcmp(cast(char*)comment, cast(char*)this.comment) != 0)
-                this.comment = Lexer.combineComments(this.comment, comment, true);
+                this.comment = Lexer.combineComments(this.comment.toDString(), comment.toDString(), true);
         }
 
-        override const(char)* toChars()
+        override const(char)* toChars() const
         {
             return ident ? ident.toChars() : "__anonymous";
         }
@@ -667,7 +667,8 @@ struct ASTBase
         Type type;
         Initializer _init;
         StorageClass storage_class;
-        int ctfeAdrOnStack;
+        enum AdrOnStackNone = ~0u;
+        uint ctfeAdrOnStack;
         uint sequenceNumber;
         __gshared uint nextSequenceNumber;
 
@@ -679,7 +680,7 @@ struct ASTBase
             this.loc = loc;
             this.storage_class = st;
             sequenceNumber = ++nextSequenceNumber;
-            ctfeAdrOnStack = -1;
+            ctfeAdrOnStack = AdrOnStackNone;
         }
 
         override final inout(VarDeclaration) isVarDeclaration() inout
@@ -2768,7 +2769,7 @@ struct ASTBase
             this.ty = ty;
         }
 
-        override const(char)* toChars()
+        override const(char)* toChars() const
         {
             return "type";
         }
@@ -4706,7 +4707,7 @@ struct ASTBase
         extern (D) const(char)[] toStringz() const
         {
             auto nbytes = len * sz;
-            char* s = cast(char*)mem.xmalloc(nbytes + sz);
+            char* s = cast(char*)mem.xmalloc_noscan(nbytes + sz);
             writeTo(s, true);
             return s[0 .. nbytes];
         }
@@ -6295,7 +6296,7 @@ struct ASTBase
             return DYNCAST.tuple;
         }
 
-        override const(char)* toChars()
+        override const(char)* toChars() const
         {
             return objects.toChars();
         }
@@ -6323,14 +6324,14 @@ struct ASTBase
             this.isdeprecated = isdeprecated;
         }
 
-        extern (C++) const(char)* toChars()
+        extern (C++) const(char)* toChars() const
         {
             OutBuffer buf;
             if (packages && packages.dim)
             {
                 for (size_t i = 0; i < packages.dim; i++)
                 {
-                    Identifier pid = (*packages)[i];
+                    const Identifier pid = (*packages)[i];
                     buf.writestring(pid.toString());
                     buf.writeByte('.');
                 }
@@ -6391,7 +6392,7 @@ struct ASTBase
     }
 
 
-    extern (C++) static const(char)* protectionToChars(Prot.Kind kind)
+    static const(char)* protectionToChars(Prot.Kind kind)
     {
         final switch (kind)
         {
@@ -6412,7 +6413,7 @@ struct ASTBase
         }
     }
 
-    extern (C++) static bool stcToBuffer(OutBuffer* buf, StorageClass stc)
+    static bool stcToBuffer(OutBuffer* buf, StorageClass stc)
     {
         bool result = false;
         if ((stc & (STC.return_ | STC.scope_)) == (STC.return_ | STC.scope_))
@@ -6436,7 +6437,7 @@ struct ASTBase
         return t.toExpression;
     }
 
-    extern (C++) static const(char)* stcToChars(ref StorageClass stc)
+    static const(char)* stcToChars(ref StorageClass stc)
     {
         struct SCstring
         {
@@ -6499,7 +6500,7 @@ struct ASTBase
         return null;
     }
 
-    extern (C++) static const(char)* linkageToChars(LINK linkage)
+    static const(char)* linkageToChars(LINK linkage)
     {
         final switch (linkage)
         {

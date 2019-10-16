@@ -131,20 +131,18 @@ void obj_write_deferred(Library library)
          */
         OutBuffer idbuf;
         idbuf.printf("%s.%d", m ? m.ident.toChars() : mname, count);
-        char *idstr = idbuf.peekChars();
 
         if (!m)
         {
             // it doesn't make sense to make up a module if we don't know where to put the symbol
             //  so output it into it's own object file without ModuleInfo
-            objmod.initfile(idstr, null, mname);
+            objmod.initfile(idbuf.peekChars(), null, mname);
             toObjFile(s, false);
             objmod.termfile();
         }
         else
         {
-            idbuf.data = null;
-            Identifier id = Identifier.create(idstr);
+            Identifier id = Identifier.create(idbuf.extractChars());
 
             Module md = new Module(mname.toDString, id, 0, 0);
             md.members = new Dsymbols();
@@ -324,21 +322,6 @@ void genObjFile(Module m, bool multiobj)
     //EEcontext *ee = env.getEEcontext();
 
     //printf("Module.genobjfile(multiobj = %d) %s\n", multiobj, m.toChars());
-
-    if (m.ident == Id.entrypoint)
-    {
-        bool v = global.params.verbose;
-        global.params.verbose = false;
-
-        foreach (member; *m.members)
-        {
-            //printf("toObjFile %s %s\n", member.kind(), member.toChars());
-            toObjFile(member, multiobj);
-        }
-
-        global.params.verbose = v;
-        return;
-    }
 
     lastmname = m.srcfile.toChars();
 
@@ -842,6 +825,18 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     {
         if (p.isTemplateInstance())
         {
+            // functions without D or C++ name mangling mixed in at global scope
+            // shouldn't have multiple definitions
+            if (p.isTemplateMixin() && (fd.linkage == LINK.c || fd.linkage == LINK.windows ||
+                fd.linkage == LINK.pascal || fd.linkage == LINK.objc))
+            {
+                const q = p.toParent();
+                if (q && q.isModule())
+                {
+                    s.Sclass = SCglobal;
+                    break;
+                }
+            }
             s.Sclass = SCcomdat;
             break;
         }
@@ -1024,8 +1019,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         pi++;
     }
 
-    if ((global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isDragonFlyBSD || global.params.isSolaris) &&
-         fd.linkage != LINK.d && shidden && sthis)
+    if (target.isPOSIX && fd.linkage != LINK.d && shidden && sthis)
     {
         /* swap shidden and sthis
          */
@@ -1271,14 +1265,6 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         }
     }
 
-    if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD ||
-        global.params.isDragonFlyBSD || global.params.isSolaris)
-    {
-        // A hack to get a pointer to this function put in the .dtors segment
-        if (fd.ident && memcmp(fd.ident.toChars(), "_STD".ptr, 4) == 0)
-            objmod.staticdtor(s);
-    }
-
     if (irs.startaddress)
     {
         //printf("Setting start address\n");
@@ -1305,8 +1291,7 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
     // Pull in RTL startup code (but only once)
     if (fd.isMain() && onlyOneMain(fd.loc))
     {
-        if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD ||
-            global.params.isOpenBSD || global.params.isDragonFlyBSD || global.params.isSolaris)
+        if (target.isPOSIX)
         {
             objmod.external_def("_main");
         }
@@ -1325,9 +1310,7 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
     }
     else if (fd.isRtInit())
     {
-        if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD ||
-            global.params.isOpenBSD || global.params.isDragonFlyBSD || global.params.isSolaris ||
-            global.params.mscoff)
+        if (target.isPOSIX || global.params.mscoff)
         {
             objmod.ehsections();   // initialize exception handling sections
         }
@@ -1336,7 +1319,7 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
     {
         if (global.params.mscoff)
         {
-            if (global.params.mscrtlib && global.params.mscrtlib[0])
+            if (global.params.mscrtlib.length && global.params.mscrtlib[0])
                 obj_includelib(global.params.mscrtlib);
             objmod.includelib("OLDNAMES");
         }
@@ -1352,7 +1335,7 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
         if (global.params.mscoff)
         {
             objmod.includelib("uuid");
-            if (global.params.mscrtlib && global.params.mscrtlib[0])
+            if (global.params.mscrtlib.length && global.params.mscrtlib[0])
                 obj_includelib(global.params.mscrtlib);
             objmod.includelib("OLDNAMES");
         }
@@ -1371,7 +1354,7 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
         if (global.params.mscoff)
         {
             objmod.includelib("uuid");
-            if (global.params.mscrtlib && global.params.mscrtlib[0])
+            if (global.params.mscrtlib.length && global.params.mscrtlib[0])
                 obj_includelib(global.params.mscrtlib);
             objmod.includelib("OLDNAMES");
         }

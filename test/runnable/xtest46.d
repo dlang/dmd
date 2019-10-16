@@ -9,7 +9,7 @@ int
 !! immutable(int)[]
 int(int i, long j = 7L)
 long
-C10390(C10390(<recursion>))
+C10390(C10390(C10390(<recursion>)))
 tuple(height)
 tuple(get, get)
 tuple(clear)

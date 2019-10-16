@@ -137,11 +137,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     Strings files;
     Strings libmodules;
     global._init();
-    debug
-    {
-        printf("DMD %.*s DEBUG\n", cast(int) global._version.length - 1, global._version.ptr);
-        fflush(stdout); // avoid interleaving with stderr output when redirecting
-    }
     // Check for malformed input
     if (argc < 1 || !argv)
     {
@@ -157,7 +152,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             goto Largs;
         arguments[i] = argv[i];
     }
-    if (response_expand(arguments)) // expand response files
+    if (!responseExpand(arguments)) // expand response files
         error(Loc.initial, "can't open response file");
     //for (size_t i = 0; i < arguments.dim; ++i) printf("arguments[%d] = '%s'\n", i, arguments[i]);
     files.reserve(arguments.dim - 1);
@@ -430,7 +425,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     // Create Modules
     Modules modules = createModules(files, libmodules);
     // Read files
-    enum ASYNCREAD = false;
     // Start by "reading" the special files (__main.d, __stdin.d)
     foreach (m; modules)
     {
@@ -442,27 +436,15 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         else if (m.srcfile.toString() == "__stdin.d")
         {
             auto buffer = readFromStdin();
-            m.srcBuffer = new FileBuffer(buffer.extractData());
+            m.srcBuffer = new FileBuffer(buffer.extractSlice());
         }
     }
-    static if (ASYNCREAD)
+
+    foreach (m; modules)
     {
-        // Multi threaded
-        AsyncRead* aw = AsyncRead.create(modules.dim);
-        foreach (m; modules)
-        {
-            aw.addFile(m.srcfile);
-        }
-        aw.start();
+        m.read(Loc.initial);
     }
-    else
-    {
-        // Single threaded
-        foreach (m; modules)
-        {
-            m.read(Loc.initial);
-        }
-    }
+
     // Parse files
     bool anydocfiles = false;
     size_t filecount = modules.dim;
@@ -476,14 +458,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         m.importedFrom = m; // m.isRoot() == true
         if (!params.oneobj || modi == 0 || m.isDocFile)
             m.deleteObjFile();
-        static if (ASYNCREAD)
-        {
-            if (aw.read(filei))
-            {
-                error(Loc.initial, "cannot read file %s", m.srcfile.toChars());
-                fatal();
-            }
-        }
+
         m.parse();
         if (m.isHdrFile)
         {
@@ -519,10 +494,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
                 params.link = false;
         }
     }
-    static if (ASYNCREAD)
-    {
-        AsyncRead.dispose(aw);
-    }
+
     if (anydocfiles && modules.dim && (params.oneobj || params.objname))
     {
         error(Loc.initial, "conflicting Ddoc and obj generation options");
@@ -640,7 +612,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         foreach (i; 1 .. modules[0].aimports.dim)
             semantic3OnDependencies(modules[0].aimports[i]);
 
-        const data = ob.peekSlice();
+        const data = (*ob)[];
         if (params.moduleDepsFile)
             writeFile(Loc.initial, params.moduleDepsFile, data);
         else
@@ -686,7 +658,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
             // write the output to $(filename).cg
             auto cgFilename = FileName.addExt(mod.srcfile.toString(), "cg");
-            File.write(cgFilename.ptr, buf.peekSlice());
+            File.write(cgFilename.ptr, buf[]);
         }
     }
     if (!params.obj)
@@ -707,8 +679,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             if (params.verbose)
                 message("code      %s", m.toChars());
             genObjFile(m, false);
-            if (entrypoint && m == rootHasMain)
-                genObjFile(entrypoint, false);
         }
         if (!global.errors && firstm)
         {
@@ -725,8 +695,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
                 message("code      %s", m.toChars());
             obj_start(m.srcfile.toChars());
             genObjFile(m, params.multiobj);
-            if (entrypoint && m == rootHasMain)
-                genObjFile(entrypoint, params.multiobj);
             obj_end(library, m.objfile.toChars());
             obj_write_deferred(library);
             if (global.errors && !params.lib)
@@ -820,8 +788,8 @@ extern (C++) void generateJson(Modules* modules)
     if (name == "-")
     {
         // Write to stdout; assume it succeeds
-        size_t n = fwrite(buf.data, 1, buf.offset, stdout);
-        assert(n == buf.offset); // keep gcc happy about return values
+        size_t n = fwrite(buf[].ptr, 1, buf.length, stdout);
+        assert(n == buf.length); // keep gcc happy about return values
     }
     else
     {
@@ -846,7 +814,7 @@ extern (C++) void generateJson(Modules* modules)
             //    name = FileName::combine(dir, name);
             jsonfilename = FileName.forceExt(n, global.json_ext);
         }
-        writeFile(Loc.initial, jsonfilename, buf.peekSlice());
+        writeFile(Loc.initial, jsonfilename, buf[]);
     }
 }
 
@@ -1347,7 +1315,7 @@ extern(C) void printGlobalConfigs(FILE* stream)
                 buf.printf("%s ", flag);
         }
 
-        auto res = buf.peekSlice() ? buf.peekSlice()[0 .. $ - 1] : "(none)";
+        auto res = buf[] ? buf[][0 .. $ - 1] : "(none)";
         stream.fprintf("DFLAGS    %.*s\n", cast(int)res.length, res.ptr);
     }
 }
@@ -1399,7 +1367,7 @@ extern(C) void flushMixins()
         return;
 
     assert(global.params.mixinFile);
-    File.write(global.params.mixinFile, global.params.mixinOut.peekSlice());
+    File.write(global.params.mixinFile, (*global.params.mixinOut)[]);
 
     global.params.mixinOut.destroy();
     global.params.mixinOut = null;
@@ -2038,6 +2006,9 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 return false;
             }
 
+            if (params.useDIP1021)
+                params.vsafe = true;    // dip1021 implies dip1000
+
             // copy previously standalone flags from -transition
             // -preview=dip1000 implies -preview=dip25 too
             if (params.vsafe)
@@ -2146,6 +2117,19 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             case 0:
                 break;
             default:
+                goto Lerror;
+            }
+        }
+        else if (startsWith(p + 1, "Xcc="))
+        {
+            // Linking code is guarded by version (Posix):
+            static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
+            {
+                params.linkswitches.push(p + 5);
+                params.linkswitchIsForCC.push(true);
+            }
+            else
+            {
                 goto Lerror;
             }
         }
@@ -2363,6 +2347,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         else if (p[1] == 'L')                        // https://dlang.org/dmd.html#switch-L
         {
             params.linkswitches.push(p + 2 + (p[2] == '='));
+            params.linkswitchIsForCC.push(false);
         }
         else if (startsWith(p + 1, "defaultlib="))   // https://dlang.org/dmd.html#switch-defaultlib
         {

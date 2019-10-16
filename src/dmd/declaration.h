@@ -26,7 +26,6 @@ struct Ensure
 };
 class FuncDeclaration;
 class StructDeclaration;
-struct CompiledCtfeFunction;
 struct ObjcSelector;
 struct IntRange;
 
@@ -193,7 +192,7 @@ public:
     bool hasOverloads;
 
     const char *kind() const;
-    bool equals(RootObject *o);
+    bool equals(const RootObject *o) const;
     bool overloadInsert(Dsymbol *s);
 
     Dsymbol *toAlias();
@@ -230,8 +229,8 @@ public:
     unsigned endlinnum;         // line number of end of scope that this var lives in
 
     // When interpreting, these point to the value (NULL if value not determinable)
-    // The index of this variable on the CTFE stack, -1 if not allocated
-    int ctfeAdrOnStack;
+    // The index of this variable on the CTFE stack, ~0u if not allocated
+    unsigned ctfeAdrOnStack;
     Expression *edtor;          // if !=NULL, does the destruction of the variable
     IntRange *range;            // if !NULL, the variable is known to be within the range
 
@@ -241,7 +240,7 @@ private:
     bool _isAnonymous;
 
 public:
-    static VarDeclaration *create(Loc loc, Type *t, Identifier *id, Initializer *init, StorageClass storage_class = STCundefined);
+    static VarDeclaration *create(const Loc &loc, Type *t, Identifier *id, Initializer *init, StorageClass storage_class = STCundefined);
     Dsymbol *syntaxCopy(Dsymbol *);
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     const char *kind() const;
@@ -286,7 +285,7 @@ public:
 
     static TypeInfoDeclaration *create(Type *tinfo);
     Dsymbol *syntaxCopy(Dsymbol *);
-    const char *toChars();
+    const char *toChars() const;
 
     TypeInfoDeclaration *isTypeInfoDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
@@ -448,9 +447,6 @@ enum BUILTIN
 
 Expression *eval_builtin(Loc loc, FuncDeclaration *fd, Expressions *arguments);
 BUILTIN isBuiltin(FuncDeclaration *fd);
-
-typedef Expression *(*builtin_fp)(Loc loc, FuncDeclaration *fd, Expressions *arguments);
-void add_builtin(const char *mangle, builtin_fp fp);
 void builtin_init();
 
 class FuncDeclaration : public Declaration
@@ -506,7 +502,6 @@ public:
     ILS inlineStatusExp;
     PINLINE inlining;
 
-    CompiledCtfeFunction *ctfeCode;     // Compiled code for interpreter
     int inlineNest;                     // !=0 if nested inline
     bool isArrayOp;                     // true if array operation
     bool eh_none;                       /// true if no exception unwinding is needed
@@ -550,6 +545,12 @@ public:
 
     // local variables in this function which are referenced by nested functions
     VarDeclarations closureVars;
+
+    /** Outer variables which are referenced by this nested function
+     * (the inverse of closureVars)
+     */
+    VarDeclarations outerVars;
+
     // Sibling nested functions which called this one
     FuncDeclarations siblingCallers;
 
@@ -561,7 +562,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *);
     bool functionSemantic();
     bool functionSemantic3();
-    bool equals(RootObject *o);
+    bool equals(const RootObject *o) const;
 
     int overrides(FuncDeclaration *fd);
     int findVtblIndex(Dsymbols *vtbl, int dim, bool fix17349 = true);
@@ -658,7 +659,7 @@ public:
     bool isCpCtor;
     Dsymbol *syntaxCopy(Dsymbol *);
     const char *kind() const;
-    const char *toChars();
+    const char *toChars() const;
     bool isVirtual() const;
     bool addPreInvariant();
     bool addPostInvariant();
@@ -685,7 +686,7 @@ class DtorDeclaration : public FuncDeclaration
 public:
     Dsymbol *syntaxCopy(Dsymbol *);
     const char *kind() const;
-    const char *toChars();
+    const char *toChars() const;
     bool isVirtual() const;
     bool addPreInvariant();
     bool addPostInvariant();

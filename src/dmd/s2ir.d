@@ -119,7 +119,6 @@ private Label *getLabel(IRState *irs, Blockx *blx, Statement s)
     {
         Label *label = new Label();
         label.lblock = blx ? block_calloc(blx) : dmd.backend.global.block_calloc();
-        label.fwdrefs = null;
         irs.insertLabel(s, label);
         return label;
     }
@@ -130,18 +129,12 @@ private Label *getLabel(IRState *irs, Blockx *blx, Statement s)
  * Convert label to block.
  */
 
-private block *labelToBlock(IRState *irs, const ref Loc loc, Blockx *blx, LabelDsymbol label, int flag = 0)
+private block *labelToBlock(IRState *irs, const ref Loc loc, Blockx *blx, LabelDsymbol label)
 {
     if (!label.statement)
         assert(0);              // should have been caught by GotoStatement.checkLabel()
 
     Label *l = getLabel(irs, null, label.statement);
-    if (flag)
-    {
-        // Keep track of the forward reference to this block, so we can check it later
-        if (!l.fwdrefs)
-            l.fwdrefs = blx.curblock;
-    }
     return l.lblock;
 }
 
@@ -422,9 +415,7 @@ private extern (C++) class S2irVisitor : Visitor
         assert(s.label.statement);
         assert(s.tf == s.label.statement.tf);
 
-        block *bdest = labelToBlock(irs, s.loc, blx, s.label, 1);
-        if (!bdest)
-            return;
+        block* bdest = cast(block*)s.label.statement.extra;
         block *b = blx.curblock;
         incUsage(irs, s.loc);
         b.appendSucc(bdest);
@@ -441,11 +432,11 @@ private extern (C++) class S2irVisitor : Visitor
         IRState mystate = IRState(irs,s);
         mystate.ident = s.ident;
 
-        Label *label = getLabel(irs, blx, s);
+        block* bdest = cast(block*)s.extra;
         // At last, we know which try block this label is inside
-        label.lblock.Btry = blx.tryblock;
+        bdest.Btry = blx.tryblock;
 
-        block_next(blx, BCgoto, label.lblock);
+        block_next(blx, BCgoto, bdest);
         bc.appendSucc(blx.curblock);
         if (s.statement)
             Statement_toIR(s.statement, &mystate);
@@ -1435,7 +1426,7 @@ private extern (C++) class S2irVisitor : Visitor
                 {
                     // FLblock and FLblockoff have LabelDsymbol's - convert to blocks
                     LabelDsymbol label = cast(LabelDsymbol)c.IEV1.Vlsym;
-                    block *b = labelToBlock(irs, s.loc, blx, label);
+                    block *b = cast(block*)label.statement.extra;
                     basm.appendSucc(b);
                     c.IEV1.Vblock = b;
                     break;
@@ -1461,7 +1452,7 @@ private extern (C++) class S2irVisitor : Visitor
                 case FLblock:
                 {
                     LabelDsymbol label = cast(LabelDsymbol)c.IEV2.Vlsym;
-                    block *b = labelToBlock(irs, s.loc, blx, label);
+                    block *b = cast(block*)label.statement.extra;
                     basm.appendSucc(b);
                     c.IEV2.Vblock = b;
                     break;
@@ -1504,10 +1495,28 @@ private extern (C++) class S2irVisitor : Visitor
     override void visit(ImportStatement s)
     {
     }
+
+    static void Statement_toIR(Statement s, IRState *irs)
+    {
+        scope v = new S2irVisitor(irs);
+        s.accept(v);
+    }
 }
 
 void Statement_toIR(Statement s, IRState *irs)
 {
+    /* Generate a block for each label
+     */
+    FuncDeclaration fd = irs.getFunc();
+    if (auto labtab = fd.labtab)
+        foreach (keyValue; labtab.tab.asRange)
+        {
+            //printf("  KV: %s = %s\n", keyValue.key.toChars(), keyValue.value.toChars());
+            LabelDsymbol label = cast(LabelDsymbol)keyValue.value;
+            if (label.statement)
+                label.statement.extra = dmd.backend.global.block_calloc();
+        }
+
     scope v = new S2irVisitor(irs);
     s.accept(v);
 }

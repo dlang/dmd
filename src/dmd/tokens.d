@@ -429,8 +429,8 @@ extern (C++) struct Token
     Loc loc;
     const(char)* ptr; // pointer to first character of this token within buffer
     TOK value;
-    const(char)* blockComment; // doc comment string prior to this token
-    const(char)* lineComment; // doc comment for previous token
+    const(char)[] blockComment; // doc comment string prior to this token
+    const(char)[] lineComment; // doc comment for previous token
 
     union
     {
@@ -450,7 +450,7 @@ extern (C++) struct Token
         Identifier ident;
     }
 
-    extern (D) private __gshared immutable string[TOK.max_] tochars =
+    extern (D) private static immutable string[TOK.max_] tochars =
     [
         // Keywords
         TOK.this_: "this",
@@ -735,7 +735,7 @@ nothrow:
      */
     void setString(const(char)* ptr, size_t length)
     {
-        auto s = cast(char*)mem.xmalloc(length + 1);
+        auto s = cast(char*)mem.xmalloc_noscan(length + 1);
         memcpy(s, ptr, length);
         s[length] = 0;
         ustring = s;
@@ -750,7 +750,7 @@ nothrow:
      */
     void setString(const ref OutBuffer buf)
     {
-        setString(cast(const(char)*)buf.data, buf.offset);
+        setString(cast(const(char)*)buf[].ptr, buf.length);
     }
 
     /****
@@ -842,7 +842,8 @@ nothrow:
                 buf.writeByte('"');
                 if (postfix)
                     buf.writeByte(postfix);
-                p = buf.extractChars();
+                buf.writeByte(0);
+                p = buf.extractSlice().ptr;
             }
             break;
         case TOK.hexadecimalString:
@@ -860,7 +861,7 @@ nothrow:
                 if (postfix)
                     buf.writeByte(postfix);
                 buf.writeByte(0);
-                p = buf.extractData();
+                p = buf.extractSlice().ptr;
                 break;
             }
         case TOK.identifier:
@@ -900,12 +901,12 @@ nothrow:
         return p;
     }
 
-    static const(char)* toChars(TOK value)
+    static const(char)* toChars(ubyte value)
     {
         return toString(value).ptr;
     }
 
-    extern (D) static string toString(TOK value) pure nothrow @nogc @safe
+    extern (D) static string toString(ubyte value) pure nothrow @nogc @safe
     {
         return tochars[value];
     }

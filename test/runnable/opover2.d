@@ -1645,13 +1645,6 @@ void test10567()
         S sy = S(2);
         assert(!(sx < sy) && !(sx > sy));
         assert(sx.opCmp(sy) == 0);
-
-        try
-        {
-            auto x = typeid(S).compare(&sx, &sy);
-            assert(0);
-        }
-        catch (Error e) { assert(e.msg[$-15 .. $] == "not implemented"); }
     }
 /+
     foreach (S; Seq!(S10567d1, S10567d2))

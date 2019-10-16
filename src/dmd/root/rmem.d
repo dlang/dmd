@@ -57,6 +57,15 @@ extern (C++) struct Mem
         return size ? check(pureMalloc(size)) : null;
     }
 
+    static void* xmalloc_noscan(size_t size) pure nothrow
+    {
+        version (GC)
+            if (isGCEnabled)
+                return size ? GC.malloc(size, GC.BlkAttr.NO_SCAN) : null;
+
+        return size ? check(pureMalloc(size)) : null;
+    }
+
     static void* xcalloc(size_t size, size_t n) pure nothrow
     {
         version (GC)
@@ -66,11 +75,35 @@ extern (C++) struct Mem
         return (size && n) ? check(pureCalloc(size, n)) : null;
     }
 
+    static void* xcalloc_noscan(size_t size, size_t n) pure nothrow
+    {
+        version (GC)
+            if (isGCEnabled)
+                return size * n ? GC.calloc(size * n, GC.BlkAttr.NO_SCAN) : null;
+
+        return (size && n) ? check(pureCalloc(size, n)) : null;
+    }
+
     static void* xrealloc(void* p, size_t size) pure nothrow
     {
         version (GC)
             if (isGCEnabled)
                 return GC.realloc(p, size);
+
+        if (!size)
+        {
+            pureFree(p);
+            return null;
+        }
+
+        return check(pureRealloc(p, size));
+    }
+
+    static void* xrealloc_noscan(void* p, size_t size) pure nothrow
+    {
+        version (GC)
+            if (isGCEnabled)
+                return GC.realloc(p, size, GC.BlkAttr.NO_SCAN);
 
         if (!size)
         {
@@ -104,10 +137,11 @@ extern (C++) struct Mem
     {
         __gshared bool _isGCEnabled = true;
 
-        static bool isGCEnabled() pure nothrow @nogc
+        // fake purity by making global variable immutable (_isGCEnabled only modified before startup)
+        enum _pIsGCEnabled = cast(immutable bool*) &_isGCEnabled;
+
+        static bool isGCEnabled() pure nothrow @nogc @safe
         {
-            // fake purity by making global variable immutable (_isGCEnabled only modified before startup)
-            enum _pIsGCEnabled = cast(immutable bool*) &_isGCEnabled;
             return *_pIsGCEnabled;
         }
 
@@ -315,7 +349,7 @@ extern (D) char[] xarraydup(const(char)[] s) pure nothrow
     if (!s)
         return null;
 
-    auto p = cast(char*)mem.xmalloc(s.length + 1);
+    auto p = cast(char*)mem.xmalloc_noscan(s.length + 1);
     char[] a = p[0 .. s.length];
     a[] = s[0 .. s.length];
     p[s.length] = 0;    // preserve 0 terminator semantics

@@ -24,6 +24,7 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+import dmd.backend.backend;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
@@ -924,7 +925,8 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             config.fpxmmregs && oper != OPmod && tyxmmreg(tyml) &&
             !(*pretregs & mST0) &&
             !(ty == TYldouble || ty == TYildouble) &&  // watch out for shrinkLongDoubleConstantIfPossible()
-            !tycomplex(ty) // SIMD code is not set up to deal with complex mul/div
+            !tycomplex(ty) && // SIMD code is not set up to deal with complex mul/div
+            !(ty == TYllong)  //   or passing to function through integer register
            )
         {
             orthxmm(cdb,e,pretregs);

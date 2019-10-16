@@ -8,11 +8,7 @@
 
 #pragma once
 
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
+#include "dsystem.h"
 #include "object.h"
 #include "rmem.h"
 
@@ -43,7 +39,7 @@ struct Array
             mem.xfree(data);
     }
 
-    char *toChars()
+    char *toChars() const
     {
         const char **buf = (const char **)mem.xmalloc(dim * sizeof(const char *));
         d_size_t len = 2;

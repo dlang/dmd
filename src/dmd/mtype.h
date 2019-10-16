@@ -114,15 +114,6 @@ enum MODFlags
 };
 typedef unsigned char MOD;
 
-// These tables are for implicit conversion of binary ops;
-// the indices are the type of operand one, followed by operand two.
-extern unsigned char impcnvResult[TMAX][TMAX];
-extern unsigned char impcnvType1[TMAX][TMAX];
-extern unsigned char impcnvType2[TMAX][TMAX];
-
-// If !=0, give warning on implicit conversion
-extern unsigned char impcnvWarn[TMAX][TMAX];
-
 enum VarArg
 {
     VARARGnone     = 0,  /// fixed number of arguments
@@ -228,12 +219,12 @@ public:
     virtual const char *kind();
     Type *copy() const;
     virtual Type *syntaxCopy();
-    bool equals(RootObject *o);
+    bool equals(const RootObject *o) const;
     bool equivalent(Type *t);
     // kludge for template.isType()
     DYNCAST dyncast() const { return DYNCAST_TYPE; }
     int covariant(Type *t, StorageClass *pstc = NULL, bool fix17349 = true);
-    const char *toChars();
+    const char *toChars() const;
     char *toPrettyChars(bool QualifyTypes = false);
     static void _init();
 
@@ -570,7 +561,7 @@ public:
 
     static size_t dim(Parameters *parameters);
     static Parameter *getNth(Parameters *parameters, d_size_t nth, d_size_t *pn = NULL);
-    const char *toChars();
+    const char *toChars() const;
     bool isCovariant(bool returnByRef, const Parameter *p) const;
 };
 
@@ -830,7 +821,7 @@ public:
     static TypeTuple *create(Type *t1, Type *t2);
     const char *kind();
     Type *syntaxCopy();
-    bool equals(RootObject *o);
+    bool equals(const RootObject *o) const;
     void accept(Visitor *v) { v->visit(this); }
 };
 

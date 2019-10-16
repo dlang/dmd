@@ -47,6 +47,7 @@ extern (C++) final class DebugSymbol : Dsymbol
     {
         assert(!s);
         auto ds = new DebugSymbol(loc, ident);
+        ds.comment = comment;
         ds.level = level;
         return ds;
     }
@@ -136,10 +137,11 @@ extern (C++) final class VersionSymbol : Dsymbol
         assert(!s);
         auto ds = ident ? new VersionSymbol(loc, ident)
                         : new VersionSymbol(loc, level);
+        ds.comment = comment;
         return ds;
     }
 
-    override const(char)* toChars() nothrow
+    override const(char)* toChars() const nothrow
     {
         if (ident)
             return ident.toChars();

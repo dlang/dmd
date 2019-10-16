@@ -43,9 +43,6 @@ class StaticForeach;
 // Back end
 struct code;
 
-bool inferAggregate(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply);
-bool inferApplyArgTypes(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply);
-
 /* How a statement exits; this is returned by blockExit()
  */
 enum BE
@@ -103,7 +100,7 @@ enum
     STMTgoto,
     STMTlabel,
     STMTasm, STMTinlineAsm, STMTgccAsm,
-    STMTimport,
+    STMTimport
 };
 
 class Statement : public ASTNode
@@ -114,7 +111,7 @@ public:
 
     virtual Statement *syntaxCopy();
 
-    const char *toChars();
+    const char *toChars() const;
 
     void error(const char *format, ...);
     void warning(const char *format, ...);
@@ -688,7 +685,7 @@ public:
     ScopeGuardStatement *os;
     VarDeclaration *lastVar;
     Statement *gotoTarget;      // interpret
-
+    void* extra;                // used by Statement_toIR()
     bool breaks;                // someone did a 'break ident'
 
     Statement *syntaxCopy();
