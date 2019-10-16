@@ -122,7 +122,7 @@ bool expressionsToString(ref OutBuffer buf, Scope* sc, Expressions* exps)
         }
 
         if (StringExp se = e4.toStringExp())
-            buf.writestring(se.toUTF8(sc).peekSlice());
+            buf.writestring(se.toUTF8(sc).peekString());
         else
             buf.writestring(e4.toString());
     }
