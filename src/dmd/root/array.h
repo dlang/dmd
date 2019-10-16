@@ -15,21 +15,21 @@
 template <typename TYPE>
 struct Array
 {
-    d_size_t dim;
-    TYPE *data;
+    d_size_t length;
 
   private:
-    Array(const Array&);
-
+    TYPE *data;
     d_size_t allocdim;
     #define SMALLARRAYCAP       1
     TYPE smallarray[SMALLARRAYCAP];    // inline storage for small arrays
+
+    Array(const Array&);
 
   public:
     Array()
     {
         data = SMALLARRAYCAP ? &smallarray[0] : NULL;
-        dim = 0;
+        length = 0;
         allocdim = SMALLARRAYCAP;
     }
 
@@ -41,9 +41,9 @@ struct Array
 
     char *toChars() const
     {
-        const char **buf = (const char **)mem.xmalloc(dim * sizeof(const char *));
+        const char **buf = (const char **)mem.xmalloc(length * sizeof(const char *));
         d_size_t len = 2;
-        for (d_size_t u = 0; u < dim; u++)
+        for (d_size_t u = 0; u < length; u++)
         {
             buf[u] = ((RootObject *)data[u])->toChars();
             len += strlen(buf[u]) + 1;
@@ -52,7 +52,7 @@ struct Array
 
         str[0] = '[';
         char *p = str + 1;
-        for (d_size_t u = 0; u < dim; u++)
+        for (d_size_t u = 0; u < length; u++)
         {
             if (u)
                 *p++ = ',';
@@ -68,8 +68,8 @@ struct Array
 
     void reserve(d_size_t nentries)
     {
-        //printf("Array::reserve: dim = %d, allocdim = %d, nentries = %d\n", (int)dim, (int)allocdim, (int)nentries);
-        if (allocdim - dim < nentries)
+        //printf("Array::reserve: length = %d, allocdim = %d, nentries = %d\n", (int)length, (int)allocdim, (int)nentries);
+        if (allocdim - length < nentries)
         {
             if (allocdim == 0)
             {   // Not properly initialized, someone memset it to zero
@@ -84,18 +84,18 @@ struct Array
             }
             else if (allocdim == SMALLARRAYCAP)
             {
-                allocdim = dim + nentries;
+                allocdim = length + nentries;
                 data = (TYPE *)mem.xmalloc(allocdim * sizeof(*data));
-                memcpy(data, &smallarray[0], dim * sizeof(*data));
+                memcpy(data, &smallarray[0], length * sizeof(*data));
             }
             else
             {
                 /* Increase size by 1.5x to avoid excessive memory fragmentation
                  */
-                d_size_t increment = dim / 2;
+                d_size_t increment = length / 2;
                 if (nentries > increment)       // if 1.5 is not enough
                     increment = nentries;
-                allocdim = dim + increment;
+                allocdim = length + increment;
                 data = (TYPE *)mem.xrealloc(data, allocdim * sizeof(*data));
             }
         }
@@ -103,36 +103,36 @@ struct Array
 
     void setDim(d_size_t newdim)
     {
-        if (dim < newdim)
+        if (length < newdim)
         {
-            reserve(newdim - dim);
+            reserve(newdim - length);
         }
-        dim = newdim;
+        length = newdim;
     }
 
     TYPE pop()
     {
-        return data[--dim];
+        return data[--length];
     }
 
     void shift(TYPE ptr)
     {
         reserve(1);
-        memmove(data + 1, data, dim * sizeof(*data));
+        memmove(data + 1, data, length * sizeof(*data));
         data[0] = ptr;
-        dim++;
+        length++;
     }
 
     void remove(d_size_t i)
     {
-        if (dim - i - 1)
-            memmove(data + i, data + i + 1, (dim - i - 1) * sizeof(data[0]));
-        dim--;
+        if (length - i - 1)
+            memmove(data + i, data + i + 1, (length - i - 1) * sizeof(data[0]));
+        length--;
     }
 
     void zero()
     {
-        memset(data,0,dim * sizeof(data[0]));
+        memset(data,0,length * sizeof(data[0]));
     }
 
     TYPE *tdata()
@@ -143,7 +143,7 @@ struct Array
     TYPE& operator[] (d_size_t index)
     {
 #ifdef DEBUG
-        assert(index < dim);
+        assert(index < length);
 #endif
         return data[index];
     }
@@ -151,40 +151,40 @@ struct Array
     void insert(d_size_t index, TYPE v)
     {
         reserve(1);
-        memmove(data + index + 1, data + index, (dim - index) * sizeof(*data));
+        memmove(data + index + 1, data + index, (length - index) * sizeof(*data));
         data[index] = v;
-        dim++;
+        length++;
     }
 
     void insert(d_size_t index, Array *a)
     {
         if (a)
         {
-            d_size_t d = a->dim;
+            d_size_t d = a->length;
             reserve(d);
-            if (dim != index)
-                memmove(data + index + d, data + index, (dim - index) * sizeof(*data));
+            if (length != index)
+                memmove(data + index + d, data + index, (length - index) * sizeof(*data));
             memcpy(data + index, a->data, d * sizeof(*data));
-            dim += d;
+            length += d;
         }
     }
 
     void append(Array *a)
     {
-        insert(dim, a);
+        insert(length, a);
     }
 
     void push(TYPE a)
     {
         reserve(1);
-        data[dim++] = a;
+        data[length++] = a;
     }
 
     Array *copy()
     {
         Array *a = new Array();
-        a->setDim(dim);
-        memcpy(a->data, data, dim * sizeof(*data));
+        a->setDim(length);
+        memcpy(a->data, data, length * sizeof(*data));
         return a;
     }
 };
