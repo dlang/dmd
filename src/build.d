@@ -677,16 +677,22 @@ void parseEnvironment()
 /// Checks the environment variables and flags
 void processEnvironment()
 {
+    import std.meta : AliasSeq;
+
     const os = env["OS"];
 
     const hostDMDVersion = [env["HOST_DMD_RUN"], "--version"].execute.output;
-    const kindIdx = hostDMDVersion.canFind("DMD", "LDC", "GDC", "gdmd", "gdc");
+
+    alias DMD = AliasSeq!("DMD");
+    alias LDC = AliasSeq!("LDC");
+    alias GDC = AliasSeq!("GDC", "gdmd", "gdc");
+    const kindIdx = hostDMDVersion.canFind(DMD, LDC, GDC);
 
     enforce(kindIdx, "Invalid Host DMD found: " ~ hostDMDVersion);
 
-    if (kindIdx == 1)
+    if (kindIdx <= DMD.length)
         env["HOST_DMD_KIND"] = "dmd";
-    else if (kindIdx == 2)
+    else if (kindIdx <= LDC.length + DMD.length)
         env["HOST_DMD_KIND"] = "ldc";
     else
         env["HOST_DMD_KIND"] = "gdc";
