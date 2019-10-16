@@ -199,9 +199,9 @@ alias lexer = memoize!(function()
         msg = "(DC) D_LEXER_OBJ %-(%s, %)".format(sources.map!(e => e.baseName).array);
         command = [
             env["HOST_DMD_RUN"],
-            "-of" ~ target,
+            hostCompilerFlags.of ~ target,
             "-lib",
-            "-vtls",
+            hostCompilerFlags.vtls,
             "-J"~env["G"], "-J../res",
         ].chain(flags["DFLAGS"], sources).array;
     }
@@ -252,8 +252,8 @@ alias backendObj = memoize!(function ()
         command = [
             env["HOST_DMD_RUN"],
             "-c",
-            "-of" ~ target,
-            "-betterC",
+            hostCompilerFlags.of ~ target,
+            hostCompilerFlags.betterC,
         ].chain(flags["DFLAGS"], sources).array;
     }
     return new DependencyRef(dep);
@@ -270,7 +270,7 @@ alias backend = memoize!(function()
         sources = [ env["G"].buildPath("backend").objName ];
         target = env["G"].buildPath("backend").libName;
         deps = [backendObj];
-        command = [env["HOST_DMD_RUN"], env["MODEL_FLAG"], "-lib", "-of" ~ target].chain(sources).array;
+        command = [env["HOST_DMD_RUN"], env["MODEL_FLAG"], "-lib", hostCompilerFlags.of ~ target].chain(sources).array;
     }
     return new DependencyRef(dep);
 });
@@ -332,9 +332,9 @@ alias dmdFrontend = memoize!(function()
             platformArgs = ["-L/STACK:8388608"];
         command = [
             env["HOST_DMD_RUN"],
-            "-of" ~ target,
-            "-version=NoBackend",
-            "-vtls",
+            hostCompilerFlags.of ~ target,
+            hostCompilerFlags.version_~"=NoBackend",
+            hostCompilerFlags.vtls,
             "-J"~env["G"],
             "-J../res",
         ].chain(flags["DFLAGS"], platformArgs, sources).array;
@@ -366,8 +366,8 @@ alias dmdExe = memoize!(function(string targetSuffix, string[] extraFlags...)
             platformArgs = ["-L/STACK:8388608"];
         command = [
             env["HOST_DMD_RUN"],
-            "-of" ~ target,
-            "-vtls",
+            hostCompilerFlags.of ~ target,
+            hostCompilerFlags.vtls,
             "-J"~env["G"],
             "-J../res",
         ].chain(extraFlags, platformArgs, flags["DFLAGS"], sources).array;
@@ -390,7 +390,7 @@ alias dmdDefault = memoize!(function()
 /// Dependency to run the DMD unittest executable.
 alias runDmdUnittest = memoize!(function()
 {
-    auto dmdUnittestExe = dmdExe("-unittest", ["-version=NoMain", "-unittest", "-main"]);
+    auto dmdUnittestExe = dmdExe("-unittest", [hostCompilerFlags.version_~"=NoMain", "-unittest", "-main"]);
 
     Dependency dep;
     with (dep)
@@ -703,7 +703,9 @@ void processEnvironment()
     string[] warnings;
 
       // TODO: allow adding new flags from the environment
-    string[] dflags = ["-version=MARS", "-w", "-de", env["PIC_FLAG"], env["MODEL_FLAG"], "-J"~env["G"]];
+    string[] dflags = [hostCompilerFlags.version_~"=MARS", "-w", "-de",
+        env["PIC_FLAG"].length ? hostCompilerFlags.pic : "", env["MODEL_FLAG"], "-J"~env["G"]];
+
     if (env["HOST_DMD_KIND"] != "gdc")
         dflags ~= ["-dip25"]; // gdmd doesn't support -dip25
 
@@ -714,7 +716,7 @@ void processEnvironment()
 
     if (env.getDefault("ENABLE_DEBUG", "0") != "0")
     {
-        dflags ~= ["-g", "-debug"];
+        dflags ~= ["-g", hostCompilerFlags.debug_];
     }
     if (env.getDefault("ENABLE_RELEASE", "0") != "0")
     {
@@ -747,6 +749,65 @@ void processEnvironment()
         dflags ~= ["-fsanitize="~env["ENABLE_SANITIZERS"]];
     }
     flags["DFLAGS"] ~= dflags;
+}
+
+/**
+Resolves all flags specific to the host compiler specified in HOST_DMD_KIND,
+e.g. "-debug" for DMD, "-d-debug" for LDC and -fdebug for GDC. This allows
+targets to specifiy certain flags in a compiler-independent way.
+
+Returns: A struct containing all compiler specific flags
+
+TODO:
+ - Extend this function to encapsulate all flags supported by DMD?
+ - Handle -lib on gdc (there is no flag to create a static library)
+*/
+alias hostCompilerFlags = memoize!(function()
+{
+    struct Flags {
+        string betterC, debug_, pic, of, version_, vtls;
+    }
+
+    Flags flags;
+
+    final switch(env["HOST_DMD_KIND"])
+    {
+        case "dmd":
+            flags.betterC = "-betterC";
+            flags.debug_ = "-debug";
+            flags.pic = "-fPIC";
+            flags.of = "-of";
+            flags.version_ = "-version";
+            flags.vtls = "-vtls";
+            break;
+
+        case "ldc":
+            flags.betterC = "-betterC";
+            flags.debug_ = "-d-debug";
+            flags.pic = "-relocation-model=pic";
+            flags.of = "-of";
+            flags.version_ = "-d-version";
+            flags.vtls = ""; // Not supported (yet?)
+            break;
+
+        case "gdc":
+            flags.betterC = "-fno-druntime"; // see https://forum.dlang.org/post/huwgzipozmjxnfrnrflv@forum.dlang.org
+            flags.debug_ = "-fdebug";
+            flags.pic = "-fPIC";
+            flags.of = "-o";
+            flags.version_ = "-fversion";
+            flags.vtls = ""; // Contrary to https://wiki.dlang.org/Using_GDC -fd-vtls" does not exists - tested on gdc 8.2.1, 9.1.0, 10.0.0
+            break;
+    }
+
+    return flags;
+});
+
+/// DEBUG: Prints commands to stdout before executing them
+auto execute(Ts...)(const string[] args, Ts other) {
+  import std.process: ex = execute;
+  writefln!"%(%s %)"(args);
+  return ex(args, other);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
