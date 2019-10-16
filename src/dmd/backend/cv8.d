@@ -21,6 +21,7 @@ import core.stdc.stdlib;
 import core.stdc.string;
 extern (C) nothrow char* getcwd(char*, size_t);
 
+import dmd.backend.backend;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcv;

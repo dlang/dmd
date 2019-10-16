@@ -14,6 +14,7 @@ module dmd.backend.backconfig;
 
 import core.stdc.stdio;
 
+import dmd.backend.backend;
 import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.code;

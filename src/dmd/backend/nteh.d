@@ -23,6 +23,7 @@ else
 import core.stdc.stdio;
 import core.stdc.string;
 
+import dmd.backend.backend;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;

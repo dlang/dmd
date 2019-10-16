@@ -16,6 +16,7 @@ module dmd.backend.obj;
 /* Interface to object file format
  */
 
+import dmd.backend.backend;
 import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.code;

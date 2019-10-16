@@ -51,6 +51,7 @@ else
     import core.sys.posix.unistd : getcwd;
 }
 
+import dmd.backend.backend;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;

@@ -20,6 +20,7 @@ import core.stdc.stdlib;
 import core.stdc.string;
 import core.stdc.time;
 
+import dmd.backend.backend;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
