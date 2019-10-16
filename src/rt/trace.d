@@ -862,6 +862,10 @@ else
             asm
             {
                 naked                   ;
+                // rdtsc can produce skewed results without preceding lfence/mfence.
+                // this is what GNU/Linux does, but only use mfence here.
+                // see https://github.com/torvalds/linux/blob/03b9730b769fc4d87e40f6104f4c5b2e43889f19/arch/x86/include/asm/msr.h#L130-L154
+                mfence                  ; // serialize rdtsc instruction.
                 rdtsc                   ;
                 mov   [RDI],EAX         ;
                 mov   4[RDI],EDX        ;

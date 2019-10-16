@@ -570,9 +570,9 @@ public:
 
     unittest
     {
-        foreach (T; _TypeTuple!(Duration, const Duration, immutable Duration))
+        foreach (T; AliasSeq!(Duration, const Duration, immutable Duration))
         {
-            foreach (U; _TypeTuple!(Duration, const Duration, immutable Duration))
+            foreach (U; AliasSeq!(Duration, const Duration, immutable Duration))
             {
                 T t = 42;
                 // workaround https://issues.dlang.org/show_bug.cgi?id=18296
@@ -586,9 +586,9 @@ public:
             }
         }
 
-        foreach (D; _TypeTuple!(Duration, const Duration, immutable Duration))
+        foreach (D; AliasSeq!(Duration, const Duration, immutable Duration))
         {
-            foreach (E; _TypeTuple!(Duration, const Duration, immutable Duration))
+            foreach (E; AliasSeq!(Duration, const Duration, immutable Duration))
             {
                 assert((cast(D)Duration(12)).opCmp(cast(E)Duration(12)) == 0);
                 assert((cast(D)Duration(-12)).opCmp(cast(E)Duration(-12)) == 0);
@@ -649,9 +649,9 @@ public:
 
     unittest
     {
-        foreach (D; _TypeTuple!(Duration, const Duration, immutable Duration))
+        foreach (D; AliasSeq!(Duration, const Duration, immutable Duration))
         {
-            foreach (E; _TypeTuple!(Duration, const Duration, immutable Duration))
+            foreach (E; AliasSeq!(Duration, const Duration, immutable Duration))
             {
                 assert((cast(D)Duration(5)) + (cast(E)Duration(7)) == Duration(12));
                 assert((cast(D)Duration(5)) - (cast(E)Duration(7)) == Duration(-2));
@@ -682,7 +682,7 @@ public:
                 assert((cast(D)Duration(-7)) % (cast(E)Duration(5)) == Duration(-2));
             }
 
-            foreach (T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
+            foreach (T; AliasSeq!(TickDuration, const TickDuration, immutable TickDuration))
             {
                 assertApprox((cast(D)Duration(5)) + cast(T)TickDuration.from!"usecs"(7), Duration(70), Duration(80));
                 assertApprox((cast(D)Duration(5)) - cast(T)TickDuration.from!"usecs"(7), Duration(-70), Duration(-60));
@@ -731,9 +731,9 @@ public:
 
     unittest
     {
-        foreach (D; _TypeTuple!(Duration, const Duration, immutable Duration))
+        foreach (D; AliasSeq!(Duration, const Duration, immutable Duration))
         {
-            foreach (T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
+            foreach (T; AliasSeq!(TickDuration, const TickDuration, immutable TickDuration))
             {
                 assertApprox((cast(T)TickDuration.from!"usecs"(7)) + cast(D)Duration(5), Duration(70), Duration(80));
                 assertApprox((cast(T)TickDuration.from!"usecs"(7)) - cast(D)Duration(5), Duration(60), Duration(70));
@@ -805,7 +805,7 @@ public:
             assertApprox(actual, lower, upper, "op assign failed", line);
         }
 
-        foreach (E; _TypeTuple!(Duration, const Duration, immutable Duration))
+        foreach (E; AliasSeq!(Duration, const Duration, immutable Duration))
         {
             test1!"+="(Duration(5), (cast(E)Duration(7)), Duration(12));
             test1!"-="(Duration(5), (cast(E)Duration(7)), Duration(-2));
@@ -836,7 +836,7 @@ public:
             test1!"%="(Duration(-7), (cast(E)Duration(-5)), Duration(-2));
         }
 
-        foreach (T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
+        foreach (T; AliasSeq!(TickDuration, const TickDuration, immutable TickDuration))
         {
             test2!"+="(Duration(5), cast(T)TickDuration.from!"usecs"(7), Duration(70), Duration(80));
             test2!"-="(Duration(5), cast(T)TickDuration.from!"usecs"(7), Duration(-70), Duration(-60));
@@ -859,9 +859,9 @@ public:
             test2!"-="(Duration(-7), cast(T)TickDuration.from!"usecs"(-5), Duration(38), Duration(48));
         }
 
-        foreach (D; _TypeTuple!(const Duration, immutable Duration))
+        foreach (D; AliasSeq!(const Duration, immutable Duration))
         {
-            foreach (E; _TypeTuple!(Duration, const Duration, immutable Duration,
+            foreach (E; AliasSeq!(Duration, const Duration, immutable Duration,
                                    TickDuration, const TickDuration, immutable TickDuration))
             {
                 D lhs = D(120);
@@ -894,7 +894,7 @@ public:
 
     unittest
     {
-        foreach (D; _TypeTuple!(Duration, const Duration, immutable Duration))
+        foreach (D; AliasSeq!(Duration, const Duration, immutable Duration))
         {
             assert((cast(D)Duration(5)) * 7 == Duration(35));
             assert((cast(D)Duration(7)) * 5 == Duration(35));
@@ -915,7 +915,7 @@ public:
 
     unittest
     {
-        foreach (D; _TypeTuple!(Duration, const Duration, immutable Duration))
+        foreach (D; AliasSeq!(Duration, const Duration, immutable Duration))
         {
             assert((cast(D)Duration(5)) / 7 == Duration(0));
             assert((cast(D)Duration(7)) / 5 == Duration(1));
@@ -1075,7 +1075,7 @@ public:
 
     unittest
     {
-        foreach (D; _TypeTuple!(Duration, const Duration, immutable Duration))
+        foreach (D; AliasSeq!(Duration, const Duration, immutable Duration))
         {
             assert(5 * cast(D)Duration(7) == Duration(35));
             assert(7 * cast(D)Duration(5) == Duration(35));
@@ -1106,7 +1106,7 @@ public:
 
     unittest
     {
-        foreach (D; _TypeTuple!(Duration, const Duration, immutable Duration))
+        foreach (D; AliasSeq!(Duration, const Duration, immutable Duration))
         {
             assert(-(cast(D)Duration(7)) == Duration(-7));
             assert(-(cast(D)Duration(5)) == Duration(-5));
@@ -1132,15 +1132,15 @@ public:
 
     unittest
     {
-        foreach (D; _TypeTuple!(Duration, const Duration, immutable Duration))
+        foreach (D; AliasSeq!(Duration, const Duration, immutable Duration))
         {
-            foreach (units; _TypeTuple!("seconds", "msecs", "usecs", "hnsecs"))
+            foreach (units; AliasSeq!("seconds", "msecs", "usecs", "hnsecs"))
             {
                 enum unitsPerSec = convert!("seconds", units)(1);
 
                 if (TickDuration.ticksPerSec >= unitsPerSec)
                 {
-                    foreach (T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
+                    foreach (T; AliasSeq!(TickDuration, const TickDuration, immutable TickDuration))
                     {
                         auto t = TickDuration.from!units(1);
                         assertApprox(cast(T)cast(D)dur!units(1), t - TickDuration(1), t + TickDuration(1), units);
@@ -1305,11 +1305,11 @@ public:
 
         unittest
         {
-            foreach (T; _TypeTuple!(long, int, short, byte, ulong, uint, ushort, ubyte))
+            foreach (T; AliasSeq!(long, int, short, byte, ulong, uint, ushort, ubyte))
                 static assert(allAreMutableIntegralTypes!T);
-            foreach (T; _TypeTuple!(long, int, short, byte, ulong, uint, ushort, ubyte))
+            foreach (T; AliasSeq!(long, int, short, byte, ulong, uint, ushort, ubyte))
                 static assert(!allAreMutableIntegralTypes!(const T));
-            foreach (T; _TypeTuple!(char, wchar, dchar, float, double, real, string))
+            foreach (T; AliasSeq!(char, wchar, dchar, float, double, real, string))
                 static assert(!allAreMutableIntegralTypes!T);
             static assert(allAreMutableIntegralTypes!(long, int, short, byte));
             static assert(!allAreMutableIntegralTypes!(long, int, short, char, byte));
@@ -1372,7 +1372,7 @@ public:
 
     pure nothrow unittest
     {
-        foreach (D; _TypeTuple!(const Duration, immutable Duration))
+        foreach (D; AliasSeq!(const Duration, immutable Duration))
         {
             D d = dur!"weeks"(3) + dur!"days"(5) + dur!"hours"(19) + dur!"minutes"(7) +
                   dur!"seconds"(2) + dur!"hnsecs"(1234567);
@@ -1478,7 +1478,7 @@ public:
             static assert(!is(typeof(d.split("hnsecs", "seconds", "msecs")())));
             static assert(!is(typeof(d.split("seconds", "hnecs", "msecs")())));
             static assert(!is(typeof(d.split("seconds", "msecs", "msecs")())));
-            alias _TypeTuple!("nsecs", "hnsecs", "usecs", "msecs", "seconds",
+            alias AliasSeq!("nsecs", "hnsecs", "usecs", "msecs", "seconds",
                               "minutes", "hours", "days", "weeks") timeStrs;
             foreach (i, str; timeStrs[1 .. $])
                 static assert(!is(typeof(d.split!(timeStrs[i - 1], str)())));
@@ -1549,7 +1549,7 @@ public:
 
     unittest
     {
-        foreach (D; _TypeTuple!(const Duration, immutable Duration))
+        foreach (D; AliasSeq!(const Duration, immutable Duration))
         {
             assert((cast(D)dur!"weeks"(12)).total!"weeks" == 12);
             assert((cast(D)dur!"weeks"(12)).total!"days" == 84);
@@ -1655,7 +1655,7 @@ public:
 
     unittest
     {
-        foreach (D; _TypeTuple!(Duration, const Duration, immutable Duration))
+        foreach (D; AliasSeq!(Duration, const Duration, immutable Duration))
         {
             assert((cast(D)Duration(0)).toString() == "0 hnsecs");
             assert((cast(D)Duration(1)).toString() == "1 hnsec");
@@ -1713,7 +1713,7 @@ public:
 
     unittest
     {
-        foreach (D; _TypeTuple!(Duration, const Duration, immutable Duration))
+        foreach (D; AliasSeq!(Duration, const Duration, immutable Duration))
         {
             assert(!(cast(D)Duration(100)).isNegative);
             assert(!(cast(D)Duration(1)).isNegative);
@@ -1828,7 +1828,7 @@ unittest
                 return unsignedToTempString(val, 10);
         }
 
-        foreach (F; _TypeTuple!(int,uint,long,ulong,float,double,real))
+        foreach (F; AliasSeq!(int,uint,long,ulong,float,double,real))
         {
             F t1f = to!(U,F)(t1);
             F t2f = to!(U,F)(t2);
@@ -1954,7 +1954,7 @@ unittest
 
 unittest
 {
-    foreach (D; _TypeTuple!(Duration, const Duration, immutable Duration))
+    foreach (D; AliasSeq!(Duration, const Duration, immutable Duration))
     {
         assert(dur!"weeks"(7).total!"weeks" == 7);
         assert(dur!"days"(7).total!"days" == 7);
@@ -2880,7 +2880,7 @@ struct TickDuration
 
     unittest
     {
-        foreach (T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
+        foreach (T; AliasSeq!(TickDuration, const TickDuration, immutable TickDuration))
         {
             assert((cast(T)TickDuration(ticksPerSec)).seconds == 1);
             assert((cast(T)TickDuration(ticksPerSec - 1)).seconds == 0);
@@ -2951,9 +2951,9 @@ struct TickDuration
 
     unittest
     {
-        foreach (units; _TypeTuple!("seconds", "msecs", "usecs", "nsecs"))
+        foreach (units; AliasSeq!("seconds", "msecs", "usecs", "nsecs"))
         {
-            foreach (T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
+            foreach (T; AliasSeq!(TickDuration, const TickDuration, immutable TickDuration))
             {
                 assertApprox((cast(T)TickDuration.from!units(1000)).to!(units, long)(),
                              500, 1500, units);
@@ -2981,14 +2981,14 @@ struct TickDuration
 
     unittest
     {
-        foreach (D; _TypeTuple!(Duration, const Duration, immutable Duration))
+        foreach (D; AliasSeq!(Duration, const Duration, immutable Duration))
         {
-            foreach (T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
+            foreach (T; AliasSeq!(TickDuration, const TickDuration, immutable TickDuration))
             {
                 auto expected = dur!"seconds"(1);
                 assert(cast(D)cast(T)TickDuration.from!"seconds"(1) == expected);
 
-                foreach (units; _TypeTuple!("msecs", "usecs", "hnsecs"))
+                foreach (units; AliasSeq!("msecs", "usecs", "hnsecs"))
                 {
                     D actual = cast(D)cast(T)TickDuration.from!units(1_000_000);
                     assertApprox(actual, dur!units(900_000), dur!units(1_100_000));
@@ -3031,7 +3031,7 @@ struct TickDuration
 
     unittest
     {
-        foreach (T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
+        foreach (T; AliasSeq!(TickDuration, const TickDuration, immutable TickDuration))
         {
             auto a = TickDuration.currSystemTick;
             auto result = a += cast(T)TickDuration.currSystemTick;
@@ -3043,7 +3043,7 @@ struct TickDuration
             assert(b == result);
             assert(b.to!("seconds", real)() <= 0);
 
-            foreach (U; _TypeTuple!(const TickDuration, immutable TickDuration))
+            foreach (U; AliasSeq!(const TickDuration, immutable TickDuration))
             {
                 U u = TickDuration(12);
                 static assert(!__traits(compiles, u += cast(T)TickDuration.currSystemTick));
@@ -3076,7 +3076,7 @@ struct TickDuration
 
     unittest
     {
-        foreach (T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
+        foreach (T; AliasSeq!(TickDuration, const TickDuration, immutable TickDuration))
         {
             T a = TickDuration.currSystemTick;
             T b = TickDuration.currSystemTick;
@@ -3097,7 +3097,7 @@ struct TickDuration
 
     unittest
     {
-        foreach (T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
+        foreach (T; AliasSeq!(TickDuration, const TickDuration, immutable TickDuration))
         {
             assert(-(cast(T)TickDuration(7)) == TickDuration(-7));
             assert(-(cast(T)TickDuration(5)) == TickDuration(-5));
@@ -3118,9 +3118,9 @@ struct TickDuration
 
     unittest
     {
-        foreach (T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
+        foreach (T; AliasSeq!(TickDuration, const TickDuration, immutable TickDuration))
         {
-            foreach (U; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
+            foreach (U; AliasSeq!(TickDuration, const TickDuration, immutable TickDuration))
             {
                 T t = TickDuration.currSystemTick;
                 U u = t;
@@ -3130,9 +3130,9 @@ struct TickDuration
             }
         }
 
-        foreach (T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
+        foreach (T; AliasSeq!(TickDuration, const TickDuration, immutable TickDuration))
         {
-            foreach (U; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
+            foreach (U; AliasSeq!(TickDuration, const TickDuration, immutable TickDuration))
             {
                 T t = TickDuration.currSystemTick;
                 U u = t + t;
@@ -3191,7 +3191,7 @@ struct TickDuration
         t1 *= 2.1;
         assert(t1 > t2);
 
-        foreach (T; _TypeTuple!(const TickDuration, immutable TickDuration))
+        foreach (T; AliasSeq!(const TickDuration, immutable TickDuration))
         {
             T t = TickDuration.currSystemTick;
             assert(!__traits(compiles, t *= 12));
@@ -3244,7 +3244,7 @@ struct TickDuration
 
         _assertThrown!TimeException(t2 /= 0);
 
-        foreach (T; _TypeTuple!(const TickDuration, immutable TickDuration))
+        foreach (T; AliasSeq!(const TickDuration, immutable TickDuration))
         {
             T t = TickDuration.currSystemTick;
             assert(!__traits(compiles, t /= 12));
@@ -3274,7 +3274,7 @@ struct TickDuration
 
     unittest
     {
-        foreach (T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
+        foreach (T; AliasSeq!(TickDuration, const TickDuration, immutable TickDuration))
         {
             T t1 = TickDuration.currSystemTick;
             T t2 = t1 + t1;
@@ -3313,7 +3313,7 @@ struct TickDuration
 
     unittest
     {
-        foreach (T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
+        foreach (T; AliasSeq!(TickDuration, const TickDuration, immutable TickDuration))
         {
             T t1 = TickDuration.currSystemTick;
             T t2 = t1 + t1;
@@ -3506,13 +3506,13 @@ unittest
 
 unittest
 {
-    foreach (units; _TypeTuple!("weeks", "days", "hours", "seconds", "msecs", "usecs", "hnsecs", "nsecs"))
+    foreach (units; AliasSeq!("weeks", "days", "hours", "seconds", "msecs", "usecs", "hnsecs", "nsecs"))
     {
         static assert(!__traits(compiles, convert!("years", units)(12)), units);
         static assert(!__traits(compiles, convert!(units, "years")(12)), units);
     }
 
-    foreach (units; _TypeTuple!("years", "months", "weeks", "days",
+    foreach (units; AliasSeq!("years", "months", "weeks", "days",
                                "hours", "seconds", "msecs", "usecs", "hnsecs", "nsecs"))
     {
         assert(convert!(units, units)(12) == 12);
@@ -3663,7 +3663,7 @@ public:
     {
         foreach (val; [-7, -5, 0, 5, 7])
         {
-            foreach (F; _TypeTuple!(FracSec, const FracSec, immutable FracSec))
+            foreach (F; AliasSeq!(FracSec, const FracSec, immutable FracSec))
             {
                 F fs = FracSec(val);
                 assert(-fs == FracSec(-val));
@@ -3679,7 +3679,7 @@ public:
 
     unittest
     {
-        foreach (F; _TypeTuple!(FracSec, const FracSec, immutable FracSec))
+        foreach (F; AliasSeq!(FracSec, const FracSec, immutable FracSec))
         {
             assert(FracSec(0).msecs == 0);
 
@@ -3723,7 +3723,7 @@ public:
             test(999 * sign, FracSec(9_990_000 * sign));
         }
 
-        foreach (F; _TypeTuple!(const FracSec, immutable FracSec))
+        foreach (F; AliasSeq!(const FracSec, immutable FracSec))
         {
             F fs = FracSec(1234567);
             static assert(!__traits(compiles, fs.msecs = 12), F.stringof);
@@ -3738,7 +3738,7 @@ public:
 
     unittest
     {
-        foreach (F; _TypeTuple!(FracSec, const FracSec, immutable FracSec))
+        foreach (F; AliasSeq!(FracSec, const FracSec, immutable FracSec))
         {
             assert(FracSec(0).usecs == 0);
 
@@ -3783,7 +3783,7 @@ public:
             test(999_999 * sign, FracSec(9_999_990 * sign));
         }
 
-        foreach (F; _TypeTuple!(const FracSec, immutable FracSec))
+        foreach (F; AliasSeq!(const FracSec, immutable FracSec))
         {
             F fs = FracSec(1234567);
             static assert(!__traits(compiles, fs.usecs = 12), F.stringof);
@@ -3798,7 +3798,7 @@ public:
 
     unittest
     {
-        foreach (F; _TypeTuple!(FracSec, const FracSec, immutable FracSec))
+        foreach (F; AliasSeq!(FracSec, const FracSec, immutable FracSec))
         {
             assert(FracSec(0).hnsecs == 0);
 
@@ -3843,7 +3843,7 @@ public:
             test(9_999_999 * sign, FracSec(9_999_999 * sign));
         }
 
-        foreach (F; _TypeTuple!(const FracSec, immutable FracSec))
+        foreach (F; AliasSeq!(const FracSec, immutable FracSec))
         {
             F fs = FracSec(1234567);
             static assert(!__traits(compiles, fs.hnsecs = 12), F.stringof);
@@ -3858,7 +3858,7 @@ public:
 
     unittest
     {
-        foreach (F; _TypeTuple!(FracSec, const FracSec, immutable FracSec))
+        foreach (F; AliasSeq!(FracSec, const FracSec, immutable FracSec))
         {
             assert(FracSec(0).nsecs == 0);
 
@@ -3906,7 +3906,7 @@ public:
             test(9_999_999 * sign, FracSec(99_999 * sign));
         }
 
-        foreach (F; _TypeTuple!(const FracSec, immutable FracSec))
+        foreach (F; AliasSeq!(const FracSec, immutable FracSec))
         {
             F fs = FracSec(1234567);
             static assert(!__traits(compiles, fs.nsecs = 12), F.stringof);
@@ -4521,11 +4521,7 @@ version (unittest) const(char)* numToStringz()(long value) @trusted pure nothrow
 }
 
 
-/+ A copy of std.typecons.TypeTuple. +/
-template _TypeTuple(TList...)
-{
-    alias TList _TypeTuple;
-}
+import core.internal.traits : AliasSeq;
 
 
 /+ An adjusted copy of std.exception.assertThrown. +/

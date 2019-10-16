@@ -1,5 +1,13 @@
-module core.internal.arrayop;
-import core.internal.traits : Filter, staticMap, TypeTuple, Unqual;
+/**
+ This module contains support array (vector) operations
+  Copyright: Copyright Digital Mars 2000 - 2019.
+  License: Distributed under the
+       $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
+     (See accompanying file LICENSE)
+  Source: $(DRUNTIMESRC core/_internal/_array/_operations.d)
+*/
+module core.internal.array.operations;
+import core.internal.traits : Filter, staticMap, Unqual;
 
 version (GNU) version = GNU_OR_LDC;
 version (LDC) version = GNU_OR_LDC;

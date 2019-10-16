@@ -210,7 +210,7 @@ extern (C) int rt_init()
     }
     catch (Throwable t)
     {
-        _initCount = 0;
+        atomicStore!(MemoryOrder.raw)(_initCount, 0);
         _d_print_throwable(t);
     }
     _d_critical_term();
@@ -223,7 +223,7 @@ extern (C) int rt_init()
  */
 extern (C) int rt_term()
 {
-    if (!_initCount) return 0; // was never initialized
+    if (atomicLoad!(MemoryOrder.raw)(_initCount) == 0) return 0; // was never initialized
     if (atomicOp!"-="(_initCount, 1)) return 1;
 
     try

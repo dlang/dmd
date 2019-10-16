@@ -680,7 +680,7 @@ extern (C) UnitTestResult runModuleUnitTests()
         results.summarize = !results.runMain;
         break;
     default:
-        throw new Error("Unknown --DRT-testmode option: " ~ rt_configOption("testmode", null, false));
+        assert(0, "Unknown --DRT-testmode option: " ~ rt_configOption("testmode", null, false));
     }
 
     return results;
