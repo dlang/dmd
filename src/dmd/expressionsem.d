@@ -2857,7 +2857,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         case 'd':
             for (u = 0; u < e.len;)
             {
-                p = utf_decodeChar(e.string, e.len, u, c);
+                p = utf_decodeChar(e.peekString().ptr, e.len, u, c);
                 if (p)
                 {
                     e.error("%s", p);
@@ -2880,7 +2880,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         case 'w':
             for (u = 0; u < e.len;)
             {
-                p = utf_decodeChar(e.string, e.len, u, c);
+                p = utf_decodeChar(e.peekString().ptr, e.len, u, c);
                 if (p)
                 {
                     e.error("%s", p);
@@ -5716,7 +5716,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         sc._module.contentImportedFiles.push(name);
         if (global.params.verbose)
-            message("file      %.*s\t(%s)", cast(int)se.len, se.string, name);
+        {
+            const slice = se.peekString();
+            message("file      %.*s\t(%s)", cast(int)slice.length, slice.ptr, name);
+        }
         if (global.params.moduleDeps !is null)
         {
             OutBuffer* ob = global.params.moduleDeps;
@@ -5730,7 +5733,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             ob.writestring(") : ");
             if (global.params.moduleDepsFile)
                 ob.writestring("string : ");
-            ob.write(se.string[0 .. se.len]);
+            ob.write(se.peekString());
             ob.writestring(" (");
             escapePath(ob, name);
             ob.writestring(")");

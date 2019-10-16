@@ -7281,6 +7281,7 @@ private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression
             switch (se.sz)
             {
             case 1:
+            {
                 if (rvs)
                 {
                     // find the start of the string
@@ -7289,10 +7290,12 @@ private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression
                         --indx;
                     saveindx = indx;
                 }
-                errmsg = utf_decodeChar(se.string, se.len, indx, rawvalue);
+                auto slice = se.peekString();
+                errmsg = utf_decodeChar(slice.ptr, slice.length, indx, rawvalue);
                 if (rvs)
                     indx = saveindx;
                 break;
+            }
 
             case 2:
                 if (rvs)
@@ -7304,7 +7307,8 @@ private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression
                         --indx;
                     saveindx = indx;
                 }
-                errmsg = utf_decodeWchar(se.wstring, se.len, indx, rawvalue);
+                const slice = se.peekWstring();
+                errmsg = utf_decodeWchar(slice.ptr, slice.length, indx, rawvalue);
                 if (rvs)
                     indx = saveindx;
                 break;

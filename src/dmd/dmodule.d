@@ -1190,7 +1190,10 @@ extern (C++) final class Module : Package
         {
             Expression msg = md.msg;
             if (StringExp se = msg ? msg.toStringExp() : null)
-                deprecation(loc, "is deprecated - %s", se.string);
+            {
+                const slice = se.peekString();
+                deprecation(loc, "is deprecated - %.*s", cast(int)slice.length, slice.ptr);
+            }
             else
                 deprecation(loc, "is deprecated");
         }

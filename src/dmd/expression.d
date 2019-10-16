@@ -2628,6 +2628,35 @@ extern (C++) final class StringExp : Expression
         return this.string[0 .. len];
     }
 
+    extern (D) const(wchar)[] peekWstring() const
+    {
+        assert(sz == 2);
+        return this.wstring[0 .. len];
+    }
+
+    extern (D) const(dchar)[] peekDstring() const
+    {
+        assert(sz == 4);
+        return this.dstring[0 .. len];
+    }
+
+    /*******************
+     * Get a slice of the data.
+     */
+    extern (D) const(ubyte)[] peekData() const
+    {
+        return cast(const(ubyte)[])this.string[0 .. len * sz];
+    }
+
+    /*******************
+     * Borrow a slice of the data, so the caller can modify
+     * it in-place (!)
+     */
+    extern (D) ubyte[] borrowData()
+    {
+        return cast(ubyte[])this.string[0 .. len * sz];
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);
