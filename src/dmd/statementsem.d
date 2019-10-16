@@ -2338,11 +2338,10 @@ else
                         errorSupplemental(ps.loc, "while evaluating `pragma(msg, %s)`", arg.toChars());
                         return setError();
                     }
-                    StringExp se = e.toStringExp();
-                    if (se)
+                    if (auto se = e.toStringExp())
                     {
-                        se = se.toUTF8(sc);
-                        fprintf(stderr, "%.*s", cast(int)se.len, se.string);
+                        const slice = se.toUTF8(sc).peekString();
+                        fprintf(stderr, "%.*s", cast(int)slice.length, slice.ptr);
                     }
                     else
                         fprintf(stderr, "%s", e.toChars());

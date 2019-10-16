@@ -537,7 +537,7 @@ extern(C++) private final class Supported : Objc
                 assert(literal.elements.dim == 1);
                 StringExp se = (*literal.elements)[0].toStringExp();
                 assert(se);
-                fd.selector = ObjcSelector.lookup(cast(const(char)*)se.toUTF8(sc).string);
+                fd.selector = ObjcSelector.lookup(cast(const(char)*)se.toUTF8(sc).peekString().ptr);
             }
         }
     }
