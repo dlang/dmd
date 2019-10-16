@@ -1831,7 +1831,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         goto Lnodecl;
                     (*pd.args)[0] = se;
                     if (global.params.verbose)
-                        message("linkopt   %.*s", cast(int)se.len, se.string);
+                        message("linkopt   %.*s", cast(int)se.len, se.peekString().ptr);
                 }
                 goto Lnodecl;
             }
@@ -1863,7 +1863,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     if (se)
                     {
                         se = se.toUTF8(sc);
-                        fprintf(stderr, "%.*s", cast(int)se.len, se.string);
+                        fprintf(stderr, "%.*s", cast(int)se.len, se.peekString().ptr);
                     }
                     else
                         fprintf(stderr, "%s", e.toChars());
@@ -1883,7 +1883,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     goto Lnodecl;
                 (*pd.args)[0] = se;
 
-                auto name = se.string[0 .. se.len].xarraydup;
+                auto name = se.peekString().xarraydup;
                 if (global.params.verbose)
                     message("library   %s", name.ptr);
                 if (global.params.moduleDeps && !global.params.moduleDepsFile)
@@ -1960,9 +1960,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                  *
                  * Therefore, this validation is compiler implementation specific.
                  */
+                auto slice = se.peekString();
                 for (size_t i = 0; i < se.len;)
                 {
-                    char* p = se.string;
+                    auto p = slice.ptr;
                     dchar c = p[i];
                     if (c < 0x80)
                     {
@@ -1977,7 +1978,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                             break;
                         }
                     }
-                    if (const msg = utf_decodeChar(se.string, se.len, i, c))
+                    if (const msg = utf_decodeChar(slice.ptr, se.len, i, c))
                     {
                         pd.error("%s", msg);
                         break;
@@ -2043,7 +2044,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     assert(pd.args && pd.args.dim == 1);
                     if (auto se = (*pd.args)[0].toStringExp())
                     {
-                        const name = se.string[0 .. se.len].xarraydup;
+                        const name = (cast(const(char)[])se.peekData()).xarraydup;
                         uint cnt = setMangleOverride(s, name);
                         if (cnt > 1)
                             pd.error("can only apply to a single declaration");

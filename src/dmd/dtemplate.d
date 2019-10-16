@@ -407,8 +407,7 @@ private size_t expressionHash(Expression e)
         return cast(size_t)cast(void*) (cast(NullExp)e).type;
 
     case TOK.string_:
-        auto se = cast(StringExp)e;
-        return calcHash(se.string[0 .. se.len * se.sz]);
+        return calcHash(e.isStringExp.peekData());
 
     case TOK.tuple:
     {

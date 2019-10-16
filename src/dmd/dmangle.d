@@ -993,14 +993,16 @@ public:
         {
         case 1:
             m = 'a';
-            q = e.string[0 .. e.len];
+            q = e.peekString();
             break;
         case 2:
+        {
             m = 'w';
+            const slice = e.peekWstring();
             for (size_t u = 0; u < e.len;)
             {
                 dchar c;
-                const p = utf_decodeWchar(e.wstring, e.len, u, c);
+                const p = utf_decodeWchar(slice.ptr, slice.length, u, c);
                 if (p)
                     e.error("%s", p);
                 else
@@ -1008,11 +1010,13 @@ public:
             }
             q = tmp[];
             break;
+        }
         case 4:
+        {
             m = 'd';
-            foreach (u; 0 .. e.len)
+            const slice = e.peekDstring();
+            foreach (c; slice)
             {
-                const c = (cast(uint*)e.string)[u];
                 if (!utf_isValidDchar(c))
                     e.error("invalid UCS-32 char \\U%08x", c);
                 else
@@ -1020,6 +1024,8 @@ public:
             }
             q = tmp[];
             break;
+        }
+
         default:
             assert(0);
         }
