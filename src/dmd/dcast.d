@@ -1866,7 +1866,7 @@ Expression castTo(Expression e, Scope* sc, Type t)
                     const data = se.peekData();
                     memcpy(s, data.ptr, srcSize);
                     memset(s + srcSize, 0, fullSize - srcSize);
-                    se.string = cast(char*)s;
+                    se.setData(s, se.len, se.sz);
                 }
                 result = se;
                 return;
@@ -2013,13 +2013,11 @@ Expression castTo(Expression e, Scope* sc, Type t)
                         se = cast(StringExp)e.copy();
                         copied = 1;
                     }
-                    se.string = buffer.extractSlice().ptr;   // already 0 terminated
-                    se.len = newlen;
 
                     {
                         d_uns64 szx = tb.nextOf().size();
                         assert(szx <= 255);
-                        se.sz = cast(ubyte)szx;
+                        se.setData(buffer.extractSlice().ptr, newlen, cast(ubyte)szx);
                     }
                     break;
 
