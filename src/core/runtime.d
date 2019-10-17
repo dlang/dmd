@@ -10,6 +10,8 @@
 
 module core.runtime;
 
+private import core.internal.execinfo;
+
 version (OSX)
     version = Darwin;
 else version (iOS)
@@ -561,25 +563,10 @@ extern (C) void profilegc_setlogfilename(string name);
  */
 extern (C) UnitTestResult runModuleUnitTests()
 {
-    // backtrace
-    version (CRuntime_Glibc)
-        import core.sys.linux.execinfo;
-    else version (Darwin)
-        import core.sys.darwin.execinfo;
-    else version (FreeBSD)
-        import core.sys.freebsd.execinfo;
-    else version (NetBSD)
-        import core.sys.netbsd.execinfo;
-    else version (DragonFlyBSD)
-        import core.sys.dragonflybsd.execinfo;
-    else version (Windows)
+    version (Windows)
         import core.sys.windows.stacktrace;
-    else version (Solaris)
-        import core.sys.solaris.execinfo;
-    else version (CRuntime_UClibc)
-        import core.sys.linux.execinfo;
 
-    static if ( __traits( compiles, backtrace ) )
+    static if (hasExecinfo)
     {
         import core.sys.posix.signal; // segv handler
 
@@ -745,33 +732,9 @@ unittest
     }
 }
 
-version (CRuntime_Glibc)       version = HasBacktrace;
-else version (Darwin)          version = HasBacktrace;
-else version (FreeBSD)         version = HasBacktrace;
-else version (NetBSD)          version = HasBacktrace;
-else version (DragonFlyBSD)    version = HasBacktrace;
-else version (Solaris)         version = HasBacktrace;
-else version (CRuntime_UClibc) version = HasBacktrace;
-
 /// Default implementation for most POSIX systems
-version (HasBacktrace) private class DefaultTraceInfo : Throwable.TraceInfo
+static if (hasExecinfo) private class DefaultTraceInfo : Throwable.TraceInfo
 {
-    // backtrace
-    version (CRuntime_Glibc)
-        import core.sys.linux.execinfo;
-    else version (Darwin)
-        import core.sys.darwin.execinfo;
-    else version (FreeBSD)
-        import core.sys.freebsd.execinfo;
-    else version (NetBSD)
-        import core.sys.netbsd.execinfo;
-    else version (DragonFlyBSD)
-        import core.sys.dragonflybsd.execinfo;
-    else version (Solaris)
-        import core.sys.solaris.execinfo;
-    else version (CRuntime_UClibc)
-        import core.sys.linux.execinfo;
-
     import core.demangle;
     import core.stdc.stdlib : free;
     import core.stdc.string : strlen, memchr, memmove;
@@ -894,75 +857,8 @@ private:
     const(char)[] fixline( const(char)[] buf, return ref char[4096] fixbuf ) const
     {
         size_t symBeg, symEnd;
-        version (Darwin)
-        {
-            // format is:
-            //  1  module    0x00000000 D6module4funcAFZv + 0
-            for ( size_t i = 0, n = 0; i < buf.length; i++ )
-            {
-                if ( ' ' == buf[i] )
-                {
-                    n++;
-                    while ( i < buf.length && ' ' == buf[i] )
-                        i++;
-                    if ( 3 > n )
-                        continue;
-                    symBeg = i;
-                    while ( i < buf.length && ' ' != buf[i] )
-                        i++;
-                    symEnd = i;
-                    break;
-                }
-            }
-        }
-        else version (CRuntime_Glibc)
-        {
-            // format is:  module(_D6module4funcAFZv) [0x00000000]
-            // or:         module(_D6module4funcAFZv+0x78) [0x00000000]
-            auto bptr = cast(char*) memchr( buf.ptr, '(', buf.length );
-            auto eptr = cast(char*) memchr( buf.ptr, ')', buf.length );
-            auto pptr = cast(char*) memchr( buf.ptr, '+', buf.length );
 
-            if (pptr && pptr < eptr)
-                eptr = pptr;
-
-            if ( bptr++ && eptr )
-            {
-                symBeg = bptr - buf.ptr;
-                symEnd = eptr - buf.ptr;
-            }
-        }
-        else
-        {
-            // format is: 0x00000000 <_D6module4funcAFZv+0x78> at module
-            version (FreeBSD)
-                enum StartChar = '<';
-            else version (NetBSD)
-                enum StartChar = '<';
-            else version (DragonFlyBSD)
-                enum StartChar = '<';
-            // format is object'symbol+offset [pc]
-            else version (Solaris)
-                enum StartChar = '\'';
-            // fallthrough
-            else
-                enum StartChar = '\0';
-
-            if (StartChar != '\0')
-            {
-                auto bptr = cast(char*) memchr(buf.ptr, StartChar, buf.length);
-                auto eptr = cast(char*) memchr(buf.ptr, '+', buf.length);
-
-                if (bptr++ && eptr)
-                {
-                    symBeg = bptr - buf.ptr;
-                    symEnd = eptr - buf.ptr;
-                }
-            }
-        }
-
-        assert(symBeg < buf.length && symEnd < buf.length);
-        assert(symBeg <= symEnd);
+        getMangledSymbolName(buf, symBeg, symEnd);
 
         enum min = (size_t a, size_t b) => a <= b ? a : b;
         if (symBeg == symEnd || symBeg >= fixbuf.length)

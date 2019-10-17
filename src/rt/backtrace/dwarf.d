@@ -12,6 +12,10 @@
 
 module rt.backtrace.dwarf;
 
+private import core.internal.execinfo;
+
+static if (hasExecinfo):
+
 version (OSX)
     version = Darwin;
 else version (iOS)
@@ -20,14 +24,6 @@ else version (TVOS)
     version = Darwin;
 else version (WatchOS)
     version = Darwin;
-
-version (CRuntime_Glibc) version = has_backtrace;
-else version (FreeBSD) version = has_backtrace;
-else version (DragonFlyBSD) version = has_backtrace;
-else version (CRuntime_UClibc) version = has_backtrace;
-else version (Darwin) version = has_backtrace;
-
-version (has_backtrace):
 
 version (Darwin)
     import rt.backtrace.macho;
@@ -50,10 +46,6 @@ struct Location
 int traceHandlerOpApplyImpl(const void*[] callstack, scope int delegate(ref size_t, ref const(char[])) dg)
 {
     import core.stdc.stdio : snprintf;
-    version (linux) import core.sys.linux.execinfo : backtrace_symbols;
-    else version (FreeBSD) import core.sys.freebsd.execinfo : backtrace_symbols;
-    else version (DragonFlyBSD) import core.sys.dragonflybsd.execinfo : backtrace_symbols;
-    else version (Darwin) import core.sys.darwin.execinfo : backtrace_symbols;
     import core.sys.posix.stdlib : free;
 
     const char** frameList = backtrace_symbols(callstack.ptr, cast(int) callstack.length);
@@ -359,97 +351,7 @@ bool runStateMachine(ref const(LineNumberProgram) lp, scope RunStateMachineCallb
 const(char)[] getDemangledSymbol(const(char)[] btSymbol, ref char[1024] buffer)
 {
     import core.demangle;
-
-    version (linux)
-    {
-        // format is:  module(_D6module4funcAFZv) [0x00000000]
-        // or:         module(_D6module4funcAFZv+0x78) [0x00000000]
-        auto bptr = cast(char*) memchr(btSymbol.ptr, '(', btSymbol.length);
-        auto eptr = cast(char*) memchr(btSymbol.ptr, ')', btSymbol.length);
-        auto pptr = cast(char*) memchr(btSymbol.ptr, '+', btSymbol.length);
-    }
-    else version (FreeBSD)
-    {
-        // format is: 0x00000000 <_D6module4funcAFZv+0x78> at module
-        auto bptr = cast(char*) memchr(btSymbol.ptr, '<', btSymbol.length);
-        auto eptr = cast(char*) memchr(btSymbol.ptr, '>', btSymbol.length);
-        auto pptr = cast(char*) memchr(btSymbol.ptr, '+', btSymbol.length);
-    }
-    else version (DragonFlyBSD)
-    {
-        // format is: 0x00000000 <_D6module4funcAFZv+0x78> at module
-        auto bptr = cast(char*) memchr(btSymbol.ptr, '<', btSymbol.length);
-        auto eptr = cast(char*) memchr(btSymbol.ptr, '>', btSymbol.length);
-        auto pptr = cast(char*) memchr(btSymbol.ptr, '+', btSymbol.length);
-    }
-    else version (Darwin)
-        return demangle(extractSymbol(btSymbol), buffer[]);
-
-    version (Darwin) {}
-    else
-    {
-        if (pptr && pptr < eptr)
-            eptr = pptr;
-
-        size_t symBeg, symEnd;
-        if (bptr++ && eptr)
-        {
-            symBeg = bptr - btSymbol.ptr;
-            symEnd = eptr - btSymbol.ptr;
-        }
-
-        assert(symBeg <= symEnd);
-        assert(symEnd < btSymbol.length);
-
-        return demangle(btSymbol[symBeg .. symEnd], buffer[]);
-    }
-}
-
-/**
- * Extracts a D mangled symbol from the given string for macOS.
- *
- * The format of the string is:
- * `0   main         0x000000010b054ddb _D6module4funcAFZv + 87`
- *
- * Params:
- *  btSymbol = the string to extract the symbol from, in the format mentioned
- *             above
- *
- * Returns: the extracted symbol or null if the given string did not match the
- *          above format
- */
-const(char)[] extractSymbol(const(char)[] btSymbol) @nogc nothrow
-{
-    auto symbolStart = size_t.max;
-    auto symbolEnd = size_t.max;
-    bool plus;
-
-    foreach_reverse (i, e ; btSymbol)
-    {
-        if (e == '+')
-        {
-            plus = true;
-            continue;
-        }
-
-        if (plus)
-        {
-            if (e != ' ')
-            {
-                if (symbolEnd == size_t.max)
-                    symbolEnd = i + 1;
-
-                symbolStart = i;
-            }
-            else if (symbolEnd != size_t.max)
-                break;
-        }
-    }
-
-    if (symbolStart == size_t.max || symbolEnd == size_t.max)
-        return null;
-
-    return btSymbol[symbolStart .. symbolEnd];
+    return demangle(getMangledSymbolName(btSymbol), buffer[]);
 }
 
 T read(T)(ref const(ubyte)[] buffer) @nogc nothrow
