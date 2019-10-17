@@ -288,9 +288,16 @@ alias versionFile = memoize!(function()
             string ver;
             if (srcDir.dirName.buildPath(".git").exists)
             {
-                auto gitResult = ["git", "describe", "--dirty"].run;
-                if (gitResult.status == 0)
-                    ver = gitResult.output.strip;
+                try
+                {
+                    auto gitResult = ["git", "describe", "--dirty"].run;
+                    if (gitResult.status == 0)
+                        ver = gitResult.output.strip;
+                }
+                catch (ProcessException)
+                {
+                    // git not installed
+                }
             }
             // version fallback
             if (ver.length == 0)
