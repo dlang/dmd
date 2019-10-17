@@ -2657,6 +2657,17 @@ extern (C++) final class StringExp : Expression
         return cast(ubyte[])this.string[0 .. len * sz];
     }
 
+    /***********************
+     * Set new string data.
+     * `this` becomes the new owner of the data.
+     */
+    extern (D) void setData(void* s, size_t len, ubyte sz)
+    {
+        this.string = cast(char*)s;
+        this.len = len;
+        this.sz = sz;
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);
