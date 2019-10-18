@@ -16,9 +16,9 @@ class RootObject;
 
 struct OutBuffer
 {
+    size_t size;
     unsigned char *data;
     size_t offset;
-    size_t size;
 
     int level;
     bool doindent;
