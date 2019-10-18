@@ -227,7 +227,7 @@ struct Token
     int isKeyword();
     const char *toChars() const;
 
-    static const char *toChars(TOK value);
+    static const char *toChars(unsigned char value);
 };
 
 #if defined(__GNUC__)
