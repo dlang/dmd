@@ -6002,8 +6002,8 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
             import dmd.root.outbuffer : OutBuffer;
             import dmd.dmangle;
 
-            scope StringExp se = new StringExp(Loc.initial, cast(void*)str, len, 'c');
-            se.sz = cast(ubyte)sz;
+            scope StringExp se = new StringExp(Loc.initial, str[0 .. len], len, cast(ubyte)sz, 'c');
+
             /* VC++ uses a name mangling scheme, for example, "hello" is mangled to:
              * ??_C@_05CJBACGMB@hello?$AA@
              *        ^ length

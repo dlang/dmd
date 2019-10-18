@@ -7694,15 +7694,18 @@ final class Parser(AST) : Lexer
         case TOK.file:
             {
                 const(char)* s = loc.filename ? loc.filename : mod.ident.toChars();
-                e = new AST.StringExp(loc, cast(char*)s);
+                e = new AST.StringExp(loc, s[0 .. strlen(s)]);
                 nextToken();
                 break;
             }
         case TOK.fileFullPath:
-            assert(loc.isValid(), "__FILE_FULL_PATH__ does not work with an invalid location");
-            e = new AST.StringExp(loc, cast(char*)FileName.toAbsolute(loc.filename));
-            nextToken();
-            break;
+            {
+                assert(loc.isValid(), "__FILE_FULL_PATH__ does not work with an invalid location");
+                const s = FileName.toAbsolute(loc.filename);
+                e = new AST.StringExp(loc, s[0 .. strlen(s)]);
+                nextToken();
+                break;
+            }
 
         case TOK.line:
             e = new AST.IntegerExp(loc, loc.linnum, AST.Type.tint32);
@@ -7712,7 +7715,7 @@ final class Parser(AST) : Lexer
         case TOK.moduleString:
             {
                 const(char)* s = md ? md.toChars() : mod.toChars();
-                e = new AST.StringExp(loc, cast(char*)s);
+                e = new AST.StringExp(loc, s[0 .. strlen(s)]);
                 nextToken();
                 break;
             }
@@ -7785,7 +7788,7 @@ final class Parser(AST) : Lexer
                     else
                         break;
                 }
-                e = new AST.StringExp(loc, cast(char*)s, len, postfix);
+                e = new AST.StringExp(loc, s[0 .. len], len, 1, postfix);
                 break;
             }
         case TOK.void_:

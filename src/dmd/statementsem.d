@@ -13,6 +13,7 @@
 module dmd.statementsem;
 
 import core.stdc.stdio;
+import core.stdc.string;
 
 import dmd.aggregate;
 import dmd.aliasthis;
@@ -2654,7 +2655,7 @@ else
                     sl = new DotIdExp(ss.loc, sl, Id.__switch_error);
 
                     Expressions* args = new Expressions(2);
-                    (*args)[0] = new StringExp(ss.loc, cast(char*) ss.loc.filename);
+                    (*args)[0] = new StringExp(ss.loc, ss.loc.filename[0 .. strlen(ss.loc.filename)]);
                     (*args)[1] = new IntegerExp(ss.loc.linnum);
 
                     sl = new CallExp(ss.loc, sl, args);

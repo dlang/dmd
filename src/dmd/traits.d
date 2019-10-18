@@ -767,7 +767,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             id = s.ident;
         }
 
-        auto se = new StringExp(e.loc, cast(char*)id.toChars());
+        auto se = new StringExp(e.loc, id.toString());
         return se.expressionSemantic(sc);
     }
     if (e.ident == Id.getProtection)
@@ -795,7 +795,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         auto protName = protectionToChars(s.prot().kind); // TODO: How about package(names)
         assert(protName);
-        auto se = new StringExp(e.loc, cast(char*)protName);
+        auto se = new StringExp(e.loc, protName[0 .. strlen(protName)]);
         return se.expressionSemantic(sc);
     }
     if (e.ident == Id.parent)
@@ -1104,7 +1104,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         auto exps = new Expressions();
         if (ad && ad.aliasthis)
-            exps.push(new StringExp(e.loc, cast(char*)ad.aliasthis.ident.toChars()));
+            exps.push(new StringExp(e.loc, ad.aliasthis.ident.toString()));
         Expression ex = new TupleExp(e.loc, exps);
         ex = ex.expressionSemantic(sc);
         return ex;
@@ -1178,7 +1178,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         void addToMods(string str)
         {
-            mods.push(new StringExp(Loc.initial, cast(char*)str.ptr, str.length));
+            mods.push(new StringExp(Loc.initial, str));
         }
         tf.modifiersApply(&addToMods);
         tf.attributesApply(&addToMods, TRUSTformatSystem);
@@ -1250,7 +1250,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                                              : "stdarg";    break;
             case VarArg.typesafe: style = "typesafe";       break;
         }
-        auto se = new StringExp(e.loc, cast(char*)style);
+        auto se = new StringExp(e.loc, style);
         return se.expressionSemantic(sc);
     }
     if (e.ident == Id.getParameterStorageClasses)
@@ -1310,7 +1310,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         void push(string s)
         {
-            exps.push(new StringExp(e.loc, cast(char*)s.ptr, cast(uint)s.length));
+            exps.push(new StringExp(e.loc, s));
         }
 
         if (stc & STC.auto_)
@@ -1383,7 +1383,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             }
         }
         auto linkage = linkageToChars(link);
-        auto se = new StringExp(e.loc, cast(char*)linkage);
+        auto se = new StringExp(e.loc, linkage[0 .. strlen(linkage)]);
         return se.expressionSemantic(sc);
     }
     if (e.ident == Id.allMembers ||
@@ -1500,7 +1500,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto exps = cast(Expressions*)idents;
         foreach (i, id; *idents)
         {
-            auto se = new StringExp(e.loc, cast(char*)id.toChars());
+            auto se = new StringExp(e.loc, id.toString());
             (*exps)[i] = se;
         }
 
@@ -1886,7 +1886,7 @@ Lnext:
         }
 
         auto exps = new Expressions(3);
-        (*exps)[0] = new StringExp(e.loc, cast(void*)s.loc.filename, strlen(s.loc.filename));
+        (*exps)[0] = new StringExp(e.loc, s.loc.filename[0 .. strlen(s.loc.filename)]);
         (*exps)[1] = new IntegerExp(e.loc, s.loc.linnum,Type.tint32);
         (*exps)[2] = new IntegerExp(e.loc, s.loc.charnum,Type.tint32);
         auto tup = new TupleExp(e.loc, exps);

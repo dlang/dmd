@@ -1357,9 +1357,8 @@ UnionExp Slice(Type type, Expression e1, Expression lwr, Expression upr)
             void* s = mem.xmalloc(len * sz);
             const data1 = es1.peekData();
             memcpy(s, data1.ptr + ilwr * sz, len * sz);
-            emplaceExp!(StringExp)(&ue, loc, s, len, es1.postfix);
+            emplaceExp!(StringExp)(&ue, loc, s[0 .. len * sz], len, sz, es1.postfix);
             StringExp es = cast(StringExp)ue.exp();
-            es.sz = sz;
             es.committed = es1.committed;
             es.type = type;
         }
@@ -1522,18 +1521,17 @@ UnionExp Cat(Type type, Expression e1, Expression e2)
             // Create a StringExp
             if (t.nextOf())
                 t = t.nextOf().toBasetype();
-            ubyte sz = cast(ubyte)t.size();
+            const sz = cast(ubyte)t.size();
             dinteger_t v = e.toInteger();
-            size_t len = (t.ty == tn.ty) ? 1 : utf_codeLength(sz, cast(dchar)v);
+            const len = (t.ty == tn.ty) ? 1 : utf_codeLength(sz, cast(dchar)v);
             void* s = mem.xmalloc(len * sz);
             if (t.ty == tn.ty)
                 Port.valcpy(s, v, sz);
             else
                 utf_encode(sz, s, cast(dchar)v);
-            emplaceExp!(StringExp)(&ue, loc, s, len);
+            emplaceExp!(StringExp)(&ue, loc, s[0 .. len * sz], len, sz);
             StringExp es = cast(StringExp)ue.exp();
             es.type = type;
-            es.sz = sz;
             es.committed = 1;
         }
         else
@@ -1596,9 +1594,8 @@ UnionExp Cat(Type type, Expression e1, Expression e2)
         const data2 = es2.peekData();
         memcpy(cast(char*)s, data1.ptr, es1.len * sz);
         memcpy(cast(char*)s + es1.len * sz, data2.ptr, es2.len * sz);
-        emplaceExp!(StringExp)(&ue, loc, s, len);
+        emplaceExp!(StringExp)(&ue, loc, s[0 .. len * sz], len, sz);
         StringExp es = cast(StringExp)ue.exp();
-        es.sz = sz;
         es.committed = es1.committed | es2.committed;
         es.type = type;
         assert(ue.exp().type);
@@ -1643,13 +1640,12 @@ UnionExp Cat(Type type, Expression e1, Expression e2)
         // string ~ char --> string
         StringExp es1 = cast(StringExp)e1;
         StringExp es;
-        ubyte sz = es1.sz;
+        const sz = es1.sz;
         dinteger_t v = e2.toInteger();
         // Is it a concatenation of homogenous types?
         // (char[] ~ char, wchar[]~wchar, or dchar[]~dchar)
         bool homoConcat = (sz == t2.size());
-        size_t len = es1.len;
-        len += homoConcat ? 1 : utf_codeLength(sz, cast(dchar)v);
+        const len = es1.len + (homoConcat ? 1 : utf_codeLength(sz, cast(dchar)v));
         void* s = mem.xmalloc(len * sz);
         const data1 = es1.peekData();
         memcpy(s, data1.ptr, data1.length);
@@ -1657,9 +1653,8 @@ UnionExp Cat(Type type, Expression e1, Expression e2)
             Port.valcpy(cast(char*)s + (sz * es1.len), v, sz);
         else
             utf_encode(sz, cast(char*)s + (sz * es1.len), cast(dchar)v);
-        emplaceExp!(StringExp)(&ue, loc, s, len);
+        emplaceExp!(StringExp)(&ue, loc, s[0 .. len * sz], len, sz);
         es = cast(StringExp)ue.exp();
-        es.sz = sz;
         es.committed = es1.committed;
         es.type = type;
         assert(ue.exp().type);
@@ -1671,14 +1666,14 @@ UnionExp Cat(Type type, Expression e1, Expression e2)
         // We assume that we only ever prepend one char of the same type
         // (wchar,dchar) as the string's characters.
         StringExp es2 = cast(StringExp)e2;
-        size_t len = 1 + es2.len;
-        ubyte sz = es2.sz;
+        const len = 1 + es2.len;
+        const sz = es2.sz;
         dinteger_t v = e1.toInteger();
         void* s = mem.xmalloc(len * sz);
         Port.valcpy(cast(char*)s, v, sz);
         const data2 = es2.peekData();
         memcpy(cast(char*)s + sz, data2.ptr, data2.length);
-        emplaceExp!(StringExp)(&ue, loc, s, len);
+        emplaceExp!(StringExp)(&ue, loc, s[0 .. len * sz], len, sz);
         StringExp es = cast(StringExp)ue.exp();
         es.sz = sz;
         es.committed = es2.committed;

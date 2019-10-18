@@ -806,7 +806,7 @@ FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
      * If sd is a nested struct, and if it's nested in a class, the calculated
      * hash value will also contain the result of parent class's toHash().
      */
-    const(char)* code =
+    const(char)[] code =
         "size_t h = 0;" ~
         "foreach (i, T; typeof(p.tupleof))" ~
         // workaround https://issues.dlang.org/show_bug.cgi?id=17968
@@ -815,7 +815,7 @@ FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
         "    else " ~
         "        h = h * 33 + typeid(T).getHash(cast(const void*)&p.tupleof[i]);" ~
         "return h;";
-    fop.fbody = new CompileStatement(loc, new StringExp(loc, cast(char*)code));
+    fop.fbody = new CompileStatement(loc, new StringExp(loc, code));
     Scope* sc2 = sc.push();
     sc2.stc = 0;
     sc2.linkage = LINK.d;

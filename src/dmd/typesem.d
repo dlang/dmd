@@ -2123,7 +2123,7 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             }
             else
             {
-                e = new StringExp(loc, mt.deco);
+                e = new StringExp(loc, mt.deco[0 .. strlen(mt.deco)]);
                 Scope sc;
                 e = e.expressionSemantic(&sc);
             }
@@ -2131,7 +2131,7 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
         else if (ident == Id.stringof)
         {
             const s = mt.toChars();
-            e = new StringExp(loc, cast(char*)s);
+            e = new StringExp(loc, s[0 .. strlen(s)]);
             Scope sc;
             e = e.expressionSemantic(&sc);
         }
@@ -2424,8 +2424,7 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
         }
         else if (ident == Id.stringof)
         {
-            const s = mt.toChars();
-            e = new StringExp(loc, cast(char*)s);
+            e = new StringExp(loc, mt.toString());
             Scope sc;
             e = e.expressionSemantic(&sc);
         }
@@ -3145,8 +3144,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
              * this should demangle e.type.deco rather than
              * pretty-printing the type.
              */
-            const s = e.toChars();
-            e = new StringExp(e.loc, cast(char*)s);
+            e = new StringExp(e.loc, e.toString());
         }
         else
             e = mt.getProperty(e.loc, ident, flag & DotExpFlag.gag);
@@ -3542,7 +3540,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                     fd.error("must be a template `opDispatch(string s)`, not a %s", fd.kind());
                     return returnExp(new ErrorExp());
                 }
-                auto se = new StringExp(e.loc, cast(char*)ident.toChars());
+                auto se = new StringExp(e.loc, ident.toString());
                 auto tiargs = new Objects();
                 tiargs.push(se);
                 auto dti = new DotTemplateInstanceExp(e.loc, e, Id.opDispatch, tiargs);
