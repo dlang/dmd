@@ -333,6 +333,61 @@ void test_location()
 
 /**********************************/
 
+void test_array()
+{
+    Array<double> array;
+    array.setDim(4);
+    array.shift(10);
+    array.push(20);
+    array[2] = 15;
+    assert(array[0] == 10);
+    assert(array.find(10) == 0);
+    assert(array.find(20) == 5);
+    assert(!array.contains(99));
+    array.remove(1);
+    assert(array.length == 5);
+    assert(array[1] == 15);
+    assert(array.pop() == 20);
+    assert(array.length == 4);
+    array.insert(1, 30);
+    assert(array[1] == 30);
+    assert(array[2] == 15);
+
+    Array<int> arrayA;
+    array.setDim(0);
+    int buf[3] = {10, 15, 20};
+    arrayA.push(buf[0]);
+    arrayA.push(buf[1]);
+    arrayA.push(buf[2]);
+    assert(memcmp(arrayA.tdata(), buf, sizeof(buf)) == 0);
+    Array<int> *arrayPtr = arrayA.copy();
+    assert(arrayPtr);
+    assert(memcmp(arrayPtr->tdata(), arrayA.tdata(), arrayA.length * sizeof(int)) == 0);
+    assert(arrayPtr->tdata() != arrayA.tdata());
+
+    arrayPtr->setDim(0);
+    int buf2[2] = {100, 200};
+    arrayPtr->push(buf2[0]);
+    arrayPtr->push(buf2[1]);
+
+    arrayA.append(arrayPtr);
+    assert(memcmp(arrayA.tdata() + 3, buf2, sizeof(buf2)) == 0);
+    arrayA.insert(0, arrayPtr);
+    assert(arrayA[0] == 100);
+    assert(arrayA[1] == 200);
+    assert(arrayA[2] == 10);
+    assert(arrayA[3] == 15);
+    assert(arrayA[4] == 20);
+    assert(arrayA[5] == 100);
+    assert(arrayA[6] == 200);
+
+    arrayA.zero();
+    for (size_t i = 0; i < arrayA.length; i++)
+        assert(arrayA[i] == 0);
+}
+
+/**********************************/
+
 int main(int argc, char **argv)
 {
     frontend_init();
@@ -345,6 +400,7 @@ int main(int argc, char **argv)
     test_emplace();
     test_parameters();
     test_location();
+    test_array();
 
     frontend_term();
 
