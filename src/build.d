@@ -784,8 +784,8 @@ auto sourceFiles()
 {
     struct Sources
     {
-        string[] frontend, lexer, root, glue, dmd, backend;
-        string[] backendHeaders, backendObjects;
+        string[] frontend, lexer, root, glue, dmd, backend, sources;
+        string[] frontendHeaders, backendHeaders, backendObjects;
     }
     string targetCH;
     string[] targetObjs;
@@ -825,6 +825,13 @@ auto sourceFiles()
             statementsem.d staticassert.d staticcond.d strictvisitor.d target.d templateparamsem.d traits.d
             transitivevisitor.d typesem.d typinf.d utils.d visitor.d
         "),
+        frontendHeaders: fileArray(env["D"], "
+            aggregate.h aliasthis.h arraytypes.h attrib.h compiler.h complex_t.h cond.h
+            ctfe.h declaration.h dsymbol.h doc.h enum.h errors.h expression.h globals.h hdrgen.h
+            identifier.h id.h import.h init.h json.h module.h mtype.h nspace.h objc.h scope.h
+            statement.h staticassert.h target.h template.h tokens.h version.h visitor.h
+            " ~ (env["OS"] == "windows" ? "" : "libomf.d scanomf.d libmscoff.d scanmscoff.d")
+        ),
         lexer: fileArray(env["D"], "
             console.d entity.d errors.d filecache.d globals.d id.d identifier.d lexer.d tokens.d utf.d
         ") ~ fileArray(env["ROOT"], "
@@ -852,6 +859,7 @@ auto sourceFiles()
         "),
     };
     sources.dmd = sources.frontend ~ sources.glue ~ sources.backendHeaders;
+    sources.sources = sources.frontendHeaders ~ sources.dmd;
 
     return sources;
 }
