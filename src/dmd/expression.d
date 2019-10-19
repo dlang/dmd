@@ -2254,7 +2254,7 @@ extern (C++) final class NullExp : Expression
     {
         if (implicitConvTo(Type.tstring))
         {
-            auto se = new StringExp(loc, cast(char*)mem.xcalloc(1, 1), 0);
+            auto se = new StringExp(loc, (cast(char*)mem.xcalloc(1, 1))[0 .. 0]);
             se.type = Type.tstring;
             return se;
         }
@@ -2281,53 +2281,51 @@ extern (C++) final class StringExp : Expression
     size_t len;         // number of code units
     ubyte sz = 1;       // 1: char, 2: wchar, 4: dchar
     ubyte committed;    // !=0 if type is committed
-    char postfix = 0;   // 'c', 'w', 'd'
+    enum char NoPostfix = 0;
+    char postfix = NoPostfix;   // 'c', 'w', 'd'
     OwnedBy ownedByCtfe = OwnedBy.code;
 
-    extern (D) this(const ref Loc loc, char* string)
+    extern (D) this(const ref Loc loc, const(void)[] string)
     {
         super(loc, TOK.string_, __traits(classInstanceSize, StringExp));
-        this.string = string;
-        this.len = strlen(string);
+        this.string = cast(char*)string.ptr; // note that this.string should be const
+        this.len = string.length;
         this.sz = 1;                    // work around LDC bug #1286
     }
 
-    extern (D) this(const ref Loc loc, void* string, size_t len)
+    extern (D) this(const ref Loc loc, const(void)[] string, size_t len, ubyte sz, char postfix = NoPostfix)
     {
         super(loc, TOK.string_, __traits(classInstanceSize, StringExp));
-        this.string = cast(char*)string;
+        this.string = cast(char*)string.ptr; // note that this.string should be const
         this.len = len;
-        this.sz = 1;                    // work around LDC bug #1286
-    }
-
-    extern (D) this(const ref Loc loc, void* string, size_t len, char postfix)
-    {
-        super(loc, TOK.string_, __traits(classInstanceSize, StringExp));
-        this.string = cast(char*)string;
-        this.len = len;
+        this.sz = sz;
         this.postfix = postfix;
-        this.sz = 1;                    // work around LDC bug #1286
     }
 
     static StringExp create(Loc loc, char* s)
     {
-        return new StringExp(loc, s);
+        return new StringExp(loc, s[0 .. strlen(s)]);
     }
 
     static StringExp create(Loc loc, void* string, size_t len)
     {
-        return new StringExp(loc, string, len);
+        return new StringExp(loc, string[0 .. len]);
     }
 
     // Same as create, but doesn't allocate memory.
     static void emplace(UnionExp* pue, Loc loc, char* s)
     {
-        emplaceExp!(StringExp)(pue, loc, s);
+        emplaceExp!(StringExp)(pue, loc, s[0 .. strlen(s)]);
     }
 
-    static void emplace(UnionExp* pue, Loc loc, void* string, size_t len)
+    extern (D) static void emplace(UnionExp* pue, Loc loc, const(void)[] string)
     {
-        emplaceExp!(StringExp)(pue, loc, string, len);
+        emplaceExp!(StringExp)(pue, loc, string);
+    }
+
+    extern (D) static void emplace(UnionExp* pue, Loc loc, const(void)[] string, size_t len, ubyte sz, char postfix)
+    {
+        emplaceExp!(StringExp)(pue, loc, string, len, sz, postfix);
     }
 
     override bool equals(const RootObject o) const
@@ -2933,7 +2931,7 @@ extern (C++) final class ArrayLiteralExp : Expression
             }
 
             const size_t len = buf.length / sz - 1;
-            auto se = new StringExp(loc, buf.extractSlice().ptr, len, prefix);
+            auto se = new StringExp(loc, buf.extractSlice()[0 .. len * sz], len, sz, prefix);
             se.sz = sz;
             se.type = type;
             return se;
@@ -6587,7 +6585,7 @@ extern (C++) final class FileInitExp : DefaultInitExp
         else
             s = loc.isValid() ? loc.filename : sc._module.ident.toChars();
 
-        Expression e = new StringExp(loc, cast(char*)s);
+        Expression e = new StringExp(loc, s[0 .. strlen(s)]);
         e = e.expressionSemantic(sc);
         e = e.castTo(sc, type);
         return e;
@@ -6633,7 +6631,7 @@ extern (C++) final class ModuleInitExp : DefaultInitExp
     override Expression resolveLoc(const ref Loc loc, Scope* sc)
     {
         const char* s = (sc.callsc ? sc.callsc : sc)._module.toPrettyChars();
-        Expression e = new StringExp(loc, cast(char*)s);
+        Expression e = new StringExp(loc, s[0 .. strlen(s)]);
         e = e.expressionSemantic(sc);
         e = e.castTo(sc, type);
         return e;
@@ -6663,7 +6661,7 @@ extern (C++) final class FuncInitExp : DefaultInitExp
             s = sc.func.Dsymbol.toPrettyChars();
         else
             s = "";
-        Expression e = new StringExp(loc, cast(char*)s);
+        Expression e = new StringExp(loc, s[0 .. strlen(s)]);
         e = e.expressionSemantic(sc);
         e.type = Type.tstring;
         return e;
@@ -6703,7 +6701,7 @@ extern (C++) final class PrettyFuncInitExp : DefaultInitExp
             s = "";
         }
 
-        Expression e = new StringExp(loc, cast(char*)s);
+        Expression e = new StringExp(loc, s[0 .. strlen(s)]);
         e = e.expressionSemantic(sc);
         e.type = Type.tstring;
         return e;

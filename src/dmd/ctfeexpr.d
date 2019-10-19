@@ -285,12 +285,11 @@ UnionExp copyLiteral(Expression e)
         char* s = cast(char*)mem.xcalloc(se.len + 1, se.sz);
         const slice = se.peekData();
         memcpy(s, slice.ptr, slice.length);
-        emplaceExp!(StringExp)(&ue, se.loc, s, se.len);
+        emplaceExp!(StringExp)(&ue, se.loc, s[0 .. se.len * se.sz], se.len, se.sz);
         StringExp se2 = cast(StringExp)ue.exp();
         se2.committed = se.committed;
         se2.postfix = se.postfix;
         se2.type = se.type;
-        se2.sz = se.sz;
         se2.ownedByCtfe = OwnedBy.ctfe;
         return ue;
     }
@@ -629,10 +628,9 @@ StringExp createBlockDuplicatedStringLiteral(UnionExp* pue, const ref Loc loc, T
             assert(0);
         }
     }
-    emplaceExp!(StringExp)(pue, loc, s, dim);
+    emplaceExp!(StringExp)(pue, loc, s[0 .. dim * sz], dim, sz);
     auto se = pue.exp().isStringExp();
     se.type = type;
-    se.sz = sz;
     se.committed = true;
     se.ownedByCtfe = OwnedBy.ctfe;
     return se;
@@ -1445,9 +1443,8 @@ UnionExp ctfeCat(const ref Loc loc, Type type, Expression e1, Expression e2)
         }
         // Add terminating 0
         memset(cast(char*)s + len * sz, 0, sz);
-        emplaceExp!(StringExp)(&ue, loc, s, len);
+        emplaceExp!(StringExp)(&ue, loc, s[0 .. len * sz], len, sz);
         StringExp es = cast(StringExp)ue.exp();
-        es.sz = sz;
         es.committed = 0;
         es.type = type;
         return ue;
@@ -1476,7 +1473,7 @@ UnionExp ctfeCat(const ref Loc loc, Type type, Expression e1, Expression e2)
         }
         // Add terminating 0
         memset(cast(char*)s + len * sz, 0, sz);
-        emplaceExp!(StringExp)(&ue, loc, s, len);
+        emplaceExp!(StringExp)(&ue, loc, s[0 .. len * sz], len, sz);
         StringExp es = cast(StringExp)ue.exp();
         es.sz = sz;
         es.committed = 0; //es1.committed;
@@ -1770,7 +1767,7 @@ UnionExp changeArrayLiteralLength(const ref Loc loc, TypeArray arrayType, Expres
                 assert(0);
             }
         }
-        emplaceExp!(StringExp)(&ue, loc, s, newlen);
+        emplaceExp!(StringExp)(&ue, loc, s[0 .. newlen * oldse.sz], newlen, oldse.sz);
         StringExp se = cast(StringExp)ue.exp();
         se.type = arrayType;
         se.sz = oldse.sz;

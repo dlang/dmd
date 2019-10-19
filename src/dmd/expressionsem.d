@@ -13,6 +13,7 @@
 module dmd.expressionsem;
 
 import core.stdc.stdio;
+import core.stdc.string;
 
 import dmd.access;
 import dmd.aggregate;
@@ -5747,7 +5748,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 // take ownership of buffer (probably leaking)
                 auto data = readResult.extractSlice();
-                se = new StringExp(e.loc, data.ptr, data.length);
+                se = new StringExp(e.loc, data);
             }
         }
         result = se.expressionSemantic(sc);
@@ -5813,7 +5814,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                     // template args
                     static immutable compMsg = "==";
-                    Expression comp = new StringExp(loc, cast(char*) compMsg.ptr);
+                    Expression comp = new StringExp(loc, compMsg);
                     comp = comp.expressionSemantic(sc);
                     (*tiargs)[0] = comp;
 
@@ -5846,7 +5847,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     auto binExp = cast(EqualExp) exp.e1;
 
                     // template args
-                    Expression comp = new StringExp(loc, cast(char*) Token.toChars(exp.e1.op));
+                    Expression comp = new StringExp(loc, Token.toString(exp.e1.op));
                     comp = comp.expressionSemantic(sc);
                     (*tiargs)[0] = comp;
                     (*tiargs)[1] = binExp.e1.type;
@@ -5868,7 +5869,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 OutBuffer buf;
                 buf.printf("%s failed", assertExpMsg);
-                exp.msg = new StringExp(Loc.initial, buf.extractChars());
+                exp.msg = new StringExp(Loc.initial, buf.extractSlice());
             }
         }
         if (exp.msg)
@@ -8821,9 +8822,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (global.params.tracegc)
             {
                 auto funcname = (sc.callsc && sc.callsc.func) ? sc.callsc.func.toPrettyChars() : sc.func.toPrettyChars();
-                arguments.push(new StringExp(exp.loc, cast(char*)exp.loc.filename));
+                arguments.push(new StringExp(exp.loc, exp.loc.filename[0 .. strlen(exp.loc.filename)]));
                 arguments.push(new IntegerExp(exp.loc, exp.loc.linnum, Type.tint32));
-                arguments.push(new StringExp(exp.loc, cast(char*)funcname));
+                arguments.push(new StringExp(exp.loc, funcname[0 .. strlen(funcname)]));
             }
             arguments.push(ale.e1);
             arguments.push(exp.e2);
@@ -11274,8 +11275,7 @@ Expression semanticX(DotIdExp exp, Scope* sc)
                 }
                 OutBuffer buf;
                 mangleToBuffer(ds, &buf);
-                const s = buf[];
-                Expression e = new StringExp(exp.loc, buf.extractChars(), s.length);
+                Expression e = new StringExp(exp.loc, buf.extractSlice());
                 e = e.expressionSemantic(sc);
                 return e;
             }
@@ -11579,8 +11579,7 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
         }
         else if (exp.ident == Id.stringof)
         {
-            const p = ie.toString();
-            e = new StringExp(exp.loc, cast(char*)p.ptr, p.length);
+            e = new StringExp(exp.loc, ie.toString());
             e = e.expressionSemantic(sc);
             return e;
         }

@@ -607,7 +607,7 @@ extern (C++) struct Target
     {
         StringExp stringExp(const(char)[] sval)
         {
-            return new StringExp(loc, cast(void*)sval.ptr, sval.length);
+            return new StringExp(loc, sval);
         }
 
         switch (name.toDString) with (TargetInfoKeys)

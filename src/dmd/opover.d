@@ -414,7 +414,7 @@ Objects* opToArg(Scope* sc, TOK op)
     default:
         break;
     }
-    Expression e = new StringExp(Loc.initial, cast(char*)Token.toChars(op));
+    Expression e = new StringExp(Loc.initial, Token.toString(op));
     e = e.expressionSemantic(sc);
     auto tiargs = new Objects();
     tiargs.push(e);
