@@ -119,8 +119,8 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 if (StringExp se = sa.msg.toStringExp())
                 {
                     // same with pragma(msg)
-                    se = se.toUTF8(sc);
-                    error(sa.loc, "static assert:  \"%.*s\"", cast(int)se.len, se.string);
+                    const slice = se.toUTF8(sc).peekString();
+                    error(sa.loc, "static assert:  \"%.*s\"", cast(int)slice.length, slice.ptr);
                 }
                 else
                     error(sa.loc, "static assert:  %s", sa.msg.toChars());
