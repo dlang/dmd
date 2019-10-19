@@ -78,7 +78,6 @@ else
 endif
 
 GIT_HOME=https://github.com/dlang
-TOOLS_DIR=../../tools
 
 INSTALL_DIR=../../install
 SYSCONFDIR=/etc
@@ -517,11 +516,8 @@ install: all $(DMD_MAN_PAGE)
 
 ######################################################
 
-checkwhitespace: $(HOST_DMD_PATH) $(TOOLS_DIR)/checkwhitespace.d
-	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -run $(TOOLS_DIR)/checkwhitespace.d $(SRC) $(GLUE_SRC) $(ROOT_SRCS)
-
-$(TOOLS_DIR)/checkwhitespace.d:
-	git clone --depth=1 ${GIT_HOME}/tools $(TOOLS_DIR)
+checkwhitespace: $(GENERATED)/build
+	$(RUN_BUILD) $@
 
 ######################################################
 # DScanner

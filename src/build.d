@@ -33,6 +33,7 @@ immutable rootDeps = [
     &runDmdUnittest,
     &clean,
     &dmdFrontend,
+    &checkWhitespace
 ];
 
 void main(string[] args)
@@ -414,6 +415,48 @@ alias runDmdUnittest = memoize!(function()
     return new DependencyRef(dep);
 });
 
+/// Checks all sources for whitespace errors
+alias checkWhitespace = memoize!(function()
+{
+    Dependency dep;
+    with (dep)
+    {
+        name = "checkwhitespace";
+        description = "Check the sources for whitespace errors";
+        msg = "(RUN) CHECK-WHITESPACE";
+        deps = [tools];
+        command = [
+            env["HOST_DMD_RUN"],
+            "-run",
+            env["TOOLS_DIR"] ~ "/checkwhitespace"
+        ].chain(
+            srcDir.dirEntries("*.{d,h,di}", SpanMode.depth)
+        ).array;
+    }
+    return new DependencyRef(dep);
+});
+
+/// Clones GIT_HOME/tools if TOOLS_DIR does not exist
+alias tools = memoize!(function()
+{
+    Dependency dep;
+    with (dep)
+    {
+        name = "tools";
+        description = "Clone the tools repository";
+        commandFunction = ()
+        {
+            // Use explicit exists instead of target because isUpToDate considers build.d's timespamp
+            if(!exists(env["TOOLS_DIR"] ~ "/checkwhitespace.d"))
+            {
+                writeln("(GIT) Cloning tools");
+                runCanThrow([env["GIT"], "clone", "--depth=1", env["GIT_HOME"] ~ "/tools", env["TOOLS_DIR"]]);
+            }
+        };
+    }
+    return new DependencyRef(dep);
+});
+
 /// Dependency that removes all generated files
 alias clean = memoize!(function()
 {
@@ -485,10 +528,6 @@ LtargetsLoop:
 
             case "build-examples":
                 "TODO: build-examples".writeln; // TODO
-                break;
-
-            case "checkwhitespace":
-                "TODO: checkwhitespace".writeln; // TODO
                 break;
 
             case "html":
@@ -634,6 +673,8 @@ void parseEnvironment()
     env.getDefault("GIT_HOME", "https://github.com/dlang");
     env.getDefault("SYSCONFDIR", "/etc");
     env.getDefault("TMP", tempDir);
+    env.getDefault("TOOLS_DIR", srcDir ~ "/../../tools");
+
     auto d = env["D"] = srcDir.buildPath("dmd");
     env["C"] = d.buildPath("backend");
     env["ROOT"] = d.buildPath("root");
