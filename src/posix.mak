@@ -212,8 +212,6 @@ endif
 
 OS_UPCASE := $(shell echo $(OS) | tr '[a-z]' '[A-Z]')
 
-MMD=-MMD -MF $(basename $@).deps
-
 # Default compiler flags for all source files
 CXXFLAGS := $(WARNINGS) \
 	-fno-exceptions -fno-rtti \
@@ -290,7 +288,6 @@ endif
 endif
 
 # Unique extra flags if necessary
-DMD_FLAGS  := -I$D -Wuninitialized
 BACK_FLAGS := -I$(ROOT) -I$C -I$G -I$D -DDMDV2=1
 BACK_DFLAGS := -version=DMDV2
 ROOT_FLAGS := -I$(ROOT)
@@ -390,8 +387,6 @@ ROOT_SRC = $(addprefix $(ROOT)/, array.h bitarray.h ctfloat.h dcompat.h file.h f
 ######## Additional files
 
 SRC_MAKE = posix.mak osmodel.mak
-
-STRING_IMPORT_FILES = $G/VERSION $G/SYSCONFDIR.imp $(RES)/default_ddoc_theme.ddoc
 
 DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS))
 
