@@ -1853,10 +1853,12 @@ Lnext:
         }
         se = se.toUTF8(sc);
 
-        Expression r = target.getTargetInfo(se.toPtr(), e.loc);
+        const slice = se.peekString();
+        Expression r = target.getTargetInfo(slice.ptr, e.loc); // BUG: reliance on terminating 0
         if (!r)
         {
-            e.error("`getTargetInfo` key `\"%s\"` not supported by this implementation", se.toPtr());
+            e.error("`getTargetInfo` key `\"%.*s\"` not supported by this implementation",
+                cast(int)slice.length, slice.ptr);
             return new ErrorExp();
         }
         return r.expressionSemantic(sc);

@@ -6058,15 +6058,15 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
 Symbol *toStringSymbol(StringExp se)
 {
     Symbol *si;
-    int n = cast(int)se.numberOfCodeUnits();
-    char* p = se.toPtr();
-    if (p)
+    const n = cast(int)se.numberOfCodeUnits();
+    if (se.sz == 1)
     {
-        si = toStringSymbol(p, n, se.sz);
+        const slice = se.peekString();
+        si = toStringSymbol(slice.ptr, slice.length, 1);
     }
     else
     {
-        p = cast(char *)mem.xmalloc(n * se.sz);
+        auto p = cast(char *)mem.xmalloc(n * se.sz);
         se.writeTo(p, false);
         si = toStringSymbol(p, n, se.sz);
         mem.xfree(p);
