@@ -541,14 +541,8 @@ dscanner: $(DSCANNER_DIR)/dsc
 
 ######################################################
 
-$G/cxxfrontend.o: $G/%.o: tests/%.c $(SRC) $(ROOT_SRC) $(SRC_MAKE)
-	$(CXX) -c -o$@ $(CXXFLAGS) $(DMD_FLAGS) $(MMD) $<
-
-$G/cxx-unittest: $G/cxxfrontend.o $(DMD_SRCS) $(ROOT_SRCS) $G/lexer.a $G/backend.o $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
-	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) -L-lstdc++ $(DFLAGS) -version=NoMain $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
-
-cxx-unittest: $G/cxx-unittest
-	$<
+cxx-unittest: $(GENERATED)/build
+	$(RUN_BUILD) CXX=$(HOST_CXX) $@
 
 ######################################################
 

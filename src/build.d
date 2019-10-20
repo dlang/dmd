@@ -35,6 +35,7 @@ immutable rootDeps = [
     &runDmdUnittest,
     &clean,
     &checkwhitespace,
+    &runCxxUnittest
 ];
 
 void main(string[] args)
@@ -393,6 +394,93 @@ alias runDmdUnittest = memoize!(function()
     return new DependencyRef(dep);
 });
 
+/// Compiles the C++ frontend test files
+version(Posix) alias cxxFrontend = memoize!(function()
+{
+    Dependency dep;
+    with (dep)
+    {
+        name = "cxx-frontend";
+        description = "Build the C++ frontend";
+        msg = "(CXX) CXX-FRONTEND";
+        sources = "tests/cxxfrontend.c" ~ .sources.sources ~ .sources.root; // Omitted $(SRC_MAKE);
+        target = env["G"] ~ "/cxxfrontend".objName;
+        command = [
+            env["CXX"],
+            "-c",
+            sources[0],
+            "-o" ~ target,
+
+            // $(DMD_FLAGS)
+            "-I" ~ env["D"],
+            "-Wuninitialized",
+
+            // $("MMD") == -MMD -MF $(basename $@).deps
+            "-MMD",
+            "-MF cxxfrontend.deps"
+        ]
+        ~ flags["CXXFLAGS"];
+    }
+
+    return new DependencyRef(dep);
+});
+
+/// Compiles the complete C++ unittests executable
+version(Posix) alias cxxUnittestExe = memoize!(function()
+{
+
+    const stringImportFiles = [
+        env["G"] ~ "/VERSION",
+        env["G"] ~ "/SYSCONFDIR.imp",
+        env["RES"] ~ "/default_ddoc_theme.ddoc"
+    ];
+
+    // $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
+    auto inputFiles = sources.dmd ~ sources.root;
+
+    Dependency dep;
+    with (dep)
+    {
+        name = "cxx-unittest";
+        description = "Build the C++ unittests";
+        msg = "(DMD) CXX-UNITTEST";
+        deps = [cxxFrontend, lexer, backend];
+        sources = inputFiles ~ stringImportFiles;
+        target = env["G"] ~ "/cxx-unittest";
+        command = [
+            env["HOST_DMD_RUN"],
+            "-of=" ~ target,
+            env["MODEL_FLAG"],
+            "-vtls",
+            "-J" ~ env["G"],
+            "-J" ~ env["RES"],
+            "-L-lstdc++",
+            "-version=NoMain",
+        ].chain(
+            flags["DFLAGS"],
+            inputFiles,
+            deps.map!(d => d.target)
+        ).array;
+    }
+
+    return new DependencyRef(dep);
+});
+
+/// Runs the C++ unittests executable
+version(Posix) alias runCxxUnittest = memoize!(function()
+{
+    Dependency dep;
+    with (dep)
+    {
+        name = "cxx-unittest";
+        description = "Run the C++ unittests";
+        msg = "(RUN) CXX-UNITTEST";
+        deps = [cxxUnittestExe];
+        command = [cxxUnittestExe.target];
+    }
+    return new DependencyRef(dep);
+});
+
 /// Dependency that removes all generated files
 alias clean = memoize!(function()
 {
@@ -496,10 +584,6 @@ LtargetsLoop:
 
             case "toolchain-info":
                 "TODO: info".writeln; // TODO
-                break;
-
-            case "cxx-unittest":
-                "TODO: cxx-unittest".writeln; // TODO
                 break;
 
             case "check-examples":
@@ -781,6 +865,8 @@ void processEnvironment()
 version(Posix) void processEnvironmentCxx()
 {
     import std.meta: AliasSeq;
+
+    env.getDefault("RES", srcDir ~ "/../res");
 
     const cxxVersion = [env.getDefault("CXX", "c++"), "--version"].execute.output;
 
