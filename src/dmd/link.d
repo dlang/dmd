@@ -435,7 +435,7 @@ public int runLINK()
             }
             const(char)* linkcmd = getenv("LINKCMD");
             if (!linkcmd)
-                linkcmd = "link";
+                linkcmd = "optlink";
             const int status = executecmd(linkcmd, p.ptr);
             if (lnkfilename)
             {
