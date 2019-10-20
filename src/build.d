@@ -450,7 +450,9 @@ alias tools = memoize!(function()
             if(!exists(env["TOOLS_DIR"] ~ "/checkwhitespace.d"))
             {
                 writeln("(GIT) Cloning tools");
-                runCanThrow([env["GIT"], "clone", "--depth=1", env["GIT_HOME"] ~ "/tools", env["TOOLS_DIR"]]);
+                const cmd = [env["GIT"], "clone", "--depth=1", env["GIT_HOME"] ~ "/tools", env["TOOLS_DIR"]];
+                writeln(cmd);
+                runCanThrow(cmd);
             }
         };
     }
