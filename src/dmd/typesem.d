@@ -1295,6 +1295,9 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                 if (fparam.storageClass & STC.rvalueref)
                     fparam.storageClass |= STC.ref_;
 
+                if (i == 0 && tf.ismove)
+                    fparam.storageClass |= STC.rvalueref;
+
                 fparam.type = fparam.type.addStorageClass(fparam.storageClass);
 
                 if (fparam.storageClass & (STC.auto_ | STC.alias_ | STC.static_))

@@ -81,7 +81,7 @@ private immutable char[TMAX] mangleChar =
     //              K   // K:ref KK:rvalue ref
     //              L   // lazy
     //              M   // has this, or scope
-    //              N   // Nh:vector Ng:wild Nr:rvalue
+    //              N   // Nh:vector Ng:wild Nr:rvalue Nm:move
     //              O   // shared
     Tpointer     : 'P',
     //              Q   // Type/symbol/identifier backward reference
@@ -400,6 +400,8 @@ public:
             buf.writestring("Nd");
         if (ta.isnogc)
             buf.writestring("Ni");
+        if (ta.ismove)
+            buf.writestring("Nm");
 
         if (ta.isreturn && !ta.isreturninferred)
             buf.writestring("Nj");
@@ -1126,7 +1128,7 @@ public:
             break;
         case STC.ref_:
             buf.writeByte('K');
-            if (p.storageClass & STC.rvalueref)
+            if (p.storageClass & STC.rvalueref && global.params.rvalueAttribute)
                 buf.writeByte('K');
             break;
         case STC.lazy_:

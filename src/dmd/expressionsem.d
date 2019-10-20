@@ -4078,6 +4078,31 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
 
+        if (exp.e1.op == TOK.identifier && (cast(IdentifierExp)exp.e1).ident == Id.__move)
+        {
+            expandTuples(exp.arguments);
+            if (exp.arguments.length != 1)
+            {
+                if (exp.arguments.length == 0)
+                    exp.error("`__move` requires an argument`");
+                else
+                    exp.error("`__move` takes only one argument`");
+                return setError();
+            }
+
+            Expression ex = (*exp.arguments)[0].expressionSemantic(sc);
+            if (ex.op == TOK.error)
+            {
+                result = ex;
+                return;
+            }
+            if (!ex.isLvalue())
+                result = ex;
+            else
+                result = moveExp(exp.loc, ex).expressionSemantic(sc);
+            return;
+        }
+
         if (Expression ex = resolveUFCS(sc, exp))
         {
             result = ex;

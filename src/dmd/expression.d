@@ -3885,6 +3885,8 @@ extern (C++) final class FuncExp : Expression
             tfy.purity = tfx.purity;
             tfy.isproperty = tfx.isproperty;
             tfy.isref = tfx.isref;
+            tfy.isrvalueref = tfx.isrvalueref;
+            tfy.ismove = tfx.ismove;
             tfy.iswild = tfx.iswild;
             tfy.deco = tfy.merge().deco;
 

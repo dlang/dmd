@@ -1419,6 +1419,8 @@ final class Parser(AST) : Lexer
             }
             if (!stc && token.ident == Id.rvalue && global.params.rvalueType)
                 stc = STC.rvaluetype;
+            if (!stc && token.ident == Id.move && global.params.moveAttribute)
+                stc = STC.move;
             if (!stc)
             {
                 // Allow identifier, template instantiation, or function call

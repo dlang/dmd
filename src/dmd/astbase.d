@@ -132,16 +132,17 @@ struct ASTBase
         returninferred      = (1L << 52),   // 'return' has been inferred and should not be part of mangling
         rvalueref           = (1L << 53),   // @rvalue ref
         rvaluetype          = (1L << 54),   // @rvalue type constructor
+        move                = (1L << 55),   // @move attribute
 
         safeGroup = STC.safe | STC.trusted | STC.system,
         TYPECTOR = (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild),
-        FUNCATTR = (STC.ref_ | STC.rvalueref | STC.nothrow_ | STC.nogc | STC.pure_ | STC.property |
+        FUNCATTR = (STC.ref_ | STC.rvalueref | STC.nothrow_ | STC.nogc | STC.pure_ | STC.property | STC.move |
                     safeGroup),
     }
 
     extern (C++) __gshared const(StorageClass) STCStorageClass =
         (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.const_ | STC.final_ | STC.abstract_ | STC.synchronized_ | STC.deprecated_ | STC.override_ | STC.lazy_ | STC.alias_ | STC.out_ | STC.in_ | STC.manifest | STC.immutable_ | STC.shared_ | STC.wild | STC.nothrow_ | STC.nogc | STC.pure_ | STC.ref_ | STC.return_ | STC.tls | STC.gshared | STC.property |
-         STC.safeGroup | STC.disable | STC.rvalueref | STC.rvaluetype);
+         STC.safeGroup | STC.disable | STC.rvalueref | STC.rvaluetype | STC.move);
 
     enum ENUMTY : int
     {
@@ -6569,6 +6570,7 @@ struct ASTBase
             SCstring(STC.future, TOK.at, "@__future"),
             SCstring(STC.rvalueref, TOK.at, "@rvalue ref"),
             SCstring(STC.rvaluetype, TOK.at, "@rvalue"),
+            SCstring(STC.move, TOK.at, "@move"),
             SCstring(0, TOK.reserved)
         ];
         for (int i = 0; table[i].stc; i++)

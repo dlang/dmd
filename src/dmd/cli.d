@@ -736,6 +736,8 @@ dmd -cov -unittest myprog.d
             "enable the @rvalue / __rvalue type constructor"),
         Feature("nosharedaccess", "noSharedAccess",
             "disable access to shared memory objects"),
+        Feature("moveattribute", "moveAttribute",
+            "enable declaring the move constructor with the @move attribute"),
     ];
 }
 

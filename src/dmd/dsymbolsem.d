@@ -376,19 +376,23 @@ private CtorDeclaration generateCopyCtorDeclaration(StructDeclaration sd, const 
     auto fparams = new Parameters();
     auto structType = sd.type;
     auto stc = STC.ref_ | STC.return_ | STC.scope_;
+    StorageClass mvStc = 0;
     if (moveCtor)
     {
         if (global.params.rvalueType)
             stc |= STC.rvaluetype;
         else
             stc |= STC.rvalueref;
+        if (global.params.moveAttribute)
+            mvStc = STC.move;
     }
     fparams.push(new Parameter(paramStc | stc, structType, Id.p, null, null));
     ParameterList pList = ParameterList(fparams);
-    auto tf = new TypeFunction(pList, structType, LINK.d, STC.ref_);
+    auto tf = new TypeFunction(pList, structType, LINK.d, STC.ref_ | mvStc);
     auto ccd = new CtorDeclaration(sd.loc, Loc.initial, STC.ref_, tf, moveCtor ? 2 : 1);
     ccd.storage_class |= funcStc;
     ccd.storage_class |= STC.inference;
+    ccd.storage_class |= mvStc;
     ccd.generated = true;
     return ccd;
 }
@@ -3434,6 +3438,42 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             funcdecl.type = funcdecl.type.typeSemantic(funcdecl.loc, sc);
             sc = sc.pop();
         }
+        if (funcdecl.storage_class & STC.move) // @move attribute
+        {
+            if (funcdecl.isStaticCtorDeclaration())
+            {
+                funcdecl.error("move constructor cannot be static");
+            }
+            else if (!funcdecl.isCtorDeclaration() && funcdecl.ident != Id.assign)
+            {
+                funcdecl.error("`@move` attribute only applies to move constructor or move opAssign declarations");
+            }
+            else
+            {
+                const char* kind = funcdecl.isCtorDeclaration() ? "move constructor".ptr : "move opAssign".ptr;
+                if (!ad)
+                    funcdecl.error("%s can only be a member of struct", kind);
+                else if (!ad.isStructDeclaration())
+                    funcdecl.error("%s can only be a member of struct, not %s `%s`", kind, ad.kind(), ad.toChars());
+                if (auto tf = funcdecl.type.isTypeFunction())
+                {
+                    const dim = tf.parameterList.length;
+                    if (dim == 0 && tf.parameterList.varargs != VarArg.none)
+                        funcdecl.error("first parameter of a %s cannot be variadic", kind);
+                    else if (dim == 1 || dim > 1 && tf.parameterList[1].defaultArg)
+                    {
+                        auto param = Parameter.getNth(tf.parameterList, 0);
+                        if (!param.type.equivalent(ad.type))
+                            funcdecl.error("first parameter of a %s must be of type `%s` not `%s`",
+                                kind, ad.type.mutableOf().unSharedOf(), param.type.mutableOf().unSharedOf());
+                        else if (!(param.storageClass & STC.ref_))
+                            funcdecl.error("first parameter of a %s must be `ref`", kind);
+                    }
+                    else if (dim > 1 && !tf.parameterList[1].defaultArg)
+                        funcdecl.error("second parameter of a %s must have a default argument", kind);
+                }
+            }
+        }
         if (funcdecl.type.ty != Tfunction)
         {
             if (funcdecl.type.ty != Terror)
@@ -3456,6 +3496,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             tfo.isscopeinferred = tfx.isscopeinferred;
             tfo.isref = tfx.isref;
             tfo.isrvalueref = tfx.isrvalueref;
+            tfo.ismove = tfx.ismove;
             tfo.isnothrow = tfx.isnothrow;
             tfo.isnogc = tfx.isnogc;
             tfo.isproperty = tfx.isproperty;

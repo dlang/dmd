@@ -4285,6 +4285,7 @@ extern (C++) final class TypeFunction : TypeNext
     bool isproperty;            // can be called without parentheses
     bool isref;                 // true: returns a reference
     bool isrvalueref;           // true: returns a and rvalue reference
+    bool ismove;                // true: is @move
     bool isreturn;              // true: 'this' is returned by ref
     bool isscope;               // true: 'this' is scope
     bool isreturninferred;      // true: 'this' is return from inference
@@ -4319,6 +4320,8 @@ extern (C++) final class TypeFunction : TypeNext
             this.isref = true;
         if (stc & STC.rvalueref)
             this.isrvalueref = true;
+        if (stc & STC.move)
+            this.ismove = true;
         if (stc & STC.return_)
             this.isreturn = true;
         if (stc & STC.returninferred)
@@ -4360,6 +4363,7 @@ extern (C++) final class TypeFunction : TypeNext
         t.isproperty = isproperty;
         t.isref = isref;
         t.isrvalueref = isrvalueref;
+        t.ismove = ismove;
         t.isreturn = isreturn;
         t.isscope = isscope;
         t.isreturninferred = isreturninferred;
@@ -4637,6 +4641,7 @@ extern (C++) final class TypeFunction : TypeNext
             tf.isproperty = t.isproperty;
             tf.isref = t.isref;
             tf.isrvalueref = t.isrvalueref;
+            tf.ismove = t.ismove;
             tf.isreturn = t.isreturn;
             tf.isscope = t.isscope;
             tf.isreturninferred = t.isreturninferred;
@@ -4703,6 +4708,7 @@ extern (C++) final class TypeFunction : TypeNext
         t.isproperty = isproperty;
         t.isref = isref;
         t.isrvalueref = isrvalueref;
+        t.ismove = ismove;
         t.isreturn = isreturn;
         t.isscope = isscope;
         t.isreturninferred = isreturninferred;
@@ -6917,6 +6923,8 @@ void attributesApply(const TypeFunction tf, void delegate(string) dg, TRUSTforma
         dg("@rvalue ref");
     else if (tf.isref)
         dg("ref");
+    if (tf.ismove)
+        dg("@move");
     if (tf.isreturn && !tf.isreturninferred)
         dg("return");
     if (tf.isscope && !tf.isscopeinferred)

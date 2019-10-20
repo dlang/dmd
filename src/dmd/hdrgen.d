@@ -2368,6 +2368,13 @@ public:
 
     override void visit(CastExp e)
     {
+        if (e.rvalueRef && global.params.moveAttribute)
+        {
+            buf.writestring("__move(");
+            expToBuffer(e.e1, precedence[e.op], buf, hgs);
+            buf.writeByte(')');
+            return;
+        }
         buf.writestring("cast(");
         if (e.rvalueRef)
             buf.writestring("@rvalue ref");
@@ -2738,6 +2745,7 @@ string stcToString(ref StorageClass stc)
         SCstring(STC.local, TOK.at, "__local"),
         SCstring(STC.rvalueref, TOK.at, "@rvalue ref"),
         SCstring(STC.rvaluetype, TOK.at, "@rvalue"),
+        SCstring(STC.move, TOK.at, "@move"),
         SCstring(0, TOK.reserved)
     ];
     for (int i = 0; table[i].stc; i++)
@@ -3024,7 +3032,7 @@ private void parameterToBuffer(Parameter p, OutBuffer* buf, HdrGenState* hgs)
 
     if (p.storageClass & STC.out_)
         buf.writestring("out ");
-    else if (p.storageClass & STC.rvalueref)
+    else if (p.storageClass & STC.rvalueref && global.params.rvalueAttribute)
         buf.writestring("@rvalue ref ");
     else if (p.storageClass & STC.ref_)
         buf.writestring("ref ");

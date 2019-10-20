@@ -180,6 +180,7 @@ extern (C++) struct Param
     bool rvalueRefParam;    // allow rvalues to be arguments to ref parameters
     bool rvalueAttribute;   // @rvalue attribute for ref parameters and ref returns
     bool rvalueType;        // @rvalue type constructor
+    bool moveAttribute;     // @move attribute for declaring the move constructor & opAssing
 
     CppStdRevision cplusplus = CppStdRevision.cpp98;    // version of C++ standard to support
 

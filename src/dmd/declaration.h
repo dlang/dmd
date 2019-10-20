@@ -64,7 +64,7 @@ struct IntRange;
 #define STCgshared      0x40000000LL
 #define STCwild         0x80000000LL    // for "wild" type constructor
 #define STC_TYPECTOR    (STCconst | STCimmutable | STCshared | STCwild)
-#define STC_FUNCATTR    (STCref | STCrvalueref | STCnothrow | STCnogc | STCpure | STCproperty | STCsafe | STCtrusted | STCsystem)
+#define STC_FUNCATTR    (STCref | STCrvalueref | STCnothrow | STCnogc | STCpure | STCproperty | STCmove | STCsafe | STCtrusted | STCsystem)
 
 #define STCproperty      0x100000000LL
 #define STCsafe          0x200000000LL
@@ -89,6 +89,7 @@ struct IntRange;
 #define STCreturninferred 0x10000000000000LL   // 'return' has been inferred and should not be part of mangling
 #define STCrvalueref      0x20000000000000LL   // @rvalue ref
 #define STCrvaluetype     0x40000000000000LL   // @rvalue type constructor
+#define STCmove           0x80000000000000LL   // @move attribute
 
 void ObjectNotFound(Identifier *id);
 
