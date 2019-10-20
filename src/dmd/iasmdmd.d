@@ -3716,11 +3716,10 @@ code *asm_db_parse(OP *pop)
                     }
                     goto L2;
                 }
-                else if (e.op == TOK.string_)
+                else if (auto se = e.isStringExp())
                 {
-                    StringExp se = cast(StringExp)e;
                     len = se.numberOfCodeUnits();
-                    q = cast(ubyte *)se.toPtr();
+                    q = cast(ubyte *)se.peekString().ptr;
                     if (!q)
                     {
                         qstart = cast(ubyte *)mem.xmalloc(len * se.sz);

@@ -2480,18 +2480,6 @@ extern (C++) final class StringExp : Expression
         }
     }
 
-    /**************************************************
-     * If the string data is UTF-8 and can be accessed directly,
-     * return a pointer to it.
-     * Do not assume a terminating 0.
-     * Returns:
-     *  pointer to string data if possible, null if not
-     */
-    char* toPtr()
-    {
-        return (sz == 1) ? string : null;
-    }
-
     override StringExp toStringExp()
     {
         return this;

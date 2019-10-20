@@ -364,11 +364,15 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
 
         // BUG: should implement some form of static string pooling
         const n = cast(int)e.numberOfCodeUnits();
-        char* p = e.toPtr();
-        if (!p)
+        const(char)* p;
+        char* q;
+        if (e.sz == 1)
+            p = e.peekString().ptr;
+        else
         {
-            p = cast(char*)mem.xmalloc(n * e.sz);
-            e.writeTo(p, false);
+            q = cast(char*)mem.xmalloc(n * e.sz);
+            e.writeTo(q, false);
+            p = q;
         }
 
         switch (t.ty)
@@ -410,8 +414,7 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
                 printf("StringExp.toDt(type = %s)\n", e.type.toChars());
                 assert(0);
         }
-        if (p != e.toPtr())
-            mem.xfree(p);
+        mem.xfree(q);
     }
 
     void visitArrayLiteral(ArrayLiteralExp e)
