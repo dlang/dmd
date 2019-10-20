@@ -97,6 +97,7 @@ Command-line parameters
     args2Environment(args);
     parseEnvironment;
     processEnvironment;
+    version(Posix) processEnvironmentCxx;
     sources = sourceFiles;
 
     if (res.helpWanted)
@@ -652,6 +653,7 @@ void parseEnvironment()
     env.getDefault("GIT_HOME", "https://github.com/dlang");
     env.getDefault("SYSCONFDIR", "/etc");
     env.getDefault("TMP", tempDir);
+
     auto d = env["D"] = srcDir.buildPath("dmd");
     env["C"] = d.buildPath("backend");
     env["ROOT"] = d.buildPath("root");
@@ -773,6 +775,130 @@ void processEnvironment()
         dflags ~= ["-fsanitize="~env["ENABLE_SANITIZERS"]];
     }
     flags["DFLAGS"] ~= dflags;
+}
+
+/// Setup environment for a C++ compiler
+version(Posix) void processEnvironmentCxx()
+{
+    import std.meta: AliasSeq;
+
+    const cxxVersion = [env.getDefault("CXX", "c++"), "--version"].execute.output;
+
+    alias GCC = AliasSeq!("g++", "gcc", "Free Software");
+    alias CLANG = AliasSeq!("clang");
+    const kindIdx = cxxVersion.canFind(GCC, CLANG);
+
+    enforce(kindIdx, "Invalid CXX found: " ~ cxxVersion);
+    const kind = kindIdx <= GCC.length ? "g++" : "clang++";
+
+    env["CXX_KIND"] = kind;
+
+    string[] warnings;
+    if(env.getDefault("ENABLE_WARNINGS", "0") != "0")
+    {
+        warnings = [
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Wno-attributes",
+            "-Wno-char-subscripts",
+            "-Wno-deprecated",
+            "-Wno-empty-body",
+            "-Wno-format",
+            "-Wno-missing-braces",
+            "-Wno-missing-field-initializers",
+            "-Wno-overloaded-virtual",
+            "-Wno-parentheses",
+            "-Wno-reorder",
+            "-Wno-return-type",
+            "-Wno-sign-compare",
+            "-Wno-strict-aliasing",
+            "-Wno-switch",
+            "-Wno-type-limits",
+            "-Wno-unknown-pragmas",
+            "-Wno-unused-function",
+            "-Wno-unused-label",
+            "-Wno-unused-parameter",
+            "-Wno-unused-value",
+            "-Wno-unused-variable"
+        ];
+
+        if(kind == "g++") {
+            warnings ~= [
+                "-Wno-logical-op",
+                "-Wno-narrowing",
+                "-Wno-unused-but-set-variable",
+                "-Wno-uninitialized",
+                "-Wno-class-memaccess",
+                "-Wno-implicit-fallthrough"
+            ];
+        }
+    }
+    else
+    {
+        warnings = [
+            "-Wno-deprecated",
+            "-Wstrict-aliasing",
+            "-Werror"
+        ];
+
+        if(kind == "clang++")
+            warnings ~= "-Wno-logical-op-parentheses";
+    }
+
+    string hostDmdVernum;
+    if(env["HOST_DMD_KIND"] == "dmd") // Why limit this to dmd?
+    {
+        enum redirect = Redirect.stdin | Redirect.stdout | Redirect.stderrToStdout;
+        auto pipes = pipeProcess([env["HOST_DMD_RUN"], "-o-", "-c", "-"], redirect);
+
+        pipes.stdin.writeln("pragma(msg, cast(int)__VERSION__);");
+        pipes.stdin.flush();
+        pipes.stdin.close();
+        //  wait(pipes.pid);
+
+        hostDmdVernum = pipes.stdout.byLine.front.idup;
+    }
+    else {
+        hostDmdVernum = "2";
+    }
+
+    auto cxxFlags = warnings ~ [
+        "-fno-exceptions",
+        "-fno-rtti",
+        "-D__pascal=",
+        "-DMARS=1",
+        "-DTARGET_" ~ env["OS"].toUpper ~ "=1",
+        "-DDM_TARGET_CPU_" ~ env["TARGET_CPU"] ~ "=1",
+        env["MODEL_FLAG"],
+        env["PIC_FLAG"],
+        "-DDMD_VERSION=" ~ hostDmdVernum,
+
+        // No explicit if since kind will always be either g++ or clang++
+        kind == "g++" ? "-std=gnu++98" : "-xc++"
+    ];
+
+    const pgoDir = env.getDefault("PGO_DIR", srcDir ~ "/pgo");
+
+    const extraFlags = [
+        "ENABLE_DEBUG": ["-g", "-g3", "-DDEBUG=1", "-DUNITTEST"],
+        "ENABLE_RELEASE": ["-O2"],
+        "ENABLE_PROFILING": ["-pg", "-fprofile-arcs", "-ftest-coverage"],
+        "ENABLE_PGO_GENERATE": ["-fprofile-generate=" ~ pgoDir],
+        "ENABLE_PGO_USE": ["-fprofile-use=" ~ pgoDir, "-freorder-blocks-and-partition"],
+        "ENABLE_LTO": ["-flto"],
+        "ENABLE_UNITTEST": ["-unittest", "-cov"],
+        "ENABLE_COVERAGE": ["--coverage"],
+        "ENABLE_SANITIZERS": ["-fsanitize=" ~ env.getDefault("ENABLE_SANITIZERS", "")]
+    ];
+
+    foreach(const var, const flags; extraFlags) {
+        if(env.getDefault(var, "0") != "0") {
+            cxxFlags ~= flags;
+        }
+    }
+
+    flags["CXXFLAGS"] = cxxFlags;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
