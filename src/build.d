@@ -809,7 +809,7 @@ auto sourceFiles()
         lexer: fileArray(env["D"], "
             console.d entity.d errors.d filecache.d globals.d id.d identifier.d lexer.d tokens.d utf.d
         ") ~ fileArray(env["ROOT"], "
-            array.d ctfloat.d file.d filename.d hash.d outbuffer.d port.d region.d rmem.d
+            array.d bitarray.d ctfloat.d file.d filename.d hash.d outbuffer.d port.d region.d rmem.d
             rootobject.d stringtable.d
         "),
         root: fileArray(env["ROOT"], "

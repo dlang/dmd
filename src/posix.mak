@@ -331,10 +331,10 @@ FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argt
 
 LEXER_SRCS=$(addsuffix .d, $(addprefix $D/, console entity errors filecache globals id identifier lexer tokens utf ))
 
-LEXER_ROOT=$(addsuffix .d, $(addprefix $(ROOT)/, array ctfloat file filename outbuffer port rmem \
+LEXER_ROOT=$(addsuffix .d, $(addprefix $(ROOT)/, array bitarray ctfloat file filename outbuffer port rmem \
 	rootobject stringtable hash))
 
-ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array ctfloat file \
+ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array bitarray ctfloat file \
 	filename man outbuffer port region response rmem rootobject speller \
 	longdouble strtold stringtable hash string))
 
@@ -386,7 +386,7 @@ SRC = $(addprefix $D/, aggregate.h aliasthis.h arraytypes.h	\
 	version.h visitor.h libomf.d scanomf.d libmscoff.d scanmscoff.d)         \
 	$(DMD_SRCS)
 
-ROOT_SRC = $(addprefix $(ROOT)/, array.h ctfloat.h dcompat.h file.h filename.h \
+ROOT_SRC = $(addprefix $(ROOT)/, array.h bitarray.h ctfloat.h dcompat.h file.h filename.h \
 	longdouble.h object.h outbuffer.h port.h \
 	rmem.h root.h)
 

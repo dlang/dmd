@@ -1243,7 +1243,7 @@ private:
     Dsymbols* importedScopes;
     Prot.Kind* prots;            // array of Prot.Kind, one for each import
 
-    import dmd.root.array : BitArray;
+    import dmd.root.bitarray;
     BitArray accessiblePackages, privateAccessiblePackages;// whitelists of accessible (imported) packages
 
 public:

@@ -152,7 +152,7 @@ FRONT_SRCS=$D/access.d $D/aggregate.d $D/aliasthis.d $D/apply.d $D/argtypes.d $D
 LEXER_SRCS=$D/console.d $D/entity.d $D/errors.d $D/filecache.d $D/globals.d $D/id.d $D/identifier.d \
 	$D/lexer.d $D/tokens.d $D/utf.d
 
-LEXER_ROOT=$(ROOT)/array.d $(ROOT)/ctfloat.d $(ROOT)/file.d $(ROOT)/filename.d \
+LEXER_ROOT=$(ROOT)/array.d $(ROOT)/bitarray.d $(ROOT)/ctfloat.d $(ROOT)/file.d $(ROOT)/filename.d \
 	$(ROOT)/outbuffer.d $(ROOT)/port.d $(ROOT)/rmem.d $(ROOT)/rootobject.d \
 	$(ROOT)/stringtable.d $(ROOT)/hash.d
 
@@ -174,7 +174,7 @@ DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS)
 GLUEOBJ=
 
 # Root package
-ROOT_SRCS=$(ROOT)/aav.d $(ROOT)/array.d $(ROOT)/ctfloat.d $(ROOT)/file.d \
+ROOT_SRCS=$(ROOT)/aav.d $(ROOT)/array.d $(ROOT)/bitarray.d $(ROOT)/ctfloat.d $(ROOT)/file.d \
 	$(ROOT)/filename.d $(ROOT)/longdouble.d $(ROOT)/man.d $(ROOT)/outbuffer.d $(ROOT)/port.d \
 	$(ROOT)/response.d $(ROOT)/rmem.d $(ROOT)/rootobject.d $(ROOT)/region.d \
 	$(ROOT)/speller.d $(ROOT)/stringtable.d $(ROOT)/strtold.d $(ROOT)/hash.d $(ROOT)/string.d
@@ -217,10 +217,10 @@ ROOTSRCC=
 ROOTSRCD=$(ROOT)\rmem.d $(ROOT)\stringtable.d $(ROOT)\hash.d $(ROOT)\man.d $(ROOT)\port.d \
 	$(ROOT)\response.d $(ROOT)\rootobject.d $(ROOT)\speller.d $(ROOT)\aav.d \
 	$(ROOT)\ctfloat.d $(ROOT)\longdouble.d $(ROOT)\outbuffer.d $(ROOT)\filename.d \
-	$(ROOT)\file.d $(ROOT)\array.d $(ROOT)\strtold.d $(ROOT)\region.d
+	$(ROOT)\file.d $(ROOT)\array.d $(ROOT)\bitarray.d $(ROOT)\strtold.d $(ROOT)\region.d
 ROOTSRC= $(ROOT)\root.h \
 	$(ROOT)\longdouble.h $(ROOT)\outbuffer.h $(ROOT)\object.h $(ROOT)\ctfloat.h \
-	$(ROOT)\filename.h $(ROOT)\file.h $(ROOT)\array.h $(ROOT)\rmem.h $(ROOTSRCC) \
+	$(ROOT)\filename.h $(ROOT)\file.h $(ROOT)\array.h $(ROOT)\bitarray.h $(ROOT)\rmem.h $(ROOTSRCC) \
 	$(ROOTSRCD)
 # Removed garbage collector bits (look in history)
 #	$(ROOT)\gc\bits.c $(ROOT)\gc\gc.c $(ROOT)\gc\gc.h $(ROOT)\gc\mscbitops.h \
