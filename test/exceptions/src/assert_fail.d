@@ -132,6 +132,16 @@ void testVoidArray()()
     test!"!="(null, null, "`null` == `null`");
 }
 
+void testTemporary()
+{
+    static struct Bad
+    {
+        ~this() @system {}
+    }
+
+    assert(Bad() == Bad());
+}
+
 void main()
 {
     testIntegers();
@@ -144,5 +154,6 @@ void main()
     testAA();
     testAttributes();
     testVoidArray();
+    testTemporary();
     fprintf(stderr, "success.\n");
 }

@@ -5,7 +5,7 @@ on assertion failures
 module core.internal.dassert;
 
 /// Allows customized assert error messages
-string _d_assert_fail(string comp, A, B)(A a, B b) @nogc @safe nothrow pure
+string _d_assert_fail(string comp, A, B)(A a, B b)
 {
     /*
     The program will be terminated after the assertion error message has
