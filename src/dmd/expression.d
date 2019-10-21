@@ -2272,7 +2272,7 @@ extern (C++) final class NullExp : Expression
  */
 extern (C++) final class StringExp : Expression
 {
-    union
+    private union
     {
         char* string;   // if sz == 1
         wchar* wstring; // if sz == 2

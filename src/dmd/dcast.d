@@ -2039,14 +2039,13 @@ Expression castTo(Expression e, Scope* sc, Type t)
                 if (dim2 != se.len)
                 {
                     // Copy when changing the string literal
-                    size_t newsz = se.sz;
-                    size_t d = (dim2 < se.len) ? dim2 : se.len;
+                    const newsz = se.sz;
+                    const d = (dim2 < se.len) ? dim2 : se.len;
                     void* s = mem.xmalloc((dim2 + 1) * newsz);
                     memcpy(s, se.peekData().ptr, d * newsz);
                     // Extend with 0, add terminating 0
                     memset(s + d * newsz, 0, (dim2 + 1 - d) * newsz);
-                    se.string = cast(char*)s;
-                    se.len = dim2;
+                    se.setData(s, dim2, newsz);
                 }
             }
             se.type = t;
