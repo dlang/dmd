@@ -35,6 +35,7 @@ immutable rootDeps = [
     &runDmdUnittest,
     &clean,
     &checkwhitespace,
+    &buildExamples
 ];
 
 void main(string[] args)
@@ -454,6 +455,104 @@ alias checkwhitespace = memoize!(function()
     return new DependencyRef(dep);
 });
 
+/// Builds the parser library
+alias parser = memoize!(function()
+{
+    Dependency dep;
+    with (dep)
+    {
+        name = "parser";
+        description = "Build the parser library";
+        msg = "(LIB) PARSER";
+
+        target = env["G"].buildPath("parser").libName;
+        deps = [lexer];
+        sources = [
+            "parse.d", "astbase.d", "parsetimevisitor.d", "transitivevisitor.d",
+            "permissivevisitor.d", "strictvisitor.d", "utils.d"
+        ]
+        .map!(file => env["D"].buildPath(file))
+        .chain(
+            .sources.root // Need at least longdouble.d, strtold.d
+        )
+        .array;
+
+        command = [
+            env["HOST_DMD_RUN"],
+            "-lib",
+            "-of=" ~ target,
+            env["MODEL_FLAG"],
+            lexer.target
+        ]
+        ~ flags["DFLAGS"]
+        ~ sources;
+    }
+    return new DependencyRef(dep);
+});
+
+/*
+Builds an example using DMD as a library
+Params:
+    file = the concrete example
+*/
+alias buildExample = memoize!(function(string file)
+{
+    Dependency dep;
+    with (dep)
+    {
+        description = "Build a single example";
+        msg = "(DMD) BUILD-EXAMPLE: " ~ file;
+
+        target = env["G"].buildPath("examples", file).exeName;
+        deps = [parser];
+        sources = [srcDir.buildPath("examples", file ~ ".d")];
+
+        // TODO:
+        // https://github.com/dlang/dmd/pull/7418 switched from host compiler to
+        // the generated executable and added the examples to posix.mak:test
+        // (which is a part of posix.mak:auto-tester-test)
+        // Port this change to Windows?
+        version(Posix)
+        {
+            deps ~= dmdDefault;
+            auto dmd = env["DMD_PATH"];
+        }
+        else
+        {
+            auto dmd = env["HOST_DMD_RUN"];
+        }
+
+        command = [
+            dmd,
+            "-of=" ~ target,
+            env["MODEL_FLAG"],
+            parser.target,
+        ]
+        ~ flags["DFLAGS"]
+        ~ sources;
+    }
+    return new DependencyRef(dep);
+});
+
+/// Builds all examples using DMD as a library
+alias buildExamples = memoize!(function()
+{
+    Dependency dep;
+    with (dep)
+    {
+        name = "build-examples";
+        description = "Build the examples using DMD as a library";
+        msg = "(DMD) BUILD-EXAMPLES";
+
+        deps = [
+            "avg",
+            "impvisitor"
+        ]
+        .map!buildExample.array;
+    }
+    return new DependencyRef(dep);
+});
+
 /**
 Goes through the target list and replaces short-hand targets with their expanded version.
 Special targets:
@@ -503,10 +602,6 @@ LtargetsLoop:
 
             case "check-examples":
                 "TODO: cxx-unittest".writeln; // TODO
-                break;
-
-            case "build-examples":
-                "TODO: build-examples".writeln; // TODO
                 break;
 
             case "html":

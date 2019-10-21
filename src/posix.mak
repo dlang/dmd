@@ -430,16 +430,10 @@ unittest: $G/dmd-unittest
 
 ######## DMD as a library examples
 
-EXAMPLES=$(addprefix $G/examples/, avg impvisitor)
 PARSER_SRCS=$(addsuffix .d, $(addprefix $D/,parse astbase parsetimevisitor transitivevisitor permissivevisitor strictvisitor utils))
 
-$G/parser.a: $(PARSER_SRCS) $(LEXER_SRCS) $(ROOT_SRCS) dmd $(SRC_MAKE)
-	$G/dmd -lib -of$@ $(MODEL_FLAG) -J$G $(DFLAGS) $(PARSER_SRCS) $(LEXER_SRCS) $(ROOT_SRCS)
-
-$G/examples/%: $(EX)/%.d $G/parser.a dmd
-	$G/dmd -of$@ $(MODEL_FLAG) $(DFLAGS) $G/parser.a $<
-
-build-examples: $(EXAMPLES)
+build-examples: $(GENERATED)/build
+	$(RUN_BUILD) $@
 
 ######## Manual cleanup
 

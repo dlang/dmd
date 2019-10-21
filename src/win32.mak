@@ -43,6 +43,7 @@
 # dmd           - release dmd (legacy target)
 # debdmd        - debug dmd
 # reldmd        - release dmd
+# build-example - Build DMD as library examples
 # detab         - replace hard tabs with spaces
 # tolf          - convert to Unix line endings
 
@@ -287,14 +288,8 @@ $G\backend.lib:  $(GEN)\build.exe
 $G\lexer.lib: $(GEN)\build.exe
 	$(RUN_BUILD) $@
 
-$G\parser.lib: $(PARSER_SRCS) $G\lexer.lib $G
-	$(HOST_DC) -of$@ -vtls -lib $(DFLAGS) $(PARSER_SRCS) $G\lexer.lib
-
-parser_test: $G\parser.lib examples\test_parser.d
-	$(HOST_DC) -of$@ -vtls $(DFLAGS) $G\parser.lib examples\test_parser.d examples\impvisitor.d
-
-example_avg: $G\libparser.lib examples\avg.d
-	$(HOST_DC) -of$@ -vtls $(DFLAGS) $G\libparser.lib examples\avg.d
+build-examples: $(GEN)\build.exe
+	$(RUN_BUILD) $@
 
 $(TARGETEXE): $(GEN)\build.exe
 	$(RUN_BUILD) $@
@@ -305,7 +300,6 @@ $(TARGETEXE): $(GEN)\build.exe
 clean:
 	$(RD) /s /q $(GEN)
 	$(DEL) $D\msgs.h $D\msgs.c
-	$(DEL) parser_test.exe example_avg.exe
 	$(DEL) $(TARGETEXE) *.map *.obj *.exe
 
 install: detab install-copy
