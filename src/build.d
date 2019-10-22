@@ -98,7 +98,7 @@ Command-line parameters
     args2Environment(args);
     parseEnvironment;
     processEnvironment;
-    version(Posix) processEnvironmentCxx;
+    processEnvironmentCxx;
     sources = sourceFiles;
 
     if (res.helpWanted)
@@ -395,7 +395,7 @@ alias runDmdUnittest = memoize!(function()
 });
 
 /// Compiles the C++ frontend test files
-version(Posix) alias cxxFrontend = memoize!(function()
+alias cxxFrontend = memoize!(function()
 {
     Dependency dep;
     with (dep)
@@ -403,19 +403,17 @@ version(Posix) alias cxxFrontend = memoize!(function()
         name = "cxx-frontend";
         description = "Build the C++ frontend";
         msg = "(CXX) CXX-FRONTEND";
-        sources = "tests/cxxfrontend.c" ~ .sources.sources ~ .sources.root; // Omitted $(SRC_MAKE);
-        target = env["G"] ~ "/cxxfrontend".objName;
+
+        sources = srcDir.buildPath("tests", "cxxfrontend.c") ~ .sources.sources ~ .sources.root;
+        target = env["G"].buildPath("cxxfrontend").objName;
+
         command = [
             env["CXX"],
             "-c",
             sources[0],
             "-o" ~ target,
-
-            // $(DMD_FLAGS)
             "-I" ~ env["D"],
             "-Wuninitialized",
-
-            // $("MMD") == -MMD -MF $(basename $@).deps
             "-MMD",
             "-MF cxxfrontend.deps"
         ]
@@ -425,8 +423,8 @@ version(Posix) alias cxxFrontend = memoize!(function()
     return new DependencyRef(dep);
 });
 
-/// Compiles the complete C++ unittests executable
-version(Posix) alias cxxUnittestExe = memoize!(function()
+/// Compiles the C++ unittest executable
+alias cxxUnittestExe = memoize!(function()
 {
 
     const stringImportFiles = [
@@ -435,7 +433,6 @@ version(Posix) alias cxxUnittestExe = memoize!(function()
         env["RES"] ~ "/default_ddoc_theme.ddoc"
     ];
 
-    // $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
     auto inputFiles = sources.dmd ~ sources.root;
 
     Dependency dep;
@@ -444,9 +441,11 @@ version(Posix) alias cxxUnittestExe = memoize!(function()
         name = "cxx-unittest";
         description = "Build the C++ unittests";
         msg = "(DMD) CXX-UNITTEST";
+
         deps = [cxxFrontend, lexer, backend];
         sources = inputFiles ~ stringImportFiles;
-        target = env["G"] ~ "/cxx-unittest";
+        target = env["G"].buildPath("cxx-unittest").exeName;
+
         command = [
             env["HOST_DMD_RUN"],
             "-of=" ~ target,
@@ -466,8 +465,8 @@ version(Posix) alias cxxUnittestExe = memoize!(function()
     return new DependencyRef(dep);
 });
 
-/// Runs the C++ unittests executable
-version(Posix) alias runCxxUnittest = memoize!(function()
+/// Runs the C++ unittest executable
+alias runCxxUnittest = memoize!(function()
 {
     Dependency dep;
     with (dep)
@@ -475,8 +474,16 @@ version(Posix) alias runCxxUnittest = memoize!(function()
         name = "cxx-unittest";
         description = "Run the C++ unittests";
         msg = "(RUN) CXX-UNITTEST";
-        deps = [cxxUnittestExe];
-        command = [cxxUnittestExe.target];
+
+        version(Windows)
+        {
+            commandFunction = { assert(0, "Running the C++ unittests is not supported on Windows yet"); };
+        }
+        else
+        {
+            deps = [cxxUnittestExe];
+            command = [cxxUnittestExe.target];
+        }
     }
     return new DependencyRef(dep);
 });
@@ -862,22 +869,25 @@ void processEnvironment()
 }
 
 /// Setup environment for a C++ compiler
-version(Posix) void processEnvironmentCxx()
+void processEnvironmentCxx()
 {
+    // Windows requires additional work to handle e.g. Cygwin on Azure
+    version(Windows) return;
+
     import std.meta: AliasSeq;
 
-    env.getDefault("RES", srcDir ~ "/../res");
+    env.getDefault("RES", dmdRepo.buildPath("res"));
 
     const cxxVersion = [env.getDefault("CXX", "c++"), "--version"].execute.output;
 
     alias GCC = AliasSeq!("g++", "gcc", "Free Software");
     alias CLANG = AliasSeq!("clang");
-    const kindIdx = cxxVersion.canFind(GCC, CLANG);
+    const cxxKindIdx = cxxVersion.canFind(GCC, CLANG);
 
-    enforce(kindIdx, "Invalid CXX found: " ~ cxxVersion);
-    const kind = kindIdx <= GCC.length ? "g++" : "clang++";
+    enforce(cxxKindIdx, "Invalid CXX found: " ~ cxxVersion);
+    const cxxKind = cxxKindIdx <= GCC.length ? "g++" : "clang++";
 
-    env["CXX_KIND"] = kind;
+    env["CXX_KIND"] = cxxKind;
 
     string[] warnings;
     if(env.getDefault("ENABLE_WARNINGS", "0") != "0")
@@ -909,7 +919,7 @@ version(Posix) void processEnvironmentCxx()
             "-Wno-unused-variable"
         ];
 
-        if(kind == "g++") {
+        if(cxxKind == "g++") {
             warnings ~= [
                 "-Wno-logical-op",
                 "-Wno-narrowing",
@@ -928,7 +938,7 @@ version(Posix) void processEnvironmentCxx()
             "-Werror"
         ];
 
-        if(kind == "clang++")
+        if(cxxKind == "clang++")
             warnings ~= "-Wno-logical-op-parentheses";
     }
 
@@ -960,11 +970,11 @@ version(Posix) void processEnvironmentCxx()
         env["PIC_FLAG"],
         "-DDMD_VERSION=" ~ hostDmdVernum,
 
-        // No explicit if since kind will always be either g++ or clang++
-        kind == "g++" ? "-std=gnu++98" : "-xc++"
+        // No explicit if since cxxKind will always be either g++ or clang++
+        cxxKind == "g++" ? "-std=gnu++98" : "-xc++"
     ];
 
-    const pgoDir = env.getDefault("PGO_DIR", srcDir ~ "/pgo");
+    const pgoDir = env.getDefault("PGO_DIR", srcDir.buildPath("pgo"));
 
     const extraFlags = [
         "ENABLE_DEBUG": ["-g", "-g3", "-DDEBUG=1", "-DUNITTEST"],
@@ -1042,8 +1052,7 @@ auto sourceFiles()
             ctfe.h declaration.h dsymbol.h doc.h enum.h errors.h expression.h globals.h hdrgen.h
             identifier.h id.h import.h init.h json.h module.h mtype.h nspace.h objc.h scope.h
             statement.h staticassert.h target.h template.h tokens.h version.h visitor.h
-            " ~ (env["OS"] == "windows" ? "" : "libomf.d scanomf.d libmscoff.d scanmscoff.d")
-        ),
+        "),
         lexer: fileArray(env["D"], "
             console.d entity.d errors.d filecache.d globals.d id.d identifier.d lexer.d tokens.d utf.d
         ") ~ fileArray(env["ROOT"], "
