@@ -934,7 +934,27 @@ void processEnvironmentCxx()
     }
 
     string hostDmdVernum;
-    if(env["HOST_DMD_KIND"] == "dmd") // Why limit this to dmd?
+
+    if(env["HOST_DMD_KIND"].among("dmd", "ldc"))
+    {
+        import std.uni: isNumber;
+
+        auto json = run([ env["HOST_DMD_RUN"], "-Xf-", "-Xi=compilerInfo" ]).output;
+
+        // New JSON format
+        if (json.findSkip(`"__VERSION__" : `)) // dddd
+        {
+            hostDmdVernum = json.until!(c => !isNumber(c)).to!string;
+        }
+        // Old JSON format:
+        else if (json.findSkip(`"version" : "v2.`)) // "ddd"
+        {
+            hostDmdVernum = "2".chain(json.until!(c => !isNumber(c))).to!string;
+        }
+        else
+            assert(false, "Failed to detect HOST_DMD_VERSION from: " ~ json);
+    }
+    else // GDC does not support compilerInfo (yet)
     {
         enum redirect = Redirect.stdin | Redirect.stdout | Redirect.stderrToStdout;
         auto pipes = pipeProcess([env["HOST_DMD_RUN"], "-o-", "-c", "-"], redirect);
@@ -942,12 +962,10 @@ void processEnvironmentCxx()
         pipes.stdin.writeln("pragma(msg, cast(int)__VERSION__);");
         pipes.stdin.flush();
         pipes.stdin.close();
-        //  wait(pipes.pid);
+
+        // wait(pipes.pid); // gdmd exits != 0 without source files
 
         hostDmdVernum = pipes.stdout.byLine.front.idup;
-    }
-    else {
-        hostDmdVernum = "2";
     }
 
     auto cxxFlags = warnings ~ [
