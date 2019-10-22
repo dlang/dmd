@@ -2113,17 +2113,17 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 goto Lerror;
             }
         }
-        else if (p[1] == 'H' && p[2] == 'C')
+        else if (p[1] == 'H' && p[2] == 'C')  // https://dlang.org/dmd.html#switch-HC
         {
             params.doCxxHdrGeneration = true;
             switch (p[3])
             {
-            case 'd':               // https://dlang.org/dmd.html#switch-Hd
+            case 'd':               // https://dlang.org/dmd.html#switch-HCd
                 if (!p[4])
                     goto Lnoarg;
                 params.cxxhdrdir = (p + 4 + (p[4] == '=')).toDString;
                 break;
-            case 'f':               // https://dlang.org/dmd.html#switch-Hf
+            case 'f':               // https://dlang.org/dmd.html#switch-HCf
                 if (!p[4])
                     goto Lnoarg;
                 params.cxxhdrname = (p + 4 + (p[4] == '=')).toDString;
