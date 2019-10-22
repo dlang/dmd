@@ -22,6 +22,7 @@ const thisBuildScript = __FILE_FULL_PATH__;
 const srcDir = thisBuildScript.dirName.buildNormalizedPath;
 shared bool verbose; // output verbose logging
 shared bool force; // always build everything (ignores timestamp checking)
+shared bool dryRun; /// dont execute targets, just print command to be executed
 
 __gshared string[string] env;
 __gshared string[][string] flags;
@@ -43,6 +44,7 @@ void main(string[] args)
         "j|jobs", "Specifies the number of jobs (commands) to run simultaneously (default: %d)".format(totalCPUs), &jobs,
         "v", "Verbose command output", (cast(bool*) &verbose),
         "f", "Force run (ignore timestamps and always run all tests)", (cast(bool*) &force),
+        "d|dry-run", "Print commands instead of executing them", (cast(bool*) &dryRun),
         "called-from-make", "Calling the build script from the Makefile", &calledFromMake
     );
     void showHelp()
@@ -281,10 +283,10 @@ alias versionFile = memoize!(function()
     Dependency dep;
     with (dep)
     {
+        msg = "(TX) VERSION";
         target = env["G"].buildPath("VERSION");
         commandFunction = ()
         {
-            "(TX) VERSION".writeln;
             string ver;
             if (srcDir.dirName.buildPath(".git").exists)
             {
@@ -313,11 +315,11 @@ alias sysconfDirFile = memoize!(function()
     Dependency dep;
     with(dep)
     {
+        msg = "(TX) SYSCONFDIR";
         sources = [thisBuildScript];
         target = env["G"].buildPath("SYSCONFDIR.imp");
         commandFunction = ()
         {
-            "(TX) SYSCONFDIR".writeln;
             updateIfChanged(target, env["SYSCONFDIR"]);
         };
     }
@@ -1178,12 +1180,33 @@ class DependencyRef
         if (msg)
             msg.writeln;
 
-        if (commandFunction !is null)
-            return commandFunction();
-
-        if (command)
+        if(dryRun)
         {
-            command.runCanThrow;
+            if(commandFunction)
+            {
+                write("\n => Executing commandFunction()");
+
+                if(name)
+                    writef!" of %s"(name);
+
+                if(targets.length)
+                    writef!" to generate:\n%(    - %s\n%)"(targets);
+
+                writeln('\n');
+            }
+            if(command)
+                writefln!"\n => %(%s %)\n"(command);
+        }
+        else
+        {
+            if (commandFunction !is null)
+
+                return commandFunction();
+
+            if (command)
+            {
+                command.runCanThrow;
+            }
         }
     }
 }
