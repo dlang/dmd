@@ -951,12 +951,11 @@ void processEnvironmentCxx()
     }
 
     auto cxxFlags = warnings ~ [
+        "-g", "-g3", "-DDEBUG=1",
+        "-DUNITTEST",
         "-fno-exceptions",
         "-fno-rtti",
-        "-D__pascal=",
         "-DMARS=1",
-        "-DTARGET_" ~ env["OS"].toUpper ~ "=1",
-        "-DDM_TARGET_CPU_" ~ env["TARGET_CPU"] ~ "=1",
         env["MODEL_FLAG"],
         env["PIC_FLAG"],
         "-DDMD_VERSION=" ~ hostDmdVernum,
@@ -965,16 +964,10 @@ void processEnvironmentCxx()
         cxxKind == "g++" ? "-std=gnu++98" : "-xc++"
     ];
 
-    const pgoDir = env.getDefault("PGO_DIR", srcDir.buildPath("pgo"));
-
     const extraFlags = [
-        "ENABLE_DEBUG": ["-g", "-g3", "-DDEBUG=1", "-DUNITTEST"],
         "ENABLE_RELEASE": ["-O2"],
-        "ENABLE_PROFILING": ["-pg", "-fprofile-arcs", "-ftest-coverage"],
-        "ENABLE_PGO_GENERATE": ["-fprofile-generate=" ~ pgoDir],
-        "ENABLE_PGO_USE": ["-fprofile-use=" ~ pgoDir, "-freorder-blocks-and-partition"],
+        "ENABLE_PROFILE": ["-pg", "-fprofile-arcs"],
         "ENABLE_LTO": ["-flto"],
-        "ENABLE_UNITTEST": ["-unittest", "-cov"],
         "ENABLE_COVERAGE": ["--coverage"],
         "ENABLE_SANITIZERS": ["-fsanitize=" ~ env.getDefault("ENABLE_SANITIZERS", "")]
     ];
