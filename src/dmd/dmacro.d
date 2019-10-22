@@ -22,7 +22,7 @@ import dmd.globals;
 import dmd.root.outbuffer;
 import dmd.root.rmem;
 
-struct MacroTable
+extern (C++) struct MacroTable
 {
     /**********************************
      * Define name=text macro.
@@ -31,7 +31,7 @@ struct MacroTable
      *  name = name of macro
      *  text = text of macro
      */
-    void define(const(char)[] name, const(char)[] text)
+    extern (D) void define(const(char)[] name, const(char)[] text)
     {
         //printf("MacroTable::define('%.*s' = '%.*s')\n", cast(int)name.length, name.ptr, text.length, text.ptr);
         Macro* table;
@@ -52,7 +52,7 @@ struct MacroTable
      * Look for macros in buf and expand them in place.
      * Only look at the text in buf from start to pend.
      */
-    void expand(ref OutBuffer buf, size_t start, ref size_t pend, const(char)[] arg)
+    extern (D) void expand(ref OutBuffer buf, size_t start, ref size_t pend, const(char)[] arg)
     {
         version (none)
         {
@@ -267,7 +267,7 @@ struct MacroTable
 
   private:
 
-    Macro* search(const(char)[] name)
+    extern (D) Macro* search(const(char)[] name)
     {
         Macro* table;
         //printf("Macro::search(%.*s)\n", cast(int)name.length, name.ptr);
