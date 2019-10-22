@@ -426,15 +426,6 @@ alias cxxFrontend = memoize!(function()
 /// Compiles the C++ unittest executable
 alias cxxUnittestExe = memoize!(function()
 {
-
-    const stringImportFiles = [
-        env["G"] ~ "/VERSION",
-        env["G"] ~ "/SYSCONFDIR.imp",
-        env["RES"] ~ "/default_ddoc_theme.ddoc"
-    ];
-
-    auto inputFiles = sources.dmd ~ sources.root;
-
     Dependency dep;
     with (dep)
     {
@@ -443,7 +434,7 @@ alias cxxUnittestExe = memoize!(function()
         msg = "(DMD) CXX-UNITTEST";
 
         deps = [cxxFrontend, lexer, backend];
-        sources = inputFiles ~ stringImportFiles;
+        sources = .sources.dmd ~ .sources.root;
         target = env["G"].buildPath("cxx-unittest").exeName;
 
         command = [
@@ -457,7 +448,7 @@ alias cxxUnittestExe = memoize!(function()
             "-version=NoMain",
         ].chain(
             flags["DFLAGS"],
-            inputFiles,
+            sources,
             deps.map!(d => d.target)
         ).array;
     }
