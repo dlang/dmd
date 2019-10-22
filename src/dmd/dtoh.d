@@ -460,6 +460,8 @@ public:
             }
         }
 
+        if (adparent && fd.isDisabled && global.params.cplusplus < CppStdRevision.cpp11)
+            buf.printf("private: ");
         funcToBuffer(tf, fd);
         if (adparent && tf.isConst())
         {
@@ -485,7 +487,11 @@ public:
         }
         if (adparent && fd.isAbstract())
             buf.writestring(" = 0");
+        if (adparent && fd.isDisabled && global.params.cplusplus >= CppStdRevision.cpp11)
+            buf.printf(" = delete");
         buf.printf(";\n");
+        if (adparent && fd.isDisabled && global.params.cplusplus < CppStdRevision.cpp11)
+            buf.printf("public:\n");
         if (!adparent)
             buf.printf("\n");
     }
@@ -745,30 +751,33 @@ public:
             }
             adparent = save;
             // Generate default ctor
-            buf.printf("    %s(", sd.ident.toChars());
-            buf.printf(") {");
-            size_t varCount;
-            foreach (m; *sd.members)
+            if (!sd.noDefaultCtor)
             {
-                if (auto vd = m.isVarDeclaration())
+                buf.printf("    %s(", sd.ident.toChars());
+                buf.printf(") {");
+                size_t varCount;
+                foreach (m; *sd.members)
                 {
-                    if (!memberField(vd))
-                        continue;
-                    varCount++;
+                    if (auto vd = m.isVarDeclaration())
+                    {
+                        if (!memberField(vd))
+                            continue;
+                        varCount++;
 
-                    if (!vd._init && !vd.type.isTypeBasic())
-                        continue;
-                    if (vd._init && vd._init.isVoidInitializer())
-                        continue;
-                    buf.printf(" this->%s = ", vd.ident.toChars());
-                    if (vd._init)
-                        AST.initializerToExpression(vd._init).accept(this);
-                    else if (vd.type.isTypeBasic())
-                        vd.type.defaultInitLiteral(Loc.initial).accept(this);
-                    buf.printf(";");
+                        if (!vd._init && !vd.type.isTypeBasic())
+                            continue;
+                        if (vd._init && vd._init.isVoidInitializer())
+                            continue;
+                        buf.printf(" this->%s = ", vd.ident.toChars());
+                        if (vd._init)
+                            AST.initializerToExpression(vd._init).accept(this);
+                        else if (vd.type.isTypeBasic())
+                            vd.type.defaultInitLiteral(Loc.initial).accept(this);
+                        buf.printf(";");
+                    }
                 }
+                buf.printf(" }\n");
             }
-            buf.printf(" }\n");
 
             version (none)
             {
