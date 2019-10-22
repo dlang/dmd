@@ -36,11 +36,11 @@ extern "C" _d_int bar(_d_int x);
 
 extern "C" _d_int bar2(_d_int x);
 
-extern "C" _d_int bar4(_d_int x/* = 42*/);
+extern "C" _d_int bar4(_d_int x = 42);
 
 extern _d_int baz(_d_int x);
 
 extern _d_int baz2(_d_int x);
 
-extern _d_int baz3(_d_int x/* = 42*/);
+extern _d_int baz3(_d_int x = 42);
 

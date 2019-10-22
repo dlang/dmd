@@ -41,6 +41,5 @@ struct B
 {
     A<_d_int> x;
     B() { }
-    B(A<_d_int> x) { this->x = x; }
 };
 

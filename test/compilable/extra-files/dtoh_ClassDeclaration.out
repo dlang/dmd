@@ -29,8 +29,6 @@ typedef _d_long d_int64;
 
 
 // Parsing module dtoh_ClassDeclaration
-class C2;
-class Aligned;
 class C;
 class A;
 struct Inner;
@@ -48,7 +46,7 @@ public:
     _d_int a;
     _d_int b;
     _d_long c;
-    C2* __ctor(_d_int a);
+    C2(_d_int a);
 };
 
 // ignoring non-cpp class C3
@@ -58,7 +56,7 @@ public:
     _d_byte a;
     _d_int b;
     _d_long c;
-    Aligned* __ctor(_d_int a);
+    Aligned(_d_int a);
 };
 
 class A
@@ -68,7 +66,7 @@ public:
     C* c;
     virtual _d_void foo();
     extern "C" virtual _d_void bar();
-    virtual _d_void baz(_d_int x/* = 42*/);
+    virtual _d_void baz(_d_int x = 42);
     struct
     {
         _d_int x;
@@ -83,7 +81,6 @@ struct Inner
 {
     _d_int x;
     Inner() { this->x = 0; }
-    Inner(_d_int x) { this->x = x; }
 };
 
 class InnerC

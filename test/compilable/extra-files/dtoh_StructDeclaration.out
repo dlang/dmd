@@ -29,9 +29,6 @@ typedef _d_long d_int64;
 
 
 // Parsing module dtoh_StructDeclaration
-struct S2;
-struct S3;
-struct Aligned;
 struct S;
 struct Inner;
 struct S
@@ -40,7 +37,6 @@ struct S
     _d_int b;
     _d_long c;
     S() { this->a = 0; this->b = 0; this->c = 0LL; }
-    S(_d_byte a, _d_int b, _d_long c) { this->a = a; this->b = b; this->c = c; }
 };
 
 struct S2
@@ -48,9 +44,8 @@ struct S2
     _d_int a;
     _d_int b;
     _d_long c;
-    S2& __ctor(_d_int a);
+    S2(_d_int a);
     S2() { this->a = 42; this->b = 0; this->c = 0LL; }
-    S2(_d_int a, _d_int b, _d_long c) { this->a = a; this->b = b; this->c = c; }
 };
 
 struct S3
@@ -58,9 +53,8 @@ struct S3
     _d_int a;
     _d_int b;
     _d_long c;
-    extern "C" S3& __ctor(_d_int a);
+    extern "C" S3(_d_int a);
     S3() { this->a = 42; this->b = 0; this->c = 0LL; }
-    S3(_d_int a, _d_int b, _d_long c) { this->a = a; this->b = b; this->c = c; }
 };
 
 struct
@@ -76,9 +70,8 @@ Aligned
     _d_byte a;
     _d_int b;
     _d_long c;
-    Aligned& __ctor(_d_int a);
+    Aligned(_d_int a);
     Aligned() { this->a = 0; this->b = 0; this->c = 0LL; }
-    Aligned(_d_byte a, _d_int b, _d_long c) { this->a = a; this->b = b; this->c = c; }
 };
 #if defined(__DMC__)
     #pragma pack(pop)
@@ -90,7 +83,7 @@ struct A
     S s;
     // ignoring extern () block because of linkage
     extern "C" _d_void bar();
-    _d_void baz(_d_int x/* = 42*/);
+    _d_void baz(_d_int x = 42);
     struct
     {
         _d_int x;
@@ -105,13 +98,11 @@ struct Inner
 {
     _d_int x;
     Inner() { this->x = 0; }
-    Inner(_d_int x) { this->x = x; }
 };
 
 typedef Inner I;
 class C;
 
     A() { this->a = 0; }
-    A(_d_int a, S s) { this->a = a; this->s = s; }
 };
 
