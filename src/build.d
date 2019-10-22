@@ -20,6 +20,7 @@ import core.stdc.stdlib : exit;
 
 const thisBuildScript = __FILE_FULL_PATH__;
 const srcDir = thisBuildScript.dirName.buildNormalizedPath;
+const dmdRepo = srcDir.dirName;
 shared bool verbose; // output verbose logging
 shared bool force; // always build everything (ignores timestamp checking)
 shared bool dryRun; /// dont execute targets, just print command to be executed
@@ -34,6 +35,7 @@ immutable rootDeps = [
     &runDmdUnittest,
     &clean,
     &dmdFrontend,
+    &checkwhitespace,
 ];
 
 void main(string[] args)
@@ -288,7 +290,7 @@ alias versionFile = memoize!(function()
         commandFunction = ()
         {
             string ver;
-            if (srcDir.dirName.buildPath(".git").exists)
+            if (dmdRepo.buildPath(".git").exists)
             {
                 try
                 {
@@ -303,7 +305,7 @@ alias versionFile = memoize!(function()
             }
             // version fallback
             if (ver.length == 0)
-                ver = srcDir.dirName.buildPath("VERSION").readText;
+                ver = dmdRepo.buildPath("VERSION").readText;
             updateIfChanged(target, ver);
         };
     }
@@ -434,6 +436,50 @@ alias clean = memoize!(function()
     return new DependencyRef(dep);
 });
 
+alias toolsRepo = memoize!(function()
+{
+    Dependency dep;
+    with (dep)
+    {
+        commandFunction = ()
+        {
+            if (!env["TOOLS_DIR"].exists)
+            {
+                writefln("cloning tools repo to '%s'...", env["TOOLS_DIR"]);
+                run(["git", "clone", "--depth=1", env["GIT_HOME"] ~ "/tools", env["TOOLS_DIR"]]);
+            }
+        };
+    }
+    return new DependencyRef(dep);
+});
+
+alias checkwhitespace = memoize!(function()
+{
+    Dependency dep;
+    with (dep)
+    {
+        name = "checkwhitespace";
+        description = "Checks for trailing whitespace and tabs";
+        deps = [toolsRepo];
+        commandFunction = ()
+        {
+            const cmdPrefix = [env["HOST_DMD_RUN"], "-run", env["TOOLS_DIR"].buildPath("checkwhitespace.d")];
+            const allSources = srcDir.dirEntries("*.{d,h,di}", SpanMode.depth).map!(e => e.name).array;
+            writefln("Checking whitespace on %s files...", allSources.length);
+            auto chunkLength = allSources.length;
+            version (Win32)
+                chunkLength = 80; // avoid command-line limit on win32
+            foreach (nextSources; allSources.chunks(chunkLength).parallel(1))
+            {
+                const nextCommand = cmdPrefix ~ nextSources;
+                writeln(nextCommand.join(" "));
+                run(nextCommand);
+            }
+        };
+    }
+    return new DependencyRef(dep);
+});
+
 /**
 Goes through the target list and replaces short-hand targets with their expanded version.
 Special targets:
@@ -487,10 +533,6 @@ LtargetsLoop:
 
             case "build-examples":
                 "TODO: build-examples".writeln; // TODO
-                break;
-
-            case "checkwhitespace":
-                "TODO: checkwhitespace".writeln; // TODO
                 break;
 
             case "html":
@@ -640,9 +682,10 @@ void parseEnvironment()
     env["C"] = d.buildPath("backend");
     env["ROOT"] = d.buildPath("root");
     env["EX"] = srcDir.buildPath("examples");
-    auto generated = env["GENERATED"] = srcDir.dirName.buildPath("generated");
+    auto generated = env["GENERATED"] = dmdRepo.buildPath("generated");
     auto g = env["G"] = generated.buildPath(os, build, model);
     mkdirRecurse(g);
+    env.getDefault("TOOLS_DIR", dmdRepo.dirName.buildPath("tools"));
 
     if (env.get("HOST_DMD", null).length == 0)
     {
