@@ -13,60 +13,7 @@
 #include "root/dcompat.h"
 #include "root/file.h"
 #include "root/filename.h"
-/*#include "root/longdouble.h"*/
-/*#include "root/object.h"*/
-/*#include "root/outbuffer.h"*/
-/*#include "root/port.h"*/
-/*#include "root/rmem.h"*/
-/*#include "root/root.h"*/
-
-/*#include "aggregate.h"*/
-/*#include "aliasthis.h"*/
-/*#include "arraytypes.h"*/
-/*#include "attrib.h"*/
-/*#include "compiler.h"*/
-/*#include "complex_t.h"*/
-/*#include "cond.h"*/
-/*#include "ctfe.h"*/
-/*#include "declaration.h"*/
-/*#include "doc.h"*/
-/*#include "dsymbol.h"*/
-/*#include "enum.h"*/
-/*#include "errors.h"*/
-/*#include "expression.h"*/
-/*#include "globals.h"*/
-/*#include "hdrgen.h"*/
-/*#include "identifier.h"*/
-/*#include "id.h"*/
-/*#include "import.h"*/
-/*#include "init.h"*/
-/*#include "json.h"*/
-/*#include "mangle.h"*/
-/*#include "module.h"*/
-/*#include "mtype.h"*/
-/*#include "nspace.h"*/
-/*#include "objc.h"*/
-/*#include "scope.h"*/
-/*#include "statement.h"*/
-/*#include "staticassert.h"*/
-/*#include "target.h"*/
-/*#include "template.h"*/
-/*#include "tokens.h"*/
-/*#include "version.h"*/
-
-/*#include "array.h"*/
-/*#include "ctfloat.h"*/
-/*#include "file.h"*/
-/*#include "filename.h"*/
-/*#include "longdouble.h"*/
-/*#include "object.h"*/
-/*// FIXME: UINT64_MAX*/
-/*//#include "outbuffer.h"*/
-/*//#include "port.h"*/
-/*#include "rmem.h"*/
-/*//#include "root.h"*/
-/*//#include "stringtable.h"*/
-/*#include "thread.h"*/
+#include "root/bitarray.h"
 
 #include "visitor.h"
 #include "frontend.h"
@@ -424,8 +371,6 @@ int main(int argc, char **argv)
     test_expression();
     test_target();
     test_emplace();
-    test_parameters();
-    test_location();
     test_array();
     test_outbuffer();
 
