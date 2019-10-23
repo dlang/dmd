@@ -867,52 +867,26 @@ void processEnvironmentCxx()
     const cxxKind = env["CXX_KIND"] = detectHostCxx();
 
     string[] warnings  = [
-        "-Wall",
-        "-Werror",
-        "-Wextra",
-        "-Wno-attributes",
-        "-Wno-char-subscripts",
-        "-Wno-deprecated",
-        "-Wno-empty-body",
-        "-Wno-format",
-        "-Wno-missing-braces",
-        "-Wno-missing-field-initializers",
-        "-Wno-overloaded-virtual",
-        "-Wno-parentheses",
-        "-Wno-reorder",
-        "-Wno-return-type",
-        "-Wno-sign-compare",
-        "-Wno-strict-aliasing",
-        "-Wno-switch",
-        "-Wno-type-limits",
-        "-Wno-unknown-pragmas",
-        "-Wno-unused-function",
-        "-Wno-unused-label",
-        "-Wno-unused-parameter",
-        "-Wno-unused-value",
-        "-Wno-unused-variable"
+        "-Wall", "-Werror", "-Wextra", "-Wno-attributes", "-Wno-char-subscripts", "-Wno-deprecated",
+        "-Wno-empty-body", "-Wno-format", "-Wno-missing-braces", "-Wno-missing-field-initializers",
+        "-Wno-overloaded-virtual", "-Wno-parentheses", "-Wno-reorder", "-Wno-return-type",
+        "-Wno-sign-compare", "-Wno-strict-aliasing", "-Wno-switch", "-Wno-type-limits",
+        "-Wno-unknown-pragmas", "-Wno-unused-function", "-Wno-unused-label", "-Wno-unused-parameter",
+        "-Wno-unused-value", "-Wno-unused-variable"
     ];
 
     if (cxxKind == "g++")
         warnings ~= [
-            "-Wno-class-memaccess",
-            "-Wno-implicit-fallthrough",
-            "-Wno-logical-op",
-            "-Wno-narrowing",
-            "-Wno-uninitialized",
-            "-Wno-unused-but-set-variable",
+            "-Wno-class-memaccess", "-Wno-implicit-fallthrough", "-Wno-logical-op", "-Wno-narrowing",
+            "-Wno-uninitialized", "-Wno-unused-but-set-variable"
         ];
 
     if (cxxKind == "clang++")
-        warnings ~= "-Wno-logical-op-parentheses";
+        warnings ~= ["-Wno-logical-op-parentheses", "-Wno-unused-private-field"];
 
     auto cxxFlags = warnings ~ [
-        "-g",
-        "-fno-exceptions",
-        "-fno-rtti",
-        "-DMARS=1",
-        env["MODEL_FLAG"],
-        env["PIC_FLAG"],
+        "-g", "-fno-exceptions", "-fno-rtti", "-fasynchronous-unwind-tables", "-DMARS=1",
+        env["MODEL_FLAG"], env["PIC_FLAG"],
 
         // No explicit if since cxxKind will always be either g++ or clang++
         cxxKind == "g++" ? "-std=gnu++98" : "-xc++"
