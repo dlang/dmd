@@ -3823,6 +3823,10 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
 
                 foreach (fparam; *tp.parameterList.parameters)
                 {
+                    if (global.params.vsafe)
+                        if ((fparam.storageClass & STC.in_) && !(fparam.storageClass & STC.scope_))
+                            fparam.storageClass |= STC.scope_ | STC.scopeinferred;
+
                     // https://issues.dlang.org/show_bug.cgi?id=2579
                     // Apply function parameter storage classes to parameter types
                     fparam.type = fparam.type.addStorageClass(fparam.storageClass);

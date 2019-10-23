@@ -1506,6 +1506,10 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                     }
                 }
 
+                if (global.params.vsafe)
+                    if ((fparam.storageClass & STC.in_) && !(fparam.storageClass & STC.scope_))
+                        fparam.storageClass |= STC.scope_ | STC.scopeinferred;
+
                 // Remove redundant storage classes for type, they are already applied
                 fparam.storageClass &= ~(STC.TYPECTOR | STC.in_);
             }
