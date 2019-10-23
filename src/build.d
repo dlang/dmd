@@ -413,9 +413,7 @@ alias cxxFrontend = memoize!(function()
             sources[0],
             "-o" ~ target,
             "-I" ~ env["D"],
-            "-Wuninitialized",
-            "-MMD",
-            "-MF cxxfrontend.deps"
+            "-Wuninitialized"
         ]
         ~ flags["CXXFLAGS"];
     }
@@ -466,7 +464,7 @@ alias runCxxUnittest = memoize!(function()
         description = "Run the C++ unittests";
         msg = "(RUN) CXX-UNITTEST";
 
-        version(Windows)
+        version (Windows)
         {
             commandFunction = { assert(0, "Running the C++ unittests is not supported on Windows yet"); };
         }
@@ -735,6 +733,7 @@ void parseEnvironment()
     env.getDefault("GIT_HOME", "https://github.com/dlang");
     env.getDefault("SYSCONFDIR", "/etc");
     env.getDefault("TMP", tempDir);
+    env.getDefault("RES", dmdRepo.buildPath("res"));
 
     auto d = env["D"] = srcDir.buildPath("dmd");
     env["C"] = d.buildPath("backend");
@@ -863,140 +862,96 @@ void processEnvironment()
 void processEnvironmentCxx()
 {
     // Windows requires additional work to handle e.g. Cygwin on Azure
-    version(Windows) return;
+    version (Windows) return;
 
-    import std.meta: AliasSeq;
+    const cxxKind = env["CXX_KIND"] = detectHostCxx();
 
-    env.getDefault("RES", dmdRepo.buildPath("res"));
+    string[] warnings  = [
+        "-Wall",
+        "-Werror",
+        "-Wextra",
+        "-Wno-attributes",
+        "-Wno-char-subscripts",
+        "-Wno-deprecated",
+        "-Wno-empty-body",
+        "-Wno-format",
+        "-Wno-missing-braces",
+        "-Wno-missing-field-initializers",
+        "-Wno-overloaded-virtual",
+        "-Wno-parentheses",
+        "-Wno-reorder",
+        "-Wno-return-type",
+        "-Wno-sign-compare",
+        "-Wno-strict-aliasing",
+        "-Wno-switch",
+        "-Wno-type-limits",
+        "-Wno-unknown-pragmas",
+        "-Wno-unused-function",
+        "-Wno-unused-label",
+        "-Wno-unused-parameter",
+        "-Wno-unused-value",
+        "-Wno-unused-variable"
+    ];
 
-    const cxxVersion = [env.getDefault("CXX", "c++"), "--version"].execute.output;
-
-    alias GCC = AliasSeq!("g++", "gcc", "Free Software");
-    alias CLANG = AliasSeq!("clang");
-    const cxxKindIdx = cxxVersion.canFind(GCC, CLANG);
-
-    enforce(cxxKindIdx, "Invalid CXX found: " ~ cxxVersion);
-    const cxxKind = cxxKindIdx <= GCC.length ? "g++" : "clang++";
-
-    env["CXX_KIND"] = cxxKind;
-
-    string[] warnings;
-    if(env.getDefault("ENABLE_WARNINGS", "0") != "0")
-    {
-        warnings = [
-            "-Wall",
-            "-Wextra",
-            "-Werror",
-            "-Wno-attributes",
-            "-Wno-char-subscripts",
-            "-Wno-deprecated",
-            "-Wno-empty-body",
-            "-Wno-format",
-            "-Wno-missing-braces",
-            "-Wno-missing-field-initializers",
-            "-Wno-overloaded-virtual",
-            "-Wno-parentheses",
-            "-Wno-reorder",
-            "-Wno-return-type",
-            "-Wno-sign-compare",
-            "-Wno-strict-aliasing",
-            "-Wno-switch",
-            "-Wno-type-limits",
-            "-Wno-unknown-pragmas",
-            "-Wno-unused-function",
-            "-Wno-unused-label",
-            "-Wno-unused-parameter",
-            "-Wno-unused-value",
-            "-Wno-unused-variable"
+    if (cxxKind == "g++")
+        warnings ~= [
+            "-Wno-class-memaccess",
+            "-Wno-implicit-fallthrough",
+            "-Wno-logical-op",
+            "-Wno-narrowing",
+            "-Wno-uninitialized",
+            "-Wno-unused-but-set-variable",
         ];
 
-        if(cxxKind == "g++") {
-            warnings ~= [
-                "-Wno-logical-op",
-                "-Wno-narrowing",
-                "-Wno-unused-but-set-variable",
-                "-Wno-uninitialized",
-                "-Wno-class-memaccess",
-                "-Wno-implicit-fallthrough"
-            ];
-        }
-    }
-    else
-    {
-        warnings = [
-            "-Wno-deprecated",
-            "-Wstrict-aliasing",
-            "-Werror"
-        ];
-
-        if(cxxKind == "clang++")
-            warnings ~= "-Wno-logical-op-parentheses";
-    }
-
-    string hostDmdVernum;
-
-    if(env["HOST_DMD_KIND"].among("dmd", "ldc"))
-    {
-        import std.uni: isNumber;
-
-        auto json = run([ env["HOST_DMD_RUN"], "-Xf-", "-Xi=compilerInfo" ]).output;
-
-        // New JSON format
-        if (json.findSkip(`"__VERSION__" : `)) // dddd
-        {
-            hostDmdVernum = json.until!(c => !isNumber(c)).to!string;
-        }
-        // Old JSON format:
-        else if (json.findSkip(`"version" : "v2.`)) // "ddd"
-        {
-            hostDmdVernum = "2".chain(json.until!(c => !isNumber(c))).to!string;
-        }
-        else
-            assert(false, "Failed to detect HOST_DMD_VERSION from: " ~ json);
-    }
-    else // GDC does not support compilerInfo (yet)
-    {
-        enum redirect = Redirect.stdin | Redirect.stdout | Redirect.stderrToStdout;
-        auto pipes = pipeProcess([env["HOST_DMD_RUN"], "-o-", "-c", "-"], redirect);
-
-        pipes.stdin.writeln("pragma(msg, cast(int)__VERSION__);");
-        pipes.stdin.flush();
-        pipes.stdin.close();
-
-        // wait(pipes.pid); // gdmd exits != 0 without source files
-
-        hostDmdVernum = pipes.stdout.byLine.front.idup;
-    }
+    if (cxxKind == "clang++")
+        warnings ~= "-Wno-logical-op-parentheses";
 
     auto cxxFlags = warnings ~ [
-        "-g", "-g3", "-DDEBUG=1",
-        "-DUNITTEST",
+        "-g",
         "-fno-exceptions",
         "-fno-rtti",
         "-DMARS=1",
         env["MODEL_FLAG"],
         env["PIC_FLAG"],
-        "-DDMD_VERSION=" ~ hostDmdVernum,
 
         // No explicit if since cxxKind will always be either g++ or clang++
         cxxKind == "g++" ? "-std=gnu++98" : "-xc++"
     ];
 
-    const extraFlags = [
-        "ENABLE_RELEASE": ["-O2"],
-        "ENABLE_PROFILE": ["-pg", "-fprofile-arcs"],
-        "ENABLE_LTO": ["-flto"],
-        "ENABLE_COVERAGE": ["--coverage"],
-        "ENABLE_SANITIZERS": ["-fsanitize=" ~ env.getDefault("ENABLE_SANITIZERS", "")]
-    ];
+    if (env["ENABLE_COVERAGE"] != "0")
+        cxxFlags ~= "--coverage";
 
-    foreach(const var, const flags; extraFlags) {
-        if(env.getDefault(var, "0") != "0") {
-            cxxFlags ~= flags;
-        }
+    if (env["ENABLE_SANITIZERS"] != "0")
+        cxxFlags ~= "-fsanitize=" ~ env["ENABLE_SANITIZERS"];
+
+    // Enable a temporary workaround in globals.h and rmem.h concerning
+    // wrong name mangling using DMD.
+    // Remove when the minimally required D version becomes 2.082 or later
+    if (env["HOST_DMD_KIND"] == "dmd")
+    {
+        const output = run([ env["HOST_DMD_RUN"], "--version" ]).output;
+
+        if (output.canFind("v2.079", "v2.080", "v2.081"))
+            cxxFlags ~= "-DDMD_VERSION=2080";
     }
 
     flags["CXXFLAGS"] = cxxFlags;
+}
+
+/// Returns: the host C++ compiler, either "g++" or "clang++"
+string detectHostCxx()
+{
+    import std.meta: AliasSeq;
+
+    const cxxVersion = [env.getDefault("CXX", "c++"), "--version"].execute.output;
+
+    alias GCC = AliasSeq!("g++", "gcc", "Free Software");
+    alias CLANG = AliasSeq!("clang");
+
+    const cxxKindIdx = cxxVersion.canFind(GCC, CLANG);
+    enforce(cxxKindIdx, "Invalid CXX found: " ~ cxxVersion);
+
+    return cxxKindIdx <= GCC.length ? "g++" : "clang++";
 }
 
 ////////////////////////////////////////////////////////////////////////////////
