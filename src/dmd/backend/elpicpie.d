@@ -104,6 +104,8 @@ elem * el_var(Symbol *s)
     e.EV.Vsym = s;
     type_debug(s.Stype);
     e.Ety = s.ty();
+    if (tyaggregate(s.ty()))
+        e.ET = s.Stype;
     if (s.Stype.Tty & mTYthread)
     {
         //printf("thread local %s\n", s.Sident);
@@ -469,6 +471,8 @@ private elem *el_picvar(Symbol *s)
     e.Eoper = OPvar;
     e.EV.Vsym = s;
     e.Ety = s.ty();
+    if (tyaggregate(s.ty()))
+        e.ET = s.Stype;
 
     switch (s.Sclass)
     {
@@ -630,6 +634,8 @@ private elem *el_picvar(Symbol *s)
     e.Eoper = OPvar;
     e.EV.Vsym = s;
     e.Ety = s.ty();
+    if (tyaggregate(s.ty()))
+        e.ET = s.Stype;
 
     /* For 32 bit PIC:
      *      CALL __i686.get_pc_thunk.bx@PC32
@@ -840,6 +846,8 @@ private elem *el_pievar(Symbol *s)
     e.Eoper = OPvar;
     e.EV.Vsym = s;
     e.Ety = s.ty();
+    if (tyaggregate(s.ty()))
+        e.ET = s.Stype;
 
     if (I64)
     {

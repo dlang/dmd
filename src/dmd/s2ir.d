@@ -701,6 +701,7 @@ private extern (C++) class S2irVisitor : Visitor
                     // Return value via hidden pointer passed as parameter
                     // Write *shidden=exp; return shidden;
                     es = el_una(OPind,e.Ety,el_var(irs.shidden));
+                    es.ET = e.ET;
                     es = elAssign(es, e, s.exp.type, null);
                 }
                 e = el_var(irs.shidden);
