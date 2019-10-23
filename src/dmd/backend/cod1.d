@@ -3467,6 +3467,9 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             {
                 getregs(cdb,retregs);
                 // LEA preg,np[RSP]
+            version (MARS)
+                const delta = stackpush - ep.EV.Vsym.Soffset;   // stack delta to parameter
+            else
                 uint delta = stackpush - ep.EV.Vuns;   // stack delta to parameter
                 cdb.genc1(LEA,
                         (modregrm(0,4,SP) << 8) | modregxrm(2,preg,4), FLconst,delta);
@@ -3562,10 +3565,23 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
 void cdstrthis(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
 {
     assert(tysize(e.Ety) == REGSIZE);
+version (MARS)
+{
+    if (!*pretregs)
+        return;
+}
     const reg = findreg(*pretregs & allregs);
     getregs(cdb,mask(reg));
     // LEA reg,np[ESP]
+version (MARS)
+{
+    assert(e.EV.Vsym && e.EV.Vsym.Sflags & SFLmemproxy);
+    auto np = stackpush - e.EV.Vsym.Soffset; // stack delta to parameter
+}
+else
+{
     uint np = stackpush - e.EV.Vuns;        // stack delta to parameter
+}
     cdb.genc1(LEA,(modregrm(0,4,SP) << 8) | modregxrm(2,reg,4),FLconst,np);
     if (I64)
         code_orrex(cdb.last(), REX_W);
@@ -4201,6 +4217,27 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                 code_orrex(cdb.last(), REX_B);
             stackpush += REGSIZE;
             cdb.genadjesp(sz);
+            freenode(e);
+            return;
+        }
+    }
+
+    version (MARS)
+    {
+        case OPstrctor:
+        {
+            elem* e1 = e.EV.E1;
+
+            cod3_stackadj(cdb, cast(int)sz);
+            stackpush += sz;
+            cdb.genadjesp(cast(int)sz);
+
+            Symbol* s = e.EV.Edecl2;
+            assert(s && s.Sflags & SFLmemproxy);
+            s.Soffset = stackpush;
+
+            regm_t retregs = 0;
+            codelem(cdb, e1, &retregs, true);
             freenode(e);
             return;
         }

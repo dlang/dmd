@@ -1204,6 +1204,7 @@ enum
     SFLdyninit      = 0x200000,    // symbol has dynamic initializer
     SFLtmp          = 0x400000,    // symbol is a generated temporary
     SFLthunk        = 0x40000,     // symbol is temporary for thunk
+    SFLmemproxy     = 0x10000000,  // symbol used in conjunction with OPstrthis
 
     // Possible values for protection bits
     SFLprivate      = 0x60,

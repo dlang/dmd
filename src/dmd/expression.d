@@ -443,6 +443,7 @@ private Expression callCpCtor(Scope* sc, Expression e, Type destinationType)
             if (sd.hasCopyCtor && destinationType)
                 tmp.type = destinationType;
             tmp.storage_class |= STC.nodtor;
+            tmp.ismemproxy = true;
             tmp.dsymbolSemantic(sc);
             Expression de = new DeclarationExp(e.loc, tmp);
             Expression ve = new VarExp(e.loc, tmp);

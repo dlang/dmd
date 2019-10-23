@@ -147,6 +147,8 @@ bool ISX64REF(IRState* irs, Expression exp)
 private elem *useOPstrpar(elem *e)
 {
     tym_t ty = tybasic(e.Ety);
+    if (e.Eoper == OPstrctor)
+        return e;
     if (ty == TYstruct || ty == TYarray)
     {
         e = el_una(OPstrpar, TYstruct, e);
@@ -1173,6 +1175,27 @@ elem *toElem(Expression e, IRState *irs)
             {
                 s = fd.shidden;
                 nrvo = 1;
+            }
+
+            /* Temporary variable used for calling the copy constructor
+             */
+            if (v && v.ismemproxy)
+            {
+                e = el_long(TYnptr, 0);
+                e.Eoper = OPstrthis;
+                e.EV.Vsym = s;
+                if (se.op == TOK.variable)
+                {
+                    e = el_una(OPind, s.Stype.Tty, e);
+                    e.ET = s.Stype;
+                }
+                else if (offset)
+                {
+                    e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, offset));
+                }
+                elem_setLoc(e, se.loc);
+                result = e;
+                return;
             }
 
             if (s.Sclass == SCauto || s.Sclass == SCparameter || s.Sclass == SCshadowreg)
@@ -3518,6 +3541,15 @@ elem *toElem(Expression e, IRState *irs)
             assert(ce.e1 && ce.e2);
             elem *eleft  = toElem(ce.e1, irs);
             elem *eright = toElem(ce.e2, irs);
+            if (eleft && eleft.Eoper == OPstrctor &&
+                eright && eright.Eoper == OPind && eright.EV.E1.Eoper == OPstrthis)
+            {
+                // Kludge. Find: (tmp = init , tmp)
+                // extract 'init' and discard the rest
+                // TODO: find a better way
+                el_free(eright);
+                eright = null;
+            }
             elem *e = el_combine(eleft, eright);
             if (e)
                 elem_setLoc(e, ce.loc);
@@ -5307,6 +5339,19 @@ elem *toElem(Expression e, IRState *irs)
                 s = s.toAlias();
                 if (s != vd)
                     return Dsymbol_toElem(s);
+                if (vd.ismemproxy)
+                {
+                    /* Generate OPstrctor
+                     */
+                    Symbol *sp = toSymbol(s);
+                    assert(vd._init && vd._init.isExpInitializer());
+                    auto ie = cast(ExpInitializer) vd._init;
+                    e = toElem(ie.exp, irs);
+                    e = el_una(OPstrctor, sp.Stype.Tty, e);
+                    e.ET = sp.Stype;
+                    e.EV.Edecl2 = sp;
+                    return e;
+                }
                 if (vd.storage_class & STC.manifest)
                     return null;
                 else if (vd.isStatic() || vd.storage_class & (STC.extern_ | STC.tls | STC.gshared))
@@ -5932,7 +5977,6 @@ private elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
     return er;
 }
 
-
 /*******************************************
  * Convert Expression to elem, then append destructors for any
  * temporaries created in elem.
@@ -6210,7 +6254,6 @@ void toTraceGC(IRState *irs, elem *e, const ref Loc loc)
     }
 }
 
-
 /****************************************
  * Generate call to C's assert failure function.
  * One of exp, emsg, or str must not be null.
@@ -6352,6 +6395,7 @@ elem* elAssign(elem* e1, elem* e2, Type t, type* tx)
             if (!tx)
                 tx = Type_toCtype(t);
             e.ET = tx;
+            e = eleqstrctor(e);
 //            if (type_zeroCopy(tx))
 //                e.Eoper = OPcomma;
             break;
@@ -6360,6 +6404,161 @@ elem* elAssign(elem* e1, elem* e2, Type t, type* tx)
             break;
     }
     return e;
+}
+
+/*****************************
+ * Do in-place Construction.
+ *
+ *         =                 =
+ *        / \               / \
+ *       e  strctor  =>    e   v
+ *           /
+ *          =
+ *         / \
+ *   strthis  v
+ *
+ *       =                   ?
+ *      / \                 / \
+ *     e   ?         =>    c  :
+ *        / \                / \
+ *       c  :               e   e
+ *         / \
+ *  strctor  strctor
+ *       /   /
+ *  srthis strthis
+ */
+private elem* eleqstrctor(elem *e)
+{
+    if (e.Eoper != OPstreq)
+        return e;
+
+    if (!el_findstrctor(e.EV.E2))
+        return e;
+
+    elem* ec;
+    elem* e2 = e.EV.E2;
+    // get comma tail
+    while (e2.Eoper == OPcomma)
+    {
+        ec = el_combine(ec, e2.EV.E1);
+        e2 = e2.EV.E2;
+    }
+
+    if (e2.Eoper == OPstrctor)
+    {
+        elem* e1 = e.EV.E1;
+        elem* ep = el_una(OPaddr, TYnptr, e1);
+        elstrthiswalk(&e2, &ep, e2.EV.Edecl2);
+
+        // free OPstrctor
+        elem* ector = e2;
+        e2 = ector.EV.E1;
+        ector.EV.E1 = null;
+        el_free(ector);
+
+        // free OPstreq
+        e.EV.E1 = null;
+        e.EV.E2 = null;
+        el_free(e);
+        el_free(ep);
+
+        return el_combine(ec, eleqstrctor(e2));
+    }
+    else if (e2.Eoper == OPcond)
+    {
+        elem* e1 = e.EV.E1;
+
+        {
+            /* (e = (c ? e1 : e2))  =>  (c ? e = e1 : e = e2)
+             */
+            elem* ecolon = e2.EV.E2;
+            elem* eq1 = el_bin(OPstreq, e.Ety, el_copytree(e1), ecolon.EV.E1);
+            eq1.ET = e.ET;
+            eq1 = eleqstrctor(eq1);
+            ecolon.EV.E1 = eq1;
+
+            elem* eq2 = el_bin(OPstreq, e.Ety, el_copytree(e1), ecolon.EV.E2);
+            eq2.ET = e.ET;
+            eq2 = eleqstrctor(eq2);
+            ecolon.EV.E2 = eq2;
+        }
+
+        // free OPstreq
+        e.EV.E1 = null;
+        e.EV.E2 = null;
+        el_free(e);
+        el_free(e1);
+
+        return el_combine(ec, e2);
+    }
+    else
+        assert(0);
+}
+
+/***************************
+ * Walk tree, replacing OPstrthis elems with `e1`.
+ * Only elems which have symbol `s` will be replaced.
+ */
+private extern(D) void elstrthiswalk(elem** e, elem** e1, Symbol* s)
+{
+    while (true)
+    {
+        elem_debug(*e);
+        uint op = (*e).Eoper;
+        if (OTleaf(op))
+        {
+            if (op == OPstrthis && (*e).EV.Vsym == s)
+            {
+                el_free(*e);
+                *e = el_copytree(*e1);
+                if (el_sideeffect(*e1))
+                {
+                    el_free(*e1);
+                    *e1 = el_copytotmp(e);
+                }
+            }
+            return;
+        }
+        if (OTunary(op))
+        {
+            e = &(*e).EV.E1;
+        }
+        else
+        {
+            elstrthiswalk(&(*e).EV.E1, e1, s);
+            e = &(*e).EV.E2;
+        }
+    }
+}
+
+/***************************
+ * Find OPstrctor in the expression.
+ */
+private extern(D) bool el_findstrctor(elem *e)
+{
+    while (true)
+    {
+        elem_debug(e);
+        switch (e.Eoper)
+        {
+            case OPstrctor:
+                return true;
+
+            case OPcomma:
+            case OPcond:
+                break;
+
+            case OPcolon:
+            case OPcolon2:
+                if (el_findstrctor(e.EV.E1))
+                    return true;
+                break;
+
+            default:
+                return false;
+        }
+        e = e.EV.E2;
+    }
 }
 
 /**************************************************

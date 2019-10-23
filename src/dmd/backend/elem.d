@@ -2366,6 +2366,10 @@ else
             }
 
             case OPstrthis:
+                if (n1.EV.Vsym != n2.EV.Vsym)
+                    return false;
+                break;
+
             case OPframeptr:
             case OPhalt:
             case OPgot:

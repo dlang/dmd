@@ -1107,6 +1107,12 @@ extern (C++) class VarDeclaration : Declaration
 
     private bool _isAnonymous;
 
+    bool ismemproxy;                // variable is a proxy for the destination.
+                                    // for ex: `a = (p = b, p)`
+                                    // `p` is a proxy for a, the result is `a = b`.
+                                    // This enables running complex initialization code of unknown memory locations,
+                                    // like function arguments.
+
     final extern (D) this(const ref Loc loc, Type type, Identifier ident, Initializer _init, StorageClass storage_class = STC.undefined_)
     {
         if (ident is Identifier.anonymous)
