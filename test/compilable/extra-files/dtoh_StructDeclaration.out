@@ -103,6 +103,6 @@ struct Inner
 typedef Inner I;
 class C;
 
-    A() { this->a = 0; }
+    A() { this->a = 0; this->s = S(); }
 };
 
