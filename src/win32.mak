@@ -236,7 +236,7 @@ RUN_BUILD=$(GEN)\build.exe --called-from-make "OS=$(OS)" "BUILD=$(BUILD)" "MODEL
 
 defaulttarget: $G debdmd
 
-auto-tester-build: $G dmd checkwhitespace $(DMDFRONTENDEXE)
+auto-tester-build: $G dmd checkwhitespace
 
 dmd: $G reldmd
 
@@ -296,12 +296,6 @@ parser_test: $G\parser.lib examples\test_parser.d
 example_avg: $G\libparser.lib examples\avg.d
 	$(HOST_DC) -of$@ -vtls $(DFLAGS) $G\libparser.lib examples\avg.d
 
-DMDFRONTENDEXE = $G\dmd_frontend.exe
-
-$(DMDFRONTENDEXE): $(GEN)\build.exe
-	$(RUN_BUILD) $@
-	copy $(DMDFRONTENDEXE) .
-
 $(TARGETEXE): $(GEN)\build.exe
 	$(RUN_BUILD) $@
 	copy $(TARGETEXE) .
@@ -312,7 +306,7 @@ clean:
 	$(RD) /s /q $(GEN)
 	$(DEL) $D\msgs.h $D\msgs.c
 	$(DEL) parser_test.exe example_avg.exe
-	$(DEL) $(TARGETEXE) $(DMDFRONTENDEXE) *.map *.obj *.exe
+	$(DEL) $(TARGETEXE) *.map *.obj *.exe
 
 install: detab install-copy
 

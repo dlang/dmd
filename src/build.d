@@ -34,7 +34,6 @@ immutable rootDeps = [
     &dmdDefault,
     &runDmdUnittest,
     &clean,
-    &dmdFrontend,
     &checkwhitespace,
 ];
 
@@ -324,31 +323,6 @@ alias sysconfDirFile = memoize!(function()
         {
             updateIfChanged(target, env["SYSCONFDIR"]);
         };
-    }
-    return new DependencyRef(dep);
-});
-
-alias dmdFrontend = memoize!(function()
-{
-    Dependency dep;
-    with (dep)
-    {
-        name = "dmd_frontend";
-        sources = .sources.frontend.chain([env["D"].buildPath("gluelayer.d")], .sources.root, [lexer.target]).array;
-        target = env["G"].buildPath("dmd_frontend");
-        deps = [versionFile, sysconfDirFile, lexer];
-        msg = "(DC) DMD-FRONTEND %-(%s, %)".format(.sources.frontend.map!(e => e.baseName).array);
-        string[] platformArgs;
-        version (Windows)
-            platformArgs = ["-L/STACK:8388608"];
-        command = [
-            env["HOST_DMD_RUN"],
-            "-of" ~ target,
-            "-version=NoBackend",
-            "-vtls",
-            "-J"~env["G"],
-            "-J../res",
-        ].chain(flags["DFLAGS"], platformArgs, sources).array;
     }
     return new DependencyRef(dep);
 });
