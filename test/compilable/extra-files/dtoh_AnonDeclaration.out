@@ -43,6 +43,6 @@ struct S
         extern "C" _d_void foo();
         _d_void bar();
     };
-    S() { }
+    S() {}
 };
 

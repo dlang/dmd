@@ -80,7 +80,7 @@ public:
 struct Inner
 {
     _d_int x;
-    Inner() { this->x = 0; }
+    Inner() : x() {}
 };
 
 class InnerC

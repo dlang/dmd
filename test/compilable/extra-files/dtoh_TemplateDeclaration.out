@@ -40,6 +40,6 @@ struct A
 struct B
 {
     A<_d_int> x;
-    B() { }
+    B() : x() {}
 };
 

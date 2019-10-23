@@ -753,9 +753,9 @@ public:
             // Generate default ctor
             if (!sd.noDefaultCtor)
             {
-                buf.printf("    %s(", sd.ident.toChars());
-                buf.printf(") {");
+                buf.printf("    %s()", sd.ident.toChars());
                 size_t varCount;
+                bool first = true;
                 foreach (m; *sd.members)
                 {
                     if (auto vd = m.isVarDeclaration())
@@ -769,35 +769,28 @@ public:
                         {
                             continue;
                         }
-                        if (!vd._init && vd.type.isTypeStruct)
-                        {
-                            auto s = vd.type.isTypeStruct().toChars();
-                            while (*s != '\0' && *s != '!') // Find if it's template instance
-                            {
-                                ++s;
-                            }
-                            if (*s == '\0') // Ignore template instance, for now
-                                buf.printf(" this->%s = %s();", vd.ident.toChars(), vd.type.isTypeStruct().toChars());
-                            continue;
-                        }
                         if (vd._init && vd._init.isVoidInitializer())
                             continue;
-                        buf.printf(" this->%s = ", vd.ident.toChars());
-                        if (vd._init)
-                            AST.initializerToExpression(vd._init).accept(this);
-                        else if (vd.type.isTypeBasic())
-                            vd.type.defaultInitLiteral(Loc.initial).accept(this);
-                        else if (vd.type.isTypePointer || vd.type.isTypeClass)
-                            buf.printf("_d_null");
-                        else if (vd.type.isTypeDArray)
+
+                        if (first)
                         {
-                            this.visit(vd.type.isTypeDArray());
-                            buf.printf("()");
+                            buf.printf(" : ");
+                            first = false;
                         }
-                        buf.printf(";");
+                        else
+                        {
+                            buf.printf(", ");
+                        }
+                        buf.printf("%s(", vd.ident.toChars());
+
+                        if (vd._init)
+                        {
+                            AST.initializerToExpression(vd._init).accept(this);
+                        }
+                        buf.printf(")");
                     }
                 }
-                buf.printf(" }\n");
+                buf.printf(" {}\n");
             }
 
             version (none)
