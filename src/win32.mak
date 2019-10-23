@@ -291,6 +291,14 @@ $G\lexer.lib: $(GEN)\build.exe
 build-examples: $(GEN)\build.exe
 	$(RUN_BUILD) $@
 
+# Keep legacy targets?
+# Broken since December 2017, see commit 34fa7f44fe890fb6965157b9cd22892507472c43
+parser_test: build-examples
+	copy $G\examples\impvisitor.exe .\$@
+
+example_avg: build-examples
+	copy $G\examples\avg.exe .\$@
+
 $(TARGETEXE): $(GEN)\build.exe
 	$(RUN_BUILD) $@
 	copy $(TARGETEXE) .
@@ -300,6 +308,7 @@ $(TARGETEXE): $(GEN)\build.exe
 clean:
 	$(RD) /s /q $(GEN)
 	$(DEL) $D\msgs.h $D\msgs.c
+	$(DEL) parser_test.exe example_avg.exe
 	$(DEL) $(TARGETEXE) *.map *.obj *.exe
 
 install: detab install-copy
