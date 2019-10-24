@@ -390,7 +390,7 @@ SRC_MAKE = posix.mak osmodel.mak
 
 DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS))
 
-RUN_BUILD = $(GENERATED)/build HOST_DMD="$(HOST_DMD)" OS=$(OS) BUILD=$(BUILD) MODEL=$(MODEL) AUTO_BOOTSTRAP="$(AUTO_BOOTSTRAP)" --called-from-make
+RUN_BUILD = $(GENERATED)/build HOST_DMD="$(HOST_DMD)" CXX="$(HOST_CXX)" OS=$(OS) BUILD=$(BUILD) MODEL=$(MODEL) AUTO_BOOTSTRAP="$(AUTO_BOOTSTRAP)" --called-from-make
 
 ######## Begin build targets
 
@@ -537,7 +537,7 @@ dscanner: $(DSCANNER_DIR)/dsc
 ######################################################
 
 cxx-unittest: $(GENERATED)/build
-	$(RUN_BUILD) CXX=$(HOST_CXX) $@
+	$(RUN_BUILD) $@
 
 ######################################################
 
