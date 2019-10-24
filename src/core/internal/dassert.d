@@ -94,39 +94,46 @@ private string miniFormat(V)(V v)
     {
         return v.toString();
     }
-    // special-handling for void-arrays
-    else static if (is(V == void[]))
-    {
-        return "";
-    }
-    // anything string-like
-    else static if (__traits(compiles, V.init ~ ""))
-    {
-        auto s = `"` ~ v ~ `"`;
-        // v could be a mutable char[]
-        static if (is(s : string))
-            return s;
-        else
-            return s.idup;
-    }
     else static if (is(V : U[], U))
     {
-        string msg = "[";
-        foreach (i, ref el; v)
-        {
-            if (i > 0)
-                msg ~= ", ";
+        import core.internal.traits: Unqual;
+        alias E = Unqual!U;
 
-            // don't fully print big arrays
-            if (i >= 30)
-            {
-                msg ~= "...";
-                break;
-            }
-            msg ~= miniFormat(el);
+        // special-handling for void-arrays
+        static if (is(E == void))
+        {
+            return "";
         }
-        msg ~= "]";
-        return msg;
+        // anything string-like
+        else static if (is(E == char) || is(E == dchar) || is(E == wchar))
+        {
+            auto s = `"` ~ v ~ `"`;
+
+            // v could be a mutable char[]
+            static if (is(s : string))
+                return s;
+            else
+                return s.idup;
+        }
+        else
+        {
+            string msg = "[";
+            foreach (i, ref el; v)
+            {
+                if (i > 0)
+                    msg ~= ", ";
+
+                // don't fully print big arrays
+                if (i >= 30)
+                {
+                    msg ~= "...";
+                    break;
+                }
+                msg ~= miniFormat(el);
+            }
+            msg ~= "]";
+            return msg;
+        }
     }
     else static if (is(V : Val[K], K, Val))
     {
