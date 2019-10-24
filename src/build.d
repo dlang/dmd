@@ -394,11 +394,12 @@ alias runDmdUnittest = memoize!(function()
     return new DependencyRef(dep);
 });
 
-/// Compiles the C++ frontend test files
-alias cxxFrontend = memoize!(function()
+/// Runs the C++ unittest executable
+alias runCxxUnittest = memoize!(function()
 {
-    Dependency dep;
-    with (dep)
+    Dependency cxxFrontend; /// Compiles the C++ frontend test files
+    version (Windows) {}
+    else with (cxxFrontend)
     {
         name = "cxx-frontend";
         description = "Build the C++ frontend";
@@ -407,58 +408,30 @@ alias cxxFrontend = memoize!(function()
         sources = srcDir.buildPath("tests", "cxxfrontend.c") ~ .sources.sources ~ .sources.root;
         target = env["G"].buildPath("cxxfrontend").objName;
 
-        command = [
-            env["CXX"],
-            "-c",
-            sources[0],
-            "-o" ~ target,
-            "-I" ~ env["D"],
-            "-Wuninitialized"
-        ]
-        ~ flags["CXXFLAGS"];
+        command = [ env["CXX"], "-c", sources[0], "-o" ~ target, "-I" ~ env["D"], "-Wuninitialized" ] ~ flags["CXXFLAGS"];
     }
 
-    return new DependencyRef(dep);
-});
-
-/// Compiles the C++ unittest executable
-alias cxxUnittestExe = memoize!(function()
-{
-    Dependency dep;
-    with (dep)
+    Dependency cxxUnittestExe; /// Compiles the C++ unittest executable
+    version (Windows) {}
+    else with (cxxUnittestExe)
     {
         name = "cxx-unittest";
         description = "Build the C++ unittests";
         msg = "(DMD) CXX-UNITTEST";
 
-        deps = [cxxFrontend, lexer, backend];
+        deps = [lexer, backend, new DependencyRef(cxxFrontend)];
         sources = .sources.dmd ~ .sources.root;
         target = env["G"].buildPath("cxx-unittest").exeName;
 
-        command = [
-            env["HOST_DMD_RUN"],
-            "-of=" ~ target,
-            env["MODEL_FLAG"],
-            "-vtls",
-            "-J" ~ env["G"],
-            "-J" ~ env["RES"],
-            "-L-lstdc++",
-            "-version=NoMain",
+        command = [ env["HOST_DMD_RUN"], "-of=" ~ target, env["MODEL_FLAG"], "-vtls", "-J" ~ env["G"], "-J" ~ env["RES"],
+                    "-L-lstdc++", "-version=NoMain"
         ].chain(
-            flags["DFLAGS"],
-            sources,
-            deps.map!(d => d.target)
+            flags["DFLAGS"], sources, deps.map!(d => d.target)
         ).array;
     }
 
-    return new DependencyRef(dep);
-});
-
-/// Runs the C++ unittest executable
-alias runCxxUnittest = memoize!(function()
-{
-    Dependency dep;
-    with (dep)
+    Dependency runCxxUnittest; /// Runs the executable created above
+    with (runCxxUnittest)
     {
         name = "cxx-unittest";
         description = "Run the C++ unittests";
@@ -470,11 +443,12 @@ alias runCxxUnittest = memoize!(function()
         }
         else
         {
-            deps = [cxxUnittestExe];
-            command = [cxxUnittestExe.target];
+            auto cxxUnittest = new DependencyRef(cxxUnittestExe);
+            deps = [cxxUnittest];
+            command = [cxxUnittest.target];
         }
     }
-    return new DependencyRef(dep);
+    return new DependencyRef(runCxxUnittest);
 });
 
 /// Dependency that removes all generated files
