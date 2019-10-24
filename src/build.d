@@ -408,7 +408,7 @@ alias runCxxUnittest = memoize!(function()
         sources = srcDir.buildPath("tests", "cxxfrontend.c") ~ .sources.sources ~ .sources.root;
         target = env["G"].buildPath("cxxfrontend").objName;
 
-        command = [ env["CXX"], "-c", sources[0], "-o" ~ target, "-I" ~ env["D"], "-Wuninitialized" ] ~ flags["CXXFLAGS"];
+        command = [ env["CXX"], "-c", sources[0], "-o" ~ target, "-I" ~ env["D"] ] ~ flags["CXXFLAGS"];
     }
 
     Dependency cxxUnittestExe; /// Compiles the C++ unittest executable
@@ -423,7 +423,7 @@ alias runCxxUnittest = memoize!(function()
         sources = .sources.dmd ~ .sources.root;
         target = env["G"].buildPath("cxx-unittest").exeName;
 
-        command = [ env["HOST_DMD_RUN"], "-of=" ~ target, env["MODEL_FLAG"], "-vtls", "-J" ~ env["G"], "-J" ~ env["RES"],
+        command = [ env["HOST_DMD_RUN"], "-of=" ~ target, "-vtls", "-J" ~ env["RES"],
                     "-L-lstdc++", "-version=NoMain"
         ].chain(
             flags["DFLAGS"], sources, deps.map!(d => d.target)
