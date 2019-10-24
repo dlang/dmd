@@ -102,7 +102,8 @@ private string miniFormat(V)(V v)
         // special-handling for void-arrays
         static if (is(E == void))
         {
-            return "";
+            const bytes = cast(byte[]) v;
+            return miniFormat(bytes);
         }
         // anything string-like
         else static if (is(E == char) || is(E == dchar) || is(E == wchar))

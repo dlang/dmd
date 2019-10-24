@@ -132,7 +132,7 @@ void testVoidArray()()
     test!"!="(null, null, "`null` == `null`");
 
     const void[] chunk = [byte(1), byte(2), byte(3)];
-    test(chunk, null, " != ");
+    test(chunk, null, "[1, 2, 3] != []");
 }
 
 void testTemporary()
