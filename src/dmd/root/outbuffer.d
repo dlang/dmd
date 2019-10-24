@@ -27,9 +27,9 @@ struct OutBuffer
 {
     private ubyte[] data;
     private size_t offset;
-    int level;
-    bool doindent;
     private bool notlinehead;
+    bool doindent;
+    int level;
 
     extern (C++) ~this() pure nothrow
     {

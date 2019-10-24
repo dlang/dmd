@@ -1215,3 +1215,18 @@ version (Posix)
         set20224!int x;
     }
 }
+
+/**************************************/
+
+version (Posix)
+{
+    extern (C++) struct Loc2 {};
+    extern (C++) class FuncDeclaration
+    {
+        static FuncDeclaration create(ref const Loc2, ref const Loc2);
+    };
+    extern (C++) FuncDeclaration FuncDeclaration_create(ref const Loc2, ref const Loc2);
+
+    static assert(FuncDeclaration_create.mangleof == `_Z22FuncDeclaration_createRK4Loc2S1_`);
+    static assert(FuncDeclaration.create.mangleof == `_ZN15FuncDeclaration6createERK4Loc2S2_`);
+}

@@ -117,9 +117,11 @@ class TestVisitor : public Visitor
     bool decl;
     bool typeinfo;
     bool idexpr;
+    bool function;
 
     TestVisitor() : expr(false), package(false), stmt(false), type(false),
-        aggr(false), attrib(false), decl(false), typeinfo(false), idexpr(false)
+        aggr(false), attrib(false), decl(false), typeinfo(false), idexpr(false),
+        function(false)
     {
     }
 
@@ -166,6 +168,11 @@ class TestVisitor : public Visitor
     void visit(TypeInfoDeclaration *)
     {
         typeinfo = true;
+    }
+
+    void visit(FuncDeclaration *)
+    {
+        function = true;
     }
 };
 
@@ -223,6 +230,15 @@ void test_visitors()
     assert(ti->tinfo == tp);
     ti->accept(&tv);
     assert(tv.typeinfo == true);
+
+    Parameters *args = new Parameters;
+    TypeFunction *tf = TypeFunction::create(args, Type::tvoid, VARARGnone, LINKc);
+    FuncDeclaration *fd = FuncDeclaration::create(Loc (), Loc (), Identifier::idPool("test"),
+                                                  STCextern, tf);
+    assert(fd->isFuncDeclaration() == fd);
+    assert(fd->type == tf);
+    fd->accept(&tv);
+    assert(tv.function == true);
 }
 
 /**********************************/
@@ -386,6 +402,25 @@ void test_array()
         assert(arrayA[i] == 0);
 }
 
+void test_outbuffer()
+{
+    OutBuffer buf;
+    mangleToBuffer(Type::tint64, &buf);
+    assert(strcmp(buf.peekChars(), "l") == 0);
+    buf.reset();
+
+    buf.reserve(16);
+    buf.writestring("hello");
+    buf.writeByte(' ');
+    buf.write(&buf);
+    buf.writenl();
+    assert(buf.length() == 13);
+
+    const char *data = buf.extractChars();
+    assert(buf.length() == 0);
+    assert(strcmp(data, "hello hello \n") == 0);
+}
+
 /**********************************/
 
 int main(int argc, char **argv)
@@ -401,6 +436,7 @@ int main(int argc, char **argv)
     test_parameters();
     test_location();
     test_array();
+    test_outbuffer();
 
     frontend_term();
 
