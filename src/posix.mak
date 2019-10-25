@@ -327,7 +327,7 @@ FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argt
 	json lambdacomp lib libelf libmach link mars mtype nogc nspace objc opover optimize parse permissivevisitor sapply templateparamsem	\
 	sideeffect statement staticassert target typesem traits transitivevisitor parsetimevisitor visitor	\
 	typinf utils scanelf scanmach statement_rewrite_walker statementsem staticcond safe blockexit printast \
-	semantic2 semantic3))
+	semantic2 semantic3 foreachvar))
 
 LEXER_SRCS=$(addsuffix .d, $(addprefix $D/, console entity errors filecache globals id identifier lexer tokens utf ))
 
