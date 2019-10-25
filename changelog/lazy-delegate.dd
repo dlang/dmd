@@ -1,0 +1,21 @@
+Can now extract delegate from `lazy` parameter
+
+The underlying delegate of the `lazy` parameter may be extracted
+using the `&` operator:
+
+---
+void test(lazy int dg)
+{
+    int delegate() dg_ = &dg;
+    assert(dg_() == 7);
+    assert(dg == dg_());
+}
+
+void main()
+{
+    int a = 7;
+    test(a);
+}
+---
+
+Previously this caused a compile error.
