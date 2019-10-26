@@ -405,7 +405,7 @@ alias runCxxUnittest = memoize!(function()
         description = "Build the C++ frontend";
         msg = "(CXX) CXX-FRONTEND";
 
-        sources = srcDir.buildPath("tests", "cxxfrontend.c") ~ .sources.sources ~ .sources.root;
+        sources = srcDir.buildPath("tests", "cxxfrontend.c") ~ .sources.frontendHeaders ~ .sources.dmd ~ .sources.root;
         target = env["G"].buildPath("cxxfrontend").objName;
 
         command = [ env["CXX"], "-c", sources[0], "-o" ~ target, "-I" ~ env["D"] ] ~ flags["CXXFLAGS"];
@@ -911,7 +911,7 @@ auto sourceFiles()
 {
     struct Sources
     {
-        string[] frontend, lexer, root, glue, dmd, backend, sources;
+        string[] frontend, lexer, root, glue, dmd, backend;
         string[] frontendHeaders, backendHeaders, backendObjects;
     }
     string targetCH;
@@ -985,7 +985,6 @@ auto sourceFiles()
         "),
     };
     sources.dmd = sources.frontend ~ sources.glue ~ sources.backendHeaders;
-    sources.sources = sources.frontendHeaders ~ sources.dmd;
 
     return sources;
 }
