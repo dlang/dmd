@@ -105,6 +105,15 @@ void testStruct()()
     struct T { T[] t; }
     test(S(0), S(1), "S(0) !is S(1)");
     test(T([T(null)]), T(null), "[T([])] != []");
+
+    https://issues.dlang.org/show_bug.cgi?id=20323
+    struct NoCopy
+    {
+        @disable this(this);
+    }
+
+    NoCopy n;
+    assert(n == n);
 }
 
 void testAA()()

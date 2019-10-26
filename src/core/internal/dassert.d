@@ -5,7 +5,7 @@ on assertion failures
 module core.internal.dassert;
 
 /// Allows customized assert error messages
-string _d_assert_fail(string comp, A, B)(A a, B b)
+string _d_assert_fail(string comp, A, B)(auto ref A a, auto ref B b)
 {
     /*
     The program will be terminated after the assertion error message has
@@ -64,7 +64,7 @@ private template getPrintfFormat(T)
 Minimalistic formatting for use in _d_assert_fail to keep the compilation
 overhead small and avoid the use of Phobos.
 */
-private string miniFormat(V)(V v)
+private string miniFormat(V)(ref V v)
 {
     import core.stdc.stdio : sprintf;
     import core.stdc.string : strlen;
@@ -204,7 +204,7 @@ private auto assumeFakeAttributes(T)(T t) @trusted
     return cast(type) t;
 }
 
-private auto miniFormatFakeAttributes(T)(T t)
+private string miniFormatFakeAttributes(T)(ref T t)
 {
     alias miniT = miniFormat!T;
     return assumeFakeAttributes(&miniT)(t);
