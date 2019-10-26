@@ -68,6 +68,10 @@ void testStrings()
     char[] dlang = "dlang".dup;
     const(char)[] rust = "rust";
     test(dlang, rust, `"dlang" != "rust"`);
+
+    // https://issues.dlang.org/show_bug.cgi?id=20322
+    test("left"w, "right"w, `"left" != "right"`);
+    test("left"d, "right"d, `"left" != "right"`);
 }
 
 void testToString()()
