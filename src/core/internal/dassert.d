@@ -108,13 +108,16 @@ private string miniFormat(V)(ref V v)
         // anything string-like
         else static if (is(E == char) || is(E == dchar) || is(E == wchar))
         {
-            auto s = `"` ~ v ~ `"`;
+            const s = `"` ~ v ~ `"`;
 
-            // v could be a mutable char[]
-            static if (is(s : string))
-                return s;
+            // v could be a char[], dchar[] or wchar[]
+            static if (is(typeof(s) : const char[]))
+                return cast(immutable) s;
             else
-                return s.idup;
+            {
+                import core.internal.utf: toUTF8;
+                return toUTF8(s);
+            }
         }
         else
         {
