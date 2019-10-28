@@ -212,8 +212,6 @@ endif
 
 OS_UPCASE := $(shell echo $(OS) | tr '[a-z]' '[A-Z]')
 
-MMD=-MMD -MF $(basename $@).deps
-
 # Default compiler flags for all source files
 CXXFLAGS := $(WARNINGS) \
 	-fno-exceptions -fno-rtti \
@@ -290,7 +288,6 @@ endif
 endif
 
 # Unique extra flags if necessary
-DMD_FLAGS  := -I$D -Wuninitialized
 BACK_FLAGS := -I$(ROOT) -I$C -I$G -I$D -DDMDV2=1
 BACK_DFLAGS := -version=DMDV2
 ROOT_FLAGS := -I$(ROOT)
@@ -391,11 +388,9 @@ ROOT_SRC = $(addprefix $(ROOT)/, array.h bitarray.h ctfloat.h dcompat.h file.h f
 
 SRC_MAKE = posix.mak osmodel.mak
 
-STRING_IMPORT_FILES = $G/VERSION $G/SYSCONFDIR.imp $(RES)/default_ddoc_theme.ddoc
-
 DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS))
 
-RUN_BUILD = $(GENERATED)/build HOST_DMD="$(HOST_DMD)" OS=$(OS) BUILD=$(BUILD) MODEL=$(MODEL) AUTO_BOOTSTRAP="$(AUTO_BOOTSTRAP)" --called-from-make
+RUN_BUILD = $(GENERATED)/build HOST_DMD="$(HOST_DMD)" CXX="$(HOST_CXX)" OS=$(OS) BUILD=$(BUILD) MODEL=$(MODEL) AUTO_BOOTSTRAP="$(AUTO_BOOTSTRAP)" --called-from-make
 
 ######## Begin build targets
 
@@ -541,14 +536,8 @@ dscanner: $(DSCANNER_DIR)/dsc
 
 ######################################################
 
-$G/cxxfrontend.o: $G/%.o: tests/%.c $(SRC) $(ROOT_SRC) $(SRC_MAKE)
-	$(CXX) -c -o$@ $(CXXFLAGS) $(DMD_FLAGS) $(MMD) $<
-
-$G/cxx-unittest: $G/cxxfrontend.o $(DMD_SRCS) $(ROOT_SRCS) $G/lexer.a $G/backend.o $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
-	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J$(RES) -L-lstdc++ $(DFLAGS) -version=NoMain $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
-
-cxx-unittest: $G/cxx-unittest
-	$<
+cxx-unittest: $(GENERATED)/build
+	$(RUN_BUILD) $@
 
 ######################################################
 

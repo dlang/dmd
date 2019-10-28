@@ -35,6 +35,7 @@ immutable rootDeps = [
     &runDmdUnittest,
     &clean,
     &checkwhitespace,
+    &runCxxUnittest
 ];
 
 void main(string[] args)
@@ -97,6 +98,7 @@ Command-line parameters
     args2Environment(args);
     parseEnvironment;
     processEnvironment;
+    processEnvironmentCxx;
     sources = sourceFiles;
 
     if (res.helpWanted)
@@ -392,6 +394,63 @@ alias runDmdUnittest = memoize!(function()
     return new DependencyRef(dep);
 });
 
+/// Runs the C++ unittest executable
+alias runCxxUnittest = memoize!(function()
+{
+    Dependency cxxFrontend; /// Compiles the C++ frontend test files
+    version (Windows) {}
+    else with (cxxFrontend)
+    {
+        name = "cxx-frontend";
+        description = "Build the C++ frontend";
+        msg = "(CXX) CXX-FRONTEND";
+
+        sources = srcDir.buildPath("tests", "cxxfrontend.c") ~ .sources.frontendHeaders ~ .sources.dmd ~ .sources.root;
+        target = env["G"].buildPath("cxxfrontend").objName;
+
+        command = [ env["CXX"], "-c", sources[0], "-o" ~ target, "-I" ~ env["D"] ] ~ flags["CXXFLAGS"];
+    }
+
+    Dependency cxxUnittestExe; /// Compiles the C++ unittest executable
+    version (Windows) {}
+    else with (cxxUnittestExe)
+    {
+        name = "cxx-unittest";
+        description = "Build the C++ unittests";
+        msg = "(DMD) CXX-UNITTEST";
+
+        deps = [lexer, backend, new DependencyRef(cxxFrontend)];
+        sources = .sources.dmd ~ .sources.root;
+        target = env["G"].buildPath("cxx-unittest").exeName;
+
+        command = [ env["HOST_DMD_RUN"], "-of=" ~ target, "-vtls", "-J" ~ env["RES"],
+                    "-L-lstdc++", "-version=NoMain"
+        ].chain(
+            flags["DFLAGS"], sources, deps.map!(d => d.target)
+        ).array;
+    }
+
+    Dependency runCxxUnittest; /// Runs the executable created above
+    with (runCxxUnittest)
+    {
+        name = "cxx-unittest";
+        description = "Run the C++ unittests";
+        msg = "(RUN) CXX-UNITTEST";
+
+        version (Windows)
+        {
+            commandFunction = { assert(0, "Running the C++ unittests is not supported on Windows yet"); };
+        }
+        else
+        {
+            auto cxxUnittest = new DependencyRef(cxxUnittestExe);
+            deps = [cxxUnittest];
+            command = [cxxUnittest.target];
+        }
+    }
+    return new DependencyRef(runCxxUnittest);
+});
+
 /// Dependency that removes all generated files
 alias clean = memoize!(function()
 {
@@ -495,10 +554,6 @@ LtargetsLoop:
 
             case "toolchain-info":
                 "TODO: info".writeln; // TODO
-                break;
-
-            case "cxx-unittest":
-                "TODO: cxx-unittest".writeln; // TODO
                 break;
 
             case "check-examples":
@@ -652,6 +707,8 @@ void parseEnvironment()
     env.getDefault("GIT_HOME", "https://github.com/dlang");
     env.getDefault("SYSCONFDIR", "/etc");
     env.getDefault("TMP", tempDir);
+    env.getDefault("RES", dmdRepo.buildPath("res"));
+
     auto d = env["D"] = srcDir.buildPath("dmd");
     env["C"] = d.buildPath("backend");
     env["ROOT"] = d.buildPath("root");
@@ -775,6 +832,76 @@ void processEnvironment()
     flags["DFLAGS"] ~= dflags;
 }
 
+/// Setup environment for a C++ compiler
+void processEnvironmentCxx()
+{
+    // Windows requires additional work to handle e.g. Cygwin on Azure
+    version (Windows) return;
+
+    const cxxKind = env["CXX_KIND"] = detectHostCxx();
+
+    string[] warnings  = [
+        "-Wall", "-Werror", "-Wextra", "-Wno-attributes", "-Wno-char-subscripts", "-Wno-deprecated",
+        "-Wno-empty-body", "-Wno-format", "-Wno-missing-braces", "-Wno-missing-field-initializers",
+        "-Wno-overloaded-virtual", "-Wno-parentheses", "-Wno-reorder", "-Wno-return-type",
+        "-Wno-sign-compare", "-Wno-strict-aliasing", "-Wno-switch", "-Wno-type-limits",
+        "-Wno-unknown-pragmas", "-Wno-unused-function", "-Wno-unused-label", "-Wno-unused-parameter",
+        "-Wno-unused-value", "-Wno-unused-variable"
+    ];
+
+    if (cxxKind == "g++")
+        warnings ~= [
+            "-Wno-class-memaccess", "-Wno-implicit-fallthrough", "-Wno-logical-op", "-Wno-narrowing",
+            "-Wno-uninitialized", "-Wno-unused-but-set-variable"
+        ];
+
+    if (cxxKind == "clang++")
+        warnings ~= ["-Wno-logical-op-parentheses", "-Wno-unused-private-field"];
+
+    auto cxxFlags = warnings ~ [
+        "-g", "-fno-exceptions", "-fno-rtti", "-fasynchronous-unwind-tables", "-DMARS=1",
+        env["MODEL_FLAG"], env["PIC_FLAG"],
+
+        // No explicit if since cxxKind will always be either g++ or clang++
+        cxxKind == "g++" ? "-std=gnu++98" : "-xc++"
+    ];
+
+    if (env["ENABLE_COVERAGE"] != "0")
+        cxxFlags ~= "--coverage";
+
+    if (env["ENABLE_SANITIZERS"] != "0")
+        cxxFlags ~= "-fsanitize=" ~ env["ENABLE_SANITIZERS"];
+
+    // Enable a temporary workaround in globals.h and rmem.h concerning
+    // wrong name mangling using DMD.
+    // Remove when the minimally required D version becomes 2.082 or later
+    if (env["HOST_DMD_KIND"] == "dmd")
+    {
+        const output = run([ env["HOST_DMD_RUN"], "--version" ]).output;
+
+        if (output.canFind("v2.079", "v2.080", "v2.081"))
+            cxxFlags ~= "-DDMD_VERSION=2080";
+    }
+
+    flags["CXXFLAGS"] = cxxFlags;
+}
+
+/// Returns: the host C++ compiler, either "g++" or "clang++"
+string detectHostCxx()
+{
+    import std.meta: AliasSeq;
+
+    const cxxVersion = [env.getDefault("CXX", "c++"), "--version"].execute.output;
+
+    alias GCC = AliasSeq!("g++", "gcc", "Free Software");
+    alias CLANG = AliasSeq!("clang");
+
+    const cxxKindIdx = cxxVersion.canFind(GCC, CLANG);
+    enforce(cxxKindIdx, "Invalid CXX found: " ~ cxxVersion);
+
+    return cxxKindIdx <= GCC.length ? "g++" : "clang++";
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // D source files
 ////////////////////////////////////////////////////////////////////////////////
@@ -785,7 +912,7 @@ auto sourceFiles()
     struct Sources
     {
         string[] frontend, lexer, root, glue, dmd, backend;
-        string[] backendHeaders, backendObjects;
+        string[] frontendHeaders, backendHeaders, backendObjects;
     }
     string targetCH;
     string[] targetObjs;
@@ -824,6 +951,12 @@ auto sourceFiles()
             scanmscoff.d scanomf.d semantic2.d semantic3.d sideeffect.d statement.d statement_rewrite_walker.d
             statementsem.d staticassert.d staticcond.d strictvisitor.d target.d templateparamsem.d traits.d
             transitivevisitor.d typesem.d typinf.d utils.d visitor.d foreachvar.d
+        "),
+        frontendHeaders: fileArray(env["D"], "
+            aggregate.h aliasthis.h arraytypes.h attrib.h compiler.h complex_t.h cond.h
+            ctfe.h declaration.h dsymbol.h doc.h enum.h errors.h expression.h globals.h hdrgen.h
+            identifier.h id.h import.h init.h json.h module.h mtype.h nspace.h objc.h scope.h
+            statement.h staticassert.h target.h template.h tokens.h version.h visitor.h
         "),
         lexer: fileArray(env["D"], "
             console.d entity.d errors.d filecache.d globals.d id.d identifier.d lexer.d tokens.d utf.d
