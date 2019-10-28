@@ -96,10 +96,7 @@ TailShared!T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)(ref shared const T 
     // HACK: DEPRECATE THIS FUNCTION, IT IS INVALID TO DO ATOMIC LOAD OF SHARED CLASS
     // this is here because code exists in the wild that does this...
 
-    import core.lifetime : move;
-
-    T r = core.internal.atomic.atomicLoad!ms(cast(T*)&val);
-    return move(*cast(TailShared!T*)&r);
+    return core.internal.atomic.atomicLoad!ms(cast(TailShared!T*)&val);
 }
 
 /**
