@@ -3588,6 +3588,28 @@ else
     fixresult(cdb, e, mask(reg), pretregs);
 }
 
+/***********************************
+ */
+
+void cdstrctor(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
+{
+version (MARS)
+{
+    debug
+    {
+        Symbol* s = e.EV.Edecl2;
+        assert(s && s.Sflags & SFLmemproxy);
+        assert(s.Soffset);
+        assert(!e.Ecount);
+    }
+    codelem(cdb, e.EV.E1, pretregs, true);
+}
+else
+{
+    cderr(cdb, e, pretregs);
+}
+}
+
 /******************************
  * Call function. All parameters have already been pushed onto the stack.
  * Params:
@@ -4222,32 +4244,26 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
         }
     }
 
-    version (MARS)
-    {
-        case OPstrctor:
-        {
-            elem* e1 = e.EV.E1;
-
-            cod3_stackadj(cdb, cast(int)sz);
-            stackpush += sz;
-            cdb.genadjesp(cast(int)sz);
-
-            Symbol* s = e.EV.Edecl2;
-            assert(s && s.Sflags & SFLmemproxy);
-            s.Soffset = stackpush;
-
-            regm_t retregs = 0;
-            codelem(cdb, e1, &retregs, true);
-            freenode(e);
-            return;
-        }
-    }
-
         case OPstrpar:
         {
             uint rm;
 
             elem* e1 = e.EV.E1;
+            if (el_findstrctor(e1))
+            {
+                assert(config.exe == EX_WIN32);
+
+                cod3_stackadj(cdb, cast(int)sz);
+                stackpush += sz;
+                cdb.genadjesp(cast(int)sz);
+
+                setstrctor(e1, stackpush);
+
+                regm_t retregs = 0;
+                codelem(cdb, e1, &retregs, true);
+                freenode(e);
+                return;
+            }
             if (sz == 0)
             {
                 docommas(cdb, &e1); // skip over any commas
@@ -4895,6 +4911,37 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
         genpush(cdb,findregmsw(retregs));     // PUSH msreg
         genpush(cdb,findreglsw(retregs));     // PUSH lsreg
         cdb.genadjesp(cast(int)sz);
+    }
+}
+
+/***************************
+ * Walk tree setting offset on OPstrctor elems.
+ */
+private extern(D) void setstrctor(elem* e, targ_size_t offset)
+{
+    while (true)
+    {
+        switch (e.Eoper)
+        {
+            case OPstrctor:
+                Symbol* s = e.EV.Edecl2;
+                assert(s && s.Sflags & SFLmemproxy);
+                s.Soffset = offset;
+                return;
+
+            case OPcomma:
+            case OPcond:
+                break;
+
+            case OPcolon:
+            case OPcolon2:
+                setstrctor(e.EV.E1, offset);
+                break;
+
+            default:
+                return;
+        }
+        e = e.EV.E2;
     }
 }
 

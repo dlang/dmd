@@ -3171,4 +3171,33 @@ void el_dehydrate(elem **pe)
 }
 }
 
+/***************************
+ * Find OPstrctor in the expression.
+ */
+bool el_findstrctor(elem *e)
+{
+    while (true)
+    {
+        elem_debug(e);
+        switch (e.Eoper)
+        {
+            case OPstrctor:
+                return true;
+
+            case OPcomma:
+            case OPcond:
+                break;
+
+            case OPcolon:
+            case OPcolon2:
+                if (el_findstrctor(e.EV.E1))
+                    return true;
+                break;
+
+            default:
+                return false;
+        }
+        e = e.EV.E2;
+    }
+}
 }

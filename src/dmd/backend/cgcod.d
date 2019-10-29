@@ -2949,7 +2949,7 @@ private extern (C++) __gshared nothrow void function (ref CodeBuilder,elem *,reg
     OPcallns:  &cdfunc,
     OPucallns: &cdfunc,
     OPstrpar:  &cderr,
-    OPstrctor: &cderr,
+    OPstrctor: &cdstrctor,
     OPstrthis: &cdstrthis,
     OPconst:   &cderr,
     OPvar:     &cderr,

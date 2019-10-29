@@ -147,8 +147,6 @@ bool ISX64REF(IRState* irs, Expression exp)
 private elem *useOPstrpar(elem *e)
 {
     tym_t ty = tybasic(e.Ety);
-    if (e.Eoper == OPstrctor)
-        return e;
     if (ty == TYstruct || ty == TYarray)
     {
         e = el_una(OPstrpar, TYstruct, e);
@@ -272,6 +270,32 @@ private elem *callfunc(const ref Loc loc,
                  */
                 ea.Ety = TYllong;
             }
+
+            /* Argument has copy constructor
+             */
+            if (el_findstrctor(ea))
+            {
+                /* In case of a cond exp ?: make sure OPstrctor
+                 * applies to both branches even when the constructor
+                 * is called on only one of them.
+                 *
+                 * (c ? strctor : e)  => (strctor (c ? strthis : (strthis = e))
+                 */
+                assert(config.exe == EX_WIN32);
+                type* tx = Type_toCtype(arg.type);
+                Symbol* sa = symbol_genauto(tx);
+                sa.Sflags |= SFLmemproxy;
+                elem* esthis = el_long(TYnptr, 0);
+                esthis.Eoper = OPstrthis;
+                esthis.EV.Vsym = sa;
+                elem* e1 = el_una(OPind, tx.Tty, esthis);
+                e1.ET = tx;
+                elem* eeq = elAssign(e1, ea, arg.type, tx);
+                ea = el_una(OPstrctor, tx.Tty, eeq);
+                ea.ET = tx;
+                ea.EV.Edecl2 = sa;
+            }
+
             elems[i] = ea;
         }
         if (!left_to_right)
@@ -6528,36 +6552,6 @@ private extern(D) void elstrthiswalk(elem** e, elem** e1, Symbol* s)
             elstrthiswalk(&(*e).EV.E1, e1, s);
             e = &(*e).EV.E2;
         }
-    }
-}
-
-/***************************
- * Find OPstrctor in the expression.
- */
-private extern(D) bool el_findstrctor(elem *e)
-{
-    while (true)
-    {
-        elem_debug(e);
-        switch (e.Eoper)
-        {
-            case OPstrctor:
-                return true;
-
-            case OPcomma:
-            case OPcond:
-                break;
-
-            case OPcolon:
-            case OPcolon2:
-                if (el_findstrctor(e.EV.E1))
-                    return true;
-                break;
-
-            default:
-                return false;
-        }
-        e = e.EV.E2;
     }
 }
 

@@ -3269,6 +3269,12 @@ elem * elstruct(elem *e, goal_t goal)
         return optelem(e, goal);
     }
 
+    if (e.Eoper == OPstrpar && el_findstrctor(e.EV.E1))
+    {
+        assert(config.exe == EX_WIN32);
+        return e;
+    }
+
     if (!e.ET)
         return e;
     //printf("\tnumbytes = %d\n", (int)type_size(e.ET));
