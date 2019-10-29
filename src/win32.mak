@@ -93,8 +93,6 @@ CP=cp
 DETAB=detab
 # Convert line endings to Unix
 TOLF=tolf
-# Zip
-ZIP=zip32
 # Copy to another directory
 SCP=$(CP)
 # PVS-Studio command line executable
@@ -334,13 +332,8 @@ detab:
 tolf:
 	$(TOLF) $(SRCS) $(GLUESRC) $(ROOTSRC) $(BACKSRC) $(MAKEFILES)
 
-zip: detab tolf $(MAKEFILES)
-	$(DEL) dmdsrc.zip
-	$(ZIP) dmdsrc $(MAKEFILES)
-	$(ZIP) dmdsrc $(SRCS)
-	$(ZIP) dmdsrc $(GLUESRC)
-	$(ZIP) dmdsrc $(BACKSRC)
-	$(ZIP) dmdsrc $(ROOTSRC)
+zip: detab tolf $(GEN)\build.exe
+	$(RUN_BUILD) $@
 
 scp: detab tolf $(MAKEFILES)
 	$(SCP) $(MAKEFILES) $(SCPDIR)/src

@@ -349,36 +349,7 @@ BACK_HDRS=$C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/glob
 	$C/ty.d $C/type.d $C/exh.d $C/mach.d $C/mscoff.d $C/dwarf.d $C/dwarf2.d $C/xmm.d \
 	$C/dlist.d $C/melf.d $C/varstats.di $C/dt.d
 
-BACK_SRC = \
-	$C/backend.d $C/bcomplex.d $C/blockopt.d $C/cg.d $C/cg87.d $C/cgxmm.d \
-	$C/cgcod.d $C/cgcs.d $C/dcgcv.d $C/cgelem.d $C/cgen.d $C/cgobj.d \
-	$C/compress.d $C/cgreg.d $C/var.d $C/cgcse.d \
-	$C/cgsched.d $C/cod1.d $C/cod2.d $C/cod3.d $C/cod4.d $C/cod5.d \
-	$C/dcode.d $C/symbol.d $C/debugprint.d $C/dt.d $C/ee.d $C/elem.d \
-	$C/evalu8.d $C/fp.d $C/go.d $C/gflow.d $C/gdag.d $C/elpicpie.d \
-	$C/gother.d $C/glocal.d $C/gloop.d $C/gsroa.d $C/newman.d \
-	$C/nteh.d $C/os.d $C/out.d $C/ptrntab.d $C/drtlsym.d \
-	$C/dtype.d \
-	$C/token.h \
-	$C/elfobj.d \
-	$C/dwarfdbginf.d $C/aarray.d \
-	$C/machobj.d $C/mscoffobj.d \
-	$C/pdata.d $C/cv8.d $C/backconfig.d $C/divcoeff.d \
-	$C/dvarstats.d $C/dvec.d \
-	$C/md5.d $C/barray.d \
-	$C/ph2.d $C/util2.d $C/dwarfeh.d $C/goh.d $C/mem.d $C/filespec.d \
-	$(TARGET_CH)
-
 ######## CXX header files (only needed for cxx-unittest)
-
-SRC = $(addprefix $D/, aggregate.h aliasthis.h arraytypes.h	\
-	attrib.h compiler.h complex_t.h cond.h ctfe.h ctfe.h declaration.h doc.h dsymbol.h	\
-	enum.h errors.h expression.h globals.h hdrgen.h identifier.h \
-	id.h import.h init.h json.h \
-	mangle.h module.h mtype.h nspace.h objc.h                \
-	scope.h statement.h staticassert.h target.h template.h tokens.h	\
-	version.h visitor.h libomf.d scanomf.d libmscoff.d scanmscoff.d)         \
-	$(DMD_SRCS)
 
 ROOT_SRC = $(addprefix $(ROOT)/, array.h bitarray.h ctfloat.h dcompat.h file.h filename.h \
 	longdouble.h object.h outbuffer.h port.h \
@@ -541,9 +512,8 @@ cxx-unittest: $(GENERATED)/build
 
 ######################################################
 
-zip:
-	-rm -f dmdsrc.zip
-	zip dmdsrc $(SRC) $(ROOT_SRCS) $(GLUE_SRC) $(BACK_SRC)
+zip: $(GENERATED)/build
+	$(RUN_BUILD) $@
 
 ######################################################
 
