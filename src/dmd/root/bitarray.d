@@ -19,6 +19,11 @@ import dmd.root.rmem;
 struct BitArray
 {
 nothrow:
+
+    alias Chunk_t = size_t;
+    enum ChunkSize = Chunk_t.sizeof;
+    enum BitsPerChunk = ChunkSize * 8;
+
     size_t length() const pure nothrow @nogc @safe
     {
         return len;
@@ -26,13 +31,16 @@ nothrow:
 
     void length(size_t nlen) pure nothrow
     {
-        immutable obytes = (len + 7) / 8;
-        immutable nbytes = (nlen + 7) / 8;
-        // bt*() access memory in size_t chunks, so round up.
-        ptr = cast(size_t*)mem.xrealloc_noscan(ptr,
-            (nbytes + (size_t.sizeof - 1)) & ~(size_t.sizeof - 1));
-        if (nbytes > obytes)
-            (cast(ubyte*)ptr)[obytes .. nbytes] = 0;
+        immutable ochunks = ( len + BitsPerChunk - 1) / BitsPerChunk;
+        immutable nchunks = (nlen + BitsPerChunk - 1) / BitsPerChunk;
+        if (ochunks != nchunks)
+        {
+            ptr = cast(size_t*)mem.xrealloc_noscan(ptr, nchunks * ChunkSize);
+        }
+        if (nchunks > ochunks)
+           ptr[ochunks .. nchunks] = 0;
+        if (nlen & (BitsPerChunk - 1))
+           ptr[nchunks - 1] &= (cast(Chunk_t)1 << (nlen & (BitsPerChunk - 1))) - 1;
         len = nlen;
     }
 
@@ -55,6 +63,11 @@ nothrow:
             btc(ptr, idx);
     }
 
+    bool opEquals(const ref BitArray b) const
+    {
+        return len == b.len && memcmp(ptr, b.ptr, (len + BitsPerChunk - 1) / 8) == 0;
+    }
+
     @disable this(this);
 
     ~this() pure nothrow
@@ -63,7 +76,7 @@ nothrow:
     }
 
 private:
-    size_t len;
+    size_t len;         // length in bits
     size_t *ptr;
 }
 
@@ -77,6 +90,20 @@ unittest
     array[10] = 0;
     assert(array[10] == 0);
     assert(array.length == 20);
+
+    BitArray a,b;
+    assert(a != array);
+    a.length = 200;
+    assert(a != array);
+    a[100] = true;
+    b.length = 200;
+    b[100] = true;
+    assert(a == b);
+    a.length = 300;
+    b.length = 300;
+    assert(a == b);
+    b[299] = true;
+    assert(a != b);
 }
 
 
