@@ -39,6 +39,7 @@ import dmd.visitor;
 extern (C++) abstract class AttribDeclaration : Dsymbol
 {
     Dsymbols* decl;     // array of Dsymbol's
+    bool hasDeferred;   // semantic was ran on select members
 
     extern (D) this(Dsymbols* decl)
     {
@@ -53,7 +54,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 
     Dsymbols* include(Scope* sc)
     {
-        if (errors)
+        if (errors && !hasDeferred)
             return null;
 
         return decl;
@@ -847,6 +848,11 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
         return "pragma";
     }
 
+    override inout(PragmaDeclaration) isPragmaDeclaration() inout
+    {
+        return this;
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -895,7 +901,7 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
     {
         //printf("ConditionalDeclaration::include(sc = %p) scope = %p\n", sc, scope);
 
-        if (errors)
+        if (errors && !hasDeferred)
             return null;
 
         assert(condition);
@@ -955,7 +961,7 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
     {
         //printf("StaticIfDeclaration::include(sc = %p) scope = %p\n", sc, scope);
 
-        if (errors || onStack)
+        if (errors && !hasDeferred || onStack)
             return null;
         onStack = true;
         scope(exit) onStack = false;
@@ -1075,7 +1081,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
 
     override Dsymbols* include(Scope* sc)
     {
-        if (errors || onStack)
+        if (errors && !hasDeferred || onStack)
             return null;
         if (cached)
         {

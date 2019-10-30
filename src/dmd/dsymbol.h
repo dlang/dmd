@@ -48,6 +48,7 @@ class NewDeclaration;
 class VarDeclaration;
 class AttribDeclaration;
 class ProtDeclaration;
+class PragmaDeclaration;
 class Package;
 class Module;
 class Import;
@@ -280,6 +281,7 @@ public:
     virtual ProtDeclaration *isProtDeclaration() { return NULL; }
     virtual OverloadSet *isOverloadSet() { return NULL; }
     virtual CompileDeclaration *isCompileDeclaration() { return NULL; }
+    virtual PragmaDeclaration *isPragmaDeclaration() { return NULL; }
     void accept(Visitor *v) { v->visit(this); }
 };
 

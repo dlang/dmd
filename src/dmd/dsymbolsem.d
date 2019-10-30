@@ -564,6 +564,19 @@ extern(C++) void dsymbolSemantic(Dsymbol dsym, Scope* sc)
     dsym.accept(v);
 }
 
+private alias MemberFilterPred = bool delegate(Dsymbol);
+
+/*************************************
+ * Runs semantic analysis on selective members.
+ * Only members for which `memberFilter` return true will be analysed.
+ */
+private void doSelectiveSemantic(AttribDeclaration dsym, Scope* sc, MemberFilterPred memberFilter)
+{
+    scope v = new DsymbolSemanticVisitor(sc);
+    v.memberFilter = memberFilter;
+    dsym.accept(v);
+}
+
 structalign_t getAlignment(AlignDeclaration ad, Scope* sc)
 {
     if (ad.salign != ad.UNKNOWN)
@@ -641,6 +654,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     alias visit = Visitor.visit;
 
     Scope* sc;
+
+    private MemberFilterPred memberFilter;  // predicate which is selects which members to run semantic analysis on.
+                                            // only used on members of AttribDeclaration.
+                                            // See also: DsymbolSemanticVisitor.visit(StructDeclaration).
+
     this(Scope* sc)
     {
         this.sc = sc;
@@ -1759,10 +1777,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     void attribSemantic(AttribDeclaration ad)
     {
-        if (ad.semanticRun != PASS.init)
+        if (ad.semanticRun != PASS.init && !ad.hasDeferred)
             return;
         ad.semanticRun = PASS.semantic;
         Dsymbols* d = ad.include(sc);
+        if (!memberFilter)
+            ad.hasDeferred = false; // semantic is done on all members
         //printf("\tAttribDeclaration::semantic '%s', d = %p\n",toChars(), d);
         if (d)
         {
@@ -1771,6 +1791,22 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             for (size_t i = 0; i < d.dim; i++)
             {
                 Dsymbol s = (*d)[i];
+                if (memberFilter)
+                {
+                    // run semantic analysis selectively on members
+                    if (auto sad = s.isAttribDeclaration())
+                    {
+                        doSelectiveSemantic(sad, sc2, memberFilter); // recurse
+                        errors |= sad.errors;
+                        ad.hasDeferred |= sad.hasDeferred;
+                        continue;
+                    }
+                    if (memberFilter(s) == false)
+                    {
+                        ad.hasDeferred = true;
+                        continue; // skip
+                    }
+                }
                 s.dsymbolSemantic(sc2);
                 errors |= s.errors;
             }
@@ -4678,6 +4714,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         auto sc2 = sd.newScope(sc);
 
+        sd.membersScope = sc2;
+
         /* Set scope so if there are forward references, we still might be able to
          * resolve individual members like enums.
          */
@@ -4701,6 +4739,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             sd.semanticRun = PASS.semanticdone;
             return;
         }
+
         /* Following special member functions creation needs semantic analysis
          * completion of sub-structs in each field types. For example, buildDtor
          * needs to check existence of elaborate dtor in type of each fields.
@@ -4729,13 +4768,18 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         sd.aggNew = cast(NewDeclaration)sd.search(Loc.initial, Id.classNew);
         sd.aggDelete = cast(DeleteDeclaration)sd.search(Loc.initial, Id.classDelete);
 
-        // Look for the constructor
-        sd.ctor = sd.searchCtor();
-
-        sd.dtor = buildDtor(sd, sc2);
-        sd.tidtor = buildExternDDtor(sd, sc2);
-        sd.postblit = buildPostBlit(sd, sc2);
-        sd.hasCopyCtor = buildCopyCtor(sd, sc2);
+        // structPODCheckSemantic() which is ran lazily
+        // does build the following members.
+        // In order to not repeat the same work check podSemanticRun.
+        if (sd.podSemanticRun == PASS.init)
+        {
+            sd.ctor = sd.searchCtor();
+            sd.dtor = buildDtor(sd, sc2);
+            sd.tidtor = buildExternDDtor(sd, sc2);
+            sd.postblit = buildPostBlit(sd, sc2);
+            sd.hasCopyCtor = buildCopyCtor(sd, sc2);
+            sd.podSemanticRun = PASS.semanticdone;
+        }
 
         buildOpAssign(sd, sc2);
         buildOpEquals(sd, sc2);
@@ -4755,6 +4799,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         sd.semanticRun = PASS.semanticdone;
         //printf("-StructDeclaration::semantic(this=%p, '%s')\n", sd, sd.toChars());
 
+        sd.membersScope = null;
         sc2.pop();
 
         if (sd.ctor)
@@ -6504,4 +6549,87 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
         if (!ds.overloadInsert(sx))
             ScopeDsymbol.multiplyDefined(Loc.initial, sx, ds);
     }
+}
+
+/**************************************************
+ * Analyse constructors, destructors, postblits, and fields
+ * prior to calculating isPOD.
+ * This function is used only if isPOD is called in the middle
+ * of semantic analysis of the struct declaration,
+ * it happens when members of the struct depend on the output of isPOD.
+ * https://issues.dlang.org/show_bug.cgi?id=20339
+ *
+ * Params:
+ *     sd = struct declaration
+ * Returns:
+ *     `true` if semantic was finished,
+ *     `false` if some member was deferred
+ */
+void structPODCheckSemantic(StructDeclaration sd)
+{
+    assert(sd.semanticRun > PASS.init && sd.semanticRun < PASS.semanticdone);
+
+    if (sd.podSemanticRun != PASS.init)
+        return;
+
+    sd.podSemanticRun = PASS.semantic;
+
+    Scope* sc2 = sd.membersScope;
+
+    sd.members.foreachDsymbol( (s) {
+        bool pred(Dsymbol s)
+        {
+            return s.isCtorDeclaration() ||
+                   s.isDtorDeclaration() || s.isPostBlitDeclaration() ||
+                   s.isVarDeclaration();
+        }
+        PragmaDeclaration pd = s.isPragmaDeclaration();
+        if (pd && pd.ident == Id.msg)
+            return; // defer
+        if (auto ad = s.isAttribDeclaration())
+            // analyse its members selectively using `pred`
+            doSelectiveSemantic(ad, sc2, &pred);
+        else if (pred(s) == false)
+            return; // defer
+        else
+            s.dsymbolSemantic(sc2);
+        sd.errors |= s.errors;
+    } );
+
+    if (!sd.determineFields())
+    {
+        if (!sd.errors)
+        {
+            sd.error(sd.loc, "circular or forward reference");
+            sd.errors = true;
+        }
+
+        return;
+    }
+
+    /* Following special member functions creation needs semantic analysis
+     * completion of sub-structs in each field types. For example, buildDtor
+     * needs to check existence of elaborate dtor in type of each fields.
+     * See the case in compilable/test14838.d
+     */
+    foreach (v; sd.fields)
+    {
+        Type tb = v.type.baseElemOf();
+        if (tb.ty != Tstruct)
+            continue;
+        auto sdec = (cast(TypeStruct)tb).sym;
+        if (sdec.semanticRun >= PASS.semanticdone)
+            continue;
+
+        //printf("\tdeferring %s\n", toChars());
+        return;
+    }
+
+    sd.ctor = sd.searchCtor();
+    sd.dtor = buildDtor(sd, sc2);
+    sd.tidtor = buildExternDDtor(sd, sc2);
+    sd.postblit = buildPostBlit(sd, sc2);
+    sd.hasCopyCtor = buildCopyCtor(sd, sc2);
+
+    sd.podSemanticRun = PASS.semanticdone;
 }

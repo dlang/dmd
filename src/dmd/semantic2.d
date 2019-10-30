@@ -576,6 +576,20 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
         ad.determineSize(ad.loc);
 
+        if (auto sd = ad.isStructDeclaration)
+        {
+            // build argtypes
+            auto tt = target.toArgTypes(sd.type);
+            size_t dim = tt ? tt.arguments.dim : 0;
+            if (dim >= 1)
+            {
+                assert(dim <= 2);
+                sd.arg1type = (*tt.arguments)[0].type;
+                if (dim == 2)
+                    sd.arg2type = (*tt.arguments)[1].type;
+            }
+        }
+
         for (size_t i = 0; i < ad.members.dim; i++)
         {
             Dsymbol s = (*ad.members)[i];

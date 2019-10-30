@@ -177,6 +177,8 @@ public:
     structalign_t alignment;    // alignment applied outside of the struct
     StructPOD ispod;            // if struct is POD
 
+    PASS podSemanticRun;        // semantic pass specifically for analysing whether the struct is POD
+
     // For 64 bit Efl function call/return ABI
     Type *arg1type;
     Type *arg2type;
@@ -185,6 +187,8 @@ public:
     // (e.g. TypeidExp, NewExp, ArrayLiteralExp, etc) request its TypeInfo.
     // For those, today TypeInfo_Struct is generated in COMDAT.
     bool requestTypeInfo;
+
+    Scope* membersScope;        // scope for struct members, set and used during semantic analysis
 
     static StructDeclaration *create(Loc loc, Identifier *id, bool inObject);
     Dsymbol *syntaxCopy(Dsymbol *s);

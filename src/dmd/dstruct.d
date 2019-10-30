@@ -218,6 +218,8 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     structalign_t alignment;    // alignment applied outside of the struct
     StructPOD ispod;            // if struct is POD
 
+    PASS podSemanticRun;        // semantic pass specifically for analysing whether the struct is POD
+
     // For 64 bit Efl function call/return ABI
     Type arg1type;
     Type arg2type;
@@ -226,6 +228,8 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     // (e.g. TypeidExp, NewExp, ArrayLiteralExp, etc) request its TypeInfo.
     // For those, today TypeInfo_Struct is generated in COMDAT.
     bool requestTypeInfo;
+
+    Scope* membersScope;        // scope for struct members, set and used during semantic analysis
 
     extern (D) this(const ref Loc loc, Identifier id, bool inObject)
     {
@@ -418,16 +422,6 @@ extern (C++) class StructDeclaration : AggregateDeclaration
                 break;
             }
         }
-
-        auto tt = target.toArgTypes(type);
-        size_t dim = tt ? tt.arguments.dim : 0;
-        if (dim >= 1)
-        {
-            assert(dim <= 2);
-            arg1type = (*tt.arguments)[0].type;
-            if (dim == 2)
-                arg2type = (*tt.arguments)[1].type;
-        }
     }
 
     /***************************************
@@ -554,13 +548,29 @@ extern (C++) class StructDeclaration : AggregateDeclaration
      * The idea being these are compatible with C structs.
      *
      * Returns:
-     *     true if struct is POD
+     *     true mif struct is POD
      */
     final bool isPOD()
     {
         // If we've already determined whether this struct is POD.
         if (ispod != StructPOD.fwd)
             return (ispod == StructPOD.yes);
+
+        if (semanticRun == PASS.init)
+            dsymbolSemantic(this, _scope);
+
+        if (podSemanticRun < PASS.semanticdone)
+        {
+            // https://issues.dlang.org/show_bug.cgi?id=20339
+            // https://github.com/dlang/dmd/pull/10519#discussion_r341443990
+
+            structPODCheckSemantic(this);
+            if (podSemanticRun < PASS.semanticdone)
+            {
+                error(loc, "is forward referenced when checking isPOD");
+                return true;
+            }
+        }
 
         ispod = StructPOD.yes;
 
