@@ -112,11 +112,11 @@ bool ISX64REF(Declaration var)
         {
             return var.type.size(Loc.initial) > REGSIZE
                 || (var.storage_class & STC.lazy_)
-                || (var.type.isTypeStruct() && !var.type.isTypeStruct().sym.isPOD());
+                || (var.type.baseElemOf().isTypeStruct() && !var.type.baseElemOf().isTypeStruct().sym.isPOD());
         }
         else if (!global.params.isWindows)
         {
-            return !(var.storage_class & STC.lazy_) && var.type.isTypeStruct() && !var.type.isTypeStruct().sym.isPOD();
+            return !(var.storage_class & STC.lazy_) && var.type.baseElemOf().isTypeStruct() && !var.type.baseElemOf().isTypeStruct().sym.isPOD();
         }
     }
 
@@ -130,11 +130,11 @@ bool ISX64REF(IRState* irs, Expression exp)
     if (config.exe == EX_WIN64)
     {
         return exp.type.size(Loc.initial) > REGSIZE
-            || (exp.type.isTypeStruct() && !exp.type.isTypeStruct().sym.isPOD());
+            || (exp.type.baseElemOf().isTypeStruct() && !exp.type.baseElemOf().isTypeStruct().sym.isPOD());
     }
     else if (!irs.params.isWindows)
     {
-        return exp.type.isTypeStruct() && !exp.type.isTypeStruct().sym.isPOD();
+        return exp.type.baseElemOf().isTypeStruct() && !exp.type.baseElemOf().isTypeStruct().sym.isPOD();
     }
 
     return false;

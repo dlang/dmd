@@ -8,6 +8,8 @@ struct Container
 
     this(int) { p = &data[0]; }
     this(ref Container) { p = &data[0]; }
+    this(this) { p = &data[0]; }
+    void opAssign(ref Container) { p = &data[0]; }
 
     /** Ensure the internal pointer is correct */
     void check(int line = __LINE__, string file = __FILE__)()
@@ -21,6 +23,7 @@ struct Container
 }
 
 void func(Container c) { c.check(); } // error
+void func(Container[1] c) { c[0].check(); } // error
 
 Container get()
 {
@@ -46,6 +49,10 @@ void main()
 
     Container[1] slit = [v];
     slit[0].check(); // error
+
+    slit[0] = v;
+    slit[0].check(); // ok
+    func(slit);
 
     Container[] dlit = [v];
     dlit[0].check(); // error
