@@ -2864,15 +2864,8 @@ final class Parser(AST) : Lexer
                         // Don't call nextToken again.
                     }
                 case TOK.in_:
-                    // Make `in` mean `const scope` if DIP1000 is selected
-                    if (global.params.vsafe)
-                    {
-                        stc = STC.const_ | STC.scope_;
-                    }
-                    else
-                    {
-                        stc = STC.in_;
-                    }
+                    // `in` now means `const scope` as originally intented
+                    stc = STC.const_ | STC.scope_;
                     goto L2;
 
                 case TOK.out_:
