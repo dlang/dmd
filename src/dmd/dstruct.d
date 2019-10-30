@@ -416,16 +416,6 @@ extern (C++) class StructDeclaration : AggregateDeclaration
                 break;
             }
         }
-
-        auto tt = target.toArgTypes(type);
-        size_t dim = tt ? tt.arguments.dim : 0;
-        if (dim >= 1)
-        {
-            assert(dim <= 2);
-            arg1type = (*tt.arguments)[0].type;
-            if (dim == 2)
-                arg2type = (*tt.arguments)[1].type;
-        }
     }
 
     /***************************************
