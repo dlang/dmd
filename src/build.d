@@ -18,8 +18,8 @@ import std.algorithm, std.conv, std.datetime, std.exception, std.file, std.forma
        std.getopt, std.parallelism, std.path, std.process, std.range, std.stdio, std.string;
 import core.stdc.stdlib : exit;
 
-const thisBuildScript = __FILE_FULL_PATH__;
-const srcDir = thisBuildScript.dirName.buildNormalizedPath;
+const thisBuildScript = __FILE_FULL_PATH__.buildNormalizedPath;
+const srcDir = thisBuildScript.dirName;
 const dmdRepo = srcDir.dirName;
 shared bool verbose; // output verbose logging
 shared bool force; // always build everything (ignores timestamp checking)
@@ -35,7 +35,8 @@ immutable rootDeps = [
     &runDmdUnittest,
     &clean,
     &checkwhitespace,
-    &runCxxUnittest
+    &runCxxUnittest,
+    &zip,
 ];
 
 void main(string[] args)
@@ -513,6 +514,25 @@ alias checkwhitespace = memoize!(function()
     return new DependencyRef(dep);
 });
 
+alias zip = memoize!(function()
+{
+    Dependency dep;
+    with (dep)
+    {
+        name = "zip";
+        target = srcDir.buildPath("dmdsrc.zip");
+        sources = .sources.root ~ .sources.backend ~ .sources.lexer ~
+            .sources.frontendHeaders ~ .sources.dmd;
+        msg = "ZIP " ~ target;
+        commandFunction = () {
+            if (exists(target))
+                remove(target);
+            run([env["ZIP"], target, thisBuildScript] ~ sources);
+        };
+    }
+    return new DependencyRef(dep);
+});
+
 /**
 Goes through the target list and replaces short-hand targets with their expanded version.
 Special targets:
@@ -781,6 +801,10 @@ void processEnvironment()
         env["HOST_DMD_KIND"] = "gdc";
 
     env["DMD_PATH"] = env["G"].buildPath("dmd").exeName;
+    version (Windows)
+        env.getDefault("ZIP", "zip32");
+    else
+        env.getDefault("ZIP", "zip");
 
     env.getDefault("ENABLE_WARNINGS", "0");
     string[] warnings;
@@ -955,7 +979,7 @@ auto sourceFiles()
         frontendHeaders: fileArray(env["D"], "
             aggregate.h aliasthis.h arraytypes.h attrib.h compiler.h complex_t.h cond.h
             ctfe.h declaration.h dsymbol.h doc.h enum.h errors.h expression.h globals.h hdrgen.h
-            identifier.h id.h import.h init.h json.h module.h mtype.h nspace.h objc.h scope.h
+            identifier.h id.h import.h init.h json.h mangle.h module.h mtype.h nspace.h objc.h scope.h
             statement.h staticassert.h target.h template.h tokens.h version.h visitor.h
         "),
         lexer: fileArray(env["D"], "
