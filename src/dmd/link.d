@@ -152,6 +152,48 @@ version (Posix)
     }
 }
 
+version (Windows)
+{
+    private void writeQuotedArgIfNeeded(ref OutBuffer buffer, const(char)* arg)
+    {
+        bool quote = false;
+        for (size_t i = 0; arg[i]; ++i)
+        {
+            if (arg[i] == '"')
+            {
+                quote = false;
+                break;
+            }
+
+            if (arg[i] == ' ')
+                quote = true;
+        }
+
+        if (quote)
+            buffer.writeByte('"');
+        buffer.writestring(arg);
+        if (quote)
+            buffer.writeByte('"');
+    }
+
+    unittest
+    {
+        OutBuffer buffer;
+
+        const(char)[] test(string arg)
+        {
+            buffer.reset();
+            buffer.writeQuotedArgIfNeeded(arg.ptr);
+            return buffer[];
+        }
+
+        assert(test("arg") == `arg`);
+        assert(test("arg with spaces") == `"arg with spaces"`);
+        assert(test(`"/LIBPATH:dir with spaces"`) == `"/LIBPATH:dir with spaces"`);
+        assert(test(`/LIBPATH:"dir with spaces"`) == `/LIBPATH:"dir with spaces"`);
+    }
+}
+
 /*****************************
  * Run the linker.  Return status of execution.
  */
@@ -246,7 +288,7 @@ public int runLINK()
             for (size_t i = 0; i < global.params.linkswitches.dim; i++)
             {
                 cmdbuf.writeByte(' ');
-                cmdbuf.writestring(global.params.linkswitches[i]);
+                cmdbuf.writeQuotedArgIfNeeded(global.params.linkswitches[i]);
             }
 
             VSOptions vsopt;
@@ -393,7 +435,7 @@ public int runLINK()
             }
             const(char)* linkcmd = getenv("LINKCMD");
             if (!linkcmd)
-                linkcmd = "link";
+                linkcmd = "optlink";
             const int status = executecmd(linkcmd, p.ptr);
             if (lnkfilename)
             {
