@@ -358,7 +358,11 @@ alias dmdExe = memoize!(function(string targetSuffix, string[] extraFlags...)
             "-vtls",
             "-J"~env["G"],
             "-J../res",
-        ].chain(extraFlags, platformArgs, flags["DFLAGS"], sources).array;
+        ].chain(extraFlags, platformArgs, flags["DFLAGS"],
+            // source files need to have relative paths in order for the code coverage
+            // .lst files to be named properly for CodeCov to find them
+            sources.map!(e => e.relativePath(srcDir))
+        ).array;
     }
     return new DependencyRef(dep);
 });
