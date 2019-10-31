@@ -194,34 +194,27 @@ will trigger a full rebuild.
 */
 
 /// Returns: the dependency that builds the lexer
-alias lexer = memoize!(function()
-{
-    Dependency dep;
-    with (dep)
-    {
-        name = "lexer";
-        target = env["G"].buildPath("lexer").libName;
-        sources = .sources.lexer;
-        deps = [versionFile, sysconfDirFile];
-        msg = "(DC) D_LEXER_OBJ %-(%s, %)".format(sources.map!(e => e.baseName).array);
-        command = [
-            env["HOST_DMD_RUN"],
-            "-of" ~ target,
-            "-lib",
-            "-vtls",
-            "-J"~env["G"], "-J../res",
-        ].chain(flags["DFLAGS"],
+alias lexer = makeDep!((builder, dep) => builder
+    .name("lexer")
+    .target(env["G"].buildPath("lexer").libName)
+    .sources(sources.lexer)
+    .deps([versionFile, sysconfDirFile])
+    .msg("(DC) D_LEXER_OBJ %-(%s, %)".format(dep.sources.map!(e => e.baseName).array))
+    .command([env["HOST_DMD_RUN"],
+        "-of" ~ dep.target,
+        "-lib",
+        "-vtls",
+        "-J"~env["G"], "-J../res"]
+        .chain(flags["DFLAGS"],
             // source files need to have relative paths in order for the code coverage
             // .lst files to be named properly for CodeCov to find them
-            sources.map!(e => e.relativePath(srcDir))
-        ).array;
-    }
-    return new DependencyRef(dep);
-});
+            dep.sources.map!(e => e.relativePath(srcDir))
+        ).array
+    )
+);
 
 /// Returns: the dependency that generates the dmd.conf file in the output folder
-alias dmdConf = memoize!(function()
-{
+alias dmdConf = makeDep!((builder, dep) {
     // TODO: add support for Windows
     string exportDynamic;
     version(OSX) {} else
@@ -235,56 +228,38 @@ DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@
         .replace("{exportDynamic}", exportDynamic)
         .replace("{BUILD}", env["BUILD"])
         .replace("{OS}", env["OS"]);
-
-    Dependency dep;
-    with (dep)
-    {
-        name = "dmdconf";
-        target = env["G"].buildPath("dmd.conf");
-        msg = "(TX) DMD_CONF";
-        commandFunction = ()
-        {
-            conf.toFile(target);
-        };
-    }
-    return new DependencyRef(dep);
+    builder
+        .name("dmdconf")
+        .target(env["G"].buildPath("dmd.conf"))
+        .msg("(TX) DMD_CONF")
+        .commandFunction(() {
+            conf.toFile(dep.target);
+        });
 });
 
 /// Returns: the dependencies that build the D backend
-alias backendObj = memoize!(function ()
-{
-    Dependency dep;
-    with (dep)
-    {
-        name = "backendObj";
-        target = env["G"].buildPath("backend").objName;
-        sources = .sources.backend;
-        msg = "(DC) D_BACK_OBJS %-(%s, %)".format(sources.map!(e => e.baseName).array);
-        command = [
-            env["HOST_DMD_RUN"],
-            "-c",
-            "-of" ~ target,
-            "-betterC",
-        ].chain(flags["DFLAGS"], sources).array;
-    }
-    return new DependencyRef(dep);
-});
+alias backendObj = makeDep!((builder, dep) => builder
+    .name("backendObj")
+    .target(env["G"].buildPath("backend").objName)
+    .sources(sources.backend)
+    .msg("(DC) D_BACK_OBJS %-(%s, %)".format(dep.sources.map!(e => e.baseName).array))
+    .command([
+        env["HOST_DMD_RUN"],
+        "-c",
+        "-of" ~ dep.target,
+        "-betterC"]
+        .chain(flags["DFLAGS"], dep.sources).array)
+);
 
 /// Execute the sub-dependencies of the backend and pack everything into one object file
-alias backend = memoize!(function()
-{
-    Dependency dep;
-    with (dep)
-    {
-        name = "backend";
-        msg = "(LIB) %s".format("BACKEND".libName);
-        sources = [ env["G"].buildPath("backend").objName ];
-        target = env["G"].buildPath("backend").libName;
-        deps = [backendObj];
-        command = [env["HOST_DMD_RUN"], env["MODEL_FLAG"], "-lib", "-of" ~ target].chain(sources).array;
-    }
-    return new DependencyRef(dep);
-});
+alias backend = makeDep!((builder, dep) => builder
+    .name("backend")
+    .msg("(LIB) %s".format("BACKEND".libName))
+    .sources([env["G"].buildPath("backend").objName])
+    .target(env["G"].buildPath("backend").libName)
+    .deps([backendObj])
+    .command([env["HOST_DMD_RUN"], env["MODEL_FLAG"], "-lib", "-of" ~ dep.target].chain(dep.sources).array)
+);
 
 /// Returns: the dependencies that generate required string files: VERSION and SYSCONFDIR.imp
 alias versionFile = memoize!(function()
@@ -1395,9 +1370,15 @@ class DependencyRef
     alias dep this;
     private bool executed;
 
+    this() { }
     this(ref Dependency dep)
     {
         this.dep = dep;
+        finalize();
+    }
+    /// Finish creating the dependency by checking that it is configured properly
+    void finalize()
+    {
         if (dep.target)
         {
             assert(!dep.targets, "target and targets cannot both be set");
@@ -1465,6 +1446,25 @@ class DependencyRef
         }
     }
 }
+
+/**
+Takes a lambda and returns a memoized function to build a dependecy object.
+*/
+alias makeDep(alias Func) = memoize!(function() {
+    static struct DepBuilder
+    {
+        private DependencyRef dep;
+        auto ref opDispatch(string name, T)(T arg)
+        {
+            mixin("dep." ~ name ~ " = arg;");
+            return this;
+        }
+    }
+    auto builder = DepBuilder(new DependencyRef());
+    Func(&builder, builder.dep);
+    builder.dep.finalize();
+    return builder.dep;
+});
 
 /**
 Logging primitive
