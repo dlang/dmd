@@ -37,6 +37,7 @@ immutable rootDeps = [
     &checkwhitespace,
     &runCxxUnittest,
     &zip,
+    &html,
 ];
 
 void main(string[] args)
@@ -537,6 +538,67 @@ alias zip = memoize!(function()
     return new DependencyRef(dep);
 });
 
+alias html = memoize!(function()
+{
+    const haveDmd = env.get("DMD", null).length > 0;
+
+    DependencyRef[] docDeps;
+    if (haveDmd)
+    {
+        static string d2html(string sourceFile)
+        {
+            auto ext = sourceFile.extension();
+            assert(ext == ".d" || ext == ".di", sourceFile);
+            const htmlFilePrefix = (sourceFile.baseName == "package.d") ?
+                sourceFile[0 .. $ - "package.d".length - 1] :
+                sourceFile[0 .. $ - ext.length];
+            return htmlFilePrefix ~ ".html";
+        }
+        const stddocs = env.get("STDDOC", "").split();
+        auto docSources = .sources.root ~ .sources.lexer ~ .sources.dmd ~ env["D"].buildPath("frontend.d");
+        docDeps = docSources.chunks(1).map!(sourceArray => {
+            Dependency docDep;
+            with (docDep)
+            {
+                sources = sourceArray;
+                const source = sourceArray[0];
+                target = env["DOC_OUTPUT_DIR"].buildPath(d2html(source)[srcDir.length + 1..$]
+                    .replace(dirSeparator, "_"));
+                deps = [versionFile, sysconfDirFile];
+                command = [
+                    env["DMD"],
+                    "-o-",
+                    "-c",
+                    "-Dd" ~ env["DOCSRC"],
+                    "-J../res",
+                    "-I" ~ env["D"],
+                    srcDir.buildPath("project.ddoc")
+                ] ~ stddocs ~ [
+                    "-Df" ~ docDep.target,
+                    // Need to use a short relative path to make sure ddoc links are correct
+                    source.relativePath(runDir)
+                ] ~ flags["DFLAGS"];
+                msg = docDep.command.join(" ");
+                return new DependencyRef(docDep);
+            }
+        }()).array;
+    }
+
+    Dependency htmlDep;
+    with (htmlDep)
+    {
+        name = "html";
+        description = "Generate html docs, requires DMD and STDDOC to be set";
+        deps = docDeps;
+        if (!haveDmd) {
+            commandFunction = () {
+                writefln("ERROR: cannot build '%s' unless DMD is set", htmlDep.name);
+            };
+        }
+    }
+    return new DependencyRef(htmlDep);
+});
+
 /**
 Goes through the target list and replaces short-hand targets with their expanded version.
 Special targets:
@@ -586,10 +648,6 @@ LtargetsLoop:
 
             case "build-examples":
                 "TODO: build-examples".writeln; // TODO
-                break;
-
-            case "html":
-                "TODO: html".writeln; // TODO
                 break;
 
             case "install":
@@ -732,6 +790,11 @@ void parseEnvironment()
     env.getDefault("SYSCONFDIR", "/etc");
     env.getDefault("TMP", tempDir);
     env.getDefault("RES", dmdRepo.buildPath("res"));
+
+    env.getDefault("DOCSRC", dmdRepo.buildPath("dlang.org"));
+    if (env.get("DOCDIR", null).length == 0)
+        env["DOCDIR"] = srcDir;
+    env.getDefault("DOC_OUTPUT_DIR", env["DOCDIR"]);
 
     auto d = env["D"] = srcDir.buildPath("dmd");
     env["C"] = d.buildPath("backend");
@@ -1402,6 +1465,12 @@ auto log(T...)(T args)
 }
 
 /**
+The directory where all run commands are executed from.  All relative file paths
+in a `run` command must be relative to `runDir`.
+*/
+alias runDir = srcDir;
+
+/**
 Run a command and optionally log the invocation
 
 Params:
@@ -1411,7 +1480,7 @@ auto run(T)(T args)
 {
     args = args.filter!(a => !a.empty).array;
     log("Run: %s", args.join(" "));
-    return execute(args, null, Config.none, size_t.max, srcDir);
+    return execute(args, null, Config.none, size_t.max, runDir);
 }
 
 /**

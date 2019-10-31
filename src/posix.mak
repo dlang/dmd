@@ -312,17 +312,6 @@ endif
 
 ######## DMD frontend source files
 
-FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argtypes argtypes_sysv_x64 arrayop	\
-	arraytypes astcodegen ast_node attrib builtin canthrow cli clone compiler complex cond constfold	\
-	cppmangle cppmanglewin ctfeexpr ctorflow dcast dclass declaration delegatize denum dimport	\
-	dinifile dinterpret dmacro dmangle dmodule doc dscope dstruct dsymbol dsymbolsem	\
-	dtemplate dversion env escape expression expressionsem func			\
-	hdrgen id impcnvtab imphint init initsem inline inlinecost intrange	\
-	json lambdacomp lib libelf libmach link mars mtype nogc nspace objc opover optimize parse permissivevisitor sapply templateparamsem	\
-	sideeffect statement staticassert target typesem traits transitivevisitor parsetimevisitor visitor	\
-	typinf utils scanelf scanmach statement_rewrite_walker statementsem staticcond safe blockexit printast \
-	semantic2 semantic3 foreachvar))
-
 LEXER_SRCS=$(addsuffix .d, $(addprefix $D/, console entity errors filecache globals id identifier lexer tokens utf ))
 
 LEXER_ROOT=$(addsuffix .d, $(addprefix $(ROOT)/, array bitarray ctfloat file filename outbuffer port rmem \
@@ -331,23 +320,6 @@ LEXER_ROOT=$(addsuffix .d, $(addprefix $(ROOT)/, array bitarray ctfloat file fil
 ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array bitarray ctfloat file \
 	filename man outbuffer port region response rmem rootobject speller \
 	longdouble strtold stringtable hash string))
-
-GLUE_SRCS=$(addsuffix .d, $(addprefix $D/,irstate toctype glue gluelayer todt tocsym toir dmsc \
-	tocvdebug s2ir toobj e2ir eh iasm iasmdmd iasmgcc objc_glue))
-
-DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS)
-
-######## DMD glue layer and backend
-
-GLUE_SRC = \
-	$(addprefix $D/, \
-	libelf.d scanelf.d libmach.d scanmach.d \
-	objc_glue.d)
-
-BACK_HDRS=$C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/global.d \
-	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d $C/code_x86.d $C/iasm.d $C/codebuilder.d \
-	$C/ty.d $C/type.d $C/exh.d $C/mach.d $C/mscoff.d $C/dwarf.d $C/dwarf2.d $C/xmm.d \
-	$C/dlist.d $C/melf.d $C/varstats.di $C/dt.d
 
 ######## CXX header files (only needed for cxx-unittest)
 
@@ -361,7 +333,7 @@ SRC_MAKE = posix.mak osmodel.mak
 
 DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS))
 
-RUN_BUILD = $(GENERATED)/build HOST_DMD="$(HOST_DMD)" CXX="$(HOST_CXX)" OS=$(OS) BUILD=$(BUILD) MODEL=$(MODEL) AUTO_BOOTSTRAP="$(AUTO_BOOTSTRAP)" --called-from-make
+RUN_BUILD = $(GENERATED)/build HOST_DMD="$(HOST_DMD)" CXX="$(HOST_CXX)" OS=$(OS) BUILD=$(BUILD) MODEL=$(MODEL) AUTO_BOOTSTRAP="$(AUTO_BOOTSTRAP)" DOCDIR="$(DOCDIR)" STDDOC="$(STDDOC)" DOC_OUTPUT_DIR="$(DOC_OUTPUT_DIR)" DMD="$(DMD)" --called-from-make
 
 ######## Begin build targets
 
@@ -426,27 +398,6 @@ else
 		unzip -qd ${HOST_DMD_ROOT} $${TMPFILE}.zip && rm $${TMPFILE}.zip;
 endif
 endif
-
-######## generate a default dmd.conf
-
-define DEFAULT_DMD_CONF
-[Environment32]
-DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../../../phobos/generated/$(OS)/$(BUILD)/32$(if $(filter $(OS),osx),, -L--export-dynamic)
-
-[Environment64]
-DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../../../phobos/generated/$(OS)/$(BUILD)/64$(if $(filter $(OS),osx),, -L--export-dynamic) -fPIC
-endef
-
-export DEFAULT_DMD_CONF
-
-######## VERSION
-########################################################################
-# The version file should be updated on every build
-# However, the version check script only touches the VERSION file if it
-# actually has changed.
-
-$G/VERSION: $(GENERATED)/build ../VERSION FORCE
-	$(RUN_BUILD) -f $@
 
 FORCE: ;
 
@@ -542,25 +493,9 @@ DOC_OUTPUT_DIR=$(DOCDIR)
 # Phobos is built
 ifneq ($(DOCSRC),)
 
-# list all files for which documentation should be generated, use sort to remove duplicates
-SRC_DOCUMENTABLES = $(sort $(ROOT_SRCS) $(DMD_SRCS) $(LEXER_SRCS) $(LEXER_ROOT) $(PARSER_SRCS) \
-                           $D/frontend.d)
+html: $(GENERATED)/build FORCE
+	$(RUN_BUILD) $@
 
-D2HTML=$(foreach p,$1,$(if $(subst package.d,,$(notdir $p)),$(subst /,_,$(subst .d,.html,$p)),$(subst /,_,$(subst /package.d,.html,$p))))
-HTMLS=$(addprefix $(DOC_OUTPUT_DIR)/, \
-	$(call D2HTML, $(SRC_DOCUMENTABLES)))
-
-# For each module, define a rule e.g.:
-# ../web/phobos/dmd_mars.html : dmd/mars.d $(STDDOC) ; ...
-$(foreach p,$(SRC_DOCUMENTABLES),$(eval \
-$(DOC_OUTPUT_DIR)/$(call D2HTML,$p) : $p $(STDDOC) $(DMD) ;\
-  $(DMD) -o- $(MODEL_FLAG) -J$G -J$(RES) -c -w -Dd$(DOCSRC) -Idmd\
-  $(DFLAGS) project.ddoc $(STDDOC) -Df$$@ $$<))
-
-$(DOC_OUTPUT_DIR) :
-	mkdir -p $@
-
-html: $(HTMLS) project.ddoc | $(DOC_OUTPUT_DIR)
 endif
 
 ######################################################
