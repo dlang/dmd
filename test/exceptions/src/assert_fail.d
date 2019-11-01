@@ -93,6 +93,22 @@ void testToString()()
         }
     }
     test(new Foo("a"), new Foo("b"), "Foo(a) != Foo(b)");
+
+    // Verifiy that the const toString is selected if present
+    static struct Overloaded
+    {
+        string toString()
+        {
+            return "Mutable";
+        }
+
+        string toString() const
+        {
+            return "Const";
+        }
+    }
+
+    test!"!="(Overloaded(), Overloaded(), "Const is Const");
 }
 
 
@@ -163,6 +179,20 @@ void testTemporary()
     test(assert(Bad() != Bad()), "Bad() is Bad()");
 }
 
+void testEnum()
+{
+    static struct UUID {
+        union
+        {
+            ubyte[] data = [1];
+        }
+    }
+
+    ubyte[] data;
+    enum ctfe = UUID();
+    test(assert(ctfe.data == data), "[1] != []");
+}
+
 void main()
 {
     testIntegers();
@@ -176,5 +206,6 @@ void main()
     testAttributes();
     testVoidArray();
     testTemporary();
+    testEnum();
     fprintf(stderr, "success.\n");
 }
