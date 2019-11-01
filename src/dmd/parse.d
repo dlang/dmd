@@ -8913,20 +8913,22 @@ final class Parser(AST) : Lexer
     {
         // function call
         AST.Expressions* arguments;
-        TOK endtok;
 
         arguments = new AST.Expressions();
-        endtok = token.value == TOK.leftBracket ? TOK.rightBracket : TOK.rightParentheses;
+        const endtok = token.value == TOK.leftBracket ? TOK.rightBracket : TOK.rightParentheses;
 
         nextToken();
+
         while (token.value != endtok && token.value != TOK.endOfFile)
         {
             auto arg = parseAssignExp();
             arguments.push(arg);
-            if (token.value == endtok)
+            if (token.value != TOK.comma)
                 break;
-            check(TOK.comma);
+
+            nextToken(); //comma
         }
+
         check(endtok);
 
         return arguments;
