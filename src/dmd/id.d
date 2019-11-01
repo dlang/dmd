@@ -431,6 +431,8 @@ immutable Msgtable[] msgtable =
     { "isZeroInit" },
     { "getTargetInfo" },
     { "getLocation" },
+    { "hasPostblit" },
+    { "hasCopyConstructor" },
 
     // For C++ mangling
     { "allocator" },
