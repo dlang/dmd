@@ -2976,6 +2976,14 @@ private bool type_jparam2(type* t, tym_t ty)
     else if (ty == TYstruct || ty == TYarray)
     {
         type_debug(t);
+        {
+            // don't enregister non PODs
+            type* t2 = t;
+            while (tybasic(t2.Tty) == TYarray)
+                t2 = t2.Tnext;
+            if (tybasic(t2.Tty) == TYstruct && t2.Ttag.Sstruct.Sflags & STRnotpod)
+                return false;
+        }
         targ_size_t sz = type_size(t);
         return (sz <= _tysize[TYnptr]) &&
                (config.exe == EX_WIN64 || sz == 1 || sz == 2 || sz == 4 || sz == 8);

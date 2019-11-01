@@ -3283,8 +3283,21 @@ elem * elstruct(elem *e, goal_t goal)
     tym_t tym = ~0;
     tym_t ty = tybasic(t.Tty);
 
+    type *targ1 = null;
+    type *targ2 = null;
+
     uint sz = (e.Eoper == OPstrpar && type_zeroSize(t, global_tyf)) ? 0 : cast(uint)type_size(t);
     //printf("\tsz = %d\n", (int)sz);
+
+    // don't enregister non PODs
+    {
+        type* t2 = t;
+        while (tybasic(t2.Tty) == TYarray)
+            t2 = t2.Tnext;
+        if (tybasic(t2.Tty) == TYstruct && t2.Ttag.Sstruct.Sflags & STRnotpod)
+            goto Ldefault;
+    }
+
     if (sz == 16)
     {
         while (ty == TYarray && t.Tdim == 1)
@@ -3294,8 +3307,6 @@ elem * elstruct(elem *e, goal_t goal)
         }
     }
 
-    type *targ1 = null;
-    type *targ2 = null;
     if (ty == TYstruct)
     {   // If a struct is a wrapper for another type, prefer that other type
         targ1 = t.Ttag.Sstruct.Sarg1type;
