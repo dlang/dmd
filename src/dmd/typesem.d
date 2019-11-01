@@ -1511,7 +1511,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                         fparam.storageClass |= STC.scope_ | STC.scopeinferred;
 
                 // Remove redundant storage classes for type, they are already applied
-                fparam.storageClass &= ~(STC.TYPECTOR | STC.in_);
+                fparam.storageClass &= ~STC.TYPECTOR;
             }
             argsc.pop();
         }
