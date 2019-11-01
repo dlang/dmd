@@ -89,6 +89,8 @@ static assert(__traits(getLocation, Outer.method)[1] == 84);
 /******************************************/
 // https://issues.dlang.org/show_bug.cgi?id=19902
 // Define hasElaborateCopyConstructor trait
+// but done as two independent traits per conversation
+// in https://github.com/dlang/dmd/pull/10265
 
 struct S
 {
@@ -111,7 +113,7 @@ void foo(T)()
     {
         this (ref S rhs) {}
     }
-    static assert (__traits(hasElaborateCopyConstructor, S!int));
+    static assert (__traits(hasCopyConstructor, S!int));
 }
 
 struct U(T)
@@ -127,19 +129,26 @@ struct SPostblit
 struct NoCpCtor { }
 class C19902 { }
 
-static assert(__traits(hasElaborateCopyConstructor, S));
-static assert(__traits(hasElaborateCopyConstructor, OuterS.S));
-static assert(__traits(hasElaborateCopyConstructor, OuterS));
+static assert(__traits(hasCopyConstructor, S));
+static assert(__traits(hasCopyConstructor, OuterS.S));
+static assert(__traits(hasCopyConstructor, OuterS));
 static assert(__traits(compiles, foo!int));
 static assert(__traits(compiles, foo!S));
-static assert(__traits(hasElaborateCopyConstructor, U!int));
-static assert(__traits(hasElaborateCopyConstructor, U!S));
-static assert(__traits(hasElaborateCopyConstructor, SPostblit));
+static assert(__traits(hasCopyConstructor, U!int));
+static assert(__traits(hasCopyConstructor, U!S));
+static assert(!__traits(hasPostblit, U!S));
+static assert(__traits(hasPostblit, SPostblit));
+static assert(!__traits(hasCopyConstructor, SPostblit));
 
-static assert(!__traits(hasElaborateCopyConstructor, NoCpCtor));
-static assert(!__traits(hasElaborateCopyConstructor, C19902));
-static assert(!__traits(hasElaborateCopyConstructor, int));
+static assert(!__traits(hasCopyConstructor, NoCpCtor));
+static assert(!__traits(hasCopyConstructor, C19902));
+static assert(!__traits(hasCopyConstructor, int));
+static assert(!__traits(hasPostblit, NoCpCtor));
+static assert(!__traits(hasPostblit, C19902));
+static assert(!__traits(hasPostblit, int));
 
 // Check that invalid use cases don't compile
-static assert(!__traits(compiles, __traits(hasElaborateCopyConstructor)));
-static assert(!__traits(compiles, __traits(hasElaborateCopyConstructor, S())));
+static assert(!__traits(compiles, __traits(hasCopyConstructor)));
+static assert(!__traits(compiles, __traits(hasCopyConstructor, S())));
+static assert(!__traits(compiles, __traits(hasPostblit)));
+static assert(!__traits(compiles, __traits(hasPostblit, S())));

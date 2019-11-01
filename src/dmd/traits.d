@@ -144,7 +144,8 @@ shared static this()
         "isZeroInit",
         "getTargetInfo",
         "getLocation",
-        "hasElaborateCopyConstructor"
+        "hasPostblit",
+        "hasCopyConstructor",
     ];
 
     StringTable* stringTable = cast(StringTable*) &traitsStringTable;
@@ -628,7 +629,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         return True();
     }
-    if (e.ident == Id.hasElaborateCopyConstructor)
+    if (e.ident == Id.hasCopyConstructor || e.ident == Id.hasPostblit)
     {
         if (dim != 1)
             return dimError(1);
@@ -645,10 +646,12 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         Type tb = t.baseElemOf();
         if (auto sd = tb.ty == Tstruct ? (cast(TypeStruct)tb).sym : null)
         {
-            return sd.hasCopyCtor || sd.postblit ? True() : False();
+            return (e.ident == Id.hasPostblit) ? (sd.postblit ? True() : False())
+                 : (sd.hasCopyCtor ? True() : False());
         }
         return False();
     }
+
     if (e.ident == Id.isNested)
     {
         if (dim != 1)
