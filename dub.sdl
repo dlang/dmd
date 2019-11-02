@@ -83,10 +83,12 @@ subPackage {
     iasm,\
     iasmdmd,\
     iasmgcc,\
+    irstate,\
     objc_glue,\
     s2ir,\
     tocsym,\
     toctype,\
+    tocvdebug,\
     toobj,\
     todt,\
     toir\
