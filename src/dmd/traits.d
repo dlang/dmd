@@ -1323,7 +1323,10 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         else if (stc & STC.ref_)
             push("ref");
         else if (stc & STC.in_)
-            push("in");
+        {
+            if (global.params.vsafe)
+                stc &= ~STC.scopeinferred; // print scope
+        }
         else if (stc & STC.lazy_)
             push("lazy");
         else if (stc & STC.alias_)
