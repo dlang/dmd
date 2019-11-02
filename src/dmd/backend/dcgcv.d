@@ -1769,10 +1769,8 @@ private uint cv4_fwdenum(type* t)
         default:
             assert(0);
     }
-    len += cv_namestring(d.data.ptr + len, id);
-    d.length = 0;                    // so cv_debtyp() will allocate new
+    cv_namestring(d.data.ptr + len, id);
     s.Stypidx = cv_debtyp(d);
-    d.length = cast(ushort)len;      // restore length
     return s.Stypidx;
 }
 
