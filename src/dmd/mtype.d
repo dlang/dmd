@@ -6536,7 +6536,7 @@ extern (C++) final class Parameter : ASTNode
      */
     bool isCovariant(bool returnByRef, const Parameter p) const pure nothrow @nogc @safe
     {
-        enum stc = STC.ref_ | STC.in_ | STC.out_ | STC.lazy_;
+        enum stc = STC.ref_ | STC.out_ | STC.lazy_; // STC.in_ is dealt with via scope/const
         if ((this.storageClass & stc) != (p.storageClass & stc))
             return false;
         return isCovariantScope(returnByRef, this.storageClass, p.storageClass);
