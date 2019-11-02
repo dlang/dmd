@@ -5789,9 +5789,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (tok == TOK.call)
             {
                 const callExp = cast(CallExp) exp.e1;
-                const callExpIdent = callExp.f.ident;
-                isEqualsCallExpression = callExpIdent == Id.__equals ||
-                                         callExpIdent == Id.eq;
+
+                // https://issues.dlang.org/show_bug.cgi?id=20331
+                // callExp.f may be null if the assert contains a call to
+                // a function pointer or literal
+                if (const callExpFunc = callExp.f)
+                {
+                    const callExpIdent = callExpFunc.ident;
+                    isEqualsCallExpression = callExpIdent == Id.__equals ||
+                                             callExpIdent == Id.eq;
+                }
             }
             if (tok == TOK.equal || tok == TOK.notEqual ||
                 tok == TOK.lessThan || tok == TOK.greaterThan ||
