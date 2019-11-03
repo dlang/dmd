@@ -131,7 +131,7 @@ void testStruct()()
     test(S(0), S(1), "S(0) !is S(1)");
     test(T([T(null)]), T(null), "[T([])] != []");
 
-    https://issues.dlang.org/show_bug.cgi?id=20323
+    // https://issues.dlang.org/show_bug.cgi?id=20323
     static struct NoCopy
     {
         @disable this(this);
