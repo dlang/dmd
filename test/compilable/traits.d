@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -extern-std=c++98
+// REQUIRED_ARGS: -extern-std=c++98 -unittest
 
 // This file is intended to contain all compilable traits-related tests in an
 // effort to keep the number of files in the `compilable` folder to a minimum.
@@ -86,3 +86,18 @@ struct Outer
 static assert(__traits(getLocation, Outer.Nested)[1] == 82);
 static assert(__traits(getLocation, Outer.method)[1] == 84);
 
+/******************************************/
+// https://issues.dlang.org/show_bug.cgi?id=20324
+template    Foo()       { unittest{} }
+class       Bar(T)      { unittest{} }
+struct      Baz(T,U)    { unittest{} }
+
+alias       PartialBaz(T) = Baz!(int, T);
+
+static assert(__traits(getUnitTests, Foo!()).length == 1);
+static assert(__traits(getUnitTests, Bar!(int)).length == 1);
+static assert(__traits(getUnitTests, Baz!(int,void)).length == 1);
+
+static assert(__traits(getUnitTests, Foo).length == 0);
+static assert(__traits(getUnitTests, Bar).length == 0);
+static assert(__traits(getUnitTests, PartialBaz).length == 0);

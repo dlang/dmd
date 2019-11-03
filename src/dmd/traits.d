@@ -1752,7 +1752,16 @@ Lnext:
 
         auto o = (*e.args)[0];
         auto s = getDsymbolWithoutExpCtx(o);
-        if (!s)
+        if (s)
+        {
+            // https://issues.dlang.org/show_bug.cgi?id=20324
+            if (const td = s.isTemplateDeclaration())
+            {
+                auto te = new TupleExp(e.loc, new Expressions());
+                return te.expressionSemantic(sc);
+            }
+        }
+        else
         {
             e.error("argument `%s` to __traits(getUnitTests) must be a module or aggregate",
                 o.toChars());
