@@ -117,9 +117,11 @@ class TestVisitor : public Visitor
     bool decl;
     bool typeinfo;
     bool idexpr;
+    bool function;
 
     TestVisitor() : expr(false), package(false), stmt(false), type(false),
-        aggr(false), attrib(false), decl(false), typeinfo(false), idexpr(false)
+        aggr(false), attrib(false), decl(false), typeinfo(false), idexpr(false),
+        function(false)
     {
     }
 
@@ -166,6 +168,11 @@ class TestVisitor : public Visitor
     void visit(TypeInfoDeclaration *)
     {
         typeinfo = true;
+    }
+
+    void visit(FuncDeclaration *)
+    {
+        function = true;
     }
 };
 
@@ -223,6 +230,15 @@ void test_visitors()
     assert(ti->tinfo == tp);
     ti->accept(&tv);
     assert(tv.typeinfo == true);
+
+    Parameters *args = new Parameters;
+    TypeFunction *tf = TypeFunction::create(args, Type::tvoid, VARARGnone, LINKc);
+    FuncDeclaration *fd = FuncDeclaration::create(Loc (), Loc (), Identifier::idPool("test"),
+                                                  STCextern, tf);
+    assert(fd->isFuncDeclaration() == fd);
+    assert(fd->type == tf);
+    fd->accept(&tv);
+    assert(tv.function == true);
 }
 
 /**********************************/
