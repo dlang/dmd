@@ -2,11 +2,16 @@ import core.stdc.stdio : fprintf, printf, stderr;
 
 void test(string comp = "==", A, B)(A a, B b, string msg, size_t line = __LINE__)
 {
+    test(assert(mixin("a " ~ comp ~ " b")), msg, line);
+}
+
+void test(T)(lazy T dg, string msg, size_t line = __LINE__)
+{
     int ret = () {
         import core.exception : AssertError;
         try
         {
-            assert(mixin("a " ~ comp ~ " b"));
+            dg();
         } catch(AssertError e)
         {
             // don't use assert here for better debugging
@@ -88,6 +93,22 @@ void testToString()()
         }
     }
     test(new Foo("a"), new Foo("b"), "Foo(a) != Foo(b)");
+
+    // Verifiy that the const toString is selected if present
+    static struct Overloaded
+    {
+        string toString()
+        {
+            return "Mutable";
+        }
+
+        string toString() const
+        {
+            return "Const";
+        }
+    }
+
+    test!"!="(Overloaded(), Overloaded(), "Const is Const");
 }
 
 
@@ -111,13 +132,13 @@ void testStruct()()
     test(T([T(null)]), T(null), "[T([])] != []");
 
     https://issues.dlang.org/show_bug.cgi?id=20323
-    struct NoCopy
+    static struct NoCopy
     {
         @disable this(this);
     }
 
     NoCopy n;
-    assert(n == n);
+    test(assert(n != n), "NoCopy() is NoCopy()");
 }
 
 void testAA()()
@@ -155,7 +176,21 @@ void testTemporary()
         ~this() @system {}
     }
 
-    assert(Bad() == Bad());
+    test(assert(Bad() != Bad()), "Bad() is Bad()");
+}
+
+void testEnum()
+{
+    static struct UUID {
+        union
+        {
+            ubyte[] data = [1];
+        }
+    }
+
+    ubyte[] data;
+    enum ctfe = UUID();
+    test(assert(ctfe.data == data), "[1] != []");
 }
 
 void main()
@@ -171,5 +206,6 @@ void main()
     testAttributes();
     testVoidArray();
     testTemporary();
+    testEnum();
     fprintf(stderr, "success.\n");
 }
