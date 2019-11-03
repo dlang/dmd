@@ -3805,7 +3805,8 @@ private
     version (CRuntime_Microsoft)
         extern(C) extern __gshared ubyte msvcUsesUCRT; // from rt/msvc.c
 
-    package(core) __gshared bool thread_DLLProcessDetaching;
+    /// set during termination of a DLL on Windows, i.e. while executing DllMain(DLL_PROCESS_DETACH)
+    public __gshared bool thread_DLLProcessDetaching;
 
     __gshared HMODULE ll_dllModule;
     __gshared ThreadID ll_dllMonitorThread;
