@@ -1,3 +1,0 @@
-Added `core.atomic.atomicFetchAdd` and `core.atomic.atomicFetchSub`.
-
-Added `core.atomic.atomicFetchAdd` and `core.atomic.atomicFetchSub` to the atomic suite.

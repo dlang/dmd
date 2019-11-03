@@ -2597,6 +2597,15 @@ struct Gcx
         //printf("\tpool address range = %p .. %p\n", minAddr, maxAddr);
 
         {
+            version (COLLECT_PARALLEL)
+            {
+                bool doParallel = config.parallel > 0;
+                if (doParallel && !scanThreadData)
+                    startScanThreads();
+            }
+            else
+                enum doParallel = false;
+
             // lock roots and ranges around suspending threads b/c they're not reentrant safe
             rangesLock.lock();
             rootsLock.lock();
@@ -2614,11 +2623,6 @@ struct Gcx
             stop = currTime;
             prepTime += (stop - start);
             start = stop;
-
-            version (COLLECT_PARALLEL)
-                bool doParallel = config.parallel > 0;
-            else
-                enum doParallel = false;
 
             if (doParallel)
             {
@@ -2744,9 +2748,6 @@ struct Gcx
         void** pbot = toscanRoots._p;
         void** ptop = toscanRoots._p + toscanRoots._length;
 
-        if (!scanThreadData)
-            startScanThreads();
-
         debug(PARALLEL_PRINTF) printf("markParallel\n");
 
         size_t pointersPerThread = toscanRoots._length / (numScanThreads + 1);
@@ -2869,8 +2870,12 @@ struct Gcx
             if (scanThreadData[idx].tid != scanThreadData[idx].tid.init)
                 startedThreads++;
 
+        version (Windows)
+            alias allThreadsDead = thread_DLLProcessDetaching;
+        else
+            enum allThreadsDead = false;
         stopGC = true;
-        while (atomicLoad(stoppedThreads) < startedThreads)
+        while (atomicLoad(stoppedThreads) < startedThreads && !allThreadsDead)
         {
             evStart.set();
             evDone.wait(dur!"msecs"(1));
