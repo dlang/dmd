@@ -44,8 +44,11 @@ import dmd.id;
 import dmd.identifier;
 import dmd.inline;
 import dmd.json;
-import dmd.lib;
-import dmd.link;
+version (NoMain) {} else
+{
+    import dmd.lib;
+    import dmd.link;
+}
 import dmd.mtype;
 import dmd.objc;
 import dmd.root.array;
@@ -132,6 +135,7 @@ Where:
  * Returns:
  *   Application return code
  */
+version (NoMain) {} else
 private int tryMain(size_t argc, const(char)** argv, ref Param params)
 {
     Strings files;
@@ -2437,6 +2441,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
  *               and update in place
  *      numSrcFiles = number of source files
  */
+version (NoMain) {} else
 private void reconcileCommands(ref Param params, size_t numSrcFiles)
 {
     static if (TARGET.OSX)
