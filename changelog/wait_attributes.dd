@@ -1,5 +1,0 @@
-Make wstatus predicates pure and @safe
-
-The predicates that operate on the wstatus value reported by wait(2) are now
-marked pure and @safe, allowing them to be used in functions with those
-attributes.
