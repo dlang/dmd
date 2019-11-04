@@ -219,6 +219,9 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
     else
     {
         // check for deprecated or disabled aliases
+        auto ti = s.isTemplateInstance();
+        if (ti && ti.aliasdecl && ti.aliasdecl.isAliasDeclaration())
+            s = s.toAlias();
         s.checkDeprecated(loc, sc);
         if (d)
             d.checkDisabled(loc, sc, true);
