@@ -4703,6 +4703,32 @@ public:
                 result = interpretRegion(ae, istate);
                 return;
             }
+            else if (fd.ident == Id._d_arrayappendcTX)
+            {
+                // `a ~= b` generates a call to this function where `a` is an array and `b` is an element.
+                // `_d_arrayappendcTX` extends the array length and return the array.
+                // interpret as `(a.length += n, a)`.
+                assert(e.arguments.dim == 2);
+
+                Expression e1 = (*e.arguments)[0];
+                Expression en = (*e.arguments)[1];
+
+                Expression earr = interpretRegion(e1, istate, ctfeNeedLvalue);
+
+                // a.length += n
+                Expression eal = ctfeEmplaceExp!ArrayLengthExp(e1.loc, earr);
+                eal.type = Type.tsize_t;
+                eal = ctfeEmplaceExp!AddAssignExp(e1.loc, eal, en);
+                eal.type = Type.tsize_t;
+                eal = interpretRegion(eal, istate);
+                if (exceptionOrCant(eal))
+                {
+                    result = CTFEExp.cantexp;
+                    return;
+                }
+                result = interpretRegion(earr, istate, goal);
+                return;
+            }
         }
         else if (auto soe = ecall.isSymOffExp())
         {

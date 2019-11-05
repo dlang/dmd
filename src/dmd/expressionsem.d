@@ -9337,8 +9337,68 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (checkNewEscape(sc, exp.e2, false))
                 return setError();
 
-            exp = new CatElemAssignExp(exp.loc, exp.type, exp.e1, exp.e2.castTo(sc, tb1next));
-            exp.e2 = doCopyOrMove(sc, exp.e2);
+            /* Lower to:
+             * tmp = e2;
+             * .object._d_arrayappendcTXImpl.!(typeof(e1))
+             *   ._d_arrayappendcTX{,Trace}(e1, 1)[$-1] = tmp;
+             */
+            Loc loc = exp.loc;
+
+            // Evaluate e2 first and assign the result to a temporary.
+            // because e2 may access the length of the array e1.
+            // Example case: e1 ~= e1[$-1]
+            // $ changes its value after array expansion.
+            Expression dtmp;
+            Expression vtmp = extractSideEffect(sc, "__ceatmp", dtmp, exp.e2.castTo(sc, tb1next), true /*alwaysCopy*/);
+            assert(vtmp.op == TOK.variable);
+            VarExp ve = cast(VarExp)vtmp;
+            ve.var.storage_class |= STC.exptemp;     // lifetime limited to expression
+            ve.var.storage_class |= STC.nodtor;  // Some third party libraries are not expecting a call
+                                                 // to the destructor in a ~= operation.
+                                                 // FIXME: remove this storage in the future.
+
+            // Extend array with _d_arrayappendcTXImpl!(typeof(e1))._d_arrayappendcTX{,Trace}(e1, 1)
+            Identifier hook = global.params.tracegc ? Id._d_arrayappendcTXTrace : Id._d_arrayappendcTX;
+            if (!verifyHookExist(loc, *sc, Id._d_arrayappendcTXImpl, "extending arrays"))
+                return setError();
+
+            Expression ex = new IdentifierExp(loc, Id.empty);
+            ex = new DotIdExp(loc, ex, Id.object);
+            auto tiargs = new Objects();
+            tiargs.push(tb1);
+            ex = new DotTemplateInstanceExp(loc, ex, Id._d_arrayappendcTXImpl, tiargs);
+            ex = new DotIdExp(loc, ex, hook);
+
+            auto arguments = new Expressions();
+            arguments.reserve(global.params.tracegc ? 5 : 2);
+            if (global.params.tracegc)
+            {
+                // first three arguments are: file, line, function
+                auto funcname = (sc.callsc && sc.callsc.func) ? sc.callsc.func.toPrettyChars() : sc.func.toPrettyChars();
+                arguments.push(new StringExp(exp.loc, exp.loc.filename.toDString()));
+                arguments.push(new IntegerExp(exp.loc, exp.loc.linnum, Type.tint32));
+                arguments.push(new StringExp(exp.loc, funcname.toDString()));
+            }
+            arguments.push(exp.e1);
+            arguments.push(IntegerExp.literal!1);
+
+            ex = new CallExp(loc, ex, arguments);
+
+            // save result
+            Expression dex;
+            ex = ex.expressionSemantic(sc);
+            ex = extractSideEffect(sc, "__ceatmpx", dex, ex.castTo(sc, tb1), true /*alwaysCopy*/);
+            assert(ex.op == TOK.variable);
+            VarExp vx = cast(VarExp)ex;
+            vx.var.storage_class |= STC.exptemp;     // lifetime limited to expression
+
+            // Assign tmp to the end of the array: ex[$-1] = tmp
+            IndexExp ie = new IndexExp(loc, ex, new MinExp(loc, new DollarExp(loc), IntegerExp.literal!1));
+            ie.indexIsInBounds = true; // assume index within bounds
+            Expression ae = new ConstructExp(loc, ie, vtmp);
+
+            result = Expression.combine(dtmp, dex, ae).expressionSemantic(sc);
+            return;
         }
         else if (tb1.ty == Tarray &&
                  (tb1next.ty == Tchar || tb1next.ty == Twchar) &&
