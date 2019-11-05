@@ -3176,13 +3176,15 @@ extern (C++) final class StructLiteralExp : Expression
              *   __sl%s%d, where %s is the struct name
              */
             const size_t len = 10;
-            char[len + 1] buf = void;
-            buf[len] = 0;
-            strcpy(buf.ptr, "__sl");
-            strncat(buf.ptr, sd.ident.toChars(), len - 4 - 1);
-            assert(buf[len] == 0);
+            char[len] buf = void;
 
-            auto tmp = copyToTemp(0, buf.ptr, this);
+            const ident = sd.ident.toString;
+            const prefix = "__sl";
+            const charsToUse = ident.length > len - prefix.length ? len - prefix.length : ident.length;
+            buf[0 .. prefix.length] = prefix;
+            buf[prefix.length .. prefix.length + charsToUse] = ident[0 .. charsToUse];
+
+            auto tmp = copyToTemp(0, buf, this);
             Expression ae = new DeclarationExp(loc, tmp);
             Expression e = new CommaExp(loc, ae, new VarExp(loc, tmp));
             e = e.expressionSemantic(sc);
@@ -3641,7 +3643,7 @@ extern (C++) final class FuncExp : Expression
     {
         if (fd.ident == Id.empty)
         {
-            const(char)* s;
+            const(char)[] s;
             if (fd.fes)
                 s = "__foreachbody";
             else if (fd.tok == TOK.reserved)

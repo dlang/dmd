@@ -363,7 +363,7 @@ bool discardValue(Expression e)
  * Returns:
  *  Newly created temporary variable.
  */
-VarDeclaration copyToTemp(StorageClass stc, const char* name, Expression e)
+VarDeclaration copyToTemp(StorageClass stc, const char[] name, Expression e)
 {
     assert(name[0] == '_' && name[1] == '_');
     auto vd = new VarDeclaration(e.loc, e.type,
@@ -387,7 +387,7 @@ VarDeclaration copyToTemp(StorageClass stc, const char* name, Expression e)
  * Note:
  *  e's lvalue-ness will be handled well by STC.ref_ or STC.rvalue.
  */
-Expression extractSideEffect(Scope* sc, const char* name,
+Expression extractSideEffect(Scope* sc, const char[] name,
     ref Expression e0, Expression e, bool alwaysCopy = false)
 {
     if (!alwaysCopy && isTrivialExp(e))

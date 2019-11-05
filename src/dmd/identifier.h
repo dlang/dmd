@@ -28,8 +28,6 @@ public:
     const char *toHChars2() const;
     DYNCAST dyncast() const;
 
-    static Identifier *generateId(const char *prefix);
-    static Identifier *generateId(const char *prefix, size_t i);
     static Identifier *idPool(const char *s, unsigned len);
 
     static inline Identifier *idPool(const char *s)
