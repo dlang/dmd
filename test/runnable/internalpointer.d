@@ -16,8 +16,9 @@ struct Container
     {
         if (p != &data[0])
         {
-            import core.stdc.stdio : printf;
-            printf("%s(%d): %s\n", file.ptr, line, "error".ptr);
+            //import core.stdc.stdio : printf;
+            //printf("%s(%d): %s\n", file.ptr, line, "error".ptr);
+            assert(0, "internal pointer corrupted");
         }
     }
 }
