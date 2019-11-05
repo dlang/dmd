@@ -12,6 +12,7 @@
 
 module dmd.root.bitarray;
 
+import core.stdc.stdio;
 import core.stdc.string;
 
 import dmd.root.rmem;
@@ -44,11 +45,19 @@ nothrow:
         len = nlen;
     }
 
+    void opAssign(const ref BitArray b)
+    {
+        if (!len)
+            length(b.len);
+        assert(len == b.len);
+        memcpy(ptr, b.ptr, (len + BitsPerChunk - 1) / 8);
+    }
+
     bool opIndex(size_t idx) const pure nothrow @nogc
     {
         import core.bitop : bt;
 
-        assert(idx < length);
+        assert(idx < len);
         return !!bt(ptr, idx);
     }
 
@@ -56,7 +65,7 @@ nothrow:
     {
         import core.bitop : btc, bts;
 
-        assert(idx < length);
+        assert(idx < len);
         if (val)
             bts(ptr, idx);
         else
@@ -68,11 +77,37 @@ nothrow:
         return len == b.len && memcmp(ptr, b.ptr, (len + BitsPerChunk - 1) / 8) == 0;
     }
 
-    @disable this(this);
+    void zero()
+    {
+        memset(ptr, 0, (len + BitsPerChunk - 1) / 8);
+    }
+
+    void or(const ref BitArray b)
+    {
+        assert(len == b.len);
+        const nchunks = (len + BitsPerChunk - 1) / BitsPerChunk;
+        foreach (i; 0 .. nchunks)
+            ptr[i] |= b.ptr[i];
+    }
 
     ~this() pure nothrow
     {
+        debug
+        {
+            // Stomp the allocated memory
+            const nchunks = (len + BitsPerChunk - 1) / BitsPerChunk;
+            foreach (i; 0 .. nchunks)
+            {
+                ptr[i] = cast(Chunk_t)0xFEFEFEFE_FEFEFEFE;
+            }
+        }
         mem.xfree(ptr);
+        debug
+        {
+            // Set to implausible values
+            len = cast(size_t)0xFEFEFEFE_FEFEFEFE;
+            ptr = cast(size_t*)cast(size_t)0xFEFEFEFE_FEFEFEFE;
+        }
     }
 
 private:
@@ -104,6 +139,9 @@ unittest
     assert(a == b);
     b[299] = true;
     assert(a != b);
+    b = a;
+    assert(a == b);
 }
+
 
 
