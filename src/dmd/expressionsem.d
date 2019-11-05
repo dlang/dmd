@@ -5831,10 +5831,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = ex;
             return;
         }
-        exp.e1 = resolveProperties(sc, exp.e1);
-        // BUG: see if we can do compile time elimination of the Assert
-        exp.e1 = exp.e1.optimize(WANTvalue);
-        exp.e1 = exp.e1.toBoolean(sc);
 
         if (generateMsg)
         // no message - use assert expression as msg
@@ -5977,6 +5973,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.msg = exp.msg.implicitCastTo(sc, Type.tchar.constOf().arrayOf());
             exp.msg = exp.msg.optimize(WANTvalue);
         }
+
+        exp.e1 = resolveProperties(sc, exp.e1);
+        // BUG: see if we can do compile time elimination of the Assert
+        exp.e1 = exp.e1.optimize(WANTvalue);
+        exp.e1 = exp.e1.toBoolean(sc);
 
         if (exp.e1.op == TOK.error)
         {

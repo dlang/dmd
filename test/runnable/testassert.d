@@ -73,6 +73,50 @@ void test20114()
     int i = 0;
     const c = getMessage(assert(++i == 0));
     assert(c == "1 != 0");
+
+    // Impure function call returning complex type without opEquals
+    static struct T
+    {
+        int a;
+        S b;
+    }
+
+    static T get()
+    {
+        __gshared int counter = 0;
+        return T(counter++);
+    }
+
+    const msg = getMessage(assert(get() == get()));
+    assert(msg == "T(0, S()) !is T(1, S())");
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=20353
+void test20353()
+{
+    // assert(x == y) is const-folded into assert(false)
+    // which halts the executable in release mode
+    version (assert) {} else
+        return;
+
+    {
+        const x = -1;
+        const y = -2;
+        const msg = getMessage(assert(x == y));
+
+        assert(msg == "-1 != -2");
+    }
+
+    {
+        static struct S { int a; float b; }
+        static immutable S x, y;
+
+        const msg = getMessage(assert(x == y));
+        // TODO: Needs different handling of rewrites as checkaction=context
+        // has to deal with the rewritten expression x.a == y.a && x.b == y.b
+        // assert(msg == "S(0, nan) != S(0, nan)");
+        assert(msg == "assert(x == y) failed");
+    }
 }
 
 void test20375() @safe
@@ -146,4 +190,5 @@ void main()
     test9255();
     test20114();
     test20375();
+    test20353();
 }
