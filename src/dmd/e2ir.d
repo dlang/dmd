@@ -1080,7 +1080,7 @@ Lagain:
 }
 
 
-__gshared StringTable *stringTab;
+__gshared StringTable!(Symbol*) *stringTab;
 
 /********************************
  * Reset stringTab[] between object files being emitted, because the symbols are local.
@@ -1092,7 +1092,7 @@ void clearStringTab()
         stringTab.reset(1000);             // 1000 is arbitrary guess
     else
     {
-        stringTab = new StringTable();
+        stringTab = new StringTable!(Symbol*)();
         stringTab._init(1000);
     }
 }
@@ -5986,8 +5986,8 @@ elem *toElemDtor(Expression e, IRState *irs)
 Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
 {
     //printf("toStringSymbol() %p\n", stringTab);
-    StringValue *sv = stringTab.update(str, len * sz);
-    if (!sv.ptrvalue)
+    auto sv = stringTab.update(str, len * sz);
+    if (!sv.value)
     {
         Symbol* si;
 
@@ -6046,9 +6046,9 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
             si = out_string_literal(str, cast(uint)len, cast(uint)sz);
         }
 
-        sv.ptrvalue = cast(void *)si;
+        sv.value = si;
     }
-    return cast(Symbol *)sv.ptrvalue;
+    return sv.value;
 }
 
 /*******************************************************

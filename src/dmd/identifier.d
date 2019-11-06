@@ -136,7 +136,7 @@ nothrow:
         return DYNCAST.identifier;
     }
 
-    private extern (D) __gshared StringTable stringtable;
+    private extern (D) __gshared StringTable!Identifier stringtable;
 
     extern(D) static Identifier generateId(const(char)[] prefix)
     {
@@ -226,12 +226,12 @@ nothrow:
 
     extern (D) static Identifier idPool(const(char)[] s)
     {
-        StringValue* sv = stringtable.update(s);
-        Identifier id = cast(Identifier)sv.ptrvalue;
+        auto sv = stringtable.update(s);
+        auto id = sv.value;
         if (!id)
         {
             id = new Identifier(sv.toString(), TOK.identifier);
-            sv.ptrvalue = cast(char*)id;
+            sv.value = id;
         }
         return id;
     }
@@ -246,7 +246,7 @@ nothrow:
         auto sv = stringtable.insert(s, null);
         assert(sv);
         auto id = new Identifier(sv.toString(), value);
-        sv.ptrvalue = cast(char*)id;
+        sv.value = id;
         return id;
     }
 
@@ -297,7 +297,7 @@ nothrow:
         auto sv = stringtable.lookup(s);
         if (!sv)
             return null;
-        return cast(Identifier)sv.ptrvalue;
+        return sv.value;
     }
 
     extern (D) static void initTable()

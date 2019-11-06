@@ -113,25 +113,25 @@ const(char)[] findConfFile(const(char)[] argv0, const(char)[] inifile)
  * Returns:
  *      environment value corresponding to name
  */
-const(char)* readFromEnv(const ref StringTable environment, const(char)* name)
+const(char)* readFromEnv(const ref StringTable!(char*) environment, const(char)* name)
 {
     const len = strlen(name);
     const sv = environment.lookup(name, len);
-    if (sv && sv.ptrvalue)
-        return cast(char*)sv.ptrvalue; // get cached value
+    if (sv && sv.value)
+        return sv.value; // get cached value
     return getenv(name);
 }
 
 /*********************************
  * Write to our copy of the environment, not the real environment
  */
-private bool writeToEnv(ref StringTable environment, char* nameEqValue)
+private bool writeToEnv(ref StringTable!(char*) environment, char* nameEqValue)
 {
     auto p = strchr(nameEqValue, '=');
     if (!p)
         return false;
     auto sv = environment.update(nameEqValue, p - nameEqValue);
-    sv.ptrvalue = cast(void*)(p + 1);
+    sv.value = p + 1;
     return true;
 }
 
@@ -140,12 +140,12 @@ private bool writeToEnv(ref StringTable environment, char* nameEqValue)
  * Params:
  *      environment = our copy of the environment
  */
-void updateRealEnvironment(ref StringTable environment)
+void updateRealEnvironment(ref StringTable!(char*) environment)
 {
     foreach (sv; environment)
     {
         const name = sv.toDchars();
-        const value = cast(const(char)*)sv.ptrvalue;
+        const value = sv.value;
         if (!value) // deleted?
             continue;
         if (putenvRestorable(name.toDString, value.toDString))
@@ -165,7 +165,7 @@ void updateRealEnvironment(ref StringTable environment)
  *      buffer = contents of configuration file
  *      sections = section names
  */
-void parseConfFile(ref StringTable environment, const(char)[] filename, const(char)[] path, const(ubyte)[] buffer, const(Strings)* sections)
+void parseConfFile(ref StringTable!(char*) environment, const(char)[] filename, const(char)[] path, const(ubyte)[] buffer, const(Strings)* sections)
 {
     /********************
      * Skip spaces.

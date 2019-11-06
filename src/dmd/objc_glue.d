@@ -396,17 +396,17 @@ static:
         Symbol* emptyVTable = null;
 
         // Cache for `_OBJC_METACLASS_$_`/`_OBJC_CLASS_$_` symbols.
-        StringTable* classNameTable = null;
+        StringTable!(Symbol*)* classNameTable = null;
 
         // Cache for `L_OBJC_CLASSLIST_REFERENCES_` symbols.
-        StringTable* classReferenceTable = null;
+        StringTable!(Symbol*)* classReferenceTable = null;
 
-        StringTable* methVarNameTable = null;
-        StringTable* methVarRefTable = null;
-        StringTable* methVarTypeTable = null;
+        StringTable!(Symbol*)* methVarNameTable = null;
+        StringTable!(Symbol*)* methVarRefTable = null;
+        StringTable!(Symbol*)* methVarTypeTable = null;
 
         // Cache for instance variable offsets
-        StringTable* ivarOffsetTable = null;
+        StringTable!(Symbol*)* ivarOffsetTable = null;
     }
 
     void initialize()
@@ -420,9 +420,9 @@ static:
 
         foreach (m ; __traits(allMembers, This))
         {
-            static if (is(typeof(__traits(getMember, This, m)) == StringTable*))
+            static if (is(typeof(__traits(getMember, This, m)) == StringTable!(Symbol*)*))
             {
-                __traits(getMember, This, m) = new StringTable();
+                __traits(getMember, This, m) = new StringTable!(Symbol*)();
                 __traits(getMember, This, m)._init();
             }
         }
@@ -508,7 +508,7 @@ static:
         hasSymbols_ = true;
 
         auto stringValue = methVarNameTable.update(name);
-        auto symbol = cast(Symbol*) stringValue.ptrvalue;
+        auto symbol = stringValue.value;
 
         if (!symbol)
         {
@@ -516,7 +516,7 @@ static:
             char[42] buffer;
             const symbolName = format(buffer, "L_OBJC_METH_VAR_NAME_%lu", classNameCount++);
             symbol = getCString(name, symbolName, Segments.Id.methname);
-            stringValue.ptrvalue = symbol;
+            stringValue.value = symbol;
         }
 
         return symbol;
@@ -602,13 +602,13 @@ static:
         auto name = prefix ~ objcClass.classDeclaration.objc.identifier.toString();
 
         auto stringValue = classNameTable.update(name);
-        auto symbol = cast(Symbol*) stringValue.ptrvalue;
+        auto symbol = stringValue.value;
 
         if (symbol)
             return symbol;
 
         symbol = getGlobal(name);
-        stringValue.ptrvalue = symbol;
+        stringValue.value = symbol;
 
         return symbol;
     }
@@ -635,7 +635,7 @@ static:
         auto name = classDeclaration.objc.identifier.toString();
 
         auto stringValue = classReferenceTable.update(name);
-        auto symbol = cast(Symbol*) stringValue.ptrvalue;
+        auto symbol = stringValue.value;
 
         if (symbol)
             return symbol;
@@ -655,7 +655,7 @@ static:
         symbol.Sseg = segment;
         outdata(symbol);
 
-        stringValue.ptrvalue = symbol;
+        stringValue.value = symbol;
 
         return symbol;
     }
@@ -665,7 +665,7 @@ static:
         hasSymbols_ = true;
 
         auto stringValue = methVarRefTable.update(name);
-        auto refSymbol = cast(Symbol*) stringValue.ptrvalue;
+        auto refSymbol = stringValue.value;
         if (refSymbol is null)
         {
             // create data
@@ -685,7 +685,7 @@ static:
             refSymbol.Sdt = dtb.finish();
             refSymbol.Sseg = seg;
             outdata(refSymbol);
-            stringValue.ptrvalue = refSymbol;
+            stringValue.value = refSymbol;
 
             ++selectorCount;
         }
@@ -758,7 +758,7 @@ static:
         hasSymbols_ = true;
 
         auto stringValue = methVarTypeTable.update(typeEncoding);
-        auto symbol = cast(Symbol*) stringValue.ptrvalue;
+        auto symbol = stringValue.value;
 
         if (symbol)
             return symbol;
@@ -768,7 +768,7 @@ static:
         const symbolName = format(nameString, "L_OBJC_METH_VAR_TYPE_%lu", count++);
         symbol = getCString(typeEncoding, symbolName, Segments.Id.methtype);
 
-        stringValue.ptrvalue = symbol;
+        stringValue.value = symbol;
         outdata(symbol);
 
         return symbol;
@@ -820,13 +820,13 @@ static:
         hasSymbols_ = true;
 
         auto stringValue = classNameTable.update(name);
-        auto symbol = cast(Symbol*) stringValue.ptrvalue;
+        auto symbol = stringValue.value;
 
         __gshared size_t count = 0;
         char[42] nameString;
         const symbolName = format(nameString, "L_OBJC_CLASS_NAME_%lu", count++);
         symbol = getCString(name, symbolName, Segments.Id.classname);
-        stringValue.ptrvalue = symbol;
+        stringValue.value = symbol;
 
         return symbol;
     }
@@ -846,13 +846,13 @@ static:
         const name = "_OBJC_IVAR_$_" ~ className ~ '.' ~ varName;
 
         auto stringValue = ivarOffsetTable.update(name);
-        auto symbol = cast(Symbol*) stringValue.ptrvalue;
+        auto symbol = stringValue.value;
 
         if (!symbol)
         {
             symbol = getGlobal(name);
             symbol.Sfl |= FLextern;
-            stringValue.ptrvalue = symbol;
+            stringValue.value = symbol;
         }
 
         if (!outputSymbol)

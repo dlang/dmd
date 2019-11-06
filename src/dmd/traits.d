@@ -86,7 +86,7 @@ private Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
     return getDsymbol(oarg);
 }
 
-private const StringTable traitsStringTable;
+private const StringTable!bool traitsStringTable;
 
 shared static this()
 {
@@ -148,12 +148,12 @@ shared static this()
         "hasCopyConstructor",
     ];
 
-    StringTable* stringTable = cast(StringTable*) &traitsStringTable;
+    StringTable!(bool)* stringTable = cast(StringTable!(bool)*) &traitsStringTable;
     stringTable._init(names.length);
 
     foreach (s; names)
     {
-        auto sv = stringTable.insert(s, cast(void*)s.ptr);
+        auto sv = stringTable.insert(s, true);
         assert(sv);
     }
 }
@@ -1920,18 +1920,18 @@ Lnext:
         return tup.expressionSemantic(sc);
     }
 
-    extern (D) const(char)* trait_search_fp(const(char)[] seed, ref int cost)
+    extern (D) const(char)[] trait_search_fp(const(char)[] seed, ref int cost)
     {
         //printf("trait_search_fp('%s')\n", seed);
         if (!seed.length)
             return null;
         cost = 0;
         const sv = traitsStringTable.lookup(seed);
-        return sv ? cast(const(char)*)sv.ptrvalue : null;
+        return sv ? sv.toString() : null;
     }
 
     if (auto sub = speller!trait_search_fp(e.ident.toString()))
-        e.error("unrecognized trait `%s`, did you mean `%s`?", e.ident.toChars(), sub);
+        e.error("unrecognized trait `%s`, did you mean `%.*s`?", e.ident.toChars(), sub.length, sub.ptr);
     else
         e.error("unrecognized trait `%s`", e.ident.toChars());
     return new ErrorExp();

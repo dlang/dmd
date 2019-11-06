@@ -111,7 +111,7 @@ private string getSerialization(FuncLiteralDeclaration fld, Scope* sc)
 private extern (C++) class SerializeVisitor : SemanticTimeTransitiveVisitor
 {
 private:
-    StringTable arg_hash;
+    StringTable!(const(char)[]) arg_hash;
     Scope* sc;
     ExpType et;
     Dsymbol d;
@@ -157,7 +157,7 @@ public:
                 OutBuffer value;
                 value.writestring("arg");
                 value.print(i);
-                arg_hash.insert(key, value.extractChars);
+                arg_hash.insert(key, value.extractSlice());
                 // and the type of the variable is serialized.
                 fparam.accept(this);
             }
@@ -220,8 +220,8 @@ public:
         if (stringtable_value)
         {
             // In which case we need to update the serialization accordingly
-            const(char)* gen_id = cast(const(char)*)stringtable_value.ptrvalue;
-            buf.writestring(gen_id);
+            const(char)[] gen_id = stringtable_value.value;
+            buf.write(gen_id);
             buf.writeByte('_');
             et = ExpType.Arg;
             return true;

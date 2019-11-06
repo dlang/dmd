@@ -200,7 +200,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
      */
     const(char)[] inifilepath = FileName.path(global.inifilename);
     Strings sections;
-    StringTable environment;
+    StringTable!(char*) environment;
     environment._init(7);
     /* Read the [Environment] section, so we can later
      * pick up any DFLAGS settings.
@@ -223,7 +223,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     version(Windows) // delete LIB entry in [Environment] (necessary for optlink) to allow inheriting environment for MS-COFF
         if (is64bit || strcmp(arch, "32mscoff") == 0)
-            environment.update("LIB", 3).ptrvalue = null;
+            environment.update("LIB", 3).value = null;
 
     // read from DFLAGS in [Environment{arch}] section
     char[80] envsection = void;
@@ -1295,7 +1295,7 @@ extern(C) void printGlobalConfigs(FILE* stream)
     stream.fprintf("config    %.*s\n", cast(int)iniOutput.length, iniOutput.ptr);
     // Print DFLAGS environment variable
     {
-        StringTable environment;
+        StringTable!(char*) environment;
         environment._init(0);
         Strings dflags;
         getenv_setargv(readFromEnv(environment, "DFLAGS"), &dflags);

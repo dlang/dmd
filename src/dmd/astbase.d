@@ -2720,7 +2720,7 @@ struct ASTBase
         extern (C++) __gshared ClassDeclaration typeinfoinvariant;
         extern (C++) __gshared ClassDeclaration typeinfoshared;
         extern (C++) __gshared ClassDeclaration typeinfowild;
-        extern (C++) __gshared StringTable stringtable;
+        extern (C++) __gshared StringTable!Type stringtable;
         extern (C++) __gshared ubyte[TMAX] sizeTy = ()
             {
                 ubyte[TMAX] sizeTy = __traits(classInstanceSize, TypeBasic);

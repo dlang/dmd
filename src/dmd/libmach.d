@@ -60,7 +60,7 @@ final class LibMach : Library
 {
     MachObjModules objmodules; // MachObjModule[]
     MachObjSymbols objsymbols; // MachObjSymbol[]
-    StringTable tab;
+    StringTable!(MachObjSymbol*) tab;
 
     extern (D) this()
     {

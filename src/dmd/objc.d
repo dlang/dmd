@@ -39,8 +39,7 @@ import dmd.root.stringtable;
 struct ObjcSelector
 {
     // MARK: Selector
-    private __gshared StringTable stringtable;
-    private __gshared StringTable vTableDispatchSelectors;
+    private __gshared StringTable!(ObjcSelector*) stringtable;
     private __gshared int incnum = 0;
     const(char)* stringvalue;
     size_t stringlen;
@@ -75,12 +74,12 @@ struct ObjcSelector
 
     extern (D) static ObjcSelector* lookup(const(char)* s, size_t len, size_t pcount)
     {
-        StringValue* sv = stringtable.update(s, len);
-        ObjcSelector* sel = cast(ObjcSelector*)sv.ptrvalue;
+        auto sv = stringtable.update(s, len);
+        ObjcSelector* sel = sv.value;
         if (!sel)
         {
             sel = new ObjcSelector(sv.toDchars(), len, pcount);
-            sv.ptrvalue = cast(char*)sel;
+            sv.value = sel;
         }
         return sel;
     }

@@ -41,17 +41,17 @@ private:
  */
 alias builtin_fp = Expression function(Loc loc, FuncDeclaration fd, Expressions* arguments);
 
-__gshared StringTable builtins;
+__gshared StringTable!builtin_fp builtins;
 
 void add_builtin(const(char)[] mangle, builtin_fp fp)
 {
-    builtins.insert(mangle, cast(void*)fp);
+    builtins.insert(mangle, fp);
 }
 
 builtin_fp builtin_lookup(const(char)* mangle)
 {
     if (const sv = builtins.lookup(mangle, strlen(mangle)))
-        return cast(builtin_fp)sv.ptrvalue;
+        return sv.value;
     return null;
 }
 
