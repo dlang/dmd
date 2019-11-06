@@ -2869,7 +2869,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             /* Assign scope local unique identifier, as same as lambdas.
              */
-            const(char)* s = "__mixin";
+            const(char)[] s = "__mixin";
 
             if (FuncDeclaration func = sc.parent.isFuncDeclaration())
             {
