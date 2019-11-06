@@ -5784,6 +5784,35 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
               assert(a == b, _d_assert_fail!"=="(a, b));
             }()
             */
+
+            /*
+            Stores the result of an operand expression into a temporary
+            if necessary, e.g. if it is an impure fuction call containing side
+            effects as in https://issues.dlang.org/show_bug.cgi?id=20114
+
+            Params:
+                op = an expression which may require a temporary and will be
+                     replaced by `(auto tmp = op, tmp)` if necessary
+
+            Returns: `op` or `tmp` for subsequent access to the possibly promoted operand
+            */
+            Expression maybePromoteToTmp(ref Expression op)
+            {
+                if (op.hasSideEffect)
+                {
+                    auto tmp = copyToTemp(0, "__assertOp", op);
+                    tmp.dsymbolSemantic(sc);
+
+                    auto decl = new DeclarationExp(op.loc, tmp);
+                    auto var = new VarExp(op.loc, tmp);
+                    auto comb = Expression.combine(decl, var);
+                    op = comb.expressionSemantic(sc);
+
+                    return var;
+                }
+                return op;
+            }
+
             const tok = exp.e1.op;
             bool isEqualsCallExpression;
             if (tok == TOK.call)
@@ -5836,8 +5865,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         (*tiargs)[2] = (*args)[0].type;
 
                         // runtime args
-                        (*es)[0] = dv.e1;
-                        (*es)[1] = (*args)[0];
+                        (*es)[0] = maybePromoteToTmp(dv.e1);
+                        (*es)[1] = maybePromoteToTmp((*args)[0]);
                     }
                     else
                     {
@@ -5845,8 +5874,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         (*tiargs)[2] = (*args)[1].type;
 
                         // runtime args
-                        (*es)[0] = (*args)[0];
-                        (*es)[1] = (*args)[1];
+                        (*es)[0] = maybePromoteToTmp((*args)[0]);
+                        (*es)[1] = maybePromoteToTmp((*args)[1]);
                     }
                 }
                 else
@@ -5861,8 +5890,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     (*tiargs)[2] = binExp.e2.type;
 
                     // runtime args
-                    (*es)[0] = binExp.e1;
-                    (*es)[1] = binExp.e2;
+                    (*es)[0] = maybePromoteToTmp(binExp.e1);
+                    (*es)[1] = maybePromoteToTmp(binExp.e2);
                 }
 
                 Expression __assertFail = new IdentifierExp(exp.loc, Id.empty);
