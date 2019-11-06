@@ -15,7 +15,7 @@ TODO:
 version(CoreDdoc) {} else:
 
 import std.algorithm, std.conv, std.datetime, std.exception, std.file, std.format, std.functional,
-       std.getopt, std.parallelism, std.path, std.process, std.range, std.stdio, std.string;
+       std.getopt, std.parallelism, std.path, std.process, std.range, std.stdio, std.string, std.traits;
 import core.stdc.stdlib : exit;
 
 const thisBuildScript = __FILE_FULL_PATH__.buildNormalizedPath;
@@ -262,53 +262,38 @@ alias backend = makeDep!((builder, dep) => builder
 );
 
 /// Returns: the dependencies that generate required string files: VERSION and SYSCONFDIR.imp
-alias versionFile = memoize!(function()
-{
-    Dependency dep;
-    with (dep)
-    {
-        msg = "(TX) VERSION";
-        target = env["G"].buildPath("VERSION");
-        commandFunction = ()
+alias versionFile = makeDep!((builder, dep) => builder
+    .msg("(TX) VERSION")
+    .target(env["G"].buildPath("VERSION"))
+    .commandFunction(() {
+        string ver;
+        if (dmdRepo.buildPath(".git").exists)
         {
-            string ver;
-            if (dmdRepo.buildPath(".git").exists)
+            try
             {
-                try
-                {
-                    auto gitResult = ["git", "describe", "--dirty"].run;
-                    if (gitResult.status == 0)
-                        ver = gitResult.output.strip;
-                }
-                catch (ProcessException)
-                {
-                    // git not installed
-                }
+                auto gitResult = ["git", "describe", "--dirty"].run;
+                if (gitResult.status == 0)
+                    ver = gitResult.output.strip;
             }
-            // version fallback
-            if (ver.length == 0)
-                ver = dmdRepo.buildPath("VERSION").readText;
-            updateIfChanged(target, ver);
-        };
-    }
-    return new DependencyRef(dep);
-});
+            catch (ProcessException)
+            {
+                // git not installed
+            }
+        }
+        // version fallback
+        if (ver.length == 0)
+            ver = dmdRepo.buildPath("VERSION").readText;
+        updateIfChanged(dep.target, ver);
+    })
+);
 
-alias sysconfDirFile = memoize!(function()
-{
-    Dependency dep;
-    with(dep)
-    {
-        msg = "(TX) SYSCONFDIR";
-        sources = [thisBuildScript];
-        target = env["G"].buildPath("SYSCONFDIR.imp");
-        commandFunction = ()
-        {
-            updateIfChanged(target, env["SYSCONFDIR"]);
-        };
-    }
-    return new DependencyRef(dep);
-});
+alias sysconfDirFile = makeDep!((builder, dep) => builder
+    .msg("(TX) SYSCONFDIR")
+    .target(env["G"].buildPath("SYSCONFDIR.imp"))
+    .commandFunction(() {
+        updateIfChanged(dep.target, env["SYSCONFDIR"]);
+    })
+);
 
 /**
 Dependency for the DMD executable.
@@ -316,67 +301,48 @@ Dependency for the DMD executable.
 Params:
   extra_flags = Flags to apply to the main build but not the dependencies
 */
-alias dmdExe = memoize!(function(string targetSuffix, string[] extraFlags...)
-{
+alias dmdExe = makeDepWithArgs!((MethodInitializer!DependencyRef* builder, DependencyRef dep, string targetSuffix, string[] extraFlags) {
     const dmdSources = sources.dmd.chain(sources.root).array;
 
-    // Main DMD build dependency
-    Dependency dep;
-    with (dep)
-    {
+    string[] platformArgs;
+    version (Windows)
+        platformArgs = ["-L/STACK:8388608"];
+
+    builder
         // newdelete.o + lexer.a + backend.a
-        sources = dmdSources.chain(lexer.targets, backend.targets).array;
-        target = env["DMD_PATH"] ~ targetSuffix;
-        msg = "(DC) DMD%s %-(%s, %)".format(targetSuffix, dmdSources.map!(e => e.baseName).array);
-        deps = [versionFile, sysconfDirFile, lexer, backend];
-        string[] platformArgs;
-        version (Windows)
-            platformArgs = ["-L/STACK:8388608"];
-        command = [
+        .sources(dmdSources.chain(lexer.targets, backend.targets).array)
+        .target(env["DMD_PATH"] ~ targetSuffix)
+        .msg("(DC) DMD%s %-(%s, %)".format(targetSuffix, dmdSources.map!(e => e.baseName).array))
+        .deps([versionFile, sysconfDirFile, lexer, backend])
+        .command([
             env["HOST_DMD_RUN"],
-            "-of" ~ target,
+            "-of" ~ dep.target,
             "-vtls",
-            "-J"~env["G"],
             "-J../res",
-        ].chain(extraFlags, platformArgs, flags["DFLAGS"],
-            // source files need to have relative paths in order for the code coverage
-            // .lst files to be named properly for CodeCov to find them
-            sources.map!(e => e.relativePath(srcDir))
-        ).array;
-    }
-    return new DependencyRef(dep);
+            ].chain(extraFlags, platformArgs, flags["DFLAGS"],
+                // source files need to have relative paths in order for the code coverage
+                // .lst files to be named properly for CodeCov to find them
+                dep.sources.map!(e => e.relativePath(srcDir))
+            ).array);
 });
 
-alias dmdDefault = memoize!(function()
-{
-    Dependency dep;
-    with (dep)
-    {
-        name = "dmd";
-        description = "Build dmd";
-        deps = [dmdConf, dmdExe(null, null)];
-    }
-    return new DependencyRef(dep);
-});
+alias dmdDefault = makeDep!((builder, dep) => builder
+    .name("dmd")
+    .description("Build dmd")
+    .deps([dmdConf, dmdExe(null, null)])
+);
 
 /// Dependency to run the DMD unittest executable.
-alias runDmdUnittest = memoize!(function()
-{
+alias runDmdUnittest = makeDep!((builder, dep) {
     auto dmdUnittestExe = dmdExe("-unittest", ["-version=NoMain", "-unittest", "-main"]);
-
-    Dependency dep;
-    with (dep)
-    {
-        name = "unittest";
-        description = "Run the dmd unittests";
-        msg = "(RUN) DMD-UNITTEST";
-        deps = [dmdUnittestExe];
-        commandFunction = ()
-        {
+    builder
+        .name("unittest")
+        .description("Run the dmd unittests")
+        .msg("(RUN) DMD-UNITTEST")
+        .deps([dmdUnittestExe])
+        .commandFunction(() {
             spawnProcess(dmdUnittestExe.targets[0]);
-        };
-    }
-    return new DependencyRef(dep);
+        });
 });
 
 /// Runs the C++ unittest executable
@@ -437,85 +403,58 @@ alias runCxxUnittest = memoize!(function()
 });
 
 /// Dependency that removes all generated files
-alias clean = memoize!(function()
-{
-    Dependency dep;
-    with (dep)
-    {
-        name = "clean";
-        description = "Remove the generated directory";
-        msg = "(RM) " ~ env["G"];
-        commandFunction = ()
-        {
-            if (env["G"].exists)
-                env["G"].rmdirRecurse;
-        };
-    }
-    return new DependencyRef(dep);
-});
+alias clean = makeDep!((builder, dep) => builder
+    .name("clean")
+    .description("Remove the generated directory")
+    .msg("(RM) " ~ env["G"])
+    .commandFunction(delegate() {
+        if (env["G"].exists)
+            env["G"].rmdirRecurse;
+    })
+);
 
-alias toolsRepo = memoize!(function()
-{
-    Dependency dep;
-    with (dep)
-    {
-        commandFunction = ()
+alias toolsRepo = makeDep!((builder, dep) => builder
+    .commandFunction(delegate() {
+        if (!env["TOOLS_DIR"].exists)
         {
-            if (!env["TOOLS_DIR"].exists)
-            {
-                writefln("cloning tools repo to '%s'...", env["TOOLS_DIR"]);
-                run(["git", "clone", "--depth=1", env["GIT_HOME"] ~ "/tools", env["TOOLS_DIR"]]);
-            }
-        };
-    }
-    return new DependencyRef(dep);
-});
+            writefln("cloning tools repo to '%s'...", env["TOOLS_DIR"]);
+            run(["git", "clone", "--depth=1", env["GIT_HOME"] ~ "/tools", env["TOOLS_DIR"]]);
+        }
+    })
+);
 
-alias checkwhitespace = memoize!(function()
-{
-    Dependency dep;
-    with (dep)
-    {
-        name = "checkwhitespace";
-        description = "Checks for trailing whitespace and tabs";
-        deps = [toolsRepo];
-        commandFunction = ()
+alias checkwhitespace = makeDep!((builder, dep) => builder
+    .name("checkwhitespace")
+    .description("Checks for trailing whitespace and tabs")
+    .deps([toolsRepo])
+    .commandFunction(delegate() {
+        const cmdPrefix = [env["HOST_DMD_RUN"], "-run", env["TOOLS_DIR"].buildPath("checkwhitespace.d")];
+        const allSources = srcDir.dirEntries("*.{d,h,di}", SpanMode.depth).map!(e => e.name).array;
+        writefln("Checking whitespace on %s files...", allSources.length);
+        auto chunkLength = allSources.length;
+        version (Win32)
+            chunkLength = 80; // avoid command-line limit on win32
+        foreach (nextSources; allSources.chunks(chunkLength).parallel(1))
         {
-            const cmdPrefix = [env["HOST_DMD_RUN"], "-run", env["TOOLS_DIR"].buildPath("checkwhitespace.d")];
-            const allSources = srcDir.dirEntries("*.{d,h,di}", SpanMode.depth).map!(e => e.name).array;
-            writefln("Checking whitespace on %s files...", allSources.length);
-            auto chunkLength = allSources.length;
-            version (Win32)
-                chunkLength = 80; // avoid command-line limit on win32
-            foreach (nextSources; allSources.chunks(chunkLength).parallel(1))
-            {
-                const nextCommand = cmdPrefix ~ nextSources;
-                writeln(nextCommand.join(" "));
-                run(nextCommand);
-            }
-        };
-    }
-    return new DependencyRef(dep);
-});
+            const nextCommand = cmdPrefix ~ nextSources;
+            writeln(nextCommand.join(" "));
+            run(nextCommand);
+        }
+    })
+);
 
-alias zip = memoize!(function()
-{
-    Dependency dep;
-    with (dep)
-    {
-        name = "zip";
-        target = srcDir.buildPath("dmdsrc.zip");
-        sources = .sources.root ~ .sources.backend ~ .sources.lexer ~
-            .sources.frontendHeaders ~ .sources.dmd;
-        msg = "ZIP " ~ target;
-        commandFunction = () {
-            if (exists(target))
-                remove(target);
-            run([env["ZIP"], target, thisBuildScript] ~ sources);
-        };
-    }
-    return new DependencyRef(dep);
-});
+alias zip = makeDep!((builder, dep) => builder
+    .name("zip")
+    .target(srcDir.buildPath("dmdsrc.zip"))
+    .sources(sources.root ~ sources.backend ~ sources.lexer ~
+        sources.frontendHeaders ~ sources.dmd)
+    .msg("ZIP " ~ dep.target)
+    .commandFunction(() {
+        if (exists(dep.target))
+            remove(dep.target);
+        run([env["ZIP"], dep.target, thisBuildScript] ~ dep.sources);
+    })
+);
 
 alias html = memoize!(function()
 {
@@ -1447,23 +1386,38 @@ class DependencyRef
     }
 }
 
+/** Initializes an object using a chain of method calls */
+struct MethodInitializer(T)
+{
+    private T obj;
+    auto ref opDispatch(string name, T)(T arg)
+    {
+        mixin("obj." ~ name ~ " = arg;");
+        return this;
+    }
+}
+
 /**
 Takes a lambda and returns a memoized function to build a dependecy object.
+The lambda takes a builder and a dependency object.
+This differs from makeDepWithArgs in that the function literal does not need explicit
+parameter types.
 */
-alias makeDep(alias Func) = memoize!(function() {
-    static struct DepBuilder
-    {
-        private DependencyRef dep;
-        auto ref opDispatch(string name, T)(T arg)
-        {
-            mixin("dep." ~ name ~ " = arg;");
-            return this;
-        }
-    }
-    auto builder = DepBuilder(new DependencyRef());
-    Func(&builder, builder.dep);
-    builder.dep.finalize();
-    return builder.dep;
+alias makeDep(alias Func) = makeDepImpl!(Func);
+
+/**
+Takes a lambda and returns a memoized function to build a dependecy object.
+The lambda takes a builder, dependency object and any extra arguments needed
+to create the dependnecy.
+This differs from makeDep in that the function literal must contain explicit parameter types.
+*/
+alias makeDepWithArgs(alias Func) = makeDepImpl!(Func, Parameters!Func[2..$]);
+
+alias makeDepImpl(alias Func, T...) = memoize!(function(T args) {
+    auto builder = MethodInitializer!DependencyRef(new DependencyRef());
+    Func(&builder, builder.obj, args);
+    builder.obj.finalize();
+    return builder.obj;
 });
 
 /**
