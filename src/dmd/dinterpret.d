@@ -3711,7 +3711,12 @@ public:
         }
         else if (auto ie = e1.isIndexExp())
         {
-            assert(ie.e1.type.toBasetype().ty != Taarray);
+            if (ie.e1.type.toBasetype().ty == Taarray)
+            {
+                assert(ie.e1.op == TOK.assocArrayLiteral);
+                assignAssocArrayElement(e.loc, cast(AssocArrayLiteralExp)ie.e1, ie.e2, newval);
+                return null;
+            }
 
             Expression aggregate;
             uinteger_t indexToModify;
@@ -5248,13 +5253,26 @@ public:
                 return;
             if (e1.op == TOK.null_)
             {
-                if (goal == ctfeNeedLvalue && e1.type.ty == Taarray && e.modifiable)
+                if (!e.modifiable)
                 {
-                    assert(0); // does not reach here?
+                    e.error("cannot index null array `%s`", e.e1.toChars());
+                    result = CTFEExp.cantexp;
+                    return;
                 }
-                e.error("cannot index null array `%s`", e.e1.toChars());
-                result = CTFEExp.cantexp;
-                return;
+                auto keys = new Expressions();
+                auto values = new Expressions();
+                Type aat = e.e1.type.toBasetype();
+                auto newAA = ctfeEmplaceExp!AssocArrayLiteralExp(e1.loc, keys, values);
+                newAA.type = aat;
+                newAA.ownedByCtfe = OwnedBy.ctfe;
+                // assign new literal to e1
+                e1 = interpretRegion(e.e1, istate, ctfeNeedLvalue);
+                if (exceptionOrCant(e1))
+                    return;
+                e1 = assignToLvalue(e, e1, newAA);
+                if (exceptionOrCant(e1))
+                    return;
+                e1 = newAA;
             }
             Expression e2 = interpretRegion(e.e2, istate);
             if (exceptionOrCant(e2))
@@ -5268,7 +5286,9 @@ public:
                 else
                 {
                     emplaceExp!(IndexExp)(pue, e.loc, e1, e2);
-                    result = pue.exp();
+                    IndexExp ie = cast(IndexExp) pue.exp();
+                    ie.modifiable = e.modifiable;
+                    result = ie;
                     result.type = e.type;
                 }
                 return;
@@ -5280,8 +5300,18 @@ public:
             result = findKeyInAA(e.loc, cast(AssocArrayLiteralExp)e1, e2);
             if (!result)
             {
-                e.error("key `%s` not found in associative array `%s`", e2.toChars(), e.e1.toChars());
-                result = CTFEExp.cantexp;
+                if (!e.modifiable)
+                {
+                    e.error("key `%s` not found in associative array `%s`", e2.toChars(), e.e1.toChars());
+                    result = CTFEExp.cantexp;
+                }
+                // insert default value
+                Type aat = e.e1.type.toBasetype();
+                Expression defaultValue = aat.nextOf().defaultInitLiteral(e.loc);
+                if (needToCopyLiteral(defaultValue))
+                    defaultValue = copyLiteral(defaultValue).copy();
+                assignAssocArrayElement(e.loc, cast(AssocArrayLiteralExp)e1, e2, defaultValue);
+                result = defaultValue;
             }
             return;
         }
