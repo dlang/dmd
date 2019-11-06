@@ -214,6 +214,8 @@ extern (C++) final class Import : Dsymbol
         load(sc);
         if (!mod) return; // Failed
 
+        if (sc.stc & STC.static_)
+            isstatic = true;
         mod.importAll(null);
         mod.checkImportDeprecation(loc, sc);
         if (sc.explicitProtection)
