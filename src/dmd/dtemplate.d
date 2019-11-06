@@ -7247,10 +7247,10 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         __gshared int nest;
         // extracted to a function to allow windows SEH to work without destructors in the same function
         //printf("%d\n", nest);
-        if (++nest > 500)
+        if (++nest > global.recursionLimit)
         {
             global.gag = 0; // ensure error message gets printed
-            error("recursive expansion");
+            error("recursive expansion exceeded allowed nesting limit");
             fatal();
         }
 
@@ -7264,10 +7264,10 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         // extracted to a function to allow windows SEH to work without destructors in the same function
         __gshared int nest;
         //printf("%d\n", nest);
-        if (++nest > 300)
+        if (++nest > global.recursionLimit)
         {
             global.gag = 0; // ensure error message gets printed
-            error("recursive expansion");
+            error("recursive expansion exceeded allowed nesting limit");
             fatal();
         }
 

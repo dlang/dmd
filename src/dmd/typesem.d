@@ -3489,7 +3489,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
             return e;
         }
 
-        if (++nest > 500)
+        if (++nest > global.recursionLimit)
         {
             .error(e.loc, "cannot resolve identifier `%s`", ident.toChars());
             return returnExp(gagError ? null : new ErrorExp());
