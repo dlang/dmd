@@ -466,7 +466,7 @@ extern (C++) abstract class Type : ASTNode
 
     extern (C++) __gshared Type[TMAX] basic;
 
-    extern (D) __gshared StringTable stringtable;
+    extern (D) __gshared StringTable!Type stringtable;
     extern (D) private __gshared ubyte[TMAX] sizeTy = ()
         {
             ubyte[TMAX] sizeTy = __traits(classInstanceSize, TypeBasic);
@@ -960,10 +960,10 @@ extern (C++) abstract class Type : ASTNode
         if (!t.deco)
             return t.merge();
 
-        StringValue* sv = stringtable.lookup(t.deco, strlen(t.deco));
-        if (sv && sv.ptrvalue)
+        auto sv = stringtable.lookup(t.deco, strlen(t.deco));
+        if (sv && sv.value)
         {
-            t = cast(Type)sv.ptrvalue;
+            t = sv.value;
             assert(t.deco);
         }
         else

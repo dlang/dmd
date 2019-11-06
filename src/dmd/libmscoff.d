@@ -71,12 +71,6 @@ final class LibMSCoff : Library
 {
     MSCoffObjModules objmodules; // MSCoffObjModule[]
     MSCoffObjSymbols objsymbols; // MSCoffObjSymbol[]
-    StringTable tab;
-
-    extern (D) this()
-    {
-        tab._init(14000);
-    }
 
     /***************************************
      * Add object module or library to the library.

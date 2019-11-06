@@ -2045,10 +2045,10 @@ Type merge(Type type)
 
         mangleToBuffer(type, &buf);
 
-        StringValue* sv = type.stringtable.update(buf[]);
-        if (sv.ptrvalue)
+        auto sv = type.stringtable.update(buf[]);
+        if (sv.value)
         {
-            Type t = cast(Type)sv.ptrvalue;
+            Type t = sv.value;
             debug
             {
                 import core.stdc.stdio;
@@ -2062,7 +2062,7 @@ Type merge(Type type)
         else
         {
             Type t = stripDefaultArgs(type);
-            sv.ptrvalue = cast(char*)t;
+            sv.value = t;
             type.deco = t.deco = cast(char*)sv.toDchars();
             //printf("new value, deco = '%s' %p\n", t.deco, t.deco);
             return t;

@@ -50,9 +50,9 @@ private struct StringEntry
 
 // StringValue is a variable-length structure. It has neither proper c'tors nor a
 // factory method because the only thing which should be creating these is StringTable.
-struct StringValue
+struct StringValue(T)
 {
-    void* ptrvalue;
+    T value; //T is/should typically be a pointer or a slice
     private size_t length;
 
     char* lstring() @nogc nothrow pure return
@@ -77,7 +77,7 @@ struct StringValue
     }
 }
 
-struct StringTable
+struct StringTable(T)
 {
 private:
     StringEntry[] table;
@@ -122,7 +122,7 @@ public:
     Returns: the string's associated value, or `null` if the string doesn't
      exist in the string table
     */
-    inout(StringValue)* lookup(const(char)[] str) inout @nogc nothrow pure
+    inout(StringValue!T)* lookup(const(char)[] str) inout @nogc nothrow pure
     {
         const(size_t) hash = calcHash(str);
         const(size_t) i = findSlot(hash, str);
@@ -131,7 +131,7 @@ public:
     }
 
     /// ditto
-    inout(StringValue)* lookup(const(char)* s, size_t length) inout @nogc nothrow pure
+    inout(StringValue!T)* lookup(const(char)* s, size_t length) inout @nogc nothrow pure
     {
         return lookup(s[0 .. length]);
     }
@@ -150,7 +150,7 @@ public:
     Returns: the newly inserted value, or `null` if the string table already
      contains the string
     */
-    StringValue* insert(const(char)[] str, void* ptrvalue) nothrow pure
+    StringValue!(T)* insert(const(char)[] str, T value) nothrow pure
     {
         const(size_t) hash = calcHash(str);
         size_t i = findSlot(hash, str);
@@ -162,18 +162,18 @@ public:
             i = findSlot(hash, str);
         }
         table[i].hash = hash;
-        table[i].vptr = allocValue(str, ptrvalue);
+        table[i].vptr = allocValue(str, value);
         // printf("insert %.*s %p\n", cast(int)str.length, str.ptr, table[i].value ?: NULL);
         return getValue(table[i].vptr);
     }
 
     /// ditto
-    StringValue* insert(const(char)* s, size_t length, void* value) nothrow pure
+    StringValue!(T)* insert(const(char)* s, size_t length, T value) nothrow pure
     {
         return insert(s[0 .. length], value);
     }
 
-    StringValue* update(const(char)[] str) nothrow pure
+    StringValue!(T)* update(const(char)[] str) nothrow pure
     {
         const(size_t) hash = calcHash(str);
         size_t i = findSlot(hash, str);
@@ -185,13 +185,13 @@ public:
                 i = findSlot(hash, str);
             }
             table[i].hash = hash;
-            table[i].vptr = allocValue(str, null);
+            table[i].vptr = allocValue(str, T.init);
         }
         // printf("update %.*s %p\n", cast(int)str.length, str.ptr, table[i].value ?: NULL);
         return getValue(table[i].vptr);
     }
 
-    StringValue* update(const(char)* s, size_t length) nothrow pure
+    StringValue!(T)* update(const(char)* s, size_t length) nothrow pure
     {
         return update(s[0 .. length]);
     }
@@ -204,7 +204,7 @@ public:
      * Returns:
      *      last return value of fp call
      */
-    int apply(int function(const(StringValue)*) nothrow fp) nothrow
+    int apply(int function(const(StringValue!T)*) nothrow fp) nothrow
     {
         foreach (const se; table)
         {
@@ -219,7 +219,7 @@ public:
     }
 
     /// ditto
-    extern(D) int opApply(scope int delegate(const(StringValue)*) nothrow dg) nothrow
+    extern(D) int opApply(scope int delegate(const(StringValue!T)*) nothrow dg) nothrow
     {
         foreach (const se; table)
         {
@@ -245,9 +245,9 @@ private:
         pools = null;
     }
 
-    uint allocValue(const(char)[] str, void* ptrvalue) nothrow pure
+    uint allocValue(const(char)[] str, T value) nothrow pure
     {
-        const(size_t) nbytes = StringValue.sizeof + str.length + 1;
+        const(size_t) nbytes = (StringValue!T).sizeof + str.length + 1;
         if (!pools.length || nfill + nbytes > POOL_SIZE)
         {
             pools = (cast(ubyte**) mem.xrealloc(pools.ptr, (pools.length + 1) * (pools[0]).sizeof))[0 .. pools.length + 1];
@@ -256,8 +256,8 @@ private:
                 memset(pools[$ - 1], 0xff, POOL_SIZE); // 0xff less likely to produce GC pointer
             nfill = 0;
         }
-        StringValue* sv = cast(StringValue*)&pools[$ - 1][nfill];
-        sv.ptrvalue = ptrvalue;
+        StringValue!(T)* sv = cast(StringValue!(T)*)&pools[$ - 1][nfill];
+        sv.value = value;
         sv.length = str.length;
         .memcpy(sv.lstring(), str.ptr, str.length);
         sv.lstring()[str.length] = 0;
@@ -266,13 +266,13 @@ private:
         return vptr;
     }
 
-    inout(StringValue)* getValue(uint vptr) inout @nogc nothrow pure
+    inout(StringValue!T)* getValue(uint vptr) inout @nogc nothrow pure
     {
         if (!vptr)
             return null;
         const(size_t) idx = (vptr >> POOL_BITS) - 1;
         const(size_t) off = vptr & POOL_SIZE - 1;
-        return cast(inout(StringValue)*)&pools[idx][off];
+        return cast(inout(StringValue!T)*)&pools[idx][off];
     }
 
     size_t findSlot(hash_t hash, const(char)[] str) const @nogc nothrow pure
@@ -281,7 +281,7 @@ private:
         // http://stackoverflow.com/questions/2348187/moving-from-linear-probing-to-quadratic-probing-hash-collisons/2349774#2349774
         for (size_t i = hash & (table.length - 1), j = 1;; ++j)
         {
-            const(StringValue)* sv;
+            const(StringValue!T)* sv;
             auto vptr = table[i].vptr;
             if (!vptr || table[i].hash == hash && (sv = getValue(vptr)).length == str.length && .memcmp(str.ptr, sv.toDchars(), str.length) == 0)
                 return i;
@@ -309,7 +309,7 @@ private:
 
 nothrow unittest
 {
-    StringTable tab;
+    StringTable!(const(char)*) tab;
     tab._init(10);
 
     // construct two strings with the same text, but a different pointer
@@ -320,20 +320,20 @@ nothrow unittest
     assert(foo.ptr != fooAltPtr.ptr);
 
     // first insertion returns value
-    assert(tab.insert(foo, cast(void*) foo.ptr).ptrvalue == foo.ptr);
+    assert(tab.insert(foo, foo.ptr).value == foo.ptr);
 
     // subsequent insertion of same string return null
-    assert(tab.insert(foo.ptr, foo.length, cast(void*) foo.ptr) == null);
-    assert(tab.insert(fooAltPtr, cast(void*) foo.ptr) == null);
+    assert(tab.insert(foo.ptr, foo.length, foo.ptr) == null);
+    assert(tab.insert(fooAltPtr, foo.ptr) == null);
 
     const lookup = tab.lookup("foo");
-    assert(lookup.ptrvalue == foo.ptr);
+    assert(lookup.value == foo.ptr);
     assert(lookup.len == 3);
     assert(lookup.toString() == "foo");
 
     assert(tab.lookup("bar") == null);
     tab.update("bar".ptr, "bar".length);
-    assert(tab.lookup("bar").ptrvalue == null);
+    assert(tab.lookup("bar").value == null);
 
     tab.reset(0);
     assert(tab.lookup("foo".ptr, "foo".length) == null);
@@ -342,7 +342,7 @@ nothrow unittest
 
 nothrow unittest
 {
-    StringTable tab;
+    StringTable!(void*) tab;
     tab._init(100);
 
     enum testCount = 2000;
@@ -360,30 +360,30 @@ nothrow unittest
     foreach(i; 0 .. testCount)
     {
         auto toLookup = cast(const(char)[]) buf[i * 2 .. i * 2 + 2];
-        assert(tab.lookup(toLookup).ptrvalue == cast(void*) i);
+        assert(tab.lookup(toLookup).value == cast(void*) i);
     }
 }
 
 nothrow unittest
 {
-    StringTable tab;
+    StringTable!(int) tab;
     tab._init(10);
-    tab.insert("foo", cast(void*) 4);
-    tab.insert("bar", cast(void*) 6);
+    tab.insert("foo",  4);
+    tab.insert("bar",  6);
 
     static int resultFp = 0;
     int resultDg = 0;
     static bool returnImmediately = false;
 
-    int function(const(StringValue)*) nothrow applyFunc = (const(StringValue)* s)
+    int function(const(StringValue!int)*) nothrow applyFunc = (const(StringValue!int)* s)
     {
-        resultFp += cast(int) s.ptrvalue;
+        resultFp += s.value;
         return returnImmediately;
     };
 
-    scope int delegate(const(StringValue)*) nothrow applyDeleg = (const(StringValue)* s)
+    scope int delegate(const(StringValue!int)*) nothrow applyDeleg = (const(StringValue!int)* s)
     {
-        resultDg += cast(int) s.ptrvalue;
+        resultDg += s.value;
         return returnImmediately;
     };
 

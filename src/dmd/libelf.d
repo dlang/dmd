@@ -60,7 +60,7 @@ final class LibElf : Library
 {
     ElfObjModules objmodules; // ElfObjModule[]
     ElfObjSymbols objsymbols; // ElfObjSymbol[]
-    StringTable tab;
+    StringTable!(ElfObjSymbol*) tab;
 
     extern (D) this()
     {
@@ -298,7 +298,7 @@ final class LibElf : Library
         {
             printf("LibElf::addSymbol(%s, %s, %d)\n", om.name.ptr, name.ptr, pickAny);
         }
-        StringValue* s = tab.insert(name.ptr, name.length, null);
+        auto s = tab.insert(name.ptr, name.length, null);
         if (!s)
         {
             // already in table
@@ -306,7 +306,7 @@ final class LibElf : Library
             {
                 s = tab.lookup(name.ptr, name.length);
                 assert(s);
-                ElfObjSymbol* os = cast(ElfObjSymbol*)s.ptrvalue;
+                ElfObjSymbol* os = s.value;
                 error("multiple definition of %s: %s and %s: %s", om.name.ptr, name.ptr, os.om.name.ptr, os.name.ptr);
             }
         }
@@ -315,7 +315,7 @@ final class LibElf : Library
             auto os = new ElfObjSymbol();
             os.name = xarraydup(name);
             os.om = om;
-            s.ptrvalue = cast(void*)os;
+            s.value = os;
             objsymbols.push(os);
         }
     }
