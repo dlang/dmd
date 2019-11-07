@@ -88,7 +88,7 @@ else
 	DFLAGS:=$(UDFLAGS) -inline # unittests don't compile with -inline
 endif
 
-UTFLAGS:=-version=CoreUnittest -unittest
+UTFLAGS:=-version=CoreUnittest -unittest -checkaction=context
 
 # Set PHOBOS_DFLAGS (for linking against Phobos)
 PHOBOS_PATH=../phobos

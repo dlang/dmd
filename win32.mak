@@ -17,7 +17,7 @@ DFLAGS=-m$(MODEL) -conf= -O -release -dip1000 -preview=fieldwise -inline -w -Isr
 UDFLAGS=-m$(MODEL) -conf= -O -release -dip1000 -preview=fieldwise -w -Isrc -Iimport
 DDOCFLAGS=-conf= -c -w -o- -Isrc -Iimport -version=CoreDdoc
 
-UTFLAGS=-version=CoreUnittest -unittest
+UTFLAGS=-version=CoreUnittest -unittest -checkaction=context
 
 CFLAGS=
 
