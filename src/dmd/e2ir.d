@@ -236,7 +236,7 @@ private elem *callfunc(const ref Loc loc,
          */
 
         // j=1 if _arguments[] is first argument
-        const int j = (tf.linkage == LINK.d && tf.parameterList.varargs == VarArg.variadic);
+        const int j = tf.isDstyleVariadic();
 
         foreach (const i, arg; *arguments)
         {

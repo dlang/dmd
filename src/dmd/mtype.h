@@ -603,6 +603,7 @@ public:
     Type *syntaxCopy();
     void purityLevel();
     bool hasLazyParameters();
+    bool isDstyleVariadic();
     bool parameterEscapes(Parameter *p);
     StorageClass parameterStorageClass(Parameter *p);
     Type *addStorageClass(StorageClass stc);

@@ -2288,7 +2288,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
         err |= checkMutableArguments(sc, fd, tf, ethis, arguments, false);
 
     // If D linkage and variadic, add _arguments[] as first argument
-    if (tf.linkage == LINK.d && tf.parameterList.varargs == VarArg.variadic)
+    if (tf.isDstyleVariadic())
     {
         assert(arguments.dim >= nparams);
 
