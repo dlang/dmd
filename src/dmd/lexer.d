@@ -2485,11 +2485,11 @@ class Lexer
         }
         size_t idx = 0;
         dchar u;
-        const msg = utf_decodeChar(s, len, idx, u);
+        const msg = utf_decodeChar(s[0 .. len], idx, u);
         p += idx - 1;
         if (msg)
         {
-            error("%s", msg);
+            error("%.*s", cast(int)msg.length, msg.ptr);
         }
         return u;
     }

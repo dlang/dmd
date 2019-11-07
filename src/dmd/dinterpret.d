@@ -6910,7 +6910,7 @@ private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression
     {
         // Step 1: Decode the next dchar from the string.
 
-        const(char)* errmsg = null; // Used for reporting decoding errors
+        string errmsg = null; // Used for reporting decoding errors
         dchar rawvalue; // Holds the decoded dchar
         size_t currentIndex = indx; // The index of the decoded character
 
@@ -6946,7 +6946,7 @@ private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression
                     utf8buf[i] = cast(char)r.isIntegerExp().getInteger();
                 }
                 n = 0;
-                errmsg = utf_decodeChar(&utf8buf[0], buflen, n, rawvalue);
+                errmsg = utf_decodeChar(utf8buf[0 .. buflen], n, rawvalue);
                 break;
 
             case 2:
@@ -6971,7 +6971,7 @@ private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression
                     utf16buf[i] = cast(ushort)r.isIntegerExp().getInteger();
                 }
                 n = 0;
-                errmsg = utf_decodeWchar(&utf16buf[0], buflen, n, rawvalue);
+                errmsg = utf_decodeWchar(utf16buf[0 .. buflen], n, rawvalue);
                 break;
 
             case 4:
@@ -7008,7 +7008,7 @@ private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression
                     saveindx = indx;
                 }
                 auto slice = se.peekString();
-                errmsg = utf_decodeChar(slice.ptr, slice.length, indx, rawvalue);
+                errmsg = utf_decodeChar(slice, indx, rawvalue);
                 if (rvs)
                     indx = saveindx;
                 break;
@@ -7025,7 +7025,7 @@ private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression
                     saveindx = indx;
                 }
                 const slice = se.peekWstring();
-                errmsg = utf_decodeWchar(slice.ptr, slice.length, indx, rawvalue);
+                errmsg = utf_decodeWchar(slice, indx, rawvalue);
                 if (rvs)
                     indx = saveindx;
                 break;
@@ -7044,7 +7044,7 @@ private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression
         }
         if (errmsg)
         {
-            deleg.error("`%s`", errmsg);
+            deleg.error("`%.*s`", cast(int)errmsg.length, errmsg.ptr);
             return CTFEExp.cantexp;
         }
 

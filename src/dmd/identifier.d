@@ -277,8 +277,8 @@ nothrow:
         while (idx < str.length)
         {
             dchar dc;
-            const q = utf_decodeChar(str.ptr, str.length, idx, dc);
-            if (q ||
+            const s = utf_decodeChar(str, idx, dc);
+            if (s ||
                 !((dc >= 0x80 && isUniAlpha(dc)) || isalnum(dc) || dc == '_'))
             {
                 return false;

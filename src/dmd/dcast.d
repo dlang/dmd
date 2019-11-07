@@ -1929,9 +1929,8 @@ Expression castTo(Expression e, Scope* sc, Type t)
                     for (size_t u = 0; u < e.len;)
                     {
                         dchar c;
-                        const p = utf_decodeChar(se.peekString().ptr, e.len, u, c);
-                        if (p)
-                            e.error("%s", p);
+                        if (const s = utf_decodeChar(se.peekString(), u, c))
+                            e.error("%.*s", cast(int)s.length, s.ptr);
                         else
                             buffer.writeUTF16(c);
                     }
@@ -1943,9 +1942,8 @@ Expression castTo(Expression e, Scope* sc, Type t)
                     for (size_t u = 0; u < e.len;)
                     {
                         dchar c;
-                        const p = utf_decodeChar(se.peekString().ptr, e.len, u, c);
-                        if (p)
-                            e.error("%s", p);
+                        if (const s = utf_decodeChar(se.peekString(), u, c))
+                            e.error("%.*s", cast(int)s.length, s.ptr);
                         buffer.write4(c);
                         newlen++;
                     }
@@ -1956,9 +1954,8 @@ Expression castTo(Expression e, Scope* sc, Type t)
                     for (size_t u = 0; u < e.len;)
                     {
                         dchar c;
-                        const p = utf_decodeWchar(se.peekWstring().ptr, e.len, u, c);
-                        if (p)
-                            e.error("%s", p);
+                        if (const s = utf_decodeWchar(se.peekWstring(), u, c))
+                            e.error("%.*s", cast(int)s.length, s.ptr);
                         else
                             buffer.writeUTF8(c);
                     }
@@ -1970,9 +1967,8 @@ Expression castTo(Expression e, Scope* sc, Type t)
                     for (size_t u = 0; u < e.len;)
                     {
                         dchar c;
-                        const p = utf_decodeWchar(se.peekWstring().ptr, e.len, u, c);
-                        if (p)
-                            e.error("%s", p);
+                        if (const s = utf_decodeWchar(se.peekWstring(), u, c))
+                            e.error("%.*s", cast(int)s.length, s.ptr);
                         buffer.write4(c);
                         newlen++;
                     }

@@ -607,8 +607,8 @@ public:
             {
                 dchar c;
                 auto ppos = pos;
-                auto p = utf_decodeChar(slice.ptr, slice.length, pos, c);
-                assert(p is null, p[0..strlen(p)]);
+                const s = utf_decodeChar(slice, pos, c);
+                assert(s is null, s);
                 assert(c.isValidMangling, "The mangled name '" ~ slice ~ "' " ~
                     "contains an invalid character: " ~ slice[ppos..pos]);
             }
@@ -1002,9 +1002,8 @@ public:
             for (size_t u = 0; u < e.len;)
             {
                 dchar c;
-                const p = utf_decodeWchar(slice.ptr, slice.length, u, c);
-                if (p)
-                    e.error("%s", p);
+                if (const s = utf_decodeWchar(slice, u, c))
+                    e.error("%.*s", cast(int)s.length, s.ptr);
                 else
                     tmp.writeUTF8(c);
             }

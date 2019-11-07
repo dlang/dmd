@@ -1963,8 +1963,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 auto slice = se.peekString();
                 for (size_t i = 0; i < se.len;)
                 {
-                    auto p = slice.ptr;
-                    dchar c = p[i];
+                    dchar c = slice[i];
                     if (c < 0x80)
                     {
                         if (c.isValidMangling)
@@ -1978,9 +1977,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                             break;
                         }
                     }
-                    if (const msg = utf_decodeChar(slice.ptr, se.len, i, c))
+                    if (const msg = utf_decodeChar(slice, i, c))
                     {
-                        pd.error("%s", msg);
+                        pd.error("%.*s", cast(int)msg.length, msg.ptr);
                         break;
                     }
                     if (!isUniAlpha(c))
