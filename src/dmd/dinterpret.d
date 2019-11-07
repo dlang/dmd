@@ -6994,6 +6994,7 @@ private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression
                         char x = cast(char)r.isIntegerExp().getInteger();
                         if ((x & 0xC0) != 0x80)
                             break;
+                        --indx;
                         ++buflen;
                     }
                 }
