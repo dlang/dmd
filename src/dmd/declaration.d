@@ -1698,6 +1698,7 @@ extern (C++) final class SymbolDeclaration : Declaration
 extern (C++) class TypeInfoDeclaration : VarDeclaration
 {
     Type tinfo;
+    bool noExport;    // is not emitted in the object file
 
     final extern (D) this(Type tinfo)
     {

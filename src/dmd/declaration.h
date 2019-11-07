@@ -282,6 +282,7 @@ class TypeInfoDeclaration : public VarDeclaration
 {
 public:
     Type *tinfo;
+    bool noExport;    // is not emitted in the object file
 
     static TypeInfoDeclaration *create(Type *tinfo);
     Dsymbol *syntaxCopy(Dsymbol *);

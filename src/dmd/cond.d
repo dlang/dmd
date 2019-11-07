@@ -243,6 +243,7 @@ extern (C++) final class StaticForeach : RootObject
         sdecl.members.push(new VarDeclaration(loc, ty, fid, null, 0));
         auto r = cast(TypeStruct)sdecl.type;
         r.vtinfo = TypeInfoStructDeclaration.create(r); // prevent typeinfo from going to object file
+        r.vtinfo.noExport = true; // is not emitted in the object file
         return r;
     }
 

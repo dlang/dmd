@@ -9337,6 +9337,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (checkNewEscape(sc, exp.e2, false))
                 return setError();
 
+            if (tb1next.vtinfo && tb1next.vtinfo.noExport)
+            {
+                // no runtime typeinfo. lowering to druntime call will not work
+                exp = new CatElemAssignExp(exp.loc, exp.type, exp.e1, exp.e2.castTo(sc, tb1next));
+                exp.e2 = doCopyOrMove(sc, exp.e2);
+                goto L1;
+            }
+
             /* Lower to:
              * tmp = e2;
              * .object._d_arrayappendcTXImpl.!(typeof(e1))
@@ -9468,6 +9476,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
         }
 
+    L1:
         if (exp.e2.checkValue() || exp.e2.checkSharedAccess(sc))
             return setError();
 
