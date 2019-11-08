@@ -121,6 +121,8 @@ coverage()
     make -j$N -C ../druntime -f posix.mak MODEL=$MODEL PIC="$PIC"
     make -j$N -C ../phobos -f posix.mak MODEL=$MODEL PIC="$PIC"
 
+    "$RDMD" ./src/build.d MODEL=$MODEL HOST_DMD=$DMD BUILD=$BUILD ENABLE_WARNINGS=1 PIC="$PIC" unittest-self
+
     # FIXME
     # Building d_do_test currently uses the host library for linking
     # Remove me after https://github.com/dlang/dmd/pull/7846 has been merged (-conf=)
