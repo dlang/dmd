@@ -3039,33 +3039,16 @@ elem *toElem(Expression e, IRState *irs)
                      * with:
                      *  memset(&struct, 0, struct.sizeof)
                      */
-                    elem *ey = null;
-                    elem *ew = null;
                     uint sz = cast(uint)ae.e1.type.size();
                     StructDeclaration sd = t1s.sym;
-                    if (sd.isNested() && ae.op == TOK.construct)
-                    {
-                        ey = el_una(OPaddr, TYnptr, e1);
-                        e1 = el_same(&ey);
-                        ey = setEthis(ae.loc, irs, ey, sd);
-                        if (sd.vthis2)
-                        {
-                            ew = el_same(&e1);
-                            ew = setEthis(ae.loc, irs, ew, sd, true);
-                        }
-                        sz = sd.vthis.offset;
-                    }
 
                     elem *el = e1;
                     elem *enbytes = el_long(TYsize_t, sz);
                     elem *evalue = el_long(TYsize_t, 0);
 
-                    if (!(sd.isNested() && ae.op == TOK.construct))
-                        el = el_una(OPaddr, TYnptr, el);
+                    el = el_una(OPaddr, TYnptr, el);
                     elem* e = el_param(enbytes, evalue);
                     e = el_bin(OPmemset,TYnptr,el,e);
-                    e = el_combine(ey, e);
-                    e = el_combine(ew, e);
                     return setResult2(e);
                 }
 
@@ -3108,8 +3091,7 @@ elem *toElem(Expression e, IRState *irs)
                     elem *enbytes = el_long(TYsize_t, sz);
                     elem *evalue = el_long(TYsize_t, 0);
 
-                    if (!(sd.isNested() && ae.op == TOK.construct))
-                        el = el_una(OPaddr, TYnptr, el);
+                    el = el_una(OPaddr, TYnptr, el);
                     elem* e = el_param(enbytes, evalue);
                     e = el_bin(OPmemset,TYnptr,el,e);
                     e = el_combine(ey, e);
