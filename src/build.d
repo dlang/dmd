@@ -301,7 +301,7 @@ Dependency for the DMD executable.
 Params:
   extra_flags = Flags to apply to the main build but not the dependencies
 */
-alias dmdExe = makeDepWithArgs!((MethodInitializer!Dependency builder, Dependency dep, string targetSuffix, string[] extraFlags) {
+alias dmdExe = makeDepWithArgs!((MethodInitializer!Dependency builder, Dependency dep, string targetSuffix, string[] extraFlags, Dependency compiler) {
     const dmdSources = sources.dmd.chain(sources.root).array;
 
     string[] platformArgs;
@@ -313,9 +313,9 @@ alias dmdExe = makeDepWithArgs!((MethodInitializer!Dependency builder, Dependenc
         .sources(dmdSources.chain(lexer.targets, backend.targets).array)
         .target(env["DMD_PATH"] ~ targetSuffix)
         .msg("(DC) DMD%s %-(%s, %)".format(targetSuffix, dmdSources.map!(e => e.baseName).array))
-        .deps([versionFile, sysconfDirFile, lexer, backend])
+        .deps([versionFile, sysconfDirFile, lexer, backend] ~ (compiler ? [compiler] : []))
         .command([
-            env["HOST_DMD_RUN"],
+            compiler ? compiler.target : env["HOST_DMD_RUN"],
             "-of" ~ dep.target,
             "-vtls",
             "-J../res",
@@ -329,12 +329,12 @@ alias dmdExe = makeDepWithArgs!((MethodInitializer!Dependency builder, Dependenc
 alias dmdDefault = makeDep!((builder, dep) => builder
     .name("dmd")
     .description("Build dmd")
-    .deps([dmdConf, dmdExe(null, null)])
+    .deps([dmdConf, dmdExe(null, null, null)])
 );
 
 /// Dependency to run the DMD unittest executable.
 alias runDmdUnittest = makeDep!((builder, dep) {
-    auto dmdUnittestExe = dmdExe("-unittest", ["-version=NoMain", "-unittest", "-main"]);
+    auto dmdUnittestExe = dmdExe("-unittest", ["-version=NoMain", "-unittest", "-main"], null);
     builder
         .name("unittest")
         .description("Run the dmd unittests")
