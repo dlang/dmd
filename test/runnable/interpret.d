@@ -3505,6 +3505,20 @@ void test15681()
 
 /************************************************/
 
+auto test20366()
+{
+    const(char)[] s = ['h', 'e', 'l', '\xef', '\xbd', '\x8c', 'o'];
+
+    foreach_reverse (dchar c; s)
+    {
+    }
+
+    return true;
+}
+static assert(test20366());
+
+/************************************************/
+
 int main()
 {
     test1();
@@ -3628,6 +3642,7 @@ int main()
     test14140();
     test14862();
     test15681();
+    test20366();
 
     printf("Success\n");
     return 0;
