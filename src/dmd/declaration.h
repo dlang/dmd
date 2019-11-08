@@ -235,6 +235,7 @@ public:
     IntRange *range;            // if !NULL, the variable is known to be within the range
 
     VarDeclarations *maybes;    // STCmaybescope variables that are assigned to this STCmaybescope variable
+    VarDeclaration *refTo;      // !null if storage_class is STCref; this is the variable we are referencing
 
 private:
     bool _isAnonymous;

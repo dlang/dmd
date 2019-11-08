@@ -191,11 +191,14 @@ bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
         foreach (VarDeclaration v; eb.er.byref)
         {
             if (log) printf("byref `%s`\n", v.toChars());
+            if (v.refTo)
+                v = v.refTo; // v is a ref, get its target
             foreach (ref eb2; escapeBy[i + 1 .. $])
             {
                 foreach (VarDeclaration v2; eb2.er.byref)
                 {
                     if (log) printf("v2: `%s`\n", v2.toChars());
+                    if (v2.refTo) v2 = v2.refTo;
                     if (v2 != v)
                         continue;
                     //printf("v %d v2 %d\n", eb.isMutable, eb2.isMutable);
@@ -331,6 +334,10 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Exp
     foreach (VarDeclaration v; er.byvalue)
     {
         if (log) printf("byvalue %s\n", v.toChars());
+
+        if (v.refTo)
+            v = v.refTo; // v is a ref, get its target
+
         if (v.isDataseg())
             continue;
 
@@ -364,6 +371,10 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Exp
     foreach (VarDeclaration v; er.byref)
     {
         if (log) printf("byref %s\n", v.toChars());
+
+        if (v.refTo)
+            v = v.refTo; // v is a ref, get its target
+
         if (v.isDataseg())
             continue;
 
@@ -551,7 +562,14 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 
     EscapeByResults er;
 
-    escapeByValue(e2, &er);
+    // `e1` is ref a variable initialized to the address of `e2`
+    bool initRef = e.op == TOK.construct && e1.op == TOK.variable &&
+            (cast(VarExp)e1).var.storage_class & (STC.ref_ | STC.out_);
+
+    if (initRef)
+        escapeByRef(e2, &er);
+    else
+        escapeByValue(e2, &er);
 
     if (!er.byref.dim && !er.byvalue.dim && !er.byfunc.dim && !er.byexp.dim)
         return false;
@@ -583,6 +601,17 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
     }
 
     if (log && va) printf("va: %s\n", va.toChars());
+
+    if (initRef && va && er.byvalue.length == 0 && er.byref.length == 1)
+    {
+        // va is a ref to v
+        VarDeclaration v = er.byref[0];
+        va.refTo = v.refTo ? v.refTo : v;
+    }
+    else if (!initRef && va && va.refTo)
+    {
+        va = va.refTo; // va is a ref, so assigning to va is really assigning to its target
+    }
 
     // Try to infer 'scope' for va if in a function not marked @system
     bool inferScope = false;
@@ -623,6 +652,10 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
     foreach (VarDeclaration v; er.byvalue)
     {
         if (log) printf("byvalue: %s\n", v.toChars());
+
+        if (v.refTo)
+            v = v.refTo; // v is a ref, get its target
+
         if (v.isDataseg())
             continue;
 
@@ -749,6 +782,10 @@ ByRef:
     foreach (VarDeclaration v; er.byref)
     {
         if (log) printf("byref: %s\n", v.toChars());
+
+        if (v.refTo)
+            v = v.refTo; // v is a ref, get its target
+
         if (v.isDataseg())
             continue;
 
@@ -774,8 +811,8 @@ ByRef:
 
         // If va's lifetime encloses v's, then error
         if (va &&
-            (va.enclosesLifetimeOf(v) && !(v.storage_class & STC.parameter) ||
-             va.storage_class & STC.ref_ ||
+            (va.enclosesLifetimeOf(v) && !(v.storage_class & (STC.parameter | STC.result)) ||
+             va.storage_class & STC.ref_ && !initRef ||
              va.isDataseg()) &&
             sc.func.setUnsafe())
         {
@@ -812,7 +849,8 @@ ByRef:
         {
             if (va && !va.isDataseg() && !va.doNotInferScope)
             {
-                if (!va.isScope() && inferScope)
+                if (initRef && v == va.refTo) {}
+                else if (!va.isScope() && inferScope)
                 {   //printf("inferring scope for %s\n", va.toChars());
                     va.storage_class |= STC.scope_ | STC.scopeinferred;
                 }
@@ -892,6 +930,11 @@ ByRef:
             continue;
         }
 
+        if (initRef && va && !va.isDataseg() && !ee.isLvalue())
+        {
+            continue;
+        }
+
         if (va && !va.isDataseg() && !va.doNotInferScope)
         {
             if (!va.isScope() && inferScope)
@@ -940,6 +983,9 @@ bool checkThrowEscape(Scope* sc, Expression e, bool gag)
         //printf("byvalue %s\n", v.toChars());
         if (v.isDataseg())
             continue;
+
+        if (v.refTo)
+            v = v.refTo; // v is a ref, get its target
 
         if (v.isScope() && !v.iscatchvar)       // special case: allow catch var to be rethrown
                                                 // despite being `scope`
@@ -992,6 +1038,10 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
     foreach (VarDeclaration v; er.byvalue)
     {
         if (log) printf("byvalue `%s`\n", v.toChars());
+
+        if (v.refTo)
+            v = v.refTo; // v is a ref, get its target
+
         if (v.isDataseg())
             continue;
 
@@ -1052,6 +1102,9 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
             }
             result = true;
         }
+
+        if (v.refTo)
+            v = v.refTo; // v is a ref, get its target
 
         if (v.isDataseg())
             continue;
@@ -1185,6 +1238,10 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
     foreach (VarDeclaration v; er.byvalue)
     {
         if (log) printf("byvalue `%s`\n", v.toChars());
+
+        if (v.refTo)
+            v = v.refTo; // v is a ref, get its target
+
         if (v.isDataseg())
             continue;
 
