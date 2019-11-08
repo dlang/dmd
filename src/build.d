@@ -33,6 +33,7 @@ __gshared typeof(sourceFiles()) sources;
 immutable rootDeps = [
     &dmdDefault,
     &runDmdUnittest,
+    &runDmdUnittestSelf,
     &clean,
     &checkwhitespace,
     &runCxxUnittest,
@@ -330,6 +331,7 @@ alias dmdDefault = makeDep!((builder, dep) => builder
     .name("dmd")
     .description("Build dmd")
     .deps([dmdConf, dmdExe(null, null, null)])
+    .target(dep.deps[1].target)
 );
 
 /// Dependency to run the DMD unittest executable.
@@ -343,6 +345,17 @@ alias runDmdUnittest = makeDep!((builder, dep) {
         .commandFunction(() {
             spawnProcess(dmdUnittestExe.targets[0]);
         });
+});
+
+/// Dependency to run the DMD unittest executable compiled by the currently built compiler (dmdDefault).
+alias runDmdUnittestSelf = makeDep!((builder, dep) {
+    auto dmdUnittestExe = dmdExe("-unittest-self", ["-version=NoMain", "-unittest", "-main", "-checkaction=context"], dmdDefault);
+    builder
+        .name("unittest-self")
+        .description("Run the self-hosted dmd unittests")
+        .msg("(RUN) DMD-UNITTEST-SELF")
+        .deps([dmdUnittestExe])
+        .command(dmdUnittestExe.targets);
 });
 
 /// Runs the C++ unittest executable
