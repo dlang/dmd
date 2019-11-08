@@ -300,14 +300,17 @@ struct OutBuffer
         {
             reserve(psize);
             version (Windows)
-            {
-                count = _vsnprintf(cast(char*)data.ptr + offset, psize, format, args);
-                if (count != -1)
-                    break;
-                psize *= 2;
-            }
+                enum VSNPRINTF = true;
             else version (Posix)
+                enum VSNPRINTF = true;
+            else
+                enum VSNPRINTF = false;
+            static if (VSNPRINTF)
             {
+                version (CRuntime_DigitalMars)
+                    enum DMCRT = true;
+                else
+                    enum DMCRT = false;
                 va_list va;
                 va_copy(va, args);
                 /*
@@ -323,7 +326,7 @@ struct OutBuffer
                 va_end(va);
                 if (count == -1)
                     psize *= 2;
-                else if (count >= psize)
+                else if (!DMCRT && count >= psize)
                     psize = count + 1;
                 else
                     break;
