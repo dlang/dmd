@@ -301,7 +301,7 @@ Dependency for the DMD executable.
 Params:
   extra_flags = Flags to apply to the main build but not the dependencies
 */
-alias dmdExe = makeDepWithArgs!((MethodInitializer!DependencyRef* builder, DependencyRef dep, string targetSuffix, string[] extraFlags) {
+alias dmdExe = makeDepWithArgs!((MethodInitializer!Dependency builder, Dependency dep, string targetSuffix, string[] extraFlags) {
     const dmdSources = sources.dmd.chain(sources.root).array;
 
     string[] platformArgs;
@@ -346,60 +346,41 @@ alias runDmdUnittest = makeDep!((builder, dep) {
 });
 
 /// Runs the C++ unittest executable
-alias runCxxUnittest = memoize!(function()
-{
-    Dependency cxxFrontend; /// Compiles the C++ frontend test files
-    version (Windows) {}
-    else with (cxxFrontend)
-    {
-        name = "cxx-frontend";
-        description = "Build the C++ frontend";
-        msg = "(CXX) CXX-FRONTEND";
+alias runCxxUnittest = makeDep!((runCxxBuilder, runCxxDep) {
 
-        sources = srcDir.buildPath("tests", "cxxfrontend.c") ~ .sources.frontendHeaders ~ .sources.dmd ~ .sources.root;
-        target = env["G"].buildPath("cxxfrontend").objName;
+    /// Compiles the C++ frontend test files
+    alias cxxFrontend = methodInit!(Dependency, (frontendBuilder, frontendDep) => frontendBuilder
+        .name("cxx-frontend")
+        .description("Build the C++ frontend")
+        .msg("(CXX) CXX-FRONTEND")
+        .sources(srcDir.buildPath("tests", "cxxfrontend.c") ~ .sources.frontendHeaders ~ .sources.dmd ~ .sources.root)
+        .target(env["G"].buildPath("cxxfrontend").objName)
+        .command([ env["CXX"], "-c", frontendDep.sources[0], "-o" ~ frontendDep.target, "-I" ~ env["D"] ] ~ flags["CXXFLAGS"])
+    );
 
-        command = [ env["CXX"], "-c", sources[0], "-o" ~ target, "-I" ~ env["D"] ] ~ flags["CXXFLAGS"];
-    }
-
-    Dependency cxxUnittestExe; /// Compiles the C++ unittest executable
-    version (Windows) {}
-    else with (cxxUnittestExe)
-    {
-        name = "cxx-unittest";
-        description = "Build the C++ unittests";
-        msg = "(DMD) CXX-UNITTEST";
-
-        deps = [lexer, backend, new DependencyRef(cxxFrontend)];
-        sources = .sources.dmd ~ .sources.root;
-        target = env["G"].buildPath("cxx-unittest").exeName;
-
-        command = [ env["HOST_DMD_RUN"], "-of=" ~ target, "-vtls", "-J" ~ env["RES"],
+    alias cxxUnittestExe = methodInit!(Dependency, (exeBuilder, exeDep) => exeBuilder
+        .name("cxx-unittest")
+        .description("Build the C++ unittests")
+        .msg("(DMD) CXX-UNITTEST")
+        .deps([lexer, backend, cxxFrontend])
+        .sources(sources.dmd ~ sources.root)
+        .target(env["G"].buildPath("cxx-unittest").exeName)
+        .command([ env["HOST_DMD_RUN"], "-of=" ~ exeDep.target, "-vtls", "-J" ~ env["RES"],
                     "-L-lstdc++", "-version=NoMain"
-        ].chain(
-            flags["DFLAGS"], sources, deps.map!(d => d.target)
-        ).array;
-    }
+            ].chain(
+                flags["DFLAGS"], exeDep.sources, exeDep.deps.map!(d => d.target)
+            ).array)
+    );
 
-    Dependency runCxxUnittest; /// Runs the executable created above
-    with (runCxxUnittest)
-    {
-        name = "cxx-unittest";
-        description = "Run the C++ unittests";
-        msg = "(RUN) CXX-UNITTEST";
-
-        version (Windows)
-        {
-            commandFunction = { assert(0, "Running the C++ unittests is not supported on Windows yet"); };
-        }
-        else
-        {
-            auto cxxUnittest = new DependencyRef(cxxUnittestExe);
-            deps = [cxxUnittest];
-            command = [cxxUnittest.target];
-        }
-    }
-    return new DependencyRef(runCxxUnittest);
+    runCxxBuilder
+        .name("cxx-unittest")
+        .description("Run the C++ unittests")
+        .msg("(RUN) CXX-UNITTEST");
+    version (Windows) runCxxBuilder
+        .commandFunction({ enforce(0, "Running the C++ unittests is not supported on Windows yet"); });
+    else runCxxBuilder
+        .deps([cxxUnittestExe])
+        .command([cxxUnittestExe.target]);
 });
 
 /// Dependency that removes all generated files
@@ -456,65 +437,53 @@ alias zip = makeDep!((builder, dep) => builder
     })
 );
 
-alias html = memoize!(function()
-{
-    const haveDmd = env.get("DMD", null).length > 0;
-
-    DependencyRef[] docDeps;
-    if (haveDmd)
+alias html = makeDep!((htmlBuilder, htmlDep) {
+    htmlBuilder
+        .name("html")
+        .description("Generate html docs, requires DMD and STDDOC to be set");
+    if (env.get("DMD", null).length == 0)
     {
-        static string d2html(string sourceFile)
-        {
-            auto ext = sourceFile.extension();
-            assert(ext == ".d" || ext == ".di", sourceFile);
-            const htmlFilePrefix = (sourceFile.baseName == "package.d") ?
-                sourceFile[0 .. $ - "package.d".length - 1] :
-                sourceFile[0 .. $ - ext.length];
-            return htmlFilePrefix ~ ".html";
-        }
-        const stddocs = env.get("STDDOC", "").split();
-        auto docSources = .sources.root ~ .sources.lexer ~ .sources.dmd ~ env["D"].buildPath("frontend.d");
-        docDeps = docSources.chunks(1).map!(sourceArray => {
-            Dependency docDep;
-            with (docDep)
-            {
-                sources = sourceArray;
-                const source = sourceArray[0];
-                target = env["DOC_OUTPUT_DIR"].buildPath(d2html(source)[srcDir.length + 1..$]
-                    .replace(dirSeparator, "_"));
-                deps = [versionFile, sysconfDirFile];
-                command = [
-                    env["DMD"],
-                    "-o-",
-                    "-c",
-                    "-Dd" ~ env["DOCSRC"],
-                    "-J../res",
-                    "-I" ~ env["D"],
-                    srcDir.buildPath("project.ddoc")
+        htmlBuilder.commandFunction(delegate() {
+            writefln("ERROR: cannot build '%s' unless DMD is set", htmlDep.name);
+        });
+        return;
+    }
+
+    static string d2html(string sourceFile)
+    {
+        const ext = sourceFile.extension();
+        assert(ext == ".d" || ext == ".di", sourceFile);
+        const htmlFilePrefix = (sourceFile.baseName == "package.d") ?
+            sourceFile[0 .. $ - "package.d".length - 1] :
+            sourceFile[0 .. $ - ext.length];
+        return htmlFilePrefix ~ ".html";
+    }
+    const stddocs = env.get("STDDOC", "").split();
+    auto docSources = .sources.root ~ .sources.lexer ~ .sources.dmd ~ env["D"].buildPath("frontend.d");
+    htmlBuilder.deps(docSources.chunks(1).map!(sourceArray =>
+        methodInit!(Dependency, (docBuilder, docDep) {
+            const source = sourceArray[0];
+            docBuilder
+            .sources(sourceArray)
+            .target(env["DOC_OUTPUT_DIR"].buildPath(d2html(source)[srcDir.length + 1..$]
+                .replace(dirSeparator, "_")))
+            .deps([versionFile, sysconfDirFile])
+            .command([
+                env["DMD"],
+                "-o-",
+                "-c",
+                "-Dd" ~ env["DOCSRC"],
+                "-J../res",
+                "-I" ~ env["D"],
+                srcDir.buildPath("project.ddoc")
                 ] ~ stddocs ~ [
                     "-Df" ~ docDep.target,
                     // Need to use a short relative path to make sure ddoc links are correct
                     source.relativePath(runDir)
-                ] ~ flags["DFLAGS"];
-                msg = docDep.command.join(" ");
-                return new DependencyRef(docDep);
-            }
-        }()).array;
-    }
-
-    Dependency htmlDep;
-    with (htmlDep)
-    {
-        name = "html";
-        description = "Generate html docs, requires DMD and STDDOC to be set";
-        deps = docDeps;
-        if (!haveDmd) {
-            commandFunction = () {
-                writefln("ERROR: cannot build '%s' unless DMD is set", htmlDep.name);
-            };
-        }
-    }
-    return new DependencyRef(htmlDep);
+                ] ~ flags["DFLAGS"])
+            .msg(docDep.command.join(" "));
+        })
+    ).array);
 });
 
 /**
@@ -602,9 +571,9 @@ LtargetsLoop:
 /// An input range for a recursive set of dependencies
 struct DependencyRange
 {
-    private DependencyRef[] next;
-    private bool[DependencyRef] added;
-    this(DependencyRef[] deps) { addDeps(deps); }
+    private Dependency[] next;
+    private bool[Dependency] added;
+    this(Dependency[] deps) { addDeps(deps); }
     bool empty() const { return next.length == 0; }
     auto front() inout { return next[0]; }
     void popFront()
@@ -613,7 +582,7 @@ struct DependencyRange
         next = next[1 .. $];
         addDeps(save.deps);
     }
-    void addDeps(DependencyRef[] deps)
+    void addDeps(Dependency[] deps)
     {
         foreach (dep; deps)
         {
@@ -1288,40 +1257,28 @@ the commandFunction.
 
 If a run fails, the entire build stops.
 */
-struct Dependency
+class Dependency
 {
     string target; // path to the resulting target file (if target is used, it will set targets)
     string[] targets; // list of all target files
     string[] sources; // list of all source files
     string[] rebuildSources; // Optional list of files that trigger a rebuild of this dependency
-    DependencyRef[] deps; // dependencies to build before this one
+    Dependency[] deps; // dependencies to build before this one
     string[] command; // the dependency command
     void delegate() commandFunction; // a custom dependency command which gets called instead of command
     string msg; // msg of the dependency that is e.g. written to the CLI when it's executed
     string name; /// optional string that can be used to identify this dependency
     string description; /// optional string to describe this dependency rather than printing the target files
-    string[] trackSources;
-}
 
-class DependencyRef
-{
-    Dependency dep;
-    alias dep this;
     private bool executed;
 
-    this() { }
-    this(ref Dependency dep)
-    {
-        this.dep = dep;
-        finalize();
-    }
     /// Finish creating the dependency by checking that it is configured properly
     void finalize()
     {
-        if (dep.target)
+        if (target)
         {
-            assert(!dep.targets, "target and targets cannot both be set");
-            this.dep.targets = [dep.target];
+            assert(!targets, "target and targets cannot both be set");
+            targets = [target];
         }
     }
 
@@ -1344,10 +1301,10 @@ class DependencyRef
             dep.run();
         }
 
-        if (targets && targets.isUpToDate(dep.sources, [thisBuildScript], rebuildSources))
+        if (targets && targets.isUpToDate(this.sources, [thisBuildScript], rebuildSources))
         {
-            if (dep.sources !is null)
-                log("Skipping build of %-(%s%) as it's newer than %-(%s%)", targets, dep.sources);
+            if (this.sources !is null)
+                log("Skipping build of %-(%s%) as it's newer than %-(%s%)", targets, this.sources);
             return;
         }
 
@@ -1387,14 +1344,23 @@ class DependencyRef
 }
 
 /** Initializes an object using a chain of method calls */
-struct MethodInitializer(T)
+struct MethodInitializer(T) if (is(T == class)) // currenly only works with classes
 {
     private T obj;
-    auto ref opDispatch(string name, T)(T arg)
+    auto ref opDispatch(string name)(typeof(__traits(getMember, T, name)) arg)
     {
         mixin("obj." ~ name ~ " = arg;");
         return this;
     }
+}
+
+/** Create an object using a chain of method calls for each field. */
+T methodInit(T, alias Func, Args...)(Args args) if (is(T == class)) // currently only works with classes
+{
+    auto initializer = MethodInitializer!T(new T());
+    Func(initializer, initializer.obj, args);
+    initializer.obj.finalize();
+    return initializer.obj;
 }
 
 /**
@@ -1403,7 +1369,7 @@ The lambda takes a builder and a dependency object.
 This differs from makeDepWithArgs in that the function literal does not need explicit
 parameter types.
 */
-alias makeDep(alias Func) = makeDepImpl!(Func);
+alias makeDep(alias Func) = memoize!(methodInit!(Dependency, Func));
 
 /**
 Takes a lambda and returns a memoized function to build a dependecy object.
@@ -1411,14 +1377,7 @@ The lambda takes a builder, dependency object and any extra arguments needed
 to create the dependnecy.
 This differs from makeDep in that the function literal must contain explicit parameter types.
 */
-alias makeDepWithArgs(alias Func) = makeDepImpl!(Func, Parameters!Func[2..$]);
-
-alias makeDepImpl(alias Func, T...) = memoize!(function(T args) {
-    auto builder = MethodInitializer!DependencyRef(new DependencyRef());
-    Func(&builder, builder.obj, args);
-    builder.obj.finalize();
-    return builder.obj;
-});
+alias makeDepWithArgs(alias Func) = memoize!(methodInit!(Dependency, Func, Parameters!Func[2..$]));
 
 /**
 Logging primitive
