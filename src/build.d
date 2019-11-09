@@ -5,6 +5,12 @@ DMD builder
 Usage:
   ./build.d dmd
 
+detab, tolf, install targets - require the D Language Tools (detab.exe, tolf.exe)
+  https://github.com/dlang/tools.
+
+zip target - requires Info-ZIP or equivalent (zip32.exe)
+  http://www.info-zip.org/Zip.html#Downloads
+
 TODO:
 - add all posix.mak Makefile targets
 - support 32-bit builds
@@ -36,6 +42,8 @@ immutable rootDeps = [
     &clean,
     &checkwhitespace,
     &runCxxUnittest,
+    &detab,
+    &tolf,
     &zip,
     &html,
 ];
@@ -409,7 +417,6 @@ alias checkwhitespace = makeDep!((builder, dep) => builder
     .deps([toolsRepo])
     .commandFunction(delegate() {
         const cmdPrefix = [env["HOST_DMD_RUN"], "-run", env["TOOLS_DIR"].buildPath("checkwhitespace.d")];
-        const allSources = srcDir.dirEntries("*.{d,h,di}", SpanMode.depth).map!(e => e.name).array;
         writefln("Checking whitespace on %s files...", allSources.length);
         auto chunkLength = allSources.length;
         version (Win32)
@@ -421,6 +428,20 @@ alias checkwhitespace = makeDep!((builder, dep) => builder
             run(nextCommand);
         }
     })
+);
+
+alias detab = makeDep!((builder, dep) => builder
+    .name("detab")
+    .description("replace hard tabs with spaces")
+    .command([env["DETAB"]] ~ allSources)
+    .msg(dep.command.join(" "))
+);
+
+alias tolf = makeDep!((builder, dep) => builder
+    .name("tolf")
+    .description("convert to Unix line endings")
+    .command([env["TOLF"]] ~ allSources)
+    .msg(dep.command.join(" "))
 );
 
 alias zip = makeDep!((builder, dep) => builder
@@ -754,6 +775,8 @@ void processEnvironment()
         env["HOST_DMD_KIND"] = "gdc";
 
     env["DMD_PATH"] = env["G"].buildPath("dmd").exeName;
+    env.getDefault("DETAB", "detab");
+    env.getDefault("TOLF", "tolf");
     version (Windows)
         env.getDefault("ZIP", "zip32");
     else
@@ -882,6 +905,9 @@ string detectHostCxx()
 ////////////////////////////////////////////////////////////////////////////////
 // D source files
 ////////////////////////////////////////////////////////////////////////////////
+
+/// Returns: all source files in the repository
+alias allSources = memoize!(() => srcDir.dirEntries("*.{d,h,di}", SpanMode.depth).map!(e => e.name).array);
 
 /// Returns: all source files for the compiler
 auto sourceFiles()
