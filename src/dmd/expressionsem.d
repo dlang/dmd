@@ -5820,7 +5820,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 if (op.hasSideEffect)
                 {
-                    auto tmp = copyToTemp(0, "__assertOp", op);
+                    const stc = STC.exptemp | (op.isLvalue() ? STC.ref_ : STC.rvalue);
+                    auto tmp = copyToTemp(stc, "__assertOp", op);
                     tmp.dsymbolSemantic(sc);
 
                     auto decl = new DeclarationExp(op.loc, tmp);
