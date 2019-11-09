@@ -203,8 +203,7 @@ alias lexer = makeDep!((builder, dep) => builder
     .command([env["HOST_DMD_RUN"],
         "-of" ~ dep.target,
         "-lib",
-        "-vtls",
-        "-J"~env["G"], "-J../res"]
+        "-vtls"]
         .chain(flags["DFLAGS"],
             // source files need to have relative paths in order for the code coverage
             // .lst files to be named properly for CodeCov to find them
@@ -318,7 +317,7 @@ alias dmdExe = makeDepWithArgs!((MethodInitializer!Dependency builder, Dependenc
             env["HOST_DMD_RUN"],
             "-of" ~ dep.target,
             "-vtls",
-            "-J../res",
+            "-J" ~ env["RES"],
             ].chain(extraFlags, platformArgs, flags["DFLAGS"],
                 // source files need to have relative paths in order for the code coverage
                 // .lst files to be named properly for CodeCov to find them
@@ -473,7 +472,7 @@ alias html = makeDep!((htmlBuilder, htmlDep) {
                 "-o-",
                 "-c",
                 "-Dd" ~ env["DOCSRC"],
-                "-J../res",
+                "-J" ~ env["RES"],
                 "-I" ~ env["D"],
                 srcDir.buildPath("project.ddoc")
                 ] ~ stddocs ~ [
