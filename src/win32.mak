@@ -15,12 +15,6 @@
 # win32.mak (this file) - requires Digital Mars Make ($DM_HOME\dm\bin\make.exe)
 #   http://www.digitalmars.com/ctg/make.html
 #
-# detab, tolf, install targets - require the D Language Tools (detab.exe, tolf.exe)
-#   https://github.com/dlang/tools.
-#
-# zip target - requires Info-ZIP or equivalent (zip32.exe)
-#   http://www.info-zip.org/Zip.html#Downloads
-#
 # Configuration:
 #
 # The easiest and recommended way to configure this makefile is to add
@@ -43,8 +37,6 @@
 # dmd           - release dmd (legacy target)
 # debdmd        - debug dmd
 # reldmd        - release dmd
-# detab         - replace hard tabs with spaces
-# tolf          - convert to Unix line endings
 
 ############################### Configuration ################################
 
@@ -89,10 +81,6 @@ MD=mkdir
 RD=rmdir
 # File copy
 CP=cp
-# De-tabify
-DETAB=detab
-# Convert line endings to Unix
-TOLF=tolf
 # Copy to another directory
 SCP=$(CP)
 # PVS-Studio command line executable
@@ -326,11 +314,11 @@ install-clean:
 	$(DEL) /s/q $(INSTALL)\*
 	$(RD) /s/q $(INSTALL)
 
-detab:
-	$(DETAB) $(SRCS) $(GLUESRC) $(ROOTSRC) $(BACKSRC)
+detab: $(GEN)\build.exe
+	$(RUN_BUILD) $@
 
-tolf:
-	$(TOLF) $(SRCS) $(GLUESRC) $(ROOTSRC) $(BACKSRC) $(MAKEFILES)
+tolf: $(GEN)\build.exe
+	$(RUN_BUILD) $@
 
 zip: detab tolf $(GEN)\build.exe
 	$(RUN_BUILD) $@
