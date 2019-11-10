@@ -925,7 +925,7 @@ MATCH implicitConvTo(Expression e, Type t)
              */
 
             size_t nparams = tf.parameterList.length;
-            size_t j = (tf.linkage == LINK.d && tf.parameterList.varargs == VarArg.variadic); // if TypeInfoArray was prepended
+            size_t j = tf.isDstyleVariadic(); // if TypeInfoArray was prepended
             if (e.e1.op == TOK.dotVariable)
             {
                 /* Treat 'this' as just another function argument
@@ -1242,7 +1242,7 @@ MATCH implicitConvTo(Expression e, Type t)
 
                 size_t nparams = tf.parameterList.length;
                 // if TypeInfoArray was prepended
-                size_t j = (tf.linkage == LINK.d && tf.parameterList.varargs == VarArg.variadic);
+                size_t j = tf.isDstyleVariadic();
                 for (size_t i = j; i < e.arguments.dim; ++i)
                 {
                     Expression earg = (*args)[i];

@@ -4334,6 +4334,17 @@ extern (C++) final class TypeFunction : TypeNext
         return false;
     }
 
+    /*******************************
+     * Check for `extern (D) U func(T t, ...)` variadic function type,
+     * which has `_arguments[]` added as the first argument.
+     * Returns:
+     *  true if D-style variadic
+     */
+    bool isDstyleVariadic() const pure nothrow
+    {
+        return linkage == LINK.d && parameterList.varargs == VarArg.variadic;
+    }
+
     /***************************
      * Examine function signature for parameter p and see if
      * the value of p can 'escape' the scope of the function.
