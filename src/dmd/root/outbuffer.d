@@ -299,42 +299,25 @@ struct OutBuffer
         for (;;)
         {
             reserve(psize);
-            version (Windows)
-                enum VSNPRINTF = true;
-            else version (Posix)
-                enum VSNPRINTF = true;
+            va_list va;
+            va_copy(va, args);
+            /*
+                The functions vprintf(), vfprintf(), vsprintf(), vsnprintf()
+                are equivalent to the functions printf(), fprintf(), sprintf(),
+                snprintf(), respectively, except that they are called with a
+                va_list instead of a variable number of arguments. These
+                functions do not call the va_end macro. Consequently, the value
+                of ap is undefined after the call. The application should call
+                va_end(ap) itself afterwards.
+                */
+            count = vsnprintf(cast(char*)data.ptr + offset, psize, format, va);
+            va_end(va);
+            if (count == -1) // snn.lib and older libcmt.lib return -1 if buffer too small
+                psize *= 2;
+            else if (count >= psize)
+                psize = count + 1;
             else
-                enum VSNPRINTF = false;
-            static if (VSNPRINTF)
-            {
-                version (CRuntime_DigitalMars)
-                    enum DMCRT = true;
-                else
-                    enum DMCRT = false;
-                va_list va;
-                va_copy(va, args);
-                /*
-                 The functions vprintf(), vfprintf(), vsprintf(), vsnprintf()
-                 are equivalent to the functions printf(), fprintf(), sprintf(),
-                 snprintf(), respectively, except that they are called with a
-                 va_list instead of a variable number of arguments. These
-                 functions do not call the va_end macro. Consequently, the value
-                 of ap is undefined after the call. The application should call
-                 va_end(ap) itself afterwards.
-                 */
-                count = vsnprintf(cast(char*)data.ptr + offset, psize, format, va);
-                va_end(va);
-                if (count == -1)
-                    psize *= 2;
-                else if (!DMCRT && count >= psize)
-                    psize = count + 1;
-                else
-                    break;
-            }
-            else
-            {
-                assert(0);
-            }
+                break;
         }
         offset += count;
         if (mem.isGCEnabled)
