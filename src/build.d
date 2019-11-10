@@ -627,14 +627,6 @@ LtargetsLoop:
                 "TODO: auto-tester-all".writeln; // TODO
                 break;
 
-            case "check-examples":
-                "TODO: cxx-unittest".writeln; // TODO
-                break;
-
-            case "build-examples":
-                "TODO: build-examples".writeln; // TODO
-                break;
-
             case "install":
                 "TODO: install".writeln; // TODO
                 break;
