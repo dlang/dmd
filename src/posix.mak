@@ -350,18 +350,8 @@ $(GENERATED)/build: build.d $(HOST_DMD_PATH)
 auto-tester-build: dmd checkwhitespace cxx-unittest
 .PHONY: auto-tester-build
 
-toolchain-info:
-	@echo '==== Toolchain Information ===='
-	@echo 'uname -a:' $$(uname -a)
-	@echo 'MAKE(${MAKE}):' $$(${MAKE} --version)
-	@echo 'SHELL(${SHELL}):' $$(${SHELL} --version || true)
-	@echo 'HOST_DMD(${HOST_DMD}):' $$(${HOST_DMD} --version)
-	@echo 'HOST_CXX(${HOST_CXX}):' $$(${HOST_CXX} --version)
-# Not currently possible to choose what linker HOST_CXX uses via `make LD=ld.gold`.
-	@echo ld: $$(ld -v)
-	@echo gdb: $$(! command -v gdb &>/dev/null || gdb --version)
-	@echo '==== Toolchain Information ===='
-	@echo
+toolchain-info: $(GENERATED)/build
+	$(RUN_BUILD) $@
 
 unittest: $G/dmd-unittest
 	$<

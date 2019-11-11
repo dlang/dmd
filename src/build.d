@@ -46,6 +46,7 @@ immutable rootDeps = [
     &tolf,
     &zip,
     &html,
+    &toolchainInfo
 ];
 
 void main(string[] args)
@@ -506,6 +507,42 @@ alias html = makeDep!((htmlBuilder, htmlDep) {
     ).array);
 });
 
+alias toolchainInfo = makeDep!((builder, dep) => builder
+    .name("toolchain-info")
+    .description("Show informations about used tools")
+    .commandFunction(() {
+
+        static void show(string what, string[] cmd)
+        {
+            string output;
+            try
+                output = run(cmd).output;
+            catch (ProcessException)
+                output = "<Not availiable>";
+
+            writefln("%s (%s): %s", what, cmd[0], output);
+        }
+
+        writeln("==== Toolchain Information ====");
+
+        version (Windows)
+            show("SYSTEM", ["systeminfo"]);
+        else
+            show("SYSTEM", ["uname", "-a"]);
+
+        show("MAKE", [env.get("MAKE", "make"), "--version"]);
+        version (Posix)
+            show("SHELL", [env.get("SHELL", nativeShell), "--version"]);  // cmd.exe --version hangs
+        show("HOST_DMD", [env["HOST_DMD_RUN"], "--version"]);
+        version (Posix)
+            show("HOST_CXX", [env["CXX"], "--version"]);
+        show("ld", ["ld", "-v"]);
+        show("gdb", ["gdb", "--version"]);
+
+        writeln("==== Toolchain Information ====\n");
+    })
+);
+
 /**
 Goes through the target list and replaces short-hand targets with their expanded version.
 Special targets:
@@ -543,10 +580,6 @@ LtargetsLoop:
 
             case "auto-tester-build":
                 "TODO: auto-tester-all".writeln; // TODO
-                break;
-
-            case "toolchain-info":
-                "TODO: info".writeln; // TODO
                 break;
 
             case "check-examples":
