@@ -423,7 +423,7 @@ private bool buildCopyCtor(StructDeclaration sd, Scope* sc)
         return false;
 
     bool hasPostblit;
-    if (sd.postblit)
+    if (sd.postblit && !sd.postblit.isDisabled())
         hasPostblit = true;
 
     auto ctor = sd.search(sd.loc, Id.ctor);
