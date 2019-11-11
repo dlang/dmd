@@ -93,9 +93,6 @@ GENERATED = ../generated
 G = $(GENERATED)/$(OS)/$(BUILD)/$(MODEL)
 $(shell mkdir -p $G)
 
-DSCANNER_HASH=b51ee472fe29c05cc33359ab8de52297899131fe
-DSCANNER_DIR=$G/dscanner-$(DSCANNER_HASH)
-
 ifeq (osx,$(OS))
     export MACOSX_DEPLOYMENT_TARGET=10.9
 endif
@@ -333,7 +330,7 @@ SRC_MAKE = posix.mak osmodel.mak
 
 DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS))
 
-RUN_BUILD = $(GENERATED)/build HOST_DMD="$(HOST_DMD)" CXX="$(HOST_CXX)" OS=$(OS) BUILD=$(BUILD) MODEL=$(MODEL) AUTO_BOOTSTRAP="$(AUTO_BOOTSTRAP)" DOCDIR="$(DOCDIR)" STDDOC="$(STDDOC)" DOC_OUTPUT_DIR="$(DOC_OUTPUT_DIR)" --called-from-make
+RUN_BUILD = $(GENERATED)/build HOST_DMD="$(HOST_DMD)" CXX="$(HOST_CXX)" OS=$(OS) BUILD=$(BUILD) MODEL=$(MODEL) AUTO_BOOTSTRAP="$(AUTO_BOOTSTRAP)" DOCDIR="$(DOCDIR)" STDDOC="$(STDDOC)" DOC_OUTPUT_DIR="$(DOC_OUTPUT_DIR)" MAKE="$(MAKE)" --called-from-make
 
 ######## Begin build targets
 
@@ -428,23 +425,9 @@ checkwhitespace: $(GENERATED)/build
 # DScanner
 ######################################################
 
-style: dscanner
-
-$(DSCANNER_DIR):
-	git clone https://github.com/dlang-community/Dscanner $@
-	git -C $@ checkout $(DSCANNER_HASH)
-	git -C $@ submodule update --init --recursive
-
-$(DSCANNER_DIR)/dsc: $(HOST_DMD_PATH) | $(DSCANNER_DIR)
-	# debug build is faster, but disable 'missing import' messages (missing core from druntime)
-	sed 's/dparse_verbose/StdLoggerDisableWarning/' $(DSCANNER_DIR)/makefile > $(DSCANNER_DIR)/dscanner_makefile_tmp
-	mv $(DSCANNER_DIR)/dscanner_makefile_tmp $(DSCANNER_DIR)/makefile
-	DC=$(HOST_DMD_PATH) $(MAKE) -C $(DSCANNER_DIR) githash debug
-
 # runs static code analysis with Dscanner
-dscanner: $(DSCANNER_DIR)/dsc
-	@echo "Running DScanner"
-	$(DSCANNER_DIR)/dsc --config .dscanner.ini --styleCheck dmd -I.
+style: $(GENERATED)/build
+	$(RUN_BUILD) $@
 
 ######################################################
 

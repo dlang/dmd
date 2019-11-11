@@ -46,7 +46,8 @@ immutable rootDeps = [
     &tolf,
     &zip,
     &html,
-    &toolchainInfo
+    &toolchainInfo,
+    &style,
 ];
 
 void main(string[] args)
@@ -430,6 +431,45 @@ alias checkwhitespace = makeDep!((builder, dep) => builder
         }
     })
 );
+
+alias style = makeDep!((builder, dep)
+{
+    const dscannerDir = env["G"].buildPath("dscanner");
+    alias dscanner = methodInit!(Dependency, (dscannerBuilder, dscannerDep) => dscannerBuilder
+        .name("dscanner")
+        .description("Build custom DScanner")
+        .msg("(GIT,MAKE) DScanner")
+        .target(dscannerDir.buildPath("dsc".exeName))
+        .commandFunction(()
+        {
+            run(["git", "clone", "https://github.com/dlang-community/Dscanner", dscannerDir]);
+            run(["git", "-C", dscannerDir, "checkout", "b51ee472fe29c05cc33359ab8de52297899131fe"]);
+            run(["git", "-C", dscannerDir, "submodule", "update", "--init", "--recursive"]);
+
+            // debug build is faster, but disable 'missing import' messages (missing core from druntime)
+            const makefile = dscannerDir.buildPath("makefile");
+            const content = readText(makefile);
+            File(makefile, "w").lockingTextWriter.replaceInto(content, "dparse_verbose", "StdLoggerDisableWarning");
+
+            runCanThrow([env.get("MAKE", "make"), "-C", dscannerDir, "githash", "debug"]);
+        })
+    );
+
+    builder
+        .name("style")
+        .description("Check for style errors using dscanner")
+        .msg("(DSCANNER) dmd")
+        .deps([dscanner])
+        // Disabled because we need to build a patched dscanner version
+        // .command([
+        //     "dub", "-q", "run", "-y", "dscanner", "--", "--styleCheck", "--config",
+        //     srcDir.buildPath(".dscanner.ini"), srcDir.buildPath("dmd"), "-I" ~ srcDir
+        // ])
+        .command([
+            dscanner.target, "--styleCheck", "--config", srcDir.buildPath(".dscanner.ini"),
+            srcDir.buildPath("dmd"), "-I" ~ srcDir
+        ]);
+});
 
 alias detab = makeDep!((builder, dep) => builder
     .name("detab")
