@@ -210,7 +210,7 @@ void parseConfFile(ref StringTable!(char*) environment, const(char)[] filename, 
             break;
         }
         ++lineNum;
-        buf.reset();
+        buf.setsize(0);
         // First, expand the macros.
         // Macros are bracketed by % characters.
     Kloop:
