@@ -337,7 +337,7 @@ alias dmdExe = makeDepWithArgs!((MethodInitializer!Dependency builder, Dependenc
 alias dmdDefault = makeDep!((builder, dep) => builder
     .name("dmd")
     .description("Build dmd")
-    .deps([dmdConf, dmdExe(null, null)])
+    .deps([dmdExe(null, null), dmdConf])
 );
 
 /// Dependency to run the DMD unittest executable.
@@ -462,14 +462,6 @@ alias html = makeDep!((htmlBuilder, htmlDep) {
     htmlBuilder
         .name("html")
         .description("Generate html docs, requires DMD and STDDOC to be set");
-    if (env.get("DMD", null).length == 0)
-    {
-        htmlBuilder.commandFunction(delegate() {
-            writefln("ERROR: cannot build '%s' unless DMD is set", htmlDep.name);
-        });
-        return;
-    }
-
     static string d2html(string sourceFile)
     {
         const ext = sourceFile.extension();
@@ -488,9 +480,9 @@ alias html = makeDep!((htmlBuilder, htmlDep) {
             .sources(sourceArray)
             .target(env["DOC_OUTPUT_DIR"].buildPath(d2html(source)[srcDir.length + 1..$]
                 .replace(dirSeparator, "_")))
-            .deps([versionFile, sysconfDirFile])
+            .deps([dmdDefault, versionFile, sysconfDirFile])
             .command([
-                env["DMD"],
+                dmdDefault.deps[0].target,
                 "-o-",
                 "-c",
                 "-Dd" ~ env["DOCSRC"],
