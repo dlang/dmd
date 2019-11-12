@@ -22,7 +22,6 @@ version(CoreDdoc) {} else:
 
 import std.algorithm, std.conv, std.datetime, std.exception, std.file, std.format, std.functional,
        std.getopt, std.parallelism, std.path, std.process, std.range, std.stdio, std.string, std.traits;
-import core.stdc.stdlib : exit;
 
 const thisBuildScript = __FILE_FULL_PATH__.buildNormalizedPath;
 const srcDir = thisBuildScript.dirName;
@@ -49,7 +48,21 @@ immutable rootDeps = [
     &toolchainInfo
 ];
 
-void main(string[] args)
+int main(string[] args)
+{
+    try
+    {
+        runMain(args);
+        return 0;
+    }
+    catch (BuildException e)
+    {
+        writeln(e.msg);
+        return 1;
+    }
+}
+
+void runMain(string[] args)
 {
     int jobs = totalCPUs;
     bool calledFromMake = false;
@@ -385,7 +398,7 @@ alias runCxxUnittest = makeDep!((runCxxBuilder, runCxxDep) {
         .description("Run the C++ unittests")
         .msg("(RUN) CXX-UNITTEST");
     version (Windows) runCxxBuilder
-        .commandFunction({ enforce(0, "Running the C++ unittests is not supported on Windows yet"); });
+        .commandFunction({ abortBuild("Running the C++ unittests is not supported on Windows yet"); });
     else runCxxBuilder
         .deps([cxxUnittestExe])
         .command([cxxUnittestExe.target]);
@@ -604,10 +617,8 @@ LtargetsLoop:
                         }
                     }
                 }
-                writefln("ERROR: Target `%s` is unknown.", t);
-                writeln;
-                exit(1);
-                break;
+
+                abortBuild("Target `" ~ t ~ "` is unknown.");
         }
     }
     return newTargets.data;
@@ -662,8 +673,7 @@ void parseEnvironment()
             }
             else
             {
-                writefln("Error: DDEBUG is not an expected value '%s'", ddebug);
-                exit(1);
+                abortBuild("DDEBUG is not an expected value: " ~ ddebug);
             }
         }
     }
@@ -771,8 +781,7 @@ void parseEnvironment()
 
     if (!env["HOST_DMD_PATH"].exists)
     {
-        stderr.writefln("No DMD compiler is installed. Try AUTO_BOOTSTRAP=1 or manually set the D host compiler with HOST_DMD");
-        exit(1);
+        abortBuild("No DMD compiler is installed. Try AUTO_BOOTSTRAP=1 or manually set the D host compiler with HOST_DMD");
     }
 }
 
@@ -1442,6 +1451,30 @@ auto log(T...)(T args)
 }
 
 /**
+Aborts the current build
+
+TODO:
+    - Display detailed error messages
+    - Handle spawned processes
+
+Params:
+    msg = error message to display
+
+Throws: BuildException with the supplied message
+
+Returns: nothing but enables `throw abortBuild` to convey the resulting behavior
+*/
+BuildException abortBuild(string msg = "Build failed!")
+{
+    throw new BuildException(msg);
+}
+
+class BuildException : Exception
+{
+    this(string msg) { super(msg); }
+}
+
+/**
 The directory where all run commands are executed from.  All relative file paths
 in a `run` command must be relative to `runDir`.
 */
@@ -1472,8 +1505,7 @@ auto runCanThrow(T)(T args)
     auto res = run(args);
     if (res.status)
     {
-        writeln(res.output ? res.output : format("last command failed with exit code %s", res.status));
-        exit(1);
+        abortBuild(res.output ? res.output : format("Last command failed with exit code %s", res.status));
     }
     return res.output;
 }
