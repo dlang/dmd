@@ -222,7 +222,7 @@ alias lexer = makeDep!((builder, dep) => builder
     .target(env["G"].buildPath("lexer").objName)
     .sources(sources.lexer)
     .deps([versionFile, sysconfDirFile])
-    .msg("(DC) LEXER_OBJ %-(%s, %)".format(dep.sources.map!(e => e.baseName).array))
+    .msg("(DC) LEXER_OBJ")
     .command([env["HOST_DMD_RUN"],
         "-c",
         "-of" ~ dep.target,
@@ -264,7 +264,7 @@ alias backend = makeDep!((builder, dep) => builder
     .name("backend")
     .target(env["G"].buildPath("backend").objName)
     .sources(sources.backend)
-    .msg("(DC) BACKEND_OBJ %-(%s, %)".format(dep.sources.map!(e => e.baseName).array))
+    .msg("(DC) BACKEND_OBJ")
     .command([
         env["HOST_DMD_RUN"],
         "-c",
@@ -323,7 +323,7 @@ alias dmdExe = makeDepWithArgs!((MethodInitializer!Dependency builder, Dependenc
         // include lexer.o and backend.o
         .sources(dmdSources.chain(lexer.targets, backend.targets).array)
         .target(env["DMD_PATH"] ~ targetSuffix)
-        .msg("(DC) DMD%s %-(%s, %)".format(targetSuffix, dmdSources.map!(e => e.baseName).array))
+        .msg("(DC) DMD")
         .deps([versionFile, sysconfDirFile, lexer, backend])
         .command([
             env["HOST_DMD_RUN"],
@@ -406,11 +406,11 @@ alias clean = makeDep!((builder, dep) => builder
 );
 
 alias toolsRepo = makeDep!((builder, dep) => builder
+    .target(env["TOOLS_DIR"])
     .commandFunction(delegate() {
         auto toolsDir = env["TOOLS_DIR"];
         if (!toolsDir.exists)
         {
-            writefln("cloning tools repo to '%s'...", toolsDir);
             version(Win32)
                 // Win32-git seems to confuse C:\... as a relative path
                 toolsDir = toolsDir.relativePath(srcDir);
@@ -423,16 +423,15 @@ alias checkwhitespace = makeDep!((builder, dep) => builder
     .name("checkwhitespace")
     .description("Checks for trailing whitespace and tabs")
     .deps([toolsRepo])
+    .sources(allSources)
     .commandFunction(delegate() {
         const cmdPrefix = [env["HOST_DMD_RUN"], "-run", env["TOOLS_DIR"].buildPath("checkwhitespace.d")];
-        writefln("Checking whitespace on %s files...", allSources.length);
         auto chunkLength = allSources.length;
         version (Win32)
             chunkLength = 80; // avoid command-line limit on win32
         foreach (nextSources; allSources.chunks(chunkLength).parallel(1))
         {
             const nextCommand = cmdPrefix ~ nextSources;
-            writeln(nextCommand.join(" "));
             run(nextCommand);
         }
     })
@@ -481,14 +480,14 @@ alias detab = makeDep!((builder, dep) => builder
     .name("detab")
     .description("replace hard tabs with spaces")
     .command([env["DETAB"]] ~ allSources)
-    .msg(dep.command.join(" "))
+    .msg("(DETAB) DMD")
 );
 
 alias tolf = makeDep!((builder, dep) => builder
     .name("tolf")
     .description("convert to Unix line endings")
     .command([env["TOLF"]] ~ allSources)
-    .msg(dep.command.join(" "))
+    .msg("(TOLF) DMD")
 );
 
 alias zip = makeDep!((builder, dep) => builder
@@ -540,7 +539,7 @@ alias html = makeDep!((htmlBuilder, htmlDep) {
                     // Need to use a short relative path to make sure ddoc links are correct
                     source.relativePath(runDir)
                 ] ~ flags["DFLAGS"])
-            .msg(docDep.command.join(" "));
+            .msg("(DDOC) " ~ source);
         })
     ).array);
 });
