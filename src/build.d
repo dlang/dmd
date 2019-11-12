@@ -1346,6 +1346,7 @@ class Dependency
         if (executed)
             return;
         scope (exit) executed = true;
+        scope (failure) if (verbose) dump();
 
         bool depUpdated = false;
         foreach (dep; deps.parallel(1))
@@ -1389,6 +1390,8 @@ class Dependency
         }
         else
         {
+            scope (failure) if (!verbose) dump();
+
             if (commandFunction !is null)
 
                 return commandFunction();
@@ -1398,6 +1401,32 @@ class Dependency
                 command.run;
             }
         }
+    }
+
+    /// Writes relevant informations about this dependency to stdout
+    private void dump()
+    {
+        scope writer = stdout.lockingTextWriter;
+        void write(T)(string fmt, T what)
+        {
+            static if (is(T : bool))
+                bool print = what;
+            else
+                bool print = what.length != 0;
+
+            if (print)
+                writer.formattedWrite(fmt, what);
+        }
+
+        writer.put("\nThe following operation failed:\n");
+        write("Name: %s\n", name);
+        write("Description: %s\n", description);
+        write("Dependencies: %-(\n -> %s%)\n\n", deps.map!(d => d.name ? d.name : d.target));
+        write("Sources: %-(\n -> %s%)\n\n", sources);
+        write("Targets: %-(\n -> %s%)\n\n", targets);
+        write("Command: %-(%s %)\n\n", command);
+        write("CommandFunction: %-s\n\n", commandFunction ? "Yes" : null);
+        writer.put("-----------------------------------------------------------\n");
     }
 }
 
