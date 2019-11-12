@@ -102,6 +102,11 @@ struct OutBuffer
         notlinehead = true;
     }
 
+    extern (C++) void write(const(void)* data, size_t nbytes) pure nothrow
+    {
+        write(data[0 .. nbytes]);
+    }
+
     void write(const(void)[] buf) pure nothrow
     {
         if (doindent && !notlinehead)
