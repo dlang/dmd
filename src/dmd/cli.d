@@ -706,6 +706,7 @@ dmd -cov -unittest myprog.d
 
     /// Returns all available reverts
     static immutable reverts = [
+        Feature("dip1008", "noDIP1008", "revert DIP1008 changes https://github.com/dlang/DIPs/blob/master/DIPs/other/DIP1008.md"),
         Feature("dip25", "noDIP25", "revert DIP25 changes https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md"),
         Feature("import", "bug10378", "revert to single phase name lookup", true, true),
     ];
@@ -716,8 +717,6 @@ dmd -cov -unittest myprog.d
             "implement https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md (Sealed references)"),
         Feature("dip1000", "vsafe",
             "implement https://github.com/dlang/DIPs/blob/master/DIPs/other/DIP1000.md (Scoped Pointers)"),
-        Feature("dip1008", "ehnogc",
-            "implement https://github.com/dlang/DIPs/blob/master/DIPs/DIP1008.md (@nogc Throwable)"),
         Feature("dip1021", "useDIP1021",
             "implement https://github.com/dlang/DIPs/blob/master/DIPs/DIP1021.md (Mutable function arguments)"),
         Feature("fieldwise", "fieldwise", "use fieldwise comparisons for struct equality"),

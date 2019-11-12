@@ -10,6 +10,8 @@ class TypeInfo_Class : TypeInfo
     version(D_LP64) { ubyte[136] _x; } else { ubyte[68] _x; }
 }
 
+nothrow extern (C) void _d_delThrowable(Throwable t);
+
 class Throwable { }
 
 int _d_run_main() 

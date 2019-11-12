@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -o-
+// REQUIRED_ARGS: -o- -revert=dip1008
 // PERMUTE_ARGS:
 
 // Disallow skipping variable decl

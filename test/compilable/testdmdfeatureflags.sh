@@ -2,7 +2,7 @@
 
 # test @nogc exceptions
 echo "void main() @nogc { throw new Exception(\"ex\"); }" | \
-    $DMD -c -o- -preview=dip1008 - \
+    $DMD -c -o- - \
 
 # test usage options
 $DMD -preview='?' 2>&1 | grep -q "Upcoming language changes listed by -preview=name"

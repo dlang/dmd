@@ -173,7 +173,8 @@ extern (C++) struct Param
      * before becoming default.
      */
     bool vsafe;             // use enhanced @safe checking
-    bool ehnogc;            // use @nogc exception handling
+    bool ehnogc = true;     // use @nogc exception handling
+    bool noDIP1008;         // revert to pre-DIP1008 behavior
     bool dtorFields;        // destruct fields of partially constructed objects
                             // https://issues.dlang.org/show_bug.cgi?id=14246
     bool fieldwise;         // do struct equality testing field-wise rather than by memcmp()
