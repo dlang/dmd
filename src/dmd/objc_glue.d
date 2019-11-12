@@ -25,10 +25,10 @@ import dmd.dsymbol;
 import dmd.expression;
 import dmd.func;
 import dmd.glue;
-import dmd.globals;
 import dmd.identifier;
 import dmd.mtype;
 import dmd.objc;
+import dmd.target;
 
 import dmd.root.stringtable;
 
@@ -62,7 +62,7 @@ extern(C++) abstract class ObjcGlue
 
     static void initialize()
     {
-        if (global.params.isOSX && global.params.is64bit)
+        if (target.objc.supported)
             _objc = new Supported;
         else
             _objc = new Unsupported;

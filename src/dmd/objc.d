@@ -35,6 +35,7 @@ import dmd.identifier;
 import dmd.mtype;
 import dmd.root.outbuffer;
 import dmd.root.stringtable;
+import dmd.target;
 
 struct ObjcSelector
 {
@@ -182,7 +183,7 @@ extern(C++) abstract class Objc
 {
     static void _init()
     {
-        if (global.params.isOSX && global.params.is64bit)
+        if (target.objc.supported)
             _objc = new Supported;
         else
             _objc = new Unsupported;
