@@ -293,7 +293,7 @@ alias versionFile = makeDep!((builder, dep) => builder
         {
             try
             {
-                auto gitResult = ["git", "describe", "--dirty"].run;
+                auto gitResult = ["git", "describe", "--dirty"].tryRun;
                 if (gitResult.status == 0)
                     ver = gitResult.output.strip;
             }
@@ -464,7 +464,7 @@ alias style = makeDep!((builder, dep)
             const content = readText(makefile);
             File(makefile, "w").lockingTextWriter.replaceInto(content, "dparse_verbose", "StdLoggerDisableWarning");
 
-            runCanThrow([env.get("MAKE", "make"), "-C", dscannerDir, "githash", "debug"]);
+            run([env.get("MAKE", "make"), "-C", dscannerDir, "githash", "debug"]);
         })
     );
 
@@ -561,7 +561,7 @@ alias toolchainInfo = makeDep!((builder, dep) => builder
         {
             string output;
             try
-                output = run(cmd).output;
+                output = tryRun(cmd).output;
             catch (ProcessException)
                 output = "<Not availiable>";
 
@@ -951,7 +951,7 @@ void processEnvironmentCxx()
     // Remove when the minimally required D version becomes 2.082 or later
     if (env["HOST_DMD_KIND"] == "dmd")
     {
-        const output = run([ env["HOST_DMD_RUN"], "--version" ]).output;
+        const output = run([ env["HOST_DMD_RUN"], "--version" ]);
 
         if (output.canFind("v2.079", "v2.080", "v2.081"))
             cxxFlags ~= "-DDMD_VERSION=2080";
@@ -1436,7 +1436,7 @@ class Dependency
 
             if (command)
             {
-                command.runCanThrow;
+                command.run;
             }
         }
     }
@@ -1521,12 +1521,14 @@ in a `run` command must be relative to `runDir`.
 alias runDir = srcDir;
 
 /**
-Run a command and optionally log the invocation
+Run a command which may not succeed and optionally log the invocation.
 
 Params:
     args = the command and command arguments to execute
+
+Returns: a tuple (status, output)
 */
-auto run(T)(T args)
+auto tryRun(T)(T args)
 {
     args = args.filter!(a => !a.empty).array;
     log("Run: %s", args.join(" "));
@@ -1539,10 +1541,12 @@ and throws an exception for a non-zero exit code.
 
 Params:
     args = the command and command arguments to execute
+
+Returns: any output of the executed command
 */
-auto runCanThrow(T)(T args)
+auto run(T)(T args)
 {
-    auto res = run(args);
+    auto res = tryRun(args);
     if (res.status)
     {
         abortBuild(res.output ? res.output : format("Last command failed with exit code %s", res.status));
