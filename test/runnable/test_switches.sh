@@ -18,6 +18,7 @@ src_file=${OUTPUT_BASE}/src.d
 clean()
 {
     rm -rf ${OUTPUT_BASE}
+    rm -rf mymod.o
 }
 
 prepare()

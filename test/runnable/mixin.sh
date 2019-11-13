@@ -9,3 +9,4 @@ tr '\\' '/' < ${tmp_file} > ${tmp_file}2
 diff -pu --strip-trailing-cr ${expect_file} ${tmp_file}2
 
 rm ${tmp_file} ${tmp_file}2
+rm ${TEST_NAME}.o
