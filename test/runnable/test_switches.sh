@@ -18,7 +18,6 @@ src_file=${OUTPUT_BASE}/src.d
 clean()
 {
     rm -rf ${OUTPUT_BASE}
-    rm -rf mymod.o
 }
 
 prepare()
@@ -56,11 +55,11 @@ checkFiles()
 # as there's no common linker switch which all linkers support
 
 prepare;
-$DMD -c -of=mymod.o -od=${OUTPUT_BASE} -D -Df=${OUTPUT_BASE}/src.html -Hf=${OUTPUT_BASE}/src.di -I=${OUTPUT_BASE} -L=-v -Xf=${OUTPUT_BASE}/json.json ${src_file}
+$DMD -o- -od=${OUTPUT_BASE} -D -Df=${OUTPUT_BASE}/src.html -Hf=${OUTPUT_BASE}/src.di -I=${OUTPUT_BASE} -L=-v -Xf=${OUTPUT_BASE}/json.json ${src_file}
 checkFiles;
 
 prepare;
-$DMD -c -of=mymod.o -od=${OUTPUT_BASE} -D -Dd=${OUTPUT_BASE} -Hd=${OUTPUT_BASE} -I=${OUTPUT_BASE} -L=-v -Xf=${OUTPUT_BASE}/json.json ${src_file}
+$DMD -o- -od=${OUTPUT_BASE} -D -Dd=${OUTPUT_BASE} -Hd=${OUTPUT_BASE} -I=${OUTPUT_BASE} -L=-v -Xf=${OUTPUT_BASE}/json.json ${src_file}
 checkFiles;
 
 clean;
