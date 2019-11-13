@@ -216,7 +216,7 @@ CH=
 # Makefiles
 MAKEFILES=win32.mak posix.mak osmodel.mak
 
-RUN_BUILD=$(GEN)\build.exe --called-from-make "OS=$(OS)" "BUILD=$(BUILD)" "MODEL=$(MODEL)" "HOST_DMD=$(HOST_DMD)" "HOST_DC=$(HOST_DC)" "DDEBUG=$(DDEBUG)" "OBJ_MSVC=$(OBJ_MSVC)"
+RUN_BUILD=$(GEN)\build.exe --called-from-make "OS=$(OS)" "BUILD=$(BUILD)" "MODEL=$(MODEL)" "HOST_DMD=$(HOST_DMD)" "HOST_DC=$(HOST_DC)" "DDEBUG=$(DDEBUG)" "OBJ_MSVC=$(OBJ_MSVC)" "MAKE=$(MAKE)"
 
 ############################## Release Targets ###############################
 
