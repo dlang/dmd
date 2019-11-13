@@ -2372,9 +2372,9 @@ extern (C++) final class StringExp : Expression
         case 1:
             for (size_t u = 0; u < len;)
             {
-                if (const p = utf_decodeChar(string, len, u, c))
+                if (const s = utf_decodeChar(string[0 .. len], u, c))
                 {
-                    error("%s", p);
+                    error("%.*s", cast(int)s.length, s.ptr);
                     return 0;
                 }
                 result += utf_codeLength(encSize, c);
@@ -2384,9 +2384,9 @@ extern (C++) final class StringExp : Expression
         case 2:
             for (size_t u = 0; u < len;)
             {
-                if (const p = utf_decodeWchar(wstring, len, u, c))
+                if (const s = utf_decodeWchar(wstring[0 .. len], u, c))
                 {
-                    error("%s", p);
+                    error("%.*s", cast(int)s.length, s.ptr);
                     return 0;
                 }
                 result += utf_codeLength(encSize, c);

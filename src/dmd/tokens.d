@@ -814,7 +814,7 @@ nothrow:
                 for (size_t i = 0; i < len;)
                 {
                     dchar c;
-                    utf_decodeChar(ustring, len, i, c);
+                    utf_decodeChar(ustring[0 .. len], i, c);
                     switch (c)
                     {
                     case 0:

@@ -400,21 +400,20 @@ void utf_encode(int sz, void* s, dchar c)
  * Decode a UTF-8 sequence as a single UTF-32 code point.
  * Params:
  *      s = UTF-8 sequence
- *      len = number of code units in s[]
  *      ridx = starting index in s[], updated to reflect number of code units decoded
  *      rresult = set to character decoded
  * Returns:
  *      null on success, otherwise error message string
  */
-immutable(char*) utf_decodeChar(const(char)* s, size_t len, ref size_t ridx, out dchar rresult)
+string utf_decodeChar(const(char)[] s, ref size_t ridx, out dchar rresult)
 {
     // UTF-8 decoding errors
-    static immutable char* UTF8_DECODE_OK = null; // no error
-    static immutable char* UTF8_DECODE_OUTSIDE_CODE_SPACE = "Outside Unicode code space";
-    static immutable char* UTF8_DECODE_TRUNCATED_SEQUENCE = "Truncated UTF-8 sequence";
-    static immutable char* UTF8_DECODE_OVERLONG = "Overlong UTF-8 sequence";
-    static immutable char* UTF8_DECODE_INVALID_TRAILER = "Invalid trailing code unit";
-    static immutable char* UTF8_DECODE_INVALID_CODE_POINT = "Invalid code point decoded";
+    static immutable string UTF8_DECODE_OK = null; // no error
+    static immutable string UTF8_DECODE_OUTSIDE_CODE_SPACE = "Outside Unicode code space";
+    static immutable string UTF8_DECODE_TRUNCATED_SEQUENCE = "Truncated UTF-8 sequence";
+    static immutable string UTF8_DECODE_OVERLONG = "Overlong UTF-8 sequence";
+    static immutable string UTF8_DECODE_INVALID_TRAILER = "Invalid trailing code unit";
+    static immutable string UTF8_DECODE_INVALID_CODE_POINT = "Invalid code point decoded";
 
     /* The following encodings are valid, except for the 5 and 6 byte
      * combinations:
@@ -468,7 +467,7 @@ immutable(char*) utf_decodeChar(const(char)* s, size_t len, ref size_t ridx, out
 
     assert(s !is null);
     size_t i = ridx++;
-    assert(i < len);
+
     const char u = s[i];
     // Pre-stage results for ASCII and error cases
     rresult = u;
@@ -489,7 +488,7 @@ immutable(char*) utf_decodeChar(const(char)* s, size_t len, ref size_t ridx, out
         // 5- or 6-byte sequence
         return UTF8_DECODE_OUTSIDE_CODE_SPACE;
     }
-    if (len < i + n) // source too short
+    if (s.length < i + n) // source too short
         return UTF8_DECODE_TRUNCATED_SEQUENCE;
     // Pick off 7 - n low bits from first code unit
     dchar c = u & ((1 << (7 - n)) - 1);
@@ -523,31 +522,30 @@ immutable(char*) utf_decodeChar(const(char)* s, size_t len, ref size_t ridx, out
  * Decode a UTF-16 sequence as a single UTF-32 code point.
  * Params:
  *      s = UTF-16 sequence
- *      len = number of code units in s[]
  *      ridx = starting index in s[], updated to reflect number of code units decoded
  *      rresult = set to character decoded
  * Returns:
  *      null on success, otherwise error message string
  */
-immutable(char*) utf_decodeWchar(const(wchar)* s, size_t len, ref size_t ridx, out dchar rresult)
+string utf_decodeWchar(const(wchar)[] s, ref size_t ridx, out dchar rresult)
 {
     // UTF-16 decoding errors
-    static immutable char* UTF16_DECODE_OK = null; // no error
-    static immutable char* UTF16_DECODE_TRUNCATED_SEQUENCE = "Truncated UTF-16 sequence";
-    static immutable char* UTF16_DECODE_INVALID_SURROGATE = "Invalid low surrogate";
-    static immutable char* UTF16_DECODE_UNPAIRED_SURROGATE = "Unpaired surrogate";
-    static immutable char* UTF16_DECODE_INVALID_CODE_POINT = "Invalid code point decoded";
+    static immutable string UTF16_DECODE_OK = null; // no error
+    static immutable string UTF16_DECODE_TRUNCATED_SEQUENCE = "Truncated UTF-16 sequence";
+    static immutable string UTF16_DECODE_INVALID_SURROGATE = "Invalid low surrogate";
+    static immutable string UTF16_DECODE_UNPAIRED_SURROGATE = "Unpaired surrogate";
+    static immutable string UTF16_DECODE_INVALID_CODE_POINT = "Invalid code point decoded";
 
     assert(s !is null);
     size_t i = ridx++;
-    assert(i < len);
+
     // Pre-stage results for single wchar and error cases
     dchar u = rresult = s[i];
     if (u < 0xD800) // Single wchar codepoint
         return UTF16_DECODE_OK;
     if (0xD800 <= u && u <= 0xDBFF) // Surrogate pair
     {
-        if (len <= i + 1)
+        if (s.length <= i + 1)
             return UTF16_DECODE_TRUNCATED_SEQUENCE;
         wchar u2 = s[i + 1];
         if (u2 < 0xDC00 || 0xDFFF < u)

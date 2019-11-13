@@ -2849,7 +2849,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         OutBuffer buffer;
         size_t newlen = 0;
-        const(char)* p;
         size_t u;
         dchar c;
 
@@ -2858,10 +2857,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         case 'd':
             for (u = 0; u < e.len;)
             {
-                p = utf_decodeChar(e.peekString().ptr, e.len, u, c);
-                if (p)
+                if (const p = utf_decodeChar(e.peekString(), u, c))
                 {
-                    e.error("%s", p);
+                    e.error("%.*s", cast(int)p.length, p.ptr);
                     return setError();
                 }
                 else
@@ -2879,10 +2877,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         case 'w':
             for (u = 0; u < e.len;)
             {
-                p = utf_decodeChar(e.peekString().ptr, e.len, u, c);
-                if (p)
+                if (const p = utf_decodeChar(e.peekString(), u, c))
                 {
-                    e.error("%s", p);
+                    e.error("%.*s", cast(int)p.length, p.ptr);
                     return setError();
                 }
                 else
