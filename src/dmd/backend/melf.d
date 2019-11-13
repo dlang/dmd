@@ -122,6 +122,8 @@ struct Elf32_Ehdr
         enum SHT_REL          = 9;          /* Relocations no addends */
         enum SHT_RESTYPE      = 10;         /* Reserved section type*/
         enum SHT_DYNTAB       = 11;         /* Dynamic linker symbol table */
+        enum SHT_INIT_ARRAY   = 14;         /* Array of constructors */
+        enum SHT_FINI_ARRAY   = 15;         /* Array of destructors */
         enum SHT_GROUP        = 17;         /* Section group (COMDAT) */
         enum SHT_SYMTAB_SHNDX = 18;         /* Extended section indices */
 
