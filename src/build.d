@@ -26,7 +26,7 @@ import std.algorithm, std.conv, std.datetime, std.exception, std.file, std.forma
 const thisBuildScript = __FILE_FULL_PATH__.buildNormalizedPath;
 const srcDir = thisBuildScript.dirName;
 const dmdRepo = srcDir.dirName;
-shared bool verbose; // output verbose logging
+shared bool verbose = true; // output verbose logging
 shared bool force; // always build everything (ignores timestamp checking)
 shared bool dryRun; /// dont execute targets, just print command to be executed
 
@@ -422,9 +422,6 @@ alias toolsRepo = makeDep!((builder, dep) => builder
         if (!toolsDir.exists)
         {
             writefln("cloning tools repo to '%s'...", toolsDir);
-            version(Win32)
-                // Win32-git seems to confuse C:\... as a relative path
-                toolsDir = toolsDir.relativePath(srcDir);
             run(["git", "clone", "--depth=1", env["GIT_HOME"] ~ "/tools", toolsDir]);
         }
     })
