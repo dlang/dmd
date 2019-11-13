@@ -418,10 +418,14 @@ alias clean = makeDep!((builder, dep) => builder
 
 alias toolsRepo = makeDep!((builder, dep) => builder
     .commandFunction(delegate() {
-        if (!env["TOOLS_DIR"].exists)
+        auto toolsDir = env["TOOLS_DIR"];
+        if (!toolsDir.exists)
         {
-            writefln("cloning tools repo to '%s'...", env["TOOLS_DIR"]);
-            run(["git", "clone", "--depth=1", env["GIT_HOME"] ~ "/tools", env["TOOLS_DIR"]]);
+            writefln("cloning tools repo to '%s'...", toolsDir);
+            version(Win32)
+                // Win32-git seems to confuse C:\... as a relative path
+                toolsDir = toolsDir.relativePath(srcDir);
+            run(["git", "clone", "--depth=1", env["GIT_HOME"] ~ "/tools", toolsDir]);
         }
     })
 );
