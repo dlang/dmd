@@ -1803,7 +1803,29 @@ class Lexer
         }
         if (*p != '\'')
         {
-            error("unterminated character constant");
+            while (*p != '\'' && *p != 0x1A && *p != 0 && *p != '\n' &&
+                    *p != '\r' && *p != ';' && *p != ')' && *p != ']' && *p != '}')
+            {
+                if (*p & 0x80)
+                {
+                    const s = p;
+                    c = decodeUTF();
+                    if (c == LS || c == PS)
+                    {
+                        p = s;
+                        break;
+                    }
+                }
+                p++;
+            }
+
+            if (*p == '\'')
+            {
+                error("character constant has multiple characters");
+                p++;
+            }
+            else
+                error("unterminated character constant");
             t.unsvalue = '?';
             return tk;
         }
