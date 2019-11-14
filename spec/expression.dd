@@ -1623,7 +1623,7 @@ $(GRAMMAR
 $(GNAME FunctionLiteral):
     $(D function) $(D ref)$(OPT) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterWithAttributes) $(OPT) $(GLINK FunctionLiteralBody)
     $(D delegate) $(D ref)$(OPT) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterWithMemberAttributes) $(OPT) $(GLINK FunctionLiteralBody)
-    $(D ref)$(OPT) $(GLINK ParameterMemberAttributes) $(GLINK FunctionLiteralBody)
+    $(D ref)$(OPT) $(GLINK ParameterWithMemberAttributes) $(GLINK FunctionLiteralBody)
     $(GLINK FunctionLiteralBody)
     $(GLINK Lambda)
 
