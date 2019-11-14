@@ -41,6 +41,7 @@ immutable rootDeps = [
     &clean,
     &checkwhitespace,
     &runCxxUnittest,
+    &frontendH,
     &detab,
     &tolf,
     &zip,
@@ -354,6 +355,51 @@ alias dmdDefault = makeDep!((builder, dep) => builder
     .deps([dmdExe(null, null), dmdConf])
 );
 
+//alias frontendH = makeDep!((builder, dep) => builder
+alias frontendH = makeDep!((builder, dep) {
+        //writeln("===");
+        //writeln(
+            //env["DMD_PATH"],
+            //"-I.",
+            //"-J" ~ env["G"],
+            //"-J../res",
+            //"-version=NoBackend",
+            //"-HCf=./frontend.h",
+            //"-c",
+            //.sources.frontend);
+        //writeln(env.keys());
+        //writeln(env["D"]);
+        //writeln(env["RES"]);
+        //writeln(.sources.lexer);
+        //writeln(.sources.lexer.filter!(s => s != "id.d"));
+        //writeln("===");
+
+    static string[] fileArray(string dir, string files)
+    {
+        return files.split.map!(e => dir.buildPath(e)).array;
+    }
+
+    auto lexerSRCS = fileArray(env["D"], "
+            console.d entity.d errors.d filecache.d globals.d identifier.d lexer.d tokens.d utf.d");
+
+    builder
+        .name("frontend.h")
+        .description("Generate frontend.h")
+        .deps([dmdDefault])
+        //.sources(.sources.frontendHeaders ~ .sources.dmd ~ .sources.root)
+        //.sources(.sources.frontend)
+        .command([
+            env["DMD_PATH"],
+            "-I.",
+            "-J" ~ env["G"],
+            "-J../res",
+            "-version=NoBackend",
+            "-HCf=./dmd/frontend.h",
+            "-c"].chain(.sources.frontend, lexerSRCS).array
+        );
+    //env["DMD_PATH"] = env["G"].buildPath("dmd").exeName;
+});
+
 /// Dependency to run the DMD unittest executable.
 alias runDmdUnittest = makeDep!((builder, dep) {
     auto dmdUnittestExe = dmdExe("-unittest", ["-version=NoMain", "-unittest", "-main"]);
@@ -384,7 +430,7 @@ alias runCxxUnittest = makeDep!((runCxxBuilder, runCxxDep) {
         .name("cxx-unittest")
         .description("Build the C++ unittests")
         .msg("(DMD) CXX-UNITTEST")
-        .deps([lexer, backend, cxxFrontend])
+        .deps([lexer, backend, frontendH, cxxFrontend])
         .sources(sources.dmd ~ sources.root)
         .target(env["G"].buildPath("cxx-unittest").exeName)
         .command([ env["HOST_DMD_RUN"], "-of=" ~ exeDep.target, "-vtls", "-J" ~ env["RES"],
@@ -1037,7 +1083,7 @@ auto sourceFiles()
             aggregate.h aliasthis.h arraytypes.h attrib.h compiler.h complex_t.h cond.h
             ctfe.h declaration.h dsymbol.h doc.h enum.h errors.h expression.h globals.h hdrgen.h
             identifier.h id.h import.h init.h json.h mangle.h module.h mtype.h nspace.h objc.h scope.h
-            statement.h staticassert.h target.h template.h tokens.h version.h visitor.h
+            statement.h staticassert.h target.h template.h tokens.h version.h visitor.h frontend.h
         "),
         lexer: fileArray(env["D"], "
             console.d entity.d errors.d filecache.d globals.d id.d identifier.d lexer.d tokens.d utf.d
