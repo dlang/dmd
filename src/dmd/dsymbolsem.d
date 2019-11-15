@@ -4847,7 +4847,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         sd.tidtor = buildExternDDtor(sd, sc2);
         sd.postblit = buildPostBlit(sd, sc2);
         auto hasCopyCtor = buildCopyCtor(sd, sc2) != CopyCtor.none;
-        auto hasMoveCtor = buildCopyCtor(sd, sc2, true);
+        auto hasMoveCtor = buildCopyCtor(sd, sc2, true /*moveCtor*/);
         sd.hasCopyCtor = hasCopyCtor != CopyCtor.none;
         sd.hasMoveCtor = hasMoveCtor != CopyCtor.none;
 

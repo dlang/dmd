@@ -846,7 +846,8 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
             if (e.op == TOK.assign && ad1 == ad2)
             {
                 StructDeclaration sd = ad1.isStructDeclaration();
-                if (sd && !sd.hasIdentityAssign)
+                const isRv = !e.e2.isLvalue() || e.e2.type.isrvalue || e.e2.isRvalueRef;
+                if (sd && !sd.hasIdentityAssign && (isRv ? !sd.hasMoveAssign : !sd.hasCopyAssign))
                 {
                     /* This is bitwise struct assignment. */
                     return;
