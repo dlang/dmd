@@ -97,6 +97,13 @@ else
     enum DMDV2 = false;
 enum REQUIRE_DSO_REGISTRY = (DMDV2 && (TARGET_LINUX || TARGET_FREEBSD || TARGET_DRAGONFLYBSD));
 
+/**
+ * If set, produce .init_array/.fini_array instead of legacy .ctors/.dtors .
+ * OpenBSD added the support in Aug 2016. Other supported platforms has
+ * supported .init_array for years.
+ */
+enum USE_INIT_ARRAY = !TARGET_OPENBSD;
+
 /******
  * FreeBSD uses ELF, but the linker crashes with Elf comdats with the following message:
  *  /usr/bin/ld: BFD 2.15 [FreeBSD] 2004-05-23 internal error, aborting at
@@ -1686,7 +1693,12 @@ void Obj_staticdtor(Symbol *s)
 
 void Obj_setModuleCtorDtor(Symbol *sfunc, bool isCtor)
 {
-    IDXSEC seg = Obj_getsegment(isCtor ? ".ctors" : ".dtors", null, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE, _tysize[TYnptr]);
+    IDXSEC seg;
+    static if (USE_INIT_ARRAY)
+        seg = isCtor ? Obj_getsegment(".init_array", null, SHT_INIT_ARRAY, SHF_ALLOC|SHF_WRITE, _tysize[TYnptr])
+                     : Obj_getsegment(".fini_array", null, SHT_FINI_ARRAY, SHF_ALLOC|SHF_WRITE, _tysize[TYnptr]);
+    else
+        seg = Obj_getsegment(isCtor ? ".ctors" : ".dtors", null, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE, _tysize[TYnptr]);
     const reltype_t reltype = I64 ? R_X86_64_64 : R_386_32;
     const size_t sz = Obj_writerel(seg, cast(uint)SegData[seg].SDoffset, reltype, sfunc.Sxtrnnum, 0);
     SegData[seg].SDoffset += sz;
@@ -3564,7 +3576,7 @@ private void obj_rtinit()
          *      call      _d_dso_registry@PLT32
          *      leave
          *      ret
-         * and then put a pointer to that function in .ctors and in .dtors so it'll
+         * and then put a pointer to that function in .init_array and in .fini_array so it'll
          * get executed once upon loading and once upon unloading the DSO.
          */
         const codseg = Obj_getsegment(".text.d_dso_init", null, SHT_PROGBITS,
@@ -3802,17 +3814,27 @@ else
         off += 2;
         Offset(codseg) = off;
 
-        // put a reference into .ctors/.dtors each
+        // put a reference into .init_array/.fini_array each
         // needs to be writeable for PIC code, see Bugzilla 13117
         const int flags = SHF_ALLOC | SHF_WRITE | SHF_GROUP;
-        foreach (name; [".dtors.d_dso_dtor", ".ctors.d_dso_ctor"])
         {
-            const cdseg = Obj_getsegment(name.ptr, null, SHT_PROGBITS, flags, _tysize[TYnptr]);
+            enum fini_name = USE_INIT_ARRAY ? ".fini_array.d_dso_dtor" : ".dtors.d_dso_dtor";
+            enum fini_type = USE_INIT_ARRAY ? SHT_FINI_ARRAY : SHT_PROGBITS;
+            const cdseg = Obj_getsegment(fini_name.ptr, null, fini_type, flags, _tysize[TYnptr]);
             assert(!SegData[cdseg].SDbuf.size());
-
             // add to section group
             SegData[groupseg].SDbuf.write32(MAP_SEG2SECIDX(cdseg));
-
+            // relocation
+            const reltype2 = I64 ? R_X86_64_64 : R_386_32;
+            SegData[cdseg].SDoffset += Obj_writerel(cdseg, 0, reltype2, MAP_SEG2SYMIDX(codseg), 0);
+        }
+        {
+            enum init_name = USE_INIT_ARRAY ? ".init_array.d_dso_ctor" : ".ctors.d_dso_ctor";
+            enum init_type = USE_INIT_ARRAY ? SHT_INIT_ARRAY : SHT_PROGBITS;
+            const cdseg = Obj_getsegment(init_name.ptr, null, init_type, flags, _tysize[TYnptr]);
+            assert(!SegData[cdseg].SDbuf.size());
+            // add to section group
+            SegData[groupseg].SDbuf.write32(MAP_SEG2SECIDX(cdseg));
             // relocation
             const reltype2 = I64 ? R_X86_64_64 : R_386_32;
             SegData[cdseg].SDoffset += Obj_writerel(cdseg, 0, reltype2, MAP_SEG2SYMIDX(codseg), 0);
