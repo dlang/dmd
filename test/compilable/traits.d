@@ -126,6 +126,11 @@ struct SPostblit
     this(this) {}
 }
 
+struct DisabledPostblit
+{
+    @disable this(this);
+}
+
 struct NoCpCtor { }
 class C19902 { }
 
@@ -152,3 +157,6 @@ static assert(!__traits(compiles, __traits(hasCopyConstructor)));
 static assert(!__traits(compiles, __traits(hasCopyConstructor, S())));
 static assert(!__traits(compiles, __traits(hasPostblit)));
 static assert(!__traits(compiles, __traits(hasPostblit, S())));
+
+static assert(__traits(isCopyable, int));
+static assert(!__traits(isCopyable, DisabledPostblit));
