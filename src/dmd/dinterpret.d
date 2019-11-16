@@ -3560,6 +3560,9 @@ public:
 
             if (oldlen != 0) // Get the old array literal.
                 oldval = interpretRegion(e1, istate);
+            UnionExp utmp = void;
+            oldval = resolveSlice(oldval, &utmp);
+
             newval = changeArrayLiteralLength(e.loc, cast(TypeArray)t, oldval, oldlen, newlen).copy();
 
             e1 = assignToLvalue(e, e1, newval);

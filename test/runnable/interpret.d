@@ -3505,6 +3505,20 @@ void test15681()
 
 /************************************************/
 
+bool test20400()
+{
+    char[] s = cast(char[])"1234";
+    char[] ret = s[2 .. $];
+    ret.length += 1;
+    ret[$-1] = '5';
+    assert(ret == "345");
+
+    return true;
+}
+static assert(test20400());
+
+/************************************************/
+
 int main()
 {
     test1();
@@ -3628,6 +3642,7 @@ int main()
     test14140();
     test14862();
     test15681();
+    test20400();
 
     printf("Success\n");
     return 0;
