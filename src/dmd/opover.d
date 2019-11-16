@@ -68,299 +68,77 @@ bool isCommutative(TOK op)
  */
 private Identifier opId(Expression e)
 {
-    extern (C++) final class OpIdVisitor : Visitor
+    switch (e.op)
     {
-        alias visit = Visitor.visit;
-    public:
-        Identifier id;
-
-        override void visit(Expression e)
-        {
-            assert(0);
-        }
-
-        override void visit(UAddExp e)
-        {
-            id = Id.uadd;
-        }
-
-        override void visit(NegExp e)
-        {
-            id = Id.neg;
-        }
-
-        override void visit(ComExp e)
-        {
-            id = Id.com;
-        }
-
-        override void visit(CastExp e)
-        {
-            id = Id._cast;
-        }
-
-        override void visit(InExp e)
-        {
-            id = Id.opIn;
-        }
-
-        override void visit(PostExp e)
-        {
-            id = (e.op == TOK.plusPlus) ? Id.postinc : Id.postdec;
-        }
-
-        override void visit(AddExp e)
-        {
-            id = Id.add;
-        }
-
-        override void visit(MinExp e)
-        {
-            id = Id.sub;
-        }
-
-        override void visit(MulExp e)
-        {
-            id = Id.mul;
-        }
-
-        override void visit(DivExp e)
-        {
-            id = Id.div;
-        }
-
-        override void visit(ModExp e)
-        {
-            id = Id.mod;
-        }
-
-        override void visit(PowExp e)
-        {
-            id = Id.pow;
-        }
-
-        override void visit(ShlExp e)
-        {
-            id = Id.shl;
-        }
-
-        override void visit(ShrExp e)
-        {
-            id = Id.shr;
-        }
-
-        override void visit(UshrExp e)
-        {
-            id = Id.ushr;
-        }
-
-        override void visit(AndExp e)
-        {
-            id = Id.iand;
-        }
-
-        override void visit(OrExp e)
-        {
-            id = Id.ior;
-        }
-
-        override void visit(XorExp e)
-        {
-            id = Id.ixor;
-        }
-
-        override void visit(CatExp e)
-        {
-            id = Id.cat;
-        }
-
-        override void visit(AssignExp e)
-        {
-            id = Id.assign;
-        }
-
-        override void visit(AddAssignExp e)
-        {
-            id = Id.addass;
-        }
-
-        override void visit(MinAssignExp e)
-        {
-            id = Id.subass;
-        }
-
-        override void visit(MulAssignExp e)
-        {
-            id = Id.mulass;
-        }
-
-        override void visit(DivAssignExp e)
-        {
-            id = Id.divass;
-        }
-
-        override void visit(ModAssignExp e)
-        {
-            id = Id.modass;
-        }
-
-        override void visit(AndAssignExp e)
-        {
-            id = Id.andass;
-        }
-
-        override void visit(OrAssignExp e)
-        {
-            id = Id.orass;
-        }
-
-        override void visit(XorAssignExp e)
-        {
-            id = Id.xorass;
-        }
-
-        override void visit(ShlAssignExp e)
-        {
-            id = Id.shlass;
-        }
-
-        override void visit(ShrAssignExp e)
-        {
-            id = Id.shrass;
-        }
-
-        override void visit(UshrAssignExp e)
-        {
-            id = Id.ushrass;
-        }
-
-        override void visit(CatAssignExp e)
-        {
-            id = Id.catass;
-        }
-
-        override void visit(PowAssignExp e)
-        {
-            id = Id.powass;
-        }
-
-        override void visit(EqualExp e)
-        {
-            id = Id.eq;
-        }
-
-        override void visit(CmpExp e)
-        {
-            id = Id.cmp;
-        }
-
-        override void visit(ArrayExp e)
-        {
-            id = Id.index;
-        }
-
-        override void visit(PtrExp e)
-        {
-            id = Id.opStar;
-        }
+    case TOK.uadd:                      return Id.uadd;
+    case TOK.negate:                    return Id.neg;
+    case TOK.tilde:                     return Id.com;
+    case TOK.cast_:                     return Id._cast;
+    case TOK.in_:                       return Id.opIn;
+    case TOK.plusPlus:                  return Id.postinc;
+    case TOK.minusMinus:                return Id.postdec;
+    case TOK.add:                       return Id.add;
+    case TOK.min:                       return Id.sub;
+    case TOK.mul:                       return Id.mul;
+    case TOK.div:                       return Id.div;
+    case TOK.mod:                       return Id.mod;
+    case TOK.pow:                       return Id.pow;
+    case TOK.leftShift:                 return Id.shl;
+    case TOK.rightShift:                return Id.shr;
+    case TOK.unsignedRightShift:        return Id.ushr;
+    case TOK.and:                       return Id.iand;
+    case TOK.or:                        return Id.ior;
+    case TOK.xor:                       return Id.ixor;
+    case TOK.concatenate:               return Id.cat;
+    case TOK.assign:                    return Id.assign;
+    case TOK.addAssign:                 return Id.addass;
+    case TOK.minAssign:                 return Id.subass;
+    case TOK.mulAssign:                 return Id.mulass;
+    case TOK.divAssign:                 return Id.divass;
+    case TOK.modAssign:                 return Id.modass;
+    case TOK.powAssign:                 return Id.powass;
+    case TOK.leftShiftAssign:           return Id.shlass;
+    case TOK.rightShiftAssign:          return Id.shrass;
+    case TOK.unsignedRightShiftAssign:  return Id.ushrass;
+    case TOK.andAssign:                 return Id.andass;
+    case TOK.orAssign:                  return Id.orass;
+    case TOK.xorAssign:                 return Id.xorass;
+    case TOK.concatenateAssign:         return Id.catass;
+    case TOK.equal:                     return Id.eq;
+    case TOK.lessThan:
+    case TOK.lessOrEqual:
+    case TOK.greaterThan:
+    case TOK.greaterOrEqual:            return Id.cmp;
+    case TOK.array:                     return Id.index;
+    case TOK.star:                      return Id.opStar;
+    default:                            assert(0);
     }
-
-    scope OpIdVisitor v = new OpIdVisitor();
-    e.accept(v);
-    return v.id;
 }
 
 /***********************************
  * Get Identifier for reverse operator overload,
- * NULL if not supported for this operator.
+ * `null` if not supported for this operator.
  */
 private Identifier opId_r(Expression e)
 {
-    extern (C++) final class OpIdRVisitor : Visitor
+    switch (e.op)
     {
-        alias visit = Visitor.visit;
-    public:
-        Identifier id;
-
-        override void visit(Expression e)
-        {
-            id = null;
-        }
-
-        override void visit(InExp e)
-        {
-            id = Id.opIn_r;
-        }
-
-        override void visit(AddExp e)
-        {
-            id = Id.add_r;
-        }
-
-        override void visit(MinExp e)
-        {
-            id = Id.sub_r;
-        }
-
-        override void visit(MulExp e)
-        {
-            id = Id.mul_r;
-        }
-
-        override void visit(DivExp e)
-        {
-            id = Id.div_r;
-        }
-
-        override void visit(ModExp e)
-        {
-            id = Id.mod_r;
-        }
-
-        override void visit(PowExp e)
-        {
-            id = Id.pow_r;
-        }
-
-        override void visit(ShlExp e)
-        {
-            id = Id.shl_r;
-        }
-
-        override void visit(ShrExp e)
-        {
-            id = Id.shr_r;
-        }
-
-        override void visit(UshrExp e)
-        {
-            id = Id.ushr_r;
-        }
-
-        override void visit(AndExp e)
-        {
-            id = Id.iand_r;
-        }
-
-        override void visit(OrExp e)
-        {
-            id = Id.ior_r;
-        }
-
-        override void visit(XorExp e)
-        {
-            id = Id.ixor_r;
-        }
-
-        override void visit(CatExp e)
-        {
-            id = Id.cat_r;
-        }
+    case TOK.in_:               return Id.opIn_r;
+    case TOK.add:               return Id.add_r;
+    case TOK.min:               return Id.sub_r;
+    case TOK.mul:               return Id.mul_r;
+    case TOK.div:               return Id.div_r;
+    case TOK.mod:               return Id.mod_r;
+    case TOK.pow:               return Id.pow_r;
+    case TOK.leftShift:         return Id.shl_r;
+    case TOK.rightShift:        return Id.shr_r;
+    case TOK.unsignedRightShift:return Id.ushr_r;
+    case TOK.and:               return Id.iand_r;
+    case TOK.or:                return Id.ior_r;
+    case TOK.xor:               return Id.ixor_r;
+    case TOK.concatenate:       return Id.cat_r;
+    default:                    return null;
     }
-
-    scope OpIdRVisitor v = new OpIdRVisitor();
-    e.accept(v);
-    return v.id;
 }
 
 /*******************************************
