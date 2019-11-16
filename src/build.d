@@ -581,6 +581,9 @@ alias toolchainInfo = makeDep!((builder, dep) => builder
 
         writeln("==== Toolchain Information ====");
 
+        version (OSX)
+            show("OS", ["sw_vers"]);
+
         version (Windows)
             show("SYSTEM", ["systeminfo"]);
         else
