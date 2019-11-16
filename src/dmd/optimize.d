@@ -20,6 +20,7 @@ import dmd.dclass;
 import dmd.declaration;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
+import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.globals;
@@ -1202,8 +1203,14 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
     scope OptimizeVisitor v = new OptimizeVisitor(e, result, keepLvalue);
 
     // Optimize the expression until it can no longer be simplified.
+    size_t b;
     while (1)
     {
+        if (b++ == 500)
+        {
+            e.error("infinite loop while optimizing expression");
+            fatal();
+        }
         auto ex = v.ret;
         ex.accept(v);
         if (ex == v.ret)
