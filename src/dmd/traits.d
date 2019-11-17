@@ -448,12 +448,12 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         return new ErrorExp();
     }
 
-    IntegerExp True()
+    static IntegerExp True()
     {
         return IntegerExp.createBool(true);
     }
 
-    IntegerExp False()
+    static IntegerExp False()
     {
         return IntegerExp.createBool(false);
     }
@@ -1920,7 +1920,7 @@ Lnext:
         return tup.expressionSemantic(sc);
     }
 
-    extern (D) const(char)[] trait_search_fp(const(char)[] seed, ref int cost)
+    static const(char)[] trait_search_fp(const(char)[] seed, ref int cost)
     {
         //printf("trait_search_fp('%s')\n", seed);
         if (!seed.length)
