@@ -82,12 +82,41 @@ nothrow:
         memset(ptr, 0, (len + BitsPerChunk - 1) / 8);
     }
 
+    /******
+     * Returns:
+     *  true if no bits are set
+     */
+    bool isZero()
+    {
+        const nchunks = (len + BitsPerChunk - 1) / BitsPerChunk;
+        foreach (i; 0 .. nchunks)
+        {
+            if (ptr[i])
+                return false;
+        }
+        return true;
+    }
+
     void or(const ref BitArray b)
     {
         assert(len == b.len);
         const nchunks = (len + BitsPerChunk - 1) / BitsPerChunk;
         foreach (i; 0 .. nchunks)
             ptr[i] |= b.ptr[i];
+    }
+
+    /* Swap contents of `this` with `b`
+     */
+    void swap(ref BitArray b)
+    {
+        assert(len == b.len);
+        const nchunks = (len + BitsPerChunk - 1) / BitsPerChunk;
+        foreach (i; 0 .. nchunks)
+        {
+            const chunk = ptr[i];
+            ptr[i] = b.ptr[i];
+            b.ptr[i] = chunk;
+        }
     }
 
     ~this() pure nothrow
@@ -130,16 +159,22 @@ unittest
     assert(a != array);
     a.length = 200;
     assert(a != array);
+    assert(a.isZero());
     a[100] = true;
     b.length = 200;
     b[100] = true;
     assert(a == b);
+
     a.length = 300;
     b.length = 300;
     assert(a == b);
     b[299] = true;
     assert(a != b);
-    b = a;
+    assert(!a.isZero());
+    a.swap(b);
+    assert(a[299] == true);
+    assert(b[299] == false);
+    a = b;
     assert(a == b);
 }
 
