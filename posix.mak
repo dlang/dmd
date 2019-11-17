@@ -33,7 +33,6 @@ clean:
 	$(RM) tags
 
 test:
-	$(QUIET)$(MAKE) -C src -f posix.mak build-examples
 	$(QUIET)$(MAKE) -C src -f posix.mak unittest
 	$(QUIET)$(MAKE) -C test -f Makefile
 

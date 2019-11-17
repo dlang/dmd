@@ -307,23 +307,6 @@ endif
   override DFLAGS  += -dip25
 endif
 
-######## DMD frontend source files
-
-LEXER_SRCS=$(addsuffix .d, $(addprefix $D/, console entity errors filecache globals id identifier lexer tokens utf ))
-
-LEXER_ROOT=$(addsuffix .d, $(addprefix $(ROOT)/, array bitarray ctfloat file filename outbuffer port rmem \
-	rootobject stringtable hash))
-
-ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array bitarray ctfloat file \
-	filename man outbuffer port region response rmem rootobject speller \
-	longdouble strtold stringtable hash string))
-
-######## CXX header files (only needed for cxx-unittest)
-
-ROOT_SRC = $(addprefix $(ROOT)/, array.h bitarray.h ctfloat.h dcompat.h file.h filename.h \
-	longdouble.h object.h outbuffer.h port.h \
-	rmem.h root.h)
-
 ######## Additional files
 
 SRC_MAKE = posix.mak osmodel.mak
@@ -352,19 +335,6 @@ toolchain-info: $(GENERATED)/build
 
 unittest: $G/dmd-unittest
 	$<
-
-######## DMD as a library examples
-
-EXAMPLES=$(addprefix $G/examples/, avg impvisitor)
-PARSER_SRCS=$(addsuffix .d, $(addprefix $D/,parse astbase parsetimevisitor transitivevisitor permissivevisitor strictvisitor utils))
-
-$G/parser.a: $(PARSER_SRCS) $(LEXER_SRCS) $(ROOT_SRCS) dmd $(SRC_MAKE)
-	$G/dmd -lib -of$@ $(MODEL_FLAG) -J$G $(DFLAGS) $(PARSER_SRCS) $(LEXER_SRCS) $(ROOT_SRCS)
-
-$G/examples/%: $(EX)/%.d $G/parser.a dmd
-	$G/dmd -of$@ $(MODEL_FLAG) $(DFLAGS) $G/parser.a $<
-
-build-examples: $(EXAMPLES)
 
 ######## Manual cleanup
 

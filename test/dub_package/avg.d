@@ -46,7 +46,7 @@ extern(C++) class FunctionLengthVisitor(AST) : ParseTimeTransitiveVisitor!AST
 
 void main()
 {
-    string fname = "examples/testavg.d";
+    string fname = "testfiles/testavg.d";
 
     Id.initialize();
     global._init();
