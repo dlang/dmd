@@ -1916,7 +1916,13 @@ final class Parser(AST) : Lexer
         // Get TemplateArgumentList
         while (token.value != endtok)
         {
-            tiargs.push(parseTypeOrAssignExp());
+            if (token.value != TOK.mixin_)
+                tiargs.push(parseTypeOrAssignExp());
+            else
+            {
+                // See https://issues.dlang.org/show_bug.cgi?id=20388
+                tiargs.push(parseAssignExp());
+            }
             if (token.value != TOK.comma)
                 break;
             nextToken();
