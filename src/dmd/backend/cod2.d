@@ -27,6 +27,7 @@ import core.stdc.string;
 import dmd.backend.backend;
 import dmd.backend.cc;
 import dmd.backend.cdef;
+import dmd.backend.cg87;
 import dmd.backend.code;
 import dmd.backend.code_x86;
 import dmd.backend.codebuilder;
@@ -1978,8 +1979,8 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
     /* vars to save state of 8087 */
     int stackusedold,stackusedsave;
-    NDP[_8087elems.length] _8087old;
-    NDP[_8087elems.length] _8087save;
+    NDP[global87.stack.length] _8087old;
+    NDP[global87.stack.length] _8087save;
 
     //printf("cdcond(e = %p, *pretregs = %s)\n",e,regm_str(*pretregs));
     elem *e1 = e.EV.E1;
@@ -2170,9 +2171,9 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     code *cnop2 = gennop(null);         // dummy target addresses
     logexp(cdb,e1,false,FLcode,cnop1);  // evaluate condition
     regconold = regcon;
-    stackusedold = stackused;
+    stackusedold = global87.stackused;
     stackpushold = stackpush;
-    memcpy(_8087old.ptr,_8087elems.ptr,_8087elems.sizeof);
+    memcpy(_8087old.ptr,global87.stack.ptr,global87.stack.sizeof);
     regm_t retregs = *pretregs;
     CodeBuilder cdb1;
     cdb1.ctor();
@@ -2210,11 +2211,11 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     stackpushsave = stackpush;
     stackpush = stackpushold;
 
-    stackusedsave = stackused;
-    stackused = stackusedold;
+    stackusedsave = global87.stackused;
+    global87.stackused = stackusedold;
 
-    memcpy(_8087save.ptr,_8087elems.ptr,_8087elems.sizeof);
-    memcpy(_8087elems.ptr,_8087old.ptr,_8087elems.sizeof);
+    memcpy(_8087save.ptr,global87.stack.ptr,global87.stack.sizeof);
+    memcpy(global87.stack.ptr,_8087old.ptr,global87.stack.sizeof);
 
     retregs |= psw;                     // PSW bit may have been trashed
     CodeBuilder cdb2;
@@ -2232,9 +2233,9 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     *pretregs = retregs | psw;
     andregcon(&regconold);
     andregcon(&regconsave);
-    assert(stackused == stackusedsave);
+    assert(global87.stackused == stackusedsave);
     assert(stackpush == stackpushsave);
-    memcpy(_8087elems.ptr,_8087save.ptr,_8087elems.sizeof);
+    memcpy(global87.stack.ptr,_8087save.ptr,global87.stack.sizeof);
     freenode(e2);
     genjmp(cdb,JMP,FLcode,cast(block *) cnop2);
     cdb.append(cnop1);
