@@ -16,6 +16,11 @@ import core.stdc.string;
 
 import dmd.root.rmem;
 
+debug
+{
+    debug = stomp; // flush out dangling pointer problems by stomping on unused memory
+}
+
 extern (C++) struct Array(T)
 {
     size_t length;
@@ -40,6 +45,7 @@ public:
 
     ~this() pure nothrow
     {
+        debug (stomp) memset(data.ptr, 0xFF, data.length);
         if (data.ptr != &smallarray[0])
             mem.xfree(data.ptr);
     }
@@ -137,12 +143,30 @@ public:
                 if (nentries > increment)       // if 1.5 is not enough
                     increment = nentries;
                 const allocdim = length + increment;
-                auto p = cast(T*)mem.xrealloc(data.ptr, allocdim * T.sizeof);
+                debug (stomp)
+                {
+                    // always move using allocate-copy-stomp-free
+                    auto p = cast(T*)mem.xmalloc(allocdim * T.sizeof);
+                    memcpy(p, data.ptr, length * T.sizeof);
+                    memset(data.ptr, 0xFF, data.length * T.sizeof);
+                    mem.xfree(data.ptr);
+                }
+                else
+                    auto p = cast(T*)mem.xrealloc(data.ptr, allocdim * T.sizeof);
                 data = p[0 .. allocdim];
             }
-            if (mem.isGCEnabled)
-                if (length + nentries < data.length)
-                    memset(data.ptr + length + nentries, 0, (data.length - length - nentries) * T.sizeof);
+
+            debug (stomp)
+            {
+                if (length < data.length)
+                    memset(data.ptr + length, 0xFF, (data.length - length) * T.sizeof);
+            }
+            else
+            {
+                if (mem.isGCEnabled)
+                    if (length < data.length)
+                        memset(data.ptr + length, 0xFF, (data.length - length) * T.sizeof);
+            }
         }
     }
 
@@ -151,6 +175,7 @@ public:
         if (length - i - 1)
             memmove(data.ptr + i, data.ptr + i + 1, (length - i - 1) * T.sizeof);
         length--;
+        debug (stomp) memset(data.ptr + length, 0xFF, T.sizeof);
     }
 
     void insert(size_t index, typeof(this)* a) pure nothrow
@@ -229,7 +254,15 @@ public:
 
     T pop() nothrow pure @nogc
     {
-        return data[--length];
+        debug (stomp)
+        {
+            assert(length);
+            auto result = data[length - 1];
+            remove(length - 1);
+            return result;
+        }
+        else
+            return data[--length];
     }
 
     extern (D) inout(T)[] opSlice() inout nothrow pure @nogc
