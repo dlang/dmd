@@ -1264,33 +1264,6 @@ auto getDefault(ref string[string] env, string key, string default_)
 ////////////////////////////////////////////////////////////////////////////////
 // Mini build system
 ////////////////////////////////////////////////////////////////////////////////
-
-/**
-Determines if a target is up to date with respect to its source files
-
-Params:
-    target = the target to check
-    source = the source file to check against
-Returns: `true` if the target is up to date
-*/
-auto isUpToDate(string target, string source)
-{
-    return isUpToDate(target, [source]);
-}
-
-/**
-Determines if a target is up to date with respect to its source files
-
-Params:
-    target = the target to check
-    source = the source files to check against
-Returns: `true` if the target is up to date
-*/
-auto isUpToDate(string target, string[][] sources...)
-{
-    return isUpToDate([target], sources);
-}
-
 /**
 Checks whether any of the targets are older than the sources
 
@@ -1300,24 +1273,19 @@ Params:
 Returns:
     `true` if the target is up to date
 */
-auto isUpToDate(string[] targets, string[][] sources...)
+bool isUpToDate(R, S)(R targets, S sources)
 {
     if (force)
         return false;
-
+    auto oldestTargetTime = SysTime.max;
     foreach (target; targets)
     {
-        auto sourceTime = target.timeLastModified.ifThrown(SysTime.init);
-        // if a target has no sources, it only needs to be built once
-        if (sources.empty || sources.length == 1 && sources.front.empty)
-            return sourceTime > SysTime.init;
-        foreach (arg; sources)
-            foreach (a; arg)
-                if (sourceTime < a.timeLastModified.ifThrown(SysTime.init + 1.seconds))
-                    return false;
+        const time = target.timeLastModified.ifThrown(SysTime.init);
+        if (time == SysTime.init)
+            return false;
+        oldestTargetTime = min(time, oldestTargetTime);
     }
-
-    return true;
+    return sources.all!(s => s.timeLastModified.ifThrown(SysTime.init) <= oldestTargetTime);
 }
 
 /**
@@ -1356,7 +1324,6 @@ class Dependency
     string target; // path to the resulting target file (if target is used, it will set targets)
     string[] targets; // list of all target files
     string[] sources; // list of all source files
-    string[] rebuildSources; // Optional list of files that trigger a rebuild of this dependency
     Dependency[] deps; // dependencies to build before this one
     bool delegate() condition; // Optional condition to determine whether or not to run this dependency
     string[] command; // the dependency command
@@ -1402,7 +1369,7 @@ class Dependency
             return;
         }
 
-        if (targets && targets.isUpToDate(this.sources, [thisBuildScript], rebuildSources))
+        if (targets && targets.isUpToDate(this.sources.chain([thisBuildScript])))
         {
             if (this.sources !is null)
                 log("Skipping build of %-(%s%) as it's newer than %-(%s%)", targets, this.sources);
