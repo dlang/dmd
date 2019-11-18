@@ -192,12 +192,13 @@ FORCE: ;
 # Generate the man pages
 ################################################################################
 
-DMD_MAN_PAGE = $(GENERATED)/docs/man1/dmd.1
+DMD_MAN_PAGE = $(GENERATED)/docs/man/man1/dmd.1
 
-$(DMD_MAN_PAGE): dmd/cli.d
-	${MAKE} -C ../docs DMD=$(HOST_DMD_PATH) build
+$(GENERATED)/docs/%: $(GENERATED)/build
+	$(RUN_BUILD) $@
 
-man: $(DMD_MAN_PAGE)
+man: $(GENERATED)/build
+	$(RUN_BUILD) $@
 
 ######################################################
 
