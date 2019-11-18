@@ -792,7 +792,7 @@ struct S44
   int i;
 }
 
-static S44[12] S44s = [];
+static S44[12] S44s;
 
 void test44()
 {

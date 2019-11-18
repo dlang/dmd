@@ -1,8 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice15002.d(10): Error: array index 5 is out of bounds `x[0 .. 3]`
-fail_compilation/ice15002.d(10): Error: array index 5 is out of bounds `x[0 .. 3]`
+fail_compilation/ice15002.d(10): Deprecation: mismatched array lengths. array initializer has 0 elements, but array length is 3
+fail_compilation/ice15002.d(11): Error: array index 5 is out of bounds `x[0 .. 3]`
+fail_compilation/ice15002.d(11): Error: array index 5 is out of bounds `x[0 .. 3]`
 ---
 */
 

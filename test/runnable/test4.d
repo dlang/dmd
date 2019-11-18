@@ -570,7 +570,7 @@ void test17()
 
 /* ================================ */
 
-private const uint[256] crc_table = [
+private const uint[6] crc_table = [
     0x00000000u, 0x77073096u, 0xee0e612cu, 0x990951bau, 0x076dc419u,
     0x2d02ef8du
   ];

@@ -1048,7 +1048,7 @@ void test50()
 
 void test51()
 {
-    static immutable int[2] array = [ 42 ];
+    static immutable int[2] array = [ 42, 0 ];
     enum e = array[1];
     static immutable int[1] array2 = [ 0: 42 ];
     enum e2 = array2[0];
