@@ -818,9 +818,9 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (s.semanticRun == PASS.init)
             s.dsymbolSemantic(null);
 
-        auto protName = protectionToChars(s.prot().kind); // TODO: How about package(names)
+        auto protName = protectionToString(s.prot().kind); // TODO: How about package(names)
         assert(protName);
-        auto se = new StringExp(e.loc, protName[0 .. strlen(protName)]);
+        auto se = new StringExp(e.loc, protName);
         return se.expressionSemantic(sc);
     }
     if (e.ident == Id.parent)
@@ -1029,9 +1029,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
              */
             void insertInterfaceInheritedFunction(FuncDeclaration fd, Expression e)
             {
-                auto funcType = fd.type.toChars();
-                auto len = strlen(funcType);
-                string signature = funcType[0 .. len].idup;
+                auto signature = fd.type.toString();
                 //printf("%s - %s\n", fd.toChars, signature);
                 if (signature !in funcTypeHash)
                 {
