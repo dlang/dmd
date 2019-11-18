@@ -1073,25 +1073,25 @@ Returns: `true` if download succeeded
 */
 bool download(string to, string from, uint tries = 3)
 {
-    import std.net.curl : download, HTTPStatusException;
+    import std.net.curl : download, HTTP, HTTPStatusException;
 
     foreach(i; 0..tries)
     {
         try
         {
             log("Downloading %s ...", from);
-            download(from, to);
-            return true;
+            auto con = HTTP(from);
+            download(from, to, con);
+
+            if (con.statusLine.code == 200)
+                return true;
         }
         catch(HTTPStatusException e)
         {
             if (e.status == 404) throw e;
-            else
-            {
-                log("Failed to download %s (Attempt %s of %s)", from, i + 1, tries);
-                continue;
-            }
         }
+
+        log("Failed to download %s (Attempt %s of %s)", from, i + 1, tries);
     }
 
     return false;
