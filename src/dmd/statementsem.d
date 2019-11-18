@@ -13,7 +13,6 @@
 module dmd.statementsem;
 
 import core.stdc.stdio;
-import core.stdc.string;
 
 import dmd.aggregate;
 import dmd.aliasthis;
@@ -55,6 +54,7 @@ import dmd.statement;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
+import dmd.utils;
 import dmd.visitor;
 
 /*****************************************
@@ -2654,7 +2654,7 @@ else
                     sl = new DotIdExp(ss.loc, sl, Id.__switch_error);
 
                     Expressions* args = new Expressions(2);
-                    (*args)[0] = new StringExp(ss.loc, ss.loc.filename[0 .. strlen(ss.loc.filename)]);
+                    (*args)[0] = new StringExp(ss.loc, ss.loc.filename.toDString());
                     (*args)[1] = new IntegerExp(ss.loc.linnum);
 
                     sl = new CallExp(ss.loc, sl, args);

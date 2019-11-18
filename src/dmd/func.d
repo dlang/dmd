@@ -46,6 +46,7 @@ import dmd.statement_rewrite_walker;
 import dmd.statement;
 import dmd.statementsem;
 import dmd.tokens;
+import dmd.utils;
 import dmd.visitor;
 
 /// Inline Status
@@ -2744,7 +2745,7 @@ private const(char)* prependSpace(const(char)* str)
 {
     if (!str || !*str) return "";
 
-    return (" " ~ str[0 .. strlen(str)] ~ "\0").ptr;
+    return (" " ~ str.toDString() ~ "\0").ptr;
 }
 
 /// Flag used by $(LREF resolveFuncCall).

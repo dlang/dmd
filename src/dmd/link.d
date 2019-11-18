@@ -615,14 +615,14 @@ public int runLINK()
         */
         static bool startsWith(const(char)* p, string needle)
         {
-            const f = p[0 .. strlen(p)];
+            const f = p.toDString();
             return f.length >= needle.length && f[0 .. needle.length] == needle;
         }
 
         // return true if flagp should be ordered in with the library flags
         static bool flagIsLibraryRelated(const char* p)
         {
-            const flag = p[0 .. strlen(p)];
+            const flag = p.toDString();
 
             return startsWith(p, "-l") || startsWith(p, "-L")
                 || flag == "-(" || flag == "-)"

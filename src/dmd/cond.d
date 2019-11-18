@@ -742,7 +742,7 @@ extern (C++) final class VersionCondition : DVCondition
     deprecated("Kept for C++ compat - Use the string overload instead")
     static void addPredefinedGlobalIdent(const(char)* ident)
     {
-        addPredefinedGlobalIdent(ident[0 .. ident.strlen]);
+        addPredefinedGlobalIdent(ident.toDString());
     }
 
     /// Ditto

@@ -61,6 +61,7 @@ import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
+import dmd.utils;
 
 /**************************
  * This evaluates exp while setting length to be the number
@@ -2123,7 +2124,7 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             }
             else
             {
-                e = new StringExp(loc, mt.deco[0 .. strlen(mt.deco)]);
+                e = new StringExp(loc, mt.deco.toDString());
                 Scope sc;
                 e = e.expressionSemantic(&sc);
             }
@@ -2131,7 +2132,7 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
         else if (ident == Id.stringof)
         {
             const s = mt.toChars();
-            e = new StringExp(loc, s[0 .. strlen(s)]);
+            e = new StringExp(loc, s.toDString());
             Scope sc;
             e = e.expressionSemantic(&sc);
         }

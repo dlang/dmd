@@ -13,7 +13,6 @@
 module dmd.traits;
 
 import core.stdc.stdio;
-import core.stdc.string;
 
 import dmd.aggregate;
 import dmd.arraytypes;
@@ -49,6 +48,7 @@ import dmd.typesem;
 import dmd.visitor;
 import dmd.root.rootobject;
 import dmd.root.outbuffer;
+import dmd.utils;
 
 enum LOGSEMANTIC = false;
 
@@ -1406,7 +1406,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             }
         }
         auto linkage = linkageToChars(link);
-        auto se = new StringExp(e.loc, linkage[0 .. strlen(linkage)]);
+        auto se = new StringExp(e.loc, linkage.toDString());
         return se.expressionSemantic(sc);
     }
     if (e.ident == Id.allMembers ||
@@ -1484,7 +1484,11 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                         return 0;
 
                     // Avoid using strcmp in the first place due to the performance impact in an O(N^2) loop.
-                    debug assert(strcmp(id.toChars(), sm.ident.toChars()) != 0);
+                    debug
+                    {
+                        import core.stdc.string : strcmp;
+                        assert(strcmp(id.toChars(), sm.ident.toChars()) != 0);
+                    }
                 }
                 idents.push(sm.ident);
             }
@@ -1911,7 +1915,7 @@ Lnext:
         }
 
         auto exps = new Expressions(3);
-        (*exps)[0] = new StringExp(e.loc, s.loc.filename[0 .. strlen(s.loc.filename)]);
+        (*exps)[0] = new StringExp(e.loc, s.loc.filename.toDString());
         (*exps)[1] = new IntegerExp(e.loc, s.loc.linnum,Type.tint32);
         (*exps)[2] = new IntegerExp(e.loc, s.loc.charnum,Type.tint32);
         auto tup = new TupleExp(e.loc, exps);

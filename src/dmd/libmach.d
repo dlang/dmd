@@ -153,7 +153,7 @@ final class LibMach : Library
                     om.length = cast(uint)(size + MachLibHeader.sizeof);
                     om.offset = 0;
                     const n = cast(const(char)*)(om.base + MachLibHeader.sizeof);
-                    om.name = n[0 .. strlen(n)];
+                    om.name = n.toDString();
                     om.file_time = cast(uint)strtoul(header.file_time.ptr, &endptr, 10);
                     om.user_id = cast(uint)strtoul(header.user_id.ptr, &endptr, 10);
                     om.group_id = cast(uint)strtoul(header.group_id.ptr, &endptr, 10);
@@ -209,7 +209,7 @@ final class LibMach : Library
         om.length = cast(uint)buflen;
         om.offset = 0;
         const n = cast(const(char)*)FileName.name(module_name); // remove path, but not extension
-        om.name = n[0 .. strlen(n)];
+        om.name = n.toDString();
         om.scan = 1;
         if (fromfile)
         {

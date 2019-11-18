@@ -414,7 +414,7 @@ extern(C++) void gendocfile(Module m)
         time(&t);
         char* p = ctime(&t);
         p = mem.xstrdup(p);
-        m.macrotable.define("DATETIME", p[0 .. strlen(p)]);
+        m.macrotable.define("DATETIME", p.toDString());
         m.macrotable.define("YEAR", p[20 .. 20 + 4]);
     }
     const srcfilename = m.srcfile.toString();
