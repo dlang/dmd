@@ -1906,6 +1906,12 @@ extern (C++) class FuncDeclaration : Declaration
                 FuncDeclaration f = v.nestedrefs[j];
                 assert(f != this);
 
+                /* __require and __ensure will always get called directly,
+                 * so they never make outer functions closure.
+                 */
+                if (f.ident == Id.require || f.ident == Id.ensure)
+                    continue;
+
                 //printf("\t\tf = %p, %s, isVirtual=%d, isThis=%p, tookAddressOf=%d\n", f, f.toChars(), f.isVirtual(), f.isThis(), f.tookAddressOf);
 
                 /* Look to see if f escapes. We consider all parents of f within

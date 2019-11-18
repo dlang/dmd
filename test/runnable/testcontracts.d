@@ -491,6 +491,54 @@ void test7218()
 }
 
 /*******************************************/
+// https://issues.dlang.org/show_bug.cgi?id=7335
+
+class A7335
+{
+    int mValue = 10;
+
+    void setValue(int newValue)
+    in { }
+    out { assert(mValue == 3); }
+    do
+    {
+        mValue = newValue;
+    }
+}
+
+class B7335 : A7335
+{
+    override void setValue(int newValue)
+    in { assert(false); }
+    out { assert(mValue == 3); }
+    do
+    {
+        mValue = newValue;
+    }
+}
+
+class C7335 : A7335
+{
+    override void setValue(int newValue)
+    in { int a = newValue; }
+    out { assert(mValue == 3); }
+    body
+    {
+        mValue = newValue;
+    }
+}
+
+void test7335()
+{
+    A7335 aObject = new B7335();
+    aObject.setValue(3);
+
+    A7335 bObject = new C7335();
+    bObject.setValue(3);    // <<<<<  will crash because undefined mValue in the
+                            // A7335.setValue().out-block.
+}
+
+/*******************************************/
 // https://issues.dlang.org/show_bug.cgi?id=7517
 
 void test7517()
@@ -1244,6 +1292,7 @@ int main()
     test6417();
     test6549();
     test7218();
+    test7335();
     test7517();
     test8073();
     test8093();
