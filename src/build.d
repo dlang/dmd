@@ -567,7 +567,7 @@ alias toolchainInfo = makeDep!((builder, dep) => builder
             try
                 output = tryRun(cmd).output;
             catch (ProcessException)
-                output = "<Not availiable>";
+                output = "<Not available>";
 
             writefln("%s (%s): %s", what, cmd[0], output);
         }
