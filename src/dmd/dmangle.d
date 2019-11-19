@@ -35,6 +35,7 @@ import dmd.root.aav;
 import dmd.target;
 import dmd.tokens;
 import dmd.utf;
+import dmd.utils;
 import dmd.visitor;
 
 private immutable char[TMAX] mangleChar =
@@ -577,7 +578,7 @@ public:
                 case LINK.cpp:
                 {
                     const p = target.cpp.toMangle(d);
-                    return p[0 .. strlen(p)];
+                    return p.toDString();
                 }
                 case LINK.default_:
                 case LINK.system:

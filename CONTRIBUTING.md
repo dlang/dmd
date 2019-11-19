@@ -81,9 +81,11 @@ overrides unless the overriding function does something different (as far as
 the caller is concerned) than the overridden function. Ddoc comment blocks
 are often overkill for nested functions and function literals; use ordinary
 comments for those. Follow the [D Style](https://dlang.org/dstyle.html#phobos_documentation)
-for for comment blocks. 
+for comment blocks.
 
 3. Do not use `strlen`/`strcmp` and their ilk. Use D arrays instead.
+If slicing from a `char*` is required then use `dmd.utils.toDString`
+or the member function `.toString` that is implemented in many classes.
 
 4. Use `ref`/`out` instead of raw pointers.
 
@@ -158,7 +160,7 @@ Such functions should not be mutating the data nor issuing error messages.
 across the source tree is likely to be disruptive and unlikely to provide
 significant improvement.
 
-3. Reformatting into your personal style. Please stick with the existing style. 
+3. Reformatting into your personal style. Please stick with the existing style.
 Use the [D Style](https://dlang.org/dstyle.html#phobos_documentation) for new code.
 
 As always, treating the above as sacred writ is a huge mistake. Use

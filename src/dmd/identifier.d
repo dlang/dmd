@@ -63,7 +63,7 @@ public:
     extern (D) this(const(char)* name) nothrow
     {
         //printf("Identifier('%s', %d)\n", name, value);
-        this(name[0 .. strlen(name)], TOK.identifier);
+        this(name.toDString(), TOK.identifier);
     }
 
     /// Sentinel for an anonymous identifier.

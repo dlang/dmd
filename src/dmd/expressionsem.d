@@ -13,7 +13,6 @@
 module dmd.expressionsem;
 
 import core.stdc.stdio;
-import core.stdc.string;
 
 import dmd.access;
 import dmd.aggregate;
@@ -8855,9 +8854,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (global.params.tracegc)
             {
                 auto funcname = (sc.callsc && sc.callsc.func) ? sc.callsc.func.toPrettyChars() : sc.func.toPrettyChars();
-                arguments.push(new StringExp(exp.loc, exp.loc.filename[0 .. strlen(exp.loc.filename)]));
+                arguments.push(new StringExp(exp.loc, exp.loc.filename.toDString()));
                 arguments.push(new IntegerExp(exp.loc, exp.loc.linnum, Type.tint32));
-                arguments.push(new StringExp(exp.loc, funcname[0 .. strlen(funcname)]));
+                arguments.push(new StringExp(exp.loc, funcname.toDString()));
             }
             arguments.push(ale.e1);
             arguments.push(exp.e2);

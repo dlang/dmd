@@ -224,7 +224,7 @@ final class LibElf : Library
                 return corrupt(__LINE__);
             for (uint i = 0; i < nsymbols; i++)
             {
-                const(char)[] name = s[0 .. strlen(s)];
+                const(char)[] name = s.toDString();
                 s += name.length + 1;
                 if (s - symtab > symtab_size)
                     return corrupt(__LINE__);
@@ -254,7 +254,7 @@ final class LibElf : Library
         om.length = cast(uint)buflen;
         om.offset = 0;
         auto n = cast(char*)FileName.name(module_name); // remove path, but not extension
-        om.name = n[0 .. strlen(n)];
+        om.name = n.toDString();
         om.name_offset = -1;
         om.scan = 1;
         if (fromfile)

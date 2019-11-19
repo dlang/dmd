@@ -20,6 +20,7 @@ import dmd.globals;
 import dmd.root.outbuffer;
 import dmd.root.rmem;
 import dmd.console;
+import dmd.utils;
 
 nothrow:
 
@@ -474,7 +475,7 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
         !global.params.mixinOut)
     {
         import dmd.filecache : FileCache;
-        auto fllines = FileCache.fileCache.addOrGetFile(loc.filename[0 .. strlen(loc.filename)]);
+        auto fllines = FileCache.fileCache.addOrGetFile(loc.filename.toDString());
 
         if (loc.linnum - 1 < fllines.lines.length)
         {

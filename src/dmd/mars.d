@@ -356,10 +356,10 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     // Add in command line versions
     if (params.versionids)
         foreach (charz; *params.versionids)
-            VersionCondition.addGlobalIdent(charz[0 .. strlen(charz)]);
+            VersionCondition.addGlobalIdent(charz.toDString());
     if (params.debugids)
         foreach (charz; *params.debugids)
-            DebugCondition.addGlobalIdent(charz[0 .. strlen(charz)]);
+            DebugCondition.addGlobalIdent(charz.toDString());
 
     setTarget(params);
 
@@ -1304,7 +1304,7 @@ extern(C) void printGlobalConfigs(FILE* stream)
         foreach (flag; dflags[])
         {
             bool needsQuoting;
-            foreach (c; flag[0 .. strlen(flag)])
+            foreach (c; flag.toDString())
             {
                 if (!(isalnum(c) || c == '_'))
                 {
@@ -1543,7 +1543,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 return buf;
             }
             const ident = ps + 1;
-            switch (ident[0 .. strlen(ident)])
+            switch (ident.toDString())
             {
                 mixin(generateTransitionsText());
             default:
@@ -1563,7 +1563,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
     for (size_t i = 1; i < arguments.dim; i++)
     {
         const(char)* p = arguments[i];
-        const(char)[] arg = p[0 .. strlen(p)];
+        const(char)[] arg = p.toDString();
         if (*p != '-')
         {
             static if (TARGET.Windows)
@@ -1876,7 +1876,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             if (Identifier.isValidIdentifier(p + len))
             {
                 const ident = p + len;
-                switch (ident[0 .. strlen(ident)])
+                switch (ident.toDString())
                 {
                 case "baseline":
                     params.cpu = CPU.baseline;
@@ -1970,7 +1970,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 else if (Identifier.isValidIdentifier(p + len))
                 {
                     const ident = p + len;
-                    switch (ident[0 .. strlen(ident)])
+                    switch (ident.toDString())
                     {
                         case "import":
                             params.bug10378 = true;

@@ -65,6 +65,7 @@ import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.utf;
+import dmd.utils;
 import dmd.visitor;
 
 enum LOGSEMANTIC = false;
@@ -2304,7 +2305,7 @@ extern (C++) final class StringExp : Expression
 
     static StringExp create(Loc loc, char* s)
     {
-        return new StringExp(loc, s[0 .. strlen(s)]);
+        return new StringExp(loc, s.toDString());
     }
 
     static StringExp create(Loc loc, void* string, size_t len)
@@ -2315,7 +2316,7 @@ extern (C++) final class StringExp : Expression
     // Same as create, but doesn't allocate memory.
     static void emplace(UnionExp* pue, Loc loc, char* s)
     {
-        emplaceExp!(StringExp)(pue, loc, s[0 .. strlen(s)]);
+        emplaceExp!(StringExp)(pue, loc, s.toDString());
     }
 
     extern (D) static void emplace(UnionExp* pue, Loc loc, const(void)[] string)
@@ -6575,7 +6576,7 @@ extern (C++) final class FileInitExp : DefaultInitExp
         else
             s = loc.isValid() ? loc.filename : sc._module.ident.toChars();
 
-        Expression e = new StringExp(loc, s[0 .. strlen(s)]);
+        Expression e = new StringExp(loc, s.toDString());
         e = e.expressionSemantic(sc);
         e = e.castTo(sc, type);
         return e;
@@ -6620,8 +6621,8 @@ extern (C++) final class ModuleInitExp : DefaultInitExp
 
     override Expression resolveLoc(const ref Loc loc, Scope* sc)
     {
-        const char* s = (sc.callsc ? sc.callsc : sc)._module.toPrettyChars();
-        Expression e = new StringExp(loc, s[0 .. strlen(s)]);
+        const auto s = (sc.callsc ? sc.callsc : sc)._module.toPrettyChars().toDString();
+        Expression e = new StringExp(loc, s);
         e = e.expressionSemantic(sc);
         e = e.castTo(sc, type);
         return e;
@@ -6651,7 +6652,7 @@ extern (C++) final class FuncInitExp : DefaultInitExp
             s = sc.func.Dsymbol.toPrettyChars();
         else
             s = "";
-        Expression e = new StringExp(loc, s[0 .. strlen(s)]);
+        Expression e = new StringExp(loc, s.toDString());
         e = e.expressionSemantic(sc);
         e.type = Type.tstring;
         return e;
@@ -6691,7 +6692,7 @@ extern (C++) final class PrettyFuncInitExp : DefaultInitExp
             s = "";
         }
 
-        Expression e = new StringExp(loc, s[0 .. strlen(s)]);
+        Expression e = new StringExp(loc, s.toDString());
         e = e.expressionSemantic(sc);
         e.type = Type.tstring;
         return e;

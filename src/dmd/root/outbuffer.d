@@ -17,6 +17,7 @@ import core.stdc.stdio;
 import core.stdc.string;
 import dmd.root.rmem;
 import dmd.root.rootobject;
+import dmd.utils;
 
 debug
 {
@@ -124,7 +125,7 @@ struct OutBuffer
 
     extern (C++) void writestring(const(char)* string) pure nothrow
     {
-        write(string[0 .. strlen(string)]);
+        write(string.toDString);
     }
 
     void writestring(const(char)[] s) pure nothrow

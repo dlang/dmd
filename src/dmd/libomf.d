@@ -149,7 +149,7 @@ final class LibOMF : Library
             {
                 // Remove path and extension
                 auto n = cast(char*)Mem.check(strdup(FileName.name(module_name)));
-                om.name = n[0 .. strlen(n)];
+                om.name = n.toDString();
                 char* ext = cast(char*)FileName.ext(n);
                 if (ext)
                     ext[-1] = 0;
@@ -160,7 +160,7 @@ final class LibOMF : Library
                  * removing path and extension.
                  */
                 auto n = cast(char*)Mem.check(strdup(FileName.name(name)));
-                om.name = n[0 .. strlen(n)];
+                om.name = n.toDString();
                 char* ext = cast(char*)FileName.ext(n);
                 if (ext)
                     ext[-1] = 0;

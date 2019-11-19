@@ -21,6 +21,7 @@ import dmd.root.rmem;
 import dmd.root.outbuffer;
 import dmd.arraytypes;
 import dmd.errors;
+import dmd.utils;
 
 private enum LOG = false;
 
@@ -115,7 +116,7 @@ void scanOmfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
                 }
                 //printf("[s] name='%s'\n",name);
                 const(char)* n = names[idx];
-                pAddSymbol(n[0 .. strlen(n)], pickAny);
+                pAddSymbol(n.toDString(), pickAny);
                 break;
             }
         case COMDEF:
