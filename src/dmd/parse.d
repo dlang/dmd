@@ -8414,6 +8414,7 @@ final class Parser(AST) : Lexer
                                         return null;
                                     }
                                     e = new AST.TypeExp(loc, t);
+                                    e.parens = true;
                                     e = parsePostExp(e);
                                 }
                                 else
