@@ -57,6 +57,7 @@ import dmd.nspace;
 import dmd.opover;
 import dmd.optimize;
 import dmd.parse;
+import dmd.printast;
 import dmd.root.ctfloat;
 import dmd.root.file;
 import dmd.root.filename;
@@ -2240,49 +2241,59 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
      *    implemented by calling a function) we'll defer this for now.
      * 2. value structs (or static arrays of them) that need to be copy constructed
      * 3. value structs (or static arrays of them) that have destructors, and subsequent arguments that may throw before the
-     *    function gets called (functions normally destroy their parameters)
-     * 2 and 3 are handled by doing the argument construction in 'eprefix' so that if a later argument throws, they are cleaned
+     *    function gets called.
+     * 4. value structs need to be destructed after the function call for platforms where the caller destroys the arguments.
+     * 2, 3 and 4 are handled by doing the argument construction in 'eprefix' so that if a later argument throws, they are cleaned
      * up properly. Pushing arguments on the stack then cannot fail.
      */
-    {
+     if (tf.parameterList.varargs != VarArg.typesafe) // .typesafe have a special single argument which is an array or class
+     {
         /* TODO: tackle problem 1)
          */
         const bool leftToRight = true; // TODO: Any cases that need rightToLeft?
         if (!leftToRight)
             assert(nargs == nparams); // no variadics for RTL order, as they would probably be evaluated LTR and so add complexity
 
+        /* Does Problem (4) apply?
+         */
+        const bool callerDestroysArgs = !target.isCalleeDestroyingArgs(tf);
+
         const ptrdiff_t start = (leftToRight ? 0 : cast(ptrdiff_t)nargs - 1);
-        const ptrdiff_t end = (leftToRight ? cast(ptrdiff_t)nargs : -1);
-        const ptrdiff_t step = (leftToRight ? 1 : -1);
+        const ptrdiff_t end   = (leftToRight ? cast(ptrdiff_t)nargs : -1);
+        const ptrdiff_t step  = (leftToRight ? 1 : -1);
 
         /* Compute indices of last throwing argument and first arg needing destruction.
          * Used to not set up destructors unless an arg needs destruction on a throw
          * in a later argument.
          */
-        ptrdiff_t lastthrow = -1;
-        ptrdiff_t firstdtor = -1;
+        ptrdiff_t lastthrow = -1;   // last argument that may throw
+        ptrdiff_t firstdtor = -1;   // first argument that needs destruction
+        ptrdiff_t lastdtor  = -1;   // last argument that needs destruction
         for (ptrdiff_t i = start; i != end; i += step)
         {
             Expression arg = (*arguments)[i];
             if (canThrow(arg, sc.func, false))
                 lastthrow = i;
-            if (firstdtor == -1 && arg.type.needsDestruction())
+            if (i < nparams && arg.type.needsDestruction())
             {
-                Parameter p = (i >= nparams ? null : tf.parameterList[i]);
-                if (!(p && (p.storageClass & (STC.lazy_ | STC.ref_ | STC.out_))))
-                    firstdtor = i;
+                if (!(tf.parameterList[i].storageClass & (STC.lazy_ | STC.ref_ | STC.out_)))
+                {
+                    if (firstdtor == -1)
+                        firstdtor = i;
+                    lastdtor = i;
+                }
             }
         }
 
-        /* Does problem 3) apply to this call?
+        /* true if problem (3)
          */
-        const bool needsPrefix = (firstdtor >= 0 && lastthrow >= 0
+        const bool throwsBeforeCall = (firstdtor >= 0 && lastthrow >= 0
             && (lastthrow - firstdtor) * step > 0);
 
         /* If so, initialize 'eprefix' by declaring the gate
          */
         VarDeclaration gate = null;
-        if (needsPrefix)
+        if (throwsBeforeCall)
         {
             // eprefix => bool __gate [= false]
             Identifier idtmp = Identifier.generateId("__gate");
@@ -2297,6 +2308,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
         for (ptrdiff_t i = start; i != end; i += step)
         {
             Expression arg = (*arguments)[i];
+            //printf("arg[%d]: %s\n", cast(int)i, arg.toChars());
 
             Parameter parameter = (i >= nparams ? null : tf.parameterList[i]);
             const bool isRef = parameter && parameter.isReference();
@@ -2315,7 +2327,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
              */
             if (gate)
             {
-                const bool needsDtor = (!isRef && arg.type.needsDestruction() && i != lastthrow);
+                const bool needsDtor = (!isRef && arg.type.needsDestruction() && (i != lastthrow || callerDestroysArgs));
 
                 /* Declare temporary 'auto __pfx = arg' (needsDtor) or 'auto __pfy = arg' (!needsDtor)
                  */
@@ -2345,6 +2357,9 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                     //printf("edtor: %s\n", tmp.edtor.toChars());
                 }
 
+                if (needsDtor && callerDestroysArgs)
+                    tmp.isArgDtorVar = true;   // mark it so that the backend passes it by ref to the function being called
+
                 // eprefix => (eprefix, auto __pfx/y = arg)
                 auto ae = new DeclarationExp(loc, tmp);
                 eprefix = Expression.combine(eprefix, ae.expressionSemantic(sc));
@@ -2370,7 +2385,32 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 {
                     auto e = new AssignExp(gate.loc, new VarExp(gate.loc, gate), IntegerExp.createBool(true));
                     eprefix = Expression.combine(eprefix, e.expressionSemantic(sc));
-                    gate = null;
+                    if (!callerDestroysArgs)
+                        gate = null;
+                }
+            }
+            else if (callerDestroysArgs && i <= lastdtor)
+            {
+                /* Caller destroys arguments.
+                 * Declare a temporary variable for this arg and append that declaration to 'eprefix',
+                 * and let it take care of scope destruction after the function call or even earlier
+                 * in case any exception is thrown before the call.
+                 */
+                const bool needsDtor = !isRef && arg.type.needsDestruction() && !(parameter && parameter.storageClass & STC.nodtor);
+                if (needsDtor)
+                {
+                    auto tmp = copyToTemp(0, "__farg", arg);
+                    tmp.storage_class |= STC.exptemp; // lifetime limited to expression
+                    tmp.isArgDtorVar = true;   // mark it so that the backend passes it by ref to the function being called
+                    eprefix = Expression.combine(eprefix, new DeclarationExp(tmp.loc, tmp)
+                                                .expressionSemantic(sc));
+                    // replace the argument
+                    arg = new VarExp(tmp.loc, tmp).expressionSemantic(sc);
+                }
+                else
+                {
+                    arg = extractSideEffect(sc, "__pfz", eprefix, arg, false);
+                    //printf("arg: %s, eprefix: %s\n", arg.toChars(), eprefix ? eprefix.toChars() : "".ptr);
                 }
             }
             else
@@ -2385,6 +2425,13 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             }
 
             (*arguments)[i] = arg;
+        }
+
+        if (gate && callerDestroysArgs)
+        {
+            // enable argument destructors
+            auto e = new AssignExp(gate.loc, new VarExp(gate.loc, gate), IntegerExp.createBool(false));
+            eprefix = Expression.combine(eprefix, e.expressionSemantic(sc));
         }
     }
     //if (eprefix) printf("eprefix: %s\n", eprefix.toChars());

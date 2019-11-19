@@ -237,6 +237,7 @@ public:
     bool doNotInferScope;       // do not infer 'scope' for this variable
     bool doNotInferReturn;      // do not infer 'return' for this variable
     unsigned char isdataseg;    // private data for isDataseg
+    bool isArgDtorVar;          // temporary created to handle scope destruction of a function argument
 
 public:
     static VarDeclaration *create(const Loc &loc, Type *t, Identifier *id, Initializer *init, StorageClass storage_class = STCundefined);

@@ -139,6 +139,23 @@ void smallStructTest(SmallStruct p)
     assert(p.i == 52);
 }
 
+struct Sdtor
+{
+    static int counter;
+    ~Sdtor();
+};
+
+Sdtor::~Sdtor() { ++counter; }
+int Sdtor::counter = 0;
+
+void consume(Sdtor value) {}
+
+void consume2(Sdtor value);
+void doConsume2(Sdtor& value)
+{
+    consume2(value);
+}
+
 // Uncomment when mangling is fixed
 // typedef void(*fn0)();
 // fn0            passthrough_fn0   (fn0 value) { return value; }

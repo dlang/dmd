@@ -259,7 +259,13 @@ private elem *callfunc(const ref Loc loc,
                 /* Copy to a temporary, and make the argument a pointer
                  * to that temporary.
                  */
-                elems[i] = addressElem(ea, arg.type, true);
+                VarDeclaration v;
+                if (VarExp ve = arg.isVarExp())
+                    v = ve.var.isVarDeclaration();
+                bool copy = !(v && v.isArgDtorVar); // copy unless the destructor is going to be run on it
+                                                    // then assume the frontend took care of the copying and pass it by ref
+
+                elems[i] = addressElem(ea, arg.type, copy);
                 continue;
             }
 

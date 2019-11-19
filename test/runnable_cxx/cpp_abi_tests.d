@@ -32,6 +32,15 @@ extern(C++, `std`)
     struct test19248 {int a = 34;}
 }
 
+struct Sdtor
+{
+    extern __gshared int counter;
+    ~this();
+}
+void consume(Sdtor);
+void consume2(Sdtor value){}
+void doConsume2(ref Sdtor);
+
 struct SPack(Args...)
 {
     int i;
@@ -250,4 +259,13 @@ else
     smallStructTest(ss);
     assert(ss.i == 42);
     assert(S18784(1).i == 1);
+
+    {
+        Sdtor sd;
+        assert(Sdtor.counter == 0);
+        consume(sd);
+        assert(Sdtor.counter == 1);
+        doConsume2(sd);
+        assert(Sdtor.counter == 2);
+    }
 }

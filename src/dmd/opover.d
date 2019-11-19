@@ -982,7 +982,7 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
             result = compare_overload(e, sc, Id.eq, null);
             if (result)
             {
-                if (result.op == TOK.call && e.op == TOK.notEqual)
+                if (lastComma(result).op == TOK.call && e.op == TOK.notEqual)
                 {
                     result = new NotExp(result.loc, result);
                     result = result.expressionSemantic(sc);
