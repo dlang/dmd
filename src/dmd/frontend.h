@@ -2464,6 +2464,7 @@ public:
     bool doNotInferScope;
     bool doNotInferReturn;
     uint8_t isdataseg;
+    bool isArgDtorVar;
     static VarDeclaration* create(const Loc& loc, Type* type, Identifier* ident, Initializer* _init, StorageClass storage_class = static_cast<StorageClass>(STC::undefined_));
     VarDeclaration* syntaxCopy(Dsymbol* s);
     void setFieldOffset(AggregateDeclaration* ad, uint32_t* poffset, bool isunion);
@@ -6542,6 +6543,7 @@ private:
 
 public:
     Expression* getTargetInfo(const char* name, const Loc& loc);
+    bool isCalleeDestroyingArgs(TypeFunction* tf);
     Target() :
         ptrsize(),
         realsize(),

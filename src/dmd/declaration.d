@@ -1108,6 +1108,8 @@ extern (C++) class VarDeclaration : Declaration
     bool doNotInferReturn;          // do not infer 'return' for this variable
     ubyte isdataseg;                // private data for isDataseg 0 unset, 1 true, 2 false
 
+    bool isArgDtorVar;              // temporary created to handle scope destruction of a function argument
+
     final extern (D) this(const ref Loc loc, Type type, Identifier ident, Initializer _init, StorageClass storage_class = STC.undefined_)
     in
     {

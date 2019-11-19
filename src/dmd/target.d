@@ -868,6 +868,20 @@ extern (C++) struct Target
         }
     }
 
+    /**
+     * Params:
+     *  tf = type of function being called
+     * Returns: `true` if the callee invokes destructors for arguments.
+     */
+    extern (C++) bool isCalleeDestroyingArgs(TypeFunction tf)
+    {
+        // On windows, the callee destroys arguments always regardless of function linkage,
+        // and regardless of whether the caller or callee cleans the stack.
+        return params.targetOS == TargetOS.Windows ||
+               // C++ on non-Windows platforms has the caller destroying the arguments
+               tf.linkage != LINK.cpp;
+    }
+
     ////////////////////////////////////////////////////////////////////////////
     /* All functions after this point are extern (D), as they are only relevant
      * for targets of DMD, and should not be used in front-end code.

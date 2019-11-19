@@ -4742,6 +4742,85 @@ void test14078()
 
 /**********************************/
 
+void test67()
+{
+    char[] deleted;
+
+    struct S
+    {
+        char* p;
+
+        ~this() { deleted ~= *p; }
+
+        void opAssign(S rhs)
+        {
+            // swap
+            char* tmp = p;
+            this.p = rhs.p;
+            rhs.p = tmp;
+        }
+    }
+
+    char a = 'a', b = 'b';
+    {
+        S s = S(&a);
+        s = S(&b);
+    }
+    assert(deleted == "ab", deleted);
+}
+
+/**********************************/
+
+void test68()
+{
+    static struct S
+    {
+        int i;
+        bool opEquals(S) { return false; }
+        ~this() {}
+    }
+
+    assert(S(0) != S(1));
+}
+
+/**********************************/
+
+// https://github.com/dlang/dmd/pull/12012
+
+extern (C++)
+{
+struct S12012
+{
+    int* ctr;
+    ~this() { }
+}
+
+void bar12012(int value, S12012 s)
+{
+}
+
+S12012 abc12012(ref S12012 s)
+{
+    s.ctr = null;
+    return s;
+}
+
+int def12012(ref S12012 s)
+{
+    return *s.ctr; // seg fault is here
+}
+
+void testPR12012()
+{
+    int i;
+    S12012 s = S12012(&i);
+    // def must be executed before abc else seg fault
+    bar12012(def12012(s), abc12012(s));
+}
+}
+
+/**********************************/
+
 int main()
 {
     test1();
@@ -4878,6 +4957,9 @@ int main()
     test16652();
     test19676();
     test14078();
+    test67();
+    test68();
+    testPR12012();
 
     printf("Success\n");
     return 0;

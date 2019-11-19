@@ -1120,15 +1120,21 @@ private extern(C++) final class Semantic3Visitor : Visitor
                  */
                 if (funcdecl.parameters)
                 {
+                    // check if callee destroys arguments
+                    const bool paramsNeedDtor = target.isCalleeDestroyingArgs(f);
+
                     foreach (v; *funcdecl.parameters)
                     {
                         if (v.storage_class & (STC.ref_ | STC.out_ | STC.lazy_))
                             continue;
                         if (v.needsScopeDtor())
                         {
+                            v.storage_class |= STC.nodtor;
+                            if (!paramsNeedDtor)
+                                continue;
+
                             // same with ExpStatement.scopeCode()
                             Statement s = new DtorExpStatement(Loc.initial, v.edtor, v);
-                            v.storage_class |= STC.nodtor;
 
                             s = s.statementSemantic(sc2);
 
