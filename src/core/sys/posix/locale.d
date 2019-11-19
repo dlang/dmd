@@ -22,7 +22,7 @@ version (FreeBSD)
     version = OSXBSDLocale;
 version (NetBSD)
     version = OSXBSDLocale;
-version (DragonflyBSD)
+version (DragonFlyBSD)
     version = OSXBSDLocale;
 
 
