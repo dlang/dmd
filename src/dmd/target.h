@@ -103,6 +103,7 @@ struct Target
     bool isReturnOnStack(TypeFunction *tf, bool needsThis);
     d_uns64 parameterSize(const Loc& loc, Type *t);
     Expression *getTargetInfo(const char* name, const Loc& loc);
+    bool isCalleeDestroyingArgs(TypeFunction* tf);
 };
 
 extern Target target;

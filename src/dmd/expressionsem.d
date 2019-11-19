@@ -2131,8 +2131,9 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
      *    implemented by calling a function) we'll defer this for now.
      * 2. value structs (or static arrays of them) that need to be copy constructed
      * 3. value structs (or static arrays of them) that have destructors, and subsequent arguments that may throw before the
-     *    function gets called (functions normally destroy their parameters)
-     * 2 and 3 are handled by doing the argument construction in 'eprefix' so that if a later argument throws, they are cleaned
+     *    function gets called.
+     * 4. value structs need to be destructed after the function call for platforms where the caller destroys the arguments.
+     * 2, 3 and 4 are handled by doing the argument construction in 'eprefix' so that if a later argument throws, they are cleaned
      * up properly. Pushing arguments on the stack then cannot fail.
      */
     {
@@ -2141,6 +2142,10 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
         const bool leftToRight = true; // TODO: something like !fd.isArrayOp
         if (!leftToRight)
             assert(nargs == nparams); // no variadics for RTL order, as they would probably be evaluated LTR and so add complexity
+
+        /* Does Problem 4) apply?
+         */
+        const bool callerDestroysArgs = !target.isCalleeDestroyingArgs(tf);
 
         const ptrdiff_t start = (leftToRight ? 0 : cast(ptrdiff_t)nargs - 1);
         const ptrdiff_t end = (leftToRight ? cast(ptrdiff_t)nargs : -1);
@@ -2152,6 +2157,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
          */
         ptrdiff_t lastthrow = -1;
         ptrdiff_t firstdtor = -1;
+
         for (ptrdiff_t i = start; i != end; i += step)
         {
             Expression arg = (*arguments)[i];
@@ -2167,13 +2173,13 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
 
         /* Does problem 3) apply to this call?
          */
-        const bool needsPrefix = (firstdtor >= 0 && lastthrow >= 0
+        const bool throwsBeforeCall = (firstdtor >= 0 && lastthrow >= 0
             && (lastthrow - firstdtor) * step > 0);
 
         /* If so, initialize 'eprefix' by declaring the gate
          */
         VarDeclaration gate = null;
-        if (needsPrefix)
+        if (throwsBeforeCall)
         {
             // eprefix => bool __gate [= false]
             Identifier idtmp = Identifier.generateId("__gate");
@@ -2206,7 +2212,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
              */
             if (gate)
             {
-                const bool needsDtor = (!isRef && arg.type.needsDestruction() && i != lastthrow);
+                const bool needsDtor = (!isRef && arg.type.needsDestruction() && (i != lastthrow || callerDestroysArgs));
 
                 /* Declare temporary 'auto __pfx = arg' (needsDtor) or 'auto __pfy = arg' (!needsDtor)
                  */
@@ -2261,11 +2267,35 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 {
                     auto e = new AssignExp(gate.loc, new VarExp(gate.loc, gate), IntegerExp.createBool(true));
                     eprefix = Expression.combine(eprefix, e.expressionSemantic(sc));
-                    gate = null;
+                    if (!callerDestroysArgs)
+                        gate = null;
+                }
+            }
+            else if (callerDestroysArgs)
+            {
+                /* Caller destroys arguments.
+                 * Declare a temporary variable for this arg and append that declaration to 'eprefix',
+                 * and let it take care of scope destruction after the function call or even earlier
+                 * in case any exception is thrown before the call.
+                 */
+                const bool needsDtor = !isRef && arg.type.needsDestruction() && !(parameter && parameter.storageClass & STC.nodtor);
+                if (needsDtor)
+                {
+                    auto tmp = copyToTemp(0, "__farg", arg);
+                    tmp.storage_class |= STC.exptemp; // lifetime limited to expression
+                    eprefix = Expression.combine(eprefix, new DeclarationExp(tmp.loc, tmp)
+                                                .expressionSemantic(sc));
+                    // replace the argument
+                    arg = new VarExp(tmp.loc, tmp).expressionSemantic(sc);
+                }
+                else
+                {
+                    goto LcopyConstruct; // handle problem 2)
                 }
             }
             else
             {
+            LcopyConstruct:
                 /* No gate, no prefix to append to.
                  * Handle problem 2) by calling the copy constructor for value structs
                  * (or static arrays of them) if appropriate.
@@ -2276,6 +2306,13 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             }
 
             (*arguments)[i] = arg;
+        }
+
+        if (gate && callerDestroysArgs)
+        {
+            // enable argument destructors
+            auto e = new AssignExp(gate.loc, new VarExp(gate.loc, gate), IntegerExp.createBool(false));
+            eprefix = Expression.combine(eprefix, e.expressionSemantic(sc));
         }
     }
     //if (eprefix) printf("eprefix: %s\n", eprefix.toChars());
