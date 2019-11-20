@@ -17,10 +17,6 @@
 #
 # ENABLE_RELEASE:       Optimized release built
 # ENABLE_DEBUG:         Add debug instructions and symbols (set if ENABLE_RELEASE isn't set)
-# ENABLE_WARNINGS:      Enable C++ build warnings
-# ENABLE_PROFILING:     Build dmd with a profiling recorder (C++)
-# ENABLE_PGO_USE:       Build dmd with existing profiling information (C++)
-#   PGO_DIR:            Directory for profile-guided optimization (PGO) logs
 # ENABLE_LTO:           Enable link-time optimizations
 # ENABLE_UNITTEST:      Build dmd with unittests (sets ENABLE_COVERAGE=1)
 # ENABLE_PROFILE:       Build dmd with a profiling recorder (D)
@@ -80,7 +76,6 @@ endif
 INSTALL_DIR=../../install
 SYSCONFDIR=/etc
 TMP?=/tmp
-PGO_DIR=$(abspath pgo)
 
 D = dmd
 
@@ -103,18 +98,8 @@ ifneq ($(HOST_CC),)
   $(warning ===== WARNING: Please use HOST_CXX=$(HOST_CC) instead of HOST_CC=$(HOST_CC). =====)
   HOST_CXX=$(HOST_CC)
 endif
-CXX=$(HOST_CXX)
 AR=ar
 GIT=git
-
-# determine whether CXX is gcc or clang based
-CXX_VERSION:=$(shell $(CXX) --version)
-ifneq (,$(findstring g++,$(CXX_VERSION))$(findstring gcc,$(CXX_VERSION))$(findstring Free Software,$(CXX_VERSION)))
-	CXX_KIND=g++
-endif
-ifneq (,$(findstring clang,$(CXX_VERSION)))
-	CXX_KIND=clang++
-endif
 
 HOST_DC?=
 ifneq (,$(HOST_DC))
@@ -148,81 +133,15 @@ endif
 HOST_DMD_VERSION:=$(shell $(HOST_DMD_RUN) --version)
 ifneq (,$(findstring dmd,$(HOST_DMD_VERSION))$(findstring DMD,$(HOST_DMD_VERSION)))
 	HOST_DMD_KIND=dmd
-	HOST_DMD_VERNUM=$(shell echo 'pragma(msg, cast(int)__VERSION__);' | $(HOST_DMD_RUN) -o- - 2>&1)
 endif
 ifneq (,$(findstring gdc,$(HOST_DMD_VERSION))$(findstring GDC,$(HOST_DMD_VERSION)))
 	HOST_DMD_KIND=gdc
-	HOST_DMD_VERNUM=2
 endif
 ifneq (,$(findstring gdc,$(HOST_DMD_VERSION))$(findstring gdmd,$(HOST_DMD_VERSION)))
 	HOST_DMD_KIND=gdc
-	HOST_DMD_VERNUM=2
 endif
 ifneq (,$(findstring ldc,$(HOST_DMD_VERSION))$(findstring LDC,$(HOST_DMD_VERSION)))
 	HOST_DMD_KIND=ldc
-	HOST_DMD_VERNUM=2
-endif
-
-# Compiler Warnings
-ifdef ENABLE_WARNINGS
-WARNINGS := -Wall -Wextra -Werror \
-	-Wno-attributes \
-	-Wno-char-subscripts \
-	-Wno-deprecated \
-	-Wno-empty-body \
-	-Wno-format \
-	-Wno-missing-braces \
-	-Wno-missing-field-initializers \
-	-Wno-overloaded-virtual \
-	-Wno-parentheses \
-	-Wno-reorder \
-	-Wno-return-type \
-	-Wno-sign-compare \
-	-Wno-strict-aliasing \
-	-Wno-switch \
-	-Wno-type-limits \
-	-Wno-unknown-pragmas \
-	-Wno-unused-function \
-	-Wno-unused-label \
-	-Wno-unused-parameter \
-	-Wno-unused-value \
-	-Wno-unused-variable
-# GCC Specific
-ifeq ($(CXX_KIND), g++)
-WARNINGS += \
-	-Wno-logical-op \
-	-Wno-narrowing \
-	-Wno-unused-but-set-variable \
-	-Wno-uninitialized \
-	-Wno-class-memaccess \
-	-Wno-implicit-fallthrough
-endif
-else
-# Default Warnings
-WARNINGS := -Wno-deprecated -Wstrict-aliasing -Werror
-# Clang Specific
-ifeq ($(CXX_KIND), clang++)
-WARNINGS += \
-    -Wno-logical-op-parentheses
-endif
-endif
-
-OS_UPCASE := $(shell echo $(OS) | tr '[a-z]' '[A-Z]')
-
-# Default compiler flags for all source files
-CXXFLAGS := $(WARNINGS) \
-	-fno-exceptions -fno-rtti \
-	-D__pascal= -DMARS=1 -DTARGET_$(OS_UPCASE)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1 \
-	$(MODEL_FLAG) $(PIC) -DDMD_VERSION=$(HOST_DMD_VERNUM)
-# GCC Specific
-ifeq ($(CXX_KIND), g++)
-CXXFLAGS += \
-    -std=gnu++98
-endif
-# Clang Specific
-ifeq ($(CXX_KIND), clang++)
-CXXFLAGS += \
-    -xc++
 endif
 
 DFLAGS=
@@ -232,27 +151,13 @@ override DFLAGS += -w -de
 
 # Append different flags for debugging, profiling and release.
 ifdef ENABLE_DEBUG
-CXXFLAGS += -g -g3 -DDEBUG=1 -DUNITTEST
 override DFLAGS += -g -debug
 endif
 ifdef ENABLE_RELEASE
-CXXFLAGS += -O2
 override DFLAGS += -O -release -inline
 else
 # Add debug symbols for all non-release builds
 override DFLAGS += -g
-endif
-ifdef ENABLE_PROFILING
-CXXFLAGS  += -pg -fprofile-arcs -ftest-coverage
-endif
-ifdef ENABLE_PGO_GENERATE
-CXXFLAGS  += -fprofile-generate=${PGO_DIR}
-endif
-ifdef ENABLE_PGO_USE
-CXXFLAGS  += -fprofile-use=${PGO_DIR} -freorder-blocks-and-partition
-endif
-ifdef ENABLE_LTO
-CXXFLAGS  += -flto
 endif
 ifdef ENABLE_UNITTEST
 override DFLAGS  += -unittest -cov
@@ -270,14 +175,9 @@ else
 COVERAGE_LINK_FLAGS := -L-lgcov
 endif
 override DFLAGS  += -cov $(COVERAGE_LINK_FLAGS)
-CXXFLAGS += --coverage
 endif
 ifdef ENABLE_SANITIZERS
-CXXFLAGS += -fsanitize=${ENABLE_SANITIZERS}
 
-ifeq ($(HOST_DMD_KIND), dmd)
-HOST_CXX += -fsanitize=${ENABLE_SANITIZERS}
-endif
 ifneq (,$(findstring gdc,$(HOST_DMD_KIND))$(findstring ldc,$(HOST_DMD_KIND)))
 override DFLAGS += -fsanitize=${ENABLE_SANITIZERS}
 endif
@@ -340,7 +240,6 @@ unittest: $G/dmd-unittest
 
 clean:
 	rm -Rf $(GENERATED)
-	@[ ! -d ${PGO_DIR} ] || echo You should issue manually: rm -rf ${PGO_DIR}
 
 ######## Download and install the last dmd buildable without dmd
 
