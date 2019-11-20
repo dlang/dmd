@@ -71,8 +71,6 @@ G = $(GEN)\$(OS)\$(BUILD)\$(MODEL)
 #HOST_DC=dmd
 # Make program
 MAKE=make
-# Librarian
-LIB=lib
 # Delete file(s)
 DEL=del
 # Make directory
@@ -112,7 +110,7 @@ DDEBUG=-debug -g -unittest
 DFLAGS=$(DOPT) $(DMODEL) $(DDEBUG) -wi -version=MARS -dip25
 
 # Recursive make
-DMDMAKE=$(MAKE) -fwin32.mak C=$C ROOT=$(ROOT) MAKE="$(MAKE)" HOST_DC="$(HOST_DC)" MODEL=$(MODEL) CC="$(CC)" LIB="$(LIB)"
+DMDMAKE=$(MAKE) -fwin32.mak C=$C ROOT=$(ROOT) MAKE="$(MAKE)" HOST_DC="$(HOST_DC)" MODEL=$(MODEL) CC="$(CC)"
 
 ############################### Rule Variables ###############################
 
@@ -152,9 +150,6 @@ BACK_HDRS=$C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/glob
 STRING_IMPORT_FILES= $G\VERSION ../res/default_ddoc_theme.ddoc
 
 DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS)
-
-# Glue layer
-GLUEOBJ=
 
 # Root package
 ROOT_SRCS=$(ROOT)/aav.d $(ROOT)/array.d $(ROOT)/bitarray.d $(ROOT)/ctfloat.d $(ROOT)/file.d \
@@ -261,9 +256,6 @@ unittest:
 	$(DMDMAKE) "OPT=-o" "DEBUG=" "DDEBUG=-debug -g -unittest -cov" "DOPT=" "LFLAGS=-L/ma/co/delexe/la" $(TARGETEXE)
 
 ################################ Libraries ##################################
-
-glue.lib : $(GLUEOBJ)
-	$(LIB) -p512 -n -o$@ $G\glue.lib $(GLUEOBJ)
 
 LIBS=$G\backend.lib $G\lexer.lib
 
