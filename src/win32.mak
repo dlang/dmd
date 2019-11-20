@@ -189,14 +189,13 @@ BACKSRC= \
 	$C\dvec.d $C\filespec.d $C\mem.d $C\backend.txt
 
 # Root package
-ROOTSRCC=
 ROOTSRCD=$(ROOT)\rmem.d $(ROOT)\stringtable.d $(ROOT)\hash.d $(ROOT)\man.d $(ROOT)\port.d \
 	$(ROOT)\response.d $(ROOT)\rootobject.d $(ROOT)\speller.d $(ROOT)\aav.d \
 	$(ROOT)\ctfloat.d $(ROOT)\longdouble.d $(ROOT)\outbuffer.d $(ROOT)\filename.d \
 	$(ROOT)\file.d $(ROOT)\array.d $(ROOT)\bitarray.d $(ROOT)\strtold.d $(ROOT)\region.d
 ROOTSRC= $(ROOT)\root.h \
 	$(ROOT)\longdouble.h $(ROOT)\outbuffer.h $(ROOT)\object.h $(ROOT)\ctfloat.h \
-	$(ROOT)\filename.h $(ROOT)\file.h $(ROOT)\array.h $(ROOT)\bitarray.h $(ROOT)\rmem.h $(ROOTSRCC) \
+	$(ROOT)\filename.h $(ROOT)\file.h $(ROOT)\array.h $(ROOT)\bitarray.h $(ROOT)\rmem.h \
 	$(ROOTSRCD)
 # Removed garbage collector bits (look in history)
 #	$(ROOT)\gc\bits.c $(ROOT)\gc\gc.c $(ROOT)\gc\gc.h $(ROOT)\gc\mscbitops.h \
@@ -319,7 +318,6 @@ pvs:
 	$(PVS) --cfg PVS-Studio.cfg --cl-params /DMARS /DDM_TARGET_CPU_X86 /I$C /I$(ROOT) /Tp $C\cod3.c --source-file $C\cod3.c
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /Tp $(SRCS) --source-file $(SRCS)
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /Tp $(GLUESRC) --source-file $(GLUESRC)
-#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /Tp $(ROOTSRCC) --source-file $(ROOTSRCC)
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$C /Tp $(BACKSRC) --source-file $(BACKSRC)
 
 checkwhitespace: $(GEN)\build.exe
