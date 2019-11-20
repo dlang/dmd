@@ -730,8 +730,14 @@ dmd -cov -unittest myprog.d
             "destruct fields of partially constructed objects"),
         Feature("rvaluerefparam", "rvalueRefParam",
             "enable rvalue arguments to ref parameters"),
+        Feature("rvalueattribute", "rvalueAttribute",
+            "enable the @rvalue attribute for ref parameters and ref returns"),
+        Feature("rvaluetype", "rvalueType",
+            "enable the @rvalue / __rvalue type constructor"),
         Feature("nosharedaccess", "noSharedAccess",
             "disable access to shared memory objects"),
+        Feature("moveattribute", "moveAttribute",
+            "enable declaring the move constructor with the @move attribute"),
     ];
 }
 

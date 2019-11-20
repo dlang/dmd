@@ -2145,7 +2145,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
             auto ei = new ExpInitializer(callLoc, e);
             auto tmp = Identifier.generateId("__inlineretval");
             auto vd = new VarDeclaration(callLoc, tf.next, tmp, ei);
-            vd.storage_class = STC.temp | (tf.isref ? STC.ref_ : STC.rvalue);
+            vd.storage_class = STC.temp | (tf.isref ? STC.ref_ : STC.rvalue) | (tf.isrvalueref ? STC.rvalueref : 0);
             vd.linkage = tf.linkage;
             vd.parent = parent;
 

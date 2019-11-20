@@ -79,10 +79,10 @@ private immutable char[TMAX] mangleChar =
     Taarray      : 'H',
     Tident       : 'I',
     //              J   // out
-    //              K   // ref
+    //              K   // K:ref KK:rvalue ref
     //              L   // lazy
     //              M   // has this, or scope
-    //              N   // Nh:vector Ng:wild
+    //              N   // Nh:vector Ng:wild Nr:rvalue Nm:move
     //              O   // shared
     Tpointer     : 'P',
     //              Q   // Type/symbol/identifier backward reference
@@ -167,6 +167,11 @@ private void MODtoDecoBuffer(OutBuffer* buf, MOD mod)
     default:
         assert(0);
     }
+}
+
+private void rvalueToDecoBuffer(OutBuffer* buf)
+{
+    buf.writestring("Nr");
 }
 
 private extern (C++) final class Mangler : Visitor
@@ -287,6 +292,8 @@ public:
      */
     void visitWithMask(Type t, ubyte modMask)
     {
+        if (t.isrvalue)
+            rvalueToDecoBuffer(buf);
         if (modMask != t.mod)
         {
             MODtoDecoBuffer(buf, t.mod);
@@ -351,6 +358,8 @@ public:
             return;
         }
         t.inuse++;
+        if (t.isrvalue)
+            rvalueToDecoBuffer(buf);
         if (modMask != t.mod)
             MODtoDecoBuffer(buf, t.mod);
 
@@ -384,12 +393,16 @@ public:
             buf.writestring("Na");
         if (ta.isnothrow)
             buf.writestring("Nb");
-        if (ta.isref)
+        if (ta.isrvalueref)
+            buf.writestring("Nr");
+        else if (ta.isref)
             buf.writestring("Nc");
         if (ta.isproperty)
             buf.writestring("Nd");
         if (ta.isnogc)
             buf.writestring("Ni");
+        if (ta.ismove)
+            buf.writestring("Nm");
 
         if (ta.isreturn && !ta.isreturninferred)
             buf.writestring("Nj");
@@ -1115,6 +1128,8 @@ public:
             break;
         case STC.ref_:
             buf.writeByte('K');
+            if (p.storageClass & STC.rvalueref && global.params.rvalueAttribute)
+                buf.writeByte('K');
             break;
         case STC.lazy_:
             buf.writeByte('L');

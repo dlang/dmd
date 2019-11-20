@@ -161,12 +161,15 @@ class StructDeclaration : public AggregateDeclaration
 public:
     bool zeroInit;              // !=0 if initialize with 0 fill
     bool hasIdentityAssign;     // true if has identity opAssign
+    bool hasCopyAssign;         // true if has copy opAssign
+    bool hasMoveAssign;         // true if has move opAssign
     bool hasIdentityEquals;     // true if has identity opEquals
     bool hasNoFields;           // has no fields
     FuncDeclarations postblits; // Array of postblit functions
     FuncDeclaration *postblit;  // aggregate postblit
 
     bool hasCopyCtor;           // copy constructor
+    bool hasMoveCtor;           // move constructor
 
     FuncDeclaration *xeq;       // TypeInfo_Struct.xopEquals
     FuncDeclaration *xcmp;      // TypeInfo_Struct.xopCmp

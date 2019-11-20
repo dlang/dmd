@@ -356,6 +356,12 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                         error("%s", msg);
                     Type.typeinfowild = this;
                 }
+                if (id == Id.TypeInfo_Rvalue)
+                {
+                    if (!inObject)
+                        error("%s", msg);
+                    Type.typeinforvalue = this;
+                }
                 if (id == Id.TypeInfo_Vector)
                 {
                     if (!inObject)

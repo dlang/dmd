@@ -798,7 +798,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             for (size_t i = 0; i < nfparams; i++)
             {
                 Parameter fparam = tf.parameterList[i];
-                fparam.storageClass &= (STC.in_ | STC.out_ | STC.ref_ | STC.lazy_ | STC.final_ | STC.TYPECTOR | STC.nodtor);
+                fparam.storageClass &= (STC.in_ | STC.out_ | STC.ref_ | STC.rvalueref | STC.lazy_ | STC.final_ | STC.TYPECTOR | STC.nodtor);
                 fparam.storageClass |= STC.parameter;
                 if (tf.parameterList.varargs == VarArg.typesafe && i + 1 == nfparams)
                 {
@@ -1591,7 +1591,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
                             /* Remove top const for dynamic array types and pointer types
                              */
-                            if ((tt.ty == Tarray || tt.ty == Tpointer) && !tt.isMutable() && (!(fparam.storageClass & STC.ref_) || (fparam.storageClass & STC.auto_) && !farg.isLvalue()))
+                            if ((tt.ty == Tarray || tt.ty == Tpointer) && !tt.isMutable() && (!(fparam.storageClass & STC.ref_) || (fparam.storageClass & (STC.auto_ | STC.rvalueref) || prmtype.isrvalue) && !farg.isLvalue()))
                             {
                                 tt = tt.mutableOf();
                             }
@@ -1865,9 +1865,9 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                         }
                     }
 
-                    if (m > MATCH.nomatch && (fparam.storageClass & (STC.ref_ | STC.auto_)) == STC.ref_)
+                    if (m > MATCH.nomatch && (fparam.storageClass & (STC.ref_ | STC.auto_ | STC.rvalueref)) == STC.ref_ && !prmtype.isrvalue)
                     {
-                        if (!farg.isLvalue())
+                        if (!farg.isLvalue() || farg.type.isrvalue || farg.isRvalueRef())
                         {
                             if ((farg.op == TOK.string_ || farg.op == TOK.slice) && (prmtype.ty == Tsarray || prmtype.ty == Taarray))
                             {
@@ -1877,9 +1877,14 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                                 goto Lnomatch;
                         }
                     }
+                    if (m > MATCH.nomatch && (fparam.storageClass & STC.rvalueref || prmtype.isrvalue) && !(fparam.storageClass & STC.auto_))
+                    {
+                        if (farg.isLvalue() && farg.type.isrvalue && !farg.isRvalueRef())
+                            goto Lnomatch;
+                    }
                     if (m > MATCH.nomatch && (fparam.storageClass & STC.out_))
                     {
-                        if (!farg.isLvalue())
+                        if (!farg.isLvalue() || farg.type.isrvalue || farg.isRvalueRef())
                             goto Lnomatch;
                         if (!farg.type.isMutable()) // https://issues.dlang.org/show_bug.cgi?id=11916
                             goto Lnomatch;
@@ -3178,14 +3183,16 @@ private Type rawTypeMerge(Type t1, Type t2)
     if (t1.equals(t2))
         return t1;
     if (t1.equivalent(t2))
-        return t1.castMod(MODmerge(t1.mod, t2.mod));
+        return t1.castMod(MODmerge(t1.mod, t2.mod))
+                 .castRvalue(rvalueMerge(t1.isrvalue, t2.isrvalue));
 
     auto t1b = t1.toBasetype();
     auto t2b = t2.toBasetype();
     if (t1b.equals(t2b))
         return t1b;
     if (t1b.equivalent(t2b))
-        return t1b.castMod(MODmerge(t1b.mod, t2b.mod));
+        return t1b.castMod(MODmerge(t1b.mod, t2b.mod))
+                  .castRvalue(rvalueMerge(t1b.isrvalue, t2b.isrvalue));
 
     auto ty = cast(TY)impcnvResult[t1b.ty][t2b.ty];
     if (ty != Terror)
@@ -5980,14 +5987,14 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                         Expression farg = fargs && j < fargs.dim ? (*fargs)[j] : fparam.defaultArg;
                         if (!farg)
                             goto Lnotequals;
-                        if (farg.isLvalue())
+                        if (farg.isLvalue() && !farg.type.isrvalue && !farg.isRvalueRef())
                         {
-                            if (!(fparam.storageClass & STC.ref_))
+                            if ((fparam.storageClass & (STC.ref_ | STC.rvalueref)) != STC.ref_ || fparam.type.isrvalue)
                                 goto Lnotequals; // auto ref's don't match
                         }
                         else
                         {
-                            if (fparam.storageClass & STC.ref_)
+                            if ((fparam.storageClass & (STC.ref_ | STC.rvalueref)) == STC.ref_ && !fparam.type.isrvalue)
                                 goto Lnotequals; // auto ref's don't match
                         }
                     }

@@ -2368,11 +2368,26 @@ public:
 
     override void visit(CastExp e)
     {
+        if (e.rvalueRef && global.params.moveAttribute)
+        {
+            buf.writestring("__move(");
+            expToBuffer(e.e1, precedence[e.op], buf, hgs);
+            buf.writeByte(')');
+            return;
+        }
         buf.writestring("cast(");
-        if (e.to)
+        if (e.rvalueRef)
+            buf.writestring("@rvalue ref");
+        else if (e.to)
             typeToBuffer(e.to, null, buf, hgs);
         else
         {
+            if (e.rvalueType)
+            {
+                buf.writestring("@rvalue");
+                if (e.mod && e.mod != cast(ubyte)~0)
+                    buf.writeByte(' ');
+            }
             MODtoBuffer(buf, e.mod);
         }
         buf.writeByte(')');
@@ -2728,6 +2743,9 @@ string stcToString(ref StorageClass stc)
         SCstring(STC.disable, TOK.at, "@disable"),
         SCstring(STC.future, TOK.at, "@__future"),
         SCstring(STC.local, TOK.at, "__local"),
+        SCstring(STC.rvalueref, TOK.at, "@rvalue ref"),
+        SCstring(STC.rvaluetype, TOK.at, "@rvalue"),
+        SCstring(STC.move, TOK.at, "@move"),
         SCstring(0, TOK.reserved)
     ];
     for (int i = 0; table[i].stc; i++)
@@ -3014,6 +3032,8 @@ private void parameterToBuffer(Parameter p, OutBuffer* buf, HdrGenState* hgs)
 
     if (p.storageClass & STC.out_)
         buf.writestring("out ");
+    else if (p.storageClass & STC.rvalueref && global.params.rvalueAttribute)
+        buf.writestring("@rvalue ref ");
     else if (p.storageClass & STC.ref_)
         buf.writestring("ref ");
     else if (p.storageClass & STC.in_)
@@ -3193,12 +3213,17 @@ private void typeToBuffer(Type t, const Identifier ident, OutBuffer* buf, HdrGen
 private void visitWithMask(Type t, ubyte modMask, OutBuffer* buf, HdrGenState* hgs)
 {
     // Tuples and functions don't use the type constructor syntax
-    if (modMask == t.mod || t.ty == Tfunction || t.ty == Ttuple)
+    if (!t.isrvalue && modMask == t.mod || t.ty == Tfunction || t.ty == Ttuple)
     {
         typeToBufferx(t, buf, hgs);
     }
     else
     {
+        if (t.isrvalue)
+        {
+            stcToBuffer(buf, STC.rvaluetype);
+            buf.writeByte('(');
+        }
         ubyte m = t.mod & ~(t.mod & modMask);
         if (m & MODFlags.shared_)
         {
@@ -3221,6 +3246,8 @@ private void visitWithMask(Type t, ubyte modMask, OutBuffer* buf, HdrGenState* h
         if (m & MODFlags.wild)
             buf.writeByte(')');
         if (m & MODFlags.shared_)
+            buf.writeByte(')');
+        if (t.isrvalue)
             buf.writeByte(')');
     }
 }

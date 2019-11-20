@@ -64,7 +64,7 @@ struct IntRange;
 #define STCgshared      0x40000000LL
 #define STCwild         0x80000000LL    // for "wild" type constructor
 #define STC_TYPECTOR    (STCconst | STCimmutable | STCshared | STCwild)
-#define STC_FUNCATTR    (STCref | STCnothrow | STCnogc | STCpure | STCproperty | STCsafe | STCtrusted | STCsystem)
+#define STC_FUNCATTR    (STCref | STCrvalueref | STCnothrow | STCnogc | STCpure | STCproperty | STCmove | STCsafe | STCtrusted | STCsystem)
 
 #define STCproperty      0x100000000LL
 #define STCsafe          0x200000000LL
@@ -87,6 +87,9 @@ struct IntRange;
 #define STCfuture        0x4000000000000LL // introducing new base class function
 #define STClocal         0x8000000000000LL // do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
 #define STCreturninferred 0x10000000000000LL   // 'return' has been inferred and should not be part of mangling
+#define STCrvalueref      0x20000000000000LL   // @rvalue ref
+#define STCrvaluetype     0x40000000000000LL   // @rvalue type constructor
+#define STCmove           0x80000000000000LL   // @move attribute
 
 void ObjectNotFound(Identifier *id);
 
@@ -131,6 +134,7 @@ public:
     bool isIn()  const  { return (storage_class & STCin) != 0; }
     bool isOut() const  { return (storage_class & STCout) != 0; }
     bool isRef() const  { return (storage_class & STCref) != 0; }
+    bool isRvalueRef() const { return (storage_class & STCrvalueref) != 0; }
 
     bool isFuture() const { return (storage_class & STCfuture) != 0; }
 
@@ -411,6 +415,14 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
+class TypeInfoRvalueDeclaration : public TypeInfoDeclaration
+{
+public:
+    static TypeInfoRvalueDeclaration *create(Type *tinfo);
+
+    void accept(Visitor *v) { v->visit(this); }
+};
+
 class TypeInfoVectorDeclaration : public TypeInfoDeclaration
 {
 public:
@@ -657,6 +669,7 @@ class CtorDeclaration : public FuncDeclaration
 {
 public:
     bool isCpCtor;
+    bool isMvCtor;
     Dsymbol *syntaxCopy(Dsymbol *);
     const char *kind() const;
     const char *toChars() const;

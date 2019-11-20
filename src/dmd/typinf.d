@@ -57,7 +57,9 @@ void genTypeInfo(Loc loc, Type torig, Scope* sc)
     Type t = torig.merge2(); // do this since not all Type's are merge'd
     if (!t.vtinfo)
     {
-        if (t.isShared()) // does both 'shared' and 'shared const'
+        if (t.isrvalue) // does the rest of the modifiers as well
+            t.vtinfo = TypeInfoRvalueDeclaration.create(t);
+        else if (t.isShared()) // does both 'shared' and 'shared const'
             t.vtinfo = TypeInfoSharedDeclaration.create(t);
         else if (t.isConst())
             t.vtinfo = TypeInfoConstDeclaration.create(t);
@@ -249,7 +251,7 @@ bool isSpeculativeType(Type t)
 private bool builtinTypeInfo(Type t)
 {
     if (t.isTypeBasic() || t.ty == Tclass || t.ty == Tnull)
-        return !t.mod;
+        return !t.mod && !t.isrvalue;
     if (t.ty == Tarray)
     {
         Type next = t.nextOf();

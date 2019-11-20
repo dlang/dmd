@@ -3114,11 +3114,15 @@ else
             return;
         }
 
+        bool inferRef = (tf.isref && (fd.storage_class & STC.auto_));
+        bool inferRvalueRef = inferRef && tf.next && tf.next.isrvalue;
+        Expression e0 = null;
+
+        if (inferRvalueRef)
+            tf.next = tf.next.lvalueOf();
+
         Type tret = tf.next;
         Type tbret = tret ? tret.toBasetype() : null;
-
-        bool inferRef = (tf.isref && (fd.storage_class & STC.auto_));
-        Expression e0 = null;
 
         bool errors = false;
         if (sc.flags & SCOPE.contract)
@@ -3218,6 +3222,9 @@ else
                 if (!tret)
                 {
                     tf.next = rs.exp.type;
+                    inferRvalueRef = inferRef;
+                    if (inferRvalueRef || !inferRef)
+                        tf.next = tf.next.lvalueOf();
                 }
                 else if (tret.ty != Terror && !rs.exp.type.equals(tret))
                 {
@@ -3262,8 +3269,10 @@ else
                 void turnOffRef()
                 {
                     tf.isref = false;    // return by value
+                    tf.isrvalueref = false; // ignore `@rvalue ref` attribute
                     tf.isreturn = false; // ignore 'return' attribute, whether explicit or inferred
                     fd.storage_class &= ~STC.return_;
+                    inferRvalueRef = false;
                 }
 
                 if (rs.exp.isLvalue())
@@ -3274,6 +3283,10 @@ else
                         turnOffRef();
                     else if (!rs.exp.type.constConv(tf.next))
                         turnOffRef();
+                    else if (tf.isrvalueref && !rs.exp.isRvalueRef())
+                        tf.isrvalueref = false;
+                    if (inferRvalueRef && !rs.exp.type.isrvalue)
+                        inferRvalueRef = false;
                 }
                 else
                     turnOffRef();
@@ -3282,6 +3295,10 @@ else
                  * This means:
                  *    return 3; return x;  // ok, x can be a value
                  *    return x; return 3;  // ok, x can be a value
+                 *    return x; return x;  // returns ref
+                 *    return cast(@rvalue ref)x; return 3;  // returns value
+                 *    return cast(@rvalue ref)x; return x;  // returns ref
+                 *    return cast(@rvalue ref)x; return cast(@rvalue ref)x;  // returns @rvalue ref
                  */
             }
 
@@ -3339,7 +3356,11 @@ else
             }
 
             if (inferRef) // deduce 'auto ref'
+            {
                 tf.isref = false;
+                tf.isrvalueref = false;
+                inferRvalueRef = false;
+            }
 
             if (tbret.ty != Tvoid) // if non-void return
             {
@@ -3353,6 +3374,9 @@ else
                 rs.exp = IntegerExp.literal!0;
             }
         }
+
+        if (inferRvalueRef)
+            tf.next = tf.next.rvalueOf(); // restore
 
         // If any branches have called a ctor, but this branch hasn't, it's an error
         if (sc.ctorflow.callSuper & CSX.any_ctor && !(sc.ctorflow.callSuper & (CSX.this_ctor | CSX.super_ctor)))

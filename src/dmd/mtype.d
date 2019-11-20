@@ -153,6 +153,15 @@ MOD MODmerge(MOD mod1, MOD mod2) pure nothrow @nogc @safe
     return result;
 }
 
+/***************************
+ * Merge rvalueness.
+ * Returns: true if both are rvalue, false otherwise.
+ */
+bool rvalueMerge(bool isrvalue1, bool isrvalue2) pure nothrow @nogc @safe
+{
+    return isrvalue1 & isrvalue2;
+}
+
 /*********************************
  * Store modifier name into buf.
  */
@@ -381,6 +390,7 @@ extern (C++) abstract class Type : ASTNode
     TY ty;
     MOD mod; // modifiers MODxxxx
     char* deco;
+    bool isrvalue;
 
     /* These are cached values that are lazily evaluated by constOf(), immutableOf(), etc.
      * They should not be referenced by anybody but mtype.c.
@@ -396,6 +406,8 @@ extern (C++) abstract class Type : ASTNode
     Type wcto;      // MODFlags.wildconst             ? naked version of this type : wild const version
     Type swto;      // MODFlags.shared_ | MODFlags.wild      ? naked version of this type : shared wild version
     Type swcto;     // MODFlags.shared_ | MODFlags.wildconst ? naked version of this type : shared wild const version
+
+    Type rvto;      // rvalue version of this
 
     Type pto;       // merged pointer to this type
     Type rto;       // reference to this type
@@ -461,6 +473,7 @@ extern (C++) abstract class Type : ASTNode
     extern (C++) __gshared ClassDeclaration typeinfoinvariant;
     extern (C++) __gshared ClassDeclaration typeinfoshared;
     extern (C++) __gshared ClassDeclaration typeinfowild;
+    extern (C++) __gshared ClassDeclaration typeinforvalue;
 
     extern (C++) __gshared TemplateDeclaration rtinfo;
 
@@ -534,7 +547,7 @@ extern (C++) abstract class Type : ASTNode
 
     final bool equivalent(Type t)
     {
-        return immutableOf().equals(t.immutableOf());
+        return immutableOf().lvalueOf().equals(t.immutableOf().lvalueOf());
     }
 
     // kludge for template.isType()
@@ -596,7 +609,7 @@ extern (C++) abstract class Type : ASTNode
                 Parameter fparam1 = t1.parameterList[i];
                 Parameter fparam2 = t2.parameterList[i];
 
-                if (!fparam1.type.equals(fparam2.type))
+                if (!fparam1.type.lvalueOf().equals(fparam2.type.lvalueOf()))
                 {
                     if (!fix17349)
                         goto Ldistinct;
@@ -698,6 +711,10 @@ extern (C++) abstract class Type : ASTNode
 
     Lcovariant:
         if (t1.isref != t2.isref)
+            goto Lnotcovariant;
+        if (!t1.next.isrvalue && t2.next.isrvalue)
+            goto Lnotcovariant;
+        if (t1.isrvalueref != t2.isrvalueref)
             goto Lnotcovariant;
 
         if (!t1.isref && (t1.isscope || t2.isscope))
@@ -1136,6 +1153,7 @@ extern (C++) abstract class Type : ASTNode
         t.arrayof = null;
         t.pto = null;
         t.rto = null;
+        t.rvto = null;
         t.cto = null;
         t.ito = null;
         t.sto = null;
@@ -1398,6 +1416,47 @@ extern (C++) abstract class Type : ASTNode
         return t;
     }
 
+    /********************************
+     * Convert to 'rvalue'.
+     */
+    final Type rvalueOf()
+    {
+        //printf("Type::rvalueOf() %p, %s\n", this, toChars());
+        if (isrvalue)
+            return this;
+        if (rvto)
+        {
+            assert(rvto.isrvalue);
+            return rvto;
+        }
+        Type t = makeRvalue();
+        t = t.merge();
+        t.fixTo(this);
+        //printf("-Type::rvalueOf() %p %s\n", t, t.toChars());
+        return t;
+    }
+
+    /********************************
+     * Convert to non 'rvalue'.
+     */
+    final Type lvalueOf()
+    {
+        //printf("Type::lvalueOf() %p, %s\n", this, toChars());
+        if (!isrvalue)
+            return this;
+        if (rvto)
+        {
+            assert(!rvto.isrvalue);
+            return rvto;
+        }
+        Type t = makeRvalue();
+        t.isrvalue = false;
+        t = t.merge();
+        t.fixTo(this);
+        //printf("-Type::lvalueOf() %p %s\n", t, t.toChars());
+        return t;
+    }
+
     /**********************************
      * For our new type 'this', which is type-constructed from t,
      * fill in the cto, ito, sto, scto, wto shortcuts.
@@ -1410,7 +1469,10 @@ extern (C++) abstract class Type : ASTNode
         Type tn = nextOf();
         if (!tn || ty != Tsarray && tn.mod == t.nextOf().mod)
         {
-            switch (t.mod)
+            if (t.isrvalue != isrvalue)
+            {
+            }
+            else switch (t.mod)
             {
             case 0:
                 mto = t;
@@ -1452,14 +1514,19 @@ extern (C++) abstract class Type : ASTNode
                 break;
             }
         }
-        assert(mod != t.mod);
+        assert(mod != t.mod || t.isrvalue != isrvalue);
 
         auto X(T, U)(T m, U n)
         {
             return ((m << 4) | n);
         }
 
-        switch (mod)
+        if (t.isrvalue != isrvalue)
+        {
+            rvto = t;
+            t.rvto = this;
+        }
+        else switch (mod)
         {
         case 0:
             break;
@@ -1531,6 +1598,11 @@ extern (C++) abstract class Type : ASTNode
      */
     final void check()
     {
+        if (rvto)
+        {
+            assert(rvto.isrvalue != isrvalue);
+            assert(rvto.mod == mod);
+        }
         switch (mod)
         {
         case 0:
@@ -1785,6 +1857,8 @@ extern (C++) abstract class Type : ASTNode
                 }
             }
         }
+        if (stc & STC.rvaluetype)
+            t = t.makeRvalue();
         return t;
     }
 
@@ -1944,6 +2018,14 @@ extern (C++) abstract class Type : ASTNode
     }
 
     /************************************
+     * Apply or remove rvalue.
+     */
+    final Type castRvalue(bool on)
+    {
+        return on ? rvalueOf() : lvalueOf();
+    }
+
+    /************************************
      * Add storage class modifiers to type.
      */
     Type addStorageClass(StorageClass stc)
@@ -1962,7 +2044,10 @@ extern (C++) abstract class Type : ASTNode
             if (stc & STC.shared_)
                 mod |= MODFlags.shared_;
         }
-        return addMod(mod);
+        Type t = this;
+        if (stc & STC.rvaluetype)
+            t = t.rvalueOf();
+        return t.addMod(mod);
     }
 
     final Type pointerTo()
@@ -2105,6 +2190,7 @@ extern (C++) abstract class Type : ASTNode
             return cto;
         Type t = this.nullAttributes();
         t.mod = MODFlags.const_;
+        t.isrvalue = isrvalue;
         //printf("-Type::makeConst() %p, %s\n", t, toChars());
         return t;
     }
@@ -2115,6 +2201,7 @@ extern (C++) abstract class Type : ASTNode
             return ito;
         Type t = this.nullAttributes();
         t.mod = MODFlags.immutable_;
+        t.isrvalue = isrvalue;
         return t;
     }
 
@@ -2124,6 +2211,7 @@ extern (C++) abstract class Type : ASTNode
             return sto;
         Type t = this.nullAttributes();
         t.mod = MODFlags.shared_;
+        t.isrvalue = isrvalue;
         return t;
     }
 
@@ -2133,6 +2221,7 @@ extern (C++) abstract class Type : ASTNode
             return scto;
         Type t = this.nullAttributes();
         t.mod = MODFlags.shared_ | MODFlags.const_;
+        t.isrvalue = isrvalue;
         return t;
     }
 
@@ -2142,6 +2231,7 @@ extern (C++) abstract class Type : ASTNode
             return wto;
         Type t = this.nullAttributes();
         t.mod = MODFlags.wild;
+        t.isrvalue = isrvalue;
         return t;
     }
 
@@ -2151,6 +2241,7 @@ extern (C++) abstract class Type : ASTNode
             return wcto;
         Type t = this.nullAttributes();
         t.mod = MODFlags.wildconst;
+        t.isrvalue = isrvalue;
         return t;
     }
 
@@ -2160,6 +2251,7 @@ extern (C++) abstract class Type : ASTNode
             return swto;
         Type t = this.nullAttributes();
         t.mod = MODFlags.shared_ | MODFlags.wild;
+        t.isrvalue = isrvalue;
         return t;
     }
 
@@ -2169,6 +2261,7 @@ extern (C++) abstract class Type : ASTNode
             return swcto;
         Type t = this.nullAttributes();
         t.mod = MODFlags.shared_ | MODFlags.wildconst;
+        t.isrvalue = isrvalue;
         return t;
     }
 
@@ -2176,6 +2269,17 @@ extern (C++) abstract class Type : ASTNode
     {
         Type t = this.nullAttributes();
         t.mod = mod & MODFlags.shared_;
+        t.isrvalue = isrvalue;
+        return t;
+    }
+
+    Type makeRvalue()
+    {
+        if (rvto)
+            return rvto;
+        Type t = this.nullAttributes();
+        t.mod = mod;
+        t.isrvalue = true;
         return t;
     }
 
@@ -2227,6 +2331,8 @@ extern (C++) abstract class Type : ASTNode
         //printf("Type::constConv(this = %s, to = %s)\n", toChars(), to.toChars());
         if (equals(to))
             return MATCH.exact;
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
         if (ty == to.ty && MODimplicitConv(mod, to.mod))
             return MATCH.constant;
         return MATCH.nomatch;
@@ -2954,6 +3060,9 @@ extern (C++) abstract class TypeNext : Type
         if (equals(to))
             return MATCH.exact;
 
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
+
         if (!(ty == to.ty && MODimplicitConv(mod, to.mod)))
             return MATCH.nomatch;
 
@@ -3295,6 +3404,9 @@ extern (C++) final class TypeBasic : Type
         if (this == to)
             return MATCH.exact;
 
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
+
         if (ty == to.ty)
         {
             if (mod == to.mod)
@@ -3443,7 +3555,9 @@ extern (C++) final class TypeVector : Type
 
     override Type syntaxCopy()
     {
-        return new TypeVector(basetype.syntaxCopy());
+        Type t = new TypeVector(basetype.syntaxCopy());
+        t.isrvalue = isrvalue;
+        return t;
     }
 
     override d_uns64 size(const ref Loc loc)
@@ -3487,6 +3601,8 @@ extern (C++) final class TypeVector : Type
         //printf("TypeVector::implicitConvTo(%s) from %s\n", to.toChars(), toChars());
         if (this == to)
             return MATCH.exact;
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
         if (ty == to.ty)
             return MATCH.convert;
         return MATCH.nomatch;
@@ -3563,6 +3679,7 @@ extern (C++) final class TypeSArray : TypeArray
         Expression e = dim.syntaxCopy();
         t = new TypeSArray(t, e);
         t.mod = mod;
+        t.isrvalue = isrvalue;
         return t;
     }
 
@@ -3616,6 +3733,8 @@ extern (C++) final class TypeSArray : TypeArray
     override MATCH implicitConvTo(Type to)
     {
         //printf("TypeSArray::implicitConvTo(to = %s) this = %s\n", to.toChars(), toChars());
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
         if (auto ta = to.isTypeDArray())
         {
             if (!MODimplicitConv(next.mod, ta.next.mod))
@@ -3740,6 +3859,7 @@ extern (C++) final class TypeDArray : TypeArray
         {
             t = new TypeDArray(t);
             t.mod = mod;
+            t.isrvalue = isrvalue;
         }
         return t;
     }
@@ -3778,6 +3898,9 @@ extern (C++) final class TypeDArray : TypeArray
         //printf("TypeDArray::implicitConvTo(to = %s) this = %s\n", to.toChars(), toChars());
         if (equals(to))
             return MATCH.exact;
+
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
 
         if (auto ta = to.isTypeDArray())
         {
@@ -3847,6 +3970,7 @@ extern (C++) final class TypeAArray : TypeArray
         {
             t = new TypeAArray(t, ti);
             t.mod = mod;
+            t.isrvalue = isrvalue;
         }
         return t;
     }
@@ -3877,6 +4001,9 @@ extern (C++) final class TypeAArray : TypeArray
         if (equals(to))
             return MATCH.exact;
 
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
+
         if (auto ta = to.isTypeAArray())
         {
             if (!MODimplicitConv(next.mod, ta.next.mod))
@@ -3897,6 +4024,8 @@ extern (C++) final class TypeAArray : TypeArray
 
     override MATCH constConv(Type to)
     {
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
         if (auto taa = to.isTypeAArray())
         {
             MATCH mindex = index.constConv(taa.index);
@@ -3941,6 +4070,7 @@ extern (C++) final class TypePointer : TypeNext
         {
             t = new TypePointer(t);
             t.mod = mod;
+            t.isrvalue = isrvalue;
         }
         return t;
     }
@@ -3955,6 +4085,9 @@ extern (C++) final class TypePointer : TypeNext
         //printf("TypePointer::implicitConvTo(to = %s) %s\n", to.toChars(), toChars());
         if (equals(to))
             return MATCH.exact;
+
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
 
         if (next.ty == Tfunction)
         {
@@ -3999,12 +4132,15 @@ extern (C++) final class TypePointer : TypeNext
             if (!MODimplicitConv(next.mod, tp.next.mod))
                 return MATCH.nomatch; // not const-compatible
 
-            /* Alloc conversion to void*
+            /* Allow conversion to void*
              */
             if (next.ty != Tvoid && tp.next.ty == Tvoid)
             {
                 return MATCH.convert;
             }
+
+            if (next.isrvalue != tp.next.isrvalue)
+                return MATCH.nomatch;
 
             MATCH m = next.constConv(tp.next);
             if (m > MATCH.nomatch)
@@ -4019,11 +4155,18 @@ extern (C++) final class TypePointer : TypeNext
 
     override MATCH constConv(Type to)
     {
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
         if (next.ty == Tfunction)
         {
             if (to.nextOf() && next.equals((cast(TypeNext)to).next))
                 return Type.constConv(to);
             else
+                return MATCH.nomatch;
+        }
+        if (auto tn = to.nextOf())
+        {
+            if (next.isrvalue != tn.isrvalue)
                 return MATCH.nomatch;
         }
         return TypeNext.constConv(to);
@@ -4054,6 +4197,8 @@ extern (C++) final class TypePointer : TypeNext
  */
 extern (C++) final class TypeReference : TypeNext
 {
+    bool isRvalueRef;
+
     extern (D) this(Type t)
     {
         super(Treference, t);
@@ -4074,6 +4219,7 @@ extern (C++) final class TypeReference : TypeNext
         {
             t = new TypeReference(t);
             t.mod = mod;
+            t.isrvalue = isrvalue;
         }
         return t;
     }
@@ -4138,6 +4284,8 @@ extern (C++) final class TypeFunction : TypeNext
     bool isnogc;                // true: is @nogc
     bool isproperty;            // can be called without parentheses
     bool isref;                 // true: returns a reference
+    bool isrvalueref;           // true: returns a and rvalue reference
+    bool ismove;                // true: is @move
     bool isreturn;              // true: 'this' is returned by ref
     bool isscope;               // true: 'this' is scope
     bool isreturninferred;      // true: 'this' is return from inference
@@ -4170,6 +4318,10 @@ extern (C++) final class TypeFunction : TypeNext
 
         if (stc & STC.ref_)
             this.isref = true;
+        if (stc & STC.rvalueref)
+            this.isrvalueref = true;
+        if (stc & STC.move)
+            this.ismove = true;
         if (stc & STC.return_)
             this.isreturn = true;
         if (stc & STC.returninferred)
@@ -4204,11 +4356,14 @@ extern (C++) final class TypeFunction : TypeNext
         Parameters* params = Parameter.arraySyntaxCopy(parameterList.parameters);
         auto t = new TypeFunction(ParameterList(params, parameterList.varargs), treturn, linkage);
         t.mod = mod;
+        t.isrvalue = isrvalue;
         t.isnothrow = isnothrow;
         t.isnogc = isnogc;
         t.purity = purity;
         t.isproperty = isproperty;
         t.isref = isref;
+        t.isrvalueref = isrvalueref;
+        t.ismove = ismove;
         t.isreturn = isreturn;
         t.isscope = isscope;
         t.isreturninferred = isreturninferred;
@@ -4485,6 +4640,8 @@ extern (C++) final class TypeFunction : TypeNext
             tf.isnogc = t.isnogc;
             tf.isproperty = t.isproperty;
             tf.isref = t.isref;
+            tf.isrvalueref = t.isrvalueref;
+            tf.ismove = t.ismove;
             tf.isreturn = t.isreturn;
             tf.isscope = t.isscope;
             tf.isreturninferred = t.isreturninferred;
@@ -4544,11 +4701,14 @@ extern (C++) final class TypeFunction : TypeNext
         // Similar to TypeFunction::syntaxCopy;
         auto t = new TypeFunction(ParameterList(params, parameterList.varargs), tret, linkage);
         t.mod = ((mod & MODFlags.wild) ? (mod & ~MODFlags.wild) | MODFlags.const_ : mod);
+        t.isrvalue = isrvalue;
         t.isnothrow = isnothrow;
         t.isnogc = isnogc;
         t.purity = purity;
         t.isproperty = isproperty;
         t.isref = isref;
+        t.isrvalueref = isrvalueref;
+        t.ismove = ismove;
         t.isreturn = isreturn;
         t.isscope = isscope;
         t.isreturninferred = isreturninferred;
@@ -4560,7 +4720,7 @@ extern (C++) final class TypeFunction : TypeNext
     }
 
     // arguments get specially formatted
-    private const(char)* getParamError(Expression arg, Parameter par)
+    private const(char)* getParamError(Expression arg, Parameter par, int m = 0)
     {
         if (global.gag && !global.params.showGaggedErrors)
             return null;
@@ -4571,10 +4731,24 @@ extern (C++) final class TypeFunction : TypeNext
             at = arg.type.toPrettyChars(true);
         OutBuffer buf;
         // only mention rvalue if it's relevant
-        const rv = !arg.isLvalue() && par.storageClass & (STC.ref_ | STC.out_);
+        const(char)* v = "".ptr;
+        if (arg.type.isrvalue && par.storageClass & (STC.ref_ | STC.out_))
+            v = "@rvalue ".ptr;
+        else if (!arg.isLvalue() && par.storageClass & (STC.ref_ | STC.out_))
+            v = "rvalue ".ptr;
+        else if (arg.isLvalue() && par.storageClass & STC.rvalueref && !arg.isRvalueRef())
+            v = "lvalue ".ptr;
+        else if (arg.isRvalueRef() && (par.storageClass & (STC.ref_ | STC.rvalueref)) == STC.ref_)
+            v = "`@rvalue ref` ".ptr;
         buf.printf("cannot pass %sargument `%s` of type `%s` to parameter `%s`",
-            rv ? "rvalue ".ptr : "".ptr, arg.toChars(), at,
+            v, arg.toChars(), at,
             parameterToChars(par, this, qual));
+        if (m && par.storageClass & STC.rvalueref && arg.isLvalue() && !arg.isRvalueRef())
+        {
+            OutBuffer buf2;
+            buf2.printf(", perhaps you meant `cast(@rvalue ref)%s`", arg.toChars());
+            buf.write(&buf2);
+        }
         return buf.extractChars();
     }
 
@@ -4711,7 +4885,10 @@ extern (C++) final class TypeFunction : TypeNext
                     if (flag)
                     {
                         // for partial ordering, value is an irrelevant mockup, just look at the type
-                        m = targ.implicitConvTo(tprm);
+                        Type t = targ;
+                        if (tprm.isrvalue && !targ.isrvalue && !arg.isLvalue())
+                            t = t.rvalueOf();
+                        m = t.implicitConvTo(tprm);
                     }
                     else
                     {
@@ -4763,13 +4940,20 @@ extern (C++) final class TypeFunction : TypeNext
                 }
 
                 // Non-lvalues do not match ref or out parameters
-                if (p.storageClass & (STC.ref_ | STC.out_))
+                if (p.storageClass & (STC.ref_ | STC.out_)
+                    && !(p.storageClass & STC.rvalueref)
+                    && !tprm.isrvalue)
                 {
                     // https://issues.dlang.org/show_bug.cgi?id=13783
                     // Don't use toBasetype() to handle enum types.
                     Type ta = targ;
                     Type tp = tprm;
                     //printf("fparam[%d] ta = %s, tp = %s\n", u, ta.toChars(), tp.toChars());
+                    if (m && (targ.isrvalue || arg.isRvalueRef()))
+                    {
+                        if (pMessage) *pMessage = getParamError(arg, p);
+                        goto Nomatch;
+                    }
 
                     if (m && !arg.isLvalue())
                     {
@@ -4837,6 +5021,15 @@ extern (C++) final class TypeFunction : TypeNext
                     if (!ta.constConv(tp))
                     {
                         if (pMessage) *pMessage = getParamError(arg, p);
+                        goto Nomatch;
+                    }
+                }
+
+                if (p.storageClass & STC.rvalueref || tprm.isrvalue)
+                {
+                    if (m && arg.isLvalue() && !targ.isrvalue && !arg.isRvalueRef())
+                    {
+                        if (pMessage) *pMessage = getParamError(arg, p, m);
                         goto Nomatch;
                     }
                 }
@@ -5016,6 +5209,7 @@ extern (C++) final class TypeDelegate : TypeNext
         {
             t = new TypeDelegate(t);
             t.mod = mod;
+            t.isrvalue = isrvalue;
         }
         return t;
     }
@@ -5133,6 +5327,7 @@ extern (C++) final class TypeTraits : Type
         TraitsExp te = cast(TraitsExp) exp.syntaxCopy();
         TypeTraits tt = new TypeTraits(loc, te);
         tt.mod = mod;
+        tt.isrvalue = isrvalue;
         return tt;
     }
 
@@ -5275,6 +5470,7 @@ extern (C++) final class TypeIdentifier : TypeQualified
         auto t = new TypeIdentifier(loc, ident);
         t.syntaxCopyHelper(this);
         t.mod = mod;
+        t.isrvalue = isrvalue;
         return t;
     }
 
@@ -5330,6 +5526,7 @@ extern (C++) final class TypeInstance : TypeQualified
         auto t = new TypeInstance(loc, cast(TemplateInstance)tempinst.syntaxCopy(null));
         t.syntaxCopyHelper(this);
         t.mod = mod;
+        t.isrvalue = isrvalue;
         return t;
     }
 
@@ -5375,6 +5572,7 @@ extern (C++) final class TypeTypeof : TypeQualified
         auto t = new TypeTypeof(loc, exp.syntaxCopy());
         t.syntaxCopyHelper(this);
         t.mod = mod;
+        t.isrvalue = isrvalue;
         return t;
     }
 
@@ -5421,6 +5619,7 @@ extern (C++) final class TypeReturn : TypeQualified
         auto t = new TypeReturn(loc);
         t.syntaxCopyHelper(this);
         t.mod = mod;
+        t.isrvalue = isrvalue;
         return t;
     }
 
@@ -5660,6 +5859,9 @@ extern (C++) final class TypeStruct : Type
     {
         MATCH m;
 
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
+
         if (ty == to.ty && sym == (cast(TypeStruct)to).sym)
         {
             m = MATCH.exact; // exact match
@@ -5742,6 +5944,8 @@ extern (C++) final class TypeStruct : Type
     {
         if (equals(to))
             return MATCH.exact;
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
         if (ty == to.ty && sym == (cast(TypeStruct)to).sym && MODimplicitConv(mod, to.mod))
             return MATCH.constant;
         return MATCH.nomatch;
@@ -5890,7 +6094,9 @@ extern (C++) final class TypeEnum : Type
     override MATCH implicitConvTo(Type to)
     {
         MATCH m;
-        //printf("TypeEnum::implicitConvTo() %s to %s\n", toChars(), to.toChars());
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
+       //printf("TypeEnum::implicitConvTo() %s to %s\n", toChars(), to.toChars());
         if (ty == to.ty && sym == (cast(TypeEnum)to).sym)
             m = (mod == to.mod) ? MATCH.exact : MATCH.constant;
         else if (sym.getMemtype(Loc.initial).implicitConvTo(to))
@@ -5904,6 +6110,8 @@ extern (C++) final class TypeEnum : Type
     {
         if (equals(to))
             return MATCH.exact;
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
         if (ty == to.ty && sym == (cast(TypeEnum)to).sym && MODimplicitConv(mod, to.mod))
             return MATCH.constant;
         return MATCH.nomatch;
@@ -5914,7 +6122,10 @@ extern (C++) final class TypeEnum : Type
         if (!sym.members && !sym.memtype)
             return this;
         auto tb = sym.getMemtype(Loc.initial).toBasetype();
-        return tb.castMod(mod);         // retain modifier bits from 'this'
+        tb = tb.castMod(mod);         // retain modifier bits from 'this'
+        if (isrvalue)
+            tb = tb.rvalueOf();
+        return tb;
     }
 
     override bool isZeroInit(const ref Loc loc)
@@ -5999,6 +6210,9 @@ extern (C++) final class TypeClass : Type
         if (m > MATCH.nomatch)
             return m;
 
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
+
         ClassDeclaration cdto = to.isClassHandle();
         if (cdto)
         {
@@ -6042,6 +6256,8 @@ extern (C++) final class TypeClass : Type
     {
         if (equals(to))
             return MATCH.exact;
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
         if (ty == to.ty && sym == (cast(TypeClass)to).sym && MODimplicitConv(mod, to.mod))
             return MATCH.constant;
 
@@ -6215,6 +6431,7 @@ extern (C++) final class TypeTuple : Type
         Parameters* args = Parameter.arraySyntaxCopy(arguments);
         Type t = new TypeTuple(args);
         t.mod = mod;
+        t.isrvalue = isrvalue;
         return t;
     }
 
@@ -6272,6 +6489,7 @@ extern (C++) final class TypeSlice : TypeNext
     {
         Type t = new TypeSlice(next.syntaxCopy(), lwr.syntaxCopy(), upr.syntaxCopy());
         t.mod = mod;
+        t.isrvalue = isrvalue;
         return t;
     }
 
@@ -6310,6 +6528,9 @@ extern (C++) final class TypeNull : Type
         MATCH m = Type.implicitConvTo(to);
         if (m != MATCH.nomatch)
             return m;
+
+        if (!isrvalue && to.isrvalue)
+            return MATCH.nomatch;
 
         // NULL implicitly converts to any pointer type or dynamic array
         //if (type.ty == Tpointer && type.nextOf().ty == Tvoid)
@@ -6547,8 +6768,10 @@ extern (C++) final class Parameter : ASTNode
      */
     bool isCovariant(bool returnByRef, const Parameter p) const pure nothrow @nogc @safe
     {
-        enum stc = STC.ref_ | STC.in_ | STC.out_ | STC.lazy_;
+        enum stc = STC.ref_ | STC.rvalueref | STC.in_ | STC.out_ | STC.lazy_;
         if ((this.storageClass & stc) != (p.storageClass & stc))
+            return false;
+        if (this.type.isrvalue && !p.type.isrvalue)
             return false;
         return isCovariantScope(returnByRef, this.storageClass, p.storageClass);
     }
@@ -6696,8 +6919,12 @@ void attributesApply(const TypeFunction tf, void delegate(string) dg, TRUSTforma
         dg("@nogc");
     if (tf.isproperty)
         dg("@property");
-    if (tf.isref)
+    if (tf.isrvalueref)
+        dg("@rvalue ref");
+    else if (tf.isref)
         dg("ref");
+    if (tf.ismove)
+        dg("@move");
     if (tf.isreturn && !tf.isreturninferred)
         dg("return");
     if (tf.isscope && !tf.isscopeinferred)

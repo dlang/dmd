@@ -128,6 +128,7 @@ public:
     TY ty;
     MOD mod;  // modifiers MODxxxx
     char *deco;
+    bool isrvalue;
 
     /* These are cached values that are lazily evaluated by constOf(), immutableOf(), etc.
      * They should not be referenced by anybody but mtype.c.
@@ -144,6 +145,8 @@ public:
     Type *wcto;         // MODwildconst             ? naked version of this type : wild const version
     Type *swto;         // MODshared | MODwild      ? naked version of this type : shared wild version
     Type *swcto;        // MODshared | MODwildconst ? naked version of this type : shared wild const version
+
+    Type *rvto;          // MODrvalue                ? naked version of this type : rvalue version
 
     Type *pto;          // merged pointer to this type
     Type *rto;          // reference to this type
@@ -211,6 +214,7 @@ public:
     static ClassDeclaration *typeinfoinvariant;
     static ClassDeclaration *typeinfoshared;
     static ClassDeclaration *typeinfowild;
+    static ClassDeclaration *typeinforvalue;
 
     static TemplateDeclaration *rtinfo;
 
@@ -269,11 +273,14 @@ public:
     Type *wildConstOf();
     Type *sharedWildOf();
     Type *sharedWildConstOf();
+    Type *rvalueOf();
+    Type *lvalueOf();
     void fixTo(Type *t);
     void check();
     Type *addSTC(StorageClass stc);
     Type *castMod(MOD mod);
     Type *addMod(MOD mod);
+    Type *castRvalue(bool on);
     virtual Type *addStorageClass(StorageClass stc);
     Type *pointerTo();
     Type *referenceTo();
@@ -289,6 +296,7 @@ public:
     virtual Type *makeSharedWild();
     virtual Type *makeSharedWildConst();
     virtual Type *makeMutable();
+    virtual Type *makeRvalue();
     virtual Dsymbol *toDsymbol(Scope *sc);
     virtual Type *toBasetype();
     virtual bool isBaseOf(Type *t, int *poffset);
@@ -585,6 +593,7 @@ public:
     bool isnogc;        // true: is @nogc
     bool isproperty;    // can be called without parentheses
     bool isref;         // true: returns a reference
+    bool isrvalueref;   // true: returns an rvalue reference
     bool isreturn;      // true: 'this' is returned by ref
     bool isscope;       // true: 'this' is scope
     bool isreturninferred;      // true: 'this' is return from inference

@@ -455,6 +455,37 @@ private Expression callCpCtor(Scope* sc, Expression e, Type destinationType)
     return e;
 }
 
+/*********************************************
+ * If e is an instance of a struct, and that struct has a move constructor,
+ * rewrite e as:
+ *    (tmp = e),tmp
+ * Input:
+ *      sc = just used to specify the scope of created temporary variable
+ *      destinationType = the type of the object on which the copy constructor is called
+ */
+private Expression callMvCtor(Scope* sc, Expression e, Type destinationType)
+{
+    if (auto ts = e.type.baseElemOf().isTypeStruct())
+    {
+        StructDeclaration sd = ts.sym;
+        if (sd.hasMoveCtor)
+        {
+            /* (tmp = e),tmp */
+            auto tmp = copyToTemp(STC.rvalue, "__movetmp", e);
+            if (destinationType)
+                tmp.type = destinationType;
+            tmp.storage_class |= STC.nodtor;
+            tmp.dsymbolSemantic(sc);
+            Expression de = new DeclarationExp(e.loc, tmp);
+            Expression ve = new VarExp(e.loc, tmp);
+            de.type = Type.tvoid;
+            ve.type = e.type;
+            return Expression.combine(de, ve);
+        }
+    }
+    return valueNoDtor(e);
+}
+
 /************************************************
  * Handle the postblit call on lvalue, or the move of rvalue.
  *
@@ -475,9 +506,44 @@ extern (D) Expression doCopyOrMove(Scope *sc, Expression e, Type t = null)
     }
     else
     {
-        e = e.isLvalue() ? callCpCtor(sc, e, t) : valueNoDtor(e);
+        e = e.isLvalue() && !e.type.isrvalue && !e.isRvalueRef() ? callCpCtor(sc, e, t) : callMvCtor(sc, e, t);
     }
     return e;
+}
+
+/****************************************************************/
+bool isRvalueRef(Expression exp)
+{
+    if (auto ce = exp.isCastExp())
+    {
+        if (ce.rvalueRef)
+            return true;
+        return false;
+    }
+    if (auto ce = exp.isCallExp())
+    {
+        Type tb = ce.e1.type.toBasetype();
+        if (tb.ty == Tdelegate || tb.ty == Tpointer)
+            tb = tb.nextOf();
+        auto tf = tb.isTypeFunction();
+        if (tf && tf.isrvalueref)
+            return true; // function returns a reference
+        return false;
+    }
+    return false;
+}
+
+/****************************************************************/
+Expression moveExp(const ref Loc loc, Expression exp)
+{
+    if (!exp.isLvalue())
+        return exp;
+    auto ce = new CastExp(loc, exp, null);
+    if (global.params.rvalueType)
+        ce.rvalueType = true;
+    else
+        ce.rvalueRef = true;
+    return ce;
 }
 
 /****************************************************************/
@@ -3814,11 +3880,14 @@ extern (C++) final class FuncExp : Expression
             auto tfy = new TypeFunction(tfx.parameterList, tof.next,
                         tfx.linkage, STC.undefined_);
             tfy.mod = tfx.mod;
+            tfy.isrvalue = tfx.isrvalue;
             tfy.isnothrow = tfx.isnothrow;
             tfy.isnogc = tfx.isnogc;
             tfy.purity = tfx.purity;
             tfy.isproperty = tfx.isproperty;
             tfy.isref = tfx.isref;
+            tfy.isrvalueref = tfx.isrvalueref;
+            tfy.ismove = tfx.ismove;
             tfy.iswild = tfx.iswild;
             tfy.deco = tfy.merge().deco;
 
@@ -3839,7 +3908,7 @@ extern (C++) final class FuncExp : Expression
         }
         //printf("\ttx = %s, to = %s\n", tx.toChars(), to.toChars());
 
-        MATCH m = tx.implicitConvTo(to);
+        MATCH m = tx.implicitConvTo(to.lvalueOf());
         if (m > MATCH.nomatch)
         {
             // MATCH.exact:      exact type match
@@ -5149,6 +5218,8 @@ extern (C++) final class CastExp : UnaExp
 {
     Type to;                    // type to cast to
     ubyte mod = cast(ubyte)~0;  // MODxxxxx
+    bool rvalueRef;             // @rvalue ref
+    bool rvalueType;            // @rvalue type modifier
 
     extern (D) this(const ref Loc loc, Expression e, Type t)
     {
@@ -5158,15 +5229,19 @@ extern (C++) final class CastExp : UnaExp
 
     /* For cast(const) and cast(immutable)
      */
-    extern (D) this(const ref Loc loc, Expression e, ubyte mod)
+    extern (D) this(const ref Loc loc, Expression e, ubyte mod, bool rvalueRef = false)
     {
         super(loc, TOK.cast_, __traits(classInstanceSize, CastExp), e);
         this.mod = mod;
+        this.rvalueRef = rvalueRef;
     }
 
     override Expression syntaxCopy()
     {
-        return to ? new CastExp(loc, e1.syntaxCopy(), to.syntaxCopy()) : new CastExp(loc, e1.syntaxCopy(), mod);
+        CastExp ce = to ? new CastExp(loc, e1.syntaxCopy(), to.syntaxCopy()) : new CastExp(loc, e1.syntaxCopy(), mod);
+        ce.rvalueRef = rvalueRef;
+        ce.rvalueType = rvalueType;
+        return ce;
     }
 
     override Expression addDtorHook(Scope* sc)
@@ -5174,6 +5249,43 @@ extern (C++) final class CastExp : UnaExp
         if (to.toBasetype().ty == Tvoid)        // look past the cast(void)
             e1 = e1.addDtorHook(sc);
         return this;
+    }
+
+    override Modifiable checkModifiable(Scope* sc, int flag)
+    {
+        if (rvalueRef)
+            return e1.checkModifiable(sc, flag);
+        return Expression.checkModifiable(sc, flag);
+    }
+
+    override bool isLvalue()
+    {
+        if (rvalueRef)
+        {
+            assert(e1.isLvalue());
+            return true;
+        }
+        return Expression.isLvalue();
+    }
+
+    override Expression toLvalue(Scope* sc, Expression e)
+    {
+        if (rvalueRef)
+        {
+            e1 = e1.toLvalue(sc, e);
+            return this;
+        }
+        return Expression.toLvalue(sc, e);
+    }
+
+    override Expression modifiableLvalue(Scope* sc, Expression e)
+    {
+        if (rvalueRef)
+        {
+            e1 = e1.modifiableLvalue(sc, e);
+            return this;
+        }
+        return Expression.modifiableLvalue(sc, e);
     }
 
     override void accept(Visitor v)

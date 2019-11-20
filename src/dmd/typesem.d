@@ -198,7 +198,7 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
     {
         /* Look for what user might have intended
          */
-        const p = mt.mutableOf().unSharedOf().toChars();
+        const p = mt.mutableOf().unSharedOf().lvalueOf().toChars();
         auto id = Identifier.idPool(p, cast(uint)strlen(p));
         if (const n = importHint(id.toString()))
             error(loc, "`%s` is not defined, perhaps `import %.*s;` ?", p, cast(int)n.length, n.ptr);
@@ -830,6 +830,11 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
             .error(loc, "cannot have array of scope `%s`", tbn.toChars());
             return error();
         }
+        if (tbn.isrvalue)
+        {
+            .error(loc, "cannot have array of `@rvalue` type");
+            return error();
+        }
 
         /* Ensure things like const(immutable(T)[3]) become immutable(T[3])
          * and const(T)[3] become const(T[3])
@@ -862,6 +867,11 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
         if (tn.isscope())
         {
             .error(loc, "cannot have array of scope `%s`", tn.toChars());
+            return error();
+        }
+        if (tn.isrvalue)
+        {
+            .error(loc, "cannot have array of `@rvalue` type");
             return error();
         }
         mtype.next = tn;
@@ -1051,6 +1061,11 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                 }
             }
         }
+        if (mtype.index.isrvalue)
+        {
+            .error(loc, "cannot have associative array key of `@rvalue` type");
+            return error();
+        }
         mtype.next = mtype.next.typeSemantic(loc, sc).merge2();
         mtype.transitive();
 
@@ -1070,6 +1085,11 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
         if (mtype.next.isscope())
         {
             .error(loc, "cannot have array of scope `%s`", mtype.next.toChars());
+            return error();
+        }
+        if (mtype.next.isrvalue)
+        {
+            .error(loc, "cannot have associative array of `@rvalue` type");
             return error();
         }
         return merge(mtype);
@@ -1172,6 +1192,8 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
             tf.isnogc = true;
         if (sc.stc & STC.ref_)
             tf.isref = true;
+        if (sc.stc & STC.rvalueref)
+            tf.isrvalueref = true;
         if (sc.stc & STC.return_)
             tf.isreturn = true;
         if (sc.stc & STC.returninferred)
@@ -1231,6 +1253,11 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                 .error(loc, "functions cannot return `scope %s`", tf.next.toChars());
                 errors = true;
             }
+            if (tf.next.isrvalue && !tf.isref)
+            {
+                .error(loc, "functions cannot return `@rvalue` types except by `ref`");
+                errors = true;
+            }
             if (tf.next.hasWild())
                 wildreturn = true;
 
@@ -1239,6 +1266,9 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                 tf.isreturn = false;
             }
         }
+
+        if (tf.isrvalueref)
+            tf.isref = true;
 
         ubyte wildparams = 0;
         if (tf.parameterList.parameters)
@@ -1263,12 +1293,24 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                     continue;
                 }
 
+                if (fparam.storageClass & STC.rvalueref)
+                    fparam.storageClass |= STC.ref_;
+
+                if (i == 0 && tf.ismove)
+                    fparam.storageClass |= STC.rvalueref;
+
                 fparam.type = fparam.type.addStorageClass(fparam.storageClass);
 
                 if (fparam.storageClass & (STC.auto_ | STC.alias_ | STC.static_))
                 {
                     if (!fparam.type)
                         continue;
+                }
+
+                if (fparam.type.isrvalue && !(fparam.storageClass & STC.ref_))
+                {
+                    .error(loc, "only `ref` parameters can be `@rvalue`");
+                    errors = true;
                 }
 
                 Type t = fparam.type.toBasetype();
@@ -1378,7 +1420,8 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                     Expression e = fparam.defaultArg;
                     const isRefOrOut = fparam.storageClass & (STC.ref_ | STC.out_);
                     const isAuto = fparam.storageClass & (STC.auto_ | STC.autoref);
-                    if (isRefOrOut && !isAuto)
+                    const isRvalueRef = fparam.storageClass & STC.rvalueref || fparam.type.isrvalue;
+                    if (isRefOrOut && !isAuto && !(isRvalueRef && !e.isLvalue()))
                     {
                         e = e.expressionSemantic(argsc);
                         e = resolveProperties(argsc, e);
@@ -1400,10 +1443,19 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                         e = new AddrExp(e.loc, e);
                         e = e.expressionSemantic(argsc);
                     }
+
+                    // default arg must be an rvalue
+                    if (isRvalueRef && !isAuto &&
+                        e.isLvalue() && !e.type.isrvalue && !e.isRvalueRef())
+                    {
+                        .error(loc, "cannot pass lvalue default argument `%s` to parameter `%s`", e.toChars(), parameterToChars(fparam, tf, false));
+                        errors = true;
+                    }
+
                     e = e.implicitCastTo(argsc, fparam.type);
 
                     // default arg must be an lvalue
-                    if (isRefOrOut && !isAuto)
+                    if (isRefOrOut && !isRvalueRef && !isAuto)
                         e = e.toLvalue(argsc, e);
 
                     fparam.defaultArg = e;
@@ -1437,8 +1489,8 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                             // If the storage classes of narg
                             // conflict with the ones in fparam, it's ignored.
                             StorageClass stc  = fparam.storageClass | narg.storageClass;
-                            StorageClass stc1 = fparam.storageClass & (STC.ref_ | STC.out_ | STC.lazy_);
-                            StorageClass stc2 =   narg.storageClass & (STC.ref_ | STC.out_ | STC.lazy_);
+                            StorageClass stc1 = fparam.storageClass & (STC.ref_ | STC.rvalueref | STC.out_ | STC.lazy_);
+                            StorageClass stc2 =   narg.storageClass & (STC.ref_ | STC.rvalueref | STC.out_ | STC.lazy_);
                             if (stc1 && stc2 && stc1 != stc2)
                             {
                                 OutBuffer buf1;  stcToBuffer(&buf1, stc1 | ((stc1 & STC.ref_) ? (fparam.storageClass & STC.auto_) : 0));
@@ -1447,7 +1499,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                                 .error(loc, "incompatible parameter storage classes `%s` and `%s`",
                                     buf1.peekChars(), buf2.peekChars());
                                 errors = true;
-                                stc = stc1 | (stc & ~(STC.ref_ | STC.out_ | STC.lazy_));
+                                stc = stc1 | (stc & ~(STC.ref_ | STC.rvalueref | STC.out_ | STC.lazy_));
                             }
 
                             /* https://issues.dlang.org/show_bug.cgi?id=18572
@@ -1481,18 +1533,25 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
                 if (fparam.storageClass & STC.auto_)
                 {
                     Expression farg = mtype.fargs && i < mtype.fargs.dim ? (*mtype.fargs)[i] : fparam.defaultArg;
-                    if (farg && (fparam.storageClass & STC.ref_))
+                    if (farg && (fparam.storageClass & (STC.ref_ | STC.rvalueref)))
                     {
-                        if (farg.isLvalue())
+                        if (farg.isLvalue() && !farg.type.isrvalue && !farg.isRvalueRef())
                         {
                             // ref parameter
+                            fparam.storageClass &= ~STC.rvalueref;
+                            fparam.storageClass &= ~STC.rvaluetype;
+                            fparam.type = fparam.type.lvalueOf();
                         }
                         else
-                            fparam.storageClass &= ~STC.ref_; // value parameter
+                        {
+                            // value or rvalue ref parameter
+                            if (!fparam.type.isrvalue && !(fparam.storageClass & STC.rvalueref))
+                                fparam.storageClass &= ~STC.ref_;
+                        }
                         fparam.storageClass &= ~STC.auto_;    // https://issues.dlang.org/show_bug.cgi?id=14656
                         fparam.storageClass |= STC.autoref;
                     }
-                    else if (mtype.incomplete && (fparam.storageClass & STC.ref_))
+                    else if (mtype.incomplete && (fparam.storageClass & (STC.ref_ | STC.rvalueref)))
                     {
                         // the default argument may have been temporarily removed,
                         // see usage of `TypeFunction.incomplete`.
@@ -1588,7 +1647,10 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
         if (t)
         {
             //printf("\tit's a type %d, %s, %s\n", t.ty, t.toChars(), t.deco);
-            return t.addMod(mtype.mod);
+            t = t.addMod(mtype.mod);
+            if (mtype.isrvalue)
+                t = t.rvalueOf();
+            return t;
         }
         else
         {
@@ -1668,7 +1730,11 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
         Dsymbol s;
         mtype.resolve(loc, sc, &e, &t, &s);
         if (s && (t = s.getType()) !is null)
+        {
             t = t.addMod(mtype.mod);
+            if (mtype.isrvalue)
+                t = t.rvalueOf();
+        }
         if (!t)
         {
             .error(loc, "`%s` is used as a type", mtype.toChars());
@@ -1791,7 +1857,11 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
         Dsymbol s;
         mtype.resolve(loc, sc, &e, &t, &s);
         if (s && (t = s.getType()) !is null)
+        {
             t = t.addMod(mtype.mod);
+            if (mtype.isrvalue)
+                t = t.rvalueOf();
+        }
         if (!t)
         {
             .error(loc, "`%s` is used as a type", mtype.toChars());
@@ -2816,7 +2886,11 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
 
         mt.resolveHelper(loc, sc, s, scopesym, pe, pt, ps, intypeid);
         if (*pt)
+        {
             (*pt) = (*pt).addMod(mt.mod);
+            if (mt.isrvalue)
+                (*pt) = (*pt).rvalueOf();
+        }
     }
 
     void visitInstance(TypeInstance mt)
@@ -2830,7 +2904,11 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
 
         mt.resolveHelper(loc, sc, mt.tempinst, null, pe, pt, ps, intypeid);
         if (*pt)
+        {
             *pt = (*pt).addMod(mt.mod);
+            if (mt.isrvalue)
+                (*pt) = (*pt).rvalueOf();
+        }
         //if (*pt) printf("*pt = %d '%s'\n", (*pt).ty, (*pt).toChars());
     }
 
@@ -2916,7 +2994,10 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
         }
         if (mt.idents.dim == 0)
         {
-            returnType(t.addMod(mt.mod));
+            t = t.addMod(mt.mod);
+            if (mt.isrvalue)
+                t = t.rvalueOf();
+            returnType(t);
         }
         else
         {
@@ -2929,7 +3010,11 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
                 resolveExp(e, pt, pe, ps);
             }
             if (*pt)
+            {
                 (*pt) = (*pt).addMod(mt.mod);
+                if (mt.isrvalue)
+                    (*pt) = (*pt).rvalueOf();
+            }
         }
         mt.inuse--;
     }
@@ -2956,7 +3041,10 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
         }
         if (mt.idents.dim == 0)
         {
-            return returnType(t.addMod(mt.mod));
+            t = t.addMod(mt.mod);
+            if (mt.isrvalue)
+                t = t.rvalueOf();
+            return returnType(t);
         }
         else
         {
@@ -2969,7 +3057,11 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Ds
                 resolveExp(e, pt, pe, ps);
             }
             if (*pt)
+            {
                 (*pt) = (*pt).addMod(mt.mod);
+                if (mt.isrvalue)
+                    (*pt) = (*pt).rvalueOf();
+            }
         }
     }
 

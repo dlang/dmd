@@ -94,6 +94,50 @@ StorageClass mergeFuncAttrs(StorageClass s1, const FuncDeclaration f) pure
  */
 FuncDeclaration hasIdentityOpAssign(AggregateDeclaration ad, Scope* sc)
 {
+    return hasOpAssign(ad, sc, OpAssign.identity);
+}
+
+private enum OpAssign
+{
+    identity,
+    copy,
+    move,
+}
+
+/*******************************************
+ * Check given aggregate actually has an opAssign or not.
+ * Params:
+ *      ad = struct or class
+ *      sc = current scope
+ *      op = check for identity, copy, or move opAssign
+ * Returns:
+ *      if found, returns FuncDeclaration of opAssign, otherwise null
+ */
+private FuncDeclaration hasOpAssign(AggregateDeclaration ad, Scope* sc, int op)
+{
+    FuncDeclaration f, fcp, fmv;
+    f = hasOpAssign(ad, sc, fcp, fmv);
+    final switch (op)
+    {
+        case OpAssign.identity: return f;
+        case OpAssign.copy: return fcp;
+        case OpAssign.move: return fmv;
+    }
+}
+
+/*******************************************
+ * Check given aggregate actually has an identity opAssign or not.
+ * Params:
+ *      ad = struct or class
+ *      sc = current scope
+ *      copyAssign = output parameter for the copy opAssign
+ *      moveAssign = output parameter for the move opAssign
+ * Returns:
+ *      if found, returns FuncDeclaration of opAssign, otherwise null
+ */
+private FuncDeclaration hasOpAssign(AggregateDeclaration ad, Scope* sc,
+    out FuncDeclaration copyAssign, out FuncDeclaration moveAssign)
+{
     Dsymbol assign = search_function(ad, Id.assign);
     if (assign)
     {
@@ -110,40 +154,63 @@ FuncDeclaration hasIdentityOpAssign(AggregateDeclaration ad, Scope* sc)
         sc.minst = null;
 
         a[0] = er;
-        auto f = resolveFuncCall(ad.loc, sc, assign, null, ad.type, &a, FuncResolveFlag.quiet);
-        if (!f)
-        {
-            a[0] = el;
-            f = resolveFuncCall(ad.loc, sc, assign, null, ad.type, &a, FuncResolveFlag.quiet);
-        }
+        auto fr = resolveFuncCall(ad.loc, sc, assign, null, ad.type, &a, FuncResolveFlag.quiet);
+        a[0] = el;
+        auto fl = resolveFuncCall(ad.loc, sc, assign, null, ad.type, &a, FuncResolveFlag.quiet);
 
         sc = sc.pop();
         global.endGagging(errors);
-        if (f)
+        FuncDeclaration fId = fr ? fr : fl;
+        foreach (f; [fr, fl])
         {
-            if (f.errors)
-                return null;
-            auto fparams = f.getParameterList();
-            if (fparams.length)
+            if (f)
             {
-                auto fparam0 = fparams[0];
-                if (fparam0.type.toDsymbol(null) != ad)
-                    f = null;
+                if (f.errors)
+                    return null;
+                auto fparams = f.getParameterList();
+                if (fparams.length)
+                {
+                    auto fparam0 = fparams[0];
+                    const isRef = fparam0.storageClass & STC.ref_;
+                    const isRvalueRef = fparam0.storageClass & STC.rvalueref || fparam0.type.isrvalue;
+                    if (fparam0.type.toDsymbol(null) != ad)
+                    {
+                        if (f is fId)
+                            fId = null;
+                        continue;
+                    }
+                    if (fId is null)
+                        fId = f;
+                    if (isRvalueRef)
+                        moveAssign = f;
+                    else if (isRef)
+                        copyAssign = f;
+                }
             }
         }
         // BUGS: This detection mechanism cannot find some opAssign-s like follows:
         // struct S { void opAssign(ref immutable S) const; }
-        return f;
+        return fId;
     }
     return null;
 }
 
 /*******************************************
  * We need an opAssign for the struct if
- * it has a destructor or a postblit.
+ * it has a destructor, a postblit, or a copy constructor.
  * We need to generate one if a user-specified one does not exist.
+ *
+ * Params:
+ *      sd = struct
+ *      op = identity, copy, or move opAssign
+ *      ignoreDtorPblit = disregard the destructor and postblit.
+                          useful when checking whether `sd` or one of its fields
+                          implement a copy or move constructor or opAssign.
+ * Returns:
+ *      `true` if opAssign is needed (either user-defined or to be generated),
+ *      `false` otherwise.
  */
-private bool needOpAssign(StructDeclaration sd)
+private bool needOpAssign(StructDeclaration sd, int op = OpAssign.identity, bool ignoreDtorPblit = false)
 {
     //printf("StructDeclaration::needOpAssign() %s\n", sd.toChars());
 
@@ -156,10 +223,31 @@ private bool needOpAssign(StructDeclaration sd)
     if (sd.isUnionDeclaration())
         return !isNeeded();
 
-    if (sd.hasIdentityAssign || // because has identity==elaborate opAssign
-        sd.dtor ||
-        sd.postblit)
-        return isNeeded();
+    final switch (op)
+    {
+        case OpAssign.identity:
+            if (sd.hasIdentityAssign || // because has identity==elaborate opAssign
+                !ignoreDtorPblit &&
+                (sd.dtor || sd.postblit))
+                return isNeeded();
+            break;
+
+        case OpAssign.copy:
+            if (sd.hasCopyAssign || // has copy opAssign
+                !ignoreDtorPblit &&
+                (sd.dtor || sd.postblit) ||
+                sd.hasCopyCtor)
+                return isNeeded();
+            break;
+
+        case OpAssign.move:
+            if (sd.hasMoveAssign || // has move opAssign
+                !ignoreDtorPblit &&
+                (sd.dtor || sd.postblit) ||
+                sd.hasMoveCtor)
+                return isNeeded();
+            break;
+    }
 
     /* If any of the fields need an opAssign, then we
      * need it too.
@@ -176,7 +264,7 @@ private bool needOpAssign(StructDeclaration sd)
             TypeStruct ts = cast(TypeStruct)tv;
             if (ts.sym.isUnionDeclaration())
                 continue;
-            if (needOpAssign(ts.sym))
+            if (needOpAssign(ts.sym, op, ignoreDtorPblit))
                 return isNeeded();
         }
     }
@@ -251,10 +339,24 @@ private bool needOpAssign(StructDeclaration sd)
  */
 FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
 {
-    if (FuncDeclaration f = hasIdentityOpAssign(sd, sc))
     {
-        sd.hasIdentityAssign = true;
-        return f;
+        FuncDeclaration fcp, fmv;
+        if (FuncDeclaration f = hasOpAssign(sd, sc, fcp, fmv))
+        {
+            sd.hasIdentityAssign = true;
+            if (fcp) sd.hasCopyAssign = true;
+            if (fmv) sd.hasMoveAssign = true;
+            return f;
+        }
+    }
+    if (needOpAssign(sd, OpAssign.move, true /*ignoreDtorPblit*/))
+    {
+        // build copy/move opAssign combination instead of identity opAssign
+        auto fcp = buildCopyOpAssign(sd, sc);
+        auto fmv = buildMoveOpAssign(sd, sc);
+        if (fcp) assert(fcp.generated);
+        if (fmv) assert(fmv.generated);
+        return fcp ? fcp : fmv;
     }
     // Even if non-identity opAssign is defined, built-in identity opAssign
     // will be defined.
@@ -387,6 +489,312 @@ FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     //printf("-StructDeclaration::buildOpAssign() %s, errors = %d\n", sd.toChars(), (fop.storage_class & STC.disable) != 0);
     //printf("fop.type: %s\n", fop.type.toPrettyChars());
     return fop;
+}
+
+/******************************************
+ * Build copy or move opAssign for a `struct`.
+ *
+ * The generated `opAssign` function has the following signature:
+ *---
+ *ref S opAssign(ref S s)          // copy opAssign. S is the name of the `struct`.
+ *ref S opAssign(@rvalue ref S s)  // move opAssign. S is the name of the `struct`.
+ *---
+ *
+ * The copy or move opAssign function will be built for a struct `S` if the
+ * following constraints are met:
+ *
+ * 1. `S` does not have a respective `opAssign` defined.
+ *
+ * 2. `S` has at least one of the following members: a postblit (user-defined or
+ * generated for fields that have a defined postblit), a destructor
+ * (user-defined or generated for fields that have a defined destructor),
+ * a copy constructor in case of the copy `opAssign` or a move constructor
+ * for the move `opAssign` (elaborate or generated),
+ * or at least one field that has a defined `opAssign`.
+ *
+ * 3. `S` does not have any non-mutable fields.
+ *
+ * If `S` has a disabled destructor or at least one field that has a disabled
+ * `opAssign`, `S.opAssign` is going to be generated, but marked with `@disable`
+ *
+ * If either of the following conditions are met:
+ * 1. `S` does not have a user-defined postblit and at least one field defines an `opAssign`.
+ * 2. `S` has no copy constructor, or move constructor, or postblit, or destructor (all of which
+ *    user-defined or generated)
+ * Then the body will make member-wise assignments:
+ *
+ *---
+ *this.field1 = s.field1;
+ *this.field2 = s.field2;
+ *...;
+ *---
+ *
+ * Otherwise if `S` has postblit, a copy constructor, a move constructor,
+ * or a destructor, then the generated code for `opAssign` is:
+ *
+ *---
+ *this.dtor();    // if `S` defines a destructor
+ *this = s;       // constructor expression if copy/move constructor defined, otherwise blit
+ *this.postblit() // if `S` defines a postblit
+ *---
+ *
+ * References:
+ *      https://dlang.org/spec/struct.html#assign-overload
+ * Params:
+ *      sd = struct to generate opAssign for
+ *      sc = context
+ *      op = copy or move opAssign
+ * Returns:
+ *      generated `opAssign` function
+ */
+private FuncDeclaration buildCopyOpAssign(StructDeclaration sd, Scope* sc, int op = OpAssign.copy)
+{
+    if (FuncDeclaration f = hasOpAssign(sd, sc, op))
+    {
+        if (op == OpAssign.copy)
+            sd.hasCopyAssign = true;
+        else
+            sd.hasMoveAssign = true;
+        return f;
+    }
+    if (!needOpAssign(sd, op))
+        return null;
+
+    //printf("StructDeclaration::buildCopyOpAssign() %s\n", sd.toChars());
+    StorageClass stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
+
+    // One of our sub-field might have `@disable opAssign` so we need to
+    // check for it.
+    // In this event, it will be reflected by having `stc` (opAssign's
+    // storage class) include `STC.disabled`.
+    bool fieldHasOpAssign;
+    foreach (v; sd.fields)
+    {
+        if (v.storage_class & STC.ref_)
+            continue;
+        if (v.overlapped)
+            continue;
+        Type tv = v.type.baseElemOf();
+        if (tv.ty != Tstruct)
+            continue;
+        StructDeclaration sdv = (cast(TypeStruct)tv).sym;
+        if (auto f = hasIdentityOpAssign(sdv, sc))
+        {
+            fieldHasOpAssign = true;
+            stc = mergeFuncAttrs(stc, f);
+        }
+    }
+
+    CtorDeclaration ctor; // copy/move constructor (either generated or user-defined)
+    if (op == OpAssign.copy ? sd.hasCopyCtor : sd.hasMoveCtor)
+    {
+        overloadApply(sd.ctor, (Dsymbol s)
+        {
+            if (s.isTemplateDeclaration())
+                return 0;
+            auto ctorDecl = s.isCtorDeclaration();
+            assert(ctorDecl);
+            if (op == OpAssign.move ? ctorDecl.isMvCtor : ctorDecl.isCpCtor)
+            {
+                ctor = ctorDecl;
+                return 1;
+            }
+            return 0;
+        });
+    }
+
+    FuncDeclaration postblit; // user-defined postblit
+    foreach (pb; sd.postblits)
+    {
+        if (!pb.generated)
+            postblit = pb;
+    }
+
+    // If no user defined postblit, prefer memberwise assignment if fields have opAssign.
+    const bool preferMemberwise = fieldHasOpAssign && !(op == OpAssign.copy && postblit);
+
+    if (preferMemberwise) {}
+    else if (sd.dtor || ctor || op == OpAssign.copy && sd.postblit)
+    {
+        // if the type is not assignable, we cannot generate opAssign
+        if (!sd.type.isAssignable()) // https://issues.dlang.org/show_bug.cgi?id=13044
+            return null;
+        if (sd.dtor)
+            stc = mergeFuncAttrs(stc, sd.dtor);
+        if (ctor)
+            stc = mergeFuncAttrs(stc, ctor);
+        if (stc & STC.safe)
+            stc = (stc & ~STC.safe) | STC.trusted;
+    }
+
+    const rvalStc = global.params.rvalueType ? STC.rvaluetype : STC.rvalueref;
+    const mvStc = global.params.moveAttribute ? STC.move : 0;
+    const paramStc = STC.wild | STC.ref_ | (op == OpAssign.move ? rvalStc : 0);
+    const funcStc = stc | STC.ref_ | STC.return_ | (op == OpAssign.move ? mvStc : 0);
+    auto fop = generateOpAssignDeclaration(sd, paramStc, funcStc);
+    if (!(stc & STC.disable))
+        fop.fbody = generateCopyOpAssignBody(sd, preferMemberwise, op);
+    fop.opAssignSemantic(sc, sd, op);
+
+    //printf("-StructDeclaration::buildCopyOpAssign() %s, errors = %d\n", sd.toChars(), (fop.storage_class & STC.disable) != 0);
+    //printf("fop.type: %s\n", fop.type.toPrettyChars());
+    return fop;
+}
+
+/// Ditto
+private FuncDeclaration buildMoveOpAssign(StructDeclaration sd, Scope* sc)
+{
+    return buildCopyOpAssign(sd, sc, OpAssign.move);
+}
+
+/******************************************
+ * Generates an opAssing function declaration.
+ *
+ * Params:
+ *      sd = struct
+ *      paramStc = parameter storage class
+ *      funcStc = function storage class
+ * Returns:
+ *      generated function.
+ */
+private FuncDeclaration generateOpAssignDeclaration(StructDeclaration sd, const StorageClass paramStc, const StorageClass funcStc)
+{
+    auto fparams = new Parameters();
+    fparams.push(new Parameter(paramStc, sd.type, Id.p, null, null));
+    auto tf = new TypeFunction(ParameterList(fparams), sd.handleType(), LINK.d, funcStc);
+    auto fop = new FuncDeclaration(sd.loc, Loc.initial, Id.assign, funcStc, tf);
+    fop.storage_class |= STC.inference;
+    fop.generated = true;
+    return fop;
+}
+
+/******************************************
+ * Generates the function body for the copy or move opAssing.
+ *
+ * Either destruct then reconstruct in-place.
+ *
+ *---
+ *this.dtor();    // if struct defines a destructor
+ *this = s;       // constructor expression if copy/move constructor defined, else blit
+ *this.postblit() // if struct defines a postblit
+ *---
+ *
+ * Or do member-wise assignment:
+ *
+ *---
+ *this.field1 = s.field1;
+ *this.field2 = s.field2;
+ *...;
+ *---
+ *
+ * Params:
+ *      sd = struct
+ *      preferMemberwise = if `true` do member-wise assignment
+ *      op = copy or move opAssign
+ * Returns:
+ *      generated function.
+ */
+private Statement generateCopyOpAssignBody(StructDeclaration sd, bool preferMemberwise, int op = OpAssign.copy)
+{
+    Loc loc; // internal code should have no loc to prevent coverage
+    Expression e;
+    const bool hasCtor = op == OpAssign.copy ? sd.hasCopyCtor : sd.hasMoveCtor;
+    const bool hasPostblit = op == OpAssign.copy && sd.postblit;
+    if (!preferMemberwise && (sd.dtor || hasCtor || hasPostblit))
+    {
+        /* this.dtor(); */
+        if (sd.dtor)
+        {
+            Expression de = new CallExp(loc, new DotVarExp(loc, new ThisExp(loc), sd.dtor, false));
+            e =  Expression.combine(e, de);
+        }
+        /* this = p; */
+        const bool blit = hasPostblit || !hasCtor;
+        if (blit)
+        {
+            Expression ebl = new BlitExp(loc, new ThisExp(loc), new IdentifierExp(loc, Id.p));
+            Expression epb;
+            if (hasPostblit)
+            {
+                /* this.postblit(); */
+                Expression te = new ThisExp(loc);
+                te.type = sd.type.mutableOf();
+                epb = new CallExp(loc, new DotVarExp(loc, te, sd.postblit, false));
+            }
+            e = Expression.combine(e, ebl, epb);
+        }
+        else
+        {
+            assert(hasCtor);
+            Expression arg = new IdentifierExp(loc, Id.p);
+            arg = op == OpAssign.move ? moveExp(loc, arg) : arg;
+            Expression ec = new ConstructExp(loc, new ThisExp(loc), arg);
+            e = Expression.combine(e, ec);
+        }
+    }
+    else
+    {
+        /* Do memberwise assign.
+         *
+         * If sd is a nested struct, its vthis field assignment is:
+         * 1. If it's nested in a class, it's a rebind of class reference.
+         * 2. If it's nested in a function or struct, it's an update of void*.
+         * In both cases, it will change the parent context.
+         */
+        //printf("\tmemberwise copy\n");
+        e = null;
+        foreach (v; sd.fields)
+        {
+            // this.v = s.v;
+            Expression rhs = new DotVarExp(loc, new IdentifierExp(loc, Id.p), v);
+            rhs = op == OpAssign.move ? moveExp(loc, rhs) : rhs;
+            auto ec = new AssignExp(loc,
+                new DotVarExp(loc, new ThisExp(loc), v),
+                rhs);
+            e = Expression.combine(e, ec);
+        }
+    }
+    if (!e)
+        return null;
+    Statement s1 = new ExpStatement(loc, e);
+    /* Add:
+     *   return this;
+     */
+    auto er = new ThisExp(loc);
+    Statement s2 = new ReturnStatement(loc, er);
+    return new CompoundStatement(loc, s1, s2);
+}
+
+/******************************************
+ * Does semantic analysis on an opAssign declaration.
+ */
+private void opAssignSemantic(FuncDeclaration fop, Scope* sc, StructDeclaration sd, int op = OpAssign.identity)
+{
+    sd.members.push(fop);
+    fop.addMember(sc, sd);
+    final switch (op)
+    {
+        // temporary mark assignable
+        case OpAssign.identity: sd.hasIdentityAssign = true; break;
+        case OpAssign.copy: sd.hasCopyAssign = true; break;
+        case OpAssign.move: sd.hasMoveAssign = true; break;
+    }
+    const errors = global.startGagging(); // Do not report errors, even if the template opAssign fbody makes it.
+    Scope* sc2 = sc.push();
+    sc2.stc = 0;
+    sc2.linkage = LINK.d;
+    fop.dsymbolSemantic(sc2);
+    fop.semantic2(sc2);
+    // https://issues.dlang.org/show_bug.cgi?id=15044
+    //semantic3(fop, sc2); // isn't run here for lazy forward reference resolution.
+
+    sc2.pop();
+    if (global.endGagging(errors)) // if errors happened
+    {
+        // Disable generated opAssign, because some members forbid identity assignment.
+        fop.storage_class |= STC.disable;
+        fop.fbody = null; // remove fbody which contains the error
+    }
 }
 
 /*******************************************

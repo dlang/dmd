@@ -130,16 +130,19 @@ struct ASTBase
         future              = (1L << 50),   // introducing new base class function
         local               = (1L << 51),   // do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
         returninferred      = (1L << 52),   // 'return' has been inferred and should not be part of mangling
+        rvalueref           = (1L << 53),   // @rvalue ref
+        rvaluetype          = (1L << 54),   // @rvalue type constructor
+        move                = (1L << 55),   // @move attribute
 
         safeGroup = STC.safe | STC.trusted | STC.system,
         TYPECTOR = (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild),
-        FUNCATTR = (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.property |
+        FUNCATTR = (STC.ref_ | STC.rvalueref | STC.nothrow_ | STC.nogc | STC.pure_ | STC.property | STC.move |
                     safeGroup),
     }
 
     extern (C++) __gshared const(StorageClass) STCStorageClass =
         (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.const_ | STC.final_ | STC.abstract_ | STC.synchronized_ | STC.deprecated_ | STC.override_ | STC.lazy_ | STC.alias_ | STC.out_ | STC.in_ | STC.manifest | STC.immutable_ | STC.shared_ | STC.wild | STC.nothrow_ | STC.nogc | STC.pure_ | STC.ref_ | STC.return_ | STC.tls | STC.gshared | STC.property |
-         STC.safeGroup | STC.disable);
+         STC.safeGroup | STC.disable | STC.rvalueref | STC.rvaluetype | STC.move);
 
     enum ENUMTY : int
     {
@@ -835,7 +838,7 @@ struct ASTBase
 
     extern (C++) final class CtorDeclaration : FuncDeclaration
     {
-        extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc, Type type, bool isCopyCtor = false)
+        extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc, Type type, int isCopyCtor = 0)
         {
             super(loc, endloc, Id.ctor, stc, type);
         }
@@ -1687,6 +1690,12 @@ struct ASTBase
                         if (!inObject)
                             error("%s", msg);
                         Type.typeinfowild = this;
+                    }
+                    if (id == Id.TypeInfo_Rvalue)
+                    {
+                        if (!inObject)
+                            error("%s", msg);
+                        Type.typeinforvalue = this;
                     }
                     if (id == Id.TypeInfo_Vector)
                     {
@@ -2660,6 +2669,7 @@ struct ASTBase
         TY ty;
         MOD mod;
         char* deco;
+        bool isrvalue;
 
         extern (C++) __gshared Type tvoid;
         extern (C++) __gshared Type tint8;
@@ -2720,6 +2730,7 @@ struct ASTBase
         extern (C++) __gshared ClassDeclaration typeinfoinvariant;
         extern (C++) __gshared ClassDeclaration typeinfoshared;
         extern (C++) __gshared ClassDeclaration typeinfowild;
+        extern (C++) __gshared ClassDeclaration typeinforvalue;
         extern (C++) __gshared StringTable!Type stringtable;
         extern (C++) __gshared ubyte[TMAX] sizeTy = ()
             {
@@ -2755,6 +2766,8 @@ struct ASTBase
         Type wcto;
         Type swto;
         Type swcto;
+
+        Type rvto;
 
         Type pto;
         Type rto;
@@ -2908,6 +2921,7 @@ struct ASTBase
             t.arrayof = null;
             t.pto = null;
             t.rto = null;
+            t.rvto = null;
             t.cto = null;
             t.ito = null;
             t.sto = null;
@@ -2931,6 +2945,7 @@ struct ASTBase
                 return cto;
             Type t = this.nullAttributes();
             t.mod = MODFlags.const_;
+            t.isrvalue = isrvalue;
             return t;
         }
 
@@ -2940,6 +2955,7 @@ struct ASTBase
                 return wcto;
             Type t = this.nullAttributes();
             t.mod = MODFlags.wildconst;
+            t.isrvalue = isrvalue;
             return t;
         }
 
@@ -2949,6 +2965,7 @@ struct ASTBase
                 return sto;
             Type t = this.nullAttributes();
             t.mod = MODFlags.shared_;
+            t.isrvalue = isrvalue;
             return t;
         }
 
@@ -2958,6 +2975,7 @@ struct ASTBase
                 return scto;
             Type t = this.nullAttributes();
             t.mod = MODFlags.shared_ | MODFlags.const_;
+            t.isrvalue = isrvalue;
             return t;
         }
 
@@ -2967,6 +2985,7 @@ struct ASTBase
                 return ito;
             Type t = this.nullAttributes();
             t.mod = MODFlags.immutable_;
+            t.isrvalue = isrvalue;
             return t;
         }
 
@@ -2976,6 +2995,7 @@ struct ASTBase
                 return wto;
             Type t = this.nullAttributes();
             t.mod = MODFlags.wild;
+            t.isrvalue = isrvalue;
             return t;
         }
 
@@ -2985,6 +3005,7 @@ struct ASTBase
                 return swcto;
             Type t = this.nullAttributes();
             t.mod = MODFlags.shared_ | MODFlags.wildconst;
+            t.isrvalue = isrvalue;
             return t;
         }
 
@@ -2994,6 +3015,17 @@ struct ASTBase
                 return swto;
             Type t = this.nullAttributes();
             t.mod = MODFlags.shared_ | MODFlags.wild;
+            t.isrvalue = isrvalue;
+            return t;
+        }
+
+        Type makeRvalue()
+        {
+            if (rvto)
+                return rvto;
+            Type t = this.nullAttributes();
+            t.mod = mod;
+            t.isrvalue = true;
             return t;
         }
 
@@ -3084,6 +3116,8 @@ struct ASTBase
                     }
                 }
             }
+            if (stc & STC.rvaluetype)
+                t = t.makeRvalue();
             return t;
         }
 
@@ -3217,12 +3251,46 @@ struct ASTBase
             return t;
         }
 
+        final Type rvalueOf()
+        {
+            if (isrvalue)
+                return this;
+            if (rvto)
+            {
+                assert(rvto.isrvalue);
+                return rvto;
+            }
+            Type t = makeRvalue();
+            t = t.merge();
+            t.fixTo(this);
+            return t;
+        }
+
+        final Type lvalueOf()
+        {
+            if (!isrvalue)
+                return this;
+            if (rvto)
+            {
+                assert(!rvto.isrvalue);
+                return rvto;
+            }
+            Type t = makeRvalue();
+            t.isrvalue = false;
+            t = t.merge();
+            t.fixTo(this);
+            return t;
+        }
+
         final void fixTo(Type t)
         {
             Type mto = null;
             Type tn = nextOf();
             if (!tn || ty != Tsarray && tn.mod == t.nextOf().mod)
             {
+                if (t.isrvalue != isrvalue)
+                {
+                }
                 switch (t.mod)
                 {
                 case 0:
@@ -3265,14 +3333,19 @@ struct ASTBase
                     break;
                 }
             }
-            assert(mod != t.mod);
+            assert(mod != t.mod || t.isrvalue != isrvalue);
 
             auto X(T, U)(T m, U n)
             {
                 return ((m << 4) | n);
             }
 
-            switch (mod)
+            if (t.isrvalue != isrvalue)
+            {
+                rvto = t;
+                t.rvto = this;
+            }
+            else switch (mod)
             {
             case 0:
                 break;
@@ -3677,7 +3750,9 @@ struct ASTBase
 
         override Type syntaxCopy()
         {
-            return new TypeVector(basetype.syntaxCopy());
+            Type t = new TypeVector(basetype.syntaxCopy());
+            t.isrvalue = isrvalue;
+            return t;
         }
 
         override void accept(Visitor v)
@@ -3741,6 +3816,7 @@ struct ASTBase
             Parameters* args = Parameter.arraySyntaxCopy(arguments);
             Type t = new TypeTuple(args);
             t.mod = mod;
+            t.isrvalue = isrvalue;
             return t;
         }
 
@@ -3796,6 +3872,8 @@ struct ASTBase
 
     extern (C++) final class TypeReference : TypeNext
     {
+        bool isRvalueRef;
+
         extern (D) this(Type t)
         {
             super(Treference, t);
@@ -3811,6 +3889,7 @@ struct ASTBase
             {
                 t = new TypeReference(t);
                 t.mod = mod;
+                t.isrvalue = isrvalue;
             }
             return t;
         }
@@ -3858,6 +3937,7 @@ struct ASTBase
         {
             Type t = new TypeSlice(next.syntaxCopy(), lwr.syntaxCopy(), upr.syntaxCopy());
             t.mod = mod;
+            t.isrvalue = isrvalue;
             return t;
         }
 
@@ -3884,6 +3964,7 @@ struct ASTBase
             {
                 t = new TypeDelegate(t);
                 t.mod = mod;
+                t.isrvalue = isrvalue;
             }
             return t;
         }
@@ -3910,6 +3991,7 @@ struct ASTBase
             {
                 t = new TypePointer(t);
                 t.mod = mod;
+                t.isrvalue = isrvalue;
             }
             return t;
         }
@@ -3928,6 +4010,7 @@ struct ASTBase
         bool isnogc;                // true: is @nogc
         bool isproperty;            // can be called without parentheses
         bool isref;                 // true: returns a reference
+        bool isrvalueref;           // true: returns a and rvalue reference
         bool isreturn;              // true: 'this' is returned by ref
         bool isscope;               // true: 'this' is scope
         LINK linkage;               // calling convention
@@ -3955,6 +4038,8 @@ struct ASTBase
 
             if (stc & STC.ref_)
                 this.isref = true;
+            if (stc & STC.rvalueref)
+                this.isrvalueref = true;
             if (stc & STC.return_)
                 this.isreturn = true;
             if (stc & STC.scope_)
@@ -3975,11 +4060,13 @@ struct ASTBase
             Parameters* params = Parameter.arraySyntaxCopy(parameterList.parameters);
             auto t = new TypeFunction(ParameterList(params, parameterList.varargs), treturn, linkage);
             t.mod = mod;
+            t.isrvalue = isrvalue;
             t.isnothrow = isnothrow;
             t.isnogc = isnogc;
             t.purity = purity;
             t.isproperty = isproperty;
             t.isref = isref;
+            t.isrvalueref = isrvalueref;
             t.isreturn = isreturn;
             t.isscope = isscope;
             t.iswild = iswild;
@@ -4023,6 +4110,7 @@ struct ASTBase
             {
                 t = new TypeDArray(t);
                 t.mod = mod;
+                t.isrvalue = isrvalue;
             }
             return t;
         }
@@ -4054,6 +4142,7 @@ struct ASTBase
             {
                 t = new TypeAArray(t, ti);
                 t.mod = mod;
+                t.isrvalue = isrvalue;
             }
             return t;
         }
@@ -4092,6 +4181,7 @@ struct ASTBase
             Expression e = dim.syntaxCopy();
             t = new TypeSArray(t, e);
             t.mod = mod;
+            t.isrvalue = isrvalue;
             return t;
         }
 
@@ -4224,6 +4314,7 @@ struct ASTBase
             TraitsExp te = cast(TraitsExp) exp.syntaxCopy();
             TypeTraits tt = new TypeTraits(loc, te);
             tt.mod = mod;
+            tt.isrvalue = isrvalue;
             return tt;
         }
     }
@@ -4278,6 +4369,7 @@ struct ASTBase
             auto t = new TypeIdentifier(loc, ident);
             t.syntaxCopyHelper(this);
             t.mod = mod;
+            t.isrvalue = isrvalue;
             return t;
         }
 
@@ -4304,6 +4396,7 @@ struct ASTBase
             auto t = new TypeReturn(loc);
             t.syntaxCopyHelper(this);
             t.mod = mod;
+            t.isrvalue = isrvalue;
             return t;
         }
 
@@ -4328,6 +4421,7 @@ struct ASTBase
             auto t = new TypeTypeof(loc, exp.syntaxCopy());
             t.syntaxCopyHelper(this);
             t.mod = mod;
+            t.isrvalue = isrvalue;
             return t;
         }
 
@@ -4352,6 +4446,7 @@ struct ASTBase
             auto t = new TypeInstance(loc, cast(TemplateInstance)tempinst.syntaxCopy(null));
             t.syntaxCopyHelper(this);
             t.mod = mod;
+            t.isrvalue = isrvalue;
             return t;
         }
 
@@ -5252,16 +5347,19 @@ struct ASTBase
     {
         Type to;
         ubyte mod = cast(ubyte)~0;
+        bool rvalueRef;
+        bool rvalueType;
 
         extern (D) this(const ref Loc loc, Expression e, Type t)
         {
             super(loc, TOK.cast_, __traits(classInstanceSize, CastExp), e);
             this.to = t;
         }
-        extern (D) this(const ref Loc loc, Expression e, ubyte mod)
+        extern (D) this(const ref Loc loc, Expression e, ubyte mod, bool rvalueRef = false)
         {
             super(loc, TOK.cast_, __traits(classInstanceSize, CastExp), e);
             this.mod = mod;
+            this.rvalueRef = rvalueRef;
         }
 
         override void accept(Visitor v)
@@ -6470,6 +6568,9 @@ struct ASTBase
             SCstring(STC.system, TOK.at, "@system"),
             SCstring(STC.disable, TOK.at, "@disable"),
             SCstring(STC.future, TOK.at, "@__future"),
+            SCstring(STC.rvalueref, TOK.at, "@rvalue ref"),
+            SCstring(STC.rvaluetype, TOK.at, "@rvalue"),
+            SCstring(STC.move, TOK.at, "@move"),
             SCstring(0, TOK.reserved)
         ];
         for (int i = 0; table[i].stc; i++)

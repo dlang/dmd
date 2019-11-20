@@ -1033,7 +1033,7 @@ extern (C++) class FuncDeclaration : Declaration
         {
             Parameter p = tf.parameterList[u];
             Expression e;
-            if (p.storageClass & (STC.ref_ | STC.out_))
+            if (p.storageClass & (STC.ref_ | STC.out_) && !(p.storageClass & STC.rvalueref))
             {
                 e = new IdentifierExp(Loc.initial, p.ident);
                 e.type = p.type;
@@ -2091,6 +2091,8 @@ extern (C++) class FuncDeclaration : Declaration
             TypeFunction tf = type.toTypeFunction();
             if (tf.isref)
                 vresult.storage_class |= STC.ref_;
+            if (tf.isrvalueref)
+                vresult.storage_class |= STC.rvalueref;
             vresult.type = tret;
 
             vresult.dsymbolSemantic(sc);
@@ -2256,7 +2258,7 @@ extern (C++) class FuncDeclaration : Declaration
             {
                 p = p.syntaxCopy();
                 if (!(p.storageClass & STC.lazy_))
-                    p.storageClass = (p.storageClass | STC.ref_) & ~STC.out_;
+                    p.storageClass = (p.storageClass | STC.ref_) & ~(STC.out_ | STC.rvalueref);
                 p.defaultArg = null; // won't be the same with ref
                 result.push(p);
                 return 0;
@@ -3428,23 +3430,27 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
 extern (C++) final class CtorDeclaration : FuncDeclaration
 {
     bool isCpCtor;
-    extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, Type type, bool isCpCtor = false)
+    bool isMvCtor;
+    extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, Type type, int isCpCtor = 0)
     {
         super(loc, endloc, Id.ctor, stc, type);
-        this.isCpCtor = isCpCtor;
+        if (isCpCtor == 1)
+            this.isCpCtor = true;
+        else if (isCpCtor == 2)
+            this.isMvCtor = true;
         //printf("CtorDeclaration(loc = %s) %s\n", loc.toChars(), toChars());
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        auto f = new CtorDeclaration(loc, endloc, storage_class, type.syntaxCopy());
+        auto f = new CtorDeclaration(loc, endloc, storage_class, type.syntaxCopy(), isMvCtor ? 2 : isCpCtor);
         return FuncDeclaration.syntaxCopy(f);
     }
 
     override const(char)* kind() const
     {
-        return isCpCtor ? "copy constructor" : "constructor";
+        return isCpCtor ? "copy constructor" : isMvCtor ? "move constructor" : "constructor";
     }
 
     override const(char)* toChars() const

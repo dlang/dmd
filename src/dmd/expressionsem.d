@@ -1926,9 +1926,9 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                     ? p.type.substWildTo(wildmatch)
                     : p.type;
 
-                const hasCopyCtor = (arg.type.ty == Tstruct) && (cast(TypeStruct)arg.type).sym.hasCopyCtor;
-                const typesMatch = arg.type.mutableOf().unSharedOf().equals(tprm.mutableOf().unSharedOf());
-                if (!((hasCopyCtor && typesMatch) || tprm.equals(arg.type)))
+                StructDeclaration sd = (arg.type.ty == Tstruct) ? (cast(TypeStruct)arg.type).sym : null;
+                const typesMatch = arg.type.equivalent(tprm);
+                if (!((sd && (sd.hasCopyCtor || sd.hasMoveCtor) && typesMatch) || tprm.equals(arg.type)))
                 {
                     //printf("arg.type = %s, p.type = %s\n", arg.type.toChars(), p.type.toChars());
                     arg = arg.implicitCastTo(sc, tprm);
@@ -1937,9 +1937,10 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             }
             if (p.storageClass & STC.ref_)
             {
-                if (global.params.rvalueRefParam &&
-                    !arg.isLvalue() &&
-                    targ.isCopyable())
+                if ((global.params.rvalueRefParam
+                     || p.storageClass & STC.rvalueref
+                     || p.type.isrvalue) &&
+                    !arg.isLvalue())
                 {   /* allow rvalues to be passed to ref parameters by copying
                      * them to a temp, then pass the temp as the argument
                      */
@@ -4083,6 +4084,31 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
 
+        if (exp.e1.op == TOK.identifier && (cast(IdentifierExp)exp.e1).ident == Id.__move)
+        {
+            expandTuples(exp.arguments);
+            if (exp.arguments.length != 1)
+            {
+                if (exp.arguments.length == 0)
+                    exp.error("`__move` requires an argument`");
+                else
+                    exp.error("`__move` takes only one argument`");
+                return setError();
+            }
+
+            Expression ex = (*exp.arguments)[0].expressionSemantic(sc);
+            if (ex.op == TOK.error)
+            {
+                result = ex;
+                return;
+            }
+            if (!ex.isLvalue())
+                result = ex;
+            else
+                result = moveExp(exp.loc, ex).expressionSemantic(sc);
+            return;
+        }
+
         if (Expression ex = resolveUFCS(sc, exp))
         {
             result = ex;
@@ -4294,7 +4320,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (sd.ctor)
                 {
                     auto ctor = sd.ctor.isCtorDeclaration();
-                    if (ctor && ctor.isCpCtor && ctor.generated)
+                    if (ctor && (ctor.isCpCtor || ctor.isMvCtor) && ctor.generated)
                         sd.ctor = null;
                 }
 
@@ -5399,6 +5425,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (e.targ.ty != Tvector)
                     goto Lno;
                 tded = (cast(TypeVector)e.targ).basetype;
+                break;
+
+            case TOK.rvalue:
+                if (!e.targ.isrvalue)
+                    goto Lno;
+                tded = e.targ;
                 break;
 
             default:
@@ -6923,6 +6955,24 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
+        if (exp.rvalueRef)
+        {
+            if (exp.e1.isRvalueRef())
+            {
+                result = exp.e1;
+                return;
+            }
+            if (!exp.e1.isLvalue())
+            {
+                exp.error("cannot cast rvalue `%s` to `@rvalue ref`", exp.toChars());
+                return setError();
+            }
+            exp.to = exp.e1.type;
+            exp.type = exp.e1.type;
+            result = exp;
+            return;
+        }
+
         // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
         if (exp.e1.op == TOK.type)
             exp.e1 = resolveAliasThis(sc, exp.e1);
@@ -6957,7 +7007,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (!exp.to) // Handle cast(const) and cast(immutable), etc.
         {
-            exp.to = exp.e1.type.castMod(exp.mod);
+            if (exp.rvalueType)
+            {
+                exp.to = exp.e1.type.rvalueOf();
+                if (exp.mod && exp.mod != cast(ubyte)~0)
+                    exp.to = exp.to.castMod(exp.mod);
+            }
+            else
+                exp.to = exp.e1.type.castMod(exp.mod);
             exp.to = exp.to.typeSemantic(exp.loc, sc);
 
             if (exp.to == Type.terror)
@@ -8464,7 +8521,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         result = e;
                         return;
                     }
-                    if (sd.postblit || sd.hasCopyCtor)
+                    if (sd.postblit || sd.hasCopyCtor || sd.hasMoveCtor)
                     {
                         /* We have a copy constructor for this
                          */
@@ -8483,8 +8540,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                         if (e2x.isLvalue())
                         {
-                            if (sd.hasCopyCtor)
+                            if (e2x.type.isrvalue || e2x.isRvalueRef())
                             {
+                                if (sd.hasMoveCtor)
+                                    goto Lcallctor;
+                            }
+                            else if (sd.hasCopyCtor)
+                            {
+                            Lcallctor:
                                 /* Rewrite as:
                                  * e1 = init, e1.copyCtor(e2);
                                  */
@@ -8501,7 +8564,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                                 result = e.expressionSemantic(sc);
                                 return;
                             }
-                            else
+                            else if (sd.postblit)
                             {
                                 if (!e2x.type.implicitConvTo(e1x.type))
                                 {

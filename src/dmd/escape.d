@@ -1945,6 +1945,12 @@ private void escapeByRef(Expression e, EscapeByResults* er)
             else
                 er.byexp.push(e);
         }
+
+        override void visit(CastExp e)
+        {
+            if (e.rvalueRef)
+                e.e1.accept(this);
+        }
     }
 
     scope EscapeRefVisitor v = new EscapeRefVisitor(er);

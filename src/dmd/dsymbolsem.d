@@ -73,6 +73,13 @@ import dmd.visitor;
 
 enum LOG = false;
 
+private enum CopyCtor : int
+{
+    none,      // no copy constructor
+    elaborate, // user defined copy constructor
+    trivial,   // generated default copy constructor
+}
+
 /*****************************************
  * Create inclusive postblit for struct by aggregating
  * all the postblits in postblits[] with the postblits for
@@ -336,6 +343,21 @@ private FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
     return xpostblit;
 }
 
+/*****************************************
+ * Create a postblit with the `@disable` attribute.
+ */
+private FuncDeclaration buildDisabledPostBlit(StructDeclaration sd, Scope* sc)
+{
+    auto stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
+    auto pb = new PostBlitDeclaration(sd.loc, Loc.initial, stc, Id.__fieldPostblit);
+    pb.generated = true;
+    pb.storage_class |= STC.disable;
+    sd.postblits.shift(pb);
+    sd.members.push(pb);
+    pb.dsymbolSemantic(sc);
+    return pb;
+}
+
 /**
  * Generates a copy constructor declaration with the specified storage
  * class for the parameter and the function.
@@ -344,20 +366,33 @@ private FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
  *  sd = the `struct` that contains the copy constructor
  *  paramStc = the storage class of the copy constructor parameter
  *  funcStc = the storage class for the copy constructor declaration
+ *  moveCtor = generate a move constructor rather than a copy constructor
  *
  * Returns:
  *  The copy constructor declaration for struct `sd`.
  */
-private CtorDeclaration generateCopyCtorDeclaration(StructDeclaration sd, const StorageClass paramStc, const StorageClass funcStc)
+private CtorDeclaration generateCopyCtorDeclaration(StructDeclaration sd, const StorageClass paramStc, const StorageClass funcStc, bool moveCtor = false)
 {
     auto fparams = new Parameters();
     auto structType = sd.type;
-    fparams.push(new Parameter(paramStc | STC.ref_ | STC.return_ | STC.scope_, structType, Id.p, null, null));
+    auto stc = STC.ref_ | STC.return_ | STC.scope_;
+    StorageClass mvStc = 0;
+    if (moveCtor)
+    {
+        if (global.params.rvalueType)
+            stc |= STC.rvaluetype;
+        else
+            stc |= STC.rvalueref;
+        if (global.params.moveAttribute)
+            mvStc = STC.move;
+    }
+    fparams.push(new Parameter(paramStc | stc, structType, Id.p, null, null));
     ParameterList pList = ParameterList(fparams);
-    auto tf = new TypeFunction(pList, structType, LINK.d, STC.ref_);
-    auto ccd = new CtorDeclaration(sd.loc, Loc.initial, STC.ref_, tf, true);
+    auto tf = new TypeFunction(pList, structType, LINK.d, STC.ref_ | mvStc);
+    auto ccd = new CtorDeclaration(sd.loc, Loc.initial, STC.ref_, tf, moveCtor ? 2 : 1);
     ccd.storage_class |= funcStc;
     ccd.storage_class |= STC.inference;
+    ccd.storage_class |= mvStc;
     ccd.generated = true;
     return ccd;
 }
@@ -366,25 +401,33 @@ private CtorDeclaration generateCopyCtorDeclaration(StructDeclaration sd, const 
  * Generates a trivial copy constructor body that simply does memberwise
  * initialization:
  *
+ *    // for the copy constructor
  *    this.field1 = rhs.field1;
  *    this.field2 = rhs.field2;
  *    ...
  *
+ *    // for the move constructor
+ *    this.field1 = cast(@rvalue)rhs.field1;
+ *    this.field2 = cast(@rvalue)rhs.field2;
+ *    ...
+ *
  * Params:
  *  sd = the `struct` declaration that contains the copy constructor
+ *  moveCtor = generate move constructor body rather than copy constructor
  *
  * Returns:
  *  A `CompoundStatement` containing the body of the copy constructor.
  */
-private Statement generateCopyCtorBody(StructDeclaration sd)
+private Statement generateCopyCtorBody(StructDeclaration sd, bool moveCtor = false)
 {
     Loc loc;
     Expression e;
     foreach (v; sd.fields)
     {
+        auto rhs = new DotVarExp(loc, new IdentifierExp(loc, Id.p), v);
         auto ec = new AssignExp(loc,
             new DotVarExp(loc, new ThisExp(loc), v),
-            new DotVarExp(loc, new IdentifierExp(loc, Id.p), v));
+            moveCtor ? moveExp(loc, rhs) : rhs);
         e = Expression.combine(e, ec);
         //printf("e.toChars = %s\n", e.toChars());
     }
@@ -404,23 +447,31 @@ private Statement generateCopyCtorBody(StructDeclaration sd)
  *
  * this(ref return scope inout(S) rhs) inout
  * {
+ *    // for the copy constructor
  *    this.field1 = rhs.field1;
  *    this.field2 = rhs.field2;
+ *    ...
+ *
+ *    // or for the move constructor
+ *    this.field1 = cast(@rvalue)rhs.field1;
+ *    this.field2 = cast(@rvalue)rhs.field2;
  *    ...
  * }
  *
  * Params:
  *  sd = the `struct` for which the copy constructor is generated
  *  sc = the scope where the copy constructor is generated
+ *  moveCtor = build a move constructor rather than a copy constructor
  *
  * Returns:
- *  `true` if `struct` sd defines a copy constructor (explicitly or generated),
- *  `false` otherwise.
+ *  `1` if `struct` sd explicitly defines a copy constructor,
+ *  `2` if a default copy constructor is generated,
+ *  `0` otherwise.
  */
-private bool buildCopyCtor(StructDeclaration sd, Scope* sc)
+private int buildCopyCtor(StructDeclaration sd, Scope* sc, bool moveCtor = false)
 {
     if (global.errors)
-        return false;
+        return CopyCtor.none;
 
     bool hasPostblit;
     if (sd.postblit && !sd.postblit.isDisabled())
@@ -432,7 +483,7 @@ private bool buildCopyCtor(StructDeclaration sd, Scope* sc)
     if (ctor)
     {
         if (ctor.isOverloadSet())
-            return false;
+            return CopyCtor.none;
         if (auto td = ctor.isTemplateDeclaration())
             ctor = td.funcroot;
     }
@@ -446,9 +497,9 @@ private bool buildCopyCtor(StructDeclaration sd, Scope* sc)
             return 0;
         auto ctorDecl = s.isCtorDeclaration();
         assert(ctorDecl);
-        if (ctorDecl.isCpCtor)
+        if (ctorDecl.isMvCtor || ctorDecl.isCpCtor)
         {
-            if (!cpCtor)
+            if (!cpCtor && (moveCtor ? ctorDecl.isMvCtor : ctorDecl.isCpCtor))
                 cpCtor = ctorDecl;
             return 0;
         }
@@ -458,7 +509,7 @@ private bool buildCopyCtor(StructDeclaration sd, Scope* sc)
         if (dim == 1)
         {
             auto param = Parameter.getNth(tf.parameterList, 0);
-            if (param.type.mutableOf().unSharedOf() == sd.type.mutableOf().unSharedOf())
+            if (param.type.equivalent(sd.type))
             {
                 rvalueCtor = ctorDecl;
             }
@@ -468,14 +519,14 @@ private bool buildCopyCtor(StructDeclaration sd, Scope* sc)
 
     if (cpCtor && rvalueCtor)
     {
-        .error(sd.loc, "`struct %s` may not define both a rvalue constructor and a copy constructor", sd.toChars());
+        .error(sd.loc, "`struct %s` may not define both a rvalue constructor and a %s constructor", sd.toChars(), moveCtor ? "move".ptr : "copy".ptr);
         errorSupplemental(rvalueCtor.loc,"rvalue constructor defined here");
-        errorSupplemental(cpCtor.loc, "copy constructor defined here");
-        return true;
+        errorSupplemental(cpCtor.loc, "%s constructor defined here", moveCtor ? "move".ptr : "copy".ptr);
+        return CopyCtor.elaborate;
     }
     else if (cpCtor)
     {
-        return !hasPostblit;
+        return moveCtor ? CopyCtor.elaborate : !hasPostblit;
     }
 
 LcheckFields:
@@ -491,7 +542,7 @@ LcheckFields:
         auto ts = v.type.baseElemOf().isTypeStruct();
         if (!ts)
             continue;
-        if (ts.sym.hasCopyCtor)
+        if (moveCtor ? ts.sym.hasMoveCtor : ts.sym.hasCopyCtor)
         {
             fieldWithCpCtor = v;
             break;
@@ -500,22 +551,22 @@ LcheckFields:
 
     if (fieldWithCpCtor && rvalueCtor)
     {
-        .error(sd.loc, "`struct %s` may not define a rvalue constructor and have fields with copy constructors", sd.toChars());
+        .error(sd.loc, "`struct %s` may not define a rvalue constructor and have fields with %s constructors", sd.toChars(), moveCtor ? "move".ptr : "copy".ptr);
         errorSupplemental(rvalueCtor.loc,"rvalue constructor defined here");
-        errorSupplemental(fieldWithCpCtor.loc, "field with copy constructor defined here");
-        return false;
+        errorSupplemental(fieldWithCpCtor.loc, "field with %s constructor defined here", moveCtor ? "move".ptr : "copy".ptr);
+        return CopyCtor.none;
     }
     else if (!fieldWithCpCtor)
-        return false;
+        return CopyCtor.none;
 
-    if (hasPostblit)
-        return false;
+    if (hasPostblit && !moveCtor)
+        return CopyCtor.none;
 
     //printf("generating copy constructor for %s\n", sd.toChars());
     const MOD paramMod = MODFlags.wild;
     const MOD funcMod = MODFlags.wild;
-    auto ccd = generateCopyCtorDeclaration(sd, ModToStc(paramMod), ModToStc(funcMod));
-    auto copyCtorBody = generateCopyCtorBody(sd);
+    auto ccd = generateCopyCtorDeclaration(sd, ModToStc(paramMod), ModToStc(funcMod), moveCtor);
+    auto copyCtorBody = generateCopyCtorBody(sd, moveCtor);
     ccd.fbody = copyCtorBody;
     sd.members.push(ccd);
     ccd.addMember(sc, sd);
@@ -533,7 +584,7 @@ LcheckFields:
         ccd.storage_class |= STC.disable;
         ccd.fbody = null;
     }
-    return true;
+    return CopyCtor.trivial;
 }
 
 private uint setMangleOverride(Dsymbol s, const(char)[] sym)
@@ -809,7 +860,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             //printf("inferring type for %s with init %s\n", toChars(), _init.toChars());
             dsym._init = dsym._init.inferType(sc);
-            dsym.type = dsym._init.initializerToExpression().type;
+            dsym.type = dsym._init.initializerToExpression().type.lvalueOf();
             if (needctfe)
                 sc = sc.endCTFE();
 
@@ -1077,6 +1128,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             dsym.storage_class |= STC.shared_;
         else if (dsym.type.isWild())
             dsym.storage_class |= STC.wild;
+        if (dsym.type.isrvalue)
+            dsym.storage_class |= STC.rvaluetype;
+
+        if (dsym.storage_class & STC.rvaluetype && !(dsym.storage_class & (STC.ref_ | STC.temp | STC.result)))
+            dsym.error("`@rvalue` types can only be used in `ref` function parameters or with pointer types");
 
         if (StorageClass stc = dsym.storage_class & (STC.synchronized_ | STC.override_ | STC.abstract_ | STC.final_))
         {
@@ -1167,6 +1223,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if ((dsym.storage_class & (STC.ref_ | STC.parameter | STC.foreach_ | STC.temp | STC.result)) == STC.ref_ && dsym.ident != Id.This)
         {
             dsym.error("only parameters or `foreach` declarations can be `ref`");
+        }
+
+        if ((dsym.storage_class & (STC.rvalueref | STC.parameter | STC.temp | STC.result)) == STC.rvalueref)
+        {
+            dsym.error("only parameters can be `@rvalue ref`");
         }
 
         if (dsym.type.hasWild())
@@ -1322,7 +1383,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (dsym._init)
         {
             sc = sc.push();
-            sc.stc &= ~(STC.TYPECTOR | STC.pure_ | STC.nothrow_ | STC.nogc | STC.ref_ | STC.disable);
+            sc.stc &= ~(STC.TYPECTOR | STC.pure_ | STC.nothrow_ | STC.nogc | STC.ref_ | STC.rvalueref | STC.disable);
 
             ExpInitializer ei = dsym._init.isExpInitializer();
             if (ei) // https://issues.dlang.org/show_bug.cgi?id=13424
@@ -2336,6 +2397,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 ed.error("base type must not be `void`");
                 ed.memtype = Type.terror;
             }
+            if (ed.memtype.isrvalue)
+            {
+                ed.error("base type cannot be `%s`", Token.toChars(TOK.rvalue));
+                ed.memtype = Type.terror;
+            }
             if (ed.memtype.ty == Terror)
             {
                 ed.errors = true;
@@ -3200,7 +3266,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         funcdecl.foverrides.setDim(0); // reset in case semantic() is being retried for this function
 
-        funcdecl.storage_class |= sc.stc & ~STC.ref_;
+        funcdecl.storage_class |= sc.stc & ~(STC.ref_ | STC.rvalueref);
         ad = funcdecl.isThis();
         // Don't nest structs b/c of generated methods which should not access the outer scopes.
         // https://issues.dlang.org/show_bug.cgi?id=16627
@@ -3300,6 +3366,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (tf.isref)
                 sc.stc |= STC.ref_;
+            if (tf.isrvalueref)
+                sc.stc |= STC.rvalueref;
             if (tf.isscope)
                 sc.stc |= STC.scope_;
             if (tf.isnothrow)
@@ -3369,6 +3437,42 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             funcdecl.type = funcdecl.type.typeSemantic(funcdecl.loc, sc);
             sc = sc.pop();
         }
+        if (funcdecl.storage_class & STC.move) // @move attribute
+        {
+            if (funcdecl.isStaticCtorDeclaration())
+            {
+                funcdecl.error("move constructor cannot be static");
+            }
+            else if (!funcdecl.isCtorDeclaration() && funcdecl.ident != Id.assign)
+            {
+                funcdecl.error("`@move` attribute only applies to move constructor or move opAssign declarations");
+            }
+            else
+            {
+                const char* kind = funcdecl.isCtorDeclaration() ? "move constructor".ptr : "move opAssign".ptr;
+                if (!ad)
+                    funcdecl.error("%s can only be a member of struct", kind);
+                else if (!ad.isStructDeclaration())
+                    funcdecl.error("%s can only be a member of struct, not %s `%s`", kind, ad.kind(), ad.toChars());
+                if (auto tf = funcdecl.type.isTypeFunction())
+                {
+                    const dim = tf.parameterList.length;
+                    if (dim == 0 && tf.parameterList.varargs != VarArg.none)
+                        funcdecl.error("first parameter of a %s cannot be variadic", kind);
+                    else if (dim == 1 || dim > 1 && tf.parameterList[1].defaultArg)
+                    {
+                        auto param = Parameter.getNth(tf.parameterList, 0);
+                        if (!param.type.equivalent(ad.type))
+                            funcdecl.error("first parameter of a %s must be of type `%s` not `%s`",
+                                kind, ad.type.mutableOf().unSharedOf(), param.type.mutableOf().unSharedOf());
+                        else if (!(param.storageClass & STC.ref_))
+                            funcdecl.error("first parameter of a %s must be `ref`", kind);
+                    }
+                    else if (dim > 1 && !tf.parameterList[1].defaultArg)
+                        funcdecl.error("second parameter of a %s must have a default argument", kind);
+                }
+            }
+        }
         if (funcdecl.type.ty != Tfunction)
         {
             if (funcdecl.type.ty != Terror)
@@ -3390,6 +3494,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             tfo.isreturninferred = tfx.isreturninferred;
             tfo.isscopeinferred = tfx.isscopeinferred;
             tfo.isref = tfx.isref;
+            tfo.isrvalueref = tfx.isrvalueref;
+            tfo.ismove = tfx.ismove;
             tfo.isnothrow = tfx.isnothrow;
             tfo.isnogc = tfx.isnogc;
             tfo.isproperty = tfx.isproperty;
@@ -4124,7 +4230,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     //printf("tf: %s\n", tf.toChars());
                     auto param = Parameter.getNth(tf.parameterList, 0);
-                    if (param.storageClass & STC.ref_ && param.type.mutableOf().unSharedOf() == sd.type.mutableOf().unSharedOf())
+                    if (((param.storageClass & (STC.rvalueref | STC.rvaluetype)) || param.type.isrvalue) && param.type.equivalent(sd.type))
+                    {
+                        //printf("move constructor\n");
+                        ctd.isMvCtor = true;
+                    }
+                    else if (param.storageClass & STC.ref_ && param.type.equivalent(sd.type))
                     {
                         //printf("copy constructor\n");
                         ctd.isCpCtor = true;
@@ -4734,10 +4845,23 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         sd.dtor = buildDtor(sd, sc2);
         sd.tidtor = buildExternDDtor(sd, sc2);
         sd.postblit = buildPostBlit(sd, sc2);
-        sd.hasCopyCtor = buildCopyCtor(sd, sc2);
+        auto hasCopyCtor = buildCopyCtor(sd, sc2) != CopyCtor.none;
+        auto hasMoveCtor = buildCopyCtor(sd, sc2, true /*moveCtor*/);
+        sd.hasCopyCtor = hasCopyCtor != CopyCtor.none;
+        sd.hasMoveCtor = hasMoveCtor != CopyCtor.none;
 
         buildOpAssign(sd, sc2);
         buildOpEquals(sd, sc2);
+
+        if (hasMoveCtor == CopyCtor.elaborate && hasCopyCtor != CopyCtor.elaborate && !sd.postblits.length)
+        {
+            // An elaborate move constructor should have a matching elaborate postblit or copy constructor.
+            // otherwise disable copying.
+            if (sd.postblit)
+                sd.postblit.storage_class |= STC.disable;
+            else
+                sd.postblit = buildDisabledPostBlit(sd, sc2);
+        }
 
         if (global.params.useTypeInfo && Type.dtypeinfo)  // these functions are used for TypeInfo
         {
@@ -6447,12 +6571,12 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
         Type t;
         Expression e;
         Scope* sc2 = sc;
-        if (ds.storage_class & (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.disable))
+        if (ds.storage_class & (STC.ref_ | STC.rvalueref | STC.nothrow_ | STC.nogc | STC.pure_ | STC.disable))
         {
             // For 'ref' to be attached to function types, and picked
             // up by Type.resolve(), it has to go into sc.
             sc2 = sc.push();
-            sc2.stc |= ds.storage_class & (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.shared_ | STC.disable);
+            sc2.stc |= ds.storage_class & (STC.ref_ | STC.rvalueref | STC.nothrow_ | STC.nogc | STC.pure_ | STC.shared_ | STC.disable);
         }
         ds.type = ds.type.addSTC(ds.storage_class);
         ds.type.resolve(ds.loc, sc2, &e, &t, &s);

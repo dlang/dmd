@@ -58,6 +58,7 @@ public:
     void visit(ASTCodegen.TypeInfoConstDeclaration s) { visit(cast(ASTCodegen.TypeInfoDeclaration)s); }
     void visit(ASTCodegen.TypeInfoInvariantDeclaration s) { visit(cast(ASTCodegen.TypeInfoDeclaration)s); }
     void visit(ASTCodegen.TypeInfoSharedDeclaration s) { visit(cast(ASTCodegen.TypeInfoDeclaration)s); }
+    void visit(ASTCodegen.TypeInfoRvalueDeclaration s) { visit(cast(ASTCodegen.TypeInfoDeclaration)s); }
     void visit(ASTCodegen.TypeInfoWildDeclaration s) { visit(cast(ASTCodegen.TypeInfoDeclaration)s); }
     void visit(ASTCodegen.TypeInfoVectorDeclaration s) { visit(cast(ASTCodegen.TypeInfoDeclaration)s); }
     void visit(ASTCodegen.FuncAliasDeclaration s) { visit(cast(ASTCodegen.FuncDeclaration)s); }
