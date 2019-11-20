@@ -21,8 +21,6 @@
 # $DM_HOME\dm\bin to your PATH environment to automatically find make.
 # Set HOST_DC to point to your installed D compiler.
 #
-# Custom LFLAGS may be set in the User configuration section.
-#
 # Targets:
 #
 # defaulttarget - debug dmd
@@ -239,21 +237,21 @@ check-host-dc:
 debdmd: check-host-dc debdmd-make
 
 debdmd-make:
-	$(DMDMAKE) "OPT=" "DEBUG=-D -g -DUNITTEST" "DDEBUG=-debug -g -unittest" "DOPT=" "LFLAGS=-L/ma/co/la" $(TARGETEXE)
+	$(DMDMAKE) "OPT=" "DEBUG=-D -g -DUNITTEST" "DDEBUG=-debug -g -unittest" "DOPT=" $(TARGETEXE)
 
 reldmd: check-host-dc reldmd-make
 
 reldmd-make:
-	$(DMDMAKE) "OPT=-o" "DEBUG=" "DDEBUG=" "DOPT=-O -release -inline" "LFLAGS=-L/delexe/la" $(TARGETEXE)
+	$(DMDMAKE) "OPT=-o" "DEBUG=" "DDEBUG=" "DOPT=-O -release -inline" $(TARGETEXE)
 
 profile:
-	$(DMDMAKE) "OPT=-o" "DEBUG=" "DDEBUG=" "DOPT=-O -release -profile" "LFLAGS=-L/delexe/la" $(TARGETEXE)
+	$(DMDMAKE) "OPT=-o" "DEBUG=" "DDEBUG=" "DOPT=-O -release -profile" $(TARGETEXE)
 
 trace:
-	$(DMDMAKE) "OPT=-o" "DEBUG=-gt -Nc" "DDEBUG=-debug -g -unittest" "DOPT=" "LFLAGS=-L/ma/co/delexe/la" $(TARGETEXE)
+	$(DMDMAKE) "OPT=-o" "DEBUG=-gt -Nc" "DDEBUG=-debug -g -unittest" "DOPT=" $(TARGETEXE)
 
 unittest:
-	$(DMDMAKE) "OPT=-o" "DEBUG=" "DDEBUG=-debug -g -unittest -cov" "DOPT=" "LFLAGS=-L/ma/co/delexe/la" $(TARGETEXE)
+	$(DMDMAKE) "OPT=-o" "DEBUG=" "DDEBUG=-debug -g -unittest -cov" "DOPT=" $(TARGETEXE)
 
 ################################ Libraries ##################################
 
