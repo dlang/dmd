@@ -45,8 +45,6 @@ OS=windows
 
 ##### Directories
 
-# DMC directory
-DMCROOT=$(DM_HOME)\dm
 # DMD source directories
 D=dmd
 C=$D\backend
@@ -81,8 +79,6 @@ CP=cp
 SCP=$(CP)
 # PVS-Studio command line executable
 PVS="c:\Program Files (x86)\PVS-Studio\x64\PVS-Studio"
-# 64-bit MS assembler
-ML=ml64
 
 ##### User configuration switches
 
@@ -91,10 +87,6 @@ TARGET=$G\dmd
 TARGETEXE=$(TARGET).exe
 # Debug flags
 DEBUG=-gl -D -DUNITTEST
-# Linker flags (prefix with -L)
-LFLAGS=
-# Librarian flags
-BFLAGS=
 # D Optimizer flags
 DOPT=
 # D Model flags
@@ -144,8 +136,6 @@ BACK_HDRS=$C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/glob
 	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d $C/code_x86.d $C/iasm.d $C/codebuilder.d \
 	$C/ty.d $C/type.d $C/exh.d $C/mach.d $C/mscoff.d $C/dwarf.d $C/dwarf2.d $C/xmm.d \
 	$C/dlist.d $C/melf.d $C/varstats.di $C/barray.d
-
-STRING_IMPORT_FILES= $G\VERSION ../res/default_ddoc_theme.ddoc
 
 DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS)
 
@@ -202,9 +192,6 @@ ROOTSRC= $(ROOT)\root.h \
 #	$(ROOT)\gc\bits.h $(ROOT)\gc\gccbitops.h $(ROOT)\gc\linux.c $(ROOT)\gc\os.h \
 #	$(ROOT)\gc\win32.c
 
-# Header files
-CH=
-
 # Makefiles
 MAKEFILES=win32.mak posix.mak osmodel.mak
 
@@ -253,8 +240,6 @@ unittest:
 	$(DMDMAKE) "OPT=-o" "DEBUG=" "DDEBUG=-debug -g -unittest -cov" "DOPT=" $(TARGETEXE)
 
 ################################ Libraries ##################################
-
-LIBS=$G\backend.lib $G\lexer.lib
 
 $G\backend.lib:  $(GEN)\build.exe
 	$(RUN_BUILD) $@

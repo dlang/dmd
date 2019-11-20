@@ -74,15 +74,12 @@ else
 endif
 
 INSTALL_DIR=../../install
-SYSCONFDIR=/etc
 TMP?=/tmp
 
 D = dmd
 
 C=$D/backend
 ROOT=$D/root
-EX=examples
-RES=../res
 
 GENERATED = ../generated
 G = $(GENERATED)/$(OS)/$(BUILD)/$(MODEL)
@@ -131,8 +128,6 @@ else
 endif
 
 ######## Additional files
-
-SRC_MAKE = posix.mak osmodel.mak
 
 DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS))
 
