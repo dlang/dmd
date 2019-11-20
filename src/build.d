@@ -284,18 +284,15 @@ alias backend = makeDep!((builder, dep) => builder
 );
 
 /// Returns: the dependencies that generate required string files: VERSION and SYSCONFDIR.imp
-alias versionFile = makeDep!((builder, dep) => builder
-    .msg("(TX) VERSION")
-    .target(env["G"].buildPath("VERSION"))
-    .commandFunction(() {
-        string ver;
+alias versionFile = makeDep!((builder, dep) {
+    alias contents = memoize!(() {
         if (dmdRepo.buildPath(".git").exists)
         {
             try
             {
                 auto gitResult = ["git", "describe", "--dirty"].tryRun;
                 if (gitResult.status == 0)
-                    ver = gitResult.output.strip;
+                    return gitResult.output.strip;
             }
             catch (ProcessException)
             {
@@ -303,18 +300,20 @@ alias versionFile = makeDep!((builder, dep) => builder
             }
         }
         // version fallback
-        if (ver.length == 0)
-            ver = dmdRepo.buildPath("VERSION").readText;
-        updateIfChanged(dep.target, ver);
-    })
-);
+        return dmdRepo.buildPath("VERSION").readText;
+    });
+    builder
+    .target(env["G"].buildPath("VERSION"))
+    .condition(() => !dep.target.exists || dep.target.readText != contents)
+    .msg("(TX) VERSION")
+    .commandFunction(() => std.file.write(dep.target, contents));
+});
 
 alias sysconfDirFile = makeDep!((builder, dep) => builder
-    .msg("(TX) SYSCONFDIR")
     .target(env["G"].buildPath("SYSCONFDIR.imp"))
-    .commandFunction(() {
-        updateIfChanged(dep.target, env["SYSCONFDIR"]);
-    })
+    .condition(() => !dep.target.exists || dep.target.readText != env["SYSCONFDIR"])
+    .msg("(TX) SYSCONFDIR")
+    .commandFunction(() => std.file.write(dep.target, env["SYSCONFDIR"]))
 );
 
 /**
@@ -1359,6 +1358,7 @@ class Dependency
     string[] sources; // list of all source files
     string[] rebuildSources; // Optional list of files that trigger a rebuild of this dependency
     Dependency[] deps; // dependencies to build before this one
+    bool delegate() condition; // Optional condition to determine whether or not to run this dependency
     string[] command; // the dependency command
     void delegate() commandFunction; // a custom dependency command which gets called instead of command
     string msg; // msg of the dependency that is e.g. written to the CLI when it's executed
@@ -1394,6 +1394,12 @@ class Dependency
         foreach (dep; deps.parallel(1))
         {
             dep.run();
+        }
+
+        if (condition !is null && !condition())
+        {
+            log("Skipping build of %-(%s%) as its condition returned false", targets);
+            return;
         }
 
         if (targets && targets.isUpToDate(this.sources, [thisBuildScript], rebuildSources))
