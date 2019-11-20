@@ -49,6 +49,8 @@ void main(string[] args)
 
         testE982(session, globals);
 
+        test20253(session, globals);
+
         source.Release();
         session.Release();
         globals.Release();
@@ -359,6 +361,41 @@ void testE982(IDiaSession session, IDiaSymbol globals)
     scope(exit) SysFreeString(typename);
     wchar[] wtypename = typename[0..wcslen(typename)];
     wcscmp(typename, "testpdb.E982") == 0 || assert(false, varName ~ ": unexpected type name " ~ toUTF8(wtypename));
+}
+
+///////////////////////////////////////////////
+// https://issues.dlang.org/show_bug.cgi?id=20253
+string func20253(string s1, string s2)
+{
+    throw new Exception("x");
+}
+string check20253()
+{
+    return "";
+}
+
+void test20253(IDiaSession session, IDiaSymbol globals)
+{
+    IDiaSymbol funcSym = searchSymbol(globals, "testpdb.func20253");
+    funcSym || assert(false, "testpdb.func20253 not found");
+
+    IDiaSymbol checkSym = searchSymbol(globals, "testpdb.check20253");
+    checkSym || assert(false, "testpdb.check20253 not found");
+
+    ubyte[] funcRange;
+    Line[] lines = findSymbolLineNumbers(session, funcSym, &funcRange);
+    lines || assert(false, "no line number info for func20253");
+
+    ubyte[] checkRange;
+    Line[] checkLines = findSymbolLineNumbers(session, checkSym, &checkRange);
+    checkLines || assert(false, "no line number info for check20253");
+
+    foreach(ln; lines)
+        (ln.addr >= funcRange.ptr && ln.addr < funcRange.ptr + funcRange.length) ||
+               assert(false, "line number code offset out of function range");
+
+    (checkRange.ptr >= funcRange.ptr + funcRange.length) ||
+        assert(false, "code range of check20253 overlaps with func20253");
 }
 
 ///////////////////////////////////////////////
