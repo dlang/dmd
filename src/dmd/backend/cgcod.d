@@ -631,7 +631,8 @@ tryagain:
                start of the last instruction
              */
             /* Instead, try offset to cleanup code  */
-            objmod.linnum(sfunc.Sfunc.Fendline,sfunc.Sseg,funcoffset + retoffset);
+            if (retoffset < sfunc.Ssize)
+                objmod.linnum(sfunc.Sfunc.Fendline,sfunc.Sseg,funcoffset + retoffset);
 
         static if (TARGET_WINDOS && MARS)
         {
