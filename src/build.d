@@ -259,28 +259,13 @@ DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@
         });
 });
 
-/// Returns: the dependencies that build the D backend
-alias backendObj = makeDep!((builder, dep) => builder
-    .name("backendObj")
-    .target(env["G"].buildPath("backend").objName)
-    .sources(sources.backend)
-    .msg("(DC) D_BACK_OBJS %-(%s, %)".format(dep.sources.map!(e => e.baseName).array))
-    .command([
-        env["HOST_DMD_RUN"],
-        "-c",
-        "-of" ~ dep.target,
-        "-betterC"]
-        .chain(flags["DFLAGS"], dep.sources).array)
-);
-
-/// Execute the sub-dependencies of the backend and pack everything into one object file
+/// Returns: the dependencies that build the D backend library
 alias backend = makeDep!((builder, dep) => builder
     .name("backend")
-    .msg("(LIB) %s".format("BACKEND".libName))
-    .sources([env["G"].buildPath("backend").objName])
+    .msg("(DC) BACKEND %-(%s, %)".format(sources.backend.map!(e => e.baseName)))
+    .sources(sources.backend)
     .target(env["G"].buildPath("backend").libName)
-    .deps([backendObj])
-    .command([env["HOST_DMD_RUN"], env["MODEL_FLAG"], "-lib", "-of" ~ dep.target].chain(dep.sources).array)
+    .command([env["HOST_DMD_RUN"], "-lib", "-betterC", "-of" ~ dep.target] ~ flags["DFLAGS"] ~ dep.sources)
 );
 
 /// Returns: the dependencies that generate required string files: VERSION and SYSCONFDIR.imp
@@ -984,7 +969,7 @@ auto sourceFiles()
     struct Sources
     {
         string[] frontend, lexer, root, glue, dmd, backend;
-        string[] frontendHeaders, backendHeaders, backendObjects;
+        string[] frontendHeaders, backendHeaders;
     }
     string targetCH;
     string[] targetObjs;
