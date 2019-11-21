@@ -14,7 +14,6 @@ zip target - requires Info-ZIP or equivalent (zip32.exe)
 TODO:
 - add all posix.mak Makefile targets
 - support 32-bit builds
-- allow appending DFLAGS via the environment
 - test the script with LDC or GDC as host compiler
 */
 
@@ -854,7 +853,6 @@ void processEnvironment()
     env.getDefault("ENABLE_WARNINGS", "0");
     string[] warnings;
 
-      // TODO: allow adding new flags from the environment
     string[] dflags = ["-version=MARS", "-w", "-de", env["PIC_FLAG"], env["MODEL_FLAG"], "-J"~env["G"]];
     if (env["HOST_DMD_KIND"] != "gdc")
         dflags ~= ["-dip25"]; // gdmd doesn't support -dip25
@@ -898,7 +896,9 @@ void processEnvironment()
     {
         dflags ~= ["-fsanitize="~env["ENABLE_SANITIZERS"]];
     }
-    flags["DFLAGS"] ~= dflags;
+
+    // Retain user-defined flags
+    flags["DFLAGS"] = dflags ~= flags.get("DFLAGS", []);
 }
 
 /// Setup environment for a C++ compiler
@@ -952,7 +952,8 @@ void processEnvironmentCxx()
             cxxFlags ~= "-DDMD_VERSION=2080";
     }
 
-    flags["CXXFLAGS"] = cxxFlags;
+    // Retain user-defined flags
+    flags["CXXFLAGS"] = cxxFlags ~= flags.get("CXXFLAGS", []);
 }
 
 /// Returns: the host C++ compiler, either "g++" or "clang++"
@@ -1218,24 +1219,37 @@ auto libName(T)(T name)
 }
 
 /**
-Add additional make-like assignments to the environment
-e.g. ./build.d ARGS=foo -> sets the "ARGS" internal environment variable to "foo"
+Filter additional make-like assignments from args and add them to the environment
+e.g. ./build.d ARGS=foo sets env["ARGS"] = environment["ARGS"] = "foo".
+
+The variables DLFAGS and CXXFLAGS may contain flags intended for the
+respective compiler and set flags instead, e.g. ./build.d DFLAGS="-w -version=foo"
+results in flags["DFLAGS"] = ["-w", "-version=foo"].
 
 Params:
-    args = the command-line arguments from which the assignments will be parsed
+    args = the command-line arguments from which the assignments will be removed
 */
 void args2Environment(ref string[] args)
 {
     bool tryToAdd(string arg)
     {
-        if (!arg.canFind("="))
+        auto parts = arg.findSplit("=");
+
+        if (!parts)
             return false;
 
-        auto sp = arg.splitter("=");
-        auto key = sp.front;
-        auto value = sp.dropOne.front;
-        environment[key] = value;
-        env[key] = value;
+        const key = parts[0];
+        const value = parts[2];
+
+        if (key.among("DFLAGS", "CXXFLAGS"))
+        {
+            flags[key] = value.split();
+        }
+        else
+        {
+            environment[key] = value;
+            env[key] = value;
+        }
         return true;
     }
     args = args.filter!(a => !tryToAdd(a)).array;
