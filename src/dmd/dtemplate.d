@@ -7939,10 +7939,13 @@ MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t i, Templ
                  *  template X(T) {}        // T => sa
                  */
             }
-            else if (ta)
+            else if (ta && ta.ty != Tident)
             {
-                /* Match any type to alias parameters, but prefer type parameter.
+                /* Match any type that's not a TypeIdentifier to alias parameters,
+                 * but prefer type parameter.
                  * template X(alias a) { }  // a == ta
+                 *
+                 * TypeIdentifiers are excluded because they might be not yet resolved aliases.
                  */
                 m = MATCH.convert;
             }
