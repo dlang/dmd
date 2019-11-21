@@ -8813,7 +8813,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                 // May be block or element-wise assignment, so
                 // convert e1 to e1[]
-                if (exp.op != TOK.assign)
+                // flatten into a 1D array unless e2 is an array type
+                if (exp.op != TOK.assign && e2x.type.ty != Tarray && e2x.type.ty != Tsarray)
                 {
                     // If multidimensional static array, treat as one large array
                     const dim = t1.numberOfElems(exp.loc);
