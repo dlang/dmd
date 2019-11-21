@@ -1011,6 +1011,16 @@ public:
             if (exp.op == TOK.comma)
             {
                 auto e = cast(CommaExp)exp;
+
+                /* If expression declares temporaries which have to be destructed
+                 * at the end of the scope then it is better handled as an expression.
+                 */
+                if (expNeedsDtor(e.e1))
+                {
+                    inlineScan(exp);
+                    return null;
+                }
+
                 auto s1 = inlineScanExpAsStatement(e.e1);
                 auto s2 = inlineScanExpAsStatement(e.e2);
                 if (!s1 && !s2)
@@ -2019,7 +2029,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
 
             auto ei = new ExpInitializer(vfrom.loc, arg);
             auto vto = new VarDeclaration(vfrom.loc, vfrom.type, vfrom.ident, ei);
-            vto.storage_class |= vfrom.storage_class & (STC.temp | STC.in_ | STC.out_ | STC.lazy_ | STC.ref_);
+            vto.storage_class |= vfrom.storage_class & (STC.temp | STC.in_ | STC.out_ | STC.lazy_ | STC.ref_ | STC.nodtor);
             vto.linkage = vfrom.linkage;
             vto.parent = parent;
             //printf("vto = '%s', vto.storage_class = x%x\n", vto.toChars(), vto.storage_class);
@@ -2265,7 +2275,7 @@ private bool argumentsNeedDtors(Expressions* arguments)
     {
         foreach (arg; *arguments)
         {
-            if (argNeedsDtor(arg))
+            if (expNeedsDtor(arg))
                 return true;
         }
     }
@@ -2273,25 +2283,25 @@ private bool argumentsNeedDtors(Expressions* arguments)
 }
 
 /************************************************************
- * See if argument to a function is creating temporaries that
- * will need destruction after the function is executed.
+ * See if expression is creating temporaries that
+ * will need destruction at the end of the scope.
  * Params:
- *      arg = argument to function
+ *      exp = expression
  * Returns:
  *      true if temporaries need destruction
  */
 
-private bool argNeedsDtor(Expression arg)
+private bool expNeedsDtor(Expression exp)
 {
     extern (C++) final class NeedsDtor : StoppableVisitor
     {
         alias visit = typeof(super).visit;
-        Expression arg;
+        Expression exp;
 
     public:
-        extern (D) this(Expression arg)
+        extern (D) this(Expression exp)
         {
-            this.arg = arg;
+            this.exp = exp;
         }
 
         override void visit(Expression)
@@ -2300,8 +2310,7 @@ private bool argNeedsDtor(Expression arg)
 
         override void visit(DeclarationExp de)
         {
-            if (de != arg)
-                Dsymbol_needsDtor(de.declaration);
+            Dsymbol_needsDtor(de.declaration);
         }
 
         void Dsymbol_needsDtor(Dsymbol s)
@@ -2357,6 +2366,6 @@ private bool argNeedsDtor(Expression arg)
         }
     }
 
-    scope NeedsDtor ct = new NeedsDtor(arg);
-    return walkPostorder(arg, ct);
+    scope NeedsDtor ct = new NeedsDtor(exp);
+    return walkPostorder(exp, ct);
 }
