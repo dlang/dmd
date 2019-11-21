@@ -77,8 +77,6 @@ RD=rmdir
 CP=cp
 # Copy to another directory
 SCP=$(CP)
-# PVS-Studio command line executable
-PVS="c:\Program Files (x86)\PVS-Studio\x64\PVS-Studio"
 
 ##### User configuration switches
 
@@ -296,14 +294,6 @@ scp: detab tolf $(MAKEFILES)
 	$(SCP) $(GLUESRC) $(SCPDIR)/src
 	$(SCP) $(BACKSRC) $(SCPDIR)/src/backend
 	$(SCP) $(ROOTSRC) $(SCPDIR)/src/root
-
-pvs:
-#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /Tp canthrow.c --source-file canthrow.c
-#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /I$C /Tp scanmscoff.c --source-file scanmscoff.c
-	$(PVS) --cfg PVS-Studio.cfg --cl-params /DMARS /DDM_TARGET_CPU_X86 /I$C /I$(ROOT) /Tp $C\cod3.c --source-file $C\cod3.c
-#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /Tp $(SRCS) --source-file $(SRCS)
-#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /Tp $(GLUESRC) --source-file $(GLUESRC)
-#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$C /Tp $(BACKSRC) --source-file $(BACKSRC)
 
 checkwhitespace: $(GEN)\build.exe
 	$(RUN_BUILD) $@
