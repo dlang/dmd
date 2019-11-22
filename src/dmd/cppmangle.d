@@ -569,7 +569,19 @@ private final class CppMangleVisitor : Visitor
         if (TemplateInstance ti = s.isTemplateInstance())
         {
             bool needsTa = false;
-            const isNested = !!ti.tempdecl.cppnamespace || !!getQualifier(ti.tempdecl);
+
+            // https://issues.dlang.org/show_bug.cgi?id=20413
+            // N..E is not needed when substituting members of the std namespace.
+            // This is observed in the GCC and Clang implementations.
+            // The Itanium specification is not clear enough on this specific case.
+            // References:
+            //   https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangle.name
+            //   https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangling-compression
+            Dsymbol q = getQualifier(ti.tempdecl);
+            Dsymbol ns = ti.tempdecl.cppnamespace;
+            const inStd = ns && isStd(ns) || q && isStd(q);
+            const isNested = !inStd && (ns || q);
+
             if (substitute(ti.tempdecl, !haveNE && isNested))
             {
                 template_args(ti);
