@@ -2510,7 +2510,7 @@ else
                 ss.condition.type = ss.condition.type.constOf();
                 break;
             }
-            ss.condition = integralPromotions(ss.condition, sc);
+
             if (ss.condition.op != TOK.error && ss.condition.type.isintegral())
                 break;
 
@@ -2560,6 +2560,11 @@ else
             sc.pop();
             return setError();
         }
+
+        // promote only after that non-convertible cases are detected, and also
+        // because this prevents the backend to generate the CMP on garbages,
+        // which can happen if the condition.type.size is smaller than a machine word.
+        ss.condition = integralPromotions(ss.condition, sc);
 
         // Resolve any goto case's with exp
       Lgotocase:
