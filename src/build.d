@@ -216,16 +216,16 @@ will trigger a full rebuild.
 
 */
 
-/// Returns: the dependency that builds the lexer
+/// Returns: the dependency that builds the lexer object file
 alias lexer = makeDep!((builder, dep) => builder
     .name("lexer")
-    .target(env["G"].buildPath("lexer").libName)
+    .target(env["G"].buildPath("lexer").objName)
     .sources(sources.lexer)
     .deps([versionFile, sysconfDirFile])
-    .msg("(DC) D_LEXER_OBJ %-(%s, %)".format(dep.sources.map!(e => e.baseName).array))
+    .msg("(DC) LEXER_OBJ %-(%s, %)".format(dep.sources.map!(e => e.baseName).array))
     .command([env["HOST_DMD_RUN"],
+        "-c",
         "-of" ~ dep.target,
-        "-lib",
         "-vtls"]
         .chain(flags["DFLAGS"],
             // source files need to have relative paths in order for the code coverage
@@ -259,28 +259,18 @@ DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@
         });
 });
 
-/// Returns: the dependencies that build the D backend
-alias backendObj = makeDep!((builder, dep) => builder
-    .name("backendObj")
+/// Returns: the dependency that builds the backend object file
+alias backend = makeDep!((builder, dep) => builder
+    .name("backend")
     .target(env["G"].buildPath("backend").objName)
     .sources(sources.backend)
-    .msg("(DC) D_BACK_OBJS %-(%s, %)".format(dep.sources.map!(e => e.baseName).array))
+    .msg("(DC) BACKEND_OBJ %-(%s, %)".format(dep.sources.map!(e => e.baseName).array))
     .command([
         env["HOST_DMD_RUN"],
         "-c",
         "-of" ~ dep.target,
         "-betterC"]
         .chain(flags["DFLAGS"], dep.sources).array)
-);
-
-/// Execute the sub-dependencies of the backend and pack everything into one object file
-alias backend = makeDep!((builder, dep) => builder
-    .name("backend")
-    .msg("(LIB) %s".format("BACKEND".libName))
-    .sources([env["G"].buildPath("backend").objName])
-    .target(env["G"].buildPath("backend").libName)
-    .deps([backendObj])
-    .command([env["HOST_DMD_RUN"], env["MODEL_FLAG"], "-lib", "-of" ~ dep.target].chain(dep.sources).array)
 );
 
 /// Returns: the dependencies that generate required string files: VERSION and SYSCONFDIR.imp
@@ -330,7 +320,7 @@ alias dmdExe = makeDepWithArgs!((MethodInitializer!Dependency builder, Dependenc
         platformArgs = ["-L/STACK:8388608"];
 
     builder
-        // newdelete.o + lexer.a + backend.a
+        // include lexer.o and backend.o
         .sources(dmdSources.chain(lexer.targets, backend.targets).array)
         .target(env["DMD_PATH"] ~ targetSuffix)
         .msg("(DC) DMD%s %-(%s, %)".format(targetSuffix, dmdSources.map!(e => e.baseName).array))
@@ -984,7 +974,7 @@ auto sourceFiles()
     struct Sources
     {
         string[] frontend, lexer, root, glue, dmd, backend;
-        string[] frontendHeaders, backendHeaders, backendObjects;
+        string[] frontendHeaders, backendHeaders;
     }
     string targetCH;
     string[] targetObjs;
