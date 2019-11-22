@@ -10227,7 +10227,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (exp.e2.op == TOK.float64 && exp.e2.toReal() == CTFloat.half)
         {
-            // Replace e1 ^^ 0.5 with .std.math.sqrt(x)
+            // Replace e1 ^^ 0.5 with .std.math.sqrt(e1)
             e = new CallExp(exp.loc, new DotIdExp(exp.loc, e, Id._sqrt), exp.e1);
         }
         else
