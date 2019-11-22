@@ -2035,6 +2035,17 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
             //printf("vto = '%s', vto.storage_class = x%x\n", vto.toChars(), vto.storage_class);
             //printf("vto.parent = '%s'\n", parent.toChars());
 
+            if (VarExp ve = arg.isVarExp())
+            {
+                VarDeclaration va = ve.var.isVarDeclaration();
+                if (va && va.isArgDtorVar)
+                {
+                    assert(vto.storage_class & STC.nodtor);
+                    // The destructor is called on va so take it by ref
+                    vto.storage_class |= STC.ref_;
+                }
+            }
+
             // Even if vto is STC.lazy_, `vto = arg` is handled correctly in glue layer.
             ei.exp = new BlitExp(vto.loc, vto, arg);
             ei.exp.type = vto.type;

@@ -1107,6 +1107,8 @@ extern (C++) class VarDeclaration : Declaration
 
     private bool _isAnonymous;
 
+    bool isArgDtorVar;              // temporary created to handle scope destruction of a function argument
+
     final extern (D) this(const ref Loc loc, Type type, Identifier ident, Initializer _init, StorageClass storage_class = STC.undefined_)
     {
         if (ident is Identifier.anonymous)

@@ -2242,6 +2242,9 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                     //printf("edtor: %s\n", tmp.edtor.toChars());
                 }
 
+                if (needsDtor && callerDestroysArgs)
+                    tmp.isArgDtorVar = true;   // mark it so that the backend passes it by ref to the function being called
+
                 // eprefix => (eprefix, auto __pfx/y = arg)
                 auto ae = new DeclarationExp(loc, tmp);
                 eprefix = Expression.combine(eprefix, ae.expressionSemantic(sc));
@@ -2283,6 +2286,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 {
                     auto tmp = copyToTemp(0, "__farg", arg);
                     tmp.storage_class |= STC.exptemp; // lifetime limited to expression
+                    tmp.isArgDtorVar = true;   // mark it so that the backend passes it by ref to the function being called
                     eprefix = Expression.combine(eprefix, new DeclarationExp(tmp.loc, tmp)
                                                 .expressionSemantic(sc));
                     // replace the argument

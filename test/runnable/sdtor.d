@@ -4676,6 +4676,35 @@ void test19676()
 
 /**********************************/
 
+void test67()
+{
+    char[] deleted;
+
+    struct S
+    {
+        char* p;
+
+        ~this() { deleted ~= *p; }
+
+        void opAssign(S rhs)
+        {
+            // swap
+            char* tmp = p;
+            this.p = rhs.p;
+            rhs.p = tmp;
+        }
+    }
+
+    char a = 'a', b = 'b';
+    {
+        S s = S(&a);
+        s = S(&b);
+    }
+    assert(deleted == "ab", deleted);
+}
+
+/**********************************/
+
 int main()
 {
     test1();
@@ -4810,6 +4839,7 @@ int main()
     test18045();
     test16652();
     test19676();
+    test67();
 
     printf("Success\n");
     return 0;
