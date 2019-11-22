@@ -44,6 +44,7 @@ immutable rootDeps = [
     &detab,
     &tolf,
     &zip,
+    &scp,
     &html,
     &toolchainInfo,
     &style,
@@ -504,13 +505,34 @@ alias tolf = makeDep!((builder, dep) => builder
 alias zip = makeDep!((builder, dep) => builder
     .name("zip")
     .target(srcDir.buildPath("dmdsrc.zip"))
-    .sources(sources.root ~ sources.backend ~ sources.lexer ~
-        sources.frontendHeaders ~ sources.dmd)
+    .sources(allBuildSources)
     .msg("ZIP " ~ dep.target)
     .commandFunction(() {
         if (exists(dep.target))
             remove(dep.target);
         run([env["ZIP"], dep.target, thisBuildScript] ~ dep.sources);
+    })
+);
+
+alias scp = makeDep!((builder, dep) => builder
+    .name("scp")
+    .sources(allBuildSources)
+    .commandFunction(() {
+        string[][string] sourceDirGroups;
+        foreach (source; dep.sources)
+        {
+            assert(source.startsWith(srcDir), "all scp sources must be in '%s', but got '%s'".format(srcDir, source));
+            const relativeSource = source.relativePath(srcDir);
+            sourceDirGroups[relativeSource.dirName] ~= relativeSource;
+        }
+        foreach (pair; sourceDirGroups.byKeyValue)
+        {
+            const dir = env["SCPDIR"].buildPath(pair.key);
+            mkdirRecurse(dir);
+            const cmd = [env["SCP"]] ~ pair.value ~ [dir];
+            writeln(cmd.join(" "));
+            run(cmd);
+        }
     })
 );
 
@@ -763,6 +785,9 @@ void parseEnvironment()
     }
 
     env.getDefault("GIT", "git");
+    const cp = env.getDefault("CP", "cp");
+    env.getDefault("SCP", cp);
+    env.getDefault("SCPDIR", dmdRepo.buildPath("backup"));
     env.getDefault("GIT_HOME", "https://github.com/dlang");
     env.getDefault("SYSCONFDIR", "/etc");
     env.getDefault("TMP", tempDir);
@@ -977,6 +1002,18 @@ string detectHostCxx()
 
 /// Returns: all source files in the repository
 alias allSources = memoize!(() => srcDir.dirEntries("*.{d,h,di}", SpanMode.depth).map!(e => e.name).array);
+
+/// Returns: all make/build files
+alias buildFiles = memoize!(() => "win32.mak posix.mak osmodel.mak build.d".split().map!(e => srcDir.buildPath(e)).array);
+
+/// Returns: all sources used in the build
+alias allBuildSources = memoize!(() => buildFiles
+    ~ sources.dmd
+    ~ sources.lexer
+    ~ sources.backend
+    ~ sources.root
+    ~ sources.frontendHeaders
+);
 
 /// Returns: all source files for the compiler
 auto sourceFiles()

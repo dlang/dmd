@@ -73,10 +73,6 @@ DEL=del
 MD=mkdir
 # Remove directory
 RD=rmdir
-# File copy
-CP=cp
-# Copy to another directory
-SCP=$(CP)
 
 ##### User configuration switches
 
@@ -288,12 +284,8 @@ tolf: $(GEN)\build.exe
 zip: detab tolf $(GEN)\build.exe
 	$(RUN_BUILD) $@
 
-scp: detab tolf $(MAKEFILES)
-	$(SCP) $(MAKEFILES) $(SCPDIR)/src
-	$(SCP) $(SRCS) $(SCPDIR)/src
-	$(SCP) $(GLUESRC) $(SCPDIR)/src
-	$(SCP) $(BACKSRC) $(SCPDIR)/src/backend
-	$(SCP) $(ROOTSRC) $(SCPDIR)/src/root
+scp: detab tolf $(GEN)\build.exe
+	$(RUN_BUILD) $@
 
 checkwhitespace: $(GEN)\build.exe
 	$(RUN_BUILD) $@
