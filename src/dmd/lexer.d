@@ -2068,11 +2068,6 @@ class Lexer
              */
             if (n & 0x8000000000000000L)
             {
-                if (!err)
-                {
-                    error("signed integer overflow");
-                    err = true;
-                }
                 result = TOK.uns64Literal;
             }
             else if (n & 0xFFFFFFFF80000000L)
