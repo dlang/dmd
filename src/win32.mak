@@ -21,8 +21,6 @@
 # $DM_HOME\dm\bin to your PATH environment to automatically find make.
 # Set HOST_DC to point to your installed D compiler.
 #
-# Custom LFLAGS may be set in the User configuration section.
-#
 # Targets:
 #
 # defaulttarget - debug dmd
@@ -47,8 +45,6 @@ OS=windows
 
 ##### Directories
 
-# DMC directory
-DMCROOT=$(DM_HOME)\dm
 # DMD source directories
 D=dmd
 C=$D\backend
@@ -71,8 +67,6 @@ G = $(GEN)\$(OS)\$(BUILD)\$(MODEL)
 #HOST_DC=dmd
 # Make program
 MAKE=make
-# Librarian
-LIB=lib
 # Delete file(s)
 DEL=del
 # Make directory
@@ -83,10 +77,6 @@ RD=rmdir
 CP=cp
 # Copy to another directory
 SCP=$(CP)
-# PVS-Studio command line executable
-PVS="c:\Program Files (x86)\PVS-Studio\x64\PVS-Studio"
-# 64-bit MS assembler
-ML=ml64
 
 ##### User configuration switches
 
@@ -95,10 +85,6 @@ TARGET=$G\dmd
 TARGETEXE=$(TARGET).exe
 # Debug flags
 DEBUG=-gl -D -DUNITTEST
-# Linker flags (prefix with -L)
-LFLAGS=
-# Librarian flags
-BFLAGS=
 # D Optimizer flags
 DOPT=
 # D Model flags
@@ -112,7 +98,7 @@ DDEBUG=-debug -g -unittest
 DFLAGS=$(DOPT) $(DMODEL) $(DDEBUG) -wi -version=MARS -dip25
 
 # Recursive make
-DMDMAKE=$(MAKE) -fwin32.mak C=$C ROOT=$(ROOT) MAKE="$(MAKE)" HOST_DC="$(HOST_DC)" MODEL=$(MODEL) CC="$(CC)" LIB="$(LIB)" OBJ_MSVC="$(OBJ_MSVC)"
+DMDMAKE=$(MAKE) -fwin32.mak C=$C ROOT=$(ROOT) MAKE="$(MAKE)" HOST_DC="$(HOST_DC)" MODEL=$(MODEL) CC="$(CC)"
 
 ############################### Rule Variables ###############################
 
@@ -149,12 +135,7 @@ BACK_HDRS=$C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/glob
 	$C/ty.d $C/type.d $C/exh.d $C/mach.d $C/mscoff.d $C/dwarf.d $C/dwarf2.d $C/xmm.d \
 	$C/dlist.d $C/melf.d $C/varstats.di $C/barray.d
 
-STRING_IMPORT_FILES= $G\VERSION ../res/default_ddoc_theme.ddoc
-
 DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS)
-
-# Glue layer
-GLUEOBJ=
 
 # Root package
 ROOT_SRCS=$(ROOT)/aav.d $(ROOT)/array.d $(ROOT)/bitarray.d $(ROOT)/ctfloat.d $(ROOT)/file.d \
@@ -196,27 +177,23 @@ BACKSRC= \
 	$C\dvec.d $C\filespec.d $C\mem.d $C\backend.txt
 
 # Root package
-ROOTSRCC=
 ROOTSRCD=$(ROOT)\rmem.d $(ROOT)\stringtable.d $(ROOT)\hash.d $(ROOT)\man.d $(ROOT)\port.d \
 	$(ROOT)\response.d $(ROOT)\rootobject.d $(ROOT)\speller.d $(ROOT)\aav.d \
 	$(ROOT)\ctfloat.d $(ROOT)\longdouble.d $(ROOT)\outbuffer.d $(ROOT)\filename.d \
 	$(ROOT)\file.d $(ROOT)\array.d $(ROOT)\bitarray.d $(ROOT)\strtold.d $(ROOT)\region.d
 ROOTSRC= $(ROOT)\root.h \
 	$(ROOT)\longdouble.h $(ROOT)\outbuffer.h $(ROOT)\object.h $(ROOT)\ctfloat.h \
-	$(ROOT)\filename.h $(ROOT)\file.h $(ROOT)\array.h $(ROOT)\bitarray.h $(ROOT)\rmem.h $(ROOTSRCC) \
+	$(ROOT)\filename.h $(ROOT)\file.h $(ROOT)\array.h $(ROOT)\bitarray.h $(ROOT)\rmem.h \
 	$(ROOTSRCD)
 # Removed garbage collector bits (look in history)
 #	$(ROOT)\gc\bits.c $(ROOT)\gc\gc.c $(ROOT)\gc\gc.h $(ROOT)\gc\mscbitops.h \
 #	$(ROOT)\gc\bits.h $(ROOT)\gc\gccbitops.h $(ROOT)\gc\linux.c $(ROOT)\gc\os.h \
 #	$(ROOT)\gc\win32.c
 
-# Header files
-CH=
-
 # Makefiles
 MAKEFILES=win32.mak posix.mak osmodel.mak
 
-RUN_BUILD=$(GEN)\build.exe --called-from-make "OS=$(OS)" "BUILD=$(BUILD)" "MODEL=$(MODEL)" "HOST_DMD=$(HOST_DMD)" "HOST_DC=$(HOST_DC)" "DDEBUG=$(DDEBUG)" "OBJ_MSVC=$(OBJ_MSVC)" "MAKE=$(MAKE)"
+RUN_BUILD=$(GEN)\build.exe --called-from-make "OS=$(OS)" "BUILD=$(BUILD)" "MODEL=$(MODEL)" "HOST_DMD=$(HOST_DMD)" "HOST_DC=$(HOST_DC)" "DDEBUG=$(DDEBUG)" "MAKE=$(MAKE)"
 
 ############################## Release Targets ###############################
 
@@ -244,28 +221,23 @@ check-host-dc:
 debdmd: check-host-dc debdmd-make
 
 debdmd-make:
-	$(DMDMAKE) "OPT=" "DEBUG=-D -g -DUNITTEST" "DDEBUG=-debug -g -unittest" "DOPT=" "LFLAGS=-L/ma/co/la" $(TARGETEXE)
+	$(DMDMAKE) "OPT=" "DEBUG=-D -g -DUNITTEST" "DDEBUG=-debug -g -unittest" "DOPT=" $(TARGETEXE)
 
 reldmd: check-host-dc reldmd-make
 
 reldmd-make:
-	$(DMDMAKE) "OPT=-o" "DEBUG=" "DDEBUG=" "DOPT=-O -release -inline" "LFLAGS=-L/delexe/la" $(TARGETEXE)
+	$(DMDMAKE) "OPT=-o" "DEBUG=" "DDEBUG=" "DOPT=-O -release -inline" $(TARGETEXE)
 
 profile:
-	$(DMDMAKE) "OPT=-o" "DEBUG=" "DDEBUG=" "DOPT=-O -release -profile" "LFLAGS=-L/delexe/la" $(TARGETEXE)
+	$(DMDMAKE) "OPT=-o" "DEBUG=" "DDEBUG=" "DOPT=-O -release -profile" $(TARGETEXE)
 
 trace:
-	$(DMDMAKE) "OPT=-o" "DEBUG=-gt -Nc" "DDEBUG=-debug -g -unittest" "DOPT=" "LFLAGS=-L/ma/co/delexe/la" $(TARGETEXE)
+	$(DMDMAKE) "OPT=-o" "DEBUG=-gt -Nc" "DDEBUG=-debug -g -unittest" "DOPT=" $(TARGETEXE)
 
 unittest:
-	$(DMDMAKE) "OPT=-o" "DEBUG=" "DDEBUG=-debug -g -unittest -cov" "DOPT=" "LFLAGS=-L/ma/co/delexe/la" $(TARGETEXE)
+	$(DMDMAKE) "OPT=-o" "DEBUG=" "DDEBUG=-debug -g -unittest -cov" "DOPT=" $(TARGETEXE)
 
 ################################ Libraries ##################################
-
-glue.lib : $(GLUEOBJ)
-	$(LIB) -p512 -n -o$@ $G\glue.lib $(GLUEOBJ)
-
-LIBS=$G\backend.lib $G\lexer.lib
 
 $G\backend.lib:  $(GEN)\build.exe
 	$(RUN_BUILD) $@
@@ -323,15 +295,6 @@ scp: detab tolf $(MAKEFILES)
 	$(SCP) $(BACKSRC) $(SCPDIR)/src/backend
 	$(SCP) $(ROOTSRC) $(SCPDIR)/src/root
 
-pvs:
-#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /Tp canthrow.c --source-file canthrow.c
-#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /I$C /Tp scanmscoff.c --source-file scanmscoff.c
-	$(PVS) --cfg PVS-Studio.cfg --cl-params /DMARS /DDM_TARGET_CPU_X86 /I$C /I$(ROOT) /Tp $C\cod3.c --source-file $C\cod3.c
-#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /Tp $(SRCS) --source-file $(SRCS)
-#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /Tp $(GLUESRC) --source-file $(GLUESRC)
-#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /Tp $(ROOTSRCC) --source-file $(ROOTSRCC)
-#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$C /Tp $(BACKSRC) --source-file $(BACKSRC)
-
 checkwhitespace: $(GEN)\build.exe
 	$(RUN_BUILD) $@
 
@@ -344,16 +307,3 @@ checkwhitespace: $(GEN)\build.exe
 
 $G\VERSION : ..\VERSION $G
 	copy ..\VERSION $@
-
-############################# Intermediate Rules ############################
-
-# Root
-$G/longdouble.obj : $(ROOT)\longdouble.d
-	$(HOST_DC) -c -of$@ $(DFLAGS) $(ROOT)\longdouble.d
-
-$G/strtold.obj : $(ROOT)\strtold.d
-	$(HOST_DC) -c -of$@ $(DFLAGS) $(ROOT)\strtold
-
-############################## Generated Rules ###############################
-
-# These rules were generated by makedep, but are not currently maintained
