@@ -683,6 +683,26 @@ elem *addressElem(elem *e, Type t, bool alwaysCopy = false)
     return e;
 }
 
+/***************************************
+ * Return `true` if elem is a an lvalue.
+ * Lvalue elems are OPvar and OPind.
+ */
+
+bool elemIsLvalue(elem* e)
+{
+    while (e.Eoper == OPcomma || e.Eoper == OPinfo)
+        e = e.EV.E2;
+
+    // For conditional operator, both branches need to be lvalues.
+    if (e.Eoper == OPcond)
+    {
+        elem* ec = e.EV.E2;
+        return elemIsLvalue(ec.EV.E1) && elemIsLvalue(ec.EV.E2);
+    }
+
+    return e.Eoper == OPvar || e.Eoper == OPind;
+}
+
 /*****************************************
  * Convert array to a pointer to the data.
  * Params:
@@ -5890,10 +5910,9 @@ private elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
             {
                 *pe = el_combine(edtors, erx);
             }
-            else if ((tybasic(erx.Ety) == TYstruct || tybasic(erx.Ety) == TYarray) &&
-                     !(erx.ET && type_size(erx.ET) <= 16))
+            else if (elemIsLvalue(erx))
             {
-                /* Expensive to copy, to take a pointer to it instead
+                /* Lvalue, take a pointer to it
                  */
                 elem *ep = el_una(OPaddr, TYnptr, erx);
                 elem *e = el_same(&ep);
