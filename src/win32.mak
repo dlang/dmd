@@ -30,7 +30,6 @@
 # install       - copy build targets to install directory
 # install-clean - delete all files in the install directory
 # zip           - create ZIP archive of source code
-# scp		- copy source files to another directory
 #
 # dmd           - release dmd (legacy target)
 # debdmd        - debug dmd
@@ -54,8 +53,6 @@ ROOT=$D\root
 INCLUDE=$(ROOT)
 # Install directory
 INSTALL=..\install
-# Where scp command copies to
-SCPDIR=..\backup
 
 # Generated files directory
 GEN = ..\generated
@@ -75,8 +72,6 @@ MD=mkdir
 RD=rmdir
 # File copy
 CP=cp
-# Copy to another directory
-SCP=$(CP)
 
 ##### User configuration switches
 
@@ -287,13 +282,6 @@ tolf: $(GEN)\build.exe
 
 zip: detab tolf $(GEN)\build.exe
 	$(RUN_BUILD) $@
-
-scp: detab tolf $(MAKEFILES)
-	$(SCP) $(MAKEFILES) $(SCPDIR)/src
-	$(SCP) $(SRCS) $(SCPDIR)/src
-	$(SCP) $(GLUESRC) $(SCPDIR)/src
-	$(SCP) $(BACKSRC) $(SCPDIR)/src/backend
-	$(SCP) $(ROOTSRC) $(SCPDIR)/src/root
 
 checkwhitespace: $(GEN)\build.exe
 	$(RUN_BUILD) $@

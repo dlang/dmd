@@ -39,8 +39,6 @@ install-clean : $(DEPENDENCIES)
 	$(MAKE_WIN32) $@
 zip : $(DEPENDENCIES)
 	$(MAKE_WIN32) $@
-scp : $(DEPENDENCIES)
-	$(MAKE_WIN32) $@
 dmd : $(DEPENDENCIES)
 	$(MAKE_WIN32) $@
 debdmd : $(DEPENDENCIES)
