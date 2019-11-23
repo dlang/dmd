@@ -20,7 +20,9 @@ TODO:
 version(CoreDdoc) {} else:
 
 import std.algorithm, std.conv, std.datetime, std.exception, std.file, std.format, std.functional,
-       std.getopt, std.parallelism, std.path, std.process, std.range, std.stdio, std.string, std.traits;
+       std.getopt, std.path, std.process, std.range, std.stdio, std.string, std.traits;
+
+import std.parallelism : TaskPool, totalCPUs;
 
 const thisBuildScript = __FILE_FULL_PATH__.buildNormalizedPath;
 const srcDir = thisBuildScript.dirName;
@@ -32,6 +34,7 @@ shared bool dryRun; /// dont execute targets, just print command to be executed
 __gshared string[string] env;
 __gshared string[][string] flags;
 __gshared typeof(sourceFiles()) sources;
+__gshared TaskPool taskPool;
 
 /// Array of build rules through which all other build rules can be reached
 immutable rootRules = [
@@ -120,6 +123,27 @@ Command-line parameters
         return;
     }
 
+    // workaround issue https://issues.dlang.org/show_bug.cgi?id=13727
+    version (CRuntime_DigitalMars)
+    {
+        pragma(msg, "Warning: Parallel builds disabled because of Issue 13727!");
+        jobs = min(jobs, 1); // Fall back to a sequential build
+    }
+    else version (OSX)
+    {
+        // FIXME: Parallel executions hangs reliably on Mac  (esp. the 'macair'
+        // host used by the autotester) for unknown reasons outside of this script.
+        // Disable parallel execution until this issue has been resolved.
+        jobs = min(jobs, 1);
+    }
+
+    if (jobs <= 0)
+        abortBuild("Invalid number of jobs: %d".format(jobs));
+
+    taskPool = new TaskPool(jobs - 1); // Main thread is active too
+    scope (exit) taskPool.finish();
+    scope (failure) taskPool.stop();
+
     // parse arguments
     args.popFront;
     args2Environment(args);
@@ -171,8 +195,8 @@ Command-line parameters
                 lockFile.close();
             }
         }
-        foreach (target; targets.parallel(1))
-            target.run();
+
+        Scheduler.build(targets);
     }
 
     writeln("Success");
@@ -482,7 +506,7 @@ alias checkwhitespace = makeRule!((builder, rule) => builder
         auto chunkLength = allRepoSources.length;
         version (Win32)
             chunkLength = 80; // avoid command-line limit on win32
-        foreach (nextSources; allRepoSources.chunks(chunkLength).parallel(1))
+        foreach (nextSources; taskPool.parallel(allRepoSources.chunks(chunkLength), 1))
         {
             const nextCommand = cmdPrefix ~ nextSources;
             run(nextCommand);
@@ -1510,9 +1534,6 @@ class BuildRule
     string name; /// optional string that can be used to identify this rule
     string description; /// optional string to describe this rule rather than printing the target files
 
-    private shared bool executed; // true if run has been called and has returned
-    private shared bool updated;  // true if run has been called and the command was exected
-
     /// Finish creating the rule by checking that it is configured properly
     void finalize()
     {
@@ -1523,40 +1544,27 @@ class BuildRule
         }
     }
 
-    /// Executes the rule
-    bool run()
+    /**
+    Executes the rule
+
+    Params:
+        depUpdated = whether any dependency was built (skips isUpToDate)
+
+    Returns: Whether the targets of this rule were (re)built
+    **/
+    bool run(bool depUpdated = false)
     {
-        synchronized (this)
-        {
-            runSynchronized();
-            return updated;
-        }
-    }
-
-    private void runSynchronized()
-    {
-        if (executed) return;
-        scope (exit) executed = true;
-        scope (failure) if (verbose) dump();
-
-        bool depUpdated = false;
-        foreach (dep; deps.parallel(1))
-        {
-            if (dep.run())
-                depUpdated = true;
-        }
-
         if (condition !is null && !condition())
         {
             log("Skipping build of %-(%s%) as its condition returned false", targets);
-            return;
+            return false;
         }
 
         if (!depUpdated && targets && targets.isUpToDate(this.sources.chain([thisBuildScript])))
         {
             if (this.sources !is null)
                 log("Skipping build of %-(%s%) as it's newer than %-(%s%)", targets, this.sources);
-            return;
+            return false;
         }
 
         // Display the execution of the rule
@@ -1596,7 +1604,7 @@ class BuildRule
             }
         }
 
-        updated = true;
+        return true;
     }
 
     /// Writes relevant informations about this rule to stdout
@@ -1623,6 +1631,130 @@ class BuildRule
         write("Command: %-(%s %)\n\n", command);
         write("CommandFunction: %-s\n\n", commandFunction ? "Yes" : null);
         writer.put("-----------------------------------------------------------\n");
+    }
+}
+
+/// Fake namespace containing all utilities to execute many rules in parallel
+abstract final class Scheduler
+{
+    /**
+    Builds the supplied targets in parallel using the global taskPool.
+
+    Params:
+        targets = rules to build
+    **/
+    static void build(BuildRule[] targets)
+    {
+        // Create an execution plan to build all targets
+        Context[BuildRule] contexts;
+        Context[] topSorted, leaves;
+
+        foreach(target; targets)
+            findLeafs(target, contexts, topSorted, leaves);
+
+        // Start all leaves in parallel, they will submit the remaining tasks recursively
+        foreach (leaf; leaves)
+            taskPool.put(leaf.task);
+
+        // Await execution of all targets while executing pending tasks. The
+        // topological order of tasks guarantees that every tasks was already
+        // submitted to taskPool before we call workForce.
+        foreach (context; topSorted)
+            context.task.workForce();
+    }
+
+    /**
+    Recursively creates contexts instances for rule and all of its dependencies and stores
+    them in contexts, tasks and leaves for further usage.
+
+    Params:
+        rule = current rule
+        contexts = already created context instances
+        tasks = context instances in topological order implied by Dependency.deps
+        leaves = contexts of rules without dependencies
+
+    Returns: the context belonging to rule
+    **/
+    private static Context findLeafs(BuildRule rule, ref Context[BuildRule] contexts, ref Context[] all, ref Context[] leaves)
+    {
+        // This implementation is based on Tarjan's algorithm for topological sorting.
+
+        auto context = contexts.get(rule, null);
+
+        // Check whether the current node wasn't already visited
+        if (context is null)
+        {
+            context = contexts[rule] = new Context(rule);
+
+            // Leafs are rules without further dependencies
+            if (rule.deps.empty)
+            {
+                leaves ~= context;
+            }
+            else
+            {
+                // Recursively visit all dependencies
+                foreach (dep; rule.deps)
+                {
+                    auto depContext = findLeafs(dep, contexts, all, leaves);
+                    depContext.requiredBy ~= context;
+                }
+            }
+
+            // Append the current rule AFTER all dependencies
+            all ~= context;
+        }
+
+        return context;
+    }
+
+    /// Metadata required for parallel execution
+    private static class Context
+    {
+        import std.parallelism: createTask = task;
+        alias Task = typeof(createTask(&Context.init.buildRecursive)); /// Task type
+
+        BuildRule target; /// the rule to execute
+        Context[] requiredBy; /// rules relying on this one
+        shared size_t pendingDeps; /// amount of rules to be built
+        shared bool depUpdated; /// whether any dependency of target was updated
+        Task task; /// corresponding task
+
+        /// Creates a new context for rule
+        this(BuildRule rule)
+        {
+            this.target = rule;
+            this.pendingDeps = rule.deps.length;
+            this.task = createTask(&buildRecursive);
+        }
+
+        /**
+        Builds the rule given by this context and schedules other rules
+        requiring it (if the current was the last missing dependency)
+        **/
+        private void buildRecursive()
+        {
+            import core.atomic: atomicLoad, atomicOp, atomicStore;
+
+            /// Stores whether the current build is stopping because some step failed
+            static shared bool aborting;
+            scope (failure) atomicStore(aborting, true);
+
+            // Build the current rule unless another one failed
+            if (!atomicLoad(aborting) && target.run(depUpdated))
+            {
+                // Propagate that this rule's targets were (re)built
+                foreach (parent; requiredBy)
+                    atomicStore(parent.depUpdated, true);
+            }
+
+            // Mark this rule as finished for all parent rules
+            foreach (parent; requiredBy)
+            {
+                if (parent.pendingDeps.atomicOp!"-="(1) == 0)
+                    taskPool.put(parent.task);
+            }
+        }
     }
 }
 
@@ -1680,7 +1812,6 @@ Aborts the current build
 
 TODO:
     - Display detailed error messages
-    - Handle spawned processes
 
 Params:
     msg = error message to display
@@ -1776,12 +1907,6 @@ void installRelativeFiles(T)(string targetDir, string sourceBase, T files)
             std.file.copy(fileToCopy.name, targetDir.buildPath(fileToCopy.relativeName));
         }
     }
-}
-
-version (CRuntime_DigitalMars)
-{
-    // workaround issue https://issues.dlang.org/show_bug.cgi?id=13727
-    auto parallel(R)(R range, size_t workUnitSize) { return range; }
 }
 
 /** Wrapper around std.file.copy that also updates the target timestamp. */
