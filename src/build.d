@@ -321,7 +321,7 @@ Params:
   extra_flags = Flags to apply to the main build but not the dependencies
 */
 alias dmdExe = makeDepWithArgs!((MethodInitializer!Dependency builder, Dependency dep, string targetSuffix, string[] extraFlags) {
-    const dmdSources = sources.dmd.chain(sources.root).array;
+    const dmdSources = sources.dmd.all.chain(sources.root).array;
 
     string[] platformArgs;
     version (Windows)
@@ -370,7 +370,7 @@ alias runCxxUnittest = makeDep!((runCxxBuilder, runCxxDep) {
         .name("cxx-frontend")
         .description("Build the C++ frontend")
         .msg("(CXX) CXX-FRONTEND")
-        .sources(srcDir.buildPath("tests", "cxxfrontend.c") ~ .sources.frontendHeaders ~ .sources.dmd ~ .sources.root)
+        .sources(srcDir.buildPath("tests", "cxxfrontend.c") ~ .sources.frontendHeaders ~ .sources.dmd.all ~ .sources.root)
         .target(env["G"].buildPath("cxxfrontend").objName)
         .command([ env["CXX"], "-c", frontendDep.sources[0], "-o" ~ frontendDep.target, "-I" ~ env["D"] ] ~ flags["CXXFLAGS"])
     );
@@ -380,7 +380,7 @@ alias runCxxUnittest = makeDep!((runCxxBuilder, runCxxDep) {
         .description("Build the C++ unittests")
         .msg("(DMD) CXX-UNITTEST")
         .deps([lexer, backend, cxxFrontend])
-        .sources(sources.dmd ~ sources.root)
+        .sources(sources.dmd.all ~ sources.root)
         .target(env["G"].buildPath("cxx-unittest").exeName)
         .command([ env["HOST_DMD_RUN"], "-of=" ~ exeDep.target, "-vtls", "-J" ~ env["RES"],
                     "-L-lstdc++", "-version=NoMain"
@@ -541,7 +541,7 @@ alias zip = makeDep!((builder, dep) => builder
     .name("zip")
     .target(srcDir.buildPath("dmdsrc.zip"))
     .sources(sources.root ~ sources.backend ~ sources.lexer ~
-        sources.frontendHeaders ~ sources.dmd)
+        sources.frontendHeaders ~ sources.dmd.all)
     .msg("ZIP " ~ dep.target)
     .commandFunction(() {
         if (exists(dep.target))
@@ -564,7 +564,7 @@ alias html = makeDep!((htmlBuilder, htmlDep) {
         return htmlFilePrefix ~ ".html";
     }
     const stddocs = env.get("STDDOC", "").split();
-    auto docSources = .sources.root ~ .sources.lexer ~ .sources.dmd ~ env["D"].buildPath("frontend.d");
+    auto docSources = .sources.root ~ .sources.lexer ~ .sources.dmd.all ~ env["D"].buildPath("frontend.d");
     htmlBuilder.deps(docSources.chunks(1).map!(sourceArray =>
         methodInit!(Dependency, (docBuilder, docDep) {
             const source = sourceArray[0];
@@ -1015,31 +1015,20 @@ alias allSources = memoize!(() => srcDir.dirEntries("*.{d,h,di}", SpanMode.depth
 /// Returns: all source files for the compiler
 auto sourceFiles()
 {
-    struct Sources
+    static struct DmdSources
     {
-        string[] frontend, lexer, root, glue, dmd, backend;
-        string[] frontendHeaders, backendHeaders;
+        string[] all, frontend, glue, backendHeaders;
     }
-    string targetCH;
-    string[] targetObjs;
-    if (env["TARGET_CPU"] == "X86")
+    static struct Sources
     {
-        targetCH = "code_x86.h";
-    }
-    else if (env["TARGET_CPU"] == "stub")
-    {
-        targetCH = "code_stub.h";
-        targetObjs = ["platform_stub"];
-    }
-    else
-    {
-        assert(0, "Unknown TARGET_CPU: " ~ env["TARGET_CPU"]);
+        DmdSources dmd;
+        string[] lexer, root, backend, frontendHeaders;
     }
     static string[] fileArray(string dir, string files)
     {
         return files.split.map!(e => dir.buildPath(e)).array;
     }
-    Sources sources = {
+    DmdSources dmd = {
         glue: fileArray(env["D"], "
             irstate.d toctype.d glue.d gluelayer.d todt.d tocsym.d toir.d dmsc.d
             tocvdebug.d s2ir.d toobj.d e2ir.d eh.d iasm.d iasmdmd.d iasmgcc.d objc_glue.d
@@ -1058,6 +1047,19 @@ auto sourceFiles()
             statementsem.d staticassert.d staticcond.d strictvisitor.d target.d templateparamsem.d traits.d
             transitivevisitor.d typesem.d typinf.d utils.d visitor.d foreachvar.d
         "),
+        backendHeaders: fileArray(env["C"], "
+            cc.d cdef.d cgcv.d code.d cv4.d dt.d el.d global.d
+            obj.d oper.d outbuf.d rtlsym.d code_x86.d iasm.d codebuilder.d
+            ty.d type.d exh.d mach.d mscoff.d dwarf.d dwarf2.d xmm.d
+            dlist.d melf.d varstats.di
+        "),
+    };
+    foreach (member; __traits(allMembers, DmdSources))
+    {
+        if (member != "all") dmd.all ~= __traits(getMember, dmd, member);
+    }
+    Sources sources = {
+        dmd: dmd,
         frontendHeaders: fileArray(env["D"], "
             aggregate.h aliasthis.h arraytypes.h attrib.h compiler.h complex_t.h cond.h
             ctfe.h declaration.h dsymbol.h doc.h enum.h errors.h expression.h globals.h hdrgen.h
@@ -1083,14 +1085,7 @@ auto sourceFiles()
             machobj.d elfobj.d
             " ~ ((env["OS"] == "windows") ? "cgobj.d filespec.d mscoffobj.d newman.d" : "aarray.d")
         ),
-        backendHeaders: fileArray(env["C"], "
-            cc.d cdef.d cgcv.d code.d cv4.d dt.d el.d global.d
-            obj.d oper.d outbuf.d rtlsym.d code_x86.d iasm.d codebuilder.d
-            ty.d type.d exh.d mach.d mscoff.d dwarf.d dwarf2.d xmm.d
-            dlist.d melf.d varstats.di
-        "),
     };
-    sources.dmd = sources.frontend ~ sources.glue ~ sources.backendHeaders;
 
     return sources;
 }
