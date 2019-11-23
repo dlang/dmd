@@ -4705,6 +4705,20 @@ void test67()
 
 /**********************************/
 
+void test68()
+{
+    static struct S
+    {
+        int i;
+        bool opEquals(S) { return false; }
+        ~this() {}
+    }
+
+    assert(S(0) != S(1));
+}
+
+/**********************************/
+
 int main()
 {
     test1();
@@ -4840,6 +4854,7 @@ int main()
     test16652();
     test19676();
     test67();
+    test68();
 
     printf("Success\n");
     return 0;
