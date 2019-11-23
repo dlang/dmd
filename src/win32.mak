@@ -194,7 +194,12 @@ RUN_BUILD=$(GEN)\build.exe --called-from-make "OS=$(OS)" "BUILD=$(BUILD)" "MODEL
 
 defaulttarget: $G debdmd
 
-auto-tester-build: $G dmd checkwhitespace
+# FIXME: Windows test suite uses src/dmd.exe instead of $(GENERATED)/dmd.exe
+# FIXME: DDEBUG needs to be overidden to exclude unittests from dmd.exe
+#        (They are compiled in a seperate executable for build.d's unittest target)
+auto-tester-build: $(GEN)\build.exe
+	$(RUN_BUILD) "DDEBUG=" "ENABLE_RELEASE=1" $@
+	copy $(TARGETEXE) .
 
 dmd: $G reldmd
 
