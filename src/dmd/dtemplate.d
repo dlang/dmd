@@ -2236,12 +2236,16 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         if (ta)
         {
             //printf("type %s\n", ta.toChars());
-            d = new AliasDeclaration(Loc.initial, tp.ident, ta);
+            auto ad = new AliasDeclaration(Loc.initial, tp.ident, ta);
+            ad.wasTemplateParameter = true;
+            d = ad;
         }
         else if (sa)
         {
             //printf("Alias %s %s;\n", sa.ident.toChars(), tp.ident.toChars());
-            d = new AliasDeclaration(Loc.initial, tp.ident, sa);
+            auto ad = new AliasDeclaration(Loc.initial, tp.ident, sa);
+            ad.wasTemplateParameter = true;
+            d = ad;
         }
         else if (ea)
         {
@@ -6365,7 +6369,15 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                         .error(loc, "`%s` is not a valid template instance, because `%s` is not a template declaration but a type (`%s == %s`)", toChars(), id.toChars(), id.toChars(), s.getType.kind());
                         return false;
                     }
-                    s = s2;
+                    // because s can be the alias created for a TemplateParameter
+                    const AliasDeclaration ad = s.isAliasDeclaration();
+                    version (none)
+                    {
+                        if (ad && ad.wasTemplateParameter)
+                            printf("`%s` is an alias created from a template parameter\n", s.toChars());
+                    }
+                    if (!ad || !ad.wasTemplateParameter)
+                        s = s2;
                 }
                 debug
                 {
