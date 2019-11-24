@@ -160,3 +160,31 @@ static assert(!__traits(compiles, __traits(hasPostblit, S())));
 
 static assert(__traits(isCopyable, int));
 static assert(!__traits(isCopyable, DisabledPostblit));
+struct S1 {}                        // Fine. Can be copied
+struct S2 { this(this) {} }         // Fine. Can be copied
+struct S3 { @disable this(this);  } // Not fine. Copying is disabled.
+struct S4 { S3 s; }                 // Not fine. A field has copying disabled.
+class C1 {}
+static assert( __traits(isCopyable, S1));
+static assert( __traits(isCopyable, S2));
+static assert(!__traits(isCopyable, S3));
+static assert(!__traits(isCopyable, S4));
+static assert(__traits(isCopyable, C1));
+static assert(__traits(isCopyable, int));
+static assert(__traits(isCopyable, int[]));
+
+enum E1 : S1 { a = S1(), }
+enum E2 : S2 { a = S2(), }
+enum E3 : S3 { a = S3(), }
+enum E4 : S4 { a = S4(), }
+
+static assert(__traits(isCopyable, E1));
+static assert(__traits(isCopyable, E2));
+static assert(!__traits(isCopyable, E3));
+static assert(!__traits(isCopyable, E4));
+
+struct S5
+{
+    @disable this(ref S5);
+}
+// TODO static assert(!__traits(isCopyable, S5));

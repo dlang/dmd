@@ -666,6 +666,13 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return new ErrorExp();
         }
 
+        t = t.toBasetype();     // get the base in case `t` is an `enum`
+
+        if (auto ts = t.isTypeStruct())
+        {
+            ts.sym.dsymbolSemantic(sc);
+        }
+
         return isCopyable(t) ? True() : False();
     }
 
