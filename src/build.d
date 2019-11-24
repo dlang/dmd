@@ -26,7 +26,7 @@ import std.algorithm, std.conv, std.datetime, std.exception, std.file, std.forma
 const thisBuildScript = __FILE_FULL_PATH__.buildNormalizedPath;
 const srcDir = thisBuildScript.dirName;
 const dmdRepo = srcDir.dirName;
-shared bool verbose; // output verbose logging
+shared bool verbose = true; // output verbose logging
 shared bool force; // always build everything (ignores timestamp checking)
 shared bool dryRun; /// dont execute targets, just print command to be executed
 
