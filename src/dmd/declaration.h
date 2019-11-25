@@ -168,6 +168,7 @@ public:
     Dsymbol *aliassym;
     Dsymbol *overnext;          // next in overload list
     Dsymbol *_import;           // !=NULL if unresolved internal alias for selective import
+    bool wasTemplateParameter; /// indicates wether the alias was created to make a template parameter visible in the scope, i.e as a member.
 
     static AliasDeclaration *create(Loc loc, Identifier *id, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *);
