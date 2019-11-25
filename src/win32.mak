@@ -194,7 +194,7 @@ RUN_BUILD=$(GEN)\build.exe --called-from-make "OS=$(OS)" "BUILD=$(BUILD)" "MODEL
 
 defaulttarget: $G debdmd
 
-auto-tester-build: $G dmd checkwhitespace unittest
+auto-tester-build: $G debdmd checkwhitespace unittest
 
 dmd: $G reldmd
 
@@ -213,10 +213,8 @@ $G :
 check-host-dc:
 	@cmd /c if "$(HOST_DC)" == "" (echo Error: Environment variable HOST_DC is not set & exit 1)
 
-debdmd: check-host-dc debdmd-make
-
-debdmd-make:
-	$(DMDMAKE) "OPT=" "DEBUG=-D -g -DUNITTEST" "DDEBUG=-debug -g -unittest" "DOPT=" $(TARGETEXE)
+debdmd: check-host-dc $(GEN)\build.exe
+	$(RUN_BUILD) "DDEBUG=" "ENABLE_DEBUG=1"
 
 reldmd: check-host-dc reldmd-make
 
