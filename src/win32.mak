@@ -194,7 +194,7 @@ RUN_BUILD=$(GEN)\build.exe --called-from-make "OS=$(OS)" "BUILD=$(BUILD)" "MODEL
 
 defaulttarget: $G debdmd
 
-auto-tester-build: $G dmd checkwhitespace
+auto-tester-build: $G dmd checkwhitespace unittest
 
 dmd: $G reldmd
 
@@ -229,8 +229,8 @@ profile:
 trace:
 	$(DMDMAKE) "OPT=-o" "DEBUG=-gt -Nc" "DDEBUG=-debug -g -unittest" "DOPT=" $(TARGETEXE)
 
-unittest:
-	$(DMDMAKE) "OPT=-o" "DEBUG=" "DDEBUG=-debug -g -unittest -cov" "DOPT=" $(TARGETEXE)
+unittest: $(GEN)\build.exe
+	$(RUN_BUILD) $@
 
 ################################ Libraries ##################################
 
