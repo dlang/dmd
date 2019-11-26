@@ -931,6 +931,14 @@ public:
         }
         arrayEnd();
 
+        propertyStart("frameworks");
+        arrayStart();
+        foreach (framework; global.params.frameworks)
+        {
+            item(framework.toDString);
+        }
+        arrayEnd();
+
         propertyStart("ddocFiles");
         arrayStart();
         foreach (ddocFile; global.params.ddocfiles)

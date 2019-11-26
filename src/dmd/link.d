@@ -639,7 +639,9 @@ public int runLINK()
          *  4. libraries specified by pragma(lib), which were appended
          *     to global.params.libfiles. These are prefixed with "-l"
          *  5. dynamic libraries passed to the command line (global.params.dllfiles)
-         *  6. standard libraries.
+         *  6. frameworks specified by pragma(framework), which were appended
+         *     to the global.params.frameworks as -framework FRAMEWORK_NAME
+         *  7. standard libraries.
          */
 
         // STEP 1
@@ -698,6 +700,13 @@ public int runLINK()
         }
 
         // STEP 6
+        foreach (framework; global.params.frameworks)
+        {
+            argv.push("-framework");
+            argv.push(mem.xstrdup(framework));
+        }
+
+        // STEP 7
         /* D runtime libraries must go after user specified libraries
          * passed with -l.
          */

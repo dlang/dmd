@@ -1,0 +1,3 @@
+This add the new pragma(framework, FRAMEWORK_NAME)
+
+It adds the arguments "-framework FRAMEWORK_NAME" to the linker commandline.

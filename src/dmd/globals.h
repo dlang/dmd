@@ -236,6 +236,7 @@ struct Param
     Array<bool> linkswitchIsForCC;
     Array<const char *> libfiles;
     Array<const char *> dllfiles;
+    Array<const char *> frameworks;
     DString deffile;
     DString resfile;
     DString exefile;

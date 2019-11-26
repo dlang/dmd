@@ -267,6 +267,7 @@ extern (C++) struct Param
     Array!bool linkswitchIsForCC;
     Array!(const(char)*) libfiles;
     Array!(const(char)*) dllfiles;
+    Array!(const(char)*) frameworks;
     const(char)[] deffile;
     const(char)[] resfile;
     const(char)[] exefile;

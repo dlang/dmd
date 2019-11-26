@@ -754,6 +754,24 @@ void toObjFile(Dsymbol ds, bool multiobj)
                     global.params.libfiles.push(name);
                 }
             }
+            else if (pd.ident == Id.framework)
+            {
+                assert(pd.args && pd.args.dim == 1);
+                printf("got a framework\n");
+                Expression e = (*pd.args)[0];
+
+                assert(e.op == TOK.string_);
+
+                StringExp se = cast(StringExp)e;
+                char *name = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
+                se.writeTo(name, true);
+
+                /* Append the framework name to the list to be passed
+                 * to the linker.
+                 */
+                global.params.frameworks.push(name);
+
+            }
             else if (pd.ident == Id.startaddress)
             {
                 assert(pd.args && pd.args.dim == 1);

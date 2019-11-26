@@ -5,6 +5,7 @@
         "cwd": "VALUE_REMOVED_FOR_TEST",
         "ddocFiles": [],
         "defFile": null,
+        "frameworks": [],
         "importPaths": [
             "compilable",
             "../../druntime/import",
