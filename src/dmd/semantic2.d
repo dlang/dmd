@@ -245,6 +245,16 @@ private extern(C++) final class Semantic2Visitor : Visitor
         if (vd._init && !vd.toParent().isFuncDeclaration())
         {
             vd.inuse++;
+
+            /* https://issues.dlang.org/show_bug.cgi?id=20280
+             *
+             * Template instances may import modules that have not
+             * finished semantic1.
+             */
+            if (!vd.type)
+                vd.dsymbolSemantic(sc);
+
+
             // https://issues.dlang.org/show_bug.cgi?id=14166
             // Don't run CTFE for the temporary variables inside typeof
             vd._init = vd._init.initializerSemantic(sc, vd.type, sc.intypeof == 1 ? INITnointerpret : INITinterpret);
