@@ -178,39 +178,6 @@ IDXSTR MsCoffObj_addstr(Outbuffer *strtab, const(char)* str)
     return idx;
 }
 
-/*******************************
- * Output a mangled string into the symbol string table
- * Input:
- *      str     =       string to add
- *
- * Returns offset of the string in string table (offset of the string).
- */
-
-private IDXSTR elf_addmangled(Symbol *s)
-{
-    //printf("elf_addmangled(%s)\n", s.Sident.ptr);
-    char[DEST_LEN] dest = void;
-
-    IDXSTR namidx = cast(IDXSTR)string_table.size();
-    char *destr = obj_mangle2(s, dest.ptr);
-    const(char)* name = destr;
-    if (CPP && name[0] == '_' && name[1] == '_')
-    {
-        if (strncmp(name,"__ct__",6) == 0)
-            name += 4;
-    }
-    else if (tyfunc(s.ty()) && s.Sfunc && s.Sfunc.Fredirect)
-        name = s.Sfunc.Fredirect;
-    size_t len = strlen(name);
-    string_table.reserve(cast(uint)(len+1));
-    strcpy(cast(char *)string_table.p,name);
-    string_table.setsize(cast(uint)(namidx+len+1));
-    if (destr != dest.ptr)                  // if we resized result
-        mem_free(destr);
-    //dbg_printf("\telf_addmagled string_table %s namidx %d len %d size %d\n",name, namidx,len,string_table.size());
-    return namidx;
-}
-
 /**************************
  * Output read only data and generate a symbol for it.
  *
