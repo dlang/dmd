@@ -1,14 +1,14 @@
 // DISABLED: win linux freebsd dragonflybsd netbsd
 
-struct __CFArray; //try to call some CF functions with strings
+pragma(framework, "CoreFoundation");
+
+struct __CFArray; //try to call some CF functions with arrays
 alias CFArrayRef = __CFArray*;
 alias CFIndex = long;
 
-extern(Objective-C) CFArrayRef CFArrayCreate(void* allocator, const void** values, long numValues, void* cbs);
-extern(Objective-C) CFIndex CFArrayGetCount(CFArrayRef theArray);
-extern(Objective-C) const(void *) CFArrayGetValueAtIndex(CFArrayRef theArray, CFIndex idx);
-
-pragma(framework, "Foundation");
+extern(C) CFArrayRef CFArrayCreate(void* allocator, const void** values, long numValues, void* cbs);
+extern(C) CFIndex CFArrayGetCount(CFArrayRef theArray);
+extern(C) const(void *) CFArrayGetValueAtIndex(CFArrayRef theArray, CFIndex idx);
 
 void main()
 {
