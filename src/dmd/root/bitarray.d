@@ -32,8 +32,8 @@ nothrow:
 
     void length(size_t nlen) pure nothrow
     {
-        immutable ochunks = ( len + BitsPerChunk - 1) / BitsPerChunk;
-        immutable nchunks = (nlen + BitsPerChunk - 1) / BitsPerChunk;
+        immutable ochunks = chunks(len);
+        immutable nchunks = chunks(nlen);
         if (ochunks != nchunks)
         {
             ptr = cast(size_t*)mem.xrealloc_noscan(ptr, nchunks * ChunkSize);
@@ -50,7 +50,7 @@ nothrow:
         if (!len)
             length(b.len);
         assert(len == b.len);
-        memcpy(ptr, b.ptr, (len + BitsPerChunk - 1) / 8);
+        memcpy(ptr, b.ptr, bytes(len));
     }
 
     bool opIndex(size_t idx) const pure nothrow @nogc
@@ -74,12 +74,12 @@ nothrow:
 
     bool opEquals(const ref BitArray b) const
     {
-        return len == b.len && memcmp(ptr, b.ptr, (len + BitsPerChunk - 1) / 8) == 0;
+        return len == b.len && memcmp(ptr, b.ptr, bytes(len)) == 0;
     }
 
     void zero()
     {
-        memset(ptr, 0, (len + BitsPerChunk - 1) / 8);
+        memset(ptr, 0, bytes(len));
     }
 
     /******
@@ -88,7 +88,7 @@ nothrow:
      */
     bool isZero()
     {
-        const nchunks = (len + BitsPerChunk - 1) / BitsPerChunk;
+        const nchunks = chunks(len);
         foreach (i; 0 .. nchunks)
         {
             if (ptr[i])
@@ -100,7 +100,7 @@ nothrow:
     void or(const ref BitArray b)
     {
         assert(len == b.len);
-        const nchunks = (len + BitsPerChunk - 1) / BitsPerChunk;
+        const nchunks = chunks(len);
         foreach (i; 0 .. nchunks)
             ptr[i] |= b.ptr[i];
     }
@@ -110,7 +110,7 @@ nothrow:
     void swap(ref BitArray b)
     {
         assert(len == b.len);
-        const nchunks = (len + BitsPerChunk - 1) / BitsPerChunk;
+        const nchunks = chunks(len);
         foreach (i; 0 .. nchunks)
         {
             const chunk = ptr[i];
@@ -124,7 +124,7 @@ nothrow:
         debug
         {
             // Stomp the allocated memory
-            const nchunks = (len + BitsPerChunk - 1) / BitsPerChunk;
+            const nchunks = chunks(len);
             foreach (i; 0 .. nchunks)
             {
                 ptr[i] = cast(Chunk_t)0xFEFEFEFE_FEFEFEFE;
@@ -142,6 +142,18 @@ nothrow:
 private:
     size_t len;         // length in bits
     size_t *ptr;
+
+    /// Returns: The amount of chunks used to store len bits
+    static size_t chunks(const size_t len) @nogc nothrow pure @safe
+    {
+        return (len + BitsPerChunk - 1) / BitsPerChunk;
+    }
+
+    /// Returns: The amount of bytes used to store len bits
+    static size_t bytes(const size_t len) @nogc nothrow pure @safe
+    {
+        return chunks(len) * ChunkSize;
+    }
 }
 
 unittest
