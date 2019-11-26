@@ -100,11 +100,10 @@ extern __gshared int eh_frame_seg;            // segment of __eh_frame
 /******************************************
  */
 
-__gshared Symbol *GOTsym; // global offset table reference
-__gshared Symbol *tlv_bootstrap_sym;
-
-Symbol *Obj_getGOTsym()
+/// Returns: a reference to the global offset table
+Symbol* Obj_getGOTsym()
 {
+    __gshared Symbol *GOTsym;
     if (!GOTsym)
     {
         GOTsym = symbol_name("_GLOBAL_OFFSET_TABLE_",SCglobal,tspvoid);
@@ -451,8 +450,6 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
     seg_tlsseg = UNKNOWN;
     seg_tlsseg_bss = UNKNOWN;
     seg_tlsseg_data = UNKNOWN;
-    GOTsym = null;
-    tlv_bootstrap_sym = null;
 
     // Initialize buffers
 
@@ -2911,8 +2908,9 @@ void Obj_gotref(Symbol *s)
  * It's used as a placeholder in the TLV descriptors. The dynamic linker will
  * replace the placeholder with a real function at load time.
  */
-Symbol *Obj_tlv_bootstrap()
+Symbol* Obj_tlv_bootstrap()
 {
+    __gshared Symbol* tlv_bootstrap_sym;
     if (!tlv_bootstrap_sym)
         tlv_bootstrap_sym = symbol_name("__tlv_bootstrap", SCextern, type_fake(TYnfunc));
     return tlv_bootstrap_sym;
