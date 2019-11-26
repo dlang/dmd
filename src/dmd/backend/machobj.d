@@ -298,67 +298,6 @@ IDXSTR Obj_addstr(Outbuffer *strtab, const(char)* str)
 }
 
 /*******************************
- * Find a string in a string table
- * Input:
- *      strtab  =       string table for entry
- *      str     =       string to find
- *
- * Returns index into the specified string table or 0.
- */
-
-private IDXSTR elf_findstr(Outbuffer *strtab, const(char)* str, const(char)* suffix)
-{
-    const(char)* ent = cast(char *)strtab.buf+1;
-    const(char)* pend = ent+strtab.size() - 1;
-    const(char)* s = str;
-    const(char)* sx = suffix;
-    size_t len = strlen(str);
-
-    if (suffix)
-        len += strlen(suffix);
-
-    while(ent < pend)
-    {
-        if(*ent == 0)                   // end of table entry
-        {
-            if(*s == 0 && !sx)          // end of string - found a match
-            {
-                return cast(IDXSTR)(ent - cast(const(char)*)strtab.buf - len);
-            }
-            else                        // table entry too short
-            {
-                s = str;                // back to beginning of string
-                sx = suffix;
-                ent++;                  // start of next table entry
-            }
-        }
-        else if (*s == 0 && sx && *sx == *ent)
-        {                               // matched first string
-            s = sx+1;                   // switch to suffix
-            ent++;
-            sx = null;
-        }
-        else                            // continue comparing
-        {
-            if (*ent == *s)
-            {                           // Have a match going
-                ent++;
-                s++;
-            }
-            else                        // no match
-            {
-                while(*ent != 0)        // skip to end of entry
-                    ent++;
-                ent++;                  // start of next table entry
-                s = str;                // back to beginning of string
-                sx = suffix;
-            }
-        }
-    }
-    return 0;                   // never found match
-}
-
-/*******************************
  * Output a mangled string into the symbol string table
  * Input:
  *      str     =       string to add
