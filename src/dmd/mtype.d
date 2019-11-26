@@ -4736,6 +4736,7 @@ extern (C++) final class TypeFunction : TypeNext
                              * copytmp.__copyCtor(arg);
                              */
                             auto tmp = new VarDeclaration(arg.loc, tprm, Identifier.generateId("__copytmp"), null);
+                            tmp.storage_class = STC.rvalue | STC.temp | STC.ctfe;
                             tmp.dsymbolSemantic(sc);
                             Expression ve = new VarExp(arg.loc, tmp);
                             Expression e = new DotIdExp(arg.loc, ve, Id.ctor);
