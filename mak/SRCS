@@ -27,6 +27,7 @@ SRCS=\
 	src\core\internal\dassert.d \
 	src\core\internal\destruction.d \
 	src\core\internal\entrypoint.d \
+	src\core\internal\execinfo.d \
 	src\core\internal\hash.d \
 	src\core\internal\moving.d \
 	src\core\internal\parseoptions.d \
