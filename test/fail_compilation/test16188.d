@@ -1,7 +1,7 @@
 /* PERMUTE_ARGS:
 TEST_OUTPUT:
 ---
-fail_compilation/test16188.d(17): Error: no property `name` for type `Where`
+fail_compilation/test16188.d(17): Error: no property `name` for type `test16188.Where`
 ---
  */
 

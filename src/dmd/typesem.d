@@ -2159,7 +2159,7 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
                         if (const n = importHint(ident.toString()))
                             error(loc, "no property `%s` for type `%s`, perhaps `import %.*s;` is needed?", ident.toChars(), mt.toChars(), cast(int)n.length, n.ptr);
                         else
-                            error(loc, "no property `%s` for type `%s`", ident.toChars(), mt.toChars());
+                            error(loc, "no property `%s` for type `%s`", ident.toChars(), mt.toPrettyChars(true));
                     }
                 }
             }
