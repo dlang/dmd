@@ -5211,7 +5211,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Type tded = null;
         if (e.tok2 == TOK.package_ || e.tok2 == TOK.module_) // These is() expressions are special because they can work on modules, not just types.
         {
+            const oldErrors = global.startGagging();
             Dsymbol sym = e.targ.toDsymbol(sc);
+            global.endGagging(oldErrors);
+
             if (sym is null)
                 goto Lno;
             Package p = resolveIsPackage(sym);
