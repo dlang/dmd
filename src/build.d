@@ -1386,20 +1386,22 @@ class Dependency
 
         if(dryRun)
         {
+            scope writer = stdout.lockingTextWriter;
+
             if(commandFunction)
             {
-                write("\n => Executing commandFunction()");
+                writer.put("\n => Executing commandFunction()");
 
                 if(name)
-                    writef!" of %s"(name);
+                    writer.formattedWrite!" of %s"(name);
 
                 if(targets.length)
-                    writef!" to generate:\n%(    - %s\n%)"(targets);
+                    writer.formattedWrite!" to generate:\n%(    - %s\n%)"(targets);
 
-                writeln('\n');
+                writer.put('\n');
             }
             if(command)
-                writefln!"\n => %(%s %)\n"(command);
+                writer.formattedWrite!"\n => %(%s %)\n\n"(command);
         }
         else
         {
