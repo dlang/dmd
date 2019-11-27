@@ -350,9 +350,7 @@ alias runDmdUnittest = makeDep!((builder, dep) {
         .description("Run the dmd unittests")
         .msg("(RUN) DMD-UNITTEST")
         .deps([dmdUnittestExe])
-        .commandFunction(() {
-            spawnProcess(dmdUnittestExe.targets[0]);
-        });
+        .command(dmdUnittestExe.targets);
 });
 
 /// Runs the C++ unittest executable
