@@ -681,6 +681,10 @@ public:
                         vto._init = new ExpInitializer(ei.loc, doInlineAs!Expression(ei, ids));
                     }
                 }
+                if (vd.edtor)
+                {
+                    vto.edtor = doInlineAs!Expression(vd.edtor, ids);
+                }
                 auto de = cast(DeclarationExp)e.copy();
                 de.declaration = vto;
                 result = de;
@@ -715,6 +719,7 @@ public:
             //printf("NewExp.doInlineAs!%s(): %s\n", Result.stringof.ptr, e.toChars());
             auto ne = cast(NewExp)e.copy();
             ne.thisexp = doInlineAs!Expression(e.thisexp, ids);
+            ne.argprefix = doInlineAs!Expression(e.argprefix, ids);
             ne.newargs = arrayExpressionDoInline(e.newargs);
             ne.arguments = arrayExpressionDoInline(e.arguments);
             result = ne;
