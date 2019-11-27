@@ -466,6 +466,8 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         //printf("ClassDeclaration.isBaseOf(this = '%s', cd = '%s')\n", toChars(), cd.toChars());
         if (poffset)
             *poffset = 0;
+        if (this == cd)
+            return false;
         while (cd)
         {
             /* cd.baseClass might not be set if cd is forward referenced.
