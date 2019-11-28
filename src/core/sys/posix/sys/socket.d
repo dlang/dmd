@@ -1906,6 +1906,7 @@ else version (CRuntime_Musl)
         SO_KEEPALIVE    = 9,
         SO_OOBINLINE    = 10,
         SO_LINGER       = 13,
+        SO_REUSEPORT    = 15,
         SO_RCVLOWAT     = 18,
         SO_SNDLOWAT     = 19,
         SO_RCVTIMEO     = 20,
