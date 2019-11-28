@@ -46,6 +46,7 @@ immutable rootDeps = [
     &html,
     &toolchainInfo,
     &style,
+    &man,
 ];
 
 int main(string[] args)
@@ -305,6 +306,14 @@ alias sysconfDirFile = makeDep!((builder, dep) => builder
     .commandFunction(() => std.file.write(dep.target, env["SYSCONFDIR"]))
 );
 
+/// Dependency to create a directory if it doesn't exist.
+alias directoryDep = makeDepWithArgs!((MethodInitializer!Dependency builder, Dependency dep, string dir) => builder
+   .target(dir)
+   .condition(() => !exists(dir))
+   .msg("mkdirRecurse '%s'".format(dir))
+   .commandFunction(() => mkdirRecurse(dir))
+);
+
 /**
 Dependency for the DMD executable.
 
@@ -473,6 +482,46 @@ alias style = makeDep!((builder, dep)
         ]);
 });
 
+/// Dependency to generate man pages
+alias man = makeDep!((builder, dep) {
+    alias genMan = methodInit!(Dependency, (genManBuilder, genManDep) => genManBuilder
+        .target(env["G"].buildPath("gen_man"))
+        .sources([
+            dmdRepo.buildPath("docs", "gen_man.d"),
+            env["D"].buildPath("cli.d")])
+        .command([
+            env["HOST_DMD_RUN"],
+            "-I" ~ srcDir,
+            "-of" ~ genManDep.target]
+            ~ flags["DFLAGS"]
+            ~ genManDep.sources)
+        .msg(genManDep.command.join(" "))
+    );
+
+    const genManDir = env["GENERATED"].buildPath("docs", "man");
+    alias dmdMan = methodInit!(Dependency, (dmdManBuilder, dmdManDep) => dmdManBuilder
+        .target(genManDir.buildPath("man1", "dmd.1"))
+        .deps([genMan, directoryDep(dmdManDep.target.dirName)])
+        .msg("(GEN_MAN) " ~ dmdManDep.target)
+        .commandFunction(() {
+            std.file.write(dmdManDep.target, genMan.target.execute.output);
+        })
+    );
+    builder
+    .name("man")
+    .description("generate and prepare man files")
+    .deps([dmdMan].chain(
+        "man1/dumpobj.1 man1/obj2asm.1 man5/dmd.conf.5".split
+        .map!(e => methodInit!(Dependency, (manFileBuilder, manFileDep) => manFileBuilder
+            .target(genManDir.buildPath(e))
+            .sources([dmdRepo.buildPath("docs", "man", e)])
+            .deps([directoryDep(manFileDep.target.dirName)])
+            .commandFunction(() => copyAndTouch(manFileDep.sources[0], manFileDep.target))
+            .msg("copy '%s' to '%s'".format(manFileDep.sources[0], manFileDep.target))
+        ))
+    ).array);
+});
+
 alias detab = makeDep!((builder, dep) => builder
     .name("detab")
     .description("replace hard tabs with spaces")
@@ -618,10 +667,6 @@ LtargetsLoop:
 
             case "install":
                 "TODO: install".writeln; // TODO
-                break;
-
-            case "man":
-                "TODO: man".writeln; // TODO
                 break;
 
             default:
@@ -1560,4 +1605,12 @@ version (CRuntime_DigitalMars)
 {
     // workaround issue https://issues.dlang.org/show_bug.cgi?id=13727
     auto parallel(R)(R range, size_t workUnitSize) { return range; }
+}
+
+/** Wrapper around std.file.copy that also updates the target timestamp. */
+void copyAndTouch(RF, RT)(RF from, RT to)
+{
+    std.file.copy(from, to);
+    const now = Clock.currTime;
+    to.setTimes(now, now);
 }
