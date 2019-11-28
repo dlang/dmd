@@ -187,4 +187,4 @@ struct S5
 {
     @disable this(ref S5);
 }
-// TODO static assert(!__traits(isCopyable, S5));
+static assert(!__traits(isCopyable, S5));
