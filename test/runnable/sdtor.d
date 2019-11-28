@@ -4369,6 +4369,8 @@ void test14696(int len = 2)
     check({ foo(len == 2 ? makeS(1).get(len != 2 ? makeS(2).get() : null) : null); }, "makeS(1).get(1).foo.dtor(1).");
     check({ foo(len != 2 ? makeS(1).get(len == 2 ? makeS(2).get() : null) : null); }, "foo.");
     check({ foo(len != 2 ? makeS(1).get(len != 2 ? makeS(2).get() : null) : null); }, "foo.");
+    check({ foo(len == 2 ? makeS(makeS(2).n - 1).get() : null); }, "makeS(2).makeS(1).get(1).foo.dtor(1).dtor(2).");
+    check({ foo(len != 2 ? makeS(makeS(2).n - 1).get() : null); }, "foo.");
 }
 
 /**********************************/
