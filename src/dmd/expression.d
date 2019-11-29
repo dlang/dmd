@@ -6527,7 +6527,9 @@ extern (C++) final class CondExp : BinExp
 
                     if (v.needsScopeDtor())
                     {
-                        if (!vcond)
+                        // a temporary is created for the condition
+                        // only if it's not an integral exp
+                        if (!vcond && !ce.econd.isIntegerExp())
                         {
                             vcond = copyToTemp(STC.volatile_, "__cond", ce.econd);
                             vcond.dsymbolSemantic(sc);
@@ -6540,7 +6542,7 @@ extern (C++) final class CondExp : BinExp
                         }
 
                         //printf("\t++v = %s, v.edtor = %s\n", v.toChars(), v.edtor.toChars());
-                        Expression ve = new VarExp(vcond.loc, vcond);
+                        Expression ve = vcond ? new VarExp(vcond.loc, vcond) : ce.econd;
                         if (isThen)
                             v.edtor = new LogicalExp(v.edtor.loc, TOK.andAnd, ve, v.edtor);
                         else
