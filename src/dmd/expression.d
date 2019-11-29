@@ -6495,8 +6495,11 @@ extern (C++) final class CondExp : BinExp
                     if (v._init)
                     {
                         if (auto ei = v._init.isExpInitializer())
-                            ei.exp.accept(this);
+                            walkPostorder(ei.exp, this);
                     }
+
+                    if (v.edtor)
+                        walkPostorder(v.edtor, this);
 
                     if (v.needsScopeDtor())
                     {
