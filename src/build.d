@@ -280,7 +280,7 @@ alias versionFile = makeDep!((builder, dep) {
         {
             try
             {
-                auto gitResult = ["git", "describe", "--dirty"].tryRun;
+                auto gitResult = [env["GIT"], "describe", "--dirty"].tryRun;
                 if (gitResult.status == 0)
                     return gitResult.output.strip;
             }
@@ -420,7 +420,7 @@ alias toolsRepo = makeDep!((builder, dep) => builder
             version(Win32)
                 // Win32-git seems to confuse C:\... as a relative path
                 toolsDir = toolsDir.relativePath(srcDir);
-            run(["git", "clone", "--depth=1", env["GIT_HOME"] ~ "/tools", toolsDir]);
+            run([env["GIT"], "clone", "--depth=1", env["GIT_HOME"] ~ "/tools", toolsDir]);
         }
     })
 );
@@ -453,9 +453,10 @@ alias style = makeDep!((builder, dep)
         .target(dscannerDir.buildPath("dsc".exeName))
         .commandFunction(()
         {
-            run(["git", "clone", "https://github.com/dlang-community/Dscanner", dscannerDir]);
-            run(["git", "-C", dscannerDir, "checkout", "b51ee472fe29c05cc33359ab8de52297899131fe"]);
-            run(["git", "-C", dscannerDir, "submodule", "update", "--init", "--recursive"]);
+            const git = env["GIT"];
+            run([git, "clone", "https://github.com/dlang-community/Dscanner", dscannerDir]);
+            run([git, "-C", dscannerDir, "checkout", "b51ee472fe29c05cc33359ab8de52297899131fe"]);
+            run([git, "-C", dscannerDir, "submodule", "update", "--init", "--recursive"]);
 
             // debug build is faster, but disable 'missing import' messages (missing core from druntime)
             const makefile = dscannerDir.buildPath("makefile");
