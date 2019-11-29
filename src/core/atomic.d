@@ -239,7 +239,7 @@ in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 
 /// Ditto
 TailShared!T atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)(shared(T)* here, V exchangeWith) pure nothrow @nogc @trusted
-    if (!is(T == class))
+    if (!is(T == class) && !is(T == interface))
 in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 {
     static if (is (V == shared))
@@ -255,7 +255,7 @@ in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 
 /// Ditto
 shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)(shared(T)* here, shared(V) exchangeWith) pure nothrow @nogc @trusted
-    if (is(T == class))
+    if (is(T == class) || is(T == interface))
 in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 {
     static assert (is (V : T), "Can't assign `exchangeWith` of type `" ~ shared(V).stringof ~ "` to `" ~ shared(T).stringof ~ "`.");
@@ -904,6 +904,11 @@ version (unittest)
     {
 
         testType!(shared int*)();
+
+        static interface Inter {}
+        static class KlassImpl : Inter {}
+        testXCHG!(shared Inter)(new shared(KlassImpl));
+        testCAS!(shared Inter)(new shared(KlassImpl));
 
         static class Klass {}
         testXCHG!(shared Klass)(new shared(Klass));
