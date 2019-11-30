@@ -145,7 +145,9 @@ dmd: $G/dmd $G/dmd.conf
 $(GENERATED)/build: build.d $(HOST_DMD_PATH)
 	$(HOST_DMD_RUN) -of$@ build.d
 
-auto-tester-build: dmd checkwhitespace cxx-unittest
+auto-tester-build: $(GENERATED)/build
+	$(RUN_BUILD) $@
+
 .PHONY: auto-tester-build
 
 toolchain-info: $(GENERATED)/build

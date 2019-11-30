@@ -36,6 +36,7 @@ __gshared typeof(sourceFiles()) sources;
 /// Array of dependencies through which all other dependencies can be reached
 immutable rootDeps = [
     &dmdDefault,
+    &autoTesterBuild,
     &runDmdUnittest,
     &clean,
     &checkwhitespace,
@@ -215,6 +216,24 @@ This script is by default part of the sources and thus any change to the build s
 will trigger a full rebuild.
 
 */
+
+/// Returns: The dependency that runs the autotester build
+alias autoTesterBuild = makeDep!((builder, dep) {
+    builder
+    .name("auto-tester-build")
+    .description("Runs the autotester build")
+    .deps([dmdDefault, checkwhitespace]);
+
+    version (Posix)
+        dep.deps ~= runCxxUnittest;
+
+    // unittests are currently not executed as part of `auto-tester-test` on windows
+    // because changes to `win32.mak` require additional changes on the autotester
+    // (see https://github.com/dlang/dmd/pull/7414).
+    // This requires no further actions and avoids building druntime+phobos on unittest failure
+    version (Windows)
+        dep.deps ~= runDmdUnittest;
+});
 
 /// Returns: the dependency that builds the lexer object file
 alias lexer = makeDep!((builder, dep) => builder
@@ -661,10 +680,6 @@ LtargetsLoop:
             case "all":
                 t = "dmd";
                 goto default;
-
-            case "auto-tester-build":
-                "TODO: auto-tester-all".writeln; // TODO
-                break;
 
             case "install":
                 "TODO: install".writeln; // TODO
