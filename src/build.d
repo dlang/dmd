@@ -226,6 +226,13 @@ alias autoTesterBuild = makeDep!((builder, dep) {
 
     version (Posix)
         dep.deps ~= runCxxUnittest;
+
+    // unittests are currently not executed as part of `auto-tester-test` on windows
+    // because changes to `win32.mak` require additional changes on the autotester
+    // (see https://github.com/dlang/dmd/pull/7414).
+    // This requires no further actions and avoids building druntime+phobos on unittest failure
+    version (Windows)
+        dep.deps ~= runDmdUnittest;
 });
 
 /// Returns: the dependency that builds the lexer object file
