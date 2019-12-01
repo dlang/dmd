@@ -350,7 +350,7 @@ alias dmdExe = makeDepWithArgs!((MethodInitializer!Dependency builder, Dependenc
         // include lexer.o and backend.o
         .sources(dmdSources.chain(lexer.targets, backend.targets).array)
         .target(env["DMD_PATH"] ~ targetSuffix)
-        .msg("(DC) DMD")
+        .msg("(DC) DMD" ~ targetSuffix)
         .deps([versionFile, sysconfDirFile, lexer, backend])
         .command([
             env["HOST_DMD_RUN"],
@@ -432,6 +432,7 @@ alias clean = makeDep!((builder, dep) => builder
 
 alias toolsRepo = makeDep!((builder, dep) => builder
     .target(env["TOOLS_DIR"])
+    .msg("(GIT) DLANG/TOOLS")
     .commandFunction(delegate() {
         auto toolsDir = env["TOOLS_DIR"];
         if (!toolsDir.exists)
@@ -447,6 +448,7 @@ alias toolsRepo = makeDep!((builder, dep) => builder
 alias checkwhitespace = makeDep!((builder, dep) => builder
     .name("checkwhitespace")
     .description("Checks for trailing whitespace and tabs")
+    .msg("(RUN) checkwhitespace")
     .deps([toolsRepo])
     .sources(allSources)
     .commandFunction(delegate() {
