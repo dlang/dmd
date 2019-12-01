@@ -70,8 +70,8 @@ void runMain(string[] args)
     bool calledFromMake = false;
     auto res = getopt(args,
         "j|jobs", "Specifies the number of jobs (commands) to run simultaneously (default: %d)".format(totalCPUs), &jobs,
-        "v", "Verbose command output", (cast(bool*) &verbose),
-        "f", "Force run (ignore timestamps and always run all tests)", (cast(bool*) &force),
+        "v|verbose", "Verbose command output", (cast(bool*) &verbose),
+        "f|force", "Force run (ignore timestamps and always run all tests)", (cast(bool*) &force),
         "d|dry-run", "Print commands instead of executing them", (cast(bool*) &dryRun),
         "called-from-make", "Calling the build script from the Makefile", &calledFromMake
     );
