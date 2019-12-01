@@ -70,8 +70,8 @@ void runMain(string[] args)
     bool calledFromMake = false;
     auto res = getopt(args,
         "j|jobs", "Specifies the number of jobs (commands) to run simultaneously (default: %d)".format(totalCPUs), &jobs,
-        "v", "Verbose command output", (cast(bool*) &verbose),
-        "f", "Force run (ignore timestamps and always run all tests)", (cast(bool*) &force),
+        "v|verbose", "Verbose command output", (cast(bool*) &verbose),
+        "f|force", "Force run (ignore timestamps and always run all tests)", (cast(bool*) &force),
         "d|dry-run", "Print commands instead of executing them", (cast(bool*) &dryRun),
         "called-from-make", "Calling the build script from the Makefile", &calledFromMake
     );
@@ -111,7 +111,7 @@ ENABLE_SANITIZERS     Build dmd with sanitizer (e.g. ENABLE_SANITIZERS=address,u
 Targets
 -------
 ` ~ targetsHelp ~ `
-The generated files will be in generated/$(OS)/$(BUILD)/$(MODEL)
+The generated files will be in generated/$(OS)/$(BUILD)/$(MODEL) (` ~ env["G"] ~ `)
 
 Command-line parameters
 -----------------------
@@ -221,7 +221,7 @@ will trigger a full rebuild.
 alias autoTesterBuild = makeDep!((builder, dep) {
     builder
     .name("auto-tester-build")
-    .description("Runs the autotester build")
+    .description("Run the autotester build")
     .deps([dmdDefault, checkwhitespace]);
 
     version (Posix)
@@ -350,7 +350,7 @@ alias dmdExe = makeDepWithArgs!((MethodInitializer!Dependency builder, Dependenc
         // include lexer.o and backend.o
         .sources(dmdSources.chain(lexer.targets, backend.targets).array)
         .target(env["DMD_PATH"] ~ targetSuffix)
-        .msg("(DC) DMD")
+        .msg("(DC) DMD" ~ targetSuffix)
         .deps([versionFile, sysconfDirFile, lexer, backend])
         .command([
             env["HOST_DMD_RUN"],
@@ -432,6 +432,7 @@ alias clean = makeDep!((builder, dep) => builder
 
 alias toolsRepo = makeDep!((builder, dep) => builder
     .target(env["TOOLS_DIR"])
+    .msg("(GIT) DLANG/TOOLS")
     .commandFunction(delegate() {
         auto toolsDir = env["TOOLS_DIR"];
         if (!toolsDir.exists)
@@ -446,7 +447,8 @@ alias toolsRepo = makeDep!((builder, dep) => builder
 
 alias checkwhitespace = makeDep!((builder, dep) => builder
     .name("checkwhitespace")
-    .description("Checks for trailing whitespace and tabs")
+    .description("Check for trailing whitespace and tabs")
+    .msg("(RUN) checkwhitespace")
     .deps([toolsRepo])
     .sources(allSources)
     .commandFunction(delegate() {
@@ -488,7 +490,7 @@ alias style = makeDep!((builder, dep)
 
     builder
         .name("style")
-        .description("Check for style errors using dscanner")
+        .description("Check for style errors using D-Scanner")
         .msg("(DSCANNER) dmd")
         .deps([dscanner])
         // Disabled because we need to build a patched dscanner version
@@ -529,7 +531,7 @@ alias man = makeDep!((builder, dep) {
     );
     builder
     .name("man")
-    .description("generate and prepare man files")
+    .description("Generate and prepare man files")
     .deps([dmdMan].chain(
         "man1/dumpobj.1 man1/obj2asm.1 man5/dmd.conf.5".split
         .map!(e => methodInit!(Dependency, (manFileBuilder, manFileDep) => manFileBuilder
@@ -544,14 +546,14 @@ alias man = makeDep!((builder, dep) {
 
 alias detab = makeDep!((builder, dep) => builder
     .name("detab")
-    .description("replace hard tabs with spaces")
+    .description("Replace hard tabs with spaces")
     .command([env["DETAB"]] ~ allSources)
     .msg("(DETAB) DMD")
 );
 
 alias tolf = makeDep!((builder, dep) => builder
     .name("tolf")
-    .description("convert to Unix line endings")
+    .description("Convert to Unix line endings")
     .command([env["TOLF"]] ~ allSources)
     .msg("(TOLF) DMD")
 );
@@ -559,6 +561,7 @@ alias tolf = makeDep!((builder, dep) => builder
 alias zip = makeDep!((builder, dep) => builder
     .name("zip")
     .target(srcDir.buildPath("dmdsrc.zip"))
+    .description("Archive all source files")
     .sources(sources.root ~ sources.backend ~ sources.lexer ~
         sources.frontendHeaders ~ sources.dmd)
     .msg("ZIP " ~ dep.target)
