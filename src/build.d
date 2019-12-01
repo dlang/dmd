@@ -111,7 +111,7 @@ ENABLE_SANITIZERS     Build dmd with sanitizer (e.g. ENABLE_SANITIZERS=address,u
 Targets
 -------
 ` ~ targetsHelp ~ `
-The generated files will be in generated/$(OS)/$(BUILD)/$(MODEL)
+The generated files will be in generated/$(OS)/$(BUILD)/$(MODEL) (` ~ env["G"] ~ `)
 
 Command-line parameters
 -----------------------
