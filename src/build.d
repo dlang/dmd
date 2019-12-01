@@ -134,9 +134,7 @@ Command-line parameters
     if (!args.length)
         args = ["dmd"];
 
-    auto targets = args
-        .predefinedTargets // preprocess
-        .array;
+    auto targets = predefinedTargets(args); // preprocess
 
     if (targets.length == 0)
         return showHelp;
@@ -165,7 +163,7 @@ Command-line parameters
             }
         }
         foreach (target; targets.parallel(1))
-            target();
+            target.run();
     }
 
     writeln("Success");
@@ -659,10 +657,10 @@ Params:
 Returns:
     the expanded targets
 */
-auto predefinedTargets(string[] targets)
+Dependency[] predefinedTargets(string[] targets)
 {
     import std.functional : toDelegate;
-    Appender!(void delegate()[]) newTargets;
+    Appender!(Dependency[]) newTargets;
 LtargetsLoop:
     foreach (t; targets)
     {
@@ -673,7 +671,7 @@ LtargetsLoop:
         {
             if (t == dep.name)
             {
-                newTargets.put(&dep.run);
+                newTargets.put(dep);
                 continue LtargetsLoop;
             }
         }
@@ -697,7 +695,7 @@ LtargetsLoop:
                     {
                         if (depTarget.endsWith(t, tAbsolute))
                         {
-                            newTargets.put(&dep.run);
+                            newTargets.put(dep);
                             continue LtargetsLoop;
                         }
                     }
