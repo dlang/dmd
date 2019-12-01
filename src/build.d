@@ -222,7 +222,7 @@ alias autoTesterBuild = makeDep!((builder, dep) {
     builder
     .name("auto-tester-build")
     .description("Run the autotester build")
-    .deps([dmdDefault, checkwhitespace]);
+    .deps([toolchainInfo, dmdDefault, checkwhitespace]);
 
     version (Posix)
         dep.deps ~= runCxxUnittest;
