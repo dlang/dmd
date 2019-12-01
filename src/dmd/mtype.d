@@ -6764,7 +6764,7 @@ bool isCopyable(Type t)
         {
             // check if there is a matching overload of the copy constructor and whether it is disabled or not
             // `assert(ctor)` fails on Win32 and Win_32_64. See: https://auto-tester.puremagic.com/pull-history.ghtml?projectid=1&repoid=1&pullid=10575
-            Dsymbol ctor = search_function(ts.sym, Id.This);
+            Dsymbol ctor = search_function(ts.sym, Id.ctor);
             assert(ctor);
             scope el = new IdentifierExp(Loc.initial, Id.p); // dummy lvalue
             el.type = cast() ts;
