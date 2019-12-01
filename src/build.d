@@ -221,7 +221,7 @@ will trigger a full rebuild.
 alias autoTesterBuild = makeDep!((builder, dep) {
     builder
     .name("auto-tester-build")
-    .description("Runs the autotester build")
+    .description("Run the autotester build")
     .deps([dmdDefault, checkwhitespace]);
 
     version (Posix)
@@ -447,7 +447,7 @@ alias toolsRepo = makeDep!((builder, dep) => builder
 
 alias checkwhitespace = makeDep!((builder, dep) => builder
     .name("checkwhitespace")
-    .description("Checks for trailing whitespace and tabs")
+    .description("Check for trailing whitespace and tabs")
     .msg("(RUN) checkwhitespace")
     .deps([toolsRepo])
     .sources(allSources)
@@ -490,7 +490,7 @@ alias style = makeDep!((builder, dep)
 
     builder
         .name("style")
-        .description("Check for style errors using dscanner")
+        .description("Check for style errors using D-Scanner")
         .msg("(DSCANNER) dmd")
         .deps([dscanner])
         // Disabled because we need to build a patched dscanner version
@@ -531,7 +531,7 @@ alias man = makeDep!((builder, dep) {
     );
     builder
     .name("man")
-    .description("generate and prepare man files")
+    .description("Generate and prepare man files")
     .deps([dmdMan].chain(
         "man1/dumpobj.1 man1/obj2asm.1 man5/dmd.conf.5".split
         .map!(e => methodInit!(Dependency, (manFileBuilder, manFileDep) => manFileBuilder
@@ -546,14 +546,14 @@ alias man = makeDep!((builder, dep) {
 
 alias detab = makeDep!((builder, dep) => builder
     .name("detab")
-    .description("replace hard tabs with spaces")
+    .description("Replace hard tabs with spaces")
     .command([env["DETAB"]] ~ allSources)
     .msg("(DETAB) DMD")
 );
 
 alias tolf = makeDep!((builder, dep) => builder
     .name("tolf")
-    .description("convert to Unix line endings")
+    .description("Convert to Unix line endings")
     .command([env["TOLF"]] ~ allSources)
     .msg("(TOLF) DMD")
 );
@@ -561,6 +561,7 @@ alias tolf = makeDep!((builder, dep) => builder
 alias zip = makeDep!((builder, dep) => builder
     .name("zip")
     .target(srcDir.buildPath("dmdsrc.zip"))
+    .description("Archive all source files")
     .sources(sources.root ~ sources.backend ~ sources.lexer ~
         sources.frontendHeaders ~ sources.dmd)
     .msg("ZIP " ~ dep.target)
