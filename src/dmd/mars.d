@@ -507,25 +507,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (global.errors)
         fatal();
 
-    if (params.doHdrGeneration)
-    {
-        /* Generate 'header' import files.
-         * Since 'header' import files must be independent of command
-         * line switches and what else is imported, they are generated
-         * before any semantic analysis.
-         */
-        foreach (m; modules)
-        {
-            if (m.isHdrFile)
-                continue;
-            if (params.verbose)
-                message("import    %s", m.toChars());
-            genhdrfile(m);
-        }
-    }
-    if (global.errors)
-        fatal();
-
     // load all unconditional imports for better symbol resolving
     foreach (m; modules)
     {
@@ -737,6 +718,27 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             }
         }
     }
+
+    if (global.errors)
+        fatal();
+
+    if (params.doHdrGeneration)
+    {
+        /* Generate 'header' import files.
+         * Since 'header' import files must be be generated only if
+         * there are no erros occurring in any compilation stage,
+         * they will be generated at the end
+         */
+        foreach (m; modules)
+        {
+            if (m.isHdrFile)
+                continue;
+            if (params.verbose)
+                message("import    %s", m.toChars());
+            genhdrfile(m);
+        }
+    }
+    
     if (global.errors || global.warnings)
         fatal();
     return status;
