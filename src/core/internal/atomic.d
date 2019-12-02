@@ -287,7 +287,7 @@ T atomicFetchSub(MemoryOrder order = MemoryOrder.seq, bool result = true, T)(T* 
 }
 
 T atomicExchange(MemoryOrder order = MemoryOrder.seq, bool result = true, T)(T* dest, T value) pure nothrow @nogc @trusted
-    if (is(T : ulong) || is(T == class) || is(T U : U*))
+    if (is(T : ulong) || is(T == class) || is(T == interface) || is(T U : U*))
 {
     version (D_InlineAsm_X86)
     {
@@ -682,6 +682,7 @@ version (Windows)
 
 enum CanCAS(T) = is(T : ulong) ||
                  is(T == class) ||
+                 is(T == interface) ||
                  is(T : U*, U) ||
                  is(T : U[], U) ||
                  is(T : R delegate(A), R, A...) ||
