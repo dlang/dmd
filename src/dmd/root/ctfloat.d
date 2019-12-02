@@ -197,21 +197,9 @@ extern (C++) struct CTFloat
         }
         else
         {
-            if (real_t(cast(ulong)x) == x)
-            {
-                // ((1.5 -> 1 -> 1.0) == 1.5) is false
-                // ((1.0 -> 1 -> 1.0) == 1.0) is true
-                // see http://en.cppreference.com/w/cpp/io/c/fprintf
-                char[5] sfmt = "%#Lg\0";
-                sfmt[3] = fmt;
-                return sprintf(str, sfmt.ptr, x);
-            }
-            else
-            {
-                char[4] sfmt = "%Lg\0";
-                sfmt[2] = fmt;
-                return sprintf(str, sfmt.ptr, x);
-            }
+            char[4] sfmt = "%Lg\0";
+            sfmt[2] = fmt;
+            return sprintf(str, sfmt.ptr, x);
         }
     }
 
