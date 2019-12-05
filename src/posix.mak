@@ -143,7 +143,7 @@ dmd: $G/dmd $G/dmd.conf
 .PHONY: dmd
 
 $(GENERATED)/build: build.d $(HOST_DMD_PATH)
-	$(HOST_DMD_RUN) -of$@ build.d
+	$(HOST_DMD_RUN) -g -of$@ build.d
 
 auto-tester-build: $(GENERATED)/build
 	$(RUN_BUILD) $@

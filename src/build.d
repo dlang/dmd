@@ -135,7 +135,7 @@ Command-line parameters
     if (!args.length)
         args = ["dmd"];
 
-    auto targets = predefinedTargets(args); // preprocess
+    immutable targets = predefinedTargets(args).assumeUnique; // preprocess
 
     if (targets.length == 0)
         return showHelp;
@@ -163,8 +163,21 @@ Command-line parameters
                 lockFile.close();
             }
         }
-        foreach (target; targets.parallel(1))
-            target.run();
+
+        // workaround issue https://issues.dlang.org/show_bug.cgi?id=13727
+        version (CRuntime_DigitalMars)
+        {
+            pragma(msg, "Warning: Parallel builds disabled because of Issue 13727!");
+            jobs = 1; // Fall back to a sequential build
+        }
+        else version (OSX)
+        {
+            // FIXME: Parallel executions hangs intermittently on Mac  (esp. the 'macair'
+            // host used by the autotester) for unknown reasons outside of this script.
+            // Disable parallel execution until this issue has been resolved.
+            jobs = min(jobs, 1);
+        }
+        parallelBuild(targets, jobs);
     }
 
     writeln("Success");
@@ -453,7 +466,8 @@ alias checkwhitespace = makeRule!((builder, rule) => builder
         auto chunkLength = allRepoSources.length;
         version (Win32)
             chunkLength = 80; // avoid command-line limit on win32
-        foreach (nextSources; allRepoSources.chunks(chunkLength).parallel(1))
+        // if we want this to be parallel, we can make multiple deps
+        foreach (nextSources; allRepoSources.chunks(chunkLength))
         {
             const nextCommand = cmdPrefix ~ nextSources;
             run(nextCommand);
@@ -1417,8 +1431,6 @@ class BuildRule
     string name; /// optional string that can be used to identify this rule
     string description; /// optional string to describe this rule rather than printing the target files
 
-    private bool executed;
-
     /// Finish creating the rule by checking that it is configured properly
     void finalize()
     {
@@ -1430,33 +1442,15 @@ class BuildRule
     }
 
     /// Executes the rule
-    bool run()
+    private bool run() const
     {
-        synchronized (this)
-            return runSynchronized();
-    }
-
-    private bool runSynchronized()
-    {
-        if (executed)
-            return false;
-        scope (exit) executed = true;
-        scope (failure) if (verbose) dump();
-
-        bool depUpdated = false;
-        foreach (dep; deps.parallel(1))
-        {
-            if (dep.run())
-                depUpdated = true;
-        }
-
         if (condition !is null && !condition())
         {
             log("Skipping build of %-(%s%) as its condition returned false", targets);
             return false;
         }
 
-        if (!depUpdated && targets && targets.isUpToDate(this.sources.chain([thisBuildScript])))
+        if (targets && targets.isUpToDate(this.sources.chain([thisBuildScript])))
         {
             if (this.sources !is null)
                 log("Skipping build of %-(%s%) as it's newer than %-(%s%)", targets, this.sources);
@@ -1504,7 +1498,7 @@ class BuildRule
     }
 
     /// Writes relevant informations about this rule to stdout
-    private void dump()
+    private void dump() const
     {
         scope writer = stdout.lockingTextWriter;
         void write(T)(string fmt, T what)
@@ -1566,6 +1560,86 @@ This differs from makeRule in that the function literal must contain explicit pa
 */
 alias makeRuleWithArgs(alias Func) = memoize!(methodInit!(BuildRule, Func, Parameters!Func[2..$]));
 
+
+/**
+Builds all supplied targets in parallel.
+
+Params:
+    targets = targets to build
+    maxJobCount = the maximum number of threads to spawn
+**/
+void parallelBuild(immutable(BuildRule)[] targets, int maxJobCount)
+{
+    if (maxJobCount <= 0)
+        abortBuild("Invalid number of jobs: %d".format(maxJobCount));
+
+    static class BuildTask
+    {
+        private immutable(BuildRule) rule;
+        private BuildTask[] dependents; // rules that depend on this rule
+        private shared uint builtDeps; // number of dependencies that are built
+        this(immutable(BuildRule) rule) { this.rule = rule; }
+        BuildTask run(shared(Scheduler!BuildTask)* scheduler)
+        {
+            import core.atomic : atomicOp;
+            rule.run();
+            BuildTask next = null;
+            foreach (dependent; dependents)
+            {
+                const built = dependent.builtDeps.atomicOp!"+="(1);
+                if (built == dependent.rule.deps.length)
+                {
+                    if (next)
+                        scheduler.schedule(dependent);
+                    else
+                        next = dependent;
+                }
+            }
+            return next;
+        }
+    }
+
+    static BuildTask makeTaskClosure(immutable(BuildRule) rule,
+        ref BuildTask[const BuildRule] map, ref Appender!(BuildTask[]) startTasks)
+    {
+        auto task = map.get(rule, null);
+        if (task is null)
+        {
+            task = new BuildTask(rule);
+            map[rule] = task;
+            if (rule.deps.empty)
+                startTasks.put(task);
+            else
+            {
+                foreach (dep; rule.deps)
+                {
+                    auto taskDep = makeTaskClosure(dep, map, startTasks);
+                    taskDep.dependents ~= task;
+                }
+            }
+        }
+        return task;
+    }
+
+    BuildTask[const BuildRule] map;
+    Appender!(BuildTask[]) startTasks;
+    targets.each!(t => makeTaskClosure(t, map, startTasks));
+    import std.concurrency : thisTid, Tid;
+    auto scheduler = shared Scheduler!BuildTask(cast(immutable Tid)thisTid, maxJobCount - 1);
+    if (startTasks.data.length >= 1)
+    {
+        foreach (task; startTasks.data[1..$])
+            scheduler.schedule(task);
+        scheduler.runOnCurrentThread(true, startTasks.data[0]);
+    }
+    {
+        auto lockedData = scheduler.lock();
+        scope (exit) scheduler.unlock();
+        if (lockedData.uncaughtException)
+            throw lockedData.uncaughtException;
+    }
+}
+
 /**
 Logging primitive
 
@@ -1584,7 +1658,6 @@ Aborts the current build
 
 TODO:
     - Display detailed error messages
-    - Handle spawned processes
 
 Params:
     msg = error message to display
@@ -1680,16 +1753,275 @@ void installRelativeFiles(T)(string targetDir, string sourceBase, T files)
     }
 }
 
-version (CRuntime_DigitalMars)
-{
-    // workaround issue https://issues.dlang.org/show_bug.cgi?id=13727
-    auto parallel(R)(R range, size_t workUnitSize) { return range; }
-}
-
 /** Wrapper around std.file.copy that also updates the target timestamp. */
 void copyAndTouch(RF, RT)(RF from, RT to)
 {
     std.file.copy(from, to);
     const now = Clock.currTime;
     to.setTimes(now, now);
+}
+
+/** Pop the last element from an appender (is there a standard library function for this already?) */
+bool tryPop(T)(ref Appender!(T[]) a, T* result)
+{
+    if (a.data.length == 0)
+        return false;
+    *result = a.data[$-1];
+    a.shrinkTo(a.data.length - 1);
+    return true;
+}
+
+/**
+A generic parallel scheduler. Call schedule() to add a task to be executed.
+Threads will be spawned dynamically as they are needed.
+This is generic enough to be a candidate for the standard library.
+*/
+struct Scheduler(Task)
+{
+    import core.sync.mutex;
+    import std.concurrency;
+
+    // owner is the Tid of the thread that is responsible for cleaning the scheduler.
+    // The scheduler cannot be cleaned up until all threads have exited or at least
+    // dropped their references to the mutex. (see mutexBorrowCount).
+    private immutable Tid owner;
+    private immutable uint maxSpawnCount; // the maximum number of threads that can be spawned
+                                          // to handle scheduled tasks
+    private Mutex mutex;
+    // This data must be used within the mutex lock while the scheduler is running
+    struct LockedData
+    {
+        private Exception uncaughtException; // saves the first uncaught exception on any of the threads
+
+        // when true, the scheduler will stop itself once there are no active threads
+        private bool stopWhenZeroActiveThreads;
+
+        // while stopping, mutexBorrowCount cannot be incremented, new scheduled tasks
+        // will be ignored and threads cannot be added to idle.
+        // stopping should be checked each time a thread enters the lock.
+        private bool stopping;
+
+        private Appender!(Task[]) pendingTasks;
+
+        // The number of threads that have been spawned by the scheduler. This is only used to limit
+        // the number of new threads from being spawned, it does not necessarily match the number of
+        // threads currently running.
+        private size_t spawnCount;
+
+        // The number of non-owner threads that have a reference to the mutex and can lock on it.
+        // The owner cannot exit/cleanup the scheduler until this reaches 0.  Also, while 'stopping',
+        // this value should never be incremented.
+        private size_t mutexBorrowCount;
+
+        // The number of threads that are active. When this drops to 0 the scheduler will initiate the stop
+        // sequence so long as stopWhenZeroActiveThreads is true
+        private size_t activeThreadCount;
+
+        // The set of threads that are currently waiting for a task.  Send a null task to stop them.
+        private Appender!(Tid[]) idle;
+
+        // Set `stopping` to true to enter stopping mode, and signal all the idle threads to stop.
+        void stop(immutable Tid owner)
+        in { assert(!stopping, "cannot enable stopping when it is already enabled"); } do
+        {
+            foreach (tid; idle.data)
+            {
+                // do not stop the owner until all tasks are stopped
+                if (tid != owner)
+                    send(tid, cast(shared(Task))null);
+            }
+            stopping = true;
+        }
+    }
+    private LockedData sharedLockedData;
+
+    this(immutable Tid owner, immutable uint maxSpawnCount) shared
+    {
+        this.owner = owner;
+        this.maxSpawnCount = maxSpawnCount;
+        mutex = new shared Mutex();
+    }
+
+    /// lock the scheduler to access shared data
+    LockedData* lock() shared
+    {
+        mutex.lock_nothrow();
+        return cast(LockedData*)&this.sharedLockedData;
+    }
+
+    /// unlock the scheduler's shared data, always call after calling lock
+    void unlock() shared
+    {
+        mutex.unlock_nothrow();
+    }
+
+    /// schedule a task to be executed
+    void schedule(Task task) shared
+    {
+        auto lockedData = lock();
+        scope(exit) unlock();
+        if (lockedData.stopping) return; // ignore new tasks when stopping
+
+        {
+            Tid tid;
+            if (lockedData.idle.tryPop(&tid))
+            {
+                send(tid, cast(shared(Task))task);
+                lockedData.activeThreadCount++; // indicates work is still being done
+                return;
+            }
+        }
+        if (lockedData.spawnCount < maxSpawnCount)
+        {
+            spawn(&threadLoop, &this, cast(shared(Task))task);
+            lockedData.spawnCount++;
+            // this new thread cannot be the owner because it was just created
+            lockedData.mutexBorrowCount++;
+            lockedData.activeThreadCount++; // indicates work is still being done
+        }
+        else
+        {
+            // save the task to be executed when a thread becomes available
+            lockedData.pendingTasks.put(task);
+        }
+    }
+
+    /**
+    Service the scheduler with the current thread. If this thread is the owner then it will
+    not return until all other threads have exited or at least dropped their reference to
+    the mutex. This means if this thread is the owner, it is safe to cleanup the scheduler
+    memory once this function returns.
+    */
+    void runOnCurrentThread(bool enableStopWhenZeroActiveThreads, Task initialTask) shared
+    {
+        bool stopping = false;
+        {
+            auto lockedData = lock();
+            scope (exit) unlock();
+            stopping = lockedData.stopping;
+            if (!stopping)
+            {
+                if (enableStopWhenZeroActiveThreads)
+                {
+                    lockedData.stopWhenZeroActiveThreads = true;
+                    if (initialTask is null && lockedData.activeThreadCount == 0)
+                    {
+                        lockedData.stop(owner);
+                        stopping = true;
+                    }
+                }
+                if (!stopping)
+                {
+                    if (thisTid != owner)
+                        lockedData.mutexBorrowCount++; // this thread can reference the mutex
+                    if (initialTask !is null)
+                        lockedData.activeThreadCount++;
+                }
+            }
+        }
+        if (stopping)
+        {
+            if (thisTid == owner)
+                assert(null is receiveOnly!(shared(Task)));
+        }
+        else
+            threadLoop(&this, cast(shared(Task))initialTask);
+    }
+
+    private void runTasks(Task task) shared
+    {
+        do { task = task.run(&this); } while (task !is null);
+    }
+
+    // NOTE: The mutexBorrowCount will have been incremented for every thread that enters this function,
+    //       except the owner thread. It is this function's responsibility to decrement the mutexBorrowCount
+    //       on exit and notify the owner thread if it reaches 0.
+    //       Also, if the initialTask is non-null, then the activeThreadCount will also have been incremented
+    //       and it is this function's responsibility to decrement it when it is no longer active.
+    private static void threadLoop(shared(Scheduler!Task)* scheduler, shared(Task) initialTask)
+    {
+        // indicates this thread is contributing to the activeThreadCount
+        bool active = initialTask !is null;
+        try
+        {
+            if (initialTask)
+                scheduler.runTasks((cast(Task)initialTask));
+
+            while (true)
+            {
+                // handle all pendingTasks first
+                while (true)
+                {
+                    Task nextTask = void;
+                    {
+                        auto lockedData = scheduler.lock();
+                        scope (exit) scheduler.unlock();
+                        if (lockedData.stopping) return;
+                        if (!lockedData.pendingTasks.tryPop(&nextTask))
+                        {
+                            assert(active && lockedData.activeThreadCount > 0, "codebug");
+                            lockedData.activeThreadCount--;
+                            active = false;
+                            if (lockedData.activeThreadCount == 0 && lockedData.stopWhenZeroActiveThreads)
+                            {
+                                lockedData.stop(scheduler.owner);
+                                return;
+                            }
+                            lockedData.idle.put(thisTid);
+                            break;
+                        }
+                    }
+                    scheduler.runTasks(nextTask);
+                }
+                Task task = cast(Task)receiveOnly!(shared(Task));
+                if (task is null)
+                    break;
+                // in this case, the activeThreadCount wil have been incremented for us
+                active = true;
+                scheduler.runTasks(task);
+            }
+        }
+        catch (Exception e)
+        {
+            auto lockedData = scheduler.lock();
+            scope (exit) scheduler.unlock();
+            if (lockedData.uncaughtException is null)
+                lockedData.uncaughtException = e;
+        }
+        finally
+        {
+            size_t currentMutexBorrowCount;
+            {
+                auto lockedData = scheduler.lock();
+                scope (exit) scheduler.unlock();
+                if (thisTid != scheduler.owner)
+                    lockedData.mutexBorrowCount--;
+                currentMutexBorrowCount = lockedData.mutexBorrowCount;
+                if (active)
+                {
+                    assert(lockedData.activeThreadCount > 0);
+                    lockedData.activeThreadCount--;
+                    if (lockedData.activeThreadCount == 0 && !lockedData.stopping)
+                    {
+                        // we are going to stop whether or not stopWhenZeroActiveThreads is
+                        // enabled because this would constitute an error code path
+                        lockedData.stop(scheduler.owner);
+                    }
+                }
+            }
+            if (thisTid == scheduler.owner)
+            {
+                if (currentMutexBorrowCount > 0)
+                {
+                    Task task;
+                    do { task = cast(Task)receiveOnly!(shared(Task)); } while (task !is null);
+                }
+            }
+            else
+            {
+                 if (currentMutexBorrowCount == 0)
+                     send(cast(Tid)scheduler.owner, cast(shared(Task))null);
+            }
+        }
+    }
 }
