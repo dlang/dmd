@@ -1408,36 +1408,37 @@ class Dependency
     }
 
     /// Executes the dependency
-    void run()
+    bool run()
     {
         synchronized (this)
-            runSynchronized();
+            return runSynchronized();
     }
 
-    private void runSynchronized()
+    private bool runSynchronized()
     {
         if (executed)
-            return;
+            return false;
         scope (exit) executed = true;
         scope (failure) if (verbose) dump();
 
         bool depUpdated = false;
         foreach (dep; deps.parallel(1))
         {
-            dep.run();
+            if (dep.run())
+                depUpdated = true;
         }
 
         if (condition !is null && !condition())
         {
             log("Skipping build of %-(%s%) as its condition returned false", targets);
-            return;
+            return false;
         }
 
-        if (targets && targets.isUpToDate(this.sources.chain([thisBuildScript])))
+        if (!depUpdated && targets && targets.isUpToDate(this.sources.chain([thisBuildScript])))
         {
             if (this.sources !is null)
                 log("Skipping build of %-(%s%) as it's newer than %-(%s%)", targets, this.sources);
-            return;
+            return false;
         }
 
         // Display the execution of the dependency
@@ -1468,14 +1469,16 @@ class Dependency
             scope (failure) if (!verbose) dump();
 
             if (commandFunction !is null)
-
-                return commandFunction();
-
-            if (command)
+            {
+                commandFunction();
+            }
+            else if (command.length)
             {
                 command.run;
             }
         }
+
+        return true;
     }
 
     /// Writes relevant informations about this dependency to stdout
