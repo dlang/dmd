@@ -1417,7 +1417,8 @@ class BuildRule
     string name; /// optional string that can be used to identify this rule
     string description; /// optional string to describe this rule rather than printing the target files
 
-    private bool executed;
+    private shared bool executed; // true if run has been called and has returned
+    private shared bool updated;  // true if run has been called and the command was exected
 
     /// Finish creating the rule by checking that it is configured properly
     void finalize()
@@ -1433,13 +1434,15 @@ class BuildRule
     bool run()
     {
         synchronized (this)
-            return runSynchronized();
+        {
+            runSynchronized();
+            return updated;
+        }
     }
 
-    private bool runSynchronized()
+    private void runSynchronized()
     {
-        if (executed)
-            return false;
+        if (executed) return;
         scope (exit) executed = true;
         scope (failure) if (verbose) dump();
 
@@ -1453,14 +1456,14 @@ class BuildRule
         if (condition !is null && !condition())
         {
             log("Skipping build of %-(%s%) as its condition returned false", targets);
-            return false;
+            return;
         }
 
         if (!depUpdated && targets && targets.isUpToDate(this.sources.chain([thisBuildScript])))
         {
             if (this.sources !is null)
                 log("Skipping build of %-(%s%) as it's newer than %-(%s%)", targets, this.sources);
-            return false;
+            return;
         }
 
         // Display the execution of the rule
@@ -1500,7 +1503,7 @@ class BuildRule
             }
         }
 
-        return true;
+        updated = true;
     }
 
     /// Writes relevant informations about this rule to stdout
