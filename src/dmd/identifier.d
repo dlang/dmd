@@ -138,10 +138,10 @@ nothrow:
 
     private extern (D) __gshared StringTable!Identifier stringtable;
 
-    extern(D) static Identifier generateId(const(char)[] prefix)
+    static Identifier generateId(const(char)* prefix)
     {
         __gshared size_t i;
-        return generateId(prefix, ++i);
+        return generateId(prefix.toDString(), ++i);
     }
 
     extern(D) static Identifier generateId(const(char)[] prefix, size_t i)

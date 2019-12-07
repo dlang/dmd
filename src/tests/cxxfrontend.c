@@ -180,7 +180,7 @@ void test_visitors()
 {
     TestVisitor tv;
     Loc loc;
-    Identifier *ident = Identifier::idPool("test");
+    Identifier *ident = Identifier::generateId("test");
 
     IntegerExp *ie = IntegerExp::create(loc, 42, Type::tint32);
     ie->accept(&tv);
@@ -233,8 +233,7 @@ void test_visitors()
 
     Parameters *args = new Parameters;
     TypeFunction *tf = TypeFunction::create(args, Type::tvoid, VARARGnone, LINKc);
-    FuncDeclaration *fd = FuncDeclaration::create(Loc (), Loc (), Identifier::idPool("test"),
-                                                  STCextern, tf);
+    FuncDeclaration *fd = FuncDeclaration::create(Loc (), Loc (), ident, STCextern, tf);
     assert(fd->isFuncDeclaration() == fd);
     assert(fd->type == tf);
     fd->accept(&tv);
