@@ -329,12 +329,6 @@ version (Shared)
     __gshared pthread_mutex_t _handleToDSOMutex;
     @property ref HashTab!(void*, DSO*) _handleToDSO() @nogc nothrow { __gshared HashTab!(void*, DSO*) x; return x; }
     //__gshared HashTab!(void*, DSO*) _handleToDSO;
-
-    /*
-     * Section in executable that contains copy relocations.
-     * Might be null when druntime is dynamically loaded by a C host.
-     */
-    __gshared const(void)[] _copyRelocSection;
 }
 else
 {
