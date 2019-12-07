@@ -336,6 +336,7 @@ void test_parameters()
     assert(tf->parameterList.length() == 2);
     assert(tf->parameterList[0]->type == Type::tint32);
     assert(tf->parameterList[1]->type == Type::tint64);
+    assert(!tf->isDstyleVariadic());
 }
 
 /**********************************/
