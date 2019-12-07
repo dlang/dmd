@@ -1,7 +1,7 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/b20437.d(12): Error: cannot implicitly convert expression d of type void delegate() to immutable(void delegate())
-fail_compilation/b20437.d(13): Error: cannot implicitly convert expression d of type void delegate() to shared(void delegate())
+fail_compilation/b20437.d(12): Error: cannot implicitly convert expression `d` of type `void delegate()` to `immutable(void delegate())`
+fail_compilation/b20437.d(13): Error: cannot implicitly convert expression `d` of type `void delegate()` to `shared(void delegate())`
 ---
 */
 // https://issues.dlang.org/show_bug.cgi?id=20437

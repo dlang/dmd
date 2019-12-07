@@ -4950,7 +4950,6 @@ void test15653()
                                  float,  double,  real,
                                 ifloat, idouble, ireal,
                                 cfloat, cdouble, creal,
-                                void delegate(),
                                 int[2], X, X[2]))
     {
         foo!U(U.init);      // OK

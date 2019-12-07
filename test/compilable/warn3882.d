@@ -70,7 +70,7 @@ void test12909()
 
 const struct Foo13899
 {
-    int opApply(immutable int delegate(in ref int) pure nothrow dg) pure nothrow
+    int opApply(int delegate(in ref int) pure nothrow dg) pure nothrow
     {
         return 1;
     }
