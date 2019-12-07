@@ -5064,7 +5064,7 @@ extern (C++) final class TypeDelegate : TypeNext
         version (all)
         {
             // https://issues.dlang.org/show_bug.cgi?id=20437
-            if (!MODimplicitConv(next.mod, to.mod))
+            if (!MODimplicitConv(mod, to.mod))
                 return MATCH.nomatch;
 
             // not allowing covariant conversions because it interferes with overriding
