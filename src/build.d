@@ -343,6 +343,8 @@ alias dmdExe = makeDepWithArgs!((MethodInitializer!Dependency builder, Dependenc
     string[] platformArgs;
     version (Windows)
         platformArgs = ["-L/STACK:8388608"];
+    else version (OSX)
+        platformArgs = ["-L-framework", "-LCoreFoundation"];
 
     builder
         // include lexer.o and backend.o
@@ -392,6 +394,11 @@ alias runCxxUnittest = makeDep!((runCxxBuilder, runCxxDep) {
         .command([ env["CXX"], "-c", frontendDep.sources[0], "-o" ~ frontendDep.target, "-I" ~ env["D"] ] ~ flags["CXXFLAGS"])
     );
 
+    version (OSX)
+        const platformArgs = ["-L-framework", "-LCoreFoundation"];
+    else
+        const string[] platformArgs;
+
     alias cxxUnittestExe = methodInit!(Dependency, (exeBuilder, exeDep) => exeBuilder
         .name("cxx-unittest")
         .description("Build the C++ unittests")
@@ -402,7 +409,7 @@ alias runCxxUnittest = makeDep!((runCxxBuilder, runCxxDep) {
         .command([ env["HOST_DMD_RUN"], "-of=" ~ exeDep.target, "-vtls", "-J" ~ env["RES"],
                     "-L-lstdc++", "-version=NoMain"
             ].chain(
-                flags["DFLAGS"], exeDep.sources, exeDep.deps.map!(d => d.target)
+                flags["DFLAGS"], platformArgs, exeDep.sources, exeDep.deps.map!(d => d.target)
             ).array)
     );
 
@@ -626,6 +633,9 @@ alias toolchainInfo = makeDep!((builder, dep) => builder
         }
 
         writeln("==== Toolchain Information ====");
+
+        version (OSX)
+            show("OS", ["sw_vers"]);
 
         version (Windows)
             show("SYSTEM", ["systeminfo"]);
@@ -1094,7 +1104,7 @@ auto sourceFiles()
             dtype.d debugprint.d fp.d symbol.d elem.d dcode.d cgsched.d cg87.d cgxmm.d cgcod.d cod1.d cod2.d
             cod3.d cv8.d dcgcv.d pdata.d util2.d var.d md5.d backconfig.d ph2.d drtlsym.d dwarfeh.d ptrntab.d
             dvarstats.d dwarfdbginf.d cgen.d os.d goh.d barray.d cgcse.d elpicpie.d
-            machobj.d elfobj.d
+            machobj.d elfobj.d core_foundation.d
             " ~ ((env["OS"] == "windows") ? "cgobj.d filespec.d mscoffobj.d newman.d" : "aarray.d")
         ),
         backendHeaders: fileArray(env["C"], "

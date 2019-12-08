@@ -169,7 +169,7 @@ BACKSRC= \
 	$C\md5.d $C\ph2.d $C\util2.d \
 	$C\mscoffobj.d $C\pdata.d $C\cv8.d $C\backconfig.d \
 	$C\divcoeff.d $C\dwarfeh.d $C\dvarstats.d \
-	$C\dvec.d $C\filespec.d $C\mem.d $C\backend.txt
+	$C\dvec.d $C\filespec.d $C\mem.d $C\core_foundation.d $C\backend.txt
 
 # Root package
 ROOTSRCD=$(ROOT)\rmem.d $(ROOT)\stringtable.d $(ROOT)\hash.d $(ROOT)\man.d $(ROOT)\port.d \

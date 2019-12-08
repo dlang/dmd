@@ -57,26 +57,27 @@ Exception Handling
 Miscellaneous
 -------------
 
-* **backend.d**       internal header file for the backend
-* **bcomplex.d**      our own complex number implementation
-* **md5.d**           implementation of MD5 message digest
-* **md5.di**          API for md5.d
-* **newman.d**        "new" C++ name mangling scheme
-* **os.d**            some operating system specific support
-* **cc.d**            common definitions
-* **cdef.d**          configuration
-* **backconfig.d**    transfer configuration from front end to back end
-* **compress.d**      identifier comperssion
-* **debugprint.d**    pretty print data structures
-* **iasm.d**          declarations for inline assembler
-* **ptrntab.d**       instruction tables for inline assembler
-* **oper.d**          operators for expression tree
-* **optabgen.d**      generate tables for back end
-* **ty.d**            type masks
-* **ph2.d**           leaking allocator
-* **symbol.d**        symbols for the back end
-* **type.d**          types for the back end
-* **var.d**           global variables
+* **backend.d**         internal header file for the backend
+* **bcomplex.d**        our own complex number implementation
+* **md5.d**             implementation of MD5 message digest
+* **md5.di**            API for md5.d
+* **newman.d**          "new" C++ name mangling scheme
+* **os.d**              some operating system specific support
+* **cc.d**              common definitions
+* **cdef.d**            configuration
+* **backconfig.d**      transfer configuration from front end to back end
+* **compress.d**        identifier comperssion
+* **core_foundation.d** bindings to parts of the Core Foundation framework
+* **debugprint.d**      pretty print data structures
+* **iasm.d**            declarations for inline assembler
+* **ptrntab.d**         instruction tables for inline assembler
+* **oper.d**            operators for expression tree
+* **optabgen.d**        generate tables for back end
+* **ty.d**              type masks
+* **ph2.d**             leaking allocator
+* **symbol.d**          symbols for the back end
+* **type.d**            types for the back end
+* **var.d**             global variables
 
 Code Generation
 ---------------

@@ -28,6 +28,7 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.code_x86;
+import dmd.backend.core_foundation;
 import dmd.backend.mem;
 import dmd.backend.aarray;
 import dmd.backend.dlist;
@@ -38,6 +39,9 @@ import dmd.backend.oper;
 import dmd.backend.outbuf;
 import dmd.backend.ty;
 import dmd.backend.type;
+
+version (MARS)
+    import dmd.backend.errors;
 
 extern (C++):
 
@@ -718,6 +722,7 @@ version (SCPP)
      *                  { sections }
      *          symtab_command
      *          dysymtab_command
+     *          build_version_command/version_min_command
      *  { segment contents }
      *  { relocations }
      *  symbol table
@@ -725,6 +730,7 @@ version (SCPP)
      *  indirect symbol table
      */
 
+    auto versionCommand = VersionCommand(operatingSystemVersion, sdkVersion);
     uint foffset;
     uint headersize;
     uint sizeofcmds;
@@ -738,11 +744,12 @@ version (SCPP)
         header.cputype = CPU_TYPE_X86_64;
         header.cpusubtype = CPU_SUBTYPE_I386_ALL;
         header.filetype = MH_OBJECT;
-        header.ncmds = 3;
+        header.ncmds = 4;
         header.sizeofcmds = cast(uint)(segment_command_64.sizeof +
                                 (section_cnt - 1) * section_64.sizeof +
                             symtab_command.sizeof +
-                            dysymtab_command.sizeof);
+                            dysymtab_command.sizeof +
+                            versionCommand.size);
         header.flags = MH_SUBSECTIONS_VIA_SYMBOLS;
         header.reserved = 0;
         fobjbuf.write(&header, header.sizeof);
@@ -1488,6 +1495,7 @@ version (SCPP)
     }
     fobjbuf.write(&symtab_cmd, symtab_cmd.sizeof);
     fobjbuf.write(&dysymtab_cmd, dysymtab_cmd.sizeof);
+    fobjbuf.write(versionCommand.data, versionCommand.size);
     fobjbuf.position(foffset, 0);
     fobjbuf.flush();
 }
@@ -2994,6 +3002,321 @@ int dwarf_eh_frame_fixup(int dfseg, targ_size_t offset, Symbol *s, targ_size_t v
     pseg.SDrel.write(&rel, rel.sizeof);
 
     return I64 ? 8 : 4;
+}
+
+private:
+
+extern (D):
+
+/**
+ * Encapsulates the build_version_command/version_min_command load commands.
+ *
+ * For the 10.14 and later SDK, the `build_version_command` load command is used.
+ * For earlier versions, the `version_min_command` load command is used.
+ */
+const struct VersionCommand
+{
+    pure:
+    nothrow:
+    @nogc:
+    @safe:
+
+    private
+    {
+        /**
+         * This is the absolute minimum supported version of macOS (64 bit) for DMD.
+         *
+         * Earlier versions did not support thread local storage.
+         */
+        enum fallbackOSVersion = Version(10, 7).encode;
+
+        /// The first minor version that uses the `build_version_command`.
+        enum firstMinorUsingBuildVersionCommand = 14;
+
+        /// `true` if the `build_version_command` load command should be used.
+        bool useBuild;
+
+        /// The `build_version_command` load command.
+        build_version_command buildVersionCommand;
+
+        /// The `version_min_command` load command.
+        version_min_command versionMinCommand;
+    }
+
+    /**
+     * Initializes the VersionCommand.
+     *
+     * Params:
+     *  os = the version of the operating system
+     *  sdk = the version of the SDK
+     */
+    this(Version os, Version sdk)
+    {
+        useBuild = sdk.minor >= firstMinorUsingBuildVersionCommand;
+
+        const encodedOs = os.isValid ? os.encode : fallbackOSVersion;
+        const encodedSdk = sdk.isValid ? sdk.encode : 0;
+
+        const build_version_command buildVersionCommand = { minos: encodedOs, sdk: encodedSdk };
+        const version_min_command versionMinCommand = { version_: encodedOs, sdk: encodedSdk };
+
+        this.buildVersionCommand = buildVersionCommand;
+        this.versionMinCommand = versionMinCommand;
+    }
+
+    /// Returns: the size of the load command.
+    size_t size()
+    {
+        return useBuild ? build_version_command.sizeof : version_min_command.sizeof;
+    }
+
+    /// Returns: the data for the load command.
+    const(void)* data() return
+    {
+        return useBuild ? cast(const(void)*) &buildVersionCommand : cast(const(void)*) &versionMinCommand;
+    }
+}
+
+/// Holds an operating system version or a SDK version.
+immutable struct Version
+{
+    ///
+    int major;
+
+    ///
+    int minor;
+
+    ///
+    int build;
+
+    /// Returns: `true` if the version is valid
+    bool isValid() pure nothrow @nogc @safe
+    {
+        return major >= 10 && major < 100 &&
+            minor >= 0 && minor < 100 &&
+            build >= 0 && build < 100;
+    }
+}
+
+/**
+ * Returns the given version encoded as a single integer.
+ *
+ * Params:
+ *  version_ = the version to encode. Needs to be a valid version
+ *      (`version_.isValid`)
+ *
+ * Returns: the encoded version
+ */
+int encode(Version version_) pure @nogc @safe
+in
+{
+    assert(version_.isValid);
+}
+body
+{
+    with (version_)
+        return major * 2^^16 + minor * 2^^8 + build * 2^^0;
+}
+
+unittest
+{
+    assert(Version(10, 14, 0).encode == 658944);
+    assert(Version(10, 14, 1).encode == 658945);
+    assert(Version(10, 14, 6).encode == 658950);
+    assert(Version(10, 14, 99).encode == 659043);
+
+    assert(Version(10, 15, 6).encode == 659206);
+
+    assert(Version(10, 16, 0).encode == 659456);
+    assert(Version(10, 16, 6).encode == 659462);
+
+    assert(Version(10, 17, 0).encode == 659712);
+}
+
+/// Returns: the version of the currently running operating system.
+Version operatingSystemVersion()
+{
+    const deploymentTarget = getenv("MACOSX_DEPLOYMENT_TARGET");
+
+    if (deploymentTarget)
+    {
+        const version_ = toVersion(deploymentTarget);
+
+        if (version_.isValid)
+            return version_;
+
+        error(null, 0, 0, "invalid version number in 'MACOSX_DEPLOYMENT_TARGET=%s'", deploymentTarget);
+        return Version();
+    }
+
+    enum path = "/System/Library/CoreServices/SystemVersion.plist";
+    char["XX.YY.ZZ\0".length] buffer = void;
+
+    const osVersion = readAndExtractFromPropertyListFile(path, "ProductVersion")
+        .toString(buffer[])
+        .ptr
+        .toVersion();
+
+    const Version version_ = { major: osVersion.major, minor: osVersion.minor };
+    return version_;
+}
+
+/// Returns: the version of the current SDK.
+Version sdkVersion() @nogc
+{
+    static const struct DeveloperRoot
+    {
+        char[] path;
+        bool isCommandLineTools;
+    }
+
+    static DeveloperRoot resolveDeveloperRoot(char[] buffer)
+    {
+        import core.stdc.errno : errno, ENOENT;
+        import core.sys.posix.sys.stat : lstat, stat_t, S_ISDIR;
+        import core.sys.posix.unistd : readlink;
+
+        static bool isDirectory(const scope char* path)
+        {
+            stat_t buffer = void;
+            return lstat(path, &buffer) == 0 && S_ISDIR(buffer.st_mode);
+        }
+
+        static immutable potentialLinks = [
+            "/var/db/xcode_select_link",
+            "/usr/share/xcode-select/xcode_dir_path"
+        ];
+
+        foreach (path ; potentialLinks)
+        {
+            const len = readlink(path.ptr, buffer.ptr, buffer.length);
+
+            if (len != -1)
+                return DeveloperRoot(buffer[0 .. len]);
+
+            if (errno != ENOENT)
+                return DeveloperRoot();
+        }
+
+        enum xcodePath = "/Applications/Xcode.app/Contents/Developer";
+        enum commandLineToolsPath = "/Library/Developer/CommandLineTools";
+
+        if (isDirectory(xcodePath))
+        {
+            const len = xcodePath.length;
+            buffer[0 .. len] = xcodePath;
+
+            return DeveloperRoot(buffer[0 .. len]);
+        }
+
+        if (isDirectory(commandLineToolsPath))
+        {
+            const len = commandLineToolsPath.length;
+            buffer[0 .. len] = commandLineToolsPath;
+            return DeveloperRoot(buffer[0 .. len], true);
+        }
+
+        return DeveloperRoot();
+    }
+
+    static const(char[]) sdkDirectory(DeveloperRoot root, char[] buffer)
+    {
+        enum cltSdkPath = "SDKs/MacOSX.sdk";
+        enum xcodeSdkPath = "Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk";
+
+        const sdkPath = root.isCommandLineTools ? cltSdkPath : xcodeSdkPath;
+        buffer[0 .. sdkPath.length] = sdkPath;
+
+        return buffer[0 .. sdkPath.length];
+    }
+
+    static const(char[]) sdkSettingsPath(char[] buffer)
+    {
+        size_t len = 0;
+
+        const root = resolveDeveloperRoot(buffer[]);
+        len = root.path.length;
+
+        if (len + 1 >= buffer.length)
+            return null;
+
+        buffer[len++] = '/';
+
+        const dir = sdkDirectory(root, buffer[len .. $]);
+        len += dir.length;
+
+        enum sdkSettingsFilename = "SDKSettings.plist";
+        const end = len + sdkSettingsFilename.length + 1; // for /
+
+        if (end > buffer.length)
+            return null;
+
+        buffer[len++] = '/';
+        buffer[len .. end] = sdkSettingsFilename;
+
+        return buffer[0 .. end];
+    }
+
+    enum PATH_MAX = 1024; // was added to core.stdc.limits in 2.085.0
+    char[PATH_MAX] buffer = void;
+    const path = sdkSettingsPath(buffer);
+
+    if (path.length == 0)
+        return Version();
+
+    return readAndExtractFromPropertyListFile(path, "Version")
+        .toString(buffer[])
+        .ptr
+        .toVersion();
+}
+
+/**
+ * Converts the given string to a `Version`.
+ *
+ * Params:
+ *  str = the string to convert. Should have the format `XX.YY(.ZZ)`. Needs to
+ *      be `\0` terminated.
+ *
+ * Returns: the converted `Version`.
+ */
+Version toVersion(const char* str) @nogc
+{
+    import core.stdc.stdio : sscanf;
+
+    if (!str)
+        return Version();
+
+    Version version_;
+
+    with (version_)
+        str.sscanf("%d.%d.%d", &major, &minor, &build);
+
+    return version_;
+}
+
+/**
+ * Reads the given key from the property list located an the given path.
+ *
+ * Params:
+ *  path = the path to the property list file
+ *  key = the key to read from the property list. Needs to be at the root level.
+ *      the associated value is assumed to be a string (`CFString`).
+ *
+ * Returns: the value from the property list file associated with the key.
+ */
+AutoRelease!CFStringRef readAndExtractFromPropertyListFile(const char[] path, string key) @nogc
+{
+    const propertyList = createPropertyListFromFile(path);
+    if (!propertyList) return typeof(return).init;
+
+    auto dictionary = propertyList.asInstanceOf!CFDictionaryRef;
+    if (!dictionary) return typeof(return).init;
+
+    return dictionary
+        .CFDictionaryGetValue(key.cfString)
+        .CFRetain
+        .asInstanceOf!CFStringRef
+        .autoRelease;
 }
 
 }
