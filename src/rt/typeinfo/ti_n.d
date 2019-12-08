@@ -46,7 +46,8 @@ class TypeInfo_n : TypeInfo
 
     override const(void)[] initializer() const @trusted
     {
-        return (cast(void*)null)[0 .. typeof(null).sizeof];
+        __gshared immutable void[typeof(null).sizeof] init;
+        return init[];
     }
 
     override void swap(void *p1, void *p2) const @trusted
