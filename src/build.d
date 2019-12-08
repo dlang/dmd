@@ -129,13 +129,6 @@ Command-line parameters
         pragma(msg, "Warning: Parallel builds disabled because of Issue 13727!");
         jobs = min(jobs, 1); // Fall back to a sequential build
     }
-    else version (OSX)
-    {
-        // FIXME: Parallel executions hangs reliably on Mac  (esp. the 'macair'
-        // host used by the autotester) for unknown reasons outside of this script.
-        // Disable parallel execution until this issue has been resolved.
-        jobs = min(jobs, 1);
-    }
 
     if (jobs <= 0)
         abortBuild("Invalid number of jobs: %d".format(jobs));
@@ -321,10 +314,12 @@ DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@
         .target(env["G"].buildPath(confFile))
         .msg("(TX) DMD_CONF")
         .commandFunction(() {
-            conf.replace("{exportDynamic}", exportDynamic)
+            const expConf = conf
+                .replace("{exportDynamic}", exportDynamic)
                 .replace("{BUILD}", env["BUILD"])
-                .replace("{OS}", env["OS"])
-                .toFile(rule.target);
+                .replace("{OS}", env["OS"]);
+
+            writeText(rule.target, expConf);
         });
 });
 
@@ -365,14 +360,14 @@ alias versionFile = makeRule!((builder, rule) {
     .target(env["G"].buildPath("VERSION"))
     .condition(() => !rule.target.exists || rule.target.readText != contents)
     .msg("(TX) VERSION")
-    .commandFunction(() => std.file.write(rule.target, contents));
+    .commandFunction(() => writeText(rule.target, contents));
 });
 
 alias sysconfDirFile = makeRule!((builder, rule) => builder
     .target(env["G"].buildPath("SYSCONFDIR.imp"))
     .condition(() => !rule.target.exists || rule.target.readText != env["SYSCONFDIR"])
     .msg("(TX) SYSCONFDIR")
-    .commandFunction(() => std.file.write(rule.target, env["SYSCONFDIR"]))
+    .commandFunction(() => writeText(rule.target, env["SYSCONFDIR"]))
 );
 
 /// BuildRule to create a directory if it doesn't exist.
@@ -601,7 +596,7 @@ alias man = makeRule!((builder, rule) {
         .deps([genMan, directoryRule(dmdManRule.target.dirName)])
         .msg("(GEN_MAN) " ~ dmdManRule.target)
         .commandFunction(() {
-            std.file.write(dmdManRule.target, genMan.target.execute.output);
+            writeText(dmdManRule.target, genMan.target.execute.output);
         })
     );
     builder
@@ -1506,12 +1501,10 @@ Params:
 */
 void updateIfChanged(const string path, const string content)
 {
-    import std.file : exists, readText, write;
-
     const existingContent = path.exists ? path.readText : "";
 
     if (content != existingContent)
-        write(path, content);
+        writeText(path, content);
 }
 
 /**
@@ -1915,4 +1908,33 @@ void copyAndTouch(RF, RT)(RF from, RT to)
     std.file.copy(from, to);
     const now = Clock.currTime;
     to.setTimes(now, now);
+}
+
+version (OSX)
+{
+    // FIXME: Parallel executions hangs reliably on Mac  (esp. the 'macair'
+    // host used by the autotester) for unknown reasons outside of this script.
+    pragma(msg, "Warning: Syncing file access because of OSX!");
+
+    // Wrap standard library functions to ensure mutually exclusive file access
+    alias readText = fileAccess!(std.file.readText, string);
+    alias writeText = fileAccess!(std.file.write, string, string);
+    alias timeLastModified = fileAccess!(std.file.timeLastModified, string);
+
+    import core.sync.mutex;
+    __gshared Mutex fileAccessMutex;
+    shared static this() {
+        fileAccessMutex = new Mutex();
+    }
+
+    auto fileAccess(alias dg, T...)(T args)
+    {
+        fileAccessMutex.lock_nothrow();
+        scope (exit) fileAccessMutex.unlock_nothrow();
+        return dg(args);
+    }
+}
+else
+{
+    alias writeText = std.file.write;
 }
