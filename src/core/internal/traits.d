@@ -686,3 +686,30 @@ if (func.length == 1 /*&& isCallable!func*/)
     static assert(P_dglit.length == 1);
     static assert(is(P_dglit[0] == int));
 }
+
+// Return `true` if `Type` has `member` that evaluates to `true` in a static if condition
+enum isTrue(Type, string member) = __traits(compiles, { static if (__traits(getMember, Type, member)) {} else static assert(0); });
+
+unittest
+{
+    static struct T
+    {
+        enum a = true;
+        enum b = false;
+        enum c = 1;
+        enum d = 45;
+        enum e = "true";
+        enum f = "";
+        enum g = null;
+        alias h = bool;
+    }
+
+    static assert( isTrue!(T, "a"));
+    static assert(!isTrue!(T, "b"));
+    static assert( isTrue!(T, "c"));
+    static assert( isTrue!(T, "d"));
+    static assert( isTrue!(T, "e"));
+    static assert( isTrue!(T, "f"));
+    static assert(!isTrue!(T, "g"));
+    static assert(!isTrue!(T, "h"));
+}
