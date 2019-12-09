@@ -197,7 +197,6 @@ enum
 
 struct Token
 {
-    Token *next;
     Loc loc;
     const utf8_t *ptr;    // pointer to first character of this token within buffer
     TOK value;
@@ -223,7 +222,7 @@ struct Token
 
     void free();
 
-    Token() : next(NULL) {}
+    Token() {}
     int isKeyword();
     const char *toChars() const;
 

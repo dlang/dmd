@@ -1998,7 +1998,9 @@ RootObject compileTypeMixin(TypeMixin tm, Loc loc, Scope* sc)
     buf.writeByte(0);
     const str = buf.extractSlice()[0 .. len];
     scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-    scope p = new Parser!ASTCodegen(loc, sc._module, str, false, diagnosticReporter);
+    //the mixin could contain statements which refer to p during semantic
+    //so don't make it scope
+    auto p = new Parser!ASTCodegen(loc, sc._module, str, false, diagnosticReporter);
     p.nextToken();
     //printf("p.loc.linnum = %d\n", p.loc.linnum);
 

@@ -37,7 +37,7 @@ extern(C++) Statement asmSemantic(AsmStatement s, Scope *sc)
     FuncDeclaration fd = sc.parent.isFuncDeclaration();
     assert(fd);
 
-    if (!s.tokens)
+    if (s.tokens.empty)
         return null;
 
     // Assume assembler code takes care of setting the return value

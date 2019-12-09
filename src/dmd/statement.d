@@ -41,6 +41,7 @@ import dmd.id;
 import dmd.identifier;
 import dmd.dinterpret;
 import dmd.mtype;
+import dmd.lexer;
 import dmd.parse;
 import dmd.root.outbuffer;
 import dmd.root.rootobject;
@@ -816,7 +817,7 @@ extern (C++) final class CompileStatement : Statement
         buf.writeByte(0);
         const str = buf.extractSlice()[0 .. len];
         scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-        scope p = new Parser!ASTCodegen(loc, sc._module, str, false, diagnosticReporter);
+        auto p = new Parser!ASTCodegen(loc, sc._module, str, false, diagnosticReporter);
         p.nextToken();
 
         auto a = new Statements();
@@ -2401,15 +2402,15 @@ extern (C++) final class LabelDsymbol : Dsymbol
  */
 extern (C++) class AsmStatement : Statement
 {
-    Token* tokens;
+    TokenRange tokens;
 
-    extern (D) this(const ref Loc loc, Token* tokens)
+    extern (D) this(const ref Loc loc, TokenRange tokens)
     {
         super(loc, STMT.Asm);
         this.tokens = tokens;
     }
 
-    extern (D) this(const ref Loc loc, Token* tokens, STMT stmt)
+    extern (D) this(const ref Loc loc, TokenRange tokens, STMT stmt)
     {
         super(loc, stmt);
         this.tokens = tokens;
@@ -2437,7 +2438,7 @@ extern (C++) final class InlineAsmStatement : AsmStatement
     bool refparam;  // true if function parameter is referenced
     bool naked;     // true if function is to be naked
 
-    extern (D) this(const ref Loc loc, Token* tokens)
+    extern (D) this(const ref Loc loc, TokenRange tokens)
     {
         super(loc, tokens, STMT.InlineAsm);
     }
@@ -2469,7 +2470,7 @@ extern (C++) final class GccAsmStatement : AsmStatement
     Identifiers* labels;        // list of goto labels
     GotoStatements* gotos;      // of the goto labels, the equivalent statements they represent
 
-    extern (D) this(const ref Loc loc, Token* tokens)
+    extern (D) this(const ref Loc loc, TokenRange tokens)
     {
         super(loc, tokens, STMT.GccAsm);
     }

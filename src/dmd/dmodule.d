@@ -989,7 +989,9 @@ extern (C++) final class Module : Package
             isHdrFile = true;
         }
         {
-            scope p = new Parser!AST(this, buf, cast(bool) docfile, diagnosticReporter);
+            //some statements need to reference the parser during semantic,
+            //so don't make it scope
+            auto p = new Parser!AST(this, buf, cast(bool) docfile, diagnosticReporter);
             p.nextToken();
             members = p.parseModule();
             md = p.md;

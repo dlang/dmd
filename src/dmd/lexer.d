@@ -202,6 +202,84 @@ unittest
     }
 }
 
+/***************
+ * Represents a range of tokens lazily scanned from a lexer
+ * should be created with the Lexer makeRangeFromHere method
+ */
+struct TokenRange
+{
+private:
+    Lexer lex; //where are these tokens coming from?
+    size_t start_, stop_;
+
+public:
+    nothrow:
+    /// returns the first token in the range
+    Token front()
+    {
+        return lex.getByIndex(start_);
+    }
+    /// returns the last token in the range
+    Token back()
+    {
+        return lex.getByIndex(stop_ -1);
+    }
+    /// return the first token after this range
+    Token peek()
+    {
+        return lex.getByIndex(stop_);
+    }
+    /// returns the second token in the range
+    Token peekFront()
+    {
+        return lex.getByIndex(start_ +1);
+    }
+    /// add the next token in the scanner to the back of the range
+    Token growBack()
+    {
+        return lex.getByIndex(stop_++);
+    }
+    /// return the lexer this range gets its tokens from
+    Lexer getLexer()
+    {
+        return lex;
+    }
+    pure:
+    @safe:
+    /// remove the first token from the range
+    void popFront()
+    {
+        ++start_;
+    }
+    /// remove the last token from the range
+    void popBack()
+    {
+        assert(stop_ > start_);
+        --stop_;
+    }
+    /// returns true if there are no tokens in the range
+    bool empty() const
+    {
+        return start_ == stop_;
+    }
+    /// returns the number of tokens in the range (possibly 0)
+    size_t length() const
+    {
+        return stop_ - start_;
+    }
+    /// return the index of the first token in the lexer's array of tokens
+    size_t start() const
+    {
+        return start_;
+    }
+    /// return the index of one past the last token, in the lexer's array of tokens
+    size_t stop() const
+    {
+        return stop_;
+    }
+}
+
+
 /***********************************************************
  */
 class Lexer
@@ -228,7 +306,14 @@ class Lexer
         int lastDocLine;        // last line of previous doc comment
 
         DiagnosticReporter diagnosticReporter;
-        Token* tokenFreelist;
+
+        enum PoolSize = 1024; //number of tokens per pool
+        enum DefaultPoolListSize = 64; //number of pools to allocate by default
+        Token[][] pools;
+        size_t nextTokenIndex = 0;
+        size_t tokensScanned = 0;
+        size_t poolsAllocated = 0;
+
     }
 
   nothrow:
@@ -300,43 +385,63 @@ class Lexer
         return diagnosticReporter.errorCount > 0;
     }
 
-    /// Returns: a newly allocated `Token`.
-    Token* allocateToken() pure nothrow @safe
+    private ref Token getByIndex(size_t index)
     {
-        if (tokenFreelist)
+        if (index >= PoolSize*poolsAllocated)
         {
-            Token* t = tokenFreelist;
-            tokenFreelist = t.next;
-            t.next = null;
-            return t;
+            allocatePools(index + 1); //need space for index 0
         }
-        return new Token();
+
+        while (index >= tokensScanned)
+        {
+            Token* current = &pools[tokensScanned / PoolSize][tokensScanned % PoolSize];
+            scan(current);
+            tokensScanned++;
+        }
+        return pools[index / PoolSize][index % PoolSize];
     }
 
-    /// Frees the given token by returning it to the freelist.
-    private void releaseToken(Token* token) pure nothrow @nogc @safe
-    {
-        if (mem.isGCEnabled)
-            *token = Token.init;
-        token.next = tokenFreelist;
-        tokenFreelist = token;
+    private void allocatePools(size_t tokensNeeded){
+        const poolsNeeded = (tokensNeeded + PoolSize - 1)/PoolSize;
+        if (poolsNeeded > pools.length)
+        {
+            const newLength = pools.length > 0 ? 2*pools.length : DefaultPoolListSize;
+            Token[][] newPoolList = (cast(Token[]*)mem.xmalloc((Token[]).sizeof *newLength))[0 .. newLength];
+
+            if(pools.length > 0)
+                newPoolList[0 .. pools.length] = pools[];
+
+            if (pools.ptr)
+                mem.xfree(pools.ptr);
+
+            pools = newPoolList;
+        }
+        pools[poolsAllocated++] = new Token[PoolSize]; //will never be freed, so use GC mem
     }
 
     final TOK nextToken()
     {
         prevloc = token.loc;
-        if (token.next)
-        {
-            Token* t = token.next;
-            memcpy(&token, t, Token.sizeof);
-            releaseToken(t);
-        }
-        else
-        {
-            scan(&token);
-        }
-        //printf(token.toChars());
+        token = getByIndex(nextTokenIndex++);
         return token.value;
+
+    }
+
+    final size_t currentPosition()
+    {
+        return nextTokenIndex;
+    }
+
+    final void seekTo(size_t index)
+    {
+        nextTokenIndex = index;
+        token = getByIndex(nextTokenIndex++);
+    }
+
+    ///make a range containing only this.token
+    final TokenRange makeRangeFromHere()
+    {
+        return TokenRange(this, nextTokenIndex -1, nextTokenIndex);
     }
 
     /***********************
@@ -344,7 +449,7 @@ class Lexer
      */
     final TOK peekNext()
     {
-        return peek(&token).value;
+        return getByIndex(nextTokenIndex).value;
     }
 
     /***********************
@@ -352,9 +457,9 @@ class Lexer
      */
     final TOK peekNext2()
     {
-        Token* t = peek(&token);
-        return peek(t).value;
+        return getByIndex(nextTokenIndex + 1).value;
     }
+
 
     /****************************
      * Turn next token in buffer into a token.
@@ -441,7 +546,7 @@ class Lexer
                 auto hexString = new OutBuffer();
                 t.value = hexStringConstant(t);
                 hexString.write(start[0 .. p - start]);
-                error("Built-in hex string literals are obsolete, use `std.conv.hexString!%s` instead.", hexString.extractChars());
+                error(t.loc, "Built-in hex string literals are obsolete, use `std.conv.hexString!%s` instead.", hexString.extractChars());
                 return;
             case 'q':
                 if (p[1] == '"')
@@ -1072,7 +1177,7 @@ class Lexer
                     }
                     else if (n.value == TOK.if_)
                     {
-                        error("C preprocessor directive `#if` is not supported, use `version` or `static if`");
+                        error(t.loc, "C preprocessor directive `#if` is not supported, use `version` or `static if`");
                     }
                     t.value = TOK.pound;
                     return;
@@ -1104,32 +1209,19 @@ class Lexer
         }
     }
 
-    final Token* peek(Token* ct)
-    {
-        Token* t;
-        if (ct.next)
-            t = ct.next;
-        else
-        {
-            t = allocateToken();
-            scan(t);
-            ct.next = t;
-        }
-        return t;
-    }
-
     /*********************************
-     * tk is on the opening (.
-     * Look ahead and return token that is past the closing ).
+     * tokens.back is on the opening (.
+     * The returned value.back will be the token past the closing )
      */
-    final Token* peekPastParen(Token* tk)
+    final TokenRange peekPastParen(TokenRange tokens)
     {
         //printf("peekPastParen()\n");
+        assert(tokens.back.value == TOK.leftParentheses);
         int parens = 1;
         int curlynest = 0;
         while (1)
         {
-            tk = peek(tk);
+            Token tk = tokens.growBack();
             //tk.print();
             switch (tk.value)
             {
@@ -1140,7 +1232,7 @@ class Lexer
                 --parens;
                 if (parens)
                     continue;
-                tk = peek(tk);
+                tk = tokens.growBack();
                 break;
             case TOK.leftCurly:
                 curlynest++;
@@ -1158,7 +1250,7 @@ class Lexer
             default:
                 continue;
             }
-            return tk;
+            return tokens;
         }
     }
 
@@ -1568,7 +1660,7 @@ class Lexer
                     delimright = c;
                     nest = 0;
                     if (isspace(c))
-                        error("delimiter cannot be whitespace");
+                        error(result.loc, "delimiter cannot be whitespace");
                 }
             }
             else
@@ -1615,9 +1707,9 @@ class Lexer
         if (*p == '"')
             p++;
         else if (hereid)
-            error("delimited string must end in %s\"", hereid.toChars());
+            error(result.loc, "delimited string must end in %s\"", hereid.toChars());
         else
-            error("delimited string must end in %c\"", delimright);
+            error(result.loc, "delimited string must end in %c\"", delimright);
         result.setString(stringbuffer);
         stringPostfix(result);
     }
@@ -1720,7 +1812,7 @@ class Lexer
             case 0x1A:
                 // decrement `p`, because it needs to point to the next token (the 0 or 0x1A character is the TOK.endOfFile token).
                 p--;
-                error("unterminated string constant starting at %s", start.toChars());
+                error(t.loc, "unterminated string constant starting at %s", start.toChars());
                 t.setString();
                 return;
             default:
@@ -2391,7 +2483,7 @@ class Lexer
         {
             const lin = cast(int)(tok.unsvalue - 1);
             if (lin != tok.unsvalue - 1)
-                error("line number `%lld` out of range", cast(ulong)tok.unsvalue);
+                error(tok.loc, "line number `%lld` out of range", cast(ulong)tok.unsvalue);
             else
                 linnum = lin;
         }

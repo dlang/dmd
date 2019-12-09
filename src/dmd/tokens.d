@@ -425,7 +425,6 @@ private immutable TOK[] keywords =
  */
 extern (C++) struct Token
 {
-    Token* next;
     Loc loc;
     const(char)* ptr; // pointer to first character of this token within buffer
     TOK value;

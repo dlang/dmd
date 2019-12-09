@@ -26,6 +26,7 @@ import dmd.expressionsem;
 import dmd.identifier;
 import dmd.globals;
 import dmd.parse;
+import dmd.lexer;
 import dmd.tokens;
 import dmd.statement;
 import dmd.statementsem;
@@ -284,27 +285,22 @@ Ldone:
 public Statement gccAsmSemantic(GccAsmStatement s, Scope *sc)
 {
     //printf("GccAsmStatement.semantic()\n");
-    scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-    scope p = new Parser!ASTCodegen(sc._module, ";", false, diagnosticReporter);
 
     // Make a safe copy of the token list before parsing.
-    Token *toklist = null;
-    Token **ptoklist = &toklist;
+    TokenRange toklist = s.tokens;
+    auto p = cast(Parser!ASTCodegen)toklist.getLexer;
+    const parserPosition = p.currentPosition;
 
-    for (Token *token = s.tokens; token; token = token.next)
-    {
-        *ptoklist = p.allocateToken();
-        memcpy(*ptoklist, token, Token.sizeof);
-        ptoklist = &(*ptoklist).next;
-        *ptoklist = null;
-    }
-    p.token = *toklist;
+    p.seekTo(toklist.start);
     p.scanloc = s.loc;
 
     // Parse the gcc asm statement.
     s = p.parseGccAsm(s);
     if (p.errors)
+    {
+        p.seekTo(parserPosition);
         return null;
+    }
     s.stc = sc.stc;
 
     // Fold the instruction template string.
@@ -359,22 +355,21 @@ public Statement gccAsmSemantic(GccAsmStatement s, Scope *sc)
             gs.statementSemantic(sc);
         }
     }
-
+    p.seekTo(parserPosition); //reset the parser
     return s;
 }
 
 unittest
 {
     uint errors = global.startGagging();
-
     // Immitates asmSemantic if version = IN_GCC.
-    static int semanticAsm(Token* tokens)
+    static int semanticAsm(TokenRange tokens, Parser!ASTCodegen p)
     {
         scope gas = new GccAsmStatement(Loc.initial, tokens);
-        scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-        scope p = new Parser!ASTCodegen(null, ";", false, diagnosticReporter);
-        p.token = *tokens;
+        const parserSave = p.currentPosition();
+        p.seekTo(tokens.start);
         p.parseGccAsm(gas);
+        p.seekTo(parserSave);
         return p.errors;
     }
 
@@ -386,23 +381,22 @@ unittest
         scope p = new Parser!ASTCodegen(null, input, false, diagnosticReporter);
         p.nextToken();
 
-        Token* toklist = null;
-        Token** ptoklist = &toklist;
         p.check(TOK.asm_);
         p.check(TOK.leftCurly);
+
+        auto tokens = p.makeRangeFromHere();
+        tokens.popBack(); //start with an empty range
+
         while (1)
         {
             if (p.token.value == TOK.rightCurly || p.token.value == TOK.endOfFile)
                 break;
-            *ptoklist = p.allocateToken();
-            memcpy(*ptoklist, &p.token, Token.sizeof);
-            ptoklist = &(*ptoklist).next;
-            *ptoklist = null;
+            tokens.growBack();
             p.nextToken();
         }
         p.check(TOK.rightCurly);
 
-        auto res = semanticAsm(toklist);
+        auto res = semanticAsm(tokens, p);
         assert(res == 0 || expectError);
     }
 

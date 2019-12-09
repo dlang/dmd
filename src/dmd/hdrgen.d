@@ -40,6 +40,7 @@ import dmd.identifier;
 import dmd.init;
 import dmd.mtype;
 import dmd.nspace;
+import dmd.lexer;
 import dmd.parse;
 import dmd.root.ctfloat;
 import dmd.root.outbuffer;
@@ -717,23 +718,23 @@ public:
     override void visit(AsmStatement s)
     {
         buf.writestring("asm { ");
-        Token* t = s.tokens;
+        TokenRange tokens = s.tokens;
         buf.level++;
-        while (t)
+        while (!tokens.empty)
         {
+            const t = tokens.front;
             buf.writestring(t.toChars());
-            if (t.next &&
-                t.value != TOK.min      &&
-                t.value != TOK.comma    && t.next.value != TOK.comma    &&
-                t.value != TOK.leftBracket && t.next.value != TOK.leftBracket &&
-                                          t.next.value != TOK.rightBracket &&
-                t.value != TOK.leftParentheses   && t.next.value != TOK.leftParentheses   &&
-                                          t.next.value != TOK.rightParentheses   &&
-                t.value != TOK.dot      && t.next.value != TOK.dot)
+            if (tokens.length >= 2 &&
+                t.value != TOK.min && t.value != TOK.comma && tokens.peekFront.value != TOK.comma &&
+                t.value != TOK.leftBracket && tokens.peekFront.value != TOK.leftBracket &&
+                tokens.peekFront.value != TOK.rightBracket && t.value != TOK.leftParentheses &&
+                tokens.peekFront.value != TOK.leftParentheses &&
+                tokens.peekFront.value != TOK.rightParentheses &&
+                t.value != TOK.dot && tokens.peekFront.value != TOK.dot)
             {
                 buf.writeByte(' ');
             }
-            t = t.next;
+            tokens.popFront();
         }
         buf.level--;
         buf.writestring("; }");

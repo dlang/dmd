@@ -2512,15 +2512,15 @@ struct ASTBase
 
     extern (C++) class AsmStatement : Statement
     {
-        Token* tokens;
+        TokenRange tokens;
 
-        extern (D) this(const ref Loc loc, Token* tokens)
+        extern (D) this(const ref Loc loc, TokenRange tokens)
         {
             super(loc, STMT.Asm);
             this.tokens = tokens;
         }
 
-        extern (D) this(const ref Loc loc, Token* tokens, STMT stmt)
+        extern (D) this(const ref Loc loc, TokenRange tokens, STMT stmt)
         {
             super(loc, stmt);
             this.tokens = tokens;
@@ -2534,7 +2534,7 @@ struct ASTBase
 
     extern (C++) final class InlineAsmStatement : AsmStatement
     {
-        extern (D) this(const ref Loc loc, Token* tokens)
+        extern (D) this(const ref Loc loc, TokenRange tokens)
         {
             super(loc, tokens, STMT.InlineAsm);
         }
@@ -2547,7 +2547,7 @@ struct ASTBase
 
     extern (C++) final class GccAsmStatement : AsmStatement
     {
-        extern (D) this(const ref Loc loc, Token* tokens)
+        extern (D) this(const ref Loc loc, TokenRange tokens)
         {
             super(loc, tokens, STMT.GccAsm);
         }
