@@ -4230,11 +4230,13 @@ struct ASTBase
 
     extern (C++) final class TypeMixin : Type
     {
+        Loc loc;
         Expressions* exps;
 
-        extern (D) this(Expressions* exps)
+        extern (D) this(const ref Loc loc, Expressions* exps)
         {
             super(Tmixin);
+            this.loc = loc;
             this.exps = exps;
         }
 
@@ -4254,7 +4256,7 @@ struct ASTBase
                 return a;
             }
 
-            return new TypeMixin(arraySyntaxCopy(exps));
+            return new TypeMixin(loc, arraySyntaxCopy(exps));
         }
 
         override void accept(Visitor v)

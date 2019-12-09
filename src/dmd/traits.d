@@ -1552,7 +1552,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                     p.nextToken();
                     //printf("p.loc.linnum = %d\n", p.loc.linnum);
 
-                    o = p.parseTypeOrAssignExp();
+                    o = p.parseTypeOrAssignExp(TOK.endOfFile);
                     if (p.errors ||
                         p.token.value != TOK.endOfFile)
                     {
