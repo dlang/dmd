@@ -33,8 +33,8 @@ __gshared string[string] env;
 __gshared string[][string] flags;
 __gshared typeof(sourceFiles()) sources;
 
-/// Array of dependencies through which all other dependencies can be reached
-immutable rootDeps = [
+/// Array of build rules through which all other build rules can be reached
+immutable rootRules = [
     &dmdDefault,
     &autoTesterBuild,
     &runDmdUnittest,
@@ -174,23 +174,23 @@ Command-line parameters
 string targetsHelp()
 {
     string result = "";
-    foreach (dep; DependencyRange(rootDeps.map!(a => a()).array))
+    foreach (rule; BuildRuleRange(rootRules.map!(a => a()).array))
     {
-        if (dep.name)
+        if (rule.name)
         {
             enum defaultPrefix = "\n                      ";
-            result ~= dep.name;
-            string prefix = defaultPrefix[1 + dep.name.length .. $];
+            result ~= rule.name;
+            string prefix = defaultPrefix[1 + rule.name.length .. $];
             void add(string msg)
             {
                 result ~= format("%s%s", prefix, msg);
                 prefix = defaultPrefix;
             }
-            if (dep.description)
-                add(dep.description);
-            else if (dep.targets)
+            if (rule.description)
+                add(rule.description);
+            else if (rule.targets)
             {
-                foreach (target; dep.targets)
+                foreach (target; rule.targets)
                 {
                     add(target.relativePath);
                 }
@@ -202,40 +202,40 @@ string targetsHelp()
 }
 
 /**
-D build dependencies
+D build rules
 ====================
 
 The strategy of this script is to emulate what the Makefile is doing.
 
-Below all individual dependencies of DMD are defined.
+Below all individual rules of DMD are defined.
 They have a target path, sources paths and an optional name.
-When a dependency is needed either its command or custom commandFunction is executed.
-A dependency will be skipped if all targets are older than all sources.
+When a rule is needed either its command or custom commandFunction is executed.
+A rule will be skipped if all targets are older than all sources.
 This script is by default part of the sources and thus any change to the build script,
 will trigger a full rebuild.
 
 */
 
-/// Returns: The dependency that runs the autotester build
-alias autoTesterBuild = makeDep!((builder, dep) {
+/// Returns: The rule that runs the autotester build
+alias autoTesterBuild = makeRule!((builder, rule) {
     builder
     .name("auto-tester-build")
     .description("Run the autotester build")
     .deps([toolchainInfo, dmdDefault, checkwhitespace]);
 
     version (Posix)
-        dep.deps ~= runCxxUnittest;
+        rule.deps ~= runCxxUnittest;
 
     // unittests are currently not executed as part of `auto-tester-test` on windows
     // because changes to `win32.mak` require additional changes on the autotester
     // (see https://github.com/dlang/dmd/pull/7414).
     // This requires no further actions and avoids building druntime+phobos on unittest failure
     version (Windows)
-        dep.deps ~= runDmdUnittest;
+        rule.deps ~= runDmdUnittest;
 });
 
-/// Returns: the dependency that builds the lexer object file
-alias lexer = makeDep!((builder, dep) => builder
+/// Returns: the rule that builds the lexer object file
+alias lexer = makeRule!((builder, rule) => builder
     .name("lexer")
     .target(env["G"].buildPath("lexer").objName)
     .sources(sources.lexer)
@@ -243,18 +243,18 @@ alias lexer = makeDep!((builder, dep) => builder
     .msg("(DC) LEXER_OBJ")
     .command([env["HOST_DMD_RUN"],
         "-c",
-        "-of" ~ dep.target,
+        "-of" ~ rule.target,
         "-vtls"]
         .chain(flags["DFLAGS"],
             // source files need to have relative paths in order for the code coverage
             // .lst files to be named properly for CodeCov to find them
-            dep.sources.map!(e => e.relativePath(srcDir))
+            rule.sources.map!(e => e.relativePath(srcDir))
         ).array
     )
 );
 
-/// Returns: the dependency that generates the dmd.conf file in the output folder
-alias dmdConf = makeDep!((builder, dep) {
+/// Returns: the rule that generates the dmd.conf file in the output folder
+alias dmdConf = makeRule!((builder, rule) {
     // TODO: add support for Windows
     string exportDynamic;
     version(OSX) {} else
@@ -273,12 +273,12 @@ DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@
         .target(env["G"].buildPath("dmd.conf"))
         .msg("(TX) DMD_CONF")
         .commandFunction(() {
-            conf.toFile(dep.target);
+            conf.toFile(rule.target);
         });
 });
 
-/// Returns: the dependency that builds the backend object file
-alias backend = makeDep!((builder, dep) => builder
+/// Returns: the rule that builds the backend object file
+alias backend = makeRule!((builder, rule) => builder
     .name("backend")
     .target(env["G"].buildPath("backend").objName)
     .sources(sources.backend)
@@ -286,13 +286,13 @@ alias backend = makeDep!((builder, dep) => builder
     .command([
         env["HOST_DMD_RUN"],
         "-c",
-        "-of" ~ dep.target,
+        "-of" ~ rule.target,
         "-betterC"]
-        .chain(flags["DFLAGS"], dep.sources).array)
+        .chain(flags["DFLAGS"], rule.sources).array)
 );
 
-/// Returns: the dependencies that generate required string files: VERSION and SYSCONFDIR.imp
-alias versionFile = makeDep!((builder, dep) {
+/// Returns: the rules that generate required string files: VERSION and SYSCONFDIR.imp
+alias versionFile = makeRule!((builder, rule) {
     alias contents = memoize!(() {
         if (dmdRepo.buildPath(".git").exists)
         {
@@ -312,20 +312,20 @@ alias versionFile = makeDep!((builder, dep) {
     });
     builder
     .target(env["G"].buildPath("VERSION"))
-    .condition(() => !dep.target.exists || dep.target.readText != contents)
+    .condition(() => !rule.target.exists || rule.target.readText != contents)
     .msg("(TX) VERSION")
-    .commandFunction(() => std.file.write(dep.target, contents));
+    .commandFunction(() => std.file.write(rule.target, contents));
 });
 
-alias sysconfDirFile = makeDep!((builder, dep) => builder
+alias sysconfDirFile = makeRule!((builder, rule) => builder
     .target(env["G"].buildPath("SYSCONFDIR.imp"))
-    .condition(() => !dep.target.exists || dep.target.readText != env["SYSCONFDIR"])
+    .condition(() => !rule.target.exists || rule.target.readText != env["SYSCONFDIR"])
     .msg("(TX) SYSCONFDIR")
-    .commandFunction(() => std.file.write(dep.target, env["SYSCONFDIR"]))
+    .commandFunction(() => std.file.write(rule.target, env["SYSCONFDIR"]))
 );
 
-/// Dependency to create a directory if it doesn't exist.
-alias directoryDep = makeDepWithArgs!((MethodInitializer!Dependency builder, Dependency dep, string dir) => builder
+/// BuildRule to create a directory if it doesn't exist.
+alias directoryRule = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule rule, string dir) => builder
    .target(dir)
    .condition(() => !exists(dir))
    .msg("mkdirRecurse '%s'".format(dir))
@@ -333,12 +333,12 @@ alias directoryDep = makeDepWithArgs!((MethodInitializer!Dependency builder, Dep
 );
 
 /**
-Dependency for the DMD executable.
+BuildRule for the DMD executable.
 
 Params:
-  extra_flags = Flags to apply to the main build but not the dependencies
+  extra_flags = Flags to apply to the main build but not the rules
 */
-alias dmdExe = makeDepWithArgs!((MethodInitializer!Dependency builder, Dependency dep, string targetSuffix, string[] extraFlags) {
+alias dmdExe = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule rule, string targetSuffix, string[] extraFlags) {
     const dmdSources = sources.dmd.all.chain(sources.root).array;
 
     string[] platformArgs;
@@ -353,24 +353,24 @@ alias dmdExe = makeDepWithArgs!((MethodInitializer!Dependency builder, Dependenc
         .deps([versionFile, sysconfDirFile, lexer, backend])
         .command([
             env["HOST_DMD_RUN"],
-            "-of" ~ dep.target,
+            "-of" ~ rule.target,
             "-vtls",
             "-J" ~ env["RES"],
             ].chain(extraFlags, platformArgs, flags["DFLAGS"],
                 // source files need to have relative paths in order for the code coverage
                 // .lst files to be named properly for CodeCov to find them
-                dep.sources.map!(e => e.relativePath(srcDir))
+                rule.sources.map!(e => e.relativePath(srcDir))
             ).array);
 });
 
-alias dmdDefault = makeDep!((builder, dep) => builder
+alias dmdDefault = makeRule!((builder, rule) => builder
     .name("dmd")
     .description("Build dmd")
     .deps([dmdExe(null, null), dmdConf])
 );
 
-/// Dependency to run the DMD unittest executable.
-alias runDmdUnittest = makeDep!((builder, dep) {
+/// BuildRule to run the DMD unittest executable.
+alias runDmdUnittest = makeRule!((builder, rule) {
     auto dmdUnittestExe = dmdExe("-unittest", ["-version=NoMain", "-unittest", "-main"]);
     builder
         .name("unittest")
@@ -381,29 +381,29 @@ alias runDmdUnittest = makeDep!((builder, dep) {
 });
 
 /// Runs the C++ unittest executable
-alias runCxxUnittest = makeDep!((runCxxBuilder, runCxxDep) {
+alias runCxxUnittest = makeRule!((runCxxBuilder, runCxxRule) {
 
     /// Compiles the C++ frontend test files
-    alias cxxFrontend = methodInit!(Dependency, (frontendBuilder, frontendDep) => frontendBuilder
+    alias cxxFrontend = methodInit!(BuildRule, (frontendBuilder, frontendRule) => frontendBuilder
         .name("cxx-frontend")
         .description("Build the C++ frontend")
         .msg("(CXX) CXX-FRONTEND")
         .sources(srcDir.buildPath("tests", "cxxfrontend.c") ~ .sources.frontendHeaders ~ .sources.dmd.all ~ .sources.root)
         .target(env["G"].buildPath("cxxfrontend").objName)
-        .command([ env["CXX"], "-c", frontendDep.sources[0], "-o" ~ frontendDep.target, "-I" ~ env["D"] ] ~ flags["CXXFLAGS"])
+        .command([ env["CXX"], "-c", frontendRule.sources[0], "-o" ~ frontendRule.target, "-I" ~ env["D"] ] ~ flags["CXXFLAGS"])
     );
 
-    alias cxxUnittestExe = methodInit!(Dependency, (exeBuilder, exeDep) => exeBuilder
+    alias cxxUnittestExe = methodInit!(BuildRule, (exeBuilder, exeRule) => exeBuilder
         .name("cxx-unittest")
         .description("Build the C++ unittests")
         .msg("(DMD) CXX-UNITTEST")
         .deps([lexer, backend, cxxFrontend])
         .sources(sources.dmd.all ~ sources.root)
         .target(env["G"].buildPath("cxx-unittest").exeName)
-        .command([ env["HOST_DMD_RUN"], "-of=" ~ exeDep.target, "-vtls", "-J" ~ env["RES"],
+        .command([ env["HOST_DMD_RUN"], "-of=" ~ exeRule.target, "-vtls", "-J" ~ env["RES"],
                     "-L-lstdc++", "-version=NoMain"
             ].chain(
-                flags["DFLAGS"], exeDep.sources, exeDep.deps.map!(d => d.target)
+                flags["DFLAGS"], exeRule.sources, exeRule.deps.map!(d => d.target)
             ).array)
     );
 
@@ -418,8 +418,8 @@ alias runCxxUnittest = makeDep!((runCxxBuilder, runCxxDep) {
         .command([cxxUnittestExe.target]);
 });
 
-/// Dependency that removes all generated files
-alias clean = makeDep!((builder, dep) => builder
+/// BuildRule that removes all generated files
+alias clean = makeRule!((builder, rule) => builder
     .name("clean")
     .description("Remove the generated directory")
     .msg("(RM) " ~ env["G"])
@@ -429,10 +429,10 @@ alias clean = makeDep!((builder, dep) => builder
     })
 );
 
-alias toolsRepo = makeDep!((builder, dep) => builder
+alias toolsRepo = makeRule!((builder, rule) => builder
     .target(env["TOOLS_DIR"])
     .msg("(GIT) DLANG/TOOLS")
-    .condition(() => !exists(dep.target))
+    .condition(() => !exists(rule.target))
     .commandFunction(delegate() {
         auto toolsDir = env["TOOLS_DIR"];
         version(Win32)
@@ -442,7 +442,7 @@ alias toolsRepo = makeDep!((builder, dep) => builder
     })
 );
 
-alias checkwhitespace = makeDep!((builder, dep) => builder
+alias checkwhitespace = makeRule!((builder, rule) => builder
     .name("checkwhitespace")
     .description("Check for trailing whitespace and tabs")
     .msg("(RUN) checkwhitespace")
@@ -461,10 +461,10 @@ alias checkwhitespace = makeDep!((builder, dep) => builder
     })
 );
 
-alias style = makeDep!((builder, dep)
+alias style = makeRule!((builder, rule)
 {
     const dscannerDir = env["G"].buildPath("dscanner");
-    alias dscanner = methodInit!(Dependency, (dscannerBuilder, dscannerDep) => dscannerBuilder
+    alias dscanner = methodInit!(BuildRule, (dscannerBuilder, dscannerRule) => dscannerBuilder
         .name("dscanner")
         .description("Build custom DScanner")
         .msg("(GIT,MAKE) DScanner")
@@ -501,9 +501,9 @@ alias style = makeDep!((builder, dep)
         ]);
 });
 
-/// Dependency to generate man pages
-alias man = makeDep!((builder, dep) {
-    alias genMan = methodInit!(Dependency, (genManBuilder, genManDep) => genManBuilder
+/// BuildRule to generate man pages
+alias man = makeRule!((builder, rule) {
+    alias genMan = methodInit!(BuildRule, (genManBuilder, genManRule) => genManBuilder
         .target(env["G"].buildPath("gen_man"))
         .sources([
             dmdRepo.buildPath("docs", "gen_man.d"),
@@ -511,19 +511,19 @@ alias man = makeDep!((builder, dep) {
         .command([
             env["HOST_DMD_RUN"],
             "-I" ~ srcDir,
-            "-of" ~ genManDep.target]
+            "-of" ~ genManRule.target]
             ~ flags["DFLAGS"]
-            ~ genManDep.sources)
-        .msg(genManDep.command.join(" "))
+            ~ genManRule.sources)
+        .msg(genManRule.command.join(" "))
     );
 
     const genManDir = env["GENERATED"].buildPath("docs", "man");
-    alias dmdMan = methodInit!(Dependency, (dmdManBuilder, dmdManDep) => dmdManBuilder
+    alias dmdMan = methodInit!(BuildRule, (dmdManBuilder, dmdManRule) => dmdManBuilder
         .target(genManDir.buildPath("man1", "dmd.1"))
-        .deps([genMan, directoryDep(dmdManDep.target.dirName)])
-        .msg("(GEN_MAN) " ~ dmdManDep.target)
+        .deps([genMan, directoryRule(dmdManRule.target.dirName)])
+        .msg("(GEN_MAN) " ~ dmdManRule.target)
         .commandFunction(() {
-            std.file.write(dmdManDep.target, genMan.target.execute.output);
+            std.file.write(dmdManRule.target, genMan.target.execute.output);
         })
     );
     builder
@@ -531,44 +531,44 @@ alias man = makeDep!((builder, dep) {
     .description("Generate and prepare man files")
     .deps([dmdMan].chain(
         "man1/dumpobj.1 man1/obj2asm.1 man5/dmd.conf.5".split
-        .map!(e => methodInit!(Dependency, (manFileBuilder, manFileDep) => manFileBuilder
+        .map!(e => methodInit!(BuildRule, (manFileBuilder, manFileRule) => manFileBuilder
             .target(genManDir.buildPath(e))
             .sources([dmdRepo.buildPath("docs", "man", e)])
-            .deps([directoryDep(manFileDep.target.dirName)])
-            .commandFunction(() => copyAndTouch(manFileDep.sources[0], manFileDep.target))
-            .msg("copy '%s' to '%s'".format(manFileDep.sources[0], manFileDep.target))
+            .deps([directoryRule(manFileRule.target.dirName)])
+            .commandFunction(() => copyAndTouch(manFileRule.sources[0], manFileRule.target))
+            .msg("copy '%s' to '%s'".format(manFileRule.sources[0], manFileRule.target))
         ))
     ).array);
 });
 
-alias detab = makeDep!((builder, dep) => builder
+alias detab = makeRule!((builder, rule) => builder
     .name("detab")
     .description("Replace hard tabs with spaces")
     .command([env["DETAB"]] ~ allRepoSources)
     .msg("(DETAB) DMD")
 );
 
-alias tolf = makeDep!((builder, dep) => builder
+alias tolf = makeRule!((builder, rule) => builder
     .name("tolf")
     .description("Convert to Unix line endings")
     .command([env["TOLF"]] ~ allRepoSources)
     .msg("(TOLF) DMD")
 );
 
-alias zip = makeDep!((builder, dep) => builder
+alias zip = makeRule!((builder, rule) => builder
     .name("zip")
     .target(srcDir.buildPath("dmdsrc.zip"))
     .description("Archive all source files")
     .sources(allBuildSources)
-    .msg("ZIP " ~ dep.target)
+    .msg("ZIP " ~ rule.target)
     .commandFunction(() {
-        if (exists(dep.target))
-            remove(dep.target);
-        run([env["ZIP"], dep.target, thisBuildScript] ~ dep.sources);
+        if (exists(rule.target))
+            remove(rule.target);
+        run([env["ZIP"], rule.target, thisBuildScript] ~ rule.sources);
     })
 );
 
-alias html = makeDep!((htmlBuilder, htmlDep) {
+alias html = makeRule!((htmlBuilder, htmlRule) {
     htmlBuilder
         .name("html")
         .description("Generate html docs, requires DMD and STDDOC to be set");
@@ -584,7 +584,7 @@ alias html = makeDep!((htmlBuilder, htmlDep) {
     const stddocs = env.get("STDDOC", "").split();
     auto docSources = .sources.root ~ .sources.lexer ~ .sources.dmd.all ~ env["D"].buildPath("frontend.d");
     htmlBuilder.deps(docSources.chunks(1).map!(sourceArray =>
-        methodInit!(Dependency, (docBuilder, docDep) {
+        methodInit!(BuildRule, (docBuilder, docRule) {
             const source = sourceArray[0];
             docBuilder
             .sources(sourceArray)
@@ -600,7 +600,7 @@ alias html = makeDep!((htmlBuilder, htmlDep) {
                 "-I" ~ env["D"],
                 srcDir.buildPath("project.ddoc")
                 ] ~ stddocs ~ [
-                    "-Df" ~ docDep.target,
+                    "-Df" ~ docRule.target,
                     // Need to use a short relative path to make sure ddoc links are correct
                     source.relativePath(runDir)
                 ] ~ flags["DFLAGS"])
@@ -609,7 +609,7 @@ alias html = makeDep!((htmlBuilder, htmlDep) {
     ).array);
 });
 
-alias toolchainInfo = makeDep!((builder, dep) => builder
+alias toolchainInfo = makeRule!((builder, rule) => builder
     .name("toolchain-info")
     .description("Show informations about used tools")
     .commandFunction(() {
@@ -645,7 +645,7 @@ alias toolchainInfo = makeDep!((builder, dep) => builder
     })
 );
 
-alias installCopy = makeDep!((builder, dep) {
+alias installCopy = makeRule!((builder, rule) {
     const dmdExeFile = dmdDefault.deps[0].target;
     auto sourceFiles = allBuildSources ~ [
         env["D"].buildPath("readme.txt"),
@@ -671,21 +671,21 @@ Params:
 Returns:
     the expanded targets
 */
-Dependency[] predefinedTargets(string[] targets)
+BuildRule[] predefinedTargets(string[] targets)
 {
     import std.functional : toDelegate;
-    Appender!(Dependency[]) newTargets;
+    Appender!(BuildRule[]) newTargets;
 LtargetsLoop:
     foreach (t; targets)
     {
         t = t.buildNormalizedPath; // remove trailing slashes
 
-        // check if `t` matches any dependency names first
-        foreach (dep; DependencyRange(rootDeps.map!(a => a()).array))
+        // check if `t` matches any rule names first
+        foreach (rule; BuildRuleRange(rootRules.map!(a => a()).array))
         {
-            if (t == dep.name)
+            if (t == rule.name)
             {
-                newTargets.put(dep);
+                newTargets.put(rule);
                 continue LtargetsLoop;
             }
         }
@@ -703,13 +703,13 @@ LtargetsLoop:
             default:
                 // check this last, target paths should be checked after predefined names
                 const tAbsolute = t.absolutePath.buildNormalizedPath;
-                foreach (dep; DependencyRange(rootDeps.map!(a => a()).array))
+                foreach (rule; BuildRuleRange(rootRules.map!(a => a()).array))
                 {
-                    foreach (depTarget; dep.targets)
+                    foreach (ruleTarget; rule.targets)
                     {
-                        if (depTarget.endsWith(t, tAbsolute))
+                        if (ruleTarget.endsWith(t, tAbsolute))
                         {
-                            newTargets.put(dep);
+                            newTargets.put(rule);
                             continue LtargetsLoop;
                         }
                     }
@@ -721,28 +721,28 @@ LtargetsLoop:
     return newTargets.data;
 }
 
-/// An input range for a recursive set of dependencies
-struct DependencyRange
+/// An input range for a recursive set of rules
+struct BuildRuleRange
 {
-    private Dependency[] next;
-    private bool[Dependency] added;
-    this(Dependency[] deps) { addDeps(deps); }
+    private BuildRule[] next;
+    private bool[BuildRule] added;
+    this(BuildRule[] rules) { addRules(rules); }
     bool empty() const { return next.length == 0; }
     auto front() inout { return next[0]; }
     void popFront()
     {
         auto save = next[0];
         next = next[1 .. $];
-        addDeps(save.deps);
+        addRules(save.deps);
     }
-    void addDeps(Dependency[] deps)
+    void addRules(BuildRule[] rules)
     {
-        foreach (dep; deps)
+        foreach (rule; rules)
         {
-            if (!added.get(dep, false))
+            if (!added.get(rule, false))
             {
-                next ~= dep;
-                added[dep] = true;
+                next ~= rule;
+                added[rule] = true;
             }
         }
     }
@@ -1398,28 +1398,28 @@ void updateIfChanged(const string path, const string content)
 }
 
 /**
-A dependency has one or more sources and yields one or more targets.
+A rule has one or more sources and yields one or more targets.
 It knows how to build these target by invoking either the external command or
 the commandFunction.
 
 If a run fails, the entire build stops.
 */
-class Dependency
+class BuildRule
 {
     string target; // path to the resulting target file (if target is used, it will set targets)
     string[] targets; // list of all target files
     string[] sources; // list of all source files
-    Dependency[] deps; // dependencies to build before this one
-    bool delegate() condition; // Optional condition to determine whether or not to run this dependency
-    string[] command; // the dependency command
-    void delegate() commandFunction; // a custom dependency command which gets called instead of command
-    string msg; // msg of the dependency that is e.g. written to the CLI when it's executed
-    string name; /// optional string that can be used to identify this dependency
-    string description; /// optional string to describe this dependency rather than printing the target files
+    BuildRule[] deps; // dependencies to build before this one
+    bool delegate() condition; // Optional condition to determine whether or not to run this rule
+    string[] command; // the rule command
+    void delegate() commandFunction; // a custom rule command which gets called instead of command
+    string msg; // msg of the rule that is e.g. written to the CLI when it's executed
+    string name; /// optional string that can be used to identify this rule
+    string description; /// optional string to describe this rule rather than printing the target files
 
     private bool executed;
 
-    /// Finish creating the dependency by checking that it is configured properly
+    /// Finish creating the rule by checking that it is configured properly
     void finalize()
     {
         if (target)
@@ -1429,7 +1429,7 @@ class Dependency
         }
     }
 
-    /// Executes the dependency
+    /// Executes the rule
     bool run()
     {
         synchronized (this)
@@ -1463,7 +1463,7 @@ class Dependency
             return false;
         }
 
-        // Display the execution of the dependency
+        // Display the execution of the rule
         if (msg)
             msg.writeln;
 
@@ -1503,7 +1503,7 @@ class Dependency
         return true;
     }
 
-    /// Writes relevant informations about this dependency to stdout
+    /// Writes relevant informations about this rule to stdout
     private void dump()
     {
         scope writer = stdout.lockingTextWriter;
@@ -1551,20 +1551,20 @@ T methodInit(T, alias Func, Args...)(Args args) if (is(T == class)) // currently
 }
 
 /**
-Takes a lambda and returns a memoized function to build a dependecy object.
-The lambda takes a builder and a dependency object.
-This differs from makeDepWithArgs in that the function literal does not need explicit
+Takes a lambda and returns a memoized function to build a rule object.
+The lambda takes a builder and a rule object.
+This differs from makeRuleWithArgs in that the function literal does not need explicit
 parameter types.
 */
-alias makeDep(alias Func) = memoize!(methodInit!(Dependency, Func));
+alias makeRule(alias Func) = memoize!(methodInit!(BuildRule, Func));
 
 /**
-Takes a lambda and returns a memoized function to build a dependecy object.
-The lambda takes a builder, dependency object and any extra arguments needed
-to create the dependnecy.
-This differs from makeDep in that the function literal must contain explicit parameter types.
+Takes a lambda and returns a memoized function to build a rule object.
+The lambda takes a builder, rule object and any extra arguments needed
+to create the rule.
+This differs from makeRule in that the function literal must contain explicit parameter types.
 */
-alias makeDepWithArgs(alias Func) = memoize!(methodInit!(Dependency, Func, Parameters!Func[2..$]));
+alias makeRuleWithArgs(alias Func) = memoize!(methodInit!(BuildRule, Func, Parameters!Func[2..$]));
 
 /**
 Logging primitive
