@@ -48,6 +48,7 @@ immutable rootDeps = [
     &toolchainInfo,
     &style,
     &man,
+    &installCopy,
 ];
 
 int main(string[] args)
@@ -446,13 +447,13 @@ alias checkwhitespace = makeDep!((builder, dep) => builder
     .description("Check for trailing whitespace and tabs")
     .msg("(RUN) checkwhitespace")
     .deps([toolsRepo])
-    .sources(allSources)
+    .sources(allRepoSources)
     .commandFunction(delegate() {
         const cmdPrefix = [env["HOST_DMD_RUN"], "-run", env["TOOLS_DIR"].buildPath("checkwhitespace.d")];
-        auto chunkLength = allSources.length;
+        auto chunkLength = allRepoSources.length;
         version (Win32)
             chunkLength = 80; // avoid command-line limit on win32
-        foreach (nextSources; allSources.chunks(chunkLength).parallel(1))
+        foreach (nextSources; allRepoSources.chunks(chunkLength).parallel(1))
         {
             const nextCommand = cmdPrefix ~ nextSources;
             run(nextCommand);
@@ -543,14 +544,14 @@ alias man = makeDep!((builder, dep) {
 alias detab = makeDep!((builder, dep) => builder
     .name("detab")
     .description("Replace hard tabs with spaces")
-    .command([env["DETAB"]] ~ allSources)
+    .command([env["DETAB"]] ~ allRepoSources)
     .msg("(DETAB) DMD")
 );
 
 alias tolf = makeDep!((builder, dep) => builder
     .name("tolf")
     .description("Convert to Unix line endings")
-    .command([env["TOLF"]] ~ allSources)
+    .command([env["TOLF"]] ~ allRepoSources)
     .msg("(TOLF) DMD")
 );
 
@@ -558,8 +559,7 @@ alias zip = makeDep!((builder, dep) => builder
     .name("zip")
     .target(srcDir.buildPath("dmdsrc.zip"))
     .description("Archive all source files")
-    .sources(sources.root ~ sources.backend ~ sources.lexer ~
-        sources.frontendHeaders ~ sources.dmd.all)
+    .sources(allBuildSources)
     .msg("ZIP " ~ dep.target)
     .commandFunction(() {
         if (exists(dep.target))
@@ -644,6 +644,22 @@ alias toolchainInfo = makeDep!((builder, dep) => builder
         writeln("==== Toolchain Information ====\n");
     })
 );
+
+alias installCopy = makeDep!((builder, dep) {
+    const dmdExeFile = dmdDefault.deps[0].target;
+    auto sourceFiles = allBuildSources ~ [
+        env["D"].buildPath("readme.txt"),
+        env["D"].buildPath("boostlicense.txt"),
+    ];
+    builder
+    .name("install-copy")
+    .deps([dmdDefault])
+    .sources([dmdExeFile] ~ sourceFiles)
+    .commandFunction(() {
+        installRelativeFiles(env["INSTALL"].buildPath(env["OS"], "bin"), dmdExeFile.dirName, dmdExeFile.only);
+        installRelativeFiles(env["INSTALL"], dmdRepo, sourceFiles);
+    });
+});
 
 /**
 Goes through the target list and replaces short-hand targets with their expanded version.
@@ -813,6 +829,7 @@ void parseEnvironment()
     env.getDefault("SYSCONFDIR", "/etc");
     env.getDefault("TMP", tempDir);
     env.getDefault("RES", dmdRepo.buildPath("res"));
+    env.getDefault("INSTALL", dmdRepo.buildPath("install"));
 
     env.getDefault("DOCSRC", dmdRepo.buildPath("dlang.org"));
     if (env.get("DOCDIR", null).length == 0)
@@ -1024,7 +1041,19 @@ string detectHostCxx()
 ////////////////////////////////////////////////////////////////////////////////
 
 /// Returns: all source files in the repository
-alias allSources = memoize!(() => srcDir.dirEntries("*.{d,h,di}", SpanMode.depth).map!(e => e.name).array);
+alias allRepoSources = memoize!(() => srcDir.dirEntries("*.{d,h,di}", SpanMode.depth).map!(e => e.name).array);
+
+/// Returns: all make/build files
+alias buildFiles = memoize!(() => "win32.mak posix.mak osmodel.mak build.d".split().map!(e => srcDir.buildPath(e)).array);
+
+/// Returns: all sources used in the build
+alias allBuildSources = memoize!(() => buildFiles
+    ~ sources.dmd.all
+    ~ sources.lexer
+    ~ sources.backend
+    ~ sources.root
+    ~ sources.frontendHeaders
+);
 
 /// Returns: all source files for the compiler
 auto sourceFiles()
@@ -1612,6 +1641,43 @@ auto run(T)(T args)
         abortBuild(res.output ? res.output : format("Last command failed with exit code %s", res.status));
     }
     return res.output;
+}
+
+/**
+Install `files` to `targetDir`.  `files` in different directories but will be installed
+to the same relative location as they exist in the `sourceBase` directory.
+
+Params:
+    targetDir = the directory to install files into
+    sourceBase = the parent directory of all files.  all files will be installed to the same relative directory
+                 in targetDir as they are from sourceBase
+    files = the files to install.  must be in sourceBase
+*/
+void installRelativeFiles(T)(string targetDir, string sourceBase, T files)
+{
+    struct FileToCopy
+    {
+        string name;
+        string relativeName;
+        string toString() { return relativeName; }
+    }
+    FileToCopy[][string] filesByDir;
+    foreach (file; files)
+    {
+        assert(file.startsWith(sourceBase), "expected all files to be installed to be in '%s', but got '%s'".format(sourceBase, file));
+        const relativeFile = file.relativePath(sourceBase);
+        filesByDir[relativeFile.dirName] ~= FileToCopy(file, relativeFile);
+    }
+    foreach (dirFilePair; filesByDir.byKeyValue)
+    {
+        const nextTargetDir = targetDir.buildPath(dirFilePair.key);
+        writefln("copy these files %s from '%s' to '%s'", dirFilePair.value, sourceBase, nextTargetDir);
+        mkdirRecurse(nextTargetDir);
+        foreach (fileToCopy; dirFilePair.value)
+        {
+            std.file.copy(fileToCopy.name, targetDir.buildPath(fileToCopy.relativeName));
+        }
+    }
 }
 
 version (CRuntime_DigitalMars)
