@@ -68,6 +68,45 @@ const(ubyte)[] toUbyte(T)(const ref T val) if (is(Unqual!T == float) || is(Unqua
             }
             return result;
         }
+        else static if (floatFormat!T == FloatFormat.DoubleDouble)
+        {
+            // Parse DoubleDoubles as a pair of doubles.
+            // The layout of the type is:
+            //
+            //   [1|  7  |       56      ][   8    |       56       ]
+            //   [S| Exp | Fraction (hi) ][ Unused | Fraction (low) ]
+            //
+            // We can get the least significant bits by subtracting the IEEE
+            // double precision portion from the real value.
+
+            ubyte[] buff = ctfe_alloc(T.sizeof);
+            enum msbSize = double.sizeof;
+
+            double hi = val;
+            buff[0 .. msbSize] = toUbyte(hi)[];
+
+            if (val is cast(T)0.0 || val is cast(T)-0.0 ||
+                val is T.nan || val is -T.nan ||
+                val is T.infinity || val > T.max ||
+                val is -T.infinity || val < -T.max)
+            {
+                // Zero, NaN, and Inf are all representable as doubles, so the
+                // least significant part can be 0.0.
+                buff[msbSize .. $] = 0;
+            }
+            else
+            {
+                // BUG: https://issues.dlang.org/show_bug.cgi?id=9937
+                // This doesn't work in CTFE, due to all float literals having
+                // maximum precision, regardless of actual precision requested.
+                // The least significant part will always be zero until fixed.
+                double low = val - hi;
+                buff[msbSize .. $] = toUbyte(low)[];
+            }
+
+            // Arrays don't index differently between little and big-endian targets.
+            return buff;
+        }
         else
         {
             auto parsed = parse(val);
