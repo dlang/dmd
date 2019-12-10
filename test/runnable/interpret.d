@@ -3504,6 +3504,27 @@ void test15681()
 }
 
 /************************************************/
+// toPrec
+
+void testToPrec()
+{
+    import core.math;
+
+    enum real ctpir = 0xc.90fdaa22168c235p-2;
+    enum double ctpid = 0x1.921fb54442d18p+1;
+    enum float ctpif = 0x1.921fb6p+1;
+    static assert(toPrec!float(ctpir) == ctpif);
+    static assert(toPrec!double(ctpir) == ctpid);
+    static assert(toPrec!real(ctpir) == ctpir);
+    static assert(toPrec!float(ctpid) == ctpif);
+    static assert(toPrec!double(ctpid) == ctpid);
+    static assert(toPrec!real(ctpid) == ctpid);
+    static assert(toPrec!float(ctpif) == ctpif);
+    static assert(toPrec!double(ctpif) == ctpif);
+    static assert(toPrec!real(ctpif) == ctpif);
+}
+
+/************************************************/
 
 bool test20400()
 {
