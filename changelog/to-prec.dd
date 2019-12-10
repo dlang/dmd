@@ -1,0 +1,15 @@
+Added intrinsic `toPrec` to round to a specific float precision
+
+The intrinsic $(REF toPrec, core,math) forces rounding of it
+floating point argument to the precision of `float`,
+`double`, or `real`.
+
+Some floating point algorithms, such as
+Kahan-Babuska-Neumaier Summation, require rounding
+to specific precisions. Rounding to precision after
+every operation, however, loses overall precision in
+the general case and is a runtime performance problem.
+
+Adding these functions guarantee the rounding at required
+points in the code, and document where in the algorithm
+the requirement exists.
