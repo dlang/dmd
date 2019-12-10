@@ -395,40 +395,28 @@ int intrinsic_op(FuncDeclaration fd)
     fd = fd.toAliasFunc();
     const char *name = mangleExact(fd);
     //printf("intrinsic_op(%s)\n", name);
-    __gshared immutable char*[11] std_namearray =
-    [
-        /* The names are mangled differently because of the pure and
-         * nothrow attributes.
-         */
-        "4math3cosFNaNbNiNfeZe",
-        "4math3sinFNaNbNiNfeZe",
-        "4math4fabsFNaNbNiNfeZe",
-        "4math4rintFNaNbNiNfeZe",
-        "4math4sqrtFNaNbNiNfdZd",
-        "4math4sqrtFNaNbNiNfeZe",
-        "4math4sqrtFNaNbNiNffZf",
-        "4math4yl2xFNaNbNiNfeeZe",
-        "4math5ldexpFNaNbNiNfeiZe",
-        "4math6rndtolFNaNbNiNfeZl",
-        "4math6yl2xp1FNaNbNiNfeeZe",
-    ];
-    __gshared immutable char*[11] std_namearray64 =
-    [
-        /* The names are mangled differently because of the pure and
-         * nothrow attributes.
-         */
-        "4math3cosFNaNbNiNfeZe",
-        "4math3sinFNaNbNiNfeZe",
-        "4math4fabsFNaNbNiNfeZe",
-        "4math4rintFNaNbNiNfeZe",
-        "4math4sqrtFNaNbNiNfdZd",
-        "4math4sqrtFNaNbNiNfeZe",
-        "4math4sqrtFNaNbNiNffZf",
-        "4math4yl2xFNaNbNiNfeeZe",
-        "4math5ldexpFNaNbNiNfeiZe",
-        "4math6rndtolFNaNbNiNfeZl",
-        "4math6yl2xp1FNaNbNiNfeeZe",
-    ];
+    __gshared immutable(char)*[11] std_namearray;
+    __gshared int init_guard = 0;
+    if (init_guard < 1)
+    {
+        std_namearray = [
+            /* The names are mangled differently because of the pure and
+             * nothrow attributes.
+             */
+            "4math3cosFNaNbNiNfeZe",
+            "4math3sinFNaNbNiNfeZe",
+            "4math4fabsFNaNbNiNfeZe",
+            "4math4rintFNaNbNiNfeZe",
+            "4math4sqrtFNaNbNiNfdZd",
+            "4math4sqrtFNaNbNiNfeZe",
+            "4math4sqrtFNaNbNiNffZf",
+            "4math4yl2xFNaNbNiNfeeZe",
+            "4math5ldexpFNaNbNiNfeiZe",
+            "4math6rndtolFNaNbNiNfeZl",
+            "4math6yl2xp1FNaNbNiNfeeZe",
+        ];
+        init_guard = 1;
+    }
     __gshared immutable ubyte[11] std_ioptab =
     [
         OPcos,
@@ -444,164 +432,90 @@ int intrinsic_op(FuncDeclaration fd)
         OPyl2xp1,
     ];
 
-    __gshared immutable char*[62] core_namearray =
-    [
-        //cos
-        "4math3cosFNaNbNiNfdZd",
-        "4math3cosFNaNbNiNfeZe",
-        "4math3cosFNaNbNiNffZf",
-        //sin
-        "4math3sinFNaNbNiNfdZd",
-        "4math3sinFNaNbNiNfeZe",
-        "4math3sinFNaNbNiNffZf",
-        //fabs
-        "4math4fabsFNaNbNiNfdZd",
-        "4math4fabsFNaNbNiNfeZe",
-        "4math4fabsFNaNbNiNffZf",
-        //rint
-        "4math4rintFNaNbNiNfdZd",
-        "4math4rintFNaNbNiNfeZe",
-        "4math4rintFNaNbNiNffZf",
-        //sqrt
-        "4math4sqrtFNaNbNiNfdZd",
-        "4math4sqrtFNaNbNiNfeZe",
-        "4math4sqrtFNaNbNiNffZf",
-        //yl2x
-        "4math4yl2xFNaNbNiNfddZd",
-        "4math4yl2xFNaNbNiNfeeZe",
-        "4math4yl2xFNaNbNiNfffZf",
-        //ldexp
-        "4math5ldexpFNaNbNiNfdiZd",
-        "4math5ldexpFNaNbNiNfeiZe",
-        "4math5ldexpFNaNbNiNffiZf",
-        //rndtol
-        "4math6rndtolFNaNbNiNfdZl",
-        "4math6rndtolFNaNbNiNfeZl",
-        "4math6rndtolFNaNbNiNffZl",
-        //yl2xp1
-        "4math6yl2xp1FNaNbNiNfddZd",
-        "4math6yl2xp1FNaNbNiNfeeZe",
-        "4math6yl2xp1FNaNbNiNfffZf",
+    __gshared immutable(char)*[62] core_namearray;
+    if (init_guard < 2)
+    {
+        core_namearray = [
+            //cos
+            "4math3cosFNaNbNiNfdZd",
+            "4math3cosFNaNbNiNfeZe",
+            "4math3cosFNaNbNiNffZf",
+            //sin
+            "4math3sinFNaNbNiNfdZd",
+            "4math3sinFNaNbNiNfeZe",
+            "4math3sinFNaNbNiNffZf",
+            //fabs
+            "4math4fabsFNaNbNiNfdZd",
+            "4math4fabsFNaNbNiNfeZe",
+            "4math4fabsFNaNbNiNffZf",
+            //rint
+            "4math4rintFNaNbNiNfdZd",
+            "4math4rintFNaNbNiNfeZe",
+            "4math4rintFNaNbNiNffZf",
+            //sqrt
+            "4math4sqrtFNaNbNiNfdZd",
+            "4math4sqrtFNaNbNiNfeZe",
+            "4math4sqrtFNaNbNiNffZf",
+            //yl2x
+            "4math4yl2xFNaNbNiNfddZd",
+            "4math4yl2xFNaNbNiNfeeZe",
+            "4math4yl2xFNaNbNiNfffZf",
+            //ldexp
+            "4math5ldexpFNaNbNiNfdiZd",
+            "4math5ldexpFNaNbNiNfeiZe",
+            "4math5ldexpFNaNbNiNffiZf",
+            //rndtol
+            "4math6rndtolFNaNbNiNfdZl",
+            "4math6rndtolFNaNbNiNfeZl",
+            "4math6rndtolFNaNbNiNffZl",
+            //yl2xp1
+            "4math6yl2xp1FNaNbNiNfddZd",
+            "4math6yl2xp1FNaNbNiNfeeZe",
+            "4math6yl2xp1FNaNbNiNfffZf",
 
-        "4simd10__prefetchFNaNbNiNfxPvhZv",
-        "4simd10__simd_stoFNaNbNiNfEQBgQBe3XMMNhG16vQgZQj",
-        "4simd10__simd_stoFNaNbNiNfEQBgQBe3XMMdNhG16vZQh",
-        "4simd10__simd_stoFNaNbNiNfEQBgQBe3XMMfNhG16vZQh",
-        "4simd6__simdFNaNbNiNfEQBbQz3XMMNhG16vQgZQj",
-        "4simd6__simdFNaNbNiNfEQBbQz3XMMNhG16vQghZQk",
-        "4simd6__simdFNaNbNiNfEQBbQz3XMMNhG16vZQh",
-        "4simd6__simdFNaNbNiNfEQBbQz3XMMdZNhG16v",
-        "4simd6__simdFNaNbNiNfEQBbQz3XMMfZNhG16v",
-        "4simd9__simd_ibFNaNbNiNfEQBeQBc3XMMNhG16vhZQi",
+            "4simd10__prefetchFNaNbNiNfxPvhZv",
+            "4simd10__simd_stoFNaNbNiNfEQBgQBe3XMMNhG16vQgZQj",
+            "4simd10__simd_stoFNaNbNiNfEQBgQBe3XMMdNhG16vZQh",
+            "4simd10__simd_stoFNaNbNiNfEQBgQBe3XMMfNhG16vZQh",
+            "4simd6__simdFNaNbNiNfEQBbQz3XMMNhG16vQgZQj",
+            "4simd6__simdFNaNbNiNfEQBbQz3XMMNhG16vQghZQk",
+            "4simd6__simdFNaNbNiNfEQBbQz3XMMNhG16vZQh",
+            "4simd6__simdFNaNbNiNfEQBbQz3XMMdZNhG16v",
+            "4simd6__simdFNaNbNiNfEQBbQz3XMMfZNhG16v",
+            "4simd9__simd_ibFNaNbNiNfEQBeQBc3XMMNhG16vhZQi",
 
-        "5bitop3bsfFNaNbNiNfkZi",
-        "5bitop3bsfFNaNbNiNfmZi",
-        "5bitop3bsrFNaNbNiNfkZi",
-        "5bitop3bsrFNaNbNiNfmZi",
-        "5bitop3btcFNaNbNiPkkZi",
-        "5bitop3btrFNaNbNiPkkZi",
-        "5bitop3btsFNaNbNiPkkZi",
-        "5bitop3inpFNbNikZh",
-        "5bitop4inplFNbNikZk",
-        "5bitop4inpwFNbNikZt",
-        "5bitop4outpFNbNikhZh",
-        "5bitop5bswapFNaNbNiNfkZk",
-        "5bitop5outplFNbNikkZk",
-        "5bitop5outpwFNbNiktZt",
+            "5bitop3bsfFNaNbNiNfkZi",
+            "5bitop3bsfFNaNbNiNfmZi",
+            "5bitop3bsrFNaNbNiNfkZi",
+            "5bitop3bsrFNaNbNiNfmZi",
+            global.params.is64bit ? "5bitop3btcFNaNbNiPmmZi" : "5bitop3btcFNaNbNiPkkZi",
+            global.params.is64bit ? "5bitop3btrFNaNbNiPmmZi" : "5bitop3btrFNaNbNiPkkZi",
+            global.params.is64bit ? "5bitop3btsFNaNbNiPmmZi" : "5bitop3btsFNaNbNiPkkZi",
+            "5bitop3inpFNbNikZh",
+            "5bitop4inplFNbNikZk",
+            "5bitop4inpwFNbNikZt",
+            "5bitop4outpFNbNikhZh",
+            "5bitop5bswapFNaNbNiNfkZk",
+            "5bitop5outplFNbNikkZk",
+            "5bitop5outpwFNbNiktZt",
 
-        "5bitop7_popcntFNaNbNiNfkZi",
-        "5bitop7_popcntFNaNbNiNfmxx", // don't find 64 bit version in 32 bit code
-        "5bitop7_popcntFNaNbNiNftZt",
-        // volatileLoad
-        "8volatile12volatileLoadFNbNiNfPhZh",
-        "8volatile12volatileLoadFNbNiNfPkZk",
-        "8volatile12volatileLoadFNbNiNfPmZm",
-        "8volatile12volatileLoadFNbNiNfPtZt",
-        // volatileStore
-        "8volatile13volatileStoreFNbNiNfPhhZv",
-        "8volatile13volatileStoreFNbNiNfPkkZv",
-        "8volatile13volatileStoreFNbNiNfPmmZv",
-        "8volatile13volatileStoreFNbNiNfPttZv",
-    ];
-    __gshared immutable char*[62] core_namearray64 =
-    [
-        //cos
-        "4math3cosFNaNbNiNfdZd",
-        "4math3cosFNaNbNiNfeZe",
-        "4math3cosFNaNbNiNffZf",
-        //sin
-        "4math3sinFNaNbNiNfdZd",
-        "4math3sinFNaNbNiNfeZe",
-        "4math3sinFNaNbNiNffZf",
-        //fabs
-        "4math4fabsFNaNbNiNfdZd",
-        "4math4fabsFNaNbNiNfeZe",
-        "4math4fabsFNaNbNiNffZf",
-        //rint
-        "4math4rintFNaNbNiNfdZd",
-        "4math4rintFNaNbNiNfeZe",
-        "4math4rintFNaNbNiNffZf",
-        //sqrt
-        "4math4sqrtFNaNbNiNfdZd",
-        "4math4sqrtFNaNbNiNfeZe",
-        "4math4sqrtFNaNbNiNffZf",
-        //yl2x
-        "4math4yl2xFNaNbNiNfddZd",
-        "4math4yl2xFNaNbNiNfeeZe",
-        "4math4yl2xFNaNbNiNfffZf",
-        //ldexp
-        "4math5ldexpFNaNbNiNfdiZd",
-        "4math5ldexpFNaNbNiNfeiZe",
-        "4math5ldexpFNaNbNiNffiZf",
-        //rndtol
-        "4math6rndtolFNaNbNiNfdZl",
-        "4math6rndtolFNaNbNiNfeZl",
-        "4math6rndtolFNaNbNiNffZl",
-        //yl2xp1
-        "4math6yl2xp1FNaNbNiNfddZd",
-        "4math6yl2xp1FNaNbNiNfeeZe",
-        "4math6yl2xp1FNaNbNiNfffZf",
-
-        "4simd10__prefetchFNaNbNiNfxPvhZv",
-        "4simd10__simd_stoFNaNbNiNfEQBgQBe3XMMNhG16vQgZQj",
-        "4simd10__simd_stoFNaNbNiNfEQBgQBe3XMMdNhG16vZQh",
-        "4simd10__simd_stoFNaNbNiNfEQBgQBe3XMMfNhG16vZQh",
-        "4simd6__simdFNaNbNiNfEQBbQz3XMMNhG16vQgZQj",
-        "4simd6__simdFNaNbNiNfEQBbQz3XMMNhG16vQghZQk",
-        "4simd6__simdFNaNbNiNfEQBbQz3XMMNhG16vZQh",
-        "4simd6__simdFNaNbNiNfEQBbQz3XMMdZNhG16v",
-        "4simd6__simdFNaNbNiNfEQBbQz3XMMfZNhG16v",
-        "4simd9__simd_ibFNaNbNiNfEQBeQBc3XMMNhG16vhZQi",
-
-        "5bitop3bsfFNaNbNiNfkZi",
-        "5bitop3bsfFNaNbNiNfmZi",
-        "5bitop3bsrFNaNbNiNfkZi",
-        "5bitop3bsrFNaNbNiNfmZi",
-        "5bitop3btcFNaNbNiPmmZi",
-        "5bitop3btrFNaNbNiPmmZi",
-        "5bitop3btsFNaNbNiPmmZi",
-        "5bitop3inpFNbNikZh",
-        "5bitop4inplFNbNikZk",
-        "5bitop4inpwFNbNikZt",
-        "5bitop4outpFNbNikhZh",
-        "5bitop5bswapFNaNbNiNfkZk",
-        "5bitop5outplFNbNikkZk",
-        "5bitop5outpwFNbNiktZt",
-
-        "5bitop7_popcntFNaNbNiNfkZi",
-        "5bitop7_popcntFNaNbNiNfmZi",
-        "5bitop7_popcntFNaNbNiNftZt",
-        // volatileLoad
-        "8volatile12volatileLoadFNbNiNfPhZh",
-        "8volatile12volatileLoadFNbNiNfPkZk",
-        "8volatile12volatileLoadFNbNiNfPmZm",
-        "8volatile12volatileLoadFNbNiNfPtZt",
-        // volatileStore
-        "8volatile13volatileStoreFNbNiNfPhhZv",
-        "8volatile13volatileStoreFNbNiNfPkkZv",
-        "8volatile13volatileStoreFNbNiNfPmmZv",
-        "8volatile13volatileStoreFNbNiNfPttZv",
-    ];
+            "5bitop7_popcntFNaNbNiNfkZi",
+            // don't find 64 bit version in 32 bit code
+            global.params.is64bit ? "5bitop7_popcntFNaNbNiNfmZi" : "5bitop7_popcntFNaNbNiNfmxx",
+            "5bitop7_popcntFNaNbNiNftZt",
+            // volatileLoad
+            "8volatile12volatileLoadFNbNiNfPhZh",
+            "8volatile12volatileLoadFNbNiNfPkZk",
+            "8volatile12volatileLoadFNbNiNfPmZm",
+            "8volatile12volatileLoadFNbNiNfPtZt",
+            // volatileStore
+            "8volatile13volatileStoreFNbNiNfPhhZv",
+            "8volatile13volatileStoreFNbNiNfPkkZv",
+            "8volatile13volatileStoreFNbNiNfPmmZv",
+            "8volatile13volatileStoreFNbNiNfPttZv",
+        ];
+        init_guard = 2;
+    }
     __gshared immutable ubyte[62] core_ioptab =
     [
         OPcos,
@@ -682,9 +596,7 @@ int intrinsic_op(FuncDeclaration fd)
         OPeq,
     ];
 
-    static assert(std_namearray.length == std_namearray64.length);
     static assert(std_namearray.length == std_ioptab.length);
-    static assert(core_namearray.length == core_namearray64.length);
     static assert(core_namearray.length == core_ioptab.length);
     debug
     {
@@ -693,14 +605,6 @@ int intrinsic_op(FuncDeclaration fd)
             if (strcmp(std_namearray[i], std_namearray[i + 1]) >= 0)
             {
                 printf("std_namearray[%ld] = '%s'\n", cast(long)i, std_namearray[i]);
-                assert(0);
-            }
-        }
-        for (size_t i = 0; i < std_namearray64.length - 1; i++)
-        {
-            if (strcmp(std_namearray64[i], std_namearray64[i + 1]) >= 0)
-            {
-                printf("std_namearray64[%ld] = '%s'\n", cast(long)i, std_namearray64[i]);
                 assert(0);
             }
         }
@@ -713,14 +617,6 @@ int intrinsic_op(FuncDeclaration fd)
                 assert(0);
             }
         }
-        for (size_t i = 0; i < core_namearray64.length - 1; i++)
-        {
-            if (strcmp(core_namearray64[i], core_namearray64[i + 1]) >= 0)
-            {
-                printf("core_namearray64[%ld] = '%s'\n", cast(long)i, core_namearray64[i]);
-                assert(0);
-            }
-        }
     }
 
     size_t length = strlen(name);
@@ -730,7 +626,7 @@ int intrinsic_op(FuncDeclaration fd)
         !memcmp(name, "_D3std".ptr, 6))
     {
         int i = binary(name + 6,
-            cast(const(char)**)(global.params.is64bit ? std_namearray64.ptr : std_namearray.ptr),
+            cast(const(char)**)std_namearray.ptr,
             cast(int)std_namearray.length);
         return (i == -1) ? NotIntrinsic : std_ioptab[i];
     }
@@ -739,7 +635,7 @@ int intrinsic_op(FuncDeclaration fd)
         !memcmp(name, "_D4core".ptr, 7))
     {
         int i = binary(name + 7,
-            cast(const(char)**)(global.params.is64bit ? core_namearray64.ptr : core_namearray.ptr),
+            cast(const(char)**)core_namearray.ptr,
             cast(int)core_namearray.length);
         if (i != -1)
         {
