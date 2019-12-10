@@ -170,6 +170,26 @@ Expression *eval_yl2xp1(Loc loc, FuncDeclaration *, Expressions *arguments)
     return new RealExp(loc, result, arg0->type);
 }
 
+Expression *eval_toPrecFloat(Loc loc, FuncDeclaration *, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    float f = (long double)arg0->toReal();
+    return new RealExp(loc, real_t(f), Type::tfloat32);
+}
+
+Expression *eval_toPrecDouble(Loc loc, FuncDeclaration *, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    double d = (long double)arg0->toReal();
+    return new RealExp(loc, real_t(d), Type::tfloat64);
+}
+
+Expression *eval_toPrecReal(Loc loc, FuncDeclaration *, Expressions *arguments)
+{
+    Expression *arg0 = (*arguments)[0];
+    return new RealExp(loc, arg0->toReal(), Type::tfloat80);
+}
+
 void builtin_init()
 {
     builtins._init(47);
@@ -288,6 +308,25 @@ void builtin_init()
     // @safe @nogc pure nothrow int function(ulong)
     if (global.params.is64bit)
         add_builtin("_D4core5bitop7_popcntFNaNbNiNfmZi", &eval_popcnt);
+
+    // pure nothrow @nogc @safe float core.math.toPrec!(float).toPrec(float)
+    add_builtin("_D4core4math14__T6toPrecHTfZ6toPrecFNaNbNiNffZf", &eval_toPrecFloat);
+    // pure nothrow @nogc @safe float core.math.toPrec!(float).toPrec(double)
+    add_builtin("_D4core4math14__T6toPrecHTfZ6toPrecFNaNbNiNfdZf", &eval_toPrecFloat);
+    // pure nothrow @nogc @safe float core.math.toPrec!(float).toPrec(real)
+    add_builtin("_D4core4math14__T6toPrecHTfZ6toPrecFNaNbNiNfeZf", &eval_toPrecFloat);
+    // pure nothrow @nogc @safe double core.math.toPrec!(double).toPrec(float)
+    add_builtin("_D4core4math14__T6toPrecHTdZ6toPrecFNaNbNiNffZd", &eval_toPrecDouble);
+    // pure nothrow @nogc @safe double core.math.toPrec!(double).toPrec(double)
+    add_builtin("_D4core4math14__T6toPrecHTdZ6toPrecFNaNbNiNfdZd", &eval_toPrecDouble);
+    // pure nothrow @nogc @safe double core.math.toPrec!(double).toPrec(real)
+    add_builtin("_D4core4math14__T6toPrecHTdZ6toPrecFNaNbNiNfeZd", &eval_toPrecDouble);
+    // pure nothrow @nogc @safe double core.math.toPrec!(real).toPrec(float)
+    add_builtin("_D4core4math14__T6toPrecHTeZ6toPrecFNaNbNiNffZe", &eval_toPrecReal);
+    // pure nothrow @nogc @safe double core.math.toPrec!(real).toPrec(double)
+    add_builtin("_D4core4math14__T6toPrecHTeZ6toPrecFNaNbNiNfdZe", &eval_toPrecReal);
+    // pure nothrow @nogc @safe double core.math.toPrec!(real).toPrec(real)
+    add_builtin("_D4core4math14__T6toPrecHTeZ6toPrecFNaNbNiNfeZe", &eval_toPrecReal);
 }
 
 /**********************************
