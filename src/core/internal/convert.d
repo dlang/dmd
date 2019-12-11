@@ -9,6 +9,7 @@
  */
 module core.internal.convert;
 import core.internal.traits : Unqual;
+import core.math : toPrec;
 
 /+
 A @nogc function can allocate memory during CTFE.
@@ -82,7 +83,7 @@ const(ubyte)[] toUbyte(T)(const ref T val) if (is(Unqual!T == float) || is(Unqua
             ubyte[] buff = ctfe_alloc(T.sizeof);
             enum msbSize = double.sizeof;
 
-            double hi = val;
+            double hi = toPrec!double(val);
             buff[0 .. msbSize] = toUbyte(hi)[];
 
             if (val is cast(T)0.0 || val is cast(T)-0.0 ||
@@ -96,11 +97,7 @@ const(ubyte)[] toUbyte(T)(const ref T val) if (is(Unqual!T == float) || is(Unqua
             }
             else
             {
-                // BUG: https://issues.dlang.org/show_bug.cgi?id=9937
-                // This doesn't work in CTFE, due to all float literals having
-                // maximum precision, regardless of actual precision requested.
-                // The least significant part will always be zero until fixed.
-                double low = val - hi;
+                double low = toPrec!double(val - hi);
                 buff[msbSize .. $] = toUbyte(low)[];
             }
 
