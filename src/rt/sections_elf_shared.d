@@ -369,7 +369,7 @@ T[] toRange(T)(T* beg, T* end) { return beg[0 .. end - beg]; }
 
 /* For each shared library and executable, the compiler generates code that
  * sets up CompilerDSOData and calls _d_dso_registry().
- * A pointer to that code is inserted into both the .ctors and .dtors
+ * A pointer to that code is inserted into both the .init_array and .fini_array
  * segment so it gets called by the loader on startup and shutdown.
  */
 extern(C) void _d_dso_registry(CompilerDSOData* data)
