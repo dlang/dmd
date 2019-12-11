@@ -402,6 +402,16 @@ int intrinsic_op(FuncDeclaration *fd)
 
     static const char *core_namearray[] =
     {
+        "4math14__T6toPrecHTdZ6toPrecFNaNbNiNfdZd",
+        "4math14__T6toPrecHTdZ6toPrecFNaNbNiNfeZd",
+        "4math14__T6toPrecHTdZ6toPrecFNaNbNiNffZd",
+        "4math14__T6toPrecHTeZ6toPrecFNaNbNiNfdZe",
+        "4math14__T6toPrecHTeZ6toPrecFNaNbNiNfeZe",
+        "4math14__T6toPrecHTeZ6toPrecFNaNbNiNffZe",
+        "4math14__T6toPrecHTfZ6toPrecFNaNbNiNfdZf",
+        "4math14__T6toPrecHTfZ6toPrecFNaNbNiNfeZf",
+        "4math14__T6toPrecHTfZ6toPrecFNaNbNiNffZf",
+
         "4math3cosFNaNbNiNfeZe",
         "4math3sinFNaNbNiNfeZe",
         "4math4fabsFNaNbNiNfeZe",
@@ -453,6 +463,16 @@ int intrinsic_op(FuncDeclaration *fd)
     };
     static const char *core_namearray64[] =
     {
+        "4math14__T6toPrecHTdZ6toPrecFNaNbNiNfdZd",
+        "4math14__T6toPrecHTdZ6toPrecFNaNbNiNfeZd",
+        "4math14__T6toPrecHTdZ6toPrecFNaNbNiNffZd",
+        "4math14__T6toPrecHTeZ6toPrecFNaNbNiNfdZe",
+        "4math14__T6toPrecHTeZ6toPrecFNaNbNiNfeZe",
+        "4math14__T6toPrecHTeZ6toPrecFNaNbNiNffZe",
+        "4math14__T6toPrecHTfZ6toPrecFNaNbNiNfdZf",
+        "4math14__T6toPrecHTfZ6toPrecFNaNbNiNfeZf",
+        "4math14__T6toPrecHTfZ6toPrecFNaNbNiNffZf",
+
         "4math3cosFNaNbNiNfeZe",
         "4math3sinFNaNbNiNfeZe",
         "4math4fabsFNaNbNiNfeZe",
@@ -504,6 +524,16 @@ int intrinsic_op(FuncDeclaration *fd)
     };
     static unsigned char core_ioptab[] =
     {
+        OPtoPrec,
+        OPtoPrec,
+        OPtoPrec,
+        OPtoPrec,
+        OPtoPrec,
+        OPtoPrec,
+        OPtoPrec,
+        OPtoPrec,
+        OPtoPrec,
+
         OPcos,
         OPsin,
         OPabs,

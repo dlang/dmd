@@ -351,7 +351,7 @@ if (I32) assert(tysize[TYnptr] == 4);
     if (ec->Eoper == OPvar && op != -1)
     {
         el_free(ec);
-        if (OTbinary(op))
+        if (op != OPtoPrec && OTbinary(op))
         {
             ep->Eoper = op;
             ep->Ety = tyret;
@@ -417,6 +417,48 @@ if (I32) assert(tysize[TYnptr] == 4);
             elem *earg = e->E2;
             e->E2 = NULL;
             e = el_combine(earg, e);
+        }
+        else if (op == OPtoPrec)
+        {
+#define X(fty, tty) (fty * TMAX + tty)
+            switch (X(tybasic(ep->Ety), tyret))
+            {
+            case X(TYfloat, TYfloat):     // float -> float
+            case X(TYdouble, TYdouble):   // double -> double
+            case X(TYldouble, TYldouble): // real -> real
+                e = ep;
+                break;
+
+            case X(TYfloat, TYdouble):    // float -> double
+                e = el_una(OPf_d, tyret, ep);
+                break;
+
+            case X(TYfloat, TYldouble):   // float -> real
+                e = el_una(OPf_d, TYdouble, ep);
+                e = el_una(OPd_ld, tyret, e);
+                break;
+
+            case X(TYdouble, TYfloat):    // double -> float
+                e = el_una(OPd_f, tyret, ep);
+                break;
+
+            case X(TYdouble, TYldouble):  // double -> real
+                e = el_una(OPd_ld, tyret, ep);
+                break;
+
+            case X(TYldouble, TYfloat):   // real -> float
+                e = el_una(OPld_d, TYdouble, ep);
+                e = el_una(OPd_f, tyret, e);
+                break;
+
+            case X(TYldouble, TYdouble):  // real -> double
+                e = el_una(OPld_d, tyret, ep);
+                break;
+
+	    default:
+		assert(0);
+            }
+#undef X
         }
         else
             e = el_una(op,tyret,ep);
