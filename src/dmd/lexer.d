@@ -202,6 +202,51 @@ unittest
     }
 }
 
+
+/**************
+ * Pool allocator for Token objects, used by the Lexer.
+ * Tokens are never freed so Token pointers will never change
+ */
+private struct TokenPool{
+private:
+    enum PoolSize = 1024; //number of tokens per pool
+    enum DefaultPoolListSize = 64; //number of pools to allocate by default
+    Token[][] pools;
+    size_t poolsAllocated = 0;
+
+    nothrow:
+
+    ///Token pool looks like a big array
+    public ref Token getByIndex(size_t index){
+        if (index >= PoolSize*poolsAllocated)
+        {
+            allocatePools(index + 1); //need space for index 0
+        }
+        return pools[index / PoolSize][index % PoolSize];
+
+    }
+
+    private void allocatePools(size_t tokensNeeded){
+        const poolsNeeded = (tokensNeeded + PoolSize - 1)/PoolSize;
+        assert(poolsNeeded == poolsAllocated + 1); //don't alloc more than 1 pool at a time
+        if (poolsNeeded > pools.length)
+        {
+            const newLength = pools.length > 0 ? 2*pools.length : DefaultPoolListSize;
+            Token[][] newPoolList = (cast(Token[]*)mem.xmalloc((Token[]).sizeof *newLength))[0 .. newLength];
+
+            if(pools.length > 0)
+                newPoolList[0 .. pools.length] = pools[];
+
+            if (pools.ptr)
+                mem.xfree(pools.ptr);
+
+            pools = newPoolList;
+        }
+        pools[poolsAllocated++] = new Token[PoolSize]; //will never be freed, so use GC mem
+    }
+}
+
+
 /***************
  * Represents a range of tokens lazily scanned from a lexer
  * should be created with the Lexer makeRangeFromHere method
@@ -307,12 +352,9 @@ class Lexer
 
         DiagnosticReporter diagnosticReporter;
 
-        enum PoolSize = 1024; //number of tokens per pool
-        enum DefaultPoolListSize = 64; //number of pools to allocate by default
-        Token[][] pools;
+        TokenPool tokenPool;
         size_t nextTokenIndex = 0;
         size_t tokensScanned = 0;
-        size_t poolsAllocated = 0;
 
     }
 
@@ -387,37 +429,15 @@ class Lexer
 
     private ref Token getByIndex(size_t index)
     {
-        if (index >= PoolSize*poolsAllocated)
-        {
-            allocatePools(index + 1); //need space for index 0
-        }
-
         while (index >= tokensScanned)
         {
-            Token* current = &pools[tokensScanned / PoolSize][tokensScanned % PoolSize];
+            Token* current = &tokenPool.getByIndex(tokensScanned);
             scan(current);
             tokensScanned++;
         }
-        return pools[index / PoolSize][index % PoolSize];
+        return tokenPool.getByIndex(index);
     }
 
-    private void allocatePools(size_t tokensNeeded){
-        const poolsNeeded = (tokensNeeded + PoolSize - 1)/PoolSize;
-        if (poolsNeeded > pools.length)
-        {
-            const newLength = pools.length > 0 ? 2*pools.length : DefaultPoolListSize;
-            Token[][] newPoolList = (cast(Token[]*)mem.xmalloc((Token[]).sizeof *newLength))[0 .. newLength];
-
-            if(pools.length > 0)
-                newPoolList[0 .. pools.length] = pools[];
-
-            if (pools.ptr)
-                mem.xfree(pools.ptr);
-
-            pools = newPoolList;
-        }
-        pools[poolsAllocated++] = new Token[PoolSize]; //will never be freed, so use GC mem
-    }
 
     final TOK nextToken()
     {
