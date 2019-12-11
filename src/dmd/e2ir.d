@@ -482,6 +482,45 @@ if (!irs.params.is64bit) assert(tysize(TYnptr) == 4);
             e.EV.E2 = null;
             e = el_combine(earg, e);
         }
+        else if (op == OPtoPrec)
+        {
+            static int X(int fty, int tty) { return fty * TMAX + tty; }
+
+            final switch (X(tybasic(ep.Ety), tyret))
+            {
+            case X(TYfloat, TYfloat):     // float -> float
+            case X(TYdouble, TYdouble):   // double -> double
+            case X(TYldouble, TYldouble): // real -> real
+                e = ep;
+                break;
+
+            case X(TYfloat, TYdouble):    // float -> double
+                e = el_una(OPf_d, tyret, ep);
+                break;
+
+            case X(TYfloat, TYldouble):   // float -> real
+                e = el_una(OPf_d, TYdouble, ep);
+                e = el_una(OPd_ld, tyret, e);
+                break;
+
+            case X(TYdouble, TYfloat):    // double -> float
+                e = el_una(OPd_f, tyret, ep);
+                break;
+
+            case X(TYdouble, TYldouble):  // double -> real
+                e = el_una(OPd_ld, tyret, ep);
+                break;
+
+            case X(TYldouble, TYfloat):   // real -> float
+                e = el_una(OPld_d, TYdouble, ep);
+                e = el_una(OPd_f, tyret, e);
+                break;
+
+            case X(TYldouble, TYdouble):  // real -> double
+                e = el_una(OPld_d, tyret, ep);
+                break;
+            }
+        }
         else
             e = el_una(op,tyret,ep);
     }

@@ -6043,6 +6043,7 @@ private extern (D) immutable elfp_t[OPMAX] elxxx =
     OPvecfill: &elzot,
     OPva_start: &elvalist,
     OPprefetch: &elzot,
+    OPtoPrec:   &elerr,
 ];
 
 }
