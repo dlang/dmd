@@ -413,6 +413,8 @@ else version (Posix)
             {
                 Thread.remove(obj);
                 atomicStore!(MemoryOrder.raw)(obj.m_isRunning, false);
+                rt_tlsgc_destroy( obj.m_tlsgcdata );
+                obj.m_tlsgcdata = null;
             }
             Thread.add(&obj.m_main);
 
