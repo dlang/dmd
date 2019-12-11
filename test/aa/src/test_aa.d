@@ -30,6 +30,7 @@ void main()
     issue15367();
     issue16974();
     issue18071();
+    issue20440();
     testIterationWithConst();
     testStructArrayKey();
     miscTests1();
@@ -688,6 +689,24 @@ void issue18071()
 
     Foo f;
     () @safe { assert(f.byKey.empty); }();
+}
+
+/// Test that `require` works even with types whose opAssign
+/// doesn't return a reference to the receiver.
+/// https://issues.dlang.org/show_bug.cgi?id=20440
+void issue20440() @safe
+{
+    static struct S
+    {
+        int value;
+        auto opAssign(S s) {
+            this.value = s.value;
+            return this;
+        }
+    }
+    S[S] aa;
+    assert(aa.require(S(1), S(2)) == S(2));
+    assert(aa[S(1)] == S(2));
 }
 
 /// Verify iteration with const.

@@ -2597,7 +2597,13 @@ ref V require(K, V)(ref V[K] aa, K key, lazy V value = V.init)
     {
         auto p = cast(V*) _aaGetX(cast(AA*) &aa, typeid(V[K]), V.sizeof, &key, found);
     }
-    return found ? *p : (*p = value);
+    if (found)
+        return *p;
+    else
+    {
+        *p = value; // Not `return (*p = value)` since if `=` is overloaded
+        return *p;  // this might not return a ref to the left-hand side.
+    }
 }
 
 ///
