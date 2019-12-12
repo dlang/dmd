@@ -470,8 +470,8 @@ int intrinsic_op(FuncDeclaration fd)
         }
     }
 
-    // No 64-bit bsf bsr btc in 32bit mode
     if (!global.params.is64bit)
+    // No 64-bit bsf bsr in 32bit mode
     {
         if (op == OPbsf || op == OPbsr ) {
             //_D4core5bitop3bsfFNaNbNiNfxZi
@@ -490,15 +490,12 @@ int intrinsic_op(FuncDeclaration fd)
 Lva_start:
     if (global.params.is64bit &&
         fd.toParent().isTemplateInstance() &&
-        fd.ident == Id.va_start)
+        id3 == Id.va_start &&
+        id2 == Id.stdarg &&
+        (*md.packages)[1] == Id.stdc &&
+        id1 == Id.core)
     {
-        OutBuffer buf;
-        mangleToBuffer(fd.getModule(), &buf);
-        const s = buf.peekChars();
-        if (!strcmp(s, "4core4stdc6stdarg"))
-        {
-            return OPva_start;
-        }
+        return OPva_start;
     }
     return op;
 }
