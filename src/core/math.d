@@ -219,10 +219,18 @@ T toPrec(T:real)(real f)  { pragma(inline, false); return f; }
     r = toPrec!real(d + d);
     r = toPrec!real(r + r);
 
-    /+ Uncomment these once compiler support has been added.
     enum real PIR = 0xc.90fdaa22168c235p-2;
     enum double PID = 0x1.921fb54442d18p+1;
     enum float PIF = 0x1.921fb6p+1;
+    static assert(toPrec!float(PIR) == PIF);
+    static assert(toPrec!double(PIR) == PID);
+    static assert(toPrec!real(PIR) == PIR);
+    static assert(toPrec!float(PID) == PIF);
+    static assert(toPrec!double(PID) == PID);
+    static assert(toPrec!real(PID) == PID);
+    static assert(toPrec!float(PIF) == PIF);
+    static assert(toPrec!double(PIF) == PIF);
+    static assert(toPrec!real(PIF) == PIF);
 
     assert(toPrec!float(PIR) == PIF);
     assert(toPrec!double(PIR) == PID);
@@ -233,5 +241,4 @@ T toPrec(T:real)(real f)  { pragma(inline, false); return f; }
     assert(toPrec!float(PIF) == PIF);
     assert(toPrec!double(PIF) == PIF);
     assert(toPrec!real(PIF) == PIF);
-    +/
 }
