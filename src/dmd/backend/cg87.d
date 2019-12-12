@@ -1844,6 +1844,8 @@ L5:
         case OPs16_d:       mf1 = MFword;   goto L6;
         case OPs32_d:       mf1 = MFlong;   goto L6;
         L6:
+            if (e.Ecount)
+                goto Ldefault;
             if (op != -1)
                 note87(eleft,eoffset,0);    // don't trash this value
             if (e.EV.E1.Eoper == OPvar ||
