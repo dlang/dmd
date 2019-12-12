@@ -123,6 +123,24 @@ Where:
 }
 
 /**
+ * Remove generated .di files on error and exit
+ */
+private void removeHdrFilesAndFail(ref Param params, ref Modules modules)
+{
+    if (params.doHdrGeneration)
+    {
+        foreach (m; modules)
+        {
+            if (m.isHdrFile)
+                continue;
+            File.remove(m.hdrfile.toChars());
+        }
+    }
+
+    fatal();
+}
+
+/**
  * DMD's real entry point
  *
  * Parses command line arguments and config file, open and read all
@@ -507,6 +525,25 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (global.errors)
         fatal();
 
+    if (params.doHdrGeneration)
+    {
+        /* Generate 'header' import files.
+         * Since 'header' import files must be independent of command
+         * line switches and what else is imported, they are generated
+         * before any semantic analysis.
+         */
+        foreach (m; modules)
+        {
+            if (m.isHdrFile)
+                continue;
+            if (params.verbose)
+                message("import    %s", m.toChars());
+            genhdrfile(m);
+        }
+    }
+    if (global.errors)
+        removeHdrFilesAndFail(params, modules);
+
     // load all unconditional imports for better symbol resolving
     foreach (m; modules)
     {
@@ -515,7 +552,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         m.importAll(null);
     }
     if (global.errors)
-        fatal();
+        removeHdrFilesAndFail(params, modules);
 
     backend_init();
 
@@ -549,7 +586,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     }
     Module.runDeferredSemantic2();
     if (global.errors)
-        fatal();
+        removeHdrFilesAndFail(params, modules);
 
     // Do pass 3 semantic analysis
     foreach (m; modules)
@@ -574,7 +611,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     }
     Module.runDeferredSemantic3();
     if (global.errors)
-        fatal();
+        removeHdrFilesAndFail(params, modules);
 
     // Scan for functions to inline
     if (params.useInline)
@@ -588,7 +625,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     }
     // Do not attempt to generate output files if errors or warnings occurred
     if (global.errors || global.warnings)
-        fatal();
+        removeHdrFilesAndFail(params, modules);
 
     // inlineScan incrementally run semantic3 of each expanded functions.
     // So deps file generation should be moved after the inlining stage.
@@ -718,29 +755,9 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             }
         }
     }
-
-    if (global.errors)
-        fatal();
-
-    if (params.doHdrGeneration)
-    {
-        /* Generate 'header' import files.
-         * Since 'header' import files must be be generated only if
-         * there are no erros occurring in any compilation stage,
-         * they will be generated at the end
-         */
-        foreach (m; modules)
-        {
-            if (m.isHdrFile)
-                continue;
-            if (params.verbose)
-                message("import    %s", m.toChars());
-            genhdrfile(m);
-        }
-    }
-    
     if (global.errors || global.warnings)
-        fatal();
+        removeHdrFilesAndFail(params, modules);
+
     return status;
 }
 
