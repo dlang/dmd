@@ -28,6 +28,7 @@ import dmd.root.ctfloat;
 import dmd.root.outbuffer;
 import dmd.root.port;
 import dmd.root.rmem;
+import dmd.root.array;
 import dmd.tokens;
 import dmd.utf;
 import dmd.utils;
@@ -207,42 +208,37 @@ unittest
  * Pool allocator for Token objects, used by the Lexer.
  * Tokens are never freed so Token pointers will never change
  */
-private struct TokenPool{
+private struct TokenPool
+{
 private:
-    enum PoolSize = 1024; //number of tokens per pool
+    enum PoolSize = 256; //number of tokens per pool
     enum DefaultPoolListSize = 64; //number of pools to allocate by default
-    Token[][] pools;
-    size_t poolsAllocated = 0;
+    //Wrap a slice because Array is extern C++
+    private struct Pool
+    {
+        Token[] tokens;
+    }
+    Array!(Pool) pools;
 
     nothrow:
 
     ///Token pool looks like a big array
-    public ref Token getByIndex(size_t index){
-        if (index >= PoolSize*poolsAllocated)
+    public ref Token getByIndex(size_t index)
+    {
+        if (index >= PoolSize * pools.length)
         {
             allocatePools(index + 1); //need space for index 0
         }
-        return pools[index / PoolSize][index % PoolSize];
+        return pools[index / PoolSize].tokens[index % PoolSize];
 
     }
 
-    private void allocatePools(size_t tokensNeeded){
-        const poolsNeeded = (tokensNeeded + PoolSize - 1)/PoolSize;
-        assert(poolsNeeded == poolsAllocated + 1); //don't alloc more than 1 pool at a time
-        if (poolsNeeded > pools.length)
-        {
-            const newLength = pools.length > 0 ? 2*pools.length : DefaultPoolListSize;
-            Token[][] newPoolList = (cast(Token[]*)mem.xmalloc((Token[]).sizeof *newLength))[0 .. newLength];
-
-            if(pools.length > 0)
-                newPoolList[0 .. pools.length] = pools[];
-
-            if (pools.ptr)
-                mem.xfree(pools.ptr);
-
-            pools = newPoolList;
-        }
-        pools[poolsAllocated++] = new Token[PoolSize]; //will never be freed, so use GC mem
+    private void allocatePools(size_t tokensNeeded)
+    {
+        const poolsNeeded = (tokensNeeded + PoolSize - 1) / PoolSize;
+        assert(poolsNeeded == pools.length + 1); //don't alloc more than 1 pool at a time
+        pools.reserve(1);
+        pools.push(Pool(new Token[PoolSize])); //will never be freed, so use GC mem
     }
 }
 
@@ -255,72 +251,72 @@ struct TokenRange
 {
 private:
     Lexer lex; //where are these tokens coming from?
-    size_t start_, stop_;
+    size_t startIndex, stopIndex;
 
 public:
     nothrow:
-    /// returns the first token in the range
+    //range functions
     Token front()
     {
-        return lex.getByIndex(start_);
+        return lex.getByIndex(startIndex);
     }
-    /// returns the last token in the range
+
     Token back()
     {
-        return lex.getByIndex(stop_ -1);
+        return lex.getByIndex(stopIndex - 1);
     }
-    /// return the first token after this range
+
+    void popFront() pure @nogc @safe
+    {
+        ++startIndex;
+    }
+
+    void popBack() pure @nogc @safe
+    {
+        assert(stopIndex > startIndex);
+        --stopIndex;
+    }
+
+    bool empty() const pure @nogc @safe
+    {
+        return startIndex == stopIndex;
+    }
+
+    size_t length() const pure @nogc @safe
+    {
+        return stopIndex - startIndex;
+    }
+
+    /// Returns: the first token after this range
     Token peek()
     {
-        return lex.getByIndex(stop_);
+        return lex.getByIndex(stopIndex);
     }
-    /// returns the second token in the range
+    /// Returns: the second token in the range
     Token peekFront()
     {
-        return lex.getByIndex(start_ +1);
+        return lex.getByIndex(startIndex + 1);
     }
     /// add the next token in the scanner to the back of the range
+    /// Returns: the new back
     Token growBack()
     {
-        return lex.getByIndex(stop_++);
+        return lex.getByIndex(stopIndex++);
     }
-    /// return the lexer this range gets its tokens from
+    /// Returns: the lexer this range gets its tokens from
     Lexer getLexer()
     {
         return lex;
     }
-    pure:
-    @safe:
-    /// remove the first token from the range
-    void popFront()
+    /// Returns: the index of the first token in the lexer's array of tokens
+    size_t start() const pure @nogc @safe
     {
-        ++start_;
+        return startIndex;
     }
-    /// remove the last token from the range
-    void popBack()
+    /// Returns: the index of one past the last token, in the lexer's array of tokens
+    size_t stop() const pure @nogc @safe
     {
-        assert(stop_ > start_);
-        --stop_;
-    }
-    /// returns true if there are no tokens in the range
-    bool empty() const
-    {
-        return start_ == stop_;
-    }
-    /// returns the number of tokens in the range (possibly 0)
-    size_t length() const
-    {
-        return stop_ - start_;
-    }
-    /// return the index of the first token in the lexer's array of tokens
-    size_t start() const
-    {
-        return start_;
-    }
-    /// return the index of one past the last token, in the lexer's array of tokens
-    size_t stop() const
-    {
-        return stop_;
+        return stopIndex;
     }
 }
 
@@ -454,14 +450,14 @@ class Lexer
 
     final void seekTo(size_t index)
     {
-        nextTokenIndex = index;
-        token = getByIndex(nextTokenIndex++);
+        token = getByIndex(index);
+        nextTokenIndex = index + 1;
     }
 
     ///make a range containing only this.token
     final TokenRange makeRangeFromHere()
     {
-        return TokenRange(this, nextTokenIndex -1, nextTokenIndex);
+        return TokenRange(this, nextTokenIndex - 1, nextTokenIndex);
     }
 
     /***********************
