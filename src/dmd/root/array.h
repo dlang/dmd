@@ -1,4 +1,4 @@
-/* Copyright (C) 2011-2018 by The D Language Foundation, All Rights Reserved
+/* Copyright (C) 2011-2019 by The D Language Foundation, All Rights Reserved
  * All Rights Reserved, written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -8,11 +8,7 @@
 
 #pragma once
 
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
+#include "dsystem.h"
 #include "object.h"
 #include "rmem.h"
 
@@ -43,7 +39,7 @@ struct Array
             mem.xfree(data);
     }
 
-    char *toChars()
+    char *toChars() const
     {
         const char **buf = (const char **)mem.xmalloc(dim * sizeof(const char *));
         d_size_t len = 2;
@@ -137,29 +133,6 @@ struct Array
     void zero()
     {
         memset(data,0,dim * sizeof(data[0]));
-    }
-
-    void sort()
-    {
-        struct ArraySort
-        {
-            static int
-    #if _WIN32
-              __cdecl
-    #endif
-            Array_sort_compare(const void *x, const void *y)
-            {
-                RootObject *ox = *(RootObject **)const_cast<void *>(x);
-                RootObject *oy = *(RootObject **)const_cast<void *>(y);
-
-                return ox->compare(oy);
-            }
-        };
-
-        if (dim)
-        {
-            qsort(data, dim, sizeof(RootObject *), &ArraySort::Array_sort_compare);
-        }
     }
 
     TYPE *tdata()

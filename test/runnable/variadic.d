@@ -777,7 +777,7 @@ struct S4940add
     long x;
 }
 
-ref S4940add get4940add(ref S4940add s){ return s; }
+ref S4940add get4940add(return ref S4940add s){ return s; }
 
 void test4940add()
 {

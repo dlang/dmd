@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1986-1997 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/blockopt.d, backend/blockopt.d)
@@ -34,7 +34,7 @@ import dmd.backend.oper;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
 import dmd.backend.el;
-import dmd.backend.memh;
+import dmd.backend.mem;
 import dmd.backend.type;
 import dmd.backend.global;
 import dmd.backend.goh;
@@ -59,6 +59,9 @@ else
     enum SCPP_OR_NTEXCEPTIONS = false;
 
 extern(C++):
+
+nothrow:
+
 
 extern (C) void *mem_fcalloc(size_t numbytes); // tk/mem.c
 extern (C) void mem_free(void*); // tk/mem.c
@@ -2114,16 +2117,13 @@ void funcsideeffects()
         for (block *b = startblock; b; b = b.Bnext)
         {
             if (b.Belem && funcsideeffect_walk(b.Belem))
-                goto Lside;
+            {
+                //printf("  function '%s' has side effects\n",funcsym_p.Sident);
+                return;
+            }
         }
-
-      Lnoside:
         funcsym_p.Sfunc.Fflags3 |= Fnosideeff;
         //printf("  function '%s' has no side effects\n",funcsym_p.Sident);
-        //return;
-
-      Lside:
-        //printf("  function '%s' has side effects\n",funcsym_p.Sident);
     }
 }
 
@@ -2134,7 +2134,7 @@ private int funcsideeffect_walk(elem *e)
 {
     assert(e);
     elem_debug(e);
-    if (typemask(e) & mTYvolatile)
+    if (typemask(e) & (mTYvolatile | mTYshared))
         return 1;
     int op = e.Eoper;
     switch (op)
@@ -2213,88 +2213,119 @@ private void blassertsplit()
         list_t bel = list_reverse(bl_enlist(b.Belem));
     L1:
         int dctor = 0;
+
+        int accumDctor(elem *e)
+        {
+            while (1)
+            {
+                if (OTunary(e.Eoper))
+                {
+                    e = e.EV.E1;
+                    continue;
+                }
+                else if (OTbinary(e.Eoper))
+                {
+                    accumDctor(e.EV.E1);
+                    e = e.EV.E2;
+                    continue;
+                }
+                else if (e.Eoper == OPdctor)
+                ++dctor;
+                else if (e.Eoper == OPddtor)
+                --dctor;
+                break;
+            }
+            return dctor;
+        }
+
         foreach (el; ListRange(bel))
         {
             elem *e = list_elem(el);
-            if (e.Eoper == OPinfo)
+
+            if (!(dctor == 0 &&   // don't split block between a dctor..ddtor pair
+                e.Eoper == OPoror && e.EV.E2.Eoper == OPcall && e.EV.E2.EV.E1.Eoper == OPvar))
             {
-                if (e.EV.E1.Eoper == OPdctor)
-                    ++dctor;
-                else if (e.EV.E1.Eoper == OPddtor)
-                    --dctor;
+                accumDctor(e);
+                continue;
             }
-            if (dctor == 0 &&   // don't split block between a dctor..ddtor pair
-                e.Eoper == OPoror && e.EV.E2.Eoper == OPcall && e.EV.E2.EV.E1.Eoper == OPvar)
+            Symbol *f = e.EV.E2.EV.E1.EV.Vsym;
+
+            if (!(f.Sflags & SFLexit))
             {
-                Symbol *f = e.EV.E2.EV.E1.EV.Vsym;
-                if (f.Sflags & SFLexit)
+                accumDctor(e);
+                continue;
+            }
+
+            if (accumDctor(e.EV.E1))
+            {
+                accumDctor(e.EV.E2);
+                continue;
+            }
+
+            // Create exit block
+            ++numblks;
+            maxblks += 3;
+            block *bexit = block_calloc();
+            bexit.BC = BCexit;
+            bexit.Belem = e.EV.E2;
+
+            /* Append bexit to block list
+             */
+            for (block *bx = b; 1; )
+            {
+                block* bxn = bx.Bnext;
+                if (!bxn)
                 {
-                    // Create exit block
-                    ++numblks;
-                    maxblks += 3;
-                    block *bexit = block_calloc();
-                    bexit.BC = BCexit;
-                    bexit.Belem = e.EV.E2;
+                    bx.Bnext = bexit;
+                    break;
+                }
+                bx = bxn;
+            }
 
-                    /* Append bexit to block list
-                     */
-                    for (block *bx = b; 1; )
-                    {
-                        block* bxn = bx.Bnext;
-                        if (!bxn)
-                        {
-                            bx.Bnext = bexit;
-                            break;
-                        }
-                        bx = bxn;
-                    }
+            el.ptr = cast(void *)e.EV.E1;
+            e.EV.E1 = null;
+            e.EV.E2 = null;
+            el_free(e);
 
-                    el.ptr = cast(void *)e.EV.E1;
-                    e.EV.E1 = null;
-                    e.EV.E2 = null;
-                    el_free(e);
+            /* Split b into two blocks, [b,b2]
+             */
+            ++numblks;
+            maxblks += 3;
+            block *b2 = block_calloc();
+            b2.Bnext = b.Bnext;
+            b.Bnext = b2;
+            b2.BC = b.BC;
+            b2.BS = b.BS;
+            list_t bex = list_next(el);
+            el.next = null;
+            b.Belem = bl_delist(list_reverse(bel));
 
-                    /* Split b into two blocks, [b,b2]
-                     */
-                    ++numblks;
-                    maxblks += 3;
-                    block *b2 = block_calloc();
-                    b2.Bnext = b.Bnext;
-                    b.Bnext = b2;
-                    b2.BC = b.BC;
-                    b2.BS = b.BS;
-                    list_t bex = list_next(el);
-                    el.next = null;
-                    b.Belem = bl_delist(list_reverse(bel));
-
-                    /* Transfer successors of b to b2.
-                     * Fix up predecessors of successors to b2 to point to b2 instead of b
-                     */
-                    b2.Bsucc = b.Bsucc;
-                    b.Bsucc = null;
-                    foreach (b2sl; ListRange(b2.Bsucc))
-                    {
-                        block *b2s = list_block(b2sl);
-                        foreach (b2spl; ListRange(b2s.Bpred))
-                        {
-                            if (list_block(b2spl) == b)
-                                b2spl.ptr = cast(void *)b2;
-                        }
-                    }
-
-                    b.BC = BCiftrue;
-                    assert(b.Belem);
-                    list_append(&b.Bsucc, b2);
-                    list_append(&b2.Bpred, b);
-                    list_append(&b.Bsucc, bexit);
-                    list_append(&bexit.Bpred, b);
-
-                    b = b2;
-                    bel = bex;  // remainder of expression list goes into b2
-                    go.changes++;
-                    goto L1;
+            /* Transfer successors of b to b2.
+             * Fix up predecessors of successors to b2 to point to b2 instead of b
+             */
+            b2.Bsucc = b.Bsucc;
+            b.Bsucc = null;
+            foreach (b2sl; ListRange(b2.Bsucc))
+            {
+                block *b2s = list_block(b2sl);
+                foreach (b2spl; ListRange(b2s.Bpred))
+                {
+                    if (list_block(b2spl) == b)
+                        b2spl.ptr = cast(void *)b2;
                 }
             }
+
+            b.BC = BCiftrue;
+            assert(b.Belem);
+            list_append(&b.Bsucc, b2);
+            list_append(&b2.Bpred, b);
+            list_append(&b.Bsucc, bexit);
+            list_append(&bexit.Bpred, b);
+
+            b = b2;
+            bel = bex;  // remainder of expression list goes into b2
+            go.changes++;
+            goto L1;
         }
         b.Belem = bl_delist(list_reverse(bel));
     }

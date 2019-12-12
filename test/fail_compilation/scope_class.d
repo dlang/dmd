@@ -1,7 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/scope_class.d(10): Error: functions cannot return `scope scope_class.C`
+fail_compilation/scope_class.d(9): Deprecation: `scope` as a type constraint is deprecated.  Use `scope` at the usage site.
+fail_compilation/scope_class.d(11): Error: functions cannot return `scope scope_class.C`
 ---
 */
 

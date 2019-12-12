@@ -5,7 +5,7 @@
  *
  * This modules defines some utility functions for DMD.
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/utils.d, _utils.d)
@@ -54,15 +54,17 @@ const(char)* toWinPath(const(char)* src)
  *
  * Params:
  *   loc = The line number information from where the call originates
- *   f = a `dmd.root.file.File` handle to read
+ *   filename = Path to file
  */
-extern (C++) void readFile(Loc loc, File* f)
+FileBuffer readFile(Loc loc, const(char)* filename)
 {
-    if (f.read())
+    auto result = File.read(filename);
+    if (!result.success)
     {
-        error(loc, "Error reading file '%s'", f.name.toChars());
+        error(loc, "Error reading file '%s'", filename);
         fatal();
     }
+    return FileBuffer(result.extractSlice());
 }
 
 
@@ -71,13 +73,15 @@ extern (C++) void readFile(Loc loc, File* f)
  *
  * Params:
  *   loc = The line number information from where the call originates
- *   f = a `dmd.root.file.File` handle to write
+ *   filename = Path to file
+ *   data = Full content of the file to be written
  */
-extern (C++) void writeFile(Loc loc, File* f)
+extern (D) void writeFile(Loc loc, const(char)[] filename, const void[] data)
 {
-    if (f.write())
+    ensurePathToNameExists(Loc.initial, filename);
+    if (!File.write(filename, data))
     {
-        error(loc, "Error writing file '%s'", f.name.toChars());
+        error(loc, "Error writing file '%*.s'", filename.length, filename.ptr);
         fatal();
     }
 }
@@ -91,18 +95,18 @@ extern (C++) void writeFile(Loc loc, File* f)
  *   loc = The line number information from where the call originates
  *   name = a path to check (the name is stripped)
  */
-extern (C++) void ensurePathToNameExists(Loc loc, const(char)* name)
+void ensurePathToNameExists(Loc loc, const(char)[] name)
 {
-    const(char)* pt = FileName.path(name);
-    if (*pt)
+    const char[] pt = FileName.path(name);
+    if (pt.length)
     {
         if (!FileName.ensurePathExists(pt))
         {
-            error(loc, "cannot create directory %s", pt);
+            error(loc, "cannot create directory %*.s", pt.length, pt.ptr);
             fatal();
         }
     }
-    FileName.free(pt);
+    FileName.free(pt.ptr);
 }
 
 
@@ -113,7 +117,7 @@ extern (C++) void ensurePathToNameExists(Loc loc, const(char)* name)
  *   buf = Buffer to write the escaped path to
  *   fname = Path to escape
  */
-extern (C++) void escapePath(OutBuffer* buf, const(char)* fname)
+void escapePath(OutBuffer* buf, const(char)* fname)
 {
     while (1)
     {
@@ -160,7 +164,6 @@ extern(D) static bool iequals(const(char)[] s1, const(char)[] s2)
     if (s1.length != s2.length)
         return false;
 
-    int result = 0;
     foreach (idx, c1; s1)
     {
         // Since we did a length check, it is safe to bypass bounds checking

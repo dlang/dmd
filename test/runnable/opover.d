@@ -1080,6 +1080,24 @@ class C14344
 }
 
 /**************************************/
+// https://issues.dlang.org/show_bug.cgi?id=1547
+struct A
+{
+    int b;
+    static A opCall(int k)
+    {
+        assert(0);
+    }
+    this(int) {}
+}
+
+void fun(A k = 2) {}
+
+void test1547()
+{
+    fun();
+}
+/**************************************/
 
 int main()
 {
@@ -1098,6 +1116,7 @@ int main()
     test13();
     test14();
     test15();
+    test1547();
     test4953a();
     test4953b();
     test4953c();

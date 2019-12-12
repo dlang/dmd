@@ -1,3 +1,8 @@
+/*
+TEST_OUTPUT:
+---
+---
+*/
 
 import core.stdc.stdio;
 import std.stdio;
@@ -577,7 +582,7 @@ void test18()
 
 void test19()
 {
-    string string = x"F0 9D 83 93";
+    string string = "\xF0\x9D\x83\x93";
 
     int count=0;
     dchar tmp;

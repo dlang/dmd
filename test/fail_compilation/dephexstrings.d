@@ -2,7 +2,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/dephexstrings.d(8): Deprecation: Built-in hex string literals are deprecated, use `std.conv.hexString` instead.
+fail_compilation/dephexstrings.d(8): Error: Built-in hex string literals are obsolete, use `std.conv.hexString!"60"` instead.
 ---
 */
 enum xstr = x"60";
+

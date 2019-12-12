@@ -1,3 +1,4 @@
+module imports.link9571a;
 struct MapResult(alias fun)
 {
     void bar() { fun(0); }

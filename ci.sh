@@ -86,9 +86,9 @@ test() {
 test_dmd() {
     # test fewer compiler argument permutations for PRs to reduce CI load
     if [ "$FULL_BUILD" == "true" ] && [ "$OS_NAME" == "linux"  ]; then
-        make -j$N -C test MODEL=$MODEL # all ARGS by default
+        DMD_TESTSUITE_MAKE_ARGS=-j$N make -j1 -C test start_all_tests MODEL=$MODEL # all ARGS by default
     else
-        make -j$N -C test MODEL=$MODEL ARGS="-O -inline -release"
+        DMD_TESTSUITE_MAKE_ARGS=-j$N make -j1 -C test start_all_tests MODEL=$MODEL ARGS="-O -inline -release"
     fi
 }
 

@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 2006-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 2006-2019 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -48,8 +48,6 @@ typedef Array<class SharedStaticDtorDeclaration *> SharedStaticDtorDeclarations;
 typedef Array<class AliasDeclaration *> AliasDeclarations;
 
 typedef Array<class Module *> Modules;
-
-typedef Array<struct File *> Files;
 
 typedef Array<class CaseStatement *> CaseStatements;
 

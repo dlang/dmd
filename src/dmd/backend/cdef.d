@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cdef.d, backend/_cdef.d)
@@ -383,7 +383,7 @@ else
 {
     debug
     {
-        enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2017.  All Rights Reserved.
+        enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2019.  All Rights Reserved.
 Written by Walter Bright
 *****BETA TEST VERSION*****";
     }
@@ -391,12 +391,12 @@ Written by Walter Bright
     {
         version (linux)
         {
-            enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2017.  All Rights Reserved.
+            enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2019.  All Rights Reserved.
 Written by Walter Bright, Linux version by Pat Nelson";
         }
         else
         {
-            enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2017.  All Rights Reserved.
+            enum COPYRIGHT = "Copyright (C) Digital Mars 2000-2019.  All Rights Reserved.
 Written by Walter Bright";
         }
     }
@@ -601,6 +601,7 @@ enum
     CFG3digraphs    = 0x20000, // support ANSI C++ digraphs
     CFG3semirelax   = 0x40000, // moderate relaxed type checking (non-Windows targets)
     CFG3pic         = 0x80000, // position independent code
+    CFG3pie         = 0x10_0000, // position independent executable (CFG3pic also set)
 }
 
 alias config_flags4_t = uint;
@@ -679,7 +680,7 @@ enum
 struct Config
 {
     char language;              // 'C' = C, 'D' = C++
-    char[8] _version;           // = VERSION
+    string _version;            /// Compiler version
     char[3] exetype;            // distinguish exe types so PH
                                 // files are distinct (= SUFFIX)
 

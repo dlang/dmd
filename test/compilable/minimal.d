@@ -1,7 +1,7 @@
 // DFLAGS:
 // PERMUTE_ARGS:
 // POST_SCRIPT: compilable/extra-files/minimal/verify_symbols.sh
-// REQUIRED_ARGS: -defaultlib= runnable/extra-files/minimal/object.d
+// REQUIRED_ARGS: -defaultlib= compilable/extra-files/minimal/object.d
 
 // This test ensures an empty main with a struct and enum, built with a minimal
 // runtime, does not generate ModuleInfo or exception handling code, and does not

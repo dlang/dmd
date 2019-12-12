@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/cond.d, _cond.d)
@@ -14,6 +14,7 @@ module dmd.cond;
 
 import core.stdc.string;
 import dmd.arraytypes;
+import dmd.ast_node;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
@@ -44,7 +45,7 @@ enum Include
     no,                 /// do not include the conditional code
 }
 
-extern (C++) abstract class Condition : RootObject
+extern (C++) abstract class Condition : ASTNode
 {
     Loc loc;
 
@@ -64,12 +65,17 @@ extern (C++) abstract class Condition : RootObject
 
     abstract int include(Scope* sc);
 
-    DebugCondition isDebugCondition()
+    inout(DebugCondition) isDebugCondition() inout
     {
         return null;
     }
 
-    void accept(Visitor v)
+    inout(VersionCondition) isVersionCondition() inout
+    {
+        return null;
+    }
+
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -310,11 +316,11 @@ extern (C++) final class StaticForeach : RootObject
         {
             foreach (i; 0 .. 2)
             {
-                auto e = new Expressions();
-                foreach (j; 0 .. pparams[0].dim)
+                auto e = new Expressions(pparams[0].dim);
+                foreach (j, ref elem; *e)
                 {
                     auto p = (*pparams[i])[j];
-                    e.push(new IdentifierExp(aloc, p.ident));
+                    elem = new IdentifierExp(aloc, p.ident);
                 }
                 if (!tplty)
                 {
@@ -530,7 +536,7 @@ extern (C++) final class DebugCondition : DVCondition
         return (inc == Include.yes);
     }
 
-    override DebugCondition isDebugCondition()
+    override inout(DebugCondition) isDebugCondition() inout
     {
         return this;
     }
@@ -540,7 +546,7 @@ extern (C++) final class DebugCondition : DVCondition
         v.visit(this);
     }
 
-    override const(char)* toChars()
+    override const(char)* toChars() const
     {
         return ident ? ident.toChars() : "debug".ptr;
     }
@@ -805,12 +811,17 @@ extern (C++) final class VersionCondition : DVCondition
         return (inc == Include.yes);
     }
 
+    override inout(VersionCondition) isVersionCondition() inout
+    {
+        return this;
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);
     }
 
-    override const(char)* toChars()
+    override const(char)* toChars() const
     {
         return ident ? ident.toChars() : "version".ptr;
     }
@@ -876,7 +887,7 @@ extern (C++) final class StaticIfCondition : Condition
         v.visit(this);
     }
 
-    override const(char)* toChars()
+    override const(char)* toChars() const
     {
         return exp ? exp.toChars() : "static if".ptr;
     }
@@ -891,7 +902,7 @@ extern (C++) final class StaticIfCondition : Condition
  * Returns:
  *      true if found
  */
-extern (C++) bool findCondition(Identifiers* ids, Identifier ident)
+bool findCondition(Identifiers* ids, Identifier ident)
 {
     if (ids)
     {

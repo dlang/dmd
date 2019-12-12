@@ -127,10 +127,10 @@ void main()
 Language changes listed by \fB-transition=id\fR:`);
     foreach (transition; Usage.transitions)
     {
+        if (!transition.documented)
+            continue;
         string additionalOptions;
-        if (transition.bugzillaNumber)
-            additionalOptions = "," ~ transition.bugzillaNumber;
-        writefln(".IP %s%s", transition.name.bold, additionalOptions);
+        writefln(".IP %s", transition.name.bold);
         writeln(transition.helpText.capitalize);
     }
 

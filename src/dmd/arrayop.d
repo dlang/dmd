@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/arrayop.d, _arrayop.d)
@@ -137,7 +137,7 @@ Expression arrayOp(BinExp e, Scope* sc)
         arrayOp = (cast(TemplateExp)id).td;
     }
 
-    auto fd = resolveFuncCall(e.loc, sc, arrayOp, tiargs, null, args);
+    auto fd = resolveFuncCall(e.loc, sc, arrayOp, tiargs, null, args, FuncResolveFlag.standard);
     if (!fd || fd.errors)
         return new ErrorExp();
     return new CallExp(e.loc, new VarExp(e.loc, fd, false), args).expressionSemantic(sc);
@@ -155,6 +155,8 @@ Expression arrayOp(BinAssignExp e, Scope* sc)
     if (tn && (!tn.isMutable() || !tn.isAssignable()))
     {
         e.error("slice `%s` is not mutable", e.e1.toChars());
+        if (e.op == TOK.addAssign)
+            checkPossibleAddCatError!(AddAssignExp, CatAssignExp)(e.isAddAssignExp);
         return new ErrorExp();
     }
     if (e.e1.op == TOK.arrayLiteral)
@@ -217,7 +219,7 @@ private void buildArrayOp(Scope* sc, Expression e, Objects* tiargs, Expressions*
                 buf.writestring("u");
                 buf.writestring(Token.toString(e.op));
                 e.e1.accept(this);
-                tiargs.push(new StringExp(Loc.initial, buf.extractString()).expressionSemantic(sc));
+                tiargs.push(new StringExp(Loc.initial, buf.extractChars()).expressionSemantic(sc));
             }
         }
 
@@ -342,5 +344,17 @@ bool isArrayOpOperand(Expression e)
 ErrorExp arrayOpInvalidError(Expression e)
 {
     e.error("invalid array operation `%s` (possible missing [])", e.toChars());
+    if (e.op == TOK.add)
+        checkPossibleAddCatError!(AddExp, CatExp)(e.isAddExp());
+    else if (e.op == TOK.addAssign)
+        checkPossibleAddCatError!(AddAssignExp, CatAssignExp)(e.isAddAssignExp());
     return new ErrorExp();
+}
+
+private void checkPossibleAddCatError(AddT, CatT)(AddT ae)
+{
+    if (!ae.e2.type || ae.e2.type.ty != Tarray || !ae.e2.type.implicitConvTo(ae.e1.type))
+        return;
+    CatT ce = new CatT(ae.loc, ae.e1, ae.e2);
+    ae.errorSupplemental("did you mean to concatenate (`%s`) instead ?", ce.toChars());
 }

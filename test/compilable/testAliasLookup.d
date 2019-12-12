@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -transition=fixAliasThis
+// REQUIRED_ARGS: -preview=fixAliasThis
 
 // https://issues.dlang.org/show_bug.cgi?id=16086
 struct A

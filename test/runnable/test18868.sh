@@ -10,4 +10,4 @@ $DMD -m${MODEL} -of${OUTPUT_BASE}${EXE} ${TEST_DIR}/imports/test18868_fls.d ${OU
 
 ${OUTPUT_BASE}${EXE}
 
-rm ${OUTPUT_BASE}{${OBJ},_a${OBJ},_b${OBJ},${EXE}}
+rm_retry ${OUTPUT_BASE}{${OBJ},_a${OBJ},_b${OBJ},${EXE}}

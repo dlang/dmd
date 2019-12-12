@@ -1,3 +1,9 @@
+/*
+TEST_OUTPUT:
+---
+runnable/mixin1.d(906): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+---
+*/
 
 module mixin1;
 

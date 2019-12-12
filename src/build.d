@@ -8,15 +8,13 @@ Usage:
 TODO:
 - add all posix.mak Makefile targets
 - support 32-bit builds
-- test on OSX
-- test on Windows
 - allow appending DFLAGS via the environment
 - test the script with LDC or GDC as host compiler
 */
 
 version(CoreDdoc) {} else:
 
-import std.algorithm, std.conv, std.datetime, std.exception, std.file, std.format,
+import std.algorithm, std.conv, std.datetime, std.exception, std.file, std.format, std.functional,
        std.getopt, std.parallelism, std.path, std.process, std.range, std.stdio, std.string;
 import core.stdc.stdlib : exit;
 
@@ -29,13 +27,23 @@ __gshared string[string] env;
 __gshared string[][string] flags;
 __gshared typeof(sourceFiles()) sources;
 
+/// Array of dependencies through which all other dependencies can be reached
+immutable rootDeps = [
+    &dmdDefault,
+    &runDmdUnittest,
+    &clean,
+    &dmdFrontend,
+];
+
 void main(string[] args)
 {
     int jobs = totalCPUs;
+    bool calledFromMake = false;
     auto res = getopt(args,
         "j|jobs", "Specifies the number of jobs (commands) to run simultaneously (default: %d)".format(totalCPUs), &jobs,
         "v", "Verbose command output", (cast(bool*) &verbose),
         "f", "Force run (ignore timestamps and always run all tests)", (cast(bool*) &force),
+        "called-from-make", "Calling the build script from the Makefile", &calledFromMake
     );
     void showHelp()
     {
@@ -47,11 +55,11 @@ Examples
     ./build.d dmd           # build DMD
     ./build.d unittest      # runs internal unittests
     ./build.d clean         # remove all generated files
+    ./build.d generated/linux/release/64/dmd.conf
 
 Important variables:
 --------------------
 
-HOST_CXX:             Host C++ compiler to use (g++,clang++)
 HOST_DMD:             Host D compiler to use for bootstrapping
 AUTO_BOOTSTRAP:       Enable auto-boostrapping by downloading a stable DMD binary
 MODEL:                Target architecture to build for (32,64) - defaults to the host architecture
@@ -64,10 +72,6 @@ Opt-in build features:
 
 ENABLE_RELEASE:       Optimized release built
 ENABLE_DEBUG:         Add debug instructions and symbols (set if ENABLE_RELEASE isn't set)
-ENABLE_WARNINGS:      Enable C++ build warnings
-ENABLE_PROFILING:     Build dmd with a profiling recorder (C++)
-ENABLE_PGO_USE:       Build dmd with existing profiling information (C++)
-  PGO_DIR:            Directory for profile-guided optimization (PGO) logs
 ENABLE_LTO:           Enable link-time optimizations
 ENABLE_UNITTEST:      Build dmd with unittests (sets ENABLE_COVERAGE=1)
 ENABLE_PROFILE:       Build dmd with a profiling recorder (D)
@@ -76,11 +80,7 @@ ENABLE_SANITIZERS     Build dmd with sanitizer (e.g. ENABLE_SANITIZERS=address,u
 
 Targets
 -------
-
-all                   Build dmd
-unittest              Run all unittest blocks
-clean                 Remove all generated files
-
+` ~ targetsHelp ~ `
 The generated files will be in generated/$(OS)/$(BUILD)/$(MODEL)
 
 Command-line parameters
@@ -89,28 +89,23 @@ Command-line parameters
         return;
     }
 
-    if (res.helpWanted)
-        return showHelp;
-
     // parse arguments
     args.popFront;
     args2Environment(args);
+    parseEnvironment;
+    processEnvironment;
+    sources = sourceFiles;
+
+    if (res.helpWanted)
+        return showHelp;
 
     // default target
     if (!args.length)
-        args = ["all"];
-
-    // bootstrap all needed environment variables
-    parseEnvironment;
+        args = ["dmd"];
 
     auto targets = args
         .predefinedTargets // preprocess
         .array;
-
-    processEnvironment;
-
-    // get all sources
-    sources = sourceFiles;
 
     if (targets.length == 0)
         return showHelp;
@@ -122,20 +117,65 @@ Command-line parameters
             log("%s=%s", key, value);
         log("================================================================================");
     }
-    foreach (target; targets)
-        target();
+    {
+        File lockFile;
+        if (calledFromMake)
+        {
+            // If called from make, use an interprocess lock so that parallel builds don't stomp on each other
+            lockFile = File(env["GENERATED"].buildPath("build.lock"), "w");
+            lockFile.lock();
+        }
+        scope (exit)
+        {
+            if (calledFromMake)
+            {
+                lockFile.unlock();
+                lockFile.close();
+            }
+        }
+        foreach (target; targets.parallel(1))
+            target();
+    }
+
+    writeln("Success");
+}
+
+/// Generate list of targets for use in the help message
+string targetsHelp()
+{
+    string result = "";
+    foreach (dep; DependencyRange(rootDeps.map!(a => a()).array))
+    {
+        if (dep.name)
+        {
+            enum defaultPrefix = "\n                      ";
+            result ~= dep.name;
+            string prefix = defaultPrefix[1 + dep.name.length .. $];
+            void add(string msg)
+            {
+                result ~= format("%s%s", prefix, msg);
+                prefix = defaultPrefix;
+            }
+            if (dep.description)
+                add(dep.description);
+            else if (dep.targets)
+            {
+                foreach (target; dep.targets)
+                {
+                    add(target.relativePath);
+                }
+            }
+            result ~= "\n";
+        }
+    }
+    return result;
 }
 
 /**
 D build dependencies
 ====================
 
-The strategy of this script is to emulate what the Makefile is doing,
-but without a complicated dependency and dependency system.
-The "dependency system" used here is rather naive and only parallelizes the
-build of the backend and lexer (writing a few config files doesn't take much time).
-However, it does skip steps when the source files are younger than the target
-and thus supports partial rebuilds.
+The strategy of this script is to emulate what the Makefile is doing.
 
 Below all individual dependencies of DMD are defined.
 They have a target path, sources paths and an optional name.
@@ -144,29 +184,32 @@ A dependency will be skipped if all targets are older than all sources.
 This script is by default part of the sources and thus any change to the build script,
 will trigger a full rebuild.
 
-The function buildDMD defines the build order of its dependencies.
 */
 
 /// Returns: the dependency that builds the lexer
-auto lexer()
+alias lexer = memoize!(function()
 {
-    Dependency dependency = {
-        target: env["G"].buildPath("lexer").libName,
-        sources: sources.lexer,
-        rebuildSources: configFiles,
-        name: "(DC) D_LEXER_OBJ",
-        command: [
+    Dependency dep;
+    with (dep)
+    {
+        name = "lexer";
+        target = env["G"].buildPath("lexer").libName;
+        sources = .sources.lexer;
+        deps = [versionFile, sysconfDirFile];
+        msg = "(DC) D_LEXER_OBJ %-(%s, %)".format(sources.map!(e => e.baseName).array);
+        command = [
             env["HOST_DMD_RUN"],
-            "-of$@",
+            "-of" ~ target,
             "-lib",
+            "-vtls",
             "-J"~env["G"], "-J../res",
-        ].chain(flags["DFLAGS"], "$<".only).array
-    };
-    return dependency;
-}
+        ].chain(flags["DFLAGS"], sources).array;
+    }
+    return new DependencyRef(dep);
+});
 
 /// Returns: the dependency that generates the dmd.conf file in the output folder
-auto dmdConf()
+alias dmdConf = memoize!(function()
 {
     // TODO: add support for Windows
     string exportDynamic;
@@ -174,229 +217,213 @@ auto dmdConf()
         exportDynamic = " -L--export-dynamic";
 
     auto conf = `[Environment32]
-DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../../../phobos/generated/$(OS)/$(BUILD)/32{exportDynamic}
+DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../../../phobos/generated/{OS}/{BUILD}/32{exportDynamic}
 
 [Environment64]
-DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../../../phobos/generated/$(OS)/$(BUILD)/64{exportDynamic} -fPIC`.replace("{exportDynamic}", exportDynamic);
+DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../../../phobos/generated/{OS}/{BUILD}/64{exportDynamic} -fPIC`
+        .replace("{exportDynamic}", exportDynamic)
+        .replace("{BUILD}", env["BUILD"])
+        .replace("{OS}", env["OS"]);
 
-    auto target = env["G"].buildPath("dmd.conf");
-    auto commandFunction = (){
-        conf.toFile(target);
-    }; // defined separately to support older D compilers
-    Dependency dependency = {
-        target: target,
-        name: "(TX) DMD_CONF",
-        commandFunction: commandFunction,
-    };
-    return dependency;
-}
-
-/// Returns: the dependency that builds and executes the optabgen utility
-auto opTabGen()
-{
-    auto opTabFiles = ["debtab.d", "optab.d", "cdxxx.d", "elxxx.d", "fltables.d", "tytab.d"];
-    auto opTabFilesBin = opTabFiles.map!(e => env["G"].buildPath(e)).array;
-    auto opTabBin = env["G"].buildPath("optabgen").exeName;
-    auto opTabSourceFile = env["C"].buildPath("optabgen.d");
-
-    auto commandFunction = (){
-        auto args = [env["HOST_DMD_RUN"], opTabSourceFile, "-of" ~ opTabBin];
-        args ~= flags["DFLAGS"];
-
-        writefln("(DC) BUILD_OPTABGEN");
-        args.runCanThrow;
-
-        writefln("(RUN) OPTABBIN %-(%s, %)", opTabFiles);
-        [opTabBin].runCanThrow;
-
-        // move the generated files to the generated folder
-        opTabFiles.map!(a => srcDir.buildPath(a)).zip(opTabFilesBin).each!(a => a.expand.rename);
-    }; // defined separately to support older D compilers
-    Dependency dependency = {
-        targets: opTabFilesBin,
-        sources: [opTabSourceFile],
-        commandFunction: commandFunction,
-    };
-    return dependency;
-}
-
-version(Windows)
-{
-    /// Returns: the dependency that builds msvc-dmd.exe
-    auto buildMsvcDmc()
+    Dependency dep;
+    with (dep)
     {
-        enum targetName = "msvc-dmc";
-
-        Dependency dependency = {
-            target: env["G"].buildPath(targetName).exeName,
-            sources: [`vcbuild\` ~ targetName],
-            name: "(DC) MSCV-CC " ~ targetName,
-            command: [env["HOST_DMD_RUN"], "-of$@", "$<"]
+        name = "dmdconf";
+        target = env["G"].buildPath("dmd.conf");
+        msg = "(TX) DMD_CONF";
+        commandFunction = ()
+        {
+            conf.toFile(target);
         };
-        return dependency;
     }
-
-    /// Returns: the dependency that builds msvc-lib.exe
-    auto buildMsvcLib()
-    {
-        enum targetName = "msvc-lib";
-
-        Dependency dependency = {
-            target: env["G"].buildPath(targetName).exeName,
-            sources: [`vcbuild\` ~ targetName],
-            name: "(DC) MSCV-LIB " ~ targetName,
-            command: [env["HOST_DMD_RUN"], "-of$@", "$<"]
-        };
-        return dependency;
-    }
-}
-
-/**
-Gets the dependency that generates the given object file from the given source file
-
-Params:
-    obj      = the object file that the dependency should generate
-    fileName = the source file to build, generating the object file
-Returns:
-    the dependency that generates the given object file from the given source file
-*/
-auto buildCXX(string obj, string fileName)
-{
-    Dependency dependency = {
-        target: obj,
-        sources: [fileName],
-        rebuildSources: sources.backendC ~ configFiles,
-        name: "(CC) BACK_OBJS %s".format(fileName),
-        command: [env["HOST_CXX"], "-c", "-o$@"].chain(flags["CXXFLAGS"], flags["BACK_FLAGS"], "$<".only).array
-    };
-    return dependency;
-}
+    return new DependencyRef(dep);
+});
 
 /// Returns: the dependencies that build the D backend
-auto dBackend()
+alias backendObj = memoize!(function ()
 {
-    Dependency dependency = {
-        target: env["G"].buildPath("dbackend").objName,
-        sources: sources.backend,
-        name: "(DC) D_BACK_OBJS %-(%s %)".format(sources.backend),
-        command: [
+    Dependency dep;
+    with (dep)
+    {
+        name = "backendObj";
+        target = env["G"].buildPath("backend").objName;
+        sources = .sources.backend;
+        msg = "(DC) D_BACK_OBJS %-(%s, %)".format(sources.map!(e => e.baseName).array);
+        command = [
             env["HOST_DMD_RUN"],
             "-c",
-            "-of$@",
+            "-of" ~ target,
             "-betterC",
-        ].chain(flags["DFLAGS"], "$<".only).array
-    };
-    return dependency;
-}
-
-/// Returns: the dependencies that build the C++ backend
-auto cxxBackend()
-{
-    Dependency[] dependencies;
-    foreach (obj; sources.backendObjects)
-        dependencies ~= buildCXX(obj, env["C"].buildPath(obj.baseName.stripExtension ~ ".c"));
-
-    return dependencies;
-}
+        ].chain(flags["DFLAGS"], sources).array;
+    }
+    return new DependencyRef(dep);
+});
 
 /// Execute the sub-dependencies of the backend and pack everything into one object file
-auto buildBackend()
+alias backend = memoize!(function()
 {
-    opTabGen.run;
-
-    Dependency[] dependencies = cxxBackend();
-    dependencies ~= dBackend;
-    foreach (dependency; dependencies.parallel(1))
-        dependency.run;
-
-    // Pack the backend
-    Dependency dependency = {
-        sources: sources.backendObjects.chain(env["G"].buildPath("dbackend").objName.only).array,
-        target: env["G"].buildPath("backend").libName,
-        command: [env["AR"], "rcs", "$@", "$<"],
-    };
-    dependency.run;
-    return dependency;
-}
+    Dependency dep;
+    with (dep)
+    {
+        name = "backend";
+        msg = "(LIB) %s".format("BACKEND".libName);
+        sources = [ env["G"].buildPath("backend").objName ];
+        target = env["G"].buildPath("backend").libName;
+        deps = [backendObj];
+        command = [env["HOST_DMD_RUN"], env["MODEL_FLAG"], "-lib", "-of" ~ target].chain(sources).array;
+    }
+    return new DependencyRef(dep);
+});
 
 /// Returns: the dependencies that generate required string files: VERSION and SYSCONFDIR.imp
-auto buildStringFiles()
+alias versionFile = memoize!(function()
 {
-    const versionFile = env["G"].buildPath("VERSION");
-    auto commandFunction = (){
-        "(TX) VERSION".writeln;
-        ["git", "describe", "--dirty"].runCanThrow.toFile(versionFile);
-    };
-    Dependency versionDependency = {
-        target: versionFile,
-        commandFunction: commandFunction,
-    };
-    const sysconfDirFile = env["G"].buildPath("SYSCONFDIR.imp");
-    commandFunction = (){
-        "(TX) SYSCONFDIR".writeln;
-        env["SYSCONFDIR"].toFile(sysconfDirFile);
-    };
-    Dependency sysconfDirDependency = {
-        sources: [thisBuildScript],
-        target: sysconfDirFile,
-        commandFunction: commandFunction,
-    };
-    return [versionDependency, sysconfDirDependency];
-}
+    Dependency dep;
+    with (dep)
+    {
+        target = env["G"].buildPath("VERSION");
+        commandFunction = ()
+        {
+            "(TX) VERSION".writeln;
+            string ver;
+            if (srcDir.dirName.buildPath(".git").exists)
+            {
+                auto gitResult = ["git", "describe", "--dirty"].run;
+                if (gitResult.status == 0)
+                    ver = gitResult.output.strip;
+            }
+            // version fallback
+            if (ver.length == 0)
+                ver = srcDir.dirName.buildPath("VERSION").readText;
+            updateIfChanged(target, ver);
+        };
+    }
+    return new DependencyRef(dep);
+});
 
-/// Returns: a list of config files that are required by the DMD build
-auto configFiles()
+alias sysconfDirFile = memoize!(function()
 {
-    return buildStringFiles.map!(a => a.target).array ~ dmdConf.target;
-}
+    Dependency dep;
+    with(dep)
+    {
+        sources = [thisBuildScript];
+        target = env["G"].buildPath("SYSCONFDIR.imp");
+        commandFunction = ()
+        {
+            "(TX) SYSCONFDIR".writeln;
+            updateIfChanged(target, env["SYSCONFDIR"]);
+        };
+    }
+    return new DependencyRef(dep);
+});
+
+alias dmdFrontend = memoize!(function()
+{
+    Dependency dep;
+    with (dep)
+    {
+        name = "dmd_frontend";
+        sources = .sources.frontend.chain([env["D"].buildPath("gluelayer.d")], .sources.root, [lexer.target]).array;
+        target = env["G"].buildPath("dmd_frontend");
+        deps = [versionFile, sysconfDirFile, lexer];
+        msg = "(DC) DMD-FRONTEND %-(%s, %)".format(.sources.frontend.map!(e => e.baseName).array);
+        string[] platformArgs;
+        version (Windows)
+            platformArgs = ["-L/STACK:8388608"];
+        command = [
+            env["HOST_DMD_RUN"],
+            "-of" ~ target,
+            "-version=NoBackend",
+            "-vtls",
+            "-J"~env["G"],
+            "-J../res",
+        ].chain(flags["DFLAGS"], platformArgs, sources).array;
+    }
+    return new DependencyRef(dep);
+});
 
 /**
-Main build routine for the DMD compiler.
-Defines the required order for the build dependencies, runs all these dependency dependencies
-and afterwards builds the DMD compiler.
+Dependency for the DMD executable.
 
 Params:
   extra_flags = Flags to apply to the main build but not the dependencies
 */
-auto buildDMD(string[] extraFlags...)
+alias dmdExe = memoize!(function(string targetSuffix, string[] extraFlags...)
 {
-    version(Windows)
-    {
-        immutable model = detectModel;
-        if (model == "64")
-        {
-            foreach (dependency; [buildMsvcDmc, buildMsvcLib].parallel(1))
-                dependency.run;
-        }
-    }
-
-    // The string files are required by most targets
-    Dependency[] dependencies = buildStringFiles();
-    foreach (dependency; dependencies.parallel(1))
-        dependency.run;
-
-    dependencies = [lexer, dmdConf];
-    foreach (ref dependency; dependencies.parallel(1))
-        dependency.run;
-
-    auto backend = buildBackend();
+    const dmdSources = sources.dmd.chain(sources.root).array;
 
     // Main DMD build dependency
-    Dependency dependency = {
+    Dependency dep;
+    with (dep)
+    {
         // newdelete.o + lexer.a + backend.a
-        sources: sources.dmd.chain(sources.root, dependencies[0].targets, backend.targets).array,
-        target: env["DMD_PATH"],
-        name: "(DC) MAIN_DMD_BUILD",
-        command: [
+        sources = dmdSources.chain(lexer.targets, backend.targets).array;
+        target = env["DMD_PATH"] ~ targetSuffix;
+        msg = "(DC) DMD%s %-(%s, %)".format(targetSuffix, dmdSources.map!(e => e.baseName).array);
+        deps = [versionFile, sysconfDirFile, lexer, backend];
+        string[] platformArgs;
+        version (Windows)
+            platformArgs = ["-L/STACK:8388608"];
+        command = [
             env["HOST_DMD_RUN"],
-            "-of$@",
+            "-of" ~ target,
             "-vtls",
             "-J"~env["G"],
             "-J../res",
-        ].chain(extraFlags).chain(flags["DFLAGS"], "$<".only).array
-    };
-    dependency.run;
-}
+        ].chain(extraFlags, platformArgs, flags["DFLAGS"], sources).array;
+    }
+    return new DependencyRef(dep);
+});
+
+alias dmdDefault = memoize!(function()
+{
+    Dependency dep;
+    with (dep)
+    {
+        name = "dmd";
+        description = "Build dmd";
+        deps = [dmdConf, dmdExe(null, null)];
+    }
+    return new DependencyRef(dep);
+});
+
+/// Dependency to run the DMD unittest executable.
+alias runDmdUnittest = memoize!(function()
+{
+    auto dmdUnittestExe = dmdExe("-unittest", ["-version=NoMain", "-unittest", "-main"]);
+
+    Dependency dep;
+    with (dep)
+    {
+        name = "unittest";
+        description = "Run the dmd unittests";
+        msg = "(RUN) DMD-UNITTEST";
+        deps = [dmdUnittestExe];
+        commandFunction = ()
+        {
+            spawnProcess(dmdUnittestExe.targets[0]);
+        };
+    }
+    return new DependencyRef(dep);
+});
+
+/// Dependency that removes all generated files
+alias clean = memoize!(function()
+{
+    Dependency dep;
+    with (dep)
+    {
+        name = "clean";
+        description = "Remove the generated directory";
+        msg = "(RM) " ~ env["G"];
+        commandFunction = ()
+        {
+            if (env["G"].exists)
+                env["G"].rmdirRecurse;
+        };
+    }
+    return new DependencyRef(dep);
+});
 
 /**
 Goes through the target list and replaces short-hand targets with their expanded version.
@@ -412,25 +439,33 @@ auto predefinedTargets(string[] targets)
 {
     import std.functional : toDelegate;
     Appender!(void delegate()[]) newTargets;
+LtargetsLoop:
     foreach (t; targets)
     {
         t = t.buildNormalizedPath; // remove trailing slashes
+
+        // check if `t` matches any dependency names first
+        foreach (dep; DependencyRange(rootDeps.map!(a => a()).array))
+        {
+            if (t == dep.name)
+            {
+                newTargets.put(&dep.run);
+                continue LtargetsLoop;
+            }
+        }
+
         switch (t)
         {
+            case "all":
+                t = "dmd";
+                goto default;
+
             case "auto-tester-build":
                 "TODO: auto-tester-all".writeln; // TODO
                 break;
 
             case "toolchain-info":
                 "TODO: info".writeln; // TODO
-                break;
-
-            case "unittest":
-                flags["DFLAGS"] ~= "-version=NoMain";
-                newTargets.put((){
-                    buildDMD("-main", "-unittest");
-                    spawnProcess(env["DMD_PATH"]); // run the unittests
-                }.toDelegate);
                 break;
 
             case "cxx-unittest":
@@ -461,33 +496,106 @@ auto predefinedTargets(string[] targets)
                 "TODO: man".writeln; // TODO
                 break;
 
-            dmd:
-            case "dmd":
-                newTargets.put({buildDMD();}.toDelegate);
-                break;
-
-            case "clean":
-                if (env["G"].exists)
-                    env["G"].rmdirRecurse;
-                exit(0);
-                break;
-
-            case "all":
-                goto dmd;
             default:
+                // check this last, target paths should be checked after predefined names
+                const tAbsolute = t.absolutePath.buildNormalizedPath;
+                foreach (dep; DependencyRange(rootDeps.map!(a => a()).array))
+                {
+                    foreach (depTarget; dep.targets)
+                    {
+                        if (depTarget.endsWith(t, tAbsolute))
+                        {
+                            newTargets.put(&dep.run);
+                            continue LtargetsLoop;
+                        }
+                    }
+                }
                 writefln("ERROR: Target `%s` is unknown.", t);
                 writeln;
+                exit(1);
                 break;
         }
     }
     return newTargets.data;
 }
 
+/// An input range for a recursive set of dependencies
+struct DependencyRange
+{
+    private DependencyRef[] next;
+    private bool[DependencyRef] added;
+    this(DependencyRef[] deps) { addDeps(deps); }
+    bool empty() const { return next.length == 0; }
+    auto front() inout { return next[0]; }
+    void popFront()
+    {
+        auto save = next[0];
+        next = next[1 .. $];
+        addDeps(save.deps);
+    }
+    void addDeps(DependencyRef[] deps)
+    {
+        foreach (dep; deps)
+        {
+            if (!added.get(dep, false))
+            {
+                next ~= dep;
+                added[dep] = true;
+            }
+        }
+    }
+}
+
 /// Sets the environment variables
 void parseEnvironment()
 {
+    // This block is temporary until we can remove the windows make files
+    {
+        const ddebug = env.get("DDEBUG", null);
+        if (ddebug.length)
+        {
+            writefln("WARNING: the DDEBUG variable is deprecated");
+            if (ddebug == "-debug -g -unittest -cov")
+            {
+                environment["ENABLE_DEBUG"] = "1";
+                environment["ENABLE_UNITTEST"] = "1";
+                environment["ENABLE_COVERAGE"] = "1";
+            }
+            else if (ddebug == "-debug -g -unittest")
+            {
+                environment["ENABLE_DEBUG"] = "1";
+                environment["ENABLE_UNITTEST"] = "1";
+            }
+            else
+            {
+                writefln("Error: DDEBUG is not an expected value '%s'", ddebug);
+                exit(1);
+            }
+        }
+    }
+
     env.getDefault("TARGET_CPU", "X86");
-    auto os = env.getDefault("OS", detectOS);
+    version (Windows)
+    {
+        // On windows, the OS environment variable is already being used by the system.
+        // For example, on a default Windows7 system it's configured by the system
+        // to be "Windows_NT".
+        //
+        // However, there are a good number of components in this repo and the other
+        // repos that set this environment variable to "windows" without checking whether
+        // it's already configured, i.e.
+        //      dmd\src\win32.mak (OS=windows)
+        //      druntime\win32.mak (OS=windows)
+        //      phobos\win32.mak (OS=windows)
+        //
+        // It's necessary to emulate the same behavior in this tool in order to make this
+        // new tool compatible with existing tools. We can do this by also setting the
+        // environment variable to "windows" whether or not it already has a value.
+        //
+        const os = env["OS"] = "windows";
+    }
+    else
+        const os = env.getDefault("OS", detectOS);
     auto build = env.getDefault("BUILD", "release");
     enforce(build.among("release", "debug"), "BUILD must be 'debug' or 'release'");
 
@@ -519,22 +627,24 @@ void parseEnvironment()
     env.getDefault("GIT_HOME", "https://github.com/dlang");
     env.getDefault("SYSCONFDIR", "/etc");
     env.getDefault("TMP", tempDir);
-    env.getDefault("PGO_DIR", srcDir.buildPath("pgo"));
-    auto d = env.getDefault("D", srcDir.buildPath("dmd"));
-    env.getDefault("C", d.buildPath("backend"));
-    env.getDefault("TK", d.buildPath("tk"));
-    env.getDefault("ROOT", d.buildPath("root"));
-    env.getDefault("EX", d.buildPath("examples"));
-    auto generated = env.getDefault("GENERATED", srcDir.dirName.buildPath("generated"));
-    auto g = env.getDefault("G", generated.buildPath(os, build, model));
+    auto d = env["D"] = srcDir.buildPath("dmd");
+    env["C"] = d.buildPath("backend");
+    env["ROOT"] = d.buildPath("root");
+    env["EX"] = srcDir.buildPath("examples");
+    auto generated = env["GENERATED"] = srcDir.dirName.buildPath("generated");
+    auto g = env["G"] = generated.buildPath(os, build, model);
     mkdirRecurse(g);
 
-    env.getDefault("HOST_DMD", "dmd");
+    if (env.get("HOST_DMD", null).length == 0)
+    {
+        const hostDmd = env.get("HOST_DC", null);
+        env["HOST_DMD"] = hostDmd.length ? hostDmd : "dmd";
+    }
 
     // Auto-bootstrapping of a specific host compiler
-    if (env.getDefault("AUTO_BOOTSTRAP", "0") != "0")
+    if (env.getDefault("AUTO_BOOTSTRAP", null) == "1")
     {
-        auto hostDMDVer = "2.074.1";
+        auto hostDMDVer = "2.079.1";
         writefln("Using Bootstrap compiler: %s", hostDMDVer);
         auto hostDMDRoot = env["G"].buildPath("host_dmd-"~hostDMDVer);
         auto hostDMDBase = hostDMDVer~"."~os;
@@ -562,36 +672,19 @@ void parseEnvironment()
         stderr.writefln("No DMD compiler is installed. Try AUTO_BOOTSTRAP=1 or manually set the D host compiler with HOST_DMD");
         exit(1);
     }
-
-    version(Windows)
-    {
-        const vswhere = getHostVSWhere(env["G"]);
-        const vcBinDir = getHostMSVCBinDir(model, vswhere);
-
-        // environment variable `MSVC_CC` will be read by `msvc-dmd.exe`
-        env.getDefault("MSVC_CC", vcBinDir.buildPath("cl.exe"));
-
-        // environment variable `MSVC_AR` will be read by `msvc-lib.exe`
-        env.getDefault("MSVC_AR", vcBinDir.buildPath("lib.exe"));
-    }
-
-    env.getDefault("HOST_CXX", getHostCXX);
-    env.getDefault("CXX_KIND", getHostCXXKind);
-
-    env.getDefault("AR", "ar");
 }
 
 /// Checks the environment variables and flags
 void processEnvironment()
 {
-    auto os = env["OS"];
+    const os = env["OS"];
 
     auto hostDMDVersion = [env["HOST_DMD_RUN"], "--version"].execute.output;
-    if (hostDMDVersion.find("DMD"))
+    if (hostDMDVersion.canFind("DMD"))
         env["HOST_DMD_KIND"] = "dmd";
-    else if (hostDMDVersion.find("LDC"))
+    else if (hostDMDVersion.canFind("LDC"))
         env["HOST_DMD_KIND"] = "ldc";
-    else if (!hostDMDVersion.find("GDC", "gdmd")[0].empty)
+    else if (hostDMDVersion.canFind("GDC", "gdmd", "gdc"))
         env["HOST_DMD_KIND"] = "gdc";
     else
         enforce(0, "Invalid Host DMD found: " ~ hostDMDVersion);
@@ -600,67 +693,11 @@ void processEnvironment()
 
     env.getDefault("ENABLE_WARNINGS", "0");
     string[] warnings;
-    if (env["ENABLE_WARNINGS"] != "0")
-    {
-        warnings = ["-Wall", "-Wextra", "-Werror",
-            "-Wno-attributes",
-            "-Wno-char-subscripts",
-            "-Wno-deprecated",
-            "-Wno-empty-body",
-            "-Wno-format",
-            "-Wno-missing-braces",
-            "-Wno-missing-field-initializers",
-            "-Wno-overloaded-virtual",
-            "-Wno-parentheses",
-            "-Wno-reorder",
-            "-Wno-return-type",
-            "-Wno-sign-compare",
-            "-Wno-strict-aliasing",
-            "-Wno-switch",
-            "-Wno-type-limits",
-            "-Wno-unknown-pragmas",
-            "-Wno-unused-function",
-            "-Wno-unused-label",
-            "-Wno-unused-parameter",
-            "-Wno-unused-value",
-            "-Wno-unused-variable",
-        ];
-        if (env["CXX_KIND"] == "g++")
-            warnings ~= [
-                "-Wno-logical-op",
-                "-Wno-narrowing",
-                "-Wno-unused-but-set-variable",
-                "-Wno-uninitialized",
-                "-Wno-class-memaccess",
-                "-Wno-implicit-fallthrough",
-            ];
-    }
-    else
-    {
-        // default warnings
-        warnings = ["-Wno-deprecated", "-Wstrict-aliasing", "-Werror"];
-        if (env["CXX_KIND"] == "clang++")
-            warnings ~= "-Wno-logical-op-parentheses";
-    }
 
-    auto targetCPU = "X86";
-    auto cxxFlags = warnings;
-    cxxFlags ~= [
-        "-fno-exceptions", "-fno-rtti",
-        "-D__pascal=", "-DMARS=1", "-DTARGET_"~os.toUpper~"=1",
-        "-DDM_TARGET_CPU_"~targetCPU~"=1",
-        env["MODEL_FLAG"],
-        env["PIC_FLAG"],
-    ];
-    if (env["CXX_KIND"] == "g++")
-        cxxFlags ~= ["-std=gnu++98"];
-    if (env["CXX_KIND"] == "clang++")
-        cxxFlags ~= ["-xc++"];
-
-    // TODO: allow adding new flags from the environment
+      // TODO: allow adding new flags from the environment
     string[] dflags = ["-version=MARS", "-w", "-de", env["PIC_FLAG"], env["MODEL_FLAG"], "-J"~env["G"]];
-
-    flags["BACK_FLAGS"] = ["-I"~env["ROOT"], "-I"~env["TK"], "-I"~env["C"], "-I"~env["G"], "-I"~env["D"], "-DDMDV2=1"];
+    if (env["HOST_DMD_KIND"] != "gdc")
+        dflags ~= ["-dip25"]; // gdmd doesn't support -dip25
 
     // TODO: add support for dObjc
     auto dObjc = false;
@@ -669,12 +706,10 @@ void processEnvironment()
 
     if (env.getDefault("ENABLE_DEBUG", "0") != "0")
     {
-        cxxFlags ~= ["-g", "-g3", "-DDEBUG=1", "-DUNITTEST"];
         dflags ~= ["-g", "-debug"];
     }
     if (env.getDefault("ENABLE_RELEASE", "0") != "0")
     {
-        cxxFlags ~= ["-O2"];
         dflags ~= ["-O", "-release", "-inline"];
     }
     else
@@ -683,23 +718,9 @@ void processEnvironment()
         if (!dflags.canFind("-g"))
             dflags ~= ["-g"];
     }
-    if (env.getDefault("ENABLE_PROFILING", "0") != "0")
-    {
-        cxxFlags ~= ["-pg", "-fprofile-arcs", "-ftest-coverage"];
-    }
-    if (env.getDefault("ENABLE_PGO_GENERATE", "0") != "0")
-    {
-        enforce("PGO_DIR" in env, "No PGO_DIR variable set.");
-        cxxFlags ~= ["-fprofile-generate="~env["PGO_DIR"]];
-    }
-    if (env.getDefault("ENABLE_PGO_USE", "0") != "0")
-    {
-        enforce("PGO_DIR" in env, "No PGO_DIR variable set.");
-        cxxFlags ~= ["-fprofile-use="~env["PGO_DIR"], "-freorder-blocks-and-partition"];
-    }
     if (env.getDefault("ENABLE_LTO", "0") != "0")
     {
-        cxxFlags ~= ["-flto"];
+        dflags ~= ["-flto=full"];
     }
     if (env.getDefault("ENABLE_UNITTEST", "0") != "0")
     {
@@ -711,15 +732,13 @@ void processEnvironment()
     }
     if (env.getDefault("ENABLE_COVERAGE", "0") != "0")
     {
-        cxxFlags ~= ["--coverage"];
         dflags ~= ["-cov", "-L-lgcov"];
     }
     if (env.getDefault("ENABLE_SANITIZERS", "0") != "0")
     {
-        cxxFlags ~= ["-fsanitize="~env["ENABLE_SANITIZERS"]];
+        dflags ~= ["-fsanitize="~env["ENABLE_SANITIZERS"]];
     }
     flags["DFLAGS"] ~= dflags;
-    flags["CXXFLAGS"] ~= cxxFlags;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -732,7 +751,7 @@ auto sourceFiles()
     struct Sources
     {
         string[] frontend, lexer, root, glue, dmd, backend;
-        string[] backendHeaders, backendC, backendObjects;
+        string[] backendHeaders, backendObjects;
     }
     string targetCH;
     string[] targetObjs;
@@ -749,59 +768,56 @@ auto sourceFiles()
     {
         assert(0, "Unknown TARGET_CPU: " ~ env["TARGET_CPU"]);
     }
+    static string[] fileArray(string dir, string files)
+    {
+        return files.split.map!(e => dir.buildPath(e)).array;
+    }
     Sources sources = {
-        frontend:
-            dirEntries(env["D"], "*.d", SpanMode.shallow)
-                .map!(e => e.name)
-                .filter!(e => !e.canFind("asttypename.d", "frontend.d"))
-                .array,
-        lexer: [
-            "console",
-            "entity",
-            "errors",
-            "globals",
-            "id",
-            "identifier",
-            "lexer",
-            "tokens",
-            "utf",
-        ].map!(e => env["D"].buildPath(e ~ ".d")).chain([
-            "array",
-            "ctfloat",
-            "file",
-            "filename",
-            "hash",
-            "outbuffer",
-            "port",
-            "rmem",
-            "rootobject",
-            "stringtable",
-        ].map!(e => env["ROOT"].buildPath(e ~ ".d"))).array,
-        root:
-            dirEntries(env["ROOT"], "*.d", SpanMode.shallow)
-                .map!(e => e.name)
-                .array,
-        backend:
-            dirEntries(env["C"], "*.d", SpanMode.shallow)
-                .map!(e => e.name)
-                .filter!(e => !e.canFind("dt.d", "obj.d"))
-                .array ~ buildPath(env["C"], "elfobj.d"),
-        backendHeaders: [
-            // can't be built with -betterC
-            "dt",
-            "obj",
-        ].map!(e => env["C"].buildPath(e ~ ".d")).array,
-        backendC:
-            // all backend files in C
-            ["fp", "strtold", "tk"]
-                .map!(a => env["G"].buildPath(a).objName)
-                .array,
-        backendObjects: ["fp", "strtold", "tk"]
-                .map!(a => env["G"].buildPath(a).objName)
-                .array,
+        glue: fileArray(env["D"], "
+            irstate.d toctype.d glue.d gluelayer.d todt.d tocsym.d toir.d dmsc.d
+            tocvdebug.d s2ir.d toobj.d e2ir.d eh.d iasm.d iasmdmd.d iasmgcc.d objc_glue.d
+        "),
+        frontend: fileArray(env["D"], "
+            access.d aggregate.d aliasthis.d apply.d argtypes.d argtypes_sysv_x64.d arrayop.d
+            arraytypes.d ast_node.d astbase.d astcodegen.d attrib.d blockexit.d builtin.d canthrow.d
+            cli.d clone.d compiler.d complex.d cond.d constfold.d cppmangle.d cppmanglewin.d ctfeexpr.d
+            ctorflow.d dcast.d dclass.d declaration.d delegatize.d denum.d dimport.d dinifile.d
+            dinterpret.d dmacro.d dmangle.d dmodule.d doc.d dscope.d dstruct.d dsymbol.d dsymbolsem.d
+            dtemplate.d dversion.d env.d escape.d expression.d expressionsem.d func.d hdrgen.d impcnvtab.d
+            imphint.d init.d initsem.d inline.d inlinecost.d intrange.d json.d lambdacomp.d lib.d libelf.d
+            libmach.d libmscoff.d libomf.d link.d mars.d mtype.d nogc.d nspace.d objc.d opover.d optimize.d
+            parse.d parsetimevisitor.d permissivevisitor.d printast.d safe.d sapply.d scanelf.d scanmach.d
+            scanmscoff.d scanomf.d semantic2.d semantic3.d sideeffect.d statement.d statement_rewrite_walker.d
+            statementsem.d staticassert.d staticcond.d strictvisitor.d target.d templateparamsem.d traits.d
+            transitivevisitor.d typesem.d typinf.d utils.d visitor.d
+        "),
+        lexer: fileArray(env["D"], "
+            console.d entity.d errors.d filecache.d globals.d id.d identifier.d lexer.d tokens.d utf.d
+        ") ~ fileArray(env["ROOT"], "
+            array.d ctfloat.d file.d filename.d hash.d outbuffer.d port.d region.d rmem.d
+            rootobject.d stringtable.d
+        "),
+        root: fileArray(env["ROOT"], "
+            aav.d longdouble.d man.d response.d speller.d string.d strtold.d
+        "),
+        backend: fileArray(env["C"], "
+            backend.d bcomplex.d evalu8.d divcoeff.d dvec.d go.d gsroa.d glocal.d gdag.d gother.d gflow.d
+            out.d
+            gloop.d compress.d cgelem.d cgcs.d ee.d cod4.d cod5.d nteh.d blockopt.d mem.d cg.d cgreg.d
+            dtype.d debugprint.d fp.d symbol.d elem.d dcode.d cgsched.d cg87.d cgxmm.d cgcod.d cod1.d cod2.d
+            cod3.d cv8.d dcgcv.d pdata.d util2.d var.d md5.d backconfig.d ph2.d drtlsym.d dwarfeh.d ptrntab.d
+            dvarstats.d dwarfdbginf.d cgen.d os.d goh.d barray.d cgcse.d elpicpie.d
+            machobj.d elfobj.d
+            " ~ ((env["OS"] == "windows") ? "cgobj.d filespec.d mscoffobj.d newman.d" : "aarray.d")
+        ),
+        backendHeaders: fileArray(env["C"], "
+            cc.d cdef.d cgcv.d code.d cv4.d dt.d el.d global.d
+            obj.d oper.d outbuf.d rtlsym.d code_x86.d iasm.d codebuilder.d
+            ty.d type.d exh.d mach.d mscoff.d dwarf.d dwarf2.d xmm.d
+            dlist.d melf.d varstats.di
+        "),
     };
-    sources.backendC.writeln;
-    sources.dmd = sources.frontend ~ sources.backendHeaders;
+    sources.dmd = sources.frontend ~ sources.glue ~ sources.backendHeaders;
 
     return sources;
 }
@@ -883,45 +899,12 @@ auto detectModel()
     else
         uname = ["uname", "-m"].execute.output;
 
-    if (!uname.find("x86_64", "amd64", "64-bit")[0].empty)
+    if (uname.canFind("x86_64", "amd64", "64-bit", "64-Bit", "64 bit"))
         return "64";
-    if (!uname.find("i386", "i586", "i686", "32-bit")[0].empty)
+    if (uname.canFind("i386", "i586", "i686", "32-bit", "32-Bit", "32 bit"))
         return "32";
 
     throw new Exception(`Cannot figure 32/64 model from "` ~ uname ~ `"`);
-}
-
-/// Returns: the command for querying or invoking the host C++ compiler
-auto getHostCXX()
-{
-    version(Posix)
-        return "c++";
-    else version(Windows)
-    {
-        immutable model = detectModel;
-        if (model == "32")
-            return "dmc";
-        else if (model == "64")
-            return buildMsvcDmc.target;
-        else
-            assert(false, `Unknown model "` ~ model ~ `"`);
-    }
-    else
-        static assert(false, "Unrecognized or unsupported OS.");
-}
-
-/// Returns: a string describing the type of host C++ compiler
-auto getHostCXXKind()
-{
-    version(Posix)
-    {
-        auto cxxVersion = execute([getHostCXX, "--version"]).output;
-        return !cxxVersion.find("gcc", "Free Software")[0].empty ? "g++" : "clang++";
-    }
-    else version(Windows)
-        return "dmc";
-    else
-        static assert(false, "Unrecognized or unsupported OS.");
 }
 
 /**
@@ -936,79 +919,14 @@ auto getHostDMDPath(string hostDmd)
     version(Posix)
         return ["which", hostDmd].execute.output;
     else version(Windows)
-        return ["where", hostDmd].execute.output;
+    {
+        if (hostDmd.canFind("/", "\\"))
+            return hostDmd;
+        return ["where", hostDmd].execute.output
+            .lineSplitter.filter!(file => file != srcDir.buildPath("dmd.exe")).front;
+    }
     else
         static assert(false, "Unrecognized or unsupported OS.");
-}
-
-version(Windows)
-{
-    /**
-    Gets the absolute path to the host's vshwere executable
-
-    Params:
-        outputFolder = this build's output folder
-    Returns: a string that is the absolute path of the host's vswhere executable
-    */
-    auto getHostVSWhere(string outputFolder)
-    {
-        // Check if vswhere.exe can be found in the host's PATH
-        const where = ["where", "vswhere"].execute;
-        if (where.status == 0)
-            return where.output;
-
-        // Check if vswhere.exe is in the standard location
-        const standardPath = ["cmd", "/C", "echo", `%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe`]
-            .execute.output       // Execute command and return standard output
-            .replace(`"`, "")     // Remove quotes surrounding the path
-            .replace("\r\n", ""); // Remove trailing newline characters
-        if (standardPath.exists)
-            return standardPath;
-
-        // Check if it has already been dowloaded to this build's output folder
-        const outputPath = outputFolder.buildPath("vswhere").exeName;
-        if (outputPath.exists)
-            return outputPath;
-
-        // try to download it
-        if (download(outputPath, "https://github.com/Microsoft/vswhere/releases/download/2.5.2/vswhere.exe"))
-            return outputPath;
-
-        // Could not find or obtain vswhere.exe
-        throw new Exception("Could not obtain vswhere.exe. Consider downloading it from https://github.com/Microsoft/vswhere and placing it in your PATH");
-    }
-
-    /**
-    Gets the absolute path to the host's MSVC bin directory
-
-    Params:
-        model   = a string describing the host's model, "64" or "32"
-        vswhere = a string that is the path to the vswhere executable
-    Returns: a string that is the absolute path to the host's MSVC bin directory
-    */
-    auto getHostMSVCBinDir(string model, string vswhere)
-    {
-        // See https://github.com/Microsoft/vswhere/wiki/Find-VC
-
-        const vsInstallPath = [vswhere, "-latest", "-products", "*", "-requires",
-            "Microsoft.VisualStudio.Component.VC.Tools.x86.x64", "-property", "installationPath"].execute.output
-            .replace("\r\n", "");
-
-        if (!vsInstallPath.exists)
-            throw new Exception("Could not locate the Visual Studio installation directory");
-
-        const vcVersionFile = vsInstallPath.buildPath("VC", "Auxiliary", "Build", "Microsoft.VCToolsVersion.default.txt");
-        if (!vcVersionFile.exists)
-            throw new Exception(`Could not locate the Visual C++ version file "%s"`.format(vcVersionFile));
-
-        const vcVersion = vcVersionFile.readText().replace("\r\n", "");
-        const vcArch = model == "64" ? "x64" : "x86";
-        const vcPath = vsInstallPath.buildPath("VC", "Tools", "MSVC", vcVersion, "bin", "Host" ~ vcArch, vcArch);
-        if (!vcPath.exists)
-            throw new Exception("Could not locate the Visual C++ installation directory");
-
-        return vcPath;
-    }
 }
 
 /**
@@ -1046,7 +964,7 @@ Params:
 auto libName(T)(T name)
 {
     version(Windows)
-        return name ~ ".dll";
+        return name ~ ".lib";
     return name ~ ".a";
 }
 
@@ -1065,7 +983,10 @@ void args2Environment(ref string[] args)
             return false;
 
         auto sp = arg.splitter("=");
-        environment[sp.front] = sp.dropOne.front;
+        auto key = sp.front;
+        auto value = sp.dropOne.front;
+        environment[key] = value;
+        env[key] = value;
         return true;
     }
     args = args.filter!(a => !tryToAdd(a)).array;
@@ -1151,14 +1072,35 @@ auto isUpToDate(string[] targets, string[][] sources...)
 }
 
 /**
+Writes given the content to the given file.
+
+The content will only be written to the file specified in `path` if that file
+doesn't exist, or the content of the existing file is different from the given
+content.
+
+This makes sure the timestamp of the file is only updated when the
+content has changed. This will avoid rebuilding when the content hasn't changed.
+
+Params:
+    path = the path to the file to write the content to
+    content = the content to write to the file
+*/
+void updateIfChanged(const string path, const string content)
+{
+    import std.file : exists, readText, write;
+
+    const existingContent = path.exists ? path.readText : "";
+
+    if (content != existingContent)
+        write(path, content);
+}
+
+/**
 A dependency has one or more sources and yields one or more targets.
 It knows how to build these target by invoking either the external command or
 the commandFunction.
 
 If a run fails, the entire build stops.
-
-Command strings support the Make-like $@ (target path) and $< (source path)
-shortcut variables.
 */
 struct Dependency
 {
@@ -1166,51 +1108,68 @@ struct Dependency
     string[] targets; // list of all target files
     string[] sources; // list of all source files
     string[] rebuildSources; // Optional list of files that trigger a rebuild of this dependency
+    DependencyRef[] deps; // dependencies to build before this one
     string[] command; // the dependency command
     void delegate() commandFunction; // a custom dependency command which gets called instead of command
-    string name; // name of the dependency that is e.g. written to the CLI when it's executed
+    string msg; // msg of the dependency that is e.g. written to the CLI when it's executed
+    string name; /// optional string that can be used to identify this dependency
+    string description; /// optional string to describe this dependency rather than printing the target files
     string[] trackSources;
+}
 
-    /**
-    Executes the dependency
-    */
-    auto run()
+class DependencyRef
+{
+    Dependency dep;
+    alias dep this;
+    private bool executed;
+
+    this(ref Dependency dep)
     {
-        // allow one or multiple targets
-        if (target !is null)
-            targets = [target];
-
-        if (targets.isUpToDate(sources, [thisBuildScript], rebuildSources))
+        this.dep = dep;
+        if (dep.target)
         {
-            if (sources !is null)
-                log("Skipping build of %-(%s%) as it's newer than %-(%s%)", targets, sources);
+            assert(!dep.targets, "target and targets cannot both be set");
+            this.dep.targets = [dep.target];
+        }
+    }
+
+    /// Executes the dependency
+    void run()
+    {
+        synchronized (this)
+            runSynchronized();
+    }
+
+    private void runSynchronized()
+    {
+        if (executed)
+            return;
+        scope (exit) executed = true;
+
+        bool depUpdated = false;
+        foreach (dep; deps.parallel(1))
+        {
+            dep.run();
+        }
+
+        if (targets && targets.isUpToDate(dep.sources, [thisBuildScript], rebuildSources))
+        {
+            if (dep.sources !is null)
+                log("Skipping build of %-(%s%) as it's newer than %-(%s%)", targets, dep.sources);
             return;
         }
+
+        // Display the execution of the dependency
+        if (msg)
+            msg.writeln;
 
         if (commandFunction !is null)
             return commandFunction();
 
-        resolveShorthands();
-
-        // Display the execution of the dependency
-        if (name)
-            name.writeln;
-
-        command.runCanThrow;
-    }
-
-    /**
-    Resolves variables shorthands like $@ (target) and $< (source)
-    */
-    void resolveShorthands()
-    {
-        // Support $@ (shortcut for the target path)
-        foreach (i, c; command)
-            command[i] = c.replace("$@", target);
-
-        // Support $< (shortcut for the source path)
-        if (command[$ - 1].find("$<"))
-            command = command.remove(command.length - 1) ~ sources;
+        if (command)
+        {
+            command.runCanThrow;
+        }
     }
 }
 
@@ -1234,6 +1193,7 @@ Params:
 */
 auto run(T)(T args)
 {
+    args = args.filter!(a => !a.empty).array;
     log("Run: %s", args.join(" "));
     return execute(args, null, Config.none, size_t.max, srcDir);
 }
@@ -1248,6 +1208,16 @@ Params:
 auto runCanThrow(T)(T args)
 {
     auto res = run(args);
-    enforce(!res.status, res.output);
+    if (res.status)
+    {
+        writeln(res.output ? res.output : format("last command failed with exit code %s", res.status));
+        exit(1);
+    }
     return res.output;
+}
+
+version (CRuntime_DigitalMars)
+{
+    // workaround issue https://issues.dlang.org/show_bug.cgi?id=13727
+    auto parallel(R)(R range, size_t workUnitSize) { return range; }
 }

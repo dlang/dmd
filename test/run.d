@@ -12,23 +12,53 @@ See the README.md for all available test targets
 */
 
 import std.algorithm, std.conv, std.datetime, std.exception, std.file, std.format,
-       std.getopt, std.parallelism, std.path, std.process, std.range, std.stdio, std.string;
+       std.getopt, std.parallelism, std.path, std.process, std.range, std.stdio,
+       std.string, std.traits, core.atomic;
 import core.stdc.stdlib : exit;
 
+import tools.paths;
+
 const scriptDir = __FILE_FULL_PATH__.dirName.buildNormalizedPath;
-string resultsDir = scriptDir.buildPath("test_results");
-immutable testDirs = ["runnable", "compilable", "fail_compilation"];
+immutable testDirs = ["runnable", "compilable", "fail_compilation", "dshell"];
 shared bool verbose; // output verbose logging
 shared bool force; // always run all tests (ignores timestamp checking)
 shared string hostDMD; // path to host DMD binary (used for building the tools)
+shared string unitTestRunnerCommand;
 
-void main(string[] args)
+enum toolsDir = testPath("tools");
+
+enum TestTools
 {
+    unitTestRunner = TestTool("unit_test_runner", [toolsDir.buildPath("paths")]),
+    testRunner = TestTool("d_do_test"),
+    jsonSanitizer = TestTool("sanitize_json"),
+    dshellPrebuilt = TestTool("dshell_prebuilt", null, Yes.linksWithTests),
+}
+
+immutable struct TestTool
+{
+    /// The name of the tool.
+    string name;
+
+    /// Extra arguments that should be supplied to the compiler when compiling the tool.
+    string[] extraArgs;
+
+    /// Indicates the tool is a binary that links with tests
+    Flag!"linksWithTests" linksWithTests;
+
+    alias name this;
+}
+
+int main(string[] args)
+{
+    bool runUnitTests;
     int jobs = totalCPUs;
     auto res = getopt(args,
+        std.getopt.config.passThrough,
         "j|jobs", "Specifies the number of jobs (commands) to run simultaneously (default: %d)".format(totalCPUs), &jobs,
         "v", "Verbose command output", (cast(bool*) &verbose),
         "f", "Force run (ignore timestamps and always run all tests)", (cast(bool*) &force),
+        "u|unit-tests", "Runs the unit tests", &runUnitTests
     );
     if (res.helpWanted)
     {
@@ -41,42 +71,46 @@ Examples:
     ./run.d fail_compilation                                     # runs all tests in fail_compilation
     ./run.d all                                                  # runs all tests
     ./run.d clean                                                # remove all test results
+    ./run.d -u -- unit/deinitialization.d -f Module              # runs the unit tests in the file "unit/deinitialization.d" with a UDA containing "Module"
 
 Options:
 `, res.options);
         "\nSee the README.md for a more in-depth explanation of the test-runner.".writeln;
-        return;
+        return 0;
     }
+
+    defaultPoolThreads = jobs;
 
     // parse arguments
     args.popFront;
     args2Environment(args);
 
     // allow overwrites from the environment
-    resultsDir = environment.get("RESULTS_DIR", resultsDir);
     hostDMD = environment.get("HOST_DMD", "dmd");
+    unitTestRunnerCommand = resultsDir.buildPath("unit_test_runner");
 
     // bootstrap all needed environment variables
     auto env = getEnvironment;
+
+    if (runUnitTests)
+    {
+        verifyCompilerExists(env);
+        ensureToolsExists(env, TestTools.unitTestRunner);
+        return spawnProcess(unitTestRunnerCommand ~ args).wait();
+    }
 
     // default target
     if (!args.length)
         args = ["all"];
 
-    alias normalizeTestName = f => f.absolutePath.dirName.baseName.buildPath(f.baseName);
     auto targets = args
         .predefinedTargets // preprocess
-        .map!normalizeTestName
         .array
         .filterTargets(env);
 
     if (targets.length > 0)
     {
-        if (!env["DMD"].exists)
-        {
-            stderr.writefln("%s doesn't exist, try building dmd with:\nmake -fposix.mak -j8 -C%s", env["DMD"], scriptDir.dirName.relativePath);
-            exit(1);
-        }
+        verifyCompilerExists(env);
 
         if (verbose)
         {
@@ -87,17 +121,26 @@ Options:
         }
 
         int ret;
-        auto taskPool = new TaskPool(jobs);
-        scope(exit) taskPool.finish();
-        ensureToolsExists;
-        foreach (target; taskPool.parallel(targets, 1))
+        ensureToolsExists(env, EnumMembers!TestTools);
+        foreach (target; parallel(targets, 1))
         {
-            auto args = [resultsDir.buildPath("d_do_test"), target];
-            log("run: %-(%s %)", args);
-            ret |= spawnProcess(args, env, Config.none, scriptDir).wait;
+            log("run: %-(%s %)", target.args);
+            ret |= spawnProcess(target.args, env, Config.none, scriptDir).wait;
         }
         if (ret)
-            exit(1);
+            return 1;
+    }
+
+    return 0;
+}
+
+/// Verify that the compiler has been built.
+void verifyCompilerExists(string[string] env)
+{
+    if (!env["DMD"].exists)
+    {
+        stderr.writefln("%s doesn't exist, try building dmd with:\nmake -fposix.mak -j8 -C%s", env["DMD"], scriptDir.dirName.relativePath);
+        exit(1);
     }
 }
 
@@ -105,31 +148,107 @@ Options:
 Builds the binary of the tools required by the testsuite.
 Does nothing if the tools already exist and are newer than their source.
 */
-void ensureToolsExists()
+void ensureToolsExists(string[string] env, const TestTool[] tools ...)
 {
-    static toolsDir = scriptDir.buildPath("tools");
     resultsDir.mkdirRecurse;
-    auto tools = [
-        "d_do_test",
-        "sanitize_json",
-    ];
+
+    shared uint failCount = 0;
     foreach (tool; tools.parallel(1))
     {
-        auto targetBin = resultsDir.buildPath(tool).exeName;
-        auto sourceFile = toolsDir.buildPath(tool ~ ".d");
+        string targetBin;
+        string sourceFile;
+        if (tool.linksWithTests)
+        {
+            targetBin = resultsDir.buildPath(tool).objName;
+            sourceFile = toolsDir.buildPath(tool, tool ~ ".d");
+        }
+        else
+        {
+            targetBin = resultsDir.buildPath(tool).exeName;
+            sourceFile = toolsDir.buildPath(tool ~ ".d");
+        }
         if (targetBin.timeLastModified.ifThrown(SysTime.init) >= sourceFile.timeLastModified)
             writefln("%s is already up-to-date", tool);
         else
         {
-            auto command = [hostDMD, "-of"~targetBin, sourceFile];
+            string[] command;
+            string[string] commandEnv = null;
+            if (tool.linksWithTests)
+            {
+                // This will compile the dshell library thus needs the actual
+                // DMD compiler under test
+                command = [
+                    env["DMD"],
+                    "-conf=",
+                    "-m"~env["MODEL"],
+                    "-of" ~ targetBin,
+                    "-c",
+                    sourceFile
+                ] ~ getPicFlags(env);
+                commandEnv = env;
+            }
+            else
+            {
+                command = [
+                    hostDMD,
+                    "-of"~targetBin,
+                    sourceFile
+                ] ~ tool.extraArgs;
+            }
+
             writefln("Executing: %-(%s %)", command);
-            spawnProcess(command).wait;
+            if (spawnProcess(command, commandEnv).wait)
+            {
+                stderr.writefln("failed to build '%s'", targetBin);
+                atomicOp!"+="(failCount, 1);
+            }
         }
     }
+    if (failCount > 0)
+        exit(1); // error already printed
 
     // ensure output directories exist
     foreach (dir; testDirs)
         resultsDir.buildPath(dir).mkdirRecurse;
+}
+
+/// A single target to execute.
+immutable struct Target
+{
+    /**
+    The filename of the target.
+
+    Might be `null` if the target is not for a single file.
+    */
+    string filename;
+
+    /// The arguments how to execute the target.
+    string[] args;
+
+    /// Returns: the normalized test name
+    static string normalizedTestName(string filename)
+    {
+        return filename
+            .absolutePath
+            .dirName
+            .baseName
+            .buildPath(filename.baseName);
+    }
+
+    string normalizedTestName()
+    {
+        return Target.normalizedTestName(filename);
+    }
+
+    /// Returns: `true` if the test exists
+    bool exists()
+    {
+        // This is assumed to be the `unit_tests` target which always exists
+        if (filename.empty)
+            return true;
+
+        return testPath(normalizedTestName).exists;
+    }
 }
 
 /**
@@ -141,66 +260,94 @@ auto predefinedTargets(string[] targets)
 {
     static findFiles(string dir)
     {
-        return scriptDir.buildPath(dir).dirEntries("*{.d,.sh}", SpanMode.shallow).map!(e => e.name);
+        return testPath(dir).dirEntries("*{.d,.sh}", SpanMode.shallow).map!(e => e.name);
     }
 
-    Appender!(string[]) newTargets;
+    static Target createUnitTestTarget()
+    {
+        Target target = { args: [unitTestRunnerCommand] };
+        return target;
+    }
+
+    static Target createTestTarget(string filename)
+    {
+        Target target = {
+            filename: filename,
+            args: [
+                resultsDir.buildPath(TestTools.testRunner.name),
+                Target.normalizedTestName(filename)
+            ]
+        };
+
+        return target;
+    }
+
+    Appender!(Target[]) newTargets;
     foreach (t; targets)
     {
         t = t.buildNormalizedPath; // remove trailing slashes
         switch (t)
         {
             case "clean":
-                resultsDir.rmdirRecurse;
+                if (resultsDir.exists)
+                    resultsDir.rmdirRecurse;
                 exit(0);
                 break;
 
             case "run_runnable_tests", "runnable":
-                newTargets.put(findFiles("runnable"));
+                newTargets.put(findFiles("runnable").map!createTestTarget);
                 break;
 
             case "run_fail_compilation_tests", "fail_compilation", "fail":
-                newTargets.put(findFiles("fail_compilation"));
+                newTargets.put(findFiles("fail_compilation").map!createTestTarget);
                 break;
 
             case "run_compilable_tests", "compilable", "compile":
-                newTargets.put(findFiles("compilable"));
+                newTargets.put(findFiles("compilable").map!createTestTarget);
+                break;
+
+            case "run_dshell_tests", "dshell":
+                newTargets.put(findFiles("dshell").map!createTestTarget);
                 break;
 
             case "all":
+                newTargets ~= createUnitTestTarget();
                 foreach (testDir; testDirs)
-                    newTargets.put(findFiles(testDir));
+                    newTargets.put(findFiles(testDir).map!createTestTarget);
                 break;
-
+            case "unit_tests":
+                newTargets ~= createUnitTestTarget();
+                break;
             default:
-                newTargets ~= t;
+                newTargets ~= createTestTarget(t);
         }
     }
     return newTargets.data;
 }
 
 // Removes targets that do not need updating (i.e. their .out file exists and is newer than the source file)
-auto filterTargets(string[] targets, string[string] env)
+auto filterTargets(Target[] targets, string[string] env)
 {
     bool error;
     foreach (target; targets)
     {
-        if (!scriptDir.buildPath(target).exists)
+        if (!target.exists)
         {
-            writefln("Warning: %s can't be found", target);
+            writefln("Warning: %s can't be found", target.normalizedTestName);
             error = true;
         }
     }
     if (error)
         exit(1);
 
-    string[] targetsThatNeedUpdating;
+    Target[] targetsThatNeedUpdating;
     foreach (t; targets)
     {
-        auto resultRunTime = resultsDir.buildPath(t ~ ".out").timeLastModified.ifThrown(SysTime.init);
-        if (!force && resultRunTime > scriptDir.buildPath(t).timeLastModified &&
+        immutable testName = t.normalizedTestName;
+        auto resultRunTime = resultsDir.buildPath(testName ~ ".out").timeLastModified.ifThrown(SysTime.init);
+        if (!force && resultRunTime > testPath(testName).timeLastModified &&
                 resultRunTime > env["DMD"].timeLastModified.ifThrown(SysTime.init))
-            writefln("%s is already up-to-date", t);
+            writefln("%s is already up-to-date", testName);
         else
             targetsThatNeedUpdating ~= t;
     }
@@ -249,46 +396,35 @@ string[string] getEnvironment()
     string[string] env;
 
     env["RESULTS_DIR"] = resultsDir;
-    auto os = env.getDefault("OS", detectOS);
-    auto build = env.getDefault("BUILD", "release");
+    env["OS"] = os;
+    env["MODEL"] = model;
+    env["DMD_MODEL"] = dmdModel;
+    env["BUILD"] = build;
+    env["EXE"] = exeExtension;
+    env["DMD"] = dmdPath;
     env.getDefault("DMD_TEST_COVERAGE", "0");
+
+    const generatedSuffix = "generated/%s/%s/%s".format(os, build, dmdModel);
 
     version(Windows)
     {
         env.getDefault("ARGS", "-inline -release -g -O");
-        auto exe = env["EXE"] = ".exe";
         env["OBJ"] = ".obj";
         env["DSEP"] = `\\`;
         env["SEP"] = `\`;
-        auto druntimePath = environment.get("DRUNTIME_PATH", `..\..\druntime`);
-        auto phobosPath = environment.get("PHOBOS_PATH", `..\..\phobos`);
+        auto druntimePath = environment.get("DRUNTIME_PATH", testPath(`..\..\druntime`));
+        auto phobosPath = environment.get("PHOBOS_PATH", testPath(`..\..\phobos`));
         env["DFLAGS"] = `-I%s\import -I%s`.format(druntimePath, phobosPath);
         env["LIB"] = phobosPath;
-
-        // auto-tester might run the testsuite with a different $(MODEL) than DMD
-        // has been compiled with. Hence we manually check which binary exists.
-        // For windows the $(OS) during build is: `windows`
-        int dmdModel = "../generated/windows/%s/64/dmd%s".format(build, exe).exists ? 64 : 32;
-        env.getDefault("MODEL", dmdModel.text);
-        env["DMD"] = "../generated/windows/%s/%d/dmd%s".format(build, dmdModel, exe);
     }
     else
     {
         env.getDefault("ARGS", "-inline -release -g -O -fPIC");
-        env["EXE"] = "";
         env["OBJ"] = ".o";
         env["DSEP"] = "/";
         env["SEP"] = "/";
-        auto druntimePath = environment.get("DRUNTIME_PATH", scriptDir ~ `/../../druntime`);
-        auto phobosPath = environment.get("PHOBOS_PATH", scriptDir ~ `/../../phobos`);
-
-        // auto-tester might run the testsuite with a different $(MODEL) than DMD
-        // has been compiled with. Hence we manually check which binary exists.
-        int dmdModel = scriptDir ~ "../generated/%s/%s/64/dmd".format(os, build).exists ? 64 : 32;
-        env.getDefault("MODEL", dmdModel.text);
-
-        auto generatedSuffix = "generated/%s/%s/%s".format(os, build, dmdModel);
-        env["DMD"] = scriptDir ~ "/../" ~ generatedSuffix ~ "/dmd";
+        auto druntimePath = environment.get("DRUNTIME_PATH", testPath(`../../druntime`));
+        auto phobosPath = environment.get("PHOBOS_PATH", testPath(`../../phobos`));
 
         // default to PIC on x86_64, use PIC=1/0 to en-/disable PIC.
         // Note that shared libraries and C files are always compiled with PIC.
@@ -300,49 +436,20 @@ string[string] getEnvironment()
         if (environment.get("PIC", "0") == "1")
             pic = true;
 
-        env["PIC_FLAGS"]  = pic ? "-fPIC" : "";
+        env["PIC_FLAG"]  = pic ? "-fPIC" : "";
         env["DFLAGS"] = "-I%s/import -I%s".format(druntimePath, phobosPath)
             ~ " -L-L%s/%s".format(phobosPath, generatedSuffix);
-        bool isShared = os.among("linux", "freebsd") >= 0;
+        bool isShared = os.among("linux", "freebsd") > 0;
         if (isShared)
             env["DFLAGS"] = env["DFLAGS"] ~ " -defaultlib=libphobos2.so -L-rpath=%s/%s".format(phobosPath, generatedSuffix);
 
-        env["REQUIRED_ARGS"] = environment.get("REQUIRED_ARGS") ~  env["PIC_FLAGS"];
+        env["REQUIRED_ARGS"] = environment.get("REQUIRED_ARGS") ~ " " ~ env["PIC_FLAG"];
 
         version(OSX)
             version(X86_64)
                 env["D_OBJC"] = "1";
     }
     return env;
-}
-
-/*
-Detects the host OS.
-
-Returns: a string from `{windows, osx,linux,freebsd,openbsd,netbsd,dragonflybsd,solaris}`
-*/
-string detectOS()
-{
-    version(Windows)
-        return "windows";
-    else version(OSX)
-        return "osx";
-    else version(linux)
-        return "linux";
-    else version(FreeBSD)
-        return "freebsd";
-    else version(OpenBSD)
-        return "openbsd";
-    else version(NetBSD)
-        return "netbsd";
-    else version(DragonFlyBSD)
-        return "dragonflybsd";
-    else version(Solaris)
-        return "solaris";
-    else version(SunOS)
-        return "solaris";
-    else
-        static assert(0, "Unrecognized or unsupported OS.");
 }
 
 // Logging primitive
@@ -358,4 +465,25 @@ auto exeName(T)(T name)
     version(Windows)
         name ~= ".exe";
     return name;
+}
+
+// Add the object filename extension to the given `name` for the current OS.
+auto objName(T)(T name)
+{
+    version(Windows)
+        return name ~ ".obj";
+    else
+        return name ~ ".o";
+}
+
+/// Return the correct pic flags as an array of strings
+string[] getPicFlags(string[string] env)
+{
+    version(Windows) {} else
+    {
+        const picFlags = env["PIC_FLAG"];
+        if (picFlags.length)
+            return picFlags.split();
+    }
+    return cast(string[])[];
 }

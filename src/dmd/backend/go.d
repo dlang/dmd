@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1986-1998 by Symantec
- *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              http://www.boost.org/LICENSE_1_0.txt
@@ -43,10 +43,11 @@ version (OSX)
     enum clock_t CLOCKS_PER_SEC = 1_000_000; // was 100 until OSX 10.4/10.5
 }
 
-extern (C++) int os_clock();
-
 extern (C++):
 
+nothrow:
+
+int os_clock();
 
 /* gdag.c */
 void builddags();
@@ -86,7 +87,7 @@ void verybusyexp();
 list_t listrds(vec_t, elem *, vec_t);
 
 /* gslice.c */
-void sliceStructs();
+void sliceStructs(symtab_t*, block*);
 
 /***************************************************************************/
 
@@ -97,9 +98,9 @@ void go_term()
     vec_free(go.defkill);
     vec_free(go.starkill);
     vec_free(go.vptrkill);
-    go.defnod.dtor();
-    go.expnod.dtor();
-    go.expblk.dtor();
+    go.defnod.__dtor();
+    go.expnod.__dtor();
+    go.expblk.__dtor();
 }
 
 debug
@@ -145,8 +146,6 @@ int go_flag(char *cp)
     [   0,MFall,MFcnp,MFcp,MFcse,MFda,MFdc,MFdv,MFli,MFliv,MFlocal,MFloop,
         0,0,MFreg,0,MFtime,MFtime,MFtree,MFvbe
     ];
-
-    uint i = GL.MAX;
 
     //printf("go_flag('%s')\n", cp);
     uint flag = binary(cp + 1,cast(const(char)**)flagtab.ptr,GL.MAX);
@@ -312,7 +311,7 @@ else
 
         //printf("optelem\n");
         /* canonicalize the trees        */
-        for (block* b = startblock; b; b = b.Bnext)
+        foreach (b; BlockRange(startblock))
             if (b.Belem)
             {
                 debug if (debuge)
@@ -335,7 +334,7 @@ else
             blockopt(0);                // do block optimization
         out_regcand(&globsym);          // recompute register candidates
         go.changes = 0;                 // no changes yet
-        sliceStructs();
+        sliceStructs(&globsym, startblock);
         if (go.mfoptim & MFcnp)
             constprop();                /* make relationals unsigned     */
         if (go.mfoptim & (MFli | MFliv))
@@ -343,7 +342,7 @@ else
                                         /* induction vars                */
                                         /* do loop rotation              */
         else
-            for (block* b = startblock; b; b = b.Bnext)
+            foreach (b; BlockRange(startblock))
                 b.Bweight = 1;
         dbg_optprint("boolopt\n");
 

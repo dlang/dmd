@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/libomf.d, _libomf.d)
@@ -25,10 +25,19 @@ import dmd.lib;
 import dmd.root.array;
 import dmd.root.file;
 import dmd.root.filename;
+import dmd.root.rmem;
 import dmd.root.outbuffer;
 import dmd.root.stringtable;
 
 import dmd.scanomf;
+
+// Entry point (only public symbol in this module).
+extern (C++) Library LibOMF_factory()
+{
+    return new LibOMF();
+}
+
+private: // for the remainder of this module
 
 enum LOG = false;
 
@@ -78,11 +87,10 @@ final class LibOMF : Library
         if (!buf)
         {
             assert(module_name);
-            File* file = File.create(module_name);
-            readFile(Loc.initial, file);
-            buf = file.buffer;
-            buflen = file.len;
-            file._ref = 1;
+            // read file and take buffer ownership
+            auto data = readFile(Loc.initial, module_name).extractSlice();
+            buf = data.ptr;
+            buflen = data.length;
         }
         uint g_page_size;
         ubyte* pstart = cast(ubyte*)buf;
@@ -140,7 +148,7 @@ final class LibOMF : Library
             if (firstmodule && module_name && !islibrary)
             {
                 // Remove path and extension
-                auto n = strdup(FileName.name(module_name));
+                auto n = cast(char*)Mem.check(strdup(FileName.name(module_name)));
                 om.name = n[0 .. strlen(n)];
                 char* ext = cast(char*)FileName.ext(n);
                 if (ext)
@@ -151,7 +159,7 @@ final class LibOMF : Library
                 /* Use THEADR name as module name,
                  * removing path and extension.
                  */
-                auto n = strdup(FileName.name(name));
+                auto n = cast(char*)Mem.check(strdup(FileName.name(name)));
                 om.name = n[0 .. strlen(n)];
                 char* ext = cast(char*)FileName.ext(n);
                 if (ext)
@@ -167,32 +175,36 @@ final class LibOMF : Library
 
     /*****************************************************************************/
 
-    void addSymbol(OmfObjModule* om, const(char)* name, int pickAny = 0)
+    void addSymbol(OmfObjModule* om, const(char)[] name, int pickAny = 0)
     {
+        assert(name.length == strlen(name.ptr));
         static if (LOG)
         {
-            printf("LibOMF::addSymbol(%s, %s, %d)\n", om.name.ptr, name, pickAny);
+            printf("LibOMF::addSymbol(%.*s, %.*s, %d)\n",
+                cast(int)om.name.length, om.name.ptr,
+                cast(int)name.length, name.ptr, pickAny);
         }
-        const namelen = strlen(name);
-        StringValue* s = tab.insert(name, namelen, null);
-        if (!s)
+        if (auto s = tab.insert(name, null))
+        {
+            auto os = new OmfObjSymbol();
+            os.name = cast(char*)Mem.check(strdup(name.ptr));
+            os.om = om;
+            s.ptrvalue = cast(void*)os;
+            objsymbols.push(os);
+        }
+        else
         {
             // already in table
             if (!pickAny)
             {
-                const s2 = tab.lookup(name, namelen);
+                const s2 = tab.lookup(name);
                 assert(s2);
                 const os = cast(const(OmfObjSymbol)*)s2.ptrvalue;
-                error("multiple definition of %s: %s and %s: %s", om.name.ptr, name, os.om.name.ptr, os.name);
+                error("multiple definition of %.*s: %.*s and %.*s: %s",
+                    cast(int)om.name.length, om.name.ptr,
+                    cast(int)name.length, name.ptr,
+                    cast(int)os.om.name.length, os.om.name.ptr, os.name);
             }
-        }
-        else
-        {
-            auto os = new OmfObjSymbol();
-            os.name = strdup(name);
-            os.om = om;
-            s.ptrvalue = cast(void*)os;
-            objsymbols.push(os);
         }
     }
 
@@ -210,7 +222,7 @@ private:
 
         extern (D) void addSymbol(const(char)[] name, int pickAny)
         {
-            this.addSymbol(om, name.ptr, pickAny);
+            this.addSymbol(om, name, pickAny);
         }
 
         scanOmfObjModule(&addSymbol, om.base[0 .. om.length], om.name.ptr, loc);
@@ -408,19 +420,19 @@ private:
          */
         foreach (om; objmodules)
         {
-            uint page = cast(uint)(libbuf.offset / g_page_size);
+            uint page = cast(uint)(libbuf.length / g_page_size);
             assert(page <= 0xFFFF);
             om.page = cast(ushort)page;
             // Write out the object module om
             writeOMFObj(libbuf, om.base, om.length, om.name.ptr);
             // Round the size of the file up to the next page size
             // by filling with 0s
-            uint n = (g_page_size - 1) & libbuf.offset;
+            uint n = (g_page_size - 1) & libbuf.length;
             if (n)
                 libbuf.fill0(g_page_size - n);
         }
         // File offset of start of dictionary
-        uint offset = cast(uint)libbuf.offset;
+        uint offset = cast(uint)libbuf.length;
         // Write dictionary header, then round it to a BUCKETPAGE boundary
         ushort size = (BUCKETPAGE - (cast(short)offset + 3)) & (BUCKETPAGE - 1);
         libbuf.writeByte(0xF1);
@@ -439,10 +451,9 @@ private:
             }
             // Allocate dictionary
             if (bucketsP)
-                bucketsP = cast(ubyte*)realloc(bucketsP, ndicpages * BUCKETPAGE);
+                bucketsP = cast(ubyte*)Mem.check(realloc(bucketsP, ndicpages * BUCKETPAGE));
             else
-                bucketsP = cast(ubyte*)malloc(ndicpages * BUCKETPAGE);
-            assert(bucketsP);
+                bucketsP = cast(ubyte*)Mem.check(malloc(ndicpages * BUCKETPAGE));
             memset(bucketsP, 0, ndicpages * BUCKETPAGE);
             for (uint u = 0; u < ndicpages; u++)
             {
@@ -454,7 +465,7 @@ private:
             padding += 16; // try again with more margins
         }
         // Write dictionary
-        libbuf.write(bucketsP, ndicpages * BUCKETPAGE);
+        libbuf.write(bucketsP[0 .. ndicpages * BUCKETPAGE]);
         if (bucketsP)
             free(bucketsP);
         // Create library header
@@ -478,13 +489,8 @@ private:
         libHeader.ndicpages = ndicpages;
         libHeader.flags = 1; // always case sensitive
         // Write library header at start of buffer
-        memcpy(libbuf.data, &libHeader, (libHeader).sizeof);
+        memcpy(cast(void*)(*libbuf)[].ptr, &libHeader, (libHeader).sizeof);
     }
-}
-
-extern (C++) Library LibOMF_factory()
-{
-    return new LibOMF();
 }
 
 /*****************************************************************************/
@@ -516,7 +522,7 @@ enum BUCKETSIZE = (BUCKETPAGE - HASHMOD - 1);
  * Returns:
  *      false   failure
  */
-private bool EnterDict(ubyte* bucketsP, ushort ndicpages, ubyte* entry, uint entrylen)
+bool EnterDict(ubyte* bucketsP, ushort ndicpages, ubyte* entry, uint entrylen)
 {
     ushort uStartIndex;
     ushort uStep;

@@ -795,6 +795,7 @@ void test7951_2()
     f1.array = v1;
     f2.array = v2;
     f3 = f1 + f2;
+    assert((cast(float[4])f3)[2] == 6);
 }
 
 /*****************************************/
@@ -1501,6 +1502,9 @@ void test15144()
         version (D_PIC)
         {
         }
+        else version (D_PIE)
+        {
+        }
         else
         {
             asm @nogc nothrow
@@ -1838,7 +1842,10 @@ ubyte[16] foounsto()
 void testOPvecunsto()
 {
     auto a = foounsto();
-    assert(a == [0, 0, 64, 65, 0, 0, 64, 65, 0, 0, 64, 65, 0, 0, 64, 65]);
+    version (LittleEndian)
+        assert(a == [0, 0, 64, 65, 0, 0, 64, 65, 0, 0, 64, 65, 0, 0, 64, 65]);
+    version (BigEndian)
+        assert(a == [65, 64, 0, 0, 65, 64, 0, 0, 65, 64, 0, 0, 65, 64, 0, 0]);
 }
 
 /*****************************************/
@@ -1930,6 +1937,71 @@ void refIntrinsics()
 
 /*****************************************/
 
+void test6a()
+{
+    version (D_AVX2)
+    {
+        // stack occasionally misaligned
+        float f = 0;
+        long4 v;
+        assert((cast(size_t)&v) % 32 == 0);
+        v += 1;
+    }
+}
+
+void test6b()
+{
+    version (D_AVX2)
+    {
+        struct S {long4 v;}
+        S s;
+        assert((cast(size_t)&s) % 32 == 0);
+    }
+}
+
+void test6()
+{
+    test6a();
+    test6b();
+}
+
+/*****************************************/
+
+version (D_AVX)
+{
+    double4 test7r(double4 v)
+    {
+        return v;
+    }
+}
+
+void test7()
+{
+    version (D_AVX)
+    {
+        // 32 bytes sliced down to 16 bytes
+        double4 v = 1;
+        double4 r = test7r(v);
+        assert(v[2] == r[2]);
+        assert(v[3] == r[3]);
+    }
+}
+
+/*****************************************/
+
+
+auto test20052()
+{
+    version (D_AVX2)
+    {
+        struct S { long4 v; }
+        S s;
+        return s;
+    }
+}
+
+/*****************************************/
+
 int main()
 {
     test1();
@@ -1969,6 +2041,10 @@ int main()
     test10447();
     test17344();
     test17356();
+    test20052();
+
+    test6();
+    test7();
 
     return 0;
 }

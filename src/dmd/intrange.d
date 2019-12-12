@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/intrange.d, _intrange.d)
@@ -322,7 +322,7 @@ struct IntRange
 
     static IntRange fromType(Type type, bool isUnsigned)
     {
-        if (!type.isintegral())
+        if (!type.isintegral() || type.toBasetype().ty == Tvector)
             return widest();
 
         uinteger_t mask = type.sizemask();
@@ -444,7 +444,7 @@ struct IntRange
 
     IntRange _cast(Type type)
     {
-        if (!type.isintegral())
+        if (!type.isintegral() || type.toBasetype().ty == Tvector)
             return this;
         else if (!type.isunsigned())
             return castSigned(type.sizemask());
@@ -456,7 +456,7 @@ struct IntRange
 
     IntRange castUnsigned(Type type)
     {
-        if (!type.isintegral())
+        if (!type.isintegral() || type.toBasetype().ty == Tvector)
             return castUnsigned(ulong.max);
         else if (type.toBasetype().ty == Tdchar)
             return castDchar();
@@ -504,7 +504,7 @@ struct IntRange
         union_ = true;
     }
 
-    ref const(IntRange) dump(const(char)* funcName, Expression e) const
+    ref const(IntRange) dump(const(char)* funcName, Expression e) const return
     {
         printf("[(%c)%#018llx, (%c)%#018llx] @ %s ::: %s\n",
                imin.negative?'-':'+', cast(ulong)imin.value,

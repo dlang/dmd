@@ -13,21 +13,18 @@ DMD=dmd
 PIC=1
 
 case "${CIRCLE_STAGE}" in
-    # Defined by old, existing PRs
-    # Added to avoid needing to rebase them
     build)
-        ;&
-    pic)
-        MODEL=64
-        PIC=1
-        ;;
-    no_pic)
-        PIC=0
         case $CIRCLE_NODE_INDEX in
             0) MODEL=64 ;;
-            1) MODEL=32 ;;
+            1) MODEL=32 ;; # broken - https://issues.dlang.org/show_bug.cgi?id=19116
         esac
 esac
+
+# sometimes $CIRCLE_PR_NUMBER is not defined
+# extract it from $CIRCLE_PULL_REQUEST
+if [ -z "${CIRCLE_PR_NUMBER:-}" ] && [ -n "${CIRCLE_PULL_REQUEST:-}" ]; then
+    export CIRCLE_PR_NUMBER=${CIRCLE_PULL_REQUEST#https://github.com/dlang/dmd/pull/}
+fi
 
 # clone druntime and phobos
 clone() {
@@ -151,7 +148,7 @@ coverage()
 
     cp $build_path/dmd _${build_path}/host_dmd_cov
     make -j1 -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd_cov ENABLE_COVERAGE=1 PIC="$PIC" unittest
-    make -j1 -C test MODEL=$MODEL ARGS="-O -inline -release" DMD_TEST_COVERAGE=1 PIC="$PIC"
+    DMD_TESTSUITE_MAKE_ARGS=-j3 make -j1 -C test start_all_tests MODEL=$MODEL ARGS="-O -inline -release" DMD_TEST_COVERAGE=1 PIC="$PIC"
 }
 
 # Checks that all files have been committed and no temporary, untracked files exist.
@@ -165,7 +162,6 @@ check_clean_git()
     rm -f install.sh
     # auto-removal of these files doesn't work on CirleCi
     rm -f test/compilable/vcg-ast.d.cg
-    rm -f test/test.mixin
     # Ensure that there are no untracked changes
     make -f posix.mak check-clean-git
 }
@@ -174,7 +170,7 @@ check_clean_git()
 check_run_individual()
 {
     local build_path=generated/linux/release/$MODEL
-	"${build_path}/dmd"  -i -run ./test/run.d test/runnable/template2962.d ./test/compilable/test14275.d
+    "${build_path}/dmd" -I./test -i -run ./test/run.d test/runnable/template2962.d ./test/compilable/test14275.d
 }
 
 # Checks the D build.d script

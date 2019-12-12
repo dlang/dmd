@@ -578,7 +578,6 @@ class Bar11245
 {
     void func()
     {
-        pragma(msg, "====");
         float[Vec11245.f.length] newVal;
     }
 }

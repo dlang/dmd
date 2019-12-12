@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _tocvdebug.d)
@@ -92,7 +92,7 @@ uint cv4_memfunctypidx(FuncDeclaration fd)
     //printf("cv4_memfunctypidx(fd = '%s')\n", fd.toChars());
 
     type *t = Type_toCtype(fd.type);
-    if (AggregateDeclaration ad = fd.isMember2())
+    if (AggregateDeclaration ad = fd.isMemberLocal())
     {
         // It's a member function, which gets a special type record
 
@@ -422,7 +422,7 @@ void toDebug(StructDeclaration sd)
     const len1 = numidx + cv4_numericbytes(cast(uint)size);
     debtyp_t *d = debtyp_alloc(len1 + cv_stringbytes(id));
     cv4_storenumeric(d.data.ptr + numidx, cast(uint)size);
-    const uint len = len1 + cv_namestring(d.data.ptr + len1,id);
+    cv_namestring(d.data.ptr + len1, id);
 
     if (leaf == LF_STRUCTURE)
     {
@@ -557,7 +557,7 @@ void toDebug(ClassDeclaration cd)
     const uint len1 = numidx + cv4_numericbytes(cast(uint)size);
     debtyp_t *d = debtyp_alloc(len1 + cv_stringbytes(id));
     cv4_storenumeric(d.data.ptr + numidx, cast(uint)size);
-    const uint len = len1 + cv_namestring(d.data.ptr + len1,id);
+    cv_namestring(d.data.ptr + len1, id);
 
     idx_t vshapeidx = 0;
     if (1)
@@ -573,7 +573,6 @@ void toDebug(ClassDeclaration cd)
             ubyte descriptor = 0;
             for (size_t i = 0; i < cd.vtbl.dim; i++)
             {
-                FuncDeclaration fd = cast(FuncDeclaration)cd.vtbl[i];
                 //if (intsize == 4)
                     descriptor |= 5;
                 vshape.data.ptr[4 + n / 2] = descriptor;
@@ -998,7 +997,7 @@ int cvMember(Dsymbol s, ubyte *p)
                     q += cgcv.sz_idx;
                     if (fd.introducing)
                     {
-                        TOLONG(q, fd.vtblIndex * Target.ptrsize);
+                        TOLONG(q, fd.vtblIndex * target.ptrsize);
                         q += 4;
                     }
                 }

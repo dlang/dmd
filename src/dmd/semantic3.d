@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/semantic3.d, _semantic3.d)
@@ -294,7 +294,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             funcdecl.localsymtab = new DsymbolTable();
 
             // Establish function scope
-            auto ss = new ScopeDsymbol();
+            auto ss = new ScopeDsymbol(funcdecl.loc, null);
             // find enclosing scope symbol, might skip symbol-less CTFE and/or FuncExp scopes
             for (auto scx = sc; ; scx = scx.enclosing)
             {
@@ -304,7 +304,6 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     break;
                 }
             }
-            ss.loc = funcdecl.loc;
             ss.endlinnum = funcdecl.endloc.linnum;
             Scope* sc2 = sc.push(ss);
             sc2.func = funcdecl;
@@ -315,7 +314,9 @@ private extern(C++) final class Semantic3Visitor : Visitor
             sc2.sw = null;
             sc2.fes = funcdecl.fes;
             sc2.linkage = LINK.d;
-            sc2.stc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.abstract_ | STC.deprecated_ | STC.override_ | STC.TYPECTOR | STC.final_ | STC.tls | STC.gshared | STC.ref_ | STC.return_ | STC.property | STC.nothrow_ | STC.pure_ | STC.safe | STC.trusted | STC.system);
+            sc2.stc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.abstract_ | STC.deprecated_ | STC.override_ |
+                         STC.TYPECTOR | STC.final_ | STC.tls | STC.gshared | STC.ref_ | STC.return_ | STC.property |
+                         STC.nothrow_ | STC.pure_ | STC.safe | STC.trusted | STC.system);
             sc2.protection = Prot(Prot.Kind.public_);
             sc2.explicitProtection = 0;
             sc2.aligndecl = null;
@@ -365,7 +366,10 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
             // Declare 'this'
             auto ad = funcdecl.isThis();
-            funcdecl.vthis = funcdecl.declareThis(sc2, ad);
+            auto hiddenParams = funcdecl.declareThis(sc2, ad);
+            funcdecl.vthis = hiddenParams.vthis;
+            funcdecl.isThis2 = hiddenParams.isThis2;
+            funcdecl.selectorParameter = hiddenParams.selectorParameter;
             //printf("[%s] ad = %p vthis = %p\n", loc.toChars(), ad, vthis);
             //if (vthis) printf("\tvthis.type = %s\n", vthis.type.toChars());
 
@@ -374,16 +378,28 @@ private extern(C++) final class Semantic3Visitor : Visitor
             {
                 if (f.linkage == LINK.d)
                 {
+                    // Variadic arguments depend on Typeinfo being defined.
+                    if (!global.params.useTypeInfo || !Type.dtypeinfo || !Type.typeinfotypelist)
+                    {
+                        if (!global.params.useTypeInfo)
+                            funcdecl.error("D-style variadic functions cannot be used with -betterC");
+                        else if (!Type.typeinfotypelist)
+                            funcdecl.error("`object.TypeInfo_Tuple` could not be found, but is implicitly used in D-style variadic functions");
+                        else
+                            funcdecl.error("`object.TypeInfo` could not be found, but is implicitly used in D-style variadic functions");
+                        fatal();
+                    }
+
                     // Declare _arguments[]
-                    funcdecl.v_arguments = new VarDeclaration(Loc.initial, Type.typeinfotypelist.type, Id._arguments_typeinfo, null);
+                    funcdecl.v_arguments = new VarDeclaration(funcdecl.loc, Type.typeinfotypelist.type, Id._arguments_typeinfo, null);
                     funcdecl.v_arguments.storage_class |= STC.temp | STC.parameter;
                     funcdecl.v_arguments.dsymbolSemantic(sc2);
                     sc2.insert(funcdecl.v_arguments);
                     funcdecl.v_arguments.parent = funcdecl;
 
-                    //Type *t = Type::typeinfo.type.constOf().arrayOf();
+                    //Type t = Type.dtypeinfo.type.constOf().arrayOf();
                     Type t = Type.dtypeinfo.type.arrayOf();
-                    _arguments = new VarDeclaration(Loc.initial, t, Id._arguments, null);
+                    _arguments = new VarDeclaration(funcdecl.loc, t, Id._arguments, null);
                     _arguments.storage_class |= STC.temp;
                     _arguments.dsymbolSemantic(sc2);
                     sc2.insert(_arguments);
@@ -394,7 +410,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     // Declare _argptr
                     Type t = Type.tvalist;
                     // Init is handled in FuncDeclaration_toObjFile
-                    funcdecl.v_argptr = new VarDeclaration(Loc.initial, t, Id._argptr, new VoidInitializer(funcdecl.loc));
+                    funcdecl.v_argptr = new VarDeclaration(funcdecl.loc, t, Id._argptr, new VoidInitializer(funcdecl.loc));
                     funcdecl.v_argptr.storage_class |= STC.temp;
                     funcdecl.v_argptr.dsymbolSemantic(sc2);
                     sc2.insert(funcdecl.v_argptr);
@@ -531,26 +547,24 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                 if ((needEnsure && global.params.useOut == CHECKENABLE.on) || fpostinv)
                 {
-                    funcdecl.returnLabel = new LabelDsymbol(Id.returnLabel);
+                    funcdecl.returnLabel = funcdecl.searchLabel(Id.returnLabel);
                 }
 
                 // scope of out contract (need for vresult.semantic)
-                auto sym = new ScopeDsymbol();
+                auto sym = new ScopeDsymbol(funcdecl.loc, null);
                 sym.parent = sc2.scopesym;
-                sym.loc = funcdecl.loc;
                 sym.endlinnum = fensure_endlin;
                 scout = sc2.push(sym);
             }
 
             if (funcdecl.fbody)
             {
-                auto sym = new ScopeDsymbol();
+                auto sym = new ScopeDsymbol(funcdecl.loc, null);
                 sym.parent = sc2.scopesym;
-                sym.loc = funcdecl.loc;
                 sym.endlinnum = funcdecl.endloc.linnum;
                 sc2 = sc2.push(sym);
 
-                auto ad2 = funcdecl.isMember2();
+                auto ad2 = funcdecl.isMemberLocal();
 
                 /* If this is a class constructor
                  */
@@ -563,7 +577,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     }
                 }
 
-                if (!funcdecl.inferRetType && !Target.isReturnOnStack(f, funcdecl.needThis()))
+                if (!funcdecl.inferRetType && !target.isReturnOnStack(f, funcdecl.needThis()))
                     funcdecl.nrvo_can = 0;
 
                 bool inferRef = (f.isref && (funcdecl.storage_class & STC.auto_));
@@ -617,7 +631,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     if (funcdecl.storage_class & STC.auto_)
                         funcdecl.storage_class &= ~STC.auto_;
                 }
-                if (!Target.isReturnOnStack(f, funcdecl.needThis()))
+                if (!target.isReturnOnStack(f, funcdecl.needThis()))
                     funcdecl.nrvo_can = 0;
 
                 if (funcdecl.fbody.isErrorStatement())
@@ -678,7 +692,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         sc2.ctorflow.callSuper = CSX.none;
 
                         // Insert implicit super() at start of fbody
-                        FuncDeclaration fd = resolveFuncCall(Loc.initial, sc2, cd.baseClass.ctor, null, funcdecl.vthis.type, null, 1);
+                        Type tthis = ad2.type.addMod(funcdecl.vthis.type.mod);
+                        FuncDeclaration fd = resolveFuncCall(Loc.initial, sc2, cd.baseClass.ctor, null, tthis, null, FuncResolveFlag.quiet);
                         if (!fd)
                         {
                             funcdecl.error("no match for implicit `super()` call in constructor");
@@ -758,7 +773,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     // For foreach(){} body, append a return 0;
                     if (blockexit & BE.fallthru)
                     {
-                        Expression e = new IntegerExp(0);
+                        Expression e = IntegerExp.literal!0;
                         Statement s = new ReturnStatement(Loc.initial, e);
                         funcdecl.fbody = new CompoundStatement(Loc.initial, funcdecl.fbody, s);
                         funcdecl.hasReturnExp |= (funcdecl.hasReturnExp & 1 ? 16 : 1);
@@ -780,7 +795,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             /* Add an assert(0, msg); where the missing return
                              * should be.
                              */
-                            e = new AssertExp(funcdecl.endloc, new IntegerExp(0), new StringExp(funcdecl.loc, cast(char*)"missing return expression"));
+                            e = new AssertExp(funcdecl.endloc, IntegerExp.literal!0, new StringExp(funcdecl.loc, cast(char*)"missing return expression"));
                         }
                         else
                             e = new HaltExp(funcdecl.endloc);
@@ -815,14 +830,66 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             continue;
                         }
 
+                        /* If the expression in the return statement (exp) cannot be implicitly
+                         * converted to the return type (tret) of the function and if the
+                         * type of the expression is type isolated, then it may be possible
+                         * that a promotion to `immutable` or `inout` (through a cast) will
+                         * match the return type.
+                         */
                         if (!exp.implicitConvTo(tret) && funcdecl.isTypeIsolated(exp.type))
                         {
-                            if (exp.type.immutableOf().implicitConvTo(tret))
-                                exp = exp.castTo(sc2, exp.type.immutableOf());
-                            else if (exp.type.wildOf().implicitConvTo(tret))
-                                exp = exp.castTo(sc2, exp.type.wildOf());
+                            /* https://issues.dlang.org/show_bug.cgi?id=20073
+                             *
+                             * The problem is that if the type of the returned expression (exp.type)
+                             * is an aggregated declaration with an alias this, the alias this may be
+                             * used for the conversion testing without it being an isolated type.
+                             *
+                             * To make sure this does not happen, we can test here the implicit conversion
+                             * only for the aggregated declaration type by using `implicitConvToWithoutAliasThis`.
+                             * The implicit conversion with alias this is taken care of later.
+                             */
+                            AggregateDeclaration aggDecl = isAggregate(exp.type);
+                            TypeStruct tstruct;
+                            TypeClass tclass;
+                            bool hasAliasThis;
+                            if (aggDecl && aggDecl.aliasthis)
+                            {
+                                hasAliasThis = true;
+                                tclass = exp.type.isTypeClass();
+                                if (!tclass)
+                                    tstruct = exp.type.isTypeStruct();
+                                assert(tclass || tstruct);
+                            }
+                            if (hasAliasThis)
+                            {
+                                if (tclass)
+                                {
+                                    if ((cast(TypeClass)(exp.type.immutableOf())).implicitConvToWithoutAliasThis(tret))
+                                        exp = exp.castTo(sc2, exp.type.immutableOf());
+                                    else if ((cast(TypeClass)(exp.type.wildOf())).implicitConvToWithoutAliasThis(tret))
+                                        exp = exp.castTo(sc2, exp.type.wildOf());
+                                }
+                                else
+                                {
+                                    if ((cast(TypeStruct)exp.type.immutableOf()).implicitConvToWithoutAliasThis(tret))
+                                        exp = exp.castTo(sc2, exp.type.immutableOf());
+                                    else if ((cast(TypeStruct)exp.type.immutableOf()).implicitConvToWithoutAliasThis(tret))
+                                        exp = exp.castTo(sc2, exp.type.wildOf());
+                                }
+                            }
+                            else
+                            {
+                                if (exp.type.immutableOf().implicitConvTo(tret))
+                                    exp = exp.castTo(sc2, exp.type.immutableOf());
+                                else if (exp.type.wildOf().implicitConvTo(tret))
+                                    exp = exp.castTo(sc2, exp.type.wildOf());
+                            }
                         }
-                        exp = exp.implicitCastTo(sc2, tret);
+
+                        const hasCopyCtor = exp.type.ty == Tstruct && (cast(TypeStruct)exp.type).sym.hasCopyCtor;
+                        // if a copy constructor is present, the return type conversion will be handled by it
+                        if (!(hasCopyCtor && exp.isLvalue()))
+                            exp = exp.implicitCastTo(sc2, tret);
 
                         if (f.isref)
                         {
@@ -838,7 +905,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                              * If NRVO is not possible, all returned lvalues should call their postblits.
                              */
                             if (!funcdecl.nrvo_can)
-                                exp = doCopyOrMove(sc2, exp);
+                                exp = doCopyOrMove(sc2, exp, f.next);
 
                             if (tret.hasPointers())
                                 checkReturnEscape(sc2, exp, false);
@@ -873,8 +940,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 sc2 = sc2.pop();
             }
 
-            funcdecl.frequire = funcdecl.mergeFrequire(funcdecl.frequire);
-            funcdecl.fensure = funcdecl.mergeFensure(funcdecl.fensure, Id.result);
+            funcdecl.frequire = funcdecl.mergeFrequire(funcdecl.frequire, funcdecl.fdrequireParams);
+            funcdecl.fensure = funcdecl.mergeFensure(funcdecl.fensure, Id.result, funcdecl.fdensureParams);
 
             Statement freq = funcdecl.frequire;
             Statement fens = funcdecl.fensure;
@@ -886,9 +953,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
             {
                 /* frequire is composed of the [in] contracts
                  */
-                auto sym = new ScopeDsymbol();
+                auto sym = new ScopeDsymbol(funcdecl.loc, null);
                 sym.parent = sc2.scopesym;
-                sym.loc = funcdecl.loc;
                 sym.endlinnum = funcdecl.endloc.linnum;
                 sc2 = sc2.push(sym);
                 sc2.flags = (sc2.flags & ~SCOPE.contract) | SCOPE.require;
@@ -961,8 +1027,13 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             }
                             ExpInitializer ie = v._init.isExpInitializer();
                             assert(ie);
-                            if (ie.exp.op == TOK.construct)
-                                ie.exp.op = TOK.assign; // construction occurred in parameter processing
+                            if (auto iec = ie.exp.isConstructExp())
+                            {
+                                // construction occurred in parameter processing
+                                auto ec = new AssignExp(iec.loc, iec.e1, iec.e2);
+                                ec.type = iec.type;
+                                ie.exp = ec;
+                            }
                             a.push(new ExpStatement(Loc.initial, ie.exp));
                         }
                     }
@@ -1025,7 +1096,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 if (addReturn0())
                 {
                     // Add a return 0; statement
-                    Statement s = new ReturnStatement(Loc.initial, new IntegerExp(0));
+                    Statement s = new ReturnStatement(Loc.initial, IntegerExp.literal!0);
                     a.push(s);
                 }
 
@@ -1070,7 +1141,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 {
                     /* Wrap the entire function body in a synchronized statement
                      */
-                    ClassDeclaration cd = funcdecl.isThis() ? funcdecl.isThis().isClassDeclaration() : funcdecl.parent.isClassDeclaration();
+                    ClassDeclaration cd = funcdecl.toParentDecl().isClassDeclaration();
                     if (cd)
                     {
                         if (!global.params.is64bit && global.params.isWindows && !funcdecl.isStatic() && !sbody.usesEH() && !global.params.trace)
@@ -1091,6 +1162,11 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             {
                                 // 'this' is the monitor
                                 vsync = new VarExp(funcdecl.loc, funcdecl.vthis);
+                                if (funcdecl.isThis2)
+                                {
+                                    vsync = new PtrExp(funcdecl.loc, vsync);
+                                    vsync = new IndexExp(funcdecl.loc, vsync, IntegerExp.literal!0);
+                                }
                             }
                             sbody = new PeelStatement(sbody); // don't redo semantic()
                             sbody = new SynchronizedStatement(funcdecl.loc, vsync, sbody);
@@ -1107,6 +1183,18 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 if (funcdecl.fbody || funcdecl.allowsContractWithoutBody())
                     funcdecl.fbody = sbody;
             }
+
+            // Check for undefined labels
+            if (funcdecl.labtab)
+                foreach (keyValue; funcdecl.labtab.tab.asRange)
+                {
+                    //printf("  KV: %s = %s\n", keyValue.key.toChars(), keyValue.value.toChars());
+                    LabelDsymbol label = cast(LabelDsymbol)keyValue.value;
+                    if (!label.statement && (!label.deleted || label.iasm))
+                    {
+                        funcdecl.error("label `%s` is undefined", label.toChars());
+                    }
+                }
 
             // Fix up forward-referenced gotos
             if (funcdecl.gotos)
@@ -1164,6 +1252,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 if (funcdecl.type == f)
                     f = cast(TypeFunction)f.copy();
                 f.isreturn = true;
+                if (funcdecl.storage_class & STC.returninferred)
+                    f.isreturninferred = true;
             }
         }
 
@@ -1268,7 +1358,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
          * structs should be benign.
          * https://issues.dlang.org/show_bug.cgi?id=14246
          */
-        AggregateDeclaration ad = ctor.toParent2().isAggregateDeclaration();
+        AggregateDeclaration ad = ctor.isMemberDecl();
         if (ad && ad.fieldDtor && global.params.dtorFields)
         {
             /* Generate:
@@ -1309,7 +1399,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                  * Hopefully we can use this version someday when scope(failure) catches
                  * Exception instead of Throwable.
                  */
-                auto s = new OnScopeStatement(ctor.loc, TOK.onScopeFailure, ss);
+                auto s = new ScopeGuardStatement(ctor.loc, TOK.onScopeFailure, ss);
                 ctor.fbody = new CompoundStatement(ctor.loc, s, ctor.fbody);
             }
         }
@@ -1380,7 +1470,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
         // don't do it for unused deprecated types
         // or error ypes
-        if (!ad.getRTInfo && Type.rtinfo && (!ad.isDeprecated() || global.params.useDeprecated != Diagnostic.error) && (ad.type && ad.type.ty != Terror))
+        if (!ad.getRTInfo && Type.rtinfo && (!ad.isDeprecated() || global.params.useDeprecated != DiagnosticReporting.error) && (ad.type && ad.type.ty != Terror))
         {
             // Evaluate: RTinfo!type
             auto tiargs = new Objects();

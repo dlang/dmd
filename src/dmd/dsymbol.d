@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dsymbol.d, _dsymbol.d)
@@ -21,6 +21,7 @@ import dmd.aggregate;
 import dmd.aliasthis;
 import dmd.arraytypes;
 import dmd.attrib;
+import dmd.ast_node;
 import dmd.gluelayer;
 import dmd.dclass;
 import dmd.declaration;
@@ -49,7 +50,57 @@ import dmd.root.rootobject;
 import dmd.root.speller;
 import dmd.statement;
 import dmd.tokens;
+import dmd.utils;
 import dmd.visitor;
+
+/***************************************
+ * Calls dg(Dsymbol *sym) for each Dsymbol.
+ * If dg returns !=0, stops and returns that value else returns 0.
+ * Params:
+ *    symbols = Dsymbols
+ *    dg = delegate to call for each Dsymbol
+ * Returns:
+ *    last value returned by dg()
+ */
+int foreachDsymbol(Dsymbols* symbols, scope int delegate(Dsymbol) dg)
+{
+    assert(dg);
+    if (symbols)
+    {
+        /* Do not use foreach, as the size of the array may expand during iteration
+         */
+        for (size_t i = 0; i < symbols.dim; ++i)
+        {
+            Dsymbol s = (*symbols)[i];
+            const result = dg(s);
+            if (result)
+                return result;
+        }
+    }
+    return 0;
+}
+
+/***************************************
+ * Calls dg(Dsymbol *sym) for each Dsymbol.
+ * Params:
+ *    symbols = Dsymbols
+ *    dg = delegate to call for each Dsymbol
+ */
+void foreachDsymbol(Dsymbols* symbols, scope void delegate(Dsymbol) dg)
+{
+    assert(dg);
+    if (symbols)
+    {
+        /* Do not use foreach, as the size of the array may expand during iteration
+         */
+        for (size_t i = 0; i < symbols.dim; ++i)
+        {
+            Dsymbol s = (*symbols)[i];
+            dg(s);
+        }
+    }
+}
+
 
 struct Ungag
 {
@@ -83,7 +134,7 @@ struct Prot
     Kind kind;
     Package pkg;
 
-    extern (D) this(Prot.Kind kind)
+    extern (D) this(Prot.Kind kind) pure nothrow @nogc @safe
     {
         this.kind = kind;
     }
@@ -174,18 +225,20 @@ extern (C++) alias Dsymbol_apply_ft_t = int function(Dsymbol, void*);
 
 /***********************************************************
  */
-extern (C++) class Dsymbol : RootObject
+extern (C++) class Dsymbol : ASTNode
 {
     Identifier ident;
     Dsymbol parent;
+    /// C++ namespace this symbol belongs to
+    CPPNamespaceDeclaration cppnamespace;
     Symbol* csym;           // symbol for code generator
     Symbol* isym;           // import version of csym
     const(char)* comment;   // documentation comment for this Dsymbol
-    Loc loc;                // where defined
+    const Loc loc;          // where defined
     Scope* _scope;          // !=null means context to use for semantic()
     const(char)* prettystring;  // cached value of toPrettyChars()
     bool errors;            // this symbol failed to pass semantic()
-    PASS semanticRun;
+    PASS semanticRun = PASS.init;
 
     DeprecatedDeclaration depdecl;           // customized deprecation message
     UserAttributeDeclaration userAttribDecl;    // user defined attributes
@@ -197,14 +250,21 @@ extern (C++) class Dsymbol : RootObject
     final extern (D) this()
     {
         //printf("Dsymbol::Dsymbol(%p)\n", this);
-        this.semanticRun = PASS.init;
+        loc = Loc(null, 0, 0);
     }
 
     final extern (D) this(Identifier ident)
     {
         //printf("Dsymbol::Dsymbol(%p, ident)\n", this);
+        this.loc = Loc(null, 0, 0);
         this.ident = ident;
-        this.semanticRun = PASS.init;
+    }
+
+    final extern (D) this(const ref Loc loc, Identifier ident)
+    {
+        //printf("Dsymbol::Dsymbol(%p, ident)\n", this);
+        this.loc = loc;
+        this.ident = ident;
     }
 
     static Dsymbol create(Identifier ident)
@@ -212,7 +272,7 @@ extern (C++) class Dsymbol : RootObject
         return new Dsymbol(ident);
     }
 
-    override const(char)* toChars()
+    override const(char)* toChars() const
     {
         return ident ? ident.toChars() : "__anonymous";
     }
@@ -223,14 +283,11 @@ extern (C++) class Dsymbol : RootObject
         return toChars();
     }
 
-    final ref const(Loc) getLoc()
+    final const(Loc) getLoc()
     {
         if (!loc.isValid()) // avoid bug 5861.
-        {
-            auto m = getModule();
-            if (m && m.srcfile)
-                loc.filename = m.srcfile.toChars();
-        }
+            if (const m = getModule())
+                return Loc(m.srcfile.toChars(), 0, 0);
         return loc;
     }
 
@@ -239,13 +296,13 @@ extern (C++) class Dsymbol : RootObject
         return getLoc().toChars();
     }
 
-    override bool equals(RootObject o)
+    override bool equals(const RootObject o) const
     {
         if (this == o)
             return true;
         if (o.dyncast() != DYNCAST.dsymbol)
             return false;
-        Dsymbol s = cast(Dsymbol)o;
+        auto s = cast(Dsymbol)o;
         // Overload sets don't have an ident
         if (s && ident && s.ident && ident.equals(s.ident))
             return true;
@@ -273,7 +330,8 @@ extern (C++) class Dsymbol : RootObject
         va_start(ap, format);
         const cstr = toPrettyChars();
         const pretty = '`' ~ cstr[0 .. strlen(cstr)] ~ "`\0";
-        .verror(getLoc(), format, ap, kind(), pretty.ptr);
+        const loc = getLoc();
+        .verror(loc, format, ap, kind(), pretty.ptr);
         va_end(ap);
     }
 
@@ -293,13 +351,14 @@ extern (C++) class Dsymbol : RootObject
         va_start(ap, format);
         const cstr = toPrettyChars();
         const pretty = '`' ~ cstr[0 .. strlen(cstr)] ~ "`\0";
-        .vdeprecation(getLoc(), format, ap, kind(), pretty.ptr);
+        const loc = getLoc();
+        .vdeprecation(loc, format, ap, kind(), pretty.ptr);
         va_end(ap);
     }
 
     final bool checkDeprecated(const ref Loc loc, Scope* sc)
     {
-        if (global.params.useDeprecated != Diagnostic.off && isDeprecated())
+        if (global.params.useDeprecated != DiagnosticReporting.off && isDeprecated())
         {
             // Don't complain if we're inside a deprecated symbol's scope
             if (sc.isDeprecated())
@@ -378,42 +437,33 @@ extern (C++) class Dsymbol : RootObject
      * `pastMixinAndNspace` does likewise, additionally skipping over Nspaces that
      * are mangleOnly.
      *
-     * See also `parent`, `toParent`, `toParent2` and `toParent3`.
+     * See also `parent`, `toParent` and `toParent2`.
      */
     final inout(Dsymbol) pastMixin() inout
     {
         //printf("Dsymbol::pastMixin() %s\n", toChars());
-        if (!isTemplateMixin() && !isForwardingAttribDeclaration())
+        if (!isTemplateMixin() && !isForwardingAttribDeclaration() && !isForwardingScopeDsymbol())
             return this;
         if (!parent)
             return null;
         return parent.pastMixin();
     }
 
-    /// ditto
-    final inout(Dsymbol) pastMixinAndNspace() inout
-    {
-        //printf("Dsymbol::pastMixin() %s\n", toChars());
-        auto nspace = isNspace();
-        if (!(nspace && nspace.mangleOnly) && !isTemplateMixin() && !isForwardingAttribDeclaration())
-            return this;
-        if (!parent)
-            return null;
-        return parent.pastMixinAndNspace();
-    }
-
     /**********************************
      * `parent` field returns a lexically enclosing scope symbol this is a member of.
      *
      * `toParent()` returns a logically enclosing scope symbol this is a member of.
-     * It skips over TemplateMixin's and Nspaces that are mangleOnly.
+     * It skips over TemplateMixin's.
      *
      * `toParent2()` returns an enclosing scope symbol this is living at runtime.
      * It skips over both TemplateInstance's and TemplateMixin's.
      * It's used when looking for the 'this' pointer of the enclosing function/class.
      *
-     * `toParent3()` returns a logically enclosing scope symbol this is a member of.
-     * It skips over TemplateMixin's.
+     * `toParentDecl()` similar to `toParent2()` but always follows the template declaration scope
+     * instead of the instantiation scope.
+     *
+     * `toParentLocal()` similar to `toParentDecl()` but follows the instantiation scope
+     * if a template declaration is non-local i.e. global or static.
      *
      * Examples:
      *  module mod;
@@ -434,24 +484,53 @@ extern (C++) class Dsymbol : RootObject
      *  // s.parent == TemplateMixin('mod.test.Foo!().Bar!()')
      *  // s.toParent() == TemplateInstance('mod.test.Foo!()')
      *  // s.toParent2() == FuncDeclaration('mod.test')
+     *  // s.toParentDecl() == Module('mod')
+     *  // s.toParentLocal() == FuncDeclaration('mod.test')
      */
     final inout(Dsymbol) toParent() inout
     {
-        return parent ? parent.pastMixinAndNspace() : null;
+        return parent ? parent.pastMixin() : null;
     }
 
     /// ditto
     final inout(Dsymbol) toParent2() inout
     {
-        if (!parent || !parent.isTemplateInstance && !parent.isForwardingAttribDeclaration())
+        if (!parent || !parent.isTemplateInstance && !parent.isForwardingAttribDeclaration() && !parent.isForwardingScopeDsymbol())
             return parent;
         return parent.toParent2;
     }
 
     /// ditto
-    final inout(Dsymbol) toParent3() inout
+    final inout(Dsymbol) toParentDecl() inout
     {
-        return parent ? parent.pastMixin() : null;
+        return toParentDeclImpl(false);
+    }
+
+    /// ditto
+    final inout(Dsymbol) toParentLocal() inout
+    {
+        return toParentDeclImpl(true);
+    }
+
+    private inout(Dsymbol) toParentDeclImpl(bool localOnly) inout
+    {
+        auto p = toParent();
+        if (!p || !p.isTemplateInstance())
+            return p;
+        auto ti = p.isTemplateInstance();
+        if (ti.tempdecl && (!localOnly || !(cast(TemplateDeclaration)ti.tempdecl).isstatic))
+            return ti.tempdecl.toParentDeclImpl(localOnly);
+        return parent.toParentDeclImpl(localOnly);
+    }
+
+    /**
+     * Returns the declaration scope scope of `this` unless any of the symbols
+     * `p1` or `p2` resides in its enclosing instantiation scope then the
+     * latter is returned.
+     */
+    final Dsymbol toParentP(Dsymbol p1, Dsymbol p2 = null)
+    {
+        return followInstantiationContext(p1, p2) ? toParent2() : toParentLocal();
     }
 
     final inout(TemplateInstance) isInstantiated() inout
@@ -462,6 +541,50 @@ extern (C++) class Dsymbol : RootObject
         if (ti && !ti.isTemplateMixin())
             return ti;
         return parent.isInstantiated();
+    }
+
+    /***
+     * Returns true if any of the symbols `p1` or `p2` resides in the enclosing
+     * instantiation scope of `this`.
+     */
+    final bool followInstantiationContext(Dsymbol p1, Dsymbol p2 = null)
+    {
+        static bool has2This(Dsymbol s)
+        {
+            if (auto f = s.isFuncDeclaration())
+                return f.isThis2;
+            if (auto ad = s.isAggregateDeclaration())
+                return ad.vthis2 !is null;
+            return false;
+        }
+
+        if (has2This(this))
+        {
+            assert(p1);
+            auto outer = toParent();
+            while (outer)
+            {
+                auto ti = outer.isTemplateInstance();
+                if (!ti)
+                    break;
+                foreach (oarg; *ti.tiargs)
+                {
+                    auto sa = getDsymbol(oarg);
+                    if (!sa)
+                        continue;
+                    sa = sa.toAlias().toParent2();
+                    if (!sa)
+                        continue;
+                    if (sa == p1)
+                        return true;
+                    else if (p2 && sa == p2)
+                        return true;
+                }
+                outer = ti.tempdecl.toParent();
+            }
+            return false;
+        }
+        return false;
     }
 
     // Check if this function is a member of a template which has only been
@@ -537,9 +660,7 @@ extern (C++) class Dsymbol : RootObject
 
         // Allocate temporary array comp[]
         alias T = const(char)[];
-        auto compptr = cast(T*)malloc(complength * T.sizeof);
-        if (!compptr)
-            Mem.error();
+        auto compptr = cast(T*)Mem.check(malloc(complength * T.sizeof));
         auto comp = compptr[0 .. complength];
 
         // Fill in comp[] and compute length of final result
@@ -554,7 +675,7 @@ extern (C++) class Dsymbol : RootObject
             length += len + 1;
         }
 
-        auto s = cast(char*)mem.xmalloc(length);
+        auto s = cast(char*)mem.xmalloc_noscan(length);
         auto q = s + length - 1;
         *q = 0;
         foreach (j; 0 .. complength)
@@ -622,6 +743,8 @@ extern (C++) class Dsymbol : RootObject
         {
             if (!sds.symtabInsert(this)) // if name is already defined
             {
+                if (isAliasDeclaration() && !_scope)
+                    setScope(sc);
                 Dsymbol s2 = sds.symtabLookup(this,ident);
                 if (!s2.overloadInsert(this))
                 {
@@ -675,31 +798,33 @@ extern (C++) class Dsymbol : RootObject
         return null;
     }
 
-    final Dsymbol search_correct(Identifier ident)
+    extern (D) final Dsymbol search_correct(Identifier ident)
     {
         /***************************************************
          * Search for symbol with correct spelling.
          */
-        extern (D) void* symbol_search_fp(const(char)* seed, ref int cost)
+        extern (D) Dsymbol symbol_search_fp(const(char)[] seed, ref int cost)
         {
             /* If not in the lexer's string table, it certainly isn't in the symbol table.
              * Doing this first is a lot faster.
              */
-            size_t len = strlen(seed);
-            if (!len)
+            if (!seed.length)
                 return null;
-            Identifier id = Identifier.lookup(seed, len);
+            Identifier id = Identifier.lookup(seed);
             if (!id)
                 return null;
             cost = 0;
             Dsymbol s = this;
             Module.clearCache();
-            return cast(void*)s.search(Loc.initial, id, IgnoreErrors);
+            return s.search(Loc.initial, id, IgnoreErrors);
         }
 
         if (global.gag)
             return null; // don't do it for speculative compiles; too time consuming
-        return cast(Dsymbol)speller(ident.toChars(), &symbol_search_fp, idchars);
+        // search for exact name first
+        if (auto s = search(Loc.initial, ident, IgnoreErrors))
+            return s;
+        return speller!symbol_search_fp(ident.toString());
     }
 
     /***************************************
@@ -715,7 +840,7 @@ extern (C++) class Dsymbol : RootObject
      * Returns:
      *      symbol found, NULL if not
      */
-    final Dsymbol searchX(const ref Loc loc, Scope* sc, RootObject id, int flags)
+    extern (D) final Dsymbol searchX(const ref Loc loc, Scope* sc, RootObject id, int flags)
     {
         //printf("Dsymbol::searchX(this=%p,%s, ident='%s')\n", this, toChars(), ident.toChars());
         Dsymbol s = toAlias();
@@ -810,12 +935,12 @@ extern (C++) class Dsymbol : RootObject
     }
 
     // is Dsymbol deprecated?
-    bool isDeprecated()
+    bool isDeprecated() const
     {
         return false;
     }
 
-    bool isOverloadable()
+    bool isOverloadable() const
     {
         return false;
     }
@@ -844,6 +969,24 @@ extern (C++) class Dsymbol : RootObject
         return p ? p.isAggregateDeclaration() : null;
     }
 
+    /// Returns an AggregateDeclaration when toParentDecl() is that.
+    final inout(AggregateDeclaration) isMemberDecl() inout
+    {
+        //printf("Dsymbol::isMemberDecl() '%s'\n", toChars());
+        auto p = toParentDecl();
+        //printf("parent is %s %s\n", p.kind(), p.toChars());
+        return p ? p.isAggregateDeclaration() : null;
+    }
+
+    /// Returns an AggregateDeclaration when toParentLocal() is that.
+    final inout(AggregateDeclaration) isMemberLocal() inout
+    {
+        //printf("Dsymbol::isMemberLocal() '%s'\n", toChars());
+        auto p = toParentLocal();
+        //printf("parent is %s %s\n", p.kind(), p.toChars());
+        return p ? p.isAggregateDeclaration() : null;
+    }
+
     // is this a member of a ClassDeclaration?
     final ClassDeclaration isClassMember()
     {
@@ -865,7 +1008,7 @@ extern (C++) class Dsymbol : RootObject
 
     /*************************************
      */
-    Prot prot()
+    Prot prot() pure nothrow @nogc @safe
     {
         return Prot(Prot.Kind.public_);
     }
@@ -978,6 +1121,10 @@ extern (C++) class Dsymbol : RootObject
     {
     }
 
+    void addObjcSymbols(ClassDeclarations* classes, ClassDeclarations* categories)
+    {
+    }
+
     void checkCtorConstInit()
     {
     }
@@ -995,7 +1142,7 @@ extern (C++) class Dsymbol : RootObject
         else if (comment && strcmp(cast(char*)comment, cast(char*)this.comment) != 0)
         {
             // Concatenate the two
-            this.comment = Lexer.combineComments(this.comment, comment, true);
+            this.comment = Lexer.combineComments(this.comment.toDString(), comment.toDString(), true);
         }
     }
 
@@ -1021,248 +1168,65 @@ extern (C++) class Dsymbol : RootObject
         return false;
     }
 
-    // Eliminate need for dynamic_cast
-    inout(Package) isPackage() inout
-    {
-        return null;
-    }
-
-    inout(Module) isModule() inout
-    {
-        return null;
-    }
-
-    inout(EnumMember) isEnumMember() inout
-    {
-        return null;
-    }
-
-    inout(TemplateDeclaration) isTemplateDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(TemplateInstance) isTemplateInstance() inout
-    {
-        return null;
-    }
-
-    inout(TemplateMixin) isTemplateMixin() inout
-    {
-        return null;
-    }
-
-    inout(ForwardingAttribDeclaration) isForwardingAttribDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(Nspace) isNspace() inout
-    {
-        return null;
-    }
-
-    inout(Declaration) isDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(StorageClassDeclaration) isStorageClassDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(ExpressionDsymbol) isExpressionDsymbol() inout
-    {
-        return null;
-    }
-
-    inout(ThisDeclaration) isThisDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(TypeInfoDeclaration) isTypeInfoDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(TupleDeclaration) isTupleDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(AliasDeclaration) isAliasDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(AggregateDeclaration) isAggregateDeclaration() inout pure nothrow @safe @nogc
-    {
-        return null;
-    }
-
-    inout(FuncDeclaration) isFuncDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(FuncAliasDeclaration) isFuncAliasDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(OverDeclaration) isOverDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(FuncLiteralDeclaration) isFuncLiteralDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(CtorDeclaration) isCtorDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(PostBlitDeclaration) isPostBlitDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(DtorDeclaration) isDtorDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(StaticCtorDeclaration) isStaticCtorDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(StaticDtorDeclaration) isStaticDtorDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(SharedStaticCtorDeclaration) isSharedStaticCtorDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(SharedStaticDtorDeclaration) isSharedStaticDtorDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(InvariantDeclaration) isInvariantDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(UnitTestDeclaration) isUnitTestDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(NewDeclaration) isNewDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(VarDeclaration) isVarDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(ClassDeclaration) isClassDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(StructDeclaration) isStructDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(UnionDeclaration) isUnionDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(InterfaceDeclaration) isInterfaceDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(ScopeDsymbol) isScopeDsymbol() inout
-    {
-        return null;
-    }
-
-    inout(ForwardingScopeDsymbol) isForwardingScopeDsymbol() inout
-    {
-        return null;
-    }
-
-    inout(WithScopeSymbol) isWithScopeSymbol() inout
-    {
-        return null;
-    }
-
-    inout(ArrayScopeSymbol) isArrayScopeSymbol() inout
-    {
-        return null;
-    }
-
-    inout(Import) isImport() inout
-    {
-        return null;
-    }
-
-    inout(EnumDeclaration) isEnumDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(DeleteDeclaration) isDeleteDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(SymbolDeclaration) isSymbolDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(AttribDeclaration) isAttribDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(AnonDeclaration) isAnonDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(ProtDeclaration) isProtDeclaration() inout
-    {
-        return null;
-    }
-
-    inout(OverloadSet) isOverloadSet() inout
-    {
-        return null;
-    }
-
     /************
      */
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
+
+  pure nothrow @safe @nogc:
+
+    // Eliminate need for dynamic_cast
+    inout(Package)                     isPackage()                     inout { return null; }
+    inout(Module)                      isModule()                      inout { return null; }
+    inout(EnumMember)                  isEnumMember()                  inout { return null; }
+    inout(TemplateDeclaration)         isTemplateDeclaration()         inout { return null; }
+    inout(TemplateInstance)            isTemplateInstance()            inout { return null; }
+    inout(TemplateMixin)               isTemplateMixin()               inout { return null; }
+    inout(ForwardingAttribDeclaration) isForwardingAttribDeclaration() inout { return null; }
+    inout(Nspace)                      isNspace()                      inout { return null; }
+    inout(Declaration)                 isDeclaration()                 inout { return null; }
+    inout(StorageClassDeclaration)     isStorageClassDeclaration()     inout { return null; }
+    inout(ExpressionDsymbol)           isExpressionDsymbol()           inout { return null; }
+    inout(ThisDeclaration)             isThisDeclaration()             inout { return null; }
+    inout(TypeInfoDeclaration)         isTypeInfoDeclaration()         inout { return null; }
+    inout(TupleDeclaration)            isTupleDeclaration()            inout { return null; }
+    inout(AliasDeclaration)            isAliasDeclaration()            inout { return null; }
+    inout(AggregateDeclaration)        isAggregateDeclaration()        inout { return null; }
+    inout(FuncDeclaration)             isFuncDeclaration()             inout { return null; }
+    inout(FuncAliasDeclaration)        isFuncAliasDeclaration()        inout { return null; }
+    inout(OverDeclaration)             isOverDeclaration()             inout { return null; }
+    inout(FuncLiteralDeclaration)      isFuncLiteralDeclaration()      inout { return null; }
+    inout(CtorDeclaration)             isCtorDeclaration()             inout { return null; }
+    inout(PostBlitDeclaration)         isPostBlitDeclaration()         inout { return null; }
+    inout(DtorDeclaration)             isDtorDeclaration()             inout { return null; }
+    inout(StaticCtorDeclaration)       isStaticCtorDeclaration()       inout { return null; }
+    inout(StaticDtorDeclaration)       isStaticDtorDeclaration()       inout { return null; }
+    inout(SharedStaticCtorDeclaration) isSharedStaticCtorDeclaration() inout { return null; }
+    inout(SharedStaticDtorDeclaration) isSharedStaticDtorDeclaration() inout { return null; }
+    inout(InvariantDeclaration)        isInvariantDeclaration()        inout { return null; }
+    inout(UnitTestDeclaration)         isUnitTestDeclaration()         inout { return null; }
+    inout(NewDeclaration)              isNewDeclaration()              inout { return null; }
+    inout(VarDeclaration)              isVarDeclaration()              inout { return null; }
+    inout(ClassDeclaration)            isClassDeclaration()            inout { return null; }
+    inout(StructDeclaration)           isStructDeclaration()           inout { return null; }
+    inout(UnionDeclaration)            isUnionDeclaration()            inout { return null; }
+    inout(InterfaceDeclaration)        isInterfaceDeclaration()        inout { return null; }
+    inout(ScopeDsymbol)                isScopeDsymbol()                inout { return null; }
+    inout(ForwardingScopeDsymbol)      isForwardingScopeDsymbol()      inout { return null; }
+    inout(WithScopeSymbol)             isWithScopeSymbol()             inout { return null; }
+    inout(ArrayScopeSymbol)            isArrayScopeSymbol()            inout { return null; }
+    inout(Import)                      isImport()                      inout { return null; }
+    inout(EnumDeclaration)             isEnumDeclaration()             inout { return null; }
+    inout(DeleteDeclaration)           isDeleteDeclaration()           inout { return null; }
+    inout(SymbolDeclaration)           isSymbolDeclaration()           inout { return null; }
+    inout(AttribDeclaration)           isAttribDeclaration()           inout { return null; }
+    inout(AnonDeclaration)             isAnonDeclaration()             inout { return null; }
+    inout(CPPNamespaceDeclaration)     isCPPNamespaceDeclaration()     inout { return null; }
+    inout(ProtDeclaration)             isProtDeclaration()             inout { return null; }
+    inout(OverloadSet)                 isOverloadSet()                 inout { return null; }
+    inout(CompileDeclaration)          isCompileDeclaration()          inout { return null; }
 }
 
 /***********************************************************
@@ -1287,15 +1251,21 @@ public:
     {
     }
 
-    final extern (D) this(Identifier id)
+    final extern (D) this(Identifier ident)
     {
-        super(id);
+        super(ident);
+    }
+
+    final extern (D) this(const ref Loc loc, Identifier ident)
+    {
+        super(loc, ident);
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         //printf("ScopeDsymbol::syntaxCopy('%s')\n", toChars());
         ScopeDsymbol sds = s ? cast(ScopeDsymbol)s : new ScopeDsymbol(ident);
+        sds.comment = comment;
         sds.members = arraySyntaxCopy(members);
         sds.endlinnum = endlinnum;
         return sds;
@@ -1324,133 +1294,116 @@ public:
         //printf(" not found in locals\n");
 
         // Look in imported scopes
-        if (importedScopes)
+        if (!importedScopes)
+            return null;
+
+        //printf(" look in imports\n");
+        Dsymbol s = null;
+        OverloadSet a = null;
+        // Look in imported modules
+        for (size_t i = 0; i < importedScopes.dim; i++)
         {
-            //printf(" look in imports\n");
-            Dsymbol s = null;
-            OverloadSet a = null;
-            // Look in imported modules
-            for (size_t i = 0; i < importedScopes.dim; i++)
+            // If private import, don't search it
+            if ((flags & IgnorePrivateImports) && prots[i] == Prot.Kind.private_)
+                continue;
+            int sflags = flags & (IgnoreErrors | IgnoreAmbiguous); // remember these in recursive searches
+            Dsymbol ss = (*importedScopes)[i];
+            //printf("\tscanning import '%s', prots = %d, isModule = %p, isImport = %p\n", ss.toChars(), prots[i], ss.isModule(), ss.isImport());
+
+            if (ss.isModule())
             {
-                // If private import, don't search it
-                if ((flags & IgnorePrivateImports) && prots[i] == Prot.Kind.private_)
+                if (flags & SearchLocalsOnly)
                     continue;
-                int sflags = flags & (IgnoreErrors | IgnoreAmbiguous | IgnoreSymbolVisibility); // remember these in recursive searches
-                Dsymbol ss = (*importedScopes)[i];
-                //printf("\tscanning import '%s', prots = %d, isModule = %p, isImport = %p\n", ss.toChars(), prots[i], ss.isModule(), ss.isImport());
-
-                if (ss.isModule())
-                {
-                    if (flags & SearchLocalsOnly)
-                        continue;
-                }
-                else // mixin template
-                {
-                    if (flags & SearchImportsOnly)
-                        continue;
-                    // compatibility with -transition=import
-                    // https://issues.dlang.org/show_bug.cgi?id=15925
-                    // SearchLocalsOnly should always get set for new lookup rules
-                    if (global.params.check10378)
-                        sflags |= (flags & SearchLocalsOnly);
-                    else
-                        sflags |= SearchLocalsOnly;
-                }
-
-                /* Don't find private members if ss is a module
-                 */
-                Dsymbol s2 = ss.search(loc, ident, sflags | (ss.isModule() ? IgnorePrivateImports : IgnoreNone));
-                import dmd.access : symbolIsVisible;
-                if (!s2 || !(flags & IgnoreSymbolVisibility) && !symbolIsVisible(this, s2))
+            }
+            else // mixin template
+            {
+                if (flags & SearchImportsOnly)
                     continue;
-                if (!s)
+
+                sflags |= SearchLocalsOnly;
+            }
+
+            /* Don't find private members if ss is a module
+             */
+            Dsymbol s2 = ss.search(loc, ident, sflags | (ss.isModule() ? IgnorePrivateImports : IgnoreNone));
+            import dmd.access : symbolIsVisible;
+            if (!s2 || !(flags & IgnoreSymbolVisibility) && !symbolIsVisible(this, s2))
+                continue;
+            if (!s)
+            {
+                s = s2;
+                if (s && s.isOverloadSet())
+                    a = mergeOverloadSet(ident, a, s);
+            }
+            else if (s2 && s != s2)
+            {
+                if (s.toAlias() == s2.toAlias() || s.getType() == s2.getType() && s.getType())
                 {
-                    s = s2;
-                    if (s && s.isOverloadSet())
-                        a = mergeOverloadSet(ident, a, s);
+                    /* After following aliases, we found the same
+                     * symbol, so it's not an ambiguity.  But if one
+                     * alias is deprecated or less accessible, prefer
+                     * the other.
+                     */
+                    if (s.isDeprecated() || s.prot().isMoreRestrictiveThan(s2.prot()) && s2.prot().kind != Prot.Kind.none)
+                        s = s2;
                 }
-                else if (s2 && s != s2)
+                else
                 {
-                    if (s.toAlias() == s2.toAlias() || s.getType() == s2.getType() && s.getType())
+                    /* Two imports of the same module should be regarded as
+                     * the same.
+                     */
+                    Import i1 = s.isImport();
+                    Import i2 = s2.isImport();
+                    if (!(i1 && i2 && (i1.mod == i2.mod || (!i1.parent.isImport() && !i2.parent.isImport() && i1.ident.equals(i2.ident)))))
                     {
-                        /* After following aliases, we found the same
-                         * symbol, so it's not an ambiguity.  But if one
-                         * alias is deprecated or less accessible, prefer
-                         * the other.
+                        /* https://issues.dlang.org/show_bug.cgi?id=8668
+                         * Public selective import adds AliasDeclaration in module.
+                         * To make an overload set, resolve aliases in here and
+                         * get actual overload roots which accessible via s and s2.
                          */
-                        if (s.isDeprecated() || s.prot().isMoreRestrictiveThan(s2.prot()) && s2.prot().kind != Prot.Kind.none)
-                            s = s2;
-                    }
-                    else
-                    {
-                        /* Two imports of the same module should be regarded as
-                         * the same.
+                        s = s.toAlias();
+                        s2 = s2.toAlias();
+                        /* If both s2 and s are overloadable (though we only
+                         * need to check s once)
                          */
-                        Import i1 = s.isImport();
-                        Import i2 = s2.isImport();
-                        if (!(i1 && i2 && (i1.mod == i2.mod || (!i1.parent.isImport() && !i2.parent.isImport() && i1.ident.equals(i2.ident)))))
+
+                        if ((s2.isOverloadSet() || s2.isOverloadable()) && (a || s.isOverloadable()))
                         {
-                            /* https://issues.dlang.org/show_bug.cgi?id=8668
-                             * Public selective import adds AliasDeclaration in module.
-                             * To make an overload set, resolve aliases in here and
-                             * get actual overload roots which accessible via s and s2.
-                             */
-                            s = s.toAlias();
-                            s2 = s2.toAlias();
-                            /* If both s2 and s are overloadable (though we only
-                             * need to check s once)
-                             */
-
-                            if ((s2.isOverloadSet() || s2.isOverloadable()) && (a || s.isOverloadable()))
+                            if (symbolIsVisible(this, s2))
                             {
-                                if (symbolIsVisible(this, s2))
-                                {
-                                    a = mergeOverloadSet(ident, a, s2);
-                                }
-                                if (!symbolIsVisible(this, s))
-                                    s = s2;
-                                continue;
+                                a = mergeOverloadSet(ident, a, s2);
                             }
-                            if (flags & IgnoreAmbiguous) // if return NULL on ambiguity
-                                return null;
-                            if (!(flags & IgnoreErrors))
-                                ScopeDsymbol.multiplyDefined(loc, s, s2);
-                            break;
+                            if (!symbolIsVisible(this, s))
+                                s = s2;
+                            continue;
                         }
+                        if (flags & IgnoreAmbiguous) // if return NULL on ambiguity
+                            return null;
+                        if (!(flags & IgnoreErrors))
+                            ScopeDsymbol.multiplyDefined(loc, s, s2);
+                        break;
                     }
                 }
             }
-            if (s)
-            {
-                /* Build special symbol if we had multiple finds
-                 */
-                if (a)
-                {
-                    if (!s.isOverloadSet())
-                        a = mergeOverloadSet(ident, a, s);
-                    s = a;
-                }
-                // TODO: remove once private symbol visibility has been deprecated
-                if (!(flags & IgnoreErrors) && s.prot().kind == Prot.Kind.private_ &&
-                    !s.isOverloadable() && !s.parent.isTemplateMixin() && !s.parent.isNspace())
-                {
-                    AliasDeclaration ad = void;
-                    // accessing private selective and renamed imports is
-                    // deprecated by restricting the symbol visibility
-                    if (s.isImport() || (ad = s.isAliasDeclaration()) !is null && ad._import !is null)
-                    {}
-                    else
-                        error(loc, "%s `%s` is `private`", s.kind(), s.toPrettyChars());
-                }
-                //printf("\tfound in imports %s.%s\n", toChars(), s.toChars());
-                return s;
-            }
-            //printf(" not found in imports\n");
         }
+        if (s)
+        {
+            /* Build special symbol if we had multiple finds
+             */
+            if (a)
+            {
+                if (!s.isOverloadSet())
+                    a = mergeOverloadSet(ident, a, s);
+                s = a;
+            }
+            //printf("\tfound in imports %s.%s\n", toChars(), s.toChars());
+            return s;
+        }
+        //printf(" not found in imports\n");
         return null;
     }
 
-    final OverloadSet mergeOverloadSet(Identifier ident, OverloadSet os, Dsymbol s)
+    extern (D) private OverloadSet mergeOverloadSet(Identifier ident, OverloadSet os, Dsymbol s)
     {
         if (!os)
         {
@@ -1523,7 +1476,7 @@ public:
         }
     }
 
-    final void addAccessiblePackage(Package p, Prot protection)
+    extern (D) final void addAccessiblePackage(Package p, Prot protection)
     {
         // https://issues.dlang.org/show_bug.cgi?id=17991
         // An import of truly empty file/package can happen
@@ -1761,195 +1714,195 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
     TupleDeclaration td;    // for tuples of objects
     Scope* sc;
 
-    extern (D) this(Scope* sc, Expression e)
+    extern (D) this(Scope* sc, Expression exp)
     {
-        assert(e.op == TOK.index || e.op == TOK.slice || e.op == TOK.array);
-        exp = e;
+        super(exp.loc, null);
+        assert(exp.op == TOK.index || exp.op == TOK.slice || exp.op == TOK.array);
+        this.exp = exp;
         this.sc = sc;
     }
 
-    extern (D) this(Scope* sc, TypeTuple t)
+    extern (D) this(Scope* sc, TypeTuple type)
     {
-        type = t;
+        this.type = type;
         this.sc = sc;
     }
 
-    extern (D) this(Scope* sc, TupleDeclaration s)
+    extern (D) this(Scope* sc, TupleDeclaration td)
     {
-        td = s;
+        this.td = td;
         this.sc = sc;
     }
 
     override Dsymbol search(const ref Loc loc, Identifier ident, int flags = IgnoreNone)
     {
         //printf("ArrayScopeSymbol::search('%s', flags = %d)\n", ident.toChars(), flags);
-        if (ident == Id.dollar)
+        if (ident != Id.dollar)
+            return null;
+
+        VarDeclaration* pvar;
+        Expression ce;
+    L1:
+        if (td)
         {
-            VarDeclaration* pvar;
-            Expression ce;
-        L1:
-            if (td)
-            {
-                /* $ gives the number of elements in the tuple
-                 */
-                auto v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, null);
-                Expression e = new IntegerExp(Loc.initial, td.objects.dim, Type.tsize_t);
-                v._init = new ExpInitializer(Loc.initial, e);
-                v.storage_class |= STC.temp | STC.static_ | STC.const_;
-                v.dsymbolSemantic(sc);
-                return v;
-            }
-            if (type)
-            {
-                /* $ gives the number of type entries in the type tuple
-                 */
-                auto v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, null);
-                Expression e = new IntegerExp(Loc.initial, type.arguments.dim, Type.tsize_t);
-                v._init = new ExpInitializer(Loc.initial, e);
-                v.storage_class |= STC.temp | STC.static_ | STC.const_;
-                v.dsymbolSemantic(sc);
-                return v;
-            }
-            if (exp.op == TOK.index)
-            {
-                /* array[index] where index is some function of $
-                 */
-                IndexExp ie = cast(IndexExp)exp;
-                pvar = &ie.lengthVar;
-                ce = ie.e1;
-            }
-            else if (exp.op == TOK.slice)
-            {
-                /* array[lwr .. upr] where lwr or upr is some function of $
-                 */
-                SliceExp se = cast(SliceExp)exp;
-                pvar = &se.lengthVar;
-                ce = se.e1;
-            }
-            else if (exp.op == TOK.array)
-            {
-                /* array[e0, e1, e2, e3] where e0, e1, e2 are some function of $
-                 * $ is a opDollar!(dim)() where dim is the dimension(0,1,2,...)
-                 */
-                ArrayExp ae = cast(ArrayExp)exp;
-                pvar = &ae.lengthVar;
-                ce = ae.e1;
-            }
-            else
-            {
-                /* Didn't find $, look in enclosing scope(s).
-                 */
-                return null;
-            }
-            while (ce.op == TOK.comma)
-                ce = (cast(CommaExp)ce).e2;
-            /* If we are indexing into an array that is really a type
-             * tuple, rewrite this as an index into a type tuple and
-             * try again.
+            /* $ gives the number of elements in the tuple
              */
-            if (ce.op == TOK.type)
-            {
-                Type t = (cast(TypeExp)ce).type;
-                if (t.ty == Ttuple)
-                {
-                    type = cast(TypeTuple)t;
-                    goto L1;
-                }
-            }
-            /* *pvar is lazily initialized, so if we refer to $
-             * multiple times, it gets set only once.
+            auto v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, null);
+            Expression e = new IntegerExp(Loc.initial, td.objects.dim, Type.tsize_t);
+            v._init = new ExpInitializer(Loc.initial, e);
+            v.storage_class |= STC.temp | STC.static_ | STC.const_;
+            v.dsymbolSemantic(sc);
+            return v;
+        }
+        if (type)
+        {
+            /* $ gives the number of type entries in the type tuple
              */
-            if (!*pvar) // if not already initialized
+            auto v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, null);
+            Expression e = new IntegerExp(Loc.initial, type.arguments.dim, Type.tsize_t);
+            v._init = new ExpInitializer(Loc.initial, e);
+            v.storage_class |= STC.temp | STC.static_ | STC.const_;
+            v.dsymbolSemantic(sc);
+            return v;
+        }
+        if (exp.op == TOK.index)
+        {
+            /* array[index] where index is some function of $
+             */
+            IndexExp ie = cast(IndexExp)exp;
+            pvar = &ie.lengthVar;
+            ce = ie.e1;
+        }
+        else if (exp.op == TOK.slice)
+        {
+            /* array[lwr .. upr] where lwr or upr is some function of $
+             */
+            SliceExp se = cast(SliceExp)exp;
+            pvar = &se.lengthVar;
+            ce = se.e1;
+        }
+        else if (exp.op == TOK.array)
+        {
+            /* array[e0, e1, e2, e3] where e0, e1, e2 are some function of $
+             * $ is a opDollar!(dim)() where dim is the dimension(0,1,2,...)
+             */
+            ArrayExp ae = cast(ArrayExp)exp;
+            pvar = &ae.lengthVar;
+            ce = ae.e1;
+        }
+        else
+        {
+            /* Didn't find $, look in enclosing scope(s).
+             */
+            return null;
+        }
+        while (ce.op == TOK.comma)
+            ce = (cast(CommaExp)ce).e2;
+        /* If we are indexing into an array that is really a type
+         * tuple, rewrite this as an index into a type tuple and
+         * try again.
+         */
+        if (ce.op == TOK.type)
+        {
+            Type t = (cast(TypeExp)ce).type;
+            if (t.ty == Ttuple)
             {
-                /* Create variable v and set it to the value of $
+                type = cast(TypeTuple)t;
+                goto L1;
+            }
+        }
+        /* *pvar is lazily initialized, so if we refer to $
+         * multiple times, it gets set only once.
+         */
+        if (!*pvar) // if not already initialized
+        {
+            /* Create variable v and set it to the value of $
+             */
+            VarDeclaration v;
+            Type t;
+            if (ce.op == TOK.tuple)
+            {
+                /* It is for an expression tuple, so the
+                 * length will be a const.
                  */
-                VarDeclaration v;
-                Type t;
-                if (ce.op == TOK.tuple)
+                Expression e = new IntegerExp(Loc.initial, (cast(TupleExp)ce).exps.dim, Type.tsize_t);
+                v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, new ExpInitializer(Loc.initial, e));
+                v.storage_class |= STC.temp | STC.static_ | STC.const_;
+            }
+            else if (ce.type && (t = ce.type.toBasetype()) !is null && (t.ty == Tstruct || t.ty == Tclass))
+            {
+                // Look for opDollar
+                assert(exp.op == TOK.array || exp.op == TOK.slice);
+                AggregateDeclaration ad = isAggregate(t);
+                assert(ad);
+                Dsymbol s = ad.search(loc, Id.opDollar);
+                if (!s) // no dollar exists -- search in higher scope
+                    return null;
+                s = s.toAlias();
+                Expression e = null;
+                // Check for multi-dimensional opDollar(dim) template.
+                if (TemplateDeclaration td = s.isTemplateDeclaration())
                 {
-                    /* It is for an expression tuple, so the
-                     * length will be a const.
-                     */
-                    Expression e = new IntegerExp(Loc.initial, (cast(TupleExp)ce).exps.dim, Type.tsize_t);
-                    v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, new ExpInitializer(Loc.initial, e));
-                    v.storage_class |= STC.temp | STC.static_ | STC.const_;
-                }
-                else if (ce.type && (t = ce.type.toBasetype()) !is null && (t.ty == Tstruct || t.ty == Tclass))
-                {
-                    // Look for opDollar
-                    assert(exp.op == TOK.array || exp.op == TOK.slice);
-                    AggregateDeclaration ad = isAggregate(t);
-                    assert(ad);
-                    Dsymbol s = ad.search(loc, Id.opDollar);
-                    if (!s) // no dollar exists -- search in higher scope
-                        return null;
-                    s = s.toAlias();
-                    Expression e = null;
-                    // Check for multi-dimensional opDollar(dim) template.
-                    if (TemplateDeclaration td = s.isTemplateDeclaration())
+                    dinteger_t dim = 0;
+                    if (exp.op == TOK.array)
                     {
-                        dinteger_t dim = 0;
-                        if (exp.op == TOK.array)
-                        {
-                            dim = (cast(ArrayExp)exp).currentDimension;
-                        }
-                        else if (exp.op == TOK.slice)
-                        {
-                            dim = 0; // slices are currently always one-dimensional
-                        }
-                        else
-                        {
-                            assert(0);
-                        }
-                        auto tiargs = new Objects();
-                        Expression edim = new IntegerExp(Loc.initial, dim, Type.tsize_t);
-                        edim = edim.expressionSemantic(sc);
-                        tiargs.push(edim);
-                        e = new DotTemplateInstanceExp(loc, ce, td.ident, tiargs);
+                        dim = (cast(ArrayExp)exp).currentDimension;
+                    }
+                    else if (exp.op == TOK.slice)
+                    {
+                        dim = 0; // slices are currently always one-dimensional
                     }
                     else
                     {
-                        /* opDollar exists, but it's not a template.
-                         * This is acceptable ONLY for single-dimension indexing.
-                         * Note that it's impossible to have both template & function opDollar,
-                         * because both take no arguments.
-                         */
-                        if (exp.op == TOK.array && (cast(ArrayExp)exp).arguments.dim != 1)
-                        {
-                            exp.error("`%s` only defines opDollar for one dimension", ad.toChars());
-                            return null;
-                        }
-                        Declaration d = s.isDeclaration();
-                        assert(d);
-                        e = new DotVarExp(loc, ce, d);
+                        assert(0);
                     }
-                    e = e.expressionSemantic(sc);
-                    if (!e.type)
-                        exp.error("`%s` has no value", e.toChars());
-                    t = e.type.toBasetype();
-                    if (t && t.ty == Tfunction)
-                        e = new CallExp(e.loc, e);
-                    v = new VarDeclaration(loc, null, Id.dollar, new ExpInitializer(Loc.initial, e));
-                    v.storage_class |= STC.temp | STC.ctfe | STC.rvalue;
+                    auto tiargs = new Objects();
+                    Expression edim = new IntegerExp(Loc.initial, dim, Type.tsize_t);
+                    edim = edim.expressionSemantic(sc);
+                    tiargs.push(edim);
+                    e = new DotTemplateInstanceExp(loc, ce, td.ident, tiargs);
                 }
                 else
                 {
-                    /* For arrays, $ will either be a compile-time constant
-                     * (in which case its value in set during constant-folding),
-                     * or a variable (in which case an expression is created in
-                     * toir.c).
+                    /* opDollar exists, but it's not a template.
+                     * This is acceptable ONLY for single-dimension indexing.
+                     * Note that it's impossible to have both template & function opDollar,
+                     * because both take no arguments.
                      */
-                    auto e = new VoidInitializer(Loc.initial);
-                    e.type = Type.tsize_t;
-                    v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, e);
-                    v.storage_class |= STC.temp | STC.ctfe; // it's never a true static variable
+                    if (exp.op == TOK.array && (cast(ArrayExp)exp).arguments.dim != 1)
+                    {
+                        exp.error("`%s` only defines opDollar for one dimension", ad.toChars());
+                        return null;
+                    }
+                    Declaration d = s.isDeclaration();
+                    assert(d);
+                    e = new DotVarExp(loc, ce, d);
                 }
-                *pvar = v;
+                e = e.expressionSemantic(sc);
+                if (!e.type)
+                    exp.error("`%s` has no value", e.toChars());
+                t = e.type.toBasetype();
+                if (t && t.ty == Tfunction)
+                    e = new CallExp(e.loc, e);
+                v = new VarDeclaration(loc, null, Id.dollar, new ExpInitializer(Loc.initial, e));
+                v.storage_class |= STC.temp | STC.ctfe | STC.rvalue;
             }
-            (*pvar).dsymbolSemantic(sc);
-            return (*pvar);
+            else
+            {
+                /* For arrays, $ will either be a compile-time constant
+                 * (in which case its value in set during constant-folding),
+                 * or a variable (in which case an expression is created in
+                 * toir.c).
+                 */
+                auto e = new VoidInitializer(Loc.initial);
+                e.type = Type.tsize_t;
+                v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, e);
+                v.storage_class |= STC.temp | STC.ctfe; // it's never a true static variable
+            }
+            *pvar = v;
         }
-        return null;
+        (*pvar).dsymbolSemantic(sc);
+        return (*pvar);
     }
 
     override inout(ArrayScopeSymbol) isArrayScopeSymbol() inout
@@ -1975,8 +1928,7 @@ extern (C++) final class OverloadSet : Dsymbol
         super(ident);
         if (os)
         {
-            for (size_t i = 0; i < os.a.dim; i++)
-                a.push(os.a[i]);
+            a.pushSlice(os.a[]);
         }
     }
 
@@ -2127,12 +2079,7 @@ extern (C++) final class DsymbolTable : RootObject
     Dsymbol insert(Dsymbol s)
     {
         //printf("DsymbolTable::insert(this = %p, '%s')\n", this, s.ident.toChars());
-        const ident = s.ident;
-        Dsymbol* ps = tab.getLvalue(ident);
-        if (*ps)
-            return null; // already in table
-        *ps = s;
-        return s;
+        return insert(s.ident, s);
     }
 
     // Look for Dsymbol in table. If there, return it. If not, insert s and return that.

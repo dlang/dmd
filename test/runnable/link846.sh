@@ -9,4 +9,4 @@ $DMD -m${MODEL} -I${EXTRA_FILES} -of${libname} -release -boundscheck=off -lib ${
 # use lib with -debug
 $DMD -m${MODEL} -I${EXTRA_FILES} -of${OUTPUT_BASE}${EXE} -debug ${EXTRA_FILES}${SEP}main846.d ${libname}
 
-rm ${OUTPUT_BASE}{${OBJ},${EXE},${LIBEXT}}
+rm_retry ${OUTPUT_BASE}{${OBJ},${EXE},${LIBEXT}}

@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -24,6 +24,7 @@ class UserAttributeDeclaration;
 struct DocComment;
 struct AA;
 class TemplateInstance;
+class CPPNamespaceDeclaration;
 
 #include "dsymbol.h"
 
@@ -65,13 +66,14 @@ struct Scope
     Dsymbol *parent;            // parent to use
     LabelStatement *slabel;     // enclosing labelled statement
     SwitchStatement *sw;        // enclosing switch statement
+    Statement *tryBody;         // enclosing _body of TryCatchStatement or TryFinallyStatement
     TryFinallyStatement *tf;    // enclosing try finally statement
-    OnScopeStatement *os;       // enclosing scope(xxx) statement
+    ScopeGuardStatement *os;       // enclosing scope(xxx) statement
     Statement *sbreak;          // enclosing statement that supports "break"
     Statement *scontinue;       // enclosing statement that supports "continue"
     ForeachStatement *fes;      // if nested function for ForeachStatement, this is it
     Scope *callsc;              // used for __FUNCTION__, __PRETTY_FUNCTION__ and __MODULE__
-    bool inunion;               // true if processing members of a union
+    Dsymbol *inunion;           // !=null if processing members of a union
     bool nofree;                // true if shouldn't free it
     bool inLoop;                // true if inside a loop (where constructor calls aren't allowed)
     int intypeof;               // in typeof(exp)
@@ -90,6 +92,9 @@ struct Scope
     size_t fieldinit_dim;
 
     AlignDeclaration *aligndecl;    // alignment for struct members
+
+    /// C++ namespace this symbol belongs to
+    CPPNamespaceDeclaration *namespace_;
 
     LINK linkage;               // linkage for external functions
     CPPMANGLE cppmangle;        // C++ mangle type
@@ -121,22 +126,14 @@ struct Scope
     Scope *startCTFE();
     Scope *endCTFE();
 
-    void mergeCallSuper(Loc loc, unsigned cs);
-
-    unsigned *saveFieldInit();
-    void mergeFieldInit(Loc loc, unsigned *cses);
-
     Module *instantiatingModule();
 
-    Dsymbol *search(Loc loc, Identifier *ident, Dsymbol **pscopesym, int flags = IgnoreNone);
-    Dsymbol *search_correct(Identifier *ident);
-    Dsymbol *insert(Dsymbol *s);
+    Dsymbol *search(const Loc &loc, Identifier *ident, Dsymbol **pscopesym, int flags = IgnoreNone);
 
     ClassDeclaration *getClassScope();
     AggregateDeclaration *getStructClassScope();
-    void setNoFree();
 
     structalign_t alignment();
 
-    bool isDeprecated();
+    bool isDeprecated() const;
 };

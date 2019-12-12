@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/semantic2.d, _semantic2.d)
@@ -245,6 +245,16 @@ private extern(C++) final class Semantic2Visitor : Visitor
         if (vd._init && !vd.toParent().isFuncDeclaration())
         {
             vd.inuse++;
+
+            /* https://issues.dlang.org/show_bug.cgi?id=20280
+             *
+             * Template instances may import modules that have not
+             * finished semantic1.
+             */
+            if (!vd.type)
+                vd.dsymbolSemantic(sc);
+
+
             // https://issues.dlang.org/show_bug.cgi?id=14166
             // Don't run CTFE for the temporary variables inside typeof
             vd._init = vd._init.initializerSemantic(sc, vd.type, sc.intypeof == 1 ? INITnointerpret : INITinterpret);
@@ -418,8 +428,8 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 buf2.reset();
                 mangleToFuncSignature(buf2, f2);
 
-                auto s1 = buf1.peekString();
-                auto s2 = buf2.peekString();
+                auto s1 = buf1.peekChars();
+                auto s2 = buf2.peekChars();
 
                 //printf("+%s\n\ts1 = %s\n\ts2 = %s @ [%s]\n", toChars(), s1, s2, f2.loc.toChars());
                 if (strcmp(s1, s2) == 0)
@@ -435,12 +445,6 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 }
                 return 0;
             });
-        }
-        objc.setSelector(fd, sc);
-        objc.validateSelector(fd);
-        if (ClassDeclaration cd = fd.parent.isClassDeclaration())
-        {
-            objc.checkLinkage(fd);
         }
         if (!fd.type || fd.type.ty != Tfunction)
             return;

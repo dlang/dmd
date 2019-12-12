@@ -404,19 +404,6 @@ class C15258
 }
 
 /***************************************************/
-// https://issues.dlang.org/show_bug.cgi?id=15665
-
-scope class C15665 (V)
-{
-    this () {}
-}
-
-void test15665()
-{
-    scope foo = new C15665!int;
-}
-
-/***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=15869
 
 struct Set {
@@ -483,7 +470,6 @@ int main()
     test13515();
     test14450();
     test14944();
-    test15665();
     test15869();
     test19389();
 

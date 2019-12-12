@@ -2,7 +2,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail18219.d(15): Deprecation: `b18219.Foobar` is not visible from module `fail18219`
+fail_compilation/fail18219.d(15): Error: no property `Foobar` for type `AST`, did you mean `b18219.Foobar`?
 fail_compilation/fail18219.d(16): Error: no property `Bar` for type `AST`
 fail_compilation/fail18219.d(17): Error: no property `fun` for type `AST`, did you mean `b18219.fun`?
 fail_compilation/fail18219.d(18): Error: no property `Foobar` for type `AST`, did you mean `b18219.Foobar`?

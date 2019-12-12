@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1993-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/glocal.d, backend/glocal.d)
@@ -41,12 +41,14 @@ import dmd.backend.dvec;
 
 extern (C++):
 
+nothrow:
+
 int REGSIZE();
 
 
 enum
 {
-    LFvolatile     = 1,       // contains volatile refs or defs
+    LFvolatile     = 1,       // contains volatile or shared refs or defs
     LFambigref     = 2,       // references ambiguous data
     LFambigdef     = 4,       // defines ambiguous data
     LFsymref       = 8,       // reference to symbol s
@@ -114,7 +116,7 @@ private void local_exp(ref Barray!loc_t lt, elem *e, int goal)
 {
     Symbol *s;
     elem *e1;
-    int op1;
+    OPER op1;
 
 Loop:
     elem_debug(e);
@@ -486,7 +488,7 @@ private void local_ins(ref Barray!loc_t lt, elem *e)
         {
             const flags = local_getflags(e.EV.E2,null);
             if (!(flags & (LFvolatile | LFinp | LFoutp)) &&
-                !(e.EV.E1.Ety & mTYvolatile))
+                !(e.EV.E1.Ety & (mTYvolatile | mTYshared)))
             {
                 // Add e to the candidate array
                 //printf("local_ins('%s'), loctop = %d\n",s.Sident.ptr,lt.length);
@@ -517,7 +519,7 @@ private int local_getflags(elem *e,Symbol *s)
     int flags = 0;
     while (1)
     {
-        if (e.Ety & mTYvolatile)
+        if (e.Ety & (mTYvolatile | mTYshared))
             flags |= LFvolatile;
         switch (e.Eoper)
         {

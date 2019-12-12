@@ -1,4 +1,8 @@
 /* PERMUTE_ARGS:
+TEST_OUTPUT:
+---
+fail_compilation/test16188.d(17): Error: no property `name` for type `Where`
+---
  */
 
 // https://issues.dlang.org/show_bug.cgi?id=16188

@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -19,7 +19,7 @@ public:
 
     Dsymbol *syntaxCopy(Dsymbol *);
 
-    const char *toChars();
+    const char *toChars() const;
     void addMember(Scope *sc, ScopeDsymbol *sds);
     const char *kind() const;
     void accept(Visitor *v) { v->visit(this); }
@@ -32,7 +32,7 @@ public:
 
     Dsymbol *syntaxCopy(Dsymbol *);
 
-    const char *toChars();
+    const char *toChars() const;
     void addMember(Scope *sc, ScopeDsymbol *sds);
     const char *kind() const;
     void accept(Visitor *v) { v->visit(this); }

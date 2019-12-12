@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2009-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2009-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/mscoffobj.d, backend/mscoffobj.d)
@@ -29,7 +29,7 @@ import dmd.backend.dlist;
 import dmd.backend.dvec;
 import dmd.backend.el;
 import dmd.backend.md5;
-import dmd.backend.memh;
+import dmd.backend.mem;
 import dmd.backend.global;
 import dmd.backend.obj;
 import dmd.backend.outbuf;
@@ -39,6 +39,11 @@ import dmd.backend.type;
 import dmd.backend.mscoff;
 
 extern (C++):
+
+nothrow:
+
+alias _compare_fp_t = extern(C) nothrow int function(const void*, const void*);
+extern(C) void qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar);
 
 static if (TARGET_WINDOS)
 {
@@ -826,14 +831,22 @@ version (SCPP)
         {
             foffset = (foffset + 3) & ~3;
             assert(psechdr.PointerToRelocations == 0);
-            uint nreloc = cast(uint)(pseg.SDrel.size() / Relocation.sizeof);
-            if (nreloc)
+            auto nreloc = pseg.SDrel.size() / Relocation.sizeof;
+            if (nreloc > 0xffff)
+            {
+                // https://docs.microsoft.com/en-us/windows/win32/debug/pe-format#coff-relocations-object-only
+                psechdr.Characteristics |= IMAGE_SCN_LNK_NRELOC_OVFL;
+                psechdr.PointerToRelocations = foffset;
+                psechdr.NumberOfRelocations = 0xffff;
+                foffset += reloc.sizeof;
+            }
+            else if (nreloc)
             {
                 psechdr.PointerToRelocations = foffset;
                 //printf("seg = %d SDshtidx = %d psechdr = %p s_relptr = x%x\n", seg, pseg.SDshtidx, psechdr, cast(uint)psechdr.s_relptr);
                 psechdr.NumberOfRelocations = cast(ushort)nreloc;
-                foffset += nreloc * reloc.sizeof;
             }
+            foffset += nreloc * reloc.sizeof;
         }
     }
 
@@ -889,7 +902,8 @@ version (SCPP)
         seg_data *pseg = SegData[seg];
         IMAGE_SECTION_HEADER *psechdr = &ScnhdrTab[pseg.SDshtidx];   // corresponding section
         if (pseg.SDrel)
-        {   Relocation *r = cast(Relocation *)pseg.SDrel.buf;
+        {
+            Relocation *r = cast(Relocation *)pseg.SDrel.buf;
             size_t sz = pseg.SDrel.size();
             bool pdata = (strcmp(cast(const(char)* )psechdr.Name, ".pdata") == 0);
             Relocation *rend = cast(Relocation *)(pseg.SDrel.buf + sz);
@@ -898,8 +912,14 @@ version (SCPP)
             debug
             if (sz && foffset != psechdr.PointerToRelocations)
                 printf("seg = %d SDshtidx = %d psechdr = %p s_relptr = x%x, foffset = x%x\n", seg, pseg.SDshtidx, psechdr, cast(uint)psechdr.PointerToRelocations, cast(uint)foffset);
-
             assert(sz == 0 || foffset == psechdr.PointerToRelocations);
+
+            if (psechdr.Characteristics & IMAGE_SCN_LNK_NRELOC_OVFL)
+            {
+                auto rel = reloc(cast(uint)(sz / Relocation.sizeof) + 1);
+                fobjbuf.write((&rel)[0 .. 1]);
+                foffset += rel.sizeof;
+            }
             for (; r != rend; r++)
             {   reloc rel;
                 rel.r_vaddr = 0;
@@ -1575,7 +1595,7 @@ IDXSEC MsCoffObj_addScnhdr(const(char)* scnhdr_name, uint flags)
  *      segment index of newly created code segment
  */
 
-int MsCoffObj_codeseg(char *name,int suffix)
+int MsCoffObj_codeseg(const char *name,int suffix)
 {
     //dbg_printf("MsCoffObj_codeseg(%s,%x)\n",name,suffix);
     return 0;
@@ -2349,7 +2369,6 @@ static if (0)
             if (SegData[seg].isCode() && flags & CFselfrel)
             {
                 seg_data *pseg = SegData[jumpTableSeg];
-             L1:
                 val -= offset + 4;
                 MsCoffObj_addrel(seg, offset, null, jumpTableSeg, RELrel, 0);
             }

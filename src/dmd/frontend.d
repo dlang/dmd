@@ -5,7 +5,7 @@
  * This module contains high-level interfaces for interacting
   with DMD as a library.
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/id.d, _id.d)
@@ -14,7 +14,11 @@
  */
 module dmd.frontend;
 
+import dmd.astcodegen : ASTCodegen;
 import dmd.dmodule : Module;
+import dmd.errors : DiagnosticReporter;
+import dmd.globals : CHECKENABLE;
+
 import std.range.primitives : isInputRange, ElementType;
 import std.traits : isNarrowString;
 import std.typecons : Tuple;
@@ -44,33 +48,143 @@ immutable struct Diagnostics
     }
 }
 
+/// Indicates the checking state of various contracts.
+enum ContractChecking : CHECKENABLE
+{
+    /// Initial value
+    default_ = CHECKENABLE._default,
+
+    /// Never do checking
+    disabled = CHECKENABLE.off,
+
+    /// Always do checking
+    enabled = CHECKENABLE.on,
+
+    /// Only do checking in `@safe` functions
+    enabledInSafe = CHECKENABLE.safeonly
+}
+
+unittest
+{
+    static assert(
+        __traits(allMembers, ContractChecking).length ==
+        __traits(allMembers, CHECKENABLE).length
+    );
+}
+
+/// Indicates which contracts should be checked or not.
+struct ContractChecks
+{
+    /// Precondition checks (in contract).
+    ContractChecking precondition = ContractChecking.enabled;
+
+    /// Invariant checks.
+    ContractChecking invariant_ = ContractChecking.enabled;
+
+    /// Postcondition checks (out contract).
+    ContractChecking postcondition = ContractChecking.enabled;
+
+    /// Array bound checks.
+    ContractChecking arrayBounds = ContractChecking.enabled;
+
+    /// Assert checks.
+    ContractChecking assert_ = ContractChecking.enabled;
+
+    /// Switch error checks.
+    ContractChecking switchError = ContractChecking.enabled;
+}
+
 /*
 Initializes the global variables of the DMD compiler.
 This needs to be done $(I before) calling any function.
+
+Params:
+    contractChecks = indicates which contracts should be enabled or not
+    versionIdentifiers = a list of version identifiers that should be enabled
 */
-void initDMD()
+void initDMD(
+    const string[] versionIdentifiers = [],
+    ContractChecks contractChecks = ContractChecks()
+)
 {
+    import std.algorithm : each;
+
+    import dmd.root.ctfloat : CTFloat;
+
+    version (CRuntime_Microsoft)
+        import dmd.root.longdouble : initFPU;
+
     import dmd.builtin : builtin_init;
+    import dmd.cond : VersionCondition;
     import dmd.dmodule : Module;
     import dmd.expression : Expression;
-    import dmd.globals : global;
+    import dmd.filecache : FileCache;
+    import dmd.globals : CHECKENABLE, global;
     import dmd.id : Id;
+    import dmd.identifier : Identifier;
     import dmd.mars : setTarget, addDefaultVersionIdentifiers;
     import dmd.mtype : Type;
     import dmd.objc : Objc;
-    import dmd.target : Target;
+    import dmd.target : target;
 
     global._init();
+
+    with (global.params)
+    {
+        useIn = contractChecks.precondition;
+        useInvariants = contractChecks.invariant_;
+        useOut = contractChecks.postcondition;
+        useArrayBounds = contractChecks.arrayBounds;
+        useAssert = contractChecks.assert_;
+        useSwitchError = contractChecks.switchError;
+    }
+
+    versionIdentifiers.each!(VersionCondition.addGlobalIdent);
     setTarget(global.params);
     addDefaultVersionIdentifiers(global.params);
 
     Type._init();
     Id.initialize();
     Module._init();
-    Target._init();
+    target._init(global.params);
     Expression._init();
     Objc._init();
     builtin_init();
+    FileCache._init();
+
+    version (CRuntime_Microsoft)
+        initFPU();
+
+    CTFloat.initialize();
+}
+
+/**
+Deinitializes the global variables of the DMD compiler.
+
+This can be used to restore the state set by `initDMD` to its original state.
+Useful if there's a need for multiple sessions of the DMD compiler in the same
+application.
+*/
+void deinitializeDMD()
+{
+    import dmd.builtin : builtinDeinitialize;
+    import dmd.dmodule : Module;
+    import dmd.expression : Expression;
+    import dmd.globals : global;
+    import dmd.id : Id;
+    import dmd.mtype : Type;
+    import dmd.objc : Objc;
+    import dmd.target : target;
+
+    global.deinitialize();
+
+    Type.deinitialize();
+    Id.deinitialize();
+    Module.deinitialize();
+    target.deinitialize();
+    Expression.deinitialize();
+    Objc.deinitialize();
+    builtinDeinitialize();
 }
 
 /**
@@ -88,6 +202,24 @@ void addImport(const(char)[] path)
         global.path = new Strings();
 
     global.path.push(path.toStringz);
+}
+
+/**
+Add string import path to `global.filePath`.
+Params:
+    path = string import to add
+*/
+void addStringImport(const(char)[] path)
+{
+    import std.string : toStringz;
+
+    import dmd.globals : global;
+    import dmd.arraytypes : Strings;
+
+    if (global.filePath is null)
+        global.filePath = new Strings();
+
+    global.filePath.push(path.toStringz);
 }
 
 /**
@@ -239,38 +371,49 @@ Parse a module from a string.
 Params:
     fileName = file to parse
     code = text to use instead of opening the file
+    diagnosticReporter = the diagnostic reporter to use. By default a
+        diagnostic reporter which prints to stderr will be used
 
 Returns: the parsed module object
 */
-Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(const(char)[] fileName, const(char)[] code = null)
+Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(AST = ASTCodegen)(
+    const(char)[] fileName,
+    const(char)[] code = null,
+    DiagnosticReporter diagnosticReporter = defaultDiagnosticReporter
+)
+in
 {
-    import dmd.astcodegen : ASTCodegen;
+    assert(diagnosticReporter !is null);
+}
+body
+{
+    import dmd.root.file : File, FileBuffer;
+
     import dmd.globals : Loc, global;
     import dmd.parse : Parser;
     import dmd.identifier : Identifier;
     import dmd.tokens : TOK;
+
+    import std.path : baseName, stripExtension;
     import std.string : toStringz;
     import std.typecons : tuple;
 
-    static auto parse(Module m, const(char)[] code)
-    {
-        scope p = new Parser!ASTCodegen(m, code, false);
-        p.nextToken; // skip the initial token
-        auto members = p.parseModule;
-        if (p.errors)
-            ++global.errors;
-        return members;
-    }
+    auto id = Identifier.idPool(fileName.baseName.stripExtension);
+    auto m = new Module(fileName, id, 0, 0);
 
-    Identifier id = Identifier.idPool(fileName);
-    auto m = new Module(fileName.toStringz, id, 0, 0);
-    if (code !is null)
-        m.members = parse(m, code);
+    if (code is null)
+        m.read(Loc.initial);
     else
     {
-        m.read(Loc.initial);
-        m.parse();
+        File.ReadResult readResult = {
+            success: true,
+            buffer: FileBuffer(cast(ubyte[]) code.dup ~ '\0')
+        };
+
+        m.loadSourceBuffer(Loc.initial, readResult);
     }
+
+    m.parse!AST(diagnosticReporter);
 
     Diagnostics diagnostics = {
         errors: global.errors,
@@ -291,9 +434,16 @@ void fullSemantic(Module m)
 
     m.importedFrom = m;
     m.importAll(null);
+
     m.dsymbolSemantic(null);
+    Module.dprogress = 1;
+    Module.runDeferredSemantic();
+
     m.semantic2(null);
+    Module.runDeferredSemantic2();
+
     m.semantic3(null);
+    Module.runDeferredSemantic3();
 }
 
 /**
@@ -305,16 +455,23 @@ Returns:
 string prettyPrint(Module m)
 {
     import dmd.root.outbuffer: OutBuffer;
-    import dmd.hdrgen : HdrGenState, PrettyPrintVisitor;
+    import dmd.hdrgen : HdrGenState, moduleToBuffer2;
 
     OutBuffer buf = { doindent: 1 };
     HdrGenState hgs = { fullDump: 1 };
-    scope PrettyPrintVisitor ppv = new PrettyPrintVisitor(&buf, &hgs);
-    m.accept(ppv);
+    moduleToBuffer2(m, &buf, &hgs);
 
     import std.string : replace, fromStringz;
     import std.exception : assumeUnique;
 
-    auto generated = buf.extractData.fromStringz.replace("\t", "    ");
+    auto generated = buf.extractSlice.replace("\t", "    ");
     return generated.assumeUnique;
+}
+
+private DiagnosticReporter defaultDiagnosticReporter()
+{
+    import dmd.globals : global;
+    import dmd.errors : StderrDiagnosticReporter;
+
+    return new StderrDiagnosticReporter(global.params.useDeprecated);
 }

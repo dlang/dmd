@@ -31,7 +31,7 @@ int test1()
 struct S6259
 {
     private int m_prop;
-    ref const(int) prop() { return m_prop; }
+    ref const(int) prop() return { return m_prop; }
     void prop(int v) { m_prop = v; }
 }
 

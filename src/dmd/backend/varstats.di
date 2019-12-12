@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 2015-2017 by Digital Mars, All Rights Reserved
+ * Copyright:   Copyright (C) 2015-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     Rainer Schuetze
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              http://www.boost.org/LICENSE_1_0.txt
@@ -19,6 +19,8 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 
 extern (C++):
+
+nothrow:
 
 // estimate of variable life time
 struct LifeTime
@@ -95,8 +97,8 @@ else
      */
 
     void varStats_writeSymbolTable(symtab_t* symtab,
-                          void function(Symbol*) fnWriteVar, void function() fnEndArgs,
-                          void function(int off,int len) fnBeginBlock, void function() fnEndBlock);
+                          void function(Symbol*) nothrow fnWriteVar, void function() nothrow fnEndArgs,
+                          void function(int off,int len) nothrow fnBeginBlock, void function() nothrow fnEndBlock);
 
     void varStats_startFunction();
     void varStats_recordLineOffset(Srcpos src, targ_size_t off);

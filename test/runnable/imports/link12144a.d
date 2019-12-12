@@ -1,3 +1,4 @@
+module imports.link12144a;
 struct S1 { bool opEquals(T : typeof(this))(T) { return false; } }
 struct S2 { bool opEquals(T : typeof(this))(T) { return false; } }
 struct S3 { bool opEquals(T : typeof(this))(T) { return false; } }

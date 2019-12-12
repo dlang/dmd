@@ -1,6 +1,8 @@
 /*
+DISABLED: dragonflybsd freebsd linux osx win32
+TEST_OUTPUT:
 ---
-Error: cannot mix core.std.stdlib.alloca() and exception handling in _Dmain()
+Error: cannot mix `core.std.stdlib.alloca()` and exception handling in `_Dmain()`
 ---
 */
 
@@ -26,26 +28,4 @@ void main()
     bar();
     auto a = alloca(16);
     printf("test()\n");
-    version (DigitalMars)
-    {
-        version (Win32) static assert(0);
-        version (linux)
-        {
-            static assert(0);
-        }
-        version (FreeBSD)
-        {
-            static assert(0);
-        }
-        version (DragonFlyBSD)
-        {
-            static assert(0);
-        }
-        version (OSX)
-        {
-            static assert(0);
-        }
-    }
-    else
-        static assert(0);
 }

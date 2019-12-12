@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1986-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/gdag.d, backend/gdag.d)
@@ -38,6 +38,7 @@ import dmd.backend.dvec;
 
 extern (C++):
 
+nothrow:
 
 enum Aetype { cse, arraybounds }
 
@@ -47,15 +48,18 @@ bool Eunambig(elem* e) { return OTassign(e.Eoper) && e.EV.E1.Eoper == OPvar; }
 
 /*************************************
  * Determine if floating point should be cse'd.
+ * Returns:
+ *      true if should be cse'd
  */
 
-int cse_float(elem *e)
+private bool cse_float(elem *e)
 {
     // Don't CSE floating stuff if generating
     // inline 8087 code, the code generator
     // can't handle it yet
     return !(tyfloating(e.Ety) && config.inline8087 &&
-           e.Eoper != OPvar && e.Eoper != OPconst);
+             e.Eoper != OPvar && e.Eoper != OPconst) ||
+           (tyxmmreg(e.Ety) && config.fpxmmregs);
 }
 
 /************************************
@@ -534,6 +538,9 @@ L1:
         else if (op == OPu16_32 && I16 && e.Ecount)
             e = delcse(pe);
 
+        else if (op == OPd_ld && e.EV.E1.Ecount > 0)
+            delcse(&e.EV.E1);
+
         // OPremquo is only worthwhile if its result is used more than once
         else if (e.EV.E1.Eoper == OPremquo &&
                  (op == OP64_32 || op == OP128_64 || op == OPmsw) &&
@@ -666,7 +673,7 @@ private void abewalk(elem *n,vec_t ae,vec_t aeval)
     elem_debug(n);
     /*printf("visiting: ("); WReqn(*pn); printf("), Eexp = %d\n",n.Eexp);*/
     /*chkvecdim(go.exptop);*/
-    const uint op = n.Eoper;
+    const op = n.Eoper;
     switch (op)
     {
         case OPcond:
