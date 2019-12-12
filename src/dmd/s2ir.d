@@ -468,6 +468,14 @@ private extern (C++) class S2irVisitor : Visitor
 
         const numcases = s.cases ? s.cases.dim : 0;
 
+        /* allocate a block for each case
+         */
+        if (numcases)
+            foreach (cs; *s.cases)
+            {
+                cs.extra = cast(void*)block_calloc(blx);
+            }
+
         incUsage(irs, s.loc);
         elem *econd = toElemDtor(s.condition, &mystate);
         if (s.hasVars)
@@ -487,9 +495,9 @@ private extern (C++) class S2irVisitor : Visitor
                     elem *e = el_bin(OPeqeq, TYbool, el_copytree(econd), ecase);
                     block *b = blx.curblock;
                     block_appendexp(b, e);
-                    Label *clabel = getLabel(irs, blx, cs);
+                    block* cb = cast(block*)cs.extra;
                     block_next(blx, BCiftrue, null);
-                    b.appendSucc(clabel.lblock);
+                    b.appendSucc(cb);
                     b.appendSucc(blx.curblock);
                 }
 
@@ -547,12 +555,12 @@ private extern (C++) class S2irVisitor : Visitor
     {
         Blockx *blx = irs.blx;
         block *bcase = blx.curblock;
-        Label *clabel = getLabel(irs, blx, s);
-        block_next(blx, BCgoto, clabel.lblock);
+        block* cb = cast(block*)s.extra;
+        block_next(blx, BCgoto, cb);
         block *bsw = irs.getSwitchBlock();
         if (bsw.BC == BCswitch)
-            bsw.appendSucc(clabel.lblock);   // second entry in pair
-        bcase.appendSucc(clabel.lblock);
+            bsw.appendSucc(cb);   // second entry in pair
+        bcase.appendSucc(cb);
         incUsage(irs, s.loc);
         if (s.statement)
             Statement_toIR(s.statement, irs);
@@ -588,8 +596,7 @@ private extern (C++) class S2irVisitor : Visitor
     override void visit(GotoCaseStatement s)
     {
         Blockx *blx = irs.blx;
-        Label *clabel = getLabel(irs, blx, s.cs);
-        block *bdest = clabel.lblock;
+        block *bdest = cast(block*)s.cs.extra;
         block *b = blx.curblock;
 
         // The rest is equivalent to GotoStatement

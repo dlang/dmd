@@ -458,6 +458,7 @@ public:
 
     int index;          // which case it is (since we sort this)
     VarDeclaration *lastVar;
+    void* extra;            // for use by Statement_toIR()
 
     Statement *syntaxCopy();
 
