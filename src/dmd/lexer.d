@@ -210,35 +210,15 @@ unittest
  */
 private struct TokenPool
 {
-private:
-    enum PoolSize = 256; //number of tokens per pool
-    enum DefaultPoolListSize = 64; //number of pools to allocate by default
-    //Wrap a slice because Array is extern C++
-    private struct Pool
-    {
-        Token[] tokens;
-    }
-    Array!(Pool) pools;
+    private Array!Token tokens;
 
-    nothrow:
-
-    ///Token pool looks like a big array
-    public ref Token getByIndex(size_t index)
+    public ref Token getByIndex(size_t index) nothrow pure
     {
-        if (index >= PoolSize * pools.length)
+        if (index >= tokens.length)
         {
-            allocatePools(index + 1); //need space for index 0
+            tokens.setDim(index + 1);
         }
-        return pools[index / PoolSize].tokens[index % PoolSize];
-
-    }
-
-    private void allocatePools(size_t tokensNeeded)
-    {
-        const poolsNeeded = (tokensNeeded + PoolSize - 1) / PoolSize;
-        assert(poolsNeeded == pools.length + 1); //don't alloc more than 1 pool at a time
-        pools.reserve(1);
-        pools.push(Pool(new Token[PoolSize])); //will never be freed, so use GC mem
+        return tokens[index];
     }
 }
 

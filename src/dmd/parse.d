@@ -846,7 +846,7 @@ final class Parser(AST) : Lexer
                     // @@@DEPRECATED@@@
                     // https://github.com/dlang/DIPs/blob/1f5959abe482b1f9094f6484a7d0a3ade77fc2fc/DIPs/accepted/DIP1003.md
                     // Deprecated in 2.091 - Can be removed from 2.101
-                    if (tk.value == TOK.identifier && tk.ident == Id._body)
+                    if (tokens.back.value == TOK.identifier && tokens.back.ident == Id._body)
                         deprecation("Usage of the `body` keyword is deprecated. Use `do` instead.");
                     a = parseDeclarations(true, pAttrs, pAttrs.comment);
                     if (a && a.dim)
@@ -1945,7 +1945,7 @@ final class Parser(AST) : Lexer
     RootObject parseTypeOrAssignExp(TOK endtoken = TOK.reserved)
     {
         auto tokens = makeRangeFromHere();
-        return isDeclaration(tokens, NeedDeclaratorId.no, TOK.reserved)
+        return isDeclaration(tokens, NeedDeclaratorId.no, endtoken)
             ? parseType()           // argument is a type
             : parseAssignExp();     // argument is an expression
     }
@@ -4656,7 +4656,7 @@ final class Parser(AST) : Lexer
                     // @@@DEPRECATED@@@
                     // https://github.com/dlang/DIPs/blob/1f5959abe482b1f9094f6484a7d0a3ade77fc2fc/DIPs/accepted/DIP1003.md
                     // Deprecated in 2.091 - Can be removed from 2.101
-                    if (tk.value == TOK.identifier && tk.ident == Id._body)
+                    if (tokens.back.value == TOK.identifier && tokens.back.ident == Id._body)
                         deprecation("Usage of the `body` keyword is deprecated. Use `do` instead.");
                     ts = null;
                 }
