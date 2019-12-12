@@ -695,7 +695,7 @@ extern (C++) final class Module : Package
             }
             else
                 fprintf(stderr, "Specify path to file '%s' with -I switch\n", srcfile.toChars());
-            fatal();
+            // fatal();
         }
         return false;
     }
