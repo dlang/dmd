@@ -242,7 +242,7 @@ TailShared!T atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)(shared(T)* her
     if (!is(T == class) && !is(T == interface))
 in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 {
-    static if (is (V == shared))
+    static if (is (V == shared U, U))
         alias Thunk = U;
     else
     {
@@ -913,6 +913,8 @@ version (unittest)
         static class Klass {}
         testXCHG!(shared Klass)(new shared(Klass));
         testCAS!(shared Klass)(new shared(Klass));
+
+        testXCHG!(shared int)(42);
 
         testType!(float)(1.0f);
 
