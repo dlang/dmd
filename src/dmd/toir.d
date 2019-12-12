@@ -470,8 +470,8 @@ int intrinsic_op(FuncDeclaration fd)
         }
     }
 
-    // No 64-bit bsf bsr btc in 32bit mode
     if (!global.params.is64bit)
+    // No 64-bit bsf bsr in 32bit mode
     {
         if (op == OPbsf || op == OPbsr ) {
             //_D4core5bitop3bsfFNaNbNiNfxZi
