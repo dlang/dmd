@@ -50,7 +50,6 @@ ifneq ($(BUILD),release)
     ifneq ($(BUILD),debug)
         $(error Unrecognized BUILD=$(BUILD), must be 'debug' or 'release')
     endif
-    ENABLE_DEBUG := 1
 endif
 
 INSTALL_DIR=../../install
