@@ -112,7 +112,7 @@ struct elem
         {
             // Ety2: Must be in same position as Ety!
             tym_t Ety2;        // data type (TYxxxx)
-            ubyte Ecomsub;     // number of remaining references to
+            ushort Ecomsub;     // number of remaining references to
                                // this common subexp (used to determine
                                // first, intermediate, and last references
                                // to a CSE)
