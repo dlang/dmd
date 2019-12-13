@@ -775,7 +775,6 @@ void parseEnvironment()
         }
     }
 
-    env.getDefault("TARGET_CPU", "X86");
     version (Windows)
     {
         // On windows, the OS environment variable is already being used by the system.

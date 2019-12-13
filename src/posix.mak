@@ -41,11 +41,6 @@
 # get OS and MODEL
 include osmodel.mak
 
-ifeq (,$(TARGET_CPU))
-    $(info no cpu specified, assuming X86)
-    TARGET_CPU=X86
-endif
-
 # Default to a release built, override with BUILD=debug
 ifeq (,$(BUILD))
 BUILD=release
@@ -58,28 +53,8 @@ ifneq ($(BUILD),release)
     ENABLE_DEBUG := 1
 endif
 
-# default to PIC on x86_64, use PIC=1/0 to en-/disable PIC.
-# Note that shared libraries and C files are always compiled with PIC.
-ifeq ($(PIC),)
-    ifeq ($(MODEL),64) # x86_64
-        PIC:=1
-    else
-        PIC:=0
-    endif
-endif
-ifeq ($(PIC),1)
-    override PIC:=-fPIC
-else
-    override PIC:=
-endif
-
 INSTALL_DIR=../../install
-TMP?=/tmp
-
 D = dmd
-
-C=$D/backend
-ROOT=$D/root
 
 GENERATED = ../generated
 G = $(GENERATED)/$(OS)/$(BUILD)/$(MODEL)
@@ -95,8 +70,6 @@ ifneq ($(HOST_CC),)
   $(warning ===== WARNING: Please use HOST_CXX=$(HOST_CC) instead of HOST_CC=$(HOST_CC). =====)
   HOST_CXX=$(HOST_CC)
 endif
-AR=ar
-GIT=git
 
 HOST_DC?=
 ifneq (,$(HOST_DC))
@@ -127,14 +100,9 @@ else
   HOST_DMD_RUN=$(HOST_DMD) -conf=$(dir $(HOST_DMD))dmd.conf
 endif
 
-######## Additional files
-
-DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS))
-
 RUN_BUILD = $(GENERATED)/build HOST_DMD="$(HOST_DMD)" CXX="$(HOST_CXX)" OS=$(OS) BUILD=$(BUILD) MODEL=$(MODEL) AUTO_BOOTSTRAP="$(AUTO_BOOTSTRAP)" DOCDIR="$(DOCDIR)" STDDOC="$(STDDOC)" DOC_OUTPUT_DIR="$(DOC_OUTPUT_DIR)" MAKE="$(MAKE)" --called-from-make
 
 ######## Begin build targets
-
 
 all: dmd
 .PHONY: all
@@ -176,14 +144,6 @@ endif
 endif
 
 FORCE: ;
-
-# Generic rules for all source files
-########################################################################
-# Search the directory $C for .c-files when using implicit pattern
-# matching below.
-#vpath %.c $C
-
--include $(DEPS)
 
 ################################################################################
 # Generate the man pages
