@@ -2482,11 +2482,8 @@ private void comsub(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     //printf("comsub(e = %p, *pretregs = %s)\n",e,regm_str(*pretregs));
     elem_debug(e);
 
-    debug
-    {
         if (e.Ecomsub > e.Ecount)
             elem_print(e);
-    }
 
     assert(e.Ecomsub <= e.Ecount);
 
