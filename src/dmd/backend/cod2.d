@@ -715,6 +715,8 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             break;
 
         case OPrelconst:
+            if (I64 && (config.flags3 & CFG3pic || config.exe == EX_WIN64))
+                goto default;
             if (sz != REGSIZE)
                 goto L2;
             if (segfl[el_fl(e2)] != 3)              /* if not in data segment */
