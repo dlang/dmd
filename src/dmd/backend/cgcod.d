@@ -1868,7 +1868,7 @@ void freenode(elem *e)
 {
     elem_debug(e);
     //dbg_printf("freenode(%p) : comsub = %d, count = %d\n",e,e.Ecomsub,e.Ecount);
-    if (e.Ecomsub--) return;             /* usage count                  */
+    if (--e.Ecomsub) return;             /* usage count                  */
     if (e.Ecount)                        /* if it was a CSE              */
     {
         for (size_t i = 0; i < regcon.cse.value.length; i++)
