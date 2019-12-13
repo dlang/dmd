@@ -167,9 +167,11 @@ unittest
 /*************************************
  * Round argument to a specific precision.
  *
- * D language types specify a minimum precision, not a maximum. The
- * `toPrec()` function forces rounding of the argument `f` to the
- * precision of the specified floating point type `T`.
+ * D language types specify only a minimum precision, not a maximum. The
+ * `toPrec()` function forces rounding of the argument `f` to the precision
+ * of the specified floating point type `T`.
+ * The rounding mode used is inevitably target-dependent, but will be done in
+ * a way to maximize accuracy. In most cases, the default is round-to-nearest.
  *
  * Params:
  *      T = precision type to round to
