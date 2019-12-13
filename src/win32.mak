@@ -46,11 +46,6 @@ OS=windows
 
 # DMD source directories
 D=dmd
-C=$D\backend
-ROOT=$D\root
-
-# Include directories
-INCLUDE=$(ROOT)
 
 # Generated files directory
 GEN = ..\generated
@@ -58,26 +53,18 @@ G = $(GEN)\$(OS)\$(BUILD)\$(MODEL)
 
 ##### Tools
 
-# D compiler (set with env variable)
-#HOST_DC=dmd
 # Make program
 MAKE=make
 # Delete file(s)
 DEL=del
-# Make directory
-MD=mkdir
 # Remove directory
 RD=rmdir
-# File copy
-CP=cp
 
 ##### User configuration switches
 
 # Target name
 TARGET=$G\dmd
 TARGETEXE=$(TARGET).exe
-# Debug flags
-DEBUG=-gl -D -DUNITTEST
 # D Optimizer flags
 DOPT=
 # D Model flags
@@ -91,7 +78,7 @@ DDEBUG=-debug -g -unittest
 DFLAGS=$(DOPT) $(DMODEL) $(DDEBUG) -wi -version=MARS -dip25
 
 # Recursive make
-DMDMAKE=$(MAKE) -fwin32.mak C=$C ROOT=$(ROOT) MAKE="$(MAKE)" HOST_DC="$(HOST_DC)" MODEL=$(MODEL) CC="$(CC)"
+DMDMAKE=$(MAKE) -fwin32.mak MAKE="$(MAKE)" HOST_DC="$(HOST_DC)" MODEL=$(MODEL) CC="$(CC)"
 
 ############################### Rule Variables ###############################
 
@@ -130,21 +117,21 @@ check-host-dc:
 debdmd: check-host-dc debdmd-make
 
 debdmd-make:
-	$(DMDMAKE) "OPT=" "DEBUG=-D -g -DUNITTEST" "DDEBUG=-debug -g -unittest" "DOPT=" $(TARGETEXE)
+	$(DMDMAKE) "DDEBUG=-debug -g -unittest" "DOPT=" $(TARGETEXE)
 
 reldmd: check-host-dc reldmd-make
 
 reldmd-make:
-	$(DMDMAKE) "OPT=-o" "DEBUG=" "DDEBUG=" "DOPT=-O -release -inline" $(TARGETEXE)
+	$(DMDMAKE) "DDEBUG=" "DOPT=-O -release -inline" $(TARGETEXE)
 
 profile:
-	$(DMDMAKE) "OPT=-o" "DEBUG=" "DDEBUG=" "DOPT=-O -release -profile" $(TARGETEXE)
+	$(DMDMAKE) "DDEBUG=" "DOPT=-O -release -profile" $(TARGETEXE)
 
 trace:
-	$(DMDMAKE) "OPT=-o" "DEBUG=-gt -Nc" "DDEBUG=-debug -g -unittest" "DOPT=" $(TARGETEXE)
+	$(DMDMAKE) "DDEBUG=-debug -g -unittest" "DOPT=" $(TARGETEXE)
 
 unittest:
-	$(DMDMAKE) "OPT=-o" "DEBUG=" "DDEBUG=-debug -g -unittest -cov" "DOPT=" $(TARGETEXE)
+	$(DMDMAKE) "DDEBUG=-debug -g -unittest -cov" "DOPT=" $(TARGETEXE)
 
 ################################ Libraries ##################################
 
