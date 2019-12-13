@@ -76,7 +76,7 @@ struct elem
         eve EV;           // variants for each type of elem
 
     ubyte Eoper;        // operator (OPxxxx)
-    ubyte Ecount;       // # of parents of this elem - 1,
+    ushort Ecount;       // # of parents of this elem - 1,
                         // always 0 until CSE elimination is done
     eflags_t Eflags;
 
