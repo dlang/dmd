@@ -410,6 +410,11 @@ int intrinsic_op(FuncDeclaration fd)
     if (!md.packages)
         return op;
 
+    // get type of first argument
+    auto tf = fd.type ? fd.type.isTypeFunction() : null;
+    auto param1 = tf && tf.parameterList.length > 0 ? tf.parameterList[0] : null;
+    auto argtype1 = param1 ? param1.type : null;
+
     const Identifier id1 = (*md.packages)[0];
     // ... except core.stdc.stdarg.va_start
     if (md.packages.dim == 2)
@@ -417,22 +422,26 @@ int intrinsic_op(FuncDeclaration fd)
 
     if (id1 == Id.std && id2 == Id.math)
     {
-    Lmath:
-             if (id3 == Id.cos)    op = OPcos;
-        else if (id3 == Id.sin)    op = OPsin;
-        else if (id3 == Id.fabs)   op = OPabs;
-        else if (id3 == Id.rint)   op = OPrint;
-        else if (id3 == Id._sqrt)  op = OPsqrt;
-        else if (id3 == Id.yl2x)   op = OPyl2x;
-        else if (id3 == Id.ldexp)  op = OPscale;
-        else if (id3 == Id.rndtol) op = OPrndtol;
-        else if (id3 == Id.yl2xp1) op = OPyl2xp1;
+        if (argtype1 is Type.tfloat80 || id3 == Id._sqrt)
+            goto Lmath;
     }
     else if (id1 == Id.core)
     {
         if (id2 == Id.math)
         {
-            goto Lmath;
+        Lmath:
+            if (argtype1 is Type.tfloat80 || argtype1 is Type.tfloat32 || argtype1 is Type.tfloat64)
+            {
+                     if (id3 == Id.cos)    op = OPcos;
+                else if (id3 == Id.sin)    op = OPsin;
+                else if (id3 == Id.fabs)   op = OPabs;
+                else if (id3 == Id.rint)   op = OPrint;
+                else if (id3 == Id._sqrt)  op = OPsqrt;
+                else if (id3 == Id.yl2x)   op = OPyl2x;
+                else if (id3 == Id.ldexp)  op = OPscale;
+                else if (id3 == Id.rndtol) op = OPrndtol;
+                else if (id3 == Id.yl2xp1) op = OPyl2xp1;
+            }
         }
         else if (id2 == Id.simd)
         {
@@ -473,17 +482,11 @@ int intrinsic_op(FuncDeclaration fd)
     if (!global.params.is64bit)
     // No 64-bit bsf bsr in 32bit mode
     {
-        if (op == OPbsf || op == OPbsr ) {
-            //_D4core5bitop3bsfFNaNbNiNfxZi
-            // index of x == 26, m == ulong
-            if (mangleExact(fd)[26] == 'm')
-                return NotIntrinsic;
-        }
+        if ((op == OPbsf || op == OPbsr) && argtype1 is Type.tuns64)
+            return NotIntrinsic;
     }
     // No 64-bit bswap
-    // _D4core5bitop5bswapFNaNbNiNfxZm
-    // index of x == 28, m == ulong
-    if (op == OPbswap && mangleExact(fd)[28] == 'm')
+    if (op == OPbswap && argtype1 is Type.tuns64)
         return NotIntrinsic;
     return op;
 
