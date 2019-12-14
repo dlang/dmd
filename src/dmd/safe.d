@@ -118,6 +118,10 @@ bool isSafeCast(Expression e, Type tfrom, Type tto)
     auto tfromb = tfrom.toBasetype();
     auto ttob = tto.toBasetype();
 
+    // Casting to void* is always safe
+    if (ttob.ty == Tpointer && ttob.nextOf().toBasetype().ty == Tvoid)
+        return true;
+
     if (ttob.ty == Tclass && tfromb.ty == Tclass)
     {
         ClassDeclaration cdfrom = tfromb.isClassHandle();

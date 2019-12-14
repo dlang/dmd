@@ -24,9 +24,9 @@ void pointercast2()
     int b;
     Object c;
 
-    static assert(!__traits(compiles, cast(void*)a));
-    static assert(!__traits(compiles, cast(void*)b));
-    static assert(!__traits(compiles, cast(void*)c));
+    static assert(__traits(compiles, cast(void*)a));
+    static assert(__traits(compiles, cast(void*)b));
+    static assert(__traits(compiles, cast(void*)c));
 }
 
 @safe
