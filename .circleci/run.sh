@@ -13,10 +13,19 @@ DMD=dmd
 PIC=1
 
 case "${CIRCLE_STAGE}" in
+    # Defined by old, existing PRs
+    # Added to avoid needing to rebase them
     build)
+        ;&
+    pic)
+        MODEL=64
+        PIC=1
+        ;;
+    no_pic)
+        PIC=0
         case $CIRCLE_NODE_INDEX in
             0) MODEL=64 ;;
-            1) MODEL=32 ;; # broken - https://issues.dlang.org/show_bug.cgi?id=19116
+            1) MODEL=32 ;;
         esac
 esac
 
@@ -112,6 +121,18 @@ coverage()
     fi
     RDMD="$(type -p rdmd)"
 
+    # temporary hack for 32Bits mode
+    # to be removed when the host DMD catches up
+    if [ "$MODEL" == "32" ] ; then
+        mkdir .binpath
+        cat >.binpath/cc <<'EOF'
+#!/bin/bash
+/usr/bin/cc $@ -no-pie
+EOF
+        chmod +x .binpath/cc
+        export PATH=$(realpath .binpath):$PATH
+    fi
+
     # build dmd, druntime, and phobos
     if [ "$MODEL" == "64" ] ; then
         "$RDMD" ./src/build.d MODEL=$MODEL HOST_DMD=$DMD BUILD=$BUILD ENABLE_WARNINGS=1 PIC="$PIC" all
@@ -119,6 +140,7 @@ coverage()
         make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD BUILD=$BUILD ENABLE_WARNINGS=1 PIC="$PIC" all
     fi
     make -j$N -C ../druntime -f posix.mak MODEL=$MODEL PIC="$PIC"
+    rm -rf .binpath
     make -j$N -C ../phobos -f posix.mak MODEL=$MODEL PIC="$PIC"
 
     # FIXME

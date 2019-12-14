@@ -1,24 +1,31 @@
+recipe: &recipe
+  working_directory: ~/dmd
+  docker:
+    - image: circleci/buildpack-deps:18.04
+  steps:
+    - checkout
+    - run:
+        command: ./.circleci/run.sh install-deps
+        name: Install dependencies
+    - run:
+        # needs to be a separate step, s.t. `run.sh` gets updated too
+        command: ./.circleci/run.sh setup-repos
+        name: Merge with upstream + clone DRuntime & Phobos
+    - run:
+        command: ./.circleci/run.sh all
+        name: Run all
+
 version: 2
 jobs:
-  build:
-    working_directory: ~/dmd
-    docker:
-      - image: circleci/buildpack-deps:18.04
-    parallelism: 1
-    steps:
-      - checkout
-      - run:
-          command: ./.circleci/run.sh install-deps
-          name: Install dependencies
-      - run:
-          # needs to be a separate step, s.t. `run.sh` gets updated too
-          command: ./.circleci/run.sh setup-repos
-          name: Merge with upstream + clone DRuntime & Phobos
-      - run:
-          command: ./.circleci/run.sh all
-          name: Run all
+  pic:
+    <<: *recipe
+  no_pic:
+    <<: *recipe
+    parallelism: 2
+
 workflows:
   version: 2
   all:
     jobs:
-      - build
+      - pic
+      - no_pic
