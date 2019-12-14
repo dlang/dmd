@@ -775,7 +775,6 @@ void parseEnvironment()
         }
     }
 
-    env.getDefault("TARGET_CPU", "X86");
     version (Windows)
     {
         // On windows, the OS environment variable is already being used by the system.
@@ -799,6 +798,9 @@ void parseEnvironment()
         const os = env.getDefault("OS", detectOS);
     auto build = env.getDefault("BUILD", "release");
     enforce(build.among("release", "debug"), "BUILD must be 'debug' or 'release'");
+
+    if (build == "debug")
+        env.getDefault("ENABLE_DEBUG", "1");
 
     // detect Model
     auto model = env.getDefault("MODEL", detectModel);
