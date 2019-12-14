@@ -656,11 +656,29 @@ alias installCopy = makeRule!((builder, rule) {
     ];
     builder
     .name("install-copy")
+    .description("Installs dmd into $(INSTALL)")
     .deps([dmdDefault])
-    .sources([dmdExeFile] ~ sourceFiles)
+    .sources(sourceFiles)
     .commandFunction(() {
-        installRelativeFiles(env["INSTALL"].buildPath(env["OS"], "bin"), dmdExeFile.dirName, dmdExeFile.only);
+        version (Windows)
+        {
+            enum conf = "sc.ini";
+            enum bin = "bin";
+        }
+        else
+        {
+            enum conf = "dmd.conf";
+            version (OSX)
+                enum bin = "bin";
+            else
+                const bin = "bin" ~ env["MODEL"];
+        }
+
+        installRelativeFiles(env["INSTALL"].buildPath(env["OS"], bin), dmdExeFile.dirName, dmdExeFile.only);
         installRelativeFiles(env["INSTALL"], dmdRepo, sourceFiles);
+
+        const scPath = buildPath(env["OS"], bin, conf);
+        copyAndTouch(buildPath(dmdRepo, "ini", scPath), buildPath(env["INSTALL"], scPath));
     });
 });
 
