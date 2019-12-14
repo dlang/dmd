@@ -78,13 +78,13 @@ DDEBUG=-debug -g -unittest
 DFLAGS=$(DOPT) $(DMODEL) $(DDEBUG) -wi -version=MARS -dip25
 
 # Recursive make
-DMDMAKE=$(MAKE) -fwin32.mak MAKE="$(MAKE)" HOST_DC="$(HOST_DC)" MODEL=$(MODEL) CC="$(CC)"
+DMDMAKE=$(MAKE) -fwin32.mak MAKE="$(MAKE)" HOST_DC="$(HOST_DC)" MODEL=$(MODEL) CC="$(CC)" VERBOSE=$(VERBOSE)
 
 ############################### Rule Variables ###############################
 
 PARSER_SRCS=$D/astbase.d $D/parsetimevisitor.d $D/parse.d $D/transitivevisitor.d $D/permissivevisitor.d $D/strictvisitor.d $D/utils.d
 
-RUN_BUILD=$(GEN)\build.exe --called-from-make "OS=$(OS)" "BUILD=$(BUILD)" "MODEL=$(MODEL)" "HOST_DMD=$(HOST_DMD)" "HOST_DC=$(HOST_DC)" "DDEBUG=$(DDEBUG)" "MAKE=$(MAKE)"
+RUN_BUILD=$(GEN)\build.exe --called-from-make "OS=$(OS)" "BUILD=$(BUILD)" "MODEL=$(MODEL)" "HOST_DMD=$(HOST_DMD)" "HOST_DC=$(HOST_DC)" "DDEBUG=$(DDEBUG)" "MAKE=$(MAKE)" VERBOSE=$(VERBOSE)
 
 ############################## Release Targets ###############################
 
