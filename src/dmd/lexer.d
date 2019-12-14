@@ -2107,18 +2107,6 @@ class Lexer
                 result = TOK.uns32Literal;
             break;
         case FLAGS.decimal | FLAGS.long_:
-            if (n & 0x8000000000000000L)
-            {
-                if (!err)
-                {
-                    error("signed integer overflow");
-                    err = true;
-                }
-                result = TOK.uns64Literal;
-            }
-            else
-                result = TOK.int64Literal;
-            break;
         case FLAGS.long_:
             if (n & 0x8000000000000000L)
                 result = TOK.uns64Literal;
