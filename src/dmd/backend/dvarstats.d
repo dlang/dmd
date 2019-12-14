@@ -31,7 +31,7 @@ extern(C) void qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar
 
 version (all) // free function version
 {
-    import dmd.backend.varstats;
+    import dmd.backend.dvarstats;
 
     void varStats_writeSymbolTable(symtab_t* symtab,
             void function(Symbol*) nothrow fnWriteVar, void function() nothrow fnEndArgs,
