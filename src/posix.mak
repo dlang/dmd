@@ -106,7 +106,8 @@ RUN_BUILD = $(GENERATED)/build HOST_DMD="$(HOST_DMD)" CXX="$(HOST_CXX)" OS=$(OS)
 all: dmd
 .PHONY: all
 
-dmd: $G/dmd $G/dmd.conf
+dmd: $(GENERATED)/build
+	$(RUN_BUILD) $@
 .PHONY: dmd
 
 $(GENERATED)/build: build.d $(HOST_DMD_PATH)
