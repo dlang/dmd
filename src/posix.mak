@@ -159,12 +159,8 @@ man: $(GENERATED)/build
 
 ######################################################
 
-install: all $(DMD_MAN_PAGE)
-	$(eval bin_dir=$(if $(filter $(OS),osx), bin, bin$(MODEL)))
-	mkdir -p $(INSTALL_DIR)/$(OS)/$(bin_dir)
-	cp $G/dmd $(INSTALL_DIR)/$(OS)/$(bin_dir)/dmd
-	cp ../ini/$(OS)/$(bin_dir)/dmd.conf $(INSTALL_DIR)/$(OS)/$(bin_dir)/dmd.conf
-	cp $D/boostlicense.txt $(INSTALL_DIR)/dmd-boostlicense.txt
+install: $(GENERATED)/build $(DMD_MAN_PAGE)
+	$(RUN_BUILD) $@
 
 ######################################################
 

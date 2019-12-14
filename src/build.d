@@ -648,14 +648,20 @@ alias toolchainInfo = makeRule!((builder, rule) => builder
     })
 );
 
-alias installCopy = makeRule!((builder, rule) {
+alias installCopy = makeRule!((builder, rule) => builder
+    .name("install-copy")
+    .description("Legacy alias for install")
+    .deps([install])
+);
+
+alias install = makeRule!((builder, rule) {
     const dmdExeFile = dmdDefault.deps[0].target;
     auto sourceFiles = allBuildSources ~ [
         env["D"].buildPath("readme.txt"),
         env["D"].buildPath("boostlicense.txt"),
     ];
     builder
-    .name("install-copy")
+    .name("install")
     .description("Installs dmd into $(INSTALL)")
     .deps([dmdDefault])
     .sources(sourceFiles)
@@ -675,10 +681,16 @@ alias installCopy = makeRule!((builder, rule) {
         }
 
         installRelativeFiles(env["INSTALL"].buildPath(env["OS"], bin), dmdExeFile.dirName, dmdExeFile.only);
-        installRelativeFiles(env["INSTALL"], dmdRepo, sourceFiles);
+
+        version (Windows)
+            installRelativeFiles(env["INSTALL"], dmdRepo, sourceFiles);
 
         const scPath = buildPath(env["OS"], bin, conf);
         copyAndTouch(buildPath(dmdRepo, "ini", scPath), buildPath(env["INSTALL"], scPath));
+
+        version (Posix)
+            copyAndTouch(sourceFiles[$-1], env["INSTALL"].buildPath("dmd-boostlicense.txt"));
+
     });
 });
 
@@ -716,10 +728,6 @@ LtargetsLoop:
             case "all":
                 t = "dmd";
                 goto default;
-
-            case "install":
-                "TODO: install".writeln; // TODO
-                break;
 
             default:
                 // check this last, target paths should be checked after predefined names
@@ -855,7 +863,13 @@ void parseEnvironment()
     env.getDefault("SYSCONFDIR", "/etc");
     env.getDefault("TMP", tempDir);
     env.getDefault("RES", dmdRepo.buildPath("res"));
-    env.getDefault("INSTALL", dmdRepo.buildPath("install"));
+
+    version (Windows)
+        enum installPref = "";
+    else
+        enum installPref = "..";
+
+    env.getDefault("INSTALL", environment.get("INSTALL_DIR", dmdRepo.buildPath(installPref, "install")));
 
     env.getDefault("DOCSRC", dmdRepo.buildPath("dlang.org"));
     if (env.get("DOCDIR", null).length == 0)
