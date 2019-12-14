@@ -1929,9 +1929,9 @@ final class Parser(AST) : Lexer
      * Returns:
      *  RootObject representing the AST
      */
-    RootObject parseTypeOrAssignExp()
+    RootObject parseTypeOrAssignExp(TOK endtoken = TOK.reserved)
     {
-        return isDeclaration(&token, NeedDeclaratorId.no, TOK.reserved, null)
+        return isDeclaration(&token, NeedDeclaratorId.no, endtoken, null)
             ? parseType()           // argument is a type
             : parseAssignExp();     // argument is an expression
     }
@@ -3697,10 +3697,11 @@ final class Parser(AST) : Lexer
         case TOK.mixin_:
             // https://dlang.org/spec/expression.html#mixin_types
             nextToken();
+            loc = token.loc;
             if (token.value != TOK.leftParentheses)
                 error("found `%s` when expecting `%s` following %s", token.toChars(), Token.toChars(TOK.leftParentheses), "`mixin`".ptr);
             auto exps = parseArguments();
-            t = new AST.TypeMixin(exps);
+            t = new AST.TypeMixin(loc, exps);
             break;
 
         case TOK.dot:
@@ -7186,6 +7187,12 @@ final class Parser(AST) : Lexer
 
             case TOK.if_:
                 return haveTpl ? true : false;
+
+            // Used for mixin type parsing
+            case TOK.endOfFile:
+                if (endtok == TOK.endOfFile)
+                    goto case TOK.do_;
+                return false;
 
             default:
                 return false;

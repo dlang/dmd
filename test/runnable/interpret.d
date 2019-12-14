@@ -3505,6 +3505,20 @@ void test15681()
 
 /************************************************/
 
+auto test20366()
+{
+    const(char)[] s = ['h', 'e', 'l', '\xef', '\xbd', '\x8c', 'o'];
+
+    foreach_reverse (dchar c; s)
+    {
+    }
+
+    return true;
+}
+static assert(test20366());
+
+/************************************************/
+
 bool test20400()
 {
     char[] s = cast(char[])"1234";
@@ -3642,6 +3656,7 @@ int main()
     test14140();
     test14862();
     test15681();
+    test20366();
     test20400();
 
     printf("Success\n");

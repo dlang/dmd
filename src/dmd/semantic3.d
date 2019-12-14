@@ -888,7 +888,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                         const hasCopyCtor = exp.type.ty == Tstruct && (cast(TypeStruct)exp.type).sym.hasCopyCtor;
                         // if a copy constructor is present, the return type conversion will be handled by it
-                        if (!hasCopyCtor)
+                        if (!(hasCopyCtor && exp.isLvalue()))
                             exp = exp.implicitCastTo(sc2, tret);
 
                         if (f.isref)

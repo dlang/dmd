@@ -318,6 +318,8 @@ extern (C++) struct Global
     Array!Identifier* versionids;    // command line versions and predefined versions
     Array!Identifier* debugids;      // command line debug versions and predefined versions
 
+    enum recursionLimit = 500; // number of recursive template expansions before abort
+
   nothrow:
 
     /* Start gagging. Return the current number of gagged errors

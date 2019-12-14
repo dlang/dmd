@@ -27,10 +27,7 @@ extern (C++) struct Id
 {
     static __gshared:
 
-    extern (D)
-    {
-        mixin(msgtable.generate(&identifier));
-    }
+    mixin(msgtable.generate(&identifier));
 
     /**
      * Populates the identifier pool with all predefined symbols.

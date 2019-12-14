@@ -2259,12 +2259,16 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         if (ta)
         {
             //printf("type %s\n", ta.toChars());
-            d = new AliasDeclaration(Loc.initial, tp.ident, ta);
+            auto ad = new AliasDeclaration(Loc.initial, tp.ident, ta);
+            ad.wasTemplateParameter = true;
+            d = ad;
         }
         else if (sa)
         {
             //printf("Alias %s %s;\n", sa.ident.toChars(), tp.ident.toChars());
-            d = new AliasDeclaration(Loc.initial, tp.ident, sa);
+            auto ad = new AliasDeclaration(Loc.initial, tp.ident, sa);
+            ad.wasTemplateParameter = true;
+            d = ad;
         }
         else if (ea)
         {
@@ -4671,6 +4675,12 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
 
         override void visit(ArrayLiteralExp e)
         {
+            // https://issues.dlang.org/show_bug.cgi?id=20092
+            if (e.elements && e.elements.dim && e.type.toBasetype().nextOf().ty == Tvoid)
+            {
+                result = deduceEmptyArrayElement();
+                return;
+            }
             if ((!e.elements || !e.elements.dim) && e.type.toBasetype().nextOf().ty == Tvoid && tparam.ty == Tarray)
             {
                 // tparam:T[] <- e:[] (void[])
@@ -6388,7 +6398,15 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                         .error(loc, "`%s` is not a valid template instance, because `%s` is not a template declaration but a type (`%s == %s`)", toChars(), id.toChars(), id.toChars(), s.getType.kind());
                         return false;
                     }
-                    s = s2;
+                    // because s can be the alias created for a TemplateParameter
+                    const AliasDeclaration ad = s.isAliasDeclaration();
+                    version (none)
+                    {
+                        if (ad && ad.wasTemplateParameter)
+                            printf("`%s` is an alias created from a template parameter\n", s.toChars());
+                    }
+                    if (!ad || !ad.wasTemplateParameter)
+                        s = s2;
                 }
                 debug
                 {
@@ -7270,10 +7288,10 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         __gshared int nest;
         // extracted to a function to allow windows SEH to work without destructors in the same function
         //printf("%d\n", nest);
-        if (++nest > 500)
+        if (++nest > global.recursionLimit)
         {
             global.gag = 0; // ensure error message gets printed
-            error("recursive expansion");
+            error("recursive expansion exceeded allowed nesting limit");
             fatal();
         }
 
@@ -7287,10 +7305,10 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         // extracted to a function to allow windows SEH to work without destructors in the same function
         __gshared int nest;
         //printf("%d\n", nest);
-        if (++nest > 300)
+        if (++nest > global.recursionLimit)
         {
             global.gag = 0; // ensure error message gets printed
-            error("recursive expansion");
+            error("recursive expansion exceeded allowed nesting limit");
             fatal();
         }
 
@@ -7962,10 +7980,13 @@ MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t i, Templ
                  *  template X(T) {}        // T => sa
                  */
             }
-            else if (ta)
+            else if (ta && ta.ty != Tident)
             {
-                /* Match any type to alias parameters, but prefer type parameter.
+                /* Match any type that's not a TypeIdentifier to alias parameters,
+                 * but prefer type parameter.
                  * template X(alias a) { }  // a == ta
+                 *
+                 * TypeIdentifiers are excluded because they might be not yet resolved aliases.
                  */
                 m = MATCH.convert;
             }
