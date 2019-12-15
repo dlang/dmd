@@ -751,6 +751,9 @@ struct BuildRuleRange
 /// Sets the environment variables
 void parseEnvironment()
 {
+    if (!verbose)
+        verbose = "1" == env.getDefault("VERBOSE", null);
+
     // This block is temporary until we can remove the windows make files
     {
         const ddebug = env.get("DDEBUG", null);
