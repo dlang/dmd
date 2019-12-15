@@ -8,7 +8,7 @@ SRC_GC = src/gc/impl/conservative/gc.d
 SRC = $(SRC_GC) src/rt/lifetime.d src/object.d
 UDFLAGS = -m$(MODEL) -g -unittest -conf= -Isrc -defaultlib=$(DRUNTIMELIB)
 
-test: sentinel printf memstomp invariant logging precise precisegc
+test: sentinel printf memstomp invariant logging precise precisegc recoverfree
 
 sentinel:
 	$(DMD) -debug=SENTINEL $(UDFLAGS) -main -of$@.exe $(SRC)
@@ -42,5 +42,10 @@ precise:
 
 precisegc:
 	$(DMD) $(UDFLAGS) -of$@.exe -gx $(SRC) test/gc/precisegc.d
+	.\$@.exe
+	del $@.exe $@.obj $@.ilk $@.pdb
+
+recoverfree:
+	$(DMD) $(UDFLAGS) -of$@.exe -gx $(SRC) test/gc/recoverfree.d
 	.\$@.exe
 	del $@.exe $@.obj $@.ilk $@.pdb

@@ -2410,7 +2410,7 @@ struct Gcx
                         {
                             bool hasDead = false;
                             static foreach (w; 0 .. PageBits.length)
-                                hasDead = hasDead && (~freebitsdata[w] != baseOffsetBits[bin][w]);
+                                hasDead = hasDead || (~freebitsdata[w] != baseOffsetBits[bin][w]);
                             if (hasDead)
                             {
                                 // add to recover chain
