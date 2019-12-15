@@ -613,8 +613,9 @@ alias toolchainInfo = makeRule!((builder, rule) => builder
     .name("toolchain-info")
     .description("Show informations about used tools")
     .commandFunction(() {
+        scope Appender!(char[]) app;
 
-        static void show(string what, string[] cmd)
+        void show(string what, string[] cmd)
         {
             string output;
             try
@@ -622,10 +623,10 @@ alias toolchainInfo = makeRule!((builder, rule) => builder
             catch (ProcessException)
                 output = "<Not available>";
 
-            writefln("%s (%s): %s", what, cmd[0], output);
+            app.formattedWrite("%s (%s): %s\n", what, cmd[0], output);
         }
 
-        writeln("==== Toolchain Information ====");
+        app.put("==== Toolchain Information ====\n");
 
         version (Windows)
             show("SYSTEM", ["systeminfo"]);
@@ -641,7 +642,9 @@ alias toolchainInfo = makeRule!((builder, rule) => builder
         show("ld", ["ld", "-v"]);
         show("gdb", ["gdb", "--version"]);
 
-        writeln("==== Toolchain Information ====\n");
+        app.put("==== Toolchain Information ====\n\n");
+
+        writeln(app.data);
     })
 );
 
