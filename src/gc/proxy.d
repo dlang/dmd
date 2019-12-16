@@ -248,7 +248,7 @@ extern (C)
         return instance.runFinalizers( segment );
     }
 
-    bool gc_inFinalizer() nothrow
+    bool gc_inFinalizer() nothrow @nogc @safe
     {
         return instance.inFinalizer();
     }

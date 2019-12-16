@@ -979,7 +979,7 @@ class ConservativeGC : GC
     }
 
 
-    bool inFinalizer() nothrow
+    bool inFinalizer() nothrow @nogc
     {
         return _inFinalizer;
     }

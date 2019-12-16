@@ -187,5 +187,5 @@ interface GC
     /*
      *
      */
-    bool inFinalizer() nothrow;
+    bool inFinalizer() nothrow @nogc @safe;
 }
