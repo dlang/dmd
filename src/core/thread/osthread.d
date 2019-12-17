@@ -687,6 +687,12 @@ class Thread
      */
     ~this() nothrow @nogc
     {
+        if (m_tlsgcdata !is null)
+        {
+            rt_tlsgc_destroy( m_tlsgcdata );
+            m_tlsgcdata = null;
+        }
+
         bool no_context = m_addr == m_addr.init;
         bool not_registered = !next && !prev && (sm_tbeg !is this);
 
@@ -710,8 +716,6 @@ class Thread
         {
             m_tmach = m_tmach.init;
         }
-        rt_tlsgc_destroy( m_tlsgcdata );
-        m_tlsgcdata = null;
     }
 
 
