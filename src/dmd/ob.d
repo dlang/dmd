@@ -54,6 +54,7 @@ import dmd.root.outbuffer;
 void oblive(FuncDeclaration funcdecl)
 {
     //printf("oblive() %s\n", funcdecl.toChars());
+    //printf("fbody: %s\n", funcdecl.fbody.toChars());
     ObState obstate;
 
     /* Build the flow graph
@@ -792,6 +793,7 @@ void toObNodes(ref ObNodes obnodes, Statement s)
             auto b5 = newNode();
             b5.obtype = ObType.finally_;
             nextNodeIs(b5);
+            gotoNextNode();
 
             visit(s.finalbody);
 
