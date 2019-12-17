@@ -117,7 +117,7 @@ extern(D):
         if (n <= size())
             eos(n);
         else
-            assert(false); // append(n - size(), c); // write this
+            append(n - size(), c);
     }
 
 //    void reserve(size_type n = 0) @trusted;
@@ -161,8 +161,6 @@ extern(D):
     ref basic_string opIndexOpAssign(string op)(T c)                        { mixin("as_array[] " ~ op ~ "= c;"); return this; }
     ///
     ref basic_string opIndexOpAssign(string op)(const(T)[] str)             { mixin("as_array[] " ~ op ~ "= str[];"); return this; }
-
-//    ref basic_string append(size_type n, T c);
     ///
     ref basic_string append(T c)                                            { return append((&c)[0 .. 1]); }
     ///
@@ -293,6 +291,29 @@ extern(D):
                 _New_ptr[_Old_str.length .. _Old_str.length + _Str.length] = _Str[];
                 _New_ptr[_Old_str.length + _Str.length] = T(0);
             }, str);
+        }
+
+        ///
+        ref basic_string append(size_type n, T c)
+        {
+            alias _Count = n;
+            alias _Ch = c;
+            auto _My_data = &_Get_data();
+            const size_type _Old_size = _My_data._Mysize;
+            if (_Count <= _My_data._Myres - _Old_size)
+            {
+                _My_data._Mysize = _Old_size + _Count;
+                pointer _Old_ptr = _My_data._Myptr();
+                _Old_ptr[_Old_size .. _Old_size + _Count] = _Ch;
+                _Old_ptr[_Old_size + _Count] = T(0);
+                return this;
+            }
+
+            return _Reallocate_grow_by(_Count, (T* _New_ptr, const(T)[] _Old_str, size_type _Count, T _Ch) {
+                _New_ptr[0 .. _Old_str.length] = _Old_str[];
+                _New_ptr[_Old_str.length .. _Old_str.length + _Count] = _Ch;
+                _New_ptr[_Old_str.length + _Count] = T(0);
+            }, _Count, _Ch);
         }
 
     private:
@@ -512,6 +533,22 @@ extern(D):
             }
 
             void reserve(size_type __res)
+            ///
+            ref basic_string append(size_type __n, T __c)
+            {
+                if (__n)
+                {
+                    _M_check_length(size_type(0), __n, "basic_string::append");
+                    const size_type __len = __n + size();
+                    if (__len > capacity() || _M_rep()._M_is_shared())
+                        reserve(__len);
+                    const __sz = size();
+                    _M_data[__sz .. __sz + __n] = __c;
+                    _M_rep()._M_set_length_and_sharable(__len);
+                }
+                return this;
+            }
+
             {
                 if (__res != capacity() || _M_rep()._M_is_shared())
                 {
@@ -839,6 +876,12 @@ extern(D):
                 return _M_append(str.ptr, str.length);
             }
 
+            ///
+            ref basic_string append(size_type n, T c)
+            {
+                return _M_replace_aux(size(), size_type(0), n, c);
+            }
+
         private:
 //            import core.exception : RangeError;
             import core.stdcpp.type_traits : is_empty;
@@ -950,6 +993,31 @@ extern(D):
                 }
                 else
                     _M_mutate(__pos, __len1, __s, __len2);
+
+                _M_set_length(__new_size);
+                return this;
+            }
+
+            ref basic_string _M_replace_aux(size_type __pos1, size_type __n1, size_type __n2, T __c)
+            {
+                _M_check_length(__n1, __n2, "basic_string::_M_replace_aux");
+
+                const size_type __old_size = size();
+                const size_type __new_size = __old_size + __n2 - __n1;
+
+                if (__new_size <= capacity())
+                {
+                    pointer __p = _M_data + __pos1;
+
+                    const size_type __how_much = __old_size - __pos1 - __n1;
+                    if (__how_much && __n1 != __n2)
+                        _S_move(__p + __n2, __p + __n1, __how_much);
+                }
+                else
+                    _M_mutate(__pos1, __n1, null, __n2);
+
+                if (__n2)
+                    _M_data[__pos1 .. __pos1 + __n2] = __c;
 
                 _M_set_length(__new_size);
                 return this;
@@ -1145,6 +1213,24 @@ extern(D):
             return this;
         }
 
+        ///
+        ref basic_string append(size_type __n, value_type __c)
+        {
+            if (__n)
+            {
+                size_type __cap = capacity();
+                size_type __sz = size();
+                if (__cap - __sz < __n)
+                    __grow_by(__cap, __sz + __n - __cap, __sz, __sz, 0);
+                pointer __p = __get_pointer();
+                __p[__sz .. __sz + __n] = __c;
+                __sz += __n;
+                __set_size(__sz);
+                __p[__sz] = value_type(0);
+            }
+            return this;
+        }
+
     private:
 //        import core.exception : RangeError;
         import core.stdcpp.xutility : __compressed_pair;
@@ -1334,7 +1420,6 @@ extern(D):
         void __grow_by_and_replace(size_type __old_cap, size_type __delta_cap, size_type __old_sz, size_type __n_copy,
                                  size_type __n_del, size_type __n_add, const(value_type)* __p_new_stuff)
         {
-            static T max(T)(auto ref T a, auto ref T b) { return b > a ? b : a; }
             size_type __ms = max_size();
             assert(__delta_cap <= __ms - __old_cap - 1);
 //            if (__delta_cap > __ms - __old_cap - 1)
@@ -1359,6 +1444,30 @@ extern(D):
             __old_sz = __n_copy + __n_add + __sec_cp_sz;
             __set_long_size(__old_sz);
             __p[__old_sz] = value_type(0);
+        }
+
+        void __grow_by(size_type __old_cap, size_type __delta_cap, size_type __old_sz,
+                        size_type __n_copy,  size_type __n_del, size_type __n_add = 0)
+        {
+            size_type __ms = max_size();
+            assert(__delta_cap <= __ms - __old_cap);
+//            if (__delta_cap > __ms - __old_cap)
+//                __throw_length_error();
+            pointer __old_p = __get_pointer();
+            size_type __cap = __old_cap < __ms / 2 - __alignment ?
+                                  __recommend(max(__old_cap + __delta_cap, 2 * __old_cap)) :
+                                  __ms - 1;
+            pointer __p = __alloc().allocate(__cap+1);
+//            __invalidate_all_iterators(); // TODO:
+            if (__n_copy != 0)
+                __p[0 .. __n_copy] = __old_p[0 .. __n_copy];
+            size_type __sec_cp_sz = __old_sz - __n_del - __n_copy;
+            if (__sec_cp_sz != 0)
+                (__p + __n_copy + __n_add)[0 .. __sec_cp_sz] = (__old_p + __n_copy + __n_del)[0 .. __sec_cp_sz];
+            if (__old_cap+1 != __min_cap)
+                __alloc().deallocate(__old_p, __old_cap+1);
+            __set_long_pointer(__p);
+            __set_long_cap(__cap+1);
         }
     }
     else
@@ -1469,3 +1578,6 @@ extern(C++, (StdNamespace)):
         @property inout(T)[] _Mystr() inout @trusted    { return _BUF_SIZE <= _Myres ? _Bx._Ptr[0 .. _Mysize] : _Bx._Buf[0 .. _Mysize]; }
     }
 }
+
+auto ref T max(T)(auto ref T a, auto ref T b) { return b > a ? b : a; }
+auto ref T min(T)(auto ref T a, auto ref T b) { return b < a ? b : a; }
