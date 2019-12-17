@@ -252,7 +252,6 @@ extern(D):
         return this;
     }
 
-    // swap
     ///
     ref basic_string replace()(size_type pos, size_type len, auto ref basic_string str)     { return replace(pos, len, str.data(), str.size()); }
     ///
@@ -658,9 +657,50 @@ extern(D):
                 _Off, _N0, _Count, _Ch);
         }
 
+        ///
+        void swap(ref basic_string _Right)
+        {
+            import core.internal.lifetime : swap;
+            import core.stdcpp.type_traits : is_empty;
+
+            if (&this != &_Right)
+            {
+                static if (!is_empty!allocator_type.value
+                        && allocator_traits!allocator_type.propagate_on_container_swap)
+                {
+                    swap(_Getal(), _Right._Getal());
+                }
+
+                static if (_ITERATOR_DEBUG_LEVEL != 0)
+                {
+                    auto _My_data = &_Get_data();
+                    const bool _My_large = _My_data._Large_string_engaged();
+                    const bool _Right_large = _Right._Get_data()._Large_string_engaged();
+                    if (!_My_large)
+                        _Base._Orphan_all();
+
+                    if (!_Right_large)
+                        _Right._Base._Orphan_all();
+
+                    if (_My_large || _Right_large)
+                        _My_data._Base._Swap_proxy_and_iterators(_Right._Get_data()._Base);
+                } // _ITERATOR_DEBUG_LEVEL != 0
+            }
+
+            _Swap_data!_Can_memcpy_val(_Right);
+        }
+
     private:
         import core.stdcpp.xutility : MSVCLinkDirectives;
+        import core.stdcpp.xutility : _Container_base;
+
         alias _Traits = traits_type;
+        alias _Scary_val = _String_val!T;
+
+        enum bool _Can_memcpy_val = is(_Traits == char_traits!E, E) && is(pointer == U*, U);
+        // This offset skips over the _Container_base members, if any
+        enum size_t _Memcpy_val_offset = _Size_after_ebco_v!_Container_base;
+        enum size_t _Memcpy_val_size   = _Scary_val.sizeof - _Memcpy_val_offset;
 
         // Make sure the object files wont link against mismatching objects
         mixin MSVCLinkDirectives!true;
@@ -770,6 +810,62 @@ extern(D):
             _My_data._Mysize = 0;
             _My_data._Myres = _My_data._BUF_SIZE - 1;
             _My_data._Bx._Buf[0] = T(0);
+        }
+
+        void _Swap_data(bool _memcpy : true)(ref basic_string _Right)
+        {
+            import core.stdc.string : memcpy;
+
+            // exchange _String_val instances with _Right, memcpy optimization
+            auto _My_data = &_Get_data();
+            auto _My_data_mem = cast(ubyte*)_My_data + _Memcpy_val_offset;
+            auto _Right_data_mem = cast(ubyte*)(&_Right._Get_data()) + _Memcpy_val_offset;
+            ubyte[_Memcpy_val_size] _Temp_mem;
+            memcpy(_Temp_mem.ptr, _My_data_mem, _Memcpy_val_size);
+            memcpy(_My_data_mem, _Right_data_mem, _Memcpy_val_size);
+            memcpy(_Right_data_mem, _Temp_mem.ptr, _Memcpy_val_size);
+        }
+
+        void _Swap_data(bool _memcpy : false)(ref basic_string _Right)
+        {
+            import core.lifetime : swap;
+
+            // exchange _String_val instances with _Right, general case
+            auto _My_data = &_Get_data();
+            auto _Right_data = &_Right._Get_data();
+            const bool _My_large = _My_data._Large_string_engaged();
+            const bool _Right_large = _Right_data._Large_string_engaged();
+            if (_My_large)
+            {
+                if (_Right_large) // swap buffers, iterators preserved
+                    swap(_My_data._Bx._Ptr, _Right_data._Bx._Ptr);
+                else // swap large with small
+                    _Swap_bx_large_with_small(*_My_data, *_Right_data);
+            }
+            else
+            {
+                if (_Right_large) // swap small with large
+                    _Swap_bx_large_with_small(*_Right_data, *_My_data);
+                else
+                {
+                    enum _BUF_SIZE = _My_data._BUF_SIZE;
+                    T[_BUF_SIZE] _Temp_buf;
+                    _Temp_buf[0 .. _BUF_SIZE] = _My_data._Bx._Buf[0 .. _BUF_SIZE];
+                    _My_data._Bx._Buf[0 .. _BUF_SIZE] = _Right_data._Bx._Buf[0 .. _BUF_SIZE];
+                    _Right_data._Bx._Buf[0 .. _BUF_SIZE] = _Temp_buf[0 .. _BUF_SIZE];
+                }
+            }
+
+            swap(_My_data._Mysize, _Right_data._Mysize);
+            swap(_My_data._Myres, _Right_data._Myres);
+        }
+
+        void _Swap_bx_large_with_small(ref _Scary_val _Starts_large, ref _Scary_val _Starts_small)
+        {
+            // exchange a string in large mode with one in small mode
+            pointer _Ptr = _Starts_large._Bx._Ptr;
+            _Starts_large._Bx._Buf[] = _Starts_small._Bx._Buf[];
+            _Starts_small._Bx._Ptr = _Ptr;
         }
 
         _String_alloc!(_String_base_types!(T, Alloc)) _Base;
@@ -996,6 +1092,31 @@ extern(D):
             ref basic_string replace(size_type pos, size_type n1, size_type n2, T c)
             {
                 return _M_replace_aux(_M_check(pos, "basic_string::replace"), _M_limit(pos, n1), n2, c);
+            }
+
+            ///
+            void swap(ref basic_string __s)
+            {
+                if (_M_rep()._M_is_leaked())
+                    _M_rep()._M_set_sharable();
+                if (__s._M_rep()._M_is_leaked())
+                    __s._M_rep()._M_set_sharable();
+                if (this.get_allocator() == __s.get_allocator())
+                {
+                    T* __tmp = _M_data;
+                    _M_data = __s._M_data;
+                    __s._M_data = __tmp;
+                }
+                // The code below can usually be optimized away.
+                else
+                {
+                    import core.lifetime : move;
+
+                    auto __tmp1 = basic_string(this[], __s.get_allocator());
+                    auto __tmp2 = basic_string(__s[], this.get_allocator());
+                    this = move(__tmp2);
+                    __s = move(__tmp1);
+                }
             }
 
         private:
@@ -1395,6 +1516,73 @@ extern(D):
                 return _M_replace_aux(_M_check(pos, "basic_string::replace"), _M_limit(pos, n1), n2, c);
             }
 
+            ///
+            void swap(ref basic_string __s)
+            {
+                if (&this == &__s)
+                    return;
+
+                __alloc_on_swap(__s._M_get_allocator());
+
+                if (_M_is_local())
+                {
+                    if (__s._M_is_local())
+                    {
+                        if (length() && __s.length())
+                        {
+                            T[_S_local_capacity + 1] __tmp_data;
+                            __tmp_data[] = __s._M_local_buf[];
+                            __s._M_local_buf[] = _M_local_buf[];
+                            _M_local_buf[] = __tmp_data[];
+                        }
+                        else if (__s.length())
+                        {
+                            _M_local_buf[] = __s._M_local_buf[];
+                            _M_length = __s.length();
+                            __s._M_set_length(0);
+                            return;
+                        }
+                        else if (length())
+                        {
+                            __s._M_local_buf[] = _M_local_buf[];
+                            __s._M_length = length();
+                            _M_set_length(0);
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        const size_type __tmp_capacity = __s._M_allocated_capacity;
+                        __s._M_local_buf[] = _M_local_buf[];
+                        _M_data = __s._M_data;
+                        __s._M_data = __s._M_local_buf.ptr;
+                        _M_capacity = __tmp_capacity;
+                    }
+                }
+                else
+                {
+                    const size_type __tmp_capacity = _M_allocated_capacity;
+                    if (__s._M_is_local())
+                    {
+                        _M_local_buf[] = __s._M_local_buf[];
+                        __s._M_data = _M_data;
+                        _M_data = _M_local_buf.ptr;
+                    }
+                    else
+                    {
+                        pointer __tmp_ptr = _M_data;
+                        _M_data = __s._M_data;
+                        __s._M_data = __tmp_ptr;
+                        _M_capacity = __s._M_allocated_capacity;
+                    }
+                    __s._M_capacity = __tmp_capacity;
+                }
+
+                const size_type __tmp_length = length();
+                _M_length = __s.length();
+                __s._M_length = __tmp_length;
+            }
+
         private:
 //            import core.exception : RangeError;
             import core.stdcpp.type_traits : is_empty;
@@ -1451,6 +1639,28 @@ extern(D):
                 {
                     const bool __testoff =  __off < size() - __pos;
                     return __testoff ? __off : size() - __pos;
+                }
+
+                void __alloc_on_swap()(ref allocator_type __a)
+                if (!is_empty!allocator_type.value)
+                {
+                    import core.internal.lifetime : swap;
+
+                    static if (allocator_traits!allocator_type.propagate_on_container_swap)
+                      swap(_M_get_allocator(), __a);
+                }
+
+                void __alloc_on_swap()(ref allocator_type __a)
+                if (is_empty!allocator_type.value)
+                {
+                    import core.internal.lifetime : swap;
+                    import core.lifetime : move;
+
+                    static if (allocator_traits!allocator_type.propagate_on_container_swap)
+                    {
+                        static if (is(typeof(_M_get_allocator().opAssign(move(__a)))))
+                            swap(_M_get_allocator(), __a);
+                    }
                 }
             }
 
@@ -1971,9 +2181,31 @@ extern(D):
             return this;
         }
 
+        ///
+        void swap(ref basic_string __str)
+        {
+            import core.internal.lifetime : swap;
+//            static if (_LIBCPP_DEBUG_LEVEL >= 2)
+//            {
+//                if (!__is_long())
+//                    __get_db().__invalidate_all(&this);
+//                if (!__str.__is_long())
+//                    __get_db().__invalidate_all(&__str);
+//                __get_db().swap(&this, &__str);
+//            }
+            assert(
+                __alloc_traits.propagate_on_container_swap ||
+                __alloc_traits.is_always_equal ||
+                __alloc() == __str.__alloc(), "swapping non-equal allocators");
+            swap(__r_.first(), __str.__r_.first());
+            __swap_allocator(__alloc(), __str.__alloc());
+        }
+
     private:
 //        import core.exception : RangeError;
         import core.stdcpp.xutility : __compressed_pair;
+
+        alias __alloc_traits = allocator_traits!allocator_type;
 
         enum __alignment = 16;
 
@@ -2324,6 +2556,12 @@ extern(C++, (StdNamespace)):
             return min(_Size, _Mysize - _Off);
         }
     }
+
+    template _Size_after_ebco_v(_Ty)
+    {
+        import core.stdcpp.type_traits : is_empty;
+
+        enum size_t _Size_after_ebco_v = is_empty!_Ty.value ? 0 : _Ty.sizeof; // get _Ty's size after being EBCO'd
     }
 }
 

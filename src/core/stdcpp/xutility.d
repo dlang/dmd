@@ -172,6 +172,7 @@ package:
     extern(D):
         void _Orphan_all()() nothrow @nogc @safe {}
         void _Swap_all()(ref _Container_base0) nothrow @nogc @safe {}
+        void _Swap_proxy_and_iterators()(ref _Container_base0) nothrow {}
     }
     struct _Iterator_base0
     {
@@ -209,6 +210,22 @@ package:
             }
         }
 //        void _Swap_all()(ref _Container_base12) nothrow @nogc;
+
+        void _Swap_proxy_and_iterators()(ref _Container_base12 _Right) nothrow
+        {
+            static if (_ITERATOR_DEBUG_LEVEL == 2)
+                auto _Lock = _Lockit(_LOCK_DEBUG);
+
+            _Container_proxy* _Temp = _Myproxy;
+            _Myproxy = _Right._Myproxy;
+            _Right._Myproxy = _Temp;
+
+            if (_Myproxy)
+                _Myproxy._Mycont = &this;
+
+            if (_Right._Myproxy)
+                _Right._Myproxy._Mycont = &_Right;
+        }
 
         _Container_proxy* _Myproxy;
     }
