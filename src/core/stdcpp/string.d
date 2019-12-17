@@ -26,7 +26,7 @@ version (CppRuntime_Gcc)
     version (_GLIBCXX_USE_CXX98_ABI)
     {
         private enum StringNamespace = "std";
-//        version = __GTHREADS; // TODO: we need to make ref-count interactions atomic
+        version = __GTHREADS;
     }
     else
     {
@@ -133,7 +133,7 @@ extern(D):
 
     // Modifiers
     ///
-    ref basic_string opAssign()(auto ref basic_string str)                  { return assign(str.as_array); }
+    ref basic_string opAssign()(auto ref basic_string str)                  { return assign(str); }
 //    ref basic_string assign(size_type n, T c);
     ///
     ref basic_string opAssign(const(T)[] str)                               { return assign(str); }
@@ -264,6 +264,14 @@ extern(D):
                 _New_ptr[0 .. _Count] = _Ptr[0 .. _Count];
                 _New_ptr[_Count] = T(0);
             }, str.ptr);
+        }
+
+        ///
+        ref basic_string assign(const ref basic_string str)
+        {
+            if (&this != &str)
+                assign(str.as_array);
+            return this;
         }
 
         ///
@@ -412,13 +420,13 @@ extern(D):
                 _M_data = _S_construct(str.ptr, str.ptr + str.length, _M_get_allocator);
             }
             ///
-            this(this)
+            this(const ref basic_string str)
             {
-                if (_M_rep() != &_S_empty_rep())
-                {
-                    // TODO: atomic inc
-                    ++_M_rep()._M_refcount;
-                }
+                import core.stdcpp.type_traits : is_empty;
+
+                static if (!is_empty!allocator_type.value)
+                    _M_Alloc = str.get_allocator();
+                _M_data = str._M_rep()._M_grab(get_allocator(), str.get_allocator());
             }
 
             ///
@@ -460,6 +468,20 @@ extern(D):
                     _M_rep()._M_set_length_and_sharable(__n);
                     return this;
                 }
+            }
+
+            ///
+            ref basic_string assign(const ref basic_string str)
+            {
+                if (_M_rep() != str._M_rep())
+                {
+                    // XXX MT
+                    allocator_type __a = this.get_allocator();
+                    T* __tmp = str._M_rep()._M_grab(__a, str.get_allocator());
+                    _M_rep()._M_dispose(__a);
+                    _M_data = __tmp;
+                }
+                return this;
             }
 
             ///
@@ -550,23 +572,33 @@ extern(D):
                     }
                 }
 
-//                bool _M_is_leaked() const nothrow
-//                {
-////                    version (__GTHREADS)
-////                        return __atomic_load_n(&this->_M_refcount, __ATOMIC_RELAXED) < 0;
-////                    else
-//                        return _M_refcount < 0;
-//                }
+                bool _M_is_leaked() const nothrow
+                {
+                    import core.atomic : atomicLoad;
+
+                    version (__GTHREADS)
+                        return atomicLoad!(MemoryOrder.raw)(this._M_refcount) < 0;
+                    else
+                        return _M_refcount < 0;
+                }
 //
                 bool _M_is_shared() const nothrow
                 {
-//                    version (__GTHREADS)
-//                        return __atomic_load_n(&this->_M_refcount, __ATOMIC_ACQUIRE) > 0;
-//                    else
+                    import core.atomic : atomicLoad;
+
+                    version (__GTHREADS)
+                        return atomicLoad!(MemoryOrder.acq)(this._M_refcount) > 0;
+                    else
                         return _M_refcount > 0;
                 }
 
                 T* _M_refdata() nothrow @trusted    { return cast(T*)(&this + 1); }
+
+                T* _M_grab(ref allocator_type __alloc1, const ref allocator_type __alloc2)
+                {
+                    return (!_M_is_leaked() && __alloc1 == __alloc2)
+                          ? _M_refcopy() : _M_clone(__alloc1);
+                }
 
                 static _Rep* _S_create(size_type __capacity, size_type __old_capacity, ref Alloc __alloc)
                 {
@@ -601,28 +633,25 @@ extern(D):
 
                 void _M_dispose(ref Alloc __a)
                 {
+                    import core.stdcpp.xutility : __exchange_and_add_dispatch;
+
                     if (&this != &_S_empty_rep())
                     {
-//                        // Be race-detector-friendly.  For more info see bits/c++config.
-//                        _GLIBCXX_SYNCHRONIZATION_HAPPENS_BEFORE(&this->_M_refcount);
-//                        // Decrement of _M_refcount is acq_rel, because:
-//                        // - all but last decrements need to release to synchronize with
-//                        //   the last decrement that will delete the object.
-//                        // - the last decrement needs to acquire to synchronize with
-//                        //   all the previous decrements.
-//                        // - last but one decrement needs to release to synchronize with
-//                        //   the acquire load in _M_is_shared that will conclude that
-//                        //   the object is not shared anymore.
-//                        if (__gnu_cxx::__exchange_and_add_dispatch(&this->_M_refcount,
-//                                                                   -1) <= 0)
-//                        {
-//                            _GLIBCXX_SYNCHRONIZATION_HAPPENS_AFTER(&this->_M_refcount);
-//                            _M_destroy(__a);
-//                        }
-
-                        // TODO: atomic version!!
-                        if (_M_refcount-- <= 0)
+                        // Be race-detector-friendly.  For more info see bits/c++config.
+//                        _GLIBCXX_SYNCHRONIZATION_HAPPENS_BEFORE(&this._M_refcount);
+                        // Decrement of _M_refcount is acq_rel, because:
+                        // - all but last decrements need to release to synchronize with
+                        //   the last decrement that will delete the object.
+                        // - the last decrement needs to acquire to synchronize with
+                        //   all the previous decrements.
+                        // - last but one decrement needs to release to synchronize with
+                        //   the acquire load in _M_is_shared that will conclude that
+                        //   the object is not shared anymore.
+                        if (__exchange_and_add_dispatch(&this._M_refcount, -1) <= 0)
+                        {
+//                            _GLIBCXX_SYNCHRONIZATION_HAPPENS_AFTER(&this._M_refcount);
                             _M_destroy(__a);
+                        }
                     }
                 }
 
@@ -632,7 +661,17 @@ extern(D):
                     _Raw_bytes_alloc(__a).deallocate(cast(char*)&this, __size);
                 }
 
-                T* _M_clone(ref Alloc __alloc, size_type __res)
+                T* _M_refcopy() nothrow @trusted
+                {
+                    import core.stdcpp.xutility : __atomic_add_dispatch;
+
+                    if (&this != &_S_empty_rep())
+                        __atomic_add_dispatch(&this._M_refcount, 1);
+                    return _M_refdata();
+                    // XXX MT
+                }
+
+                T* _M_clone(ref Alloc __alloc, size_type __res = 0)
                 {
                     const size_type __requested_cap = _M_length + __res;
                     _Rep* __r = _S_create(__requested_cap, _M_capacity, __alloc);
@@ -723,7 +762,8 @@ extern(D):
                     if (__how_much)
                         _S_copy(__r._M_refdata() + __pos + __len2, _M_data + __pos + __len1, __how_much);
 
-                    _M_rep()._M_dispose(__a);
+                    allocator_type* __al = cast() &__a;
+                    _M_rep()._M_dispose(*__al);
                     _M_data = __r._M_refdata();
                 }
                 else if (__how_much && __len1 != __len2)
@@ -781,6 +821,14 @@ extern(D):
             {
 //                __glibcxx_requires_string_len(str.ptr, str.length);
                 return _M_replace(size_type(0), size(), str.ptr, str.length);
+            }
+
+            ///
+            ref basic_string assign(const ref basic_string str)
+            {
+                if (&this != &str)
+                    assign(str.as_array);
+                return this;
             }
 
             ///
@@ -1063,6 +1111,14 @@ extern(D):
                 size_type __sz = size();
                 __grow_by_and_replace(__cap, __n - __cap, __sz, 0, __sz, __n, __s);
             }
+            return this;
+        }
+
+        ///
+        ref basic_string assign(const ref basic_string str)
+        {
+            if (&this != &str)
+                assign(str.as_array);
             return this;
         }
 

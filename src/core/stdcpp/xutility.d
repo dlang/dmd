@@ -348,3 +348,62 @@ extern(C++, "std"):
             @property ref inout(_T2) __value2_() inout nothrow @trusted @nogc { return *__get_base2(); }
     }
 }
+version (CppRuntime_Gcc)
+{
+    import core.atomic;
+
+    alias _Atomic_word = int;
+
+    void __atomic_add_dispatch()(_Atomic_word* __mem, int __val) nothrow @nogc @safe
+    {
+        version (__GTHREADS)
+        {
+            // TODO: check __gthread_active_p()
+//            if (__gthread_active_p())
+                __atomic_add(__mem, __val);
+//            }
+//            else
+//            __atomic_add_single(__mem, __val);
+        }
+        else
+            __atomic_add_single(__mem, __val);
+    }
+
+    void __atomic_add()(_Atomic_word* __mem, int __val) nothrow @nogc @safe
+    {
+        atomicFetchAdd!(MemoryOrder.acq_rel)(*__mem, __val);
+    }
+
+    void __atomic_add_single()(_Atomic_word* __mem, int __val) nothrow @nogc @safe
+    {
+        *__mem += __val;
+    }
+
+    _Atomic_word __exchange_and_add_dispatch()(_Atomic_word* __mem, int __val) nothrow @nogc @safe
+    {
+        version (__GTHREADS)
+        {
+            // TODO: check __gthread_active_p()
+            return __exchange_and_add(__mem, __val);
+
+//            if (__gthread_active_p())
+//                return __exchange_and_add(__mem, __val);
+//            else
+//                return __exchange_and_add_single(__mem, __val);
+        }
+        else
+            return __exchange_and_add_single(__mem, __val);
+    }
+
+    _Atomic_word __exchange_and_add()(_Atomic_word* __mem, int __val) nothrow @nogc @safe
+    {
+        return atomicFetchAdd!(MemoryOrder.acq_rel)(*__mem, __val);
+    }
+
+    _Atomic_word __exchange_and_add_single()(_Atomic_word* __mem, int __val) nothrow @nogc @safe
+    {
+        _Atomic_word __result = *__mem;
+        *__mem += __val;
+        return __result;
+    }
+}
