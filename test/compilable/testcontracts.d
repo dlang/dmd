@@ -172,3 +172,15 @@ final class Foo17893(T)
 }
 
 Foo17893!int foo17893;
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=15984
+
+alias Bar15984 = extern (C) void function(void*);
+
+final class C15984
+{
+    void foo(Bar15984 bar)
+    in { assert(bar); }
+    do {}
+}

@@ -1,5 +1,5 @@
 // PERMUTE_ARGS:
-// REQUIRED_ARGS: -D -Dd${RESULTS_DIR}/compilable -wi -o- -transition=markdown -transition=vmarkdown
+// REQUIRED_ARGS: -D -Dd${RESULTS_DIR}/compilable -wi -o- -preview=markdown -transition=vmarkdown
 // POST_SCRIPT: compilable/extra-files/ddocAny-postscript.sh
 
 /*

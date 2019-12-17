@@ -14,40 +14,40 @@ import std.stdio : writeln, writefln;
 void main(string[] args)
 {
     ushort port;
-    
+
     if (args.length >= 2)
         port = to!ushort(args[1]);
     else
         port = 4444;
-    
+
     auto listener = new TcpSocket();
     assert(listener.isAlive);
     listener.blocking = false;
     listener.bind(new InternetAddress(port));
     listener.listen(10);
     writefln("Listening on port %d.", port);
-    
+
     enum MAX_CONNECTIONS = 60;
     // Room for listener.
     auto socketSet = new SocketSet(MAX_CONNECTIONS + 1);
     Socket[] reads;
-    
+
     while (true)
     {
         socketSet.add(listener);
-        
+
         foreach (sock; reads)
             socketSet.add(sock);
-        
+
         Socket.select(socketSet, null, null);
-        
+
         for (size_t i = 0; i < reads.length; i++)
         {
             if (socketSet.isSet(reads[i]))
             {
                 char[1024] buf;
                 auto datLength = reads[i].receive(buf[]);
-                
+
                 if (datLength == Socket.ERROR)
                     writeln("Connection error.");
                 else if (datLength != 0)
@@ -67,32 +67,32 @@ void main(string[] args)
                         writeln("Connection closed.");
                     }
                 }
-                
+
                 // release socket resources now
                 reads[i].close();
-                
+
                 reads = reads.remove(i);
                 // i will be incremented by the for, we don't want it to be.
                 i--;
-                
+
                 writefln("\tTotal connections: %d", reads.length);
             }
         }
-        
+
         if (socketSet.isSet(listener))        // connection request
         {
             Socket sn = null;
             scope (failure)
             {
                 writefln("Error accepting");
-                
+
                 if (sn)
                     sn.close();
             }
             sn = listener.accept();
             assert(sn.isAlive);
             assert(listener.isAlive);
-            
+
             if (reads.length < MAX_CONNECTIONS)
             {
                 writefln("Connection from %s established.", sn.remoteAddress().toString());
@@ -107,7 +107,7 @@ void main(string[] args)
                 assert(listener.isAlive);
             }
         }
-        
+
         socketSet.reset();
     }
 }

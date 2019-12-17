@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/mtype.d, _mtype.d)
@@ -21,6 +21,7 @@ import core.stdc.string;
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.attrib;
+import dmd.ast_node;
 import dmd.gluelayer;
 import dmd.dclass;
 import dmd.declaration;
@@ -33,6 +34,7 @@ import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
+import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;
 import dmd.hdrgen;
@@ -52,9 +54,6 @@ import dmd.visitor;
 
 enum LOGDOTEXP = 0;         // log ::dotExp()
 enum LOGDEFAULTINIT = 0;    // log ::defaultInit()
-
-extern (C++) __gshared int Tsize_t = Tuns32;
-extern (C++) __gshared int Tptrdiff_t = Tint32;
 
 enum SIZE_INVALID = (~cast(d_uns64)0);   // error return from size() functions
 
@@ -167,14 +166,14 @@ void MODtoBuffer(OutBuffer* buf, MOD mod) nothrow
  *   a human readable representation of `mod`,
  *   which is the token `mod` corresponds to
  */
-const(char)* MODtoChars(MOD mod) nothrow
+const(char)* MODtoChars(MOD mod) nothrow pure
 {
     /// Works because we return a literal
     return MODtoString(mod).ptr;
 }
 
 /// Ditto
-string MODtoString(MOD mod) nothrow
+string MODtoString(MOD mod) nothrow pure
 {
     final switch (mod)
     {
@@ -233,6 +232,7 @@ private enum TFlags
     real_        = 8,
     imaginary    = 0x10,
     complex      = 0x20,
+    char_        = 0x40,
 }
 
 enum ENUMTY : int
@@ -286,6 +286,7 @@ enum ENUMTY : int
     Tint128,
     Tuns128,
     TTraits,
+    Tmixin,
     TMAX,
 }
 
@@ -334,6 +335,7 @@ alias Tvector = ENUMTY.Tvector;
 alias Tint128 = ENUMTY.Tint128;
 alias Tuns128 = ENUMTY.Tuns128;
 alias Ttraits = ENUMTY.TTraits;
+alias Tmixin = ENUMTY.Tmixin;
 alias TMAX = ENUMTY.TMAX;
 
 alias TY = ubyte;
@@ -374,7 +376,7 @@ enum VarArg
 
 /***********************************************************
  */
-extern (C++) abstract class Type : RootObject
+extern (C++) abstract class Type : ASTNode
 {
     TY ty;
     MOD mod; // modifiers MODxxxx
@@ -488,6 +490,7 @@ extern (C++) abstract class Type : RootObject
             sizeTy[Tnull] = __traits(classInstanceSize, TypeNull);
             sizeTy[Tvector] = __traits(classInstanceSize, TypeVector);
             sizeTy[Ttraits] = __traits(classInstanceSize, TypeTraits);
+            sizeTy[Tmixin] = __traits(classInstanceSize, TypeMixin);
             return sizeTy;
         }();
 
@@ -501,7 +504,7 @@ extern (C++) abstract class Type : RootObject
         assert(false); // should be overridden
     }
 
-    final Type copy() nothrow
+    final Type copy() nothrow const
     {
         Type t = cast(Type)mem.xmalloc(sizeTy[ty]);
         memcpy(cast(void*)t, cast(void*)this, sizeTy[ty]);
@@ -514,7 +517,7 @@ extern (C++) abstract class Type : RootObject
         assert(0);
     }
 
-    override bool equals(RootObject o) const
+    override bool equals(const RootObject o) const
     {
         Type t = cast(Type)o;
         //printf("Type::equals(%s, %s)\n", toChars(), t.toChars());
@@ -570,17 +573,14 @@ extern (C++) abstract class Type : RootObject
 
         bool notcovariant = false;
 
-        TypeFunction t1;
-        TypeFunction t2;
-
         if (equals(t))
             return 1; // covariant
 
-        if (ty != Tfunction || t.ty != Tfunction)
-            goto Ldistinct;
+        TypeFunction t1 = this.isTypeFunction();
+        TypeFunction t2 = t.isTypeFunction();
 
-        t1 = cast(TypeFunction)this;
-        t2 = cast(TypeFunction)t;
+        if (!t1 || !t2)
+            goto Ldistinct;
 
         if (t1.parameterList.varargs != t2.parameterList.varargs)
             goto Ldistinct;
@@ -604,14 +604,14 @@ extern (C++) abstract class Type : RootObject
                     Type tp2 = fparam2.type;
                     if (tp1.ty == tp2.ty)
                     {
-                        if (tp1.ty == Tclass)
+                        if (auto tc1 = tp1.isTypeClass())
                         {
-                            if ((cast(TypeClass)tp1).sym == (cast(TypeClass)tp2).sym && MODimplicitConv(tp2.mod, tp1.mod))
+                            if (tc1.sym == (cast(TypeClass)tp2).sym && MODimplicitConv(tp2.mod, tp1.mod))
                                 goto Lcov;
                         }
-                        else if (tp1.ty == Tstruct)
+                        else if (auto ts1 = tp1.isTypeStruct())
                         {
-                            if ((cast(TypeStruct)tp1).sym == (cast(TypeStruct)tp2).sym && MODimplicitConv(tp2.mod, tp1.mod))
+                            if (ts1.sym == (cast(TypeStruct)tp2).sym && MODimplicitConv(tp2.mod, tp1.mod))
                                 goto Lcov;
                         }
                         else if (tp1.ty == Tpointer)
@@ -683,8 +683,16 @@ extern (C++) abstract class Type : RootObject
             }
             else if (t1n.ty == t2n.ty && t1n.implicitConvTo(t2n))
                 goto Lcovariant;
-            else if (t1n.ty == Tnull && t1n.implicitConvTo(t2n) && t1n.size() == t2n.size())
-                goto Lcovariant;
+            else if (t1n.ty == Tnull)
+            {
+                // NULL is covariant with any pointer type, but not with any
+                // dynamic arrays, associative arrays or delegates.
+                // https://issues.dlang.org/show_bug.cgi?id=8589
+                // https://issues.dlang.org/show_bug.cgi?id=19618
+                Type t2bn = t2n.toBasetype();
+                if (t2bn.ty == Tnull || t2bn.ty == Tpointer || t2bn.ty == Tclass)
+                    goto Lcovariant;
+            }
         }
         goto Lnotcovariant;
 
@@ -776,7 +784,7 @@ extern (C++) abstract class Type : RootObject
     /********************************
      * For pretty-printing a type.
      */
-    final override const(char)* toChars()
+    final override const(char)* toChars() const
     {
         OutBuffer buf;
         buf.reserve(16);
@@ -784,7 +792,7 @@ extern (C++) abstract class Type : RootObject
         hgs.fullQual = (ty == Tclass && !mod);
 
         .toCBuffer(this, &buf, null, &hgs);
-        return buf.extractString();
+        return buf.extractChars();
     }
 
     /// ditto
@@ -796,7 +804,7 @@ extern (C++) abstract class Type : RootObject
         hgs.fullQual = QualifyTypes;
 
         .toCBuffer(this, &buf, null, &hgs);
-        return buf.extractString();
+        return buf.extractChars();
     }
 
     static void _init()
@@ -879,22 +887,24 @@ extern (C++) abstract class Type : RootObject
         tstring = tchar.immutableOf().arrayOf();
         twstring = twchar.immutableOf().arrayOf();
         tdstring = tdchar.immutableOf().arrayOf();
-        tvalist = Target.va_listType();
+        tvalist = target.va_listType();
 
-        if (global.params.isLP64)
-        {
-            Tsize_t = Tuns64;
-            Tptrdiff_t = Tint64;
-        }
-        else
-        {
-            Tsize_t = Tuns32;
-            Tptrdiff_t = Tint32;
-        }
+        const isLP64 = global.params.isLP64;
 
-        tsize_t = basic[Tsize_t];
-        tptrdiff_t = basic[Tptrdiff_t];
+        tsize_t    = basic[isLP64 ? Tuns64 : Tuns32];
+        tptrdiff_t = basic[isLP64 ? Tint64 : Tint32];
         thash_t = tsize_t;
+    }
+
+    /**
+     * Deinitializes the global state of the compiler.
+     *
+     * This can be used to restore the state set by `_init` to its original
+     * state.
+     */
+    static void deinitialize()
+    {
+        stringtable = stringtable.init;
     }
 
     final d_uns64 size()
@@ -920,7 +930,7 @@ extern (C++) abstract class Type : RootObject
         // Needed to display any deprecations that were gagged
         auto tcopy = this.syntaxCopy();
 
-        uint errors = global.startGagging();
+        const errors = global.startGagging();
         Type t = typeSemantic(this, loc, sc);
         if (global.endGagging(errors) || t.ty == Terror) // if any errors happened
         {
@@ -964,7 +974,7 @@ extern (C++) abstract class Type : RootObject
     /*********************************
      * Store this type's modifier name into buf.
      */
-    final void modToBuffer(OutBuffer* buf) nothrow
+    final void modToBuffer(OutBuffer* buf) nothrow const
     {
         if (mod)
         {
@@ -976,12 +986,12 @@ extern (C++) abstract class Type : RootObject
     /*********************************
      * Return this type's modifier name.
      */
-    final char* modToChars() nothrow
+    final char* modToChars() nothrow const
     {
         OutBuffer buf;
         buf.reserve(16);
         modToBuffer(&buf);
-        return buf.extractString();
+        return buf.extractChars();
     }
 
     bool isintegral()
@@ -1016,6 +1026,11 @@ extern (C++) abstract class Type : RootObject
     }
 
     bool isunsigned()
+    {
+        return false;
+    }
+
+    bool ischar()
     {
         return false;
     }
@@ -1111,7 +1126,7 @@ extern (C++) abstract class Type : RootObject
      * Return a copy of this type with all attributes null-initialized.
      * Useful for creating a type with different modifiers.
      */
-    final Type nullAttributes() nothrow
+    final Type nullAttributes() nothrow const
     {
         uint sz = sizeTy[ty];
         Type t = cast(Type)mem.xmalloc(sz);
@@ -2009,7 +2024,7 @@ extern (C++) abstract class Type : RootObject
         if (!ad || !ad.aliasthis)
             return null;
 
-        auto s = ad.aliasthis;
+        auto s = ad.aliasthis.sym;
         if (s.isAliasDeclaration())
             s = s.toAlias();
 
@@ -2025,7 +2040,7 @@ extern (C++) abstract class Type : RootObject
         }
         if (auto fd = s.isFuncDeclaration())
         {
-            fd = resolveFuncCall(Loc.initial, null, fd, null, this, null, 1);
+            fd = resolveFuncCall(Loc.initial, null, fd, null, this, null, FuncResolveFlag.quiet);
             if (!fd || fd.errors || !fd.functionSemantic())
                 return Type.terror;
 
@@ -2047,7 +2062,7 @@ extern (C++) abstract class Type : RootObject
         if (auto td = s.isTemplateDeclaration())
         {
             assert(td._scope);
-            auto fd = resolveFuncCall(Loc.initial, null, td, null, this, null, 1);
+            auto fd = resolveFuncCall(Loc.initial, null, td, null, this, null, FuncResolveFlag.quiet);
             if (!fd || fd.errors || !fd.functionSemantic())
                 return Type.terror;
 
@@ -2367,11 +2382,13 @@ extern (C++) abstract class Type : RootObject
     /**************************
      * Return type with the top level of it being mutable.
      */
-    Type toHeadMutable()
+    inout(Type) toHeadMutable() inout
     {
         if (!mod)
             return this;
-        return mutableOf();
+        Type unqualThis = cast(Type) this;
+        // `mutableOf` needs a mutable `this` only for caching
+        return cast(inout(Type)) unqualThis.mutableOf();
     }
 
     inout(ClassDeclaration) isClassHandle() inout
@@ -2413,13 +2430,12 @@ extern (C++) abstract class Type : RootObject
         buf.reserve(32);
         mangleToBuffer(this, &buf);
 
-        const slice = buf.peekSlice();
+        const slice = buf[];
 
         // Allocate buffer on stack, fail over to using malloc()
         char[128] namebuf;
         const namelen = 19 + size_t.sizeof * 3 + slice.length + 1;
-        auto name = namelen <= namebuf.length ? namebuf.ptr : cast(char*)malloc(namelen);
-        assert(name);
+        auto name = namelen <= namebuf.length ? namebuf.ptr : cast(char*)Mem.check(malloc(namelen));
 
         const length = sprintf(name, "_D%lluTypeInfo_%.*s6__initZ",
                 cast(ulong)(9 + slice.length), cast(int)slice.length, slice.ptr);
@@ -2477,8 +2493,9 @@ extern (C++) abstract class Type : RootObject
     final Type baseElemOf()
     {
         Type t = toBasetype();
-        while (t.ty == Tsarray)
-            t = (cast(TypeSArray)t).next.toBasetype();
+        TypeSArray tsa;
+        while ((tsa = t.isTypeSArray()) !is null)
+            t = tsa.next.toBasetype();
         return t;
     }
 
@@ -2650,9 +2667,11 @@ extern (C++) abstract class Type : RootObject
         inout(TypeTuple)      isTypeTuple()      { return ty == Ttuple     ? cast(typeof(return))this : null; }
         inout(TypeSlice)      isTypeSlice()      { return ty == Tslice     ? cast(typeof(return))this : null; }
         inout(TypeNull)       isTypeNull()       { return ty == Tnull      ? cast(typeof(return))this : null; }
+        inout(TypeMixin)      isTypeMixin()      { return ty == Tmixin     ? cast(typeof(return))this : null; }
+        inout(TypeTraits)     isTypeTraits()     { return ty == Ttraits    ? cast(typeof(return))this : null; }
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -3115,17 +3134,17 @@ extern (C++) final class TypeBasic : Type
 
         case Tchar:
             d = Token.toChars(TOK.char_);
-            flags |= TFlags.integral | TFlags.unsigned;
+            flags |= TFlags.integral | TFlags.unsigned | TFlags.char_;
             break;
 
         case Twchar:
             d = Token.toChars(TOK.wchar_);
-            flags |= TFlags.integral | TFlags.unsigned;
+            flags |= TFlags.integral | TFlags.unsigned | TFlags.char_;
             break;
 
         case Tdchar:
             d = Token.toChars(TOK.dchar_);
-            flags |= TFlags.integral | TFlags.unsigned;
+            flags |= TFlags.integral | TFlags.unsigned | TFlags.char_;
             break;
 
         default:
@@ -3179,7 +3198,7 @@ extern (C++) final class TypeBasic : Type
 
         case Tfloat80:
         case Timaginary80:
-            size = Target.realsize;
+            size = target.realsize;
             break;
 
         case Tcomplex32:
@@ -3193,7 +3212,7 @@ extern (C++) final class TypeBasic : Type
             break;
 
         case Tcomplex80:
-            size = Target.realsize * 2;
+            size = target.realsize * 2;
             break;
 
         case Tvoid:
@@ -3226,7 +3245,7 @@ extern (C++) final class TypeBasic : Type
 
     override uint alignsize()
     {
-        return Target.alignsize(this);
+        return target.alignsize(this);
     }
 
     override bool isintegral()
@@ -3263,6 +3282,11 @@ extern (C++) final class TypeBasic : Type
     override bool isunsigned() const
     {
         return (flags & TFlags.unsigned) != 0;
+    }
+
+    override bool ischar() const
+    {
+        return (flags & TFlags.char_) != 0;
     }
 
     override MATCH implicitConvTo(Type to)
@@ -3303,8 +3327,6 @@ extern (C++) final class TypeBasic : Type
                  * with a MATCH.convert
                  */
                 tob = to.toBasetype().isTypeBasic();
-                if (tob)
-                    return implicitConvTo(tob);
             }
             else
                 return MATCH.nomatch;
@@ -3650,8 +3672,8 @@ extern (C++) final class TypeSArray : TypeArray
         else
             elementinit = next.defaultInitLiteral(loc);
         auto elements = new Expressions(d);
-        for (size_t i = 0; i < d; i++)
-            (*elements)[i] = null;
+        foreach (ref e; *elements)
+            e = null;
         auto ae = new ArrayLiteralExp(Loc.initial, this, elementinit, elements);
         return ae;
     }
@@ -3725,14 +3747,14 @@ extern (C++) final class TypeDArray : TypeArray
     override d_uns64 size(const ref Loc loc) const
     {
         //printf("TypeDArray::size()\n");
-        return Target.ptrsize * 2;
+        return target.ptrsize * 2;
     }
 
     override uint alignsize() const
     {
         // A DArray consists of two ptr-sized values, so align it on pointer size
         // boundary
-        return Target.ptrsize;
+        return target.ptrsize;
     }
 
     override bool isString()
@@ -3829,9 +3851,9 @@ extern (C++) final class TypeAArray : TypeArray
         return t;
     }
 
-    override d_uns64 size(const ref Loc loc)
+    override d_uns64 size(const ref Loc loc) const
     {
-        return Target.ptrsize;
+        return target.ptrsize;
     }
 
     override bool isZeroInit(const ref Loc loc) const
@@ -3925,7 +3947,7 @@ extern (C++) final class TypePointer : TypeNext
 
     override d_uns64 size(const ref Loc loc) const
     {
-        return Target.ptrsize;
+        return target.ptrsize;
     }
 
     override MATCH implicitConvTo(Type to)
@@ -4058,7 +4080,7 @@ extern (C++) final class TypeReference : TypeNext
 
     override d_uns64 size(const ref Loc loc) const
     {
-        return Target.ptrsize;
+        return target.ptrsize;
     }
 
     override bool isZeroInit(const ref Loc loc) const
@@ -4118,6 +4140,7 @@ extern (C++) final class TypeFunction : TypeNext
     bool isref;                 // true: returns a reference
     bool isreturn;              // true: 'this' is returned by ref
     bool isscope;               // true: 'this' is scope
+    bool isreturninferred;      // true: 'this' is return from inference
     bool isscopeinferred;       // true: 'this' is scope from inference
     LINK linkage;               // calling convention
     TRUST trust;                // level of trust
@@ -4125,6 +4148,7 @@ extern (C++) final class TypeFunction : TypeNext
     ubyte iswild;               // bit0: inout on params, bit1: inout on qualifier
     Expressions* fargs;         // function arguments
     int inuse;
+    bool incomplete;            // return type or default arguments removed
 
     extern (D) this(ParameterList pl, Type treturn, LINK linkage, StorageClass stc = 0)
     {
@@ -4148,6 +4172,8 @@ extern (C++) final class TypeFunction : TypeNext
             this.isref = true;
         if (stc & STC.return_)
             this.isreturn = true;
+        if (stc & STC.returninferred)
+            this.isreturninferred = true;
         if (stc & STC.scope_)
             this.isscope = true;
         if (stc & STC.scopeinferred)
@@ -4185,6 +4211,7 @@ extern (C++) final class TypeFunction : TypeNext
         t.isref = isref;
         t.isreturn = isreturn;
         t.isscope = isscope;
+        t.isreturninferred = isreturninferred;
         t.isscopeinferred = isscopeinferred;
         t.iswild = iswild;
         t.trust = trust;
@@ -4449,6 +4476,7 @@ extern (C++) final class TypeFunction : TypeNext
             tf.isref = t.isref;
             tf.isreturn = t.isreturn;
             tf.isscope = t.isscope;
+            tf.isreturninferred = t.isreturninferred;
             tf.isscopeinferred = t.isscopeinferred;
             tf.trust = t.trust;
             tf.iswild = t.iswild;
@@ -4512,6 +4540,7 @@ extern (C++) final class TypeFunction : TypeNext
         t.isref = isref;
         t.isreturn = isreturn;
         t.isscope = isscope;
+        t.isreturninferred = isreturninferred;
         t.isscopeinferred = isscopeinferred;
         t.iswild = 0;
         t.trust = trust;
@@ -4535,7 +4564,7 @@ extern (C++) final class TypeFunction : TypeNext
         buf.printf("cannot pass %sargument `%s` of type `%s` to parameter `%s`",
             rv ? "rvalue ".ptr : "".ptr, arg.toChars(), at,
             parameterToChars(par, this, qual));
-        return buf.extractString();
+        return buf.extractChars();
     }
 
     private extern(D) const(char)* getMatchError(A...)(const(char)* format, A args)
@@ -4544,19 +4573,22 @@ extern (C++) final class TypeFunction : TypeNext
             return null;
         OutBuffer buf;
         buf.printf(format, args);
-        return buf.extractString();
+        return buf.extractChars();
     }
 
     /********************************
      * 'args' are being matched to function 'this'
      * Determine match level.
-     * Input:
-     *      flag    1       performing a partial ordering match
-     *      pMessage        address to store error message, or null
+     * Params:
+     *      tthis = type of `this` pointer, null if not member function
+     *      args = array of function arguments
+     *      flag = 1: performing a partial ordering match
+     *      pMessage = address to store error message, or null
+     *      sc = context
      * Returns:
      *      MATCHxxxx
      */
-    extern (D) MATCH callMatch(Type tthis, Expressions* args, int flag = 0, const(char)** pMessage = null)
+    extern (D) MATCH callMatch(Type tthis, Expression[] args, int flag = 0, const(char)** pMessage = null, Scope* sc = null)
     {
         //printf("TypeFunction::callMatch() %s\n", toChars());
         MATCH match = MATCH.exact; // assume exact match
@@ -4592,7 +4624,7 @@ extern (C++) final class TypeFunction : TypeNext
         }
 
         size_t nparams = parameterList.length;
-        size_t nargs = args ? args.dim : 0;
+        size_t nargs = args.length;
         if (nargs > nparams)
         {
             if (parameterList.varargs == VarArg.none)
@@ -4611,7 +4643,7 @@ extern (C++) final class TypeFunction : TypeNext
             if (u >= nparams)
                 break;
             Parameter p = parameterList[u];
-            Expression arg = (*args)[u];
+            Expression arg = args[u];
             assert(arg);
             Type tprm = p.type;
             Type targ = arg.type;
@@ -4653,7 +4685,7 @@ extern (C++) final class TypeFunction : TypeNext
                 goto L1;
             }
             {
-                Expression arg = (*args)[u];
+                Expression arg = args[u];
                 assert(arg);
                 //printf("arg: %s, type: %s\n", arg.toChars(), arg.type.toChars());
 
@@ -4671,7 +4703,51 @@ extern (C++) final class TypeFunction : TypeNext
                         m = targ.implicitConvTo(tprm);
                     }
                     else
-                        m = arg.implicitConvTo(tprm);
+                    {
+                        const isRef = (p.storageClass & (STC.ref_ | STC.out_)) != 0;
+
+                        StructDeclaration argStruct, prmStruct;
+
+                        // first look for a copy constructor
+                        if (arg.isLvalue() && !isRef && targ.ty == Tstruct && tprm.ty == Tstruct)
+                        {
+                            // if the argument and the parameter are of the same unqualified struct type
+                            argStruct = (cast(TypeStruct)targ).sym;
+                            prmStruct = (cast(TypeStruct)tprm).sym;
+                        }
+
+                        // check if the copy constructor may be called to copy the argument
+                        if (argStruct && argStruct == prmStruct && argStruct.hasCopyCtor)
+                        {
+                            /* this is done by seeing if a call to the copy constructor can be made:
+                             *
+                             * typeof(tprm) __copytmp;
+                             * copytmp.__copyCtor(arg);
+                             */
+                            auto tmp = new VarDeclaration(arg.loc, tprm, Identifier.generateId("__copytmp"), null);
+                            tmp.dsymbolSemantic(sc);
+                            Expression ve = new VarExp(arg.loc, tmp);
+                            Expression e = new DotIdExp(arg.loc, ve, Id.ctor);
+                            e = new CallExp(arg.loc, e, arg);
+                            //printf("e = %s\n", e.toChars());
+                            if(.trySemantic(e, sc))
+                                m = MATCH.exact;
+                            else
+                            {
+                                m = MATCH.nomatch;
+                                if (pMessage)
+                                {
+                                    OutBuffer buf;
+                                    buf.printf("`struct %s` does not define a copy constructor for `%s` to `%s` copies",
+                                           argStruct.toChars(), targ.toChars(), tprm.toChars());
+                                    *pMessage = buf.extractChars();
+                                }
+                                goto Nomatch;
+                            }
+                        }
+                        else
+                            m = arg.implicitConvTo(tprm);
+                    }
                     //printf("match %d\n", m);
                 }
 
@@ -4711,10 +4787,19 @@ extern (C++) final class TypeFunction : TypeNext
                                 ta = tn.sarrayOf(dim);
                             }
                         }
-                        else
+                        else if (!global.params.rvalueRefParam ||
+                                 p.storageClass & STC.out_ ||
+                                 !arg.type.isCopyable())  // can't copy to temp for ref parameter
                         {
                             if (pMessage) *pMessage = getParamError(arg, p);
                             goto Nomatch;
+                        }
+                        else
+                        {
+                            /* in functionParameters() we'll convert this
+                             * rvalue into a temporary
+                             */
+                            m = MATCH.convert;
                         }
                     }
 
@@ -4777,7 +4862,7 @@ extern (C++) final class TypeFunction : TypeNext
                                 OutBuffer buf;
                                 buf.printf("expected %d variadic argument(s)", sz);
                                 buf.printf(", not %d", nargs - u);
-                                *pMessage = buf.extractString();
+                                *pMessage = buf.extractChars();
                             }
                             goto Nomatch;
                         }
@@ -4785,9 +4870,8 @@ extern (C++) final class TypeFunction : TypeNext
                     case Tarray:
                         {
                             TypeArray ta = cast(TypeArray)tb;
-                            for (; u < nargs; u++)
+                            foreach (arg; args[u .. nargs])
                             {
-                                Expression arg = (*args)[u];
                                 assert(arg);
 
                                 /* If lazy array of delegates,
@@ -4830,7 +4914,7 @@ extern (C++) final class TypeFunction : TypeNext
                     }
                 }
                 if (pMessage && u < nargs)
-                    *pMessage = getParamError((*args)[u], p);
+                    *pMessage = getParamError(args[u], p);
                 else if (pMessage)
                     *pMessage = getMatchError("missing argument for parameter #%d: `%s`",
                         u + 1, parameterToChars(p, this, false));
@@ -4949,12 +5033,12 @@ extern (C++) final class TypeDelegate : TypeNext
 
     override d_uns64 size(const ref Loc loc) const
     {
-        return Target.ptrsize * 2;
+        return target.ptrsize * 2;
     }
 
     override uint alignsize() const
     {
-        return Target.ptrsize;
+        return target.ptrsize;
     }
 
     override MATCH implicitConvTo(Type to)
@@ -5025,8 +5109,6 @@ extern (C++) final class TypeTraits : Type
     TraitsExp exp;
     /// After `typeSemantic` the symbol when `exp` doesn't represent a type.
     Dsymbol sym;
-    /// Indicates wether we are in an alias or not.
-    bool inAliasDeclaration;
 
     final extern (D) this(const ref Loc loc, TraitsExp exp)
     {
@@ -5051,6 +5133,39 @@ extern (C++) final class TypeTraits : Type
     override d_uns64 size(const ref Loc loc)
     {
         return SIZE_INVALID;
+    }
+}
+
+/******
+ * Implements mixin types.
+ *
+ * Semantic analysis will convert it to a real type.
+ */
+extern (C++) final class TypeMixin : Type
+{
+    Loc loc;
+    Expressions* exps;
+
+    extern (D) this(const ref Loc loc, Expressions* exps)
+    {
+        super(Tmixin);
+        this.loc = loc;
+        this.exps = exps;
+    }
+
+    override const(char)* kind() const
+    {
+        return "mixin";
+    }
+
+    override Type syntaxCopy()
+    {
+        return new TypeMixin(loc, Expression.arraySyntaxCopy(exps));
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
     }
 }
 
@@ -5392,9 +5507,9 @@ extern (C++) final class TypeStruct : Type
         if (sym.sizeok != Sizeok.done)
             return new ErrorExp();
 
-        auto structelems = new Expressions(sym.fields.dim - sym.isNested());
+        auto structelems = new Expressions(sym.nonHiddenFields());
         uint offset = 0;
-        for (size_t j = 0; j < structelems.dim; j++)
+        foreach (j; 0 .. structelems.dim)
         {
             VarDeclaration vd = sym.fields[j];
             Expression e;
@@ -5425,7 +5540,7 @@ extern (C++) final class TypeStruct : Type
         /* Copy from the initializer symbol for larger symbols,
          * otherwise the literals expressed as code get excessively large.
          */
-        if (size(loc) > Target.ptrsize * 4 && !needsNested())
+        if (size(loc) > target.ptrsize * 4 && !needsNested())
             structinit.useStaticInit = true;
 
         structinit.type = this;
@@ -5442,13 +5557,15 @@ extern (C++) final class TypeStruct : Type
         bool assignable = true;
         uint offset = ~0; // dead-store initialize to prevent spurious warning
 
+        sym.determineSize(sym.loc);
+
         /* If any of the fields are const or immutable,
          * then one cannot assign this struct.
          */
         for (size_t i = 0; i < sym.fields.dim; i++)
         {
             VarDeclaration v = sym.fields[i];
-            //printf("%s [%d] v = (%s) %s, v.offset = %d, v.parent = %s", sym.toChars(), i, v.kind(), v.toChars(), v.offset, v.parent.kind());
+            //printf("%s [%d] v = (%s) %s, v.offset = %d, v.parent = %s\n", sym.toChars(), i, v.kind(), v.toChars(), v.offset, v.parent.kind());
             if (i == 0)
             {
             }
@@ -5530,7 +5647,7 @@ extern (C++) final class TypeStruct : Type
         return false;
     }
 
-    MATCH implicitConvToWithoutAliasThis(Type to)
+    extern (D) MATCH implicitConvToWithoutAliasThis(Type to)
     {
         MATCH m;
 
@@ -5588,7 +5705,7 @@ extern (C++) final class TypeStruct : Type
         return m;
     }
 
-    MATCH implicitConvToThroughAliasThis(Type to)
+    extern (D) MATCH implicitConvToThroughAliasThis(Type to)
     {
         MATCH m;
         if (!(ty == to.ty && sym == (cast(TypeStruct)to).sym) && sym.aliasthis && !(att & AliasThisRec.tracing))
@@ -5641,7 +5758,7 @@ extern (C++) final class TypeStruct : Type
         return wm;
     }
 
-    override Type toHeadMutable()
+    override inout(Type) toHeadMutable() inout
     {
         return this;
     }
@@ -5731,6 +5848,11 @@ extern (C++) final class TypeEnum : Type
         return memType().isunsigned();
     }
 
+    override bool ischar()
+    {
+        return memType().ischar();
+    }
+
     override bool isBoolean()
     {
         return memType().isBoolean();
@@ -5759,7 +5881,7 @@ extern (C++) final class TypeEnum : Type
     override MATCH implicitConvTo(Type to)
     {
         MATCH m;
-        //printf("TypeEnum::implicitConvTo()\n");
+        //printf("TypeEnum::implicitConvTo() %s to %s\n", toChars(), to.toChars());
         if (ty == to.ty && sym == (cast(TypeEnum)to).sym)
             m = (mod == to.mod) ? MATCH.exact : MATCH.constant;
         else if (sym.getMemtype(Loc.initial).implicitConvTo(to))
@@ -5833,7 +5955,7 @@ extern (C++) final class TypeClass : Type
 
     override d_uns64 size(const ref Loc loc) const
     {
-        return Target.ptrsize;
+        return target.ptrsize;
     }
 
     override Type syntaxCopy()
@@ -5862,7 +5984,7 @@ extern (C++) final class TypeClass : Type
         return false;
     }
 
-    MATCH implicitConvToWithoutAliasThis(Type to)
+    extern (D) MATCH implicitConvToWithoutAliasThis(Type to)
     {
         MATCH m = constConv(to);
         if (m > MATCH.nomatch)
@@ -5885,7 +6007,7 @@ extern (C++) final class TypeClass : Type
         return MATCH.nomatch;
     }
 
-    MATCH implicitConvToThroughAliasThis(Type to)
+    extern (D) MATCH implicitConvToThroughAliasThis(Type to)
     {
         MATCH m;
         if (sym.aliasthis && !(att & AliasThisRec.tracing))
@@ -5950,7 +6072,7 @@ extern (C++) final class TypeClass : Type
         return wm;
     }
 
-    override Type toHeadMutable()
+    override inout(Type) toHeadMutable() inout
     {
         return this;
     }
@@ -6059,6 +6181,21 @@ extern (C++) final class TypeTuple : Type
         arguments.push(new Parameter(0, t2, null, null, null));
     }
 
+    static TypeTuple create()
+    {
+        return new TypeTuple();
+    }
+
+    static TypeTuple create(Type t1)
+    {
+        return new TypeTuple(t1);
+    }
+
+    static TypeTuple create(Type t1, Type t2)
+    {
+        return new TypeTuple(t1, t2);
+    }
+
     override const(char)* kind() const
     {
         return "tuple";
@@ -6072,7 +6209,7 @@ extern (C++) final class TypeTuple : Type
         return t;
     }
 
-    override bool equals(RootObject o) const
+    override bool equals(const RootObject o) const
     {
         Type t = cast(Type)o;
         //printf("TypeTuple::equals(%s, %s)\n", toChars(), t.toChars());
@@ -6176,6 +6313,14 @@ extern (C++) final class TypeNull : Type
         return MATCH.nomatch;
     }
 
+    override bool hasPointers()
+    {
+        /* Although null isn't dereferencable, treat it as a pointer type for
+         * attribute inference, generic code, etc.
+         */
+        return true;
+    }
+
     override bool isBoolean() const
     {
         return true;
@@ -6217,7 +6362,7 @@ extern (C++) struct ParameterList
 
 /***********************************************************
  */
-extern (C++) final class Parameter : RootObject
+extern (C++) final class Parameter : ASTNode
 {
     import dmd.attrib : UserAttributeDeclaration;
 
@@ -6279,7 +6424,7 @@ extern (C++) final class Parameter : RootObject
         return DYNCAST.parameter;
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -6515,7 +6660,7 @@ const(char*)[2] toAutoQualChars(Type t1, Type t2)
  * For each active modifier (MODFlags.const_, MODFlags.immutable_, etc) call `fp` with a
  * void* for the work param and a string representation of the attribute.
  */
-int modifiersApply(TypeFunction tf, void* param, int function(void*, string) fp)
+void modifiersApply(const TypeFunction tf, void delegate(string) dg)
 {
     immutable ubyte[4] modsArr = [MODFlags.const_, MODFlags.immutable_, MODFlags.wild, MODFlags.shared_];
 
@@ -6523,66 +6668,89 @@ int modifiersApply(TypeFunction tf, void* param, int function(void*, string) fp)
     {
         if (tf.mod & modsarr)
         {
-            if (int res = fp(param, MODtoString(modsarr)))
-                return res;
+            dg(MODtoString(modsarr));
         }
     }
-
-    return 0;
 }
 
 /**
  * For each active attribute (ref/const/nogc/etc) call `fp` with a void* for the
  * work param and a string representation of the attribute.
  */
-int attributesApply(TypeFunction tf, void* param, int function(void*, string) fp, TRUSTformat trustFormat = TRUSTformatDefault)
+void attributesApply(const TypeFunction tf, void delegate(string) dg, TRUSTformat trustFormat = TRUSTformatDefault)
 {
-    int res = 0;
     if (tf.purity)
-        res = fp(param, "pure");
-    if (res)
-        return res;
-
+        dg("pure");
     if (tf.isnothrow)
-        res = fp(param, "nothrow");
-    if (res)
-        return res;
-
+        dg("nothrow");
     if (tf.isnogc)
-        res = fp(param, "@nogc");
-    if (res)
-        return res;
-
+        dg("@nogc");
     if (tf.isproperty)
-        res = fp(param, "@property");
-    if (res)
-        return res;
-
+        dg("@property");
     if (tf.isref)
-        res = fp(param, "ref");
-    if (res)
-        return res;
-
-    if (tf.isreturn)
-        res = fp(param, "return");
-    if (res)
-        return res;
-
+        dg("ref");
+    if (tf.isreturn && !tf.isreturninferred)
+        dg("return");
     if (tf.isscope && !tf.isscopeinferred)
-        res = fp(param, "scope");
-    if (res)
-        return res;
+        dg("scope");
 
     TRUST trustAttrib = tf.trust;
 
     if (trustAttrib == TRUST.default_)
     {
-        // Print out "@system" when trust equals TRUST.default_ (if desired).
         if (trustFormat == TRUSTformatSystem)
             trustAttrib = TRUST.system;
         else
-            return res; // avoid calling with an empty string
+            return; // avoid calling with an empty string
     }
 
-    return fp(param, trustToString(trustAttrib));
+    dg(trustToString(trustAttrib));
+}
+
+/**
+ * If the type is a class or struct, returns the symbol for it,
+ * else null.
+ */
+extern (C++) AggregateDeclaration isAggregate(Type t)
+{
+    t = t.toBasetype();
+    if (t.ty == Tclass)
+        return (cast(TypeClass)t).sym;
+    if (t.ty == Tstruct)
+        return (cast(TypeStruct)t).sym;
+    return null;
+}
+
+/***************************************************
+ * Determine if type t can be indexed or sliced given that it is not an
+ * aggregate with operator overloads.
+ * Params:
+ *      t = type to check
+ * Returns:
+ *      true if an expression of type t can be e1 in an array expression
+ */
+bool isIndexableNonAggregate(Type t)
+{
+    t = t.toBasetype();
+    return (t.ty == Tpointer || t.ty == Tsarray || t.ty == Tarray || t.ty == Taarray ||
+            t.ty == Ttuple || t.ty == Tvector);
+}
+
+/***************************************************
+ * Determine if type t is copyable.
+ * Params:
+ *      t = type to check
+ * Returns:
+ *      true if we can copy it
+ */
+bool isCopyable(const Type t) pure nothrow @nogc
+{
+    //printf("isCopyable() %s\n", t.toChars());
+    if (auto ts = t.isTypeStruct())
+    {
+        if (ts.sym.postblit &&
+            ts.sym.postblit.storage_class & STC.disable)
+            return false;
+    }
+    return true;
 }

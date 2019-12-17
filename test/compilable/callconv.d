@@ -1,4 +1,11 @@
 // PERMUTE_ARGS:
+/*
+TEST_OUTPUT:
+---
+compilable/callconv.d(21): Deprecation: `extern(Pascal)` is deprecated. You might want to use `extern(Windows)` instead.
+compilable/callconv.d(30): Deprecation: `extern(Pascal)` is deprecated. You might want to use `extern(Windows)` instead.
+---
+*/
 
 import core.stdc.stdarg;
 

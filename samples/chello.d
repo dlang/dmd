@@ -18,8 +18,8 @@
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import std.string;
-import core.sys.windows.windows;
 import core.sys.windows.com;
+import core.sys.windows.windef;
 
 GUID CLSID_Hello = { 0x30421140, 0, 0, [0xC0, 0, 0, 0, 0, 0, 0, 0x46] };
 GUID IID_IHello  = { 0x00421140, 0, 0, [0xC0, 0, 0, 0, 0, 0, 0, 0x46] };

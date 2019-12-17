@@ -318,7 +318,6 @@ void D_test2()
         assert( s2[0].i == 6 );
         assert( s2[1].i == 1 );
 
-/+      // These Fail on Mainline DMD64 ( Should pass! )
         assert( s3.length == 2 );
         assert( s3[0].i == 6 );
         assert( s3[1].i == 1 );
@@ -326,7 +325,7 @@ void D_test2()
         assert( s4.length == 2 );
         assert( s4[0].i == 6 );
         assert( s4[1].i == 1 );
-+/
+
         assert( s5.length == 2 );
         assert( s5[0].i == 6 );
         assert( s5[1].i == 1 );
@@ -681,12 +680,12 @@ void test4_run( T, int n )( T t )
 
 void dbg( T, int n )( )
 {
-        import std.stdio;
-        writefln( "D %s\t[ %16x, %16x ]", T.stringof, dump[0], dump[1], );
-        writef(   "C %s\t[ %16x", T.stringof, RegValue[n][0] );
+        import core.stdc.stdio;
+        printf( "D %.*s\t[ %16x, %16x ]\n", cast(int)T.stringof.length, T.stringof.ptr, dump[0], dump[1], );
+        printf(   "C %.*s\t[ %16x", cast(int)T.stringof.length, T.stringof.ptr, RegValue[n][0] );
         if( RegValue[n].length == 2 )
-        writef( ", %16x", RegValue[n][1] );
-        writefln( " ]" );
+        printf( ", %16x", RegValue[n][1] );
+        printf( " ]\n" );
 }
 void test4()
 {

@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dwarfdbginf.d, backend/dwarfdbginf.d)
@@ -55,7 +55,7 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.code_x86;
-import dmd.backend.memh;
+import dmd.backend.mem;
 import dmd.backend.dlist;
 import dmd.backend.el;
 import dmd.backend.global;
@@ -81,6 +81,8 @@ import dmd.backend.dwarf2;
 
 
 extern (C++):
+
+nothrow:
 
 int REGSIZE();
 
@@ -483,15 +485,19 @@ void dwarf_CFA_args_size(size_t sz)
 
 struct Section
 {
-    segidx_t seg;
-    IDXSEC secidx;
-    Outbuffer *buf;
+    segidx_t seg = 0;
+    IDXSEC secidx = 0;
+    Outbuffer *buf = null;
     const(char)* name;
-    int flags;
+
+    static if (MACHOBJ)
+        immutable flags = S_ATTR_DEBUG;
+    else
+        immutable flags = SHT_PROGBITS;
 
     /* Allocate and initialize Section
      */
-    void initialize()
+    nothrow void initialize()
     {
         const segidx_t segi = dwarf_getsegment(name, 0, flags);
         seg = segi;
@@ -507,27 +513,27 @@ private __gshared
 
 static if (MACHOBJ)
 {
-    Section debug_pubnames = { 0,0,null, "__debug_pubnames", S_ATTR_DEBUG };
-    Section debug_aranges  = { 0,0,null, "__debug_aranges", S_ATTR_DEBUG };
-    Section debug_ranges   = { 0,0,null, "__debug_ranges", S_ATTR_DEBUG };
-    Section debug_loc      = { 0,0,null, "__debug_loc", S_ATTR_DEBUG };
-    Section debug_abbrev   = { 0,0,null, "__debug_abbrev", S_ATTR_DEBUG };
-    Section debug_info     = { 0,0,null, "__debug_info", S_ATTR_DEBUG };
-    Section debug_str      = { 0,0,null, "__debug_str", S_ATTR_DEBUG };
+    Section debug_pubnames = { name: "__debug_pubnames" };
+    Section debug_aranges  = { name: "__debug_aranges" };
+    Section debug_ranges   = { name: "__debug_ranges" };
+    Section debug_loc      = { name: "__debug_loc" };
+    Section debug_abbrev   = { name: "__debug_abbrev" };
+    Section debug_info     = { name: "__debug_info" };
+    Section debug_str      = { name: "__debug_str" };
 // We use S_REGULAR to make sure the linker doesn't remove this section. Needed
 // for filenames and line numbers in backtraces.
-    Section debug_line     = { 0,0,null, "__debug_line", S_REGULAR };
+    Section debug_line     = { name: "__debug_line", flags: S_REGULAR };
 }
 else static if (ELFOBJ)
 {
-    Section debug_pubnames = { 0,0,null, ".debug_pubnames", SHT_PROGBITS };
-    Section debug_aranges  = { 0,0,null, ".debug_aranges", SHT_PROGBITS };
-    Section debug_ranges   = { 0,0,null, ".debug_ranges", SHT_PROGBITS };
-    Section debug_loc      = { 0,0,null, ".debug_loc", SHT_PROGBITS };
-    Section debug_abbrev   = { 0,0,null, ".debug_abbrev", SHT_PROGBITS };
-    Section debug_info     = { 0,0,null, ".debug_info", SHT_PROGBITS };
-    Section debug_str      = { 0,0,null, ".debug_str", SHT_PROGBITS };
-    Section debug_line     = { 0,0,null, ".debug_line", SHT_PROGBITS };
+    Section debug_pubnames = { name: ".debug_pubnames" };
+    Section debug_aranges  = { name: ".debug_aranges" };
+    Section debug_ranges   = { name: ".debug_ranges" };
+    Section debug_loc      = { name: ".debug_loc" };
+    Section debug_abbrev   = { name: ".debug_abbrev" };
+    Section debug_info     = { name: ".debug_info" };
+    Section debug_str      = { name: ".debug_str" };
+    Section debug_line     = { name: ".debug_line" };
 }
 
 static if (MACHOBJ)
@@ -1132,8 +1138,7 @@ static if (ELFOBJ)
 version (MARS)
 {
     debug_info.buf.write("Digital Mars D ");
-    //debug_info.buf.writeString(global._version);     // DW_AT_producer
-    debug_info.buf.writeString("v2.083");              // DW_AT_producer
+    debug_info.buf.write(config._version);     // DW_AT_producer
     // DW_AT_language
     debug_info.buf.writeByte((config.fulltypes == CVDWARF_D) ? DW_LANG_D : DW_LANG_C89);
 }

@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/symbol.d
@@ -42,7 +42,7 @@ import dmd.backend.dt;
 import dmd.backend.dvec;
 import dmd.backend.el;
 import dmd.backend.global;
-import dmd.backend.memh;
+import dmd.backend.mem;
 import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
@@ -61,6 +61,8 @@ version (SCPP_HTOD)
 
 
 extern (C++):
+
+nothrow:
 
 alias MEM_PH_MALLOC = mem_malloc;
 alias MEM_PH_CALLOC = mem_calloc;
@@ -148,7 +150,7 @@ void symtab_free(Symbol **tab)
  * Type out symbol information.
  */
 
-void symbol_print(Symbol *s)
+void symbol_print(const Symbol *s)
 {
 debug
 {
@@ -252,7 +254,7 @@ int Symbol_Salignsize(Symbol* s)
  *      true if symbol is dead.
  */
 
-bool Symbol_Sisdead(Symbol* s, bool anyInlineAsm)
+bool Symbol_Sisdead(const Symbol* s, bool anyInlineAsm)
 {
     version (MARS)
         enum vol = false;
@@ -278,7 +280,7 @@ bool Symbol_Sisdead(Symbol* s, bool anyInlineAsm)
  * Determine if symbol needs a 'this' pointer.
  */
 
-int Symbol_needThis(Symbol* s)
+int Symbol_needThis(const Symbol* s)
 {
     //printf("needThis() '%s'\n", Sident.ptr);
 
@@ -291,12 +293,41 @@ int Symbol_needThis(Symbol* s)
     return 0;
 }
 
+/************************************
+ * Determine if `s` may be affected if an assignment is done through
+ * a pointer.
+ * Params:
+ *      s = symbol to check
+ * Returns:
+ *      true if it may be modified by assignment through a pointer
+ */
+
+bool Symbol_isAffected(const ref Symbol s)
+{
+    //printf("s: %s %d\n", s.Sident.ptr, !(s.Sflags & SFLunambig) && !(s.ty() & (mTYconst | mTYimmutable)));
+    //symbol_print(s);
+
+    /* If nobody took its address and it's not statically allocated,
+     * then it is not accessible via pointer and so is not affected.
+     */
+    if (s.Sflags & SFLunambig)
+        return false;
+
+    /* If it's immutable, it can't be affected
+     */
+    if (s.ty() & (mTYconst | mTYimmutable))
+    {
+        return false;
+    }
+    return true;
+}
+
 
 /***********************************
  * Get user name of symbol.
  */
 
-char *symbol_ident(Symbol *s)
+const(char)* symbol_ident(const Symbol *s)
 {
 version (SCPP_HTOD)
 {
@@ -304,14 +335,14 @@ version (SCPP_HTOD)
     switch (s.Sclass)
     {   case SCstruct:
             if (s.Sstruct.Salias)
-                s = s.Sstruct.Salias;
+                return s.Sstruct.Salias.Sident.ptr;
             else if (s.Sstruct.Sflags & STRnotagname)
                 return noname;
             break;
         case SCenum:
             if (CPP)
             {   if (s.Senum.SEalias)
-                    s = s.Senum.SEalias;
+                    return s.Senum.SEalias.Sident.ptr;
                 else if (s.Senum.SEflags & SENnotagname)
                     return noname;
             }
@@ -536,7 +567,7 @@ Symbol * defsy(const(char)* p,Symbol **parent)
 debug
 {
 
-void symbol_check(Symbol *s)
+void symbol_check(const Symbol *s)
 {
     //printf("symbol_check('%s',%p)\n",s.Sident.ptr,s);
     symbol_debug(s);
@@ -551,7 +582,7 @@ version (SCPP_HTOD)
 }
 }
 
-void symbol_tree_check(Symbol *s)
+void symbol_tree_check(const(Symbol)* s)
 {
     while (s)
     {   symbol_check(s);
@@ -654,9 +685,7 @@ debug
    }
    /* not in table, so insert into table        */
    *parent = s;                         /* link new symbol into tree    */
-L1:
 }
-
 }
 
 /*************************************
@@ -931,7 +960,7 @@ version (SCPP_HTOD)
                 list_free(&f.Fthunks,cast(list_free_fp)&symbol_free);
               }
                 list_free(&f.Fsymtree,cast(list_free_fp)&symbol_free);
-                free(f.typesTable);
+                f.typesTable.__dtor();
                 func_free(f);
             }
             switch (s.Sclass)
@@ -1099,6 +1128,11 @@ private void symbol_undef(Symbol *s)
  */
 
 SYMIDX symbol_add(Symbol *s)
+{
+    return symbol_add(cstate.CSpsymtab, s);
+}
+
+SYMIDX symbol_add(symtab_t* symtab, Symbol* s)
 {   SYMIDX sitop;
 
     //printf("symbol_add('%s')\n", s.Sident.ptr);
@@ -1114,27 +1148,45 @@ debug
     {   symbol_keep(s);
         return -1;
     }
-    debug assert(cstate.CSpsymtab);
-    sitop = cstate.CSpsymtab.top;
-    assert(sitop <= cstate.CSpsymtab.symmax);
-    if (sitop == cstate.CSpsymtab.symmax)
+    debug assert(symtab);
+    sitop = symtab.top;
+    assert(sitop <= symtab.symmax);
+    if (sitop == symtab.symmax)
     {
 debug
     enum SYMINC = 1;                       /* flush out reallocation bugs  */
 else
     enum SYMINC = 99;
 
-        cstate.CSpsymtab.symmax += (cstate.CSpsymtab == &globsym) ? SYMINC : 1;
-        //assert(cstate.CSpsymtab.symmax * (Symbol *).sizeof < 4096 * 4);
-        cstate.CSpsymtab.tab = symtab_realloc(cstate.CSpsymtab.tab, cstate.CSpsymtab.symmax);
+        symtab.symmax += (symtab == &globsym) ? SYMINC : 1;
+        //assert(symtab.symmax * (Symbol *).sizeof < 4096 * 4);
+        symtab.tab = symtab_realloc(symtab.tab, symtab.symmax);
     }
-    cstate.CSpsymtab.tab[sitop] = s;
+    symtab.tab[sitop] = s;
 
     debug if (debugy)
-        printf("symbol_add(%p '%s') = %d\n",s,s.Sident.ptr,cstate.CSpsymtab.top);
+        printf("symbol_add(%p '%s') = %d\n",s,s.Sident.ptr,symtab.top);
 
     assert(s.Ssymnum == -1);
-    return s.Ssymnum = cstate.CSpsymtab.top++;
+    return s.Ssymnum = symtab.top++;
+}
+
+/********************************************
+ * Insert s into symtab at position n.
+ * Returns:
+ *      position in table
+ */
+SYMIDX symbol_insert(symtab_t* symtab, Symbol* s, SYMIDX n)
+{
+    const sinew = symbol_add(s);        // added at end, have to move it
+    for (SYMIDX i = sinew; i > n; --i)
+    {
+        symtab.tab[i] = symtab.tab[i - 1];
+        symtab.tab[i].Ssymnum += 1;
+    }
+    globsym.tab[n] = s;
+    s.Ssymnum = n;
+    return n;
 }
 
 /****************************
@@ -2449,6 +2501,20 @@ void symbol_reset(Symbol *s)
     {   s.Sclass = SCextern;
         s.Sfl = FLextern;
     }
+}
+
+/****************************************
+ * Determine pointer type needed to access a Symbol,
+ * essentially what type an OPrelconst should get
+ * for that Symbol.
+ * Params:
+ *      s = pointer to Symbol
+ * Returns:
+ *      pointer type to access it
+ */
+tym_t symbol_pointerType(const Symbol* s)
+{
+    return s.Stype.Tty & mTYimmutable ? TYimmutPtr : TYnptr;
 }
 
 }

@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/inline.d, _inline.d)
@@ -40,7 +40,78 @@ import dmd.tokens;
 import dmd.visitor;
 import dmd.inlinecost;
 
+/***********************************************************
+ * Scan function implementations in Module m looking for functions that can be inlined,
+ * and inline them in situ.
+ *
+ * Params:
+ *    m = module to scan
+ */
+public void inlineScanModule(Module m)
+{
+    if (m.semanticRun != PASS.semantic3done)
+        return;
+    m.semanticRun = PASS.inline;
+
+    // Note that modules get their own scope, from scratch.
+    // This is so regardless of where in the syntax a module
+    // gets imported, it is unaffected by context.
+
+    //printf("Module = %p\n", m.sc.scopesym);
+
+    foreach (i; 0 .. m.members.dim)
+    {
+        Dsymbol s = (*m.members)[i];
+        //if (global.params.verbose)
+        //    message("inline scan symbol %s", s.toChars());
+        scope InlineScanVisitor v = new InlineScanVisitor();
+        s.accept(v);
+    }
+    m.semanticRun = PASS.inlinedone;
+}
+
+/***********************************************************
+ * Perform the "inline copying" of a default argument for a function parameter.
+ *
+ * Todo:
+ *  The hack for bugzilla 4820 case is still questionable. Perhaps would have to
+ *  handle a delegate expression with 'null' context properly in front-end.
+ */
+public Expression inlineCopy(Expression e, Scope* sc)
+{
+    /* See https://issues.dlang.org/show_bug.cgi?id=2935
+     * for explanation of why just a copy() is broken
+     */
+    //return e.copy();
+    if (e.op == TOK.delegate_)
+    {
+        DelegateExp de = cast(DelegateExp)e;
+        if (de.func.isNested())
+        {
+            /* https://issues.dlang.org/show_bug.cgi?id=4820
+             * Defer checking until later if we actually need the 'this' pointer
+             */
+            return de.copy();
+        }
+    }
+    int cost = inlineCostExpression(e);
+    if (cost >= COST_MAX)
+    {
+        e.error("cannot inline default argument `%s`", e.toChars());
+        return new ErrorExp();
+    }
+    scope ids = new InlineDoState(sc.parent, null);
+    return doInlineAs!Expression(e, ids);
+}
+
+
+
+
+
+
 private:
+
+
 
 enum LOG = false;
 enum CANINLINE_LOG = false;
@@ -56,7 +127,7 @@ enum EXPANDINLINE_LOG = false;
  *  The best would be to return a pair of result Expression and a bool value as foundReturn
  *  from doInlineAs function.
  */
-final class InlineDoState
+private final class InlineDoState
 {
     // inline context
     VarDeclaration vthis;
@@ -149,11 +220,11 @@ public:
                 Statement s3;
                 if ((ifs = sx.isIfStatement()) !is null &&
                     ifs.ifbody &&
-                    ifs.ifbody.isReturnStatement() &&
+                    ifs.ifbody.endsWithReturnStatement() &&
                     !ifs.elsebody &&
                     i + 1 < s.statements.dim &&
                     (s3 = (*s.statements)[i + 1]) !is null &&
-                    s3.isReturnStatement()
+                    s3.endsWithReturnStatement()
                    )
                 {
                     /* Rewrite as ?:
@@ -391,6 +462,8 @@ public:
             if (ids.fd && e.var == ids.fd.vthis)
             {
                 result = new VarExp(e.loc, ids.vthis);
+                if (ids.fd.isThis2)
+                    result = new AddrExp(e.loc, result);
                 result.type = e.type;
                 return;
             }
@@ -422,15 +495,57 @@ public:
                 assert(fdv);
                 result = new VarExp(e.loc, ids.vthis);
                 result.type = ids.vthis.type;
+                if (ids.fd.isThis2)
+                {
+                    // &__this
+                    result = new AddrExp(e.loc, result);
+                    result.type = ids.vthis.type.pointerTo();
+                }
                 while (s != fdv)
                 {
                     auto f = s.isFuncDeclaration();
-                    if (auto ad = s.isThis())
+                    AggregateDeclaration ad;
+                    if (f && f.isThis2)
                     {
-                        assert(ad.vthis);
-                        result = new DotVarExp(e.loc, result, ad.vthis);
-                        result.type = ad.vthis.type;
-                        s = ad.toParent2();
+                        if (f.hasNestedFrameRefs())
+                        {
+                            result = new DotVarExp(e.loc, result, f.vthis);
+                            result.type = f.vthis.type;
+                        }
+                        // (*__this)[i]
+                        uint i = f.followInstantiationContext(fdv);
+                        if (i == 1 && f == ids.fd)
+                        {
+                            auto ve = cast(VarExp)e.copy();
+                            ve.originalScope = ids.fd;
+                            result = ve;
+                            return;
+                        }
+                        result = new PtrExp(e.loc, result);
+                        result.type = Type.tvoidptr.sarrayOf(2);
+                        auto ie = new IndexExp(e.loc, result, new IntegerExp(i));
+                        ie.indexIsInBounds = true; // no runtime bounds checking
+                        result = ie;
+                        result.type = Type.tvoidptr;
+                        s = f.toParentP(fdv);
+                        ad = s.isAggregateDeclaration();
+                        if (ad)
+                            goto Lad;
+                        continue;
+                    }
+                    else if ((ad = s.isThis()) !is null)
+                    {
+                Lad:
+                        while (ad)
+                        {
+                            assert(ad.vthis);
+                            bool i = ad.followInstantiationContext(fdv);
+                            auto vthis = i ? ad.vthis2 : ad.vthis;
+                            result = new DotVarExp(e.loc, result, vthis);
+                            result.type = vthis.type;
+                            s = ad.toParentP(fdv);
+                            ad = s.isAggregateDeclaration();
+                        }
                     }
                     else if (f && f.isNested())
                     {
@@ -451,6 +566,13 @@ public:
                 //printf("\t==> result = %s, type = %s\n", result.toChars(), result.type.toChars());
                 return;
             }
+            else if (v && v.nestedrefs.dim)
+            {
+                auto ve = cast(VarExp)e.copy();
+                ve.originalScope = ids.fd;
+                result = ve;
+                return;
+            }
 
             result = e;
         }
@@ -465,6 +587,19 @@ public:
                 return;
             }
             result = new VarExp(e.loc, ids.vthis);
+            if (ids.fd.isThis2)
+            {
+                // __this[0]
+                result.type = ids.vthis.type;
+                auto ie = new IndexExp(e.loc, result, IntegerExp.literal!0);
+                ie.indexIsInBounds = true; // no runtime bounds checking
+                result = ie;
+                if (e.type.ty == Tstruct)
+                {
+                    result.type = e.type.pointerTo();
+                    result = new PtrExp(e.loc, result);
+                }
+            }
             result.type = e.type;
         }
 
@@ -472,6 +607,14 @@ public:
         {
             assert(ids.vthis);
             result = new VarExp(e.loc, ids.vthis);
+            if (ids.fd.isThis2)
+            {
+                // __this[0]
+                result.type = ids.vthis.type;
+                auto ie = new IndexExp(e.loc, result, IntegerExp.literal!0);
+                ie.indexIsInBounds = true; // no runtime bounds checking
+                result = ie;
+            }
             result.type = e.type;
         }
 
@@ -538,11 +681,19 @@ public:
                         vto._init = new ExpInitializer(ei.loc, doInlineAs!Expression(ei, ids));
                     }
                 }
+                if (vd.edtor)
+                {
+                    vto.edtor = doInlineAs!Expression(vd.edtor, ids);
+                }
                 auto de = cast(DeclarationExp)e.copy();
                 de.declaration = vto;
                 result = de;
                 return;
             }
+
+            // Prevent the copy of the aggregates allowed in inlineable funcs
+            if (isInlinableNestedAggregate(e))
+                return;
 
             /* This needs work, like DeclarationExp.toElem(), if we are
              * to handle TemplateMixin's. For now, we just don't inline them.
@@ -568,6 +719,7 @@ public:
             //printf("NewExp.doInlineAs!%s(): %s\n", Result.stringof.ptr, e.toChars());
             auto ne = cast(NewExp)e.copy();
             ne.thisexp = doInlineAs!Expression(e.thisexp, ids);
+            ne.argprefix = doInlineAs!Expression(e.argprefix, ids);
             ne.newargs = arrayExpressionDoInline(e.newargs);
             ne.arguments = arrayExpressionDoInline(e.arguments);
             result = ne;
@@ -777,7 +929,7 @@ public:
 }
 
 /// ditto
-Result doInlineAs(Result)(Statement s, InlineDoState ids)
+private Result doInlineAs(Result)(Statement s, InlineDoState ids)
 {
     if (!s)
         return null;
@@ -788,7 +940,7 @@ Result doInlineAs(Result)(Statement s, InlineDoState ids)
 }
 
 /// ditto
-Result doInlineAs(Result)(Expression e, InlineDoState ids)
+private Result doInlineAs(Result)(Expression e, InlineDoState ids)
 {
     if (!e)
         return null;
@@ -1173,9 +1325,32 @@ public:
 
         void inlineFd()
         {
-            if (fd && fd != parent && canInline(fd, false, false, asStatements))
+            if (!fd || fd == parent)
+                return;
+
+            /* If the arguments generate temporaries that need destruction, the destruction
+             * must be done after the function body is executed.
+             * The easiest way to accomplish that is to do the inlining as an Expression.
+             * https://issues.dlang.org/show_bug.cgi?id=16652
+             */
+            bool asStates = asStatements;
+            if (asStates)
             {
-                expandInline(e.loc, fd, parent, eret, null, e.arguments, asStatements, eresult, sresult, again);
+                if (fd.inlineStatusExp == ILS.yes)
+                    asStates = false;           // inline as expressions
+                                                // so no need to recompute argumentsNeedDtors()
+                else if (argumentsNeedDtors(e.arguments))
+                    asStates = false;
+            }
+
+            if (canInline(fd, false, false, asStates))
+            {
+                expandInline(e.loc, fd, parent, eret, null, e.arguments, asStates, e.vthis2, eresult, sresult, again);
+                if (asStatements && eresult)
+                {
+                    sresult = new ExpStatement(eresult.loc, eresult);
+                    eresult = null;
+                }
             }
         }
 
@@ -1238,7 +1413,7 @@ public:
                 }
                 else
                 {
-                    expandInline(e.loc, fd, parent, eret, dve.e1, e.arguments, asStatements, eresult, sresult, again);
+                    expandInline(e.loc, fd, parent, eret, dve.e1, e.arguments, asStatements, e.vthis2, eresult, sresult, again);
                 }
             }
         }
@@ -1461,7 +1636,7 @@ public:
  *    no longer accepts calls of contextful function without valid 'this'.
  *  - Would be able to eliminate `hdrscan` parameter, because it's always false.
  */
-bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsToo)
+private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsToo)
 {
     int cost;
 
@@ -1684,36 +1859,6 @@ Lno:
 }
 
 /***********************************************************
- * Scan function implementations in Module m looking for functions that can be inlined,
- * and inline them in situ.
- *
- * Params:
- *    m = module to scan
- */
-public void inlineScanModule(Module m)
-{
-    if (m.semanticRun != PASS.semantic3done)
-        return;
-    m.semanticRun = PASS.inline;
-
-    // Note that modules get their own scope, from scratch.
-    // This is so regardless of where in the syntax a module
-    // gets imported, it is unaffected by context.
-
-    //printf("Module = %p\n", m.sc.scopesym);
-
-    foreach (i; 0 .. m.members.dim)
-    {
-        Dsymbol s = (*m.members)[i];
-        //if (global.params.verbose)
-        //    message("inline scan symbol %s", s.toChars());
-        scope InlineScanVisitor v = new InlineScanVisitor();
-        s.accept(v);
-    }
-    m.semanticRun = PASS.inlinedone;
-}
-
-/***********************************************************
  * Expand a function call inline,
  *      ethis.fd(arguments)
  *
@@ -1731,7 +1876,7 @@ public void inlineScanModule(Module m)
  *           more opportunities for inlining
  */
 private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration parent, Expression eret,
-        Expression ethis, Expressions* arguments, bool asStatements,
+        Expression ethis, Expressions* arguments, bool asStatements, VarDeclaration vthis2,
         out Expression eresult, out Statement sresult, out bool again)
 {
     TypeFunction tf = cast(TypeFunction)fd.type;
@@ -1812,7 +1957,27 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
     {
         Expression e0;
         ethis = Expression.extractLast(ethis, e0);
-        if (ethis.op == TOK.variable)
+        assert(vthis2 || !fd.isThis2);
+        if (vthis2)
+        {
+            // void*[2] __this = [ethis, this]
+            if (ethis.type.ty == Tstruct)
+            {
+                // &ethis
+                Type t = ethis.type.pointerTo();
+                ethis = new AddrExp(ethis.loc, ethis);
+                ethis.type = t;
+            }
+            auto elements = new Expressions(2);
+            (*elements)[0] = ethis;
+            (*elements)[1] = new NullExp(Loc.initial, Type.tvoidptr);
+            Expression ae = new ArrayLiteralExp(vthis2.loc, vthis2.type, elements);
+            Expression ce = new ConstructExp(vthis2.loc, vthis2, ae);
+            ce.type = vthis2.type;
+            vthis2._init = new ExpInitializer(vthis2.loc, ce);
+            vthis = vthis2;
+        }
+        else if (ethis.op == TOK.variable)
         {
             vthis = (cast(VarExp)ethis).var.isVarDeclaration();
         }
@@ -2060,40 +2225,6 @@ private bool isConstruction(Expression e)
 
 
 /***********************************************************
- * Perform the "inline copying" of a default argument for a function parameter.
- *
- * Todo:
- *  The hack for bugzilla 4820 case is still questionable. Perhaps would have to
- *  handle a delegate expression with 'null' context properly in front-end.
- */
-public Expression inlineCopy(Expression e, Scope* sc)
-{
-    /* See https://issues.dlang.org/show_bug.cgi?id=2935
-     * for explanation of why just a copy() is broken
-     */
-    //return e.copy();
-    if (e.op == TOK.delegate_)
-    {
-        DelegateExp de = cast(DelegateExp)e;
-        if (de.func.isNested())
-        {
-            /* https://issues.dlang.org/show_bug.cgi?id=4820
-             * Defer checking until later if we actually need the 'this' pointer
-             */
-            return de.copy();
-        }
-    }
-    int cost = inlineCostExpression(e);
-    if (cost >= COST_MAX)
-    {
-        e.error("cannot inline default argument `%s`", e.toChars());
-        return new ErrorExp();
-    }
-    scope ids = new InlineDoState(sc.parent, null);
-    return doInlineAs!Expression(e, ids);
-}
-
-/***********************************************************
  * Determine if v is 'head const', meaning
  * that once it is initialized it is not changed
  * again.
@@ -2117,9 +2248,120 @@ public Expression inlineCopy(Expression e, Scope* sc)
  * Returns:
  *      true if v's initializer is the only value assigned to v
  */
-bool onlyOneAssign(VarDeclaration v, FuncDeclaration fd)
+private bool onlyOneAssign(VarDeclaration v, FuncDeclaration fd)
 {
     if (!v.type.isMutable())
         return true;            // currently the only case handled atm
     return false;
+}
+
+/************************************************************
+ * See if arguments to a function are creating temporaries that
+ * will need destruction after the function is executed.
+ * Params:
+ *      arguments = arguments to function
+ * Returns:
+ *      true if temporaries need destruction
+ */
+
+private bool argumentsNeedDtors(Expressions* arguments)
+{
+    if (arguments)
+    {
+        foreach (arg; *arguments)
+        {
+            if (argNeedsDtor(arg))
+                return true;
+        }
+    }
+    return false;
+}
+
+/************************************************************
+ * See if argument to a function is creating temporaries that
+ * will need destruction after the function is executed.
+ * Params:
+ *      arg = argument to function
+ * Returns:
+ *      true if temporaries need destruction
+ */
+
+private bool argNeedsDtor(Expression arg)
+{
+    extern (C++) final class NeedsDtor : StoppableVisitor
+    {
+        alias visit = typeof(super).visit;
+        Expression arg;
+
+    public:
+        extern (D) this(Expression arg)
+        {
+            this.arg = arg;
+        }
+
+        override void visit(Expression)
+        {
+        }
+
+        override void visit(DeclarationExp de)
+        {
+            if (de != arg)
+                Dsymbol_needsDtor(de.declaration);
+        }
+
+        void Dsymbol_needsDtor(Dsymbol s)
+        {
+            /* This mirrors logic of Dsymbol_toElem() in e2ir.d
+             * perhaps they can be combined.
+             */
+
+            void symbolDg(Dsymbol s)
+            {
+                Dsymbol_needsDtor(s);
+            }
+
+            if (auto vd = s.isVarDeclaration())
+            {
+                s = s.toAlias();
+                if (s != vd)
+                    return Dsymbol_needsDtor(s);
+                else if (vd.isStatic() || vd.storage_class & (STC.extern_ | STC.tls | STC.gshared | STC.manifest))
+                    return;
+                if (vd.needsScopeDtor())
+                {
+                    stop = true;
+                }
+            }
+            else if (auto tm = s.isTemplateMixin())
+            {
+                tm.members.foreachDsymbol(&symbolDg);
+            }
+            else if (auto ad = s.isAttribDeclaration())
+            {
+                ad.include(null).foreachDsymbol(&symbolDg);
+            }
+            else if (auto td = s.isTupleDeclaration())
+            {
+                foreach (o; *td.objects)
+                {
+                    import dmd.root.rootobject;
+
+                    if (o.dyncast() == DYNCAST.expression)
+                    {
+                        Expression eo = cast(Expression)o;
+                        if (eo.op == TOK.dSymbol)
+                        {
+                            DsymbolExp se = cast(DsymbolExp)eo;
+                            Dsymbol_needsDtor(se.s);
+                        }
+                    }
+                }
+            }
+
+
+        }
+    }
+
+    scope NeedsDtor ct = new NeedsDtor(arg);
+    return walkPostorder(arg, ct);
 }

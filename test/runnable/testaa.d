@@ -1072,7 +1072,6 @@ void test10595()
         Wrap10595[int] wrap;
 
         wrap[0] = Wrap10595();
-        wrap[0] = 0;  // note: using 'alias this' to assign
 
         assert(wrap[0].s.test());  // failure
     }

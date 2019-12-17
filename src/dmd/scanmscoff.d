@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/scanmscoff.d, _scanmscoff.d)
@@ -14,10 +14,13 @@ module dmd.scanmscoff;
 
 version(Windows):
 
-import core.stdc.string, core.stdc.stdlib, core.sys.windows.windows;
+import core.stdc.string, core.stdc.stdlib, core.sys.windows.winnt;
+
+import dmd.root.rmem;
+
 import dmd.globals, dmd.errors;
 
-enum LOG = false;
+private enum LOG = false;
 
 /*****************************************
  * Reads an object module from base[] and passes the names
@@ -54,9 +57,9 @@ void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) pAddSymb
     {
         is_old_coff = true;
         IMAGE_FILE_HEADER* header_old;
-        header_old = cast(IMAGE_FILE_HEADER*)malloc(IMAGE_FILE_HEADER.sizeof);
+        header_old = cast(IMAGE_FILE_HEADER*)Mem.check(malloc(IMAGE_FILE_HEADER.sizeof));
         memcpy(header_old, buf, IMAGE_FILE_HEADER.sizeof);
-        header = cast(BIGOBJ_HEADER*)malloc(BIGOBJ_HEADER.sizeof);
+        header = cast(BIGOBJ_HEADER*)Mem.check(malloc(BIGOBJ_HEADER.sizeof));
         *header = BIGOBJ_HEADER.init;
         header.Machine = header_old.Machine;
         header.NumberOfSections = header_old.NumberOfSections;
@@ -112,9 +115,9 @@ void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) pAddSymb
         if (is_old_coff)
         {
             SymbolTable* n2;
-            n2 = cast(SymbolTable*)malloc(SymbolTable.sizeof);
+            n2 = cast(SymbolTable*)Mem.check(malloc(SymbolTable.sizeof));
             memcpy(n2, (buf + off), SymbolTable.sizeof);
-            n = cast(SymbolTable32*)malloc(SymbolTable32.sizeof);
+            n = cast(SymbolTable32*)Mem.check(malloc(SymbolTable32.sizeof));
             memcpy(n, n2, (n2.Name).sizeof);
             n.Value = n2.Value;
             n.SectionNumber = n2.SectionNumber;
@@ -175,6 +178,8 @@ void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) pAddSymb
         pAddSymbol(p[0 .. strlen(p)], 1);
     }
 }
+
+private: // for the remainder of this module
 
 align(1)
 struct BIGOBJ_HEADER

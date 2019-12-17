@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/gloop.d, backend/gloop.d)
@@ -39,7 +39,9 @@ import dmd.backend.type;
 
 import dmd.backend.dlist;
 import dmd.backend.dvec;
-import dmd.backend.memh;
+import dmd.backend.mem;
+
+nothrow:
 
 char symbol_isintab(Symbol *s) { return sytab[s.Sclass] & SCSS; }
 
@@ -53,6 +55,7 @@ bool findloopparameters(elem* erel, ref elem* rdeq, ref elem* rdinc);
 
 struct loop
 {
+nothrow:
     loop *Lnext;        // Next loop in list (startloop -> start of list)
     vec_t Lloop;        // Vector of blocks in this loop
     vec_t Lexit;        // Vector of exit blocks of loop
@@ -107,6 +110,7 @@ struct loop
 
 struct famlist
 {
+nothrow:
     elem **FLpelem;         /* parent of elem in the family         */
     elem *c1;
     elem *c2;               // c1*(basic IV) + c2
@@ -160,6 +164,7 @@ enum FLELIM = cast(Symbol *)-1;
 
 struct Iv
 {
+nothrow:
     Symbol *IVbasic;        // symbol of basic IV
     elem **IVincr;          // pointer to parent of IV increment elem
     famlist *IVfamily;      // variables in this family
@@ -1398,7 +1403,7 @@ void fillInDNunambig(vec_t v, elem *e)
 extern (C) {
 void updaterd(elem *n,vec_t GEN,vec_t KILL)
 {
-    uint op = n.Eoper;
+    const op = n.Eoper;
     elem *t;
 
     assert(OTdef(op));
@@ -1584,7 +1589,7 @@ Lnextlis:
     //if (isLI(n)) { printf("movelis("); WReqn(n); printf(")\n"); }
     assert(l && n);
     elem_debug(n);
-    const uint op = n.Eoper;
+    const op = n.Eoper;
     switch (op)
     {
         case OPvar:
@@ -2056,6 +2061,9 @@ private famlist * newfamlist(tym_t ty)
         case TYvptr:
         case TYnptr:
         case TYnullptr:
+        case TYimmutPtr:
+        case TYsharePtr:
+        case TYfgPtr:
             ty = TYint;
             if (I64)
                 ty = TYllong;
@@ -2445,7 +2453,6 @@ private void findivfams(loop *l)
 
 private void ivfamelems(Iv *biv,elem **pn)
 {
-    uint op;
     tym_t ty,c2ty;
     elem *n;
     elem *n1;
@@ -2454,7 +2461,7 @@ private void ivfamelems(Iv *biv,elem **pn)
     assert(pn);
     n = *pn;
     assert(biv && n);
-    op = n.Eoper;
+    const op = n.Eoper;
     if (OTunary(op))
     {
        ivfamelems(biv,&n.EV.E1);
@@ -3371,6 +3378,9 @@ private famlist * flcmp(famlist *f1,famlist *f2)
             case TYsptr:
             case TYcptr:
             case TYnptr:        // BUG: 64 bit pointers?
+            case TYimmutPtr:
+            case TYsharePtr:
+            case TYfgPtr:
             case TYnullptr:
             case TYint:
             case TYuint:
@@ -3631,7 +3641,7 @@ private void elimspecwalk(elem **pn)
                 !el_sideeffect(e1.EV.E1))
             {
                 elem *e;
-                int op;
+                OPER op;
 
                 debug if (debugc)
                 {   printf("4rewriting ("); WReqn(n); printf(")\n"); }
@@ -3680,6 +3690,7 @@ private void elimspecwalk(elem **pn)
 
 struct UnrollWalker
 {
+nothrow:
     uint defnum;
     int state;
     Symbol *v;
@@ -3696,7 +3707,7 @@ struct UnrollWalker
     void walker(elem *e)
     {
         assert(e);
-        uint op = e.Eoper;
+        const op = e.Eoper;
         if (ERTOL(e))
         {
             if (e.Edef != defnum)

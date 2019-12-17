@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -21,9 +21,15 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{C4DA4FAF-A928-4230-8353-E80C76F223E0}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>dmd2</RootNamespace>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
-    <TargetPlatformVersion>$(WindowsTargetPlatformVersion)</TargetPlatformVersion>
+    <RootNamespace>dmd</RootNamespace>
+    <!-- guess the installed Windows SDK -->
+    <WindowsSdkInstallFolder_10 Condition="'$(WindowsSdkInstallFolder_10)' == ''">$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Microsoft SDKs\Windows\v10.0@InstallationFolder)</WindowsSdkInstallFolder_10>
+    <WindowsSdkInstallFolder_10 Condition="'$(WindowsSdkInstallFolder_10)' == ''">$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\v10.0@InstallationFolder)</WindowsSdkInstallFolder_10>
+    <WindowsTargetPlatformVersion_10 Condition="'$(WindowsTargetPlatformVersion_10)' == ''">$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Microsoft SDKs\Windows\v10.0@ProductVersion)</WindowsTargetPlatformVersion_10>
+    <WindowsTargetPlatformVersion_10 Condition="'$(WindowsTargetPlatformVersion_10)' == ''">$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\v10.0@ProductVersion)</WindowsTargetPlatformVersion_10>
+    <!-- Sometimes the version in the registry has the .0 suffix, and sometimes it doesn't. Check and add it -->
+    <WindowsTargetPlatformVersion_10 Condition="'$(WindowsTargetPlatformVersion_10)' != '' and !$(WindowsTargetPlatformVersion_10.EndsWith('.0'))">$(WindowsTargetPlatformVersion_10).0</WindowsTargetPlatformVersion_10>
+    <WindowsTargetPlatformVersion Condition="'$(WindowsTargetPlatformVersion_10)' != ''">$(WindowsTargetPlatformVersion_10)</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -67,7 +73,17 @@
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Label="UserMacros">
+    <_DCompilerExe Condition="'$(DCompiler)' == 'LDC' and '$(Platform)'=='x64'">$(LDCBinDir)ldmd2.exe -m64</_DCompilerExe>
+    <_DCompilerExe Condition="'$(DCompiler)' == 'LDC' and '$(Platform)'=='Win32'">$(LDCBinDir)ldmd2.exe -m32</_DCompilerExe>
+    <_DCompilerExe Condition="'$(_DCompilerExe)' == ''">$(DMDBinDir)dmd.exe</_DCompilerExe>
+    <_rdmdExe Condition="'$(DCompiler)' == 'LDC' and '$(Platform)'=='x64'">$(LDCBinDir)rdmd.exe -m64</_rdmdExe>
+    <_rdmdExe Condition="'$(DCompiler)' == 'LDC' and '$(Platform)'=='Win32'">$(LDCBinDir)rdmd.exe -m32</_rdmdExe>
+    <_rdmdExe Condition="'$(_rdmdExe)' == '' ">$(DMDBinDir)rdmd.exe</_rdmdExe>
+  </PropertyGroup>
+  <PropertyGroup>
+    <CustomBuildBeforeTargets>_DMD</CustomBuildBeforeTargets>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>..\..\generated\Windows\$(Configuration)\$(PlatformName)\</OutDir>
@@ -102,10 +118,11 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <StackReserveSize>8388608</StackReserveSize>
       <AdditionalOptions>$(ExternalLinkerOptions) %(AdditionalOptions)</AdditionalOptions>
+      <LargeAddressAware>true</LargeAddressAware>
     </Link>
     <DCompile>
       <VersionIdentifiers>MARS</VersionIdentifiers>
-      <StringImportPaths>..\..;..\..\res;$(OutDir)\backend\generated</StringImportPaths>
+      <StringImportPaths>..\..\res;$(OutDir)</StringImportPaths>
       <CRuntimeLibrary>MultiThreadedDebug</CRuntimeLibrary>
       <CompilationModel>Package</CompilationModel>
       <ImportPaths>..</ImportPaths>
@@ -129,7 +146,7 @@
     </Link>
     <DCompile>
       <VersionIdentifiers>MARS</VersionIdentifiers>
-      <StringImportPaths>..\..;..\..\res;$(OutDir)\backend\generated</StringImportPaths>
+      <StringImportPaths>..\..\res;$(OutDir)</StringImportPaths>
       <CRuntimeLibrary>MultiThreadedDebug</CRuntimeLibrary>
       <CompilationModel>Package</CompilationModel>
       <ImportPaths>..</ImportPaths>
@@ -154,10 +171,11 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <StackReserveSize>8388608</StackReserveSize>
       <AdditionalOptions>$(ExternalLinkerOptions) %(AdditionalOptions)</AdditionalOptions>
+      <LargeAddressAware>true</LargeAddressAware>
     </Link>
     <DCompile>
       <VersionIdentifiers>MARS</VersionIdentifiers>
-      <StringImportPaths>..\..;..\..\res;$(OutDir)\backend\generated</StringImportPaths>
+      <StringImportPaths>..\..\res;$(OutDir)</StringImportPaths>
       <CompilationModel>Package</CompilationModel>
       <ImportPaths>..</ImportPaths>
       <Optimizer>true</Optimizer>
@@ -186,7 +204,7 @@
     </Link>
     <DCompile>
       <VersionIdentifiers>MARS</VersionIdentifiers>
-      <StringImportPaths>..\..;..\..\res;$(OutDir)\backend\generated</StringImportPaths>
+      <StringImportPaths>..\..\res;$(OutDir)</StringImportPaths>
       <CompilationModel>Package</CompilationModel>
       <ImportPaths>..</ImportPaths>
       <Optimizer>true</Optimizer>
@@ -196,12 +214,17 @@
     </DCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <DCompile Include="../dmd/**/*.d" />
+    <DCompile Include="../dmd/**/*.d" Exclude="../dmd/frontend.d;../dmd/asttypename.d" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="dmd_backend.vcxproj">
-      <Project>{2387389d-7d3f-4d5e-ae0e-c871776e8432}</Project>
-    </ProjectReference>
+    <ClInclude Include="../dmd/**/*.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="..\..\VERSION">
+      <Message>Creating VERSION: $(_rdmdExe) ..\..\config.d $(OutDir) ..\..\VERSION</Message>
+      <Command>$(_rdmdExe) ..\..\config.d $(OutDir) ..\..\VERSION</Command>
+      <Outputs>$(OutDir)VERSION;%(Outputs)</Outputs>
+    </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -1,4 +1,10 @@
 // PERMUTE_ARGS: -inline -g -debug -unittest
+/*
+TEST_OUTPUT:
+---
+hit!
+---
+*/
 
 import imports.std15021conv;
 

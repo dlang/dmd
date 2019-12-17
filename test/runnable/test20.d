@@ -1,3 +1,9 @@
+/*
+TEST_OUTPUT:
+---
+runnable/test20.d(448): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+---
+*/
 import core.vararg;
 
 extern(C) int printf(const char*, ...);
@@ -213,7 +219,7 @@ void test10()
 
 /*****************************************/
 
-scope class T11
+class T11
 {
     this(){}
     ~this(){}
@@ -334,12 +340,6 @@ int y16;
 
 class C16
 {
-        new(size_t size, byte blah){
-                void* v = (new byte[C16.classinfo.initializer.length]).ptr;
-                y16 = 1;
-                assert(blah == 3);
-                return v;
-        }
         int x;
         this()
         {
@@ -349,8 +349,7 @@ class C16
 
 void test16()
 {
-    C16 c = new(3) C16;
-    assert(y16 == 1);
+    C16 c = new C16();
     assert(c.x == 4);
 }
 
@@ -743,7 +742,7 @@ void test42()
         string string1 =  "ワロスｗ";
         string string2 = r"ワロスｗ";
         string string3 =  `ワロスｗ`;
-        string string4 = x"E3 83 AF E3 83 AD E3 82 B9 EF BD 97";
+        string string4 = "\xE3\x83\xAF\xE3\x83\xAD\xE3\x82\xB9\xEF\xBD\x97";
 
         assert(string1.length==master.length);
 
@@ -806,7 +805,7 @@ struct S45
 {
     double x = 0, y = 0;
     static S45 opCall(int i) { S45 r; r.x = i; return r; }
-    S45 opMul(S45 s)
+    S45 opBinary(string op)(S45 s) if (op == "*")
     {
         S45 r;
         r.x = x * s.x;
@@ -1032,7 +1031,7 @@ struct S54
         return S54.foo() * S54.foo();
     }
 
-    S54 opMul(S54 s)
+    S54 opBinary(string op)(S54 s) if (op == "*")
     {
         return s;
     }
@@ -1294,4 +1293,3 @@ int main()
     printf("Success\n");
     return 0;
 }
-

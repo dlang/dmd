@@ -1,4 +1,4 @@
-// ARG_SETS: -debug; -o-; -debug -dip1000
+// ARG_SETS: -debug; -o-; -debug -preview=dip1000
 // https://issues.dlang.org/show_bug.cgi?id=16492
 
 void mayCallGC();

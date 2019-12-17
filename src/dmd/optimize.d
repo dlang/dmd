@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/optimize.d, _optimize.d)
@@ -20,6 +20,7 @@ import dmd.dclass;
 import dmd.declaration;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
+import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.globals;
@@ -1101,7 +1102,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             if (e.e1.isBool(oror))
             {
                 // Replace with (e1, oror)
-                ret = new IntegerExp(e.loc, oror, Type.tbool);
+                ret = IntegerExp.createBool(oror);
                 ret = Expression.combine(e.e1, ret);
                 if (e.type.toBasetype().ty == Tvoid)
                 {
@@ -1202,8 +1203,14 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
     scope OptimizeVisitor v = new OptimizeVisitor(e, result, keepLvalue);
 
     // Optimize the expression until it can no longer be simplified.
+    size_t b;
     while (1)
     {
+        if (b++ == 500)
+        {
+            e.error("infinite loop while optimizing expression");
+            fatal();
+        }
         auto ex = v.ret;
         ex.accept(v);
         if (ex == v.ret)

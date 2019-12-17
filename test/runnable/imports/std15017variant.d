@@ -1,4 +1,4 @@
-module imports.std15017;
+module imports.std15017variant;
 
 struct VariantN(size_t maxDataSize)
 {

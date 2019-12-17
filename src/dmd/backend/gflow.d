@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/gflow.d, backend/gflow.d)
@@ -38,6 +38,8 @@ import dmd.backend.type;
 import dmd.backend.barray;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
+
+nothrow:
 
 void vec_setclear(size_t b, vec_t vs, vec_t vc) { vec_setbit(b, vs); vec_clearbit(b, vc); }
 
@@ -238,7 +240,7 @@ private uint numdefelems(elem *e, uint *pnum_unambig_def)
 private void asgdefelems(block *b,elem *n)
 {
     assert(b && n);
-    const uint op = n.Eoper;
+    const op = n.Eoper;
     if (ERTOL(n))
     {
         asgdefelems(b,n.EV.E2);
@@ -308,7 +310,7 @@ private void rdelem(vec_t *pgen,vec_t *pkill,   /* where to put result          
 private void accumrd(vec_t GEN,vec_t KILL,elem *n)
 {
     assert(GEN && KILL && n);
-    const uint op = n.Eoper;
+    const op = n.Eoper;
     if (OTunary(op))
         accumrd(GEN,KILL,n.EV.E1);
     else if (OTbinary(op))
@@ -709,7 +711,7 @@ private int numaeelems(elem *n)
     uint ae;
 
     assert(n);
-    const uint op = n.Eoper;
+    const op = n.Eoper;
     if (OTunary(op))
     {
         ae = numaeelems(n.EV.E1);
@@ -723,9 +725,10 @@ private int numaeelems(elem *n)
     else
         ae = true;
 
-    if (ae && OTae(op) && !(n.Ety & mTYvolatile) &&
+    if (ae && OTae(op) && !(n.Ety & (mTYvolatile | mTYshared)) &&
         // Disallow struct AEs, because we can't handle CSEs that are structs
-        tybasic(n.Ety) != TYstruct)
+        tybasic(n.Ety) != TYstruct &&
+        tybasic(n.Ety) != TYarray)
     {
         n.Nflags |= NFLaecp;           /* remember for asgexpelems()   */
         go.exptop++;
@@ -762,7 +765,7 @@ private int numcpelems(elem *n)
             if ((op == OPeq || op == OPstreq) &&
                 n.EV.E1.Eoper == OPvar &&
                 n.EV.E2.Eoper == OPvar &&
-                !((n.EV.E1.Ety | n.EV.E2.Ety) & mTYvolatile) &&
+                !((n.EV.E1.Ety | n.EV.E2.Ety) & (mTYvolatile | mTYshared)) &&
                 n.EV.E1.EV.Vsym != n.EV.E2.EV.Vsym)
             {
                 n.Nflags |= NFLaecp;
@@ -855,16 +858,15 @@ private void defstarkill()
         foreach (uint i; 1 .. go.exptop)
         {
             elem *n = go.expnod[i];
-            const uint op = n.Eoper;
+            const op = n.Eoper;
             assert(op == OPeq || op == OPstreq);
             assert(n.EV.E1.Eoper==OPvar && n.EV.E2.Eoper==OPvar);
 
             // Set bit in defkill if either the left or the
             // right variable is killed by an ambiguous def.
 
-            Symbol *s1 = n.EV.E1.EV.Vsym;
-            if (!(s1.Sflags & SFLunambig) ||
-                !(n.EV.E2.EV.Vsym.Sflags & SFLunambig))
+            if (Symbol_isAffected(*n.EV.E1.EV.Vsym) ||
+                Symbol_isAffected(*n.EV.E2.EV.Vsym))
             {
                 vec_setbit(i,go.defkill);
             }
@@ -875,49 +877,17 @@ private void defstarkill()
         foreach (uint i; 1 .. go.exptop)
         {
             elem *n = go.expnod[i];
-            const uint op = n.Eoper;
+            const op = n.Eoper;
             switch (op)
             {
                 case OPvar:
-                    if (!(n.EV.Vsym.Sflags & SFLunambig))
+                    if (Symbol_isAffected(*n.EV.Vsym))
                         vec_setbit(i,go.defkill);
                     break;
 
                 case OPind:         // if a 'starred' ref
-                    static if (1)
-                    {
-                        /* The following program fails for this:
-                        import core.stdc.stdio;
-
-                        class Foo
-                        {
-                            string foo = "abc";
-                            size_t i = 0;
-
-                            void bar()
-                            {
-                                printf("%c\n", foo[i]);
-                                i++;
-                                printf("%c\n", foo[i]);
-                            }
-                        }
-
-                        void main()
-                        {
-                            auto f = new Foo();
-                            f.bar();
-                        }
-                        */
-
-                        // For C/C++, casting to 'const' doesn't mean it
-                        // actually is const,
-                        // but immutable really doesn't change
-                        if ((n.Ety & (mTYimmutable | mTYvolatile)) == mTYimmutable &&
-                            n.EV.E1.Eoper == OPvar &&
-                            n.EV.E1.EV.Vsym.Sflags & SFLunambig
-                           )
-                            break;
-                    }
+                    if (tybasic(n.EV.E1.Ety) == TYimmutPtr)
+                        break;
                     goto case OPstrlen;
 
                 case OPstrlen:
@@ -1028,7 +998,7 @@ private void accumaecpx(elem *n)
 
     assert(n);
     elem_debug(n);
-    const uint op = n.Eoper;
+    const op = n.Eoper;
 
     switch (op)
     {
@@ -1409,7 +1379,7 @@ private void accumlv(vec_t GEN,vec_t KILL,elem *n)
     while (1)
     {
         elem_debug(n);
-        const uint op = n.Eoper;
+        const op = n.Eoper;
         switch (op)
         {
             case OPvar:
@@ -1665,7 +1635,7 @@ private void accumvbe(vec_t GEN,vec_t KILL,elem *n)
     elem *t;
 
     assert(GEN && KILL && n);
-    const uint op = n.Eoper;
+    const op = n.Eoper;
 
     switch (op)
     {

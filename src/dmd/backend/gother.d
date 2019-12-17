@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1986-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              http://www.boost.org/LICENSE_1_0.txt
@@ -40,21 +40,24 @@ import dmd.backend.barray;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
 
+nothrow:
+
 char symbol_isintab(Symbol *s) { return sytab[s.Sclass] & SCSS; }
 
 extern (C++):
 
 version (SCPP)
     import parser;
+
 version (MARS)
     import dmd.backend.errors;
-
 
 /**********************************************************************/
 
 // Lists to help identify ranges of variables
 struct Elemdata
 {
+nothrow:
     Elemdata *next;         // linked list
     elem *pelem;            // the elem in question
     block *pblock;          // which block it's in
@@ -213,14 +216,13 @@ private void rd_compute()
 
 private void conpropwalk(elem *n,vec_t IN)
 {
-    uint op;
     Elemdata *pdata;
     vec_t L,R;
     elem *t;
 
     assert(n && IN);
     //printf("conpropwalk()\n"),elem_print(n);
-    op = n.Eoper;
+    const op = n.Eoper;
     if (op == OPcolon || op == OPcolon2)
     {
         L = vec_clone(IN);
@@ -405,7 +407,7 @@ private void chkrd(elem *n,list_t rdlist)
     assert(sytab[sv.Sclass] & SCRD);
     if (sv.Sflags & SFLnord)           // if already printed a warning
         return;
-    if (sv.ty() & mTYvolatile)
+    if (sv.ty() & (mTYvolatile | mTYshared))
         return;
     unambig = sv.Sflags & SFLunambig;
     foreach (l; ListRange(rdlist))
@@ -641,7 +643,7 @@ extern (C) list_t listrds(vec_t IN,elem *e,vec_t f)
     {
         elem *d = go.defnod[i].DNelem;
         //printf("\tlooking at "); WReqn(d); printf("\n");
-        uint op = d.Eoper;
+        const op = d.Eoper;
         if (op == OPasm)                // assume ASM elems define everything
             goto listit;
         if (OTassign(op))
@@ -1400,8 +1402,8 @@ void rmdeadass()
             //printf("\tDEAD=%d, live=%d\n",vec_testbit(j,DEAD),vec_testbit(v.Ssymnum,b.Boutlv));
             if (!vec_testbit(j,DEAD) && vec_testbit(v.Ssymnum,b.Boutlv))
                 continue;
-            /* volatile variables are not dead              */
-            if ((v.ty() | nv.Ety) & mTYvolatile)
+            /* volatile/shared variables are not dead              */
+            if ((v.ty() | nv.Ety) & (mTYvolatile | mTYshared))
                 continue;
             debug if (debugc)
             {
@@ -1683,7 +1685,7 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
                         if (ti.EV.Vsym == t.EV.Vsym &&
                             ti.EV.Voffset == t.EV.Voffset &&
                             tisz == tsz &&
-                            !(t.Ety & mTYvolatile) &&
+                            !(t.Ety & (mTYvolatile | mTYshared)) &&
                             //t.EV.Vsym.Sflags & SFLunambig &&
                             vec_testbit(i,POSS))
                         {

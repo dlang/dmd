@@ -2,9 +2,9 @@
 TEST_OUTPUT:
 ---
 fail_compilation/e7804_2.d(17): Error: `__traits(getMember, Foo, "func")` does not give a valid type
-fail_compilation/e7804_2.d(18): Error: cannot cast `int` to `__traits(getMember, Foo, "func")`
 ---
 */
+
 module e7804_2;
 
 class Foo

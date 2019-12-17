@@ -1,5 +1,19 @@
 // PERMUTE_ARGS: -unittest -O -release -inline -fPIC -g
-// REQUIRED_ARGS: -transition=dtorfields
+// REQUIRED_ARGS: -preview=dtorfields
+/*
+TEST_OUTPUT:
+---
+runnable/sdtor.d(36): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/sdtor.d(59): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/sdtor.d(93): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/sdtor.d(117): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/sdtor.d(143): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/sdtor.d(177): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/sdtor.d(203): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/sdtor.d(276): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+S7353
+---
+*/
 
 import core.vararg;
 
@@ -21,23 +35,6 @@ void test1()
     S1* s = new S1();
     delete s;
     assert(sdtor == 1);
-}
-
-/**********************************/
-
-int sdtor2;
-
-struct S2
-{
-    ~this() { printf("~S2()\n"); sdtor2++; }
-    delete(void* p) { assert(sdtor2 == 1); printf("S2.delete()\n"); sdtor2++; }
-}
-
-void test2()
-{
-    S2* s = new S2();
-    delete s;
-    assert(sdtor2 == 2);
 }
 
 /**********************************/
@@ -883,7 +880,7 @@ void test34()
     for (int j = 0; j < xs.length; j++) {
         j++,j--;
         auto x = xs[j];
-        //foreach(x; xs) {
+        //foreach(x; xs)
         //printf("foreach x.i = %d\n", x[0].i);
         //assert(x[0].i == 1);
         printf("foreach x.i = %d\n", x.i);
@@ -4614,11 +4611,73 @@ class C66
 }
 
 /**********************************/
+// https://issues.dlang.org/show_bug.cgi?id=16652
+
+struct Vector
+{
+    this(ubyte a)
+    {
+        pragma(inline, false);
+        buf = a;
+    }
+
+    ~this()
+    {
+        pragma(inline, false);
+        buf = 0;
+    }
+
+    ubyte buf;
+}
+
+int bar16652(ubyte* v)
+{
+    pragma(inline, true);
+    assert(*v == 1);
+    return 0;
+}
+
+void test16652()
+{
+    bar16652(&Vector(1).buf);
+}
+
+
+/**********************************/
+// https://issues.dlang.org/show_bug.cgi?id=19676
+
+void test19676()
+{
+    static struct S
+    {
+        __gshared int count;
+        ~this() { ++count; }
+    }
+
+    static S foo() { return S(); }
+
+    static void test1()
+    {
+        cast(void)foo();
+    }
+
+    static void test2()
+    {
+        foo();
+    }
+
+    test1();
+    assert(S.count == 1);
+    test2();
+    assert(S.count == 2);
+}
+
+/**********************************/
 
 int main()
 {
     test1();
-    test2();
+
     test3();
     test4();
     test5();
@@ -4747,6 +4806,8 @@ int main()
     test65();
     test15661();
     test18045();
+    test16652();
+    test19676();
 
     printf("Success\n");
     return 0;

@@ -2,8 +2,10 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
+ * Compute common subexpressions for non-optimized builds.
+ *
  * Copyright:   Copyright (C) 1985-1995 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgcs.d
@@ -34,48 +36,16 @@ import dmd.backend.barray;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
 
-extern (C++):
 
-/*********************************
- * Struct for each elem:
- *      Helem   pointer to elem
- *      Hhash   hash value for the elem
- */
-
-struct HCS
-{
-    elem    *Helem;
-    uint Hhash;
-}
-
-private __gshared
-{
-    Barray!HCS hcstab;           /* array of hcs's               */
-}
-
-struct HCSArray
-{
-    uint touchstari;
-    uint[2] touchfunci;
-}
-
-private __gshared HCSArray hcsarray;
-
-// Use a bit vector for quick check if expression is possibly in hcstab[].
-// This results in much faster compiles when hcstab[] gets big.
-private __gshared vec_t csvec;                     // vector of used entries
-enum CSVECDIM = 16001; //8009 //3001     // dimension of csvec (should be prime)
+nothrow:
 
 /*******************************
  * Eliminate common subexpressions across extended basic blocks.
  * String together as many blocks as we can.
  */
 
-void comsubs()
+public extern (C++) void comsubs()
 {
-    block* bl,blc,bln;
-    int n;                       /* # of blocks to treat as one  */
-
     //static int xx;
     //printf("comsubs() %d\n", ++xx);
     //debugx = (xx == 37);
@@ -97,15 +67,16 @@ void comsubs()
         csvec = vec_calloc(CSVECDIM);
     }
 
-    for (bl = startblock; bl; bl = bln)
+    block* bln;
+    for (block* bl = startblock; bl; bl = bln)
     {
         bln = bl.Bnext;
         if (!bl.Belem)
             continue;                   /* if no expression or no parents       */
 
         // Count up n, the number of blocks in this extended basic block (EBB)
-        n = 1;                          // always at least one block in EBB
-        blc = bl;
+        int n = 1;                      // always at least one block in EBB
+        auto blc = bl;
         while (bln && list_nitems(bln.Bpred) == 1 &&
                ((blc.BC == BCiftrue &&
                  blc.nthSucc(1) == bln) ||
@@ -142,7 +113,7 @@ void comsubs()
 /*******************************
  */
 
-void cgcs_term()
+public extern (C++) void cgcs_term()
 {
     vec_free(csvec);
     csvec = null;
@@ -150,30 +121,65 @@ void cgcs_term()
     //hcstab.dtor();  // cache allocation for next iteration
 }
 
+
+/***********************************************************************/
+
+private:
+
+alias hash_t = uint;    // for hash values
+
+/*********************************
+ * Struct for each elem:
+ *      Helem   pointer to elem
+ *      Hhash   hash value for the elem
+ */
+
+struct HCS
+{
+    elem* Helem;
+    hash_t Hhash;
+}
+
+struct HCSArray
+{
+    uint touchstari;
+    uint[2] touchfunci;
+}
+
+__gshared
+{
+    Barray!HCS hcstab;           // array of hcs's
+    HCSArray hcsarray;
+
+    // Use a bit vector for quick check if expression is possibly in hcstab[].
+    // This results in much faster compiles when hcstab[] gets big.
+    vec_t csvec;                 // vector of used entries
+    enum CSVECDIM = 16001; //8009 //3001     // dimension of csvec (should be prime)
+}
+
+
 /*************************
  * Eliminate common subexpressions for an element.
  */
 
-private void ecom(elem **pe)
+void ecom(elem **pe)
 {
-    int op;
-    uint hash;
-    elem *e;
-    elem *ehash;
-    tym_t tym;
-
-    e = *pe;
+    auto e = *pe;
     assert(e);
     elem_debug(e);
     debug assert(e.Ecount == 0);
     //assert(e.Ecomsub == 0);
-    tym = tybasic(e.Ety);
-    op = e.Eoper;
+    const tym = tybasic(e.Ety);
+    const op = e.Eoper;
     switch (op)
     {
         case OPconst:
-        case OPvar:
         case OPrelconst:
+            break;
+
+        case OPvar:
+            if (e.EV.Vsym.ty() & mTYshared)
+                return;         // don't cache shared variables
             break;
 
         case OPstreq:
@@ -219,7 +225,7 @@ private void ecom(elem **pe)
             touchlvalue(e.EV.E1);
             if (!OTpost(op))                /* lvalue of i++ or i-- is not a cse*/
             {
-                hash = cs_comphash(e.EV.E1);
+                const hash = cs_comphash(e.EV.E1);
                 vec_setbit(hash % CSVECDIM,csvec);
                 addhcstab(e.EV.E1,hash);              // add lvalue to hcstab[]
             }
@@ -315,13 +321,15 @@ private void ecom(elem **pe)
         case OPvp_fp:
         case OPcvp_fp:
             ecom(&e.EV.E1);
-            touchaccess(e);
+            touchaccess(hcstab, e);
             break;
 
         case OPind:
             ecom(&e.EV.E1);
             /* Generally, CSEing a *(double *) results in worse code        */
             if (tyfloating(tym))
+                return;
+            if (tybasic(e.EV.E1.Ety) == TYsharePtr)
                 return;
             break;
 
@@ -372,15 +380,14 @@ private void ecom(elem **pe)
         case OPabs: case OPrndtol: case OPrint:
         case OPpreinc: case OPpredec:
         case OPbool: case OPstrlen: case OPs16_32: case OPu16_32:
-        case OPd_s32: case OPd_u32:
         case OPs32_d: case OPu32_d: case OPd_s16: case OPs16_d: case OP32_16:
-        case OPd_f: case OPf_d:
-        case OPd_ld: case OPld_d:
+        case OPf_d:
+        case OPld_d:
         case OPc_r: case OPc_i:
         case OPu8_16: case OPs8_16: case OP16_8:
         case OPu32_64: case OPs32_64: case OP64_32: case OPmsw:
         case OPu64_128: case OPs64_128: case OP128_64:
-        case OPd_s64: case OPs64_d: case OPd_u64: case OPu64_d:
+        case OPs64_d: case OPd_u64: case OPu64_d:
         case OPstrctor: case OPu16_d: case OPd_u16:
         case OParrow:
         case OPvoid:
@@ -392,6 +399,31 @@ private void ecom(elem **pe)
             ecom(&e.EV.E1);
             break;
 
+        case OPd_ld:
+            return;
+
+        case OPd_f:
+        {
+            const op1 = e.EV.E1.Eoper;
+            if (config.fpxmmregs &&
+                (op1 == OPs32_d ||
+                 I64 && (op1 == OPs64_d || op1 == OPu32_d))
+               )
+                ecom(&e.EV.E1.EV.E1);   // e and e1 ops are fused (see xmmcnvt())
+            else
+                ecom(&e.EV.E1);
+            break;
+        }
+
+        case OPd_s32:
+        case OPd_u32:
+        case OPd_s64:
+            if (e.EV.E1.Eoper == OPf_d && config.fpxmmregs)
+                ecom(&e.EV.E1.EV.E1);   // e and e1 ops are fused (see xmmcnvt());
+            else
+                ecom(&e.EV.E1);
+            break;
+
         case OPhalt:
             return;
     }
@@ -399,14 +431,17 @@ private void ecom(elem **pe)
     /* don't CSE structures or unions or volatile stuff   */
     if (tym == TYstruct ||
         tym == TYvoid ||
-        e.Ety & mTYvolatile ||
-        tyxmmreg(tym) ||
-        // don't CSE doubles if inline 8087 code (code generator can't handle it)
-        (tyfloating(tym) && config.inline8087)
-       )
+        e.Ety & mTYvolatile)
         return;
+    if (tyfloating(tym) && config.inline8087)
+    {
+        /* can CSE XMM code, but not x87
+         */
+        if (!(config.fpxmmregs && tyxmmreg(tym)))
+            return;
+    }
 
-    hash = cs_comphash(e);                /* must be AFTER leaves are done */
+    const hash = cs_comphash(e);                /* must be AFTER leaves are done */
 
     /* Search for a match in hcstab[].
      * Search backwards, as most likely matches will be towards the end
@@ -423,6 +458,7 @@ private void ecom(elem **pe)
                 printf("i: %2d Hhash: %6d Helem: %p\n",
                        i,hcs.Hhash,hcs.Helem);
 
+            elem* ehash;
             if (hash == hcs.Hhash && (ehash = hcs.Helem) != null)
             {
                 /* if elems are the same and we still have room for more    */
@@ -459,14 +495,11 @@ private void ecom(elem **pe)
  * Compute hash function for elem e.
  */
 
-private uint cs_comphash(elem *e)
+hash_t cs_comphash(const elem *e)
 {
-    int hash;
-    uint op;
-
     elem_debug(e);
-    op = e.Eoper;
-    hash = (e.Ety & (mTYbasic | mTYconst | mTYvolatile)) + (op << 8);
+    const op = e.Eoper;
+    hash_t hash = (e.Ety & (mTYbasic | mTYconst | mTYvolatile)) + (op << 8);
     if (!OTleaf(op))
     {
         hash += cast(size_t) e.EV.E1;
@@ -486,7 +519,7 @@ private uint cs_comphash(elem *e)
  * Add an elem to the common subexpression table.
  */
 
-private void addhcstab(elem *e,int hash)
+void addhcstab(elem *e, hash_t hash)
 {
     hcstab.push(HCS(e, hash));
 }
@@ -498,7 +531,7 @@ private void addhcstab(elem *e,int hash)
  * Eliminate common subs that are indirect loads.
  */
 
-private void touchlvalue(elem *e)
+void touchlvalue(elem *e)
 {
     if (e.Eoper == OPind)                /* if indirect store            */
     {
@@ -561,12 +594,12 @@ private void touchlvalue(elem *e)
  * an indirect assignment.
  * Eliminate any subexpressions that are "starred" (they need to
  * be recomputed).
- * Input:
- *      flag    If !=0, then this is a function call.
+ * Params:
+ *      flag =  If 1, then this is a function call.
  *              If 0, then this is an indirect assignment.
  */
 
-private void touchfunc(int flag)
+void touchfunc(int flag)
 {
 
     //printf("touchfunc(%d)\n", flag);
@@ -581,54 +614,29 @@ private void touchfunc(int flag)
         switch (he.Eoper)
         {
             case OPvar:
-                switch (he.EV.Vsym.Sclass)
+                if (Symbol_isAffected(*he.EV.Vsym))
                 {
-                    case SCregpar:
-                    case SCregister:
-                        break;
-
-                    case SCauto:
-                    case SCparameter:
-                    case SCfastpar:
-                    case SCshadowreg:
-                    case SCbprel:
-                        //printf("he = '%s'\n", he.EV.Vsym.Sident);
-                        if (he.EV.Vsym.Sflags & SFLunambig)
-                            break;
-                        goto case SCstatic;
-
-                    case SCstatic:
-                    case SCextern:
-                    case SCcomdef:
-                    case SCglobal:
-                    case SClocstat:
-                    case SCcomdat:
-                    case SCpseudo:
-                    case SCinline:
-                    case SCsinline:
-                    case SCeinline:
-                        if (!(he.EV.Vsym.ty() & mTYconst))
-                            goto L1;
-                        break;
-
-                    default:
-                        //debug WRclass(cast(enum_SC)he.EV.Vsym.Sclass);
-                        assert(0);
+                    pe.Helem = null;
+                    continue;
                 }
                 break;
 
             case OPind:
+                if (tybasic(he.EV.E1.Ety) == TYimmutPtr)
+                    break;
+                goto Ltouch;
+
             case OPstrlen:
             case OPstrcmp:
             case OPmemcmp:
             case OPbt:
-                goto L1;
+                goto Ltouch;
 
             case OPvp_fp:
             case OPcvp_fp:
                 if (flag == 0)          /* function calls destroy vptrfptr's, */
                     break;              /* not indirect assignments     */
-            L1:
+            Ltouch:
                 pe.Helem = null;
                 break;
 
@@ -645,12 +653,14 @@ private void touchfunc(int flag)
  * do any indirection ("starred" elems).
  */
 
-private void touchstar()
+void touchstar()
 {
     foreach (ref hcs; hcstab[hcsarray.touchstari .. $])
     {
-        auto e = hcs.Helem;
-        if (e && (e.Eoper == OPind || e.Eoper == OPbt) )
+        const e = hcs.Helem;
+        if (e &&
+               (e.Eoper == OPind && tybasic(e.EV.E1.Ety) != TYimmutPtr ||
+                e.Eoper == OPbt) )
             hcs.Helem = null;
     }
     hcsarray.touchstari = cast(uint)hcstab.length;
@@ -660,7 +670,7 @@ private void touchstar()
  * Eliminate all common subexpressions.
  */
 
-private void touchall()
+void touchall()
 {
     foreach (ref hcs; hcstab[])
     {
@@ -676,15 +686,15 @@ private void touchall()
  * if a handle pointer access occurs.
  */
 
-private void touchaccess(elem *ev)
+void touchaccess(ref Barray!HCS hcstab, const elem *ev) pure nothrow
 {
-    ev = ev.EV.E1;
+    const ev1 = ev.EV.E1;
     foreach (ref hcs; hcstab[])
     {
-        auto e = hcs.Helem;
+        const e = hcs.Helem;
         /* Invalidate any previous handle pointer accesses that */
         /* are not accesses of ev.                              */
-        if (e && (e.Eoper == OPvp_fp || e.Eoper == OPcvp_fp) && e.EV.E1 != ev)
+        if (e && (e.Eoper == OPvp_fp || e.Eoper == OPcvp_fp) && e.EV.E1 != ev1)
             hcs.Helem = null;
     }
 }

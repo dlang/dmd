@@ -1,4 +1,11 @@
 // PERMUTE_ARGS: -inline
+/*
+TEST_OUTPUT:
+---
+compilable/interpret3.d(2914): Deprecation: `case` variables have to be `const` or `immutable`
+compilable/interpret3.d(6313): Deprecation: identity comparison of static arrays implicitly coerces them to slices, which are compared by reference
+---
+*/
 
 template compiles(int T)
 {
@@ -78,24 +85,24 @@ struct RetRefStruct
 
 // Return value reference tests, for D2 only.
 
-ref RetRefStruct reffunc1(ref RetRefStruct a)
+ref RetRefStruct reffunc1(return ref RetRefStruct a)
 {
     int y = a.x;
     return a;
 }
 
-ref RetRefStruct reffunc2(ref RetRefStruct a)
+ref RetRefStruct reffunc2(return ref RetRefStruct a)
 {
     RetRefStruct z = a;
     return reffunc1(a);
 }
 
-ref int reffunc7(ref RetRefStruct aa)
+ref int reffunc7(return ref RetRefStruct aa)
 {
     return reffunc1(aa).x;
 }
 
-ref int reffunc3(ref int a)
+ref int reffunc3(return ref int a)
 {
     return a;
 }
@@ -104,18 +111,18 @@ struct RefTestStruct
 {
     RetRefStruct r;
 
-    ref RefTestStruct reffunc4(ref RetRefStruct[3] a)
+    ref RefTestStruct reffunc4(ref RetRefStruct[3] a) return
     {
         return this;
     }
 
-    ref int reffunc6()
+    ref int reffunc6() return
     {
         return this.r.x;
     }
 }
 
-ref RetRefStruct reffunc5(ref RetRefStruct[3] a)
+ref RetRefStruct reffunc5(return ref RetRefStruct[3] a)
 {
     int t = 1;
     for (int i = 0; i < 10; ++i)
@@ -1320,7 +1327,7 @@ struct Zadok
 {
     int[3] z;
     char[4] s = void;
-    ref int[] fog(ref int[] q) { return q; }
+    ref int[] fog(return ref int[] q) { return q; }
     int bfg()
     {
         z[0] = 56;
@@ -2454,7 +2461,7 @@ const(char)[] passthrough(const(char)[] x)
     return x;
 }
 
-sizediff_t checkPass(Char1)(const(Char1)[] s)
+ptrdiff_t checkPass(Char1)(const(Char1)[] s)
 {
     const(Char1)[] balance = s[1 .. $];
     return passthrough(balance).ptr - s.ptr;
@@ -3380,13 +3387,13 @@ bool test3512()
     assert(q == 6);
 
     // _aApplycw2
-    foreach (int i, wchar c; s)
+    foreach (ptrdiff_t i, wchar c; s)
     {
         assert(i >= 0 && i < s.length);
     }
 
     // _aApplycd2
-    foreach (int i, dchar c; s)
+    foreach (ptrdiff_t i, dchar c; s)
     {
         assert(i >= 0 && i < s.length);
     }
@@ -3408,13 +3415,13 @@ bool test3512()
     assert(q == 13);
 
     // _aApplywc2
-    foreach (int i, char c; w)
+    foreach (ptrdiff_t i, char c; w)
     {
         assert(i >= 0 && i < w.length);
     }
 
     // _aApplywd2
-    foreach (int i, dchar c; w)
+    foreach (ptrdiff_t i, dchar c; w)
     {
         assert(i >= 0 && i < w.length);
     }
@@ -3438,19 +3445,19 @@ bool test3512()
     assert(q == 3);
 
     // _aApplydc2
-    foreach (int i, char c; d)
+    foreach (ptrdiff_t i, char c; d)
     {
         assert(i >= 0 && i < d.length);
     }
     // _aApplydw2
-    foreach (int i, wchar c; d)
+    foreach (ptrdiff_t i, wchar c; d)
     {
         assert(i >= 0 && i < d.length);
     }
 
     dchar[] dr = "squop"d.dup;
 
-    foreach (int n, char c; dr)
+    foreach (ptrdiff_t n, char c; dr)
     {
         if (n == 2)
             break;
@@ -3466,7 +3473,7 @@ bool test3512()
     {}
 
     // _aApplyRdc2
-    foreach_reverse (int n, char c; dr)
+    foreach_reverse (ptrdiff_t n, char c; dr)
     {
         if (n == 4)
             break;
@@ -3474,14 +3481,14 @@ bool test3512()
     }
 
     // _aApplyRdw2
-    foreach_reverse (int i, wchar c; dr)
+    foreach_reverse (ptrdiff_t i, wchar c; dr)
     {
         assert(i >= 0 && i < dr.length);
     }
 
     q = 0;
     wstring w2 = ['x', 'ü', 'm']; // foreach over array literals
-    foreach_reverse (int n, char c; w2)
+    foreach_reverse (ptrdiff_t n, char c; w2)
     {
         ++q;
         if (c == 'm') assert(n == 2 && q == 1);
@@ -5773,7 +5780,7 @@ class C10452
     bool func() { return true; }
 }
 
-bool delegate() ref10452(ref S10452 s)
+bool delegate() ref10452(return ref S10452 s)
 {
     return &s.func;
 }
@@ -6878,20 +6885,6 @@ static assert(()
 
 static assert(()
 {
-    // enter forward to TryFinallyStatement.body
-    {
-        bool c = false;
-        goto L0;
-        c = true;
-        try
-        {
-          L0:
-            ;
-        }
-        finally {}
-        assert(!c);
-    }
-
     // enter back to TryFinallyStatement.body
     {
         bool c = false;
@@ -7772,3 +7765,30 @@ char[] mangle19447(char[] dst)
 }
 
 static char[] x19447 = mangle19447(null);
+
+/***/
+enum KindEnum
+{
+    integer,
+    arrayOf
+}
+ 
+struct FullKind
+{
+    KindEnum[] contents;
+
+    this(KindEnum ) { opAssign; }
+
+    this(KindEnum , FullKind contentKind)
+    {
+         contents = contentKind.contents;
+    }
+
+    void opAssign()
+    {
+        contents = [];
+    }
+}
+
+enum fk = FullKind(KindEnum.integer);
+enum fk2 = FullKind(KindEnum.arrayOf, fk);

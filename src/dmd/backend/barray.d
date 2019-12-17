@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2018-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/barrayf.d, backend/barray.d)
@@ -85,7 +85,7 @@ struct Barray(T)
     /******************
      * Release all memory used.
      */
-    void dtor()
+    ~this()
     {
         free(array.ptr);
         array = null;
@@ -107,9 +107,12 @@ unittest
     a.setLength(4);
     assert(a.length == 4);
     foreach (i, ref v; a[])
-        v = i * 2;
+        v = cast(int) i * 2;
     foreach (i, ref const v; a[])
         assert(v == i * 2);
-    a.dtor();
-    assert(a.length == 0);
+    a.remove(3);
+    assert(a.length == 3);
+    a.push(50);
+    a.remove(1);
+    assert(a[1] == 50);
 }

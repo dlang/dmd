@@ -1,5 +1,5 @@
 // PERMUTE_ARGS: -inline -O
-// REQUIRED_ARGS: -dip25
+// REQUIRED_ARGS: -preview=dip25 -preview=fieldwise
 
 // Test operator overloading
 
@@ -728,7 +728,7 @@ bool test3789()
         auto ua2 = UnionA([1,2,3]);
         assert(ua1.u.x is ua2.u.x);
         assert(ua1.u.x != ua2.u.x);
-        assert(ua1 == ua2);
+        assert(ua1 != ua2);
         ua1.u.x = 1.0;
         ua2.u.x = 1.0;
         assert(ua1.u.x is ua2.u.x);
@@ -755,7 +755,7 @@ bool test3789()
         ub2.u.a = [1,2,3].dup;
         assert(ub1.u.a !is ub2.u.a);
         assert(ub1.u.a  == ub2.u.a);
-        assert(ub1 != ub2);
+        assert(ub1 == ub2);
         ub2.u.a = ub1.u.a;
         assert(ub1.u.a is ub2.u.a);
         assert(ub1.u.a == ub2.u.a);
@@ -789,40 +789,23 @@ bool test3789()
 }
 static assert(test3789());
 
-/**************************************/
-// https://issues.dlang.org/show_bug.cgi?id=10037
-
-struct S10037
+struct S
 {
-    bool opEquals(ref const S10037) { assert(0); }
+    bool opEquals(ref const S) { return false; }
 }
 
-struct T10037
+struct T
 {
-    S10037 s;
-    // Compiler should not generate 'opEquals' here implicitly:
-}
-
-struct Sub10037(TL...)
-{
-    TL data;
+    S s;
     int value;
     alias value this;
 }
 
-void test10037()
+void test11161()
 {
-    S10037 s;
-    T10037 t;
-    static assert( __traits(hasMember, S10037, "opEquals"));
-    static assert(!__traits(hasMember, T10037, "opEquals"));
-    assert(thrown!Error(s == s));
-    assert(thrown!Error(t == t));
-
-    Sub10037!(S10037) lhs;
-    Sub10037!(S10037) rhs;
-    static assert(!__traits(hasMember, Sub10037!(S10037), "opEquals"));
-    assert(lhs == rhs);     // lowered to: lhs.value == rhs.value
+    T t1, t2; 
+    assert(t1.tupleof != t2.tupleof);
+    assert(t1 != t2); // fails
 }
 
 /**************************************/
@@ -1662,13 +1645,6 @@ void test10567()
         S sy = S(2);
         assert(!(sx < sy) && !(sx > sy));
         assert(sx.opCmp(sy) == 0);
-
-        try
-        {
-            auto x = typeid(S).compare(&sx, &sy);
-            assert(0);
-        }
-        catch (Error e) { assert(e.msg[$-15 .. $] == "not implemented"); }
     }
 /+
     foreach (S; Seq!(S10567d1, S10567d2))
@@ -2033,7 +2009,7 @@ int main()
     test16();
     test17();
     test3789();
-    test10037();
+    test11161();
     test6798();
     test12904();
     test7641();

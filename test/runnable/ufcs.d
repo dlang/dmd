@@ -516,7 +516,7 @@ struct A7670
 {
     double x;
 }
-@property ref double y7670(ref A7670 a)
+@property ref double y7670(return ref A7670 a)
 {
     return a.x;
 }

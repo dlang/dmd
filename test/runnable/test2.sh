@@ -23,7 +23,7 @@ for x in "${a[@]}"; do
 
     ${OUTPUT_BASE}${EXE} >> ${output_file}
 
-    rm ${OUTPUT_BASE}{${OBJ},${EXE}}
+    rm_retry ${OUTPUT_BASE}{${OBJ},${EXE}}
 
     echo
 done

@@ -1,3 +1,22 @@
+/*
+TEST_OUTPUT:
+---
+true
+g
+&Test109S(&Test109S(<recursion>))
+runnable/interpret.d(3201): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/interpret.d(3203): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/interpret.d(3206): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/interpret.d(3209): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/interpret.d(3210): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/interpret.d(3216): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/interpret.d(3217): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/interpret.d(3220): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+tfoo
+tfoo
+Crash!
+---
+*/
 
 import std.stdio;
 
@@ -2181,12 +2200,12 @@ struct Q
 {
     int x;
     char y;
-    int opAddAssign(int w)
+    int opOpAssign(string op)(int w) if (op == "+")
     {
         x += w;
         return x + w;
     }
-    Q opSubAssign(int w)
+    Q opOpAssign(string op)(int w) if (op == "-")
     {
         x -= w;
         version(D_Version2) { mixin("return this;"); } else { mixin("return *this;"); }
@@ -2839,7 +2858,7 @@ int test5117b()
     assert(s.value == 1);     // fails, value == 0
     return 0;
 }
-ref S5117b getRef5117b(ref S5117b s) { return s; }
+ref S5117b getRef5117b(return ref S5117b s) { return s; }
 
 struct S5117b
 {
@@ -3486,6 +3505,20 @@ void test15681()
 
 /************************************************/
 
+auto test20366()
+{
+    const(char)[] s = ['h', 'e', 'l', '\xef', '\xbd', '\x8c', 'o'];
+
+    foreach_reverse (dchar c; s)
+    {
+    }
+
+    return true;
+}
+static assert(test20366());
+
+/************************************************/
+
 int main()
 {
     test1();
@@ -3609,6 +3642,7 @@ int main()
     test14140();
     test14862();
     test15681();
+    test20366();
 
     printf("Success\n");
     return 0;

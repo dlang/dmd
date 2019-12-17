@@ -1,7 +1,7 @@
 /**
  * Compiler implementation of the $(LINK2 http://www.dlang.org, D programming language)
  *
- * Copyright: Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors: Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/cppmanglewin.d, _cppmanglewin.d)
@@ -65,7 +65,7 @@ private bool checkImmutableShared(Type type)
 {
     if (type.isImmutable() || type.isShared())
     {
-        error(Loc.initial, "Internal Compiler Error: `shared` or `immutable` types can not be mapped to C++ (%s)", type.toChars());
+        error(Loc.initial, "Internal Compiler Error: `shared` or `immutable` types cannot be mapped to C++ (%s)", type.toChars());
         fatal();
         return true;
     }
@@ -129,13 +129,15 @@ public:
         if (checkImmutableShared(type))
             return;
 
-        error(Loc.initial, "Internal Compiler Error: type `%s` can not be mapped to C++\n", type.toChars());
+        error(Loc.initial, "Internal Compiler Error: type `%s` cannot be mapped to C++\n", type.toChars());
         fatal(); //Fatal, because this error should be handled in frontend
     }
 
     override void visit(TypeNull type)
     {
         if (checkImmutableShared(type))
+            return;
+        if (checkTypeSaved(type))
             return;
 
         buf.writestring("$$T");
@@ -218,27 +220,23 @@ public:
         case Tfloat64:
             buf.writeByte('N');
             break;
-        case Tbool:
-            buf.writestring("_N");
-            break;
-        case Tchar:
-            buf.writeByte('D');
-            break;
-        case Tdchar:
-            buf.writeByte('I');
-            break;
-            // unsigned int
         case Tfloat80:
             if (flags & IS_DMC)
                 buf.writestring("_Z"); // DigitalMars long double
             else
                 buf.writestring("_T"); // Intel long double
             break;
+        case Tbool:
+            buf.writestring("_N");
+            break;
+        case Tchar:
+            buf.writeByte('D');
+            break;
         case Twchar:
-            if (flags & IS_DMC)
-                buf.writestring("_Y"); // DigitalMars wchar_t
-            else
-                buf.writestring("_W"); // Visual C++ wchar_t
+            buf.writestring("_S"); // Visual C++ char16_t (since C++11)
+            break;
+        case Tdchar:
+            buf.writestring("_U"); // Visual C++ char32_t (since C++11)
             break;
         default:
             visit(cast(Type)type);
@@ -437,38 +435,7 @@ public:
             if (checkTypeSaved(type))
                 return;
             mangleModifier(type);
-            buf.writeByte('W');
-            switch (type.sym.memtype.ty)
-            {
-            case Tchar:
-            case Tint8:
-                buf.writeByte('0');
-                break;
-            case Tuns8:
-                buf.writeByte('1');
-                break;
-            case Tint16:
-                buf.writeByte('2');
-                break;
-            case Tuns16:
-                buf.writeByte('3');
-                break;
-            case Tint32:
-                buf.writeByte('4');
-                break;
-            case Tuns32:
-                buf.writeByte('5');
-                break;
-            case Tint64:
-                buf.writeByte('6');
-                break;
-            case Tuns64:
-                buf.writeByte('7');
-                break;
-            default:
-                visit(cast(Type)type);
-                break;
-            }
+            buf.writestring("W4");
             mangleIdent(type.sym);
         }
         flags &= ~IS_NOT_TOP_TYPE;
@@ -514,7 +481,7 @@ public:
         {
             assert(0);
         }
-        return buf.extractString();
+        return buf.extractChars();
     }
 
 private:
@@ -608,10 +575,10 @@ private:
         buf.writeByte('?');
         mangleIdent(d);
         assert((d.storage_class & STC.field) || !d.needThis());
-        Dsymbol parent = d.toParent3();
+        Dsymbol parent = d.toParent();
         while (parent && parent.isNspace())
         {
-            parent = parent.toParent3();
+            parent = parent.toParent();
         }
         if (parent && parent.isModule()) // static member
         {
@@ -990,7 +957,7 @@ private:
                     fatal();
                 }
             }
-            name = tmp.buf.extractString();
+            name = tmp.buf.extractChars();
         }
         else
         {
@@ -1069,17 +1036,20 @@ private:
         //                ::= $0<encoded integral number>
         //printf("mangleIdent('%s')\n", sym.toChars());
         Dsymbol p = sym;
-        if (p.toParent3() && p.toParent3().isTemplateInstance())
+        if (p.toParent() && p.toParent().isTemplateInstance())
         {
-            p = p.toParent3();
+            p = p.toParent();
         }
         while (p && !p.isModule())
         {
             mangleName(p, dont_use_back_reference);
-            p = p.toParent3();
-            if (p.toParent3() && p.toParent3().isTemplateInstance())
+            // Mangle our string namespaces as well
+            for (auto ns = p.cppnamespace; ns !is null; ns = ns.cppnamespace)
+                mangleName(ns, dont_use_back_reference);
+            p = p.toParent();
+            if (p.toParent() && p.toParent().isTemplateInstance())
             {
-                p = p.toParent3();
+                p = p.toParent();
             }
         }
         if (!dont_use_back_reference)
@@ -1293,7 +1263,7 @@ private:
             }
         }
         tmp.buf.writeByte('Z');
-        const(char)* ret = tmp.buf.extractString();
+        const(char)* ret = tmp.buf.extractChars();
         memcpy(&saved_idents, &tmp.saved_idents, (const(char)*).sizeof * VC_SAVED_IDENT_CNT);
         memcpy(&saved_types, &tmp.saved_types, Type.sizeof * VC_SAVED_TYPE_CNT);
         return ret;

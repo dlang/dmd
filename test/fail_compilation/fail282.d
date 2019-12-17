@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail282.d(13): Error: template instance `fail282.Template!500` recursive expansion
+fail_compilation/fail282.d(13): Error: template instance `fail282.Template!500` recursive expansion exceeded allowed nesting limit
 ---
 */
 

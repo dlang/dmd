@@ -1,5 +1,5 @@
 
-/* Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+/* Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * All Rights Reserved, written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -17,7 +17,7 @@ typedef Array<const char *> Strings;
 struct FileName
 {
 private:
-    DArray<const char> str;
+    DString str;
 public:
     static bool equals(const char *name1, const char *name2);
     static bool absolute(const char *name);

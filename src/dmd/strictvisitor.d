@@ -78,7 +78,7 @@ extern(C++) class StrictVisitor(AST) : ParseTimeVisitor!AST
     override void visit(AST.ForeachRangeStatement) { assert(0); }
     override void visit(AST.ForeachStatement) { assert(0); }
     override void visit(AST.IfStatement) { assert(0); }
-    override void visit(AST.OnScopeStatement) { assert(0); }
+    override void visit(AST.ScopeGuardStatement) { assert(0); }
     override void visit(AST.ConditionalStatement) { assert(0); }
     override void visit(AST.PragmaStatement) { assert(0); }
     override void visit(AST.SwitchStatement) { assert(0); }

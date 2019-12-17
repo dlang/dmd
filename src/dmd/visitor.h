@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 2013-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 2013-2019 by The D Language Foundation, All Rights Reserved
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include <assert.h>
+#include "root/dsystem.h"
 
 class Statement;
 class ErrorStatement;
@@ -46,7 +46,7 @@ class SynchronizedStatement;
 class WithStatement;
 class TryCatchStatement;
 class TryFinallyStatement;
-class OnScopeStatement;
+class ScopeGuardStatement;
 class ThrowStatement;
 class DebugStatement;
 class GotoStatement;
@@ -99,6 +99,7 @@ class StorageClassDeclaration;
 class DeprecatedDeclaration;
 class LinkDeclaration;
 class CPPMangleDeclaration;
+class CPPNamespaceDeclaration;
 class ProtDeclaration;
 class AlignDeclaration;
 class AnonDeclaration;
@@ -228,6 +229,7 @@ class NotExp;
 class DeleteExp;
 class CastExp;
 class VectorExp;
+class VectorArrayExp;
 class SliceExp;
 class ArrayLengthExp;
 class IntervalExp;
@@ -357,6 +359,7 @@ public:
     virtual void visit(AnonDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(AlignDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(CPPMangleDeclaration *s) { visit((AttribDeclaration *)s); }
+    virtual void visit(CPPNamespaceDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(ProtDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(PragmaDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(StorageClassDeclaration *s) { visit((AttribDeclaration *)s); }
@@ -387,7 +390,7 @@ public:
     virtual void visit(ForeachRangeStatement *s) { visit((Statement *)s); }
     virtual void visit(ForeachStatement *s) { visit((Statement *)s); }
     virtual void visit(IfStatement *s) { visit((Statement *)s); }
-    virtual void visit(OnScopeStatement *s) { visit((Statement *)s); }
+    virtual void visit(ScopeGuardStatement *s) { visit((Statement *)s); }
     virtual void visit(ConditionalStatement *s) { visit((Statement *)s); }
     virtual void visit(StaticForeachStatement *s) { visit((Statement *)s); }
     virtual void visit(PragmaStatement *s) { visit((Statement *)s); }
@@ -618,6 +621,7 @@ public:
     virtual void visit(DelegateExp *e) { visit((UnaExp *)e); }
     virtual void visit(DotTypeExp *e) { visit((UnaExp *)e); }
     virtual void visit(VectorExp *e) { visit((UnaExp *)e); }
+    virtual void visit(VectorArrayExp *e) { visit((UnaExp *)e); }
     virtual void visit(SliceExp *e) { visit((UnaExp *)e); }
     virtual void visit(ArrayLengthExp *e) { visit((UnaExp *)e); }
     virtual void visit(DelegatePtrExp *e) { visit((UnaExp *)e); }

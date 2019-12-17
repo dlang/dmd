@@ -1,5 +1,8 @@
 // PERMUTE_ARGS: -g
 // EXTRA_CPP_SOURCES: cppb.cpp
+// CXXFLAGS(linux freebsd osx netbsd dragonflybsd): -std=c++11
+
+// N.B MSVC doesn't have a C++11 switch, but it defaults to the latest fully-supported standard
 
 import core.stdc.stdio;
 import core.stdc.stdarg;
@@ -625,6 +628,7 @@ else
     alias c_long_double myld;
 
 extern (C++) myld testld(myld);
+extern (C++) myld testldld(myld, myld);
 
 
 void test15()
@@ -632,6 +636,10 @@ void test15()
     myld ld = 5.0;
     ld = testld(ld);
     assert(ld == 6.0);
+
+    myld ld2 = 5.0;
+    ld2 = testldld(ld2, ld2);
+    assert(ld2 == 6.0);
 }
 
 /****************************************/
@@ -721,7 +729,6 @@ void test16()
   else
     static assert(0);
 }
-
 
 /****************************************/
 
@@ -911,13 +918,22 @@ void fuzz2()
 }
 
 ////////
-extern(C++) void fuzz3_cppvararg(wchar arg10, wchar arg11, bool arg12);
-extern(C++) void fuzz3_dvararg(wchar arg10, wchar arg11, bool arg12)
+version(CppRuntime_DigitalMars)
+    enum UNICODE = false;
+else version(CppRuntime_Microsoft)
+    enum UNICODE = false; //VS2013 doesn't support them
+else
+    enum UNICODE = true;
+
+static if (UNICODE)
+{
+extern(C++) void fuzz3_cppvararg(wchar arg10, dchar arg11, bool arg12);
+extern(C++) void fuzz3_dvararg(wchar arg10, dchar arg11, bool arg12)
 {
     fuzz2_checkValues(arg10, arg11, arg12);
 }
 
-extern(C++) void fuzz3_checkValues(wchar arg10, wchar arg11, bool arg12)
+extern(C++) void fuzz3_checkValues(wchar arg10, dchar arg11, bool arg12)
 {
     assert(arg10 == 103);
     assert(arg11 == 104);
@@ -927,17 +943,18 @@ extern(C++) void fuzz3_checkValues(wchar arg10, wchar arg11, bool arg12)
 void fuzz3()
 {
     wchar arg10 = 103;
-    wchar arg11 = 104;
+    dchar arg11 = 104;
     bool arg12 = false;
     fuzz3_dvararg(arg10, arg11, arg12);
     fuzz3_cppvararg(arg10, arg11, arg12);
+}
 }
 
 void fuzz()
 {
     fuzz1();
     fuzz2();
-    fuzz3();
+    static if (UNICODE) fuzz3();
 }
 
 /****************************************/
@@ -1631,6 +1648,6 @@ void main()
     test18966();
     test19134();
     test18955();
-    
+
     printf("Success\n");
 }

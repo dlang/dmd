@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1992-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/newman.c, backend/newman.c)
@@ -41,7 +41,7 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.code_x86;
-import dmd.backend.memh;
+import dmd.backend.mem;
 import dmd.backend.el;
 import dmd.backend.exh;
 import dmd.backend.global;
@@ -65,6 +65,8 @@ version (MARS)
     struct token_t;
 
 extern (C++):
+
+nothrow:
 
 bool NEWTEMPMANGLE() { return !(config.flags4 & CFG4oldtmangle); }     // do new template mangling
 
@@ -463,7 +465,6 @@ L1:
         default:
             break;
     }
-Lret:
     return s;
 }
 
@@ -502,6 +503,9 @@ char *cpp_typetostring(type *t,char *prefix)
     return mangle.buf.ptr;
 }
 
+version (MARS) { } else
+{
+
 /********************************
  * 'Mangle' a name for output.
  * Returns:
@@ -539,6 +543,7 @@ version (SCPPorHTOD)
     }
 }
 
+}
 ///////////////////////////////////////////////////////
 
 /*********************************
@@ -1025,6 +1030,9 @@ private void cpp_basic_data_type(type *t)
         case TYvptr:
         case TYmemptr:
         case TYnptr:
+        case TYimmutPtr:
+        case TYsharePtr:
+        case TYfgPtr:
             c = cast(char)('P' + cpp_cvidx(t.Tty));
             CHAR(c);
             if(I64)

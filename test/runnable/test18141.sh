@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-if [ "${OS}" == "win32" -o "${OS}" == "win64" ]; then
+if [ "${OS}" == "windows" ]; then
     expected="Windows"
 else
     expected="Posix"

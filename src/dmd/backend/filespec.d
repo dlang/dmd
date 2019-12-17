@@ -8,9 +8,11 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
-import dmd.backend.memh;
+import dmd.backend.mem;
 
 extern (C++):
+
+nothrow:
 
 /*********************************
  * String compare of filenames.

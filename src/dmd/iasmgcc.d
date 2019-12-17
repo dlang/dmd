@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- *              Copyright (C) 2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2018-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     Iain Buclaw
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/iasmgcc.d, _iasmgcc.d)
@@ -20,6 +20,7 @@ import core.stdc.string;
 import dmd.arraytypes;
 import dmd.astcodegen;
 import dmd.dscope;
+import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.identifier;
@@ -236,7 +237,7 @@ Lerror:
 GccAsmStatement parseGccAsm(Parser)(Parser p, GccAsmStatement s)
 {
     s.insn = p.parseExpression();
-    if (p.token.value == TOK.semicolon)
+    if (p.token.value == TOK.semicolon || p.token.value == TOK.endOfFile)
         goto Ldone;
 
     // No semicolon followed after instruction template, treat as extended asm.
@@ -263,7 +264,7 @@ GccAsmStatement parseGccAsm(Parser)(Parser p, GccAsmStatement s)
                 break;
         }
 
-        if (p.token.value == TOK.semicolon)
+        if (p.token.value == TOK.semicolon || p.token.value == TOK.endOfFile)
             goto Ldone;
     }
 Ldone:
@@ -283,7 +284,8 @@ Ldone:
 public Statement gccAsmSemantic(GccAsmStatement s, Scope *sc)
 {
     //printf("GccAsmStatement.semantic()\n");
-    scope p = new Parser!ASTCodegen(sc._module, ";", false);
+    scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
+    scope p = new Parser!ASTCodegen(sc._module, ";", false, diagnosticReporter);
 
     // Make a safe copy of the token list before parsing.
     Token *toklist = null;
@@ -291,12 +293,13 @@ public Statement gccAsmSemantic(GccAsmStatement s, Scope *sc)
 
     for (Token *token = s.tokens; token; token = token.next)
     {
-        *ptoklist = Token.alloc();
+        *ptoklist = p.allocateToken();
         memcpy(*ptoklist, token, Token.sizeof);
         ptoklist = &(*ptoklist).next;
         *ptoklist = null;
     }
     p.token = *toklist;
+    p.scanloc = s.loc;
 
     // Parse the gcc asm statement.
     s = p.parseGccAsm(s);
@@ -368,7 +371,8 @@ unittest
     static int semanticAsm(Token* tokens)
     {
         scope gas = new GccAsmStatement(Loc.initial, tokens);
-        scope p = new Parser!ASTCodegen(null, ";", false);
+        scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
+        scope p = new Parser!ASTCodegen(null, ";", false, diagnosticReporter);
         p.token = *tokens;
         p.parseGccAsm(gas);
         return p.errors;
@@ -378,7 +382,8 @@ unittest
     static void parseAsm(string input, bool expectError)
     {
         // Generate tokens from input test.
-        scope p = new Parser!ASTCodegen(null, input, false);
+        scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
+        scope p = new Parser!ASTCodegen(null, input, false, diagnosticReporter);
         p.nextToken();
 
         Token* toklist = null;
@@ -389,7 +394,7 @@ unittest
         {
             if (p.token.value == TOK.rightCurly || p.token.value == TOK.endOfFile)
                 break;
-            *ptoklist = Token.alloc();
+            *ptoklist = p.allocateToken();
             memcpy(*ptoklist, &p.token, Token.sizeof);
             ptoklist = &(*ptoklist).next;
             *ptoklist = null;
@@ -444,8 +449,29 @@ unittest
         } },
     ];
 
+    immutable string[] failAsmTests = [
+        // Found 'h' when expecting ';'
+        q{ asm { ""h;
+        } },
+
+        /+ Need a way to test without depending on Type._init()
+        // Expression expected, not ';'
+        q{ asm { ""[;
+        } },
+
+        // Expression expected, not ':'
+        q{ asm { ""
+               :
+               : "g" a ? b : : c;
+        } },
+        +/
+    ];
+
     foreach (test; passAsmTests)
         parseAsm(test, false);
+
+    foreach (test; failAsmTests)
+        parseAsm(test, true);
 
     global.endGagging(errors);
 }

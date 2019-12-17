@@ -1,4 +1,0 @@
-Deprecated `extern(Pascal)` linkage
-
-This linkage is completely unused, being an heritage from a few decades ago.
-Additionally, it's only supported by DMD and cause mangling ambiguity.
