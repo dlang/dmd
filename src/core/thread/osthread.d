@@ -302,6 +302,8 @@ version (Windows)
             scope (exit)
             {
                 Thread.remove(obj);
+                rt_tlsgc_destroy( obj.m_tlsgcdata );
+                obj.m_tlsgcdata = null;
             }
             Thread.add(&obj.m_main);
 
