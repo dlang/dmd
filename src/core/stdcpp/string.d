@@ -48,7 +48,55 @@ enum Default = DefaultConstruct();
  * Character traits classes specify character properties and provide specific
  * semantics for certain operations on characters and sequences of characters.
  */
-extern(C++, (StdNamespace)) struct char_traits(CharT) {}
+extern(C++, (StdNamespace)) struct char_traits(CharT)
+{
+    alias char_type = CharT;
+
+    static size_t length(const(char_type)* s) @trusted pure nothrow @nogc
+    {
+        static if (is(char_type == char) || is(char_type == ubyte))
+        {
+            import core.stdc.string : strlen;
+            return strlen(s);
+        }
+        else
+        {
+            size_t len = 0;
+            for (; *s != char_type(0); ++s)
+                ++len;
+            return len;
+        }
+    }
+
+    static char_type* move(char_type* s1, const char_type* s2, size_t n) @trusted pure nothrow @nogc
+    {
+        import core.stdc.string : memmove;
+        import core.stdc.wchar_ : wmemmove;
+        import core.stdc.stddef : wchar_t;
+
+        if (n == 0)
+            return s1;
+
+        version (CRuntime_Microsoft)
+        {
+            enum crt = __traits(getTargetInfo, "cppRuntimeLibrary");
+            static if (crt.length >= 6 && crt[0 .. 6] == "msvcrt")
+                enum use_wmemmove = false; // https://issues.dlang.org/show_bug.cgi?id=20456
+            else
+                enum use_wmemmove = true;
+        }
+        else
+            enum use_wmemmove = true;
+
+        static if (use_wmemmove
+                && (is(char_type == wchar_t)
+                    || is(char_type == ushort) && wchar_t.sizeof == ushort.sizeof // Windows
+                    || is(char_type == uint) && wchar_t.sizeof == uint.sizeof)) // POSIX
+            return cast(char_type*) wmemmove(s1, s2, n);
+        else
+            return cast(char_type*) memmove(s1, s2, n * char_type.sizeof);
+    }
+}
 
 // I don't think we can have these here, otherwise symbols are emit to druntime, and we don't want that...
 //alias std_string = basic_string!char;
@@ -165,12 +213,26 @@ extern(D):
     ///
     ref basic_string opOpAssign(string op : "~")(T c)                       { return append((&c)[0 .. 1]); }
 
-//    ref basic_string insert(size_type pos, ref const(basic_string) str);
-//    ref basic_string insert(size_type pos, ref const(basic_string) str, size_type subpos, size_type sublen);
-//    ref basic_string insert(size_type pos, const(T)* s) nothrow                         { assert(s); return insert(pos, s, strlen(s)); }
-//    ref basic_string insert(size_type pos, const(T)* s, size_type n) nothrow @trusted;
-//    ref basic_string insert(size_type pos, size_type n, T c);
-//    ref basic_string insert(size_type pos, const(T)[] s) nothrow @safe        { insert(pos, &s[0], s.length); return this; }
+    ///
+    ref basic_string insert(size_type pos, ref const(basic_string) str)     { return insert(pos, str.data(), str.size()); }
+    ///
+    ref basic_string insert(size_type pos, ref const(basic_string) str, size_type subpos, size_type sublen) @trusted
+    {
+        const _strsz = str.size();
+        assert(subpos <= _strsz);
+//        if (subpos > _strsz)
+//            throw new RangeError("subpos exceeds length of str");
+        return insert(pos, str.data() + subpos, min(sublen, _strsz - subpos));
+    }
+    ///
+    ref basic_string insert(S : size_type)(S pos, const(T)* s)
+    {
+        // This overload is declared as a template to give precedence to the slice overload const(T)[] in case of conflict.
+        assert(s);
+        return insert(pos, s, traits_type.length(s));
+    }
+    ///
+    ref basic_string insert(size_type pos, const(T)[] s)                    { insert(pos, &s[0], s.length); return this; }
 
     ///
     ref basic_string erase(size_type pos = 0) // TODO: bounds-check
@@ -388,8 +450,90 @@ extern(D):
             }
         }
 
+        ///
+        ref basic_string insert(size_type pos, const(T)* s, size_type n)
+        {
+            // insert [_Ptr, _Ptr + _Count) at _Off
+            alias _Off = pos;
+            alias _Ptr = s;
+            alias _Count = n;
+            auto _My_data = &_Get_data();
+//            _My_data._Check_offset(_Off);
+            const size_type _Old_size = _My_data._Mysize;
+            if (_Count <= _My_data._Myres - _Old_size)
+            {
+                _My_data._Mysize = _Old_size + _Count;
+                T* _Old_ptr = _My_data._Myptr();
+                T* _Insert_at = _Old_ptr + _Off;
+                // the range [_Ptr, _Ptr + _Ptr_shifted_after) is left alone by moving the suffix out,
+                // while the range [_Ptr + _Ptr_shifted_after, _Ptr + _Count) shifts down by _Count
+                size_type _Ptr_shifted_after;
+                if (_Ptr + _Count <= _Insert_at || _Ptr > _Old_ptr + _Old_size)
+                {
+                    // inserted content is before the shifted region, or does not alias
+                    _Ptr_shifted_after = _Count; // none of _Ptr's data shifts
+                }
+                else if (_Insert_at <= _Ptr)
+                {
+                    // all of [_Ptr, _Ptr + _Count) shifts
+                    _Ptr_shifted_after = 0;
+                }
+                else
+                {
+                    // [_Ptr, _Ptr + _Count) contains _Insert_at, so only the part after _Insert_at shifts
+                    _Ptr_shifted_after = cast(size_type)(_Insert_at - _Ptr);
+                }
+
+                _Traits.move(_Insert_at + _Count, _Insert_at, _Old_size - _Off + 1); // move suffix + null down
+                _Insert_at[0 .. _Ptr_shifted_after] = _Ptr[0 .. _Ptr_shifted_after];
+                (_Insert_at + _Ptr_shifted_after)[0 .. _Count - _Ptr_shifted_after] = (_Ptr + _Count + _Ptr_shifted_after)[0 .. _Count - _Ptr_shifted_after];
+                return this;
+            }
+
+            return _Reallocate_grow_by(
+                _Count,
+                (T* _New_ptr, const(T)[] _Old_str, size_type _Off, const(T)* _Ptr, size_type _Count) {
+                    _New_ptr[0 .. _Off] = _Old_str[0 .. _Off];
+                    _New_ptr[_Off .. _Off + _Count] = _Ptr[0 .. _Count];
+                    _New_ptr[_Off + _Count .. _Old_str.length + _Count + 1] = _Old_str.ptr[_Off .. _Old_str.length + 1];
+                },
+                _Off, _Ptr, _Count);
+        }
+
+        ///
+        ref basic_string insert(size_type pos, size_type n, T c)
+        {
+            // insert _Count * _Ch at _Off
+            alias _Off = pos;
+            alias _Count = n;
+            alias _Ch = c;
+            auto _My_data = &_Get_data();
+//            _My_data._Check_offset(_Off);
+            const size_type _Old_size = _My_data._Mysize;
+            if (_Count <= _My_data._Myres - _Old_size)
+            {
+                _My_data._Mysize = _Old_size + _Count;
+                T* _Old_ptr = _My_data._Myptr();
+                T* _Insert_at = _Old_ptr + _Off;
+                _Traits.move(_Insert_at + _Count, _Insert_at, _Old_size - _Off + 1); // move suffix + null down
+                _Insert_at[0 .. _Count] = _Ch; // fill hole
+                return this;
+            }
+
+            return _Reallocate_grow_by(
+                _Count,
+                (T* _New_ptr, const(T)[] _Old_str, size_type _Off, size_type _Count, T _Ch)
+                {
+                    _New_ptr[0 .. _Off] = _Old_str[0 .. _Off];
+                    _New_ptr[_Off .. _Off + _Count] = _Ch;
+                    _New_ptr[_Off + _Count .. _Old_str.length + 1] = _Old_str.ptr[_Off .. _Old_str.length + 1];
+                },
+                _Off, _Count, _Ch);
+        }
+
     private:
         import core.stdcpp.xutility : MSVCLinkDirectives;
+        alias _Traits = traits_type;
 
         // Make sure the object files wont link against mismatching objects
         mixin MSVCLinkDirectives!true;
@@ -659,6 +803,41 @@ extern(D):
                 }
             }
 
+            ///
+            ref basic_string insert(size_type __pos, const(T)* __s, size_type __n)
+            {
+//                __glibcxx_requires_string_len(__s, __n);
+                cast(void) _M_check(__pos, "basic_string::insert");
+                _M_check_length(size_type(0), __n, "basic_string::insert");
+                if (_M_disjunct(__s) || _M_rep()._M_is_shared())
+                    return _M_replace_safe(__pos, size_type(0), __s, __n);
+                else
+                {
+                    // Work in-place.
+                    const size_type __off = __s - _M_data;
+                    _M_mutate(__pos, 0, __n);
+                    __s = _M_data + __off;
+                    T* __p = _M_data + __pos;
+                    if (__s  + __n <= __p)
+                        __p[0 .. __n] = __s[0 .. __n];
+                    else if (__s >= __p)
+                        __p[0 .. __n] = (__s + __n)[0 .. __n];
+                    else
+                    {
+                        const size_type __nleft = __p - __s;
+                        __p[0 .. __nleft] = __s[0.. __nleft];
+                        (__p + __nleft)[0 .. __n - __nleft] = (__p + __n)[0 .. __n - __nleft];
+                    }
+                    return this;
+                }
+            }
+
+            ///
+            ref basic_string insert(size_type pos, size_type n, T c)
+            {
+                return _M_replace_aux(_M_check(pos, "basic_string::insert"), size_type(0), n, c);
+            }
+
         private:
             import core.stdcpp.type_traits : is_empty;
 
@@ -880,6 +1059,15 @@ extern(D):
                 return this;
             }
 
+            ref basic_string _M_replace_aux(size_type __pos1, size_type __n1, size_type __n2, T __c)
+            {
+                _M_check_length(__n1, __n2, "basic_string::_M_replace_aux");
+                _M_mutate(__pos1, __n1, __n2);
+                if (__n2)
+                    _M_data[__pos1 .. __pos1 + __n2] = __c;
+                return this;
+            }
+
             void _M_mutate(size_type __pos, size_type __len1, size_type __len2)
             {
                 const size_type __old_size = size();
@@ -1016,6 +1204,25 @@ extern(D):
                 }
             }
 
+            ///
+            ref basic_string insert(size_type pos, const(T)* s, size_type n)
+            {
+                return replace(pos, size_type(0), s, n);
+            }
+
+            ///
+            ref basic_string insert(size_type pos, size_type n, T c)
+            {
+                return _M_replace_aux(_M_check(pos, "basic_string::insert"), size_type(0), n, c);
+            }
+
+            ///
+            ref basic_string replace(size_type pos, size_type n1, const T* s, size_type n2)
+            {
+//                __glibcxx_requires_string_len(s, n2);
+                return _M_replace(_M_check(pos, "basic_string::replace"), _M_limit(__pos, n1), s, n2);
+            }
+
         private:
 //            import core.exception : RangeError;
             import core.stdcpp.type_traits : is_empty;
@@ -1055,6 +1262,23 @@ extern(D):
                 {
                     _M_length = __n;
                     _M_data[__n] = T(0);
+                }
+
+                size_type _M_check(size_type __pos, const char* __s) const
+                {
+                    assert(__pos <= size());
+//                    if (__pos > size())
+//                        __throw_out_of_range_fmt(__N("%s: __pos (which is %zu) > "
+//                                   "this->size() (which is %zu)"),
+//                               __s, __pos, this->size());
+                    return __pos;
+                }
+
+                // NB: _M_limit doesn't check for a bad __pos value.
+                size_type _M_limit(size_type __pos, size_type __off) const nothrow pure @nogc @safe
+                {
+                    const bool __testoff =  __off < size() - __pos;
+                    return __testoff ? __off : size() - __pos;
                 }
             }
 
@@ -1420,6 +1644,72 @@ extern(D):
         void shrink_to_fit()
         {
             reserve();
+        }
+
+        ///
+        ref basic_string insert(size_type __pos, const(value_type)* __s, size_type __n)
+        {
+            assert(__n == 0 || __s != null, "string::insert received null");
+            size_type __sz = size();
+            assert(__pos <= __sz);
+//            if (__pos > __sz)
+//                this->__throw_out_of_range();
+            size_type __cap = capacity();
+            if (__cap - __sz >= __n)
+            {
+                if (__n)
+                {
+                    value_type* __p = __get_pointer();
+                    size_type __n_move = __sz - __pos;
+                    if (__n_move != 0)
+                    {
+                        if (__p + __pos <= __s && __s < __p + __sz)
+                            __s += __n;
+                        traits_type.move(__p + __pos + __n, __p + __pos, __n_move);
+                    }
+                    traits_type.move(__p + __pos, __s, __n);
+                    __sz += __n;
+                    __set_size(__sz);
+                    __p[__sz] = value_type(0);
+                }
+            }
+            else
+                __grow_by_and_replace(__cap, __sz + __n - __cap, __sz, __pos, 0, __n, __s);
+            return this;
+        }
+
+        ///
+        ref basic_string insert(size_type pos, size_type n, value_type c)
+        {
+            alias __pos = pos;
+            alias __n = n;
+            alias __c = c;
+            size_type __sz = size();
+            assert(__pos <= __sz);
+//            if (__pos > __sz)
+//                __throw_out_of_range();
+            if (__n)
+            {
+                size_type __cap = capacity();
+                value_type* __p;
+                if (__cap - __sz >= __n)
+                {
+                    __p = __get_pointer();
+                    size_type __n_move = __sz - __pos;
+                    if (__n_move != 0)
+                        traits_type.move(__p + __pos + __n, __p + __pos, __n_move);
+                }
+                else
+                {
+                    __grow_by(__cap, __sz + __n - __cap, __sz, __pos, 0, __n);
+                    __p = __get_long_pointer();
+                }
+                __p[__pos .. __pos + __n] = __c;
+                __sz += __n;
+                __set_size(__sz);
+                __p[__sz] = value_type(0);
+            }
+            return this;
         }
 
     private:
