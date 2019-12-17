@@ -83,6 +83,8 @@ an error.
 
 The owner is the sole pointer to a memory object graph.
 An Owner pointer must not be `scope` and must be a pointer to mutable.
+If an Owner pointer is assigned to another Owner pointer, the
+former enters the Undefined state.
 
 3. Borrowed
 
@@ -130,27 +132,38 @@ This is also known as *Non-Lexical Lifetimes*.
 
 A pointer changes its state when one of these operations is done to it:
 
-1. storage is allocated for it (such as a local variable on the stack)
+1. storage is allocated for it (such as a local variable on the stack),
+which places the pointer in the Undefined state
 
 2. initialization (treated as assignment)
 
-3. assignment
+3. assignment - the source and target pointers change state based on what
+states they are in and their types and storage classes
 
 4. passed to an `out` function parameter (changes state after the function returns),
-also passed by `ref`
+treated the same as initialization
 
-5. returned from a function
+5. passed by `ref` to a function parameter, treated as an assignment to a Borrow or a Readonly
+depending on the storage class and type of the parameter
 
-6. it is passed by value to a function parameter
+6. returned from a function
 
-7. it is implicitly passed by ref as a closure variable to a nested function
+7. it is passed by value to a function parameter, which is
+treated as an assignment to that parameter.
 
-8. the address of the pointer is taken
+8. it is implicitly passed by ref as a closure variable to a nested function
 
-9. the address of any part of the memory object graph is taken
+9. the address of the pointer is taken, which is treated as assignment to whoever
+receives the address
 
-10. a pointer value is read from any part of the memory object graph
+10. the address of any part of the memory object graph is taken, which is
+treated as assignment to whoever receives that address
 
+11. a pointer value is read from any part of the memory object graph,
+which is treated as assignment to whoever receives that pointer
+
+12. merging of control flow reconciles the state of each variable based on the
+states they have from each edge
 
 ## Limitations
 
