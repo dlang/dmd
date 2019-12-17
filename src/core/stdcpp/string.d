@@ -120,9 +120,7 @@ extern(D):
             append(n - size(), c);
     }
 
-//    void reserve(size_type n = 0) @trusted;
 //    void shrink_to_fit();
-
     ///
     ref inout(T) front() inout nothrow @safe                                { return this[0]; }
     ///
@@ -316,6 +314,49 @@ extern(D):
             }, _Count, _Ch);
         }
 
+        ///
+        void reserve(size_type _Newcap = 0)
+        {
+            // determine new minimum length of allocated storage
+
+            auto _My_data = &_Get_data();
+
+            if (_My_data._Mysize > _Newcap)
+            {
+                // requested capacity is not large enough for current size, ignore
+                return; // nothing to do
+            }
+
+            if (_My_data._Myres == _Newcap)
+            {
+                // we're already at the requested capacity
+                return; // nothing to do
+            }
+
+            if (_My_data._Myres < _Newcap)
+            {
+                // reallocate to grow
+                const size_type _Old_size = _My_data._Mysize;
+                _Reallocate_grow_by(
+                    _Newcap - _Old_size, (T* _New_ptr, const(T)[] _Old_str) {
+                        _New_ptr[0 .. _Old_str.length] = _Old_str[];
+                        _New_ptr[_Old_str.length] = _Old_str.ptr[_Old_str.length];
+                    });
+
+                _My_data._Mysize = _Old_size;
+                return;
+            }
+
+            if (_My_data._BUF_SIZE > _Newcap && _My_data._Large_string_engaged())
+            {
+                // deallocate everything; switch back to "small" mode
+                _Become_small();
+                return;
+            }
+
+            // ignore requests to reserve to [_BUF_SIZE, _Myres)
+        }
+
     private:
         import core.stdcpp.xutility : MSVCLinkDirectives;
 
@@ -340,6 +381,20 @@ extern(D):
         {
             static if (_Base._Mypair._HasFirst)
                 _Getal() = al;
+        }
+
+        void _Become_small()
+        {
+            // release any held storage and return to small string mode
+            // pre: *this is in large string mode
+            // pre: this is small enough to return to small string mode
+            auto _My_data = &_Get_data();
+            _Base._Orphan_all();
+            pointer _Ptr = _My_data._Bx._Ptr;
+            auto _Al = &_Getal();
+            _My_data._Bx._Buf[0 .. _My_data._Mysize + 1] = _Ptr[0 .. _My_data._Mysize + 1];
+            _Al.deallocate(_Ptr, _My_data._Myres + 1);
+            _My_data._Myres = _My_data._BUF_SIZE - 1;
         }
 
         void _Tidy_init() nothrow
@@ -532,7 +587,6 @@ extern(D):
                 return this;
             }
 
-            void reserve(size_type __res)
             ///
             ref basic_string append(size_type __n, T __c)
             {
@@ -549,6 +603,8 @@ extern(D):
                 return this;
             }
 
+            ///
+            void reserve(size_type __res = 0)
             {
                 if (__res != capacity() || _M_rep()._M_is_shared())
                 {
@@ -880,6 +936,33 @@ extern(D):
             ref basic_string append(size_type n, T c)
             {
                 return _M_replace_aux(size(), size_type(0), n, c);
+            }
+
+            ///
+            void reserve(size_type __res = 0)
+            {
+                // Make sure we don't shrink below the current size.
+                if (__res < length())
+                    __res = length();
+
+                const size_type __capacity = capacity();
+                if (__res != __capacity)
+                {
+                    if (__res > __capacity || __res > size_type(_S_local_capacity))
+                    {
+                        pointer __tmp = _M_create(__res, __capacity);
+                        _S_copy(__tmp, _M_data, length() + 1);
+                        _M_dispose();
+                        _M_data = __tmp;
+                        _M_capacity = __res;
+                    }
+                    else if (!_M_is_local())
+                    {
+                        _S_copy(_M_local_data(), _M_data, length() + 1);
+                        _M_destroy(__capacity);
+                        _M_data = _M_local_data();
+                    }
+                }
             }
 
         private:
@@ -1229,6 +1312,57 @@ extern(D):
                 __p[__sz] = value_type(0);
             }
             return this;
+        }
+
+        ///
+        void reserve(size_type __res_arg = 0)
+        {
+            assert(__res_arg <= max_size());
+//            if (__res_arg > max_size())
+//                __throw_length_error();
+            size_type __cap = capacity();
+            size_type __sz = size();
+            __res_arg = max(__res_arg, __sz);
+            __res_arg = __recommend(__res_arg);
+            if (__res_arg != __cap)
+            {
+                pointer __new_data, __p;
+                bool __was_long, __now_long;
+                if (__res_arg == __min_cap - 1)
+                {
+                    __was_long = true;
+                    __now_long = false;
+                    __new_data = __get_short_pointer();
+                    __p = __get_long_pointer();
+                }
+                else
+                {
+                    if (__res_arg > __cap)
+                        __new_data = __alloc().allocate(__res_arg+1);
+                    else
+                    {
+                        try
+                            __new_data = __alloc().allocate(__res_arg+1);
+                        catch (Throwable)
+                            return;
+                    }
+                    __now_long = true;
+                    __was_long = __is_long();
+                    __p = __get_pointer();
+                }
+                __new_data[0 .. size()+1] = __p[0 .. size()+1];
+                if (__was_long)
+                    __alloc().deallocate(__p, __cap+1);
+                if (__now_long)
+                {
+                    __set_long_cap(__res_arg+1);
+                    __set_long_size(__sz);
+                    __set_long_pointer(__new_data);
+                }
+                else
+                    __set_short_size(__sz);
+//                __invalidate_all_iterators(); // TODO:
+            }
         }
 
     private:
