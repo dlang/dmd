@@ -662,7 +662,7 @@ private Expression resolveUFCSProperties(Scope* sc, Expression e1, Expression e2
         auto a1 = new Expressions(1);
         (*a1)[0] = eleft;
         ex = new CallExp(loc, ex, a1);
-        ex = ex.trySemantic(sc);
+        auto e1PassSemantic = ex.trySemantic(sc);
 
         /* f(e1, e2)
          */
@@ -670,16 +670,24 @@ private Expression resolveUFCSProperties(Scope* sc, Expression e1, Expression e2
         (*a2)[0] = eleft;
         (*a2)[1] = e2;
         e = new CallExp(loc, e, a2);
-        if (ex)
+        e = e.trySemantic(sc);
+        if (!e1PassSemantic && !e)
         {
-            // if fallback setter exists, gag errors
-            e = e.trySemantic(sc);
-            if (!e)
-            {
-                checkPropertyCall(ex);
-                ex = new AssignExp(loc, ex, e2);
-                return ex.expressionSemantic(sc);
-            }
+            /* https://issues.dlang.org/show_bug.cgi?id=20448
+             *
+             * If both versions have failed to pass semantic,
+             * f(e1) = e2 gets priority in error printing
+             * because f might be a templated function that
+             * failed to instantiate and we have to print
+             * the instantiation errors.
+             */
+            return e1.expressionSemantic(sc);
+        }
+        else if (ex && !e)
+        {
+            checkPropertyCall(ex);
+            ex = new AssignExp(loc, ex, e2);
+            return ex.expressionSemantic(sc);
         }
         else
         {
@@ -8195,6 +8203,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 {
                     return setResult(resolveUFCSProperties(sc, e1x, exp.e2));
                 }
+
                 e1x = e;
             }
             else if (auto die = e1x.isDotIdExp())
