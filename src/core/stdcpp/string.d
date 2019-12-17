@@ -252,8 +252,28 @@ extern(D):
         return this;
     }
 
-    // replace
     // swap
+    ///
+    ref basic_string replace()(size_type pos, size_type len, auto ref basic_string str)     { return replace(pos, len, str.data(), str.size()); }
+    ///
+    ref basic_string replace()(size_type pos, size_type len, auto ref basic_string str,
+                            size_type subpos, size_type sublen=npos)
+    {
+        size_type strsz = str.size();
+        assert(subpos <= strsz);
+//        if (subpos > strsz)
+//            throw new RangeError("subpos exceeds size of str");
+        return replace(pos, len, str.data() + subpos, min(sublen, strsz - subpos));
+    }
+    ///
+    ref basic_string replace(size_type pos, size_type len, const(value_type)[] s)           { return replace(pos, len, s.ptr, s.length); }
+    ///
+    ref basic_string replace(S : size_type)(S pos, size_type len, const(value_type)* s)
+    {
+        // This overload is declared as a template to give precedence to the slice overload const(T)[] in case of conflict.
+        assert(s !is null, "string::replace received null");
+        return replace(pos, len, s, traits_type.length(s));
+    }
 
     ///
     void push_back(T c) @trusted                                            { append((&c)[0 .. 1]); }
@@ -529,6 +549,113 @@ extern(D):
                     _New_ptr[_Off + _Count .. _Old_str.length + 1] = _Old_str.ptr[_Off .. _Old_str.length + 1];
                 },
                 _Off, _Count, _Ch);
+        }
+
+        ///
+        ref basic_string replace(size_type pos, size_type len, const(T)* s, size_type slen)
+        {
+            // replace [_Off, _Off + _N0) with [_Ptr, _Ptr + _Count)
+            alias _Off = pos;
+            alias _N0 = len;
+            alias _Ptr = s;
+            alias _Count = slen;
+            auto _My_data = &_Get_data();
+//            _Mypair._Myval2._Check_offset(_Off);
+            _N0 = _My_data._Clamp_suffix_size(_Off, _N0);
+            if (_N0 == _Count)
+            {
+                // size doesn't change, so a single move does the trick
+                _Traits.move(_My_data._Myptr() + _Off, _Ptr, _Count);
+                return this;
+            }
+
+            const size_type _Old_size = _My_data._Mysize;
+            const size_type _Suffix_size = _Old_size - _N0 - _Off + 1;
+            if (_Count < _N0)
+            {
+                // suffix shifts backwards; we don't have to move anything out of the way
+                _My_data._Mysize = _Old_size - (_N0 - _Count);
+                T* _Old_ptr = _My_data._Myptr();
+                T* _Insert_at = _Old_ptr + _Off;
+                _Traits.move(_Insert_at, _Ptr, _Count);
+                _Traits.move(_Insert_at + _Count, _Insert_at + _N0, _Suffix_size);
+                return this;
+            }
+
+            const size_type _Growth = cast(size_type)(_Count - _N0);
+            if (_Growth <= _My_data._Myres - _Old_size)
+            {
+                // growth fits
+                _My_data._Mysize = _Old_size + _Growth;
+                T* _Old_ptr = _My_data._Myptr();
+                T* _Insert_at = _Old_ptr + _Off;
+                T* _Suffix_at = _Insert_at + _N0;
+
+                size_type _Ptr_shifted_after; // see rationale in insert
+                if (_Ptr + _Count <= _Insert_at || _Ptr > _Old_ptr + _Old_size)
+                    _Ptr_shifted_after = _Count;
+                else if (_Suffix_at <= _Ptr)
+                    _Ptr_shifted_after = 0;
+                else
+                    _Ptr_shifted_after = cast(size_type)(_Suffix_at - _Ptr);
+
+                _Traits.move(_Suffix_at + _Growth, _Suffix_at, _Suffix_size);
+                // next case must be move, in case _Ptr begins before _Insert_at and contains part of the hole;
+                // this case doesn't occur in insert because the new content must come from outside the removed
+                // content there (because in insert there is no removed content)
+                _Traits.move(_Insert_at, _Ptr, _Ptr_shifted_after);
+                // the next case can be copy, because it comes from the chunk moved out of the way in the
+                // first move, and the hole we're filling can't alias the chunk we moved out of the way
+                _Insert_at[_Ptr_shifted_after .. _Count] = _Ptr[_Growth + _Ptr_shifted_after .. _Growth + _Count];
+                return this;
+            }
+
+            return _Reallocate_grow_by(
+                _Growth,
+                (T* _New_ptr, const(T)[] _Old_str, size_type _Off, size_type _N0, const(T)* _Ptr, size_type _Count) {
+                    _New_ptr[0 .. _Off] = _Old_str[0 .. _Off];
+                    _New_ptr[_Off .. _Count] = _Ptr[0 .. _Count];
+                    const __n = _Old_str.length - _N0 - _Off + 1;
+                    (_New_ptr + _Off + _Count)[0 .. __n] = (_Old_str.ptr + _Off + _N0)[0 .. __n];
+                },
+                _Off, _N0, _Ptr, _Count);
+        }
+
+        ///
+        ref basic_string replace(size_type _Off, size_type _N0, size_type _Count, T _Ch)
+        {
+            // replace [_Off, _Off + _N0) with _Count * _Ch
+            auto _My_data = &_Get_data();
+//            _My_data._Check_offset(_Off);
+            _N0 = _My_data._Clamp_suffix_size(_Off, _N0);
+            if (_Count == _N0)
+            {
+                _My_data._Myptr()[_Off .. _Off + _Count] = _Ch;
+                return this;
+            }
+
+            const size_type _Old_size = _My_data._Mysize;
+            if (_Count < _N0 || _Count - _N0 <= _My_data._Myres - _Old_size)
+            {
+                // either we are shrinking, or the growth fits
+                _My_data._Mysize = _Old_size + _Count - _N0; // may temporarily overflow;
+                                                                    // OK because size_type must be unsigned
+                T* _Old_ptr = _My_data._Myptr();
+                T* _Insert_at = _Old_ptr + _Off;
+                _Traits.move(_Insert_at + _Count, _Insert_at + _N0, _Old_size - _N0 - _Off + 1);
+                _Insert_at[0 .. _Count] = _Ch;
+                return this;
+            }
+
+            return _Reallocate_grow_by(
+                _Count - _N0,
+                (T* _New_ptr, const(T)[] _Old_str, size_type _Off, size_type _N0, size_type _Count, T _Ch) {
+                    _New_ptr[0 .. _Off] = _Old_str[0 .. _Off];
+                    _New_ptr[_Off .. _Off + _Count] = _Ch;
+                    const __n = _Old_str.length - _N0 - _Off + 1;
+                    (_New_ptr + _Off + _Count)[0 .. __n] = (_Old_str.ptr + _Off + _N0)[0 .. __n];
+                },
+                _Off, _N0, _Count, _Ch);
         }
 
     private:
@@ -838,6 +965,39 @@ extern(D):
                 return _M_replace_aux(_M_check(pos, "basic_string::insert"), size_type(0), n, c);
             }
 
+            ///
+            ref basic_string replace(size_type __pos, size_type __n1, const(T)* __s, size_type __n2)
+            {
+//                __glibcxx_requires_string_len(__s, __n2);
+                cast(void) _M_check(__pos, "basic_string::replace");
+                __n1 = _M_limit(__pos, __n1);
+                _M_check_length(__n1, __n2, "basic_string::replace");
+                bool __left;
+                if (_M_disjunct(__s) || _M_rep()._M_is_shared())
+                    return _M_replace_safe(__pos, __n1, __s, __n2);
+                else if ((__left = __s + __n2 <= _M_data + __pos) == true || _M_data + __pos + __n1 <= __s)
+                {
+                    // Work in-place: non-overlapping case.
+                    size_type __off = __s - _M_data;
+                    __left ? __off : (__off += __n2 - __n1);
+                    _M_mutate(__pos, __n1, __n2);
+                    (_M_data + __pos)[0 .. __n2] = (_M_data + __off)[0 .. __n2];
+                    return this;
+                }
+                else
+                {
+                    // Todo: overlapping case.
+                    auto __tmp = basic_string(__s[0 .. __n2]);
+                    return _M_replace_safe(__pos, __n1, __tmp._M_data, __n2);
+                }
+            }
+
+            ///
+            ref basic_string replace(size_type pos, size_type n1, size_type n2, T c)
+            {
+                return _M_replace_aux(_M_check(pos, "basic_string::replace"), _M_limit(pos, n1), n2, c);
+            }
+
         private:
             import core.stdcpp.type_traits : is_empty;
 
@@ -1018,6 +1178,12 @@ extern(D):
                 }
 
                 _Rep* _M_rep() const nothrow @trusted   { return &(cast(_Rep*)_M_data)[-1]; }
+
+                size_type _M_limit(size_type __pos, size_type __off) const @safe nothrow @nogc pure
+                {
+                    const bool __testoff =  __off < size() - __pos;
+                    return __testoff ? __off : size() - __pos;
+                }
             }
 
             size_type _M_check(size_type __pos, const char* __s) const
@@ -1217,10 +1383,16 @@ extern(D):
             }
 
             ///
-            ref basic_string replace(size_type pos, size_type n1, const T* s, size_type n2)
+            ref basic_string replace(size_type pos, size_type n1, const(T)* s, size_type n2)
             {
 //                __glibcxx_requires_string_len(s, n2);
-                return _M_replace(_M_check(pos, "basic_string::replace"), _M_limit(__pos, n1), s, n2);
+                return _M_replace(_M_check(pos, "basic_string::replace"), _M_limit(pos, n1), s, n2);
+            }
+
+            ///
+            ref basic_string replace(size_type pos, size_type n1, size_type n2, T c)
+            {
+                return _M_replace_aux(_M_check(pos, "basic_string::replace"), _M_limit(pos, n1), n2, c);
             }
 
         private:
@@ -1307,7 +1479,7 @@ extern(D):
                 return _M_get_allocator().allocate(__capacity + 1);
             }
 
-            ref basic_string _M_replace(size_type __pos, size_type __len1, const T* __s, const size_type __len2)
+            ref basic_string _M_replace(size_type __pos, size_type __len1, const(T)* __s, const size_type __len2)
             {
                 _M_check_length(__len1, __len2, "basic_string::_M_replace");
 
@@ -1712,6 +1884,93 @@ extern(D):
             return this;
         }
 
+        ///
+        ref basic_string replace(size_type __pos, size_type __n1, const(T)* __s, size_type __n2)
+        {
+            assert(__n2 == 0 || __s != null, "string::replace received null");
+            size_type __sz = size();
+            assert(__pos <= __sz);
+//            if (__pos > __sz)
+//                __throw_out_of_range();
+            __n1 = min(__n1, __sz - __pos);
+            size_type __cap = capacity();
+            if (__cap - __sz + __n1 >= __n2)
+            {
+                value_type* __p = __get_pointer();
+                if (__n1 != __n2)
+                {
+                    size_type __n_move = __sz - __pos - __n1;
+                    if (__n_move != 0)
+                    {
+                        if (__n1 > __n2)
+                        {
+                            traits_type.move(__p + __pos, __s, __n2);
+                            traits_type.move(__p + __pos + __n2, __p + __pos + __n1, __n_move);
+                            goto __finish;
+                        }
+                        if (__p + __pos < __s && __s < __p + __sz)
+                        {
+                            if (__p + __pos + __n1 <= __s)
+                                __s += __n2 - __n1;
+                            else // __p + __pos < __s < __p + __pos + __n1
+                            {
+                                traits_type.move(__p + __pos, __s, __n1);
+                                __pos += __n1;
+                                __s += __n2;
+                                __n2 -= __n1;
+                                __n1 = 0;
+                            }
+                        }
+                        traits_type.move(__p + __pos + __n2, __p + __pos + __n1, __n_move);
+                    }
+                }
+                traits_type.move(__p + __pos, __s, __n2);
+        __finish:
+        // __sz += __n2 - __n1; in this and the below function below can cause unsigned integer overflow,
+        // but this is a safe operation, so we disable the check.
+                __sz += __n2 - __n1;
+                __set_size(__sz);
+//                __invalidate_iterators_past(__sz); // TODO
+                __p[__sz] = value_type(0);
+            }
+            else
+                __grow_by_and_replace(__cap, __sz - __n1 + __n2 - __cap, __sz, __pos, __n1, __n2, __s);
+            return this;
+        }
+
+        ///
+        ref basic_string replace(size_type __pos, size_type __n1, size_type __n2, value_type __c)
+        {
+            size_type __sz = size();
+            assert(__pos <= __sz);
+//            if (__pos > __sz)
+//                __throw_out_of_range();
+            __n1 = min(__n1, __sz - __pos);
+            size_type __cap = capacity();
+            value_type* __p;
+            if (__cap - __sz + __n1 >= __n2)
+            {
+                __p = __get_pointer();
+                if (__n1 != __n2)
+                {
+                    size_type __n_move = __sz - __pos - __n1;
+                    if (__n_move != 0)
+                        traits_type.move(__p + __pos + __n2, __p + __pos + __n1, __n_move);
+                }
+            }
+            else
+            {
+                __grow_by(__cap, __sz - __n1 + __n2 - __cap, __sz, __pos, __n1, __n2);
+                __p = __get_long_pointer();
+            }
+            __p[__pos .. __pos + __n2] = __c;
+            __sz += __n2 - __n1;
+            __set_size(__sz);
+//            __invalidate_iterators_past(__sz); // TODO
+            __p[__sz] = value_type(0);
+            return this;
+        }
+
     private:
 //        import core.exception : RangeError;
         import core.stdcpp.xutility : __compressed_pair;
@@ -2058,6 +2317,13 @@ extern(C++, (StdNamespace)):
         alias _Large_string_engaged = _IsAllocated;
         @property inout(T)* _Myptr() inout @trusted     { return _BUF_SIZE <= _Myres ? _Bx._Ptr : _Bx._Buf.ptr; }
         @property inout(T)[] _Mystr() inout @trusted    { return _BUF_SIZE <= _Myres ? _Bx._Ptr[0 .. _Mysize] : _Bx._Buf[0 .. _Mysize]; }
+
+        auto _Clamp_suffix_size(T)(const T _Off, const T _Size) const
+        {
+            // trims _Size to the longest it can be assuming a string at/after _Off
+            return min(_Size, _Mysize - _Off);
+        }
+    }
     }
 }
 
