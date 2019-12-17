@@ -120,7 +120,6 @@ extern(D):
             append(n - size(), c);
     }
 
-//    void shrink_to_fit();
     ///
     ref inout(T) front() inout nothrow @safe                                { return this[0]; }
     ///
@@ -355,6 +354,38 @@ extern(D):
             }
 
             // ignore requests to reserve to [_BUF_SIZE, _Myres)
+        }
+
+        ///
+        void shrink_to_fit()
+        {
+            // reduce capacity
+
+            auto _My_data = &_Get_data();
+            if (!_My_data._Large_string_engaged())
+            {
+                // can't shrink from small mode
+                return;
+            }
+
+            if (_My_data._Mysize < _My_data._BUF_SIZE)
+            {
+                _Become_small();
+                return;
+            }
+
+            const size_type _Target_capacity = min(_My_data._Mysize | _My_data._ALLOC_MASK, max_size());
+            if (_Target_capacity < _My_data._Myres)
+            {
+                // worth shrinking, do it
+                auto _Al = &_Getal();
+                pointer _New_ptr = _Al.allocate(_Target_capacity + 1); // throws
+                _Base._Orphan_all();
+                _New_ptr[0 .. _My_data._Mysize + 1] = _My_data._Bx._Ptr[0 .. _My_data._Mysize + 1];
+                _Al.deallocate(_My_data._Bx._Ptr, _My_data._Myres + 1);
+                _My_data._Bx._Ptr = _New_ptr;
+                _My_data._Myres = _Target_capacity;
+            }
         }
 
     private:
@@ -615,6 +646,16 @@ extern(D):
                     T* __tmp = _M_rep()._M_clone(__a, __res - size());
                     _M_rep()._M_dispose(__a);
                     _M_data = __tmp;
+                }
+            }
+
+            ///
+            void shrink_to_fit() nothrow
+            {
+                if (capacity() > size())
+                {
+                    try reserve(0);
+                    catch (Throwable) {}
                 }
             }
 
@@ -962,6 +1003,16 @@ extern(D):
                         _M_destroy(__capacity);
                         _M_data = _M_local_data();
                     }
+                }
+            }
+
+            ///
+            void shrink_to_fit() nothrow
+            {
+                if (capacity() > size())
+                {
+                    try reserve(0);
+                    catch (Throwable) {}
                 }
             }
 
@@ -1365,6 +1416,12 @@ extern(D):
             }
         }
 
+        ///
+        void shrink_to_fit()
+        {
+            reserve();
+        }
+
     private:
 //        import core.exception : RangeError;
         import core.stdcpp.xutility : __compressed_pair;
@@ -1708,6 +1765,7 @@ extern(C++, (StdNamespace)):
     extern (D):
     pure nothrow @nogc:
         bool _IsAllocated() const @safe                 { return _BUF_SIZE <= _Myres; }
+        alias _Large_string_engaged = _IsAllocated;
         @property inout(T)* _Myptr() inout @trusted     { return _BUF_SIZE <= _Myres ? _Bx._Ptr : _Bx._Buf.ptr; }
         @property inout(T)[] _Mystr() inout @trusted    { return _BUF_SIZE <= _Myres ? _Bx._Ptr[0 .. _Mysize] : _Bx._Buf[0 .. _Mysize]; }
     }
