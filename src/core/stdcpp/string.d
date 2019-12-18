@@ -16,11 +16,6 @@ import core.stdcpp.allocator;
 import core.stdcpp.xutility : StdNamespace;
 import core.stdc.stddef : wchar_t;
 
-version (OSX)
-{
-    // Apple decided to rock a different ABI... good for them!
-    version = _LIBCPP_ABI_ALTERNATE_STRING_LAYOUT;
-}
 version (CppRuntime_Gcc)
 {
     version (_GLIBCXX_USE_CXX98_ABI)
