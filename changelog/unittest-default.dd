@@ -1,0 +1,5 @@
+Unittest default mode
+
+Switched the default for unittests to only run the tests by default. Use `--DRT-testmode=run-main` for the original behavior (run unittests then main).
+
+The feature to control unit testing was added in $(LINK2 $(ROOT_DIR)/changelog/2.078.0.html#core-runtime-unittestEnhancement, 2.078.0), and the switch above will work for all versions since then.

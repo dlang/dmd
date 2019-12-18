@@ -651,8 +651,6 @@ extern (C) UnitTestResult runModuleUnitTests()
     }
     else switch (rt_configOption("testmode", null, false))
     {
-    case "":
-        // By default, run main. Switch to only doing unit tests in 2.080
     case "run-main":
         results.runMain = true;
         break;
@@ -660,6 +658,8 @@ extern (C) UnitTestResult runModuleUnitTests()
         // Never run main, always summarize
         results.summarize = true;
         break;
+    case "":
+        // By default, do not run main if tests are present.
     case "test-or-main":
         // only run main if there were no tests. Only summarize if we are not
         // running main.
