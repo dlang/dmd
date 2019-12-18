@@ -5693,6 +5693,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
     TemplateStats.incInstance(tempdecl, tempinst);
 
     tempdecl.checkDeprecated(tempinst.loc, sc);
+    if (tempdecl.isDeprecated) tempinst.setDeprecated();
 
     // If tempdecl is a mixin, disallow it
     if (tempdecl.ismixin)

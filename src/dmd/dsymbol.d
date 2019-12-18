@@ -422,6 +422,27 @@ extern (C++) class Dsymbol : ASTNode
         if (sc.flags & SCOPE.constraint)
             return false;
 
+        // https://issues.dlang.org/show_bug.cgi?id=7619
+        // Infer `deprecated` for template instances when they use deprecated symbols
+        TemplateInstance ti;
+        if (sc.parent)
+        {
+            ti = sc.parent.isInstantiated();
+            if (!ti)
+                ti = sc.parent.isTemplateInstance();
+
+        }
+
+        if (ti)
+        {
+            if (!ti.isDeprecated)
+            {
+                // printf("Inferring deprecated for `%s` from `%s`\n", ti.toChars(), this.toChars());
+                ti.setDeprecated();
+            }
+            return false;
+        }
+
         const(char)* message = null;
         for (Dsymbol p = this; p; p = p.parent)
         {
@@ -434,9 +455,7 @@ extern (C++) class Dsymbol : ASTNode
         else
             deprecation(loc, "is deprecated");
 
-        if (auto ti = sc.parent ? sc.parent.isInstantiated() : null)
-            ti.printInstantiationTrace(Classification.deprecation);
-        else if (auto ti = sc.parent ? sc.parent.isTemplateInstance() : null)
+        if (ti)
             ti.printInstantiationTrace(Classification.deprecation);
 
         return true;

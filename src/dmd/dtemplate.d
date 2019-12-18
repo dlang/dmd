@@ -5818,7 +5818,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         semantictiargsdone = 1u << (_nest.sizeof * 8 - 1), // MSB of _nest
         havetempdecl = semantictiargsdone >> 1,
         gagged = semantictiargsdone >> 2,
-        available = gagged - 1 // always last flag minus one, 1s for all available bits
+        deprecated_ = semantictiargsdone >> 3,
+        available = deprecated_ - 1 // always last flag minus one, 1s for all available bits
     }
 
     extern(D) final @safe @property pure nothrow @nogc
@@ -5846,6 +5847,18 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         {
             if (x) _nest |= Flag.gagged;
             else _nest &= ~Flag.gagged;
+        }
+
+        /// Checks whether this instance was inferred as `deprecated`
+        extern(C++) override bool isDeprecated() const
+        {
+            return !!(this._nest & Flag.deprecated_);
+        }
+
+        /// Marks that this instance was inferred as `deprecated`
+        void setDeprecated()
+        {
+            this._nest |= Flag.deprecated_;
         }
     }
 
