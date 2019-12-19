@@ -1729,7 +1729,14 @@ elem *toElem(Expression e, IRState *irs)
                     Symbol *csym = toSymbol(cd);
                     const rtl = global.params.ehnogc && ne.thrownew ? RTLSYM_NEWTHROW : RTLSYM_NEWCLASS;
                     ex = el_bin(OPcall,TYnptr,el_var(getRtlsym(rtl)),el_ptr(csym));
-                    toTraceGC(irs, ex, ne.loc);
+
+                    /* In -dip1008 code the allocation of exceptions is no longer done by the
+                     * gc, but by a manual reference counting mechanism implementend in druntime.
+                     * If that is the case, then there is nothing to trace.
+                     */
+                    if (rtl == RTLSYM_NEWCLASS)
+                        toTraceGC(irs, ex, ne.loc);
+
                     ectype = null;
 
                     if (cd.isNested())
@@ -6233,12 +6240,6 @@ void toTraceGC(IRState *irs, elem *e, const ref Loc loc)
         assert(e1.Eoper == OPvar);
 
         auto s = e1.EV.Vsym;
-        /* In -dip1008 code the allocation of exceptions is no longer done by the
-         * gc, but by a manual reference counting mechanism implementend in druntime.
-         * If that is the case, then there is nothing to trace.
-         */
-        if (s == getRtlsym(RTLSYM_NEWTHROW))
-            return;
         foreach (ref m; map)
         {
             if (s == getRtlsym(m[0]))
