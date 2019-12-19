@@ -218,7 +218,7 @@ extern (C)
         return instance.stats();
     }
 
-    core.memory.GC.ProfileStats gc_profileStats() nothrow
+    core.memory.GC.ProfileStats gc_profileStats() nothrow @safe
     {
         return instance.profileStats();
     }

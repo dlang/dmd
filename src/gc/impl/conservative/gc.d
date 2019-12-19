@@ -1062,7 +1062,7 @@ class ConservativeGC : GC
     }
 
 
-    core.memory.GC.ProfileStats profileStats() nothrow
+    core.memory.GC.ProfileStats profileStats() nothrow @trusted
     {
         typeof(return) ret;
 
