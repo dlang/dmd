@@ -1,3 +1,15 @@
+struct Allocation {
+    int* ptr;
+    size_t length;
+}
+
+void canFind(scope Allocation);
+
+int* malloc();
+void free(int*);
+void pitcher();
+
+/*****************************/
 
 @live int* foo1(int* p)
 {
@@ -25,13 +37,19 @@
 
 /*******************************/
 
-int* malloc();
-void free(int*);
-void pitcher();
-
 @live void foo5()
 {
     auto p = malloc();
     scope(exit) free(p);
     pitcher();
 }
+
+/*******************************/
+
+void deallocate(int* ptr, size_t length) @live
+{
+    canFind(Allocation(ptr, length)); // canFind() borrows ptr
+    free(ptr);
+}
+
+

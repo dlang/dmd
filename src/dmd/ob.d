@@ -1487,7 +1487,9 @@ void computeGenKill(ref ObState obstate)
                             }
                             else if (p.storageClass & STC.scope_)
                             {
-                                if (p.type.nextOf().isMutable())
+                                //printf("test1 v: %s p: %s type: %s\n", v.toChars(), p.toChars(), p.type.toChars());
+                                auto t = p.type.toBasetype();
+                                if (!t.nextOf() && t.isMutable() || t.nextOf().isMutable())
                                 {
                                     // borrow from v
                                     pvs.state = PtrState.Borrowed;
@@ -2220,7 +2222,8 @@ void checkObErrors(ref ObState obstate)
                             }
                             else if (p.storageClass & STC.scope_)
                             {
-                                if (p.type.nextOf().isMutable())
+                                auto t = p.type.toBasetype();
+                                if (!t.nextOf() && t.isMutable() || t.nextOf().isMutable())
                                 {
                                     // borrow from v
                                     if (pvs.state == PtrState.Owner)
