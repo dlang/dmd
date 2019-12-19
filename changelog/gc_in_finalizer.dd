@@ -1,0 +1,18 @@
+$(REF inFinalizer, core, GC) was added
+
+A new function exposing information about the state of the GC was added.
+It returns `true` if the current thread is executing destructors (finalizers)
+of objects allocated on the GC heap that are no longer being referenced.
+
+Destructors of objects allocated on the GC heap presently have several
+limitations or oddities:
+* As destructors of all unreachable objects are ran in indeterministic order,
+  there's no guarantee that object members are alive during the object's
+  finalization
+* Allocation during finalization is disallowed
+* In contrast to stack allocated objects, partially constructed objects (object
+  whose constructor threw an exception) may be finalized
+
+$(REF inFinalizer, core, GC) can be used to efficiently guard against
+programming errors such as the above, or to detect whether certain
+objects were left to be destroyed by the GC.
