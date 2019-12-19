@@ -1036,7 +1036,13 @@ void processEnvironment()
     }
     if (env.getNumberedBool("ENABLE_RELEASE"))
     {
-        dflags ~= ["-O", "-release", "-inline"];
+        dflags ~= ["-O", "-inline"];
+
+        /* This is what we really want, but it fails in auto-tester and semaphoreci
+         * because they don't use compilers that support the check switches.
+         * Can we fix this?
+         */
+        //dflags ~= ["-O", "-release", "-check=assert", "-checkaction=C", "-inline"];
     }
     else
     {

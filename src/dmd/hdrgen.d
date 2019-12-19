@@ -390,9 +390,8 @@ public:
         buf.writestring("if (");
         if (Parameter p = s.prm)
         {
-            StorageClass stc = p.storageClass;
-            if (!p.type && !stc)
-                stc = STC.auto_;
+            const stc = (p.type || p.storageClass) ? p.storageClass : STC.auto_;
+            assert(!(stc & STC.trusted));
             if (stcToBuffer(buf, stc))
                 buf.writeByte(' ');
             if (p.type)
