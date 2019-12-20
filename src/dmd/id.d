@@ -376,6 +376,7 @@ immutable Msgtable[] msgtable =
     { "yl2x" },
     { "yl2xp1" },
     { "fabs" },
+    { "toPrec" },
     { "simd" },
     { "__prefetch"},
     { "__simd_sto"},

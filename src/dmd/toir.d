@@ -441,6 +441,7 @@ int intrinsic_op(FuncDeclaration fd)
                 else if (id3 == Id.ldexp)  op = OPscale;
                 else if (id3 == Id.rndtol) op = OPrndtol;
                 else if (id3 == Id.yl2xp1) op = OPyl2xp1;
+                else if (id3 == Id.toPrec) op = OPtoPrec;
             }
         }
         else if (id2 == Id.simd)
