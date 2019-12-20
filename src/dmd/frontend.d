@@ -130,9 +130,9 @@ void initDMD(
     import dmd.objc : Objc;
     import dmd.target : target;
 
-    global._init();
-
     diagnosticHandler = handler;
+
+    global._init();
 
     with (global.params)
     {
@@ -180,6 +180,8 @@ void deinitializeDMD()
     import dmd.mtype : Type;
     import dmd.objc : Objc;
     import dmd.target : target;
+
+    diagnosticHandler = null;
 
     global.deinitialize();
 
