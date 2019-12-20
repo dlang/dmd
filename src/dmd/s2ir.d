@@ -107,37 +107,6 @@ private block *block_calloc(Blockx *blx)
     return b;
 }
 
-/****************************************
- * Get or create a label declaration.
- */
-
-private Label *getLabel(IRState *irs, Blockx *blx, Statement s)
-{
-    Label **slot = irs.lookupLabel(s);
-
-    if (slot == null)
-    {
-        Label *label = new Label();
-        label.lblock = blx ? block_calloc(blx) : dmd.backend.global.block_calloc();
-        irs.insertLabel(s, label);
-        return label;
-    }
-    return *slot;
-}
-
-/**************************************
- * Convert label to block.
- */
-
-private block *labelToBlock(IRState *irs, const ref Loc loc, Blockx *blx, LabelDsymbol label)
-{
-    if (!label.statement)
-        assert(0);              // should have been caught by GotoStatement.checkLabel()
-
-    Label *l = getLabel(irs, null, label.statement);
-    return l.lblock;
-}
-
 /**************************************
  * Add in code to increment usage count for linnum.
  */
