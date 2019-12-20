@@ -367,7 +367,7 @@ void cv8_func_term(Symbol *sfunc)
     //printf("cv8_func_term(%s)\n", sfunc.Sident);
 
     assert(currentfuncdata.sfunc == sfunc);
-    currentfuncdata.section_length = cast(uint)(retoffset + retsize);
+    currentfuncdata.section_length = cast(uint)sfunc.Ssize;
 
     funcdata.write(&currentfuncdata, currentfuncdata.sizeof);
 

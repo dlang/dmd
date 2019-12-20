@@ -1651,7 +1651,19 @@ private void escapeByValue(Expression e, EscapeByResults* er)
                         if ((stc & (STC.scope_)) && (stc & STC.return_))
                             arg.accept(this);
                         else if ((stc & (STC.ref_)) && (stc & STC.return_))
-                            escapeByRef(arg, er);
+                        {
+                            if (tf.isref)
+                            {
+                                /* Treat:
+                                 *   ref P foo(return ref P p)
+                                 * as:
+                                 *   p;
+                                 */
+                                arg.accept(this);
+                            }
+                            else
+                                escapeByRef(arg, er);
+                        }
                     }
                 }
             }
@@ -1666,7 +1678,19 @@ private void escapeByValue(Expression e, EscapeByResults* er)
                     if (ad.isClassDeclaration() || tf.isscope)       // this is 'return scope'
                         dve.e1.accept(this);
                     else if (ad.isStructDeclaration()) // this is 'return ref'
-                        escapeByRef(dve.e1, er);
+                    {
+                        if (tf.isref)
+                        {
+                            /* Treat calling:
+                             *   struct S { ref S foo() return; }
+                             * as:
+                             *   this;
+                             */
+                            dve.e1.accept(this);
+                        }
+                        else
+                            escapeByRef(dve.e1, er);
+                    }
                 }
                 else if (dve.var.storage_class & STC.return_ || tf.isreturn)
                 {

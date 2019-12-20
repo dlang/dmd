@@ -5155,11 +5155,13 @@ extern (C++) final class TypeTraits : Type
  */
 extern (C++) final class TypeMixin : Type
 {
+    Loc loc;
     Expressions* exps;
 
-    extern (D) this(Expressions* exps)
+    extern (D) this(const ref Loc loc, Expressions* exps)
     {
         super(Tmixin);
+        this.loc = loc;
         this.exps = exps;
     }
 
@@ -5170,7 +5172,7 @@ extern (C++) final class TypeMixin : Type
 
     override Type syntaxCopy()
     {
-        return new TypeMixin(Expression.arraySyntaxCopy(exps));
+        return new TypeMixin(loc, Expression.arraySyntaxCopy(exps));
     }
 
     override void accept(Visitor v)

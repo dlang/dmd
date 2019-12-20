@@ -1,6 +1,0 @@
-Deprecate allowing shadowing in foreach loops
-
-Up until this version it was allowed to shadow a variable in a `foreach` loop, although
-it is dissallowed in a normal `for` loop. This patch makes the behavior of the `foreach`
-loop consistent with the `for` loop one. To fix any issues encountered, rename the variable
-inside the `foreach` body that shadows the one from the upper scope.

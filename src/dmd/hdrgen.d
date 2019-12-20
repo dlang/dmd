@@ -2919,7 +2919,7 @@ void arrayObjectsToBuffer(OutBuffer* buf, Objects* objects)
  *  pl = parameter list to print
  * Returns: Null-terminated string representing parameters.
  */
-const(char)* parametersTypeToChars(ParameterList pl)
+extern (C++) const(char)* parametersTypeToChars(ParameterList pl)
 {
     OutBuffer buf;
     HdrGenState hgs;

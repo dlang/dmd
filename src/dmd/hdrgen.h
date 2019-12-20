@@ -11,8 +11,10 @@
 #pragma once
 
 #include "globals.h"
+#include "mtype.h"
 
 class Module;
 
 void genhdrfile(Module *m);
 void moduleToBuffer(OutBuffer *buf, Module *m);
+const char *parametersTypeToChars(ParameterList pl);
