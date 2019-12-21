@@ -1153,7 +1153,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
     size_t b;
     while (1)
     {
-        if (b++ == 500)
+        if (b++ == global.recursionLimit)
         {
             e.error("infinite loop while optimizing expression");
             fatal();
