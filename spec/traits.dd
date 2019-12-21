@@ -47,6 +47,8 @@ $(GNAME TraitsKeyword):
     $(GLINK isModule)
     $(GLINK isPackage)
     $(GLINK hasMember)
+    $(GLINK hasCopyConstructor)
+    $(GLINK hasPostblit)
     $(GLINK identifier)
     $(GLINK getAliasThis)
     $(GLINK getAttributes)
@@ -660,6 +662,83 @@ void main()
     writeln(__traits(hasMember, S, "y")); // false
     writeln(__traits(hasMember, S, "write")); // true
     writeln(__traits(hasMember, int, "sizeof")); // true
+}
+---
+)
+
+$(H2 $(GNAME hasCopyConstructor))
+
+        $(P The argument is a type. If it is a struct with a copy constructor, returns $(D true). Otherwise, return $(D false). Note that a copy constructor is distinct from a postblit.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+
+import std.stdio;
+
+struct S
+{
+}
+
+class C
+{
+}
+
+struct P
+{
+    this(ref P rhs) {}
+}
+
+struct B
+{
+    this(this) {}
+}
+
+void main()
+{
+    writeln(__traits(hasCopyConstructor, S)); // false
+    writeln(__traits(hasCopyConstructor, C)); // false
+    writeln(__traits(hasCopyConstructor, P)); // true
+    writeln(__traits(hasCopyConstructor, B)); // false, this is a postblit
+}
+---
+)
+
+$(H2 $(GNAME hasPostblit))
+
+        $(P The argument is a type. If it is a struct with a postblit, returns $(D true). Otherwise, return $(D false). Note a postblit is distinct from a copy constructor.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+
+import std.stdio;
+
+struct S
+{
+}
+
+class C
+{
+}
+
+struct P
+{
+    this(ref P rhs) {}
+}
+
+struct B
+{
+    this(this) {}
+}
+
+
+void main()
+{
+    writeln(__traits(hasPostblit, S)); // false
+    writeln(__traits(hasPostblit, C)); // false
+    writeln(__traits(hasPostblit, P)); // false, this is a copy ctor
+    writeln(__traits(hasPostblit, B)); // true
 }
 ---
 )

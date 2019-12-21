@@ -742,6 +742,7 @@ $(GNAME HexLetter):
     $(TROW_EXPLANATORY $(I Usual decimal notation))
         $(TROW $(D 0 .. 2_147_483_647), $(D int))
         $(TROW $(D 2_147_483_648 .. 9_223_372_036_854_775_807), $(D long))
+        $(TROW $(D 9_223_372_036_854_775_808 .. 18_446_744_073_709_551_615), $(D ulong))
     $(MIDRULE)
     $(TROW_EXPLANATORY $(I Explicit suffixes))
         $(TROW $(D 0L .. 9_223_372_036_854_775_807L), $(D long))

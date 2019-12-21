@@ -1332,6 +1332,26 @@ $(MINUS)
 
         $(P A $(D lazy) parameter cannot be an lvalue.)
 
+        $(P The underlying delegate of the $(D lazy) parameter may be extracted
+        by using the $(D &) operator:)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+void test(lazy int dg)
+{
+    int delegate() dg_ = &dg;
+    assert(dg_() == 7);
+    assert(dg == dg_());
+}
+
+void main()
+{
+    int a = 7;
+    test(a);
+}
+---
+)
+
         $(P A $(D lazy) parameter of type $(D void) can accept an argument
         of any type.)
 
