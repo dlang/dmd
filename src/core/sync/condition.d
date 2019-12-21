@@ -94,9 +94,31 @@ class Condition
         else version (Posix)
         {
             m_assocMutex = m;
-            int rc = pthread_cond_init( &m_hndl, null );
-            if ( rc )
-                throw new SyncError( "Unable to initialize condition" );
+            static if ( is( typeof( pthread_condattr_setclock ) ) )
+            {
+                () @trusted
+                {
+                    pthread_condattr_t attr = void;
+                    int rc  = pthread_condattr_init( &attr );
+                    if ( rc )
+                        throw new SyncError( "Unable to initialize condition" );
+                    rc = pthread_condattr_setclock( &attr, CLOCK_MONOTONIC );
+                    if ( rc )
+                        throw new SyncError( "Unable to initialize condition" );
+                    rc = pthread_cond_init( &m_hndl, &attr );
+                    if ( rc )
+                        throw new SyncError( "Unable to initialize condition" );
+                    rc = pthread_condattr_destroy( &attr );
+                    if ( rc )
+                        throw new SyncError( "Unable to initialize condition" );
+                } ();
+            }
+            else
+            {
+                int rc = pthread_cond_init( &m_hndl, null );
+                if ( rc )
+                    throw new SyncError( "Unable to initialize condition" );
+            }
         }
     }
 

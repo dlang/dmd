@@ -29,8 +29,11 @@ private
     static SpinLock instanceLock;
 
     __gshared bool isInstanceInit = false;
-    __gshared GC instance = new ProtoGC();
+    __gshared GC _instance = new ProtoGC();
     __gshared GC proxiedGC; // used to iterate roots of Windows DLLs
+
+    pragma (inline, true) @trusted @nogc nothrow
+    GC instance() { return _instance; }
 }
 
 extern (C)
@@ -71,7 +74,7 @@ extern (C)
                 // Shouldn't get here.
                 assert(0);
             }
-            instance = newInstance;
+            _instance = newInstance;
             // Transfer all ranges and roots to the real GC.
             (cast(ProtoGC) protoInstance).term();
             isInstanceInit = true;
@@ -215,7 +218,7 @@ extern (C)
         return instance.stats();
     }
 
-    core.memory.GC.ProfileStats gc_profileStats() nothrow
+    core.memory.GC.ProfileStats gc_profileStats() nothrow @safe
     {
         return instance.profileStats();
     }
@@ -245,7 +248,7 @@ extern (C)
         return instance.runFinalizers( segment );
     }
 
-    bool gc_inFinalizer() nothrow
+    bool gc_inFinalizer() nothrow @nogc @safe
     {
         return instance.inFinalizer();
     }
@@ -270,7 +273,7 @@ extern (C)
             }
 
             proxiedGC = instance; // remember initial GC to later remove roots
-            instance = proxy;
+            _instance = proxy;
         }
 
         void gc_clrProxy()
@@ -285,7 +288,7 @@ extern (C)
                 instance.removeRange(range);
             }
 
-            instance = proxiedGC;
+            _instance = proxiedGC;
             proxiedGC = null;
         }
     }

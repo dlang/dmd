@@ -22,6 +22,7 @@ else version (Posix)
 {
     import core.sys.posix.pthread;
     import core.sys.posix.sys.types;
+    import core.sys.posix.time;
 }
 else
 {
@@ -104,8 +105,23 @@ nothrow @nogc:
                 return;
             pthread_mutex_init(cast(pthread_mutex_t*) &m_mutex, null) == 0 ||
                 abort("Error: pthread_mutex_init failed.");
-            pthread_cond_init(&m_cond, null) == 0 ||
-                abort("Error: pthread_cond_init failed.");
+            static if ( is( typeof( pthread_condattr_setclock ) ) )
+            {
+                pthread_condattr_t attr = void;
+                pthread_condattr_init(&attr) == 0 ||
+                    abort("Error: pthread_condattr_init failed.");
+                pthread_condattr_setclock(&attr, CLOCK_MONOTONIC) == 0 ||
+                    abort("Error: pthread_condattr_setclock failed.");
+                pthread_cond_init(&m_cond, &attr) == 0 ||
+                    abort("Error: pthread_cond_init failed.");
+                pthread_condattr_destroy(&attr) == 0 ||
+                    abort("Error: pthread_condattr_destroy failed.");
+            }
+            else
+            {
+                pthread_cond_init(&m_cond, null) == 0 ||
+                    abort("Error: pthread_cond_init failed.");
+            }
             m_state = initialState;
             m_manualReset = manualReset;
             m_initalized = true;

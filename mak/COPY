@@ -28,6 +28,7 @@ COPY=\
 	$(IMPDIR)\core\internal\dassert.d \
 	$(IMPDIR)\core\internal\destruction.d \
 	$(IMPDIR)\core\internal\entrypoint.d \
+	$(IMPDIR)\core\internal\execinfo.d \
 	$(IMPDIR)\core\internal\hash.d \
 	$(IMPDIR)\core\internal\moving.d \
 	$(IMPDIR)\core\internal\parseoptions.d \

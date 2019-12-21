@@ -5,7 +5,7 @@ on assertion failures
 module core.internal.dassert;
 
 /// Allows customized assert error messages
-string _d_assert_fail(string comp, A, B)(A a, B b) @nogc @safe nothrow pure
+string _d_assert_fail(string comp, A, B)(auto ref const A a, auto ref const B b)
 {
     /*
     The program will be terminated after the assertion error message has
@@ -64,7 +64,7 @@ private template getPrintfFormat(T)
 Minimalistic formatting for use in _d_assert_fail to keep the compilation
 overhead small and avoid the use of Phobos.
 */
-private string miniFormat(V)(V v)
+private string miniFormat(V)(const ref V v)
 {
     import core.stdc.stdio : sprintf;
     import core.stdc.string : strlen;
@@ -90,43 +90,59 @@ private string miniFormat(V)(V v)
     {
         return "`null`";
     }
-    else static if (__traits(compiles, { string s = V.init.toString(); }))
+    else static if (__traits(compiles, { string s = v.toString(); }))
     {
         return v.toString();
     }
-    // special-handling for void-arrays
-    else static if (is(V == void[]))
+    // Non-const toString(), e.g. classes inheriting from Object
+    else static if (__traits(compiles, { string s = V.init.toString(); }))
     {
-        return "";
-    }
-    // anything string-like
-    else static if (__traits(compiles, V.init ~ ""))
-    {
-        auto s = `"` ~ v ~ `"`;
-        // v could be a mutable char[]
-        static if (is(s : string))
-            return s;
-        else
-            return s.idup;
+        return (cast() v).toString();
     }
     else static if (is(V : U[], U))
     {
-        string msg = "[";
-        foreach (i, ref el; v)
-        {
-            if (i > 0)
-                msg ~= ", ";
+        import core.internal.traits: Unqual;
+        alias E = Unqual!U;
 
-            // don't fully print big arrays
-            if (i >= 30)
-            {
-                msg ~= "...";
-                break;
-            }
-            msg ~= miniFormat(el);
+        // special-handling for void-arrays
+        static if (is(E == void))
+        {
+            const bytes = cast(byte[]) v;
+            return miniFormat(bytes);
         }
-        msg ~= "]";
-        return msg;
+        // anything string-like
+        else static if (is(E == char) || is(E == dchar) || is(E == wchar))
+        {
+            const s = `"` ~ v ~ `"`;
+
+            // v could be a char[], dchar[] or wchar[]
+            static if (is(typeof(s) : const char[]))
+                return cast(immutable) s;
+            else
+            {
+                import core.internal.utf: toUTF8;
+                return toUTF8(s);
+            }
+        }
+        else
+        {
+            string msg = "[";
+            foreach (i, ref el; v)
+            {
+                if (i > 0)
+                    msg ~= ", ";
+
+                // don't fully print big arrays
+                if (i >= 30)
+                {
+                    msg ~= "...";
+                    break;
+                }
+                msg ~= miniFormat(el);
+            }
+            msg ~= "]";
+            return msg;
+        }
     }
     else static if (is(V : Val[K], K, Val))
     {
@@ -204,7 +220,7 @@ private auto assumeFakeAttributes(T)(T t) @trusted
     return cast(type) t;
 }
 
-private auto miniFormatFakeAttributes(T)(T t)
+private string miniFormatFakeAttributes(T)(const ref T t)
 {
     alias miniT = miniFormat!T;
     return assumeFakeAttributes(&miniT)(t);

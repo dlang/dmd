@@ -1,0 +1,36 @@
+Platform dependent execinfo introspection added
+
+A new module (core.internal.execinfo) has been added for platform dependent
+execinfo detection. On every POSIX system which provides an execinfo
+implementation as part of its C runtime the appropriate implementation-
+dependent execinfo module will be imported automatically.
+
+Besides that, there is an opportunity for using external execinfo
+implementations built as separated libraries and linking DRuntime with them.
+
+$(B IMPORTANT:) On platforms with C runtime not providing execinfo
+functionality one should decide whether an external lib (e.g. libexecinfo)
+will be used, or not. If not, DRuntime should be built normally without any
+additional version ID, but with external lib exactly one of the following
+version IDs should be chosen at compile time. That means, the selected
+external format cannot be changed later without rebuilding DRuntime.
+
+It could be really important to keep this in mind when someone is packaging
+DRuntime for such OSs (e.g. ones using musl libc) and provide packages with
+and without execinfo support (with the specific external library as
+dependency) or in the case of source based packages, make this build option
+selectable (e.g. portage).
+
+$(TABLE
+$(THEAD Version ID, Backtrace format)
+$(TROW $(B ExtExecinfo_BSDFmt), 0x00000000 <_D6module4funcAFZv+0x78> at module)
+$(TROW $(B ExtExecinfo_DarwinFmt),
+1  module    0x00000000 D6module4funcAFZv + 0)
+$(TROW $(B ExtExecinfo_GNUFmt), module(_D6module4funcAFZv) [0x00000000] $(B or)
+module(_D6module4funcAFZv+0x78) [0x00000000]
+$(B or) module(_D6module4funcAFZv-0x78) [0x00000000])
+$(TROW $(B ExtExecinfo_SolarisFmt), object'symbol+offset [pc])
+)
+
+These formats above cover most of the "classic" backtrace outputs but as a new
+important format emerges, it can be easily added.
