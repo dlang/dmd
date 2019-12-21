@@ -77,6 +77,7 @@ __gshared
 {
     elem *eictor;
     Symbol *ictorlocalgot;
+    Symbol* bzeroSymbol;        /// common location for immutable zeros
     symbols sctors;
     StaticDtorDeclarations ectorgates;
     symbols sdtors;
@@ -249,6 +250,7 @@ void obj_start(const(char)* srcfile)
 {
     //printf("obj_start()\n");
 
+    bzeroSymbol = null;
     rtlsym_reset();
     clearStringTab();
 
@@ -1550,6 +1552,40 @@ Symbol *toSymbol(Type t)
     }
     assert(0);
 }
+
+/*******************************************
+ * Generate readonly symbol that consists of a bunch of zeros.
+ * Immutable Symbol instances can be mapped over it.
+ * Only one is generated per object file.
+ * Returns:
+ *    bzero symbol
+ */
+Symbol* getBzeroSymbol()
+{
+    Symbol* s = bzeroSymbol;
+    if (s)
+        return s;
+
+    s = symbol_calloc("__bzeroBytes");
+    s.Stype = type_static_array(128, type_fake(TYuchar));
+    s.Stype.Tmangle = mTYman_c;
+    s.Stype.Tcount++;
+    s.Sclass = SCglobal;
+    s.Sfl = FLdata;
+    s.Sflags |= SFLnodebug;
+    s.Salignment = 16;
+
+    auto dtb = DtBuilder(0);
+    dtb.nzeros(128);
+    s.Sdt = dtb.finish();
+    dt2common(&s.Sdt);
+
+    outdata(s);
+
+    bzeroSymbol = s;
+    return s;
+}
+
 
 
 /**************************************

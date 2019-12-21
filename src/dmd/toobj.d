@@ -497,35 +497,31 @@ void toObjFile(Dsymbol ds, bool multiobj)
                     genTypeInfo(sd.loc, sd.type, null);
 
                 // Generate static initializer
-                toInitializer(sd);
-                if (sd.isInstantiated())
+                auto sinit = toInitializer(sd);
+                if (sinit.Sclass == SCextern)
                 {
-                    sd.sinit.Sclass = SCcomdat;
-                }
-                else
-                {
-                    sd.sinit.Sclass = SCglobal;
-                }
+                    if (sinit == bzeroSymbol) assert(0);
+                    sinit.Sclass = sd.isInstantiated() ? SCcomdat : SCglobal;
+                    sinit.Sfl = FLdata;
+                    auto dtb = DtBuilder(0);
+                    StructDeclaration_toDt(sd, dtb);
+                    sinit.Sdt = dtb.finish();
 
-                sd.sinit.Sfl = FLdata;
-                auto dtb = DtBuilder(0);
-                StructDeclaration_toDt(sd, dtb);
-                sd.sinit.Sdt = dtb.finish();
-
-                /* fails to link on OBJ_MACH 64 with:
-                 *  ld: in generated/osx/release/64/libphobos2.a(dwarfeh_8dc_56a.o),
-                 *  in section __TEXT,__textcoal_nt reloc 6:
-                 *  symbol index out of range for architecture x86_64
-                 */
-                if (config.objfmt != OBJ_MACH &&
-                    dtallzeros(sd.sinit.Sdt))
-                {
-                    sd.sinit.Sclass = SCglobal;
-                    dt2common(&sd.sinit.Sdt);
+                    /* fails to link on OBJ_MACH 64 with:
+                     *  ld: in generated/osx/release/64/libphobos2.a(dwarfeh_8dc_56a.o),
+                     *  in section __TEXT,__textcoal_nt reloc 6:
+                     *  symbol index out of range for architecture x86_64
+                     */
+                    if (config.objfmt != OBJ_MACH &&
+                        dtallzeros(sinit.Sdt))
+                    {
+                        sinit.Sclass = SCglobal;
+                        dt2common(&sinit.Sdt);
+                    }
+                    else
+                        out_readonly(sinit);    // put in read-only segment
+                    outdata(sinit);
                 }
-                else
-                    out_readonly(sd.sinit);    // put in read-only segment
-                outdata(sd.sinit);
 
                 // Put out the members
                 /* There might be static ctors in the members, and they cannot
