@@ -623,11 +623,8 @@ Symbol *toInitializer(EnumDeclaration ed)
     if (!ed.sinit)
     {
         auto stag = fake_classsym(Id.ClassInfo);
-        auto ident_save = ed.ident;
-        if (!ed.ident)
-            ed.ident = Identifier.generateId("__enum");
+        assert(ed.ident);
         auto s = toSymbolX(ed, "__init", SCextern, stag.Stype, "Z");
-        ed.ident = ident_save;
         s.Sfl = FLextern;
         s.Sflags |= SFLnodebug;
         ed.sinit = s;

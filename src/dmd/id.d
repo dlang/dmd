@@ -349,6 +349,8 @@ immutable Msgtable[] msgtable =
     { "_d_arraysetlengthTTrace"},
 
     // varargs implementation
+    { "stdc" },
+    { "stdarg" },
     { "va_start" },
 
     // Builtin functions
@@ -363,16 +365,37 @@ immutable Msgtable[] msgtable =
     { "_sqrt", "sqrt" },
     { "_pow", "pow" },
     { "atan2" },
+    { "rint" },
+    { "ldexp" },
     { "rndtol" },
     { "expm1" },
     { "exp2" },
     { "yl2x" },
     { "yl2xp1" },
     { "fabs" },
+    { "toPrec" },
+    { "simd" },
+    { "__prefetch"},
+    { "__simd_sto"},
+    { "__simd"},
+    { "__simd_ib"},
     { "bitop" },
     { "bsf" },
     { "bsr" },
+    { "btc" },
+    { "btr" },
+    { "bts" },
     { "bswap" },
+    { "volatile"},
+    { "volatileLoad"},
+    { "volatileStore"},
+    { "_popcnt"},
+    { "inp"},
+    { "inpl"},
+    { "inpw"},
+    { "outp"},
+    { "outpl"},
+    { "outpw"},
 
     // Traits
     { "isAbstractClass" },
@@ -428,6 +451,8 @@ immutable Msgtable[] msgtable =
     { "isZeroInit" },
     { "getTargetInfo" },
     { "getLocation" },
+    { "hasPostblit" },
+    { "hasCopyConstructor" },
 
     // For C++ mangling
     { "allocator" },

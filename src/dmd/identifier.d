@@ -63,7 +63,7 @@ public:
     extern (D) this(const(char)* name) nothrow
     {
         //printf("Identifier('%s', %d)\n", name, value);
-        this(name[0 .. strlen(name)], TOK.identifier);
+        this(name.toDString(), TOK.identifier);
     }
 
     /// Sentinel for an anonymous identifier.
@@ -136,18 +136,18 @@ nothrow:
         return DYNCAST.identifier;
     }
 
-    private extern (D) __gshared StringTable stringtable;
+    private extern (D) __gshared StringTable!Identifier stringtable;
 
-    static Identifier generateId(const(char)* prefix)
+    extern(D) static Identifier generateId(const(char)[] prefix)
     {
         __gshared size_t i;
         return generateId(prefix, ++i);
     }
 
-    static Identifier generateId(const(char)* prefix, size_t i)
+    extern(D) static Identifier generateId(const(char)[] prefix, size_t i)
     {
         OutBuffer buf;
-        buf.writestring(prefix);
+        buf.write(prefix);
         buf.print(i);
         return idPool(buf[]);
     }
@@ -226,12 +226,12 @@ nothrow:
 
     extern (D) static Identifier idPool(const(char)[] s)
     {
-        StringValue* sv = stringtable.update(s);
-        Identifier id = cast(Identifier)sv.ptrvalue;
+        auto sv = stringtable.update(s);
+        auto id = sv.value;
         if (!id)
         {
             id = new Identifier(sv.toString(), TOK.identifier);
-            sv.ptrvalue = cast(char*)id;
+            sv.value = id;
         }
         return id;
     }
@@ -246,7 +246,7 @@ nothrow:
         auto sv = stringtable.insert(s, null);
         assert(sv);
         auto id = new Identifier(sv.toString(), value);
-        sv.ptrvalue = cast(char*)id;
+        sv.value = id;
         return id;
     }
 
@@ -277,8 +277,8 @@ nothrow:
         while (idx < str.length)
         {
             dchar dc;
-            const q = utf_decodeChar(str.ptr, str.length, idx, dc);
-            if (q ||
+            const s = utf_decodeChar(str, idx, dc);
+            if (s ||
                 !((dc >= 0x80 && isUniAlpha(dc)) || isalnum(dc) || dc == '_'))
             {
                 return false;
@@ -297,7 +297,7 @@ nothrow:
         auto sv = stringtable.lookup(s);
         if (!sv)
             return null;
-        return cast(Identifier)sv.ptrvalue;
+        return sv.value;
     }
 
     extern (D) static void initTable()

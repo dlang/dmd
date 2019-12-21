@@ -925,7 +925,7 @@ MATCH implicitConvTo(Expression e, Type t)
              */
 
             size_t nparams = tf.parameterList.length;
-            size_t j = (tf.linkage == LINK.d && tf.parameterList.varargs == VarArg.variadic); // if TypeInfoArray was prepended
+            size_t j = tf.isDstyleVariadic(); // if TypeInfoArray was prepended
             if (e.e1.op == TOK.dotVariable)
             {
                 /* Treat 'this' as just another function argument
@@ -1242,7 +1242,7 @@ MATCH implicitConvTo(Expression e, Type t)
 
                 size_t nparams = tf.parameterList.length;
                 // if TypeInfoArray was prepended
-                size_t j = (tf.linkage == LINK.d && tf.parameterList.varargs == VarArg.variadic);
+                size_t j = tf.isDstyleVariadic();
                 for (size_t i = j; i < e.arguments.dim; ++i)
                 {
                     Expression earg = (*args)[i];
@@ -1863,9 +1863,10 @@ Expression castTo(Expression e, Scope* sc, Type t)
                 {
                     void* s = mem.xmalloc(fullSize);
                     const srcSize = e.len * e.sz;
-                    memcpy(s, se.string, srcSize);
+                    const data = se.peekData();
+                    memcpy(s, data.ptr, srcSize);
                     memset(s + srcSize, 0, fullSize - srcSize);
-                    se.string = cast(char*)s;
+                    se.setData(s, se.len, se.sz);
                 }
                 result = se;
                 return;
@@ -1928,9 +1929,8 @@ Expression castTo(Expression e, Scope* sc, Type t)
                     for (size_t u = 0; u < e.len;)
                     {
                         dchar c;
-                        const p = utf_decodeChar(se.string, e.len, u, c);
-                        if (p)
-                            e.error("%s", p);
+                        if (const s = utf_decodeChar(se.peekString(), u, c))
+                            e.error("%.*s", cast(int)s.length, s.ptr);
                         else
                             buffer.writeUTF16(c);
                     }
@@ -1942,9 +1942,8 @@ Expression castTo(Expression e, Scope* sc, Type t)
                     for (size_t u = 0; u < e.len;)
                     {
                         dchar c;
-                        const p = utf_decodeChar(se.string, e.len, u, c);
-                        if (p)
-                            e.error("%s", p);
+                        if (const s = utf_decodeChar(se.peekString(), u, c))
+                            e.error("%.*s", cast(int)s.length, s.ptr);
                         buffer.write4(c);
                         newlen++;
                     }
@@ -1955,9 +1954,8 @@ Expression castTo(Expression e, Scope* sc, Type t)
                     for (size_t u = 0; u < e.len;)
                     {
                         dchar c;
-                        const p = utf_decodeWchar(se.wstring, e.len, u, c);
-                        if (p)
-                            e.error("%s", p);
+                        if (const s = utf_decodeWchar(se.peekWstring(), u, c))
+                            e.error("%.*s", cast(int)s.length, s.ptr);
                         else
                             buffer.writeUTF8(c);
                     }
@@ -1969,9 +1967,8 @@ Expression castTo(Expression e, Scope* sc, Type t)
                     for (size_t u = 0; u < e.len;)
                     {
                         dchar c;
-                        const p = utf_decodeWchar(se.wstring, e.len, u, c);
-                        if (p)
-                            e.error("%s", p);
+                        if (const s = utf_decodeWchar(se.peekWstring(), u, c))
+                            e.error("%.*s", cast(int)s.length, s.ptr);
                         buffer.write4(c);
                         newlen++;
                     }
@@ -1981,7 +1978,7 @@ Expression castTo(Expression e, Scope* sc, Type t)
                 case X(Tdchar, Tchar):
                     for (size_t u = 0; u < e.len; u++)
                     {
-                        uint c = se.dstring[u];
+                        uint c = se.peekDstring()[u];
                         if (!utf_isValidDchar(c))
                             e.error("invalid UCS-32 char \\U%08x", c);
                         else
@@ -1995,7 +1992,7 @@ Expression castTo(Expression e, Scope* sc, Type t)
                 case X(Tdchar, Twchar):
                     for (size_t u = 0; u < e.len; u++)
                     {
-                        uint c = se.dstring[u];
+                        uint c = se.peekDstring()[u];
                         if (!utf_isValidDchar(c))
                             e.error("invalid UCS-32 char \\U%08x", c);
                         else
@@ -2012,13 +2009,11 @@ Expression castTo(Expression e, Scope* sc, Type t)
                         se = cast(StringExp)e.copy();
                         copied = 1;
                     }
-                    se.string = buffer.extractSlice().ptr;   // already 0 terminated
-                    se.len = newlen;
 
                     {
                         d_uns64 szx = tb.nextOf().size();
                         assert(szx <= 255);
-                        se.sz = cast(ubyte)szx;
+                        se.setData(buffer.extractSlice().ptr, newlen, cast(ubyte)szx);
                     }
                     break;
 
@@ -2040,14 +2035,13 @@ Expression castTo(Expression e, Scope* sc, Type t)
                 if (dim2 != se.len)
                 {
                     // Copy when changing the string literal
-                    size_t newsz = se.sz;
-                    size_t d = (dim2 < se.len) ? dim2 : se.len;
+                    const newsz = se.sz;
+                    const d = (dim2 < se.len) ? dim2 : se.len;
                     void* s = mem.xmalloc((dim2 + 1) * newsz);
-                    memcpy(s, se.string, d * newsz);
+                    memcpy(s, se.peekData().ptr, d * newsz);
                     // Extend with 0, add terminating 0
                     memset(s + d * newsz, 0, (dim2 + 1 - d) * newsz);
-                    se.string = cast(char*)s;
-                    se.len = dim2;
+                    se.setData(s, dim2, newsz);
                 }
             }
             se.type = t;
@@ -2585,101 +2579,81 @@ Expression castTo(Expression e, Scope* sc, Type t)
  */
 Expression inferType(Expression e, Type t, int flag = 0)
 {
-    extern (C++) final class InferType : Visitor
+    Expression visitAle(ArrayLiteralExp ale)
     {
-        alias visit = Visitor.visit;
-    public:
-        Type t;
-        int flag;
-        Expression result;
-
-        extern (D) this(Type t, int flag)
+        Type tb = t.toBasetype();
+        if (tb.ty == Tarray || tb.ty == Tsarray)
         {
-            this.t = t;
-            this.flag = flag;
-        }
-
-        override void visit(Expression e)
-        {
-            result = e;
-        }
-
-        override void visit(ArrayLiteralExp ale)
-        {
-            Type tb = t.toBasetype();
-            if (tb.ty == Tarray || tb.ty == Tsarray)
+            Type tn = tb.nextOf();
+            if (ale.basis)
+                ale.basis = inferType(ale.basis, tn, flag);
+            for (size_t i = 0; i < ale.elements.dim; i++)
             {
-                Type tn = tb.nextOf();
-                if (ale.basis)
-                    ale.basis = inferType(ale.basis, tn, flag);
-                for (size_t i = 0; i < ale.elements.dim; i++)
+                if (Expression e = (*ale.elements)[i])
                 {
-                    Expression e = (*ale.elements)[i];
-                    if (e)
-                    {
-                        e = inferType(e, tn, flag);
-                        (*ale.elements)[i] = e;
-                    }
+                    e = inferType(e, tn, flag);
+                    (*ale.elements)[i] = e;
                 }
             }
-            result = ale;
         }
-
-        override void visit(AssocArrayLiteralExp aale)
-        {
-            Type tb = t.toBasetype();
-            if (tb.ty == Taarray)
-            {
-                TypeAArray taa = cast(TypeAArray)tb;
-                Type ti = taa.index;
-                Type tv = taa.nextOf();
-                for (size_t i = 0; i < aale.keys.dim; i++)
-                {
-                    Expression e = (*aale.keys)[i];
-                    if (e)
-                    {
-                        e = inferType(e, ti, flag);
-                        (*aale.keys)[i] = e;
-                    }
-                }
-                for (size_t i = 0; i < aale.values.dim; i++)
-                {
-                    Expression e = (*aale.values)[i];
-                    if (e)
-                    {
-                        e = inferType(e, tv, flag);
-                        (*aale.values)[i] = e;
-                    }
-                }
-            }
-            result = aale;
-        }
-
-        override void visit(FuncExp fe)
-        {
-            //printf("FuncExp::inferType('%s'), to=%s\n", fe.type ? fe.type.toChars() : "null", t.toChars());
-            if (t.ty == Tdelegate || t.ty == Tpointer && t.nextOf().ty == Tfunction)
-            {
-                fe.fd.treq = t;
-            }
-            result = fe;
-        }
-
-        override void visit(CondExp ce)
-        {
-            Type tb = t.toBasetype();
-            ce.e1 = inferType(ce.e1, tb, flag);
-            ce.e2 = inferType(ce.e2, tb, flag);
-            result = ce;
-        }
+        return ale;
     }
 
-    if (!t)
-        return e;
+    Expression visitAar(AssocArrayLiteralExp aale)
+    {
+        Type tb = t.toBasetype();
+        if (tb.ty == Taarray)
+        {
+            TypeAArray taa = cast(TypeAArray)tb;
+            Type ti = taa.index;
+            Type tv = taa.nextOf();
+            for (size_t i = 0; i < aale.keys.dim; i++)
+            {
+                if (Expression e = (*aale.keys)[i])
+                {
+                    e = inferType(e, ti, flag);
+                    (*aale.keys)[i] = e;
+                }
+            }
+            for (size_t i = 0; i < aale.values.dim; i++)
+            {
+                if (Expression e = (*aale.values)[i])
+                {
+                    e = inferType(e, tv, flag);
+                    (*aale.values)[i] = e;
+                }
+            }
+        }
+        return aale;
+    }
 
-    scope InferType v = new InferType(t, flag);
-    e.accept(v);
-    return v.result;
+    Expression visitFun(FuncExp fe)
+    {
+        //printf("FuncExp::inferType('%s'), to=%s\n", fe.type ? fe.type.toChars() : "null", t.toChars());
+        if (t.ty == Tdelegate || t.ty == Tpointer && t.nextOf().ty == Tfunction)
+        {
+            fe.fd.treq = t;
+        }
+        return fe;
+    }
+
+    Expression visitTer(CondExp ce)
+    {
+        Type tb = t.toBasetype();
+        ce.e1 = inferType(ce.e1, tb, flag);
+        ce.e2 = inferType(ce.e2, tb, flag);
+        return ce;
+    }
+
+    if (t) switch (e.op)
+    {
+        case TOK.arrayLiteral:      return visitAle(cast(ArrayLiteralExp) e);
+        case TOK.assocArrayLiteral: return visitAar(cast(AssocArrayLiteralExp) e);
+        case TOK.function_:         return visitFun(cast(FuncExp) e);
+        case TOK.question:          return visitTer(cast(CondExp) e);
+        default:
+    }
+    return e;
 }
 
 /****************************************

@@ -46,6 +46,7 @@ import dmd.statement_rewrite_walker;
 import dmd.statement;
 import dmd.statementsem;
 import dmd.tokens;
+import dmd.utils;
 import dmd.visitor;
 
 /// Inline Status
@@ -1906,6 +1907,12 @@ extern (C++) class FuncDeclaration : Declaration
                 FuncDeclaration f = v.nestedrefs[j];
                 assert(f != this);
 
+                /* __require and __ensure will always get called directly,
+                 * so they never make outer functions closure.
+                 */
+                if (f.ident == Id.require || f.ident == Id.ensure)
+                    continue;
+
                 //printf("\t\tf = %p, %s, isVirtual=%d, isThis=%p, tookAddressOf=%d\n", f, f.toChars(), f.isVirtual(), f.isThis(), f.tookAddressOf);
 
                 /* Look to see if f escapes. We consider all parents of f within
@@ -2724,17 +2731,17 @@ unittest
     assert(buf[] == "`shared` ");
     assert(!mismatches.isNotShared);
 
-    buf.reset;
+    buf.setsize(0);
     mismatches = MODMatchToBuffer(&buf, 0, MODFlags.shared_);
     assert(buf[] == "non-shared ");
     assert(mismatches.isNotShared);
 
-    buf.reset;
+    buf.setsize(0);
     mismatches = MODMatchToBuffer(&buf, MODFlags.const_, 0);
     assert(buf[] == "`const` ");
     assert(!mismatches.isMutable);
 
-    buf.reset;
+    buf.setsize(0);
     mismatches = MODMatchToBuffer(&buf, 0, MODFlags.const_);
     assert(buf[] == "mutable ");
     assert(mismatches.isMutable);
@@ -2744,7 +2751,7 @@ private const(char)* prependSpace(const(char)* str)
 {
     if (!str || !*str) return "";
 
-    return (" " ~ str[0 .. strlen(str)] ~ "\0").ptr;
+    return (" " ~ str.toDString() ~ "\0").ptr;
 }
 
 /// Flag used by $(LREF resolveFuncCall).

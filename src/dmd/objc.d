@@ -35,12 +35,12 @@ import dmd.identifier;
 import dmd.mtype;
 import dmd.root.outbuffer;
 import dmd.root.stringtable;
+import dmd.target;
 
 struct ObjcSelector
 {
     // MARK: Selector
-    private __gshared StringTable stringtable;
-    private __gshared StringTable vTableDispatchSelectors;
+    private __gshared StringTable!(ObjcSelector*) stringtable;
     private __gshared int incnum = 0;
     const(char)* stringvalue;
     size_t stringlen;
@@ -75,12 +75,12 @@ struct ObjcSelector
 
     extern (D) static ObjcSelector* lookup(const(char)* s, size_t len, size_t pcount)
     {
-        StringValue* sv = stringtable.update(s, len);
-        ObjcSelector* sel = cast(ObjcSelector*)sv.ptrvalue;
+        auto sv = stringtable.update(s, len);
+        ObjcSelector* sel = sv.value;
         if (!sel)
         {
             sel = new ObjcSelector(sv.toDchars(), len, pcount);
-            sv.ptrvalue = cast(char*)sel;
+            sv.value = sel;
         }
         return sel;
     }
@@ -122,6 +122,7 @@ struct ObjcSelector
         }
     Lcomplete:
         buf.writeByte('\0');
+        // the slice is not expected to include a terminating 0
         return lookup(cast(const(char)*)buf[].ptr, buf.length - 1, pcount);
     }
 
@@ -182,7 +183,7 @@ extern(C++) abstract class Objc
 {
     static void _init()
     {
-        if (global.params.isOSX && global.params.is64bit)
+        if (target.objc.supported)
             _objc = new Supported;
         else
             _objc = new Unsupported;
@@ -537,7 +538,7 @@ extern(C++) private final class Supported : Objc
                 assert(literal.elements.dim == 1);
                 StringExp se = (*literal.elements)[0].toStringExp();
                 assert(se);
-                fd.selector = ObjcSelector.lookup(cast(const(char)*)se.toUTF8(sc).string);
+                fd.selector = ObjcSelector.lookup(cast(const(char)*)se.toUTF8(sc).peekString().ptr);
             }
         }
     }

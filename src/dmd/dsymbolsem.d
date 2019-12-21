@@ -423,7 +423,7 @@ private bool buildCopyCtor(StructDeclaration sd, Scope* sc)
         return false;
 
     bool hasPostblit;
-    if (sd.postblit)
+    if (sd.postblit && !sd.postblit.isDisabled())
         hasPostblit = true;
 
     auto ctor = sd.search(sd.loc, Id.ctor);
@@ -1837,7 +1837,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         goto Lnodecl;
                     (*pd.args)[0] = se;
                     if (global.params.verbose)
-                        message("linkopt   %.*s", cast(int)se.len, se.string);
+                        message("linkopt   %.*s", cast(int)se.len, se.peekString().ptr);
                 }
                 goto Lnodecl;
             }
@@ -1869,7 +1869,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     if (se)
                     {
                         se = se.toUTF8(sc);
-                        fprintf(stderr, "%.*s", cast(int)se.len, se.string);
+                        fprintf(stderr, "%.*s", cast(int)se.len, se.peekString().ptr);
                     }
                     else
                         fprintf(stderr, "%s", e.toChars());
@@ -1889,7 +1889,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     goto Lnodecl;
                 (*pd.args)[0] = se;
 
-                auto name = se.string[0 .. se.len].xarraydup;
+                auto name = se.peekString().xarraydup;
                 if (global.params.verbose)
                     message("library   %s", name.ptr);
                 if (global.params.moduleDeps && !global.params.moduleDepsFile)
@@ -1966,10 +1966,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                  *
                  * Therefore, this validation is compiler implementation specific.
                  */
+                auto slice = se.peekString();
                 for (size_t i = 0; i < se.len;)
                 {
-                    char* p = se.string;
-                    dchar c = p[i];
+                    dchar c = slice[i];
                     if (c < 0x80)
                     {
                         if (c.isValidMangling)
@@ -1983,9 +1983,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                             break;
                         }
                     }
-                    if (const msg = utf_decodeChar(se.string, se.len, i, c))
+                    if (const msg = utf_decodeChar(slice, i, c))
                     {
-                        pd.error("%s", msg);
+                        pd.error("%.*s", cast(int)msg.length, msg.ptr);
                         break;
                     }
                     if (!isUniAlpha(c))
@@ -2049,7 +2049,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     assert(pd.args && pd.args.dim == 1);
                     if (auto se = (*pd.args)[0].toStringExp())
                     {
-                        const name = se.string[0 .. se.len].xarraydup;
+                        const name = (cast(const(char)[])se.peekData()).xarraydup;
                         uint cnt = setMangleOverride(s, name);
                         if (cnt > 1)
                             pd.error("can only apply to a single declaration");
@@ -2874,7 +2874,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             /* Assign scope local unique identifier, as same as lambdas.
              */
-            const(char)* s = "__mixin";
+            const(char)[] s = "__mixin";
 
             if (FuncDeclaration func = sc.parent.isFuncDeclaration())
             {

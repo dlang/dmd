@@ -161,6 +161,10 @@ quick:
 clean:
 	@echo "Removing output directory: $(RESULTS_DIR)"
 	$(QUIET)if [ -e $(RESULTS_DIR) ]; then rm -rf $(RESULTS_DIR); fi
+	@echo "Remove coverage listing files: *.lst"
+	$(QUIET)rm -rf *.lst
+	@echo "Remove trace files: trace.def, trace.log"
+	$(QUIET)rm -rf trace.log trace.def
 
 $(RESULTS_DIR)/.created:
 	@echo Creating output directory: $(RESULTS_DIR)

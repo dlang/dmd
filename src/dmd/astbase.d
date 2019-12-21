@@ -2720,7 +2720,7 @@ struct ASTBase
         extern (C++) __gshared ClassDeclaration typeinfoinvariant;
         extern (C++) __gshared ClassDeclaration typeinfoshared;
         extern (C++) __gshared ClassDeclaration typeinfowild;
-        extern (C++) __gshared StringTable stringtable;
+        extern (C++) __gshared StringTable!Type stringtable;
         extern (C++) __gshared ubyte[TMAX] sizeTy = ()
             {
                 ubyte[TMAX] sizeTy = __traits(classInstanceSize, TypeBasic);
@@ -4651,23 +4651,15 @@ struct ASTBase
         ubyte sz = 1;       // 1: char, 2: wchar, 4: dchar
         char postfix = 0;   // 'c', 'w', 'd'
 
-        extern (D) this(const ref Loc loc, char* string)
+        extern (D) this(const ref Loc loc, const(void)[] string)
         {
             super(loc, TOK.string_, __traits(classInstanceSize, StringExp));
-            this.string = string;
-            this.len = strlen(string);
+            this.string = cast(char*)string.ptr;
+            this.len = string.length;
             this.sz = 1;                    // work around LDC bug #1286
         }
 
-        extern (D) this(const ref Loc loc, void* string, size_t len)
-        {
-            super(loc, TOK.string_, __traits(classInstanceSize, StringExp));
-            this.string = cast(char*)string;
-            this.len = len;
-            this.sz = 1;                    // work around LDC bug #1286
-        }
-
-        extern (D) this(const ref Loc loc, void* string, size_t len, char postfix)
+        extern (D) this(const ref Loc loc, const(void)[] string, size_t len, ubyte sz, char postfix = 0)
         {
             super(loc, TOK.string_, __traits(classInstanceSize, StringExp));
             this.string = cast(char*)string;

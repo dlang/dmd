@@ -705,7 +705,7 @@ private:
             switch (whichOp)
             {
             case CppOperator.Unary:
-                switch (str.peekSlice())
+                switch (str.peekString())
                 {
                     case "*":   symName = "?D";     goto continue_template;
                     case "++":  symName = "?E";     goto continue_template;
@@ -716,7 +716,7 @@ private:
                     default:    return false;
                 }
             case CppOperator.Binary:
-                switch (str.peekSlice())
+                switch (str.peekString())
                 {
                     case ">>":  symName = "?5";     goto continue_template;
                     case "<<":  symName = "?6";     goto continue_template;
@@ -731,7 +731,7 @@ private:
                     default:    return false;
                     }
             case CppOperator.OpAssign:
-                switch (str.peekSlice())
+                switch (str.peekString())
                 {
                     case "*":   symName = "?X";     goto continue_template;
                     case "+":   symName = "?Y";     goto continue_template;

@@ -65,6 +65,7 @@ import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.utf;
+import dmd.utils;
 import dmd.visitor;
 
 enum LOGSEMANTIC = false;
@@ -2254,7 +2255,7 @@ extern (C++) final class NullExp : Expression
     {
         if (implicitConvTo(Type.tstring))
         {
-            auto se = new StringExp(loc, cast(char*)mem.xcalloc(1, 1), 0);
+            auto se = new StringExp(loc, (cast(char*)mem.xcalloc(1, 1))[0 .. 0]);
             se.type = Type.tstring;
             return se;
         }
@@ -2272,7 +2273,7 @@ extern (C++) final class NullExp : Expression
  */
 extern (C++) final class StringExp : Expression
 {
-    union
+    private union
     {
         char* string;   // if sz == 1
         wchar* wstring; // if sz == 2
@@ -2281,53 +2282,51 @@ extern (C++) final class StringExp : Expression
     size_t len;         // number of code units
     ubyte sz = 1;       // 1: char, 2: wchar, 4: dchar
     ubyte committed;    // !=0 if type is committed
-    char postfix = 0;   // 'c', 'w', 'd'
+    enum char NoPostfix = 0;
+    char postfix = NoPostfix;   // 'c', 'w', 'd'
     OwnedBy ownedByCtfe = OwnedBy.code;
 
-    extern (D) this(const ref Loc loc, char* string)
+    extern (D) this(const ref Loc loc, const(void)[] string)
     {
         super(loc, TOK.string_, __traits(classInstanceSize, StringExp));
-        this.string = string;
-        this.len = strlen(string);
+        this.string = cast(char*)string.ptr; // note that this.string should be const
+        this.len = string.length;
         this.sz = 1;                    // work around LDC bug #1286
     }
 
-    extern (D) this(const ref Loc loc, void* string, size_t len)
+    extern (D) this(const ref Loc loc, const(void)[] string, size_t len, ubyte sz, char postfix = NoPostfix)
     {
         super(loc, TOK.string_, __traits(classInstanceSize, StringExp));
-        this.string = cast(char*)string;
+        this.string = cast(char*)string.ptr; // note that this.string should be const
         this.len = len;
-        this.sz = 1;                    // work around LDC bug #1286
-    }
-
-    extern (D) this(const ref Loc loc, void* string, size_t len, char postfix)
-    {
-        super(loc, TOK.string_, __traits(classInstanceSize, StringExp));
-        this.string = cast(char*)string;
-        this.len = len;
+        this.sz = sz;
         this.postfix = postfix;
-        this.sz = 1;                    // work around LDC bug #1286
     }
 
     static StringExp create(Loc loc, char* s)
     {
-        return new StringExp(loc, s);
+        return new StringExp(loc, s.toDString());
     }
 
     static StringExp create(Loc loc, void* string, size_t len)
     {
-        return new StringExp(loc, string, len);
+        return new StringExp(loc, string[0 .. len]);
     }
 
     // Same as create, but doesn't allocate memory.
     static void emplace(UnionExp* pue, Loc loc, char* s)
     {
-        emplaceExp!(StringExp)(pue, loc, s);
+        emplaceExp!(StringExp)(pue, loc, s.toDString());
     }
 
-    static void emplace(UnionExp* pue, Loc loc, void* string, size_t len)
+    extern (D) static void emplace(UnionExp* pue, Loc loc, const(void)[] string)
     {
-        emplaceExp!(StringExp)(pue, loc, string, len);
+        emplaceExp!(StringExp)(pue, loc, string);
+    }
+
+    extern (D) static void emplace(UnionExp* pue, Loc loc, const(void)[] string, size_t len, ubyte sz, char postfix)
+    {
+        emplaceExp!(StringExp)(pue, loc, string, len, sz, postfix);
     }
 
     override bool equals(const RootObject o) const
@@ -2374,9 +2373,9 @@ extern (C++) final class StringExp : Expression
         case 1:
             for (size_t u = 0; u < len;)
             {
-                if (const p = utf_decodeChar(string, len, u, c))
+                if (const s = utf_decodeChar(string[0 .. len], u, c))
                 {
-                    error("%s", p);
+                    error("%.*s", cast(int)s.length, s.ptr);
                     return 0;
                 }
                 result += utf_codeLength(encSize, c);
@@ -2386,9 +2385,9 @@ extern (C++) final class StringExp : Expression
         case 2:
             for (size_t u = 0; u < len;)
             {
-                if (const p = utf_decodeWchar(wstring, len, u, c))
+                if (const s = utf_decodeWchar(wstring[0 .. len], u, c))
                 {
-                    error("%s", p);
+                    error("%.*s", cast(int)s.length, s.ptr);
                     return 0;
                 }
                 result += utf_codeLength(encSize, c);
@@ -2480,18 +2479,6 @@ extern (C++) final class StringExp : Expression
             dstring[i] = c;
             break;
         }
-    }
-
-    /**************************************************
-     * If the string data is UTF-8 and can be accessed directly,
-     * return a pointer to it.
-     * Do not assume a terminating 0.
-     * Returns:
-     *  pointer to string data if possible, null if not
-     */
-    char* toPtr()
-    {
-        return (sz == 1) ? string : null;
     }
 
     override StringExp toStringExp()
@@ -2622,10 +2609,50 @@ extern (C++) final class StringExp : Expression
         return s[0 .. nbytes];
     }
 
-    extern (D) const(char)[] peekSlice() const
+    extern (D) const(char)[] peekString() const
     {
         assert(sz == 1);
         return this.string[0 .. len];
+    }
+
+    extern (D) const(wchar)[] peekWstring() const
+    {
+        assert(sz == 2);
+        return this.wstring[0 .. len];
+    }
+
+    extern (D) const(dchar)[] peekDstring() const
+    {
+        assert(sz == 4);
+        return this.dstring[0 .. len];
+    }
+
+    /*******************
+     * Get a slice of the data.
+     */
+    extern (D) const(ubyte)[] peekData() const
+    {
+        return cast(const(ubyte)[])this.string[0 .. len * sz];
+    }
+
+    /*******************
+     * Borrow a slice of the data, so the caller can modify
+     * it in-place (!)
+     */
+    extern (D) ubyte[] borrowData()
+    {
+        return cast(ubyte[])this.string[0 .. len * sz];
+    }
+
+    /***********************
+     * Set new string data.
+     * `this` becomes the new owner of the data.
+     */
+    extern (D) void setData(void* s, size_t len, ubyte sz)
+    {
+        this.string = cast(char*)s;
+        this.len = len;
+        this.sz = sz;
     }
 
     override void accept(Visitor v)
@@ -2893,7 +2920,7 @@ extern (C++) final class ArrayLiteralExp : Expression
             }
 
             const size_t len = buf.length / sz - 1;
-            auto se = new StringExp(loc, buf.extractSlice().ptr, len, prefix);
+            auto se = new StringExp(loc, buf.extractSlice()[0 .. len * sz], len, sz, prefix);
             se.sz = sz;
             se.type = type;
             return se;
@@ -3150,13 +3177,15 @@ extern (C++) final class StructLiteralExp : Expression
              *   __sl%s%d, where %s is the struct name
              */
             const size_t len = 10;
-            char[len + 1] buf = void;
-            buf[len] = 0;
-            strcpy(buf.ptr, "__sl");
-            strncat(buf.ptr, sd.ident.toChars(), len - 4 - 1);
-            assert(buf[len] == 0);
+            char[len] buf = void;
 
-            auto tmp = copyToTemp(0, buf.ptr, this);
+            const ident = sd.ident.toString;
+            const prefix = "__sl";
+            const charsToUse = ident.length > len - prefix.length ? len - prefix.length : ident.length;
+            buf[0 .. prefix.length] = prefix;
+            buf[prefix.length .. prefix.length + charsToUse] = ident[0 .. charsToUse];
+
+            auto tmp = copyToTemp(0, buf, this);
             Expression ae = new DeclarationExp(loc, tmp);
             Expression e = new CommaExp(loc, ae, new VarExp(loc, tmp));
             e = e.expressionSemantic(sc);
@@ -3615,7 +3644,7 @@ extern (C++) final class FuncExp : Expression
     {
         if (fd.ident == Id.empty)
         {
-            const(char)* s;
+            const(char)[] s;
             if (fd.fes)
                 s = "__foreachbody";
             else if (fd.tok == TOK.reserved)
@@ -6466,8 +6495,11 @@ extern (C++) final class CondExp : BinExp
                     if (v._init)
                     {
                         if (auto ei = v._init.isExpInitializer())
-                            ei.exp.accept(this);
+                            walkPostorder(ei.exp, this);
                     }
+
+                    if (v.edtor)
+                        walkPostorder(v.edtor, this);
 
                     if (v.needsScopeDtor())
                     {
@@ -6547,7 +6579,7 @@ extern (C++) final class FileInitExp : DefaultInitExp
         else
             s = loc.isValid() ? loc.filename : sc._module.ident.toChars();
 
-        Expression e = new StringExp(loc, cast(char*)s);
+        Expression e = new StringExp(loc, s.toDString());
         e = e.expressionSemantic(sc);
         e = e.castTo(sc, type);
         return e;
@@ -6592,8 +6624,8 @@ extern (C++) final class ModuleInitExp : DefaultInitExp
 
     override Expression resolveLoc(const ref Loc loc, Scope* sc)
     {
-        const char* s = (sc.callsc ? sc.callsc : sc)._module.toPrettyChars();
-        Expression e = new StringExp(loc, cast(char*)s);
+        const auto s = (sc.callsc ? sc.callsc : sc)._module.toPrettyChars().toDString();
+        Expression e = new StringExp(loc, s);
         e = e.expressionSemantic(sc);
         e = e.castTo(sc, type);
         return e;
@@ -6623,7 +6655,7 @@ extern (C++) final class FuncInitExp : DefaultInitExp
             s = sc.func.Dsymbol.toPrettyChars();
         else
             s = "";
-        Expression e = new StringExp(loc, cast(char*)s);
+        Expression e = new StringExp(loc, s.toDString());
         e = e.expressionSemantic(sc);
         e.type = Type.tstring;
         return e;
@@ -6663,7 +6695,7 @@ extern (C++) final class PrettyFuncInitExp : DefaultInitExp
             s = "";
         }
 
-        Expression e = new StringExp(loc, cast(char*)s);
+        Expression e = new StringExp(loc, s.toDString());
         e = e.expressionSemantic(sc);
         e.type = Type.tstring;
         return e;

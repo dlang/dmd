@@ -111,7 +111,7 @@ private string getSerialization(FuncLiteralDeclaration fld, Scope* sc)
 private extern (C++) class SerializeVisitor : SemanticTimeTransitiveVisitor
 {
 private:
-    StringTable arg_hash;
+    StringTable!(const(char)[]) arg_hash;
     Scope* sc;
     ExpType et;
     Dsymbol d;
@@ -157,7 +157,7 @@ public:
                 OutBuffer value;
                 value.writestring("arg");
                 value.print(i);
-                arg_hash.insert(key, value.extractChars);
+                arg_hash.insert(key, value.extractSlice());
                 // and the type of the variable is serialized.
                 fparam.accept(this);
             }
@@ -220,8 +220,8 @@ public:
         if (stringtable_value)
         {
             // In which case we need to update the serialization accordingly
-            const(char)* gen_id = cast(const(char)*)stringtable_value.ptrvalue;
-            buf.writestring(gen_id);
+            const(char)[] gen_id = stringtable_value.value;
+            buf.write(gen_id);
             buf.writeByte('_');
             et = ExpType.Arg;
             return true;
@@ -265,13 +265,13 @@ public:
                 // For anything else, the function is deemed uncomparable
                 else
                 {
-                    buf.reset();
+                    buf.setsize(0);
                 }
             }
             // If it's an unknown symbol, consider the function incomparable
             else
             {
-                buf.reset();
+                buf.setsize(0);
             }
         }
     }
@@ -401,7 +401,7 @@ public:
             buf.writeByte('_');
         }
         else
-            buf.reset();
+            buf.setsize(0);
     }
 
     private bool checkTemplateInstance(T)(T t)
@@ -409,7 +409,7 @@ public:
     {
         if (t.sym.parent && t.sym.parent.isTemplateInstance())
         {
-            buf.reset();
+            buf.setsize(0);
             return true;
         }
         return false;
@@ -464,34 +464,34 @@ public:
             }
         }
         else
-            buf.reset();
+            buf.setsize(0);
     }
 
-    override void visit(ArrayLiteralExp) { buf.reset(); }
-    override void visit(AssocArrayLiteralExp) { buf.reset(); }
-    override void visit(CompileExp) { buf.reset(); }
-    override void visit(ComplexExp) { buf.reset(); }
-    override void visit(DeclarationExp) { buf.reset(); }
-    override void visit(DefaultInitExp) { buf.reset(); }
-    override void visit(DsymbolExp) { buf.reset(); }
-    override void visit(ErrorExp) { buf.reset(); }
-    override void visit(FuncExp) { buf.reset(); }
-    override void visit(HaltExp) { buf.reset(); }
-    override void visit(IntervalExp) { buf.reset(); }
-    override void visit(IsExp) { buf.reset(); }
-    override void visit(NewAnonClassExp) { buf.reset(); }
-    override void visit(NewExp) { buf.reset(); }
-    override void visit(NullExp) { buf.reset(); }
-    override void visit(ObjcClassReferenceExp) { buf.reset(); }
-    override void visit(OverExp) { buf.reset(); }
-    override void visit(ScopeExp) { buf.reset(); }
-    override void visit(StringExp) { buf.reset(); }
-    override void visit(SymbolExp) { buf.reset(); }
-    override void visit(TemplateExp) { buf.reset(); }
-    override void visit(ThisExp) { buf.reset(); }
-    override void visit(TraitsExp) { buf.reset(); }
-    override void visit(TupleExp) { buf.reset(); }
-    override void visit(TypeExp) { buf.reset(); }
-    override void visit(TypeidExp) { buf.reset(); }
-    override void visit(VoidInitExp) { buf.reset(); }
+    override void visit(ArrayLiteralExp) { buf.setsize(0); }
+    override void visit(AssocArrayLiteralExp) { buf.setsize(0); }
+    override void visit(CompileExp) { buf.setsize(0); }
+    override void visit(ComplexExp) { buf.setsize(0); }
+    override void visit(DeclarationExp) { buf.setsize(0); }
+    override void visit(DefaultInitExp) { buf.setsize(0); }
+    override void visit(DsymbolExp) { buf.setsize(0); }
+    override void visit(ErrorExp) { buf.setsize(0); }
+    override void visit(FuncExp) { buf.setsize(0); }
+    override void visit(HaltExp) { buf.setsize(0); }
+    override void visit(IntervalExp) { buf.setsize(0); }
+    override void visit(IsExp) { buf.setsize(0); }
+    override void visit(NewAnonClassExp) { buf.setsize(0); }
+    override void visit(NewExp) { buf.setsize(0); }
+    override void visit(NullExp) { buf.setsize(0); }
+    override void visit(ObjcClassReferenceExp) { buf.setsize(0); }
+    override void visit(OverExp) { buf.setsize(0); }
+    override void visit(ScopeExp) { buf.setsize(0); }
+    override void visit(StringExp) { buf.setsize(0); }
+    override void visit(SymbolExp) { buf.setsize(0); }
+    override void visit(TemplateExp) { buf.setsize(0); }
+    override void visit(ThisExp) { buf.setsize(0); }
+    override void visit(TraitsExp) { buf.setsize(0); }
+    override void visit(TupleExp) { buf.setsize(0); }
+    override void visit(TypeExp) { buf.setsize(0); }
+    override void visit(TypeidExp) { buf.setsize(0); }
+    override void visit(VoidInitExp) { buf.setsize(0); }
 }

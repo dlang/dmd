@@ -1336,7 +1336,7 @@ class Lexer
         Loc start = loc();
         auto terminator = p[0];
         p++;
-        stringbuffer.reset();
+        stringbuffer.setsize(0);
         while (1)
         {
             dchar c = p[0];
@@ -1392,7 +1392,7 @@ class Lexer
         uint n = 0;
         uint v = ~0; // dead assignment, needed to suppress warning
         p++;
-        stringbuffer.reset();
+        stringbuffer.setsize(0);
         while (1)
         {
             dchar c = *p++;
@@ -1486,7 +1486,7 @@ class Lexer
         uint blankrol = 0;
         uint startline = 0;
         p++;
-        stringbuffer.reset();
+        stringbuffer.setsize(0);
         while (1)
         {
             dchar c = *p++;
@@ -1683,7 +1683,7 @@ class Lexer
 
         const start = loc();
         p++;
-        stringbuffer.reset();
+        stringbuffer.setsize(0);
         while (1)
         {
             dchar c = *p++;
@@ -1803,7 +1803,29 @@ class Lexer
         }
         if (*p != '\'')
         {
-            error("unterminated character constant");
+            while (*p != '\'' && *p != 0x1A && *p != 0 && *p != '\n' &&
+                    *p != '\r' && *p != ';' && *p != ')' && *p != ']' && *p != '}')
+            {
+                if (*p & 0x80)
+                {
+                    const s = p;
+                    c = decodeUTF();
+                    if (c == LS || c == PS)
+                    {
+                        p = s;
+                        break;
+                    }
+                }
+                p++;
+            }
+
+            if (*p == '\'')
+            {
+                error("character constant has multiple characters");
+                p++;
+            }
+            else
+                error("unterminated character constant");
             t.unsvalue = '?';
             return tk;
         }
@@ -2068,11 +2090,6 @@ class Lexer
              */
             if (n & 0x8000000000000000L)
             {
-                if (!err)
-                {
-                    error("signed integer overflow");
-                    err = true;
-                }
                 result = TOK.uns64Literal;
             }
             else if (n & 0xFFFFFFFF80000000L)
@@ -2137,7 +2154,7 @@ class Lexer
             assert(*p == '.' || isdigit(*p));
         }
         bool isWellformedString = true;
-        stringbuffer.reset();
+        stringbuffer.setsize(0);
         auto pstart = p;
         bool hex = false;
         dchar c = *p++;
@@ -2423,7 +2440,7 @@ class Lexer
             case '"':
                 if (filespec)
                     goto Lerr;
-                stringbuffer.reset();
+                stringbuffer.setsize(0);
                 p++;
                 while (1)
                 {
@@ -2485,11 +2502,11 @@ class Lexer
         }
         size_t idx = 0;
         dchar u;
-        const msg = utf_decodeChar(s, len, idx, u);
+        const msg = utf_decodeChar(s[0 .. len], idx, u);
         p += idx - 1;
         if (msg)
         {
-            error("%s", msg);
+            error("%.*s", cast(int)msg.length, msg.ptr);
         }
         return u;
     }

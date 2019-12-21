@@ -236,7 +236,7 @@ private elem *callfunc(const ref Loc loc,
          */
 
         // j=1 if _arguments[] is first argument
-        const int j = (tf.linkage == LINK.d && tf.parameterList.varargs == VarArg.variadic);
+        const int j = tf.isDstyleVariadic();
 
         foreach (const i, arg; *arguments)
         {
@@ -482,6 +482,45 @@ if (!irs.params.is64bit) assert(tysize(TYnptr) == 4);
             e.EV.E2 = null;
             e = el_combine(earg, e);
         }
+        else if (op == OPtoPrec)
+        {
+            static int X(int fty, int tty) { return fty * TMAX + tty; }
+
+            final switch (X(tybasic(ep.Ety), tyret))
+            {
+            case X(TYfloat, TYfloat):     // float -> float
+            case X(TYdouble, TYdouble):   // double -> double
+            case X(TYldouble, TYldouble): // real -> real
+                e = ep;
+                break;
+
+            case X(TYfloat, TYdouble):    // float -> double
+                e = el_una(OPf_d, tyret, ep);
+                break;
+
+            case X(TYfloat, TYldouble):   // float -> real
+                e = el_una(OPf_d, TYdouble, ep);
+                e = el_una(OPd_ld, tyret, e);
+                break;
+
+            case X(TYdouble, TYfloat):    // double -> float
+                e = el_una(OPd_f, tyret, ep);
+                break;
+
+            case X(TYdouble, TYldouble):  // double -> real
+                e = el_una(OPd_ld, tyret, ep);
+                break;
+
+            case X(TYldouble, TYfloat):   // real -> float
+                e = el_una(OPld_d, TYdouble, ep);
+                e = el_una(OPd_f, tyret, e);
+                break;
+
+            case X(TYldouble, TYdouble):  // real -> double
+                e = el_una(OPld_d, tyret, ep);
+                break;
+            }
+        }
         else
             e = el_una(op,tyret,ep);
     }
@@ -681,6 +720,26 @@ elem *addressElem(elem *e, Type t, bool alwaysCopy = false)
         typ = TYimmutPtr;
     e = el_una(OPaddr,typ,e);
     return e;
+}
+
+/***************************************
+ * Return `true` if elem is a an lvalue.
+ * Lvalue elems are OPvar and OPind.
+ */
+
+bool elemIsLvalue(elem* e)
+{
+    while (e.Eoper == OPcomma || e.Eoper == OPinfo)
+        e = e.EV.E2;
+
+    // For conditional operator, both branches need to be lvalues.
+    if (e.Eoper == OPcond)
+    {
+        elem* ec = e.EV.E2;
+        return elemIsLvalue(ec.EV.E1) && elemIsLvalue(ec.EV.E2);
+    }
+
+    return e.Eoper == OPvar || e.Eoper == OPind;
 }
 
 /*****************************************
@@ -1080,7 +1139,7 @@ Lagain:
 }
 
 
-__gshared StringTable *stringTab;
+__gshared StringTable!(Symbol*) *stringTab;
 
 /********************************
  * Reset stringTab[] between object files being emitted, because the symbols are local.
@@ -1092,7 +1151,7 @@ void clearStringTab()
         stringTab.reset(1000);             // 1000 is arbitrary guess
     else
     {
-        stringTab = new StringTable();
+        stringTab = new StringTable!(Symbol*)();
         stringTab._init(1000);
     }
 }
@@ -3039,33 +3098,16 @@ elem *toElem(Expression e, IRState *irs)
                      * with:
                      *  memset(&struct, 0, struct.sizeof)
                      */
-                    elem *ey = null;
-                    elem *ew = null;
                     uint sz = cast(uint)ae.e1.type.size();
                     StructDeclaration sd = t1s.sym;
-                    if (sd.isNested() && ae.op == TOK.construct)
-                    {
-                        ey = el_una(OPaddr, TYnptr, e1);
-                        e1 = el_same(&ey);
-                        ey = setEthis(ae.loc, irs, ey, sd);
-                        if (sd.vthis2)
-                        {
-                            ew = el_same(&e1);
-                            ew = setEthis(ae.loc, irs, ew, sd, true);
-                        }
-                        sz = sd.vthis.offset;
-                    }
 
                     elem *el = e1;
                     elem *enbytes = el_long(TYsize_t, sz);
                     elem *evalue = el_long(TYsize_t, 0);
 
-                    if (!(sd.isNested() && ae.op == TOK.construct))
-                        el = el_una(OPaddr, TYnptr, el);
+                    el = el_una(OPaddr, TYnptr, el);
                     elem* e = el_param(enbytes, evalue);
                     e = el_bin(OPmemset,TYnptr,el,e);
-                    e = el_combine(ey, e);
-                    e = el_combine(ew, e);
                     return setResult2(e);
                 }
 
@@ -3108,8 +3150,7 @@ elem *toElem(Expression e, IRState *irs)
                     elem *enbytes = el_long(TYsize_t, sz);
                     elem *evalue = el_long(TYsize_t, 0);
 
-                    if (!(sd.isNested() && ae.op == TOK.construct))
-                        el = el_una(OPaddr, TYnptr, el);
+                    el = el_una(OPaddr, TYnptr, el);
                     elem* e = el_param(enbytes, evalue);
                     e = el_bin(OPmemset,TYnptr,el,e);
                     e = el_combine(ey, e);
@@ -5908,10 +5949,9 @@ private elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
             {
                 *pe = el_combine(edtors, erx);
             }
-            else if ((tybasic(erx.Ety) == TYstruct || tybasic(erx.Ety) == TYarray) &&
-                     !(erx.ET && type_size(erx.ET) <= 16))
+            else if (elemIsLvalue(erx))
             {
-                /* Expensive to copy, to take a pointer to it instead
+                /* Lvalue, take a pointer to it
                  */
                 elem *ep = el_una(OPaddr, TYnptr, erx);
                 elem *e = el_same(&ep);
@@ -5986,8 +6026,8 @@ elem *toElemDtor(Expression e, IRState *irs)
 Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
 {
     //printf("toStringSymbol() %p\n", stringTab);
-    StringValue *sv = stringTab.update(str, len * sz);
-    if (!sv.ptrvalue)
+    auto sv = stringTab.update(str, len * sz);
+    if (!sv.value)
     {
         Symbol* si;
 
@@ -6002,8 +6042,8 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
             import dmd.root.outbuffer : OutBuffer;
             import dmd.dmangle;
 
-            scope StringExp se = new StringExp(Loc.initial, cast(void*)str, len, 'c');
-            se.sz = cast(ubyte)sz;
+            scope StringExp se = new StringExp(Loc.initial, str[0 .. len], len, cast(ubyte)sz, 'c');
+
             /* VC++ uses a name mangling scheme, for example, "hello" is mangled to:
              * ??_C@_05CJBACGMB@hello?$AA@
              *        ^ length
@@ -6046,9 +6086,9 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
             si = out_string_literal(str, cast(uint)len, cast(uint)sz);
         }
 
-        sv.ptrvalue = cast(void *)si;
+        sv.value = si;
     }
-    return cast(Symbol *)sv.ptrvalue;
+    return sv.value;
 }
 
 /*******************************************************
@@ -6058,15 +6098,15 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
 Symbol *toStringSymbol(StringExp se)
 {
     Symbol *si;
-    int n = cast(int)se.numberOfCodeUnits();
-    char* p = se.toPtr();
-    if (p)
+    const n = cast(int)se.numberOfCodeUnits();
+    if (se.sz == 1)
     {
-        si = toStringSymbol(p, n, se.sz);
+        const slice = se.peekString();
+        si = toStringSymbol(slice.ptr, slice.length, 1);
     }
     else
     {
-        p = cast(char *)mem.xmalloc(n * se.sz);
+        auto p = cast(char *)mem.xmalloc(n * se.sz);
         se.writeTo(p, false);
         si = toStringSymbol(p, n, se.sz);
         mem.xfree(p);
@@ -6197,6 +6237,12 @@ void toTraceGC(IRState *irs, elem *e, const ref Loc loc)
         assert(e1.Eoper == OPvar);
 
         auto s = e1.EV.Vsym;
+        /* In -dip1008 code the allocation of exceptions is no longer done by the
+         * gc, but by a manual reference counting mechanism implementend in druntime.
+         * If that is the case, then there is nothing to trace.
+         */
+        if (s == getRtlsym(RTLSYM_NEWTHROW))
+            return;
         foreach (ref m; map)
         {
             if (s == getRtlsym(m[0]))

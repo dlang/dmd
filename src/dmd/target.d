@@ -58,6 +58,9 @@ extern (C++) struct Target
     // C++ ABI
     TargetCPP cpp;
 
+    // Objective-C ABI
+    TargetObjC objc;
+
     /**
      * Values representing all properties for floating point types
      */
@@ -156,6 +159,7 @@ extern (C++) struct Target
 
         c.initialize(params, this);
         cpp.initialize(params, this);
+        objc.initialize(params, this);
     }
 
     /**
@@ -607,7 +611,7 @@ extern (C++) struct Target
     {
         StringExp stringExp(const(char)[] sval)
         {
-            return new StringExp(loc, cast(void*)sval.ptr, sval.length);
+            return new StringExp(loc, sval);
         }
 
         switch (name.toDString) with (TargetInfoKeys)
@@ -852,6 +856,21 @@ struct TargetCPP
     extern (C++) bool fundamentalType(const Type t, ref bool isFundamental)
     {
         return false;
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/**
+ * Functions and variables specific to interface with extern(Objective-C) ABI.
+ */
+struct TargetObjC
+{
+    bool supported;     /// set if compiler can interface with Objective-C
+
+    extern (D) void initialize(ref const Param params, ref const Target target)
+    {
+        if (params.isOSX && params.is64bit)
+            supported = true;
     }
 }
 

@@ -17,6 +17,7 @@ import core.stdc.stdio;
 import core.stdc.string;
 import dmd.root.rmem;
 import dmd.root.rootobject;
+import dmd.utils;
 
 debug
 {
@@ -27,9 +28,9 @@ struct OutBuffer
 {
     private ubyte[] data;
     private size_t offset;
-    int level;
-    bool doindent;
     private bool notlinehead;
+    bool doindent;
+    int level;
 
     extern (C++) ~this() pure nothrow
     {
@@ -39,6 +40,11 @@ struct OutBuffer
 
     extern (C++) size_t length() const pure @nogc @safe nothrow { return offset; }
 
+    /**********************
+     * Transfer ownership of the allocated data to the caller.
+     * Returns:
+     *  pointer to the allocated data
+     */
     extern (C++) char* extractData() pure nothrow @nogc @trusted
     {
         char* p = cast(char*)data.ptr;
@@ -81,8 +87,14 @@ struct OutBuffer
         }
     }
 
+    /************************
+     * Shrink the size of the data to `size`.
+     * Params:
+     *  size = new size of data, must be <= `.length`
+     */
     extern (C++) void setsize(size_t size) pure nothrow @nogc @safe
     {
+        assert(size <= offset);
         offset = size;
     }
 
@@ -118,7 +130,7 @@ struct OutBuffer
 
     extern (C++) void writestring(const(char)* string) pure nothrow
     {
-        write(string[0 .. strlen(string)]);
+        write(string.toDString);
     }
 
     void writestring(const(char)[] s) pure nothrow
@@ -295,6 +307,20 @@ struct OutBuffer
         offset += nbytes;
     }
 
+    /**
+     * Allocate space, but leave it uninitialized.
+     * Params:
+     *  nbytes = amount to allocate
+     * Returns:
+     *  slice of the allocated space to be filled in
+     */
+    extern (D) char[] allocate(size_t nbytes) pure nothrow
+    {
+        reserve(nbytes);
+        offset += nbytes;
+        return cast(char[])data[offset - nbytes .. offset];
+    }
+
     extern (C++) void vprintf(const(char)* format, va_list args) nothrow
     {
         int count;
@@ -304,39 +330,25 @@ struct OutBuffer
         for (;;)
         {
             reserve(psize);
-            version (Windows)
-            {
-                count = _vsnprintf(cast(char*)data.ptr + offset, psize, format, args);
-                if (count != -1)
-                    break;
+            va_list va;
+            va_copy(va, args);
+            /*
+                The functions vprintf(), vfprintf(), vsprintf(), vsnprintf()
+                are equivalent to the functions printf(), fprintf(), sprintf(),
+                snprintf(), respectively, except that they are called with a
+                va_list instead of a variable number of arguments. These
+                functions do not call the va_end macro. Consequently, the value
+                of ap is undefined after the call. The application should call
+                va_end(ap) itself afterwards.
+                */
+            count = vsnprintf(cast(char*)data.ptr + offset, psize, format, va);
+            va_end(va);
+            if (count == -1) // snn.lib and older libcmt.lib return -1 if buffer too small
                 psize *= 2;
-            }
-            else version (Posix)
-            {
-                va_list va;
-                va_copy(va, args);
-                /*
-                 The functions vprintf(), vfprintf(), vsprintf(), vsnprintf()
-                 are equivalent to the functions printf(), fprintf(), sprintf(),
-                 snprintf(), respectively, except that they are called with a
-                 va_list instead of a variable number of arguments. These
-                 functions do not call the va_end macro. Consequently, the value
-                 of ap is undefined after the call. The application should call
-                 va_end(ap) itself afterwards.
-                 */
-                count = vsnprintf(cast(char*)data.ptr + offset, psize, format, va);
-                va_end(va);
-                if (count == -1)
-                    psize *= 2;
-                else if (count >= psize)
-                    psize = count + 1;
-                else
-                    break;
-            }
+            else if (count >= psize)
+                psize = count + 1;
             else
-            {
-                assert(0);
-            }
+                break;
         }
         offset += count;
         if (mem.isGCEnabled)

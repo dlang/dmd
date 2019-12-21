@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include "root/rmem.h" // for d_size_t
+#include "root/dcompat.h" // for d_size_t
 
 #include "arraytypes.h"
 #include "ast_node.h"
@@ -603,6 +603,7 @@ public:
     Type *syntaxCopy();
     void purityLevel();
     bool hasLazyParameters();
+    bool isDstyleVariadic() const;
     bool parameterEscapes(Parameter *p);
     StorageClass parameterStorageClass(Parameter *p);
     Type *addStorageClass(StorageClass stc);

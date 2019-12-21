@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: runnable/imports/pubprivtmpla.d
+// EXTRA_SOURCES: imports/pubprivtmpla.d
 
 module pubprivtmpl;
 

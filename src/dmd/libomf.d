@@ -57,7 +57,7 @@ final class LibOMF : Library
 {
     OmfObjModules objmodules; // OmfObjModule[]
     OmfObjSymbols objsymbols; // OmfObjSymbol[]
-    StringTable tab;
+    StringTable!(OmfObjSymbol*) tab;
 
     extern (D) this()
     {
@@ -149,7 +149,7 @@ final class LibOMF : Library
             {
                 // Remove path and extension
                 auto n = cast(char*)Mem.check(strdup(FileName.name(module_name)));
-                om.name = n[0 .. strlen(n)];
+                om.name = n.toDString();
                 char* ext = cast(char*)FileName.ext(n);
                 if (ext)
                     ext[-1] = 0;
@@ -160,7 +160,7 @@ final class LibOMF : Library
                  * removing path and extension.
                  */
                 auto n = cast(char*)Mem.check(strdup(FileName.name(name)));
-                om.name = n[0 .. strlen(n)];
+                om.name = n.toDString();
                 char* ext = cast(char*)FileName.ext(n);
                 if (ext)
                     ext[-1] = 0;
@@ -189,7 +189,7 @@ final class LibOMF : Library
             auto os = new OmfObjSymbol();
             os.name = cast(char*)Mem.check(strdup(name.ptr));
             os.om = om;
-            s.ptrvalue = cast(void*)os;
+            s.value = os;
             objsymbols.push(os);
         }
         else
@@ -199,7 +199,7 @@ final class LibOMF : Library
             {
                 const s2 = tab.lookup(name);
                 assert(s2);
-                const os = cast(const(OmfObjSymbol)*)s2.ptrvalue;
+                const os = s2.value;
                 error("multiple definition of %.*s: %.*s and %.*s: %s",
                     cast(int)om.name.length, om.name.ptr,
                     cast(int)name.length, name.ptr,

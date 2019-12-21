@@ -44,8 +44,11 @@ import dmd.id;
 import dmd.identifier;
 import dmd.inline;
 import dmd.json;
-import dmd.lib;
-import dmd.link;
+version (NoMain) {} else
+{
+    import dmd.lib;
+    import dmd.link;
+}
 import dmd.mtype;
 import dmd.objc;
 import dmd.root.array;
@@ -120,6 +123,24 @@ Where:
 }
 
 /**
+ * Remove generated .di files on error and exit
+ */
+private void removeHdrFilesAndFail(ref Param params, ref Modules modules)
+{
+    if (params.doHdrGeneration)
+    {
+        foreach (m; modules)
+        {
+            if (m.isHdrFile)
+                continue;
+            File.remove(m.hdrfile.toChars());
+        }
+    }
+
+    fatal();
+}
+
+/**
  * DMD's real entry point
  *
  * Parses command line arguments and config file, open and read all
@@ -132,6 +153,7 @@ Where:
  * Returns:
  *   Application return code
  */
+version (NoMain) {} else
 private int tryMain(size_t argc, const(char)** argv, ref Param params)
 {
     Strings files;
@@ -196,7 +218,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
      */
     const(char)[] inifilepath = FileName.path(global.inifilename);
     Strings sections;
-    StringTable environment;
+    StringTable!(char*) environment;
     environment._init(7);
     /* Read the [Environment] section, so we can later
      * pick up any DFLAGS settings.
@@ -219,7 +241,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     version(Windows) // delete LIB entry in [Environment] (necessary for optlink) to allow inheriting environment for MS-COFF
         if (is64bit || strcmp(arch, "32mscoff") == 0)
-            environment.update("LIB", 3).ptrvalue = null;
+            environment.update("LIB", 3).value = null;
 
     // read from DFLAGS in [Environment{arch}] section
     char[80] envsection = void;
@@ -352,10 +374,10 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     // Add in command line versions
     if (params.versionids)
         foreach (charz; *params.versionids)
-            VersionCondition.addGlobalIdent(charz[0 .. strlen(charz)]);
+            VersionCondition.addGlobalIdent(charz.toDString());
     if (params.debugids)
         foreach (charz; *params.debugids)
-            DebugCondition.addGlobalIdent(charz[0 .. strlen(charz)]);
+            DebugCondition.addGlobalIdent(charz.toDString());
 
     setTarget(params);
 
@@ -520,7 +542,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         }
     }
     if (global.errors)
-        fatal();
+        removeHdrFilesAndFail(params, modules);
 
     // load all unconditional imports for better symbol resolving
     foreach (m; modules)
@@ -530,7 +552,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         m.importAll(null);
     }
     if (global.errors)
-        fatal();
+        removeHdrFilesAndFail(params, modules);
 
     backend_init();
 
@@ -564,7 +586,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     }
     Module.runDeferredSemantic2();
     if (global.errors)
-        fatal();
+        removeHdrFilesAndFail(params, modules);
 
     // Do pass 3 semantic analysis
     foreach (m; modules)
@@ -589,7 +611,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     }
     Module.runDeferredSemantic3();
     if (global.errors)
-        fatal();
+        removeHdrFilesAndFail(params, modules);
 
     // Scan for functions to inline
     if (params.useInline)
@@ -603,7 +625,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     }
     // Do not attempt to generate output files if errors or warnings occurred
     if (global.errors || global.warnings)
-        fatal();
+        removeHdrFilesAndFail(params, modules);
 
     // inlineScan incrementally run semantic3 of each expanded functions.
     // So deps file generation should be moved after the inlining stage.
@@ -734,7 +756,8 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         }
     }
     if (global.errors || global.warnings)
-        fatal();
+        removeHdrFilesAndFail(params, modules);
+
     return status;
 }
 
@@ -1291,7 +1314,7 @@ extern(C) void printGlobalConfigs(FILE* stream)
     stream.fprintf("config    %.*s\n", cast(int)iniOutput.length, iniOutput.ptr);
     // Print DFLAGS environment variable
     {
-        StringTable environment;
+        StringTable!(char*) environment;
         environment._init(0);
         Strings dflags;
         getenv_setargv(readFromEnv(environment, "DFLAGS"), &dflags);
@@ -1300,7 +1323,7 @@ extern(C) void printGlobalConfigs(FILE* stream)
         foreach (flag; dflags[])
         {
             bool needsQuoting;
-            foreach (c; flag[0 .. strlen(flag)])
+            foreach (c; flag.toDString())
             {
                 if (!(isalnum(c) || c == '_'))
                 {
@@ -1539,7 +1562,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 return buf;
             }
             const ident = ps + 1;
-            switch (ident[0 .. strlen(ident)])
+            switch (ident.toDString())
             {
                 mixin(generateTransitionsText());
             default:
@@ -1559,7 +1582,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
     for (size_t i = 1; i < arguments.dim; i++)
     {
         const(char)* p = arguments[i];
-        const(char)[] arg = p[0 .. strlen(p)];
+        const(char)[] arg = p.toDString();
         if (*p != '-')
         {
             static if (TARGET.Windows)
@@ -1872,7 +1895,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             if (Identifier.isValidIdentifier(p + len))
             {
                 const ident = p + len;
-                switch (ident[0 .. strlen(ident)])
+                switch (ident.toDString())
                 {
                 case "baseline":
                     params.cpu = CPU.baseline;
@@ -1966,7 +1989,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 else if (Identifier.isValidIdentifier(p + len))
                 {
                     const ident = p + len;
-                    switch (ident[0 .. strlen(ident)])
+                    switch (ident.toDString())
                     {
                         case "import":
                             params.bug10378 = true;
@@ -2437,6 +2460,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
  *               and update in place
  *      numSrcFiles = number of source files
  */
+version (NoMain) {} else
 private void reconcileCommands(ref Param params, size_t numSrcFiles)
 {
     static if (TARGET.OSX)

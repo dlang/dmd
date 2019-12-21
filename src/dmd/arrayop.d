@@ -34,6 +34,7 @@ import dmd.visitor;
  */
 bool isArrayOpValid(Expression e)
 {
+    //printf("isArrayOpValid() %s\n", e.toChars());
     if (e.op == TOK.slice)
         return true;
     if (e.op == TOK.arrayLiteral)
@@ -97,6 +98,7 @@ bool checkNonAssignmentArrayOp(Expression e, bool suggestion = false)
 
 /***********************************
  * Construct the array operation expression, call object._arrayOp!(tiargs)(args).
+ *
  * Encode operand types and operations into tiargs using reverse polish notation (RPN) to preserve precedence.
  * Unary operations are prefixed with "u" (e.g. "u~").
  * Pass operand values (slices or scalars) as args.
@@ -105,10 +107,13 @@ bool checkNonAssignmentArrayOp(Expression e, bool suggestion = false)
  * into druntime to hoist them out of the loop. This is a valid
  * evaluation order as the actual array operations have no
  * side-effect.
+ * References:
+ * https://github.com/dlang/druntime/blob/master/src/object.d#L3944
+ * https://github.com/dlang/druntime/blob/master/src/core/internal/array/operations.d
  */
 Expression arrayOp(BinExp e, Scope* sc)
 {
-    //printf("BinExp.arrayOp() %s\n", toChars());
+    //printf("BinExp.arrayOp() %s\n", e.toChars());
     Type tb = e.type.toBasetype();
     assert(tb.ty == Tarray || tb.ty == Tsarray);
     Type tbn = tb.nextOf().toBasetype();
@@ -128,13 +133,17 @@ Expression arrayOp(BinExp e, Scope* sc)
     __gshared TemplateDeclaration arrayOp;
     if (arrayOp is null)
     {
+        // Create .object._arrayOp
+        Identifier idArrayOp = Identifier.idPool("_arrayOp");
         Expression id = new IdentifierExp(e.loc, Id.empty);
         id = new DotIdExp(e.loc, id, Id.object);
-        id = new DotIdExp(e.loc, id, Identifier.idPool("_arrayOp"));
+        id = new DotIdExp(e.loc, id, idArrayOp);
+
         id = id.expressionSemantic(sc);
-        if (id.op != TOK.template_)
-            ObjectNotFound(Identifier.idPool("_arrayOp"));
-        arrayOp = (cast(TemplateExp)id).td;
+        if (auto te = id.isTemplateExp())
+            arrayOp = te.td;
+        else
+            ObjectNotFound(idArrayOp);   // fatal error
     }
 
     auto fd = resolveFuncCall(e.loc, sc, arrayOp, tiargs, null, args, FuncResolveFlag.standard);
@@ -219,7 +228,7 @@ private void buildArrayOp(Scope* sc, Expression e, Objects* tiargs, Expressions*
                 buf.writestring("u");
                 buf.writestring(Token.toString(e.op));
                 e.e1.accept(this);
-                tiargs.push(new StringExp(Loc.initial, buf.extractChars()).expressionSemantic(sc));
+                tiargs.push(new StringExp(Loc.initial, buf.extractSlice()).expressionSemantic(sc));
             }
         }
 
@@ -235,7 +244,7 @@ private void buildArrayOp(Scope* sc, Expression e, Objects* tiargs, Expressions*
                 // RPN
                 e.e1.accept(this);
                 e.e2.accept(this);
-                tiargs.push(new StringExp(Loc.initial, cast(char*) Token.toChars(e.op)).expressionSemantic(sc));
+                tiargs.push(new StringExp(Loc.initial, Token.toString(e.op)).expressionSemantic(sc));
             }
         }
     }

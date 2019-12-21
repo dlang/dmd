@@ -21,7 +21,18 @@ void testClass() {
 	assert(t1 == t1);
 }
 
+// https://issues.dlang.org/show_bug.cgi?id=20331
+void testAnonymousFunction()
+{
+    bool function() check = () => true;
+    assert(check());
+
+    bool result = true;
+    assert((() => result)());
+}
+
 void main() {
     testStruct();
     testClass();
+    testAnonymousFunction();
 }

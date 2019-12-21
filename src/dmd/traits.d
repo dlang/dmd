@@ -13,7 +13,6 @@
 module dmd.traits;
 
 import core.stdc.stdio;
-import core.stdc.string;
 
 import dmd.aggregate;
 import dmd.arraytypes;
@@ -49,6 +48,7 @@ import dmd.typesem;
 import dmd.visitor;
 import dmd.root.rootobject;
 import dmd.root.outbuffer;
+import dmd.utils;
 
 enum LOGSEMANTIC = false;
 
@@ -86,7 +86,7 @@ private Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
     return getDsymbol(oarg);
 }
 
-private const StringTable traitsStringTable;
+private const StringTable!bool traitsStringTable;
 
 shared static this()
 {
@@ -144,14 +144,16 @@ shared static this()
         "isZeroInit",
         "getTargetInfo",
         "getLocation",
+        "hasPostblit",
+        "hasCopyConstructor",
     ];
 
-    StringTable* stringTable = cast(StringTable*) &traitsStringTable;
+    StringTable!(bool)* stringTable = cast(StringTable!(bool)*) &traitsStringTable;
     stringTable._init(names.length);
 
     foreach (s; names)
     {
-        auto sv = stringTable.insert(s, cast(void*)s.ptr);
+        auto sv = stringTable.insert(s, true);
         assert(sv);
     }
 }
@@ -446,12 +448,12 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         return new ErrorExp();
     }
 
-    IntegerExp True()
+    static IntegerExp True()
     {
         return IntegerExp.createBool(true);
     }
 
-    IntegerExp False()
+    static IntegerExp False()
     {
         return IntegerExp.createBool(false);
     }
@@ -627,6 +629,29 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         return True();
     }
+    if (e.ident == Id.hasCopyConstructor || e.ident == Id.hasPostblit)
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        auto o = (*e.args)[0];
+        auto t = isType(o);
+        if (!t)
+        {
+            e.error("type expected as second argument of __traits `%s` instead of `%s`",
+                e.ident.toChars(), o.toChars());
+            return new ErrorExp();
+        }
+
+        Type tb = t.baseElemOf();
+        if (auto sd = tb.ty == Tstruct ? (cast(TypeStruct)tb).sym : null)
+        {
+            return (e.ident == Id.hasPostblit) ? (sd.postblit ? True() : False())
+                 : (sd.hasCopyCtor ? True() : False());
+        }
+        return False();
+    }
+
     if (e.ident == Id.isNested)
     {
         if (dim != 1)
@@ -767,7 +792,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             id = s.ident;
         }
 
-        auto se = new StringExp(e.loc, cast(char*)id.toChars());
+        auto se = new StringExp(e.loc, id.toString());
         return se.expressionSemantic(sc);
     }
     if (e.ident == Id.getProtection)
@@ -793,9 +818,9 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (s.semanticRun == PASS.init)
             s.dsymbolSemantic(null);
 
-        auto protName = protectionToChars(s.prot().kind); // TODO: How about package(names)
+        auto protName = protectionToString(s.prot().kind); // TODO: How about package(names)
         assert(protName);
-        auto se = new StringExp(e.loc, cast(char*)protName);
+        auto se = new StringExp(e.loc, protName);
         return se.expressionSemantic(sc);
     }
     if (e.ident == Id.parent)
@@ -905,7 +930,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             e.error("string must be chars");
             return new ErrorExp();
         }
-        auto id = Identifier.idPool(se.peekSlice());
+        auto id = Identifier.idPool(se.peekString());
 
         /* Prefer dsymbol, because it might need some runtime contexts.
          */
@@ -1004,9 +1029,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
              */
             void insertInterfaceInheritedFunction(FuncDeclaration fd, Expression e)
             {
-                auto funcType = fd.type.toChars();
-                auto len = strlen(funcType);
-                string signature = funcType[0 .. len].idup;
+                auto signature = fd.type.toString();
                 //printf("%s - %s\n", fd.toChars, signature);
                 if (signature !in funcTypeHash)
                 {
@@ -1104,7 +1127,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         auto exps = new Expressions();
         if (ad && ad.aliasthis)
-            exps.push(new StringExp(e.loc, cast(char*)ad.aliasthis.ident.toChars()));
+            exps.push(new StringExp(e.loc, ad.aliasthis.ident.toString()));
         Expression ex = new TupleExp(e.loc, exps);
         ex = ex.expressionSemantic(sc);
         return ex;
@@ -1178,7 +1201,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         void addToMods(string str)
         {
-            mods.push(new StringExp(Loc.initial, cast(char*)str.ptr, str.length));
+            mods.push(new StringExp(Loc.initial, str));
         }
         tf.modifiersApply(&addToMods);
         tf.attributesApply(&addToMods, TRUSTformatSystem);
@@ -1250,7 +1273,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                                              : "stdarg";    break;
             case VarArg.typesafe: style = "typesafe";       break;
         }
-        auto se = new StringExp(e.loc, cast(char*)style);
+        auto se = new StringExp(e.loc, style);
         return se.expressionSemantic(sc);
     }
     if (e.ident == Id.getParameterStorageClasses)
@@ -1310,7 +1333,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         void push(string s)
         {
-            exps.push(new StringExp(e.loc, cast(char*)s.ptr, cast(uint)s.length));
+            exps.push(new StringExp(e.loc, s));
         }
 
         if (stc & STC.auto_)
@@ -1383,7 +1406,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             }
         }
         auto linkage = linkageToChars(link);
-        auto se = new StringExp(e.loc, cast(char*)linkage);
+        auto se = new StringExp(e.loc, linkage.toDString());
         return se.expressionSemantic(sc);
     }
     if (e.ident == Id.allMembers ||
@@ -1461,7 +1484,11 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                         return 0;
 
                     // Avoid using strcmp in the first place due to the performance impact in an O(N^2) loop.
-                    debug assert(strcmp(id.toChars(), sm.ident.toChars()) != 0);
+                    debug
+                    {
+                        import core.stdc.string : strcmp;
+                        assert(strcmp(id.toChars(), sm.ident.toChars()) != 0);
+                    }
                 }
                 idents.push(sm.ident);
             }
@@ -1500,7 +1527,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto exps = cast(Expressions*)idents;
         foreach (i, id; *idents)
         {
-            auto se = new StringExp(e.loc, cast(char*)id.toChars());
+            auto se = new StringExp(e.loc, id.toString());
             (*exps)[i] = se;
         }
 
@@ -1853,10 +1880,12 @@ Lnext:
         }
         se = se.toUTF8(sc);
 
-        Expression r = target.getTargetInfo(se.toPtr(), e.loc);
+        const slice = se.peekString();
+        Expression r = target.getTargetInfo(slice.ptr, e.loc); // BUG: reliance on terminating 0
         if (!r)
         {
-            e.error("`getTargetInfo` key `\"%s\"` not supported by this implementation", se.toPtr());
+            e.error("`getTargetInfo` key `\"%.*s\"` not supported by this implementation",
+                cast(int)slice.length, slice.ptr);
             return new ErrorExp();
         }
         return r.expressionSemantic(sc);
@@ -1886,25 +1915,25 @@ Lnext:
         }
 
         auto exps = new Expressions(3);
-        (*exps)[0] = new StringExp(e.loc, cast(void*)s.loc.filename, strlen(s.loc.filename));
+        (*exps)[0] = new StringExp(e.loc, s.loc.filename.toDString());
         (*exps)[1] = new IntegerExp(e.loc, s.loc.linnum,Type.tint32);
         (*exps)[2] = new IntegerExp(e.loc, s.loc.charnum,Type.tint32);
         auto tup = new TupleExp(e.loc, exps);
         return tup.expressionSemantic(sc);
     }
 
-    extern (D) const(char)* trait_search_fp(const(char)[] seed, ref int cost)
+    static const(char)[] trait_search_fp(const(char)[] seed, ref int cost)
     {
         //printf("trait_search_fp('%s')\n", seed);
         if (!seed.length)
             return null;
         cost = 0;
         const sv = traitsStringTable.lookup(seed);
-        return sv ? cast(const(char)*)sv.ptrvalue : null;
+        return sv ? sv.toString() : null;
     }
 
     if (auto sub = speller!trait_search_fp(e.ident.toString()))
-        e.error("unrecognized trait `%s`, did you mean `%s`?", e.ident.toChars(), sub);
+        e.error("unrecognized trait `%s`, did you mean `%.*s`?", e.ident.toChars(), sub.length, sub.ptr);
     else
         e.error("unrecognized trait `%s`", e.ident.toChars());
     return new ErrorExp();

@@ -392,289 +392,6 @@ private struct InterState
     Statement gotoTarget;
 }
 
-/*********************************************
- * Visit each Expression in e, and call dgVar() on each variable declared in it.
- * Params:
- *      dgVar = call when a variable is declared
- */
-void foreachVar(Expression e, void delegate(VarDeclaration) dgVar)
-{
-    if (!e)
-        return;
-
-    extern (C++) final class VarWalker : StoppableVisitor
-    {
-        alias visit = typeof(super).visit;
-        extern (D) void delegate(VarDeclaration) dgVar;
-
-        extern (D) this(void delegate(VarDeclaration) dgVar)
-        {
-            this.dgVar = dgVar;
-        }
-
-        override void visit(Expression e)
-        {
-        }
-
-        override void visit(ErrorExp e)
-        {
-            .error(e.loc, "CTFE internal error: ErrorExp");
-            assert(0);
-        }
-
-        override void visit(DeclarationExp e)
-        {
-            VarDeclaration v = e.declaration.isVarDeclaration();
-            if (!v)
-                return;
-            if (TupleDeclaration td = v.toAlias().isTupleDeclaration())
-            {
-                if (!td.objects)
-                    return;
-                foreach (o; *td.objects)
-                {
-                    Expression ex = isExpression(o);
-                    DsymbolExp s = ex ? ex.isDsymbolExp() : null;
-                    assert(s);
-                    VarDeclaration v2 = s.s.isVarDeclaration();
-                    assert(v2);
-                    dgVar(v2);
-                }
-            }
-            else
-                dgVar(v);
-            Dsymbol s = v.toAlias();
-            if (s == v && !v.isStatic() && v._init)
-            {
-                if (auto ie = v._init.isExpInitializer())
-                    ie.exp.foreachVar(dgVar);
-            }
-        }
-
-        override void visit(IndexExp e)
-        {
-            if (e.lengthVar)
-                dgVar(e.lengthVar);
-        }
-
-        override void visit(SliceExp e)
-        {
-            if (e.lengthVar)
-                dgVar(e.lengthVar);
-        }
-    }
-
-    scope VarWalker v = new VarWalker(dgVar);
-    walkPostorder(e, v);
-}
-
-/***************
- * Transitively walk Statement s, pass Expressions to dgExp(), VarDeclarations to dgVar().
- * Params:
- *      s = Statement to traverse
- *      dgExp = delegate to pass found Expressions to
- *      dgVar = delegate to pass found VarDeclarations to
- */
-private void foreachExpAndVar(Statement s,
-        void delegate(Expression) dgExp,
-        void delegate(VarDeclaration) dgVar)
-{
-    void visit(Statement s)
-    {
-        void visitExp(ExpStatement s)
-        {
-            if (s.exp)
-                dgExp(s.exp);
-        }
-
-        void visitDtorExp(DtorExpStatement s)
-        {
-            if (s.exp)
-                dgExp(s.exp);
-        }
-
-        void visitIf(IfStatement s)
-        {
-            dgExp(s.condition);
-            visit(s.ifbody);
-            visit(s.elsebody);
-        }
-
-        void visitDo(DoStatement s)
-        {
-            dgExp(s.condition);
-            visit(s._body);
-        }
-
-        void visitFor(ForStatement s)
-        {
-            visit(s._init);
-            if (s.condition)
-                dgExp(s.condition);
-            if (s.increment)
-                dgExp(s.increment);
-            visit(s._body);
-        }
-
-        void visitSwitch(SwitchStatement s)
-        {
-            dgExp(s.condition);
-            // Note that the body contains the Case and Default
-            // statements, so we only need to compile the expressions
-            foreach (cs; *s.cases)
-            {
-                dgExp(cs.exp);
-            }
-            visit(s._body);
-        }
-
-        void visitCase(CaseStatement s)
-        {
-            visit(s.statement);
-        }
-
-        void visitReturn(ReturnStatement s)
-        {
-            if (s.exp)
-                dgExp(s.exp);
-        }
-
-        void visitCompound(CompoundStatement s)
-        {
-            if (s.statements)
-            {
-                foreach (s2; *s.statements)
-                {
-                    visit(s2);
-                }
-            }
-        }
-
-        void visitCompoundDeclaration(CompoundDeclarationStatement s)
-        {
-            visitCompound(s);
-        }
-
-        void visitUnrolledLoop(UnrolledLoopStatement s)
-        {
-            foreach (s2; *s.statements)
-            {
-                visit(s2);
-            }
-        }
-
-        void visitScope(ScopeStatement s)
-        {
-            visit(s.statement);
-        }
-
-        void visitDefault(DefaultStatement s)
-        {
-            visit(s.statement);
-        }
-
-        void visitWith(WithStatement s)
-        {
-            // If it is with(Enum) {...}, just execute the body.
-            if (s.exp.op == TOK.scope_ || s.exp.op == TOK.type)
-            {
-            }
-            else
-            {
-                dgVar(s.wthis);
-                dgExp(s.exp);
-            }
-            visit(s._body);
-        }
-
-        void visitTryCatch(TryCatchStatement s)
-        {
-            visit(s._body);
-            foreach (ca; *s.catches)
-            {
-                if (ca.var)
-                    dgVar(ca.var);
-                visit(ca.handler);
-            }
-        }
-
-        void visitTryFinally(TryFinallyStatement s)
-        {
-            visit(s._body);
-            visit(s.finalbody);
-        }
-
-        void visitThrow(ThrowStatement s)
-        {
-            dgExp(s.exp);
-        }
-
-        void visitLabel(LabelStatement s)
-        {
-            visit(s.statement);
-        }
-
-        if (!s)
-            return;
-
-        final switch (s.stmt)
-        {
-            case STMT.Exp:                 visitExp(s.isExpStatement()); break;
-            case STMT.DtorExp:             visitDtorExp(s.isDtorExpStatement()); break;
-            case STMT.Compound:            visitCompound(s.isCompoundStatement()); break;
-            case STMT.CompoundDeclaration: visitCompoundDeclaration(s.isCompoundDeclarationStatement()); break;
-            case STMT.UnrolledLoop:        visitUnrolledLoop(s.isUnrolledLoopStatement()); break;
-            case STMT.Scope:               visitScope(s.isScopeStatement()); break;
-            case STMT.Do:                  visitDo(s.isDoStatement()); break;
-            case STMT.For:                 visitFor(s.isForStatement()); break;
-            case STMT.If:                  visitIf(s.isIfStatement()); break;
-            case STMT.Switch:              visitSwitch(s.isSwitchStatement()); break;
-            case STMT.Case:                visitCase(s.isCaseStatement()); break;
-            case STMT.Default:             visitDefault(s.isDefaultStatement()); break;
-            case STMT.Return:              visitReturn(s.isReturnStatement()); break;
-            case STMT.With:                visitWith(s.isWithStatement()); break;
-            case STMT.TryCatch:            visitTryCatch(s.isTryCatchStatement()); break;
-            case STMT.TryFinally:          visitTryFinally(s.isTryFinallyStatement()); break;
-            case STMT.Throw:               visitThrow(s.isThrowStatement()); break;
-            case STMT.Label:               visitLabel(s.isLabelStatement()); break;
-
-            case STMT.CompoundAsm:
-            case STMT.Asm:
-            case STMT.InlineAsm:
-            case STMT.GccAsm:
-
-            case STMT.Break:
-            case STMT.Continue:
-            case STMT.GotoDefault:
-            case STMT.GotoCase:
-            case STMT.SwitchError:
-            case STMT.Goto:
-            case STMT.Pragma:
-            case STMT.Import:
-                break;          // ignore these
-
-            case STMT.ScopeGuard:
-            case STMT.Foreach:
-            case STMT.ForeachRange:
-            case STMT.Debug:
-            case STMT.CaseRange:
-            case STMT.StaticForeach:
-            case STMT.StaticAssert:
-            case STMT.Conditional:
-            case STMT.While:
-            case STMT.Forwarding:
-            case STMT.Error:
-            case STMT.Compile:
-            case STMT.Peel:
-            case STMT.Synchronized:
-                assert(0);              // should have been rewritten
-        }
-    }
-
-    visit(s);
-}
-
-
 /*************************************
  * Attempt to interpret a function given the arguments.
  * Params:
@@ -3843,6 +3560,9 @@ public:
 
             if (oldlen != 0) // Get the old array literal.
                 oldval = interpretRegion(e1, istate);
+            UnionExp utmp = void;
+            oldval = resolveSlice(oldval, &utmp);
+
             newval = changeArrayLiteralLength(e.loc, cast(TypeArray)t, oldval, oldlen, newlen).copy();
 
             e1 = assignToLvalue(e, e1, newval);
@@ -7193,7 +6913,7 @@ private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression
     {
         // Step 1: Decode the next dchar from the string.
 
-        const(char)* errmsg = null; // Used for reporting decoding errors
+        string errmsg = null; // Used for reporting decoding errors
         dchar rawvalue; // Holds the decoded dchar
         size_t currentIndex = indx; // The index of the decoded character
 
@@ -7230,7 +6950,7 @@ private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression
                     utf8buf[i] = cast(char)r.isIntegerExp().getInteger();
                 }
                 n = 0;
-                errmsg = utf_decodeChar(&utf8buf[0], buflen, n, rawvalue);
+                errmsg = utf_decodeChar(utf8buf[0 .. buflen], n, rawvalue);
                 break;
 
             case 2:
@@ -7255,7 +6975,7 @@ private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression
                     utf16buf[i] = cast(ushort)r.isIntegerExp().getInteger();
                 }
                 n = 0;
-                errmsg = utf_decodeWchar(&utf16buf[0], buflen, n, rawvalue);
+                errmsg = utf_decodeWchar(utf16buf[0 .. buflen], n, rawvalue);
                 break;
 
             case 4:
@@ -7282,6 +7002,7 @@ private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression
             switch (se.sz)
             {
             case 1:
+            {
                 if (rvs)
                 {
                     // find the start of the string
@@ -7290,10 +7011,12 @@ private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression
                         --indx;
                     saveindx = indx;
                 }
-                errmsg = utf_decodeChar(se.string, se.len, indx, rawvalue);
+                auto slice = se.peekString();
+                errmsg = utf_decodeChar(slice, indx, rawvalue);
                 if (rvs)
                     indx = saveindx;
                 break;
+            }
 
             case 2:
                 if (rvs)
@@ -7305,7 +7028,8 @@ private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression
                         --indx;
                     saveindx = indx;
                 }
-                errmsg = utf_decodeWchar(se.wstring, se.len, indx, rawvalue);
+                const slice = se.peekWstring();
+                errmsg = utf_decodeWchar(slice, indx, rawvalue);
                 if (rvs)
                     indx = saveindx;
                 break;
@@ -7324,7 +7048,7 @@ private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression
         }
         if (errmsg)
         {
-            deleg.error("`%s`", errmsg);
+            deleg.error("`%.*s`", cast(int)errmsg.length, errmsg.ptr);
             return CTFEExp.cantexp;
         }
 

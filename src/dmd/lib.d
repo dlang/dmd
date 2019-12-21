@@ -59,10 +59,6 @@ class Library
         {
             return LibMach_factory();
         }
-        else
-        {
-            assert(0); // unsupported system
-        }
     }
 
     abstract void addObject(const(char)* module_name, const ubyte[] buf);

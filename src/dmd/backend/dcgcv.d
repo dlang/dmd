@@ -53,7 +53,7 @@ version (SCPP)
 }
 version (MARS)
 {
-    import dmd.backend.varstats;
+    import dmd.backend.dvarstats;
 }
 
 extern (C++):

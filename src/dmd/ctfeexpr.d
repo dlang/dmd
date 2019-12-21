@@ -283,13 +283,13 @@ UnionExp copyLiteral(Expression e)
     if (auto se = e.isStringExp()) // syntaxCopy doesn't make a copy for StringExp!
     {
         char* s = cast(char*)mem.xcalloc(se.len + 1, se.sz);
-        memcpy(s, se.string, se.len * se.sz);
-        emplaceExp!(StringExp)(&ue, se.loc, s, se.len);
+        const slice = se.peekData();
+        memcpy(s, slice.ptr, slice.length);
+        emplaceExp!(StringExp)(&ue, se.loc, s[0 .. se.len * se.sz], se.len, se.sz);
         StringExp se2 = cast(StringExp)ue.exp();
         se2.committed = se.committed;
         se2.postfix = se.postfix;
         se2.type = se.type;
-        se2.sz = se.sz;
         se2.ownedByCtfe = OwnedBy.ctfe;
         return ue;
     }
@@ -628,10 +628,9 @@ StringExp createBlockDuplicatedStringLiteral(UnionExp* pue, const ref Loc loc, T
             assert(0);
         }
     }
-    emplaceExp!(StringExp)(pue, loc, s, dim);
+    emplaceExp!(StringExp)(pue, loc, s[0 .. dim * sz], dim, sz);
     auto se = pue.exp().isStringExp();
     se.type = type;
-    se.sz = sz;
     se.committed = true;
     se.ownedByCtfe = OwnedBy.ctfe;
     return se;
@@ -790,7 +789,7 @@ UnionExp pointerDifference(const ref Loc loc, Type type, Expression e1, Expressi
         emplaceExp!(IntegerExp)(&ue, loc, (ofs1 - ofs2) * sz, type);
     }
     else if (agg1.op == TOK.string_ && agg2.op == TOK.string_ &&
-             (cast(StringExp)agg1).string == (cast(StringExp)agg2).string)
+             (cast(StringExp)agg1).peekString().ptr == (cast(StringExp)agg2).peekString().ptr)
     {
         Type pointee = (cast(TypePointer)agg1.type).next;
         const sz = pointee.size();
@@ -1429,7 +1428,8 @@ UnionExp ctfeCat(const ref Loc loc, Type type, Expression e1, Expression e2)
         const len = es1.len + es2.elements.dim;
         const sz = es1.sz;
         void* s = mem.xmalloc((len + 1) * sz);
-        memcpy(cast(char*)s + sz * es2.elements.dim, es1.string, es1.len * sz);
+        const data1 = es1.peekData();
+        memcpy(cast(char*)s + sz * es2.elements.dim, data1.ptr, data1.length);
         foreach (size_t i; 0 .. es2.elements.dim)
         {
             Expression es2e = (*es2.elements)[i];
@@ -1443,9 +1443,8 @@ UnionExp ctfeCat(const ref Loc loc, Type type, Expression e1, Expression e2)
         }
         // Add terminating 0
         memset(cast(char*)s + len * sz, 0, sz);
-        emplaceExp!(StringExp)(&ue, loc, s, len);
+        emplaceExp!(StringExp)(&ue, loc, s[0 .. len * sz], len, sz);
         StringExp es = cast(StringExp)ue.exp();
-        es.sz = sz;
         es.committed = 0;
         es.type = type;
         return ue;
@@ -1459,7 +1458,8 @@ UnionExp ctfeCat(const ref Loc loc, Type type, Expression e1, Expression e2)
         const len = es1.len + es2.elements.dim;
         const sz = es1.sz;
         void* s = mem.xmalloc((len + 1) * sz);
-        memcpy(s, es1.string, es1.len * sz);
+        auto slice = es1.peekData();
+        memcpy(s, slice.ptr, slice.length);
         foreach (size_t i; 0 .. es2.elements.dim)
         {
             Expression es2e = (*es2.elements)[i];
@@ -1473,7 +1473,7 @@ UnionExp ctfeCat(const ref Loc loc, Type type, Expression e1, Expression e2)
         }
         // Add terminating 0
         memset(cast(char*)s + len * sz, 0, sz);
-        emplaceExp!(StringExp)(&ue, loc, s, len);
+        emplaceExp!(StringExp)(&ue, loc, s[0 .. len * sz], len, sz);
         StringExp es = cast(StringExp)ue.exp();
         es.sz = sz;
         es.committed = 0; //es1.committed;
@@ -1747,7 +1747,8 @@ UnionExp changeArrayLiteralLength(const ref Loc loc, TypeArray arrayType, Expres
     {
         StringExp oldse = cast(StringExp)oldval;
         void* s = mem.xcalloc(newlen + 1, oldse.sz);
-        memcpy(s, oldse.string, copylen * oldse.sz);
+        const data = oldse.peekData();
+        memcpy(s, data.ptr, copylen * oldse.sz);
         const defaultValue = cast(uint)defaultElem.toInteger();
         foreach (size_t elemi; copylen .. newlen)
         {
@@ -1766,7 +1767,7 @@ UnionExp changeArrayLiteralLength(const ref Loc loc, TypeArray arrayType, Expres
                 assert(0);
             }
         }
-        emplaceExp!(StringExp)(&ue, loc, s, newlen);
+        emplaceExp!(StringExp)(&ue, loc, s[0 .. newlen * oldse.sz], newlen, oldse.sz);
         StringExp se = cast(StringExp)ue.exp();
         se.type = arrayType;
         se.sz = oldse.sz;
@@ -1966,7 +1967,7 @@ void showCtfeExpr(Expression e, int level = 0)
     }
     else if (e.op == TOK.string_)
     {
-        printf("STRING %s %p\n", e.toChars(), (cast(StringExp)e).string);
+        printf("STRING %s %p\n", e.toChars(), e.isStringExp.peekString.ptr);
     }
     else if (e.op == TOK.slice)
     {

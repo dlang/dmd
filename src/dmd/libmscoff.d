@@ -71,12 +71,6 @@ final class LibMSCoff : Library
 {
     MSCoffObjModules objmodules; // MSCoffObjModule[]
     MSCoffObjSymbols objsymbols; // MSCoffObjSymbol[]
-    StringTable tab;
-
-    extern (D) this()
-    {
-        tab._init(14000);
-    }
 
     /***************************************
      * Add object module or library to the library.
@@ -286,7 +280,7 @@ final class LibMSCoff : Library
             char* s = string_table;
             for (uint i = 0; i < number_of_symbols; i++)
             {
-                const(char)[] name = s[0 .. strlen(s)];
+                const(char)[] name = s.toDString();
                 s += name.length + 1;
                 uint memi = indices[i] - 1;
                 if (memi >= number_of_members)
@@ -316,7 +310,7 @@ final class LibMSCoff : Library
         om.length = cast(uint)buflen;
         om.offset = 0;
         const(char)* n = global.params.preservePaths ? module_name : FileName.name(module_name); // remove path, but not extension
-        om.name = n[0 .. strlen(n)];
+        om.name = n.toDString();
         om.scan = 1;
         if (fromfile)
         {

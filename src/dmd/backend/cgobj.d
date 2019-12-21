@@ -59,7 +59,7 @@ version (SCPP)
 
 version (MARS)
 {
-    import dmd.backend.varstats;
+    import dmd.backend.dvarstats;
 
     //import dmd.backend.filespec;
     char *filespecdotext(const(char)* filespec);

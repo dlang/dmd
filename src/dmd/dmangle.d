@@ -35,6 +35,7 @@ import dmd.root.aav;
 import dmd.target;
 import dmd.tokens;
 import dmd.utf;
+import dmd.utils;
 import dmd.visitor;
 
 private immutable char[TMAX] mangleChar =
@@ -577,7 +578,7 @@ public:
                 case LINK.cpp:
                 {
                     const p = target.cpp.toMangle(d);
-                    return p[0 .. strlen(p)];
+                    return p.toDString();
                 }
                 case LINK.default_:
                 case LINK.system:
@@ -607,8 +608,8 @@ public:
             {
                 dchar c;
                 auto ppos = pos;
-                auto p = utf_decodeChar(slice.ptr, slice.length, pos, c);
-                assert(p is null, p[0..strlen(p)]);
+                const s = utf_decodeChar(slice, pos, c);
+                assert(s is null, s);
                 assert(c.isValidMangling, "The mangled name '" ~ slice ~ "' " ~
                     "contains an invalid character: " ~ slice[ppos..pos]);
             }
@@ -993,26 +994,29 @@ public:
         {
         case 1:
             m = 'a';
-            q = e.string[0 .. e.len];
+            q = e.peekString();
             break;
         case 2:
+        {
             m = 'w';
+            const slice = e.peekWstring();
             for (size_t u = 0; u < e.len;)
             {
                 dchar c;
-                const p = utf_decodeWchar(e.wstring, e.len, u, c);
-                if (p)
-                    e.error("%s", p);
+                if (const s = utf_decodeWchar(slice, u, c))
+                    e.error("%.*s", cast(int)s.length, s.ptr);
                 else
                     tmp.writeUTF8(c);
             }
             q = tmp[];
             break;
+        }
         case 4:
+        {
             m = 'd';
-            foreach (u; 0 .. e.len)
+            const slice = e.peekDstring();
+            foreach (c; slice)
             {
-                const c = (cast(uint*)e.string)[u];
                 if (!utf_isValidDchar(c))
                     e.error("invalid UCS-32 char \\U%08x", c);
                 else
@@ -1020,6 +1024,8 @@ public:
             }
             q = tmp[];
             break;
+        }
+
         default:
             assert(0);
         }
@@ -1027,15 +1033,15 @@ public:
         buf.writeByte(m);
         buf.print(q.length);
         buf.writeByte('_');    // nbytes <= 11
-        size_t qi = 0;
-        for (char* p = cast(char*)(*buf)[].ptr + buf.length, pend = p + 2 * q.length; p < pend; p += 2, ++qi)
+        const len = buf.length;
+        auto slice = buf.allocate(2 * q.length);
+        foreach (i, c; q)
         {
-            char hi = (q[qi] >> 4) & 0xF;
-            p[0] = cast(char)(hi < 10 ? hi + '0' : hi - 10 + 'a');
-            char lo = q[qi] & 0xF;
-            p[1] = cast(char)(lo < 10 ? lo + '0' : lo - 10 + 'a');
+            char hi = (c >> 4) & 0xF;
+            slice[i * 2] = cast(char)(hi < 10 ? hi + '0' : hi - 10 + 'a');
+            char lo = c & 0xF;
+            slice[i * 2 + 1] = cast(char)(lo < 10 ? lo + '0' : lo - 10 + 'a');
         }
-        buf.setsize(buf.length + 2 * q.length);
     }
 
     override void visit(ArrayLiteralExp e)

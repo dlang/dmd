@@ -776,7 +776,9 @@ UnionExp Equal(TOK op, const ref Loc loc, Type type, Expression e1, Expression e
             cantExp(ue);
             return ue;
         }
-        if (es1.len == es2.len && memcmp(es1.string, es2.string, es1.sz * es1.len) == 0)
+        const data1 = es1.peekData();
+        const data2 = es2.peekData();
+        if (es1.len == es2.len && memcmp(data1.ptr, data2.ptr, es1.sz * es1.len) == 0)
             cmp = 1;
         else
             cmp = 0;
@@ -982,7 +984,9 @@ UnionExp Cmp(TOK op, const ref Loc loc, Type type, Expression e1, Expression e2)
         size_t len = es1.len;
         if (es2.len < len)
             len = es2.len;
-        int rawCmp = memcmp(es1.string, es2.string, sz * len);
+        const data1 = es1.peekData();
+        const data2 = es1.peekData();
+        int rawCmp = memcmp(data1.ptr, data2.ptr, sz * len);
         if (rawCmp == 0)
             rawCmp = cast(int)(es1.len - es2.len);
         n = specificCmp(op, rawCmp);
@@ -1351,10 +1355,10 @@ UnionExp Slice(Type type, Expression e1, Expression lwr, Expression upr)
             const len = cast(size_t)(iupr - ilwr);
             const sz = es1.sz;
             void* s = mem.xmalloc(len * sz);
-            memcpy(s, es1.string + ilwr * sz, len * sz);
-            emplaceExp!(StringExp)(&ue, loc, s, len, es1.postfix);
+            const data1 = es1.peekData();
+            memcpy(s, data1.ptr + ilwr * sz, len * sz);
+            emplaceExp!(StringExp)(&ue, loc, s[0 .. len * sz], len, sz, es1.postfix);
             StringExp es = cast(StringExp)ue.exp();
-            es.sz = sz;
             es.committed = es1.committed;
             es.type = type;
         }
@@ -1412,7 +1416,9 @@ void sliceAssignStringFromString(StringExp existingSE, const StringExp newstr, s
     assert(existingSE.ownedByCtfe != OwnedBy.code);
     size_t sz = existingSE.sz;
     assert(sz == newstr.sz);
-    memcpy(existingSE.string + firstIndex * sz, newstr.string, sz * newstr.len);
+    auto data1 = existingSE.borrowData();
+    const data2 = newstr.peekData();
+    memcpy(data1.ptr + firstIndex * sz, data2.ptr, data2.length);
 }
 
 /* Compare a string slice with another string slice.
@@ -1422,7 +1428,9 @@ int sliceCmpStringWithString(const StringExp se1, const StringExp se2, size_t lo
 {
     size_t sz = se1.sz;
     assert(sz == se2.sz);
-    return memcmp(se1.string + sz * lo1, se2.string + sz * lo2, sz * len);
+    const data1 = se1.peekData();
+    const data2 = se2.peekData();
+    return memcmp(data1.ptr + sz * lo1, data2.ptr + sz * lo2, sz * len);
 }
 
 /* Compare a string slice with an array literal slice
@@ -1513,18 +1521,17 @@ UnionExp Cat(Type type, Expression e1, Expression e2)
             // Create a StringExp
             if (t.nextOf())
                 t = t.nextOf().toBasetype();
-            ubyte sz = cast(ubyte)t.size();
+            const sz = cast(ubyte)t.size();
             dinteger_t v = e.toInteger();
-            size_t len = (t.ty == tn.ty) ? 1 : utf_codeLength(sz, cast(dchar)v);
+            const len = (t.ty == tn.ty) ? 1 : utf_codeLength(sz, cast(dchar)v);
             void* s = mem.xmalloc(len * sz);
             if (t.ty == tn.ty)
                 Port.valcpy(s, v, sz);
             else
                 utf_encode(sz, s, cast(dchar)v);
-            emplaceExp!(StringExp)(&ue, loc, s, len);
+            emplaceExp!(StringExp)(&ue, loc, s[0 .. len * sz], len, sz);
             StringExp es = cast(StringExp)ue.exp();
             es.type = type;
-            es.sz = sz;
             es.committed = 1;
         }
         else
@@ -1583,11 +1590,12 @@ UnionExp Cat(Type type, Expression e1, Expression e2)
             return ue;
         }
         void* s = mem.xmalloc(len * sz);
-        memcpy(cast(char*)s, es1.string, es1.len * sz);
-        memcpy(cast(char*)s + es1.len * sz, es2.string, es2.len * sz);
-        emplaceExp!(StringExp)(&ue, loc, s, len);
+        const data1 = es1.peekData();
+        const data2 = es2.peekData();
+        memcpy(cast(char*)s, data1.ptr, es1.len * sz);
+        memcpy(cast(char*)s + es1.len * sz, data2.ptr, es2.len * sz);
+        emplaceExp!(StringExp)(&ue, loc, s[0 .. len * sz], len, sz);
         StringExp es = cast(StringExp)ue.exp();
-        es.sz = sz;
         es.committed = es1.committed | es2.committed;
         es.type = type;
         assert(ue.exp().type);
@@ -1632,22 +1640,21 @@ UnionExp Cat(Type type, Expression e1, Expression e2)
         // string ~ char --> string
         StringExp es1 = cast(StringExp)e1;
         StringExp es;
-        ubyte sz = es1.sz;
+        const sz = es1.sz;
         dinteger_t v = e2.toInteger();
         // Is it a concatenation of homogenous types?
         // (char[] ~ char, wchar[]~wchar, or dchar[]~dchar)
         bool homoConcat = (sz == t2.size());
-        size_t len = es1.len;
-        len += homoConcat ? 1 : utf_codeLength(sz, cast(dchar)v);
+        const len = es1.len + (homoConcat ? 1 : utf_codeLength(sz, cast(dchar)v));
         void* s = mem.xmalloc(len * sz);
-        memcpy(s, es1.string, es1.len * sz);
+        const data1 = es1.peekData();
+        memcpy(s, data1.ptr, data1.length);
         if (homoConcat)
             Port.valcpy(cast(char*)s + (sz * es1.len), v, sz);
         else
             utf_encode(sz, cast(char*)s + (sz * es1.len), cast(dchar)v);
-        emplaceExp!(StringExp)(&ue, loc, s, len);
+        emplaceExp!(StringExp)(&ue, loc, s[0 .. len * sz], len, sz);
         es = cast(StringExp)ue.exp();
-        es.sz = sz;
         es.committed = es1.committed;
         es.type = type;
         assert(ue.exp().type);
@@ -1659,13 +1666,14 @@ UnionExp Cat(Type type, Expression e1, Expression e2)
         // We assume that we only ever prepend one char of the same type
         // (wchar,dchar) as the string's characters.
         StringExp es2 = cast(StringExp)e2;
-        size_t len = 1 + es2.len;
-        ubyte sz = es2.sz;
+        const len = 1 + es2.len;
+        const sz = es2.sz;
         dinteger_t v = e1.toInteger();
         void* s = mem.xmalloc(len * sz);
         Port.valcpy(cast(char*)s, v, sz);
-        memcpy(cast(char*)s + sz, es2.string, es2.len * sz);
-        emplaceExp!(StringExp)(&ue, loc, s, len);
+        const data2 = es2.peekData();
+        memcpy(cast(char*)s + sz, data2.ptr, data2.length);
+        emplaceExp!(StringExp)(&ue, loc, s[0 .. len * sz], len, sz);
         StringExp es = cast(StringExp)ue.exp();
         es.sz = sz;
         es.committed = es2.committed;

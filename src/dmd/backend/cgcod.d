@@ -29,6 +29,7 @@ import core.stdc.string;
 import dmd.backend.backend;
 import dmd.backend.cc;
 import dmd.backend.cdef;
+import dmd.backend.cg87;
 import dmd.backend.code;
 import dmd.backend.cgcse;
 import dmd.backend.code_x86;
@@ -219,7 +220,7 @@ tryagain:
     STACKALIGN = TARGET_STACKALIGN;
 
     regsave.reset();
-    memset(_8087elems.ptr,0,_8087elems.sizeof);
+    memset(global87.stack.ptr,0,global87.stack.sizeof);
 
     calledFinally = false;
     usednteh = 0;
@@ -244,7 +245,7 @@ tryagain:
     sfunc.Sfunc.Fflags3 |= Fnothrow;
 
     floatreg = false;
-    assert(stackused == 0);             /* nobody in 8087 stack         */
+    assert(global87.stackused == 0);             /* nobody in 8087 stack         */
 
     CSE.start();
     memset(&regcon,0,regcon.sizeof);
@@ -693,10 +694,10 @@ tryagain:
     sfunc.Sregsaved = (functy == TYifunc) ? cast(regm_t) mBP : (mfuncreg | fregsaved);
 
     debug
-    if (stackused != 0)
-      printf("stackused = %d\n",stackused);
+    if (global87.stackused != 0)
+      printf("stackused = %d\n",global87.stackused);
 
-    assert(stackused == 0);             /* nobody in 8087 stack         */
+    assert(global87.stackused == 0);             /* nobody in 8087 stack         */
 
     /* Clean up ndp save array  */
     mem_free(NDP.save);
@@ -2977,6 +2978,7 @@ private extern (C++) __gshared nothrow void function (ref CodeBuilder,elem *,reg
     OPvecfill: &cdvecfill,
     OPva_start: &cderr,
     OPprefetch: &cdprefetch,
+    OPtoPrec:   &cderr,
 ];
 
 

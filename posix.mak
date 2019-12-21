@@ -11,7 +11,7 @@ ifneq (,$(findstring Darwin_64_32, $(PWD)))
 auto-tester-build:
 	echo "Darwin_64_32_disabled"
 else
-auto-tester-build: toolchain-info
+auto-tester-build:
 	$(QUIET)$(MAKE) -C src -f posix.mak auto-tester-build ENABLE_RELEASE=1
 endif
 
@@ -33,7 +33,6 @@ clean:
 	$(RM) tags
 
 test:
-	$(QUIET)$(MAKE) -C src -f posix.mak build-examples
 	$(QUIET)$(MAKE) -C src -f posix.mak unittest
 	$(QUIET)$(MAKE) -C test -f Makefile
 

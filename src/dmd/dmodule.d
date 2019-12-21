@@ -172,7 +172,7 @@ private const(char)[] getFilename(Identifiers* packages, Identifier ident)
             assert(q);
             if (dotmods.length == q - m && memcmp(dotmods.peekChars(), m, q - m) == 0)
             {
-                buf.reset();
+                buf.setsize(0);
                 auto rhs = q[1 .. strlen(q)];
                 if (rhs.length > 0 && (rhs[$ - 1] == '/' || rhs[$ - 1] == '\\'))
                     rhs = rhs[0 .. $ - 1]; // remove trailing separator
@@ -695,7 +695,7 @@ extern (C++) final class Module : Package
             }
             else
                 fprintf(stderr, "Specify path to file '%s' with -I switch\n", srcfile.toChars());
-            fatal();
+            // fatal();
         }
         return false;
     }
@@ -1190,7 +1190,10 @@ extern (C++) final class Module : Package
         {
             Expression msg = md.msg;
             if (StringExp se = msg ? msg.toStringExp() : null)
-                deprecation(loc, "is deprecated - %s", se.string);
+            {
+                const slice = se.peekString();
+                deprecation(loc, "is deprecated - %.*s", cast(int)slice.length, slice.ptr);
+            }
             else
                 deprecation(loc, "is deprecated");
         }

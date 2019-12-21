@@ -18,7 +18,7 @@ import core.stdc.string, core.stdc.stdlib, core.sys.windows.winnt;
 
 import dmd.root.rmem;
 
-import dmd.globals, dmd.errors;
+import dmd.globals, dmd.errors, dmd.utils;
 
 private enum LOG = false;
 
@@ -175,7 +175,7 @@ void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) pAddSymb
         default:
             continue;
         }
-        pAddSymbol(p[0 .. strlen(p)], 1);
+        pAddSymbol(p.toDString(), 1);
     }
 }
 

@@ -39,6 +39,18 @@ extern (C++):
 
 nothrow:
 
+private struct Globals
+{
+    NDP[8] stack;              // 8087 stack
+    int stackused = 0;         // number of items on the 8087 stack
+}
+// NOTE: this could be a TLS global which would allow this variable to be used in
+//       a multi-threaded version of the backend
+__gshared Globals global87;
+__gshared NDP ndp_zero;
+
+private:
+
 int REGSIZE();
 
 private extern (D) uint mask(uint m) { return 1 << m; }
@@ -66,14 +78,6 @@ enum
     MFlong          = 1,
     MFdouble        = 2,
     MFword          = 3
-}
-
-__gshared
-{
-    NDP[8] _8087elems;              // 8087 stack
-    NDP ndp_zero;
-
-    int stackused = 0;              // number of items on the 8087 stack
 }
 
 /*********************************
@@ -226,14 +230,14 @@ void pop87(int line, const(char)* file)
     int i;
 
     if (NDPP)
-        printf("pop87(%s(%d): stackused=%d)\n", file, line, stackused);
+        printf("pop87(%s(%d): stackused=%d)\n", file, line, global87.stackused);
 
-    --stackused;
-    assert(stackused >= 0);
-    for (i = 0; i < _8087elems.length - 1; i++)
-        _8087elems[i] = _8087elems[i + 1];
+    --global87.stackused;
+    assert(global87.stackused >= 0);
+    for (i = 0; i < global87.stack.length - 1; i++)
+        global87.stack[i] = global87.stack[i + 1];
     // end of stack is nothing
-    _8087elems[_8087elems.length - 1] = ndp_zero;
+    global87.stack[$ - 1] = ndp_zero;
 }
 
 
@@ -247,26 +251,26 @@ void push87(ref CodeBuilder cdb) { push87(cdb,__LINE__,__FILE__); }
 void push87(ref CodeBuilder cdb, int line, const(char)* file)
 {
     // if we would lose the top register off of the stack
-    if (_8087elems[7].e != null)
+    if (global87.stack[7].e != null)
     {
         int i = getemptyslot();
-        NDP.save[i] = _8087elems[7];
+        NDP.save[i] = global87.stack[7];
         cdb.genf2(0xD9,0xF6);                         // FDECSTP
         genfwait(cdb);
-        ndp_fstp(cdb, i, _8087elems[7].e.Ety);       // FSTP i[BP]
-        assert(stackused == 8);
+        ndp_fstp(cdb, i, global87.stack[7].e.Ety);       // FSTP i[BP]
+        assert(global87.stackused == 8);
         if (NDPP) printf("push87() : overflow\n");
     }
     else
     {
-        if (NDPP) printf("push87(%s(%d): %d)\n", file, line, stackused);
-        stackused++;
-        assert(stackused <= 8);
+        if (NDPP) printf("push87(%s(%d): %d)\n", file, line, global87.stackused);
+        global87.stackused++;
+        assert(global87.stackused <= 8);
     }
     // Shift the stack up
     for (int i = 7; i > 0; i--)
-        _8087elems[i] = _8087elems[i - 1];
-    _8087elems[0] = ndp_zero;
+        global87.stack[i] = global87.stack[i - 1];
+    global87.stack[0] = ndp_zero;
 }
 
 /*****************************
@@ -281,25 +285,25 @@ void note87(elem *e, uint offset, int i)
 void note87(elem *e, uint offset, int i, int linnum)
 {
     if (NDPP)
-        printf("note87(e = %p.%d, i = %d, stackused = %d, line = %d)\n",e,offset,i,stackused,linnum);
+        printf("note87(e = %p.%d, i = %d, stackused = %d, line = %d)\n",e,offset,i,global87.stackused,linnum);
 
     static if (0)
     {
-        if (_8087elems[i].e)
-            printf("_8087elems[%d].e = %p\n",i,_8087elems[i].e);
+        if (global87.stack[i].e)
+            printf("global87.stack[%d].e = %p\n",i,global87.stack[i].e);
     }
 
-    debug if (i >= stackused)
+    debug if (i >= global87.stackused)
     {
-        printf("note87(e = %p.%d, i = %d, stackused = %d, line = %d)\n",e,offset,i,stackused,linnum);
+        printf("note87(e = %p.%d, i = %d, stackused = %d, line = %d)\n",e,offset,i,global87.stackused,linnum);
         elem_print(e);
     }
-    assert(i < stackused);
+    assert(i < global87.stackused);
 
     while (e.Eoper == OPcomma)
         e = e.EV.E2;
-    _8087elems[i].e = e;
-    _8087elems[i].offset = offset;
+    global87.stack[i].e = e;
+    global87.stack[i].offset = offset;
 }
 
 /****************************************************
@@ -310,9 +314,9 @@ void xchg87(int i, int j)
 {
     NDP save;
 
-    save = _8087elems[i];
-    _8087elems[i] = _8087elems[j];
-    _8087elems[j] = save;
+    save = global87.stack[i];
+    global87.stack[i] = global87.stack[j];
+    global87.stack[j] = save;
 }
 
 /****************************
@@ -335,12 +339,12 @@ private void makesure87(ref CodeBuilder cdb,elem *e,uint offset,int i,uint flag,
         e = e.EV.E2;
     assert(e && i < 4);
 L1:
-    if (_8087elems[i].e != e || _8087elems[i].offset != offset)
+    if (global87.stack[i].e != e || global87.stack[i].offset != offset)
     {
-        debug if (_8087elems[i].e)
-            printf("_8087elems[%d].e = %p, .offset = %d\n",i,_8087elems[i].e,_8087elems[i].offset);
+        debug if (global87.stack[i].e)
+            printf("global87.stack[%d].e = %p, .offset = %d\n",i,global87.stack[i].e,global87.stack[i].offset);
 
-        assert(_8087elems[i].e == null);
+        assert(global87.stack[i].e == null);
         int j;
         for (j = 0; 1; j++)
         {
@@ -371,7 +375,7 @@ L1:
         }
         NDP.save[j] = ndp_zero;                // back in 8087
     }
-    //_8087elems[i].e = null;
+    //global87.stack[i].e = null;
 }
 
 /****************************
@@ -381,15 +385,15 @@ L1:
 void save87(ref CodeBuilder cdb)
 {
     bool any = false;
-    while (_8087elems[0].e && stackused)
+    while (global87.stack[0].e && global87.stackused)
     {
         // Save it
         int i = getemptyslot();
-        if (NDPP) printf("saving %p in temporary NDP.save[%d]\n",_8087elems[0].e,i);
-        NDP.save[i] = _8087elems[0];
+        if (NDPP) printf("saving %p in temporary NDP.save[%d]\n",global87.stack[0].e,i);
+        NDP.save[i] = global87.stack[0];
 
         genfwait(cdb);
-        ndp_fstp(cdb,i,_8087elems[0].e.Ety); // FSTP i[BP]
+        ndp_fstp(cdb,i,global87.stack[0].e.Ety); // FSTP i[BP]
         pop87();
         any = true;
     }
@@ -405,29 +409,29 @@ void save87regs(ref CodeBuilder cdb, uint n)
 {
     assert(n <= 7);
     uint j = 8 - n;
-    if (stackused > j)
+    if (global87.stackused > j)
     {
         for (uint k = 8; k > j; k--)
         {
             cdb.genf2(0xD9,0xF6);     // FDECSTP
             genfwait(cdb);
-            if (k <= stackused)
+            if (k <= global87.stackused)
             {
                 int i = getemptyslot();
-                ndp_fstp(cdb, i, _8087elems[k - 1].e.Ety);   // FSTP i[BP]
-                NDP.save[i] = _8087elems[k - 1];
-                _8087elems[k - 1] = ndp_zero;
+                ndp_fstp(cdb, i, global87.stack[k - 1].e.Ety);   // FSTP i[BP]
+                NDP.save[i] = global87.stack[k - 1];
+                global87.stack[k - 1] = ndp_zero;
             }
         }
 
         for (uint k = 8; k > j; k--)
         {
-            if (k > stackused)
+            if (k > global87.stackused)
             {   cdb.genf2(0xD9,0xF7); // FINCSTP
                 genfwait(cdb);
             }
         }
-        stackused = j;
+        global87.stackused = j;
     }
 }
 
@@ -469,15 +473,15 @@ private int cse_get(elem *e, uint offset)
 
     for (i = 0; 1; i++)
     {
-        if (i == stackused)
+        if (i == global87.stackused)
         {
             i = -1;
             //printf("cse not found\n");
             //elem_print(e);
             break;
         }
-        if (_8087elems[i].e == e &&
-            _8087elems[i].offset == offset)
+        if (global87.stack[i].e == e &&
+            global87.stack[i].offset == offset)
         {   //printf("cse found %d\n",i);
             //elem_print(e);
             break;
@@ -1642,7 +1646,7 @@ void load87(ref CodeBuilder cdb,elem *e,uint eoffset,regm_t *pretregs,elem *elef
     int i;
 
     if (NDPP)
-        printf("+load87(e=%p, eoffset=%d, *pretregs=%s, eleft=%p, op=%d, stackused = %d)\n",e,eoffset,regm_str(*pretregs),eleft,op,stackused);
+        printf("+load87(e=%p, eoffset=%d, *pretregs=%s, eleft=%p, op=%d, stackused = %d)\n",e,eoffset,regm_str(*pretregs),eleft,op,global87.stackused);
 
     assert(!(NOSAHF && op == 3));
     elem_debug(e);
@@ -1720,7 +1724,7 @@ L5:
         case OPd_ld:
             mf1 = (tybasic(e.EV.E1.Ety) == TYfloat || tybasic(e.EV.E1.Ety) == TYifloat)
                     ? MFfloat : MFdouble;
-            if (op != -1 && stackused)
+            if (op != -1 && global87.stackused)
                 note87(eleft,eoffset,0);    // don't trash this value
             if (e.EV.E1.Eoper == OPvar || e.EV.E1.Eoper == OPind)
             {
@@ -1907,7 +1911,7 @@ L5:
     }
     fixresult87(cdb,e,((op == 3) ? mPSW : mST0),pretregs);
     if (NDPP)
-        printf("-load87(e=%p, eoffset=%d, *pretregs=%s, eleft=%p, op=%d, stackused = %d)\n",e,eoffset,regm_str(*pretregs),eleft,op,stackused);
+        printf("-load87(e=%p, eoffset=%d, *pretregs=%s, eleft=%p, op=%d, stackused = %d)\n",e,eoffset,regm_str(*pretregs),eleft,op,global87.stackused);
 }
 
 /********************************

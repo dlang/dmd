@@ -1050,7 +1050,7 @@ Returns: JsonFieldFlags.none on error, otherwise the JsonFieldFlags value
 */
 extern (C++) JsonFieldFlags tryParseJsonField(const(char)* fieldName)
 {
-    auto fieldNameString = fieldName[0 .. strlen(fieldName)];
+    auto fieldNameString = fieldName.toDString();
     foreach (idx, enumName; __traits(allMembers, JsonFieldFlags))
     {
         static if (idx > 0)

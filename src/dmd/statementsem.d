@@ -54,6 +54,7 @@ import dmd.statement;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
+import dmd.utils;
 import dmd.visitor;
 
 /*****************************************
@@ -2338,11 +2339,10 @@ else
                         errorSupplemental(ps.loc, "while evaluating `pragma(msg, %s)`", arg.toChars());
                         return setError();
                     }
-                    StringExp se = e.toStringExp();
-                    if (se)
+                    if (auto se = e.toStringExp())
                     {
-                        se = se.toUTF8(sc);
-                        fprintf(stderr, "%.*s", cast(int)se.len, se.string);
+                        const slice = se.toUTF8(sc).peekString();
+                        fprintf(stderr, "%.*s", cast(int)slice.length, slice.ptr);
                     }
                     else
                         fprintf(stderr, "%s", e.toChars());
@@ -2654,7 +2654,7 @@ else
                     sl = new DotIdExp(ss.loc, sl, Id.__switch_error);
 
                     Expressions* args = new Expressions(2);
-                    (*args)[0] = new StringExp(ss.loc, cast(char*) ss.loc.filename);
+                    (*args)[0] = new StringExp(ss.loc, ss.loc.filename.toDString());
                     (*args)[1] = new IntegerExp(ss.loc.linnum);
 
                     sl = new CallExp(ss.loc, sl, args);

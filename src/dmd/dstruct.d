@@ -315,7 +315,9 @@ extern (C++) class StructDeclaration : AggregateDeclaration
 
         if (!members || !symtab) // opaque or semantic() is not yet called
         {
-            error("is forward referenced when looking for `%s`", ident.toChars());
+            // .stringof is always defined (but may be hidden by some other symbol)
+            if(ident != Id.stringof)
+                error("is forward referenced when looking for `%s`", ident.toChars());
             return null;
         }
 

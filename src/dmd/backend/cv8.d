@@ -37,7 +37,7 @@ import dmd.backend.outbuf;
 import dmd.backend.rtlsym;
 import dmd.backend.ty;
 import dmd.backend.type;
-import dmd.backend.varstats;
+import dmd.backend.dvarstats;
 import dmd.backend.xmm;
 
 extern (C++):

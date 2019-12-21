@@ -61,6 +61,7 @@ import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
+import dmd.utils;
 
 /**************************
  * This evaluates exp while setting length to be the number
@@ -2068,10 +2069,10 @@ Type merge(Type type)
 
         mangleToBuffer(type, &buf);
 
-        StringValue* sv = type.stringtable.update(buf[]);
-        if (sv.ptrvalue)
+        auto sv = type.stringtable.update(buf[]);
+        if (sv.value)
         {
-            Type t = cast(Type)sv.ptrvalue;
+            Type t = sv.value;
             debug
             {
                 import core.stdc.stdio;
@@ -2085,7 +2086,7 @@ Type merge(Type type)
         else
         {
             Type t = stripDefaultArgs(type);
-            sv.ptrvalue = cast(char*)t;
+            sv.value = t;
             type.deco = t.deco = cast(char*)sv.toDchars();
             //printf("new value, deco = '%s' %p\n", t.deco, t.deco);
             return t;
@@ -2146,7 +2147,7 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
             }
             else
             {
-                e = new StringExp(loc, mt.deco);
+                e = new StringExp(loc, mt.deco.toDString());
                 Scope sc;
                 e = e.expressionSemantic(&sc);
             }
@@ -2154,7 +2155,7 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
         else if (ident == Id.stringof)
         {
             const s = mt.toChars();
-            e = new StringExp(loc, cast(char*)s);
+            e = new StringExp(loc, s.toDString());
             Scope sc;
             e = e.expressionSemantic(&sc);
         }
@@ -2182,7 +2183,7 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
                         if (const n = importHint(ident.toString()))
                             error(loc, "no property `%s` for type `%s`, perhaps `import %.*s;` is needed?", ident.toChars(), mt.toChars(), cast(int)n.length, n.ptr);
                         else
-                            error(loc, "no property `%s` for type `%s`", ident.toChars(), mt.toChars());
+                            error(loc, "no property `%s` for type `%s`", ident.toChars(), mt.toPrettyChars(true));
                     }
                 }
             }
@@ -2447,8 +2448,7 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
         }
         else if (ident == Id.stringof)
         {
-            const s = mt.toChars();
-            e = new StringExp(loc, cast(char*)s);
+            e = new StringExp(loc, mt.toString());
             Scope sc;
             e = e.expressionSemantic(&sc);
         }
@@ -3171,8 +3171,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
              * this should demangle e.type.deco rather than
              * pretty-printing the type.
              */
-            const s = e.toChars();
-            e = new StringExp(e.loc, cast(char*)s);
+            e = new StringExp(e.loc, e.toString());
         }
         else
             e = mt.getProperty(e.loc, ident, flag & DotExpFlag.gag);
@@ -3568,7 +3567,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                     fd.error("must be a template `opDispatch(string s)`, not a %s", fd.kind());
                     return returnExp(new ErrorExp());
                 }
-                auto se = new StringExp(e.loc, cast(char*)ident.toChars());
+                auto se = new StringExp(e.loc, ident.toString());
                 auto tiargs = new Objects();
                 tiargs.push(se);
                 auto dti = new DotTemplateInstanceExp(e.loc, e, Id.opDispatch, tiargs);

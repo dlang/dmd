@@ -1,5 +1,6 @@
 // PERMUTE_ARGS: -g
 // EXTRA_CPP_SOURCES: cppb.cpp
+// EXTRA_FILES: extra-files/cppb.h
 // CXXFLAGS(linux freebsd osx netbsd dragonflybsd): -std=c++11
 
 // N.B MSVC doesn't have a C++11 switch, but it defaults to the latest fully-supported standard
