@@ -20,9 +20,6 @@ DOCS=\
 	$(DOCDIR)\core_gc_gcinterface.html \
 	$(DOCDIR)\core_gc_registry.html \
 	\
-	$(DOCDIR)\core_elf_dl.html \
-	$(DOCDIR)\core_elf_io.html \
-	\
 	$(DOCDIR)\core_stdc_assert_.html \
 	$(DOCDIR)\core_stdc_config.html \
 	$(DOCDIR)\core_stdc_complex.html \

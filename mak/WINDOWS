@@ -110,12 +110,6 @@ $(IMPDIR)\core\vararg.d : src\core\vararg.d
 $(IMPDIR)\core\volatile.d : src\core\volatile.d
 	copy $** $@
 
-$(IMPDIR)\core\elf\dl.d : src\core\elf\dl.d
-	copy $** $@
-
-$(IMPDIR)\core\elf\io.d : src\core\elf\io.d
-	copy $** $@
-
 $(IMPDIR)\core\gc\config.d : src\core\gc\config.d
 	copy $** $@
 
@@ -204,6 +198,12 @@ $(IMPDIR)\core\internal\array\utils.d : src\core\internal\array\utils.d
 	copy $** $@
 
 $(IMPDIR)\core\internal\array\operations.d : src\core\internal\array\operations.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\elf\dl.d : src\core\internal\elf\dl.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\elf\io.d : src\core\internal\elf\io.d
 	copy $** $@
 
 $(IMPDIR)\core\internal\util\array.d : src\core\internal\util\array.d

@@ -21,9 +21,6 @@ COPY=\
 	$(IMPDIR)\core\vararg.d \
 	$(IMPDIR)\core\volatile.d \
 	\
-	$(IMPDIR)\core\elf\dl.d \
-	$(IMPDIR)\core\elf\io.d \
-	\
 	$(IMPDIR)\core\internal\abort.d \
 	$(IMPDIR)\core\internal\atomic.d \
 	$(IMPDIR)\core\internal\attributes.d \
@@ -52,6 +49,9 @@ COPY=\
 	$(IMPDIR)\core\internal\array\concatenation.d \
 	$(IMPDIR)\core\internal\array\operations.d \
 	$(IMPDIR)\core\internal\array\utils.d \
+	\
+	$(IMPDIR)\core\internal\elf\dl.d \
+	$(IMPDIR)\core\internal\elf\io.d \
 	\
 	$(IMPDIR)\core\internal\util\array.d \
 	\

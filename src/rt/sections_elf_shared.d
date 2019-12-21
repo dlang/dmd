@@ -20,7 +20,7 @@ else enum SharedELF = false;
 static if (SharedELF):
 
 // debug = PRINTF;
-import core.elf.dl;
+import core.internal.elf.dl;
 import core.memory;
 import core.stdc.config;
 import core.stdc.stdio;

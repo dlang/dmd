@@ -9,7 +9,7 @@
  * Source: $(DRUNTIMESRC core/elf/dl.d)
  */
 
-module core.elf.dl;
+module core.internal.elf.dl;
 
 version (linux)
 {

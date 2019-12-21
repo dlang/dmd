@@ -29,8 +29,8 @@ else version (DragonFlyBSD)
 
 version (LinuxOrBSD):
 
-import core.elf.dl;
-import core.elf.io;
+import core.internal.elf.dl;
+import core.internal.elf.io;
 
 struct Image
 {

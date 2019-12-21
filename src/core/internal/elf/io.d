@@ -9,7 +9,7 @@
  * Source: $(DRUNTIMESRC core/elf/io.d)
  */
 
-module core.elf.io;
+module core.internal.elf.io;
 
 version (Posix):
 

@@ -21,9 +21,6 @@ SRCS=\
 	src\core\gc\gcinterface.d \
 	src\core\gc\registry.d \
 	\
-	src\core\elf\dl.d \
-	src\core\elf\io.d \
-	\
 	src\core\internal\abort.d \
 	src\core\internal\atomic.d \
 	src\core\internal\convert.d \
@@ -51,6 +48,10 @@ SRCS=\
 	src\core\internal\array\concatenation.d \
 	src\core\internal\array\operations.d \
 	src\core\internal\array\utils.d \
+	\
+	src\core\internal\elf\dl.d \
+	src\core\internal\elf\io.d \
+	\
 	src\core\internal\util\array.d \
 	\
 	src\core\stdc\assert_.d \
