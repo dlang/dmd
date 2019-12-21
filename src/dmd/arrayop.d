@@ -254,6 +254,22 @@ private void buildArrayOp(Scope* sc, Expression e, Objects* tiargs, Expressions*
 }
 
 /***********************************************
+ * Some implicit casting can be performed by the _arrayOp template.
+ * Params:
+ *      tfrom = type converting from
+ *      tto   = type converting to
+ * Returns:
+ *      true if can be performed by _arrayOp
+ */
+bool isArrayOpImplicitCast(TypeDArray tfrom, TypeDArray tto)
+{
+    const tyf = tfrom.nextOf().toBasetype().ty;
+    const tyt = tto  .nextOf().toBasetype().ty;
+    return tyf == tyt ||
+           tyf == Tint32 && tyt == Tfloat64;
+}
+
+/***********************************************
  * Test if expression is a unary array op.
  */
 bool isUnaArrayOp(TOK op)

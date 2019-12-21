@@ -1476,10 +1476,6 @@ public:
 
     extern (D) final void addAccessiblePackage(Package p, Prot protection)
     {
-        // https://issues.dlang.org/show_bug.cgi?id=17991
-        // An import of truly empty file/package can happen
-        if (p is null)
-            return;
         auto pary = protection.kind == Prot.Kind.private_ ? &privateAccessiblePackages : &accessiblePackages;
         if (pary.length <= p.tag)
             pary.length = p.tag + 1;
