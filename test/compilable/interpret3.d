@@ -7792,3 +7792,20 @@ struct FullKind
 
 enum fk = FullKind(KindEnum.integer);
 enum fk2 = FullKind(KindEnum.arrayOf, fk);
+
+/************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=9937
+
+int test9937()
+{
+    import core.math;
+
+    float x = float.max;
+    x *= 2;
+    x = toPrec!float(x);
+    x /= 2;
+    assert(x == float.infinity);
+    return 1;
+}
+
+static assert(test9937());
