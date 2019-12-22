@@ -1148,7 +1148,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
 
         bool errors = false;
 
-        if (mtype.inuse > 500)
+        if (mtype.inuse > global.recursionLimit)
         {
             mtype.inuse = 0;
             .error(loc, "recursive type");
