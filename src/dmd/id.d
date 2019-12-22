@@ -359,6 +359,7 @@ immutable Msgtable[] msgtable =
     { "etc" },
     { "attribute" },
     { "math" },
+    { "trig" },
     { "sin" },
     { "cos" },
     { "tan" },

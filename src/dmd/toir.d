@@ -416,12 +416,21 @@ int intrinsic_op(FuncDeclaration fd)
     auto argtype1 = param1 ? param1.type : null;
 
     const Identifier id1 = (*md.packages)[0];
-    // ... except core.stdc.stdarg.va_start
+    // ... except std.math package and core.stdc.stdarg.va_start.
     if (md.packages.dim == 2)
+    {
+        if (id2 == Id.trig &&
+            (*md.packages)[1] == Id.math &&
+            id1 == Id.std)
+        {
+            goto Lstdmath;
+        }
         goto Lva_start;
+    }
 
     if (id1 == Id.std && id2 == Id.math)
     {
+    Lstdmath:
         if (argtype1 is Type.tfloat80 || id3 == Id._sqrt)
             goto Lmath;
     }
