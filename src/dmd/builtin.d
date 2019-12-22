@@ -331,7 +331,7 @@ Expression eval_toPrecReal(Loc loc, FuncDeclaration fd, Expressions* arguments)
 
 public extern (C++) void builtin_init()
 {
-    builtins._init(65);
+    builtins._init(113);
     // @safe @nogc pure nothrow real function(real)
     add_builtin("_D4core4math3sinFNaNbNiNfeZe", &eval_sin);
     add_builtin("_D4core4math3cosFNaNbNiNfeZe", &eval_cos);
@@ -373,14 +373,17 @@ public extern (C++) void builtin_init()
     add_builtin("_D4core4math6rndtolFNaNbNiNfeZl", &eval_unimp);
     // @safe @nogc pure nothrow real function(real)
     add_builtin("_D3std4math3tanFNaNbNiNfeZe", &eval_tan);
+    add_builtin("_D3std4math4trig3tanFNaNbNiNfeZe", &eval_tan);
     add_builtin("_D3std4math5expm1FNaNbNiNfeZe", &eval_unimp);
     // @trusted @nogc pure nothrow real function(real)
     add_builtin("_D3std4math3tanFNaNbNiNeeZe", &eval_tan);
+    add_builtin("_D3std4math4trig3tanFNaNbNiNeeZe", &eval_tan);
     add_builtin("_D3std4math3expFNaNbNiNeeZe", &eval_exp);
     add_builtin("_D3std4math5expm1FNaNbNiNeeZe", &eval_expm1);
     add_builtin("_D3std4math4exp2FNaNbNiNeeZe", &eval_exp2);
     // @safe @nogc pure nothrow real function(real, real)
     add_builtin("_D3std4math5atan2FNaNbNiNfeeZe", &eval_unimp);
+    add_builtin("_D3std4math4trig5atan2FNaNbNiNfeeZe", &eval_unimp);
     // @safe @nogc pure nothrow T function(T, int)
     add_builtin("_D4core4math5ldexpFNaNbNiNfeiZe", &eval_ldexp);
 
