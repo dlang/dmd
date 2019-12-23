@@ -511,7 +511,20 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 auto dtb = DtBuilder(0);
                 StructDeclaration_toDt(sd, dtb);
                 sd.sinit.Sdt = dtb.finish();
-                out_readonly(sd.sinit);    // put in read-only segment
+
+                /* fails to link on OBJ_MACH 64 with:
+                 *  ld: in generated/osx/release/64/libphobos2.a(dwarfeh_8dc_56a.o),
+                 *  in section __TEXT,__textcoal_nt reloc 6:
+                 *  symbol index out of range for architecture x86_64
+                 */
+                if (config.objfmt != OBJ_MACH &&
+                    dtallzeros(sd.sinit.Sdt))
+                {
+                    sd.sinit.Sclass = SCglobal;
+                    dt2common(&sd.sinit.Sdt);
+                }
+                else
+                    out_readonly(sd.sinit);    // put in read-only segment
                 outdata(sd.sinit);
 
                 // Put out the members
