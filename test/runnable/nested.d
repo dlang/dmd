@@ -2546,7 +2546,7 @@ class App15422(T)
     this() {}
 
     auto test1(T val)
-    in {} body      // necessary to reproduce the crash
+    in {} do      // necessary to reproduce the crash
     {
         struct Foo
         {

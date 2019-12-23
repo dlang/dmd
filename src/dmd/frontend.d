@@ -385,7 +385,7 @@ in
 {
     assert(diagnosticReporter !is null);
 }
-body
+do
 {
     import dmd.root.file : File, FileBuffer;
 

@@ -348,7 +348,7 @@ class B12 : A12
     {
         printf("B12.clone()\n");
     }
-    body
+    do
     {
         return ia;
     }
@@ -402,7 +402,7 @@ class B13 : A13
     {
         printf("B13.clone()\n");
     }
-    body { return ia; }
+    do { return ia; }
 }
 
 void test13()

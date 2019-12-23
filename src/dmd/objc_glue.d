@@ -262,7 +262,7 @@ extern(C++) final class Supported : ObjcGlue
         assert(classDeclaration !is null);
         assert(classDeclaration.classKind == ClassKind.objc);
     }
-    body
+    do
     {
         if (!classDeclaration.objc.isMeta)
             ObjcClassDeclaration(classDeclaration, false).toObjFile();
@@ -274,7 +274,7 @@ extern(C++) final class Supported : ObjcGlue
     {
         assert(fd);
     }
-    body
+    do
     {
         if (!fd.selector)
             return count;
@@ -619,7 +619,7 @@ static:
     {
         assert(classDeclaration !is null);
     }
-    body
+    do
     {
         return getClassName(ObjcClassDeclaration(classDeclaration, isMeta));
     }
@@ -715,7 +715,7 @@ static:
     {
         assert(type !is null);
     }
-    body
+    do
     {
         enum assertMessage = "imaginary types are not supported by Objective-C";
 
@@ -914,7 +914,7 @@ struct ObjcClassDeclaration
     {
         assert(classDeclaration !is null);
     }
-    body
+    do
     {
         this.classDeclaration = classDeclaration;
         this.isMeta = isMeta;
@@ -1280,7 +1280,7 @@ out(result)
 {
     assert(str.length == result.strlen);
 }
-body
+do
 {
     if (str.length == 0)
         return "".ptr;

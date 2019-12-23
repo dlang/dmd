@@ -446,12 +446,12 @@ void test6174c()
     static assert(!is(typeof({
         int func1a(int n)
         in{ n = 10; }
-        body { return n; }
+        do { return n; }
     })));
     static assert(!is(typeof({
         int func1b(int n)
         out(r){ r = 20; }
-        body{ return n; }
+        do{ return n; }
     })));
 
     struct DataX
@@ -461,13 +461,13 @@ void test6174c()
     static assert(!is(typeof({
         DataX func2a(DataX n)
         in{ n.x = 10; }
-        body { return n; }
+        do { return n; }
     })));
     static assert(!is(typeof({
         DataX func2b(DataX n)
         in{}
         out(r){ r.x = 20; }
-        body{ return n; }
+        do{ return n; }
     })));
 }
 
@@ -722,7 +722,7 @@ struct S9077b
 immutable(int)[] bar9140()
 out(result) {
     foreach (ref r; result) {}
-} body {
+} do {
     return null;
 }
 
