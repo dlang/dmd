@@ -3798,7 +3798,10 @@ elem *toElem(Expression e, IRState *irs)
 
                 if (auto sle = dve.e1.isStructLiteralExp())
                 {
-                    sle.useStaticInit = false;          // don't modify initializer
+                    if (fd && fd.isCtorDeclaration() ||
+                        fd.type.isMutable() ||
+                        sle.type.size() <= 8)          // more efficient than fPIC
+                        sle.useStaticInit = false;     // don't modify initializer, so make copy
                 }
 
                 ec = toElem(dve.e1, irs);
