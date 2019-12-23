@@ -3701,8 +3701,8 @@ final class Parser(AST) : Lexer
 
         case TOK.mixin_:
             // https://dlang.org/spec/expression.html#mixin_types
-            nextToken();
             loc = token.loc;
+            nextToken();
             if (token.value != TOK.leftParentheses)
                 error("found `%s` when expecting `%s` following %s", token.toChars(), Token.toChars(TOK.leftParentheses), "`mixin`".ptr);
             auto exps = parseArguments();
