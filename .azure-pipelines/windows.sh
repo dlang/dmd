@@ -70,6 +70,7 @@ elif [ "$MODEL" == "32mscoff" ] ; then
     LIBNAME=phobos32mscoff.lib
 else
     export MODEL_FLAG="-m32"
+    export LIB="$PWD/dmd2/windows/lib"
     MAKE_FILE="win32.mak"
     LIBNAME=phobos.lib
 fi
@@ -101,6 +102,12 @@ for proj in druntime phobos; do
     cd "${DMD_DIR}/../${proj}"
     "${DM_MAKE}" -f "${MAKE_FILE}" MODEL=$MODEL DMD="$DMD_BIN_PATH" "CC=$CC" "AR=$AR" VCDIR=.
 done
+
+################################################################################
+# Run druntime tests
+################################################################################
+cd "${DMD_DIR}/../druntime"
+"${DM_MAKE}" -f "${MAKE_FILE}" MODEL=$MODEL DMD="$DMD_BIN_PATH" "CC=$CC" "AR=$AR" VCDIR=. unittest test_all
 
 ################################################################################
 # Run DMD testsuite
