@@ -1,0 +1,10 @@
+The keyword `body` is now deprecated
+
+The keyword `body`, used when a function / method has contract,
+has now been deprecated, and `do` should be used instead.
+Using `do` in place of `body` has been supported since 2.075.0,
+after DIP1003 was accepted.
+At the same time, `body` was made a contextual keyword,
+but kept being non-deprecated due to its prevalence.
+According to the deprecation process, `body` will be removed
+from the language in release 2.101.0 at the earliest.

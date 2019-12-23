@@ -253,7 +253,7 @@ class Lexer
     {
         assert(diagnosticReporter !is null);
     }
-    body
+    do
     {
         this.diagnosticReporter = diagnosticReporter;
         scanloc = Loc(filename, 1, 1);
@@ -1185,7 +1185,7 @@ class Lexer
     {
         assert(handler !is null);
     }
-    body
+    do
     {
         const(char)* p = sequence; // cache sequence reference on stack
         scope(exit) sequence = p;

@@ -2268,7 +2268,7 @@ void test140()
 class Foo141 {
     Foo141 next;
     void start()
-    in { assert (!next); } body
+    in { assert (!next); } do
     {
         void* p = cast(void*)this;
     }
@@ -3673,7 +3673,7 @@ class A221 : B221
 {
     final override I221 sync()
     in { assert( valid ); }
-    body
+    do
     {
         return null;
     }
@@ -3683,7 +3683,7 @@ class B221 : J221
 {
     override I221 sync()
     in { assert( valid ); }
-    body
+    do
     {
         return null;
     }
@@ -6496,4 +6496,3 @@ int main()
     printf("Success\n");
     return 0;
 }
-

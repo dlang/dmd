@@ -492,7 +492,7 @@ extern(C++) private final class Supported : Objc
     {
         assert(id.classKind == ClassKind.objc);
     }
-    body
+    do
     {
         // don't report deprecations for the metaclass to avoid duplicated
         // messages.
@@ -566,7 +566,7 @@ extern(C++) private final class Supported : Objc
         assert(fd.selector);
         assert(fd.isMember);
     }
-    body
+    do
     {
         // * final member functions are kept virtual with Objective-C linkage
         //   because the Objective-C runtime always use dynamic dispatch.
@@ -581,7 +581,7 @@ extern(C++) private final class Supported : Objc
     {
         assert(metaclass);
     }
-    body
+    do
     {
         if (cd.classKind == ClassKind.objc && fd.isStatic && !cd.objc.isMeta)
             return cd.objc.metaclass;
@@ -594,7 +594,7 @@ extern(C++) private final class Supported : Objc
     {
         assert(fd.parent.isClassDeclaration);
     }
-    body
+    do
     {
         if (cd.classKind != ClassKind.objc)
             return;
@@ -632,7 +632,7 @@ extern(C++) private final class Supported : Objc
     {
         assert(fd.selectorParameter is null);
     }
-    body
+    do
     {
         if (!fd.selector)
             return null;

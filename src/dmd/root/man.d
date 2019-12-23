@@ -26,7 +26,7 @@ version (Windows)
     {
         assert(strncmp(url, "http://", 7) == 0 || strncmp(url, "https://", 8) == 0);
     }
-    body
+    do
     {
         ShellExecuteA(null, "open", url, null, null, SW_SHOWNORMAL);
     }
@@ -38,7 +38,7 @@ else version (OSX)
     {
         assert(strncmp(url, "http://", 7) == 0 || strncmp(url, "https://", 8) == 0);
     }
-    body
+    do
     {
         pid_t childpid;
         const(char)*[5] args;
@@ -72,7 +72,7 @@ else version (Posix)
     {
         assert(strncmp(url, "http://", 7) == 0 || strncmp(url, "https://", 8) == 0);
     }
-    body
+    do
     {
         pid_t childpid;
         const(char)*[3] args;

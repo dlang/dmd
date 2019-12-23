@@ -6440,7 +6440,7 @@ label:
             break label;        // doesn't work.
     }
 }
-body
+do
 {
     int x = 0;
 label:
@@ -7772,7 +7772,7 @@ enum KindEnum
     integer,
     arrayOf
 }
- 
+
 struct FullKind
 {
     KindEnum[] contents;

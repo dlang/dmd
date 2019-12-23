@@ -186,7 +186,8 @@ private struct ModuleComponentRange
  *  True if the given module should be included in the compilation.
  */
 private bool includeImportedModuleCheck(ModuleComponentRange components)
-    in { assert(includeImports); } body
+    in { assert(includeImports); }
+do
 {
     createMatchNodes();
     size_t nodeIndex = 0;

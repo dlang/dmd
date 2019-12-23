@@ -6097,7 +6097,7 @@ struct ASTBase
         {
             assert(!!aggrfe ^ !!rangefe);
         }
-        body
+        do
         {
             this.loc = loc;
             this.aggrfe = aggrfe;
