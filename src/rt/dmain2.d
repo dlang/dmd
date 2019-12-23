@@ -510,15 +510,18 @@ private extern (C) int _d_run_main2(char[][] args, size_t totalArgsLength, MainF
         char[][] argsCopy = buff[0 .. args.length];
         auto argBuff = cast(char*) (buff + args.length);
         size_t j = 0;
+        import rt.config : rt_cmdline_enabled;
+        bool parseOpts = rt_cmdline_enabled!();
         foreach (arg; args)
         {
-            import rt.config : rt_cmdline_enabled;
-
-            if (!rt_cmdline_enabled!() || arg.length < 6 || arg[0..6] != "--DRT-") // skip D runtime options
-            {
-                argsCopy[j++] = (argBuff[0 .. arg.length] = arg[]);
-                argBuff += arg.length;
-            }
+            // Do not pass Druntime options to the program
+            if (parseOpts && arg.length >= 6 && arg[0 .. 6] == "--DRT-")
+                continue;
+            // https://issues.dlang.org/show_bug.cgi?id=20459
+            if (arg == "--")
+                parseOpts = false;
+            argsCopy[j++] = (argBuff[0 .. arg.length] = arg[]);
+            argBuff += arg.length;
         }
         args = argsCopy[0..j];
     }
