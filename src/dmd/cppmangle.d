@@ -505,11 +505,13 @@ private final class CppMangleVisitor : Visitor
              * <template-arg> ::= <type>               # type or template
              *                ::= X <expression> E     # expression
              *                ::= <expr-primary>       # simple expressions
-             *                ::= I <template-arg>* E  # argument pack
+             *                ::= J <template-arg>* E  # argument pack
+             *
+             * Reference: https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangle.template-arg
              */
             if (TemplateTupleParameter tt = tp.isTemplateTupleParameter())
             {
-                buf.writeByte('I');     // argument pack
+                buf.writeByte('J');     // argument pack
 
                 // mangle the rest of the arguments as types
                 foreach (j; i .. (*ti.tiargs).dim)

@@ -26,6 +26,18 @@ struct S18784
 
 S18784::S18784(int n) : i(n) {}
 
+#ifdef __DMC__ // DMC doesn't support c++11
+template <class>
+#else
+template <class...>
+#endif
+struct SPack
+{
+    int i;
+};
+
+typedef SPack<int> SInt;
+
 bool               passthrough(bool                value)     { return value; }
 signed char        passthrough(signed char         value)     { return value; }
 unsigned char      passthrough(unsigned char       value)     { return value; }
@@ -48,6 +60,7 @@ double             passthrough(double              value)     { return value; }
 S                  passthrough(S                   value)     { return value; }
 std::test19248     passthrough(const std::test19248 value)    { return value; }
 std::test19248_    passthrough(const std::test19248_ value)   { return value; }
+SInt               passthrough(SInt value)              { return value; }
 
 bool               passthrough_ptr(bool               *value) { return *value; }
 signed char        passthrough_ptr(signed char        *value) { return *value; }
@@ -71,6 +84,7 @@ double             passthrough_ptr(double             *value) { return *value; }
 S                  passthrough_ptr(S                  *value) { return *value; }
 std::test19248     passthrough_ptr(const std::test19248 *value) { return *value; }
 std::test19248_    passthrough_ptr(const std::test19248_ *value) { return *value; }
+SInt               passthrough_ptr(SInt *value)         { return *value; }
 
 bool               passthrough_ref(bool               &value) { return value; }
 signed char        passthrough_ref(signed char        &value) { return value; }
@@ -94,6 +108,7 @@ double             passthrough_ref(double             &value) { return value; }
 S                  passthrough_ref(S                  &value) { return value; }
 std::test19248     passthrough_ref(const std::test19248 &value) { return value; }
 std::test19248_    passthrough_ref(const std::test19248_ &value) { return value; }
+SInt               passthrough_ref(SInt &value)         { return value; }
 
 namespace ns1
 {
