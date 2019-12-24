@@ -1030,9 +1030,17 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
 
     foreach (sp; params[0 .. pi])
     {
-        sp.Sclass = SCparameter;
-        sp.Sflags &= ~SFLspill;
-        sp.Sfl = FLpara;
+        auto nofieldspod = tybasic(sp.Stype.Tty) == TYstruct && ((sp.Stype.Ttag.Sstruct.Sflags & (STR0size|STRnotpod)) == STR0size);
+        if (nofieldspod && global.params.is64bit && global.params.isPOSIX && fd.linkage != LINK.d)
+        {
+            // zero sized parameters are ignored on POSIX x86_64
+        }
+        else
+        {
+            sp.Sclass = SCparameter;
+            sp.Sflags &= ~SFLspill;
+            sp.Sfl = FLpara;
+        }
         symbol_add(sp);
     }
 
@@ -1043,6 +1051,12 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
 
         foreach (sp; params[0 .. pi])
         {
+            auto nofieldspod = tybasic(sp.Stype.Tty) == TYstruct && ((sp.Stype.Ttag.Sstruct.Sflags & (STR0size|STRnotpod)) == STR0size);
+            if (nofieldspod && global.params.is64bit && global.params.isPOSIX && fd.linkage != LINK.d)
+            {
+                // zero sized parameters are ignored on POSIX x86_64
+                continue;
+            }
             if (fpr.alloc(sp.Stype, sp.Stype.Tty, &sp.Spreg, &sp.Spreg2))
             {
                 sp.Sclass = (config.exe == EX_WIN64) ? SCshadowreg : SCfastpar;
@@ -1077,7 +1091,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         if (global.params.is64bit &&
             !global.params.isWindows)
         {
-            type *t = type_struct_class("__va_argsave_t", 16, 8 * 6 + 8 * 16 + 8 * 3, null, null, false, false, true, false);
+            type *t = type_struct_class("__va_argsave_t", 16, 8 * 6 + 8 * 16 + 8 * 3, null, null, false, false, true, false, 0);
             // The backend will pick this up by name
             Symbol *sv = symbol_name("__va_argsave", SCauto, t);
             sv.Stype.Tty |= mTYvolatile;

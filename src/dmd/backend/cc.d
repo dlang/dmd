@@ -1073,6 +1073,8 @@ enum
     STRexplicit      = 0x80000,    // if explicit template instantiation
     STRgenctor0      = 0x100000,   // need to gen X::X()
     STRnotpod        = 0x200000,   // struct is not POD
+    STRnotcpp03pod   = 0x400000,   // struct is not C++03 POD
+    STRnotcppdmcpod  = 0x800000,   // struct is not C++ POD according to DMC
 }
 
 struct struct_t

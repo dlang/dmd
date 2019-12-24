@@ -13,6 +13,7 @@
 module dmd.target;
 
 import dmd.argtypes;
+import dmd.argtypes_sysv_x64;
 import core.stdc.string : strlen;
 import dmd.cppmangle;
 import dmd.cppmanglewin;
@@ -404,6 +405,8 @@ extern (C++) struct Target
      */
     extern (C++) TypeTuple toArgTypes(Type t)
     {
+        if (global.params.is64bit && global.params.isPOSIX)
+            return .toArgTypes_sysv_x64(t);
         if (global.params.is64bit && global.params.isWindows)
             return null;
         return .toArgTypes(t);
@@ -433,10 +436,16 @@ extern (C++) struct Target
 
         if (global.params.isWindows && global.params.is64bit)
         {
-            // http://msdn.microsoft.com/en-us/library/7572ztz4.aspx
+            // https://docs.microsoft.com/en-us/cpp/build/x64-calling-convention?view=vs-2019#return-values
             if (tns.ty == Tcomplex32)
+                return false;
+            if (tns.iscomplex())
                 return true;
-            if (tns.isscalar())
+            if (tns.ty == Tvector)
+                return false;
+            if (tns.isfloating())
+                return false;
+            if (tns.isintegral() && sz <= 8)
                 return false;
 
             tns = tns.baseElemOf();
@@ -445,12 +454,12 @@ extern (C++) struct Target
                 StructDeclaration sd = (cast(TypeStruct)tns).sym;
                 if (tf.linkage == LINK.cpp && needsThis)
                     return true;
-                if (!sd.isPOD() || sz > 8)
+                if (!sd.isCPP03POD() || sz > 8)
                     return true;
                 if (sd.fields.dim == 0)
-                    return true;
+                    return false;
             }
-            if (sz <= 16 && !(sz & (sz - 1)))
+            if (sz <= 8 && !(sz & (sz - 1)))
                 return false;
             return true;
         }
@@ -462,6 +471,20 @@ extern (C++) struct Target
                 if (tf.linkage == LINK.cpp && needsThis)
                     return true;
             }
+        }
+        else if (global.params.is64bit && global.params.isPOSIX)
+        {
+            if (tf.linkage != LINK.d && tn.isTypeStruct())
+            {
+                auto ts = cast(TypeStruct) tn;
+                if (ts.sym.hasNoFields && ts.sym.isPOD())
+                    return false;
+            }
+            TypeTuple tt = .toArgTypes_sysv_x64(tn);
+            if (!tt)
+                return false; // void
+            else
+                return !tt.arguments.dim;
         }
 
     Lagain:
@@ -503,11 +526,16 @@ extern (C++) struct Target
                 //printf("  2 true\n");
                 return true;            // 32 bit C/C++ structs always on stack
             }
-            if (global.params.isWindows && tf.linkage == LINK.cpp && !global.params.is64bit &&
-                     sd.isPOD() && sd.ctor)
+            if (global.params.isWindows && !global.params.is64bit && tf.linkage == LINK.cpp)
             {
-                // win32 returns otherwise POD structs with ctors via memory
-                return true;
+                if (!global.params.mscoff)
+                {
+                    // DMC bug: it considers struct with private fields a POD contrary to C++03 POD rules.
+                    if (!sd.isCPPDMCPOD())
+                        return true;
+                }
+                else if (!sd.isCPP03POD())
+                    return true; // win32 returns otherwise C++03 POD structs via memory
             }
             if (sd.arg1type && !sd.arg2type)
             {
@@ -541,11 +569,7 @@ extern (C++) struct Target
             //printf("  3 true\n");
             return true;
         }
-        else if ((global.params.isLinux || global.params.isOSX ||
-                  global.params.isFreeBSD || global.params.isSolaris ||
-                  global.params.isDragonFlyBSD) &&
-                 tf.linkage == LINK.c &&
-                 tns.iscomplex())
+        else if (tf.linkage != LINK.d && tns.iscomplex())
         {
             if (tns.ty == Tcomplex32)
                 return false;     // in EDX:EAX, not ST1:ST0

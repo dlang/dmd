@@ -111,6 +111,7 @@ bool ISX64REF(Declaration var)
         if (config.exe == EX_WIN64)
         {
             return var.type.size(Loc.initial) > REGSIZE
+                || (!var.type.isTypeBasic() && var.type.size() & (var.type.size() - 1))
                 || (var.storage_class & STC.lazy_)
                 || (var.type.isTypeStruct() && !var.type.isTypeStruct().sym.isPOD());
         }
@@ -130,6 +131,7 @@ bool ISX64REF(IRState* irs, Expression exp)
     if (config.exe == EX_WIN64)
     {
         return exp.type.size(Loc.initial) > REGSIZE
+            || (!exp.type.isTypeBasic() && exp.type.size() & (exp.type.size() - 1))
             || (exp.type.isTypeStruct() && !exp.type.isTypeStruct().sym.isPOD());
     }
     else if (!irs.params.isWindows)
@@ -221,7 +223,7 @@ private elem *callfunc(const ref Loc loc,
 
         /* Convert arguments[] to elems[] in left-to-right order
          */
-        const n = arguments.dim;
+        auto n = arguments.dim;
         debug
             elem*[2] elems_array = void;
         else
@@ -240,6 +242,15 @@ private elem *callfunc(const ref Loc loc,
 
         foreach (const i, arg; *arguments)
         {
+            auto ts = arg.type.isTypeStruct();
+            const nofieldspod = ts && ts.sym.hasNoFields && ts.sym.isPOD();
+            if (nofieldspod && irs.params.is64bit && irs.params.isPOSIX && tf.linkage != LINK.d)
+            {
+                // Skipped on POSIX 64 C++
+                elems[i] = null;
+                continue;
+            }
+
             elem *ea = toElem(arg, irs);
 
             //printf("\targ[%d]: %s\n", i, arg.toChars());
@@ -272,6 +283,15 @@ private elem *callfunc(const ref Loc loc,
             }
             elems[i] = ea;
         }
+        /* remove nulls */
+        n = 0;
+        foreach (e; elems)
+        {
+            if (e !is null)
+                elems[n++] = e;
+        }
+        elems = elems[0 .. n];
+
         if (!left_to_right)
         {
             /* Avoid 'fixing' side effects of _array... functions as
@@ -559,17 +579,30 @@ if (!irs.params.is64bit) assert(tysize(TYnptr) == 4);
     else if (retmethod == RET.stack)
     {
         if (irs.params.isOSX && eresult)
+        {
             /* ABI quirk: hidden pointer is not returned in registers
              */
+            if (tyaggregate(tyret))
+                e.ET = Type_toCtype(tret);
             e = el_combine(e, el_copytree(eresult));
+        }
         e.Ety = TYnptr;
         e = el_una(OPind, tyret, e);
     }
 
+    auto ts = tret.isTypeStruct();
+    const nofieldspod = ts && ts.sym.hasNoFields && ts.sym.isPOD();
     if (tf.isref)
     {
         e.Ety = TYnptr;
         e = el_una(OPind, tyret, e);
+    }
+    else if (nofieldspod && irs.params.is64bit && irs.params.isPOSIX() && tf.linkage != LINK.d)
+    {
+        // Zero sized struct is treated like void on POSIX x86_64
+        e.Ety = TYvoid;
+        Symbol *stmp = symbol_genauto(Type_toCtype(tret));
+        e = el_combine(e, el_var(stmp));
     }
 
     if (tybasic(tyret) == TYstruct)
@@ -974,10 +1007,11 @@ private elem *setArray(Expression exp, elem *eptr, elem *edim, Type tb, elem *ev
 {
     assert(op == TOK.blit || op == TOK.assign || op == TOK.construct);
     const sz = cast(uint)tb.size();
+    Type tb2 = tb;
 
 Lagain:
     int r;
-    switch (tb.ty)
+    switch (tb2.ty)
     {
         case Tfloat80:
         case Timaginary80:
@@ -1007,11 +1041,11 @@ Lagain:
             if (!irs.params.is64bit)
                 goto default;
 
-            TypeStruct tc = cast(TypeStruct)tb;
+            TypeStruct tc = cast(TypeStruct)tb2;
             StructDeclaration sd = tc.sym;
             if (sd.arg1type && !sd.arg2type)
             {
-                tb = sd.arg1type;
+                tb2 = sd.arg1type;
                 goto Lagain;
             }
             goto default;
@@ -1699,7 +1733,7 @@ elem *toElem(Expression e, IRState *irs)
                         .type *tc = type_struct_class(tclass.sym.toChars(),
                                 tclass.sym.alignsize, tclass.sym.structsize,
                                 null, null,
-                                false, false, true, false);
+                                false, false, true, false, 0);
                         tc.Tcount--;
                         Symbol *stmp = symbol_genauto(tc);
                         ex = el_ptr(stmp);
@@ -1918,6 +1952,8 @@ elem *toElem(Expression e, IRState *irs)
                     int rtl = tda.next.isZeroInit(Loc.initial) ? RTLSYM_NEWARRAYT : RTLSYM_NEWARRAYIT;
                     e = el_bin(OPcall,TYdarray,el_var(getRtlsym(rtl)),e);
                     toTraceGC(irs, e, ne.loc);
+                    if (config.exe == EX_WIN64)
+                        e = elHiddenParam(e);
                 }
                 else
                 {
@@ -1940,6 +1976,8 @@ elem *toElem(Expression e, IRState *irs)
                     int rtl = t.isZeroInit(Loc.initial) ? RTLSYM_NEWARRAYMTX : RTLSYM_NEWARRAYMITX;
                     e = el_bin(OPcall,TYdarray,el_var(getRtlsym(rtl)),e);
                     toTraceGC(irs, e, ne.loc);
+                    if (config.exe == EX_WIN64)
+                        e = elHiddenParam(e);
 
                     e = el_combine(earray, e);
                 }
@@ -2383,6 +2421,8 @@ elem *toElem(Expression e, IRState *irs)
                 ep = el_param(ep, getTypeInfo(ce.loc, ta, irs));
                 e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYCATNTX)), ep);
                 toTraceGC(irs, e, ce.loc);
+                if (config.exe == EX_WIN64)
+                    e = elHiddenParam(e);
                 e = el_combine(earr, e);
             }
             else
@@ -2392,6 +2432,8 @@ elem *toElem(Expression e, IRState *irs)
                 elem *ep = el_params(e2, e1, getTypeInfo(ce.loc, ta, irs), null);
                 e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYCATT)), ep);
                 toTraceGC(irs, e, ce.loc);
+                if (config.exe == EX_WIN64)
+                    e = elHiddenParam(e);
             }
             elem_setLoc(e,ce.loc);
             result = e;
@@ -2961,6 +3003,8 @@ elem *toElem(Expression e, IRState *irs)
                         elem *ep = el_params(eto, efrom, eti, null);
                         int rtl = (ae.op == TOK.construct) ? RTLSYM_ARRAYCTOR : RTLSYM_ARRAYASSIGN;
                         elem* e = el_bin(OPcall, totym(ae.type), el_var(getRtlsym(rtl)), ep);
+                        if (config.exe == EX_WIN64)
+                            e = elHiddenParam(e);
                         return setResult(e);
                     }
                     else
@@ -2975,6 +3019,8 @@ elem *toElem(Expression e, IRState *irs)
                         }
                         elem *ep = el_params(eto, efrom, esize, null);
                         elem* e = el_bin(OPcall, totym(ae.type), el_var(getRtlsym(RTLSYM_ARRAYCOPY)), ep);
+                        if (config.exe == EX_WIN64)
+                            e = elHiddenParam(e);
                         return setResult(e);
                     }
                 }
@@ -3240,6 +3286,8 @@ elem *toElem(Expression e, IRState *irs)
                     }
                     elem *ep = el_params(e1, e2, eti, null);
                     elem* e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYCTOR)), ep);
+                    if (config.exe == EX_WIN64)
+                        e = elHiddenParam(e);
                     return setResult2(e);
                 }
                 else
@@ -3264,6 +3312,8 @@ elem *toElem(Expression e, IRState *irs)
                     elem *ep = el_params(etmp, e1, e2, eti, null);
                     int rtl = lvalueElem ? RTLSYM_ARRAYASSIGN_L : RTLSYM_ARRAYASSIGN_R;
                     elem* e = el_bin(OPcall, TYdarray, el_var(getRtlsym(rtl)), ep);
+                    if (config.exe == EX_WIN64)
+                        e = elHiddenParam(e);
                     return setResult2(e);
                 }
             }
@@ -3325,6 +3375,8 @@ elem *toElem(Expression e, IRState *irs)
                     e = el_bin(OPcall, TYdarray, el_var(getRtlsym(rtl)), ep);
                     toTraceGC(irs, e, ce.loc);
                     elem_setLoc(e, ce.loc);
+                    if (config.exe == EX_WIN64)
+                        e = elHiddenParam(e);
                     break;
                 }
 
@@ -3343,6 +3395,8 @@ elem *toElem(Expression e, IRState *irs)
                     elem *ep = el_params(e2, e1, getTypeInfo(ce.e1.loc, ce.e1.type, irs), null);
                     e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYAPPENDT)), ep);
                     toTraceGC(irs, e, ce.loc);
+                    if (config.exe == EX_WIN64)
+                        e = elHiddenParam(e);
                     break;
                 }
 
@@ -3372,6 +3426,8 @@ elem *toElem(Expression e, IRState *irs)
                     ep = el_param(el_long(TYsize_t, 1), ep);
                     e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYAPPENDCTX)), ep);
                     toTraceGC(irs, e, ce.loc);
+                    if (config.exe == EX_WIN64)
+                        e = elHiddenParam(e);
                     Symbol *stmp = symbol_genauto(Type_toCtype(tb1));
                     e = el_bin(OPeq, TYdarray, el_var(stmp), e);
 
@@ -6442,4 +6498,41 @@ elem* setEthis2(const ref Loc loc, IRState* irs, FuncDeclaration fd, elem* ethis
     *eside = el_combine(eeq1, *eside);
 
     return ethis2;
+}
+
+/**************************************************
+ * Makes the "hidden" parameter for a function call.
+ * Params:
+ *      e = the function call
+ * Returns:
+ *      replacement elem for e
+ */
+elem *elHiddenParam(elem *e)
+{
+    tym_t ty = e.Ety;
+    type* t = e.ET;
+
+    elem* ep = OTbinary(e.Eoper) ? e.EV.E2 : null;
+    ubyte op = cast(ubyte) OTsideff(e.Eoper) ? OPcall : OPcallns;
+
+    Symbol* stmp = symbol_genauto(t ? t : type_fake(ty));
+    elem* ehidden = el_ptr(stmp);
+
+    if (tyrevfunc(e.EV.E1.Ety))
+        ep = el_param(ehidden, ep);
+    else
+        ep = el_param(ep, ehidden);
+
+    e.Ety = (config.exe & (EX_OSX | EX_OSX64)) ? TYvoid : TYnptr;
+    e.Eoper = op;
+    e.EV.E2 = ep;
+
+    elem* en;
+    if (config.exe & (EX_OSX | EX_OSX64))
+        en = el_combine(e, el_var(stmp));
+    else
+        en = el_una(OPind, ty, e);
+
+    en.ET = t;
+    return en;
 }

@@ -20,11 +20,6 @@ extern (C) Foo5 ctest5();
 extern (C) Foo6 ctest6();
 extern (C) S7 ctest10();
 
-version(Windows)
-    version = Windows_or_32bit;
-else version(X86)
-    version = Windows_or_32bit;
-
 
 void test1()
 {
@@ -44,13 +39,10 @@ void test1()
     assert(f5.i == 0x12345678);
     assert(f5.j == 0x21436587);
 
-version(Windows_or_32bit)
-{
     Foo6 f6 = ctest6();
     assert(f6.i == 0x12345678);
     assert(f6.j == 0x21463587);
     assert(f6.k == 0x24163857);
-}
 
     S7 s7 = ctest10();
     assert(s7.a == 2.5);
@@ -104,8 +96,6 @@ extern (C) S11 ctest11(ubyte x, S11, ubyte y);
 
 void test11()
 {
-  version (X86)
-  {
   S11 t;
   assert(S11.sizeof == 3);
   t.a = 2;
@@ -115,7 +105,6 @@ void test11()
   assert(s.a == 2);
   assert(s.b == 3);
   assert(s.c == 4);
-  }
 }
 
 /******************************************/
@@ -126,8 +115,6 @@ extern (C) S12 ctest12(ubyte x, S12, ubyte y);
 
 void test12()
 {
-  version (X86)
-  {
   S12 t;
   printf("D sz = %d\n", cast(int)S12.sizeof);
 //  assert(S12.sizeof == 5);
@@ -138,7 +125,6 @@ void test12()
   assert(s.a == 2);
   assert(s.b == 3);
   assert(s.c == 4);
-  }
 }
 
 /******************************************/
@@ -149,8 +135,6 @@ extern (C) S13 ctest13(ubyte x, S13, ubyte y);
 
 void test13()
 {
-  version (X86)
-  {
   S13 t;
   assert(S13.sizeof == 6);
   t.a = 2;
@@ -160,7 +144,6 @@ void test13()
   assert(s.a == 2);
   assert(s.b == 3);
   assert(s.c == 4);
-  }
 }
 
 /******************************************/
@@ -171,8 +154,6 @@ extern (C) S14 ctest14(ubyte x, S14, ubyte y);
 
 void test14()
 {
-  version (X86)
-  {
   S14 t;
   assert(S14.sizeof == 7);
   t.a = 2;
@@ -182,7 +163,6 @@ void test14()
   assert(s.a == 2);
   assert(s.b == 3);
   assert(s.c == 4);
-  }
 }
 
 /******************************************/
@@ -193,8 +173,6 @@ extern (C) S15 ctest15(ubyte x, S15, ubyte y);
 
 void test15()
 {
-  version (X86)
-  {
   S15 t;
   assert(S15.sizeof == 9);
   t.a = 2;
@@ -204,7 +182,6 @@ void test15()
   assert(s.a == 2);
   assert(s.b == 3);
   assert(s.c == 4);
-  }
 }
 
 /******************************************/
@@ -222,8 +199,6 @@ extern (C) S16 ctest16(ubyte x, S16, ubyte y);
 
 void test16()
 {
-  version (X86) // misaligned field
-  {
   S16 t;
   assert(S16.sizeof == 10);
   assert(S16.alignof == 1);
@@ -234,7 +209,6 @@ void test16()
   assert(s.a == "hello");
   assert(s.b == 3);
   assert(s.c == 0x11223344);
-  }
 }
 
 /******************************************/
@@ -244,13 +218,7 @@ int main()
     test1();
     test2();
     test3();
-version (Win64)
-{
-}
-else
-{
     test4();
-}
     test11();
     test12();
     test13();

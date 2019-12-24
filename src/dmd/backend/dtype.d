@@ -637,11 +637,12 @@ type *type_enum(const(char)* name, type *tbase)
  * Params:
  *      name = name of struct (this function makes its own copy of the string)
  *      is0size = if struct has no fields (even if Sstructsize is 1)
+ *      flags = extra struct flags
  * Returns:
  *      Tcount already incremented
  */
 type *type_struct_class(const(char)* name, uint alignsize, uint structsize,
-        type *arg1type, type *arg2type, bool isUnion, bool isClass, bool isPOD, bool is0size)
+        type *arg1type, type *arg2type, bool isUnion, bool isClass, bool isPOD, bool is0size, uint flags)
 {
     Symbol *s = symbol_calloc(name);
     s.Sclass = SCstruct;
@@ -652,6 +653,7 @@ type *type_struct_class(const(char)* name, uint alignsize, uint structsize,
     s.Sstruct.Sarg1type = arg1type;
     s.Sstruct.Sarg2type = arg2type;
 
+    s.Sstruct.Sflags |= flags;
     if (!isPOD)
         s.Sstruct.Sflags |= STRnotpod;
     if (isUnion)

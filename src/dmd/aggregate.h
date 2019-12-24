@@ -176,6 +176,8 @@ public:
 
     structalign_t alignment;    // alignment applied outside of the struct
     StructPOD ispod;            // if struct is POD
+    StructPOD iscpp03pod;       // if struct is C++03 POD
+    StructPOD iscppdmcpod;      // if struct is DMC C++ POD
 
     // For 64 bit Efl function call/return ABI
     Type *arg1type;
@@ -194,6 +196,8 @@ public:
     void finalizeSize();
     bool fit(const Loc &loc, Scope *sc, Expressions *elements, Type *stype);
     bool isPOD();
+    bool isCPP03POD();
+    bool isCPPDMCPOD();
 
     StructDeclaration *isStructDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }

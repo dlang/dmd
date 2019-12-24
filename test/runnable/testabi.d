@@ -3,8 +3,7 @@
 version(Windows) {}
 else version(X86_64)
 {
-        /* uncomment to enable tests! */
-        //version = Run_X86_64_Tests;
+        version = Run_X86_64_Tests;
 }
 
 extern (C) int printf(const char*, ...);
@@ -132,8 +131,7 @@ alias tuple!(   b,bb,bbb,bbbb,bbbbb,
                 js,iss,si,ssi, sis,
                 ls,lss,sl,ssl, sls,
                 li,lii,il,iil, ili,
-                fi,fii,jf,iif, ifi,
-                ffi,ffii,iff,iiff,ifif, // INT_END
+                fi,fii,jf,ifi,ifif,                   // INT_END
 
                 // SSE registers only
                 f,ff,fff,ffff,fffff,
@@ -142,12 +140,13 @@ alias tuple!(   b,bb,bbb,bbbb,bbbbb,
                 df,dff,fd,ffd, fdf,     // SSE_END
 
                 // Int and SSE
+                ffi,ffii,iff,iiff,iif,
                 di,  dii,id, iid, idi,  // MIX_END
                 // ---
             ) ALL_T;
 
-enum INT_END = 65;
-enum SSE_END = 80;
+enum INT_END = 60;
+enum SSE_END = 75;
 enum MIX_END = ALL_T.length;
 
                 // x87
@@ -170,13 +169,13 @@ string[] ALL_S=[
                 "js","iss","si","ssi", "sis",
                 "ls","lss","sl","ssl", "sls",
                 "li","lii","il","iil", "ili",
-                "fi","fii","jf","iif", "ifi",
-                "ffi","ffii","iff","iiff","ifif",
+                "fi","fii","jf", "ifi","ifif",
                 // ---
                 "f","ff","fff","ffff","fffff",
                 "d","dd","ddd","dddd","ddddd",
                 "df","dff","fd","ffd", "dfd",
                 // ---
+                "ffi","ffii","iff","iiff","iif",
                 "di","dii","id","iid","idi",
                ];
 
@@ -353,6 +352,7 @@ struct TEST
  */
 immutable int[MIX_END] expected =
         [
+        // INT regs only
         1,1,1,1,1, // b
         1,1,1,1,1, // b6
         1,1,1,1,1, // b11
@@ -366,7 +366,6 @@ immutable int[MIX_END] expected =
         1,1,1,1,0, // sl
         1,1,1,1,0, // il
         1,1,1,1,1, // int and float
-        1,1,1,1,1, // int and float
 
         // SSE regs only
         1,1,1,1,0, // f
@@ -374,6 +373,7 @@ immutable int[MIX_END] expected =
         1,1,1,1,0, // float and double
 
         // SSE + INT regs
+        1,1,1,1,1, // int and float
         1,1,1,1,0, // int and double
         ];
 
@@ -383,6 +383,8 @@ immutable int[MIX_END] expected =
  *
  * null means do not test
  * ( because value is passed on the stack ).
+ *
+ * Note: Mixed register cases have the SSE register first
  */
 
 immutable long[][] RegValue =
@@ -447,36 +449,137 @@ immutable long[][] RegValue =
 /*  55  fi      */ [ 0x000000023f800000,                    ],
 /*  56  fii     */ [ 0x000000023f800000, 0x0000000000000003 ],
 /*  57  jf      */ [ 0x4000000000000001,                    ],
-/*  58  iif     */ [ 0x0000000200000001, 0x0000000040400000 ],
-/*  59  ifi     */ [ 0x4000000000000001, 0x0000000000000003 ],
+/*  58  ifi     */ [ 0x4000000000000001, 0x0000000000000003 ],
 
-/*  60  ffi     */ [ 0x0000000000000003, 0x400000003f800000 ],
-/*  61  ffii    */ [ 0x0000000400000003, 0x400000003f800000 ],
-/*  62  iff     */ [ 0x4000000000000001, 0x0000000040400000 ],
-/*  63  iiff    */ [ 0x0000000200000001, 0x4080000040400000 ],
-/*  64  ifif    */ [ 0x4000000000000001, 0x4080000000000003 ],
+/*  59  ifif    */ [ 0x4000000000000001, 0x4080000000000003 ],
 
-/*  65  f       */ [ 0x000000003f800000,                    ],
-/*  66  ff      */ [ 0x400000003f800000,                    ],
-/*  67  fff     */ [ 0x400000003f800000, 0x0000000040400000 ],
-/*  68  ffff    */ [ 0x400000003f800000, 0x4080000040400000 ],
-/*  69  fffff   */ null,
-/*  70  d       */ [ 0x3ff0000000000000,                    ],
-/*  71  dd      */ [ 0x3ff0000000000000, 0x4000000000000000 ],
-/*  72  ddd     */ null,
-/*  73  dddd    */ null,
-/*  74  ddddd   */ null,
+/*  60  f       */ [ 0x000000003f800000,                    ],
+/*  61  ff      */ [ 0x400000003f800000,                    ],
+/*  62  fff     */ [ 0x400000003f800000, 0x0000000040400000 ],
+/*  63  ffff    */ [ 0x400000003f800000, 0x4080000040400000 ],
+/*  64  fffff   */ null,
+/*  65  d       */ [ 0x3ff0000000000000,                    ],
+/*  66  dd      */ [ 0x3ff0000000000000, 0x4000000000000000 ],
+/*  67  ddd     */ null,
+/*  68  dddd    */ null,
+/*  69  ddddd   */ null,
 
-/*  75  df      */ [ 0x3ff0000000000000, 0x0000000040000000 ],
-/*  76  dff     */ [ 0x3ff0000000000000, 0x4040000040000000 ],
-/*  77  fd      */ [ 0x000000003f800000, 0x4000000000000000 ],
-/*  78  ffd     */ [ 0x400000003f800000, 0x4008000000000000 ],
-/*  79  fdf     */ null,
+/*  70  df      */ [ 0x3ff0000000000000, 0x0000000040000000 ],
+/*  71  dff     */ [ 0x3ff0000000000000, 0x4040000040000000 ],
+/*  72  fd      */ [ 0x000000003f800000, 0x4000000000000000 ],
+/*  73  ffd     */ [ 0x400000003f800000, 0x4008000000000000 ],
+/*  74  fdf     */ null,
 
+/*  75  ffi     */ [ 0x400000003f800000, 0x0000000000000003 ],
+/*  76  ffii    */ [ 0x400000003f800000, 0x0000000400000003 ],
+/*  77  iff     */ [ 0x0000000040400000, 0x4000000000000001 ],
+/*  78  iiff    */ [ 0x4080000040400000, 0x0000000200000001 ],
+/*  79  iif     */ [ 0x0000000040400000, 0x0000000200000001 ],
 /*  80  di      */ [ 0x3ff0000000000000, 0x0000000000000002 ],
 /*  81  dii     */ [ 0x3ff0000000000000, 0x0000000300000002 ],
 /*  82  id      */ [ 0x4000000000000000, 0x0000000000000001 ],
 /*  83  iid     */ [ 0x4008000000000000, 0x0000000200000001 ],
+/*  84  idi     */ null,
+        ];
+
+/**
+ * The sizes of expected values.
+ *
+ * The rest is considered padding.
+ * Note: Mixed register cases have the SSE register first
+ */
+immutable long[][] RegValueSize =
+        [
+/*   0  b       */ [ 1,   ],
+/*   1  bb      */ [ 2,   ],
+/*   2  bbb     */ [ 3,   ],
+/*   3  bbbb    */ [ 4,   ],
+/*   4  bbbbb   */ [ 5,   ],
+/*   5  b6      */ [ 6,   ],
+/*   6  b7      */ [ 7,   ],
+/*   7  b8      */ [ 8,   ],
+/*   8  b9      */ [ 8, 1 ],
+/*   9  b10     */ [ 8, 2 ],
+/*  10  b11     */ [ 8, 3 ],
+/*  11  b12     */ [ 8, 4 ],
+/*  12  b13     */ [ 8, 5 ],
+/*  13  b14     */ [ 8, 6 ],
+/*  14  b15     */ [ 8, 7 ],
+/*  15  b16     */ [ 8, 8 ],
+/*  16  b17     */ null,
+/*  17  b18     */ null,
+/*  18  b19     */ null,
+/*  19  b20     */ null,
+/*  20  s       */ [ 2,   ],
+/*  21  ss      */ [ 4,   ],
+/*  22  sss     */ [ 6,   ],
+/*  23  ssss    */ [ 8,   ],
+/*  24  sssss   */ [ 8, 2 ],
+/*  25  s6      */ [ 8, 4 ],
+/*  26  s7      */ [ 8, 6 ],
+/*  27  s8      */ [ 8, 8 ],
+/*  28  s9      */ null,
+/*  29  s10     */ null,
+/*  30  i       */ [ 4,   ],
+/*  31  ii      */ [ 8,   ],
+/*  32  iii     */ [ 8, 4 ],
+/*  33  iiii    */ [ 8, 8 ],
+/*  34  iiiii   */ null,
+/*  35  l       */ [ 8,   ],
+/*  36  ll      */ [ 8, 8 ],
+/*  37  lll     */ null,
+/*  38  llll    */ null,
+/*  39  lllll   */ null,
+
+/*  40  js      */ [ 6,   ],
+/*  41  iss     */ [ 8,   ],
+/*  42  si      */ [ 8,   ],
+/*  43  ssi     */ [ 8,   ],
+/*  44  sis     */ [ 8, 2 ],
+/*  45  ls      */ [ 8, 2 ],
+/*  46  lss     */ [ 8, 4 ],
+/*  47  sl      */ [ 2, 8 ],
+/*  48  ssl     */ [ 4, 8 ],
+/*  49  sls     */ null,
+/*  50  li      */ [ 8, 4 ],
+/*  51  lii     */ [ 8, 8 ],
+/*  52  il      */ [ 4, 8 ],
+/*  53  iil     */ [ 8, 8 ],
+/*  54  ili     */ null,
+
+/*  55  fi      */ [ 8,   ],
+/*  56  fii     */ [ 8, 4 ],
+/*  57  jf      */ [ 8,   ],
+/*  58  ifi     */ [ 8, 4 ],
+
+/*  59  ifif    */ [ 8, 8 ],
+
+/*  60  f       */ [ 4,   ],
+/*  61  ff      */ [ 8,   ],
+/*  62  fff     */ [ 8, 4 ],
+/*  63  ffff    */ [ 8, 8 ],
+/*  64  fffff   */ null,
+/*  65  d       */ [ 8,   ],
+/*  66  dd      */ [ 8, 8 ],
+/*  67  ddd     */ null,
+/*  68  dddd    */ null,
+/*  69  ddddd   */ null,
+
+/*  70  df      */ [ 8, 4 ],
+/*  71  dff     */ [ 8, 8 ],
+/*  72  fd      */ [ 4, 8 ],
+/*  73  ffd     */ [ 8, 8 ],
+/*  74  fdf     */ null,
+
+/*  75  ffi     */ [ 8, 4 ],
+/*  76  ffii    */ [ 8, 8 ],
+/*  77  iff     */ [ 4, 8 ],
+/*  78  iiff    */ [ 8, 8 ],
+/*  79  iif     */ [ 4, 8 ],
+/*  80  di      */ [ 8, 4 ],
+/*  81  dii     */ [ 8, 8 ],
+/*  82  id      */ [ 8, 4 ],
+/*  83  iid     */ [ 8, 8 ],
 /*  84  idi     */ null,
         ];
 
@@ -571,7 +674,7 @@ void test1()
         foreach( int n, T; ALL_T )
                 test1_asm!(T,n)(12);
 
-        check( data1 );
+        assert( check( data1 ) );
 }
 
 /************************************************************************/
@@ -582,17 +685,22 @@ TEST data2 = { 2, "RDI struct pointer" };
 
 T test2_asm( T, int n )( T t )
 {
+        typeof(.dump) dump = void;
+        enum m = T.sizeof < 4 ? mask(T.sizeof) : ~0LU;
         asm {
 
         mov [dump], RDI;
         mov [dump+8], RSP;
+        and EDI, m; // remove padding noise
         cmp EDI, 0; // TODO test RDI is a ptr to stack ? ?
         je L1;
 
-        leave; ret;
+        jmp Lret;
         }
 L1:
         data2.result[n] = true;
+Lret:
+        .dump = dump;
 }
 T test2f_asm( T, int n )( T t, int x )
 {
@@ -625,7 +733,7 @@ void test2()
                 test2f_asm!(T,n2)( T.init, 12 );
         }
 
-        check( data2 );
+        assert( check( data2 ) );
 }
 
 /************************************************************************/
@@ -635,12 +743,19 @@ TEST data3 = { 3, "Check Return Register value" };
 
 void test3_run( T, int n )( )
 {
+        typeof(.dump) dump;
+
+        if (RegValue[n] == null)
+                return;
+
         test3_ret!T();
         mixin( gen_reg_capture!(n,`["RAX","RDX"]`)() );
 
+        //.dump = dump;
         //dbg!(T,n)( );
 
         enum len = RegValue[n].length;
+        foreach ( i; 0..len ) dump[i] &= mask(RegValueSize[n][i]); // zero out padding
         if( dump[0..len] == RegValue[n] )
                 data3.result[n] = true;
 }
@@ -659,7 +774,15 @@ void test3()
         foreach( int n, T; ALL_T )
                 test3_run!(T,n)( );
 
-        check( data3 );
+        assert( check( data3 ) );
+}
+
+// 0xFF n times
+ulong mask(ulong n)
+{
+        if ( n == ulong.sizeof )   // may wrap
+                return ~0UL;
+        return 2^^( n*8 ) - 1;
 }
 
 /************************************************************************/
@@ -669,11 +792,17 @@ TEST data4 = { 4, "Check Input Register value" };
 
 void test4_run( T, int n )( T t )
 {
+        typeof(.dump) dump = void;
         mixin( gen_reg_capture!(n,`["RDI","RSI"]`)() );
 
+        if (RegValue[n] == null)
+                return;
+
+        //.dump = dump;
         //dbg!(T,n)( );
 
         enum len = RegValue[n].length;
+        foreach ( i; 0..len ) dump[i] &= mask(RegValueSize[n][i]); // zero out padding
         if( dump[0..len] == RegValue[n] )
                 data4.result[n] = true;
 }
@@ -697,7 +826,7 @@ void test4()
                 foreach( i, ref e; t.tupleof )  e = i+1;
                 test4_run!(T,n)( t );
         }
-        check( data4 );
+        assert( check( data4 ) );
 }
 
 
