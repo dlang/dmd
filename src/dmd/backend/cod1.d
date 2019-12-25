@@ -1670,6 +1670,7 @@ void tstresult(ref CodeBuilder cdb, regm_t regm, tym_t tym, uint saveflag)
 
     if (saveflag || tyfv(tym))
     {
+    L1:
         scrregm = ALLREGS & ~regm;              // possible scratch regs
         allocreg(cdb, &scrregm, &scrreg, TYoffset); // allocate scratch reg
         if (I32 || sz == REGSIZE * 2)
@@ -1718,6 +1719,8 @@ void tstresult(ref CodeBuilder cdb, regm_t regm, tym_t tym, uint saveflag)
             assert(regm & mMSW & ALLREGS && regm & (mLSW | mBP));
 
             reg = findregmsw(regm);
+            if (regcon.mvar & mask(reg))        // if register variable
+                goto L1;                        // don't trash it
             getregs(cdb, mask(reg));            // we're going to trash reg
             if (tyfloating(tym) && sz == 2 * _tysize[TYint])
                 cdb.gen2(0xD1, modregrm(3 ,4, reg));   // SHL reg,1
