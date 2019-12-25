@@ -89,21 +89,19 @@ if (is(UT == core.internal.traits.Unqual!UT))
 private nothrow pure @trusted
 void emplaceInitializer(T)(scope ref T chunk)
 {
-    import core.internal.traits : hasElaborateAssign, isAssignable;
-    static if (!hasElaborateAssign!T && isAssignable!T)
-        chunk = T.init;
-    else
+    // Emplace T.init.
+    // Previously, an immutable static and memcpy were used to hold an initializer.
+    // With improved unions, this is no longer needed.
+    union UntypedInit
     {
-        static if (__traits(isZeroInit, T))
-        {
-            import core.stdc.string : memset;
-            memset(&chunk, 0, T.sizeof);
-        }
-        else
-        {
-            import core.stdc.string : memcpy;
-            static immutable T init = T.init;
-            memcpy(&chunk, &init, T.sizeof);
-        }
+        T dummy;
     }
+    static struct UntypedStorage
+    {
+        align(T.alignof) void[T.sizeof] dummy;
+    }
+
+    () @trusted {
+        *cast(UntypedStorage*) &chunk = cast(UntypedStorage) UntypedInit.init;
+    } ();
 }
