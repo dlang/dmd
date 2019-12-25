@@ -14,10 +14,16 @@ string _d_assert_fail(string comp, A, B)(auto ref const A a, auto ref const B b)
     Hence, we can fake purity and @nogc-ness here.
     */
 
-    auto valA = miniFormatFakeAttributes(a);
-    auto valB = miniFormatFakeAttributes(b);
+    string valA = miniFormatFakeAttributes(a);
+    string valB = miniFormatFakeAttributes(b);
     enum token = invertCompToken(comp);
+    return combine(valA, token, valB);
+}
 
+/// Combines the supplied arguments into one string "valA token valB"
+private string combine(const scope string valA, const scope string token,
+const scope string valB) pure nothrow @nogc @safe
+{
     const totalLen = valA.length + token.length + valB.length + 2;
     char[] buffer = cast(char[]) pureAlloc(totalLen)[0 .. totalLen];
     // @nogc-concat of "<valA> <comp> <valB>"
