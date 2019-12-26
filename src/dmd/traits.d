@@ -1454,14 +1454,15 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             //printf("\t[%i] %s %s\n", i, sm.kind(), sm.toChars());
             if (sm.ident)
             {
-                const idx = sm.ident.toChars();
-                if (idx[0] == '_' &&
-                    idx[1] == '_' &&
-                    sm.ident != Id.ctor &&
-                    sm.ident != Id.dtor &&
-                    sm.ident != Id.__xdtor &&
-                    sm.ident != Id.postblit &&
-                    sm.ident != Id.__xpostblit)
+                // https://issues.dlang.org/show_bug.cgi?id=10096
+                // https://issues.dlang.org/show_bug.cgi?id=10100
+                // Skip over internal members in __traits(allMembers)
+                if ((sm.isCtorDeclaration() && sm.ident != Id.ctor) ||
+                    (sm.isDtorDeclaration() && sm.ident != Id.dtor) ||
+                    (sm.isPostBlitDeclaration() && sm.ident != Id.postblit) ||
+                    sm.isInvariantDeclaration() ||
+                    sm.isUnitTestDeclaration())
+
                 {
                     return 0;
                 }
