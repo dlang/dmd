@@ -4446,7 +4446,7 @@ Expression defaultInit(Type mt, const ref Loc loc)
             return mt.next.defaultInit(loc);
     }
 
-    Expression visitFunction(TypeFunction mt)
+    Expression visitFunction(TypeFunction /* mt */)
     {
         error(loc, "`function` does not have a default initializer");
         return new ErrorExp();
