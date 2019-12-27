@@ -1437,7 +1437,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         auto idents = new Identifiers();
 
-        int pushIdentsDg(size_t n, Dsymbol sm)
+        int pushIdentsDg(size_t /* n */, Dsymbol sm)
         {
             if (!sm)
                 return 1;
