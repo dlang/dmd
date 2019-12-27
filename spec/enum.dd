@@ -145,17 +145,18 @@ $(H3 $(LNAME2 enum_properties, Enum Properties))
         $(TABLE
         $(CAPTION Named Enum Properties)
         $(TROW $(D .init), First enum member value)
-        $(TROW $(D .min), Smallest value of enum)
-        $(TROW $(D .max), Largest value of enum)
+        $(TROW $(D .min), Smallest enum member value)
+        $(TROW $(D .max), Largest enum member value)
         $(TROW $(D .sizeof), Size of storage for an enumerated value)
         )
 
         $(P For example:)
 
 ---
-enum X { A=3, B, C }
-X.min    // is X.A
-X.max    // is X.C
+enum X { A=3, B=1, C=4, D, E=2 }
+X.init   // is X.A
+X.min    // is X.B
+X.max    // is X.D
 X.sizeof // is same as int.sizeof
 ---
 
