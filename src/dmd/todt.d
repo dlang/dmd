@@ -76,7 +76,7 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb)
         dtb.nzeros(cast(uint)vi.type.size());
     }
 
-    void visitStruct(StructInitializer si)
+    void visitStruct(StructInitializer /* si */)
     {
         //printf("StructInitializer.toDt('%s')\n", si.toChars());
         assert(0);
