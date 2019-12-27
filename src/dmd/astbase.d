@@ -346,7 +346,7 @@ struct ASTBase
             return ident ? ident.toChars() : "__anonymous";
         }
 
-        bool oneMember(Dsymbol *ps, Identifier ident)
+        bool oneMember(Dsymbol *ps, Identifier /* ident */)
         {
             *ps = this;
             return true;
@@ -464,7 +464,7 @@ struct ASTBase
             return null;
         }
 
-        Dsymbol syntaxCopy(Dsymbol s)
+        Dsymbol syntaxCopy(Dsymbol /* s */)
         {
             return null;
         }
@@ -1793,7 +1793,7 @@ struct ASTBase
         {
            size_t nargs = 0;
 
-            int dimDg(size_t n, Parameter p)
+            int dimDg(size_t /* n */, Parameter /* p */)
             {
                 ++nargs;
                 return 0;
@@ -6180,7 +6180,7 @@ struct ASTBase
         }
 
         // this should be abstract and implemented in child classes
-        Expression toExpression(Type t = null)
+        Expression toExpression(Type /* t */ = null)
         {
             return null;
         }
