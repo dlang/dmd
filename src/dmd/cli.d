@@ -572,7 +572,7 @@ dmd -cov -unittest myprog.d
             "enable an upcoming language change identified by 'id'",
             `Preview an upcoming language change identified by $(I id)`,
         ),
-        Option("preview=?",
+        Option("preview=[h|help|?]",
             "list all upcoming language changes"
         ),
         Option("profile",
@@ -598,7 +598,7 @@ dmd -cov -unittest myprog.d
             "revert language change identified by 'id'",
             `Revert language change identified by $(I id)`,
         ),
-        Option("revert=?",
+        Option("revert=[h|help|?]",
             "list all revertable language changes"
         ),
         Option("run <srcfile>",
