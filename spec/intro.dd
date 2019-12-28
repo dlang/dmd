@@ -67,6 +67,78 @@ $(OL
 )
 
 
+$(H2 Memory Model)
+
+    $(P A $(I byte) is the fundamental unit of storage. Each byte has 8 bits. Each byte has
+    a unique address. A $(I memory location) is a sequence of one or more bytes exactly large
+    enough to hold a scalar type. Multiple threads can access separate memory locations
+    without interference.
+    )
+
+    $(P Memory locations come in three groups:)
+
+    $(OL
+    $(LI $(I Thread local memory locations) are accessible from only one thread at a time.)
+    $(LI $(I Immutable memory locations) cannot be written to during its lifetime. Immutable
+    memory locations can be read from by multiple threads without synchronization.)
+    $(LI $(I Shared memory locations) are accessible from multiple threads.)
+    )
+
+    $(UNDEFINED_BEHAVIOR Allowing multiple threads to access a thread local memory
+    location results in undefined behavior.)
+
+    $(UNDEFINED_BEHAVIOR Writing to an immutable memory location during its lifetime
+    results in undefined behavior.)
+
+    $(UNDEFINED_BEHAVIOR Unless synchronized, writing to a shared memory location in
+    one thread while other threads read or write to it results in undefined behavior.)
+
+    $(P Execution of a single thread on thread local and immutable memory locations
+    is $(I sequentially consistent). This means the result of the operations
+    is the same as if it were executed in the order the operations appear in the program.
+    )
+
+    $(P A memory location can be transferred from thread local to immutable or shared
+    if there is only one reference to the location.)
+
+    $(P A memory location can be transferred from shared to immutable or thread local
+    if there is only one reference to the location.)
+
+    $(P A memory location can be temporarily transferred from shared to local if
+    synchronization is used to prevent any other threads from accessing the memory
+    location during the duration.)
+
+
+$(H2 Object Model)
+
+    $(P An $(I object) is created when one of the following is executed:
+    )
+
+    $(UL
+    $(LI a definition)
+    $(LI a $(GLINK2 expression, NewExpression))
+    $(LI a temporary is created)
+    $(LI changing which field of a union is active)
+    )
+
+    $(P An object spans a sequence of memory locations which may or may not
+    be contiguous. It exists during construction, its lifetime, and destruction.
+    Each object has a type, which is determined either statically or by runtime
+    type information.
+    The memory locations may include any combination of thread local, immutable, or
+    shared memory locations.
+    )
+
+    $(P Objects can be composed into a $(I composed object). The objects that make up
+    the composed object are $(I subobjects). An object that is not the subobject
+    of another object is a $(I complete object). The lifetime of a subobject
+    is always within the lifetime of its complete object.
+    )
+
+    $(P An object's address is the address of the first byte of the first memory
+    location for that object. Object addresses are distinct from each other
+    unless one of the objects is nested within the other.
+    )
 
 $(SPEC_SUBNAV_NEXT lex, Lexical)
 )
