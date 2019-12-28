@@ -192,8 +192,8 @@ struct Usage
         Option("c",
             "compile only, do not link"
         ),
-        Option("check=[assert|bounds|in|invariant|out|switch|h|help|?][=[on|off]]",
-            "Enable or disable specific checks",
+        Option("check=[assert|bounds|in|invariant|out|switch][=[on|off]]",
+            "enable or disable specific checks",
             `Overrides default, -boundscheck, -release and -unittest options to enable or disable specific checks.
                 $(UL
                     $(LI $(B assert): assertion checking)
@@ -208,7 +208,10 @@ struct Usage
                     $(LI $(B off): specified check is disabled.)
                 )`
         ),
-        Option("checkaction=[D|C|halt|context|h|help|?]",
+        Option("check=[h|help|?]",
+            "list information on all available checks"
+        ),
+        Option("checkaction=[D|C|halt|context]",
             "behavior on assert/boundscheck/finalswitch failure",
             `Sets behavior when an assert fails, and array boundscheck fails,
              or a final switch errors.
@@ -218,6 +221,9 @@ struct Usage
                     $(LI $(B halt): Executes a halt instruction, terminating the program.)
                     $(LI $(B context): Prints the error context as part of the unrecoverable $(D AssertError).)
                 )`
+        ),
+        Option("checkaction=[h|help|?]",
+            "list information on all available check actions"
         ),
         Option("color",
             "turn colored console output on"
@@ -306,7 +312,7 @@ dmd -cov -unittest myprog.d
             With $(I filename), write module dependencies as text to $(I filename)
             (only imports).`,
         ),
-        Option("extern-std=[<standard>|h|help|?]",
+        Option("extern-std=<standard>",
             "set C++ name mangling compatibility with <standard>",
             "Standards supported are:
             $(UL
@@ -319,6 +325,9 @@ dmd -cov -unittest myprog.d
                 $(LI $(I c++17): Use C++17 name mangling,
                     Sets `__traits(getTargetInfo, \"cppStd\")` to `201703`)
             )",
+        ),
+        Option("extern-std=[h|help|?]",
+            "list all supported standards"
         ),
         Option("fPIC",
             "generate position independent code",
