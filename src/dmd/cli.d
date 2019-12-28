@@ -272,11 +272,11 @@ dmd -cov -unittest myprog.d
             `Silently allow $(DDLINK deprecate,deprecate,deprecated features) and use of symbols with
             $(DDSUBLINK $(ROOT_DIR)spec/attribute, deprecated, deprecated attributes).`,
         ),
-        Option("dw",
-            "issue a message when deprecated features or symbols are used (default)"
-        ),
         Option("de",
             "issue an error when deprecated features or symbols are used (halt compilation)"
+        ),
+        Option("dw",
+            "issue a message when deprecated features or symbols are used (default)"
         ),
         Option("debug",
             "compile in debug code",
@@ -644,11 +644,11 @@ dmd -cov -unittest myprog.d
         Option("verrors=<num>",
             "limit the number of error messages (0 means unlimited)"
         ),
-        Option("verrors=spec",
-            "show errors from speculative compiles such as __traits(compiles,...)"
-        ),
         Option("verrors=context",
             "show error messages with the context of the erroring source line"
+        ),
+        Option("verrors=spec",
+            "show errors from speculative compiles such as __traits(compiles,...)"
         ),
         Option("-version",
             "print compiler version and exit"
