@@ -1222,17 +1222,17 @@ void allocStates(ref ObState obstate)
 }
 
 /******************************
- * Does v mean the definiton of a `Borrowed` pointer?
+ * Does v meet the definiton of a `Borrowed` pointer?
  * Returns:
  *      true if it does
  */
 bool isBorrowedPtr(VarDeclaration v)
 {
-    return v.isScope() && v.type.nextOf().isMutable();
+    return v.isScope() && !v.isowner && v.type.nextOf().isMutable();
 }
 
 /******************************
- * Does v mean the definiton of a `Readonly` pointer?
+ * Does v meet the definiton of a `Readonly` pointer?
  * Returns:
  *      true if it does
  */
@@ -1253,7 +1253,7 @@ void computeGenKill(ref ObState obstate)
     /***************
      * Assigning result of expression to variable.
      */
-    void dgWriteVar(ObNode* ob, VarDeclaration v, Expression e)
+    void dgWriteVar(ObNode* ob, VarDeclaration v, Expression e, bool initializer)
     {
         const i = obstate.vars.find(v);
         assert(i != size_t.max);
@@ -1271,6 +1271,7 @@ void computeGenKill(ref ObState obstate)
 
             EscapeByResults er;
             escapeByValue(e, &er);
+            bool any = false;           // if any variables are assigned to v
 
             void by(VarDeclaration r)
             {
@@ -1279,6 +1280,7 @@ void computeGenKill(ref ObState obstate)
                 {
                     pvs.deps[ri] = true;         // v took from r
                     auto pvsr = &ob.gen[ri];
+                    any = true;
 
                     if (isBorrowedPtr(v))
                     {
@@ -1322,6 +1324,15 @@ void computeGenKill(ref ObState obstate)
                 by(v2);
             foreach (VarDeclaration v2; er.byref)
                 by(v2);
+
+            /* Make v an Owner for initializations like:
+             *    scope v = malloc();
+             */
+            if (initializer && !any && isBorrowedPtr(v))
+            {
+                v.isowner = true;
+                pvs.state = PtrState.Owner;
+            }
         }
         else
         {
@@ -1358,12 +1369,12 @@ void computeGenKill(ref ObState obstate)
         extern (C++) final class ExpWalker : Visitor
         {
             alias visit = typeof(super).visit;
-            extern (D) void delegate(ObNode*, VarDeclaration, Expression) dgWriteVar;
+            extern (D) void delegate(ObNode*, VarDeclaration, Expression, bool) dgWriteVar;
             extern (D) void delegate(const ref Loc loc, ObNode* ob, VarDeclaration v, Type t) dgReadVar;
             ObNode* ob;
             ObState* obstate;
 
-            extern (D) this(void delegate(ObNode*, VarDeclaration, Expression) dgWriteVar,
+            extern (D) this(void delegate(ObNode*, VarDeclaration, Expression, bool) dgWriteVar,
                             void delegate(const ref Loc loc, ObNode* ob, VarDeclaration v, Type t) dgReadVar,
                             ObNode* ob, ref ObState obstate)
             {
@@ -1377,6 +1388,24 @@ void computeGenKill(ref ObState obstate)
             {
                 //printf("[%s] %s: %s\n", e.loc.toChars(), Token.toChars(e.op), e.toChars());
                 //assert(0);
+            }
+
+            void visitAssign(AssignExp ae, bool initializer)
+            {
+                ae.e2.accept(this);
+                if (auto ve = ae.e1.isVarExp())
+                {
+                    if (auto v = ve.var.isVarDeclaration())
+                        if (isTrackableVar(v))
+                            dgWriteVar(ob, v, ae.e2, initializer);
+                }
+                else
+                    ae.e1.accept(this);
+            }
+
+            override void visit(AssignExp ae)
+            {
+                visitAssign(ae, false);
             }
 
             override void visit(DeclarationExp e)
@@ -1393,9 +1422,9 @@ void computeGenKill(ref ObState obstate)
 
                         auto ei = vd._init ? vd._init.isExpInitializer() : null;
                         if (ei)
-                            visit(cast(AssignExp)ei.exp);
+                            visitAssign(cast(AssignExp)ei.exp, true);
                         else
-                            dgWriteVar(ob, vd, null);
+                            dgWriteVar(ob, vd, null, false);
                     }
                     else if (auto td = s.isTupleDeclaration())
                     {
@@ -1413,19 +1442,6 @@ void computeGenKill(ref ObState obstate)
                 }
 
                 Dsymbol_visit(e.declaration);
-            }
-
-            override void visit(AssignExp ae)
-            {
-                ae.e2.accept(this);
-                if (auto ve = ae.e1.isVarExp())
-                {
-                    if (auto v = ve.var.isVarDeclaration())
-                        if (isTrackableVar(v))
-                            dgWriteVar(ob, v, ae.e2);
-                }
-                else
-                    ae.e1.accept(this);
             }
 
             override void visit(VarExp ve)
@@ -1549,7 +1565,7 @@ void computeGenKill(ref ObState obstate)
                             if (p.storageClass & STC.out_)
                             {
                                 if (auto v = isTrackableVarExp(arg))
-                                    dgWriteVar(ob, v, null);
+                                    dgWriteVar(ob, v, null, false);
                             }
                         }
                     }

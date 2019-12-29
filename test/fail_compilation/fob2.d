@@ -41,3 +41,16 @@ fail_compilation/fob2.d(202): Error: variable `fob2.zoo2.p` is left dangling at 
 
 @live void foo2( scope int* p, scope int* q );
 
+/* TEST_OUTPUT:
+---
+fail_compilation/fob2.d(303): Error: variable `fob2.foo3.b` is left dangling at return
+---
+*/
+
+#line 300
+
+@live void foo3()
+{
+    scope int* b = malloc();
+}
+

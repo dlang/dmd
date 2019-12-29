@@ -1081,6 +1081,7 @@ extern (C++) class VarDeclaration : Declaration
     bool isargptr;                  // if parameter that _argptr points to
     bool ctorinit;                  // it has been initialized in a ctor
     bool iscatchvar;                // this is the exception object variable in catch() clause
+    bool isowner;                   // this is an Owner, despite it being `scope`
 
     // Both these mean the var is not rebindable once assigned,
     // and the destructor gets run when it goes out of scope
