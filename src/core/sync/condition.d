@@ -469,12 +469,11 @@ private:
 // Unit Tests
 ////////////////////////////////////////////////////////////////////////////////
 
-
-version (unittest)
+unittest
 {
-    private import core.thread;
-    private import core.sync.mutex;
-    private import core.sync.semaphore;
+    import core.thread;
+    import core.sync.mutex;
+    import core.sync.semaphore;
 
 
     void testNotify()
@@ -631,11 +630,7 @@ version (unittest)
         assert( !alertedTwo );
     }
 
-
-    unittest
-    {
-        testNotify();
-        testNotifyAll();
-        testWaitTimeout();
-    }
+    testNotify();
+    testNotifyAll();
+    testWaitTimeout();
 }
