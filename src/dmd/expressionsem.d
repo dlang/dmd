@@ -6124,18 +6124,28 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 RootObject o = (*tup.objects)[i];
                 Expression e;
+                Declaration var;
                 if (o.dyncast() == DYNCAST.expression)
                 {
                     e = cast(Expression)o;
-                    if (e.op == TOK.dSymbol)
-                    {
-                        Dsymbol s = (cast(DsymbolExp)e).s;
-                        e = new DotVarExp(exp.loc, ev, s.isDeclaration());
-                    }
+                    if (auto se = e.isDsymbolExp())
+                        var = se.s.isDeclaration();
+                    else if (auto ve = e.isVarExp())
+                        if (!ve.var.isFuncDeclaration())
+                            // Exempt functions for backwards compatibility reasons.
+                            // See: https://issues.dlang.org/show_bug.cgi?id=20470#c1
+                            var = ve.var;
                 }
                 else if (o.dyncast() == DYNCAST.dsymbol)
                 {
-                    e = new DsymbolExp(exp.loc, cast(Dsymbol)o);
+                    Dsymbol s = cast(Dsymbol) o;
+                    Declaration d = s.isDeclaration();
+                    if (!d || d.isFuncDeclaration())
+                        // Exempt functions for backwards compatibility reasons.
+                        // See: https://issues.dlang.org/show_bug.cgi?id=20470#c1
+                        e = new DsymbolExp(exp.loc, s);
+                    else
+                        var = d;
                 }
                 else if (o.dyncast() == DYNCAST.type)
                 {
@@ -6146,6 +6156,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     exp.error("`%s` is not an expression", o.toChars());
                     return setError();
                 }
+                if (var)
+                    e = new DotVarExp(exp.loc, ev, var);
                 exps.push(e);
             }
 
