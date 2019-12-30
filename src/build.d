@@ -822,7 +822,7 @@ void parseEnvironment()
             pic = true;
         else version(X86)
             pic = false;
-        if (environment.get("PIC", "0") == "1")
+        if (env.getNumberedBool("PIC"))
             pic = true;
 
         env["PIC_FLAG"]  = pic ? "-fPIC" : "";
@@ -860,7 +860,7 @@ void parseEnvironment()
     }
 
     // Auto-bootstrapping of a specific host compiler
-    if (env.getDefault("AUTO_BOOTSTRAP", null) == "1")
+    if (env.getNumberedBool("AUTO_BOOTSTRAP"))
     {
         auto hostDMDVer = env.getDefault("HOST_DMD_VER", "2.088.0");
         writefln("Using Bootstrap compiler: %s", hostDMDVer);
@@ -922,7 +922,8 @@ void processEnvironment()
     else
         env.getDefault("ZIP", "zip");
 
-    env.getDefault("ENABLE_WARNINGS", "0");
+    // TODO: this isn't being used for anything yet...
+    env.getNumberedBool("ENABLE_WARNINGS");
     string[] warnings;
 
     string[] dflags = ["-version=MARS", "-w", "-de", env["PIC_FLAG"], env["MODEL_FLAG"], "-J"~env["G"]];
@@ -934,11 +935,11 @@ void processEnvironment()
     version(OSX) version(X86_64)
         dObjc = true;
 
-    if (env.getDefault("ENABLE_DEBUG", "0") != "0")
+    if (env.getNumberedBool("ENABLE_DEBUG"))
     {
         dflags ~= ["-g", "-debug"];
     }
-    if (env.getDefault("ENABLE_RELEASE", "0") != "0")
+    if (env.getNumberedBool("ENABLE_RELEASE"))
     {
         dflags ~= ["-O", "-release", "-inline"];
     }
@@ -948,23 +949,23 @@ void processEnvironment()
         if (!dflags.canFind("-g"))
             dflags ~= ["-g"];
     }
-    if (env.getDefault("ENABLE_LTO", "0") != "0")
+    if (env.getNumberedBool("ENABLE_LTO"))
     {
         dflags ~= ["-flto=full"];
     }
-    if (env.getDefault("ENABLE_UNITTEST", "0") != "0")
+    if (env.getNumberedBool("ENABLE_UNITTEST"))
     {
         dflags ~= ["-unittest", "-cov"];
     }
-    if (env.getDefault("ENABLE_PROFILE", "0") != "0")
+    if (env.getNumberedBool("ENABLE_PROFILE"))
     {
         dflags ~= ["-profile"];
     }
-    if (env.getDefault("ENABLE_COVERAGE", "0") != "0")
+    if (env.getNumberedBool("ENABLE_COVERAGE"))
     {
         dflags ~= ["-cov", "-L-lgcov"];
     }
-    if (env.getDefault("ENABLE_SANITIZERS", "0") != "0")
+    if (env.getNumberedBool("ENABLE_SANITIZERS"))
     {
         dflags ~= ["-fsanitize="~env["ENABLE_SANITIZERS"]];
     }
@@ -1007,10 +1008,10 @@ void processEnvironmentCxx()
         cxxKind == "g++" ? "-std=gnu++98" : "-xc++"
     ];
 
-    if (env["ENABLE_COVERAGE"] != "0")
+    if (env.getNumberedBool("ENABLE_COVERAGE"))
         cxxFlags ~= "--coverage";
 
-    if (env["ENABLE_SANITIZERS"] != "0")
+    if (env.getNumberedBool("ENABLE_SANITIZERS"))
         cxxFlags ~= "-fsanitize=" ~ env["ENABLE_SANITIZERS"];
 
     // Enable a temporary workaround in globals.h and rmem.h concerning
@@ -1354,6 +1355,19 @@ auto getDefault(ref string[string] env, string key, string default_)
     return env[key];
 }
 
+/**
+Get the value of a build variable that should always be 0, 1 or empty.
+*/
+bool getNumberedBool(ref string[string] env, string varname)
+{
+    const value = env.getDefault(varname, null);
+    if (value.length == 0 || value == "0")
+        return false;
+    if (value == "1")
+        return true;
+    throw abortBuild(format("Variable '%s' should be '0', '1' or <empty> but got '%s'", varname, value));
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Mini build system
 ////////////////////////////////////////////////////////////////////////////////
@@ -1606,7 +1620,7 @@ Returns: nothing but enables `throw abortBuild` to convey the resulting behavior
 */
 BuildException abortBuild(string msg = "Build failed!")
 {
-    throw new BuildException(msg);
+    throw new BuildException("ERROR: " ~ msg);
 }
 
 class BuildException : Exception
