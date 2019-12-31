@@ -1338,6 +1338,11 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         // Set up scope for parameters
         Scope* paramscope = scopeForTemplateParameters(ti,sc);
 
+        // Mark the parameter scope as deprecated if the templated
+        // function is deprecated (since paramscope.enclosing is the
+        // calling scope already)
+        paramscope.stc |= fd.storage_class & STC.deprecated_;
+
         TemplateTupleParameter tp = isVariadic();
         Tuple declaredTuple = null;
 
@@ -2187,6 +2192,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             sc2.parent = ti;
             sc2.tinst = ti;
             sc2.minst = sc.minst;
+            sc2.stc |= fd.storage_class & STC.deprecated_;
 
             fd = doHeaderInstantiation(ti, sc2, fd, tthis, fargs);
 
