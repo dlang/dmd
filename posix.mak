@@ -373,10 +373,15 @@ druntime.zip: $(MANIFEST)
 	rm -rf $@
 	zip $@ $^
 
+ifneq (,$(findstring Darwin_64_32, $(PWD)))
+install:
+	echo "Darwin_64_32_disabled"
+else
 install: target
 	mkdir -p $(INSTALL_DIR)/src/druntime/import
 	cp -r import/* $(INSTALL_DIR)/src/druntime/import/
 	cp LICENSE.txt $(INSTALL_DIR)/druntime-LICENSE.txt
+endif
 
 clean: $(addsuffix /.clean,$(ADDITIONAL_TESTS))
 	rm -rf $(ROOT_OF_THEM_ALL) $(IMPDIR) $(DOCDIR) druntime.zip
