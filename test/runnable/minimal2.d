@@ -30,7 +30,8 @@ void poorMansAssert(bool condition)
 {
     if (!condition)
     {
-        asm {hlt;}
+        static char* hlt;
+        *hlt = 0;
     }
 }
 
