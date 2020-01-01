@@ -423,18 +423,18 @@ bool needOpEquals(StructDeclaration sd)
             if (ts.sym.aliasthis) // https://issues.dlang.org/show_bug.cgi?id=14806
                 goto Lneed;
         }
-        if (tv.isfloating())
+        if (tvbase.isfloating())
         {
             // This is necessray for:
             //  1. comparison of +0.0 and -0.0 should be true.
             //  2. comparison of NANs should be false always.
             goto Lneed;
         }
-        if (tv.ty == Tarray)
+        if (tvbase.ty == Tarray)
             goto Lneed;
-        if (tv.ty == Taarray)
+        if (tvbase.ty == Taarray)
             goto Lneed;
-        if (tv.ty == Tclass)
+        if (tvbase.ty == Tclass)
             goto Lneed;
     }
 Ldontneed:
@@ -744,18 +744,18 @@ private bool needToHash(StructDeclaration sd)
             if (ts.sym.aliasthis) // https://issues.dlang.org/show_bug.cgi?id=14948
                 goto Lneed;
         }
-        if (tv.isfloating())
+        if (tvbase.isfloating())
         {
             /* This is necessary because comparison of +0.0 and -0.0 should be true,
              * i.e. not a bit compare.
              */
             goto Lneed;
         }
-        if (tv.ty == Tarray)
+        if (tvbase.ty == Tarray)
             goto Lneed;
-        if (tv.ty == Taarray)
+        if (tvbase.ty == Taarray)
             goto Lneed;
-        if (tv.ty == Tclass)
+        if (tvbase.ty == Tclass)
             goto Lneed;
     }
 Ldontneed:
