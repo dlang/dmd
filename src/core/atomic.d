@@ -605,6 +605,13 @@ else version (D_InlineAsm_X86_64)
     enum has64BitCAS = true;
     enum has128BitCAS = true;
 }
+else version (GNU)
+{
+    import gcc.config;
+    enum has64BitCAS = GNU_Have_64Bit_Atomics;
+    enum has64BitXCHG = GNU_Have_64Bit_Atomics;
+    enum has128BitCAS = GNU_Have_LibAtomic;
+}
 else
 {
     enum has64BitXCHG = false;
