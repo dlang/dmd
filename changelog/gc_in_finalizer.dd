@@ -1,4 +1,4 @@
-$(REF inFinalizer, core, memory, GC) was added
+$(REF GC.inFinalizer, core, memory) was added
 
 A new function exposing information about the state of the GC was added.
 It returns `true` if the current thread is executing destructors (finalizers)
@@ -16,6 +16,6 @@ limitations or oddities:
 * In contrast to stack allocated objects, partially constructed objects (object
   whose constructor threw an exception) may be finalized
 
-$(REF inFinalizer, core, memory, GC) can be used to efficiently guard against
+$(REF GC.inFinalizer, core, memory) can be used to efficiently guard against
 programming errors such as the above, or to detect whether certain
 objects were left to be destroyed by the GC.
