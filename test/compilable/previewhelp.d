@@ -17,5 +17,6 @@ Upcoming language changes listed by -preview=name:
   =rvaluerefparam   enable rvalue arguments to ref parameters
   =nosharedaccess   disable access to shared memory objects
   =in               in means scope const
+  =safedefault      make @safe the default
 ----
 */

@@ -2346,10 +2346,10 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
     }
     //if (eprefix) printf("eprefix: %s\n", eprefix.toChars());
 
-    /* Test compliance with DIP1021
+    /* Test compliance with DIP1021 Argument Ownership and Function Calls
      */
     if (global.params.useDIP1021 &&
-        tf.trust != TRUST.system && tf.trust != TRUST.trusted)
+        (tf.trust == TRUST.safe || tf.trust == TRUST.default_))
         err |= checkMutableArguments(sc, fd, tf, ethis, arguments, false);
 
     // If D linkage and variadic, add _arguments[] as first argument
@@ -4897,7 +4897,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         sc.func.kind(), sc.func.toPrettyChars(), p, exp.e1.toChars());
                     err = true;
                 }
-                if (tf.trust <= TRUST.system && sc.func.setUnsafe())
+                if ((tf.trust == TRUST.system || tf.trust == TRUST.default_ && !global.params.safeDefault) &&
+                    sc.func.setUnsafe())
                 {
                     exp.error("`@safe` %s `%s` cannot call `@system` %s `%s`",
                         sc.func.kind(), sc.func.toPrettyChars(), p, exp.e1.toChars());

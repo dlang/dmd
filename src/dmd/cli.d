@@ -757,6 +757,8 @@ dmd -cov -unittest myprog.d
             "disable access to shared memory objects"),
         Feature("in", "inMeansScopeConst",
             "in means scope const"),
+        Feature("safedefault", "safeDefault",
+            "make @safe the default"),
     ];
 }
 

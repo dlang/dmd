@@ -759,7 +759,16 @@ extern (C++) abstract class Type : ASTNode
 
         /* Can convert safe/trusted to system
          */
-        if (t1.trust <= TRUST.system && t2.trust >= TRUST.trusted)
+        if (global.params.safeDefault)
+        {
+            if (t1.trust == TRUST.system &&
+                (t2.trust == TRUST.default_ || t2.trust == TRUST.trusted || t2.trust == TRUST.safe))
+            {
+                // Should we infer trusted or safe? Go with safe.
+                stc |= STC.safe;
+            }
+        }
+        else if (t1.trust <= TRUST.system && t2.trust >= TRUST.trusted)
         {
             // Should we infer trusted or safe? Go with safe.
             stc |= STC.safe;
@@ -4492,7 +4501,7 @@ extern (C++) final class TypeFunction : TypeNext
             (stc & STC.nothrow_ && !t.isnothrow) ||
             (stc & STC.nogc && !t.isnogc) ||
             (stc & STC.scope_ && !t.isscope) ||
-            (stc & STC.safe && t.trust < TRUST.trusted))
+            (stc & STC.safe && (t.trust == TRUST.system || (!global.params.safeDefault && t.trust == TRUST.default_))))
         {
             // Klunky to change these
             auto tf = new TypeFunction(t.parameterList, t.next, t.linkage, 0);
@@ -6787,7 +6796,7 @@ void attributesApply(const TypeFunction tf, void delegate(string) dg, TRUSTforma
     if (trustAttrib == TRUST.default_)
     {
         if (trustFormat == TRUSTformatSystem)
-            trustAttrib = TRUST.system;
+            trustAttrib = global.params.safeDefault ? TRUST.safe : TRUST.system;
         else
             return; // avoid calling with an empty string
     }

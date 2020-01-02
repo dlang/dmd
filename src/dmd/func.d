@@ -1379,7 +1379,9 @@ extern (C++) class FuncDeclaration : Declaration
     {
         if (flags & FUNCFLAG.safetyInprocess)
             setUnsafe();
-        return type.toTypeFunction().trust == TRUST.safe;
+        const trust = type.toTypeFunction().trust;
+        return trust == TRUST.safe ||
+               trust == TRUST.default_ && global.params.safeDefault;
     }
 
     final bool isSafeBypassingInference()

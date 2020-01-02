@@ -2915,10 +2915,22 @@ Lagain:
 
             if (tf1.trust == tf2.trust)
                 d.trust = tf1.trust;
-            else if (tf1.trust <= TRUST.system || tf2.trust <= TRUST.system)
-                d.trust = TRUST.system;
+            else if (global.params.safeDefault)
+            {
+                if (tf1.trust == TRUST.system || tf2.trust == TRUST.system)
+                    d.trust = TRUST.system;
+                else if (tf1.trust == TRUST.trusted || tf2.trust == TRUST.trusted)
+                    d.trust = TRUST.trusted;
+                else
+                    d.trust = TRUST.default_;
+            }
             else
-                d.trust = TRUST.trusted;
+            {
+                if (tf1.trust <= TRUST.system || tf2.trust <= TRUST.system)
+                    d.trust = TRUST.system;
+                else
+                    d.trust = TRUST.trusted;
+            }
 
             Type tx = null;
             if (t1.ty == Tdelegate)

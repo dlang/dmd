@@ -166,6 +166,7 @@ extern (C++) struct Param
     bool useExceptions = true;   // support exception handling
     bool noSharedAccess;         // read/write access to shared memory objects
     bool inMeansScopeConst; // `in` means `scope const`
+    bool safeDefault;            // @safe is the default
     bool betterC;           // be a "better C" compiler; no dependency on D runtime
     bool addMain;           // add a default main() function
     bool allInst;           // generate code for all template instantiations
