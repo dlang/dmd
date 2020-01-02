@@ -1746,6 +1746,14 @@ private:
             ulong[16]       m_reg; // rdi,rsi,rbp,rsp,rbx,rdx,rcx,rax
                                    // r8,r9,r10,r11,r12,r13,r14,r15
         }
+        else version (AArch64)
+        {
+            ulong[33]       m_reg; // x0-x31, pc
+        }
+        else version (ARM)
+        {
+            uint[16]        m_reg; // r0-r15
+        }
         else
         {
             static assert(false, "Architecture not supported." );
