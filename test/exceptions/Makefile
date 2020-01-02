@@ -1,7 +1,7 @@
 include ../common.mak
 
 TESTS=stderr_msg unittest_assert invalid_memory_operation unknown_gc static_dtor \
-	  future_message rt_trap_exceptions_drt catch_in_finally
+	  future_message refcounted rt_trap_exceptions_drt catch_in_finally
 
 ifeq ($(OS)-$(BUILD),linux-debug)
 	TESTS+=line_trace long_backtrace_trunc rt_trap_exceptions
@@ -90,10 +90,16 @@ $(ROOT)/rt_trap_exceptions_drt_gdb.done: $(ROOT)/rt_trap_exceptions_drt
 	! grep "No stack." > /dev/null < $(ROOT)/rt_trap_exceptions_drt_gdb.output
 	@touch $@
 
+$(ROOT)/refcounted.done: $(ROOT)/refcounted
+	$(QUIET) $<
+	@touch $@
+
 $(ROOT)/unittest_assert: DFLAGS+=-unittest
 $(ROOT)/line_trace: DFLAGS+=$(LINE_TRACE_DFLAGS)
 $(ROOT)/rt_trap_exceptions_drt: DFLAGS+=-g
 $(ROOT)/assert_fail: DFLAGS+=-checkaction=context
+$(ROOT)/refcounted: DFLAGS+=-dip1008
+
 $(ROOT)/%: $(SRC)/%.d $(DMD) $(DRUNTIME)
 	$(QUIET)$(DMD) $(DFLAGS) -of$@ $<
 
