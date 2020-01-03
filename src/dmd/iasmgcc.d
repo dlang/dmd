@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- *              Copyright (C) 2018-2019 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2018-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     Iain Buclaw
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/iasmgcc.d, _iasmgcc.d)
