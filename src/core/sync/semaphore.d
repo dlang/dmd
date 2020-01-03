@@ -359,8 +359,7 @@ protected:
 // Unit Tests
 ////////////////////////////////////////////////////////////////////////////////
 
-
-version (unittest)
+unittest
 {
     import core.thread, core.atomic;
 
@@ -447,10 +446,6 @@ version (unittest)
         assert(alertedOne && !alertedTwo);
     }
 
-
-    unittest
-    {
-        testWait();
-        testWaitTimeout();
-    }
+    testWait();
+    testWaitTimeout();
 }
