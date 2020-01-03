@@ -1853,12 +1853,13 @@ class Throwable : Object
      */
     static @__future @system @nogc pure nothrow Throwable chainTogether(return scope Throwable e1, return scope Throwable e2)
     {
-        if (e2 && e2.refcount())
-            ++e2.refcount();
         if (!e1)
             return e2;
         if (!e2)
             return e1;
+        if (e2.refcount())
+            ++e2.refcount();
+
         for (auto e = e1; 1; e = e.nextInChain)
         {
             if (!e.nextInChain)
