@@ -465,14 +465,14 @@ private Float denormalizedMantissa(T)(T x, uint sign) if (floatFormat!T == Float
         return Float(fl.mantissa2 & 0x00FFFFFFFFFFFFFFUL , 0, sign, 1);
 }
 
-version (unittest)
+@system unittest
 {
-    private const(ubyte)[] toUbyte2(T)(T val)
+    static const(ubyte)[] toUbyte2(T)(T val)
     {
         return toUbyte(val).dup;
     }
 
-    private void testNumberConvert(string v)()
+    static void testNumberConvert(string v)()
     {
         enum ctval = mixin(v);
 
@@ -488,7 +488,7 @@ version (unittest)
         assert(rtbytes[0..testsize] == ctbytes[0..testsize]);
     }
 
-    private void testConvert()
+    static void testConvert()
     {
         /**Test special values*/
         testNumberConvert!("-float.infinity");
@@ -598,11 +598,7 @@ version (unittest)
         testNumberConvert!("cast(float)0x9.54bb0d88806f714p-7088L");
     }
 
-
-    unittest
-    {
-        testConvert();
-    }
+    testConvert();
 }
 
 
