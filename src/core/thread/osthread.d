@@ -28,47 +28,47 @@ else version (TVOS)
 else version (WatchOS)
     version = Darwin;
 
+version (D_InlineAsm_X86)
+{
+    version (Windows)
+        version = AsmX86_Windows;
+    else version (Posix)
+        version = AsmX86_Posix;
+}
+else version (D_InlineAsm_X86_64)
+{
+    version (Windows)
+    {
+        version = AsmX86_64_Windows;
+    }
+    else version (Posix)
+    {
+        version = AsmX86_64_Posix;
+    }
+}
+
+version (Posix)
+{
+    import core.sys.posix.unistd;
+
+    version (AsmX86_Windows)    {} else
+    version (AsmX86_Posix)      {} else
+    version (AsmX86_64_Windows) {} else
+    version (AsmX86_64_Posix)   {} else
+    version (AsmExternal)       {} else
+    {
+        // NOTE: The ucontext implementation requires architecture specific
+        //       data definitions to operate so testing for it must be done
+        //       by checking for the existence of ucontext_t rather than by
+        //       a version identifier.  Please note that this is considered
+        //       an obsolescent feature according to the POSIX spec, so a
+        //       custom solution is still preferred.
+        import core.sys.posix.ucontext;
+    }
+}
+
 package(core.thread)
 {
-    version (D_InlineAsm_X86)
-    {
-        version (Windows)
-            version = AsmX86_Windows;
-        else version (Posix)
-            version = AsmX86_Posix;
-    }
-    else version (D_InlineAsm_X86_64)
-    {
-        version (Windows)
-        {
-            version = AsmX86_64_Windows;
-        }
-        else version (Posix)
-        {
-            version = AsmX86_64_Posix;
-        }
-    }
-
-    version (Posix)
-    {
-        import core.sys.posix.unistd;
-
-        version (AsmX86_Windows)    {} else
-        version (AsmX86_Posix)      {} else
-        version (AsmX86_64_Windows) {} else
-        version (AsmX86_64_Posix)   {} else
-        version (AsmExternal)       {} else
-        {
-            // NOTE: The ucontext implementation requires architecture specific
-            //       data definitions to operate so testing for it must be done
-            //       by checking for the existence of ucontext_t rather than by
-            //       a version identifier.  Please note that this is considered
-            //       an obsolescent feature according to the POSIX spec, so a
-            //       custom solution is still preferred.
-            import core.sys.posix.ucontext;
-        }
-    }
-
     static immutable size_t PAGESIZE;
     version (Posix) static immutable size_t PTHREAD_STACK_MIN;
 }
