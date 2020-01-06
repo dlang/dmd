@@ -403,6 +403,20 @@ extern (C++) void message(const(char)* format, ...)
 }
 
 /**
+ * The type of the diagnostic handler
+ * see verrorPrint for arguments
+ * Returns: true if error handling is done, false to continue printing to stderr
+ */
+alias DiagnosticHandler = bool delegate(const ref Loc location, Color headerColor, const(char)* header, const(char)* messageFormat, va_list args, const(char)* prefix1, const(char)* prefix2);
+
+/**
+ * The diagnostic handler.
+ * If non-null it will be called for every diagnostic message issued by the compiler.
+ * If it returns false, the message will be printed to stderr as usual.
+ */
+__gshared DiagnosticHandler diagnosticHandler;
+
+/**
  * Print a tip message with the prefix and highlighting.
  * Params:
  *      format = printf-style format specification
@@ -431,6 +445,9 @@ extern (C++) void tip(const(char)* format, ...)
 private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* header,
         const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)
 {
+    if (diagnosticHandler && diagnosticHandler(loc, headerColor, header, format, ap, p1, p2))
+        return;
+
     Console* con = cast(Console*)global.console;
     const p = loc.toChars();
     if (con)
