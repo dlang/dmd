@@ -384,8 +384,7 @@ unittest
         p.check(TOK.asm_);
         p.check(TOK.leftCurly);
 
-        auto tokens = p.makeRangeFromHere();
-        tokens.popBack(); //start with an empty range
+        auto tokens = p[0 .. 0]; //start with an empty range
 
         while (1)
         {

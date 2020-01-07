@@ -336,7 +336,7 @@ final class Parser(AST) : Lexer
         AST.Dsymbols* decldefs;
         AST.Dsymbol lastDecl = mod; // for attaching ddoc unittests to module decl
 
-        TokenRange tokens = makeRangeFromHere();
+        TokenRange tokens = this[];
         if (skipAttributes(tokens) && tokens.back.value == TOK.module_)
         {
             while (token.value != TOK.module_)
@@ -818,8 +818,7 @@ final class Parser(AST) : Lexer
                  *      storage_class identifier = initializer;
                  *      storage_class identifier(...) = initializer;
                  */
-                auto tokens = makeRangeFromHere();
-                tokens.growBack();
+                auto tokens = this[1 .. 2];
                 if (token.value == TOK.identifier && hasOptionalParensThen(tokens, TOK.assign))
                 {
                     a = parseAutoDeclarations(getStorageClass!AST(pAttrs), pAttrs.comment);
@@ -835,8 +834,7 @@ final class Parser(AST) : Lexer
 
                 /* Look for return type inference for template functions.
                  */
-                tokens = makeRangeFromHere();
-                tokens.growBack();
+                tokens = this[1 .. 2];
                 if (token.value == TOK.identifier && skipParens(tokens) && skipAttributes(tokens) &&
                     (tokens.back.value == TOK.leftParentheses || tokens.back.value == TOK.leftCurly ||
                      tokens.back.value == TOK.in_ || tokens.back.value == TOK.out_ ||
@@ -1277,8 +1275,7 @@ final class Parser(AST) : Lexer
 
             case TOK.comma:
                 nextToken();
-                auto tokens = makeRangeFromHere();
-                tokens.growBack();
+                auto tokens = this[1 .. 2];
                 if (!(token.value == TOK.identifier && hasOptionalParensThen(tokens, TOK.assign)))
                 {
                     error("identifier expected following comma");
@@ -1643,7 +1640,7 @@ final class Parser(AST) : Lexer
                     nextToken();
                     loc = token.loc; // todo
                     AST.Type spectype = null;
-                    auto tokens = makeRangeFromHere();
+                    auto tokens = this[];
                     if (isDeclaration(tokens, NeedDeclaratorId.must, TOK.reserved))
                     {
                         spectype = parseType(&tp_ident);
@@ -1662,7 +1659,7 @@ final class Parser(AST) : Lexer
                     if (token.value == TOK.colon) // : Type
                     {
                         nextToken();
-                        tokens = makeRangeFromHere();
+                        tokens = this[];
                         if (isDeclaration(tokens, NeedDeclaratorId.no, TOK.reserved))
                             spec = parseType();
                         else
@@ -1672,7 +1669,7 @@ final class Parser(AST) : Lexer
                     if (token.value == TOK.assign) // = Type
                     {
                         nextToken();
-                        tokens = makeRangeFromHere();
+                        tokens = this[];
                         if (isDeclaration(tokens, NeedDeclaratorId.no, TOK.reserved))
                             def = parseType();
                         else
@@ -1944,7 +1941,7 @@ final class Parser(AST) : Lexer
      */
     RootObject parseTypeOrAssignExp(TOK endtoken = TOK.reserved)
     {
-        auto tokens = makeRangeFromHere();
+        auto tokens = this[];
         return isDeclaration(tokens, NeedDeclaratorId.no, endtoken)
             ? parseType()           // argument is a type
             : parseAssignExp();     // argument is an expression
@@ -2464,7 +2461,7 @@ final class Parser(AST) : Lexer
          */
         AST.TemplateParameters* tpl = null;
         if (token.value == TOK.leftParentheses &&
-            peekPastParen(makeRangeFromHere()).back.value == TOK.leftParentheses)
+            peekPastParen(this[]).back.value == TOK.leftParentheses)
         {
             tpl = parseTemplateParameterList();
         }
@@ -3863,7 +3860,7 @@ final class Parser(AST) : Lexer
 
                     nextToken();
                     AST.Type t = maybeArray ? maybeArray : cast(AST.Type)tid;
-                    auto tokens = makeRangeFromHere();
+                    auto tokens = this[];
                     if (token.value == TOK.rightBracket)
                     {
                         // It's a dynamic array, and we're done:
@@ -3947,7 +3944,7 @@ final class Parser(AST) : Lexer
                 //     int[3][1] a;
                 // is (array[1] of array[3] of int)
                 nextToken();
-                auto tokens = makeRangeFromHere();
+                auto tokens = this[];
                 if (token.value == TOK.rightBracket)
                 {
                     t = new AST.TypeDArray(t); // []
@@ -4048,7 +4045,7 @@ final class Parser(AST) : Lexer
                 }
                 ts = t;
 
-                auto tokens = makeRangeFromHere();
+                auto tokens = this[];
                 /* Completely disallow C-style things like:
                  *   T (a);
                  * Improve error messages for the common bug of a missing return type
@@ -4084,7 +4081,7 @@ final class Parser(AST) : Lexer
                         // This is the old C-style post [] syntax.
                         AST.TypeNext ta;
                         nextToken();
-                        auto tokens = makeRangeFromHere();
+                        auto tokens = this[];
                         if (token.value == TOK.rightBracket)
                         {
                             // It's a dynamic array
@@ -4127,7 +4124,7 @@ final class Parser(AST) : Lexer
                 {
                     if (tpl)
                     {
-                        const tval = peekPastParen(makeRangeFromHere()).back.value;
+                        const tval = peekPastParen(this[]).back.value;
                         if (tval == TOK.leftParentheses)
                         {
                             /* Look ahead to see if this is (...)(...),
@@ -4397,8 +4394,7 @@ final class Parser(AST) : Lexer
              *  alias identifier = type;
              *  alias identifier(...) = type;
              */
-            auto tokens = makeRangeFromHere();
-            tokens.growBack();
+            auto tokens = this[1 .. 2];
             if (token.value == TOK.identifier && hasOptionalParensThen(tokens, TOK.assign))
             {
                 auto a = new AST.Dsymbols();
@@ -4435,10 +4431,9 @@ final class Parser(AST) : Lexer
                     // TypeCtors? BasicType ( Parameters ) MemberFunctionAttributes
                     bool attributesAppended;
                     const StorageClass funcStc = parseTypeCtor();
-                    auto tr1 = makeRangeFromHere();
-                    auto tr2 = makeRangeFromHere();
-                    auto tr3 = makeRangeFromHere();
-                    tr3.growBack();
+                    auto tr1 = this[];
+                    auto tr2 = this[];
+                    auto tr3 = this[1 .. 2];
 
                     if (token.value != TOK.function_ &&
                         token.value != TOK.delegate_ &&
@@ -4627,8 +4622,7 @@ final class Parser(AST) : Lexer
              *  storage_class identifier = initializer;
              *  storage_class identifier(...) = initializer;
              */
-            auto tokens = makeRangeFromHere();
-            tokens.growBack();
+            auto tokens = this[1 .. 2];
             if ((storage_class || udas) && token.value == TOK.identifier && hasOptionalParensThen(tokens, TOK.assign))
             {
                 AST.Dsymbols* a = parseAutoDeclarations(storage_class, comment);
@@ -4644,8 +4638,7 @@ final class Parser(AST) : Lexer
             /* Look for return type inference for template functions.
              */
             {
-                tokens = makeRangeFromHere();
-                tokens.growBack();
+                tokens = this[1 .. 2];
                 if ((storage_class || udas) && token.value == TOK.identifier && skipParens(tokens) &&
                     skipAttributes(tokens) &&
                     (tokens.back.value == TOK.leftParentheses || tokens.back.value == TOK.leftCurly ||
@@ -5459,7 +5452,7 @@ final class Parser(AST) : Lexer
              * If tokens can be handled as
              * old C-style declaration or D expression, prefer the latter.
              */
-            auto tokens = makeRangeFromHere();
+            auto tokens = this[];
             if (isDeclaration(tokens, NeedDeclaratorId.mustIfDstyle, TOK.reserved))
                 goto Ldeclaration;
             goto Lexp;
@@ -5658,7 +5651,7 @@ final class Parser(AST) : Lexer
             }
         case TOK.mixin_:
             {
-                auto tokens = makeRangeFromHere();
+                auto tokens = this[];
                 if (isDeclaration(tokens, NeedDeclaratorId.mustIfDstyle, TOK.reserved))
                     goto Ldeclaration;
                 if (peekNext() == TOK.leftParentheses)
@@ -5868,7 +5861,7 @@ final class Parser(AST) : Lexer
                     break;
                 }
                 const n = peekNext();
-                auto tokens = makeRangeFromHere();
+                auto tokens = this[];
                 if (storageClass != 0 && token.value == TOK.identifier &&
                     n != TOK.assign && n != TOK.identifier)
                 {
@@ -6188,8 +6181,7 @@ final class Parser(AST) : Lexer
                 AST.Expression exp;
                 AST.Statement _body;
 
-                auto tokens = makeRangeFromHere();
-                tokens.growBack();
+                auto tokens = this[1 .. 2];
                 if (skipAttributes(tokens) && tokens.back.value == TOK.class_)
                     goto Ldeclaration;
 
@@ -6301,8 +6293,7 @@ final class Parser(AST) : Lexer
                     error("`const`/`immutable`/`shared`/`inout` attributes are not allowed on `asm` blocks");
 
                 check(TOK.leftCurly);
-                TokenRange toklist = makeRangeFromHere();
-                toklist.popBack(); //make an empty range
+                TokenRange toklist = this[0 .. 0];
 
                 Identifier label = null;
                 auto statements = new AST.Statements();
@@ -6323,8 +6314,7 @@ final class Parser(AST) : Lexer
                                 nextToken();
                                 nextToken();
                                 //move the toklist forward too
-                                toklist = makeRangeFromHere();
-                                toklist.popBack();
+                                toklist = this[0 .. 0];
                                 continue;
                             }
                         }
@@ -6355,8 +6345,7 @@ final class Parser(AST) : Lexer
                         {
                             // Create AsmStatement from list of tokens we've saved
                             s = new AST.AsmStatement(token.loc, toklist);
-                            toklist = makeRangeFromHere;
-                            toklist.popBack(); //make an empty range on the semicolon
+                            toklist = this[0 .. 0]; //make an empty range on the semicolon
                             if (label)
                             {
                                 s = new AST.LabelStatement(labelloc, label, s);
@@ -6477,8 +6466,7 @@ final class Parser(AST) : Lexer
              * (e.g. prefix with "()" for empty parameter list).
              */
             braces = 1;
-            auto tokens = makeRangeFromHere();
-            for (tokens.growBack(); 1; tokens.growBack())
+            for (auto tokens = this[1 .. 2]; 1; tokens.growBack())
             {
                 switch (tokens.back.value)
                 {
@@ -6586,8 +6574,7 @@ final class Parser(AST) : Lexer
              * If it ends with a ';' ',' or '}', it is an array initializer.
              */
             brackets = 1;
-            auto tokens = makeRangeFromHere();
-            for (tokens.growBack(); 1; tokens.growBack())
+            for (auto tokens = this[1 .. 2]; 1; tokens.growBack())
             {
                 switch (tokens.back.value)
                 {
@@ -8019,7 +8006,7 @@ final class Parser(AST) : Lexer
                         error(loc, "unexpected `(` after `%s`, inside `is` expression. Try enclosing the contents of `is` with a `typeof` expression", token.toChars());
                         nextToken();
 
-                        auto tokens = peekPastParen(makeRangeFromHere());
+                        auto tokens = peekPastParen(this[]);
                         seekTo(tokens.stop -1);
                         goto Lerr;
                     }
@@ -8117,8 +8104,7 @@ final class Parser(AST) : Lexer
             {
                 if (peekNext() == TOK.leftParentheses)
                 {
-                    auto tokens = makeRangeFromHere();
-                    tokens.growBack();
+                    auto tokens = this[1 .. 2];
                     tokens = peekPastParen(tokens);
 
                     if (skipAttributes(tokens) && (tokens.back.value == TOK.goesTo ||
@@ -8135,7 +8121,7 @@ final class Parser(AST) : Lexer
             }
         case TOK.leftParentheses:
             {
-                auto tokens = peekPastParen(makeRangeFromHere());
+                auto tokens = peekPastParen(this[]);
                 if (skipAttributes(tokens) && (tokens.back.value == TOK.goesTo ||
                                                tokens.back.value == TOK.leftCurly))
                 {
@@ -8370,8 +8356,7 @@ final class Parser(AST) : Lexer
             }
         case TOK.leftParentheses:
             {
-                auto tokens = makeRangeFromHere();
-                tokens.growBack();
+                auto tokens = this[1 .. 2];
 
                 static if (CCASTSYNTAX)
                 {

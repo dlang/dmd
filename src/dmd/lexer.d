@@ -212,7 +212,7 @@ private struct TokenPool
 {
     private Array!Token tokens;
 
-    public ref Token getByIndex(size_t index) nothrow pure
+    public ref Token opIndex(size_t index) nothrow pure
     {
         if (index >= tokens.length)
         {
@@ -225,43 +225,49 @@ private struct TokenPool
 
 /***************
  * Represents a range of tokens lazily scanned from a lexer
- * should be created with the Lexer makeRangeFromHere method
+ * should be created by slicing the lexer
  */
 struct TokenRange
 {
-private:
-    Lexer lex; //where are these tokens coming from?
-    size_t startIndex, stopIndex;
+    private Lexer lexer; //where are these tokens coming from?
+    private size_t startIndex;
+    private size_t stopIndex;
 
-public:
     nothrow:
     //range functions
+
+    ///
     Token front()
     {
-        return lex.getByIndex(startIndex);
+        return lexer[startIndex];
     }
 
+    ///
     Token back()
     {
-        return lex.getByIndex(stopIndex - 1);
+        return lexer[stopIndex - 1];
     }
 
+    ///
     void popFront() pure @nogc @safe
     {
         ++startIndex;
     }
 
+    ///
     void popBack() pure @nogc @safe
     {
         assert(stopIndex > startIndex);
         --stopIndex;
     }
 
+    ///
     bool empty() const pure @nogc @safe
     {
         return startIndex == stopIndex;
     }
 
+    ///
     size_t length() const pure @nogc @safe
     {
         return stopIndex - startIndex;
@@ -270,29 +276,34 @@ public:
     /// Returns: the first token after this range
     Token peek()
     {
-        return lex.getByIndex(stopIndex);
+        return lexer[stopIndex];
     }
+
     /// Returns: the second token in the range
     Token peekFront()
     {
-        return lex.getByIndex(startIndex + 1);
+        return lexer[startIndex + 1];
     }
+
     /// add the next token in the scanner to the back of the range
     /// Returns: the new back
     Token growBack()
     {
-        return lex.getByIndex(stopIndex++);
+        return lexer[stopIndex++];
     }
+
     /// Returns: the lexer this range gets its tokens from
     Lexer getLexer()
     {
-        return lex;
+        return lexer;
     }
+
     /// Returns: the index of the first token in the lexer's array of tokens
     size_t start() const pure @nogc @safe
     {
         return startIndex;
     }
+
     /// Returns: the index of one past the last token, in the lexer's array of tokens
     size_t stop() const pure @nogc @safe
     {
@@ -403,41 +414,47 @@ class Lexer
         return diagnosticReporter.errorCount > 0;
     }
 
-    private ref Token getByIndex(size_t index)
+    private ref Token opIndex(size_t index)
     {
         while (index >= tokensScanned)
         {
-            Token* current = &tokenPool.getByIndex(tokensScanned);
+            Token* current = &tokenPool[tokensScanned];
             scan(current);
             tokensScanned++;
         }
-        return tokenPool.getByIndex(index);
+        return tokenPool[index];
     }
 
 
     final TOK nextToken()
     {
         prevloc = token.loc;
-        token = getByIndex(nextTokenIndex++);
+        token = this[nextTokenIndex++];
         return token.value;
 
     }
 
-    final size_t currentPosition()
+    final size_t currentPosition() const pure @nogc @safe
     {
         return nextTokenIndex;
     }
 
     final void seekTo(size_t index)
     {
-        token = getByIndex(index);
+        token = this[index];
         nextTokenIndex = index + 1;
     }
 
-    ///make a range containing only this.token
-    final TokenRange makeRangeFromHere()
+    ///make a range containing this.token
+    final TokenRange opSlice() pure @nogc @safe
     {
         return TokenRange(this, nextTokenIndex - 1, nextTokenIndex);
+    }
+
+    ///make a range with indices relative this.token
+    final TokenRange opSlice(size_t b, size_t e) pure @nogc @safe
+    {
+        return TokenRange(this, nextTokenIndex - 1 + b, nextTokenIndex - 1 + e);
     }
 
     /***********************
@@ -445,7 +462,7 @@ class Lexer
      */
     final TOK peekNext()
     {
-        return getByIndex(nextTokenIndex).value;
+        return this[nextTokenIndex].value;
     }
 
     /***********************
@@ -453,7 +470,7 @@ class Lexer
      */
     final TOK peekNext2()
     {
-        return getByIndex(nextTokenIndex + 1).value;
+        return this[nextTokenIndex + 1].value;
     }
 
 
