@@ -10,6 +10,7 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/blockopt.d
  */
 
+module dmd.backend.blockopt;
 
 /****************************************************************
  * Handle basic blocks.
