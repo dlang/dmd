@@ -468,11 +468,21 @@ alias style = makeRule!((builder, rule)
         .msg("(GIT) DScanner")
         .target(dscannerDir)
         .condition(() => !exists(dscannerDir))
-        .command([
-            // FIXME: Omitted --shallow-submodules because  it errors for libdparse
-            env["GIT"], "clone", "--depth=1", "--recurse-submodules", "--branch=v0.7.2",
-            "https://github.com/dlang-community/Dscanner", dscannerDir
-        ])
+        // .command([
+        //     // FIXME: Omitted --shallow-submodules because  it errors for libdparse
+        //     env["GIT"], "clone", "--depth=1", "--recurse-submodules", "--branch=v0.8.0",
+        //     "https://github.com/dlang-community/Dscanner", dscannerDir
+        // ])
+        .commandFunction(()
+        {
+            const git = env["GIT"];
+            run([git, "clone", "--depth=15", "--recurse-submodules", "--branch=v0.8.0",
+                "https://github.com/dlang-community/Dscanner", dscannerDir]);
+
+            // TODO: Remove this temporary fix for the invalid error messages in
+            // backend/ptrtab.d when D-Scanner upgrades DParse
+            run([git, "-C", dscannerDir.buildPath("libdparse"), "checkout", "63559db5cc6fa38c01bdda36e09638b5f20fb8e5"]);
+        })
     );
 
     alias dscanner = methodInit!(BuildRule, (dscannerBuilder, dscannerRule) {
