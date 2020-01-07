@@ -68,8 +68,8 @@ void foreachVar(Expression e, void delegate(VarDeclaration) dgVar)
 
         override void visit(ErrorExp e)
         {
-            .error(e.loc, "CTFE internal error: ErrorExp");
-            assert(0);
+            //.error(e.loc, "CTFE internal error: ErrorExp");
+            //assert(0);
         }
 
         override void visit(DeclarationExp e)
