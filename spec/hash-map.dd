@@ -123,8 +123,8 @@ $(H2 $(LNAME2 using_struct_as_key, Using Structs or Unions as the KeyType))
 
         $(P If the $(I KeyType) is a struct or union type,
         a default mechanism is used
-        to compute the hash and comparisons of it based on the binary
-        data within the struct value. A custom mechanism can be used
+        to compute the hash and comparisons of it based on the
+        fields of the struct value. A custom mechanism can be used
         by providing the following functions as struct members:
         )
 
