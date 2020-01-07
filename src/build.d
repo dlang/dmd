@@ -472,16 +472,13 @@ alias style = makeRule!((builder, rule)
         .commandFunction(()
         {
             const git = env["GIT"];
-            run([git, "clone", "https://github.com/dlang-community/Dscanner", dscannerDir]);
-            run([git, "-C", dscannerDir, "checkout", "b51ee472fe29c05cc33359ab8de52297899131fe"]);
-            run([git, "-C", dscannerDir, "submodule", "update", "--init", "--recursive"]);
+            // FIXME: Omitted --shallow-submodules because  it errors for libdparse
+            run([git, "clone", "--depth=1", "--recurse-submodules", "--branch=v0.7.2",
+                "https://github.com/dlang-community/Dscanner", dscannerDir]);
 
-            // debug build is faster, but disable 'missing import' messages (missing core from druntime)
-            const makefile = dscannerDir.buildPath("makefile");
-            const content = readText(makefile);
-            File(makefile, "w").lockingTextWriter.replaceInto(content, "dparse_verbose", "StdLoggerDisableWarning");
-
-            run([env.get("MAKE", "make"), "-C", dscannerDir, "githash", "debug"]);
+            // debug build is faster but disable trace output
+            run([env.get("MAKE", "make"), "-C", dscannerDir, "debug",
+                "DEBUG_VERSIONS=-version=StdLoggerDisableWarning"]);
         })
     );
 
