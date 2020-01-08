@@ -711,6 +711,8 @@ dmd -cov -unittest myprog.d
             "list all variables going into thread local storage"),
         Feature("vmarkdown", "vmarkdown",
             "list instances of Markdown replacements in Ddoc"),
+        Feature("safe", "showSystem",
+            "list implicit `@system` functions which won't compile with `-preview=safedefault`"),
     ];
 
     /// Returns all available reverts

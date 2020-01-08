@@ -160,6 +160,7 @@ enum FUNCFLAG : uint
     inferScope       = 0x40,   /// infer 'scope' for parameters
     hasCatches       = 0x80,   /// function has try-catch statements
     compileTimeOnly  = 0x100,  /// is a compile time only function; no code will be generated for it
+    warnedSystem     = 0x200,  /// Was already reported as un-@safe without explicit @sytem
 }
 
 /***********************************************************
@@ -1419,6 +1420,14 @@ extern (C++) class FuncDeclaration : Declaration
         }
         else if (isSafe())
             return true;
+        else if (global.params.showSystem &&
+                 type.toTypeFunction().trust == TRUST.default_ &&
+                 !(flags & FUNCFLAG.warnedSystem))
+        {
+            flags |= FUNCFLAG.warnedSystem;
+            message(loc, "function `%s` is implicitly `@system` but not marked as `@system`", toPrettyChars());
+        }
+
         return false;
     }
 

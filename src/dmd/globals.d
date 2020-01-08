@@ -187,6 +187,7 @@ extern (C++) struct Param
 
     bool markdown;          // enable Markdown replacements in Ddoc
     bool vmarkdown;         // list instances of Markdown replacements in Ddoc
+    bool showSystem;        // List implicit @system functions not marked as @system
 
     bool showGaggedErrors;  // print gagged errors anyway
     bool printErrorContext;  // print errors with the error context (the error line in the source file)
