@@ -2416,7 +2416,7 @@ else version (Darwin)
 else
     enum string cPrefix = "";
 
-version (unittest)
+@safe pure nothrow unittest
 {
     immutable string[2][] table =
     [
@@ -2544,9 +2544,6 @@ version (unittest)
         else
             alias staticIota = Seq!(staticIota!(x - 1), x - 1);
     }
-}
-@safe pure nothrow unittest
-{
     foreach ( i, name; table )
     {
         auto r = demangle( name[0] );
