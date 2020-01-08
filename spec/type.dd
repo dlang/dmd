@@ -191,7 +191,7 @@ $(H2 $(LEGACY_LNAME2 Usual Arithmetic Conversions, usual-arithmetic-conversions,
     undergoing the above conversions, the result type is:)
 
     $(OL
-    $(LI If the operands are the same type, the result will be the
+    $(LI If the operands are the same type, the result will be of
     that type.)
     $(LI If one operand is an enum  and the other is the base type
     of that  enum, the result is the base type.)
