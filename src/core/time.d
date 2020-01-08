@@ -3966,7 +3966,7 @@ double _abs(double val) @safe pure nothrow @nogc
 }
 
 
-version (unittest)
+version (CoreUnittest)
 string doubleToString(double value) @safe pure nothrow
 {
     string result;
@@ -3997,7 +3997,7 @@ unittest
     assert(aStr == "-0.337", aStr);
 }
 
-version (unittest) const(char)* numToStringz()(long value) @trusted pure nothrow
+version (CoreUnittest) const(char)* numToStringz()(long value) @trusted pure nothrow
 {
     return (signedToTempString(value, 10) ~ "\0").ptr;
 }
@@ -4007,7 +4007,7 @@ import core.internal.traits : AliasSeq;
 
 
 /+ An adjusted copy of std.exception.assertThrown. +/
-version (unittest) void _assertThrown(T : Throwable = Exception, E)
+version (CoreUnittest) void _assertThrown(T : Throwable = Exception, E)
                                     (lazy E expression,
                                      string msg = null,
                                      string file = __FILE__,
@@ -4102,7 +4102,7 @@ unittest
 }
 
 
-version (unittest) void assertApprox(D, E)(D actual,
+version (CoreUnittest) void assertApprox(D, E)(D actual,
                                           E lower,
                                           E upper,
                                           string msg = "unittest failure",
@@ -4115,7 +4115,7 @@ version (unittest) void assertApprox(D, E)(D actual,
         throw new AssertError(msg ~ ": upper: " ~ actual.toString(), __FILE__, line);
 }
 
-version (unittest) void assertApprox(D, E)(D actual,
+version (CoreUnittest) void assertApprox(D, E)(D actual,
                                           E lower,
                                           E upper,
                                           string msg = "unittest failure",
@@ -4131,7 +4131,7 @@ version (unittest) void assertApprox(D, E)(D actual,
     }
 }
 
-version (unittest) void assertApprox(MT)(MT actual,
+version (CoreUnittest) void assertApprox(MT)(MT actual,
                                         MT lower,
                                         MT upper,
                                         string msg = "unittest failure",
@@ -4141,7 +4141,7 @@ version (unittest) void assertApprox(MT)(MT actual,
     assertApprox(actual._ticks, lower._ticks, upper._ticks, msg, line);
 }
 
-version (unittest) void assertApprox()(long actual,
+version (CoreUnittest) void assertApprox()(long actual,
                                       long lower,
                                       long upper,
                                       string msg = "unittest failure",

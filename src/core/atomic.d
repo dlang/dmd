@@ -819,7 +819,7 @@ private
 ////////////////////////////////////////////////////////////////////////////////
 
 
-version (unittest)
+version (CoreUnittest)
 {
     void testXCHG(T)(T val) pure nothrow @nogc @trusted
     in

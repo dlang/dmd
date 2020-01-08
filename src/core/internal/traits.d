@@ -467,7 +467,7 @@ template staticMap(alias F, T...)
 }
 
 // std.exception.assertCTFEable
-version (unittest) package(core)
+version (CoreUnittest) package(core)
 void assertCTFEable(alias dg)()
 {
     static assert({ cast(void) dg(); return true; }());

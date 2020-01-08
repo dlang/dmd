@@ -6,7 +6,7 @@ DRUNTIMELIB=druntime64.lib
 
 SRC_GC = src/gc/impl/conservative/gc.d
 SRC = $(SRC_GC) src/rt/lifetime.d src/object.d
-UDFLAGS = -m$(MODEL) -g -unittest -conf= -Isrc -defaultlib=$(DRUNTIMELIB)
+UDFLAGS = -m$(MODEL) -g -unittest -version=CoreUnittest -conf= -Isrc -defaultlib=$(DRUNTIMELIB)
 
 test: sentinel printf memstomp invariant logging precise precisegc recoverfree
 

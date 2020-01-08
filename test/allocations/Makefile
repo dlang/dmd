@@ -15,7 +15,7 @@ $(ROOT)/%.done: $(ROOT)/%
 	$(NEGATE) $(QUIET)$(TIMELIMIT)$(ROOT)/$* $(RUN_ARGS) 2>&1 1>/dev/null | head -n 1 | grep -qF $(STDERR_EXP)
 	@touch $@
 
-$(ROOT)/unittest_assert: DFLAGS+=-unittest
+$(ROOT)/unittest_assert: DFLAGS+=-unittest -version=CoreUnittest
 $(ROOT)/%: $(SRC)/%.d
 	$(QUIET)$(DMD) $(DFLAGS) -of$@ $<
 
