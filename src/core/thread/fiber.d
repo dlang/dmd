@@ -991,14 +991,7 @@ private:
         }
         else
         {
-            version (Posix) import core.sys.posix.sys.mman; // mmap
-            version (FreeBSD) import core.sys.freebsd.sys.mman : MAP_ANON;
-            version (NetBSD) import core.sys.netbsd.sys.mman : MAP_ANON;
-            version (OpenBSD) import core.sys.openbsd.sys.mman : MAP_ANON;
-            version (DragonFlyBSD) import core.sys.dragonflybsd.sys.mman : MAP_ANON;
-            version (CRuntime_Glibc) import core.sys.linux.sys.mman : MAP_ANON;
-            version (Darwin) import core.sys.darwin.sys.mman : MAP_ANON;
-            version (CRuntime_UClibc) import core.sys.linux.sys.mman : MAP_ANON;
+            version (Posix) import core.sys.posix.sys.mman; // mmap, MAP_ANON
 
             static if ( __traits( compiles, mmap ) )
             {
