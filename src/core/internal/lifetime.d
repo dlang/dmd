@@ -1,5 +1,7 @@
 module core.internal.lifetime;
 
+import core.lifetime : forward;
+
 /+
 emplaceRef is a package function for druntime internal use. It works like
 emplace, but takes its argument by ref (as opposed to "by pointer").
@@ -23,30 +25,27 @@ void emplaceRef(T, UT, Args...)(ref UT chunk, auto ref Args args)
     else static if (
         !is(T == struct) && Args.length == 1 /* primitives, enums, arrays */
         ||
-        Args.length == 1 && is(typeof({T t = args[0];})) /* conversions */
+        Args.length == 1 && is(typeof({T t = forward!(args[0]);})) /* conversions */
         ||
-        is(typeof(T(args))) /* general constructors */)
+        is(typeof(T(forward!args))) /* general constructors */)
     {
         static struct S
         {
             T payload;
-            this(ref Args x)
+            this()(auto ref Args args)
             {
-                static if (Args.length == 1)
-                    static if (is(typeof(payload = x[0])))
-                        payload = x[0];
-                    else
-                        payload = T(x[0]);
+                static if (is(typeof(payload = forward!args)))
+                    payload = forward!args;
                 else
-                    payload = T(x);
+                    payload = T(forward!args);
             }
         }
         if (__ctfe)
         {
-            static if (is(typeof(chunk = T(args))))
-                chunk = T(args);
-            else static if (args.length == 1 && is(typeof(chunk = args[0])))
-                chunk = args[0];
+            static if (is(typeof(chunk = T(forward!args))))
+                chunk = T(forward!args);
+            else static if (args.length == 1 && is(typeof(chunk = forward!(args[0]))))
+                chunk = forward!(args[0]);
             else assert(0, "CTFE emplace doesn't support "
                 ~ T.stringof ~ " from " ~ Args.stringof);
         }
@@ -55,14 +54,14 @@ void emplaceRef(T, UT, Args...)(ref UT chunk, auto ref Args args)
             S* p = () @trusted { return cast(S*) &chunk; }();
             static if (UT.sizeof > 0)
                 emplaceInitializer(*p);
-            p.__ctor(args);
+            p.__ctor(forward!args);
         }
     }
-    else static if (is(typeof(chunk.__ctor(args))))
+    else static if (is(typeof(chunk.__ctor(forward!args))))
     {
         // This catches the rare case of local types that keep a frame pointer
         emplaceInitializer(chunk);
-        chunk.__ctor(args);
+        chunk.__ctor(forward!args);
     }
     else
     {
@@ -82,7 +81,7 @@ static import core.internal.traits;
 void emplaceRef(UT, Args...)(ref UT chunk, auto ref Args args)
 if (is(UT == core.internal.traits.Unqual!UT))
 {
-    emplaceRef!(UT, UT)(chunk, args);
+    emplaceRef!(UT, UT)(chunk, forward!args);
 }
 
 //emplace helper functions
