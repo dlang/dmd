@@ -40,7 +40,7 @@ import core.stdc.stdio;
 
 struct S
 {
-    int opUnary(string op)() if (op == "*") { return 7; }
+    int opStar() { return 7; }
 }
 
 void test1()

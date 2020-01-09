@@ -1162,10 +1162,7 @@ class Cout{
         Cout set(int x){
                 return this;
         }
-        Cout opBinary(string op)(int x) if (op == "<<")
-        {
-            return set(x);
-        }
+        alias set opShl;
 }
 
 void test49()

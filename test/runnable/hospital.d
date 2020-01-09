@@ -237,7 +237,7 @@ class Patient
 
 class Totals
 {
-    public Totals opOpAssign(string op)(Totals b) if (op == "+")
+    public Totals opAddAssign(Totals b)
     {
         patients += b.patients;
         hospitalTime += b.hospitalTime;
