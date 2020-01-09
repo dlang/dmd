@@ -195,39 +195,37 @@ const(char)[] getMangledSymbolName(const(char)[] btBuf, out size_t symBeg,
     }
     else
     {
-        import core.stdc.string : memchr;
-
-        char pChar = '+';
-        char mChar = '-';
-
         static if (BacktraceFmt.GNU)
         {
-            char bChar = '(';
-            char eChar = ')';
+            enum bChar = '(';
+            enum eChar = ')';
         }
         else static if (BacktraceFmt.BSD)
         {
-            char bChar = '<';
-            char eChar = '>';
+            enum bChar = '<';
+            enum eChar = '>';
         }
         else static if (BacktraceFmt.Solaris)
         {
-            char bChar = '\'';
-            char eChar = '+';
+            enum bChar = '\'';
+            enum eChar = '+';
         }
 
-        if (auto bptr = cast(char*) memchr(btBuf.ptr, bChar, btBuf.length))
+        foreach (i; 0 .. btBuf.length)
         {
-            ++bptr; // skip bChar
-            if (auto eptr = cast(char*) memchr(bptr, eChar, (btBuf.ptr + btBuf.length) - bptr))
+            if (btBuf[i] == bChar)
             {
-                if (auto pptr = cast(char*) memchr(bptr, pChar, eptr - bptr))
-                    eptr = pptr;
-                if (auto mptr = cast(char*) memchr(bptr, mChar, eptr - bptr))
-                    eptr = mptr;
-
-                symBeg = bptr - btBuf.ptr;
-                symEnd = eptr - btBuf.ptr;
+                foreach (j; i+1 .. btBuf.length)
+                {
+                    const e = btBuf[j];
+                    if (e == eChar || e == '+' || e == '-')
+                    {
+                        symBeg = i + 1;
+                        symEnd = j;
+                        break;
+                    }
+                }
+                break;
             }
         }
     }
