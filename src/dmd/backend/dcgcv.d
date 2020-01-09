@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1995 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dcgcv.d, backend/dcgcv.d)
@@ -37,7 +37,7 @@ import dmd.backend.dlist;
 import dmd.backend.dvec;
 import dmd.backend.el;
 import dmd.backend.global;
-import dmd.backend.memh;
+import dmd.backend.mem;
 import dmd.backend.obj;
 import dmd.backend.outbuf;
 import dmd.backend.ty;
@@ -53,10 +53,12 @@ version (SCPP)
 }
 version (MARS)
 {
-    import dmd.backend.varstats;
+    import dmd.backend.dvarstats;
 }
 
 extern (C++):
+
+nothrow:
 
 enum SYMDEB_TDB = false;
 
@@ -242,17 +244,16 @@ debtyp_t * debtyp_alloc(uint length)
         length += pad;
     }
 
+    length < 0x10000 || assert(0);
+    const len = debtyp_t.sizeof - (d.data).sizeof + length;
 debug
 {
-    const len = debtyp_t.sizeof - (d.data).sizeof + length;
-    assert(len < 4 * 4096 - 100);
     d = cast(debtyp_t *) mem_malloc(len /*+ 1*/);
     memset(d, 0xAA, len);
 //    (cast(char*)d)[len] = 0x2E;
 }
 else
 {
-    assert(length < 0x10000);
     d = cast(debtyp_t *) malloc(debtyp_t.sizeof - (d.data).sizeof + length);
 }
     d.length = cast(ushort)length;
@@ -275,8 +276,8 @@ private void debtyp_free(debtyp_t *d)
     //fflush(stdout);
 debug
 {
+    assert(d.length < 0x10000);
     uint len = debtyp_t.sizeof - (d.data).sizeof + d.length;
-    assert(len < 4 * 4096 - 100);
 //    assert((cast(char*)d)[len] == 0x2E);
     memset(d, 0x55, len);
     mem_free(d);
@@ -404,7 +405,6 @@ static if (0)
     debtyphash[hashi] = cast(uint)debtyp.length;
 
     /* It's not already in the array, so add it */
-L1:
     debtyp.push(d);
     version (SCPP)
     {
@@ -473,13 +473,20 @@ void cv_init()
         {
             dttab4[TYptr]  = 0x600;
             dttab4[TYnptr] = 0x600;
+            dttab4[TYsptr] = 0x600;
+            dttab4[TYimmutPtr] = 0x600;
+            dttab4[TYsharePtr] = 0x600;
+            dttab4[TYfgPtr] = 0x600;
         }
         else
         {
             dttab4[TYptr]  = 0x400;
+            dttab4[TYsptr] = 0x400;
             dttab4[TYnptr] = 0x400;
+            dttab4[TYimmutPtr] = 0x400;
+            dttab4[TYsharePtr] = 0x400;
+            dttab4[TYfgPtr] = 0x400;
         }
-        dttab4[TYsptr] = 0x400;
         dttab4[TYcptr] = 0x400;
         dttab4[TYfptr] = 0x500;
 
@@ -858,13 +865,12 @@ private int cv4_methodlist(Symbol *sf,int *pcount)
 version (SCPP)
 {
 
-private char * cv4_prettyident(Symbol *s)
+private const(char)* cv4_prettyident(Symbol *s)
 {   Symbol *stmp;
-    char *p;
 
     stmp = s.Sscope;
     s.Sscope = null;           // trick cpp_prettyident into leaving off ::
-    p = cpp_prettyident(s);
+    const p = cpp_prettyident(s);
     s.Sscope = cast(Classsym *)stmp;
     return p;
 }
@@ -890,7 +896,7 @@ idx_t cv4_struct(Classsym *s,int flags)
     idx_t typidx;
     type *t;
     struct_t *st;
-    char *id;
+    const(char)* id;
 version (SCPP)
 {
     baseclass_t *b;
@@ -1194,7 +1200,7 @@ version (SCPP)
         targ_size_t offset;
 
         symbol_debug(sf);
-        char *sfid = sf.Sident.ptr;
+        const(char)* sfid = sf.Sident.ptr;
         switch (sf.Sclass)
         {
             case SCmember:
@@ -1421,7 +1427,7 @@ version (SCPP)
         targ_size_t offset;
 
         symbol_debug(sf);
-        char *sfid = sf.Sident.ptr;
+        const(char)* sfid = sf.Sident.ptr;
         switch (sf.Sclass)
         {
             case SCfield:
@@ -1730,7 +1736,45 @@ static if (SYMDEB_TDB)
 }
 
 }
+else
+{
+private uint cv4_fwdenum(type* t)
+{
+    Symbol* s = t.Ttag;
 
+    // write a forward reference enum record that is enough for the linker to
+    // fold with original definition from EnumDeclaration
+    uint bty = dttab4[tybasic(t.Tnext.Tty)];
+    const id = prettyident(s);
+    uint len = config.fulltypes == CV8 ? 14 : 10;
+    debtyp_t* d = debtyp_alloc(len + cv_stringbytes(id));
+    switch (config.fulltypes)
+    {
+        case CV8:
+            TOWORD(d.data.ptr, LF_ENUM_V3);
+            TOLONG(d.data.ptr + 2, 0);    // count
+            TOWORD(d.data.ptr + 4, 0x80); // property : forward reference
+            TOLONG(d.data.ptr + 6, bty);  // memtype
+            TOLONG(d.data.ptr + 10, 0);   // fieldlist
+            break;
+
+        case CV4:
+            TOWORD(d.data.ptr,LF_ENUM);
+            TOWORD(d.data.ptr + 2, 0);    // count
+            TOWORD(d.data.ptr + 4, bty);  // memtype
+            TOLONG(d.data.ptr + 6, 0);    // fieldlist
+            TOWORD(d.data.ptr + 8, 0x80); // property : forward reference
+            break;
+
+        default:
+            assert(0);
+    }
+    cv_namestring(d.data.ptr + len, id);
+    s.Stypidx = cv_debtyp(d);
+    return s.Stypidx;
+}
+
+}
 /************************************************
  * Return 'calling convention' type of function.
  */
@@ -1920,6 +1964,8 @@ L1:
             break;
 
         case TYnptr:
+        case TYimmutPtr:
+        case TYsharePtr:
 version (MARS)
 {
             if (t.Tkey)
@@ -1928,6 +1974,7 @@ version (MARS)
             goto Lptr;
         case TYsptr:
         case TYcptr:
+        case TYfgPtr:
         Lptr:
                         attribute |= I32 ? 10 : 0;      goto L2;
 
@@ -2252,7 +2299,7 @@ version (SCPP)
 }
             }
             else
-                typidx = dttab4[tybasic(t.Tnext.Tty)];
+                typidx = cv4_fwdenum(t);
             break;
 
 version (SCPP)
@@ -2737,6 +2784,7 @@ version (MARS)
 
     struct cv4
     {
+    nothrow:
         // record for CV record S_BLOCK32
         struct block32_data
         {

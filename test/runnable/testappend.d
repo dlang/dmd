@@ -1,4 +1,13 @@
 // PERMUTE_ARGS:
+/*
+TEST_OUTPUT:
+---
+runnable/testappend.d(49): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/testappend.d(50): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/testappend.d(71): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/testappend.d(72): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+---
+*/
 
 import core.stdc.stdio;
 import core.stdc.math : isnan;

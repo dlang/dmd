@@ -271,9 +271,6 @@ class Test
     pure nothrow @safe @nogc unittest {}
     pure nothrow @safe @nogc invariant {}
     pure nothrow @safe @nogc invariant (true);
-
-    pure nothrow @safe @nogc new (size_t sz) { return null; }
-    pure nothrow @safe @nogc delete (void* p) { }
 }
 
 template templ( T )

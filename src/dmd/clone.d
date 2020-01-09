@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/clone.d, _clone.d)
@@ -110,11 +110,11 @@ FuncDeclaration hasIdentityOpAssign(AggregateDeclaration ad, Scope* sc)
         sc.minst = null;
 
         a[0] = er;
-        auto f = resolveFuncCall(ad.loc, sc, assign, null, ad.type, &a, 1);
+        auto f = resolveFuncCall(ad.loc, sc, assign, null, ad.type, &a, FuncResolveFlag.quiet);
         if (!f)
         {
             a[0] = el;
-            f = resolveFuncCall(ad.loc, sc, assign, null, ad.type, &a, 1);
+            f = resolveFuncCall(ad.loc, sc, assign, null, ad.type, &a, FuncResolveFlag.quiet);
         }
 
         sc = sc.pop();
@@ -423,18 +423,18 @@ bool needOpEquals(StructDeclaration sd)
             if (ts.sym.aliasthis) // https://issues.dlang.org/show_bug.cgi?id=14806
                 goto Lneed;
         }
-        if (tv.isfloating())
+        if (tvbase.isfloating())
         {
             // This is necessray for:
             //  1. comparison of +0.0 and -0.0 should be true.
             //  2. comparison of NANs should be false always.
             goto Lneed;
         }
-        if (tv.ty == Tarray)
+        if (tvbase.ty == Tarray)
             goto Lneed;
-        if (tv.ty == Taarray)
+        if (tvbase.ty == Taarray)
             goto Lneed;
-        if (tv.ty == Tclass)
+        if (tvbase.ty == Tclass)
             goto Lneed;
     }
 Ldontneed:
@@ -450,8 +450,8 @@ Lneed:
  */
 private FuncDeclaration hasIdentityOpEquals(AggregateDeclaration ad, Scope* sc)
 {
-    Dsymbol eq = search_function(ad, Id.eq);
-    if (eq)
+    FuncDeclaration f;
+    if (Dsymbol eq = search_function(ad, Id.eq))
     {
         /* check identity opEquals exists
          */
@@ -459,41 +459,42 @@ private FuncDeclaration hasIdentityOpEquals(AggregateDeclaration ad, Scope* sc)
         scope el = new IdentifierExp(ad.loc, Id.p); // dummy lvalue
         Expressions a;
         a.setDim(1);
-        foreach (i; 0 .. 5)
+
+        bool hasIt(Type tthis)
         {
-            Type tthis = null; // dead-store to prevent spurious warning
-            final switch (i)
-            {
-                case 0:  tthis = ad.type;                 break;
-                case 1:  tthis = ad.type.constOf();       break;
-                case 2:  tthis = ad.type.immutableOf();   break;
-                case 3:  tthis = ad.type.sharedOf();      break;
-                case 4:  tthis = ad.type.sharedConstOf(); break;
-            }
-            FuncDeclaration f = null;
-            const errors = global.startGagging(); // Do not report errors, even if the template opAssign fbody makes it.
+            const errors = global.startGagging(); // Do not report errors, even if the template opAssign fbody makes it
             sc = sc.push();
             sc.tinst = null;
             sc.minst = null;
-            foreach (j; 0 .. 2)
+
+            FuncDeclaration rfc(Expression e)
             {
-                a[0] = (j == 0 ? er : el);
+                a[0] = e;
                 a[0].type = tthis;
-                f = resolveFuncCall(ad.loc, sc, eq, null, tthis, &a, 1);
-                if (f)
-                    break;
+                return resolveFuncCall(ad.loc, sc, eq, null, tthis, &a, FuncResolveFlag.quiet);
             }
+
+            f = rfc(er);
+            if (!f)
+                f = rfc(el);
+
             sc = sc.pop();
             global.endGagging(errors);
-            if (f)
-            {
-                if (f.errors)
-                    return null;
-                return f;
-            }
+
+            return f !is null;
+        }
+
+        if (hasIt(ad.type)               ||
+            hasIt(ad.type.constOf())     ||
+            hasIt(ad.type.immutableOf()) ||
+            hasIt(ad.type.sharedOf())    ||
+            hasIt(ad.type.sharedConstOf()))
+        {
+            if (f.errors)
+                return null;
         }
     }
-    return null;
+    return f;
 }
 
 /******************************************
@@ -566,8 +567,8 @@ FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
     Loc declLoc; // loc is unnecessary so __xopEquals is never called directly
     Loc loc; // loc is unnecessary so errors are gagged
     auto parameters = new Parameters();
-    parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.p, null, null));
-    parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.q, null, null));
+    parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.p, null, null))
+              .push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.q, null, null));
     auto tf = new TypeFunction(ParameterList(parameters), Type.tbool, LINK.d);
     Identifier id = Id.xopEquals;
     auto fop = new FuncDeclaration(declLoc, Loc.initial, id, STC.static_, tf);
@@ -743,18 +744,18 @@ private bool needToHash(StructDeclaration sd)
             if (ts.sym.aliasthis) // https://issues.dlang.org/show_bug.cgi?id=14948
                 goto Lneed;
         }
-        if (tv.isfloating())
+        if (tvbase.isfloating())
         {
             /* This is necessary because comparison of +0.0 and -0.0 should be true,
              * i.e. not a bit compare.
              */
             goto Lneed;
         }
-        if (tv.ty == Tarray)
+        if (tvbase.ty == Tarray)
             goto Lneed;
-        if (tv.ty == Taarray)
+        if (tvbase.ty == Taarray)
             goto Lneed;
-        if (tv.ty == Tclass)
+        if (tvbase.ty == Tclass)
             goto Lneed;
     }
 Ldontneed:
@@ -805,7 +806,7 @@ FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
      * If sd is a nested struct, and if it's nested in a class, the calculated
      * hash value will also contain the result of parent class's toHash().
      */
-    const(char)* code =
+    const(char)[] code =
         "size_t h = 0;" ~
         "foreach (i, T; typeof(p.tupleof))" ~
         // workaround https://issues.dlang.org/show_bug.cgi?id=17968
@@ -814,7 +815,7 @@ FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
         "    else " ~
         "        h = h * 33 + typeid(T).getHash(cast(const void*)&p.tupleof[i]);" ~
         "return h;";
-    fop.fbody = new CompileStatement(loc, new StringExp(loc, cast(char*)code));
+    fop.fbody = new CompileStatement(loc, new StringExp(loc, code));
     Scope* sc2 = sc.push();
     sc2.stc = 0;
     sc2.linkage = LINK.d;
@@ -1007,7 +1008,7 @@ DtorDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
 
     ad.primaryDtor = xdtor;
 
-    if (xdtor && xdtor.linkage == LINK.cpp && !Target.twoDtorInVtable)
+    if (xdtor && xdtor.linkage == LINK.cpp && !target.cpp.twoDtorInVtable)
         xdtor = buildWindowsCppDtor(ad, xdtor, sc);
 
     // Add an __xdtor alias to make the inclusive dtor accessible

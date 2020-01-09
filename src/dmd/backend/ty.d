@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1983-1998 by Symantec
- *              Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/ty.d, backend/_ty.d)
@@ -138,7 +138,11 @@ enum
     TYllong8            = 0x5A, // long[8]
     TYullong8           = 0x5B, // ulong[8]
 
-    TYMAX               = 0x5C,
+    TYsharePtr          = 0x5C, // pointer to shared data
+    TYimmutPtr          = 0x5D, // pointer to immutable data
+    TYfgPtr             = 0x5E, // GS: pointer (I32) FS: pointer (I64)
+
+    TYMAX               = 0x5F,
 }
 
 alias TYerror = TYint;

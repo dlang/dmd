@@ -1,6 +1,9 @@
 /*
+REQUIRED_ARGS: -verrors=0
 TEST_OUTPUT:
 ---
+fail_compilation/misc_parser_err_cov1.d(29): Error: basic type expected, not `)`
+fail_compilation/misc_parser_err_cov1.d(30): Error: basic type expected, not `)`
 fail_compilation/misc_parser_err_cov1.d(31): Error: `__traits(identifier, args...)` expected
 fail_compilation/misc_parser_err_cov1.d(31): Error: semicolon expected following auto declaration, not `o`
 fail_compilation/misc_parser_err_cov1.d(31): Error: expression expected, not `)`
@@ -17,7 +20,7 @@ fail_compilation/misc_parser_err_cov1.d(38): Error: found `)` instead of stateme
 fail_compilation/misc_parser_err_cov1.d(39): Error: identifier expected following `(type)`.
 fail_compilation/misc_parser_err_cov1.d(39): Error: expression expected, not `;`
 fail_compilation/misc_parser_err_cov1.d(40): Error: semicolon expected following auto declaration, not `auto`
-fail_compilation/misc_parser_err_cov1.d(40): Error: identifier expected following `.`, not `+`
+fail_compilation/misc_parser_err_cov1.d(40): Error: identifier or `new` expected following `.`, not `+`
 fail_compilation/misc_parser_err_cov1.d(41): Error: declaration expected, not `(`
 fail_compilation/misc_parser_err_cov1.d(42): Error: unrecognized declaration
 ---
@@ -25,9 +28,15 @@ fail_compilation/misc_parser_err_cov1.d(42): Error: unrecognized declaration
 module misc_parser_err_cov1;
 
 
+//https://issues.dlang.org/show_bug.cgi?id=19995
+#line 29
+void foo(in);
+void bar(int, const @tation);
+
 void main()
 {
     // cover errors from line 7930 to EOF
+    #line  31
     auto tt = __traits(<o<);
     auto b = is ;
     auto mx1 = mixin +);

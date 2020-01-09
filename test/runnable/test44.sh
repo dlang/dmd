@@ -11,4 +11,4 @@ $DMD -m${MODEL} -I${TEST_DIR} -od${RESULTS_TEST_DIR} -of${OUTPUT_BASE}_2${EXE} $
 
 ${OUTPUT_BASE}_2
 
-rm ${OUTPUT_BASE}{_1${OBJ},_1${EXE},_2${OBJ},_2${EXE}}
+rm_retry ${OUTPUT_BASE}{_1${OBJ},_1${EXE},_2${OBJ},_2${EXE}}

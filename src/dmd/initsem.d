@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/initsem.d, _initsem.d)
@@ -33,6 +33,7 @@ import dmd.id;
 import dmd.identifier;
 import dmd.init;
 import dmd.mtype;
+import dmd.opover;
 import dmd.statement;
 import dmd.target;
 import dmd.tokens;
@@ -121,7 +122,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
             {
                 return new ErrorInitializer();
             }
-            size_t nfields = sd.fields.dim - sd.isNested();
+            const nfields = sd.nonHiddenFields();
             //expandTuples for non-identity arguments?
             auto elements = new Expressions(nfields);
             for (size_t j = 0; j < elements.dim; j++)
@@ -171,8 +172,8 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
                 }
                 if (vd.type.hasPointers)
                 {
-                    if ((t.alignment() < Target.ptrsize ||
-                         (vd.offset & (Target.ptrsize - 1))) &&
+                    if ((t.alignment() < target.ptrsize ||
+                         (vd.offset & (target.ptrsize - 1))) &&
                         sc.func && sc.func.setUnsafe())
                     {
                         error(i.loc, "field `%s.%s` cannot assign to misaligned pointers in `@safe` code",
@@ -229,7 +230,8 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
             auto ie = new ExpInitializer(i.loc, e);
             return ie.initializerSemantic(sc, t, needInterpret);
         }
-        error(i.loc, "a struct is not a valid initializer for a `%s`", t.toChars());
+        if (t.ty != Terror)
+            error(i.loc, "a struct is not a valid initializer for a `%s`", t.toChars());
         return new ErrorInitializer();
     }
 
@@ -391,6 +393,8 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
                 return i;
             }
             i.exp = i.exp.ctfeInterpret();
+            if (i.exp.op == TOK.voidExpression)
+                error(i.loc, "variables cannot be initialized with an expression of type `void`. Use `void` initialization instead.");
         }
         else
         {
@@ -455,6 +459,25 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
                 e = new DotIdExp(i.loc, e, Id.ctor);
                 e = new CallExp(i.loc, e, i.exp);
                 e = e.expressionSemantic(sc);
+                if (needInterpret)
+                    i.exp = e.ctfeInterpret();
+                else
+                    i.exp = e.optimize(WANTvalue);
+            }
+            else if (search_function(sd, Id.call))
+            {
+                /* https://issues.dlang.org/show_bug.cgi?id=1547
+                 *
+                 * Look for static opCall
+                 *
+                 * Rewrite as:
+                 *  i.exp = typeof(sd).opCall(arguments)
+                 */
+
+                Expression e = typeDotIdExp(i.loc, sd.type, Id.call);
+                e = new CallExp(i.loc, e, i.exp);
+                e = e.expressionSemantic(sc);
+                e = resolveProperties(sc, e);
                 if (needInterpret)
                     i.exp = e.ctfeInterpret();
                 else

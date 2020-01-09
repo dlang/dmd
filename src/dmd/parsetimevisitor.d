@@ -68,6 +68,7 @@ public:
     void visit(AST.AnonDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
     void visit(AST.AlignDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
     void visit(AST.CPPMangleDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
+    void visit(AST.CPPNamespaceDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
     void visit(AST.ProtDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
     void visit(AST.PragmaDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
     void visit(AST.StorageClassDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
@@ -100,7 +101,7 @@ public:
     void visit(AST.ForeachRangeStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.ForeachStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.IfStatement s) { visit(cast(AST.Statement)s); }
-    void visit(AST.OnScopeStatement s) { visit(cast(AST.Statement)s); }
+    void visit(AST.ScopeGuardStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.ConditionalStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.StaticForeachStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.PragmaStatement s) { visit(cast(AST.Statement)s); }

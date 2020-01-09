@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/ctfloat.d, root/_ctfloat.d)
@@ -30,7 +30,7 @@ private
     version(CRuntime_Microsoft) extern (C++)
     {
         public import dmd.root.longdouble : longdouble_soft, ld_sprint;
-        @nogc longdouble_soft strtold_dm(const(char)* p, char** endp);
+        import dmd.root.strtold;
     }
 }
 
@@ -47,7 +47,7 @@ extern (C++) struct CTFloat
         enum yl2x_supported = __traits(compiles, core.math.yl2x(1.0L, 2.0L));
     enum yl2xp1_supported = yl2x_supported;
 
-    static void yl2x(const real_t* x, const real_t* y, real_t* res)
+    static void yl2x(const real_t* x, const real_t* y, real_t* res) pure
     {
         static if (yl2x_supported)
             *res = core.math.yl2x(*x, *y);
@@ -55,7 +55,7 @@ extern (C++) struct CTFloat
             assert(0);
     }
 
-    static void yl2xp1(const real_t* x, const real_t* y, real_t* res)
+    static void yl2xp1(const real_t* x, const real_t* y, real_t* res) pure
     {
         static if (yl2xp1_supported)
             *res = core.math.yl2xp1(*x, *y);
@@ -74,12 +74,12 @@ extern (C++) struct CTFloat
     }
     else
     {
-        static real_t sin(real_t x) { return core.math.sin(x); }
-        static real_t cos(real_t x) { return core.math.cos(x); }
+        pure static real_t sin(real_t x) { return core.math.sin(x); }
+        pure static real_t cos(real_t x) { return core.math.cos(x); }
         static real_t tan(real_t x) { return core.stdc.math.tanl(x); }
-        static real_t sqrt(real_t x) { return core.math.sqrt(x); }
-        static real_t fabs(real_t x) { return core.math.fabs(x); }
-        static real_t ldexp(real_t n, int exp) { return core.math.ldexp(n, exp); }
+        pure static real_t sqrt(real_t x) { return core.math.sqrt(x); }
+        pure static real_t fabs(real_t x) { return core.math.fabs(x); }
+        pure static real_t ldexp(real_t n, int exp) { return core.math.ldexp(n, exp); }
     }
 
     static if (!is(real_t == real))
@@ -137,7 +137,7 @@ extern (C++) struct CTFloat
         if (isNaN(a))
             a = real_t.nan;
         enum sz = (real_t.mant_dig == 64) ? 10 : real_t.sizeof;
-        return calcHash(cast(ubyte*) &a, sz);
+        return calcHash((cast(ubyte*) &a)[0 .. sz]);
     }
 
     pure
@@ -162,7 +162,7 @@ extern (C++) struct CTFloat
             return isSNaN(cast(real)ld);
         }
 
-    static bool isInfinity(real_t r)
+    static bool isInfinity(real_t r) pure
     {
         return isIdentical(fabs(r), real_t.infinity);
     }

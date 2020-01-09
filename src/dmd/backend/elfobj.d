@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) ?-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/elfobj.d, backend/elfobj.d)
@@ -32,7 +32,7 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.code_x86;
-import dmd.backend.memh;
+import dmd.backend.mem;
 import dmd.backend.aarray;
 import dmd.backend.dlist;
 import dmd.backend.el;
@@ -44,6 +44,8 @@ import dmd.backend.ty;
 import dmd.backend.type;
 
 extern (C++):
+
+nothrow:
 
 static if (ELFOBJ)
 {
@@ -95,6 +97,13 @@ else
     enum DMDV2 = false;
 enum REQUIRE_DSO_REGISTRY = (DMDV2 && (TARGET_LINUX || TARGET_FREEBSD || TARGET_DRAGONFLYBSD));
 
+/**
+ * If set, produce .init_array/.fini_array instead of legacy .ctors/.dtors .
+ * OpenBSD added the support in Aug 2016. Other supported platforms has
+ * supported .init_array for years.
+ */
+enum USE_INIT_ARRAY = !TARGET_OPENBSD;
+
 /******
  * FreeBSD uses ELF, but the linker crashes with Elf comdats with the following message:
  *  /usr/bin/ld: BFD 2.15 [FreeBSD] 2004-05-23 internal error, aborting at
@@ -119,12 +128,14 @@ enum ELF_COMDAT = TARGET_LINUX;
  *      R_386_PC32      R_X86_64_PC32     R_X86_64_
  */
 
+alias reltype_t = uint;
+
 /******************************************
  */
 
-__gshared Symbol *GOTsym; // global offset table reference
+private __gshared Symbol *GOTsym; // global offset table reference
 
-Symbol *Obj_getGOTsym()
+private Symbol *Obj_getGOTsym()
 {
     if (!GOTsym)
     {
@@ -249,9 +260,6 @@ private IDXSEC secidx_note;      // Final table index for note data
 
 // Comment data for compiler version
 private Outbuffer *comment_data;
-private const(char)* compiler = "\0Digital Mars C/C++" ~
-        " 2.083" //VERSION
-        ;       // compiled by ...
 
 // Each compiler segment is an elf section
 // Predefined compiler segments CODE,DATA,CDATA,UDATA map to indexes
@@ -313,62 +321,6 @@ IDXSTR Obj_addstr(Outbuffer *strtab, const(char)* str)
     strtab.writeString(str);
     //dbg_printf("\tidx %d, new size %d\n",idx,strtab.size());
     return idx;
-}
-
-/*******************************
- * Find a string in a string table
- * Input:
- *      strtab  =       string table for entry
- *      str     =       string to find
- *
- * Returns index into the specified string table or 0.
- */
-
-private IDXSTR elf_findstr(Outbuffer *strtab, const(char)* str, const(char)* suffix)
-{
-    //printf("elf_findstr(strtab = %p, str = %s, suffix = %s\n", strtab, str ? str : "", suffix ? suffix : "");
-
-    size_t len = strlen(str);
-
-    // Combine str~suffix and have buf point to the combination
-debug
-    char[25] tmpbuf = void;    // to exercise the malloc() code path
-else
-    char[1024] tmpbuf = void;  // the malloc() code path is slow
-
-    const(char)* buf;
-    if (suffix)
-    {
-        size_t suffixlen = strlen(suffix);
-        if (len + suffixlen >= (tmpbuf).sizeof)
-        {
-             buf = cast(char *)malloc(len + suffixlen + 1);
-             assert(buf);
-        }
-        else
-        {
-             buf = &tmpbuf[0];
-        }
-        memcpy(cast(char *)buf, str, len);
-        memcpy(cast(char *)buf + len, suffix, suffixlen + 1);
-        len += suffixlen;
-    }
-    else
-        buf = str;
-
-    // Linear search, slow
-    const(char)* ent = cast(char *)strtab.buf+1;
-    const(char)* pend = ent+strtab.size() - 1;
-    while (ent + len < pend)
-    {
-        if (memcmp(buf, ent, len + 1) == 0)
-            return cast(uint)(ent - cast(const(char)* )strtab.buf);
-        ent = cast(const(char)* )memchr(ent, 0, pend - ent);
-        ent += 1;
-    }
-    if (buf != &tmpbuf[0])
-        free(cast(char*)buf);
-    return 0;                   // never found match
 }
 
 /*******************************
@@ -751,23 +703,23 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
         SECbuf.setsize(0);
     section_cnt = 0;
 
-    enum
+    enum NAMIDX : IDXSTR
     {
-        NAMIDX_NONE      =   0,
-        NAMIDX_SYMTAB    =   1,    // .symtab
-        NAMIDX_STRTAB    =   9,    // .strtab
-        NAMIDX_SHSTRTAB  =  17,    // .shstrtab
-        NAMIDX_TEXT      =  27,    // .text
-        NAMIDX_DATA      =  33,    // .data
-        NAMIDX_BSS       =  39,    // .bss
-        NAMIDX_NOTE      =  44,    // .note
-        NAMIDX_COMMENT   =  50,    // .comment
-        NAMIDX_RODATA    =  59,    // .rodata
-        NAMIDX_GNUSTACK  =  67,    // .note.GNU-stack
-        NAMIDX_CDATAREL  =  83,    // .data.rel.ro
-        NAMIDX_RELTEXT   =  96,    // .rel.text and .rela.text
-        NAMIDX_RELDATA   = 106,    // .rel.data
-        NAMIDX_RELDATA64 = 107,    // .rela.data
+        NONE      =   0,
+        SYMTAB    =   1,    // .symtab
+        STRTAB    =   9,    // .strtab
+        SHSTRTAB  =  17,    // .shstrtab
+        TEXT      =  27,    // .text
+        DATA      =  33,    // .data
+        BSS       =  39,    // .bss
+        NOTE      =  44,    // .note
+        COMMENT   =  50,    // .comment
+        RODATA    =  59,    // .rodata
+        GNUSTACK  =  67,    // .note.GNU-stack
+        CDATAREL  =  83,    // .data.rel.ro
+        RELTEXT   =  96,    // .rel.text and .rela.text
+        RELDATA   = 106,    // .rel.data
+        RELDATA64 = 107,    // .rela.data
     }
 
     if (I64)
@@ -796,34 +748,25 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
 
         // name,type,flags,addr,offset,size,link,info,addralign,entsize
         elf_newsection2(0,               SHT_NULL,   0,                 0,0,0,0,0, 0,0);
-        elf_newsection2(NAMIDX_TEXT,SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,0,0,0,0,0, 4,0);
-        elf_newsection2(NAMIDX_RELTEXT,SHT_RELA, 0,0,0,0,SHN_SYMTAB,     SHN_TEXT, 8,0x18);
-        elf_newsection2(NAMIDX_DATA,SHT_PROGBITS,SHF_ALLOC|SHF_WRITE,   0,0,0,0,0, 8,0);
-        elf_newsection2(NAMIDX_RELDATA64,SHT_RELA, 0,0,0,0,SHN_SYMTAB,   SHN_DATA, 8,0x18);
-        elf_newsection2(NAMIDX_BSS, SHT_NOBITS,SHF_ALLOC|SHF_WRITE,     0,0,0,0,0, 16,0);
-        elf_newsection2(NAMIDX_RODATA,SHT_PROGBITS,SHF_ALLOC,           0,0,0,0,0, 16,0);
-        elf_newsection2(NAMIDX_STRTAB,SHT_STRTAB, 0,                    0,0,0,0,0, 1,0);
-        elf_newsection2(NAMIDX_SYMTAB,SHT_SYMTAB, 0,                    0,0,0,0,0, 8,0);
-        elf_newsection2(NAMIDX_SHSTRTAB,SHT_STRTAB, 0,                  0,0,0,0,0, 1,0);
-        elf_newsection2(NAMIDX_COMMENT, SHT_PROGBITS,0,                 0,0,0,0,0, 1,0);
-        elf_newsection2(NAMIDX_NOTE,SHT_NOTE,   0,                      0,0,0,0,0, 1,0);
-        elf_newsection2(NAMIDX_GNUSTACK,SHT_PROGBITS,0,                 0,0,0,0,0, 1,0);
-        elf_newsection2(NAMIDX_CDATAREL,SHT_PROGBITS,SHF_ALLOC|SHF_WRITE,0,0,0,0,0, 16,0);
+        elf_newsection2(NAMIDX.TEXT,SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,0,0,0,0,0, 4,0);
+        elf_newsection2(NAMIDX.RELTEXT,SHT_RELA, 0,0,0,0,SHN_SYMTAB,     SHN_TEXT, 8,0x18);
+        elf_newsection2(NAMIDX.DATA,SHT_PROGBITS,SHF_ALLOC|SHF_WRITE,   0,0,0,0,0, 8,0);
+        elf_newsection2(NAMIDX.RELDATA64,SHT_RELA, 0,0,0,0,SHN_SYMTAB,   SHN_DATA, 8,0x18);
+        elf_newsection2(NAMIDX.BSS, SHT_NOBITS,SHF_ALLOC|SHF_WRITE,     0,0,0,0,0, 16,0);
+        elf_newsection2(NAMIDX.RODATA,SHT_PROGBITS,SHF_ALLOC,           0,0,0,0,0, 16,0);
+        elf_newsection2(NAMIDX.STRTAB,SHT_STRTAB, 0,                    0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX.SYMTAB,SHT_SYMTAB, 0,                    0,0,0,0,0, 8,0);
+        elf_newsection2(NAMIDX.SHSTRTAB,SHT_STRTAB, 0,                  0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX.COMMENT, SHT_PROGBITS,0,                 0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX.NOTE,SHT_NOTE,   0,                      0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX.GNUSTACK,SHT_PROGBITS,0,                 0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX.CDATAREL,SHT_PROGBITS,SHF_ALLOC|SHF_WRITE,0,0,0,0,0, 16,0);
 
-        IDXSTR namidx;
-        namidx = NAMIDX_TEXT;      *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init64.ptr + namidx)) = namidx;
-        namidx = NAMIDX_RELTEXT;   *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init64.ptr + namidx)) = namidx;
-        namidx = NAMIDX_DATA;      *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init64.ptr + namidx)) = namidx;
-        namidx = NAMIDX_RELDATA64; *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init64.ptr + namidx)) = namidx;
-        namidx = NAMIDX_BSS;       *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init64.ptr + namidx)) = namidx;
-        namidx = NAMIDX_RODATA;    *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init64.ptr + namidx)) = namidx;
-        namidx = NAMIDX_STRTAB;    *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init64.ptr + namidx)) = namidx;
-        namidx = NAMIDX_SYMTAB;    *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init64.ptr + namidx)) = namidx;
-        namidx = NAMIDX_SHSTRTAB;  *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init64.ptr + namidx)) = namidx;
-        namidx = NAMIDX_COMMENT;   *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init64.ptr + namidx)) = namidx;
-        namidx = NAMIDX_NOTE;      *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init64.ptr + namidx)) = namidx;
-        namidx = NAMIDX_GNUSTACK;  *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init64.ptr + namidx)) = namidx;
-        namidx = NAMIDX_CDATAREL;  *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init64.ptr + namidx)) = namidx;
+        foreach (idxname; __traits(allMembers, NAMIDX)[1 .. $])
+        {
+            NAMIDX idx = mixin("NAMIDX." ~ idxname);
+            *section_names_hashtable.get(idx, cast(uint)section_names_init64.sizeof) = idx;
+        }
     }
     else
     {
@@ -851,34 +794,25 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
 
         // name,type,flags,addr,offset,size,link,info,addralign,entsize
         elf_newsection2(0,               SHT_NULL,   0,                 0,0,0,0,0, 0,0);
-        elf_newsection2(NAMIDX_TEXT,SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,0,0,0,0,0, 16,0);
-        elf_newsection2(NAMIDX_RELTEXT,SHT_REL, 0,0,0,0,SHN_SYMTAB,      SHN_TEXT, 4,8);
-        elf_newsection2(NAMIDX_DATA,SHT_PROGBITS,SHF_ALLOC|SHF_WRITE,   0,0,0,0,0, 4,0);
-        elf_newsection2(NAMIDX_RELDATA,SHT_REL, 0,0,0,0,SHN_SYMTAB,      SHN_DATA, 4,8);
-        elf_newsection2(NAMIDX_BSS, SHT_NOBITS,SHF_ALLOC|SHF_WRITE,     0,0,0,0,0, 32,0);
-        elf_newsection2(NAMIDX_RODATA,SHT_PROGBITS,SHF_ALLOC,           0,0,0,0,0, 1,0);
-        elf_newsection2(NAMIDX_STRTAB,SHT_STRTAB, 0,                    0,0,0,0,0, 1,0);
-        elf_newsection2(NAMIDX_SYMTAB,SHT_SYMTAB, 0,                    0,0,0,0,0, 4,0);
-        elf_newsection2(NAMIDX_SHSTRTAB,SHT_STRTAB, 0,                  0,0,0,0,0, 1,0);
-        elf_newsection2(NAMIDX_COMMENT, SHT_PROGBITS,0,                 0,0,0,0,0, 1,0);
-        elf_newsection2(NAMIDX_NOTE,SHT_NOTE,   0,                      0,0,0,0,0, 1,0);
-        elf_newsection2(NAMIDX_GNUSTACK,SHT_PROGBITS,0,                 0,0,0,0,0, 1,0);
-        elf_newsection2(NAMIDX_CDATAREL,SHT_PROGBITS,SHF_ALLOC|SHF_WRITE,0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX.TEXT,SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,0,0,0,0,0, 16,0);
+        elf_newsection2(NAMIDX.RELTEXT,SHT_REL, 0,0,0,0,SHN_SYMTAB,      SHN_TEXT, 4,8);
+        elf_newsection2(NAMIDX.DATA,SHT_PROGBITS,SHF_ALLOC|SHF_WRITE,   0,0,0,0,0, 4,0);
+        elf_newsection2(NAMIDX.RELDATA,SHT_REL, 0,0,0,0,SHN_SYMTAB,      SHN_DATA, 4,8);
+        elf_newsection2(NAMIDX.BSS, SHT_NOBITS,SHF_ALLOC|SHF_WRITE,     0,0,0,0,0, 32,0);
+        elf_newsection2(NAMIDX.RODATA,SHT_PROGBITS,SHF_ALLOC,           0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX.STRTAB,SHT_STRTAB, 0,                    0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX.SYMTAB,SHT_SYMTAB, 0,                    0,0,0,0,0, 4,0);
+        elf_newsection2(NAMIDX.SHSTRTAB,SHT_STRTAB, 0,                  0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX.COMMENT, SHT_PROGBITS,0,                 0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX.NOTE,SHT_NOTE,   0,                      0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX.GNUSTACK,SHT_PROGBITS,0,                 0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX.CDATAREL,SHT_PROGBITS,SHF_ALLOC|SHF_WRITE,0,0,0,0,0, 1,0);
 
-        IDXSTR namidx;
-        namidx = NAMIDX_TEXT;     *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init.ptr + namidx)) = namidx;
-        namidx = NAMIDX_RELTEXT;  *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init.ptr + namidx)) = namidx;
-        namidx = NAMIDX_DATA;     *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init.ptr + namidx)) = namidx;
-        namidx = NAMIDX_RELDATA;  *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init.ptr + namidx)) = namidx;
-        namidx = NAMIDX_BSS;      *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init.ptr + namidx)) = namidx;
-        namidx = NAMIDX_RODATA;   *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init.ptr + namidx)) = namidx;
-        namidx = NAMIDX_STRTAB;   *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init.ptr + namidx)) = namidx;
-        namidx = NAMIDX_SYMTAB;   *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init.ptr + namidx)) = namidx;
-        namidx = NAMIDX_SHSTRTAB; *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init.ptr + namidx)) = namidx;
-        namidx = NAMIDX_COMMENT;  *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init.ptr + namidx)) = namidx;
-        namidx = NAMIDX_NOTE;     *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init.ptr + namidx)) = namidx;
-        namidx = NAMIDX_GNUSTACK; *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init.ptr + namidx)) = namidx;
-        namidx = NAMIDX_CDATAREL; *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init.ptr + namidx)) = namidx;
+        foreach (idxname; __traits(allMembers, NAMIDX)[1 .. $])
+        {
+            NAMIDX idx = mixin("NAMIDX." ~ idxname);
+            *section_names_hashtable.get(idx, cast(uint)section_names_init.sizeof) = idx;
+        }
     }
 
     if (SYMbuf)
@@ -1635,8 +1569,15 @@ void Obj_compiler()
     comment_data = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
     assert(comment_data);
 
+    enum maxVersionLength = 40;  // hope enough to store `git describe --dirty`
+    enum compilerHeader = "\0Digital Mars C/C++ ";
+    enum n = compilerHeader.length;
+    char[n + maxVersionLength] compiler = compilerHeader;
 
-    comment_data.write(.compiler,(.compiler).sizeof);
+    assert(config._version.length < maxVersionLength);
+    const newLength = n + config._version.length;
+    compiler[n .. newLength] = config._version;
+    comment_data.write(compiler[0 .. newLength]);
     //dbg_printf("Comment data size %d\n",comment_data.size());
 }
 
@@ -1678,8 +1619,13 @@ void Obj_staticdtor(Symbol *s)
 
 void Obj_setModuleCtorDtor(Symbol *sfunc, bool isCtor)
 {
-    IDXSEC seg = Obj_getsegment(isCtor ? ".ctors" : ".dtors", null, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE, _tysize[TYnptr]);
-    const uint reltype = I64 ? R_X86_64_64 : R_386_32;
+    IDXSEC seg;
+    static if (USE_INIT_ARRAY)
+        seg = isCtor ? Obj_getsegment(".init_array", null, SHT_INIT_ARRAY, SHF_ALLOC|SHF_WRITE, _tysize[TYnptr])
+                     : Obj_getsegment(".fini_array", null, SHT_FINI_ARRAY, SHF_ALLOC|SHF_WRITE, _tysize[TYnptr]);
+    else
+        seg = Obj_getsegment(isCtor ? ".ctors" : ".dtors", null, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE, _tysize[TYnptr]);
+    const reltype_t reltype = I64 ? R_X86_64_64 : R_386_32;
     const size_t sz = Obj_writerel(seg, cast(uint)SegData[seg].SDoffset, reltype, sfunc.Sxtrnnum, 0);
     SegData[seg].SDoffset += sz;
 }
@@ -1712,20 +1658,23 @@ void Obj_ehsections()
 
 private void obj_tlssections()
 {
-    IDXSTR namidx;
-    int align_ = I64 ? 16 : 4;
+    const align_ = I64 ? 16 : 4;
 
-    int sec = Obj_getsegment(".tdata", null, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE|SHF_TLS, align_);
-    Obj_bytes(sec, 0, align_, null);
+    {
+        const sec = Obj_getsegment(".tdata", null, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE|SHF_TLS, align_);
+        Obj_bytes(sec, 0, align_, null);
 
-    namidx = Obj_addstr(symtab_strings,"_tlsstart");
-    elf_addsym(namidx, 0, align_, STT_TLS, STB_GLOBAL, MAP_SEG2SECIDX(sec));
+        const namidx = Obj_addstr(symtab_strings,"_tlsstart");
+        elf_addsym(namidx, 0, align_, STT_TLS, STB_GLOBAL, MAP_SEG2SECIDX(sec));
+    }
 
     Obj_getsegment(".tdata.", null, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE|SHF_TLS, align_);
 
-    sec = Obj_getsegment(".tcommon", null, SHT_NOBITS, SHF_ALLOC|SHF_WRITE|SHF_TLS, align_);
-    namidx = Obj_addstr(symtab_strings,"_tlsend");
-    elf_addsym(namidx, 0, align_, STT_TLS, STB_GLOBAL, MAP_SEG2SECIDX(sec));
+    {
+        const sec = Obj_getsegment(".tcommon", null, SHT_NOBITS, SHF_ALLOC|SHF_WRITE|SHF_TLS, align_);
+        const namidx = Obj_addstr(symtab_strings,"_tlsend");
+        elf_addsym(namidx, 0, align_, STT_TLS, STB_GLOBAL, MAP_SEG2SECIDX(sec));
+    }
 }
 
 /*********************************
@@ -1765,7 +1714,7 @@ else
         const(char)* p = cpp_mangle2(s);
 
         bool added = false;
-        IDXSTR namidx = elf_addsectionname(".text.", p, &added);
+        const namidx = elf_addsectionname(".text.", p, &added);
         int groupseg;
         if (added)
         {
@@ -1796,8 +1745,8 @@ else
         }
 
         // Create a weak symbol for the comdat
-        namidx = Obj_addstr(symtab_strings, p);
-        s.Sxtrnnum = elf_addsym(namidx, 0, 0, STT_FUNC, STB_WEAK, MAP_SEG2SECIDX(s.Sseg));
+        const namidxcd = Obj_addstr(symtab_strings, p);
+        s.Sxtrnnum = elf_addsym(namidxcd, 0, 0, STT_FUNC, STB_WEAK, MAP_SEG2SECIDX(s.Sseg));
 
         if (added)
         {
@@ -2056,10 +2005,10 @@ int Obj_getsegment(const(char)* name, const(char)* suffix, int type, int flags,
 {
     //printf("Obj_getsegment(%s,%s,flags %x, align_ %d)\n",name,suffix,flags,align_);
     bool added = false;
-    IDXSEC namidx = elf_addsectionname(name, suffix, &added);
+    const namidx = elf_addsectionname(name, suffix, &added);
     if (!added)
     {
-        int seg = elf_getsegment(namidx);
+        const seg = elf_getsegment(namidx);
         assert(seg);
         return seg;
     }
@@ -2089,7 +2038,7 @@ void Obj_setcodeseg(int seg)
  *      segment index of newly created code segment
  */
 
-int Obj_codeseg(char *name,int suffix)
+int Obj_codeseg(const char *name,int suffix)
 {
     int seg;
     const(char)* sfx;
@@ -2472,7 +2421,7 @@ void Obj_pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize)
 
     symbol_debug(s);
     reset_symbuf.write((&s)[0 .. 1]);
-    IDXSTR namidx = elf_addmangled(s);
+    const namidx = elf_addmangled(s);
     //printf("\tnamidx %d,section %d\n",namidx,MAP_SEG2SECIDX(seg));
     if (tyfunc(s.ty()))
     {
@@ -2501,8 +2450,8 @@ int Obj_external_def(const(char)* name)
 {
     //dbg_printf("Obj_external_def('%s')\n",name);
     assert(name);
-    IDXSTR namidx = Obj_addstr(symtab_strings,name);
-    IDXSYM symidx = elf_addsym(namidx, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF);
+    const namidx = Obj_addstr(symtab_strings,name);
+    const symidx = elf_addsym(namidx, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF);
     return symidx;
 }
 
@@ -2525,7 +2474,7 @@ int Obj_external(Symbol *s)
     //dbg_printf("Obj_external('%s') %x\n",s.Sident.ptr,s.Svalue);
     symbol_debug(s);
     reset_symbuf.write((&s)[0 .. 1]);
-    IDXSTR namidx = elf_addmangled(s);
+    const namidx = elf_addmangled(s);
 
 version (SCPP)
 {
@@ -2601,11 +2550,11 @@ int Obj_common_block(Symbol *s,targ_size_t size,targ_size_t count)
 static if (0)
 {
     reset_symbuf.write(s);
-    IDXSTR namidx = elf_addmangled(s);
+    const namidx = elf_addmangled(s);
     alignOffset(UDATA,size);
-    IDXSYM symidx = elf_addsym(namidx, SegData[UDATA].SDoffset, size*count,
-                    (s.ty() & mTYthread) ? STT_TLS : STT_OBJECT,
-                    STB_WEAK, SHN_BSS);
+    const symidx = elf_addsym(namidx, SegData[UDATA].SDoffset, size*count,
+                   (s.ty() & mTYthread) ? STT_TLS : STT_OBJECT,
+                   STB_WEAK, SHN_BSS);
     //dbg_printf("\tObj_common_block returning symidx %d\n",symidx);
     s.Sseg = UDATA;
     s.Sfl = FLudata;
@@ -2979,7 +2928,7 @@ private size_t writeaddrval(int targseg, size_t offset, targ_size_t val, size_t 
  *      symidx =        symbol base for relocation
  *      val =           addend or displacement from symbol
  */
-size_t Obj_writerel(int targseg, size_t offset, uint reltype,
+size_t Obj_writerel(int targseg, size_t offset, reltype_t reltype,
                         IDXSYM symidx, targ_size_t val)
 {
     assert(reltype != R_X86_64_NONE);
@@ -3029,7 +2978,7 @@ static if (0)
         seg,cast(ulong)offset,cast(ulong)val,targetdatum,flags);
 }
 
-    int relinfo;
+    reltype_t relinfo;
     IDXSYM targetsymidx = STI_RODAT;
     if (I64)
     {
@@ -3051,7 +3000,12 @@ static if (0)
             targetsymidx = MAP_SEG2SYMIDX(targetdatum);
         }
         else if (MAP_SEG2SEC(targetdatum).sh_flags & SHF_TLS)
-            relinfo = config.flags3 & CFG3pic ? R_X86_64_TLSGD : R_X86_64_TPOFF32;
+        {
+            if (config.flags3 & CFG3pie)
+                relinfo = R_X86_64_TPOFF32;
+            else
+                relinfo = config.flags3 & CFG3pic ? R_X86_64_TLSGD : R_X86_64_TPOFF32;
+        }
         else
         {
             relinfo = targetdatum == CDATA ? R_X86_64_32 : R_X86_64_32S;
@@ -3063,7 +3017,12 @@ static if (0)
         if (MAP_SEG2TYP(seg) == CODE && config.flags3 & CFG3pic)
             relinfo = R_386_GOTOFF;
         else if (MAP_SEG2SEC(targetdatum).sh_flags & SHF_TLS)
-            relinfo = config.flags3 & CFG3pic ? R_386_TLS_GD : R_386_TLS_LE;
+        {
+            if (config.flags3 & CFG3pie)
+                relinfo = R_386_TLS_LE;
+            else
+                relinfo = config.flags3 & CFG3pic ? R_386_TLS_GD : R_386_TLS_LE;
+        }
         else
             relinfo = R_386_32;
         targetsymidx = MAP_SEG2SYMIDX(targetdatum);
@@ -3085,7 +3044,7 @@ void Obj_reftocodeseg(int seg,targ_size_t offset,targ_size_t val)
 {
     //dbg_printf("Obj_reftocodeseg(seg=%d, offset=x%lx, val=x%lx )\n",seg,offset,val);
 
-    int relinfo;
+    reltype_t relinfo;
 static if (0)
 {
     if (MAP_SEG2TYP(seg) == CODE)
@@ -3108,7 +3067,7 @@ static if (0)
  * Input:
  *      segtyp =        where the address is going (CODE or DATA)
  *      offset =        offset within seg
- *      s .            Symbol table entry for identifier
+ *      s =             Symbol table entry for identifier
  *      val =           displacement from identifier
  *      flags =         CFselfrel: self-relative
  *                      CFseg: get segment
@@ -3124,8 +3083,9 @@ int Obj_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
 {
     bool external = true;
     Outbuffer *buf;
-    Elf32_Word relinfo=R_X86_64_NONE,refseg;
-    int segtyp = MAP_SEG2TYP(seg);
+    reltype_t relinfo = R_X86_64_NONE;
+    int refseg;
+    const segtyp = MAP_SEG2TYP(seg);
     //assert(val == 0);
     int retsize = (flags & CFoffset64) ? 8 : 4;
 
@@ -3137,7 +3097,7 @@ static if (0)
     symbol_print(s);
 }
 
-    tym_t ty = s.ty();
+    const tym_t ty = s.ty();
     if (s.Sxtrnnum)
     {                           // identifier is defined somewhere else
         if (I64)
@@ -3158,7 +3118,12 @@ static if (0)
             if (I64)
             {
                 if (s.Sfl == FLtlsdata)
-                    relinfo = config.flags3 & CFG3pic ? R_X86_64_TLSGD : R_X86_64_TPOFF32;
+                {
+                    if (config.flags3 & CFG3pie)
+                        relinfo = R_X86_64_TPOFF32;
+                    else
+                        relinfo = config.flags3 & CFG3pic ? R_X86_64_TLSGD : R_X86_64_TPOFF32;
+                }
                 else
                 {   relinfo = config.flags3 & CFG3pic ? R_X86_64_PC32 : R_X86_64_32;
                     if (flags & CFpc32)
@@ -3168,7 +3133,12 @@ static if (0)
             else
             {
                 if (s.Sfl == FLtlsdata)
-                    relinfo = config.flags3 & CFG3pic ? R_386_TLS_GD : R_386_TLS_LE;
+                {
+                    if (config.flags3 & CFG3pie)
+                        relinfo = R_386_TLS_LE;
+                    else
+                        relinfo = config.flags3 & CFG3pic ? R_386_TLS_GD : R_386_TLS_LE;
+                }
                 else
                     relinfo = config.flags3 & CFG3pic ? R_386_GOTOFF : R_386_32;
             }
@@ -3187,7 +3157,7 @@ static if (0)
 static if (0)
 {
             if ((s.Sflags & SFLthunk) && s.Soffset)
-            {                   // A thunk symbol that has be defined
+            {                   // A thunk symbol that has been defined
                 assert(s.Sseg == seg);
                 val = (s.Soffset+val) - (offset+4);
                 goto outaddrval;
@@ -3223,7 +3193,9 @@ static if (0)
                     else
                     {
                         //dbg_printf("\tadding relocation\n");
-                        if (I64)
+                        if (s.Sclass == SCglobal && config.flags3 & CFG3pie && tyfunc(s.ty()))
+                            relinfo = I64 ? R_X86_64_PC32 : R_386_PC32;
+                        else if (I64)
                             relinfo = config.flags3 & CFG3pic ?  R_X86_64_PLT32 : R_X86_64_PC32;
                         else
                             relinfo = config.flags3 & CFG3pic ?  R_386_PLT32 : R_386_PC32;
@@ -3263,19 +3235,34 @@ static if (0)
                     else
                     {                   // relocation from within CODE seg
                         if (I64)
-                        {   if (config.flags3 & CFG3pic)
+                        {
+                            if (config.flags3 & CFG3pie && s.Sclass == SCglobal)
+                                relinfo = R_X86_64_PC32;
+                            else if (config.flags3 & CFG3pic)
                                 relinfo = R_X86_64_GOTPCREL;
                             else
                                 relinfo = (flags & CFpc32) ? R_X86_64_PC32 : R_X86_64_32;
                         }
                         else
-                            relinfo = config.flags3 & CFG3pic ? R_386_GOT32 : R_386_32;
+                        {
+                            if (config.flags3 & CFG3pie && s.Sclass == SCglobal)
+                                relinfo = R_386_GOTOFF;
+                            else
+                                relinfo = config.flags3 & CFG3pic ? R_386_GOT32 : R_386_32;
+                        }
                     }
                     if ((s.ty() & mTYLINK) & mTYthread)
                     {
                         if (I64)
                         {
-                            if (config.flags3 & CFG3pic)
+                            if (config.flags3 & CFG3pie)
+                            {
+                                if (s.Sclass == SCstatic || s.Sclass == SCglobal)
+                                    relinfo = R_X86_64_TPOFF32;
+                                else
+                                    relinfo = R_X86_64_GOTTPOFF;
+                            }
+                            else if (config.flags3 & CFG3pic)
                             {
                                 /+if (s.Sclass == SCstatic || s.Sclass == SClocstat)
                                     // Could use 'local dynamic (LD)' to optimize multiple local TLS reads
@@ -3293,7 +3280,14 @@ static if (0)
                         }
                         else
                         {
-                            if (config.flags3 & CFG3pic)
+                            if (config.flags3 & CFG3pie)
+                            {
+                                if (s.Sclass == SCstatic || s.Sclass == SCglobal)
+                                    relinfo = R_386_TLS_LE;
+                                else
+                                    relinfo = R_386_TLS_GOTIE;
+                            }
+                            else if (config.flags3 & CFG3pic)
                             {
                                 /+if (s.Sclass == SCstatic)
                                     // Could use 'local dynamic (LD)' to optimize multiple local TLS reads
@@ -3424,11 +3418,11 @@ version (MARS)
 
 void Obj_moduleinfo(Symbol *scc)
 {
-    const int CFflags = I64 ? (CFoffset64 | CFoff) : CFoff;
+    const CFflags = I64 ? (CFoffset64 | CFoff) : CFoff;
 
     // needs to be writeable for PIC code, see Bugzilla 13117
-    const int shf_flags = SHF_ALLOC | SHF_WRITE;
-    const int seg = Obj_getsegment("minfo", null, SHT_PROGBITS, shf_flags, _tysize[TYnptr]);
+    const shf_flags = SHF_ALLOC | SHF_WRITE;
+    const seg = Obj_getsegment("minfo", null, SHT_PROGBITS, shf_flags, _tysize[TYnptr]);
     SegData[seg].SDoffset +=
         Obj_reftoident(seg, SegData[seg].SDoffset, scc, 0, CFflags);
 }
@@ -3445,24 +3439,22 @@ private void obj_rtinit()
     // section start/stop symbols are defined by the linker (http://www.airs.com/blog/archives/56)
     // make the symbols hidden so that each DSO gets it's own brackets
     IDXSYM minfo_beg, minfo_end, dso_rec;
-    IDXSTR namidx;
-    int seg;
 
     {
     // needs to be writeable for PIC code, see Bugzilla 13117
-    const int shf_flags = SHF_ALLOC | SHF_WRITE;
+    const shf_flags = SHF_ALLOC | SHF_WRITE;
 
-    namidx = Obj_addstr(symtab_strings,"__start_minfo");
+    const namidx = Obj_addstr(symtab_strings,"__start_minfo");
     minfo_beg = elf_addsym(namidx, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);
 
     Obj_getsegment("minfo", null, SHT_PROGBITS, shf_flags, _tysize[TYnptr]);
 
-    namidx = Obj_addstr(symtab_strings,"__stop_minfo");
-    minfo_end = elf_addsym(namidx, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);
+    const namidx2 = Obj_addstr(symtab_strings,"__stop_minfo");
+    minfo_end = elf_addsym(namidx2, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);
     }
 
     // Create a COMDAT section group
-    const int groupseg = Obj_getsegment(".group.d_dso", null, SHT_GROUP, 0, 0);
+    const groupseg = Obj_getsegment(".group.d_dso", null, SHT_GROUP, 0, 0);
     SegData[groupseg].SDbuf.write32(GRP_COMDAT);
 
     {
@@ -3477,7 +3469,7 @@ private void obj_rtinit()
          *     void       *data;
          * } DSORec;
          */
-        seg = Obj_getsegment(".data.d_dso_rec", null, SHT_PROGBITS,
+        const seg = Obj_getsegment(".data.d_dso_rec", null, SHT_PROGBITS,
                          SHF_ALLOC|SHF_WRITE|SHF_GROUP, _tysize[TYnptr]);
         dso_rec = MAP_SEG2SYMIDX(seg);
         Obj_bytes(seg, 0, _tysize[TYnptr], null);
@@ -3510,23 +3502,21 @@ private void obj_rtinit()
          *      call      _d_dso_registry@PLT32
          *      leave
          *      ret
-         * and then put a pointer to that function in .ctors and in .dtors so it'll
+         * and then put a pointer to that function in .init_array and in .fini_array so it'll
          * get executed once upon loading and once upon unloading the DSO.
          */
-        int codseg;
-        {
-            codseg = Obj_getsegment(".text.d_dso_init", null, SHT_PROGBITS,
-                                    SHF_ALLOC|SHF_EXECINSTR|SHF_GROUP, _tysize[TYnptr]);
-            // add to section group
-            SegData[groupseg].SDbuf.write32(MAP_SEG2SECIDX(codseg));
+        const codseg = Obj_getsegment(".text.d_dso_init", null, SHT_PROGBITS,
+                                SHF_ALLOC|SHF_EXECINSTR|SHF_GROUP, _tysize[TYnptr]);
+        // add to section group
+        SegData[groupseg].SDbuf.write32(MAP_SEG2SECIDX(codseg));
 
-debug
-{
+        debug
+        {
             // adds a local symbol (name) to the code, useful to set a breakpoint
-            namidx = Obj_addstr(symtab_strings, "__d_dso_init");
+            const namidx = Obj_addstr(symtab_strings, "__d_dso_init");
             elf_addsym(namidx, 0, 0, STT_FUNC, STB_LOCAL, MAP_SEG2SECIDX(codseg));
-}
         }
+
         Outbuffer *buf = SegData[codseg].SDbuf;
         assert(!buf.size());
         size_t off = 0;
@@ -3586,11 +3576,23 @@ debug
             off += Obj_writerel(codseg, off, R_386_GOTPC, Obj_external(Obj_getGOTsym()), 3);
         }
 
-        int reltype;
-        if (config.flags3 & CFG3pic)
+        reltype_t reltype;
+        opcode_t op;
+        if (0 && config.flags3 & CFG3pie)
+        {
+            op = LOD;
+            reltype = I64 ? R_X86_64_GOTPCREL : R_386_GOT32;
+        }
+        else if (config.flags3 & CFG3pic)
+        {
+            op = LEA;
             reltype = I64 ? R_X86_64_PC32 : R_386_GOTOFF;
+        }
         else
+        {
+            op = LEA;
             reltype = I64 ? R_X86_64_32 : R_386_32;
+        }
 
         const IDXSYM[3] syms = [dso_rec, minfo_beg, minfo_end];
 
@@ -3604,7 +3606,7 @@ debug
                 {
                     // lea RAX, sym[RIP]
                     buf.writeByte(REX | REX_W);
-                    buf.writeByte(0x8D);
+                    buf.writeByte(op);
                     buf.writeByte(modregrm(0,AX,5));
                     off += 3;
                     off += Obj_writerel(codseg, off, reltype, syms[i], -4);
@@ -3612,7 +3614,7 @@ debug
                 else
                 {
                     // lea EAX, sym[EBX]
-                    buf.writeByte(0x8D);
+                    buf.writeByte(op);
                     buf.writeByte(modregrm(2,AX,BX));
                     off += 2;
                     off += Obj_writerel(codseg, off, reltype, syms[i], 0);
@@ -3629,12 +3631,8 @@ debug
             buf.writeByte(0x50 + AX);
             off += 1;
         }
-        // Pass a version flag to simplify future extensions.
-        static immutable size_t ver = 1;
-        // push imm8
-        assert(!(ver & ~0xFF));
-        buf.writeByte(0x6A);
-        buf.writeByte(ver);
+        buf.writeByte(0x6A);            // PUSH 1
+        buf.writeByte(1);               // version flag to simplify future extensions
         off += 2;
 
         if (I64)
@@ -3665,7 +3663,7 @@ else
 {
 
         // use a weak reference for _d_dso_registry
-        namidx = Obj_addstr(symtab_strings, "_d_dso_registry");
+        const namidx = Obj_addstr(symtab_strings, "_d_dso_registry");
         const IDXSYM symidx = elf_addsym(namidx, 0, 0, STT_NOTYPE, STB_WEAK, SHN_UNDEF);
 
         if (config.flags3 & CFG3pic)
@@ -3677,7 +3675,8 @@ else
                 buf.writeByte(0x83);
                 buf.writeByte(modregrm(0,7,5));
                 off += 3;
-                off += Obj_writerel(codseg, off, R_X86_64_GOTPCREL, symidx, -5);
+                const reltype = /*config.flags3 & CFG3pie ? R_X86_64_PC32 :*/ R_X86_64_GOTPCREL;
+                off += Obj_writerel(codseg, off, reltype, symidx, -5);
                 buf.writeByte(0);
                 off += 1;
             }
@@ -3687,7 +3686,8 @@ else
                 buf.writeByte(0x81);
                 buf.writeByte(modregrm(2,7,BX));
                 off += 2;
-                off += Obj_writerel(codseg, off, R_386_GOT32, symidx, 0);
+                const reltype = /*config.flags3 & CFG3pie ? R_386_GOTOFF :*/ R_386_GOT32;
+                off += Obj_writerel(codseg, off, reltype, symidx, 0);
                 buf.write32(0);
                 off += 4;
             }
@@ -3706,7 +3706,7 @@ else
             // mov ECX, offset foo
             buf.writeByte(0xB8 + CX);
             off += 1;
-            reltype = I64 ? R_X86_64_32 : R_386_32;
+            const reltype = I64 ? R_X86_64_32 : R_386_32;
             off += Obj_writerel(codseg, off, reltype, symidx, 0);
 
             // test ECX, ECX
@@ -3740,25 +3740,30 @@ else
         off += 2;
         Offset(codseg) = off;
 
-        // put a reference into .ctors/.dtors each
-        const(char)*[2] p = [".dtors.d_dso_dtor", ".ctors.d_dso_ctor"];
+        // put a reference into .init_array/.fini_array each
         // needs to be writeable for PIC code, see Bugzilla 13117
         const int flags = SHF_ALLOC | SHF_WRITE | SHF_GROUP;
-        for (size_t i = 0; i < 2; ++i)
         {
-            seg = Obj_getsegment(p[i], null, SHT_PROGBITS, flags, _tysize[TYnptr]);
-            assert(!SegData[seg].SDbuf.size());
-
+            enum fini_name = USE_INIT_ARRAY ? ".fini_array.d_dso_dtor" : ".dtors.d_dso_dtor";
+            enum fini_type = USE_INIT_ARRAY ? SHT_FINI_ARRAY : SHT_PROGBITS;
+            const cdseg = Obj_getsegment(fini_name.ptr, null, fini_type, flags, _tysize[TYnptr]);
+            assert(!SegData[cdseg].SDbuf.size());
             // add to section group
-            SegData[groupseg].SDbuf.write32(MAP_SEG2SECIDX(seg));
-
+            SegData[groupseg].SDbuf.write32(MAP_SEG2SECIDX(cdseg));
             // relocation
-            if (I64)
-                reltype = R_X86_64_64;
-            else
-                reltype = R_386_32;
-
-            SegData[seg].SDoffset += Obj_writerel(seg, 0, reltype, MAP_SEG2SYMIDX(codseg), 0);
+            const reltype2 = I64 ? R_X86_64_64 : R_386_32;
+            SegData[cdseg].SDoffset += Obj_writerel(cdseg, 0, reltype2, MAP_SEG2SYMIDX(codseg), 0);
+        }
+        {
+            enum init_name = USE_INIT_ARRAY ? ".init_array.d_dso_ctor" : ".ctors.d_dso_ctor";
+            enum init_type = USE_INIT_ARRAY ? SHT_INIT_ARRAY : SHT_PROGBITS;
+            const cdseg = Obj_getsegment(init_name.ptr, null, init_type, flags, _tysize[TYnptr]);
+            assert(!SegData[cdseg].SDbuf.size());
+            // add to section group
+            SegData[groupseg].SDbuf.write32(MAP_SEG2SECIDX(cdseg));
+            // relocation
+            const reltype2 = I64 ? R_X86_64_64 : R_386_32;
+            SegData[cdseg].SDoffset += Obj_writerel(cdseg, 0, reltype2, MAP_SEG2SYMIDX(codseg), 0);
         }
     }
     // set group section infos
@@ -3830,13 +3835,13 @@ int dwarf_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val)
          */
         if (!s.Sdw_ref_idx)
         {
-            int dataDWref_seg = Obj_getsegment(".data.DW.ref.", s.Sident.ptr, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE, I64 ? 8 : 4);
+            const dataDWref_seg = Obj_getsegment(".data.DW.ref.", s.Sident.ptr, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE, I64 ? 8 : 4);
             Outbuffer *buf = SegData[dataDWref_seg].SDbuf;
             assert(buf.size() == 0);
             Obj_reftoident(dataDWref_seg, 0, s, 0, I64 ? CFoffset64 : CFoff);
 
             // Add "DW.ref." ~ name to the symtab_strings table
-            IDXSTR namidx = cast(IDXSTR)symtab_strings.size();
+            const namidx = cast(IDXSTR)symtab_strings.size();
             symtab_strings.writeString("DW.ref.");
             symtab_strings.setsize(cast(uint)(symtab_strings.size() - 1));  // back up over terminating 0
             symtab_strings.writeString(s.Sident.ptr);

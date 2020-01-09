@@ -1,4 +1,14 @@
 // EXTRA_CPP_SOURCES: cpp_abi_tests.cpp
+// CXXFLAGS(linux freebsd osx netbsd dragonflybsd): -std=c++11
+
+// N.B MSVC doesn't have a C++11 switch, but it defaults to the latest fully-supported standard
+// N.B MSVC 2013 doesn't support char16_t/char32_t
+
+version(Posix)
+    enum __c_wchar_t : dchar;
+else version(Windows)
+    enum __c_wchar_t : wchar;
+alias wchar_t = __c_wchar_t;
 
 extern(C++) {
 
@@ -7,7 +17,17 @@ struct S
     float a = 1;
 }
 
+struct S18784
+{
+    int i;
+    this(int);
+}
+
 extern(C++, std)
+{
+    struct test19248_ {int a = 42;}
+}
+extern(C++, `std`)
 {
     struct test19248 {int a = 34;}
 }
@@ -16,7 +36,9 @@ bool   passthrough(bool   value);
 byte   passthrough(byte   value);
 ubyte  passthrough(ubyte  value);
 char   passthrough(char   value);
+wchar  passthrough(wchar  value);
 dchar  passthrough(dchar  value);
+wchar_t passthrough(wchar_t value);
 short  passthrough(short  value);
 ushort passthrough(ushort value);
 int    passthrough(int    value);
@@ -26,13 +48,16 @@ ulong  passthrough(ulong  value);
 float  passthrough(float  value);
 double passthrough(double value);
 S      passthrough(S      value);
-std.test19248 passthrough(const(std.test19248) value);
+test19248 passthrough(const(test19248) value);
+std.test19248_ passthrough(const(std.test19248_) value);
 
 bool   passthrough_ptr(bool   *value);
 byte   passthrough_ptr(byte   *value);
 ubyte  passthrough_ptr(ubyte  *value);
 char   passthrough_ptr(char   *value);
+wchar  passthrough_ptr(wchar  *value);
 dchar  passthrough_ptr(dchar  *value);
+wchar_t passthrough_ptr(wchar_t *value);
 short  passthrough_ptr(short  *value);
 ushort passthrough_ptr(ushort *value);
 int    passthrough_ptr(int    *value);
@@ -42,13 +67,16 @@ ulong  passthrough_ptr(ulong  *value);
 float  passthrough_ptr(float  *value);
 double passthrough_ptr(double *value);
 S      passthrough_ptr(S      *value);
-std.test19248 passthrough_ptr(const(std.test19248)* value);
+test19248 passthrough_ptr(const(test19248)* value);
+std.test19248_ passthrough_ptr(const(std.test19248_)* value);
 
 bool   passthrough_ref(ref bool   value);
 byte   passthrough_ref(ref byte   value);
 ubyte  passthrough_ref(ref ubyte  value);
 char   passthrough_ref(ref char   value);
+wchar  passthrough_ref(ref wchar  value);
 dchar  passthrough_ref(ref dchar  value);
+wchar_t passthrough_ref(ref wchar_t value);
 short  passthrough_ref(ref short  value);
 ushort passthrough_ref(ref ushort value);
 int    passthrough_ref(ref int    value);
@@ -58,7 +86,8 @@ ulong  passthrough_ref(ref ulong  value);
 float  passthrough_ref(ref float  value);
 double passthrough_ref(ref double value);
 S      passthrough_ref(ref S      value);
-std.test19248 passthrough_ref(ref const(std.test19248) value);
+test19248 passthrough_ref(ref const(test19248) value);
+std.test19248_ passthrough_ref(ref const(std.test19248_) value);
 }
 
 template IsSigned(T)
@@ -94,7 +123,7 @@ template IsBoolean(T)
 
 template IsSomeChar(T)
 {
-    enum IsSomeChar = is(T==char) || is(T==dchar);
+    enum IsSomeChar = is(T==char) || is(T==wchar) || is(T==dchar) || is(T==wchar_t);
 }
 
 void check(T)(T actual, T expected)
@@ -158,13 +187,38 @@ extern(C++, `ns1`)
     int constFunction4(const(char*), const(char***));
 }
 
+extern(C++)
+{
+    struct SmallStruct
+    {
+        int i;
+        this(int i) { this.i = i; }
+        this(ref const SmallStruct); // implemented in C++
+    }
+    void smallStructTest(SmallStruct p);
+    void smallStructCallBack(SmallStruct p)
+    {
+        assert(p.i == 62);
+    }
+}
+
 void main()
 {
     foreach(bool val; values!bool())     check(val);
     foreach(byte val; values!byte())     check(val);
     foreach(ubyte val; values!ubyte())   check(val);
     foreach(char val; values!char())     check(val);
+version(CppRuntime_DigitalMars){} else
+version(CppRuntime_Microsoft)
+{
+// TODO: figure out how to detect VS2013 which doesn't support char16_t/char32_t
+}
+else
+{
+    foreach(wchar val; values!wchar())   check(val);
     foreach(dchar val; values!dchar())   check(val);
+}
+    foreach(wchar_t val; values!wchar_t()) check(val);
     foreach(short val; values!short())   check(val);
     foreach(ushort val; values!ushort()) check(val);
     foreach(int val; values!int())       check(val);
@@ -174,10 +228,16 @@ void main()
     foreach(float val; values!float())   check(val);
     foreach(double val; values!double()) check(val);
     check(S());
-    check(std.test19248());
+    check(test19248());
+    check(std.test19248_());
 
     assert(constFunction1(null, null) == 1);
     assert(constFunction2(null, null) == 2);
     assert(constFunction3(null, null) == 3);
     assert(constFunction4(null, null) == 42);
+
+    auto ss = SmallStruct(42);
+    smallStructTest(ss);
+    assert(ss.i == 42);
+    assert(S18784(1).i == 1);
 }

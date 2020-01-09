@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:    Copyright (C) 2012-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:    Copyright (C) 2012-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cv8.d, backend/cv8.d)
@@ -19,7 +19,7 @@ version (MARS)
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
-extern (C) char* getcwd(char*, size_t);
+extern (C) nothrow char* getcwd(char*, size_t);
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
@@ -27,7 +27,7 @@ import dmd.backend.cgcv;
 import dmd.backend.code;
 import dmd.backend.code_x86;
 import dmd.backend.cv4;
-import dmd.backend.memh;
+import dmd.backend.mem;
 import dmd.backend.el;
 import dmd.backend.exh;
 import dmd.backend.global;
@@ -37,10 +37,12 @@ import dmd.backend.outbuf;
 import dmd.backend.rtlsym;
 import dmd.backend.ty;
 import dmd.backend.type;
-import dmd.backend.varstats;
+import dmd.backend.dvarstats;
 import dmd.backend.xmm;
 
 extern (C++):
+
+nothrow:
 
 static if (TARGET_WINDOS)
 {
@@ -101,8 +103,9 @@ struct FuncData
     uint section_length;
     const(char)* srcfilename;
     uint srcfileoff;
-    uint linepairstart;     // starting index of offset/line pairs in linebuf[]
-    uint linepairnum;       // number of offset/line pairs
+    uint linepairstart;     // starting byte index of offset/line pairs in linebuf[]
+    uint linepairbytes;     // number of bytes for offset/line pairs
+    uint linepairsegment;   // starting byte index of filename segment for offset/line pairs
     Outbuffer *f1buf;
     Outbuffer *f1fixup;
 }
@@ -261,16 +264,13 @@ void cv8_termfile(const(char)* objfilename)
         F2_buf.write32(cast(uint)fd.sfunc.Soffset);
         F2_buf.write32(0);
         F2_buf.write32(fd.section_length);
-        F2_buf.write32(fd.srcfileoff);
-        F2_buf.write32(fd.linepairnum);
-        F2_buf.write32(fd.linepairnum * 8 + 12);
-        F2_buf.write(linepair.buf + fd.linepairstart * 8, fd.linepairnum * 8);
+        F2_buf.write(linepair.buf + fd.linepairstart, fd.linepairbytes);
 
         int f2seg = seg;
         if (symbol_iscomdat(fd.sfunc))
         {
             f2seg = MsCoffObj_seg_debugS_comdat(fd.sfunc);
-            objmod.bytes(f2seg,0,4,&value);
+            objmod.bytes(f2seg, 0, 4, &value);
         }
 
         uint offset = cast(uint)SegData[f2seg].SDoffset + 8;
@@ -295,10 +295,12 @@ void cv8_termfile(const(char)* objfilename)
     }
 
     // Write out "F3" section
-    cv8_writesection(seg, 0xF3, F3_buf);
+    if (F3_buf.size() > 1)
+        cv8_writesection(seg, 0xF3, F3_buf);
 
     // Write out "F4" section
-    cv8_writesection(seg, 0xF4, F4_buf);
+    if (F4_buf.size() > 0)
+        cv8_writesection(seg, 0xF4, F4_buf);
 
     if (F1_buf.size())
     {
@@ -328,11 +330,6 @@ void cv8_termfile(const(char)* objfilename)
 void cv8_initmodule(const(char)* filename, const(char)* modulename)
 {
     //printf("cv8_initmodule(filename = %s, modulename = %s)\n", filename, modulename);
-
-    /* Experiments show that filename doesn't have to be qualified if
-     * it is relative to the directory the .exe file is in.
-     */
-    currentfuncdata.srcfileoff = cv8_addfile(filename);
 }
 
 void cv8_termmodule()
@@ -350,9 +347,8 @@ void cv8_func_start(Symbol *sfunc)
     currentfuncdata.sfunc = sfunc;
     currentfuncdata.section_length = 0;
     currentfuncdata.srcfilename = null;
-    currentfuncdata.srcfileoff = 0;
-    currentfuncdata.linepairstart += currentfuncdata.linepairnum;
-    currentfuncdata.linepairnum = 0;
+    currentfuncdata.linepairstart += currentfuncdata.linepairbytes;
+    currentfuncdata.linepairbytes = 0;
     currentfuncdata.f1buf = F1_buf;
     currentfuncdata.f1fixup = F1fixup;
     if (symbol_iscomdat(sfunc))
@@ -371,7 +367,7 @@ void cv8_func_term(Symbol *sfunc)
     //printf("cv8_func_term(%s)\n", sfunc.Sident);
 
     assert(currentfuncdata.sfunc == sfunc);
-    currentfuncdata.section_length = cast(uint)(retoffset + retsize);
+    currentfuncdata.section_length = cast(uint)sfunc.Ssize;
 
     funcdata.write(&currentfuncdata, currentfuncdata.sizeof);
 
@@ -451,6 +447,7 @@ void cv8_func_term(Symbol *sfunc)
 
     struct cv8
     {
+    nothrow:
         // record for CV record S_BLOCK_V3
         struct block_v3_data
         {
@@ -512,37 +509,43 @@ void cv8_func_term(Symbol *sfunc)
 void cv8_linnum(Srcpos srcpos, uint offset)
 {
     //printf("cv8_linnum(file = %s, line = %d, offset = x%x)\n", srcpos.Sfilename, (int)srcpos.Slinnum, (uint)offset);
-    if (currentfuncdata.srcfilename)
-    {
-        /* Ignore line numbers from different files in the same function.
-         * This can happen with inlined functions.
-         * To make this work would require a separate F2 section for each different file.
-         */
-        if (currentfuncdata.srcfilename != srcpos.Sfilename &&
-            strcmp(currentfuncdata.srcfilename, srcpos.Sfilename))
-            return;
-    }
-    else
-    {
-        currentfuncdata.srcfilename = srcpos.Sfilename;
-        currentfuncdata.srcfileoff  = cv8_addfile(srcpos.Sfilename);
-    }
+    if (!srcpos.Sfilename)
+        return;
 
     varStats_recordLineOffset(srcpos, offset);
 
     __gshared uint lastoffset;
     __gshared uint lastlinnum;
-    if (currentfuncdata.linepairnum)
+
+    if (!currentfuncdata.srcfilename ||
+        (currentfuncdata.srcfilename != srcpos.Sfilename && strcmp(currentfuncdata.srcfilename, srcpos.Sfilename)))
     {
-        if (offset <= lastoffset || srcpos.Slinnum <= lastlinnum)
-            return;
+        currentfuncdata.srcfilename = srcpos.Sfilename;
+        uint srcfileoff = cv8_addfile(srcpos.Sfilename);
+
+        // new file segment
+        currentfuncdata.linepairsegment = currentfuncdata.linepairstart + currentfuncdata.linepairbytes;
+
+        linepair.write32(srcfileoff);
+        linepair.write32(0); // reserve space for length information
+        linepair.write32(12);
+        currentfuncdata.linepairbytes += 12;
     }
+    else if (offset <= lastoffset || srcpos.Slinnum == lastlinnum)
+        return; // avoid multiple entries for the same offset
+
     lastoffset = offset;
     lastlinnum = srcpos.Slinnum;
+    linepair.write32(offset);
+    linepair.write32(srcpos.Slinnum | 0x80000000); // mark as statement, not expression
 
-    linepair.write32(cast(uint)offset);
-    linepair.write32(cast(uint)srcpos.Slinnum | 0x80000000);
-    ++currentfuncdata.linepairnum;
+    currentfuncdata.linepairbytes += 8;
+
+    // update segment length
+    auto segmentbytes = currentfuncdata.linepairstart + currentfuncdata.linepairbytes - currentfuncdata.linepairsegment;
+    auto segmentheader = cast(uint*)(linepair.buf + currentfuncdata.linepairsegment);
+    segmentheader[1] = (segmentbytes - 12) / 8;
+    segmentheader[2] = segmentbytes;
 }
 
 /**********************************************

@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -13,8 +13,13 @@
 #include "dsymbol.h"
 
 struct ModuleDeclaration;
-struct Macro;
 struct Escape;
+struct FileBuffer;
+
+struct MacroTable
+{
+    void* internal;  // PIMPL
+};
 
 enum PKG
 {
@@ -58,12 +63,13 @@ public:
     static AggregateDeclaration *moduleinfo;
 
 
-    const char *arg;    // original argument name
+    DString arg;        // original argument name
     ModuleDeclaration *md; // if !NULL, the contents of the ModuleDeclaration declaration
-    File *srcfile;      // input source file
-    File *objfile;      // output .obj file
-    File *hdrfile;      // 'header' file
-    File *docfile;      // output documentation file
+    FileName srcfile;   // input source file
+    FileName objfile;   // output .obj file
+    FileName hdrfile;   // 'header' file
+    FileName docfile;   // output documentation file
+    FileBuffer *srcBuffer; // set during load(), free'd in parse()
     unsigned errors;    // if any errors in file
     unsigned numlines;  // number of lines in source file
     bool isHdrFile;     // if it is a header (.di) file
@@ -99,7 +105,7 @@ public:
     Strings *versionids;    // version identifiers
     Strings *versionidsNot;     // forward referenced version identifiers
 
-    Macro *macrotable;          // document comment macros
+    MacroTable macrotable;      // document comment macros
     Escape *escapetable;        // document comment escapes
 
     size_t nameoffset;          // offset of module name from start of ModuleInfo
@@ -110,9 +116,7 @@ public:
     static Module *load(Loc loc, Identifiers *packages, Identifier *ident);
 
     const char *kind() const;
-    File *setOutfile(const char *name, const char *dir, const char *arg, const char *ext);
-    void setDocfile();
-    bool read(Loc loc); // read file, returns 'true' if succeed, 'false' otherwise.
+    bool read(const Loc &loc); // read file, returns 'true' if succeed, 'false' otherwise.
     Module *parse();    // syntactic parse
     void importAll(Scope *sc);
     int needModuleInfo();
@@ -120,13 +124,9 @@ public:
     bool isPackageAccessible(Package *p, Prot protection, int flags = 0);
     Dsymbol *symtabInsert(Dsymbol *s);
     void deleteObjFile();
-    static void addDeferredSemantic(Dsymbol *s);
-    static void addDeferredSemantic2(Dsymbol *s);
-    static void addDeferredSemantic3(Dsymbol *s);
     static void runDeferredSemantic();
     static void runDeferredSemantic2();
     static void runDeferredSemantic3();
-    static void clearCache();
     int imports(Module *m);
 
     bool isRoot() { return this->importedFrom == this; }

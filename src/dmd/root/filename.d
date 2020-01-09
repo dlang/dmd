@@ -2,7 +2,7 @@
  * Compiler implementation of the D programming language
  * http://dlang.org
  *
- * Copyright: Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/filename.d, root/_filename.d)
@@ -15,9 +15,6 @@ module dmd.root.filename;
 import core.stdc.ctype;
 import core.stdc.errno;
 import core.stdc.string;
-import core.sys.posix.stdlib;
-import core.sys.posix.sys.stat;
-import core.sys.windows.windows;
 import dmd.root.array;
 import dmd.root.file;
 import dmd.root.outbuffer;
@@ -26,16 +23,33 @@ import dmd.root.rmem;
 import dmd.root.rootobject;
 import dmd.utils;
 
-nothrow
+version (Posix)
 {
-version (Windows) extern (Windows) DWORD GetFullPathNameW(LPCWSTR, DWORD, LPWSTR, LPWSTR*) @nogc;
-version (Windows) extern (Windows) void SetLastError(DWORD) @nogc;
-version (Windows) extern (C) char* getcwd(char* buffer, size_t maxlen);
-version (Posix) extern (C) char* canonicalize_file_name(const char*);
-version (Posix) import core.sys.posix.unistd : getcwd;
+    import core.sys.posix.stdlib;
+    import core.sys.posix.sys.stat;
+    import core.sys.posix.unistd : getcwd;
 }
+
+version (Windows)
+{
+    import core.sys.windows.winbase;
+    import core.sys.windows.windef;
+    import core.sys.windows.winnls;
+
+    extern (Windows) DWORD GetFullPathNameW(LPCWSTR, DWORD, LPWSTR, LPWSTR*) nothrow @nogc;
+    extern (Windows) void SetLastError(DWORD) nothrow @nogc;
+    extern (C) char* getcwd(char* buffer, size_t maxlen) nothrow;
+
+    // assume filenames encoded in system default Windows ANSI code page
+    private enum codepage = CP_ACP;
+}
+
+version (CRuntime_Glibc)
+{
+    extern (C) char* canonicalize_file_name(const char*) nothrow;
+}
+
 alias Strings = Array!(const(char)*);
-alias Files = Array!(File*);
 
 /***********************************************************
  * Encapsulate path and file names.
@@ -46,26 +60,27 @@ nothrow:
     private const(char)[] str;
 
     ///
-    extern (D) this(const(char)[] str)
+    extern (D) this(const(char)[] str) pure
     {
         this.str = str.xarraydup;
     }
 
     /// Compare two name according to the platform's rules (case sensitive or not)
-    extern (C++) static bool equals(const(char)* name1, const(char)* name2) pure
+    extern (C++) static bool equals(const(char)* name1, const(char)* name2) pure @nogc
     {
         return equals(name1.toDString, name2.toDString);
     }
 
     /// Ditto
-    extern (D) static bool equals(const(char)[] name1, const(char)[] name2) pure
+    extern (D) static bool equals(const(char)[] name1, const(char)[] name2) pure @nogc
     {
         if (name1.length != name2.length)
             return false;
 
         version (Windows)
         {
-            return Port.memicmp(name1.ptr, name2.ptr, name1.length) == 0;
+            return name1.ptr == name2.ptr ||
+                   Port.memicmp(name1.ptr, name2.ptr, name1.length) == 0;
         }
         else
         {
@@ -80,13 +95,13 @@ nothrow:
      * Returns:
      *  true if absolute path name.
      */
-    extern (C++) static bool absolute(const(char)* name) pure
+    extern (C++) static bool absolute(const(char)* name) pure @nogc
     {
         return absolute(name.toDString);
     }
 
     /// Ditto
-    extern (D) static bool absolute(const(char)[] name) pure
+    extern (D) static bool absolute(const(char)[] name) pure @nogc
     {
         if (!name.length)
             return false;
@@ -137,7 +152,7 @@ nothrow:
      *  Points past '.' of extension.
      *  If there isn't one, return null.
      */
-    extern (C++) static const(char)* ext(const(char)* str) pure
+    extern (C++) static const(char)* ext(const(char)* str) pure @nogc
     {
         return ext(str.toDString).ptr;
     }
@@ -179,7 +194,7 @@ nothrow:
         assert(ext([]) == null);
     }
 
-    extern (C++) const(char)* ext() const pure
+    extern (C++) const(char)* ext() const pure @nogc
     {
         return ext(str).ptr;
     }
@@ -226,13 +241,13 @@ nothrow:
     /********************************
      * Return filename name excluding path (read-only).
      */
-    extern (C++) static const(char)* name(const(char)* str) pure
+    extern (C++) static const(char)* name(const(char)* str) pure @nogc
     {
         return name(str.toDString).ptr;
     }
 
     /// Ditto
-    extern (D) static const(char)[] name(const(char)[] str) pure
+    extern (D) static const(char)[] name(const(char)[] str) pure @nogc
     {
         foreach_reverse (idx, char e; str)
         {
@@ -265,7 +280,7 @@ nothrow:
         return str;
     }
 
-    extern (C++) const(char)* name() const pure
+    extern (C++) const(char)* name() const pure @nogc
     {
         return name(str).ptr;
     }
@@ -278,7 +293,8 @@ nothrow:
 
     /**************************************
      * Return path portion of str.
-     * Path will does not include trailing path separator.
+     * returned string is newly allocated
+     * Path does not include trailing path separator.
      */
     extern (C++) static const(char)* path(const(char)* str)
     {
@@ -408,28 +424,47 @@ nothrow:
     // Split a path into an Array of paths
     extern (C++) static Strings* splitPath(const(char)* path)
     {
-        char c = 0; // unnecessary initializer is for VC /W4
-        const(char)* p;
-        OutBuffer buf;
-        Strings* array;
-        array = new Strings();
+        auto array = new Strings();
+        int sink(const(char)* p) nothrow
+        {
+            array.push(p);
+            return 0;
+        }
+        splitPath(&sink, path);
+        return array;
+    }
+
+    /****
+     * Split path (such as that returned by `getenv("PATH")`) into pieces, each piece is mem.xmalloc'd
+     * Handle double quotes and ~.
+     * Pass the pieces to sink()
+     * Params:
+     *  sink = send the path pieces here, end when sink() returns !=0
+     *  path = the path to split up.
+     */
+    static void splitPath(int delegate(const(char)*) nothrow sink, const(char)* path)
+    {
         if (path)
         {
-            p = path;
+            auto p = path;
+            OutBuffer buf;
+            char c;
             do
             {
-                char instring = 0;
-                while (isspace(cast(char)*p)) // skip leading whitespace
-                    p++;
-                buf.reserve(strlen(p) + 1); // guess size of path
-                for (;; p++)
+                const(char)* home;
+                bool instring = false;
+                while (isspace(*p)) // skip leading whitespace
+                    ++p;
+                buf.reserve(8); // guess size of piece
+                for (;; ++p)
                 {
                     c = *p;
                     switch (c)
                     {
-                    case '"':
-                        instring ^= 1; // toggle inside/outside of string
-                        continue;
+                        case '"':
+                            instring ^= false; // toggle inside/outside of string
+                            continue;
+
                         version (OSX)
                         {
                         case ',':
@@ -442,52 +477,49 @@ nothrow:
                         {
                         case ':':
                         }
-                        p++;
-                        break;
-                        // note that ; cannot appear as part
-                        // of a path, quotes won't protect it
-                    case 0x1A:
-                        // ^Z means end of file
-                    case 0:
-                        break;
-                    case '\r':
-                        continue;
-                        // ignore carriage returns
+                            p++;    // ; cannot appear as part of a
+                            break;  // path, quotes won't protect it
+
+                        case 0x1A:  // ^Z means end of file
+                        case 0:
+                            break;
+
+                        case '\r':
+                            continue;  // ignore carriage returns
+
                         version (Posix)
                         {
                         case '~':
-                            {
-                                char* home = getenv("HOME");
-                                if (home)
-                                    buf.writestring(home);
-                                else
-                                    buf.writestring("~");
-                                continue;
-                            }
+                            if (!home)
+                                home = getenv("HOME");
+                            // Expand ~ only if it is prefixing the rest of the path.
+                            if (!buf.length && p[1] == '/' && home)
+                                buf.writestring(home);
+                            else
+                                buf.writeByte('~');
+                            continue;
                         }
+
                         version (none)
                         {
                         case ' ':
-                        case '\t':
-                            // tabs in filenames?
+                        case '\t':         // tabs in filenames?
                             if (!instring) // if not in string
-                                break;
-                            // treat as end of path
+                                break;     // treat as end of path
                         }
-                    default:
-                        buf.writeByte(c);
-                        continue;
+                        default:
+                            buf.writeByte(c);
+                            continue;
                     }
                     break;
                 }
-                if (buf.offset) // if path is not empty
+                if (buf.length) // if path is not empty
                 {
-                    array.push(buf.extractString());
+                    if (sink(buf.extractChars()))
+                        break;
                 }
-            }
-            while (c);
+            } while (c);
         }
-        return array;
     }
 
     /**
@@ -500,7 +532,7 @@ nothrow:
      * Returns:
      *   A newly allocated string (free with `FileName.free`)
      */
-    extern(D) static char[] addExt(const(char)[] name, const(char)[] ext)
+    extern(D) static char[] addExt(const(char)[] name, const(char)[] ext) pure
     {
         const len = name.length + ext.length + 2;
         auto s = cast(char*)mem.xmalloc(len);
@@ -561,13 +593,13 @@ nothrow:
 
     /// Returns:
     ///   `true` if `name`'s extension is `ext`
-    extern (C++) static bool equalsExt(const(char)* name, const(char)* ext) pure
+    extern (C++) static bool equalsExt(const(char)* name, const(char)* ext) pure @nogc
     {
         return equalsExt(name.toDString, ext.toDString);
     }
 
     /// Ditto
-    extern (D) static bool equalsExt(const(char)[] name, const(char)[] ext) pure
+    extern (D) static bool equalsExt(const(char)[] name, const(char)[] ext) pure @nogc
     {
         auto e = FileName.ext(name);
         if (!e.length && !ext.length)
@@ -588,15 +620,19 @@ nothrow:
     /******************************
      * Return !=0 if extensions match.
      */
-    extern (C++) bool equalsExt(const(char)* ext) const pure
+    extern (C++) bool equalsExt(const(char)* ext) const pure @nogc
     {
         return equalsExt(str, ext.toDString());
     }
 
     /*************************************
-     * Search Path for file.
-     * Input:
-     *      cwd     if true, search current directory before searching path
+     * Search paths for file.
+     * Params:
+     *  path = array of path strings
+     *  name = file to look for
+     *  cwd = true means search current directory before searching path
+     * Returns:
+     *  if found, filename combined with path, otherwise null
      */
     extern (C++) static const(char)* searchPath(Strings* path, const(char)* name, bool cwd)
     {
@@ -621,7 +657,45 @@ nothrow:
                 auto n = combine(p.toDString, name);
                 if (exists(n))
                     return n;
+                //combine might return name
+                if (n.ptr != name.ptr)
+                {
+                    mem.xfree(cast(void*)n.ptr);
+                }
             }
+        }
+        return null;
+    }
+
+    extern (D) static const(char)[] searchPath(const(char)* path, const(char)[] name, bool cwd)
+    {
+        if (absolute(name))
+        {
+            return exists(name) ? name : null;
+        }
+        if (cwd)
+        {
+            if (exists(name))
+                return name;
+        }
+        if (path && *path)
+        {
+            const(char)[] result;
+
+            int sink(const(char)* p) nothrow
+            {
+                auto n = combine(p.toDString, name);
+                mem.xfree(cast(void*)p);
+                if (exists(n))
+                {
+                    result = n;
+                    return 1;   // done with splitPath() call
+                }
+                return 0;
+            }
+
+            splitPath(&sink, path);
+            return result;
         }
         return null;
     }
@@ -698,16 +772,16 @@ nothrow:
                     // exists and name is *really* a "child" of path
                     if (exists(cname) && strncmp(cpath, cname, strlen(cpath)) == 0)
                     {
-                        .free(cast(void*)cpath);
+                        mem.xfree(cast(void*)cpath);
                         const(char)* p = mem.xstrdup(cname);
-                        .free(cast(void*)cname);
+                        mem.xfree(cast(void*)cname);
                         return p;
                     }
                 cont:
                     if (cpath)
-                        .free(cast(void*)cpath);
+                        mem.xfree(cast(void*)cpath);
                     if (cname)
-                        .free(cast(void*)cname);
+                        mem.xfree(cast(void*)cname);
                 }
             }
             return null;
@@ -779,29 +853,27 @@ nothrow:
        Returns:
          `true` if the directory exists or was successfully created
      */
-    extern (C++) static bool ensurePathExists(const(char)* path)
+    extern (D) static bool ensurePathExists(const(char)[] path)
     {
         //printf("FileName::ensurePathExists(%s)\n", path ? path : "");
-        if (!path || !(*path))
+        if (!path.length)
             return true;
         if (exists(path))
             return true;
 
         // We were provided with a file name
         // We need to call ourselves recursively to ensure parent dir exist
-        const(char)* p = FileName.path(path);
-        if (*p)
+        const char[] p = FileName.path(path);
+        if (p.length)
         {
             version (Windows)
             {
-                const len = strlen(path);
-                const plen = strlen(p);
                 // Note: Windows filename comparison should be case-insensitive,
                 // however p is a subslice of path so we don't need it
-                if (len == plen ||
-                    (len > 2 && path[1] == ':' && path[2 .. len] == p[0 .. plen]))
+                if (path.length == p.length ||
+                    (path.length > 2 && path[1] == ':' && path[2 .. $] == p))
                 {
-                    mem.xfree(cast(void*)p);
+                    mem.xfree(cast(void*)p.ptr);
                     return true;
                 }
             }
@@ -813,11 +885,11 @@ nothrow:
         }
 
         version (Windows)
-            const r = _mkdir(path.toDString);
+            const r = _mkdir(path);
         version (Posix)
         {
             errno = 0;
-            const r = mkdir(path, (7 << 6) | (7 << 3) | 7);
+            const r = path.toCStringThen!((pathCS) => mkdir(pathCS.ptr, (7 << 6) | (7 << 3) | 7));
         }
 
         if (r == 0)
@@ -840,6 +912,12 @@ nothrow:
         return false;
     }
 
+    ///ditto
+    extern (C++) static bool ensurePathExists(const(char)* path)
+    {
+        return ensurePathExists(path.toDString);
+    }
+
     /******************************************
      * Return canonical version of name in a malloc'd buffer.
      * This code is high risk.
@@ -854,8 +932,65 @@ nothrow:
     {
         version (Posix)
         {
-            // NULL destination buffer is allowed and preferred
-            return name.toCStringThen!((n) => realpath(n.ptr, null)).toDString;
+            import core.stdc.limits;      // PATH_MAX
+            import core.sys.posix.unistd; // _PC_PATH_MAX
+
+            // Older versions of druntime don't have PATH_MAX defined.
+            // i.e: dmd __VERSION__ < 2085, gdc __VERSION__ < 2076.
+            static if (!__traits(compiles, PATH_MAX))
+            {
+                version (DragonFlyBSD)
+                    enum PATH_MAX = 1024;
+                else version (FreeBSD)
+                    enum PATH_MAX = 1024;
+                else version (linux)
+                    enum PATH_MAX = 4096;
+                else version (NetBSD)
+                    enum PATH_MAX = 1024;
+                else version (OpenBSD)
+                    enum PATH_MAX = 1024;
+                else version (OSX)
+                    enum PATH_MAX = 1024;
+                else version (Solaris)
+                    enum PATH_MAX = 1024;
+            }
+
+            // Have realpath(), passing a NULL destination pointer may return an
+            // internally malloc'd buffer, however it is implementation defined
+            // as to what happens, so cannot rely on it.
+            static if (__traits(compiles, PATH_MAX))
+            {
+                // Have compile time limit on filesystem path, use it with realpath.
+                char[PATH_MAX] buf = void;
+                auto path = name.toCStringThen!((n) => realpath(n.ptr, buf.ptr));
+                if (path !is null)
+                    return mem.xstrdup(path).toDString;
+            }
+            else static if (__traits(compiles, canonicalize_file_name))
+            {
+                // Have canonicalize_file_name, which malloc's memory.
+                auto path = name.toCStringThen!((n) => canonicalize_file_name(n.ptr));
+                if (path !is null)
+                    return path.toDString;
+            }
+            else static if (__traits(compiles, _PC_PATH_MAX))
+            {
+                // Panic! Query the OS for the buffer limit.
+                auto path_max = pathconf("/", _PC_PATH_MAX);
+                if (path_max > 0)
+                {
+                    char *buf = cast(char*)mem.xmalloc(path_max);
+                    scope(exit) mem.xfree(buf);
+                    auto path = name.toCStringThen!((n) => realpath(n.ptr, buf));
+                    if (path !is null)
+                        return mem.xstrdup(path).toDString;
+                }
+            }
+            // Give up trying to support this platform, just duplicate the filename
+            // unless there is nothing to copy from.
+            if (!name.length)
+                return null;
+            return mem.xstrdup(name.ptr)[0 .. name.length];
         }
         else version (Windows)
         {
@@ -866,25 +1001,25 @@ nothrow:
                  * GetFullPathName isn't it, but use it anyway.
                  */
                 // First find out how long the buffer has to be.
-                auto fullPathLength = GetFullPathNameW(&wname[0], 0, null, null);
+                const fullPathLength = GetFullPathNameW(&wname[0], 0, null, null);
                 if (!fullPathLength) return null;
                 auto fullPath = new wchar[fullPathLength];
 
                 // Actually get the full path name
                 const fullPathLengthNoTerminator = GetFullPathNameW(
-                    &wname[0], cast(uint)fullPath.length, &fullPath[0], null /*filePart*/);
+                    &wname[0], fullPathLength, &fullPath[0], null /*filePart*/);
                 // Unfortunately, when the buffer is large enough the return value is the number of characters
                 // _not_ counting the null terminator, so fullPathLengthNoTerminator should be smaller
                 assert(fullPathLength > fullPathLengthNoTerminator);
 
                 // Find out size of the converted string
                 const retLength = WideCharToMultiByte(
-                    0 /*codepage*/, 0 /*flags*/, &fullPath[0], fullPathLength, null, 0, null, null);
+                    codepage, 0 /*flags*/, &fullPath[0], fullPathLength, null, 0, null, null);
                 auto ret = new char[retLength];
 
                 // Actually convert to char
                 const retLength2 = WideCharToMultiByte(
-                    0 /*codepage*/, 0 /*flags*/, &fullPath[0], cast(int)fullPath.length, &ret[0], cast(int)ret.length, null, null);
+                    codepage, 0 /*flags*/, &fullPath[0], fullPathLength, &ret[0], retLength, null, null);
                 assert(retLength == retLength2);
 
                 return ret;
@@ -899,7 +1034,7 @@ nothrow:
     /********************************
      * Free memory allocated by FileName routines
      */
-    extern (C++) static void free(const(char)* str)
+    extern (C++) static void free(const(char)* str) pure
     {
         if (str)
         {
@@ -909,16 +1044,22 @@ nothrow:
         mem.xfree(cast(void*)str);
     }
 
-    extern (C++) const(char)* toChars() const pure nothrow @trusted
+    extern (C++) const(char)* toChars() const pure nothrow @nogc @trusted
     {
         // Since we can return an empty slice (but '\0' terminated),
         // we don't do bounds check (as `&str[0]` does)
         return str.ptr;
     }
 
-    const(char)[] toString() const pure nothrow @trusted
+    const(char)[] toString() const pure nothrow @nogc @trusted
     {
         return str;
+    }
+
+    bool opCast(T)() const pure nothrow @nogc @safe
+    if (is(T == bool))
+    {
+        return str.ptr !is null;
     }
 }
 
@@ -1036,17 +1177,15 @@ version(Windows)
     {
         if (!str.length) return F(""w.ptr);
 
-        import core.stdc.string: strlen;
         import core.stdc.stdlib: malloc, free;
-        import core.sys.windows.winnls: MultiByteToWideChar;
-        wchar[1024] buf;
-        // first find out how long the buffer must be to store the result
+        wchar[1024] buf = void;
 
-        const length = MultiByteToWideChar(0 /*codepage*/, 0 /*flags*/, &str[0], cast(int)str.length, null, 0);
+        // first find out how long the buffer must be to store the result
+        const length = MultiByteToWideChar(codepage, 0 /*flags*/, &str[0], cast(int)str.length, null, 0);
         if (!length) return F(""w);
 
         wchar[] ret = length >= buf.length
-            ? (cast(wchar*)malloc(length * wchar.sizeof))[0 .. length + 1]
+            ? (cast(wchar*)malloc((length + 1) * wchar.sizeof))[0 .. length + 1]
             : buf[0 .. length + 1];
         scope (exit)
         {
@@ -1055,87 +1194,11 @@ version(Windows)
         }
         // actually do the conversion
         const length2 = MultiByteToWideChar(
-            0 /*codepage*/, 0 /*flags*/, &str[0], cast(int)str.length, &ret[0], cast(int)length);
-        assert(str.length == length2); // should always be true according to the API
+            codepage, 0 /*flags*/, &str[0], cast(int)str.length, &ret[0], length);
+        assert(length == length2); // should always be true according to the API
         // Add terminating `\0`
         ret[$ - 1] = '\0';
 
         return F(ret[0 .. $ - 1]);
-    }
-}
-
-version (Posix)
-{
-    /**
-    Takes a callable F and applies it to the result of converting
-    `fileName` to an absolute file path (char*)
-
-    Params:
-        fileName = The file name to be converted to an absolute path
-    Returns: Whatever `F` returns.
-    */
-    auto absPathThen(alias F)(const(char)[] fileName)
-    {
-        import core.sys.posix.stdlib: realpath, free;
-        char* absPath = fileName.toCStringThen!((fn) => realpath(&fn[0], null /* realpath allocates */));
-        scope(exit) free(absPath);
-        return F(absPath.toDString());
-    }
-}
-else
-{
-    /**
-    Takes a callable F and applies it to the result of converting
-    `fileName` to an absolute file path (char*)
-
-    Params:
-        fileName = The file name to be converted to an absolute path
-    Returns: Whatever `F` returns.
-     */
-    auto absPathThen(alias F)(const(char)[] fileName)
-    {
-        import core.sys.windows.winnls: WideCharToMultiByte;
-        import core.stdc.stdlib: malloc, free;
-
-        return fileName.extendedPathThen!((wpath) {
-                // first find out how long the buffer must be to store the result
-                const length = WideCharToMultiByte(0,    // code page
-                                                   0,    // flags
-                                                   &wpath[0],
-                                                   -1,   // wpath len, -1 is null terminated
-                                                   null, // multibyte output ptr
-                                                   0,    // multibyte output length
-                                                   null, // default char
-                                                   null, // if used default char
-                );
-
-                if (!length) return F((char[]).init);
-
-                char[1024] buf = void;
-
-                scope multibyteBuf = length > buf.length
-                    ? (cast(char*)malloc(length * char.sizeof))[0 .. length]
-                    : buf[0 .. length];
-                scope (exit)
-                {
-                    if (multibyteBuf.ptr != buf.ptr)
-                        free(multibyteBuf.ptr);
-                }
-
-                // now store the result
-                const length2 = WideCharToMultiByte(0,    // code page
-                                                    0,    // flags
-                                                    &wpath[0],
-                                                    -1,   // wpath len, -1 is null terminated
-                                                    multibyteBuf.ptr,
-                                                    length,
-                                                    null, // default char
-                                                    null, // if used default char
-                );
-
-                assert(length == length2);
-
-                return F(multibyteBuf[0 .. length - 1]);
-        });
     }
 }

@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/compiler.d, _compiler.d)
@@ -32,8 +32,6 @@ import dmd.tokens;
 
 extern (C++) __gshared
 {
-    /// DMD-generated module `__entrypoint` where the C main resides
-    Module entrypoint = null;
     /// Module in which the D main is
     Module rootHasMain = null;
 
@@ -48,68 +46,14 @@ extern (C++) __gshared
  * A data structure that describes a back-end compiler and implements
  * compiler-specific actions.
  */
-struct Compiler
+extern (C++) struct Compiler
 {
-    /**
-     * Generate C main() in response to seeing D main().
-     *
-     * This function will generate a module called `__entrypoint`,
-     * and set the globals `entrypoint` and `rootHasMain`.
-     *
-     * This used to be in druntime, but contained a reference to _Dmain
-     * which didn't work when druntime was made into a dll and was linked
-     * to a program, such as a C++ program, that didn't have a _Dmain.
-     *
-     * Params:
-     *   sc = Scope which triggered the generation of the C main,
-     *        used to get the module where the D main is.
-     */
-    extern (C++) static void genCmain(Scope* sc)
-    {
-        if (entrypoint)
-            return;
-        /* The D code to be generated is provided as D source code in the form of a string.
-         * Note that Solaris, for unknown reasons, requires both a main() and an _main()
-         */
-        immutable cmaincode =
-        q{
-            extern(C)
-            {
-                int _d_run_main(int argc, char **argv, void* mainFunc);
-                int _Dmain(char[][] args);
-                int main(int argc, char **argv)
-                {
-                    return _d_run_main(argc, argv, &_Dmain);
-                }
-                version (Solaris) int _main(int argc, char** argv) { return main(argc, argv); }
-            }
-        };
-        Identifier id = Id.entrypoint;
-        auto m = new Module("__entrypoint.d", id, 0, 0);
-        scope p = new Parser!ASTCodegen(m, cmaincode, false);
-        p.scanloc = Loc.initial;
-        p.nextToken();
-        m.members = p.parseModule();
-        assert(p.token.value == TOK.endOfFile);
-        assert(!p.errors); // shouldn't have failed to parse it
-        bool v = global.params.verbose;
-        global.params.verbose = false;
-        m.importedFrom = m;
-        m.importAll(null);
-        m.dsymbolSemantic(null);
-        m.semantic2(null);
-        m.semantic3(null);
-        global.params.verbose = v;
-        entrypoint = m;
-        rootHasMain = sc._module;
-    }
-
     /******************************
      * Encode the given expression, which is assumed to be an rvalue literal
      * as another type for use in CTFE.
      * This corresponds roughly to the idiom *(Type *)&e.
      */
-    extern (C++) static Expression paintAsType(Expression e, Type type)
+    extern (C++) static Expression paintAsType(UnionExp* pue, Expression e, Type type)
     {
         union U
         {
@@ -138,6 +82,9 @@ struct Compiler
         case Tfloat64:
             u.float64value = cast(double) e.toReal();
             break;
+        case Tfloat80:
+            assert(e.type.size() == 8); // 64-bit target `real`
+            goto case Tfloat64;
         default:
             assert(0, "Unsupported source type");
         }
@@ -147,19 +94,32 @@ struct Compiler
         {
         case Tint32:
         case Tuns32:
-            return new IntegerExp(e.loc, u.int32value, type);
+            emplaceExp!(IntegerExp)(pue, e.loc, u.int32value, type);
+            break;
+
         case Tint64:
         case Tuns64:
-            return new IntegerExp(e.loc, u.int64value, type);
+            emplaceExp!(IntegerExp)(pue, e.loc, u.int64value, type);
+            break;
+
         case Tfloat32:
             r = u.float32value;
-            return new RealExp(e.loc, r, type);
+            emplaceExp!(RealExp)(pue, e.loc, r, type);
+            break;
+
         case Tfloat64:
             r = u.float64value;
-            return new RealExp(e.loc, r, type);
+            emplaceExp!(RealExp)(pue, e.loc, r, type);
+            break;
+
+        case Tfloat80:
+            assert(type.size() == 8); // 64-bit target `real`
+            goto case Tfloat64;
+
         default:
             assert(0, "Unsupported target type");
         }
+        return pue.exp();
     }
 
     /******************************
@@ -244,7 +204,7 @@ private bool includeImportedModuleCheck(ModuleComponentRange components)
                     // MATCH
                     return !info.isExclude;
                 }
-                if (!range.front.equals(matchNodes[nodeIndex + nodeOffset].id))
+                if (!(range.front is matchNodes[nodeIndex + nodeOffset].id))
                 {
                     break;
                 }
@@ -346,7 +306,8 @@ private void createMatchNodes()
         {
             auto index = findSortedIndexToAddForDepth(1);
             matchNodes.split(index, defaultDepth1MatchNodes.length);
-            matchNodes.data[index .. index + defaultDepth1MatchNodes.length] = defaultDepth1MatchNodes[];
+            auto slice = matchNodes[];
+            slice[index .. index + defaultDepth1MatchNodes.length] = defaultDepth1MatchNodes[];
         }
     }
 }

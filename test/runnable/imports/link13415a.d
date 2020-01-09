@@ -1,3 +1,4 @@
+module imports.link13415a;
 struct S(alias func)
 {
     void call()

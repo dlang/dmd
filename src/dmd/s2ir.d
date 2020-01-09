@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _s2ir.d)
@@ -82,9 +82,7 @@ private void block_setLoc(block *b, const ref Loc loc) pure nothrow
 
 private void srcpos_setLoc(ref Srcpos s, const ref Loc loc) pure nothrow
 {
-    s.Sfilename = cast(char *)loc.filename;
-    s.Slinnum = loc.linnum;
-    s.Scharnum = loc.charnum;
+    s.set(loc.filename, loc.linnum, loc.charnum);
 }
 
 
@@ -107,46 +105,6 @@ private block *block_calloc(Blockx *blx)
     block *b = dmd.backend.global.block_calloc();
     b.Btry = blx.tryblock;
     return b;
-}
-
-/****************************************
- * Get or create a label declaration.
- */
-
-private Label *getLabel(IRState *irs, Blockx *blx, Statement s)
-{
-    Label **slot = irs.lookupLabel(s);
-
-    if (slot == null)
-    {
-        Label *label = new Label();
-        label.lblock = blx ? block_calloc(blx) : dmd.backend.global.block_calloc();
-        label.fwdrefs = null;
-        irs.insertLabel(s, label);
-        return label;
-    }
-    return *slot;
-}
-
-/**************************************
- * Convert label to block.
- */
-
-private block *labelToBlock(IRState *irs, const ref Loc loc, Blockx *blx, LabelDsymbol label, int flag = 0)
-{
-    if (!label.statement)
-    {
-        error(loc, "undefined label `%s`", label.toChars());
-        return null;
-    }
-    Label *l = getLabel(irs, null, label.statement);
-    if (flag)
-    {
-        // Keep track of the forward reference to this block, so we can check it later
-        if (!l.fwdrefs)
-            l.fwdrefs = blx.curblock;
-    }
-    return l.lblock;
 }
 
 /**************************************
@@ -186,7 +144,7 @@ private extern (C++) class S2irVisitor : Visitor
     /*************************************
      */
 
-    override void visit(OnScopeStatement s)
+    override void visit(ScopeGuardStatement s)
     {
     }
 
@@ -426,61 +384,28 @@ private extern (C++) class S2irVisitor : Visitor
         assert(s.label.statement);
         assert(s.tf == s.label.statement.tf);
 
-        block *bdest = labelToBlock(irs, s.loc, blx, s.label, 1);
-        if (!bdest)
-            return;
+        block* bdest = cast(block*)s.label.statement.extra;
         block *b = blx.curblock;
         incUsage(irs, s.loc);
         b.appendSucc(bdest);
         block_setLoc(b, s.loc);
-
-        // Check that bdest is in an enclosing try block
-        for (block *bt = b.Btry; bt != bdest.Btry; bt = bt.Btry)
-        {
-            if (!bt)
-            {
-                //printf("b.Btry = %p, bdest.Btry = %p\n", b.Btry, bdest.Btry);
-                s.error("cannot `goto` into `try` block");
-                break;
-            }
-        }
 
         block_next(blx,BCgoto,null);
     }
 
     override void visit(LabelStatement s)
     {
-        //printf("LabelStatement.toIR() %p, statement = %p\n", this, statement);
+        //printf("LabelStatement.toIR() %p, statement: `%s`\n", this, s.statement.toChars());
         Blockx *blx = irs.blx;
         block *bc = blx.curblock;
         IRState mystate = IRState(irs,s);
         mystate.ident = s.ident;
 
-        Label *label = getLabel(irs, blx, s);
+        block* bdest = cast(block*)s.extra;
         // At last, we know which try block this label is inside
-        label.lblock.Btry = blx.tryblock;
+        bdest.Btry = blx.tryblock;
 
-        // Go through the forward references and check.
-        if (label.fwdrefs)
-        {
-            block *b = label.fwdrefs;
-
-            if (b.Btry != label.lblock.Btry)
-            {
-                // Check that lblock is in an enclosing try block
-                for (block *bt = b.Btry; bt != label.lblock.Btry; bt = bt.Btry)
-                {
-                    if (!bt)
-                    {
-                        //printf("b.Btry = %p, label.lblock.Btry = %p\n", b.Btry, label.lblock.Btry);
-                        s.error("cannot `goto` into `try` block");
-                        break;
-                    }
-
-                }
-            }
-        }
-        block_next(blx, BCgoto, label.lblock);
+        block_next(blx, BCgoto, bdest);
         bc.appendSucc(blx.curblock);
         if (s.statement)
             Statement_toIR(s.statement, &mystate);
@@ -490,7 +415,6 @@ private extern (C++) class S2irVisitor : Visitor
      */
 
     override void visit(SwitchStatement s)
-//    { .visit(irs, s); }
     {
         Blockx *blx = irs.blx;
 
@@ -511,9 +435,15 @@ private extern (C++) class S2irVisitor : Visitor
          */
         mystate.defaultBlock = s.sdefault ? block_calloc(blx) : mystate.breakBlock;
 
-        size_t numcases = 0;
-        if (s.cases)
-            numcases = s.cases.dim;
+        const numcases = s.cases ? s.cases.dim : 0;
+
+        /* allocate a block for each case
+         */
+        if (numcases)
+            foreach (cs; *s.cases)
+            {
+                cs.extra = cast(void*)block_calloc(blx);
+            }
 
         incUsage(irs, s.loc);
         elem *econd = toElemDtor(s.condition, &mystate);
@@ -527,18 +457,18 @@ private extern (C++) class S2irVisitor : Visitor
                 econd = e.EV.E2;
             }
 
-            for (size_t i = 0; i < numcases; i++)
-            {   CaseStatement cs = (*s.cases)[i];
-
-                elem *ecase = toElemDtor(cs.exp, &mystate);
-                elem *e = el_bin(OPeqeq, TYbool, el_copytree(econd), ecase);
-                block *b = blx.curblock;
-                block_appendexp(b, e);
-                Label *clabel = getLabel(irs, blx, cs);
-                block_next(blx, BCiftrue, null);
-                b.appendSucc(clabel.lblock);
-                b.appendSucc(blx.curblock);
-            }
+            if (numcases)
+                foreach (cs; *s.cases)
+                {
+                    elem *ecase = toElemDtor(cs.exp, &mystate);
+                    elem *e = el_bin(OPeqeq, TYbool, el_copytree(econd), ecase);
+                    block *b = blx.curblock;
+                    block_appendexp(b, e);
+                    block* cb = cast(block*)cs.extra;
+                    block_next(blx, BCiftrue, null);
+                    b.appendSucc(cb);
+                    b.appendSucc(blx.curblock);
+                }
 
             /* The final 'else' clause goes to the default
              */
@@ -566,22 +496,21 @@ private extern (C++) class S2irVisitor : Visitor
         block_next(blx,BCswitch,null);
 
         // Corresponding free is in block_free
-        targ_llong *pu = cast(targ_llong *)(.malloc(targ_llong.sizeof * (numcases + 1)));
+        alias TCase = typeof(mystate.switchBlock.Bswitch[0]);
+        auto pu = cast(TCase *)Mem.check(.malloc(TCase.sizeof * (numcases + 1)));
         mystate.switchBlock.Bswitch = pu;
         /* First pair is the number of cases, and the default block
          */
         *pu++ = numcases;
         mystate.switchBlock.appendSucc(mystate.defaultBlock);
 
-        /* Fill in the first entry in each pair, which is the case value.
+        /* Fill in the first entry for each pair, which is the case value.
          * CaseStatement.toIR() will fill in
          * the second entry for each pair with the block.
          */
-        for (size_t i = 0; i < numcases; i++)
-        {
-            CaseStatement cs = (*s.cases)[i];
-            pu[i] = cs.exp.toInteger();
-        }
+        if (numcases)
+            foreach (cs; *s.cases)
+                *pu++ = cs.exp.toInteger();
 
         Statement_toIR(s._body, &mystate);
 
@@ -595,14 +524,12 @@ private extern (C++) class S2irVisitor : Visitor
     {
         Blockx *blx = irs.blx;
         block *bcase = blx.curblock;
-        Label *clabel = getLabel(irs, blx, s);
-        block_next(blx, BCgoto, clabel.lblock);
+        block* cb = cast(block*)s.extra;
+        block_next(blx, BCgoto, cb);
         block *bsw = irs.getSwitchBlock();
         if (bsw.BC == BCswitch)
-            bsw.appendSucc(clabel.lblock);   // second entry in pair
-        bcase.appendSucc(clabel.lblock);
-        if (blx.tryblock != bsw.Btry)
-            s.error("case cannot be in different `try` block level from `switch`");
+            bsw.appendSucc(cb);   // second entry in pair
+        bcase.appendSucc(cb);
         incUsage(irs, s.loc);
         if (s.statement)
             Statement_toIR(s.statement, irs);
@@ -615,8 +542,6 @@ private extern (C++) class S2irVisitor : Visitor
         block *bdefault = irs.getDefaultBlock();
         block_next(blx,BCgoto,bdefault);
         bcase.appendSucc(blx.curblock);
-        if (blx.tryblock != irs.getSwitchBlock().Btry)
-            s.error("default cannot be in different `try` block level from `switch`");
         incUsage(irs, s.loc);
         if (s.statement)
             Statement_toIR(s.statement, irs);
@@ -632,23 +557,6 @@ private extern (C++) class S2irVisitor : Visitor
 
         // The rest is equivalent to GotoStatement
 
-        // Adjust exception handler scope index if in different try blocks
-        if (b.Btry != bdest.Btry)
-        {
-            // Check that bdest is in an enclosing try block
-            for (block *bt = b.Btry; bt != bdest.Btry; bt = bt.Btry)
-            {
-                if (!bt)
-                {
-                    //printf("b.Btry = %p, bdest.Btry = %p\n", b.Btry, bdest.Btry);
-                    s.error("cannot `goto` into `try` block");
-                    break;
-                }
-            }
-
-            //setScopeIndex(blx, b, bdest.Btry ? bdest.Btry.Bscope_index : -1);
-        }
-
         b.appendSucc(bdest);
         incUsage(irs, s.loc);
         block_next(blx,BCgoto,null);
@@ -657,28 +565,10 @@ private extern (C++) class S2irVisitor : Visitor
     override void visit(GotoCaseStatement s)
     {
         Blockx *blx = irs.blx;
-        Label *clabel = getLabel(irs, blx, s.cs);
-        block *bdest = clabel.lblock;
+        block *bdest = cast(block*)s.cs.extra;
         block *b = blx.curblock;
 
         // The rest is equivalent to GotoStatement
-
-        // Adjust exception handler scope index if in different try blocks
-        if (b.Btry != bdest.Btry)
-        {
-            // Check that bdest is in an enclosing try block
-            for (block *bt = b.Btry; bt != bdest.Btry; bt = bt.Btry)
-            {
-                if (!bt)
-                {
-                    //printf("b.Btry = %p, bdest.Btry = %p\n", b.Btry, bdest.Btry);
-                    s.error("cannot `goto` into `try` block");
-                    break;
-                }
-            }
-
-            //setScopeIndex(blx, b, bdest.Btry ? bdest.Btry.Bscope_index : -1);
-        }
 
         b.appendSucc(bdest);
         incUsage(irs, s.loc);
@@ -714,8 +604,8 @@ private extern (C++) class S2irVisitor : Visitor
 
             FuncDeclaration func = irs.getFunc();
             assert(func);
-            assert(func.type.ty == Tfunction);
-            TypeFunction tf = cast(TypeFunction)(func.type);
+            auto tf = func.type.isTypeFunction();
+            assert(tf);
 
             RET retmethod = retStyle(tf, func.needThis());
             if (retmethod == RET.stack)
@@ -726,18 +616,16 @@ private extern (C++) class S2irVisitor : Visitor
                 /* If returning struct literal, write result
                  * directly into return value
                  */
-                if (s.exp.op == TOK.structLiteral)
+                if (auto sle = s.exp.isStructLiteralExp())
                 {
-                    StructLiteralExp sle = cast(StructLiteralExp)s.exp;
                     sle.sym = irs.shidden;
                     writetohp = true;
                 }
                 /* Detect function call that returns the same struct
                  * and construct directly into *shidden
                  */
-                else if (s.exp.op == TOK.call)
+                else if (auto ce = s.exp.isCallExp())
                 {
-                    auto ce = cast(CallExp)s.exp;
                     if (ce.e1.op == TOK.variable || ce.e1.op == TOK.star)
                     {
                         Type t = ce.e1.type.toBasetype();
@@ -751,15 +639,13 @@ private extern (C++) class S2irVisitor : Visitor
                             goto L1;
                         }
                     }
-                    else if (ce.e1.op == TOK.dotVariable)
+                    else if (auto dve = ce.e1.isDotVarExp())
                     {
-                        auto dve = cast(DotVarExp)ce.e1;
                         auto fd = dve.var.isFuncDeclaration();
                         if (fd && fd.isCtorDeclaration())
                         {
-                            if (dve.e1.op == TOK.structLiteral)
+                            if (auto sle = dve.e1.isStructLiteralExp())
                             {
-                                auto sle = cast(StructLiteralExp)dve.e1;
                                 sle.sym = irs.shidden;
                                 writetohp = true;
                             }
@@ -853,14 +739,10 @@ private extern (C++) class S2irVisitor : Visitor
     {
         if (s.statements)
         {
-            size_t dim = s.statements.dim;
-            for (size_t i = 0 ; i < dim ; i++)
+            foreach (s2; *s.statements)
             {
-                Statement s2 = (*s.statements)[i];
-                if (s2 !is null)
-                {
+                if (s2)
                     Statement_toIR(s2, irs);
-                }
             }
         }
     }
@@ -884,11 +766,9 @@ private extern (C++) class S2irVisitor : Visitor
 
         block *bdox;
 
-        size_t dim = s.statements.dim;
-        for (size_t i = 0 ; i < dim ; i++)
+        foreach (s2; *s.statements)
         {
-            Statement s2 = (*s.statements)[i];
-            if (s2 !is null)
+            if (s2)
             {
                 mystate.contBlock = block_calloc(blx);
 
@@ -931,12 +811,6 @@ private extern (C++) class S2irVisitor : Visitor
 
     override void visit(WithStatement s)
     {
-        Symbol *sp;
-        elem *e;
-        elem *ei;
-        ExpInitializer ie;
-        Blockx *blx = irs.blx;
-
         //printf("WithStatement.toIR()\n");
         if (s.exp.op == TOK.scope_ || s.exp.op == TOK.type)
         {
@@ -944,18 +818,18 @@ private extern (C++) class S2irVisitor : Visitor
         else
         {
             // Declare with handle
-            sp = toSymbol(s.wthis);
+            auto sp = toSymbol(s.wthis);
             symbol_add(sp);
 
             // Perform initialization of with handle
-            ie = s.wthis._init.isExpInitializer();
+            auto ie = s.wthis._init.isExpInitializer();
             assert(ie);
-            ei = toElemDtor(ie.exp, irs);
-            e = el_var(sp);
+            auto ei = toElemDtor(ie.exp, irs);
+            auto e = el_var(sp);
             e = el_bin(OPeq,e.Ety, e, ei);
             elem_setLoc(e, s.loc);
             incUsage(irs, s.loc);
-            block_appendexp(blx.curblock,e);
+            block_appendexp(irs.blx.curblock,e);
         }
         // Execute with block
         if (s._body)
@@ -1041,7 +915,7 @@ private extern (C++) class S2irVisitor : Visitor
              * BCjcatch:
              *  __hander = __RDX;
              *  __exception_object = __RAX;
-             *  jcatchvar = *(__exception_object - Target.ptrsize); // old way
+             *  jcatchvar = *(__exception_object - target.ptrsize); // old way
              *  jcatchvar = __dmd_catch_begin(__exception_object);   // new way
              *  switch (__handler)
              *      case 1:     // first catch handler
@@ -1069,8 +943,8 @@ private extern (C++) class S2irVisitor : Visitor
 
             version (none)
             {
-                // jcatchvar = *(__exception_object - Target.ptrsize)
-                elem *e = el_bin(OPmin, TYnptr, el_var(seo), el_long(TYsize_t, Target.ptrsize));
+                // jcatchvar = *(__exception_object - target.ptrsize)
+                elem *e = el_bin(OPmin, TYnptr, el_var(seo), el_long(TYsize_t, target.ptrsize));
                 elem *e3 = el_bin(OPeq, TYvoid, el_var(tryblock.jcatchvar), el_una(OPind, TYnptr, e));
             }
             else
@@ -1091,18 +965,16 @@ private extern (C++) class S2irVisitor : Visitor
             bswitch.Belem = el_combine(el_combine(e1, e2),
                                         el_combine(e3, el_var(shandler)));
 
-            size_t numcases = s.catches.dim;
-            bswitch.Bswitch = cast(targ_llong *) .malloc((targ_llong).sizeof * (numcases + 1));
-            assert(bswitch.Bswitch);
+            const numcases = s.catches.dim;
+            bswitch.Bswitch = cast(targ_llong *) Mem.check(.malloc((targ_llong).sizeof * (numcases + 1)));
             bswitch.Bswitch[0] = numcases;
             bswitch.appendSucc(defaultblock);
             block_next(blx, BCswitch, null);
 
-            for (size_t i = 0; i < numcases; ++i)
+            foreach (i, cs; *s.catches)
             {
                 bswitch.Bswitch[1 + i] = 1 + i;
 
-                Catch cs = (*s.catches)[i];
                 if (cs.var)
                     cs.var.csym = tryblock.jcatchvar;
 
@@ -1134,28 +1006,18 @@ private extern (C++) class S2irVisitor : Visitor
                  * log index in Action Table (i.e. switch case table)
                  */
                 func_t *f = blx.funcsym.Sfunc;
-                for (size_t j = 0; 1; ++j)
-                {
-                    if (j < f.typesTableDim)
-                    {
-                        if (catchtype != f.typesTable[j])
-                            continue;
-                    }
-                    else
-                    {
-                        if (j == f.typesTableCapacity)
-                        {   // enlarge typesTable[]
-                            f.typesTableCapacity = f.typesTableCapacity * 2 + 4;
-                            f.typesTable = cast(Symbol **).realloc(f.typesTable, f.typesTableCapacity * (Symbol *).sizeof);
-                            assert(f.typesTable);
-                        }
-                        f.typesTableDim = j + 1;
-                        f.typesTable[j] = catchtype;
-                    }
-                    bswitch.Bswitch[1 + i] = 1 + j;  // index starts at 1
-                    break;
-                }
 
+                foreach (j, ct; f.typesTable[])
+                {
+                    if (ct == catchtype)
+                    {
+                        bswitch.Bswitch[1 + i] = 1 + j;  // index starts at 1
+                        goto L1;
+                    }
+                }
+                f.typesTable.push(catchtype);
+                bswitch.Bswitch[1 + i] = f.typesTable.length;  // index starts at 1
+           L1:
                 block *bcase = blx.curblock;
                 bswitch.appendSucc(bcase);
 
@@ -1210,17 +1072,16 @@ private extern (C++) class S2irVisitor : Visitor
             /* Make a copy of the switch case table, which will later become the Action Table.
              * Need a copy since the bswitch may get rewritten by the optimizer.
              */
-            bcatch.actionTable = cast(uint*).malloc(uint.sizeof * (numcases + 1));
-            assert(bcatch.actionTable);
-            for (size_t i = 0; i < numcases + 1; ++i)
-                bcatch.actionTable[i] = cast(uint)bswitch.Bswitch[i];
+            alias TAction = typeof(bcatch.actionTable[0]);
+            bcatch.actionTable = cast(TAction*)Mem.check(.malloc(TAction.sizeof * (numcases + 1)));
+            foreach (i; 0 .. numcases + 1)
+                bcatch.actionTable[i] = cast(TAction)bswitch.Bswitch[i];
 
         }
         else
         {
-            for (size_t i = 0 ; i < s.catches.dim; i++)
+            foreach (cs; *s.catches)
             {
-                Catch cs = (*s.catches)[i];
                 if (cs.var)
                     cs.var.csym = tryblock.jcatchvar;
                 block *bcatch = blx.curblock;
@@ -1541,7 +1402,7 @@ private extern (C++) class S2irVisitor : Visitor
                 {
                     // FLblock and FLblockoff have LabelDsymbol's - convert to blocks
                     LabelDsymbol label = cast(LabelDsymbol)c.IEV1.Vlsym;
-                    block *b = labelToBlock(irs, s.loc, blx, label);
+                    block *b = cast(block*)label.statement.extra;
                     basm.appendSucc(b);
                     c.IEV1.Vblock = b;
                     break;
@@ -1567,7 +1428,7 @@ private extern (C++) class S2irVisitor : Visitor
                 case FLblock:
                 {
                     LabelDsymbol label = cast(LabelDsymbol)c.IEV2.Vlsym;
-                    block *b = labelToBlock(irs, s.loc, blx, label);
+                    block *b = cast(block*)label.statement.extra;
                     basm.appendSucc(b);
                     c.IEV2.Vblock = b;
                     break;
@@ -1610,10 +1471,28 @@ private extern (C++) class S2irVisitor : Visitor
     override void visit(ImportStatement s)
     {
     }
+
+    static void Statement_toIR(Statement s, IRState *irs)
+    {
+        scope v = new S2irVisitor(irs);
+        s.accept(v);
+    }
 }
 
 void Statement_toIR(Statement s, IRState *irs)
 {
+    /* Generate a block for each label
+     */
+    FuncDeclaration fd = irs.getFunc();
+    if (auto labtab = fd.labtab)
+        foreach (keyValue; labtab.tab.asRange)
+        {
+            //printf("  KV: %s = %s\n", keyValue.key.toChars(), keyValue.value.toChars());
+            LabelDsymbol label = cast(LabelDsymbol)keyValue.value;
+            if (label.statement)
+                label.statement.extra = dmd.backend.global.block_calloc();
+        }
+
     scope v = new S2irVisitor(irs);
     s.accept(v);
 }

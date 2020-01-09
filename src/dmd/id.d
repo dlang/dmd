@@ -5,7 +5,7 @@
  * This module contains the `Id` struct with a list of predefined symbols the
  * compiler knows about.
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/id.d, _id.d)
@@ -23,7 +23,7 @@ import dmd.tokens;
  *
  * All static fields in this struct represents a specific predefined symbol.
  */
-struct Id
+extern (C++) struct Id
 {
     static __gshared:
 
@@ -38,6 +38,17 @@ struct Id
     extern(C++) void initialize()
     {
         mixin(msgtable.generate(&initializer));
+    }
+
+    /**
+     * Deinitializes the global state of the compiler.
+     *
+     * This can be used to restore the state set by `initialize` to its original
+     * state.
+     */
+    extern (D) void deinitialize()
+    {
+        mixin(msgtable.generate(&deinitializer));
     }
 }
 
@@ -77,6 +88,7 @@ immutable Msgtable[] msgtable =
     { "require", "__require" },
     { "ensure", "__ensure" },
     { "capture", "__capture" },
+    { "this2", "__this" },
     { "_init", "init" },
     { "__sizeof", "sizeof" },
     { "__xalignof", "alignof" },
@@ -147,8 +159,6 @@ immutable Msgtable[] msgtable =
     { "xopEquals", "__xopEquals" },
     { "xopCmp", "__xopCmp" },
     { "xtoHash", "__xtoHash" },
-
-    { "Class" },
 
     { "LINE", "__LINE__" },
     { "FILE", "__FILE__" },
@@ -301,7 +311,10 @@ immutable Msgtable[] msgtable =
     { "__ArrayPostblit" },
     { "__ArrayDtor" },
     { "_d_delThrowable" },
+    { "_d_assert_fail" },
     { "dup" },
+    { "_aaApply" },
+    { "_aaApply2" },
 
     // For pragma's
     { "Pinline", "inline" },
@@ -323,15 +336,21 @@ immutable Msgtable[] msgtable =
     { "main" },
     { "WinMain" },
     { "DllMain" },
-    { "tls_get_addr", "___tls_get_addr" },
-    { "entrypoint", "__entrypoint" },
+    { "CMain", "_d_cmain" },
     { "rt_init" },
     { "__cmp" },
     { "__equals"},
     { "__switch"},
     { "__switch_error"},
+    { "__ArrayCast"},
+    { "_d_HookTraceImpl" },
+    { "_d_arraysetlengthTImpl"},
+    { "_d_arraysetlengthT"},
+    { "_d_arraysetlengthTTrace"},
 
     // varargs implementation
+    { "stdc" },
+    { "stdarg" },
     { "va_start" },
 
     // Builtin functions
@@ -346,16 +365,37 @@ immutable Msgtable[] msgtable =
     { "_sqrt", "sqrt" },
     { "_pow", "pow" },
     { "atan2" },
+    { "rint" },
+    { "ldexp" },
     { "rndtol" },
     { "expm1" },
     { "exp2" },
     { "yl2x" },
     { "yl2xp1" },
     { "fabs" },
+    { "toPrec" },
+    { "simd" },
+    { "__prefetch"},
+    { "__simd_sto"},
+    { "__simd"},
+    { "__simd_ib"},
     { "bitop" },
     { "bsf" },
     { "bsr" },
+    { "btc" },
+    { "btr" },
+    { "bts" },
     { "bswap" },
+    { "volatile"},
+    { "volatileLoad"},
+    { "volatileStore"},
+    { "_popcnt"},
+    { "inp"},
+    { "inpl"},
+    { "inpw"},
+    { "outp"},
+    { "outpl"},
+    { "outpw"},
 
     // Traits
     { "isAbstractClass" },
@@ -379,6 +419,8 @@ immutable Msgtable[] msgtable =
     { "isFinalFunction" },
     { "isOverrideFunction" },
     { "isStaticFunction" },
+    { "isModule" },
+    { "isPackage" },
     { "isRef" },
     { "isOut" },
     { "isLazy" },
@@ -408,6 +450,9 @@ immutable Msgtable[] msgtable =
     { "isReturnOnStack" },
     { "isZeroInit" },
     { "getTargetInfo" },
+    { "getLocation" },
+    { "hasPostblit" },
+    { "hasCopyConstructor" },
 
     // For C++ mangling
     { "allocator" },
@@ -485,4 +530,10 @@ string identifier(Msgtable m)
 string initializer(Msgtable m)
 {
     return m.ident ~ ` = Identifier.idPool("` ~ m.name ~ `");`;
+}
+
+// Used to generate the code for each deinitializer.
+string deinitializer(Msgtable m)
+{
+    return m.ident ~ " = Identifier.init;";
 }

@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/out.d, backend/out.d)
@@ -26,7 +26,7 @@ import dmd.backend.code_x86;
 import dmd.backend.cv4;
 import dmd.backend.dt;
 import dmd.backend.dlist;
-import dmd.backend.memh;
+import dmd.backend.mem;
 import dmd.backend.el;
 import dmd.backend.exh;
 import dmd.backend.global;
@@ -61,6 +61,8 @@ version (Windows)
 }
 
 extern (C++):
+
+nothrow:
 
 void dt_writeToObj(Obj objmod, dt_t *dt, int seg, ref targ_size_t offset);
 
@@ -220,7 +222,6 @@ version (SCPP)
                 /* A block of zeros
                  */
                 //printf("DT_azeros %d\n", dt.DTazeros);
-            case_azeros:
                 datasize += dt.DTazeros;
                 if (dt == dtstart && !dt.DTnext && s.Sclass != SCcomdat &&
                     (s.Sseg == UNKNOWN || s.Sseg <= UDATA))
@@ -969,7 +970,7 @@ void out_regcand(symtab_t *psymtab)
         symbol_debug(s);
         //assert(sytab[s.Sclass] & SCSS);      // only stack variables
         s.Ssymnum = si;                        // Ssymnum trashed by cpp_inlineexpand
-        if (!(s.ty() & mTYvolatile) &&
+        if (!(s.ty() & (mTYvolatile | mTYshared)) &&
             !(ifunc && (s.Sclass == SCparameter || s.Sclass == SCregpar)) &&
             s.Sclass != SCstatic)
             s.Sflags |= (GTregcand | SFLunambig);      // assume register candidate
@@ -1280,7 +1281,7 @@ else
                     break;
                 }
             L3:
-                if (!(s.ty() & mTYvolatile))
+                if (!(s.ty() & (mTYvolatile | mTYshared)))
                     s.Sflags |= GTregcand | SFLunambig; // assume register candidate   */
                 break;
 
@@ -1418,7 +1419,7 @@ version (SCPP)
 }
 else static if (TARGET_WINDOS)
 {
-                objmod.codeseg(cpp_mangle(funcsym_p),1);
+                objmod.codeseg(cast(char*)cpp_mangle(funcsym_p),1);
 }
 else
 {
@@ -1747,7 +1748,7 @@ void out_readonly_comdat(Symbol *s, const(void)* p, uint len, uint nzeros)
     objmod.lidata(s.Sseg, len, nzeros);
 }
 
-void Srcpos_print(ref Srcpos srcpos, const(char)* func)
+void Srcpos_print(ref const Srcpos srcpos, const(char)* func)
 {
     printf("%s(", func);
 version (MARS)
@@ -1756,7 +1757,7 @@ version (MARS)
 }
 else
 {
-    Sfile *sf = srcpos.Sfilptr ? *srcpos.Sfilptr : null;
+    const sf = srcpos.Sfilptr ? *srcpos.Sfilptr : null;
     printf("Sfilptr = %p (filename = %s)", sf, sf ? sf.SFname : "null".ptr);
 }
     printf(", Slinnum = %u", srcpos.Slinnum);

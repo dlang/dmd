@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/evalu8.d, backend/evalu8.d)
@@ -21,6 +21,7 @@ import core.stdc.math;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
+static import core.bitop;
 
 //#if _MSC_VER
 //#define isnan _isnan
@@ -43,6 +44,9 @@ import scopeh;
 }
 
 extern (C++):
+
+nothrow:
+
 version (MARS)
     import dmd.backend.errors;
 
@@ -103,6 +107,9 @@ version (SCPP)
                 case TYfptr:
                 case TYvptr:
                 case TYnptr:
+                case TYimmutPtr:
+                case TYsharePtr:
+                case TYfgPtr:
                     b = el_tolong(e) != 0;
                     break;
                 case TYnref: // reference can't be converted to bool
@@ -172,9 +179,9 @@ version (SCPP)
 
                 case TYfloat4:
                 {   b = 0;
-                    for (size_t i = 0; i < 4; i++)
+                    foreach (f; e.EV.Vfloat4)
                     {
-                        if (isnan(e.EV.Vfloat4[i]) || e.EV.Vfloat4[i] != 0)
+                        if (f != 0)
                         {   b = 1;
                             break;
                         }
@@ -191,15 +198,15 @@ version (SCPP)
                 case TYllong4:
                 case TYullong4:
                     b = 0;
-                    for (size_t i = 0; i < 8; i++)
-                        b |= e.EV.Vulong8[i] != 0;
+                    foreach (elem; e.EV.Vulong8)
+                        b |= elem != 0;
                     break;
 
                 case TYfloat8:
                     b = 0;
-                    for (size_t i = 0; i < 8; i++)
+                    foreach (f; e.EV.Vfloat8)
                     {
-                        if (isnan(e.EV.Vfloat8[i]) || e.EV.Vfloat8[i] != 0)
+                        if (f != 0)
                         {   b = 1;
                             break;
                         }
@@ -208,9 +215,9 @@ version (SCPP)
 
                 case TYdouble4:
                     b = 0;
-                    for (size_t i = 0; i < 4; i++)
+                    foreach (f; e.EV.Vdouble4)
                     {
-                        if (isnan(e.EV.Vdouble4[i]) || e.EV.Vdouble4[i] != 0)
+                        if (f != 0)
                         {   b = 1;
                             break;
                         }
@@ -1265,12 +1272,12 @@ version (MARS)
 }
 
     case OPpair:
-        switch (_tysize[tym])
+        switch (tysize(e.Ety))
         {
-            case 2:
+            case 4:
                 e.EV.Vlong = (i2 << 16) | (i1 & 0xFFFF);
                 break;
-            case 4:
+            case 8:
                 if (tyfloating(tym))
                 {
                     e.EV.Vcfloat.re = cast(float)d1;
@@ -1279,7 +1286,7 @@ version (MARS)
                 else
                     e.EV.Vllong = (l2 << 32) | (l1 & 0xFFFFFFFF);
                 break;
-            case 8:
+            case 16:
                 if (tyfloating(tym))
                 {
                     e.EV.Vcdouble.re = cast(double)d1;
@@ -1291,6 +1298,10 @@ version (MARS)
                     e.EV.Vcent.msw = l2;
                 }
                 break;
+
+            case -1:            // can happen for TYstruct
+                return e;       // don't const fold it
+
             default:
                 if (tyfloating(tym))
                 {
@@ -1299,6 +1310,7 @@ version (MARS)
                 }
                 else
                 {
+                    elem_print(e);
                     assert(0);
                 }
                 break;
@@ -1306,12 +1318,12 @@ version (MARS)
         break;
 
     case OPrpair:
-        switch (_tysize[tym])
+        switch (tysize(e.Ety))
         {
-            case 2:
+            case 4:
                 e.EV.Vlong = (i1 << 16) | (i2 & 0xFFFF);
                 break;
-            case 4:
+            case 8:
                 e.EV.Vllong = (l1 << 32) | (l2 & 0xFFFFFFFF);
                 if (tyfloating(tym))
                 {
@@ -1321,7 +1333,7 @@ version (MARS)
                 else
                     e.EV.Vllong = (l1 << 32) | (l2 & 0xFFFFFFFF);
                 break;
-            case 8:
+            case 16:
                 if (tyfloating(tym))
                 {
                     e.EV.Vcdouble.re = cast(double)d2;
@@ -1716,10 +1728,7 @@ else
         e.EV.Vlong = i1 & 1;
         break;
     case OPbswap:
-        e.EV.Vint = ((i1 >> 24) & 0x000000FF) |
-                    ((i1 >>  8) & 0x0000FF00) |
-                    ((i1 <<  8) & 0x00FF0000) |
-                    ((i1 << 24) & 0xFF000000);
+        e.EV.Vint = core.bitop.bswap(cast(uint) i1);
         break;
 
     case OPpopcnt:
@@ -1733,14 +1742,7 @@ else
             case 8:     break;
             default:    assert(0);
         }
-
-        int popcnt = 0;
-        while (l1)
-        {   // Not efficient, but don't need efficiency here
-            popcnt += (l1 & 1);
-            l1 = cast(targ_ullong)l1 >> 1;  // shift is unsigned
-        }
-        e.EV.Vllong = popcnt;
+        e.EV.Vllong = core.bitop.popcnt(cast(ulong) l1);
         break;
     }
 
@@ -1795,62 +1797,62 @@ static if (0) // && MARS
         {
             // 16 byte vectors
             case TYfloat4:
-                for (int i = 0; i < 4; ++i)
-                    e.EV.Vfloat4[i] = e1.EV.Vfloat;
+                foreach (ref lhsElem; e.EV.Vfloat4)
+                    lhsElem = e1.EV.Vfloat;
                 break;
             case TYdouble2:
-                for (int i = 0; i < 2; ++i)
-                    e.EV.Vdouble2[i] = e1.EV.Vdouble;
+                foreach (ref lhsElem; e.EV.Vdouble2)
+                    lhsElem = e1.EV.Vdouble;
                 break;
             case TYschar16:
             case TYuchar16:
-                for (int i = 0; i < 16; ++i)
-                    e.EV.Vuchar16[i] = cast(targ_uchar)i1;
+                foreach (ref lhsElem; e.EV.Vuchar16)
+                    lhsElem = cast(targ_uchar)i1;
                 break;
             case TYshort8:
             case TYushort8:
-                for (int i = 0; i < 8; ++i)
-                    e.EV.Vushort8[i] = cast(targ_ushort)i1;
+                foreach (ref lhsElem; e.EV.Vushort8)
+                    lhsElem = cast(targ_ushort)i1;
                 break;
             case TYlong4:
             case TYulong4:
-                for (int i = 0; i < 4; ++i)
-                    e.EV.Vulong4[i] = cast(targ_ulong)i1;
+                foreach (ref lhsElem; e.EV.Vulong4)
+                    lhsElem = cast(targ_ulong)i1;
                 break;
             case TYllong2:
             case TYullong2:
-                for (int i = 0; i < 2; ++i)
-                    e.EV.Vullong2[i] = cast(targ_ullong)l1;
+                foreach (ref lhsElem; e.EV.Vullong2)
+                    lhsElem = cast(targ_ullong)l1;
                 break;
 
             // 32 byte vectors
             case TYfloat8:
-                for (int i = 0; i < 8; ++i)
-                    e.EV.Vfloat8[i] = e1.EV.Vfloat;
+                foreach (ref lhsElem; e.EV.Vfloat8)
+                    lhsElem = e1.EV.Vfloat;
                 break;
             case TYdouble4:
-                for (int i = 0; i < 4; ++i)
-                    e.EV.Vdouble4[i] = e1.EV.Vdouble;
+                foreach (ref lhsElem; e.EV.Vdouble4)
+                    lhsElem = e1.EV.Vdouble;
                 break;
             case TYschar32:
             case TYuchar32:
-                for (int i = 0; i < 32; ++i)
-                    e.EV.Vuchar32[i] = cast(targ_uchar)i1;
+                foreach (ref lhsElem; e.EV.Vuchar32)
+                    lhsElem = cast(targ_uchar)i1;
                 break;
             case TYshort16:
             case TYushort16:
-                for (int i = 0; i < 16; ++i)
-                    e.EV.Vushort16[i] = cast(targ_ushort)i1;
+                foreach (ref lhsElem; e.EV.Vushort16)
+                    lhsElem = cast(targ_ushort)i1;
                 break;
             case TYlong8:
             case TYulong8:
-                for (int i = 0; i < 8; ++i)
-                    e.EV.Vulong8[i] = cast(targ_ulong)i1;
+                foreach (ref lhsElem; e.EV.Vulong8)
+                    lhsElem = cast(targ_ulong)i1;
                 break;
             case TYllong4:
             case TYullong4:
-                for (int i = 0; i < 4; ++i)
-                    e.EV.Vullong4[i] = cast(targ_ullong)l1;
+                foreach (ref lhsElem; e.EV.Vullong4)
+                    lhsElem = cast(targ_ullong)l1;
                 break;
 
             default:
@@ -1942,10 +1944,11 @@ version (CRuntime_Microsoft)
         return cast(targ_ldouble)fmodl(cast(real)x, cast(real)y);
     }
     import core.stdc.math : isnan;
-    extern (D) private int isnan(targ_ldouble x)
-    {
-        return isnan(cast(real)x);
-    }
+    static if (!is(targ_ldouble == real))
+        extern (D) private int isnan(targ_ldouble x)
+        {
+            return isnan(cast(real)x);
+        }
     import core.stdc.math : fabsl;
     import dmd.root.longdouble : fabsl; // needed if longdouble is longdouble_soft
 }

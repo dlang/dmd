@@ -22,7 +22,7 @@ struct S2
 {
     this(this) { int x = 1; }
     ~this() { int x = 1; }
-    ref S2 opAssign(S2) { return this; }
+    ref S2 opAssign(S2) return { return this; }
     bool opEquals(ref const S2) const { return true; }
 }
 struct T2

@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/toctype.d, _toctype.d)
@@ -18,6 +18,8 @@ import dmd.backend.cc : Classsym, Symbol;
 import dmd.backend.ty;
 import dmd.backend.type;
 
+import dmd.root.rmem;
+
 import dmd.declaration;
 import dmd.denum;
 import dmd.dstruct;
@@ -27,6 +29,42 @@ import dmd.id;
 import dmd.mtype;
 import dmd.tocvdebug;
 import dmd.visitor;
+
+
+/*******************
+ * Determine backend tym bits corresponding to MOD
+ * Params:
+ *  mod = mod bits
+ * Returns:
+ *  corresponding tym_t bits
+ */
+tym_t modToTym(MOD mod) pure
+{
+    switch (mod)
+    {
+        case 0:
+            return 0;
+
+        case MODFlags.const_:
+        case MODFlags.wild:
+        case MODFlags.wildconst:
+            return mTYconst;
+
+        case MODFlags.shared_:
+            return mTYshared;
+
+        case MODFlags.shared_ | MODFlags.const_:
+        case MODFlags.shared_ | MODFlags.wild:
+        case MODFlags.shared_ | MODFlags.wildconst:
+            return mTYshared | mTYconst;
+
+        case MODFlags.immutable_:
+            return mTYimmutable;
+
+        default:
+            assert(0);
+    }
+}
 
 
 /************************************
@@ -90,7 +128,8 @@ public:
         type*[10] tmp = void;
         type** ptypes = (nparams <= tmp.length)
                         ? tmp.ptr
-                        : cast(type**)malloc((type*).sizeof * nparams);
+                        : cast(type**)Mem.check(malloc((type*).sizeof * nparams));
+        type*[] types = ptypes[0 .. nparams];
 
         foreach (i; 0 .. nparams)
         {
@@ -101,51 +140,19 @@ public:
             else if (p.storageClass & STC.lazy_)
             {
                 // Mangle as delegate
-                type* tf = type_function(TYnfunc, null, 0, false, tp);
+                type* tf = type_function(TYnfunc, null, false, tp);
                 tp = type_delegate(tf);
             }
-            ptypes[i] = tp;
+            types[i] = tp;
         }
-        t.ctype = type_function(totym(t), ptypes, nparams, t.parameterList.varargs == VarArg.variadic, Type_toCtype(t.next));
-        if (nparams > tmp.length)
-            free(ptypes);
+        t.ctype = type_function(totym(t), types, t.parameterList.varargs == VarArg.variadic, Type_toCtype(t.next));
+        if (types.ptr != tmp.ptr)
+            free(types.ptr);
     }
 
     override void visit(TypeDelegate t)
     {
         t.ctype = type_delegate(Type_toCtype(t.next));
-    }
-
-    /*******************
-     * Add D modification bits for `Type t` to the corresponding backend type `t.ctype`
-     * Params:
-     *  t = front end Type
-     */
-    static void addMod(Type t)
-    {
-        switch (t.mod)
-        {
-        case 0:
-            assert(0);
-        case MODFlags.const_:
-        case MODFlags.wild:
-        case MODFlags.wildconst:
-            t.ctype.Tty |= mTYconst;
-            break;
-        case MODFlags.shared_:
-            t.ctype.Tty |= mTYshared;
-            break;
-        case MODFlags.shared_ | MODFlags.const_:
-        case MODFlags.shared_ | MODFlags.wild:
-        case MODFlags.shared_ | MODFlags.wildconst:
-            t.ctype.Tty |= mTYshared | mTYconst;
-            break;
-        case MODFlags.immutable_:
-            t.ctype.Tty |= mTYimmutable;
-            break;
-        default:
-            assert(0);
-        }
     }
 
     override void visit(TypeStruct t)
@@ -159,7 +166,7 @@ public:
             /* Add in fields of the struct
              * (after setting ctype to avoid infinite recursion)
              */
-            if (global.params.symdebug)
+            if (global.params.symdebug && !global.errors)
             {
                 foreach (v; sym.fields)
                 {
@@ -181,7 +188,7 @@ public:
         {
             t.ctype.Ttag = mctype.Ttag; // structure tag name
         }
-        addMod(t);
+        t.ctype.Tty |= modToTym(t.mod);
         //printf("t = %p, Tflags = x%x\n", ctype, ctype.Tflags);
     }
 
@@ -227,7 +234,7 @@ public:
             t.ctype = type_allocn(TYenum, mctype.Tnext);
             t.ctype.Ttag = s; // enum tag name
             t.ctype.Tcount++;
-            addMod(t);
+            t.ctype.Tty |= modToTym(t.mod);
         }
         else
             t.ctype = mctype;
@@ -262,6 +269,6 @@ public:
         type* mctype = Type_toCtype(t.castMod(0));
         t.ctype = type_allocn(tybasic(mctype.Tty), mctype.Tnext); // pointer to class instance
         t.ctype.Tcount++;
-        addMod(t);
+        t.ctype.Tty |= modToTym(t.mod);
     }
 }

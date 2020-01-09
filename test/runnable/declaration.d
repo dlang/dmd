@@ -1,3 +1,11 @@
+/*
+TEST_OUTPUT:
+---
+S7019(16), 16
+S7019(24), 24
+S7019(32), 32
+---
+*/
 
 extern(C) int printf(const char*, ...);
 

@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/backconfig.d, backend/backconfig.d)
@@ -23,6 +23,8 @@ import dmd.backend.type;
 
 extern (C++):
 
+nothrow:
+
 version (MARS)
 {
     void ph_init();
@@ -32,7 +34,7 @@ version (MARS)
  * Initialize configuration variables.
  */
 
-void out_config_init(
+extern (C) void out_config_init(
         int model,      // 32: 32 bit code
                         // 64: 64 bit code
                         // Windows: set bit 0 to generate MS-COFF instead of OMF
@@ -48,15 +50,18 @@ void out_config_init(
         bool alwaysframe,       // always create standard function frame
         bool stackstomp,        // add stack stomping code
         ubyte avx,              // use AVX instruction set (0, 1, 2)
+        ubyte pic,              // position independence level (0, 1, 2)
         bool useModuleInfo,     // implement ModuleInfo
         bool useTypeInfo,       // implement TypeInfo
-        bool useExceptions      // implement exception handling
+        bool useExceptions,     // implement exception handling
+        string _version         // Compiler version
         )
 {
 version (MARS)
 {
     //printf("out_config_init()\n");
 
+    config._version = _version;
     if (!config.target_cpu)
     {   config.target_cpu = TARGET_PentiumPro;
         config.target_scheduler = config.target_cpu;
@@ -96,11 +101,11 @@ static if (TARGET_WINDOS)
 }
 static if (TARGET_LINUX)
 {
+    config.fpxmmregs = true;
+    config.avx = avx;
     if (model == 64)
     {   config.exe = EX_LINUX64;
         config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
-        config.fpxmmregs = true;
-        config.avx = avx;
     }
     else
     {
@@ -110,11 +115,25 @@ static if (TARGET_LINUX)
             config.flags |= CFGromable; // put switch tables in code segment
     }
     config.flags |= CFGnoebp;
-    if (!exe)
+    switch (pic)
     {
-        config.flags3 |= CFG3pic;
-        config.flags |= CFGalwaysframe; // PIC needs a frame for TLS fixups
+        case 0:         // PIC.fixed
+            break;
+
+        case 1:         // PIC.pic
+            config.flags3 |= CFG3pic;
+            break;
+
+        case 2:         // PIC.pie
+            config.flags3 |= CFG3pic | CFG3pie;
+            break;
+
+        default:
+            assert(0);
     }
+    if (symdebug)
+        config.flags |= CFGalwaysframe;
+
     config.objfmt = OBJ_ELF;
 }
 static if (TARGET_OSX)
@@ -123,7 +142,6 @@ static if (TARGET_OSX)
     config.avx = avx;
     if (model == 64)
     {   config.exe = EX_OSX64;
-        config.fpxmmregs = true;
         config.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
     }
     else
@@ -135,8 +153,11 @@ static if (TARGET_OSX)
     if (!exe)
     {
         config.flags3 |= CFG3pic;
-        config.flags |= CFGalwaysframe; // PIC needs a frame for TLS fixups
+        if (model == 64)
+            config.flags |= CFGalwaysframe; // PIC needs a frame for TLS fixups
     }
+    if (symdebug)
+        config.flags |= CFGalwaysframe;
     config.flags |= CFGromable; // put switch tables in code segment
     config.objfmt = OBJ_MACH;
 }
@@ -159,8 +180,9 @@ static if (TARGET_FREEBSD)
     if (!exe)
     {
         config.flags3 |= CFG3pic;
-        config.flags |= CFGalwaysframe; // PIC needs a frame for TLS fixups
     }
+    if (symdebug)
+        config.flags |= CFGalwaysframe;
     config.objfmt = OBJ_ELF;
 }
 static if (TARGET_OPENBSD)
@@ -430,6 +452,13 @@ else
 }
     _tyalignsize[TYsptr] = LONGSIZE;
     _tyalignsize[TYcptr] = LONGSIZE;
+
+    _tysize[TYimmutPtr] = _tysize[TYnptr];
+    _tysize[TYsharePtr] = _tysize[TYnptr];
+    _tysize[TYfgPtr] = _tysize[TYnptr];
+    _tyalignsize[TYimmutPtr] = _tyalignsize[TYnptr];
+    _tyalignsize[TYsharePtr] = _tyalignsize[TYnptr];
+    _tyalignsize[TYfgPtr] = _tyalignsize[TYnptr];
 }
 
 /*******************************
@@ -513,5 +542,12 @@ else
     TYsize_t = TYullong;
     TYdelegate = TYcent;
     TYdarray = TYucent;
+
+    _tysize[TYimmutPtr] = _tysize[TYnptr];
+    _tysize[TYsharePtr] = _tysize[TYnptr];
+    _tysize[TYfgPtr] = _tysize[TYnptr];
+    _tyalignsize[TYimmutPtr] = _tyalignsize[TYnptr];
+    _tyalignsize[TYsharePtr] = _tyalignsize[TYnptr];
+    _tyalignsize[TYfgPtr] = _tyalignsize[TYnptr];
 }
 

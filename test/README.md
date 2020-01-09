@@ -65,6 +65,64 @@ Note:
 - `AUTO_UPDATE` doesn't work with tests that have multiple `TEST_OUTPUT` segments
 - `AUTO_UPDATE` can be set as an environment variable or as Makefile-like argument assignment
 
+### Running the Unit Tests
+
+The unit tests will automatically run when all tests are run using `./run.d` or
+`make`. To only run the unit tests the `./run.d unit_tests` command can be used.
+For a more finer grain control over the unit tests the `./run.d -u` command can
+be used:
+
+To run all unit tests:
+
+```sh
+./run.d -u
+```
+
+To only run the unit tests in one or more specific files:
+
+```sh
+./run.d -u unit/deinitialization.d
+```
+
+To only run a subset of the unit tests in a single file:
+
+```sh
+./run.d -u unit/deinitialization.d --filter Expression
+```
+
+In the above example, the `--filter` flag will filter to only run the tests with
+a UDA matching the given value, in this case `Expression`.
+
+```d
+@("Target.deinitialize")
+unittest {}
+
+@("Expression.deinitialize")
+unittest {}
+```
+
+Of the above unit tests, only the second one will be run, since
+`--filter Expression` was specified.
+
+The `--filter` flag works when no files are specified as well.
+
+## Types of Tests
+
+There are two types of tests in the DMD test suite:
+
+* **End-to-end test**. These are tests that invokes the compiler as an external
+process in some kind of way. Then it asserts either the exit code or the output
+of the compiler. These tests are located in `compilable`, `fail_compilation` and
+`runnable`.
+
+* **Unit tests**. These tests are more of a unit test, integration or
+functional style tests. These tests are using the compiler as a library. They
+are more flexible because they can assert state internal to the compiler which
+the end-to-end tests would never have access to. The unit test runner will
+compile all files in the `unit` directory into a single executable and run the
+tests. This should make it quick to run the tests since only a single process
+need to be started.
+
 Makefile targets
 ----------------
 
@@ -74,6 +132,7 @@ Makefile targets
     run_runnable_tests:         run just the runnable tests
     run_compilable_tests:       run just the compilable tests
     run_fail_compilation_tests: run just the fail compilation tests
+    unit_test:                  run all unit tests (those in the "unit" directory)
 
     quick:              run all tests with no default permuted args
                         (individual test specified options still honored)
@@ -137,6 +196,11 @@ The following is a list of all available settings:
                          default: (none). Test files with this variable will be ignored unless
                          the D_OBJC environment variable is set to "1"
 
+    EXTRA_FILES:         list of extra files and sources used by the test, either during
+                         compilation or execution of the test. It is currently ignored by the test
+                         runner, but serves as documentation of the test itself.
+                         default: (none)
+
     PERMUTE_ARGS:        the set of arguments to permute in multiple $(DMD) invocations.
                          An empty set means only one permutation with no arguments.
                          default: the make variable ARGS (see below)
@@ -156,6 +220,8 @@ The following is a list of all available settings:
                          Some
                          Output
                          ---
+                         note: if not given, it is assumed that the compilation will be silent.
+                         default: (none)
 
     POST_SCRIPT:         name of script to execute after test run
                          note: arguments to the script may be included after the name.
@@ -186,7 +252,7 @@ The Makefile uses environment variables to store test settings and as a way to p
     REQUIRED_ARGS: arguments always passed to the compiler
     DMD:           compiler to use, ex: ../src/dmd (required)
     CC:            C++ compiler to use, ex: dmc, g++
-    OS:            win32, win64, linux, freebsd, osx, netbsd, dragonflybsd
+    OS:            windows, linux, freebsd, osx, netbsd, dragonflybsd
     RESULTS_DIR:   base directory for test results
     MODEL:         32 or 64 (required)
     AUTO_UPDATE:   set to 1 to auto-update mismatching test output
@@ -218,3 +284,57 @@ Along with the environment variables provided by the Makefile (see above), an ad
 
     SOEXT              platform-specific extension for shared object files (aka. dynamic libraries),
                        e.g. .so, .dll or .dylib
+
+Test configuration variables
+----------------------------
+
+Sometimes test configuration arguments must be dynamic.
+For example, the output of all tests should be placed into `RESULTS_DIR`:
+
+```
+// REQUIRED_ARGS: -mixin=${RESULTS_DIR}/fail_compilation/mixin_test.mixin
+```
+
+Currently these variables are exposed:
+
+    RESULTS_DIR       Path to `test_results`
+
+`TEST_OUTPUT`
+-------------
+
+A few operations are done on the output of a test before the comparison with `TEST_OUTPUT`:
+
+- newlines get unified for consistent `TEST_OUTPUT` between platforms
+- DMD's debug message (e.g. `DMD v2.084.0-255-g86b608a15-dirty DEBUG`) gets stripped away
+- paths to `test_results` will be replaced with `{{RESULTS_DIR}}`
+
+Both stderr and stdout of the DMD are captured for output comparison.
+
+## Test Coding Practices
+
+The purpose of the test suite is to test the compiler only. This means:
+
+* do not import modules from Phobos
+* keep imports from druntime to the interface to the C standard library
+* use `core.stdc.stdio.printf`, not `std.stdio.writef`
+
+In order to make the test suite run faster, multiple unrelated tests can
+be aggregated into a single file, for example `test/runnable/test42.d`
+
+Each test should be in the following form:
+
+```
+/*******************************/
+// https://issues/dlang.org/show_bug.cgi?id=NNNN
+
+void testNNNN()
+{
+}
+```
+
+The NNNN is the bugzilla issue number this test ensures is fixed.
+The test code should be self-contained. The test code should be
+minimized to focus on the test.
+
+As usual, test source code should be LF terminated lines, and not
+contain any tab characters.

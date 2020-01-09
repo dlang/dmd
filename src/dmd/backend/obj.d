@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/obj.d, backend/obj.d)
@@ -23,6 +23,8 @@ import dmd.backend.el;
 import dmd.backend.outbuf;
 
 extern (C++):
+
+nothrow:
 
 version (Windows)
 {
@@ -53,7 +55,7 @@ version (Windows)
     size_t OmfObj_mangle(Symbol *s,char *dest);
     void OmfObj_import(elem *e);
     void OmfObj_linnum(Srcpos srcpos, int seg, targ_size_t offset);
-    int  OmfObj_codeseg(char *name,int suffix);
+    int  OmfObj_codeseg(const char *name,int suffix);
     void OmfObj_dosseg();
     void OmfObj_startaddress(Symbol *);
     bool OmfObj_includelib(const(char)* );
@@ -122,7 +124,7 @@ version (Windows)
 //    size_t MsCoffObj_mangle(Symbol *s,char *dest);
 //    void MsCoffObj_import(elem *e);
     void MsCoffObj_linnum(Srcpos srcpos, int seg, targ_size_t offset);
-    int  MsCoffObj_codeseg(char *name,int suffix);
+    int  MsCoffObj_codeseg(const char *name,int suffix);
 //    void MsCoffObj_dosseg();
     void MsCoffObj_startaddress(Symbol *);
     bool MsCoffObj_includelib(const(char)* );
@@ -216,7 +218,7 @@ version (Posix)
 
     void Obj_import(elem *e);
     void Obj_linnum(Srcpos srcpos, int seg, targ_size_t offset);
-    int Obj_codeseg(char *name,int suffix);
+    int Obj_codeseg(const char *name,int suffix);
     bool Obj_allowZeroSize();
     void Obj_wkext(Symbol *,Symbol *);
     void Obj_lzext(Symbol *,Symbol *);
@@ -299,6 +301,8 @@ version (OMF)
     {
       static
       {
+        nothrow:
+
         Obj init(Outbuffer* objbuf, const(char)* filename, const(char)* csegname)
         {
             return OmfObj_init(objbuf, filename, csegname);
@@ -334,7 +338,7 @@ version (OMF)
             return OmfObj_linnum(srcpos, seg, offset);
         }
 
-        int codeseg(char *name,int suffix)
+        int codeseg(const char *name,int suffix)
         {
             return OmfObj_codeseg(name, suffix);
         }
@@ -648,6 +652,8 @@ else version (OMFandMSCOFF)
     {
       static
       {
+        nothrow:
+
         Obj init(Outbuffer* objbuf, const(char)* filename, const(char)* csegname)
         {
             return config.objfmt == OBJ_MSCOFF
@@ -695,7 +701,7 @@ else version (OMFandMSCOFF)
                 :    OmfObj_linnum(srcpos, seg, offset);
         }
 
-        int codeseg(char *name,int suffix)
+        int codeseg(const char *name,int suffix)
         {
             return config.objfmt == OBJ_MSCOFF
                 ? MsCoffObj_codeseg(name, suffix)
@@ -1193,7 +1199,7 @@ else version (Posix)
     class Obj
     {
       static:
-
+      nothrow:
         Obj init(Outbuffer* objbuf, const(char)* filename, const(char)* csegname)
         {
             return Obj_init(objbuf, filename, csegname);
@@ -1229,7 +1235,7 @@ else version (Posix)
             return Obj_linnum(srcpos, seg, offset);
         }
 
-        int codeseg(char *name,int suffix)
+        int codeseg(const char *name,int suffix)
         {
             return Obj_codeseg(name, suffix);
         }

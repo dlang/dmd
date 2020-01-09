@@ -1,5 +1,13 @@
 // PERMUTE_ARGS:
 // REQUIRED_ARGS:
+/*
+TEST_OUTPUT:
+---
+runnable/test4.d(616): Deprecation: `extern(Pascal)` is deprecated. You might want to use `extern(Windows)` instead.
+runnable/test4.d(629): Deprecation: `extern(Pascal)` is deprecated. You might want to use `extern(Windows)` instead.
+runnable/test4.d(767): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+---
+*/
 
 import core.exception;
 import core.stdc.math;
@@ -1154,7 +1162,10 @@ class Cout{
         Cout set(int x){
                 return this;
         }
-        alias set opShl;
+        Cout opBinary(string op)(int x) if (op == "<<")
+        {
+            return set(x);
+        }
 }
 
 void test49()

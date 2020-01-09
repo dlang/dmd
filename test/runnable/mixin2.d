@@ -1,3 +1,15 @@
+/*
+TEST_OUTPUT:
+---
+hello
+hello
+
+
+
+hello
+hello
+---
+*/
 import std.stdio;
 
 /*********************************************/
@@ -47,7 +59,7 @@ void test4()
 
 int x5;
 
-scope class Foo5
+class Foo5
 {
         this ()
         {

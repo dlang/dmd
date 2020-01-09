@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/optimize.d, _optimize.d)
@@ -20,6 +20,7 @@ import dmd.dclass;
 import dmd.declaration;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
+import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.globals;
@@ -878,56 +879,17 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
         {
             if (binOptimize(e, result))
                 return;
-            // Replace 1 ^^ x or 1.0^^x by (x, 1)
-            if ((e.e1.op == TOK.int64 && e.e1.toInteger() == 1) || (e.e1.op == TOK.float64 && e.e1.toReal() == CTFloat.one))
-            {
-                ret = new CommaExp(e.loc, e.e2, e.e1);
-                ret.type = e.type;
-                return;
-            }
-            // Replace -1 ^^ x by (x&1) ? -1 : 1, where x is integral
-            if (e.e2.type.isintegral() && e.e1.op == TOK.int64 && cast(sinteger_t)e.e1.toInteger() == -1)
-            {
-                ret = new AndExp(e.loc, e.e2, new IntegerExp(e.loc, 1, e.e2.type));
-                ret.type = e.e2.type;
-                ret = new CondExp(e.loc, ret, new IntegerExp(e.loc, -1, e.type), new IntegerExp(e.loc, 1, e.type));
-                ret.type = e.type;
-                return;
-            }
-            // Replace x ^^ 0 or x^^0.0 by (x, 1)
-            if ((e.e2.op == TOK.int64 && e.e2.toInteger() == 0) || (e.e2.op == TOK.float64 && e.e2.toReal() == CTFloat.zero))
-            {
-                if (e.e1.type.isintegral())
-                    ret = new IntegerExp(e.loc, 1, e.e1.type);
-                else
-                    ret = new RealExp(e.loc, CTFloat.one, e.e1.type);
-                ret = new CommaExp(e.loc, e.e1, ret);
-                ret.type = e.type;
-                return;
-            }
-            // Replace x ^^ 1 or x^^1.0 by (x)
-            if ((e.e2.op == TOK.int64 && e.e2.toInteger() == 1) || (e.e2.op == TOK.float64 && e.e2.toReal() == CTFloat.one))
-            {
-                ret = e.e1;
-                return;
-            }
-            // Replace x ^^ -1.0 by (1.0 / x)
-            if (e.e2.op == TOK.float64 && e.e2.toReal() == CTFloat.minusone)
-            {
-                ret = new DivExp(e.loc, new RealExp(e.loc, CTFloat.one, e.e2.type), e.e1);
-                ret.type = e.type;
-                return;
-            }
-            // All other negative integral powers are illegal
+            // All negative integral powers are illegal.
             if (e.e1.type.isintegral() && (e.e2.op == TOK.int64) && cast(sinteger_t)e.e2.toInteger() < 0)
             {
                 e.error("cannot raise `%s` to a negative integer power. Did you mean `(cast(real)%s)^^%s` ?", e.e1.type.toBasetype().toChars(), e.e1.toChars(), e.e2.toChars());
                 return error();
             }
             // If e2 *could* have been an integer, make it one.
-            if (e.e2.op == TOK.float64)
+            if (e.e2.op == TOK.float64 && e.e2.toReal() == real_t(cast(sinteger_t)e.e2.toReal()))
             {
-                if (e.e2.toReal() == real_t(cast(sinteger_t)e.e2.toReal()))
+                // This only applies to floating point, or positive integral powers.
+                if (e.e1.type.isfloating() || cast(sinteger_t)e.e2.toInteger() >= 0)
                     e.e2 = new IntegerExp(e.loc, e.e2.toInteger(), Type.tint64);
             }
             if (e.e1.isConst() == 1 && e.e2.isConst() == 1)
@@ -938,20 +900,6 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
                     ret = ex;
                     return;
                 }
-            }
-            // (2 ^^ n) ^^ p -> 1 << n * p
-            if (e.e1.op == TOK.int64 && e.e1.toInteger() > 0 && !((e.e1.toInteger() - 1) & e.e1.toInteger()) && e.e2.type.isintegral() && e.e2.type.isunsigned())
-            {
-                dinteger_t i = e.e1.toInteger();
-                dinteger_t mul = 1;
-                while ((i >>= 1) > 1)
-                    mul++;
-                Expression shift = new MulExp(e.loc, e.e2, new IntegerExp(e.loc, mul, e.e2.type));
-                shift.type = e.e2.type;
-                shift = shift.castTo(null, Type.tshiftcnt);
-                ret = new ShlExp(e.loc, new IntegerExp(e.loc, 1, e.e1.type), shift);
-                ret.type = e.type;
-                return;
             }
         }
 
@@ -1101,7 +1049,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
             if (e.e1.isBool(oror))
             {
                 // Replace with (e1, oror)
-                ret = new IntegerExp(e.loc, oror, Type.tbool);
+                ret = IntegerExp.createBool(oror);
                 ret = Expression.combine(e.e1, ret);
                 if (e.type.toBasetype().ty == Tvoid)
                 {
@@ -1202,8 +1150,14 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
     scope OptimizeVisitor v = new OptimizeVisitor(e, result, keepLvalue);
 
     // Optimize the expression until it can no longer be simplified.
+    size_t b;
     while (1)
     {
+        if (b++ == 500)
+        {
+            e.error("infinite loop while optimizing expression");
+            fatal();
+        }
         auto ex = v.ret;
         ex.accept(v);
         if (ex == v.ret)
