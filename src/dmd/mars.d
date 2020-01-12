@@ -58,6 +58,7 @@ import dmd.root.man;
 import dmd.root.outbuffer;
 import dmd.root.response;
 import dmd.root.rmem;
+import dmd.root.string;
 import dmd.root.stringtable;
 import dmd.semantic2;
 import dmd.semantic3;

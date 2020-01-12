@@ -45,6 +45,50 @@ extern(D) static bool iequals(const(char)[] s1, const(char)[] s2)
 }
 
 /**
+Copy the content of `src` into a C-string ('\0' terminated) then call `dg`
+
+The intent of this function is to provide an allocation-less
+way to call a C function using a D slice.
+The function internally allocates a buffer if needed, but frees it on exit.
+
+Note:
+The argument to `dg` is `scope`. To keep the data around after `dg` exits,
+one has to copy it.
+
+Params:
+src = Slice to use to call the C function
+dg  = Delegate to call afterwards
+
+Returns:
+The return value of `T`
+*/
+auto toCStringThen(alias dg)(const(char)[] src) nothrow
+{
+    import dmd.root.rmem : mem;
+
+    const len = src.length + 1;
+    char[512] small = void;
+    scope ptr = (src.length < (small.length - 1))
+                    ? small[0 .. len]
+                    : (cast(char*)mem.xmalloc(len))[0 .. len];
+    scope (exit)
+    {
+        if (&ptr[0] != &small[0])
+            mem.xfree(&ptr[0]);
+    }
+    ptr[0 .. src.length] = src[];
+    ptr[src.length] = '\0';
+    return dg(ptr);
+}
+
+unittest
+{
+    assert("Hello world".toCStringThen!((v) => v == "Hello world\0"));
+    assert("Hello world\0".toCStringThen!((v) => v == "Hello world\0\0"));
+    assert(null.toCStringThen!((v) => v == "\0"));
+}
+
+/**
  * Strips one leading line terminator of the given string.
  *
  * The following are what the Unicode standard considers as line terminators:

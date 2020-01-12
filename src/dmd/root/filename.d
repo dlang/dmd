@@ -21,6 +21,7 @@ import dmd.root.outbuffer;
 import dmd.root.port;
 import dmd.root.rmem;
 import dmd.root.rootobject;
+import dmd.root.string;
 import dmd.utils;
 
 version (Posix)

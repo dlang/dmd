@@ -5,6 +5,7 @@ import core.sys.posix.stdlib;
 import dmd.globals;
 import dmd.root.array;
 import dmd.root.rmem;
+import dmd.root.string;
 import dmd.utils;
 
 version (Windows)
