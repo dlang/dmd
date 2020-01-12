@@ -17,8 +17,9 @@ version(Windows):
 import core.stdc.string, core.stdc.stdlib, core.sys.windows.winnt;
 
 import dmd.root.rmem;
+import dmd.root.string;
 
-import dmd.globals, dmd.errors, dmd.utils;
+import dmd.globals, dmd.errors;
 
 private enum LOG = false;
 

@@ -48,7 +48,7 @@ import dmd.typesem;
 import dmd.visitor;
 import dmd.root.rootobject;
 import dmd.root.outbuffer;
-import dmd.utils;
+import dmd.root.string;
 
 enum LOGSEMANTIC = false;
 

@@ -22,6 +22,7 @@ struct ASTBase
     import dmd.root.outbuffer;
     import dmd.root.ctfloat;
     import dmd.root.rmem;
+    import dmd.root.string : toDString;
     import dmd.root.stringtable;
 
     import dmd.tokens;
@@ -30,7 +31,6 @@ struct ASTBase
     import dmd.id;
     import dmd.errors;
     import dmd.lexer;
-    import dmd.utils : toDString;
 
     import core.stdc.string;
     import core.stdc.stdarg;

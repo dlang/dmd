@@ -61,7 +61,6 @@ import dmd.statementsem;
 import dmd.staticassert;
 import dmd.tokens;
 import dmd.utf;
-import dmd.utils;
 import dmd.statement;
 import dmd.target;
 import dmd.templateparamsem;

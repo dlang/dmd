@@ -12,8 +12,6 @@
 
 module dmd.imphint;
 
-import dmd.utils;
-
 /******************************************
  * Looks for undefined identifier s to see
  * if it might be undefined because an import

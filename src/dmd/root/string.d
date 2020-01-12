@@ -13,6 +13,13 @@
  */
 module dmd.root.string;
 
+/// Slices a `\0`-terminated C-string, excluding the terminator
+inout(char)[] toDString (inout(char)* s) pure nothrow @nogc
+{
+    import core.stdc.string : strlen;
+    return s ? s[0 .. strlen(s)] : null;
+}
+
 /**
 Compare two slices for equality, in a case-insensitive way
 

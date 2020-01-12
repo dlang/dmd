@@ -26,8 +26,8 @@ import dmd.root.rmem;
 import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.root.port;
+import dmd.root.string;
 import dmd.root.stringtable;
-import dmd.utils;
 
 private enum LOG = false;
 

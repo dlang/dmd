@@ -19,10 +19,10 @@ import dmd.globals;
 import dmd.id;
 import dmd.root.outbuffer;
 import dmd.root.rootobject;
+import dmd.root.string;
 import dmd.root.stringtable;
 import dmd.tokens;
 import dmd.utf;
-import dmd.utils;
 
 
 /***********************************************************

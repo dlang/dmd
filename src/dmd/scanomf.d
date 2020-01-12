@@ -19,9 +19,9 @@ import core.stdc.stdlib;
 import dmd.globals;
 import dmd.root.rmem;
 import dmd.root.outbuffer;
+import dmd.root.string;
 import dmd.arraytypes;
 import dmd.errors;
-import dmd.utils;
 
 private enum LOG = false;
 

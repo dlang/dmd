@@ -21,7 +21,7 @@ import dmd.globals;
 import dmd.root.file;
 import dmd.root.filename;
 import dmd.root.outbuffer;
-import dmd.root.rmem;
+import dmd.root.string;
 
 
 /**
@@ -136,10 +136,4 @@ void escapePath(OutBuffer* buf, const(char)* fname)
         }
         fname++;
     }
-}
-
-/// Slices a `\0`-terminated C-string, excluding the terminator
-inout(char)[] toDString (inout(char)* s) pure nothrow @nogc
-{
-    return s ? s[0 .. strlen(s)] : null;
 }

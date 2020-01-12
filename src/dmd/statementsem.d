@@ -48,13 +48,13 @@ import dmd.mtype;
 import dmd.nogc;
 import dmd.opover;
 import dmd.root.outbuffer;
+import dmd.root.string;
 import dmd.semantic2;
 import dmd.sideeffect;
 import dmd.statement;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
-import dmd.utils;
 import dmd.visitor;
 
 /*****************************************
