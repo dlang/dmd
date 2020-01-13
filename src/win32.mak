@@ -121,8 +121,8 @@ debdmd-make:
 
 reldmd: check-host-dc reldmd-make
 
-reldmd-make:
-	$(DMDMAKE) "DDEBUG=" "DOPT=-O -release -inline" $(TARGETEXE)
+reldmd-make: $(GEN)\build.exe
+	$(RUN_BUILD) "DDEBUG=" "ENABLE_RELEASE=1" $(TARGETEXE)
 
 profile:
 	$(DMDMAKE) "DDEBUG=" "DOPT=-O -release -profile" $(TARGETEXE)
