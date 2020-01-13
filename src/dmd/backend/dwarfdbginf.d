@@ -1413,10 +1413,6 @@ static if (ELFOBJ)
                     debug_line.buf.writeByte(DW_LNS_copy);
             }
 
-            // Write DW_LNS_advance_pc to cover the function prologue
-            debug_line.buf.writeByte(DW_LNS_advance_pc);
-            debug_line.buf.writeuLEB128(cast(uint)(sd.SDbuf.size() - address));
-
             // Write DW_LNE_end_sequence
             debug_line.buf.writeByte(0);
             debug_line.buf.writeByte(1);
