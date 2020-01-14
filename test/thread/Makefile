@@ -1,6 +1,6 @@
 include ../common.mak
 
-TESTS:=fiber_guard_page external_threads tlsgc_sections
+TESTS:=fiber_guard_page external_threads tlsgc_sections test_import tlsstack
 
 .PHONY: all clean
 all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))
@@ -17,6 +17,16 @@ $(ROOT)/external_threads.done: $(ROOT)/%.done : $(ROOT)/%
 	@touch $@
 
 $(ROOT)/tlsgc_sections.done: $(ROOT)/%.done : $(ROOT)/%
+	@echo Testing $*
+	$(QUIET)$(TIMELIMIT)$(ROOT)/$*
+	@touch $@
+
+$(ROOT)/test_import.done: $(ROOT)/%.done : $(ROOT)/%
+	@echo Testing $*
+	$(QUIET)$(TIMELIMIT)$(ROOT)/$*
+	@touch $@
+
+$(ROOT)/tlsstack.done: $(ROOT)/%.done : $(ROOT)/%
 	@echo Testing $*
 	$(QUIET)$(TIMELIMIT)$(ROOT)/$*
 	@touch $@

@@ -31,7 +31,7 @@ else
     import rt.backtrace.elf;
 
 import rt.util.container.array;
-import core.stdc.string : strlen, memchr, memcpy;
+import core.stdc.string : strlen, memcpy;
 
 //debug = DwarfDebugMachine;
 debug(DwarfDebugMachine) import core.stdc.stdio : printf;
@@ -348,10 +348,11 @@ bool runStateMachine(ref const(LineNumberProgram) lp, scope RunStateMachineCallb
     return true;
 }
 
-const(char)[] getDemangledSymbol(const(char)[] btSymbol, ref char[1024] buffer)
+const(char)[] getDemangledSymbol(const(char)[] btSymbol, return ref char[1024] buffer)
 {
     import core.demangle;
-    return demangle(getMangledSymbolName(btSymbol), buffer[]);
+    const mangledName = getMangledSymbolName(btSymbol);
+    return !mangledName.length ? buffer[0..0] : demangle(mangledName, buffer[]);
 }
 
 T read(T)(ref const(ubyte)[] buffer) @nogc nothrow
