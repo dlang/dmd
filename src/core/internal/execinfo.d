@@ -195,42 +195,38 @@ const(char)[] getMangledSymbolName(const(char)[] btBuf, out size_t symBeg,
     }
     else
     {
-        import core.stdc.string : memchr;
-
-        char pChar = '+';
-        char mChar = '-';
-
         static if (BacktraceFmt.GNU)
         {
-            char bChar = '(';
-            char eChar = ')';
+            enum bChar = '(';
+            enum eChar = ')';
         }
         else static if (BacktraceFmt.BSD)
         {
-            char bChar = '<';
-            char eChar = '>';
+            enum bChar = '<';
+            enum eChar = '>';
         }
         else static if (BacktraceFmt.Solaris)
         {
-            char bChar = '\'';
-            char eChar = '+';
+            enum bChar = '\'';
+            enum eChar = '+';
         }
 
-        auto bptr = cast(char*) memchr(btBuf.ptr, bChar, btBuf.length);
-        auto eptr = cast(char*) memchr(btBuf.ptr, eChar, btBuf.length);
-        auto pptr = cast(char*) memchr(btBuf.ptr, pChar, btBuf.length);
-        auto mptr = cast(char*) memchr(btBuf.ptr, mChar, btBuf.length);
-
-        if (pptr && pptr < eptr)
-            eptr = pptr;
-
-        if (mptr && mptr < eptr)
-            eptr = mptr;
-
-        if (bptr++ && eptr)
+        foreach (i; 0 .. btBuf.length)
         {
-            symBeg = bptr - btBuf.ptr;
-            symEnd = eptr - btBuf.ptr;
+            if (btBuf[i] == bChar)
+            {
+                foreach (j; i+1 .. btBuf.length)
+                {
+                    const e = btBuf[j];
+                    if (e == eChar || e == '+' || e == '-')
+                    {
+                        symBeg = i + 1;
+                        symEnd = j;
+                        break;
+                    }
+                }
+                break;
+            }
         }
     }
 
@@ -282,11 +278,11 @@ const(char)[] getMangledSymbolName(const(char)[] btBuf) @nogc nothrow
         assert(7 == symBeg);
         assert(25 == symEnd);
 
-        enum bufGNU2 = "module(_D6module4funcAFZv-0x78) [0x00000000]";
+        enum bufGNU2 = "/lib/x86_64-linux-gnu/libc.so.6(__libc_start_main-0x78) [0x00000000]";
         auto resGNU2 = getMangledSymbolName(bufGNU2, symBeg, symEnd);
-        assert("_D6module4funcAFZv" == resGNU2);
-        assert(7 == symBeg);
-        assert(25 == symEnd);
+        assert("__libc_start_main" == resGNU2);
+        assert(32 == symBeg);
+        assert(49 == symEnd);
     }
     else static if (BacktraceFmt.Solaris)
     {

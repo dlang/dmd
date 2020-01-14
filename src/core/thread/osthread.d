@@ -28,47 +28,47 @@ else version (TVOS)
 else version (WatchOS)
     version = Darwin;
 
+version (D_InlineAsm_X86)
+{
+    version (Windows)
+        version = AsmX86_Windows;
+    else version (Posix)
+        version = AsmX86_Posix;
+}
+else version (D_InlineAsm_X86_64)
+{
+    version (Windows)
+    {
+        version = AsmX86_64_Windows;
+    }
+    else version (Posix)
+    {
+        version = AsmX86_64_Posix;
+    }
+}
+
+version (Posix)
+{
+    import core.sys.posix.unistd;
+
+    version (AsmX86_Windows)    {} else
+    version (AsmX86_Posix)      {} else
+    version (AsmX86_64_Windows) {} else
+    version (AsmX86_64_Posix)   {} else
+    version (AsmExternal)       {} else
+    {
+        // NOTE: The ucontext implementation requires architecture specific
+        //       data definitions to operate so testing for it must be done
+        //       by checking for the existence of ucontext_t rather than by
+        //       a version identifier.  Please note that this is considered
+        //       an obsolescent feature according to the POSIX spec, so a
+        //       custom solution is still preferred.
+        import core.sys.posix.ucontext;
+    }
+}
+
 package(core.thread)
 {
-    version (D_InlineAsm_X86)
-    {
-        version (Windows)
-            version = AsmX86_Windows;
-        else version (Posix)
-            version = AsmX86_Posix;
-    }
-    else version (D_InlineAsm_X86_64)
-    {
-        version (Windows)
-        {
-            version = AsmX86_64_Windows;
-        }
-        else version (Posix)
-        {
-            version = AsmX86_64_Posix;
-        }
-    }
-
-    version (Posix)
-    {
-        import core.sys.posix.unistd;
-
-        version (AsmX86_Windows)    {} else
-        version (AsmX86_Posix)      {} else
-        version (AsmX86_64_Windows) {} else
-        version (AsmX86_64_Posix)   {} else
-        version (AsmExternal)       {} else
-        {
-            // NOTE: The ucontext implementation requires architecture specific
-            //       data definitions to operate so testing for it must be done
-            //       by checking for the existence of ucontext_t rather than by
-            //       a version identifier.  Please note that this is considered
-            //       an obsolescent feature according to the POSIX spec, so a
-            //       custom solution is still preferred.
-            import core.sys.posix.ucontext;
-        }
-    }
-
     static immutable size_t PAGESIZE;
     version (Posix) static immutable size_t PTHREAD_STACK_MIN;
 }
@@ -752,11 +752,13 @@ class Thread
         version (Windows) {} else
         version (Posix)
         {
+            size_t stksz = adjustStackSize( m_sz );
+
             pthread_attr_t  attr;
 
             if ( pthread_attr_init( &attr ) )
                 onThreadError( "Error initializing thread attributes" );
-            if ( m_sz && pthread_attr_setstacksize( &attr, m_sz ) )
+            if ( stksz && pthread_attr_setstacksize( &attr, stksz ) )
                 onThreadError( "Error initializing thread stack size" );
         }
 
@@ -1535,19 +1537,7 @@ private:
     //
     this(size_t sz = 0) @safe pure nothrow @nogc
     {
-        if (sz)
-        {
-            version (Posix)
-            {
-                // stack size must be a multiple of PAGESIZE
-                sz += PAGESIZE - 1;
-                sz -= sz % PAGESIZE;
-                // and at least PTHREAD_STACK_MIN
-                if (PTHREAD_STACK_MIN > sz)
-                    sz = PTHREAD_STACK_MIN;
-            }
-            m_sz = sz;
-        }
+        m_sz = sz;
         m_call = Call.NO;
         m_curr = &m_main;
     }
@@ -3189,6 +3179,25 @@ private void onThreadError(string msg) nothrow @nogc
     throw error;
 }
 
+version (Posix)
+private size_t adjustStackSize(size_t sz) nothrow @nogc
+{
+    if (sz == 0)
+        return 0;
+
+    version (CRuntime_Glibc)
+    {
+        // TLS uses the top of the stack, so add its size to the requested size
+        sz += externDFunc!("rt.sections_elf_shared.sizeOfTLS",
+                           size_t function() @nogc nothrow)();
+    }
+    // stack size must be a multiple of PAGESIZE and at least PTHREAD_STACK_MIN
+    sz = ((sz + PAGESIZE - 1) & ~(PAGESIZE - 1));
+    if (PTHREAD_STACK_MIN > sz)
+        sz = PTHREAD_STACK_MIN;
+
+    return sz;
+}
 
 unittest
 {
@@ -3988,12 +3997,14 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
             return null;
         }
 
+        size_t stksz = adjustStackSize(stacksize);
+
         pthread_attr_t  attr;
 
         int rc;
         if ((rc = pthread_attr_init(&attr)) != 0)
             return ThreadID.init;
-        if (stacksize && (rc = pthread_attr_setstacksize(&attr, stacksize)) != 0)
+        if (stksz && (rc = pthread_attr_setstacksize(&attr, stksz)) != 0)
             return ThreadID.init;
         if ((rc = pthread_create(&tid, &attr, &thread_lowlevelEntry, context)) != 0)
             return ThreadID.init;
