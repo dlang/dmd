@@ -148,7 +148,7 @@ private
     extern (C) void gc_removeRange(const void* p ) nothrow @nogc;
     extern (C) void gc_runFinalizers( const scope void[] segment );
 
-    package extern (C) bool gc_inFinalizer();
+    package extern (C) bool gc_inFinalizer() nothrow @nogc @safe;
 }
 
 
@@ -846,6 +846,108 @@ struct GC
     static void runFinalizers( const scope void[] segment )
     {
         gc_runFinalizers( segment );
+    }
+
+    /**
+     * Queries the GC whether the current thread is running object finalization
+     * as part of a GC collection, or an explicit call to runFinalizers.
+     *
+     * As some GC implementations (such as the current conservative one) don't
+     * support GC memory allocation during object finalization, this function
+     * can be used to guard against such programming errors.
+     *
+     * Returns:
+     *  true if the current thread is in a finalizer, a destructor invoked by
+     *  the GC.
+     */
+    static bool inFinalizer() nothrow @nogc @safe
+    {
+        return gc_inFinalizer();
+    }
+
+    ///
+    @safe nothrow @nogc unittest
+    {
+        // Only code called from a destructor is executed during finalization.
+        assert(!GC.inFinalizer);
+    }
+
+    ///
+    unittest
+    {
+        enum Outcome
+        {
+            notCalled,
+            calledManually,
+            calledFromDruntime
+        }
+
+        static class Resource
+        {
+            static Outcome outcome;
+
+            this()
+            {
+                outcome = Outcome.notCalled;
+            }
+
+            ~this()
+            {
+                if (GC.inFinalizer)
+                {
+                    outcome = Outcome.calledFromDruntime;
+
+                    import core.exception : InvalidMemoryOperationError;
+                    try
+                    {
+                        /*
+                         * Presently, allocating GC memory during finalization
+                         * is forbidden and leads to
+                         * `InvalidMemoryOperationError` being thrown.
+                         *
+                         * `GC.inFinalizer` can be used to guard against
+                         * programming erros such as these and is also a more
+                         * efficient way to verify whether a destructor was
+                         * invoked by the GC.
+                         */
+                        cast(void) GC.malloc(1);
+                        assert(false);
+                    }
+                    catch (InvalidMemoryOperationError e)
+                    {
+                        return;
+                    }
+                    assert(false);
+                }
+                else
+                    outcome = Outcome.calledManually;
+            }
+        }
+
+        static void createGarbage()
+        {
+            auto r = new Resource;
+            r = null;
+        }
+
+        assert(Resource.outcome == Outcome.notCalled);
+        createGarbage();
+        GC.collect;
+        assert(
+            Resource.outcome == Outcome.notCalled ||
+            Resource.outcome == Outcome.calledFromDruntime);
+
+        auto r = new Resource;
+        GC.runFinalizers((cast(const void*)typeid(Resource).destructor)[0..1]);
+        assert(Resource.outcome == Outcome.calledFromDruntime);
+        Resource.outcome = Outcome.notCalled;
+        r.destroy;
+        assert(Resource.outcome == Outcome.notCalled);
+
+        r = new Resource;
+        assert(Resource.outcome == Outcome.notCalled);
+        r.destroy;
+        assert(Resource.outcome == Outcome.calledManually);
     }
 }
 

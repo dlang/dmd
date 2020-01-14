@@ -9,6 +9,7 @@
  */
 module core.internal.convert;
 import core.internal.traits : Unqual;
+import core.math : toPrec;
 
 /+
 A @nogc function can allocate memory during CTFE.
@@ -67,6 +68,41 @@ const(ubyte)[] toUbyte(T)(const ref T val) if (is(Unqual!T == float) || is(Unqua
                 }
             }
             return result;
+        }
+        else static if (floatFormat!T == FloatFormat.DoubleDouble)
+        {
+            // Parse DoubleDoubles as a pair of doubles.
+            // The layout of the type is:
+            //
+            //   [1|  7  |       56      ][   8    |       56       ]
+            //   [S| Exp | Fraction (hi) ][ Unused | Fraction (low) ]
+            //
+            // We can get the least significant bits by subtracting the IEEE
+            // double precision portion from the real value.
+
+            ubyte[] buff = ctfe_alloc(T.sizeof);
+            enum msbSize = double.sizeof;
+
+            double hi = toPrec!double(val);
+            buff[0 .. msbSize] = toUbyte(hi)[];
+
+            if (val is cast(T)0.0 || val is cast(T)-0.0 ||
+                val is T.nan || val is -T.nan ||
+                val is T.infinity || val > T.max ||
+                val is -T.infinity || val < -T.max)
+            {
+                // Zero, NaN, and Inf are all representable as doubles, so the
+                // least significant part can be 0.0.
+                buff[msbSize .. $] = 0;
+            }
+            else
+            {
+                double low = toPrec!double(val - hi);
+                buff[msbSize .. $] = toUbyte(low)[];
+            }
+
+            // Arrays don't index differently between little and big-endian targets.
+            return buff;
         }
         else
         {
@@ -429,14 +465,14 @@ private Float denormalizedMantissa(T)(T x, uint sign) if (floatFormat!T == Float
         return Float(fl.mantissa2 & 0x00FFFFFFFFFFFFFFUL , 0, sign, 1);
 }
 
-version (unittest)
+@system unittest
 {
-    private const(ubyte)[] toUbyte2(T)(T val)
+    static const(ubyte)[] toUbyte2(T)(T val)
     {
         return toUbyte(val).dup;
     }
 
-    private void testNumberConvert(string v)()
+    static void testNumberConvert(string v)()
     {
         enum ctval = mixin(v);
 
@@ -452,7 +488,7 @@ version (unittest)
         assert(rtbytes[0..testsize] == ctbytes[0..testsize]);
     }
 
-    private void testConvert()
+    static void testConvert()
     {
         /**Test special values*/
         testNumberConvert!("-float.infinity");
@@ -562,11 +598,7 @@ version (unittest)
         testNumberConvert!("cast(float)0x9.54bb0d88806f714p-7088L");
     }
 
-
-    unittest
-    {
-        testConvert();
-    }
+    testConvert();
 }
 
 

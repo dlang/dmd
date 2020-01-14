@@ -51,7 +51,7 @@ build_script:
   # disable link dependencies monitoring, fails on AppVeyor server
   - reg add "HKLM\SOFTWARE\Microsoft\VisualStudio\14.0\ToolsOptionsPages\Projects\Visual D Settings" /v optlinkDeps /t REG_DWORD /d 0 /reg:32 /f
 
-  - git clone https://github.com/dlang/dmd.git dmd
+  - git clone -b %APPVEYOR_REPO_BRANCH% https://github.com/dlang/dmd.git dmd
 
   # - call "c:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
   - call "c:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"

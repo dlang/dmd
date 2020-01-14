@@ -1,3 +1,0 @@
-`core.thread : Fiber.call(bool)` has been removed
-
-This had been deprecated since 2.068 in favor of `Fiber.call(Rethrow.[Yes|No])`.

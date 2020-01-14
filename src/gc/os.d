@@ -40,13 +40,6 @@ else version (Posix)
         version = Darwin;
 
     import core.sys.posix.sys.mman;
-    version (FreeBSD) import core.sys.freebsd.sys.mman : MAP_ANON;
-    version (DragonFlyBSD) import core.sys.dragonflybsd.sys.mman : MAP_ANON;
-    version (NetBSD) import core.sys.netbsd.sys.mman : MAP_ANON;
-    version (OpenBSD) import core.sys.openbsd.sys.mman : MAP_ANON;
-    version (CRuntime_Glibc) import core.sys.linux.sys.mman : MAP_ANON;
-    version (Darwin) import core.sys.darwin.sys.mman : MAP_ANON;
-    version (CRuntime_UClibc) import core.sys.linux.sys.mman : MAP_ANON;
     import core.stdc.stdlib;
 
     //version = GC_Use_Alloc_MMap;

@@ -27,31 +27,31 @@ enum MemoryOrder
      * Corresponds to $(LINK2 https://llvm.org/docs/Atomics.html#monotonic, LLVM AtomicOrdering.Monotonic)
      * and C++11/C11 `memory_order_relaxed`.
      */
-    raw,
+    raw = 0,
     /**
      * Hoist-load + hoist-store barrier.
      * Corresponds to $(LINK2 https://llvm.org/docs/Atomics.html#acquire, LLVM AtomicOrdering.Acquire)
      * and C++11/C11 `memory_order_acquire`.
      */
-    acq,
+    acq = 2,
     /**
      * Sink-load + sink-store barrier.
      * Corresponds to $(LINK2 https://llvm.org/docs/Atomics.html#release, LLVM AtomicOrdering.Release)
      * and C++11/C11 `memory_order_release`.
      */
-    rel,
+    rel = 3,
     /**
      * Acquire + release barrier.
      * Corresponds to $(LINK2 https://llvm.org/docs/Atomics.html#acquirerelease, LLVM AtomicOrdering.AcquireRelease)
      * and C++11/C11 `memory_order_acq_rel`.
      */
-    acq_rel,
+    acq_rel = 4,
     /**
      * Fully sequenced (acquire + release). Corresponds to
      * $(LINK2 https://llvm.org/docs/Atomics.html#sequentiallyconsistent, LLVM AtomicOrdering.SequentiallyConsistent)
      * and C++11/C11 `memory_order_seq_cst`.
      */
-    seq,
+    seq = 5,
 }
 
 /**
@@ -96,10 +96,7 @@ TailShared!T atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)(ref shared const T 
     // HACK: DEPRECATE THIS FUNCTION, IT IS INVALID TO DO ATOMIC LOAD OF SHARED CLASS
     // this is here because code exists in the wild that does this...
 
-    import core.lifetime : move;
-
-    T r = core.internal.atomic.atomicLoad!ms(cast(T*)&val);
-    return move(*cast(TailShared!T*)&r);
+    return core.internal.atomic.atomicLoad!ms(cast(TailShared!T*)&val);
 }
 
 /**
@@ -242,10 +239,10 @@ in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 
 /// Ditto
 TailShared!T atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)(shared(T)* here, V exchangeWith) pure nothrow @nogc @trusted
-    if (!is(T == class))
+    if (!is(T == class) && !is(T == interface))
 in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 {
-    static if (is (V == shared))
+    static if (is (V == shared U, U))
         alias Thunk = U;
     else
     {
@@ -258,7 +255,7 @@ in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 
 /// Ditto
 shared(T) atomicExchange(MemoryOrder ms = MemoryOrder.seq,T,V)(shared(T)* here, shared(V) exchangeWith) pure nothrow @nogc @trusted
-    if (is(T == class))
+    if (is(T == class) || is(T == interface))
 in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 {
     static assert (is (V : T), "Can't assign `exchangeWith` of type `" ~ shared(V).stringof ~ "` to `" ~ shared(T).stringof ~ "`.");
@@ -466,7 +463,7 @@ in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 *  true if the store occurred, false if not.
 */
 bool casWeak(MemoryOrder succ = MemoryOrder.seq,MemoryOrder fail = MemoryOrder.seq,T,V)(T* here, T* ifThis, V writeThis) pure nothrow @nogc @trusted
-if (!is(T == shared S, S) && !is(V == shared U, U))
+    if (!is(T == shared S, S) && !is(V == shared U, U))
 in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 {
     // resolve implicit conversions
@@ -483,7 +480,7 @@ in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 
 /// Ditto
 bool casWeak(MemoryOrder succ = MemoryOrder.seq,MemoryOrder fail = MemoryOrder.seq,T,V1,V2)(shared(T)* here, V1* ifThis, V2 writeThis) pure nothrow @nogc @trusted
-if (!is(T == class) && (is(T : V1) || is(shared T : V1)))
+    if (!is(T == class) && (is(T : V1) || is(shared T : V1)))
 in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 {
     static if (is (V1 == shared U1, U1))
@@ -508,7 +505,7 @@ in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 
 /// Ditto
 bool casWeak(MemoryOrder succ = MemoryOrder.seq,MemoryOrder fail = MemoryOrder.seq,T,V)(shared(T)* here, shared(T)* ifThis, shared(V) writeThis) pure nothrow @nogc @trusted
-if (is(T == class))
+    if (is(T == class))
 in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
 {
     return atomicCompareExchangeWeak!(succ, fail)(cast(T*)here, cast(T*)ifThis, cast(V)writeThis);
@@ -519,9 +516,18 @@ in (atomicPtrIsProperlyAligned(here), "Argument `here` is not properly aligned")
  * that all loads and stores before a call to this function are executed before any
  * loads and stores after the call.
  */
-void atomicFence(MemoryOrder order = MemoryOrder.seq)() nothrow @nogc @safe
+void atomicFence(MemoryOrder order = MemoryOrder.seq)() pure nothrow @nogc @safe
 {
     core.internal.atomic.atomicFence!order();
+}
+
+/**
+ * Gives a hint to the processor that the calling thread is in a 'spin-wait' loop,
+ * allowing to more efficiently allocate resources.
+ */
+void pause() pure nothrow @nogc @safe
+{
+    core.internal.atomic.pause();
 }
 
 /**
@@ -585,19 +591,26 @@ in (atomicValueIsProperlyAligned(val))
 }
 
 
-version (X86)
+version (D_InlineAsm_X86)
 {
-    version = IsX86;
+    version = AsmX86;
     enum has64BitXCHG = false;
     enum has64BitCAS = true;
     enum has128BitCAS = false;
 }
-else version (X86_64)
+else version (D_InlineAsm_X86_64)
 {
-    version = IsX86;
+    version = AsmX86;
     enum has64BitXCHG = true;
     enum has64BitCAS = true;
     enum has128BitCAS = true;
+}
+else version (GNU)
+{
+    import gcc.config;
+    enum has64BitCAS = GNU_Have_64Bit_Atomics;
+    enum has64BitXCHG = GNU_Have_64Bit_Atomics;
+    enum has128BitCAS = GNU_Have_LibAtomic;
 }
 else
 {
@@ -608,7 +621,7 @@ else
 
 private
 {
-    version (IsX86)
+    version (AsmX86)
     {
         // NOTE: Strictly speaking, the x86 supports atomic operations on
         //       unaligned values.  However, this is far slower than the
@@ -626,6 +639,18 @@ private
                 return cast(size_t)ptr % size_t.sizeof == 0;
             else
                 return cast(size_t)ptr % T.sizeof == 0;
+        }
+    }
+    else
+    {
+        bool atomicValueIsProperlyAligned(T)(ref T val) pure nothrow @nogc @trusted
+        {
+            return true;
+        }
+
+        bool atomicPtrIsProperlyAligned(T)(T*) pure nothrow @nogc @safe
+        {
+            return true;
         }
     }
 
@@ -887,9 +912,16 @@ version (unittest)
 
         testType!(shared int*)();
 
+        static interface Inter {}
+        static class KlassImpl : Inter {}
+        testXCHG!(shared Inter)(new shared(KlassImpl));
+        testCAS!(shared Inter)(new shared(KlassImpl));
+
         static class Klass {}
         testXCHG!(shared Klass)(new shared(Klass));
         testCAS!(shared Klass)(new shared(Klass));
+
+        testXCHG!(shared int)(42);
 
         testType!(float)(1.0f);
 

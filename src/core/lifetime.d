@@ -58,7 +58,7 @@ T* emplace(T, Args...)(T* chunk, auto ref Args args)
 {
     import core.internal.lifetime : emplaceRef;
 
-    emplaceRef!T(*chunk, args);
+    emplaceRef!T(*chunk, forward!args);
     return chunk;
 }
 
@@ -239,6 +239,21 @@ T emplace(T, Args...)(void[] chunk, auto ref Args args)
 
 @nogc pure nothrow @safe unittest
 {
+    static class __conv_EmplaceTestClass
+    {
+        int i = 3;
+        this(int i) @nogc @safe pure nothrow
+        {
+            assert(this.i == 3 && i == 5);
+            this.i = i;
+        }
+        this(int i, ref int j) @nogc @safe pure nothrow
+        {
+            assert(i == 5 && j == 6);
+            this.i = i;
+            ++j;
+        }
+    }
     int var = 6;
     align(__conv_EmplaceTestClass.alignof) ubyte[__traits(classInstanceSize, __conv_EmplaceTestClass)] buf;
     auto support = (() @trusted => cast(__conv_EmplaceTestClass)(buf.ptr))();
@@ -304,43 +319,6 @@ T* emplace(T, Args...)(void[] chunk, auto ref Args args)
     U u2 = { "hello" };
     emplace(&u1, u2);
     assert(u1.a == "hello");
-}
-
-version (unittest) private struct __conv_EmplaceTest
-{
-    int i = 3;
-    this(int i)
-    {
-        assert(this.i == 3 && i == 5);
-        this.i = i;
-    }
-    this(int i, ref int j)
-    {
-        assert(i == 5 && j == 6);
-        this.i = i;
-        ++j;
-    }
-
-@disable:
-    this();
-    this(this);
-    void opAssign();
-}
-
-version (unittest) private class __conv_EmplaceTestClass
-{
-    int i = 3;
-    this(int i) @nogc @safe pure nothrow
-    {
-        assert(this.i == 3 && i == 5);
-        this.i = i;
-    }
-    this(int i, ref int j) @nogc @safe pure nothrow
-    {
-        assert(i == 5 && j == 6);
-        this.i = i;
-        ++j;
-    }
 }
 
 @system unittest // bugzilla 15772
@@ -476,17 +454,40 @@ version (unittest) private class __conv_EmplaceTestClass
 
 @system unittest
 {
+    static struct __conv_EmplaceTest
+    {
+        int i = 3;
+        this(int i)
+        {
+            assert(this.i == 3 && i == 5);
+            this.i = i;
+        }
+        this(int i, ref int j)
+        {
+            assert(i == 5 && j == 6);
+            this.i = i;
+            ++j;
+        }
+
+    @disable:
+        this();
+        this(this);
+        void opAssign();
+    }
+
     __conv_EmplaceTest k = void;
     emplace(&k, 5);
     assert(k.i == 5);
-}
 
-@system unittest
-{
     int var = 6;
-    __conv_EmplaceTest k = void;
-    emplace(&k, 5, var);
-    assert(k.i == 5);
+    __conv_EmplaceTest x = void;
+    emplace(&x, 5, var);
+    assert(x.i == 5);
+    assert(var == 7);
+
+    var = 6;
+    auto z = emplace!__conv_EmplaceTest(new void[__conv_EmplaceTest.sizeof], 5, var);
+    assert(z.i == 5);
     assert(var == 7);
 }
 
@@ -606,7 +607,8 @@ version (unittest) private class __conv_EmplaceTestClass
     S1 s1 = void;
     emplace(&s1, 1);
     assert(s1.i == 1);
-    static assert(!__traits(compiles, emplace(&s1, S1.init)));
+    static assert(!__traits(compiles, emplace(&s1, s1))); // copy disabled
+    static assert(__traits(compiles, emplace(&s1, move(s1)))); // move not affected
 
     static struct S2
     {
@@ -624,7 +626,8 @@ version (unittest) private class __conv_EmplaceTestClass
     }
     SS1 ss1 = void;
     emplace(&ss1);
-    static assert(!__traits(compiles, emplace(&ss1, SS1.init)));
+    static assert(!__traits(compiles, emplace(&ss1, ss1))); // copying disabled
+    static assert(__traits(compiles, emplace(&ss1, move(ss1)))); // move unaffected
 
     static struct SS2
     {
@@ -632,7 +635,8 @@ version (unittest) private class __conv_EmplaceTestClass
     }
     SS2 ss2 = void;
     emplace(&ss2);
-    static assert(!__traits(compiles, emplace(&ss2, SS2.init)));
+    static assert(!__traits(compiles, emplace(&ss2, ss2))); // copying disabled
+    static assert(__traits(compiles, emplace(&ss2, SS2.init))); // move is OK
 
 
     // SS1 sss1 = s1;      //This doesn't compile
@@ -1135,7 +1139,7 @@ pure nothrow @safe /* @nogc */ unittest
     }
 
     Unsafe unsafe = void;
-    static assert(!__traits(compiles, emplaceRef(unsafe, Unsafe())));
+    static assert(!__traits(compiles, emplaceRef(unsafe, unsafe)));
 
     Unsafe[1] unsafeArr = [Unsafe()];
     Unsafe[1] uninitializedUnsafeArr = void;
@@ -1164,14 +1168,6 @@ pure nothrow @safe /* @nogc */ unittest
 
 @system unittest
 {
-    int var = 6;
-    auto k = emplace!__conv_EmplaceTest(new void[__conv_EmplaceTest.sizeof], 5, var);
-    assert(k.i == 5);
-    assert(var == 7);
-}
-
-@system unittest
-{
     class A
     {
         int x = 5;
@@ -1196,6 +1192,28 @@ pure nothrow @safe /* @nogc */ unittest
 
     // need ctor args
     static assert(!is(typeof(emplace!A(buf))));
+}
+
+//constructor arguments forwarding
+@system unittest
+{
+    static struct S
+    {
+        this()(auto ref long arg)
+        {
+            // assert that arg is an lvalue
+            static assert(__traits(isRef, arg));
+        }
+        this()(auto ref double arg)
+            // assert that arg is an rvalue
+        {
+            static assert(!__traits(isRef, arg));
+        }
+    }
+    S obj = void;
+    long i;
+    emplace(&obj, i);   // lvalue
+    emplace(&obj, 0.0); // rvalue
 }
 // Bulk of emplace unittests ends here
 

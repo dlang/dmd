@@ -40,6 +40,39 @@ extern (C++, "std")
 }
 
 
+///
+T* cpp_new(T, Args...)(auto ref Args args) if (!is(T == class))
+{
+    import core.lifetime : emplace, forward;
+
+    T* mem = cast(T*)__cpp_new(T.sizeof);
+    return mem.emplace(forward!args);
+}
+
+///
+T cpp_new(T, Args...)(auto ref Args args) if (is(T == class))
+{
+    import core.lifetime : emplace, forward;
+
+    T mem = cast(T)__cpp_new(__traits(classInstanceSize, T));
+    return mem.emplace(forward!args);
+}
+
+///
+void cpp_delete(T)(T* ptr) if (!is(T == class))
+{
+    destroy!false(*ptr);
+    __cpp_delete(ptr);
+}
+
+///
+void cpp_delete(T)(T instance) if (is(T == class))
+{
+    destroy!false(instance);
+    __cpp_delete(instance);
+}
+
+
 // raw C++ functions
 extern(C++):
 

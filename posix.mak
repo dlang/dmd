@@ -88,7 +88,7 @@ else
 	DFLAGS:=$(UDFLAGS) -inline # unittests don't compile with -inline
 endif
 
-UTFLAGS:=-version=CoreUnittest -unittest
+UTFLAGS:=-version=CoreUnittest -unittest -checkaction=context
 
 # Set PHOBOS_DFLAGS (for linking against Phobos)
 PHOBOS_PATH=../phobos
@@ -156,6 +156,9 @@ $(DOCDIR)/core_experimental_%.html : src/core/experimental/%.d $(DMD)
 $(DOCDIR)/core_gc_%.html : src/core/gc/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
+$(DOCDIR)/core_internal_%.html : src/core/internal/%.d $(DMD)
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+
 $(DOCDIR)/core_stdc_%.html : src/core/stdc/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
@@ -174,25 +177,7 @@ $(DOCDIR)/core_sys_darwin_mach_%.html : src/core/sys/darwin/mach/%.d $(DMD)
 $(DOCDIR)/core_sys_darwin_netinet_%.html : src/core/sys/darwin/netinet/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
-$(DOCDIR)/core_internal_dassert.html : src/core/internal/dassert.d $(DMD)
-	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
-
-$(DOCDIR)/core_internal_destruction.html : src/core/internal/destruction.d $(DMD)
-	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
-
-$(DOCDIR)/core_internal_moving.html : src/core/internal/moving.d $(DMD)
-	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
-
-$(DOCDIR)/core_internal_postblit.html : src/core/internal/postblit.d $(DMD)
-	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
-
-$(DOCDIR)/core_internal_switch_.html : src/core/internal/switch_.d $(DMD)
-	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
-
-$(DOCDIR)/core_internal_array_%.html : src/core/internal/array/%.d $(DMD)
-	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
-
-$(DOCDIR)/core_internal_util_%.html : src/core/internal/util/%.d $(DMD)
+$(DOCDIR)/core_thread_%.html : src/core/thread/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOCDIR)/rt_%.html : src/rt/%.d $(DMD)
@@ -388,10 +373,15 @@ druntime.zip: $(MANIFEST)
 	rm -rf $@
 	zip $@ $^
 
+ifneq (,$(findstring Darwin_64_32, $(PWD)))
+install:
+	echo "Darwin_64_32_disabled"
+else
 install: target
 	mkdir -p $(INSTALL_DIR)/src/druntime/import
 	cp -r import/* $(INSTALL_DIR)/src/druntime/import/
 	cp LICENSE.txt $(INSTALL_DIR)/druntime-LICENSE.txt
+endif
 
 clean: $(addsuffix /.clean,$(ADDITIONAL_TESTS))
 	rm -rf $(ROOT_OF_THEM_ALL) $(IMPDIR) $(DOCDIR) druntime.zip

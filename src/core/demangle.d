@@ -300,7 +300,7 @@ pure @safe:
     }
 
 
-    void silent( lazy void dg )
+    void silent( void delegate() pure @safe dg )
     {
         debug(trace) printf( "silent+\n" );
         debug(trace) scope(success) printf( "silent-\n" );
@@ -1612,7 +1612,7 @@ pure @safe:
                 char t = front; // peek at type for parseValue
                 if ( t == 'Q' )
                     t = peekBackref();
-                char[] name; silent( name = parseType() );
+                char[] name; silent( delegate void() { name = parseType(); } );
                 parseValue( name, t );
                 continue;
             case 'S':
@@ -2416,7 +2416,7 @@ else version (Darwin)
 else
     enum string cPrefix = "";
 
-version (unittest)
+@safe pure nothrow unittest
 {
     immutable string[2][] table =
     [
@@ -2544,9 +2544,6 @@ version (unittest)
         else
             alias staticIota = Seq!(staticIota!(x - 1), x - 1);
     }
-}
-@safe pure nothrow unittest
-{
     foreach ( i, name; table )
     {
         auto r = demangle( name[0] );

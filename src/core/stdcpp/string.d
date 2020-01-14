@@ -621,7 +621,7 @@ extern(D):
 //                        }
 
                         // TODO: atomic version!!
-                        if (--_M_refcount <= 0)
+                        if (_M_refcount-- <= 0)
                             _M_destroy(__a);
                     }
                 }

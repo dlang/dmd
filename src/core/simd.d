@@ -381,9 +381,9 @@ version (D_SIMD)
     * regular D functions.
     *
     * Parameters:
-    *      opcode  any of the XMM opcodes; it must be a compile time constant
-    *      op1     first operand
-    *      op2     second operand
+    *      opcode = any of the XMM opcodes; it must be a compile time constant
+    *      op1    = first operand
+    *      op2    = second operand
     * Returns:
     *      result of opcode
     */
@@ -448,10 +448,10 @@ version (D_SIMD)
     * MPSADBW, PBLENDW,
     * ROUNDPD, ROUNDPS, ROUNDSD, ROUNDSS
     * Parameters:
-    *      opcode  any of the above XMM opcodes; it must be a compile time constant
-    *      op1     first operand
-    *      op2     second operand
-    *      imm8    third operand; must be a compile time constant
+    *      opcode = any of the above XMM opcodes; it must be a compile time constant
+    *      op1    = first operand
+    *      op2    = second operand
+    *      imm8   = third operand; must be a compile time constant
     * Returns:
     *      result of opcode
     */
@@ -476,9 +476,9 @@ version (D_SIMD)
     * PSLLD, PSLLQ, PSLLW, PSRAD, PSRAW, PSRLD, PSRLQ, PSRLW,
     * PSRLDQ, PSLLDQ
     * Parameters:
-    *      opcode  any of the XMM opcodes; it must be a compile time constant
-    *      op1     first operand
-    *      imm8    second operand; must be a compile time constant
+    *      opcode = any of the XMM opcodes; it must be a compile time constant
+    *      op1    = first operand
+    *      imm8   = second operand; must be a compile time constant
     * Returns:
     *      result of opcode
     */

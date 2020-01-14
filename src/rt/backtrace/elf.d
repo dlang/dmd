@@ -309,9 +309,18 @@ version (X86)
 }
 else version (X86_64)
 {
-    alias Elf_Ehdr = Elf64_Ehdr;
-    alias Elf_Shdr = Elf64_Shdr;
-    enum ELFCLASS = ELFCLASS64;
+    version (D_X32)
+    {
+        alias Elf_Ehdr = Elf32_Ehdr;
+        alias Elf_Shdr = Elf32_Shdr;
+        enum ELFCLASS = ELFCLASS32;
+    }
+    else
+    {
+        alias Elf_Ehdr = Elf64_Ehdr;
+        alias Elf_Shdr = Elf64_Shdr;
+        enum ELFCLASS = ELFCLASS64;
+    }
 }
 else version (ARM)
 {

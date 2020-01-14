@@ -454,7 +454,7 @@ class ConservativeGC : GC
 
         p = runLocked!(reallocNoSync, mallocTime, numMallocs)(p, size, bits, localAllocSize, ti);
 
-        if (p && p !is oldp && !(bits & BlkAttr.NO_SCAN))
+        if (p && !(bits & BlkAttr.NO_SCAN))
         {
             memset(p + size, 0, localAllocSize - size);
         }
@@ -592,7 +592,6 @@ class ConservativeGC : GC
         {
             pool.clrBits(biti, ~BlkAttr.NONE);
             pool.setBits(biti, bits);
-
         }
         return p;
     }
@@ -980,7 +979,7 @@ class ConservativeGC : GC
     }
 
 
-    bool inFinalizer() nothrow
+    bool inFinalizer() nothrow @nogc
     {
         return _inFinalizer;
     }
@@ -1063,7 +1062,7 @@ class ConservativeGC : GC
     }
 
 
-    core.memory.GC.ProfileStats profileStats() nothrow
+    core.memory.GC.ProfileStats profileStats() nothrow @trusted
     {
         typeof(return) ret;
 
@@ -1251,6 +1250,7 @@ struct Gcx
         alias leakDetector = LeakDetector;
 
     SmallObjectPool*[B_NUMSMALL] recoverPool;
+    version (Posix) __gshared Gcx* instance;
 
     void initialize()
     {
@@ -1262,9 +1262,22 @@ struct Gcx
         usedSmallPages = usedLargePages = 0;
         mappedPages = 0;
         //printf("gcx = %p, self = %x\n", &this, self);
+        version (Posix)
+        {
+            import core.sys.posix.pthread : pthread_atfork;
+            instance = &this;
+            __gshared atforkHandlersInstalled = false;
+            if (!atforkHandlersInstalled)
+            {
+                pthread_atfork(
+                    &_d_gcx_atfork_prepare,
+                    &_d_gcx_atfork_parent,
+                    &_d_gcx_atfork_child);
+                atforkHandlersInstalled = true;
+            }
+        }
         debug(INVARIANT) initialized = true;
     }
-
 
     void Dtor()
     {
@@ -1310,6 +1323,8 @@ struct Gcx
                    pauseTime, maxPause, apitxt.ptr);
         }
 
+        version (Posix)
+            instance = null;
         version (COLLECT_PARALLEL)
             stopScanThreads();
 
@@ -2395,7 +2410,7 @@ struct Gcx
                         {
                             bool hasDead = false;
                             static foreach (w; 0 .. PageBits.length)
-                                hasDead = hasDead && (~freebitsdata[w] != baseOffsetBits[bin][w]);
+                                hasDead = hasDead || (~freebitsdata[w] != baseOffsetBits[bin][w]);
                             if (hasDead)
                             {
                                 // add to recover chain
@@ -2582,6 +2597,15 @@ struct Gcx
         //printf("\tpool address range = %p .. %p\n", minAddr, maxAddr);
 
         {
+            version (COLLECT_PARALLEL)
+            {
+                bool doParallel = config.parallel > 0;
+                if (doParallel && !scanThreadData)
+                    startScanThreads();
+            }
+            else
+                enum doParallel = false;
+
             // lock roots and ranges around suspending threads b/c they're not reentrant safe
             rangesLock.lock();
             rootsLock.lock();
@@ -2599,11 +2623,6 @@ struct Gcx
             stop = currTime;
             prepTime += (stop - start);
             start = stop;
-
-            version (COLLECT_PARALLEL)
-                bool doParallel = config.parallel > 0;
-            else
-                enum doParallel = false;
 
             if (doParallel)
             {
@@ -2716,6 +2735,7 @@ struct Gcx
     Event evDone;
 
     shared uint busyThreads;
+    shared uint stoppedThreads;
     bool stopGC;
 
     void markParallel(bool nostack) nothrow
@@ -2727,9 +2747,6 @@ struct Gcx
 
         void** pbot = toscanRoots._p;
         void** ptop = toscanRoots._p + toscanRoots._length;
-
-        if (!scanThreadData)
-            startScanThreads();
 
         debug(PARALLEL_PRINTF) printf("markParallel\n");
 
@@ -2821,8 +2838,25 @@ struct Gcx
         evStart.initialize(false, false);
         evDone.initialize(false, false);
 
+        version (Posix)
+        {
+            import core.sys.posix.signal;
+            // block all signals, scanBackground inherits this mask.
+            // see https://issues.dlang.org/show_bug.cgi?id=20256
+            sigset_t new_mask, old_mask;
+            sigfillset(&new_mask);
+            auto sigmask_rc = pthread_sigmask(SIG_BLOCK, &new_mask, &old_mask);
+            assert(sigmask_rc == 0, "failed to set up GC scan thread sigmask");
+        }
+
         for (int idx = 0; idx < numScanThreads; idx++)
             scanThreadData[idx].tid = createLowLevelThread(&scanBackground, 0x4000, &stopScanThreads);
+
+        version (Posix)
+        {
+            sigmask_rc = pthread_sigmask(SIG_SETMASK, &old_mask, null);
+            assert(sigmask_rc == 0, "failed to set up GC scan thread sigmask");
+        }
     }
 
     void stopScanThreads() nothrow
@@ -2831,8 +2865,21 @@ struct Gcx
             return;
 
         debug(PARALLEL_PRINTF) printf("stopScanThreads\n");
+        int startedThreads = 0;
+        for (int idx = 0; idx < numScanThreads; idx++)
+            if (scanThreadData[idx].tid != scanThreadData[idx].tid.init)
+                startedThreads++;
+
+        version (Windows)
+            alias allThreadsDead = thread_DLLProcessDetaching;
+        else
+            enum allThreadsDead = false;
         stopGC = true;
-        evStart.set();
+        while (atomicLoad(stoppedThreads) < startedThreads && !allThreadsDead)
+        {
+            evStart.set();
+            evDone.wait(dur!"msecs"(1));
+        }
 
         for (int idx = 0; idx < numScanThreads; idx++)
         {
@@ -2857,10 +2904,11 @@ struct Gcx
     {
         while (!stopGC)
         {
-            evStart.wait(dur!"msecs"(10));
+            evStart.wait();
             pullFromScanStack();
             evDone.set();
         }
+        stoppedThreads.atomicOp!"+="(1);
     }
 
     void pullFromScanStack() nothrow
@@ -2901,6 +2949,46 @@ struct Gcx
             busyThreads.atomicOp!"-="(1);
         }
         debug(PARALLEL_PRINTF) printf("scanBackground thread %d done\n", threadId);
+    }
+
+    version (Posix)
+    {
+        // A fork might happen while GC code is running in a different thread.
+        // Because that would leave the GC in an inconsistent state,
+        // make sure no GC code is running by acquiring the lock here,
+        // before a fork.
+
+        extern(C) static void _d_gcx_atfork_prepare()
+        {
+            if (instance)
+                ConservativeGC.lockNR();
+        }
+
+        extern(C) static void _d_gcx_atfork_parent()
+        {
+            if (instance)
+                ConservativeGC.gcLock.unlock();
+        }
+
+        extern(C) static void _d_gcx_atfork_child()
+        {
+            if (instance)
+            {
+                ConservativeGC.gcLock.unlock();
+
+                // make sure the threads and event handles are reinitialized in a fork
+                if (Gcx.instance.scanThreadData)
+                {
+                    cstdlib.free(Gcx.instance.scanThreadData);
+                    Gcx.instance.numScanThreads = 0;
+                    Gcx.instance.scanThreadData = null;
+                    Gcx.instance.busyThreads = 0;
+
+                    memset(&Gcx.instance.evStart, 0, Gcx.instance.evStart.sizeof);
+                    memset(&Gcx.instance.evDone, 0, Gcx.instance.evDone.sizeof);
+                }
+            }
+        }
     }
 }
 
@@ -4437,4 +4525,36 @@ unittest
 
     assert(stats2.maxPauseTime >= stats1.maxPauseTime);
     assert(stats2.maxCollectionTime >= stats1.maxCollectionTime);
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=20214
+unittest
+{
+    import core.memory;
+    import core.stdc.stdio;
+
+    // allocate from large pool
+    auto o = GC.malloc(10);
+    auto p = (cast(void**)GC.malloc(4096 * (void*).sizeof))[0 .. 4096];
+    auto q = (cast(void**)GC.malloc(4096 * (void*).sizeof))[0 .. 4096];
+    if (p.ptr + p.length is q.ptr)
+    {
+        q[] = o; // fill with pointers
+
+        // shrink, unused area cleared?
+        auto nq = (cast(void**)GC.realloc(q.ptr, 4000 * (void*).sizeof))[0 .. 4000];
+        assert(q.ptr is nq.ptr);
+        assert(q.ptr[4095] !is o);
+
+        GC.free(q.ptr);
+        // expected to extend in place
+        auto np = (cast(void**)GC.realloc(p.ptr, 4200 * (void*).sizeof))[0 .. 4200];
+        assert(p.ptr is np.ptr);
+        assert(q.ptr[4200] !is o);
+    }
+    else
+    {
+        // adjacent allocations likely but not guaranteed
+        printf("unexpected pointers %p and %p\n", p.ptr, q.ptr);
+    }
 }
