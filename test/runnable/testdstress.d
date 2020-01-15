@@ -530,7 +530,7 @@ void test24()
 /* ================================ */
 
 struct S25{
-        S25 opSub(int i) { S25 s; return s; }
+        S25 opBinary(string op)(int i) if (op == "-") { S25 s; return s; }
 }
 
 struct GeomObject{
@@ -544,7 +544,7 @@ void extractTriangles(GeomObject g)
     void foobar()
     {
         g.mesh - g.xlate;
-        //g.mesh.opSub(g.xlate);
+        //g.mesh.opBinary!("-")(g.xlate);
     }
 
     foobar();
