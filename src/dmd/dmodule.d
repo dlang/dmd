@@ -238,9 +238,7 @@ extern (C++) class Package : ScopeDsymbol
         if (this == o)
             return true;
         auto p = cast(Package)o;
-        if (p && isModule() == p.isModule() && ident.equals(p.ident))
-            return true;
-        return false;
+        return p && isModule() == p.isModule() && ident.equals(p.ident);
     }
 
     /****************************************************
