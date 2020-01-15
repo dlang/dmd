@@ -99,7 +99,7 @@ struct Pair
        return this;
    }
 
-   Pair opBinary(string op)(Pair other) if (op == "/")
+   Pair opDiv(Pair other)
    {
        Pair result;
 
