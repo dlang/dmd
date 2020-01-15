@@ -40,13 +40,13 @@ import dmd.mtype;
 import dmd.objc;
 import dmd.root.outbuffer;
 import dmd.root.rootobject;
+import dmd.root.string;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.statement_rewrite_walker;
 import dmd.statement;
 import dmd.statementsem;
 import dmd.tokens;
-import dmd.utils;
 import dmd.visitor;
 
 /// Inline Status

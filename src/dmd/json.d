@@ -35,7 +35,7 @@ import dmd.identifier;
 import dmd.mtype;
 import dmd.root.outbuffer;
 import dmd.root.rootobject;
-import dmd.utils;
+import dmd.root.string;
 import dmd.visitor;
 
 version(Windows) {

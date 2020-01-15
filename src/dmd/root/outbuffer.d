@@ -17,7 +17,7 @@ import core.stdc.stdio;
 import core.stdc.string;
 import dmd.root.rmem;
 import dmd.root.rootobject;
-import dmd.utils;
+import dmd.root.string;
 
 debug
 {

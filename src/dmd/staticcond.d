@@ -26,7 +26,6 @@ import dmd.mtype;
 import dmd.root.array;
 import dmd.root.outbuffer;
 import dmd.tokens;
-import dmd.utils;
 
 
 

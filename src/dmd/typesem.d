@@ -55,13 +55,13 @@ import dmd.root.ctfloat;
 import dmd.root.rmem;
 import dmd.root.outbuffer;
 import dmd.root.rootobject;
+import dmd.root.string;
 import dmd.root.stringtable;
 import dmd.semantic3;
 import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
-import dmd.utils;
 
 /**************************
  * This evaluates exp while setting length to be the number

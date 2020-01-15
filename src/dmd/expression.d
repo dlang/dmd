@@ -59,13 +59,13 @@ import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.root.rmem;
 import dmd.root.rootobject;
+import dmd.root.string;
 import dmd.safe;
 import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.utf;
-import dmd.utils;
 import dmd.visitor;
 
 enum LOGSEMANTIC = false;

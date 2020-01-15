@@ -28,9 +28,9 @@ import dmd.identifier;
 import dmd.mtype;
 import dmd.typesem;
 import dmd.tokens : TOK;
-import dmd.utils : toDString;
 import dmd.root.ctfloat;
 import dmd.root.outbuffer;
+import dmd.root.string : toDString;
 
 ////////////////////////////////////////////////////////////////////////////////
 /**

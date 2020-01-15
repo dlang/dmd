@@ -22,6 +22,7 @@ import dmd.utils;
 import dmd.root.outbuffer;
 import dmd.root.file;
 import dmd.root.filename;
+import dmd.root.string;
 
 static if (TARGET.Windows)
 {

@@ -19,8 +19,8 @@ import core.stdc.string;
 import dmd.globals;
 import dmd.root.outbuffer;
 import dmd.root.rmem;
+import dmd.root.string;
 import dmd.console;
-import dmd.utils;
 
 nothrow:
 

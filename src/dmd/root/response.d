@@ -16,7 +16,6 @@ module dmd.root.response;
 
 import dmd.root.file;
 import dmd.root.filename;
-import dmd.utils;
 
 ///
 alias responseExpand = responseExpandFrom!lookupInEnvironment;
@@ -91,6 +90,7 @@ version (unittest)
     char[] testEnvironment(const(char)* str) nothrow pure
         {
         import core.stdc.string: strlen;
+        import dmd.root.string : toDString;
         switch (str.toDString())
         {
         case "Foo":

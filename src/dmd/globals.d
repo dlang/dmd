@@ -584,7 +584,7 @@ nothrow:
 
     extern (D) size_t toHash() const @trusted pure nothrow
     {
-        import dmd.utils : toDString;
+        import dmd.root.string : toDString;
 
         auto hash = hashOf(linnum);
         hash = hashOf(charnum, hash);

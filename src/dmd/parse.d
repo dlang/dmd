@@ -23,8 +23,8 @@ import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.root.rmem;
 import dmd.root.rootobject;
+import dmd.root.string;
 import dmd.tokens;
-import dmd.utils;
 
 // How multiple declarations are parsed.
 // If 1, treat as C.

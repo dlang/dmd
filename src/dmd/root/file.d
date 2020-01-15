@@ -21,7 +21,7 @@ import core.sys.windows.winbase;
 import core.sys.windows.winnt;
 import dmd.root.filename;
 import dmd.root.rmem;
-import dmd.utils;
+import dmd.root.string;
 
 /// Owns a (rmem-managed) file buffer.
 struct FileBuffer
