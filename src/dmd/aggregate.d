@@ -100,7 +100,6 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     FuncDeclarations invs;          // Array of invariants
     FuncDeclaration inv;            // invariant
     NewDeclaration aggNew;          // allocator
-    DeleteDeclaration aggDelete;    // deallocator
 
     // CtorDeclaration or TemplateDeclaration
     Dsymbol ctor;

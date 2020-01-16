@@ -166,7 +166,6 @@ class SharedStaticDtorDeclaration;
 class InvariantDeclaration;
 class UnitTestDeclaration;
 class NewDeclaration;
-class DeleteDeclaration;
 
 class Initializer;
 class VoidInitializer;
@@ -346,7 +345,6 @@ public:
     virtual void visit(InvariantDeclaration *s) { visit((FuncDeclaration *)s); }
     virtual void visit(UnitTestDeclaration *s) { visit((FuncDeclaration *)s); }
     virtual void visit(NewDeclaration *s) { visit((FuncDeclaration *)s); }
-    virtual void visit(DeleteDeclaration *s) { visit((FuncDeclaration *)s); }
     virtual void visit(StaticCtorDeclaration *s) { visit((FuncDeclaration *)s); }
     virtual void visit(StaticDtorDeclaration *s) { visit((FuncDeclaration *)s); }
     virtual void visit(SharedStaticCtorDeclaration *s) { visit((StaticCtorDeclaration *)s); }

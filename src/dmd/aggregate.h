@@ -22,7 +22,6 @@ class FuncDeclaration;
 class CtorDeclaration;
 class DtorDeclaration;
 class NewDeclaration;
-class DeleteDeclaration;
 class InterfaceDeclaration;
 class TypeInfoClassDeclaration;
 class VarDeclaration;
@@ -101,7 +100,6 @@ public:
     FuncDeclarations invs;              // Array of invariants
     FuncDeclaration *inv;               // invariant
     NewDeclaration *aggNew;             // allocator
-    DeleteDeclaration *aggDelete;       // deallocator
 
     Dsymbol *ctor;                      // CtorDeclaration or TemplateDeclaration
 

@@ -68,7 +68,6 @@ class ArrayScopeSymbol;
 class SymbolDeclaration;
 class Expression;
 class ExpressionDsymbol;
-class DeleteDeclaration;
 class OverloadSet;
 struct AA;
 #ifdef IN_GCC
@@ -272,7 +271,6 @@ public:
     virtual ArrayScopeSymbol *isArrayScopeSymbol() { return NULL; }
     virtual Import *isImport() { return NULL; }
     virtual EnumDeclaration *isEnumDeclaration() { return NULL; }
-    virtual DeleteDeclaration *isDeleteDeclaration() { return NULL; }
     virtual SymbolDeclaration *isSymbolDeclaration() { return NULL; }
     virtual AttribDeclaration *isAttribDeclaration() { return NULL; }
     virtual AnonDeclaration *isAnonDeclaration() { return NULL; }

@@ -160,8 +160,6 @@ public:
         default:
             break;
         }
-        if (ad && ad.aggDelete)
-            return;
 
         if (f.setGC())
         {

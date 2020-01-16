@@ -144,9 +144,6 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
 
             if (ad.dtor)
                 checkFuncThrows(de, ad.dtor);
-
-            if (ad.aggDelete && tb.ty != Tarray)
-                checkFuncThrows(de, ad.aggDelete);
         }
 
         override void visit(AssignExp ae)

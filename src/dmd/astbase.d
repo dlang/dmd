@@ -911,22 +911,6 @@ struct ASTBase
         }
     }
 
-    extern (C++) final class DeleteDeclaration : FuncDeclaration
-    {
-        Parameters* parameters;
-
-        extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc, Parameters* fparams)
-        {
-            super(loc, endloc, Id.classDelete, STC.static_ | stc, null);
-            this.parameters = fparams;
-        }
-
-        override void accept(Visitor v)
-        {
-            v.visit(this);
-        }
-    }
-
     extern (C++) class StaticCtorDeclaration : FuncDeclaration
     {
         final extern (D) this(const ref Loc loc, Loc endloc, StorageClass stc)

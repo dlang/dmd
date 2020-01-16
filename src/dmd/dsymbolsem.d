@@ -4522,53 +4522,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         funcDeclarationSemantic(nd);
     }
 
-    override void visit(DeleteDeclaration deld)
-    {
-        //printf("DeleteDeclaration::semantic()\n");
-
-        // @@@DEPRECATED_2.091@@@
-        // Made an error in 2.087.
-        // Should be removed in 2.091
-        error(deld.loc, "class deallocators are obsolete, consider moving the deallocation strategy outside of the class");
-
-        if (deld.semanticRun >= PASS.semanticdone)
-            return;
-        if (deld._scope)
-        {
-            sc = deld._scope;
-            deld._scope = null;
-        }
-
-        deld.parent = sc.parent;
-        Dsymbol p = deld.parent.pastMixin();
-        if (!p.isAggregateDeclaration())
-        {
-            error(deld.loc, "deallocator can only be a member of aggregate, not %s `%s`", p.kind(), p.toChars());
-            deld.type = Type.terror;
-            deld.errors = true;
-            return;
-        }
-        if (!deld.type)
-            deld.type = new TypeFunction(ParameterList(deld.parameters), Type.tvoid, LINK.d, deld.storage_class);
-
-        deld.type = deld.type.typeSemantic(deld.loc, sc);
-
-        // Check that there is only one argument of type void*
-        TypeFunction tf = deld.type.toTypeFunction();
-        if (tf.parameterList.length != 1)
-        {
-            deld.error("one argument of type `void*` expected");
-        }
-        else
-        {
-            Parameter fparam = tf.parameterList[0];
-            if (!fparam.type.equals(Type.tvoid.pointerTo()))
-                deld.error("one argument of type `void*` expected, not `%s`", fparam.type.toChars());
-        }
-
-        funcDeclarationSemantic(deld);
-    }
-
     /* https://issues.dlang.org/show_bug.cgi?id=19731
      *
      * Some aggregate member functions might have had
@@ -4732,7 +4685,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         /* Look for special member functions.
          */
         sd.aggNew = cast(NewDeclaration)sd.search(Loc.initial, Id.classNew);
-        sd.aggDelete = cast(DeleteDeclaration)sd.search(Loc.initial, Id.classDelete);
 
         // Look for the constructor
         sd.ctor = sd.searchCtor();
@@ -5329,7 +5281,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
          */
         // Can be in base class
         cldec.aggNew = cast(NewDeclaration)cldec.search(Loc.initial, Id.classNew);
-        cldec.aggDelete = cast(DeleteDeclaration)cldec.search(Loc.initial, Id.classDelete);
 
         // Look for the constructor
         cldec.ctor = cldec.searchCtor();

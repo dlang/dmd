@@ -1217,7 +1217,6 @@ extern (C++) class Dsymbol : ASTNode
     inout(ArrayScopeSymbol)            isArrayScopeSymbol()            inout { return null; }
     inout(Import)                      isImport()                      inout { return null; }
     inout(EnumDeclaration)             isEnumDeclaration()             inout { return null; }
-    inout(DeleteDeclaration)           isDeleteDeclaration()           inout { return null; }
     inout(SymbolDeclaration)           isSymbolDeclaration()           inout { return null; }
     inout(AttribDeclaration)           isAttribDeclaration()           inout { return null; }
     inout(AnonDeclaration)             isAnonDeclaration()             inout { return null; }
