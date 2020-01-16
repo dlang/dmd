@@ -9010,10 +9010,8 @@ final class Parser(AST) : Lexer
             return e;
 
         // require parens for e.g. `t ? a = 1 : b = 2`
-        // Deprecated in 2018-05.
-        // @@@DEPRECATED_2.091@@@.
         if (e.op == TOK.question && !e.parens && precedence[token.value] == PREC.assign)
-            dmd.errors.deprecation(e.loc, "`%s` must be surrounded by parentheses when next to operator `%s`",
+            dmd.errors.error(e.loc, "`%s` must be surrounded by parentheses when next to operator `%s`",
                 e.toChars(), Token.toChars(token.value));
 
         const loc = token.loc;
