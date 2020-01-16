@@ -1240,12 +1240,12 @@ extern (C++) abstract class Expression : ASTNode
             return false;
         if (sc.intypeof == 1)
             return false;
-        if (sc.flags & SCOPE.ctfe)
+        if (sc.flags & (SCOPE.ctfe | SCOPE.debug_))
             return false;
 
         if (!f.isSafe() && !f.isTrusted())
         {
-            if (sc.flags & SCOPE.compile ? sc.func.isSafeBypassingInference() : sc.func.setUnsafe() && !(sc.flags & SCOPE.debug_))
+            if (sc.flags & SCOPE.compile ? sc.func.isSafeBypassingInference() : sc.func.setUnsafe())
             {
                 if (!loc.isValid()) // e.g. implicitly generated dtor
                     loc = sc.func.loc;
@@ -1275,12 +1275,12 @@ extern (C++) abstract class Expression : ASTNode
             return false;
         if (sc.intypeof == 1)
             return false;
-        if (sc.flags & SCOPE.ctfe)
+        if (sc.flags & (SCOPE.ctfe | SCOPE.debug_))
             return false;
 
         if (!f.isNogc())
         {
-            if (sc.flags & SCOPE.compile ? sc.func.isNogcBypassingInference() : sc.func.setGC() && !(sc.flags & SCOPE.debug_))
+            if (sc.flags & SCOPE.compile ? sc.func.isNogcBypassingInference() : sc.func.setGC())
             {
                 if (loc.linnum == 0) // e.g. implicitly generated dtor
                     loc = sc.func.loc;
