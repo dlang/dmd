@@ -1237,3 +1237,10 @@ version (Posix)
     static assert(FuncDeclaration_create.mangleof == `_Z22FuncDeclaration_createRK4Loc2S1_`);
     static assert(FuncDeclaration.create.mangleof == `_ZN15FuncDeclaration6createERK4Loc2S2_`);
 }
+
+enum Enum19542 = func19542!(int).mangleof;
+
+extern(C++, `bar`)
+{
+    void func19542(T)();
+}
