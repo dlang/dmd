@@ -35,7 +35,7 @@ nothrow:
 @nogc:
 
 ///
-void* memchr(return const void* s, int c, size_t n) pure;
+inout(void)* memchr(return inout void* s, int c, size_t n) pure;
 ///
 int   memcmp(scope const void* s1, scope const void* s2, size_t n) pure;
 ///
