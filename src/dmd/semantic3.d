@@ -50,6 +50,7 @@ import dmd.hdrgen;
 import dmd.mtype;
 import dmd.nogc;
 import dmd.nspace;
+import dmd.ob;
 import dmd.objc;
 import dmd.opover;
 import dmd.parse;
@@ -1328,6 +1329,12 @@ private extern(C++) final class Semantic3Visitor : Visitor
             sc.linkage = funcdecl.linkage; // https://issues.dlang.org/show_bug.cgi?id=8496
             funcdecl.type = f.typeSemantic(funcdecl.loc, sc);
             sc = sc.pop();
+        }
+
+        // Do live analysis
+        if (funcdecl.fbody && funcdecl.type.ty != Terror && funcdecl.type.isTypeFunction().islive)
+        {
+            oblive(funcdecl);
         }
 
         /* If this function had instantiated with gagging, error reproduction will be

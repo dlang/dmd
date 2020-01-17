@@ -217,6 +217,7 @@ public:
     bool isargptr;              // if parameter that _argptr points to
     bool ctorinit;              // it has been initialized in a ctor
     bool iscatchvar;            // this is the exception object variable in catch() clause
+    bool isowner;               // this is an Owner, despite it being `scope`
     bool onstack;               // it is a class that was allocated on the stack
     bool mynew;                 // it is a class new'd with custom operator new
     int canassign;              // it can be assigned to

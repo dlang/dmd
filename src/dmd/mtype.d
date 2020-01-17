@@ -4142,6 +4142,7 @@ extern (C++) final class TypeFunction : TypeNext
     bool isscope;               // true: 'this' is scope
     bool isreturninferred;      // true: 'this' is return from inference
     bool isscopeinferred;       // true: 'this' is scope from inference
+    bool islive;                // is @live
     LINK linkage;               // calling convention
     TRUST trust;                // level of trust
     PURE purity = PURE.impure;
@@ -4167,6 +4168,8 @@ extern (C++) final class TypeFunction : TypeNext
             this.isnogc = true;
         if (stc & STC.property)
             this.isproperty = true;
+        if (stc & STC.live)
+            this.islive = true;
 
         if (stc & STC.ref_)
             this.isref = true;
