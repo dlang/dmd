@@ -641,6 +641,15 @@ dmd -cov -unittest myprog.d
         Option("vcolumns",
             "print character (column) numbers in diagnostics"
         ),
+        Option("verror-style=[digitalmars|gnu]",
+            "set the style for file/line number annotations on compiler messages",
+            `Set the style for file/line number annotations on compiler messages,
+            where:
+            $(DL
+            $(DT digitalmars)$(DD 'file(line[,column]): message'. This is the default.)
+            $(DT gnu)$(DD 'file:line[:column]: message', conforming to the GNU standard used by gcc and clang.)
+            )`,
+        ),
         Option("verrors=<num>",
             "limit the number of error messages (0 means unlimited)"
         ),

@@ -41,6 +41,12 @@ enum DiagnosticReporting : ubyte
     off,          // disable diagnostic
 }
 
+enum MessageStyle : ubyte
+{
+    digitalmars,  // filename.d(line): message
+    gnu,          // filename.d:line: message, see https://www.gnu.org/prep/standards/html_node/Errors.html
+}
+
 enum CHECKENABLE : ubyte
 {
     _default,     // initial value
@@ -253,6 +259,7 @@ extern (C++) struct Param
 
     const(char)[] moduleDepsFile;        // filename for deps output
     OutBuffer* moduleDeps;              // contents to be written to deps file
+    MessageStyle messageStyle = MessageStyle.digitalmars; // style of file/line annotations on messages
 
     // Hidden debug switches
     bool debugb;
@@ -532,7 +539,9 @@ nothrow:
         this.filename = filename;
     }
 
-    extern (C++) const(char)* toChars(bool showColumns = global.params.showColumns) const pure nothrow
+    extern (C++) const(char)* toChars(
+        bool showColumns = global.params.showColumns,
+        ubyte messageStyle = global.params.messageStyle) const pure nothrow
     {
         OutBuffer buf;
         if (filename)
@@ -541,14 +550,28 @@ nothrow:
         }
         if (linnum)
         {
-            buf.writeByte('(');
-            buf.print(linnum);
-            if (showColumns && charnum)
+            final switch (messageStyle)
             {
-                buf.writeByte(',');
-                buf.print(charnum);
+                case MessageStyle.digitalmars:
+                    buf.writeByte('(');
+                    buf.print(linnum);
+                    if (showColumns && charnum)
+                    {
+                        buf.writeByte(',');
+                        buf.print(charnum);
+                    }
+                    buf.writeByte(')');
+                    break;
+                case MessageStyle.gnu: // https://www.gnu.org/prep/standards/html_node/Errors.html
+                    buf.writeByte(':');
+                    buf.print(linnum);
+                    if (showColumns && charnum)
+                    {
+                        buf.writeByte(':');
+                        buf.print(charnum);
+                    }
+                    break;
             }
-            buf.writeByte(')');
         }
         return buf.extractChars();
     }

@@ -1886,6 +1886,17 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 return true;
             }
         }
+        else if (startsWith(p + 1, "verror-style="))
+        {
+            const style = p + 1 + "verror-style=".length;
+
+            if (strcmp(style, "digitalmars") == 0)
+                params.messageStyle = MessageStyle.digitalmars;
+            else if (strcmp(style, "gnu") == 0)
+                params.messageStyle = MessageStyle.gnu;
+            else
+                error("unknown error style '%s', must be 'digitalmars' or 'gnu'", style);
+        }
         else if (startsWith(p + 1, "mcpu")) // https://dlang.org/dmd.html#switch-mcpu
         {
             enum len = "-mcpu=".length;
