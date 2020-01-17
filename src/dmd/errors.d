@@ -448,6 +448,8 @@ private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* head
     if (diagnosticHandler && diagnosticHandler(loc, headerColor, header, format, ap, p1, p2))
         return;
 
+    if (global.params.showGaggedErrors && global.gag)
+        fprintf(stderr, "(spec:%d) ", global.gag);
     Console* con = cast(Console*)global.console;
     const p = loc.toChars();
     if (con)
@@ -533,10 +535,7 @@ extern (C++) void verror(const ref Loc loc, const(char)* format, va_list ap, con
     else
     {
         if (global.params.showGaggedErrors)
-        {
-            fprintf(stderr, "(spec:%d) ", global.gag);
             verrorPrint(loc, Classification.gagged, header, format, ap, p1, p2);
-        }
         global.gaggedErrors++;
     }
 }
