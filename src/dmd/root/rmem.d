@@ -206,6 +206,10 @@ else version (LDC)
     import ldc.attributes;
     enum OVERRIDE_MEMALLOC = is(typeof(ldc.attributes.weak));
 }
+else version (GNU)
+{
+    enum OVERRIDE_MEMALLOC = true;
+}
 else
 {
     enum OVERRIDE_MEMALLOC = false;
