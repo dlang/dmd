@@ -6809,48 +6809,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (tb.ty == Tstruct)
             {
                 ad = (cast(TypeStruct)tb).sym;
-                auto f = ad.aggDelete;
-                auto fd = ad.dtor;
-                if (!f)
-                {
-                    semanticTypeInfo(sc, tb);
-                    break;
-                }
-
-                /* Construct:
-                 *      ea = copy e1 to a tmp to do side effects only once
-                 *      eb = call destructor
-                 *      ec = call deallocator
-                 */
-                Expression ea = null;
-                Expression eb = null;
-                Expression ec = null;
-                VarDeclaration v = null;
-                if (fd && f)
-                {
-                    v = copyToTemp(0, "__tmpea", exp.e1);
-                    v.dsymbolSemantic(sc);
-                    ea = new DeclarationExp(exp.loc, v);
-                    ea.type = v.type;
-                }
-                if (fd)
-                {
-                    Expression e = ea ? new VarExp(exp.loc, v) : exp.e1;
-                    e = new DotVarExp(Loc.initial, e, fd, false);
-                    eb = new CallExp(exp.loc, e);
-                    eb = eb.expressionSemantic(sc);
-                }
-                if (f)
-                {
-                    Type tpv = Type.tvoid.pointerTo();
-                    Expression e = ea ? new VarExp(exp.loc, v) : exp.e1.castTo(sc, tpv);
-                    e = new CallExp(exp.loc, new VarExp(exp.loc, f, false), e);
-                    ec = e.expressionSemantic(sc);
-                }
-                ea = Expression.combine(ea, eb, ec);
-                assert(ea);
-                result = ea;
-                return;
+                semanticTypeInfo(sc, tb);
             }
             break;
 
@@ -6878,12 +6837,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 err |= exp.checkPurity(sc, ad.dtor);
                 err |= exp.checkSafety(sc, ad.dtor);
                 err |= exp.checkNogc(sc, ad.dtor);
-            }
-            if (ad.aggDelete && tb.ty != Tarray)
-            {
-                err |= exp.checkPurity(sc, ad.aggDelete);
-                err |= exp.checkSafety(sc, ad.aggDelete);
-                err |= exp.checkNogc(sc, ad.aggDelete);
             }
             if (err)
                 return setError();

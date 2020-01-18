@@ -5618,12 +5618,6 @@ public:
 
             auto cre = cast(ClassReferenceExp)result;
             auto cd = cre.originalClass();
-            if (cd.aggDelete)
-            {
-                e.error("member deallocators not supported by CTFE");
-                result = CTFEExp.cantexp;
-                return;
-            }
 
             if (cd.dtor)
             {
@@ -5647,12 +5641,6 @@ public:
 
                 auto sd = (cast(TypeStruct)tb).sym;
                 auto sle = cast(StructLiteralExp)(cast(AddrExp)result).e1;
-                if (sd.aggDelete)
-                {
-                    e.error("member deallocators not supported by CTFE");
-                    result = CTFEExp.cantexp;
-                    return;
-                }
 
                 if (sd.dtor)
                 {
@@ -5675,12 +5663,6 @@ public:
                 }
 
                 auto sd = (cast(TypeStruct)tv).sym;
-                if (sd.aggDelete)
-                {
-                    e.error("member deallocators not supported by CTFE");
-                    result = CTFEExp.cantexp;
-                    return;
-                }
 
                 if (sd.dtor)
                 {

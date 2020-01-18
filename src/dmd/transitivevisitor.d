@@ -851,13 +851,6 @@ package mixin template ParseVisitMethods(AST)
         visitFuncBody(d);
     }
 
-    override void visit(AST.DeleteDeclaration d)
-    {
-        //printf("Visiting DeleteDeclaration\n");
-        visitParameters(d.parameters);
-        visitFuncBody(d);
-    }
-
 //   Initializers
 //============================================================
 

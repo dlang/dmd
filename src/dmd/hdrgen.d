@@ -1734,15 +1734,6 @@ public:
         bodyToBuffer(d);
     }
 
-    override void visit(DeleteDeclaration d)
-    {
-        if (stcToBuffer(buf, d.storage_class & ~STC.static_))
-            buf.writeByte(' ');
-        buf.writestring("delete");
-        parametersToBuffer(ParameterList(d.parameters, VarArg.none), buf, hgs);
-        bodyToBuffer(d);
-    }
-
     override void visit(Module m)
     {
         moduleToBuffer2(m, buf, hgs);

@@ -656,10 +656,6 @@ final class Parser(AST) : Lexer
                 s = parseNew(pAttrs);
                 break;
 
-            case TOK.delete_:
-                s = parseDelete(pAttrs);
-                break;
-
             case TOK.colon:
             case TOK.leftCurly:
                 error("declaration expected, not `%s`", token.toChars());
@@ -2788,27 +2784,6 @@ final class Parser(AST) : Lexer
         AST.VarArg varargs;
         AST.Parameters* parameters = parseParameters(&varargs);
         auto f = new AST.NewDeclaration(loc, Loc.initial, stc, parameters, varargs);
-        AST.Dsymbol s = parseContracts(f);
-        return s;
-    }
-
-    /*****************************************
-     * Parse a delete definition:
-     *      delete(parameters) { body }
-     * Current token is 'delete'.
-     */
-    private AST.Dsymbol parseDelete(PrefixAttributes!AST* pAttrs)
-    {
-        const loc = token.loc;
-        StorageClass stc = getStorageClass!AST(pAttrs);
-
-        nextToken();
-
-        AST.VarArg varargs;
-        AST.Parameters* parameters = parseParameters(&varargs);
-        if (varargs != AST.VarArg.none)
-            error("`...` not allowed in delete function parameter list");
-        auto f = new AST.DeleteDeclaration(loc, Loc.initial, stc, parameters);
         AST.Dsymbol s = parseContracts(f);
         return s;
     }
