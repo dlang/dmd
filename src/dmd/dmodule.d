@@ -38,6 +38,7 @@ import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.root.port;
 import dmd.root.rmem;
+import dmd.root.rootobject;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.utils;
@@ -229,6 +230,15 @@ extern (C++) class Package : ScopeDsymbol
     override const(char)* kind() const
     {
         return "package";
+    }
+
+    override bool equals(const RootObject o) const
+    {
+        // custom 'equals' for bug 17441. "package a" and "module a" are not equal
+        if (this == o)
+            return true;
+        auto p = cast(Package)o;
+        return p && isModule() == p.isModule() && ident.equals(p.ident);
     }
 
     /****************************************************

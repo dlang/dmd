@@ -37,6 +37,8 @@ public:
 
     const char *kind() const;
 
+    bool equals(const RootObject *o) const;
+
     Package *isPackage() { return this; }
 
     bool isAncestorPackageOf(const Package * const pkg) const;
