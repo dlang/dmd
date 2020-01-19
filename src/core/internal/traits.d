@@ -292,12 +292,41 @@ template hasElaborateCopyConstructor(S)
     }
     else static if (is(S == struct))
     {
-        enum hasElaborateCopyConstructor = __traits(hasMember, S, "__xpostblit");
+        enum hasElaborateCopyConstructor = __traits(hasCopyConstructor, S) || __traits(hasPostblit, S);
     }
     else
     {
         enum bool hasElaborateCopyConstructor = false;
     }
+}
+
+@safe unittest
+{
+    static struct S
+    {
+        int x;
+        this(return scope ref typeof(this) rhs) { }
+        this(int x, int y) {}
+    }
+
+    static assert(hasElaborateCopyConstructor!S);
+
+    static struct S2
+    {
+        int x;
+        this(int x, int y) {}
+    }
+
+    static assert(!hasElaborateCopyConstructor!S2);
+
+    static struct S3
+    {
+        int x;
+        this(return scope ref typeof(this) rhs, int x = 42) { }
+        this(int x, int y) {}
+    }
+
+    static assert(hasElaborateCopyConstructor!S3);
 }
 
 template hasElaborateAssign(S)
