@@ -82,12 +82,13 @@ an error.
 2. Owner
 
 The owner is the sole pointer to a memory object graph.
-An Owner pointer must not be `scope` and must be a pointer to mutable.
+An Owner pointer normally does not have a `scope` attribute.
+If a pointer with the `scope` attribute is initialized
+with an expression not derived from a tracked pointer, it is an Owner.
+
 If an Owner pointer is assigned to another Owner pointer, the
 former enters the Undefined state.
 
-If a pointer to mutable with the `scope` attribute is initialized
-with an expression not derived from a tracked pointer, it is an Owner.
 
 3. Borrowed
 
