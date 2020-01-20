@@ -994,7 +994,7 @@ void processEnvironment()
     {
         dflags ~= ["-cov", "-L-lgcov"];
     }
-    if (env.getNumberedBool("ENABLE_SANITIZERS"))
+    if (env.getDefault("ENABLE_SANITIZERS", "") != "")
     {
         dflags ~= ["-fsanitize="~env["ENABLE_SANITIZERS"]];
     }
@@ -1040,7 +1040,7 @@ void processEnvironmentCxx()
     if (env.getNumberedBool("ENABLE_COVERAGE"))
         cxxFlags ~= "--coverage";
 
-    if (env.getNumberedBool("ENABLE_SANITIZERS"))
+    if (env.getDefault("ENABLE_SANITIZERS", "") != "")
         cxxFlags ~= "-fsanitize=" ~ env["ENABLE_SANITIZERS"];
 
     // Enable a temporary workaround in globals.h and rmem.h concerning
