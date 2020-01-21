@@ -517,7 +517,7 @@ public:
       +/
     static @property nothrow @nogc Duration min() { return Duration(long.min); }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         assert(zero == dur!"seconds"(0));
         assert(Duration.max == Duration(long.max));
@@ -549,7 +549,7 @@ public:
         return 0;
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         import core.internal.traits : rvalueOf;
         foreach (T; AliasSeq!(Duration, const Duration, immutable Duration))
@@ -629,7 +629,7 @@ public:
             return Duration(mixin("_hnsecs " ~ op ~ " rhs.hnsecs"));
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         foreach (D; AliasSeq!(Duration, const Duration, immutable Duration))
         {
@@ -711,7 +711,7 @@ public:
         return Duration(mixin("lhs.hnsecs " ~ op ~ " _hnsecs"));
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         foreach (D; AliasSeq!(Duration, const Duration, immutable Duration))
         {
@@ -769,7 +769,7 @@ public:
         return this;
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         static void test1(string op, E)(Duration actual, in E rhs, Duration expected, size_t line = __LINE__)
         {
@@ -874,7 +874,7 @@ public:
         mixin("return Duration(_hnsecs " ~ op ~ " value);");
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         foreach (D; AliasSeq!(Duration, const Duration, immutable Duration))
         {
@@ -895,7 +895,7 @@ public:
         }
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         foreach (D; AliasSeq!(Duration, const Duration, immutable Duration))
         {
@@ -936,7 +936,7 @@ public:
         return this;
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         static void test(D)(D actual, long value, Duration expected, size_t line = __LINE__)
         {
@@ -968,7 +968,7 @@ public:
         static assert(!__traits(compiles, idur *= 12));
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         static void test(Duration actual, long value, Duration expected, size_t line = __LINE__)
         {
@@ -1016,7 +1016,7 @@ public:
         return _hnsecs / rhs._hnsecs;
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         assert(Duration(5) / Duration(7) == 0);
         assert(Duration(7) / Duration(5) == 1);
@@ -1055,7 +1055,7 @@ public:
         return opBinary!op(value);
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         foreach (D; AliasSeq!(Duration, const Duration, immutable Duration))
         {
@@ -1086,7 +1086,7 @@ public:
         return Duration(-_hnsecs);
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         foreach (D; AliasSeq!(Duration, const Duration, immutable Duration))
         {
@@ -1112,7 +1112,7 @@ public:
         return TickDuration.from!"hnsecs"(_hnsecs);
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         foreach (D; AliasSeq!(Duration, const Duration, immutable Duration))
         {
@@ -1151,7 +1151,7 @@ public:
         return _hnsecs != 0;
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         auto d = 10.minutes;
         assert(d);
@@ -1285,7 +1285,7 @@ public:
                 enum allAreMutableIntegralTypes = allAreMutableIntegralTypes!(Args[1 .. $]);
         }
 
-        unittest
+        version (CoreUnittest) unittest
         {
             foreach (T; AliasSeq!(long, int, short, byte, ulong, uint, ushort, ubyte))
                 static assert(allAreMutableIntegralTypes!T);
@@ -1352,7 +1352,7 @@ public:
         }
     }
 
-    pure nothrow unittest
+    version (CoreUnittest) pure nothrow unittest
     {
         foreach (D; AliasSeq!(const Duration, immutable Duration))
         {
@@ -1529,7 +1529,7 @@ public:
         assert(dur!"nsecs"(2007).total!"nsecs" == 2000);
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         foreach (D; AliasSeq!(const Duration, immutable Duration))
         {
@@ -1635,7 +1635,7 @@ public:
         assert(usecs(-5239492).toString() == "-5 secs, -239 ms, and -492 μs");
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         foreach (D; AliasSeq!(Duration, const Duration, immutable Duration))
         {
@@ -1693,7 +1693,7 @@ public:
         return _hnsecs < 0;
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         foreach (D; AliasSeq!(Duration, const Duration, immutable Duration))
         {
@@ -2079,7 +2079,7 @@ struct MonoTimeImpl(ClockType clockType)
         static assert(0, "Unsupported platform");
 
     // POD value, test mutable/const/immutable conversion
-    unittest
+    version (CoreUnittest) unittest
     {
         MonoTimeImpl m;
         const MonoTimeImpl cm = m;
@@ -2162,7 +2162,7 @@ struct MonoTimeImpl(ClockType clockType)
     MonoTimeImpl min() { return MonoTimeImpl(long.min); }
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         assert(MonoTimeImpl.zero == MonoTimeImpl(0));
         assert(MonoTimeImpl.max == MonoTimeImpl(long.max));
@@ -2190,14 +2190,14 @@ struct MonoTimeImpl(ClockType clockType)
         return _ticks > rhs._ticks ? 1 : 0;
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         import core.internal.traits : rvalueOf;
         const t = MonoTimeImpl.currTime;
         assert(t == rvalueOf(t));
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         import core.internal.traits : rvalueOf;
         const before = MonoTimeImpl.currTime;
@@ -2208,7 +2208,7 @@ struct MonoTimeImpl(ClockType clockType)
         assert(after >= rvalueOf(after));
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         const currTime = MonoTimeImpl.currTime;
         assert(MonoTimeImpl(long.max) > MonoTimeImpl(0));
@@ -2262,7 +2262,7 @@ assert(before + timeElapsed == after);
         return Duration(convClockFreq(diff , ticksPerSecond, hnsecsPer!"seconds"));
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         import core.internal.traits : rvalueOf;
         const t = MonoTimeImpl.currTime;
@@ -2270,7 +2270,7 @@ assert(before + timeElapsed == after);
         static assert(!__traits(compiles, t + t));
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         static void test(const scope MonoTimeImpl before, const scope MonoTimeImpl after, const scope Duration min)
         {
@@ -2301,14 +2301,14 @@ assert(before + timeElapsed == after);
         mixin("return MonoTimeImpl(_ticks " ~ op ~ " rhsConverted);");
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         const t = MonoTimeImpl.currTime;
         assert(t + Duration(0) == t);
         assert(t - Duration(0) == t);
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         const t = MonoTimeImpl.currTime;
 
@@ -2334,7 +2334,7 @@ assert(before + timeElapsed == after);
         return this;
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         auto mt = MonoTimeImpl.currTime;
         const initial = mt;
@@ -2375,7 +2375,7 @@ assert(before + timeElapsed == after);
         return _ticks;
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         const mt = MonoTimeImpl.currTime;
         assert(mt.ticks == mt._ticks);
@@ -2394,7 +2394,7 @@ assert(before + timeElapsed == after);
         return _ticksPerSecond[_clockIdx];
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         assert(MonoTimeImpl.ticksPerSecond == _ticksPerSecond[_clockIdx]);
     }
@@ -2410,7 +2410,7 @@ assert(before + timeElapsed == after);
                    signedToTempString(ticksPerSecond, 10) ~ " ticks per second)";
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         static min(T)(T a, T b) { return a < b ? a : b; }
 
@@ -2437,7 +2437,7 @@ private:
 
     // static immutable long _ticksPerSecond;
 
-    unittest
+    version (CoreUnittest) unittest
     {
         assert(_ticksPerSecond[_clockIdx]);
     }
@@ -2788,7 +2788,7 @@ struct TickDuration
     TickDuration min() { return TickDuration(long.min); }
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         assert(zero == TickDuration(0));
         assert(TickDuration.max == TickDuration(long.max));
@@ -2839,7 +2839,7 @@ struct TickDuration
             appOrigin = TickDuration.currSystemTick;
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         assert(ticksPerSec);
     }
@@ -2862,7 +2862,7 @@ struct TickDuration
         return this.to!("seconds", long)();
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         foreach (T; AliasSeq!(TickDuration, const TickDuration, immutable TickDuration))
         {
@@ -2933,7 +2933,7 @@ struct TickDuration
         return TickDuration(cast(long)(length * (ticksPerSec / cast(real)unitsPerSec)));
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         foreach (units; AliasSeq!("seconds", "msecs", "usecs", "nsecs"))
         {
@@ -2963,7 +2963,7 @@ struct TickDuration
         return Duration(hnsecs);
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         foreach (D; AliasSeq!(Duration, const Duration, immutable Duration))
         {
@@ -3013,7 +3013,7 @@ struct TickDuration
         return this;
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         foreach (T; AliasSeq!(TickDuration, const TickDuration, immutable TickDuration))
         {
@@ -3058,7 +3058,7 @@ struct TickDuration
         return TickDuration(mixin("length " ~ op ~ " rhs.length"));
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         foreach (T; AliasSeq!(TickDuration, const TickDuration, immutable TickDuration))
         {
@@ -3079,7 +3079,7 @@ struct TickDuration
         return TickDuration(-length);
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         foreach (T; AliasSeq!(TickDuration, const TickDuration, immutable TickDuration))
         {
@@ -3100,7 +3100,7 @@ struct TickDuration
         return length < rhs.length ? -1 : (length == rhs.length ? 0 : 1);
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         import core.internal.traits : rvalueOf;
         foreach (T; AliasSeq!(TickDuration, const TickDuration, immutable TickDuration))
@@ -3159,7 +3159,7 @@ struct TickDuration
         length = cast(long)(length * value);
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         immutable curr = TickDuration.currSystemTick;
         TickDuration t1 = curr;
@@ -3210,7 +3210,7 @@ struct TickDuration
         length = cast(long)(length / value);
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         immutable curr = TickDuration.currSystemTick;
         immutable t1 = curr;
@@ -3257,7 +3257,7 @@ struct TickDuration
         return TickDuration(cast(long)(length * value));
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         foreach (T; AliasSeq!(TickDuration, const TickDuration, immutable TickDuration))
         {
@@ -3296,7 +3296,7 @@ struct TickDuration
         return TickDuration(cast(long)(length / value));
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         foreach (T; AliasSeq!(TickDuration, const TickDuration, immutable TickDuration))
         {
@@ -3321,7 +3321,7 @@ struct TickDuration
         this.length = ticks;
     }
 
-    unittest
+    version (CoreUnittest) unittest
     {
         foreach (i; [-42, 0, 42])
             assert(TickDuration(i).length == i);
@@ -3403,7 +3403,7 @@ struct TickDuration
         }
     }
 
-    @safe nothrow unittest
+    version (CoreUnittest) @safe nothrow unittest
     {
         assert(TickDuration.currSystemTick.length > 0);
     }
