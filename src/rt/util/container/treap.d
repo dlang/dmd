@@ -52,7 +52,7 @@ nothrow:
         return opApplyHelper(root, dg);
     }
 
-    version (unittest)
+    version (CoreUnittest)
     bool opEquals(E[] elements)
     {
         size_t i;
@@ -72,7 +72,7 @@ nothrow:
         root = null;
     }
 
-    version (unittest)
+    version (CoreUnittest)
     bool valid()
     {
         return valid(root);
@@ -224,7 +224,7 @@ static:
         return opApplyHelper(node.right, dg);
     }
 
-    version (unittest)
+    version (CoreUnittest)
     bool valid(Node* node)
     {
         if (!node)

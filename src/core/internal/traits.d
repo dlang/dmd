@@ -157,6 +157,7 @@ template staticIota(int beg, int end)
 }
 
 private struct __InoutWorkaroundStruct {}
+@property T rvalueOf(T)(T val) { return val; }
 @property T rvalueOf(T)(inout __InoutWorkaroundStruct = __InoutWorkaroundStruct.init);
 @property ref T lvalueOf(T)(inout __InoutWorkaroundStruct = __InoutWorkaroundStruct.init);
 
@@ -466,7 +467,7 @@ template staticMap(alias F, T...)
 }
 
 // std.exception.assertCTFEable
-version (unittest) package(core)
+version (CoreUnittest) package(core)
 void assertCTFEable(alias dg)()
 {
     static assert({ cast(void) dg(); return true; }());

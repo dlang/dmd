@@ -5,7 +5,7 @@ TESTS := sentinel printf memstomp invariant logging precise precisegc forkgc for
 SRC_GC = ../../src/gc/impl/conservative/gc.d
 SRC = $(SRC_GC) ../../src/rt/lifetime.d
 # ../../src/object.d causes duplicate symbols
-UDFLAGS = $(DFLAGS) -unittest
+UDFLAGS = $(DFLAGS) -unittest -version=CoreUnittest
 
 .PHONY: all clean
 all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))

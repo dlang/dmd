@@ -752,7 +752,7 @@ T* emplace(T, Args...)(void[] chunk, auto ref Args args)
     }
 }
 
-version (unittest)
+version (CoreUnittest)
 {
     //Ambiguity
     private struct __std_conv_S
