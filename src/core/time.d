@@ -116,13 +116,6 @@ ulong mach_absolute_time();
 
 }
 
-//To verify that an lvalue isn't required.
-version (unittest) private T copy(T)(T t)
-{
-    return t;
-}
-
-
 /++
     What type of clock to use with $(LREF MonoTime) / $(LREF MonoTimeImpl) or
     $(D std.datetime.Clock.currTime). They default to $(D ClockType.normal),
@@ -558,6 +551,7 @@ public:
 
     unittest
     {
+        import core.internal.traits : rvalueOf;
         foreach (T; AliasSeq!(Duration, const Duration, immutable Duration))
         {
             foreach (U; AliasSeq!(Duration, const Duration, immutable Duration))
@@ -569,8 +563,8 @@ public:
                 else
                     U u = t;
                 assert(t == u);
-                assert(copy(t) == u);
-                assert(t == copy(u));
+                assert(rvalueOf(t) == u);
+                assert(t == rvalueOf(u));
             }
         }
 
@@ -587,23 +581,23 @@ public:
                 assert((cast(D)Duration(12)).opCmp(cast(E)Duration(10)) > 0);
                 assert((cast(D)Duration(12)).opCmp(cast(E)Duration(-12)) > 0);
 
-                assert(copy(cast(D)Duration(12)).opCmp(cast(E)Duration(12)) == 0);
-                assert(copy(cast(D)Duration(-12)).opCmp(cast(E)Duration(-12)) == 0);
+                assert(rvalueOf(cast(D)Duration(12)).opCmp(cast(E)Duration(12)) == 0);
+                assert(rvalueOf(cast(D)Duration(-12)).opCmp(cast(E)Duration(-12)) == 0);
 
-                assert(copy(cast(D)Duration(10)).opCmp(cast(E)Duration(12)) < 0);
-                assert(copy(cast(D)Duration(-12)).opCmp(cast(E)Duration(12)) < 0);
+                assert(rvalueOf(cast(D)Duration(10)).opCmp(cast(E)Duration(12)) < 0);
+                assert(rvalueOf(cast(D)Duration(-12)).opCmp(cast(E)Duration(12)) < 0);
 
-                assert(copy(cast(D)Duration(12)).opCmp(cast(E)Duration(10)) > 0);
-                assert(copy(cast(D)Duration(12)).opCmp(cast(E)Duration(-12)) > 0);
+                assert(rvalueOf(cast(D)Duration(12)).opCmp(cast(E)Duration(10)) > 0);
+                assert(rvalueOf(cast(D)Duration(12)).opCmp(cast(E)Duration(-12)) > 0);
 
-                assert((cast(D)Duration(12)).opCmp(copy(cast(E)Duration(12))) == 0);
-                assert((cast(D)Duration(-12)).opCmp(copy(cast(E)Duration(-12))) == 0);
+                assert((cast(D)Duration(12)).opCmp(rvalueOf(cast(E)Duration(12))) == 0);
+                assert((cast(D)Duration(-12)).opCmp(rvalueOf(cast(E)Duration(-12))) == 0);
 
-                assert((cast(D)Duration(10)).opCmp(copy(cast(E)Duration(12))) < 0);
-                assert((cast(D)Duration(-12)).opCmp(copy(cast(E)Duration(12))) < 0);
+                assert((cast(D)Duration(10)).opCmp(rvalueOf(cast(E)Duration(12))) < 0);
+                assert((cast(D)Duration(-12)).opCmp(rvalueOf(cast(E)Duration(12))) < 0);
 
-                assert((cast(D)Duration(12)).opCmp(copy(cast(E)Duration(10))) > 0);
-                assert((cast(D)Duration(12)).opCmp(copy(cast(E)Duration(-12))) > 0);
+                assert((cast(D)Duration(12)).opCmp(rvalueOf(cast(E)Duration(10))) > 0);
+                assert((cast(D)Duration(12)).opCmp(rvalueOf(cast(E)Duration(-12))) > 0);
             }
         }
     }
@@ -2198,18 +2192,20 @@ struct MonoTimeImpl(ClockType clockType)
 
     unittest
     {
+        import core.internal.traits : rvalueOf;
         const t = MonoTimeImpl.currTime;
-        assert(t == copy(t));
+        assert(t == rvalueOf(t));
     }
 
     unittest
     {
+        import core.internal.traits : rvalueOf;
         const before = MonoTimeImpl.currTime;
         auto after = MonoTimeImpl(before._ticks + 42);
         assert(before < after);
-        assert(copy(before) <= before);
-        assert(copy(after) > before);
-        assert(after >= copy(after));
+        assert(rvalueOf(before) <= before);
+        assert(rvalueOf(after) > before);
+        assert(after >= rvalueOf(after));
     }
 
     unittest
@@ -2268,8 +2264,9 @@ assert(before + timeElapsed == after);
 
     unittest
     {
+        import core.internal.traits : rvalueOf;
         const t = MonoTimeImpl.currTime;
-        assert(t - copy(t) == Duration.zero);
+        assert(t - rvalueOf(t) == Duration.zero);
         static assert(!__traits(compiles, t + t));
     }
 
@@ -3105,6 +3102,7 @@ struct TickDuration
 
     unittest
     {
+        import core.internal.traits : rvalueOf;
         foreach (T; AliasSeq!(TickDuration, const TickDuration, immutable TickDuration))
         {
             foreach (U; AliasSeq!(TickDuration, const TickDuration, immutable TickDuration))
@@ -3112,8 +3110,8 @@ struct TickDuration
                 T t = TickDuration.currSystemTick;
                 U u = t;
                 assert(t == u);
-                assert(copy(t) == u);
-                assert(t == copy(u));
+                assert(rvalueOf(t) == u);
+                assert(t == rvalueOf(u));
             }
         }
 
@@ -3128,15 +3126,15 @@ struct TickDuration
                 assert(u > t);
                 assert(u >= u);
 
-                assert(copy(t) < u);
-                assert(copy(t) <= t);
-                assert(copy(u) > t);
-                assert(copy(u) >= u);
+                assert(rvalueOf(t) < u);
+                assert(rvalueOf(t) <= t);
+                assert(rvalueOf(u) > t);
+                assert(rvalueOf(u) >= u);
 
-                assert(t < copy(u));
-                assert(t <= copy(t));
-                assert(u > copy(t));
-                assert(u >= copy(u));
+                assert(t < rvalueOf(u));
+                assert(t <= rvalueOf(t));
+                assert(u > rvalueOf(t));
+                assert(u >= rvalueOf(u));
             }
         }
     }

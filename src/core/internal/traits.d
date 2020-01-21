@@ -157,6 +157,7 @@ template staticIota(int beg, int end)
 }
 
 private struct __InoutWorkaroundStruct {}
+@property T rvalueOf(T)(T val) { return val; }
 @property T rvalueOf(T)(inout __InoutWorkaroundStruct = __InoutWorkaroundStruct.init);
 @property ref T lvalueOf(T)(inout __InoutWorkaroundStruct = __InoutWorkaroundStruct.init);
 
