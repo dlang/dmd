@@ -6275,6 +6275,17 @@ elem *callCAssert(IRState *irs, const ref Loc loc, Expression exp, Expression em
     Module m = cast(Module)irs.blx._module;
     const(char)* mname = m.srcfile.toChars();
 
+    elem* getFuncName()
+    {
+        const(char)* id = "";
+        FuncDeclaration fd = irs.getFunc();
+        if (fd)
+            id = fd.toPrettyChars();
+        const len = strlen(id);
+        Symbol *si = toStringSymbol(id, len, 1);
+        return el_ptr(si);
+    }
+
     //printf("filename = '%s'\n", loc.filename);
     //printf("module = '%s'\n", mname);
 
@@ -6323,14 +6334,7 @@ elem *callCAssert(IRState *irs, const ref Loc loc, Expression exp, Expression em
     if (irs.params.isOSX)
     {
         // __assert_rtn(func, file, line, msg);
-        const(char)* id = "";
-        FuncDeclaration fd = irs.getFunc();
-        if (fd)
-            id = fd.toPrettyChars();
-        const len = strlen(id);
-        Symbol *si = toStringSymbol(id, len, 1);
-        elem *efunc = el_ptr(si);
-
+        elem* efunc = getFuncName();
         auto eassert = el_var(getRtlsym(RTLSYM_C__ASSERT_RTN));
         ea = el_bin(OPcall, TYvoid, eassert, el_params(elmsg, eline, efilename, efunc, null));
     }
