@@ -6338,6 +6338,13 @@ elem *callCAssert(IRState *irs, const ref Loc loc, Expression exp, Expression em
         auto eassert = el_var(getRtlsym(RTLSYM_C__ASSERT_RTN));
         ea = el_bin(OPcall, TYvoid, eassert, el_params(elmsg, eline, efilename, efunc, null));
     }
+    else version (CRuntime_Musl)
+    {
+        // __assert_fail(exp, file, line, func);
+        elem* efunc = getFuncName();
+        auto eassert = el_var(getRtlsym(RTLSYM_C__ASSERT_FAIL));
+        ea = el_bin(OPcall, TYvoid, eassert, el_params(elmsg, efilename, eline, efunc, null));
+    }
     else
     {
         // [_]_assert(msg, file, line);
