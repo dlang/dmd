@@ -1188,7 +1188,15 @@ void addDefaultVersionIdentifiers(const ref Param params)
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("linux");
         VersionCondition.addPredefinedGlobalIdent("ELFv1");
-        VersionCondition.addPredefinedGlobalIdent("CRuntime_Glibc");
+        // Note: This should be done with a target triplet, to support cross compilation.
+        // However DMD currently does not support it, so this is a simple
+        // fix to make DMD compile on Musl-based systems such as Alpine.
+        // See https://github.com/dlang/dmd/pull/8020
+        // And https://wiki.osdev.org/Target_Triplet
+        version (CRuntime_Musl)
+            VersionCondition.addPredefinedGlobalIdent("CRuntime_Musl");
+        else
+            VersionCondition.addPredefinedGlobalIdent("CRuntime_Glibc");
         VersionCondition.addPredefinedGlobalIdent("CppRuntime_Gcc");
     }
     else if (params.isOSX)
