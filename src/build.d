@@ -464,23 +464,30 @@ alias checkwhitespace = makeRule!((builder, rule) => builder
 alias style = makeRule!((builder, rule)
 {
     const dscannerDir = env["G"].buildPath("dscanner");
-    alias dscanner = methodInit!(BuildRule, (dscannerBuilder, dscannerRule) => dscannerBuilder
-        .name("dscanner")
-        .description("Build custom DScanner")
-        .msg("(GIT,MAKE) DScanner")
-        .target(dscannerDir.buildPath("dsc".exeName))
-        .commandFunction(()
-        {
-            const git = env["GIT"];
+    alias dscannerRepo = methodInit!(BuildRule, (repoBuilder, repoRule) => repoBuilder
+        .msg("(GIT) DScanner")
+        .target(dscannerDir)
+        .condition(() => !exists(dscannerDir))
+        .command([
             // FIXME: Omitted --shallow-submodules because  it errors for libdparse
-            run([git, "clone", "--depth=1", "--recurse-submodules", "--branch=v0.7.2",
-                "https://github.com/dlang-community/Dscanner", dscannerDir]);
-
-            // debug build is faster but disable trace output
-            run([env.get("MAKE", "make"), "-C", dscannerDir, "debug",
-                "DEBUG_VERSIONS=-version=StdLoggerDisableWarning"]);
-        })
+            env["GIT"], "clone", "--depth=1", "--recurse-submodules", "--branch=v0.7.2",
+            "https://github.com/dlang-community/Dscanner", dscannerDir
+        ])
     );
+
+    alias dscanner = methodInit!(BuildRule, (dscannerBuilder, dscannerRule) {
+        dscannerBuilder
+            .name("dscanner")
+            .description("Build custom DScanner")
+            .deps([dscannerRepo])
+            .msg("(MAKE) DScanner")
+            .target(dscannerDir.buildPath("dsc".exeName))
+            .command([
+                // debug build is faster but disable trace output
+                env.get("MAKE", "make"), "-C", dscannerDir, "debug",
+                "DEBUG_VERSIONS=-version=StdLoggerDisableWarning"
+            ]);
+    });
 
     builder
         .name("style")
