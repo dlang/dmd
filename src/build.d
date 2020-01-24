@@ -1668,14 +1668,15 @@ Run a command which may not succeed and optionally log the invocation.
 
 Params:
     args = the command and command arguments to execute
+    workDir = the commands working directory
 
 Returns: a tuple (status, output)
 */
-auto tryRun(T)(T args)
+auto tryRun(T)(T args, string workDir = runDir)
 {
     args = args.filter!(a => !a.empty).array;
     log("Run: %s", args.join(" "));
-    return execute(args, null, Config.none, size_t.max, runDir);
+    return execute(args, null, Config.none, size_t.max, workDir);
 }
 
 /**
@@ -1684,12 +1685,13 @@ and throws an exception for a non-zero exit code.
 
 Params:
     args = the command and command arguments to execute
+    workDir = the commands working directory
 
 Returns: any output of the executed command
 */
-auto run(T)(T args)
+auto run(T)(T args, string workDir = runDir)
 {
-    auto res = tryRun(args);
+    auto res = tryRun(args, workDir);
     if (res.status)
     {
         abortBuild(res.output ? res.output : format("Last command failed with exit code %s", res.status));
