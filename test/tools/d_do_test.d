@@ -81,9 +81,9 @@ struct TestArgs
     string   postScript;
     string   requiredArgs;
     string   requiredArgsForLink;
-    // reason for disabling the test (if empty, the test is not disabled)
-    string[] disabledPlatforms;
-    bool     disabled;
+    string   disabledReason; // if empty, the test is not disabled
+
+    bool isDisabled() const { return disabledReason.length != 0; }
 }
 
 struct EnvData
@@ -207,6 +207,21 @@ void replaceResultsDir(ref string arguments, const ref EnvData envData)
     arguments = replace(arguments, "${RESULTS_DIR}", envData.results_dir);
 }
 
+string getDisabledReason(string[] disabledPlatforms, const ref EnvData envData)
+{
+    if (disabledPlatforms.length == 0)
+        return null;
+
+    const target = ((envData.os == "windows") ? "win" : envData.os) ~ envData.model;
+
+    // allow partial matching, e.g. `win` to disable both win32 and win64
+    const i = disabledPlatforms.countUntil!(p => target.canFind(p));
+    if (i != -1)
+        return "on " ~ disabledPlatforms[i];
+
+    return null;
+}
+
 bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_file, const ref EnvData envData)
 {
     string file = cast(string)std.file.read(input_file);
@@ -317,7 +332,27 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
 
     string disabledPlatformsStr;
     findTestParameter(envData, file, "DISABLED", disabledPlatformsStr);
-    testArgs.disabledPlatforms = split(disabledPlatformsStr);
+
+    version (DragonFlyBSD)
+    {
+        // DragonFlyBSD is x86_64 only, instead of adding DISABLED to a lot of tests, just exclude them from running
+        if (testArgs.requiredArgs.canFind("-m32"))
+            testArgs.disabledReason = "on DragonFlyBSD (no -m32)";
+    }
+
+    version (ARM)         enum supportsM64 = false;
+    else version (MIPS32) enum supportsM64 = false;
+    else version (PPC)    enum supportsM64 = false;
+    else                  enum supportsM64 = true;
+
+    static if (!supportsM64)
+    {
+        if (testArgs.requiredArgs.canFind("-m64"))
+            testArgs.disabledReason = "because target doesn't support -m64";
+    }
+
+    if (!testArgs.isDisabled)
+        testArgs.disabledReason = getDisabledReason(split(disabledPlatformsStr), envData);
 
     findOutputParameter(file, "TEST_OUTPUT", testArgs.compileOutput, envData.sep);
 
@@ -678,21 +713,15 @@ int tryMain(string[] args)
         }
     }
 
-    const osAbbrev = (envData.os == "windows") ? "win" : envData.os;
-    if (testArgs.disabledPlatforms.any!(a => osAbbrev.chain(envData.model).canFind(a)))
-        testArgs.disabled = true;
-
     //prepare cpp extra sources
-    if (!testArgs.disabled && testArgs.cppSources.length)
+    if (!testArgs.isDisabled && testArgs.cppSources.length)
     {
         switch (envData.compiler)
         {
             case "dmd":
+            case "ldc":
                 if(envData.os != "windows")
                    testArgs.requiredArgs ~= " -L-lstdc++ -L--no-demangle";
-                break;
-            case "ldc":
-                testArgs.requiredArgs ~= " -L-lstdc++ -L--no-demangle";
                 break;
             case "gdc":
                 testArgs.requiredArgs ~= "-Xlinker -lstdc++ -Xlinker --no-demangle";
@@ -705,7 +734,7 @@ int tryMain(string[] args)
             return 1;
     }
     //prepare objc extra sources
-    if (!testArgs.disabled && !collectExtraSources(input_dir, output_dir, testArgs.objcSources, testArgs.sources, envData, "clang", null))
+    if (!testArgs.isDisabled && !collectExtraSources(input_dir, output_dir, testArgs.objcSources, testArgs.sources, envData, "clang", null))
         return 1;
 
     writef(" ... %-30s %s%s(%s)",
@@ -714,16 +743,8 @@ int tryMain(string[] args)
             (!testArgs.requiredArgs.empty ? " " : ""),
             testArgs.permuteArgs);
 
-    version (DragonFlyBSD)
-    {
-        // DragonFlyBSD is x86_64 only, instead of adding DISABLED to a lot of tests, just exclude them from running
-        if (testArgs.requiredArgs.canFind("-m32"))
-            testArgs.disabled = true;
-    }
-
-    // allows partial matching, e.g. win for both win32 and win64
-    if (testArgs.disabled)
-        writef("!!! [DISABLED on %s]", envData.os);
+    if (testArgs.isDisabled)
+        writef("!!! [DISABLED %s]", testArgs.disabledReason);
 
     removeIfExists(output_file);
 
@@ -883,7 +904,7 @@ int tryMain(string[] args)
         catch(Exception e)
         {
             // it failed but it was disabled, exit as if it was successful
-            if (testArgs.disabled)
+            if (testArgs.isDisabled)
             {
                 writeln();
                 return Result.return0;
@@ -974,7 +995,7 @@ int tryMain(string[] args)
         writeln();
 
     // it was disabled but it passed! print an informational message
-    if (testArgs.disabled)
+    if (testArgs.isDisabled)
         writefln(" !!! %-30s DISABLED but PASSES!", input_file);
 
     return 0;
@@ -982,14 +1003,15 @@ int tryMain(string[] args)
 
 int runBashTest(string input_dir, string test_name)
 {
+    const scriptPath = dmdTestDir.buildPath("tools", "sh_do_test.sh");
     version(Windows)
     {
         auto process = spawnShell(format("bash %s %s %s",
-            buildPath(dmdTestDir, "tools", "sh_do_test.sh"), input_dir, test_name));
+            scriptPath, input_dir, test_name));
     }
     else
     {
-        auto process = spawnProcess([dmdTestDir.buildPath("tools", "sh_do_test.sh"), input_dir, test_name]);
+        auto process = spawnProcess([scriptPath, input_dir, test_name]);
     }
     return process.wait();
 }
