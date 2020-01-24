@@ -479,7 +479,18 @@ alias style = makeRule!((builder, rule)
         dscannerBuilder
             .name("dscanner")
             .description("Build custom DScanner")
-            .deps([dscannerRepo])
+            .deps([dscannerRepo]);
+
+        version (Windows) dscannerBuilder
+            .msg("(CMD) DScanner")
+            .target(dscannerDir.buildPath("bin", "dscanner".exeName))
+            .commandFunction(()
+            {
+                // The build script expects to be run inside dscannerDir
+                run([dscannerDir.buildPath("build.bat")], dscannerDir);
+            });
+
+        else dscannerBuilder
             .msg("(MAKE) DScanner")
             .target(dscannerDir.buildPath("dsc".exeName))
             .command([
