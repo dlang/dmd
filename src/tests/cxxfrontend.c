@@ -341,6 +341,27 @@ void test_parameters()
 
 /**********************************/
 
+void test_types()
+{
+    Parameters *args = new Parameters;
+    StorageClass stc = STCnothrow|STCproperty|STCreturn|STCreturninferred|STCtrusted;
+    TypeFunction *tfunction = TypeFunction::create(args, Type::tvoid, VARARGnone, LINKd, stc);
+
+    assert(tfunction->isnothrow);
+    assert(!tfunction->isnogc);
+    assert(tfunction->isproperty);
+    assert(!tfunction->isref);
+    assert(tfunction->isreturn);
+    assert(!tfunction->isscope);
+    assert(tfunction->isreturninferred);
+    assert(!tfunction->isscopeinferred);
+    assert(tfunction->linkage == LINKd);
+    assert(tfunction->trust == TRUSTtrusted);
+    assert(tfunction->purity == PUREimpure);
+}
+
+/**********************************/
+
 void test_location()
 {
     Loc loc1 = Loc("test.d", 24, 42);
@@ -435,6 +456,7 @@ int main(int argc, char **argv)
     test_target();
     test_emplace();
     test_parameters();
+    test_types();
     test_location();
     test_array();
     test_outbuffer();
