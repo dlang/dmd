@@ -208,7 +208,10 @@ else version (LDC)
 }
 else version (GNU)
 {
-    enum OVERRIDE_MEMALLOC = true;
+    version (IN_GCC)
+        enum OVERRIDE_MEMALLOC = false;
+    else
+        enum OVERRIDE_MEMALLOC = true;
 }
 else
 {
