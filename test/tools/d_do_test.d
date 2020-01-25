@@ -111,8 +111,10 @@ bool findTestParameter(const ref EnvData envData, string file, string token, ref
     auto tokenStart = std.string.indexOf(file, token);
     if (tokenStart == -1) return false;
 
-    auto lineEndR = std.string.indexOf(file[tokenStart .. $], "\r");
-    auto lineEndN = std.string.indexOf(file[tokenStart .. $], "\n");
+    file = file[tokenStart + token.length .. $];
+
+    auto lineEndR = std.string.indexOf(file, "\r");
+    auto lineEndN = std.string.indexOf(file, "\n");
     auto lineEnd  = lineEndR == -1 ?
         (lineEndN == -1 ? file.length : lineEndN) :
         (lineEndN == -1 ? lineEndR    : min(lineEndR, lineEndN));
@@ -120,28 +122,33 @@ bool findTestParameter(const ref EnvData envData, string file, string token, ref
     //writeln("found ", token, " in line: ", file.length, ", ", tokenStart, ", ", tokenStart+lineEnd);
     //writeln("found ", token, " in line: '", file[tokenStart .. tokenStart+lineEnd], "'");
 
-    result = strip(file[tokenStart+token.length .. tokenStart+lineEnd]);
+    result = file[0 .. lineEnd];
+    const commentStart = std.string.indexOf(result, "//");
+    if (commentStart != -1)
+        result = result[0 .. commentStart];
+    result = strip(result);
+
     // filter by OS specific setting (os1 os2 ...)
-    if (result.length > 0 && result[0] == '(')
+    if (result.startsWith("("))
     {
         auto close = std.string.indexOf(result, ")");
         if (close >= 0)
         {
             string[] oss = split(result[1 .. close], " ");
             if (oss.canFind(envData.os))
-                result = result[close + 1..$];
+                result = result[close + 1 .. $];
             else
                 result = null;
         }
     }
     // skips the :, if present
-    if (result.length > 0 && result[0] == ':')
+    if (result.startsWith(":"))
         result = strip(result[1 .. $]);
 
     //writeln("arg: '", result, "'");
 
     string result2;
-    if (findTestParameter(envData, file[tokenStart+lineEnd..$], token, result2, multiLineDelimiter))
+    if (findTestParameter(envData, file[lineEnd .. $], token, result2, multiLineDelimiter))
     {
         if (result2.length > 0)
         {
@@ -164,28 +171,27 @@ bool findOutputParameter(string file, string token, out string result, string se
 
     while (true)
     {
-        auto istart = std.string.indexOf(file, token);
+        const istart = std.string.indexOf(file, token);
         if (istart == -1)
             break;
         found = true;
 
-        // skips the :, if present
-        if (file[istart] == ':') ++istart;
+        file = file[istart + token.length .. $];
 
         enum embed_sep = "---";
-        auto n = std.string.indexOf(file[istart .. $], embed_sep);
+        auto n = std.string.indexOf(file, embed_sep);
 
         enforce(n != -1, "invalid "~token~" format");
-        istart += n + embed_sep.length;
-        while (file[istart] == '-') ++istart;
-        if (file[istart] == '\r') ++istart;
-        if (file[istart] == '\n') ++istart;
+        n += embed_sep.length;
+        while (file[n] == '-') ++n;
+        if (file[n] == '\r') ++n;
+        if (file[n] == '\n') ++n;
 
-        auto iend = std.string.indexOf(file[istart .. $], embed_sep);
+        file = file[n .. $];
+        auto iend = std.string.indexOf(file, embed_sep);
         enforce(iend != -1, "invalid TEST_OUTPUT format");
-        iend += istart;
 
-        result ~= file[istart .. iend];
+        result ~= file[0 .. iend];
 
         while (file[iend] == '-') ++iend;
         file = file[iend .. $];
