@@ -197,6 +197,7 @@ void ensureToolsExists(string[string] env, const TestTool[] tools ...)
             }
 
             writefln("Executing: %-(%s %)", command);
+            stdout.flush();
             if (spawnProcess(command, commandEnv).wait)
             {
                 stderr.writefln("failed to build '%s'", targetBin);
@@ -360,11 +361,11 @@ void args2Environment(ref string[] args)
 {
     bool tryToAdd(string arg)
     {
-        if (!arg.canFind("="))
+        const sep = arg.indexOf('=');
+        if (sep == -1)
             return false;
 
-        auto sp = arg.splitter("=");
-        environment[sp.front] = sp.dropOne.front;
+        environment[arg[0 .. sep]] = arg[sep+1 .. $];
         return true;
     }
     args = args.filter!(a => !tryToAdd(a)).array;
@@ -443,7 +444,8 @@ string[string] getEnvironment()
         if (isShared)
             env["DFLAGS"] = env["DFLAGS"] ~ " -defaultlib=libphobos2.so -L-rpath=%s/%s".format(phobosPath, generatedSuffix);
 
-        env["REQUIRED_ARGS"] = environment.get("REQUIRED_ARGS") ~ " " ~ env["PIC_FLAG"];
+        if (pic)
+            env["REQUIRED_ARGS"] = environment.get("REQUIRED_ARGS") ~ " " ~ env["PIC_FLAG"];
 
         version(OSX)
             version(X86_64)
