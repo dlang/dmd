@@ -25,6 +25,37 @@ shared bool force; // always run all tests (ignores timestamp checking)
 shared string hostDMD; // path to host DMD binary (used for building the tools)
 shared string unitTestRunnerCommand;
 
+// These long-running runnable tests will be put in front, in this order, to
+// make parallelization more effective.
+immutable slowRunnableTests = [
+    "test17338.d",
+    "testthread2.d",
+    "sctor.d",
+    "sctor2.d",
+    "sdtor.d",
+    "test9259.d",
+    "test11447c.d",
+    "template4.d",
+    "template9.d",
+    "ifti.d",
+    "test12.d",
+    "test22.d",
+    "test23.d",
+    "test28.d",
+    "test34.d",
+    "test42.d",
+    "test17072.d",
+    "testgc3.d",
+    "testformat.d",
+    "link2644.d",
+    "link13415.d",
+    "link14558.d",
+    "hospital.d",
+    "interpret.d",
+    "testsignals.d",
+    "xtest46.d",
+];
+
 enum toolsDir = testPath("tools");
 
 enum TestTools
@@ -103,10 +134,24 @@ Options:
     if (!args.length)
         args = ["all"];
 
+    // move any long-running tests to the front
+    static size_t sortKey(in ref Target target)
+    {
+        const name = target.normalizedTestName;
+        if (name.startsWith("runnable"))
+        {
+            const i = slowRunnableTests.countUntil(name[9 .. $]);
+            if (i != -1)
+                return i;
+        }
+        return size_t.max;
+    }
+
     auto targets = args
         .predefinedTargets // preprocess
         .array
-        .filterTargets(env);
+        .filterTargets(env)
+        .schwartzSort!(sortKey, "a < b", SwapStrategy.stable);
 
     if (targets.length > 0)
     {
@@ -214,7 +259,7 @@ void ensureToolsExists(string[string] env, const TestTool[] tools ...)
 }
 
 /// A single target to execute.
-immutable struct Target
+struct Target
 {
     /**
     The filename of the target.
@@ -236,13 +281,13 @@ immutable struct Target
             .buildPath(filename.baseName);
     }
 
-    string normalizedTestName()
+    string normalizedTestName() const
     {
         return Target.normalizedTestName(filename);
     }
 
     /// Returns: `true` if the test exists
-    bool exists()
+    bool exists() const
     {
         // This is assumed to be the `unit_tests` target which always exists
         if (filename.empty)
