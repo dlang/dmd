@@ -636,9 +636,6 @@ int tryMain(string[] args)
     string test_base_name = test_file.baseName();
     string test_name = test_base_name.stripExtension();
 
-    if (test_base_name.extension() == ".sh")
-        return runBashTest(input_dir, test_name);
-
     EnvData envData;
     envData.all_args      = environment.get("ARGS");
     envData.results_dir   = envGetRequired("RESULTS_DIR");
@@ -661,6 +658,23 @@ int tryMain(string[] args)
     string output_dir     = result_path ~ input_dir;
     string output_file    = result_path ~ input_file ~ ".out";
     string test_app_dmd_base = output_dir ~ envData.sep ~ test_name ~ "_";
+
+    if (test_base_name.extension() == ".sh")
+    {
+        string file = cast(string) std.file.read(input_file);
+        string disabledPlatforms;
+        if (findTestParameter(envData, file, "DISABLED", disabledPlatforms))
+        {
+            const reason = getDisabledReason(split(disabledPlatforms), envData);
+            if (reason.length != 0)
+            {
+                writefln(" ... %-30s [DISABLED %s]", input_file, reason);
+                return 0;
+            }
+        }
+
+        return runBashTest(input_dir, test_name);
+    }
 
     if (testArgs.mode == TestMode.DSHELL)
         return runDShellTest(input_dir, test_name, envData, output_dir, output_file);
