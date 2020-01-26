@@ -15,6 +15,7 @@ module dmd.root.array;
 import core.stdc.string;
 
 import dmd.root.rmem;
+import dmd.root.string;
 
 debug
 {
@@ -52,31 +53,50 @@ public:
     ///returns elements comma separated in []
     extern(D) const(char)[] toString() const
     {
-        static if (is(typeof(T.init.toString())))
+        static const(char)[] toStringImpl(alias toStringFunc, Array)(Array* a, bool quoted = false)
         {
-            const(char)[][] buf = (cast(const(char)[]*)mem.xcalloc((char[]).sizeof, length))[0 .. length];
+            const(char)[][] buf = (cast(const(char)[]*)mem.xcalloc((char[]).sizeof, a.length))[0 .. a.length];
             size_t len = 2; // [ and ]
-            foreach (u; 0 .. length)
+            const seplen = quoted ? 3 : 1; // ',' or null terminator and optionally '"'
+            if (a.length == 0)
+                len += 1; // null terminator
+            else
             {
-                buf[u] = data[u].toString();
-                len += buf[u].length + 1; //length + ',' or null terminator
+                foreach (u; 0 .. a.length)
+                {
+                    buf[u] = toStringFunc(a.data[u]);
+                    len += buf[u].length + seplen;
+                }
             }
             char[] str = (cast(char*)mem.xmalloc_noscan(len))[0..len];
 
             str[0] = '[';
             char* p = str.ptr + 1;
-            foreach (u; 0 .. length)
+            foreach (u; 0 .. a.length)
             {
                 if (u)
                     *p++ = ',';
+                if (quoted)
+                    *p++ = '"';
                 memcpy(p, buf[u].ptr, buf[u].length);
                 p += buf[u].length;
+                if (quoted)
+                    *p++ = '"';
             }
             *p++ = ']';
             *p = 0;
-            assert(p - str.ptr == str.length - 1); //null terminator
+            assert(p - str.ptr == str.length - 1); // null terminator
             mem.xfree(buf.ptr);
             return str[0 .. $-1];
+        }
+
+        static if (is(typeof(T.init.toString())))
+        {
+            return toStringImpl!(a => a.toString)(&this);
+        }
+        else static if (is(typeof(T.init.toDString())))
+        {
+            return toStringImpl!(a => a.toDString)(&this, true);
         }
         else
         {
@@ -282,6 +302,7 @@ public:
 
 unittest
 {
+    // Test for objects implementing toString()
     static struct S
     {
         int s = -1;
@@ -292,6 +313,17 @@ unittest
     }
     auto array = Array!S(4);
     assert(array.toString() == "[S,S,S,S]");
+    array.setDim(0);
+    assert(array.toString() == "[]");
+
+    // Test for toDString()
+    auto strarray = Array!(const(char)*)(2);
+    strarray[0] = "hello";
+    strarray[1] = "world";
+    auto str = strarray.toString();
+    assert(str == `["hello","world"]`);
+    // Test presence of null terminator.
+    assert(str.ptr[str.length] == '\0');
 }
 
 unittest
