@@ -589,6 +589,7 @@ public:
     bool isscope;       // true: 'this' is scope
     bool isreturninferred;      // true: 'this' is return from inference
     bool isscopeinferred; // true: 'this' is scope from inference
+    bool islive;        // is @live
     LINK linkage;  // calling convention
     TRUST trust;   // level of trust
     PURE purity;   // PURExxxx
