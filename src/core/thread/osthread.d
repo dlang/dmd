@@ -820,7 +820,8 @@ class Thread
                     if ( pthread_create( &m_addr, &attr, &thread_entryPoint, cast(void*) this ) != 0 )
                         onThreadError( "Error creating thread" );
                 }
-                pthread_attr_destroy( &attr ) && assert(false);
+                if ( pthread_attr_destroy( &attr ) != 0 )
+                    onThreadError( "Error destroying thread attributes" );
             }
             version (Darwin)
             {
