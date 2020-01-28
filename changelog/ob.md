@@ -22,6 +22,8 @@ to the code generated.
 If `@live` functions
 call non-`@live` functions, those called functions are expected to present
 an `@live` compatible interface, although it is not checked.
+if non-`@live` functions call `@live` functions, arguments passed are
+expected to follow `@live` conventions.
 
 The OB system will detect as errors:
 
@@ -67,7 +69,7 @@ as `this`, function parameters or local variables. Variables from other
 functions are not tracked, even `@live` ones, as the analysis of interactions
 with other functions depends
 entirely on that function signature, not its internals.
-Parameters that are const are not tracked.
+Parameters that are `const` are not tracked.
 
 
 ### Pointer States
@@ -100,34 +102,19 @@ until after the last use of the borrowed pointer.
 A Borrowed pointer must have the `scope` attribute and must
 be a pointer to mutable.
 
-4. Lent
+4. Readonly
 
-A Lent pointer loaned out its value to a Borrowed pointer. While
-in the Lent state the pointer cannot have its value read or written
-to.
-A Lent pointer must not be `scope` and must be a pointer to mutable.
-
-5. Readonly
-
-A Readonly pointer acquires its value from an Owner. Afterwards,
-the Owner enters the View state.
+A Readonly pointer acquires its value from an Owner.
+While the Readonly pointer is live, only Readonly pointers can
+be acquired from that Owner.
 A Readonly pointer must have the `scope` attribute and also
 must not be a pointer to mutable.
-
-6. View
-
-A View pointer can be used to read, but not write, from the memory object.
-More Readonly pointers can be copied from it. It returns to the Owner
-state after the last use of all Readonly pointers copied from it.
-A Lent pointer must not be `scope` and must be a pointer to mutable,
-even though it cannot mutate what it points to while it is in the
-View state.
 
 ### Lifetimes
 
 The lifetime of a Borrowed or Readonly pointer value starts when it is
-initialized or assigned a value, and ends when it is assigned a
-new value or the last read of the value.
+first read (not when it is initialized or assigned a value), and ends at
+the last read of that value.
 
 This is also known as *Non-Lexical Lifetimes*.
 
@@ -191,13 +178,15 @@ They are presumed to be managed by the garbage collector.
 ### Borrowing and Reading from Non-Owner Pointers
 
 Owners are tracked for leaks, not other pointers.
+Borrowers are considered Owners if they are initialized from other than
+a pointer.
 
 ```
 @live void uhoh()
 {
-    scope p = malloc();
-    scope const pc = malloc();
-} // dangling pointers p and pc are not detected on exit
+    scope p = malloc();  // p is considered an Owner
+    scope const pc = malloc(); // pc is not considered an Owner
+} // dangling pointer pc is not detected on exit
 
 ```
 It doesn't seem to make much sense to have such pointers as
@@ -298,3 +287,7 @@ vfree(p);  // type mismatch
 
 and perhaps disabling implicit conversions to `void*` in `@live` functions.
 
+### Variadic Function Arguments
+
+Arguments to variadict functions (like `printf`) are considered to be consumed.
+While safe, this doesn't seem to be very practical, and will likely need revisiting.
