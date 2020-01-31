@@ -1439,7 +1439,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     uint errors = global.errors;
                     dsym.inuse++;
-                    if (ei)
+                    // Bug 20549. Don't try this on modules or packages, syntaxCopy
+                    // could crash (inf. recursion) on a mod/pkg referencing itself
+                    if (ei && (ei.exp.op != TOK.scope_ ? true : !(cast(ScopeExp)ei.exp).sds.isPackage()))
                     {
                         Expression exp = ei.exp.syntaxCopy();
 
