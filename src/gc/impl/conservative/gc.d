@@ -1256,8 +1256,8 @@ struct Gcx
     {
         (cast(byte*)&this)[0 .. Gcx.sizeof] = 0;
         leakDetector.initialize(&this);
-        roots.initialize();
-        ranges.initialize();
+        roots.initialize(0x243F6A8885A308D3UL);
+        ranges.initialize(0x13198A2E03707344UL);
         smallCollectThreshold = largeCollectThreshold = 0.0f;
         usedSmallPages = usedLargePages = 0;
         mappedPages = 0;
