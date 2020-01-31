@@ -906,9 +906,8 @@ $(H2 $(LNAME2 template_parameter_def_values, Template Parameter Default Values))
 $(H2 $(LNAME2 implicit_template_properties, Eponymous Templates))
 
     $(P If a template contains members whose name is the same as the
-        template identifier and if the type or the parameters type of these
-        members include at least all the template parameters then these members
-        are assumed to be referred to in a template instantiation:)
+        template identifier then these members are assumed to be referred
+        to in a template instantiation:)
 
         ------
         template foo(T)
