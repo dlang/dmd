@@ -336,10 +336,8 @@ dmd -cov -unittest myprog.d
         Option("g",
             "add symbolic debug info",
             `$(WINDOWS
-                Add CodeView symbolic debug info with
-                $(LINK2 $(ROOT_DIR)spec/abi.html#codeview, D extensions)
-                for debuggers such as
-                $(LINK2 http://ddbg.mainia.de/releases.html, Ddbg)
+                Add CodeView symbolic debug info. See
+                $(LINK2 http://dlang.org/windbg.html, Debugging on Windows).
             )
             $(UNIX
                 Add symbolic debug info in Dwarf format
