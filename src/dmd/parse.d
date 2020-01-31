@@ -6601,10 +6601,13 @@ final class Parser(AST) : Lexer
                     if (token.value == TOK.colon)
                     {
                         nextToken();
-                        AST.ExpInitializer expInit = value.isExpInitializer();
-                        assert(expInit);
-                        e = expInit.exp;
-                        value = parseInitializer();
+                        if (auto ei = value.isExpInitializer())
+                        {
+                            e = ei.exp;
+                            value = parseInitializer();
+                        }
+                        else
+                            error("initializer expression expected following colon, not `%s`", token.toChars());
                     }
                     else
                         e = null;
