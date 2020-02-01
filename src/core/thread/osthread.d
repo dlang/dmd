@@ -3383,6 +3383,7 @@ package(core.thread) void* getStackBottom() nothrow @nogc
         pthread_attr_t attr;
         void* addr; size_t size;
 
+        pthread_attr_init(&attr);
         pthread_getattr_np(pthread_self(), &attr);
         pthread_attr_getstack(&attr, &addr, &size);
         pthread_attr_destroy(&attr);
@@ -3448,6 +3449,7 @@ package(core.thread) void* getStackBottom() nothrow @nogc
         pthread_attr_t attr;
         void* addr; size_t size;
 
+        pthread_attr_init(&attr);
         pthread_getattr_np(pthread_self(), &attr);
         pthread_attr_getstack(&attr, &addr, &size);
         pthread_attr_destroy(&attr);
@@ -3460,6 +3462,7 @@ package(core.thread) void* getStackBottom() nothrow @nogc
         pthread_attr_t attr;
         void* addr; size_t size;
 
+        pthread_attr_init(&attr);
         pthread_getattr_np(pthread_self(), &attr);
         pthread_attr_getstack(&attr, &addr, &size);
         pthread_attr_destroy(&attr);
@@ -3472,6 +3475,7 @@ package(core.thread) void* getStackBottom() nothrow @nogc
         pthread_attr_t attr;
         void* addr; size_t size;
 
+        pthread_attr_init(&attr);
         pthread_getattr_np(pthread_self(), &attr);
         pthread_attr_getstack(&attr, &addr, &size);
         pthread_attr_destroy(&attr);
