@@ -5178,6 +5178,20 @@ extern (C++) final class TypeMixin : Type
         return new TypeMixin(loc, Expression.arraySyntaxCopy(exps));
     }
 
+   override Dsymbol toDsymbol(Scope* sc)
+    {
+        Type t;
+        Expression e;
+        Dsymbol s;
+        resolve(this, loc, sc, &e, &t, &s);
+        if (t)
+            s = t.toDsymbol(sc);
+        else if (e)
+            s = getDsymbol(e);
+
+        return s;
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);

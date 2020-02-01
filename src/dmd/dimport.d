@@ -160,15 +160,22 @@ extern (C++) final class Import : Dsymbol
                 {
                     if (p.isPkgMod == PKG.unknown)
                     {
+                        uint preverrors = global.errors;
                         mod = Module.load(loc, packages, id);
                         if (!mod)
                             p.isPkgMod = PKG.package_;
                         else
                         {
                             // mod is a package.d, or a normal module which conflicts with the package name.
-                            assert(mod.isPackageFile == (p.isPkgMod == PKG.module_));
                             if (mod.isPackageFile)
                                 mod.tag = p.tag; // reuse the same package tag
+                            else
+                            {
+                                // show error if Module.load does not
+                                if (preverrors == global.errors)
+                                    .error(loc, "%s `%s` from file %s conflicts with %s `%s`", mod.kind(), mod.toPrettyChars(), mod.srcfile.toChars, p.kind(), p.toPrettyChars());
+                                return true;
+                            }
                         }
                     }
                     else

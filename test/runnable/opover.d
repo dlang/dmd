@@ -1097,8 +1097,24 @@ void test1547()
 {
     fun();
 }
-/**************************************/
 
+/**************************************/
+// https://issues.dlang.org/show_bug.cgi?id=20475
+struct S20475
+{
+    string[2] x;
+}
+
+void test20475()
+{
+    auto s = S20475(["abc", "bcd"]);
+    auto t = S20475(["abc", ""]);
+    string u = "abcd";
+    t.x[1] = u[1..$];
+    assert(s == t);
+}
+
+/**************************************/
 int main()
 {
     test1();
@@ -1124,6 +1140,7 @@ int main()
     test4993();
     test8133();
     test8522();
+    test20475();
 
     printf("Success\n");
     return 0;
