@@ -4010,6 +4010,8 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
             return ThreadID.init;
         if ((rc = pthread_create(&tid, &attr, &thread_lowlevelEntry, context)) != 0)
             return ThreadID.init;
+        if ((rc = pthread_attr_destroy(&attr)) != 0)
+            return ThreadID.init;
 
         ll_pThreads[ll_nThreads - 1].tid = tid;
     }
