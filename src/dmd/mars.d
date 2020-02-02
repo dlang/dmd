@@ -863,6 +863,8 @@ version (NoMain) {} else
         }
     }
 
+    extern extern(C) __gshared string[] rt_options;
+
     /**
      * DMD's entry point, C main.
      *
@@ -887,7 +889,11 @@ version (NoMain) {} else
                 }
             }
             if (!lowmem)
+            {
+                __gshared string[] disable_options = [ "gcopt=disable:1" ];
+                rt_options = disable_options;
                 mem.disableGC();
+            }
         }
 
         // initialize druntime and call _Dmain() below
@@ -902,20 +908,10 @@ version (NoMain) {} else
      */
     extern (C) int _Dmain(char[][])
     {
-        import core.memory;
         import core.runtime;
-
-        // Older host druntime versions need druntime to be initialized before
-        // disabling the GC, so we cannot disable it in C main above.
-        static if (isGCAvailable)
-        {
-            if (!mem.isGCEnabled)
-                GC.disable();
-        }
-        else
-        {
+        import core.memory;
+        static if (!isGCAvailable)
             GC.disable();
-        }
 
         version(D_Coverage)
         {
