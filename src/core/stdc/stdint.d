@@ -140,6 +140,15 @@ else version (Posix)
         alias int_fast32_t  = int;  ///
         alias uint_fast32_t = uint; ///
     }
+    else version (CRuntime_Musl)
+    {
+        alias int_fast8_t   = byte;  ///
+        alias uint_fast8_t  = ubyte; ///
+        alias int_fast16_t  = int;   ///
+        alias uint_fast16_t = uint;  ///
+        alias int_fast32_t  = int;   ///
+        alias uint_fast32_t = uint;  ///
+    }
     else
     {
         alias int_fast8_t   = byte;      ///
