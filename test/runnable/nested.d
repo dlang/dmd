@@ -2574,7 +2574,7 @@ class App15422(T)
     }
 
     auto test2(T val)
-    //in {} body
+    //in {} do
     {
         int closVar;
         struct Foo

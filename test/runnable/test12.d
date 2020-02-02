@@ -155,7 +155,7 @@ int[] fun(int i)
     {
         assert(result[0] == 2);
     }
-    body
+    do
     {
         char result;
         int[] res = new int[10];
