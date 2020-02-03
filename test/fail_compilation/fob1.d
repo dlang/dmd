@@ -1,6 +1,7 @@
 /* TEST_OUTPUT:
 ---
 fail_compilation/fob1.d(104): Error: variable `fob1.foo1.p` has undefined state and cannot be read
+fail_compilation/fob1.d(104): Error: variable `fob1.foo1.p` is returned but is Undefined
 ---
 */
 
@@ -30,6 +31,7 @@ fail_compilation/fob1.d(203): Error: variable `fob1.foo2.p` is left dangling at 
 /* TEST_OUTPUT:
 ---
 fail_compilation/fob1.d(304): Error: variable `fob1.foo3.p` has undefined state and cannot be read
+fail_compilation/fob1.d(304): Error: variable `fob1.foo3.p` is returned but is Undefined
 fail_compilation/fob1.d(303): Error: variable `fob1.foo3.q` is left dangling at return
 ---
 */
@@ -44,7 +46,7 @@ fail_compilation/fob1.d(303): Error: variable `fob1.foo3.q` is left dangling at 
 
 /* TEST_OUTPUT:
 ---
-fail_compilation/fob1.d(405): Error: variable `fob1.foo4.bq` no longer has a valid borrow from `p`
+fail_compilation/fob1.d(405): Error: variable `fob1.foo4.bq` has undefined state and cannot be read
 ---
 */
 
