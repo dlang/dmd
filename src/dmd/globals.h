@@ -27,6 +27,13 @@ enum
     DIAGNOSTICoff     // disable diagnostic
 };
 
+typedef unsigned char MessageStyle;
+enum
+{
+    MESSAGESTYLEdigitalmars, // file(line,column): message
+    MESSAGESTYLEgnu,         // file:line:column: message
+};
+
 // The state of array bounds checking
 typedef unsigned char CHECKENABLE;
 enum
@@ -218,6 +225,7 @@ struct Param
 
     DString moduleDepsFile;     // filename for deps output
     OutBuffer *moduleDeps;      // contents to be written to deps file
+    MessageStyle messageStyle;  // style of file/line annotations on messages
 
     // Hidden debug switches
     bool debugb;
@@ -361,7 +369,9 @@ struct Loc
         this->filename = filename;
     }
 
-    const char *toChars(bool showColumns = global.params.showColumns) const;
+    const char *toChars(
+        bool showColumns = global.params.showColumns,
+        MessageStyle messageStyle = global.params.messageStyle) const;
     bool equals(const Loc& loc) const;
 };
 
