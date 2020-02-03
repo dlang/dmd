@@ -886,7 +886,7 @@ class A45
 
 class B45 : A45
 {
-  override const int f()
+  override int f() const
   {
     printf("B\n");
     return 2;
@@ -1142,7 +1142,7 @@ void test58()
 /***************************************************/
 
 class A59 {
-    const foo(int i)  { return i; }
+    auto foo(int i) const { return i; }
 }
 
 /***************************************************/
@@ -2040,7 +2040,7 @@ void test96()
 
 struct A97
 {
-    const bool opEquals(ref const A97) { return true; }
+    bool opEquals(ref const A97) const { return true; }
     ref A97 opUnary(string op)() if (op == "++")
     {
         return this;
@@ -3223,7 +3223,7 @@ struct S142
 {
     int v;
     this(int n) pure { v = n; }
-    const bool opCast(T:bool)() { return true; }
+    bool opCast(T:bool)() const { return true; }
 }
 
 void test142()
@@ -3783,7 +3783,7 @@ auto ref boo(int i) pure nothrow { return i; }
 
 class A152 {
     auto hoo(int i) pure  { return i; }
-    const boo(int i) nothrow { return i; }
+    auto boo(int i) nothrow { return i; }
     auto coo(int i) const { return i; }
     auto doo(int i) immutable { return i; }
     auto eoo(int i) shared { return i; }
@@ -3968,23 +3968,6 @@ void test5554()
     {
         override MC foo() { return null; }
     }
-}
-
-/***************************************************/
-// https://issues.dlang.org/show_bug.cgi?id=5962
-
-struct S156
-{
-          auto g()(){ return 1; }
-    const auto g()(){ return 2; }
-}
-
-void test156()
-{
-    auto ms = S156();
-    assert(ms.g() == 1);
-    auto cs = const(S156)();
-    assert(cs.g() == 2);
 }
 
 /***************************************************/
@@ -4304,7 +4287,7 @@ void test6335()
 
 struct S6295(int N) {
     int[N] x;
-    const nothrow pure @safe f() { return x.length; }
+    nothrow pure @safe f() const { return x.length; }
 }
 
 void test6295() {
@@ -5077,7 +5060,7 @@ struct TickDuration
 {
     template to(T) if (__traits(isIntegral,T))
     {
-        const T to()
+        T to() const
         {
             return 1;
         }
@@ -5085,13 +5068,13 @@ struct TickDuration
 
     template to(T) if (__traits(isFloating,T))
     {
-        const T to()
+        T to() const
         {
             return 0;
         }
     }
 
-    const long seconds()
+    long seconds() const
     {
         return to!(long)();
     }
@@ -5757,7 +5740,7 @@ void test7321()
 class A158
 {
     pure void foo1() { }
-    const void foo2() { }
+    void foo2() const { }
     nothrow void foo3() { }
     @safe void foo4() { }
 }
@@ -8161,7 +8144,6 @@ int main()
     test153();
     test154();
     test155();
-    test156();
     test658();
     test4258();
     test4539();

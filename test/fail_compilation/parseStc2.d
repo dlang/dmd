@@ -5,14 +5,14 @@ fail_compilation/parseStc2.d(11): Error: conflicting attribute `const`
 fail_compilation/parseStc2.d(12): Error: conflicting attribute `@system`
 fail_compilation/parseStc2.d(13): Error: conflicting attribute `@safe`
 fail_compilation/parseStc2.d(14): Error: conflicting attribute `@trusted`
-fail_compilation/parseStc2.d(15): Error: conflicting attribute `__gshared`
+fail_compilation/parseStc2.d(15): Error: conflicting attribute `shared`
 ---
 */
-immutable const void f4() {}
+auto void f4() immutable const {}
 @safe @system void f4() {}
 @trusted @safe void f4() {}
 @system @trusted void f4() {}
-shared __gshared f4() {}
+__gshared f4() shared {}
 
 /*
 TEST_OUTPUT:

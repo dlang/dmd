@@ -1,0 +1,27 @@
+Ambiguous modifiers on the left side of a function declaration are deprecated
+
+The keywords `immutable`, `const`, `shared`, `inout` could go on the left side
+of a declaration, as follows:
+---
+class Foo
+{
+    const Object makeObject();
+    shared char[] synchronizeMe();
+    // Etc...
+}
+---
+However, this could easily lead to bugs when the user
+intended the qualifier to apply to the return type, e.g.:
+---
+class Oops
+{
+    static immutable Header = [ 0x2A ];
+
+    immutable(ubyte[]) correct() { return Header; }
+    immutable ubyte[] incorrect() { return Header; }
+
+    // This is actually:
+    ubyte[] actually() immutable { return Header; }
+}
+---
+Using those keywords on the left side is now deprecated.

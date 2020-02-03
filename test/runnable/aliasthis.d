@@ -891,7 +891,7 @@ void test6366()
         {
             str = s;
         }
-        @property const bool empty()
+        @property bool empty() const
         {
             return i == str.length;
         }

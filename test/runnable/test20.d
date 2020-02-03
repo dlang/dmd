@@ -203,10 +203,10 @@ void test9()
 /*****************************************/
 
 struct Foo10 {
-  const bool opEquals(const ref Foo10 x) {
+  bool opEquals(const ref Foo10 x) const {
     return this.normalize is x.normalize;
   }
-  const Foo10 normalize() {
+  Foo10 normalize() const {
     Foo10 res;
     return res;
   }
@@ -378,12 +378,12 @@ struct Iterator18(T)
 {
    T* m_ptr;
 
-   const bool opEquals(const ref Iterator18 iter)
+   bool opEquals(const ref Iterator18 iter) const
    {
      return (m_ptr == iter.m_ptr);
    }
 
-   const int opCmp(const ref Iterator18 iter)
+   int opCmp(const ref Iterator18 iter) const
    {
      return cast(int)(m_ptr - iter.m_ptr);
    }
@@ -398,12 +398,12 @@ void test18()
 
 struct S29(T)
 {
-   const bool opEquals(const ref S29!(T) len2)
+   bool opEquals(const ref S29!(T) len2) const
    {
      return 0;
    }
 
-   const int opCmp(const ref S29!(T) len2)
+   int opCmp(const ref S29!(T) len2) const
    {
      return 0;
    }

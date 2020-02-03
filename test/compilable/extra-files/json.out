@@ -117,7 +117,7 @@
                                 "kind": "function",
                                 "line": 23,
                                 "name": "t",
-                                "type": "const T[0]()"
+                                "type": "T[0]() const"
                             }
                         ],
                         "name": "Baz"

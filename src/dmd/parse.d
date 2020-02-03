@@ -4139,8 +4139,29 @@ final class Parser(AST) : Lexer
                     AST.Parameters* parameters = parseParameters(&varargs);
 
                     /* Parse const/immutable/shared/inout/nothrow/pure/return postfix
+                       Check if `const`/`immutable`/`inout`/`shared` prefix were used
+                       merge prefix storage classes
+
+                       @@@DEPRECATED@@@
+                       https://issues.dlang.org/show_bug.cgi?id=12931
+                       Deprecated in 2.091 - Can be removed from 2.101
                      */
-                    // merge prefix storage classes
+                    if (storageClass & STC.const_)
+                        deprecation(
+                            "Using `const` on the left hand side of a declaration is deprecated. " ~
+                            "Move `const` to the right hand side of the function.");
+                    if (storageClass & STC.immutable_)
+                        deprecation(
+                            "Using `immutable` on the left hand side of a declaration is deprecated. " ~
+                            "Move `immutable` to the right hand side of the function.");
+                    if (storageClass & STC.shared_)
+                        deprecation(
+                            "Using `shared` on the left hand side of a declaration is deprecated. " ~
+                            "Move `shared` to the right hand side of the function.");
+                    if (storageClass & STC.wild)
+                        deprecation(
+                            "Using `inout` on the left hand side of a declaration is deprecated. " ~
+                            "Move `inout` to the right hand side of the function.");
                     StorageClass stc = parsePostfix(storageClass, pudas);
 
                     AST.Type tf = new AST.TypeFunction(AST.ParameterList(parameters, varargs), t, linkage, stc);

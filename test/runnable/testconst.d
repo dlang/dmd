@@ -446,12 +446,12 @@ class Foo31
 {
   int x;
 
-  immutable immutable(int)* geti()
+  immutable(int)* geti() immutable
   {
     return &x;
   }
 
-  const const(int)* getc()
+  const(int)* getc() const
   {
     return &x;
   }
@@ -971,7 +971,7 @@ void test56()
 
 struct S57
 {
-    const void foo(this T)(int i)
+    void foo(this T)(int i) const
     {
         showf(typeid(T).toString());
         if (i == 1)
@@ -1006,7 +1006,7 @@ class C58
         c = null;
     }
 
-    const void foo()
+    void foo() const
     {
         //c = null; // should fail
     }
@@ -1029,8 +1029,8 @@ class A59
     this() { a.length = 1; }
 
     int* ptr() { return a.ptr; }
-    const const(int)* ptr() { return a.ptr; }
-    immutable immutable(int)* ptr() { return a.ptr; }
+    const(int)* ptr() const { return a.ptr; }
+    immutable(int)* ptr() immutable { return a.ptr; }
 }
 
 void test59()

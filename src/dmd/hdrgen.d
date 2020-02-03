@@ -3399,14 +3399,6 @@ private void visitFuncIdentWithPrefix(TypeFunction t, const Identifier ident, Te
     }
     t.inuse++;
 
-    /* Use 'storage class' (prefix) style for attributes
-     */
-    if (t.mod)
-    {
-        MODtoBuffer(buf, t.mod);
-        buf.writeByte(' ');
-    }
-
     void ignoreReturn(string str)
     {
         if (str != "return")
@@ -3451,6 +3443,13 @@ private void visitFuncIdentWithPrefix(TypeFunction t, const Identifier ident, Te
         buf.writeByte(')');
     }
     parametersToBuffer(t.parameterList, buf, hgs);
+    /* Use postfix style for attributes (prefix is deprecated)
+     */
+    if (t.mod)
+    {
+        buf.writeByte(' ');
+        MODtoBuffer(buf, t.mod);
+    }
     if (t.isreturn)
     {
         buf.writestring(" return");

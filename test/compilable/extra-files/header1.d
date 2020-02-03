@@ -385,7 +385,7 @@ struct S6360
 {
     @property long weeks1() const pure nothrow { return 0; }
 
-    @property const pure nothrow long weeks2() { return 0; }
+    @property pure nothrow long weeks2() const { return 0; }
 }
 
 
@@ -404,8 +404,8 @@ struct T12
     /// postfix storage class and template constructor
     this()(int args) immutable { }
 
-    /// prefix storage class (==StorageClassDeclaration) and template constructor
-    immutable this(A...)(A args){ }
+    /// postfix storage class (==StorageClassDeclaration) and template constructor
+    this(A...)(A args) immutable { }
 }
 
 
@@ -531,7 +531,7 @@ size_t magic() {
 class Foo2A {
 
     immutable(FooA) Dummy = new immutable(FooA);
-    private immutable pure nothrow @nogc @safe this() {
+    private pure nothrow @nogc @safe this() immutable {
 
     }
 

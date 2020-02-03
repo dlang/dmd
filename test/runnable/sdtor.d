@@ -1064,7 +1064,7 @@ bool approxEqual(float a, float b)
 
 struct Point {
     float x = 0, y = 0;
-    const bool opEquals(const ref Point rhs)
+    bool opEquals(const ref Point rhs) const
     {
         return approxEqual(x, rhs.x) && approxEqual(y, rhs.y);
     }
@@ -2551,7 +2551,7 @@ struct Test9386
         op[i++] = 'c';
     }
 
-    const int opCmp(ref const Test9386 t)
+    int opCmp(ref const Test9386 t) const
     {
         return op[0] - t.op[0];
     }

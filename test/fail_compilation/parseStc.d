@@ -34,5 +34,5 @@ fail_compilation/parseStc.d(37): Error: redundant attribute `const`
 fail_compilation/parseStc.d(38): Error: redundant attribute `const`
 ---
 */
-struct S3 { const const test3() {} }
+struct S3 { auto test3() const const {} }
 void test4(const const int x) {}

@@ -702,7 +702,7 @@ void test30()
 /*******************************************/
 
 template Share(T) {
-  const bool opEquals(ref const T x) { return true; }
+  bool opEquals(ref const T x) const { return true; }
 }
 
 struct List31(T) {
