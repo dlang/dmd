@@ -22,7 +22,7 @@ $(OL
         $(LI $(B source character set)$(BR)
 
         The source file is checked to see which encoding it is using,
-        and the appropriate scanner is loaded. ASCII and UTF
+        and the appropriate scanner is loaded. 7-bit ASCII and UTF
         encodings are accepted.
         )
 
