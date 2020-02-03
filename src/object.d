@@ -2163,13 +2163,13 @@ alias AssociativeArray(Key, Value) = Value[Key];
  * Params:
  *      aa =     The associative array.
  */
-void clear(T : Value[Key], Value, Key)(T aa)
+void clear(Value, Key)(Value[Key] aa)
 {
     _aaClear(*cast(AA *) &aa);
 }
 
 /* ditto */
-void clear(T : Value[Key], Value, Key)(T* aa)
+void clear(Value, Key)(Value[Key]* aa)
 {
     _aaClear(*cast(AA *) aa);
 }
@@ -2180,6 +2180,25 @@ void clear(T : Value[Key], Value, Key)(T* aa)
     auto aa = ["k1": 2];
     aa.clear;
     assert("k1" !in aa);
+}
+
+// Issue 20559
+@system unittest
+{
+    static class Foo
+    {
+        int[string] aa;
+        alias aa this;
+    }
+
+    auto v = new Foo();
+    v["Hello World"] = 42;
+    v.clear;
+    assert("Hello World" !in v);
+
+    // Test for T*
+    static assert(!__traits(compiles, (&v).clear));
+    static assert( __traits(compiles, (*(&v)).clear));
 }
 
 /***********************************
