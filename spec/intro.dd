@@ -106,7 +106,7 @@ $(H2 Memory Model)
 
     $(P A memory location can be temporarily transferred from shared to local if
     synchronization is used to prevent any other threads from accessing the memory
-    location while the transfer is in effect.)
+    location during the operation.)
 
 
 $(H2 Object Model)
