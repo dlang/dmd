@@ -117,8 +117,8 @@ $(P The $(I Identifier)s preceding the rightmost $(I Identifier) are the $(I Pac
 module is in. The packages correspond to directory names in the source file
 path. Package and module names cannot be $(GLINK_LEX Keyword)s.)
 
-$(P If present, the $(I ModuleDeclaration) appears syntactically first in the
-source file, and there can be only one per source file.)
+$(P If present, the $(I ModuleDeclaration) must be the first and only such declaration
+in the source file, and may be preceded only by comments.)
 
 $(P Example:)
 
