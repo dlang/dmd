@@ -127,7 +127,7 @@ module c.stdio; // module stdio in the c package
 ---------
 
 $(P By convention, package and module names are all lower case. This is because
-these names can have a one-to-one correspondence with the operating system's
+these names have a one-to-one correspondence with the operating system's
 directory and file names, and many file systems are not case sensitive. Using all
 lower case package and module names will avoid or minimize problems when moving projects
 between dissimilar file systems.)
