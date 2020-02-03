@@ -1051,9 +1051,9 @@ class Thread
         `which` must be one of `PRIORITY_MIN`, `PRIORITY_DEFAULT`,
         `PRIORITY_MAX`.
         */
+        private static shared Priority cache;
         private static int loadGlobal(string which)()
         {
-            static shared Priority cache;
             auto local = atomicLoad(mixin("cache." ~ which));
             if (local != local.min) return local;
             // There will be benign races
