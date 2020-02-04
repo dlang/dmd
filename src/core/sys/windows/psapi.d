@@ -140,6 +140,7 @@ extern (Windows) {
 }
 
 version (Unicode) {
+    alias PENUM_PAGE_FILE_CALLBACKW PENUM_PAGE_FILE_CALLBACK;
     alias GetModuleBaseNameW GetModuleBaseName;
     alias GetModuleFileNameExW GetModuleFileNameEx;
     alias GetMappedFileNameW GetMappedFileName;
@@ -148,6 +149,7 @@ version (Unicode) {
     alias EnumPageFilesW EnumPageFiles;
     alias GetProcessImageFileNameW GetProcessImageFileName;
 } else {
+    alias PENUM_PAGE_FILE_CALLBACKA PENUM_PAGE_FILE_CALLBACK;
     alias GetModuleBaseNameA GetModuleBaseName;
     alias GetModuleFileNameExA GetModuleFileNameEx;
     alias GetMappedFileNameA GetMappedFileName;
