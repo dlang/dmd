@@ -71,6 +71,8 @@ version (IE10) {
     enum uint _WIN32_IE = 0x400;
 } else version (IE3) {
     enum uint _WIN32_IE = 0x300;
+} else static if (_WIN32_WINNT >= 0x500) {
+    enum uint _WIN32_IE = 0x600;
 } else static if (_WIN32_WINNT >= 0x410) {
     enum uint _WIN32_IE = 0x400;
 } else {
