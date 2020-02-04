@@ -237,6 +237,7 @@ Symbol *getRtlsym(int i)
         case RTLSYM_TRACEALLOCMEMORY:       symbolz(ps,FLfunc,FREGSAVED,"_d_allocmemoryTrace", 0, t); break;
         case RTLSYM_C_ASSERT:               symbolz(ps,FLfunc,FREGSAVED,"_assert", SFLexit, t); break;
         case RTLSYM_C__ASSERT:              symbolz(ps,FLfunc,FREGSAVED,"__assert", SFLexit, t); break;
+        case RTLSYM_C__ASSERT_FAIL:         symbolz(ps,FLfunc,FREGSAVED,"__assert_fail", SFLexit, t); break;
         case RTLSYM_C__ASSERT_RTN:          symbolz(ps,FLfunc,FREGSAVED,"__assert_rtn", SFLexit, t); break;
 
         default:
