@@ -285,7 +285,7 @@ enum ENUMTY : int
     Tvector,
     Tint128,
     Tuns128,
-    TTraits,
+    Ttraits,
     Tmixin,
     TMAX,
 }
@@ -334,7 +334,7 @@ alias Tnull = ENUMTY.Tnull;
 alias Tvector = ENUMTY.Tvector;
 alias Tint128 = ENUMTY.Tint128;
 alias Tuns128 = ENUMTY.Tuns128;
-alias Ttraits = ENUMTY.TTraits;
+alias Ttraits = ENUMTY.Ttraits;
 alias Tmixin = ENUMTY.Tmixin;
 alias TMAX = ENUMTY.TMAX;
 

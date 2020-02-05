@@ -706,7 +706,7 @@ final class Parser(AST) : Lexer
                     }
                     else if (next == TOK.foreach_ || next == TOK.foreach_reverse_)
                     {
-                        s = parseForeach!(true,true)(loc, pLastDecl);
+                        s = parseForeach!(true,true)(token.loc, pLastDecl);
                     }
                     else
                     {

@@ -671,9 +671,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         {
             auto needExpansion = args[$-1];
             assert(sc);
-            auto previous = sc.scopesym;
         }
-        alias s = fs;
 
         auto loc = fs.loc;
         size_t dim = fs.parameters.dim;
@@ -913,7 +911,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     var = new AliasDeclaration(loc, ident, t);
                     if (paramtype)
                     {
-                        fs.error("cannot specify element type for symbol `%s`", s.toChars());
+                        fs.error("cannot specify element type for symbol `%s`", fs.toChars());
                         setError();
                         return false;
                     }
@@ -989,14 +987,12 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             else static if (!isDecl)
             {
                 auto fwd = new ForwardingStatement(loc, res);
-                previous = fwd.sym;
                 res = fwd;
             }
             else
             {
                 import dmd.attrib: ForwardingAttribDeclaration;
                 auto res = new ForwardingAttribDeclaration(st);
-                previous = res.sym;
             }
             static if (!isDecl)
             {
