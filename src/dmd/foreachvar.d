@@ -19,7 +19,6 @@ import core.stdc.string;
 import dmd.apply;
 import dmd.arraytypes;
 import dmd.attrib;
-import dmd.ctfeexpr;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dstruct;
@@ -68,8 +67,6 @@ void foreachVar(Expression e, void delegate(VarDeclaration) dgVar)
 
         override void visit(ErrorExp e)
         {
-            //.error(e.loc, "CTFE internal error: ErrorExp");
-            //assert(0);
         }
 
         override void visit(DeclarationExp e)
