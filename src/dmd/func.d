@@ -1326,7 +1326,7 @@ extern (C++) class FuncDeclaration : Declaration
             flags |= FUNCFLAG.returnInprocess;
 
         // Initialize for inferring STC.scope_
-        if (global.params.vsafe)
+        if (global.params.vsafe || true)
             flags |= FUNCFLAG.inferScope;
     }
 
