@@ -456,8 +456,14 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             stc |= STC.scope_;
                         }
                     }
-                    if (funcdecl.flags & FUNCFLAG.inferScope && !(fparam.storageClass & STC.scope_))
+
+                    // infer scope for lambdas even without -preview=dip1000
+                    // See https://issues.dlang.org/show_bug.cgi?id=20362
+                    const isLambda = funcdecl.isFuncLiteralDeclaration;
+
+                    if ((funcdecl.flags & FUNCFLAG.inferScope || isLambda) && !(fparam.storageClass & STC.scope_))
                         stc |= STC.maybescope;
+
                     stc |= fparam.storageClass & (STC.in_ | STC.out_ | STC.ref_ | STC.return_ | STC.scope_ | STC.lazy_ | STC.final_ | STC.TYPECTOR | STC.nodtor);
                     v.storage_class = stc;
                     v.dsymbolSemantic(sc2);
