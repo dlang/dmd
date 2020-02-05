@@ -359,6 +359,7 @@ public:
 
 class ForwardingScopeDsymbol : public ScopeDsymbol
 {
+public:
     ScopeDsymbol *forward;
 
     Dsymbol *symtabInsert(Dsymbol *s);

@@ -265,6 +265,7 @@ public:
 
 class ForwardingStatement : public Statement
 {
+public:
     ForwardingScopeDsymbol *sym;
     Statement *statement;
 
