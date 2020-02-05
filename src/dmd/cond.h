@@ -91,7 +91,6 @@ class StaticIfCondition : public Condition
 {
 public:
     Expression *exp;
-    int nest;         // limit circular dependencies
 
     Condition *syntaxCopy();
     int include(Scope *sc);

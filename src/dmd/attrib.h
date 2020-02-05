@@ -188,11 +188,12 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
-class StaticForeachDeclaration : public ConditionalDeclaration
+class StaticForeachDeclaration : public AttribDeclaration
 {
 public:
     StaticForeach *sfe;
     ScopeDsymbol *scopesym;
+    bool onStack;
     bool cached;
     Dsymbols *cache;
 
@@ -207,7 +208,7 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
-class ForwardingAttribDeclaration : AttribDeclaration
+class ForwardingAttribDeclaration : public AttribDeclaration
 {
 public:
     ForwardingScopeDsymbol *sym;
