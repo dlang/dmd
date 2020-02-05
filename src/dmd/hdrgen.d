@@ -379,6 +379,11 @@ public:
         }
     }
 
+    override void visit(ForwardingStatement s)
+    {
+        s.statement.accept(this);
+    }
+
     override void visit(IfStatement s)
     {
         buf.writestring("if (");
