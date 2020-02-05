@@ -42,6 +42,7 @@ public:
     void visit(ASTCodegen.ArrayScopeSymbol s) { visit(cast(ASTCodegen.ScopeDsymbol)s); }
     void visit(ASTCodegen.OverDeclaration s) { visit(cast(ASTCodegen.Declaration)s); }
     void visit(ASTCodegen.SymbolDeclaration s) { visit(cast(ASTCodegen.Declaration)s); }
+    void visit(ASTCodegen.ForwardingAttribDeclaration s) { visit(cast(ASTCodegen.AttribDeclaration)s); }
     void visit(ASTCodegen.ThisDeclaration s) { visit(cast(ASTCodegen.VarDeclaration)s); }
     void visit(ASTCodegen.TypeInfoDeclaration s) { visit(cast(ASTCodegen.VarDeclaration)s); }
     void visit(ASTCodegen.TypeInfoStructDeclaration s) { visit(cast(ASTCodegen.TypeInfoDeclaration)s); }
