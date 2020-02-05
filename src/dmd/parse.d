@@ -8985,14 +8985,13 @@ final class Parser(AST) : Lexer
         auto t = parseBasicType(true);
         t = parseBasicType2(t);
         t = t.addSTC(stc);
-        if (t.ty == AST.Taarray)
+        if (auto taa = t.isTypeAArray)
         {
-            AST.TypeAArray taa = cast(AST.TypeAArray)t;
             AST.Type index = taa.index;
             auto edim = AST.typeToExpression(index);
             if (!edim)
             {
-                error("need size of rightmost array, not type `%s`", index.toChars());
+                error("cannot create a `%s` with `new`", t.toChars);
                 return new AST.NullExp(loc);
             }
             t = new AST.TypeSArray(taa.next, edim);
