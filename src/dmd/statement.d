@@ -605,6 +605,11 @@ private Statement toStatement(Dsymbol s)
             result = visitMembers(d.loc, d.decl);
         }
 
+        override void visit(ForwardingAttribDeclaration d)
+        {
+            result = visitMembers(d.loc, d.decl);
+        }
+
         override void visit(StaticAssert s)
         {
         }
@@ -625,8 +630,7 @@ private Statement toStatement(Dsymbol s)
         override void visit(StaticForeachDeclaration d)
         {
             assert(d.sfe && !!d.sfe.aggrfe ^ !!d.sfe.rangefe);
-            (d.sfe.aggrfe ? d.sfe.aggrfe._body : d.sfe.rangefe._body) = visitMembers(d.loc, d.decl);
-            result = new StaticForeachStatement(d.loc, d.sfe);
+            result = visitMembers(d.loc, d.include(null));
         }
 
         override void visit(CompileDeclaration d)
@@ -1476,7 +1480,7 @@ extern (C++) final class StaticForeachStatement : Statement
 
     override Statement syntaxCopy()
     {
-        return new StaticForeachStatement(loc,sfe.syntaxCopy());
+        return new StaticForeachStatement(loc, sfe.syntaxCopy());
     }
 
     override Statements* flatten(Scope* sc)
@@ -1485,7 +1489,7 @@ extern (C++) final class StaticForeachStatement : Statement
         if (sfe.ready())
         {
             import dmd.statementsem;
-            auto s = makeTupleForeach!(true,false)(sc, sfe.aggrfe,sfe.needExpansion);
+            auto s = makeTupleForeach!(true, false)(sc, sfe.aggrfe, sfe.needExpansion);
             auto result = s.flatten(sc);
             if (result)
             {

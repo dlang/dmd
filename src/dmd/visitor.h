@@ -109,6 +109,7 @@ class StaticIfDeclaration;
 class CompileDeclaration;
 class StaticForeachDeclaration;
 class UserAttributeDeclaration;
+class ForwardingAttribDeclaration;
 
 class ScopeDsymbol;
 class TemplateDeclaration;
@@ -587,6 +588,7 @@ public:
     virtual void visit(ArrayScopeSymbol *s) { visit((ScopeDsymbol *)s); }
     virtual void visit(OverDeclaration *s) { visit((Declaration *)s); }
     virtual void visit(SymbolDeclaration *s) { visit((Declaration *)s); }
+    virtual void visit(ForwardingAttribDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(ThisDeclaration *s) { visit((VarDeclaration *)s); }
     virtual void visit(TypeInfoDeclaration *s) { visit((VarDeclaration *)s); }
     virtual void visit(TypeInfoStructDeclaration *s) { visit((TypeInfoDeclaration *)s); }

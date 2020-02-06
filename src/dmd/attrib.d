@@ -1203,6 +1203,11 @@ extern(C++) final class ForwardingAttribDeclaration: AttribDeclaration
     {
         return this;
     }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
 }
 
 

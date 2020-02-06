@@ -215,6 +215,7 @@ public:
     Scope *newScope(Scope *sc);
     void addMember(Scope *sc, ScopeDsymbol *sds);
     ForwardingAttribDeclaration *isForwardingAttribDeclaration() { return this; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 // Mixin declarations
