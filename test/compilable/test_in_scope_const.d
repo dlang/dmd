@@ -1,4 +1,4 @@
-/* REQUIRED_ARGS: -preview=dip1000
+/* REQUIRED_ARGS: -preview=dip1000 -preview=in
  */
 
 @safe:

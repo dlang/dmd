@@ -754,6 +754,8 @@ dmd -cov -unittest myprog.d
             "enable rvalue arguments to ref parameters"),
         Feature("nosharedaccess", "noSharedAccess",
             "disable access to shared memory objects"),
+        Feature("in", "inMeansScopeConst",
+            "in means scope const"),
     ];
 }
 
