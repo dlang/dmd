@@ -2,7 +2,7 @@ class C
 {
 }
 void foo(const C c, const(char)[] s, const int* q, const(int*) p);
-void bar(scope const void* p);
+void bar(in void* p);
 void f(void function() f2);
 class C2;
 void foo2(const C2 c);
@@ -93,7 +93,7 @@ void foo11217()(auto ref int[] arr)
 void foo11217()(scope int[] arr)
 {
 }
-void foo11217()(scope const int[] arr)
+void foo11217()(in int[] arr)
 {
 }
 void foo11217()(inout int[] arr)
