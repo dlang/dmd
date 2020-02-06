@@ -1575,7 +1575,7 @@ private Expression rewriteOpAssign(BinExp exp)
  * Returns:
  *      true    a semantic error occurred
  */
-private bool preFunctionParameters(Scope* sc, Expressions* exps, bool reportErrors = true)
+private bool preFunctionParameters(Scope* sc, Expressions* exps, const bool reportErrors = true)
 {
     bool err = false;
     if (exps)
@@ -3320,8 +3320,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        //for error messages if the argument in [] is not convertible to ulong
-        auto originalNewtype = exp.newtype;
+        //for error messages if the argument in [] is not convertible to size_t
+        const originalNewtype = exp.newtype;
 
         // https://issues.dlang.org/show_bug.cgi?id=11581
         // With the syntax `new T[edim]` or `thisexp.new T[edim]`,
@@ -3401,13 +3401,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
             }
         }
-        else
+        else if (preFunctionParameters(sc, exp.arguments))
         {
-            if (preFunctionParameters(sc, exp.arguments))
-            {
-                return setError();
-            }
+            return setError();
         }
+
         if (exp.thisexp && tb.ty != Tclass)
         {
             exp.error("`.new` is only for allocating nested classes, not `%s`", tb.toChars());
