@@ -836,11 +836,15 @@ final class Parser(AST) : Lexer
                      tk.value == TOK.out_ || tk.value == TOK.do_ ||
                      tk.value == TOK.identifier && tk.ident == Id._body))
                 {
-                    // @@@DEPRECATED@@@
-                    // https://github.com/dlang/DIPs/blob/1f5959abe482b1f9094f6484a7d0a3ade77fc2fc/DIPs/accepted/DIP1003.md
-                    // Deprecated in 2.091 - Can be removed from 2.101
-                    if (tk.value == TOK.identifier && tk.ident == Id._body)
-                        deprecation("Usage of the `body` keyword is deprecated. Use `do` instead.");
+                    version (none)
+                    {
+                        // This deprecation has been disabled for the time being, see PR10763
+                        // @@@DEPRECATED@@@
+                        // https://github.com/dlang/DIPs/blob/1f5959abe482b1f9094f6484a7d0a3ade77fc2fc/DIPs/accepted/DIP1003.md
+                        // Deprecated in 2.091 - Can be removed from 2.101
+                        if (tk.value == TOK.identifier && tk.ident == Id._body)
+                            deprecation("Usage of the `body` keyword is deprecated. Use `do` instead.");
+                    }
                     a = parseDeclarations(true, pAttrs, pAttrs.comment);
                     if (a && a.dim)
                         *pLastDecl = (*a)[a.dim - 1];
@@ -4607,11 +4611,15 @@ final class Parser(AST) : Lexer
                     (tk.value == TOK.leftParentheses || tk.value == TOK.leftCurly || tk.value == TOK.in_ || tk.value == TOK.out_ ||
                      tk.value == TOK.do_ || tk.value == TOK.identifier && tk.ident == Id._body))
                 {
-                    // @@@DEPRECATED@@@
-                    // https://github.com/dlang/DIPs/blob/1f5959abe482b1f9094f6484a7d0a3ade77fc2fc/DIPs/accepted/DIP1003.md
-                    // Deprecated in 2.091 - Can be removed from 2.101
-                    if (tk.value == TOK.identifier && tk.ident == Id._body)
-                        deprecation("Usage of the `body` keyword is deprecated. Use `do` instead.");
+                    version (none)
+                    {
+                        // This deprecation has been disabled for the time being, see PR10763
+                        // @@@DEPRECATED@@@
+                        // https://github.com/dlang/DIPs/blob/1f5959abe482b1f9094f6484a7d0a3ade77fc2fc/DIPs/accepted/DIP1003.md
+                        // Deprecated in 2.091 - Can be removed from 2.101
+                        if (tk.value == TOK.identifier && tk.ident == Id._body)
+                            deprecation("Usage of the `body` keyword is deprecated. Use `do` instead.");
+                    }
                     ts = null;
                 }
                 else
@@ -4977,10 +4985,14 @@ final class Parser(AST) : Lexer
         case TOK.identifier:
             if (token.ident == Id._body)
             {
-                // @@@DEPRECATED@@@
-                // https://github.com/dlang/DIPs/blob/1f5959abe482b1f9094f6484a7d0a3ade77fc2fc/DIPs/accepted/DIP1003.md
-                // Deprecated in 2.091 - Can be removed from 2.101
-                deprecation("Usage of the `body` keyword is deprecated. Use `do` instead.");
+                version (none)
+                {
+                    // This deprecation has been disabled for the time being, see PR10763
+                    // @@@DEPRECATED@@@
+                    // https://github.com/dlang/DIPs/blob/1f5959abe482b1f9094f6484a7d0a3ade77fc2fc/DIPs/accepted/DIP1003.md
+                    // Deprecated in 2.091 - Can be removed from 2.101
+                    deprecation("Usage of the `body` keyword is deprecated. Use `do` instead.");
+                }
                 goto case TOK.do_;
             }
             goto default;
@@ -7177,10 +7189,14 @@ final class Parser(AST) : Lexer
             case TOK.identifier:
                 if (t.ident == Id._body)
                 {
-                    // @@@DEPRECATED@@@
-                    // https://github.com/dlang/DIPs/blob/1f5959abe482b1f9094f6484a7d0a3ade77fc2fc/DIPs/accepted/DIP1003.md
-                    // Deprecated in 2.091 - Can be removed from 2.101
-                    deprecation("Usage of the `body` keyword is deprecated. Use `do` instead.");
+                    version (none)
+                    {
+                        // This deprecation has been disabled for the time being, see PR10763
+                        // @@@DEPRECATED@@@
+                        // https://github.com/dlang/DIPs/blob/1f5959abe482b1f9094f6484a7d0a3ade77fc2fc/DIPs/accepted/DIP1003.md
+                        // Deprecated in 2.091 - Can be removed from 2.101
+                        deprecation("Usage of the `body` keyword is deprecated. Use `do` instead.");
+                    }
                     goto case TOK.do_;
                 }
                 goto default;
