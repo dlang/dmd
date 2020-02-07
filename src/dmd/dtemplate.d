@@ -195,6 +195,8 @@ Dsymbol getDsymbol(RootObject oarg)
             return fe.td ? fe.td : fe.fd;
         else if (auto te = ea.isTemplateExp())
             return te.td;
+        else if (auto te = ea.isScopeExp())
+            return te.sds;
         else
             return null;
     }
