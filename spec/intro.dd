@@ -12,18 +12,18 @@ other documents$(COMMA) see $(LINK2 https://dlang.org/, The D Language Website).
 
 $(H2 Phases of Compilation)
 
-$(P The process of compiling is divided into multiple phases. Each phase has no
-dependence on subsequent phases. For example, the scanner is not perturbed by
-the semantic analyzer. This separation of the passes makes language tools like
-syntax directed editors relatively easy to produce. It also is possible to
+$(P The process of compiling is divided into multiple phases. Each phase is
+independent of subsequent phases. For example, the scanner is not affected by
+the semantic analyzer. This separation of passes makes language tools like
+syntax directed editors relatively easy to create. It is also possible to
 compress D source by storing it in $(SINGLEQUOTE tokenized) form.)
 
 $(OL
         $(LI $(B source character set)$(BR)
 
-        The source file is checked to see what character set it is,
-        and the appropriate scanner is loaded. ASCII and UTF
-        formats are accepted.
+        The source file is checked to see which encoding it is using,
+        and the appropriate scanner is loaded. 7-bit ASCII and UTF
+        encodings are accepted.
         )
 
         $(LI $(B script line) $(BR)
@@ -69,9 +69,9 @@ $(OL
 
 $(H2 Memory Model)
 
-    $(P A $(I byte) is the fundamental unit of storage. Each byte has 8 bits. Each byte has
-    a unique address. A $(I memory location) is a sequence of one or more bytes exactly large
-    enough to hold a scalar type. Multiple threads can access separate memory locations
+    $(P A $(I byte) is the fundamental unit of storage. Each byte has 8 bits, and is stored at
+    a unique address. A $(I memory location) is a sequence of one or more bytes of the exact size
+    required to hold a scalar type. Multiple threads can access separate memory locations
     without interference.
     )
 
@@ -79,7 +79,7 @@ $(H2 Memory Model)
 
     $(OL
     $(LI $(I Thread local memory locations) are accessible from only one thread at a time.)
-    $(LI $(I Immutable memory locations) cannot be written to during its lifetime. Immutable
+    $(LI $(I Immutable memory locations) cannot be written to during their lifetime. Immutable
     memory locations can be read from by multiple threads without synchronization.)
     $(LI $(I Shared memory locations) are accessible from multiple threads.)
     )
@@ -95,7 +95,7 @@ $(H2 Memory Model)
 
     $(P Execution of a single thread on thread local and immutable memory locations
     is $(I sequentially consistent). This means the result of the operations
-    is the same as if it were executed in the order the operations appear in the program.
+    is the same as if they were executed in the same order that the operations appear in the program.
     )
 
     $(P A memory location can be transferred from thread local to immutable or shared
@@ -106,7 +106,7 @@ $(H2 Memory Model)
 
     $(P A memory location can be temporarily transferred from shared to local if
     synchronization is used to prevent any other threads from accessing the memory
-    location during the duration.)
+    location during the operation.)
 
 
 $(H2 Object Model)
