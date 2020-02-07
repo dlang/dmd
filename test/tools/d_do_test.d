@@ -554,31 +554,92 @@ bool collectExtraSources (in string input_dir, in string output_dir, in string[]
     return true;
 }
 
-// compare output string to reference string, but ignore places
-// marked by $n$ that contain compiler generated unique numbers
-bool compareOutput(string output, string refoutput)
-{
-    import std.ascii : digits;
-    import std.utf : byCodeUnit;
+/++
+Compares the output string to the reference string by character
+except parts marked with one of the following special sequences:
 
+$n$ = numbers (e.g. compiler generated unique identifiers)
+$p:<path>$ = real paths ending with <path>
+
+Params:
+    output    = the real output
+    refoutput = the expected output
+    envData   = test environment
+
+Returns: whether output matches the expected refoutput
+++/
+bool compareOutput(string output, string refoutput, const ref EnvData envData)
+{
     // If no output is expected, only check that nothing was captured.
     if (refoutput.length == 0)
         return (output.length == 0) ? true : false;
 
     for ( ; ; )
     {
-        auto pos = refoutput.indexOf("$n$");
-        if (pos < 0)
+        auto special = refoutput.find("$n$", "$p:").rename!("remainder", "id");
+
+        // Simple equality check if no special tokens remain
+        if (special.id == 0)
             return refoutput == output;
-        if (output.length < pos)
+
+        const expected = refoutput[0 .. $ - special.remainder.length];
+
+        // Check until the special token
+        if (!output.skipOver(expected))
             return false;
-        if (refoutput[0..pos] != output[0..pos])
-            return false;
-        refoutput = refoutput[pos + 3 ..$];
-        output = output[pos..$];
-        auto p = output.byCodeUnit.countUntil!(e => !digits.canFind(e));
-        output = output[p..$];
+
+        // Discard the special token and progress output appropriately
+        refoutput = special.remainder[3 .. $];
+
+        if (special.id == 1) // $n$
+        {
+            import std.ascii : isDigit;
+            output.skipOver!isDigit();
+        }
+        else // $p:<some path>$
+        {
+            // Find the end of the expected path
+            /// ( expected path tail, "$", remaining expected output )
+            auto refparts = refoutput.findSplit("$");
+            enforce(refparts, "Malformed path sequence!");
+
+            // Substitute / with the appropriate directory separator
+            auto pathEnd = refparts[0].replace("/", envData.sep);
+
+            /// ( whole path, remaining output )
+            auto parts = output.findSplitAfter(pathEnd);
+
+            if (!parts || !exists(parts[0]))
+                return false;
+
+            refoutput = refparts[2];
+            output = parts[1];
+        }
     }
+}
+
+unittest
+{
+    EnvData ed;
+    version (Windows)
+        ed.sep = `\`;
+    else
+        ed.sep = `/`;
+
+    assert( compareOutput(`Grass is green`, `Grass is green`, ed));
+    assert(!compareOutput(`Grass is green`, `Grass was green`, ed));
+
+    assert( compareOutput(`Bob took 12 apples`, `Bob took $n$ apples`, ed));
+    assert(!compareOutput(`Bob took abc apples`, `Bob took $n$ apples`, ed));
+    assert(!compareOutput(`Bob took 12 berries`, `Bob took $n$ apples`, ed));
+
+    assert( compareOutput(`HINT: ` ~ __FILE_FULL_PATH__ ~ ` is important`, `HINT: $p:d_do_test.d$ is important`, ed));
+    assert( compareOutput(`HINT: ` ~ __FILE_FULL_PATH__ ~ ` is important`, `HINT: $p:test/tools/d_do_test.d$ is important`, ed));
+
+    ed.sep = "/";
+    assert(!compareOutput(`See /path/to/druntime/import/object.d`, `See $p:druntime/import/object.d$`, ed));
+
+    assertThrown(compareOutput(`Path /a/b/c.d!`, `Path $p:c.d!`, ed)); // Missing closing $
 }
 
 string envGetRequired(in char[] name)
@@ -855,7 +916,7 @@ int tryMain(string[] args)
             m = std.regex.match(compile_output, `core.exception.AssertError@dmd.*`);
             enforce(!m, m.hit);
 
-            if (!compareOutput(compile_output, testArgs.compileOutput))
+            if (!compareOutput(compile_output, testArgs.compileOutput, envData))
             {
                 // Allow any messages to come from tests if TEST_OUTPUT wasn't given.
                 // This will be removed in future once all tests have been updated.
