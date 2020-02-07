@@ -1575,14 +1575,12 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                     const len = buf.length;
                     buf.writeByte(0);
                     const str = buf.extractSlice()[0 .. len];
-                    scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-                    scope p = new Parser!ASTCodegen(e.loc, sc._module, str, false, diagnosticReporter);
+                    scope p = new Parser!ASTCodegen(e.loc, sc._module, str, false);
                     p.nextToken();
                     //printf("p.loc.linnum = %d\n", p.loc.linnum);
 
                     o = p.parseTypeOrAssignExp(TOK.endOfFile);
-                    if (p.errors ||
-                        p.token.value != TOK.endOfFile)
+                    if (errors != global.errors || p.token.value != TOK.endOfFile)
                     {
                         err = true;
                         break;

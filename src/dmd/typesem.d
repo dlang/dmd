@@ -1997,13 +1997,12 @@ RootObject compileTypeMixin(TypeMixin tm, Loc loc, Scope* sc)
     const len = buf.length;
     buf.writeByte(0);
     const str = buf.extractSlice()[0 .. len];
-    scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-    scope p = new Parser!ASTCodegen(loc, sc._module, str, false, diagnosticReporter);
+    scope p = new Parser!ASTCodegen(loc, sc._module, str, false);
     p.nextToken();
     //printf("p.loc.linnum = %d\n", p.loc.linnum);
 
     auto o = p.parseTypeOrAssignExp(TOK.endOfFile);
-    if (p.errors)
+    if (errors != global.errors)
     {
         assert(global.errors != errors); // should have caught all these cases
         return null;

@@ -3,7 +3,7 @@ module parser.diagnostic_reporter;
 import core.stdc.stdarg;
 
 import dmd.frontend : parseModule;
-import dmd.globals : Loc;
+import dmd.globals : Loc, global, DiagnosticReporting;
 
 import support : afterEach, beforeEach, NoopDiagnosticReporter;
 
@@ -26,9 +26,10 @@ unittest
     {
         int errorCount;
 
-        override void error(const ref Loc, const(char)*, va_list)
+        override bool error(const ref Loc, const(char)*, va_list, const(char)*, const(char)*)
         {
             errorCount++;
+            return true;
         }
     }
 
@@ -36,7 +37,7 @@ unittest
 
     parseModule("test.d", q{
         deprecated deprecated module test;
-    }, reporter);
+    });
 
     assert(reporter.errorCount == 1);
 }
@@ -48,9 +49,10 @@ unittest
     {
         int supplementalCount;
 
-        override void errorSupplemental(const ref Loc, const(char)*, va_list)
+        override bool errorSupplemental(const ref Loc, const(char)*, va_list, const(char)*, const(char)*)
         {
             supplementalCount++;
+            return true;
         }
     }
 
@@ -62,7 +64,7 @@ unittest
             static if (true) {}
             static else {}
         }
-    }, reporter);
+    });
 
     assert(reporter.supplementalCount == 1);
 }
@@ -74,12 +76,14 @@ unittest
     {
         int warningCount;
 
-        override void warning(const ref Loc, const(char)*, va_list)
+        override bool warning(const ref Loc, const(char)*, va_list, const(char)*, const(char)*)
         {
             warningCount++;
+            return true;
         }
     }
 
+    global.params.warnings = DiagnosticReporting.inform;
     scope reporter = new WarningCountingDiagnosticReporter;
 
     parseModule("test.d", q{
@@ -91,7 +95,7 @@ unittest
             else
                 assert(4);
         }
-    }, reporter);
+    });
 
     assert(reporter.warningCount == 1);
 }
@@ -103,9 +107,10 @@ unittest
     {
         int deprecationCount;
 
-        override void deprecation(const ref Loc, const(char)*, va_list)
+        override bool deprecation(const ref Loc, const(char)*, va_list, const(char)*, const(char)*)
         {
             deprecationCount++;
+            return true;
         }
     }
 
@@ -113,7 +118,7 @@ unittest
 
     parseModule("test.d", q{
         extern (Pascal) void foo();
-    }, reporter);
+    });
 
     assert(reporter.deprecationCount == 1);
 }

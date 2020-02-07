@@ -723,12 +723,11 @@ extern (C++) final class Module : Package
     /// syntactic parse
     Module parse()
     {
-        scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-        return parse!ASTCodegen(diagnosticReporter);
+        return parseModule!ASTCodegen();
     }
 
     /// ditto
-    extern (D) Module parse(AST)(DiagnosticReporter diagnosticReporter)
+    extern (D) Module parseModule(AST)()
     {
 
 
@@ -989,13 +988,11 @@ extern (C++) final class Module : Package
             isHdrFile = true;
         }
         {
-            scope p = new Parser!AST(this, buf, cast(bool) docfile, diagnosticReporter);
+            scope p = new Parser!AST(this, buf, cast(bool) docfile);
             p.nextToken();
             members = p.parseModule();
             md = p.md;
             numlines = p.scanloc.linnum;
-            if (p.errors)
-                ++global.errors;
         }
         srcBuffer.destroy();
         srcBuffer = null;
