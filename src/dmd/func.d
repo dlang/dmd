@@ -3305,6 +3305,9 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
         this.ident = id ? id : Id.empty;
         this.tok = tok;
         this.fes = fes;
+        // Always infer scope for function literals
+        // See https://issues.dlang.org/show_bug.cgi?id=20362
+        this.flags |= FUNCFLAG.inferScope;
         //printf("FuncLiteralDeclaration() id = '%s', type = '%s'\n", this.ident.toChars(), type.toChars());
     }
 
