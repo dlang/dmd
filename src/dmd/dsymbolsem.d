@@ -1226,7 +1226,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             // @@@DEPRECATED@@@  https://dlang.org/deprecate.html#scope%20as%20a%20type%20constraint
             // Deprecated in 2.087
             // Remove this when the feature is removed from the language
-            if (!(dsym.storage_class & STC.scope_))
+            if (0 &&          // deprecation disabled for now to accommodate existing extensive use
+               !(dsym.storage_class & STC.scope_))
             {
                 if (!(dsym.storage_class & STC.parameter) && dsym.ident != Id.withSym)
                     dsym.error("reference to `scope class` must be `scope`");
@@ -1438,7 +1439,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     uint errors = global.errors;
                     dsym.inuse++;
-                    if (ei)
+                    // Bug 20549. Don't try this on modules or packages, syntaxCopy
+                    // could crash (inf. recursion) on a mod/pkg referencing itself
+                    if (ei && (ei.exp.op != TOK.scope_ ? true : !(cast(ScopeExp)ei.exp).sds.isPackage()))
                     {
                         Expression exp = ei.exp.syntaxCopy();
 
@@ -5421,7 +5424,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         // Deprecated in 2.087
         // Make an error in 2.091
         // Don't forget to remove code at https://github.com/dlang/dmd/blob/b2f8274ba76358607fc3297a1e9f361480f9bcf9/src/dmd/dsymbolsem.d#L1032-L1036
-        if (cldec.storage_class & STC.scope_)
+        if (0 &&          // deprecation disabled for now to accommodate existing extensive use
+            cldec.storage_class & STC.scope_)
             deprecation(cldec.loc, "`scope` as a type constraint is deprecated.  Use `scope` at the usage site.");
     }
 
@@ -5843,6 +5847,8 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
 
     // Copy the tempdecl namespace (not the scope one)
     tempinst.cppnamespace = tempdecl.cppnamespace;
+    if (tempinst.cppnamespace)
+        tempinst.cppnamespace.dsymbolSemantic(sc);
 
     /* See if there is an existing TemplateInstantiation that already
      * implements the typeargs. If so, just refer to that one instead.
