@@ -2636,7 +2636,7 @@ elem *toElem(Expression e, IRState *irs)
              * have any sideeffects
              */
 
-            const canSkipCompare = isTrivialExp(ie.e1) && isTrivialExp(ie.e2);
+            const canSkipCompare = !hasSideEffect(ie.e1) && !hasSideEffect(ie.e2);
             elem *e;
             if (t1.ty == Tstruct && (cast(TypeStruct)t1).sym.fields.dim == 0 && canSkipCompare)
             {

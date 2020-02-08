@@ -3718,7 +3718,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                 }
                 checkAccess(e.loc, sc, null, v);
                 Expression ve = new VarExp(e.loc, v);
-                if (!isTrivialExp(e))
+                if (hasSideEffect(e))
                 {
                     ve = new CommaExp(e.loc, e, ve);
                 }
