@@ -1,6 +1,7 @@
 include ../common.mak
 
-TESTS := sentinel printf memstomp invariant logging precise precisegc forkgc forkgc2 sigmaskgc startbackgc recoverfree
+TESTS := sentinel printf memstomp invariant logging precise precisegc forkgc forkgc2 sigmaskgc startbackgc \
+         recoverfree nocollect
 
 SRC_GC = ../../src/gc/impl/conservative/gc.d
 SRC = $(SRC_GC) ../../src/rt/lifetime.d
@@ -51,6 +52,9 @@ $(ROOT)/startbackgc: startbackgc.d
 
 $(ROOT)/recoverfree: recoverfree.d
 	$(DMD) $(UDFLAGS) -of$@ recoverfree.d
+
+$(ROOT)/nocollect: nocollect.d
+	$(DMD) $(UDFLAGS) -of$@ nocollect.d
 
 clean:
 	rm -rf $(ROOT)

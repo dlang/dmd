@@ -1667,7 +1667,7 @@ struct Gcx
                     recoverNextPage(bin);
                 }
             }
-            else
+            else if (usedSmallPages > 0)
             {
                 fullcollect();
                 if (lowMem)
@@ -1752,7 +1752,7 @@ struct Gcx
                     minimize();
                 }
             }
-            else
+            else if (usedLargePages > 0)
             {
                 fullcollect();
                 minimize();
@@ -2601,7 +2601,12 @@ struct Gcx
             {
                 bool doParallel = config.parallel > 0;
                 if (doParallel && !scanThreadData)
-                    startScanThreads();
+                {
+                    if (nostack) // only used during shutdown, avoid starting threads for parallel marking
+                        doParallel = false;
+                    else
+                        startScanThreads();
+                }
             }
             else
                 enum doParallel = false;
