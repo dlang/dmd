@@ -11923,20 +11923,23 @@ private bool checkAddressVar(Scope* sc, UnaExp exp, VarDeclaration v)
             exp.error("cannot take address of `%s`", exp.e1.toChars());
             return false;
         }
-        if (sc.func && !sc.intypeof && !v.isDataseg() &&
-            exp.e1.type.hasPointers())
+        if (sc.func && !sc.intypeof && !v.isDataseg())
         {
             const(char)* p = v.isParameter() ? "parameter" : "local";
+            const bool isRef = (v.storage_class & (STC.ref_ | STC.out_)) != 0;
             if (global.params.vsafe)
             {
-                // Taking the address of v means it cannot be set to 'scope' later
-                v.storage_class &= ~STC.maybescope;
-                v.doNotInferScope = true;
-                if (v.storage_class & STC.scope_ &&
-                    !(sc.flags & SCOPE.debug_) && sc.func.setUnsafe())
+                if (exp.e1.type.hasPointers() || exp.isDelegateExp() || isRef)
                 {
-                    exp.error("cannot take address of `scope` %s `%s` in `@safe` function `%s`", p, v.toChars(), sc.func.toChars());
-                    return false;
+                    // Taking the address of v means it cannot be set to 'scope' later
+                    v.storage_class &= ~STC.maybescope;
+                    v.doNotInferScope = true;
+                    if (v.storage_class & STC.scope_ &&
+                        !(sc.flags & SCOPE.debug_) && sc.func.setUnsafe())
+                    {
+                        exp.error("cannot take address of `scope` %s `%s` in `@safe` function `%s`", p, v.toChars(), sc.func.toChars());
+                        return false;
+                    }
                 }
             }
             else if (!(sc.flags & SCOPE.debug_) && sc.func.setUnsafe())
