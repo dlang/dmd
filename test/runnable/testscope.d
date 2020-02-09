@@ -384,6 +384,10 @@ void test20569() @safe
     int x;
     S s2 = S(0, &x);
     int* p2 = &s2.value;
+
+    /* inferred `scope` on self-reference: */
+    S s3;
+    s3.pointer = &s3.value;
 }
 
 /********************************************/

@@ -1,8 +1,9 @@
 /* REQUIRED_ARGS: -preview=dip1000
    TEST_OUTPUT:
 ---
-fail_compilation/test20569.d(19): Error: cannot take address of `scope` local `s1` in `@safe` function `main`
-fail_compilation/test20569.d(23): Error: cannot take address of `scope` local `s2` in `@safe` function `main`
+fail_compilation/test20569.d(20): Error: cannot take address of `scope` local `s1` in `@safe` function `main`
+fail_compilation/test20569.d(24): Error: cannot take address of `scope` local `s2` in `@safe` function `main`
+fail_compilation/test20569.d(28): Error: reference to local variable `x` assigned to non-scope `s3.pointer`
 ---
  */
 
@@ -21,4 +22,8 @@ void main() @safe
     int x;
     S s2 = S(&x);
     auto p2 = &s2.pointer;
+
+    S s3;
+    auto p3 = &s3.pointer;
+    s3.pointer = &x;
 }
