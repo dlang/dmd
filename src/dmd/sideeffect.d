@@ -390,7 +390,16 @@ VarDeclaration copyToTemp(StorageClass stc, const char[] name, Expression e)
 Expression extractSideEffect(Scope* sc, const char[] name,
     ref Expression e0, Expression e, bool alwaysCopy = false)
 {
-    if (!alwaysCopy && isTrivialExp(e))
+    //printf("extractSideEffect(e: %s)\n", e.toChars());
+
+    /* The trouble here is that if CTFE is running, extracting the side effect
+     * results in an assignment, and then the interpreter says it cannot evaluate the
+     * side effect assignment variable. But we don't have to worry about side
+     * effects in function calls anyway, because then they won't CTFE.
+     * https://issues.dlang.org/show_bug.cgi?id=17145
+     */
+    if (!alwaysCopy &&
+        ((sc.flags & SCOPE.ctfe) ? !hasSideEffect(e) : isTrivialExp(e)))
         return e;
 
     auto vd = copyToTemp(0, name, e);
