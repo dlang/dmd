@@ -3187,17 +3187,18 @@ private size_t adjustStackSize(size_t sz) nothrow @nogc
     if (sz == 0)
         return 0;
 
+    // stack size must be at least PTHREAD_STACK_MIN for most platforms.
     if (PTHREAD_STACK_MIN > sz)
         sz = PTHREAD_STACK_MIN;
 
     version (CRuntime_Glibc)
     {
-        // TLS uses the top of the stack, so add its size to the requested size
+        // On glibc, TLS uses the top of the stack, so add its size to the requested size
         sz += externDFunc!("rt.sections_elf_shared.sizeOfTLS",
                            size_t function() @nogc nothrow)();
     }
 
-    // stack size must be a multiple of PAGESIZE and at least PTHREAD_STACK_MIN
+    // stack size must be a multiple of PAGESIZE
     sz = ((sz + PAGESIZE - 1) & ~(PAGESIZE - 1));
 
     return sz;
