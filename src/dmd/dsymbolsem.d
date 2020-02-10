@@ -4606,8 +4606,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             sd.alignment = sc.alignment();
 
             sd.storage_class |= sc.stc;
-            if (sd.storage_class & STC.deprecated_)
-                sd.isdeprecated = true;
             if (sd.storage_class & STC.abstract_)
                 sd.error("structs, unions cannot be `abstract`");
 
@@ -4821,8 +4819,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             cldec.protection = sc.protection;
 
             cldec.storage_class |= sc.stc;
-            if (cldec.storage_class & STC.deprecated_)
-                cldec.isdeprecated = true;
             if (cldec.storage_class & STC.auto_)
                 cldec.error("storage class `auto` is invalid when declaring a class, did you mean to use `scope`?");
             if (cldec.storage_class & STC.scope_)
@@ -4927,7 +4923,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     if (!cldec.isDeprecated())
                     {
                         // Deriving from deprecated class makes this one deprecated too
-                        cldec.isdeprecated = true;
+                        cldec.setDeprecated();
                         tc.checkDeprecated(cldec.loc, sc);
                     }
                 }
@@ -5019,7 +5015,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     if (!cldec.isDeprecated())
                     {
                         // Deriving from deprecated class makes this one deprecated too
-                        cldec.isdeprecated = true;
+                        cldec.setDeprecated();
                         tc.checkDeprecated(cldec.loc, sc);
                     }
                 }
@@ -5480,9 +5476,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             idec.protection = sc.protection;
 
             idec.storage_class |= sc.stc;
-            if (idec.storage_class & STC.deprecated_)
-                idec.isdeprecated = true;
-
             idec.userAttribDecl = sc.userAttribDecl;
         }
         else if (idec.symtab)
@@ -5596,8 +5589,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     if (!idec.isDeprecated())
                     {
-                        // Deriving from deprecated class makes this one deprecated too
-                        idec.isdeprecated = true;
+                        // Deriving from deprecated interface makes this one deprecated too
+                        idec.setDeprecated();
                         tc.checkDeprecated(idec.loc, sc);
                     }
                 }

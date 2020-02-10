@@ -82,7 +82,6 @@ public:
     VarDeclarations fields;     // VarDeclaration fields
     Sizeok sizeok;              // set when structsize contains valid data
     Dsymbol *deferred;          // any deferred semantic2() or semantic3() symbol
-    bool isdeprecated;          // true if deprecated
 
     ClassKind::Type classKind;  // specifies the linkage type
 
@@ -128,6 +127,7 @@ public:
     bool fill(Loc loc, Expressions *elements, bool ctorinit);
     Type *getType();
     bool isDeprecated() const;         // is aggregate deprecated?
+    void setDeprecated();
     bool isNested() const;
     bool isExport() const;
     Dsymbol *searchCtor();
