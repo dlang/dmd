@@ -253,27 +253,46 @@ alias lexer = makeRule!((builder, rule) => builder
     )
 );
 
-/// Returns: the rule that generates the dmd.conf file in the output folder
+/// Returns: the rule that generates the dmd.conf/sc.ini file in the output folder
 alias dmdConf = makeRule!((builder, rule) {
-    // TODO: add support for Windows
     string exportDynamic;
     version(OSX) {} else
         exportDynamic = " -L--export-dynamic";
 
-    auto conf = `[Environment32]
+    version (Windows)
+    {
+        enum confFile = "sc.ini";
+        enum conf = `[Environment]
+DFLAGS="-I%@P%\..\..\..\..\..\druntime\import" "-I%@P%\..\..\..\..\..\phobos"
+LIB="%@P%\..\..\..\..\..\phobos"
+
+[Environment64]
+DFLAGS=%DFLAGS% -L/OPT:NOICF
+
+[Environment32mscoff]
+DFLAGS=%DFLAGS% -L/OPT:NOICF
+`;
+    }
+    else
+    {
+        enum confFile = "dmd.conf";
+        enum conf = `[Environment32]
 DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../../../phobos/generated/{OS}/{BUILD}/32{exportDynamic}
 
 [Environment64]
-DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../../../phobos/generated/{OS}/{BUILD}/64{exportDynamic} -fPIC`
-        .replace("{exportDynamic}", exportDynamic)
-        .replace("{BUILD}", env["BUILD"])
-        .replace("{OS}", env["OS"]);
+DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../../../phobos/generated/{OS}/{BUILD}/64{exportDynamic} -fPIC
+`;
+    }
+
     builder
         .name("dmdconf")
-        .target(env["G"].buildPath("dmd.conf"))
+        .target(env["G"].buildPath(confFile))
         .msg("(TX) DMD_CONF")
         .commandFunction(() {
-            conf.toFile(rule.target);
+            conf.replace("{exportDynamic}", exportDynamic)
+                .replace("{BUILD}", env["BUILD"])
+                .replace("{OS}", env["OS"])
+                .toFile(rule.target);
         });
 });
 
