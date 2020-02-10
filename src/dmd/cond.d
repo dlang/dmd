@@ -653,6 +653,7 @@ extern (C++) final class VersionCondition : DVCondition
             case "HPPA64":
             case "SH":
             case "WebAssembly":
+            case "WASI":
             case "Alpha":
             case "Alpha_SoftFloat":
             case "Alpha_HardFloat":
@@ -666,6 +667,7 @@ extern (C++) final class VersionCondition : DVCondition
             case "CRuntime_Microsoft":
             case "CRuntime_Musl":
             case "CRuntime_UClibc":
+            case "CRuntime_WASI":
             case "CppRuntime_Clang":
             case "CppRuntime_DigitalMars":
             case "CppRuntime_Gcc":
