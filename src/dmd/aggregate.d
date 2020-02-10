@@ -79,7 +79,6 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     VarDeclarations fields; // VarDeclaration fields
     Sizeok sizeok = Sizeok.none;  // set when structsize contains valid data
     Dsymbol deferred;       // any deferred semantic2() or semantic3() symbol
-    bool isdeprecated;      // true if deprecated
 
     /// specifies whether this is a D, C++, Objective-C or anonymous struct/class/interface
     ClassKind classKind;
@@ -635,7 +634,13 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     // is aggregate deprecated?
     override final bool isDeprecated() const
     {
-        return isdeprecated;
+        return !!(this.storage_class & STC.deprecated_);
+    }
+
+    /// Flag this aggregate as deprecated
+    final void setDeprecated()
+    {
+        this.storage_class |= STC.deprecated_;
     }
 
     /****************************************
