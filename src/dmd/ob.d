@@ -1233,7 +1233,7 @@ void genKill(ref ObState obstate, ObNode* ob)
             pvs.deps.zero();
 
             EscapeByResults er;
-            escapeByValue(e, &er);
+            escapeByValue(e, &er, true);
             bool any = false;           // if any variables are assigned to v
 
             void by(VarDeclaration r)
@@ -1418,7 +1418,7 @@ void genKill(ref ObState obstate, ObNode* ob)
                         auto pt = p.type.toBasetype();
 
                         EscapeByResults er;
-                        escapeByValue(arg, &er);
+                        escapeByValue(arg, &er, true);
 
                         if (!(p.storageClass & STC.out_ && arg.isVarExp()))
                             arg.accept(this);
@@ -1463,7 +1463,7 @@ void genKill(ref ObState obstate, ObNode* ob)
                         arg.accept(this);
 
                         EscapeByResults er;
-                        escapeByValue(arg, &er);
+                        escapeByValue(arg, &er, true);
 
                         void byv(VarDeclaration v)
                         {
@@ -1872,7 +1872,7 @@ void checkObErrors(ref ObState obstate)
             pvs.deps.zero();
 
             EscapeByResults er;
-            escapeByValue(e, &er);
+            escapeByValue(e, &er, true);
 
             void by(VarDeclaration r)   // `v` = `r`
             {
@@ -2062,7 +2062,7 @@ void checkObErrors(ref ObState obstate)
                             arg.accept(this);
 
                         EscapeByResults er;
-                        escapeByValue(arg, &er);
+                        escapeByValue(arg, &er, true);
 
                         void by(VarDeclaration v)
                         {
@@ -2106,7 +2106,7 @@ void checkObErrors(ref ObState obstate)
                         arg.accept(this);
 
                         EscapeByResults er;
-                        escapeByValue(arg, &er);
+                        escapeByValue(arg, &er, true);
 
                         void byv(VarDeclaration v)
                         {
@@ -2420,7 +2420,7 @@ void checkObErrors(ref ObState obstate)
         if (ob.obtype == ObType.retexp)
         {
             EscapeByResults er;
-            escapeByValue(ob.exp, &er);
+            escapeByValue(ob.exp, &er, true);
 
             void by(VarDeclaration r)   // `r` is the rvalue
             {

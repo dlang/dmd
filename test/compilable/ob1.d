@@ -107,3 +107,43 @@ void deallocate(int* ptr, size_t length) @live
 }
 
 
+/*******************************/
+
+void zoo1(int);
+
+@live void zoo2() {
+    int* p = malloc();
+    zoo1(*p);  // does not consume p
+    free(p);
+}
+
+@live void zoo3() {
+    int** p = cast(int**)malloc();
+    free(*p); // consumes p
+}
+
+@live void zoo4() {
+    int[] a = malloc()[0 .. 1];
+    zoo1(a[0]);  // does not consume a
+    free(a.ptr); // consumes a
+}
+
+@live void zoo5() {
+    int*[] a = (cast(int**)malloc())[0 .. 1];
+    free(a[0]); // consumes a
+}
+
+struct S { int i; int* p; }
+
+@live void zoo6() {
+    S* s = cast(S*)malloc();
+    zoo1(s.i);    // does not consume s
+    free(cast(int*)s);
+}
+
+@live void zoo7() {
+    S* s = cast(S*)malloc();
+    free(s.p);    // consumes s
+}
+
+

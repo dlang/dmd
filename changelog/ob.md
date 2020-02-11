@@ -208,19 +208,6 @@ They're not tracked.
 }
 ```
 
-### Memory Model Transitivity Not Checked
-
-```
-struct S { int* s; }
-
-@live void whoops()
-{
-    auto p = cast(S*)malloc(S.sizeof);
-    scope b = p;    // borrows `p`
-    scope c = p.s;  // not recognized as borrowing `p`
-}
-```
-
 ### Exceptions
 
 The analysis assumes no exceptions are thrown.
