@@ -560,6 +560,10 @@ except parts marked with one of the following special sequences:
 
 $n$ = numbers (e.g. compiler generated unique identifiers)
 $p:<path>$ = real paths ending with <path>
+$?:<choices>$ = environment dependent content supplied as a list
+                choices (either <condition>=<content> or <default>),
+                separated by a '|'. Currently supported conditions are
+                OS and model as supplied from the environment
 
 Params:
     output    = the real output
@@ -576,7 +580,7 @@ bool compareOutput(string output, string refoutput, const ref EnvData envData)
 
     for ( ; ; )
     {
-        auto special = refoutput.find("$n$", "$p:").rename!("remainder", "id");
+        auto special = refoutput.find("$n$", "$p:", "$?:").rename!("remainder", "id");
 
         // Simple equality check if no special tokens remain
         if (special.id == 0)
@@ -595,14 +599,18 @@ bool compareOutput(string output, string refoutput, const ref EnvData envData)
         {
             import std.ascii : isDigit;
             output.skipOver!isDigit();
+            continue;
         }
-        else // $p:<some path>$
-        {
-            // Find the end of the expected path
-            /// ( expected path tail, "$", remaining expected output )
-            auto refparts = refoutput.findSplit("$");
-            enforce(refparts, "Malformed path sequence!");
 
+        // $<identifier>:<special content>$
+        /// ( special content, "$", remaining expected output )
+        auto refparts = refoutput.findSplit("$");
+        enforce(refparts, "Malformed special sequence!");
+        refoutput = refparts[2];
+
+        if (special.id == 2) // $p:<some path>$
+        {
+            // special content is the expected path tail
             // Substitute / with the appropriate directory separator
             auto pathEnd = refparts[0].replace("/", envData.sep);
 
@@ -612,9 +620,33 @@ bool compareOutput(string output, string refoutput, const ref EnvData envData)
             if (!parts || !exists(parts[0]))
                 return false;
 
-            refoutput = refparts[2];
             output = parts[1];
+            continue;
         }
+
+        // $?:<predicate>=<content>(;<predicate>=<content>)*(;<default>)?$
+        string toSkip = null;
+
+        foreach (const chunk; refparts[0].splitter('|'))
+        {
+            // ( <predicate> , "=", <content> )
+            const conditional = chunk.findSplit("=");
+
+            if (!conditional) // <default>
+            {
+                toSkip = chunk;
+                break;
+            }
+            // Match against OS or model
+            else if (conditional[0].among(envData.os, envData.model))
+            {
+                toSkip = conditional[2];
+                break;
+            }
+        }
+
+        if (toSkip !is null && !output.skipOver(toSkip))
+            return false;
     }
 }
 
@@ -640,6 +672,18 @@ unittest
     assert(!compareOutput(`See /path/to/druntime/import/object.d`, `See $p:druntime/import/object.d$`, ed));
 
     assertThrown(compareOutput(`Path /a/b/c.d!`, `Path $p:c.d!`, ed)); // Missing closing $
+
+    const fmt = "This $?:windows=A|posix=B|C$ uses $?:64=1|32=2|3$ bytes";
+
+    assert( compareOutput("This C uses 3 bytes", fmt, ed));
+
+    ed.os = "posix";
+    ed.model = "64";
+    assert( compareOutput("This B uses 1 bytes", fmt, ed));
+    assert(!compareOutput("This C uses 3 bytes", fmt, ed));
+
+    const emptyFmt = "On <$?:windows=abc|$> use <$?:posix=$>!";
+    assert(compareOutput("On <> use <>!", emptyFmt, ed));
 }
 
 string envGetRequired(in char[] name)
