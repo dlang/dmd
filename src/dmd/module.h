@@ -77,6 +77,7 @@ public:
     bool isHdrFile;     // if it is a header (.di) file
     bool isDocFile;     // if it is a documentation input file, not D source
     bool isPackageFile; // if it is a package.d
+    Package pkg;        // if isPackageFile is true, the Package that contains this package.d
     Strings contentImportedFiles;  // array of files whose content was imported
     int needmoduleinfo;
     int selfimports;            // 0: don't know, 1: does not, 2: does
