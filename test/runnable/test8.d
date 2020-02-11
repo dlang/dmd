@@ -459,7 +459,7 @@ in
 out (result)
 {
 }
-body
+do
 {   int i = 5;
 
     while (i)

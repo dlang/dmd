@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/opover.d, _opover.d)
@@ -393,25 +393,6 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
             if (ad)
             {
                 Dsymbol fd = null;
-                version (all)
-                {
-                    // Old way, kept for compatibility with D1
-                    if (e.op != TOK.prePlusPlus && e.op != TOK.preMinusMinus)
-                    {
-                        auto id = opId(e);
-                        fd = search_function(ad, id);
-                        if (fd)
-                        {
-                            // @@@DEPRECATED_2.094@@@.
-                            // Deprecated in 2.088
-                            // Make an error in 2.094
-                            e.deprecation("`%s` is deprecated.  Use `opUnary(string op)() if (op == \"%s\")` instead.", id.toChars(), Token.toChars(e.op));
-                            // Rewrite +e1 as e1.add()
-                            result = build_overload(e.loc, sc, e.e1, null, fd);
-                            return;
-                        }
-                    }
-                }
                 /* Rewrite as:
                  *      e1.opUnary!(op)()
                  */
@@ -423,6 +404,22 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                     result = new CallExp(e.loc, result);
                     result = result.expressionSemantic(sc);
                     return;
+                }
+                // D1-style operator overloads, deprecated
+                if (e.op != TOK.prePlusPlus && e.op != TOK.preMinusMinus)
+                {
+                    auto id = opId(e);
+                    fd = search_function(ad, id);
+                    if (fd)
+                    {
+                        // @@@DEPRECATED_2.094@@@.
+                        // Deprecated in 2.088
+                        // Make an error in 2.094
+                        e.deprecation("`%s` is deprecated.  Use `opUnary(string op)() if (op == \"%s\")` instead.", id.toChars(), Token.toChars(e.op));
+                        // Rewrite +e1 as e1.add()
+                        result = build_overload(e.loc, sc, e.e1, null, fd);
+                        return;
+                    }
                 }
                 // Didn't find it. Forward to aliasthis
                 if (ad.aliasthis && e.e1.type != e.att1)
@@ -632,40 +629,6 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
             }
             Dsymbol s = null;
             Dsymbol s_r = null;
-            version (all)
-            {
-                // the old D1 scheme
-                if (ad1 && id)
-                {
-                    s = search_function(ad1, id);
-                    if (s && id != Id.assign)
-                    {
-                        // @@@DEPRECATED_2.094@@@.
-                        // Deprecated in 2.088
-                        // Make an error in 2.094
-                        if (id == Id.postinc || id == Id.postdec)
-                            e.deprecation("`%s` is deprecated.  Use `opUnary(string op)() if (op == \"%s\")` instead.", id.toChars(), Token.toChars(e.op));
-                        else
-                            e.deprecation("`%s` is deprecated.  Use `opBinary(string op)(...) if (op == \"%s\")` instead.", id.toChars(), Token.toChars(e.op));
-                    }
-                }
-                if (ad2 && id_r)
-                {
-                    s_r = search_function(ad2, id_r);
-                    // https://issues.dlang.org/show_bug.cgi?id=12778
-                    // If both x.opBinary(y) and y.opBinaryRight(x) found,
-                    // and they are exactly same symbol, x.opBinary(y) should be preferred.
-                    if (s_r && s_r == s)
-                        s_r = null;
-                    if (s_r)
-                    {
-                        // @@@DEPRECATED_2.094@@@.
-                        // Deprecated in 2.088
-                        // Make an error in 2.094
-                        e.deprecation("`%s` is deprecated.  Use `opBinaryRight(string op)(...) if (op == \"%s\")` instead.", id_r.toChars(), Token.toChars(e.op));
-                    }
-                }
-            }
             Objects* tiargs = null;
             if (e.op == TOK.plusPlus || e.op == TOK.minusMinus)
             {
@@ -673,9 +636,9 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                 if (ad1 && search_function(ad1, Id.opUnary))
                     return;
             }
-            if (!s && !s_r && e.op != TOK.equal && e.op != TOK.notEqual && e.op != TOK.assign && e.op != TOK.plusPlus && e.op != TOK.minusMinus)
+            if (e.op != TOK.equal && e.op != TOK.notEqual && e.op != TOK.assign && e.op != TOK.plusPlus && e.op != TOK.minusMinus)
             {
-                /* Try the new D2 scheme, opBinary and opBinaryRight
+                /* Try opBinary and opBinaryRight
                  */
                 if (ad1)
                 {
@@ -705,6 +668,40 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                     id = Id.opBinary;
                     id_r = Id.opBinaryRight;
                     tiargs = opToArg(sc, e.op);
+                }
+            }
+            if (!s && !s_r)
+            {
+                // Try the D1-style operators, deprecated
+                if (ad1 && id)
+                {
+                    s = search_function(ad1, id);
+                    if (s && id != Id.assign)
+                    {
+                        // @@@DEPRECATED_2.094@@@.
+                        // Deprecated in 2.088
+                        // Make an error in 2.094
+                        if (id == Id.postinc || id == Id.postdec)
+                            e.deprecation("`%s` is deprecated.  Use `opUnary(string op)() if (op == \"%s\")` instead.", id.toChars(), Token.toChars(e.op));
+                        else
+                            e.deprecation("`%s` is deprecated.  Use `opBinary(string op)(...) if (op == \"%s\")` instead.", id.toChars(), Token.toChars(e.op));
+                    }
+                }
+                if (ad2 && id_r)
+                {
+                    s_r = search_function(ad2, id_r);
+                    // https://issues.dlang.org/show_bug.cgi?id=12778
+                    // If both x.opBinary(y) and y.opBinaryRight(x) found,
+                    // and they are exactly same symbol, x.opBinary(y) should be preferred.
+                    if (s_r && s_r == s)
+                        s_r = null;
+                    if (s_r)
+                    {
+                        // @@@DEPRECATED_2.094@@@.
+                        // Deprecated in 2.088
+                        // Make an error in 2.094
+                        e.deprecation("`%s` is deprecated.  Use `opBinaryRight(string op)(...) if (op == \"%s\")` instead.", id_r.toChars(), Token.toChars(e.op));
+                    }
                 }
             }
             if (s || s_r)
@@ -1277,45 +1274,41 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
             Expressions args2;
             AggregateDeclaration ad1 = isAggregate(e.e1.type);
             Dsymbol s = null;
-            version (all)
+            Objects* tiargs = null;
+            /* Try opOpAssign
+             */
+            if (ad1)
             {
-                // the old D1 scheme
-                if (ad1 && id)
+                s = search_function(ad1, Id.opOpAssign);
+                if (s && !s.isTemplateDeclaration())
                 {
-                    s = search_function(ad1, id);
-                    if (s)
-                    {
-                        // @@@DEPRECATED_2.094@@@.
-                        // Deprecated in 2.088
-                        // Make an error in 2.094
-                        scope char[] op = Token.toString(e.op).dup;
-                        op[$-1] = '\0'; // remove trailing `=`
-                        e.deprecation("`%s` is deprecated.  Use `opOpAssign(string op)(...) if (op == \"%s\")` instead.", id.toChars(), op.ptr);
-                    }
+                    e.error("`%s.opOpAssign` isn't a template", e.e1.toChars());
+                    result = new ErrorExp();
+                    return;
                 }
             }
-            Objects* tiargs = null;
-            if (!s)
+            // Set tiargs, the template argument list, which will be the operator string
+            if (s)
             {
-                /* Try the new D2 scheme, opOpAssign
-                 */
-                if (ad1)
-                {
-                    s = search_function(ad1, Id.opOpAssign);
-                    if (s && !s.isTemplateDeclaration())
-                    {
-                        e.error("`%s.opOpAssign` isn't a template", e.e1.toChars());
-                        result = new ErrorExp();
-                        return;
-                    }
-                }
-                // Set tiargs, the template argument list, which will be the operator string
+                id = Id.opOpAssign;
+                tiargs = opToArg(sc, e.op);
+            }
+
+            // Try D1-style operator overload, deprecated
+            if (!s && ad1 && id)
+            {
+                s = search_function(ad1, id);
                 if (s)
                 {
-                    id = Id.opOpAssign;
-                    tiargs = opToArg(sc, e.op);
+                    // @@@DEPRECATED_2.094@@@.
+                    // Deprecated in 2.088
+                    // Make an error in 2.094
+                    scope char[] op = Token.toString(e.op).dup;
+                    op[$-1] = '\0'; // remove trailing `=`
+                    e.deprecation("`%s` is deprecated.  Use `opOpAssign(string op)(...) if (op == \"%s\")` instead.", id.toChars(), op.ptr);
                 }
             }
+
             if (s)
             {
                 /* Try:

@@ -194,6 +194,21 @@ void test9()
 }
 
 /***************************************/
+// https://issues.dlang.org/show_bug.cgi?id=20349
+
+double f20349(double a, int b)
+{
+    import core.math;
+    return core.math.sqrt(-a / b) / b;
+}
+
+void test20349()
+{
+    assert(f20349(-9, 1) == 3);
+}
+
+/***************************************/
+
 
 int main()
 {
@@ -205,6 +220,7 @@ int main()
     test7();
     test8();
     test9();
+    test20349();
 
     printf("Success\n");
     return EXIT_SUCCESS;

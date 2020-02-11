@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dsymbol.d, _dsymbol.d)
@@ -48,9 +48,9 @@ import dmd.root.aav;
 import dmd.root.rmem;
 import dmd.root.rootobject;
 import dmd.root.speller;
+import dmd.root.string;
 import dmd.statement;
 import dmd.tokens;
-import dmd.utils;
 import dmd.visitor;
 
 /***************************************
@@ -1217,7 +1217,6 @@ extern (C++) class Dsymbol : ASTNode
     inout(ArrayScopeSymbol)            isArrayScopeSymbol()            inout { return null; }
     inout(Import)                      isImport()                      inout { return null; }
     inout(EnumDeclaration)             isEnumDeclaration()             inout { return null; }
-    inout(DeleteDeclaration)           isDeleteDeclaration()           inout { return null; }
     inout(SymbolDeclaration)           isSymbolDeclaration()           inout { return null; }
     inout(AttribDeclaration)           isAttribDeclaration()           inout { return null; }
     inout(AnonDeclaration)             isAnonDeclaration()             inout { return null; }
@@ -1476,10 +1475,6 @@ public:
 
     extern (D) final void addAccessiblePackage(Package p, Prot protection)
     {
-        // https://issues.dlang.org/show_bug.cgi?id=17991
-        // An import of truly empty file/package can happen
-        if (p is null)
-            return;
         auto pary = protection.kind == Prot.Kind.private_ ? &privateAccessiblePackages : &accessiblePackages;
         if (pary.length <= p.tag)
             pary.length = p.tag + 1;

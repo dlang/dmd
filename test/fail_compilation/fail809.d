@@ -5,7 +5,7 @@ TEST_OUTPUT:
 fail_compilation/fail809.d(11): Error: scope variable `dg_` may not be returned
 ---
 */
-@safe int delegate() test(lazy int dg)
+int delegate() test(lazy int dg)
 {
     int delegate() dg_ = &dg;
     return dg_;

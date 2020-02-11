@@ -1,4 +1,5 @@
-// REQUIRED_ARGS: -c -Ifail_compilation/imports/ fail_compilation/imports/test18938a/cache.d fail_compilation/imports/test18938a/file.d
+// REQUIRED_ARGS: -c -Ifail_compilation/imports/
+// EXTRA_SOURCES: imports/test18938a/cache.d imports/test18938a/file.d
 /*
 TEST_OUTPUT:
 ---

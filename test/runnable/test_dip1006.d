@@ -5,7 +5,7 @@ class C
     int foo(int a)
     in { assert(a != 0); } // skipped
     out(res) { assert(res != 0); } // skipped
-    body
+    do
     {
         return a;
     }

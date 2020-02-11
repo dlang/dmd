@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/e2ir.d, _e2ir.d)
@@ -487,6 +487,45 @@ if (!irs.params.is64bit) assert(tysize(TYnptr) == 4);
             elem *earg = e.EV.E2;
             e.EV.E2 = null;
             e = el_combine(earg, e);
+        }
+        else if (op == OPtoPrec)
+        {
+            static int X(int fty, int tty) { return fty * TMAX + tty; }
+
+            final switch (X(tybasic(ep.Ety), tyret))
+            {
+            case X(TYfloat, TYfloat):     // float -> float
+            case X(TYdouble, TYdouble):   // double -> double
+            case X(TYldouble, TYldouble): // real -> real
+                e = ep;
+                break;
+
+            case X(TYfloat, TYdouble):    // float -> double
+                e = el_una(OPf_d, tyret, ep);
+                break;
+
+            case X(TYfloat, TYldouble):   // float -> real
+                e = el_una(OPf_d, TYdouble, ep);
+                e = el_una(OPd_ld, tyret, e);
+                break;
+
+            case X(TYdouble, TYfloat):    // double -> float
+                e = el_una(OPd_f, tyret, ep);
+                break;
+
+            case X(TYdouble, TYldouble):  // double -> real
+                e = el_una(OPd_ld, tyret, ep);
+                break;
+
+            case X(TYldouble, TYfloat):   // real -> float
+                e = el_una(OPld_d, TYdouble, ep);
+                e = el_una(OPd_f, tyret, e);
+                break;
+
+            case X(TYldouble, TYdouble):  // real -> double
+                e = el_una(OPld_d, tyret, ep);
+                break;
+            }
         }
         else
             e = el_una(op,tyret,ep);
@@ -3765,7 +3804,10 @@ elem *toElem(Expression e, IRState *irs)
 
                 if (auto sle = dve.e1.isStructLiteralExp())
                 {
-                    sle.useStaticInit = false;          // don't modify initializer
+                    if (fd && fd.isCtorDeclaration() ||
+                        fd.type.isMutable() ||
+                        sle.type.size() <= 8)          // more efficient than fPIC
+                        sle.useStaticInit = false;     // don't modify initializer, so make copy
                 }
 
                 ec = toElem(dve.e1, irs);
@@ -6242,6 +6284,17 @@ elem *callCAssert(IRState *irs, const ref Loc loc, Expression exp, Expression em
     Module m = cast(Module)irs.blx._module;
     const(char)* mname = m.srcfile.toChars();
 
+    elem* getFuncName()
+    {
+        const(char)* id = "";
+        FuncDeclaration fd = irs.getFunc();
+        if (fd)
+            id = fd.toPrettyChars();
+        const len = strlen(id);
+        Symbol *si = toStringSymbol(id, len, 1);
+        return el_ptr(si);
+    }
+
     //printf("filename = '%s'\n", loc.filename);
     //printf("module = '%s'\n", mname);
 
@@ -6290,23 +6343,26 @@ elem *callCAssert(IRState *irs, const ref Loc loc, Expression exp, Expression em
     if (irs.params.isOSX)
     {
         // __assert_rtn(func, file, line, msg);
-        const(char)* id = "";
-        FuncDeclaration fd = irs.getFunc();
-        if (fd)
-            id = fd.toPrettyChars();
-        const len = strlen(id);
-        Symbol *si = toStringSymbol(id, len, 1);
-        elem *efunc = el_ptr(si);
-
+        elem* efunc = getFuncName();
         auto eassert = el_var(getRtlsym(RTLSYM_C__ASSERT_RTN));
         ea = el_bin(OPcall, TYvoid, eassert, el_params(elmsg, eline, efilename, efunc, null));
     }
     else
     {
-        // [_]_assert(msg, file, line);
-        const rtlsym = (irs.params.isWindows) ? RTLSYM_C_ASSERT : RTLSYM_C__ASSERT;
-        auto eassert = el_var(getRtlsym(rtlsym));
-        ea = el_bin(OPcall, TYvoid, eassert, el_params(eline, efilename, elmsg, null));
+        version (CRuntime_Musl)
+        {
+            // __assert_fail(exp, file, line, func);
+            elem* efunc = getFuncName();
+            auto eassert = el_var(getRtlsym(RTLSYM_C__ASSERT_FAIL));
+            ea = el_bin(OPcall, TYvoid, eassert, el_params(elmsg, efilename, eline, efunc, null));
+        }
+        else
+        {
+            // [_]_assert(msg, file, line);
+            const rtlsym = (irs.params.isWindows) ? RTLSYM_C_ASSERT : RTLSYM_C__ASSERT;
+            auto eassert = el_var(getRtlsym(rtlsym));
+            ea = el_bin(OPcall, TYvoid, eassert, el_params(eline, efilename, elmsg, null));
+        }
     }
     return ea;
 }

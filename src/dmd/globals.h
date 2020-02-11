@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -25,6 +25,13 @@ enum
     DIAGNOSTICerror,  // generate an error
     DIAGNOSTICinform, // generate a warning
     DIAGNOSTICoff     // disable diagnostic
+};
+
+typedef unsigned char MessageStyle;
+enum
+{
+    MESSAGESTYLEdigitalmars, // file(line,column): message
+    MESSAGESTYLEgnu,         // file:line:column: message
 };
 
 // The state of array bounds checking
@@ -218,6 +225,7 @@ struct Param
 
     DString moduleDepsFile;     // filename for deps output
     OutBuffer *moduleDeps;      // contents to be written to deps file
+    MessageStyle messageStyle;  // style of file/line annotations on messages
 
     // Hidden debug switches
     bool debugb;
@@ -361,7 +369,9 @@ struct Loc
         this->filename = filename;
     }
 
-    const char *toChars(bool showColumns = global.params.showColumns) const;
+    const char *toChars(
+        bool showColumns = global.params.showColumns,
+        MessageStyle messageStyle = global.params.messageStyle) const;
     bool equals(const Loc& loc) const;
 };
 

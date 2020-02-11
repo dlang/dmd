@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/func.d, _func.d)
@@ -40,13 +40,13 @@ import dmd.mtype;
 import dmd.objc;
 import dmd.root.outbuffer;
 import dmd.root.rootobject;
+import dmd.root.string;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.statement_rewrite_walker;
 import dmd.statement;
 import dmd.statementsem;
 import dmd.tokens;
-import dmd.utils;
 import dmd.visitor;
 
 /// Inline Status
@@ -3305,6 +3305,9 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
         this.ident = id ? id : Id.empty;
         this.tok = tok;
         this.fes = fes;
+        // Always infer scope for function literals
+        // See https://issues.dlang.org/show_bug.cgi?id=20362
+        this.flags |= FUNCFLAG.inferScope;
         //printf("FuncLiteralDeclaration() id = '%s', type = '%s'\n", this.ident.toChars(), type.toChars());
     }
 
@@ -3898,61 +3901,6 @@ extern (C++) final class NewDeclaration : FuncDeclaration
     }
 
     override inout(NewDeclaration) isNewDeclaration() inout
-    {
-        return this;
-    }
-
-    override void accept(Visitor v)
-    {
-        v.visit(this);
-    }
-}
-
-/***********************************************************
- */
-extern (C++) final class DeleteDeclaration : FuncDeclaration
-{
-    Parameters* parameters;
-
-    extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, Parameters* fparams)
-    {
-        super(loc, endloc, Id.classDelete, STC.static_ | stc, null);
-        this.parameters = fparams;
-    }
-
-    override Dsymbol syntaxCopy(Dsymbol s)
-    {
-        assert(!s);
-        auto f = new DeleteDeclaration(loc, endloc, storage_class, Parameter.arraySyntaxCopy(parameters));
-        return FuncDeclaration.syntaxCopy(f);
-    }
-
-    override const(char)* kind() const
-    {
-        return "deallocator";
-    }
-
-    override bool isDelete()
-    {
-        return true;
-    }
-
-    override bool isVirtual() const
-    {
-        return false;
-    }
-
-    override bool addPreInvariant()
-    {
-        return false;
-    }
-
-    override bool addPostInvariant()
-    {
-        return false;
-    }
-
-    override inout(DeleteDeclaration) isDeleteDeclaration() inout
     {
         return this;
     }

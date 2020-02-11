@@ -2,8 +2,7 @@ module lexer.diagnostic_reporter;
 
 import core.stdc.stdarg;
 
-import dmd.errors : DiagnosticReporter;
-import dmd.globals : Loc;
+import dmd.globals : Loc, global, DiagnosticReporting;
 
 import support : afterEach, NoopDiagnosticReporter;
 
@@ -20,14 +19,15 @@ unittest
     {
         int errorCount;
 
-        override void error(const ref Loc, const(char)*, va_list)
+        override bool error(const ref Loc, const(char)*, va_list, const(char)*, const(char)*)
         {
             errorCount++;
+            return true;
         }
     }
 
     scope reporter = new ErrorCountingDiagnosticReporter;
-    lexUntilEndOfFile("/*", reporter);
+    lexUntilEndOfFile("/*");
 
     assert(reporter.errorCount == 1);
 }
@@ -39,24 +39,26 @@ unittest
     {
         int warningCount;
 
-        override void warning(const ref Loc, const(char)*, va_list)
+        override bool warning(const ref Loc, const(char)*, va_list, const(char)*, const(char)*)
         {
             warningCount++;
+            return true;
         }
     }
 
+    global.params.warnings = DiagnosticReporting.inform;
     scope reporter = new WarningCountingDiagnosticReporter;
-    lexUntilEndOfFile(`#foo`, reporter);
+    lexUntilEndOfFile(`#foo`);
 
     assert(reporter.warningCount == 1);
 }
 
-private void lexUntilEndOfFile(string code, DiagnosticReporter reporter)
+private void lexUntilEndOfFile(string code)
 {
     import dmd.lexer : Lexer;
     import dmd.tokens : TOK;
 
-    scope lexer = new Lexer("test", code.ptr, 0, code.length, 0, 0, reporter);
+    scope lexer = new Lexer("test", code.ptr, 0, code.length, 0, 0);
     lexer.nextToken;
 
     while (lexer.nextToken != TOK.endOfFile) {}

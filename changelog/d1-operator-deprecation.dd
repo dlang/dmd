@@ -1,0 +1,18 @@
+D1-style operator now have a lower priority than D2-style
+
+D1 operator overloads have been deprecated in $(LINK2 https://dlang.org/changelog/2.088.0.html v2.088.0).
+They historically had priority over D2 operator overload, and that priority was kept as is even after deprecating them.
+
+One main difference between D1 and D2 operator overload is that D1's are `virtual` by default,
+while the D2 operator overloading scheme relies on template, and so cannot be virtual.
+Code relying on virtuality of operator can be trivially adapted by providing a D2-style operator
+overload that forwards to a virtual method.
+
+However, as D1 operator overloads take priority, the deprecation message will be issued even if a D2
+operator overload is present.
+This means that code relying on virtual operators would need not only to introduce the aforementioned
+D2-style overload, but also to rename their method not to match the reserved D1 names.
+This in turns forces libraries to introduce a breaking change in order to silence the deprecation.
+
+Starting from this release, D2-style operator overloads take priority over D1-style,
+making it trivial to forward the former to the later.

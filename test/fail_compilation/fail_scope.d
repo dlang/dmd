@@ -86,7 +86,7 @@ char* fail141()
 
 int[] test1313b()
 out{}
-body
+do
 {
     int[2] a;
     return a;
@@ -94,7 +94,7 @@ body
 
 int[] test1313a()
 //out{}
-body
+do
 {
     int[2] a;
     return a;
@@ -142,4 +142,3 @@ ref foo16226(ref int bar) @safe
 {
     return bar;
 }
-

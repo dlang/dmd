@@ -4175,10 +4175,10 @@ void test1962()
 /***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=6228
 
-
 void test6228()
 {
-    const(int)* ptr;
+    int val;
+    const(int)* ptr = &val;
     const(int)  temp;
     auto x = (*ptr) ^^ temp;
 }
@@ -5260,7 +5260,7 @@ public:
     {
         assert(isHage);
     }
-    body { }
+    do { }
 }
 
 class Child6859 : Parent6859

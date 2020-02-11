@@ -42,7 +42,7 @@ class C
             s = 10; // err
             a = 1;  // OK
         }
-        body
+        do
         {
             x = 10; // err
             y = 1;  // OK
@@ -70,7 +70,7 @@ class C
             s = 10; // err
             a = 1;  // OK
         }
-        body
+        do
         {
             x = 10; // err
             r = 10; // err
@@ -81,7 +81,7 @@ class C
         x = 10; // err
         r = 10; // err
     }
-    body
+    do
     {
         return 1;
     }

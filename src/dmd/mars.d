@@ -7,7 +7,7 @@
  * utilities needed for arguments parsing, path manipulation, etc...
  * This file is not shared with other compilers which use the DMD front-end.
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/mars.d, _mars.d)
@@ -58,6 +58,7 @@ import dmd.root.man;
 import dmd.root.outbuffer;
 import dmd.root.response;
 import dmd.root.rmem;
+import dmd.root.string;
 import dmd.root.stringtable;
 import dmd.semantic2;
 import dmd.semantic3;
@@ -120,6 +121,24 @@ Where:
 <option>:
   @<cmdfile>       read arguments from cmdfile
 %.*s", cast(int)inifileCanon.length, inifileCanon.ptr, cast(int)help.length, &help[0]);
+}
+
+/**
+ * Remove generated .di files on error and exit
+ */
+private void removeHdrFilesAndFail(ref Param params, ref Modules modules)
+{
+    if (params.doHdrGeneration)
+    {
+        foreach (m; modules)
+        {
+            if (m.isHdrFile)
+                continue;
+            File.remove(m.hdrfile.toChars());
+        }
+    }
+
+    fatal();
 }
 
 /**
@@ -524,7 +543,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         }
     }
     if (global.errors)
-        fatal();
+        removeHdrFilesAndFail(params, modules);
 
     // load all unconditional imports for better symbol resolving
     foreach (m; modules)
@@ -534,7 +553,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         m.importAll(null);
     }
     if (global.errors)
-        fatal();
+        removeHdrFilesAndFail(params, modules);
 
     backend_init();
 
@@ -568,7 +587,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     }
     Module.runDeferredSemantic2();
     if (global.errors)
-        fatal();
+        removeHdrFilesAndFail(params, modules);
 
     // Do pass 3 semantic analysis
     foreach (m; modules)
@@ -593,7 +612,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     }
     Module.runDeferredSemantic3();
     if (global.errors)
-        fatal();
+        removeHdrFilesAndFail(params, modules);
 
     // Scan for functions to inline
     if (params.useInline)
@@ -607,7 +626,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     }
     // Do not attempt to generate output files if errors or warnings occurred
     if (global.errors || global.warnings)
-        fatal();
+        removeHdrFilesAndFail(params, modules);
 
     // inlineScan incrementally run semantic3 of each expanded functions.
     // So deps file generation should be moved after the inlining stage.
@@ -738,7 +757,8 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         }
     }
     if (global.errors || global.warnings)
-        fatal();
+        removeHdrFilesAndFail(params, modules);
+
     return status;
 }
 
@@ -843,6 +863,8 @@ version (NoMain) {} else
         }
     }
 
+    extern extern(C) __gshared string[] rt_options;
+
     /**
      * DMD's entry point, C main.
      *
@@ -867,7 +889,11 @@ version (NoMain) {} else
                 }
             }
             if (!lowmem)
+            {
+                __gshared string[] disable_options = [ "gcopt=disable:1" ];
+                rt_options = disable_options;
                 mem.disableGC();
+            }
         }
 
         // initialize druntime and call _Dmain() below
@@ -882,20 +908,10 @@ version (NoMain) {} else
      */
     extern (C) int _Dmain(char[][])
     {
-        import core.memory;
         import core.runtime;
-
-        // Older host druntime versions need druntime to be initialized before
-        // disabling the GC, so we cannot disable it in C main above.
-        static if (isGCAvailable)
-        {
-            if (!mem.isGCEnabled)
-                GC.disable();
-        }
-        else
-        {
+        import core.memory;
+        static if (!isGCAvailable)
             GC.disable();
-        }
 
         version(D_Coverage)
         {
@@ -1169,7 +1185,15 @@ void addDefaultVersionIdentifiers(const ref Param params)
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("linux");
         VersionCondition.addPredefinedGlobalIdent("ELFv1");
-        VersionCondition.addPredefinedGlobalIdent("CRuntime_Glibc");
+        // Note: This should be done with a target triplet, to support cross compilation.
+        // However DMD currently does not support it, so this is a simple
+        // fix to make DMD compile on Musl-based systems such as Alpine.
+        // See https://github.com/dlang/dmd/pull/8020
+        // And https://wiki.osdev.org/Target_Triplet
+        version (CRuntime_Musl)
+            VersionCondition.addPredefinedGlobalIdent("CRuntime_Musl");
+        else
+            VersionCondition.addPredefinedGlobalIdent("CRuntime_Glibc");
         VersionCondition.addPredefinedGlobalIdent("CppRuntime_Gcc");
     }
     else if (params.isOSX)
@@ -1865,6 +1889,17 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 errorInvalidSwitch(p, "Only number, `spec`, or `context` are allowed for `-verrors`");
                 return true;
             }
+        }
+        else if (startsWith(p + 1, "verror-style="))
+        {
+            const style = p + 1 + "verror-style=".length;
+
+            if (strcmp(style, "digitalmars") == 0)
+                params.messageStyle = MessageStyle.digitalmars;
+            else if (strcmp(style, "gnu") == 0)
+                params.messageStyle = MessageStyle.gnu;
+            else
+                error("unknown error style '%s', must be 'digitalmars' or 'gnu'", style);
         }
         else if (startsWith(p + 1, "mcpu")) // https://dlang.org/dmd.html#switch-mcpu
         {

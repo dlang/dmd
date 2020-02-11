@@ -55,7 +55,6 @@ public:
     void visit(AST.InvariantDeclaration s) { visit(cast(AST.FuncDeclaration)s); }
     void visit(AST.UnitTestDeclaration s) { visit(cast(AST.FuncDeclaration)s); }
     void visit(AST.NewDeclaration s) { visit(cast(AST.FuncDeclaration)s); }
-    void visit(AST.DeleteDeclaration s) { visit(cast(AST.FuncDeclaration)s); }
     void visit(AST.StaticCtorDeclaration s) { visit(cast(AST.FuncDeclaration)s); }
     void visit(AST.StaticDtorDeclaration s) { visit(cast(AST.FuncDeclaration)s); }
     void visit(AST.SharedStaticCtorDeclaration s) { visit(cast(AST.StaticCtorDeclaration)s); }

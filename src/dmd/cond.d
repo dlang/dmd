@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/cond.d, _cond.d)
@@ -26,6 +26,7 @@ import dmd.identifier;
 import dmd.mtype;
 import dmd.root.outbuffer;
 import dmd.root.rootobject;
+import dmd.root.string;
 import dmd.tokens;
 import dmd.utils;
 import dmd.visitor;
@@ -652,6 +653,7 @@ extern (C++) final class VersionCondition : DVCondition
             case "HPPA64":
             case "SH":
             case "WebAssembly":
+            case "WASI":
             case "Alpha":
             case "Alpha_SoftFloat":
             case "Alpha_HardFloat":
@@ -665,6 +667,7 @@ extern (C++) final class VersionCondition : DVCondition
             case "CRuntime_Microsoft":
             case "CRuntime_Musl":
             case "CRuntime_UClibc":
+            case "CRuntime_WASI":
             case "CppRuntime_Clang":
             case "CppRuntime_DigitalMars":
             case "CppRuntime_Gcc":

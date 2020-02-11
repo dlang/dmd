@@ -68,17 +68,20 @@ void test2()
 
 /*****************************************************/
 
-void test3()
-{   uint v;
-    int b;
+version (DigitalMars)
+{
+    void test3()
+    {   uint v;
+        int b;
 
-    b = inp(b);
-    b = inpw(b);
-    b = inpl(b);
+        b = inp(b);
+        b = inpw(b);
+        b = inpl(b);
 
-    b = outp(v, cast(ubyte)b);
-    b = outpw(v, cast(ushort)b);
-    b = outpl(v, b);
+        b = outp(v, cast(ubyte)b);
+        b = outpw(v, cast(ushort)b);
+        b = outpl(v, b);
+    }
 }
 
 /*****************************************************/

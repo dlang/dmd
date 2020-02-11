@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/glue.d, _glue.d)
@@ -21,6 +21,7 @@ import dmd.root.file;
 import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.root.rmem;
+import dmd.root.string;
 
 import dmd.backend.cdef;
 import dmd.backend.cc;
@@ -76,6 +77,7 @@ __gshared
 {
     elem *eictor;
     Symbol *ictorlocalgot;
+    Symbol* bzeroSymbol;        /// common location for immutable zeros
     symbols sctors;
     StaticDtorDeclarations ectorgates;
     symbols sdtors;
@@ -248,6 +250,7 @@ void obj_start(const(char)* srcfile)
 {
     //printf("obj_start()\n");
 
+    bzeroSymbol = null;
     rtlsym_reset();
     clearStringTab();
 
@@ -1549,6 +1552,40 @@ Symbol *toSymbol(Type t)
     }
     assert(0);
 }
+
+/*******************************************
+ * Generate readonly symbol that consists of a bunch of zeros.
+ * Immutable Symbol instances can be mapped over it.
+ * Only one is generated per object file.
+ * Returns:
+ *    bzero symbol
+ */
+Symbol* getBzeroSymbol()
+{
+    Symbol* s = bzeroSymbol;
+    if (s)
+        return s;
+
+    s = symbol_calloc("__bzeroBytes");
+    s.Stype = type_static_array(128, type_fake(TYuchar));
+    s.Stype.Tmangle = mTYman_c;
+    s.Stype.Tcount++;
+    s.Sclass = SCglobal;
+    s.Sfl = FLdata;
+    s.Sflags |= SFLnodebug;
+    s.Salignment = 16;
+
+    auto dtb = DtBuilder(0);
+    dtb.nzeros(128);
+    s.Sdt = dtb.finish();
+    dt2common(&s.Sdt);
+
+    outdata(s);
+
+    bzeroSymbol = s;
+    return s;
+}
+
 
 
 /**************************************

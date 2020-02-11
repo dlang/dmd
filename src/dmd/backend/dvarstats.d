@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2015-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2015-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     Rainer Schuetze
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dvarstats.d, backend/dvarstats.d)
@@ -31,7 +31,7 @@ extern(C) void qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar
 
 version (all) // free function version
 {
-    import dmd.backend.varstats;
+    import dmd.backend.dvarstats;
 
     void varStats_writeSymbolTable(symtab_t* symtab,
             void function(Symbol*) nothrow fnWriteVar, void function() nothrow fnEndArgs,

@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dcast.d, _dcast.d)
@@ -3375,14 +3375,19 @@ LmodCompare:
             if (t1.nextOf().implicitConvTo(t2.nextOf()))
             {
                 // (cast(T)U)[] op T[]  (https://issues.dlang.org/show_bug.cgi?id=12780)
-                // e1 is left as U[], it will be handled in arrayOp() later.
                 t = t2.nextOf().arrayOf();
+                // if cast won't be handled in arrayOp() later
+                if (!isArrayOpImplicitCast(t1.isTypeDArray(), t2.isTypeDArray()))
+                    e1 = e1.castTo(sc, t);
             }
             else if (t2.nextOf().implicitConvTo(t1.nextOf()))
             {
                 // T[] op (cast(T)U)[]  (https://issues.dlang.org/show_bug.cgi?id=12780)
                 // e2 is left as U[], it will be handled in arrayOp() later.
                 t = t1.nextOf().arrayOf();
+                // if cast won't be handled in arrayOp() later
+                if (!isArrayOpImplicitCast(t2.isTypeDArray(), t1.isTypeDArray()))
+                    e2 = e2.castTo(sc, t);
             }
             else
                 return Lincompatible();

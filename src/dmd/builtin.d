@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/builtin.d, _builtin.d)
@@ -309,9 +309,29 @@ Expression eval_yl2xp1(Loc loc, FuncDeclaration fd, Expressions* arguments)
     return new RealExp(loc, result, arg0.type);
 }
 
+Expression eval_toPrecFloat(Loc loc, FuncDeclaration fd, Expressions* arguments)
+{
+    Expression arg0 = (*arguments)[0];
+    float f = cast(real)arg0.toReal();
+    return new RealExp(loc, real_t(f), Type.tfloat32);
+}
+
+Expression eval_toPrecDouble(Loc loc, FuncDeclaration fd, Expressions* arguments)
+{
+    Expression arg0 = (*arguments)[0];
+    double d = cast(real)arg0.toReal();
+    return new RealExp(loc, real_t(d), Type.tfloat64);
+}
+
+Expression eval_toPrecReal(Loc loc, FuncDeclaration fd, Expressions* arguments)
+{
+    Expression arg0 = (*arguments)[0];
+    return new RealExp(loc, arg0.toReal(), Type.tfloat80);
+}
+
 public extern (C++) void builtin_init()
 {
-    builtins._init(65);
+    builtins._init(113);
     // @safe @nogc pure nothrow real function(real)
     add_builtin("_D4core4math3sinFNaNbNiNfeZe", &eval_sin);
     add_builtin("_D4core4math3cosFNaNbNiNfeZe", &eval_cos);
@@ -353,14 +373,17 @@ public extern (C++) void builtin_init()
     add_builtin("_D4core4math6rndtolFNaNbNiNfeZl", &eval_unimp);
     // @safe @nogc pure nothrow real function(real)
     add_builtin("_D3std4math3tanFNaNbNiNfeZe", &eval_tan);
+    add_builtin("_D3std4math4trig3tanFNaNbNiNfeZe", &eval_tan);
     add_builtin("_D3std4math5expm1FNaNbNiNfeZe", &eval_unimp);
     // @trusted @nogc pure nothrow real function(real)
     add_builtin("_D3std4math3tanFNaNbNiNeeZe", &eval_tan);
+    add_builtin("_D3std4math4trig3tanFNaNbNiNeeZe", &eval_tan);
     add_builtin("_D3std4math3expFNaNbNiNeeZe", &eval_exp);
     add_builtin("_D3std4math5expm1FNaNbNiNeeZe", &eval_expm1);
     add_builtin("_D3std4math4exp2FNaNbNiNeeZe", &eval_exp2);
     // @safe @nogc pure nothrow real function(real, real)
     add_builtin("_D3std4math5atan2FNaNbNiNfeeZe", &eval_unimp);
+    add_builtin("_D3std4math4trig5atan2FNaNbNiNfeeZe", &eval_unimp);
     // @safe @nogc pure nothrow T function(T, int)
     add_builtin("_D4core4math5ldexpFNaNbNiNfeiZe", &eval_ldexp);
 
@@ -423,6 +446,25 @@ public extern (C++) void builtin_init()
     // @safe @nogc pure nothrow int function(ulong)
     if (global.params.is64bit)
         add_builtin("_D4core5bitop7_popcntFNaNbNiNfmZi", &eval_popcnt);
+
+    // pure nothrow @nogc @safe float core.math.toPrec!(float).toPrec(float)
+    add_builtin("_D4core4math__T6toPrecHTfZQlFNaNbNiNffZf", &eval_toPrecFloat);
+    // pure nothrow @nogc @safe float core.math.toPrec!(float).toPrec(double)
+    add_builtin("_D4core4math__T6toPrecHTfZQlFNaNbNiNfdZf", &eval_toPrecFloat);
+    // pure nothrow @nogc @safe float core.math.toPrec!(float).toPrec(real)
+    add_builtin("_D4core4math__T6toPrecHTfZQlFNaNbNiNfeZf", &eval_toPrecFloat);
+    // pure nothrow @nogc @safe double core.math.toPrec!(double).toPrec(float)
+    add_builtin("_D4core4math__T6toPrecHTdZQlFNaNbNiNffZd", &eval_toPrecDouble);
+    // pure nothrow @nogc @safe double core.math.toPrec!(double).toPrec(double)
+    add_builtin("_D4core4math__T6toPrecHTdZQlFNaNbNiNfdZd", &eval_toPrecDouble);
+    // pure nothrow @nogc @safe double core.math.toPrec!(double).toPrec(real)
+    add_builtin("_D4core4math__T6toPrecHTdZQlFNaNbNiNfeZd", &eval_toPrecDouble);
+    // pure nothrow @nogc @safe double core.math.toPrec!(real).toPrec(float)
+    add_builtin("_D4core4math__T6toPrecHTeZQlFNaNbNiNffZe", &eval_toPrecReal);
+    // pure nothrow @nogc @safe double core.math.toPrec!(real).toPrec(double)
+    add_builtin("_D4core4math__T6toPrecHTeZQlFNaNbNiNfdZe", &eval_toPrecReal);
+    // pure nothrow @nogc @safe double core.math.toPrec!(real).toPrec(real)
+    add_builtin("_D4core4math__T6toPrecHTeZQlFNaNbNiNfeZe", &eval_toPrecReal);
 }
 
 /**

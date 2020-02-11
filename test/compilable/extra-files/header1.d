@@ -45,7 +45,7 @@ out (result)
 {
     assert(result == 0);
 }
-body
+do
 {
     float f = float.infinity;
     int i = cast(int) f;

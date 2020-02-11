@@ -2,7 +2,7 @@
  * Compiler implementation of the D programming language
  * http://dlang.org
  *
- * Copyright: Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/rmem.d, root/_rmem.d)
@@ -205,6 +205,13 @@ else version (LDC)
     // Memory allocation functions gained weak linkage when the @weak attribute was introduced.
     import ldc.attributes;
     enum OVERRIDE_MEMALLOC = is(typeof(ldc.attributes.weak));
+}
+else version (GNU)
+{
+    version (IN_GCC)
+        enum OVERRIDE_MEMALLOC = false;
+    else
+        enum OVERRIDE_MEMALLOC = true;
 }
 else
 {

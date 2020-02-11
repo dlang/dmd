@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/expression.d, _expression.d)
@@ -59,13 +59,13 @@ import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.root.rmem;
 import dmd.root.rootobject;
+import dmd.root.string;
 import dmd.safe;
 import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.utf;
-import dmd.utils;
 import dmd.visitor;
 
 enum LOGSEMANTIC = false;
@@ -1240,12 +1240,12 @@ extern (C++) abstract class Expression : ASTNode
             return false;
         if (sc.intypeof == 1)
             return false;
-        if (sc.flags & SCOPE.ctfe)
+        if (sc.flags & (SCOPE.ctfe | SCOPE.debug_))
             return false;
 
         if (!f.isSafe() && !f.isTrusted())
         {
-            if (sc.flags & SCOPE.compile ? sc.func.isSafeBypassingInference() : sc.func.setUnsafe() && !(sc.flags & SCOPE.debug_))
+            if (sc.flags & SCOPE.compile ? sc.func.isSafeBypassingInference() : sc.func.setUnsafe())
             {
                 if (!loc.isValid()) // e.g. implicitly generated dtor
                     loc = sc.func.loc;
@@ -1275,12 +1275,12 @@ extern (C++) abstract class Expression : ASTNode
             return false;
         if (sc.intypeof == 1)
             return false;
-        if (sc.flags & SCOPE.ctfe)
+        if (sc.flags & (SCOPE.ctfe | SCOPE.debug_))
             return false;
 
         if (!f.isNogc())
         {
-            if (sc.flags & SCOPE.compile ? sc.func.isNogcBypassingInference() : sc.func.setGC() && !(sc.flags & SCOPE.debug_))
+            if (sc.flags & SCOPE.compile ? sc.func.isNogcBypassingInference() : sc.func.setGC())
             {
                 if (loc.linnum == 0) // e.g. implicitly generated dtor
                     loc = sc.func.loc;

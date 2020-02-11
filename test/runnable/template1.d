@@ -715,7 +715,7 @@ public template TRange29(T) {
                     recursing = false;
                 }
             }
-        } body {
+        } do {
             return contains(other.lower()) || contains(other.upper()) || other.includes(this);
         }
         public bool includes(Range other)
@@ -723,7 +723,7 @@ public template TRange29(T) {
             assert(other !is null);
         } out (result) {
             assert(result == (contains(other.lower()) && contains(other.upper())));
-        } body {
+        } do {
             return contains(other.lower()) && contains(other.upper());
         }
     }

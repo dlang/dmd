@@ -83,7 +83,7 @@ in {
 out(result) {
     assert(result == 18);
 }
-body {
+do {
     int x = 8;
     int inner(void* v) nothrow
     {

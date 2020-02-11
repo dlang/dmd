@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/scanomf.d, _scanomf.d)
@@ -19,9 +19,9 @@ import core.stdc.stdlib;
 import dmd.globals;
 import dmd.root.rmem;
 import dmd.root.outbuffer;
+import dmd.root.string;
 import dmd.arraytypes;
 import dmd.errors;
-import dmd.utils;
 
 private enum LOG = false;
 

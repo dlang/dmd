@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dimport.d, _dimport.d)
@@ -160,15 +160,22 @@ extern (C++) final class Import : Dsymbol
                 {
                     if (p.isPkgMod == PKG.unknown)
                     {
+                        uint preverrors = global.errors;
                         mod = Module.load(loc, packages, id);
                         if (!mod)
                             p.isPkgMod = PKG.package_;
                         else
                         {
                             // mod is a package.d, or a normal module which conflicts with the package name.
-                            assert(mod.isPackageFile == (p.isPkgMod == PKG.module_));
                             if (mod.isPackageFile)
                                 mod.tag = p.tag; // reuse the same package tag
+                            else
+                            {
+                                // show error if Module.load does not
+                                if (preverrors == global.errors)
+                                    .error(loc, "%s `%s` from file %s conflicts with %s `%s`", mod.kind(), mod.toPrettyChars(), mod.srcfile.toChars, p.kind(), p.toPrettyChars());
+                                return true;
+                            }
                         }
                     }
                     else

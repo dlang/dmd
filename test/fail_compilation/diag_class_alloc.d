@@ -1,8 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag_class_alloc.d(14): Error: class allocators are obsolete, consider moving the allocation strategy outside of the class
-fail_compilation/diag_class_alloc.d(19): Error: class deallocators are obsolete, consider moving the deallocation strategy outside of the class
+fail_compilation/diag_class_alloc.d(13): Error: class allocators are obsolete, consider moving the allocation strategy outside of the class
 ---
 */
 
@@ -14,10 +13,5 @@ class C
     new(size_t size)         // error message
     {
         return malloc(size);
-    }
-
-    delete(void* obj)        // error message
-    {
-        free(obj);
     }
 }

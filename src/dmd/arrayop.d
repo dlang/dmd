@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/arrayop.d, _arrayop.d)
@@ -34,6 +34,7 @@ import dmd.visitor;
  */
 bool isArrayOpValid(Expression e)
 {
+    //printf("isArrayOpValid() %s\n", e.toChars());
     if (e.op == TOK.slice)
         return true;
     if (e.op == TOK.arrayLiteral)
@@ -97,6 +98,7 @@ bool checkNonAssignmentArrayOp(Expression e, bool suggestion = false)
 
 /***********************************
  * Construct the array operation expression, call object._arrayOp!(tiargs)(args).
+ *
  * Encode operand types and operations into tiargs using reverse polish notation (RPN) to preserve precedence.
  * Unary operations are prefixed with "u" (e.g. "u~").
  * Pass operand values (slices or scalars) as args.
@@ -105,10 +107,13 @@ bool checkNonAssignmentArrayOp(Expression e, bool suggestion = false)
  * into druntime to hoist them out of the loop. This is a valid
  * evaluation order as the actual array operations have no
  * side-effect.
+ * References:
+ * https://github.com/dlang/druntime/blob/master/src/object.d#L3944
+ * https://github.com/dlang/druntime/blob/master/src/core/internal/array/operations.d
  */
 Expression arrayOp(BinExp e, Scope* sc)
 {
-    //printf("BinExp.arrayOp() %s\n", toChars());
+    //printf("BinExp.arrayOp() %s\n", e.toChars());
     Type tb = e.type.toBasetype();
     assert(tb.ty == Tarray || tb.ty == Tsarray);
     Type tbn = tb.nextOf().toBasetype();
@@ -128,13 +133,17 @@ Expression arrayOp(BinExp e, Scope* sc)
     __gshared TemplateDeclaration arrayOp;
     if (arrayOp is null)
     {
+        // Create .object._arrayOp
+        Identifier idArrayOp = Identifier.idPool("_arrayOp");
         Expression id = new IdentifierExp(e.loc, Id.empty);
         id = new DotIdExp(e.loc, id, Id.object);
-        id = new DotIdExp(e.loc, id, Identifier.idPool("_arrayOp"));
+        id = new DotIdExp(e.loc, id, idArrayOp);
+
         id = id.expressionSemantic(sc);
-        if (id.op != TOK.template_)
-            ObjectNotFound(Identifier.idPool("_arrayOp"));
-        arrayOp = (cast(TemplateExp)id).td;
+        if (auto te = id.isTemplateExp())
+            arrayOp = te.td;
+        else
+            ObjectNotFound(idArrayOp);   // fatal error
     }
 
     auto fd = resolveFuncCall(e.loc, sc, arrayOp, tiargs, null, args, FuncResolveFlag.standard);
@@ -242,6 +251,22 @@ private void buildArrayOp(Scope* sc, Expression e, Objects* tiargs, Expressions*
 
     scope v = new BuildArrayOpVisitor(sc, tiargs, args);
     e.accept(v);
+}
+
+/***********************************************
+ * Some implicit casting can be performed by the _arrayOp template.
+ * Params:
+ *      tfrom = type converting from
+ *      tto   = type converting to
+ * Returns:
+ *      true if can be performed by _arrayOp
+ */
+bool isArrayOpImplicitCast(TypeDArray tfrom, TypeDArray tto)
+{
+    const tyf = tfrom.nextOf().toBasetype().ty;
+    const tyt = tto  .nextOf().toBasetype().ty;
+    return tyf == tyt ||
+           tyf == Tint32 && tyt == Tfloat64;
 }
 
 /***********************************************

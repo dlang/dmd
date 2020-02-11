@@ -4,7 +4,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/escape.d, _escape.d)
@@ -1421,7 +1421,7 @@ private void inferReturn(FuncDeclaration fd, VarDeclaration v)
  *      e = expression to be returned by value
  *      er = where to place collected data
  */
-private void escapeByValue(Expression e, EscapeByResults* er)
+void escapeByValue(Expression e, EscapeByResults* er)
 {
     //printf("[%s] escapeByValue, e: %s\n", e.loc.toChars(), e.toChars());
     extern (C++) final class EscapeVisitor : Visitor
@@ -1651,7 +1651,19 @@ private void escapeByValue(Expression e, EscapeByResults* er)
                         if ((stc & (STC.scope_)) && (stc & STC.return_))
                             arg.accept(this);
                         else if ((stc & (STC.ref_)) && (stc & STC.return_))
-                            escapeByRef(arg, er);
+                        {
+                            if (tf.isref)
+                            {
+                                /* Treat:
+                                 *   ref P foo(return ref P p)
+                                 * as:
+                                 *   p;
+                                 */
+                                arg.accept(this);
+                            }
+                            else
+                                escapeByRef(arg, er);
+                        }
                     }
                 }
             }
@@ -1666,7 +1678,19 @@ private void escapeByValue(Expression e, EscapeByResults* er)
                     if (ad.isClassDeclaration() || tf.isscope)       // this is 'return scope'
                         dve.e1.accept(this);
                     else if (ad.isStructDeclaration()) // this is 'return ref'
-                        escapeByRef(dve.e1, er);
+                    {
+                        if (tf.isref)
+                        {
+                            /* Treat calling:
+                             *   struct S { ref S foo() return; }
+                             * as:
+                             *   this;
+                             */
+                            dve.e1.accept(this);
+                        }
+                        else
+                            escapeByRef(dve.e1, er);
+                    }
                 }
                 else if (dve.var.storage_class & STC.return_ || tf.isreturn)
                 {
@@ -1729,7 +1753,7 @@ private void escapeByValue(Expression e, EscapeByResults* er)
  *      e = expression to be returned by 'ref'
  *      er = where to place collected data
  */
-private void escapeByRef(Expression e, EscapeByResults* er)
+void escapeByRef(Expression e, EscapeByResults* er)
 {
     //printf("[%s] escapeByRef, e: %s\n", e.loc.toChars(), e.toChars());
     extern (C++) final class EscapeRefVisitor : Visitor
@@ -1955,7 +1979,7 @@ private void escapeByRef(Expression e, EscapeByResults* er)
 /************************************
  * Aggregate the data collected by the escapeBy??() functions.
  */
-private struct EscapeByResults
+struct EscapeByResults
 {
     VarDeclarations byref;      // array into which variables being returned by ref are inserted
     VarDeclarations byvalue;    // array into which variables with values containing pointers are inserted

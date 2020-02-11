@@ -28,7 +28,7 @@ struct SortedRange(Range, alias pred = "a < b")
     {
         dbgVerifySorted();
     }
-    body
+    do
     {
     }
 

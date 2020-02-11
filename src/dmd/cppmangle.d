@@ -5,7 +5,7 @@
  * This is the POSIX side of the implementation.
  * It exports two functions to C++, `toCppMangleItanium` and `cppTypeInfoMangleItanium`.
  *
- * Copyright: Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors: Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/cppmangle.d, _cppmangle.d)
@@ -505,11 +505,13 @@ private final class CppMangleVisitor : Visitor
              * <template-arg> ::= <type>               # type or template
              *                ::= X <expression> E     # expression
              *                ::= <expr-primary>       # simple expressions
-             *                ::= I <template-arg>* E  # argument pack
+             *                ::= J <template-arg>* E  # argument pack
+             *
+             * Reference: https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangle.template-arg
              */
             if (TemplateTupleParameter tt = tp.isTemplateTupleParameter())
             {
-                buf.writeByte('I');     // argument pack
+                buf.writeByte('J');     // argument pack
 
                 // mangle the rest of the arguments as types
                 foreach (j; i .. (*ti.tiargs).dim)

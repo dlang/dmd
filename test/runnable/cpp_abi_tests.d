@@ -37,9 +37,16 @@ struct Sdtor
     extern __gshared int counter;
     ~this();
 }
+
 void consume(Sdtor);
 void consume2(Sdtor value){}
 void doConsume2(ref Sdtor);
+
+struct SPack(Args...)
+{
+    int i;
+}
+alias SInt = SPack!int;
 
 bool   passthrough(bool   value);
 byte   passthrough(byte   value);
@@ -59,6 +66,7 @@ double passthrough(double value);
 S      passthrough(S      value);
 test19248 passthrough(const(test19248) value);
 std.test19248_ passthrough(const(std.test19248_) value);
+SInt   passthrough(SInt   value);
 
 bool   passthrough_ptr(bool   *value);
 byte   passthrough_ptr(byte   *value);
@@ -78,6 +86,7 @@ double passthrough_ptr(double *value);
 S      passthrough_ptr(S      *value);
 test19248 passthrough_ptr(const(test19248)* value);
 std.test19248_ passthrough_ptr(const(std.test19248_)* value);
+SInt   passthrough_ptr(SInt   *value);
 
 bool   passthrough_ref(ref bool   value);
 byte   passthrough_ref(ref byte   value);
@@ -97,6 +106,7 @@ double passthrough_ref(ref double value);
 S      passthrough_ref(ref S      value);
 test19248 passthrough_ref(ref const(test19248) value);
 std.test19248_ passthrough_ref(ref const(std.test19248_) value);
+SInt   passthrough_ref(ref SInt   value);
 }
 
 template IsSigned(T)
@@ -239,6 +249,7 @@ else
     check(S());
     check(test19248());
     check(std.test19248_());
+    check(SInt());
 
     assert(constFunction1(null, null) == 1);
     assert(constFunction2(null, null) == 2);
