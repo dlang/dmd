@@ -8985,8 +8985,9 @@ final class Parser(AST) : Lexer
         auto t = parseBasicType(true);
         t = parseBasicType2(t);
         t = t.addSTC(stc);
-        if (auto taa = t.isTypeAArray)
+        if (t.ty == AST.Taarray)
         {
+            AST.TypeAArray taa = cast(AST.TypeAArray)t;
             AST.Type index = taa.index;
             auto edim = AST.typeToExpression(index);
             if (!edim)
