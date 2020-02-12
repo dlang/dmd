@@ -612,7 +612,6 @@ public:
     static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, const char *name, StorageClass stc=0);
     static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, Identifier *id, StorageClass stc=0);
 
-    void checkDmain();
     bool checkNrvo();
 
     FuncDeclaration *isFuncDeclaration() { return this; }
