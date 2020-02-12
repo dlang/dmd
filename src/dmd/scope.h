@@ -1,22 +1,15 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/scope.h
+ * https://github.com/dlang/dmd/blob/master/src/dmd/scope.h
  */
 
-#ifndef DMD_SCOPE_H
-#define DMD_SCOPE_H
-
-#ifdef __DMC__
 #pragma once
-#endif
 
-class Dsymbol;
-class ScopeDsymbol;
 class Identifier;
 class Module;
 class Statement;
@@ -31,16 +24,9 @@ class UserAttributeDeclaration;
 struct DocComment;
 struct AA;
 class TemplateInstance;
+class CPPNamespaceDeclaration;
 
 #include "dsymbol.h"
-
-#if __GNUC__
-// Requires a full definition for LINK
-#include "mars.h"
-#else
-enum LINK;
-enum PINLINE;
-#endif
 
 #define CSXthis_ctor    1       // called this()
 #define CSXsuper_ctor   2       // called super()
@@ -66,9 +52,10 @@ enum PINLINE;
 #define SCOPEctfe           0x0080  // inside a ctfe-only expression
 #define SCOPEcompile        0x0100  // inside __traits(compile)
 #define SCOPEignoresymbolvisibility 0x0200  // ignore symbol visibility (Bugzilla 15907)
-#define SCOPEfullinst       0x1000  // fully instantiate templates
 
 #define SCOPEfree           0x8000  // is on free list
+#define SCOPEfullinst       0x10000 // fully instantiate templates
+#define SCOPEalias          0x20000 // inside alias declaration
 
 struct Scope
 {
@@ -80,13 +67,14 @@ struct Scope
     Dsymbol *parent;            // parent to use
     LabelStatement *slabel;     // enclosing labelled statement
     SwitchStatement *sw;        // enclosing switch statement
+    Statement *tryBody;         // enclosing _body of TryCatchStatement or TryFinallyStatement
     TryFinallyStatement *tf;    // enclosing try finally statement
-    OnScopeStatement *os;       // enclosing scope(xxx) statement
+    ScopeGuardStatement *os;       // enclosing scope(xxx) statement
     Statement *sbreak;          // enclosing statement that supports "break"
     Statement *scontinue;       // enclosing statement that supports "continue"
     ForeachStatement *fes;      // if nested function for ForeachStatement, this is it
     Scope *callsc;              // used for __FUNCTION__, __PRETTY_FUNCTION__ and __MODULE__
-    bool inunion;               // true if processing members of a union
+    Dsymbol *inunion;           // !=null if processing members of a union
     bool nofree;                // true if shouldn't free it
     bool inLoop;                // true if inside a loop (where constructor calls aren't allowed)
     int intypeof;               // in typeof(exp)
@@ -105,6 +93,9 @@ struct Scope
     size_t fieldinit_dim;
 
     AlignDeclaration *aligndecl;    // alignment for struct members
+
+    /// C++ namespace this symbol belongs to
+    CPPNamespaceDeclaration *namespace_;
 
     LINK linkage;               // linkage for external functions
     CPPMANGLE cppmangle;        // C++ mangle type
@@ -125,10 +116,6 @@ struct Scope
     AA *anchorCounts;           // lookup duplicate anchor name count
     Identifier *prevAnchor;     // qualified symbol name of last doc anchor
 
-    static Scope *freelist;
-    static Scope *alloc();
-    static Scope *createGlobal(Module *module);
-
     Scope();
 
     Scope *copy();
@@ -140,26 +127,14 @@ struct Scope
     Scope *startCTFE();
     Scope *endCTFE();
 
-    void mergeCallSuper(Loc loc, unsigned cs);
-
-    unsigned *saveFieldInit();
-    void mergeFieldInit(Loc loc, unsigned *cses);
-
     Module *instantiatingModule();
 
-    Dsymbol *search(Loc loc, Identifier *ident, Dsymbol **pscopesym, int flags = IgnoreNone);
-    static void deprecation10378(Loc loc, Dsymbol *sold, Dsymbol *snew);
-    Dsymbol *search_correct(Identifier *ident);
-    static const char *search_correct_C(Identifier *ident);
-    Dsymbol *insert(Dsymbol *s);
+    Dsymbol *search(const Loc &loc, Identifier *ident, Dsymbol **pscopesym, int flags = IgnoreNone);
 
     ClassDeclaration *getClassScope();
     AggregateDeclaration *getStructClassScope();
-    void setNoFree();
 
     structalign_t alignment();
 
-    bool isDeprecated();
+    bool isDeprecated() const;
 };
-
-#endif /* DMD_SCOPE_H */

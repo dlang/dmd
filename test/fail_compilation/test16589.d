@@ -1,5 +1,5 @@
 /* PERMUTE_ARGS:
-REQUIRED_ARGS: -dip1000
+REQUIRED_ARGS: -preview=dip1000
 TEST_OUTPUT:
 ---
 fail_compilation/test16589.d(26): Error: returning `&this.data` escapes a reference to parameter `this`, perhaps annotate with `return`

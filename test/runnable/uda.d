@@ -1,3 +1,32 @@
+/*
+TEST_OUTPUT:
+---
+tuple(3, 4, 7, (SSS))
+tuple(3, 4, 7, (SSS))
+7
+SSS
+tuple("hello")
+tuple('c')
+tuple((FFF))
+tuple(10)
+tuple(20)
+tuple(30)
+tuple((Test6))
+tuple(Test7(3, "foo"))
+tuple((Test8!"foo"))
+tuple((Test9!"foo"))
+tuple(Test10(3))
+tuple(Test11(3))
+tuple(10)
+tuple(20)
+tuple()
+tuple(40)
+B9741
+tuple((A9741))
+tuple(1)
+tuple(2)
+---
+*/
 
 import core.stdc.stdio;
 
@@ -251,7 +280,7 @@ void test12()
 }
 
 /************************************************/
-// 9178
+// https://issues.dlang.org/show_bug.cgi?id=9178
 
 void test9178()
 {
@@ -262,7 +291,7 @@ void test9178()
 }
 
 /************************************************/
-// 9652
+// https://issues.dlang.org/show_bug.cgi?id=9652
 
 struct Bug9652
 {
@@ -318,7 +347,7 @@ struct Bug9652
 }
 
 /************************************************/
-// 9741
+// https://issues.dlang.org/show_bug.cgi?id=9741
 
 import imports.a9741;
 
@@ -329,7 +358,7 @@ alias X9741 = ShowAttributes!(B9741);
 @A9741 struct B9741 {}
 
 /************************************************/
-// 12160
+// https://issues.dlang.org/show_bug.cgi?id=12160
 
 auto before12160(alias Hook)(string) { return 0; }
 
@@ -349,7 +378,7 @@ void test12160()
 }
 
 /************************************************/
-// 10208
+// https://issues.dlang.org/show_bug.cgi?id=10208
 
 @( 10)                enum int x10208_01 =  100;
 @( 20)                     int x10208_02;
@@ -381,7 +410,8 @@ static assert(__traits(getAttributes, x10208_13)[0] == 130); // Error -> OK
 static assert(__traits(getAttributes, x10208_14)[0] == 140); // Error -> OK
 
 /************************************************/
-// 11677, 11678
+// https://issues.dlang.org/show_bug.cgi?id=11677
+// https://issues.dlang.org/show_bug.cgi?id=11678
 
 bool test_uda(alias func)() @safe
 {
@@ -410,7 +440,7 @@ static assert(test_uda!func11678b());
 static assert(test_uda!func11678c());
 
 /************************************************/
-// 11678
+// https://issues.dlang.org/show_bug.cgi?id=11678
 
 class C11678
 {
@@ -425,7 +455,7 @@ static ~this() @(10) @(20) {}
 shared static ~this() @(10) @(20) {}
 
 /************************************************/
-// 11679
+// https://issues.dlang.org/show_bug.cgi?id=11679
 
 void test11679()
 {
@@ -434,7 +464,7 @@ void test11679()
 }
 
 /************************************************/
-// 11680
+// https://issues.dlang.org/show_bug.cgi?id=11680
 
 @(10) gvar11680 = 1;  // OK <- NG
 @(10) gfun11680() {}  // OK <- NG
@@ -446,7 +476,7 @@ void test11680()
 }
 
 /************************************************/
-// 11844
+// https://issues.dlang.org/show_bug.cgi?id=11844
 
 auto make_encode11844(T, string name)()
 {

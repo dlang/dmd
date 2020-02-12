@@ -76,7 +76,7 @@ void main()
 }
 
 /***************************************************/
-// 14169
+// https://issues.dlang.org/show_bug.cgi?id=14169
 
 template staticMap14169(alias fun, T...)
 {

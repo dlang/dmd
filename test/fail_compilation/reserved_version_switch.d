@@ -64,6 +64,8 @@
 // REQUIRED_ARGS: -version=HPPA
 // REQUIRED_ARGS: -version=HPPA64
 // REQUIRED_ARGS: -version=SH
+// REQUIRED_ARGS: -version=WebAssembly
+// REQUIRED_ARGS: -version=WASI
 // REQUIRED_ARGS: -version=Alpha
 // REQUIRED_ARGS: -version=Alpha_SoftFloat
 // REQUIRED_ARGS: -version=Alpha_HardFloat
@@ -77,6 +79,12 @@
 // REQUIRED_ARGS: -version=CRuntime_Microsoft
 // REQUIRED_ARGS: -version=CRuntime_Musl
 // REQUIRED_ARGS: -version=CRuntime_UClibc
+// REQUIRED_ARGS: -version=CRuntime_WASI
+// REQUIRED_ARGS: -version=CppRuntime_Clang
+// REQUIRED_ARGS: -version=CppRuntime_DigitalMars
+// REQUIRED_ARGS: -version=CppRuntime_Gcc
+// REQUIRED_ARGS: -version=CppRuntime_Microsoft
+// REQUIRED_ARGS: -version=CppRuntime_Sun
 // REQUIRED_ARGS: -version=D_Coverage
 // REQUIRED_ARGS: -version=D_Ddoc
 // REQUIRED_ARGS: -version=D_InlineAsm_X86
@@ -155,6 +163,8 @@
 // REQUIRED_ARGS: -debug=HPPA
 // REQUIRED_ARGS: -debug=HPPA64
 // REQUIRED_ARGS: -debug=SH
+// REQUIRED_ARGS: -debug=WebAssembly
+// REQUIRED_ARGS: -debug=WASI
 // REQUIRED_ARGS: -debug=Alpha
 // REQUIRED_ARGS: -debug=Alpha_SoftFloat
 // REQUIRED_ARGS: -debug=Alpha_HardFloat
@@ -168,6 +178,12 @@
 // REQUIRED_ARGS: -debug=CRuntime_Microsoft
 // REQUIRED_ARGS: -debug=CRuntime_Musl
 // REQUIRED_ARGS: -debug=CRuntime_UClibc
+// REQUIRED_ARGS: -debug=CRuntime_WASI
+// REQUIRED_ARGS: -debug=CppRuntime_Clang
+// REQUIRED_ARGS: -debug=CppRuntime_DigitalMars
+// REQUIRED_ARGS: -debug=CppRuntime_Gcc
+// REQUIRED_ARGS: -debug=CppRuntime_Microsoft
+// REQUIRED_ARGS: -debug=CppRuntime_Sun
 // REQUIRED_ARGS: -debug=D_Coverage
 // REQUIRED_ARGS: -debug=D_Ddoc
 // REQUIRED_ARGS: -debug=D_InlineAsm_X86
@@ -251,6 +267,8 @@ Error: version identifier `SystemZ` is reserved and cannot be set
 Error: version identifier `HPPA` is reserved and cannot be set
 Error: version identifier `HPPA64` is reserved and cannot be set
 Error: version identifier `SH` is reserved and cannot be set
+Error: version identifier `WebAssembly` is reserved and cannot be set
+Error: version identifier `WASI` is reserved and cannot be set
 Error: version identifier `Alpha` is reserved and cannot be set
 Error: version identifier `Alpha_SoftFloat` is reserved and cannot be set
 Error: version identifier `Alpha_HardFloat` is reserved and cannot be set
@@ -264,6 +282,12 @@ Error: version identifier `CRuntime_Glibc` is reserved and cannot be set
 Error: version identifier `CRuntime_Microsoft` is reserved and cannot be set
 Error: version identifier `CRuntime_Musl` is reserved and cannot be set
 Error: version identifier `CRuntime_UClibc` is reserved and cannot be set
+Error: version identifier `CRuntime_WASI` is reserved and cannot be set
+Error: version identifier `CppRuntime_Clang` is reserved and cannot be set
+Error: version identifier `CppRuntime_DigitalMars` is reserved and cannot be set
+Error: version identifier `CppRuntime_Gcc` is reserved and cannot be set
+Error: version identifier `CppRuntime_Microsoft` is reserved and cannot be set
+Error: version identifier `CppRuntime_Sun` is reserved and cannot be set
 Error: version identifier `D_Coverage` is reserved and cannot be set
 Error: version identifier `D_Ddoc` is reserved and cannot be set
 Error: version identifier `D_InlineAsm_X86` is reserved and cannot be set

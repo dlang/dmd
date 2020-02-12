@@ -1,3 +1,9 @@
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail94.d(28): Error: cannot implicitly override base class method `fail94.A.clone` with `fail94.B.clone`; add `override` attribute
+---
+*/
 interface I
 {
     int foo();
@@ -24,7 +30,7 @@ class B : A
     {
 	printf("B.clone()\n");
     }
-    body { return ia; }
+    do { return ia; }
 }
 
 void main()
@@ -53,4 +59,3 @@ void main()
 void bar(IA delegate() dg)
 {
 }
-

@@ -5,8 +5,8 @@ fail_compilation/fail209.d(20): Error: incompatible types for `(a) -= (x)`: `flo
 ---
 */
 
-// Issue 725 - expression.c:6516: virtual Expression* MinAssignExp::semantic(Scope*): Assertion `e2->type->isfloating()' failed
-
+// https://issues.dlang.org/show_bug.cgi?id=725
+// expression.c:6516: virtual Expression* MinAssignExp::semantic(Scope*): Assertion `e2->type->isfloating()' failed
 class X
 {
     float a;

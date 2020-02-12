@@ -229,7 +229,7 @@ in {
     writefln("Arguments len = %d\n", _arguments.length);
     assert(_arguments.length == 2);
 }
-body {
+do {
 
 }
 

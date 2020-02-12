@@ -1,17 +1,16 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/complex_t.h
+ * https://github.com/dlang/dmd/blob/master/src/dmd/complex_t.h
  */
 
-#ifndef DMD_COMPLEX_T_H
-#define DMD_COMPLEX_T_H
+#pragma once
 
-#include "ctfloat.h"
+#include "root/ctfloat.h"
 
 /* Roll our own complex type for compilers that don't support complex
  */
@@ -70,5 +69,3 @@ inline real_t cimagl(complex_t x)
 {
     return x.im;
 }
-
-#endif

@@ -1,5 +1,5 @@
 // PERMUTE_ARGS:
-// REQUIRED_ARGS: -d -dip1000
+// REQUIRED_ARGS: -d -preview=dip1000
 
 extern(C) int printf(const char*, ...);
 
@@ -366,6 +366,27 @@ struct IO
 }
 
 /********************************************/
+// https://issues.dlang.org/show_bug.cgi?id=20569
+
+void test20569() @safe
+{
+    static struct S
+    {
+        int value;
+        int* pointer;
+    }
+
+    /* explicit `scope`: */
+    scope S s1;
+    scope int* p1 = &s1.value;
+
+    /* inferred `scope`: */
+    int x;
+    S s2 = S(0, &x);
+    int* p2 = &s2.value;
+}
+
+/********************************************/
 
 void main()
 {
@@ -384,6 +405,7 @@ void main()
     test16747();
     test11();
     test17395();
+    test20569();
 
     printf("Success\n");
 }

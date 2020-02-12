@@ -1,22 +1,18 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/tokens.h
+ * https://github.com/dlang/dmd/blob/master/src/dmd/tokens.h
  */
 
-#ifndef DMD_TOKENS_H
-#define DMD_TOKENS_H
-
-#ifdef __DMC__
 #pragma once
-#endif /* __DMC__ */
 
-#include "port.h"
-#include "mars.h"
+#include "root/dcompat.h"
+#include "root/port.h"
+#include "globals.h"
 
 class Identifier;
 
@@ -36,7 +32,8 @@ class Identifier;
         ?       &&      ||
  */
 
-enum TOK
+typedef unsigned char TOK;
+enum
 {
         TOKreserved,
 
@@ -134,9 +131,9 @@ enum TOK
         TOKalign, TOKextern, TOKprivate, TOKprotected, TOKpublic, TOKexport,
         TOKstatic, TOKfinal, TOKconst, TOKabstract,
         TOKdebug, TOKdeprecated, TOKin, TOKout, TOKinout, TOKlazy,
-        TOKauto, TOKpackage, TOKmanifest, TOKimmutable,
+        TOKauto, TOKpackage, TOKimmutable,
 
-// 183
+// 182
         // Statements
         TOKif, TOKelse, TOKwhile, TOKfor, TOKdo, TOKswitch,
         TOKcase, TOKdefault, TOKbreak, TOKcontinue, TOKwith,
@@ -145,7 +142,7 @@ enum TOK
         TOKscope,
         TOKon_scope_exit, TOKon_scope_failure, TOKon_scope_success,
 
-// 207
+// 206
         // Contracts
         TOKinvariant,
 
@@ -157,7 +154,7 @@ enum TOK
         TOKref,
         TOKmacro,
 
-// 212
+// 211
         TOKparameters,
         TOKtraits,
         TOKoverloadset,
@@ -178,26 +175,34 @@ enum TOK
         TOKvector,
         TOKpound,
 
-// 231
+// 230
         TOKinterval,
         TOKvoidexp,
         TOKcantexp,
+        TOKshowctfecontext,
 
         TOKobjc_class_reference,
+        TOKvectorarray,
 
         TOKMAX
 };
 
 #define TOKwild TOKinout
 
+// Token has an anonymous struct, which is not strict ISO C++.
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+#endif
+
 struct Token
 {
     Token *next;
     Loc loc;
-    const utf8_t *ptr;         // pointer to first character of this token within buffer
+    const utf8_t *ptr;    // pointer to first character of this token within buffer
     TOK value;
-    const utf8_t *blockComment; // doc comment string prior to this token
-    const utf8_t *lineComment;  // doc comment for previous token
+    DString blockComment; // doc comment string prior to this token
+    DString lineComment;  // doc comment for previous token
     union
     {
         // Integers
@@ -216,19 +221,15 @@ struct Token
         Identifier *ident;
     };
 
-    static const char *tochars[TOKMAX];
-
-    static Token *freelist;
-    static Token *alloc();
     void free();
 
     Token() : next(NULL) {}
     int isKeyword();
-#ifdef DEBUG
-    void print();
-#endif
     const char *toChars() const;
-    static const char *toChars(TOK);
+
+    static const char *toChars(unsigned char value);
 };
 
-#endif /* DMD_TOKENS_H */
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif

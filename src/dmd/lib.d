@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/lib.d, _lib.d)
@@ -22,6 +22,7 @@ import dmd.utils;
 import dmd.root.outbuffer;
 import dmd.root.file;
 import dmd.root.filename;
+import dmd.root.string;
 
 static if (TARGET.Windows)
 {
@@ -41,7 +42,7 @@ else
     static assert(0, "unsupported system");
 }
 
-enum LOG = false;
+private enum LOG = false;
 
 class Library
 {
@@ -59,10 +60,6 @@ class Library
         {
             return LibMach_factory();
         }
-        else
-        {
-            assert(0); // unsupported system
-        }
     }
 
     abstract void addObject(const(char)* module_name, const ubyte[] buf);
@@ -78,26 +75,25 @@ class Library
      *  dir = path to file
      *  filename = name of file relative to `dir`
      */
-    final void setFilename(const(char)* dir, const(char)* filename)
+    final void setFilename(const(char)[] dir, const(char)[] filename)
     {
         static if (LOG)
         {
-            printf("LibElf::setFilename(dir = '%s', filename = '%s')\n", dir ? dir : "", filename ? filename : "");
+            printf("LibElf::setFilename(dir = '%.*s', filename = '%.*s')\n",
+                   cast(int)dir.length, dir.ptr, cast(int)filename.length, filename.ptr);
         }
-        const(char)* arg = filename;
-        if (!arg || !*arg)
+        const(char)[] arg = filename;
+        if (!arg.length)
         {
             // Generate lib file name from first obj name
-            const(char)* n = global.params.objfiles[0];
+            const(char)[] n = global.params.objfiles[0].toDString;
             n = FileName.name(n);
             arg = FileName.forceExt(n, global.lib_ext);
         }
         if (!FileName.absolute(arg))
             arg = FileName.combine(dir, arg);
 
-        loc.filename = FileName.defaultExt(arg, global.lib_ext);
-        loc.linnum = 0;
-        loc.charnum = 0;
+        loc = Loc(FileName.defaultExt(arg, global.lib_ext).ptr, 0, 0);
     }
 
     final void write()
@@ -108,12 +104,7 @@ class Library
         OutBuffer libbuf;
         WriteLibToBuffer(&libbuf);
 
-        // Transfer image to file
-        File* libfile = File.create(loc.filename);
-        libfile.setbuffer(libbuf.data, libbuf.offset);
-        libbuf.extractData();
-        ensurePathToNameExists(Loc.initial, libfile.name.toChars());
-        writeFile(Loc.initial, libfile);
+        writeFile(Loc.initial, loc.filename.toDString, libbuf[]);
     }
 
     final void error(const(char)* format, ...)
@@ -126,19 +117,4 @@ class Library
 
   protected:
     Loc loc;                  // the filename of the library
-}
-
-version (D_LP64)
-    alias cpp_size_t = size_t;
-else version (OSX)
-{
-    import core.stdc.config : cpp_ulong;
-    alias cpp_size_t = cpp_ulong;
-}
-else
-    alias cpp_size_t = size_t;
-
-extern (C++) void addObjectToLibrary(Library lib, const(char)* module_name, const(ubyte)* buf, cpp_size_t buflen)
-{
-    lib.addObject(module_name, buf[0 .. buflen]);
 }

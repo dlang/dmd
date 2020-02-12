@@ -10,4 +10,4 @@ $DMD -m${MODEL} -of${OUTPUT_BASE}${EXE} ${OUTPUT_BASE}${OBJ} ${OUTPUT_BASE}a${OB
 
 ${OUTPUT_BASE}${EXE}
 
-rm ${OUTPUT_BASE}{${OBJ},a${OBJ},${EXE}}
+rm_retry ${OUTPUT_BASE}{${OBJ},a${OBJ},${EXE}}

@@ -1,15 +1,14 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 2013-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 2013-2020 by The D Language Foundation, All Rights Reserved
  * written by Iain Buclaw
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/target.h
+ * https://github.com/dlang/dmd/blob/master/src/dmd/target.h
  */
 
-#ifndef TARGET_H
-#define TARGET_H
+#pragma once
 
 // This file contains a data structure that describes a back-end target.
 // At present it is incomplete, but in future it should grow to contain
@@ -23,69 +22,87 @@ class Expression;
 class Parameter;
 class Type;
 class TypeTuple;
-class Module;
-struct OutBuffer;
+class TypeFunction;
+
+struct TargetC
+{
+    unsigned longsize;            // size of a C 'long' or 'unsigned long' type
+    unsigned long_doublesize;     // size of a C 'long double'
+    unsigned criticalSectionSize; // size of os critical section
+};
+
+struct TargetCPP
+{
+    bool reverseOverloads;    // with dmc and cl, overloaded functions are grouped and in reverse order
+    bool exceptions;          // set if catching C++ exceptions is supported
+    bool twoDtorInVtable;     // target C++ ABI puts deleting and non-deleting destructor into vtable
+
+    const char *toMangle(Dsymbol *s);
+    const char *typeInfoMangle(ClassDeclaration *cd);
+    const char *typeMangle(Type *t);
+    Type *parameterType(Parameter *p);
+    bool fundamentalType(const Type *t, bool& isFundamental);
+};
+
+struct TargetObjC
+{
+    bool supported;     // set if compiler can interface with Objective-C
+};
 
 struct Target
 {
     // D ABI
-    static unsigned ptrsize;
-    static unsigned realsize;           // size a real consumes in memory
-    static unsigned realpad;            // 'padding' added to the CPU real size to bring it up to realsize
-    static unsigned realalignsize;      // alignment for reals
-    static unsigned classinfosize;      // size of 'ClassInfo'
-    static unsigned long long maxStaticDataSize;  // maximum size of static data
+    unsigned ptrsize;
+    unsigned realsize;           // size a real consumes in memory
+    unsigned realpad;            // 'padding' added to the CPU real size to bring it up to realsize
+    unsigned realalignsize;      // alignment for reals
+    unsigned classinfosize;      // size of 'ClassInfo'
+    unsigned long long maxStaticDataSize;  // maximum size of static data
 
     // C ABI
-    static unsigned c_longsize;         // size of a C 'long' or 'unsigned long' type
-    static unsigned c_long_doublesize;  // size of a C 'long double'
+    TargetC c;
 
     // C++ ABI
-    static bool reverseCppOverloads;    // with dmc and cl, overloaded functions are grouped and in reverse order
-    static bool cppExceptions;          // set if catching C++ exceptions is supported
-    static bool twoDtorInVtable;        // target C++ ABI puts deleting and non-deleting destructor into vtable
+    TargetCPP cpp;
+
+    // Objective-C ABI
+    TargetObjC objc;
 
     template <typename T>
     struct FPTypeProperties
     {
-        static real_t max;
-        static real_t min_normal;
-        static real_t nan;
-        static real_t snan;
-        static real_t infinity;
-        static real_t epsilon;
+        real_t max;
+        real_t min_normal;
+        real_t nan;
+        real_t infinity;
+        real_t epsilon;
 
-        static d_int64 dig;
-        static d_int64 mant_dig;
-        static d_int64 max_exp;
-        static d_int64 min_exp;
-        static d_int64 max_10_exp;
-        static d_int64 min_10_exp;
+        d_int64 dig;
+        d_int64 mant_dig;
+        d_int64 max_exp;
+        d_int64 min_exp;
+        d_int64 max_10_exp;
+        d_int64 min_10_exp;
     };
 
-    typedef FPTypeProperties<float> FloatProperties;
-    typedef FPTypeProperties<double> DoubleProperties;
-    typedef FPTypeProperties<real_t> RealProperties;
+    FPTypeProperties<float> FloatProperties;
+    FPTypeProperties<double> DoubleProperties;
+    FPTypeProperties<real_t> RealProperties;
 
-    static void _init();
+    void _init(const Param& params);
     // Type sizes and support.
-    static unsigned alignsize(Type *type);
-    static unsigned fieldalign(Type *type);
-    static unsigned critsecsize();
-    static Type *va_listType();  // get type of va_list
-    static int isVectorTypeSupported(int sz, Type *type);
-    static bool isVectorOpSupported(Type *type, TOK op, Type *t2 = NULL);
-    // CTFE support for cross-compilation.
-    static Expression *paintAsType(Expression *e, Type *type);
+    unsigned alignsize(Type *type);
+    unsigned fieldalign(Type *type);
+    unsigned critsecsize();
+    Type *va_listType();  // get type of va_list
+    int isVectorTypeSupported(int sz, Type *type);
+    bool isVectorOpSupported(Type *type, TOK op, Type *t2 = NULL);
     // ABI and backend.
-    static void loadModule(Module *m);
-    static const char *toCppMangle(Dsymbol *s);
-    static const char *cppTypeInfoMangle(ClassDeclaration *cd);
-    static const char *cppTypeMangle(Type *t);
-    static Type *cppParameterType(Parameter *p);
-    static LINK systemLinkage();
-    static TypeTuple *toArgTypes(Type *t);
-    static d_uns64 parameterSize(const Loc& loc, Type *t);
+    LINK systemLinkage();
+    TypeTuple *toArgTypes(Type *t);
+    bool isReturnOnStack(TypeFunction *tf, bool needsThis);
+    d_uns64 parameterSize(const Loc& loc, Type *t);
+    Expression *getTargetInfo(const char* name, const Loc& loc);
 };
 
-#endif
+extern Target target;

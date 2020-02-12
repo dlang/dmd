@@ -1,4 +1,4 @@
-/* REQUIRED_ARGS: -dip1000
+/* REQUIRED_ARGS: -preview=dip1000
  * TEST_OUTPUT:
 ---
 fail_compilation/fail17927.d(13): Error: scope variable `this` may not be returned

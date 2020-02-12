@@ -1,15 +1,15 @@
-/* Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+
+/* Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * All Rights Reserved, written by Rainer Schuetze
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
- * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
- * https://github.com/dlang/dmd/blob/master/src/root/longdouble.h
+ * http://www.boost.org/LICENSE_1_0.txt
+ * https://github.com/dlang/dmd/blob/master/src/dmd/root/longdouble.h
  */
 
 // 80 bit floating point value implementation for Microsoft compiler
 
-#ifndef __LONG_DOUBLE_H__
-#define __LONG_DOUBLE_H__
+#pragma once
 
 #if !_MSC_VER // has native 10 byte doubles
 #include <stdio.h>
@@ -237,7 +237,6 @@ inline longdouble_soft sqrt (longdouble_soft ld) { return sqrtl(ld); }
 #define LDBL_MIN_10_EXP (-4932)
 
 extern const longdouble_soft ld_qnan;
-extern const longdouble_soft ld_snan;
 extern const longdouble_soft ld_inf;
 
 extern const longdouble_soft ld_zero;
@@ -264,5 +263,3 @@ typedef longdouble_soft longdouble;
 typedef longdouble_soft volatile_longdouble;
 
 #endif // !_MSC_VER
-
-#endif // __LONG_DOUBLE_H__

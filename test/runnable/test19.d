@@ -404,7 +404,7 @@ void test20()
 }
 
 /* ================================ */
-// 7848
+// https://issues.dlang.org/show_bug.cgi?id=7848
 
 @safe pure nothrow void func7848() {}
 
@@ -414,7 +414,7 @@ void test20()
 }
 
 /* ================================ */
-// 8128
+// https://issues.dlang.org/show_bug.cgi?id=8128
 
 int flag8128 = 0;
 

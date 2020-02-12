@@ -106,7 +106,7 @@ void test4523()
 }
 
 /************************************************/
-// 3825
+// https://issues.dlang.org/show_bug.cgi?id=3825
 
 import std.math;    // necessary for ^^=
 void test3825()
@@ -256,7 +256,7 @@ void test3825x()
 }
 
 /************************************************/
-// 10106
+// https://issues.dlang.org/show_bug.cgi?id=10106
 
 struct GcPolicy10106 {}
 

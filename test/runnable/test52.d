@@ -1,6 +1,6 @@
 // PERMUTE_ARGS:
 
-// 2311
+// https://issues.dlang.org/show_bug.cgi?id=2311
 
 extern(C)
 {

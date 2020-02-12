@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/nogc.d, _nogc.d)
@@ -64,6 +64,23 @@ public:
 
     override void visit(CallExp e)
     {
+        import dmd.id : Id;
+        import core.stdc.stdio : printf;
+        if (!e.f)
+            return;
+
+        auto fd = stripHookTraceImpl(e.f);
+        if (fd.ident == Id._d_arraysetlengthT)
+        {
+            if (f.setGC())
+            {
+                e.error("setting `length` in `@nogc` %s `%s` may cause a GC allocation",
+                    f.kind(), f.toPrettyChars());
+                err = true;
+                return;
+            }
+            f.printGCUsage(e.loc, "setting `length` may cause a GC allocation");
+        }
     }
 
     override void visit(ArrayLiteralExp e)
@@ -143,8 +160,6 @@ public:
         default:
             break;
         }
-        if (ad && ad.aggDelete)
-            return;
 
         if (f.setGC())
         {
@@ -212,7 +227,7 @@ public:
     }
 }
 
-extern (C++) Expression checkGC(Scope* sc, Expression e)
+Expression checkGC(Scope* sc, Expression e)
 {
     FuncDeclaration f = sc.func;
     if (e && e.op != TOK.error && f && sc.intypeof != 1 && !(sc.flags & SCOPE.ctfe) &&
@@ -226,4 +241,26 @@ extern (C++) Expression checkGC(Scope* sc, Expression e)
             return new ErrorExp();
     }
     return e;
+}
+
+/**
+ * Removes `_d_HookTraceImpl` if found from `fd`.
+ * This is needed to be able to find hooks that are called though the hook's `*Trace` wrapper.
+ * Parameters:
+ *  fd = The function declaration to remove `_d_HookTraceImpl` from
+ */
+private FuncDeclaration stripHookTraceImpl(FuncDeclaration fd)
+{
+    import dmd.id : Id;
+    import dmd.dsymbol : Dsymbol;
+    import dmd.root.rootobject : RootObject, DYNCAST;
+
+    if (fd.ident != Id._d_HookTraceImpl)
+        return fd;
+
+    // Get the Hook from the second template parameter
+    auto templateInstance = fd.parent.isTemplateInstance;
+    RootObject hook = (*templateInstance.tiargs)[1];
+    assert(hook.dyncast() == DYNCAST.dsymbol, "Expected _d_HookTraceImpl's second template parameter to be an alias to the hook!");
+    return (cast(Dsymbol)hook).isFuncDeclaration;
 }

@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/intrange.d, _intrange.d)
@@ -18,9 +18,7 @@ import dmd.mtype;
 import dmd.expression;
 import dmd.globals;
 
-enum UINT64_MAX = 0xFFFFFFFFFFFFFFFFUL;
-
-static uinteger_t copySign(uinteger_t x, bool sign)
+private uinteger_t copySign(uinteger_t x, bool sign)
 {
     // return sign ? -x : x;
     return (x - cast(uinteger_t)sign) ^ -cast(uinteger_t)sign;
@@ -43,7 +41,7 @@ struct SignExtendedNumber
 
     static SignExtendedNumber max()
     {
-        return SignExtendedNumber(UINT64_MAX, false);
+        return SignExtendedNumber(ulong.max, false);
     }
 
     static SignExtendedNumber min()
@@ -80,7 +78,7 @@ struct SignExtendedNumber
 
     SignExtendedNumber opUnary(string op : "++")()
     {
-        if (value != UINT64_MAX)
+        if (value != ulong.max)
             ++value;
         else if (negative)
         {
@@ -130,7 +128,7 @@ struct SignExtendedNumber
         else if (negative)
             return SignExtendedNumber(carry ? sum : 0, true);
         else
-            return SignExtendedNumber(carry ? UINT64_MAX : sum, false);
+            return SignExtendedNumber(carry ? ulong.max : sum, false);
     }
 
 
@@ -170,7 +168,7 @@ struct SignExtendedNumber
         uinteger_t tAbs = copySign(value, negative);
         uinteger_t aAbs = copySign(rhs.value, rhs.negative);
         rv.negative = negative != rhs.negative;
-        if (UINT64_MAX / tAbs < aAbs)
+        if (ulong.max / tAbs < aAbs)
             rv.value = rv.negative - 1;
         else
             rv.value = copySign(tAbs * aAbs, rv.negative);
@@ -199,9 +197,9 @@ struct SignExtendedNumber
         if (!isMinimum())
             rvVal = copySign(value, negative) / aAbs;
         // Special handling for INT65_MIN
-        //  if the denominator is not a power of 2, it is same as UINT64_MAX / x.
+        //  if the denominator is not a power of 2, it is same as ulong.max / x.
         else if (aAbs & (aAbs - 1))
-            rvVal = UINT64_MAX / aAbs;
+            rvVal = ulong.max / aAbs;
         // otherwise, it's the same as reversing the bits of x.
         else
         {
@@ -234,9 +232,9 @@ struct SignExtendedNumber
         if (!isMinimum())
             rvVal = copySign(value, negative) % aAbs;
         // Special handling for INT65_MIN
-        //  if the denominator is not a power of 2, it is same as UINT64_MAX%x + 1.
+        //  if the denominator is not a power of 2, it is same as ulong.max % x + 1.
         else if (aAbs & (aAbs - 1))
-            rvVal = UINT64_MAX % aAbs + 1;
+            rvVal = ulong.max % aAbs + 1;
         //  otherwise, the modulus is trivially zero.
         else
             rvVal = 0;
@@ -278,7 +276,7 @@ struct SignExtendedNumber
 
     SignExtendedNumber opBinary(string op : ">>")(SignExtendedNumber rhs)
     {
-        if (rhs.negative || rhs.value > 64)
+        if (rhs.negative || rhs.value > 63)
             return negative ? SignExtendedNumber(-1, true) : SignExtendedNumber(0);
         else if (isMinimum())
             return rhs.value == 0 ? this : SignExtendedNumber(-1UL << (64 - rhs.value), true);
@@ -324,7 +322,7 @@ struct IntRange
 
     static IntRange fromType(Type type, bool isUnsigned)
     {
-        if (!type.isintegral())
+        if (!type.isintegral() || type.toBasetype().ty == Tvector)
             return widest();
 
         uinteger_t mask = type.sizemask();
@@ -446,7 +444,7 @@ struct IntRange
 
     IntRange _cast(Type type)
     {
-        if (!type.isintegral())
+        if (!type.isintegral() || type.toBasetype().ty == Tvector)
             return this;
         else if (!type.isunsigned())
             return castSigned(type.sizemask());
@@ -458,8 +456,8 @@ struct IntRange
 
     IntRange castUnsigned(Type type)
     {
-        if (!type.isintegral())
-            return castUnsigned(UINT64_MAX);
+        if (!type.isintegral() || type.toBasetype().ty == Tvector)
+            return castUnsigned(ulong.max);
         else if (type.toBasetype().ty == Tdchar)
             return castDchar();
         else
@@ -506,7 +504,7 @@ struct IntRange
         union_ = true;
     }
 
-    ref const(IntRange) dump(const(char)* funcName, Expression e) const
+    ref const(IntRange) dump(const(char)* funcName, Expression e) const return
     {
         printf("[(%c)%#018llx, (%c)%#018llx] @ %s ::: %s\n",
                imin.negative?'-':'+', cast(ulong)imin.value,
@@ -582,7 +580,7 @@ struct IntRange
             auto maxAndPos = maxAnd(l, IntRange(SignExtendedNumber(0), r.imax));
 
             auto min = minAndNeg < minAndPos ? minAndNeg : minAndPos;
-            auto max = maxAndNeg > maxAndNeg ? maxAndNeg : maxAndPos;
+            auto max = maxAndNeg > maxAndPos ? maxAndNeg : maxAndPos;
 
             auto range = IntRange(min, max);
             return range;
@@ -629,8 +627,8 @@ struct IntRange
             auto maxOrNeg = maxOr(l, IntRange(r.imin, SignExtendedNumber(-1)));
             auto maxOrPos = maxOr(l, IntRange(SignExtendedNumber(0), r.imax));
 
-            auto min = minOrNeg.value < minOrPos.value ? minOrNeg : minOrPos;
-            auto max = maxOrNeg.value > maxOrNeg.value ? maxOrNeg : maxOrPos;
+            auto min = minOrNeg < minOrPos ? minOrNeg : minOrPos;
+            auto max = maxOrNeg > maxOrPos ? maxOrNeg : maxOrPos;
 
             auto range = IntRange(min, max);
             return range;

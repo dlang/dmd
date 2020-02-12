@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1986-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/gdag.d, backend/gdag.d)
@@ -38,6 +38,7 @@ import dmd.backend.dvec;
 
 extern (C++):
 
+nothrow:
 
 enum Aetype { cse, arraybounds }
 
@@ -47,15 +48,18 @@ bool Eunambig(elem* e) { return OTassign(e.Eoper) && e.EV.E1.Eoper == OPvar; }
 
 /*************************************
  * Determine if floating point should be cse'd.
+ * Returns:
+ *      true if should be cse'd
  */
 
-int cse_float(elem *e)
+private bool cse_float(elem *e)
 {
     // Don't CSE floating stuff if generating
     // inline 8087 code, the code generator
     // can't handle it yet
     return !(tyfloating(e.Ety) && config.inline8087 &&
-           e.Eoper != OPvar && e.Eoper != OPconst);
+             e.Eoper != OPvar && e.Eoper != OPconst) ||
+           (tyxmmreg(e.Ety) && config.fpxmmregs);
 }
 
 /************************************
@@ -79,15 +83,15 @@ void builddags()
     assert(dfo);
     flowae();                       /* compute available expressions */
     if (go.exptop <= 1)             /* if no AEs                     */
-            return;
+        return;
     aetype = Aetype.cse;
 
     debug
-        for (uint i = 0; i < go.exptop; i++)
+        foreach (i, e; go.expnod[])
         {
-            //printf("go.expnod[%d] = %p\n",i,go.expnod[i]);
-            if (go.expnod[i])
-                elem_debug(go.expnod[i]);
+            //printf("go.expnod[%d] = %p\n",i,e);
+            if (e)
+                elem_debug(e);
         }
 
     static if (0)
@@ -101,9 +105,8 @@ void builddags()
     {
         /* This is the 'correct' algorithm for CSEs. We can't use it    */
         /* till we fix the code generator.                              */
-        for (uint i = 0; i < dfotop; i++)
+        foreach (i, b; dfo[])
         {
-            block *b = dfo[i];
             if (b.Belem)
             {
                 static if (0)
@@ -132,9 +135,8 @@ void builddags()
         /* the code generator can only track register contents          */
         /* properly across extended basic blocks.                       */
         aevec = vec_calloc(go.exptop);
-        for (uint i = 0; i < dfotop; i++)
+        foreach (i, b; dfo[])
         {
-            block *b = dfo[i];
             /* if not first block and (there are more than one      */
             /* predecessor or the only predecessor is not the       */
             /* previous block), then zero out the available         */
@@ -156,10 +158,9 @@ void builddags()
     }
 
     // Need 2 passes to converge on solution
-    for (int j = 0; j < 2; j++)
-        for (uint i = 0; i < dfotop; i++)
+    foreach (j; 0 .. 2)
+        foreach (b; dfo[])
         {
-            block *b = dfo[i];
             if (b.Belem)
             {
                 //printf("b = 0x%x\n",b);
@@ -168,50 +169,27 @@ void builddags()
         }
 }
 
-/**********************************
- */
-
-private void aeclear(elem *n,vec_t ae)
-{   int i;
-
-    i = n.Eexp;
-    assert(i);
-    if (n.Ecount == 0)
-    {
-        go.expnod[i] = null;
-        vec_clearbit(i,ae);
-        if (OTunary(n.Eoper))
-            aeclear(n.EV.E1,ae);
-        else if (OTbinary(n.Eoper))
-        {   aeclear(n.EV.E1,ae);
-            aeclear(n.EV.E2,ae);
-        }
-    }
-}
 
 /****************************
- * Walk tree, building DAG as we go.
+ * Walk tree, rewriting *pn into a DAG as we go.
+ * Params:
+ *      pn = pointer to expression tree to convert to DAG
  *      ae = vector of available expressions
  */
 
 private void aewalk(elem **pn,vec_t ae)
 {
-    vec_t aer;
-    uint i,op;
-    elem *n;
-    elem *t;
-
-    n = *pn;
+    elem* n = *pn;
     assert(n && ae);
     //printf("visiting  %d: (",n.Eexp); WReqn(*pn); printf(")\n");
     //chkvecdim(go.exptop);
-    op = n.Eoper;
+    const op = n.Eoper;
     if (n.Eexp)                            // if an AE
     {   // Try to find an equivalent AE, and point to it instead
         assert(go.expnod[n.Eexp] == n);
         if (aetype == Aetype.cse)
         {
-            for (i = 0; (i = cast(uint) vec_index(i, ae)) < go.exptop; ++i)
+            for (uint i = 0; (i = cast(uint) vec_index(i, ae)) < go.exptop; ++i)
             {   elem *e = go.expnod[i];
 
                 // Attempt to replace n with e
@@ -227,36 +205,69 @@ private void aewalk(elem **pn,vec_t ae)
                     //printf("cse: %p (",n); WReqn(*pn); printf(")\n");
                     e.Ecount++;
                     debug assert(e.Ecount != 0);
-                    aeclear(n,ae);
+
+                    void aeclear(elem *n)
+                    {
+                        while (1)
+                        {
+                            const i = n.Eexp;
+                            assert(i);
+                            if (n.Ecount)
+                                break;
+
+                            go.expnod[i] = null;
+                            vec_clearbit(i,ae);
+                            if (OTunary(n.Eoper))
+                            {
+                                n = n.EV.E1;
+                                continue;
+                            }
+                            else if (OTbinary(n.Eoper))
+                            {
+                                aeclear(n.EV.E1);
+                                n = n.EV.E2;
+                                continue;
+                            }
+                            break;
+                        }
+                    }
+
+                    aeclear(n);
                     el_free(n);
                     return;
                 }
             }
         }
     }
+
+    elem *t;
     switch (op)
     {
         case OPcolon:
         case OPcolon2:
+        {
             // ae = ae & ael & aer
             // AEs gened by ael and aer are mutually exclusive
-            aer = vec_clone(ae);
+            vec_t aer = vec_clone(ae);
             aewalk(&(n.EV.E1),ae);
             aewalk(&(n.EV.E2),aer);
             vec_andass(ae,aer);
             vec_free(aer);
             break;
+        }
 
         case OPandand:
         case OPoror:
+        {
             aewalk(&(n.EV.E1),ae);
             /* ae &= aer    */
-            aer = vec_clone(ae);
+            vec_t aer = vec_clone(ae);
             aewalk(&(n.EV.E2),aer);
             if (el_returns(n.EV.E2))
                 vec_andass(ae,aer);
             vec_free(aer);
             break;
+        }
 
         case OPnegass:
             t = n.EV.E1;
@@ -291,7 +302,8 @@ private void aewalk(elem **pn,vec_t ae)
                         aewalk(&(n.EV.E2),ae);
                 }
                 if (OTassign(op))
-                {   t = n.EV.E1;
+                {
+                    t = n.EV.E1;
                     if (t.Eoper == OPind)
                         aewalk(&(t.EV.E1),ae);
                 }
@@ -301,7 +313,8 @@ private void aewalk(elem **pn,vec_t ae)
                     aewalk(&(n.EV.E2),ae);
             }
             else if (OTunary(op))
-            {   assert(op != OPnegass);
+            {
+                assert(op != OPnegass);
                 aewalk(&(n.EV.E1),ae);
             }
     }
@@ -312,13 +325,11 @@ private void aewalk(elem **pn,vec_t ae)
         /* remove all AEs that could be affected by this def    */
         if (Eunambig(n))        // if unambiguous definition
         {
-            Symbol *s;
-
             assert(t.Eoper == OPvar);
-            s = t.EV.Vsym;
+            Symbol* s = t.EV.Vsym;
             if (!(s.Sflags & SFLunambig))
                 vec_subass(ae,go.starkill);
-            for (i = 0; (i = cast(uint) vec_index(i, ae)) < go.exptop; ++i) // for each ae elem
+            for (uint i = 0; (i = cast(uint) vec_index(i, ae)) < go.exptop; ++i) // for each ae elem
             {
                 elem *e = go.expnod[i];
 
@@ -440,11 +451,8 @@ private elem * delcse(elem **pe)
 
 private void removecses(elem **pe)
 {
-    uint op;
-    elem *e;
-
 L1:
-    e = *pe;
+    elem* e = *pe;
     //printf("  removecses(%p) ", e); WReqn(e); printf("\n");
     assert(e);
     elem_debug(e);
@@ -453,17 +461,18 @@ L1:
         delcse(pe);
         goto L1;
     }
-    op = e.Eoper;
+    const op = e.Eoper;
     if (OTunary(op))
     {
         if (op == OPind)
         {
+            bool scaledIndex = I32 || I64;      // if scaled index addressing mode support
             elem *e1 = e.EV.E1;
             if (e1.Eoper == OPadd &&
-                e1.Ecount // == 1
+                e1.Ecount
                )
             {
-                if (I32)
+                if (scaledIndex)
                 {
                     e1 = delcse(&e.EV.E1);
                     if (e1.EV.E1.Ecount) // == 1)
@@ -471,8 +480,10 @@ L1:
                     if (e1.EV.E2.Ecount && e1.EV.E2.Eoper != OPind)
                         delcse(&e1.EV.E2);
                 }
-                // Look for *(var + const). The + and the const
-                // shouldn't be CSEs.
+                /* *(v +. c)
+                 * *(*pc +. c)
+                 * The + and the const shouldn't be CSEs.
+                 */
                 else if (e1.EV.E2.Eoper == OPconst &&
                     (e1.EV.E1.Eoper == OPvar || (e1.EV.E1.Eoper == OPind && e1.EV.E1.Ety & (mTYconst | mTYimmutable)))
                    )
@@ -481,7 +492,9 @@ L1:
                 }
             }
 
-            if (I32 && e1.Eoper == OPadd &&
+            /* *(((e <<. 3) + e) + e)
+             */
+            if (scaledIndex && e1.Eoper == OPadd &&
                 e1.EV.E1.Eoper == OPadd &&
                 e1.EV.E1.EV.E1.Ecount &&
                 e1.EV.E1.EV.E1.Eoper == OPshl &&
@@ -489,10 +502,12 @@ L1:
                 e1.EV.E1.EV.E1.EV.E2.EV.Vuns <= 3
                )
             {
-                delcse(&e1.EV.E1.EV.E1);
+                delcse(&e1.EV.E1.EV.E1);        // the <<. operator
             }
 
-            if (I32 && e1.Eoper == OPadd &&
+            /* *(((e << 3) +. e) + e)
+            */
+            if (scaledIndex && e1.Eoper == OPadd &&
                 e1.EV.E1.Eoper == OPadd &&
                 e1.EV.E1.Ecount &&
                 e1.EV.E1.EV.E1.Eoper == OPshl &&
@@ -500,17 +515,19 @@ L1:
                 e1.EV.E1.EV.E1.EV.E2.EV.Vuns <= 3
                )
             {
-                delcse(&e1.EV.E1);
+                delcse(&e1.EV.E1);              // the +. operator
             }
 
-            else if (I32 && e1.Eoper == OPadd &&
+            /* *((e <<. 3) + e)
+             */
+            else if (scaledIndex && e1.Eoper == OPadd &&
                 e1.EV.E1.Ecount &&
                 e1.EV.E1.Eoper == OPshl &&
                 e1.EV.E1.EV.E2.Eoper == OPconst &&
                 e1.EV.E1.EV.E2.EV.Vuns <= 3
                )
             {
-                delcse(&e1.EV.E1);
+                delcse(&e1.EV.E1);              // the <<. operator
             }
 
             // Remove *e1 where it's a double
@@ -518,8 +535,11 @@ L1:
                 e = delcse(pe);
         }
         // This CSE is too easy to regenerate
-        else if (op == OPu16_32 && !I32 && e.Ecount)
+        else if (op == OPu16_32 && I16 && e.Ecount)
             e = delcse(pe);
+
+        else if (op == OPd_ld && e.EV.E1.Ecount > 0)
+            delcse(&e.EV.E1);
 
         // OPremquo is only worthwhile if its result is used more than once
         else if (e.EV.E1.Eoper == OPremquo &&
@@ -579,7 +599,7 @@ void boolopt()
     vec_t aevecval;
 
     debug if (debugc) printf("boolopt()\n");
-    if (!dfo)
+    if (!dfo.length)
         compdfo();
     flowae();                       /* compute available expressions */
     if (go.exptop <= 1)             /* if no AEs                     */
@@ -614,9 +634,8 @@ void boolopt()
         }
     }
 
-    for (uint i = 0; i < dfotop; i++)
+    foreach (i, b; dfo[])
     {
-        block *b = dfo[i];
         /* if not first block and (there are more than one      */
         /* predecessor or the only predecessor is not the       */
         /* previous block), then zero out the available         */
@@ -654,7 +673,7 @@ private void abewalk(elem *n,vec_t ae,vec_t aeval)
     elem_debug(n);
     /*printf("visiting: ("); WReqn(*pn); printf("), Eexp = %d\n",n.Eexp);*/
     /*chkvecdim(go.exptop);*/
-    const uint op = n.Eoper;
+    const op = n.Eoper;
     switch (op)
     {
         case OPcond:

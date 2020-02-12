@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/json.d, _json.d)
@@ -17,6 +17,7 @@ import core.stdc.string;
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.attrib;
+import dmd.cond;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum;
@@ -33,6 +34,8 @@ import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
 import dmd.root.outbuffer;
+import dmd.root.rootobject;
+import dmd.root.string;
 import dmd.visitor;
 
 version(Windows) {
@@ -47,24 +50,25 @@ private extern (C++) final class ToJsonVisitor : Visitor
 public:
     OutBuffer* buf;
     int indentLevel;
-    const(char)* filename;
+    const(char)[] filename;
 
     extern (D) this(OutBuffer* buf)
     {
         this.buf = buf;
     }
 
+
     void indent()
     {
-        if (buf.offset >= 1 && buf.data[buf.offset - 1] == '\n')
+        if (buf.length >= 1 && (*buf)[buf.length - 1] == '\n')
             for (int i = 0; i < indentLevel; i++)
                 buf.writeByte(' ');
     }
 
     void removeComma()
     {
-        if (buf.offset >= 2 && buf.data[buf.offset - 2] == ',' && (buf.data[buf.offset - 1] == '\n' || buf.data[buf.offset - 1] == ' '))
-            buf.offset -= 2;
+        if (buf.length >= 2 && (*buf)[buf.length - 2] == ',' && ((*buf)[buf.length - 1] == '\n' || (*buf)[buf.length - 1] == ' '))
+            buf.setsize(buf.length - 2);
     }
 
     void comma()
@@ -83,11 +87,10 @@ public:
         buf.writeByte('\"');
     }
 
-    void stringPart(const(char)* s)
+    extern(D) void stringPart(const char[] s)
     {
-        for (; *s; s++)
+        foreach (char c; s)
         {
-            char c = cast(char)*s;
             switch (c)
             {
             case '\n':
@@ -128,7 +131,7 @@ public:
     /*********************************
      * Encode string into buf, and wrap it in double quotes.
      */
-    void value(const(char)* s)
+    extern(D) void value(const char[] s)
     {
         stringStart();
         stringPart(s);
@@ -153,7 +156,7 @@ public:
     /*********************************
      * Item is an intented value and a comma, for use in arrays
      */
-    void item(const(char)* s)
+    extern(D) void item(const char[] s)
     {
         indent();
         value(s);
@@ -167,7 +170,7 @@ public:
         comma();
     }
 
-    void itemBool(bool b)
+    void itemBool(const bool b)
     {
         indent();
         valueBool(b);
@@ -186,9 +189,9 @@ public:
     {
         indentLevel--;
         removeComma();
-        if (buf.offset >= 2 && buf.data[buf.offset - 2] == '[' && buf.data[buf.offset - 1] == '\n')
-            buf.offset -= 1;
-        else if (!(buf.offset >= 1 && buf.data[buf.offset - 1] == '['))
+        if (buf.length >= 2 && (*buf)[buf.length - 2] == '[' && (*buf)[buf.length - 1] == '\n')
+            buf.setsize(buf.length - 1);
+        else if (!(buf.length >= 1 && (*buf)[buf.length - 1] == '['))
         {
             buf.writestring("\n");
             indent();
@@ -209,8 +212,8 @@ public:
     {
         indentLevel--;
         removeComma();
-        if (buf.offset >= 2 && buf.data[buf.offset - 2] == '{' && buf.data[buf.offset - 1] == '\n')
-            buf.offset -= 1;
+        if (buf.length >= 2 && (*buf)[buf.length - 2] == '{' && (*buf)[buf.length - 1] == '\n')
+            buf.setsize(buf.length - 1);
         else
         {
             buf.writestring("\n");
@@ -221,7 +224,7 @@ public:
     }
 
     // Json object property functions
-    void propertyStart(const(char)* name)
+    extern(D) void propertyStart(const char[] name)
     {
         indent();
         value(name);
@@ -235,7 +238,7 @@ public:
      name = the name of the object property
      s = the string value of the object property
     */
-    void property(const(char)* name, const(char)* s)
+    extern(D) void property(const char[] name, const char[] s)
     {
         if (s is null)
             return;
@@ -251,7 +254,7 @@ public:
      name = the name of the object property
      s = the string value of the object property
     */
-    void requiredProperty(const(char)* name, const(char)* s)
+    extern(D) void requiredProperty(const char[] name, const char[] s)
     {
         propertyStart(name);
         if (s is null)
@@ -261,21 +264,21 @@ public:
         comma();
     }
 
-    void property(const(char)* name, int i)
+    extern(D) void property(const char[] name, int i)
     {
         propertyStart(name);
         value(i);
         comma();
     }
 
-    void propertyBool(const(char)* name, bool b)
+    extern(D) void propertyBool(const char[] name, const bool b)
     {
         propertyStart(name);
         valueBool(b);
         comma();
     }
 
-    void property(const(char)* name, TRUST trust)
+    extern(D) void property(const char[] name, TRUST trust)
     {
         final switch (trust)
         {
@@ -283,19 +286,13 @@ public:
             // Should not be printed
             //property(name, "default");
             break;
-        case TRUST.system:
-            property(name, "system");
-            break;
-        case TRUST.trusted:
-            property(name, "trusted");
-            break;
-        case TRUST.safe:
-            property(name, "safe");
-            break;
+        case TRUST.system:  return property(name, "system");
+        case TRUST.trusted: return property(name, "trusted");
+        case TRUST.safe:    return property(name, "safe");
         }
     }
 
-    void property(const(char)* name, PURE purity)
+    extern(D) void property(const char[] name, PURE purity)
     {
         final switch (purity)
         {
@@ -303,22 +300,14 @@ public:
             // Should not be printed
             //property(name, "impure");
             break;
-        case PURE.weak:
-            property(name, "weak");
-            break;
-        case PURE.const_:
-            property(name, "const");
-            break;
-        case PURE.strong:
-            property(name, "strong");
-            break;
-        case PURE.fwdref:
-            property(name, "fwdref");
-            break;
+        case PURE.weak:     return property(name, "weak");
+        case PURE.const_:   return property(name, "const");
+        case PURE.strong:   return property(name, "strong");
+        case PURE.fwdref:   return property(name, "fwdref");
         }
     }
 
-    void property(const(char)* name, LINK linkage)
+    extern(D) void property(const char[] name, const LINK linkage)
     {
         final switch (linkage)
         {
@@ -334,25 +323,15 @@ public:
             // Should not be printed
             //property(name, "system");
             break;
-        case LINK.c:
-            property(name, "c");
-            break;
-        case LINK.cpp:
-            property(name, "cpp");
-            break;
-        case LINK.windows:
-            property(name, "windows");
-            break;
-        case LINK.pascal:
-            property(name, "pascal");
-            break;
-        case LINK.objc:
-            property(name, "objc");
-            break;
+        case LINK.c:        return property(name, "c");
+        case LINK.cpp:      return property(name, "cpp");
+        case LINK.windows:  return property(name, "windows");
+        case LINK.pascal:   return property(name, "pascal");
+        case LINK.objc:     return property(name, "objc");
         }
     }
 
-    void propertyStorageClass(const(char)* name, StorageClass stc)
+    extern(D) void propertyStorageClass(const char[] name, StorageClass stc)
     {
         stc &= STCStorageClass;
         if (stc)
@@ -361,22 +340,21 @@ public:
             arrayStart();
             while (stc)
             {
-                const(char)* p = stcToChars(stc);
-                assert(p);
+                auto p = stcToString(stc);
+                assert(p.length);
                 item(p);
             }
             arrayEnd();
         }
     }
 
-    void property(const(char)* linename, const(char)* charname, Loc* loc)
+    extern(D) void property(const char[] linename, const char[] charname, const ref Loc loc)
     {
-        if (loc)
+        if (loc.isValid())
         {
-            const(char)* filename = loc.filename;
-            if (filename)
+            if (auto filename = loc.filename.toDString)
             {
-                if (!this.filename || strcmp(filename, this.filename))
+                if (filename != this.filename)
                 {
                     this.filename = filename;
                     property("file", filename);
@@ -391,26 +369,26 @@ public:
         }
     }
 
-    void property(const(char)* name, Type type)
+    extern(D) void property(const char[] name, Type type)
     {
         if (type)
         {
-            property(name, type.toChars());
+            property(name, type.toString());
         }
     }
 
-    void property(const(char)* name, const(char)* deconame, Type type)
+    extern(D) void property(const char[] name, const char[] deconame, Type type)
     {
         if (type)
         {
             if (type.deco)
-                property(deconame, type.deco);
+                property(deconame, type.deco.toDString);
             else
-                property(name, type.toChars());
+                property(name, type.toString());
         }
     }
 
-    void property(const(char)* name, Parameters* parameters)
+    extern(D) void property(const char[] name, Parameters* parameters)
     {
         if (parameters is null || parameters.dim == 0)
             return;
@@ -423,11 +401,11 @@ public:
                 Parameter p = (*parameters)[i];
                 objectStart();
                 if (p.ident)
-                    property("name", p.ident.toChars());
+                    property("name", p.ident.toString());
                 property("type", "deco", p.type);
                 propertyStorageClass("storageClass", p.storageClass);
                 if (p.defaultArg)
-                    property("default", p.defaultArg.toChars());
+                    property("default", p.defaultArg.toString());
                 objectEnd();
             }
         }
@@ -441,18 +419,18 @@ public:
             return;
         if (!s.isTemplateDeclaration()) // TemplateDeclaration::kind() acts weird sometimes
         {
-            property("name", s.toChars());
-            property("kind", s.kind());
+            property("name", s.toString());
+            property("kind", s.kind.toDString);
         }
         if (s.prot().kind != Prot.Kind.public_) // TODO: How about package(names)?
-            property("protection", protectionToChars(s.prot().kind));
+            property("protection", protectionToString(s.prot().kind));
         if (EnumMember em = s.isEnumMember())
         {
             if (em.origValue)
-                property("value", em.origValue.toChars());
+                property("value", em.origValue.toString());
         }
-        property("comment", s.comment);
-        property("line", "char", &s.loc);
+        property("comment", s.comment.toDString);
+        property("line", "char", s.loc);
     }
 
     void jsonProperties(Declaration d)
@@ -466,11 +444,11 @@ public:
         // Emit originalType if it differs from type
         if (d.type != d.originalType && d.originalType)
         {
-            const(char)* ostr = d.originalType.toChars();
+            auto ostr = d.originalType.toString();
             if (d.type)
             {
-                const(char)* tstr = d.type.toChars();
-                if (strcmp(tstr, ostr))
+                auto tstr = d.type.toString();
+                if (ostr != tstr)
                 {
                     //printf("tstr = %s, ostr = %s\n", tstr, ostr);
                     property("originalType", ostr);
@@ -487,7 +465,7 @@ public:
         if (td.onemember && td.onemember.isCtorDeclaration())
             property("name", "this"); // __ctor -> this
         else
-            property("name", td.ident.toChars()); // Foo(T) -> Foo
+            property("name", td.ident.toString()); // Foo(T) -> Foo
     }
 
     /* ========================================================================== */
@@ -499,11 +477,11 @@ public:
     {
         objectStart();
         if (s.md)
-            property("name", s.md.toChars());
-        property("kind", s.kind());
-        filename = s.srcfile.toChars();
+            property("name", s.md.toString());
+        property("kind", s.kind.toDString);
+        filename = s.srcfile.toString();
         property("file", filename);
-        property("comment", s.comment);
+        property("comment", s.comment.toDString);
         propertyStart("members");
         arrayStart();
         for (size_t i = 0; i < s.members.dim; i++)
@@ -525,21 +503,21 @@ public:
         {
             for (size_t i = 0; i < s.packages.dim; i++)
             {
-                Identifier pid = (*s.packages)[i];
-                stringPart(pid.toChars());
+                const pid = (*s.packages)[i];
+                stringPart(pid.toString());
                 buf.writeByte('.');
             }
         }
-        stringPart(s.id.toChars());
+        stringPart(s.id.toString());
         stringEnd();
         comma();
-        property("kind", s.kind());
-        property("comment", s.comment);
-        property("line", "char", &s.loc);
+        property("kind", s.kind.toDString);
+        property("comment", s.comment.toDString);
+        property("line", "char", s.loc);
         if (s.prot().kind != Prot.Kind.public_)
-            property("protection", protectionToChars(s.prot().kind));
+            property("protection", protectionToString(s.prot().kind));
         if (s.aliasId)
-            property("alias", s.aliasId.toChars());
+            property("alias", s.aliasId.toString());
         bool hasRenamed = false;
         bool hasSelective = false;
         for (size_t i = 0; i < s.aliases.dim; i++)
@@ -559,10 +537,10 @@ public:
             objectStart();
             for (size_t i = 0; i < s.aliases.dim; i++)
             {
-                Identifier name = s.names[i];
-                Identifier _alias = s.aliases[i];
+                const name = s.names[i];
+                const _alias = s.aliases[i];
                 if (_alias)
-                    property(_alias.toChars(), name.toChars());
+                    property(_alias.toString(), name.toString());
             }
             objectEnd();
         }
@@ -571,11 +549,10 @@ public:
             // import foo : target1;
             propertyStart("selective");
             arrayStart();
-            for (size_t i = 0; i < s.names.dim; i++)
+            foreach (i, name; s.names)
             {
-                Identifier name = s.names[i];
                 if (!s.aliases[i])
-                    item(name.toChars());
+                    item(name.toString());
             }
             arrayEnd();
         }
@@ -597,7 +574,7 @@ public:
 
     override void visit(ConditionalDeclaration d)
     {
-        if (d.condition.inc)
+        if (d.condition.inc != Include.notComputed)
         {
             visit(cast(AttribDeclaration)d);
         }
@@ -634,7 +611,7 @@ public:
         {
             if (cd.baseClass && cd.baseClass.ident != Id.Object)
             {
-                property("base", cd.baseClass.toPrettyChars(true));
+                property("base", cd.baseClass.toPrettyChars(true).toDString);
             }
             if (cd.interfaces.length)
             {
@@ -642,7 +619,7 @@ public:
                 arrayStart();
                 foreach (b; cd.interfaces)
                 {
-                    item(b.sym.toPrettyChars(true));
+                    item(b.sym.toPrettyChars(true).toDString);
                 }
                 arrayEnd();
             }
@@ -667,8 +644,8 @@ public:
         jsonProperties(d);
         TypeFunction tf = cast(TypeFunction)d.type;
         if (tf && tf.ty == Tfunction)
-            property("parameters", tf.parameters);
-        property("endline", "endchar", &d.endloc);
+            property("parameters", tf.parameterList.parameters);
+        property("endline", "endchar", d.endloc);
         if (d.foverrides.dim)
         {
             propertyStart("overrides");
@@ -676,7 +653,7 @@ public:
             for (size_t i = 0; i < d.foverrides.dim; i++)
             {
                 FuncDeclaration fd = d.foverrides[i];
-                item(fd.toPrettyChars());
+                item(fd.toPrettyChars().toDString);
             }
             arrayEnd();
         }
@@ -705,9 +682,9 @@ public:
         {
             TemplateParameter s = (*d.parameters)[i];
             objectStart();
-            property("name", s.ident.toChars());
-            TemplateTypeParameter type = s.isTemplateTypeParameter();
-            if (type)
+            property("name", s.ident.toString());
+
+            if (auto type = s.isTemplateTypeParameter())
             {
                 if (s.isTemplateThisParameter())
                     property("kind", "this");
@@ -716,38 +693,39 @@ public:
                 property("type", "deco", type.specType);
                 property("default", "defaultDeco", type.defaultType);
             }
-            TemplateValueParameter value = s.isTemplateValueParameter();
-            if (value)
+
+            if (auto value = s.isTemplateValueParameter())
             {
                 property("kind", "value");
                 property("type", "deco", value.valType);
                 if (value.specValue)
-                    property("specValue", value.specValue.toChars());
+                    property("specValue", value.specValue.toString());
                 if (value.defaultValue)
-                    property("defaultValue", value.defaultValue.toChars());
+                    property("defaultValue", value.defaultValue.toString());
             }
-            TemplateAliasParameter _alias = s.isTemplateAliasParameter();
-            if (_alias)
+
+            if (auto _alias = s.isTemplateAliasParameter())
             {
                 property("kind", "alias");
                 property("type", "deco", _alias.specType);
                 if (_alias.specAlias)
-                    property("specAlias", _alias.specAlias.toChars());
+                    property("specAlias", _alias.specAlias.toString());
                 if (_alias.defaultAlias)
-                    property("defaultAlias", _alias.defaultAlias.toChars());
+                    property("defaultAlias", _alias.defaultAlias.toString());
             }
-            TemplateTupleParameter tuple = s.isTemplateTupleParameter();
-            if (tuple)
+
+            if (auto tuple = s.isTemplateTupleParameter())
             {
                 property("kind", "tuple");
             }
+
             objectEnd();
         }
         arrayEnd();
         Expression expression = d.constraint;
         if (expression)
         {
-            property("constraint", expression.toChars());
+            property("constraint", expression.toString());
         }
         propertyStart("members");
         arrayStart();
@@ -806,7 +784,7 @@ public:
         objectStart();
         jsonProperties(d);
         if (d._init)
-            property("init", d._init.toChars());
+            property("init", d._init.toString());
         if (d.isField())
             property("offset", d.offset);
         if (d.alignment && d.alignment != STRUCTALIGN_DEFAULT)
@@ -850,7 +828,7 @@ public:
     private void generateCompilerInfo()
     {
         objectStart();
-        requiredProperty("vendor", global.compiler.vendor);
+        requiredProperty("vendor", global.vendor);
         requiredProperty("version", global._version);
         property("__VERSION__", global.versionNumber());
         requiredProperty("interface", determineCompilerInterface());
@@ -900,7 +878,7 @@ public:
         {
             foreach (const versionid; *global.versionids)
             {
-                item(versionid.toChars());
+                item(versionid.toString());
             }
         }
         arrayEnd();
@@ -921,7 +899,7 @@ public:
     private void generateBuildInfo()
     {
         objectStart();
-        requiredProperty("cwd", getcwd(null, 0));
+        requiredProperty("cwd", getcwd(null, 0).toDString);
         requiredProperty("argv0", global.params.argv0);
         requiredProperty("config", global.inifilename);
         requiredProperty("libName", global.params.libname);
@@ -932,7 +910,7 @@ public:
         {
             foreach (importPath; *global.params.imppath)
             {
-                item(importPath);
+                item(importPath.toDString);
             }
         }
         arrayEnd();
@@ -941,7 +919,7 @@ public:
         arrayStart();
         foreach (objfile; global.params.objfiles)
         {
-            item(objfile);
+            item(objfile.toDString);
         }
         arrayEnd();
 
@@ -949,7 +927,7 @@ public:
         arrayStart();
         foreach (lib; global.params.libfiles)
         {
-            item(lib);
+            item(lib.toDString);
         }
         arrayEnd();
 
@@ -957,7 +935,7 @@ public:
         arrayStart();
         foreach (ddocFile; global.params.ddocfiles)
         {
-            item(ddocFile);
+            item(ddocFile.toDString);
         }
         arrayEnd();
 
@@ -981,8 +959,8 @@ public:
         foreach (m; Module.amodules)
         {
             objectStart();
-            requiredProperty("name", m.md ? m.md.toChars() : null);
-            requiredProperty("file", m.srcfile.toChars());
+            requiredProperty("name", m.md ? m.md.toString() : null);
+            requiredProperty("file", m.srcfile.toString());
             propertyBool("isRoot", m.isRoot());
             if(m.contentImportedFiles.dim > 0)
             {
@@ -990,7 +968,7 @@ public:
                 arrayStart();
                 foreach (file; m.contentImportedFiles)
                 {
-                    item(file);
+                    item(file.toDString);
                 }
                 arrayEnd();
             }
@@ -1070,9 +1048,9 @@ Params:
 Returns: JsonFieldFlags.none on error, otherwise the JsonFieldFlags value
          corresponding to the given fieldName.
 */
-JsonFieldFlags tryParseJsonField(const(char)* fieldName)
+extern (C++) JsonFieldFlags tryParseJsonField(const(char)* fieldName)
 {
-    auto fieldNameString = fieldName[0 .. strlen(fieldName)];
+    auto fieldNameString = fieldName.toDString();
     foreach (idx, enumName; __traits(allMembers, JsonFieldFlags))
     {
         static if (idx > 0)
@@ -1088,15 +1066,15 @@ JsonFieldFlags tryParseJsonField(const(char)* fieldName)
 Determines and returns the compiler interface which is one of `dmd`, `ldc`,
 `gdc` or `sdc`. Returns `null` if no interface can be determined.
 */
-private const(char)* determineCompilerInterface()
+private extern(D) string determineCompilerInterface()
 {
-    if (!strcmp(global.compiler.vendor, "Digital Mars D"))
+    if (global.vendor == "Digital Mars D")
         return "dmd";
-    if (!strcmp(global.compiler.vendor, "LDC"))
+    if (global.vendor == "LDC")
         return "ldc";
-    if (!strcmp(global.compiler.vendor, "GNU"))
+    if (global.vendor == "GNU D")
         return "gdc";
-    if (!strcmp(global.compiler.vendor, "SDC"))
+    if (global.vendor == "SDC")
         return "sdc";
     return null;
 }

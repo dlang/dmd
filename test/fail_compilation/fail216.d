@@ -7,8 +7,8 @@ fail_compilation/fail216.d(19):        called from here: `bar()`
 ---
 */
 
-// Issue 1744 - CTFE: crash on assigning void-returning function to variable
-
+// https://issues.dlang.org/show_bug.cgi?id=1744
+// CTFE: crash on assigning void-returning function to variable
 void foo() {}
 
 int bar()

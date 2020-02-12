@@ -2,7 +2,7 @@
  * Compiler implementation of the D programming language
  * http://dlang.org
  *
- * Copyright: Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/file.d, root/_file.d)
@@ -17,119 +17,67 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.sys.posix.fcntl;
 import core.sys.posix.unistd;
-import core.sys.windows.windows;
+import core.sys.windows.winbase;
+import core.sys.windows.winnt;
 import dmd.root.filename;
 import dmd.root.rmem;
+import dmd.root.string;
 
-/***********************************************************
- */
+/// Owns a (rmem-managed) file buffer.
+struct FileBuffer
+{
+    ubyte[] data;
+
+    this(this) @disable;
+
+    ~this() pure nothrow
+    {
+        mem.xfree(data.ptr);
+    }
+
+    /// Transfers ownership of the buffer to the caller.
+    ubyte[] extractSlice() pure nothrow @nogc @safe
+    {
+        auto result = data;
+        data = null;
+        return result;
+    }
+
+    extern (C++) static FileBuffer* create()
+    {
+        return new FileBuffer();
+    }
+}
+
+///
 struct File
 {
-    int _ref; // != 0 if this is a reference to someone else's buffer
-    ubyte* buffer; // data for our file
-    size_t len; // amount of data in buffer[]
-    const(FileName)* name; // name of our file
+    ///
+    static struct ReadResult
+    {
+        bool success;
+        FileBuffer buffer;
+
+        /// Transfers ownership of the buffer to the caller.
+        ubyte[] extractSlice() pure nothrow @nogc @safe
+        {
+            return buffer.extractSlice();
+        }
+
+        /// ditto
+        /// Include the null-terminator at the end of the buffer in the returned array.
+        ubyte[] extractDataZ() @nogc nothrow pure
+        {
+            auto result = buffer.extractSlice();
+            return result.ptr[0 .. result.length + 1];
+        }
+    }
 
 nothrow:
-    extern (D) this(const(char)* n)
+    /// Read the full content of a file.
+    extern (C++) static ReadResult read(const(char)* name)
     {
-        _ref = 0;
-        buffer = null;
-        len = 0;
-        name = new FileName(n);
-    }
-
-    extern (C++) static File* create(const(char)* n)
-    {
-        return new File(n);
-    }
-
-    extern (D) this(const(FileName)* n)
-    {
-        _ref = 0;
-        buffer = null;
-        len = 0;
-        name = n;
-    }
-
-    extern (C++) ~this()
-    {
-        if (buffer)
-        {
-            if (_ref == 0)
-                mem.xfree(buffer);
-            version (Windows)
-            {
-                if (_ref == 2)
-                    UnmapViewOfFile(buffer);
-            }
-        }
-    }
-
-    extern (C++) const(char)* toChars() pure
-    {
-        return name.toChars();
-    }
-
-    /*************************************
-     */
-    extern (C++) bool read()
-    {
-        if (len)
-            return false; // already read the file
-
-        import core.stdc.string : strcmp;
-        const(char)* name = this.name.toChars();
-        if (strcmp(name, "__stdin.d") == 0)
-        {
-            /* Read from stdin */
-            enum bufIncrement = 128 * 1024;
-            size_t pos = 0;
-            size_t sz = bufIncrement;
-
-            if (!_ref)
-                .free(buffer);
-
-            buffer = null;
-            L1: for (;;)
-            {
-                buffer = cast(ubyte*).realloc(buffer, sz + 2); // +2 for sentinel
-                if (!buffer)
-                {
-                    printf("\tmalloc error, errno = %d\n", errno);
-                    break L1;
-                }
-
-                // Fill up buffer
-                do
-                {
-                    assert(sz > pos);
-                    size_t rlen = fread(buffer + pos, 1, sz - pos, stdin);
-                    pos += rlen;
-                    if (ferror(stdin))
-                    {
-                        printf("\tread error, errno = %d\n", errno);
-                        break L1;
-                    }
-                    if (feof(stdin))
-                    {
-                        // We're done
-                        assert(pos < sz + 2);
-                        len = pos;
-                        buffer[pos] = '\0';
-                        buffer[pos + 1] = '\0';
-                        return false;
-                    }
-                } while (pos < sz);
-
-                // Buffer full, expand
-                sz += bufIncrement;
-            }
-            .free(buffer);
-            buffer = null;
-            len = 0;
-            return true;
-        }
+        ReadResult result;
 
         version (Posix)
         {
@@ -141,27 +89,19 @@ nothrow:
             if (fd == -1)
             {
                 //printf("\topen error, errno = %d\n",errno);
-                goto err1;
+                return result;
             }
-            if (!_ref)
-            {
-                .free(buffer);
-                buffer = null;
-            }
-            _ref = 0; // we own the buffer now
             //printf("\tfile opened\n");
             if (fstat(fd, &buf))
             {
                 printf("\tfstat error, errno = %d\n", errno);
-                goto err2;
+                close(fd);
+                return result;
             }
             size = cast(size_t)buf.st_size;
-            buffer = cast(ubyte*).malloc(size + 2);
+            ubyte* buffer = cast(ubyte*)mem.xmalloc_noscan(size + 2);
             if (!buffer)
-            {
-                printf("\tmalloc error, errno = %d\n", errno);
                 goto err2;
-            }
             numread = .read(fd, buffer, size);
             if (numread != size)
             {
@@ -173,31 +113,27 @@ nothrow:
                 printf("\tclose error, errno = %d\n", errno);
                 goto err;
             }
-            len = size;
             // Always store a wchar ^Z past end of buffer so scanner has a sentinel
             buffer[size] = 0; // ^Z is obsolete, use 0
             buffer[size + 1] = 0;
-            return false;
+            result.success = true;
+            result.buffer.data = buffer[0 .. size];
+            return result;
         err2:
             close(fd);
         err:
-            .free(buffer);
-            buffer = null;
-            len = 0;
-        err1:
-            return true;
+            mem.xfree(buffer);
+            return result;
         }
         else version (Windows)
         {
-            import dmd.root.filename: extendedPathThen;
-
             DWORD size;
             DWORD numread;
 
             // work around Windows file path length limitation
             // (see documentation for extendedPathThen).
-            HANDLE h = name.extendedPathThen!
-                (p => CreateFileW(p,
+            HANDLE h = name.toDString.extendedPathThen!
+                (p => CreateFileW(p.ptr,
                                   GENERIC_READ,
                                   FILE_SHARE_READ,
                                   null,
@@ -205,12 +141,9 @@ nothrow:
                                   FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,
                                   null));
             if (h == INVALID_HANDLE_VALUE)
-                goto err1;
-            if (!_ref)
-                .free(buffer);
-            _ref = 0;
+                return result;
             size = GetFileSize(h, null);
-            buffer = cast(ubyte*).malloc(size + 2);
+            ubyte* buffer = cast(ubyte*)mem.xmalloc_noscan(size + 2);
             if (!buffer)
                 goto err2;
             if (ReadFile(h, buffer, size, &numread, null) != TRUE)
@@ -219,19 +152,17 @@ nothrow:
                 goto err2;
             if (!CloseHandle(h))
                 goto err;
-            len = size;
             // Always store a wchar ^Z past end of buffer so scanner has a sentinel
             buffer[size] = 0; // ^Z is obsolete, use 0
             buffer[size + 1] = 0;
-            return 0;
+            result.success = true;
+            result.buffer.data = buffer[0 .. size];
+            return result;
         err2:
             CloseHandle(h);
         err:
-            .free(buffer);
-            buffer = null;
-            len = 0;
-        err1:
-            return true;
+            mem.xfree(buffer);
+            return result;
         }
         else
         {
@@ -239,42 +170,35 @@ nothrow:
         }
     }
 
-    /*********************************************
-     * Write a file.
-     * Returns:
-     *      false       success
-     */
-    extern (C++) bool write()
+    /// Write a file, returning `true` on success.
+    extern (D) static bool write(const(char)* name, const void[] data)
     {
         version (Posix)
         {
             ssize_t numwritten;
-            const(char)* name = this.name.toChars();
             int fd = open(name, O_CREAT | O_WRONLY | O_TRUNC, (6 << 6) | (4 << 3) | 4);
             if (fd == -1)
                 goto err;
-            numwritten = .write(fd, buffer, len);
-            if (len != numwritten)
+            numwritten = .write(fd, data.ptr, data.length);
+            if (numwritten != data.length)
                 goto err2;
             if (close(fd) == -1)
                 goto err;
-            return false;
+            return true;
         err2:
             close(fd);
             .remove(name);
         err:
-            return true;
+            return false;
         }
         else version (Windows)
         {
-            import dmd.root.filename: extendedPathThen;
-
             DWORD numwritten; // here because of the gotos
-            const(char)* name = this.name.toChars();
+            const nameStr = name.toDString;
             // work around Windows file path length limitation
             // (see documentation for extendedPathThen).
-            HANDLE h = name.extendedPathThen!
-                (p => CreateFileW(p,
+            HANDLE h = nameStr.extendedPathThen!
+                (p => CreateFileW(p.ptr,
                                   GENERIC_WRITE,
                                   0,
                                   null,
@@ -284,18 +208,18 @@ nothrow:
             if (h == INVALID_HANDLE_VALUE)
                 goto err;
 
-            if (WriteFile(h, buffer, cast(DWORD)len, &numwritten, null) != TRUE)
+            if (WriteFile(h, data.ptr, cast(DWORD)data.length, &numwritten, null) != TRUE)
                 goto err2;
-            if (len != numwritten)
+            if (numwritten != data.length)
                 goto err2;
             if (!CloseHandle(h))
                 goto err;
-            return false;
+            return true;
         err2:
             CloseHandle(h);
-            DeleteFileA(name);
+            nameStr.extendedPathThen!(p => DeleteFileW(p.ptr));
         err:
-            return true;
+            return false;
         }
         else
         {
@@ -303,24 +227,28 @@ nothrow:
         }
     }
 
-    /* Set buffer
-     */
-    extern (C++) void setbuffer(void* buffer, size_t len)
+    ///ditto
+    extern(D) static bool write(const(char)[] name, const void[] data)
     {
-        this.buffer = cast(ubyte*)buffer;
-        this.len = len;
+        return name.toCStringThen!((fname) => write(fname.ptr, data));
     }
 
-    // delete file
-    extern (C++) void remove()
+    /// ditto
+    extern (C++) static bool write(const(char)* name, const(void)* data, size_t size)
+    {
+        return write(name, data[0 .. size]);
+    }
+
+    /// Delete a file.
+    extern (C++) static void remove(const(char)* name)
     {
         version (Posix)
         {
-            int dummy = .remove(this.name.toChars());
+            .remove(name);
         }
         else version (Windows)
         {
-            DeleteFileA(this.name.toChars());
+            name.toDString.extendedPathThen!(p => DeleteFileW(p.ptr));
         }
         else
         {

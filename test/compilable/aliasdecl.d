@@ -29,7 +29,7 @@ void main()
     static assert(is(Y4 == void delegate() const));
     static assert(is(Y5.Type == int));
 
-    // Issue 18429
+    // https://issues.dlang.org/show_bug.cgi?id=18429
     struct S
     {
         alias a this;

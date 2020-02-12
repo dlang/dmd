@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dstruct.d, _dstruct.d)
@@ -50,10 +50,10 @@ extern (C++) FuncDeclaration search_toString(StructDeclaration sd)
     FuncDeclaration fd = s ? s.isFuncDeclaration() : null;
     if (fd)
     {
-        static __gshared TypeFunction tftostring;
+        __gshared TypeFunction tftostring;
         if (!tftostring)
         {
-            tftostring = new TypeFunction(null, Type.tstring, 0, LINK.d);
+            tftostring = new TypeFunction(ParameterList(), Type.tstring, LINK.d);
             tftostring = tftostring.merge().toTypeFunction();
         }
         fd = fd.overloadExactMatch(tftostring);
@@ -69,124 +69,6 @@ extern (C++) FuncDeclaration search_toString(StructDeclaration sd)
  */
 extern (C++) void semanticTypeInfo(Scope* sc, Type t)
 {
-    extern (C++) final class FullTypeInfoVisitor : Visitor
-    {
-        alias visit = Visitor.visit;
-    public:
-        Scope* sc;
-
-        override void visit(Type t)
-        {
-            Type tb = t.toBasetype();
-            if (tb != t)
-                tb.accept(this);
-        }
-
-        override void visit(TypeNext t)
-        {
-            if (t.next)
-                t.next.accept(this);
-        }
-
-        override void visit(TypeBasic t)
-        {
-        }
-
-        override void visit(TypeVector t)
-        {
-            t.basetype.accept(this);
-        }
-
-        override void visit(TypeAArray t)
-        {
-            t.index.accept(this);
-            visit(cast(TypeNext)t);
-        }
-
-        override void visit(TypeFunction t)
-        {
-            visit(cast(TypeNext)t);
-            // Currently TypeInfo_Function doesn't store parameter types.
-        }
-
-        override void visit(TypeStruct t)
-        {
-            //printf("semanticTypeInfo.visit(TypeStruct = %s)\n", t.toChars());
-            StructDeclaration sd = t.sym;
-
-            /* Step 1: create TypeInfoDeclaration
-             */
-            if (!sc) // inline may request TypeInfo.
-            {
-                Scope scx;
-                scx._module = sd.getModule();
-                getTypeInfoType(sd.loc, t, &scx);
-                sd.requestTypeInfo = true;
-            }
-            else if (!sc.minst)
-            {
-                // don't yet have to generate TypeInfo instance if
-                // the typeid(T) expression exists in speculative scope.
-            }
-            else
-            {
-                getTypeInfoType(sd.loc, t, sc);
-                sd.requestTypeInfo = true;
-
-                // https://issues.dlang.org/show_bug.cgi?id=15149
-                // if the typeid operand type comes from a
-                // result of auto function, it may be yet speculative.
-                unSpeculative(sc, sd);
-            }
-
-            /* Step 2: If the TypeInfo generation requires sd.semantic3, run it later.
-             * This should be done even if typeid(T) exists in speculative scope.
-             * Because it may appear later in non-speculative scope.
-             */
-            if (!sd.members)
-                return; // opaque struct
-            if (!sd.xeq && !sd.xcmp && !sd.postblit && !sd.dtor && !sd.xhash && !search_toString(sd))
-                return; // none of TypeInfo-specific members
-
-            // If the struct is in a non-root module, run semantic3 to get
-            // correct symbols for the member function.
-            if (sd.semanticRun >= PASS.semantic3)
-            {
-                // semantic3 is already done
-            }
-            else if (TemplateInstance ti = sd.isInstantiated())
-            {
-                if (ti.minst && !ti.minst.isRoot())
-                    Module.addDeferredSemantic3(sd);
-            }
-            else
-            {
-                if (sd.inNonRoot())
-                {
-                    //printf("deferred sem3 for TypeInfo - sd = %s, inNonRoot = %d\n", sd.toChars(), sd.inNonRoot());
-                    Module.addDeferredSemantic3(sd);
-                }
-            }
-        }
-
-        override void visit(TypeClass t)
-        {
-        }
-
-        override void visit(TypeTuple t)
-        {
-            if (t.arguments)
-            {
-                for (size_t i = 0; i < t.arguments.dim; i++)
-                {
-                    Type tprm = (*t.arguments)[i].type;
-                    if (tprm)
-                        tprm.accept(this);
-                }
-            }
-        }
-    }
-
     if (sc)
     {
         if (!sc.func)
@@ -197,9 +79,107 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
             return;
     }
 
-    scope FullTypeInfoVisitor v = new FullTypeInfoVisitor();
-    v.sc = sc;
-    t.accept(v);
+    if (!t)
+        return;
+
+    void visitVector(TypeVector t)
+    {
+        semanticTypeInfo(sc, t.basetype);
+    }
+
+    void visitAArray(TypeAArray t)
+    {
+        semanticTypeInfo(sc, t.index);
+        semanticTypeInfo(sc, t.next);
+    }
+
+    void visitStruct(TypeStruct t)
+    {
+        //printf("semanticTypeInfo.visit(TypeStruct = %s)\n", t.toChars());
+        StructDeclaration sd = t.sym;
+
+        /* Step 1: create TypeInfoDeclaration
+         */
+        if (!sc) // inline may request TypeInfo.
+        {
+            Scope scx;
+            scx._module = sd.getModule();
+            getTypeInfoType(sd.loc, t, &scx);
+            sd.requestTypeInfo = true;
+        }
+        else if (!sc.minst)
+        {
+            // don't yet have to generate TypeInfo instance if
+            // the typeid(T) expression exists in speculative scope.
+        }
+        else
+        {
+            getTypeInfoType(sd.loc, t, sc);
+            sd.requestTypeInfo = true;
+
+            // https://issues.dlang.org/show_bug.cgi?id=15149
+            // if the typeid operand type comes from a
+            // result of auto function, it may be yet speculative.
+            // unSpeculative(sc, sd);
+        }
+
+        /* Step 2: If the TypeInfo generation requires sd.semantic3, run it later.
+         * This should be done even if typeid(T) exists in speculative scope.
+         * Because it may appear later in non-speculative scope.
+         */
+        if (!sd.members)
+            return; // opaque struct
+        if (!sd.xeq && !sd.xcmp && !sd.postblit && !sd.dtor && !sd.xhash && !search_toString(sd))
+            return; // none of TypeInfo-specific members
+
+        // If the struct is in a non-root module, run semantic3 to get
+        // correct symbols for the member function.
+        if (sd.semanticRun >= PASS.semantic3)
+        {
+            // semantic3 is already done
+        }
+        else if (TemplateInstance ti = sd.isInstantiated())
+        {
+            if (ti.minst && !ti.minst.isRoot())
+                Module.addDeferredSemantic3(sd);
+        }
+        else
+        {
+            if (sd.inNonRoot())
+            {
+                //printf("deferred sem3 for TypeInfo - sd = %s, inNonRoot = %d\n", sd.toChars(), sd.inNonRoot());
+                Module.addDeferredSemantic3(sd);
+            }
+        }
+    }
+
+    void visitTuple(TypeTuple t)
+    {
+        if (t.arguments)
+        {
+            foreach (arg; *t.arguments)
+            {
+                semanticTypeInfo(sc, arg.type);
+            }
+        }
+    }
+
+    /* Note structural similarity of this Type walker to that in isSpeculativeType()
+     */
+
+    Type tb = t.toBasetype();
+    switch (tb.ty)
+    {
+        case Tvector:   visitVector(tb.isTypeVector()); break;
+        case Taarray:   visitAArray(tb.isTypeAArray()); break;
+        case Tstruct:   visitStruct(tb.isTypeStruct()); break;
+        case Ttuple:    visitTuple (tb.isTypeTuple());  break;
+
+        case Tclass:
+        case Tenum:     break;
+
+        default:        semanticTypeInfo(sc, tb.nextOf()); break;
+    }
 }
 
 enum StructFlags : int
@@ -227,11 +207,13 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     FuncDeclarations postblits; // Array of postblit functions
     FuncDeclaration postblit;   // aggregate postblit
 
+    bool hasCopyCtor;       // copy constructor
+
     FuncDeclaration xeq;        // TypeInfo_Struct.xopEquals
     FuncDeclaration xcmp;       // TypeInfo_Struct.xopCmp
     FuncDeclaration xhash;      // TypeInfo_Struct.xtoHash
-    extern (C++) static __gshared FuncDeclaration xerreq;   // object.xopEquals
-    extern (C++) static __gshared FuncDeclaration xerrcmp;  // object.xopCmp
+    extern (C++) __gshared FuncDeclaration xerreq;   // object.xopEquals
+    extern (C++) __gshared FuncDeclaration xerrcmp;  // object.xopCmp
 
     structalign_t alignment;    // alignment applied outside of the struct
     StructPOD ispod;            // if struct is POD
@@ -333,7 +315,9 @@ extern (C++) class StructDeclaration : AggregateDeclaration
 
         if (!members || !symtab) // opaque or semantic() is not yet called
         {
-            error("is forward referenced when looking for `%s`", ident.toChars());
+            // .stringof is always defined (but may be hidden by some other symbol)
+            if(ident != Id.stringof)
+                error("is forward referenced when looking for `%s`", ident.toChars());
             return null;
         }
 
@@ -350,6 +334,12 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         //printf("StructDeclaration::finalizeSize() %s, sizeok = %d\n", toChars(), sizeok);
         assert(sizeok != Sizeok.done);
 
+        if (sizeok == Sizeok.inProcess)
+        {
+            return;
+        }
+        sizeok = Sizeok.inProcess;
+
         //printf("+StructDeclaration::finalizeSize() %s, fields.dim = %d, sizeok = %d\n", toChars(), fields.dim, sizeok);
 
         fields.setDim(0);   // workaround
@@ -363,7 +353,10 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             s.setFieldOffset(this, &offset, isunion);
         }
         if (type.ty == Terror)
+        {
+            errors = true;
             return;
+        }
 
         // 0 sized struct's are set to 1 byte
         if (structsize == 0)
@@ -401,9 +394,23 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         {
             if (vd._init)
             {
-                // Should examine init to see if it is really all 0's
-                zeroInit = false;
-                break;
+                if (vd._init.isVoidInitializer())
+                    /* Treat as 0 for the purposes of putting the initializer
+                     * in the BSS segment, or doing a mass set to 0
+                     */
+                    continue;
+
+                // Zero size fields are zero initialized
+                if (vd.type.size(vd.loc) == 0)
+                    continue;
+
+                // Examine init to see if it is all 0s.
+                auto exp = vd.getConstInitializer();
+                if (!exp || !_isZeroInit(exp))
+                {
+                    zeroInit = false;
+                    break;
+                }
             }
             else if (!vd.type.isZeroInit(loc))
             {
@@ -412,8 +419,8 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             }
         }
 
-        auto tt = Target.toArgTypes(type);
-        size_t dim = tt.arguments.dim;
+        auto tt = target.toArgTypes(type);
+        size_t dim = tt ? tt.arguments.dim : 0;
         if (dim >= 1)
         {
             assert(dim <= 2);
@@ -440,7 +447,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         if (!elements)
             return true;
 
-        size_t nfields = fields.dim - isNested();
+        const nfields = nonHiddenFields();
         size_t offset = 0;
         for (size_t i = 0; i < elements.dim; i++)
         {
@@ -451,7 +458,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             e = resolveProperties(sc, e);
             if (i >= nfields)
             {
-                if (i == fields.dim - 1 && isNested() && e.op == TOK.null_)
+                if (i <= fields.dim && e.op == TOK.null_)
                 {
                     // CTFE sometimes creates null as hidden pointer; we'll allow this.
                     continue;
@@ -463,6 +470,13 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             if (v.offset < offset)
             {
                 .error(loc, "overlapping initialization for `%s`", v.toChars());
+                if (!isUnionDeclaration())
+                {
+                    enum errorMsg = "`struct` initializers that contain anonymous unions" ~
+                                        " must initialize only the first member of a `union`. All subsequent" ~
+                                        " non-overlapping fields are default initialized";
+                    .errorSupplemental(loc, errorMsg);
+                }
                 return false;
             }
             offset = cast(uint)(v.offset + v.type.size());
@@ -476,8 +490,8 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             const hasPointers = tb.hasPointers();
             if (hasPointers)
             {
-                if ((stype.alignment() < Target.ptrsize ||
-                     (v.offset & (Target.ptrsize - 1))) &&
+                if ((stype.alignment() < target.ptrsize ||
+                     (v.offset & (target.ptrsize - 1))) &&
                     (sc.func && sc.func.setUnsafe()))
                 {
                     .error(loc, "field `%s.%s` cannot assign to misaligned pointers in `@safe` code",
@@ -550,7 +564,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
 
         ispod = StructPOD.yes;
 
-        if (enclosing || postblit || dtor)
+        if (enclosing || postblit || dtor || hasCopyCtor)
             ispod = StructPOD.no;
 
         // Recursively check all fields are POD.
@@ -587,6 +601,95 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     override void accept(Visitor v)
     {
         v.visit(this);
+    }
+}
+
+/**********************************
+ * Determine if exp is all binary zeros.
+ * Params:
+ *      exp = expression to check
+ * Returns:
+ *      true if it's all binary 0
+ */
+private bool _isZeroInit(Expression exp)
+{
+    switch (exp.op)
+    {
+        case TOK.int64:
+            return exp.toInteger() == 0;
+
+        case TOK.null_:
+        case TOK.false_:
+            return true;
+
+        case TOK.structLiteral:
+        {
+            auto sle = cast(StructLiteralExp) exp;
+            foreach (i; 0 .. sle.sd.fields.dim)
+            {
+                auto field = sle.sd.fields[i];
+                if (field.type.size(field.loc))
+                {
+                    auto e = (*sle.elements)[i];
+                    if (e ? !_isZeroInit(e)
+                          : !field.type.isZeroInit(field.loc))
+                        return false;
+                }
+            }
+            return true;
+        }
+
+        case TOK.arrayLiteral:
+        {
+            auto ale = cast(ArrayLiteralExp)exp;
+
+            const dim = ale.elements ? ale.elements.dim : 0;
+
+            if (ale.type.toBasetype().ty == Tarray) // if initializing a dynamic array
+                return dim == 0;
+
+            foreach (i; 0 .. dim)
+            {
+                if (!_isZeroInit(ale[i]))
+                    return false;
+            }
+
+            /* Note that true is returned for all T[0]
+             */
+            return true;
+        }
+
+        case TOK.string_:
+        {
+            StringExp se = cast(StringExp)exp;
+
+            if (se.type.toBasetype().ty == Tarray) // if initializing a dynamic array
+                return se.len == 0;
+
+            foreach (i; 0 .. se.len)
+            {
+                if (se.getCodeUnit(i))
+                    return false;
+            }
+            return true;
+        }
+
+        case TOK.vector:
+        {
+            auto ve = cast(VectorExp) exp;
+            return _isZeroInit(ve.e1);
+        }
+
+        case TOK.float64:
+        case TOK.complex80:
+        {
+            import dmd.root.ctfloat : CTFloat;
+            return (exp.toReal()      is CTFloat.zero) &&
+                   (exp.toImaginary() is CTFloat.zero);
+        }
+
+        default:
+            return false;
     }
 }
 

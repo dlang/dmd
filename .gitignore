@@ -17,6 +17,7 @@ generated/
 *.pdb
 src/vcbuild/Win32
 src/vcbuild/x64
+src/vcbuild/.vs
 *.ncb
 *.suo
 *.sdf

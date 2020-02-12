@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/clone.d, _clone.d)
@@ -46,7 +46,7 @@ import dmd.tokens;
  * Returns:
  *      merged storage class
  */
-extern (C++) StorageClass mergeFuncAttrs(StorageClass s1, const FuncDeclaration f) pure
+StorageClass mergeFuncAttrs(StorageClass s1, const FuncDeclaration f) pure
 {
     if (!f)
         return s1;
@@ -92,7 +92,7 @@ extern (C++) StorageClass mergeFuncAttrs(StorageClass s1, const FuncDeclaration 
  * Returns:
  *      if found, returns FuncDeclaration of opAssign, otherwise null
  */
-extern (C++) FuncDeclaration hasIdentityOpAssign(AggregateDeclaration ad, Scope* sc)
+FuncDeclaration hasIdentityOpAssign(AggregateDeclaration ad, Scope* sc)
 {
     Dsymbol assign = search_function(ad, Id.assign);
     if (assign)
@@ -110,11 +110,11 @@ extern (C++) FuncDeclaration hasIdentityOpAssign(AggregateDeclaration ad, Scope*
         sc.minst = null;
 
         a[0] = er;
-        auto f = resolveFuncCall(ad.loc, sc, assign, null, ad.type, &a, 1);
+        auto f = resolveFuncCall(ad.loc, sc, assign, null, ad.type, &a, FuncResolveFlag.quiet);
         if (!f)
         {
             a[0] = el;
-            f = resolveFuncCall(ad.loc, sc, assign, null, ad.type, &a, 1);
+            f = resolveFuncCall(ad.loc, sc, assign, null, ad.type, &a, FuncResolveFlag.quiet);
         }
 
         sc = sc.pop();
@@ -123,11 +123,10 @@ extern (C++) FuncDeclaration hasIdentityOpAssign(AggregateDeclaration ad, Scope*
         {
             if (f.errors)
                 return null;
-            int varargs;
-            auto fparams = f.getParameters(&varargs);
-            if (fparams.dim >= 1)
+            auto fparams = f.getParameterList();
+            if (fparams.length)
             {
-                auto fparam0 = Parameter.getNth(fparams, 0);
+                auto fparam0 = fparams[0];
                 if (fparam0.type.toDsymbol(null) != ad)
                     f = null;
             }
@@ -185,33 +184,72 @@ private bool needOpAssign(StructDeclaration sd)
 }
 
 /******************************************
- * Build opAssign for struct.
- *      ref S opAssign(S s) { ... }
+ * Build opAssign for a `struct`.
  *
- * Note that `s` will be constructed onto the stack, and probably
- * copy-constructed in caller site.
+ * The generated `opAssign` function has the following signature:
+ *---
+ *ref S opAssign(S s)    // S is the name of the `struct`
+ *---
  *
- * If S has copy copy construction and/or destructor,
- * the body will make bit-wise object swap:
- *          S __swap = this; // bit copy
- *          this = s;        // bit copy
- *          __swap.dtor();
- * Instead of running the destructor on s, run it on tmp instead.
+ * The opAssign function will be built for a struct `S` if the
+ * following constraints are met:
  *
- * Otherwise, the body will make member-wise assignments:
- * Then, the body is:
- *          this.field1 = s.field1;
- *          this.field2 = s.field2;
- *          ...;
+ * 1. `S` does not have an identity `opAssign` defined.
+ *
+ * 2. `S` has at least one of the following members: a postblit (user-defined or
+ * generated for fields that have a defined postblit), a destructor
+ * (user-defined or generated for fields that have a defined destructor)
+ * or at least one field that has a defined `opAssign`.
+ *
+ * 3. `S` does not have any non-mutable fields.
+ *
+ * If `S` has a disabled destructor or at least one field that has a disabled
+ * `opAssign`, `S.opAssign` is going to be generated, but marked with `@disable`
+ *
+ * If `S` defines a destructor, the generated code for `opAssign` is:
+ *
+ *---
+ *S __swap = void;
+ *__swap = this;   // bit copy
+ *this = s;        // bit copy
+ *__swap.dtor();
+ *---
+ *
+ * Otherwise, if `S` defines a postblit, the generated code for `opAssign` is:
+ *
+ *---
+ *this = s;
+ *---
+ *
+ * Note that the parameter to the generated `opAssign` is passed by value, which means
+ * that the postblit is going to be called (if it is defined) in both  of the above
+ * situations before entering the body of `opAssign`. The assignments in the above generated
+ * function bodies are blit expressions, so they can be regarded as `memcpy`s
+ * (`opAssign` is not called as this will result in an infinite recursion; the postblit
+ * is not called because it has already been called when the parameter was passed by value).
+ *
+ * If `S` does not have a postblit or a destructor, but contains at least one field that defines
+ * an `opAssign` function (which is not disabled), then the body will make member-wise
+ * assignments:
+ *
+ *---
+ *this.field1 = s.field1;
+ *this.field2 = s.field2;
+ *...;
+ *---
+ *
+ * In this situation, the assignemnts are actual assign expressions (`opAssign` is used
+ * if defined).
+ *
  * References:
  *      https://dlang.org/spec/struct.html#assign-overload
  * Params:
  *      sd = struct to generate opAssign for
  *      sc = context
  * Returns:
- *      generated opAssign function
+ *      generated `opAssign` function
  */
-extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
+FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
 {
     if (FuncDeclaration f = hasIdentityOpAssign(sd, sc))
     {
@@ -247,6 +285,7 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
 
     if (sd.dtor || sd.postblit)
     {
+        // if the type is not assignable, we cannot generate opAssign
         if (!sd.type.isAssignable()) // https://issues.dlang.org/show_bug.cgi?id=13044
             return null;
         stc = mergeFuncAttrs(stc, sd.dtor);
@@ -256,7 +295,7 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
 
     auto fparams = new Parameters();
     fparams.push(new Parameter(STC.nodtor, sd.type, Id.p, null, null));
-    auto tf = new TypeFunction(fparams, sd.handleType(), 0, LINK.d, stc | STC.ref_);
+    auto tf = new TypeFunction(ParameterList(fparams), sd.handleType(), LINK.d, stc | STC.ref_);
     auto fop = new FuncDeclaration(declLoc, Loc.initial, Id.assign, stc, tf);
     fop.storage_class |= STC.inference;
     fop.generated = true;
@@ -265,37 +304,35 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     {
         e = null;
     }
-    else if (sd.dtor || sd.postblit)
+    /* Do swap this and rhs.
+     *    __swap = this; this = s; __swap.dtor();
+     */
+    else if (sd.dtor)
     {
-        /* Do swap this and rhs.
-         *    __swap = this; this = s; __swap.dtor();
-         */
         //printf("\tswap copy\n");
-        if (sd.dtor)
-        {
-            TypeFunction tdtor = cast(TypeFunction)sd.dtor.type;
-            assert(tdtor.ty == Tfunction);
+        TypeFunction tdtor = cast(TypeFunction)sd.dtor.type;
+        assert(tdtor.ty == Tfunction);
 
-            auto idswap = Identifier.generateId("__swap");
-            auto swap = new VarDeclaration(loc, sd.type, idswap, new VoidInitializer(loc));
-            swap.storage_class |= STC.nodtor | STC.temp | STC.ctfe;
-            if (tdtor.isscope)
-                swap.storage_class |= STC.scope_;
-            auto e1 = new DeclarationExp(loc, swap);
+        auto idswap = Identifier.generateId("__swap");
+        auto swap = new VarDeclaration(loc, sd.type, idswap, new VoidInitializer(loc));
+        swap.storage_class |= STC.nodtor | STC.temp | STC.ctfe;
+        if (tdtor.isscope)
+            swap.storage_class |= STC.scope_;
+        auto e1 = new DeclarationExp(loc, swap);
 
-            auto e2 = new BlitExp(loc, new VarExp(loc, swap), new ThisExp(loc));
-            auto e3 = new BlitExp(loc, new ThisExp(loc), new IdentifierExp(loc, Id.p));
+        auto e2 = new BlitExp(loc, new VarExp(loc, swap), new ThisExp(loc));
+        auto e3 = new BlitExp(loc, new ThisExp(loc), new IdentifierExp(loc, Id.p));
 
-            /* Instead of running the destructor on s, run it
-             * on swap. This avoids needing to copy swap back in to s.
-             */
-            auto e4 = new CallExp(loc, new DotVarExp(loc, new VarExp(loc, swap), sd.dtor, false));
+        /* Instead of running the destructor on s, run it
+         * on swap. This avoids needing to copy swap back in to s.
+         */
+        auto e4 = new CallExp(loc, new DotVarExp(loc, new VarExp(loc, swap), sd.dtor, false));
 
-            e = Expression.combine(e1, e2, e3, e4);
-        }
-        else
-            e = new BlitExp(loc, new ThisExp(loc), new IdentifierExp(loc, Id.p));
+        e = Expression.combine(e1, e2, e3, e4);
     }
+    /* postblit was called when the value was passed to opAssign, we just need to blit the result */
+    else if (sd.postblit)
+        e = new BlitExp(loc, new ThisExp(loc), new IdentifierExp(loc, Id.p));
     else
     {
         /* Do memberwise copy.
@@ -357,7 +394,7 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
  * any fields has an opEquals.
  * Generate one if a user-specified one does not exist.
  */
-extern (C++) bool needOpEquals(StructDeclaration sd)
+bool needOpEquals(StructDeclaration sd)
 {
     //printf("StructDeclaration::needOpEquals() %s\n", sd.toChars());
     if (sd.isUnionDeclaration())
@@ -386,18 +423,18 @@ extern (C++) bool needOpEquals(StructDeclaration sd)
             if (ts.sym.aliasthis) // https://issues.dlang.org/show_bug.cgi?id=14806
                 goto Lneed;
         }
-        if (tv.isfloating())
+        if (tvbase.isfloating())
         {
             // This is necessray for:
             //  1. comparison of +0.0 and -0.0 should be true.
             //  2. comparison of NANs should be false always.
             goto Lneed;
         }
-        if (tv.ty == Tarray)
+        if (tvbase.ty == Tarray)
             goto Lneed;
-        if (tv.ty == Taarray)
+        if (tvbase.ty == Taarray)
             goto Lneed;
-        if (tv.ty == Tclass)
+        if (tvbase.ty == Tclass)
             goto Lneed;
     }
 Ldontneed:
@@ -413,8 +450,8 @@ Lneed:
  */
 private FuncDeclaration hasIdentityOpEquals(AggregateDeclaration ad, Scope* sc)
 {
-    Dsymbol eq = search_function(ad, Id.eq);
-    if (eq)
+    FuncDeclaration f;
+    if (Dsymbol eq = search_function(ad, Id.eq))
     {
         /* check identity opEquals exists
          */
@@ -422,41 +459,42 @@ private FuncDeclaration hasIdentityOpEquals(AggregateDeclaration ad, Scope* sc)
         scope el = new IdentifierExp(ad.loc, Id.p); // dummy lvalue
         Expressions a;
         a.setDim(1);
-        foreach (i; 0 .. 5)
+
+        bool hasIt(Type tthis)
         {
-            Type tthis = null; // dead-store to prevent spurious warning
-            final switch (i)
-            {
-                case 0:  tthis = ad.type;                 break;
-                case 1:  tthis = ad.type.constOf();       break;
-                case 2:  tthis = ad.type.immutableOf();   break;
-                case 3:  tthis = ad.type.sharedOf();      break;
-                case 4:  tthis = ad.type.sharedConstOf(); break;
-            }
-            FuncDeclaration f = null;
-            const errors = global.startGagging(); // Do not report errors, even if the template opAssign fbody makes it.
+            const errors = global.startGagging(); // Do not report errors, even if the template opAssign fbody makes it
             sc = sc.push();
             sc.tinst = null;
             sc.minst = null;
-            foreach (j; 0 .. 2)
+
+            FuncDeclaration rfc(Expression e)
             {
-                a[0] = (j == 0 ? er : el);
+                a[0] = e;
                 a[0].type = tthis;
-                f = resolveFuncCall(ad.loc, sc, eq, null, tthis, &a, 1);
-                if (f)
-                    break;
+                return resolveFuncCall(ad.loc, sc, eq, null, tthis, &a, FuncResolveFlag.quiet);
             }
+
+            f = rfc(er);
+            if (!f)
+                f = rfc(el);
+
             sc = sc.pop();
             global.endGagging(errors);
-            if (f)
-            {
-                if (f.errors)
-                    return null;
-                return f;
-            }
+
+            return f !is null;
+        }
+
+        if (hasIt(ad.type)               ||
+            hasIt(ad.type.constOf())     ||
+            hasIt(ad.type.immutableOf()) ||
+            hasIt(ad.type.sharedOf())    ||
+            hasIt(ad.type.sharedConstOf()))
+        {
+            if (f.errors)
+                return null;
         }
     }
-    return null;
+    return f;
 }
 
 /******************************************
@@ -469,7 +507,7 @@ private FuncDeclaration hasIdentityOpEquals(AggregateDeclaration ad, Scope* sc)
  *      s1.tupleof == s2.tupleof
  * to calculate structural equality. See EqualExp.op_overload.
  */
-extern (C++) FuncDeclaration buildOpEquals(StructDeclaration sd, Scope* sc)
+FuncDeclaration buildOpEquals(StructDeclaration sd, Scope* sc)
 {
     if (hasIdentityOpEquals(sd, sc))
     {
@@ -488,7 +526,7 @@ extern (C++) FuncDeclaration buildOpEquals(StructDeclaration sd, Scope* sc)
  * This is called by TypeInfo.equals(p1, p2). If the struct does not support
  * const objects comparison, it will throw "not implemented" Error in runtime.
  */
-extern (C++) FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
+FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
 {
     if (!needOpEquals(sd))
         return null; // bitwise comparison would work
@@ -505,7 +543,7 @@ extern (C++) FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
                  */
                 auto parameters = new Parameters();
                 parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, null, null, null));
-                tfeqptr = new TypeFunction(parameters, Type.tbool, 0, LINK.d);
+                tfeqptr = new TypeFunction(ParameterList(parameters), Type.tbool, LINK.d);
                 tfeqptr.mod = MODFlags.const_;
                 tfeqptr = cast(TypeFunction)tfeqptr.typeSemantic(Loc.initial, &scx);
             }
@@ -529,9 +567,9 @@ extern (C++) FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
     Loc declLoc; // loc is unnecessary so __xopEquals is never called directly
     Loc loc; // loc is unnecessary so errors are gagged
     auto parameters = new Parameters();
-    parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.p, null, null));
-    parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.q, null, null));
-    auto tf = new TypeFunction(parameters, Type.tbool, 0, LINK.d);
+    parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.p, null, null))
+              .push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.q, null, null));
+    auto tf = new TypeFunction(ParameterList(parameters), Type.tbool, LINK.d);
     Identifier id = Id.xopEquals;
     auto fop = new FuncDeclaration(declLoc, Loc.initial, id, STC.static_, tf);
     fop.generated = true;
@@ -561,7 +599,7 @@ extern (C++) FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
  * This is called by TypeInfo.compare(p1, p2). If the struct does not support
  * const objects comparison, it will throw "not implemented" Error in runtime.
  */
-extern (C++) FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
+FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
 {
     //printf("StructDeclaration::buildXopCmp() %s\n", toChars());
     if (Dsymbol cmp = search_function(sd, Id.cmp))
@@ -575,7 +613,7 @@ extern (C++) FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
                  */
                 auto parameters = new Parameters();
                 parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, null, null, null));
-                tfcmpptr = new TypeFunction(parameters, Type.tint32, 0, LINK.d);
+                tfcmpptr = new TypeFunction(ParameterList(parameters), Type.tint32, LINK.d);
                 tfcmpptr.mod = MODFlags.const_;
                 tfcmpptr = cast(TypeFunction)tfcmpptr.typeSemantic(Loc.initial, &scx);
             }
@@ -651,7 +689,7 @@ extern (C++) FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
     auto parameters = new Parameters();
     parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.p, null, null));
     parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.q, null, null));
-    auto tf = new TypeFunction(parameters, Type.tint32, 0, LINK.d);
+    auto tf = new TypeFunction(ParameterList(parameters), Type.tint32, LINK.d);
     Identifier id = Id.xopCmp;
     auto fop = new FuncDeclaration(declLoc, Loc.initial, id, STC.static_, tf);
     fop.generated = true;
@@ -706,18 +744,18 @@ private bool needToHash(StructDeclaration sd)
             if (ts.sym.aliasthis) // https://issues.dlang.org/show_bug.cgi?id=14948
                 goto Lneed;
         }
-        if (tv.isfloating())
+        if (tvbase.isfloating())
         {
             /* This is necessary because comparison of +0.0 and -0.0 should be true,
              * i.e. not a bit compare.
              */
             goto Lneed;
         }
-        if (tv.ty == Tarray)
+        if (tvbase.ty == Tarray)
             goto Lneed;
-        if (tv.ty == Taarray)
+        if (tvbase.ty == Taarray)
             goto Lneed;
-        if (tv.ty == Tclass)
+        if (tvbase.ty == Tclass)
             goto Lneed;
     }
 Ldontneed:
@@ -732,14 +770,14 @@ Lneed:
  * Build __xtoHash for non-bitwise hashing
  *      static hash_t xtoHash(ref const S p) nothrow @trusted;
  */
-extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
+FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
 {
     if (Dsymbol s = search_function(sd, Id.tohash))
     {
-        static __gshared TypeFunction tftohash;
+        __gshared TypeFunction tftohash;
         if (!tftohash)
         {
-            tftohash = new TypeFunction(null, Type.thash_t, 0, LINK.d);
+            tftohash = new TypeFunction(ParameterList(), Type.thash_t, LINK.d);
             tftohash.mod = MODFlags.const_;
             tftohash = cast(TypeFunction)tftohash.merge();
         }
@@ -758,7 +796,7 @@ extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
     Loc loc; // internal code should have no loc to prevent coverage
     auto parameters = new Parameters();
     parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.p, null, null));
-    auto tf = new TypeFunction(parameters, Type.thash_t, 0, LINK.d, STC.nothrow_ | STC.trusted);
+    auto tf = new TypeFunction(ParameterList(parameters), Type.thash_t, LINK.d, STC.nothrow_ | STC.trusted);
     Identifier id = Id.xtoHash;
     auto fop = new FuncDeclaration(declLoc, Loc.initial, id, STC.static_, tf);
     fop.generated = true;
@@ -768,16 +806,16 @@ extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
      * If sd is a nested struct, and if it's nested in a class, the calculated
      * hash value will also contain the result of parent class's toHash().
      */
-    const(char)* code =
+    const(char)[] code =
         "size_t h = 0;" ~
         "foreach (i, T; typeof(p.tupleof))" ~
         // workaround https://issues.dlang.org/show_bug.cgi?id=17968
-        "    static if(is(T* : const(Object)*)) " ~
-        "        h = h * 33 + typeid(const(Object)).getHash(cast(const void*)&p.tupleof[i]);" ~
+        "    static if(is(T* : const(.object.Object)*)) " ~
+        "        h = h * 33 + typeid(const(.object.Object)).getHash(cast(const void*)&p.tupleof[i]);" ~
         "    else " ~
         "        h = h * 33 + typeid(T).getHash(cast(const void*)&p.tupleof[i]);" ~
         "return h;";
-    fop.fbody = new CompileStatement(loc, new StringExp(loc, cast(char*)code));
+    fop.fbody = new CompileStatement(loc, new StringExp(loc, code));
     Scope* sc2 = sc.push();
     sc2.stc = 0;
     sc2.linkage = LINK.d;
@@ -802,7 +840,7 @@ extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
  * Close similarity with StructDeclaration::buildPostBlit(),
  * and the ordering changes (runs backward instead of forwards).
  */
-extern (C++) DtorDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
+DtorDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
 {
     //printf("AggregateDeclaration::buildDtor() %s\n", ad.toChars());
     if (ad.isUnionDeclaration())
@@ -925,6 +963,7 @@ extern (C++) DtorDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
             ad.dtors.shift(dd);
             ad.members.push(dd);
             dd.dsymbolSemantic(sc);
+            ad.fieldDtor = dd;
         }
     }
 
@@ -969,7 +1008,7 @@ extern (C++) DtorDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
 
     ad.primaryDtor = xdtor;
 
-    if (xdtor && xdtor.linkage == LINK.cpp && !Target.twoDtorInVtable)
+    if (xdtor && xdtor.linkage == LINK.cpp && !target.cpp.twoDtorInVtable)
         xdtor = buildWindowsCppDtor(ad, xdtor, sc);
 
     // Add an __xdtor alias to make the inclusive dtor accessible
@@ -1012,7 +1051,7 @@ private DtorDeclaration buildWindowsCppDtor(AggregateDeclaration ad, DtorDeclara
     Parameter delparam = new Parameter(STC.undefined_, Type.tuns32, Identifier.idPool("del"), new IntegerExp(dtor.loc, 0, Type.tuns32), null);
     Parameters* params = new Parameters;
     params.push(delparam);
-    auto ftype = new TypeFunction(params, Type.tvoidptr, false, LINK.cpp, dtor.storage_class);
+    auto ftype = new TypeFunction(ParameterList(params), Type.tvoidptr, LINK.cpp, dtor.storage_class);
     auto func = new DtorDeclaration(dtor.loc, dtor.loc, dtor.storage_class, Id.cppdtor);
     func.type = ftype;
     if (dtor.fbody)
@@ -1066,7 +1105,7 @@ DtorDeclaration buildExternDDtor(AggregateDeclaration ad, Scope* sc)
     // {
     //     Class.__dtor();
     // }
-    auto ftype = new TypeFunction(null, Type.tvoid, false, LINK.d, dtor.storage_class);
+    auto ftype = new TypeFunction(ParameterList(), Type.tvoid, LINK.d, dtor.storage_class);
     auto func = new DtorDeclaration(dtor.loc, dtor.loc, dtor.storage_class, Id.ticppdtor);
     func.type = ftype;
 
@@ -1097,7 +1136,7 @@ DtorDeclaration buildExternDDtor(AggregateDeclaration ad, Scope* sc)
  *          invs[0](), invs[1](), ...;
  *      }
  */
-extern (C++) FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
+FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
 {
     switch (ad.invs.dim)
     {

@@ -1,5 +1,9 @@
-// PERMUTE_ARGS: -g -version=PULL8152
+// PERMUTE_ARGS: -g
 // EXTRA_CPP_SOURCES: cppb.cpp
+// EXTRA_FILES: extra-files/cppb.h
+// CXXFLAGS(linux freebsd osx netbsd dragonflybsd): -std=c++11
+
+// N.B MSVC doesn't have a C++11 switch, but it defaults to the latest fully-supported standard
 
 import core.stdc.stdio;
 import core.stdc.stdarg;
@@ -192,7 +196,7 @@ void test8()
 }
 
 /****************************************/
-// 4059
+// https://issues.dlang.org/show_bug.cgi?id=4059
 
 struct elem9 { }
 
@@ -259,7 +263,7 @@ void test13956()
 }
 
 /****************************************/
-// 5148
+// https://issues.dlang.org/show_bug.cgi?id=5148
 
 extern (C++)
 {
@@ -336,7 +340,7 @@ void testvalist()
 }
 
 /****************************************/
-// 12825
+// https://issues.dlang.org/show_bug.cgi?id=12825
 
 extern(C++) class C12825
 {
@@ -449,7 +453,7 @@ version (linux)
 
 extern (C++, std)
 {
-    struct allocator(T)
+    extern (C++, class) struct allocator(T)
     {
         version (linux)
         {
@@ -459,50 +463,47 @@ extern (C++, std)
         }
     }
 
-    version (linux)
+    class vector(T, A = allocator!T)
     {
-        class vector(T, A = allocator!T)
-        {
-            final void push_back(ref const T);
-        }
+        final void push_back(ref const T);
+    }
 
-        struct char_traits(T)
-        {
-        }
+    struct char_traits(T)
+    {
+    }
 
-        // https://gcc.gnu.org/onlinedocs/libstdc++/manual/using_dual_abi.html
-        version (none)
-        {
-            extern (C++, __cxx11)
-            {
-                struct basic_string(T, C = char_traits!T, A = allocator!T)
-                {
-                }
-            }
-        }
-        else
+    // https://gcc.gnu.org/onlinedocs/libstdc++/manual/using_dual_abi.html
+    version (none)
+    {
+        extern (C++, __cxx11)
         {
             struct basic_string(T, C = char_traits!T, A = allocator!T)
             {
             }
         }
-
-        struct basic_istream(T, C = char_traits!T)
-        {
-        }
-
-        struct basic_ostream(T, C = char_traits!T)
-        {
-        }
-
-        struct basic_iostream(T, C = char_traits!T)
+    }
+    else
+    {
+        extern (C++, class) struct basic_string(T, C = char_traits!T, A = allocator!T)
         {
         }
     }
 
+    struct basic_istream(T, C = char_traits!T)
+    {
+    }
+
+    struct basic_ostream(T, C = char_traits!T)
+    {
+    }
+
+    struct basic_iostream(T, C = char_traits!T)
+    {
+    }
+
     class exception { }
 
-    // 14956
+    // https://issues.dlang.org/show_bug.cgi?id=14956
     extern(C++, N14956)
     {
         struct S14956 { }
@@ -565,18 +566,22 @@ void test13289()
     assert(f13289_cpp_test());
 }
 
+version(Posix)
+{
+    enum __c_wchar_t : dchar;
+}
+else version(Windows)
+{
+    enum __c_wchar_t : wchar;
+}
+alias wchar_t = __c_wchar_t;
 extern(C++)
 {
     bool f13289_cpp_test();
 
-    version(Posix)
-    {
-        dchar f13289_cpp_wchar_t(dchar);
-    }
-    else version(Windows)
-    {
-        wchar f13289_cpp_wchar_t(wchar);
-    }
+
+    wchar_t f13289_cpp_wchar_t(wchar_t);
+
 
     wchar f13289_d_wchar(wchar ch)
     {
@@ -600,31 +605,31 @@ extern(C++)
             return ch;
         }
     }
+    wchar_t f13289_d_wchar_t(wchar_t ch)
+    {
+        if (ch <= 'z' && ch >= 'a')
+        {
+            return cast(wchar_t)(ch - ('a' - 'A'));
+        }
+        else
+        {
+            return ch;
+        }
+    }
 }
 
 /****************************************/
 
 version (CRuntime_Microsoft)
 {
-    version (PULL8152)
-    {
-        enum __c_long_double : double;
-    }
-    else
-    {
-        struct __c_long_double
-        {
-            this(double d) { ld = d; }
-            double ld;
-            alias ld this;
-        }
-    }
+    enum __c_long_double : double;
     alias __c_long_double myld;
 }
 else
     alias c_long_double myld;
 
 extern (C++) myld testld(myld);
+extern (C++) myld testldld(myld, myld);
 
 
 void test15()
@@ -632,6 +637,10 @@ void test15()
     myld ld = 5.0;
     ld = testld(ld);
     assert(ld == 6.0);
+
+    myld ld2 = 5.0;
+    ld2 = testldld(ld2, ld2);
+    assert(ld2 == 6.0);
 }
 
 /****************************************/
@@ -655,28 +664,8 @@ else
   }
 }
 
-version (PULL8152)
-{
-    enum __c_long : x_long;
-    enum __c_ulong : x_ulong;
-}
-else
-{
-    struct __c_long
-    {
-        this(x_long d) { ld = d; }
-        x_long ld;
-        alias ld this;
-    }
-
-    struct __c_ulong
-    {
-        this(x_ulong d) { ld = d; }
-        x_ulong ld;
-        alias ld this;
-    }
-}
-
+enum __c_long : x_long;
+enum __c_ulong : x_ulong;
 alias __c_long mylong;
 alias __c_ulong myulong;
 
@@ -698,53 +687,49 @@ void test16()
     assert(ld == 5 + myulong.sizeof);
   }
 
-    version (PULL8152)
-    {
-        static if (__c_long.sizeof == long.sizeof)
-        {
-            static assert(__c_long.max == long.max);
-            static assert(__c_long.min == long.min);
-            static assert(__c_long.init == long.init);
+  static if (__c_long.sizeof == long.sizeof)
+  {
+    static assert(__c_long.max == long.max);
+    static assert(__c_long.min == long.min);
+    static assert(__c_long.init == long.init);
 
-            static assert(__c_ulong.max == ulong.max);
-            static assert(__c_ulong.min == ulong.min);
-            static assert(__c_ulong.init == ulong.init);
+    static assert(__c_ulong.max == ulong.max);
+    static assert(__c_ulong.min == ulong.min);
+    static assert(__c_ulong.init == ulong.init);
 
-            __c_long cl = 0;
-            cl = cl + 1;
-            long l = cl;
-            cl = l;
+    __c_long cl = 0;
+    cl = cl + 1;
+    long l = cl;
+    cl = l;
 
-            __c_ulong cul = 0;
-            cul = cul + 1;
-            ulong ul = cul;
-            cul = ul;
-        }
-        else static if (__c_long.sizeof == int.sizeof)
-        {
-            static assert(__c_long.max == int.max);
-            static assert(__c_long.min == int.min);
-            static assert(__c_long.init == int.init);
+    __c_ulong cul = 0;
+    cul = cul + 1;
+    ulong ul = cul;
+    cul = ul;
+  }
+  else static if (__c_long.sizeof == int.sizeof)
+  {
+    static assert(__c_long.max == int.max);
+    static assert(__c_long.min == int.min);
+    static assert(__c_long.init == int.init);
 
-            static assert(__c_ulong.max == uint.max);
-            static assert(__c_ulong.min == uint.min);
-            static assert(__c_ulong.init == uint.init);
+    static assert(__c_ulong.max == uint.max);
+    static assert(__c_ulong.min == uint.min);
+    static assert(__c_ulong.init == uint.init);
 
-            __c_long cl = 0;
-            cl = cl + 1;
-            int i = cl;
-            cl = i;
+    __c_long cl = 0;
+    cl = cl + 1;
+    int i = cl;
+    cl = i;
 
-            __c_ulong cul = 0;
-            cul = cul + 1;
-            uint u = cul;
-            cul = u;
-        }
-        else
-            static assert(0);
-    }
+    __c_ulong cul = 0;
+    cul = cul + 1;
+    uint u = cul;
+    cul = u;
+  }
+  else
+    static assert(0);
 }
-
 
 /****************************************/
 
@@ -786,7 +771,7 @@ extern(C++, N13337.M13337)
 }
 
 /****************************************/
-// 14195
+// https://issues.dlang.org/show_bug.cgi?id=14195
 
 struct Delegate1(T) {}
 struct Delegate2(T1, T2) {}
@@ -812,7 +797,7 @@ void test14195()
 
 
 /****************************************/
-// 14200
+// https://issues.dlang.org/show_bug.cgi?id=14200
 
 template Tuple14200(T...)
 {
@@ -829,7 +814,7 @@ void test14200()
 }
 
 /****************************************/
-// 14956
+// https://issues.dlang.org/show_bug.cgi?id=14956
 
 extern(C++) void test14956(S14956 s);
 
@@ -934,13 +919,22 @@ void fuzz2()
 }
 
 ////////
-extern(C++) void fuzz3_cppvararg(wchar arg10, wchar arg11, bool arg12);
-extern(C++) void fuzz3_dvararg(wchar arg10, wchar arg11, bool arg12)
+version(CppRuntime_DigitalMars)
+    enum UNICODE = false;
+else version(CppRuntime_Microsoft)
+    enum UNICODE = false; //VS2013 doesn't support them
+else
+    enum UNICODE = true;
+
+static if (UNICODE)
+{
+extern(C++) void fuzz3_cppvararg(wchar arg10, dchar arg11, bool arg12);
+extern(C++) void fuzz3_dvararg(wchar arg10, dchar arg11, bool arg12)
 {
     fuzz2_checkValues(arg10, arg11, arg12);
 }
 
-extern(C++) void fuzz3_checkValues(wchar arg10, wchar arg11, bool arg12)
+extern(C++) void fuzz3_checkValues(wchar arg10, dchar arg11, bool arg12)
 {
     assert(arg10 == 103);
     assert(arg11 == 104);
@@ -950,17 +944,18 @@ extern(C++) void fuzz3_checkValues(wchar arg10, wchar arg11, bool arg12)
 void fuzz3()
 {
     wchar arg10 = 103;
-    wchar arg11 = 104;
+    dchar arg11 = 104;
     bool arg12 = false;
     fuzz3_dvararg(arg10, arg11, arg12);
     fuzz3_cppvararg(arg10, arg11, arg12);
+}
 }
 
 void fuzz()
 {
     fuzz1();
     fuzz2();
-    fuzz3();
+    static if (UNICODE) fuzz3();
 }
 
 /****************************************/
@@ -1057,7 +1052,7 @@ void testeh3()
 }
 
 /****************************************/
-// 15576
+// https://issues.dlang.org/show_bug.cgi?id=15576
 
 extern (C++, ns15576)
 {
@@ -1075,7 +1070,7 @@ void test15576()
 }
 
 /****************************************/
-// 15579
+// https://issues.dlang.org/show_bug.cgi?id=15579
 
 extern (C++)
 {
@@ -1157,7 +1152,7 @@ void test15579()
 }
 
 /****************************************/
-// 15610
+// https://issues.dlang.org/show_bug.cgi?id=15610
 
 extern(C++) class Base2
 {
@@ -1183,7 +1178,7 @@ void test15610()
 }
 
 /******************************************/
-// 15455
+// https://issues.dlang.org/show_bug.cgi?id=15455
 
 struct X6
 {
@@ -1228,9 +1223,9 @@ void test15455()
 }
 
 /****************************************/
-// 15372
+// https://issues.dlang.org/show_bug.cgi?id=15372
 
-extern(C++) int foo15372(T)(T v);
+extern(C++) int foo15372(T)(int v);
 
 void test15372()
 {
@@ -1240,7 +1235,7 @@ void test15372()
 }
 
 /****************************************/
-// 15802
+// https://issues.dlang.org/show_bug.cgi?id=15802
 
 extern(C++) {
     template Foo15802(T) {
@@ -1256,7 +1251,8 @@ void test15802()
 }
 
 /****************************************/
-// 16536 - mangling mismatch on OSX
+// https://issues.dlang.org/show_bug.cgi?id=16536
+// mangling mismatch on OSX
 
 version(OSX) extern(C++) uint64_t pass16536(uint64_t);
 
@@ -1266,7 +1262,8 @@ void test16536()
 }
 
 /****************************************/
-// 15589 - extern(C++) virtual destructors are not put in vtbl[]
+// https://issues.dlang.org/show_bug.cgi?id=15589
+// extern(C++) virtual destructors are not put in vtbl[]
 
 extern(C++)
 {
@@ -1385,7 +1382,7 @@ mixin template scopeAllocCpp(C)
         enum cppCtorReturnsThis = false;
     else
         enum cppCtorReturnsThis = true;
-    
+
     static if (cppCtorReturnsThis)
         scope C ptr = new C;
     else
@@ -1446,7 +1443,7 @@ void test18928()
 // https://issues.dlang.org/show_bug.cgi?id=18953
 // Win32: extern(C++) struct destructor not called correctly through runtime
 
-extern(C++) 
+extern(C++)
 struct S18953
 {
     char x;
@@ -1495,6 +1492,37 @@ class Implicit18966 : Base18966
     override void vf() { x = 300; }
 }
 
+// test vptr in full ctor chain of mixed D/C++ class hierarchies
+
+// TODO: Make this a D class and let C++ derive from it. This works on Windows,
+//       but results in linker errors on Posix due to extra base ctor (`C2`
+//       mangling) being called by the B ctor.
+class A18966 // in C++
+{
+    char[8] calledOverloads = 0;
+    int i;
+    this();
+    void foo();
+}
+
+class B18966 : A18966 // in C++
+{
+    this();
+    override void foo();
+}
+
+class C18966 : B18966
+{
+    this() { foo(); }
+    override void foo() { calledOverloads[i++] = 'C'; }
+}
+
+class D18966 : C18966
+{
+    this() { foo(); }
+    override void foo() { calledOverloads[i++] = 'D'; }
+}
+
 void test18966()
 {
     Derived18966 d = new Derived18966;
@@ -1511,7 +1539,64 @@ void test18966()
     assert(i.x == 10);
     i.vf();
     assert(i.x == 300);
+
+    // TODO: Allocating + constructing a C++ class with the D GC is not
+    //       supported on Posix. The returned pointer (probably from C++ ctor)
+    //       seems to be an offset and not the actual object address.
+    version (Windows)
+    {
+        auto a = new A18966;
+        assert(a.calledOverloads[0..2] == "A\0");
+
+        auto b = new B18966;
+        assert(b.calledOverloads[0..3] == "AB\0");
+    }
+
+    auto c = new C18966;
+    assert(c.calledOverloads[0..4] == "ABC\0");
+
+    auto d2 = new D18966;
+    // note: the vptr semantics in ctors of extern(C++) classes may be revised (to "ABCD")
+    assert(d2.calledOverloads[0..5] == "ABDD\0");
 }
+
+/****************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=19134
+
+class Base19134
+{
+    int a = 123;
+    this() { a += 42; }
+    int foo() const { return a; }
+}
+
+class Derived19134 : Base19134
+{
+    int b = 666;
+    this()
+    {
+        a *= 2;
+        b -= 6;
+    }
+    override int foo() const { return b; }
+}
+
+void test19134()
+{
+    static const d = new Derived19134;
+    assert(d.a == (123 + 42) * 2);
+    assert(d.b == 666 - 6);
+    assert(d.foo() == 660);
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=18955
+alias std_string = std.basic_string!(char);
+
+extern(C++) void callback18955(ref const(std_string) str)
+{
+}
+extern(C++) void test18955();
 
 /****************************************/
 
@@ -1562,6 +1647,8 @@ void main()
     test18928();
     test18953();
     test18966();
+    test19134();
+    test18955();
 
     printf("Success\n");
 }

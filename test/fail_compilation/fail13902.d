@@ -102,13 +102,13 @@ fail_compilation/fail13902.d(123): Error: Using the result of a comma expression
 ---
 */
 int* testEscape3(
-    ref int x, ref int y,
+    return ref int x, return ref int y,
     ref int[] da1,
     ref int[][] da2,
-    ref int[1] sa1,
-    ref int[1][1] sa2,
+    return ref int[1] sa1,
+    return ref int[1][1] sa2,
     ref int* ptr,
-    ref S1 s1,
+    return ref S1 s1,
     ref S2 s2,
     ref C  c,
 )
@@ -151,7 +151,7 @@ fail_compilation/fail13902.d(172): Error: escaping reference to stack allocated 
 fail_compilation/fail13902.d(173): Error: escaping reference to stack allocated value returned by `makeS()`
 ---
 */
-int[] testEscape4(int[3] sa1)       // Bugzilla 9279
+int[] testEscape4(int[3] sa1)       // https://issues.dlang.org/show_bug.cgi?id=9279
 {
     if (0) return sa1;                      // error <- no error
     if (0) return cast(int[])sa1;           // error <- no error
@@ -265,12 +265,12 @@ TEST_OUTPUT:
 ---
 */
 ref int testEscapeRef2(
-    ref int x,
+    return ref int x,
     ref int[] da1,
     ref int[][] da2,
-    ref int[1] sa1,
-    ref int[1][1] sa2,
-    ref S1 s1,
+    return ref int[1] sa1,
+    return ref int[1][1] sa2,
+    return ref S1 s1,
     ref C  c,
 )
 {

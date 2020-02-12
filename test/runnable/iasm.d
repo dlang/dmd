@@ -11,6 +11,10 @@ version (D_PIC)
 {
     int main() { return 0; }
 }
+else version (D_PIE)
+{
+    int main() { return 0; }
+}
 else version (D_InlineAsm_X86)
 {
 
@@ -4833,6 +4837,10 @@ int main()
     test4();
   version (OSX)
   {
+  }
+  else version (linux)
+  {
+    // stack alignment throws the tests off
   }
   else
   {

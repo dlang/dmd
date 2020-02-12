@@ -1,3 +1,5 @@
+// REQUIRED_ARGS: -preview=rvaluerefparam
+
 import std.stdio;
 
 struct S
@@ -319,8 +321,8 @@ int waz14(S)(ref S s) { return 2; }
 void test14()
 {
     // can not bind rvalue-sl with ref
-    static assert(!__traits(compiles, foo14(S14a(0))));
-    static assert(!__traits(compiles, foo14(S14b(0))));
+    static assert( __traits(compiles, foo14(S14a(0))));
+    static assert( __traits(compiles, foo14(S14b(0))));
     static assert(!__traits(compiles, hoo14(S14a(0))));
     static assert(!__traits(compiles, hoo14(S14b(0))));
     static assert(!__traits(compiles, poo14(S14a(0))));
@@ -491,7 +493,7 @@ void test15c()
     auto c2 = new immutable C(1);
 }
 
-void test15d()  // Bugzilla 9974
+void test15d()  // https://issues.dlang.org/show_bug.cgi?id=9974
 {
     class CM { this() {} }
     auto cm = new CM();
@@ -525,7 +527,7 @@ void test15d()  // Bugzilla 9974
     shared const ssc = new shared const SSC(1);
 }
 
-void test15e()  // Bugzilla 10005
+void test15e()  // https://issues.dlang.org/show_bug.cgi?id=10005
 {
     // struct literal
     static struct S
@@ -642,7 +644,7 @@ void test9993b()
 }
 
 /********************************************/
-// 1914
+// https://issues.dlang.org/show_bug.cgi?id=1914
 
 struct Bug1914a
 {
@@ -703,7 +705,7 @@ void test3198and1914()
 }
 
 /********************************************/
-// 14996
+// https://issues.dlang.org/show_bug.cgi?id=14996
 
 enum E14996a : string { confirm = "confirm" }
 enum E14996b : long[] { confirm = [1,2,3,4] }
@@ -715,7 +717,7 @@ struct S14996
 }
 
 /********************************************/
-// 2427
+// https://issues.dlang.org/show_bug.cgi?id=2427
 
 void test2427()
 {
@@ -755,7 +757,7 @@ void test5885()
 }
 
 /********************************************/
-// 5889
+// https://issues.dlang.org/show_bug.cgi?id=5889
 
 struct S5889a { int n; }
 struct S5889b { this(int n){} }
@@ -812,7 +814,7 @@ void test5889()
 }
 
 /********************************************/
-// 4147
+// https://issues.dlang.org/show_bug.cgi?id=4147
 
 struct S4247
 {
@@ -829,7 +831,7 @@ void test4247()
 }
 
 /********************************************/
-// 6937
+// https://issues.dlang.org/show_bug.cgi?id=6937
 
 void test6937()
 {
@@ -885,7 +887,7 @@ void test6937()
 }
 
 /********************************************/
-// 12681
+// https://issues.dlang.org/show_bug.cgi?id=12681
 
 struct HasUnion12774
 {
@@ -930,7 +932,7 @@ bool test12681()
 static assert(test12681());
 
 /********************************************/
-// 3991
+// https://issues.dlang.org/show_bug.cgi?id=3991
 
 union X3991
 {
@@ -940,8 +942,8 @@ union X3991
 
 union Y3991
 {
-    int   a = void;
     dchar b = 'a';
+    int   a = void;
 }
 
 union Z3991
@@ -962,7 +964,7 @@ void test3991()
 }
 
 /********************************************/
-// 7727
+// https://issues.dlang.org/show_bug.cgi?id=7727
 
 union U7727A1 { int i;       double d;       }
 union U7727A2 { int i = 123; double d;       }
@@ -990,7 +992,7 @@ void test7727()
     { U7727A2 u = { i: 1024, d: 1.225 }; }
   ));
 
-// Blocked by issue 1432
+// Blocked by https://issues.dlang.org/show_bug.cgi?id=1432
 //    { U7727A3 u;                assert(u.d == 2.5); }
 //    { U7727A3 u = { i: 1024 };  assert(u.i == 1024); }
 //    { U7727A3 u = { d: 1.225 }; assert(u.d == 1.225); }
@@ -1012,7 +1014,7 @@ void test7727()
     { U7727B2 u = { i: 1024, d: 1.225 }; }
   ));
 
-// Blocked by issue 1432
+// Blocked by https://issues.dlang.org/show_bug.cgi?id=1432
 //    { U7727B3 u;                assert(u.i == 123); }
 //    { U7727B3 u = { i: 1024 };  assert(u.i == 1024); }
 //    { U7727B3 u = { d: 1.225 }; assert(u.d == 1.225); }
@@ -1058,7 +1060,7 @@ void test7727b()
 }
 
 /********************************************/
-// 7929
+// https://issues.dlang.org/show_bug.cgi?id=7929
 
 void test7929()
 {
@@ -1076,7 +1078,7 @@ void test7929()
 }
 
 /********************************************/
-// 7021
+// https://issues.dlang.org/show_bug.cgi?id=7021
 
 struct S7021
 {
@@ -1091,7 +1093,7 @@ void test7021()
 }
 
 /********************************************/
-// 8738
+// https://issues.dlang.org/show_bug.cgi?id=8738
 
 void test8738()
 {
@@ -1108,7 +1110,7 @@ void test8738()
 }
 
 /********************************************/
-// 8763
+// https://issues.dlang.org/show_bug.cgi?id=8763
 
 void test8763()
 {
@@ -1128,7 +1130,7 @@ void test8763()
 }
 
 /********************************************/
-// 8902
+// https://issues.dlang.org/show_bug.cgi?id=8902
 
 union U8902 { int a, b; }
 
@@ -1146,7 +1148,7 @@ void test8902()
 }
 
 /********************************************/
-// 9116
+// https://issues.dlang.org/show_bug.cgi?id=9116
 
 void test9116()
 {
@@ -1167,7 +1169,7 @@ void test9116()
 }
 
 /********************************************/
-// 9293
+// https://issues.dlang.org/show_bug.cgi?id=9293
 
 void test9293()
 {
@@ -1192,7 +1194,7 @@ void test9293()
 }
 
 /********************************************/
-// 9566
+// https://issues.dlang.org/show_bug.cgi?id=9566
 
 void test9566()
 {
@@ -1205,7 +1207,7 @@ void test9566()
 }
 
 /********************************************/
-// 9775
+// https://issues.dlang.org/show_bug.cgi?id=9775
 
 enum Month9775 : ubyte { jan = 1, }
 struct Date9775
@@ -1227,7 +1229,7 @@ enum  Date9775 date9775e1 = Date9775(2012, 12, 21);
 enum           date9775e2 = Date9775(2012, 12, 21);
 
 /********************************************/
-// 11105
+// https://issues.dlang.org/show_bug.cgi?id=11105
 
 struct S11105
 {
@@ -1240,7 +1242,7 @@ void test11105()
 }
 
 /********************************************/
-// 11147
+// https://issues.dlang.org/show_bug.cgi?id=11147
 
 struct V11147
 {
@@ -1273,7 +1275,7 @@ void test11147()
 }
 
 /********************************************/
-// 11256
+// https://issues.dlang.org/show_bug.cgi?id=11256
 
 struct S11256 { @disable this(); }
 
@@ -1295,7 +1297,7 @@ struct Z11256c(Ranges...)
 
 struct F11256(alias pred)
 {
-    this(int[] = null) { }
+    this(int[]) { }
 }
 
 Z!Ranges z11256(alias Z, Ranges...)(Ranges ranges)
@@ -1305,13 +1307,13 @@ Z!Ranges z11256(alias Z, Ranges...)(Ranges ranges)
 
 void test11256()
 {
-    z11256!Z11256a(S11256.init, F11256!(gv => true)());
-    z11256!Z11256b(S11256.init, F11256!(gv => true)());
-    z11256!Z11256c(S11256.init, F11256!(gv => true)());
+    z11256!Z11256a(S11256.init, F11256!(gv => true)(null));
+    z11256!Z11256b(S11256.init, F11256!(gv => true)(null));
+    z11256!Z11256c(S11256.init, F11256!(gv => true)(null));
 }
 
 /********************************************/
-// 11269
+// https://issues.dlang.org/show_bug.cgi?id=11269
 
 struct Atom
 {
@@ -1336,7 +1338,7 @@ void test11269()
 }
 
 /********************************************/
-// 11427
+// https://issues.dlang.org/show_bug.cgi?id=11427
 
 struct S11427
 {
@@ -1356,7 +1358,7 @@ int foo11427() @safe
 }
 
 /********************************************/
-// 12011
+// https://issues.dlang.org/show_bug.cgi?id=12011
 
 struct S12011a
 {
@@ -1379,7 +1381,7 @@ void test12011()
 }
 
 /********************************************/
-// 13021
+// https://issues.dlang.org/show_bug.cgi?id=13021
 
 void test13021()
 {
@@ -1417,7 +1419,7 @@ void test13021()
 }
 
 /********************************************/
-// 14556
+// https://issues.dlang.org/show_bug.cgi?id=14556
 
 enum E14556 { a = 1 }
 

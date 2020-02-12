@@ -8,8 +8,8 @@ fail_compilation/diag10768.d(36): Error: cannot implicitly override base class m
 
 struct CirBuff(T)
 {
-    import std.traits: isArray;
-    CirBuff!T opAssign(R)(R) if (isArray!R)
+
+    CirBuff!T opAssign(R)(R)
     {}
 
     T[] toArray()

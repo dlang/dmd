@@ -10,7 +10,7 @@
  *         different lists to 'share' a common tail.
  *
  * Copyright:   Copyright (C) 1986-1990 by Northwest Software
- *              Copyright (c) 1999-2016 by Digital Mars, All Rights Reserved
+ *              Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dlist.d, backend/dlist.d)
@@ -25,7 +25,8 @@ import core.stdc.string;
 
 extern (C++):
 
-nothrow @nogc
+nothrow:
+@nogc
 {
 
 /* **************** TYPEDEFS AND DEFINES ****************** */
@@ -42,13 +43,13 @@ struct LIST
         }
 }
 
-alias LIST* list_t;             /* pointer to a list entry              */
+alias list_t = LIST*;             /* pointer to a list entry              */
 
 /* FPNULL is a null function pointer designed to be an argument to
  * list_free().
  */
 
-alias void function(void*) @nogc nothrow list_free_fp;
+alias list_free_fp = void function(void*) @nogc nothrow;
 
 enum FPNULL = cast(list_free_fp)null;
 
@@ -90,7 +91,7 @@ list_t list_next(list_t list) { return list.next; }
  *    ptr from list entry.
  */
 
-void* list_ptr(list_t list) { return list.ptr; }
+inout(void)* list_ptr(inout list_t list) { return list.ptr; }
 
 /********************************
  * Returns:
@@ -315,10 +316,9 @@ list_t list_prepend(list_t *plist, void *ptr)
 int list_nitems(list_t list)
 {
     int n = 0;
-    while (list)
+    foreach (l; ListRange(list))
     {
         ++n;
-        list = list_next(list);
     }
     return n;
 }
@@ -441,10 +441,10 @@ int list_cmp(list_t list1, list_t list2, int function(void*, void*) @nogc nothro
 
 list_t list_inlist(list_t list, void* ptr)
 {
-    for (; list; list = list_next(list))
-        if (list.ptr == ptr)
-            break;
-    return list;
+    foreach (l; ListRange(list))
+        if (l.ptr == ptr)
+            return l;
+    return null;
 }
 
 /*************************
@@ -471,7 +471,7 @@ list_t list_cat(list_t *pl1, list_t l2)
 void list_apply(list_t* plist, void function(void*) @nogc nothrow fp)
 {
     if (fp)
-        for (list_t l = *plist; l; l = list_next(l))
+        foreach (l; ListRange(*plist))
         {
             (*fp)(list_ptr(l));
         }
@@ -531,6 +531,26 @@ list_t list_insert(list_t *pl,void *ptr,int n)
         list.count = 1;
     }
     return list;
+}
+
+/********************************
+ * Range for Lists.
+ */
+struct ListRange
+{
+  pure nothrow @nogc @safe:
+
+    this(list_t li)
+    {
+        this.li = li;
+    }
+
+    list_t front() return  { return li; }
+    void popFront() { li = li.next; }
+    bool empty() const { return !li; }
+
+  private:
+    list_t li;
 }
 
 }

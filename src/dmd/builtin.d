@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/builtin.d, _builtin.d)
@@ -24,6 +24,7 @@ import dmd.mtype;
 import dmd.root.ctfloat;
 import dmd.root.stringtable;
 import dmd.tokens;
+static import core.bitop;
 
 private:
 
@@ -38,63 +39,63 @@ private:
  * Returns:
  *  An Expression containing the return value of the call.
  */
-extern (C++) alias builtin_fp = Expression function(Loc loc, FuncDeclaration fd, Expressions* arguments);
+alias builtin_fp = Expression function(Loc loc, FuncDeclaration fd, Expressions* arguments);
 
-__gshared StringTable builtins;
+__gshared StringTable!builtin_fp builtins;
 
-public extern (C++) void add_builtin(const(char)* mangle, builtin_fp fp)
+void add_builtin(const(char)[] mangle, builtin_fp fp)
 {
-    builtins.insert(mangle, strlen(mangle), cast(void*)fp);
+    builtins.insert(mangle, fp);
 }
 
 builtin_fp builtin_lookup(const(char)* mangle)
 {
     if (const sv = builtins.lookup(mangle, strlen(mangle)))
-        return cast(builtin_fp)sv.ptrvalue;
+        return sv.value;
     return null;
 }
 
-extern (C++) Expression eval_unimp(Loc loc, FuncDeclaration fd, Expressions* arguments)
+Expression eval_unimp(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     return null;
 }
 
-extern (C++) Expression eval_sin(Loc loc, FuncDeclaration fd, Expressions* arguments)
+Expression eval_sin(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.float64);
     return new RealExp(loc, CTFloat.sin(arg0.toReal()), arg0.type);
 }
 
-extern (C++) Expression eval_cos(Loc loc, FuncDeclaration fd, Expressions* arguments)
+Expression eval_cos(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.float64);
     return new RealExp(loc, CTFloat.cos(arg0.toReal()), arg0.type);
 }
 
-extern (C++) Expression eval_tan(Loc loc, FuncDeclaration fd, Expressions* arguments)
+Expression eval_tan(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.float64);
     return new RealExp(loc, CTFloat.tan(arg0.toReal()), arg0.type);
 }
 
-extern (C++) Expression eval_sqrt(Loc loc, FuncDeclaration fd, Expressions* arguments)
+Expression eval_sqrt(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.float64);
     return new RealExp(loc, CTFloat.sqrt(arg0.toReal()), arg0.type);
 }
 
-extern (C++) Expression eval_fabs(Loc loc, FuncDeclaration fd, Expressions* arguments)
+Expression eval_fabs(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.float64);
     return new RealExp(loc, CTFloat.fabs(arg0.toReal()), arg0.type);
 }
 
-extern (C++) Expression eval_ldexp(Loc loc, FuncDeclaration fd, Expressions* arguments)
+Expression eval_ldexp(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.float64);
@@ -103,70 +104,77 @@ extern (C++) Expression eval_ldexp(Loc loc, FuncDeclaration fd, Expressions* arg
     return new RealExp(loc, CTFloat.ldexp(arg0.toReal(), cast(int) arg1.toInteger()), arg0.type);
 }
 
-extern (C++) Expression eval_log(Loc loc, FuncDeclaration fd, Expressions* arguments)
+Expression eval_log(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.float64);
     return new RealExp(loc, CTFloat.log(arg0.toReal()), arg0.type);
 }
 
-extern (C++) Expression eval_log2(Loc loc, FuncDeclaration fd, Expressions* arguments)
+Expression eval_log2(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.float64);
     return new RealExp(loc, CTFloat.log2(arg0.toReal()), arg0.type);
 }
 
-extern (C++) Expression eval_log10(Loc loc, FuncDeclaration fd, Expressions* arguments)
+Expression eval_log10(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.float64);
     return new RealExp(loc, CTFloat.log10(arg0.toReal()), arg0.type);
 }
 
-extern (C++) Expression eval_expm1(Loc loc, FuncDeclaration fd, Expressions* arguments)
+Expression eval_exp(Loc loc, FuncDeclaration fd, Expressions* arguments)
+{
+    Expression arg0 = (*arguments)[0];
+    assert(arg0.op == TOK.float64);
+    return new RealExp(loc, CTFloat.exp(arg0.toReal()), arg0.type);
+}
+
+Expression eval_expm1(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.float64);
     return new RealExp(loc, CTFloat.expm1(arg0.toReal()), arg0.type);
 }
 
-extern (C++) Expression eval_exp2(Loc loc, FuncDeclaration fd, Expressions* arguments)
+Expression eval_exp2(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.float64);
     return new RealExp(loc, CTFloat.exp2(arg0.toReal()), arg0.type);
 }
 
-extern (C++) Expression eval_round(Loc loc, FuncDeclaration fd, Expressions* arguments)
+Expression eval_round(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.float64);
     return new RealExp(loc, CTFloat.round(arg0.toReal()), arg0.type);
 }
 
-extern (C++) Expression eval_floor(Loc loc, FuncDeclaration fd, Expressions* arguments)
+Expression eval_floor(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.float64);
     return new RealExp(loc, CTFloat.floor(arg0.toReal()), arg0.type);
 }
 
-extern (C++) Expression eval_ceil(Loc loc, FuncDeclaration fd, Expressions* arguments)
+Expression eval_ceil(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.float64);
     return new RealExp(loc, CTFloat.ceil(arg0.toReal()), arg0.type);
 }
 
-extern (C++) Expression eval_trunc(Loc loc, FuncDeclaration fd, Expressions* arguments)
+Expression eval_trunc(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.float64);
     return new RealExp(loc, CTFloat.trunc(arg0.toReal()), arg0.type);
 }
 
-extern (C++) Expression eval_copysign(Loc loc, FuncDeclaration fd, Expressions* arguments)
+Expression eval_copysign(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.float64);
@@ -175,7 +183,7 @@ extern (C++) Expression eval_copysign(Loc loc, FuncDeclaration fd, Expressions* 
     return new RealExp(loc, CTFloat.copysign(arg0.toReal(), arg1.toReal()), arg0.type);
 }
 
-extern (C++) Expression eval_pow(Loc loc, FuncDeclaration fd, Expressions* arguments)
+Expression eval_pow(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.float64);
@@ -184,7 +192,7 @@ extern (C++) Expression eval_pow(Loc loc, FuncDeclaration fd, Expressions* argum
     return new RealExp(loc, CTFloat.pow(arg0.toReal(), arg1.toReal()), arg0.type);
 }
 
-extern (C++) Expression eval_fmin(Loc loc, FuncDeclaration fd, Expressions* arguments)
+Expression eval_fmin(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.float64);
@@ -193,7 +201,7 @@ extern (C++) Expression eval_fmin(Loc loc, FuncDeclaration fd, Expressions* argu
     return new RealExp(loc, CTFloat.fmin(arg0.toReal(), arg1.toReal()), arg0.type);
 }
 
-extern (C++) Expression eval_fmax(Loc loc, FuncDeclaration fd, Expressions* arguments)
+Expression eval_fmax(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.float64);
@@ -202,7 +210,7 @@ extern (C++) Expression eval_fmax(Loc loc, FuncDeclaration fd, Expressions* argu
     return new RealExp(loc, CTFloat.fmax(arg0.toReal(), arg1.toReal()), arg0.type);
 }
 
-extern (C++) Expression eval_fma(Loc loc, FuncDeclaration fd, Expressions* arguments)
+Expression eval_fma(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.float64);
@@ -213,94 +221,69 @@ extern (C++) Expression eval_fma(Loc loc, FuncDeclaration fd, Expressions* argum
     return new RealExp(loc, CTFloat.fma(arg0.toReal(), arg1.toReal(), arg2.toReal()), arg0.type);
 }
 
-extern (C++) Expression eval_isnan(Loc loc, FuncDeclaration fd, Expressions* arguments)
+Expression eval_isnan(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.float64);
-    return new IntegerExp(loc, CTFloat.isNaN(arg0.toReal()), Type.tbool);
+    return IntegerExp.createBool(CTFloat.isNaN(arg0.toReal()));
 }
 
-extern (C++) Expression eval_isinfinity(Loc loc, FuncDeclaration fd, Expressions* arguments)
+Expression eval_isinfinity(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.float64);
-    return new IntegerExp(loc, CTFloat.isInfinity(arg0.toReal()), Type.tbool);
+    return IntegerExp.createBool(CTFloat.isInfinity(arg0.toReal()));
 }
 
-extern (C++) Expression eval_isfinite(Loc loc, FuncDeclaration fd, Expressions* arguments)
+Expression eval_isfinite(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.float64);
     const value = !CTFloat.isNaN(arg0.toReal()) && !CTFloat.isInfinity(arg0.toReal());
-    return new IntegerExp(loc, value, Type.tbool);
+    return IntegerExp.createBool(value);
 }
 
-extern (C++) Expression eval_bsf(Loc loc, FuncDeclaration fd, Expressions* arguments)
+Expression eval_bsf(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.int64);
     uinteger_t n = arg0.toInteger();
     if (n == 0)
         error(loc, "`bsf(0)` is undefined");
-    n = (n ^ (n - 1)) >> 1; // convert trailing 0s to 1, and zero rest
-    int k = 0;
-    while (n)
-    {
-        ++k;
-        n >>= 1;
-    }
-    return new IntegerExp(loc, k, Type.tint32);
+    return new IntegerExp(loc, core.bitop.bsf(n), Type.tint32);
 }
 
-extern (C++) Expression eval_bsr(Loc loc, FuncDeclaration fd, Expressions* arguments)
+Expression eval_bsr(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.int64);
     uinteger_t n = arg0.toInteger();
     if (n == 0)
         error(loc, "`bsr(0)` is undefined");
-    int k = 0;
-    while (n >>= 1)
-    {
-        ++k;
-    }
-    return new IntegerExp(loc, k, Type.tint32);
+    return new IntegerExp(loc, core.bitop.bsr(n), Type.tint32);
 }
 
-extern (C++) Expression eval_bswap(Loc loc, FuncDeclaration fd, Expressions* arguments)
+Expression eval_bswap(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.int64);
     uinteger_t n = arg0.toInteger();
-    enum BYTEMASK = 0x00FF00FF00FF00FFL;
-    enum SHORTMASK = 0x0000FFFF0000FFFFL;
-    enum INTMASK = 0x0000FFFF0000FFFFL;
-    // swap adjacent ubytes
-    n = ((n >> 8) & BYTEMASK) | ((n & BYTEMASK) << 8);
-    // swap adjacent ushorts
-    n = ((n >> 16) & SHORTMASK) | ((n & SHORTMASK) << 16);
     TY ty = arg0.type.toBasetype().ty;
-    // If 64 bits, we need to swap high and low uints
     if (ty == Tint64 || ty == Tuns64)
-        n = ((n >> 32) & INTMASK) | ((n & INTMASK) << 32);
-    return new IntegerExp(loc, n, arg0.type);
+        return new IntegerExp(loc, core.bitop.bswap(cast(ulong) n), arg0.type);
+    else
+        return new IntegerExp(loc, core.bitop.bswap(cast(uint) n), arg0.type);
 }
 
-extern (C++) Expression eval_popcnt(Loc loc, FuncDeclaration fd, Expressions* arguments)
+Expression eval_popcnt(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.int64);
     uinteger_t n = arg0.toInteger();
-    int cnt = 0;
-    while (n)
-    {
-        cnt += (n & 1);
-        n >>= 1;
-    }
-    return new IntegerExp(loc, cnt, arg0.type);
+    return new IntegerExp(loc, core.bitop.popcnt(n), Type.tint32);
 }
 
-extern (C++) Expression eval_yl2x(Loc loc, FuncDeclaration fd, Expressions* arguments)
+Expression eval_yl2x(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.float64);
@@ -313,7 +296,7 @@ extern (C++) Expression eval_yl2x(Loc loc, FuncDeclaration fd, Expressions* argu
     return new RealExp(loc, result, arg0.type);
 }
 
-extern (C++) Expression eval_yl2xp1(Loc loc, FuncDeclaration fd, Expressions* arguments)
+Expression eval_yl2xp1(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
     assert(arg0.op == TOK.float64);
@@ -326,9 +309,29 @@ extern (C++) Expression eval_yl2xp1(Loc loc, FuncDeclaration fd, Expressions* ar
     return new RealExp(loc, result, arg0.type);
 }
 
+Expression eval_toPrecFloat(Loc loc, FuncDeclaration fd, Expressions* arguments)
+{
+    Expression arg0 = (*arguments)[0];
+    float f = cast(real)arg0.toReal();
+    return new RealExp(loc, real_t(f), Type.tfloat32);
+}
+
+Expression eval_toPrecDouble(Loc loc, FuncDeclaration fd, Expressions* arguments)
+{
+    Expression arg0 = (*arguments)[0];
+    double d = cast(real)arg0.toReal();
+    return new RealExp(loc, real_t(d), Type.tfloat64);
+}
+
+Expression eval_toPrecReal(Loc loc, FuncDeclaration fd, Expressions* arguments)
+{
+    Expression arg0 = (*arguments)[0];
+    return new RealExp(loc, arg0.toReal(), Type.tfloat80);
+}
+
 public extern (C++) void builtin_init()
 {
-    builtins._init(47);
+    builtins._init(113);
     // @safe @nogc pure nothrow real function(real)
     add_builtin("_D4core4math3sinFNaNbNiNfeZe", &eval_sin);
     add_builtin("_D4core4math3cosFNaNbNiNfeZe", &eval_cos);
@@ -369,50 +372,20 @@ public extern (C++) void builtin_init()
     // @safe @nogc pure nothrow long function(real)
     add_builtin("_D4core4math6rndtolFNaNbNiNfeZl", &eval_unimp);
     // @safe @nogc pure nothrow real function(real)
-    add_builtin("_D3std4math3sinFNaNbNiNfeZe", &eval_sin);
-    add_builtin("_D3std4math3cosFNaNbNiNfeZe", &eval_cos);
     add_builtin("_D3std4math3tanFNaNbNiNfeZe", &eval_tan);
-    add_builtin("_D3std4math4sqrtFNaNbNiNfeZe", &eval_sqrt);
-    add_builtin("_D3std4math4fabsFNaNbNiNfeZe", &eval_fabs);
+    add_builtin("_D3std4math4trig3tanFNaNbNiNfeZe", &eval_tan);
     add_builtin("_D3std4math5expm1FNaNbNiNfeZe", &eval_unimp);
     // @trusted @nogc pure nothrow real function(real)
-    add_builtin("_D3std4math3sinFNaNbNiNeeZe", &eval_sin);
-    add_builtin("_D3std4math3cosFNaNbNiNeeZe", &eval_cos);
     add_builtin("_D3std4math3tanFNaNbNiNeeZe", &eval_tan);
-    add_builtin("_D3std4math4sqrtFNaNbNiNeeZe", &eval_sqrt);
-    add_builtin("_D3std4math4fabsFNaNbNiNeeZe", &eval_fabs);
+    add_builtin("_D3std4math4trig3tanFNaNbNiNeeZe", &eval_tan);
+    add_builtin("_D3std4math3expFNaNbNiNeeZe", &eval_exp);
     add_builtin("_D3std4math5expm1FNaNbNiNeeZe", &eval_expm1);
     add_builtin("_D3std4math4exp2FNaNbNiNeeZe", &eval_exp2);
-    // @safe @nogc pure nothrow double function(double)
-    add_builtin("_D3std4math4sqrtFNaNbNiNfdZd", &eval_sqrt);
-    // @safe @nogc pure nothrow float function(float)
-    add_builtin("_D3std4math4sqrtFNaNbNiNffZf", &eval_sqrt);
     // @safe @nogc pure nothrow real function(real, real)
     add_builtin("_D3std4math5atan2FNaNbNiNfeeZe", &eval_unimp);
-    if (CTFloat.yl2x_supported)
-    {
-        add_builtin("_D3std4math4yl2xFNaNbNiNfeeZe", &eval_yl2x);
-    }
-    else
-    {
-        add_builtin("_D3std4math4yl2xFNaNbNiNfeeZe", &eval_unimp);
-    }
-    if (CTFloat.yl2xp1_supported)
-    {
-        add_builtin("_D3std4math6yl2xp1FNaNbNiNfeeZe", &eval_yl2xp1);
-    }
-    else
-    {
-        add_builtin("_D3std4math6yl2xp1FNaNbNiNfeeZe", &eval_unimp);
-    }
-    // @safe @nogc pure nothrow long function(real)
-    add_builtin("_D3std4math6rndtolFNaNbNiNfeZl", &eval_unimp);
-
+    add_builtin("_D3std4math4trig5atan2FNaNbNiNfeeZe", &eval_unimp);
     // @safe @nogc pure nothrow T function(T, int)
     add_builtin("_D4core4math5ldexpFNaNbNiNfeiZe", &eval_ldexp);
-    add_builtin("_D3std4math5ldexpFNaNbNiNfeiZe", &eval_ldexp);
-    add_builtin("_D3std4math5ldexpFNaNbNiNfdiZd", &eval_ldexp);
-    add_builtin("_D3std4math5ldexpFNaNbNiNffiZf", &eval_ldexp);
 
     add_builtin("_D3std4math3logFNaNbNiNfeZe", &eval_log);
 
@@ -473,6 +446,36 @@ public extern (C++) void builtin_init()
     // @safe @nogc pure nothrow int function(ulong)
     if (global.params.is64bit)
         add_builtin("_D4core5bitop7_popcntFNaNbNiNfmZi", &eval_popcnt);
+
+    // pure nothrow @nogc @safe float core.math.toPrec!(float).toPrec(float)
+    add_builtin("_D4core4math__T6toPrecHTfZQlFNaNbNiNffZf", &eval_toPrecFloat);
+    // pure nothrow @nogc @safe float core.math.toPrec!(float).toPrec(double)
+    add_builtin("_D4core4math__T6toPrecHTfZQlFNaNbNiNfdZf", &eval_toPrecFloat);
+    // pure nothrow @nogc @safe float core.math.toPrec!(float).toPrec(real)
+    add_builtin("_D4core4math__T6toPrecHTfZQlFNaNbNiNfeZf", &eval_toPrecFloat);
+    // pure nothrow @nogc @safe double core.math.toPrec!(double).toPrec(float)
+    add_builtin("_D4core4math__T6toPrecHTdZQlFNaNbNiNffZd", &eval_toPrecDouble);
+    // pure nothrow @nogc @safe double core.math.toPrec!(double).toPrec(double)
+    add_builtin("_D4core4math__T6toPrecHTdZQlFNaNbNiNfdZd", &eval_toPrecDouble);
+    // pure nothrow @nogc @safe double core.math.toPrec!(double).toPrec(real)
+    add_builtin("_D4core4math__T6toPrecHTdZQlFNaNbNiNfeZd", &eval_toPrecDouble);
+    // pure nothrow @nogc @safe double core.math.toPrec!(real).toPrec(float)
+    add_builtin("_D4core4math__T6toPrecHTeZQlFNaNbNiNffZe", &eval_toPrecReal);
+    // pure nothrow @nogc @safe double core.math.toPrec!(real).toPrec(double)
+    add_builtin("_D4core4math__T6toPrecHTeZQlFNaNbNiNfdZe", &eval_toPrecReal);
+    // pure nothrow @nogc @safe double core.math.toPrec!(real).toPrec(real)
+    add_builtin("_D4core4math__T6toPrecHTeZQlFNaNbNiNfeZe", &eval_toPrecReal);
+}
+
+/**
+ * Deinitializes the global state of the compiler.
+ *
+ * This can be used to restore the state set by `builtin_init` to its original
+ * state.
+ */
+public void builtinDeinitialize()
+{
+    builtins = builtins.init;
 }
 
 /**********************************

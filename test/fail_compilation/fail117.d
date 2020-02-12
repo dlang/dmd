@@ -6,8 +6,8 @@ fail_compilation/fail117.d(36): Error: expression has no value
 ---
 */
 
-// Issue 420 - mixin make dmd break
-
+// https://issues.dlang.org/show_bug.cgi?id=420
+// mixin make dmd break
 //import std.stdio;
 
 template MGettor(alias Fld)

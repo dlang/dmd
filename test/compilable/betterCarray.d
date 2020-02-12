@@ -16,11 +16,12 @@ int foo(int[] a, int i)
     return a[i];
 }
 
-// https://issues.dlang.org/show_bug.cgi?id=17787
-version (D_BetterC)
+/**********************************************/
+// https://issues.dlang.org/show_bug.cgi?id=19234
+void issue19234()
 {
-}
-else
-{
-    static assert(0);
+    static struct A {}
+    A[10] a;
+    A[10] b;
+    b[] = a[];
 }

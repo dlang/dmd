@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/semantic2.d, _semantic2.d)
@@ -61,7 +61,6 @@ import dmd.statementsem;
 import dmd.staticassert;
 import dmd.tokens;
 import dmd.utf;
-import dmd.utils;
 import dmd.statement;
 import dmd.target;
 import dmd.templateparamsem;
@@ -119,8 +118,8 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 if (StringExp se = sa.msg.toStringExp())
                 {
                     // same with pragma(msg)
-                    se = se.toUTF8(sc);
-                    error(sa.loc, "static assert:  \"%.*s\"", cast(int)se.len, se.string);
+                    const slice = se.toUTF8(sc).peekString();
+                    error(sa.loc, "static assert:  \"%.*s\"", cast(int)slice.length, slice.ptr);
                 }
                 else
                     error(sa.loc, "static assert:  %s", sa.msg.toChars());
@@ -245,18 +244,20 @@ private extern(C++) final class Semantic2Visitor : Visitor
         if (vd._init && !vd.toParent().isFuncDeclaration())
         {
             vd.inuse++;
-            version (none)
-            {
-                ExpInitializer ei = vd._init.isExpInitializer();
-                if (ei)
-                {
-                    ei.exp.print();
-                    printf("type = %p\n", ei.exp.type);
-                }
-            }
+
+            /* https://issues.dlang.org/show_bug.cgi?id=20280
+             *
+             * Template instances may import modules that have not
+             * finished semantic1.
+             */
+            if (!vd.type)
+                vd.dsymbolSemantic(sc);
+
+
             // https://issues.dlang.org/show_bug.cgi?id=14166
-            // Don't run CTFE for the temporary variables inside typeof
-            vd._init = vd._init.initializerSemantic(sc, vd.type, sc.intypeof == 1 ? INITnointerpret : INITinterpret);
+            // https://issues.dlang.org/show_bug.cgi?id=20417
+            // Don't run CTFE for the temporary variables inside typeof or __traits(compiles)
+            vd._init = vd._init.initializerSemantic(sc, vd.type, sc.intypeof == 1 || sc.flags & SCOPE.compile ? INITnointerpret : INITinterpret);
             vd.inuse--;
         }
         if (vd._init && vd.storage_class & STC.manifest)
@@ -416,7 +417,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                     error(f2.loc, "%s `%s%s` cannot be overloaded with %s`extern(%s)` function at %s",
                             f2.kind(),
                             f2.toPrettyChars(),
-                            parametersTypeToChars(tf2.parameters, tf2.varargs),
+                            parametersTypeToChars(tf2.parameterList),
                             (f1.linkage == f2.linkage ? "another " : "").ptr,
                             linkageToChars(f1.linkage), f1.loc.toChars());
                     f2.type = Type.terror;
@@ -427,8 +428,8 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 buf2.reset();
                 mangleToFuncSignature(buf2, f2);
 
-                auto s1 = buf1.peekString();
-                auto s2 = buf2.peekString();
+                auto s1 = buf1.peekChars();
+                auto s2 = buf2.peekChars();
 
                 //printf("+%s\n\ts1 = %s\n\ts2 = %s @ [%s]\n", toChars(), s1, s2, f2.loc.toChars());
                 if (strcmp(s1, s2) == 0)
@@ -437,7 +438,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                     error(f2.loc, "%s `%s%s` conflicts with previous declaration at %s",
                             f2.kind(),
                             f2.toPrettyChars(),
-                            parametersTypeToChars(tf2.parameters, tf2.varargs),
+                            parametersTypeToChars(tf2.parameterList),
                             f1.loc.toChars());
                     f2.type = Type.terror;
                     f2.errors = true;
@@ -445,22 +446,14 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 return 0;
             });
         }
-        objc.setSelector(fd, sc);
-        objc.validateSelector(fd);
-        if (ClassDeclaration cd = fd.parent.isClassDeclaration())
-        {
-            objc.checkLinkage(fd);
-        }
         if (!fd.type || fd.type.ty != Tfunction)
             return;
         TypeFunction f = cast(TypeFunction) fd.type;
-        if (!f.parameters)
-            return;
-        size_t nparams = Parameter.dim(f.parameters);
+
         //semantic for parameters' UDAs
-        foreach (i; 0..nparams)
+        foreach (i; 0 .. f.parameterList.length)
         {
-            Parameter param = Parameter.getNth(f.parameters, i);
+            Parameter param = f.parameterList[i];
             if (param && param.userAttribDecl)
                 param.userAttribDecl.semantic2(sc);
         }

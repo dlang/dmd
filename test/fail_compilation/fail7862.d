@@ -8,7 +8,7 @@ fail_compilation/fail7862.d(25): Error: template instance `fail7862.B!(A)` error
 ---
 */
 
-// 7862
+// https://issues.dlang.org/show_bug.cgi?id=7862
 
 template B(T) {
   mixin(

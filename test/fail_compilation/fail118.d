@@ -6,8 +6,8 @@ fail_compilation/fail118.d(27): Error: invalid `foreach` aggregate `Iter`, defin
 ---
 */
 
-// Issue 441 - Crash on foreach of mixed-in aggregate.
-
+// https://issues.dlang.org/show_bug.cgi?id=441
+// Crash on foreach of mixed-in aggregate.
 template opHackedApply()
 {
     struct Iter

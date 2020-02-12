@@ -1,3 +1,15 @@
+/*
+TEST_OUTPUT:
+---
+hello
+hello
+
+
+
+hello
+hello
+---
+*/
 import std.stdio;
 
 /*********************************************/
@@ -47,7 +59,7 @@ void test4()
 
 int x5;
 
-scope class Foo5
+class Foo5
 {
         this ()
         {
@@ -161,7 +173,7 @@ void test10()
 }
 
 /*********************************************/
-// 7560
+// https://issues.dlang.org/show_bug.cgi?id=7560
 
 class Base7560
 {
@@ -180,7 +192,7 @@ class Derived7560 : Base7560
 }
 
 /*********************************************/
-// 10577
+// https://issues.dlang.org/show_bug.cgi?id=10577
 
 enum sync10577;
 
@@ -234,7 +246,7 @@ class derived10577 : base10577
 }
 
 /*********************************************/
-// 10583
+// https://issues.dlang.org/show_bug.cgi?id=10583
 
 enum sync10583;
 
@@ -296,7 +308,7 @@ void test7156()
 }
 
 /*********************************************/
-// 7553
+// https://issues.dlang.org/show_bug.cgi?id=7553
 
 template Foo7553()
 {
@@ -325,7 +337,7 @@ void test7553()
 }
 
 /*********************************************/
-// 13479
+// https://issues.dlang.org/show_bug.cgi?id=13479
 
 mixin template F13479()
 {

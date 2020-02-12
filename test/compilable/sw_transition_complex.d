@@ -142,7 +142,8 @@ void test14488c(E *e, S *s)
 {
 }
 
-// Issue 18212 - Usage of cfloat,cdouble,cfloat,ifloat,idouble,ireal shouldn't trigger an error in deprecated code
+// https://issues.dlang.org/show_bug.cgi?id=18212
+// Usage of cfloat,cdouble,cfloat,ifloat,idouble,ireal shouldn't trigger an error in deprecated code
 deprecated void test18212(creal c){}
 deprecated unittest
 {

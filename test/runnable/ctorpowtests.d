@@ -2,23 +2,23 @@
 
 int magicVariable()
 {
-  if (__ctfe)
-   return 3;
+    if (__ctfe)
+        return 3;
 
-  asm { nop; }
-  return 2;
+    shared int var = 2;
+    return var;
 }
 
 static assert(magicVariable()==3);
 
 void main()
 {
-  assert(!__ctfe);
-  assert(magicVariable()==2);
+    assert(!__ctfe);
+    assert(magicVariable()==2);
 }
 
-// bug 991 -- invalid.
-// bug 3500 -- is this related to 2127?
+// https://issues.dlang.org/show_bug.cgi?id=991 -- invalid.
+// https://issues.dlang.org/show_bug.cgi?id=3500 -- is this related to 2127?
 
 // Tests for ^^
 // TODO: These tests should not require import std.math.
@@ -77,13 +77,16 @@ static assert( 2 ^^ 3 ^^ 2 == 2 ^^ 9);
 static assert( 2.0 ^^ -3 ^^ 2 == 2.0 ^^ -9);
 
 // 1 ^^ n is always 1, even if n is negative
-static assert( 1 ^^ -5 == 1);
+static assert( 1 ^^ -5.0 == 1);
 
-// -1 ^^ n gets transformed into  n & 1 ? -1 : 1
-// even if n is negative
-static assert( (-1) ^^ -5 == -1);
-static assert( (-1) ^^ -4 == 1);
-static assert( (-1) ^^ 0 == 1);
+// -1.0 ^^ n is either 1 or -1 if n is integral.
+static assert( (-1.0) ^^ -5 == -1);
+static assert( (-1.0) ^^ -4 == 1);
+static assert( (-1.0) ^^ 0 == 1);
+// -1.0 ^^ n is otherwise always NaN.
+static assert( (-1.0) ^^ -5.5 is double.nan);
+static assert( (-1.0) ^^ -4.4 is double.nan);
+static assert( (-1.0) ^^ -0.1 is double.nan);
 
 // n ^^ 0 is always 1
 static assert( (-5) ^^ 0 == 1);
@@ -99,7 +102,7 @@ static assert( 9 ^^ -1.0 == 1.0 / 9);
 static assert( !is(typeof(2 ^^ -5)));
 static assert( !is(typeof((-2) ^^ -4)));
 
-// Bug 3535
+// https://issues.dlang.org/show_bug.cgi?id=3535
 struct StructWithCtor
 {
     this(int _n) {
@@ -112,10 +115,14 @@ struct StructWithCtor
     float x;
 }
 
-int containsAsm() {
-       asm { nop; }
-       return 0;
-    }
+int containsAsm()
+{
+    version (D_InlineAsm_X86)
+        asm { nop; }
+    else version (D_InlineAsm_X86_64)
+        asm { nop; }
+    return 0;
+}
 
 enum A = StructWithCtor(1);
 enum B = StructWithCtor(7, 2.3);

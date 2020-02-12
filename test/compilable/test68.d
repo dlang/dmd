@@ -1,6 +1,6 @@
 // PERMUTE_ARGS:
 
-// Bugzilla 4278
+// https://issues.dlang.org/show_bug.cgi?id=4278
 
 import imports.test68a;
 

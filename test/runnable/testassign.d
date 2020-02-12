@@ -1,9 +1,11 @@
+// REQUIRED_ARGS: -preview=rvaluerefparam
+
 import core.stdc.stdio;
 
 template TypeTuple(T...){ alias T TypeTuple; }
 
 /***************************************************/
-// 2625
+// https://issues.dlang.org/show_bug.cgi?id=2625
 
 struct Pair {
     immutable uint g1;
@@ -16,7 +18,7 @@ void test1() {
 }
 
 /***************************************************/
-// 5327
+// https://issues.dlang.org/show_bug.cgi?id=5327
 
 struct ID
 {
@@ -134,12 +136,12 @@ void test3()
 }
 
 /***************************************************/
-// 3511
+// https://issues.dlang.org/show_bug.cgi?id=3511
 
 struct S4
 {
     private int _prop = 42;
-    ref int property() { return _prop; }
+    ref int property() return { return _prop; }
 }
 
 void test4()
@@ -157,11 +159,11 @@ struct S5
     int mX;
     string mY;
 
-    ref int x()
+    ref int x() return
     {
         return mX;
     }
-    ref string y()
+    ref string y() return
     {
         return mY;
     }
@@ -210,7 +212,7 @@ void test5()
 }
 
 /***************************************************/
-// 4424
+// https://issues.dlang.org/show_bug.cgi?id=4424
 
 void test4424()
 {
@@ -222,7 +224,7 @@ void test4424()
 }
 
 /***************************************************/
-// 6174
+// https://issues.dlang.org/show_bug.cgi?id=6174
 
 struct CtorTest6174(Data)
 {
@@ -444,12 +446,12 @@ void test6174c()
     static assert(!is(typeof({
         int func1a(int n)
         in{ n = 10; }
-        body { return n; }
+        do { return n; }
     })));
     static assert(!is(typeof({
         int func1b(int n)
         out(r){ r = 20; }
-        body{ return n; }
+        do{ return n; }
     })));
 
     struct DataX
@@ -459,18 +461,18 @@ void test6174c()
     static assert(!is(typeof({
         DataX func2a(DataX n)
         in{ n.x = 10; }
-        body { return n; }
+        do { return n; }
     })));
     static assert(!is(typeof({
         DataX func2b(DataX n)
         in{}
         out(r){ r.x = 20; }
-        body{ return n; }
+        do{ return n; }
     })));
 }
 
 /***************************************************/
-// 6216
+// https://issues.dlang.org/show_bug.cgi?id=6216
 
 void test6216a()
 {
@@ -638,7 +640,7 @@ void test6216e()
 }
 
 /***************************************************/
-// 6286
+// https://issues.dlang.org/show_bug.cgi?id=6286
 
 void test6286()
 {
@@ -652,7 +654,7 @@ void test6286()
 }
 
 /***************************************************/
-// 6336
+// https://issues.dlang.org/show_bug.cgi?id=6336
 
 void test6336()
 {
@@ -681,7 +683,7 @@ void test6336()
 }
 
 /***************************************************/
-// 8783
+// https://issues.dlang.org/show_bug.cgi?id=8783
 
 struct Foo8783
 {
@@ -699,7 +701,7 @@ static this()
 }
 
 /***************************************************/
-// 9077
+// https://issues.dlang.org/show_bug.cgi?id=9077
 
 struct S9077a
 {
@@ -715,17 +717,17 @@ struct S9077b
 }
 
 /***************************************************/
-// 9140
+// https://issues.dlang.org/show_bug.cgi?id=9140
 
 immutable(int)[] bar9140()
 out(result) {
     foreach (ref r; result) {}
-} body {
+} do {
     return null;
 }
 
 /***************************************************/
-// 9154
+// https://issues.dlang.org/show_bug.cgi?id=9154
 
 struct S9154a
 {
@@ -750,7 +752,7 @@ void test9154()
 }
 
 /***************************************************/
-// 9258
+// https://issues.dlang.org/show_bug.cgi?id=9258
 
 class A9258 {}
 class B9258 : A9258 // Error: class test.B9258 identity assignment operator overload is illegal
@@ -777,7 +779,7 @@ class E9258 : A9258
 }
 
 /***************************************************/
-// 9416
+// https://issues.dlang.org/show_bug.cgi?id=9416
 
 struct S9416
 {
@@ -798,7 +800,7 @@ void test9416()
 }
 
 /***************************************************/
-// 9658
+// https://issues.dlang.org/show_bug.cgi?id=9658
 
 struct S9658
 {
@@ -810,7 +812,7 @@ struct S9658
 }
 
 /***************************************************/
-// 11187
+// https://issues.dlang.org/show_bug.cgi?id=11187
 
 void test11187()
 {
@@ -830,7 +832,7 @@ void test11187()
 }
 
 /***************************************************/
-// 12131
+// https://issues.dlang.org/show_bug.cgi?id=12131
 
 struct X12131
 {
@@ -852,7 +854,7 @@ void test12131() pure
 }
 
 /***************************************************/
-// 12211
+// https://issues.dlang.org/show_bug.cgi?id=12211
 
 void test12211()
 {
@@ -871,12 +873,12 @@ void test12211()
     // array ops should make rvalue
     int[3] sa, sb;
     void bar(ref int[]) {}
-    static assert(!__traits(compiles, bar(sa[]  = sb[])));
-    static assert(!__traits(compiles, bar(sa[] += sb[])));
+    static assert(__traits(compiles, bar(sa[]  = sb[])));
+    static assert(__traits(compiles, bar(sa[] += sb[])));
 }
 
 /***************************************************/
-// 4791 (dup of 12212)
+// https://issues.dlang.org/show_bug.cgi?id=4791 (dup of 12212)
 
 void test4791()
 {
@@ -905,7 +907,7 @@ void test4791()
 }
 
 /***************************************************/
-// 12212
+// https://issues.dlang.org/show_bug.cgi?id=12212
 
 void test12212()
 {
@@ -993,7 +995,7 @@ void test12212()
 }
 
 /***************************************************/
-// 12650
+// https://issues.dlang.org/show_bug.cgi?id=12650
 
 void test12650()
 {
@@ -1063,7 +1065,7 @@ void test12650()
 }
 
 /***************************************************/
-// 13044
+// https://issues.dlang.org/show_bug.cgi?id=13044
 
 void test13044()
 {
@@ -1086,7 +1088,7 @@ void test13044()
 }
 
 /***************************************************/
-// 12500
+// https://issues.dlang.org/show_bug.cgi?id=12500
 
 void test12500()
 {
@@ -1095,7 +1097,7 @@ void test12500()
 }
 
 /***************************************************/
-// 14672
+// https://issues.dlang.org/show_bug.cgi?id=14672
 
 void test14672()
 {
@@ -1130,7 +1132,7 @@ void test14672()
 }
 
 /***************************************************/
-// 15044
+// https://issues.dlang.org/show_bug.cgi?id=15044
 
 void destroy15044(T)(ref T obj)
 {
@@ -1146,7 +1148,7 @@ struct V15044
     {
     }
 
-    RC15044!V15044 dup()
+    RC15044!V15044 dup() return
     {
         return RC15044!V15044(&this);
     }

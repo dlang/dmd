@@ -1,35 +1,31 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/module.h
+ * https://github.com/dlang/dmd/blob/master/src/dmd/module.h
  */
 
-#ifndef DMD_MODULE_H
-#define DMD_MODULE_H
-
-#ifdef __DMC__
 #pragma once
-#endif /* __DMC__ */
 
-#include "root.h"
 #include "dsymbol.h"
 
-class ClassDeclaration;
 struct ModuleDeclaration;
-struct Macro;
 struct Escape;
-class VarDeclaration;
-class Library;
+struct FileBuffer;
+
+struct MacroTable
+{
+    void* internal;  // PIMPL
+};
 
 enum PKG
 {
     PKGunknown, // not yet determined whether it's a package.d or not
     PKGmodule,  // already determined that's an actual package.d
-    PKGpackage, // already determined that's an actual package
+    PKGpackage  // already determined that's an actual package
 };
 
 class Package : public ScopeDsymbol
@@ -41,13 +37,13 @@ public:
 
     const char *kind() const;
 
-    static DsymbolTable *resolve(Identifiers *packages, Dsymbol **pparent, Package **ppkg);
+    bool equals(const RootObject *o) const;
 
     Package *isPackage() { return this; }
 
     bool isAncestorPackageOf(const Package * const pkg) const;
 
-    Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
+    Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
     void accept(Visitor *v) { v->visit(this); }
 
     Module *isPackageMod();
@@ -63,26 +59,23 @@ public:
     static Dsymbols deferred2;  // deferred Dsymbol's needing semantic2() run on them
     static Dsymbols deferred3;  // deferred Dsymbol's needing semantic3() run on them
     static unsigned dprogress;  // progress resolving the deferred list
-    /**
-     * A callback function that is called once an imported module is
-     * parsed. If the callback returns true, then it tells the
-     * frontend that the driver intends on compiling the import.
-     */
-    static bool (*onImport)(Module);
+
     static void _init();
 
     static AggregateDeclaration *moduleinfo;
 
 
-    const char *arg;    // original argument name
+    DString arg;        // original argument name
     ModuleDeclaration *md; // if !NULL, the contents of the ModuleDeclaration declaration
-    File *srcfile;      // input source file
-    File *objfile;      // output .obj file
-    File *hdrfile;      // 'header' file
-    File *docfile;      // output documentation file
+    FileName srcfile;   // input source file
+    FileName objfile;   // output .obj file
+    FileName hdrfile;   // 'header' file
+    FileName docfile;   // output documentation file
+    FileBuffer *srcBuffer; // set during load(), free'd in parse()
     unsigned errors;    // if any errors in file
     unsigned numlines;  // number of lines in source file
-    int isDocFile;      // if it is a documentation input file, not D source
+    bool isHdrFile;     // if it is a header (.di) file
+    bool isDocFile;     // if it is a documentation input file, not D source
     bool isPackageFile; // if it is a package.d
     Strings contentImportedFiles;  // array of files whose content was imported
     int needmoduleinfo;
@@ -114,7 +107,7 @@ public:
     Strings *versionids;    // version identifiers
     Strings *versionidsNot;     // forward referenced version identifiers
 
-    Macro *macrotable;          // document comment macros
+    MacroTable macrotable;      // document comment macros
     Escape *escapetable;        // document comment escapes
 
     size_t nameoffset;          // offset of module name from start of ModuleInfo
@@ -125,23 +118,17 @@ public:
     static Module *load(Loc loc, Identifiers *packages, Identifier *ident);
 
     const char *kind() const;
-    File *setOutfile(const char *name, const char *dir, const char *arg, const char *ext);
-    void setDocfile();
-    bool read(Loc loc); // read file, returns 'true' if succeed, 'false' otherwise.
+    bool read(const Loc &loc); // read file, returns 'true' if succeed, 'false' otherwise.
     Module *parse();    // syntactic parse
     void importAll(Scope *sc);
     int needModuleInfo();
-    Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
+    Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
     bool isPackageAccessible(Package *p, Prot protection, int flags = 0);
     Dsymbol *symtabInsert(Dsymbol *s);
     void deleteObjFile();
-    static void addDeferredSemantic(Dsymbol *s);
-    static void addDeferredSemantic2(Dsymbol *s);
-    static void addDeferredSemantic3(Dsymbol *s);
     static void runDeferredSemantic();
     static void runDeferredSemantic2();
     static void runDeferredSemantic3();
-    static void clearCache();
     int imports(Module *m);
 
     bool isRoot() { return this->importedFrom == this; }
@@ -177,7 +164,5 @@ struct ModuleDeclaration
     bool isdeprecated;  // if it is a deprecated module
     Expression *msg;
 
-    const char *toChars();
+    const char *toChars() const;
 };
-
-#endif /* DMD_MODULE_H */

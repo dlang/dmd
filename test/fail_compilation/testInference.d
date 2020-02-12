@@ -183,7 +183,7 @@ void test12422() pure
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/testInference.d(196): Error: `pure` function `testInference.test13729a` cannot access mutable static data `g13729`
+fail_compilation/testInference.d(198): Error: `pure` function `testInference.test13729a` cannot call impure function `testInference.test13729a.foo`
 fail_compilation/testInference.d(206): Error: `pure` function `testInference.test13729b` cannot call impure function `testInference.test13729b.foo!().foo`
 ---
 */
@@ -193,9 +193,9 @@ void test13729a() pure
 {
     static void foo()   // typed as impure
     {
-        g13729++;       // disallowed
+        g13729++;
     }
-    foo();
+    foo();              // cannot call impure function
 }
 void test13729b() pure
 {
@@ -223,4 +223,17 @@ void test17086_call ()
 {
     bool f;
     test17086(f);
+}
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/testInference.d(238): Error: `pure` function `testInference.test20047_pure_function` cannot call impure function `testInference.test20047_pure_function.bug`
+---
+*/
+void test20047_impure_function() {}
+void test20047_pure_function() pure
+{
+    static void bug() { return test20047_impure_function(); }
+    bug();
 }

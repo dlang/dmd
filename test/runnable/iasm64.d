@@ -11,6 +11,10 @@ version (D_PIC)
 {
     int main() { return 0; }
 }
+else version (D_PIE)
+{
+    int main() { return 0; }
+}
 else version (D_InlineAsm_X86_64)
 {
 
@@ -2207,7 +2211,8 @@ void test22()
     static ubyte[] data =
     [
         0x0F, 0xC7, 0x4D, 0xE0, // cmpxchg8b
-0x48,   0x0F, 0xC7, 0x4D, 0xF0  // cmpxchg16b
+0x48,   0x0F, 0xC7, 0x4D, 0xF0, // cmpxchg16b
+0x40,   0x0F, 0xB0, 0x3A        // cmpxchg [RDX],DIL
     ];
     int i;
     M64  m64;
@@ -2219,6 +2224,7 @@ void test22()
 
         cmpxchg8b  m64                  ;
         cmpxchg16b m128                 ;
+        cmpxchg [RDX],DIL               ;
 L1:
         pop     RBX                     ;
         mov     p[RBP],RBX              ;
@@ -6601,7 +6607,7 @@ void test9965()
         0x40, 0xB5, 0x01,       // mov  BPL,1
         0x40, 0xB4, 0x01,       // mov  SPL,1
         0x41, 0xB0, 0x01,       // mov  R8B,1
-        0x40, 0x80, 0xE6, 0x01, // and  SIL,1 (issue 12971)
+        0x40, 0x80, 0xE6, 0x01, // and  SIL,1 (https://issues.dlang.org/show_bug.cgi?id=12971)
     ];
 
     asm
@@ -6803,6 +6809,29 @@ L1:     pop     RAX;
 }
 
 /****************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=20126
+
+extern(C) float floop(float* r, float x)
+{
+    asm
+    {
+        mov  EAX, x;
+        mov  RCX, r;
+        xchg [RCX], EAX;
+        mov  x, EAX;
+    }
+    return x;
+}
+
+void test20126()
+{
+    float r = 1.0;
+    float x = 2.0;
+    float f = floop(&r, x);
+    assert(f == 1.0);
+}
+
+/****************************************************/
 
 int main()
 {
@@ -6879,6 +6908,7 @@ int main()
     testconst();
     test17027();
     test18553();
+    test20126();
 
     printf("Success\n");
     return 0;

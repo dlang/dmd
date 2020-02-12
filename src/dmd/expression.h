@@ -1,24 +1,23 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/expression.h
+ * https://github.com/dlang/dmd/blob/master/src/dmd/expression.h
  */
 
-#ifndef DMD_EXPRESSION_H
-#define DMD_EXPRESSION_H
+#pragma once
 
-#include "mars.h"
-#include "identifier.h"
+#include "ast_node.h"
+#include "complex_t.h"
+#include "globals.h"
 #include "arraytypes.h"
-#include "intrange.h"
 #include "visitor.h"
 #include "tokens.h"
 
-#include "rmem.h"
+#include "root/dcompat.h"
 
 class Type;
 class TypeVector;
@@ -27,26 +26,18 @@ class TupleDeclaration;
 class VarDeclaration;
 class FuncDeclaration;
 class FuncLiteralDeclaration;
-class Declaration;
 class CtorDeclaration;
 class NewDeclaration;
 class Dsymbol;
-class Import;
-class Module;
 class ScopeDsymbol;
 class Expression;
 class Declaration;
-class AggregateDeclaration;
 class StructDeclaration;
 class TemplateInstance;
 class TemplateDeclaration;
 class ClassDeclaration;
-class BinExp;
 class OverloadSet;
-class Initializer;
 class StringExp;
-class ArrayExp;
-class SliceExp;
 struct UnionExp;
 #ifdef IN_GCC
 typedef union tree_node Symbol;
@@ -54,101 +45,39 @@ typedef union tree_node Symbol;
 struct Symbol;          // back end symbol
 #endif
 
-Expression *resolveProperties(Scope *sc, Expression *e);
-Expression *resolvePropertiesOnly(Scope *sc, Expression *e1);
-bool checkAccess(Loc loc, Scope *sc, Expression *e, Declaration *d);
-bool checkAccess(Loc loc, Scope *sc, Package *p);
-Expression *build_overload(const Loc &loc, Scope *sc, Expression *ethis, Expression *earg, Dsymbol *d);
-Dsymbol *search_function(ScopeDsymbol *ad, Identifier *funcid);
 void expandTuples(Expressions *exps);
-TupleDeclaration *isAliasThisTuple(Expression *e);
-int expandAliasThisTuples(Expressions *exps, size_t starti = 0);
-FuncDeclaration *hasThis(Scope *sc);
-Expression *fromConstInitializer(int result, Expression *e);
-bool arrayExpressionSemantic(Expressions *exps, Scope *sc, bool preserveErrors = false);
-TemplateDeclaration *getFuncTemplateDecl(Dsymbol *s);
-Expression *valueNoDtor(Expression *e);
-int modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1);
-Expression *resolveAliasThis(Scope *sc, Expression *e, bool gag = false);
-Expression *doCopyOrMove(Scope *sc, Expression *e);
-Expression *resolveOpDollar(Scope *sc, ArrayExp *ae, Expression **pe0);
-Expression *resolveOpDollar(Scope *sc, ArrayExp *ae, IntervalExp *ie, Expression **pe0);
-Expression *integralPromotions(Expression *e, Scope *sc);
-bool discardValue(Expression *e);
 bool isTrivialExp(Expression *e);
-
-int isConst(Expression *e);
-Expression *toDelegate(Expression *e, Type* t, Scope *sc);
-AggregateDeclaration *isAggregate(Type *t);
-IntRange getIntRange(Expression *e);
-bool checkNonAssignmentArrayOp(Expression *e, bool suggestion = false);
-bool isUnaArrayOp(TOK op);
-bool isBinArrayOp(TOK op);
-bool isBinAssignArrayOp(TOK op);
-bool isArrayOpOperand(Expression *e);
-Expression *arrayOp(BinExp *e, Scope *sc);
-Expression *arrayOp(BinAssignExp *e, Scope *sc);
 bool hasSideEffect(Expression *e);
 bool canThrow(Expression *e, FuncDeclaration *func, bool mustNotThrow);
-Expression *Expression_optimize(Expression *e, int result, bool keepLvalue);
-MATCH implicitConvTo(Expression *e, Type *t);
-Expression *implicitCastTo(Expression *e, Scope *sc, Type *t);
-Expression *castTo(Expression *e, Scope *sc, Type *t);
-Expression *ctfeInterpret(Expression *);
-Expression *inlineCopy(Expression *e, Scope *sc);
-Expression *op_overload(Expression *e, Scope *sc);
-Type *toStaticArrayType(SliceExp *e);
-Expression *scaleFactor(BinExp *be, Scope *sc);
-Expression *typeCombine(BinExp *be, Scope *sc);
-Expression *inferType(Expression *e, Type *t, int flag = 0);
-Expression *semanticTraits(TraitsExp *e, Scope *sc);
-Type *getIndirection(Type *t);
 
-Expression *checkGC(Scope *sc, Expression *e);
-
-/* Run CTFE on the expression, but allow the expression to be a TypeExp
- * or a tuple containing a TypeExp. (This is required by pragma(msg)).
- */
-Expression *ctfeInterpretForPragmaMsg(Expression *e);
-
-enum OwnedBy
+typedef unsigned char OwnedBy;
+enum
 {
     OWNEDcode,      // normal code expression in AST
     OWNEDctfe,      // value expression for CTFE
-    OWNEDcache,     // constant value cached for CTFE
+    OWNEDcache      // constant value cached for CTFE
 };
 
-#define WANTvalue   0   // default
-#define WANTexpand  1   // expand const/immutable variables if possible
-
-class Expression : public RootObject
+class Expression : public ASTNode
 {
 public:
-    Loc loc;                    // file location
-    Type *type;                 // !=NULL means that semantic() has been run
     TOK op;                     // to minimize use of dynamic_cast
     unsigned char size;         // # of bytes in Expression so we can copy() it
     unsigned char parens;       // if this is a parenthesized expression
+    Type *type;                 // !=NULL means that semantic() has been run
+    Loc loc;                    // file location
 
     static void _init();
     Expression *copy();
     virtual Expression *syntaxCopy();
 
     // kludge for template.isExpression()
-    int dyncast() const { return DYNCAST_EXPRESSION; }
+    DYNCAST dyncast() const { return DYNCAST_EXPRESSION; }
 
-    void print();
-    const char *toChars();
+    const char *toChars() const;
     void error(const char *format, ...) const;
     void warning(const char *format, ...) const;
     void deprecation(const char *format, ...) const;
-
-    // creates a single expression which is effectively (e1, e2)
-    // this new expression does not necessarily need to have valid D source code representation,
-    // for example, it may include declaration expressions
-    static Expression *combine(Expression *e1, Expression *e2);
-    static Expression *extractLast(Expression *e, Expression **pe0);
-    static Expressions *arraySyntaxCopy(Expressions *exps);
 
     virtual dinteger_t toInteger();
     virtual uinteger_t toUInteger();
@@ -156,68 +85,140 @@ public:
     virtual real_t toImaginary();
     virtual complex_t toComplex();
     virtual StringExp *toStringExp();
+    virtual TupleExp *toTupleExp();
     virtual bool isLvalue();
     virtual Expression *toLvalue(Scope *sc, Expression *e);
     virtual Expression *modifiableLvalue(Scope *sc, Expression *e);
-    Expression *implicitCastTo(Scope *sc, Type *t)
-    {
-        return ::implicitCastTo(this, sc, t);
-    }
-    MATCH implicitConvTo(Type *t)
-    {
-        return ::implicitConvTo(this, t);
-    }
-    Expression *castTo(Scope *sc, Type *t)
-    {
-        return ::castTo(this, sc, t);
-    }
+    Expression *implicitCastTo(Scope *sc, Type *t);
+    MATCH implicitConvTo(Type *t);
+    Expression *castTo(Scope *sc, Type *t);
     virtual Expression *resolveLoc(const Loc &loc, Scope *sc);
     virtual bool checkType();
     virtual bool checkValue();
-    bool checkScalar();
-    bool checkNoBool();
-    bool checkIntegral();
-    bool checkArithmetic();
     bool checkDeprecated(Scope *sc, Dsymbol *s);
-    bool checkDisabled(Scope *sc, Dsymbol *s);
-    bool checkPurity(Scope *sc, FuncDeclaration *f);
-    bool checkPurity(Scope *sc, VarDeclaration *v);
-    bool checkSafety(Scope *sc, FuncDeclaration *f);
-    bool checkNogc(Scope *sc, FuncDeclaration *f);
-    bool checkPostblit(Scope *sc, Type *t);
-    bool checkRightThis(Scope *sc);
-    bool checkReadModifyWrite(TOK rmwOp, Expression *ex = NULL);
     virtual int checkModifiable(Scope *sc, int flag = 0);
     virtual Expression *toBoolean(Scope *sc);
     virtual Expression *addDtorHook(Scope *sc);
     Expression *addressOf();
     Expression *deref();
 
-    Expression *optimize(int result, bool keepLvalue = false)
-    {
-        return Expression_optimize(this, result, keepLvalue);
-    }
+    Expression *optimize(int result, bool keepLvalue = false);
 
     // Entry point for CTFE.
     // A compile-time result is required. Give an error if not possible
-    Expression *ctfeInterpret()
-    {
-        return ::ctfeInterpret(this);
-    }
-
-    int isConst() { return ::isConst(this); }
+    Expression *ctfeInterpret();
+    int isConst();
     virtual bool isBool(bool result);
-    Expression *op_overload(Scope *sc)
-    {
-        return ::op_overload(this, sc);
-    }
 
     virtual bool hasCode()
     {
         return true;
     }
 
-    virtual void accept(Visitor *v) { v->visit(this); }
+    IntegerExp* isIntegerExp();
+    ErrorExp* isErrorExp();
+    VoidInitExp* isVoidInitExp();
+    RealExp* isRealExp();
+    ComplexExp* isComplexExp();
+    IdentifierExp* isIdentifierExp();
+    DollarExp* isDollarExp();
+    DsymbolExp* isDsymbolExp();
+    ThisExp* isThisExp();
+    SuperExp* isSuperExp();
+    NullExp* isNullExp();
+    StringExp* isStringExp();
+    TupleExp* isTupleExp();
+    ArrayLiteralExp* isArrayLiteralExp();
+    AssocArrayLiteralExp* isAssocArrayLiteralExp();
+    StructLiteralExp* isStructLiteralExp();
+    TypeExp* isTypeExp();
+    ScopeExp* isScopeExp();
+    TemplateExp* isTemplateExp();
+    NewExp* isNewExp();
+    NewAnonClassExp* isNewAnonClassExp();
+    SymOffExp* isSymOffExp();
+    VarExp* isVarExp();
+    OverExp* isOverExp();
+    FuncExp* isFuncExp();
+    DeclarationExp* isDeclarationExp();
+    TypeidExp* isTypeidExp();
+    TraitsExp* isTraitsExp();
+    HaltExp* isHaltExp();
+    IsExp* isExp();
+    CompileExp* isCompileExp();
+    ImportExp* isImportExp();
+    AssertExp* isAssertExp();
+    DotIdExp* isDotIdExp();
+    DotTemplateExp* isDotTemplateExp();
+    DotVarExp* isDotVarExp();
+    DotTemplateInstanceExp* isDotTemplateInstanceExp();
+    DelegateExp* isDelegateExp();
+    DotTypeExp* isDotTypeExp();
+    CallExp* isCallExp();
+    AddrExp* isAddrExp();
+    PtrExp* isPtrExp();
+    NegExp* isNegExp();
+    UAddExp* isUAddExp();
+    ComExp* isComExp();
+    NotExp* isNotExp();
+    DeleteExp* isDeleteExp();
+    CastExp* isCastExp();
+    VectorExp* isVectorExp();
+    VectorArrayExp* isVectorArrayExp();
+    SliceExp* isSliceExp();
+    ArrayLengthExp* isArrayLengthExp();
+    ArrayExp* isArrayExp();
+    DotExp* isDotExp();
+    CommaExp* isCommaExp();
+    IntervalExp* isIntervalExp();
+    DelegatePtrExp* isDelegatePtrExp();
+    DelegateFuncptrExp* isDelegateFuncptrExp();
+    IndexExp* isIndexExp();
+    PostExp* isPostExp();
+    PreExp* isPreExp();
+    AssignExp* isAssignExp();
+    ConstructExp* isConstructExp();
+    BlitExp* isBlitExp();
+    AddAssignExp* isAddAssignExp();
+    MinAssignExp* isMinAssignExp();
+    MulAssignExp* isMulAssignExp();
+    DivAssignExp* isDivAssignExp();
+    ModAssignExp* isModAssignExp();
+    AndAssignExp* isAndAssignExp();
+    OrAssignExp* isOrAssignExp();
+    XorAssignExp* isXorAssignExp();
+    PowAssignExp* isPowAssignExp();
+    ShlAssignExp* isShlAssignExp();
+    ShrAssignExp* isShrAssignExp();
+    UshrAssignExp* isUshrAssignExp();
+    CatAssignExp* isCatAssignExp();
+    AddExp* isAddExp();
+    MinExp* isMinExp();
+    CatExp* isCatExp();
+    MulExp* isMulExp();
+    DivExp* isDivExp();
+    ModExp* isModExp();
+    PowExp* isPowExp();
+    ShlExp* isShlExp();
+    ShrExp* isShrExp();
+    UshrExp* isUshrExp();
+    AndExp* isAndExp();
+    OrExp* isOrExp();
+    XorExp* isXorExp();
+    LogicalExp* isLogicalExp();
+    InExp* isInExp();
+    RemoveExp* isRemoveExp();
+    EqualExp* isEqualExp();
+    IdentityExp* isIdentityExp();
+    CondExp* isCondExp();
+    DefaultInitExp* isDefaultInitExp();
+    FileInitExp* isFileInitExp();
+    LineInitExp* isLineInitExp();
+    ModuleInitExp* isModuleInitExp();
+    FuncInitExp* isFuncInitExp();
+    PrettyFuncInitExp* isPrettyFuncInitExp();
+
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class IntegerExp : public Expression
@@ -226,8 +227,8 @@ public:
     dinteger_t value;
 
     static IntegerExp *create(Loc loc, dinteger_t value, Type *type);
-    static IntegerExp *createi(Loc loc, int value, Type *type);
-    bool equals(RootObject *o);
+    static void emplace(UnionExp *pue, Loc loc, dinteger_t value, Type *type);
+    bool equals(const RootObject *o) const;
     dinteger_t toInteger();
     real_t toReal();
     real_t toImaginary();
@@ -237,7 +238,8 @@ public:
     void accept(Visitor *v) { v->visit(this); }
     dinteger_t getInteger() { return value; }
     void setInteger(dinteger_t value);
-    void normalize();
+    template<int v>
+    static IntegerExp literal();
 };
 
 class ErrorExp : public Expression
@@ -255,7 +257,8 @@ public:
     real_t value;
 
     static RealExp *create(Loc loc, real_t value, Type *type);
-    bool equals(RootObject *o);
+    static void emplace(UnionExp *pue, Loc loc, real_t value, Type *type);
+    bool equals(const RootObject *o) const;
     dinteger_t toInteger();
     uinteger_t toUInteger();
     real_t toReal();
@@ -271,7 +274,8 @@ public:
     complex_t value;
 
     static ComplexExp *create(Loc loc, complex_t value, Type *type);
-    bool equals(RootObject *o);
+    static void emplace(UnionExp *pue, Loc loc, complex_t value, Type *type);
+    bool equals(const RootObject *o) const;
     dinteger_t toInteger();
     uinteger_t toUInteger();
     real_t toReal();
@@ -304,6 +308,7 @@ public:
     Dsymbol *s;
     bool hasOverloads;
 
+    Expression *syntaxCopy();
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     void accept(Visitor *v) { v->visit(this); }
@@ -324,7 +329,6 @@ public:
 class SuperExp : public ThisExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -333,7 +337,7 @@ class NullExp : public Expression
 public:
     unsigned char committed;    // !=0 if type is committed
 
-    bool equals(RootObject *o);
+    bool equals(const RootObject *o) const;
     bool isBool(bool result);
     StringExp *toStringExp();
     void accept(Visitor *v) { v->visit(this); }
@@ -351,10 +355,11 @@ public:
 
     static StringExp *create(Loc loc, char *s);
     static StringExp *create(Loc loc, void *s, size_t len);
-    bool equals(RootObject *o);
+    static void emplace(UnionExp *pue, Loc loc, char *s);
+    static void emplace(UnionExp *pue, Loc loc, void *s, size_t len);
+    bool equals(const RootObject *o) const;
     StringExp *toStringExp();
     StringExp *toUTF8(Scope *sc);
-    int compare(RootObject *obj);
     bool isBool(bool result);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -363,7 +368,6 @@ public:
     void accept(Visitor *v) { v->visit(this); }
     size_t numberOfCodeUnits(int tynto = 0) const;
     void writeTo(void* dest, bool zero, int tyto = 0) const;
-    char *toPtr();
 };
 
 // Tuple
@@ -381,8 +385,10 @@ public:
      */
     Expressions *exps;
 
+    static TupleExp *create(Loc loc, Expressions *exps);
+    TupleExp *toTupleExp();
     Expression *syntaxCopy();
-    bool equals(RootObject *o);
+    bool equals(const RootObject *o) const;
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -395,10 +401,11 @@ public:
     OwnedBy ownedByCtfe;
 
     static ArrayLiteralExp *create(Loc loc, Expressions *elements);
+    static void emplace(UnionExp *pue, Loc loc, Expressions *elements);
     Expression *syntaxCopy();
-    bool equals(RootObject *o);
-    Expression *getElement(d_size_t i);
-    static Expressions* copyElements(Expression *e1, Expression *e2 = NULL);
+    bool equals(const RootObject *o) const;
+    Expression *getElement(d_size_t i); // use opIndex instead
+    Expression *opIndex(d_size_t i);
     bool isBool(bool result);
     StringExp *toStringExp();
 
@@ -412,25 +419,12 @@ public:
     Expressions *values;
     OwnedBy ownedByCtfe;
 
-    bool equals(RootObject *o);
+    bool equals(const RootObject *o) const;
     Expression *syntaxCopy();
     bool isBool(bool result);
 
     void accept(Visitor *v) { v->visit(this); }
 };
-
-// scrubReturnValue is running
-#define stageScrub          0x1
-// hasNonConstPointers is running
-#define stageSearchPointers 0x2
-// optimize is running
-#define stageOptimize       0x4
-// apply is running
-#define stageApply          0x8
-//inlineScan is running
-#define stageInlineScan     0x10
-// toCBuffer is running
-#define stageToCBuffer      0x20
 
 class StructLiteralExp : public Expression
 {
@@ -439,28 +433,31 @@ public:
     Expressions *elements;      // parallels sd->fields[] with NULL entries for fields to skip
     Type *stype;                // final type of result (can be different from sd's type)
 
-    bool useStaticInit;         // if this is true, use the StructDeclaration's init symbol
     Symbol *sym;                // back end symbol to initialize with literal
 
-    OwnedBy ownedByCtfe;
-
-    // pointer to the origin instance of the expression.
-    // once a new expression is created, origin is set to 'this'.
-    // anytime when an expression copy is created, 'origin' pointer is set to
-    // 'origin' pointer value of the original expression.
+    /** pointer to the origin instance of the expression.
+     * once a new expression is created, origin is set to 'this'.
+     * anytime when an expression copy is created, 'origin' pointer is set to
+     * 'origin' pointer value of the original expression.
+     */
     StructLiteralExp *origin;
 
     // those fields need to prevent a infinite recursion when one field of struct initialized with 'this' pointer.
     StructLiteralExp *inlinecopy;
 
-    // anytime when recursive function is calling, 'stageflags' marks with bit flag of
-    // current stage and unmarks before return from this function.
-    // 'inlinecopy' uses similar 'stageflags' and from multiple evaluation 'doInline'
-    // (with infinite recursion) of this expression.
+    /** anytime when recursive function is calling, 'stageflags' marks with bit flag of
+     * current stage and unmarks before return from this function.
+     * 'inlinecopy' uses similar 'stageflags' and from multiple evaluation 'doInline'
+     * (with infinite recursion) of this expression.
+     */
     int stageflags;
 
+    bool useStaticInit;         // if this is true, use the StructDeclaration's init symbol
+    bool isOriginal;            // used when moving instances to indicate `this is this.origin`
+    OwnedBy ownedByCtfe;
+
     static StructLiteralExp *create(Loc loc, StructDeclaration *sd, void *elements, Type *stype = NULL);
-    bool equals(RootObject *o);
+    bool equals(const RootObject *o) const;
     Expression *syntaxCopy();
     Expression *getField(Type *type, unsigned offset);
     int getFieldIndex(Type *type, unsigned offset);
@@ -468,9 +465,6 @@ public:
 
     void accept(Visitor *v) { v->visit(this); }
 };
-
-class DotIdExp;
-DotIdExp *typeDotIdExp(const Loc &loc, Type *type, Identifier *ident);
 
 class TypeExp : public Expression
 {
@@ -547,6 +541,7 @@ class SymbolExp : public Expression
 public:
     Declaration *var;
     bool hasOverloads;
+    Dsymbol *originalScope;
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -568,16 +563,10 @@ public:
 class VarExp : public SymbolExp
 {
 public:
-    /**
-    * Semantic can be called multiple times for a single expression.
-    * This field is needed to ensure the deprecation message will be printed only once.
-    */
-    bool hasCheckedAttrs;
-
+    bool delegateWasExtracted;
     static VarExp *create(Loc loc, Declaration *var, bool hasOverloads = true);
-    bool equals(RootObject *o);
+    bool equals(const RootObject *o) const;
     int checkModifiable(Scope *sc, int flag);
-    bool checkReadModifyWrite();
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -606,11 +595,9 @@ public:
     TemplateDeclaration *td;
     TOK tok;
 
-    bool equals(RootObject *o);
-    void genIdent(Scope *sc);
+    bool equals(const RootObject *o) const;
     Expression *syntaxCopy();
-    MATCH matchType(Type *to, Scope *sc, FuncExp **pfe, int flag = 0);
-    const char *toChars();
+    const char *toChars() const;
     bool checkType();
     bool checkValue();
 
@@ -656,7 +643,6 @@ public:
 class HaltExp : public Expression
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -668,10 +654,10 @@ public:
      */
     Type *targ;
     Identifier *id;     // can be NULL
-    TOK tok;       // ':' or '=='
     Type *tspec;        // can be NULL
-    TOK tok2;      // 'struct', 'union', etc.
     TemplateParameters *parameters;
+    TOK tok;       // ':' or '=='
+    TOK tok2;      // 'struct', 'union', etc.
 
     Expression *syntaxCopy();
     void accept(Visitor *v) { v->visit(this); }
@@ -692,9 +678,6 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
-typedef UnionExp (*fp_t)(const Loc &loc, Type *, Expression *, Expression *);
-typedef int (*fp2_t)(const Loc &loc, TOK, Expression *, Expression *);
-
 class BinExp : public Expression
 {
 public:
@@ -706,9 +689,6 @@ public:
 
     Expression *syntaxCopy();
     Expression *incompatibleTypes();
-    Expression *checkOpAssignTypes(Scope *sc);
-    bool checkIntegralBin();
-    bool checkArithmeticBin();
 
     Expression *reorderSettingAAElem(Scope *sc);
 
@@ -718,7 +698,6 @@ public:
 class BinAssignExp : public BinExp
 {
 public:
-
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *ex);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -775,7 +754,6 @@ public:
     bool hasOverloads;
 
     int checkModifiable(Scope *sc, int flag);
-    bool checkReadModifyWrite();
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -797,6 +775,7 @@ class DelegateExp : public UnaExp
 public:
     FuncDeclaration *func;
     bool hasOverloads;
+    VarDeclaration *vthis2;  // container for multi-context
 
 
     void accept(Visitor *v) { v->visit(this); }
@@ -816,6 +795,7 @@ public:
     Expressions *arguments;     // function arguments
     FuncDeclaration *f;         // symbol to call
     bool directcall;            // true if a virtual call is devirtualized
+    VarDeclaration *vthis2;     // container for multi-context
 
     static CallExp *create(Loc loc, Expression *e, Expressions *exps);
     static CallExp *create(Loc loc, Expression *e);
@@ -833,7 +813,6 @@ public:
 class AddrExp : public UnaExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -851,21 +830,18 @@ public:
 class NegExp : public UnaExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class UAddExp : public UnaExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class ComExp : public UnaExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -900,9 +876,19 @@ class VectorExp : public UnaExp
 public:
     TypeVector *to;             // the target vector type before semantic()
     unsigned dim;               // number of elements in the vector
+    OwnedBy ownedByCtfe;
 
     static VectorExp *create(Loc loc, Expression *e, Type *t);
+    static void emplace(UnionExp *pue, Loc loc, Expression *e, Type *t);
     Expression *syntaxCopy();
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+class VectorArrayExp : public UnaExp
+{
+public:
+    bool isLvalue();
+    Expression *toLvalue(Scope *sc, Expression *e);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -929,8 +915,6 @@ public:
 class ArrayLengthExp : public UnaExp
 {
 public:
-
-    static Expression *rewriteOpAssign(BinExp *exp);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1014,8 +998,6 @@ public:
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
 
-    Expression *markSettingAAElem();
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1038,7 +1020,7 @@ public:
 enum MemorySet
 {
     blockAssign     = 1,    // setting the contents of an array
-    referenceInit   = 2,    // setting the reference of STCref variable
+    referenceInit   = 2     // setting the reference of STCref variable
 };
 
 class AssignExp : public BinExp
@@ -1146,91 +1128,78 @@ public:
 class AddExp : public BinExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class MinExp : public BinExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class CatExp : public BinExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class MulExp : public BinExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class DivExp : public BinExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class ModExp : public BinExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class PowExp : public BinExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class ShlExp : public BinExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class ShrExp : public BinExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class UshrExp : public BinExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class AndExp : public BinExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class OrExp : public BinExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class XorExp : public BinExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1244,14 +1213,12 @@ public:
 class CmpExp : public BinExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
 class InExp : public BinExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1266,7 +1233,6 @@ public:
 class EqualExp : public BinExp
 {
 public:
-
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -1365,6 +1331,14 @@ struct UnionExp
     Expression *copy();
 
 private:
+    // Ensure that the union is suitably aligned.
+#if defined(__GNUC__) || defined(__clang__)
+    __attribute__((aligned(8)))
+#elif defined(_MSC_VER)
+    __declspec(align(8))
+#elif defined(__DMC__)
+    #pragma pack(8)
+#endif
     union
     {
         char exp       [sizeof(Expression)];
@@ -1382,10 +1356,11 @@ private:
         char addrexp   [sizeof(AddrExp)];
         char indexexp  [sizeof(IndexExp)];
         char sliceexp  [sizeof(SliceExp)];
-
-        // Ensure that the union is suitably aligned.
-        real_t for_alignment_only;
+        char vectorexp [sizeof(VectorExp)];
     } u;
+#if defined(__DMC__)
+    #pragma pack()
+#endif
 };
 
 /****************************************************************/
@@ -1396,49 +1371,3 @@ class ObjcClassReferenceExp : public Expression
 
     void accept(Visitor *v) { v->visit(this); }
 };
-
-/* Special values used by the interpreter
- */
-
-Expression *expType(Type *type, Expression *e);
-
-UnionExp Neg(Type *type, Expression *e1);
-UnionExp Com(Type *type, Expression *e1);
-UnionExp Not(Type *type, Expression *e1);
-UnionExp Bool(Type *type, Expression *e1);
-UnionExp Cast(Loc loc, Type *type, Type *to, Expression *e1);
-UnionExp ArrayLength(Type *type, Expression *e1);
-UnionExp Ptr(Type *type, Expression *e1);
-
-UnionExp Add(const Loc &loc, Type *type, Expression *e1, Expression *e2);
-UnionExp Min(const Loc &loc, Type *type, Expression *e1, Expression *e2);
-UnionExp Mul(const Loc &loc, Type *type, Expression *e1, Expression *e2);
-UnionExp Div(const Loc &loc, Type *type, Expression *e1, Expression *e2);
-UnionExp Mod(const Loc &loc, Type *type, Expression *e1, Expression *e2);
-UnionExp Pow(const Loc &loc, Type *type, Expression *e1, Expression *e2);
-UnionExp Shl(const Loc &loc, Type *type, Expression *e1, Expression *e2);
-UnionExp Shr(const Loc &loc, Type *type, Expression *e1, Expression *e2);
-UnionExp Ushr(const Loc &loc, Type *type, Expression *e1, Expression *e2);
-UnionExp And(const Loc &loc, Type *type, Expression *e1, Expression *e2);
-UnionExp Or(const Loc &loc, Type *type, Expression *e1, Expression *e2);
-UnionExp Xor(const Loc &loc, Type *type, Expression *e1, Expression *e2);
-UnionExp Index(Type *type, Expression *e1, Expression *e2);
-UnionExp Cat(Type *type, Expression *e1, Expression *e2);
-
-UnionExp Equal(TOK op, const Loc &loc, Type *type, Expression *e1, Expression *e2);
-UnionExp Cmp(TOK op, const Loc &loc, Type *type, Expression *e1, Expression *e2);
-UnionExp Identity(TOK op, const Loc &loc, Type *type, Expression *e1, Expression *e2);
-
-UnionExp Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr);
-
-// Const-folding functions used by CTFE
-
-void sliceAssignArrayLiteralFromString(ArrayLiteralExp *existingAE, StringExp *newval, size_t firstIndex);
-void sliceAssignStringFromArrayLiteral(StringExp *existingSE, ArrayLiteralExp *newae, size_t firstIndex);
-void sliceAssignStringFromString(StringExp *existingSE, StringExp *newstr, size_t firstIndex);
-
-int sliceCmpStringWithString(StringExp *se1, StringExp *se2, size_t lo1, size_t lo2, size_t len);
-int sliceCmpStringWithArray(StringExp *se1, ArrayLiteralExp *ae2, size_t lo1, size_t lo2, size_t len);
-
-
-#endif /* DMD_EXPRESSION_H */

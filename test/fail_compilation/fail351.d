@@ -5,7 +5,7 @@ fail_compilation/fail351.d(14): Error: `cast(uint)this.num[index]` is not an lva
 ---
 */
 
-// 2780
+// https://issues.dlang.org/show_bug.cgi?id=2780
 
 struct Immutable {
     immutable uint[2] num;

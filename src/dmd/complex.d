@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/complex.d, _complex.d)
@@ -14,7 +14,7 @@ module dmd.complex;
 
 import dmd.root.ctfloat;
 
-struct complex_t
+extern (C++) struct complex_t
 {
     real_t re;
     real_t im;
@@ -32,42 +32,50 @@ struct complex_t
         this.im = im;
     }
 
-    complex_t opAdd(complex_t y)
+    extern (D) complex_t opBinary(string op)(complex_t y)
+        if (op == "+")
     {
         return complex_t(re + y.re, im + y.im);
     }
 
-    complex_t opSub(complex_t y)
+    extern (D) complex_t opBinary(string op)(complex_t y)
+        if (op == "-")
     {
         return complex_t(re - y.re, im - y.im);
     }
 
-    complex_t opNeg()
+    extern (D) complex_t opUnary(string op)()
+        if (op == "-")
     {
         return complex_t(-re, -im);
     }
 
-    complex_t opMul(complex_t y)
+    extern (D) complex_t opBinary(string op)(complex_t y)
+        if (op == "*")
     {
         return complex_t(re * y.re - im * y.im, im * y.re + re * y.im);
     }
 
-    complex_t opMul_r(real_t x)
+    extern (D) complex_t opBinaryRight(string op)(real_t x)
+        if (op == "*")
     {
         return complex_t(x) * this;
     }
 
-    complex_t opMul(real_t y)
+    extern (D) complex_t opBinary(string op)(real_t y)
+        if (op == "*")
     {
         return this * complex_t(y);
     }
 
-    complex_t opDiv(real_t y)
+    extern (D) complex_t opBinary(string op)(real_t y)
+        if (op == "/")
     {
         return this / complex_t(y);
     }
 
-    complex_t opDiv(complex_t y)
+    extern (D) complex_t opBinary(string op)(complex_t y)
+        if (op == "/")
     {
         if (CTFloat.fabs(y.re) < CTFloat.fabs(y.im))
         {
@@ -83,12 +91,12 @@ struct complex_t
         }
     }
 
-    bool opCast(T : bool)()
+    extern (D) bool opCast(T : bool)() const
     {
         return re || im;
     }
 
-    int opEquals(complex_t y)
+    int opEquals(complex_t y) const
     {
         return re == y.re && im == y.im;
     }

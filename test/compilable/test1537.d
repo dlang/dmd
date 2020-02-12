@@ -1,4 +1,4 @@
-// 1537
+// https://issues.dlang.org/show_bug.cgi?id=1537
 
 void foo(char[] s)
 {

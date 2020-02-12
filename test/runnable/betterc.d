@@ -11,6 +11,21 @@ void test(int ij)
 }
 
 /*******************************************/
+// https://issues.dlang.org/show_bug.cgi?id=18010
+
+void test1()
+{
+    int[10] a1 = void;
+    int[10] a2 = void;
+    a1[] = a2[];
+}
+
+void test2(int[] a1, int[] a2)
+{
+    a1[] = a2[];
+}
+
+/*******************************************/
 // https://issues.dlang.org/show_bug.cgi?id=17843
 
 struct S
@@ -26,6 +41,7 @@ extern (C) void main()
     test(1);
     test18472();
     testRuntimeLowerings();
+    test18457();
 }
 
 /*******************************************/
@@ -81,10 +97,20 @@ mixin template initArray()
     {
         T[6] a1 = [true, false, true, true, false, true];
     }
+    else static if (is(T == Sint))
+    {
+        T[6] a1 = [Sint(1), Sint(2), Sint(3), Sint(1), Sint(2), Sint(3)];
+    }
     else
     {
         T[6] a1 = [1,2,3,1,2,3];
     }
+}
+
+struct Sint
+{
+    int x;
+    this(int v) { x = v;}
 }
 
 void testRuntimeLowerings()
@@ -96,7 +122,7 @@ void testRuntimeLowerings()
 
         assert(a1[0..3] == a1[3..$]);
     }
-    
+
     test__equals!int;
     test__equals!uint;
     test__equals!long;
@@ -110,6 +136,7 @@ void testRuntimeLowerings()
     test__equals!char;
     test__equals!(const char);
     test__equals!bool;
+    test__equals!Sint;
 
     // test call to `object.__cmp`
     void test__cmp(T)()
@@ -129,22 +156,47 @@ void testRuntimeLowerings()
     test__cmp!byte;
     test__cmp!dchar;
     test__cmp!wchar;
-    
+    test__cmp!ubyte;
+    test__cmp!char;
+    test__cmp!(const char);
+    test__cmp!bool;
+    test__cmp!Sint;
 
-    // __cmp currently requires runtime support from `core.internal.string : dstrcmp`.
-    // If that runtime dependency can be removed, the following code might work.
-    //---------------------------------------------------------------------------------
-    // test__cmp!ubyte;
-    // test__cmp!char;
-    // test__cmp!(const char);
-    // test__cmp!bool;
-
-    // auto s = "abc";
-    // switch(s)                      // _switch
-    // {
-    //     case "abc":
-    //         break;
-    //     default:
-    //         break;
-    // }
+    // test call to `object.__switch``
+    auto s = "abc";
+    switch(s)
+    {
+        case "abc":
+            break;
+        default:
+            break;
+    }
 }
+
+/**********************************************/
+// https://issues.dlang.org/show_bug.cgi?id=18457
+
+__gshared int dtor;
+
+struct S18457
+{
+    int a = 3;
+    ~this() { a = 0; ++dtor; }
+}
+
+S18457 myFunction()
+{
+    S18457 s = S18457();
+    return s;
+}
+
+void test18457()
+{
+    {
+        S18457 s = myFunction();
+        assert(s.a == 3);
+        assert(dtor == 0);
+    }
+    assert(dtor == 1);
+}
+

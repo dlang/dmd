@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/typeinf.d, _typeinf.d)
@@ -32,9 +32,9 @@ import core.stdc.stdio;
  *      torig = the type to generate the `TypeInfo` object for
  *      sc    = the scope
  */
-extern (C++) void genTypeInfo(Loc loc, Type torig, Scope* sc)
+void genTypeInfo(Loc loc, Type torig, Scope* sc)
 {
-    //printf("Type::genTypeInfo() %p, %s\n", this, toChars());
+    // printf("genTypeInfo() %s\n", torig.toChars());
 
     // Even when compiling without `useTypeInfo` (e.g. -betterC) we should
     // still be able to evaluate `TypeInfo` at compile-time, just not at runtime.
@@ -43,14 +43,14 @@ extern (C++) void genTypeInfo(Loc loc, Type torig, Scope* sc)
     {
         if (!global.params.useTypeInfo)
         {
-            torig.error(loc, "`TypeInfo` cannot be used with -betterC");
+            .error(loc, "`TypeInfo` cannot be used with -betterC");
             fatal();
         }
     }
 
     if (!Type.dtypeinfo)
     {
-        torig.error(loc, "`object.TypeInfo` could not be found, but is implicitly used");
+        .error(loc, "`object.TypeInfo` could not be found, but is implicitly used");
         fatal();
     }
 
@@ -108,7 +108,7 @@ extern (C++) Type getTypeInfoType(Loc loc, Type t, Scope* sc)
     return t.vtinfo.type;
 }
 
-extern (C++) TypeInfoDeclaration getTypeInfoDeclaration(Type t)
+private TypeInfoDeclaration getTypeInfoDeclaration(Type t)
 {
     //printf("Type::getTypeInfoDeclaration() %s\n", t.toChars());
     switch (t.ty)
@@ -144,116 +144,101 @@ extern (C++) TypeInfoDeclaration getTypeInfoDeclaration(Type t)
     }
 }
 
-extern (C++) bool isSpeculativeType(Type t)
+/**************************************************
+ * Returns:
+ *      true if any part of type t is speculative.
+ *      if t is null, returns false.
+ */
+bool isSpeculativeType(Type t)
 {
-    extern (C++) final class SpeculativeTypeVisitor : Visitor
+    static bool visitVector(TypeVector t)
     {
-        alias visit = Visitor.visit;
-    public:
-        bool result;
-
-        extern (D) this()
-        {
-        }
-
-        override void visit(Type t)
-        {
-            Type tb = t.toBasetype();
-            if (tb != t)
-                tb.accept(this);
-        }
-
-        override void visit(TypeNext t)
-        {
-            if (t.next)
-                t.next.accept(this);
-        }
-
-        override void visit(TypeBasic t)
-        {
-        }
-
-        override void visit(TypeVector t)
-        {
-            t.basetype.accept(this);
-        }
-
-        override void visit(TypeAArray t)
-        {
-            t.index.accept(this);
-            visit(cast(TypeNext)t);
-        }
-
-        override void visit(TypeFunction t)
-        {
-            visit(cast(TypeNext)t);
-            // Currently TypeInfo_Function doesn't store parameter types.
-        }
-
-        override void visit(TypeStruct t)
-        {
-            StructDeclaration sd = t.sym;
-            if (auto ti = sd.isInstantiated())
-            {
-                if (!ti.needsCodegen())
-                {
-                    if (ti.minst || sd.requestTypeInfo)
-                        return;
-
-                    /* https://issues.dlang.org/show_bug.cgi?id=14425
-                     * TypeInfo_Struct would refer the members of
-                     * struct (e.g. opEquals via xopEquals field), so if it's instantiated
-                     * in speculative context, TypeInfo creation should also be
-                     * stopped to avoid 'unresolved symbol' linker errors.
-                     */
-                    /* When -debug/-unittest is specified, all of non-root instances are
-                     * automatically changed to speculative, and here is always reached
-                     * from those instantiated non-root structs.
-                     * Therefore, if the TypeInfo is not auctually requested,
-                     * we have to elide its codegen.
-                     */
-                    result |= true;
-                    return;
-                }
-            }
-            else
-            {
-                //assert(!sd.inNonRoot() || sd.requestTypeInfo);    // valid?
-            }
-        }
-
-        override void visit(TypeClass t)
-        {
-            ClassDeclaration sd = t.sym;
-            if (auto ti = sd.isInstantiated())
-            {
-                if (!ti.needsCodegen() && !ti.minst)
-                {
-                    result |= true;
-                }
-            }
-        }
-
-
-        override void visit(TypeTuple t)
-        {
-            if (t.arguments)
-            {
-                for (size_t i = 0; i < t.arguments.dim; i++)
-                {
-                    Type tprm = (*t.arguments)[i].type;
-                    if (tprm)
-                        tprm.accept(this);
-                    if (result)
-                        return;
-                }
-            }
-        }
+        return isSpeculativeType(t.basetype);
     }
 
-    scope SpeculativeTypeVisitor v = new SpeculativeTypeVisitor();
-    t.accept(v);
-    return v.result;
+    static bool visitAArray(TypeAArray t)
+    {
+        return isSpeculativeType(t.index) ||
+               isSpeculativeType(t.next);
+    }
+
+    static bool visitStruct(TypeStruct t)
+    {
+        StructDeclaration sd = t.sym;
+        if (auto ti = sd.isInstantiated())
+        {
+            if (!ti.needsCodegen())
+            {
+                if (ti.minst || sd.requestTypeInfo)
+                    return false;
+
+                /* https://issues.dlang.org/show_bug.cgi?id=14425
+                 * TypeInfo_Struct would refer the members of
+                 * struct (e.g. opEquals via xopEquals field), so if it's instantiated
+                 * in speculative context, TypeInfo creation should also be
+                 * stopped to avoid 'unresolved symbol' linker errors.
+                 */
+                /* When -debug/-unittest is specified, all of non-root instances are
+                 * automatically changed to speculative, and here is always reached
+                 * from those instantiated non-root structs.
+                 * Therefore, if the TypeInfo is not auctually requested,
+                 * we have to elide its codegen.
+                 */
+                return true;
+            }
+        }
+        else
+        {
+            //assert(!sd.inNonRoot() || sd.requestTypeInfo);    // valid?
+        }
+        return false;
+    }
+
+    static bool visitClass(TypeClass t)
+    {
+        ClassDeclaration sd = t.sym;
+        if (auto ti = sd.isInstantiated())
+        {
+            if (!ti.needsCodegen() && !ti.minst)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+    static bool visitTuple(TypeTuple t)
+    {
+        if (t.arguments)
+        {
+            foreach (arg; *t.arguments)
+            {
+                if (isSpeculativeType(arg.type))
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    if (!t)
+        return false;
+    Type tb = t.toBasetype();
+    switch (tb.ty)
+    {
+        case Tvector:   return visitVector(tb.isTypeVector());
+        case Taarray:   return visitAArray(tb.isTypeAArray());
+        case Tstruct:   return visitStruct(tb.isTypeStruct());
+        case Tclass:    return visitClass(tb.isTypeClass());
+        case Ttuple:    return visitTuple(tb.isTypeTuple());
+        case Tenum:     return false;
+        default:
+        return isSpeculativeType(tb.nextOf());
+
+        /* For TypeFunction, TypeInfo_Function doesn't store parameter types,
+         * so only the .next (the return type) is checked here.
+         */
+    }
 }
 
 /* ========================================================================= */

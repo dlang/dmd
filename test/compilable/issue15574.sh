@@ -19,6 +19,10 @@ APP=$TEST_DIR/app${EXE}
 mkdir -p $TEST_DIR
 
 cat >$C_FILE <<EOF
+#ifdef __cplusplus
+  extern "C" int square(int x);
+#endif
+
 int square(int x) { return x*x; }
 EOF
 
@@ -44,7 +48,7 @@ int main() {
 }
 EOF
 
-cc -m${MODEL} -c -o ${C_FILE}${OBJ} $C_FILE
+${CC} -m${MODEL} -c -o ${C_FILE}${OBJ} $C_FILE
 ar rcs ${C_LIB} ${C_FILE}${OBJ}
 
 ${DMD} -m${MODEL} -lib -of${D_LIB} ${D_FILE}

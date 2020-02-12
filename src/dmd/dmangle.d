@@ -1,7 +1,7 @@
 /**
  * Compiler implementation of the $(LINK2 http://www.dlang.org, D programming language)
  *
- * Copyright: Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors: Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dmangle.d, _dmangle.d)
@@ -32,6 +32,7 @@ import dmd.mtype;
 import dmd.root.ctfloat;
 import dmd.root.outbuffer;
 import dmd.root.aav;
+import dmd.root.string;
 import dmd.target;
 import dmd.tokens;
 import dmd.utf;
@@ -102,6 +103,8 @@ private immutable char[TMAX] mangleChar =
     Tslice       : '@',
     Treturn      : '@',
     Tvector      : '@',
+    Ttraits      : '@',
+    Tmixin       : '@',
 ];
 
 unittest
@@ -191,7 +194,7 @@ public:
     * Params:
     *  pos           = relative position to encode
     */
-    final void writeBackRef(size_t pos)
+    void writeBackRef(size_t pos)
     {
         buf.writeByte('Q');
         enum base = 26;
@@ -221,17 +224,17 @@ public:
     *  true if the type was found. A back reference has been encoded.
     *  false if the type was not found. The current position is saved for later back references.
     */
-    final bool backrefType(Type t)
+    bool backrefType(Type t)
     {
         if (!t.isTypeBasic())
         {
             auto p = types.getLvalue(t);
             if (*p)
             {
-                writeBackRef(buf.offset - *p);
+                writeBackRef(buf.length - *p);
                 return true;
             }
-            *p = buf.offset;
+            *p = buf.length;
         }
         return false;
     }
@@ -249,30 +252,30 @@ public:
     *  true if the identifier was found. A back reference has been encoded.
     *  false if the identifier was not found. The current position is saved for later back references.
     */
-    final bool backrefIdentifier(Identifier id)
+    bool backrefIdentifier(Identifier id)
     {
         auto p = idents.getLvalue(id);
         if (*p)
         {
-            writeBackRef(buf.offset - *p);
+            writeBackRef(buf.length - *p);
             return true;
         }
-        *p = buf.offset;
+        *p = buf.length;
         return false;
     }
 
-    final void mangleSymbol(Dsymbol s)
+    void mangleSymbol(Dsymbol s)
     {
         s.accept(this);
     }
 
-    final void mangleType(Type t)
+    void mangleType(Type t)
     {
         if (!backrefType(t))
             t.accept(this);
     }
 
-    final void mangleIdentifier(Identifier id, Dsymbol s)
+    void mangleIdentifier(Identifier id, Dsymbol s)
     {
         if (!backrefIdentifier(id))
             toBuffer(id.toString(), s);
@@ -282,7 +285,7 @@ public:
     /**************************************************
      * Type mangling
      */
-    final void visitWithMask(Type t, ubyte modMask)
+    void visitWithMask(Type t, ubyte modMask)
     {
         if (modMask != t.mod)
         {
@@ -338,7 +341,7 @@ public:
         mangleFuncType(t, t, t.mod, t.next);
     }
 
-    final void mangleFuncType(TypeFunction t, TypeFunction ta, ubyte modMask, Type tret)
+    void mangleFuncType(TypeFunction t, TypeFunction ta, ubyte modMask, Type tret)
     {
         //printf("mangleFuncType() %s\n", t.toChars());
         if (t.inuse && tret)
@@ -388,7 +391,7 @@ public:
         if (ta.isnogc)
             buf.writestring("Ni");
 
-        if (ta.isreturn)
+        if (ta.isreturn && !ta.isreturninferred)
             buf.writestring("Nj");
         else if (ta.isscope && !ta.isscopeinferred)
             buf.writestring("Nl");
@@ -406,9 +409,9 @@ public:
         }
 
         // Write argument types
-        paramsToDecoBuffer(t.parameters);
-        //if (buf.data[buf.offset - 1] == '@') assert(0);
-        buf.writeByte('Z' - t.varargs); // mark end of arg list
+        paramsToDecoBuffer(t.parameterList.parameters);
+        //if (buf.data[buf.length - 1] == '@') assert(0);
+        buf.writeByte('Z' - t.parameterList.varargs); // mark end of arg list
         if (tret !is null)
             visitWithMask(tret, 0);
         t.inuse--;
@@ -456,7 +459,7 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////////////////
-    final void mangleDecl(Declaration sthis)
+    void mangleDecl(Declaration sthis)
     {
         mangleParent(sthis);
         assert(sthis.ident);
@@ -473,7 +476,7 @@ public:
             assert(0);
     }
 
-    final void mangleParent(Dsymbol s)
+    void mangleParent(Dsymbol s)
     {
         Dsymbol p;
         if (TemplateInstance ti = s.isTemplateInstance())
@@ -499,7 +502,7 @@ public:
         }
     }
 
-    final void mangleFunc(FuncDeclaration fd, bool inParent)
+    void mangleFunc(FuncDeclaration fd, bool inParent)
     {
         //printf("deco = '%s'\n", fd.type.deco ? fd.type.deco : "null");
         //printf("fd.type = %s\n", fd.type.toChars());
@@ -517,8 +520,8 @@ public:
         }
         else if (inParent)
         {
-            TypeFunction tf = cast(TypeFunction)fd.type;
-            TypeFunction tfo = cast(TypeFunction)fd.originalType;
+            TypeFunction tf = fd.type.isTypeFunction();
+            TypeFunction tfo = fd.originalType.isTypeFunction();
             mangleFuncType(tf, tfo, 0, null);
         }
         else
@@ -530,16 +533,11 @@ public:
     /************************************************************
      * Write length prefixed string to buf.
      */
-    final void toBuffer(const(char)* id, Dsymbol s)
-    {
-        toBuffer(id[0 .. strlen(id)], s);
-    }
-
-    extern (D) final void toBuffer(const(char)[] id, Dsymbol s)
+    extern (D) void toBuffer(const(char)[] id, Dsymbol s)
     {
         const len = id.length;
-        if (buf.offset + len >= 8 * 1024 * 1024) // 8 megs ought be enough for anyone
-            s.error("excessive length %llu for symbol, possible recursive expansion?", cast(ulong)(buf.offset + len));
+        if (buf.length + len >= 8 * 1024 * 1024) // 8 megs ought be enough for anyone
+            s.error("excessive length %llu for symbol, possible recursive expansion?", cast(ulong)(buf.length + len));
         else
         {
             buf.print(len);
@@ -547,9 +545,26 @@ public:
         }
     }
 
+    /************************************************************
+     * Try to obtain an externally mangled identifier from a declaration.
+     * If the declaration is at global scope or mixed in at global scope,
+     * the user might want to call it externally, so an externally mangled
+     * name is returned. Member functions or nested functions can't be called
+     * externally in C, so in that case null is returned. C++ does support
+     * namespaces, so extern(C++) always gives a C++ mangled name.
+     *
+     * See also: https://issues.dlang.org/show_bug.cgi?id=20012
+     *
+     * Params:
+     *     d = declaration to mangle
+     *
+     * Returns:
+     *     an externally mangled name or null if the declaration cannot be called externally
+     */
     extern (D) static const(char)[] externallyMangledIdentifier(Declaration d)
     {
-        if (!d.parent || d.parent.isModule() || d.linkage == LINK.cpp) // if at global scope
+        const par = d.toParent(); //toParent() skips over mixin templates
+        if (!par || par.isModule() || d.linkage == LINK.cpp)
         {
             final switch (d.linkage)
             {
@@ -562,8 +577,8 @@ public:
                     return d.ident.toString();
                 case LINK.cpp:
                 {
-                    const p = Target.toCppMangle(d);
-                    return p[0 .. strlen(p)];
+                    const p = target.cpp.toMangle(d);
+                    return p.toDString();
                 }
                 case LINK.default_:
                 case LINK.system:
@@ -587,16 +602,16 @@ public:
         mangleDecl(d);
         debug
         {
-            const slice = buf.peekSlice();
+            const slice = (*buf)[];
             assert(slice.length);
-            foreach (const char c; slice)
+            for (size_t pos; pos < slice.length; )
             {
-                assert(c == '_' ||
-                       c == '@' ||
-                       c == '?' ||
-                       c == '$' ||
-                       isalnum(c) ||
-                       c & 0x80);
+                dchar c;
+                auto ppos = pos;
+                const s = utf_decodeChar(slice, pos, c);
+                assert(s is null, s);
+                assert(c.isValidMangling, "The mangled name '" ~ slice ~ "' " ~
+                    "contains an invalid character: " ~ slice[ppos..pos]);
             }
         }
     }
@@ -676,7 +691,7 @@ public:
         visit(cast(Dsymbol)od);
     }
 
-    final void mangleExact(FuncDeclaration fd)
+    void mangleExact(FuncDeclaration fd)
     {
         assert(!fd.isFuncAliasDeclaration());
         if (fd.mangleOverride)
@@ -689,9 +704,9 @@ public:
             buf.writestring("_Dmain");
             return;
         }
-        if (fd.isWinMain() || fd.isDllMain() || fd.ident == Id.tls_get_addr)
+        if (fd.isWinMain() || fd.isDllMain())
         {
-            buf.writestring(fd.ident.toChars());
+            buf.writestring(fd.ident.toString());
             return;
         }
         visit(cast(Declaration)fd);
@@ -746,7 +761,7 @@ public:
             mangleTemplateInstance(ti);
     }
 
-    final void mangleTemplateInstance(TemplateInstance ti)
+    void mangleTemplateInstance(TemplateInstance ti)
     {
         TemplateDeclaration tempdecl = ti.tempdecl.isTemplateDeclaration();
         assert(tempdecl);
@@ -779,24 +794,24 @@ public:
                 // Only constfold manifest constants, not const/immutable lvalues, see https://issues.dlang.org/show_bug.cgi?id=17339.
                 enum keepLvalue = true;
                 ea = ea.optimize(WANTvalue, keepLvalue);
-                if (ea.op == TOK.variable)
+                if (auto ev = ea.isVarExp())
                 {
-                    sa = (cast(VarExp)ea).var;
+                    sa = ev.var;
                     ea = null;
                     goto Lsa;
                 }
-                if (ea.op == TOK.this_)
+                if (auto et = ea.isThisExp())
                 {
-                    sa = (cast(ThisExp)ea).var;
+                    sa = et.var;
                     ea = null;
                     goto Lsa;
                 }
-                if (ea.op == TOK.function_)
+                if (auto ef = ea.isFuncExp())
                 {
-                    if ((cast(FuncExp)ea).td)
-                        sa = (cast(FuncExp)ea).td;
+                    if (ef.td)
+                        sa = ef.td;
                     else
-                        sa = (cast(FuncExp)ea).fd;
+                        sa = ef.fd;
                     ea = null;
                     goto Lsa;
                 }
@@ -871,7 +886,7 @@ public:
         if (s.ident)
             mangleIdentifier(s.ident, s);
         else
-            toBuffer(s.toChars(), s);
+            toBuffer(s.toString(), s);
         //printf("Dsymbol.mangle() %s = %s\n", s.toChars(), id);
     }
 
@@ -902,7 +917,7 @@ public:
         realToMangleBuffer(e.value);
     }
 
-    final void realToMangleBuffer(real_t value)
+    void realToMangleBuffer(real_t value)
     {
         /* Rely on %A to get portable mangling.
          * Must munge result to get only identifier characters.
@@ -915,35 +930,42 @@ public:
          * 0X1.9P+2                 => 19P2
          */
         if (CTFloat.isNaN(value))
-            buf.writestring("NAN"); // no -NAN bugs
-        else if (CTFloat.isInfinity(value))
-            buf.writestring(value < CTFloat.zero ? "NINF" : "INF");
-        else
         {
-            enum BUFFER_LEN = 36;
-            char[BUFFER_LEN] buffer;
-            const n = CTFloat.sprint(buffer.ptr, 'A', value);
-            assert(n < BUFFER_LEN);
-            for (int i = 0; i < n; i++)
+            buf.writestring("NAN"); // no -NAN bugs
+            return;
+        }
+
+        if (value < CTFloat.zero)
+        {
+            buf.writeByte('N');
+            value = -value;
+        }
+
+        if (CTFloat.isInfinity(value))
+        {
+            buf.writestring("INF");
+            return;
+        }
+
+        char[36] buffer = void;
+        // 'A' format yields [-]0xh.hhhhp+-d
+        const n = CTFloat.sprint(buffer.ptr, 'A', value);
+        assert(n < buffer.length);
+        foreach (const c; buffer[2 .. n])
+        {
+            switch (c)
             {
-                char c = buffer[i];
-                switch (c)
-                {
                 case '-':
                     buf.writeByte('N');
                     break;
+
                 case '+':
-                case 'X':
                 case '.':
                     break;
-                case '0':
-                    if (i < 2)
-                        break; // skip leading 0X
-                    goto default;
+
                 default:
                     buf.writeByte(c);
                     break;
-                }
             }
         }
     }
@@ -972,33 +994,38 @@ public:
         {
         case 1:
             m = 'a';
-            q = e.string[0 .. e.len];
+            q = e.peekString();
             break;
         case 2:
+        {
             m = 'w';
+            const slice = e.peekWstring();
             for (size_t u = 0; u < e.len;)
             {
                 dchar c;
-                const p = utf_decodeWchar(e.wstring, e.len, u, c);
-                if (p)
-                    e.error("%s", p);
+                if (const s = utf_decodeWchar(slice, u, c))
+                    e.error("%.*s", cast(int)s.length, s.ptr);
                 else
                     tmp.writeUTF8(c);
             }
-            q = tmp.peekSlice();
+            q = tmp[];
             break;
+        }
         case 4:
+        {
             m = 'd';
-            foreach (u; 0 .. e.len)
+            const slice = e.peekDstring();
+            foreach (c; slice)
             {
-                const c = (cast(uint*)e.string)[u];
                 if (!utf_isValidDchar(c))
                     e.error("invalid UCS-32 char \\U%08x", c);
                 else
                     tmp.writeUTF8(c);
             }
-            q = tmp.peekSlice();
+            q = tmp[];
             break;
+        }
+
         default:
             assert(0);
         }
@@ -1006,15 +1033,15 @@ public:
         buf.writeByte(m);
         buf.print(q.length);
         buf.writeByte('_');    // nbytes <= 11
-        size_t qi = 0;
-        for (char* p = cast(char*)buf.data + buf.offset, pend = p + 2 * q.length; p < pend; p += 2, ++qi)
+        const len = buf.length;
+        auto slice = buf.allocate(2 * q.length);
+        foreach (i, c; q)
         {
-            char hi = (q[qi] >> 4) & 0xF;
-            p[0] = cast(char)(hi < 10 ? hi + '0' : hi - 10 + 'a');
-            char lo = q[qi] & 0xF;
-            p[1] = cast(char)(lo < 10 ? lo + '0' : lo - 10 + 'a');
+            char hi = (c >> 4) & 0xF;
+            slice[i * 2] = cast(char)(hi < 10 ? hi + '0' : hi - 10 + 'a');
+            char lo = c & 0xF;
+            slice[i * 2 + 1] = cast(char)(lo < 10 ? lo + '0' : lo - 10 + 'a');
         }
-        buf.offset += 2 * q.length;
     }
 
     override void visit(ArrayLiteralExp e)
@@ -1024,7 +1051,7 @@ public:
         buf.print(dim);
         foreach (i; 0 .. dim)
         {
-            e.getElement(i).accept(this);
+            e[i].accept(this);
         }
     }
 
@@ -1056,7 +1083,7 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////////////////
-    final void paramsToDecoBuffer(Parameters* parameters)
+    void paramsToDecoBuffer(Parameters* parameters)
     {
         //printf("Parameter.paramsToDecoBuffer()\n");
 
@@ -1073,8 +1100,10 @@ public:
     {
         if (p.storageClass & STC.scope_ && !(p.storageClass & STC.scopeinferred))
             buf.writeByte('M');
+
         // 'return inout ref' is the same as 'inout ref'
-        if ((p.storageClass & (STC.return_ | STC.wild)) == STC.return_)
+        if ((p.storageClass & (STC.return_ | STC.wild)) == STC.return_ &&
+            !(p.storageClass & STC.returninferred))
             buf.writestring("Nk");
         switch (p.storageClass & (STC.in_ | STC.out_ | STC.ref_ | STC.lazy_))
         {
@@ -1101,6 +1130,35 @@ public:
     }
 }
 
+/// Returns: `true` if the given character is a valid mangled character
+package bool isValidMangling(dchar c) nothrow
+{
+    return
+        c >= 'A' && c <= 'Z' ||
+        c >= 'a' && c <= 'z' ||
+        c >= '0' && c <= '9' ||
+        c != 0 && strchr("$%().:?@[]_", c) ||
+        isUniAlpha(c);
+}
+
+// valid mangled characters
+unittest
+{
+    assert('a'.isValidMangling);
+    assert('B'.isValidMangling);
+    assert('2'.isValidMangling);
+    assert('@'.isValidMangling);
+    assert('_'.isValidMangling);
+}
+
+// invalid mangled characters
+unittest
+{
+    assert(!'-'.isValidMangling);
+    assert(!0.isValidMangling);
+    assert(!'/'.isValidMangling);
+    assert(!'\\'.isValidMangling);
+}
 
 /******************************************************************************
  * Returns exact mangled name of function.
@@ -1112,7 +1170,7 @@ extern (C++) const(char)* mangleExact(FuncDeclaration fd)
         OutBuffer buf;
         scope Mangler v = new Mangler(&buf);
         v.mangleExact(fd);
-        fd.mangleString = buf.extractString();
+        fd.mangleString = buf.extractChars();
     }
     return fd.mangleString;
 }
@@ -1158,12 +1216,11 @@ extern (C++) void mangleToBuffer(TemplateInstance ti, OutBuffer* buf)
  */
 void mangleToFuncSignature(ref OutBuffer buf, FuncDeclaration fd)
 {
-    assert(fd.type.ty == Tfunction);
-    auto tf = cast(TypeFunction)fd.type;
+    auto tf = fd.type.isTypeFunction();
 
     scope Mangler v = new Mangler(&buf);
 
     MODtoDecoBuffer(&buf, tf.mod);
-    v.paramsToDecoBuffer(tf.parameters);
-    buf.writeByte('Z' - tf.varargs);
+    v.paramsToDecoBuffer(tf.parameterList.parameters);
+    buf.writeByte('Z' - tf.parameterList.varargs);
 }

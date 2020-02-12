@@ -2,9 +2,9 @@
 
 import imports.test25a, imports.test25b;
 
-import std.stdio;
+import core.stdc.stdio;
 
 void main()
 {
-    std.stdio.writefln("hello");
+    printf("hello\n");
 }

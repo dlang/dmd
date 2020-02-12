@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS: -dip1000
+REQUIRED_ARGS: -preview=dip1000
 PERMUTE_ARGS:
 TEST_OUTPUT:
 ---
@@ -235,10 +235,10 @@ void* funretscope(scope dg_t ptr) @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(249): Error: cannot implicitly convert expression `__lambda1` of type `void* delegate() pure nothrow @nogc return @safe` to `void* delegate() @safe`
-fail_compilation/retscope.d(249): Error: cannot implicitly convert expression `__lambda1` of type `void* delegate() pure nothrow @nogc return @safe` to `void* delegate() @safe`
-fail_compilation/retscope.d(250): Error: cannot implicitly convert expression `__lambda2` of type `void* delegate() pure nothrow @nogc return @safe` to `void* delegate() @safe`
-fail_compilation/retscope.d(250): Error: cannot implicitly convert expression `__lambda2` of type `void* delegate() pure nothrow @nogc return @safe` to `void* delegate() @safe`
+fail_compilation/retscope.d(249): Error: cannot implicitly convert expression `__lambda1` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() @safe`
+fail_compilation/retscope.d(249): Error: cannot implicitly convert expression `__lambda1` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() @safe`
+fail_compilation/retscope.d(250): Error: cannot implicitly convert expression `__lambda2` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() @safe`
+fail_compilation/retscope.d(250): Error: cannot implicitly convert expression `__lambda2` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() @safe`
 ---
 */
 
@@ -455,7 +455,7 @@ fail_compilation/retscope.d(1311): Error: scope variable `u2` assigned to `ek` w
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(1405): Error: reference to local variable `buf` assigned to non-scope parameter `unnamed` calling retscope.myprintf
+fail_compilation/retscope.d(1405): Error: reference to local variable `buf` assigned to non-scope parameter `__anonymous_param` calling retscope.myprintf
 ---
 */
 
@@ -473,7 +473,7 @@ fail_compilation/retscope.d(1405): Error: reference to local variable `buf` assi
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(1509): Error: reference to stack allocated value returned by `(*fp15)()` assigned to non-scope parameter `unnamed`
+fail_compilation/retscope.d(1509): Error: reference to stack allocated value returned by `(*fp15)()` assigned to non-scope parameter `__anonymous_param`
 ---
 */
 
@@ -506,9 +506,9 @@ void foo16() @nogc nothrow
 TEST_OUTPUT:
 ---
 fail_compilation/retscope.d(1701): Error: cannot implicitly convert expression `& func` of type `int* function(int* p)` to `int* function(scope int* p)`
-fail_compilation/retscope.d(1702): Error: cannot implicitly convert expression `& func` of type `int* function(int* p)` to `int* function(return scope int* p)`
+fail_compilation/retscope.d(1702): Error: cannot implicitly convert expression `& func` of type `int* function(int* p)` to `int* function(return int* p)`
 fail_compilation/retscope.d(1703): Error: cannot implicitly convert expression `& func` of type `int* function(int* p)` to `int* function(return scope int* p)`
-fail_compilation/retscope.d(1711): Error: cannot implicitly convert expression `& funcr` of type `int* function(return scope int* p)` to `int* function(scope int* p)`
+fail_compilation/retscope.d(1711): Error: cannot implicitly convert expression `& funcr` of type `int* function(return int* p)` to `int* function(scope int* p)`
 fail_compilation/retscope.d(1716): Error: cannot implicitly convert expression `& funcrs` of type `int* function(return scope int* p)` to `int* function(scope int* p)`
 ---
 */

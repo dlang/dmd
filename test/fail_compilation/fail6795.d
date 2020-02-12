@@ -1,4 +1,4 @@
-// 6795
+// https://issues.dlang.org/show_bug.cgi?id=6795
 /*
 TEST_OUTPUT:
 ---

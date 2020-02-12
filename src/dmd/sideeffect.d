@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/sideeffect.d, _sideeffect.d)
@@ -92,7 +92,7 @@ extern (C++) bool hasSideEffect(Expression e)
  *      1   nothrow + constant purity
  *      2   nothrow + strong purity
  */
-extern (C++) int callSideEffectLevel(FuncDeclaration f)
+int callSideEffectLevel(FuncDeclaration f)
 {
     /* https://issues.dlang.org/show_bug.cgi?id=12760
      * ctor call always has side effects.
@@ -112,7 +112,7 @@ extern (C++) int callSideEffectLevel(FuncDeclaration f)
     return 0;
 }
 
-extern (C++) int callSideEffectLevel(Type t)
+int callSideEffectLevel(Type t)
 {
     t = t.toBasetype();
     TypeFunction tf;
@@ -123,6 +123,9 @@ extern (C++) int callSideEffectLevel(Type t)
         assert(t.ty == Tfunction);
         tf = cast(TypeFunction)t;
     }
+    if (!tf.isnothrow)  // function can throw
+        return 0;
+
     tf.purityLevel();
     PURE purity = tf.purity;
     if (t.ty == Tdelegate && purity > PURE.weak)
@@ -132,13 +135,11 @@ extern (C++) int callSideEffectLevel(Type t)
         else if (!tf.isImmutable())
             purity = PURE.const_;
     }
-    if (tf.isnothrow)
-    {
-        if (purity == PURE.strong)
-            return 2;
-        if (purity == PURE.const_)
-            return 1;
-    }
+
+    if (purity == PURE.strong)
+        return 2;
+    if (purity == PURE.const_)
+        return 1;
     return 0;
 }
 
@@ -217,7 +218,7 @@ private bool lambdaHasSideEffect(Expression e)
  * Returns:
  *      true if expression has no side effects
  */
-extern (C++) bool discardValue(Expression e)
+bool discardValue(Expression e)
 {
     if (lambdaHasSideEffect(e)) // check side-effect shallowly
         return false;
@@ -250,7 +251,7 @@ extern (C++) bool discardValue(Expression e)
         }
     case TOK.call:
         /* Issue 3882: */
-        if (global.params.warnings && !global.gag)
+        if (global.params.warnings != DiagnosticReporting.off && !global.gag)
         {
             CallExp ce = cast(CallExp)e;
             if (e.type.ty == Tvoid)
@@ -362,15 +363,13 @@ extern (C++) bool discardValue(Expression e)
  * Returns:
  *  Newly created temporary variable.
  */
-VarDeclaration copyToTemp(StorageClass stc, const char* name, Expression e)
+VarDeclaration copyToTemp(StorageClass stc, const char[] name, Expression e)
 {
-    assert(name && name[0] == '_' && name[1] == '_');
-    auto id = Identifier.generateId(name);
-    auto ez = new ExpInitializer(e.loc, e);
-    auto vd = new VarDeclaration(e.loc, e.type, id, ez);
-    vd.storage_class = stc;
-    vd.storage_class |= STC.temp;
-    vd.storage_class |= STC.ctfe; // temporary is always CTFEable
+    assert(name[0] == '_' && name[1] == '_');
+    auto vd = new VarDeclaration(e.loc, e.type,
+        Identifier.generateId(name),
+        new ExpInitializer(e.loc, e));
+    vd.storage_class = stc | STC.temp | STC.ctfe; // temporary is always CTFEable
     return vd;
 }
 
@@ -388,23 +387,27 @@ VarDeclaration copyToTemp(StorageClass stc, const char* name, Expression e)
  * Note:
  *  e's lvalue-ness will be handled well by STC.ref_ or STC.rvalue.
  */
-Expression extractSideEffect(Scope* sc, const char* name,
+Expression extractSideEffect(Scope* sc, const char[] name,
     ref Expression e0, Expression e, bool alwaysCopy = false)
 {
-    if (!alwaysCopy && isTrivialExp(e))
+    //printf("extractSideEffect(e: %s)\n", e.toChars());
+
+    /* The trouble here is that if CTFE is running, extracting the side effect
+     * results in an assignment, and then the interpreter says it cannot evaluate the
+     * side effect assignment variable. But we don't have to worry about side
+     * effects in function calls anyway, because then they won't CTFE.
+     * https://issues.dlang.org/show_bug.cgi?id=17145
+     */
+    if (!alwaysCopy &&
+        ((sc.flags & SCOPE.ctfe) ? !hasSideEffect(e) : isTrivialExp(e)))
         return e;
 
     auto vd = copyToTemp(0, name, e);
-    if (e.isLvalue())
-        vd.storage_class |= STC.ref_;
-    else
-        vd.storage_class |= STC.rvalue;
+    vd.storage_class |= e.isLvalue() ? STC.ref_ : STC.rvalue;
 
-    Expression de = new DeclarationExp(vd.loc, vd);
-    Expression ve = new VarExp(vd.loc, vd);
-    de = de.expressionSemantic(sc);
-    ve = ve.expressionSemantic(sc);
+    e0 = Expression.combine(e0, new DeclarationExp(vd.loc, vd)
+                                .expressionSemantic(sc));
 
-    e0 = Expression.combine(e0, de);
-    return ve;
+    return new VarExp(vd.loc, vd)
+           .expressionSemantic(sc);
 }

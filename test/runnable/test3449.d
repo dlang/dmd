@@ -1,6 +1,6 @@
 
 /******************************************/
-// 3449
+// https://issues.dlang.org/show_bug.cgi?id=3449
 
 template TypeTuple(T...) { alias TypeTuple = T; }
 
@@ -89,7 +89,7 @@ void test3449()
 }
 
 /******************************************/
-// 10643
+// https://issues.dlang.org/show_bug.cgi?id=10643
 
 struct S10643
 {

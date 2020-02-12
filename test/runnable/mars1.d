@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS: -mcpu=native -transition=16997 -transition=intpromote
+REQUIRED_ARGS: -mcpu=native -preview=intpromote -preview=intpromote
 PERMUTE_ARGS: -O -inline -release
 */
 
@@ -238,13 +238,13 @@ void test13023(ulong n)
 
 struct U { int a; union { char c; int d; } long b; }
 
-U f = { b:3, d:2, a:1 };
+U f = { b:3, d:0x22222222, a:1 };
 
 void testU()
 {
     assert(f.b == 3);
-    assert(f.d == 2);
-    assert(f.c == 2);
+    assert(f.d == 0x22222222);
+    assert(f.c == 0x22);
     assert(f.a == 1);
     assert(f.sizeof == 16);
     assert(U.sizeof == 16);
@@ -1386,7 +1386,7 @@ void test3()
 }
 
 ////////////////////////////////////////////////////////////////////////
-// 14782
+// https://issues.dlang.org/show_bug.cgi?id=14782
 
 
 void test14782()
@@ -1838,6 +1838,127 @@ void test18730() // https://issues.dlang.org/show_bug.cgi?id=18730
 
 ////////////////////////////////////////////////////////////////////////
 
+void test19497() // https://issues.dlang.org/show_bug.cgi?id=19497
+{
+    {
+        ubyte[1024] data;
+        ushort* ushortPtr = cast(ushort*) data.ptr;
+        *ushortPtr++ = 0xfe00;
+        printf("ushortPtr(%p)\n", ushortPtr);
+        fflush(stdout);
+    }
+
+    alias Seq(stuff ...) = stuff;
+    static foreach (T; Seq!(ubyte, ushort, uint, ulong, byte, short, int, long))
+    {{
+        T[2] data = 0x2A;
+        T* q = &data[0];
+        *q++ = cast(T) 0x1122334455667788;
+        if (*q != 0x2A) assert(false);
+    }}
+
+    {
+        static int toStringz(string s) { return s.length > 0 ? s[0] : 0; }
+        static void toAStringz(in string[] a, int* az)
+        {
+            foreach (string s; a)
+            {
+                *az++ = toStringz(s);
+            }
+        }
+        string[1] sa = ["abc"];
+        int[2] tgt = 0x2a;
+        toAStringz(sa[], tgt.ptr);
+        if (tgt[0] != 'a') assert(false);
+        if (tgt[1] != 0x2a) assert(false);
+    }
+}
+
+////////////////////////////////////////////////////////////////////////
+
+// https://issues.dlang.org/show_bug.cgi?id=18794
+
+bool method18794(size_t* p)
+{
+    int bitIdx = 0;
+    func18794();
+    return (*p & (1UL << bitIdx)) != 0;
+}
+
+void func18794() {}
+
+void prep18794()
+{
+    asm {}
+    ulong[2] x = -1;
+}
+
+void test18794()
+{
+    prep18794();
+    size_t s;
+    method18794(&s);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+const(char)* fastpar(string s)
+{
+    return s.ptr + s.length;
+}
+
+void testfastpar()
+{
+    string s = "abcde";
+    auto p = fastpar(s);
+    assert(*p == 0);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+
+T testfooa(T)(T value)
+{
+    return 10 - (value * 57); // gets rewritten into (value*-57)+10
+}
+
+T testfoob(T)(T value)
+{
+    return (value * -57) + 10;
+}
+
+void testNegConst()
+{
+    assert(testfooa(1) == -47);
+    assert(testfoob(1) == -47);
+    assert(testfooa(1.0) == -47);
+    assert(testfoob(1.0) == -47);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+// https://issues.dlang.org/show_bug.cgi?id=20050
+
+int test20050_g = 0;
+void test20050_impure_function_1() { ++test20050_g; }
+void function() test20050_get_impure_function() pure
+{
+    static void impure_function_2()
+    {
+        ++test20050_g;
+        test20050_impure_function_1();
+    }
+    return &impure_function_2;
+}
+void test20050()
+{
+    auto f = test20050_get_impure_function();
+    f();
+    assert(test20050_g == 2);
+}
+
+////////////////////////////////////////////////////////////////////////
+
 int main()
 {
     testgoto();
@@ -1903,6 +2024,11 @@ int main()
     test18315();
     test18461();
     test18730();
+    test19497();
+    test18794();
+    testfastpar();
+    testNegConst();
+    test20050();
 
     printf("Success\n");
     return 0;

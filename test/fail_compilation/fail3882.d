@@ -2,7 +2,7 @@
 // PERMUTE_ARGS: -debug
 
 /******************************************/
-// 3882
+// https://issues.dlang.org/show_bug.cgi?id=3882
 
 /*
 TEST_OUTPUT:
@@ -22,7 +22,7 @@ void main()
     int x = 3;
     strictlyPure(x);
 
-    // 12649
+    // https://issues.dlang.org/show_bug.cgi?id=12649
     auto fp = &strictlyPure!int;
     fp(x);
 }

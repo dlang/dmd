@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/attrib.d, _attrib.d)
@@ -19,16 +19,18 @@ import dmd.declaration;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dsymbolsem;
+import dmd.dsymbolsem : dsymbolSemantic;
 import dmd.expression;
+import dmd.expressionsem : arrayExpressionSemantic;
 import dmd.func;
 import dmd.globals;
-import dmd.hdrgen;
+import dmd.hdrgen : protectionToBuffer;
 import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
+import dmd.objc; // for objc.addSymbols
 import dmd.root.outbuffer;
-import dmd.target;
+import dmd.target; // for target.systemLinkage
 import dmd.tokens;
 import dmd.visitor;
 
@@ -43,6 +45,12 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         this.decl = decl;
     }
 
+    extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* decl)
+    {
+        super(loc, ident);
+        this.decl = decl;
+    }
+
     Dsymbols* include(Scope* sc)
     {
         if (errors)
@@ -53,20 +61,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 
     override final int apply(Dsymbol_apply_ft_t fp, void* param)
     {
-        Dsymbols* d = include(_scope);
-        if (d)
-        {
-            for (size_t i = 0; i < d.dim; i++)
-            {
-                Dsymbol s = (*d)[i];
-                if (s)
-                {
-                    if (s.apply(fp, param))
-                        return 1;
-                }
-            }
-        }
-        return 0;
+        return include(_scope).foreachDsymbol( (s) { return s && s.apply(fp, param); } );
     }
 
     /****************************************
@@ -75,7 +70,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
      * If the returned scope != sc, the caller should pop
      * the scope after it used.
      */
-    static Scope* createNewScope(Scope* sc, StorageClass stc, LINK linkage,
+    extern (D) static Scope* createNewScope(Scope* sc, StorageClass stc, LINK linkage,
         CPPMANGLE cppmangle, Prot protection, int explicitProtection,
         AlignDeclaration aligndecl, PINLINE inlining)
     {
@@ -116,12 +111,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         if (d)
         {
             Scope* sc2 = newScope(sc);
-            for (size_t i = 0; i < d.dim; i++)
-            {
-                Dsymbol s = (*d)[i];
-                //printf("\taddMember %s to %s\n", s.toChars(), sds.toChars());
-                s.addMember(sc2, sds);
-            }
+            d.foreachDsymbol( s => s.addMember(sc2, sds) );
             if (sc2 != sc)
                 sc2.pop();
         }
@@ -134,11 +124,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         if (d)
         {
             Scope* sc2 = newScope(sc);
-            for (size_t i = 0; i < d.dim; i++)
-            {
-                Dsymbol s = (*d)[i];
-                s.setScope(sc2);
-            }
+            d.foreachDsymbol( s => s.setScope(sc2) );
             if (sc2 != sc)
                 sc2.pop();
         }
@@ -151,11 +137,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         if (d)
         {
             Scope* sc2 = newScope(sc);
-            for (size_t i = 0; i < d.dim; i++)
-            {
-                Dsymbol s = (*d)[i];
-                s.importAll(sc2);
-            }
+            d.foreachDsymbol( s => s.importAll(sc2) );
             if (sc2 != sc)
                 sc2.pop();
         }
@@ -166,16 +148,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         //printf("AttribDeclaration::addComment %s\n", comment);
         if (comment)
         {
-            Dsymbols* d = include(null);
-            if (d)
-            {
-                for (size_t i = 0; i < d.dim; i++)
-                {
-                    Dsymbol s = (*d)[i];
-                    //printf("AttribDeclaration::addComment %s\n", s.toChars());
-                    s.addComment(comment);
-                }
-            }
+            include(null).foreachDsymbol( s => s.addComment(comment) );
         }
     }
 
@@ -192,73 +165,34 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 
     override void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
     {
-        Dsymbols* d = include(null);
-        if (d)
-        {
-            for (size_t i = 0; i < d.dim; i++)
-            {
-                Dsymbol s = (*d)[i];
-                s.setFieldOffset(ad, poffset, isunion);
-            }
-        }
+        include(null).foreachDsymbol( s => s.setFieldOffset(ad, poffset, isunion) );
     }
 
     override final bool hasPointers()
     {
-        Dsymbols* d = include(null);
-        if (d)
-        {
-            for (size_t i = 0; i < d.dim; i++)
-            {
-                Dsymbol s = (*d)[i];
-                if (s.hasPointers())
-                    return true;
-            }
-        }
-        return false;
+        return include(null).foreachDsymbol( (s) { return s.hasPointers(); } ) != 0;
     }
 
     override final bool hasStaticCtorOrDtor()
     {
-        Dsymbols* d = include(null);
-        if (d)
-        {
-            for (size_t i = 0; i < d.dim; i++)
-            {
-                Dsymbol s = (*d)[i];
-                if (s.hasStaticCtorOrDtor())
-                    return true;
-            }
-        }
-        return false;
+        return include(null).foreachDsymbol( (s) { return s.hasStaticCtorOrDtor(); } ) != 0;
     }
 
     override final void checkCtorConstInit()
     {
-        Dsymbols* d = include(null);
-        if (d)
-        {
-            for (size_t i = 0; i < d.dim; i++)
-            {
-                Dsymbol s = (*d)[i];
-                s.checkCtorConstInit();
-            }
-        }
+        include(null).foreachDsymbol( s => s.checkCtorConstInit() );
     }
 
     /****************************************
      */
     override final void addLocalClass(ClassDeclarations* aclasses)
     {
-        Dsymbols* d = include(null);
-        if (d)
-        {
-            for (size_t i = 0; i < d.dim; i++)
-            {
-                Dsymbol s = (*d)[i];
-                s.addLocalClass(aclasses);
-            }
-        }
+        include(null).foreachDsymbol( s => s.addLocalClass(aclasses) );
+    }
+
+    override final void addObjcSymbols(ClassDeclarations* classes, ClassDeclarations* categories)
+    {
+        objc.addSymbols(this, classes, categories);
     }
 
     override final inout(AttribDeclaration) isAttribDeclaration() inout
@@ -345,9 +279,9 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
         if (d)
         {
             Scope* sc2 = newScope(sc);
-            for (size_t i = 0; i < d.dim; i++)
+
+            d.foreachDsymbol( (s)
             {
-                Dsymbol s = (*d)[i];
                 //printf("\taddMember %s to %s\n", s.toChars(), sds.toChars());
                 // STC.local needs to be attached before the member is added to the scope (because it influences the parent symbol)
                 if (auto decl = s.isDeclaration())
@@ -359,7 +293,8 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
                     }
                 }
                 s.addMember(sc2, sds);
-            }
+            });
+
             if (sc2 != sc)
                 sc2.pop();
         }
@@ -435,11 +370,11 @@ extern (C++) final class LinkDeclaration : AttribDeclaration
 {
     LINK linkage;
 
-    extern (D) this(LINK p, Dsymbols* decl)
+    extern (D) this(LINK linkage, Dsymbols* decl)
     {
         super(decl);
-        //printf("LinkDeclaration(linkage = %d, decl = %p)\n", p, decl);
-        linkage = (p == LINK.system) ? Target.systemLinkage() : p;
+        //printf("LinkDeclaration(linkage = %d, decl = %p)\n", linkage, decl);
+        this.linkage = (linkage == LINK.system) ? target.systemLinkage() : linkage;
     }
 
     static LinkDeclaration create(LINK p, Dsymbols* decl)
@@ -461,6 +396,11 @@ extern (C++) final class LinkDeclaration : AttribDeclaration
 
     override const(char)* toChars() const
     {
+        return toString().ptr;
+    }
+
+    extern(D) override const(char)[] toString() const
+    {
         return "extern ()";
     }
 
@@ -476,11 +416,11 @@ extern (C++) final class CPPMangleDeclaration : AttribDeclaration
 {
     CPPMANGLE cppmangle;
 
-    extern (D) this(CPPMANGLE p, Dsymbols* decl)
+    extern (D) this(CPPMANGLE cppmangle, Dsymbols* decl)
     {
         super(decl);
-        //printf("CPPMangleDeclaration(cppmangle = %d, decl = %p)\n", p, decl);
-        cppmangle = p;
+        //printf("CPPMangleDeclaration(cppmangle = %d, decl = %p)\n", cppmangle, decl);
+        this.cppmangle = cppmangle;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
@@ -497,6 +437,11 @@ extern (C++) final class CPPMangleDeclaration : AttribDeclaration
 
     override const(char)* toChars() const
     {
+        return toString().ptr;
+    }
+
+    extern(D) override const(char)[] toString() const
+    {
         return "extern ()";
     }
 
@@ -504,6 +449,92 @@ extern (C++) final class CPPMangleDeclaration : AttribDeclaration
     {
         v.visit(this);
     }
+}
+
+/**
+ * A node to represent an `extern(C++)` namespace attribute
+ *
+ * There are two ways to declarate a symbol as member of a namespace:
+ * `Nspace` and `CPPNamespaceDeclaration`.
+ * The former creates a scope for the symbol, and inject them in the
+ * parent scope at the same time.
+ * The later, this class, has no semantic implications and is only
+ * used for mangling.
+ * Additionally, this class allows one to use reserved identifiers
+ * (D keywords) in the namespace.
+ *
+ * A `CPPNamespaceDeclaration` can be created from an `Identifier`
+ * (already resolved) or from an `Expression`, which is CTFE-ed
+ * and can be either a `TupleExp`, in which can additional
+ * `CPPNamespaceDeclaration` nodes are created, or a `StringExp`.
+ *
+ * Note that this class, like `Nspace`, matches only one identifier
+ * part of a namespace. For the namespace `"foo::bar"`,
+ * the will be a `CPPNamespaceDeclaration` with its `ident`
+ * set to `"bar"`, and its `namespace` field pointing to another
+ * `CPPNamespaceDeclaration` with its `ident` set to `"foo"`.
+ */
+extern (C++) final class CPPNamespaceDeclaration : AttribDeclaration
+{
+    /// CTFE-able expression, resolving to `TupleExp` or `StringExp`
+    Expression exp;
+
+    extern (D) this(Identifier ident, Dsymbols* decl)
+    {
+        super(decl);
+        this.ident = ident;
+    }
+
+    extern (D) this(Expression exp, Dsymbols* decl)
+    {
+        super(decl);
+        this.exp = exp;
+    }
+
+    extern (D) this(Identifier ident, Expression exp, Dsymbols* decl,
+                    CPPNamespaceDeclaration parent)
+    {
+        super(decl);
+        this.ident = ident;
+        this.exp = exp;
+        this.cppnamespace = parent;
+    }
+
+    override Dsymbol syntaxCopy(Dsymbol s)
+    {
+        assert(!s);
+        return new CPPNamespaceDeclaration(
+            this.ident, this.exp, Dsymbol.arraySyntaxCopy(this.decl), this.cppnamespace);
+    }
+
+    /**
+     * Returns:
+     *   A copy of the parent scope, with `this` as `namespace` and C++ linkage
+     */
+    override Scope* newScope(Scope* sc)
+    {
+        auto scx = sc.copy();
+        scx.linkage = LINK.cpp;
+        scx.namespace = this;
+        return scx;
+    }
+
+    override const(char)* toChars() const
+    {
+        return toString().ptr;
+    }
+
+    extern(D) override const(char)[] toString() const
+    {
+        return "extern (C++, `namespace`)";
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+
+    override inout(CPPNamespaceDeclaration) isCPPNamespaceDeclaration() inout { return this; }
 }
 
 /***********************************************************
@@ -516,14 +547,13 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
     /**
      * Params:
      *  loc = source location of attribute token
-     *  p = protection attribute data
+     *  protection = protection attribute data
      *  decl = declarations which are affected by this protection attribute
      */
-    extern (D) this(const ref Loc loc, Prot p, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, Prot protection, Dsymbols* decl)
     {
-        super(decl);
-        this.loc = loc;
-        this.protection = p;
+        super(loc, null, decl);
+        this.protection = protection;
         //printf("decl = %p\n", decl);
     }
 
@@ -535,8 +565,7 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
      */
     extern (D) this(const ref Loc loc, Identifiers* pkg_identifiers, Dsymbols* decl)
     {
-        super(decl);
-        this.loc = loc;
+        super(loc, null, decl);
         this.protection.kind = Prot.Kind.package_;
         this.pkg_identifiers = pkg_identifiers;
         if (pkg_identifiers !is null && pkg_identifiers.dim > 0)
@@ -592,10 +621,10 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
         assert(protection.kind > Prot.Kind.undefined);
         OutBuffer buf;
         protectionToBuffer(&buf, protection);
-        return buf.extractString();
+        return buf.extractChars();
     }
 
-    override final inout(ProtDeclaration) isProtDeclaration() inout
+    override inout(ProtDeclaration) isProtDeclaration() inout
     {
         return this;
     }
@@ -617,8 +646,7 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
 
     extern (D) this(const ref Loc loc, Expression ealign, Dsymbols* decl)
     {
-        super(decl);
-        this.loc = loc;
+        super(loc, null, decl);
         this.ealign = ealign;
     }
 
@@ -626,7 +654,8 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
     {
         assert(!s);
         return new AlignDeclaration(loc,
-            ealign.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl));
+            ealign ? ealign.syntaxCopy() : null,
+            Dsymbol.arraySyntaxCopy(decl));
     }
 
     override Scope* newScope(Scope* sc)
@@ -652,8 +681,7 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
 
     extern (D) this(const ref Loc loc, bool isunion, Dsymbols* decl)
     {
-        super(decl);
-        this.loc = loc;
+        super(loc, null, decl);
         this.isunion = isunion;
     }
 
@@ -690,13 +718,12 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
             ad.alignsize = 0;
 
             uint offset = 0;
-            for (size_t i = 0; i < decl.dim; i++)
+            decl.foreachDsymbol( (s)
             {
-                Dsymbol s = (*decl)[i];
                 s.setFieldOffset(ad, &offset, this.isunion);
                 if (this.isunion)
                     offset = 0;
-            }
+            });
 
             /* https://issues.dlang.org/show_bug.cgi?id=13613
              * If the fields in this.members had been already
@@ -737,7 +764,7 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
 
             // Add to the anon fields the base offset of this anonymous aggregate
             //printf("anon fields, anonoffset = %d\n", anonoffset);
-            for (size_t i = fieldstart; i < ad.fields.dim; i++)
+            foreach (const i; fieldstart .. ad.fields.dim)
             {
                 VarDeclaration v = ad.fields[i];
                 //printf("\t[%d] %s %d\n", i, v.toChars(), v.offset);
@@ -751,7 +778,7 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
         return (isunion ? "anonymous union" : "anonymous struct");
     }
 
-    override final inout(AnonDeclaration) isAnonDeclaration() inout
+    override inout(AnonDeclaration) isAnonDeclaration() inout
     {
         return this;
     }
@@ -770,9 +797,7 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
 
     extern (D) this(const ref Loc loc, Identifier ident, Expressions* args, Dsymbols* decl)
     {
-        super(decl);
-        this.loc = loc;
-        this.ident = ident;
+        super(loc, ident, decl);
         this.args = args;
     }
 
@@ -852,7 +877,7 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
     override final bool oneMember(Dsymbol* ps, Identifier ident)
     {
         //printf("ConditionalDeclaration::oneMember(), inc = %d\n", condition.inc);
-        if (condition.inc)
+        if (condition.inc != Include.notComputed)
         {
             Dsymbols* d = condition.include(null) ? decl : elsedecl;
             return Dsymbol.oneMembers(d, ps, ident);
@@ -886,35 +911,14 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
          */
         if (comment)
         {
-            Dsymbols* d = decl;
-            for (int j = 0; j < 2; j++)
-            {
-                if (d)
-                {
-                    for (size_t i = 0; i < d.dim; i++)
-                    {
-                        Dsymbol s = (*d)[i];
-                        //printf("ConditionalDeclaration::addComment %s\n", s.toChars());
-                        s.addComment(comment);
-                    }
-                }
-                d = elsedecl;
-            }
+            decl    .foreachDsymbol( s => s.addComment(comment) );
+            elsedecl.foreachDsymbol( s => s.addComment(comment) );
         }
     }
 
     override void setScope(Scope* sc)
     {
-        Dsymbols* d = include(sc);
-        //printf("\tConditionalDeclaration::setScope '%s', d = %p\n",toChars(), d);
-        if (d)
-        {
-            for (size_t i = 0; i < d.dim; i++)
-            {
-                Dsymbol s = (*d)[i];
-                s.setScope(sc);
-            }
-        }
+        include(sc).foreachDsymbol( s => s.setScope(sc) );
     }
 
     override void accept(Visitor v)
@@ -956,7 +960,7 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
         onStack = true;
         scope(exit) onStack = false;
 
-        if (condition.inc == 0)
+        if (sc && condition.inc == Include.notComputed)
         {
             assert(scopesym); // addMember is already done
             assert(_scope); // setScope is already done
@@ -964,17 +968,11 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
             if (d && !addisdone)
             {
                 // Add members lazily.
-                for (size_t i = 0; i < d.dim; i++)
-                {
-                    Dsymbol s = (*d)[i];
-                    s.addMember(_scope, scopesym);
-                }
+                d.foreachDsymbol( s => s.addMember(_scope, scopesym) );
+
                 // Set the member scopes lazily.
-                for (size_t i = 0; i < d.dim; i++)
-                {
-                    Dsymbol s = (*d)[i];
-                    s.setScope(_scope);
-                }
+                d.foreachDsymbol( s => s.setScope(_scope) );
+
                 addisdone = true;
             }
             return d;
@@ -1060,7 +1058,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
             Dsymbol.arraySyntaxCopy(decl));
     }
 
-    override final bool oneMember(Dsymbol* ps, Identifier ident)
+    override bool oneMember(Dsymbol* ps, Identifier ident)
     {
         // Required to support IFTI on a template that contains a
         // `static foreach` declaration.  `super.oneMember` calls
@@ -1102,17 +1100,10 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
         if (d) // process generated declarations
         {
             // Add members lazily.
-            for (size_t i = 0; i < d.dim; i++)
-            {
-                Dsymbol s = (*d)[i];
-                s.addMember(_scope, scopesym);
-            }
+            d.foreachDsymbol( s => s.addMember(_scope, scopesym) );
+
             // Set the member scopes lazily.
-            for (size_t i = 0; i < d.dim; i++)
-            {
-                Dsymbol s = (*d)[i];
-                s.setScope(_scope);
-            }
+            d.foreachDsymbol( s => s.setScope(_scope) );
         }
         cached = true;
         cache = d;
@@ -1125,7 +1116,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
         this.scopesym = sds;
     }
 
-    override final void addComment(const(char)* comment)
+    override void addComment(const(char)* comment)
     {
         // do nothing
         // change this to give semantics to documentation comments on static foreach declarations
@@ -1212,31 +1203,36 @@ extern(C++) final class ForwardingAttribDeclaration: AttribDeclaration
     {
         return this;
     }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
 }
 
 
 /***********************************************************
  * Mixin declarations, like:
  *      mixin("int x");
+ * https://dlang.org/spec/module.html#mixin-declaration
  */
 extern (C++) final class CompileDeclaration : AttribDeclaration
 {
-    Expression exp;
+    Expressions* exps;
     ScopeDsymbol scopesym;
     bool compiled;
 
-    extern (D) this(const ref Loc loc, Expression exp)
+    extern (D) this(const ref Loc loc, Expressions* exps)
     {
-        super(null);
+        super(loc, null, null);
         //printf("CompileDeclaration(loc = %d)\n", loc.linnum);
-        this.loc = loc;
-        this.exp = exp;
+        this.exps = exps;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         //printf("CompileDeclaration::syntaxCopy('%s')\n", toChars());
-        return new CompileDeclaration(loc, exp.syntaxCopy());
+        return new CompileDeclaration(loc, Expression.arraySyntaxCopy(exps));
     }
 
     override void addMember(Scope* sc, ScopeDsymbol sds)
@@ -1253,6 +1249,11 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
     override const(char)* kind() const
     {
         return "mixin";
+    }
+
+    override inout(CompileDeclaration) isCompileDeclaration() inout
+    {
+        return this;
     }
 
     override void accept(Visitor v)
@@ -1304,7 +1305,7 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
         return AttribDeclaration.setScope(sc);
     }
 
-    static Expressions* concat(Expressions* udas1, Expressions* udas2)
+    extern (D) static Expressions* concat(Expressions* udas1, Expressions* udas2)
     {
         Expressions* udas;
         if (!udas1 || udas1.dim == 0)
@@ -1316,9 +1317,9 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
             /* Create a new tuple that combines them
              * (do not append to left operand, as this is a copy-on-write operation)
              */
-            udas = new Expressions();
-            udas.push(new TupleExp(Loc.initial, udas1));
-            udas.push(new TupleExp(Loc.initial, udas2));
+            udas = new Expressions(2);
+            (*udas)[0] = new TupleExp(Loc.initial, udas1);
+            (*udas)[1] = new TupleExp(Loc.initial, udas2);
         }
         return udas;
     }
