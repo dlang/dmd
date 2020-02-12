@@ -633,7 +633,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 }
 
                 // handle NRVO
-                if (!Target.isReturnOnStack(f, funcdecl.needThis()) || funcdecl.checkNrvo())
+                if (!target.isReturnOnStack(f, funcdecl.needThis()) || funcdecl.checkNrvo())
                     funcdecl.nrvo_can = 0;
 
                 if (funcdecl.fbody.isErrorStatement())
