@@ -11929,7 +11929,7 @@ private bool checkAddressVar(Scope* sc, UnaExp exp, VarDeclaration v)
             const bool isRef = (v.storage_class & (STC.ref_ | STC.out_)) != 0;
             if (global.params.vsafe)
             {
-                if (exp.e1.type.hasPointers() || exp.isDelegateExp() || isRef)
+                if (exp.e1.type.hasPointers() || isRef)
                 {
                     // Taking the address of v means it cannot be set to 'scope' later
                     v.storage_class &= ~STC.maybescope;
