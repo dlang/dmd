@@ -1002,7 +1002,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
             {
                 if (search_function(sd, Id.eq))
                 {
-                    .error(loc, "%sAA key type `%s` should have `size_t toHash() const nothrow @safe` if `opEquals` defined", s, sd.toChars());
+                    .error(loc, "%sAA key type `%s` should have `extern (D) size_t toHash() const nothrow @safe` if `opEquals` defined", s, sd.toChars());
                 }
                 else
                 {
