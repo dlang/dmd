@@ -1203,6 +1203,9 @@ $(IMPDIR)\core\sys\windows\rpcnterr.d : src\core\sys\windows\rpcnterr.d
 $(IMPDIR)\core\sys\windows\schannel.d : src\core\sys\windows\schannel.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\windows\sdkddkver.d : src\core\sys\windows\sdkddkver.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\windows\secext.d : src\core\sys\windows\secext.d
 	copy $** $@
 
