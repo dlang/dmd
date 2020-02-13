@@ -11442,7 +11442,7 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
         if (s)
         {
             auto p = s.isPackage();
-            if (p && checkAccess(exp.loc, sc, p))
+            if (p && checkAccess(sc, p))
             {
                 s = null;
             }
