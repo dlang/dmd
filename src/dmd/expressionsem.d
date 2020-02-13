@@ -5787,7 +5787,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         // save expression as a string before any semantic expansion
-        auto assertExpMsg = exp.msg ? null : exp.toChars();
+        // if -checkaction=context is enabled an no message exists
+        const generateMsg = !exp.msg && global.params.checkAction == CHECKACTION.context;
+        auto assertExpMsg = generateMsg ? exp.toChars() : null;
 
         if (Expression ex = unaSemantic(exp, sc))
         {
@@ -5799,7 +5801,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         exp.e1 = exp.e1.optimize(WANTvalue);
         exp.e1 = exp.e1.toBoolean(sc);
 
-        if (!exp.msg && global.params.checkAction == CHECKACTION.context)
+        if (generateMsg)
         // no message - use assert expression as msg
         {
             /*
