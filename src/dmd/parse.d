@@ -3071,6 +3071,7 @@ final class Parser(AST) : Lexer
         else if (token.value == TOK.leftCurly)
         {
             bool isAnonymousEnum = !id;
+            TOK prevTOK;
 
             //printf("enum definition\n");
             e.members = new AST.Dsymbols();
@@ -3110,6 +3111,7 @@ final class Parser(AST) : Lexer
                                     AST.stcToBuffer(&buf, _stc);
                                     error(attributeErrorMessage, buf.peekChars());
                                 }
+                                prevTOK = token.value;
                                 nextToken();
                             }
                             break;
@@ -3117,6 +3119,7 @@ final class Parser(AST) : Lexer
                             if (StorageClass _stc = parseDeprecatedAttribute(deprecationMessage))
                             {
                                 stc |= _stc;
+                                prevTOK = token.value;
                                 nextToken();
                             }
                             break;
@@ -3126,6 +3129,7 @@ final class Parser(AST) : Lexer
                             {
                                 ident = token.ident;
                                 type = null;
+                                prevTOK = token.value;
                                 nextToken();
                             }
                             else
@@ -3140,15 +3144,25 @@ final class Parser(AST) : Lexer
                                 if (type == AST.Type.terror)
                                 {
                                     type = null;
+                                    prevTOK = token.value;
                                     nextToken();
+                                }
+                                else
+                                {
+                                    prevTOK = TOK.identifier;
                                 }
                             }
                             else
                             {
                                 error(attributeErrorMessage, token.toChars());
+                                prevTOK = token.value;
                                 nextToken();
                             }
                             break;
+                    }
+                    if (token.value == TOK.comma)
+                    {
+                        prevTOK = token.value;
                     }
                 }
 
@@ -3159,12 +3173,19 @@ final class Parser(AST) : Lexer
                     if (!isAnonymousEnum)
                         error("type only allowed if anonymous enum and no enum type");
                 }
-
                 AST.Expression value;
                 if (token.value == TOK.assign)
                 {
-                    nextToken();
-                    value = parseAssignExp();
+                    if (prevTOK == TOK.identifier)
+                    {
+                        nextToken();
+                        value = parseAssignExp();
+                    }
+                    else
+                    {
+                        error("assignment must be preceded by an identifier");
+                        nextToken();
+                    }
                 }
                 else
                 {
