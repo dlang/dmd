@@ -2496,6 +2496,55 @@ extern (C++) class FuncDeclaration : Declaration
             error("parameters must be `main()` or `main(string[] args)`");
     }
 
+    /***********************************************
+     * Check all return statements for a function to verify that returning
+     * using NRVO is possible.
+     *
+     * Returns:
+     *      true if the result cannot be returned by hidden reference.
+     */
+    final bool checkNrvo()
+    {
+        if (!nrvo_can)
+            return true;
+
+        if (returns is null)
+            return true;
+
+        auto tf = type.toTypeFunction();
+
+        foreach (rs; *returns)
+        {
+            if (rs.exp.op == TOK.variable)
+            {
+                auto ve = cast(VarExp)rs.exp;
+                auto v = ve.var.isVarDeclaration();
+                if (tf.isref)
+                {
+                    // Function returns a reference
+                    return true;
+                }
+                else if (!v || v.isOut() || v.isRef())
+                    return true;
+                else if (nrvo_var is null)
+                {
+                    if (!v.isDataseg() && !v.isParameter() && v.toParent2() == this)
+                    {
+                        //printf("Setting nrvo to %s\n", v.toChars());
+                        nrvo_var = v;
+                    }
+                    else
+                        return true;
+                }
+                else if (nrvo_var != v)
+                    return true;
+            }
+            else //if (!exp.isLvalue())    // keep NRVO-ability
+                return true;
+        }
+        return false;
+    }
+
     override final inout(FuncDeclaration) isFuncDeclaration() inout
     {
         return this;
