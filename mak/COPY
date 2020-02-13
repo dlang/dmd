@@ -414,6 +414,7 @@ COPY=\
 	$(IMPDIR)\core\sys\windows\rpcnsip.d \
 	$(IMPDIR)\core\sys\windows\rpcnterr.d \
 	$(IMPDIR)\core\sys\windows\schannel.d \
+	$(IMPDIR)\core\sys\windows\sdkddkver.d \
 	$(IMPDIR)\core\sys\windows\secext.d \
 	$(IMPDIR)\core\sys\windows\security.d \
 	$(IMPDIR)\core\sys\windows\servprov.d \
