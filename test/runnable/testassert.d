@@ -127,6 +127,40 @@ void test20375() @safe
     assert(RefCounted.instances == 0);
 }
 
+// https://issues.dlang.org/show_bug.cgi?id=20581
+void test20581() @safe
+{
+    {
+        static auto retro(return scope int[] s) @safe
+        {
+            static struct R
+            {
+                int[] source;
+            }
+            return R(s);
+        }
+
+        int[5] a = [ 1, 2, 3, 4, 5 ];
+        // Creates ref temporary __assertTmpXXXX for source
+        // Error: address of variable a assigned to __assertOp27 with longer lifetime
+        assert(retro(a[]).source is a[]);
+    }
+    {
+        static struct Tuple(T...)
+        {
+            T content;
+            alias content this;
+        }
+
+        static Tuple!(int[]) foo() @safe
+        {
+            return typeof(return).init;
+        }
+
+        assert(foo[0] == []);
+    }
+}
+
 string getMessage(T)(lazy T expr) @trusted
 {
     try
@@ -146,4 +180,5 @@ void main()
     test9255();
     test20114();
     test20375();
+    test20581();
 }

@@ -551,7 +551,14 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 
     EscapeByResults er;
 
-    escapeByValue(e2, &er);
+    // `e1` is ref a variable initialized to the address of `e2`
+    const initRef = e.op == TOK.construct && e1.op == TOK.variable &&
+            (cast(VarExp)e1).var.storage_class & (STC.ref_ | STC.out_);
+
+    if (initRef)
+        escapeByRef(e2, &er);
+    else
+        escapeByValue(e2, &er);
 
     if (!er.byref.dim && !er.byvalue.dim && !er.byfunc.dim && !er.byexp.dim)
         return false;
@@ -583,6 +590,17 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
     }
 
     if (log && va) printf("va: %s\n", va.toChars());
+
+    if (initRef && va && er.byvalue.length == 0 && er.byref.length == 1)
+    {
+        // va is a ref to v
+        VarDeclaration v = er.byref[0];
+        va.refTo = v.refTo ? v.refTo : v;
+    }
+    else if (!initRef && va && va.refTo)
+    {
+        va = va.refTo; // va is a ref, so assigning to va is really assigning to its target
+    }
 
     // Try to infer 'scope' for va if in a function not marked @system
     bool inferScope = false;
@@ -623,6 +641,10 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
     foreach (VarDeclaration v; er.byvalue)
     {
         if (log) printf("byvalue: %s\n", v.toChars());
+
+        if (v.refTo)
+            v = v.refTo; // v is a ref, get its target
+
         if (v.isDataseg())
             continue;
 
@@ -774,8 +796,8 @@ ByRef:
 
         // If va's lifetime encloses v's, then error
         if (va &&
-            (va.enclosesLifetimeOf(v) && !(v.storage_class & STC.parameter) ||
-             va.storage_class & STC.ref_ ||
+            (va.enclosesLifetimeOf(v) && !(v.storage_class & (STC.parameter | STC.result)) ||
+             va.storage_class & STC.ref_ && !initRef ||
              va.isDataseg()) &&
             sc.func.setUnsafe())
         {
@@ -891,6 +913,9 @@ ByRef:
             //result = true;
             continue;
         }
+
+        if (initRef && va && !va.isDataseg() && !ee.isLvalue())
+            continue;
 
         if (va && !va.isDataseg() && !va.doNotInferScope)
         {

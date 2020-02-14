@@ -1114,6 +1114,7 @@ extern (C++) class VarDeclaration : Declaration
     IntRange* range;                // if !=null, the variable is known to be within the range
 
     VarDeclarations* maybes;        // STC.maybescope variables that are assigned to this STC.maybescope variable
+    VarDeclaration refTo;           // !null if storage_class is STC.ref_; this is the variable we are referencing
 
     private bool _isAnonymous;
 
