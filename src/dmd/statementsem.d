@@ -3803,6 +3803,7 @@ else
             {
                 _init = new ExpInitializer(ws.loc, ws.exp);
                 ws.wthis = new VarDeclaration(ws.loc, ws.exp.type, Id.withSym, _init);
+                ws.wthis.storage_class |= STC.temp;
                 ws.wthis.dsymbolSemantic(sc);
 
                 sym = new WithScopeSymbol(ws);
@@ -3833,6 +3834,7 @@ else
                 Expression e = ws.exp.addressOf();
                 _init = new ExpInitializer(ws.loc, e);
                 ws.wthis = new VarDeclaration(ws.loc, e.type, Id.withSym, _init);
+                ws.wthis.storage_class |= STC.temp;
                 ws.wthis.dsymbolSemantic(sc);
                 sym = new WithScopeSymbol(ws);
                 // Need to set the scope to make use of resolveAliasThis

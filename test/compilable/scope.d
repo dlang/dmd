@@ -165,16 +165,44 @@ void demangle() @safe
     {
         const(char)[] s;
 
+        @safe:
         @property bool empty() const { return !s.length; }
 
-        @property const(char)[] front() const return { return s; }
+        @property const(char)[] front() const return
+        {
+            immutable i = indexOfDot();
+            return s;
+        }
 
         void popFront() {}
+
+        private ptrdiff_t indexOfDot() const
+        {
+            return -1;
+        }
     }
 
     foreach (comp; DotSplitter(""))
     {
         const copy = comp;
+    }
+}
+
+void fileCtor() @safe
+{
+    static struct S
+    {
+        int i;
+    }
+
+    // static S get()
+    // {
+    //     return S();
+    // }
+
+    with (S())
+    {
+        int* ptr = &i;
     }
 }
 

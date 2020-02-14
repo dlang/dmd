@@ -776,8 +776,7 @@ ByRef:
 
         // If va's lifetime encloses v's, then error
         if (va &&
-            (va.enclosesLifetimeOf(v) && !(v.storage_class & STC.parameter) ||
-             va.storage_class & STC.ref_ ||
+            (va.enclosesLifetimeOf(v) && !(v.isParameter() && v.isRef()) ||
              va.isDataseg()) &&
             sc.func.setUnsafe())
         {
