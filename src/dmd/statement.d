@@ -1680,7 +1680,7 @@ extern (C++) final class SwitchStatement : Statement
         {
             for (auto v = vd; v && v != lastVar; v = v.lastVar)
             {
-                if (v.isDataseg() || (v.storage_class & (STC.manifest | STC.temp)) || v._init.isVoidInitializer())
+                if (v.isDataseg() || (v.storage_class & (STC.manifest | STC.temp) && vd.ident != Id.withSym) || v._init.isVoidInitializer())
                     continue;
                 if (vd.ident == Id.withSym)
                     error("`switch` skips declaration of `with` temporary at %s", v.loc.toChars());
