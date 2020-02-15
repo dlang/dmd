@@ -9028,7 +9028,7 @@ final class Parser(AST) : Lexer
             auto edim = AST.typeToExpression(index);
             if (!edim)
             {
-                error("need size of rightmost array, not type `%s`", index.toChars());
+                error("cannot create a `%s` with `new`", t.toChars);
                 return new AST.NullExp(loc);
             }
             t = new AST.TypeSArray(taa.next, edim);

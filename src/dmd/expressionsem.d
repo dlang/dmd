@@ -1572,12 +1572,15 @@ private Expression rewriteOpAssign(BinExp exp)
 
 /****************************************
  * Preprocess arguments to function.
+ * Input:
+ *      reportErrors    whether or not to report errors here.  Some callers are not
+ *                      checking actual function params, so they'll do their own error reporting
  * Output:
  *      exps[]  tuples expanded, properties resolved, rewritten in place
  * Returns:
  *      true    a semantic error occurred
  */
-private bool preFunctionParameters(Scope* sc, Expressions* exps)
+private bool preFunctionParameters(Scope* sc, Expressions* exps, const bool reportErrors = true)
 {
     bool err = false;
     if (exps)
@@ -1595,15 +1598,21 @@ private bool preFunctionParameters(Scope* sc, Expressions* exps)
 
                 if (arg.op == TOK.type)
                 {
-                    arg.error("cannot pass type `%s` as a function argument", arg.toChars());
-                    arg = new ErrorExp();
+                    if (reportErrors)
+                    {
+                        arg.error("cannot pass type `%s` as a function argument", arg.toChars());
+                        arg = new ErrorExp();
+                    }
                     err = true;
                 }
             }
             else if (arg.type.toBasetype().ty == Tfunction)
             {
-                arg.error("cannot pass function `%s` as a function argument", arg.toChars());
-                arg = new ErrorExp();
+                if (reportErrors)
+                {
+                    arg.error("cannot pass function `%s` as a function argument", arg.toChars());
+                    arg = new ErrorExp();
+                }
                 err = true;
             }
             else if (checkNonAssignmentArrayOp(arg))
@@ -3316,6 +3325,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
+        //for error messages if the argument in [] is not convertible to size_t
+        const originalNewtype = exp.newtype;
+
         // https://issues.dlang.org/show_bug.cgi?id=11581
         // With the syntax `new T[edim]` or `thisexp.new T[edim]`,
         // T should be analyzed first and edim should go into arguments iff it's
@@ -3374,14 +3386,27 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         exp.newtype = exp.type; // in case type gets cast to something else
         Type tb = exp.type.toBasetype();
         //printf("tb: %s, deco = %s\n", tb.toChars(), tb.deco);
-
         if (arrayExpressionSemantic(exp.newargs, sc) ||
             preFunctionParameters(sc, exp.newargs))
         {
             return setError();
         }
-        if (arrayExpressionSemantic(exp.arguments, sc) ||
-            preFunctionParameters(sc, exp.arguments))
+        if (arrayExpressionSemantic(exp.arguments, sc))
+        {
+            return setError();
+        }
+        //https://issues.dlang.org/show_bug.cgi?id=20547
+        //exp.arguments are the "parameters" to [], not to a real function
+        //so the errors that come from preFunctionParameters are misleading
+        if (originalNewtype.ty == Tsarray)
+        {
+            if (preFunctionParameters(sc, exp.arguments, false))
+            {
+                exp.error("cannot create a `%s` with `new`", originalNewtype.toChars());
+                return setError();
+            }
+        }
+        else if (preFunctionParameters(sc, exp.arguments))
         {
             return setError();
         }
@@ -3392,7 +3417,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
         }
 
-        size_t nargs = exp.arguments ? exp.arguments.dim : 0;
+        const size_t nargs = exp.arguments ? exp.arguments.dim : 0;
         Expression newprefix = null;
 
         if (tb.ty == Tclass)
@@ -3745,7 +3770,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         else
         {
-            exp.error("new can only create structs, dynamic arrays or class objects, not `%s`'s", exp.type.toChars());
+            exp.error("cannot create a `%s` with `new`", exp.type.toChars());
             return setError();
         }
 
