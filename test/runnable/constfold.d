@@ -249,12 +249,18 @@ void test1()
 
 void test2()
 {
-    float f = float.infinity;
-    int i = cast(int) f;
-    writeln(i);
-    writeln(cast(int)float.max);
-    assert(i == cast(int)float.max);
-    assert(i == 0x80000000);
+    // This test only tests undefined, architecture-dependant behavior.
+    // E.g. the result of converting a float whose value doesn't fit into the integer
+    // leads to an undefined result.
+    version (DigitalMars)
+    {
+        float f = float.infinity;
+        int i = cast(int) f;
+        writeln(i);
+        writeln(cast(int)float.max);
+        assert(i == cast(int)float.max);
+        assert(i == 0x80000000);
+    }
 }
 
 /************************************/
