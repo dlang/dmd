@@ -789,8 +789,9 @@ $(GNAME AddExpression):
     )
 
     $(P If both operands are of integral types and an overflow or underflow
-        occurs in the computation, wrapping will happen. That is,
-        $(D uint.max + 1 == uint.min) and $(D uint.min - 1 == uint.max).
+        occurs in the computation, wrapping will happen. For example,
+        $(D uint.max + 1 == uint.min), $(D uint.min - 1 == uint.max),
+        $(D int.max + 1 == int.min), and $(D int.min - 1 == int.max).
     )
 
     $(P Add expressions for floating point operands are not associative.
