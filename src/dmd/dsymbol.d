@@ -1532,7 +1532,29 @@ public:
         }
         if (loc.isValid())
         {
-            .error(loc, "`%s` at %s conflicts with `%s` at %s", s1.toPrettyChars(), s1.locToChars(), s2.toPrettyChars(), s2.locToChars());
+            .error(loc, "%s `%s` at %s conflicts with %s `%s` at %s",
+                s1.kind(), s1.toPrettyChars(), s1.locToChars(),
+                s2.kind(), s2.toPrettyChars(), s2.locToChars());
+
+            static if (0)
+            {
+                if (auto so = s1.isOverloadSet())
+                {
+                    printf("first %p:\n", so);
+                    foreach (s; so.a[])
+                    {
+                        printf("  %p %s `%s` at %s\n", s, s.kind(), s.toPrettyChars(), s.locToChars());
+                    }
+                }
+                if (auto so = s2.isOverloadSet())
+                {
+                    printf("second %p:\n", so);
+                    foreach (s; so.a[])
+                    {
+                        printf("  %p %s `%s` at %s\n", s, s.kind(), s.toPrettyChars(), s.locToChars());
+                    }
+                }
+            }
         }
         else
         {
