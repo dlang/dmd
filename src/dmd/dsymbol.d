@@ -1364,7 +1364,8 @@ public:
                          * need to check s once)
                          */
 
-                        if ((s2.isOverloadSet() || s2.isOverloadable()) && (a || s.isOverloadable()))
+                        auto so2 = s2.isOverloadSet();
+                        if ((so2 || s2.isOverloadable()) && (a || s.isOverloadable()))
                         {
                             if (symbolIsVisible(this, s2))
                             {
@@ -1374,6 +1375,26 @@ public:
                                 s = s2;
                             continue;
                         }
+
+                        /* Two different overflow sets can have the same members
+                         * https://issues.dlang.org/show_bug.cgi?id=16709
+                         */
+                        auto so = s.isOverloadSet();
+                        if (so && so2)
+                        {
+                            if (so.a.length == so2.a.length)
+                            {
+                                foreach (j; 0 .. so.a.length)
+                                {
+                                    if (so.a[j] !is so2.a[j])
+                                        goto L1;
+                                }
+                                continue;  // the same
+                              L1:
+                                {   } // different
+                            }
+                        }
+
                         if (flags & IgnoreAmbiguous) // if return NULL on ambiguity
                             return null;
                         if (!(flags & IgnoreErrors))
