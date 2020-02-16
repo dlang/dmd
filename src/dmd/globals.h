@@ -31,7 +31,7 @@ typedef unsigned char MessageStyle;
 enum
 {
     MESSAGESTYLEdigitalmars, // file(line,column): message
-    MESSAGESTYLEgnu,         // file:line:column: message
+    MESSAGESTYLEgnu          // file:line:column: message
 };
 
 // The state of array bounds checking
