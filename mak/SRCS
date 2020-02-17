@@ -504,6 +504,7 @@ SRCS=\
 	src\rt\qsort.d \
 	src\rt\sections.d \
 	src\rt\sections_android.d \
+	src\rt\sections_darwin_64.d \
 	src\rt\sections_elf_shared.d \
 	src\rt\sections_osx_x86.d \
 	src\rt\sections_osx_x86_64.d \

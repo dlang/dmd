@@ -78,12 +78,6 @@ extern (C) void thread_joinAll();
 extern (C) UnitTestResult runModuleUnitTests();
 extern (C) void _d_initMonoTime();
 
-version (OSX)
-{
-    // The bottom of the stack
-    extern (C) __gshared void* __osx_stack_end = cast(void*)0xC0000000;
-}
-
 version (CRuntime_Microsoft)
 {
     extern(C) void init_msvc();
@@ -439,15 +433,6 @@ extern (C) int _d_wrun_main(int argc, wchar** wargv, MainFunc mainFunc)
 private extern (C) int _d_run_main2(char[][] args, size_t totalArgsLength, MainFunc mainFunc)
 {
     int result;
-
-    version (OSX)
-    {   /* OSX does not provide a way to get at the top of the
-         * stack, except for the magic value 0xC0000000.
-         * But as far as the gc is concerned, `args` is at the top
-         * of the main thread's stack, so save the address of that.
-         */
-        __osx_stack_end = cast(void*)&args;
-    }
 
     version (FreeBSD) version (D_InlineAsm_X86)
     {

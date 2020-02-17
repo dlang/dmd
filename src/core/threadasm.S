@@ -370,7 +370,7 @@ fiber_switchContext:
 
     jr $ra // return
 
-#elif defined(__arm__) && defined(__ARM_EABI__)
+#elif defined(__arm__) && (defined(__ARM_EABI__) || defined(__APPLE__))
 /************************************************************************************
  * ARM ASM BITS
  ************************************************************************************/
@@ -404,15 +404,21 @@ fiber_switchContext:
  * from thumb to arm mode or the other way round.
  */
 
+ #define ARM_NonSoftFloat defined(__ARM_PCS_VFP) || ((defined(__ARM_PCS) || defined(__VFP_FP__)) && !defined(__SOFTFP__))
+
 .text
 .align  2
-.global fiber_switchContext
-#if defined(__ARM_PCS_VFP) || (defined(__ARM_PCS) && !defined(__SOFTFP__)) // ARM_HardFloat  || ARM_SoftFP
+.global CSYM(fiber_switchContext)
+#ifndef __APPLE__
+#if ARM_NonSoftFloat
   .fpu vfp
 #endif
 .type   fiber_switchContext, %function
-fiber_switchContext:
+#endif
+CSYM(fiber_switchContext):
+#ifndef __APPLE__
     .fnstart
+#endif
     push {r4-r11}
     // update the oldp pointer. Link register and floating point registers stored later to prevent the GC from
     // scanning them.
@@ -420,7 +426,14 @@ fiber_switchContext:
     // push r0 (or any other register) as well to keep stack 8byte aligned
     push {r0, lr}
 
-    #if defined(__ARM_PCS_VFP) || (defined(__ARM_PCS) && !defined(__SOFTFP__)) // ARM_HardFloat  || ARM_SoftFP
+    // ARM_HardFloat  || ARM_SoftFP
+    // this was conditional used by gdc version:
+    // #if defined(__ARM_PCS_VFP) || (defined(__ARM_PCS) && !defined(__SOFTFP__))
+    //
+    // clang defines __VFP_FP__ and !__SOFTFP for float-abi=hard or
+    // softfp.  Hopefully this new conditional will work out for iOS and other architectures
+    // make sure this is correct.
+    #if ARM_NonSoftFloat
       vpush {d8-d15}
       // now switch over to the new stack. Need to subtract (8*8[d8-d15]+2*4[r0, lr]) to position stack pointer
       // below the last saved register. Remember we saved the SP before pushing [r0, lr, d8-d15]
@@ -448,7 +461,9 @@ fiber_switchContext:
     mov lr, #0
     // return by writing lr into pc
     mov pc, r1
+#ifndef __APPLE__
     .fnend
+#endif
 
 #elif defined(__aarch64__)
 /************************************************************************************
@@ -475,7 +490,9 @@ fiber_switchContext:
         .text
         .global CSYM(fiber_switchContext)
         .p2align  2
+#ifndef __APPLE__
         .type   fiber_switchContext, %function
+#endif
 CSYM(fiber_switchContext):
         stp     d15, d14, [sp, #-20*8]!
         stp     d13, d12, [sp, #2*8]
@@ -520,11 +537,13 @@ CSYM(fiber_switchContext):
         .text
         .global CSYM(fiber_trampoline)
         .p2align  2
+#ifndef __APPLE__
         .type   fiber_trampoline, %function
+#endif
 CSYM(fiber_trampoline):
         .cfi_startproc
         .cfi_undefined x30
         // fiber_entryPoint never returns
-        bl fiber_entryPoint
+        bl CSYM(fiber_entryPoint)
         .cfi_endproc
 #endif
