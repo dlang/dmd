@@ -6150,77 +6150,35 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             return false;
         }
 
-        /* The issue is that if the importee is compiled with a different -debug
-         * setting than the importer, the importer may believe it exists
-         * in the compiled importee when it does not, when the instantiation
-         * is behind a conditional debug declaration.
-         */
-        // workaround for https://issues.dlang.org/show_bug.cgi?id=11239
-        if (global.params.debuglevel)
+        if (minst.isRoot())
+            return true;
+
+        TemplateInstance tnext = this.tnext;
+        TemplateInstance tinst = this.tinst;
+        this.tnext = null;
+        this.tinst = null;
+
+        if (tinst && tinst.needsCodegen())
         {
-            // Prefer instantiations from root modules, to maximize link-ability.
-            if (minst.isRoot())
-                return true;
-
-            TemplateInstance tnext = this.tnext;
-            TemplateInstance tinst = this.tinst;
-            this.tnext = null;
-            this.tinst = null;
-
-            if (tinst && tinst.needsCodegen())
-            {
-                minst = tinst.minst; // cache result
-                assert(minst);
-                assert(minst.isRoot() || minst.rootImports());
-                return true;
-            }
-            if (tnext && tnext.needsCodegen())
-            {
-                minst = tnext.minst; // cache result
-                assert(minst);
-                assert(minst.isRoot() || minst.rootImports());
-                return true;
-            }
-
-            // https://issues.dlang.org/show_bug.cgi?id=2500 case
-            if (minst.rootImports())
-                return true;
-
-            // Elide codegen because this is not included in root instances.
-            return false;
-        }
-        else
-        {
-            // Prefer instantiations from non-root module, to minimize object code size.
-
-            /* If a TemplateInstance is ever instantiated by non-root modules,
-             * we do not have to generate code for it,
-             * because it will be generated when the non-root module is compiled.
-             *
-             * But, if the non-root 'minst' imports any root modules, it might still need codegen.
-             *
-             * The problem is if A imports B, and B imports A, and both A
-             * and B instantiate the same template, does the compilation of A
-             * or the compilation of B do the actual instantiation?
-             *
-             * See https://issues.dlang.org/show_bug.cgi?id=2500.
-             */
-            if (!minst.isRoot() && !minst.rootImports())
-                return false;
-
-            TemplateInstance tnext = this.tnext;
-            this.tnext = null;
-
-            if (tnext && !tnext.needsCodegen() && tnext.minst)
-            {
-                minst = tnext.minst; // cache result
-                assert(!minst.isRoot());
-                return false;
-            }
-
-            // Do codegen because this is not included in non-root instances.
+            minst = tinst.minst; // cache result
+            assert(minst);
+            assert(minst.isRoot() || minst.rootImports());
             return true;
         }
+        if (tnext && tnext.needsCodegen())
+        {
+            minst = tnext.minst; // cache result
+            assert(minst);
+            assert(minst.isRoot() || minst.rootImports());
+            return true;
+        }
+
+        // https://issues.dlang.org/show_bug.cgi?id=2500 case
+        if (minst.rootImports())
+            return true;
+
+        // Elide codegen because this is not included in root instances.
+        return false;
     }
 
     /**********************************************
