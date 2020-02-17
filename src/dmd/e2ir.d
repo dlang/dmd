@@ -418,7 +418,7 @@ if (!irs.params.is64bit) assert(tysize(TYnptr) == 4);
     if (ec.Eoper == OPvar && op != NotIntrinsic)
     {
         el_free(ec);
-        if (OTbinary(op))
+        if (op != OPtoPrec && OTbinary(op))
         {
             ep.Eoper = cast(ubyte)op;
             ep.Ety = tyret;

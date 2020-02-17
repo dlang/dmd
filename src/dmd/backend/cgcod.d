@@ -2978,7 +2978,6 @@ private extern (C++) __gshared nothrow void function (ref CodeBuilder,elem *,reg
     OPvecfill: &cdvecfill,
     OPva_start: &cderr,
     OPprefetch: &cdprefetch,
-    OPtoPrec:   &cderr,
 ];
 
 

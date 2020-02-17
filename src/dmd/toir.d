@@ -384,11 +384,14 @@ elem *setEthis(const ref Loc loc, IRState *irs, elem *ey, AggregateDeclaration a
 }
 
 enum NotIntrinsic = -1;
+enum OPtoPrec = OPMAX + 1; // front end only
 
 /*******************************************
  * Convert intrinsic function to operator.
  * Returns:
- *      that operator, NotIntrinsic if not an intrinsic function.
+ *      the operator as backend OPER,
+ *      NotIntrinsic if not an intrinsic function,
+ *      OPtoPrec if frontend-only intrinsic
  */
 int intrinsic_op(FuncDeclaration fd)
 {
