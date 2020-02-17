@@ -27,7 +27,6 @@ import core.stdc.string;
 import dmd.backend.backend;
 import dmd.backend.cc;
 import dmd.backend.cdef;
-import dmd.backend.cg87;
 import dmd.backend.cgcse;
 import dmd.backend.code;
 import dmd.backend.code_x86;
@@ -5176,7 +5175,7 @@ void assignaddrc(code *c)
             case FLndp:
                 version (MARS)
                 {
-                    assert(c.IEV1.Vuns < NDP.savetop);
+                    assert(c.IEV1.Vuns < global87.savetop);
                 }
                 c.IEV1.Vpointer = c.IEV1.Vuns * tysize(TYldouble) + NDPoff + BPoff;
                 c.Iflags |= CFunambig;

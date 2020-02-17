@@ -29,7 +29,6 @@ import core.stdc.string;
 import dmd.backend.backend;
 import dmd.backend.cc;
 import dmd.backend.cdef;
-import dmd.backend.cg87;
 import dmd.backend.code;
 import dmd.backend.cgcse;
 import dmd.backend.code_x86;
@@ -700,10 +699,10 @@ tryagain:
     assert(global87.stackused == 0);             /* nobody in 8087 stack         */
 
     /* Clean up ndp save array  */
-    mem_free(NDP.save);
-    NDP.save = null;
-    NDP.savetop = 0;
-    NDP.savemax = 0;
+    mem_free(global87.save);
+    global87.save = null;
+    global87.savetop = 0;
+    global87.savemax = 0;
 }
 
 /*********************************************
@@ -920,7 +919,7 @@ else
     //printf("CSoff = x%x, size = x%x, alignment = %x\n",
         //cast(int)CSoff, CSE.size(), cast(int)CSE.alignment);
 
-    NDPoff = alignsection(CSoff - NDP.savetop * tysize(TYldouble), REGSIZE, bias);
+    NDPoff = alignsection(CSoff - global87.savetop * tysize(TYldouble), REGSIZE, bias);
 
     regm_t topush = fregsaved & ~mfuncreg;          // mask of registers that need saving
     pushoffuse = false;

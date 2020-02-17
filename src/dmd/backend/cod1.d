@@ -27,7 +27,6 @@ import core.stdc.string;
 import dmd.backend.backend;
 import dmd.backend.cc;
 import dmd.backend.cdef;
-import dmd.backend.cg87;
 import dmd.backend.code;
 import dmd.backend.code_x86;
 import dmd.backend.codebuilder;
