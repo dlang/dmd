@@ -24,19 +24,6 @@ struct DArray
         : length(length_in), ptr(ptr_in) { }
 };
 
-template<>
-struct DArray<char>
-{
-    size_t length;
-    const char *ptr;
-
-    DArray<char>() : length(0), ptr(NULL) {}
-
-    DArray<char>(const char str[]) : length(strlen(str)), ptr(str) {}
-
-    DArray<char>& operator=(const char str[]) { ptr = str; length = strlen(str); }
-};
-
 struct DString : public DArray<const char>
 {
     DString() : DArray() { }

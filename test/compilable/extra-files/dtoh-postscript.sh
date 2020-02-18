@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 
-diff -pu --strip-trailing-cr ${EXTRA_FILES}/${TEST_NAME}.out ${OUTPUT_BASE}.out
+diff -pu --strip-trailing-cr ${EXTRA_FILES}/${TEST_NAME}.h ${OUTPUT_BASE}.h
 
-rm -f ${OUTPUT_BASE}.out
+rm -f ${OUTPUT_BASE}.h

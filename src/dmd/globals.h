@@ -205,6 +205,10 @@ struct Param
     DString hdrname;       // write 'header' file to docname
     bool hdrStripPlainFunctions; // strip the bodies of plain (non-template) functions
 
+    bool doCxxHdrGeneration;  // write 'Cxx header' file
+    DString cxxhdrdir;        // write 'header' file to docdir directory
+    DString cxxhdrname;       // write 'header' file to docname
+
     bool doJsonGeneration;    // write JSON file
     DString jsonfilename;     // write JSON file to jsonfilename
     unsigned jsonFieldFlags;  // JSON field flags to include
@@ -265,6 +269,7 @@ struct Global
     const DString doc_ext;      // for Ddoc generated files
     const DString ddoc_ext;     // for Ddoc macro include files
     const DString hdr_ext;      // for D 'header' import files
+    const DString cxxhdr_ext;   // for C/C++ 'header' files
     const DString json_ext;     // for JSON files
     const DString map_ext;      // for .map files
     bool run_noext;             // allow -run sources without extensions.

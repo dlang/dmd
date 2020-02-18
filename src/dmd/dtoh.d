@@ -2,7 +2,10 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * This module contains the implementation of the C++ header generation available through
+ * the command line switch -Hc.
+ *
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dtohd, _dtoh.d)
@@ -35,15 +38,15 @@ import dmd.utils;
 
 private struct DMDType
 {
-    __gshared static Identifier c_long;
-    __gshared static Identifier c_ulong;
-    __gshared static Identifier c_longlong;
-    __gshared static Identifier c_ulonglong;
-    __gshared static Identifier c_long_double;
+    __gshared Identifier c_long;
+    __gshared Identifier c_ulong;
+    __gshared Identifier c_longlong;
+    __gshared Identifier c_ulonglong;
+    __gshared Identifier c_long_double;
     //version(BUILD_COMPILER)
     //{
-        __gshared static Identifier AssocArray;
-        __gshared static Identifier Array;
+        __gshared Identifier AssocArray;
+        __gshared Identifier Array;
     //}
 
     static void _init()
@@ -65,14 +68,14 @@ private struct DMDType
 //{
     private struct DMDModule
     {
-        __gshared static Identifier identifier;
-        __gshared static Identifier root;
-        __gshared static Identifier visitor;
-        __gshared static Identifier parsetimevisitor;
-        __gshared static Identifier permissivevisitor;
-        __gshared static Identifier strictvisitor;
-        __gshared static Identifier transitivevisitor;
-        __gshared static Identifier dmd;
+        __gshared Identifier identifier;
+        __gshared Identifier root;
+        __gshared Identifier visitor;
+        __gshared Identifier parsetimevisitor;
+        __gshared Identifier permissivevisitor;
+        __gshared Identifier strictvisitor;
+        __gshared Identifier transitivevisitor;
+        __gshared Identifier dmd;
         static void _init()
         {
             identifier          = Identifier.idPool("identifier");
@@ -88,9 +91,9 @@ private struct DMDType
 
     private struct DMDClass
     {
-        __gshared static Identifier ID; ////Identifier
-        __gshared static Identifier Visitor;
-        __gshared static Identifier ParseTimeVisitor;
+        __gshared Identifier ID; ////Identifier
+        __gshared Identifier Visitor;
+        __gshared Identifier ParseTimeVisitor;
         static void _init()
         {
             ID                  = Identifier.idPool("Identifier");

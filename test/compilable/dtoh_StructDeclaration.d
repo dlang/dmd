@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -HCf=${RESULTS_DIR}/compilable/dtoh_StructDeclaration.out -c
+// REQUIRED_ARGS: -HCf=${RESULTS_DIR}/compilable/dtoh_StructDeclaration.h -c
 // PERMUTE_ARGS:
 // POST_SCRIPT: compilable/extra-files/dtoh-postscript.sh
 
