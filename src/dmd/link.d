@@ -1047,7 +1047,7 @@ version (Windows)
             if (getVCLibDir(x64))
                 return "libcmt";
             else
-                return "msvcrt100"; // mingw replacement
+                return "msvcrt120"; // mingw replacement
         }
 
         /**
