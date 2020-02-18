@@ -526,7 +526,7 @@ dmd -cov -unittest myprog.d
             If no Visual C installation is detected, a wrapper for the redistributable
             VC2010 dynamic runtime library and mingw based platform import libraries will
             be linked instead using the LLD linker provided by the LLVM project.
-            The detection can be skipped explicitly if $(TT msvcrt100) is specified as
+            The detection can be skipped explicitly if $(TT msvcrt120) is specified as
             $(I libname).
             If $(I libname) is empty, no C runtime library is automatically linked in.",
             TargetOS.windows,
