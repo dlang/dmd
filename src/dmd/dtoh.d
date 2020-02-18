@@ -91,7 +91,7 @@ private struct DMDType
         __gshared static Identifier ID; ////Identifier
         __gshared static Identifier Visitor;
         __gshared static Identifier ParseTimeVisitor;
-        __gshared static void _init()
+        static void _init()
         {
             ID                  = Identifier.idPool("Identifier");
             Visitor             = Identifier.idPool("Visitor");
@@ -226,9 +226,24 @@ void genCppHdrFiles(ref Modules ms)
     buf.writestring("\n\n");
 
     OutBuffer check;
-    check.writestring(`
-    #if OFFSETS
+    OutBuffer done;
+    OutBuffer decl;
+    scope v = new ToCppBuffer!ASTCodegen(&check, &buf, &done, &decl);
+    foreach (m; ms)
+    {
+        //printf("// Parsing module %s\n", m.toPrettyChars());
+        buf.printf("// Parsing module %s\n", m.toPrettyChars());
+        m.accept(v);
+    }
+    buf.write(&done);
+    buf.write(&decl);
+    //printf("%s\n", decl.peekSlice().ptr);
 
+
+    debug (Debug_DtoH)
+    {
+        buf.writestring(`
+#if OFFSETS
     template <class T>
     size_t getSlotNumber(int dummy, ...)
     {
@@ -246,27 +261,13 @@ void genCppHdrFiles(ref Modules ms)
 
     void testOffsets()
     {
-        `);
-
-        OutBuffer done;
-        OutBuffer decl;
-        scope v = new ToCppBuffer!ASTCodegen(&check, &buf, &done, &decl);
-        foreach (m; ms)
-        {
-            //printf("// Parsing module %s\n", m.toPrettyChars());
-            buf.printf("// Parsing module %s\n", m.toPrettyChars());
-            m.accept(v);
-        }
-        buf.write(&done);
-        buf.write(&decl);
-        //printf("%s\n", decl.peekSlice().ptr);
-
-        check.writestring(`
+`);
+        buf.write(&check);
+        buf.writestring(`
     }
-    #endif
-    `);
-
-    debug buf.write(&check);
+#endif
+`);
+    }
 
     if (global.params.cxxhdrname is null)
     {
@@ -348,14 +349,13 @@ public:
             scope(exit) printf("[AST.AttribDeclaration exit] %s\n", pd.toChars());
         }
         Dsymbols* decl = pd.include(null);
-        if (decl)
+        if (!decl)
+            return;
+
+        foreach (s; *decl)
         {
-            foreach (s; *decl)
-            {
-                if (!adparent && s.prot().kind < AST.Prot.Kind.public_)
-                    continue;
+            if (adparent || s.prot().kind >= AST.Prot.Kind.public_)
                 s.accept(this);
-            }
         }
     }
 
@@ -476,14 +476,7 @@ public:
                 }
             }
 
-            if (fdOverridesAreConst)
-            {
-                buf.writestring(" const");
-            }
-            else
-            {
-                buf.writestring(" /* const */");
-            }
+            buf.writestring(fdOverridesAreConst ? " const" : " /* const */");
         }
         if (adparent && fd.isAbstract())
             buf.writestring(" = 0");
@@ -740,21 +733,68 @@ public:
         buf.writestring(sd.isUnionDeclaration() ? "union" : "struct");
         pushAlignToBuffer(sd.alignment);
         buf.writestring(sd.ident.toChars());
-        if (sd.members)
+        if (!sd.members)
         {
-            buf.writestring("\n{\n");
-            auto save = adparent;
-            adparent = sd;
+            buf.writestring(";\n\n");
+            return;
+        }
+
+        buf.writestring("\n{\n");
+        auto save = adparent;
+        adparent = sd;
+        foreach (m; *sd.members)
+        {
+            m.accept(this);
+        }
+        adparent = save;
+        // Generate default ctor
+        if (!sd.noDefaultCtor)
+        {
+            buf.printf("    %s()", sd.ident.toChars());
+            size_t varCount;
+            bool first = true;
             foreach (m; *sd.members)
             {
-                m.accept(this);
+                if (auto vd = m.isVarDeclaration())
+                {
+                    if (!memberField(vd))
+                        continue;
+                    varCount++;
+
+                    if (!vd._init && !vd.type.isTypeBasic() && !vd.type.isTypePointer && !vd.type.isTypeStruct &&
+                        !vd.type.isTypeClass && !vd.type.isTypeDArray && !vd.type.isTypeSArray)
+                    {
+                        continue;
+                    }
+                    if (vd._init && vd._init.isVoidInitializer())
+                        continue;
+
+                    if (first)
+                    {
+                        buf.printf(" : ");
+                        first = false;
+                    }
+                    else
+                    {
+                        buf.printf(", ");
+                    }
+                    buf.printf("%s(", vd.ident.toChars());
+
+                    if (vd._init)
+                    {
+                        AST.initializerToExpression(vd._init).accept(this);
+                    }
+                    buf.printf(")");
+                }
             }
-            adparent = save;
-            // Generate default ctor
-            if (!sd.noDefaultCtor)
+            buf.printf(" {}\n");
+        }
+
+        version (none)
+        {
+            if (varCount)
             {
-                buf.printf("    %s()", sd.ident.toChars());
-                size_t varCount;
+                buf.printf("    %s(", sd.ident.toChars());
                 bool first = true;
                 foreach (m; *sd.members)
                 {
@@ -762,87 +802,39 @@ public:
                     {
                         if (!memberField(vd))
                             continue;
-                        varCount++;
-
-                        if (!vd._init && !vd.type.isTypeBasic() && !vd.type.isTypePointer && !vd.type.isTypeStruct &&
-                            !vd.type.isTypeClass && !vd.type.isTypeDArray && !vd.type.isTypeSArray)
-                        {
-                            continue;
-                        }
-                        if (vd._init && vd._init.isVoidInitializer())
-                            continue;
-
                         if (first)
-                        {
-                            buf.printf(" : ");
                             first = false;
-                        }
                         else
-                        {
-                            buf.printf(", ");
-                        }
-                        buf.printf("%s(", vd.ident.toChars());
-
-                        if (vd._init)
-                        {
-                            AST.initializerToExpression(vd._init).accept(this);
-                        }
-                        buf.printf(")");
+                            buf.writestring(", ");
+                        assert(vd.type);
+                        assert(vd.ident);
+                        typeToBuffer(vd.type, vd.ident);
                     }
                 }
-                buf.printf(" {}\n");
-            }
-
-            version (none)
-            {
-                if (varCount)
+                buf.printf(") {");
+                foreach (m; *sd.members)
                 {
-                    buf.printf("    %s(", sd.ident.toChars());
-                    bool first = true;
-                    foreach (m; *sd.members)
+                    if (auto vd = m.isVarDeclaration())
                     {
-                        if (auto vd = m.isVarDeclaration())
-                        {
-                            if (!memberField(vd))
-                                continue;
-                            if (first)
-                                first = false;
-                            else
-                                buf.writestring(", ");
-                            assert(vd.type);
-                            assert(vd.ident);
-                            typeToBuffer(vd.type, vd.ident);
-                        }
+                        if (!memberField(vd))
+                            continue;
+                        buf.printf(" this->%s = %s;", vd.ident.toChars(), vd.ident.toChars());
                     }
-                    buf.printf(") {");
-                    foreach (m; *sd.members)
-                    {
-                        if (auto vd = m.isVarDeclaration())
-                        {
-                            if (!memberField(vd))
-                                continue;
-                            buf.printf(" this->%s = %s;", vd.ident.toChars(), vd.ident.toChars());
-                        }
-                    }
-                    buf.printf(" }\n");
                 }
+                buf.printf(" }\n");
             }
-            buf.writestring("};\n");
-
-            popAlignToBuffer(sd.alignment);
-            buf.writestring("\n");
-
-            auto savex = buf;
-            buf = checkbuf;
-            buf.writestring("    assert(sizeof(");
-            buf.writestring(sd.ident.toChars());
-            buf.printf(") == %d);\n", sd.size(Loc.initial));
-            buf = savex;
         }
-        else
-        {
-            buf.writestring(";\n\n");
-        }
+        buf.writestring("};\n");
+
+        popAlignToBuffer(sd.alignment);
+        buf.writestring("\n");
+
+        auto savex = buf;
+        buf = checkbuf;
+        buf.writestring("    assert(sizeof(");
+        buf.writestring(sd.ident.toChars());
+        buf.printf(") == %d);\n", sd.size(Loc.initial));
+        buf = savex;
     }
 
     private void pushAlignToBuffer(uint alignment)
@@ -852,34 +844,33 @@ public:
         //       "Invalid alignment size");
 
         // When no alignment is specified, `uint.max` is the default
-        if (alignment != uint.max)
-        {
-            buf.writestring("\n#if defined(__GNUC__) || defined(__clang__)\n");
-            // The equivalent of `#pragma pack(push, n)` is `__attribute__((packed, aligned(n)))`
-            // NOTE: removing the packed attribute will might change the resulting size
-            buf.printf("    __attribute__((packed, aligned(%d)))\n", alignment);
-            buf.writestring("#elif defined(_MSC_VER)\n");
-            buf.printf("    __declspec(align(%d))\n", alignment);
-            buf.writestring("#elif defined(__DMC__)\n");
-            buf.printf("    #pragma pack(push, %d)\n", alignment);
-            //buf.printf("#pragma pack(%d)\n", alignment);
-            buf.writestring("#endif\n");
-        }
-        else
+        if (alignment == uint.max)
         {
             buf.writeByte(' ');
+            return;
         }
+
+        buf.writestring("\n#if defined(__GNUC__) || defined(__clang__)\n");
+        // The equivalent of `#pragma pack(push, n)` is `__attribute__((packed, aligned(n)))`
+        // NOTE: removing the packed attribute will might change the resulting size
+        buf.printf("    __attribute__((packed, aligned(%d)))\n", alignment);
+        buf.writestring("#elif defined(_MSC_VER)\n");
+        buf.printf("    __declspec(align(%d))\n", alignment);
+        buf.writestring("#elif defined(__DMC__)\n");
+        buf.printf("    #pragma pack(push, %d)\n", alignment);
+        //buf.printf("#pragma pack(%d)\n", alignment);
+        buf.writestring("#endif\n");
     }
 
     private void popAlignToBuffer(uint alignment)
     {
-        if (alignment != uint.max)
-        {
-            buf.writestring("#if defined(__DMC__)\n");
-            buf.writestring("    #pragma pack(pop)\n");
-            //buf.writestring("#pragma pack()\n");
-            buf.writestring("#endif\n");
-        }
+        if (alignment == uint.max)
+            return;
+
+        buf.writestring("#if defined(__DMC__)\n");
+        buf.writestring("    #pragma pack(pop)\n");
+        //buf.writestring("#pragma pack()\n");
+        buf.writestring("#endif\n");
     }
 
     private void includeSymbol(AST.Dsymbol ds)
@@ -889,15 +880,15 @@ public:
             printf("[includeSymbol(AST.Dsymbol) enter] %s\n", ds.toChars());
             scope(exit) printf("[includeSymbol(AST.Dsymbol) exit] %s\n", ds.toChars());
         }
-        if (cast(void*)ds !in visited)
-        {
-            OutBuffer decl;
-            auto save = buf;
-            buf = &decl;
-            ds.accept(this);
-            buf = save;
-            donebuf.writestring(decl.peekChars());
-        }
+        if (cast(void*) ds in visited)
+            return;
+
+        OutBuffer decl;
+        auto save = buf;
+        buf = &decl;
+        ds.accept(this);
+        buf = save;
+        donebuf.writestring(decl.peekChars());
     }
 
     override void visit(AST.ClassDeclaration cd)
@@ -933,31 +924,30 @@ public:
 
             includeSymbol(cd.baseClass);
         }
-        if (cd.members)
-        {
-            buf.writestring("\n{\npublic:\n");
-            auto save = adparent;
-            adparent = cd;
-            foreach (m; *cd.members)
-            {
-                m.accept(this);
-            }
-            adparent = save;
-            //version(BUILD_COMPILER)
-            //{
-                // Generate special static inline function.
-                if (cd.isIdentifierClass())
-                {
-                    buf.writestring("    static inline Identifier *idPool(const char *s) { return idPool(s, strlen(s)); }\n");
-                }
-            //}
-
-            buf.writestring("};\n\n");
-        }
-        else
+        if (!cd.members)
         {
             buf.writestring(";\n\n");
+            return;
         }
+
+        buf.writestring("\n{\npublic:\n");
+        auto save = adparent;
+        adparent = cd;
+        foreach (m; *cd.members)
+        {
+            m.accept(this);
+        }
+        adparent = save;
+        //version(BUILD_COMPILER)
+        //{
+            // Generate special static inline function.
+            if (cd.isIdentifierClass())
+            {
+                buf.writestring("    static inline Identifier *idPool(const char *s) { return idPool(s, strlen(s)); }\n");
+            }
+        //}
+
+        buf.writestring("};\n\n");
     }
 
     override void visit(AST.EnumDeclaration ed)
@@ -1013,54 +1003,52 @@ public:
         {
             buf.writestring("enum");
         }
-        else
+        else if (hasBaseType)
         {
-            if (hasBaseType)
+            //printf("typedef _d_%s %s;\n", ed.memtype.kind, ident);
+            if (global.params.cplusplus >= CppStdRevision.cpp11)
             {
-                //printf("typedef _d_%s %s;\n", ed.memtype.kind, ident);
-                if (global.params.cplusplus >= CppStdRevision.cpp11)
-                {
-                    //printf("Using cpp 11 and beyond\n");
-                    buf.printf("enum %s : %s", ident, ed.memtype.kind);
-                }
-                else
-                {
-                    //printf("Using cpp 98\n");
-                    buf.writestring("typedef _d_");
-                    buf.writestring(ed.memtype.kind);
-                    buf.writeByte(' ');
-                    buf.writestring(ident);
-                    buf.writestring(";\n");
-                    buf.writestring("enum");
-                }
+                //printf("Using cpp 11 and beyond\n");
+                buf.printf("enum %s : %s", ident, ed.memtype.kind);
             }
             else
             {
-                buf.writestring("enum ");
+                //printf("Using cpp 98\n");
+                buf.writestring("typedef _d_");
+                buf.writestring(ed.memtype.kind);
+                buf.writeByte(' ');
                 buf.writestring(ident);
+                buf.writestring(";\n");
+                buf.writestring("enum");
             }
-        }
-        if (ed.members)
-        {
-            buf.writestring("\n{\n");
-            foreach (i, m; *ed.members)
-            {
-                if (i)
-                    buf.writestring(",\n");
-                buf.writestring("    ");
-                if (ident && global.params.cplusplus == CppStdRevision.cpp98)
-                {
-                    foreach (c; ident[0 .. strlen(ident)])
-                        buf.writeByte(toupper(c));
-                }
-                m.accept(this);
-            }
-            buf.writestring("\n};\n\n");
         }
         else
         {
-            buf.writestring(";\n\n");
+            buf.writestring("enum ");
+            buf.writestring(ident);
         }
+
+        if (!ed.members)
+        {
+            buf.writestring(";\n\n");
+            return;
+        }
+
+        buf.writestring("\n{\n");
+        foreach (i, m; *ed.members)
+        {
+            if (i)
+                buf.writestring(",\n");
+            buf.writestring("    ");
+            if (ident && global.params.cplusplus == CppStdRevision.cpp98)
+            {
+                foreach (c; ident[0 .. strlen(ident)])
+                    buf.writeByte(toupper(c));
+            }
+            m.accept(this);
+        }
+        buf.writestring("\n};\n\n");
+
         //printf("Enum %s min %d max %d\n", ident, ed.minval.toInteger(), ed.maxval.toInteger());
     }
 
@@ -1234,25 +1222,24 @@ public:
         }
         if (ed.isSpecial())
         {
-            if (ed.ident == DMDType.c_long)
-                buf.writestring("long");
-            else if (ed.ident == DMDType.c_ulong)
-                buf.writestring("unsigned long");
-            else if (ed.ident == DMDType.c_longlong)
-                buf.writestring("long long");
-            else if (ed.ident == DMDType.c_ulonglong)
-                buf.writestring("unsigned long long");
-            else if (ed.ident == DMDType.c_long_double)
-                buf.writestring("long double");
-            else
-            {
-                //ed.print();
-                assert(0);
-            }
+            buf.writestring(ed.toChars());
+            return;
         }
+
+        if (ed.ident == DMDType.c_long)
+            buf.writestring("long");
+        else if (ed.ident == DMDType.c_ulong)
+            buf.writestring("unsigned long");
+        else if (ed.ident == DMDType.c_longlong)
+            buf.writestring("long long");
+        else if (ed.ident == DMDType.c_ulonglong)
+            buf.writestring("unsigned long long");
+        else if (ed.ident == DMDType.c_long_double)
+            buf.writestring("long double");
         else
         {
-            buf.writestring(ed.toChars());
+            //ed.print();
+            assert(0);
         }
     }
 
