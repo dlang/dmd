@@ -569,7 +569,6 @@ struct Globals87
 }
 
 extern (C++) extern __gshared Globals87 global87;
-extern (C++) extern __gshared NDP ndp_zero;
 
 void getlvalue_msw(code *);
 void getlvalue_lsw(code *);

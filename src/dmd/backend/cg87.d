@@ -42,7 +42,6 @@ nothrow:
 // NOTE: this could be a TLS global which would allow this variable to be used in
 //       a multi-threaded version of the backend
 __gshared Globals87 global87;
-__gshared NDP ndp_zero;
 
 private:
 
@@ -221,7 +220,7 @@ void pop87(int line, const(char)* file)
     for (i = 0; i < global87.stack.length - 1; i++)
         global87.stack[i] = global87.stack[i + 1];
     // end of stack is nothing
-    global87.stack[$ - 1] = ndp_zero;
+    global87.stack[$ - 1] = NDP();
 }
 
 
@@ -254,7 +253,7 @@ void push87(ref CodeBuilder cdb, int line, const(char)* file)
     // Shift the stack up
     for (int i = 7; i > 0; i--)
         global87.stack[i] = global87.stack[i - 1];
-    global87.stack[0] = ndp_zero;
+    global87.stack[0] = NDP();
 }
 
 /*****************************
@@ -357,7 +356,7 @@ L1:
                 i--;
             }
         }
-        global87.save[j] = ndp_zero;                // back in 8087
+        global87.save[j] = NDP();               // back in 8087
     }
     //global87.stack[i].e = null;
 }
@@ -404,7 +403,7 @@ void save87regs(ref CodeBuilder cdb, uint n)
                 int i = getemptyslot();
                 ndp_fstp(cdb, i, global87.stack[k - 1].e.Ety);   // FSTP i[BP]
                 global87.save[i] = global87.stack[k - 1];
-                global87.stack[k - 1] = ndp_zero;
+                global87.stack[k - 1] = NDP();
             }
         }
 
