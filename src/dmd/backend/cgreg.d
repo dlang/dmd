@@ -425,7 +425,14 @@ static if (1) // causes assert failure in std.range(4488) from std.parallelism's
     debug if (benefit > s.Sweight + retsym_cnt + 1)
         printf("s = '%s', benefit = %d, Sweight = %d, retsym_cnt = x%x\n",s.Sident.ptr,benefit,s.Sweight, retsym_cnt);
 
-    assert(benefit <= s.Sweight + retsym_cnt + 1);
+    /* This can happen upon overflow of s.Sweight, but only in extreme cases such as
+     * issues.dlang.org/show_bug.cgi?id=17098
+     * It essentially means "a whole lotta uses in nested loops", where
+     * it should go into a register anyway. So just saturate it at int.max
+     */
+    //assert(benefit <= s.Sweight + retsym_cnt + 1);
+    if (benefit > s.Sweight + retsym_cnt + 1)
+        benefit = int.max;      // saturate instead of overflow error
     return benefit;
 
 Lcant:
