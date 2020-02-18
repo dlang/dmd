@@ -556,11 +556,20 @@ struct NDP
 {
     elem *e;                    // which elem is stored here (NULL if none)
     uint offset;            // offset from e (used for complex numbers)
-
-    __gshared NDP *save;
-    __gshared int savemax;         // # of entries in save[]
-    __gshared int savetop;         // # of entries used in save[]
 }
+
+struct Globals87
+{
+    NDP[8] stack;              // 8087 stack
+    int stackused = 0;         // number of items on the 8087 stack
+
+    NDP *save;
+    int savemax;         // # of entries in save[]
+    int savetop;         // # of entries used in save[]
+}
+
+extern (C++) extern __gshared Globals87 global87;
+extern (C++) extern __gshared NDP ndp_zero;
 
 void getlvalue_msw(code *);
 void getlvalue_lsw(code *);

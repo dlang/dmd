@@ -39,14 +39,9 @@ extern (C++):
 
 nothrow:
 
-private struct Globals
-{
-    NDP[8] stack;              // 8087 stack
-    int stackused = 0;         // number of items on the 8087 stack
-}
 // NOTE: this could be a TLS global which would allow this variable to be used in
 //       a multi-threaded version of the backend
-__gshared Globals global87;
+__gshared Globals87 global87;
 __gshared NDP ndp_zero;
 
 private:
@@ -103,17 +98,6 @@ enum CW_roundtonearest = 0x3BF;
  * When we need to temporarilly save 8087 registers, we record information
  * about the save into an array of NDP structs:
  */
-
-version (SCPP)
-struct NDP
-{
-    elem *e;                    // which elem is stored here (NULL if none)
-    uint offset;                // offset from e (used for complex numbers)
-
-    __gshared NDP *save;
-    __gshared int savemax;         // # of entries in save[]
-    __gshared int savetop;         // # of entries used in save[]
-}
 
 debug
     enum NDPSAVEINC = 2;            // flush reallocation bugs
@@ -196,26 +180,26 @@ private void ndp_fld(ref CodeBuilder cdb, int i, tym_t ty)
 }
 
 /**************************
- * Return index of empty slot in NDP.save[].
+ * Return index of empty slot in global87.save[].
  */
 
 private int getemptyslot()
 {
     int i;
 
-    for (i = 0; i < NDP.savemax; i++)
-        if (NDP.save[i].e == null)
+    for (i = 0; i < global87.savemax; i++)
+        if (global87.save[i].e == null)
                 goto L1;
-    // Out of room, reallocate NDP.save[]
-    NDP.save = cast(NDP *)mem_realloc(NDP.save,
-            (NDP.savemax + NDPSAVEINC) * (*NDP.save).sizeof);
-    /* clear out new portion of NDP.save[] */
-    memset(NDP.save + NDP.savemax,0,NDPSAVEINC * (*NDP.save).sizeof);
-    i = NDP.savemax;
-    NDP.savemax += NDPSAVEINC;
+    // Out of room, reallocate global87.save[]
+    global87.save = cast(NDP *)mem_realloc(global87.save,
+            (global87.savemax + NDPSAVEINC) * (*global87.save).sizeof);
+    /* clear out new portion of global87.save[] */
+    memset(global87.save + global87.savemax,0,NDPSAVEINC * (*global87.save).sizeof);
+    i = global87.savemax;
+    global87.savemax += NDPSAVEINC;
 
-L1: if (i >= NDP.savetop)
-        NDP.savetop = i + 1;
+L1: if (i >= global87.savetop)
+        global87.savetop = i + 1;
     return i;
 }
 
@@ -254,7 +238,7 @@ void push87(ref CodeBuilder cdb, int line, const(char)* file)
     if (global87.stack[7].e != null)
     {
         int i = getemptyslot();
-        NDP.save[i] = global87.stack[7];
+        global87.save[i] = global87.stack[7];
         cdb.genf2(0xD9,0xF6);                         // FDECSTP
         genfwait(cdb);
         ndp_fstp(cdb, i, global87.stack[7].e.Ety);       // FSTP i[BP]
@@ -348,18 +332,18 @@ L1:
         int j;
         for (j = 0; 1; j++)
         {
-            if (j >= NDP.savetop && e.Eoper == OPcomma)
+            if (j >= global87.savetop && e.Eoper == OPcomma)
             {
                 e = e.EV.E2;              // try right side
                 goto L1;
             }
 
-            debug if (j >= NDP.savetop)
-                printf("e = %p, NDP.savetop = %d\n",e,NDP.savetop);
+            debug if (j >= global87.savetop)
+                printf("e = %p, global87.savetop = %d\n",e,global87.savetop);
 
-            assert(j < NDP.savetop);
-            //printf("\tNDP.save[%d] = %p, .offset = %d\n", j, NDP.save[j].e, NDP.save[j].offset);
-            if (e == NDP.save[j].e && offset == NDP.save[j].offset)
+            assert(j < global87.savetop);
+            //printf("\tglobal87.save[%d] = %p, .offset = %d\n", j, global87.save[j].e, global87.save[j].offset);
+            if (e == global87.save[j].e && offset == global87.save[j].offset)
                 break;
         }
         push87(cdb);
@@ -373,7 +357,7 @@ L1:
                 i--;
             }
         }
-        NDP.save[j] = ndp_zero;                // back in 8087
+        global87.save[j] = ndp_zero;                // back in 8087
     }
     //global87.stack[i].e = null;
 }
@@ -389,8 +373,8 @@ void save87(ref CodeBuilder cdb)
     {
         // Save it
         int i = getemptyslot();
-        if (NDPP) printf("saving %p in temporary NDP.save[%d]\n",global87.stack[0].e,i);
-        NDP.save[i] = global87.stack[0];
+        if (NDPP) printf("saving %p in temporary global87.save[%d]\n",global87.stack[0].e,i);
+        global87.save[i] = global87.stack[0];
 
         genfwait(cdb);
         ndp_fstp(cdb,i,global87.stack[0].e.Ety); // FSTP i[BP]
@@ -419,7 +403,7 @@ void save87regs(ref CodeBuilder cdb, uint n)
             {
                 int i = getemptyslot();
                 ndp_fstp(cdb, i, global87.stack[k - 1].e.Ety);   // FSTP i[BP]
-                NDP.save[i] = global87.stack[k - 1];
+                global87.save[i] = global87.stack[k - 1];
                 global87.stack[k - 1] = ndp_zero;
             }
         }
@@ -445,7 +429,7 @@ void gensaverestore87(regm_t regm, ref CodeBuilder cdbsave, ref CodeBuilder cdbr
     assert(regm == mST0 || regm == mST01);
 
     int i = getemptyslot();
-    NDP.save[i].e = el_calloc();       // this blocks slot [i] for the life of this function
+    global87.save[i].e = el_calloc();       // this blocks slot [i] for the life of this function
     ndp_fstp(cdbsave, i, TYldouble);
 
     CodeBuilder cdb2a;
@@ -455,7 +439,7 @@ void gensaverestore87(regm_t regm, ref CodeBuilder cdbsave, ref CodeBuilder cdbr
     if (regm == mST01)
     {
         int j = getemptyslot();
-        NDP.save[j].e = el_calloc();
+        global87.save[j].e = el_calloc();
         ndp_fstp(cdbsave, j, TYldouble);
         ndp_fld(cdbrestore, j, TYldouble);
     }
