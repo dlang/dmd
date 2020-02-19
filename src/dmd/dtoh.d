@@ -290,10 +290,10 @@ extern(C++) final class ToCppBuffer(AST) : Visitor
 public:
     bool[void*] visited;
     bool[void*] forwarded;
-    OutBuffer *fwdbuf;
-    OutBuffer *checkbuf;
-    OutBuffer *donebuf;
-    OutBuffer *buf;
+    OutBuffer* fwdbuf;
+    OutBuffer* checkbuf;
+    OutBuffer* donebuf;
+    OutBuffer* buf;
     AST.AggregateDeclaration adparent;
     AST.ClassDeclaration cdparent;
     AST.TemplateDeclaration tdparent;
@@ -580,11 +580,10 @@ public:
             typeToBuffer(vd.type, vd.ident);
             cdparent = save;
             buf.writestring(";\n");
-            if (vd.type.ty == AST.Tstruct)
-            {
-                auto t = cast(AST.TypeStruct)vd.type;
+
+            if (auto t = vd.type.isTypeStruct())
                 includeSymbol(t.sym);
-            }
+
             auto savex = buf;
             buf = checkbuf;
             buf.writestring("    assert(offsetof(");
@@ -651,7 +650,7 @@ public:
                 buf.printf("\n");
             return;
         }
-        if (auto fd = ad.aliassym.isDtorDeclaration())
+        if (ad.aliassym.isDtorDeclaration())
         {
             // Ignore. It's taken care of while visiting FuncDeclaration
             return;
@@ -1066,9 +1065,8 @@ public:
             buf.writestring(ident.toChars());
         }
         this.ident = null;
-        if (t.ty == AST.Tsarray)
+        if (auto tsa = t.isTypeSArray())
         {
-            auto tsa = cast(AST.TypeSArray)t;
             buf.writeByte('[');
             tsa.dim.accept(this);
             buf.writeByte(']');
@@ -1130,8 +1128,8 @@ public:
             printf("[AST.TypePointer enter] %s\n", t.toChars());
             scope(exit) printf("[AST.TypePointer exit] %s\n", t.toChars());
         }
-        if (t.next.ty == AST.Tstruct &&
-            !strcmp((cast(AST.TypeStruct)t.next).sym.ident.toChars(), "__va_list_tag"))
+        auto ts = t.next.isTypeStruct();
+        if (ts && !strcmp(ts.sym.ident.toChars(), "__va_list_tag"))
         {
             buf.writestring("va_list");
             return;
@@ -1310,17 +1308,11 @@ public:
                 buf.writestring("Array");
             }
             else
-            {
-                foreach (o; *ti.tiargs)
-                {
-                    if (!AST.isType(o))
-                        return;
-                }
-                buf.writestring(ti.tempdecl.ident.toChars());
-            }
+                goto LprintTypes;
         }
         else
         {
+            LprintTypes:
             foreach (o; *ti.tiargs)
             {
                 if (!AST.isType(o))
@@ -1569,7 +1561,7 @@ public:
         if (e.sz == 2)
             buf.writeByte('L');
         buf.writeByte('"');
-        size_t o = buf.length;
+
         for (size_t i = 0; i < e.len; i++)
         {
             uint c = e.charAt(i);
@@ -1609,6 +1601,8 @@ public:
             printf("[AST.RealExp enter] %s\n", e.toChars());
             scope(exit) printf("[AST.RealExp exit] %s\n", e.toChars());
         }
+
+        // TODO: Needs to implemented, used e.g. for struct member initializers
         buf.writestring("0");
     }
 

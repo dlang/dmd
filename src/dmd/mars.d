@@ -36,6 +36,7 @@ import dmd.dmodule;
 import dmd.doc;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
+import dmd.dtoh;
 import dmd.errors;
 import dmd.expression;
 import dmd.globals;
@@ -64,8 +65,6 @@ import dmd.semantic2;
 import dmd.semantic3;
 import dmd.target;
 import dmd.utils;
-
-import dmd.dtoh;
 
 /**
  * Print DMD's logo on stdout
@@ -688,9 +687,8 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     }
 
     if (global.params.doCxxHdrGeneration)
-    {
         genCppHdrFiles(modules);
-    }
+
     if (global.errors)
         fatal();
 
