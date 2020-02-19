@@ -637,8 +637,8 @@ bool compareOutput(string output, string refoutput, const ref EnvData envData)
                 toSkip = chunk;
                 break;
             }
-            // Match against OS or model
-            else if (conditional[0].among(envData.os, envData.model))
+            // Match against OS or model (accepts "32mscoff" as "32")
+            else if (conditional[0].among(envData.os, envData.model, envData.model[0 .. min(2, $)]))
             {
                 toSkip = conditional[2];
                 break;
@@ -684,6 +684,9 @@ unittest
 
     const emptyFmt = "On <$?:windows=abc|$> use <$?:posix=$>!";
     assert(compareOutput("On <> use <>!", emptyFmt, ed));
+
+    ed.model = "32mscoff";
+    assert(compareOutput("size_t is uint!", "size_t is $?:32=uint|64=ulong$!", ed));
 }
 
 string envGetRequired(in char[] name)
