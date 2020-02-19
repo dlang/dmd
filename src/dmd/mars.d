@@ -2125,12 +2125,12 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             case 'd':               // https://dlang.org/dmd.html#switch-Dd
                 if (!p[3])
                     goto Lnoarg;
-                params.docdir = p + 3 + (p[3] == '=');
+                params.docdir = (p + 3 + (p[3] == '=')).toDString();
                 break;
             case 'f':               // https://dlang.org/dmd.html#switch-Df
                 if (!p[3])
                     goto Lnoarg;
-                params.docname = p + 3 + (p[3] == '=');
+                params.docname = (p + 3 + (p[3] == '=')).toDString();
                 break;
             case 0:
                 break;

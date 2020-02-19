@@ -656,7 +656,7 @@ extern (C++) final class Module : Package
 
     extern (D) void setDocfile()
     {
-        docfile = setOutfilename(global.params.docname.toDString, global.params.docdir.toDString, arg, global.doc_ext);
+        docfile = setOutfilename(global.params.docname, global.params.docdir, arg, global.doc_ext);
     }
 
     /**

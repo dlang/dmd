@@ -230,8 +230,8 @@ extern (C++) struct Param
     const(char)[] libname;               // .lib file output name
 
     bool doDocComments;                 // process embedded documentation comments
-    const(char)* docdir;                // write documentation file to docdir directory
-    const(char)* docname;               // write documentation file to docname
+    const(char)[] docdir;               // write documentation file to docdir directory
+    const(char)[] docname;              // write documentation file to docname
     Array!(const(char)*) ddocfiles;     // macro include files for Ddoc
 
     bool doHdrGeneration;               // process embedded documentation comments
