@@ -123,7 +123,6 @@ private bool isVisitorClass(ASTCodegen.ClassDeclaration cd)
 
 private bool isIgnoredModule(ASTCodegen.Module m)
 {
-    //if (!m || !m.parent)
     if (!m)
         return true;
 
@@ -177,14 +176,26 @@ private bool isFrontendModule(ASTCodegen.Module m)
             (m.parent.parent.ident == DMDModule.dmd && !m.parent.parent.parent));
 }
 
+private void initialize()
+{
+    __gshared bool initialized;
+
+    if (!initialized)
+    {
+        initialized = true;
+
+        DMDType._init();
+        if (isBuildingCompiler)
+        {
+            DMDModule._init();
+            DMDClass._init();
+        }
+    }
+}
+
 void genCppHdrFiles(ref Modules ms)
 {
-    DMDType._init();
-    if (isBuildingCompiler)
-    {
-        DMDModule._init();
-        DMDClass._init();
-    }
+    initialize();
 
     OutBuffer buf;
     buf.writestring("#pragma once\n");
