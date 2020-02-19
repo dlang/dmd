@@ -6079,15 +6079,17 @@ public:
             result = CTFEExp.cantexp;
             return;
         }
+
+        StructLiteralExp se;
+        int i;
+
         if (ex.op != TOK.structLiteral && ex.op != TOK.classReference && ex.op != TOK.typeid_)
         {
+        LnotImplemented:
             e.error("`%s.%s` is not yet implemented at compile time", e.e1.toChars(), e.var.toChars());
             result = CTFEExp.cantexp;
             return;
         }
-
-        StructLiteralExp se;
-        int i;
 
         // We can't use getField, because it makes a copy
         if (ex.op == TOK.classReference)
@@ -6097,14 +6099,12 @@ public:
         }
         else if (ex.op == TOK.typeid_)
         {
-            auto tie = cast(TypeidExp) ex;
             if (v.ident == Identifier.idPool("name"))
             {
-                if (auto t = isType(tie.obj))
+                if (auto t = isType(ex.isTypeidExp().obj))
                 {
                     auto sym = t.toDsymbol(null);
-                    auto ident = (sym ? sym.ident : null);
-                    if (ident)
+                    if (auto ident = (sym ? sym.ident : null))
                     {
                         result = new StringExp(e.loc, ident.toString());
                         result.expressionSemantic(null);
@@ -6112,12 +6112,7 @@ public:
                     }
                 }
             }
-            // We get here if we could not resolve the name or we were not asked for the name
-            {
-                e.error("only typeid(class/struct).name is implemented at compile time");
-                result = CTFEExp.cantexp;
-                return;
-            }
+            goto LnotImplemented;
         }
         else
         {
