@@ -227,7 +227,7 @@ public int runLINK()
         {
             OutBuffer cmdbuf;
             cmdbuf.writestring("/NOLOGO");
-            for (size_t i = 0; i < global.params.objfiles.dim; i++)
+            for (size_t i = 0; i < global.params.objfiles.length; i++)
             {
                 cmdbuf.writeByte(' ');
                 const(char)* p = global.params.objfiles[i];
@@ -261,7 +261,7 @@ public int runLINK()
                 cmdbuf.writestring("/MAP:");
                 writeFilename(&cmdbuf, getMapFilename());
             }
-            for (size_t i = 0; i < global.params.libfiles.dim; i++)
+            for (size_t i = 0; i < global.params.libfiles.length; i++)
             {
                 cmdbuf.writeByte(' ');
                 cmdbuf.writestring("/DEFAULTLIB:");
@@ -286,7 +286,7 @@ public int runLINK()
                 cmdbuf.writeByte(' ');
                 cmdbuf.writestring("/DLL");
             }
-            for (size_t i = 0; i < global.params.linkswitches.dim; i++)
+            for (size_t i = 0; i < global.params.linkswitches.length; i++)
             {
                 cmdbuf.writeByte(' ');
                 cmdbuf.writeQuotedArgIfNeeded(global.params.linkswitches[i]);
@@ -337,7 +337,7 @@ public int runLINK()
             OutBuffer cmdbuf;
             global.params.libfiles.push("user32");
             global.params.libfiles.push("kernel32");
-            for (size_t i = 0; i < global.params.objfiles.dim; i++)
+            for (size_t i = 0; i < global.params.objfiles.length; i++)
             {
                 if (i)
                     cmdbuf.writeByte('+');
@@ -372,7 +372,7 @@ public int runLINK()
             else
                 cmdbuf.writestring("nul");
             cmdbuf.writeByte(',');
-            for (size_t i = 0; i < global.params.libfiles.dim; i++)
+            for (size_t i = 0; i < global.params.libfiles.length; i++)
             {
                 if (i)
                     cmdbuf.writeByte('+');
@@ -415,7 +415,7 @@ public int runLINK()
                     cmdbuf.writestring("/co");
             }
             cmdbuf.writestring("/noi");
-            for (size_t i = 0; i < global.params.linkswitches.dim; i++)
+            for (size_t i = 0; i < global.params.linkswitches.length; i++)
             {
                 cmdbuf.writestring(global.params.linkswitches[i]);
             }
