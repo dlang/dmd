@@ -551,7 +551,10 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                      */
                     ae.e1 = resolveAliasThis(sc, ae1save, true);
                     if (ae.e1)
+                    {
+                        ad.aliasthis.checkDeprecatedAliasThis(ae.e1.loc, sc);
                         continue;
+                    }
                 }
                 break;
             }
