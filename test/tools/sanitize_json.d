@@ -17,6 +17,8 @@ void usage()
 {
     writeln("Usage: santize_json [--keep-deco] <input-json> [<output-json>]");
 }
+// This module may be imported from d_do_test
+version (NoMain) {} else
 int main(string[] args)
 {
     getopt(args,
@@ -43,16 +45,23 @@ int main(string[] args)
         return 1;
     }
 
-    auto json = parseJSON(readText(inFilename));
+    auto json = readText(inFilename);
     sanitize(json);
 
-    outFile.writeln(json.toJSON(true, JSONOptions.doNotEscapeSlashes));
+    outFile.writeln(json);
     return 0;
 }
 
 string capitalize(string s)
 {
     return text(s.take(1).asCapitalized.chain(s.drop(1)));
+}
+
+void sanitize(ref string text)
+{
+    auto json = parseJSON(text);
+    sanitize(json);
+    text = json.toJSON(true, JSONOptions.doNotEscapeSlashes);
 }
 
 void sanitize(JSONValue root)
