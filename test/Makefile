@@ -219,7 +219,7 @@ $(RESULTS_DIR)/d_do_test$(EXE): tools/d_do_test.d $(RESULTS_DIR)/.created
 	@echo "PIC: '$(PIC_FLAG)'"
 	$(DMD) -conf= $(MODEL_FLAG) $(DEBUG_FLAGS) -lowmem -unittest -run $< &
 	@pid=$!
-	$(DMD) -conf= $(MODEL_FLAG) $(DEBUG_FLAGS) -lowmem -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)d_do_test$(EXE) $<
+	$(DMD) -conf= $(MODEL_FLAG) $(DEBUG_FLAGS) -lowmem -i -Itools -version=NoMain -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)d_do_test$(EXE) $<
 	@wait $(pid)
 
 $(RESULTS_DIR)/dshell_prebuilt$(OBJ): tools/dshell_prebuilt/dshell_prebuilt.d

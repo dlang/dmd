@@ -80,6 +80,7 @@ struct TestArgs
     string   gdbScript;
     string   gdbMatch;
     string   postScript;
+    string   transformOutput; /// Transformations for the compiler output
     string   requiredArgs;
     string   requiredArgsForLink;
     string   disabledReason; // if empty, the test is not disabled
@@ -374,6 +375,8 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     else
         findOutputParameter(file, "TEST_OUTPUT", testArgs.compileOutput, envData.sep);
 
+    findTestParameter(envData, file, "TRANSFORM_OUTPUT", testArgs.transformOutput);
+
     findOutputParameter(file, "GDB_SCRIPT", testArgs.gdbScript, envData.sep);
     findTestParameter(envData, file, "GDB_MATCH", testArgs.gdbMatch);
 
@@ -564,6 +567,65 @@ bool collectExtraSources (in string input_dir, in string output_dir, in string[]
     }
 
     return true;
+}
+
+/++
+Applies custom transformations defined in transformOutput to testOutput.
+
+Currently the following actions are supported:
+ * "sanitize_json" = replace compiler/plattform specific data from generated JSON
+
+Params:
+    testOutput      = the existing output to be modified
+    transformOutput = list of transformation identifiers
+++/
+void applyOutputTransformations(ref string testOutput, const string transformOutput)
+{
+    foreach (const step; transformOutput.splitter())
+    {
+        switch (step)
+        {
+            case "sanitize_json":
+            {
+                import sanitize_json : sanitize;
+                sanitize(testOutput);
+                break;
+            }
+
+            default:
+                throw new Exception(format(`Unknown transformation: "%s"!`, step));
+        }
+    }
+}
+
+unittest
+{
+    static void test(const string transformations, const string expectedJson)
+    {
+        string json = `{
+    "modules": [
+        {
+            "file": "/path/to/the/file",
+            "kind": "module",
+            "members": []
+        }
+    ]
+}`;
+        applyOutputTransformations(json, transformations);
+        assert(json == expectedJson);
+    }
+
+    test("sanitize_json", `{
+    "modules": [
+        {
+            "file": "VALUE_REMOVED_FOR_TEST",
+            "kind": "module",
+            "members": []
+        }
+    ]
+}`);
+
+    assertThrown(test("unknown", ""));
 }
 
 /++
@@ -1018,6 +1080,8 @@ int tryMain(string[] args)
             enforce(!m, m.hit);
             m = std.regex.match(compile_output, `core.exception.AssertError@dmd.*`);
             enforce(!m, m.hit);
+
+            compile_output.applyOutputTransformations(testArgs.transformOutput);
 
             if (!compareOutput(compile_output, testArgs.compileOutput, envData))
             {

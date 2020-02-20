@@ -61,7 +61,7 @@ enum toolsDir = testPath("tools");
 enum TestTools
 {
     unitTestRunner = TestTool("unit_test_runner", [toolsDir.buildPath("paths")]),
-    testRunner = TestTool("d_do_test"),
+    testRunner = TestTool("d_do_test", ["-I" ~ toolsDir, "-i", "-version=NoMain"]),
     jsonSanitizer = TestTool("sanitize_json"),
     dshellPrebuilt = TestTool("dshell_prebuilt", null, Yes.linksWithTests),
 }
