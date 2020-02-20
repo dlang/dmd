@@ -409,7 +409,9 @@ alias runCxxUnittest = makeRule!((runCxxBuilder, runCxxRule) {
         .msg("(CXX) CXX-FRONTEND")
         .sources(srcDir.buildPath("tests", "cxxfrontend.c") ~ .sources.frontendHeaders ~ .sources.dmd.all ~ .sources.root)
         .target(env["G"].buildPath("cxxfrontend").objName)
-        .command([ env["CXX"], "-c", frontendRule.sources[0], "-o" ~ frontendRule.target, "-I" ~ env["D"] ] ~ flags["CXXFLAGS"])
+        // No explicit if since CXX_KIND will always be either g++ or clang++
+        .command([ env["CXX"], env["CXX_KIND"] == "g++" ? "-std=gnu++98" : "-xc++",
+                   "-c", frontendRule.sources[0], "-o" ~ frontendRule.target, "-I" ~ env["D"] ] ~ flags["CXXFLAGS"])
     );
 
     alias cxxUnittestExe = methodInit!(BuildRule, (exeBuilder, exeRule) => exeBuilder
@@ -1079,9 +1081,6 @@ void processEnvironmentCxx()
     auto cxxFlags = warnings ~ [
         "-g", "-fno-exceptions", "-fno-rtti", "-fasynchronous-unwind-tables", "-DMARS=1",
         env["MODEL_FLAG"], env["PIC_FLAG"],
-
-        // No explicit if since cxxKind will always be either g++ or clang++
-        cxxKind == "g++" ? "-std=gnu++98" : "-xc++"
     ];
 
     if (env.getNumberedBool("ENABLE_COVERAGE"))
