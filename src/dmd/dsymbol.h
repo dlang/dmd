@@ -372,6 +372,7 @@ public:
 
 class ExpressionDsymbol : public Dsymbol
 {
+public:
     Expression *exp;
 
     ExpressionDsymbol *isExpressionDsymbol() { return this; }

@@ -63,7 +63,7 @@ ifeq (osx,$(OS))
     export MACOSX_DEPLOYMENT_TARGET=10.9
 endif
 
-HOST_CXX=c++
+HOST_CXX?=c++
 # compatibility with old behavior
 ifneq ($(HOST_CC),)
   $(warning ===== WARNING: Please use HOST_CXX=$(HOST_CC) instead of HOST_CC=$(HOST_CC). =====)
