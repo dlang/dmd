@@ -68,7 +68,7 @@ static void frontend_init()
 
     global._init();
     global.params.isLinux = true;
-    global.vendor = DString("Front-End Tester");
+    global.vendor = "Front-End Tester";
 
     Type::_init();
     Id::initialize();
@@ -107,6 +107,8 @@ void test_tokens()
 
 class TestVisitor : public Visitor
 {
+  using Visitor::visit;
+
   public:
     bool expr;
     bool package;

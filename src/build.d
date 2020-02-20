@@ -1061,25 +1061,13 @@ void processEnvironmentCxx()
     const cxxKind = env["CXX_KIND"] = detectHostCxx();
 
     string[] warnings  = [
-        "-Wall", "-Werror", "-Wextra", "-Wno-attributes", "-Wno-char-subscripts", "-Wno-deprecated",
-        "-Wno-empty-body", "-Wno-format", "-Wno-missing-braces", "-Wno-missing-field-initializers",
-        "-Wno-overloaded-virtual", "-Wno-parentheses", "-Wno-reorder", "-Wno-return-type",
-        "-Wno-sign-compare", "-Wno-strict-aliasing", "-Wno-switch", "-Wno-type-limits",
-        "-Wno-unknown-pragmas", "-Wno-unused-function", "-Wno-unused-label", "-Wno-unused-parameter",
-        "-Wno-unused-value", "-Wno-unused-variable"
+        "-Wall", "-Werror", "-Wno-narrowing", "-Wwrite-strings", "-Wcast-qual", "-Wno-format",
+        "-Wmissing-format-attribute", "-Woverloaded-virtual", "-pedantic", "-Wno-long-long",
+        "-Wno-variadic-macros", "-Wno-overlength-strings",
     ];
 
-    if (cxxKind == "g++")
-        warnings ~= [
-            "-Wno-class-memaccess", "-Wno-implicit-fallthrough", "-Wno-logical-op", "-Wno-narrowing",
-            "-Wno-uninitialized", "-Wno-unused-but-set-variable"
-        ];
-
-    if (cxxKind == "clang++")
-        warnings ~= ["-Wno-logical-op-parentheses", "-Wno-unused-private-field"];
-
     auto cxxFlags = warnings ~ [
-        "-g", "-fno-exceptions", "-fno-rtti", "-fasynchronous-unwind-tables", "-DMARS=1",
+        "-g", "-fno-exceptions", "-fno-rtti", "-fno-common", "-fasynchronous-unwind-tables", "-DMARS=1",
         env["MODEL_FLAG"], env["PIC_FLAG"],
     ];
 

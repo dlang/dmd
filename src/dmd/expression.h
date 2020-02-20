@@ -1367,6 +1367,7 @@ private:
 
 class ObjcClassReferenceExp : public Expression
 {
+public:
     ClassDeclaration* classDeclaration;
 
     void accept(Visitor *v) { v->visit(this); }
