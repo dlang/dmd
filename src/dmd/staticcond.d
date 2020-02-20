@@ -12,7 +12,6 @@
 
 module dmd.staticcond;
 
-import dmd.aliasthis;
 import dmd.arraytypes;
 import dmd.dmodule;
 import dmd.dscope;
@@ -104,16 +103,6 @@ bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool 
             e.op == TOK.error ||
             e.type.toBasetype() == Type.terror)
         {
-            errors = true;
-            return false;
-        }
-
-        e = resolveAliasThis(sc, e);
-
-        if (!e.type.isBoolean())
-        {
-            original.error("expression `%s` of type `%s` does not have a boolean value",
-                original.toChars(), e.type.toChars());
             errors = true;
             return false;
         }
