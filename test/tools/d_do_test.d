@@ -76,6 +76,7 @@ struct TestArgs
     string   permuteArgs;
     string[] argSets;
     string   compileOutput;
+    string   compileOutputFile; /// file containing the expected output
     string   gdbScript;
     string   gdbMatch;
     string   postScript;
@@ -360,7 +361,18 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     if (!testArgs.isDisabled)
         testArgs.disabledReason = getDisabledReason(split(disabledPlatformsStr), envData);
 
-    findOutputParameter(file, "TEST_OUTPUT", testArgs.compileOutput, envData.sep);
+    findTestParameter(envData, file, "TEST_OUTPUT_FILE", testArgs.compileOutputFile);
+
+    // Only check for TEST_OUTPUT is no file was given because it would
+    // partially match TEST_OUTPUT_FILE
+    if (testArgs.compileOutputFile)
+    {
+        // Don't require tests to specify the test directory
+        testArgs.compileOutputFile = input_dir.buildPath(testArgs.compileOutputFile);
+        testArgs.compileOutput = readText(testArgs.compileOutputFile);
+    }
+    else
+        findOutputParameter(file, "TEST_OUTPUT", testArgs.compileOutput, envData.sep);
 
     findOutputParameter(file, "GDB_SCRIPT", testArgs.gdbScript, envData.sep);
     findTestParameter(envData, file, "GDB_MATCH", testArgs.gdbMatch);
@@ -1043,6 +1055,13 @@ int tryMain(string[] args)
             {
                 // remove the output file in test_results as its outdated
                 output_file.remove();
+
+                if (testArgs.compileOutputFile)
+                {
+                    std.file.write(testArgs.compileOutputFile, ce.actual);
+                    writefln("\n==> `TEST_OUTPUT_FILE` `%s` has been updated", testArgs.compileOutputFile);
+                    return Result.return0;
+                }
 
                 auto existingText = input_file.readText;
                 auto updatedText = existingText.replace(ce.expected, ce.actual);
