@@ -259,7 +259,7 @@ void WReqn(elem *e)
                     if (e.EV.Voffset.sizeof == 8)
                         printf(".x%llx", cast(ulong)e.EV.Voffset);
                     else
-                        printf(".%ld",cast(int)e.EV.Voffset);
+                        printf(".%d",cast(int)e.EV.Voffset);
                 }
                 break;
             case OPasm:

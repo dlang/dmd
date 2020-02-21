@@ -831,7 +831,7 @@ struct Foo36
 void test36()
 {
    Foo36 f;
-   printf("f.sizeof = %d\n", f.sizeof);
+   printf("f.sizeof = %zd\n", f.sizeof);
    assert(f.sizeof == 12);
 
    f.a = 1;

@@ -52,7 +52,7 @@ void foo2()
 
     for (i = 0; i < key.length; i++)
     {
-        printf("c[\"%.*s\"] = %d\n", key[i].length, key[i].ptr, value[i]);
+        printf("c[\"%.*s\"] = %d\n", cast(int)key[i].length, key[i].ptr, value[i]);
     }
 
     assert("foo" in c);
@@ -69,7 +69,7 @@ void foo2()
 void testaa()
 {
     size_t i = foo("abc");
-    printf("i = %d\n", i);
+    printf("i = %zd\n", i);
     assert(i == 0);
 
     foo2();

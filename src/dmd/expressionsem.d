@@ -22,6 +22,7 @@ import dmd.arraytypes;
 import dmd.attrib;
 import dmd.astcodegen;
 import dmd.canthrow;
+import dmd.chkprintf;
 import dmd.ctorflow;
 import dmd.dscope;
 import dmd.dsymbol;
@@ -2147,6 +2148,17 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             arg = arg.optimize(WANTvalue);
         }
         (*arguments)[i] = arg;
+    }
+
+    /* If calling C printf(), check the format string against the arguments
+     */
+    if (tf.linkage == LINK.c && nparams >= 1 && fd && fd.ident == Id.printf)
+    {
+        if (auto se = (*arguments)[0].isStringExp())
+        {
+            if (checkPrintfFormat(se.loc, se.peekString(), (*arguments)[1 .. nargs]))
+                err = true;
+        }
     }
 
     /* Remaining problems:
