@@ -1,3 +1,4 @@
+// EXTRA_FILES: imports/test20530a.d
 module mod;
 static assert(is(mod == module));
 static assert(is(mixin("mod") == module));
