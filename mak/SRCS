@@ -49,6 +49,10 @@ SRCS=\
 	src\core\internal\array\concatenation.d \
 	src\core\internal\array\operations.d \
 	src\core\internal\array\utils.d \
+	\
+	src\core\internal\elf\dl.d \
+	src\core\internal\elf\io.d \
+	\
 	src\core\internal\util\array.d \
 	\
 	src\core\stdc\assert_.d \

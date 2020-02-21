@@ -201,6 +201,12 @@ $(IMPDIR)\core\internal\array\utils.d : src\core\internal\array\utils.d
 $(IMPDIR)\core\internal\array\operations.d : src\core\internal\array\operations.d
 	copy $** $@
 
+$(IMPDIR)\core\internal\elf\dl.d : src\core\internal\elf\dl.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\elf\io.d : src\core\internal\elf\io.d
+	copy $** $@
+
 $(IMPDIR)\core\internal\util\array.d : src\core\internal\util\array.d
 	copy $** $@
 

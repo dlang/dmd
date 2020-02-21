@@ -61,11 +61,11 @@ struct Image
         return self !is null;
     }
 
-    const(ubyte)[] getDebugLineSectionData()
+    T processDebugLineSectionData(T)(scope T delegate(const(ubyte)[]) processor)
     {
         c_ulong size;
         auto data = getsectiondata(self, "__DWARF", "__debug_line", &size);
-        return data[0 .. size];
+        return processor(data[0 .. size]);
     }
 
     @property size_t baseAddress()

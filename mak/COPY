@@ -50,6 +50,9 @@ COPY=\
 	$(IMPDIR)\core\internal\array\operations.d \
 	$(IMPDIR)\core\internal\array\utils.d \
 	\
+	$(IMPDIR)\core\internal\elf\dl.d \
+	$(IMPDIR)\core\internal\elf\io.d \
+	\
 	$(IMPDIR)\core\internal\util\array.d \
 	\
 	$(IMPDIR)\core\stdc\assert_.d \

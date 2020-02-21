@@ -159,6 +159,9 @@ $(DOCDIR)/core_gc_%.html : src/core/gc/%.d $(DMD)
 $(DOCDIR)/core_internal_%.html : src/core/internal/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
+$(DOCDIR)/core_internal_elf_%.html : src/core/internal/elf/%.d $(DMD)
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+
 $(DOCDIR)/core_stdc_%.html : src/core/stdc/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
