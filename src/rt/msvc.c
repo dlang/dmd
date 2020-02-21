@@ -33,6 +33,8 @@ FILE* __iob_func();                 // VS2013-
 
 int _set_output_format(int format); // VS2013-
 
+int _vsnprintf(char* buffer, int buffer_length, const char* format, void* va_list); // VS2015-
+
 //extern const char* __acrt_iob_func;
 extern const char* _nullfunc = 0;
 
@@ -40,8 +42,10 @@ unsigned char msvcUsesUCRT;
 
 #if defined _M_IX86
     #define C_PREFIX "_"
+    typedef long size_t;
 #elif defined _M_X64 || defined _M_ARM || defined _M_ARM64
     #define C_PREFIX ""
+    typedef long long size_t;
 #else
     #error Unsupported architecture
 #endif
@@ -75,6 +79,39 @@ void init_msvc()
         _set_output_format(_TWO_DIGIT_EXPONENT);
     }
 }
+
+// VS2017+ wraps (v)snprintf into an inlined function calling __stdio_common_vsprintf
+//  wrap it back to the original function if it doesn't exist in the C library
+int _msvc_stdio_common_vsprintf(
+    unsigned __int64 const options,
+    char* const buffer,
+    size_t const buffer_count,
+    char const* const format,
+    void* const locale,
+    void* const arglist
+)
+{
+    static const int _CRT_INTERNAL_PRINTF_STANDARD_SNPRINTF_BEHAVIOR = 2;
+    int r = _vsnprintf(buffer, buffer_count, format, arglist);
+    if ((options & _CRT_INTERNAL_PRINTF_STANDARD_SNPRINTF_BEHAVIOR) &&
+        (buffer_count != 0 && buffer))
+    {
+        // mimic vsnprintf semantics for most use cases
+        if (r == buffer_count)
+        {
+            buffer[buffer_count - 1] = 0;
+            return buffer_count;
+        }
+        if (r == -1)
+        {
+            buffer[buffer_count - 1] = 0;
+            return _vsnprintf(0, 0, format, arglist);
+        }
+    }
+    return r;
+}
+
+DECLARE_ALTERNATE_NAME(__stdio_common_vsprintf, _msvc_stdio_common_vsprintf);
 
 // VS2015+ provides C99-conformant (v)snprintf functions, so weakly
 // link to legacy _(v)snprintf (not C99-conformant!) for VS2013- only
