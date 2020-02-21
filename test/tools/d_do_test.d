@@ -701,6 +701,43 @@ unittest
     assert(compareOutput("size_t is uint!", "size_t is $?:32=uint|64=ulong$!", ed));
 }
 
+/++
+Creates a diff of the expected and actual test output.
+
+Params:
+    testData = the test configuration
+    output   = the actual output
+    name     = the test files name
+
+Returns: the comparison created by the `diff` utility
+++/
+string generateDiff(ref const TestArgs testData, const string output, const string name)
+{
+    string actualFile = tempDir.buildPath("expected_" ~ name);
+    File(actualFile, "w").writeln(output); // Append \n
+    scope (exit) remove(actualFile);
+
+    const needTmp = !testData.compileOutputFile;
+    string expectedFile;
+    if (needTmp) // Create a temporary file
+    {
+        expectedFile = tempDir.buildPath("actual_" ~ name);
+        File(expectedFile, "w").writeln(testData.compileOutput); // Append \n
+    }
+    else // Reuse TEST_OUTPUT_FILE
+        expectedFile = testData.compileOutputFile;
+
+    // Remove temporary file
+    scope (exit) if (needTmp)
+        remove(expectedFile);
+
+    const cmd = ["diff", "-pu", "--strip-trailing-cr", expectedFile, actualFile];
+    try
+        return std.process.execute(cmd).output;
+    catch (Exception e)
+        return format(`%-(%s, %) failed: %s`, cmd, e.msg);
+}
+
 string envGetRequired(in char[] name)
 {
     auto value = environment.get(name);
@@ -720,9 +757,10 @@ class CompareException : Exception
     string expected;
     string actual;
 
-    this(string expected, string actual) {
+    this(string expected, string actual, string diff) {
         string msg = "\nexpected:\n----\n" ~ expected ~
-            "\n----\nactual:\n----\n" ~ actual ~ "\n----\n";
+            "\n----\nactual:\n----\n" ~ actual ~
+            "\n----\ndiff:\n----\n" ~ diff ~ "----\n";
         super(msg);
         this.expected = expected;
         this.actual = actual;
@@ -984,7 +1022,8 @@ int tryMain(string[] args)
                      testArgs.mode != TestMode.FAIL_COMPILE &&
                      testArgs.mode != TestMode.RUN))
                 {
-                    throw new CompareException(testArgs.compileOutput, compile_output);
+                    const diff = generateDiff(testArgs, compile_output, test_base_name);
+                    throw new CompareException(testArgs.compileOutput, compile_output, diff);
                 }
             }
 
