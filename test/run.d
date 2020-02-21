@@ -236,6 +236,7 @@ void ensureToolsExists(string[string] env, const TestTool[] tools ...)
             {
                 command = [
                     hostDMD,
+                    "-m"~env["MODEL"],
                     "-of"~targetBin,
                     sourceFile
                 ] ~ tool.extraArgs;

@@ -79,7 +79,7 @@ jobs:
       VSINSTALLDIR: C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\
     strategy:
       matrix:
-        x64-debug-ldc:
+        win32-ldc:
           OS: Win_32
           MODEL: 32mscoff
           ARCH: x86

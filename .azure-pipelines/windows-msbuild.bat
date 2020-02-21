@@ -48,6 +48,13 @@ msbuild /target:dmd /p:Configuration=%CONFIGURATION% /p:Platform=%PLATFORM% %LDC
 %DMD% --version
 grep --version
 
+rem compile run.d before changing the LIB environment variable
+if "%D_COMPILER%" == "ldc" set HOST_DMD=%LDC_DIR%\bin\ldmd2.exe
+if "%D_COMPILER%" == "dmd" set HOST_DMD=%DMD_DIR%\dmd2\windows\bin\dmd.exe
+
+cd "%DMD_DIR%\test"
+"%HOST_DMD%" -m%MODEL% -i run.d || exit /B 6
+
 set DRUNTIME_TESTS=test_all
 cd "%DMD_DIR%"
 if "%C_RUNTIME%" == "mingw" (
@@ -88,12 +95,7 @@ set OS=windows
 set CC=cl.exe
 set DMD_MODEL=%PLATFORM%
 set BUILD=%CONFIGURATION%
-if "%D_COMPILER%" == "ldc" set HOST_DMD=%LDC_DIR%\bin\ldmd2.exe
-if "%D_COMPILER%" == "dmd" set HOST_DMD=%DMD_DIR%\dmd2\windows\bin\dmd.exe
-
-if "%D_COMPILER%" == "ldc" set RDMD=%LDC_DIR%\bin\rdmd
-if "%D_COMPILER%" == "dmd" set RDMD=%DMD_DIR%\dmd2\windows\bin\rdmd
-"%RDMD%" -m%MODEL% run.d || exit /B 6
+run.exe || exit /B 6
 
 cd "%DMD_DIR%\..\phobos"
 REM Check: build phobos unittests
