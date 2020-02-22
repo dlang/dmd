@@ -6041,6 +6041,13 @@ public:
 
     override void visit(DotVarExp e)
     {
+        void notImplementedYet()
+        {
+            e.error("`%s.%s` is not yet implemented at compile time", e.e1.toChars(), e.var.toChars());
+            result = CTFEExp.cantexp;
+            return;
+        }
+
         debug (LOG)
         {
             printf("%s DotVarExp::interpret() %s, goal = %d\n", e.loc.toChars(), e.toChars(), goal);
@@ -6085,10 +6092,7 @@ public:
 
         if (ex.op != TOK.structLiteral && ex.op != TOK.classReference && ex.op != TOK.typeid_)
         {
-        LnotImplemented:
-            e.error("`%s.%s` is not yet implemented at compile time", e.e1.toChars(), e.var.toChars());
-            result = CTFEExp.cantexp;
-            return;
+            return notImplementedYet();
         }
 
         // We can't use getField, because it makes a copy
@@ -6112,7 +6116,7 @@ public:
                     }
                 }
             }
-            goto LnotImplemented;
+            return notImplementedYet();
         }
         else
         {
