@@ -118,7 +118,7 @@ struct Cinfo
             printf("push,");
         if (ci.flags & ~(CIFL.arraybounds|CIFL.nostage|CIFL.push|CIFL.ea))
             printf("bad flag,");
-        printf("\n\tr %lx w %lx a %lx reg %x uops %x sibmodrm %x spadjust %ld\n",
+        printf("\n\tr %x w %x a %x reg %x uops %x sibmodrm %x spadjust %d\n",
                 cast(int)r,cast(int)w,cast(int)a,reg,uops,sibmodrm,cast(int)spadjust);
         if (ci.fp_op)
         {

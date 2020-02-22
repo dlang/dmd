@@ -1255,7 +1255,7 @@ void type_print(const type *t)
             break;
 
         case TYarray:
-            printf(" Tdim=%ld", cast(int)t.Tdim);
+            printf(" Tdim=%lld", cast(long)t.Tdim);
             break;
 
         case TYident:
