@@ -36,8 +36,8 @@ private:
  * Parse list of extended asm input or output operands.
  * Grammar:
  *      | Operands:
- *      |     SymbolicName(opt) StringLiteral AssignExpression
- *      |     SymbolicName(opt) StringLiteral AssignExpression , Operands
+ *      |     SymbolicName(opt) StringLiteral ( AssignExpression )
+ *      |     SymbolicName(opt) StringLiteral ( AssignExpression ), Operands
  *      |
  *      | SymbolicName:
  *      |     [ Identifier ]
@@ -81,7 +81,23 @@ int parseExtAsmOperands(Parser)(Parser p, GccAsmStatement s)
 
             case TOK.string_:
                 constraint = p.parsePrimaryExp();
-                arg = p.parseAssignExp();
+                // @@@DEPRECATED@@@
+                // Old parser allowed omitting parentheses around the expression.
+                // Deprecated in 2.091. Can be made permanent error after 2.100
+                if (p.token.value != TOK.leftParentheses)
+                {
+                    arg = p.parseAssignExp();
+                    deprecation(arg.loc, "`%s` must be surrounded by parentheses", arg.toChars());
+                }
+                else
+                {
+                    // Look for the opening `(`
+                    p.check(TOK.leftParentheses);
+                    // Parse the assign expression
+                    arg = p.parseAssignExp();
+                    // Look for the closing `)`
+                    p.check(TOK.rightParentheses);
+                }
 
                 if (!s.args)
                 {
@@ -415,19 +431,19 @@ unittest
         // Extended asm statement
         q{ asm { "cpuid"
                : "=a" (a), "=b" (b), "=c" (c), "=d" (d)
-               : "a" input;
+               : "a" (input);
         } },
 
         // Assembly with symbolic names
         q{ asm { "bts %[base], %[offset]"
-               : [base] "+rm" *ptr,
-               : [offset] "Ir" bitnum;
+               : [base] "+rm" (*ptr),
+               : [offset] "Ir" (bitnum);
         } },
 
         // Assembly with clobbers
         q{ asm { "cpuid"
-               : "=a" a
-               : "a" input
+               : "=a" (a)
+               : "a" (input)
                : "ebx", "ecx", "edx";
         } },
 
@@ -461,7 +477,7 @@ unittest
         // Expression expected, not ':'
         q{ asm { ""
                :
-               : "g" a ? b : : c;
+               : "g" (a ? b : : c);
         } },
         +/
     ];
