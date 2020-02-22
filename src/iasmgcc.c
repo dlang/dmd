@@ -13,6 +13,7 @@
 
 #include "scope.h"
 #include "declaration.h"
+#include "errors.h"
 #include "parse.h"
 #include "statement.h"
 
@@ -23,8 +24,8 @@ Statement *semantic(Statement *s, Scope *sc);
  * Parse list of extended asm input or output operands.
  * Grammar:
  *      | Operands:
- *      |     SymbolicName(opt) StringLiteral AssignExpression
- *      |     SymbolicName(opt) StringLiteral AssignExpression , Operands
+ *      |     SymbolicName(opt) StringLiteral ( AssignExpression )
+ *      |     SymbolicName(opt) StringLiteral ( AssignExpression ), Operands
  *      |
  *      | SymbolicName:
  *      |     [ Identifier ]
@@ -74,7 +75,23 @@ static int parseExtAsmOperands(Parser *p, GccAsmStatement *s)
 
             case TOKstring:
                 constraint = p->parsePrimaryExp();
-                arg = p->parseAssignExp();
+                // @@@DEPRECATED@@@
+                // Old parser allowed omitting parentheses around the expression.
+                // Deprecated in 2.091. Can be made permanent error after 2.100
+                if (p->token.value != TOKlparen)
+                {
+                    arg = p->parseAssignExp();
+                    deprecation(arg->loc, "`%s` must be surrounded by parentheses", arg->toChars());
+                }
+                else
+                {
+                    // Look for the opening `(`
+                    p->check(TOKlparen);
+                    // Parse the assign expression
+                    arg = p->parseAssignExp();
+                    // Look for the closing `)`
+                    p->check(TOKrparen);
+                }
 
                 if (!s->args)
                 {
