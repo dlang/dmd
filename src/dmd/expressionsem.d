@@ -5163,8 +5163,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     return setError();
                 }
             }
-            VarDeclaration vthis2 = makeThis2Argument(exp.loc, sc, exp.f);            exp.vthis2 = vthis2;
-            Expression de = new DeclarationExp(exp.loc, vthis2);
+            exp.vthis2 = makeThis2Argument(exp.loc, sc, exp.f);
+            Expression de = new DeclarationExp(exp.loc, exp.vthis2);
             result = Expression.combine(de, result);
             result = result.expressionSemantic(sc);
         }
