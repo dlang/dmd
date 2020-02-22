@@ -67,7 +67,9 @@ int parseExtAsmOperands(Parser)(Parser p, GccAsmStatement s)
             case TOK.leftBracket:
                 if (p.peekNext() == TOK.identifier)
                 {
+                    // Skip over opening `[`
                     p.nextToken();
+                    // Store the symbolic name
                     name = p.token.ident;
                     p.nextToken();
                 }
@@ -76,8 +78,13 @@ int parseExtAsmOperands(Parser)(Parser p, GccAsmStatement s)
                     p.error(s.loc, "expected identifier after `[`");
                     goto Lerror;
                 }
+                // Look for closing `]`
                 p.check(TOK.rightBracket);
-                goto case;
+                // Look for the string literal and fall through
+                if (p.token.value == TOK.string_)
+                    goto case;
+                else
+                    goto default;
 
             case TOK.string_:
                 constraint = p.parsePrimaryExp();
@@ -419,7 +426,8 @@ unittest
         p.check(TOK.rightCurly);
 
         auto res = semanticAsm(toklist);
-        assert(res == 0 || expectError);
+        // Checks for both unexpected passes and failures.
+        assert((res == 0) != expectError);
     }
 
     /// Assembly Tests, all should pass.
@@ -469,6 +477,9 @@ unittest
         // Found 'h' when expecting ';'
         q{ asm { ""h;
         } },
+
+        // https://issues.dlang.org/show_bug.cgi?id=20592
+        q{ asm { "nop" : [name] string (expr); } },
 
         // Expression expected, not ';'
         q{ asm { ""[;
