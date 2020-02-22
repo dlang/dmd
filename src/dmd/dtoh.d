@@ -188,7 +188,7 @@ private void initialize()
     }
 }
 
-void genCppHdrFiles(ref Modules ms)
+extern(C++) void genCppHdrFiles(ref Modules ms)
 {
     initialize();
 
