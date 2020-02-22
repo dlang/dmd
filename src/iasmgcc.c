@@ -54,7 +54,9 @@ static int parseExtAsmOperands(Parser *p, GccAsmStatement *s)
             case TOKlbracket:
                 if (p->peekNext() == TOKidentifier)
                 {
+                    // Skip over openings `[`
                     p->nextToken();
+                    // Store the symbolic name
                     name = p->token.ident;
                     p->nextToken();
                 }
@@ -63,7 +65,11 @@ static int parseExtAsmOperands(Parser *p, GccAsmStatement *s)
                     p->error(s->loc, "expected identifier after `[`");
                     goto Lerror;
                 }
+                // Look for closing `]`
                 p->check(TOKrbracket);
+                // Look for the string literal and fall through
+                if (p->token.value != TOKstring)
+                    goto Ldefault;
                 // fall through
 
             case TOKstring:
@@ -86,6 +92,7 @@ static int parseExtAsmOperands(Parser *p, GccAsmStatement *s)
                 break;
 
             default:
+            Ldefault:
                 p->error("expected constant string constraint for operand, not `%s`",
                         p->token.toChars());
                 goto Lerror;
