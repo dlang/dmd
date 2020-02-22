@@ -1776,9 +1776,9 @@ $(H3 $(LNAME2 lambdas, Lambdas))
 
 $(GRAMMAR
 $(GNAME Lambda):
-    $(D function) $(D ref)$(OPT) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterAttributes) $(D =>) $(GLINK AssignExpression)
-    $(D delegate) $(D ref)$(OPT) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterMemberAttributes) $(D =>) $(GLINK AssignExpression)
-    $(D ref)$(OPT) $(GLINK ParameterMemberAttributes) $(D =>) $(GLINK AssignExpression)
+    $(D function) $(D ref)$(OPT) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterWithAttributes) $(D =>) $(GLINK AssignExpression)
+    $(D delegate) $(D ref)$(OPT) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterWithMemberAttributes) $(D =>) $(GLINK AssignExpression)
+    $(D ref)$(OPT) $(GLINK ParameterWithMemberAttributes) $(D =>) $(GLINK AssignExpression)
     $(IDENTIFIER) $(D =>) $(GLINK AssignExpression)
 )
 
