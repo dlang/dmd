@@ -4087,7 +4087,7 @@ debug (LOGGING)
             printf("    p = %p, size = %lld, parent = %p ", p, cast(ulong)size, parent);
             if (file)
             {
-                printf("%s(%u)", file, line);
+                printf("%s(%u)", file, cast(uint)line);
             }
             printf("\n");
         }
