@@ -22,12 +22,7 @@ import dmd.astcodegen;
 import dmd.arraytypes;
 import dmd.globals;
 import dmd.identifier;
-import dmd.json;
-import dmd.mars;
-import dmd.root.array;
-import dmd.root.file;
 import dmd.root.filename;
-import dmd.root.rmem;
 import dmd.visitor;
 import dmd.tokens;
 
