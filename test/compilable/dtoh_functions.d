@@ -32,7 +32,7 @@ extern int32_t baz(int32_t x);
 
 extern int32_t baz2(int32_t x);
 
-extern int32_t baz3(int32_t x = 42);
+extern int32_t baz4(int32_t x = 42);
 ---
 */
 
@@ -79,7 +79,7 @@ extern (C++) private int baz3(int x)
     return x * 42;
 }
 
-extern (C++) int baz3(int x = 42)
+extern (C++) int baz4(int x = 42)
 {
     return x * 42;
 }
