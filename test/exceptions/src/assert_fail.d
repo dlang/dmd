@@ -17,12 +17,13 @@ void test(T)(lazy T dg, string msg, size_t line = __LINE__)
             // don't use assert here for better debugging
             if (e.msg != msg)
             {
-                printf("Line %d: '%.*s' != '%.*s'\n", line, e.msg.length, e.msg.ptr, msg.length, msg.ptr);
+                printf("Line %d: '%.*s' != '%.*s'\n",
+                    cast(int)line, cast(int)e.msg.length, e.msg.ptr, cast(int)msg.length, msg.ptr);
                 return 1;
             }
             return 0;
         }
-        printf("Line %d: No assert triggered\n", line);
+        printf("Line %d: No assert triggered\n", cast(int)line);
         return 1;
     }();
     // don't use assert here for better debugging
