@@ -44,6 +44,7 @@ private struct DMDType
     __gshared Identifier c_longlong;
     __gshared Identifier c_ulonglong;
     __gshared Identifier c_long_double;
+    __gshared Identifier c_wchar_t;
     __gshared Identifier AssocArray;
     __gshared Identifier Array;
 
@@ -54,6 +55,7 @@ private struct DMDType
         c_longlong      = Identifier.idPool("__c_longlong");
         c_ulonglong     = Identifier.idPool("__c_ulonglong");
         c_long_double   = Identifier.idPool("__c_long_double");
+        c_wchar_t       = Identifier.idPool("__c_wchar_t");
 
         if (isBuildingCompiler)
         {
@@ -176,6 +178,33 @@ private bool isFrontendModule(ASTCodegen.Module m)
             (m.parent.parent.ident == DMDModule.dmd && !m.parent.parent.parent));
 }
 
+private string translateBasicType(ubyte ty)
+{
+    import AST = dmd.mtype;
+    switch (ty)
+    {
+        case AST.Tvoid:     return "void";
+        case AST.Tbool:     return "bool";
+        case AST.Tchar:     return "char";
+        case AST.Twchar:    return "char16_t";
+        case AST.Tdchar:    return "char32_t";
+        case AST.Tint8:     return "int8_t";
+        case AST.Tuns8:     return "uint8_t";
+        case AST.Tint16:    return "int16_t";
+        case AST.Tuns16:    return "uint16_t";
+        case AST.Tint32:    return "int32_t";
+        case AST.Tuns32:    return "uint32_t";
+        case AST.Tint64:    return "int64_t";
+        case AST.Tuns64:    return "uint64_t";
+        case AST.Tfloat32:  return "float";
+        case AST.Tfloat64:  return "double";
+        case AST.Tfloat80:  return "_d_real";
+        default:
+            //t.print();
+            assert(0);
+    }
+}
+
 private void initialize()
 {
     __gshared bool initialized;
@@ -204,36 +233,13 @@ void genCppHdrFiles(ref Modules ms)
     buf.writeByte('\n');
     buf.writestring("#include <assert.h>\n");
     buf.writestring("#include <stddef.h>\n");
+    buf.writestring("#include <stdint.h>\n");
     buf.writestring("#include <stdio.h>\n");
     buf.writestring("#include <string.h>\n");
     buf.writeByte('\n');
-    buf.writestring("#define _d_void void\n");
-    buf.writestring("#define _d_bool bool\n");
-    buf.writestring("#define _d_byte signed char\n");
-    buf.writestring("#define _d_ubyte unsigned char\n");
-    buf.writestring("#define _d_short short\n");
-    buf.writestring("#define _d_ushort unsigned short\n");
-    buf.writestring("#define _d_int int\n");
-    buf.writestring("#define _d_uint unsigned\n");
-    if (global.params.isLP64)
-    {
-        buf.writestring("#define _d_long long\n");
-        buf.writestring("#define _d_ulong unsigned long\n");
-    }
-    else
-    {
-        buf.writestring("#define _d_long long long\n");
-        buf.writestring("#define _d_ulong unsigned long long\n");
-    }
-    buf.writestring("#define _d_float float\n");
-    buf.writestring("#define _d_double double\n");
-    buf.writestring("#define _d_real long double\n");
-    buf.writestring("#define _d_char char\n");
-    buf.writestring("#define _d_wchar wchar_t\n");
-    buf.writestring("#define _d_dchar unsigned\n");
-    buf.writestring("typedef _d_long d_int64;\n");
-    buf.writestring("\n");
-    buf.writestring("#define _d_null NULL\n");
+    buf.writestring("#if !defined(_d_real)\n");
+    buf.writestring("# define _d_real long double\n");
+    buf.writestring("#endif\n");
     buf.writestring("\n\n");
 
     OutBuffer check;
@@ -1005,8 +1011,8 @@ public:
             else
             {
                 //printf("Using cpp 98\n");
-                buf.writestring("typedef _d_");
-                buf.writestring(ed.memtype.kind);
+                buf.writestring("typedef ");
+                buf.writestring(translateBasicType(ed.memtype.ty));
                 buf.writeByte(' ');
                 buf.writestring(ident);
                 buf.writestring(";\n");
@@ -1114,22 +1120,7 @@ public:
         }
         if (!cdparent && t.isConst())
             buf.writestring("const ");
-        switch (t.ty)
-        {
-            case AST.Tbool, AST.Tvoid:
-            case AST.Tchar, AST.Twchar, AST.Tdchar:
-            case AST.Tint8, AST.Tuns8:
-            case AST.Tint16, AST.Tuns16:
-            case AST.Tint32, AST.Tuns32:
-            case AST.Tint64, AST.Tuns64:
-            case AST.Tfloat32, AST.Tfloat64, AST.Tfloat80:
-                buf.writestring("_d_");
-                buf.writestring(t.dstring);
-                break;
-            default:
-                //t.print();
-                assert(0);
-        }
+        buf.writestring(translateBasicType(t.ty));
     }
 
     override void visit(AST.TypePointer t)
@@ -1212,25 +1203,27 @@ public:
         }
         if (ed.isSpecial())
         {
-            buf.writestring(ed.toChars());
+            if (ed.ident == DMDType.c_long)
+                buf.writestring("long");
+            else if (ed.ident == DMDType.c_ulong)
+                buf.writestring("unsigned long");
+            else if (ed.ident == DMDType.c_longlong)
+                buf.writestring("long long");
+            else if (ed.ident == DMDType.c_ulonglong)
+                buf.writestring("unsigned long long");
+            else if (ed.ident == DMDType.c_long_double)
+                buf.writestring("long double");
+            else if (ed.ident == DMDType.c_wchar_t)
+                buf.writestring("wchar_t");
+            else
+            {
+                //ed.print();
+                assert(0);
+            }
             return;
         }
 
-        if (ed.ident == DMDType.c_long)
-            buf.writestring("long");
-        else if (ed.ident == DMDType.c_ulong)
-            buf.writestring("unsigned long");
-        else if (ed.ident == DMDType.c_longlong)
-            buf.writestring("long long");
-        else if (ed.ident == DMDType.c_ulonglong)
-            buf.writestring("unsigned long long");
-        else if (ed.ident == DMDType.c_long_double)
-            buf.writestring("long double");
-        else
-        {
-            //ed.print();
-            assert(0);
-        }
+        buf.writestring(ed.toChars());
     }
 
     override void visit(AST.TypeEnum t)
@@ -1548,7 +1541,7 @@ public:
             printf("[AST.NullExp enter] %s\n", e.toChars());
             scope(exit) printf("[AST.NullExp exit] %s\n", e.toChars());
         }
-        buf.writestring("_d_null");
+        buf.writestring("nullptr");
     }
 
     override void visit(AST.ArrayLiteralExp e)

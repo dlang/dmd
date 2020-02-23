@@ -9,28 +9,13 @@ TEST_OUTPUT:
 
 #include <assert.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
-#define _d_void void
-#define _d_bool bool
-#define _d_byte signed char
-#define _d_ubyte unsigned char
-#define _d_short short
-#define _d_ushort unsigned short
-#define _d_int int
-#define _d_uint unsigned
-#define _d_long $?:32=long long|64=long$
-#define _d_ulong unsigned $?:32=long long|64=long$
-#define _d_float float
-#define _d_double double
-#define _d_real long double
-#define _d_char char
-#define _d_wchar wchar_t
-#define _d_dchar unsigned
-typedef _d_long d_int64;
-
-#define _d_null NULL
+#if !defined(_d_real)
+# define _d_real long double
+#endif
 
 
 // Parsing module dtoh_StructDeclaration
@@ -38,27 +23,27 @@ struct S;
 struct Inner;
 struct S
 {
-    _d_byte a;
-    _d_int b;
-    _d_long c;
+    int8_t a;
+    int32_t b;
+    int64_t c;
     S() : a(), b(), c() {}
 };
 
 struct S2
 {
-    _d_int a;
-    _d_int b;
-    _d_long c;
-    S2(_d_int a);
+    int32_t a;
+    int32_t b;
+    int64_t c;
+    S2(int32_t a);
     S2() : a(42), b(), c() {}
 };
 
 struct S3
 {
-    _d_int a;
-    _d_int b;
-    _d_long c;
-    extern "C" S3(_d_int a);
+    int32_t a;
+    int32_t b;
+    int64_t c;
+    extern "C" S3(int32_t a);
     S3() : a(42), b(), c() {}
 };
 
@@ -72,10 +57,10 @@ struct
 #endif
 Aligned
 {
-    _d_byte a;
-    _d_int b;
-    _d_long c;
-    Aligned(_d_int a);
+    int8_t a;
+    int32_t b;
+    int64_t c;
+    Aligned(int32_t a);
     Aligned() : a(), b(), c() {}
 };
 #if defined(__DMC__)
@@ -84,24 +69,24 @@ Aligned
 
 struct A
 {
-    _d_int a;
+    int32_t a;
     S s;
     // ignoring extern () block because of linkage
-    extern "C" _d_void bar();
-    _d_void baz(_d_int x = 42);
+    extern "C" void bar();
+    void baz(int32_t x = 42);
     struct
     {
-        _d_int x;
-        _d_int y;
+        int32_t x;
+        int32_t y;
     };
     union
     {
-        _d_int u1;
-        _d_char u2[4$?:32=u|64=LLU$];
+        int32_t u1;
+        char u2[4$?:32=u|64=LLU$];
     };
 struct Inner
 {
-    _d_int x;
+    int32_t x;
     Inner() : x() {}
 };
 
