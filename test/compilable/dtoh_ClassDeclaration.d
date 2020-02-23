@@ -9,28 +9,13 @@ TEST_OUTPUT:
 
 #include <assert.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
-#define _d_void void
-#define _d_bool bool
-#define _d_byte signed char
-#define _d_ubyte unsigned char
-#define _d_short short
-#define _d_ushort unsigned short
-#define _d_int int
-#define _d_uint unsigned
-#define _d_long $?:32=long long|64=long$
-#define _d_ulong unsigned $?:32=long long|64=long$
-#define _d_float float
-#define _d_double double
-#define _d_real long double
-#define _d_char char
-#define _d_wchar wchar_t
-#define _d_dchar unsigned
-typedef _d_long d_int64;
-
-#define _d_null NULL
+#if !defined(_d_real)
+# define _d_real long double
+#endif
 
 
 // Parsing module dtoh_ClassDeclaration
@@ -40,64 +25,64 @@ struct Inner;
 class C
 {
 public:
-    _d_byte a;
-    _d_int b;
-    _d_long c;
+    int8_t a;
+    int32_t b;
+    int64_t c;
 };
 
 class C2
 {
 public:
-    _d_int a;
-    _d_int b;
-    _d_long c;
-    C2(_d_int a);
+    int32_t a;
+    int32_t b;
+    int64_t c;
+    C2(int32_t a);
 };
 
 // ignoring non-cpp class C3
 class Aligned
 {
 public:
-    _d_byte a;
-    _d_int b;
-    _d_long c;
-    Aligned(_d_int a);
+    int8_t a;
+    int32_t b;
+    int64_t c;
+    Aligned(int32_t a);
 };
 
 class A
 {
 public:
-    _d_int a;
+    int32_t a;
     C* c;
-    virtual _d_void foo();
-    extern "C" virtual _d_void bar();
-    virtual _d_void baz(_d_int x = 42);
+    virtual void foo();
+    extern "C" virtual void bar();
+    virtual void baz(int32_t x = 42);
     struct
     {
-        _d_int x;
-        _d_int y;
+        int32_t x;
+        int32_t y;
     };
     union
     {
-        _d_int u1;
-        _d_char u2[4$?:32=u|64=LLU$];
+        int32_t u1;
+        char u2[4$?:32=u|64=LLU$];
     };
 struct Inner
 {
-    _d_int x;
+    int32_t x;
     Inner() : x() {}
 };
 
 class InnerC
 {
 public:
-    _d_int x;
+    int32_t x;
 };
 
 class NonStaticInnerC
 {
 public:
-    _d_int x;
+    int32_t x;
     A* this;
 };
 
