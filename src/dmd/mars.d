@@ -687,7 +687,10 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     }
 
     if (global.params.doCxxHdrGeneration)
-        genCppHdrFiles(modules);
+        genCppHdrFiles(modules, global.params.cxxhdrdir.ptr, global.params.cxxhdrname.ptr, false);
+
+    if (global.params.doCHdrGeneration)
+        genCppHdrFiles(modules, global.params.chdrdir.ptr, global.params.chdrname.ptr, true);
 
     if (global.errors)
         fatal();
@@ -2146,9 +2149,32 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 goto Lerror;
             }
         }
+	else if (p[1] == 'H' && p[2] == 'c') // https://dlang.org/dmd.html#switch-Hc
+	{
+            params.doCHdrGeneration = true;
+
+            switch (p[3])
+            {
+            case 'd':               // https://dlang.org/dmd.html#switch-Hcd
+                if (!p[4])
+                    goto Lnoarg;
+                params.chdrdir = (p + 4 + (p[4] == '=')).toDString;
+                break;
+            case 'f':               // https://dlang.org/dmd.html#switch-Hcf
+                if (!p[4])
+                    goto Lnoarg;
+                params.chdrname = (p + 4 + (p[4] == '=')).toDString;
+                break;
+            case 0:
+                break;
+            default:
+                goto Lerror;
+            }
+	}
         else if (p[1] == 'H' && p[2] == 'C')  // https://dlang.org/dmd.html#switch-HC
         {
             params.doCxxHdrGeneration = true;
+
             switch (p[3])
             {
             case 'd':               // https://dlang.org/dmd.html#switch-HCd

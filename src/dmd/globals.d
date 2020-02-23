@@ -240,8 +240,12 @@ extern (C++) struct Param
     bool hdrStripPlainFunctions = true; // strip the bodies of plain (non-template) functions
 
     bool doCxxHdrGeneration;            // write 'Cxx header' file
-    const(char)[] cxxhdrdir;            // write 'header' file to docdir directory
-    const(char)[] cxxhdrname;           // write 'header' file to docname
+    const(char)[] cxxhdrdir;            // write 'Cxx header' file to docdir directory
+    const(char)[] cxxhdrname;           // write 'Cxx header' file to docname
+
+    bool doCHdrGeneration;              // write 'C header' file
+    const(char)[] chdrdir;              // write 'C header' file to docdir directory
+    const(char)[] chdrname;             // write 'C header' file to docname
 
     bool doJsonGeneration;              // write JSON file
     const(char)[] jsonfilename;          // write JSON file to jsonfilename

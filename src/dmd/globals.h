@@ -206,8 +206,12 @@ struct Param
     bool hdrStripPlainFunctions; // strip the bodies of plain (non-template) functions
 
     bool doCxxHdrGeneration;  // write 'Cxx header' file
-    DString cxxhdrdir;        // write 'header' file to docdir directory
-    DString cxxhdrname;       // write 'header' file to docname
+    DString cxxhdrdir;        // write 'Cxx header' file to docdir directory
+    DString cxxhdrname;       // write 'Cxx header' file to docname
+
+    bool doCHdrGeneration;    // write 'C header' file
+    DString chdrdir;        // write 'C header' file to docdir directory
+    DString chdrname;       // write 'C header' file to docname
 
     bool doJsonGeneration;    // write JSON file
     DString jsonfilename;     // write JSON file to jsonfilename

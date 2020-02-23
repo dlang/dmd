@@ -1,12 +1,12 @@
 Added experimental `C++` header generation from `extern(C|C++)` declarations
 
-DMD can now write C++ header files which contain bindings for declarations
+DMD can now write C or C++ header files which contain bindings for declarations
 in existing D files that were marked as `extern(C)` or `extern(C++)`.
 
 This feature is available via the following command line switches:
-- `-HC`: Write the generated headers to standard output
-- `-HCf=<file>`: Write the generated headers to file
-- `-HCd=<directory>`: Write the generated headers to file (not implemented yet)
+- `-Hc`, `-HC`: Write the generated headers to standard output (in C or C++ mode, respectively)
+- `-Hcf=<file>`, `-HCf=<file>`: Write the generated headers to file
+- `-Hcd=<directory>`, `-HCd=<directory>`: Write the generated headers to file in the given directory (not implemented yet)
 
 Consider the following example:
 
