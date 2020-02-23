@@ -1,5 +1,9 @@
-// PERMUTE_ARGS: -g -version=PULL8152
+// PERMUTE_ARGS: -g
 // EXTRA_CPP_SOURCES: cppb.cpp
+// EXTRA_FILES: extra-files/cppb.h
+// CXXFLAGS(linux freebsd osx netbsd dragonflybsd): -std=c++11
+
+// N.B MSVC doesn't have a C++11 switch, but it defaults to the latest fully-supported standard
 
 import core.stdc.stdio;
 import core.stdc.stdarg;
@@ -562,18 +566,22 @@ void test13289()
     assert(f13289_cpp_test());
 }
 
+version(Posix)
+{
+    enum __c_wchar_t : dchar;
+}
+else version(Windows)
+{
+    enum __c_wchar_t : wchar;
+}
+alias wchar_t = __c_wchar_t;
 extern(C++)
 {
     bool f13289_cpp_test();
 
-    version(Posix)
-    {
-        dchar f13289_cpp_wchar_t(dchar);
-    }
-    else version(Windows)
-    {
-        wchar f13289_cpp_wchar_t(wchar);
-    }
+
+    wchar_t f13289_cpp_wchar_t(wchar_t);
+
 
     wchar f13289_d_wchar(wchar ch)
     {
@@ -597,31 +605,31 @@ extern(C++)
             return ch;
         }
     }
+    wchar_t f13289_d_wchar_t(wchar_t ch)
+    {
+        if (ch <= 'z' && ch >= 'a')
+        {
+            return cast(wchar_t)(ch - ('a' - 'A'));
+        }
+        else
+        {
+            return ch;
+        }
+    }
 }
 
 /****************************************/
 
 version (CRuntime_Microsoft)
 {
-    version (PULL8152)
-    {
-        enum __c_long_double : double;
-    }
-    else
-    {
-        struct __c_long_double
-        {
-            this(double d) { ld = d; }
-            double ld;
-            alias ld this;
-        }
-    }
+    enum __c_long_double : double;
     alias __c_long_double myld;
 }
 else
     alias c_long_double myld;
 
 extern (C++) myld testld(myld);
+extern (C++) myld testldld(myld, myld);
 
 
 void test15()
@@ -629,6 +637,10 @@ void test15()
     myld ld = 5.0;
     ld = testld(ld);
     assert(ld == 6.0);
+
+    myld ld2 = 5.0;
+    ld2 = testldld(ld2, ld2);
+    assert(ld2 == 6.0);
 }
 
 /****************************************/
@@ -652,28 +664,8 @@ else
   }
 }
 
-version (PULL8152)
-{
-    enum __c_long : x_long;
-    enum __c_ulong : x_ulong;
-}
-else
-{
-    struct __c_long
-    {
-        this(x_long d) { ld = d; }
-        x_long ld;
-        alias ld this;
-    }
-
-    struct __c_ulong
-    {
-        this(x_ulong d) { ld = d; }
-        x_ulong ld;
-        alias ld this;
-    }
-}
-
+enum __c_long : x_long;
+enum __c_ulong : x_ulong;
 alias __c_long mylong;
 alias __c_ulong myulong;
 
@@ -695,53 +687,49 @@ void test16()
     assert(ld == 5 + myulong.sizeof);
   }
 
-    version (PULL8152)
-    {
-        static if (__c_long.sizeof == long.sizeof)
-        {
-            static assert(__c_long.max == long.max);
-            static assert(__c_long.min == long.min);
-            static assert(__c_long.init == long.init);
+  static if (__c_long.sizeof == long.sizeof)
+  {
+    static assert(__c_long.max == long.max);
+    static assert(__c_long.min == long.min);
+    static assert(__c_long.init == long.init);
 
-            static assert(__c_ulong.max == ulong.max);
-            static assert(__c_ulong.min == ulong.min);
-            static assert(__c_ulong.init == ulong.init);
+    static assert(__c_ulong.max == ulong.max);
+    static assert(__c_ulong.min == ulong.min);
+    static assert(__c_ulong.init == ulong.init);
 
-            __c_long cl = 0;
-            cl = cl + 1;
-            long l = cl;
-            cl = l;
+    __c_long cl = 0;
+    cl = cl + 1;
+    long l = cl;
+    cl = l;
 
-            __c_ulong cul = 0;
-            cul = cul + 1;
-            ulong ul = cul;
-            cul = ul;
-        }
-        else static if (__c_long.sizeof == int.sizeof)
-        {
-            static assert(__c_long.max == int.max);
-            static assert(__c_long.min == int.min);
-            static assert(__c_long.init == int.init);
+    __c_ulong cul = 0;
+    cul = cul + 1;
+    ulong ul = cul;
+    cul = ul;
+  }
+  else static if (__c_long.sizeof == int.sizeof)
+  {
+    static assert(__c_long.max == int.max);
+    static assert(__c_long.min == int.min);
+    static assert(__c_long.init == int.init);
 
-            static assert(__c_ulong.max == uint.max);
-            static assert(__c_ulong.min == uint.min);
-            static assert(__c_ulong.init == uint.init);
+    static assert(__c_ulong.max == uint.max);
+    static assert(__c_ulong.min == uint.min);
+    static assert(__c_ulong.init == uint.init);
 
-            __c_long cl = 0;
-            cl = cl + 1;
-            int i = cl;
-            cl = i;
+    __c_long cl = 0;
+    cl = cl + 1;
+    int i = cl;
+    cl = i;
 
-            __c_ulong cul = 0;
-            cul = cul + 1;
-            uint u = cul;
-            cul = u;
-        }
-        else
-            static assert(0);
-    }
+    __c_ulong cul = 0;
+    cul = cul + 1;
+    uint u = cul;
+    cul = u;
+  }
+  else
+    static assert(0);
 }
-
 
 /****************************************/
 
@@ -931,13 +919,22 @@ void fuzz2()
 }
 
 ////////
-extern(C++) void fuzz3_cppvararg(wchar arg10, wchar arg11, bool arg12);
-extern(C++) void fuzz3_dvararg(wchar arg10, wchar arg11, bool arg12)
+version(CppRuntime_DigitalMars)
+    enum UNICODE = false;
+else version(CppRuntime_Microsoft)
+    enum UNICODE = false; //VS2013 doesn't support them
+else
+    enum UNICODE = true;
+
+static if (UNICODE)
+{
+extern(C++) void fuzz3_cppvararg(wchar arg10, dchar arg11, bool arg12);
+extern(C++) void fuzz3_dvararg(wchar arg10, dchar arg11, bool arg12)
 {
     fuzz2_checkValues(arg10, arg11, arg12);
 }
 
-extern(C++) void fuzz3_checkValues(wchar arg10, wchar arg11, bool arg12)
+extern(C++) void fuzz3_checkValues(wchar arg10, dchar arg11, bool arg12)
 {
     assert(arg10 == 103);
     assert(arg11 == 104);
@@ -947,17 +944,18 @@ extern(C++) void fuzz3_checkValues(wchar arg10, wchar arg11, bool arg12)
 void fuzz3()
 {
     wchar arg10 = 103;
-    wchar arg11 = 104;
+    dchar arg11 = 104;
     bool arg12 = false;
     fuzz3_dvararg(arg10, arg11, arg12);
     fuzz3_cppvararg(arg10, arg11, arg12);
+}
 }
 
 void fuzz()
 {
     fuzz1();
     fuzz2();
-    fuzz3();
+    static if (UNICODE) fuzz3();
 }
 
 /****************************************/
@@ -1651,6 +1649,6 @@ void main()
     test18966();
     test19134();
     test18955();
-    
+
     printf("Success\n");
 }

@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
+ *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/debug.c, backend/debugprint.d)
@@ -42,7 +42,7 @@ import dmd.backend.dvec;
 
 extern (C++):
 
-mixin(import("debtab.d"));
+nothrow:
 
 void ferr(const(char)* p) { printf("%s", p); }
 
@@ -143,6 +143,8 @@ void WRTYxx(tym_t t)
         printf("mTYconst|");
     if (t & mTYvolatile)
         printf("mTYvolatile|");
+    if (t & mTYshared)
+        printf("mTYshared|");
 //#if !MARS && (__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
 //    if (t & mTYtransu)
 //        printf("mTYtransu|");
@@ -257,7 +259,7 @@ void WReqn(elem *e)
                     if (e.EV.Voffset.sizeof == 8)
                         printf(".x%llx", cast(ulong)e.EV.Voffset);
                     else
-                        printf(".%ld",cast(int)e.EV.Voffset);
+                        printf(".%d",cast(int)e.EV.Voffset);
                 }
                 break;
             case OPasm:
@@ -285,21 +287,22 @@ void WReqn(elem *e)
 
 void WRblocklist(list_t bl)
 {
-        for (; bl; bl = list_next(bl))
-        {       block *b = list_block(bl);
+    foreach (bl2; ListRange(bl))
+    {
+        block *b = list_block(bl2);
 
-                if (b && b.Bweight)
-                        printf("B%d (%p) ",b.Bdfoidx,b);
-                else
-                        printf("%p ",b);
-        }
-        ferr("\n");
+        if (b && b.Bweight)
+            printf("B%d (%p) ",b.Bdfoidx,b);
+        else
+            printf("%p ",b);
+    }
+    ferr("\n");
 }
 
 void WRdefnod()
 { int i;
 
-  for (i = 0; i < go.deftop; i++)
+  for (i = 0; i < go.defnod.length; i++)
   {     printf("defnod[%d] in B%d = (", go.defnod[i].DNblock.Bdfoidx, i);
         WReqn(go.defnod[i].DNelem);
         printf(");\n");
@@ -411,7 +414,7 @@ version (MARS)
         if (b.Bpred)
         {
             printf("\tBpred:");
-            for (list_t bl = b.Bpred; bl; bl = list_next(bl))
+            foreach (bl; ListRange(b.Bpred))
                 printf(" B%d",list_block(bl).Bnumber);
             printf("\n");
         }
@@ -442,7 +445,6 @@ version (MARS)
             case BC_ret:
             case BC_except:
 
-            Lsucc:
                 if (bl)
                 {
                     printf("\tBsucc:");

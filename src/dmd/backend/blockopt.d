@@ -3,13 +3,14 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1986-1997 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/blockopt.d, backend/blockopt.d)
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/blockopt.d
  */
 
+module dmd.backend.blockopt;
 
 /****************************************************************
  * Handle basic blocks.
@@ -34,12 +35,14 @@ import dmd.backend.oper;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
 import dmd.backend.el;
-import dmd.backend.memh;
+import dmd.backend.mem;
 import dmd.backend.type;
 import dmd.backend.global;
 import dmd.backend.goh;
 import dmd.backend.code;
 import dmd.backend.ty;
+
+import dmd.backend.barray;
 
 version (COMPILE)
 {
@@ -58,6 +61,9 @@ else
 
 extern(C++):
 
+nothrow:
+
+
 extern (C) void *mem_fcalloc(size_t numbytes); // tk/mem.c
 extern (C) void mem_free(void*); // tk/mem.c
 
@@ -74,8 +80,7 @@ __gshared
     block *startblock;      // beginning block of function
                             // (can have no predecessors)
 
-    block **dfo = null;     // array of depth first order
-    uint dfotop;            // # of items in dfo[]
+    Barray!(block*) dfo;    // array of depth first order
 
     block *curblock;        // current block being read in
     block *block_last;      // last block read in
@@ -256,7 +261,7 @@ void block_pred()
     for (block *b = startblock; b; b = b.Bnext)       // for each block
     {
         //printf("b = %p, BC = ",b); WRBC(b.BC); printf("\n");
-        for (list_t bp = b.Bsucc; bp; bp = list_next(bp))
+        foreach (bp; ListRange(b.Bsucc))
         {                               /* for each successor to b      */
             //printf("\tbs = %p\n",list_block(bp));
             assert(list_block(bp));
@@ -283,7 +288,7 @@ void block_clearvisit()
 void block_visit(block *b)
 {
     b.Bflags |= BFLvisited;
-    for (list_t l = b.Bsucc; l; l = list_next(l))      // for each successor
+    foreach (l; ListRange(b.Bsucc))
     {
         block *bs = list_block(l);
         assert(bs);
@@ -631,7 +636,7 @@ void blockopt(int iter)
         int count = 0;
         do
         {
-            //printf("changes = %d, count = %d, dfotop = %d\n",go.changes,count,dfotop);
+            //printf("changes = %d, count = %d, dfo.length = %d\n",go.changes,count,dfo.length);
             go.changes = 0;
             bropt();                    // branch optimization
             brrear();                   // branch rearrangement
@@ -869,8 +874,7 @@ void brcombine()
                     && b2.BC != BC_try
                     && b.Btry == b2.Btry
                    )
-                {   list_t bl;
-
+                {
                     if (b2.Belem)
                     {
                         if (PARSER)
@@ -887,7 +891,7 @@ void brcombine()
                     list_subtract(&b2.Bpred,b);
 
                     /* change predecessor of successors of b2 from b2 to b */
-                    for (bl = b2.Bsucc; bl; bl = list_next(bl))
+                    foreach (bl; ListRange(b2.Bsucc))
                     {
                         list_t bp;
                         for (bp = list_block(bl).Bpred; bp; bp = list_next(bp))
@@ -1010,7 +1014,7 @@ private void bropt()
             /* the ith entry in Bsucc is the one we want    */
             block *db = b.nthSucc(i);
             /* delete predecessors of successors (!)        */
-            for (list_t bl = b.Bsucc; bl; bl = list_next(bl))
+            foreach (bl; ListRange(b.Bsucc))
                 if (i--)            // if not ith successor
                 {
                     void *p = list_subtract(&(list_block(bl).Bpred),b);
@@ -1037,7 +1041,7 @@ private void brrear()
     debug if (debugc) printf("brrear()\n");
     for (block *b = startblock; b; b = b.Bnext)   // for each block
     {
-        for (list_t bl = b.Bsucc; bl; bl = list_next(bl))
+        foreach (bl; ListRange(b.Bsucc))
         {   /* For each transfer of control block pointer   */
             int iter = 0;
 
@@ -1119,9 +1123,17 @@ private void brrear()
  * Compute depth first order (DFO).
  * Equivalent to Aho & Ullman Fig. 13.8.
  * Blocks not in dfo[] are unreachable.
+ * Params:
+ *      dfo = array to fill in in DFO
+ *      startblock = list of blocks
  */
 
 void compdfo()
+{
+    compdfo(dfo, startblock);
+}
+
+void compdfo(ref Barray!(block*) dfo, block* startblock)
 {
     debug if (debugc) printf("compdfo()\n");
     assert(OPTIMIZER);
@@ -1133,46 +1145,58 @@ void compdfo()
     }
     assert(maxblks && maxblks >= numblks);
     debug assert(!PARSER);
-    dfo = cast(block **) util_realloc(dfo, (block *).sizeof,maxblks);
-    memset(dfo, 0, (block *).sizeof * maxblks);
-    dfotop = numblks;                     /* assign numbers backwards     */
-    search(startblock);
-    assert(dfotop <= numblks);
-    /* Ripple data to the bottom of the array     */
-    if (dfotop)                 // if not at bottom
+    dfo.setLength(maxblks);
+
+    /******************************
+     * Add b's successors to dfo[], then b
+     */
+    void walkDFO(block *b)
     {
-        for (uint i = 0; i < numblks - dfotop; i++)
+        assert(b);
+        b.Bflags |= BFLvisited;             // executed at least once
+
+        foreach (bl; ListRange(b.Bsucc))   // for each successor
         {
-            dfo[i] = dfo[i + dfotop];
-            dfo[i].Bdfoidx = i;
+            block *bs = list_block(bl);
+            assert(bs);
+            if ((bs.Bflags & BFLvisited) == 0) // if not visited
+                walkDFO(bs);
         }
+
+        dfo.push(b);
     }
-    dfotop = numblks - dfotop;
+
+
+    dfo.setLength(0);
+    walkDFO(startblock);
+
+    // Reverse the array
+    if (dfo.length)
+    {
+        size_t i = 0;
+        size_t k = dfo.length - 1;
+        while (i < k)
+        {
+            auto b = dfo[k];
+            dfo[k] = dfo[i];
+            dfo[i] = b;
+            ++i;
+            --k;
+        }
+
+        foreach (j, b; dfo[])
+            b.Bdfoidx = cast(uint)j;
+    }
+
+    assert(dfo.length <= numblks);
+
     static if(0)
     {
-        for (uint i = 0; i < dfotop; i++)
-            printf("dfo[%d] = %p\n",i,dfo[i]);
+        foreach (i, b; dfo[])
+            printf("dfo[%d] = %p\n", cast(int)i, b);
     }
 }
 
-/******************************
- * Add block to dfo[], then its successors.
- */
-
-private void search(block *b)
-{
-    assert(b);
-    b.Bflags |= BFLvisited;             // executed at least once
-    for (list_t l = b.Bsucc; l; l = list_next(l))   // for each successor
-    {
-        block *bs = list_block(l);
-        assert(bs);
-        if ((bs.Bflags & BFLvisited) == 0) // if not visited
-            search(bs);                 // search it
-    }
-    dfo[--dfotop] = b;                  // add to dfo[]
-    b.Bdfoidx = dfotop;                 // link back
-}
 
 /*************************
  * Remove blocks not marked as visited (they aren't in dfo[]).
@@ -1188,7 +1212,7 @@ private void elimblks()
             int n = 0;
             for (block *b = startblock; b; b = b.Bnext)
                   n++;
-            //printf("1 n = %d, numblks = %d, dfotop = %d\n",n,numblks,dfotop);
+            //printf("1 n = %d, numblks = %d, dfo.length = %d\n",n,numblks,dfo.length);
             assert(numblks == n);
         }
     }
@@ -1205,7 +1229,7 @@ private void elimblks()
             /* for each marked successor S to b                     */
             /*      remove b from S.Bpred.                          */
             /* Presumably all predecessors to b are unmarked also.  */
-            for (list_t s = b.Bsucc; s; s = list_next(s))
+            foreach (s; ListRange(b.Bsucc))
             {
                 assert(list_block(s));
                 if (list_block(s).Bflags & BFLvisited) /* if it is marked */
@@ -1233,7 +1257,7 @@ private void elimblks()
     }
 
     debug if (debugc) printf("elimblks done\n");
-    assert(!OPTIMIZER || numblks == dfotop);
+    assert(!OPTIMIZER || numblks == dfo.length);
 }
 
 /**********************************
@@ -1254,9 +1278,8 @@ private int mergeblks()
 
     assert(OPTIMIZER);
     debug if (debugc) printf("mergeblks()\n");
-    for (int i = 0; i < dfotop; i++)
+    foreach (b; dfo[])
     {
-        block *b = dfo[i];
         if (b.BC == BCgoto)
         {   block *bL2 = list_block(b.Bsucc);
 
@@ -1278,7 +1301,7 @@ private int mergeblks()
                 version (SCPP)
                 {
                     // If any predecessors of b are BCasm, don't merge.
-                    for (list_t bl = b.Bpred; bl; bl = list_next(bl))
+                    foreach (bl; ListRange(b.Bpred))
                     {
                         if (list_block(bl).BC == BCasm)
                             goto Lcontinue;
@@ -1300,9 +1323,9 @@ private int mergeblks()
                 list_free(&b.Bsucc,FPNULL);
 
                 /* fix up successor list of predecessors        */
-                for (list_t bl = bL2.Bpred; bl; bl = list_next(bl))
+                foreach (bl; ListRange(bL2.Bpred))
                 {
-                    for (list_t bs = list_block(bl).Bsucc; bs; bs = list_next(bs))
+                    foreach (bs; ListRange(list_block(bl).Bsucc))
                         if (list_block(bs) == b)
                             bs.ptr = cast(void *)bL2;
                 }
@@ -1409,7 +1432,7 @@ private void blident()
                 }
                 assert(!b.Bcode);
 
-                for (list_t bl = bn.Bpred; bl; bl = list_next(bl))
+                foreach (bl; ListRange(bn.Bpred))
                 {
                     block *bp = list_block(bl);
                     if (bp.BC == BCasm)
@@ -1430,7 +1453,7 @@ private void blident()
                     else
                         btry = null;
 
-                    for (list_t bl = b.Bpred; bl; bl = list_next(bl))
+                    foreach (bl; ListRange(b.Bpred))
                     {
                         block *bp = list_block(bl);
                         if (bp.BC != BCtry)
@@ -1455,12 +1478,12 @@ private void blident()
                     // we'd have to walk the code list to fix up any jmps.
                     if (anyasm)
                     {
-                        for (list_t bl = bn.Bpred; bl; bl = list_next(bl))
+                        foreach (bl; ListRange(bn.Bpred))
                         {
                             block *bp = list_block(bl);
                             if (bp.BC == BCasm)
                                 goto Lcontinue;
-                            for (list_t bls = bp.Bsucc; bls; bls = list_next(bls))
+                            foreach (bls; ListRange(bp.Bsucc))
                                 if (list_block(bls) == bn &&
                                     list_block(bls).BC == BCasm)
                                     goto Lcontinue;
@@ -1470,10 +1493,10 @@ private void blident()
 
                 /* Change successors to predecessors of bn to point to  */
                 /* b instead of bn                                      */
-                for (list_t bl = bn.Bpred; bl; bl = list_next(bl))
+                foreach (bl; ListRange(bn.Bpred))
                 {
                     block *bp = list_block(bl);
-                    for (list_t bls = bp.Bsucc; bls; bls = list_next(bls))
+                    foreach (bls; ListRange(bp.Bsucc))
                         if (list_block(bls) == bn)
                         {   bls.ptr = cast(void *)b;
                             list_prepend(&b.Bpred,bp);
@@ -1614,12 +1637,10 @@ private list_t bl_enlist(elem *e)
 
 private elem * bl_delist(list_t el)
 {
-    elem *e;
-    list_t elstart = el;
-
-    for (e = null; el; el = list_next(el))
-        e = el_combine(list_elem(el),e);
-    list_free(&elstart,FPNULL);
+    elem *e = null;
+    foreach (els; ListRange(el))
+        e = el_combine(list_elem(els),e);
+    list_free(&el,FPNULL);
     return e;
 }
 
@@ -1713,7 +1734,7 @@ private void bltailmerge()
                     /* Update the predecessor list of the successor list
                         of bnew, from b to bnew, and removing bn
                      */
-                    for (list_t bl = bnew.Bsucc; bl; bl = list_next(bl))
+                    foreach (bl; ListRange(bnew.Bsucc))
                     {
                         list_subtract(&list_block(bl).Bpred,b);
                         list_subtract(&list_block(bl).Bpred,bn);
@@ -1777,7 +1798,7 @@ private void brmin()
         block *bnext = b.Bnext;
         if (!bnext)
             break;
-        for (list_t bl = b.Bsucc; bl; bl = list_next(bl))
+        foreach (bl; ListRange(b.Bsucc))
         {
             block *bs = list_block(bl);
             if (bs == bnext)
@@ -1787,11 +1808,11 @@ private void brmin()
         // b is a block which does not have bnext as a successor.
         // Look for a successor of b for which everyone must jmp to.
 
-        for (list_t bl = b.Bsucc; bl; bl = list_next(bl))
+        foreach (bl; ListRange(b.Bsucc))
         {
             block *bs = list_block(bl);
             block *bn;
-            for (list_t blp = bs.Bpred; blp; blp = list_next(blp))
+            foreach (blp; ListRange(bs.Bpred))
             {
                 block *bsp = list_block(blp);
                 if (bsp.Bnext == bs)
@@ -1847,11 +1868,11 @@ private void block_check()
                 break;
         }
 
-        for (list_t bl = b.Bsucc; bl; bl = list_next(bl))
+        foreach (bl; ListRange(b.Bsucc))
         {
             block *bs = list_block(bl);
 
-            for (list_t bls = bs.Bpred; 1; bls = list_next(bls))
+            foreach (bls; ListRange(bs.Bpred))
             {
                 assert(bls);
                 if (list_block(bls) == b)
@@ -2097,16 +2118,13 @@ void funcsideeffects()
         for (block *b = startblock; b; b = b.Bnext)
         {
             if (b.Belem && funcsideeffect_walk(b.Belem))
-                goto Lside;
+            {
+                //printf("  function '%s' has side effects\n",funcsym_p.Sident);
+                return;
+            }
         }
-
-      Lnoside:
         funcsym_p.Sfunc.Fflags3 |= Fnosideeff;
         //printf("  function '%s' has no side effects\n",funcsym_p.Sident);
-        //return;
-
-      Lside:
-        //printf("  function '%s' has side effects\n",funcsym_p.Sident);
     }
 }
 
@@ -2117,7 +2135,7 @@ private int funcsideeffect_walk(elem *e)
 {
     assert(e);
     elem_debug(e);
-    if (typemask(e) & mTYvolatile)
+    if (typemask(e) & (mTYvolatile | mTYshared))
         return 1;
     int op = e.Eoper;
     switch (op)
@@ -2196,88 +2214,119 @@ private void blassertsplit()
         list_t bel = list_reverse(bl_enlist(b.Belem));
     L1:
         int dctor = 0;
-        for (list_t el = bel; el; el = list_next(el))
+
+        int accumDctor(elem *e)
+        {
+            while (1)
+            {
+                if (OTunary(e.Eoper))
+                {
+                    e = e.EV.E1;
+                    continue;
+                }
+                else if (OTbinary(e.Eoper))
+                {
+                    accumDctor(e.EV.E1);
+                    e = e.EV.E2;
+                    continue;
+                }
+                else if (e.Eoper == OPdctor)
+                ++dctor;
+                else if (e.Eoper == OPddtor)
+                --dctor;
+                break;
+            }
+            return dctor;
+        }
+
+        foreach (el; ListRange(bel))
         {
             elem *e = list_elem(el);
-            if (e.Eoper == OPinfo)
+
+            if (!(dctor == 0 &&   // don't split block between a dctor..ddtor pair
+                e.Eoper == OPoror && e.EV.E2.Eoper == OPcall && e.EV.E2.EV.E1.Eoper == OPvar))
             {
-                if (e.EV.E1.Eoper == OPdctor)
-                    ++dctor;
-                else if (e.EV.E1.Eoper == OPddtor)
-                    --dctor;
+                accumDctor(e);
+                continue;
             }
-            if (dctor == 0 &&   // don't split block between a dctor..ddtor pair
-                e.Eoper == OPoror && e.EV.E2.Eoper == OPcall && e.EV.E2.EV.E1.Eoper == OPvar)
+            Symbol *f = e.EV.E2.EV.E1.EV.Vsym;
+
+            if (!(f.Sflags & SFLexit))
             {
-                Symbol *f = e.EV.E2.EV.E1.EV.Vsym;
-                if (f.Sflags & SFLexit)
+                accumDctor(e);
+                continue;
+            }
+
+            if (accumDctor(e.EV.E1))
+            {
+                accumDctor(e.EV.E2);
+                continue;
+            }
+
+            // Create exit block
+            ++numblks;
+            maxblks += 3;
+            block *bexit = block_calloc();
+            bexit.BC = BCexit;
+            bexit.Belem = e.EV.E2;
+
+            /* Append bexit to block list
+             */
+            for (block *bx = b; 1; )
+            {
+                block* bxn = bx.Bnext;
+                if (!bxn)
                 {
-                    // Create exit block
-                    ++numblks;
-                    maxblks += 3;
-                    block *bexit = block_calloc();
-                    bexit.BC = BCexit;
-                    bexit.Belem = e.EV.E2;
+                    bx.Bnext = bexit;
+                    break;
+                }
+                bx = bxn;
+            }
 
-                    /* Append bexit to block list
-                     */
-                    for (block *bx = b; 1; )
-                    {
-                        block* bxn = bx.Bnext;
-                        if (!bxn)
-                        {
-                            bx.Bnext = bexit;
-                            break;
-                        }
-                        bx = bxn;
-                    }
+            el.ptr = cast(void *)e.EV.E1;
+            e.EV.E1 = null;
+            e.EV.E2 = null;
+            el_free(e);
 
-                    el.ptr = cast(void *)e.EV.E1;
-                    e.EV.E1 = null;
-                    e.EV.E2 = null;
-                    el_free(e);
+            /* Split b into two blocks, [b,b2]
+             */
+            ++numblks;
+            maxblks += 3;
+            block *b2 = block_calloc();
+            b2.Bnext = b.Bnext;
+            b.Bnext = b2;
+            b2.BC = b.BC;
+            b2.BS = b.BS;
+            list_t bex = list_next(el);
+            el.next = null;
+            b.Belem = bl_delist(list_reverse(bel));
 
-                    /* Split b into two blocks, [b,b2]
-                     */
-                    ++numblks;
-                    maxblks += 3;
-                    block *b2 = block_calloc();
-                    b2.Bnext = b.Bnext;
-                    b.Bnext = b2;
-                    b2.BC = b.BC;
-                    b2.BS = b.BS;
-                    list_t bex = list_next(el);
-                    el.next = null;
-                    b.Belem = bl_delist(list_reverse(bel));
-
-                    /* Transfer successors of b to b2.
-                     * Fix up predecessors of successors to b2 to point to b2 instead of b
-                     */
-                    b2.Bsucc = b.Bsucc;
-                    b.Bsucc = null;
-                    for (list_t b2sl = b2.Bsucc; b2sl; b2sl = list_next(b2sl))
-                    {
-                        block *b2s = list_block(b2sl);
-                        for (list_t b2spl = b2s.Bpred; b2spl; b2spl = list_next(b2spl))
-                        {
-                            if (list_block(b2spl) == b)
-                                b2spl.ptr = cast(void *)b2;
-                        }
-                    }
-
-                    b.BC = BCiftrue;
-                    assert(b.Belem);
-                    list_append(&b.Bsucc, b2);
-                    list_append(&b2.Bpred, b);
-                    list_append(&b.Bsucc, bexit);
-                    list_append(&bexit.Bpred, b);
-
-                    b = b2;
-                    bel = bex;  // remainder of expression list goes into b2
-                    go.changes++;
-                    goto L1;
+            /* Transfer successors of b to b2.
+             * Fix up predecessors of successors to b2 to point to b2 instead of b
+             */
+            b2.Bsucc = b.Bsucc;
+            b.Bsucc = null;
+            foreach (b2sl; ListRange(b2.Bsucc))
+            {
+                block *b2s = list_block(b2sl);
+                foreach (b2spl; ListRange(b2s.Bpred))
+                {
+                    if (list_block(b2spl) == b)
+                        b2spl.ptr = cast(void *)b2;
                 }
             }
+
+            b.BC = BCiftrue;
+            assert(b.Belem);
+            list_append(&b.Bsucc, b2);
+            list_append(&b2.Bpred, b);
+            list_append(&b.Bsucc, bexit);
+            list_append(&bexit.Bpred, b);
+
+            b = b2;
+            bel = bex;  // remainder of expression list goes into b2
+            go.changes++;
+            goto L1;
         }
         b.Belem = bl_delist(list_reverse(bel));
     }

@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/identifier.d, _identifier.d)
@@ -19,10 +19,10 @@ import dmd.globals;
 import dmd.id;
 import dmd.root.outbuffer;
 import dmd.root.rootobject;
+import dmd.root.string;
 import dmd.root.stringtable;
 import dmd.tokens;
 import dmd.utf;
-import dmd.utils;
 
 
 /***********************************************************
@@ -53,25 +53,33 @@ public:
         this.value = value;
     }
 
+    extern (D) this(const(char)[] name, int value) nothrow
+    {
+        //printf("Identifier('%.*s', %d)\n", cast(int)name.length, name.ptr, value);
+        this.name = name;
+        this.value = value;
+    }
+
     extern (D) this(const(char)* name) nothrow
     {
         //printf("Identifier('%s', %d)\n", name, value);
-        this(name, strlen(name), TOK.identifier);
+        this(name.toDString(), TOK.identifier);
+    }
+
+    /// Sentinel for an anonymous identifier.
+    static Identifier anonymous() nothrow
+    {
+        __gshared Identifier anonymous;
+
+        if (anonymous)
+            return anonymous;
+
+        return anonymous = new Identifier("__anonymous", TOK.identifier);
     }
 
     static Identifier create(const(char)* name) nothrow
     {
         return new Identifier(name);
-    }
-
-    override bool equals(RootObject o) const
-    {
-        return this == o || name == o.toString();
-    }
-
-    override int compare(RootObject o) const
-    {
-        return strncmp(name.ptr, o.toChars(), name.length + 1);
     }
 
 nothrow:
@@ -128,32 +136,20 @@ nothrow:
         return DYNCAST.identifier;
     }
 
-    private extern (D) __gshared StringTable stringtable;
+    private extern (D) __gshared StringTable!Identifier stringtable;
 
-    /**
-       A secondary string table is used to guarantee that we generate unique
-       identifiers per module. See generateIdWithLoc and issues
-       https://issues.dlang.org/show_bug.cgi?id=16995
-       https://issues.dlang.org/show_bug.cgi?id=18097
-       https://issues.dlang.org/show_bug.cgi?id=18111
-       https://issues.dlang.org/show_bug.cgi?id=18880
-       https://issues.dlang.org/show_bug.cgi?id=18868
-       https://issues.dlang.org/show_bug.cgi?id=19058.
-     */
-    private extern (D) __gshared StringTable fullPathStringTable;
-
-    static Identifier generateId(const(char)* prefix)
+    extern(D) static Identifier generateId(const(char)[] prefix)
     {
         __gshared size_t i;
         return generateId(prefix, ++i);
     }
 
-    static Identifier generateId(const(char)* prefix, size_t i)
+    extern(D) static Identifier generateId(const(char)[] prefix, size_t i)
     {
         OutBuffer buf;
-        buf.writestring(prefix);
+        buf.write(prefix);
         buf.print(i);
-        return idPool(buf.peekSlice());
+        return idPool(buf[]);
     }
 
     /***************************************
@@ -171,115 +167,99 @@ nothrow:
      */
     extern (D) static Identifier generateIdWithLoc(string prefix, const ref Loc loc)
     {
-        import dmd.root.filename: absPathThen;
+        // generate `<prefix>_L<line>_C<col>`
+        OutBuffer idBuf;
+        idBuf.writestring(prefix);
+        idBuf.writestring("_L");
+        idBuf.print(loc.linnum);
+        idBuf.writestring("_C");
+        idBuf.print(loc.charnum);
 
-        // see below for why we use absPathThen
-        return loc.filename.toDString().absPathThen!((absPath)
+        /**
+         * Make sure the identifiers are unique per filename, i.e., per module/mixin
+         * (`path/to/foo.d` and `path/to/foo.d-mixin-<line>`). See issues
+         * https://issues.dlang.org/show_bug.cgi?id=16995
+         * https://issues.dlang.org/show_bug.cgi?id=18097
+         * https://issues.dlang.org/show_bug.cgi?id=18111
+         * https://issues.dlang.org/show_bug.cgi?id=18880
+         * https://issues.dlang.org/show_bug.cgi?id=18868
+         * https://issues.dlang.org/show_bug.cgi?id=19058
+         */
+        static struct Key { Loc loc; string prefix; }
+        __gshared uint[Key] counters;
+
+        static if (__traits(compiles, counters.update(Key.init, () => 0u, (ref uint a) => 0u)))
         {
-            // this block generates the "regular" identifier, i.e. if there are no collisions
-            OutBuffer idBuf;
-            idBuf.writestring(prefix);
-            idBuf.writestring("_L");
-            idBuf.print(loc.linnum);
-            idBuf.writestring("_C");
-            idBuf.print(loc.charnum);
-
-            // This block generates an identifier that is prefixed by the absolute path of the file
-            // being compiled. The reason this is necessary is that we want unique identifiers per
-            // module, but the identifiers are generated before the module information is available.
-            // To guarantee that each generated identifier is unique without modules, we make them
-            // unique to each absolute file path. This also makes it consistent even if the files
-            // are compiled separately. See issues:
-            // https://issues.dlang.org/show_bug.cgi?id=16995
-            // https://issues.dlang.org/show_bug.cgi?id=18097
-            // https://issues.dlang.org/show_bug.cgi?id=18111
-            // https://issues.dlang.org/show_bug.cgi?id=18880
-            // https://issues.dlang.org/show_bug.cgi?id=18868
-            // https://issues.dlang.org/show_bug.cgi?id=19058.
-            OutBuffer fullPathIdBuf;
-
-            if (absPath)
-            {
-                // replace characters that demangle can't handle
-                foreach (ref c; absPath)
+            // 2.082+
+            counters.update(Key(loc, prefix),
+                () => 1u,          // insertion
+                (ref uint counter) // update
                 {
-                    // see dmd.dmangle.isValidMangling
-                    // Unfortunately importing it leads to either build failures or cyclic dependencies
-                    // between modules.
-                    if (c == '/' || c == '\\' || c == '.' || c == '?' || c == ':')
-                        c = '_';
+                    idBuf.writestring("_");
+                    idBuf.print(counter);
+                    return counter + 1;
                 }
-
-                fullPathIdBuf.writestring(absPath);
-                fullPathIdBuf.writestring("_");
-            }
-
-            fullPathIdBuf.writestring(idBuf.peekSlice());
-            const fullPathIdLength = fullPathIdBuf.peekSlice().length;
-            uint counter = 1;
-
-            // loop until we can't find the absolute path ~ identifier, adding a counter suffix each time
-            while (fullPathStringTable.lookup(fullPathIdBuf.peekSlice()) !is null)
+            );
+        }
+        else
+        {
+            const key = Key(loc, prefix);
+            if (auto pCounter = key in counters)
             {
-                // Strip the counter suffix if any
-                fullPathIdBuf.setsize(fullPathIdLength);
-                // Add new counter suffix
-                fullPathIdBuf.writestring("_");
-                fullPathIdBuf.print(counter++);
+                idBuf.writestring("_");
+                idBuf.print((*pCounter)++);
             }
+            else
+                counters[key] = 1;
+        }
 
-            // `idStartIndex` is the start of the "true" identifier. We don't actually use the absolute
-            // file path in the generated identifier since the module system makes sure that the fully
-            // qualified name is unique.
-            const idStartIndex = fullPathIdLength - idBuf.peekSlice().length;
-
-            // Remember the full path identifier to avoid possible future collisions
-            fullPathStringTable.insert(fullPathIdBuf.peekSlice(),
-                                       null);
-
-            return idPool(fullPathIdBuf.peekSlice()[idStartIndex .. $]);
-        });
+        return idPool(idBuf[]);
     }
 
     /********************************************
      * Create an identifier in the string table.
      */
-    extern (D) static Identifier idPool(const(char)[] s)
-    {
-        return idPool(s.ptr, cast(uint)s.length);
-    }
-
     static Identifier idPool(const(char)* s, uint len)
     {
-        StringValue* sv = stringtable.update(s, len);
-        Identifier id = cast(Identifier)sv.ptrvalue;
+        return idPool(s[0 .. len]);
+    }
+
+    extern (D) static Identifier idPool(const(char)[] s)
+    {
+        auto sv = stringtable.update(s);
+        auto id = sv.value;
         if (!id)
         {
-            id = new Identifier(sv.toDchars(), len, TOK.identifier);
-            sv.ptrvalue = cast(char*)id;
+            id = new Identifier(sv.toString(), TOK.identifier);
+            sv.value = id;
         }
         return id;
     }
 
     extern (D) static Identifier idPool(const(char)* s, size_t len, int value)
     {
-        auto sv = stringtable.insert(s, len, null);
+        return idPool(s[0 .. len], value);
+    }
+
+    extern (D) static Identifier idPool(const(char)[] s, int value)
+    {
+        auto sv = stringtable.insert(s, null);
         assert(sv);
-        auto id = new Identifier(sv.toDchars(), len, value);
-        sv.ptrvalue = cast(char*)id;
+        auto id = new Identifier(sv.toString(), value);
+        sv.value = id;
         return id;
     }
 
     /**********************************
      * Determine if string is a valid Identifier.
+     * Params:
+     *      str = string to check
      * Returns:
-     *      0       invalid
+     *      false for invalid
      */
-    static bool isValidIdentifier(const(char)* p)
+    static bool isValidIdentifier(const(char)* str)
     {
-        if (!p || !*p)
-            return false;
-        return isValidIdentifier(p.toDString);
+        return str && isValidIdentifier(str.toDString);
     }
 
     /**********************************
@@ -287,39 +267,41 @@ nothrow:
      */
     extern (D) static bool isValidIdentifier(const(char)[] str)
     {
-        const(char)* p = str.ptr;
-        size_t len = str.length;
+        if (str.length == 0 ||
+            (str[0] >= '0' && str[0] <= '9')) // beware of isdigit() on signed chars
+        {
+            return false;
+        }
+
         size_t idx = 0;
-        if (!p || len == 0)
-            goto Linvalid;
-        if (*p >= '0' && *p <= '9') // beware of isdigit() on signed chars
-            goto Linvalid;
-        while (idx < len)
+        while (idx < str.length)
         {
             dchar dc;
-            const q = utf_decodeChar(p, len, idx, dc);
-            if (q)
-                goto Linvalid;
-            if (!((dc >= 0x80 && isUniAlpha(dc)) || isalnum(dc) || dc == '_'))
-                goto Linvalid;
+            const s = utf_decodeChar(str, idx, dc);
+            if (s ||
+                !((dc >= 0x80 && isUniAlpha(dc)) || isalnum(dc) || dc == '_'))
+            {
+                return false;
+            }
         }
         return true;
-    Linvalid:
-        return false;
     }
 
     extern (D) static Identifier lookup(const(char)* s, size_t len)
     {
-        auto sv = stringtable.lookup(s, len);
+        return lookup(s[0 .. len]);
+    }
+
+    extern (D) static Identifier lookup(const(char)[] s)
+    {
+        auto sv = stringtable.lookup(s);
         if (!sv)
             return null;
-        return cast(Identifier)sv.ptrvalue;
+        return sv.value;
     }
 
     extern (D) static void initTable()
     {
-        enum size = 28_000;
-        stringtable._init(size);
-        fullPathStringTable._init(size);
+        stringtable._init(28_000);
     }
 }

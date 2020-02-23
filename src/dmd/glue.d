@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/glue.d, _glue.d)
@@ -21,6 +21,7 @@ import dmd.root.file;
 import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.root.rmem;
+import dmd.root.string;
 
 import dmd.backend.cdef;
 import dmd.backend.cc;
@@ -76,6 +77,7 @@ __gshared
 {
     elem *eictor;
     Symbol *ictorlocalgot;
+    Symbol* bzeroSymbol;        /// common location for immutable zeros
     symbols sctors;
     StaticDtorDeclarations ectorgates;
     symbols sdtors;
@@ -131,22 +133,20 @@ void obj_write_deferred(Library library)
          */
         OutBuffer idbuf;
         idbuf.printf("%s.%d", m ? m.ident.toChars() : mname, count);
-        char *idstr = idbuf.peekString();
 
         if (!m)
         {
             // it doesn't make sense to make up a module if we don't know where to put the symbol
             //  so output it into it's own object file without ModuleInfo
-            objmod.initfile(idstr, null, mname);
+            objmod.initfile(idbuf.peekChars(), null, mname);
             toObjFile(s, false);
             objmod.termfile();
         }
         else
         {
-            idbuf.data = null;
-            Identifier id = Identifier.create(idstr);
+            Identifier id = Identifier.create(idbuf.extractChars());
 
-            Module md = Module.create(mname, id, 0, 0);
+            Module md = new Module(mname.toDString, id, 0, 0);
             md.members = new Dsymbols();
             md.members.push(s);   // its only 'member' is s
             md.doppelganger = 1;       // identify this module as doppelganger
@@ -164,13 +164,13 @@ void obj_write_deferred(Library library)
         uint hash = 0;
         for (const(char)* p = s.toChars(); *p; p++)
             hash += *p;
-        namebuf.printf("%s_%x_%x.%s", fname, count, hash, global.obj_ext);
+        namebuf.printf("%s_%x_%x.%.*s", fname, count, hash,
+                       cast(int)global.obj_ext.length, global.obj_ext.ptr);
         FileName.free(cast(char *)fname);
-        fname = namebuf.extractString();
+        fname = namebuf.extractChars();
 
         //printf("writing '%s'\n", fname);
-        File *objfile = File.create(fname);
-        obj_end(library, objfile);
+        obj_end(library, fname);
     }
     obj_symbols_towrite.dim = 0;
 }
@@ -201,7 +201,7 @@ private Symbol *callFuncsAndGates(Module m, symbols *sctors, StaticDtorDeclarati
             /* t will be the type of the functions generated:
              *      extern (C) void func();
              */
-            t = type_function(TYnfunc, null, 0, false, tstypes[TYvoid]);
+            t = type_function(TYnfunc, null, false, tstypes[TYvoid]);
             t.Tmangle = mTYman_c;
         }
 
@@ -233,7 +233,7 @@ private Symbol *callFuncsAndGates(Module m, symbols *sctors, StaticDtorDeclarati
         block *b = block_calloc();
         b.BC = BCret;
         b.Belem = ector;
-        sctor.Sfunc.Fstartline.Sfilename = m.arg;
+        sctor.Sfunc.Fstartline.Sfilename = m.arg.xarraydup.ptr;
         sctor.Sfunc.Fstartblock = b;
         writefunc(sctor);
     }
@@ -250,6 +250,7 @@ void obj_start(const(char)* srcfile)
 {
     //printf("obj_start()\n");
 
+    bzeroSymbol = null;
     rtlsym_reset();
     clearStringTab();
 
@@ -271,37 +272,37 @@ void obj_start(const(char)* srcfile)
 }
 
 
-void obj_end(Library library, File *objfile)
+void obj_end(Library library, const(char)* objfilename)
 {
-    const(char)* objfilename = objfile.name.toChars();
     objmod.term(objfilename);
     //delete objmod;
     objmod = null;
 
+    const data = objbuf.buf[0 .. objbuf.p - objbuf.buf];
     if (library)
     {
         // Transfer image to library
-        library.addObject(objfilename, objbuf.buf[0 .. objbuf.p - objbuf.buf]);
-        objbuf.buf = null;
+        library.addObject(objfilename, data);
     }
     else
     {
-        // Transfer image to file
-        objfile.setbuffer(objbuf.buf, objbuf.p - objbuf.buf);
-        objbuf.buf = null;
-
-        ensurePathToNameExists(Loc.initial, objfilename);
-
         //printf("write obj %s\n", objfilename);
-        writeFile(Loc.initial, objfile);
+        writeFile(Loc.initial, objfilename.toDString, data);
+        free(objbuf.buf); // objbuf is a backend `Outbuffer` managed by C malloc/free
     }
+    objbuf.buf = null;
     objbuf.pend = null;
     objbuf.p = null;
 }
 
-bool obj_includelib(const(char)* name)
+bool obj_includelib(const(char)* name) nothrow
 {
     return objmod.includelib(name);
+}
+
+extern(D) bool obj_includelib(const(char)[] name) nothrow
+{
+    return name.toCStringThen!(n => obj_includelib(n.ptr));
 }
 
 void obj_startaddress(Symbol *s)
@@ -324,21 +325,6 @@ void genObjFile(Module m, bool multiobj)
     //EEcontext *ee = env.getEEcontext();
 
     //printf("Module.genobjfile(multiobj = %d) %s\n", multiobj, m.toChars());
-
-    if (m.ident == Id.entrypoint)
-    {
-        bool v = global.params.verbose;
-        global.params.verbose = false;
-
-        foreach (member; *m.members)
-        {
-            //printf("toObjFile %s %s\n", member.kind(), member.toChars());
-            toObjFile(member, global.params.multiobj);
-        }
-
-        global.params.verbose = v;
-        return;
-    }
 
     lastmname = m.srcfile.toChars();
 
@@ -402,8 +388,9 @@ void genObjFile(Module m, bool multiobj)
         m.covb = cast(uint *)calloc((m.numlines + 32) / 32, (*m.covb).sizeof);
     }
 
-    foreach (member; *m.members)
+    for (int i = 0; i < m.members.dim; i++)
     {
+        auto member = (*m.members)[i];
         //printf("toObjFile %s %s\n", member.kind(), member.toChars());
         toObjFile(member, multiobj);
     }
@@ -436,7 +423,7 @@ void genObjFile(Module m, bool multiobj)
         /* t will be the type of the functions generated:
          *      extern (C) void func();
          */
-        type *t = type_function(TYnfunc, null, 0, false, tstypes[TYvoid]);
+        type *t = type_function(TYnfunc, null, false, tstypes[TYvoid]);
         t.Tmangle = mTYman_c;
 
         m.sictor = toSymbolX(m, "__modictor", SCglobal, t, "FZv");
@@ -478,7 +465,7 @@ void genObjFile(Module m, bool multiobj)
             block *b = block_calloc();
             b.BC = BCret;
             b.Belem = eictor;
-            m.sictor.Sfunc.Fstartline.Sfilename = m.arg;
+            m.sictor.Sfunc.Fstartline.Sfilename = m.arg.xarraydup.ptr;
             m.sictor.Sfunc.Fstartblock = b;
             writefunc(m.sictor);
         }
@@ -496,7 +483,7 @@ void genObjFile(Module m, bool multiobj)
 
     if (m.doppelganger)
     {
-        objc.generateModuleInfo();
+        objc.generateModuleInfo(m);
         objmod.termfile();
         return;
     }
@@ -516,7 +503,7 @@ void genObjFile(Module m, bool multiobj)
 /**************************************
  * Search for a druntime array op
  */
-bool isDruntimeArrayOp(Identifier ident)
+private bool isDruntimeArrayOp(Identifier ident)
 {
     /* Some of the array op functions are written as library functions,
      * presumably to optimize them with special CPU vector instructions.
@@ -703,7 +690,7 @@ bool isDruntimeArrayOp(Identifier ident)
 
 /* ================================================================== */
 
-UnitTestDeclaration needsDeferredNested(FuncDeclaration fd)
+private UnitTestDeclaration needsDeferredNested(FuncDeclaration fd)
 {
     while (fd && fd.isNested())
     {
@@ -761,7 +748,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (ud && !global.params.useUnitTests)
         return;
 
-    if (multiobj && !fd.isStaticDtorDeclaration() && !fd.isStaticCtorDeclaration())
+    if (multiobj && !fd.isStaticDtorDeclaration() && !fd.isStaticCtorDeclaration() && !fd.isCrtCtorDtor)
     {
         obj_append(fd);
         return;
@@ -841,6 +828,18 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     {
         if (p.isTemplateInstance())
         {
+            // functions without D or C++ name mangling mixed in at global scope
+            // shouldn't have multiple definitions
+            if (p.isTemplateMixin() && (fd.linkage == LINK.c || fd.linkage == LINK.windows ||
+                fd.linkage == LINK.pascal || fd.linkage == LINK.objc))
+            {
+                const q = p.toParent();
+                if (q && q.isModule())
+                {
+                    s.Sclass = SCglobal;
+                    break;
+                }
+            }
             s.Sclass = SCcomdat;
             break;
         }
@@ -959,14 +958,14 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     size_t pi = (fd.v_arguments !is null);
     if (fd.parameters)
         pi += fd.parameters.dim;
-
+    if (fd.selector)
+        pi++; // Extra argument for Objective-C selector
     // Create a temporary buffer, params[], to hold function parameters
     Symbol*[10] paramsbuf = void;
     Symbol **params = paramsbuf.ptr;    // allocate on stack if possible
     if (pi + 2 > paramsbuf.length)      // allow extra 2 for sthis and shidden
     {
-        params = cast(Symbol **)malloc((pi + 2) * (Symbol *).sizeof);
-        assert(params);
+        params = cast(Symbol **)Mem.check(malloc((pi + 2) * (Symbol *).sizeof));
     }
 
     // Get the actual number of parameters, pi, and fill in the params[]
@@ -1009,6 +1008,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         pi++;
     }
 
+    pi = objc.addSelectorParameterSymbol(fd, params, pi);
 
     if (sthis)
     {
@@ -1022,8 +1022,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         pi++;
     }
 
-    if ((global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isDragonFlyBSD || global.params.isSolaris) &&
-         fd.linkage != LINK.d && shidden && sthis)
+    if (target.isPOSIX && fd.linkage != LINK.d && shidden && sthis)
     {
         /* swap shidden and sthis
          */
@@ -1060,127 +1059,135 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         free(params);
     params = null;
 
-    if (fd.fbody)
+    localgot = null;
+
+    Statement sbody = fd.fbody;
+
+    Blockx bx;
+    bx.startblock = block_calloc();
+    bx.curblock = bx.startblock;
+    bx.funcsym = s;
+    bx.scope_index = -1;
+    bx.classdec = cast(void*)cd;
+    bx.member = cast(void*)fd;
+    bx._module = cast(void*)fd.getModule();
+    irs.blx = &bx;
+
+    // Initialize argptr
+    if (fd.v_argptr)
     {
-        localgot = null;
-
-        Statement sbody = fd.fbody;
-
-        Blockx bx;
-        bx.startblock = block_calloc();
-        bx.curblock = bx.startblock;
-        bx.funcsym = s;
-        bx.scope_index = -1;
-        bx.classdec = cast(void*)cd;
-        bx.member = cast(void*)fd;
-        bx._module = cast(void*)fd.getModule();
-        irs.blx = &bx;
-
-        // Initialize argptr
-        if (fd.v_argptr)
+        // Declare va_argsave
+        if (global.params.is64bit &&
+            !global.params.isWindows)
         {
-            // Declare va_argsave
-            if (global.params.is64bit &&
-                !global.params.isWindows)
-            {
-                type *t = type_struct_class("__va_argsave_t", 16, 8 * 6 + 8 * 16 + 8 * 3, null, null, false, false, true, false);
-                // The backend will pick this up by name
-                Symbol *sv = symbol_name("__va_argsave", SCauto, t);
-                sv.Stype.Tty |= mTYvolatile;
-                symbol_add(sv);
-            }
-
-            Symbol *sa = toSymbol(fd.v_argptr);
-            symbol_add(sa);
-            elem *e = el_una(OPva_start, TYnptr, el_ptr(sa));
-            block_appendexp(irs.blx.curblock, e);
+            type *t = type_struct_class("__va_argsave_t", 16, 8 * 6 + 8 * 16 + 8 * 3, null, null, false, false, true, false);
+            // The backend will pick this up by name
+            Symbol *sv = symbol_name("__va_argsave", SCauto, t);
+            sv.Stype.Tty |= mTYvolatile;
+            symbol_add(sv);
         }
 
-        /* Doing this in semantic3() caused all kinds of problems:
-         * 1. couldn't reliably get the final mangling of the function name due to fwd refs
-         * 2. impact on function inlining
-         * 3. what to do when writing out .di files, or other pretty printing
-         */
-        if (global.params.trace && !fd.isCMain() && !fd.naked)
-        {
-            /* The profiler requires TLS, and TLS may not be set up yet when C main()
-             * gets control (i.e. OSX), leading to a crash.
-             */
-            /* Wrap the entire function body in:
-             *   trace_pro("funcname");
-             *   try
-             *     body;
-             *   finally
-             *     _c_trace_epi();
-             */
-            StringExp se = StringExp.create(Loc.initial, s.Sident.ptr);
-            se.type = Type.tstring;
-            se.type = se.type.typeSemantic(Loc.initial, null);
-            Expressions *exps = new Expressions();
-            exps.push(se);
-            FuncDeclaration fdpro = FuncDeclaration.genCfunc(null, Type.tvoid, "trace_pro");
-            Expression ec = VarExp.create(Loc.initial, fdpro);
-            Expression e = CallExp.create(Loc.initial, ec, exps);
-            e.type = Type.tvoid;
-            Statement sp = ExpStatement.create(fd.loc, e);
-
-            FuncDeclaration fdepi = FuncDeclaration.genCfunc(null, Type.tvoid, "_c_trace_epi");
-            ec = VarExp.create(Loc.initial, fdepi);
-            e = CallExp.create(Loc.initial, ec);
-            e.type = Type.tvoid;
-            Statement sf = ExpStatement.create(fd.loc, e);
-
-            Statement stf;
-            if (sbody.blockExit(fd, false) == BE.fallthru)
-                stf = CompoundStatement.create(Loc.initial, sbody, sf);
-            else
-                stf = TryFinallyStatement.create(Loc.initial, sbody, sf);
-            sbody = CompoundStatement.create(Loc.initial, sp, stf);
-        }
-
-        if (fd.interfaceVirtual)
-        {
-            // Adjust the 'this' pointer instead of using a thunk
-            assert(irs.sthis);
-            elem *ethis = el_var(irs.sthis);
-            elem *e = el_bin(OPminass, TYnptr, ethis, el_long(TYsize_t, fd.interfaceVirtual.offset));
-            block_appendexp(irs.blx.curblock, e);
-        }
-
-        buildClosure(fd, &irs);
-
-        if (config.ehmethod == EHmethod.EH_WIN32 && fd.isSynchronized() && cd &&
-            !fd.isStatic() && !sbody.usesEH() && !global.params.trace)
-        {
-            /* The "jmonitor" hack uses an optimized exception handling frame
-             * which is a little shorter than the more general EH frame.
-             */
-            s.Sfunc.Fflags3 |= Fjmonitor;
-        }
-
-        Statement_toIR(sbody, &irs);
-        bx.curblock.BC = BCret;
-
-        f.Fstartblock = bx.startblock;
-//      einit = el_combine(einit,bx.init);
-
-        if (fd.isCtorDeclaration())
-        {
-            assert(sthis);
-            foreach (b; BlockRange(f.Fstartblock))
-            {
-                if (b.BC == BCret)
-                {
-                    b.BC = BCretexp;
-                    b.Belem = el_combine(b.Belem, el_var(sthis));
-                }
-            }
-        }
-        if (config.ehmethod == EHmethod.EH_NONE || f.Fflags3 & Feh_none)
-            insertFinallyBlockGotos(f.Fstartblock);
-        else if (config.ehmethod == EHmethod.EH_DWARF)
-            insertFinallyBlockCalls(f.Fstartblock);
+        Symbol *sa = toSymbol(fd.v_argptr);
+        symbol_add(sa);
+        elem *e = el_una(OPva_start, TYnptr, el_ptr(sa));
+        block_appendexp(irs.blx.curblock, e);
     }
+
+    /* Doing this in semantic3() caused all kinds of problems:
+     * 1. couldn't reliably get the final mangling of the function name due to fwd refs
+     * 2. impact on function inlining
+     * 3. what to do when writing out .di files, or other pretty printing
+     */
+    if (global.params.trace && !fd.isCMain() && !fd.naked)
+    {
+        /* The profiler requires TLS, and TLS may not be set up yet when C main()
+         * gets control (i.e. OSX), leading to a crash.
+         */
+        /* Wrap the entire function body in:
+         *   trace_pro("funcname");
+         *   try
+         *     body;
+         *   finally
+         *     _c_trace_epi();
+         */
+        StringExp se = StringExp.create(Loc.initial, s.Sident.ptr);
+        se.type = Type.tstring;
+        se.type = se.type.typeSemantic(Loc.initial, null);
+        Expressions *exps = new Expressions();
+        exps.push(se);
+        FuncDeclaration fdpro = FuncDeclaration.genCfunc(null, Type.tvoid, "trace_pro");
+        Expression ec = VarExp.create(Loc.initial, fdpro);
+        Expression e = CallExp.create(Loc.initial, ec, exps);
+        e.type = Type.tvoid;
+        Statement sp = ExpStatement.create(fd.loc, e);
+
+        FuncDeclaration fdepi = FuncDeclaration.genCfunc(null, Type.tvoid, "_c_trace_epi");
+        ec = VarExp.create(Loc.initial, fdepi);
+        e = CallExp.create(Loc.initial, ec);
+        e.type = Type.tvoid;
+        Statement sf = ExpStatement.create(fd.loc, e);
+
+        Statement stf;
+        if (sbody.blockExit(fd, false) == BE.fallthru)
+            stf = CompoundStatement.create(Loc.initial, sbody, sf);
+        else
+            stf = TryFinallyStatement.create(Loc.initial, sbody, sf);
+        sbody = CompoundStatement.create(Loc.initial, sp, stf);
+    }
+
+    if (fd.interfaceVirtual)
+    {
+        // Adjust the 'this' pointer instead of using a thunk
+        assert(irs.sthis);
+        elem *ethis = el_var(irs.sthis);
+        ethis = fixEthis2(ethis, fd);
+        elem *e = el_bin(OPminass, TYnptr, ethis, el_long(TYsize_t, fd.interfaceVirtual.offset));
+        block_appendexp(irs.blx.curblock, e);
+    }
+
+    buildClosure(fd, &irs);
+
+    if (config.ehmethod == EHmethod.EH_WIN32 && fd.isSynchronized() && cd &&
+        !fd.isStatic() && !sbody.usesEH() && !global.params.trace)
+    {
+        /* The "jmonitor" hack uses an optimized exception handling frame
+         * which is a little shorter than the more general EH frame.
+         */
+        s.Sfunc.Fflags3 |= Fjmonitor;
+    }
+
+    Statement_toIR(sbody, &irs);
+
+    if (global.errors)
+    {
+        // Restore symbol table
+        cstate.CSpsymtab = symtabsave;
+        return;
+    }
+
+    bx.curblock.BC = BCret;
+
+    f.Fstartblock = bx.startblock;
+//  einit = el_combine(einit,bx.init);
+
+    if (fd.isCtorDeclaration())
+    {
+        assert(sthis);
+        foreach (b; BlockRange(f.Fstartblock))
+        {
+            if (b.BC == BCret)
+            {
+                elem *ethis = el_var(sthis);
+                ethis = fixEthis2(ethis, fd);
+                b.BC = BCretexp;
+                b.Belem = el_combine(b.Belem, ethis);
+            }
+        }
+    }
+    if (config.ehmethod == EHmethod.EH_NONE || f.Fflags3 & Feh_none)
+        insertFinallyBlockGotos(f.Fstartblock);
+    else if (config.ehmethod == EHmethod.EH_DWARF)
+        insertFinallyBlockCalls(f.Fstartblock);
 
     // If static constructor
     if (fd.isSharedStaticCtorDeclaration())        // must come first because it derives from StaticCtorDeclaration
@@ -1243,6 +1250,11 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (fd.isExport())
         objmod.export_symbol(s, cast(uint)Para.offset);
 
+    if (fd.isCrtCtorDtor & 1)
+        objmod.setModuleCtorDtor(s, true);
+    if (fd.isCrtCtorDtor & 2)
+        objmod.setModuleCtorDtor(s, false);
+
     foreach (sd; *irs.deferToObj)
     {
         toObjFile(sd, false);
@@ -1254,14 +1266,6 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         {
             toObjFile(fdn, false);
         }
-    }
-
-    if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD ||
-        global.params.isDragonFlyBSD || global.params.isSolaris)
-    {
-        // A hack to get a pointer to this function put in the .dtors segment
-        if (fd.ident && memcmp(fd.ident.toChars(), "_STD".ptr, 4) == 0)
-            objmod.staticdtor(s);
     }
 
     if (irs.startaddress)
@@ -1283,17 +1287,14 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
  */
 private void specialFunctions(Obj objmod, FuncDeclaration fd)
 {
-    const(char)* libname = (global.params.symdebug)
-                            ? global.params.debuglibname
-                            : global.params.defaultlibname;
+    const libname = global.finalDefaultlibname();
 
     Symbol* s = fd.toSymbol();  // backend symbol corresponding to fd
 
     // Pull in RTL startup code (but only once)
     if (fd.isMain() && onlyOneMain(fd.loc))
     {
-        if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD ||
-            global.params.isOpenBSD || global.params.isDragonFlyBSD || global.params.isSolaris)
+        if (target.isPOSIX)
         {
             objmod.external_def("_main");
         }
@@ -1307,14 +1308,12 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
             objmod.external_def("__acrtused_con");
         }
         if (libname)
-            objmod.includelib(libname);
+            obj_includelib(libname);
         s.Sclass = SCglobal;
     }
     else if (fd.isRtInit())
     {
-        if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD ||
-            global.params.isOpenBSD || global.params.isDragonFlyBSD || global.params.isSolaris ||
-            global.params.mscoff)
+        if (target.isPOSIX || global.params.mscoff)
         {
             objmod.ehsections();   // initialize exception handling sections
         }
@@ -1323,8 +1322,8 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
     {
         if (global.params.mscoff)
         {
-            if (global.params.mscrtlib && global.params.mscrtlib[0])
-                objmod.includelib(global.params.mscrtlib);
+            if (global.params.mscrtlib.length && global.params.mscrtlib[0])
+                obj_includelib(global.params.mscrtlib);
             objmod.includelib("OLDNAMES");
         }
         else if (config.exe == EX_WIN32)
@@ -1339,8 +1338,8 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
         if (global.params.mscoff)
         {
             objmod.includelib("uuid");
-            if (global.params.mscrtlib && global.params.mscrtlib[0])
-                objmod.includelib(global.params.mscrtlib);
+            if (global.params.mscrtlib.length && global.params.mscrtlib[0])
+                obj_includelib(global.params.mscrtlib);
             objmod.includelib("OLDNAMES");
         }
         else
@@ -1348,7 +1347,7 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
             objmod.external_def("__acrtused");
         }
         if (libname)
-            objmod.includelib(libname);
+            obj_includelib(libname);
         s.Sclass = SCglobal;
     }
 
@@ -1358,8 +1357,8 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
         if (global.params.mscoff)
         {
             objmod.includelib("uuid");
-            if (global.params.mscrtlib && global.params.mscrtlib[0])
-                objmod.includelib(global.params.mscrtlib);
+            if (global.params.mscrtlib.length && global.params.mscrtlib[0])
+                obj_includelib(global.params.mscrtlib);
             objmod.includelib("OLDNAMES");
         }
         else
@@ -1367,18 +1366,13 @@ private void specialFunctions(Obj objmod, FuncDeclaration fd)
             objmod.external_def("__acrtused_dll");
         }
         if (libname)
-            objmod.includelib(libname);
+            obj_includelib(libname);
         s.Sclass = SCglobal;
-    }
-    else if (fd.ident == Id.tls_get_addr && fd.linkage == LINK.d)
-    {
-        // TODO: Change linkage in druntime to extern(C).
-        s.Sfunc.Fredirect = cast(char*)Id.tls_get_addr.toChars();
     }
 }
 
 
-bool onlyOneMain(Loc loc)
+private bool onlyOneMain(Loc loc)
 {
     __gshared Loc lastLoc;
     __gshared bool hasMain = false;
@@ -1405,9 +1399,9 @@ bool onlyOneMain(Loc loc)
  * Return back end type corresponding to D front end type.
  */
 
-uint totym(Type tx)
+tym_t totym(Type tx)
 {
-    uint t;
+    tym_t t;
     switch (tx.ty)
     {
         case Tvoid:     t = TYvoid;     break;
@@ -1445,8 +1439,6 @@ uint totym(Type tx)
 
         case Tstruct:
             t = TYstruct;
-            if (tx.toDsymbol(null).ident == Id.__c_long_double)
-                t = TYdouble;
             break;
 
         case Tenum:
@@ -1466,6 +1458,7 @@ uint totym(Type tx)
 
         case Tident:
         case Ttypeof:
+        case Tmixin:
             //printf("ty = %d, '%s'\n", tx.ty, tx.toChars());
             error(Loc.initial, "forward reference of `%s`", tx.toChars());
             t = TYint;
@@ -1477,8 +1470,8 @@ uint totym(Type tx)
 
         case Tvector:
         {
-            TypeVector tv = cast(TypeVector)tx;
-            TypeBasic tb = tv.elementType();
+            auto tv = cast(TypeVector)tx;
+            const tb = tv.elementType();
             const s32 = tv.alignsize() == 32;   // if 32 byte, 256 bit vector
             switch (tb.ty)
             {
@@ -1496,29 +1489,27 @@ uint totym(Type tx)
                 default:
                     assert(0);
             }
-            assert(global.params.is64bit || global.params.isOSX);
             break;
         }
 
         case Tfunction:
         {
-            TypeFunction tf = cast(TypeFunction)tx;
+            auto tf = cast(TypeFunction)tx;
             final switch (tf.linkage)
             {
                 case LINK.windows:
                     if (global.params.is64bit)
-                        goto Lc;
-                    t = (tf.varargs == 1) ? TYnfunc : TYnsfunc;
+                        goto case LINK.c;
+                    t = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYnsfunc;
                     break;
 
                 case LINK.pascal:
-                    t = (tf.varargs == 1) ? TYnfunc : TYnpfunc;
+                    t = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYnpfunc;
                     break;
 
                 case LINK.c:
                 case LINK.cpp:
                 case LINK.objc:
-                Lc:
                     t = TYnfunc;
                     if (global.params.isWindows)
                     {
@@ -1528,7 +1519,7 @@ uint totym(Type tx)
                     break;
 
                 case LINK.d:
-                    t = (tf.varargs == 1) ? TYnfunc : TYjfunc;
+                    t = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYjfunc;
                     break;
 
                 case LINK.default_:
@@ -1545,30 +1536,7 @@ uint totym(Type tx)
             assert(0);
     }
 
-    // Add modifiers
-    switch (tx.mod)
-    {
-        case 0:
-            break;
-        case MODFlags.const_:
-        case MODFlags.wild:
-        case MODFlags.wildconst:
-            t |= mTYconst;
-            break;
-        case MODFlags.shared_:
-            t |= mTYshared;
-            break;
-        case MODFlags.shared_ | MODFlags.const_:
-        case MODFlags.shared_ | MODFlags.wild:
-        case MODFlags.shared_ | MODFlags.wildconst:
-            t |= mTYshared | mTYconst;
-            break;
-        case MODFlags.immutable_:
-            t |= mTYimmutable;
-            break;
-        default:
-            assert(0);
-    }
+    t |= modToTym(tx.mod);    // Add modifiers
 
     return t;
 }
@@ -1585,12 +1553,46 @@ Symbol *toSymbol(Type t)
     assert(0);
 }
 
+/*******************************************
+ * Generate readonly symbol that consists of a bunch of zeros.
+ * Immutable Symbol instances can be mapped over it.
+ * Only one is generated per object file.
+ * Returns:
+ *    bzero symbol
+ */
+Symbol* getBzeroSymbol()
+{
+    Symbol* s = bzeroSymbol;
+    if (s)
+        return s;
+
+    s = symbol_calloc("__bzeroBytes");
+    s.Stype = type_static_array(128, type_fake(TYuchar));
+    s.Stype.Tmangle = mTYman_c;
+    s.Stype.Tcount++;
+    s.Sclass = SCglobal;
+    s.Sfl = FLdata;
+    s.Sflags |= SFLnodebug;
+    s.Salignment = 16;
+
+    auto dtb = DtBuilder(0);
+    dtb.nzeros(128);
+    s.Sdt = dtb.finish();
+    dt2common(&s.Sdt);
+
+    outdata(s);
+
+    bzeroSymbol = s;
+    return s;
+}
+
+
 
 /**************************************
  * Generate elem that is a dynamic array slice of the module file name.
  */
 
-elem *toEfilename(Module m)
+private elem *toEfilename(Module m)
 {
     //printf("toEfilename(%s)\n", m.toChars());
     const(char)* id = m.srcfile.toChars();
@@ -1606,6 +1608,7 @@ elem *toEfilename(Module m)
     return el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(m.sfilename));
 }
 
+// Used in e2ir.d
 elem *toEfilenamePtr(Module m)
 {
     //printf("toEfilenamePtr(%s)\n", m.toChars());

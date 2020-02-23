@@ -1,3 +1,8 @@
+/+
+dub.sdl:
+    name "config"
+    targetPath "generated/dub"
++/
 /**
 Generates the compiler version, the version printed with `dmd --version`.
 
@@ -45,9 +50,11 @@ string generateVersion(const string versionFile)
 {
     import std.process : execute;
     import std.file : readText;
+    import std.path : dirName;
     import std.string : strip;
 
-    const result = execute(["git", "describe", "--dirty"]);
+    enum workDir = __FILE_FULL_PATH__.dirName;
+    const result = execute(["git", "-C", workDir, "describe", "--dirty"]);
 
     return result.status == 0 ? result.output.strip : versionFile.readText;
 }

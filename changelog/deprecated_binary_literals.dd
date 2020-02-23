@@ -1,9 +1,0 @@
-Deprecate invalid binary literals
-
-Prior to this release, binary literals without any digits after the prefix `0b`
-were considered valid. This has now been deprecated.
----
-auto foo = 0b;   // deprecated
-auto bar = 0b_;  // deprecated
-auto baz = 0b0;  // conforming equivalent
----

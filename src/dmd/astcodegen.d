@@ -67,6 +67,8 @@ struct ASTCodegen
     alias Tvoid                     = dmd.mtype.Tvoid;
     alias Twchar                    = dmd.mtype.Twchar;
 
+    alias ParameterList             = dmd.mtype.ParameterList;
+    alias VarArg                    = dmd.mtype.VarArg;
     alias STC                       = dmd.declaration.STC;
     alias Dsymbol                   = dmd.dsymbol.Dsymbol;
     alias Dsymbols                  = dmd.dsymbol.Dsymbols;

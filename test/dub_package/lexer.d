@@ -4,6 +4,7 @@ dependency "dmd" path="../.."
 +/
 void main()
 {
+    import dmd.globals;
     import dmd.lexer;
     import dmd.tokens;
 

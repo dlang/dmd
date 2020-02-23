@@ -47,7 +47,7 @@
                 {
                     "char": 8,
                     "kind": "import",
-                    "line": 6,
+                    "line": 9,
                     "name": "json",
                     "protection": "private"
                 }

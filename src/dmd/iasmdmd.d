@@ -1,17 +1,16 @@
 /**
- * Compiler implementation of the
+ * Inline assembler implementation for DMD.
+ *
+ * Part of the compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (c) 1992-1999 by Symantec
- *              Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     Mike Cote, John Micco and $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/iasmdmd.d, _iasmdmd.d)
  * Documentation:  https://dlang.org/phobos/dmd_iasmdmd.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/iasmdmd.d
- */
-
-/* Inline assembler for the Digital Mars D compiler
  */
 
 module dmd.iasmdmd;
@@ -52,6 +51,231 @@ import dmd.backend.xmm;
 
 //debug = EXTRA_DEBUG;
 //debug = debuga;
+
+/*******************************
+ * Clean up iasm things before exiting the compiler.
+ * Currently not called.
+ */
+
+version (none)
+public void iasm_term()
+{
+    if (asmstate.bInit)
+    {
+        asmstate.psDollar = null;
+        asmstate.psLocalsize = null;
+        asmstate.bInit = false;
+    }
+}
+
+/************************
+ * Perform semantic analysis on InlineAsmStatement.
+ * Params:
+ *      s = inline asm statement
+ *      sc = context
+ */
+public Statement inlineAsmSemantic(InlineAsmStatement s, Scope *sc)
+{
+    //printf("InlineAsmStatement.semantic()\n");
+
+    OP *o;
+    OPND opnd1, opnd2, opnd3, opnd4;
+    OPND* o1, o2, o3, o4;
+    PTRNTAB ptb;
+    int usNumops;
+
+    asmstate.ucItype = 0;
+    asmstate.bReturnax = false;
+    asmstate.lbracketNestCount = 0;
+
+    asmstate.statement = s;
+    asmstate.sc = sc;
+
+version (none) // don't use bReturnax anymore, and will fail anyway if we use return type inference
+{
+    // Scalar return values will always be in AX.  So if it is a scalar
+    // then asm block sets return value if it modifies AX, if it is non-scalar
+    // then always assume that the ASM block sets up an appropriate return
+    // value.
+
+    asmstate.bReturnax = true;
+    if (sc.func.type.nextOf().isscalar())
+        asmstate.bReturnax = false;
+}
+
+    if (!asmstate.bInit)
+    {
+        asmstate.bInit = true;
+        init_optab();
+        asmstate.psDollar = LabelDsymbol.create(Id._dollar);
+        asmstate.psLocalsize = Dsymbol.create(Id.__LOCAL_SIZE);
+    }
+
+    asmstate.loc = s.loc;
+
+    asmstate.tok = s.tokens;
+    asm_token_trans(asmstate.tok);
+
+    switch (asmstate.tokValue)
+    {
+        case cast(TOK)ASMTKnaked:
+            s.naked = true;
+            sc.func.naked = true;
+            asm_token();
+            break;
+
+        case cast(TOK)ASMTKeven:
+            asm_token();
+            s.asmalign = 2;
+            break;
+
+        case TOK.align_:
+        {
+            asm_token();
+            uint _align = asm_getnum();
+            if (ispow2(_align) == -1)
+                asmerr("`align %d` must be a power of 2", _align);
+            else
+                s.asmalign = _align;
+            break;
+        }
+
+        // The following three convert the keywords 'int', 'in', 'out'
+        // to identifiers, since they are x86 instructions.
+        case TOK.int32:
+            o = asm_op_lookup(Id.__int.toChars());
+            goto Lopcode;
+
+        case TOK.in_:
+            o = asm_op_lookup(Id.___in.toChars());
+            goto Lopcode;
+
+        case TOK.out_:
+            o = asm_op_lookup(Id.___out.toChars());
+            goto Lopcode;
+
+        case TOK.identifier:
+            o = asm_op_lookup(asmstate.tok.ident.toChars());
+            if (!o)
+                goto OPCODE_EXPECTED;
+
+        Lopcode:
+            asmstate.ucItype = o.usNumops & ITMASK;
+            asm_token();
+            if (o.usNumops > 4)
+            {
+                switch (asmstate.ucItype)
+                {
+                    case ITdata:
+                        s.asmcode = asm_db_parse(o);
+                        goto AFTER_EMIT;
+
+                    case ITaddr:
+                        s.asmcode = asm_da_parse(o);
+                        goto AFTER_EMIT;
+
+                    default:
+                        break;
+                }
+            }
+            // get the first part of an expr
+            if (asmstate.tokValue != TOK.endOfFile)
+            {
+                asm_cond_exp(opnd1);
+                o1 = &opnd1;
+                if (asmstate.tokValue == TOK.comma)
+                {
+                    asm_token();
+                    asm_cond_exp(opnd2);
+                    o2 = &opnd2;
+                    if (asmstate.tokValue == TOK.comma)
+                    {
+                        asm_token();
+                        asm_cond_exp(opnd3);
+                        o3 = &opnd3;
+                        if (asmstate.tokValue == TOK.comma)
+                        {
+                            asm_token();
+                            asm_cond_exp(opnd4);
+                            o4 = &opnd4;
+                        }
+                    }
+                }
+            }
+
+            // match opcode and operands in ptrntab to verify legal inst and
+            // generate
+
+            ptb = asm_classify(o, o1, o2, o3, o4, cast(uint*)&usNumops);
+            assert(ptb.pptb0);
+
+            //
+            // The Multiply instruction takes 3 operands, but if only 2 are seen
+            // then the third should be the second and the second should
+            // be a duplicate of the first.
+            //
+
+            if (asmstate.ucItype == ITopt &&
+                    (usNumops == 2) &&
+                    (ASM_GET_aopty(o2.usFlags) == _imm) &&
+                    ((o.usNumops & ITSIZE) == 3) &&
+                    o2 && !o3)
+            {
+                o3 = o2;
+                o2 = &opnd3;
+                *o2 = *o1;
+
+                // Re-classify the opcode because the first classification
+                // assumed 2 operands.
+
+                ptb = asm_classify(o, o1, o2, o3, o4, cast(uint*)&usNumops);
+            }
+            else
+            {
+version (none)
+{
+                if (asmstate.ucItype == ITshift && (ptb.pptb2.usOp2 == 0 ||
+                        (ptb.pptb2.usOp2 & _cl)))
+                {
+                    o2 = null;
+                    usNumops = 1;
+                }
+}
+            }
+            s.asmcode = asm_emit(s.loc, usNumops, ptb, o, o1, o2, o3, o4);
+            break;
+
+        default:
+        OPCODE_EXPECTED:
+            asmerr("opcode expected, not `%s`", asmstate.tok.toChars());
+            break;
+    }
+
+AFTER_EMIT:
+
+    if (asmstate.tokValue != TOK.endOfFile)
+    {
+        asmerr("end of instruction expected, not `%s`", asmstate.tok.toChars());  // end of line expected
+    }
+    //return asmstate.bReturnax;
+    return s;
+}
+
+/**********************************
+ * Called from back end.
+ * Params: bp = asm block
+ * Returns: mask of registers used by block bp.
+ */
+extern (C++) public regm_t iasm_regs(block *bp)
+{
+    debug (debuga)
+        printf("Block iasm regs = 0x%X\n", bp.usIasmregs);
+
+    refparam |= bp.bIasmrefparam;
+    return bp.usIasmregs;
+}
+
+
 
 private:
 
@@ -1987,7 +2211,7 @@ opflag_t asm_float_type_size(Type ptype, opflag_t *pusFloat)
     if (ptype && ptype.isscalar())
     {
         int sz = cast(int)ptype.size();
-        if (sz == Target.realsize)
+        if (sz == target.realsize)
         {
             *pusFloat = _f80;
             return 0;
@@ -2238,8 +2462,8 @@ void asm_merge_symbol(ref OPND o1, Dsymbol s)
         }
         if (v.isThreadlocal())
             error(asmstate.loc, "cannot directly load TLS variable `%s`", v.toChars());
-        else if (v.isDataseg() && global.params.pic)
-            error(asmstate.loc, "cannot directly load global variable `%s` with PIC code", v.toChars());
+        else if (v.isDataseg() && global.params.pic != PIC.fixed)
+            error(asmstate.loc, "cannot directly load global variable `%s` with PIC or PIE code", v.toChars());
     }
     em = s.isEnumMember();
     if (em)
@@ -2674,6 +2898,8 @@ void asm_make_modrm_byte(
          ASM_GET_amod(popnd2.usFlags) == _rseg ||
          ASM_GET_amod(popnd2.usFlags) == _rspecial))
     {
+        if (popnd2.base.isSIL_DIL_BPL_SPL())
+            pc.Irex |= REX;
         mrmb.reg =  popnd2.base.val & NUM_MASK;
         if (popnd2.base.val & NUM_MASKR)
             pc.Irex |= REX_R;
@@ -3302,6 +3528,8 @@ code *asm_da_parse(OP *pop)
             LabelDsymbol label = asmstate.sc.func.searchLabel(asmstate.tok.ident);
             if (!label)
                 error(asmstate.loc, "label `%s` not found", asmstate.tok.ident.toChars());
+            else
+                label.iasm = true;
 
             if (global.params.symdebug)
                 cdb.genlinnum(Srcpos.create(asmstate.loc.filename, asmstate.loc.linnum, asmstate.loc.charnum));
@@ -3488,11 +3716,10 @@ code *asm_db_parse(OP *pop)
                     }
                     goto L2;
                 }
-                else if (e.op == TOK.string_)
+                else if (auto se = e.isStringExp())
                 {
-                    StringExp se = cast(StringExp)e;
                     len = se.numberOfCodeUnits();
-                    q = cast(ubyte *)se.toPtr();
+                    q = cast(ubyte *)se.peekString().ptr;
                     if (!q)
                     {
                         qstart = cast(ubyte *)mem.xmalloc(len * se.sz);
@@ -4080,28 +4307,83 @@ JUMP_REF2:
             o1.ajt = ajt;
             break;
 
+        case TOK.void_:
+            ptype = Type.tvoid;
+            goto TYPE_REF;
+
+        case TOK.bool_:
+            ptype = Type.tbool;
+            goto TYPE_REF;
+
+        case TOK.char_:
+            ptype = Type.tchar;
+            goto TYPE_REF;
+        case TOK.wchar_:
+            ptype = Type.twchar;
+            goto TYPE_REF;
+        case TOK.dchar_:
+            ptype = Type.tdchar;
+            goto TYPE_REF;
+
+        case TOK.uns8:
+            ptype = Type.tuns8;
+            goto TYPE_REF;
+        case TOK.uns16:
+            ptype = Type.tuns16;
+            goto TYPE_REF;
+        case TOK.uns32:
+            ptype = Type.tuns32;
+            goto TYPE_REF;
+        case TOK.uns64 :
+            ptype = Type.tuns64;
+            goto TYPE_REF;
+
         case TOK.int8:
             ptype = Type.tint8;
+            goto TYPE_REF;
+        case ASMTKword:
+            ptype = Type.tint16;
             goto TYPE_REF;
         case TOK.int32:
         case ASMTKdword:
             ptype = Type.tint32;
             goto TYPE_REF;
+        case TOK.int64:
+        case ASMTKqword:
+            ptype = Type.tint64;
+            goto TYPE_REF;
+
         case TOK.float32:
             ptype = Type.tfloat32;
             goto TYPE_REF;
-        case ASMTKqword:
         case TOK.float64:
             ptype = Type.tfloat64;
             goto TYPE_REF;
         case TOK.float80:
             ptype = Type.tfloat80;
             goto TYPE_REF;
-        case ASMTKword:
-            ptype = Type.tint16;
 TYPE_REF:
             bPtr = true;
             asm_token();
+            // try: <BasicType>.<min/max etc>
+            if (asmstate.tokValue == TOK.dot)
+            {
+                asm_token();
+                if (asmstate.tokValue == TOK.identifier)
+                {
+                    TypeExp te = new TypeExp(asmstate.loc, ptype);
+                    DotIdExp did = new DotIdExp(asmstate.loc, te, asmstate.tok.ident);
+                    Dsymbol s;
+                    tryExpressionToOperand(did, o1, s);
+                }
+                else
+                {
+                    asmerr("property of basic type `%s` expected", ptype.toChars());
+                }
+                asm_token();
+                break;
+            }
+            // else: ptr <BasicType>
             asm_chktok(cast(TOK) ASMTKptr, "ptr expected");
             asm_cond_exp(o1);
             o1.ptype = ptype;
@@ -4201,17 +4483,16 @@ void asm_primary_exp(out OPND o1)
                     // Assume it is a label, and define that label
                     s = asmstate.sc.func.searchLabel(asmstate.tok.ident);
                 }
-                if (s.isLabel())
+                if (auto label = s.isLabel())
+                {
                     o1.segreg = &regtab[25]; // Make it use CS as a base for a label
-
+                    label.iasm = true;
+                }
                 Identifier id = asmstate.tok.ident;
                 asm_token();
                 if (asmstate.tokValue == TOK.dot)
                 {
-                    Expression e;
-                    VarExp v;
-
-                    e = IdentifierExp.create(asmstate.loc, id);
+                    Expression e = IdentifierExp.create(asmstate.loc, id);
                     while (1)
                     {
                         asm_token();
@@ -4228,37 +4509,9 @@ void asm_primary_exp(out OPND o1)
                             break;
                         }
                     }
-                    Scope *sc = asmstate.sc.startCTFE();
-                    e = e.expressionSemantic(sc);
-                    sc.endCTFE();
-                    e = e.ctfeInterpret();
-                    if (e.isConst())
-                    {
-                        if (e.type.isintegral())
-                        {
-                            o1.disp = e.toInteger();
-                            goto Lpost;
-                        }
-                        else if (e.type.isreal())
-                        {
-                            o1.vreal = e.toReal();
-                            o1.ptype = e.type;
-                            goto Lpost;
-                        }
-                        else
-                        {
-                            asmerr("bad type/size of operands `%s`", e.toChars());
-                        }
-                    }
-                    else if (e.op == TOK.variable)
-                    {
-                        v = cast(VarExp)(e);
-                        s = v.var;
-                    }
-                    else
-                    {
-                        asmerr("bad type/size of operands `%s`", e.toChars());
-                    }
+                    TOK e2o = tryExpressionToOperand(e, o1, s);
+                    if (e2o == TOK.const_)
+                        goto Lpost;
                 }
 
                 asm_merge_symbol(o1,s);
@@ -4331,221 +4584,49 @@ void asm_primary_exp(out OPND o1)
     }
 }
 
-/*******************************
+/**
+ * Using an expression, try to set an ASM operand as a constant or as an access
+ * to a higher level variable.
+ *
+ * Params:
+ *      e =     Input. The expression to evaluate. This can be an arbitrarily complex expression
+ *              but it must either represent a constant after CTFE or give a higher level variable.
+ *      o1 =    Output. The ASM operand to define from `e`.
+ *      s =     Output. The symbol when `e` represents a variable.
+ *
+ * Returns:
+ *      `TOK.variable` if `s` was set to a variable,
+ *      `TOK.const_` if `e` was evaluated to a valid constant,
+ *      `TOK.error` otherwise.
  */
-
-public void iasm_term()
+TOK tryExpressionToOperand(Expression e, ref OPND o1, ref Dsymbol s)
 {
-    if (asmstate.bInit)
+    Scope *sc = asmstate.sc.startCTFE();
+    e = e.expressionSemantic(sc);
+    sc.endCTFE();
+    e = e.ctfeInterpret();
+    if (e.op == TOK.variable)
     {
-        asmstate.psDollar = null;
-        asmstate.psLocalsize = null;
-        asmstate.bInit = false;
+        VarExp v = cast(VarExp) e;
+        s = v.var;
+        return TOK.variable;
     }
-}
-
-/**********************************
- * Return mask of registers used by block bp.
- * Called from back end.
- */
-
-extern (C++) public regm_t iasm_regs(block *bp)
-{
-    debug (debuga)
-        printf("Block iasm regs = 0x%X\n", bp.usIasmregs);
-
-    refparam |= bp.bIasmrefparam;
-    return bp.usIasmregs;
-}
-
-
-/************************ InlineAsmStatement *********************************/
-
-public Statement inlineAsmSemantic(InlineAsmStatement s, Scope *sc)
-{
-    //printf("InlineAsmStatement.semantic()\n");
-
-    OP *o;
-    OPND opnd1, opnd2, opnd3, opnd4;
-    OPND* o1, o2, o3, o4;
-    PTRNTAB ptb;
-    int usNumops;
-
-    asmstate.ucItype = 0;
-    asmstate.bReturnax = false;
-    asmstate.lbracketNestCount = 0;
-
-    asmstate.statement = s;
-    asmstate.sc = sc;
-
-version (none) // don't use bReturnax anymore, and will fail anyway if we use return type inference
-{
-    // Scalar return values will always be in AX.  So if it is a scalar
-    // then asm block sets return value if it modifies AX, if it is non-scalar
-    // then always assume that the ASM block sets up an appropriate return
-    // value.
-
-    asmstate.bReturnax = true;
-    if (sc.func.type.nextOf().isscalar())
-        asmstate.bReturnax = false;
-}
-
-    if (!asmstate.bInit)
+    if (e.isConst())
     {
-        asmstate.bInit = true;
-        init_optab();
-        asmstate.psDollar = LabelDsymbol.create(Id._dollar);
-        asmstate.psLocalsize = Dsymbol.create(Id.__LOCAL_SIZE);
-    }
-
-    asmstate.loc = s.loc;
-
-    asmstate.tok = s.tokens;
-    asm_token_trans(asmstate.tok);
-
-    switch (asmstate.tokValue)
-    {
-        case cast(TOK)ASMTKnaked:
-            s.naked = true;
-            sc.func.naked = true;
-            asm_token();
-            break;
-
-        case cast(TOK)ASMTKeven:
-            asm_token();
-            s.asmalign = 2;
-            break;
-
-        case TOK.align_:
+        if (e.type.isintegral())
         {
-            asm_token();
-            uint _align = asm_getnum();
-            if (ispow2(_align) == -1)
-                asmerr("`align %d` must be a power of 2", _align);
-            else
-                s.asmalign = _align;
-            break;
+            o1.disp = e.toInteger();
+            return TOK.const_;
         }
-
-        // The following three convert the keywords 'int', 'in', 'out'
-        // to identifiers, since they are x86 instructions.
-        case TOK.int32:
-            o = asm_op_lookup(Id.__int.toChars());
-            goto Lopcode;
-
-        case TOK.in_:
-            o = asm_op_lookup(Id.___in.toChars());
-            goto Lopcode;
-
-        case TOK.out_:
-            o = asm_op_lookup(Id.___out.toChars());
-            goto Lopcode;
-
-        case TOK.identifier:
-            o = asm_op_lookup(asmstate.tok.ident.toChars());
-            if (!o)
-                goto OPCODE_EXPECTED;
-
-        Lopcode:
-            asmstate.ucItype = o.usNumops & ITMASK;
-            asm_token();
-            if (o.usNumops > 4)
-            {
-                switch (asmstate.ucItype)
-                {
-                    case ITdata:
-                        s.asmcode = asm_db_parse(o);
-                        goto AFTER_EMIT;
-
-                    case ITaddr:
-                        s.asmcode = asm_da_parse(o);
-                        goto AFTER_EMIT;
-
-                    default:
-                        break;
-                }
-            }
-            // get the first part of an expr
-            if (asmstate.tokValue != TOK.endOfFile)
-            {
-                asm_cond_exp(opnd1);
-                o1 = &opnd1;
-                if (asmstate.tokValue == TOK.comma)
-                {
-                    asm_token();
-                    asm_cond_exp(opnd2);
-                    o2 = &opnd2;
-                    if (asmstate.tokValue == TOK.comma)
-                    {
-                        asm_token();
-                        asm_cond_exp(opnd3);
-                        o3 = &opnd3;
-                        if (asmstate.tokValue == TOK.comma)
-                        {
-                            asm_token();
-                            asm_cond_exp(opnd4);
-                            o4 = &opnd4;
-                        }
-                    }
-                }
-            }
-
-            // match opcode and operands in ptrntab to verify legal inst and
-            // generate
-
-            ptb = asm_classify(o, o1, o2, o3, o4, cast(uint*)&usNumops);
-            assert(ptb.pptb0);
-
-            //
-            // The Multiply instruction takes 3 operands, but if only 2 are seen
-            // then the third should be the second and the second should
-            // be a duplicate of the first.
-            //
-
-            if (asmstate.ucItype == ITopt &&
-                    (usNumops == 2) &&
-                    (ASM_GET_aopty(o2.usFlags) == _imm) &&
-                    ((o.usNumops & ITSIZE) == 3) &&
-                    o2 && !o3)
-            {
-                o3 = o2;
-                o2 = &opnd3;
-                *o2 = *o1;
-
-                // Re-classify the opcode because the first classification
-                // assumed 2 operands.
-
-                ptb = asm_classify(o, o1, o2, o3, o4, cast(uint*)&usNumops);
-            }
-            else
-            {
-version (none)
-{
-                if (asmstate.ucItype == ITshift && (ptb.pptb2.usOp2 == 0 ||
-                        (ptb.pptb2.usOp2 & _cl)))
-                {
-                    o2 = null;
-                    usNumops = 1;
-                }
-}
-            }
-            s.asmcode = asm_emit(s.loc, usNumops, ptb, o, o1, o2, o3, o4);
-            break;
-
-        default:
-        OPCODE_EXPECTED:
-            asmerr("opcode expected, not `%s`", asmstate.tok.toChars());
-            break;
+        if (e.type.isreal())
+        {
+            o1.vreal = e.toReal();
+            o1.ptype = e.type;
+            return TOK.const_;
+        }
     }
-
-AFTER_EMIT:
-
-    if (asmstate.tokValue != TOK.endOfFile)
-    {
-        asmerr("end of instruction expected, not `%s`", asmstate.tok.toChars());  // end of line expected
-    }
-    //return asmstate.bReturnax;
-    return s;
+    asmerr("bad type/size of operands `%s`", e.toChars());
+    return TOK.error;
 }
 
 /**********************

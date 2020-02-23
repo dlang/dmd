@@ -12,6 +12,8 @@ import dmd.backend.type;
 
 extern (C++):
 
+nothrow:
+
 enum DWARF_VERSION = 3;
 
 void dwarf_initfile(const(char) *filename);

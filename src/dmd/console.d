@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/console.d, _console.d)
@@ -18,7 +18,7 @@
 module dmd.console;
 
 import core.stdc.stdio;
-extern (C) int isatty(int);
+extern (C) int isatty(int) nothrow;
 
 
 enum Color : int
@@ -44,9 +44,13 @@ enum Color : int
 
 struct Console
 {
+  nothrow:
+
     version (Windows)
     {
-        import core.sys.windows.windows;
+        import core.sys.windows.winbase;
+        import core.sys.windows.wincon;
+        import core.sys.windows.windef;
 
       private:
         CONSOLE_SCREEN_BUFFER_INFO sbi;
@@ -56,6 +60,31 @@ struct Console
       public:
 
         @property FILE* fp() { return _fp; }
+
+        /**
+         Tries to detect whether DMD has been invoked from a terminal.
+         Returns: `true` if a terminal has been detected, `false` otherwise
+         */
+        static bool detectTerminal()
+        {
+            auto h = GetStdHandle(STD_OUTPUT_HANDLE);
+            CONSOLE_SCREEN_BUFFER_INFO sbi;
+            if (GetConsoleScreenBufferInfo(h, &sbi) == 0) // get initial state of console
+                return false; // no terminal detected
+
+            version (CRuntime_DigitalMars)
+            {
+                return isatty(stdout._file) != 0;
+            }
+            else version (CRuntime_Microsoft)
+            {
+                return isatty(fileno(stdout)) != 0;
+            }
+            else
+            {
+                static assert(0, "Unsupported Windows runtime.");
+            }
+        }
 
         /*********************************
          * Create an instance of Console connected to stream fp.
@@ -166,15 +195,20 @@ struct Console
       public:
 
         @property FILE* fp() { return _fp; }
-
-        static Console* create(FILE* fp)
+        /**
+         Tries to detect whether DMD has been invoked from a terminal.
+         Returns: `true` if a terminal has been detect, `false` otherwise
+         */
+        static bool detectTerminal()
         {
             import core.stdc.stdlib : getenv;
             const(char)* term = getenv("TERM");
             import core.stdc.string : strcmp;
-            if (!(isatty(STDERR_FILENO) && term && term[0] && 0 != strcmp(term, "dumb")))
-                return null;
+            return isatty(STDERR_FILENO) && term && term[0] && strcmp(term, "dumb") != 0;
+        }
 
+        static Console* create(FILE* fp)
+        {
             auto c = new Console();
             c._fp = fp;
             return c;

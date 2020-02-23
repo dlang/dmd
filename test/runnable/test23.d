@@ -1,4 +1,9 @@
 // REQUIRED_ARGS:
+/*
+TEST_OUTPUT:
+---
+---
+*/
 
 module test;
 
@@ -357,6 +362,13 @@ void test16()
 
 void test17()
 {
+    version(D_InlineAsm_X86_64)
+        enum AsmX86 = true;
+    else version(D_InlineAsm_X86)
+        enum AsmX86 = true;
+    else
+        enum AsmX86 = false;
+
     version (OSX)
     {
     }
@@ -365,9 +377,17 @@ void test17()
         const f = 1.2f;
         float g = void;
 
-        asm{
+        static if (AsmX86)
+        {
+            asm
+            {
                 fld f;  // doesn't work with PIC
                 fstp g;
+            }
+        }
+        else
+        {
+            g = f;
         }
         assert(g == 1.2f);
     }
@@ -538,19 +558,22 @@ void test24()
 
 void test25()
 {
-  char[6] cstr = "123456"c;
-  auto str1 = cast(wchar[3])(cstr);
+    char[6] cstr = "123456"c;
+    auto str1 = cast(wchar[3])(cstr);
 
-  writefln("str1: ", (cast(char[])str1).length , " : ", (cast(char[])str1));
-  assert(cast(char[])str1 == "123456"c);
+    writefln("str1: ", (cast(char[])str1).length , " : ", (cast(char[])str1));
+    assert(cast(char[])str1 == "123456"c);
 
-  auto str2 = cast(wchar[3])("789abc"c);
-  writefln("str2: ", (cast(char[])str2).length , " : ", (cast(char[])str2));
-  assert(cast(char[])str2 == "789abc"c);
+    auto str2 = cast(wchar[3])("789abc"c);
+    writefln("str2: ", (cast(char[])str2).length , " : ", (cast(char[])str2));
+    assert(cast(char[])str2 == "789abc"c);
 
-  auto str3 = cast(wchar[3])("defghi");
-  writefln("str3: ", (cast(char[])str3).length , " : ", (cast(char[])str3));
-  assert(cast(char[])str3 == "d\000e\000f\000"c);
+    auto str3 = cast(wchar[3])("defghi");
+    writefln("str3: ", (cast(char[])str3).length , " : ", (cast(char[])str3));
+    version (LittleEndian)
+        assert(cast(char[])str3 == "d\000e\000f\000"c);
+    version (BigEndian)
+        assert(cast(char[])str3 == "\000d\000e\000f"c);
 }
 
 /*******************************************/
@@ -684,72 +707,6 @@ void test31()
 
 /*******************************************/
 
-class Foo32
-{
-    static void* ps;
-
-    new (size_t sz)
-    {
-        void* p = core.stdc.stdlib.malloc(sz);
-        printf("new(sz = %d) = %p\n", sz, p);
-        ps = p;
-        return p;
-    }
-
-    delete(void* p)
-    {
-        printf("delete(p = %p)\n", p);
-        assert(p == ps);
-        if (p) core.stdc.stdlib.free(p);
-    }
-}
-
-void test32()
-{
-    Foo32 f = new Foo32;
-    delete f;
-}
-
-/*******************************************/
-
-class Foo33
-{
-//    this() { printf("this()\n"); }
-//    ~this() { printf("~this()\n"); }
-
-    static void* ps;
-    static int del;
-
-    new (size_t sz, int i)
-    {
-        void* p = core.stdc.stdlib.malloc(sz);
-        printf("new(sz = %d) = %p\n", sz, p);
-        ps = p;
-        return p;
-    }
-
-    delete(void* p)
-    {
-        printf("delete(p = %p)\n", p);
-        assert(p == ps);
-        if (p) core.stdc.stdlib.free(p);
-        del += 1;
-    }
-}
-
-void foo33()
-{
-    scope Foo33 f = new(3) Foo33;
-}
-
-void test33()
-{
-    foo33();
-    assert(Foo33.del == 1);
-}
-
-/*******************************************/
-
 struct o_O { int a; }
 union  O_O { int a; }
 class  O_o { int a; }
@@ -812,7 +769,7 @@ in
 
     checkParameters();
 }
-body
+do
 {
 }
 
@@ -1511,8 +1468,8 @@ void main()
     test29();
     test30();
     test31();
-    test32();
-    test33();
+
+
     test34();
     test37();
     test38();

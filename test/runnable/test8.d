@@ -1,3 +1,9 @@
+/*
+TEST_OUTPUT:
+---
+runnable/test8.d(283): Deprecation: identity comparison of static arrays implicitly coerces them to slices, which are compared by reference
+---
+*/
 
 module testxxx8;
 
@@ -453,7 +459,7 @@ in
 out (result)
 {
 }
-body
+do
 {   int i = 5;
 
     while (i)

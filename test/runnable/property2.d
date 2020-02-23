@@ -1,3 +1,10 @@
+/*
+TEST_OUTPUT:
+---
+decl: test
+stmt: test
+---
+*/
 extern (C) int printf(const char* fmt, ...);
 
 /*******************************************/

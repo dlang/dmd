@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1995 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dcgcv.d, backend/dcgcv.d)
@@ -37,11 +37,13 @@ import dmd.backend.dlist;
 import dmd.backend.dvec;
 import dmd.backend.el;
 import dmd.backend.global;
-import dmd.backend.memh;
+import dmd.backend.mem;
 import dmd.backend.obj;
 import dmd.backend.outbuf;
 import dmd.backend.ty;
 import dmd.backend.type;
+
+import dmd.backend.barray;
 
 version (SCPP)
 {
@@ -51,10 +53,12 @@ version (SCPP)
 }
 version (MARS)
 {
-    import dmd.backend.varstats;
+    import dmd.backend.dvarstats;
 }
 
 extern (C++):
+
+nothrow:
 
 enum SYMDEB_TDB = false;
 
@@ -79,9 +83,8 @@ __gshared
 {
 
 /* Dynamic array of debtyp_t's  */
-private debtyp_t **debtyp;
-private uint debtyptop;      // # of used entries in debtyp[]
-private uint debtypmax;      // current size of debtyp[]
+private Barray!(debtyp_t*) debtyp;
+
 private vec_t debtypvec;     // vector of used entries
 enum DEBTYPVECDIM = 16001;   //8009 //3001     // dimension of debtypvec (should be prime)
 
@@ -241,17 +244,16 @@ debtyp_t * debtyp_alloc(uint length)
         length += pad;
     }
 
+    length < 0x10000 || assert(0);
+    const len = debtyp_t.sizeof - (d.data).sizeof + length;
 debug
 {
-    const len = debtyp_t.sizeof - (d.data).sizeof + length;
-    assert(len < 4 * 4096 - 100);
     d = cast(debtyp_t *) mem_malloc(len /*+ 1*/);
     memset(d, 0xAA, len);
 //    (cast(char*)d)[len] = 0x2E;
 }
 else
 {
-    assert(length < 0x10000);
     d = cast(debtyp_t *) malloc(debtyp_t.sizeof - (d.data).sizeof + length);
 }
     d.length = cast(ushort)length;
@@ -274,8 +276,8 @@ private void debtyp_free(debtyp_t *d)
     //fflush(stdout);
 debug
 {
+    assert(d.length < 0x10000);
     uint len = debtyp_t.sizeof - (d.data).sizeof + d.length;
-    assert(len < 4 * 4096 - 100);
 //    assert((cast(char*)d)[len] == 0x2E);
     memset(d, 0x55, len);
     mem_free(d);
@@ -383,7 +385,7 @@ static if (0)
 //printf(" test");
             // Threaded list is much faster
             for (uint u = debtyphash[hashi]; u; u = debtyp[u].prev)
-            //for (uint u = debtyptop; u--; )
+            //for (uint u = debtyp.length; u--; )
             {
                 if (length == debtyp[u].length &&
                     memcmp(d.data.ptr,debtyp[u].data.ptr,length) == 0)
@@ -398,40 +400,24 @@ static if (0)
     }
     else
         hashi = 1;
-//printf(" add   %d\n",debtyptop);
+//printf(" add   %d\n",debtyp.length);
     d.prev = debtyphash[hashi];
-    debtyphash[hashi] = debtyptop;
+    debtyphash[hashi] = cast(uint)debtyp.length;
 
     /* It's not already in the array, so add it */
-L1:
-    if (debtyptop == debtypmax)
+    debtyp.push(d);
+    version (SCPP)
     {
-        //printf("reallocate debtyp[] %p\n", debtyp);
-debug
-        debtypmax += 10;
-else
-{
-        debtypmax += debtypmax + 16;
-        if (debtypmax > 0xE000)
-            debtypmax = 0xE000;
-version (SCPP)
-{
-        if (debtyptop >= debtypmax)
-            err_fatal(EM_2manytypes,debtypmax);         // too many types
-}
-}
-        // Don't use MEM here because we can allocate pretty big
-        // arrays with this, and we don't want to overflow the PH
-        // page size.
-        debtyp = cast(debtyp_t **) util_realloc(debtyp,(*debtyp).sizeof,debtypmax);
+        if (debtyp.length >= 0xE000)
+            err_fatal(EM_2manytypes,0xE000);         // too many types
     }
-    debtyp[debtyptop] = d;
-    return debtyptop++ + cgcv.deb_offset;
+
+    return cast(uint)debtyp.length - 1 + cgcv.deb_offset;
 }
 
 idx_t cv_numdebtypes()
 {
-    return debtyptop;
+    return cast(idx_t)debtyp.length;
 }
 
 /****************************
@@ -444,9 +430,7 @@ void cv_init()
     //printf("cv_init()\n");
 
     // Initialize statics
-    debtyp = null;
-    debtyptop = 0;
-    debtypmax = 0;
+    debtyp.setLength(0);
     if (!ftdbname)
         ftdbname = cast(char *)"symc.tdb".ptr;
 
@@ -489,13 +473,20 @@ void cv_init()
         {
             dttab4[TYptr]  = 0x600;
             dttab4[TYnptr] = 0x600;
+            dttab4[TYsptr] = 0x600;
+            dttab4[TYimmutPtr] = 0x600;
+            dttab4[TYsharePtr] = 0x600;
+            dttab4[TYfgPtr] = 0x600;
         }
         else
         {
             dttab4[TYptr]  = 0x400;
+            dttab4[TYsptr] = 0x400;
             dttab4[TYnptr] = 0x400;
+            dttab4[TYimmutPtr] = 0x400;
+            dttab4[TYsharePtr] = 0x400;
+            dttab4[TYfgPtr] = 0x400;
         }
-        dttab4[TYsptr] = 0x400;
         dttab4[TYcptr] = 0x400;
         dttab4[TYfptr] = 0x500;
 
@@ -874,13 +865,12 @@ private int cv4_methodlist(Symbol *sf,int *pcount)
 version (SCPP)
 {
 
-private char * cv4_prettyident(Symbol *s)
+private const(char)* cv4_prettyident(Symbol *s)
 {   Symbol *stmp;
-    char *p;
 
     stmp = s.Sscope;
     s.Sscope = null;           // trick cpp_prettyident into leaving off ::
-    p = cpp_prettyident(s);
+    const p = cpp_prettyident(s);
     s.Sscope = cast(Classsym *)stmp;
     return p;
 }
@@ -905,9 +895,8 @@ idx_t cv4_struct(Classsym *s,int flags)
     uint nfields,fnamelen;
     idx_t typidx;
     type *t;
-    symlist_t sl;
     struct_t *st;
-    char *id;
+    const(char)* id;
 version (SCPP)
 {
     baseclass_t *b;
@@ -991,7 +980,7 @@ version (SCPP)
     if (MARS || refonly)
     {
         if (s.Stypidx)                 // if reference already generated
-        {   //assert(s.Stypidx - cgcv.deb_offset < debtyptop);
+        {   //assert(s.Stypidx - cgcv.deb_offset < debtyp.length);
             return s.Stypidx;          // use already existing reference
         }
         size = 0;
@@ -1054,12 +1043,9 @@ version (SCPP)
 version (SCPP)
 {
             debtyp_t *vshape;
-            uint n;
             ubyte descriptor;
-            list_t vl;
 
-            vl = st.Svirtual;
-            n = list_nitems(vl);
+            const n = list_nitems(st.Svirtual);
             if (n == 0)                         // if no virtual functions
             {
                 if (config.fulltypes == CV4)
@@ -1073,9 +1059,9 @@ version (SCPP)
                 TOWORD(vshape.data.ptr,LF_VTSHAPE);
                 TOWORD(vshape.data.ptr + 2,1);
 
-                n = 0;
+                uint n2 = 0;
                 descriptor = 0;
-                for (; vl; vl = list_next(vl))
+                foreach (vl; ListRange(st.Svirtual))
                 {   mptr_t *m;
                     tym_t ty;
 
@@ -1087,9 +1073,9 @@ version (SCPP)
                         descriptor |= 5;
                     if (tyfarfunc(ty))
                         descriptor++;
-                    vshape.data.ptr[4 + n / 2] = descriptor;
+                    vshape.data.ptr[4 + n2 / 2] = descriptor;
                     descriptor <<= 4;
-                    n++;
+                    n2++;
                 }
                 if (config.fulltypes == CV4)
                     TOWORD(d.data.ptr + 10,cv_debtyp(vshape));     // vshape
@@ -1142,7 +1128,7 @@ printf("fwd struct ref\n");
         s.Stypidx = cv_debtyp(d);
         d.length = cast(ushort)len;    // restore length
     }
-    reset_symbuf.write(&s, (s).sizeof);
+    reset_symbuf.write((&s)[0 .. 1]);
 
     if (refonly)                        // if reference only
     {
@@ -1196,7 +1182,7 @@ version (SCPP)
     fnamelen += i * ((config.fulltypes == CV4) ? 4 : 8);
 
     // Now friend functions
-    for (sl = st.Sfriendfuncs; sl; sl = list_next(sl))
+    foreach (sl; ListRange(st.Sfriendfuncs))
     {   Symbol *sf = list_symbol(sl);
 
         symbol_debug(sf);
@@ -1209,12 +1195,12 @@ version (SCPP)
     }
 }
     count = nfields;
-    for (sl = st.Sfldlst; sl; sl = list_next(sl))
+    foreach (sl; ListRange(st.Sfldlst))
     {   Symbol *sf = list_symbol(sl);
         targ_size_t offset;
 
         symbol_debug(sf);
-        char *sfid = sf.Sident.ptr;
+        const(char)* sfid = sf.Sident.ptr;
         switch (sf.Sclass)
         {
             case SCmember:
@@ -1398,7 +1384,7 @@ version (SCPP)
     } while (i != LF_VBCLASS);
 
     // Now friend classes
-    for (sl = s.Sstruct.Sfriendclass; sl; sl = list_next(sl))
+    foreach (sl; ListRange(s.Sstruct.Sfriendclass))
     {   Symbol *sf = list_symbol(sl);
 
         symbol_debug(sf);
@@ -1416,7 +1402,7 @@ version (SCPP)
     }
 
     // Now friend functions
-    for (sl = s.Sstruct.Sfriendfuncs; sl; sl = list_next(sl))
+    foreach (sl; ListRange(s.Sstruct.Sfriendfuncs))
     {   Symbol *sf = list_symbol(sl);
 
         symbol_debug(sf);
@@ -1436,12 +1422,12 @@ version (SCPP)
     }
     }
 }
-    for (sl = s.Sstruct.Sfldlst; sl; sl = list_next(sl))
+    foreach (sl; ListRange(s.Sstruct.Sfldlst))
     {   Symbol *sf = list_symbol(sl);
         targ_size_t offset;
 
         symbol_debug(sf);
-        char *sfid = sf.Sident.ptr;
+        const(char)* sfid = sf.Sident.ptr;
         switch (sf.Sclass)
         {
             case SCfield:
@@ -1630,7 +1616,6 @@ private uint cv4_enum(Symbol *s)
     uint len;
     type *t;
     type *tbase;
-    symlist_t sl;
     uint property;
     uint attribute;
     int i;
@@ -1638,7 +1623,7 @@ private uint cv4_enum(Symbol *s)
 
     symbol_debug(s);
     if (s.Stypidx)                     // if already converted
-    {   //assert(s.Stypidx - cgcv.deb_offset < debtyptop);
+    {   //assert(s.Stypidx - cgcv.deb_offset < debtyp.length);
         return s.Stypidx;
     }
 
@@ -1689,12 +1674,12 @@ static if (SYMDEB_TDB)
         s.Stypidx = cv_debtyp(d);
         d.length = cast(ushort)len;           // restore length
     }
-    reset_symbuf.write(&s, (s).sizeof);
+    reset_symbuf.write((&s)[0 .. 1]);
 
     // Compute the number of fields, and the length of the fieldlist record
     nfields = 0;
     fnamelen = 2;
-    for (sl = s.Senum.SEenumlist; sl; sl = list_next(sl))
+    foreach (sl; ListRange(s.Senum.SEenumlist))
     {   Symbol *sf = list_symbol(sl);
         uint value;
 
@@ -1719,7 +1704,7 @@ static if (SYMDEB_TDB)
 
     // And fill it in
     i = 2;
-    for (sl = s.Senum.SEenumlist; sl; sl = list_next(sl))
+    foreach (sl; ListRange(s.Senum.SEenumlist))
     {   Symbol *sf = list_symbol(sl);
         uint value;
 
@@ -1751,7 +1736,45 @@ static if (SYMDEB_TDB)
 }
 
 }
+else
+{
+private uint cv4_fwdenum(type* t)
+{
+    Symbol* s = t.Ttag;
 
+    // write a forward reference enum record that is enough for the linker to
+    // fold with original definition from EnumDeclaration
+    uint bty = dttab4[tybasic(t.Tnext.Tty)];
+    const id = prettyident(s);
+    uint len = config.fulltypes == CV8 ? 14 : 10;
+    debtyp_t* d = debtyp_alloc(len + cv_stringbytes(id));
+    switch (config.fulltypes)
+    {
+        case CV8:
+            TOWORD(d.data.ptr, LF_ENUM_V3);
+            TOLONG(d.data.ptr + 2, 0);    // count
+            TOWORD(d.data.ptr + 4, 0x80); // property : forward reference
+            TOLONG(d.data.ptr + 6, bty);  // memtype
+            TOLONG(d.data.ptr + 10, 0);   // fieldlist
+            break;
+
+        case CV4:
+            TOWORD(d.data.ptr,LF_ENUM);
+            TOWORD(d.data.ptr + 2, 0);    // count
+            TOWORD(d.data.ptr + 4, bty);  // memtype
+            TOLONG(d.data.ptr + 6, 0);    // fieldlist
+            TOWORD(d.data.ptr + 8, 0x80); // property : forward reference
+            break;
+
+        default:
+            assert(0);
+    }
+    cv_namestring(d.data.ptr + len, id);
+    s.Stypidx = cv_debtyp(d);
+    return s.Stypidx;
+}
+
+}
 /************************************************
  * Return 'calling convention' type of function.
  */
@@ -1941,6 +1964,8 @@ L1:
             break;
 
         case TYnptr:
+        case TYimmutPtr:
+        case TYsharePtr:
 version (MARS)
 {
             if (t.Tkey)
@@ -1949,6 +1974,7 @@ version (MARS)
             goto Lptr;
         case TYsptr:
         case TYcptr:
+        case TYfgPtr:
         Lptr:
                         attribute |= I32 ? 10 : 0;      goto L2;
 
@@ -2273,7 +2299,7 @@ version (SCPP)
 }
             }
             else
-                typidx = dttab4[tybasic(t.Tnext.Tty)];
+                typidx = cv4_fwdenum(t);
             break;
 
 version (SCPP)
@@ -2682,7 +2708,7 @@ static if (1)
 {
             case SCtypedef:
                 s.Stypidx = typidx;
-                reset_symbuf.write(&s, (s).sizeof);
+                reset_symbuf.write((&s)[0 .. 1]);
                 goto L4;
 
             case SCstruct:
@@ -2758,6 +2784,7 @@ version (MARS)
 
     struct cv4
     {
+    nothrow:
         // record for CV record S_BLOCK32
         struct block32_data
         {
@@ -2999,7 +3026,7 @@ else
 
 void cv_term()
 {
-    //printf("cv_term(): debtyptop = %d\n",debtyptop);
+    //printf("cv_term(): debtyp.length = %d\n",debtyp.length);
 
     segidx_t typeseg = objmod.seg_debugT();
 
@@ -3011,16 +3038,16 @@ void cv_term()
             goto case;
         case CV8:
             objmod.write_bytes(SegData[typeseg],4,&cgcv.signature);
-            if (debtyptop != 1 || config.fulltypes == CV8)
+            if (debtyp.length != 1 || config.fulltypes == CV8)
             {
-                for (uint u = 0; u < debtyptop; u++)
+                for (uint u = 0; u < debtyp.length; u++)
                 {   debtyp_t *d = debtyp[u];
 
                     objmod.write_bytes(SegData[typeseg],2 + d.length,cast(char *)d + uint.sizeof);
                     debtyp_free(d);
                 }
             }
-            else if (debtyptop)
+            else if (debtyp.length)
             {
                 debtyp_free(debtyp[0]);
             }
@@ -3042,7 +3069,7 @@ else
 
             // Calculate size of buffer
             len = 4;
-            for (uint u = 0; u < debtyptop; u++)
+            for (uint u = 0; u < debtyp.length; u++)
             {   debtyp_t *d = debtyp[u];
 
                 len += 2 + d.length;
@@ -3056,7 +3083,7 @@ else
             // Fill the buffer
             TOLONG(buf,cgcv.signature);
             p = buf + 4;
-            for (uint u = 0; u < debtyptop; u++)
+            for (uint u = 0; u < debtyp.length; u++)
             {   debtyp_t *d = debtyp[u];
 
                 len = 2 + d.length;
@@ -3064,7 +3091,7 @@ else
                 p += len;
             }
 
-            tdb_write(buf,len,debtyptop);
+            tdb_write(buf,len,debtyp.length);
         }
 }
             break;
@@ -3074,8 +3101,7 @@ else
             assert(0);
     }
 
-    util_free(debtyp);
-    debtyp = null;
+    // debtyp.dtor();  // save for later
     vec_free(debtypvec);
     debtypvec = null;
 }

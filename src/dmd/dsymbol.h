@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -11,10 +11,12 @@
 #pragma once
 
 #include "root/port.h"
+#include "ast_node.h"
 #include "globals.h"
 #include "arraytypes.h"
 #include "visitor.h"
 
+class CPPNamespaceDeclaration;
 class Identifier;
 struct Scope;
 class DsymbolTable;
@@ -66,7 +68,6 @@ class ArrayScopeSymbol;
 class SymbolDeclaration;
 class Expression;
 class ExpressionDsymbol;
-class DeleteDeclaration;
 class OverloadSet;
 struct AA;
 #ifdef IN_GCC
@@ -141,11 +142,13 @@ enum
 
 typedef int (*Dsymbol_apply_ft_t)(Dsymbol *, void *);
 
-class Dsymbol : public RootObject
+class Dsymbol : public ASTNode
 {
 public:
     Identifier *ident;
     Dsymbol *parent;
+    /// C++ namespace this symbol belongs to
+    CPPNamespaceDeclaration *namespace_;
     Symbol *csym;               // symbol for code generator
     Symbol *isym;               // import version of csym
     const utf8_t *comment;      // documentation comment for this Dsymbol
@@ -159,13 +162,13 @@ public:
     UnitTestDeclaration *ddocUnittest; // !=NULL means there's a ddoc unittest associated with this symbol (only use this with ddoc)
 
     static Dsymbol *create(Identifier *);
-    const char *toChars();
+    const char *toChars() const;
     virtual const char *toPrettyCharsHelper(); // helper to print fully qualified (template) arguments
-    Loc& getLoc();
+    Loc getLoc();
     const char *locToChars();
-    bool equals(RootObject *o);
+    bool equals(const RootObject *o) const;
     virtual bool isAnonymous();
-    void error(Loc loc, const char *format, ...);
+    void error(const Loc &loc, const char *format, ...);
     void error(const char *format, ...);
     void deprecation(const Loc &loc, const char *format, ...);
     void deprecation(const char *format, ...);
@@ -175,12 +178,16 @@ public:
     Dsymbol *pastMixin();
     Dsymbol *toParent();
     Dsymbol *toParent2();
+    Dsymbol *toParentDecl();
+    Dsymbol *toParentLocal();
+    Dsymbol *toParentP(Dsymbol *p1, Dsymbol *p2 = NULL);
     TemplateInstance *isInstantiated();
+    bool followInstantiationContext(Dsymbol *p1, Dsymbol *p2 = NULL);
     TemplateInstance *isSpeculative();
     Ungag ungagSpeculative();
 
     // kludge for template.isSymbol()
-    int dyncast() const { return DYNCAST_DSYMBOL; }
+    DYNCAST dyncast() const { return DYNCAST_DSYMBOL; }
 
     virtual Identifier *getIdent();
     virtual const char *toPrettyChars(bool QualifyTypes = false);
@@ -192,20 +199,20 @@ public:
     virtual void setScope(Scope *sc);
     virtual void importAll(Scope *sc);
     virtual Dsymbol *search(const Loc &loc, Identifier *ident, int flags = IgnoreNone);
-    Dsymbol *search_correct(Identifier *id);
-    Dsymbol *searchX(const Loc &loc, Scope *sc, RootObject *id);
     virtual bool overloadInsert(Dsymbol *s);
     virtual d_uns64 size(const Loc &loc);
     virtual bool isforwardRef();
     virtual AggregateDeclaration *isThis();     // is a 'this' required to access the member
     virtual bool isExport() const;              // is Dsymbol exported?
     virtual bool isImportedSymbol() const;      // is Dsymbol imported?
-    virtual bool isDeprecated();                // is Dsymbol deprecated?
-    virtual bool isOverloadable();
+    virtual bool isDeprecated() const;                // is Dsymbol deprecated?
+    virtual bool isOverloadable() const;
     virtual LabelDsymbol *isLabel();            // is this a LabelDsymbol?
-    AggregateDeclaration *isMember();           // is this a member of an AggregateDeclaration?
-    AggregateDeclaration *isMember2();          // is this a member of an AggregateDeclaration?
-    ClassDeclaration *isClassMember();          // is this a member of a ClassDeclaration?
+    AggregateDeclaration *isMember();           // is toParent() an AggregateDeclaration?
+    AggregateDeclaration *isMember2();          // is toParent2() an AggregateDeclaration?
+    AggregateDeclaration *isMemberDecl();       // is toParentDecl() an AggregateDeclaration?
+    AggregateDeclaration *isMemberLocal();      // is toParentLocal() an AggregateDeclaration?
+    ClassDeclaration *isClassMember();          // isMember() is a ClassDeclaration?
     virtual Type *getType();                    // is this a type?
     virtual bool needThis();                    // need a 'this' pointer?
     virtual Prot prot();
@@ -215,6 +222,7 @@ public:
     virtual bool hasPointers();
     virtual bool hasStaticCtorOrDtor();
     virtual void addLocalClass(ClassDeclarations *) { }
+    virtual void addObjcSymbols(ClassDeclarations *, ClassDeclarations *) { }
     virtual void checkCtorConstInit() { }
 
     virtual void addComment(const utf8_t *comment);
@@ -232,6 +240,7 @@ public:
     virtual Nspace *isNspace() { return NULL; }
     virtual Declaration *isDeclaration() { return NULL; }
     virtual StorageClassDeclaration *isStorageClassDeclaration(){ return NULL; }
+    virtual ExpressionDsymbol *isExpressionDsymbol() { return NULL; }
     virtual ThisDeclaration *isThisDeclaration() { return NULL; }
     virtual TypeInfoDeclaration *isTypeInfoDeclaration() { return NULL; }
     virtual TupleDeclaration *isTupleDeclaration() { return NULL; }
@@ -251,7 +260,6 @@ public:
     virtual InvariantDeclaration *isInvariantDeclaration() { return NULL; }
     virtual UnitTestDeclaration *isUnitTestDeclaration() { return NULL; }
     virtual NewDeclaration *isNewDeclaration() { return NULL; }
-    virtual ExpressionDsymbol *isExpressionDsymbol() { return NULL; }
     virtual VarDeclaration *isVarDeclaration() { return NULL; }
     virtual ClassDeclaration *isClassDeclaration() { return NULL; }
     virtual StructDeclaration *isStructDeclaration() { return NULL; }
@@ -263,13 +271,14 @@ public:
     virtual ArrayScopeSymbol *isArrayScopeSymbol() { return NULL; }
     virtual Import *isImport() { return NULL; }
     virtual EnumDeclaration *isEnumDeclaration() { return NULL; }
-    virtual DeleteDeclaration *isDeleteDeclaration() { return NULL; }
     virtual SymbolDeclaration *isSymbolDeclaration() { return NULL; }
     virtual AttribDeclaration *isAttribDeclaration() { return NULL; }
     virtual AnonDeclaration *isAnonDeclaration() { return NULL; }
+    virtual CPPNamespaceDeclaration *isCPPNamespaceDeclaration() { return NULL; }
     virtual ProtDeclaration *isProtDeclaration() { return NULL; }
     virtual OverloadSet *isOverloadSet() { return NULL; }
-    virtual void accept(Visitor *v) { v->visit(this); }
+    virtual CompileDeclaration *isCompileDeclaration() { return NULL; }
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 // Dsymbol that generates a scope
@@ -290,9 +299,7 @@ private:
 public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     Dsymbol *search(const Loc &loc, Identifier *ident, int flags = SearchLocalsOnly);
-    OverloadSet *mergeOverloadSet(Identifier *ident, OverloadSet *os, Dsymbol *s);
     virtual void importScope(Dsymbol *s, Prot protection);
-    void addAccessiblePackage(Package *p, Prot protection);
     virtual bool isPackageAccessible(Package *p, Prot protection, int flags = 0);
     bool isforwardRef();
     static void multiplyDefined(const Loc &loc, Dsymbol *s1, Dsymbol *s2);
@@ -352,6 +359,7 @@ public:
 
 class ForwardingScopeDsymbol : public ScopeDsymbol
 {
+public:
     ScopeDsymbol *forward;
 
     Dsymbol *symtabInsert(Dsymbol *s);
@@ -364,6 +372,7 @@ class ForwardingScopeDsymbol : public ScopeDsymbol
 
 class ExpressionDsymbol : public Dsymbol
 {
+public:
     Expression *exp;
 
     ExpressionDsymbol *isExpressionDsymbol() { return this; }

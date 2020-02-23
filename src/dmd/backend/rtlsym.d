@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/_rtlsym.d
@@ -100,8 +100,8 @@ enum
     RTLSYM_ARRAYCTOR,
     RTLSYM_ARRAYSETASSIGN,
     RTLSYM_ARRAYSETCTOR,
-    RTLSYM_ARRAYCAST,
-    RTLSYM_ARRAYEQ,
+    RTLSYM_ARRAYCAST,           // unused
+    RTLSYM_ARRAYEQ,             // unused
     RTLSYM_ARRAYEQ2,
     RTLSYM_ARRAYCMP,            // unused
     RTLSYM_ARRAYCMP2,           // unused
@@ -171,12 +171,15 @@ enum
 
     RTLSYM_C_ASSERT,
     RTLSYM_C__ASSERT,
+    RTLSYM_C__ASSERT_FAIL,
     RTLSYM_C__ASSERT_RTN,
 
     RTLSYM_MAX
 }
 
 extern (C++):
+
+nothrow:
 
 Symbol *getRtlsym(int i);
 Symbol *getRtlsymPersonality();

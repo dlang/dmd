@@ -11,7 +11,9 @@ module winsamp;
 
 pragma(lib, "gdi32.lib");
 import core.runtime;
-import core.sys.windows.windows;
+import core.sys.windows.windef;
+import core.sys.windows.wingdi;
+import core.sys.windows.winuser;
 import std.string;
 
 enum IDC_BTNCLICK     = 101;

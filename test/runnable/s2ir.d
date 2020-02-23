@@ -1,5 +1,5 @@
 
-import std.stdio;
+import core.stdc.stdio;
 
 /***********************************/
 
@@ -16,6 +16,8 @@ void test1()
             mov EAX, i  ;
         }
       version(D_PIC)
+      {}
+      else version (D_PIE)
       {}
       else
       {
@@ -43,7 +45,7 @@ int main()
     a[2] = "foo";
 
     foreach (string s; a)
-        writefln(s);
+        printf("%.*s\n", cast(int)s.length, s.ptr);
 
     switch (1)
     {
@@ -92,6 +94,6 @@ int main()
         default: assert(0);
     }
 
-    writefln("Success\n");
+    printf("Success\n");
     return 0;
 }

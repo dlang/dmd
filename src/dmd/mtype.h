@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -10,13 +10,15 @@
 
 #pragma once
 
-#include "root/rmem.h" // for d_size_t
+#include "root/dcompat.h" // for d_size_t
 
 #include "arraytypes.h"
+#include "ast_node.h"
 #include "globals.h"
 #include "visitor.h"
 
 struct Scope;
+class AggregateDeclaration;
 class Identifier;
 class Expression;
 class StructDeclaration;
@@ -38,8 +40,6 @@ typedef struct TYPE type;
 #endif
 
 void semanticTypeInfo(Scope *sc, Type *t);
-MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL, size_t inferStart = 0);
-StorageClass ModToStc(unsigned mod);
 
 enum ENUMTY
 {
@@ -91,12 +91,10 @@ enum ENUMTY
     Tvector,
     Tint128,
     Tuns128,
+    Ttraits,
     TMAX
 };
 typedef unsigned char TY;       // ENUMTY
-
-extern int Tsize_t;
-extern int Tptrdiff_t;
 
 #define SIZE_INVALID (~(d_uns64)0)   // error return from size() functions
 
@@ -116,16 +114,15 @@ enum MODFlags
 };
 typedef unsigned char MOD;
 
-// These tables are for implicit conversion of binary ops;
-// the indices are the type of operand one, followed by operand two.
-extern unsigned char impcnvResult[TMAX][TMAX];
-extern unsigned char impcnvType1[TMAX][TMAX];
-extern unsigned char impcnvType2[TMAX][TMAX];
+enum VarArg
+{
+    VARARGnone     = 0,  /// fixed number of arguments
+    VARARGvariadic = 1,  /// T t, ...)  can be C-style (core.stdc.stdarg) or D-style (core.vararg)
+    VARARGtypesafe = 2   /// T t ...) typesafe https://dlang.org/spec/function.html#typesafe_variadic_functions
+                         ///   or https://dlang.org/spec/function.html#typesafe_variadic_functions
+};
 
-// If !=0, give warning on implicit conversion
-extern unsigned char impcnvWarn[TMAX][TMAX];
-
-class Type : public RootObject
+class Type : public ASTNode
 {
 public:
     TY ty;
@@ -220,15 +217,15 @@ public:
     static Type *basic[TMAX];
 
     virtual const char *kind();
-    Type *copy();
+    Type *copy() const;
     virtual Type *syntaxCopy();
-    bool equals(RootObject *o);
+    bool equals(const RootObject *o) const;
     bool equivalent(Type *t);
-    // kludge for template.isType()
-    int dyncast() const { return DYNCAST_TYPE; }
     virtual Type* typeForMangling(LINK linkage);
+    // kludge for template.isType()
+    DYNCAST dyncast() const { return DYNCAST_TYPE; }
     int covariant(Type *t, StorageClass *pstc = NULL, bool fix17349 = true);
-    const char *toChars();
+    const char *toChars() const;
     char *toPrettyChars(bool QualifyTypes = false);
     static void _init();
 
@@ -237,8 +234,8 @@ public:
     virtual unsigned alignsize();
     Type *trySemantic(const Loc &loc, Scope *sc);
     Type *merge2();
-    void modToBuffer(OutBuffer *buf);
-    char *modToChars();
+    void modToBuffer(OutBuffer *buf) const;
+    char *modToChars() const;
 
     virtual bool isintegral();
     virtual bool isfloating();   // real, imaginary, or complex
@@ -247,6 +244,7 @@ public:
     virtual bool iscomplex();
     virtual bool isscalar();
     virtual bool isunsigned();
+    virtual bool ischar();
     virtual bool isscope();
     virtual bool isString();
     virtual bool isAssignable();
@@ -261,7 +259,7 @@ public:
     bool isWildConst() const   { return (mod & MODwildconst) == MODwildconst; }
     bool isSharedWild() const  { return (mod & (MODshared | MODwild)) == (MODshared | MODwild); }
     bool isNaked() const       { return mod == 0; }
-    Type *nullAttributes();
+    Type *nullAttributes() const;
     Type *constOf();
     Type *immutableOf();
     Type *mutableOf();
@@ -308,7 +306,6 @@ public:
     virtual Expression *defaultInitLiteral(const Loc &loc);
     virtual bool isZeroInit(const Loc &loc = Loc());                // if initializer is 0
     Identifier *getTypeInfoIdent();
-    void resolveExp(Expression *e, Type **pt, Expression **pe, Dsymbol **ps);
     virtual int hasWild() const;
     virtual bool hasPointers();
     virtual bool hasVoidInitPointers();
@@ -320,7 +317,27 @@ public:
 
     // For eliminating dynamic_cast
     virtual TypeBasic *isTypeBasic();
-    virtual void accept(Visitor *v) { v->visit(this); }
+    TypeError *isTypeError();
+    TypeVector *isTypeVector();
+    TypeSArray *isTypeSArray();
+    TypeDArray *isTypeDArray();
+    TypeAArray *isTypeAArray();
+    TypePointer *isTypePointer();
+    TypeReference *isTypeReference();
+    TypeFunction *isTypeFunction();
+    TypeDelegate *isTypeDelegate();
+    TypeIdentifier *isTypeIdentifier();
+    TypeInstance *isTypeInstance();
+    TypeTypeof *isTypeTypeof();
+    TypeReturn *isTypeReturn();
+    TypeStruct *isTypeStruct();
+    TypeEnum *isTypeEnum();
+    TypeClass *isTypeClass();
+    TypeTuple *isTypeTuple();
+    TypeSlice *isTypeSlice();
+    TypeNull *isTypeNull();
+
+    void accept(Visitor *v) { v->visit(this); }
 };
 
 class TypeError : public Type
@@ -373,6 +390,7 @@ public:
     bool iscomplex() /*const*/;
     bool isscalar() /*const*/;
     bool isunsigned() /*const*/;
+    bool ischar() /*const*/;
     MATCH implicitConvTo(Type *to);
     bool isZeroInit(const Loc &loc) /*const*/;
 
@@ -530,21 +548,54 @@ enum PURE
     PUREstrong = 4      // parameters are values or immutable
 };
 
+class Parameter : public ASTNode
+{
+public:
+    StorageClass storageClass;
+    Type *type;
+    Identifier *ident;
+    Expression *defaultArg;
+    UserAttributeDeclaration *userAttribDecl;   // user defined attributes
+
+    static Parameter *create(StorageClass storageClass, Type *type, Identifier *ident,
+                             Expression *defaultArg, UserAttributeDeclaration *userAttribDecl);
+    Parameter *syntaxCopy();
+    Type *isLazyArray();
+    // kludge for template.isType()
+    DYNCAST dyncast() const { return DYNCAST_PARAMETER; }
+    void accept(Visitor *v) { v->visit(this); }
+
+    static size_t dim(Parameters *parameters);
+    static Parameter *getNth(Parameters *parameters, d_size_t nth, d_size_t *pn = NULL);
+    const char *toChars() const;
+    bool isCovariant(bool returnByRef, const Parameter *p) const;
+};
+
+struct ParameterList
+{
+    Parameters* parameters;
+    VarArg varargs;
+
+    size_t length();
+    Parameter *operator[](size_t i) { return Parameter::getNth(parameters, i); }
+};
+
 class TypeFunction : public TypeNext
 {
 public:
     // .next is the return type
 
-    Parameters *parameters;     // function parameters
-    int varargs;        // 1: T t, ...) style for variable number of arguments
-                        // 2: T t ...) style for variable number of arguments
+    ParameterList parameterList;     // function parameters
+
     bool isnothrow;     // true: nothrow
     bool isnogc;        // true: is @nogc
     bool isproperty;    // can be called without parentheses
     bool isref;         // true: returns a reference
     bool isreturn;      // true: 'this' is returned by ref
     bool isscope;       // true: 'this' is scope
+    bool isreturninferred;      // true: 'this' is return from inference
     bool isscopeinferred; // true: 'this' is scope from inference
+    bool islive;        // is @live
     LINK linkage;  // calling convention
     TRUST trust;   // level of trust
     PURE purity;   // PURExxxx
@@ -552,12 +603,14 @@ public:
     Expressions *fargs; // function arguments
 
     int inuse;
+    bool incomplete;
 
-    static TypeFunction *create(Parameters *parameters, Type *treturn, int varargs, LINK linkage, StorageClass stc = 0);
+    static TypeFunction *create(Parameters *parameters, Type *treturn, VarArg varargs, LINK linkage, StorageClass stc = 0);
     const char *kind();
     Type *syntaxCopy();
     void purityLevel();
     bool hasLazyParameters();
+    bool isDstyleVariadic() const;
     bool parameterEscapes(Parameter *p);
     StorageClass parameterStorageClass(Parameter *p);
     Type *addStorageClass(StorageClass stc);
@@ -583,6 +636,19 @@ public:
     bool isBoolean() /*const*/;
     bool hasPointers() /*const*/;
 
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+class TypeTraits : public Type
+{
+    Loc loc;
+    /// The expression to resolve as type or symbol.
+    TraitsExp *exp;
+    /// The symbol when exp doesn't represent a type.
+    Dsymbol *sym;
+
+    Type *syntaxCopy();
+    d_uns64 size(const Loc &loc);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -701,6 +767,7 @@ public:
     Type *syntaxCopy();
     d_uns64 size(const Loc &loc);
     unsigned alignsize();
+    Type *memType(const Loc &loc = Loc());
     Dsymbol *toDsymbol(Scope *sc);
     bool isintegral();
     bool isfloating();
@@ -709,6 +776,7 @@ public:
     bool iscomplex();
     bool isscalar();
     bool isunsigned();
+    bool ischar();
     bool isBoolean();
     bool isString();
     bool isAssignable();
@@ -756,9 +824,12 @@ public:
     Parameters *arguments;      // types making up the tuple
 
     static TypeTuple *create(Parameters *arguments);
+    static TypeTuple *create();
+    static TypeTuple *create(Type *t1);
+    static TypeTuple *create(Type *t1, Type *t2);
     const char *kind();
     Type *syntaxCopy();
-    bool equals(RootObject *o);
+    bool equals(const RootObject *o) const;
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -788,31 +859,8 @@ public:
 
 /**************************************************************/
 
-//enum InOut { None, In, Out, InOut, Lazy };
-
-class Parameter : public RootObject
-{
-public:
-    //enum InOut inout;
-    StorageClass storageClass;
-    Type *type;
-    Identifier *ident;
-    Expression *defaultArg;
-    UserAttributeDeclaration *userAttribDecl;   // user defined attributes
-
-    static Parameter *create(StorageClass storageClass, Type *type, Identifier *ident,
-                             Expression *defaultArg, UserAttributeDeclaration *userAttribDecl);
-    Parameter *syntaxCopy();
-    Type *isLazyArray();
-    // kludge for template.isType()
-    int dyncast() const { return DYNCAST_PARAMETER; }
-    virtual void accept(Visitor *v) { v->visit(this); }
-
-    static size_t dim(Parameters *parameters);
-    static Parameter *getNth(Parameters *parameters, d_size_t nth, d_size_t *pn = NULL);
-    const char *toChars();
-    bool isCovariant(bool returnByRef, const Parameter *p) const;
-};
-
 bool arrayTypeCompatible(Loc loc, Type *t1, Type *t2);
 bool arrayTypeCompatibleWithoutCasting(Type *t1, Type *t2);
+
+// If the type is a class or struct, returns the symbol for it, else null.
+AggregateDeclaration *isAggregate(Type *t);

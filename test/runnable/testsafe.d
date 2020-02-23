@@ -207,7 +207,10 @@ void safeexception()
 @safe
 void inlineasm()
 {
-    static assert(!__traits(compiles, { asm { int 3; } }() ));
+    version (D_InlineAsm_X86)
+        static assert(!__traits(compiles, { asm { int 3; } }() ));
+    else version (D_InlineAsm_X86_64)
+        static assert(!__traits(compiles, { asm { int 3; } }() ));
 }
 
 @safe
@@ -420,12 +423,12 @@ void classcast()
 class A6278 {
     int test()
     in { assert(0); }
-    body { return 1; }
+    do { return 1; }
 }
 class B6278 : A6278 {
     override int test()
     in { assert(0); }
-    body { return 1; }
+    do { return 1; }
 }
 
 }

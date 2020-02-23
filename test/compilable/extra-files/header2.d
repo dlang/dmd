@@ -171,6 +171,17 @@ class LeClass
 }
 const levar = new class LeClass, LeInterface {};
 
+// https://issues.dlang.org/show_bug.cgi?id=20074
+class CC
+{
+    void fun()() @safe
+    {
+        () @trusted pure
+        {
+        } ();
+    }
+}
+
 // https://issues.dlang.org/show_bug.cgi?id=17663
 private:
 public struct Export {}

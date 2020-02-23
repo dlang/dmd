@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2009-2018 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2009-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/mscoffobj.d, backend/mscoffobj.d)
@@ -29,7 +29,7 @@ import dmd.backend.dlist;
 import dmd.backend.dvec;
 import dmd.backend.el;
 import dmd.backend.md5;
-import dmd.backend.memh;
+import dmd.backend.mem;
 import dmd.backend.global;
 import dmd.backend.obj;
 import dmd.backend.outbuf;
@@ -39,6 +39,11 @@ import dmd.backend.type;
 import dmd.backend.mscoff;
 
 extern (C++):
+
+nothrow:
+
+alias _compare_fp_t = extern(C) nothrow int function(const void*, const void*);
+extern(C) void qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar);
 
 static if (TARGET_WINDOS)
 {
@@ -171,100 +176,6 @@ IDXSTR MsCoffObj_addstr(Outbuffer *strtab, const(char)* str)
     strtab.writeString(str);
     //printf("\tidx %d, new size %d\n",idx,strtab.size());
     return idx;
-}
-
-/*******************************
- * Find a string in a string table
- * Input:
- *      strtab  =       string table for entry
- *      str     =       string to find
- *
- * Returns index into the specified string table or 0.
- */
-
-private IDXSTR elf_findstr(Outbuffer *strtab, const(char)* str, const(char)* suffix)
-{
-    const(char)* ent = cast(char *)strtab.buf+4;
-    const(char)* pend = ent+strtab.size() - 1;
-    const(char)* s = str;
-    const(char)* sx = suffix;
-    int len = cast(uint)strlen(str);
-
-    if (suffix)
-        len += strlen(suffix);
-
-    while(ent < pend)
-    {
-        if(*ent == 0)                   // end of table entry
-        {
-            if(*s == 0 && !sx)          // end of string - found a match
-            {
-                return cast(IDXSTR)(ent - cast(const(char)*)strtab.buf - len);
-            }
-            else                        // table entry too short
-            {
-                s = str;                // back to beginning of string
-                sx = suffix;
-                ent++;                  // start of next table entry
-            }
-        }
-        else if (*s == 0 && sx && *sx == *ent)
-        {                               // matched first string
-            s = sx+1;                   // switch to suffix
-            ent++;
-            sx = null;
-        }
-        else                            // continue comparing
-        {
-            if (*ent == *s)
-            {                           // Have a match going
-                ent++;
-                s++;
-            }
-            else                        // no match
-            {
-                while(*ent != 0)        // skip to end of entry
-                    ent++;
-                ent++;                  // start of next table entry
-                s = str;                // back to beginning of string
-                sx = suffix;
-            }
-        }
-    }
-    return 0;                   // never found match
-}
-
-/*******************************
- * Output a mangled string into the symbol string table
- * Input:
- *      str     =       string to add
- *
- * Returns offset of the string in string table (offset of the string).
- */
-
-private IDXSTR elf_addmangled(Symbol *s)
-{
-    //printf("elf_addmangled(%s)\n", s.Sident.ptr);
-    char[DEST_LEN] dest = void;
-
-    IDXSTR namidx = cast(IDXSTR)string_table.size();
-    char *destr = obj_mangle2(s, dest.ptr);
-    const(char)* name = destr;
-    if (CPP && name[0] == '_' && name[1] == '_')
-    {
-        if (strncmp(name,"__ct__",6) == 0)
-            name += 4;
-    }
-    else if (tyfunc(s.ty()) && s.Sfunc && s.Sfunc.Fredirect)
-        name = s.Sfunc.Fredirect;
-    size_t len = strlen(name);
-    string_table.reserve(cast(uint)(len+1));
-    strcpy(cast(char *)string_table.p,name);
-    string_table.setsize(cast(uint)(namidx+len+1));
-    if (destr != dest.ptr)                  // if we resized result
-        mem_free(destr);
-    //dbg_printf("\telf_addmagled string_table %s namidx %d len %d size %d\n",name, namidx,len,string_table.size());
-    return namidx;
 }
 
 /**************************
@@ -567,7 +478,7 @@ void write_sym(SymbolTable32* sym, bool bigobj)
     assert((*sym).sizeof == 20);
     if (bigobj)
     {
-        syment_buf.write(sym, (*sym).sizeof);
+        syment_buf.write(sym[0 .. 1]);
     }
     else
     {
@@ -826,14 +737,22 @@ version (SCPP)
         {
             foffset = (foffset + 3) & ~3;
             assert(psechdr.PointerToRelocations == 0);
-            uint nreloc = cast(uint)(pseg.SDrel.size() / Relocation.sizeof);
-            if (nreloc)
+            auto nreloc = pseg.SDrel.size() / Relocation.sizeof;
+            if (nreloc > 0xffff)
+            {
+                // https://docs.microsoft.com/en-us/windows/win32/debug/pe-format#coff-relocations-object-only
+                psechdr.Characteristics |= IMAGE_SCN_LNK_NRELOC_OVFL;
+                psechdr.PointerToRelocations = foffset;
+                psechdr.NumberOfRelocations = 0xffff;
+                foffset += reloc.sizeof;
+            }
+            else if (nreloc)
             {
                 psechdr.PointerToRelocations = foffset;
                 //printf("seg = %d SDshtidx = %d psechdr = %p s_relptr = x%x\n", seg, pseg.SDshtidx, psechdr, cast(uint)psechdr.s_relptr);
                 psechdr.NumberOfRelocations = cast(ushort)nreloc;
-                foffset += nreloc * reloc.sizeof;
             }
+            foffset += nreloc * reloc.sizeof;
         }
     }
 
@@ -842,12 +761,12 @@ version (SCPP)
     // Write the header
     if (bigobj)
     {
-        fobjbuf.write(&header, (header).sizeof);
+        fobjbuf.write((&header)[0 .. 1]);
         foffset = (header).sizeof;
     }
     else
     {
-        fobjbuf.write(&header_old, (header_old).sizeof);
+        fobjbuf.write((&header_old)[0 .. 1]);
         foffset = (header_old).sizeof;
     }
 
@@ -889,7 +808,8 @@ version (SCPP)
         seg_data *pseg = SegData[seg];
         IMAGE_SECTION_HEADER *psechdr = &ScnhdrTab[pseg.SDshtidx];   // corresponding section
         if (pseg.SDrel)
-        {   Relocation *r = cast(Relocation *)pseg.SDrel.buf;
+        {
+            Relocation *r = cast(Relocation *)pseg.SDrel.buf;
             size_t sz = pseg.SDrel.size();
             bool pdata = (strcmp(cast(const(char)* )psechdr.Name, ".pdata") == 0);
             Relocation *rend = cast(Relocation *)(pseg.SDrel.buf + sz);
@@ -898,8 +818,14 @@ version (SCPP)
             debug
             if (sz && foffset != psechdr.PointerToRelocations)
                 printf("seg = %d SDshtidx = %d psechdr = %p s_relptr = x%x, foffset = x%x\n", seg, pseg.SDshtidx, psechdr, cast(uint)psechdr.PointerToRelocations, cast(uint)foffset);
-
             assert(sz == 0 || foffset == psechdr.PointerToRelocations);
+
+            if (psechdr.Characteristics & IMAGE_SCN_LNK_NRELOC_OVFL)
+            {
+                auto rel = reloc(cast(uint)(sz / Relocation.sizeof) + 1);
+                fobjbuf.write((&rel)[0 .. 1]);
+                foffset += rel.sizeof;
+            }
             for (; r != rend; r++)
             {   reloc rel;
                 rel.r_vaddr = 0;
@@ -1040,7 +966,7 @@ version (SCPP)
                 //assert(rel.r_symndx <= 20000);
 
                 assert(rel.r_type <= 0x14);
-                fobjbuf.write(&rel, (rel).sizeof);
+                fobjbuf.write((&rel)[0 .. 1]);
                 foffset += (rel).sizeof;
             }
         }
@@ -1271,7 +1197,7 @@ private void emitSectionBrace(const(char)* segname, const(char)* symname, int at
     Symbol *beg = symbol_name(name.ptr, SCglobal, tspvoid);
     beg.Sseg = seg_bg;
     beg.Soffset = 0;
-    symbuf.write(&beg, beg.sizeof);
+    symbuf.write((&beg)[0 .. 1]);
     if (coffZeroBytes) // unnecessary, but required by current runtime
         MsCoffObj_bytes(seg_bg, 0, I64 ? 8 : 4, null);
 
@@ -1281,7 +1207,7 @@ private void emitSectionBrace(const(char)* segname, const(char)* symname, int at
     Symbol *end = symbol_name(name.ptr, SCglobal, tspvoid);
     end.Sseg = seg_en;
     end.Soffset = 0;
-    symbuf.write(&end, (end).sizeof);
+    symbuf.write((&end)[0 .. 1]);
     if (coffZeroBytes) // unnecessary, but required by current runtime
         MsCoffObj_bytes(seg_en, 0, I64 ? 8 : 4, null);
 }
@@ -1329,7 +1255,7 @@ static if (0)
     Symbol *minfo_beg = symbol_name("_tlsstart", SCglobal, tspvoid);
     minfo_beg.Sseg = segbg;
     minfo_beg.Soffset = 0;
-    symbuf.write(&minfo_beg, (minfo_beg).sizeof);
+    symbuf.write((&minfo_beg)[0 .. 1]);
     MsCoffObj_bytes(segbg, 0, I64 ? 8 : 4, null);
 
     /* Create symbol _minfo_end that sits just after the .tls$AAB section
@@ -1337,7 +1263,7 @@ static if (0)
     Symbol *minfo_end = symbol_name("_tlsend", SCglobal, tspvoid);
     minfo_end.Sseg = segen;
     minfo_end.Soffset = 0;
-    symbuf.write(&minfo_end, (minfo_end).sizeof);
+    symbuf.write((&minfo_end)[0 .. 1]);
     MsCoffObj_bytes(segen, 0, I64 ? 8 : 4, null);
   }
 }
@@ -1575,7 +1501,7 @@ IDXSEC MsCoffObj_addScnhdr(const(char)* scnhdr_name, uint flags)
  *      segment index of newly created code segment
  */
 
-int MsCoffObj_codeseg(char *name,int suffix)
+int MsCoffObj_codeseg(const char *name,int suffix)
 {
     //dbg_printf("MsCoffObj_codeseg(%s,%x)\n",name,suffix);
     return 0;
@@ -1945,14 +1871,14 @@ void MsCoffObj_pubdef(segidx_t seg, Symbol *s, targ_size_t offset)
     {
         case SCglobal:
         case SCinline:
-            symbuf.write(&s, (s).sizeof);
+            symbuf.write((&s)[0 .. 1]);
             break;
         case SCcomdat:
         case SCcomdef:
-            symbuf.write(&s, (s).sizeof);
+            symbuf.write((&s)[0 .. 1]);
             break;
         default:
-            symbuf.write(&s, (s).sizeof);
+            symbuf.write((&s)[0 .. 1]);
             break;
     }
     //printf("%p\n", *(void**)symbuf.buf);
@@ -1979,7 +1905,7 @@ int MsCoffObj_external_def(const(char)* name)
     //printf("MsCoffObj_external_def('%s')\n",name);
     assert(name);
     Symbol *s = symbol_name(name, SCextern, tspvoid);
-    symbuf.write(&s, (s).sizeof);
+    symbuf.write((&s)[0 .. 1]);
     return 0;
 }
 
@@ -1998,7 +1924,7 @@ int MsCoffObj_external(Symbol *s)
 {
     //printf("MsCoffObj_external('%s') %x\n",s.Sident.ptr,s.Svalue);
     symbol_debug(s);
-    symbuf.write(&s, (s).sizeof);
+    symbuf.write((&s)[0 .. 1]);
     s.Sxtrnnum = 1;
     return 1;
 }
@@ -2170,7 +2096,7 @@ void MsCoffObj_addrel(segidx_t seg, targ_size_t offset, Symbol *targsym,
         targsym = symbol_generate(SCstatic, tstypes[TYint]);
         targsym.Sseg = targseg;
         targsym.Soffset = val;
-        symbuf.write(&targsym, (targsym).sizeof);
+        symbuf.write((&targsym)[0 .. 1]);
     }
 
     Relocation rel = void;
@@ -2186,7 +2112,7 @@ void MsCoffObj_addrel(segidx_t seg, targ_size_t offset, Symbol *targsym,
         pseg.SDrel = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
         assert(pseg.SDrel);
     }
-    pseg.SDrel.write(&rel, (rel).sizeof);
+    pseg.SDrel.write((&rel)[0 .. 1]);
 }
 
 /****************************************
@@ -2349,7 +2275,6 @@ static if (0)
             if (SegData[seg].isCode() && flags & CFselfrel)
             {
                 seg_data *pseg = SegData[jumpTableSeg];
-             L1:
                 val -= offset + 4;
                 MsCoffObj_addrel(seg, offset, null, jumpTableSeg, RELrel, 0);
             }
@@ -2385,7 +2310,7 @@ static if (0)
                 pseg.SDbuf.writezeros(_tysize[TYnptr]);
 
                 // Add symbol s to indirectsymbuf2
-                indirectsymbuf2.write(&s, (Symbol *).sizeof);
+                indirectsymbuf2.write((&s)[0 .. 1]);
 
              L2:
                 //printf("MsCoffObj_reftoident: seg = %d, offset = x%x, s = %s, val = x%x, pointersSeg = %d\n", seg, offset, s.Sident.ptr, val, pointersSeg);
@@ -2520,7 +2445,7 @@ void MsCoffObj_write_pointerRef(Symbol* s, uint soff)
     }
 
     // defer writing pointer references until the symbols are written out
-    ptrref_buf.write(&s, (s).sizeof);
+    ptrref_buf.write((&s)[0 .. 1]);
     ptrref_buf.write32(soff);
 }
 

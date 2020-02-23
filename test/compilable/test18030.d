@@ -3,11 +3,7 @@
 struct S(T)
 {
 	T var;
-	pragma(
-		msg,
-		"Inside S: func() is ",
-		__traits(getProtection, __traits(getMember, T, "func"))
-	);
+	static assert(__traits(getProtection, __traits(getMember, T, "func")) == "public");
 }
 
 class C

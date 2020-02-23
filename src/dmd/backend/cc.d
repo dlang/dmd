@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cc.d, backend/_cc.d)
@@ -13,6 +13,7 @@ module dmd.backend.cc;
 
 // Online documentation: https://dlang.org/phobos/dmd_backend_cc.html
 
+import dmd.backend.barray;
 import dmd.backend.cdef;        // host and target compiler definition
 import dmd.backend.code_x86;
 import dmd.backend.dlist;
@@ -194,6 +195,7 @@ uint CPP() { return config.flags3 & CFG3cpp; }
 
 struct Srcpos
 {
+nothrow:
     uint Slinnum;           // 0 means no info available
     uint Scharnum;
     version (SCPP)
@@ -216,7 +218,7 @@ struct Srcpos
     {
         const(char)* Sfilename;
 
-        const(char*) name() { return Sfilename; }
+        const(char*) name() const { return Sfilename; }
 
         static Srcpos create(const(char)* filename, uint linnum, int charnum)
         {
@@ -227,12 +229,23 @@ struct Srcpos
             sp.Scharnum = charnum;
             return sp;
         }
+
+        /*******
+         * Set fields of Srcpos
+         * Params:
+         *      filename = file name
+         *      linnum = line number
+         *      charnum = character number
+         */
+        void set(const(char)* filename, uint linnum, int charnum) pure
+        {
+            Sfilename = filename;
+            Slinnum = linnum;
+            Scharnum = charnum;
+        }
     }
 
-    void print(const(char)* func) { Srcpos_print(this, func); }
-
-    static uint sizeCheck();
-    unittest { assert(sizeCheck() == Srcpos.sizeof); }
+    void print(const(char)* func) const { Srcpos_print(this, func); }
 }
 
 version (SCPP)
@@ -251,7 +264,7 @@ version (HTOD)
     static char* srcpos_name(Srcpos p)   { return srcpos_sfile(p).SFname; }
 }
 
-void Srcpos_print(ref Srcpos srcpos, const(char)* func);
+void Srcpos_print(ref const Srcpos srcpos, const(char)* func);
 
 //#include "token.h"
 
@@ -368,9 +381,6 @@ struct Pstate
     uint STsequence;            // sequence number (Ssequence) of next Symbol
     uint STmaxsequence;         // won't find Symbols with STsequence larger
                                 // than STmaxsequence
-
-    static uint sizeCheck();
-    unittest { assert(sizeCheck() == Pstate.sizeof); }
 }
 
 void funcsym_p(Funcsym* fp) { pstate.STfuncsym_p = fp; }
@@ -395,9 +405,6 @@ struct Cstate
 //    void **CSphx;               // pointer to HX data block
 //#endif
     char* modname;              // module unique identifier
-
-    static uint sizeCheck();
-    unittest { assert(sizeCheck() == Cstate.sizeof); }
 }
 
 extern __gshared Cstate cstate;
@@ -449,9 +456,6 @@ struct Blockx
     ClassDeclaration_ classdec;
     Declaration_ member;        // member we're compiling for
     Module_ _module;            // module we're in
-
-    static uint sizeCheck();
-    unittest { assert(sizeCheck() == Blockx.sizeof); }
   }
 }
 
@@ -481,6 +485,7 @@ enum
 
 struct block
 {
+nothrow:
     union
     {
         elem *Belem;            // pointer to elem tree
@@ -628,12 +633,9 @@ struct block
     int numSucc()                    { return list_nitems(this.Bsucc); }
     block* nthSucc(int n)            { return cast(block*)list_ptr(list_nth(Bsucc, n)); }
     void setNthSucc(int n, block *b) { list_nth(Bsucc, n).ptr = b; }
-
-    static uint sizeCheck();
-    unittest { assert(sizeCheck() == block.sizeof); }
 }
 
-block* list_block(list_t lst) { return cast(block*)list_ptr(lst); }
+inout(block)* list_block(inout list_t lst) { return cast(inout(block)*)list_ptr(lst); }
 
 /** Basic block control flow operators. **/
 
@@ -690,7 +692,7 @@ struct BlockRange
 
     block* front() return  { return b; }
     void popFront() { b = b.Bnext; }
-    bool empty()    { return !b; }
+    bool empty() const { return !b; }
 
   private:
     block* b;
@@ -819,18 +821,13 @@ struct func_t
     char *Fredirect;            // redirect function name to this name in object
 
     // Array of catch types for EH_DWARF Types Table generation
-    Symbol **typesTable;
-    size_t typesTableDim;       // number used in typesTable[]
-    size_t typesTableCapacity;  // allocated capacity of typesTable[]
+    Barray!(Symbol*) typesTable;
 
     union
     {
         uint LSDAoffset;        // ELFOBJ: offset in LSDA segment of the LSDA data for this function
         Symbol* LSDAsym;        // MACHOBJ: GCC_except_table%d
     }
-
-    static uint sizeCheck();
-    unittest { assert(sizeCheck() == func_t.sizeof); }
 }
 
 //func_t* func_calloc() { return cast(func_t *) mem_fcalloc(func_t.sizeof); }
@@ -887,9 +884,6 @@ struct baseclass_t
     Classsym*         BCparent;         // immediate parent of this base class
                                         //     in Smptrbase
     baseclass_t*      BCpbase;          // parent base, NULL if did not come from a parent
-
-    static uint sizeCheck();
-    unittest { assert(sizeCheck() == baseclass_t.sizeof); }
 }
 
 //baseclass_t* baseclass_malloc() { return cast(baseclass_t*) mem_fmalloc(baseclass_t.sizeof); }
@@ -916,7 +910,7 @@ struct mptr_t
     mptr_flags_t   MPflags;
 }
 
-mptr_t* list_mptr(list_t lst) { return cast(mptr_t*) list_ptr(lst); }
+inout(mptr_t)* list_mptr(inout(list_t) lst) { return cast(inout(mptr_t)*) list_ptr(lst); }
 
 
 /***********************************
@@ -1024,9 +1018,6 @@ struct template_t
                                 // classes of this template will be friends of
     list_t TMnestedfriends;     // list of TMNF's
     int TMflags2;               // !=0 means dummy template created by template_createargtab()
-
-    static uint sizeCheck();
-    unittest { assert(sizeCheck() == template_t.sizeof); }
 }
 
 /***********************************
@@ -1174,21 +1165,15 @@ struct struct_t
                                 // It is NULL for the
                                 // primary template class (since it would be
                                 // identical to Sarglist).
-
-    static uint sizeCheck();
-    unittest { assert(sizeCheck() == struct_t.sizeof); }
 }
-
-//struct_t* struct_calloc() { return cast(struct_t*) mem_fcalloc(struct_t.sizeof); }
-//void struct_free(struct_t* st) { }
 
 /**********************************
  * Symbol Table
  */
 
-Symbol* list_symbol(list_t lst) { return cast(Symbol*) list_ptr(lst); }
+inout(Symbol)* list_symbol(inout list_t lst) { return cast(inout(Symbol)*) list_ptr(lst); }
 void list_setsymbol(list_t lst, Symbol* s) { lst.ptr = s; }
-Classsym* list_Classsym(list_t lst) { return cast(Classsym*) list_ptr(lst); }
+inout(Classsym)* list_Classsym(inout list_t lst) { return cast(inout(Classsym)*) list_ptr(lst); }
 
 enum
 {
@@ -1264,6 +1249,8 @@ struct Symbol
 //#define class_debug(s)
 //#endif
 
+    nothrow:
+
     Symbol* Sl, Sr;             // left, right child
     Symbol* Snext;              // next in threaded list
     dt_t* Sdt;                  // variables: initializer
@@ -1273,7 +1260,7 @@ struct Symbol
     { return Symbol_Salignsize(&this); }
 
     type* Stype;                // type of Symbol
-    tym_t ty() { return Stype.Tty; }
+    tym_t ty() const { return Stype.Tty; }
 
     union                       // variants for different Symbol types
     {
@@ -1459,21 +1446,19 @@ struct Symbol
 
     bool Sisdead(bool anyiasm)  // if variable is not referenced
     { return Symbol_Sisdead(&this, anyiasm); }
-
-    static uint sizeCheck();
-    unittest { assert(sizeCheck() == Symbol.sizeof); }
 }
 
-void symbol_debug(Symbol* s)
+void symbol_debug(const Symbol* s)
 {
     debug assert(s.id == s.IDsymbol);
 }
 
 int Symbol_Salignsize(Symbol* s);
-bool Symbol_Sisdead(Symbol* s, bool anyInlineAsm);
-int Symbol_needThis(Symbol* s);
+bool Symbol_Sisdead(const Symbol* s, bool anyInlineAsm);
+int Symbol_needThis(const Symbol* s);
+bool Symbol_isAffected(const ref Symbol s);
 
-bool isclassmember(Symbol* s) { return s.Sscope && s.Sscope.Sclass == SCstruct; }
+bool isclassmember(const Symbol* s) { return s.Sscope && s.Sscope.Sclass == SCstruct; }
 
 // Class, struct or union
 
@@ -1502,24 +1487,24 @@ alias Aliassym = Symbol;
 /* Format the identifier for presentation to the user   */
 version (SCPP)
 {
-    char *cpp_prettyident (Symbol *s);
-    char *prettyident(Symbol *s) { return CPP ? cpp_prettyident(s) : &s.Sident[0]; }
+    const(char)* cpp_prettyident (const Symbol *s);
+    const(char)* prettyident(const Symbol *s) { return CPP ? cpp_prettyident(s) : &s.Sident[0]; }
 }
 
 version (SPP)
 {
-    char *cpp_prettyident (Symbol *s);
-    char *prettyident(Symbol *s) { return &s.Sident[0]; }
+    const(char)* cpp_prettyident (const Symbol *s);
+    const(char)* prettyident(const Symbol *s) { return &s.Sident[0]; }
 }
 
 version (HTOD)
 {
-    char *cpp_prettyident (Symbol *s);
-    char *prettyident(Symbol *s) { return &s.Sident[0]; }
+    const(char)* cpp_prettyident (const Symbol *s);
+    const(char)* prettyident(const Symbol *s) { return &s.Sident[0]; }
 }
 
 version (MARS)
-    char *prettyident(Symbol *s) { return &s.Sident[0]; }
+    const(char)* prettyident(const Symbol *s) { return &s.Sident[0]; }
 
 
 /**********************************
@@ -1564,6 +1549,7 @@ EHmethod ehmethod(Symbol *f)
 
 struct param_t
 {
+nothrow:
     debug ushort      id;
     enum IDparam = 0x7050;
 
@@ -1594,12 +1580,9 @@ struct param_t
 
     void print_list()           // print this list of param_t's
     { param_t_print_list(&this); }
-
-    static uint sizeCheck();
-    unittest { assert(sizeCheck() == param_t.sizeof); }
 }
 
-void param_t_print(param_t* p);
+void param_t_print(const param_t* p);
 void param_t_print_list(param_t* p);
 uint param_t_length(param_t* p);
 param_t *param_t_createTal(param_t* p, param_t *ptali);
@@ -1607,7 +1590,7 @@ param_t *param_t_search(param_t* p, char *id);
 int param_t_searchn(param_t* p, char *id);
 
 
-void param_debug(param_t *p)
+void param_debug(const param_t *p)
 {
     debug assert(p.id == p.IDparam);
 }
@@ -1710,7 +1693,7 @@ struct Sfile
     uint SFhashval;             // hash of file name
 }
 
-void sfile_debug(Sfile* sf)
+void sfile_debug(const Sfile* sf)
 {
     debug assert(sf.id == Sfile.IDsfile);
 }
@@ -1792,9 +1775,6 @@ struct Declar
     param_t *ptal;
     bool explicitSpecialization;
     int hasExcSpec;             // has exception specification
-
-    static uint sizeCheck();
-    unittest { assert(sizeCheck() == Declar.sizeof); }
 }
 
 extern __gshared Declar gdeclar;

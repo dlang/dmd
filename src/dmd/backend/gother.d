@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1986-1998 by Symantec
- *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              http://www.boost.org/LICENSE_1_0.txt
@@ -36,8 +36,11 @@ import dmd.backend.outbuf;
 import dmd.backend.ty;
 import dmd.backend.type;
 
+import dmd.backend.barray;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
+
+nothrow:
 
 char symbol_isintab(Symbol *s) { return sytab[s.Sclass] & SCSS; }
 
@@ -45,15 +48,16 @@ extern (C++):
 
 version (SCPP)
     import parser;
+
 version (MARS)
     import dmd.backend.errors;
-
 
 /**********************************************************************/
 
 // Lists to help identify ranges of variables
 struct Elemdata
 {
+nothrow:
     Elemdata *next;         // linked list
     elem *pelem;            // the elem in question
     block *pblock;          // which block it's in
@@ -142,14 +146,12 @@ private void rd_compute()
     if (debugc) printf("constprop()\n");
     assert(dfo);
     flowrd();               /* compute reaching definitions (rd)    */
-    if (go.deftop == 0)     /* if no reaching defs                  */
+    if (go.defnod.length == 0)     /* if no reaching defs                  */
         return;
     assert(rellist == null && inclist == null && eqeqlist == null);
     block_clearvisit();
-    for (uint i = 0; i < dfotop; i++)    // for each block
+    foreach (b; dfo[])    // for each block
     {
-        block *b = dfo[i];
-
         switch (b.BC)
         {
             case BCjcatch:
@@ -165,11 +167,8 @@ private void rd_compute()
         }
     }
 
-    for (uint i = 0; i < dfotop; i++)    // for each block
+    foreach (i, b; dfo[])    // for each block
     {
-        block *b;
-
-        b = dfo[i];
         thisblock = b;
 
         //printf("block %d Bin ",i); vec_println(b.Binrd);
@@ -217,15 +216,13 @@ private void rd_compute()
 
 private void conpropwalk(elem *n,vec_t IN)
 {
-    uint op;
     Elemdata *pdata;
     vec_t L,R;
     elem *t;
 
     assert(n && IN);
-    /*chkvecdim(go.deftop,0);*/
     //printf("conpropwalk()\n"),elem_print(n);
-    op = n.Eoper;
+    const op = n.Eoper;
     if (op == OPcolon || op == OPcolon2)
     {
         L = vec_clone(IN);
@@ -410,10 +407,10 @@ private void chkrd(elem *n,list_t rdlist)
     assert(sytab[sv.Sclass] & SCRD);
     if (sv.Sflags & SFLnord)           // if already printed a warning
         return;
-    if (sv.ty() & mTYvolatile)
+    if (sv.ty() & (mTYvolatile | mTYshared))
         return;
     unambig = sv.Sflags & SFLunambig;
-    for (list_t l = rdlist; l; l = list_next(l))
+    foreach (l; ListRange(rdlist))
     {   elem *d = cast(elem *) list_ptr(l);
 
         elem_debug(d);
@@ -437,8 +434,8 @@ private void chkrd(elem *n,list_t rdlist)
     }
 
     // If there are any asm blocks, don't print the message
-    for (uint i = 0; i < dfotop; i++)
-        if (dfo[i].BC == BCasm)
+    foreach (b; dfo[])
+        if (b.BC == BCasm)
             return;
 
     // If variable contains bit fields, don't print message (because if
@@ -531,7 +528,7 @@ private elem * chkprop(elem *n,list_t rdlist)
     nsize = cast(uint)size(nty);
     noff = n.EV.Voffset;
     unambig = sv.Sflags & SFLunambig;
-    for (list_t l = rdlist; l; l = list_next(l))
+    foreach (l; ListRange(rdlist))
     {
         elem *d = cast(elem *) list_ptr(l);
 
@@ -642,11 +639,11 @@ extern (C) list_t listrds(vec_t IN,elem *e,vec_t f)
     unambig = s.Sflags & SFLunambig;
     if (f)
         vec_clear(f);
-    for (i = 0; (i = cast(uint) vec_index(i, IN)) < go.deftop; ++i)
+    for (i = 0; (i = cast(uint) vec_index(i, IN)) < go.defnod.length; ++i)
     {
         elem *d = go.defnod[i].DNelem;
         //printf("\tlooking at "); WReqn(d); printf("\n");
-        uint op = d.Eoper;
+        const op = d.Eoper;
         if (op == OPasm)                // assume ASM elems define everything
             goto listit;
         if (OTassign(op))
@@ -703,7 +700,7 @@ private void eqeqranges()
         c = el_tolong(e.EV.E2);
 
         result = -1;                    // result not known yet
-        for (list_t rdl = rel.rdlist; rdl; rdl = list_next(rdl))
+        foreach (rdl; ListRange(rel.rdlist))
         {
             elem *erd = cast(elem *) list_ptr(rdl);
             elem *erd1;
@@ -1051,7 +1048,7 @@ private int loopcheck(block *start,block *inc,block *rel)
 {
     if (!(start.Bflags & BFLvisited))
     {   start.Bflags |= BFLvisited;    /* guarantee eventual termination */
-        for (list_t list = start.Bsucc; list; list = list_next(list))
+        foreach (list; ListRange(start.Bsucc))
         {
             block *b = cast(block *) list_ptr(list);
             if (b != rel && (b == inc || loopcheck(b,inc,rel)))
@@ -1089,7 +1086,7 @@ Louter:
                 printf(");\n");
             }
         }
-        foreach (i, b; dfo[0 .. dfotop])    // for each block
+        foreach (i, b; dfo[])    // for each block
         {
             if (b.Belem)
             {
@@ -1356,10 +1353,7 @@ private bool copyPropWalk(elem *n,vec_t IN)
 
 private __gshared
 {
-    uint asstop,                /* # of assignment elems in assnod[]    */
-         assmax = 0,            /* size of assnod[]                     */
-         assnum;                /* current position in assnod[]         */
-    elem **assnod = null;       /* array of pointers to asg elems       */
+    Barray!(elem*) assnod;      /* array of pointers to asg elems       */
     vec_t ambigref;             /* vector of assignment elems that      */
                                 /* are referenced when an ambiguous     */
                                 /* reference is done (as in *p or call) */
@@ -1369,35 +1363,28 @@ void rmdeadass()
 {
     if (debugc) printf("rmdeadass()\n");
     flowlv();                       /* compute live variables       */
-    for (uint i = 0; i < dfotop; i++)    // for each block b
+    foreach (b; dfo[])         // for each block b
     {
-        block *b = dfo[i];
-
         if (!b.Belem)          /* if no elems at all           */
             continue;
         if (b.Btry)            // if in try-block guarded body
             continue;
-        asstop = numasg(b.Belem);      /* # of assignment elems */
-        if (asstop == 0)        /* if no assignment elems       */
+        const assnum = numasg(b.Belem);   // # of assignment elems
+        if (assnum == 0)                  // if no assignment elems
             continue;
-        if (asstop > assmax)    /* if we need to reallocate     */
-        {
-            assnod = cast(elem **)
-            realloc(assnod,(elem *).sizeof * asstop);
-            assert(assnod);
-            assmax = asstop;
-        }
-        /*setvecdim(asstop);*/
-        vec_t DEAD = vec_calloc(asstop);
-        vec_t POSS = vec_calloc(asstop);
-        ambigref = vec_calloc(asstop);
-        assnum = 0;
-        accumda(b.Belem,DEAD,POSS);    /* compute DEAD and POSS */
-        assert(assnum == asstop);
+
+        assnod.setLength(assnum);         // pre-allocate sufficient room
+        vec_t DEAD = vec_calloc(assnum);
+        vec_t POSS = vec_calloc(assnum);
+
+        ambigref = vec_calloc(assnum);
+        assnod.setLength(0);
+        accumda(b.Belem,DEAD,POSS);    // fill assnod[], compute DEAD and POSS
+        assert(assnum == assnod.length);
         vec_free(ambigref);
+
         vec_orass(POSS,DEAD);   /* POSS |= DEAD                 */
-        uint j;
-        for (j = 0; (j = cast(uint) vec_index(j, POSS)) < asstop; ++j) // for each possible dead asg.
+        for (uint j = 0; (j = cast(uint) vec_index(j, POSS)) < assnum; ++j) // for each possible dead asg.
         {
             Symbol *v;      /* v = target of assignment     */
             elem *n;
@@ -1415,8 +1402,8 @@ void rmdeadass()
             //printf("\tDEAD=%d, live=%d\n",vec_testbit(j,DEAD),vec_testbit(v.Ssymnum,b.Boutlv));
             if (!vec_testbit(j,DEAD) && vec_testbit(v.Ssymnum,b.Boutlv))
                 continue;
-            /* volatile variables are not dead              */
-            if ((v.ty() | nv.Ety) & mTYvolatile)
+            /* volatile/shared variables are not dead              */
+            if ((v.ty() | nv.Ety) & (mTYvolatile | mTYshared))
                 continue;
             debug if (debugc)
             {
@@ -1433,9 +1420,6 @@ void rmdeadass()
         vec_free(DEAD);
         vec_free(POSS);
     } /* for */
-    free(assnod);
-    assnod = null;
-    assmax = 0;
 }
 
 /***************************
@@ -1540,27 +1524,24 @@ private uint numasg(elem *e)
 
 private void accumda(elem *n,vec_t DEAD, vec_t POSS)
 {
-    vec_t Pl,Pr,Dl,Dr;
-    uint op,vecdim;
-
-    /*chkvecdim(asstop,0);*/
     assert(n && DEAD && POSS);
-    op = n.Eoper;
+    const op = n.Eoper;
     switch (op)
     {
         case OPcolon:
         case OPcolon2:
-            Pl = vec_clone(POSS);
-            Pr = vec_clone(POSS);
-            Dl = vec_calloc(asstop);
-            Dr = vec_calloc(asstop);
+        {
+            vec_t Pl = vec_clone(POSS);
+            vec_t Pr = vec_clone(POSS);
+            vec_t Dl = vec_calloc(vec_numbits(POSS));
+            vec_t Dr = vec_calloc(vec_numbits(POSS));
             accumda(n.EV.E1,Dl,Pl);
             accumda(n.EV.E2,Dr,Pr);
 
             /* D |= P & (Dl & Dr) | ~P & (Dl | Dr)  */
             /* P = P & (Pl & Pr) | ~P & (Pl | Pr)   */
             /*   = Pl & Pr | ~P & (Pl | Pr)         */
-            vecdim = cast(uint)vec_dim(DEAD);
+            const vecdim = cast(uint)vec_dim(DEAD);
             for (uint i = 0; i < vecdim; i++)
             {
                 DEAD[i] |= (POSS[i] & Dl[i] & Dr[i]) |
@@ -1569,21 +1550,24 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
             }
             vec_free(Pl); vec_free(Pr); vec_free(Dl); vec_free(Dr);
             break;
+        }
 
         case OPandand:
         case OPoror:
+        {
             accumda(n.EV.E1,DEAD,POSS);
             // Substituting into the above equations Pl=P and Dl=0:
             // D |= Dr - P
             // P = Pr
-            Pr = vec_clone(POSS);
-            Dr = vec_calloc(asstop);
+            vec_t Pr = vec_clone(POSS);
+            vec_t Dr = vec_calloc(vec_numbits(POSS));
             accumda(n.EV.E2,Dr,Pr);
             vec_subass(Dr,POSS);
             vec_orass(DEAD,Dr);
             vec_copy(POSS,Pr);
             vec_free(Pr); vec_free(Dr);
             break;
+        }
 
         case OPvar:
         {
@@ -1594,7 +1578,7 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
             // We have a reference. Clear all bits in POSS that
             // could be referenced.
 
-            for (uint i = 0; i < assnum; i++)
+            foreach (const i; 0 .. cast(uint)assnod.length)
             {
                 elem *ti = assnod[i].EV.E1;
                 if (v == ti.EV.Vsym &&
@@ -1612,7 +1596,7 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
         }
 
         case OPasm:         // reference everything
-            for (uint i = 0; i < assnum; i++)
+            foreach (const i; 0 .. cast(uint)assnod.length)
                 vec_clearbit(i,POSS);
             break;
 
@@ -1688,7 +1672,7 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
                     uint tsz = tysize(t.Ety);
                     if (n.Eoper == OPstreq)
                         tsz = cast(uint)type_size(n.ET);
-                    for (uint i = 0; i < assnum; i++)
+                    foreach (const i; 0 .. cast(uint)assnod.length)
                     {
                         elem *ti = assnod[i].EV.E1;
 
@@ -1701,7 +1685,7 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
                         if (ti.EV.Vsym == t.EV.Vsym &&
                             ti.EV.Voffset == t.EV.Voffset &&
                             tisz == tsz &&
-                            !(t.Ety & mTYvolatile) &&
+                            !(t.Ety & (mTYvolatile | mTYshared)) &&
                             //t.EV.Vsym.Sflags & SFLunambig &&
                             vec_testbit(i,POSS))
                         {
@@ -1713,15 +1697,15 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
                 // if assignment operator, post this def to POSS
                 if (n.Nflags & NFLassign)
                 {
-                    assnod[assnum] = n;
-                    vec_setbit(assnum,POSS);
+                    const i = cast(uint)assnod.length;
+                    vec_setbit(i,POSS);
 
                     // if variable could be referenced by a pointer
                     // or a function call, mark the assignment in
                     // ambigref
                     if (!(t.EV.Vsym.Sflags & SFLunambig))
                     {
-                        vec_setbit(assnum,ambigref);
+                        vec_setbit(i,ambigref);
 
                         debug if (debugc)
                         {
@@ -1731,7 +1715,7 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
                         }
                     }
 
-                    assnum++;
+                    assnod.push(n);
                 }
             }
             else if (OTrtol(op))
@@ -1762,7 +1746,6 @@ void deadvar()
 
         /* First, mark each candidate as dead.  */
         /* Initialize vectors for live ranges.  */
-        /*setvecdim(dfotop);*/
         for (SYMIDX i = 0; i < globsym.top; i++)
         {
             Symbol *s = globsym.tab[i];
@@ -1779,9 +1762,9 @@ void deadvar()
         }
 
         /* Go through trees and "liven" each one we see.        */
-        for (uint i = 0; i < dfotop; i++)
-            if (dfo[i].Belem)
-                dvwalk(dfo[i].Belem,i);
+        foreach (i, b; dfo[])
+            if (b.Belem)
+                dvwalk(b.Belem,cast(uint)i);
 
         /* Compute live variables. Set bit for block in live range      */
         /* if variable is in the IN set for that block.                 */
@@ -1789,9 +1772,9 @@ void deadvar()
         for (SYMIDX i = 0; i < globsym.top; i++)
         {
             if (globsym.tab[i].Srange /*&& globsym.tab[i].Sclass != CLMOS*/)
-                for (uint j = 0; j < dfotop; j++)
-                    if (vec_testbit(i,dfo[j].Binlv))
-                        vec_setbit(j,globsym.tab[i].Srange);
+                foreach (j, b; dfo[])
+                    if (vec_testbit(i,b.Binlv))
+                        vec_setbit(cast(uint)j,globsym.tab[i].Srange);
         }
 
         /* Print results        */
@@ -1860,7 +1843,7 @@ void verybusyexp()
     if (debugc) printf("verybusyexp()\n");
     flowvbe();                      /* compute VBEs                 */
     if (go.exptop <= 1) return;        /* if no VBEs                   */
-    assert(go.expblk);
+    assert(go.expblk.length);
     if (blockinit())
         return;                     // can't handle ASM blocks
     compdom();                      /* compute dominators           */
@@ -1868,13 +1851,12 @@ void verybusyexp()
     genkillae();                    /* compute Bgen and Bkill for   */
                                     /* AEs                          */
     /*chkvecdim(go.exptop,0);*/
-    blockseen = vec_calloc(dfotop);
+    blockseen = vec_calloc(dfo.length);
 
     /* Go backwards through dfo so that VBEs are evaluated as       */
     /* close as possible to where they are used.                    */
-    for (int i = dfotop; --i >= 0;)     // for each block
+    foreach_reverse (i, b; dfo[])     // for each block
     {
-        block *b = dfo[i];
         int done;
 
         /* Do not hoist things to blocks that do not            */
@@ -1941,7 +1923,7 @@ void verybusyexp()
         for (j = 0; (j = cast(uint) vec_index(j, b.Bout)) < go.exptop; ++j)
         {
             vec_clear(blockseen);
-            for (list_t bl = go.expblk[j].Bpred; bl; bl = list_next(bl))
+            foreach (bl; ListRange(go.expblk[j].Bpred))
             {
                 if (killed(j,list_block(bl),b))
                 {
@@ -1964,7 +1946,7 @@ void verybusyexp()
         for (j = 0; (j = cast(uint) vec_index(j, b.Bout)) < go.exptop; ++j)
         {
             vec_clear(blockseen);
-            for (list_t bl = go.expblk[j].Bpred; bl; bl = list_next(bl))
+            foreach (bl; ListRange(go.expblk[j].Bpred))
             {
                 if (ispath(j,list_block(bl),b))
                     goto L2;
@@ -2040,7 +2022,7 @@ private int killed(uint j,block *bp,block *b)
     if (vec_testbit(j,bp.Bkill))
         return true;
     vec_setbit(bp.Bdfoidx,blockseen);      /* mark as visited              */
-    for (list_t bl = bp.Bpred; bl; bl = list_next(bl))
+    foreach (bl; ListRange(bp.Bpred))
         if (killed(j,list_block(bl),b))
             return true;
     return false;
@@ -2074,7 +2056,7 @@ private int ispath(uint j,block *bp,block *b)
 
     /* Not used in bp, see if there is a path through a predecessor */
     /* of bp                                                        */
-    for (list_t bl = bp.Bpred; bl; bl = list_next(bl))
+    foreach (bl; ListRange(bp.Bpred))
         if (ispath(j,list_block(bl),b))
             return true;
 
