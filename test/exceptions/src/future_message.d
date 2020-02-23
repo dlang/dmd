@@ -56,7 +56,7 @@ void test(Throwable t)
     }
     catch (Throwable e)
     {
-        fprintf(stderr, "%.*s ", e.message.length, e.message.ptr);
+        fprintf(stderr, "%.*s ", cast(int)e.message.length, e.message.ptr);
     }
 }
 
