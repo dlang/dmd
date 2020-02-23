@@ -733,7 +733,13 @@ string generateDiff(ref const TestArgs testData, const string output, const stri
 
     const cmd = ["diff", "-pu", "--strip-trailing-cr", expectedFile, actualFile];
     try
-        return std.process.execute(cmd).output;
+    {
+        string diff = std.process.execute(cmd).output;
+        // Skip diff's status lines listing the diffed files and line count
+        foreach (_; 0..3)
+            diff = diff.findSplitAfter("\n")[1];
+        return diff;
+    }
     catch (Exception e)
         return format(`%-(%s, %) failed: %s`, cmd, e.msg);
 }
