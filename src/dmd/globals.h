@@ -129,7 +129,7 @@ struct Param
     bool useInline;     // inline expand functions
     bool useDIP25;      // implement http://wiki.dlang.org/DIP25
     bool noDIP25;       // revert to pre-DIP25 behavior
-    bool useDIP1021;        // implement https://github.com/dlang/DIPs/blob/master/DIPs/DIP1021.md
+    bool useDIP1021;    // implement https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1021.md
     bool release;       // build release version
     bool preservePaths; // true means don't strip path from source file
     Diagnostic warnings;
