@@ -579,10 +579,32 @@ Params:
     testOutput      = the existing output to be modified
     transformOutput = list of transformation identifiers
 ++/
-void applyOutputTransformations(ref string testOutput, const string transformOutput)
+void applyOutputTransformations(ref string testOutput, string transformOutput)
 {
-    foreach (const step; transformOutput.splitter())
+    while (transformOutput.length)
     {
+        string step, arg;
+
+        const idx = transformOutput.countUntil(' ', '(');
+        if (idx == -1)
+        {
+            step = transformOutput;
+            transformOutput = null;
+        }
+        else
+        {
+            step = transformOutput[0 .. idx];
+            const hasArgs = transformOutput[idx] == '(';
+            transformOutput = transformOutput[idx + 1 .. $];
+            if (hasArgs)
+            {
+                auto parts = transformOutput.findSplit(")");
+                enforce(parts, "Missing closing `)`!");
+                arg = parts[0];
+                transformOutput = parts[2];
+            }
+        }
+
         switch (step)
         {
             case "sanitize_json":
