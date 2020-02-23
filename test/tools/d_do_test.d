@@ -573,7 +573,8 @@ bool collectExtraSources (in string input_dir, in string output_dir, in string[]
 Applies custom transformations defined in transformOutput to testOutput.
 
 Currently the following actions are supported:
- * "sanitize_json" = replace compiler/plattform specific data from generated JSON
+ * "sanitize_json"       = replace compiler/plattform specific data from generated JSON
+ * "remove_lines(<str>)" = remove all lines containing <str>
 
 Params:
     testOutput      = the existing output to be modified
@@ -613,6 +614,12 @@ void applyOutputTransformations(ref string testOutput, string transformOutput)
                 sanitize(testOutput);
                 break;
             }
+            case "remove_lines":
+                testOutput = testOutput
+                    .splitter('\n')
+                    .filter!(line => !line.canFind(arg))
+                    .join('\n');
+                break;
 
             default:
                 throw new Exception(format(`Unknown transformation: "%s"!`, step));
@@ -642,6 +649,15 @@ unittest
         {
             "file": "VALUE_REMOVED_FOR_TEST",
             "kind": "module",
+            "members": []
+        }
+    ]
+}`);
+
+    test(`sanitize_json remove_lines("kind")`, `{
+    "modules": [
+        {
+            "file": "VALUE_REMOVED_FOR_TEST",
             "members": []
         }
     ]
