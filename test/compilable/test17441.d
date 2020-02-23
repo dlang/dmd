@@ -1,3 +1,4 @@
+// EXTRA_FILES: imports/test17441foo/package.d imports/test17441foo/bar.d
 import m1 = imports.test17441foo.bar;
 import m2 = imports.test17441foo;
 alias p = __traits(parent, m1);
