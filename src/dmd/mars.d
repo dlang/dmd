@@ -2149,8 +2149,8 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 goto Lerror;
             }
         }
-	else if (p[1] == 'H' && p[2] == 'c') // https://dlang.org/dmd.html#switch-Hc
-	{
+        else if (p[1] == 'H' && p[2] == 'c') // https://dlang.org/dmd.html#switch-Hc
+        {
             params.doCHdrGeneration = true;
 
             switch (p[3])
@@ -2170,7 +2170,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             default:
                 goto Lerror;
             }
-	}
+        }
         else if (p[1] == 'H' && p[2] == 'C')  // https://dlang.org/dmd.html#switch-HC
         {
             params.doCxxHdrGeneration = true;
