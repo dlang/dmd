@@ -365,9 +365,26 @@ public Statement gccAsmSemantic(GccAsmStatement s, Scope *sc)
 
 unittest
 {
-    uint errors = global.startGagging();
+    import dmd.mtype : TypeBasic;
 
-    // Immitates asmSemantic if version = IN_GCC.
+    uint errors = global.startGagging();
+    scope(exit) global.endGagging(errors);
+
+    // If this check fails, then Type._init() was called before reaching here,
+    // and the entire chunk of code that follows can be removed.
+    assert(ASTCodegen.Type.tint32 is null);
+    // Minimally initialize the cached types in ASTCodegen.Type, as they are
+    // dependencies for some fail asm tests to succeed.
+    ASTCodegen.Type.stringtable._init();
+    scope(exit)
+    {
+        ASTCodegen.Type.deinitialize();
+        ASTCodegen.Type.tint32 = null;
+    }
+    scope tint32 = new TypeBasic(ASTCodegen.Tint32);
+    ASTCodegen.Type.tint32 = tint32;
+
+    // Imitates asmSemantic if version = IN_GCC.
     static int semanticAsm(Token* tokens)
     {
         const errors = global.errors;
@@ -378,7 +395,7 @@ unittest
         return global.errors - errors;
     }
 
-    // Immitates parseStatement for asm statements.
+    // Imitates parseStatement for asm statements.
     static void parseAsm(string input, bool expectError)
     {
         // Generate tokens from input test.
@@ -453,7 +470,6 @@ unittest
         q{ asm { ""h;
         } },
 
-        /+ Need a way to test without depending on Type._init()
         // Expression expected, not ';'
         q{ asm { ""[;
         } },
@@ -463,7 +479,6 @@ unittest
                :
                : "g" a ? b : : c;
         } },
-        +/
     ];
 
     foreach (test; passAsmTests)
@@ -471,6 +486,4 @@ unittest
 
     foreach (test; failAsmTests)
         parseAsm(test, true);
-
-    global.endGagging(errors);
 }
