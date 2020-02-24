@@ -3126,9 +3126,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
         {
             printf("Type::dotExp(e = '%s', ident = '%s')\n", e.toChars(), ident.toChars());
         }
-        Expression ex = e;
-        while (ex.op == TOK.comma)
-            ex = (cast(CommaExp)ex).e2;
+        Expression ex = e.lastComma();
         if (ex.op == TOK.dotVariable)
         {
             DotVarExp dv = cast(DotVarExp)ex;

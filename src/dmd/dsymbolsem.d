@@ -1381,9 +1381,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
                     if (ei && dsym.isScope())
                     {
-                        Expression ex = ei.exp;
-                        while (ex.op == TOK.comma)
-                            ex = (cast(CommaExp)ex).e2;
+                        Expression ex = ei.exp.lastComma();
                         if (ex.op == TOK.blit || ex.op == TOK.construct)
                             ex = (cast(AssignExp)ex).e2;
                         if (ex.op == TOK.new_)
