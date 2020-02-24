@@ -60,6 +60,8 @@ $(H2 $(LEGACY_LNAME2 Predefined-Pragmas, predefined-pragmas, Predefined Pragmas)
 $(P All implementations must support these, even if by just ignoring them:)
 
 $(UL
+    $(LI $(LINK2 #crtctor, pragma crt$(UNDERSCORE)constructor))
+    $(LI $(LINK2 #crtdtor, pragma crt$(UNDERSCORE)destructor))
     $(LI $(LINK2 #inline, pragma inline))
     $(LI $(LINK2 #lib, pragma lib))
     $(LI $(LINK2 #linkerDirective, pragma linkerDirective))
@@ -69,6 +71,65 @@ $(UL
 )
 
     $(IMPLEMENTATION_DEFINED An implementation may ignore these pragmas.)
+
+$(H3 $(LNAME2 crtctor, $(D pragma crt_constructor)))
+
+    $(P This pragma must directly precede an $(D extern(C)) function declaration
+        that must take no argument, even default ones.
+        The function this pragma applies to will be inserted in `.init_array`
+        or `.ctors`, depending on the target and compiler implementation.
+        It is equivalent to GCC's $(LINK2 https://gcc.gnu.org/onlinedocs/gcc-4.7.0/gcc/Function-Attributes.html, `__attribute__((constructor))`).
+    )
+-----------------
+__gshared int initCount;
+
+pragma(crt_constructor)
+extern(C) void initializer() { initCount += 1; }
+-----------------
+
+    $(P It is useful for system programming and interfacing with C/C++,
+        for example to allow for initialization of the runtime when loading a DSO,
+        or as a simple replacement for `shared static this` in
+        $(DDLINK spec/betterc, betterC mode, betterC mode).
+    )
+    $(P A module may contain any number of functions annotated with `crt_constructor`.
+        The order in which functions are called is undefined and shouldn't be relied upon.
+        A function can be annotated as both `crt_constructor` and `crt_destructor` (see below).
+        The runtime is not initialized when the function is called.
+        This pragma does not take any argument and can only be applied to a single declaration,
+        so using them in an $(GLINK2 grammar, AttributeSpecifier) is disallowed.
+    )
+
+    $(P `crt_constructor` and `crt_destructor` were implemented in
+        $(LINK2 $(ROOT_DIR)changelog/2.078.0.html, v2.078.0 (2018-01-01)).
+        Some compilers exposed non-standard, compiler-specific mechanism before.
+    )
+
+$(H3 $(LNAME2 crtdtor, $(D pragma crt_destructor)))
+
+    $(P Similarly, `pragma(crt_destructor)` must also directly precede an `extern(C)`
+        function declaration that must take no argument, even default ones.
+        The function this pragma applies to will be inserted in `.fini_array`
+        or `.dtors`, depending on the target and compiler implementation.
+        It is equivalent to GCC's $(LINK2 https://gcc.gnu.org/onlinedocs/gcc-4.7.0/gcc/Function-Attributes.html, `__attribute__((destructor))`).
+    )
+-----------------
+__gshared int initCount;
+
+pragma(crt_constructor)
+extern(C) void initialize() { initCount += 1; }
+
+pragma(crt_destructor)
+extern(C) void deinitialize() { initCount -= 1; }
+
+pragma(crt_constructor)
+pragma(crt_destructor)
+extern(C) void innuendo() { printf("Inside a constructor... Or destructor?\n"); }
+-----------------
+
+    $(P The runtime might have been terminated and not be usable anymore when the destructors are called.
+        Otherwise, usage and requirements of `crt_destructor` are similar to those of `crt_constructor`.
+    )
 
 $(H3 $(LNAME2 inline, $(D pragma inline)))
 

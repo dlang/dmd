@@ -294,7 +294,7 @@ $(SECTION2 $(LEGACY_LNAME2 COM-Interfaces, com-interfaces, COM Interfaces),
     )
 
     $(P For more information, see
-    $(LINK2 http://lunesu.com/uploads/ModernCOMProgramminginD.pdf, Modern COM Programming in D)
+    $(LINK2 http://www.lunesu.com/uploads/ModernCOMProgramminginD.pdf, Modern COM Programming in D)
     )
 
 )

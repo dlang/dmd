@@ -312,7 +312,7 @@ $(GNAME AutoDeclarationY):
 static x = 3;      // x is type int
 auto y = 4u;       // y is type uint
 
-auto s = "Apollo"; // s is type immutable(char)[]
+auto s = "Apollo"; // s is type immutable(char)[] i.e., string
 
 class C { ... }
 
@@ -553,8 +553,8 @@ $(GNAME Typeof):
         --------------------
 
         $(P
-        $(I Expression) is not evaluated, just the type of it is
-        generated:
+        The $(I Expression) is not evaluated, it is used purely to
+        generate the type:
         )
 
         --------------------
@@ -648,14 +648,14 @@ $(GNAME VoidInitializer):
         $(OL
         $(LI Void initializers are useful when a static array is on the stack,
         but may only be partially used, such as as a temporary buffer.
-        Void initializers will speed up the code, but of course one must be careful
-        that array elements are actually set before read.)
+        Void initializers will potentially speed up the code, but they introduce risk, since one must ensure
+        that array elements are always set before read.)
         $(LI The same is true for structs.)
         $(LI Use of void initializers is rarely useful for individual local variables,
         as a modern optimizer will remove the dead store of its initialization if it is
         initialized later.)
-        $(LI For hot code paths, it is worthwhile to check to see if the void initializer
-        actually improves results before using it.)
+        $(LI For hot code paths, it is worth profiling to see if the void initializer
+        actually improves results.)
         )
         )
 

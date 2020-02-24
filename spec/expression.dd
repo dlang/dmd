@@ -789,8 +789,9 @@ $(GNAME AddExpression):
     )
 
     $(P If both operands are of integral types and an overflow or underflow
-        occurs in the computation, wrapping will happen. That is,
-        $(D uint.max + 1 == uint.min) and $(D uint.min - 1 == uint.max).
+        occurs in the computation, wrapping will happen. For example,
+        $(D uint.max + 1 == uint.min), $(D uint.min - 1 == uint.max),
+        $(D int.max + 1 == int.min), and $(D int.min - 1 == int.max).
     )
 
     $(P Add expressions for floating point operands are not associative.
@@ -1775,9 +1776,9 @@ $(H3 $(LNAME2 lambdas, Lambdas))
 
 $(GRAMMAR
 $(GNAME Lambda):
-    $(D function) $(D ref)$(OPT) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterAttributes) $(D =>) $(GLINK AssignExpression)
-    $(D delegate) $(D ref)$(OPT) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterMemberAttributes) $(D =>) $(GLINK AssignExpression)
-    $(D ref)$(OPT) $(GLINK ParameterMemberAttributes) $(D =>) $(GLINK AssignExpression)
+    $(D function) $(D ref)$(OPT) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterWithAttributes) $(D =>) $(GLINK AssignExpression)
+    $(D delegate) $(D ref)$(OPT) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterWithMemberAttributes) $(D =>) $(GLINK AssignExpression)
+    $(D ref)$(OPT) $(GLINK ParameterWithMemberAttributes) $(D =>) $(GLINK AssignExpression)
     $(IDENTIFIER) $(D =>) $(GLINK AssignExpression)
 )
 

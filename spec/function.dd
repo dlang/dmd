@@ -2851,7 +2851,7 @@ $(H3 $(LNAME2 safe-functions, Safe Functions))
         functions:)
 
         $(UL
-        $(LI No casting from a pointer type to any type other than $(CODE void*).)
+        $(LI No casting from a pointer type to any type with pointers other than $(CODE void*).)
         $(LI No casting from any non-pointer type to a pointer type.)
         $(LI No pointer arithmetic (including pointer indexing).)
         $(LI Cannot access unions that have pointers or references overlapping
