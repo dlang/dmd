@@ -3678,7 +3678,7 @@ extern (C++) final class FuncExp : Expression
                 symtab = sds.symtab;
             }
             assert(symtab);
-            Identifier id = Identifier.generateId(s, symtab.len() + 1);
+            Identifier id = Identifier.generateId(s, symtab.length() + 1);
             fd.ident = id;
             if (td)
                 td.ident = id;

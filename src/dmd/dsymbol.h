@@ -396,5 +396,5 @@ public:
     Dsymbol *insert(Identifier const * const ident, Dsymbol *s);     // when ident and s are not the same
 
     // Number of symbols in symbol table
-    uint len() const;
+    size_t length() const;
 };

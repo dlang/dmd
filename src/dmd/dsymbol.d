@@ -2136,8 +2136,8 @@ extern (C++) final class DsymbolTable : RootObject
      * Returns:
      *  number of symbols in symbol table
      */
-    uint len() const pure
+    size_t length() const pure
     {
-        return cast(uint)tab.length;
+        return tab.length;
     }
 }
