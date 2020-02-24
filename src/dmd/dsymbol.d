@@ -1800,28 +1800,25 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
             v.dsymbolSemantic(sc);
             return v;
         }
-        if (exp.op == TOK.index)
+        if (auto ie = exp.isIndexExp())
         {
             /* array[index] where index is some function of $
              */
-            IndexExp ie = cast(IndexExp)exp;
             pvar = &ie.lengthVar;
             ce = ie.e1;
         }
-        else if (exp.op == TOK.slice)
+        else if (auto se = exp.isSliceExp())
         {
             /* array[lwr .. upr] where lwr or upr is some function of $
              */
-            SliceExp se = cast(SliceExp)exp;
             pvar = &se.lengthVar;
             ce = se.e1;
         }
-        else if (exp.op == TOK.array)
+        else if (auto ae = exp.isArrayExp())
         {
             /* array[e0, e1, e2, e3] where e0, e1, e2 are some function of $
              * $ is a opDollar!(dim)() where dim is the dimension(0,1,2,...)
              */
-            ArrayExp ae = cast(ArrayExp)exp;
             pvar = &ae.lengthVar;
             ce = ae.e1;
         }
@@ -1836,12 +1833,11 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
          * tuple, rewrite this as an index into a type tuple and
          * try again.
          */
-        if (ce.op == TOK.type)
+        if (auto te = ce.isTypeExp())
         {
-            Type t = (cast(TypeExp)ce).type;
-            if (t.ty == Ttuple)
+            if (auto ttp = te.type.isTypeTuple())
             {
-                type = cast(TypeTuple)t;
+                type = ttp;
                 goto L1;
             }
         }
@@ -1854,12 +1850,12 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
              */
             VarDeclaration v;
             Type t;
-            if (ce.op == TOK.tuple)
+            if (auto tupexp = ce.isTupleExp())
             {
                 /* It is for an expression tuple, so the
                  * length will be a const.
                  */
-                Expression e = new IntegerExp(Loc.initial, (cast(TupleExp)ce).exps.dim, Type.tsize_t);
+                Expression e = new IntegerExp(Loc.initial, tupexp.exps.dim, Type.tsize_t);
                 v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, new ExpInitializer(Loc.initial, e));
                 v.storage_class |= STC.temp | STC.static_ | STC.const_;
             }
