@@ -394,4 +394,7 @@ public:
     // Insert Dsymbol in table. Return NULL if already there.
     Dsymbol *insert(Dsymbol *s);
     Dsymbol *insert(Identifier const * const ident, Dsymbol *s);     // when ident and s are not the same
+
+    // Number of symbols in symbol table
+    uint len() const;
 };
