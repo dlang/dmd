@@ -62,7 +62,7 @@ Updating the `TEST_OUTPUT` can also be done for a custom subset of tests:
 
 Note:
 - you might need to run this command twice if you add a new error message(s) as then the line numbers of the following error messages will change
-- `AUTO_UPDATE` doesn't work with tests that have multiple `TEST_OUTPUT` segments
+- `AUTO_UPDATE` doesn't work with tests that have no, empty or multiple `TEST_OUTPUT` segments
 - `AUTO_UPDATE` can be set as an environment variable or as Makefile-like argument assignment
 
 ### Running the Unit Tests
@@ -223,6 +223,17 @@ The following is a list of all available settings:
                          note: if not given, it is assumed that the compilation will be silent.
                          default: (none)
 
+    TEST_OUTPUT_FILE:   file containing the expected output as defined for TEST_OUTPUT.
+                        note: Further TEST_OUTPUT sections in the test are ignored.
+                        default: (none)
+
+    TRANSFORM_OUTPUT:   steps to apply to the output of the compilation before it
+                        is compared to the expected TEST_OUTPUT.
+
+                        Supported transformations:
+                        - sanitize_json:    Remove compiler specific information from output
+                                            of -Xi (see test/tools/sanitize_json.d)
+
     POST_SCRIPT:         name of script to execute after test run
                          note: arguments to the script may be included after the name.
                                additionally, the name of the file that contains the output
@@ -307,6 +318,22 @@ A few operations are done on the output of a test before the comparison with `TE
 - newlines get unified for consistent `TEST_OUTPUT` between platforms
 - DMD's debug message (e.g. `DMD v2.084.0-255-g86b608a15-dirty DEBUG`) gets stripped away
 - paths to `test_results` will be replaced with `{{RESULTS_DIR}}`
+
+`TEST_OUTPUT` offers the following special sequences to match error messages which
+depend on the current platform and target:
+
+    $n$             arbitrary amount of digits
+
+    $p:<tail>$      paths ending with <tail> (which must refer to an existing file or directory)
+
+    $?:<choices>$   selection based on the current environment where a choice is either
+                    conditional `<condition>=<content>` or a fallback value `<default>`.
+                    Multiple choices are separated by `|` and the leftmost satisfied condition
+                    or fallback is chosen if multiple choices apply.
+
+                    Supported conditions:
+                    - OS: posix, windows, ...
+                    - Model: 64, 32mscoff and 32 (also matches 32mscoff)
 
 Both stderr and stdout of the DMD are captured for output comparison.
 
