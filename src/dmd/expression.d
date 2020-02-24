@@ -1799,6 +1799,7 @@ extern (C++) final class IntegerExp : Expression
             break;
 
         case Tpointer:
+        case Tsize_t:
             if (target.ptrsize == 8)
                 goto case Tuns64;
             if (target.ptrsize == 4)

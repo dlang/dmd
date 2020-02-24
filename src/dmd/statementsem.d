@@ -758,20 +758,20 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 }
                 p.type = p.type.typeSemantic(loc, sc);
                 TY keyty = p.type.ty;
-                if (keyty != Tint32 && keyty != Tuns32)
+                if (keyty != Tint32 && keyty != Tuns32 && keyty != Tsize_t)
                 {
                     if (global.params.isLP64)
                     {
                         if (keyty != Tint64 && keyty != Tuns64)
                         {
-                            fs.error("`foreach`: key type must be `int` or `uint`, `long` or `ulong`, not `%s`", p.type.toChars());
+                            fs.error("`foreach`: key type must be `int` or `uint`, `long` or `ulong` or `size_t`, not `%s`", p.type.toChars());
                             setError();
                             return returnEarly();
                         }
                     }
                     else
                     {
-                        fs.error("`foreach`: key type must be `int` or `uint`, not `%s`", p.type.toChars());
+                        fs.error("`foreach`: key type must be `int` or `uint`, not `%s` ot `size_t`", p.type.toChars());
                         setError();
                         return returnEarly();
                     }

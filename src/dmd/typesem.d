@@ -2040,6 +2040,7 @@ Type merge(Type type)
         case Tident:
         case Tinstance:
         case Tmixin:
+        case Tsize_t:
             return type;
 
         case Tsarray:
@@ -2062,7 +2063,7 @@ Type merge(Type type)
             break;
     }
 
-    //printf("merge(%s)\n", toChars());
+    // if (type) printf("merge(%s)\n", type.toChars());
     if (!type.deco)
     {
         OutBuffer buf;
@@ -2225,6 +2226,7 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
         {
             switch (mt.ty)
             {
+            case Tsize_t:      mixin(sizeTSwitchCase);
             case Tint8:        return integerValue(byte.max);
             case Tuns8:        return integerValue(ubyte.max);
             case Tint16:       return integerValue(short.max);
@@ -2253,6 +2255,7 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
         {
             switch (mt.ty)
             {
+            case Tsize_t: mixin(sizeTSwitchCase);
             case Tint8:        return integerValue(byte.min);
             case Tuns8:
             case Tuns16:

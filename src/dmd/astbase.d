@@ -169,8 +169,10 @@ struct ASTBase
         Tint32,
         Tuns32,
         Tint64,
-
         Tuns64,
+
+        Tsize_t,
+
         Tfloat32,
         Tfloat64,
         Tfloat80,
@@ -2784,6 +2786,7 @@ struct ASTBase
                 Tfloat32,
                 Tfloat64,
                 Tfloat80,
+                Tsize_t,
                 Timaginary32,
                 Timaginary64,
                 Timaginary80,
@@ -2847,7 +2850,7 @@ struct ASTBase
 
             const isLP64 = global.params.isLP64;
 
-            tsize_t    = basic[isLP64 ? Tuns64 : Tuns32];
+            tsize_t    = basic[Tsize_t];
             tptrdiff_t = basic[isLP64 ? Tint64 : Tint32];
             thash_t = tsize_t;
         }

@@ -1843,6 +1843,8 @@ public:
             case Tuns64:
                 buf.printf("%lluLU", v);
                 break;
+            case Tsize_t:
+                mixin(sizeTSwitchCase);
             case Tbool:
                 buf.writestring(v ? "true" : "false");
                 break;

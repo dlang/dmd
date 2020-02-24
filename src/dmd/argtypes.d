@@ -100,6 +100,7 @@ extern (C++) TypeTuple toArgTypes(Type t)
             case Tfloat32:
             case Tint64:
             case Tuns64:
+            case Tsize_t:
             case Tint128:
             case Tuns128:
             case Tfloat64:

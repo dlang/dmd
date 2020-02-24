@@ -64,8 +64,10 @@ enum ENUMTY
     Tint32,
     Tuns32,
     Tint64,
-
     Tuns64,
+
+    Tsize_t,
+
     Tfloat32,
     Tfloat64,
     Tfloat80,

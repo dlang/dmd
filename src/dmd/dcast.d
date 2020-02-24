@@ -3319,11 +3319,42 @@ Lagain:
         {
             if (t1.ty == Tvector || t2.ty == Tvector)
                 return Lincompatible();
+            auto t1old = e1.type;
+            auto t2old = e2.type;
             e1 = integralPromotions(e1, sc);
             e2 = integralPromotions(e2, sc);
             t1 = e1.type;
             t2 = e2.type;
-            goto Lagain;
+
+            if (t1old != t1 || t2old != t2)
+            {
+                // only try this again if the integral promotion changed anything!
+                goto Lagain;
+            }
+            else
+            {
+                // if the integral promotion didn't do anything we probably have the size_t type
+                // here things become somewhat tricky. if asked to chose between a 32bit size_t
+                // and uint which one is wider?
+                // we break this tie in favor of the normal unsigned time of appropriate width
+                // let's go
+                assert(t1.ty == Tsize_t || t2.ty == Tsize_t);
+                // get the size of both types and chose the wieder one
+                d_uns64 target_size = t1.size() > t2.size() ? t1.size() : t2.size();
+                if (target_size == 4)
+                {
+                    t1 = t2 = Type.tuns32;
+                }
+                else if (target_size == 8)
+                {
+                    t1 = t2 = Type.tuns64;
+                }
+                else
+                {
+                    // unexpected target size;
+                    assert(0);
+                }
+            }
         }
         assert(t1.ty == t2.ty);
 LmodCompare:

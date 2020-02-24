@@ -514,9 +514,11 @@ class Lexer
                         }
                         break;
                     }
+                    // string token = cast(string)(cast(char*)t.ptr)[0 .. cast(uint)(p - t.ptr)];
                     Identifier id = Identifier.idPool(cast(char*)t.ptr, cast(uint)(p - t.ptr));
                     t.ident = id;
                     t.value = cast(TOK)id.getValue();
+
                     anyToken = 1;
                     if (*t.ptr == '_') // if special identifier token
                     {

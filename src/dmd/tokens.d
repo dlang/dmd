@@ -176,6 +176,9 @@ enum TOK : ubyte
     uns64,
     int128,
     uns128,
+
+    _size_t,
+
     float32,
     float64,
     float80,
@@ -191,7 +194,7 @@ enum TOK : ubyte
     bool_,
 
     // Aggregates
-    struct_ = 152,
+    struct_ = 153,
     class_,
     interface_,
     union_,
@@ -223,7 +226,7 @@ enum TOK : ubyte
     immutable_,
 
     // Statements
-    if_ = 182,
+    if_ = 183,
     else_,
     while_,
     for_,
@@ -249,7 +252,7 @@ enum TOK : ubyte
     onScopeSuccess,
 
     // Contracts
-    invariant_ = 206,
+    invariant_ = 207,
 
     // Testing
     unittest_,
@@ -259,7 +262,7 @@ enum TOK : ubyte
     ref_,
     macro_,
 
-    parameters = 211,
+    parameters = 212,
     traits,
     overloadSet,
     pure_,
@@ -279,7 +282,7 @@ enum TOK : ubyte
     vector,
     pound,
 
-    interval = 230,
+    interval = 231,
     voidExpression,
     cantExpression,
     showCtfeContext,
@@ -334,6 +337,7 @@ private immutable TOK[] keywords =
     TOK.uns64,
     TOK.int128,
     TOK.uns128,
+    TOK._size_t,
     TOK.float32,
     TOK.float64,
     TOK.float80,
@@ -477,6 +481,7 @@ extern (C++) struct Token
         TOK.uns32: "uint",
         TOK.int64: "long",
         TOK.uns64: "ulong",
+        TOK._size_t: "size_t",
         TOK.int128: "cent",
         TOK.uns128: "ucent",
         TOK.float32: "float",
@@ -880,6 +885,7 @@ nothrow:
         case TOK.uns32:
         case TOK.int64:
         case TOK.uns64:
+        case TOK._size_t:
         case TOK.int128:
         case TOK.uns128:
         case TOK.float32:

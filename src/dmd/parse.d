@@ -568,6 +568,7 @@ final class Parser(AST) : Lexer
             case TOK.uns32:
             case TOK.int64:
             case TOK.uns64:
+            case TOK._size_t:
             case TOK.int128:
             case TOK.uns128:
             case TOK.float32:
@@ -2003,6 +2004,10 @@ final class Parser(AST) : Lexer
 
         case TOK.uns64:
             ta = AST.Type.tuns64;
+            goto LabelX;
+
+        case TOK._size_t:
+            ta = AST.Type.tsize_t;
             goto LabelX;
 
         case TOK.int128:
@@ -3624,6 +3629,10 @@ final class Parser(AST) : Lexer
         case TOK.uns64:
             t = AST.Type.tuns64;
             goto LabelX;
+
+        case TOK._size_t:
+           t = AST.Type.tsize_t;
+           goto LabelX;
 
         case TOK.int128:
             t = AST.Type.tint128;
@@ -5561,6 +5570,7 @@ final class Parser(AST) : Lexer
         case TOK.uns32:
         case TOK.int64:
         case TOK.uns64:
+        case TOK._size_t:
         case TOK.int128:
         case TOK.uns128:
         case TOK.float32:
@@ -6827,6 +6837,7 @@ final class Parser(AST) : Lexer
         case TOK.uns32:
         case TOK.int64:
         case TOK.uns64:
+        case TOK._size_t:
         case TOK.int128:
         case TOK.uns128:
         case TOK.float32:
@@ -6892,6 +6903,7 @@ final class Parser(AST) : Lexer
                     case TOK.uns32:
                     case TOK.int64:
                     case TOK.uns64:
+                    case TOK._size_t:
                     case TOK.int128:
                     case TOK.uns128:
                     case TOK.float32:
@@ -7871,6 +7883,10 @@ final class Parser(AST) : Lexer
             t = AST.Type.tuns64;
             goto LabelX;
 
+        case TOK._size_t:
+            t = AST.Type.tsize_t;
+            goto LabelX;
+
         case TOK.int128:
             t = AST.Type.tint128;
             goto LabelX;
@@ -8430,6 +8446,7 @@ final class Parser(AST) : Lexer
                         case TOK.uns32:
                         case TOK.int64:
                         case TOK.uns64:
+                        case TOK._size_t:
                         case TOK.int128:
                         case TOK.uns128:
                         case TOK.float32:

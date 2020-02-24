@@ -55,6 +55,7 @@ private immutable char[TMAX] mangleChar =
     Tuns64       : 'm',
     Tnone        : 'n',
     Tnull        : 'n', // yes, same as TypeNone
+    Tsize_t      : '@', // since this is only known at runtime
     Timaginary32 : 'o',
     Timaginary64 : 'p',
     Tcomplex32   : 'q',
@@ -107,6 +108,11 @@ private immutable char[TMAX] mangleChar =
     Tmixin       : '@',
 ];
 
+char size_tMangleChar()
+{
+    return global.params.isLP64 ? mangleChar[Tuns64] : mangleChar[Tuns32];
+}
+
 unittest
 {
     foreach (i, mangle; mangleChar)
@@ -123,9 +129,9 @@ unittest
  * Mangle basic type ty to buf.
  */
 
-private void tyToDecoBuffer(OutBuffer* buf, int ty)
+void tyToDecoBuffer(OutBuffer* buf, int ty)
 {
-    const c = mangleChar[ty];
+    const c = (ty == ENUMTY.Tsize_t ? size_tMangleChar() : mangleChar[ty]);
     buf.writeByte(c);
     if (c == 'z')
         buf.writeByte(ty == Tint128 ? 'i' : 'k');

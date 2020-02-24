@@ -1413,6 +1413,7 @@ tym_t totym(Type tx)
         case Tuns32:    t = TYuint;     break;
         case Tint64:    t = TYllong;    break;
         case Tuns64:    t = TYullong;   break;
+        case Tsize_t: mixin(sizeTSwitchCase);
         case Tfloat32:  t = TYfloat;    break;
         case Tfloat64:  t = TYdouble;   break;
         case Tfloat80:  t = TYldouble;  break;

@@ -250,6 +250,7 @@ enum ENUMTY : int
 
     Tdelegate,
     Tnone,
+
     Tvoid,
     Tint8,
     Tuns8,
@@ -258,8 +259,10 @@ enum ENUMTY : int
     Tint32,
     Tuns32,
     Tint64,
-
     Tuns64,
+
+    Tsize_t,
+
     Tfloat32,
     Tfloat64,
     Tfloat80,
@@ -274,6 +277,7 @@ enum ENUMTY : int
     Tchar,
     Twchar,
     Tdchar,
+
     Terror,
     Tinstance,
     Ttypeof,
@@ -311,6 +315,7 @@ alias Tint32 = ENUMTY.Tint32;
 alias Tuns32 = ENUMTY.Tuns32;
 alias Tint64 = ENUMTY.Tint64;
 alias Tuns64 = ENUMTY.Tuns64;
+alias Tsize_t = ENUMTY.Tsize_t;
 alias Tfloat32 = ENUMTY.Tfloat32;
 alias Tfloat64 = ENUMTY.Tfloat64;
 alias Tfloat80 = ENUMTY.Tfloat80;
@@ -372,7 +377,15 @@ enum VarArg
     typesafe = 2,  /// (T t ...) typesafe https://dlang.org/spec/function.html#typesafe_variadic_functions
                    ///   or https://dlang.org/spec/function.html#typesafe_variadic_functions
 }
-
+/// default behavor for switches on TY when TsizeT is involved
+enum sizeTSwitchCase =
+`if (target.ptrsize == 8)
+    goto case Tuns64;
+if (target.ptrsize == 4)
+    goto case Tuns32;
+if (target.ptrsize == 2)
+    goto case Tuns16;
+assert(0);`;
 
 /***********************************************************
  */
@@ -519,17 +532,25 @@ extern (C++) abstract class Type : ASTNode
 
     override bool equals(const RootObject o) const
     {
+        bool result = false;
         Type t = cast(Type)o;
         //printf("Type::equals(%s, %s)\n", toChars(), t.toChars());
         // deco strings are unique
         // and semantic() has been run
-        if (this == o || ((t && deco == t.deco) && deco !is null))
+        if (t &&
+            (this == t ||
+                // we should not rely on the deco strings in basic types though
+                // because size_t is considered ulong or uint when compared by mangle
+                (isTypeBasic() && ty == t.ty) ||
+                ((t && deco == t.deco) && deco !is null)
+            )
+        )
         {
             //printf("deco = '%s', t.deco = '%s'\n", deco, t.deco);
-            return true;
+            result = true;
         }
         //if (deco && t && t.deco) printf("deco = '%s', t.deco = '%s'\n", deco, t.deco);
-        return false;
+        return result;
     }
 
     final bool equivalent(Type t)
@@ -823,6 +844,7 @@ extern (C++) abstract class Type : ASTNode
             Tuns32,
             Tint64,
             Tuns64,
+            Tsize_t,
             Tint128,
             Tuns128,
             Tfloat32,
@@ -891,7 +913,14 @@ extern (C++) abstract class Type : ASTNode
 
         const isLP64 = global.params.isLP64;
 
-        tsize_t    = basic[isLP64 ? Tuns64 : Tuns32];
+        tsize_t    = basic[Tsize_t];
+        {
+            OutBuffer tybuf;
+            tybuf.reserve(8);
+            tyToDecoBuffer(&tybuf, Tsize_t);
+            tsize_t.deco = tybuf.extractChars();
+        }
+
         tptrdiff_t = basic[isLP64 ? Tint64 : Tint32];
         thash_t = tsize_t;
     }
@@ -957,17 +986,23 @@ extern (C++) abstract class Type : ASTNode
         //printf("merge2(%s)\n", toChars());
         Type t = this;
         assert(t);
-        if (!t.deco)
-            return t.merge();
 
-        auto sv = stringtable.lookup(t.deco, strlen(t.deco));
-        if (sv && sv.value)
+        // basic types cannot merged based on deco
+        if (!t.isTypeBasic())
         {
-            t = sv.value;
-            assert(t.deco);
+            if (!t.deco)
+                return t.merge();
+
+            auto sv = stringtable.lookup(t.deco, strlen(t.deco));
+            if (sv && sv.value)
+            {
+                t = sv.value;
+                assert(t.deco);
+            }
+            else
+                assert(0);
         }
-        else
-            assert(0);
+
         return t;
     }
 
@@ -2557,6 +2592,8 @@ extern (C++) abstract class Type : ASTNode
         case Tuns64:
             m = 0xFFFFFFFFFFFFFFFFUL;
             break;
+        case Tsize_t: mixin(sizeTSwitchCase);
+
         default:
             assert(0);
         }
@@ -2641,7 +2678,7 @@ extern (C++) abstract class Type : ASTNode
     }
 
     // For eliminating dynamic_cast
-    TypeBasic isTypeBasic()
+    inout(TypeBasic) isTypeBasic() inout
     {
         return null;
     }
@@ -3077,6 +3114,11 @@ extern (C++) final class TypeBasic : Type
             flags |= TFlags.integral | TFlags.unsigned;
             break;
 
+        case Tsize_t:
+            d = "size_t";
+            flags |= TFlags.integral | TFlags.unsigned;
+            break;
+
         case Tint128:
             d = Token.toChars(TOK.int128);
             flags |= TFlags.integral;
@@ -3168,6 +3210,7 @@ extern (C++) final class TypeBasic : Type
 
     override d_uns64 size(const ref Loc loc) const
     {
+        const isLP64 = global.params.isLP64;
         uint size;
         //printf("TypeBasic::size()\n");
         switch (ty)
@@ -3195,6 +3238,10 @@ extern (C++) final class TypeBasic : Type
         case Timaginary64:
             size = 8;
             break;
+
+        case Tsize_t:
+           size = target.ptrsize;
+           break;
 
         case Tfloat80:
         case Timaginary80:
@@ -3404,7 +3451,7 @@ extern (C++) final class TypeBasic : Type
     }
 
     // For eliminating dynamic_cast
-    override TypeBasic isTypeBasic()
+    override inout(TypeBasic) isTypeBasic() inout
     {
         return this;
     }
