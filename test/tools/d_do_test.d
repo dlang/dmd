@@ -76,6 +76,7 @@ struct TestArgs
     string   permuteArgs;
     string[] argSets;
     string   compileOutput;
+    string   compileOutputFile; /// file containing the expected output
     string   gdbScript;
     string   gdbMatch;
     string   postScript;
@@ -360,7 +361,18 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     if (!testArgs.isDisabled)
         testArgs.disabledReason = getDisabledReason(split(disabledPlatformsStr), envData);
 
-    findOutputParameter(file, "TEST_OUTPUT", testArgs.compileOutput, envData.sep);
+    findTestParameter(envData, file, "TEST_OUTPUT_FILE", testArgs.compileOutputFile);
+
+    // Only check for TEST_OUTPUT is no file was given because it would
+    // partially match TEST_OUTPUT_FILE
+    if (testArgs.compileOutputFile)
+    {
+        // Don't require tests to specify the test directory
+        testArgs.compileOutputFile = input_dir.buildPath(testArgs.compileOutputFile);
+        testArgs.compileOutput = readText(testArgs.compileOutputFile);
+    }
+    else
+        findOutputParameter(file, "TEST_OUTPUT", testArgs.compileOutput, envData.sep);
 
     findOutputParameter(file, "GDB_SCRIPT", testArgs.gdbScript, envData.sep);
     findTestParameter(envData, file, "GDB_MATCH", testArgs.gdbMatch);
@@ -689,6 +701,49 @@ unittest
     assert(compareOutput("size_t is uint!", "size_t is $?:32=uint|64=ulong$!", ed));
 }
 
+/++
+Creates a diff of the expected and actual test output.
+
+Params:
+    testData = the test configuration
+    output   = the actual output
+    name     = the test files name
+
+Returns: the comparison created by the `diff` utility
+++/
+string generateDiff(ref const TestArgs testData, const string output, const string name)
+{
+    string actualFile = tempDir.buildPath("expected_" ~ name);
+    File(actualFile, "w").writeln(output); // Append \n
+    scope (exit) remove(actualFile);
+
+    const needTmp = !testData.compileOutputFile;
+    string expectedFile;
+    if (needTmp) // Create a temporary file
+    {
+        expectedFile = tempDir.buildPath("actual_" ~ name);
+        File(expectedFile, "w").writeln(testData.compileOutput); // Append \n
+    }
+    else // Reuse TEST_OUTPUT_FILE
+        expectedFile = testData.compileOutputFile;
+
+    // Remove temporary file
+    scope (exit) if (needTmp)
+        remove(expectedFile);
+
+    const cmd = ["diff", "-pu", "--strip-trailing-cr", expectedFile, actualFile];
+    try
+    {
+        string diff = std.process.execute(cmd).output;
+        // Skip diff's status lines listing the diffed files and line count
+        foreach (_; 0..3)
+            diff = diff.findSplitAfter("\n")[1];
+        return diff;
+    }
+    catch (Exception e)
+        return format(`%-(%s, %) failed: %s`, cmd, e.msg);
+}
+
 string envGetRequired(in char[] name)
 {
     auto value = environment.get(name);
@@ -708,9 +763,10 @@ class CompareException : Exception
     string expected;
     string actual;
 
-    this(string expected, string actual) {
+    this(string expected, string actual, string diff) {
         string msg = "\nexpected:\n----\n" ~ expected ~
-            "\n----\nactual:\n----\n" ~ actual ~ "\n----\n";
+            "\n----\nactual:\n----\n" ~ actual ~
+            "\n----\ndiff:\n----\n" ~ diff ~ "----\n";
         super(msg);
         this.expected = expected;
         this.actual = actual;
@@ -972,7 +1028,8 @@ int tryMain(string[] args)
                      testArgs.mode != TestMode.FAIL_COMPILE &&
                      testArgs.mode != TestMode.RUN))
                 {
-                    throw new CompareException(testArgs.compileOutput, compile_output);
+                    const diff = generateDiff(testArgs, compile_output, test_base_name);
+                    throw new CompareException(testArgs.compileOutput, compile_output, diff);
                 }
             }
 
@@ -1043,6 +1100,13 @@ int tryMain(string[] args)
             {
                 // remove the output file in test_results as its outdated
                 output_file.remove();
+
+                if (testArgs.compileOutputFile)
+                {
+                    std.file.write(testArgs.compileOutputFile, ce.actual);
+                    writefln("\n==> `TEST_OUTPUT_FILE` `%s` has been updated", testArgs.compileOutputFile);
+                    return Result.return0;
+                }
 
                 auto existingText = input_file.readText;
                 auto updatedText = existingText.replace(ce.expected, ce.actual);
