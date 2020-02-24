@@ -2105,13 +2105,6 @@ extern (C++) final class DsymbolTable : RootObject
         return tab[ident];
     }
 
-    // Insert Dsymbol in table. Return NULL if already there.
-    Dsymbol insert(Dsymbol s)
-    {
-        //printf("DsymbolTable::insert(this = %p, '%s')\n", this, s.ident.toChars());
-        return insert(s.ident, s);
-    }
-
     // Look for Dsymbol in table. If there, return it. If not, insert s and return that.
     Dsymbol update(Dsymbol s)
     {
@@ -2119,6 +2112,13 @@ extern (C++) final class DsymbolTable : RootObject
         Dsymbol* ps = tab.getLvalue(ident);
         *ps = s;
         return s;
+    }
+
+    // Insert Dsymbol in table. Return NULL if already there.
+    Dsymbol insert(Dsymbol s)
+    {
+        //printf("DsymbolTable::insert(this = %p, '%s')\n", this, s.ident.toChars());
+        return insert(s.ident, s);
     }
 
     // when ident and s are not the same

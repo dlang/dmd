@@ -388,10 +388,10 @@ public:
     // Look up Identifier. Return Dsymbol if found, NULL if not.
     Dsymbol *lookup(Identifier const * const ident);
 
-    // Insert Dsymbol in table. Return NULL if already there.
-    Dsymbol *insert(Dsymbol *s);
-
     // Look for Dsymbol in table. If there, return it. If not, insert s and return that.
     Dsymbol *update(Dsymbol *s);
+
+    // Insert Dsymbol in table. Return NULL if already there.
+    Dsymbol *insert(Dsymbol *s);
     Dsymbol *insert(Identifier const * const ident, Dsymbol *s);     // when ident and s are not the same
 };
