@@ -208,30 +208,79 @@ extern (C)
 ---
 
 
-$(H2 $(LNAME2 calling_printf, Calling printf()))
+$(H2 $(LNAME2 calling_printf, Calling `printf()`))
 
-        $(P This mostly means checking that the
-        $(LINK2 http://www.digitalmars.com/rtl/stdio.html#printf, printf format specifier)
-        matches the corresponding D data type.
-        Although printf is designed to handle 0 terminated strings,
-        not D dynamic arrays of chars, it turns out that since D
-        dynamic arrays are a length followed by a pointer to the data,
-        the $(D %.*s) format works:
-        )
+        $(P `printf` can be directly called from D code:)
+---
+import core.stdc.stdio;
 
-------
-void foo(char[] string)
+int main
 {
-    printf("my string is: %.*s\n", string.length, string.ptr);
+    printf("hello world\n");
+    return 0;
 }
-------
+---
 
-        $(P The $(CODE printf) format string literal
-        in the example doesn't end with $(CODE '\0').
-        This is because string literals,
-        when they are not part of an initializer to a larger data structure,
-        have a $(CODE '\0') character helpfully stored after the end of them.
+        $(P Printing values works as it does in C:)
+---
+int apples;
+printf("there are %d apples\n", apples);
+---
+        $(P Correctly matching the format specifier to the D type is necessary.
+        The D compiler recognizes the printf formats and diagnoses mismatches
+        with the supplied arguments. The specification for the formats
+        used by D is the C99 specification 7.19.6.1.
         )
+
+        $(P A generous interpretation of what is a match between the argument
+        and format specifier is taken, for example, an unsigned type can
+        be printed with a signed format specifier. Diagnosed incompatibilites
+        are:
+        )
+
+        $(UL
+        $(LI incompatible sizes which may cause argument misalignment)
+        $(LI dereferencing arguments that are not pointers)
+        $(LI insufficient number of arguments)
+        $(LI struct, array and slice arguments are not allowed)
+        $(LI non-pointer arguments to `s` specifier)
+        $(LI non-Standard formats)
+        $(LI undefined behavior per C99)
+        )
+
+$(H3 Strings)
+
+        $(P A string cannot be printed directly. But `%.*s` can be used:
+        )
+---
+string s = "betty";
+printf("hello %.*s\n", cast(int) s.length, s.ptr);
+---
+        $(P The cast to `int` is required.
+        )
+
+$(H3 `size_t` and `ptrdiff_t`)
+
+        $(P These use the `zd` and `dt` format specifiers respectively:
+        )
+
+---
+int* p, q;
+printf("size of an int is %zt, pointer difference is %td\n", int.sizeof, p - q);
+---
+
+$(H3 Non-Standard Format Specifiers)
+
+        $(P Non-Standard format specifiers will be rejected by the compiler.
+        Since the checking is only done for formats as string literals,
+        non-Standard ones can be used:
+        )
+---
+string format = "value: %K\n";
+printf(format, value);
+---
+
+$(H3 Modern Formatted Writing)
 
         $(P An improved D function for formatted output is
         $(CODE std.stdio.writef()).
