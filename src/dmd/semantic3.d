@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/semantic3.d, _semantic3.d)
@@ -50,6 +50,7 @@ import dmd.hdrgen;
 import dmd.mtype;
 import dmd.nogc;
 import dmd.nspace;
+import dmd.ob;
 import dmd.objc;
 import dmd.opover;
 import dmd.parse;
@@ -62,7 +63,6 @@ import dmd.statementsem;
 import dmd.staticassert;
 import dmd.tokens;
 import dmd.utf;
-import dmd.utils;
 import dmd.semantic2;
 import dmd.statement;
 import dmd.target;
@@ -314,9 +314,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             sc2.sw = null;
             sc2.fes = funcdecl.fes;
             sc2.linkage = LINK.d;
-            sc2.stc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.abstract_ | STC.deprecated_ | STC.override_ |
-                         STC.TYPECTOR | STC.final_ | STC.tls | STC.gshared | STC.ref_ | STC.return_ | STC.property |
-                         STC.nothrow_ | STC.pure_ | STC.safe | STC.trusted | STC.system);
+            sc2.stc &= STCFlowThruFunction;
             sc2.protection = Prot(Prot.Kind.public_);
             sc2.explicitProtection = 0;
             sc2.aligndecl = null;
@@ -458,8 +456,10 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             stc |= STC.scope_;
                         }
                     }
-                    if (funcdecl.flags & FUNCFLAG.inferScope && !(fparam.storageClass & STC.scope_))
+
+                    if ((funcdecl.flags & FUNCFLAG.inferScope) && !(fparam.storageClass & STC.scope_))
                         stc |= STC.maybescope;
+
                     stc |= fparam.storageClass & (STC.in_ | STC.out_ | STC.ref_ | STC.return_ | STC.scope_ | STC.lazy_ | STC.final_ | STC.TYPECTOR | STC.nodtor);
                     v.storage_class = stc;
                     v.dsymbolSemantic(sc2);
@@ -631,7 +631,9 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     if (funcdecl.storage_class & STC.auto_)
                         funcdecl.storage_class &= ~STC.auto_;
                 }
-                if (!target.isReturnOnStack(f, funcdecl.needThis()))
+
+                // handle NRVO
+                if (!target.isReturnOnStack(f, funcdecl.needThis()) || funcdecl.checkNrvo())
                     funcdecl.nrvo_can = 0;
 
                 if (funcdecl.fbody.isErrorStatement())
@@ -1331,6 +1333,12 @@ private extern(C++) final class Semantic3Visitor : Visitor
             sc.linkage = funcdecl.linkage; // https://issues.dlang.org/show_bug.cgi?id=8496
             funcdecl.type = f.typeSemantic(funcdecl.loc, sc);
             sc = sc.pop();
+        }
+
+        // Do live analysis
+        if (funcdecl.fbody && funcdecl.type.ty != Terror && funcdecl.type.isTypeFunction().islive)
+        {
+            oblive(funcdecl);
         }
 
         /* If this function had instantiated with gagging, error reproduction will be

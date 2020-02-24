@@ -369,7 +369,7 @@ class C {
         else
             assert(63);
     }
-    body {
+    do {
         if (true)
             assert(64);
         else

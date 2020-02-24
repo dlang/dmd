@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/aggregate.d, _aggregate.d)
@@ -79,7 +79,6 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     VarDeclarations fields; // VarDeclaration fields
     Sizeok sizeok = Sizeok.none;  // set when structsize contains valid data
     Dsymbol deferred;       // any deferred semantic2() or semantic3() symbol
-    bool isdeprecated;      // true if deprecated
 
     /// specifies whether this is a D, C++, Objective-C or anonymous struct/class/interface
     ClassKind classKind;
@@ -100,7 +99,6 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     FuncDeclarations invs;          // Array of invariants
     FuncDeclaration inv;            // invariant
     NewDeclaration aggNew;          // allocator
-    DeleteDeclaration aggDelete;    // deallocator
 
     // CtorDeclaration or TemplateDeclaration
     Dsymbol ctor;
@@ -133,7 +131,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     Scope* newScope(Scope* sc)
     {
         auto sc2 = sc.push(this);
-        sc2.stc &= STC.safeGroup;
+        sc2.stc &= STCFlowThruAggregate;
         sc2.parent = this;
         sc2.inunion = isUnionDeclaration();
         sc2.protection = Prot(Prot.Kind.public_);
@@ -636,7 +634,13 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     // is aggregate deprecated?
     override final bool isDeprecated() const
     {
-        return isdeprecated;
+        return !!(this.storage_class & STC.deprecated_);
+    }
+
+    /// Flag this aggregate as deprecated
+    final void setDeprecated()
+    {
+        this.storage_class |= STC.deprecated_;
     }
 
     /****************************************

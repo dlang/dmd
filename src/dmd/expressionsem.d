@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/expressionsem.d, _expressionsem.d)
@@ -60,6 +60,7 @@ import dmd.root.file;
 import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.root.rootobject;
+import dmd.root.string;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.sideeffect;
@@ -174,7 +175,7 @@ private Expression extractOpDollarSideEffect(Scope* sc, UnaExp ue)
     // https://issues.dlang.org/show_bug.cgi?id=12585
     // Extract the side effect part if ue.e1 is comma.
 
-    if (!isTrivialExp(e1))
+    if ((sc.flags & SCOPE.ctfe) ? hasSideEffect(e1) : !isTrivialExp(e1)) // match logic in extractSideEffect()
     {
         /* Even if opDollar is needed, 'e1' should be evaluate only once. So
          * Rewrite:
@@ -1571,12 +1572,15 @@ private Expression rewriteOpAssign(BinExp exp)
 
 /****************************************
  * Preprocess arguments to function.
+ * Input:
+ *      reportErrors    whether or not to report errors here.  Some callers are not
+ *                      checking actual function params, so they'll do their own error reporting
  * Output:
  *      exps[]  tuples expanded, properties resolved, rewritten in place
  * Returns:
  *      true    a semantic error occurred
  */
-private bool preFunctionParameters(Scope* sc, Expressions* exps)
+private bool preFunctionParameters(Scope* sc, Expressions* exps, const bool reportErrors = true)
 {
     bool err = false;
     if (exps)
@@ -1594,15 +1598,21 @@ private bool preFunctionParameters(Scope* sc, Expressions* exps)
 
                 if (arg.op == TOK.type)
                 {
-                    arg.error("cannot pass type `%s` as a function argument", arg.toChars());
-                    arg = new ErrorExp();
+                    if (reportErrors)
+                    {
+                        arg.error("cannot pass type `%s` as a function argument", arg.toChars());
+                        arg = new ErrorExp();
+                    }
                     err = true;
                 }
             }
             else if (arg.type.toBasetype().ty == Tfunction)
             {
-                arg.error("cannot pass function `%s` as a function argument", arg.toChars());
-                arg = new ErrorExp();
+                if (reportErrors)
+                {
+                    arg.error("cannot pass function `%s` as a function argument", arg.toChars());
+                    arg = new ErrorExp();
+                }
                 err = true;
             }
             else if (checkNonAssignmentArrayOp(arg))
@@ -3317,6 +3327,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
+        //for error messages if the argument in [] is not convertible to size_t
+        const originalNewtype = exp.newtype;
+
         // https://issues.dlang.org/show_bug.cgi?id=11581
         // With the syntax `new T[edim]` or `thisexp.new T[edim]`,
         // T should be analyzed first and edim should go into arguments iff it's
@@ -3375,14 +3388,27 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         exp.newtype = exp.type; // in case type gets cast to something else
         Type tb = exp.type.toBasetype();
         //printf("tb: %s, deco = %s\n", tb.toChars(), tb.deco);
-
         if (arrayExpressionSemantic(exp.newargs, sc) ||
             preFunctionParameters(sc, exp.newargs))
         {
             return setError();
         }
-        if (arrayExpressionSemantic(exp.arguments, sc) ||
-            preFunctionParameters(sc, exp.arguments))
+        if (arrayExpressionSemantic(exp.arguments, sc))
+        {
+            return setError();
+        }
+        //https://issues.dlang.org/show_bug.cgi?id=20547
+        //exp.arguments are the "parameters" to [], not to a real function
+        //so the errors that come from preFunctionParameters are misleading
+        if (originalNewtype.ty == Tsarray)
+        {
+            if (preFunctionParameters(sc, exp.arguments, false))
+            {
+                exp.error("cannot create a `%s` with `new`", originalNewtype.toChars());
+                return setError();
+            }
+        }
+        else if (preFunctionParameters(sc, exp.arguments))
         {
             return setError();
         }
@@ -3393,7 +3419,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
         }
 
-        size_t nargs = exp.arguments ? exp.arguments.dim : 0;
+        const size_t nargs = exp.arguments ? exp.arguments.dim : 0;
         Expression newprefix = null;
 
         if (tb.ty == Tclass)
@@ -3746,7 +3772,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         else
         {
-            exp.error("new can only create structs, dynamic arrays or class objects, not `%s`'s", exp.type.toChars());
+            exp.error("cannot create a `%s` with `new`", exp.type.toChars());
             return setError();
         }
 
@@ -4797,22 +4823,22 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (exp.f.checkNestedReference(sc, exp.loc))
                     return setError();
             }
-            else if (sc.func && sc.intypeof != 1 && !(sc.flags & SCOPE.ctfe))
+            else if (sc.func && sc.intypeof != 1 && !(sc.flags & (SCOPE.ctfe | SCOPE.debug_)))
             {
                 bool err = false;
-                if (!tf.purity && !(sc.flags & SCOPE.debug_) && sc.func.setImpure())
+                if (!tf.purity && sc.func.setImpure())
                 {
                     exp.error("`pure` %s `%s` cannot call impure %s `%s`",
                         sc.func.kind(), sc.func.toPrettyChars(), p, exp.e1.toChars());
                     err = true;
                 }
-                if (!tf.isnogc && sc.func.setGC() && !(sc.flags & SCOPE.debug_) )
+                if (!tf.isnogc && sc.func.setGC())
                 {
                     exp.error("`@nogc` %s `%s` cannot call non-@nogc %s `%s`",
                         sc.func.kind(), sc.func.toPrettyChars(), p, exp.e1.toChars());
                     err = true;
                 }
-                if (tf.trust <= TRUST.system && sc.func.setUnsafe() && !(sc.flags & SCOPE.debug_))
+                if (tf.trust <= TRUST.system && sc.func.setUnsafe())
                 {
                     exp.error("`@safe` %s `%s` cannot call `@system` %s `%s`",
                         sc.func.kind(), sc.func.toPrettyChars(), p, exp.e1.toChars());
@@ -5669,17 +5695,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         uint errors = global.errors;
         const len = buf.length;
         const str = buf.extractChars()[0 .. len];
-        scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-        scope p = new Parser!ASTCodegen(exp.loc, sc._module, str, false, diagnosticReporter);
+        scope p = new Parser!ASTCodegen(exp.loc, sc._module, str, false);
         p.nextToken();
         //printf("p.loc.linnum = %d\n", p.loc.linnum);
 
         Expression e = p.parseExpression();
-        if (p.errors)
-        {
-            assert(global.errors != errors); // should have caught all these cases
+        if (global.errors != errors)
             return null;
-        }
+
         if (p.token.value != TOK.endOfFile)
         {
             exp.error("incomplete mixin expression `%s`", str.ptr);
@@ -5826,7 +5849,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 if (op.hasSideEffect)
                 {
-                    auto tmp = copyToTemp(0, "__assertOp", op);
+                    const stc = STC.exptemp | (op.isLvalue() ? STC.ref_ : STC.rvalue);
+                    auto tmp = copyToTemp(stc, "__assertOp", op);
                     tmp.dsymbolSemantic(sc);
 
                     auto decl = new DeclarationExp(op.loc, tmp);
@@ -6359,10 +6383,25 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 {
                     if (callExp.e1.type.toBasetype().ty == Tdelegate)
                     {
-                        VarExp ve2 = callExp.e1.isVarExp();
-                        ve2.delegateWasExtracted = true;
-                        ve2.var.storage_class |= STC.scope_;
-                        result = ve2;
+                        /* https://issues.dlang.org/show_bug.cgi?id=20551
+                         *
+                         * Cannot take address of lazy parameter in @safe code
+                         * because it might end up being a pointer to undefined
+                         * memory.
+                         */
+                        if (sc.func && !sc.intypeof && !(sc.flags & SCOPE.debug_) && sc.func.setUnsafe())
+                        {
+                            exp.error("cannot take address of lazy parameter `%s` in `@safe` function `%s`",
+                                     ve.toChars(), sc.func.toChars());
+                            setError();
+                        }
+                        else
+                        {
+                            VarExp ve2 = callExp.e1.isVarExp();
+                            ve2.delegateWasExtracted = true;
+                            ve2.var.storage_class |= STC.scope_;
+                            result = ve2;
+                        }
                         return;
                     }
                 }
@@ -6494,7 +6533,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     }
                     if (sc.func && !sc.intypeof)
                     {
-                        if (sc.func.setUnsafe() && !(sc.flags & SCOPE.debug_))
+                        if (!(sc.flags & SCOPE.debug_) && sc.func.setUnsafe())
                         {
                             exp.error("`this` reference necessary to take address of member `%s` in `@safe` function `%s`", f.toChars(), sc.func.toChars());
                         }
@@ -6516,7 +6555,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (ce.e1.type.ty == Tfunction)
             {
                 TypeFunction tf = cast(TypeFunction)ce.e1.type;
-                if (tf.isref && sc.func && !sc.intypeof && sc.func.setUnsafe() && !(sc.flags & SCOPE.debug_))
+                if (tf.isref && sc.func && !sc.intypeof && !(sc.flags & SCOPE.debug_) && sc.func.setUnsafe())
                 {
                     exp.error("cannot take address of `ref return` of `%s()` in `@safe` function `%s`",
                         ce.e1.toChars(), sc.func.toChars());
@@ -6817,48 +6856,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (tb.ty == Tstruct)
             {
                 ad = (cast(TypeStruct)tb).sym;
-                auto f = ad.aggDelete;
-                auto fd = ad.dtor;
-                if (!f)
-                {
-                    semanticTypeInfo(sc, tb);
-                    break;
-                }
-
-                /* Construct:
-                 *      ea = copy e1 to a tmp to do side effects only once
-                 *      eb = call destructor
-                 *      ec = call deallocator
-                 */
-                Expression ea = null;
-                Expression eb = null;
-                Expression ec = null;
-                VarDeclaration v = null;
-                if (fd && f)
-                {
-                    v = copyToTemp(0, "__tmpea", exp.e1);
-                    v.dsymbolSemantic(sc);
-                    ea = new DeclarationExp(exp.loc, v);
-                    ea.type = v.type;
-                }
-                if (fd)
-                {
-                    Expression e = ea ? new VarExp(exp.loc, v) : exp.e1;
-                    e = new DotVarExp(Loc.initial, e, fd, false);
-                    eb = new CallExp(exp.loc, e);
-                    eb = eb.expressionSemantic(sc);
-                }
-                if (f)
-                {
-                    Type tpv = Type.tvoid.pointerTo();
-                    Expression e = ea ? new VarExp(exp.loc, v) : exp.e1.castTo(sc, tpv);
-                    e = new CallExp(exp.loc, new VarExp(exp.loc, f, false), e);
-                    ec = e.expressionSemantic(sc);
-                }
-                ea = Expression.combine(ea, eb, ec);
-                assert(ea);
-                result = ea;
-                return;
+                semanticTypeInfo(sc, tb);
             }
             break;
 
@@ -6887,19 +6885,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 err |= exp.checkSafety(sc, ad.dtor);
                 err |= exp.checkNogc(sc, ad.dtor);
             }
-            if (ad.aggDelete && tb.ty != Tarray)
-            {
-                err |= exp.checkPurity(sc, ad.aggDelete);
-                err |= exp.checkSafety(sc, ad.aggDelete);
-                err |= exp.checkNogc(sc, ad.aggDelete);
-            }
             if (err)
                 return setError();
         }
 
         if (!sc.intypeof && sc.func &&
             !exp.isRAII &&
-            sc.func.setUnsafe() && !(sc.flags & SCOPE.debug_))
+            !(sc.flags & SCOPE.debug_) &&
+            sc.func.setUnsafe())
         {
             exp.error("`%s` is not `@safe` but is used in `@safe` function `%s`", exp.toChars(), sc.func.toChars());
             err = true;
@@ -7052,9 +7045,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         // Check for unsafe casts
         if (!sc.intypeof &&
+            !(sc.flags & SCOPE.debug_) &&
             !isSafeCast(ex, t1b, tob) &&
-            (!sc.func && sc.stc & STC.safe || sc.func && sc.func.setUnsafe()) &&
-            !(sc.flags & SCOPE.debug_))
+            (!sc.func && sc.stc & STC.safe || sc.func && sc.func.setUnsafe()))
         {
             exp.error("cast from `%s` to `%s` not allowed in safe code", exp.e1.type.toChars(), exp.to.toChars());
             return setError();
@@ -7281,7 +7274,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 exp.error("need upper and lower bound to slice pointer");
                 return setError();
             }
-            if (sc.func && !sc.intypeof && sc.func.setUnsafe() && !(sc.flags & SCOPE.debug_))
+            if (sc.func && !sc.intypeof && !(sc.flags & SCOPE.debug_) && sc.func.setUnsafe())
             {
                 exp.error("pointer slicing not allowed in safe functions");
                 return setError();
@@ -7777,7 +7770,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (exp.e2.op == TOK.int64 && exp.e2.toInteger() == 0)
             {
             }
-            else if (sc.func && sc.func.setUnsafe() && !(sc.flags & SCOPE.debug_))
+            else if (sc.func && !(sc.flags & SCOPE.debug_) && sc.func.setUnsafe())
             {
                 exp.error("safe function `%s` cannot index pointer `%s`", sc.func.toPrettyChars(), exp.e1.toChars());
                 return setError();
@@ -9114,7 +9107,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             if (t1n.toBasetype.ty == Tvoid && t2n.toBasetype.ty == Tvoid)
             {
-                if (!sc.intypeof && sc.func && sc.func.setUnsafe() && !(sc.flags & SCOPE.debug_))
+                if (!sc.intypeof && sc.func && !(sc.flags & SCOPE.debug_) && sc.func.setUnsafe())
                 {
                     exp.error("cannot copy `void[]` to `void[]` in `@safe` code");
                     return setError();
@@ -11479,7 +11472,7 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
         if (s)
         {
             auto p = s.isPackage();
-            if (p && checkAccess(exp.loc, sc, p))
+            if (p && checkAccess(sc, p))
             {
                 s = null;
             }
@@ -11968,13 +11961,14 @@ private bool checkAddressVar(Scope* sc, UnaExp exp, VarDeclaration v)
                 // Taking the address of v means it cannot be set to 'scope' later
                 v.storage_class &= ~STC.maybescope;
                 v.doNotInferScope = true;
-                if (v.storage_class & STC.scope_ && sc.func.setUnsafe() && !(sc.flags & SCOPE.debug_))
+                if (exp.e1.type.hasPointers() && v.storage_class & STC.scope_ &&
+                    !(sc.flags & SCOPE.debug_) && sc.func.setUnsafe())
                 {
                     exp.error("cannot take address of `scope` %s `%s` in `@safe` function `%s`", p, v.toChars(), sc.func.toChars());
                     return false;
                 }
             }
-            else if (sc.func.setUnsafe() && !(sc.flags & SCOPE.debug_))
+            else if (!(sc.flags & SCOPE.debug_) && sc.func.setUnsafe())
             {
                 exp.error("cannot take address of %s `%s` in `@safe` function `%s`", p, v.toChars(), sc.func.toChars());
                 return false;

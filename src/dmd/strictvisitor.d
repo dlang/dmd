@@ -34,7 +34,6 @@ extern(C++) class StrictVisitor(AST) : ParseTimeVisitor!AST
     override void visit(AST.InvariantDeclaration) { assert(0); }
     override void visit(AST.UnitTestDeclaration) { assert(0); }
     override void visit(AST.NewDeclaration) { assert(0); }
-    override void visit(AST.DeleteDeclaration) { assert(0); }
     override void visit(AST.StaticCtorDeclaration) { assert(0); }
     override void visit(AST.StaticDtorDeclaration) { assert(0); }
     override void visit(AST.SharedStaticCtorDeclaration) { assert(0); }

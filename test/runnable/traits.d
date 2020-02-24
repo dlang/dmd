@@ -1248,14 +1248,35 @@ struct S10096X
     invariant() {}
     invariant() {}
     unittest {}
+    unittest {}
 
     this(int) {}
     this(this) {}
     ~this() {}
+
+    string getStr() in(str) out(r; r == str) { return str; }
 }
 static assert(
     [__traits(allMembers, S10096X)] ==
-    ["str", "__ctor", "__postblit", "__dtor", "__xdtor", "__xpostblit", "opAssign"]);
+    ["str", "__ctor", "__postblit", "__dtor", "getStr", "__xdtor", "__xpostblit", "opAssign"]);
+
+class C10096X
+{
+    string str;
+
+    invariant() {}
+    invariant() {}
+    unittest {}
+    unittest {}
+
+    this(int) {}
+    ~this() {}
+
+    string getStr() in(str) out(r; r == str) { return str; }
+}
+static assert(
+    [__traits(allMembers, C10096X)] ==
+    ["str", "__ctor", "__dtor", "getStr", "__xdtor", "toString", "toHash", "opCmp", "opEquals", "Monitor", "factory"]);
 
 // --------
 
@@ -1552,6 +1573,21 @@ void testIsDisabled()
     static assert(!__traits(isDisabled, D1.false_));
     static assert(!__traits(isDisabled, D1));
 }
+
+/********************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=10100
+
+enum E10100
+{
+    value,
+    _value,
+    __value,
+    ___value,
+    ____value,
+}
+static assert(
+    [__traits(allMembers, E10100)] ==
+    ["value", "_value", "__value", "___value", "____value"]);
 
 /********************************************************/
 

@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/_tocsym.d, _toir.d)
@@ -384,11 +384,14 @@ elem *setEthis(const ref Loc loc, IRState *irs, elem *ey, AggregateDeclaration a
 }
 
 enum NotIntrinsic = -1;
+enum OPtoPrec = OPMAX + 1; // front end only
 
 /*******************************************
  * Convert intrinsic function to operator.
  * Returns:
- *      that operator, NotIntrinsic if not an intrinsic function.
+ *      the operator as backend OPER,
+ *      NotIntrinsic if not an intrinsic function,
+ *      OPtoPrec if frontend-only intrinsic
  */
 int intrinsic_op(FuncDeclaration fd)
 {
@@ -416,12 +419,21 @@ int intrinsic_op(FuncDeclaration fd)
     auto argtype1 = param1 ? param1.type : null;
 
     const Identifier id1 = (*md.packages)[0];
-    // ... except core.stdc.stdarg.va_start
+    // ... except std.math package and core.stdc.stdarg.va_start.
     if (md.packages.dim == 2)
+    {
+        if (id2 == Id.trig &&
+            (*md.packages)[1] == Id.math &&
+            id1 == Id.std)
+        {
+            goto Lstdmath;
+        }
         goto Lva_start;
+    }
 
     if (id1 == Id.std && id2 == Id.math)
     {
+    Lstdmath:
         if (argtype1 is Type.tfloat80 || id3 == Id._sqrt)
             goto Lmath;
     }

@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cod3.d, backend/cod3.d)
@@ -27,7 +27,6 @@ import core.stdc.string;
 import dmd.backend.backend;
 import dmd.backend.cc;
 import dmd.backend.cdef;
-import dmd.backend.cg87;
 import dmd.backend.cgcse;
 import dmd.backend.code;
 import dmd.backend.code_x86;
@@ -5176,7 +5175,7 @@ void assignaddrc(code *c)
             case FLndp:
                 version (MARS)
                 {
-                    assert(c.IEV1.Vuns < NDP.savetop);
+                    assert(c.IEV1.Vuns < global87.savetop);
                 }
                 c.IEV1.Vpointer = c.IEV1.Vuns * tysize(TYldouble) + NDPoff + BPoff;
                 c.Iflags |= CFunambig;

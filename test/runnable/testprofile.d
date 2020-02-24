@@ -45,7 +45,7 @@ class Foo10617
     void foo() nothrow pure @safe
     in { }
     out { }
-    body { }
+    do { }
 }
 
 // ------------------
@@ -53,12 +53,12 @@ class Foo10617
 class C10953
 {
     void func() nothrow pure @safe
-    in {} out {} body {}
+    in {} out {} do {}
 }
 class D10953 : C10953
 {
     override void func()    // inherits attributes of Foo.func
-    in {} out {} body {}
+    in {} out {} do {}
 }
 
 // ------------------

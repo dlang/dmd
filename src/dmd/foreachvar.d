@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/foreachvar.d, _foreachvar.d)
@@ -19,7 +19,6 @@ import core.stdc.string;
 import dmd.apply;
 import dmd.arraytypes;
 import dmd.attrib;
-import dmd.ctfeexpr;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dstruct;
@@ -68,8 +67,6 @@ void foreachVar(Expression e, void delegate(VarDeclaration) dgVar)
 
         override void visit(ErrorExp e)
         {
-            .error(e.loc, "CTFE internal error: ErrorExp");
-            assert(0);
         }
 
         override void visit(DeclarationExp e)
@@ -125,7 +122,7 @@ void foreachVar(Expression e, void delegate(VarDeclaration) dgVar)
  *      dgExp = delegate to pass found Expressions to
  *      dgVar = delegate to pass found VarDeclarations to
  */
-private void foreachExpAndVar(Statement s,
+void foreachExpAndVar(Statement s,
         void delegate(Expression) dgExp,
         void delegate(VarDeclaration) dgVar)
 {
@@ -301,6 +298,7 @@ private void foreachExpAndVar(Statement s,
             case STMT.Goto:
             case STMT.Pragma:
             case STMT.Import:
+            case STMT.Error:
                 break;          // ignore these
 
             case STMT.ScopeGuard:
@@ -313,7 +311,6 @@ private void foreachExpAndVar(Statement s,
             case STMT.Conditional:
             case STMT.While:
             case STMT.Forwarding:
-            case STMT.Error:
             case STMT.Compile:
             case STMT.Peel:
             case STMT.Synchronized:

@@ -74,7 +74,8 @@ cp %DMD_DIR%\..\phobos\phobos%MODEL%.lib .
 
 cd "%DMD_DIR%\..\phobos"
 REM Check: build phobos unittests
-if "%D_COMPILER%" == "ldc" cp %LDC_DIR%\lib32\libcurl.dll .
+if "%D_COMPILER%_%MODEL%" == "ldc_64" cp %LDC_DIR%\lib64\libcurl.dll .
+if "%D_COMPILER%_%MODEL%" == "ldc_32mscoff" cp %LDC_DIR%\lib32\libcurl.dll .
 if "%D_COMPILER%_%MODEL%" == "dmd_64" cp %DMD_DIR%\dmd2\windows\bin64\libcurl.dll .
 if "%D_COMPILER%_%MODEL%" == "dmd_32mscoff" cp %DMD_DIR%\dmd2\windows\bin\libcurl.dll .
 "%DM_MAKE%" -f win64.mak unittest MODEL=%MODEL% "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "MAKE=%DM_MAKE%"

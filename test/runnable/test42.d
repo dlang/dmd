@@ -1674,14 +1674,13 @@ void test101()
 
 /***************************************************/
 
-version(X86)
-{
 int x103;
 
 void external(...)
 {
-    printf("external: %d\n", *cast (int *) _argptr);
-    x103 = *cast (int *) _argptr;
+    int arg = va_arg!int(_argptr);
+    printf("external: %d\n", arg);
+    x103 = arg;
 }
 
 class C103
@@ -1690,8 +1689,9 @@ class C103
     {
         void internal (...)
         {
-            printf("internal: %d\n", *cast (int *)_argptr);
-            x103 = *cast (int *) _argptr;
+            int arg = va_arg!int(_argptr);
+            printf("internal: %d\n", arg);
+            x103 = arg;
         }
 
         internal (43);
@@ -1705,14 +1705,6 @@ void test103()
     assert(x103 == 42);
     (new C103).method ();
 }
-}
-else version(X86_64)
-{
-    pragma(msg, "Not ported to x86-64 compatible varargs, yet.");
-    void test103() {}
-}
-else
-    static assert(false, "Unknown platform");
 
 /***************************************************/
 
@@ -2276,7 +2268,7 @@ void test140()
 class Foo141 {
     Foo141 next;
     void start()
-    in { assert (!next); } body
+    in { assert (!next); } do
     {
         void* p = cast(void*)this;
     }
@@ -3681,7 +3673,7 @@ class A221 : B221
 {
     final override I221 sync()
     in { assert( valid ); }
-    body
+    do
     {
         return null;
     }
@@ -3691,7 +3683,7 @@ class B221 : J221
 {
     override I221 sync()
     in { assert( valid ); }
-    body
+    do
     {
         return null;
     }
@@ -6504,4 +6496,3 @@ int main()
     printf("Success\n");
     return 0;
 }
-

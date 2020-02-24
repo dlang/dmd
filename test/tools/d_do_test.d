@@ -76,14 +76,15 @@ struct TestArgs
     string   permuteArgs;
     string[] argSets;
     string   compileOutput;
+    string   compileOutputFile; /// file containing the expected output
     string   gdbScript;
     string   gdbMatch;
     string   postScript;
     string   requiredArgs;
     string   requiredArgsForLink;
-    // reason for disabling the test (if empty, the test is not disabled)
-    string[] disabledPlatforms;
-    bool     disabled;
+    string   disabledReason; // if empty, the test is not disabled
+
+    bool isDisabled() const { return disabledReason.length != 0; }
 }
 
 struct EnvData
@@ -111,8 +112,10 @@ bool findTestParameter(const ref EnvData envData, string file, string token, ref
     auto tokenStart = std.string.indexOf(file, token);
     if (tokenStart == -1) return false;
 
-    auto lineEndR = std.string.indexOf(file[tokenStart .. $], "\r");
-    auto lineEndN = std.string.indexOf(file[tokenStart .. $], "\n");
+    file = file[tokenStart + token.length .. $];
+
+    auto lineEndR = std.string.indexOf(file, "\r");
+    auto lineEndN = std.string.indexOf(file, "\n");
     auto lineEnd  = lineEndR == -1 ?
         (lineEndN == -1 ? file.length : lineEndN) :
         (lineEndN == -1 ? lineEndR    : min(lineEndR, lineEndN));
@@ -120,28 +123,33 @@ bool findTestParameter(const ref EnvData envData, string file, string token, ref
     //writeln("found ", token, " in line: ", file.length, ", ", tokenStart, ", ", tokenStart+lineEnd);
     //writeln("found ", token, " in line: '", file[tokenStart .. tokenStart+lineEnd], "'");
 
-    result = strip(file[tokenStart+token.length .. tokenStart+lineEnd]);
+    result = file[0 .. lineEnd];
+    const commentStart = std.string.indexOf(result, "//");
+    if (commentStart != -1)
+        result = result[0 .. commentStart];
+    result = strip(result);
+
     // filter by OS specific setting (os1 os2 ...)
-    if (result.length > 0 && result[0] == '(')
+    if (result.startsWith("("))
     {
         auto close = std.string.indexOf(result, ")");
         if (close >= 0)
         {
             string[] oss = split(result[1 .. close], " ");
             if (oss.canFind(envData.os))
-                result = result[close + 1..$];
+                result = result[close + 1 .. $];
             else
                 result = null;
         }
     }
     // skips the :, if present
-    if (result.length > 0 && result[0] == ':')
+    if (result.startsWith(":"))
         result = strip(result[1 .. $]);
 
     //writeln("arg: '", result, "'");
 
     string result2;
-    if (findTestParameter(envData, file[tokenStart+lineEnd..$], token, result2, multiLineDelimiter))
+    if (findTestParameter(envData, file[lineEnd .. $], token, result2, multiLineDelimiter))
     {
         if (result2.length > 0)
         {
@@ -164,28 +172,27 @@ bool findOutputParameter(string file, string token, out string result, string se
 
     while (true)
     {
-        auto istart = std.string.indexOf(file, token);
+        const istart = std.string.indexOf(file, token);
         if (istart == -1)
             break;
         found = true;
 
-        // skips the :, if present
-        if (file[istart] == ':') ++istart;
+        file = file[istart + token.length .. $];
 
         enum embed_sep = "---";
-        auto n = std.string.indexOf(file[istart .. $], embed_sep);
+        auto n = std.string.indexOf(file, embed_sep);
 
         enforce(n != -1, "invalid "~token~" format");
-        istart += n + embed_sep.length;
-        while (file[istart] == '-') ++istart;
-        if (file[istart] == '\r') ++istart;
-        if (file[istart] == '\n') ++istart;
+        n += embed_sep.length;
+        while (file[n] == '-') ++n;
+        if (file[n] == '\r') ++n;
+        if (file[n] == '\n') ++n;
 
-        auto iend = std.string.indexOf(file[istart .. $], embed_sep);
+        file = file[n .. $];
+        auto iend = std.string.indexOf(file, embed_sep);
         enforce(iend != -1, "invalid TEST_OUTPUT format");
-        iend += istart;
 
-        result ~= file[istart .. iend];
+        result ~= file[0 .. iend];
 
         while (file[iend] == '-') ++iend;
         file = file[iend .. $];
@@ -205,6 +212,21 @@ void replaceResultsDir(ref string arguments, const ref EnvData envData)
     // Bash would expand this automatically on Posix, but we need to manually
     // perform the replacement for Windows compatibility.
     arguments = replace(arguments, "${RESULTS_DIR}", envData.results_dir);
+}
+
+string getDisabledReason(string[] disabledPlatforms, const ref EnvData envData)
+{
+    if (disabledPlatforms.length == 0)
+        return null;
+
+    const target = ((envData.os == "windows") ? "win" : envData.os) ~ envData.model;
+
+    // allow partial matching, e.g. `win` to disable both win32 and win64
+    const i = disabledPlatforms.countUntil!(p => target.canFind(p));
+    if (i != -1)
+        return "on " ~ disabledPlatforms[i];
+
+    return null;
 }
 
 bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_file, const ref EnvData envData)
@@ -317,9 +339,40 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
 
     string disabledPlatformsStr;
     findTestParameter(envData, file, "DISABLED", disabledPlatformsStr);
-    testArgs.disabledPlatforms = split(disabledPlatformsStr);
 
-    findOutputParameter(file, "TEST_OUTPUT", testArgs.compileOutput, envData.sep);
+    version (DragonFlyBSD)
+    {
+        // DragonFlyBSD is x86_64 only, instead of adding DISABLED to a lot of tests, just exclude them from running
+        if (testArgs.requiredArgs.canFind("-m32"))
+            testArgs.disabledReason = "on DragonFlyBSD (no -m32)";
+    }
+
+    version (ARM)         enum supportsM64 = false;
+    else version (MIPS32) enum supportsM64 = false;
+    else version (PPC)    enum supportsM64 = false;
+    else                  enum supportsM64 = true;
+
+    static if (!supportsM64)
+    {
+        if (testArgs.requiredArgs.canFind("-m64"))
+            testArgs.disabledReason = "because target doesn't support -m64";
+    }
+
+    if (!testArgs.isDisabled)
+        testArgs.disabledReason = getDisabledReason(split(disabledPlatformsStr), envData);
+
+    findTestParameter(envData, file, "TEST_OUTPUT_FILE", testArgs.compileOutputFile);
+
+    // Only check for TEST_OUTPUT is no file was given because it would
+    // partially match TEST_OUTPUT_FILE
+    if (testArgs.compileOutputFile)
+    {
+        // Don't require tests to specify the test directory
+        testArgs.compileOutputFile = input_dir.buildPath(testArgs.compileOutputFile);
+        testArgs.compileOutput = readText(testArgs.compileOutputFile);
+    }
+    else
+        findOutputParameter(file, "TEST_OUTPUT", testArgs.compileOutput, envData.sep);
 
     findOutputParameter(file, "GDB_SCRIPT", testArgs.gdbScript, envData.sep);
     findTestParameter(envData, file, "GDB_MATCH", testArgs.gdbMatch);
@@ -513,31 +566,182 @@ bool collectExtraSources (in string input_dir, in string output_dir, in string[]
     return true;
 }
 
-// compare output string to reference string, but ignore places
-// marked by $n$ that contain compiler generated unique numbers
-bool compareOutput(string output, string refoutput)
-{
-    import std.ascii : digits;
-    import std.utf : byCodeUnit;
+/++
+Compares the output string to the reference string by character
+except parts marked with one of the following special sequences:
 
+$n$ = numbers (e.g. compiler generated unique identifiers)
+$p:<path>$ = real paths ending with <path>
+$?:<choices>$ = environment dependent content supplied as a list
+                choices (either <condition>=<content> or <default>),
+                separated by a '|'. Currently supported conditions are
+                OS and model as supplied from the environment
+
+Params:
+    output    = the real output
+    refoutput = the expected output
+    envData   = test environment
+
+Returns: whether output matches the expected refoutput
+++/
+bool compareOutput(string output, string refoutput, const ref EnvData envData)
+{
     // If no output is expected, only check that nothing was captured.
     if (refoutput.length == 0)
         return (output.length == 0) ? true : false;
 
     for ( ; ; )
     {
-        auto pos = refoutput.indexOf("$n$");
-        if (pos < 0)
+        auto special = refoutput.find("$n$", "$p:", "$?:").rename!("remainder", "id");
+
+        // Simple equality check if no special tokens remain
+        if (special.id == 0)
             return refoutput == output;
-        if (output.length < pos)
+
+        const expected = refoutput[0 .. $ - special.remainder.length];
+
+        // Check until the special token
+        if (!output.skipOver(expected))
             return false;
-        if (refoutput[0..pos] != output[0..pos])
+
+        // Discard the special token and progress output appropriately
+        refoutput = special.remainder[3 .. $];
+
+        if (special.id == 1) // $n$
+        {
+            import std.ascii : isDigit;
+            output.skipOver!isDigit();
+            continue;
+        }
+
+        // $<identifier>:<special content>$
+        /// ( special content, "$", remaining expected output )
+        auto refparts = refoutput.findSplit("$");
+        enforce(refparts, "Malformed special sequence!");
+        refoutput = refparts[2];
+
+        if (special.id == 2) // $p:<some path>$
+        {
+            // special content is the expected path tail
+            // Substitute / with the appropriate directory separator
+            auto pathEnd = refparts[0].replace("/", envData.sep);
+
+            /// ( whole path, remaining output )
+            auto parts = output.findSplitAfter(pathEnd);
+
+            if (!parts || !exists(parts[0]))
+                return false;
+
+            output = parts[1];
+            continue;
+        }
+
+        // $?:<predicate>=<content>(;<predicate>=<content>)*(;<default>)?$
+        string toSkip = null;
+
+        foreach (const chunk; refparts[0].splitter('|'))
+        {
+            // ( <predicate> , "=", <content> )
+            const conditional = chunk.findSplit("=");
+
+            if (!conditional) // <default>
+            {
+                toSkip = chunk;
+                break;
+            }
+            // Match against OS or model (accepts "32mscoff" as "32")
+            else if (conditional[0].among(envData.os, envData.model, envData.model[0 .. min(2, $)]))
+            {
+                toSkip = conditional[2];
+                break;
+            }
+        }
+
+        if (toSkip !is null && !output.skipOver(toSkip))
             return false;
-        refoutput = refoutput[pos + 3 ..$];
-        output = output[pos..$];
-        auto p = output.byCodeUnit.countUntil!(e => !digits.canFind(e));
-        output = output[p..$];
     }
+}
+
+unittest
+{
+    EnvData ed;
+    version (Windows)
+        ed.sep = `\`;
+    else
+        ed.sep = `/`;
+
+    assert( compareOutput(`Grass is green`, `Grass is green`, ed));
+    assert(!compareOutput(`Grass is green`, `Grass was green`, ed));
+
+    assert( compareOutput(`Bob took 12 apples`, `Bob took $n$ apples`, ed));
+    assert(!compareOutput(`Bob took abc apples`, `Bob took $n$ apples`, ed));
+    assert(!compareOutput(`Bob took 12 berries`, `Bob took $n$ apples`, ed));
+
+    assert( compareOutput(`HINT: ` ~ __FILE_FULL_PATH__ ~ ` is important`, `HINT: $p:d_do_test.d$ is important`, ed));
+    assert( compareOutput(`HINT: ` ~ __FILE_FULL_PATH__ ~ ` is important`, `HINT: $p:test/tools/d_do_test.d$ is important`, ed));
+
+    ed.sep = "/";
+    assert(!compareOutput(`See /path/to/druntime/import/object.d`, `See $p:druntime/import/object.d$`, ed));
+
+    assertThrown(compareOutput(`Path /a/b/c.d!`, `Path $p:c.d!`, ed)); // Missing closing $
+
+    const fmt = "This $?:windows=A|posix=B|C$ uses $?:64=1|32=2|3$ bytes";
+
+    assert( compareOutput("This C uses 3 bytes", fmt, ed));
+
+    ed.os = "posix";
+    ed.model = "64";
+    assert( compareOutput("This B uses 1 bytes", fmt, ed));
+    assert(!compareOutput("This C uses 3 bytes", fmt, ed));
+
+    const emptyFmt = "On <$?:windows=abc|$> use <$?:posix=$>!";
+    assert(compareOutput("On <> use <>!", emptyFmt, ed));
+
+    ed.model = "32mscoff";
+    assert(compareOutput("size_t is uint!", "size_t is $?:32=uint|64=ulong$!", ed));
+}
+
+/++
+Creates a diff of the expected and actual test output.
+
+Params:
+    testData = the test configuration
+    output   = the actual output
+    name     = the test files name
+
+Returns: the comparison created by the `diff` utility
+++/
+string generateDiff(ref const TestArgs testData, const string output, const string name)
+{
+    string actualFile = tempDir.buildPath("expected_" ~ name);
+    File(actualFile, "w").writeln(output); // Append \n
+    scope (exit) remove(actualFile);
+
+    const needTmp = !testData.compileOutputFile;
+    string expectedFile;
+    if (needTmp) // Create a temporary file
+    {
+        expectedFile = tempDir.buildPath("actual_" ~ name);
+        File(expectedFile, "w").writeln(testData.compileOutput); // Append \n
+    }
+    else // Reuse TEST_OUTPUT_FILE
+        expectedFile = testData.compileOutputFile;
+
+    // Remove temporary file
+    scope (exit) if (needTmp)
+        remove(expectedFile);
+
+    const cmd = ["diff", "-pu", "--strip-trailing-cr", expectedFile, actualFile];
+    try
+    {
+        string diff = std.process.execute(cmd).output;
+        // Skip diff's status lines listing the diffed files and line count
+        foreach (_; 0..3)
+            diff = diff.findSplitAfter("\n")[1];
+        return diff;
+    }
+    catch (Exception e)
+        return format(`%-(%s, %) failed: %s`, cmd, e.msg);
 }
 
 string envGetRequired(in char[] name)
@@ -559,9 +763,10 @@ class CompareException : Exception
     string expected;
     string actual;
 
-    this(string expected, string actual) {
+    this(string expected, string actual, string diff) {
         string msg = "\nexpected:\n----\n" ~ expected ~
-            "\n----\nactual:\n----\n" ~ actual ~ "\n----\n";
+            "\n----\nactual:\n----\n" ~ actual ~
+            "\n----\ndiff:\n----\n" ~ diff ~ "----\n";
         super(msg);
         this.expected = expected;
         this.actual = actual;
@@ -601,9 +806,6 @@ int tryMain(string[] args)
     string test_base_name = test_file.baseName();
     string test_name = test_base_name.stripExtension();
 
-    if (test_base_name.extension() == ".sh")
-        return runBashTest(input_dir, test_name);
-
     EnvData envData;
     envData.all_args      = environment.get("ARGS");
     envData.results_dir   = envGetRequired("RESULTS_DIR");
@@ -626,6 +828,23 @@ int tryMain(string[] args)
     string output_dir     = result_path ~ input_dir;
     string output_file    = result_path ~ input_file ~ ".out";
     string test_app_dmd_base = output_dir ~ envData.sep ~ test_name ~ "_";
+
+    if (test_base_name.extension() == ".sh")
+    {
+        string file = cast(string) std.file.read(input_file);
+        string disabledPlatforms;
+        if (findTestParameter(envData, file, "DISABLED", disabledPlatforms))
+        {
+            const reason = getDisabledReason(split(disabledPlatforms), envData);
+            if (reason.length != 0)
+            {
+                writefln(" ... %-30s [DISABLED %s]", input_file, reason);
+                return 0;
+            }
+        }
+
+        return runBashTest(input_dir, test_name);
+    }
 
     if (testArgs.mode == TestMode.DSHELL)
         return runDShellTest(input_dir, test_name, envData, output_dir, output_file);
@@ -678,21 +897,15 @@ int tryMain(string[] args)
         }
     }
 
-    const osAbbrev = (envData.os == "windows") ? "win" : envData.os;
-    if (testArgs.disabledPlatforms.any!(a => osAbbrev.chain(envData.model).canFind(a)))
-        testArgs.disabled = true;
-
     //prepare cpp extra sources
-    if (!testArgs.disabled && testArgs.cppSources.length)
+    if (!testArgs.isDisabled && testArgs.cppSources.length)
     {
         switch (envData.compiler)
         {
             case "dmd":
+            case "ldc":
                 if(envData.os != "windows")
                    testArgs.requiredArgs ~= " -L-lstdc++ -L--no-demangle";
-                break;
-            case "ldc":
-                testArgs.requiredArgs ~= " -L-lstdc++ -L--no-demangle";
                 break;
             case "gdc":
                 testArgs.requiredArgs ~= "-Xlinker -lstdc++ -Xlinker --no-demangle";
@@ -705,7 +918,7 @@ int tryMain(string[] args)
             return 1;
     }
     //prepare objc extra sources
-    if (!testArgs.disabled && !collectExtraSources(input_dir, output_dir, testArgs.objcSources, testArgs.sources, envData, "clang", null))
+    if (!testArgs.isDisabled && !collectExtraSources(input_dir, output_dir, testArgs.objcSources, testArgs.sources, envData, "clang", null))
         return 1;
 
     writef(" ... %-30s %s%s(%s)",
@@ -714,16 +927,8 @@ int tryMain(string[] args)
             (!testArgs.requiredArgs.empty ? " " : ""),
             testArgs.permuteArgs);
 
-    version (DragonFlyBSD)
-    {
-        // DragonFlyBSD is x86_64 only, instead of adding DISABLED to a lot of tests, just exclude them from running
-        if (testArgs.requiredArgs.canFind("-m32"))
-            testArgs.disabled = true;
-    }
-
-    // allows partial matching, e.g. win for both win32 and win64
-    if (testArgs.disabled)
-        writef("!!! [DISABLED on %s]", envData.os);
+    if (testArgs.isDisabled)
+        writef("!!! [DISABLED %s]", testArgs.disabledReason);
 
     removeIfExists(output_file);
 
@@ -814,7 +1019,7 @@ int tryMain(string[] args)
             m = std.regex.match(compile_output, `core.exception.AssertError@dmd.*`);
             enforce(!m, m.hit);
 
-            if (!compareOutput(compile_output, testArgs.compileOutput))
+            if (!compareOutput(compile_output, testArgs.compileOutput, envData))
             {
                 // Allow any messages to come from tests if TEST_OUTPUT wasn't given.
                 // This will be removed in future once all tests have been updated.
@@ -823,7 +1028,8 @@ int tryMain(string[] args)
                      testArgs.mode != TestMode.FAIL_COMPILE &&
                      testArgs.mode != TestMode.RUN))
                 {
-                    throw new CompareException(testArgs.compileOutput, compile_output);
+                    const diff = generateDiff(testArgs, compile_output, test_base_name);
+                    throw new CompareException(testArgs.compileOutput, compile_output, diff);
                 }
             }
 
@@ -883,7 +1089,7 @@ int tryMain(string[] args)
         catch(Exception e)
         {
             // it failed but it was disabled, exit as if it was successful
-            if (testArgs.disabled)
+            if (testArgs.isDisabled)
             {
                 writeln();
                 return Result.return0;
@@ -894,6 +1100,13 @@ int tryMain(string[] args)
             {
                 // remove the output file in test_results as its outdated
                 output_file.remove();
+
+                if (testArgs.compileOutputFile)
+                {
+                    std.file.write(testArgs.compileOutputFile, ce.actual);
+                    writefln("\n==> `TEST_OUTPUT_FILE` `%s` has been updated", testArgs.compileOutputFile);
+                    return Result.return0;
+                }
 
                 auto existingText = input_file.readText;
                 auto updatedText = existingText.replace(ce.expected, ce.actual);
@@ -974,7 +1187,7 @@ int tryMain(string[] args)
         writeln();
 
     // it was disabled but it passed! print an informational message
-    if (testArgs.disabled)
+    if (testArgs.isDisabled)
         writefln(" !!! %-30s DISABLED but PASSES!", input_file);
 
     return 0;
@@ -982,14 +1195,15 @@ int tryMain(string[] args)
 
 int runBashTest(string input_dir, string test_name)
 {
+    const scriptPath = dmdTestDir.buildPath("tools", "sh_do_test.sh");
     version(Windows)
     {
         auto process = spawnShell(format("bash %s %s %s",
-            buildPath(dmdTestDir, "tools", "sh_do_test.sh"), input_dir, test_name));
+            scriptPath, input_dir, test_name));
     }
     else
     {
-        auto process = spawnProcess([dmdTestDir.buildPath("tools", "sh_do_test.sh"), input_dir, test_name]);
+        auto process = spawnProcess([scriptPath, input_dir, test_name]);
     }
     return process.wait();
 }

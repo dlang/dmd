@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/clone.d, _clone.d)
@@ -849,6 +849,7 @@ DtorDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
     StorageClass stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
     Loc declLoc = ad.dtors.dim ? ad.dtors[0].loc : ad.loc;
     Loc loc; // internal code should have no loc to prevent coverage
+    FuncDeclaration xdtor_fwd = null;
 
     // if the dtor is an extern(C++) prototype, then we expect it performs a full-destruction; we don't need to build a full-dtor
     const bool dtorIsCppPrototype = ad.dtors.dim == 1 && ad.dtors[0].linkage == LINK.cpp && !ad.dtors[0].fbody;
@@ -868,6 +869,15 @@ DtorDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
             auto sdv = (cast(TypeStruct)tv).sym;
             if (!sdv.dtor)
                 continue;
+
+            // fix: https://issues.dlang.org/show_bug.cgi?id=17257
+            // braces for shrink wrapping scope of a
+            {
+                xdtor_fwd = sdv.dtor; // this dtor is temporary it could be anything
+                auto a = new AliasDeclaration(Loc.initial, Id.__xdtor, xdtor_fwd);
+                a.addMember(sc, ad); // temporarily add to symbol table
+            }
+
             sdv.dtor.functionSemantic();
 
             stc = mergeFuncAttrs(stc, sdv.dtor);
@@ -1017,7 +1027,10 @@ DtorDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
         auto _alias = new AliasDeclaration(Loc.initial, Id.__xdtor, xdtor);
         _alias.dsymbolSemantic(sc);
         ad.members.push(_alias);
-        _alias.addMember(sc, ad); // add to symbol table
+        if (xdtor_fwd)
+            ad.symtab.update(_alias); // update forward dtor to correct one
+        else
+            _alias.addMember(sc, ad); // add to symbol table
     }
 
     return xdtor;

@@ -28,7 +28,7 @@ void test1()
                 assert(1);
         }out (result){
                 assert(result.i==1);
-        }body{
+        }do{
                 MyStruct s;
                 s.i = 1;
                 return s;
@@ -42,7 +42,7 @@ void foo2()
 in{
         assert(0);
 }
-body{
+do{
 }
 
 void test2()

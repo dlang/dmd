@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/e2ir.d, _e2ir.d)
@@ -418,7 +418,7 @@ if (!irs.params.is64bit) assert(tysize(TYnptr) == 4);
     if (ec.Eoper == OPvar && op != NotIntrinsic)
     {
         el_free(ec);
-        if (OTbinary(op))
+        if (op != OPtoPrec && OTbinary(op))
         {
             ep.Eoper = cast(ubyte)op;
             ep.Ety = tyret;
@@ -3798,7 +3798,10 @@ elem *toElem(Expression e, IRState *irs)
 
                 if (auto sle = dve.e1.isStructLiteralExp())
                 {
-                    sle.useStaticInit = false;          // don't modify initializer
+                    if (fd && fd.isCtorDeclaration() ||
+                        fd.type.isMutable() ||
+                        sle.type.size() <= 8)          // more efficient than fPIC
+                        sle.useStaticInit = false;     // don't modify initializer, so make copy
                 }
 
                 ec = toElem(dve.e1, irs);

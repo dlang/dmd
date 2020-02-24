@@ -521,7 +521,7 @@ class Foo12080
 
     public ST12080 sysTime()
     out {}
-    body
+    do
     {
         if (quux)
             return ST12080();

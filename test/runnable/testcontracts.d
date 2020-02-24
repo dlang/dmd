@@ -318,13 +318,13 @@ void test9()
 
 /*******************************************/
 
-auto test10() body { return 3; }
-auto test11()() body { return 3; }
+auto test10() do { return 3; }
+auto test11()() do { return 3; }
 
 auto test12()
 {
-    auto test10() body { return 3; }
-    auto test11()() body { return 3; }
+    auto test10() do { return 3; }
+    auto test11()() do { return 3; }
     return 3;
 }
 
@@ -522,7 +522,7 @@ class C7335 : A7335
     override void setValue(int newValue)
     in { int a = newValue; }
     out { assert(mValue == 3); }
-    body
+    do
     {
         mValue = newValue;
     }

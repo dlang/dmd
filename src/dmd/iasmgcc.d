@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- *              Copyright (C) 2018-2019 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2018-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     Iain Buclaw
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/iasmgcc.d, _iasmgcc.d)
@@ -67,7 +67,9 @@ int parseExtAsmOperands(Parser)(Parser p, GccAsmStatement s)
             case TOK.leftBracket:
                 if (p.peekNext() == TOK.identifier)
                 {
+                    // Skip over opening `[`
                     p.nextToken();
+                    // Store the symbolic name
                     name = p.token.ident;
                     p.nextToken();
                 }
@@ -76,8 +78,13 @@ int parseExtAsmOperands(Parser)(Parser p, GccAsmStatement s)
                     p.error(s.loc, "expected identifier after `[`");
                     goto Lerror;
                 }
+                // Look for closing `]`
                 p.check(TOK.rightBracket);
-                goto case;
+                // Look for the string literal and fall through
+                if (p.token.value == TOK.string_)
+                    goto case;
+                else
+                    goto default;
 
             case TOK.string_:
                 constraint = p.parsePrimaryExp();
@@ -284,8 +291,7 @@ Ldone:
 public Statement gccAsmSemantic(GccAsmStatement s, Scope *sc)
 {
     //printf("GccAsmStatement.semantic()\n");
-    scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-    scope p = new Parser!ASTCodegen(sc._module, ";", false, diagnosticReporter);
+    scope p = new Parser!ASTCodegen(sc._module, ";", false);
 
     // Make a safe copy of the token list before parsing.
     Token *toklist = null;
@@ -302,8 +308,9 @@ public Statement gccAsmSemantic(GccAsmStatement s, Scope *sc)
     p.scanloc = s.loc;
 
     // Parse the gcc asm statement.
+    const errors = global.errors;
     s = p.parseGccAsm(s);
-    if (p.errors)
+    if (errors != global.errors)
         return null;
     s.stc = sc.stc;
 
@@ -365,25 +372,41 @@ public Statement gccAsmSemantic(GccAsmStatement s, Scope *sc)
 
 unittest
 {
-    uint errors = global.startGagging();
+    import dmd.mtype : TypeBasic;
 
-    // Immitates asmSemantic if version = IN_GCC.
+    uint errors = global.startGagging();
+    scope(exit) global.endGagging(errors);
+
+    // If this check fails, then Type._init() was called before reaching here,
+    // and the entire chunk of code that follows can be removed.
+    assert(ASTCodegen.Type.tint32 is null);
+    // Minimally initialize the cached types in ASTCodegen.Type, as they are
+    // dependencies for some fail asm tests to succeed.
+    ASTCodegen.Type.stringtable._init();
+    scope(exit)
+    {
+        ASTCodegen.Type.deinitialize();
+        ASTCodegen.Type.tint32 = null;
+    }
+    scope tint32 = new TypeBasic(ASTCodegen.Tint32);
+    ASTCodegen.Type.tint32 = tint32;
+
+    // Imitates asmSemantic if version = IN_GCC.
     static int semanticAsm(Token* tokens)
     {
+        const errors = global.errors;
         scope gas = new GccAsmStatement(Loc.initial, tokens);
-        scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-        scope p = new Parser!ASTCodegen(null, ";", false, diagnosticReporter);
+        scope p = new Parser!ASTCodegen(null, ";", false);
         p.token = *tokens;
         p.parseGccAsm(gas);
-        return p.errors;
+        return global.errors - errors;
     }
 
-    // Immitates parseStatement for asm statements.
+    // Imitates parseStatement for asm statements.
     static void parseAsm(string input, bool expectError)
     {
         // Generate tokens from input test.
-        scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-        scope p = new Parser!ASTCodegen(null, input, false, diagnosticReporter);
+        scope p = new Parser!ASTCodegen(null, input, false);
         p.nextToken();
 
         Token* toklist = null;
@@ -403,7 +426,8 @@ unittest
         p.check(TOK.rightCurly);
 
         auto res = semanticAsm(toklist);
-        assert(res == 0 || expectError);
+        // Checks for both unexpected passes and failures.
+        assert((res == 0) != expectError);
     }
 
     /// Assembly Tests, all should pass.
@@ -454,7 +478,9 @@ unittest
         q{ asm { ""h;
         } },
 
-        /+ Need a way to test without depending on Type._init()
+        // https://issues.dlang.org/show_bug.cgi?id=20592
+        q{ asm { "nop" : [name] string (expr); } },
+
         // Expression expected, not ';'
         q{ asm { ""[;
         } },
@@ -464,7 +490,6 @@ unittest
                :
                : "g" a ? b : : c;
         } },
-        +/
     ];
 
     foreach (test; passAsmTests)
@@ -472,6 +497,4 @@ unittest
 
     foreach (test; failAsmTests)
         parseAsm(test, true);
-
-    global.endGagging(errors);
 }

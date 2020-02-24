@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/gloop.d, backend/gloop.d)
@@ -398,12 +398,13 @@ private extern (D) void findloops(block*[] dfo, loop **ploops)
 private uint loop_weight(uint weight, int factor) pure
 {
     // Be careful not to overflow
-    if (weight < 0x10000)
+    if (weight < 0x1_0000)
         weight *= 10 * factor;
-    else if (weight < 0x100000)
+    else if (weight < 0x10_0000)
         weight *= 2 * factor;
     else
         weight += factor;
+    assert(cast(int)weight > 0);
     return weight;
 }
 

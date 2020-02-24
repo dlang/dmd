@@ -253,27 +253,46 @@ alias lexer = makeRule!((builder, rule) => builder
     )
 );
 
-/// Returns: the rule that generates the dmd.conf file in the output folder
+/// Returns: the rule that generates the dmd.conf/sc.ini file in the output folder
 alias dmdConf = makeRule!((builder, rule) {
-    // TODO: add support for Windows
     string exportDynamic;
     version(OSX) {} else
         exportDynamic = " -L--export-dynamic";
 
-    auto conf = `[Environment32]
+    version (Windows)
+    {
+        enum confFile = "sc.ini";
+        enum conf = `[Environment]
+DFLAGS="-I%@P%\..\..\..\..\..\druntime\import" "-I%@P%\..\..\..\..\..\phobos"
+LIB="%@P%\..\..\..\..\..\phobos"
+
+[Environment64]
+DFLAGS=%DFLAGS% -L/OPT:NOICF
+
+[Environment32mscoff]
+DFLAGS=%DFLAGS% -L/OPT:NOICF
+`;
+    }
+    else
+    {
+        enum confFile = "dmd.conf";
+        enum conf = `[Environment32]
 DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../../../phobos/generated/{OS}/{BUILD}/32{exportDynamic}
 
 [Environment64]
-DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../../../phobos/generated/{OS}/{BUILD}/64{exportDynamic} -fPIC`
-        .replace("{exportDynamic}", exportDynamic)
-        .replace("{BUILD}", env["BUILD"])
-        .replace("{OS}", env["OS"]);
+DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@P%/../../../../../phobos/generated/{OS}/{BUILD}/64{exportDynamic} -fPIC
+`;
+    }
+
     builder
         .name("dmdconf")
-        .target(env["G"].buildPath("dmd.conf"))
+        .target(env["G"].buildPath(confFile))
         .msg("(TX) DMD_CONF")
         .commandFunction(() {
-            conf.toFile(rule.target);
+            conf.replace("{exportDynamic}", exportDynamic)
+                .replace("{BUILD}", env["BUILD"])
+                .replace("{OS}", env["OS"])
+                .toFile(rule.target);
         });
 });
 
@@ -390,7 +409,9 @@ alias runCxxUnittest = makeRule!((runCxxBuilder, runCxxRule) {
         .msg("(CXX) CXX-FRONTEND")
         .sources(srcDir.buildPath("tests", "cxxfrontend.c") ~ .sources.frontendHeaders ~ .sources.dmd.all ~ .sources.root)
         .target(env["G"].buildPath("cxxfrontend").objName)
-        .command([ env["CXX"], "-c", frontendRule.sources[0], "-o" ~ frontendRule.target, "-I" ~ env["D"] ] ~ flags["CXXFLAGS"])
+        // No explicit if since CXX_KIND will always be either g++ or clang++
+        .command([ env["CXX"], env["CXX_KIND"] == "g++" ? "-std=gnu++98" : "-xc++",
+                   "-c", frontendRule.sources[0], "-o" ~ frontendRule.target, "-I" ~ env["D"] ] ~ flags["CXXFLAGS"])
     );
 
     alias cxxUnittestExe = methodInit!(BuildRule, (exeBuilder, exeRule) => exeBuilder
@@ -464,26 +485,51 @@ alias checkwhitespace = makeRule!((builder, rule) => builder
 alias style = makeRule!((builder, rule)
 {
     const dscannerDir = env["G"].buildPath("dscanner");
-    alias dscanner = methodInit!(BuildRule, (dscannerBuilder, dscannerRule) => dscannerBuilder
-        .name("dscanner")
-        .description("Build custom DScanner")
-        .msg("(GIT,MAKE) DScanner")
-        .target(dscannerDir.buildPath("dsc".exeName))
+    alias dscannerRepo = methodInit!(BuildRule, (repoBuilder, repoRule) => repoBuilder
+        .msg("(GIT) DScanner")
+        .target(dscannerDir)
+        .condition(() => !exists(dscannerDir))
+        // .command([
+        //     // FIXME: Omitted --shallow-submodules because  it errors for libdparse
+        //     env["GIT"], "clone", "--depth=1", "--recurse-submodules", "--branch=v0.8.0",
+        //     "https://github.com/dlang-community/Dscanner", dscannerDir
+        // ])
         .commandFunction(()
         {
             const git = env["GIT"];
-            run([git, "clone", "https://github.com/dlang-community/Dscanner", dscannerDir]);
-            run([git, "-C", dscannerDir, "checkout", "b51ee472fe29c05cc33359ab8de52297899131fe"]);
-            run([git, "-C", dscannerDir, "submodule", "update", "--init", "--recursive"]);
+            run([git, "clone", "--depth=15", "--recurse-submodules", "--branch=v0.8.0",
+                "https://github.com/dlang-community/Dscanner", dscannerDir]);
 
-            // debug build is faster, but disable 'missing import' messages (missing core from druntime)
-            const makefile = dscannerDir.buildPath("makefile");
-            const content = readText(makefile);
-            File(makefile, "w").lockingTextWriter.replaceInto(content, "dparse_verbose", "StdLoggerDisableWarning");
-
-            run([env.get("MAKE", "make"), "-C", dscannerDir, "githash", "debug"]);
+            // TODO: Remove this temporary fix for the invalid error messages in
+            // backend/ptrtab.d when D-Scanner upgrades DParse
+            run([git, "-C", dscannerDir.buildPath("libdparse"), "checkout", "63559db5cc6fa38c01bdda36e09638b5f20fb8e5"]);
         })
     );
+
+    alias dscanner = methodInit!(BuildRule, (dscannerBuilder, dscannerRule) {
+        dscannerBuilder
+            .name("dscanner")
+            .description("Build custom DScanner")
+            .deps([dscannerRepo]);
+
+        version (Windows) dscannerBuilder
+            .msg("(CMD) DScanner")
+            .target(dscannerDir.buildPath("bin", "dscanner".exeName))
+            .commandFunction(()
+            {
+                // The build script expects to be run inside dscannerDir
+                run([dscannerDir.buildPath("build.bat")], dscannerDir);
+            });
+
+        else dscannerBuilder
+            .msg("(MAKE) DScanner")
+            .target(dscannerDir.buildPath("dsc".exeName))
+            .command([
+                // debug build is faster but disable trace output
+                env.get("MAKE", "make"), "-C", dscannerDir, "debug",
+                "DEBUG_VERSIONS=-version=StdLoggerDisableWarning"
+            ]);
+    });
 
     builder
         .name("style")
@@ -648,19 +694,49 @@ alias toolchainInfo = makeRule!((builder, rule) => builder
     })
 );
 
-alias installCopy = makeRule!((builder, rule) {
+alias installCopy = makeRule!((builder, rule) => builder
+    .name("install-copy")
+    .description("Legacy alias for install")
+    .deps([install])
+);
+
+alias install = makeRule!((builder, rule) {
     const dmdExeFile = dmdDefault.deps[0].target;
     auto sourceFiles = allBuildSources ~ [
         env["D"].buildPath("readme.txt"),
         env["D"].buildPath("boostlicense.txt"),
     ];
     builder
-    .name("install-copy")
+    .name("install")
+    .description("Installs dmd into $(INSTALL)")
     .deps([dmdDefault])
-    .sources([dmdExeFile] ~ sourceFiles)
+    .sources(sourceFiles)
     .commandFunction(() {
-        installRelativeFiles(env["INSTALL"].buildPath(env["OS"], "bin"), dmdExeFile.dirName, dmdExeFile.only);
-        installRelativeFiles(env["INSTALL"], dmdRepo, sourceFiles);
+        version (Windows)
+        {
+            enum conf = "sc.ini";
+            enum bin = "bin";
+        }
+        else
+        {
+            enum conf = "dmd.conf";
+            version (OSX)
+                enum bin = "bin";
+            else
+                const bin = "bin" ~ env["MODEL"];
+        }
+
+        installRelativeFiles(env["INSTALL"].buildPath(env["OS"], bin), dmdExeFile.dirName, dmdExeFile.only);
+
+        version (Windows)
+            installRelativeFiles(env["INSTALL"], dmdRepo, sourceFiles);
+
+        const scPath = buildPath(env["OS"], bin, conf);
+        copyAndTouch(buildPath(dmdRepo, "ini", scPath), buildPath(env["INSTALL"], scPath));
+
+        version (Posix)
+            copyAndTouch(sourceFiles[$-1], env["INSTALL"].buildPath("dmd-boostlicense.txt"));
+
     });
 });
 
@@ -698,10 +774,6 @@ LtargetsLoop:
             case "all":
                 t = "dmd";
                 goto default;
-
-            case "install":
-                "TODO: install".writeln; // TODO
-                break;
 
             default:
                 // check this last, target paths should be checked after predefined names
@@ -822,7 +894,7 @@ void parseEnvironment()
             pic = true;
         else version(X86)
             pic = false;
-        if (environment.get("PIC", "0") == "1")
+        if (env.getNumberedBool("PIC"))
             pic = true;
 
         env["PIC_FLAG"]  = pic ? "-fPIC" : "";
@@ -837,7 +909,13 @@ void parseEnvironment()
     env.getDefault("SYSCONFDIR", "/etc");
     env.getDefault("TMP", tempDir);
     env.getDefault("RES", dmdRepo.buildPath("res"));
-    env.getDefault("INSTALL", dmdRepo.buildPath("install"));
+
+    version (Windows)
+        enum installPref = "";
+    else
+        enum installPref = "..";
+
+    env.getDefault("INSTALL", environment.get("INSTALL_DIR", dmdRepo.buildPath(installPref, "install")));
 
     env.getDefault("DOCSRC", dmdRepo.buildPath("dlang.org"));
     if (env.get("DOCDIR", null).length == 0)
@@ -860,7 +938,7 @@ void parseEnvironment()
     }
 
     // Auto-bootstrapping of a specific host compiler
-    if (env.getDefault("AUTO_BOOTSTRAP", null) == "1")
+    if (env.getNumberedBool("AUTO_BOOTSTRAP"))
     {
         auto hostDMDVer = env.getDefault("HOST_DMD_VER", "2.088.0");
         writefln("Using Bootstrap compiler: %s", hostDMDVer);
@@ -922,7 +1000,8 @@ void processEnvironment()
     else
         env.getDefault("ZIP", "zip");
 
-    env.getDefault("ENABLE_WARNINGS", "0");
+    // TODO: this isn't being used for anything yet...
+    env.getNumberedBool("ENABLE_WARNINGS");
     string[] warnings;
 
     string[] dflags = ["-version=MARS", "-w", "-de", env["PIC_FLAG"], env["MODEL_FLAG"], "-J"~env["G"]];
@@ -934,11 +1013,11 @@ void processEnvironment()
     version(OSX) version(X86_64)
         dObjc = true;
 
-    if (env.getDefault("ENABLE_DEBUG", "0") != "0")
+    if (env.getNumberedBool("ENABLE_DEBUG"))
     {
         dflags ~= ["-g", "-debug"];
     }
-    if (env.getDefault("ENABLE_RELEASE", "0") != "0")
+    if (env.getNumberedBool("ENABLE_RELEASE"))
     {
         dflags ~= ["-O", "-release", "-inline"];
     }
@@ -948,23 +1027,23 @@ void processEnvironment()
         if (!dflags.canFind("-g"))
             dflags ~= ["-g"];
     }
-    if (env.getDefault("ENABLE_LTO", "0") != "0")
+    if (env.getNumberedBool("ENABLE_LTO"))
     {
         dflags ~= ["-flto=full"];
     }
-    if (env.getDefault("ENABLE_UNITTEST", "0") != "0")
+    if (env.getNumberedBool("ENABLE_UNITTEST"))
     {
         dflags ~= ["-unittest", "-cov"];
     }
-    if (env.getDefault("ENABLE_PROFILE", "0") != "0")
+    if (env.getNumberedBool("ENABLE_PROFILE"))
     {
         dflags ~= ["-profile"];
     }
-    if (env.getDefault("ENABLE_COVERAGE", "0") != "0")
+    if (env.getNumberedBool("ENABLE_COVERAGE"))
     {
         dflags ~= ["-cov", "-L-lgcov"];
     }
-    if (env.getDefault("ENABLE_SANITIZERS", "0") != "0")
+    if (env.getDefault("ENABLE_SANITIZERS", "") != "")
     {
         dflags ~= ["-fsanitize="~env["ENABLE_SANITIZERS"]];
     }
@@ -982,35 +1061,20 @@ void processEnvironmentCxx()
     const cxxKind = env["CXX_KIND"] = detectHostCxx();
 
     string[] warnings  = [
-        "-Wall", "-Werror", "-Wextra", "-Wno-attributes", "-Wno-char-subscripts", "-Wno-deprecated",
-        "-Wno-empty-body", "-Wno-format", "-Wno-missing-braces", "-Wno-missing-field-initializers",
-        "-Wno-overloaded-virtual", "-Wno-parentheses", "-Wno-reorder", "-Wno-return-type",
-        "-Wno-sign-compare", "-Wno-strict-aliasing", "-Wno-switch", "-Wno-type-limits",
-        "-Wno-unknown-pragmas", "-Wno-unused-function", "-Wno-unused-label", "-Wno-unused-parameter",
-        "-Wno-unused-value", "-Wno-unused-variable"
+        "-Wall", "-Werror", "-Wno-narrowing", "-Wwrite-strings", "-Wcast-qual", "-Wno-format",
+        "-Wmissing-format-attribute", "-Woverloaded-virtual", "-pedantic", "-Wno-long-long",
+        "-Wno-variadic-macros", "-Wno-overlength-strings",
     ];
-
-    if (cxxKind == "g++")
-        warnings ~= [
-            "-Wno-class-memaccess", "-Wno-implicit-fallthrough", "-Wno-logical-op", "-Wno-narrowing",
-            "-Wno-uninitialized", "-Wno-unused-but-set-variable"
-        ];
-
-    if (cxxKind == "clang++")
-        warnings ~= ["-Wno-logical-op-parentheses", "-Wno-unused-private-field"];
 
     auto cxxFlags = warnings ~ [
-        "-g", "-fno-exceptions", "-fno-rtti", "-fasynchronous-unwind-tables", "-DMARS=1",
+        "-g", "-fno-exceptions", "-fno-rtti", "-fno-common", "-fasynchronous-unwind-tables", "-DMARS=1",
         env["MODEL_FLAG"], env["PIC_FLAG"],
-
-        // No explicit if since cxxKind will always be either g++ or clang++
-        cxxKind == "g++" ? "-std=gnu++98" : "-xc++"
     ];
 
-    if (env["ENABLE_COVERAGE"] != "0")
+    if (env.getNumberedBool("ENABLE_COVERAGE"))
         cxxFlags ~= "--coverage";
 
-    if (env["ENABLE_SANITIZERS"] != "0")
+    if (env.getDefault("ENABLE_SANITIZERS", "") != "")
         cxxFlags ~= "-fsanitize=" ~ env["ENABLE_SANITIZERS"];
 
     // Enable a temporary workaround in globals.h and rmem.h concerning
@@ -1090,9 +1154,9 @@ auto sourceFiles()
             cli.d clone.d compiler.d complex.d cond.d constfold.d cppmangle.d cppmanglewin.d ctfeexpr.d
             ctorflow.d dcast.d dclass.d declaration.d delegatize.d denum.d dimport.d dinifile.d
             dinterpret.d dmacro.d dmangle.d dmodule.d doc.d dscope.d dstruct.d dsymbol.d dsymbolsem.d
-            dtemplate.d dversion.d env.d escape.d expression.d expressionsem.d func.d hdrgen.d impcnvtab.d
+            dtemplate.d dtoh.d dversion.d env.d escape.d expression.d expressionsem.d func.d hdrgen.d impcnvtab.d
             imphint.d init.d initsem.d inline.d inlinecost.d intrange.d json.d lambdacomp.d lib.d libelf.d
-            libmach.d libmscoff.d libomf.d link.d mars.d mtype.d nogc.d nspace.d objc.d opover.d optimize.d
+            libmach.d libmscoff.d libomf.d link.d mars.d mtype.d nogc.d nspace.d ob.d objc.d opover.d optimize.d
             parse.d parsetimevisitor.d permissivevisitor.d printast.d safe.d sapply.d scanelf.d scanmach.d
             scanmscoff.d scanomf.d semantic2.d semantic3.d sideeffect.d statement.d statement_rewrite_walker.d
             statementsem.d staticassert.d staticcond.d target.d templateparamsem.d traits.d
@@ -1354,6 +1418,19 @@ auto getDefault(ref string[string] env, string key, string default_)
     return env[key];
 }
 
+/**
+Get the value of a build variable that should always be 0, 1 or empty.
+*/
+bool getNumberedBool(ref string[string] env, string varname)
+{
+    const value = env.getDefault(varname, null);
+    if (value.length == 0 || value == "0")
+        return false;
+    if (value == "1")
+        return true;
+    throw abortBuild(format("Variable '%s' should be '0', '1' or <empty> but got '%s'", varname, value));
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Mini build system
 ////////////////////////////////////////////////////////////////////////////////
@@ -1606,7 +1683,7 @@ Returns: nothing but enables `throw abortBuild` to convey the resulting behavior
 */
 BuildException abortBuild(string msg = "Build failed!")
 {
-    throw new BuildException(msg);
+    throw new BuildException("ERROR: " ~ msg);
 }
 
 class BuildException : Exception
@@ -1625,14 +1702,15 @@ Run a command which may not succeed and optionally log the invocation.
 
 Params:
     args = the command and command arguments to execute
+    workDir = the commands working directory
 
 Returns: a tuple (status, output)
 */
-auto tryRun(T)(T args)
+auto tryRun(T)(T args, string workDir = runDir)
 {
     args = args.filter!(a => !a.empty).array;
     log("Run: %s", args.join(" "));
-    return execute(args, null, Config.none, size_t.max, runDir);
+    return execute(args, null, Config.none, size_t.max, workDir);
 }
 
 /**
@@ -1641,12 +1719,13 @@ and throws an exception for a non-zero exit code.
 
 Params:
     args = the command and command arguments to execute
+    workDir = the commands working directory
 
 Returns: any output of the executed command
 */
-auto run(T)(T args)
+auto run(T)(T args, string workDir = runDir)
 {
-    auto res = tryRun(args);
+    auto res = tryRun(args, workDir);
     if (res.status)
     {
         abortBuild(res.output ? res.output : format("Last command failed with exit code %s", res.status));

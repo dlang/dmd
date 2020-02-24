@@ -423,12 +423,12 @@ void classcast()
 class A6278 {
     int test()
     in { assert(0); }
-    body { return 1; }
+    do { return 1; }
 }
 class B6278 : A6278 {
     override int test()
     in { assert(0); }
-    body { return 1; }
+    do { return 1; }
 }
 
 }

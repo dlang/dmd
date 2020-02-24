@@ -44,11 +44,16 @@ tags: posix.mak $(ECTAGS_FILES)
 	ctags --sort=yes --links=no --excmd=number --languages=$(ECTAGS_LANGS) \
 		--langmap='C++:+.c,C++:+.h' --extra=+f --file-scope=yes --fields=afikmsSt --totals=yes posix.mak $(ECTAGS_FILES)
 
+ifneq (,$(findstring Darwin_64_32, $(PWD)))
+install:
+	echo "Darwin_64_32_disabled"
+else
 install: all
 	$(MAKE) INSTALL_DIR=$(INSTALL_DIR) -C src -f posix.mak install
 	cp -r samples $(INSTALL_DIR)
 	mkdir -p $(INSTALL_DIR)/man
 	cp -r docs/man/* $(INSTALL_DIR)/man/
+endif
 
 # Checks that all files have been committed and no temporary, untracked files exist.
 # See: https://github.com/dlang/dmd/pull/7483

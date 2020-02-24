@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _toobj.d)
@@ -497,22 +497,31 @@ void toObjFile(Dsymbol ds, bool multiobj)
                     genTypeInfo(sd.loc, sd.type, null);
 
                 // Generate static initializer
-                toInitializer(sd);
-                if (sd.isInstantiated())
+                auto sinit = toInitializer(sd);
+                if (sinit.Sclass == SCextern)
                 {
-                    sd.sinit.Sclass = SCcomdat;
-                }
-                else
-                {
-                    sd.sinit.Sclass = SCglobal;
-                }
+                    if (sinit == bzeroSymbol) assert(0);
+                    sinit.Sclass = sd.isInstantiated() ? SCcomdat : SCglobal;
+                    sinit.Sfl = FLdata;
+                    auto dtb = DtBuilder(0);
+                    StructDeclaration_toDt(sd, dtb);
+                    sinit.Sdt = dtb.finish();
 
-                sd.sinit.Sfl = FLdata;
-                auto dtb = DtBuilder(0);
-                StructDeclaration_toDt(sd, dtb);
-                sd.sinit.Sdt = dtb.finish();
-                out_readonly(sd.sinit);    // put in read-only segment
-                outdata(sd.sinit);
+                    /* fails to link on OBJ_MACH 64 with:
+                     *  ld: in generated/osx/release/64/libphobos2.a(dwarfeh_8dc_56a.o),
+                     *  in section __TEXT,__textcoal_nt reloc 6:
+                     *  symbol index out of range for architecture x86_64
+                     */
+                    if (config.objfmt != OBJ_MACH &&
+                        dtallzeros(sinit.Sdt))
+                    {
+                        sinit.Sclass = SCglobal;
+                        dt2common(&sinit.Sdt);
+                    }
+                    else
+                        out_readonly(sinit);    // put in read-only segment
+                    outdata(sinit);
+                }
 
                 // Put out the members
                 /* There might be static ctors in the members, and they cannot
@@ -1334,10 +1343,7 @@ Louter:
     dtb.size(flags);
 
     // deallocator
-    if (cd.aggDelete)
-        dtb.xoff(toSymbol(cd.aggDelete), 0, TYnptr);
-    else
-        dtb.size(0);
+    dtb.size(0);
 
     // offTi[]
     dtb.size(0);

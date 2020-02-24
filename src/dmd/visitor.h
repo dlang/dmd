@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 2013-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 2013-2020 by The D Language Foundation, All Rights Reserved
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
@@ -109,6 +109,7 @@ class StaticIfDeclaration;
 class CompileDeclaration;
 class StaticForeachDeclaration;
 class UserAttributeDeclaration;
+class ForwardingAttribDeclaration;
 
 class ScopeDsymbol;
 class TemplateDeclaration;
@@ -166,7 +167,6 @@ class SharedStaticDtorDeclaration;
 class InvariantDeclaration;
 class UnitTestDeclaration;
 class NewDeclaration;
-class DeleteDeclaration;
 
 class Initializer;
 class VoidInitializer;
@@ -346,7 +346,6 @@ public:
     virtual void visit(InvariantDeclaration *s) { visit((FuncDeclaration *)s); }
     virtual void visit(UnitTestDeclaration *s) { visit((FuncDeclaration *)s); }
     virtual void visit(NewDeclaration *s) { visit((FuncDeclaration *)s); }
-    virtual void visit(DeleteDeclaration *s) { visit((FuncDeclaration *)s); }
     virtual void visit(StaticCtorDeclaration *s) { visit((FuncDeclaration *)s); }
     virtual void visit(StaticDtorDeclaration *s) { visit((FuncDeclaration *)s); }
     virtual void visit(SharedStaticCtorDeclaration *s) { visit((StaticCtorDeclaration *)s); }
@@ -589,6 +588,7 @@ public:
     virtual void visit(ArrayScopeSymbol *s) { visit((ScopeDsymbol *)s); }
     virtual void visit(OverDeclaration *s) { visit((Declaration *)s); }
     virtual void visit(SymbolDeclaration *s) { visit((Declaration *)s); }
+    virtual void visit(ForwardingAttribDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(ThisDeclaration *s) { visit((VarDeclaration *)s); }
     virtual void visit(TypeInfoDeclaration *s) { visit((VarDeclaration *)s); }
     virtual void visit(TypeInfoStructDeclaration *s) { visit((TypeInfoDeclaration *)s); }

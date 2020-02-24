@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/link.d, _link.d)
@@ -28,6 +28,7 @@ import dmd.root.file;
 import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.root.rmem;
+import dmd.root.string;
 import dmd.utils;
 
 version (Posix) extern (C) int pipe(int*);
@@ -226,7 +227,7 @@ public int runLINK()
         {
             OutBuffer cmdbuf;
             cmdbuf.writestring("/NOLOGO");
-            for (size_t i = 0; i < global.params.objfiles.dim; i++)
+            for (size_t i = 0; i < global.params.objfiles.length; i++)
             {
                 cmdbuf.writeByte(' ');
                 const(char)* p = global.params.objfiles[i];
@@ -260,7 +261,7 @@ public int runLINK()
                 cmdbuf.writestring("/MAP:");
                 writeFilename(&cmdbuf, getMapFilename());
             }
-            for (size_t i = 0; i < global.params.libfiles.dim; i++)
+            for (size_t i = 0; i < global.params.libfiles.length; i++)
             {
                 cmdbuf.writeByte(' ');
                 cmdbuf.writestring("/DEFAULTLIB:");
@@ -285,7 +286,7 @@ public int runLINK()
                 cmdbuf.writeByte(' ');
                 cmdbuf.writestring("/DLL");
             }
-            for (size_t i = 0; i < global.params.linkswitches.dim; i++)
+            for (size_t i = 0; i < global.params.linkswitches.length; i++)
             {
                 cmdbuf.writeByte(' ');
                 cmdbuf.writeQuotedArgIfNeeded(global.params.linkswitches[i]);
@@ -336,7 +337,7 @@ public int runLINK()
             OutBuffer cmdbuf;
             global.params.libfiles.push("user32");
             global.params.libfiles.push("kernel32");
-            for (size_t i = 0; i < global.params.objfiles.dim; i++)
+            for (size_t i = 0; i < global.params.objfiles.length; i++)
             {
                 if (i)
                     cmdbuf.writeByte('+');
@@ -371,7 +372,7 @@ public int runLINK()
             else
                 cmdbuf.writestring("nul");
             cmdbuf.writeByte(',');
-            for (size_t i = 0; i < global.params.libfiles.dim; i++)
+            for (size_t i = 0; i < global.params.libfiles.length; i++)
             {
                 if (i)
                     cmdbuf.writeByte('+');
@@ -414,7 +415,7 @@ public int runLINK()
                     cmdbuf.writestring("/co");
             }
             cmdbuf.writestring("/noi");
-            for (size_t i = 0; i < global.params.linkswitches.dim; i++)
+            for (size_t i = 0; i < global.params.linkswitches.length; i++)
             {
                 cmdbuf.writestring(global.params.linkswitches[i]);
             }
@@ -1046,7 +1047,7 @@ version (Windows)
             if (getVCLibDir(x64))
                 return "libcmt";
             else
-                return "msvcrt100"; // mingw replacement
+                return "msvcrt120"; // mingw replacement
         }
 
         /**

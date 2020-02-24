@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/typesem.d, _typesem.d)
@@ -55,13 +55,13 @@ import dmd.root.ctfloat;
 import dmd.root.rmem;
 import dmd.root.outbuffer;
 import dmd.root.rootobject;
+import dmd.root.string;
 import dmd.root.stringtable;
 import dmd.semantic3;
 import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
-import dmd.utils;
 
 /**************************
  * This evaluates exp while setting length to be the number
@@ -1002,7 +1002,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
             {
                 if (search_function(sd, Id.eq))
                 {
-                    .error(loc, "%sAA key type `%s` should have `size_t toHash() const nothrow @safe` if `opEquals` defined", s, sd.toChars());
+                    .error(loc, "%sAA key type `%s` should have `extern (D) size_t toHash() const nothrow @safe` if `opEquals` defined", s, sd.toChars());
                 }
                 else
                 {
@@ -1148,7 +1148,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
 
         bool errors = false;
 
-        if (mtype.inuse > 500)
+        if (mtype.inuse > global.recursionLimit)
         {
             mtype.inuse = 0;
             .error(loc, "recursive type");
@@ -1997,13 +1997,12 @@ RootObject compileTypeMixin(TypeMixin tm, Loc loc, Scope* sc)
     const len = buf.length;
     buf.writeByte(0);
     const str = buf.extractSlice()[0 .. len];
-    scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-    scope p = new Parser!ASTCodegen(loc, sc._module, str, false, diagnosticReporter);
+    scope p = new Parser!ASTCodegen(loc, sc._module, str, false);
     p.nextToken();
     //printf("p.loc.linnum = %d\n", p.loc.linnum);
 
     auto o = p.parseTypeOrAssignExp(TOK.endOfFile);
-    if (p.errors)
+    if (errors != global.errors)
     {
         assert(global.errors != errors); // should have caught all these cases
         return null;
@@ -3365,7 +3364,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                 e.error("`%s` is not an expression", e.toChars());
                 return new ErrorExp();
             }
-            else if (!(flag & DotExpFlag.noDeref) && sc.func && !sc.intypeof && sc.func.setUnsafe() && !(sc.flags & SCOPE.debug_))
+            else if (!(flag & DotExpFlag.noDeref) && sc.func && !sc.intypeof && !(sc.flags & SCOPE.debug_) && sc.func.setUnsafe())
             {
                 e.error("`%s.ptr` cannot be used in `@safe` code, use `&%s[0]` instead", e.toChars(), e.toChars());
                 return new ErrorExp();
@@ -3413,7 +3412,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
         }
         else if (ident == Id.ptr)
         {
-            if (!(flag & DotExpFlag.noDeref) && sc.func && !sc.intypeof && sc.func.setUnsafe() && !(sc.flags & SCOPE.debug_))
+            if (!(flag & DotExpFlag.noDeref) && sc.func && !sc.intypeof && !(sc.flags & SCOPE.debug_) && sc.func.setUnsafe())
             {
                 e.error("`%s.ptr` cannot be used in `@safe` code, use `&%s[0]` instead", e.toChars(), e.toChars());
                 return new ErrorExp();
@@ -3479,7 +3478,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
         }
         else if (ident == Id.funcptr)
         {
-            if (!(flag & DotExpFlag.noDeref) && sc.func && !sc.intypeof && sc.func.setUnsafe() && !(sc.flags & SCOPE.debug_))
+            if (!(flag & DotExpFlag.noDeref) && sc.func && !sc.intypeof && !(sc.flags & SCOPE.debug_) && sc.func.setUnsafe())
             {
                 e.error("`%s.funcptr` cannot be used in `@safe` code", e.toChars());
                 return new ErrorExp();

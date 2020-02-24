@@ -28,7 +28,7 @@
  *   arguments, and uses it if found.
  * - Otherwise, the rest of semantic is run on the `TemplateInstance`.
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dtemplate.d, _dtemplate.d)
@@ -1340,6 +1340,11 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         // Set up scope for parameters
         Scope* paramscope = scopeForTemplateParameters(ti,sc);
 
+        // Mark the parameter scope as deprecated if the templated
+        // function is deprecated (since paramscope.enclosing is the
+        // calling scope already)
+        paramscope.stc |= fd.storage_class & STC.deprecated_;
+
         TemplateTupleParameter tp = isVariadic();
         Tuple declaredTuple = null;
 
@@ -2189,6 +2194,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             sc2.parent = ti;
             sc2.tinst = ti;
             sc2.minst = sc.minst;
+            sc2.stc |= fd.storage_class & STC.deprecated_;
 
             fd = doHeaderInstantiation(ti, sc2, fd, tthis, fargs);
 

@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/optimize.d, _optimize.d)
@@ -1153,7 +1153,7 @@ Expression Expression_optimize(Expression e, int result, bool keepLvalue)
     size_t b;
     while (1)
     {
-        if (b++ == 500)
+        if (b++ == global.recursionLimit)
         {
             e.error("infinite loop while optimizing expression");
             fatal();

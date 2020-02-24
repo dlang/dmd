@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dsymbol.d, _dsymbol.d)
@@ -48,9 +48,9 @@ import dmd.root.aav;
 import dmd.root.rmem;
 import dmd.root.rootobject;
 import dmd.root.speller;
+import dmd.root.string;
 import dmd.statement;
 import dmd.tokens;
-import dmd.utils;
 import dmd.visitor;
 
 /***************************************
@@ -1217,7 +1217,6 @@ extern (C++) class Dsymbol : ASTNode
     inout(ArrayScopeSymbol)            isArrayScopeSymbol()            inout { return null; }
     inout(Import)                      isImport()                      inout { return null; }
     inout(EnumDeclaration)             isEnumDeclaration()             inout { return null; }
-    inout(DeleteDeclaration)           isDeleteDeclaration()           inout { return null; }
     inout(SymbolDeclaration)           isSymbolDeclaration()           inout { return null; }
     inout(AttribDeclaration)           isAttribDeclaration()           inout { return null; }
     inout(AnonDeclaration)             isAnonDeclaration()             inout { return null; }
@@ -1365,7 +1364,8 @@ public:
                          * need to check s once)
                          */
 
-                        if ((s2.isOverloadSet() || s2.isOverloadable()) && (a || s.isOverloadable()))
+                        auto so2 = s2.isOverloadSet();
+                        if ((so2 || s2.isOverloadable()) && (a || s.isOverloadable()))
                         {
                             if (symbolIsVisible(this, s2))
                             {
@@ -1375,6 +1375,26 @@ public:
                                 s = s2;
                             continue;
                         }
+
+                        /* Two different overflow sets can have the same members
+                         * https://issues.dlang.org/show_bug.cgi?id=16709
+                         */
+                        auto so = s.isOverloadSet();
+                        if (so && so2)
+                        {
+                            if (so.a.length == so2.a.length)
+                            {
+                                foreach (j; 0 .. so.a.length)
+                                {
+                                    if (so.a[j] !is so2.a[j])
+                                        goto L1;
+                                }
+                                continue;  // the same
+                              L1:
+                                {   } // different
+                            }
+                        }
+
                         if (flags & IgnoreAmbiguous) // if return NULL on ambiguity
                             return null;
                         if (!(flags & IgnoreErrors))
@@ -1512,7 +1532,29 @@ public:
         }
         if (loc.isValid())
         {
-            .error(loc, "`%s` at %s conflicts with `%s` at %s", s1.toPrettyChars(), s1.locToChars(), s2.toPrettyChars(), s2.locToChars());
+            .error(loc, "%s `%s` at %s conflicts with %s `%s` at %s",
+                s1.kind(), s1.toPrettyChars(), s1.locToChars(),
+                s2.kind(), s2.toPrettyChars(), s2.locToChars());
+
+            static if (0)
+            {
+                if (auto so = s1.isOverloadSet())
+                {
+                    printf("first %p:\n", so);
+                    foreach (s; so.a[])
+                    {
+                        printf("  %p %s `%s` at %s\n", s, s.kind(), s.toPrettyChars(), s.locToChars());
+                    }
+                }
+                if (auto so = s2.isOverloadSet())
+                {
+                    printf("second %p:\n", so);
+                    foreach (s; so.a[])
+                    {
+                        printf("  %p %s `%s` at %s\n", s, s.kind(), s.toPrettyChars(), s.locToChars());
+                    }
+                }
+            }
         }
         else
         {

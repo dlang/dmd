@@ -100,7 +100,7 @@ auto-tester-build: $(GEN)\build.exe
 dmd: $G reldmd
 
 $(GEN)\build.exe: build.d $(HOST_DMD_PATH)
-	$(HOST_DC) -m$(MODEL) -of$@ build.d
+	$(HOST_DC) -m$(MODEL) -of$@ -g build.d
 
 release:
 	$(DMDMAKE) clean

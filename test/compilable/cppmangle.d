@@ -276,6 +276,13 @@ void test10()
     foo10(e,e);
 }
 
+// https://issues.dlang.org/show_bug.cgi?id=19504
+extern(C++) struct Class19504 {
+    pragma(mangle, "HOHOHO")
+    ~this();
+}
+static assert(Class19504.__xdtor.mangleof == "HOHOHO");
+
 /**************************************/
 // https://issues.dlang.org/show_bug.cgi?id=10058
 

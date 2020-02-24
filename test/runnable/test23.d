@@ -769,7 +769,7 @@ in
 
     checkParameters();
 }
-body
+do
 {
 }
 

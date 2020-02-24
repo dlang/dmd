@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS: -checkaction=context
+REQUIRED_ARGS: -checkaction=context -dip25 -dip1000
 */
 
 void test8765()
@@ -75,7 +75,59 @@ void test20114()
     assert(c == "1 != 0");
 }
 
-string getMessage(T)(lazy T expr)
+void test20375() @safe
+{
+    static struct RefCounted
+    {
+        // Force temporary through "impure" generator function
+        static RefCounted create() @trusted
+        {
+            __gshared int counter = 0;
+            return RefCounted(++counter > 0);
+        }
+
+        static int instances;
+
+        this(bool) @safe
+        {
+            instances++;
+        }
+
+        this(this) @safe
+        {
+            instances++;
+        }
+
+        ~this() @safe
+        {
+            assert(instances > 0);
+            instances--;
+        }
+
+        bool opEquals(RefCounted) @safe
+        {
+            return true;
+        }
+    }
+
+    {
+        auto a = RefCounted.create();
+        assert(a == RefCounted.create());
+    }
+
+    assert(RefCounted.instances == 0);
+
+    {
+        auto a = RefCounted.create();
+        const msg = getMessage(assert(a != RefCounted.create()));
+        // assert(msg == "RefCounted() == RefCounted()"); // Currently not formatted
+        assert(msg == "assert(a != RefCounted.create()) failed");
+    }
+
+    assert(RefCounted.instances == 0);
+}
+
+string getMessage(T)(lazy T expr) @trusted
 {
     try
     {
@@ -93,4 +145,5 @@ void main()
     test8765();
     test9255();
     test20114();
+    test20375();
 }

@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/declaration.d, _declaration.d)
@@ -249,12 +249,13 @@ enum STC : long
     future              = (1L << 50),   // introducing new base class function
     local               = (1L << 51),   // do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
     returninferred      = (1L << 52),   // 'return' has been inferred and should not be part of mangling
+    live                = (1L << 53),   // function @live attribute
 
     // Group members are mutually exclusive (there can be only one)
     safeGroup = STC.safe | STC.trusted | STC.system,
 
     TYPECTOR = (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild),
-    FUNCATTR = (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.property |
+    FUNCATTR = (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.property | STC.live |
                 STC.safeGroup),
 }
 
@@ -262,7 +263,14 @@ enum STCStorageClass =
     (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.const_ | STC.final_ | STC.abstract_ | STC.synchronized_ |
      STC.deprecated_ | STC.future | STC.override_ | STC.lazy_ | STC.alias_ | STC.out_ | STC.in_ | STC.manifest |
      STC.immutable_ | STC.shared_ | STC.wild | STC.nothrow_ | STC.nogc | STC.pure_ | STC.ref_ | STC.return_ | STC.tls | STC.gshared |
-     STC.property | STC.safeGroup | STC.disable | STC.local);
+     STC.property | STC.safeGroup | STC.disable | STC.local | STC.live);
+
+/* These storage classes "flow through" to the inner scope of a Dsymbol
+ */
+enum STCFlowThruAggregate = STC.safeGroup;    /// for an AggregateDeclaration
+enum STCFlowThruFunction = ~(STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.abstract_ | STC.deprecated_ | STC.override_ |
+                         STC.TYPECTOR | STC.final_ | STC.tls | STC.gshared | STC.ref_ | STC.return_ | STC.property |
+                         STC.nothrow_ | STC.pure_ | STC.safe | STC.trusted | STC.system); /// for a FuncDeclaration
 
 /* Accumulator for successive matches.
  */
@@ -1080,6 +1088,7 @@ extern (C++) class VarDeclaration : Declaration
     bool isargptr;                  // if parameter that _argptr points to
     bool ctorinit;                  // it has been initialized in a ctor
     bool iscatchvar;                // this is the exception object variable in catch() clause
+    bool isowner;                   // this is an Owner, despite it being `scope`
 
     // Both these mean the var is not rebindable once assigned,
     // and the destructor gets run when it goes out of scope

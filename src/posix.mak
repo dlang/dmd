@@ -63,7 +63,7 @@ ifeq (osx,$(OS))
     export MACOSX_DEPLOYMENT_TARGET=10.9
 endif
 
-HOST_CXX=c++
+HOST_CXX?=c++
 # compatibility with old behavior
 ifneq ($(HOST_CC),)
   $(warning ===== WARNING: Please use HOST_CXX=$(HOST_CC) instead of HOST_CC=$(HOST_CC). =====)
@@ -111,7 +111,7 @@ dmd: $(GENERATED)/build
 .PHONY: dmd
 
 $(GENERATED)/build: build.d $(HOST_DMD_PATH)
-	$(HOST_DMD_RUN) -of$@ build.d
+	$(HOST_DMD_RUN) -of$@ -g build.d
 
 auto-tester-build: $(GENERATED)/build
 	$(RUN_BUILD) $@
@@ -159,12 +159,8 @@ man: $(GENERATED)/build
 
 ######################################################
 
-install: all $(DMD_MAN_PAGE)
-	$(eval bin_dir=$(if $(filter $(OS),osx), bin, bin$(MODEL)))
-	mkdir -p $(INSTALL_DIR)/$(OS)/$(bin_dir)
-	cp $G/dmd $(INSTALL_DIR)/$(OS)/$(bin_dir)/dmd
-	cp ../ini/$(OS)/$(bin_dir)/dmd.conf $(INSTALL_DIR)/$(OS)/$(bin_dir)/dmd.conf
-	cp $D/boostlicense.txt $(INSTALL_DIR)/dmd-boostlicense.txt
+install: $(GENERATED)/build $(DMD_MAN_PAGE)
+	$(RUN_BUILD) $@
 
 ######################################################
 

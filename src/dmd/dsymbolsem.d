@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dsymbolsem.d, _dsymbolsem.d)
@@ -2093,16 +2093,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         const len = buf.length;
         buf.writeByte(0);
         const str = buf.extractSlice()[0 .. len];
-        scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-        scope p = new Parser!ASTCodegen(cd.loc, sc._module, str, false, diagnosticReporter);
+        scope p = new Parser!ASTCodegen(cd.loc, sc._module, str, false);
         p.nextToken();
 
         auto d = p.parseDeclDefs(0);
-        if (p.errors)
-        {
-            assert(global.errors != errors);    // should have caught all these cases
+        if (global.errors != errors)
             return null;
-        }
+
         if (p.token.value != TOK.endOfFile)
         {
             cd.error("incomplete mixin declaration `%s`", str.ptr);
@@ -4525,53 +4522,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         funcDeclarationSemantic(nd);
     }
 
-    override void visit(DeleteDeclaration deld)
-    {
-        //printf("DeleteDeclaration::semantic()\n");
-
-        // @@@DEPRECATED_2.091@@@
-        // Made an error in 2.087.
-        // Should be removed in 2.091
-        error(deld.loc, "class deallocators are obsolete, consider moving the deallocation strategy outside of the class");
-
-        if (deld.semanticRun >= PASS.semanticdone)
-            return;
-        if (deld._scope)
-        {
-            sc = deld._scope;
-            deld._scope = null;
-        }
-
-        deld.parent = sc.parent;
-        Dsymbol p = deld.parent.pastMixin();
-        if (!p.isAggregateDeclaration())
-        {
-            error(deld.loc, "deallocator can only be a member of aggregate, not %s `%s`", p.kind(), p.toChars());
-            deld.type = Type.terror;
-            deld.errors = true;
-            return;
-        }
-        if (!deld.type)
-            deld.type = new TypeFunction(ParameterList(deld.parameters), Type.tvoid, LINK.d, deld.storage_class);
-
-        deld.type = deld.type.typeSemantic(deld.loc, sc);
-
-        // Check that there is only one argument of type void*
-        TypeFunction tf = deld.type.toTypeFunction();
-        if (tf.parameterList.length != 1)
-        {
-            deld.error("one argument of type `void*` expected");
-        }
-        else
-        {
-            Parameter fparam = tf.parameterList[0];
-            if (!fparam.type.equals(Type.tvoid.pointerTo()))
-                deld.error("one argument of type `void*` expected, not `%s`", fparam.type.toChars());
-        }
-
-        funcDeclarationSemantic(deld);
-    }
-
     /* https://issues.dlang.org/show_bug.cgi?id=19731
      *
      * Some aggregate member functions might have had
@@ -4656,8 +4606,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             sd.alignment = sc.alignment();
 
             sd.storage_class |= sc.stc;
-            if (sd.storage_class & STC.deprecated_)
-                sd.isdeprecated = true;
             if (sd.storage_class & STC.abstract_)
                 sd.error("structs, unions cannot be `abstract`");
 
@@ -4735,7 +4683,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         /* Look for special member functions.
          */
         sd.aggNew = cast(NewDeclaration)sd.search(Loc.initial, Id.classNew);
-        sd.aggDelete = cast(DeleteDeclaration)sd.search(Loc.initial, Id.classDelete);
 
         // Look for the constructor
         sd.ctor = sd.searchCtor();
@@ -4872,8 +4819,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             cldec.protection = sc.protection;
 
             cldec.storage_class |= sc.stc;
-            if (cldec.storage_class & STC.deprecated_)
-                cldec.isdeprecated = true;
             if (cldec.storage_class & STC.auto_)
                 cldec.error("storage class `auto` is invalid when declaring a class, did you mean to use `scope`?");
             if (cldec.storage_class & STC.scope_)
@@ -4978,7 +4923,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     if (!cldec.isDeprecated())
                     {
                         // Deriving from deprecated class makes this one deprecated too
-                        cldec.isdeprecated = true;
+                        cldec.setDeprecated();
                         tc.checkDeprecated(cldec.loc, sc);
                     }
                 }
@@ -5070,7 +5015,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     if (!cldec.isDeprecated())
                     {
                         // Deriving from deprecated class makes this one deprecated too
-                        cldec.isdeprecated = true;
+                        cldec.setDeprecated();
                         tc.checkDeprecated(cldec.loc, sc);
                     }
                 }
@@ -5332,7 +5277,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
          */
         // Can be in base class
         cldec.aggNew = cast(NewDeclaration)cldec.search(Loc.initial, Id.classNew);
-        cldec.aggDelete = cast(DeleteDeclaration)cldec.search(Loc.initial, Id.classDelete);
 
         // Look for the constructor
         cldec.ctor = cldec.searchCtor();
@@ -5532,9 +5476,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             idec.protection = sc.protection;
 
             idec.storage_class |= sc.stc;
-            if (idec.storage_class & STC.deprecated_)
-                idec.isdeprecated = true;
-
             idec.userAttribDecl = sc.userAttribDecl;
         }
         else if (idec.symtab)
@@ -5648,8 +5589,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     if (!idec.isDeprecated())
                     {
-                        // Deriving from deprecated class makes this one deprecated too
-                        idec.isdeprecated = true;
+                        // Deriving from deprecated interface makes this one deprecated too
+                        idec.setDeprecated();
                         tc.checkDeprecated(idec.loc, sc);
                     }
                 }

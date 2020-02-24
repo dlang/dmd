@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/parse.d, _parse.d)
@@ -23,8 +23,8 @@ import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.root.rmem;
 import dmd.root.rootobject;
+import dmd.root.string;
 import dmd.tokens;
-import dmd.utils;
 
 // How multiple declarations are parsed.
 // If 1, treat as C.
@@ -294,10 +294,9 @@ final class Parser(AST) : Lexer
      * Input:
      *      loc     location in source file of mixin
      */
-    extern (D) this(const ref Loc loc, AST.Module _module, const(char)[] input,
-        bool doDocComment, DiagnosticReporter diagnosticReporter)
+    extern (D) this(const ref Loc loc, AST.Module _module, const(char)[] input, bool doDocComment)
     {
-        super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false, diagnosticReporter);
+        super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false);
 
         //printf("Parser::Parser()\n");
         scanloc = loc;
@@ -317,9 +316,9 @@ final class Parser(AST) : Lexer
         //nextToken();              // start up the scanner
     }
 
-    extern (D) this(AST.Module _module, const(char)[] input, bool doDocComment, DiagnosticReporter diagnosticReporter)
+    extern (D) this(AST.Module _module, const(char)[] input, bool doDocComment)
     {
-        super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false, diagnosticReporter);
+        super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false);
 
         //printf("Parser::Parser()\n");
         mod = _module;
@@ -656,10 +655,6 @@ final class Parser(AST) : Lexer
                 s = parseNew(pAttrs);
                 break;
 
-            case TOK.delete_:
-                s = parseDelete(pAttrs);
-                break;
-
             case TOK.colon:
             case TOK.leftCurly:
                 error("declaration expected, not `%s`", token.toChars());
@@ -710,7 +705,7 @@ final class Parser(AST) : Lexer
                     }
                     else if (next == TOK.foreach_ || next == TOK.foreach_reverse_)
                     {
-                        s = parseForeach!(true,true)(loc, pLastDecl);
+                        s = parseForeach!(true,true)(token.loc, pLastDecl);
                     }
                     else
                     {
@@ -840,6 +835,15 @@ final class Parser(AST) : Lexer
                      tk.value == TOK.out_ || tk.value == TOK.do_ ||
                      tk.value == TOK.identifier && tk.ident == Id._body))
                 {
+                    version (none)
+                    {
+                        // This deprecation has been disabled for the time being, see PR10763
+                        // @@@DEPRECATED@@@
+                        // https://github.com/dlang/DIPs/blob/1f5959abe482b1f9094f6484a7d0a3ade77fc2fc/DIPs/accepted/DIP1003.md
+                        // Deprecated in 2.091 - Can be removed from 2.101
+                        if (tk.value == TOK.identifier && tk.ident == Id._body)
+                            deprecation("Usage of the `body` keyword is deprecated. Use `do` instead.");
+                    }
                     a = parseDeclarations(true, pAttrs, pAttrs.comment);
                     if (a && a.dim)
                         *pLastDecl = (*a)[a.dim - 1];
@@ -2787,27 +2791,6 @@ final class Parser(AST) : Lexer
         return s;
     }
 
-    /*****************************************
-     * Parse a delete definition:
-     *      delete(parameters) { body }
-     * Current token is 'delete'.
-     */
-    private AST.Dsymbol parseDelete(PrefixAttributes!AST* pAttrs)
-    {
-        const loc = token.loc;
-        StorageClass stc = getStorageClass!AST(pAttrs);
-
-        nextToken();
-
-        AST.VarArg varargs;
-        AST.Parameters* parameters = parseParameters(&varargs);
-        if (varargs != AST.VarArg.none)
-            error("`...` not allowed in delete function parameter list");
-        auto f = new AST.DeleteDeclaration(loc, Loc.initial, stc, parameters);
-        AST.Dsymbol s = parseContracts(f);
-        return s;
-    }
-
     /**********************************************
      * Parse parameter list.
      */
@@ -3088,6 +3071,7 @@ final class Parser(AST) : Lexer
         else if (token.value == TOK.leftCurly)
         {
             bool isAnonymousEnum = !id;
+            TOK prevTOK;
 
             //printf("enum definition\n");
             e.members = new AST.Dsymbols();
@@ -3127,6 +3111,7 @@ final class Parser(AST) : Lexer
                                     AST.stcToBuffer(&buf, _stc);
                                     error(attributeErrorMessage, buf.peekChars());
                                 }
+                                prevTOK = token.value;
                                 nextToken();
                             }
                             break;
@@ -3134,6 +3119,7 @@ final class Parser(AST) : Lexer
                             if (StorageClass _stc = parseDeprecatedAttribute(deprecationMessage))
                             {
                                 stc |= _stc;
+                                prevTOK = token.value;
                                 nextToken();
                             }
                             break;
@@ -3143,6 +3129,7 @@ final class Parser(AST) : Lexer
                             {
                                 ident = token.ident;
                                 type = null;
+                                prevTOK = token.value;
                                 nextToken();
                             }
                             else
@@ -3157,15 +3144,25 @@ final class Parser(AST) : Lexer
                                 if (type == AST.Type.terror)
                                 {
                                     type = null;
+                                    prevTOK = token.value;
                                     nextToken();
+                                }
+                                else
+                                {
+                                    prevTOK = TOK.identifier;
                                 }
                             }
                             else
                             {
                                 error(attributeErrorMessage, token.toChars());
+                                prevTOK = token.value;
                                 nextToken();
                             }
                             break;
+                    }
+                    if (token.value == TOK.comma)
+                    {
+                        prevTOK = token.value;
                     }
                 }
 
@@ -3176,12 +3173,19 @@ final class Parser(AST) : Lexer
                     if (!isAnonymousEnum)
                         error("type only allowed if anonymous enum and no enum type");
                 }
-
                 AST.Expression value;
                 if (token.value == TOK.assign)
                 {
-                    nextToken();
-                    value = parseAssignExp();
+                    if (prevTOK == TOK.identifier)
+                    {
+                        nextToken();
+                        value = parseAssignExp();
+                    }
+                    else
+                    {
+                        error("assignment must be preceded by an identifier");
+                        nextToken();
+                    }
                 }
                 else
                 {
@@ -4627,6 +4631,15 @@ final class Parser(AST) : Lexer
                     (tk.value == TOK.leftParentheses || tk.value == TOK.leftCurly || tk.value == TOK.in_ || tk.value == TOK.out_ ||
                      tk.value == TOK.do_ || tk.value == TOK.identifier && tk.ident == Id._body))
                 {
+                    version (none)
+                    {
+                        // This deprecation has been disabled for the time being, see PR10763
+                        // @@@DEPRECATED@@@
+                        // https://github.com/dlang/DIPs/blob/1f5959abe482b1f9094f6484a7d0a3ade77fc2fc/DIPs/accepted/DIP1003.md
+                        // Deprecated in 2.091 - Can be removed from 2.101
+                        if (tk.value == TOK.identifier && tk.ident == Id._body)
+                            deprecation("Usage of the `body` keyword is deprecated. Use `do` instead.");
+                    }
                     ts = null;
                 }
                 else
@@ -4991,7 +5004,17 @@ final class Parser(AST) : Lexer
 
         case TOK.identifier:
             if (token.ident == Id._body)
+            {
+                version (none)
+                {
+                    // This deprecation has been disabled for the time being, see PR10763
+                    // @@@DEPRECATED@@@
+                    // https://github.com/dlang/DIPs/blob/1f5959abe482b1f9094f6484a7d0a3ade77fc2fc/DIPs/accepted/DIP1003.md
+                    // Deprecated in 2.091 - Can be removed from 2.101
+                    deprecation("Usage of the `body` keyword is deprecated. Use `do` instead.");
+                }
                 goto case TOK.do_;
+            }
             goto default;
 
         case TOK.do_:
@@ -6610,10 +6633,13 @@ final class Parser(AST) : Lexer
                     if (token.value == TOK.colon)
                     {
                         nextToken();
-                        AST.ExpInitializer expInit = value.isExpInitializer();
-                        assert(expInit);
-                        e = expInit.exp;
-                        value = parseInitializer();
+                        if (auto ei = value.isExpInitializer())
+                        {
+                            e = ei.exp;
+                            value = parseInitializer();
+                        }
+                        else
+                            error("initializer expression expected following colon, not `%s`", token.toChars());
                     }
                     else
                         e = null;
@@ -7182,7 +7208,17 @@ final class Parser(AST) : Lexer
 
             case TOK.identifier:
                 if (t.ident == Id._body)
+                {
+                    version (none)
+                    {
+                        // This deprecation has been disabled for the time being, see PR10763
+                        // @@@DEPRECATED@@@
+                        // https://github.com/dlang/DIPs/blob/1f5959abe482b1f9094f6484a7d0a3ade77fc2fc/DIPs/accepted/DIP1003.md
+                        // Deprecated in 2.091 - Can be removed from 2.101
+                        deprecation("Usage of the `body` keyword is deprecated. Use `do` instead.");
+                    }
                     goto case TOK.do_;
+                }
                 goto default;
 
             case TOK.if_:
@@ -8992,7 +9028,7 @@ final class Parser(AST) : Lexer
             auto edim = AST.typeToExpression(index);
             if (!edim)
             {
-                error("need size of rightmost array, not type `%s`", index.toChars());
+                error("cannot create a `%s` with `new`", t.toChars);
                 return new AST.NullExp(loc);
             }
             t = new AST.TypeSArray(taa.next, edim);
@@ -9037,6 +9073,7 @@ final class Parser(AST) : Lexer
                (ident == Id.safe)     ? AST.STC.safe     :
                (ident == Id.trusted)  ? AST.STC.trusted  :
                (ident == Id.system)   ? AST.STC.system   :
+               (ident == Id.live)     ? AST.STC.live     :
                (ident == Id.future)   ? AST.STC.future   :
                (ident == Id.disable)  ? AST.STC.disable  :
                0;
@@ -9048,6 +9085,7 @@ final class Parser(AST) : Lexer
                 AST.STC.safe     |
                 AST.STC.trusted  |
                 AST.STC.system   |
+                AST.STC.live     |
                 /*AST.STC.future   |*/ // probably should be included
                 AST.STC.disable;
     }

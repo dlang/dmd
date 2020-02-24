@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/globals.d, _globals.d)
@@ -39,6 +39,12 @@ enum DiagnosticReporting : ubyte
     error,        // generate an error
     inform,       // generate a warning
     off,          // disable diagnostic
+}
+
+enum MessageStyle : ubyte
+{
+    digitalmars,  // filename.d(line): message
+    gnu,          // filename.d:line: message, see https://www.gnu.org/prep/standards/html_node/Errors.html
 }
 
 enum CHECKENABLE : ubyte
@@ -224,14 +230,18 @@ extern (C++) struct Param
     const(char)[] libname;               // .lib file output name
 
     bool doDocComments;                 // process embedded documentation comments
-    const(char)* docdir;                // write documentation file to docdir directory
-    const(char)* docname;               // write documentation file to docname
+    const(char)[] docdir;               // write documentation file to docdir directory
+    const(char)[] docname;              // write documentation file to docname
     Array!(const(char)*) ddocfiles;     // macro include files for Ddoc
 
     bool doHdrGeneration;               // process embedded documentation comments
     const(char)[] hdrdir;                // write 'header' file to docdir directory
     const(char)[] hdrname;               // write 'header' file to docname
     bool hdrStripPlainFunctions = true; // strip the bodies of plain (non-template) functions
+
+    bool doCxxHdrGeneration;            // write 'Cxx header' file
+    const(char)[] cxxhdrdir;            // write 'header' file to docdir directory
+    const(char)[] cxxhdrname;           // write 'header' file to docname
 
     bool doJsonGeneration;              // write JSON file
     const(char)[] jsonfilename;          // write JSON file to jsonfilename
@@ -253,6 +263,7 @@ extern (C++) struct Param
 
     const(char)[] moduleDepsFile;        // filename for deps output
     OutBuffer* moduleDeps;              // contents to be written to deps file
+    MessageStyle messageStyle = MessageStyle.digitalmars; // style of file/line annotations on messages
 
     // Hidden debug switches
     bool debugb;
@@ -293,11 +304,12 @@ extern (C++) struct Global
     string doc_ext = "html";      // for Ddoc generated files
     string ddoc_ext = "ddoc";     // for Ddoc macro include files
     string hdr_ext = "di";        // for D 'header' import files
+    string cxxhdr_ext = "h";      // for C/C++ 'header' files
     string json_ext = "json";     // for JSON files
     string map_ext = "map";       // for .map files
     bool run_noext;                     // allow -run sources without extensions.
 
-    string copyright = "Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved";
+    string copyright = "Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved";
     string written = "written by Walter Bright";
 
     Array!(const(char)*)* path;         // Array of char*'s which form the import lookup path
@@ -532,7 +544,9 @@ nothrow:
         this.filename = filename;
     }
 
-    extern (C++) const(char)* toChars(bool showColumns = global.params.showColumns) const pure nothrow
+    extern (C++) const(char)* toChars(
+        bool showColumns = global.params.showColumns,
+        ubyte messageStyle = global.params.messageStyle) const pure nothrow
     {
         OutBuffer buf;
         if (filename)
@@ -541,14 +555,28 @@ nothrow:
         }
         if (linnum)
         {
-            buf.writeByte('(');
-            buf.print(linnum);
-            if (showColumns && charnum)
+            final switch (messageStyle)
             {
-                buf.writeByte(',');
-                buf.print(charnum);
+                case MessageStyle.digitalmars:
+                    buf.writeByte('(');
+                    buf.print(linnum);
+                    if (showColumns && charnum)
+                    {
+                        buf.writeByte(',');
+                        buf.print(charnum);
+                    }
+                    buf.writeByte(')');
+                    break;
+                case MessageStyle.gnu: // https://www.gnu.org/prep/standards/html_node/Errors.html
+                    buf.writeByte(':');
+                    buf.print(linnum);
+                    if (showColumns && charnum)
+                    {
+                        buf.writeByte(':');
+                        buf.print(charnum);
+                    }
+                    break;
             }
-            buf.writeByte(')');
         }
         return buf.extractChars();
     }
@@ -584,7 +612,7 @@ nothrow:
 
     extern (D) size_t toHash() const @trusted pure nothrow
     {
-        import dmd.utils : toDString;
+        import dmd.root.string : toDString;
 
         auto hash = hashOf(linnum);
         hash = hashOf(charnum, hash);

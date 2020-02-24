@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _tocsym.d)
@@ -604,16 +604,40 @@ Symbol *toVtblSymbol(ClassDeclaration cd)
 
 Symbol *toInitializer(AggregateDeclaration ad)
 {
+    //printf("toInitializer() %s\n", ad.toChars());
     if (!ad.sinit)
     {
-        auto stag = fake_classsym(Id.ClassInfo);
-        auto s = toSymbolX(ad, "__init", SCextern, stag.Stype, "Z");
-        s.Sfl = FLextern;
-        s.Sflags |= SFLnodebug;
+        static structalign_t alignOf(Type t)
+        {
+            const explicitAlignment = t.alignment();
+            return explicitAlignment == STRUCTALIGN_DEFAULT ? t.alignsize() : explicitAlignment;
+        }
+
         auto sd = ad.isStructDeclaration();
-        if (sd)
-            s.Salignment = sd.alignment;
-        ad.sinit = s;
+        if (sd &&
+            alignOf(sd.type) <= 16 &&
+            sd.type.size() <= 128 &&
+            sd.zeroInit &&
+            config.objfmt != OBJ_MACH && // same reason as in toobj.d toObjFile()
+            !(config.objfmt == OBJ_MSCOFF && !global.params.is64bit)) // -m32mscoff relocations are wrong
+        {
+            auto bzsave = bzeroSymbol;
+            ad.sinit = getBzeroSymbol();
+
+            // Ensure emitted only once per object file
+            if (bzsave && bzeroSymbol != bzsave)
+                assert(0);
+        }
+        else
+        {
+            auto stag = fake_classsym(Id.ClassInfo);
+            auto s = toSymbolX(ad, "__init", SCextern, stag.Stype, "Z");
+            s.Sfl = FLextern;
+            s.Sflags |= SFLnodebug;
+            if (sd)
+                s.Salignment = sd.alignment;
+            ad.sinit = s;
+        }
     }
     return ad.sinit;
 }

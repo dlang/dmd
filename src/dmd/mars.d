@@ -7,7 +7,7 @@
  * utilities needed for arguments parsing, path manipulation, etc...
  * This file is not shared with other compilers which use the DMD front-end.
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/mars.d, _mars.d)
@@ -36,6 +36,7 @@ import dmd.dmodule;
 import dmd.doc;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
+import dmd.dtoh;
 import dmd.errors;
 import dmd.expression;
 import dmd.globals;
@@ -58,6 +59,7 @@ import dmd.root.man;
 import dmd.root.outbuffer;
 import dmd.root.response;
 import dmd.root.rmem;
+import dmd.root.string;
 import dmd.root.stringtable;
 import dmd.semantic2;
 import dmd.semantic3;
@@ -485,7 +487,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         if (m.isHdrFile)
         {
             // Remove m's object file from list of object files
-            for (size_t j = 0; j < params.objfiles.dim; j++)
+            for (size_t j = 0; j < params.objfiles.length; j++)
             {
                 if (m.objfile.toChars() == params.objfiles[j])
                 {
@@ -493,7 +495,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
                     break;
                 }
             }
-            if (params.objfiles.dim == 0)
+            if (params.objfiles.length == 0)
                 params.link = false;
         }
         if (m.isDocFile)
@@ -504,7 +506,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             modules.remove(modi);
             modi--;
             // Remove m's object file from list of object files
-            for (size_t j = 0; j < params.objfiles.dim; j++)
+            for (size_t j = 0; j < params.objfiles.length; j++)
             {
                 if (m.objfile.toChars() == params.objfiles[j])
                 {
@@ -512,7 +514,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
                     break;
                 }
             }
-            if (params.objfiles.dim == 0)
+            if (params.objfiles.length == 0)
                 params.link = false;
         }
     }
@@ -646,7 +648,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     Library library = null;
     if (params.lib)
     {
-        if (params.objfiles.dim == 0)
+        if (params.objfiles.length == 0)
         {
             error(Loc.initial, "no input files");
             return EXIT_FAILURE;
@@ -683,6 +685,13 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             File.write(cgFilename.ptr, buf[]);
         }
     }
+
+    if (global.params.doCxxHdrGeneration)
+        genCppHdrFiles(modules);
+
+    if (global.errors)
+        fatal();
+
     if (!params.obj)
     {
     }
@@ -729,7 +738,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (global.errors)
         fatal();
     int status = EXIT_SUCCESS;
-    if (!params.objfiles.dim)
+    if (!params.objfiles.length)
     {
         if (params.link)
             error(Loc.initial, "no object files to link");
@@ -825,7 +834,7 @@ extern (C++) void generateJson(Modules* modules)
         }
         else
         {
-            if (global.params.objfiles.dim == 0)
+            if (global.params.objfiles.length == 0)
             {
                 error(Loc.initial, "cannot determine JSON filename, use `-Xf=<file>` or provide a source file");
                 fatal();
@@ -862,6 +871,8 @@ version (NoMain) {} else
         }
     }
 
+    extern extern(C) __gshared string[] rt_options;
+
     /**
      * DMD's entry point, C main.
      *
@@ -886,7 +897,11 @@ version (NoMain) {} else
                 }
             }
             if (!lowmem)
+            {
+                __gshared string[] disable_options = [ "gcopt=disable:1" ];
+                rt_options = disable_options;
                 mem.disableGC();
+            }
         }
 
         // initialize druntime and call _Dmain() below
@@ -901,20 +916,10 @@ version (NoMain) {} else
      */
     extern (C) int _Dmain(char[][])
     {
-        import core.memory;
         import core.runtime;
-
-        // Older host druntime versions need druntime to be initialized before
-        // disabling the GC, so we cannot disable it in C main above.
-        static if (isGCAvailable)
-        {
-            if (!mem.isGCEnabled)
-                GC.disable();
-        }
-        else
-        {
+        import core.memory;
+        static if (!isGCAvailable)
             GC.disable();
-        }
 
         version(D_Coverage)
         {
@@ -1893,6 +1898,17 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 return true;
             }
         }
+        else if (startsWith(p + 1, "verror-style="))
+        {
+            const style = p + 1 + "verror-style=".length;
+
+            if (strcmp(style, "digitalmars") == 0)
+                params.messageStyle = MessageStyle.digitalmars;
+            else if (strcmp(style, "gnu") == 0)
+                params.messageStyle = MessageStyle.gnu;
+            else
+                error("unknown error style '%s', must be 'digitalmars' or 'gnu'", style);
+        }
         else if (startsWith(p + 1, "mcpu")) // https://dlang.org/dmd.html#switch-mcpu
         {
             enum len = "-mcpu=".length;
@@ -2117,12 +2133,33 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             case 'd':               // https://dlang.org/dmd.html#switch-Dd
                 if (!p[3])
                     goto Lnoarg;
-                params.docdir = p + 3 + (p[3] == '=');
+                params.docdir = (p + 3 + (p[3] == '=')).toDString();
                 break;
             case 'f':               // https://dlang.org/dmd.html#switch-Df
                 if (!p[3])
                     goto Lnoarg;
-                params.docname = p + 3 + (p[3] == '=');
+                params.docname = (p + 3 + (p[3] == '=')).toDString();
+                break;
+            case 0:
+                break;
+            default:
+                goto Lerror;
+            }
+        }
+        else if (p[1] == 'H' && p[2] == 'C')  // https://dlang.org/dmd.html#switch-HC
+        {
+            params.doCxxHdrGeneration = true;
+            switch (p[3])
+            {
+            case 'd':               // https://dlang.org/dmd.html#switch-HCd
+                if (!p[4])
+                    goto Lnoarg;
+                params.cxxhdrdir = (p + 4 + (p[4] == '=')).toDString;
+                break;
+            case 'f':               // https://dlang.org/dmd.html#switch-HCf
+                if (!p[4])
+                    goto Lnoarg;
+                params.cxxhdrname = (p + 4 + (p[4] == '=')).toDString;
                 break;
             case 0:
                 break;

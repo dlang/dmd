@@ -68,7 +68,7 @@ static void frontend_init()
 
     global._init();
     global.params.isLinux = true;
-    global.vendor = DString("Front-End Tester");
+    global.vendor = "Front-End Tester";
 
     Type::_init();
     Id::initialize();
@@ -107,6 +107,8 @@ void test_tokens()
 
 class TestVisitor : public Visitor
 {
+  using Visitor::visit;
+
   public:
     bool expr;
     bool package;
@@ -341,11 +343,33 @@ void test_parameters()
 
 /**********************************/
 
+void test_types()
+{
+    Parameters *args = new Parameters;
+    StorageClass stc = STCnothrow|STCproperty|STCreturn|STCreturninferred|STCtrusted;
+    TypeFunction *tfunction = TypeFunction::create(args, Type::tvoid, VARARGnone, LINKd, stc);
+
+    assert(tfunction->isnothrow);
+    assert(!tfunction->isnogc);
+    assert(tfunction->isproperty);
+    assert(!tfunction->isref);
+    assert(tfunction->isreturn);
+    assert(!tfunction->isscope);
+    assert(tfunction->isreturninferred);
+    assert(!tfunction->isscopeinferred);
+    assert(tfunction->linkage == LINKd);
+    assert(tfunction->trust == TRUSTtrusted);
+    assert(tfunction->purity == PUREimpure);
+}
+
+/**********************************/
+
 void test_location()
 {
     Loc loc1 = Loc("test.d", 24, 42);
     assert(loc1.equals(Loc("test.d", 24, 42)));
-    assert(strcmp(loc1.toChars(true), "test.d(24,42)") == 0);
+    assert(strcmp(loc1.toChars(true, MESSAGESTYLEdigitalmars), "test.d(24,42)") == 0);
+    assert(strcmp(loc1.toChars(true, MESSAGESTYLEgnu), "test.d:24:42") == 0);
 }
 
 /**********************************/
@@ -435,6 +459,7 @@ int main(int argc, char **argv)
     test_target();
     test_emplace();
     test_parameters();
+    test_types();
     test_location();
     test_array();
     test_outbuffer();

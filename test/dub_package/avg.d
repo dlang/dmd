@@ -59,8 +59,7 @@ void main()
     auto m = new ASTBase.Module(&(fname.dup)[0], id, false, false);
     auto input = readText(fname);
 
-    scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-    scope p = new Parser!ASTBase(m, input, false, diagnosticReporter);
+    scope p = new Parser!ASTBase(m, input, false);
     p.nextToken();
     m.members = p.parseModule();
 

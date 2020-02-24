@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/errors.d, _errors.d)
@@ -19,219 +19,10 @@ import core.stdc.string;
 import dmd.globals;
 import dmd.root.outbuffer;
 import dmd.root.rmem;
+import dmd.root.string;
 import dmd.console;
-import dmd.utils;
 
 nothrow:
-
-/// Interface for diagnostic reporting.
-abstract class DiagnosticReporter
-{
-  nothrow:
-
-    /// Returns: the number of errors that occurred during lexing or parsing.
-    abstract int errorCount();
-
-    /// Returns: the number of warnings that occurred during lexing or parsing.
-    abstract int warningCount();
-
-    /// Returns: the number of deprecations that occurred during lexing or parsing.
-    abstract int deprecationCount();
-
-    /**
-    Reports an error message.
-
-    Params:
-        loc = Location of error
-        format = format string for error
-        ... = format string arguments
-    */
-    final void error(const ref Loc loc, const(char)* format, ...)
-    {
-        va_list args;
-        va_start(args, format);
-        error(loc, format, args);
-        va_end(args);
-    }
-
-    /// ditto
-    abstract void error(const ref Loc loc, const(char)* format, va_list args);
-
-    /**
-    Reports additional details about an error message.
-
-    Params:
-        loc = Location of error
-        format = format string for supplemental message
-        ... = format string arguments
-    */
-    final void errorSupplemental(const ref Loc loc, const(char)* format, ...)
-    {
-        va_list args;
-        va_start(args, format);
-        errorSupplemental(loc, format, args);
-        va_end(args);
-    }
-
-    /// ditto
-    abstract void errorSupplemental(const ref Loc loc, const(char)* format, va_list);
-
-    /**
-    Reports a warning message.
-
-    Params:
-        loc = Location of warning
-        format = format string for warning
-        ... = format string arguments
-    */
-    final void warning(const ref Loc loc, const(char)* format, ...)
-    {
-        va_list args;
-        va_start(args, format);
-        warning(loc, format, args);
-        va_end(args);
-    }
-
-    /// ditto
-    abstract void warning(const ref Loc loc, const(char)* format, va_list args);
-
-    /**
-    Reports additional details about a warning message.
-
-    Params:
-        loc = Location of warning
-        format = format string for supplemental message
-        ... = format string arguments
-    */
-    final void warningSupplemental(const ref Loc loc, const(char)* format, ...)
-    {
-        va_list args;
-        va_start(args, format);
-        warningSupplemental(loc, format, args);
-        va_end(args);
-    }
-
-    /// ditto
-    abstract void warningSupplemental(const ref Loc loc, const(char)* format, va_list);
-
-    /**
-    Reports a deprecation message.
-
-    Params:
-        loc = Location of the deprecation
-        format = format string for the deprecation
-        ... = format string arguments
-    */
-    final void deprecation(const ref Loc loc, const(char)* format, ...)
-    {
-        va_list args;
-        va_start(args, format);
-        deprecation(loc, format, args);
-        va_end(args);
-    }
-
-    /// ditto
-    abstract void deprecation(const ref Loc loc, const(char)* format, va_list args);
-
-    /**
-    Reports additional details about a deprecation message.
-
-    Params:
-        loc = Location of deprecation
-        format = format string for supplemental message
-        ... = format string arguments
-    */
-    final void deprecationSupplemental(const ref Loc loc, const(char)* format, ...)
-    {
-        va_list args;
-        va_start(args, format);
-        deprecationSupplemental(loc, format, args);
-        va_end(args);
-    }
-
-    /// ditto
-    abstract void deprecationSupplemental(const ref Loc loc, const(char)* format, va_list);
-}
-
-/**
-Diagnostic reporter which prints the diagnostic messages to stderr.
-
-This is usually the default diagnostic reporter.
-*/
-final class StderrDiagnosticReporter : DiagnosticReporter
-{
-    private const DiagnosticReporting useDeprecated;
-
-    private int errorCount_;
-    private int warningCount_;
-    private int deprecationCount_;
-
-  nothrow:
-
-    /**
-    Initializes this object.
-
-    Params:
-        useDeprecated = indicates how deprecation diagnostics should be
-            handled
-    */
-    this(DiagnosticReporting useDeprecated)
-    {
-        this.useDeprecated = useDeprecated;
-    }
-
-    override int errorCount()
-    {
-        return errorCount_;
-    }
-
-    override int warningCount()
-    {
-        return warningCount_;
-    }
-
-    override int deprecationCount()
-    {
-        return deprecationCount_;
-    }
-
-    override void error(const ref Loc loc, const(char)* format, va_list args)
-    {
-        verror(loc, format, args);
-        errorCount_++;
-    }
-
-    override void errorSupplemental(const ref Loc loc, const(char)* format, va_list args)
-    {
-        verrorSupplemental(loc, format, args);
-    }
-
-    override void warning(const ref Loc loc, const(char)* format, va_list args)
-    {
-        vwarning(loc, format, args);
-        warningCount_++;
-    }
-
-    override void warningSupplemental(const ref Loc loc, const(char)* format, va_list args)
-    {
-        vwarningSupplemental(loc, format, args);
-    }
-
-    override void deprecation(const ref Loc loc, const(char)* format, va_list args)
-    {
-        vdeprecation(loc, format, args);
-
-        if (useDeprecated == DiagnosticReporting.error)
-            errorCount_++;
-        else
-            deprecationCount_++;
-    }
-
-    override void deprecationSupplemental(const ref Loc loc, const(char)* format, va_list args)
-    {
-        vdeprecationSupplemental(loc, format, args);
-    }
-}
 
 /**
  * Color highlighting to classify messages
@@ -403,6 +194,20 @@ extern (C++) void message(const(char)* format, ...)
 }
 
 /**
+ * The type of the diagnostic handler
+ * see verrorPrint for arguments
+ * Returns: true if error handling is done, false to continue printing to stderr
+ */
+alias DiagnosticHandler = bool delegate(const ref Loc location, Color headerColor, const(char)* header, const(char)* messageFormat, va_list args, const(char)* prefix1, const(char)* prefix2);
+
+/**
+ * The diagnostic handler.
+ * If non-null it will be called for every diagnostic message issued by the compiler.
+ * If it returns false, the message will be printed to stderr as usual.
+ */
+__gshared DiagnosticHandler diagnosticHandler;
+
+/**
  * Print a tip message with the prefix and highlighting.
  * Params:
  *      format = printf-style format specification
@@ -431,6 +236,11 @@ extern (C++) void tip(const(char)* format, ...)
 private void verrorPrint(const ref Loc loc, Color headerColor, const(char)* header,
         const(char)* format, va_list ap, const(char)* p1 = null, const(char)* p2 = null)
 {
+    if (diagnosticHandler && diagnosticHandler(loc, headerColor, header, format, ap, p1, p2))
+        return;
+
+    if (global.params.showGaggedErrors && global.gag)
+        fprintf(stderr, "(spec:%d) ", global.gag);
     Console* con = cast(Console*)global.console;
     const p = loc.toChars();
     if (con)
@@ -516,10 +326,7 @@ extern (C++) void verror(const ref Loc loc, const(char)* format, va_list ap, con
     else
     {
         if (global.params.showGaggedErrors)
-        {
-            fprintf(stderr, "(spec:%d) ", global.gag);
             verrorPrint(loc, Classification.gagged, header, format, ap, p1, p2);
-        }
         global.gaggedErrors++;
     }
 }
@@ -765,8 +572,7 @@ private void colorHighlightCode(ref OutBuffer buf)
     ++nested;
 
     auto gaggedErrorsSave = global.startGagging();
-    scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-    scope Lexer lex = new Lexer(null, cast(char*)buf[].ptr, 0, buf.length - 1, 0, 1, diagnosticReporter);
+    scope Lexer lex = new Lexer(null, cast(char*)buf[].ptr, 0, buf.length - 1, 0, 1);
     OutBuffer res;
     const(char)* lastp = cast(char*)buf[].ptr;
     //printf("colorHighlightCode('%.*s')\n", cast(int)(buf.length - 1), buf.data);
