@@ -116,6 +116,7 @@ DOCS=\
     $(DOCDIR)\rt_qsort.html \
     $(DOCDIR)\rt_sections_android.html \
     $(DOCDIR)\rt_sections.html \
+    $(DOCDIR)\rt_sections_darwin_64.html \
     $(DOCDIR)\rt_sections_elf_shared.html \
     $(DOCDIR)\rt_sections_osx_x86_64.html \
     $(DOCDIR)\rt_sections_osx_x86.html \

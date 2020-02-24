@@ -245,7 +245,7 @@ wchar_t* wcstok(return wchar_t* s1, scope const wchar_t* s2, wchar_t** ptr);
 pure size_t wcslen(scope const wchar_t* s);
 
 ///
-pure wchar_t* wmemchr(return const wchar_t* s, wchar_t c, size_t n);
+pure inout(wchar_t)* wmemchr(return inout wchar_t* s, wchar_t c, size_t n);
 ///
 pure int      wmemcmp(scope const wchar_t* s1, scope const wchar_t* s2, size_t n);
 ///

@@ -9,6 +9,7 @@
  */
 module core.internal.convert;
 import core.internal.traits : Unqual;
+import core.math : toPrec;
 
 /+
 A @nogc function can allocate memory during CTFE.
@@ -82,7 +83,7 @@ const(ubyte)[] toUbyte(T)(const ref T val) if (is(Unqual!T == float) || is(Unqua
             ubyte[] buff = ctfe_alloc(T.sizeof);
             enum msbSize = double.sizeof;
 
-            double hi = val;
+            double hi = toPrec!double(val);
             buff[0 .. msbSize] = toUbyte(hi)[];
 
             if (val is cast(T)0.0 || val is cast(T)-0.0 ||
@@ -96,11 +97,7 @@ const(ubyte)[] toUbyte(T)(const ref T val) if (is(Unqual!T == float) || is(Unqua
             }
             else
             {
-                // BUG: https://issues.dlang.org/show_bug.cgi?id=9937
-                // This doesn't work in CTFE, due to all float literals having
-                // maximum precision, regardless of actual precision requested.
-                // The least significant part will always be zero until fixed.
-                double low = val - hi;
+                double low = toPrec!double(val - hi);
                 buff[msbSize .. $] = toUbyte(low)[];
             }
 
@@ -468,14 +465,14 @@ private Float denormalizedMantissa(T)(T x, uint sign) if (floatFormat!T == Float
         return Float(fl.mantissa2 & 0x00FFFFFFFFFFFFFFUL , 0, sign, 1);
 }
 
-version (unittest)
+@system unittest
 {
-    private const(ubyte)[] toUbyte2(T)(T val)
+    static const(ubyte)[] toUbyte2(T)(T val)
     {
         return toUbyte(val).dup;
     }
 
-    private void testNumberConvert(string v)()
+    static void testNumberConvert(string v)()
     {
         enum ctval = mixin(v);
 
@@ -491,7 +488,7 @@ version (unittest)
         assert(rtbytes[0..testsize] == ctbytes[0..testsize]);
     }
 
-    private void testConvert()
+    static void testConvert()
     {
         /**Test special values*/
         testNumberConvert!("-float.infinity");
@@ -601,11 +598,7 @@ version (unittest)
         testNumberConvert!("cast(float)0x9.54bb0d88806f714p-7088L");
     }
 
-
-    unittest
-    {
-        testConvert();
-    }
+    testConvert();
 }
 
 

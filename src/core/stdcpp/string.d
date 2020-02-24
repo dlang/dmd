@@ -17,6 +17,15 @@ import core.stdcpp.xutility : StdNamespace;
 import core.stdc.stddef : wchar_t;
 
 version (OSX)
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
+
+version (Darwin)
 {
     // Apple decided to rock a different ABI... good for them!
     version = _LIBCPP_ABI_ALTERNATE_STRING_LAYOUT;

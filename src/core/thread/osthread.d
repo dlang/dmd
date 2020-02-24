@@ -820,6 +820,8 @@ class Thread
                     if ( pthread_create( &m_addr, &attr, &thread_entryPoint, cast(void*) this ) != 0 )
                         onThreadError( "Error creating thread" );
                 }
+                if ( pthread_attr_destroy( &attr ) != 0 )
+                    onThreadError( "Error destroying thread attributes" );
             }
             version (Darwin)
             {
@@ -1049,9 +1051,9 @@ class Thread
         `which` must be one of `PRIORITY_MIN`, `PRIORITY_DEFAULT`,
         `PRIORITY_MAX`.
         */
+        private static shared Priority cache;
         private static int loadGlobal(string which)()
         {
-            static shared Priority cache;
             auto local = atomicLoad(mixin("cache." ~ which));
             if (local != local.min) return local;
             // There will be benign races
@@ -1743,6 +1745,14 @@ private:
         {
             ulong[16]       m_reg; // rdi,rsi,rbp,rsp,rbx,rdx,rcx,rax
                                    // r8,r9,r10,r11,r12,r13,r14,r15
+        }
+        else version (AArch64)
+        {
+            ulong[33]       m_reg; // x0-x31, pc
+        }
+        else version (ARM)
+        {
+            uint[16]        m_reg; // r0-r15
         }
         else
         {
@@ -2758,6 +2768,45 @@ private bool suspend( Thread t ) nothrow
             t.m_reg[14] = state.r14;
             t.m_reg[15] = state.r15;
         }
+        else version (AArch64)
+        {
+            arm_thread_state64_t state = void;
+            mach_msg_type_number_t count = ARM_THREAD_STATE64_COUNT;
+
+            if (thread_get_state(t.m_tmach, ARM_THREAD_STATE64, &state, &count) != KERN_SUCCESS)
+                onThreadError("Unable to load thread state");
+            // TODO: ThreadException here recurses forever!  Does it
+            //still using onThreadError?
+            //printf("state count %d (expect %d)\n", count ,ARM_THREAD_STATE64_COUNT);
+            if (!t.m_lock)
+                t.m_curr.tstack = cast(void*) state.sp;
+
+            t.m_reg[0..29] = state.x;  // x0-x28
+            t.m_reg[29] = state.fp;    // x29
+            t.m_reg[30] = state.lr;    // x30
+            t.m_reg[31] = state.sp;    // x31
+            t.m_reg[32] = state.pc;
+        }
+        else version (ARM)
+        {
+            arm_thread_state32_t state = void;
+            mach_msg_type_number_t count = ARM_THREAD_STATE32_COUNT;
+
+            // Thought this would be ARM_THREAD_STATE32, but that fails.
+            // Mystery
+            if (thread_get_state(t.m_tmach, ARM_THREAD_STATE, &state, &count) != KERN_SUCCESS)
+                onThreadError("Unable to load thread state");
+            // TODO: in past, ThreadException here recurses forever!  Does it
+            //still using onThreadError?
+            //printf("state count %d (expect %d)\n", count ,ARM_THREAD_STATE32_COUNT);
+            if (!t.m_lock)
+                t.m_curr.tstack = cast(void*) state.sp;
+
+            t.m_reg[0..13] = state.r;  // r0 - r13
+            t.m_reg[13] = state.sp;
+            t.m_reg[14] = state.lr;
+            t.m_reg[15] = state.pc;
+        }
         else
         {
             static assert(false, "Architecture not supported." );
@@ -3185,16 +3234,19 @@ private size_t adjustStackSize(size_t sz) nothrow @nogc
     if (sz == 0)
         return 0;
 
+    // stack size must be at least PTHREAD_STACK_MIN for most platforms.
+    if (PTHREAD_STACK_MIN > sz)
+        sz = PTHREAD_STACK_MIN;
+
     version (CRuntime_Glibc)
     {
-        // TLS uses the top of the stack, so add its size to the requested size
+        // On glibc, TLS uses the top of the stack, so add its size to the requested size
         sz += externDFunc!("rt.sections_elf_shared.sizeOfTLS",
                            size_t function() @nogc nothrow)();
     }
-    // stack size must be a multiple of PAGESIZE and at least PTHREAD_STACK_MIN
+
+    // stack size must be a multiple of PAGESIZE
     sz = ((sz + PAGESIZE - 1) & ~(PAGESIZE - 1));
-    if (PTHREAD_STACK_MIN > sz)
-        sz = PTHREAD_STACK_MIN;
 
     return sz;
 }
@@ -3330,15 +3382,19 @@ extern(C) void thread_processGCMarks( scope IsMarkedDg isMarked ) nothrow
 
 extern (C) @nogc nothrow
 {
-    version (CRuntime_Glibc) int pthread_getattr_np(pthread_t thread, pthread_attr_t* attr);
-    version (FreeBSD) int pthread_attr_get_np(pthread_t thread, pthread_attr_t* attr);
-    version (NetBSD) int pthread_attr_get_np(pthread_t thread, pthread_attr_t* attr);
-    version (OpenBSD) int pthread_stackseg_np(pthread_t thread, stack_t* sinfo);
-    version (DragonFlyBSD) int pthread_attr_get_np(pthread_t thread, pthread_attr_t* attr);
+    version (CRuntime_Glibc)  version = PThread_Getattr_NP;
+    version (CRuntime_Bionic) version = PThread_Getattr_NP;
+    version (CRuntime_Musl)   version = PThread_Getattr_NP;
+    version (CRuntime_UClibc) version = PThread_Getattr_NP;
+
+    version (FreeBSD)         version = PThread_Attr_Get_NP;
+    version (NetBSD)          version = PThread_Attr_Get_NP;
+    version (DragonFlyBSD)    version = PThread_Attr_Get_NP;
+
+    version (PThread_Getattr_NP)  int pthread_getattr_np(pthread_t thread, pthread_attr_t* attr);
+    version (PThread_Attr_Get_NP) int pthread_attr_get_np(pthread_t thread, pthread_attr_t* attr);
     version (Solaris) int thr_stksegment(stack_t* stk);
-    version (CRuntime_Bionic) int pthread_getattr_np(pthread_t thid, pthread_attr_t* attr);
-    version (CRuntime_Musl) int pthread_getattr_np(pthread_t, pthread_attr_t*);
-    version (CRuntime_UClibc) int pthread_getattr_np(pthread_t thread, pthread_attr_t* attr);
+    version (OpenBSD) int pthread_stackseg_np(pthread_t thread, stack_t* sinfo);
 }
 
 
@@ -3376,11 +3432,12 @@ package(core.thread) void* getStackBottom() nothrow @nogc
         import core.sys.darwin.pthread;
         return pthread_get_stackaddr_np(pthread_self());
     }
-    else version (CRuntime_Glibc)
+    else version (PThread_Getattr_NP)
     {
         pthread_attr_t attr;
         void* addr; size_t size;
 
+        pthread_attr_init(&attr);
         pthread_getattr_np(pthread_self(), &attr);
         pthread_attr_getstack(&attr, &addr, &size);
         pthread_attr_destroy(&attr);
@@ -3388,20 +3445,7 @@ package(core.thread) void* getStackBottom() nothrow @nogc
             addr += size;
         return addr;
     }
-    else version (FreeBSD)
-    {
-        pthread_attr_t attr;
-        void* addr; size_t size;
-
-        pthread_attr_init(&attr);
-        pthread_attr_get_np(pthread_self(), &attr);
-        pthread_attr_getstack(&attr, &addr, &size);
-        pthread_attr_destroy(&attr);
-        version (StackGrowsDown)
-            addr += size;
-        return addr;
-    }
-    else version (NetBSD)
+    else version (PThread_Attr_Get_NP)
     {
         pthread_attr_t attr;
         void* addr; size_t size;
@@ -3421,61 +3465,12 @@ package(core.thread) void* getStackBottom() nothrow @nogc
         pthread_stackseg_np(pthread_self(), &stk);
         return stk.ss_sp;
     }
-    else version (DragonFlyBSD)
-    {
-        pthread_attr_t attr;
-        void* addr; size_t size;
-
-        pthread_attr_init(&attr);
-        pthread_attr_get_np(pthread_self(), &attr);
-        pthread_attr_getstack(&attr, &addr, &size);
-        pthread_attr_destroy(&attr);
-        version (StackGrowsDown)
-            addr += size;
-        return addr;
-    }
     else version (Solaris)
     {
         stack_t stk;
 
         thr_stksegment(&stk);
         return stk.ss_sp;
-    }
-    else version (CRuntime_Bionic)
-    {
-        pthread_attr_t attr;
-        void* addr; size_t size;
-
-        pthread_getattr_np(pthread_self(), &attr);
-        pthread_attr_getstack(&attr, &addr, &size);
-        pthread_attr_destroy(&attr);
-        version (StackGrowsDown)
-            addr += size;
-        return addr;
-    }
-    else version (CRuntime_Musl)
-    {
-        pthread_attr_t attr;
-        void* addr; size_t size;
-
-        pthread_getattr_np(pthread_self(), &attr);
-        pthread_attr_getstack(&attr, &addr, &size);
-        pthread_attr_destroy(&attr);
-        version (StackGrowsDown)
-            addr += size;
-        return addr;
-    }
-    else version (CRuntime_UClibc)
-    {
-        pthread_attr_t attr;
-        void* addr; size_t size;
-
-        pthread_getattr_np(pthread_self(), &attr);
-        pthread_attr_getstack(&attr, &addr, &size);
-        pthread_attr_destroy(&attr);
-        version (StackGrowsDown)
-            addr += size;
-        return addr;
     }
     else
         static assert(false, "Platform not supported.");
@@ -4007,6 +4002,8 @@ ThreadID createLowLevelThread(void delegate() nothrow dg, uint stacksize = 0,
         if (stksz && (rc = pthread_attr_setstacksize(&attr, stksz)) != 0)
             return ThreadID.init;
         if ((rc = pthread_create(&tid, &attr, &thread_lowlevelEntry, context)) != 0)
+            return ThreadID.init;
+        if ((rc = pthread_attr_destroy(&attr)) != 0)
             return ThreadID.init;
 
         ll_pThreads[ll_nThreads - 1].tid = tid;

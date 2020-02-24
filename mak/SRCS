@@ -23,6 +23,7 @@ SRCS=\
 	\
 	src\core\internal\abort.d \
 	src\core\internal\atomic.d \
+	src\core\internal\attributes.d \
 	src\core\internal\convert.d \
 	src\core\internal\dassert.d \
 	src\core\internal\destruction.d \
@@ -48,6 +49,10 @@ SRCS=\
 	src\core\internal\array\concatenation.d \
 	src\core\internal\array\operations.d \
 	src\core\internal\array\utils.d \
+	\
+	src\core\internal\elf\dl.d \
+	src\core\internal\elf\io.d \
+	\
 	src\core\internal\util\array.d \
 	\
 	src\core\stdc\assert_.d \
@@ -76,6 +81,7 @@ SRCS=\
 	src\core\stdcpp\allocator.d \
 	src\core\stdcpp\array.d \
 	src\core\stdcpp\exception.d \
+	src\core\stdcpp\memory.d \
 	src\core\stdcpp\new_.d \
 	src\core\stdcpp\string.d \
 	src\core\stdcpp\string_view.d \
@@ -93,7 +99,9 @@ SRCS=\
 	src\core\sync\semaphore.d \
 	\
 	src\core\sys\bionic\err.d \
+	src\core\sys\bionic\fcntl.d \
 	src\core\sys\bionic\string.d \
+	src\core\sys\bionic\unistd.d \
 	\
 	src\core\sys\darwin\crt_externs.d \
 	src\core\sys\darwin\dlfcn.d \
@@ -120,6 +128,9 @@ SRCS=\
 	src\core\sys\freebsd\netinet\in_.d \
 	src\core\sys\freebsd\pthread_np.d \
 	src\core\sys\freebsd\string.d \
+	src\core\sys\freebsd\time.d \
+	src\core\sys\freebsd\unistd.d \
+	\
 	src\core\sys\freebsd\sys\_bitset.d \
 	src\core\sys\freebsd\sys\_cpuset.d \
 	src\core\sys\freebsd\sys\cdefs.d \
@@ -131,8 +142,6 @@ SRCS=\
 	src\core\sys\freebsd\sys\link_elf.d \
 	src\core\sys\freebsd\sys\mman.d \
 	src\core\sys\freebsd\sys\mount.d \
-	src\core\sys\freebsd\time.d \
-	src\core\sys\freebsd\unistd.d \
 	\
 	src\core\sys\dragonflybsd\dlfcn.d \
 	src\core\sys\dragonflybsd\err.d \
@@ -140,17 +149,19 @@ SRCS=\
 	src\core\sys\dragonflybsd\netinet\in_.d \
 	src\core\sys\dragonflybsd\pthread_np.d \
 	src\core\sys\dragonflybsd\string.d \
+	src\core\sys\dragonflybsd\time.d \
+	\
 	src\core\sys\dragonflybsd\sys\_bitset.d \
 	src\core\sys\dragonflybsd\sys\_cpuset.d \
 	src\core\sys\dragonflybsd\sys\cdefs.d \
-	src\core\sys\dragonflybsd\sys\elf_common.d \
 	src\core\sys\dragonflybsd\sys\elf.d \
 	src\core\sys\dragonflybsd\sys\elf32.d \
 	src\core\sys\dragonflybsd\sys\elf64.d \
+	src\core\sys\dragonflybsd\sys\elf_common.d \
 	src\core\sys\dragonflybsd\sys\event.d \
 	src\core\sys\dragonflybsd\sys\link_elf.d \
 	src\core\sys\dragonflybsd\sys\mman.d \
-	src\core\sys\dragonflybsd\time.d \
+	src\core\sys\dragonflybsd\sys\socket.d \
 	\
 	src\core\sys\linux\config.d \
 	src\core\sys\linux\dlfcn.d \
@@ -163,6 +174,7 @@ SRCS=\
 	src\core\sys\linux\ifaddrs.d \
 	src\core\sys\linux\link.d \
 	src\core\sys\linux\sched.d \
+	src\core\sys\linux\stdio.d \
 	src\core\sys\linux\string.d \
 	src\core\sys\linux\termios.d \
 	src\core\sys\linux\time.d \
@@ -185,13 +197,33 @@ SRCS=\
 	src\core\sys\linux\sys\time.d \
 	src\core\sys\linux\sys\prctl.d \
 	\
+	src\core\sys\netbsd\dlfcn.d \
 	src\core\sys\netbsd\err.d \
-	src\core\sys\netbsd\sys\featuretest.d \
+	src\core\sys\netbsd\execinfo.d \
 	src\core\sys\netbsd\string.d \
+	src\core\sys\netbsd\time.d \
+	\
+	src\core\sys\netbsd\sys\elf.d \
+	src\core\sys\netbsd\sys\elf32.d \
+	src\core\sys\netbsd\sys\elf64.d \
+	src\core\sys\netbsd\sys\elf_common.d \
+	src\core\sys\netbsd\sys\event.d \
+	src\core\sys\netbsd\sys\featuretest.d \
+	src\core\sys\netbsd\sys\link_elf.d \
+	src\core\sys\netbsd\sys\mman.d \
 	\
 	src\core\sys\openbsd\dlfcn.d \
 	src\core\sys\openbsd\err.d \
 	src\core\sys\openbsd\string.d \
+	src\core\sys\openbsd\time.d \
+	\
+	src\core\sys\openbsd\sys\cdefs.d \
+	src\core\sys\openbsd\sys\elf.d \
+	src\core\sys\openbsd\sys\elf32.d \
+	src\core\sys\openbsd\sys\elf64.d \
+	src\core\sys\openbsd\sys\elf_common.d \
+	src\core\sys\openbsd\sys\link_elf.d \
+	src\core\sys\openbsd\sys\mman.d \
 	\
 	src\core\sys\posix\arpa\inet.d \
 	src\core\sys\posix\aio.d \
@@ -204,6 +236,7 @@ SRCS=\
 	src\core\sys\posix\inttypes.d \
 	src\core\sys\posix\libgen.d \
 	src\core\sys\posix\locale.d \
+	src\core\sys\posix\mqueue.d \
 	src\core\sys\posix\netdb.d \
 	src\core\sys\posix\poll.d \
 	src\core\sys\posix\pthread.d \
@@ -234,6 +267,7 @@ SRCS=\
 	src\core\sys\posix\sys\ioctl.d \
 	src\core\sys\posix\sys\ipc.d \
 	src\core\sys\posix\sys\mman.d \
+	src\core\sys\posix\sys\msg.d \
 	src\core\sys\posix\sys\resource.d \
 	src\core\sys\posix\sys\select.d \
 	src\core\sys\posix\sys\shm.d \
@@ -382,6 +416,7 @@ SRCS=\
 	src\core\sys\windows\rpcnsip.d \
 	src\core\sys\windows\rpcnterr.d \
 	src\core\sys\windows\schannel.d \
+	src\core\sys\windows\sdkddkver.d \
 	src\core\sys\windows\secext.d \
 	src\core\sys\windows\security.d \
 	src\core\sys\windows\servprov.d \
@@ -473,6 +508,7 @@ SRCS=\
 	src\rt\qsort.d \
 	src\rt\sections.d \
 	src\rt\sections_android.d \
+	src\rt\sections_darwin_64.d \
 	src\rt\sections_elf_shared.d \
 	src\rt\sections_osx_x86.d \
 	src\rt\sections_osx_x86_64.d \

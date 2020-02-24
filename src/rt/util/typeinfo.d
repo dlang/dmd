@@ -104,7 +104,7 @@ if (is(T ==  float) || is(T ==  double) || is(T ==  real) ||
     public alias hashOf = core.internal.hash.hashOf;
 }
 
-version (unittest)
+version (CoreUnittest)
 {
     alias TypeTuple(T...) = T;
 }

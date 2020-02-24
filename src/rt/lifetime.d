@@ -2423,7 +2423,7 @@ unittest
 }
 
 // cannot define structs inside unit test block, or they become nested structs.
-version (unittest)
+version (CoreUnittest)
 {
     struct S1
     {

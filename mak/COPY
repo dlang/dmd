@@ -50,6 +50,9 @@ COPY=\
 	$(IMPDIR)\core\internal\array\operations.d \
 	$(IMPDIR)\core\internal\array\utils.d \
 	\
+	$(IMPDIR)\core\internal\elf\dl.d \
+	$(IMPDIR)\core\internal\elf\io.d \
+	\
 	$(IMPDIR)\core\internal\util\array.d \
 	\
 	$(IMPDIR)\core\stdc\assert_.d \
@@ -78,18 +81,21 @@ COPY=\
 	$(IMPDIR)\core\stdcpp\allocator.d \
 	$(IMPDIR)\core\stdcpp\array.d \
 	$(IMPDIR)\core\stdcpp\exception.d \
+	$(IMPDIR)\core\stdcpp\memory.d \
 	$(IMPDIR)\core\stdcpp\new_.d \
 	$(IMPDIR)\core\stdcpp\string.d \
 	$(IMPDIR)\core\stdcpp\string_view.d \
-	$(IMPDIR)\core\stdcpp\typeinfo.d \
 	$(IMPDIR)\core\stdcpp\type_traits.d \
+	$(IMPDIR)\core\stdcpp\typeinfo.d \
 	$(IMPDIR)\core\stdcpp\vector.d \
 	$(IMPDIR)\core\stdcpp\xutility.d \
 	\
 	$(IMPDIR)\core\sync\event.d \
 	\
 	$(IMPDIR)\core\sys\bionic\err.d \
+	$(IMPDIR)\core\sys\bionic\fcntl.d \
 	$(IMPDIR)\core\sys\bionic\string.d \
+	$(IMPDIR)\core\sys\bionic\unistd.d \
 	\
 	$(IMPDIR)\core\sys\darwin\crt_externs.d \
 	$(IMPDIR)\core\sys\darwin\dlfcn.d \
@@ -120,6 +126,9 @@ COPY=\
 	\
 	$(IMPDIR)\core\sys\freebsd\pthread_np.d \
 	$(IMPDIR)\core\sys\freebsd\string.d \
+	$(IMPDIR)\core\sys\freebsd\time.d \
+	$(IMPDIR)\core\sys\freebsd\unistd.d \
+	\
 	$(IMPDIR)\core\sys\freebsd\sys\_bitset.d \
 	$(IMPDIR)\core\sys\freebsd\sys\_cpuset.d \
 	$(IMPDIR)\core\sys\freebsd\sys\cdefs.d \
@@ -131,8 +140,6 @@ COPY=\
 	$(IMPDIR)\core\sys\freebsd\sys\link_elf.d \
 	$(IMPDIR)\core\sys\freebsd\sys\mman.d \
 	$(IMPDIR)\core\sys\freebsd\sys\mount.d \
-	$(IMPDIR)\core\sys\freebsd\time.d \
-	$(IMPDIR)\core\sys\freebsd\unistd.d \
 	\
 	$(IMPDIR)\core\sys\dragonflybsd\dlfcn.d \
 	$(IMPDIR)\core\sys\dragonflybsd\err.d \
@@ -142,6 +149,8 @@ COPY=\
 	\
 	$(IMPDIR)\core\sys\dragonflybsd\pthread_np.d \
 	$(IMPDIR)\core\sys\dragonflybsd\string.d \
+	$(IMPDIR)\core\sys\dragonflybsd\time.d \
+	\
 	$(IMPDIR)\core\sys\dragonflybsd\sys\_bitset.d \
 	$(IMPDIR)\core\sys\dragonflybsd\sys\_cpuset.d \
 	$(IMPDIR)\core\sys\dragonflybsd\sys\cdefs.d \
@@ -152,7 +161,7 @@ COPY=\
 	$(IMPDIR)\core\sys\dragonflybsd\sys\event.d \
 	$(IMPDIR)\core\sys\dragonflybsd\sys\link_elf.d \
 	$(IMPDIR)\core\sys\dragonflybsd\sys\mman.d \
-	$(IMPDIR)\core\sys\dragonflybsd\time.d \
+	$(IMPDIR)\core\sys\dragonflybsd\sys\socket.d \
 	\
 	$(IMPDIR)\core\sys\linux\config.d \
 	$(IMPDIR)\core\sys\linux\dlfcn.d \
@@ -165,6 +174,7 @@ COPY=\
 	$(IMPDIR)\core\sys\linux\ifaddrs.d \
 	$(IMPDIR)\core\sys\linux\link.d \
 	$(IMPDIR)\core\sys\linux\sched.d \
+	$(IMPDIR)\core\sys\linux\stdio.d \
 	$(IMPDIR)\core\sys\linux\string.d \
 	$(IMPDIR)\core\sys\linux\termios.d \
 	$(IMPDIR)\core\sys\linux\time.d \
@@ -187,13 +197,33 @@ COPY=\
 	$(IMPDIR)\core\sys\linux\sys\time.d \
 	$(IMPDIR)\core\sys\linux\sys\prctl.d \
 	\
+	$(IMPDIR)\core\sys\netbsd\dlfcn.d \
 	$(IMPDIR)\core\sys\netbsd\err.d \
-	$(IMPDIR)\core\sys\netbsd\sys\featuretest.d \
+	$(IMPDIR)\core\sys\netbsd\execinfo.d \
 	$(IMPDIR)\core\sys\netbsd\string.d \
+	$(IMPDIR)\core\sys\netbsd\time.d \
+	\
+	$(IMPDIR)\core\sys\netbsd\sys\elf.d \
+	$(IMPDIR)\core\sys\netbsd\sys\elf32.d \
+	$(IMPDIR)\core\sys\netbsd\sys\elf64.d \
+	$(IMPDIR)\core\sys\netbsd\sys\elf_common.d \
+	$(IMPDIR)\core\sys\netbsd\sys\event.d \
+	$(IMPDIR)\core\sys\netbsd\sys\featuretest.d \
+	$(IMPDIR)\core\sys\netbsd\sys\link_elf.d \
+	$(IMPDIR)\core\sys\netbsd\sys\mman.d \
 	\
 	$(IMPDIR)\core\sys\openbsd\dlfcn.d \
 	$(IMPDIR)\core\sys\openbsd\err.d \
 	$(IMPDIR)\core\sys\openbsd\string.d \
+	$(IMPDIR)\core\sys\openbsd\time.d \
+	\
+	$(IMPDIR)\core\sys\openbsd\sys\cdefs.d \
+	$(IMPDIR)\core\sys\openbsd\sys\elf.d \
+	$(IMPDIR)\core\sys\openbsd\sys\elf32.d \
+	$(IMPDIR)\core\sys\openbsd\sys\elf64.d \
+	$(IMPDIR)\core\sys\openbsd\sys\elf_common.d \
+	$(IMPDIR)\core\sys\openbsd\sys\link_elf.d \
+	$(IMPDIR)\core\sys\openbsd\sys\mman.d \
 	\
 	$(IMPDIR)\core\sys\posix\arpa\inet.d \
 	$(IMPDIR)\core\sys\posix\aio.d \
@@ -206,6 +236,7 @@ COPY=\
 	$(IMPDIR)\core\sys\posix\inttypes.d \
 	$(IMPDIR)\core\sys\posix\libgen.d \
 	$(IMPDIR)\core\sys\posix\locale.d \
+	$(IMPDIR)\core\sys\posix\mqueue.d \
 	$(IMPDIR)\core\sys\posix\netdb.d \
 	$(IMPDIR)\core\sys\posix\poll.d \
 	$(IMPDIR)\core\sys\posix\pthread.d \
@@ -236,6 +267,7 @@ COPY=\
 	$(IMPDIR)\core\sys\posix\sys\ioctl.d \
 	$(IMPDIR)\core\sys\posix\sys\ipc.d \
 	$(IMPDIR)\core\sys\posix\sys\mman.d \
+	$(IMPDIR)\core\sys\posix\sys\msg.d \
 	$(IMPDIR)\core\sys\posix\sys\resource.d \
 	$(IMPDIR)\core\sys\posix\sys\select.d \
 	$(IMPDIR)\core\sys\posix\sys\shm.d \
@@ -257,6 +289,7 @@ COPY=\
 	$(IMPDIR)\core\sys\solaris\libelf.d \
 	$(IMPDIR)\core\sys\solaris\link.d \
 	$(IMPDIR)\core\sys\solaris\time.d \
+	\
 	$(IMPDIR)\core\sys\solaris\sys\elf.d \
 	$(IMPDIR)\core\sys\solaris\sys\elf_386.d \
 	$(IMPDIR)\core\sys\solaris\sys\elf_amd64.d \
@@ -384,6 +417,7 @@ COPY=\
 	$(IMPDIR)\core\sys\windows\rpcnsip.d \
 	$(IMPDIR)\core\sys\windows\rpcnterr.d \
 	$(IMPDIR)\core\sys\windows\schannel.d \
+	$(IMPDIR)\core\sys\windows\sdkddkver.d \
 	$(IMPDIR)\core\sys\windows\secext.d \
 	$(IMPDIR)\core\sys\windows\security.d \
 	$(IMPDIR)\core\sys\windows\servprov.d \

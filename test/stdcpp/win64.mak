@@ -5,7 +5,7 @@ MODEL=64
 DRUNTIMELIB=druntime64.lib
 CC=cl
 
-TESTS=array allocator new string vector
+TESTS=array allocator memory new string vector
 
 _MSC_VER=$(file < ..\..\ver.txt)
 ADD_CFLAGS=$(file < ..\..\cflags.txt)
@@ -18,21 +18,21 @@ test: $(TESTS)
 
 $(TESTS):
 	"$(CC)" -c /Fo$@_cpp.obj test\stdcpp\src\$@.cpp /EHsc /MT $(ADD_CFLAGS)
-	"$(DMD)" -of=$@.exe -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIMELIB) -main -unittest -version=_MSC_VER_$(_MSC_VER) -mscrtlib=libcmt $(ADD_DFLAGS) test\stdcpp\src\$@_test.d $@_cpp.obj
+	"$(DMD)" -of=$@.exe -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIMELIB) -main -unittest -version=CoreUnittest -version=_MSC_VER_$(_MSC_VER) -mscrtlib=libcmt $(ADD_DFLAGS) test\stdcpp\src\$@_test.d $@_cpp.obj
 	$@.exe
 	del $@.exe $@.obj $@_cpp.obj
 
 	"$(CC)" -c /Fo$@_cpp.obj test\stdcpp\src\$@.cpp /EHsc /MD $(ADD_CFLAGS)
-	"$(DMD)" -of=$@.exe -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIMELIB) -main -unittest -version=_MSC_VER_$(_MSC_VER) -mscrtlib=msvcrt $(ADD_DFLAGS) test\stdcpp\src\$@_test.d $@_cpp.obj
+	"$(DMD)" -of=$@.exe -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIMELIB) -main -unittest -version=CoreUnittest -version=_MSC_VER_$(_MSC_VER) -mscrtlib=msvcrt $(ADD_DFLAGS) test\stdcpp\src\$@_test.d $@_cpp.obj
 	$@.exe
 	del $@.exe $@.obj $@_cpp.obj
 
 	"$(CC)" -c /Fo$@_cpp.obj test\stdcpp\src\$@.cpp /EHsc /MTd $(ADD_CFLAGS)
-	"$(DMD)" -of=$@.exe -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIMELIB) -main -unittest -version=_MSC_VER_$(_MSC_VER) -mscrtlib=libcmtd $(ADD_DFLAGS) test\stdcpp\src\$@_test.d $@_cpp.obj
+	"$(DMD)" -of=$@.exe -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIMELIB) -main -unittest -version=CoreUnittest -version=_MSC_VER_$(_MSC_VER) -mscrtlib=libcmtd $(ADD_DFLAGS) test\stdcpp\src\$@_test.d $@_cpp.obj
 	$@.exe
 	del $@.exe $@.obj $@_cpp.obj
 
 	"$(CC)" -c /Fo$@_cpp.obj test\stdcpp\src\$@.cpp /EHsc /MDd $(ADD_CFLAGS)
-	"$(DMD)" -of=$@.exe -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIMELIB) -main -unittest -version=_MSC_VER_$(_MSC_VER) -mscrtlib=msvcrtd $(ADD_DFLAGS) test\stdcpp\src\$@_test.d $@_cpp.obj
+	"$(DMD)" -of=$@.exe -m$(MODEL) -conf= -Isrc -defaultlib=$(DRUNTIMELIB) -main -unittest -version=CoreUnittest -version=_MSC_VER_$(_MSC_VER) -mscrtlib=msvcrtd $(ADD_DFLAGS) test\stdcpp\src\$@_test.d $@_cpp.obj
 	$@.exe
 	del $@.exe $@.obj $@_cpp.obj
