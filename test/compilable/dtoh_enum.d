@@ -17,18 +17,124 @@ TEST_OUTPUT:
 # define _d_real long double
 #endif
 
+#if !defined(_D_ENUM)
+# define _D_ENUM
+# define BEGIN_ENUM(name, upper, lower) enum class name {
+# define BEGIN_ENUM_NUMERIC(type, name, upper, lower) enum class name : type {
+# define BEGIN_ENUM_TYPE(type, name, upper, lower) namespace name {
+# define BEGIN_ANON_ENUM() enum {
+# define BEGIN_ANON_ENUM_NUMERIC(type) enum : type {
+# define END_ENUM(name, upper, lower) };
+# define END_ENUM_NUMERIC(type, name, upper, lower) };
+# define END_ENUM_TYPE(type, name, upper, lower) };
+# define END_ANON_ENUM() };
+# define END_ANON_ENUM_NUMERIC(type) };
+# define ENUM_KEY_NUMERIC(type, name, value, enumName, upper, lower, abbrev) name = value,
+# define ENUM_KEY_TYPE(type, name, value, enumName, upper, lower, abbrev) static type const name = value;
+# define ANON_ENUM_KEY_NUMERIC(type, name, value) name = value,
+# define ENUM_CONSTANT_NUMERIC(type, name, value) enum : type { name = value };
+# define ENUM_CONSTANT(type, name, value) static type const name = value;
+#endif
 
-// Parsing module dtoh_enum
-enum Dummy
-{
-    DUMMYOne = 0,
-    DUMMYTwo = 1
-};
+
+// Parsing module test
+ENUM_CONSTANT_NUMERIC(int32_t, Anon, 10)
+
+ENUM_CONSTANT_NUMERIC(bool, Anon2, true)
+
+ENUM_CONSTANT(const char*, Anon3, "wow")
+
+BEGIN_ENUM(Enum, ENUM, enum)
+  ENUM_KEY_NUMERIC(int32_t, One, 0, Enum, ENUM, enum, E)
+  ENUM_KEY_NUMERIC(int32_t, Two, 1, Enum, ENUM, enum, E)
+END_ENUM(Enum, ENUM, enum)
+
+BEGIN_ENUM(EnumDefaultType, ENUMDEFAULTTYPE, enumdefaulttype)
+  ENUM_KEY_NUMERIC(int32_t, One, 1, EnumDefaultType, ENUMDEFAULTTYPE, enumdefaulttype, EDT)
+  ENUM_KEY_NUMERIC(int32_t, Two, 2, EnumDefaultType, ENUMDEFAULTTYPE, enumdefaulttype, EDT)
+END_ENUM(EnumDefaultType, ENUMDEFAULTTYPE, enumdefaulttype)
+
+BEGIN_ENUM_NUMERIC(int8_t, EnumWithType, ENUMWITHTYPE, enumwithtype)
+  ENUM_KEY_NUMERIC(int8_t, One, 1, EnumWithType, ENUMWITHTYPE, enumwithtype, EWT)
+  ENUM_KEY_NUMERIC(int8_t, Two, 2, EnumWithType, ENUMWITHTYPE, enumwithtype, EWT)
+END_ENUM_NUMERIC(int8_t, EnumWithType, ENUMWITHTYPE, enumwithtype)
+
+BEGIN_ANON_ENUM()
+  ANON_ENUM_KEY_NUMERIC(int32_t, AnonOne, 1)
+  ANON_ENUM_KEY_NUMERIC(int32_t, AnonTwo, 2)
+END_ANON_ENUM()
+
+BEGIN_ANON_ENUM_NUMERIC(int64_t)
+  ANON_ENUM_KEY_NUMERIC(int64_t, AnonWithTypeOne, 1LL)
+  ANON_ENUM_KEY_NUMERIC(int64_t, AnonWithTypeTwo, 2LL)
+END_ANON_ENUM_NUMERIC(int64_t)
+
+BEGIN_ENUM_TYPE(const char*, EnumWithStringType, ENUMWITHSTRINGTYPE, enumwithstringtype)
+  ENUM_KEY_TYPE(const char*, One, "1", EnumWithStringType, ENUMWITHSTRINGTYPE, enumwithstringtype, EWST)
+  ENUM_KEY_TYPE(const char*, Two, "2", EnumWithStringType, ENUMWITHSTRINGTYPE, enumwithstringtype, EWST)
+END_ENUM_TYPE(const char*, EnumWithStringType, ENUMWITHSTRINGTYPE, enumwithstringtype)
+
+BEGIN_ENUM_TYPE(const char*, EnumWithImplicitType, ENUMWITHIMPLICITTYPE, enumwithimplicittype)
+  ENUM_KEY_TYPE(const char*, One, "1", EnumWithImplicitType, ENUMWITHIMPLICITTYPE, enumwithimplicittype, EWIT)
+  ENUM_KEY_TYPE(const char*, Two, "2", EnumWithImplicitType, ENUMWITHIMPLICITTYPE, enumwithimplicittype, EWIT)
+END_ENUM_TYPE(const char*, EnumWithImplicitType, ENUMWITHIMPLICITTYPE, enumwithimplicittype)
+
+ENUM_CONSTANT_NUMERIC(int32_t, AnonMixedOne, 1)
+ENUM_CONSTANT_NUMERIC(int64_t, AnonMixedTwo, 2LL)
+ENUM_CONSTANT(const char*, AnonMixedA, "a")
+
 ---
 */
 
-enum Dummy
+enum Anon = 10;
+enum Anon2 = true;
+enum Anon3 = "wow";
+
+enum Enum
 {
     One,
     Two
+}
+
+enum EnumDefaultType : int
+{
+    One = 1,
+    Two = 2
+}
+
+enum EnumWithType : byte
+{
+    One = 1,
+    Two = 2
+}
+
+enum
+{
+    AnonOne = 1,
+    AnonTwo = 2
+}
+
+enum : long
+{
+    AnonWithTypeOne = 1,
+    AnonWithTypeTwo = 2
+}
+
+enum EnumWithStringType : string
+{
+    One = "1",
+    Two = "2"
+}
+
+enum EnumWithImplicitType
+{
+    One = "1",
+    Two = "2"
+}
+
+enum
+{
+    AnonMixedOne = 1,
+    long AnonMixedTwo = 2,
+    string AnonMixedA = "a"
 }

@@ -235,6 +235,25 @@ extern(C++) void genCppHdrFiles(ref Modules ms)
     buf.writestring("#if !defined(_d_real)\n");
     buf.writestring("# define _d_real long double\n");
     buf.writestring("#endif\n");
+    buf.writeByte('\n');
+    buf.writestring("#if !defined(_D_ENUM)\n");
+    buf.writestring("# define _D_ENUM\n");
+    buf.writestring("# define BEGIN_ENUM(name, upper, lower) enum class name {\n");
+    buf.writestring("# define BEGIN_ENUM_NUMERIC(type, name, upper, lower) enum class name : type {\n");
+    buf.writestring("# define BEGIN_ENUM_TYPE(type, name, upper, lower) namespace name {\n");
+    buf.writestring("# define BEGIN_ANON_ENUM() enum {\n");
+    buf.writestring("# define BEGIN_ANON_ENUM_NUMERIC(type) enum : type {\n");
+    buf.writestring("# define END_ENUM(name, upper, lower) };\n");
+    buf.writestring("# define END_ENUM_NUMERIC(type, name, upper, lower) };\n");
+    buf.writestring("# define END_ENUM_TYPE(type, name, upper, lower) };\n");
+    buf.writestring("# define END_ANON_ENUM() };\n");
+    buf.writestring("# define END_ANON_ENUM_NUMERIC(type) };\n");
+    buf.writestring("# define ENUM_KEY_NUMERIC(type, name, value, enumName, upper, lower, abbrev) name = value,\n");
+    buf.writestring("# define ENUM_KEY_TYPE(type, name, value, enumName, upper, lower, abbrev) static type const name = value;\n");
+    buf.writestring("# define ANON_ENUM_KEY_NUMERIC(type, name, value) name = value,\n");
+    buf.writestring("# define ENUM_CONSTANT_NUMERIC(type, name, value) enum : type { name = value };\n");
+    buf.writestring("# define ENUM_CONSTANT(type, name, value) static type const name = value;\n");
+    buf.writestring("#endif\n");
     buf.writestring("\n\n");
 
     OutBuffer check;
@@ -300,6 +319,13 @@ extern(C++) final class ToCppBuffer(AST) : Visitor
 {
     alias visit = Visitor.visit;
 public:
+    enum EnumKind
+    {
+        Int,
+        Numeric,
+        Other
+    }
+
     bool[void*] visited;
     bool[void*] forwarded;
     OutBuffer* fwdbuf;
@@ -319,6 +345,40 @@ public:
         this.fwdbuf = fwdbuf;
         this.donebuf = donebuf;
         this.buf = buf;
+    }
+
+    private EnumKind getEnumKind(AST.Type type)
+    {
+        if (type) switch (type.ty)
+        {
+            case AST.Tint32:
+                return EnumKind.Int;
+            case AST.Tbool,
+                AST.Tchar, AST.Twchar, AST.Tdchar,
+                AST.Tint8, AST.Tuns8,
+                AST.Tint16, AST.Tuns16,
+                AST.Tuns32,
+                AST.Tint64, AST.Tuns64:
+                return EnumKind.Numeric;
+            default:
+                break;
+        }
+        return EnumKind.Other;
+    }
+
+    private void writeEnumTypeName(AST.Type type)
+    {
+        if (auto arr = type.isTypeDArray())
+        {
+            switch (arr.next.ty)
+            {
+                case AST.Tchar:  buf.writestring("const char*"); return;
+                case AST.Twchar: buf.writestring("const char16_t*"); return;
+                case AST.Tdchar: buf.writestring("const char32_t*"); return;
+                default: break;
+            }
+        }
+        type.accept(this);
     }
 
     private void indent()
@@ -526,21 +586,28 @@ public:
         }
 
         if (vd.storage_class & AST.STC.manifest &&
-            vd.type.isintegral() &&
             vd._init && vd._init.isExpInitializer())
         {
+            AST.Type type = vd.type;
+            EnumKind kind = getEnumKind(type);
             indent();
-            buf.writestring("#define ");
-            buf.writestring(vd.ident.toChars());
-            buf.writestring(" ");
-            auto e = AST.initializerToExpression(vd._init);
-            if (e.type.ty == AST.Tbool)
-                buf.printf("%d", e.toInteger());
+            if (kind != EnumKind.Other)
+                buf.writestring("ENUM_CONSTANT_NUMERIC(");
             else
-                AST.initializerToExpression(vd._init).accept(this);
-            buf.writestring("\n");
-            if (!adparent)
-                buf.printf("\n");
+                buf.writestring("ENUM_CONSTANT(");
+            writeEnumTypeName(type);
+            buf.writestring(", ");
+            buf.writestring(vd.ident.toString());
+            buf.writestring(", ");
+            auto e = AST.initializerToExpression(vd._init);
+            if (kind != EnumKind.Other)
+            {
+                auto ie = cast(AST.IntegerExp)e;
+                visitInteger(ie.toInteger(), type);
+            }
+            else
+                e.accept(this);
+            buf.writestring(")\n\n");
             return;
         }
 
@@ -966,100 +1033,157 @@ public:
             //return;
         //}
 
-        bool hasBaseType = false;
-
-        switch (ed.memtype.ty)
+        // we need to know a bunch of stuff about the enum...
+        bool isAnonymous = ed.ident is null;
+        AST.Type type = ed.memtype;
+        if (!type)
         {
-            case AST.Tbool, AST.Tvoid:
-            case AST.Tchar, AST.Twchar, AST.Tdchar:
-            case AST.Tint8, AST.Tuns8:
-            case AST.Tint16, AST.Tuns16:
-            case AST.Tint64, AST.Tuns64:
-            case AST.Tfloat32, AST.Tfloat64, AST.Tfloat80:
-                hasBaseType = true;
-                break;
-            case AST.Tint32, AST.Tuns32, AST.Tenum: // by default, the base is an int
-                break;
-            default:
-                import dmd.root.string : toDString;
-                printf ("%s\n", ed.ident.toChars());
-                assert(0, ed.memtype.kind.toDString);
-        }
-
-        if (ed.isSpecial())
-            return;
-        const(char)* ident = null;
-        if (ed.ident)
-            ident = ed.ident.toChars();
-        if (!ident)
-        {
-            buf.writestring("enum");
-        }
-        else if (hasBaseType)
-        {
-            //printf("typedef _d_%s %s;\n", ed.memtype.kind, ident);
-            if (global.params.cplusplus >= CppStdRevision.cpp11)
+            // check all keys have matching type
+            foreach (_m; *ed.members)
             {
-                //printf("Using cpp 11 and beyond\n");
-                buf.printf("enum %s : %s", ident, ed.memtype.kind);
+                auto m = _m.isEnumMember();
+                if (!type)
+                    type = m.type;
+                else if (m.type !is type)
+                {
+                    type = null;
+                    break;
+                }
+            }
+        }
+        EnumKind kind = getEnumKind(type);
+
+        // determine if this is an enum, or just a group of manifest constants
+        bool manifestConstants = !type || (isAnonymous && kind == EnumKind.Other);
+        assert(!manifestConstants || isAnonymous);
+
+        const(char)[] name = null;
+        char[] nameLower = null;
+        char[] nameUpper = null;
+        char[] nameAbbrev = null;
+        if (!isAnonymous)
+        {
+            name = ed.ident.toString;
+            nameLower = new char[name.length];
+            nameUpper = new char[name.length];
+            foreach (i, c; name)
+            {
+                nameUpper[i] = cast(char)toupper(c);
+                nameLower[i] = cast(char)tolower(c);
+                if (isupper(c))
+                    nameAbbrev ~= c;
+            }
+        }
+
+        // write the enum header
+        if (!manifestConstants)
+        {
+            indent();
+            if (!isAnonymous && kind == EnumKind.Int)
+                buf.writestring("BEGIN_ENUM(");
+            else if (!isAnonymous && kind == EnumKind.Numeric)
+                buf.writestring("BEGIN_ENUM_NUMERIC(");
+            else if(!isAnonymous)
+                buf.writestring("BEGIN_ENUM_TYPE(");
+            else if (kind == EnumKind.Int)
+                buf.writestring("BEGIN_ANON_ENUM(");
+            else
+                buf.writestring("BEGIN_ANON_ENUM_NUMERIC(");
+            if (kind != EnumKind.Int)
+                writeEnumTypeName(type);
+            if (!isAnonymous)
+            {
+                if (kind != EnumKind.Int)
+                    buf.writestring(", ");
+                buf.writestring(name);
+                buf.writestring(", ");
+                buf.writestring(nameUpper);
+                buf.writestring(", ");
+                buf.writestring(nameLower);
+            }
+            buf.writestring(")\n");
+        }
+
+        // emit constant for each member
+        foreach (_m; *ed.members)
+        {
+            auto m = _m.isEnumMember();
+            AST.Type memberType = type ? type : m.type;
+            const EnumKind memberKind = type ? kind : getEnumKind(memberType);
+
+            indent();
+            if (!manifestConstants && isAnonymous)
+                buf.writestring("  ANON_ENUM_KEY_NUMERIC(");
+            else if (!manifestConstants && memberKind != EnumKind.Other)
+                buf.writestring("  ENUM_KEY_NUMERIC(");
+            else if (!manifestConstants)
+                buf.writestring("  ENUM_KEY_TYPE(");
+            else if (manifestConstants && memberKind != EnumKind.Other)
+                buf.writestring("ENUM_CONSTANT_NUMERIC(");
+            else if (manifestConstants)
+                buf.writestring("ENUM_CONSTANT(");
+            writeEnumTypeName(memberType);
+            buf.writestring(", ");
+            buf.writestring(m.ident.toString());
+            buf.writestring(", ");
+            if (memberKind != EnumKind.Other)
+            {
+                auto ie = cast(AST.IntegerExp)m.value;
+                visitInteger(ie.toInteger(), memberType);
             }
             else
+                m.value.accept(this);
+            if (!isAnonymous)
             {
-                //printf("Using cpp 98\n");
-                buf.writestring("typedef ");
-                buf.writestring(translateBasicType(ed.memtype.ty));
-                buf.writeByte(' ');
-                buf.writestring(ident);
-                buf.writestring(";\n");
-                buf.writestring("enum");
+                buf.writestring(", ");
+                buf.writestring(name);
+                buf.writestring(", ");
+                buf.writestring(nameUpper);
+                buf.writestring(", ");
+                buf.writestring(nameLower);
+                if (!manifestConstants)
+                {
+                    buf.writestring(", ");
+                    buf.writestring(nameAbbrev);
+                }
             }
-        }
-        else
-        {
-            buf.writestring("enum ");
-            buf.writestring(ident);
+            buf.writestring(")\n");
         }
 
-        if (!ed.members)
+        // write the enum tail
+        if (!manifestConstants)
         {
-            buf.writestring(";\n\n");
-            return;
-        }
-
-        buf.writestring("\n{\n");
-        foreach (i, m; *ed.members)
-        {
-            if (i)
-                buf.writestring(",\n");
-            buf.writestring("    ");
-            if (ident && global.params.cplusplus == CppStdRevision.cpp98)
+            indent();
+            if (!isAnonymous && kind == EnumKind.Int)
+                buf.writestring("END_ENUM(");
+            else if (!isAnonymous && kind == EnumKind.Numeric)
+                buf.writestring("END_ENUM_NUMERIC(");
+            else if(!isAnonymous)
+                buf.writestring("END_ENUM_TYPE(");
+            else if (kind == EnumKind.Int)
+                buf.writestring("END_ANON_ENUM(");
+            else
+                buf.writestring("END_ANON_ENUM_NUMERIC(");
+            if (kind != EnumKind.Int)
+                writeEnumTypeName(type);
+            if (!isAnonymous)
             {
-                foreach (c; ident[0 .. strlen(ident)])
-                    buf.writeByte(toupper(c));
+                if (kind != EnumKind.Int)
+                    buf.writestring(", ");
+                buf.writestring(name);
+                buf.writestring(", ");
+                buf.writestring(nameUpper);
+                buf.writestring(", ");
+                buf.writestring(nameLower);
             }
-            m.accept(this);
+            buf.writestring(")\n");
         }
-        buf.writestring("\n};\n\n");
-
-        //printf("Enum %s min %d max %d\n", ident, ed.minval.toInteger(), ed.maxval.toInteger());
+        buf.writestring("\n");
     }
 
     override void visit(AST.EnumMember em)
     {
-        debug (Debug_DtoH)
-        {
-            printf("[AST.EnumMember enter] %s\n", em.toChars());
-            scope(exit) printf("[AST.EnumMember exit] %s\n", em.toChars());
-        }
-        buf.writestring(em.ident.toChars());
-        buf.writestring(" = ");
-        //if (cast(AST.StringExp)em.value)
-        //{
-            //em.value.error("cannot convert string enum");
-            //return ;
-        //}
-        auto ie = cast(AST.IntegerExp)em.value;
-        visitInteger(ie.toInteger(), em.ed.memtype);
+        assert(false, "This node type should be handled in the EnumDeclaration");
     }
 
     private void typeToBuffer(AST.Type t, Identifier ident)
@@ -1556,9 +1680,10 @@ public:
             printf("[AST.StringExp enter] %s\n", e.toChars());
             scope(exit) printf("[AST.StringExp exit] %s\n", e.toChars());
         }
-        assert(e.sz == 1 || e.sz == 2);
         if (e.sz == 2)
-            buf.writeByte('L');
+            buf.writeByte('u');
+        else if (e.sz == 4)
+            buf.writeByte('U');
         buf.writeByte('"');
 
         for (size_t i = 0; i < e.len; i++)
@@ -1573,20 +1698,15 @@ public:
                 default:
                     if (c <= 0xFF)
                     {
-                        if (c <= 0x7F && isprint(c))
+                        if (c >= 0x20 && c < 0x80)
                             buf.writeByte(c);
                         else
                             buf.printf("\\x%02x", c);
                     }
                     else if (c <= 0xFFFF)
-                    {
-                        buf.printf("\\x%02x\\x%02x", c & 0xFF, c >> 8);
-                    }
+                        buf.printf("\\u%04x", c);
                     else
-                    {
-                        buf.printf("\\x%02x\\x%02x\\x%02x\\x%02x",
-                                   c & 0xFF, (c >> 8) & 0xFF, (c >> 16) & 0xFF, c >> 24);
-                    }
+                        buf.printf("\\U%08x", c);
                     break;
             }
         }
@@ -1638,16 +1758,17 @@ public:
                 buf.printf("%d", cast(byte)v);
                 break;
             case AST.Tuns8:
-            case AST.Tchar:
                 buf.printf("%uu", cast(ubyte)v);
                 break;
             case AST.Tint16:
                 buf.printf("%d", cast(short)v);
                 break;
             case AST.Tuns16:
+            case AST.Twchar:
                 buf.printf("%uu", cast(ushort)v);
                 break;
             case AST.Tint32:
+            case AST.Tdchar:
                 buf.printf("%d", cast(int)v);
                 break;
             case AST.Tuns32:
@@ -1658,6 +1779,12 @@ public:
                 break;
             case AST.Tuns64:
                 buf.printf("%lluLLU", v);
+                break;
+            case AST.Tchar:
+                if (v > 0x20 && v < 0x80)
+                    buf.printf("'%c'", cast(int)v);
+                else
+                    buf.printf("%uu", cast(ubyte)v);
                 break;
             default:
                 //t.print();
