@@ -7,22 +7,15 @@ TEST_OUTPUT:
 
 #pragma once
 
-#include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <string.h>
-
-#if !defined(_d_real)
-# define _d_real long double
-#endif
 
 
-// Parsing module dtoh_AliasDeclaration
 struct S;
 struct S2;
 class C;
 class C2;
+
 typedef int32_t T;
 
 extern "C" int32_t x;

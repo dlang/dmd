@@ -7,37 +7,41 @@ TEST_OUTPUT:
 
 #pragma once
 
-#include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <string.h>
 
-#if !defined(_d_real)
-# define _d_real long double
-#endif
-
-#if !defined(_D_ENUM)
-# define _D_ENUM
+#if !defined(BEGIN_ENUM)
 # define BEGIN_ENUM(name, upper, lower) enum class name {
-# define BEGIN_ENUM_NUMERIC(type, name, upper, lower) enum class name : type {
-# define BEGIN_ENUM_TYPE(type, name, upper, lower) namespace name {
-# define BEGIN_ANON_ENUM() enum {
-# define BEGIN_ANON_ENUM_NUMERIC(type) enum : type {
+# define ENUM_KEY(type, name, value, enumName, upper, lower, abbrev) name = value,
 # define END_ENUM(name, upper, lower) };
-# define END_ENUM_NUMERIC(type, name, upper, lower) };
-# define END_ENUM_TYPE(type, name, upper, lower) };
-# define END_ANON_ENUM() };
-# define END_ANON_ENUM_NUMERIC(type) };
+#endif
+#if !defined(BEGIN_ENUM_NUMERIC)
+# define BEGIN_ENUM_NUMERIC(type, name, upper, lower) enum class name : type {
 # define ENUM_KEY_NUMERIC(type, name, value, enumName, upper, lower, abbrev) name = value,
+# define END_ENUM_NUMERIC(type, name, upper, lower) };
+#endif
+#if !defined(BEGIN_ENUM_TYPE)
+# define BEGIN_ENUM_TYPE(type, name, upper, lower) namespace name {
 # define ENUM_KEY_TYPE(type, name, value, enumName, upper, lower, abbrev) static type const name = value;
+# define END_ENUM_TYPE(type, name, upper, lower) };
+#endif
+#if !defined(BEGIN_ANON_ENUM)
+# define BEGIN_ANON_ENUM() enum {
+# define ANON_ENUM_KEY(type, name, value) name = value,
+# define END_ANON_ENUM() };
+#endif
+#if !defined(BEGIN_ANON_ENUM_NUMERIC)
+# define BEGIN_ANON_ENUM_NUMERIC(type) enum : type {
 # define ANON_ENUM_KEY_NUMERIC(type, name, value) name = value,
+# define END_ANON_ENUM_NUMERIC(type) };
+#endif
+#if !defined(ENUM_CONSTANT_NUMERIC)
 # define ENUM_CONSTANT_NUMERIC(type, name, value) enum : type { name = value };
+#endif
+#if !defined(ENUM_CONSTANT)
 # define ENUM_CONSTANT(type, name, value) static type const name = value;
 #endif
 
-
-// Parsing module test
 ENUM_CONSTANT_NUMERIC(int32_t, Anon, 10)
 
 ENUM_CONSTANT_NUMERIC(bool, Anon2, true)
@@ -45,13 +49,13 @@ ENUM_CONSTANT_NUMERIC(bool, Anon2, true)
 ENUM_CONSTANT(const char*, Anon3, "wow")
 
 BEGIN_ENUM(Enum, ENUM, enum)
-  ENUM_KEY_NUMERIC(int32_t, One, 0, Enum, ENUM, enum, E)
-  ENUM_KEY_NUMERIC(int32_t, Two, 1, Enum, ENUM, enum, E)
+  ENUM_KEY(int32_t, One, 0, Enum, ENUM, enum, E)
+  ENUM_KEY(int32_t, Two, 1, Enum, ENUM, enum, E)
 END_ENUM(Enum, ENUM, enum)
 
 BEGIN_ENUM(EnumDefaultType, ENUMDEFAULTTYPE, enumdefaulttype)
-  ENUM_KEY_NUMERIC(int32_t, One, 1, EnumDefaultType, ENUMDEFAULTTYPE, enumdefaulttype, EDT)
-  ENUM_KEY_NUMERIC(int32_t, Two, 2, EnumDefaultType, ENUMDEFAULTTYPE, enumdefaulttype, EDT)
+  ENUM_KEY(int32_t, One, 1, EnumDefaultType, ENUMDEFAULTTYPE, enumdefaulttype, EDT)
+  ENUM_KEY(int32_t, Two, 2, EnumDefaultType, ENUMDEFAULTTYPE, enumdefaulttype, EDT)
 END_ENUM(EnumDefaultType, ENUMDEFAULTTYPE, enumdefaulttype)
 
 BEGIN_ENUM_NUMERIC(int8_t, EnumWithType, ENUMWITHTYPE, enumwithtype)
@@ -60,8 +64,8 @@ BEGIN_ENUM_NUMERIC(int8_t, EnumWithType, ENUMWITHTYPE, enumwithtype)
 END_ENUM_NUMERIC(int8_t, EnumWithType, ENUMWITHTYPE, enumwithtype)
 
 BEGIN_ANON_ENUM()
-  ANON_ENUM_KEY_NUMERIC(int32_t, AnonOne, 1)
-  ANON_ENUM_KEY_NUMERIC(int32_t, AnonTwo, 2)
+  ANON_ENUM_KEY(int32_t, AnonOne, 1)
+  ANON_ENUM_KEY(int32_t, AnonTwo, 2)
 END_ANON_ENUM()
 
 BEGIN_ANON_ENUM_NUMERIC(int64_t)
