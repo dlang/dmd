@@ -1831,8 +1831,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
              */
             return null;
         }
-        while (ce.op == TOK.comma)
-            ce = (cast(CommaExp)ce).e2;
+        ce = ce.lastComma();
         /* If we are indexing into an array that is really a type
          * tuple, rewrite this as an index into a type tuple and
          * try again.
