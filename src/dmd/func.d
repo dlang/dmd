@@ -3666,6 +3666,7 @@ extern (C++) class StaticCtorDeclaration : FuncDeclaration
     extern (D) private this(const ref Loc loc, const ref Loc endloc, string name, StorageClass stc)
     {
         super(loc, endloc, Identifier.generateIdWithLoc(name, loc), STC.static_ | stc, null);
+        this.protection = Prot(Prot.Kind.none);
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
@@ -3753,6 +3754,7 @@ extern (C++) class StaticDtorDeclaration : FuncDeclaration
     extern (D) private this(const ref Loc loc, const ref Loc endloc, string name, StorageClass stc)
     {
         super(loc, endloc, Identifier.generateIdWithLoc(name, loc), STC.static_ | stc, null);
+        this.protection = Prot(Prot.Kind.none);
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)

@@ -1,0 +1,22 @@
+Module constructor and destructors are now anonymous
+
+Module constructor and destructor (shared or not) used to be accessible through
+a special name in the user's scope, hence the following code would happily compile and run:
+
+```
+--- b.d
+module b;
+shared static this () {} // Line 2
+--- a.d
+module a;
+import b;
+shared static ~this () {} // Line 3
+void main ()
+{
+    _sharedStaticDtor_L2_C1(); // Invoke module 'a' shared static dtor
+    _sharedStaticCtor_L3_C1(); // Invoke module 'b' shared static ctor
+}
+```
+
+Those identifiers have now been removed, hence they won't be callable directly,
+nor will they show up in `__traits(allMembers, mixin(__MODULE__))`.
