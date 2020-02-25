@@ -573,16 +573,39 @@ bool collectExtraSources (in string input_dir, in string output_dir, in string[]
 Applies custom transformations defined in transformOutput to testOutput.
 
 Currently the following actions are supported:
- * "sanitize_json" = replace compiler/plattform specific data from generated JSON
+ * "sanitize_json"       = replace compiler/plattform specific data from generated JSON
+ * "remove_lines(<str>)" = remove all lines containing <str>
 
 Params:
     testOutput      = the existing output to be modified
     transformOutput = list of transformation identifiers
 ++/
-void applyOutputTransformations(ref string testOutput, const string transformOutput)
+void applyOutputTransformations(ref string testOutput, string transformOutput)
 {
-    foreach (const step; transformOutput.splitter())
+    while (transformOutput.length)
     {
+        string step, arg;
+
+        const idx = transformOutput.countUntil(' ', '(');
+        if (idx == -1)
+        {
+            step = transformOutput;
+            transformOutput = null;
+        }
+        else
+        {
+            step = transformOutput[0 .. idx];
+            const hasArgs = transformOutput[idx] == '(';
+            transformOutput = transformOutput[idx + 1 .. $];
+            if (hasArgs)
+            {
+                auto parts = transformOutput.findSplit(")");
+                enforce(parts, "Missing closing `)`!");
+                arg = parts[0];
+                transformOutput = parts[2];
+            }
+        }
+
         switch (step)
         {
             case "sanitize_json":
@@ -591,6 +614,12 @@ void applyOutputTransformations(ref string testOutput, const string transformOut
                 sanitize(testOutput);
                 break;
             }
+            case "remove_lines":
+                testOutput = testOutput
+                    .splitter('\n')
+                    .filter!(line => !line.canFind(arg))
+                    .join('\n');
+                break;
 
             default:
                 throw new Exception(format(`Unknown transformation: "%s"!`, step));
@@ -620,6 +649,15 @@ unittest
         {
             "file": "VALUE_REMOVED_FOR_TEST",
             "kind": "module",
+            "members": []
+        }
+    ]
+}`);
+
+    test(`sanitize_json remove_lines("kind")`, `{
+    "modules": [
+        {
+            "file": "VALUE_REMOVED_FOR_TEST",
             "members": []
         }
     ]
