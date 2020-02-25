@@ -687,7 +687,10 @@ private
     {
         import core.internal.traits : hasElaborateAssign;
 
-        static assert (S.sizeof <= size_t*2 && (S.sizeof & (S.sizeof - 1)) == 0, S.stringof ~ " has invalid size for atomic operations.");
+        // `(x & (x-1)) == 0` checks that x is a power of 2.
+        static assert (S.sizeof <= size_t.sizeof * 2
+            && (S.sizeof & (S.sizeof - 1)) == 0,
+            S.stringof ~ " has invalid size for atomic operations.");
         static assert (!hasElaborateAssign!S, S.stringof ~ " may not have an elaborate assignment when used with atomic operations.");
 
         enum ValidateStruct = true;
