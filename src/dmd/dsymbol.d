@@ -736,26 +736,26 @@ extern (C++) class Dsymbol : ASTNode
         //printf("Dsymbol::addMember(this = %p, '%s' scopesym = '%s')\n", this, toChars(), sds.toChars());
         //printf("Dsymbol::addMember(this = %p, '%s' sds = %p, sds.symtab = %p)\n", this, toChars(), sds, sds.symtab);
         parent = sds;
-        if (!isAnonymous()) // no name, so can't add it to symbol table
+        if (isAnonymous()) // no name, so can't add it to symbol table
+            return;
+
+        if (!sds.symtabInsert(this)) // if name is already defined
         {
-            if (!sds.symtabInsert(this)) // if name is already defined
+            if (isAliasDeclaration() && !_scope)
+                setScope(sc);
+            Dsymbol s2 = sds.symtabLookup(this,ident);
+            if (!s2.overloadInsert(this))
             {
-                if (isAliasDeclaration() && !_scope)
-                    setScope(sc);
-                Dsymbol s2 = sds.symtabLookup(this,ident);
-                if (!s2.overloadInsert(this))
-                {
-                    sds.multiplyDefined(Loc.initial, this, s2);
-                    errors = true;
-                }
+                sds.multiplyDefined(Loc.initial, this, s2);
+                errors = true;
             }
-            if (sds.isAggregateDeclaration() || sds.isEnumDeclaration())
+        }
+        if (sds.isAggregateDeclaration() || sds.isEnumDeclaration())
+        {
+            if (ident == Id.__sizeof || ident == Id.__xalignof || ident == Id._mangleof)
             {
-                if (ident == Id.__sizeof || ident == Id.__xalignof || ident == Id._mangleof)
-                {
-                    error("`.%s` property cannot be redefined", ident.toChars());
-                    errors = true;
-                }
+                error("`.%s` property cannot be redefined", ident.toChars());
+                errors = true;
             }
         }
     }
