@@ -712,7 +712,7 @@ bool compareOutput(string output, string refoutput, const ref EnvData envData)
                 break;
             }
             // Match against OS or model (accepts "32mscoff" as "32")
-            else if (conditional[0].among(envData.os, envData.model, envData.model[0 .. min(2, $)]))
+            else if (conditional[0].splitter('+').all!(c => c.among(envData.os, envData.model, envData.model[0 .. min(2, $)])))
             {
                 toSkip = conditional[2];
                 break;
@@ -761,6 +761,10 @@ unittest
 
     ed.model = "32mscoff";
     assert(compareOutput("size_t is uint!", "size_t is $?:32=uint|64=ulong$!", ed));
+
+    assert(compareOutput("no", "$?:posix+64=yes|no$", ed));
+    ed.model = "64";
+    assert(compareOutput("yes", "$?:posix+64=yes|no$", ed));
 }
 
 /++
