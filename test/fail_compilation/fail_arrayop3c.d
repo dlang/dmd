@@ -1,12 +1,11 @@
-// REQUIRED_ARGS: -o-
-
 /*
-example output from druntime
+REQUIRED_ARGS: -o-
+TEST_OUTPUT:
 ----
-../../druntime/import/core/internal/arrayop.d(160): Error: static assert  "Binary op `*=` not supported for element type int*."
-../../druntime/import/core/internal/arrayop.d(20):        instantiated from here: `opsSupported!(true, int*, "*=")``
-../../druntime/import/object.d(3640):        instantiated from here: `arrayOp!(int*[], int*[], "*=")`
-fail_compilation/fail_arrayop3c.d(16):        instantiated from here: `_arrayOp!(int*[], int*[], "*=")`
+$p:druntime/import/core/internal/array/operations.d$($n$): Error: static assert:  "Binary op `*=` not supported for types `int*` and `int*`."
+$p:druntime/import/core/internal/array/operations.d$($n$):        instantiated from here: `typeCheck!(true, int*, int*, "*=")`
+$p:druntime/import/object.d$($n$):        instantiated from here: `arrayOp!(int*[], int*[], "*=")`
+fail_compilation/fail_arrayop3c.d(15):        instantiated from here: `_arrayOp!(int*[], int*[], "*=")`
 ----
 */
 void test11376()
