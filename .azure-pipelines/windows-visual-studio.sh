@@ -53,10 +53,9 @@ dm_make() {
     cp "$DMC" "$DM_MAKE" "dm/path"
 }
 
-if [ "$D_COMPILER" == "dmd" ]; then
-    echo "[STEP]: Downloading DMD"
-    install_host_dmd
-elif [ "$D_COMPILER" == "ldc" ]; then
+echo "[STEP]: Downloading DMD"
+install_host_dmd
+if [ "$D_COMPILER" == "ldc" ]; then
     echo "[STEP]: Downloading LDC"
     ldc
 fi

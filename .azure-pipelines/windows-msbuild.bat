@@ -48,13 +48,6 @@ msbuild /target:dmd /p:Configuration=%CONFIGURATION% /p:Platform=%PLATFORM% %LDC
 %DMD% --version
 grep --version
 
-rem compile run.d before changing the LIB environment variable
-if "%D_COMPILER%" == "ldc" set HOST_DMD=%LDC_DIR%\bin\ldmd2.exe
-if "%D_COMPILER%" == "dmd" set HOST_DMD=%DMD_DIR%\dmd2\windows\bin\dmd.exe
-
-cd "%DMD_DIR%\test"
-"%HOST_DMD%" -m%MODEL% -i run.d || exit /B 6
-
 set DRUNTIME_TESTS=test_all
 cd "%DMD_DIR%"
 if not "%C_RUNTIME%" == "mingw" goto not_mingw
@@ -73,7 +66,7 @@ if not "%C_RUNTIME%" == "mingw" goto not_mingw
     set LIB=%DMD_DIR%\mingw\dmd2\windows\lib%MODEL%\mingw
     set REQUIRED_ARGS=-mscrtlib=msvcrt120 "-L/LIBPATH:%DMD_DIR%\mingw\dmd2\windows\lib%MODEL%\mingw"
     rem delete C++ ABI tests
-    for /F "tokens=* USEBACKQ" %%F IN (`grep -l EXTRA_CPP_SOURCES test\runnable\*.d`) DO del %%F
+    for /F "tokens=* USEBACKQ" %%F IN (`grep -l EXTRA_CPP_SOURCES test/runnable/*.d`) DO rm %%F
     rem FIXME: debug info incomplete when linking through lld-link
     del test\runnable\testpdb.d
 
@@ -91,28 +84,26 @@ REM Check: build phobos
 cd "%DMD_DIR%\..\phobos"
 "%DM_MAKE%" -f win64.mak MODEL=%MODEL% "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "AR=%MSVC_AR%" "MAKE=%DM_MAKE%" || exit /B 5
 
-REM FIXME: skip testsuite for mingw, ldc needed to build tools, but doesn't work without LIB
-if "%C_RUNTIME%" == "mingw" goto skip_testsuite
-
 REM Run DMD testsuite
 cd "%DMD_DIR%\test"
-cp %DMD_DIR%\..\phobos\phobos%MODEL%.lib .
 set ARGS=-O -inline -g
 set OS=windows
 set CC=cl.exe
 set DMD_MODEL=%PLATFORM%
 set BUILD=%CONFIGURATION%
-run.exe || exit /B 6
+set HOST_DMD=%DMD_DIR%\dmd2\windows\bin\dmd.exe
+del phobos%MODEL%.lib
 
-:skip_testsuite
+"%HOST_DMD%" -m%MODEL% -i run.d || exit /B 6
+run.exe || exit /B 6
 
 rem FIXME: lld-link fails to link phobos unittests ("error: relocation against symbol in discarded section: __TMP2427")
 if "%C_RUNTIME%" == "mingw" exit /B 0
 
 cd "%DMD_DIR%\..\phobos"
 REM Check: build phobos unittests
-if "%D_COMPILER%_%MODEL%" == "ldc_64" cp %LDC_DIR%\lib64\libcurl.dll .
-if "%D_COMPILER%_%MODEL%" == "ldc_32mscoff" cp %LDC_DIR%\lib32\libcurl.dll .
-if "%D_COMPILER%_%MODEL%" == "dmd_64" cp %DMD_DIR%\dmd2\windows\bin64\libcurl.dll .
-if "%D_COMPILER%_%MODEL%" == "dmd_32mscoff" cp %DMD_DIR%\dmd2\windows\bin\libcurl.dll .
+if "%D_COMPILER%_%MODEL%" == "ldc_64" copy %LDC_DIR%\lib64\libcurl.dll .
+if "%D_COMPILER%_%MODEL%" == "ldc_32mscoff" copy %LDC_DIR%\lib32\libcurl.dll .
+if "%D_COMPILER%_%MODEL%" == "dmd_64" copy %DMD_DIR%\dmd2\windows\bin64\libcurl.dll .
+if "%D_COMPILER%_%MODEL%" == "dmd_32mscoff" copy %DMD_DIR%\dmd2\windows\bin\libcurl.dll .
 "%DM_MAKE%" -f win64.mak unittest MODEL=%MODEL% "DMD=%DMD%" "VCDIR=%VCINSTALLDIR%." "CC=%MSVC_CC%" "MAKE=%DM_MAKE%"
