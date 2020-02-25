@@ -16,35 +16,35 @@ else
 
     array[0] = 2;
     array[1] = 0x100;
-    printf("array = [0]:x%x, [1]:x%x\n", array[0], array[1]);
+    printf("array = [0]:x%zx, [1]:x%zx\n", array[0], array[1]);
 
     x = btc(array.ptr, bitToUse);
-    printf("btc(array, %d) = %d\n", bitToUse, x);
-    printf("array = [0]:x%x, [1]:x%x\n", array[0], array[1]);
+    printf("btc(array, %zd) = %d\n", bitToUse, x);
+    printf("array = [0]:x%zx, [1]:x%zx\n", array[0], array[1]);
     assert(x == 0);
     assert(array[0] == 0x2 && array[1] == 0x108);
 
     x = btc(array.ptr, bitToUse);
-    printf("btc(array, %d) = %d\n", bitToUse, x);
-    printf("array = [0]:x%x, [1]:x%x\n", array[0], array[1]);
+    printf("btc(array, %zd) = %d\n", bitToUse, x);
+    printf("array = [0]:x%zx, [1]:x%zx\n", array[0], array[1]);
     assert(x != 0);
     assert(array[0] == 2 && array[1] == 0x100);
 
     x = bts(array.ptr, bitToUse);
-    printf("bts(array, %d) = %d\n", bitToUse, x);
-    printf("array = [0]:x%x, [1]:x%x\n", array[0], array[1]);
+    printf("bts(array, %zd) = %d\n", bitToUse, x);
+    printf("array = [0]:x%zx, [1]:x%zx\n", array[0], array[1]);
     assert(x == 0);
     assert(array[0] == 2 && array[1] == 0x108);
 
     x = btr(array.ptr, bitToUse);
-    printf("btr(array, %d) = %d\n", bitToUse, x);
-    printf("array = [0]:x%x, [1]:x%x\n", array[0], array[1]);
+    printf("btr(array, %zd) = %d\n", bitToUse, x);
+    printf("array = [0]:x%zx, [1]:x%zx\n", array[0], array[1]);
     assert(x != 0);
     assert(array[0] == 2 && array[1] == 0x100);
 
     x = bt(array.ptr, 1);
     printf("bt(array, 1) = %d\n", x);
-    printf("array = [0]:x%x, [1]:x%x\n", array[0], array[1]);
+    printf("array = [0]:x%zx, [1]:x%zx\n", array[0], array[1]);
     assert(x != 0);
     assert(array[0] == 2 && array[1] == 0x100);
 }
@@ -103,19 +103,19 @@ void test5()
     array[1] = 0x100;
 
     printf("btc(array, 35) = %d\n", btc(array.ptr, 35));
-    printf("array = [0]:x%x, [1]:x%x\n", array[0], array[1]);
+    printf("array = [0]:x%zx, [1]:x%zx\n", array[0], array[1]);
 
     printf("btc(array, 35) = %d\n", btc(array.ptr, 35));
-    printf("array = [0]:x%x, [1]:x%x\n", array[0], array[1]);
+    printf("array = [0]:x%zx, [1]:x%zx\n", array[0], array[1]);
 
     printf("bts(array, 35) = %d\n", bts(array.ptr, 35));
-    printf("array = [0]:x%x, [1]:x%x\n", array[0], array[1]);
+    printf("array = [0]:x%zx, [1]:x%zx\n", array[0], array[1]);
 
     printf("btr(array, 35) = %d\n", btr(array.ptr, 35));
-    printf("array = [0]:x%x, [1]:x%x\n", array[0], array[1]);
+    printf("array = [0]:x%zx, [1]:x%zx\n", array[0], array[1]);
 
     printf("bt(array, 1) = %d\n", bt(array.ptr, 1));
-    printf("array = [0]:x%x, [1]:x%x\n", array[0], array[1]);
+    printf("array = [0]:x%zx, [1]:x%zx\n", array[0], array[1]);
 }
 
 

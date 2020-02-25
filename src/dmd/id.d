@@ -133,6 +133,7 @@ immutable Msgtable[] msgtable =
     { "_assert", "assert" },
     { "_unittest", "unittest" },
     { "_body", "body" },
+    { "printf" },
 
     { "TypeInfo" },
     { "TypeInfo_Class" },

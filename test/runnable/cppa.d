@@ -157,7 +157,7 @@ extern (C) int foosize6();
 void test6()
 {
     S6 f = foo6();
-    printf("%d %d\n", foosize6(), S6.sizeof);
+    printf("%d %zd\n", foosize6(), S6.sizeof);
     assert(foosize6() == S6.sizeof);
 version (X86)
 {
@@ -181,7 +181,7 @@ struct S
 
 void test7()
 {
-    printf("%d %d\n", foo7(), S.sizeof);
+    printf("%d %zd\n", foo7(), S.sizeof);
     assert(foo7() == S.sizeof);
 }
 

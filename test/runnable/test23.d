@@ -255,7 +255,7 @@ struct B12 {
 void test12()
 {
         A12 a;
-        printf("%d\n", A12.sizeof);
+        printf("%zd\n", A12.sizeof);
         assert(A12.sizeof == 12);
 }
 
@@ -1242,7 +1242,7 @@ void test63()
         arr = [1] ~ 2;
 
         // runtime crash, the length == 1
-        printf("%d\n", arr.length);
+        printf("%zd\n", arr.length);
         assert (arr.length == 2);
         assert(arr[0] == 1);
         assert(arr[1] == 2);

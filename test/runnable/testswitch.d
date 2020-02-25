@@ -308,7 +308,7 @@ void bar14(A...)(int i)
         {
             goto case;
         case A[j]:
-            printf("a = %d, A[%d] = %d\n", a, j, A[j]);
+            printf("a = %d, A[%zd] = %d\n", a, j, A[j]);
         }
         break;
     default:

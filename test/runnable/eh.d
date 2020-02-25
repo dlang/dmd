@@ -104,7 +104,7 @@ printf("catch, i = %d\n", i);
         }
     }
 
-    printf("iterations %d totals: %ld, %ld\n", cIterations, total_x, total_nox);
+    printf("iterations %d totals: %lld, %lld\n", cIterations, total_x, total_nox);
 }
 
 int fn2_nox()
@@ -170,7 +170,7 @@ void test4()
     catch(Exception e)
     {
         auto es = e.toString();
-                printf("%.*s\n", es.length, es.ptr);
+                printf("%.*s\n", cast(int)es.length, es.ptr);
         b++;
     }
     finally
@@ -213,7 +213,7 @@ void test4()
     {
         d++;
         string es = e.toString;
-        printf("%.*s\n", es.length, es.ptr);
+        printf("%.*s\n", cast(int)es.length, es.ptr);
     }
 
     assert(a == 2);
@@ -255,7 +255,7 @@ void test4()
     {
         q3++;
                 string es = e.toString;
-        printf("%.*s\n", es.length, es.ptr);
+        printf("%.*s\n", cast(int)es.length, es.ptr);
     }
 
     assert(q0 == 1);
@@ -287,7 +287,7 @@ void test5()
             result ~= cast(char)('a' + i);
         }
     }
-    printf("--- %.*s", result.length, result.ptr);
+    printf("--- %.*s", cast(int)result.length, result.ptr);
     if (result != "tctbta")
         assert(0);
 }

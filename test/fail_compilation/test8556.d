@@ -37,7 +37,7 @@ struct Circle(Range)
     {
         //pragma(msg, typeof(opSlice)); // prints "fwdref err" with B, but doesn't with A
 
-        printf("%d %d\n", i, j);
+        printf("%d %d\n", cast(int)i, cast(int)j);
         assert(j >= i);
 
         // 1. grabExactly curcular refers this opSlice.
