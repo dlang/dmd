@@ -131,6 +131,14 @@ Command-line parameters
     if (res.helpWanted)
         return showHelp;
 
+    // Since we're ultimately outputting to a TTY, force colored output
+    // A more proper solution would be to redirect DMD's output to this script's
+    // output using `std.process`', but it's more involved and the following
+    // "just works"
+    if (!flags["DFLAGS"].canFind("-color=off") &&
+        [env["HOST_DMD_RUN"], "-color=on", "-h"].tryRun().status == 0)
+        flags["DFLAGS"] ~= "-color=on";
+
     // default target
     if (!args.length)
         args = ["dmd"];
