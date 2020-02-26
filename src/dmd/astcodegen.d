@@ -53,6 +53,7 @@ struct ASTCodegen
     alias Tfloat64                  = dmd.mtype.Tfloat64;
     alias Tfloat80                  = dmd.mtype.Tfloat80;
     alias Tfunction                 = dmd.mtype.Tfunction;
+    alias Tpointer                  = dmd.mtype.Tpointer;
     alias Tident                    = dmd.mtype.Tident;
     alias Tint8                     = dmd.mtype.Tint8;
     alias Tint16                    = dmd.mtype.Tint16;
