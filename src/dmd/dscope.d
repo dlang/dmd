@@ -523,17 +523,17 @@ struct Scope
             Module.clearCache();
             Dsymbol scopesym = null;
             Dsymbol s = sc.search(Loc.initial, id, &scopesym, IgnoreErrors);
-            if (s)
+            if (!s)
+                return null;
+
+            for (cost = 0; sc; sc = sc.enclosing, ++cost)
+                if (sc.scopesym == scopesym)
+                    break;
+            if (scopesym != s.parent)
             {
-                for (cost = 0; sc; sc = sc.enclosing, ++cost)
-                    if (sc.scopesym == scopesym)
-                        break;
-                if (scopesym != s.parent)
-                {
-                    ++cost; // got to the symbol through an import
-                    if (s.prot().kind == Prot.Kind.private_)
-                        return null;
-                }
+                ++cost; // got to the symbol through an import
+                if (s.prot().kind == Prot.Kind.private_)
+                    return null;
             }
             return s;
         }
