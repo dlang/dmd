@@ -2933,7 +2933,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
                    td.kind(), td.parent.toPrettyChars(), td.ident.toChars(),
                    tiargsBuf.peekChars(), fargsBuf.peekChars());
 
-            printCandidates(loc, td);
+            printCandidates(loc, td, sc.isDeprecated());
             return null;
         }
         /* This case happens when several ctors are mixed in an agregate.
@@ -2966,7 +2966,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
         {
             .error(loc, "none of the overloads of `%s` are callable using a %sobject, candidates are:",
                    fd.ident.toChars(), thisBuf.peekChars());
-            printCandidates(loc, fd);
+            printCandidates(loc, fd, sc.isDeprecated());
             return null;
         }
 
@@ -2997,7 +2997,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
     {
         .error(loc, "none of the overloads of `%s` are callable using argument types `%s`, candidates are:",
                fd.toChars(), fargsBuf.peekChars());
-        printCandidates(loc, fd);
+        printCandidates(loc, fd, sc.isDeprecated());
         return null;
     }
 
@@ -3015,14 +3015,16 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
 /*******************************************
  * Prints template and function overload candidates as supplemental errors.
  * Params:
- *      loc =           instantiation location
- *      declaration =   the declaration to print overload candidates for
+ *      loc =            instantiation location
+ *      declaration =    the declaration to print overload candidates for
+ *      showDeprecated = If `false`, `deprecated` function won't be shown
  */
-private void printCandidates(Decl)(const ref Loc loc, Decl declaration)
+private void printCandidates(Decl)(const ref Loc loc, Decl declaration, bool showDeprecated)
 if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
 {
     // max num of overloads to print (-v overrides this).
-    int numToDisplay = 5;
+    enum int DisplayLimit = 5;
+    int displayed;
     const(char)* constraintsTip;
 
     overloadApply(declaration, (Dsymbol s)
@@ -3031,7 +3033,13 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
 
         if (auto fd = s.isFuncDeclaration())
         {
+            // Don't print overloads which have errors.
+            // Not that if the whole overload set has errors, we'll never reach
+            // this point so there's no risk of printing no candidate
             if (fd.errors || fd.type.ty == Terror)
+                return 0;
+            // Don't print disabled functions, or `deprecated` outside of deprecated scope
+            if (fd.storage_class & STC.disable || (fd.isDeprecated() && !showDeprecated))
                 return 0;
 
             auto tf = cast(TypeFunction) fd.type;
@@ -3052,7 +3060,7 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
             nextOverload = td.overnext;
         }
 
-        if (global.params.verbose || --numToDisplay != 0)
+        if (global.params.verbose || ++displayed < DisplayLimit)
             return 0;
 
         // Too many overloads to sensibly display.
@@ -3064,6 +3072,10 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
             .errorSupplemental(loc, "... (%d more, -v to show) ...", num);
         return 1;   // stop iterating
     });
+
+    // Nothing was displayed, all overloads are either disabled or deprecated
+    if (!displayed)
+        .errorSupplemental(loc, "All possible candidates are marked as `deprecated` or `@disable`");
     // should be only in verbose mode
     if (constraintsTip)
         .tip(constraintsTip);

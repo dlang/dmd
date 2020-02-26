@@ -526,6 +526,14 @@ struct Scope
             if (!s)
                 return null;
 
+            // Do not show `@disable`d declarations
+            if (auto decl = s.isDeclaration())
+                if (decl.storage_class & STC.disable)
+                    return null;
+            // Or `deprecated` ones if we're not in a deprecated scope
+            if (s.isDeprecated() && !sc.isDeprecated())
+                return null;
+
             for (cost = 0; sc; sc = sc.enclosing, ++cost)
                 if (sc.scopesym == scopesym)
                     break;
