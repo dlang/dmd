@@ -579,7 +579,7 @@ Applies custom transformations defined in transformOutput to testOutput.
 
 Currently the following actions are supported:
  * "sanitize_json"       = replace compiler/plattform specific data from generated JSON
- * "remove_lines(<str>)" = remove all lines containing <str>
+ * "remove_lines(<re>)" = remove all lines matching a regex <re>
 
 Params:
     testOutput      = the existing output to be modified
@@ -626,12 +626,16 @@ void applyOutputTransformations(ref string testOutput, string transformOutput)
                 sanitize(testOutput);
                 break;
             }
+
             case "remove_lines":
+            {
+                auto re = regex(arg);
                 testOutput = testOutput
                     .splitter('\n')
-                    .filter!(line => !line.canFind(arg))
+                    .filter!(line => !line.matchFirst(re))
                     .join('\n');
                 break;
+            }
 
             default:
                 throw new Exception(format(`Unknown transformation: "%s"!`, step));
@@ -698,9 +702,17 @@ unittest
     test(`This is a text with
         a random ) which should
         still work`,
-        `remove_lines("random )")`,
+        `remove_lines("random \)")`,
         `This is a text with
         still work`);
+
+    test(`Tom bought
+        12 apples
+        and 6 berries
+        from the store`,
+        `remove_lines("(\d+)")`,
+        `Tom bought
+        from the store`);
 
     assertThrown(test("", "unknown", ""));
 }

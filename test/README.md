@@ -228,11 +228,18 @@ The following is a list of all available settings:
                         default: (none)
 
     TRANSFORM_OUTPUT:   steps to apply to the output of the compilation before it
-                        is compared to the expected TEST_OUTPUT.
+                        is compared to the expected TEST_OUTPUT. A step may take
+                        arguments akin to a function call, e.g. `step(arg)` and arguments
+                        may be quoted using "".
 
                         Supported transformations:
                         - sanitize_json:    Remove compiler specific information from output
                                             of -Xi (see test/tools/sanitize_json.d)
+                                            arguments: none
+
+                        - remove_lines:     Remove lines matching a given regex
+                                            arguments: the regex
+                                            note: patterns containing ')' must be quoted
 
     POST_SCRIPT:         name of script to execute after test run
                          note: arguments to the script may be included after the name.
