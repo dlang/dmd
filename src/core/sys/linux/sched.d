@@ -110,6 +110,12 @@ int sched_getaffinity(pid_t pid, size_t cpusetsize, cpu_set_t *mask);
 int clone(int function(void*), void* child_stack, int flags, void* arg, ...);
 int unshare(int flags) @trusted;
 
+version (CRuntime_Glibc)
+{
+    /* Determine CPU on which the calling thread is running */
+    int sched_getcpu();
+}
+
 enum CLONE_FILES = 0x400;
 enum CLONE_FS = 0x200;
 enum CLONE_NEWCGROUP = 0x2000000;
