@@ -994,7 +994,7 @@ void insertFinallyBlockGotos(ref ObNodes obnodes)
 
 /*********************************
  * Set the `index` field of each ObNode
- * to its index in the array.
+ * to its index in the `obnodes[]` array.
  */
 void numberNodes(ref ObNodes obnodes)
 {
@@ -1022,7 +1022,7 @@ void removeUnreachable(ref ObNodes obnodes)
     foreach (ob; obnodes)
         ob.index = 0;
 
-    /* Recurseively mark ob and all its successors as reachable
+    /* Recursively mark ob and all its successors as reachable
      */
     static void mark(ObNode* ob)
     {
@@ -1072,18 +1072,37 @@ void computePreds(ref ObNodes obnodes)
 }
 
 /*******************************
- * Are we interested in tracking this variable?
+ * Are we interested in tracking variable `v`?
  */
 bool isTrackableVar(VarDeclaration v)
 {
-    /* Currently only dealing with pointers
+    //printf("isTrackableVar() %s\n", v.toChars());
+    auto tb = v.type.toBasetype();
+
+    /* Assume class references are managed by the GC,
+     * don't need to track them
      */
-    if (v.type.toBasetype().ty != Tpointer)
+    if (tb.ty == Tclass)
         return false;
+
+    /* Pointers are tracked
+     */
+    if (!tb.hasPointers())
+        return false;
+
+    /* Assume types with a destructor are doing their own tracking,
+     * such as being a ref counted type
+     */
     if (v.needsScopeDtor())
         return false;
-    if (v.storage_class & STC.parameter && !v.type.isMutable())
+
+    /* Not tracking function parameters that are not mutable
+     */
+    if (v.storage_class & STC.parameter && !tb.hasPointersToMutableFields())
         return false;
+
+    /* Not tracking global variables
+     */
     return !v.isDataseg();
 }
 
@@ -1702,20 +1721,74 @@ PtrState toPtrState(VarDeclaration v)
      * ref:                       Borrowed
      * const ref:                 Readonly
      */
-    auto tb = v.type.toBasetype();
+
+    auto t = v.type;
     if (v.isRef())
     {
-        return tb.isMutable() ? PtrState.Borrowed : PtrState.Readonly;
+        return t.hasMutableFields() ? PtrState.Borrowed : PtrState.Readonly;
     }
-    auto tp = tb.isTypePointer();
-    assert(tp);
     if (v.isScope())
     {
-        return tp.nextOf().isMutable() ? PtrState.Borrowed : PtrState.Readonly;
+        return t.hasPointersToMutableFields() ? PtrState.Borrowed : PtrState.Readonly;
     }
     else
         return PtrState.Owner;
 }
+
+/**********************************
+ * Does type `t` contain any pointers to mutable?
+ */
+bool hasPointersToMutableFields(Type t)
+{
+    auto tb = t.toBasetype();
+    if (!tb.isMutable())
+        return false;
+    if (auto tsa = tb.isTypeSArray())
+    {
+        return tsa.nextOf().hasPointersToMutableFields();
+    }
+    if (auto ts = tb.isTypeStruct())
+    {
+        foreach (v; ts.sym.fields)
+        {
+            if (v.isRef())
+            {
+                if (v.type.hasMutableFields())
+                    return true;
+            }
+            else if (v.type.hasPointersToMutableFields())
+                return true;
+        }
+        return false;
+    }
+    auto tbn = tb.nextOf();
+    return tbn && tbn.hasMutableFields();
+}
+
+/********************************
+ * Does type `t` have any mutable fields?
+ */
+bool hasMutableFields(Type t)
+{
+    auto tb = t.toBasetype();
+    if (!tb.isMutable())
+        return false;
+    if (auto tsa = tb.isTypeSArray())
+    {
+        return tsa.nextOf().hasMutableFields();
+    }
+    if (auto ts = tb.isTypeStruct())
+    {
+        foreach (v; ts.sym.fields)
+        {
+            if (v.type.hasMutableFields())
+                return true;
+        }
+        return false;
+    }
+    return true;
+}
+
 
 
 /***************************************
