@@ -7,18 +7,10 @@ TEST_OUTPUT:
 
 #pragma once
 
-#include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <string.h>
-
-#if !defined(_d_real)
-# define _d_real long double
-#endif
 
 
-// Parsing module dtoh_functions
 // ignoring function dtoh_functions.foo because of linkage
 // ignoring function dtoh_functions.fun because it's extern
 // ignoring function dtoh_functions.fun2 because it's extern
