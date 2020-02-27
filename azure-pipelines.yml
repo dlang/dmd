@@ -16,6 +16,7 @@ jobs:
           D_COMPILER: dmd
     steps:
       - template: .azure-pipelines/windows.yml
+
   - job: Windows_OMF
     timeoutInMinutes: 120
     pool:
@@ -32,12 +33,14 @@ jobs:
           D_COMPILER: dmd
     steps:
       - template: .azure-pipelines/windows.yml
+
   - job: Windows_VisualD
     timeoutInMinutes: 120
     pool:
       vmImage: 'vs2017-win2016'
     variables:
       VSINSTALLDIR: C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\
+      HOST_DMD_VERSION: 2.090.0
     strategy:
       matrix:
         win32-ldc:
@@ -46,16 +49,17 @@ jobs:
           ARCH: x86
           D_COMPILER: ldc
           VISUALD_VER: v0.49.0
-          LDC_VERSION: 1.19.0
+          LDC_VERSION: 1.20.0
     steps:
       - template: .azure-pipelines/windows-visual-studio.yml
 
-  - job: Windows_VisualD_Debug
+  - job: Windows_LDC_Debug
     timeoutInMinutes: 120
     pool:
       vmImage: 'vs2017-win2016'
     variables:
       VSINSTALLDIR: C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\
+      HOST_DMD_VERSION: 2.090.0
     strategy:
       matrix:
         x64-debug-ldc:
@@ -65,6 +69,26 @@ jobs:
           CONFIGURATION: Debug
           D_COMPILER: ldc
           VISUALD_VER: v0.49.0
-          LDC_VERSION: 1.19.0
+          LDC_VERSION: 1.20.0
+    steps:
+      - template: .azure-pipelines/windows-visual-studio.yml
+
+  - job: Windows_LDC_MinGW
+    timeoutInMinutes: 120
+    pool:
+      vmImage: 'vs2017-win2016'
+    variables:
+      VSINSTALLDIR: C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\
+      HOST_DMD_VERSION: 2.090.0
+    strategy:
+      matrix:
+        win32-ldc:
+          OS: Win_32
+          MODEL: 32mscoff
+          ARCH: x86
+          D_COMPILER: ldc
+          C_RUNTIME: mingw
+          VISUALD_VER: v0.49.0
+          LDC_VERSION: 1.20.0
     steps:
       - template: .azure-pipelines/windows-visual-studio.yml
