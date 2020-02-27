@@ -61,12 +61,13 @@ int __switch(T, caseLabels...)(/*in*/ const scope T[] condition) pure nothrow @s
     {
         // Need immutable array to be accessible in pure code, but case labels are
         // currently coerced to the switch condition type (e.g. const(char)[]).
-        static immutable T[][caseLabels.length] cases = {
-            auto res = new immutable(T)[][](caseLabels.length);
-            foreach (i, s; caseLabels)
-                res[i] = s.idup;
-            return res;
-        }();
+        pure @trusted nothrow @nogc asImmutable(const(T[])[] items...)
+        {
+            assert(__ctfe); // only @safe for CTFE
+            immutable T[][caseLabels.length] result = cast(immutable)(items[]);
+            return result;
+        }
+        static immutable T[][caseLabels.length] cases = asImmutable(caseLabels);
 
         // Run-time binary search in a static array of labels.
         return __switchSearch!T(cases[], condition);
