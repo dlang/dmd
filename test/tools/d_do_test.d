@@ -370,7 +370,9 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     {
         // Don't require tests to specify the test directory
         testArgs.compileOutputFile = input_dir.buildPath(testArgs.compileOutputFile);
-        testArgs.compileOutput = readText(testArgs.compileOutputFile);
+        testArgs.compileOutput = readText(testArgs.compileOutputFile)
+                                    .unifyNewLine() // Avoid CRLF issues
+                                    .strip();
     }
     else
         findOutputParameter(file, "TEST_OUTPUT", testArgs.compileOutput, envData.sep);
@@ -604,6 +606,10 @@ void applyOutputTransformations(ref string testOutput, string transformOutput)
                 arg = parts[0];
                 transformOutput = parts[2];
             }
+
+            // Skip space between steps
+            import std.ascii : isWhite;
+            transformOutput.skipOver!isWhite();
         }
 
         switch (step)
@@ -658,6 +664,14 @@ unittest
     "modules": [
         {
             "file": "VALUE_REMOVED_FOR_TEST",
+            "members": []
+        }
+    ]
+}`);
+
+    test(`sanitize_json remove_lines("kind") remove_lines("file")`, `{
+    "modules": [
+        {
             "members": []
         }
     ]
