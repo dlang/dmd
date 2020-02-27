@@ -89,7 +89,7 @@ void arg()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/bug9631.d(106): Error: function `bug9631.targ.ft!().ft(S _param_0)` is not callable using argument types `(S)`
+fail_compilation/bug9631.d(106): Error: function `bug9631.targ.ft!()(S _param_0)` is not callable using argument types `(S)`
 fail_compilation/bug9631.d(106):        cannot pass argument `x` of type `bug9631.S` to parameter `bug9631.tem!().S _param_0`
 fail_compilation/bug9631.d(107): Error: template `bug9631.targ.ft` cannot deduce function from argument types `!()(S)`, candidates are:
 fail_compilation/bug9631.d(105):        `ft()(tem!().S)`

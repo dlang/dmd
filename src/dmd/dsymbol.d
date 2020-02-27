@@ -663,8 +663,25 @@ extern (C++) class Dsymbol : ASTNode
         // Fill in comp[] and compute length of final result
         size_t length = 0;
         int i;
-        for (Dsymbol p = this; p; p = p.parent)
+        for (Dsymbol p = this, pparent; p; p = pparent)
         {
+            Dsymbol sym;
+            pparent = p.parent;
+            if (pparent)
+            {
+                if (auto ti = pparent.isTemplateInstance())
+                    if (auto ident = p.getIdent())
+                        if (ident is ti.name)
+                            if (Dsymbol.oneMembers(ti.members, &sym, ident) && sym is p)
+                                continue;
+
+                if (auto td = pparent.isTemplateDeclaration())
+                    if (auto ident = p.getIdent())
+                        if (ident is td.ident)
+                            if (Dsymbol.oneMembers(td.members, &sym, ident) && sym is p)
+                                continue;
+            }
+
             const s = QualifyTypes ? p.toPrettyCharsHelper() : p.toChars();
             const len = strlen(s);
             comp[i] = s[0 .. len];

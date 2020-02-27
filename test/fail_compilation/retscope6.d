@@ -77,9 +77,9 @@ void foo() @safe
 /* TEST_OUTPUT:
 ---
 fail_compilation/retscope6.d(8016): Error: address of variable `i` assigned to `p` with longer lifetime
-fail_compilation/retscope6.d(8031): Error: reference to local variable `i` assigned to non-scope parameter `p` calling retscope6.betty!().betty
-fail_compilation/retscope6.d(8031): Error: reference to local variable `j` assigned to non-scope parameter `q` calling retscope6.betty!().betty
-fail_compilation/retscope6.d(8048): Error: reference to local variable `j` assigned to non-scope parameter `q` calling retscope6.archie!().archie
+fail_compilation/retscope6.d(8031): Error: reference to local variable `i` assigned to non-scope parameter `p` calling retscope6.betty!()
+fail_compilation/retscope6.d(8031): Error: reference to local variable `j` assigned to non-scope parameter `q` calling retscope6.betty!()
+fail_compilation/retscope6.d(8048): Error: reference to local variable `j` assigned to non-scope parameter `q` calling retscope6.archie!()
 ---
 */
 
