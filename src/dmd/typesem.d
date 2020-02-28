@@ -1203,6 +1203,8 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
 
         if (sc.stc & STC.property)
             tf.isproperty = true;
+        if (sc.stc & STC.live)
+            tf.islive = true;
 
         tf.linkage = sc.linkage;
         version (none)
