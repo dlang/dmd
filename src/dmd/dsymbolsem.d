@@ -6312,6 +6312,10 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
     scope(exit)
         sc.flags &= ~SCOPE.alias_;
 
+    // preserve the original type
+    if (!ds.originalType && ds.type)
+        ds.originalType = ds.type.syntaxCopy();
+
     if (ds.aliassym)
     {
         auto fd = ds.aliassym.isFuncLiteralDeclaration();
