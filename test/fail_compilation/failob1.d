@@ -18,16 +18,16 @@ class C { int i; int* f; }
 @live
 {
     // Test what is and is not a trackable variable
-    @live void test1(int[] a1) { }            // error
-    @live void test2(int*[3] a2) { }          // error
-    @live void test3(const int*[3] a) { }     // ok
-    @live void test4(S s4) { }                // error
-    @live void test5(int delegate() dg5) { }  // error
-    @live void test6(const(int*)[3] a) { }    // ok
-    @live void test7(const(int)*[3] a) { }    // ok
-    @live void test8(const(int)* p) { }       // ok
-    @live void test9(T t) { }                 // ok
-    @live void test10(C c) { }                // ok
-    @live void test11(int i) { }              // ok
-    @live void test12(int* p12) { }           // error
+    void test1(int[] a1) { }            // error
+    void test2(int*[3] a2) { }          // error
+    void test3(const int*[3] a) { }     // ok
+    void test4(S s4) { }                // error
+    void test5(int delegate() dg5) { }  // error
+    void test6(const(int*)[3] a) { }    // ok
+    void test7(const(int)*[3] a) { }    // ok
+    void test8(const(int)* p) { }       // ok
+    void test9(T t) { }                 // ok
+    void test10(C c) { }                // ok
+    void test11(int i) { }              // ok
+    void test12(int* p12) { }           // error
 }
