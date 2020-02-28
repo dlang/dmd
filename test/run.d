@@ -320,7 +320,7 @@ auto predefinedTargets(string[] targets)
         Target target = {
             filename: filename,
             args: [
-                resultsDir.buildPath(TestTools.testRunner.name),
+                resultsDir.buildPath(TestTools.testRunner.name.exeName),
                 Target.normalizedTestName(filename)
             ]
         };
