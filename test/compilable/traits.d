@@ -18,7 +18,8 @@ class C19152
 static assert(is(typeof(__traits(getTargetInfo, "cppRuntimeLibrary")) == string));
 version (CppRuntime_Microsoft)
 {
-    static assert(__traits(getTargetInfo, "cppRuntimeLibrary") == "libcmt");
+    static assert(__traits(getTargetInfo, "cppRuntimeLibrary") == "libcmt" ||
+                  __traits(getTargetInfo, "cppRuntimeLibrary")[0..6] == "msvcrt"); // includes mingw import libs
 }
 
 version (D_HardFloat)
@@ -66,16 +67,16 @@ version(Windows)
     static assert(__traits(getLocation, MyStruct)[0] == `compilable\traits.d`);
 else
     static assert(__traits(getLocation, MyStruct)[0] == "compilable/traits.d");
-static assert(__traits(getLocation, MyStruct)[1] == 39);
+static assert(__traits(getLocation, MyStruct)[1] == 40);
 static assert(__traits(getLocation, MyStruct)[2] == 1);
 
 int foo();
 int foo(int);
 
-static assert(__traits(getLocation, __traits(getOverloads, traits, "foo")[1])[1] == 73);
+static assert(__traits(getLocation, __traits(getOverloads, traits, "foo")[1])[1] == 74);
 
 mixin("int bar;");
-static assert(__traits(getLocation, bar)[1] == 77);
+static assert(__traits(getLocation, bar)[1] == 78);
 
 struct Outer
 {
@@ -83,8 +84,8 @@ struct Outer
 
     void method() {}
 }
-static assert(__traits(getLocation, Outer.Nested)[1] == 82);
-static assert(__traits(getLocation, Outer.method)[1] == 84);
+static assert(__traits(getLocation, Outer.Nested)[1] == 83);
+static assert(__traits(getLocation, Outer.method)[1] == 85);
 
 /******************************************/
 // https://issues.dlang.org/show_bug.cgi?id=19902
