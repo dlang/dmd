@@ -823,28 +823,26 @@ unittest
 Creates a diff of the expected and actual test output.
 
 Params:
-    testData = the test configuration
-    output   = the actual output
-    name     = the test files name
+    expected     = the expected output
+    expectedFile = file containing expected (if present, null otherwise)
+    actual       = the actual output
+    name         = the test files name
 
 Returns: the comparison created by the `diff` utility
 ++/
-string generateDiff(ref const TestArgs testData, const string output, const string name)
+string generateDiff(const string expected, string expectedFile,
+    const string actual, const string name)
 {
-    string actualFile = tempDir.buildPath("expected_" ~ name);
-    File(actualFile, "w").writeln(output); // Append \n
+    string actualFile = tempDir.buildPath("actual_" ~ name);
+    File(actualFile, "w").writeln(actual); // Append \n
     scope (exit) remove(actualFile);
 
-    const needTmp = !testData.compileOutputFile;
-    string expectedFile;
+    const needTmp = !expectedFile;
     if (needTmp) // Create a temporary file
     {
-        expectedFile = tempDir.buildPath("actual_" ~ name);
-        File(expectedFile, "w").writeln(testData.compileOutput); // Append \n
+        expectedFile = tempDir.buildPath("expected_" ~ name);
+        File(expectedFile, "w").writeln(expected); // Append \n
     }
-    else // Reuse TEST_OUTPUT_FILE
-        expectedFile = testData.compileOutputFile;
-
     // Remove temporary file
     scope (exit) if (needTmp)
         remove(expectedFile);
@@ -1148,7 +1146,8 @@ int tryMain(string[] args)
                      testArgs.mode != TestMode.FAIL_COMPILE &&
                      testArgs.mode != TestMode.RUN))
                 {
-                    const diff = generateDiff(testArgs, compile_output, test_base_name);
+                    const diff = generateDiff(testArgs.compileOutput, testArgs.compileOutputFile,
+                                                compile_output, test_base_name);
                     throw new CompareException(testArgs.compileOutput, compile_output, diff);
                 }
             }
