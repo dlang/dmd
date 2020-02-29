@@ -77,6 +77,7 @@ struct TestArgs
     string[] argSets;
     string   compileOutput;
     string   compileOutputFile; /// file containing the expected output
+    string   runOutput; /// Expected output of the compiled executable
     string   gdbScript;
     string   gdbMatch;
     string   postScript;
@@ -378,6 +379,8 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
         findOutputParameter(file, "TEST_OUTPUT", testArgs.compileOutput, envData.sep);
 
     findTestParameter(envData, file, "TRANSFORM_OUTPUT", testArgs.transformOutput);
+
+    findOutputParameter(file, "RUN_OUTPUT", testArgs.runOutput, envData.sep);
 
     findOutputParameter(file, "GDB_SCRIPT", testArgs.gdbScript, envData.sep);
     findTestParameter(envData, file, "GDB_MATCH", testArgs.gdbMatch);
@@ -878,14 +881,16 @@ class CompareException : Exception
 {
     string expected;
     string actual;
+    bool fromRun; /// Compared execution instead of compilation output
 
-    this(string expected, string actual, string diff) {
+    this(string expected, string actual, string diff, bool fromRun = false) {
         string msg = "\nexpected:\n----\n" ~ expected ~
             "\n----\nactual:\n----\n" ~ actual ~
             "\n----\ndiff:\n----\n" ~ diff ~ "----\n";
         super(msg);
         this.expected = expected;
         this.actual = actual;
+        this.fromRun = fromRun;
     }
 }
 
@@ -1167,7 +1172,15 @@ int tryMain(string[] args)
                     command = test_app_dmd;
                     if (testArgs.executeArgs) command ~= " " ~ testArgs.executeArgs;
 
-                    execute(fThisRun, command, true, result_path);
+                    const output = execute(fThisRun, command, true, result_path)
+                                    .strip()
+                                    .unifyNewLine();
+
+                    if (testArgs.runOutput && !compareOutput(output, testArgs.runOutput, envData))
+                    {
+                        const diff = generateDiff(testArgs.runOutput, null, output, test_base_name);
+                        throw new CompareException(testArgs.runOutput, output, diff, true);
+                    }
                 }
                 else version (linux)
                 {
@@ -1218,9 +1231,11 @@ int tryMain(string[] args)
             if (auto ce = cast(CompareException) e)
             {
                 // remove the output file in test_results as its outdated
-                output_file.remove();
+                // (might fail for runnable tests on Windows)
+                if (output_file.remove().collectException())
+                    writef("\nWARNING: Failed to remove `%s`!", output_file);
 
-                if (testArgs.compileOutputFile)
+                if (testArgs.compileOutputFile && !ce.fromRun)
                 {
                     std.file.write(testArgs.compileOutputFile, ce.actual);
                     writefln("\n==> `TEST_OUTPUT_FILE` `%s` has been updated", testArgs.compileOutputFile);
