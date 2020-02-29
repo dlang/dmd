@@ -1,3 +1,24 @@
+/*
+RUN_OUTPUT:
+---
+u = 17
+u = 1
+u = 1
+u = 1
+u = 1
+a[0] = 21
+a[1] = 22
+a[2] = 23
+a[] = 21
+a[] = 22
+a[] = 23
+a[foo] = 3
+a[bar] = 4
+a = 63, b = 47, c = 83
+a = 63, b = 48, c = 83
+Success
+---
+*/
 
 import core.stdc.stdio;
 
