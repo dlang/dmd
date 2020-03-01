@@ -304,6 +304,18 @@ public int runLINK()
                 cmdbuf.writeByte(' ');
                 cmdbuf.writestring(lflags);
             }
+
+            const(char)* linkcmd = getenv(global.params.is64bit ? "LINKCMD64" : "LINKCMD");
+            if (!linkcmd)
+                linkcmd = getenv("LINKCMD"); // backward compatible
+            if (!linkcmd)
+                linkcmd = vsopt.linkerPath(global.params.is64bit);
+
+            // object files not SAFESEH compliant, but LLD is more picky than MS link
+            if (!global.params.is64bit)
+                if (FileName.equals(FileName.name(linkcmd), "lld-link.exe"))
+                    cmdbuf.writestring(" /SAFESEH:NO");
+
             cmdbuf.writeByte(0); // null terminate the buffer
             char[] p = cmdbuf.extractSlice()[0 .. $-1];
             const(char)[] lnkfilename;
@@ -318,11 +330,6 @@ public int runLINK()
                     p[lnkfilename.length +1] = 0;
                 }
             }
-            const(char)* linkcmd = getenv(global.params.is64bit ? "LINKCMD64" : "LINKCMD");
-            if (!linkcmd)
-                linkcmd = getenv("LINKCMD"); // backward compatible
-            if (!linkcmd)
-                linkcmd = vsopt.linkerPath(global.params.is64bit);
 
             const int status = executecmd(linkcmd, p.ptr);
             if (lnkfilename)

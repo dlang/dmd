@@ -1099,7 +1099,6 @@ int tryMain(string[] args)
                         (testArgs.mode == TestMode.RUN || testArgs.link ? "" : "-c "),
                         join(testArgs.sources, " "),
                         (autoCompileImports ? "-i" : join(testArgs.compiledImports, " ")));
-                version(Windows) command ~= " -map nul.map";
 
                 compile_output = execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path);
             }
@@ -1122,7 +1121,6 @@ int tryMain(string[] args)
                         autoCompileImports ? " -i" : "",
                         autoCompileImports ? "extraSourceIncludePaths" : "",
                         envData.required_args, testArgs.requiredArgsForLink, output_dir, test_app_dmd, join(toCleanup, " "));
-                    version(Windows) command ~= " -map nul.map";
 
                     execute(fThisRun, command, true, result_path);
                 }
