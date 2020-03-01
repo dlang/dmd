@@ -27,7 +27,7 @@ printf("%k\n", value);  // error: non-Standard format k
 ```
 ```
 const format = "%k\n";
-printf(format, value):  // no error
+printf(format.ptr, value);  // no error
 ```
 
 Most of the errors detected are portability issues. For instance,
