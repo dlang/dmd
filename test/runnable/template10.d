@@ -65,7 +65,9 @@ void test1c()
             auto r = t1c!a.u!b.v!c.sum();
             assert(r == 6);
         }
+        f1();
     }
+    f0();
 }
 
 void test1()
