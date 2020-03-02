@@ -23,6 +23,7 @@ import dmd.attrib;
 import dmd.astcodegen;
 import dmd.canthrow;
 import dmd.chkprintf;
+import dmd.chkscanf;
 import dmd.ctorflow;
 import dmd.dscope;
 import dmd.dsymbol;
@@ -2157,6 +2158,17 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
         if (auto se = (*arguments)[0].isStringExp())
         {
             if (checkPrintfFormat(se.loc, se.peekString(), (*arguments)[1 .. nargs]))
+                err = true;
+        }
+    }
+
+    /* If calling C scanf(), check the format string against the arguments
+     */
+    if (tf.linkage == LINK.c && nparams >= 1 && fd && fd.ident == Id.scanf)
+    {
+        if (auto se = (*arguments)[0].isStringExp())
+        {
+            if (checkScanfFormat(se.loc, se.peekString(), (*arguments)[1 .. nargs]))
                 err = true;
         }
     }

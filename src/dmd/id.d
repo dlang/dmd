@@ -134,6 +134,7 @@ immutable Msgtable[] msgtable =
     { "_unittest", "unittest" },
     { "_body", "body" },
     { "printf" },
+    { "scanf" },
 
     { "TypeInfo" },
     { "TypeInfo_Class" },
