@@ -4029,7 +4029,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = e;
     }
 
-    // used from CallExp::semantic()
+    /**
+     * Perform semantic analysis on function literals
+     *
+     * Test the following construct:
+     * ---
+     * (x, y, z) { return x + y + z; }(42, 84, 1992);
+     * ---
+     */
     Expression callExpSemantic(FuncExp exp, Scope* sc, Expressions* arguments)
     {
         if ((!exp.type || exp.type == Type.tvoid) && exp.td && arguments && arguments.dim)
@@ -4056,32 +4063,41 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     dim = arguments.dim;
             }
 
-            if ((tfl.parameterList.varargs == VarArg.none && arguments.dim == dim) ||
-                (tfl.parameterList.varargs != VarArg.none && arguments.dim >= dim))
+            if ((tfl.parameterList.varargs == VarArg.none && arguments.dim > dim) ||
+                arguments.dim < dim)
             {
-                auto tiargs = new Objects();
-                tiargs.reserve(exp.td.parameters.dim);
+                OutBuffer buf;
+                foreach (idx, ref arg; *arguments)
+                    buf.printf("%s%s", (idx ? ", ".ptr : "".ptr), arg.type.toChars());
+                exp.error("function literal `%s%s` is not callable using argument types `(%s)`",
+                          exp.fd.toChars(), parametersTypeToChars(tfl.parameterList),
+                          buf.peekChars());
+                exp.errorSupplemental("too %s arguments, expected `%d`, got `%d`",
+                                      arguments.dim < dim ? "few".ptr : "many".ptr,
+                                      cast(int)dim, cast(int)arguments.dim);
+                return new ErrorExp();
+            }
 
-                for (size_t i = 0; i < exp.td.parameters.dim; i++)
+            auto tiargs = new Objects();
+            tiargs.reserve(exp.td.parameters.dim);
+
+            for (size_t i = 0; i < exp.td.parameters.dim; i++)
+            {
+                TemplateParameter tp = (*exp.td.parameters)[i];
+                for (size_t u = 0; u < dim; u++)
                 {
-                    TemplateParameter tp = (*exp.td.parameters)[i];
-                    for (size_t u = 0; u < dim; u++)
+                    Parameter p = tfl.parameterList[u];
+                    if (p.type.ty == Tident && (cast(TypeIdentifier)p.type).ident == tp.ident)
                     {
-                        Parameter p = tfl.parameterList[u];
-                        if (p.type.ty == Tident && (cast(TypeIdentifier)p.type).ident == tp.ident)
-                        {
-                            Expression e = (*arguments)[u];
-                            tiargs.push(e.type);
-                            u = dim; // break inner loop
-                        }
+                        Expression e = (*arguments)[u];
+                        tiargs.push(e.type);
+                        u = dim; // break inner loop
                     }
                 }
-
-                auto ti = new TemplateInstance(exp.loc, exp.td, tiargs);
-                return (new ScopeExp(exp.loc, ti)).expressionSemantic(sc);
             }
-            exp.error("cannot infer function literal type");
-            return new ErrorExp();
+
+            auto ti = new TemplateInstance(exp.loc, exp.td, tiargs);
+            return (new ScopeExp(exp.loc, ti)).expressionSemantic(sc);
         }
         return exp.expressionSemantic(sc);
     }
