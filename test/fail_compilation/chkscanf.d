@@ -32,11 +32,13 @@ fail_compilation/chkscanf.d(129): Deprecation: argument `& u` for format specifi
 fail_compilation/chkscanf.d(130): Deprecation: format specifier `"%[n"` is invalid
 fail_compilation/chkscanf.d(131): Deprecation: format specifier `"%]"` is invalid
 fail_compilation/chkscanf.d(132): Deprecation: argument `& u` for format specification `"%90s"` must be `char*`, not `int*`
+fail_compilation/chkscanf.d(133): Deprecation: argument `0L` for format specification `"%d"` must be `int*`, not `long`
+fail_compilation/chkscanf.d(134): Deprecation: argument `0L` for format specification `"%d"` must be `int*`, not `long`
 ---
 */
 
 
-import core.stdc.stdio : scanf;
+import core.stdc.stdio : fscanf, scanf, sscanf;
 
 #line 100
 
@@ -72,3 +74,5 @@ void test29() { int u; scanf("%hhn\n", &u); }
 void test30() { int u; scanf("%[n", &u); }
 void test31() { int u; scanf("%]\n", &u); }
 void test32() { int u; scanf("%90s\n", &u); }
+void test33() { sscanf("1234", "%d\n", 0L); }
+void test34() { fscanf(null, "%d\n", 0L); }

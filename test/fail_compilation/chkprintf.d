@@ -20,6 +20,8 @@ fail_compilation/chkprintf.d(115): Deprecation: argument `16L` for format specif
 fail_compilation/chkprintf.d(116): Deprecation: argument `17L` for format specification `"%c"` must be `char`, not `long`
 fail_compilation/chkprintf.d(117): Deprecation: argument `& u` for format specification `"%s"` must be `char*`, not `int*`
 fail_compilation/chkprintf.d(118): Deprecation: argument `& u` for format specification `"%ls"` must be `wchar_t*`, not `int*`
+fail_compilation/chkprintf.d(119): Deprecation: argument `& u` for format specification `"%d"` must be `int`, not `int*`
+fail_compilation/chkprintf.d(120): Deprecation: argument `& u` for format specification `"%d"` must be `int`, not `int*`
 ---
 */
 
@@ -46,4 +48,5 @@ void test16() { printf("%c\n", 16L); }
 void test17() { printf("%c\n", 17L); }
 void test18() { int u; printf("%s\n", &u); }
 void test19() { int u; printf("%ls\n", &u); }
-
+void test20() { int u; char[] s; sprintf(&s[0], "%d\n", &u); }
+void test21() { int u; fprintf(null, "%d\n", &u); }
