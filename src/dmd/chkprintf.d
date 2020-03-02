@@ -16,6 +16,7 @@ module dmd.chkprintf;
 
 import core.stdc.stdio : printf;
 
+import dmd.chkformat;
 import dmd.errors;
 import dmd.expression;
 import dmd.globals;
@@ -120,21 +121,37 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
 
         final switch (fmt)
         {
+            case Format.u:      // unsigned int
             case Format.d:      // int
                 if (t.ty != Tint32 && t.ty != Tuns32)
                     errorMsg(null, slice, e, "int", t);
                 break;
 
+            case Format.hhu:    // unsigned char
+            case Format.hhd:    // signed char
+                if (t.ty != Tint8 && t.ty != Tuns8)
+                    errorMsg(null, slice, e, "byte", t);
+                break;
+
+            case Format.hu:     // unsigned short int
+            case Format.hd:     // short int
+                if (t.ty != Tint16 && t.ty != Tuns16)
+                    errorMsg(null, slice, e, "short", t);
+                break;
+
+            case Format.lu:     // unsigned long int
             case Format.ld:     // long int
                 if (!(t.isintegral() && t.size() == c_longsize))
                     errorMsg(null, slice, e, (c_longsize == 4 ? "int" : "long"), t);
                 break;
 
+            case Format.llu:    // unsigned long long int
             case Format.lld:    // long long int
                 if (t.ty != Tint64 && t.ty != Tuns64)
                     errorMsg(null, slice, e, "long", t);
                 break;
 
+            case Format.ju:     // uintmax_t
             case Format.jd:     // intmax_t
                 if (t.ty != Tint64 && t.ty != Tuns64)
                     errorMsg(null, slice, e, "core.stdc.stdint.intmax_t", t);
@@ -229,6 +246,7 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
                 deprecation(loc, "format specifier `\"%.*s\"` is invalid", cast(int)slice.length, slice.ptr);
                 break;
 
+            case Format.lg:
             case Format.percent:
                 assert(0);
         }
@@ -237,38 +255,6 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
 }
 
 private:
-
-/* Different kinds of formatting specifications, variations we don't
-   care about are merged. (Like we don't care about the difference between
-   a, A, g, G, etc.)
- */
-enum Format
-{
-    d,          // int
-    ld,         // long int
-    lld,        // long long int
-    jd,         // intmax_t
-    zd,         // size_t
-    td,         // ptrdiff_t
-    g,          // double
-    Lg,         // long double
-    p,          // pointer
-    n,          // pointer to int
-    ln,         // pointer to long int
-    lln,        // pointer to long long int
-    hn,         // pointer to short
-    hhn,        // pointer to signed char
-    jn,         // pointer to intmax_t
-    zn,         // pointer to size_t
-    tn,         // pointer to ptrdiff_t
-    c,          // char
-    lc,         // wint_t
-    s,          // pointer to char string
-    ls,         // pointer to wchar_t string
-    percent,    // %% (i.e. no argument)
-    error,      // invalid format specification
-}
-
 
 /**************************************
  * Parse the *format specifier* which is of the form:
@@ -279,7 +265,7 @@ enum Format
  *      format = format string
  *      idx = index of `%` of start of format specifier,
  *          which gets updated to index past the end of it,
- *          even if Format.error is returned
+ *          even if `Format.error` is returned
  *      widthStar = set if * for width
  *      precisionStar = set if * for precision
  * Returns:
@@ -397,115 +383,34 @@ Format parseFormatSpecifier(scope const char[] format, ref size_t idx,
         }
     }
 
-    /* Read the `length modifier`
+    /* Read the specifier
      */
-    const lm = format[i];
-    bool lm1;        // if jztL
-    bool lm2;        // if `hh` or `ll`
-    if (lm == 'j' ||
-        lm == 'z' ||
-        lm == 't' ||
-        lm == 'L')
-    {
-        ++i;
-        if (i == length)
-            return error();
-        lm1 = true;
-    }
-    else if (lm == 'h' || lm == 'l')
-    {
-        ++i;
-        if (i == length)
-            return error();
-        lm2 = lm == format[i];
-        if (lm2)
-        {
-            ++i;
-            if (i == length)
-                return error();
-        }
-    }
+    char genSpec;
+    Format specifier = parseGenericFormatSpecifier(format, i, genSpec);
+    if (specifier == Format.error || specifier == Format.lg)
+        return error();
 
-    /* Read the `specifier`
-     */
-    Format specifier;
-    const sc = format[i];
-    ++i;
-    switch (sc)
+    switch (genSpec)
     {
+        case 'c':
+        case 's':
+            if (hash || zero)
+                return error();
+            break;
+
         case 'd':
         case 'i':
-        case 'u':
             if (hash)
                 return error();
-            goto case 'o';
-
-        case 'o':
-        case 'x':
-        case 'X':
-            specifier = lm == 'l' && lm2 ? Format.lld :
-                        lm == 'l'        ? Format.ld  :
-                        lm == 'j'        ? Format.jd  :
-                        lm == 'z'        ? Format.zd  :
-                        lm == 't'        ? Format.td  :
-                                           Format.d;
-            break;
-
-        case 'f':
-        case 'F':
-        case 'e':
-        case 'E':
-        case 'g':
-        case 'G':
-        case 'a':
-        case 'A':
-            if (lm == 'L')
-                specifier = Format.Lg;
-            else if (lm1 ||lm2 || lm == 'h')
-                return error();
-            else
-                specifier = Format.g;
-            break;
-
-        case 'c':
-            if (hash || zero ||
-                lm1 || lm2 || lm == 'h')
-                return error();
-            specifier = lm == 'l' ? Format.lc : Format.c;
-            break;
-
-        case 's':
-            if (hash || zero ||
-                lm1 || lm2 || lm == 'h')
-                return error();
-            specifier = lm == 'l' ? Format.ls : Format.s;
-            break;
-
-        case 'p':
-            if (lm1 || lm == 'h' || lm == 'l')
-                return error();
-            specifier = Format.p;
             break;
 
         case 'n':
-            if (flags || hash || zero ||
-                width || precision ||
-                lm == 'L')
-            {
+            if (hash || zero || precision || width || flags)
                 return error();
-            }
-            specifier = lm == 'l' && lm2 ? Format.lln :
-                        lm == 'l'        ? Format.ln  :
-                        lm == 'h' && lm2 ? Format.hhn :
-                        lm == 'h'        ? Format.hn  :
-                        lm == 'j'        ? Format.jn  :
-                        lm == 'z'        ? Format.zn  :
-                        lm == 't'        ? Format.tn  :
-                                           Format.n;
             break;
 
         default:
-            return error();
+            break;
     }
 
     idx = i;
@@ -616,19 +521,19 @@ unittest
     assert(idx == 2);
 
     idx = 0;
-    assert(parseFormatSpecifier("%u", idx, widthStar, precisionStar) == Format.d);
+    assert(parseFormatSpecifier("%u", idx, widthStar, precisionStar) == Format.u);
     assert(idx == 2);
 
     idx = 0;
-    assert(parseFormatSpecifier("%o", idx, widthStar, precisionStar) == Format.d);
+    assert(parseFormatSpecifier("%o", idx, widthStar, precisionStar) == Format.u);
     assert(idx == 2);
 
     idx = 0;
-    assert(parseFormatSpecifier("%x", idx, widthStar, precisionStar) == Format.d);
+    assert(parseFormatSpecifier("%x", idx, widthStar, precisionStar) == Format.u);
     assert(idx == 2);
 
     idx = 0;
-    assert(parseFormatSpecifier("%X", idx, widthStar, precisionStar) == Format.d);
+    assert(parseFormatSpecifier("%X", idx, widthStar, precisionStar) == Format.u);
     assert(idx == 2);
 
     idx = 0;
@@ -652,7 +557,7 @@ unittest
     assert(idx == 2);
 
     idx = 0;
-    assert(parseFormatSpecifier("%lg", idx, widthStar, precisionStar) == Format.g);
+    assert(parseFormatSpecifier("%lg", idx, widthStar, precisionStar) == Format.error);
     assert(idx == 3);
 
     // width, precision
@@ -674,7 +579,7 @@ unittest
     // Too short formats
     {
         foreach (s; ["%", "%-", "%+", "% ", "%#", "%0", "%*", "%1", "%19", "%.", "%.*", "%.1", "%.12",
-                     "%j", "%z", "%t", "%l", "%h", "%ll", "%hh", "%K"])
+                     "%j", "%z", "%t", "%l", "%h", "%ll", "%hh"])
         {
             idx = 0;
             assert(parseFormatSpecifier(s, idx, widthStar, precisionStar) == Format.error);
@@ -688,10 +593,11 @@ unittest
                      "%#c", "%0c", "%jc", "%zc", "%tc", "%Lc", "%hc", "%hhc", "%llc",
                      "%#s", "%0s", "%js", "%zs", "%ts", "%Ls", "%hs", "%hhs", "%lls",
                      "%jp", "%zp", "%tp", "%Lp", "%hp", "%lp", "%hhp", "%llp",
-                     "%-n", "%+n", "% n", "%#n", "%0n", "%*n", "%1n", "%19n", "%.n", "%.*n", "%.1n", "%.12n", "%Ln"])
+                     "%-n", "%+n", "% n", "%#n", "%0n", "%*n", "%1n", "%19n", "%.n", "%.*n", "%.1n", "%.12n", "%Ln", "%K"])
         {
             idx = 0;
             assert(parseFormatSpecifier(s, idx, widthStar, precisionStar) == Format.error);
+            import std.stdio;
             assert(idx == s.length);
         }
     }
