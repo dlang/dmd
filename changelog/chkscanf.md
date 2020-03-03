@@ -1,5 +1,7 @@
 # Validate scanf arguments against format specifiers
 
+sscanf and fscanf are also affected by this change.
+
 Follows the C99 specification 7.19.6.2 for scanf.
 
 Takes a strict view of compatiblity.
@@ -40,9 +42,9 @@ scanf("%lld%*c\n", u);
 should be replaced with:
 ```
 int i;
-printf("%d\n", &i;
+scanf("%d\n", &i;
 size_t s;
 scanf("%zd\n", &s);
 ulong u;
-printf("%llu%*c\n", u);
+scanf("%llu%*c\n", u);
 ```

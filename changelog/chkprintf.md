@@ -2,6 +2,8 @@
 
 Follows the C99 specification 7.19.6.1 for printf.
 
+sprintf and fprintf are also affected by this change.
+
 Takes a generous, rather than strict, view of compatiblity.
 For example, an unsigned value can be formatted with a signed specifier.
 
@@ -47,4 +49,3 @@ printf("%zd\n", s.sizeof);
 long i;
 printf("%lld\n", i);
 ```
-
