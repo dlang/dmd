@@ -1170,6 +1170,11 @@ int tryMain(string[] args)
                     command = test_app_dmd;
                     if (testArgs.executeArgs) command ~= " " ~ testArgs.executeArgs;
 
+                    // Always run main even if compiled with '-unittest' but let
+                    // tests switch to another behaviour if necessary
+                    if (!command.canFind("--DRT-testmode"))
+                        command ~= " --DRT-testmode=run-main";
+
                     const output = execute(fThisRun, command, true, result_path)
                                     .strip()
                                     .unifyNewLine();
