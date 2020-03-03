@@ -2156,7 +2156,37 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
      */
     if (tf.linkage == LINK.c && fd)
     {
-        if (fd.ident == Id.printf && nparams >= 1)
+        int paramOffset = 0;
+        bool function(ref const(Loc) loc, scope const(char[]) format, scope Expression[] args) chkFn;
+
+        if (fd.ident == Id.printf)
+        {
+            paramOffset = 1;
+            chkFn = &checkPrintfFormat;
+        }
+        else if (fd.ident == Id.scanf)
+        {
+            paramOffset = 1;
+            chkFn = &checkScanfFormat;
+        }
+        else if (fd.ident == Id.sprintf || fd.ident == Id.fprintf)
+        {
+            paramOffset = 2;
+            chkFn = &checkPrintfFormat;
+        }
+        else if (fd.ident == Id.sscanf || fd.ident == Id.fscanf)
+        {
+            paramOffset = 2;
+            chkFn = &checkScanfFormat;
+        }
+
+        if (paramOffset && nparams >= paramOffset)
+        {
+            auto se = (*arguments)[paramOffset - 1].isStringExp();
+            if (se && chkFn(se.loc, se.peekString(), (*arguments)[paramOffset .. nargs]))
+                 err = true;
+        }
+        /*if (fd.ident == Id.printf && nparams >= 1)
         {
             auto se = (*arguments)[0].isStringExp();
             if (se && checkPrintfFormat(se.loc, se.peekString(), (*arguments)[1 .. nargs]))
@@ -2179,7 +2209,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             auto se = (*arguments)[1].isStringExp();
             if (se && checkScanfFormat(se.loc, se.peekString(), (*arguments)[2 .. nargs]))
                 err = true;
-        }
+        }*/
     }
 
     /* Remaining problems:

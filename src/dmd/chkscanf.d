@@ -271,13 +271,11 @@ Format parseFormatSpecifier(scope const char[] format, ref size_t idx,
     }
 
     // fieldWidth
+    while (isdigit(format[i]))
     {
-        while (isdigit(format[i]))
-        {
-            i++;
-            if (i == length)
-                return error();
-        }
+        i++;
+        if (i == length)
+            return error();
     }
 
     /* Read the scanset
