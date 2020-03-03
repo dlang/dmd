@@ -11,17 +11,14 @@
 
 module rt.trace;
 
-private
-{
-    import core.demangle;
-    import core.stdc.ctype;
-    import core.stdc.stdio;
-    import core.stdc.stdlib;
-    import core.stdc.string;
+import core.demangle;
+import core.stdc.ctype;
+import core.stdc.stdio;
+import core.stdc.stdlib;
+import core.stdc.string;
 
-    version (CRuntime_Microsoft)
-        alias core.stdc.stdlib._strtoui64 strtoull;
-}
+version (CRuntime_Microsoft)
+    private alias core.stdc.stdlib._strtoui64 strtoull;
 
 extern (C):
 
