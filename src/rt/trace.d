@@ -176,7 +176,7 @@ private void trace_place(FILE* fpdef, Symbol* s, ulong count)
     if (!(s.Sflags & SFvisited))
     {
         //printf("\t%.*s\t%llu\n", s.Sident.length, s.Sident.ptr, count);
-        fprintf(fpdef,"\t%.*s\n", s.Sident.length, s.Sident.ptr);
+        fprintf(fpdef,"\t%.*s\n", cast(int) s.Sident.length, s.Sident.ptr);
         s.Sflags |= SFvisited;
 
         // Compute number of items in array
@@ -240,13 +240,13 @@ private size_t trace_report(FILE* fplog, Symbol* s)
         ulong count = 0;
         for (auto sp = s.Sfanin; sp; sp = sp.next)
         {
-            fprintf(fplog,"\t%5llu\t%.*s\n", sp.count, sp.sym.Sident.length, sp.sym.Sident.ptr);
+            fprintf(fplog,"\t%5llu\t%.*s\n", sp.count, cast(int) sp.sym.Sident.length, sp.sym.Sident.ptr);
             count += sp.count;
         }
-        fprintf(fplog,"%.*s\t%llu\t%lld\t%lld\n", s.Sident.length, s.Sident.ptr, count, s.totaltime, s.functime);
+        fprintf(fplog,"%.*s\t%llu\t%lld\t%lld\n", cast(int) s.Sident.length, s.Sident.ptr, count, s.totaltime, s.functime);
         for (auto sp = s.Sfanout; sp; sp = sp.next)
         {
-            fprintf(fplog,"\t%5llu\t%.*s\n", sp.count, sp.sym.Sident.length, sp.sym.Sident.ptr);
+            fprintf(fplog,"\t%5llu\t%.*s\n", sp.count, cast(int) sp.sym.Sident.length, sp.sym.Sident.ptr);
         }
         s = s.Sr;
     }
@@ -330,7 +330,7 @@ private void trace_times(FILE* fplog, Symbol*[] psymbols)
         pl = s.functime / calls / time_scale;
 
         fprintf(fplog,"%7llu%12lld%12lld%12lld     %.*s\n",
-                      calls, tl, fl, pl, id.length, id.ptr);
+                      calls, tl, fl, pl, cast(int) id.length, id.ptr);
     }
 }
 
