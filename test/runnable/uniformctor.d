@@ -1,3 +1,9 @@
+/*
+RUN_OUTPUT:
+---
+Success
+---
+*/
 extern(C) int printf(const char*, ...);
 template TypeTuple(TL...) { alias TypeTuple = TL; }
 

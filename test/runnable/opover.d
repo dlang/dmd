@@ -1,3 +1,25 @@
+/*
+RUN_OUTPUT:
+---
+i = 1
+Writer.opShl(char[])
+BinaryWriter.opShl(int)
+a + 1 = 2
+1 + a = 2
+a + b = 3
+b + a = 3
+i = 64
+12
+534
+A::opShl(int 4)
+4A::opShl(char[])
+ A::opShl(int 12)
+12A::opShl(char[])
+
+B::opShl_r(A)
+Success
+---
+*/
 
 // Test operator overloading
 // Ignore deprecation warnings for D1 style operator overloading

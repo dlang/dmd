@@ -1,5 +1,15 @@
-/* REQUIRED_ARGS: -betterC
- * PERMUTE_ARGS:
+/*
+REQUIRED_ARGS: -betterC
+PERMUTE_ARGS:
+RUN_OUTPUT:
+---
+S.this()
+inside
+S.~this()
+f1
+f2
+3
+---
  */
 
 import core.stdc.stdio;
@@ -77,4 +87,3 @@ L10:
     printf("3\n");
     assert(i == (3 + 1) * 2 + 5);
 }
-

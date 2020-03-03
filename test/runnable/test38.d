@@ -1,6 +1,12 @@
-// COMPILE_SEPARATELY
-// EXTRA_SOURCES: imports/test38a.d
-// PERMUTE_ARGS:
+/*
+COMPILE_SEPARATELY
+EXTRA_SOURCES: imports/test38a.d
+PERMUTE_ARGS:
+RUN_OUTPUT:
+---
+b = 49, 49
+---
+*/
 
 import std.stdio;
 import imports.test38a;

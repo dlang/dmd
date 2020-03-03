@@ -1,3 +1,14 @@
+/*
+RUN_OUTPUT:
+---
+7
+83
+4
+4
+1.000000 2.000000 3.000000
+Success
+---
+*/
 
 import core.stdc.stdio;
 

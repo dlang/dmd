@@ -1,3 +1,9 @@
+/*
+RUN_OUTPUT:
+---
+Success
+---
+*/
 extern (C) int printf(const char* fmt, ...);
 
 int pass(int n){ return n; }

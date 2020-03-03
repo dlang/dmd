@@ -1,3 +1,12 @@
+/*
+RUN_OUTPUT:
+---
+hello
+world
+foo
+Success
+---
+*/
 
 import core.stdc.stdio;
 

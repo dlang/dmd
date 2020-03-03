@@ -1,3 +1,9 @@
+/*
+RUN_OUTPUT:
+---
+matches: ["hello    world"]
+---
+*/
 // This is a copy of the engine here:
 //   http://www.digitalmars.com/d/2.0/templates-revisited.html
 // which is a cut down version of the file here:
@@ -442,4 +448,3 @@ int main()
     assert(m[0] == "hello    world");
     return 0;
 }
-

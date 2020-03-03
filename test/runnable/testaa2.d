@@ -1,4 +1,16 @@
-// PERMUTE_ARGS:
+/*
+PERMUTE_ARGS:
+RUN_OUTPUT:
+---
+foo()
+foo() 2
+foo() 3
+foo() 4
+c["foo"] = 3
+c["bar"] = 4
+Success
+---
+*/
 
 extern(C) int printf(const char*, ...);
 
@@ -69,7 +81,6 @@ void foo2()
 void testaa()
 {
     size_t i = foo("abc");
-    printf("i = %zd\n", i);
     assert(i == 0);
 
     foo2();
