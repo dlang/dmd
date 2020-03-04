@@ -39,7 +39,7 @@ string s;
 printf("%.*s\n", s.length, s.ptr);
 printf("%d\n", s.sizeof);
 ulong u;
-scanf("%lld%*c\n", u);
+scanf("%lld%*c\n", &u);
 ```
 should be replaced with:
 ```
@@ -47,5 +47,5 @@ string s;
 printf("%.*s\n", cast(int) s.length, s.ptr);
 printf("%zd\n", s.sizeof);
 ulong u;
-scanf("%llu%*c\n", u);
+scanf("%llu%*c\n", &u);
 ```

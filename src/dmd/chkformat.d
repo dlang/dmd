@@ -893,6 +893,9 @@ Format parseGenericFormatSpecifier(scope const char[] format,
 
 unittest
 {
+    /* parseGenericFormatSpecifier
+     */
+
     char genSpecifier;
     size_t idx;
 
@@ -914,7 +917,7 @@ unittest
     idx = 0;
     assert(parseGenericFormatSpecifier("k", idx, genSpecifier) == Format.error);
 
-    /*
+    /* parsePrintfFormatSpecifier
      */
 
      bool widthStar;

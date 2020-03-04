@@ -2150,8 +2150,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
         (*arguments)[i] = arg;
     }
 
-    /* If calling C scanf(), sscanf(), fscanf(), printf(), sprintf() or fprintf(),
-       check the format string against the arguments
+    /* If calling C scanf(), printf(), or any variants, check the format string against the arguments
      */
     if (tf.linkage == LINK.c && fd)
     {
@@ -2185,30 +2184,6 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             if (se && chkFn(se.loc, se.peekString(), (*arguments)[paramOffset .. nargs]))
                  err = true;
         }
-        /*if (fd.ident == Id.printf && nparams >= 1)
-        {
-            auto se = (*arguments)[0].isStringExp();
-            if (se && checkPrintfFormat(se.loc, se.peekString(), (*arguments)[1 .. nargs]))
-                err = true;
-        }
-        else if (fd.ident == Id.scanf && nparams >= 1)
-        {
-            auto se = (*arguments)[0].isStringExp();
-            if (se && checkScanfFormat(se.loc, se.peekString(), (*arguments)[1 .. nargs]))
-                err = true;
-        }
-        else if ((fd.ident == Id.sprintf || fd.ident == Id.fprintf) && nparams >= 2)
-        {
-            auto se = (*arguments)[1].isStringExp();
-            if (se && checkPrintfFormat(se.loc, se.peekString(), (*arguments)[2 .. nargs]))
-                err = true;
-        }
-        else if ((fd.ident == Id.sscanf || fd.ident == Id.fscanf) && nparams >= 2)
-        {
-            auto se = (*arguments)[1].isStringExp();
-            if (se && checkScanfFormat(se.loc, se.peekString(), (*arguments)[2 .. nargs]))
-                err = true;
-        }*/
     }
 
     /* Remaining problems:

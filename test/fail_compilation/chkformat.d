@@ -5,23 +5,24 @@ TEST_OUTPUT:
 fail_compilation/chkformat.d(101): Deprecation: width argument `0L` for format specification `"%*.*d"` must be `int`, not `long`
 fail_compilation/chkformat.d(101): Deprecation: precision argument `1L` for format specification `"%*.*d"` must be `int`, not `long`
 fail_compilation/chkformat.d(101): Deprecation: argument `2L` for format specification `"%*.*d"` must be `int`, not `long`
-fail_compilation/chkformat.d(103): Deprecation: argument `4` for format specification `"%lld"` must be `long`, not `int`
-fail_compilation/chkformat.d(104): Deprecation: argument `5` for format specification `"%jd"` must be `core.stdc.stdint.intmax_t`, not `int`
-fail_compilation/chkformat.d(105): Deprecation: argument `6.00000` for format specification `"%zd"` must be `size_t`, not `double`
-fail_compilation/chkformat.d(106): Deprecation: argument `7.00000` for format specification `"%td"` must be `ptrdiff_t`, not `double`
-fail_compilation/chkformat.d(107): Deprecation: argument `8.00000L` for format specification `"%g"` must be `double`, not `real`
-fail_compilation/chkformat.d(108): Deprecation: argument `9.00000` for format specification `"%Lg"` must be `real`, not `double`
-fail_compilation/chkformat.d(109): Deprecation: argument `10` for format specification `"%p"` must be `void*`, not `int`
-fail_compilation/chkformat.d(110): Deprecation: argument `& u` for format specification `"%n"` must be `int*`, not `uint*`
-fail_compilation/chkformat.d(112): Deprecation: argument `& u` for format specification `"%lln"` must be `long*`, not `int*`
-fail_compilation/chkformat.d(113): Deprecation: argument `& u` for format specification `"%hn"` must be `short*`, not `int*`
-fail_compilation/chkformat.d(114): Deprecation: argument `& u` for format specification `"%hhn"` must be `byte*`, not `int*`
-fail_compilation/chkformat.d(115): Deprecation: argument `16L` for format specification `"%c"` must be `char`, not `long`
-fail_compilation/chkformat.d(116): Deprecation: argument `17L` for format specification `"%c"` must be `char`, not `long`
-fail_compilation/chkformat.d(117): Deprecation: argument `& u` for format specification `"%s"` must be `char*`, not `int*`
-fail_compilation/chkformat.d(118): Deprecation: argument `& u` for format specification `"%ls"` must be `wchar_t*`, not `int*`
-fail_compilation/chkformat.d(119): Deprecation: argument `& u` for format specification `"%d"` must be `int`, not `int*`
+fail_compilation/chkformat.d(102): Deprecation: format specifier `"%2.2lf"` is invalid
+fail_compilation/chkformat.d(104): Deprecation: argument `4` for format specification `"%lld"` must be `long`, not `int`
+fail_compilation/chkformat.d(105): Deprecation: argument `5` for format specification `"%jd"` must be `core.stdc.stdint.intmax_t`, not `int`
+fail_compilation/chkformat.d(106): Deprecation: argument `6.00000` for format specification `"%zd"` must be `size_t`, not `double`
+fail_compilation/chkformat.d(107): Deprecation: argument `7.00000` for format specification `"%td"` must be `ptrdiff_t`, not `double`
+fail_compilation/chkformat.d(108): Deprecation: argument `8.00000L` for format specification `"%g"` must be `double`, not `real`
+fail_compilation/chkformat.d(109): Deprecation: argument `9.00000` for format specification `"%Lg"` must be `real`, not `double`
+fail_compilation/chkformat.d(110): Deprecation: argument `10` for format specification `"%p"` must be `void*`, not `int`
+fail_compilation/chkformat.d(111): Deprecation: argument `& u` for format specification `"%n"` must be `int*`, not `uint*`
+fail_compilation/chkformat.d(113): Deprecation: argument `& u` for format specification `"%lln"` must be `long*`, not `int*`
+fail_compilation/chkformat.d(114): Deprecation: argument `& u` for format specification `"%hn"` must be `short*`, not `int*`
+fail_compilation/chkformat.d(115): Deprecation: argument `& u` for format specification `"%hhn"` must be `byte*`, not `int*`
+fail_compilation/chkformat.d(116): Deprecation: argument `16L` for format specification `"%c"` must be `char`, not `long`
+fail_compilation/chkformat.d(117): Deprecation: argument `17L` for format specification `"%c"` must be `char`, not `long`
+fail_compilation/chkformat.d(118): Deprecation: argument `& u` for format specification `"%s"` must be `char*`, not `int*`
+fail_compilation/chkformat.d(119): Deprecation: argument `& u` for format specification `"%ls"` must be `wchar_t*`, not `int*`
 fail_compilation/chkformat.d(120): Deprecation: argument `& u` for format specification `"%d"` must be `int`, not `int*`
+fail_compilation/chkformat.d(121): Deprecation: argument `& u` for format specification `"%d"` must be `int`, not `int*`
 fail_compilation/chkformat.d(201): Deprecation: argument `0L` for format specification `"%d"` must be `int*`, not `long`
 fail_compilation/chkformat.d(202): Deprecation: more format specifiers than 1 arguments
 fail_compilation/chkformat.d(203): Deprecation: argument `0L` for format specification `"%d"` must be `int*`, not `long`
@@ -63,6 +64,7 @@ import core.stdc.stdio;
 #line 100
 
 void test1() {  printf("%*.*d\n", 0L, 1L, 2L); }
+void test2() { printf("%2.2lf\n", 3.0); }
 //void test3() {  printf("%ld\n", 3.0); }
 void test4() {  printf("%lld\n", 4); }
 void test5() {  printf("%jd\n", 5); }
@@ -119,3 +121,8 @@ void test61() { int u; scanf("%]\n", &u); }
 void test62() { int u; scanf("%90s\n", &u); }
 void test63() { sscanf("1234", "%d\n", 0L); }
 void test64() { fscanf(null, "%d\n", 0L); }
+
+// TODO - C++ 11 only:
+//void test() { vscanf(); }
+//void test() { vfscanf(); }
+//void test() { vsscanf(); }
