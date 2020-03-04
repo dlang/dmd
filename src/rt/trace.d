@@ -67,6 +67,8 @@ void trace_setdeffilename(string name)
     updateFileName(trace_deffilename, name);
 }
 
+private:
+
 // Code shared by both `trace_setXXXfilename`
 extern(D) void updateFileName(ref char[] filename, string name)
 {
