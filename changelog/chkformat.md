@@ -1,11 +1,11 @@
-# Validate printf arguments against format specifiers
+# Validate printf and scanf (variants too) arguments against format specifiers
 
-Follows the C99 specification 7.19.6.1 for printf.
+Follows the C99 specification 7.19.6.1 for printf and 7.19.6.2 for scanf.
 
-sprintf and fprintf are also affected by this change.
-
-Takes a generous, rather than strict, view of compatiblity.
+For printf, it takes a generous, rather than strict, view of compatiblity.
 For example, an unsigned value can be formatted with a signed specifier.
+
+For scanf, it takes a strict view of compatiblity.
 
 Diagnosed incompatibilities are:
 
@@ -22,7 +22,7 @@ Per the C Standard, extra arguments are ignored.
 
 No attempt is made to fix the arguments or the format string.
 
-In order to use non-Standard printf formats, an easy workaround is:
+In order to use non-Standard printf/scanf formats, an easy workaround is:
 
 ```
 printf("%k\n", value);  // error: non-Standard format k
@@ -38,14 +38,14 @@ Most of the errors detected are portability issues. For instance,
 string s;
 printf("%.*s\n", s.length, s.ptr);
 printf("%d\n", s.sizeof);
-long i;
-printf("%ld\n", i);
+ulong u;
+scanf("%lld%*c\n", u);
 ```
 should be replaced with:
 ```
 string s;
 printf("%.*s\n", cast(int) s.length, s.ptr);
 printf("%zd\n", s.sizeof);
-long i;
-printf("%lld\n", i);
+ulong u;
+scanf("%llu%*c\n", u);
 ```
