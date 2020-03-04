@@ -730,44 +730,38 @@ void _c_trace_epi()
 //      trace_malloc'd line buffer
 //      null if end of file
 
-private char* trace_readline(FILE* fp)
+extern(D) private char[] trace_readline(FILE* fp)
 {
-    int dim;
-    int i;
-    char *buf;
+    char[] buf;
+    // Last character used in `buf`
+    size_t idx;
+    // Used to break out of the do .. while
+    int currentChar = EOF;
 
     //printf("trace_readline(%p)\n", fp);
-    while (1)
+    do
     {
-        if (i == dim)
+        if (buf.length <= idx)
         {
-            dim += 80;
-            auto p = cast(char *)trace_malloc(dim);
-            memcpy(p,buf,i);
-            trace_free(buf);
-            buf = p;
+            const size_t newLength = buf.length + 80;
+            if (auto newPtr = cast(char*)realloc(buf.ptr, newLength))
+                buf = newPtr[0 .. newLength];
+            else
+                assert(0, "Memory allocation failed");
         }
-        int c = fgetc(fp);
-        switch (c)
-        {
-            case EOF:
-                if (i == 0)
-                {   trace_free(buf);
-                    return null;
-                }
-                goto L1;
-            case '\n':
-                goto L1;
-            default:
-                break;
-        }
-        buf[i] = cast(char)c;
-        i++;
+        currentChar = fgetc(fp);
+        buf[idx++] = cast(char)currentChar;
+    } while (currentChar != EOF && currentChar != '\n');
+
+    // Encountered '\n' or EOF immediately
+    // The calling code makes a distinction between EOF and '\n'
+    if (idx == 1 && currentChar == EOF)
+    {
+        trace_free(buf.ptr);
+        return null;
     }
-L1:
-    buf[i] = 0;
-    //printf("line '%s'\n",buf);
-    return buf;
+    buf[idx - 1] = 0;
+    return buf[0 .. idx];
 }
 
 //////////////////////////////////////
@@ -804,7 +798,7 @@ private void trace_merge(Symbol** proot)
     while (1)
     {
         trace_free(buf);
-        buf = trace_readline(fp);
+        buf = trace_readline(fp).ptr;
         if (!buf)
             break;
         switch (*buf)
