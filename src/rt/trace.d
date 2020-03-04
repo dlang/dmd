@@ -748,86 +748,89 @@ private char *skipspace(char *p)
 
 private void trace_merge(Symbol** proot)
 {
-    FILE *fp;
+    // We're outputting to stdout
+    if (!trace_logfilename.length)
+        return;
 
-    if (trace_logfilename.length && (fp = fopen(trace_logfilename.ptr,"r")) !is null)
+    FILE* fp = fopen(trace_logfilename.ptr, "r");
+    if (fp is null)
+        return;
+    scope(exit) fclose(fp);
+
+    char* buf = null;
+    SymPair* sfanin = null;
+    auto psp = &sfanin;
+    char *p;
+    ulong count;
+    Symbol *s;
+
+    while (1)
     {
-        char* buf = null;
-        SymPair* sfanin = null;
-        auto psp = &sfanin;
-        char *p;
-        ulong count;
-        Symbol *s;
-
-        while (1)
+        trace_free(buf);
+        buf = trace_readline(fp);
+        if (!buf)
+            break;
+        switch (*buf)
         {
+        case '=':               // ignore rest of file
             trace_free(buf);
-            buf = trace_readline(fp);
-            if (!buf)
-                break;
-            switch (*buf)
+            return;
+        case ' ':
+        case '\t':              // fan in or fan out line
+            count = strtoul(buf,&p,10);
+            if (p == buf)       // if invalid conversion
+                continue;
+            p = skipspace(p);
+            if (!*p)
+                continue;
+            s = trace_addsym(proot, p[0 .. strlen(p)]);
+            trace_sympair_add(psp,s,count);
+            break;
+        default:
+            if (!isalpha(*buf))
             {
-                case '=':               // ignore rest of file
-                    trace_free(buf);
-                    goto L1;
-                case ' ':
-                case '\t':              // fan in or fan out line
-                    count = strtoul(buf,&p,10);
-                    if (p == buf)       // if invalid conversion
-                        continue;
-                    p = skipspace(p);
-                    if (!*p)
-                        continue;
-                    s = trace_addsym(proot, p[0 .. strlen(p)]);
-                    trace_sympair_add(psp,s,count);
-                    break;
-                default:
-                    if (!isalpha(*buf))
-                    {
-                        if (!sfanin)
-                            psp = &sfanin;
-                        continue;       // regard unrecognized line as separator
-                    }
-                    goto case;
-                case '?':
-                case '_':
-                case '$':
-                case '@':
-                    p = buf;
-                    while (isgraph(*p))
-                        p++;
-                    *p = 0;
-                    //printf("trace_addsym('%s')\n",buf);
-                    s = trace_addsym(proot, buf[0 .. strlen(buf)]);
-                    if (s.Sfanin)
-                    {   SymPair *sp;
-
-                        for (; sfanin; sfanin = sp)
-                        {
-                            trace_sympair_add(&s.Sfanin,sfanin.sym,sfanin.count);
-                            sp = sfanin.next;
-                            trace_free(sfanin);
-                        }
-                    }
-                    else
-                    {   s.Sfanin = sfanin;
-                    }
-                    sfanin = null;
-                    psp = &s.Sfanout;
-
-                    {
-                        p++;
-                        count = strtoul(p,&p,10);
-                        timer_t t = cast(long)strtoull(p,&p,10);
-                        s.totaltime += t;
-                        t = cast(long)strtoull(p,&p,10);
-                        s.functime += t;
-                    }
-                    break;
+                if (!sfanin)
+                    psp = &sfanin;
+                continue;       // regard unrecognized line as separator
             }
+            goto case;
+        case '?':
+        case '_':
+        case '$':
+        case '@':
+            p = buf;
+            while (isgraph(*p))
+                p++;
+            *p = 0;
+            //printf("trace_addsym('%s')\n",buf);
+            s = trace_addsym(proot, buf[0 .. strlen(buf)]);
+            if (s.Sfanin)
+            {
+                SymPair *sp;
+
+                for (; sfanin; sfanin = sp)
+                {
+                    trace_sympair_add(&s.Sfanin,sfanin.sym,sfanin.count);
+                    sp = sfanin.next;
+                    trace_free(sfanin);
+                }
+            }
+            else
+                s.Sfanin = sfanin;
+
+            sfanin = null;
+            psp = &s.Sfanout;
+
+            {
+                p++;
+                count = strtoul(p,&p,10);
+                timer_t t = cast(long)strtoull(p,&p,10);
+                s.totaltime += t;
+                t = cast(long)strtoull(p,&p,10);
+                s.functime += t;
+            }
+            break;
         }
-    L1:
-        fclose(fp);
     }
 }
 
