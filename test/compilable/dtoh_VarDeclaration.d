@@ -27,6 +27,8 @@ class C2;
 union U;
 
 union U2;
+
+extern "C" size_t v;
 ---
 */
 
@@ -49,3 +51,5 @@ extern (C++) class C2;
 extern (C) union U;
 
 extern (C++) union U2;
+
+extern (C) size_t v;
