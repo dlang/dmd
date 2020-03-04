@@ -20,7 +20,70 @@ import core.stdc.string;
 version (CRuntime_Microsoft)
     private alias core.stdc.stdlib._strtoui64 strtoull;
 
+shared static this ()
+{
+    enum DefaultLog = "trace.log";
+    enum DefaultDef = "trace.def";
+
+    trace_logfilename = strdup(DefaultLog.ptr)[0 .. DefaultLog.length + 1];
+    trace_deffilename = strdup(DefaultDef.ptr)[0 .. DefaultDef.length + 1];
+}
+
 extern (C):
+
+/**
+ * Set the file path for profile reports (`-profile`)
+ *
+ * This function is a public API, exposed in `core.runtime`.
+ *
+ * Since we are calling C functions under the hood,
+ * and we might need to open and close files during the
+ * runtime tear-down we copy the parameter via malloc
+ * to ensure NUL-termination.
+ *
+ * Params:
+ *   name = Path to the output file. Empty means stdout.
+ */
+void trace_setlogfilename(string name)
+{
+    updateFileName(trace_logfilename, name);
+}
+
+/**
+ * Set the file path for the optimized profile linker DEF file (`-profile`)
+ *
+ * This function is a public API, exposed in `core.runtime`.
+ *
+ * Since we are calling C functions under the hood,
+ * and we might need to open and close files during the
+ * runtime tear-down we copy the parameter via malloc
+ * to ensure NUL-termination.
+ *
+ * Params:
+ *   name = Path to the output file. Empty means stdout.
+ */
+void trace_setdeffilename(string name)
+{
+    updateFileName(trace_deffilename, name);
+}
+
+// Code shared by both `trace_setXXXfilename`
+extern(D) void updateFileName(ref char[] filename, string name)
+{
+    if (!name.length)
+    {
+        free(filename.ptr);
+        filename = null;
+    }
+    else if (auto newPtr = cast(char*)realloc(filename.ptr, name.length + 1))
+    {
+        filename = newPtr[0 .. name.length + 1];
+        filename[0 .. $ - 1] = name[];
+        filename[$ - 1] = 0;
+    }
+    else
+        assert(0, "Memory allocation failed");
+}
 
 alias long timer_t;
 
@@ -77,32 +140,9 @@ __gshared
 
     timer_t trace_ohd;
 
-    string trace_logfilename = "trace.log";
-    string trace_deffilename = "trace.def";
-}
-
-////////////////////////////////////////
-// Set file name for output.
-// A file name of "" means write results to stdout.
-// Returns:
-//      0       success
-//      !=0     failure
-
-void trace_setlogfilename(string name)
-{
-    trace_logfilename = name;
-}
-
-////////////////////////////////////////
-// Set file name for output.
-// A file name of "" means write results to stdout.
-// Returns:
-//      0       success
-//      !=0     failure
-
-void trace_setdeffilename(string name)
-{
-    trace_deffilename = name;
+    // Those strings include the `\0` in their slice as they're used with fopen
+    char[] trace_logfilename;
+    char[] trace_deffilename;
 }
 
 ////////////////////////////////////////
@@ -485,7 +525,7 @@ shared static ~this()
 
         // Report results
         FILE* fplog = trace_logfilename.length == 0 ? stdout :
-            fopen((trace_logfilename ~ '\0').ptr, "w");
+            fopen(trace_logfilename.ptr, "w");
         if (fplog)
         {
             auto nsymbols = trace_report(fplog, groot);
@@ -506,7 +546,7 @@ shared static ~this()
 
         // Output function link order
         FILE* fpdef = trace_deffilename.length == 0 ? stdout :
-            fopen((trace_deffilename ~ '\0').ptr, "w");
+            fopen(trace_deffilename.ptr, "w");
         if (fpdef)
         {
             fprintf(fpdef,"\nFUNCTIONS\n");
