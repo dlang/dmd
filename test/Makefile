@@ -212,15 +212,13 @@ start_all_tests: $(RESULTS_DIR)/.created
 	@echo "Running all tests"
 	$(QUIET)$(MAKE) $(DMD_TESTSUITE_MAKE_ARGS) --no-print-directory run_all_tests
 
-$(RESULTS_DIR)/d_do_test$(EXE): tools/d_do_test.d $(RESULTS_DIR)/.created
+$(RESULTS_DIR)/d_do_test$(EXE): tools/d_do_test.d tools/sanitize_json.d $(RESULTS_DIR)/.created
 	@echo "Building d_do_test tool"
 	@echo "OS: '$(OS)'"
 	@echo "MODEL: '$(MODEL)'"
 	@echo "PIC: '$(PIC_FLAG)'"
-	$(DMD) -conf= $(MODEL_FLAG) $(DEBUG_FLAGS) -lowmem -unittest -run $< &
-	@pid=$!
+	$(DMD) -conf= $(MODEL_FLAG) $(DEBUG_FLAGS) -lowmem -i -Itools -version=NoMain -unittest -run $<
 	$(DMD) -conf= $(MODEL_FLAG) $(DEBUG_FLAGS) -lowmem -i -Itools -version=NoMain -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)d_do_test$(EXE) $<
-	@wait $(pid)
 
 $(RESULTS_DIR)/dshell_prebuilt$(OBJ): tools/dshell_prebuilt/dshell_prebuilt.d
 	$(DMD) -conf= $(MODEL_FLAG) -of$(RESULTS_DIR)/dshell_prebuilt$(OBJ) -c $< $(PIC_FLAG)
