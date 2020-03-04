@@ -67,6 +67,7 @@ jobs:
       vmImage: 'vs2017-win2016'
     variables:
       VSINSTALLDIR: C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\
+      HOST_DMD_VERSION: 2.090.1
     strategy:
       matrix:
         win32-ldc:
