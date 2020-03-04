@@ -11,19 +11,81 @@
 
 module rt.trace;
 
-private
-{
-    import core.demangle;
-    import core.stdc.ctype;
-    import core.stdc.stdio;
-    import core.stdc.stdlib;
-    import core.stdc.string;
+import core.demangle;
+import core.stdc.ctype;
+import core.stdc.stdio;
+import core.stdc.stdlib;
+import core.stdc.string;
 
-    version (CRuntime_Microsoft)
-        alias core.stdc.stdlib._strtoui64 strtoull;
+version (CRuntime_Microsoft)
+    private alias core.stdc.stdlib._strtoui64 strtoull;
+
+shared static this ()
+{
+    enum DefaultLog = "trace.log";
+    enum DefaultDef = "trace.def";
+
+    trace_logfilename = strdup(DefaultLog.ptr)[0 .. DefaultLog.length + 1];
+    trace_deffilename = strdup(DefaultDef.ptr)[0 .. DefaultDef.length + 1];
 }
 
 extern (C):
+
+/**
+ * Set the file path for profile reports (`-profile`)
+ *
+ * This function is a public API, exposed in `core.runtime`.
+ *
+ * Since we are calling C functions under the hood,
+ * and we might need to open and close files during the
+ * runtime tear-down we copy the parameter via malloc
+ * to ensure NUL-termination.
+ *
+ * Params:
+ *   name = Path to the output file. Empty means stdout.
+ */
+void trace_setlogfilename(string name)
+{
+    updateFileName(trace_logfilename, name);
+}
+
+/**
+ * Set the file path for the optimized profile linker DEF file (`-profile`)
+ *
+ * This function is a public API, exposed in `core.runtime`.
+ *
+ * Since we are calling C functions under the hood,
+ * and we might need to open and close files during the
+ * runtime tear-down we copy the parameter via malloc
+ * to ensure NUL-termination.
+ *
+ * Params:
+ *   name = Path to the output file. Empty means stdout.
+ */
+void trace_setdeffilename(string name)
+{
+    updateFileName(trace_deffilename, name);
+}
+
+private:
+
+// Code shared by both `trace_setXXXfilename`
+extern(D) void updateFileName(ref char[] filename, string name)
+{
+    if (!name.length)
+    {
+        free(filename.ptr);
+        filename = null;
+    }
+    else if (auto newPtr = cast(char*)realloc(filename.ptr, name.length + 1))
+    {
+        filename = newPtr[0 .. name.length + 1];
+        filename[0 .. $ - 1] = name[];
+        filename[$ - 1] = 0;
+    }
+    else
+        assert(0, "Memory allocation failed");
+}
 
 alias long timer_t;
 
@@ -80,32 +142,9 @@ __gshared
 
     timer_t trace_ohd;
 
-    string trace_logfilename = "trace.log";
-    string trace_deffilename = "trace.def";
-}
-
-////////////////////////////////////////
-// Set file name for output.
-// A file name of "" means write results to stdout.
-// Returns:
-//      0       success
-//      !=0     failure
-
-void trace_setlogfilename(string name)
-{
-    trace_logfilename = name;
-}
-
-////////////////////////////////////////
-// Set file name for output.
-// A file name of "" means write results to stdout.
-// Returns:
-//      0       success
-//      !=0     failure
-
-void trace_setdeffilename(string name)
-{
-    trace_deffilename = name;
+    // Those strings include the `\0` in their slice as they're used with fopen
+    char[] trace_logfilename;
+    char[] trace_deffilename;
 }
 
 ////////////////////////////////////////
@@ -488,7 +527,7 @@ shared static ~this()
 
         // Report results
         FILE* fplog = trace_logfilename.length == 0 ? stdout :
-            fopen((trace_logfilename ~ '\0').ptr, "w");
+            fopen(trace_logfilename.ptr, "w");
         if (fplog)
         {
             auto nsymbols = trace_report(fplog, groot);
@@ -509,7 +548,7 @@ shared static ~this()
 
         // Output function link order
         FILE* fpdef = trace_deffilename.length == 0 ? stdout :
-            fopen((trace_deffilename ~ '\0').ptr, "w");
+            fopen(trace_deffilename.ptr, "w");
         if (fpdef)
         {
             fprintf(fpdef,"\nFUNCTIONS\n");
@@ -693,44 +732,38 @@ void _c_trace_epi()
 //      trace_malloc'd line buffer
 //      null if end of file
 
-private char* trace_readline(FILE* fp)
+extern(D) private char[] trace_readline(FILE* fp)
 {
-    int dim;
-    int i;
-    char *buf;
+    char[] buf;
+    // Last character used in `buf`
+    size_t idx;
+    // Used to break out of the do .. while
+    int currentChar = EOF;
 
     //printf("trace_readline(%p)\n", fp);
-    while (1)
+    do
     {
-        if (i == dim)
+        if (buf.length <= idx)
         {
-            dim += 80;
-            auto p = cast(char *)trace_malloc(dim);
-            memcpy(p,buf,i);
-            trace_free(buf);
-            buf = p;
+            const size_t newLength = buf.length + 80;
+            if (auto newPtr = cast(char*)realloc(buf.ptr, newLength))
+                buf = newPtr[0 .. newLength];
+            else
+                assert(0, "Memory allocation failed");
         }
-        int c = fgetc(fp);
-        switch (c)
-        {
-            case EOF:
-                if (i == 0)
-                {   trace_free(buf);
-                    return null;
-                }
-                goto L1;
-            case '\n':
-                goto L1;
-            default:
-                break;
-        }
-        buf[i] = cast(char)c;
-        i++;
+        currentChar = fgetc(fp);
+        buf[idx++] = cast(char)currentChar;
+    } while (currentChar != EOF && currentChar != '\n');
+
+    // Encountered '\n' or EOF immediately
+    // The calling code makes a distinction between EOF and '\n'
+    if (idx == 1 && currentChar == EOF)
+    {
+        trace_free(buf.ptr);
+        return null;
     }
-L1:
-    buf[i] = 0;
-    //printf("line '%s'\n",buf);
-    return buf;
+    buf[idx - 1] = 0;
+    return buf[0 .. idx];
 }
 
 //////////////////////////////////////
@@ -748,86 +781,89 @@ private char *skipspace(char *p)
 
 private void trace_merge(Symbol** proot)
 {
-    FILE *fp;
+    // We're outputting to stdout
+    if (!trace_logfilename.length)
+        return;
 
-    if (trace_logfilename.length && (fp = fopen(trace_logfilename.ptr,"r")) !is null)
+    FILE* fp = fopen(trace_logfilename.ptr, "r");
+    if (fp is null)
+        return;
+    scope(exit) fclose(fp);
+
+    char* buf = null;
+    SymPair* sfanin = null;
+    auto psp = &sfanin;
+    char *p;
+    ulong count;
+    Symbol *s;
+
+    while (1)
     {
-        char* buf = null;
-        SymPair* sfanin = null;
-        auto psp = &sfanin;
-        char *p;
-        ulong count;
-        Symbol *s;
-
-        while (1)
+        trace_free(buf);
+        buf = trace_readline(fp).ptr;
+        if (!buf)
+            break;
+        switch (*buf)
         {
+        case '=':               // ignore rest of file
             trace_free(buf);
-            buf = trace_readline(fp);
-            if (!buf)
-                break;
-            switch (*buf)
+            return;
+        case ' ':
+        case '\t':              // fan in or fan out line
+            count = strtoul(buf,&p,10);
+            if (p == buf)       // if invalid conversion
+                continue;
+            p = skipspace(p);
+            if (!*p)
+                continue;
+            s = trace_addsym(proot, p[0 .. strlen(p)]);
+            trace_sympair_add(psp,s,count);
+            break;
+        default:
+            if (!isalpha(*buf))
             {
-                case '=':               // ignore rest of file
-                    trace_free(buf);
-                    goto L1;
-                case ' ':
-                case '\t':              // fan in or fan out line
-                    count = strtoul(buf,&p,10);
-                    if (p == buf)       // if invalid conversion
-                        continue;
-                    p = skipspace(p);
-                    if (!*p)
-                        continue;
-                    s = trace_addsym(proot, p[0 .. strlen(p)]);
-                    trace_sympair_add(psp,s,count);
-                    break;
-                default:
-                    if (!isalpha(*buf))
-                    {
-                        if (!sfanin)
-                            psp = &sfanin;
-                        continue;       // regard unrecognized line as separator
-                    }
-                    goto case;
-                case '?':
-                case '_':
-                case '$':
-                case '@':
-                    p = buf;
-                    while (isgraph(*p))
-                        p++;
-                    *p = 0;
-                    //printf("trace_addsym('%s')\n",buf);
-                    s = trace_addsym(proot, buf[0 .. strlen(buf)]);
-                    if (s.Sfanin)
-                    {   SymPair *sp;
-
-                        for (; sfanin; sfanin = sp)
-                        {
-                            trace_sympair_add(&s.Sfanin,sfanin.sym,sfanin.count);
-                            sp = sfanin.next;
-                            trace_free(sfanin);
-                        }
-                    }
-                    else
-                    {   s.Sfanin = sfanin;
-                    }
-                    sfanin = null;
-                    psp = &s.Sfanout;
-
-                    {
-                        p++;
-                        count = strtoul(p,&p,10);
-                        timer_t t = cast(long)strtoull(p,&p,10);
-                        s.totaltime += t;
-                        t = cast(long)strtoull(p,&p,10);
-                        s.functime += t;
-                    }
-                    break;
+                if (!sfanin)
+                    psp = &sfanin;
+                continue;       // regard unrecognized line as separator
             }
+            goto case;
+        case '?':
+        case '_':
+        case '$':
+        case '@':
+            p = buf;
+            while (isgraph(*p))
+                p++;
+            *p = 0;
+            //printf("trace_addsym('%s')\n",buf);
+            s = trace_addsym(proot, buf[0 .. strlen(buf)]);
+            if (s.Sfanin)
+            {
+                SymPair *sp;
+
+                for (; sfanin; sfanin = sp)
+                {
+                    trace_sympair_add(&s.Sfanin,sfanin.sym,sfanin.count);
+                    sp = sfanin.next;
+                    trace_free(sfanin);
+                }
+            }
+            else
+                s.Sfanin = sfanin;
+
+            sfanin = null;
+            psp = &s.Sfanout;
+
+            {
+                p++;
+                count = strtoul(p,&p,10);
+                timer_t t = cast(long)strtoull(p,&p,10);
+                s.totaltime += t;
+                t = cast(long)strtoull(p,&p,10);
+                s.functime += t;
+            }
+            break;
         }
-    L1:
-        fclose(fp);
     }
 }
 
