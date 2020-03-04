@@ -49,6 +49,7 @@ version (NoMain) {} else
 {
     import dmd.lib;
     import dmd.link;
+    import dmd.vsoptions;
 }
 import dmd.mtype;
 import dmd.objc;
