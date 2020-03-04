@@ -42,6 +42,8 @@ class C2;
 
 typedef C2* aliasC2;
 
+typedef size_t(*F)(size_t x);
+
 ---
 */
 
@@ -80,3 +82,5 @@ alias aliasC = C;
 extern (C++) class C2;
 
 alias aliasC2 = C2;
+
+alias F = size_t function (size_t x);

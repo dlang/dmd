@@ -347,6 +347,7 @@ public:
     Identifier ident;
     LINK linkage = LINK.d;
     bool forwardedAA;
+    AST.Type* origType;
 
     bool hasReal;
     bool hasDefaultEnum;
@@ -596,6 +597,8 @@ public:
             return;
 
         visited[cast(void*)vd] = true;
+        if (vd.type == AST.Type.tsize_t)
+            origType = &vd.originalType;
 
         if (vd.alignment != uint.max)
         {
@@ -726,8 +729,17 @@ public:
                 visit(cast(AST.Dsymbol)ad);
                 return;
             }
+
+            // for function pointers we need to original type
+            if (ad.type.ty == AST.Tpointer &&
+                (cast(AST.TypePointer)t).nextOf.ty == AST.Tfunction)
+            {
+                origType = &ad.originalType;
+            }
+            scope(exit) origType = null;
+
             buf.writestring("typedef ");
-            typeToBuffer(t, ad.ident);
+            typeToBuffer(origType ? *origType : t, ad.ident);
             buf.writestring(";\n");
             if (!adparent)
                 buf.printf("\n");
@@ -1242,8 +1254,9 @@ public:
             printf("[typeToBuffer(AST.Type) enter] %s ident %s\n", t.toChars(), ident.toChars());
             scope(exit) printf("[typeToBuffer(AST.Type) exit] %s ident %s\n", t.toChars(), ident.toChars());
         }
+
         this.ident = ident;
-        t.accept(this);
+        origType ? origType.accept(this) : t.accept(this);
         if (this.ident)
         {
             buf.writeByte(' ');
@@ -1642,8 +1655,10 @@ public:
         }
 
         Identifier ident = fd.ident;
+        auto originalType = cast(AST.TypeFunction)fd.originalType;
 
         assert(tf.next);
+
         if (fd.isCtorDeclaration() || fd.isDtorDeclaration())
         {
             if (fd.isDtorDeclaration())
@@ -1654,7 +1669,7 @@ public:
         }
         else
         {
-            tf.next.accept(this);
+            tf.next == AST.Type.tsize_t ? originalType.next.accept(this) : tf.next.accept(this);
             if (tf.isref)
                 buf.writeByte('&');
             buf.writeByte(' ');
@@ -1667,7 +1682,12 @@ public:
             if (i)
                 buf.writestring(", ");
             auto fparam = AST.Parameter.getNth(tf.parameterList.parameters, i);
+            if (fparam.type == AST.Type.tsize_t && originalType)
+            {
+                fparam = AST.Parameter.getNth(originalType.parameterList.parameters, i);
+            }
             fparam.accept(this);
+
         }
         if (tf.parameterList.varargs)
         {
