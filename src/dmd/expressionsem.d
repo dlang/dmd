@@ -2167,11 +2167,6 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             paramOffset = 1;
             chkFn = &checkScanfFormat;
         }
-        else if (fd.ident == Id.sprintf || fd.ident == Id.fprintf)
-        {
-            paramOffset = 2;
-            chkFn = &checkPrintfFormat;
-        }
         else if (fd.ident == Id.sscanf || fd.ident == Id.fscanf)
         {
             paramOffset = 2;
