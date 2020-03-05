@@ -736,26 +736,26 @@ extern (C++) class Dsymbol : ASTNode
         //printf("Dsymbol::addMember(this = %p, '%s' scopesym = '%s')\n", this, toChars(), sds.toChars());
         //printf("Dsymbol::addMember(this = %p, '%s' sds = %p, sds.symtab = %p)\n", this, toChars(), sds, sds.symtab);
         parent = sds;
-        if (!isAnonymous()) // no name, so can't add it to symbol table
+        if (isAnonymous()) // no name, so can't add it to symbol table
+            return;
+
+        if (!sds.symtabInsert(this)) // if name is already defined
         {
-            if (!sds.symtabInsert(this)) // if name is already defined
+            if (isAliasDeclaration() && !_scope)
+                setScope(sc);
+            Dsymbol s2 = sds.symtabLookup(this,ident);
+            if (!s2.overloadInsert(this))
             {
-                if (isAliasDeclaration() && !_scope)
-                    setScope(sc);
-                Dsymbol s2 = sds.symtabLookup(this,ident);
-                if (!s2.overloadInsert(this))
-                {
-                    sds.multiplyDefined(Loc.initial, this, s2);
-                    errors = true;
-                }
+                sds.multiplyDefined(Loc.initial, this, s2);
+                errors = true;
             }
-            if (sds.isAggregateDeclaration() || sds.isEnumDeclaration())
+        }
+        if (sds.isAggregateDeclaration() || sds.isEnumDeclaration())
+        {
+            if (ident == Id.__sizeof || ident == Id.__xalignof || ident == Id._mangleof)
             {
-                if (ident == Id.__sizeof || ident == Id.__xalignof || ident == Id._mangleof)
-                {
-                    error("`.%s` property cannot be redefined", ident.toChars());
-                    errors = true;
-                }
+                error("`.%s` property cannot be redefined", ident.toChars());
+                errors = true;
             }
         }
     }
@@ -1042,51 +1042,54 @@ extern (C++) class Dsymbol : ASTNode
     {
         //printf("Dsymbol::oneMembers() %d\n", members ? members.dim : 0);
         Dsymbol s = null;
-        if (members)
+        if (!members)
         {
-            for (size_t i = 0; i < members.dim; i++)
+            *ps = null;
+            return true;
+        }
+
+        for (size_t i = 0; i < members.dim; i++)
+        {
+            Dsymbol sx = (*members)[i];
+            bool x = sx.oneMember(ps, ident);
+            //printf("\t[%d] kind %s = %d, s = %p\n", i, sx.kind(), x, *ps);
+            if (!x)
             {
-                Dsymbol sx = (*members)[i];
-                bool x = sx.oneMember(ps, ident);
-                //printf("\t[%d] kind %s = %d, s = %p\n", i, sx.kind(), x, *ps);
-                if (!x)
+                //printf("\tfalse 1\n");
+                assert(*ps is null);
+                return false;
+            }
+            if (*ps)
+            {
+                assert(ident);
+                if (!(*ps).ident || !(*ps).ident.equals(ident))
+                    continue;
+                if (!s)
+                    s = *ps;
+                else if (s.isOverloadable() && (*ps).isOverloadable())
                 {
-                    //printf("\tfalse 1\n");
-                    assert(*ps is null);
-                    return false;
-                }
-                if (*ps)
-                {
-                    assert(ident);
-                    if (!(*ps).ident || !(*ps).ident.equals(ident))
-                        continue;
-                    if (!s)
-                        s = *ps;
-                    else if (s.isOverloadable() && (*ps).isOverloadable())
+                    // keep head of overload set
+                    FuncDeclaration f1 = s.isFuncDeclaration();
+                    FuncDeclaration f2 = (*ps).isFuncDeclaration();
+                    if (f1 && f2)
                     {
-                        // keep head of overload set
-                        FuncDeclaration f1 = s.isFuncDeclaration();
-                        FuncDeclaration f2 = (*ps).isFuncDeclaration();
-                        if (f1 && f2)
+                        assert(!f1.isFuncAliasDeclaration());
+                        assert(!f2.isFuncAliasDeclaration());
+                        for (; f1 != f2; f1 = f1.overnext0)
                         {
-                            assert(!f1.isFuncAliasDeclaration());
-                            assert(!f2.isFuncAliasDeclaration());
-                            for (; f1 != f2; f1 = f1.overnext0)
+                            if (f1.overnext0 is null)
                             {
-                                if (f1.overnext0 is null)
-                                {
-                                    f1.overnext0 = f2;
-                                    break;
-                                }
+                                f1.overnext0 = f2;
+                                break;
                             }
                         }
                     }
-                    else // more than one symbol
-                    {
-                        *ps = null;
-                        //printf("\tfalse 2\n");
-                        return false;
-                    }
+                }
+                else // more than one symbol
+                {
+                    *ps = null;
+                    //printf("\tfalse 2\n");
+                    return false;
                 }
             }
         }
