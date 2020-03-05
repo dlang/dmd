@@ -91,11 +91,6 @@ extern (C++) final class Nspace : ScopeDsymbol
         }
     }
 
-    override bool oneMember(Dsymbol* ps, Identifier ident)
-    {
-        return Dsymbol.oneMember(ps, ident);
-    }
-
     override Dsymbol search(const ref Loc loc, Identifier ident, int flags = SearchLocalsOnly)
     {
         //printf("%s.Nspace.search('%s')\n", toChars(), ident.toChars());
