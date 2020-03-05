@@ -2101,13 +2101,14 @@ Type merge(Type type)
  *
  * Params:
  *  t = the type for which the property is calculated
+ *  scope_ = the scope from which the property is being accessed. Used for visibility checks only.
  *  loc = the location where the property is encountered
  *  ident = the identifier of the property
  *  flag = if flag & 1, don't report "not a property" error and just return NULL.
  * Returns:
  *      expression representing the property, or null if not a property and (flag & 1)
  */
-Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
+Expression getProperty(Type t, Scope* scope_, const ref Loc loc, Identifier ident, int flag)
 {
     Expression visitType(Type mt)
     {
@@ -2459,7 +2460,7 @@ Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
         }
         else
         {
-            e = mt.toBasetype().getProperty(loc, ident, flag);
+            e = mt.toBasetype().getProperty(scope_, loc, ident, flag);
         }
         return e;
     }
@@ -3173,7 +3174,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
             e = new StringExp(e.loc, e.toString());
         }
         else
-            e = mt.getProperty(e.loc, ident, flag & DotExpFlag.gag);
+            e = mt.getProperty(sc, e.loc, ident, flag & DotExpFlag.gag);
 
     Lreturn:
         if (e)
@@ -3233,7 +3234,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                 break;
 
             default:
-                e = mt.Type.getProperty(e.loc, ident, flag);
+                e = mt.Type.getProperty(sc, e.loc, ident, flag);
                 break;
             }
         }
@@ -3284,7 +3285,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
                 break;
 
             default:
-                e = mt.Type.getProperty(e.loc, ident, flag);
+                e = mt.Type.getProperty(sc, e.loc, ident, flag);
                 break;
             }
         }
@@ -3624,7 +3625,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
         // https://issues.dlang.org/show_bug.cgi?id=14010
         if (ident == Id._mangleof)
         {
-            return mt.getProperty(e.loc, ident, flag & 1);
+            return mt.getProperty(sc, e.loc, ident, flag & 1);
         }
 
         /* If e.tupleof
@@ -3846,7 +3847,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
         // https://issues.dlang.org/show_bug.cgi?id=14010
         if (ident == Id._mangleof)
         {
-            return mt.getProperty(e.loc, ident, flag & 1);
+            return mt.getProperty(sc, e.loc, ident, flag & 1);
         }
 
         if (mt.sym.semanticRun < PASS.semanticdone)
@@ -3874,7 +3875,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
         {
             if (ident == Id.max || ident == Id.min || ident == Id._init)
             {
-                return mt.getProperty(e.loc, ident, flag & 1);
+                return mt.getProperty(sc, e.loc, ident, flag & 1);
             }
 
             Expression res = mt.sym.getMemtype(Loc.initial).dotExp(sc, e, ident, 1);
@@ -3907,7 +3908,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
         // https://issues.dlang.org/show_bug.cgi?id=12543
         if (ident == Id.__sizeof || ident == Id.__xalignof || ident == Id._mangleof)
         {
-            return mt.Type.getProperty(e.loc, ident, 0);
+            return mt.Type.getProperty(sc, e.loc, ident, 0);
         }
 
         /* If e.tupleof
@@ -3965,7 +3966,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
             {
                 if (e.op == TOK.type)
                 {
-                    return mt.Type.getProperty(e.loc, ident, 0);
+                    return mt.Type.getProperty(sc, e.loc, ident, 0);
                 }
                 e = new DotTypeExp(e.loc, e, mt.sym);
                 e = e.expressionSemantic(sc);
@@ -3975,7 +3976,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, int flag)
             {
                 if (e.op == TOK.type)
                 {
-                    return mt.Type.getProperty(e.loc, ident, 0);
+                    return mt.Type.getProperty(sc, e.loc, ident, 0);
                 }
                 if (auto ifbase = cbase.isInterfaceDeclaration())
                     e = new CastExp(e.loc, e, ifbase.type);
