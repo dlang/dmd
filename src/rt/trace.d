@@ -29,8 +29,6 @@ shared static this ()
     trace_deffilename = strdup(DefaultDef.ptr)[0 .. DefaultDef.length + 1];
 }
 
-extern (C):
-
 /**
  * Set the file path for profile reports (`-profile`)
  *
@@ -44,7 +42,7 @@ extern (C):
  * Params:
  *   name = Path to the output file. Empty means stdout.
  */
-void trace_setlogfilename(string name)
+extern(C) void trace_setlogfilename(string name)
 {
     updateFileName(trace_logfilename, name);
 }
@@ -62,7 +60,7 @@ void trace_setlogfilename(string name)
  * Params:
  *   name = Path to the output file. Empty means stdout.
  */
-void trace_setdeffilename(string name)
+extern(C) void trace_setdeffilename(string name)
 {
     updateFileName(trace_deffilename, name);
 }
@@ -70,7 +68,7 @@ void trace_setdeffilename(string name)
 private:
 
 // Code shared by both `trace_setXXXfilename`
-extern(D) void updateFileName(ref char[] filename, string name)
+void updateFileName(ref char[] filename, string name)
 {
     if (!name.length)
     {
@@ -194,7 +192,7 @@ private void stack_free(Stack *s)
 //////////////////////////////////////
 // Qsort() comparison routine for array of pointers to SymPair's.
 
-private int sympair_cmp(scope const void* e1, scope const void* e2) nothrow @nogc
+extern(C) int sympair_cmp(scope const void* e1, scope const void* e2) nothrow @nogc
 {
     auto count1 = (*cast(SymPair**)e1).count;
     auto count2 = (*cast(SymPair**)e2).count;
@@ -309,7 +307,7 @@ private void trace_array(Symbol*[] psymbols, Symbol *s, ref uint u)
 //////////////////////////////////////
 // Qsort() comparison routine for array of pointers to Symbol's.
 
-private int symbol_cmp(scope const void* e1, scope const void* e2) nothrow @nogc
+extern(C) int symbol_cmp(scope const void* e1, scope const void* e2) nothrow @nogc
 {
     auto ps1 = cast(Symbol **)e1;
     auto ps2 = cast(Symbol **)e2;
@@ -638,7 +636,7 @@ private void trace_sympair_add(SymPair** psp, Symbol* s, ulong count)
 //////////////////////////////////////////////
 // This one is called by DMD
 
-private void trace_pro(char[] id)
+private extern(C) void trace_pro(char[] id)
 {
     //printf("trace_pro(ptr = %p, length = %lld)\n", id.ptr, id.length);
     //printf("trace_pro(id = '%.*s')\n", id.length, id.ptr);
@@ -674,7 +672,7 @@ private void trace_pro(char[] id)
 }
 
 // Called by some old versions of DMD
-void _c_trace_pro(size_t idlen, char* idptr)
+extern(C) void _c_trace_pro(size_t idlen, char* idptr)
 {
     char[] id = idptr[0 .. idlen];
     trace_pro(id);
@@ -683,7 +681,7 @@ void _c_trace_pro(size_t idlen, char* idptr)
 /////////////////////////////////////////
 // Called by DMD generated code
 
-void _c_trace_epi()
+extern(C) void _c_trace_epi()
 {
     //printf("_c_trace_epi()\n");
     auto tos = trace_tos;
@@ -732,7 +730,7 @@ void _c_trace_epi()
 //      trace_malloc'd line buffer
 //      null if end of file
 
-extern(D) private char[] trace_readline(FILE* fp)
+char[] trace_readline(FILE* fp)
 {
     char[] buf;
     // Last character used in `buf`
