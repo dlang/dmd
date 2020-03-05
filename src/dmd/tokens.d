@@ -421,6 +421,17 @@ private immutable TOK[] keywords =
     TOK.immutable_,
 ];
 
+// Initialize the identifier pool
+shared static this() nothrow
+{
+    Identifier.initTable();
+    foreach (kw; keywords)
+    {
+        //printf("keyword[%d] = '%s'\n",kw, tochars[kw].ptr);
+        Identifier.idPool(Token.tochars[kw].ptr, Token.tochars[kw].length, cast(uint)kw);
+    }
+}
+
 /***********************************************************
  */
 extern (C++) struct Token
@@ -706,16 +717,6 @@ extern (C++) struct Token
     }());
 
 nothrow:
-
-    shared static this()
-    {
-        Identifier.initTable();
-        foreach (kw; keywords)
-        {
-            //printf("keyword[%d] = '%s'\n",kw, tochars[kw].ptr);
-            Identifier.idPool(tochars[kw].ptr, tochars[kw].length, cast(uint)kw);
-        }
-    }
 
     int isKeyword() const
     {
