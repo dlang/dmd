@@ -579,7 +579,7 @@ Applies custom transformations defined in transformOutput to testOutput.
 
 Currently the following actions are supported:
  * "sanitize_json"       = replace compiler/plattform specific data from generated JSON
- * "remove_lines(<str>)" = remove all lines containing <str>
+ * "remove_lines(<re>)" = remove all lines matching a regex <re>
 
 Params:
     testOutput      = the existing output to be modified
@@ -604,10 +604,13 @@ void applyOutputTransformations(ref string testOutput, string transformOutput)
             transformOutput = transformOutput[idx + 1 .. $];
             if (hasArgs)
             {
-                auto parts = transformOutput.findSplit(")");
-                enforce(parts, "Missing closing `)`!");
+                // "..." quotes are optional but necessary if the arg contains ')'
+                const isQuoted = transformOutput[0] == '"';
+                const end = isQuoted ? `"` : `)`;
+                auto parts = transformOutput[isQuoted .. $].findSplit(end);
+                enforce(parts, "Missing closing `" ~ end ~ "`!");
                 arg = parts[0];
-                transformOutput = parts[2];
+                transformOutput = parts[2][isQuoted .. $];
             }
 
             // Skip space between steps
@@ -623,12 +626,16 @@ void applyOutputTransformations(ref string testOutput, string transformOutput)
                 sanitize(testOutput);
                 break;
             }
+
             case "remove_lines":
+            {
+                auto re = regex(arg);
                 testOutput = testOutput
                     .splitter('\n')
-                    .filter!(line => !line.canFind(arg))
+                    .filter!(line => !line.matchFirst(re))
                     .join('\n');
                 break;
+            }
 
             default:
                 throw new Exception(format(`Unknown transformation: "%s"!`, step));
@@ -638,9 +645,15 @@ void applyOutputTransformations(ref string testOutput, string transformOutput)
 
 unittest
 {
-    static void test(const string transformations, const string expectedJson)
+    static void test(string input, const string transformations, const string expected)
     {
-        string json = `{
+        applyOutputTransformations(input, transformations);
+        assert(input == expected);
+    }
+
+    static void testJson(const string transformations, const string expectedJson)
+    {
+        test(`{
     "modules": [
         {
             "file": "/path/to/the/file",
@@ -648,12 +661,11 @@ unittest
             "members": []
         }
     ]
-}`;
-        applyOutputTransformations(json, transformations);
-        assert(json == expectedJson);
+}`, transformations, expectedJson);
     }
 
-    test("sanitize_json", `{
+
+    testJson("sanitize_json", `{
     "modules": [
         {
             "file": "VALUE_REMOVED_FOR_TEST",
@@ -663,7 +675,7 @@ unittest
     ]
 }`);
 
-    test(`sanitize_json remove_lines("kind")`, `{
+    testJson(`sanitize_json  remove_lines("kind")`, `{
     "modules": [
         {
             "file": "VALUE_REMOVED_FOR_TEST",
@@ -672,7 +684,7 @@ unittest
     ]
 }`);
 
-    test(`sanitize_json remove_lines("kind") remove_lines("file")`, `{
+    testJson(`sanitize_json remove_lines("kind") remove_lines("file")`, `{
     "modules": [
         {
             "members": []
@@ -680,7 +692,29 @@ unittest
     ]
 }`);
 
-    assertThrown(test("unknown", ""));
+    test(`This is a text containing
+        some words which is a text sample
+        nevertheless`,
+        `remove_lines(text sample)`,
+        `This is a text containing
+        nevertheless`);
+
+    test(`This is a text with
+        a random ) which should
+        still work`,
+        `remove_lines("random \)")`,
+        `This is a text with
+        still work`);
+
+    test(`Tom bought
+        12 apples
+        and 6 berries
+        from the store`,
+        `remove_lines("(\d+)")`,
+        `Tom bought
+        from the store`);
+
+    assertThrown(test("", "unknown", ""));
 }
 
 /++
