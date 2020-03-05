@@ -2172,6 +2172,8 @@ Expression getProperty(Type t, Scope* scope_, const ref Loc loc, Identifier iden
                 s = mt.toDsymbol(null);
             if (s)
                 s = s.search_correct(ident);
+            if (s && !symbolIsVisible(scope_, s))
+                s = null;
             if (mt != Type.terror)
             {
                 if (s)
