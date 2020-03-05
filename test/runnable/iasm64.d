@@ -5473,6 +5473,15 @@ void test61()
         0x41, 0x0f, 0xc7, 0xf7,                   // rdrand  R15D;
         0x49, 0x0f, 0xc7, 0xf7,                   // rdrand   R15;
 
+        /* RDSEED */
+        0x66, 0x0f, 0xc7, 0xf8,                   // rdseed    AX;
+        0x0f, 0xc7, 0xf8,                         // rdseed   EAX;
+        0x48, 0x0f, 0xc7, 0xf8,                   // rdseed   RAX;
+
+        0x66, 0x41, 0x0f, 0xc7, 0xff,             // rdseed  R15W;
+        0x41, 0x0f, 0xc7, 0xff,                   // rdseed  R15D;
+        0x49, 0x0f, 0xc7, 0xff,                   // rdseed   R15;
+
         /* FP16C */
         0xc4, 0xe2, 0x79, 0x13, 0xc0,             // vcvtph2ps XMM0, XMM0;
         0xc4, 0xe2, 0x79, 0x13, 0x00,             // vcvtph2ps XMM0, [RAX];
@@ -6264,6 +6273,15 @@ void test61()
         rdrand  R15W;
         rdrand  R15D;
         rdrand   R15;
+
+        /* RDSEED */
+        rdseed    AX;
+        rdseed   EAX;
+        rdseed   RAX;
+
+        rdseed  R15W;
+        rdseed  R15D;
+        rdseed   R15;
 
         /* FP16C */
         vcvtph2ps XMM0, XMM0;
