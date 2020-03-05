@@ -1042,51 +1042,54 @@ extern (C++) class Dsymbol : ASTNode
     {
         //printf("Dsymbol::oneMembers() %d\n", members ? members.dim : 0);
         Dsymbol s = null;
-        if (members)
+        if (!members)
         {
-            for (size_t i = 0; i < members.dim; i++)
+            *ps = null;
+            return true;
+        }
+
+        for (size_t i = 0; i < members.dim; i++)
+        {
+            Dsymbol sx = (*members)[i];
+            bool x = sx.oneMember(ps, ident);
+            //printf("\t[%d] kind %s = %d, s = %p\n", i, sx.kind(), x, *ps);
+            if (!x)
             {
-                Dsymbol sx = (*members)[i];
-                bool x = sx.oneMember(ps, ident);
-                //printf("\t[%d] kind %s = %d, s = %p\n", i, sx.kind(), x, *ps);
-                if (!x)
+                //printf("\tfalse 1\n");
+                assert(*ps is null);
+                return false;
+            }
+            if (*ps)
+            {
+                assert(ident);
+                if (!(*ps).ident || !(*ps).ident.equals(ident))
+                    continue;
+                if (!s)
+                    s = *ps;
+                else if (s.isOverloadable() && (*ps).isOverloadable())
                 {
-                    //printf("\tfalse 1\n");
-                    assert(*ps is null);
-                    return false;
-                }
-                if (*ps)
-                {
-                    assert(ident);
-                    if (!(*ps).ident || !(*ps).ident.equals(ident))
-                        continue;
-                    if (!s)
-                        s = *ps;
-                    else if (s.isOverloadable() && (*ps).isOverloadable())
+                    // keep head of overload set
+                    FuncDeclaration f1 = s.isFuncDeclaration();
+                    FuncDeclaration f2 = (*ps).isFuncDeclaration();
+                    if (f1 && f2)
                     {
-                        // keep head of overload set
-                        FuncDeclaration f1 = s.isFuncDeclaration();
-                        FuncDeclaration f2 = (*ps).isFuncDeclaration();
-                        if (f1 && f2)
+                        assert(!f1.isFuncAliasDeclaration());
+                        assert(!f2.isFuncAliasDeclaration());
+                        for (; f1 != f2; f1 = f1.overnext0)
                         {
-                            assert(!f1.isFuncAliasDeclaration());
-                            assert(!f2.isFuncAliasDeclaration());
-                            for (; f1 != f2; f1 = f1.overnext0)
+                            if (f1.overnext0 is null)
                             {
-                                if (f1.overnext0 is null)
-                                {
-                                    f1.overnext0 = f2;
-                                    break;
-                                }
+                                f1.overnext0 = f2;
+                                break;
                             }
                         }
                     }
-                    else // more than one symbol
-                    {
-                        *ps = null;
-                        //printf("\tfalse 2\n");
-                        return false;
-                    }
+                }
+                else // more than one symbol
+                {
+                    *ps = null;
+                    //printf("\tfalse 2\n");
+                    return false;
                 }
             }
         }
