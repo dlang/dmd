@@ -1,7 +1,41 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * A scoped C++ namespace symbol
  *
+ * D supports the following syntax to declare symbol(s) as being part of a
+ * C++ namespace:
+ * ---
+ * extern (C++, "myNamespace") { /+ Symbols +/ }       // String variant
+ * extern (C++, SomeNamespace) { /+ Other symbols +/ } // Identifier variant
+ * ---
+ * The first form is an attribute and only affects mangling, and is implemented
+ * in `dmd.attrib`.
+ * The second form introduces a named scope and allows symbols to be refered
+ * to with or without the namespace name, much like a named template mixin,
+ * and is implemented in this module.
+ * ---
+ * extern (C++, Basket)
+ * {
+ *     struct StrawBerry;
+ *     void swapFood (Strawberry* f1, Strawberry* f2);
+ * }
+ * void main ()
+ * {
+ *     Basket.StrawBerry fruit1;
+ *     StrawBerry fruit2;
+ *     Basket.swapFood(fruit1, fruit2);
+ *     swapFood(fruit1, fruit2);
+ * }
+ * ---
+ * Hence the `Nspace` symbol implements the usual `ScopeDsymbol` semantics.
+ *
+ * Note that it implies `extern(C++)` so it cannot be used as a generic
+ * named scope. Additionally, `Nspace` with the same `Identifier` can be
+ * defined in different module (as C++ allows a namespace to be spread accross
+ * translation units), but symbols in it should be considered
+ * part of the same scope. Lastly, not all possible C++ namespace names
+ * are valid D identifier.
+ *
+ * See_Also:    https://github.com/dlang/dmd/pull/10031
  * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
@@ -25,10 +59,7 @@ import core.stdc.stdio;
 
 private enum LOG = false;
 
-/***********************************************************
- * A namespace corresponding to a C++ namespace.
- * Implies extern(C++).
- */
+/// Ditto
 extern (C++) final class Nspace : ScopeDsymbol
 {
     /**
