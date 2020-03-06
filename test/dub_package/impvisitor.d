@@ -77,7 +77,6 @@ void main()
     import std.file;
     import std.path : buildPath, dirName;
 
-    import dmd.errors;
     import dmd.parse;
     import dmd.astbase;
 
@@ -109,8 +108,7 @@ void main()
         auto input = readText(fn);
 
         //writeln("Started parsing...");
-        scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-        scope p = new Parser!ASTBase(m, input, false, diagnosticReporter);
+        scope p = new Parser!ASTBase(m, input, false);
         p.nextToken();
         m.members = p.parseModule();
         //writeln("Finished parsing. Starting transitive visitor");

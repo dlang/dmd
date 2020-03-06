@@ -368,7 +368,7 @@ void test12()
     j = 0;
     foreach (size_t i, dchar d; "hello")
     {
-        printf("i = %d, d = x%x\n", i, d);
+        printf("i = %zd, d = x%x\n", i, d);
         if (j == 0) assert(d == 'h');
         if (j == 1) assert(d == 'e');
         if (j == 2) assert(d == 'l');
@@ -402,7 +402,7 @@ void test13()
     j = 0;
     foreach (size_t i, wchar d; "hello")
     {
-        printf("i = %d, d = x%x\n", i, d);
+        printf("i = %zd, d = x%x\n", i, d);
         if (j == 0) assert(d == 'h');
         if (j == 1) assert(d == 'e');
         if (j == 2) assert(d == 'l');
@@ -436,7 +436,7 @@ void test14()
     j = 0;
     foreach (size_t i, char d; cast(wstring)"hello")
     {
-        printf("i = %d, d = x%x\n", i, d);
+        printf("i = %zd, d = x%x\n", i, d);
         if (j == 0) assert(d == 'h');
         if (j == 1) assert(d == 'e');
         if (j == 2) assert(d == 'l');
@@ -470,7 +470,7 @@ void test15()
     j = 0;
     foreach (size_t i, dchar d; cast(wstring)"hello")
     {
-        printf("i = %d, d = x%x\n", i, d);
+        printf("i = %zd, d = x%x\n", i, d);
         if (j == 0) assert(d == 'h');
         if (j == 1) assert(d == 'e');
         if (j == 2) assert(d == 'l');
@@ -504,7 +504,7 @@ void test16()
     j = 0;
     foreach (size_t i, char d; cast(dstring)"hello")
     {
-        printf("i = %d, d = x%x\n", i, d);
+        printf("i = %zd, d = x%x\n", i, d);
         if (j == 0) assert(d == 'h');
         if (j == 1) assert(d == 'e');
         if (j == 2) assert(d == 'l');
@@ -538,7 +538,7 @@ void test17()
     j = 0;
     foreach (size_t i, wchar d; cast(dstring)"hello")
     {
-        printf("i = %d, d = x%x\n", i, d);
+        printf("i = %zd, d = x%x\n", i, d);
         if (j == 0) assert(d == 'h');
         if (j == 1) assert(d == 'e');
         if (j == 2) assert(d == 'l');
@@ -620,7 +620,7 @@ void test20()
 
 void foo21(string[] args)
 {
-    printf("args.length = %d\n", args.length);
+    printf("args.length = %zd\n", args.length);
     assert(args.length == 3);
     foreach (i, arg; args)
     {

@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -91,7 +91,7 @@ enum ENUMTY
     Tvector,
     Tint128,
     Tuns128,
-    TTraits,
+    Ttraits,
     TMAX
 };
 typedef unsigned char TY;       // ENUMTY
@@ -589,6 +589,7 @@ public:
     bool isscope;       // true: 'this' is scope
     bool isreturninferred;      // true: 'this' is return from inference
     bool isscopeinferred; // true: 'this' is scope from inference
+    bool islive;        // is @live
     LINK linkage;  // calling convention
     TRUST trust;   // level of trust
     PURE purity;   // PURExxxx
@@ -603,7 +604,7 @@ public:
     Type *syntaxCopy();
     void purityLevel();
     bool hasLazyParameters();
-    bool isDstyleVariadic();
+    bool isDstyleVariadic() const;
     bool parameterEscapes(Parameter *p);
     StorageClass parameterStorageClass(Parameter *p);
     Type *addStorageClass(StorageClass stc);

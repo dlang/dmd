@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/statement.d, _statement.d)
@@ -605,6 +605,11 @@ private Statement toStatement(Dsymbol s)
             result = visitMembers(d.loc, d.decl);
         }
 
+        override void visit(ForwardingAttribDeclaration d)
+        {
+            result = visitMembers(d.loc, d.decl);
+        }
+
         override void visit(StaticAssert s)
         {
         }
@@ -625,8 +630,7 @@ private Statement toStatement(Dsymbol s)
         override void visit(StaticForeachDeclaration d)
         {
             assert(d.sfe && !!d.sfe.aggrfe ^ !!d.sfe.rangefe);
-            (d.sfe.aggrfe ? d.sfe.aggrfe._body : d.sfe.rangefe._body) = visitMembers(d.loc, d.decl);
-            result = new StaticForeachStatement(d.loc, d.sfe);
+            result = visitMembers(d.loc, d.include(null));
         }
 
         override void visit(CompileDeclaration d)
@@ -815,19 +819,15 @@ extern (C++) final class CompileStatement : Statement
         const len = buf.length;
         buf.writeByte(0);
         const str = buf.extractSlice()[0 .. len];
-        scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-        scope p = new Parser!ASTCodegen(loc, sc._module, str, false, diagnosticReporter);
+        scope p = new Parser!ASTCodegen(loc, sc._module, str, false);
         p.nextToken();
 
         auto a = new Statements();
         while (p.token.value != TOK.endOfFile)
         {
             Statement s = p.parseStatement(ParseStatementFlags.semi | ParseStatementFlags.curlyScope);
-            if (!s || p.errors)
-            {
-                assert(!p.errors || global.errors != errors); // make sure we caught all the cases
+            if (!s || global.errors != errors)
                 return errorStatements();
-            }
             a.push(s);
         }
         return a;
@@ -1476,7 +1476,7 @@ extern (C++) final class StaticForeachStatement : Statement
 
     override Statement syntaxCopy()
     {
-        return new StaticForeachStatement(loc,sfe.syntaxCopy());
+        return new StaticForeachStatement(loc, sfe.syntaxCopy());
     }
 
     override Statements* flatten(Scope* sc)
@@ -1485,7 +1485,7 @@ extern (C++) final class StaticForeachStatement : Statement
         if (sfe.ready())
         {
             import dmd.statementsem;
-            auto s = makeTupleForeach!(true,false)(sc, sfe.aggrfe,sfe.needExpansion);
+            auto s = makeTupleForeach!(true, false)(sc, sfe.aggrfe, sfe.needExpansion);
             auto result = s.flatten(sc);
             if (result)
             {
@@ -1653,6 +1653,7 @@ extern (C++) final class CaseStatement : Statement
 
     int index;              // which case it is (since we sort this)
     VarDeclaration lastVar;
+    void* extra;            // for use by Statement_toIR()
 
     extern (D) this(const ref Loc loc, Expression exp, Statement statement)
     {

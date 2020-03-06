@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2009-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2009-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/machobj.d, backend/machobj.d)
@@ -100,11 +100,10 @@ extern __gshared int eh_frame_seg;            // segment of __eh_frame
 /******************************************
  */
 
-__gshared Symbol *GOTsym; // global offset table reference
-__gshared Symbol *tlv_bootstrap_sym;
-
-Symbol *Obj_getGOTsym()
+/// Returns: a reference to the global offset table
+Symbol* Obj_getGOTsym()
 {
+    __gshared Symbol *GOTsym;
     if (!GOTsym)
     {
         GOTsym = symbol_name("_GLOBAL_OFFSET_TABLE_",SCglobal,tspvoid);
@@ -298,67 +297,6 @@ IDXSTR Obj_addstr(Outbuffer *strtab, const(char)* str)
 }
 
 /*******************************
- * Find a string in a string table
- * Input:
- *      strtab  =       string table for entry
- *      str     =       string to find
- *
- * Returns index into the specified string table or 0.
- */
-
-private IDXSTR elf_findstr(Outbuffer *strtab, const(char)* str, const(char)* suffix)
-{
-    const(char)* ent = cast(char *)strtab.buf+1;
-    const(char)* pend = ent+strtab.size() - 1;
-    const(char)* s = str;
-    const(char)* sx = suffix;
-    size_t len = strlen(str);
-
-    if (suffix)
-        len += strlen(suffix);
-
-    while(ent < pend)
-    {
-        if(*ent == 0)                   // end of table entry
-        {
-            if(*s == 0 && !sx)          // end of string - found a match
-            {
-                return cast(IDXSTR)(ent - cast(const(char)*)strtab.buf - len);
-            }
-            else                        // table entry too short
-            {
-                s = str;                // back to beginning of string
-                sx = suffix;
-                ent++;                  // start of next table entry
-            }
-        }
-        else if (*s == 0 && sx && *sx == *ent)
-        {                               // matched first string
-            s = sx+1;                   // switch to suffix
-            ent++;
-            sx = null;
-        }
-        else                            // continue comparing
-        {
-            if (*ent == *s)
-            {                           // Have a match going
-                ent++;
-                s++;
-            }
-            else                        // no match
-            {
-                while(*ent != 0)        // skip to end of entry
-                    ent++;
-                ent++;                  // start of next table entry
-                s = str;                // back to beginning of string
-                sx = suffix;
-            }
-        }
-    }
-    return 0;                   // never found match
-}
-
-/*******************************
  * Output a mangled string into the symbol string table
  * Input:
  *      str     =       string to add
@@ -512,8 +450,6 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
     seg_tlsseg = UNKNOWN;
     seg_tlsseg_bss = UNKNOWN;
     seg_tlsseg_data = UNKNOWN;
-    GOTsym = null;
-    tlv_bootstrap_sym = null;
 
     // Initialize buffers
 
@@ -2972,8 +2908,9 @@ void Obj_gotref(Symbol *s)
  * It's used as a placeholder in the TLV descriptors. The dynamic linker will
  * replace the placeholder with a real function at load time.
  */
-Symbol *Obj_tlv_bootstrap()
+Symbol* Obj_tlv_bootstrap()
 {
+    __gshared Symbol* tlv_bootstrap_sym;
     if (!tlv_bootstrap_sym)
         tlv_bootstrap_sym = symbol_name("__tlv_bootstrap", SCextern, type_fake(TYnfunc));
     return tlv_bootstrap_sym;

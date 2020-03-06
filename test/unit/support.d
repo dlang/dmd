@@ -1,6 +1,6 @@
 module support;
 
-import dmd.errors : DiagnosticReporter;
+import dmd.frontend : DiagnosticReporter;
 
 /// UDA used to indicate a function should be run before each test.
 enum beforeEach;
@@ -84,10 +84,10 @@ class NoopDiagnosticReporter : DiagnosticReporter
     override int errorCount() { return 0; }
     override int warningCount() { return 0; }
     override int deprecationCount() { return 0; }
-    override void error(const ref Loc loc, const(char)* format, va_list) {}
-    override void errorSupplemental(const ref Loc loc, const(char)* format, va_list) {}
-    override void warning(const ref Loc loc, const(char)* format, va_list) {}
-    override void warningSupplemental(const ref Loc loc, const(char)* format, va_list) {}
-    override void deprecation(const ref Loc loc, const(char)* format, va_list) {}
-    override void deprecationSupplemental(const ref Loc loc, const(char)* format, va_list) {}
+    override bool error(const ref Loc loc, const(char)* format, va_list, const(char)* p1, const(char)* p2) { return true; }
+    override bool errorSupplemental(const ref Loc loc, const(char)* format, va_list, const(char)* p1, const(char)* p2) { return true; }
+    override bool warning(const ref Loc loc, const(char)* format, va_list, const(char)* p1, const(char)* p2) { return true; }
+    override bool warningSupplemental(const ref Loc loc, const(char)* format, va_list, const(char)* p1, const(char)* p2) { return true; }
+    override bool deprecation(const ref Loc loc, const(char)* format, va_list, const(char)* p1, const(char)* p2) { return true; }
+    override bool deprecationSupplemental(const ref Loc loc, const(char)* format, va_list, const(char)* p1, const(char)* p2) { return true; }
 }

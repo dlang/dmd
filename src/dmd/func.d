@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/func.d, _func.d)
@@ -40,13 +40,13 @@ import dmd.mtype;
 import dmd.objc;
 import dmd.root.outbuffer;
 import dmd.root.rootobject;
+import dmd.root.string;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.statement_rewrite_walker;
 import dmd.statement;
 import dmd.statementsem;
 import dmd.tokens;
-import dmd.utils;
 import dmd.visitor;
 
 /// Inline Status
@@ -2496,6 +2496,55 @@ extern (C++) class FuncDeclaration : Declaration
             error("parameters must be `main()` or `main(string[] args)`");
     }
 
+    /***********************************************
+     * Check all return statements for a function to verify that returning
+     * using NRVO is possible.
+     *
+     * Returns:
+     *      true if the result cannot be returned by hidden reference.
+     */
+    final bool checkNrvo()
+    {
+        if (!nrvo_can)
+            return true;
+
+        if (returns is null)
+            return true;
+
+        auto tf = type.toTypeFunction();
+
+        foreach (rs; *returns)
+        {
+            if (rs.exp.op == TOK.variable)
+            {
+                auto ve = cast(VarExp)rs.exp;
+                auto v = ve.var.isVarDeclaration();
+                if (tf.isref)
+                {
+                    // Function returns a reference
+                    return true;
+                }
+                else if (!v || v.isOut() || v.isRef())
+                    return true;
+                else if (nrvo_var is null)
+                {
+                    if (!v.isDataseg() && !v.isParameter() && v.toParent2() == this)
+                    {
+                        //printf("Setting nrvo to %s\n", v.toChars());
+                        nrvo_var = v;
+                    }
+                    else
+                        return true;
+                }
+                else if (nrvo_var != v)
+                    return true;
+            }
+            else //if (!exp.isLvalue())    // keep NRVO-ability
+                return true;
+        }
+        return false;
+    }
+
     override final inout(FuncDeclaration) isFuncDeclaration() inout
     {
         return this;
@@ -2884,7 +2933,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
                    td.kind(), td.parent.toPrettyChars(), td.ident.toChars(),
                    tiargsBuf.peekChars(), fargsBuf.peekChars());
 
-            printCandidates(loc, td);
+            printCandidates(loc, td, sc.isDeprecated());
             return null;
         }
         /* This case happens when several ctors are mixed in an agregate.
@@ -2917,7 +2966,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
         {
             .error(loc, "none of the overloads of `%s` are callable using a %sobject, candidates are:",
                    fd.ident.toChars(), thisBuf.peekChars());
-            printCandidates(loc, fd);
+            printCandidates(loc, fd, sc.isDeprecated());
             return null;
         }
 
@@ -2948,7 +2997,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
     {
         .error(loc, "none of the overloads of `%s` are callable using argument types `%s`, candidates are:",
                fd.toChars(), fargsBuf.peekChars());
-        printCandidates(loc, fd);
+        printCandidates(loc, fd, sc.isDeprecated());
         return null;
     }
 
@@ -2966,14 +3015,16 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
 /*******************************************
  * Prints template and function overload candidates as supplemental errors.
  * Params:
- *      loc =           instantiation location
- *      declaration =   the declaration to print overload candidates for
+ *      loc =            instantiation location
+ *      declaration =    the declaration to print overload candidates for
+ *      showDeprecated = If `false`, `deprecated` function won't be shown
  */
-private void printCandidates(Decl)(const ref Loc loc, Decl declaration)
+private void printCandidates(Decl)(const ref Loc loc, Decl declaration, bool showDeprecated)
 if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
 {
     // max num of overloads to print (-v overrides this).
-    int numToDisplay = 5;
+    enum int DisplayLimit = 5;
+    int displayed;
     const(char)* constraintsTip;
 
     overloadApply(declaration, (Dsymbol s)
@@ -2982,7 +3033,13 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
 
         if (auto fd = s.isFuncDeclaration())
         {
+            // Don't print overloads which have errors.
+            // Not that if the whole overload set has errors, we'll never reach
+            // this point so there's no risk of printing no candidate
             if (fd.errors || fd.type.ty == Terror)
+                return 0;
+            // Don't print disabled functions, or `deprecated` outside of deprecated scope
+            if (fd.storage_class & STC.disable || (fd.isDeprecated() && !showDeprecated))
                 return 0;
 
             auto tf = cast(TypeFunction) fd.type;
@@ -3003,7 +3060,7 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
             nextOverload = td.overnext;
         }
 
-        if (global.params.verbose || --numToDisplay != 0)
+        if (global.params.verbose || ++displayed < DisplayLimit)
             return 0;
 
         // Too many overloads to sensibly display.
@@ -3015,6 +3072,10 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
             .errorSupplemental(loc, "... (%d more, -v to show) ...", num);
         return 1;   // stop iterating
     });
+
+    // Nothing was displayed, all overloads are either disabled or deprecated
+    if (!displayed)
+        .errorSupplemental(loc, "All possible candidates are marked as `deprecated` or `@disable`");
     // should be only in verbose mode
     if (constraintsTip)
         .tip(constraintsTip);
@@ -3305,6 +3366,9 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
         this.ident = id ? id : Id.empty;
         this.tok = tok;
         this.fes = fes;
+        // Always infer scope for function literals
+        // See https://issues.dlang.org/show_bug.cgi?id=20362
+        this.flags |= FUNCFLAG.inferScope;
         //printf("FuncLiteralDeclaration() id = '%s', type = '%s'\n", this.ident.toChars(), type.toChars());
     }
 
@@ -3898,61 +3962,6 @@ extern (C++) final class NewDeclaration : FuncDeclaration
     }
 
     override inout(NewDeclaration) isNewDeclaration() inout
-    {
-        return this;
-    }
-
-    override void accept(Visitor v)
-    {
-        v.visit(this);
-    }
-}
-
-/***********************************************************
- */
-extern (C++) final class DeleteDeclaration : FuncDeclaration
-{
-    Parameters* parameters;
-
-    extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, Parameters* fparams)
-    {
-        super(loc, endloc, Id.classDelete, STC.static_ | stc, null);
-        this.parameters = fparams;
-    }
-
-    override Dsymbol syntaxCopy(Dsymbol s)
-    {
-        assert(!s);
-        auto f = new DeleteDeclaration(loc, endloc, storage_class, Parameter.arraySyntaxCopy(parameters));
-        return FuncDeclaration.syntaxCopy(f);
-    }
-
-    override const(char)* kind() const
-    {
-        return "deallocator";
-    }
-
-    override bool isDelete()
-    {
-        return true;
-    }
-
-    override bool isVirtual() const
-    {
-        return false;
-    }
-
-    override bool addPreInvariant()
-    {
-        return false;
-    }
-
-    override bool addPostInvariant()
-    {
-        return false;
-    }
-
-    override inout(DeleteDeclaration) isDeleteDeclaration() inout
     {
         return this;
     }

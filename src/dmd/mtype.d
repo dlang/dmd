@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/mtype.d, _mtype.d)
@@ -285,7 +285,7 @@ enum ENUMTY : int
     Tvector,
     Tint128,
     Tuns128,
-    TTraits,
+    Ttraits,
     Tmixin,
     TMAX,
 }
@@ -334,7 +334,7 @@ alias Tnull = ENUMTY.Tnull;
 alias Tvector = ENUMTY.Tvector;
 alias Tint128 = ENUMTY.Tint128;
 alias Tuns128 = ENUMTY.Tuns128;
-alias Ttraits = ENUMTY.TTraits;
+alias Ttraits = ENUMTY.Ttraits;
 alias Tmixin = ENUMTY.Tmixin;
 alias TMAX = ENUMTY.TMAX;
 
@@ -4142,6 +4142,7 @@ extern (C++) final class TypeFunction : TypeNext
     bool isscope;               // true: 'this' is scope
     bool isreturninferred;      // true: 'this' is return from inference
     bool isscopeinferred;       // true: 'this' is scope from inference
+    bool islive;                // is @live
     LINK linkage;               // calling convention
     TRUST trust;                // level of trust
     PURE purity = PURE.impure;
@@ -4167,6 +4168,8 @@ extern (C++) final class TypeFunction : TypeNext
             this.isnogc = true;
         if (stc & STC.property)
             this.isproperty = true;
+        if (stc & STC.live)
+            this.islive = true;
 
         if (stc & STC.ref_)
             this.isref = true;
@@ -4736,6 +4739,7 @@ extern (C++) final class TypeFunction : TypeNext
                              * copytmp.__copyCtor(arg);
                              */
                             auto tmp = new VarDeclaration(arg.loc, tprm, Identifier.generateId("__copytmp"), null);
+                            tmp.storage_class = STC.rvalue | STC.temp | STC.ctfe;
                             tmp.dsymbolSemantic(sc);
                             Expression ve = new VarExp(arg.loc, tmp);
                             Expression e = new DotIdExp(arg.loc, ve, Id.ctor);
@@ -5154,11 +5158,13 @@ extern (C++) final class TypeTraits : Type
  */
 extern (C++) final class TypeMixin : Type
 {
+    Loc loc;
     Expressions* exps;
 
-    extern (D) this(Expressions* exps)
+    extern (D) this(const ref Loc loc, Expressions* exps)
     {
         super(Tmixin);
+        this.loc = loc;
         this.exps = exps;
     }
 
@@ -5169,7 +5175,21 @@ extern (C++) final class TypeMixin : Type
 
     override Type syntaxCopy()
     {
-        return new TypeMixin(Expression.arraySyntaxCopy(exps));
+        return new TypeMixin(loc, Expression.arraySyntaxCopy(exps));
+    }
+
+   override Dsymbol toDsymbol(Scope* sc)
+    {
+        Type t;
+        Expression e;
+        Dsymbol s;
+        resolve(this, loc, sc, &e, &t, &s);
+        if (t)
+            s = t.toDsymbol(sc);
+        else if (e)
+            s = getDsymbol(e);
+
+        return s;
     }
 
     override void accept(Visitor v)

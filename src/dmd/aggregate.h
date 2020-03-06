@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -22,7 +22,6 @@ class FuncDeclaration;
 class CtorDeclaration;
 class DtorDeclaration;
 class NewDeclaration;
-class DeleteDeclaration;
 class InterfaceDeclaration;
 class TypeInfoClassDeclaration;
 class VarDeclaration;
@@ -83,7 +82,6 @@ public:
     VarDeclarations fields;     // VarDeclaration fields
     Sizeok sizeok;              // set when structsize contains valid data
     Dsymbol *deferred;          // any deferred semantic2() or semantic3() symbol
-    bool isdeprecated;          // true if deprecated
 
     ClassKind::Type classKind;  // specifies the linkage type
 
@@ -101,7 +99,6 @@ public:
     FuncDeclarations invs;              // Array of invariants
     FuncDeclaration *inv;               // invariant
     NewDeclaration *aggNew;             // allocator
-    DeleteDeclaration *aggDelete;       // deallocator
 
     Dsymbol *ctor;                      // CtorDeclaration or TemplateDeclaration
 
@@ -130,6 +127,7 @@ public:
     bool fill(Loc loc, Expressions *elements, bool ctorinit);
     Type *getType();
     bool isDeprecated() const;         // is aggregate deprecated?
+    void setDeprecated();
     bool isNested() const;
     bool isExport() const;
     Dsymbol *searchCtor();

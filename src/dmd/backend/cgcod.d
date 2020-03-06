@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgcod.d, backend/cgcod.d)
@@ -29,7 +29,6 @@ import core.stdc.string;
 import dmd.backend.backend;
 import dmd.backend.cc;
 import dmd.backend.cdef;
-import dmd.backend.cg87;
 import dmd.backend.code;
 import dmd.backend.cgcse;
 import dmd.backend.code_x86;
@@ -632,7 +631,8 @@ tryagain:
                start of the last instruction
              */
             /* Instead, try offset to cleanup code  */
-            objmod.linnum(sfunc.Sfunc.Fendline,sfunc.Sseg,funcoffset + retoffset);
+            if (retoffset < sfunc.Ssize)
+                objmod.linnum(sfunc.Sfunc.Fendline,sfunc.Sseg,funcoffset + retoffset);
 
         static if (TARGET_WINDOS && MARS)
         {
@@ -698,11 +698,7 @@ tryagain:
 
     assert(global87.stackused == 0);             /* nobody in 8087 stack         */
 
-    /* Clean up ndp save array  */
-    mem_free(NDP.save);
-    NDP.save = null;
-    NDP.savetop = 0;
-    NDP.savemax = 0;
+    global87.save.__dtor();       // clean up ndp save array
 }
 
 /*********************************************
@@ -919,7 +915,7 @@ else
     //printf("CSoff = x%x, size = x%x, alignment = %x\n",
         //cast(int)CSoff, CSE.size(), cast(int)CSE.alignment);
 
-    NDPoff = alignsection(CSoff - NDP.savetop * tysize(TYldouble), REGSIZE, bias);
+    NDPoff = alignsection(CSoff - global87.save.length * tysize(TYldouble), REGSIZE, bias);
 
     regm_t topush = fregsaved & ~mfuncreg;          // mask of registers that need saving
     pushoffuse = false;

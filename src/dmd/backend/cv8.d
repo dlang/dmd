@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:    Copyright (C) 2012-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:    Copyright (C) 2012-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cv8.d, backend/cv8.d)
@@ -37,7 +37,7 @@ import dmd.backend.outbuf;
 import dmd.backend.rtlsym;
 import dmd.backend.ty;
 import dmd.backend.type;
-import dmd.backend.varstats;
+import dmd.backend.dvarstats;
 import dmd.backend.xmm;
 
 extern (C++):
@@ -367,7 +367,7 @@ void cv8_func_term(Symbol *sfunc)
     //printf("cv8_func_term(%s)\n", sfunc.Sident);
 
     assert(currentfuncdata.sfunc == sfunc);
-    currentfuncdata.section_length = cast(uint)(retoffset + retsize);
+    currentfuncdata.section_length = cast(uint)sfunc.Ssize;
 
     funcdata.write(&currentfuncdata, currentfuncdata.sizeof);
 

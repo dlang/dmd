@@ -19,3 +19,24 @@ static assert(BothMatch!BothMatch == "alias");
 static assert(BothMatch!Struct == "type");
 static assert(BothMatch!foo9029 == "alias");
 static assert(BothMatch!5 == "alias");
+
+// https://issues.dlang.org/show_bug.cgi?id=19884
+mixin template genCtEvaluate()
+{
+    void evaluate(alias op)() { }
+}
+struct S
+{
+    mixin genCtEvaluate!() mixinEval;
+    alias evaluate = mixinEval.evaluate;
+    void evaluate() { }
+}
+alias List(Ops...) = Ops;
+void main()
+{
+    S g;
+    foreach (op; List!(0))
+    {
+        g.evaluate!op();
+    }
+}

@@ -45,10 +45,26 @@ void test17034()
 
 /***************************************************/
 
+// https://issues.dlang.org/show_bug.cgi?id=20441
+
+const(char)* moo(const (char) *s)
+{
+    return s;
+}
+
+void test20441()
+{
+    const(char) *x = "abc".ptr;
+    assert( moo(x) - x == 0 );
+}
+
+/***************************************************/
+
 int main()
 {
     test11310();
     test17034();
+    test20441();
 
     printf("Success\n");
     return 0;

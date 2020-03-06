@@ -18,7 +18,7 @@ extern(C) int atoi(const char *);
             s ~= "hello\n";
         for (loop = 0; loop < count; loop ++)
             s ~= "h";
-        printf ("%d\n", s.length);
+        printf ("%zd\n", s.length);
         //printf("%.*s\n", s[0..100]);
         assert(s.length == count * (6 + 1));
         s.length = 3;

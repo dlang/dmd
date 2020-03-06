@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/statementsem.d, _statementsem.d)
@@ -48,13 +48,13 @@ import dmd.mtype;
 import dmd.nogc;
 import dmd.opover;
 import dmd.root.outbuffer;
+import dmd.root.string;
 import dmd.semantic2;
 import dmd.sideeffect;
 import dmd.statement;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
-import dmd.utils;
 import dmd.visitor;
 
 /*****************************************
@@ -671,9 +671,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         {
             auto needExpansion = args[$-1];
             assert(sc);
-            auto previous = sc.scopesym;
         }
-        alias s = fs;
 
         auto loc = fs.loc;
         size_t dim = fs.parameters.dim;
@@ -913,7 +911,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     var = new AliasDeclaration(loc, ident, t);
                     if (paramtype)
                     {
-                        fs.error("cannot specify element type for symbol `%s`", s.toChars());
+                        fs.error("cannot specify element type for symbol `%s`", fs.toChars());
                         setError();
                         return false;
                     }
@@ -989,14 +987,12 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             else static if (!isDecl)
             {
                 auto fwd = new ForwardingStatement(loc, res);
-                previous = fwd.sym;
                 res = fwd;
             }
             else
             {
                 import dmd.attrib: ForwardingAttribDeclaration;
                 auto res = new ForwardingAttribDeclaration(st);
-                previous = res.sym;
             }
             static if (!isDecl)
             {
@@ -3284,41 +3280,9 @@ else
                  *    return x; return 3;  // ok, x can be a value
                  */
             }
-
-            // handle NRVO
-            if (fd.nrvo_can && rs.exp.op == TOK.variable)
-            {
-                VarExp ve = cast(VarExp)rs.exp;
-                VarDeclaration v = ve.var.isVarDeclaration();
-                if (tf.isref)
-                {
-                    // Function returns a reference
-                    if (!inferRef)
-                        fd.nrvo_can = 0;
-                }
-                else if (!v || v.isOut() || v.isRef())
-                    fd.nrvo_can = 0;
-                else if (fd.nrvo_var is null)
-                {
-                    if (!v.isDataseg() && !v.isParameter() && v.toParent2() == fd)
-                    {
-                        //printf("Setting nrvo to %s\n", v.toChars());
-                        fd.nrvo_var = v;
-                    }
-                    else
-                        fd.nrvo_can = 0;
-                }
-                else if (fd.nrvo_var != v)
-                    fd.nrvo_can = 0;
-            }
-            else //if (!exp.isLvalue())    // keep NRVO-ability
-                fd.nrvo_can = 0;
         }
         else
         {
-            // handle NRVO
-            fd.nrvo_can = 0;
-
             // infer return type
             if (fd.inferRetType)
             {

@@ -1,10 +1,34 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Defines `TemplateDeclaration`, `TemplateInstance` and a few utilities
  *
- * Template implementation.
+ * This modules holds the two main template types:
+ * `TemplateDeclaration`, which is the user-provided declaration of a template,
+ * and `TemplateInstance`, which is an instance of a `TemplateDeclaration`
+ * with specific arguments.
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Template_Parameter:
+ * Additionally, the classes for template parameters are defined in this module.
+ * The base class, `TemplateParameter`, is inherited by:
+ * - `TemplateTypeParameter`
+ * - `TemplateThisParameter`
+ * - `TemplateValueParameter`
+ * - `TemplateAliasParameter`
+ * - `TemplateTupleParameter`
+ *
+ * Templates_semantic:
+ * The start of the template instantiation process looks like this:
+ * - A `TypeInstance` or `TypeIdentifier` is encountered.
+ *   `TypeInstance` have a bang (e.g. `Foo!(arg)`) while `TypeIdentifier` don't.
+ * - A `TemplateInstance` is instantiated
+ * - Semantic is run on the `TemplateInstance` (see `dmd.dsymbolsem`)
+ * - The `TemplateInstance` search for its `TemplateDeclaration`,
+ *   runs semantic on the template arguments and deduce the best match
+ *   among the possible overloads.
+ * - The `TemplateInstance` search for existing instances with the same
+ *   arguments, and uses it if found.
+ * - Otherwise, the rest of semantic is run on the `TemplateInstance`.
+ *
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dtemplate.d, _dtemplate.d)
@@ -171,6 +195,8 @@ Dsymbol getDsymbol(RootObject oarg)
             return fe.td ? fe.td : fe.fd;
         else if (auto te = ea.isTemplateExp())
             return te.td;
+        else if (auto te = ea.isScopeExp())
+            return te.sds;
         else
             return null;
     }
@@ -1314,6 +1340,11 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         // Set up scope for parameters
         Scope* paramscope = scopeForTemplateParameters(ti,sc);
 
+        // Mark the parameter scope as deprecated if the templated
+        // function is deprecated (since paramscope.enclosing is the
+        // calling scope already)
+        paramscope.stc |= fd.storage_class & STC.deprecated_;
+
         TemplateTupleParameter tp = isVariadic();
         Tuple declaredTuple = null;
 
@@ -2163,6 +2194,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             sc2.parent = ti;
             sc2.tinst = ti;
             sc2.minst = sc.minst;
+            sc2.stc |= fd.storage_class & STC.deprecated_;
 
             fd = doHeaderInstantiation(ti, sc2, fd, tthis, fargs);
 
@@ -2235,12 +2267,16 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         if (ta)
         {
             //printf("type %s\n", ta.toChars());
-            d = new AliasDeclaration(Loc.initial, tp.ident, ta);
+            auto ad = new AliasDeclaration(Loc.initial, tp.ident, ta);
+            ad.wasTemplateParameter = true;
+            d = ad;
         }
         else if (sa)
         {
             //printf("Alias %s %s;\n", sa.ident.toChars(), tp.ident.toChars());
-            d = new AliasDeclaration(Loc.initial, tp.ident, sa);
+            auto ad = new AliasDeclaration(Loc.initial, tp.ident, sa);
+            ad.wasTemplateParameter = true;
+            d = ad;
         }
         else if (ea)
         {
@@ -4647,6 +4683,12 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
 
         override void visit(ArrayLiteralExp e)
         {
+            // https://issues.dlang.org/show_bug.cgi?id=20092
+            if (e.elements && e.elements.dim && e.type.toBasetype().nextOf().ty == Tvoid)
+            {
+                result = deduceEmptyArrayElement();
+                return;
+            }
             if ((!e.elements || !e.elements.dim) && e.type.toBasetype().nextOf().ty == Tvoid && tparam.ty == Tarray)
             {
                 // tparam:T[] <- e:[] (void[])
@@ -6364,7 +6406,15 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                         .error(loc, "`%s` is not a valid template instance, because `%s` is not a template declaration but a type (`%s == %s`)", toChars(), id.toChars(), id.toChars(), s.getType.kind());
                         return false;
                     }
-                    s = s2;
+                    // because s can be the alias created for a TemplateParameter
+                    const AliasDeclaration ad = s.isAliasDeclaration();
+                    version (none)
+                    {
+                        if (ad && ad.wasTemplateParameter)
+                            printf("`%s` is an alias created from a template parameter\n", s.toChars());
+                    }
+                    if (!ad || !ad.wasTemplateParameter)
+                        s = s2;
                 }
                 debug
                 {
@@ -7246,10 +7296,10 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         __gshared int nest;
         // extracted to a function to allow windows SEH to work without destructors in the same function
         //printf("%d\n", nest);
-        if (++nest > 500)
+        if (++nest > global.recursionLimit)
         {
             global.gag = 0; // ensure error message gets printed
-            error("recursive expansion");
+            error("recursive expansion exceeded allowed nesting limit");
             fatal();
         }
 
@@ -7263,10 +7313,10 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         // extracted to a function to allow windows SEH to work without destructors in the same function
         __gshared int nest;
         //printf("%d\n", nest);
-        if (++nest > 300)
+        if (++nest > global.recursionLimit)
         {
             global.gag = 0; // ensure error message gets printed
-            error("recursive expansion");
+            error("recursive expansion exceeded allowed nesting limit");
             fatal();
         }
 
@@ -7938,10 +7988,13 @@ MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t i, Templ
                  *  template X(T) {}        // T => sa
                  */
             }
-            else if (ta)
+            else if (ta && ta.ty != Tident)
             {
-                /* Match any type to alias parameters, but prefer type parameter.
+                /* Match any type that's not a TypeIdentifier to alias parameters,
+                 * but prefer type parameter.
                  * template X(alias a) { }  // a == ta
+                 *
+                 * TypeIdentifiers are excluded because they might be not yet resolved aliases.
                  */
                 m = MATCH.convert;
             }

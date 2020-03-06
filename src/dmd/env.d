@@ -5,7 +5,7 @@ import core.sys.posix.stdlib;
 import dmd.globals;
 import dmd.root.array;
 import dmd.root.rmem;
-import dmd.utils;
+import dmd.root.string;
 
 version (Windows)
     private extern (C) int putenv(const char*) nothrow;

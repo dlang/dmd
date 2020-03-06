@@ -4,7 +4,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/escape.d, _escape.d)
@@ -1092,15 +1092,20 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
     {
         if (log) printf("byref `%s`\n", v.toChars());
 
-        void escapingRef(VarDeclaration v)
+        // 'emitError' tells us whether to emit an error or a deprecation,
+        // depending on the flag passed to the CLI for DIP25
+        void escapingRef(VarDeclaration v, bool emitError = true)
         {
             if (!gag)
             {
                 const(char)* kind = (v.storage_class & STC.parameter) ? "parameter" : "local";
-                error(e.loc, "copying `%s` into allocated memory escapes a reference to %s variable `%s`",
-                    e.toChars(), kind, v.toChars());
+                const(char)* msg = "copying `%s` into allocated memory escapes a reference to %s variable `%s`";
+                if (emitError)
+                    error(e.loc, msg, e.toChars(), kind, v.toChars());
+                else
+                    deprecation(e.loc, msg, e.toChars(), kind, v.toChars());
             }
-            result = true;
+            result |= emitError;
         }
 
         if (v.refTo)
@@ -1125,17 +1130,19 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
          */
         if (v.storage_class & (STC.ref_ | STC.out_))
         {
-            if (global.params.useDIP25 &&
-                     sc._module && sc._module.isRoot())
+            // DIP25
+            if (sc._module && sc._module.isRoot())
             {
+                // If -preview=dip25 is used, the user wants an error
+                // Otherwise, issue a deprecation
+                const emitError = global.params.useDIP25;
                 // https://dlang.org/spec/function.html#return-ref-parameters
                 // Only look for errors if in module listed on command line
-
                 if (p == sc.func)
                 {
                     //printf("escaping reference to local ref variable %s\n", v.toChars());
                     //printf("storage class = x%llx\n", v.storage_class);
-                    escapingRef(v);
+                    escapingRef(v, emitError);
                     continue;
                 }
                 // Don't need to be concerned if v's parent does not return a ref
@@ -1145,10 +1152,12 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
                     TypeFunction tf = cast(TypeFunction)fd.type;
                     if (tf.isref)
                     {
-                        if (!gag)
-                            error(e.loc, "storing reference to outer local variable `%s` into allocated memory causes it to escape",
-                                  v.toChars());
-                        result = true;
+                        const(char)* msg = "storing reference to outer local variable `%s` into allocated memory causes it to escape";
+                        if (!gag && emitError)
+                            error(e.loc, msg, v.toChars());
+                        else if (!gag)
+                            deprecation(e.loc, msg, v.toChars());
+                        result |= emitError;
                         continue;
                     }
                 }
@@ -1313,7 +1322,9 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
     {
         if (log) printf("byref `%s`\n", v.toChars());
 
-        void escapingRef(VarDeclaration v)
+        // 'emitError' tells us whether to emit an error or a deprecation,
+        // depending on the flag passed to the CLI for DIP25
+        void escapingRef(VarDeclaration v, bool emitError = true)
         {
             if (!gag)
             {
@@ -1322,7 +1333,10 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                     msg = "returning `%s` escapes a reference to parameter `%s`, perhaps annotate with `return`";
                 else
                     msg = "returning `%s` escapes a reference to local variable `%s`";
-                error(e.loc, msg, e.toChars(), v.toChars());
+                if (emitError)
+                    error(e.loc, msg, e.toChars(), v.toChars());
+                else
+                    deprecation(e.loc, msg, e.toChars(), v.toChars());
             }
             result = true;
         }
@@ -1371,17 +1385,18 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
             {
                 inferReturn(sc.func, v);        // infer addition of 'return'
             }
-            else if (global.params.useDIP25 &&
-                     sc._module && sc._module.isRoot())
+            else if (sc._module && sc._module.isRoot())
             {
+                // If -preview=dip25 is used, the user wants an error
+                // Otherwise, issue a deprecation
+                const emitError = global.params.useDIP25;
                 // https://dlang.org/spec/function.html#return-ref-parameters
                 // Only look for errors if in module listed on command line
-
                 if (p == sc.func)
                 {
                     //printf("escaping reference to local ref variable %s\n", v.toChars());
                     //printf("storage class = x%llx\n", v.storage_class);
-                    escapingRef(v);
+                    escapingRef(v, emitError);
                     continue;
                 }
                 // Don't need to be concerned if v's parent does not return a ref
@@ -1391,8 +1406,11 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                     TypeFunction tf = cast(TypeFunction)fd.type;
                     if (tf.isref)
                     {
-                        if (!gag)
-                            error(e.loc, "escaping reference to outer local variable `%s`", v.toChars());
+                        const(char)* msg = "escaping reference to outer local variable `%s`";
+                        if (!gag && emitError)
+                            error(e.loc, msg, v.toChars());
+                        else if (!gag)
+                            deprecation(e.loc, msg, v.toChars());
                         result = true;
                         continue;
                     }
@@ -1477,8 +1495,9 @@ private void inferReturn(FuncDeclaration fd, VarDeclaration v)
  * Params:
  *      e = expression to be returned by value
  *      er = where to place collected data
+ *      live = if @live semantics apply, i.e. expressions `p`, `*p`, `**p`, etc., all return `p`.
  */
-private void escapeByValue(Expression e, EscapeByResults* er)
+void escapeByValue(Expression e, EscapeByResults* er, bool live = false)
 {
     //printf("[%s] escapeByValue, e: %s\n", e.loc.toChars(), e.toChars());
     extern (C++) final class EscapeVisitor : Visitor
@@ -1486,10 +1505,12 @@ private void escapeByValue(Expression e, EscapeByResults* er)
         alias visit = Visitor.visit;
     public:
         EscapeByResults* er;
+        bool live;
 
-        extern (D) this(EscapeByResults* er)
+        extern (D) this(EscapeByResults* er, bool live)
         {
             this.er = er;
+            this.live = live;
         }
 
         override void visit(Expression e)
@@ -1503,7 +1524,7 @@ private void escapeByValue(Expression e, EscapeByResults* er)
              * but it'll be placed in static data so no need to check it.
              */
             if (e.e1.op != TOK.structLiteral)
-                escapeByRef(e.e1, er);
+                escapeByRef(e.e1, er, live);
         }
 
         override void visit(SymOffExp e)
@@ -1526,20 +1547,29 @@ private void escapeByValue(Expression e, EscapeByResults* er)
                 er.byvalue.push(e.var);
         }
 
+        override void visit(PtrExp e)
+        {
+            if (live && e.type.hasPointers())
+                e.e1.accept(this);
+        }
+
         override void visit(DotVarExp e)
         {
             auto t = e.e1.type.toBasetype();
-            if (t.ty == Tstruct)
+            if (!live && t.ty == Tstruct ||
+                live && e.type.hasPointers())
+            {
                 e.e1.accept(this);
+            }
         }
 
         override void visit(DelegateExp e)
         {
             Type t = e.e1.type.toBasetype();
             if (t.ty == Tclass || t.ty == Tpointer)
-                escapeByValue(e.e1, er);
+                escapeByValue(e.e1, er, live);
             else
-                escapeByRef(e.e1, er);
+                escapeByRef(e.e1, er, live);
             er.byfunc.push(e.func);
         }
 
@@ -1599,7 +1629,7 @@ private void escapeByValue(Expression e, EscapeByResults* er)
             Type tb = e.type.toBasetype();
             if (tb.ty == Tarray && e.e1.type.toBasetype().ty == Tsarray)
             {
-                escapeByRef(e.e1, er);
+                escapeByRef(e.e1, er, live);
             }
             else
                 e.e1.accept(this);
@@ -1627,7 +1657,7 @@ private void escapeByValue(Expression e, EscapeByResults* er)
             {
                 Type tb = e.type.toBasetype();
                 if (tb.ty != Tsarray)
-                    escapeByRef(e.e1, er);
+                    escapeByRef(e.e1, er, live);
             }
             else
                 e.e1.accept(this);
@@ -1635,7 +1665,8 @@ private void escapeByValue(Expression e, EscapeByResults* er)
 
         override void visit(IndexExp e)
         {
-            if (e.e1.type.toBasetype().ty == Tsarray)
+            if (e.e1.type.toBasetype().ty == Tsarray ||
+                live && e.type.hasPointers())
             {
                 e.e1.accept(this);
             }
@@ -1708,7 +1739,19 @@ private void escapeByValue(Expression e, EscapeByResults* er)
                         if ((stc & (STC.scope_)) && (stc & STC.return_))
                             arg.accept(this);
                         else if ((stc & (STC.ref_)) && (stc & STC.return_))
-                            escapeByRef(arg, er);
+                        {
+                            if (tf.isref)
+                            {
+                                /* Treat:
+                                 *   ref P foo(return ref P p)
+                                 * as:
+                                 *   p;
+                                 */
+                                arg.accept(this);
+                            }
+                            else
+                                escapeByRef(arg, er, live);
+                        }
                     }
                 }
             }
@@ -1723,14 +1766,26 @@ private void escapeByValue(Expression e, EscapeByResults* er)
                     if (ad.isClassDeclaration() || tf.isscope)       // this is 'return scope'
                         dve.e1.accept(this);
                     else if (ad.isStructDeclaration()) // this is 'return ref'
-                        escapeByRef(dve.e1, er);
+                    {
+                        if (tf.isref)
+                        {
+                            /* Treat calling:
+                             *   struct S { ref S foo() return; }
+                             * as:
+                             *   this;
+                             */
+                            dve.e1.accept(this);
+                        }
+                        else
+                            escapeByRef(dve.e1, er, live);
+                    }
                 }
                 else if (dve.var.storage_class & STC.return_ || tf.isreturn)
                 {
                     if (dve.var.storage_class & STC.scope_)
                         dve.e1.accept(this);
                     else if (dve.var.storage_class & STC.ref_)
-                        escapeByRef(dve.e1, er);
+                        escapeByRef(dve.e1, er, live);
                 }
                 // If it's also a nested function that is 'return scope'
                 if (fd && fd.isNested())
@@ -1764,7 +1819,7 @@ private void escapeByValue(Expression e, EscapeByResults* er)
         }
     }
 
-    scope EscapeVisitor v = new EscapeVisitor(er);
+    scope EscapeVisitor v = new EscapeVisitor(er, live);
     e.accept(v);
 }
 
@@ -1785,8 +1840,9 @@ private void escapeByValue(Expression e, EscapeByResults* er)
  * Params:
  *      e = expression to be returned by 'ref'
  *      er = where to place collected data
+ *      live = if @live semantics apply, i.e. expressions `p`, `*p`, `**p`, etc., all return `p`.
  */
-private void escapeByRef(Expression e, EscapeByResults* er)
+void escapeByRef(Expression e, EscapeByResults* er, bool live = false)
 {
     //printf("[%s] escapeByRef, e: %s\n", e.loc.toChars(), e.toChars());
     extern (C++) final class EscapeRefVisitor : Visitor
@@ -1794,10 +1850,12 @@ private void escapeByRef(Expression e, EscapeByResults* er)
         alias visit = Visitor.visit;
     public:
         EscapeByResults* er;
+        bool live;
 
-        extern (D) this(EscapeByResults* er)
+        extern (D) this(EscapeByResults* er, bool live)
         {
             this.er = er;
+            this.live = live;
         }
 
         override void visit(Expression e)
@@ -1830,14 +1888,14 @@ private void escapeByRef(Expression e, EscapeByResults* er)
         override void visit(ThisExp e)
         {
             if (e.var && e.var.toParent2().isFuncDeclaration().isThis2)
-                escapeByValue(e, er);
+                escapeByValue(e, er, live);
             else if (e.var)
                 er.byref.push(e.var);
         }
 
         override void visit(PtrExp e)
         {
-            escapeByValue(e.e1, er);
+            escapeByValue(e.e1, er, live);
         }
 
         override void visit(IndexExp e)
@@ -1861,7 +1919,7 @@ private void escapeByRef(Expression e, EscapeByResults* er)
             }
             else if (tb.ty == Tarray)
             {
-                escapeByValue(e.e1, er);
+                escapeByValue(e.e1, er, live);
             }
         }
 
@@ -1882,7 +1940,7 @@ private void escapeByRef(Expression e, EscapeByResults* er)
         {
             Type t1b = e.e1.type.toBasetype();
             if (t1b.ty == Tclass)
-                escapeByValue(e.e1, er);
+                escapeByValue(e.e1, er, live);
             else
                 e.e1.accept(this);
         }
@@ -1948,7 +2006,7 @@ private void escapeByRef(Expression e, EscapeByResults* er)
                                         er.byexp.push(de);
                                 }
                                 else
-                                    escapeByValue(arg, er);
+                                    escapeByValue(arg, er, live);
                             }
                         }
                     }
@@ -1968,7 +2026,7 @@ private void escapeByRef(Expression e, EscapeByResults* er)
                     if (dve.var.storage_class & STC.return_ || tf.isreturn)
                     {
                         if (dve.var.storage_class & STC.scope_ || tf.isscope)
-                            escapeByValue(dve.e1, er);
+                            escapeByValue(dve.e1, er, live);
                         else if (dve.var.storage_class & STC.ref_ || tf.isref)
                             dve.e1.accept(this);
                     }
@@ -1983,7 +2041,7 @@ private void escapeByRef(Expression e, EscapeByResults* er)
                 // If it's a delegate, check it too
                 if (e.e1.op == TOK.variable && t1.ty == Tdelegate)
                 {
-                    escapeByValue(e.e1, er);
+                    escapeByValue(e.e1, er, live);
                 }
 
                 /* If it's a nested function that is 'return ref'
@@ -2004,7 +2062,7 @@ private void escapeByRef(Expression e, EscapeByResults* er)
         }
     }
 
-    scope EscapeRefVisitor v = new EscapeRefVisitor(er);
+    scope EscapeRefVisitor v = new EscapeRefVisitor(er, live);
     e.accept(v);
 }
 
@@ -2012,7 +2070,7 @@ private void escapeByRef(Expression e, EscapeByResults* er)
 /************************************
  * Aggregate the data collected by the escapeBy??() functions.
  */
-private struct EscapeByResults
+struct EscapeByResults
 {
     VarDeclarations byref;      // array into which variables being returned by ref are inserted
     VarDeclarations byvalue;    // array into which variables with values containing pointers are inserted

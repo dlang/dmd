@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dscope.d, _dscope.d)
@@ -523,17 +523,25 @@ struct Scope
             Module.clearCache();
             Dsymbol scopesym = null;
             Dsymbol s = sc.search(Loc.initial, id, &scopesym, IgnoreErrors);
-            if (s)
+            if (!s)
+                return null;
+
+            // Do not show `@disable`d declarations
+            if (auto decl = s.isDeclaration())
+                if (decl.storage_class & STC.disable)
+                    return null;
+            // Or `deprecated` ones if we're not in a deprecated scope
+            if (s.isDeprecated() && !sc.isDeprecated())
+                return null;
+
+            for (cost = 0; sc; sc = sc.enclosing, ++cost)
+                if (sc.scopesym == scopesym)
+                    break;
+            if (scopesym != s.parent)
             {
-                for (cost = 0; sc; sc = sc.enclosing, ++cost)
-                    if (sc.scopesym == scopesym)
-                        break;
-                if (scopesym != s.parent)
-                {
-                    ++cost; // got to the symbol through an import
-                    if (s.prot().kind == Prot.Kind.private_)
-                        return null;
-                }
+                ++cost; // got to the symbol through an import
+                if (s.prot().kind == Prot.Kind.private_)
+                    return null;
             }
             return s;
         }

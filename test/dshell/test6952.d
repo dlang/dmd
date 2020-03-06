@@ -25,7 +25,12 @@ void main()
 
     // due to `-v` the last line should be the command past to the linker driver; probably `cc`
     immutable lines = result.output.split("\n");
-    auto ccLine = lines.find!(a => a.startsWith("cc"))[0];
+    auto foundLines = lines.find!(a => a.startsWith("cc"));
+    if (!foundLines.length)
+        foundLines = lines.find!(a => a.startsWith("gcc"));
+    if (!foundLines.length)
+        assert(0, "Couldn't find 'cc' in compiler output:\n" ~ result.output);
+    auto ccLine = foundLines[0];
 
     // The arguments prefixed with `-Xcc` should not have an
     // additional `-Xlinker` prepended to them

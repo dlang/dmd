@@ -5,7 +5,7 @@
  * This module contains high-level interfaces for interacting
   with DMD as a library.
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/id.d, _id.d)
@@ -16,12 +16,13 @@ module dmd.frontend;
 
 import dmd.astcodegen : ASTCodegen;
 import dmd.dmodule : Module;
-import dmd.errors : DiagnosticReporter;
-import dmd.globals : CHECKENABLE;
+import dmd.globals : CHECKENABLE, Loc, DiagnosticReporting;
+import dmd.errors : DiagnosticHandler, diagnosticHandler, Classification;
 
 import std.range.primitives : isInputRange, ElementType;
 import std.traits : isNarrowString;
 import std.typecons : Tuple;
+import core.stdc.stdarg;
 
 version (Windows) private enum sep = ";", exe = ".exe";
 version (Posix) private enum sep = ":", exe = "";
@@ -99,10 +100,12 @@ Initializes the global variables of the DMD compiler.
 This needs to be done $(I before) calling any function.
 
 Params:
+    handler = a delegate to configure what to do with diagnostics (other than printing to console or stderr).
     contractChecks = indicates which contracts should be enabled or not
     versionIdentifiers = a list of version identifiers that should be enabled
 */
 void initDMD(
+    DiagnosticHandler handler = null,
     const string[] versionIdentifiers = [],
     ContractChecks contractChecks = ContractChecks()
 )
@@ -126,6 +129,8 @@ void initDMD(
     import dmd.mtype : Type;
     import dmd.objc : Objc;
     import dmd.target : target;
+
+    diagnosticHandler = handler;
 
     global._init();
 
@@ -175,6 +180,8 @@ void deinitializeDMD()
     import dmd.mtype : Type;
     import dmd.objc : Objc;
     import dmd.target : target;
+
+    diagnosticHandler = null;
 
     global.deinitialize();
 
@@ -371,21 +378,12 @@ Parse a module from a string.
 Params:
     fileName = file to parse
     code = text to use instead of opening the file
-    diagnosticReporter = the diagnostic reporter to use. By default a
-        diagnostic reporter which prints to stderr will be used
 
 Returns: the parsed module object
 */
 Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(AST = ASTCodegen)(
     const(char)[] fileName,
-    const(char)[] code = null,
-    DiagnosticReporter diagnosticReporter = defaultDiagnosticReporter
-)
-in
-{
-    assert(diagnosticReporter !is null);
-}
-body
+    const(char)[] code = null)
 {
     import dmd.root.file : File, FileBuffer;
 
@@ -413,7 +411,7 @@ body
         m.loadSourceBuffer(Loc.initial, readResult);
     }
 
-    m.parse!AST(diagnosticReporter);
+    m.parseModule!AST();
 
     Diagnostics diagnostics = {
         errors: global.errors,
@@ -468,10 +466,217 @@ string prettyPrint(Module m)
     return generated.assumeUnique;
 }
 
-private DiagnosticReporter defaultDiagnosticReporter()
+/// Interface for diagnostic reporting.
+abstract class DiagnosticReporter
 {
-    import dmd.globals : global;
-    import dmd.errors : StderrDiagnosticReporter;
+    import dmd.console : Color;
 
-    return new StderrDiagnosticReporter(global.params.useDeprecated);
+nothrow:
+    DiagnosticHandler prevHandler;
+
+    this()
+    {
+        prevHandler = diagnosticHandler;
+        diagnosticHandler = &diagHandler;
+    }
+
+    ~this()
+    {
+        // assumed to be used scoped
+        diagnosticHandler = prevHandler;
+    }
+
+    bool diagHandler(const ref Loc loc, Color headerColor, const(char)* header,
+                     const(char)* format, va_list ap, const(char)* p1, const(char)* p2)
+    {
+        import core.stdc.string;
+
+        // recover type from header and color
+        if (strncmp (header, "Error:", 6) == 0)
+            return error(loc, format, ap, p1, p2);
+        if (strncmp (header, "Warning:", 8) == 0)
+            return warning(loc, format, ap, p1, p2);
+        if (strncmp (header, "Deprecation:", 12) == 0)
+            return deprecation(loc, format, ap, p1, p2);
+
+        if (cast(Classification)headerColor == Classification.warning)
+            return warningSupplemental(loc, format, ap, p1, p2);
+        if (cast(Classification)headerColor == Classification.deprecation)
+            return deprecationSupplemental(loc, format, ap, p1, p2);
+
+        return errorSupplemental(loc, format, ap, p1, p2);
+    }
+
+    /// Returns: the number of errors that occurred during lexing or parsing.
+    abstract int errorCount();
+
+    /// Returns: the number of warnings that occurred during lexing or parsing.
+    abstract int warningCount();
+
+    /// Returns: the number of deprecations that occurred during lexing or parsing.
+    abstract int deprecationCount();
+
+    /**
+    Reports an error message.
+
+    Params:
+        loc = Location of error
+        format = format string for error
+        args = printf-style variadic arguments
+        p1 = additional message prefix
+        p2 = additional message prefix
+
+    Returns: false if the message should also be printed to stderr, true otherwise
+    */
+    abstract bool error(const ref Loc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2);
+
+    /**
+    Reports additional details about an error message.
+
+    Params:
+        loc = Location of error
+        format = format string for supplemental message
+        args = printf-style variadic arguments
+        p1 = additional message prefix
+        p2 = additional message prefix
+
+    Returns: false if the message should also be printed to stderr, true otherwise
+    */
+    abstract bool errorSupplemental(const ref Loc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2);
+
+    /**
+    Reports a warning message.
+
+    Params:
+        loc = Location of warning
+        format = format string for warning
+        args = printf-style variadic arguments
+        p1 = additional message prefix
+        p2 = additional message prefix
+
+    Returns: false if the message should also be printed to stderr, true otherwise
+    */
+    abstract bool warning(const ref Loc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2);
+
+    /**
+    Reports additional details about a warning message.
+
+    Params:
+        loc = Location of warning
+        format = format string for supplemental message
+        args = printf-style variadic arguments
+        p1 = additional message prefix
+        p2 = additional message prefix
+
+    Returns: false if the message should also be printed to stderr, true otherwise
+    */
+    abstract bool warningSupplemental(const ref Loc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2);
+
+    /**
+    Reports a deprecation message.
+
+    Params:
+        loc = Location of the deprecation
+        format = format string for the deprecation
+        args = printf-style variadic arguments
+        p1 = additional message prefix
+        p2 = additional message prefix
+
+    Returns: false if the message should also be printed to stderr, true otherwise
+    */
+    abstract bool deprecation(const ref Loc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2);
+
+    /**
+    Reports additional details about a deprecation message.
+
+    Params:
+        loc = Location of deprecation
+        format = format string for supplemental message
+        args = printf-style variadic arguments
+        p1 = additional message prefix
+        p2 = additional message prefix
+
+    Returns: false if the message should also be printed to stderr, true otherwise
+    */
+    abstract bool deprecationSupplemental(const ref Loc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2);
 }
+
+/**
+Diagnostic reporter which prints the diagnostic messages to stderr.
+
+This is usually the default diagnostic reporter.
+*/
+final class StderrDiagnosticReporter : DiagnosticReporter
+{
+    private const DiagnosticReporting useDeprecated;
+
+    private int errorCount_;
+    private int warningCount_;
+    private int deprecationCount_;
+
+nothrow:
+
+    /**
+    Initializes this object.
+
+    Params:
+        useDeprecated = indicates how deprecation diagnostics should be
+                        handled
+    */
+    this(DiagnosticReporting useDeprecated)
+    {
+        this.useDeprecated = useDeprecated;
+    }
+
+    override int errorCount()
+    {
+        return errorCount_;
+    }
+
+    override int warningCount()
+    {
+        return warningCount_;
+    }
+
+    override int deprecationCount()
+    {
+        return deprecationCount_;
+    }
+
+    override bool error(const ref Loc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2)
+    {
+        errorCount_++;
+        return false;
+    }
+
+    override bool errorSupplemental(const ref Loc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2)
+    {
+        return false;
+    }
+
+    override bool warning(const ref Loc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2)
+    {
+        warningCount_++;
+        return false;
+    }
+
+    override bool warningSupplemental(const ref Loc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2)
+    {
+        return false;
+    }
+
+    override bool deprecation(const ref Loc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2)
+    {
+        if (useDeprecated == DiagnosticReporting.error)
+            errorCount_++;
+        else
+            deprecationCount_++;
+        return false;
+    }
+
+    override bool deprecationSupplemental(const ref Loc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2)
+    {
+        return false;
+    }
+}
+

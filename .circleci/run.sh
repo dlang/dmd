@@ -12,12 +12,9 @@ BUILD="debug"
 DMD=dmd
 PIC=1
 
-case "${CIRCLE_STAGE}" in
-    build)
-        case $CIRCLE_NODE_INDEX in
-            0) MODEL=64 ;;
-            1) MODEL=32 ;; # broken - https://issues.dlang.org/show_bug.cgi?id=19116
-        esac
+case $CIRCLE_NODE_INDEX in
+    0) MODEL=64 ;;
+    1) MODEL=32 ;; # broken - https://issues.dlang.org/show_bug.cgi?id=19116
 esac
 
 # sometimes $CIRCLE_PR_NUMBER is not defined

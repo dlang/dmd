@@ -2,7 +2,7 @@
  * Compiler implementation of the D programming language
  * http://dlang.org
  *
- * Copyright: Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/man.d, root/_man.d)
@@ -26,7 +26,7 @@ version (Windows)
     {
         assert(strncmp(url, "http://", 7) == 0 || strncmp(url, "https://", 8) == 0);
     }
-    body
+    do
     {
         ShellExecuteA(null, "open", url, null, null, SW_SHOWNORMAL);
     }
@@ -38,7 +38,7 @@ else version (OSX)
     {
         assert(strncmp(url, "http://", 7) == 0 || strncmp(url, "https://", 8) == 0);
     }
-    body
+    do
     {
         pid_t childpid;
         const(char)*[5] args;
@@ -72,7 +72,7 @@ else version (Posix)
     {
         assert(strncmp(url, "http://", 7) == 0 || strncmp(url, "https://", 8) == 0);
     }
-    body
+    do
     {
         pid_t childpid;
         const(char)*[3] args;

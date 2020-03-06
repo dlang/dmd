@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/staticcond.d, _staticcond.d)
@@ -12,7 +12,6 @@
 
 module dmd.staticcond;
 
-import dmd.aliasthis;
 import dmd.arraytypes;
 import dmd.dmodule;
 import dmd.dscope;
@@ -26,7 +25,6 @@ import dmd.mtype;
 import dmd.root.array;
 import dmd.root.outbuffer;
 import dmd.tokens;
-import dmd.utils;
 
 
 
@@ -105,16 +103,6 @@ bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool 
             e.op == TOK.error ||
             e.type.toBasetype() == Type.terror)
         {
-            errors = true;
-            return false;
-        }
-
-        e = resolveAliasThis(sc, e);
-
-        if (!e.type.isBoolean())
-        {
-            original.error("expression `%s` of type `%s` does not have a boolean value",
-                original.toChars(), e.type.toChars());
             errors = true;
             return false;
         }

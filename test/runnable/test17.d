@@ -5,7 +5,7 @@ extern(C) int printf(const char*, ...);
 
 void ulog(string s)
 {
-    printf("%.*s\n",s.length, s.ptr);
+    printf("%.*s\n",cast(int)s.length, s.ptr);
     fflush(stdout);
 }
 

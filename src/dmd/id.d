@@ -5,7 +5,7 @@
  * This module contains the `Id` struct with a list of predefined symbols the
  * compiler knows about.
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/id.d, _id.d)
@@ -27,10 +27,7 @@ extern (C++) struct Id
 {
     static __gshared:
 
-    extern (D)
-    {
-        mixin(msgtable.generate(&identifier));
-    }
+    mixin(msgtable.generate(&identifier));
 
     /**
      * Populates the identifier pool with all predefined symbols.
@@ -136,6 +133,7 @@ immutable Msgtable[] msgtable =
     { "_assert", "assert" },
     { "_unittest", "unittest" },
     { "_body", "body" },
+    { "printf" },
 
     { "TypeInfo" },
     { "TypeInfo_Class" },
@@ -206,6 +204,7 @@ immutable Msgtable[] msgtable =
     { "future", "__future" },
     { "property" },
     { "nogc" },
+    { "live" },
     { "safe" },
     { "trusted" },
     { "system" },
@@ -355,6 +354,8 @@ immutable Msgtable[] msgtable =
     { "_d_arrayappendcTXTrace" },
 
     // varargs implementation
+    { "stdc" },
+    { "stdarg" },
     { "va_start" },
 
     // Builtin functions
@@ -363,22 +364,44 @@ immutable Msgtable[] msgtable =
     { "etc" },
     { "attribute" },
     { "math" },
+    { "trig" },
     { "sin" },
     { "cos" },
     { "tan" },
     { "_sqrt", "sqrt" },
     { "_pow", "pow" },
     { "atan2" },
+    { "rint" },
+    { "ldexp" },
     { "rndtol" },
     { "expm1" },
     { "exp2" },
     { "yl2x" },
     { "yl2xp1" },
     { "fabs" },
+    { "toPrec" },
+    { "simd" },
+    { "__prefetch"},
+    { "__simd_sto"},
+    { "__simd"},
+    { "__simd_ib"},
     { "bitop" },
     { "bsf" },
     { "bsr" },
+    { "btc" },
+    { "btr" },
+    { "bts" },
     { "bswap" },
+    { "volatile"},
+    { "volatileLoad"},
+    { "volatileStore"},
+    { "_popcnt"},
+    { "inp"},
+    { "inpl"},
+    { "inpw"},
+    { "outp"},
+    { "outpl"},
+    { "outpw"},
 
     // Traits
     { "isAbstractClass" },

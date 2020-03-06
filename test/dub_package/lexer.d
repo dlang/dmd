@@ -4,7 +4,6 @@ dependency "dmd" path="../.."
 +/
 void main()
 {
-    import dmd.errors;
     import dmd.globals;
     import dmd.lexer;
     import dmd.tokens;
@@ -19,8 +18,7 @@ void main()
     ];
 
     immutable sourceCode = "void test() {} // foobar";
-    scope diagnosticReporter = new StderrDiagnosticReporter(global.params.useDeprecated);
-    scope lexer = new Lexer("test", sourceCode.ptr, 0, sourceCode.length, 0, 0, diagnosticReporter);
+    scope lexer = new Lexer("test", sourceCode.ptr, 0, sourceCode.length, 0, 0);
     lexer.nextToken;
 
     TOK[] result;

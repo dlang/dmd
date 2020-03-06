@@ -159,7 +159,7 @@ void test7()
     OutBuffer7 ob = new OutBuffer7;
 
     ob.data = new char[10];
-    printf("ob.data.length = %d\n", ob.data.length);
+    printf("ob.data.length = %zd\n", ob.data.length);
     assert(ob.data.length == 10);
     for (i = 0; i < 10; i++)
 	assert(ob.data[i] == char.init);
@@ -173,7 +173,7 @@ printf("test7.2()\n");
 
     ob.offset = 3;
     ob.write("foo", 3);
-    printf("ob.data.length = %d\n", ob.data.length);
+    printf("ob.data.length = %zd\n", ob.data.length);
     printf("ob.data[] = '%.*s'\n", cast(int)ob.data.length, ob.data.ptr);
     for (i = 0; i < 10; i++)
     {	if (i < 3 || i >= 6)

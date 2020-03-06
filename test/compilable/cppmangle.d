@@ -187,7 +187,7 @@ extern (C) int foosize6();
 void test6()
 {
     S6 f = foo6();
-    printf("%d %d\n", foosize6(), S6.sizeof);
+    printf("%d %d\n", foosize6(), cast(int)S6.sizeof);
     assert(foosize6() == S6.sizeof);
     assert(f.i == 42);
     printf("f.d = %g\n", f.d);
@@ -211,7 +211,7 @@ struct S
 
 void test7()
 {
-    printf("%d %d\n", foo7(), S.sizeof);
+    printf("%d %d\n", foo7(), cast(int)S.sizeof);
     assert(foo7() == S.sizeof);
 }
 
@@ -275,6 +275,13 @@ void test10()
     MyEnumType e;
     foo10(e,e);
 }
+
+// https://issues.dlang.org/show_bug.cgi?id=19504
+extern(C++) struct Class19504 {
+    pragma(mangle, "HOHOHO")
+    ~this();
+}
+static assert(Class19504.__xdtor.mangleof == "HOHOHO");
 
 /**************************************/
 // https://issues.dlang.org/show_bug.cgi?id=10058
@@ -486,6 +493,11 @@ extern(C++)
     X func_18957_2(X)(X* v);
 }
 
+extern (C++)
+{
+    void func_20413(pair!(int, float), pair!(float, int));
+}
+
 version (Posix)
 {
     // https://issues.dlang.org/show_bug.cgi?id=17947
@@ -513,6 +525,8 @@ version (Posix)
 
     static assert(func_18957_2.mangleof == `_Z12func_18957_2PSaIiE`);
     static assert(func_18957_2!(allocator!int).mangleof == `_Z12func_18957_2ISaIiEET_PS1_`);
+
+    static assert(func_20413.mangleof == `_Z10func_20413St4pairIifES_IfiE`);
 }
 
 /**************************************/
@@ -1229,4 +1243,11 @@ version (Posix)
 
     static assert(FuncDeclaration_create.mangleof == `_Z22FuncDeclaration_createRK4Loc2S1_`);
     static assert(FuncDeclaration.create.mangleof == `_ZN15FuncDeclaration6createERK4Loc2S2_`);
+}
+
+enum Enum19542 = func19542!(int).mangleof;
+
+extern(C++, `bar`)
+{
+    void func19542(T)();
 }
