@@ -22,7 +22,7 @@ import dmd.arraytypes;
 import dmd.attrib;
 import dmd.astcodegen;
 import dmd.canthrow;
-import dmd.chkprintf;
+import dmd.chkformat;
 import dmd.ctorflow;
 import dmd.dscope;
 import dmd.dsymbol;
@@ -2150,14 +2150,34 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
         (*arguments)[i] = arg;
     }
 
-    /* If calling C printf(), check the format string against the arguments
+    /* If calling C scanf(), printf(), or any variants, check the format string against the arguments
      */
-    if (tf.linkage == LINK.c && nparams >= 1 && fd && fd.ident == Id.printf)
+    if (tf.linkage == LINK.c && fd)
     {
-        if (auto se = (*arguments)[0].isStringExp())
+        int paramOffset = 0;
+        bool function(ref const(Loc) loc, scope const(char[]) format, scope Expression[] args) chkFn;
+
+        if (fd.ident == Id.printf)
         {
-            if (checkPrintfFormat(se.loc, se.peekString(), (*arguments)[1 .. nargs]))
-                err = true;
+            paramOffset = 1;
+            chkFn = &checkPrintfFormat;
+        }
+        else if (fd.ident == Id.scanf)
+        {
+            paramOffset = 1;
+            chkFn = &checkScanfFormat;
+        }
+        else if (fd.ident == Id.sscanf || fd.ident == Id.fscanf)
+        {
+            paramOffset = 2;
+            chkFn = &checkScanfFormat;
+        }
+
+        if (paramOffset && nparams >= paramOffset)
+        {
+            auto se = (*arguments)[paramOffset - 1].isStringExp();
+            if (se && chkFn(se.loc, se.peekString(), (*arguments)[paramOffset .. nargs]))
+                 err = true;
         }
     }
 

@@ -1158,7 +1158,7 @@ auto sourceFiles()
         "),
         frontend: fileArray(env["D"], "
             access.d aggregate.d aliasthis.d apply.d argtypes.d argtypes_sysv_x64.d arrayop.d
-            arraytypes.d ast_node.d astcodegen.d attrib.d blockexit.d builtin.d canthrow.d
+            arraytypes.d ast_node.d astcodegen.d attrib.d blockexit.d builtin.d canthrow.d chkformat.d
             cli.d clone.d compiler.d complex.d cond.d constfold.d cppmangle.d cppmanglewin.d ctfeexpr.d
             ctorflow.d dcast.d dclass.d declaration.d delegatize.d denum.d dimport.d dinifile.d
             dinterpret.d dmacro.d dmangle.d dmodule.d doc.d dscope.d dstruct.d dsymbol.d dsymbolsem.d
@@ -1168,7 +1168,7 @@ auto sourceFiles()
             parse.d parsetimevisitor.d permissivevisitor.d printast.d safe.d sapply.d scanelf.d scanmach.d
             scanmscoff.d scanomf.d semantic2.d semantic3.d sideeffect.d statement.d statement_rewrite_walker.d
             statementsem.d staticassert.d staticcond.d target.d templateparamsem.d traits.d
-            transitivevisitor.d typesem.d typinf.d utils.d visitor.d vsoptions.d foreachvar.d chkprintf.d
+            transitivevisitor.d typesem.d typinf.d utils.d visitor.d vsoptions.d foreachvar.d
         "),
         backendHeaders: fileArray(env["C"], "
             cc.d cdef.d cgcv.d code.d cv4.d dt.d el.d global.d

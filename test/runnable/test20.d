@@ -841,11 +841,11 @@ void test45()
 {
     S45 s = S45(10);
     S45 val = pow!(S45)(s,2);
-    printf("x = %2.2lf, y = %2.2lf\n", val.x, val.y);
+    printf("x = %2.2f, y = %2.2f\n", val.x, val.y);
     assert(val.x == 100);
     assert(val.y == 0);
     double d = pow!(double)(10,3);
-    printf("%2.2lf\n", d);
+    printf("%2.2f\n", d);
     assert(d == 1000);
 }
 
