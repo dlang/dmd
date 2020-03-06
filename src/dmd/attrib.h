@@ -23,6 +23,7 @@ class AttribDeclaration : public Dsymbol
 {
 public:
     Dsymbols *decl;     // array of Dsymbol's
+    bool hasDeferred;   // semantic was ran on select members
 
     virtual Dsymbols *include(Scope *sc);
     int apply(Dsymbol_apply_ft_t fp, void *param);
@@ -156,6 +157,7 @@ public:
     Scope *newScope(Scope *sc);
     const char *kind() const;
     void accept(Visitor *v) { v->visit(this); }
+    PragmaDeclaration *isPragmaDeclaration() { return this; }
 };
 
 class ConditionalDeclaration : public AttribDeclaration
