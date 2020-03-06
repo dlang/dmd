@@ -9,11 +9,30 @@
 
 module json;
 
-
+shared static this() {}
 static this() {}
-
+shared static ~this() {}
 static ~this() {}
 
+template X(T)
+{
+    shared static this() {}
+    static this() {}
+    shared static ~this() {}
+    static ~this() {}
+}
+
+alias SSCDX = X!int;
+
+class SSCDClass
+{
+    shared static this() {}
+    static this() {}
+    shared static ~this() {}
+    static ~this() {}
+}
+
+#line 17
 
 alias int myInt;
 myInt x; // https://issues.dlang.org/show_bug.cgi?id=3404

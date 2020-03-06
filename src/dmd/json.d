@@ -418,7 +418,18 @@ public:
         if (!s.isTemplateDeclaration()) // TemplateDeclaration::kind() acts weird sometimes
         {
             property("name", s.toString());
-            property("kind", s.kind.toDString);
+            if (s.isStaticCtorDeclaration())
+            {
+                property("kind", s.isSharedStaticCtorDeclaration()
+                         ? "shared static constructor" : "static constructor");
+            }
+            else if (s.isStaticDtorDeclaration())
+            {
+                property("kind", s.isSharedStaticDtorDeclaration()
+                         ? "shared static destructor" : "static destructor");
+            }
+            else
+                property("kind", s.kind.toDString);
         }
         // TODO: How about package(names)?
         property("protection", protectionToString(s.prot().kind));
