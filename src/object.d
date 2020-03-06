@@ -1853,12 +1853,13 @@ class Throwable : Object
      */
     static @__future @system @nogc pure nothrow Throwable chainTogether(return scope Throwable e1, return scope Throwable e2)
     {
-        if (e2 && e2.refcount())
-            ++e2.refcount();
         if (!e1)
             return e2;
         if (!e2)
             return e1;
+        if (e2.refcount())
+            ++e2.refcount();
+
         for (auto e = e1; 1; e = e.nextInChain)
         {
             if (!e.nextInChain)
@@ -2163,13 +2164,13 @@ alias AssociativeArray(Key, Value) = Value[Key];
  * Params:
  *      aa =     The associative array.
  */
-void clear(T : Value[Key], Value, Key)(T aa)
+void clear(Value, Key)(Value[Key] aa)
 {
     _aaClear(*cast(AA *) &aa);
 }
 
 /* ditto */
-void clear(T : Value[Key], Value, Key)(T* aa)
+void clear(Value, Key)(Value[Key]* aa)
 {
     _aaClear(*cast(AA *) aa);
 }
@@ -2180,6 +2181,25 @@ void clear(T : Value[Key], Value, Key)(T* aa)
     auto aa = ["k1": 2];
     aa.clear;
     assert("k1" !in aa);
+}
+
+// Issue 20559
+@system unittest
+{
+    static class Foo
+    {
+        int[string] aa;
+        alias aa this;
+    }
+
+    auto v = new Foo();
+    v["Hello World"] = 42;
+    v.clear;
+    assert("Hello World" !in v);
+
+    // Test for T*
+    static assert(!__traits(compiles, (&v).clear));
+    static assert( __traits(compiles, (*(&v)).clear));
 }
 
 /***********************************
@@ -3722,7 +3742,8 @@ nothrow unittest
 }
 
 /// ditto
-void destroy(bool initialize = true, T : U[n], U, size_t n)(ref T obj) if (!is(T == struct))
+void destroy(bool initialize = true, T : U[n], U, size_t n)(ref T obj)
+if (!is(T == struct) && !is(T == class) && !is(T == interface))
 {
     foreach_reverse (ref e; obj[])
         destroy!initialize(e);
@@ -3785,6 +3806,43 @@ void destroy(bool initialize = true, T : U[n], U, size_t n)(ref T obj) if (!is(T
         destroy(a2);
         assert(op == "D4D3D2D1", op);
     }
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=19218
+@system unittest
+{
+    static struct S
+    {
+        static dtorCount = 0;
+        ~this() { ++dtorCount; }
+    }
+
+    static interface I
+    {
+        ref S[3] getArray();
+        alias getArray this;
+    }
+
+    static class C : I
+    {
+        static dtorCount = 0;
+        ~this() { ++dtorCount; }
+
+        S[3] a;
+        alias a this;
+
+        ref S[3] getArray() { return a; }
+    }
+
+    C c = new C();
+    destroy(c);
+    assert(S.dtorCount == 3);
+    assert(C.dtorCount == 1);
+
+    I i = new C();
+    destroy(i);
+    assert(S.dtorCount == 6);
+    assert(C.dtorCount == 2);
 }
 
 /// ditto

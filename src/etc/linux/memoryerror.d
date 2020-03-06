@@ -80,13 +80,10 @@ class NullPointerError : InvalidPointerError
     }
 }
 
-version (unittest)
-{
-    int* getNull() { return null; }
-}
-
 unittest
 {
+    int* getNull() { return null; }
+
     assert(registerMemoryErrorHandler());
 
     bool b;

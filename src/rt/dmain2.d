@@ -78,12 +78,6 @@ extern (C) void thread_joinAll();
 extern (C) UnitTestResult runModuleUnitTests();
 extern (C) void _d_initMonoTime();
 
-version (OSX)
-{
-    // The bottom of the stack
-    extern (C) __gshared void* __osx_stack_end = cast(void*)0xC0000000;
-}
-
 version (CRuntime_Microsoft)
 {
     extern(C) void init_msvc();
@@ -440,15 +434,6 @@ private extern (C) int _d_run_main2(char[][] args, size_t totalArgsLength, MainF
 {
     int result;
 
-    version (OSX)
-    {   /* OSX does not provide a way to get at the top of the
-         * stack, except for the magic value 0xC0000000.
-         * But as far as the gc is concerned, `args` is at the top
-         * of the main thread's stack, so save the address of that.
-         */
-        __osx_stack_end = cast(void*)&args;
-    }
-
     version (FreeBSD) version (D_InlineAsm_X86)
     {
         /*
@@ -510,15 +495,18 @@ private extern (C) int _d_run_main2(char[][] args, size_t totalArgsLength, MainF
         char[][] argsCopy = buff[0 .. args.length];
         auto argBuff = cast(char*) (buff + args.length);
         size_t j = 0;
+        import rt.config : rt_cmdline_enabled;
+        bool parseOpts = rt_cmdline_enabled!();
         foreach (arg; args)
         {
-            import rt.config : rt_cmdline_enabled;
-
-            if (!rt_cmdline_enabled!() || arg.length < 6 || arg[0..6] != "--DRT-") // skip D runtime options
-            {
-                argsCopy[j++] = (argBuff[0 .. arg.length] = arg[]);
-                argBuff += arg.length;
-            }
+            // Do not pass Druntime options to the program
+            if (parseOpts && arg.length >= 6 && arg[0 .. 6] == "--DRT-")
+                continue;
+            // https://issues.dlang.org/show_bug.cgi?id=20459
+            if (arg == "--")
+                parseOpts = false;
+            argsCopy[j++] = (argBuff[0 .. arg.length] = arg[]);
+            argBuff += arg.length;
         }
         args = argsCopy[0..j];
     }

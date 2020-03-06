@@ -157,6 +157,7 @@ template staticIota(int beg, int end)
 }
 
 private struct __InoutWorkaroundStruct {}
+@property T rvalueOf(T)(T val) { return val; }
 @property T rvalueOf(T)(inout __InoutWorkaroundStruct = __InoutWorkaroundStruct.init);
 @property ref T lvalueOf(T)(inout __InoutWorkaroundStruct = __InoutWorkaroundStruct.init);
 
@@ -292,12 +293,41 @@ template hasElaborateCopyConstructor(S)
     }
     else static if (is(S == struct))
     {
-        enum hasElaborateCopyConstructor = __traits(hasMember, S, "__xpostblit");
+        enum hasElaborateCopyConstructor = __traits(hasCopyConstructor, S) || __traits(hasPostblit, S);
     }
     else
     {
         enum bool hasElaborateCopyConstructor = false;
     }
+}
+
+@safe unittest
+{
+    static struct S
+    {
+        int x;
+        this(return scope ref typeof(this) rhs) { }
+        this(int x, int y) {}
+    }
+
+    static assert(hasElaborateCopyConstructor!S);
+
+    static struct S2
+    {
+        int x;
+        this(int x, int y) {}
+    }
+
+    static assert(!hasElaborateCopyConstructor!S2);
+
+    static struct S3
+    {
+        int x;
+        this(return scope ref typeof(this) rhs, int x = 42) { }
+        this(int x, int y) {}
+    }
+
+    static assert(hasElaborateCopyConstructor!S3);
 }
 
 template hasElaborateAssign(S)
@@ -466,7 +496,7 @@ template staticMap(alias F, T...)
 }
 
 // std.exception.assertCTFEable
-version (unittest) package(core)
+version (CoreUnittest) package(core)
 void assertCTFEable(alias dg)()
 {
     static assert({ cast(void) dg(); return true; }());

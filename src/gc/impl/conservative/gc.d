@@ -979,7 +979,7 @@ class ConservativeGC : GC
     }
 
 
-    bool inFinalizer() nothrow
+    bool inFinalizer() nothrow @nogc
     {
         return _inFinalizer;
     }
@@ -1062,7 +1062,7 @@ class ConservativeGC : GC
     }
 
 
-    core.memory.GC.ProfileStats profileStats() nothrow
+    core.memory.GC.ProfileStats profileStats() nothrow @trusted
     {
         typeof(return) ret;
 
@@ -1256,8 +1256,8 @@ struct Gcx
     {
         (cast(byte*)&this)[0 .. Gcx.sizeof] = 0;
         leakDetector.initialize(&this);
-        roots.initialize();
-        ranges.initialize();
+        roots.initialize(0x243F6A8885A308D3UL);
+        ranges.initialize(0x13198A2E03707344UL);
         smallCollectThreshold = largeCollectThreshold = 0.0f;
         usedSmallPages = usedLargePages = 0;
         mappedPages = 0;
@@ -1667,7 +1667,7 @@ struct Gcx
                     recoverNextPage(bin);
                 }
             }
-            else
+            else if (usedSmallPages > 0)
             {
                 fullcollect();
                 if (lowMem)
@@ -1752,7 +1752,7 @@ struct Gcx
                     minimize();
                 }
             }
-            else
+            else if (usedLargePages > 0)
             {
                 fullcollect();
                 minimize();
@@ -2601,7 +2601,12 @@ struct Gcx
             {
                 bool doParallel = config.parallel > 0;
                 if (doParallel && !scanThreadData)
-                    startScanThreads();
+                {
+                    if (nostack) // only used during shutdown, avoid starting threads for parallel marking
+                        doParallel = false;
+                    else
+                        startScanThreads();
+                }
             }
             else
                 enum doParallel = false;
@@ -4087,7 +4092,7 @@ debug (LOGGING)
             printf("    p = %p, size = %lld, parent = %p ", p, cast(ulong)size, parent);
             if (file)
             {
-                printf("%s(%u)", file, line);
+                printf("%s(%u)", file, cast(uint)line);
             }
             printf("\n");
         }

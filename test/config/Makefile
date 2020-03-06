@@ -1,6 +1,6 @@
 include ../common.mak
 
-TESTS:=test19433
+TESTS:=test19433 test20459
 
 .PHONY: all clean
 all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))
@@ -11,6 +11,11 @@ $(ROOT)/%: $(SRC)/%.d
 $(ROOT)/test19433.done: $(ROOT)/test19433
 	@echo Testing test19433
 	$(QUIET)$(ROOT)/test19433 --DRT-dont-eat-me
+	@touch $@
+
+$(ROOT)/test20459.done: $(ROOT)/test20459
+	@echo Testing test20459
+	$(QUIET)$(ROOT)/test20459 foo bar -- --DRT-gcopts=profile:1
 	@touch $@
 
 clean:

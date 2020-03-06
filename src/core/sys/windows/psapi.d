@@ -83,13 +83,11 @@ alias ENUM_PAGE_FILE_INFORMATION* PENUM_PAGE_FILE_INFORMATION;
 
 /* application-defined callback function used with the EnumPageFiles()
  * http://windowssdk.msdn.microsoft.com/library/ms682627.aspx */
-version (Unicode) {
-    alias BOOL function(LPVOID, PENUM_PAGE_FILE_INFORMATION, LPCWSTR)
-      PENUM_PAGE_FILE_CALLBACK;
-} else {
-    alias BOOL function(LPVOID, PENUM_PAGE_FILE_INFORMATION, LPCSTR)
-      PENUM_PAGE_FILE_CALLBACK;
-}
+alias BOOL function(LPVOID, PENUM_PAGE_FILE_INFORMATION, LPCWSTR)
+    PENUM_PAGE_FILE_CALLBACKW;
+alias BOOL function(LPVOID, PENUM_PAGE_FILE_INFORMATION, LPCSTR)
+    PENUM_PAGE_FILE_CALLBACKA;
+
 
 // Grouped by application, not in alphabetical order.
 extern (Windows) {
@@ -137,11 +135,12 @@ extern (Windows) {
 
     /* Resources Information */
     BOOL GetPerformanceInfo(PPERFORMANCE_INFORMATION, DWORD); /* XP/Server2003/Vista/Longhorn */
-    BOOL EnumPageFilesW(PENUM_PAGE_FILE_CALLBACK, LPVOID); /* 2000/XP/Server2003/Vista/Longhorn */
-    BOOL EnumPageFilesA(PENUM_PAGE_FILE_CALLBACK, LPVOID); /* 2000/XP/Server2003/Vista/Longhorn */
+    BOOL EnumPageFilesW(PENUM_PAGE_FILE_CALLBACKW, LPVOID); /* 2000/XP/Server2003/Vista/Longhorn */
+    BOOL EnumPageFilesA(PENUM_PAGE_FILE_CALLBACKA, LPVOID); /* 2000/XP/Server2003/Vista/Longhorn */
 }
 
 version (Unicode) {
+    alias PENUM_PAGE_FILE_CALLBACKW PENUM_PAGE_FILE_CALLBACK;
     alias GetModuleBaseNameW GetModuleBaseName;
     alias GetModuleFileNameExW GetModuleFileNameEx;
     alias GetMappedFileNameW GetMappedFileName;
@@ -150,6 +149,7 @@ version (Unicode) {
     alias EnumPageFilesW EnumPageFiles;
     alias GetProcessImageFileNameW GetProcessImageFileName;
 } else {
+    alias PENUM_PAGE_FILE_CALLBACKA PENUM_PAGE_FILE_CALLBACK;
     alias GetModuleBaseNameA GetModuleBaseName;
     alias GetModuleFileNameExA GetModuleFileNameEx;
     alias GetMappedFileNameA GetMappedFileName;

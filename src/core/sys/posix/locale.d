@@ -17,14 +17,22 @@ nothrow:
 @nogc:
 
 version (OSX)
-    version = OSXBSDLocale;
-version (FreeBSD)
-    version = OSXBSDLocale;
-version (NetBSD)
-    version = OSXBSDLocale;
-version (DragonFlyBSD)
-    version = OSXBSDLocale;
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
 
+version (Darwin)
+    version = DarwinBSDLocale;
+version (FreeBSD)
+    version = DarwinBSDLocale;
+version (NetBSD)
+    version = DarwinBSDLocale;
+version (DragonflyBSD)
+    version = DarwinBSDLocale;
 
 ///
 struct lconv
@@ -68,7 +76,7 @@ char*    setlocale(int category, const char* locale);
 /// Set the per-thread locale
 locale_t uselocale (locale_t locale);
 
-version (OSXBSDLocale)
+version (DarwinBSDLocale)
 {
     ///
     enum

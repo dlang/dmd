@@ -605,6 +605,13 @@ else version (D_InlineAsm_X86_64)
     enum has64BitCAS = true;
     enum has128BitCAS = true;
 }
+else version (GNU)
+{
+    import gcc.config;
+    enum has64BitCAS = GNU_Have_64Bit_Atomics;
+    enum has64BitXCHG = GNU_Have_64Bit_Atomics;
+    enum has128BitCAS = GNU_Have_LibAtomic;
+}
 else
 {
     enum has64BitXCHG = false;
@@ -680,7 +687,10 @@ private
     {
         import core.internal.traits : hasElaborateAssign;
 
-        static assert (S.sizeof <= size_t*2 && (S.sizeof & (S.sizeof - 1)) == 0, S.stringof ~ " has invalid size for atomic operations.");
+        // `(x & (x-1)) == 0` checks that x is a power of 2.
+        static assert (S.sizeof <= size_t.sizeof * 2
+            && (S.sizeof & (S.sizeof - 1)) == 0,
+            S.stringof ~ " has invalid size for atomic operations.");
         static assert (!hasElaborateAssign!S, S.stringof ~ " may not have an elaborate assignment when used with atomic operations.");
 
         enum ValidateStruct = true;
@@ -812,7 +822,7 @@ private
 ////////////////////////////////////////////////////////////////////////////////
 
 
-version (unittest)
+version (CoreUnittest)
 {
     void testXCHG(T)(T val) pure nothrow @nogc @trusted
     in

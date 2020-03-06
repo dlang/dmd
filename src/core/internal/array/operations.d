@@ -449,12 +449,12 @@ bool contains(T)(const scope T[] ary, const scope T[] vals...)
 
 // tests
 
-version (unittest) template TT(T...)
+version (CoreUnittest) template TT(T...)
 {
     alias TT = T;
 }
 
-version (unittest) template _arrayOp(Args...)
+version (CoreUnittest) template _arrayOp(Args...)
 {
     alias _arrayOp = arrayOp!Args;
 }

@@ -1955,6 +1955,15 @@ pure @safe:
         parseMangledName( AddType.yes == addType );
     }
 
+    char[] copyInput()
+    {
+        if (dst.length < buf.length)
+            dst.length = buf.length;
+        char[] r = dst[0 .. buf.length];
+        r[] = buf[];
+        return r;
+    }
+
     char[] doDemangle(alias FUNC)()
     {
         while ( true )
@@ -1983,10 +1992,7 @@ pure @safe:
                     auto msg = e.toString();
                     printf( "error: %.*s\n", cast(int) msg.length, msg.ptr );
                 }
-                if ( dst.length < buf.length )
-                    dst.length = buf.length;
-                dst[0 .. buf.length] = buf[];
-                return dst[0 .. buf.length];
+                return copyInput();
             }
             catch ( Exception e )
             {
@@ -2021,8 +2027,11 @@ pure @safe:
  */
 char[] demangle( const(char)[] buf, char[] dst = null ) nothrow pure @safe
 {
-    //return Demangle(buf, dst)();
     auto d = Demangle!()(buf, dst);
+    // fast path (avoiding throwing & catching exception) for obvious
+    // non-D mangled names
+    if (buf.length < 2 || !(buf[0] == 'D' || buf[0..2] == "_D"))
+        return d.copyInput();
     return d.demangleName();
 }
 
@@ -2416,7 +2425,7 @@ else version (Darwin)
 else
     enum string cPrefix = "";
 
-version (unittest)
+@safe pure nothrow unittest
 {
     immutable string[2][] table =
     [
@@ -2544,9 +2553,6 @@ version (unittest)
         else
             alias staticIota = Seq!(staticIota!(x - 1), x - 1);
     }
-}
-@safe pure nothrow unittest
-{
     foreach ( i, name; table )
     {
         auto r = demangle( name[0] );

@@ -536,25 +536,23 @@ extern (C) void profilegc_setlogfilename(string name);
  * If no unittest custom handlers are registered, the following algorithm is
  * executed (the behavior can be affected by the `--DRT-testmode` switch
  * below):
- * 1. Run all unit tests, tracking tests executed and passes. For each that
- *    fails, print the stack trace, and continue.
- * 2. If there are no failures, set the summarize flag to false, and the
- *    runMain flag to true.
- * 3. If there are failures, set the summarize flag to true, and the runMain
- *    flag to false.
+ * 1. Execute any unittests present. For each that fails, print the stack
+ *    trace and continue.
+ * 2. If no unittests were present, set summarize to false, and runMain to
+ *    true.
+ * 3. Otherwise, set summarize to true, and runMain to false.
  *
  * See the documentation for `UnitTestResult` for details on how the runtime
  * treats the return value from this function.
  *
  * If the switch `--DRT-testmode` is passed to the executable, it can have
  * one of 3 values:
- * 1. "run-main": even if unit tests are run (and all pass), main is still run.
- *    This is currently the default.
+ * 1. "run-main": even if unit tests are run (and all pass), runMain is set
+      to true.
  * 2. "test-or-main": any unit tests present will cause the program to
- *    summarize the results and exit regardless of the result. This will be the
- *    default in 2.080.
- * 3. "test-only", the runtime will always summarize and never run main, even
- *    if no tests are present.
+ *    summarize the results and exit regardless of the result. This is the
+ *    default.
+ * 3. "test-only", runMain is set to false, even with no tests present.
  *
  * This command-line parameter does not affect custom unit test handlers.
  *

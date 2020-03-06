@@ -31,14 +31,15 @@ else
     import rt.backtrace.elf;
 
 import rt.util.container.array;
-import core.stdc.string : strlen, memchr, memcpy;
+import core.stdc.string : strlen, memcpy;
 
 //debug = DwarfDebugMachine;
 debug(DwarfDebugMachine) import core.stdc.stdio : printf;
 
 struct Location
 {
-    const(char)[] file = null; // file is missing directory, but DMD emits directory directly into file
+    const(char)[] file = null;
+    const(char)[] directory = null;
     int line = -1;
     size_t address;
 }
@@ -51,77 +52,89 @@ int traceHandlerOpApplyImpl(const void*[] callstack, scope int delegate(ref size
     const char** frameList = backtrace_symbols(callstack.ptr, cast(int) callstack.length);
     scope(exit) free(cast(void*) frameList);
 
-    // find address -> file, line mapping using dwarf debug_line
-    Array!Location locations;
     auto image = Image.openSelf();
-    if (image.isValid)
-    {
-        auto debugLineSectionData = image.getDebugLineSectionData();
 
+    int processCallstack(const(ubyte)[] debugLineSectionData)
+    {
+        // find address -> file, line mapping using dwarf debug_line
+        Array!Location locations;
         if (debugLineSectionData)
         {
-            // resolve addresses
             locations.length = callstack.length;
             foreach (size_t i; 0 .. callstack.length)
                 locations[i].address = cast(size_t) callstack[i];
 
             resolveAddresses(debugLineSectionData, locations[], image.baseAddress);
         }
+
+        int ret = 0;
+        foreach (size_t i; 0 .. callstack.length)
+        {
+            char[1536] buffer = void;
+            size_t bufferLength = 0;
+
+            void appendToBuffer(Args...)(const(char)* format, Args args)
+            {
+                const count = snprintf(buffer.ptr + bufferLength, buffer.length - bufferLength, format, args);
+                assert(count >= 0);
+                bufferLength += count;
+                if (bufferLength >= buffer.length)
+                    bufferLength = buffer.length - 1;
+            }
+
+
+            if (locations.length > 0 && locations[i].line != -1)
+            {
+                bool includeSlash = locations[i].directory.length > 0 && locations[i].directory[$ - 1] != '/';
+                string printFormat = includeSlash ? "%.*s/%.*s:%d " : "%.*s%.*s:%d ";
+
+                appendToBuffer(
+                    printFormat.ptr,
+                    cast(int) locations[i].directory.length, locations[i].directory.ptr,
+                    cast(int) locations[i].file.length, locations[i].file.ptr,
+                    locations[i].line,
+                );
+            }
+            else
+            {
+                buffer[0 .. 5] = "??:? ";
+                bufferLength = 5;
+            }
+
+            char[1024] symbolBuffer = void;
+            auto symbol = getDemangledSymbol(frameList[i][0 .. strlen(frameList[i])], symbolBuffer);
+            if (symbol.length > 0)
+                appendToBuffer("%.*s ", cast(int) symbol.length, symbol.ptr);
+
+            const addressLength = 20;
+            const maxBufferLength = buffer.length - addressLength;
+            if (bufferLength > maxBufferLength)
+            {
+                buffer[maxBufferLength-4 .. maxBufferLength] = "... ";
+                bufferLength = maxBufferLength;
+            }
+            static if (size_t.sizeof == 8)
+                appendToBuffer("[0x%llx]", callstack[i]);
+            else
+                appendToBuffer("[0x%x]", callstack[i]);
+
+            auto output = buffer[0 .. bufferLength];
+            auto pos = i;
+            ret = dg(pos, output);
+            if (ret || symbol == "_Dmain") break;
+        }
+
+        return ret;
     }
 
-    int ret = 0;
-    foreach (size_t i; 0 .. callstack.length)
-    {
-        char[1536] buffer = void;
-        size_t bufferLength = 0;
-
-        void appendToBuffer(Args...)(const(char)* format, Args args)
-        {
-            const count = snprintf(buffer.ptr + bufferLength, buffer.length - bufferLength, format, args);
-            assert(count >= 0);
-            bufferLength += count;
-            if (bufferLength >= buffer.length)
-                bufferLength = buffer.length - 1;
-        }
-
-        if (locations.length > 0 && locations[i].line != -1)
-        {
-            appendToBuffer("%.*s:%d ", cast(int) locations[i].file.length, locations[i].file.ptr, locations[i].line);
-        }
-        else
-        {
-            buffer[0 .. 5] = "??:? ";
-            bufferLength = 5;
-        }
-
-        char[1024] symbolBuffer = void;
-        auto symbol = getDemangledSymbol(frameList[i][0 .. strlen(frameList[i])], symbolBuffer);
-        if (symbol.length > 0)
-            appendToBuffer("%.*s ", cast(int) symbol.length, symbol.ptr);
-
-        const addressLength = 20;
-        const maxBufferLength = buffer.length - addressLength;
-        if (bufferLength > maxBufferLength)
-        {
-            buffer[maxBufferLength-4 .. maxBufferLength] = "... ";
-            bufferLength = maxBufferLength;
-        }
-        static if (size_t.sizeof == 8)
-            appendToBuffer("[0x%llx]", callstack[i]);
-        else
-            appendToBuffer("[0x%x]", callstack[i]);
-
-        auto output = buffer[0 .. bufferLength];
-        auto pos = i;
-        ret = dg(pos, output);
-        if (ret || symbol == "_Dmain") break;
-    }
-    return ret;
+    return image.isValid
+        ? image.processDebugLineSectionData(&processCallstack)
+        : processCallstack(null);
 }
 
 private:
 
-// the lifetime of the Location data is the lifetime of the mmapped ElfSection
+// the lifetime of the Location data is bound to the lifetime of debugLineSectionData
 void resolveAddresses(const(ubyte)[] debugLineSectionData, Location[] locations, size_t baseAddress) @nogc nothrow
 {
     debug(DwarfDebugMachine) import core.stdc.stdio;
@@ -153,18 +166,22 @@ void resolveAddresses(const(ubyte)[] debugLineSectionData, Location[] locations,
                     if (loc.address == address)
                     {
                         debug(DwarfDebugMachine) printf("-- found for [0x%x]:\n", loc.address);
-                        debug(DwarfDebugMachine) printf("--   file: %.*s\n", cast(int) lp.fileNames[locInfo.file - 1].length, lp.fileNames[locInfo.file - 1].ptr);
+                        debug(DwarfDebugMachine) printf("--   file: %.*s\n", cast(int) lp.sourceFiles[locInfo.file - 1].file.length, lp.sourceFiles[locInfo.file - 1].file.ptr);
                         debug(DwarfDebugMachine) printf("--   line: %d\n", locInfo.line);
-                        loc.file = lp.fileNames[locInfo.file - 1];
+                        auto sourceFile = lp.sourceFiles[locInfo.file - 1];
+                        loc.file = sourceFile.file;
+                        loc.directory = sourceFile.dirIndex == 0 ? null : lp.includeDirectories[sourceFile.dirIndex - 1];
                         loc.line = locInfo.line;
                         numberOfLocationsFound++;
                     }
                     else if (loc.address < address && lastAddress < loc.address && lastAddress != 0)
                     {
                         debug(DwarfDebugMachine) printf("-- found for [0x%x]:\n", loc.address);
-                        debug(DwarfDebugMachine) printf("--   file: %.*s\n", cast(int) lp.fileNames[lastLoc.file - 1].length, lp.fileNames[lastLoc.file - 1].ptr);
+                        debug(DwarfDebugMachine) printf("--   file: %.*s\n", cast(int) lp.sourceFiles[lastLoc.file - 1].file.length, lp.sourceFiles[lastLoc.file - 1].file.ptr);
                         debug(DwarfDebugMachine) printf("--   line: %d\n", lastLoc.line);
-                        loc.file = lp.fileNames[lastLoc.file - 1];
+                        auto sourceFile = lp.sourceFiles[lastLoc.file - 1];
+                        loc.file = sourceFile.file;
+                        loc.directory = sourceFile.dirIndex == 0 ? null : lp.includeDirectories[sourceFile.dirIndex - 1];
                         loc.line = lastLoc.line;
                         numberOfLocationsFound++;
                     }
@@ -348,10 +365,11 @@ bool runStateMachine(ref const(LineNumberProgram) lp, scope RunStateMachineCallb
     return true;
 }
 
-const(char)[] getDemangledSymbol(const(char)[] btSymbol, ref char[1024] buffer)
+const(char)[] getDemangledSymbol(const(char)[] btSymbol, return ref char[1024] buffer)
 {
     import core.demangle;
-    return demangle(getMangledSymbolName(btSymbol), buffer[]);
+    const mangledName = getMangledSymbolName(btSymbol);
+    return !mangledName.length ? buffer[0..0] : demangle(mangledName, buffer[]);
 }
 
 T read(T)(ref const(ubyte)[] buffer) @nogc nothrow
@@ -480,8 +498,14 @@ struct LineNumberProgram
     ubyte opcodeBase;
     const(ubyte)[] standardOpcodeLengths;
     Array!(const(char)[]) includeDirectories;
-    Array!(const(char)[]) fileNames;
+    Array!SourceFile sourceFiles;
     const(ubyte)[] program;
+}
+
+struct SourceFile
+{
+    const(char)[] file;
+    size_t dirIndex;
 }
 
 LineNumberProgram readLineNumberProgram(ref const(ubyte)[] data) @nogc nothrow
@@ -517,8 +541,10 @@ LineNumberProgram readLineNumberProgram(ref const(ubyte)[] data) @nogc nothrow
     data = data[lp.opcodeBase - 1 .. $];
 
     // A sequence ends with a null-byte.
-    static Array!(const(char)[]) readSequence(alias ReadEntry)(ref const(ubyte)[] data)
+    static auto readSequence(alias ReadEntry)(ref const(ubyte)[] data)
     {
+        alias ResultType = typeof(ReadEntry(data));
+
         static size_t count(const(ubyte)[] data)
         {
             size_t count = 0;
@@ -532,7 +558,7 @@ LineNumberProgram readLineNumberProgram(ref const(ubyte)[] data) @nogc nothrow
 
         const numEntries = count(data);
 
-        Array!(const(char)[]) result;
+        Array!ResultType result;
         result.length = numEntries;
 
         foreach (i; 0 .. numEntries)
@@ -553,18 +579,24 @@ LineNumberProgram readLineNumberProgram(ref const(ubyte)[] data) @nogc nothrow
     }
     lp.includeDirectories = readSequence!readIncludeDirectoryEntry(data);
 
-    static const(char)[] readFileNameEntry(ref const(ubyte)[] data)
+    static SourceFile readFileNameEntry(ref const(ubyte)[] data)
     {
         const length = strlen(cast(char*) data.ptr);
-        auto result = cast(const(char)[]) data[0 .. length];
+        auto file = cast(const(char)[]) data[0 .. length];
         debug(DwarfDebugMachine) printf("file: %.*s\n", cast(int) length, result.ptr);
         data = data[length + 1 .. $];
-        data.readULEB128(); // dir index
+
+        auto dirIndex = cast(size_t) data.readULEB128();
+
         data.readULEB128(); // last mod
         data.readULEB128(); // file len
-        return result;
+
+        return SourceFile(
+            file,
+            dirIndex,
+        );
     }
-    lp.fileNames = readSequence!readFileNameEntry(data);
+    lp.sourceFiles = readSequence!readFileNameEntry(data);
 
     const programStart = cast(size_t) (minimumInstructionLengthFieldOffset + lp.headerLength);
     const programEnd = cast(size_t) (dwarfVersionFieldOffset + lp.unitLength);

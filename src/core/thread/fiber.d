@@ -32,6 +32,8 @@ else
 version (Windows)
 {
     import core.stdc.stdlib : malloc, free;
+    import core.sys.windows.winbase;
+    import core.sys.windows.winnt;
 }
 
 private
@@ -943,7 +945,7 @@ private:
         //       requires too much special logic to be worthwhile.
         m_ctxt = new Thread.Context;
 
-        static if ( __traits( compiles, VirtualAlloc ) )
+        version (Windows)
         {
             // reserve memory for stack
             m_pmem = VirtualAlloc( null,
@@ -991,14 +993,7 @@ private:
         }
         else
         {
-            version (Posix) import core.sys.posix.sys.mman; // mmap
-            version (FreeBSD) import core.sys.freebsd.sys.mman : MAP_ANON;
-            version (NetBSD) import core.sys.netbsd.sys.mman : MAP_ANON;
-            version (OpenBSD) import core.sys.openbsd.sys.mman : MAP_ANON;
-            version (DragonFlyBSD) import core.sys.dragonflybsd.sys.mman : MAP_ANON;
-            version (CRuntime_Glibc) import core.sys.linux.sys.mman : MAP_ANON;
-            version (Darwin) import core.sys.darwin.sys.mman : MAP_ANON;
-            version (CRuntime_UClibc) import core.sys.linux.sys.mman : MAP_ANON;
+            version (Posix) import core.sys.posix.sys.mman; // mmap, MAP_ANON
 
             static if ( __traits( compiles, mmap ) )
             {
@@ -1080,7 +1075,7 @@ private:
         scope(exit) Thread.slock.unlock_nothrow();
         Thread.remove( m_ctxt );
 
-        static if ( __traits( compiles, VirtualAlloc ) )
+        version (Windows)
         {
             VirtualFree( m_pmem, 0, MEM_RELEASE );
         }
@@ -1601,7 +1596,7 @@ unittest {
     assert( composed.state == Fiber.State.TERM );
 }
 
-version (unittest)
+version (CoreUnittest)
 {
     class TestFiber : Fiber
     {
