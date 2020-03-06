@@ -1180,7 +1180,6 @@ int tryMain(string[] args)
                 // This will be removed in future once all tests have been updated.
                 if (testArgs.compileOutput !is null ||
                     (testArgs.mode != TestMode.COMPILE &&
-                     testArgs.mode != TestMode.FAIL_COMPILE &&
                      testArgs.mode != TestMode.RUN))
                 {
                     const diff = generateDiff(testArgs.compileOutput, testArgs.compileOutputFile,
