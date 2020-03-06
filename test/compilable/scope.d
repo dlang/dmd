@@ -51,3 +51,30 @@ auto callWrappedOops(scope string dArgs) {
 }
 
 /************************************/
+
+struct Constant
+{
+    int* member;
+
+    this(Repeat!(int*) grid) @safe
+    {
+        foreach(ref x; grid)
+            member = x;
+
+        foreach(ref x; grid)
+            x = member;
+    }
+
+    int* foo(return scope Repeat!(int*) grid) @safe
+    {
+        foreach(ref x; grid)
+            x = member;
+
+        foreach(ref x; grid)
+            return x;
+
+        return null;
+    }
+
+    alias Repeat(T...) = T;
+}

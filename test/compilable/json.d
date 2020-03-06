@@ -206,3 +206,5 @@ mixin template test18211(int n)
     }
     static if (true) {}
 }
+
+alias F = size_t function (size_t a);

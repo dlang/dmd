@@ -7,18 +7,10 @@ TEST_OUTPUT:
 
 #pragma once
 
-#include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <string.h>
-
-#if !defined(_d_real)
-# define _d_real long double
-#endif
 
 
-// Parsing module dtoh_functions
 // ignoring function dtoh_functions.foo because of linkage
 // ignoring function dtoh_functions.fun because it's extern
 // ignoring function dtoh_functions.fun2 because it's extern
@@ -33,6 +25,8 @@ extern int32_t baz(int32_t x);
 extern int32_t baz2(int32_t x);
 
 extern int32_t baz4(int32_t x = 42);
+
+extern size_t baz5(size_t x = 42);
 ---
 */
 
@@ -80,6 +74,11 @@ extern (C++) private int baz3(int x)
 }
 
 extern (C++) int baz4(int x = 42)
+{
+    return x * 42;
+}
+
+extern (C++) size_t baz5(size_t x = 42)
 {
     return x * 42;
 }

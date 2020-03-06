@@ -4501,6 +4501,15 @@ PTRNTAB1[4] aptb1RDRAND = /* RDRAND */ [
         { ASM_END },
 ];
 
+/* ======================= RDSEED ======================= */
+
+PTRNTAB1[4] aptb1RDSEED = /* RDSEED */ [
+        { 0x0FC7, _7|_16_bit, _r16 },
+        { 0x0FC7, _7|_32_bit, _r32 },
+        { 0x0FC7, _7|_64_bit, _r64 },
+        { ASM_END },
+];
+
 /* ======================= FP16C ======================= */
 
 PTRNTAB2[3] aptb2VCVTPH2PS = /* VCVTPH2PS */ [
@@ -5360,6 +5369,7 @@ immutable OP[] optab =
         { "rdmsr",          0,              { aptb0RDMSR.ptr } },
         { "rdpmc",          0,              { aptb0RDPMC.ptr } },
         { "rdrand",         1,              { aptb1RDRAND.ptr } },
+        { "rdseed",         1,              { aptb1RDSEED.ptr } },
         { "rdtsc",          0,              { aptb0RDTSC.ptr } },
         { "rdtscp",         0,              { aptb0RDTSCP.ptr } },
         { "rep",            ITprefix | 0,   { aptb0REP.ptr } },

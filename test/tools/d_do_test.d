@@ -77,9 +77,11 @@ struct TestArgs
     string[] argSets;
     string   compileOutput;
     string   compileOutputFile; /// file containing the expected output
+    string   runOutput; /// Expected output of the compiled executable
     string   gdbScript;
     string   gdbMatch;
     string   postScript;
+    string   transformOutput; /// Transformations for the compiler output
     string   requiredArgs;
     string   requiredArgsForLink;
     string   disabledReason; // if empty, the test is not disabled
@@ -369,10 +371,16 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     {
         // Don't require tests to specify the test directory
         testArgs.compileOutputFile = input_dir.buildPath(testArgs.compileOutputFile);
-        testArgs.compileOutput = readText(testArgs.compileOutputFile);
+        testArgs.compileOutput = readText(testArgs.compileOutputFile)
+                                    .unifyNewLine() // Avoid CRLF issues
+                                    .strip();
     }
     else
         findOutputParameter(file, "TEST_OUTPUT", testArgs.compileOutput, envData.sep);
+
+    findTestParameter(envData, file, "TRANSFORM_OUTPUT", testArgs.transformOutput);
+
+    findOutputParameter(file, "RUN_OUTPUT", testArgs.runOutput, envData.sep);
 
     findOutputParameter(file, "GDB_SCRIPT", testArgs.gdbScript, envData.sep);
     findTestParameter(envData, file, "GDB_MATCH", testArgs.gdbMatch);
@@ -567,6 +575,149 @@ bool collectExtraSources (in string input_dir, in string output_dir, in string[]
 }
 
 /++
+Applies custom transformations defined in transformOutput to testOutput.
+
+Currently the following actions are supported:
+ * "sanitize_json"       = replace compiler/plattform specific data from generated JSON
+ * "remove_lines(<re>)" = remove all lines matching a regex <re>
+
+Params:
+    testOutput      = the existing output to be modified
+    transformOutput = list of transformation identifiers
+++/
+void applyOutputTransformations(ref string testOutput, string transformOutput)
+{
+    while (transformOutput.length)
+    {
+        string step, arg;
+
+        const idx = transformOutput.countUntil(' ', '(');
+        if (idx == -1)
+        {
+            step = transformOutput;
+            transformOutput = null;
+        }
+        else
+        {
+            step = transformOutput[0 .. idx];
+            const hasArgs = transformOutput[idx] == '(';
+            transformOutput = transformOutput[idx + 1 .. $];
+            if (hasArgs)
+            {
+                // "..." quotes are optional but necessary if the arg contains ')'
+                const isQuoted = transformOutput[0] == '"';
+                const end = isQuoted ? `"` : `)`;
+                auto parts = transformOutput[isQuoted .. $].findSplit(end);
+                enforce(parts, "Missing closing `" ~ end ~ "`!");
+                arg = parts[0];
+                transformOutput = parts[2][isQuoted .. $];
+            }
+
+            // Skip space between steps
+            import std.ascii : isWhite;
+            transformOutput.skipOver!isWhite();
+        }
+
+        switch (step)
+        {
+            case "sanitize_json":
+            {
+                import sanitize_json : sanitize;
+                sanitize(testOutput);
+                break;
+            }
+
+            case "remove_lines":
+            {
+                auto re = regex(arg);
+                testOutput = testOutput
+                    .splitter('\n')
+                    .filter!(line => !line.matchFirst(re))
+                    .join('\n');
+                break;
+            }
+
+            default:
+                throw new Exception(format(`Unknown transformation: "%s"!`, step));
+        }
+    }
+}
+
+unittest
+{
+    static void test(string input, const string transformations, const string expected)
+    {
+        applyOutputTransformations(input, transformations);
+        assert(input == expected);
+    }
+
+    static void testJson(const string transformations, const string expectedJson)
+    {
+        test(`{
+    "modules": [
+        {
+            "file": "/path/to/the/file",
+            "kind": "module",
+            "members": []
+        }
+    ]
+}`, transformations, expectedJson);
+    }
+
+
+    testJson("sanitize_json", `{
+    "modules": [
+        {
+            "file": "VALUE_REMOVED_FOR_TEST",
+            "kind": "module",
+            "members": []
+        }
+    ]
+}`);
+
+    testJson(`sanitize_json  remove_lines("kind")`, `{
+    "modules": [
+        {
+            "file": "VALUE_REMOVED_FOR_TEST",
+            "members": []
+        }
+    ]
+}`);
+
+    testJson(`sanitize_json remove_lines("kind") remove_lines("file")`, `{
+    "modules": [
+        {
+            "members": []
+        }
+    ]
+}`);
+
+    test(`This is a text containing
+        some words which is a text sample
+        nevertheless`,
+        `remove_lines(text sample)`,
+        `This is a text containing
+        nevertheless`);
+
+    test(`This is a text with
+        a random ) which should
+        still work`,
+        `remove_lines("random \)")`,
+        `This is a text with
+        still work`);
+
+    test(`Tom bought
+        12 apples
+        and 6 berries
+        from the store`,
+        `remove_lines("(\d+)")`,
+        `Tom bought
+        from the store`);
+
+    assertThrown(test("", "unknown", ""));
+}
+
+/++
 Compares the output string to the reference string by character
 except parts marked with one of the following special sequences:
 
@@ -650,7 +801,7 @@ bool compareOutput(string output, string refoutput, const ref EnvData envData)
                 break;
             }
             // Match against OS or model (accepts "32mscoff" as "32")
-            else if (conditional[0].among(envData.os, envData.model, envData.model[0 .. min(2, $)]))
+            else if (conditional[0].splitter('+').all!(c => c.among(envData.os, envData.model, envData.model[0 .. min(2, $)])))
             {
                 toSkip = conditional[2];
                 break;
@@ -699,34 +850,36 @@ unittest
 
     ed.model = "32mscoff";
     assert(compareOutput("size_t is uint!", "size_t is $?:32=uint|64=ulong$!", ed));
+
+    assert(compareOutput("no", "$?:posix+64=yes|no$", ed));
+    ed.model = "64";
+    assert(compareOutput("yes", "$?:posix+64=yes|no$", ed));
 }
 
 /++
 Creates a diff of the expected and actual test output.
 
 Params:
-    testData = the test configuration
-    output   = the actual output
-    name     = the test files name
+    expected     = the expected output
+    expectedFile = file containing expected (if present, null otherwise)
+    actual       = the actual output
+    name         = the test files name
 
 Returns: the comparison created by the `diff` utility
 ++/
-string generateDiff(ref const TestArgs testData, const string output, const string name)
+string generateDiff(const string expected, string expectedFile,
+    const string actual, const string name)
 {
-    string actualFile = tempDir.buildPath("expected_" ~ name);
-    File(actualFile, "w").writeln(output); // Append \n
+    string actualFile = tempDir.buildPath("actual_" ~ name);
+    File(actualFile, "w").writeln(actual); // Append \n
     scope (exit) remove(actualFile);
 
-    const needTmp = !testData.compileOutputFile;
-    string expectedFile;
+    const needTmp = !expectedFile;
     if (needTmp) // Create a temporary file
     {
-        expectedFile = tempDir.buildPath("actual_" ~ name);
-        File(expectedFile, "w").writeln(testData.compileOutput); // Append \n
+        expectedFile = tempDir.buildPath("expected_" ~ name);
+        File(expectedFile, "w").writeln(expected); // Append \n
     }
-    else // Reuse TEST_OUTPUT_FILE
-        expectedFile = testData.compileOutputFile;
-
     // Remove temporary file
     scope (exit) if (needTmp)
         remove(expectedFile);
@@ -762,14 +915,16 @@ class CompareException : Exception
 {
     string expected;
     string actual;
+    bool fromRun; /// Compared execution instead of compilation output
 
-    this(string expected, string actual, string diff) {
+    this(string expected, string actual, string diff, bool fromRun = false) {
         string msg = "\nexpected:\n----\n" ~ expected ~
             "\n----\nactual:\n----\n" ~ actual ~
             "\n----\ndiff:\n----\n" ~ diff ~ "----\n";
         super(msg);
         this.expected = expected;
         this.actual = actual;
+        this.fromRun = fromRun;
     }
 }
 
@@ -978,7 +1133,6 @@ int tryMain(string[] args)
                         (testArgs.mode == TestMode.RUN || testArgs.link ? "" : "-c "),
                         join(testArgs.sources, " "),
                         (autoCompileImports ? "-i" : join(testArgs.compiledImports, " ")));
-                version(Windows) command ~= " -map nul.map";
 
                 compile_output = execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path);
             }
@@ -1001,7 +1155,6 @@ int tryMain(string[] args)
                         autoCompileImports ? " -i" : "",
                         autoCompileImports ? "extraSourceIncludePaths" : "",
                         envData.required_args, testArgs.requiredArgsForLink, output_dir, test_app_dmd, join(toCleanup, " "));
-                    version(Windows) command ~= " -map nul.map";
 
                     execute(fThisRun, command, true, result_path);
                 }
@@ -1019,6 +1172,8 @@ int tryMain(string[] args)
             m = std.regex.match(compile_output, `core.exception.AssertError@dmd.*`);
             enforce(!m, m.hit);
 
+            compile_output.applyOutputTransformations(testArgs.transformOutput);
+
             if (!compareOutput(compile_output, testArgs.compileOutput, envData))
             {
                 // Allow any messages to come from tests if TEST_OUTPUT wasn't given.
@@ -1028,7 +1183,8 @@ int tryMain(string[] args)
                      testArgs.mode != TestMode.FAIL_COMPILE &&
                      testArgs.mode != TestMode.RUN))
                 {
-                    const diff = generateDiff(testArgs, compile_output, test_base_name);
+                    const diff = generateDiff(testArgs.compileOutput, testArgs.compileOutputFile,
+                                                compile_output, test_base_name);
                     throw new CompareException(testArgs.compileOutput, compile_output, diff);
                 }
             }
@@ -1048,7 +1204,20 @@ int tryMain(string[] args)
                     command = test_app_dmd;
                     if (testArgs.executeArgs) command ~= " " ~ testArgs.executeArgs;
 
-                    execute(fThisRun, command, true, result_path);
+                    // Always run main even if compiled with '-unittest' but let
+                    // tests switch to another behaviour if necessary
+                    if (!command.canFind("--DRT-testmode"))
+                        command ~= " --DRT-testmode=run-main";
+
+                    const output = execute(fThisRun, command, true, result_path)
+                                    .strip()
+                                    .unifyNewLine();
+
+                    if (testArgs.runOutput && !compareOutput(output, testArgs.runOutput, envData))
+                    {
+                        const diff = generateDiff(testArgs.runOutput, null, output, test_base_name);
+                        throw new CompareException(testArgs.runOutput, output, diff, true);
+                    }
                 }
                 else version (linux)
                 {
@@ -1099,9 +1268,11 @@ int tryMain(string[] args)
             if (auto ce = cast(CompareException) e)
             {
                 // remove the output file in test_results as its outdated
-                output_file.remove();
+                // (might fail for runnable tests on Windows)
+                if (output_file.remove().collectException())
+                    writef("\nWARNING: Failed to remove `%s`!", output_file);
 
-                if (testArgs.compileOutputFile)
+                if (testArgs.compileOutputFile && !ce.fromRun)
                 {
                     std.file.write(testArgs.compileOutputFile, ce.actual);
                     writefln("\n==> `TEST_OUTPUT_FILE` `%s` has been updated", testArgs.compileOutputFile);

@@ -50,7 +50,7 @@ void test6()
 void test7()
 {
     string s = `hello"there'you`;
-    printf("s = '%.*s'\n", s.length, s.ptr);
+    printf("s = '%.*s'\n", cast(int)s.length, s.ptr);
     assert(s == "hello\"there'you");
     ubyte[] b = cast(ubyte[])"\x8B\x7D\xf4\x0d";
     for (int i = 0; i < b.length; i++)
@@ -227,7 +227,7 @@ void test16()
     uint c = 200000;
     while (c--)
         a ~= 'x';
-    //printf("a = '%.*s'\n", a.length, a.ptr);
+    //printf("a = '%.*s'\n", cast(int)a.length, a.ptr);
 }
 
 
@@ -375,7 +375,7 @@ void test26()
 
     foreach(string instr; instructions)
     {
-        printf("%.*s\n", instr.length, instr.ptr);
+        printf("%.*s\n", cast(int)instr.length, instr.ptr);
     }
 }
 
@@ -406,7 +406,7 @@ void test27()
 
 void foo28(ClassInfo ci)
 {
-    printf("%.*s\n", ci.name.length, ci.name.ptr);
+    printf("%.*s\n", cast(int)ci.name.length, ci.name.ptr);
 
     static int i;
     switch (i++)
@@ -790,7 +790,7 @@ class C44
 void test44()
 {
   C44 c= new C44();
-  printf("%.*s\n", c.arrArr[0].length, c.arrArr[0].ptr);
+  printf("%.*s\n", cast(int)c.arrArr[0].length, c.arrArr[0].ptr);
   assert(c.arrArr[0] == "foo");
 }
 
@@ -819,11 +819,11 @@ union A46
 void test46()
 {
     A46 a;
-    printf("%d\n", cast(byte*)&a.c - cast(byte*)&a);
-    printf("%d\n", cast(byte*)&a.s - cast(byte*)&a);
-    printf("%d\n", cast(byte*)&a.l - cast(byte*)&a);
-    printf("%d\n", cast(byte*)&a.a - cast(byte*)&a);
-    printf("%d\n", cast(byte*)&a.f - cast(byte*)&a);
+    printf("%td\n", cast(byte*)&a.c - cast(byte*)&a);
+    printf("%td\n", cast(byte*)&a.s - cast(byte*)&a);
+    printf("%td\n", cast(byte*)&a.l - cast(byte*)&a);
+    printf("%td\n", cast(byte*)&a.a - cast(byte*)&a);
+    printf("%td\n", cast(byte*)&a.f - cast(byte*)&a);
 
     assert(cast(byte*)&a.c == cast(byte*)&a);
     assert(cast(byte*)&a.s == cast(byte*)&a);
@@ -1128,7 +1128,7 @@ void test61()
     int i = 123;
     StdString g = new StdString();
     string s = g.toString("%s", i);
-    printf("%.*s\n", s.length, s.ptr);
+    printf("%.*s\n", cast(int)s.length, s.ptr);
     assert(s == "123");
 }
 

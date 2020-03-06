@@ -45,7 +45,7 @@ enum E3 : string
 
 void test3()
 {
-    printf("%.*s\n", E3.E3a.length, E3.E3a.ptr);
+    printf("%.*s\n", cast(int)E3.E3a.length, E3.E3a.ptr);
 
     assert(E3.E3a == "foo");
     assert(E3.E3b == "bar");

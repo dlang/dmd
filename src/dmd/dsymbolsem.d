@@ -1381,9 +1381,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
                     if (ei && dsym.isScope())
                     {
-                        Expression ex = ei.exp;
-                        while (ex.op == TOK.comma)
-                            ex = (cast(CommaExp)ex).e2;
+                        Expression ex = ei.exp.lastComma();
                         if (ex.op == TOK.blit || ex.op == TOK.construct)
                             ex = (cast(AssignExp)ex).e2;
                         if (ex.op == TOK.new_)
@@ -2619,7 +2617,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 ? em.ed.memtype
                 : eprev.type;
 
-            Expression emax = tprev.getProperty(em.ed.loc, Id.max, 0);
+            Expression emax = tprev.getProperty(sc, em.ed.loc, Id.max, 0);
             emax = emax.expressionSemantic(sc);
             emax = emax.ctfeInterpret();
 
@@ -2890,7 +2888,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 tm.symtab = sc.parent.isScopeDsymbol().symtab;
             L1:
                 assert(tm.symtab);
-                tm.ident = Identifier.generateId(s, tm.symtab.len + 1);
+                tm.ident = Identifier.generateId(s, tm.symtab.length + 1);
                 tm.symtab.insert(tm);
             }
         }
@@ -4295,7 +4293,16 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             scd.fbody = new CompoundStatement(Loc.initial, sa);
         }
 
+        const LINK save = sc.linkage;
+        if (save != LINK.d)
+        {
+            const(char)* s = (scd.isSharedStaticCtorDeclaration() ? "shared " : "");
+            deprecation(scd.loc, "`%sstatic` constructor can only be of D linkage", s);
+            // Just correct it
+            sc.linkage = LINK.d;
+        }
         funcDeclarationSemantic(scd);
+        sc.linkage = save;
 
         // We're going to need ModuleInfo
         Module m = scd.getModule();
@@ -4365,7 +4372,16 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             sdd.vgate = v;
         }
 
+        const LINK save = sc.linkage;
+        if (save != LINK.d)
+        {
+            const(char)* s = (sdd.isSharedStaticDtorDeclaration() ? "shared " : "");
+            deprecation(sdd.loc, "`%sstatic` destructor can only be of D linkage", s);
+            // Just correct it
+            sc.linkage = LINK.d;
+        }
         funcDeclarationSemantic(sdd);
+        sc.linkage = save;
 
         // We're going to need ModuleInfo
         Module m = sdd.getModule();
@@ -6313,6 +6329,10 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
     sc.flags |= SCOPE.alias_;
     scope(exit)
         sc.flags &= ~SCOPE.alias_;
+
+    // preserve the original type
+    if (!ds.originalType && ds.type)
+        ds.originalType = ds.type.syntaxCopy();
 
     if (ds.aliassym)
     {

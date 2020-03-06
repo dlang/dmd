@@ -61,7 +61,7 @@ enum toolsDir = testPath("tools");
 enum TestTools
 {
     unitTestRunner = TestTool("unit_test_runner", [toolsDir.buildPath("paths")]),
-    testRunner = TestTool("d_do_test"),
+    testRunner = TestTool("d_do_test", ["-I" ~ toolsDir, "-i", "-version=NoMain"]),
     jsonSanitizer = TestTool("sanitize_json"),
     dshellPrebuilt = TestTool("dshell_prebuilt", null, Yes.linksWithTests),
 }
@@ -236,6 +236,7 @@ void ensureToolsExists(string[string] env, const TestTool[] tools ...)
             {
                 command = [
                     hostDMD,
+                    "-m"~env["MODEL"],
                     "-of"~targetBin,
                     sourceFile
                 ] ~ tool.extraArgs;
@@ -320,7 +321,7 @@ auto predefinedTargets(string[] targets)
         Target target = {
             filename: filename,
             args: [
-                resultsDir.buildPath(TestTools.testRunner.name),
+                resultsDir.buildPath(TestTools.testRunner.name.exeName),
                 Target.normalizedTestName(filename)
             ]
         };

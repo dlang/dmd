@@ -18,7 +18,7 @@ FOO3 foox3;
 
 void foo3(int x, ...)
 {
-    printf("%d arguments\n", _arguments.length);
+    printf("%zd arguments\n", _arguments.length);
     for (int i = 0; i < _arguments.length; i++)
     {
         writeln(_arguments[i].toString());
@@ -367,7 +367,7 @@ class Bar32 { long y = 4; }
 
 void printargs(int x, ...)
 {
-    printf("%d arguments\n", _arguments.length);
+    printf("%zd arguments\n", _arguments.length);
     for (int i = 0; i < _arguments.length; i++)
     {
         writeln(_arguments[i].toString());

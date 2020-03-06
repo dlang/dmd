@@ -940,9 +940,9 @@ void test47()
 void test48()
 {
     Object o = new Object();
-    printf("%.*s\n", typeof(o).classinfo.name.length, typeof(o).classinfo.name.ptr);
-    printf("%.*s\n", (typeof(o)).classinfo.name.length, (typeof(o)).classinfo.name.ptr);
-    printf("%.*s\n", (Object).classinfo.name.length, (Object).classinfo.name.ptr);
+    printf("%.*s\n", cast(int)typeof(o).classinfo.name.length, typeof(o).classinfo.name.ptr);
+    printf("%.*s\n", cast(int)(typeof(o)).classinfo.name.length, (typeof(o)).classinfo.name.ptr);
+    printf("%.*s\n", cast(int)(Object).classinfo.name.length, (Object).classinfo.name.ptr);
 }
 
 /*******************************************/

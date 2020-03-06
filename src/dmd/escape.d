@@ -1042,15 +1042,20 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
     {
         if (log) printf("byref `%s`\n", v.toChars());
 
-        void escapingRef(VarDeclaration v)
+        // 'emitError' tells us whether to emit an error or a deprecation,
+        // depending on the flag passed to the CLI for DIP25
+        void escapingRef(VarDeclaration v, bool emitError = true)
         {
             if (!gag)
             {
                 const(char)* kind = (v.storage_class & STC.parameter) ? "parameter" : "local";
-                error(e.loc, "copying `%s` into allocated memory escapes a reference to %s variable `%s`",
-                    e.toChars(), kind, v.toChars());
+                const(char)* msg = "copying `%s` into allocated memory escapes a reference to %s variable `%s`";
+                if (emitError)
+                    error(e.loc, msg, e.toChars(), kind, v.toChars());
+                else
+                    deprecation(e.loc, msg, e.toChars(), kind, v.toChars());
             }
-            result = true;
+            result |= emitError;
         }
 
         if (v.isDataseg())
@@ -1072,17 +1077,19 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
          */
         if (v.storage_class & (STC.ref_ | STC.out_))
         {
-            if (global.params.useDIP25 &&
-                     sc._module && sc._module.isRoot())
+            // DIP25
+            if (sc._module && sc._module.isRoot())
             {
+                // If -preview=dip25 is used, the user wants an error
+                // Otherwise, issue a deprecation
+                const emitError = global.params.useDIP25;
                 // https://dlang.org/spec/function.html#return-ref-parameters
                 // Only look for errors if in module listed on command line
-
                 if (p == sc.func)
                 {
                     //printf("escaping reference to local ref variable %s\n", v.toChars());
                     //printf("storage class = x%llx\n", v.storage_class);
-                    escapingRef(v);
+                    escapingRef(v, emitError);
                     continue;
                 }
                 // Don't need to be concerned if v's parent does not return a ref
@@ -1092,10 +1099,12 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
                     TypeFunction tf = cast(TypeFunction)fd.type;
                     if (tf.isref)
                     {
-                        if (!gag)
-                            error(e.loc, "storing reference to outer local variable `%s` into allocated memory causes it to escape",
-                                  v.toChars());
-                        result = true;
+                        const(char)* msg = "storing reference to outer local variable `%s` into allocated memory causes it to escape";
+                        if (!gag && emitError)
+                            error(e.loc, msg, v.toChars());
+                        else if (!gag)
+                            deprecation(e.loc, msg, v.toChars());
+                        result |= emitError;
                         continue;
                     }
                 }
@@ -1256,7 +1265,9 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
     {
         if (log) printf("byref `%s`\n", v.toChars());
 
-        void escapingRef(VarDeclaration v)
+        // 'emitError' tells us whether to emit an error or a deprecation,
+        // depending on the flag passed to the CLI for DIP25
+        void escapingRef(VarDeclaration v, bool emitError = true)
         {
             if (!gag)
             {
@@ -1265,7 +1276,10 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                     msg = "returning `%s` escapes a reference to parameter `%s`, perhaps annotate with `return`";
                 else
                     msg = "returning `%s` escapes a reference to local variable `%s`";
-                error(e.loc, msg, e.toChars(), v.toChars());
+                if (emitError)
+                    error(e.loc, msg, e.toChars(), v.toChars());
+                else
+                    deprecation(e.loc, msg, e.toChars(), v.toChars());
             }
             result = true;
         }
@@ -1314,17 +1328,18 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
             {
                 inferReturn(sc.func, v);        // infer addition of 'return'
             }
-            else if (global.params.useDIP25 &&
-                     sc._module && sc._module.isRoot())
+            else if (sc._module && sc._module.isRoot())
             {
+                // If -preview=dip25 is used, the user wants an error
+                // Otherwise, issue a deprecation
+                const emitError = global.params.useDIP25;
                 // https://dlang.org/spec/function.html#return-ref-parameters
                 // Only look for errors if in module listed on command line
-
                 if (p == sc.func)
                 {
                     //printf("escaping reference to local ref variable %s\n", v.toChars());
                     //printf("storage class = x%llx\n", v.storage_class);
-                    escapingRef(v);
+                    escapingRef(v, emitError);
                     continue;
                 }
                 // Don't need to be concerned if v's parent does not return a ref
@@ -1334,8 +1349,11 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                     TypeFunction tf = cast(TypeFunction)fd.type;
                     if (tf.isref)
                     {
-                        if (!gag)
-                            error(e.loc, "escaping reference to outer local variable `%s`", v.toChars());
+                        const(char)* msg = "escaping reference to outer local variable `%s`";
+                        if (!gag && emitError)
+                            error(e.loc, msg, v.toChars());
+                        else if (!gag)
+                            deprecation(e.loc, msg, v.toChars());
                         result = true;
                         continue;
                     }

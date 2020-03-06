@@ -1143,7 +1143,7 @@ void printSymbol(IDiaSymbol sym, int indent)
     hr = sym.get_name(&name);
     if (hr != S_OK)
         name = cast(BSTR) "no-name"w.ptr;
-    printf("%*s%02x %S\n", indent, "".ptr, tag, name);
+    printf("%*s%02x %ls\n", indent, "".ptr, tag, name);
     if (hr == S_OK)
         SysFreeString(name);
 }

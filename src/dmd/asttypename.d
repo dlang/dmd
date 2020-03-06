@@ -52,8 +52,8 @@ string astTypeName(RootObject node)
             return "RootObject";
         case DYNCAST.identifier:
             return "Identifier";
-        case DYNCAST.templateparameter:
-            return "TemplateParameter";
+        case DYNCAST.tuple:
+            return "Tuple";
 
         case DYNCAST.expression:
             return astTypeName(cast(Expression) node);
@@ -61,14 +61,14 @@ string astTypeName(RootObject node)
             return astTypeName(cast(Dsymbol) node);
         case DYNCAST.type:
             return astTypeName(cast(Type) node);
-        case DYNCAST.tuple:
-            return astTypeName(cast(Tuple) node);
         case DYNCAST.parameter:
             return astTypeName(cast(Parameter) node);
         case DYNCAST.statement:
             return astTypeName(cast(Statement) node);
         case DYNCAST.condition:
             return astTypeName(cast(Condition) node);
+        case DYNCAST.templateparameter:
+            return astTypeName(cast(TemplateParameter) node);
     }
 }
 
@@ -118,5 +118,9 @@ unittest
 {
     import dmd.globals : Loc;
     Expression e = new TypeidExp(Loc.initial, null);
+    Tuple t = new Tuple();
+    TemplateTypeParameter tp = new TemplateTypeParameter(Loc.initial, null, null, null);
     assert(e.astTypeName == "TypeidExp");
+    assert(t.astTypeName == "Tuple");
+    assert(tp.astTypeName == "TemplateTypeParameter");
 }

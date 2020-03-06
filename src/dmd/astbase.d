@@ -672,7 +672,6 @@ struct ASTBase
     {
         Type type;
         Initializer _init;
-        StorageClass storage_class;
         enum AdrOnStackNone = ~0u;
         uint ctfeAdrOnStack;
         uint sequenceNumber;

@@ -131,6 +131,14 @@ Command-line parameters
     if (res.helpWanted)
         return showHelp;
 
+    // Since we're ultimately outputting to a TTY, force colored output
+    // A more proper solution would be to redirect DMD's output to this script's
+    // output using `std.process`', but it's more involved and the following
+    // "just works"
+    if (!flags["DFLAGS"].canFind("-color=off") &&
+        [env["HOST_DMD_RUN"], "-color=on", "-h"].tryRun().status == 0)
+        flags["DFLAGS"] ~= "-color=on";
+
     // default target
     if (!args.length)
         args = ["dmd"];
@@ -1150,7 +1158,7 @@ auto sourceFiles()
         "),
         frontend: fileArray(env["D"], "
             access.d aggregate.d aliasthis.d apply.d argtypes.d argtypes_sysv_x64.d arrayop.d
-            arraytypes.d ast_node.d astcodegen.d asttypename.d attrib.d blockexit.d builtin.d canthrow.d
+            arraytypes.d ast_node.d astcodegen.d asttypename.d attrib.d blockexit.d builtin.d canthrow.d chkformat.d
             cli.d clone.d compiler.d complex.d cond.d constfold.d cppmangle.d cppmanglewin.d ctfeexpr.d
             ctorflow.d dcast.d dclass.d declaration.d delegatize.d denum.d dimport.d dinifile.d
             dinterpret.d dmacro.d dmangle.d dmodule.d doc.d dscope.d dstruct.d dsymbol.d dsymbolsem.d
@@ -1160,7 +1168,7 @@ auto sourceFiles()
             parse.d parsetimevisitor.d permissivevisitor.d printast.d safe.d sapply.d scanelf.d scanmach.d
             scanmscoff.d scanomf.d semantic2.d semantic3.d sideeffect.d statement.d statement_rewrite_walker.d
             statementsem.d staticassert.d staticcond.d target.d templateparamsem.d traits.d
-            transitivevisitor.d typesem.d typinf.d utils.d visitor.d foreachvar.d
+            transitivevisitor.d typesem.d typinf.d utils.d visitor.d vsoptions.d foreachvar.d
         "),
         backendHeaders: fileArray(env["C"], "
             cc.d cdef.d cgcv.d code.d cv4.d dt.d el.d global.d

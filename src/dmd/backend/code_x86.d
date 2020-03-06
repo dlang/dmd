@@ -19,6 +19,7 @@ import dmd.backend.code;
 import dmd.backend.codebuilder : CodeBuilder;
 import dmd.backend.el : elem;
 import dmd.backend.ty : I64;
+import dmd.backend.barray;
 
 nothrow:
 
@@ -563,9 +564,7 @@ struct Globals87
     NDP[8] stack;              // 8087 stack
     int stackused = 0;         // number of items on the 8087 stack
 
-    NDP *save;
-    int savemax;         // # of entries in save[]
-    int savetop;         // # of entries used in save[]
+    Barray!NDP save;           // 8087 values spilled to memory
 }
 
 extern (C++) extern __gshared Globals87 global87;

@@ -442,10 +442,22 @@ final class Parser(AST) : Lexer
         return new AST.Dsymbols();
     }
 
-    private StorageClass parseDeprecatedAttribute(ref AST.Expression msg)
+    /**
+     * Parses a `deprecated` declaration
+     *
+     * Params:
+     *   msg = Deprecated message, if any.
+     *         Used to support overriding a deprecated storage class with
+     *         a deprecated declaration with a message, but to error
+     *         if both declaration have a message.
+     *
+     * Returns:
+     *   Whether the deprecated declaration has a message
+     */
+    private bool parseDeprecatedAttribute(ref AST.Expression msg)
     {
         if (peekNext() != TOK.leftParentheses)
-            return STC.deprecated_;
+            return false;
 
         nextToken();
         check(TOK.leftParentheses);
@@ -456,7 +468,7 @@ final class Parser(AST) : Lexer
             error("conflicting storage class `deprecated(%s)` and `deprecated(%s)`", msg.toChars(), e.toChars());
         }
         msg = e;
-        return STC.undefined_;
+        return true;
     }
 
     AST.Dsymbols* parseDeclDefs(int once, AST.Dsymbol* pLastDecl = null, PrefixAttributes!AST* pAttrs = null)
@@ -875,17 +887,13 @@ final class Parser(AST) : Lexer
 
             case TOK.deprecated_:
                 {
-                    if (StorageClass _stc = parseDeprecatedAttribute(pAttrs.depmsg))
-                    {
-                        stc = _stc;
+                    stc |= STC.deprecated_;
+                    if (!parseDeprecatedAttribute(pAttrs.depmsg))
                         goto Lstc;
-                    }
+
                     a = parseBlock(pLastDecl, pAttrs);
-                    if (pAttrs.depmsg)
-                    {
-                        s = new AST.DeprecatedDeclaration(pAttrs.depmsg, a);
-                        pAttrs.depmsg = null;
-                    }
+                    s = new AST.DeprecatedDeclaration(pAttrs.depmsg, a);
+                    pAttrs.depmsg = null;
                     break;
                 }
             case TOK.leftBracket:
@@ -3116,9 +3124,9 @@ final class Parser(AST) : Lexer
                             }
                             break;
                         case TOK.deprecated_:
-                            if (StorageClass _stc = parseDeprecatedAttribute(deprecationMessage))
+                            stc |= STC.deprecated_;
+                            if (!parseDeprecatedAttribute(deprecationMessage))
                             {
-                                stc |= _stc;
                                 prevTOK = token.value;
                                 nextToken();
                             }

@@ -5175,7 +5175,7 @@ void assignaddrc(code *c)
             case FLndp:
                 version (MARS)
                 {
-                    assert(c.IEV1.Vuns < global87.savetop);
+                    assert(c.IEV1.Vuns < global87.save.length);
                 }
                 c.IEV1.Vpointer = c.IEV1.Vuns * tysize(TYldouble) + NDPoff + BPoff;
                 c.Iflags |= CFunambig;

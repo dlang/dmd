@@ -7,18 +7,10 @@ TEST_OUTPUT:
 
 #pragma once
 
-#include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <string.h>
-
-#if !defined(_d_real)
-# define _d_real long double
-#endif
 
 
-// Parsing module dtoh_VarDeclaration
 // ignoring variable dtoh_VarDeclaration.x because of linkage
 // ignoring variable dtoh_VarDeclaration.y because of linkage
 extern "C" int32_t z;
@@ -35,6 +27,8 @@ class C2;
 union U;
 
 union U2;
+
+extern "C" size_t v;
 ---
 */
 
@@ -57,3 +51,5 @@ extern (C++) class C2;
 extern (C) union U;
 
 extern (C++) union U2;
+
+extern (C) size_t v;

@@ -22,6 +22,7 @@ import dmd.arraytypes;
 import dmd.attrib;
 import dmd.astcodegen;
 import dmd.canthrow;
+import dmd.chkformat;
 import dmd.ctorflow;
 import dmd.dscope;
 import dmd.dsymbol;
@@ -444,7 +445,7 @@ private Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
     }
 
     if (!s)
-        return ue.e1.type.Type.getProperty(loc, ident, 0);
+        return ue.e1.type.Type.getProperty(sc, loc, ident, 0);
 
     FuncDeclaration f = s.isFuncDeclaration();
     if (f)
@@ -2149,6 +2150,37 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
         (*arguments)[i] = arg;
     }
 
+    /* If calling C scanf(), printf(), or any variants, check the format string against the arguments
+     */
+    if (tf.linkage == LINK.c && fd)
+    {
+        int paramOffset = 0;
+        bool function(ref const(Loc) loc, scope const(char[]) format, scope Expression[] args) chkFn;
+
+        if (fd.ident == Id.printf)
+        {
+            paramOffset = 1;
+            chkFn = &checkPrintfFormat;
+        }
+        else if (fd.ident == Id.scanf)
+        {
+            paramOffset = 1;
+            chkFn = &checkScanfFormat;
+        }
+        else if (fd.ident == Id.sscanf || fd.ident == Id.fscanf)
+        {
+            paramOffset = 2;
+            chkFn = &checkScanfFormat;
+        }
+
+        if (paramOffset && nparams >= paramOffset)
+        {
+            auto se = (*arguments)[paramOffset - 1].isStringExp();
+            if (se && chkFn(se.loc, se.peekString(), (*arguments)[paramOffset .. nargs]))
+                 err = true;
+        }
+    }
+
     /* Remaining problems:
      * 1. order of evaluation - some function push L-to-R, others R-to-L. Until we resolve what array assignment does (which is
      *    implemented by calling a function) we'll defer this for now.
@@ -2388,6 +2420,8 @@ Package resolveIsPackage(Dsymbol sym)
         }
         pkg = imp.pkg;
     }
+    else if (auto mod = sym.isModule())
+        pkg = mod.isPackageFile ? mod.pkg : sym.isPackage();
     else
         pkg = sym.isPackage();
     if (pkg)
@@ -4015,7 +4049,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = e;
     }
 
-    // used from CallExp::semantic()
+    /**
+     * Perform semantic analysis on function literals
+     *
+     * Test the following construct:
+     * ---
+     * (x, y, z) { return x + y + z; }(42, 84, 1992);
+     * ---
+     */
     Expression callExpSemantic(FuncExp exp, Scope* sc, Expressions* arguments)
     {
         if ((!exp.type || exp.type == Type.tvoid) && exp.td && arguments && arguments.dim)
@@ -4042,32 +4083,41 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     dim = arguments.dim;
             }
 
-            if ((tfl.parameterList.varargs == VarArg.none && arguments.dim == dim) ||
-                (tfl.parameterList.varargs != VarArg.none && arguments.dim >= dim))
+            if ((tfl.parameterList.varargs == VarArg.none && arguments.dim > dim) ||
+                arguments.dim < dim)
             {
-                auto tiargs = new Objects();
-                tiargs.reserve(exp.td.parameters.dim);
+                OutBuffer buf;
+                foreach (idx, ref arg; *arguments)
+                    buf.printf("%s%s", (idx ? ", ".ptr : "".ptr), arg.type.toChars());
+                exp.error("function literal `%s%s` is not callable using argument types `(%s)`",
+                          exp.fd.toChars(), parametersTypeToChars(tfl.parameterList),
+                          buf.peekChars());
+                exp.errorSupplemental("too %s arguments, expected `%d`, got `%d`",
+                                      arguments.dim < dim ? "few".ptr : "many".ptr,
+                                      cast(int)dim, cast(int)arguments.dim);
+                return new ErrorExp();
+            }
 
-                for (size_t i = 0; i < exp.td.parameters.dim; i++)
+            auto tiargs = new Objects();
+            tiargs.reserve(exp.td.parameters.dim);
+
+            for (size_t i = 0; i < exp.td.parameters.dim; i++)
+            {
+                TemplateParameter tp = (*exp.td.parameters)[i];
+                for (size_t u = 0; u < dim; u++)
                 {
-                    TemplateParameter tp = (*exp.td.parameters)[i];
-                    for (size_t u = 0; u < dim; u++)
+                    Parameter p = tfl.parameterList[u];
+                    if (p.type.ty == Tident && (cast(TypeIdentifier)p.type).ident == tp.ident)
                     {
-                        Parameter p = tfl.parameterList[u];
-                        if (p.type.ty == Tident && (cast(TypeIdentifier)p.type).ident == tp.ident)
-                        {
-                            Expression e = (*arguments)[u];
-                            tiargs.push(e.type);
-                            u = dim; // break inner loop
-                        }
+                        Expression e = (*arguments)[u];
+                        tiargs.push(e.type);
+                        u = dim; // break inner loop
                     }
                 }
-
-                auto ti = new TemplateInstance(exp.loc, exp.td, tiargs);
-                return (new ScopeExp(exp.loc, ti)).expressionSemantic(sc);
             }
-            exp.error("cannot infer function literal type");
-            return new ErrorExp();
+
+            auto ti = new TemplateInstance(exp.loc, exp.td, tiargs);
+            return (new ScopeExp(exp.loc, ti)).expressionSemantic(sc);
         }
         return exp.expressionSemantic(sc);
     }
@@ -4084,7 +4134,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return; // semantic() already run
         }
 
-        Type t1;
         Objects* tiargs = null; // initial list of template arguments
         Expression ethis = null;
         Type tthis = null;
@@ -4301,7 +4350,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
 
-        t1 = exp.e1.type ? exp.e1.type.toBasetype() : null;
+        Type t1 = exp.e1.type ? exp.e1.type.toBasetype() : null;
 
         if (exp.e1.op == TOK.error)
         {
@@ -5808,7 +5857,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         // save expression as a string before any semantic expansion
-        auto assertExpMsg = exp.msg ? null : exp.toChars();
+        // if -checkaction=context is enabled an no message exists
+        const generateMsg = !exp.msg && global.params.checkAction == CHECKACTION.context;
+        auto assertExpMsg = generateMsg ? exp.toChars() : null;
 
         if (Expression ex = unaSemantic(exp, sc))
         {
@@ -5820,7 +5871,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         exp.e1 = exp.e1.optimize(WANTvalue);
         exp.e1 = exp.e1.toBoolean(sc);
 
-        if (!exp.msg && global.params.checkAction == CHECKACTION.context)
+        if (generateMsg)
         // no message - use assert expression as msg
         {
             /*
@@ -11646,7 +11697,7 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
         if (flag)
             return null;
         s = ie.sds.search_correct(exp.ident);
-        if (s)
+        if (s && symbolIsVisible(sc, s))
         {
             if (s.isPackage())
                 exp.error("undefined identifier `%s` in %s `%s`, perhaps add `static import %s;`", exp.ident.toChars(), ie.sds.kind(), ie.sds.toPrettyChars(), s.toPrettyChars());
