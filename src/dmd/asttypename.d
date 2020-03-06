@@ -72,7 +72,7 @@ string astTypeName(RootObject node)
     }
 }
 
-mixin
+enum mixin_string =
 ({
     string astTypeNameFunctions;
     string visitOverloads;
@@ -111,6 +111,8 @@ public :
 ` ~ visitOverloads ~ "}";
 }());
 
+// pragma(msg, mixin_string);
+mixin(mixin_string);
 ///
 unittest
 {
