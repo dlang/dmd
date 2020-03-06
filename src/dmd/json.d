@@ -420,8 +420,8 @@ public:
             property("name", s.toString());
             property("kind", s.kind.toDString);
         }
-        if (s.prot().kind != Prot.Kind.public_) // TODO: How about package(names)?
-            property("protection", protectionToString(s.prot().kind));
+        // TODO: How about package(names)?
+        property("protection", protectionToString(s.prot().kind));
         if (EnumMember em = s.isEnumMember())
         {
             if (em.origValue)
