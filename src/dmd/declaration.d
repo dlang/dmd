@@ -1361,10 +1361,10 @@ extern (C++) class VarDeclaration : Declaration
                 v.offset <   offset + tsz;
     }
 
-    override final bool hasPointers()
+    override final bool hasPointers() const
     {
         //printf("VarDeclaration::hasPointers() %s, ty = %d\n", toChars(), type.ty);
-        return (!isDataseg() && type.hasPointers());
+        return (!(cast() this).isDataseg() && type.hasPointers());
     }
 
     /*************************************

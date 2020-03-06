@@ -255,7 +255,7 @@ public:
     bool isThreadlocal();
     bool isCTFE();
     bool isOverlappedWith(VarDeclaration *v);
-    bool hasPointers();
+    bool hasPointers() const;
     bool canTakeAddressOf();
     bool needsScopeDtor();
     bool enclosesLifetimeOf(VarDeclaration *v) const;
