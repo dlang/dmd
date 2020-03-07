@@ -32,7 +32,7 @@ struct LinearAA(K, V) {
         return val;
     }
 
-    V* opIn_r(K key) {
+    V* opBinaryRight(string op : "in")(K key) {
         foreach(i, k; keys) {
             if(key == k) {
                 return values.ptr + i;

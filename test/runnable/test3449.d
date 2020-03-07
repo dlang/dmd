@@ -13,6 +13,10 @@ static this()
 {
     mg1 = 10;
     cg1 = 10;
+}
+
+shared static this()
+{
     ig1 = 10;
 }
 static assert(!__traits(compiles, { static assert(mg1 == 0); }));

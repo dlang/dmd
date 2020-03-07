@@ -1157,7 +1157,7 @@ struct Vector62
       z = _z;
     }
 
-    Vector62 opMul(float s)
+    Vector62 opBinary(string op : "*")(float s)
     {
       Vector62 ret;
       ret.x = x*s;

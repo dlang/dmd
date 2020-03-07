@@ -366,9 +366,9 @@ template Integral(T)
         abc = null;
         A()[] = ~B()[];
         assert(abc == "AB");
-        assert(a[0] == ~cast(T)1);
-        assert(a[1] == ~cast(T)2);
-        assert(a[2] == ~cast(T)3);
+        assert(a[0] == cast(T) ~1);
+        assert(a[1] == cast(T) ~2);
+        assert(a[2] == cast(T) ~3);
 
         abc = null;
         A()[] = B()[] & 2;

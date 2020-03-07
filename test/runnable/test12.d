@@ -311,15 +311,15 @@ void test12()
 
 class A13
 {
-    int opShl(char* v) { return 1; }
-    int opShl(string v) { return 2; }
+    int opBinary(string op : "<<")(char* v) { return 1; }
+    int opBinary(string op : "<<")(string v) { return 2; }
 }
 
 void test13()
 {
         A13 a = new A13();
         int i;
-        i = a.opShl(cast(string)"");
+        i = a << cast(string) "";
         assert(i == 2);
         i = a << cast(string)"";
         assert(i == 2);
@@ -433,7 +433,7 @@ class Cout17
   printf("%d",x);
   return this;
  }
- alias set opShl;
+ alias opBinary(string op : "<<") = set;
 }
 
 void test17()

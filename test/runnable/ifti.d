@@ -34,8 +34,8 @@ class Tst(TST, int v = 2) {
 
 
 //
-    void opAdd(T)(T x) { this.x += x; writefln("opAdd(%s)",x); }
-    void opPos()() { writefln("opPos()"); }
+    void opBinary(string op : "+", T)(T x) { this.x += x; writefln("opAdd(%s)",x); }
+    void opUnary(string op : "+")() { writefln("opPos()"); }
     //void opPos() { writefln("xxx"); }
     void opIndex(T)(T x) { writefln("opIndex[%s]",x); }
 

@@ -357,7 +357,7 @@ class Bar17
 
 class Foo17
 {
-        void opAdd (Bar17 b) {}
+        void opBinary(string op : "+") (Bar17 b) {}
 }
 
 void test17()

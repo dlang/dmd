@@ -1972,7 +1972,7 @@ struct Foobar;
 int test124()
 {   int result;
     dchar[] aa;
-    alias uint foo_t;
+    alias size_t foo_t;
 
     foreach (foo_t i, dchar d; aa)
     {
