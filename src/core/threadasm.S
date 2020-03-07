@@ -404,13 +404,17 @@ fiber_switchContext:
  * from thumb to arm mode or the other way round.
  */
 
- #define ARM_NonSoftFloat defined(__ARM_PCS_VFP) || ((defined(__ARM_PCS) || defined(__VFP_FP__)) && !defined(__SOFTFP__))
+#if defined(__ARM_PCS_VFP) || ((defined(__ARM_PCS) || defined(__VFP_FP__)) && !defined(__SOFTFP__))
+  // This is equivalent to `version (ARM) version (D_HardFloat)`, i.e.,
+  // defined if hardware FP instructions are enabled (incl. SoftFP ABI).
+  #define ARM_NonSoftFloat
+#endif
 
 .text
 .align  2
 .global CSYM(fiber_switchContext)
 #ifndef __APPLE__
-#if ARM_NonSoftFloat
+#ifdef ARM_NonSoftFloat
   .fpu vfp
 #endif
 .type   fiber_switchContext, %function
@@ -426,14 +430,7 @@ CSYM(fiber_switchContext):
     // push r0 (or any other register) as well to keep stack 8byte aligned
     push {r0, lr}
 
-    // ARM_HardFloat  || ARM_SoftFP
-    // this was conditional used by gdc version:
-    // #if defined(__ARM_PCS_VFP) || (defined(__ARM_PCS) && !defined(__SOFTFP__))
-    //
-    // clang defines __VFP_FP__ and !__SOFTFP for float-abi=hard or
-    // softfp.  Hopefully this new conditional will work out for iOS and other architectures
-    // make sure this is correct.
-    #if ARM_NonSoftFloat
+    #ifdef ARM_NonSoftFloat
       vpush {d8-d15}
       // now switch over to the new stack. Need to subtract (8*8[d8-d15]+2*4[r0, lr]) to position stack pointer
       // below the last saved register. Remember we saved the SP before pushing [r0, lr, d8-d15]
