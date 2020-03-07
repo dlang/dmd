@@ -1178,9 +1178,7 @@ int tryMain(string[] args)
             {
                 // Allow any messages to come from tests if TEST_OUTPUT wasn't given.
                 // This will be removed in future once all tests have been updated.
-                if (testArgs.compileOutput !is null ||
-                    (testArgs.mode != TestMode.COMPILE &&
-                     testArgs.mode != TestMode.RUN))
+                if (testArgs.compileOutput !is null || testArgs.mode != TestMode.COMPILE)
                 {
                     const diff = generateDiff(testArgs.compileOutput, testArgs.compileOutputFile,
                                                 compile_output, test_base_name);
