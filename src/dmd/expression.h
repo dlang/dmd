@@ -319,6 +319,7 @@ class ThisExp : public Expression
 public:
     VarDeclaration *var;
 
+    Expression *syntaxCopy();
     bool isBool(bool result);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
