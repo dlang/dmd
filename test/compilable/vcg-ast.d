@@ -43,7 +43,7 @@ class C
     }
 }
 
-enum __c_wchar_t : dchar;
+alias __c_wchar_t = dchar;
 alias wchar_t = __c_wchar_t;
 
 T[] values(T)()

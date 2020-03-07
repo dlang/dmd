@@ -354,6 +354,9 @@ immutable Msgtable[] msgtable =
     { "_d_arraysetlengthTImpl"},
     { "_d_arraysetlengthT"},
     { "_d_arraysetlengthTTrace"},
+    { "_d_arrayappendcTXImpl" },
+    { "_d_arrayappendcTX" },
+    { "_d_arrayappendcTXTrace" },
 
     // varargs implementation
     { "stdc" },

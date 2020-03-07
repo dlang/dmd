@@ -5,9 +5,9 @@
 // N.B MSVC 2013 doesn't support char16_t/char32_t
 
 version(Posix)
-    enum __c_wchar_t : dchar;
+    enum __c_wchar_t : dchar {_}
 else version(Windows)
-    enum __c_wchar_t : wchar;
+    enum __c_wchar_t : wchar {_}
 alias wchar_t = __c_wchar_t;
 
 extern(C++) {
