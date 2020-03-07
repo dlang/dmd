@@ -88,7 +88,15 @@ private string miniFormat(V)(const ref V v)
     else static if (__traits(isFloating, V))
     {
         char[60] val;
-        const len = sprintf(&val[0], "%g", v);
+        int len;
+        static if (is(V == cfloat) || is(V == cdouble))
+            len = sprintf(&val[0], "%g + %gi", v.re, v.im);
+        else static if (is(V == creal))
+            len = sprintf(&val[0], "%Lg + %Lgi", v.re, v.im);
+        else static if (is(V == real) || is(V == ireal))
+            len = sprintf(&val[0], "%Lg", v);
+        else
+            len = sprintf(&val[0], "%g", v);
         return val.idup[0 .. len];
     }
     // special-handling for void-arrays
