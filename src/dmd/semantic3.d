@@ -362,9 +362,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 }
             }
 
-            // Declare 'this'
-            auto ad = funcdecl.isThis();
-            funcdecl.declareThis(sc2, ad);
+            funcdecl.declareThis(sc2);
 
             //printf("[%s] ad = %p vthis = %p\n", loc.toChars(), ad, vthis);
             //if (vthis) printf("\tvthis.type = %s\n", vthis.type.toChars());
@@ -514,7 +512,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             Statement fpreinv = null;
             if (funcdecl.addPreInvariant())
             {
-                Expression e = addInvariant(funcdecl.loc, sc, ad, funcdecl.vthis);
+                Expression e = addInvariant(funcdecl.loc, sc, funcdecl.isThis(), funcdecl.vthis);
                 if (e)
                     fpreinv = new ExpStatement(Loc.initial, e);
             }
@@ -523,7 +521,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             Statement fpostinv = null;
             if (funcdecl.addPostInvariant())
             {
-                Expression e = addInvariant(funcdecl.loc, sc, ad, funcdecl.vthis);
+                Expression e = addInvariant(funcdecl.loc, sc, funcdecl.isThis(), funcdecl.vthis);
                 if (e)
                     fpostinv = new ExpStatement(Loc.initial, e);
             }

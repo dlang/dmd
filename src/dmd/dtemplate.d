@@ -852,7 +852,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             }
             if (isstatic)
                 fd.storage_class |= STC.static_;
-            fd.declareThis(scx, fd.isThis());
+            fd.declareThis(scx);
         }
 
         lastConstraint = constraint.syntaxCopy();

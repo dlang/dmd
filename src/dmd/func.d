@@ -456,9 +456,10 @@ extern (C++) class FuncDeclaration : Declaration
      * Hidden parameters include the `this` parameter of a class, struct or
      * nested function and the selector parameter for Objective-C methods.
      */
-    extern (D) final void declareThis(Scope* sc, AggregateDeclaration ad)
+    extern (D) final void declareThis(Scope* sc)
     {
         isThis2 = toParent2() != toParentLocal();
+        auto ad = isThis();
         if (!isThis2 && !ad && !isNested())
         {
             vthis = null;
