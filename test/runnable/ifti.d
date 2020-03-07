@@ -1,3 +1,6 @@
+// Ignore deprecations due to https://issues.dlang.org/show_bug.cgi?id=7619
+// TRANSFORM_OUTPUT: remove_lines("Use std.complex")
+
 import std.stdio;
 
 struct S {

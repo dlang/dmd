@@ -1,6 +1,16 @@
-// PERMUTE_ARGS:
-// REQUIRED_ARGS: -release -O -g -inline
-// DISABLED: freebsd dragonflybsd
+/*
+PERMUTE_ARGS:
+REQUIRED_ARGS: -release -O -g -inline
+DISABLED: freebsd dragonflybsd
+TEST_OUTPUT:
+---
+runnable/dhry.d(625): Deprecation: format specifier `"%7.1lf"` is invalid
+runnable/dhry.d(627): Deprecation: format specifier `"%10.1lf"` is invalid
+runnable/dhry.d(628): Deprecation: format specifier `"%10.3lf"` is invalid
+---
+
+Deprecation caused by https://issues.dlang.org/show_bug.cgi?id=20645
+*/
 
 /*
  *************************************************************************

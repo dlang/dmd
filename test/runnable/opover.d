@@ -1,5 +1,7 @@
 
 // Test operator overloading
+// Ignore deprecation warnings for D1 style operator overloading
+// TRANSFORM_OUTPUT: remove_lines("Deprecation: `op")
 
 import core.stdc.stdio;
 

@@ -1,5 +1,19 @@
-// REQUIRED_ARGS:
-//
+/*
+REQUIRED_ARGS:
+TEST_OUTPUT:
+---
+success
+myInt int
+myBool bool
+i
+s
+C6test42__T4T219TiZ1C
+C6test427test219FZ8__mixin11C
+runnable/test42.d(4541): Deprecation: argument `cast(int)wsize` for format specification `"%hhu"` must be `byte`, not `int`
+---
+
+Deprecation caused by https://issues.dlang.org/show_bug.cgi?id=20644
+*/
 
 module test42;
 
@@ -51,7 +65,7 @@ void test3()
 {
     auto i = mixin("__LINE__");
     printf("%d\n", i);
-    assert(i == 52);
+    assert(i == 66);
 }
 
 /***************************************************/
