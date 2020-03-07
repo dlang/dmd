@@ -3,6 +3,9 @@
 // EXTRA_FILES: extra-files/cppb.h
 // CXXFLAGS(linux freebsd osx netbsd dragonflybsd): -std=c++11
 
+// Filter a spurious warning on Semaphore:
+// TRANSFORM_OUTPUT: remove_lines("warning: relocation refers to discarded section")
+
 // N.B MSVC doesn't have a C++11 switch, but it defaults to the latest fully-supported standard
 
 import core.stdc.stdio;
