@@ -364,10 +364,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
             // Declare 'this'
             auto ad = funcdecl.isThis();
-            auto hiddenParams = funcdecl.declareThis(sc2, ad);
-            funcdecl.vthis = hiddenParams.vthis;
-            funcdecl.isThis2 = hiddenParams.isThis2;
-            funcdecl.selectorParameter = hiddenParams.selectorParameter;
+            funcdecl.declareThis(sc2, ad);
+
             //printf("[%s] ad = %p vthis = %p\n", loc.toChars(), ad, vthis);
             //if (vthis) printf("\tvthis.type = %s\n", vthis.type.toChars());
 

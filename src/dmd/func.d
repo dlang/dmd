@@ -199,27 +199,6 @@ extern (C++) struct Ensure
  */
 extern (C++) class FuncDeclaration : Declaration
 {
-    /// All hidden parameters bundled.
-    static struct HiddenParameters
-    {
-        /**
-         * The `this` parameter for methods or nested functions.
-         *
-         * For methods, it would be the class object or struct value the
-         * method is called on. For nested functions it would be the enclosing
-         * function's stack frame.
-         */
-        VarDeclaration vthis;
-
-        /**
-         * Is 'this' a pointer to a static array holding two contexts.
-         */
-        bool isThis2;
-
-        /// The selector parameter for Objective-C methods.
-        VarDeclaration selectorParameter;
-    }
-
     Statements* frequires;              /// in contracts
     Ensures* fensures;                  /// out contracts
     Statement frequire;                 /// lowered in contract
@@ -477,93 +456,64 @@ extern (C++) class FuncDeclaration : Declaration
      * Hidden parameters include the `this` parameter of a class, struct or
      * nested function and the selector parameter for Objective-C methods.
      */
-    extern (D) final HiddenParameters declareThis(Scope* sc, AggregateDeclaration ad)
+    extern (D) final void declareThis(Scope* sc, AggregateDeclaration ad)
     {
-        if (toParent2() != toParentLocal())
+        isThis2 = toParent2() != toParentLocal();
+        if (!isThis2 && !ad && !isNested())
         {
-            Type tthis2 = Type.tvoidptr.sarrayOf(2).pointerTo();
-            tthis2 = tthis2.addMod(type.mod)
-                           .addStorageClass(storage_class);
-            VarDeclaration v2 = new VarDeclaration(loc, tthis2, Id.this2, null);
-            v2.storage_class |= STC.parameter | STC.nodtor;
-            if (type.ty == Tfunction)
-            {
-                TypeFunction tf = cast(TypeFunction)type;
-                if (tf.isreturn)
-                    v2.storage_class |= STC.return_;
-                if (tf.isscope)
-                    v2.storage_class |= STC.scope_;
-                // if member function is marked 'inout', then this is 'return ref'
-                if (tf.iswild & 2)
-                    v2.storage_class |= STC.return_;
-            }
-            if (flags & FUNCFLAG.inferScope && !(v2.storage_class & STC.scope_))
-                v2.storage_class |= STC.maybescope;
-            v2.dsymbolSemantic(sc);
-            if (!sc.insert(v2))
-                assert(0);
-            v2.parent = this;
-            return HiddenParameters(v2, true);
+            vthis = null;
+            selectorParameter = null;
+            return;
         }
-        if (ad)
-        {
-            //printf("declareThis() %s\n", toChars());
-            Type thandle = ad.handleType();
-            assert(thandle);
-            thandle = thandle.addMod(type.mod);
-            thandle = thandle.addStorageClass(storage_class);
-            VarDeclaration v = new ThisDeclaration(loc, thandle);
-            v.storage_class |= STC.parameter;
-            if (thandle.ty == Tstruct)
-            {
-                v.storage_class |= STC.ref_;
-                // if member function is marked 'inout', then 'this' is 'return ref'
-                if (type.ty == Tfunction && (cast(TypeFunction)type).iswild & 2)
-                    v.storage_class |= STC.return_;
-            }
-            if (type.ty == Tfunction)
-            {
-                TypeFunction tf = cast(TypeFunction)type;
-                if (tf.isreturn)
-                    v.storage_class |= STC.return_;
-                if (tf.isscope)
-                    v.storage_class |= STC.scope_;
-            }
-            if (flags & FUNCFLAG.inferScope && !(v.storage_class & STC.scope_))
-                v.storage_class |= STC.maybescope;
 
-            v.dsymbolSemantic(sc);
-            if (!sc.insert(v))
-                assert(0);
-            v.parent = this;
-            return HiddenParameters(v, false, objc.createSelectorParameter(this, sc));
+        Type addModStc(Type t)
+        {
+            return t.addMod(type.mod).addStorageClass(storage_class);
         }
-        if (isNested())
+
+        if (isThis2 || isNested())
         {
             /* The 'this' for a nested function is the link to the
              * enclosing function's stack frame.
              * Note that nested functions and member functions are disjoint.
              */
-            VarDeclaration v = new VarDeclaration(loc, Type.tvoid.pointerTo(), Id.capture, null);
-            v.storage_class |= STC.parameter | STC.nodtor;
-            if (type.ty == Tfunction)
-            {
-                TypeFunction tf = cast(TypeFunction)type;
-                if (tf.isreturn)
-                    v.storage_class |= STC.return_;
-                if (tf.isscope)
-                    v.storage_class |= STC.scope_;
-            }
-            if (flags & FUNCFLAG.inferScope && !(v.storage_class & STC.scope_))
-                v.storage_class |= STC.maybescope;
-
-            v.dsymbolSemantic(sc);
-            if (!sc.insert(v))
-                assert(0);
-            v.parent = this;
-            return HiddenParameters(v);
+            Type tthis = addModStc(isThis2 ?
+                                   Type.tvoidptr.sarrayOf(2).pointerTo() :
+                                   Type.tvoid.pointerTo());
+            vthis = new VarDeclaration(loc, tthis, isThis2 ? Id.this2 : Id.capture, null);
+            vthis.storage_class |= STC.parameter | STC.nodtor;
         }
-        return HiddenParameters.init;
+        else if (ad)
+        {
+            Type thandle = addModStc(ad.handleType());
+            vthis = new ThisDeclaration(loc, thandle);
+            vthis.storage_class |= STC.parameter;
+            if (thandle.ty == Tstruct)
+            {
+                vthis.storage_class |= STC.ref_;
+                // if member function is marked 'inout', then 'this' is 'return ref'
+                if (type.ty == Tfunction && (cast(TypeFunction)type).iswild & 2)
+                    vthis.storage_class |= STC.return_;
+            }
+        }
+
+        if (type.ty == Tfunction)
+        {
+            TypeFunction tf = cast(TypeFunction)type;
+            if (tf.isreturn)
+                vthis.storage_class |= STC.return_;
+            if (tf.isscope)
+                vthis.storage_class |= STC.scope_;
+        }
+        if (flags & FUNCFLAG.inferScope && !(vthis.storage_class & STC.scope_))
+            vthis.storage_class |= STC.maybescope;
+
+        vthis.dsymbolSemantic(sc);
+        if (!sc.insert(vthis))
+            assert(0);
+        vthis.parent = this;
+        if (ad)
+            selectorParameter = objc.createSelectorParameter(this, sc);
     }
 
     override final bool equals(const RootObject o) const
