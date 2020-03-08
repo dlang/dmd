@@ -479,7 +479,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
             // Declare the tuple symbols and put them in the symbol table,
             // but not in parameters[].
-            if (f.parameterList.parameters) foreach (fparam; *f.parameterList.parameters)
+            if (f.parameterList.parameters)
+            foreach (fparam; *f.parameterList.parameters)
             {
 
                 if (!fparam.ident)
