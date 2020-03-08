@@ -14,7 +14,6 @@ See the README.md for all available test targets
 import std.algorithm, std.conv, std.datetime, std.exception, std.file, std.format,
        std.getopt, std.parallelism, std.path, std.process, std.range, std.stdio,
        std.string, std.traits, core.atomic;
-import core.stdc.stdlib : exit;
 
 import tools.paths;
 
@@ -82,7 +81,15 @@ immutable struct TestTool
 
 int main(string[] args)
 {
-    bool runUnitTests;
+    try
+        return tryMain(args);
+    catch (SilentQuit sq)
+        return sq.exitCode;
+}
+
+int tryMain(string[] args)
+{
+    bool runUnitTests, calledFromMake;
     int jobs = totalCPUs;
     auto res = getopt(args,
         std.getopt.config.passThrough,
@@ -185,7 +192,7 @@ void verifyCompilerExists(string[string] env)
     if (!env["DMD"].exists)
     {
         stderr.writefln("%s doesn't exist, try building dmd with:\nmake -fposix.mak -j8 -C%s", env["DMD"], scriptDir.dirName.relativePath);
-        exit(1);
+        quitSilently(1);
     }
 }
 
@@ -252,7 +259,7 @@ void ensureToolsExists(string[string] env, const TestTool[] tools ...)
         }
     }
     if (failCount > 0)
-        exit(1); // error already printed
+        quitSilently(1); // error already printed
 
     // ensure output directories exist
     foreach (dir; testDirs)
@@ -338,7 +345,7 @@ auto predefinedTargets(string[] targets)
             case "clean":
                 if (resultsDir.exists)
                     resultsDir.rmdirRecurse;
-                exit(0);
+                quitSilently(0);
                 break;
 
             case "run_runnable_tests", "runnable":
@@ -385,7 +392,7 @@ auto filterTargets(Target[] targets, string[string] env)
         }
     }
     if (error)
-        exit(1);
+        quitSilently(1);
 
     Target[] targetsThatNeedUpdating;
     foreach (t; targets)
@@ -534,4 +541,36 @@ string[] getPicFlags(string[string] env)
             return picFlags.split();
     }
     return cast(string[])[];
+}
+
+/++
+Signals a silent termination while still retaining a controlled shutdown
+(including destructors, scope guards, etc).
+
+quitSilently(...) should be used instead of exit(...)
+++/
+class SilentQuit : Exception
+{
+    /// The exit code
+    const int exitCode;
+
+    ///
+    this(const int exitCode)
+    {
+        super(null, null, null);
+        this.exitCode = exitCode;
+    }
+}
+
+/++
+Aborts the current execution by throwing an exception
+
+Params:
+    exitCode = the exit code
+
+Throws: a SilentQuit instance wrapping exitCode
+++/
+void quitSilently(const int exitCode)
+{
+    throw new SilentQuit(exitCode);
 }
