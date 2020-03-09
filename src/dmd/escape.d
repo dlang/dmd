@@ -1064,41 +1064,39 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
         /* Check for returning a ref variable by 'ref', but should be 'return ref'
          * Infer the addition of 'return', or set result to be the offending expression.
          */
-        if (v.storage_class & (STC.ref_ | STC.out_))
-        {
-            // DIP25
-            if (sc._module && sc._module.isRoot())
-            {
-                // If -preview=dip25 is used, the user wants an error
-                // Otherwise, issue a deprecation
-                const emitError = global.params.useDIP25;
-                // https://dlang.org/spec/function.html#return-ref-parameters
-                // Only look for errors if in module listed on command line
-                if (p == sc.func)
-                {
-                    //printf("escaping reference to local ref variable %s\n", v.toChars());
-                    //printf("storage class = x%llx\n", v.storage_class);
-                    escapingRef(v, emitError);
-                    continue;
-                }
-                // Don't need to be concerned if v's parent does not return a ref
-                FuncDeclaration fd = p.isFuncDeclaration();
-                if (fd && fd.type && fd.type.ty == Tfunction)
-                {
-                    TypeFunction tf = cast(TypeFunction)fd.type;
-                    if (tf.isref)
-                    {
-                        const(char)* msg = "storing reference to outer local variable `%s` into allocated memory causes it to escape";
-                        if (!gag && emitError)
-                            error(e.loc, msg, v.toChars());
-                        else if (!gag)
-                            deprecation(e.loc, msg, v.toChars());
-                        result |= emitError;
-                        continue;
-                    }
-                }
+        if (!(v.storage_class & (STC.ref_ | STC.out_)))
+            continue;
 
-            }
+        if (!sc._module || !sc._module.isRoot())
+            continue;
+
+        // If -preview=dip25 is used, the user wants an error
+        // Otherwise, issue a deprecation
+        const emitError = global.params.useDIP25;
+        // https://dlang.org/spec/function.html#return-ref-parameters
+        // Only look for errors if in module listed on command line
+        if (p == sc.func)
+        {
+            //printf("escaping reference to local ref variable %s\n", v.toChars());
+            //printf("storage class = x%llx\n", v.storage_class);
+            escapingRef(v, emitError);
+            continue;
+        }
+        // Don't need to be concerned if v's parent does not return a ref
+        FuncDeclaration fd = p.isFuncDeclaration();
+        if (!fd || !fd.type)
+            continue;
+        if (auto tf = fd.type.isTypeFunction())
+        {
+            if (!tf.isref)
+                continue;
+
+            const(char)* msg = "storing reference to outer local variable `%s` into allocated memory causes it to escape";
+            if (!gag && emitError)
+                error(e.loc, msg, v.toChars());
+            else if (!gag)
+                deprecation(e.loc, msg, v.toChars());
+            result |= emitError;
         }
     }
 
