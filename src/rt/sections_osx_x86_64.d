@@ -29,8 +29,11 @@ import core.stdc.string, core.stdc.stdlib;
 import core.sys.posix.pthread;
 import core.sys.darwin.mach.dyld;
 import core.sys.darwin.mach.getsect;
+
 import rt.deh, rt.minfo;
 import rt.util.container.array;
+import rt.util.utility : safeAssert;
+import rt.sections_darwin_64 : getTLSRange;
 
 struct SectionGroup
 {
@@ -95,11 +98,11 @@ void finiSections() nothrow @nogc
 
 void[] initTLSRanges() nothrow @nogc
 {
-    void* start = null;
-    size_t size = 0;
-    _d_dyld_getTLSRange(&dummyTlsSymbol, &start, &size);
-    assert(start && size, "Could not determine TLS range.");
-    return start[0 .. size];
+    static ubyte tlsAnchor;
+
+    auto range = getTLSRange(&tlsAnchor);
+    safeAssert(range !is null, "Could not determine TLS range.");
+    return range;
 }
 
 void finiTLSRanges(void[] rng) nothrow @nogc
@@ -114,12 +117,9 @@ void scanTLSRanges(void[] rng, scope void delegate(void* pbeg, void* pend) nothr
 
 private:
 
-extern(C) void _d_dyld_getTLSRange(void*, void**, size_t*) nothrow @nogc;
-
 __gshared SectionGroup _sections;
-ubyte dummyTlsSymbol;
 
-extern (C) void sections_osx_onAddImage(in mach_header* h, intptr_t slide)
+extern (C) void sections_osx_onAddImage(const scope mach_header* h, intptr_t slide)
 {
     foreach (e; dataSegs)
     {
@@ -174,7 +174,7 @@ static immutable SegRef[] dataSegs = [{SEG_DATA, SECT_DATA},
 ubyte[] getSection(in mach_header* header, intptr_t slide,
                    in char* segmentName, in char* sectionName)
 {
-    assert(header.magic == MH_MAGIC_64);
+    safeAssert(header.magic == MH_MAGIC_64, "Unsupported header.");
     auto sect = getsectbynamefromheader_64(cast(mach_header_64*)header,
                                         segmentName,
                                         sectionName);

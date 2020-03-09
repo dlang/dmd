@@ -78,7 +78,7 @@ bool parseOptions(CFG)(ref CFG cfg, string opt)
         static if (is(typeof(__traits(getMember, CFG, "help"))))
             if (name == "help")
             {
-                version (unittest) {} else
+                version (CoreUnittest) {} else
                 cfg.help();
                 opt = skip!isspace(tail);
                 continue;
@@ -133,9 +133,9 @@ bool rt_parseOption(T)(const(char)[] optname, ref inout(char)[] str, ref T res, 
 
 private:
 
-bool optError(in char[] msg, in char[] name, const(char)[] errName)
+bool optError(const scope char[] msg, const scope char[] name, const(char)[] errName)
 {
-    version (unittest) if (inUnittest) return false;
+    version (CoreUnittest) if (inUnittest) return false;
 
     fprintf(stderr, "%.*s %.*s option '%.*s'.\n",
             cast(int)msg.length, msg.ptr,
@@ -240,9 +240,9 @@ do
     return true;
 }
 
-bool parseError(in char[] exp, in char[] opt, in char[] got, const(char)[] errName)
+bool parseError(const scope char[] exp, const scope char[] opt, const scope char[] got, const(char)[] errName)
 {
-    version (unittest) if (inUnittest) return false;
+    version (CoreUnittest) if (inUnittest) return false;
 
     fprintf(stderr, "Expecting %.*s as argument for %.*s option '%.*s', got '%.*s' instead.\n",
             cast(int)exp.length, exp.ptr,
@@ -254,7 +254,7 @@ bool parseError(in char[] exp, in char[] opt, in char[] got, const(char)[] errNa
 
 size_t min(size_t a, size_t b) { return a <= b ? a : b; }
 
-version (unittest) __gshared bool inUnittest;
+version (CoreUnittest) __gshared bool inUnittest;
 
 unittest
 {

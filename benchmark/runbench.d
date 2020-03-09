@@ -12,7 +12,7 @@ extern(C) __gshared bool rt_cmdline_enabled = false;
 
 struct Config
 {
-    string pattern = r".*\.d", dmd = "dmd", dflags = "-O -release -inline", args;
+    string pattern = r".*\.d", dmd = "dmd", dflags = "-mcpu=native -O -release -inline", args;
     bool help, verbose, compile = true;
     uint repeat = 10;
 }
@@ -155,7 +155,7 @@ void printHelp()
         "usage: runbench [-h|--help] [-v|--verbose] [-r n|--repeat=n] [<test_regex>] [<dflags>] [-- <runargs>]"~nl~nl~
 
         "   tests   - Regular expressions to select tests. Default: '.*\\.d'"~nl~
-        "   dflags  - Flags passed to compiler. Default: '-O -release -inline'"~nl~
+        "   dflags  - Flags passed to compiler. Default: '-mcpu=native -O -release -inline'"~nl~
         "   runargs - Arguments passed to each test, e.g. '--DRT-gcopt=profile=1'"~nl~nl~
         "Don't pass any argument to run all tests with optimized builds.";
 

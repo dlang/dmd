@@ -15,6 +15,12 @@
  */
 module core.attribute;
 
+version (D_ObjectiveC)
+    version = UdaSelector;
+
+version (CoreDdoc)
+    version = UdaSelector;
+
 /**
  * Use this attribute to attach an Objective-C selector to a method.
  *
@@ -51,7 +57,7 @@ module core.attribute;
  * }
  * ---
  */
-version (D_ObjectiveC) struct selector
+version (UdaSelector) struct selector
 {
     string selector;
 }

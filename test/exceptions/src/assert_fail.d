@@ -2,22 +2,28 @@ import core.stdc.stdio : fprintf, printf, stderr;
 
 void test(string comp = "==", A, B)(A a, B b, string msg, size_t line = __LINE__)
 {
+    test(assert(mixin("a " ~ comp ~ " b")), msg, line);
+}
+
+void test(T)(lazy T dg, string msg, size_t line = __LINE__)
+{
     int ret = () {
         import core.exception : AssertError;
         try
         {
-            assert(mixin("a " ~ comp ~ " b"));
+            dg();
         } catch(AssertError e)
         {
             // don't use assert here for better debugging
             if (e.msg != msg)
             {
-                printf("Line %d: '%.*s' != '%.*s'\n", line, e.msg.length, e.msg.ptr, msg.length, msg.ptr);
+                printf("Line %d: '%.*s' != '%.*s'\n",
+                    cast(int)line, cast(int)e.msg.length, e.msg.ptr, cast(int)msg.length, msg.ptr);
                 return 1;
             }
             return 0;
         }
-        printf("Line %d: No assert triggered\n", line);
+        printf("Line %d: No assert triggered\n", cast(int)line);
         return 1;
     }();
     // don't use assert here for better debugging
@@ -68,6 +74,10 @@ void testStrings()
     char[] dlang = "dlang".dup;
     const(char)[] rust = "rust";
     test(dlang, rust, `"dlang" != "rust"`);
+
+    // https://issues.dlang.org/show_bug.cgi?id=20322
+    test("left"w, "right"w, `"left" != "right"`);
+    test("left"d, "right"d, `"left" != "right"`);
 }
 
 void testToString()()
@@ -84,6 +94,22 @@ void testToString()()
         }
     }
     test(new Foo("a"), new Foo("b"), "Foo(a) != Foo(b)");
+
+    // Verifiy that the const toString is selected if present
+    static struct Overloaded
+    {
+        string toString()
+        {
+            return "Mutable";
+        }
+
+        string toString() const
+        {
+            return "Const";
+        }
+    }
+
+    test!"!="(Overloaded(), Overloaded(), "Const is Const");
 }
 
 
@@ -102,7 +128,18 @@ void testArray()()
 void testStruct()()
 {
     struct S { int s; }
+    struct T { T[] t; }
     test(S(0), S(1), "S(0) !is S(1)");
+    test(T([T(null)]), T(null), "[T([])] != []");
+
+    // https://issues.dlang.org/show_bug.cgi?id=20323
+    static struct NoCopy
+    {
+        @disable this(this);
+    }
+
+    NoCopy n;
+    test(assert(n != n), "NoCopy() is NoCopy()");
 }
 
 void testAA()()
@@ -119,6 +156,44 @@ void testAttributes() @safe pure @nogc nothrow
     assert(a == 0);
 }
 
+// https://issues.dlang.org/show_bug.cgi?id=20066
+void testVoidArray()()
+{
+    assert([] is null);
+    assert(null is null);
+    test([1], null, "[1] != []");
+    test("s", null, `"s" != ""`);
+    test(['c'], null, `"c" != ""`);
+    test!"!="(null, null, "`null` == `null`");
+
+    const void[] chunk = [byte(1), byte(2), byte(3)];
+    test(chunk, null, "[1, 2, 3] != []");
+}
+
+void testTemporary()
+{
+    static struct Bad
+    {
+        ~this() @system {}
+    }
+
+    test(assert(Bad() != Bad()), "Bad() is Bad()");
+}
+
+void testEnum()
+{
+    static struct UUID {
+        union
+        {
+            ubyte[] data = [1];
+        }
+    }
+
+    ubyte[] data;
+    enum ctfe = UUID();
+    test(assert(ctfe.data == data), "[1] != []");
+}
+
 void main()
 {
     testIntegers();
@@ -130,5 +205,8 @@ void main()
     testStruct();
     testAA();
     testAttributes();
+    testVoidArray();
+    testTemporary();
+    testEnum();
     fprintf(stderr, "success.\n");
 }

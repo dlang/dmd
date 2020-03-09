@@ -53,9 +53,9 @@ struct shmid_ds
     time_t      shm_ctime;
 }
 
-void* shmat(int, in void*, int);
+void* shmat(int, const scope void*, int);
 int   shmctl(int, int, shmid_ds*);
-int   shmdt(in void*);
+int   shmdt(const scope void*);
 int   shmget(key_t, size_t, int);
 */
 
@@ -87,9 +87,9 @@ version (CRuntime_Glibc)
         c_ulong     __unused5;
     }
 
-    void* shmat(int, in void*, int);
+    void* shmat(int, const scope void*, int);
     int   shmctl(int, int, shmid_ds*);
-    int   shmdt(in void*);
+    int   shmdt(const scope void*);
     int   shmget(key_t, size_t, int);
 }
 else version (FreeBSD)
@@ -125,9 +125,9 @@ else version (FreeBSD)
          time_t      shm_ctime;
     }
 
-    void* shmat(int, in void*, int);
+    void* shmat(int, const scope void*, int);
     int   shmctl(int, int, shmid_ds*);
-    int   shmdt(in void*);
+    int   shmdt(const scope void*);
     int   shmget(key_t, size_t, int);
 }
 else version (NetBSD)
@@ -151,9 +151,9 @@ else version (NetBSD)
         void*           shm_internal;
     }
 
-    void* shmat(int, in void*, int);
+    void* shmat(int, const scope void*, int);
     int   shmctl(int, int, shmid_ds*);
-    int   shmdt(in void*);
+    int   shmdt(const scope void*);
     int   shmget(key_t, size_t, int);
 }
 else version (OpenBSD)
@@ -180,9 +180,9 @@ else version (OpenBSD)
         void*      shm_internal;
     }
 
-    void* shmat(int, in void*, int);
+    void* shmat(int, const scope void*, int);
     int   shmctl(int, int, shmid_ds*);
-    int   shmdt(in void*);
+    int   shmdt(const scope void*);
     int   shmget(key_t, size_t, int);
 }
 else version (DragonFlyBSD)
@@ -206,9 +206,9 @@ else version (DragonFlyBSD)
          private void*  shm_internal;
     }
 
-    void* shmat(int, in void*, int);
+    void* shmat(int, const scope void*, int);
     int   shmctl(int, int, shmid_ds*);
-    int   shmdt(in void*);
+    int   shmdt(const scope void*);
     int   shmget(key_t, size_t, int);
 }
 else version (Darwin)
@@ -273,8 +273,8 @@ else version (CRuntime_UClibc)
         c_ulong swap_successes;
     }
 
-    void* shmat(int, in void*, int);
+    void* shmat(int, const scope void*, int);
     int   shmctl(int, int, shmid_ds*);
-    int   shmdt(in void*);
+    int   shmdt(const scope void*);
     int   shmget(key_t, size_t, int);
 }

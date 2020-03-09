@@ -1,5 +1,13 @@
-module core.internal.arrayop;
-import core.internal.traits : Filter, staticMap, TypeTuple, Unqual;
+/**
+ This module contains support array (vector) operations
+  Copyright: Copyright Digital Mars 2000 - 2019.
+  License: Distributed under the
+       $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
+     (See accompanying file LICENSE)
+  Source: $(DRUNTIMESRC core/_internal/_array/_operations.d)
+*/
+module core.internal.array.operations;
+import core.internal.traits : Filter, staticMap, Unqual;
 
 version (GNU) version = GNU_OR_LDC;
 version (LDC) version = GNU_OR_LDC;
@@ -74,7 +82,7 @@ version (DigitalMars)
         alias vec = __vector(T[N]);
     }
 
-    void store(T, size_t N)(T* p, in __vector(T[N]) val)
+    void store(T, size_t N)(T* p, const scope __vector(T[N]) val)
     {
         pragma(inline, true);
         alias vec = __vector(T[N]);
@@ -87,7 +95,7 @@ version (DigitalMars)
             cast(void) __simd_sto(XMM.STODQU, *cast(vec*) p, val);
     }
 
-    const(__vector(T[N])) load(T, size_t N)(in T* p)
+    const(__vector(T[N])) load(T, size_t N)(const scope T* p)
     {
         import core.simd;
 
@@ -102,13 +110,13 @@ version (DigitalMars)
             return __simd(XMM.LODDQU, *cast(const vec*) p);
     }
 
-    __vector(T[N]) binop(string op, T, size_t N)(in __vector(T[N]) a, in __vector(T[N]) b)
+    __vector(T[N]) binop(string op, T, size_t N)(const scope __vector(T[N]) a, const scope __vector(T[N]) b)
     {
         pragma(inline, true);
         return mixin("a " ~ op ~ " b");
     }
 
-    __vector(T[N]) unaop(string op, T, size_t N)(in __vector(T[N]) a)
+    __vector(T[N]) unaop(string op, T, size_t N)(const scope __vector(T[N]) a)
             if (op[0] == 'u')
     {
         pragma(inline, true);
@@ -430,7 +438,7 @@ string toString(size_t num)
     }
 }
 
-bool contains(T)(in T[] ary, in T[] vals...)
+bool contains(T)(const scope T[] ary, const scope T[] vals...)
 {
     foreach (v1; ary)
         foreach (v2; vals)
@@ -441,19 +449,19 @@ bool contains(T)(in T[] ary, in T[] vals...)
 
 // tests
 
-version (unittest) template TT(T...)
+version (CoreUnittest) template TT(T...)
 {
     alias TT = T;
 }
 
-version (unittest) template _arrayOp(Args...)
+version (CoreUnittest) template _arrayOp(Args...)
 {
     alias _arrayOp = arrayOp!Args;
 }
 
 unittest
 {
-    static void check(string op, TA, TB, T, size_t N)(TA a, TB b, in ref T[N] exp)
+    static void check(string op, TA, TB, T, size_t N)(TA a, TB b, const scope ref T[N] exp)
     {
         T[N] res;
         _arrayOp!(T[], TA, TB, op, "=")(res[], a, b);
@@ -461,7 +469,7 @@ unittest
             assert(res[i] == exp[i]);
     }
 
-    static void check2(string unaOp, string binOp, TA, TB, T, size_t N)(TA a, TB b, in ref T[N] exp)
+    static void check2(string unaOp, string binOp, TA, TB, T, size_t N)(TA a, TB b, const scope ref T[N] exp)
     {
         T[N] res;
         _arrayOp!(T[], TA, TB, unaOp, binOp, "=")(res[], a, b);

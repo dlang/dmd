@@ -16,9 +16,9 @@ extern(C++) bool hasAlignedNew();
 unittest
 {
     // test the magic numbers are consistent between C++ and D
-    assert(hasAlignedNew() == __cpp_aligned_new);
+    assert(hasAlignedNew() == !!__cpp_aligned_new, "__cpp_aligned_new does not match C++ compiler");
     static if (__cpp_aligned_new)
-        assert(defaultAlignment() == __STDCPP_DEFAULT_NEW_ALIGNMENT__);
+        assert(defaultAlignment() == __STDCPP_DEFAULT_NEW_ALIGNMENT__, "__STDCPP_DEFAULT_NEW_ALIGNMENT__ does not match C++ compiler");
 
     // alloc in C++, delete in D
     MyStruct s = cpp_new();

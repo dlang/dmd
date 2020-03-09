@@ -525,9 +525,10 @@ else version (CRuntime_Bionic)
 else version (CRuntime_Musl)
 {
     alias ulong rlim_t;
+    enum RLIM_INFINITY = cast(c_ulong)(~0UL);
 
     int getrlimit(int, rlimit*);
-    int setrlimit(int, in rlimit*);
+    int setrlimit(int, const scope rlimit*);
     alias getrlimit getrlimit64;
     alias setrlimit setrlimit64;
     enum
@@ -676,14 +677,14 @@ version (CRuntime_Glibc)
     static if (__USE_FILE_OFFSET64)
     {
         int getrlimit64(int, rlimit*);
-        int setrlimit64(int, in rlimit*);
+        int setrlimit64(int, const scope rlimit*);
         alias getrlimit = getrlimit64;
         alias setrlimit = setrlimit64;
     }
     else
     {
         int getrlimit(int, rlimit*);
-        int setrlimit(int, in rlimit*);
+        int setrlimit(int, const scope rlimit*);
     }
     int getrusage(int, rusage*);
 }
@@ -691,57 +692,57 @@ else version (CRuntime_Bionic)
 {
     int getrlimit(int, rlimit*);
     int getrusage(int, rusage*);
-    int setrlimit(int, in rlimit*);
+    int setrlimit(int, const scope rlimit*);
 }
 else version (Darwin)
 {
     int getrlimit(int, rlimit*);
     int getrusage(int, rusage*);
-    int setrlimit(int, in rlimit*);
+    int setrlimit(int, const scope rlimit*);
 }
 else version (FreeBSD)
 {
     int getrlimit(int, rlimit*);
     int getrusage(int, rusage*);
-    int setrlimit(int, in rlimit*);
+    int setrlimit(int, const scope rlimit*);
 }
 else version (NetBSD)
 {
     int getrlimit(int, rlimit*);
     int getrusage(int, rusage*);
-    int setrlimit(int, in rlimit*);
+    int setrlimit(int, const scope rlimit*);
 }
 else version (OpenBSD)
 {
     int getrlimit(int, rlimit*);
     int getrusage(int, rusage*);
-    int setrlimit(int, in rlimit*);
+    int setrlimit(int, const scope rlimit*);
 }
 else version (DragonFlyBSD)
 {
     int getrlimit(int, rlimit*);
     int getrusage(int, rusage*);
-    int setrlimit(int, in rlimit*);
+    int setrlimit(int, const scope rlimit*);
 }
 else version (Solaris)
 {
     int getrlimit(int, rlimit*);
     int getrusage(int, rusage*);
-    int setrlimit(int, in rlimit*);
+    int setrlimit(int, const scope rlimit*);
 }
 else version (CRuntime_UClibc)
 {
     static if (__USE_FILE_OFFSET64)
     {
         int getrlimit64(int, rlimit*);
-        int setrlimit64(int, in rlimit*);
+        int setrlimit64(int, const scope rlimit*);
         alias getrlimit = getrlimit64;
         alias setrlimit = setrlimit64;
     }
     else
     {
         int getrlimit(int, rlimit*);
-        int setrlimit(int, in rlimit*);
+        int setrlimit(int, const scope rlimit*);
     }
     int getrusage(int, rusage*);
 }

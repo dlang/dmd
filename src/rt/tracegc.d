@@ -78,11 +78,11 @@ enum accumulator = q{
         );
     }
 
-    GC.resetThreadLocalStats();
+    ulong currentlyAllocated = GC.stats().allocatedInCurrentThread;
 
     scope(exit)
     {
-        ulong size = GC.stats().allocatedInCurrentThread;
+        ulong size = GC.stats().allocatedInCurrentThread - currentlyAllocated;
         if (size > 0)
             accumulate(file, line, funcname, name, size);
     }

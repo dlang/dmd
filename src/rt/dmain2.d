@@ -78,12 +78,6 @@ extern (C) void thread_joinAll();
 extern (C) UnitTestResult runModuleUnitTests();
 extern (C) void _d_initMonoTime();
 
-version (OSX)
-{
-    // The bottom of the stack
-    extern (C) __gshared void* __osx_stack_end = cast(void*)0xC0000000;
-}
-
 version (CRuntime_Microsoft)
 {
     extern(C) void init_msvc();
@@ -210,7 +204,7 @@ extern (C) int rt_init()
     }
     catch (Throwable t)
     {
-        _initCount = 0;
+        atomicStore!(MemoryOrder.raw)(_initCount, 0);
         _d_print_throwable(t);
     }
     _d_critical_term();
@@ -223,7 +217,7 @@ extern (C) int rt_init()
  */
 extern (C) int rt_term()
 {
-    if (!_initCount) return 0; // was never initialized
+    if (atomicLoad!(MemoryOrder.raw)(_initCount) == 0) return 0; // was never initialized
     if (atomicOp!"-="(_initCount, 1)) return 1;
 
     try
@@ -313,79 +307,21 @@ extern (C) CArgs rt_cArgs() @nogc
     return _cArgs;
 }
 
-/***********************************
- * Run the given main function.
- * Its purpose is to wrap the D main()
- * function and catch any unhandled exceptions.
- */
+/// Type of the D main() function (`_Dmain`).
 private alias extern(C) int function(char[][] args) MainFunc;
 
-extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
+/**
+ * Sets up the D char[][] command-line args, initializes druntime,
+ * runs embedded unittests and then runs the given D main() function,
+ * optionally catching and printing any unhandled exceptions.
+ */
+extern (C) int _d_run_main(int argc, char** argv, MainFunc mainFunc)
 {
+    // Set up _cArgs and array of D char[] slices, then forward to _d_run_main2
+
     // Remember the original C argc/argv
     _cArgs.argc = argc;
     _cArgs.argv = argv;
-
-    int result;
-
-    version (OSX)
-    {   /* OSX does not provide a way to get at the top of the
-         * stack, except for the magic value 0xC0000000.
-         * But as far as the gc is concerned, argv is at the top
-         * of the main thread's stack, so save the address of that.
-         */
-        __osx_stack_end = cast(void*)&argv;
-    }
-
-    version (FreeBSD) version (D_InlineAsm_X86)
-    {
-        /*
-         * FreeBSD/i386 sets the FPU precision mode to 53 bit double.
-         * Make it 64 bit extended.
-         */
-        ushort fpucw;
-        asm
-        {
-            fstsw   fpucw;
-            or      fpucw, 0b11_00_111111; // 11: use 64 bit extended-precision
-                                           // 111111: mask all FP exceptions
-            fldcw   fpucw;
-        }
-    }
-    version (CRuntime_Microsoft)
-    {
-        // enable full precision for reals
-        version (GNU)
-        {
-            size_t fpu_cw;
-            asm { "fstcw %0" : "=m" (fpu_cw); }
-            fpu_cw |= 0b11_00_111111;  // 11: use 64 bit extended-precision
-                                       // 111111: mask all FP exceptions
-            asm { "fldcw %0" : "=m" (fpu_cw); }
-        }
-        else version (Win64)
-            asm
-            {
-                push    RAX;
-                fstcw   word ptr [RSP];
-                or      [RSP], 0b11_00_111111; // 11: use 64 bit extended-precision
-                                               // 111111: mask all FP exceptions
-                fldcw   word ptr [RSP];
-                pop     RAX;
-            }
-        else version (Win32)
-        {
-            asm
-            {
-                push    EAX;
-                fstcw   word ptr [ESP];
-                or      [ESP], 0b11_00_111111; // 11: use 64 bit extended-precision
-                // 111111: mask all FP exceptions
-                fldcw   word ptr [ESP];
-                pop     EAX;
-            }
-        }
-    }
 
     version (Windows)
     {
@@ -442,6 +378,112 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
     else
         static assert(0);
 
+    return _d_run_main2(args, totalArgsLength, mainFunc);
+}
+
+/**
+ * Windows-specific version for wide command-line arguments, e.g.,
+ * from a wmain/wWinMain C entry point.
+ * This wide version uses the specified arguments, unlike narrow
+ * _d_run_main which uses the actual (wide) process arguments instead.
+ */
+version (Windows)
+extern (C) int _d_wrun_main(int argc, wchar** wargv, MainFunc mainFunc)
+{
+     // Allocate args[] on the stack
+    char[][] args = (cast(char[]*) alloca(argc * (char[]).sizeof))[0 .. argc];
+
+    // 1st pass: compute each argument's length as UTF-16 and UTF-8
+    size_t totalArgsLength = 0;
+    foreach (i; 0 .. argc)
+    {
+        const warg = wargv[i];
+        const size_t wlen = wcslen(warg) + 1; // incl. terminating null
+        assert(wlen <= cast(size_t) int.max, "wlen cannot exceed int.max");
+        const int len = WideCharToMultiByte(CP_UTF8, 0, warg, cast(int) wlen, null, 0, null, null);
+        args[i] = (cast(char*) wlen)[0 .. len]; // args[i].ptr = wlen, args[i].length = len
+        totalArgsLength += len;
+    }
+
+    // Allocate a single buffer for all (null-terminated) argument strings in UTF-8 on the stack
+    char* utf8Buffer = cast(char*) alloca(totalArgsLength);
+
+    // 2nd pass: convert to UTF-8 and finalize `args`
+    char* utf8 = utf8Buffer;
+    foreach (i; 0 .. argc)
+    {
+        const wlen = cast(int) args[i].ptr;
+        const len = cast(int) args[i].length;
+        WideCharToMultiByte(CP_UTF8, 0, wargv[i], wlen, utf8, len, null, null);
+        args[i] = utf8[0 .. len-1]; // excl. terminating null
+        utf8 += len;
+    }
+
+    // Set C argc/argv; argv is a new stack-allocated array of UTF-8 C strings
+    char*[] argv = (cast(char**) alloca(argc * (char*).sizeof))[0 .. argc];
+    foreach (i, ref arg; argv)
+        arg = args[i].ptr;
+    _cArgs.argc = argc;
+    _cArgs.argv = argv.ptr;
+
+    totalArgsLength -= argc; // excl. null terminator per arg
+    return _d_run_main2(args, totalArgsLength, mainFunc);
+}
+
+private extern (C) int _d_run_main2(char[][] args, size_t totalArgsLength, MainFunc mainFunc)
+{
+    int result;
+
+    version (FreeBSD) version (D_InlineAsm_X86)
+    {
+        /*
+         * FreeBSD/i386 sets the FPU precision mode to 53 bit double.
+         * Make it 64 bit extended.
+         */
+        ushort fpucw;
+        asm
+        {
+            fstsw   fpucw;
+            or      fpucw, 0b11_00_111111; // 11: use 64 bit extended-precision
+                                           // 111111: mask all FP exceptions
+            fldcw   fpucw;
+        }
+    }
+    version (CRuntime_Microsoft)
+    {
+        // enable full precision for reals
+        version (GNU)
+        {
+            size_t fpu_cw;
+            asm { "fstcw %0" : "=m" (fpu_cw); }
+            fpu_cw |= 0b11_00_111111;  // 11: use 64 bit extended-precision
+                                       // 111111: mask all FP exceptions
+            asm { "fldcw %0" : "=m" (fpu_cw); }
+        }
+        else version (Win64)
+            asm
+            {
+                push    RAX;
+                fstcw   word ptr [RSP];
+                or      [RSP], 0b11_00_111111; // 11: use 64 bit extended-precision
+                                               // 111111: mask all FP exceptions
+                fldcw   word ptr [RSP];
+                pop     RAX;
+            }
+        else version (Win32)
+        {
+            asm
+            {
+                push    EAX;
+                fstcw   word ptr [ESP];
+                or      [ESP], 0b11_00_111111; // 11: use 64 bit extended-precision
+                // 111111: mask all FP exceptions
+                fldcw   word ptr [ESP];
+                pop     EAX;
+            }
+        }
+    }
+
     /* Create a copy of args[] on the stack to be used for main, so that rt_args()
      * cannot be modified by the user.
      * Note that when this function returns, _d_args will refer to garbage.
@@ -453,15 +495,18 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
         char[][] argsCopy = buff[0 .. args.length];
         auto argBuff = cast(char*) (buff + args.length);
         size_t j = 0;
+        import rt.config : rt_cmdline_enabled;
+        bool parseOpts = rt_cmdline_enabled!();
         foreach (arg; args)
         {
-            import rt.config : rt_cmdline_enabled;
-
-            if (!rt_cmdline_enabled!() || arg.length < 6 || arg[0..6] != "--DRT-") // skip D runtime options
-            {
-                argsCopy[j++] = (argBuff[0 .. arg.length] = arg[]);
-                argBuff += arg.length;
-            }
+            // Do not pass Druntime options to the program
+            if (parseOpts && arg.length >= 6 && arg[0 .. 6] == "--DRT-")
+                continue;
+            // https://issues.dlang.org/show_bug.cgi?id=20459
+            if (arg == "--")
+                parseOpts = false;
+            argsCopy[j++] = (argBuff[0 .. arg.length] = arg[]);
+            argBuff += arg.length;
         }
         args = argsCopy[0..j];
     }
@@ -554,7 +599,7 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
     return result;
 }
 
-private void formatThrowable(Throwable t, scope void delegate(in char[] s) nothrow sink)
+private void formatThrowable(Throwable t, scope void delegate(const scope char[] s) nothrow sink)
 {
     foreach (u; t)
     {
@@ -595,7 +640,7 @@ extern (C) void _d_print_throwable(Throwable t)
         {
             WCHAR* ptr; size_t len;
 
-            void sink(in char[] s) scope nothrow
+            void sink(const scope char[] s) scope nothrow
             {
                 if (!s.length) return;
                 int swlen = MultiByteToWideChar(
@@ -683,7 +728,7 @@ extern (C) void _d_print_throwable(Throwable t)
         }
     }
 
-    void sink(in char[] buf) scope nothrow
+    void sink(const scope char[] buf) scope nothrow
     {
         fprintf(stderr, "%.*s", cast(int)buf.length, buf.ptr);
     }

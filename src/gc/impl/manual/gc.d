@@ -264,16 +264,12 @@ class ManualGC : GC
         return 0;
     }
 
-    void runFinalizers(in void[] segment) nothrow
+    void runFinalizers(const scope void[] segment) nothrow
     {
     }
 
     bool inFinalizer() nothrow
     {
         return false;
-    }
-
-    void resetThreadLocalStats() nothrow @nogc
-    {
     }
 }

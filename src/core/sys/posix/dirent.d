@@ -44,7 +44,7 @@ struct dirent
 }
 
 int     closedir(DIR*);
-DIR*    opendir(in char*);
+DIR*    opendir(const scope char*);
 dirent* readdir(DIR*);
 void    rewinddir(DIR*);
 */
@@ -161,7 +161,7 @@ else version (FreeBSD)
 
     alias void* DIR;
 
-    dirent* readdir(DIR*);
+    pragma(mangle, "readdir@FBSD_1.0") dirent* readdir(DIR*);
 }
 else version (NetBSD)
 {
@@ -418,7 +418,7 @@ version (OSX)
     version (D_LP64)
     {
         int closedir(DIR*);
-        pragma(mangle, "opendir$INODE64")   DIR* opendir(in char*);
+        pragma(mangle, "opendir$INODE64")   DIR* opendir(const scope char*);
         pragma(mangle, "rewinddir$INODE64") void rewinddir(DIR*);
     }
     else
@@ -426,21 +426,21 @@ version (OSX)
         // 32-bit mangles __DARWIN_UNIX03 specific functions with $UNIX2003 to
         // maintain backward compatibility with binaries build pre 10.5
         pragma(mangle, "closedir$UNIX2003")          int closedir(DIR*);
-        pragma(mangle, "opendir$INODE64$UNIX2003")   DIR* opendir(in char*);
+        pragma(mangle, "opendir$INODE64$UNIX2003")   DIR* opendir(const scope char*);
         pragma(mangle, "rewinddir$INODE64$UNIX2003") void rewinddir(DIR*);
     }
 }
 else version (NetBSD)
 {
     int     closedir(DIR*);
-    DIR*    __opendir30(in char*);
+    DIR*    __opendir30(const scope char*);
     alias __opendir30 opendir;
     void    rewinddir(DIR*);
 }
 else
 {
     int     closedir(DIR*);
-    DIR*    opendir(in char*);
+    DIR*    opendir(const scope char*);
     //dirent* readdir(DIR*);
     void    rewinddir(DIR*);
 }
@@ -473,7 +473,7 @@ else version (Darwin)
 }
 else version (FreeBSD)
 {
-    int readdir_r(DIR*, dirent*, dirent**);
+    pragma(mangle, "readdir_r@FBSD_1.0") int readdir_r(DIR*, dirent*, dirent**);
 }
 else version (DragonFlyBSD)
 {
@@ -506,7 +506,7 @@ else version (CRuntime_Bionic)
 }
 else version (CRuntime_Musl)
 {
-
+    int readdir_r(DIR*, dirent*, dirent**);
 }
 else version (CRuntime_UClibc)
 {
@@ -540,8 +540,8 @@ version (CRuntime_Glibc)
 }
 else version (FreeBSD)
 {
-    void   seekdir(DIR*, c_long);
-    c_long telldir(DIR*);
+    pragma(mangle, "seekdir@@FBSD_1.0") void seekdir(DIR*, c_long);
+    pragma(mangle, "telldir@@FBSD_1.0") c_long telldir(DIR*);
 }
 else version (NetBSD)
 {
@@ -591,6 +591,8 @@ else version (CRuntime_Bionic)
 }
 else version (CRuntime_Musl)
 {
+    void   seekdir(DIR*, c_long);
+    c_long telldir(DIR*);
 }
 else version (CRuntime_UClibc)
 {

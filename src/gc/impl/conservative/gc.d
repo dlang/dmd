@@ -88,7 +88,7 @@ private
         // to allow compilation of this module without access to the rt package,
         //  make these functions available from rt.lifetime
         void rt_finalizeFromGC(void* p, size_t size, uint attr) nothrow;
-        int rt_hasFinalizerInSegment(void* p, size_t size, uint attr, in void[] segment) nothrow;
+        int rt_hasFinalizerInSegment(void* p, size_t size, uint attr, const scope void[] segment) nothrow;
 
         // Declared as an extern instead of importing core.exception
         // to avoid inlining - see issue 13725.
@@ -454,7 +454,7 @@ class ConservativeGC : GC
 
         p = runLocked!(reallocNoSync, mallocTime, numMallocs)(p, size, bits, localAllocSize, ti);
 
-        if (p && p !is oldp && !(bits & BlkAttr.NO_SCAN))
+        if (p && !(bits & BlkAttr.NO_SCAN))
         {
             memset(p + size, 0, localAllocSize - size);
         }
@@ -592,7 +592,6 @@ class ConservativeGC : GC
         {
             pool.clrBits(biti, ~BlkAttr.NONE);
             pool.setBits(biti, bits);
-
         }
         return p;
     }
@@ -970,9 +969,9 @@ class ConservativeGC : GC
     }
 
 
-    void runFinalizers(in void[] segment) nothrow
+    void runFinalizers(const scope void[] segment) nothrow
     {
-        static void go(Gcx* gcx, in void[] segment) nothrow
+        static void go(Gcx* gcx, const scope void[] segment) nothrow
         {
             gcx.runFinalizers(segment);
         }
@@ -980,7 +979,7 @@ class ConservativeGC : GC
     }
 
 
-    bool inFinalizer() nothrow
+    bool inFinalizer() nothrow @nogc
     {
         return _inFinalizer;
     }
@@ -1063,7 +1062,7 @@ class ConservativeGC : GC
     }
 
 
-    core.memory.GC.ProfileStats profileStats() nothrow
+    core.memory.GC.ProfileStats profileStats() nothrow @trusted
     {
         typeof(return) ret;
 
@@ -1117,11 +1116,6 @@ class ConservativeGC : GC
         stats.usedSize -= freeListSize;
         stats.freeSize += freeListSize;
         stats.allocatedInCurrentThread = bytesAllocated;
-    }
-
-    void resetThreadLocalStats() nothrow @nogc
-    {
-        bytesAllocated = 0;
     }
 }
 
@@ -1256,20 +1250,34 @@ struct Gcx
         alias leakDetector = LeakDetector;
 
     SmallObjectPool*[B_NUMSMALL] recoverPool;
+    version (Posix) __gshared Gcx* instance;
 
     void initialize()
     {
         (cast(byte*)&this)[0 .. Gcx.sizeof] = 0;
         leakDetector.initialize(&this);
-        roots.initialize();
-        ranges.initialize();
+        roots.initialize(0x243F6A8885A308D3UL);
+        ranges.initialize(0x13198A2E03707344UL);
         smallCollectThreshold = largeCollectThreshold = 0.0f;
         usedSmallPages = usedLargePages = 0;
         mappedPages = 0;
         //printf("gcx = %p, self = %x\n", &this, self);
+        version (Posix)
+        {
+            import core.sys.posix.pthread : pthread_atfork;
+            instance = &this;
+            __gshared atforkHandlersInstalled = false;
+            if (!atforkHandlersInstalled)
+            {
+                pthread_atfork(
+                    &_d_gcx_atfork_prepare,
+                    &_d_gcx_atfork_parent,
+                    &_d_gcx_atfork_child);
+                atforkHandlersInstalled = true;
+            }
+        }
         debug(INVARIANT) initialized = true;
     }
-
 
     void Dtor()
     {
@@ -1315,6 +1323,8 @@ struct Gcx
                    pauseTime, maxPause, apitxt.ptr);
         }
 
+        version (Posix)
+            instance = null;
         version (COLLECT_PARALLEL)
             stopScanThreads();
 
@@ -1464,7 +1474,7 @@ struct Gcx
     /**
      *
      */
-    void runFinalizers(in void[] segment) nothrow
+    void runFinalizers(const scope void[] segment) nothrow
     {
         ConservativeGC._inFinalizer = true;
         scope (failure) ConservativeGC._inFinalizer = false;
@@ -1610,7 +1620,7 @@ struct Gcx
 
     private @property bool lowMem() const nothrow
     {
-        return isLowOnMem(mappedPages * PAGESIZE);
+        return isLowOnMem(cast(size_t)mappedPages * PAGESIZE);
     }
 
     void* alloc(size_t size, ref size_t alloc_size, uint bits, const TypeInfo ti) nothrow
@@ -1657,7 +1667,7 @@ struct Gcx
                     recoverNextPage(bin);
                 }
             }
-            else
+            else if (usedSmallPages > 0)
             {
                 fullcollect();
                 if (lowMem)
@@ -1742,7 +1752,7 @@ struct Gcx
                     minimize();
                 }
             }
-            else
+            else if (usedLargePages > 0)
             {
                 fullcollect();
                 minimize();
@@ -1835,8 +1845,8 @@ struct Gcx
 
         if (config.profile)
         {
-            if (mappedPages * PAGESIZE > maxPoolMemory)
-                maxPoolMemory = mappedPages * PAGESIZE;
+            if (cast(size_t)mappedPages * PAGESIZE > maxPoolMemory)
+                maxPoolMemory = cast(size_t)mappedPages * PAGESIZE;
         }
         return pool;
     }
@@ -2400,7 +2410,7 @@ struct Gcx
                         {
                             bool hasDead = false;
                             static foreach (w; 0 .. PageBits.length)
-                                hasDead = hasDead && (~freebitsdata[w] != baseOffsetBits[bin][w]);
+                                hasDead = hasDead || (~freebitsdata[w] != baseOffsetBits[bin][w]);
                             if (hasDead)
                             {
                                 // add to recover chain
@@ -2587,6 +2597,20 @@ struct Gcx
         //printf("\tpool address range = %p .. %p\n", minAddr, maxAddr);
 
         {
+            version (COLLECT_PARALLEL)
+            {
+                bool doParallel = config.parallel > 0;
+                if (doParallel && !scanThreadData)
+                {
+                    if (nostack) // only used during shutdown, avoid starting threads for parallel marking
+                        doParallel = false;
+                    else
+                        startScanThreads();
+                }
+            }
+            else
+                enum doParallel = false;
+
             // lock roots and ranges around suspending threads b/c they're not reentrant safe
             rangesLock.lock();
             rootsLock.lock();
@@ -2604,11 +2628,6 @@ struct Gcx
             stop = currTime;
             prepTime += (stop - start);
             start = stop;
-
-            version (COLLECT_PARALLEL)
-                bool doParallel = config.parallel > 0;
-            else
-                enum doParallel = false;
 
             if (doParallel)
             {
@@ -2721,6 +2740,7 @@ struct Gcx
     Event evDone;
 
     shared uint busyThreads;
+    shared uint stoppedThreads;
     bool stopGC;
 
     void markParallel(bool nostack) nothrow
@@ -2732,9 +2752,6 @@ struct Gcx
 
         void** pbot = toscanRoots._p;
         void** ptop = toscanRoots._p + toscanRoots._length;
-
-        if (!scanThreadData)
-            startScanThreads();
 
         debug(PARALLEL_PRINTF) printf("markParallel\n");
 
@@ -2826,8 +2843,25 @@ struct Gcx
         evStart.initialize(false, false);
         evDone.initialize(false, false);
 
+        version (Posix)
+        {
+            import core.sys.posix.signal;
+            // block all signals, scanBackground inherits this mask.
+            // see https://issues.dlang.org/show_bug.cgi?id=20256
+            sigset_t new_mask, old_mask;
+            sigfillset(&new_mask);
+            auto sigmask_rc = pthread_sigmask(SIG_BLOCK, &new_mask, &old_mask);
+            assert(sigmask_rc == 0, "failed to set up GC scan thread sigmask");
+        }
+
         for (int idx = 0; idx < numScanThreads; idx++)
             scanThreadData[idx].tid = createLowLevelThread(&scanBackground, 0x4000, &stopScanThreads);
+
+        version (Posix)
+        {
+            sigmask_rc = pthread_sigmask(SIG_SETMASK, &old_mask, null);
+            assert(sigmask_rc == 0, "failed to set up GC scan thread sigmask");
+        }
     }
 
     void stopScanThreads() nothrow
@@ -2836,8 +2870,21 @@ struct Gcx
             return;
 
         debug(PARALLEL_PRINTF) printf("stopScanThreads\n");
+        int startedThreads = 0;
+        for (int idx = 0; idx < numScanThreads; idx++)
+            if (scanThreadData[idx].tid != scanThreadData[idx].tid.init)
+                startedThreads++;
+
+        version (Windows)
+            alias allThreadsDead = thread_DLLProcessDetaching;
+        else
+            enum allThreadsDead = false;
         stopGC = true;
-        evStart.set();
+        while (atomicLoad(stoppedThreads) < startedThreads && !allThreadsDead)
+        {
+            evStart.set();
+            evDone.wait(dur!"msecs"(1));
+        }
 
         for (int idx = 0; idx < numScanThreads; idx++)
         {
@@ -2862,10 +2909,11 @@ struct Gcx
     {
         while (!stopGC)
         {
-            evStart.wait(dur!"msecs"(10));
+            evStart.wait();
             pullFromScanStack();
             evDone.set();
         }
+        stoppedThreads.atomicOp!"+="(1);
     }
 
     void pullFromScanStack() nothrow
@@ -2906,6 +2954,46 @@ struct Gcx
             busyThreads.atomicOp!"-="(1);
         }
         debug(PARALLEL_PRINTF) printf("scanBackground thread %d done\n", threadId);
+    }
+
+    version (Posix)
+    {
+        // A fork might happen while GC code is running in a different thread.
+        // Because that would leave the GC in an inconsistent state,
+        // make sure no GC code is running by acquiring the lock here,
+        // before a fork.
+
+        extern(C) static void _d_gcx_atfork_prepare()
+        {
+            if (instance)
+                ConservativeGC.lockNR();
+        }
+
+        extern(C) static void _d_gcx_atfork_parent()
+        {
+            if (instance)
+                ConservativeGC.gcLock.unlock();
+        }
+
+        extern(C) static void _d_gcx_atfork_child()
+        {
+            if (instance)
+            {
+                ConservativeGC.gcLock.unlock();
+
+                // make sure the threads and event handles are reinitialized in a fork
+                if (Gcx.instance.scanThreadData)
+                {
+                    cstdlib.free(Gcx.instance.scanThreadData);
+                    Gcx.instance.numScanThreads = 0;
+                    Gcx.instance.scanThreadData = null;
+                    Gcx.instance.busyThreads = 0;
+
+                    memset(&Gcx.instance.evStart, 0, Gcx.instance.evStart.sizeof);
+                    memset(&Gcx.instance.evDone, 0, Gcx.instance.evDone.sizeof);
+                }
+            }
+        }
     }
 }
 
@@ -3196,7 +3284,7 @@ struct Pool
         }
     }
 
-    void freePageBits(size_t pagenum, in ref PageBits toFree) nothrow
+    void freePageBits(size_t pagenum, const scope ref PageBits toFree) nothrow
     {
         assert(!isLargeObject);
         assert(!nointerior.nbits); // only for large objects
@@ -3646,7 +3734,7 @@ struct LargeObjectPool
         return info;
     }
 
-    void runFinalizers(in void[] segment) nothrow
+    void runFinalizers(const scope void[] segment) nothrow
     {
         foreach (pn; 0 .. npages)
         {
@@ -3760,7 +3848,7 @@ struct SmallObjectPool
         return info;
     }
 
-    void runFinalizers(in void[] segment) nothrow
+    void runFinalizers(const scope void[] segment) nothrow
     {
         foreach (pn; 0 .. npages)
         {
@@ -3935,7 +4023,7 @@ debug(PRINTF_TO_FILE)
                 gcStartTick = MonoTime.currTime;
             immutable timeElapsed = MonoTime.currTime - gcStartTick;
             immutable secondsAsDouble = timeElapsed.total!"hnsecs" / cast(double)convert!("seconds", "hnsecs")(1);
-            len = fprintf(gcx_fh, "%10.6lf: ", secondsAsDouble);
+            len = fprintf(gcx_fh, "%10.6f: ", secondsAsDouble);
         }
         len += fprintf(gcx_fh, fmt, args);
         fflush(gcx_fh);
@@ -4004,7 +4092,7 @@ debug (LOGGING)
             printf("    p = %p, size = %lld, parent = %p ", p, cast(ulong)size, parent);
             if (file)
             {
-                printf("%s(%u)", file, line);
+                printf("%s(%u)", file, cast(uint)line);
             }
             printf("\n");
         }
@@ -4442,4 +4530,36 @@ unittest
 
     assert(stats2.maxPauseTime >= stats1.maxPauseTime);
     assert(stats2.maxCollectionTime >= stats1.maxCollectionTime);
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=20214
+unittest
+{
+    import core.memory;
+    import core.stdc.stdio;
+
+    // allocate from large pool
+    auto o = GC.malloc(10);
+    auto p = (cast(void**)GC.malloc(4096 * (void*).sizeof))[0 .. 4096];
+    auto q = (cast(void**)GC.malloc(4096 * (void*).sizeof))[0 .. 4096];
+    if (p.ptr + p.length is q.ptr)
+    {
+        q[] = o; // fill with pointers
+
+        // shrink, unused area cleared?
+        auto nq = (cast(void**)GC.realloc(q.ptr, 4000 * (void*).sizeof))[0 .. 4000];
+        assert(q.ptr is nq.ptr);
+        assert(q.ptr[4095] !is o);
+
+        GC.free(q.ptr);
+        // expected to extend in place
+        auto np = (cast(void**)GC.realloc(p.ptr, 4200 * (void*).sizeof))[0 .. 4200];
+        assert(p.ptr is np.ptr);
+        assert(q.ptr[4200] !is o);
+    }
+    else
+    {
+        // adjacent allocations likely but not guaranteed
+        printf("unexpected pointers %p and %p\n", p.ptr, q.ptr);
+    }
 }

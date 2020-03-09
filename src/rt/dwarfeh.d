@@ -465,20 +465,32 @@ extern (C) _Unwind_Reason_Code __dmd_personality_v0(int ver, _Unwind_Action acti
  * be looked for in catch clauses.
  * Params:
  *      exceptionObject = language specific exception information
+ *      currentLsd = pointer to LSDA table
  * Returns:
  *      class type to look for
  */
-ClassInfo getClassInfo(_Unwind_Exception* exceptionObject)
+ClassInfo getClassInfo(_Unwind_Exception* exceptionObject, const(ubyte)* currentLsd)
 {
     ExceptionHeader* eh = ExceptionHeader.toExceptionHeader(exceptionObject);
     Throwable ehobject = eh.object;
     //printf("start: %p '%.*s'\n", ehobject, ehobject.classinfo.info.name.length, ehobject.classinfo.info.name.ptr);
     for (ExceptionHeader* ehn = eh.next; ehn; ehn = ehn.next)
     {
+        // like __dmd_personality_v0, don't combine when the exceptions are from different functions
+        // (fixes issue 19831, exception thrown and caught while inside finally block)
+        if (currentLsd != ehn.languageSpecificData)
+        {
+            // printf("break: %p %p\n", currentLsd, ehn.languageSpecificData);
+            break;
+        }
+
         //printf("ehn =   %p '%.*s'\n", ehn.object, cast(int)ehn.object.classinfo.info.name.length, ehn.object.classinfo.info.name.ptr);
         Error e = cast(Error)ehobject;
         if (e is null || (cast(Error)ehn.object) !is null)
+        {
+            currentLsd = ehn.languageSpecificData;
             ehobject = ehn.object;
+        }
     }
     //printf("end  : %p\n", ehobject);
     return ehobject.classinfo;
@@ -684,7 +696,7 @@ LsdaResult scanLSDA(const(ubyte)* lsda, _Unwind_Ptr ip, _Unwind_Exception_Class 
                 if (cleanupsOnly)
                     continue;                   // ignore catch
 
-                auto h = actionTableLookup(exceptionObject, cast(uint)ActionRecordPtr, pActionTable, tt, TType, exceptionClass);
+                auto h = actionTableLookup(exceptionObject, cast(uint)ActionRecordPtr, pActionTable, tt, TType, exceptionClass, lsda);
                 if (h < 0)
                 {
                     fprintf(stderr, "negative handler\n");
@@ -732,13 +744,14 @@ LsdaResult scanLSDA(const(ubyte)* lsda, _Unwind_Ptr ip, _Unwind_Exception_Class 
  *      tt = pointer past end of Type Table
  *      TType = encoding of entries in Type Table
  *      exceptionClass = which language threw the exception
+ *      lsda = pointer to LSDA table
  * Returns:
  *      >=1 means the handler index of the classType
  *      0 means classType is not in the Action Table
  *      <0 means corrupt
  */
 int actionTableLookup(_Unwind_Exception* exceptionObject, uint actionRecordPtr, const(ubyte)* pActionTable,
-                      const(ubyte)* tt, ubyte TType, _Unwind_Exception_Class exceptionClass)
+                      const(ubyte)* tt, ubyte TType, _Unwind_Exception_Class exceptionClass, const(ubyte)* lsda)
 {
     //printf("actionTableLookup(catchType = %p, actionRecordPtr = %d, pActionTable = %p, tt = %p)\n",
         //catchType, actionRecordPtr, pActionTable, tt);
@@ -747,7 +760,7 @@ int actionTableLookup(_Unwind_Exception* exceptionObject, uint actionRecordPtr, 
     ClassInfo thrownType;
     if (exceptionClass == dmdExceptionClass)
     {
-        thrownType = getClassInfo(exceptionObject);
+        thrownType = getClassInfo(exceptionObject, lsda);
     }
 
     for (auto ap = pActionTable + actionRecordPtr - 1; 1; )

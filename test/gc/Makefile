@@ -1,11 +1,12 @@
 include ../common.mak
 
-TESTS := sentinel printf memstomp invariant logging precise precisegc
+TESTS := sentinel printf memstomp invariant logging precise precisegc forkgc forkgc2 sigmaskgc startbackgc \
+         recoverfree nocollect
 
 SRC_GC = ../../src/gc/impl/conservative/gc.d
 SRC = $(SRC_GC) ../../src/rt/lifetime.d
 # ../../src/object.d causes duplicate symbols
-UDFLAGS = $(DFLAGS) -unittest
+UDFLAGS = $(DFLAGS) -unittest -version=CoreUnittest
 
 .PHONY: all clean
 all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))
@@ -36,6 +37,24 @@ $(ROOT)/precise.done: RUN_ARGS += --DRT-gcopt=gc:precise
 
 $(ROOT)/precisegc: $(SRC)
 	$(DMD) $(UDFLAGS) -gx -of$@ $(SRC) precisegc.d
+
+$(ROOT)/forkgc: forkgc.d
+	$(DMD) $(UDFLAGS) -of$@ forkgc.d
+
+$(ROOT)/forkgc2: forkgc2.d
+	$(DMD) $(UDFLAGS) -of$@ forkgc2.d
+
+$(ROOT)/sigmaskgc: sigmaskgc.d
+	$(DMD) $(UDFLAGS) -of$@ sigmaskgc.d
+
+$(ROOT)/startbackgc: startbackgc.d
+	$(DMD) $(UDFLAGS) -of$@ sigmaskgc.d
+
+$(ROOT)/recoverfree: recoverfree.d
+	$(DMD) $(DFLAGS) -of$@ recoverfree.d
+
+$(ROOT)/nocollect: nocollect.d
+	$(DMD) $(DFLAGS) -of$@ nocollect.d
 
 clean:
 	rm -rf $(ROOT)

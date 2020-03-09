@@ -28,8 +28,8 @@ else
 	DFLAGS += -O -release
 	CFLAGS := $(CFLAGS_BASE) -O3
 endif
-CXXFLAGS_BASE := $(CFLAGS_BASE) -std=c++11
-CXXFLAGS:=$(CFLAGS) -std=c++11
+CXXFLAGS_BASE := $(CFLAGS_BASE)
+CXXFLAGS:=$(CFLAGS)
 ifeq (osx,$(OS))
 	CXXFLAGS+=-stdlib=libc++
 	CXXFLAGS_BASE+=-stdlib=libc++

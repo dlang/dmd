@@ -164,17 +164,13 @@ nothrow @nogc:
         return null;
     }
 
-    void runFinalizers(in void[] segment) nothrow
+    void runFinalizers(const scope void[] segment) nothrow
     {
     }
 
     bool inFinalizer() nothrow
     {
         return false;
-    }
-
-    void resetThreadLocalStats() nothrow @nogc
-    {
     }
 
 private:

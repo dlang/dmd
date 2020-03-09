@@ -13,22 +13,38 @@ module core.stdcpp.type_traits;
 
 extern(C++, "std"):
 
+///
 struct integral_constant(T, T Val)
 {
+    ///
     enum T value = Val;
+    ///
     alias value_type = T;
+    ///
     alias type = typeof(this);
 }
 
+///
 alias bool_constant(bool b) = integral_constant!(bool, b);
 
 // Useful for dealing with enable_if constraints.
+///
 alias true_type  = bool_constant!true;
+///
 alias false_type = bool_constant!false;
 
+///
 struct is_empty(T)
 {
-    enum value = T.tupleof.length == 0;
-    alias value_type = typeof(value);
-    alias type = integral_constant!(typeof(value), value);
+    static if (is(T == struct))
+        private enum __is_empty = T.tupleof.length == 0;
+    else
+        private enum __is_empty = false;
+
+    ///
+    enum bool value = __is_empty;
+    ///
+    alias value_type = bool;
+    ///
+    alias type = integral_constant!(bool, value);
 }

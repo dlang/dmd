@@ -144,6 +144,7 @@ enum
 }
 
 int kqueue();
+pragma(mangle, "kevent@FBSD_1.0")
 int kevent(int kq, const kevent_t *changelist, int nchanges,
            kevent_t *eventlist, int nevents,
            const timespec *timeout);

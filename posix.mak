@@ -6,6 +6,8 @@
 QUIET:=
 
 DMD_DIR=../dmd
+DUB=dub
+TOOLS_DIR=../tools
 
 include $(DMD_DIR)/src/osmodel.mak
 
@@ -86,6 +88,8 @@ else
 	DFLAGS:=$(UDFLAGS) -inline # unittests don't compile with -inline
 endif
 
+UTFLAGS:=-version=CoreUnittest -unittest -checkaction=context
+
 # Set PHOBOS_DFLAGS (for linking against Phobos)
 PHOBOS_PATH=../phobos
 SHARED=$(if $(findstring $(OS),linux freebsd),1,)
@@ -125,12 +129,6 @@ SRCS:=$(subst \,/,$(SRCS))
 
 OBJS= $(ROOT)/errno_c.o $(ROOT)/threadasm.o
 
-ifeq ($(OS),osx)
-ifeq ($(MODEL), 64)
-	OBJS+=$(ROOT)/osx_tls.o
-endif
-endif
-
 # use timelimit to avoid deadlocks if available
 TIMELIMIT:=$(if $(shell which timelimit 2>/dev/null || true),timelimit -t 10 ,)
 
@@ -152,7 +150,16 @@ $(DOCDIR)/object.html : src/object.d $(DMD)
 $(DOCDIR)/core_%.html : src/core/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
+$(DOCDIR)/core_experimental_%.html : src/core/experimental/%.d $(DMD)
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+
 $(DOCDIR)/core_gc_%.html : src/core/gc/%.d $(DMD)
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+
+$(DOCDIR)/core_internal_%.html : src/core/internal/%.d $(DMD)
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+
+$(DOCDIR)/core_internal_elf_%.html : src/core/internal/elf/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOCDIR)/core_stdc_%.html : src/core/stdc/%.d $(DMD)
@@ -171,6 +178,12 @@ $(DOCDIR)/core_sys_darwin_mach_%.html : src/core/sys/darwin/mach/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOCDIR)/core_sys_darwin_netinet_%.html : src/core/sys/darwin/netinet/%.d $(DMD)
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+
+$(DOCDIR)/core_thread.html : src/core/thread/package.d $(DMD)
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+
+$(DOCDIR)/core_thread_%.html : src/core/thread/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
 $(DOCDIR)/rt_%.html : src/rt/%.d $(DMD)
@@ -255,7 +268,7 @@ UT_MODULES:=$(patsubst src/%.d,$(ROOT)/unittest/%,$(SRCS))
 HAS_ADDITIONAL_TESTS:=$(shell test -d test && echo 1)
 ifeq ($(HAS_ADDITIONAL_TESTS),1)
 	ADDITIONAL_TESTS:=test/init_fini test/exceptions test/coverage test/profile test/cycles test/allocations test/typeinfo \
-	    test/aa test/gc test/hash \
+	    test/aa test/cpuid test/gc test/hash \
 	    test/thread test/unittest test/imports test/betterc test/stdcpp test/config
 	ADDITIONAL_TESTS+=$(if $(SHARED),test/shared,)
 endif
@@ -289,7 +302,7 @@ $(addprefix $(ROOT)/unittest/,$(DISABLED_TESTS)) :
 ifeq (,$(SHARED))
 
 $(ROOT)/unittest/test_runner: $(OBJS) $(SRCS) src/test_runner.d $(DMD)
-	$(DMD) $(UDFLAGS) -unittest -of$@ src/test_runner.d $(SRCS) $(OBJS) -debuglib= -defaultlib=
+	$(DMD) $(UDFLAGS) $(UTFLAGS) -of$@ src/test_runner.d $(SRCS) $(OBJS) -debuglib= -defaultlib= -L-lpthread -L-lm
 
 else
 
@@ -297,12 +310,15 @@ UT_DRUNTIME:=$(ROOT)/unittest/libdruntime-ut$(DOTDLL)
 
 $(UT_DRUNTIME): UDFLAGS+=-version=Shared -fPIC
 $(UT_DRUNTIME): $(OBJS) $(SRCS) $(DMD)
-	$(DMD) $(UDFLAGS) -shared -unittest -of$@ $(SRCS) $(OBJS) $(LINKDL) -debuglib= -defaultlib=
+	$(DMD) $(UDFLAGS) -shared $(UTFLAGS) -of$@ $(SRCS) $(OBJS) $(LINKDL) -debuglib= -defaultlib= -L-lpthread -L-lm
 
 $(ROOT)/unittest/test_runner: $(UT_DRUNTIME) src/test_runner.d $(DMD)
 	$(DMD) $(UDFLAGS) -of$@ src/test_runner.d -L$(UT_DRUNTIME) -debuglib= -defaultlib= -L-lpthread -L-lm
 
 endif
+
+TESTS_EXTRACTOR=$(ROOT)/tests_extractor
+BETTERCTESTS_DIR=$(ROOT)/betterctests
 
 # macro that returns the module name given the src path
 moduleName=$(subst rt.invariant,invariant,$(subst object_,object,$(subst /,.,$(1))))
@@ -363,16 +379,57 @@ druntime.zip: $(MANIFEST)
 	rm -rf $@
 	zip $@ $^
 
+ifneq (,$(findstring Darwin_64_32, $(PWD)))
+install:
+	echo "Darwin_64_32_disabled"
+else
 install: target
 	mkdir -p $(INSTALL_DIR)/src/druntime/import
 	cp -r import/* $(INSTALL_DIR)/src/druntime/import/
 	cp LICENSE.txt $(INSTALL_DIR)/druntime-LICENSE.txt
+endif
 
 clean: $(addsuffix /.clean,$(ADDITIONAL_TESTS))
 	rm -rf $(ROOT_OF_THEM_ALL) $(IMPDIR) $(DOCDIR) druntime.zip
 
 test/%/.clean: test/%/Makefile
 	$(MAKE) -C test/$* clean
+
+%/.directory :
+	mkdir -p $* || exists $*
+	touch $@
+
+################################################################################
+# Build the test extractor.
+# - extracts and runs public unittest examples to checks for missing imports
+# - extracts and runs @betterC unittests
+################################################################################
+
+$(TESTS_EXTRACTOR): $(TOOLS_DIR)/tests_extractor.d | $(LIB)
+	$(DUB) build --force --single $<
+	mv $(TOOLS_DIR)/tests_extractor $@
+
+test_extractor: $(TESTS_EXTRACTOR)
+
+################################################################################
+# Check and run @betterC tests
+# ----------------------------
+#
+# Extract @betterC tests of a module and run them in -betterC
+#
+#   make -f betterc -j20                       # all tests
+#   make -f posix.mak src/core/memory.betterc  # individual module
+################################################################################
+
+betterc: | $(TESTS_EXTRACTOR) $(BETTERCTESTS_DIR)/.directory
+	$(MAKE) -f posix.mak $$(find src -type f -name '*.d' | sed 's/[.]d/.betterc/')
+
+%.betterc: %.d | $(TESTS_EXTRACTOR) $(BETTERCTESTS_DIR)/.directory
+	@$(TESTS_EXTRACTOR) --betterC --attributes betterC \
+		--inputdir  $< --outputdir $(BETTERCTESTS_DIR)
+	@$(DMD) $(NODEFAULTLIB) -betterC $(UDFLAGS) $(UTFLAGS) -od$(BETTERCTESTS_DIR) -run $(BETTERCTESTS_DIR)/$(subst /,_,$<)
+
+################################################################################
 
 # Submission to Druntime are required to conform to the DStyle
 # The tests below automate some, but not all parts of the DStyle guidelines.

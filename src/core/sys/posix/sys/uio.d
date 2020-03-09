@@ -42,8 +42,8 @@ struct iovec
 ssize_t // from core.sys.posix.sys.types
 size_t  // from core.sys.posix.sys.types
 
-ssize_t readv(int, in iovec*, int);
-ssize_t writev(int, in iovec*, int);
+ssize_t readv(int, const scope iovec*, int);
+ssize_t writev(int, const scope iovec*, int);
 */
 
 version (CRuntime_Glibc)
@@ -54,8 +54,8 @@ version (CRuntime_Glibc)
         size_t iov_len;
     }
 
-    ssize_t readv(int, in iovec*, int);
-    ssize_t writev(int, in iovec*, int);
+    ssize_t readv(int, const scope iovec*, int);
+    ssize_t writev(int, const scope iovec*, int);
 }
 else version (Darwin)
 {
@@ -65,8 +65,8 @@ else version (Darwin)
         size_t iov_len;
     }
 
-    ssize_t readv(int, in iovec*, int);
-    ssize_t writev(int, in iovec*, int);
+    ssize_t readv(int, const scope iovec*, int);
+    ssize_t writev(int, const scope iovec*, int);
 }
 else version (FreeBSD)
 {
@@ -76,8 +76,8 @@ else version (FreeBSD)
         size_t iov_len;
     }
 
-    ssize_t readv(int, in iovec*, int);
-    ssize_t writev(int, in iovec*, int);
+    ssize_t readv(int, const scope iovec*, int);
+    ssize_t writev(int, const scope iovec*, int);
 }
 else version (NetBSD)
 {
@@ -87,8 +87,8 @@ else version (NetBSD)
         size_t iov_len;
     }
 
-    ssize_t readv(int, in iovec*, int);
-    ssize_t writev(int, in iovec*, int);
+    ssize_t readv(int, const scope iovec*, int);
+    ssize_t writev(int, const scope iovec*, int);
 }
 else version (OpenBSD)
 {
@@ -98,8 +98,8 @@ else version (OpenBSD)
         size_t iov_len;
     }
 
-    ssize_t readv(int, in iovec*, int);
-    ssize_t writev(int, in iovec*, int);
+    ssize_t readv(int, const scope iovec*, int);
+    ssize_t writev(int, const scope iovec*, int);
 }
 else version (DragonFlyBSD)
 {
@@ -109,8 +109,8 @@ else version (DragonFlyBSD)
         size_t iov_len;
     }
 
-    ssize_t readv(int, in iovec*, int);
-    ssize_t writev(int, in iovec*, int);
+    ssize_t readv(int, const scope iovec*, int);
+    ssize_t writev(int, const scope iovec*, int);
 }
 else version (Solaris)
 {
@@ -120,8 +120,8 @@ else version (Solaris)
         size_t iov_len;
     }
 
-    ssize_t readv(int, in iovec*, int);
-    ssize_t writev(int, in iovec*, int);
+    ssize_t readv(int, const scope iovec*, int);
+    ssize_t writev(int, const scope iovec*, int);
 }
 else version (CRuntime_Bionic)
 {
@@ -131,19 +131,19 @@ else version (CRuntime_Bionic)
         size_t iov_len;
     }
 
-    int readv(int, in iovec*, int);
-    int writev(int, in iovec*, int);
+    int readv(int, const scope iovec*, int);
+    int writev(int, const scope iovec*, int);
 }
 else version (CRuntime_Musl)
 {
     struct iovec
     {
-        void* iov_base;
-        uint  iov_len;
+        void*  iov_base;
+        size_t iov_len;
     }
 
-    ssize_t readv(int, in iovec*, int);
-    ssize_t writev(int, in iovec*, int);
+    ssize_t readv(int, const scope iovec*, int);
+    ssize_t writev(int, const scope iovec*, int);
 }
 else version (CRuntime_UClibc)
 {
@@ -153,8 +153,8 @@ else version (CRuntime_UClibc)
         size_t iov_len;
     }
 
-    ssize_t readv(int, in iovec*, int);
-    ssize_t writev(int, in iovec*, int);
+    ssize_t readv(int, const scope iovec*, int);
+    ssize_t writev(int, const scope iovec*, int);
 }
 else
 {

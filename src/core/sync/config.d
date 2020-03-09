@@ -18,6 +18,7 @@ module core.sync.config;
 
 version (Posix)
 {
+    private import core.sys.posix.pthread;
     private import core.sys.posix.time;
     private import core.sys.posix.sys.time;
     private import core.time;
@@ -25,9 +26,9 @@ version (Posix)
 
     void mktspec( ref timespec t ) nothrow @nogc
     {
-        static if ( false && is( typeof( clock_gettime ) ) )
+        static if ( is (typeof ( pthread_condattr_setclock ) ) )
         {
-            clock_gettime( CLOCK_REALTIME, &t );
+            clock_gettime( CLOCK_MONOTONIC, &t );
         }
         else
         {

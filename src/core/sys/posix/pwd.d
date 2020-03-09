@@ -44,7 +44,7 @@ struct passwd
     char*   pw_shell;
 }
 
-passwd* getpwnam(in char*);
+passwd* getpwnam(const scope char*);
 passwd* getpwuid(uid_t);
 */
 
@@ -172,7 +172,8 @@ else version (CRuntime_Bionic)
 }
 else version (CRuntime_Musl)
 {
-    struct passwd {
+    struct passwd
+    {
         char *pw_name;
         char *pw_passwd;
         uid_t pw_uid;
@@ -200,47 +201,47 @@ else
     static assert(false, "Unsupported platform");
 }
 
-passwd* getpwnam(in char*);
+passwd* getpwnam(const scope char*);
 passwd* getpwuid(uid_t);
 
 //
 // Thread-Safe Functions (TSF)
 //
 /*
-int getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
+int getpwnam_r(const scope char*, passwd*, char*, size_t, passwd**);
 int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
 */
 
 version (CRuntime_Glibc)
 {
-    int getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
+    int getpwnam_r(const scope char*, passwd*, char*, size_t, passwd**);
     int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
 }
 else version (Darwin)
 {
-    int getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
+    int getpwnam_r(const scope char*, passwd*, char*, size_t, passwd**);
     int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
 }
 else version (FreeBSD)
 {
-    int getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
+    int getpwnam_r(const scope char*, passwd*, char*, size_t, passwd**);
     int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
 }
 else version (NetBSD)
 {
-    int __getpwnam_r50(in char*, passwd*, char*, size_t, passwd**);
+    int __getpwnam_r50(const scope char*, passwd*, char*, size_t, passwd**);
     alias __getpwnam_r50 getpwnam_r;
     int __getpwuid_r50(uid_t, passwd*, char*, size_t, passwd**);
     alias __getpwuid_r50 getpwuid_r;
 }
 else version (OpenBSD)
 {
-    int getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
+    int getpwnam_r(const scope char*, passwd*, char*, size_t, passwd**);
     int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
 }
 else version (DragonFlyBSD)
 {
-    int getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
+    int getpwnam_r(const scope char*, passwd*, char*, size_t, passwd**);
     int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
 }
 else version (Solaris)
@@ -249,7 +250,7 @@ else version (Solaris)
     alias getpwuid_r = __posix_getpwuid_r;
 
     // POSIX.1c standard version of the functions
-    int __posix_getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
+    int __posix_getpwnam_r(const scope char*, passwd*, char*, size_t, passwd**);
     int __posix_getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
 }
 else version (CRuntime_Bionic)
@@ -257,10 +258,12 @@ else version (CRuntime_Bionic)
 }
 else version (CRuntime_Musl)
 {
+    int getpwnam_r(const scope char*, passwd*, char*, size_t, passwd**);
+    int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
 }
 else version (CRuntime_UClibc)
 {
-    int getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
+    int getpwnam_r(const scope char*, passwd*, char*, size_t, passwd**);
     int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
 }
 else
@@ -325,8 +328,9 @@ else version (CRuntime_Bionic)
 }
 else version (CRuntime_Musl)
 {
-    int getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
-    int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
+    void    endpwent();
+    passwd* getpwent();
+    void    setpwent();
 }
 else version (CRuntime_UClibc)
 {

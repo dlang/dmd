@@ -12,9 +12,9 @@ DOCS=\
 	$(DOCDIR)\core_memory.html \
 	$(DOCDIR)\core_runtime.html \
 	$(DOCDIR)\core_simd.html \
-	$(DOCDIR)\core_thread.html \
 	$(DOCDIR)\core_time.html \
 	$(DOCDIR)\core_vararg.html \
+	$(DOCDIR)\core_volatile.html \
 	\
 	$(DOCDIR)\core_gc_config.html \
 	$(DOCDIR)\core_gc_gcinterface.html \
@@ -47,9 +47,11 @@ DOCS=\
 	$(DOCDIR)\core_stdcpp_array.html \
 	$(DOCDIR)\core_stdcpp_exception.html \
 	$(DOCDIR)\core_stdcpp_new_.html \
+	$(DOCDIR)\core_stdcpp_string.html \
 	$(DOCDIR)\core_stdcpp_string_view.html \
 	$(DOCDIR)\core_stdcpp_typeinfo.html \
 	$(DOCDIR)\core_stdcpp_type_traits.html \
+	$(DOCDIR)\core_stdcpp_vector.html \
 	\
 	$(DOCDIR)\core_sync_barrier.html \
 	$(DOCDIR)\core_sync_condition.html \
@@ -73,11 +75,18 @@ DOCS=\
 	$(DOCDIR)\core_sys_darwin_mach_thread_act.html \
 	$(DOCDIR)\core_sys_darwin_netinet_in_.html \
 	\
+	$(DOCDIR)\core_thread.html \
+	$(DOCDIR)\core_thread_fiber.html \
+	$(DOCDIR)\core_thread_osthread.html \
+	\
+    $(DOCDIR)\core_internal_execinfo.html \
+    \
     $(DOCDIR)\rt_aaA.html \
     $(DOCDIR)\rt_aApply.html \
     $(DOCDIR)\rt_aApplyR.html \
     $(DOCDIR)\rt_adi.html \
     $(DOCDIR)\rt_alloca.html \
+    \
     $(DOCDIR)\rt_arrayassign.html \
     $(DOCDIR)\rt_arraycat.html \
     \
@@ -107,6 +116,7 @@ DOCS=\
     $(DOCDIR)\rt_qsort.html \
     $(DOCDIR)\rt_sections_android.html \
     $(DOCDIR)\rt_sections.html \
+    $(DOCDIR)\rt_sections_darwin_64.html \
     $(DOCDIR)\rt_sections_elf_shared.html \
     $(DOCDIR)\rt_sections_osx_x86_64.html \
     $(DOCDIR)\rt_sections_osx_x86.html \
@@ -157,10 +167,10 @@ DOCS=\
 	\
     $(DOCDIR)\rt_unwind.html \
 	\
-    $(DOCDIR)\rt_util_array.html \
     $(DOCDIR)\rt_util_container_array.html \
     $(DOCDIR)\rt_util_container_common.html \
     $(DOCDIR)\rt_util_container_hashtab.html \
     $(DOCDIR)\rt_util_container_treap.html \
+    $(DOCDIR)\rt_util_utility.html \
     $(DOCDIR)\rt_util_random.html \
     $(DOCDIR)\rt_util_typeinfo.html \

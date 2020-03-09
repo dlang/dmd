@@ -138,8 +138,8 @@ SHUT_RDWR
 SHUT_WR
 
 int     accept(int, sockaddr*, socklen_t*);
-int     bind(int, in sockaddr*, socklen_t);
-int     connect(int, in sockaddr*, socklen_t);
+int     bind(int, const scope sockaddr*, socklen_t);
+int     connect(int, const scope sockaddr*, socklen_t);
 int     getpeername(int, sockaddr*, socklen_t*);
 int     getsockname(int, sockaddr*, socklen_t*);
 int     getsockopt(int, int, int, void*, socklen_t*);
@@ -147,10 +147,10 @@ int     listen(int, int);
 ssize_t recv(int, void*, size_t, int);
 ssize_t recvfrom(int, void*, size_t, int, sockaddr*, socklen_t*);
 ssize_t recvmsg(int, msghdr*, int);
-ssize_t send(int, in void*, size_t, int);
-ssize_t sendmsg(int, in msghdr*, int);
-ssize_t sendto(int, in void*, size_t, int, in sockaddr*, socklen_t);
-int     setsockopt(int, int, int, in void*, socklen_t);
+ssize_t send(int, const scope void*, size_t, int);
+ssize_t sendmsg(int, const scope msghdr*, int);
+ssize_t sendto(int, const scope void*, size_t, int, const scope sockaddr*, socklen_t);
+int     setsockopt(int, int, int, const scope void*, socklen_t);
 int     shutdown(int, int);
 int     socket(int, int, int);
 int     sockatmark(int);
@@ -1359,41 +1359,8 @@ else version (DragonFlyBSD)
         AF_LOCAL            = 1,
         AF_UNIX             = AF_LOCAL,
         AF_INET             = 2,
-        AF_IMPLINK          = 3,
-        AF_PUP              = 4,
-        AF_CHAOS            = 5,
-        AF_NETBIOS          = 6,
-        AF_ISO              = 7,
-        AF_OSI              = AF_ISO,
-        AF_ECMA             = 8,
-        AF_DATAKIT          = 9,
-        AF_CCITT            = 10,
-        AF_SNA              = 11,
-        AF_DECnet           = 12,
-        AF_DLI              = 13,
-        AF_LAT              = 14,
-        AF_HYLINK           = 15,
         AF_APPLETALK        = 16,
-        AF_ROUTE            = 17,
-        AF_LINK             = 18,
-        pseudo_AF_XTP       = 19,
-        AF_COIP             = 20,
-        AF_CNT              = 21,
-        pseudo_AF_RTIP      = 22,
         AF_IPX              = 23,
-        AF_SIP              = 24,
-        pseudo_AF_PIP       = 25,
-        AF_ISDN             = 26,
-        AF_E164             = AF_ISDN,
-        pseudo_AF_KEY       = 27,
-        //AF_INET6            = 28,   // defined below
-        AF_NATM             = 29,
-        AF_ATM              = 30,
-        pseudo_AF_HDRCMPLT  = 31,
-        AF_NETGRAPH         = 32,
-        AF_BLUETOOTH        = 33,
-        AF_MPLS             = 34,
-        AF_IEEE80211        = 35,
     }
 
     struct sockaddr
@@ -1426,43 +1393,6 @@ else version (DragonFlyBSD)
         long               __ss_align;
         byte[_SS_PAD2SIZE] __ss_pad2;
     }
-
-    /* protocol families */
-    enum PF_UNSPEC          = AF_UNSPEC;
-    enum PF_LOCAL           = AF_LOCAL;
-    enum PF_UNIX            = PF_LOCAL;
-    enum PF_INET            = AF_INET;
-    enum PF_IMPLINK         = AF_IMPLINK;
-    enum PF_PUP             = AF_PUP;
-    enum PF_CHAOS           = AF_CHAOS;
-    enum PF_NETBIOS         = AF_NETBIOS;
-    enum PF_ISO             = AF_ISO;
-    enum PF_OSI             = AF_ISO;
-    enum PF_ECMA            = AF_ECMA;
-    enum PF_DATAKIT         = AF_DATAKIT;
-    enum PF_CCITT           = AF_CCITT;
-    enum PF_SNA             = AF_SNA;
-    enum PF_DECnet          = AF_DECnet;
-    enum PF_DLI             = AF_DLI;
-    enum PF_LAT             = AF_LAT;
-    enum PF_HYLINK          = AF_HYLINK;
-    enum PF_APPLETALK       = AF_APPLETALK;
-    enum PF_ROUTE           = AF_ROUTE;
-    enum PF_LINK            = AF_LINK;
-    enum PF_XTP             = pseudo_AF_XTP;
-    enum PF_COIP            = AF_COIP;
-    enum PF_CNT             = AF_CNT;
-    enum PF_SIP             = AF_SIP;
-    enum PF_IPX             = AF_IPX;
-    enum PF_RTIP            = pseudo_AF_RTIP;
-    enum PF_PIP             = pseudo_AF_PIP;
-    enum PF_ISDN            = AF_ISDN;
-    enum PF_KEY             = pseudo_AF_KEY;
-    enum PF_INET6           = AF_INET6;
-    enum PF_NATM            = AF_NATM;
-    enum PF_ATM             = AF_ATM;
-    enum PF_NETGRAPH        = AF_NETGRAPH;
-    enum PF_BLUETOOTH       = AF_BLUETOOTH;
 
     struct msghdr
     {
@@ -1574,8 +1504,8 @@ else version (DragonFlyBSD)
 
     int     accept(int, sockaddr*, socklen_t*);
 //    int     accept4(int, sockaddr*, socklen_t*, int);
-    int     bind(int, in sockaddr*, socklen_t);
-    int     connect(int, in sockaddr*, socklen_t);
+    int     bind(int, const scope sockaddr*, socklen_t);
+    int     connect(int, const scope sockaddr*, socklen_t);
 //    int     extconnect(int, int, sockaddr*, socklen_t);
     int     getpeername(int, sockaddr*, socklen_t*);
     int     getsockname(int, sockaddr*, socklen_t*);
@@ -1584,11 +1514,11 @@ else version (DragonFlyBSD)
     ssize_t recv(int, void*, size_t, int);
     ssize_t recvfrom(int, void*, size_t, int, sockaddr*, socklen_t*);
     ssize_t recvmsg(int, msghdr*, int);
-    ssize_t send(int, in void*, size_t, int);
-    ssize_t sendto(int, in void*, size_t, int, in sockaddr*, socklen_t);
-    ssize_t sendmsg(int, in msghdr*, int);
+    ssize_t send(int, const scope void*, size_t, int);
+    ssize_t sendto(int, const scope void*, size_t, int, const scope sockaddr*, socklen_t);
+    ssize_t sendmsg(int, const scope msghdr*, int);
 //    int     sendfile(int, int, off_t, size_t, sf_hdtr *, off_t *, int);
-    int     setsockopt(int, int, int, in void*, socklen_t);
+    int     setsockopt(int, int, int, const scope void*, socklen_t);
     int     shutdown(int, int);
     int     sockatmark(int);
     int     socket(int, int, int);
@@ -1928,10 +1858,10 @@ else version (CRuntime_Musl)
         c_ulong     __ss_align;
     }
 
-    enum {
+    enum
+    {
         SOCK_STREAM = 1,
         SOCK_DGRAM = 2,
-        SOCK_RAW = 3,
         SOCK_RDM = 4,
         SOCK_SEQPACKET = 5,
         SOCK_DCCP = 6,
@@ -1965,22 +1895,52 @@ else version (CRuntime_Musl)
 
     enum
     {
-        SO_DEBUG        = 1,
-        SO_REUSEADDR    = 2,
-        SO_TYPE         = 3,
-        SO_ERROR        = 4,
-        SO_DONTROUTE    = 5,
-        SO_BROADCAST    = 6,
-        SO_SNDBUF       = 7,
-        SO_RCVBUF       = 8,
-        SO_KEEPALIVE    = 9,
-        SO_OOBINLINE    = 10,
-        SO_LINGER       = 13,
-        SO_RCVLOWAT     = 18,
-        SO_SNDLOWAT     = 19,
-        SO_RCVTIMEO     = 20,
-        SO_SNDTIMEO     = 21,
-        SO_ACCEPTCONN   = 30
+        SO_DEBUG        = 1
+    }
+
+    version (MIPS_Any)
+    {
+        enum
+        {
+            SO_REUSEADDR    = 0x0004,
+            SO_TYPE         = 0x1008,
+            SO_ERROR        = 0x1007,
+            SO_DONTROUTE    = 0x0010,
+            SO_BROADCAST    = 0x0020,
+            SO_SNDBUF       = 0x1001,
+            SO_RCVBUF       = 0x1002,
+            SO_KEEPALIVE    = 0x0008,
+            SO_OOBINLINE    = 0x0100,
+            SO_LINGER       = 0x0080,
+            SO_REUSEPORT    = 0x0200,
+            SO_RCVLOWAT     = 0x1004,
+            SO_SNDLOWAT     = 0x1003,
+            SO_RCVTIMEO     = 0x1006,
+            SO_SNDTIMEO     = 0x1005,
+            SO_ACCEPTCONN   = 0x1009
+        }
+    }
+    else
+    {
+        enum
+        {
+            SO_REUSEADDR    = 2,
+            SO_TYPE         = 3,
+            SO_ERROR        = 4,
+            SO_DONTROUTE    = 5,
+            SO_BROADCAST    = 6,
+            SO_SNDBUF       = 7,
+            SO_RCVBUF       = 8,
+            SO_KEEPALIVE    = 9,
+            SO_OOBINLINE    = 10,
+            SO_LINGER       = 13,
+            SO_REUSEPORT    = 15,
+            SO_RCVLOWAT     = 18,
+            SO_SNDLOWAT     = 19,
+            SO_RCVTIMEO     = 20,
+            SO_SNDTIMEO     = 21,
+            SO_ACCEPTCONN   = 30
+        }
     }
 
     enum : uint
@@ -2010,8 +1970,8 @@ else version (CRuntime_Musl)
         int msg_flags;
     }
     int     accept(int, sockaddr*, socklen_t*);
-    int     bind(int, in sockaddr*, socklen_t);
-    int     connect(int, in sockaddr*, socklen_t);
+    int     bind(int, const scope sockaddr*, socklen_t);
+    int     connect(int, const scope sockaddr*, socklen_t);
     int     getpeername(int, sockaddr*, socklen_t*);
     int     getsockname(int, sockaddr*, socklen_t*);
     int     getsockopt(int, int, int, void*, socklen_t*);
@@ -2019,10 +1979,10 @@ else version (CRuntime_Musl)
     ssize_t recv(int, void*, size_t, int);
     ssize_t recvfrom(int, void*, size_t, int, sockaddr*, socklen_t*);
     ssize_t recvmsg(int, msghdr*, int);
-    ssize_t send(int, in void*, size_t, int);
-    ssize_t sendmsg(int, in msghdr*, int);
-    ssize_t sendto(int, in void*, size_t, int, in sockaddr*, socklen_t);
-    int     setsockopt(int, int, int, in void*, socklen_t);
+    ssize_t send(int, const scope void*, size_t, int);
+    ssize_t sendmsg(int, const scope msghdr*, int);
+    ssize_t sendto(int, const scope void*, size_t, int, const scope sockaddr*, socklen_t);
+    int     setsockopt(int, int, int, const scope void*, socklen_t);
     int     shutdown(int, int);
     int     socket(int, int, int);
     int     sockatmark(int);
@@ -2207,8 +2167,8 @@ else version (CRuntime_UClibc)
     }
 
     int     accept(int, sockaddr*, socklen_t*);
-    int     bind(int, in sockaddr*, socklen_t);
-    int     connect(int, in sockaddr*, socklen_t);
+    int     bind(int, const scope sockaddr*, socklen_t);
+    int     connect(int, const scope sockaddr*, socklen_t);
     int     getpeername(int, sockaddr*, socklen_t*);
     int     getsockname(int, sockaddr*, socklen_t*);
     int     getsockopt(int, int, int, void*, socklen_t*);
@@ -2216,10 +2176,10 @@ else version (CRuntime_UClibc)
     ssize_t recv(int, void*, size_t, int);
     ssize_t recvfrom(int, void*, size_t, int, sockaddr*, socklen_t*);
     ssize_t recvmsg(int, msghdr*, int);
-    ssize_t send(int, in void*, size_t, int);
-    ssize_t sendmsg(int, in msghdr*, int);
-    ssize_t sendto(int, in void*, size_t, int, in sockaddr*, socklen_t);
-    int     setsockopt(int, int, int, in void*, socklen_t);
+    ssize_t send(int, const scope void*, size_t, int);
+    ssize_t sendmsg(int, const scope msghdr*, int);
+    ssize_t sendto(int, const scope void*, size_t, int, const scope sockaddr*, socklen_t);
+    int     setsockopt(int, int, int, const scope void*, socklen_t);
     int     shutdown(int, int);
     int     socket(int, int, int);
     int     sockatmark(int);
@@ -2374,6 +2334,10 @@ else version (CRuntime_Bionic)
 }
 else version (CRuntime_Musl)
 {
+    enum
+    {
+        SOCK_RAW    = 3
+    }
 }
 else version (CRuntime_UClibc)
 {

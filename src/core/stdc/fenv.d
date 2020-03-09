@@ -386,6 +386,8 @@ else version (CRuntime_Musl)
     }
     else version (ARM)
     {
+        import core.stdc.config : c_ulong;
+
         struct fenv_t
         {
             c_ulong __cw;
@@ -875,7 +877,7 @@ int feholdexcept(fenv_t* envp);
 ///
 int fegetexceptflag(fexcept_t* flagp, int excepts);
 ///
-int fesetexceptflag(in fexcept_t* flagp, int excepts);
+int fesetexceptflag(const scope fexcept_t* flagp, int excepts);
 
 ///
 int fegetround();
@@ -885,7 +887,7 @@ int fesetround(int round);
 ///
 int fegetenv(fenv_t* envp);
 ///
-int fesetenv(in fenv_t* envp);
+int fesetenv(const scope fenv_t* envp);
 
 // MS define feraiseexcept() and feupdateenv() inline.
 version (CRuntime_Microsoft) // supported since MSVCRT 12 (VS 2013) only
@@ -923,7 +925,7 @@ version (CRuntime_Microsoft) // supported since MSVCRT 12 (VS 2013) only
     }
 
     ///
-    int feupdateenv()(in fenv_t* envp)
+    int feupdateenv()(const scope fenv_t* envp)
     {
         int excepts = fetestexcept(FE_ALL_EXCEPT);
         return (fesetenv(envp) != 0 || feraiseexcept(excepts) != 0 ? 1 : 0);
@@ -934,5 +936,5 @@ else
     ///
     int feraiseexcept(int excepts);
     ///
-    int feupdateenv(in fenv_t* envp);
+    int feupdateenv(const scope fenv_t* envp);
 }

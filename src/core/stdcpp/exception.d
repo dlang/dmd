@@ -88,10 +88,10 @@ else version (CppRuntime_Microsoft)
         ///
         this(const(char)* message = "unknown", int = 1) nothrow { msg = message; }
         ///
-        ~this() nothrow {}
+        extern(D) ~this() nothrow {}
 
         ///
-        const(char)* what() const nothrow { return msg != null ? msg : "unknown exception"; }
+        extern(D) const(char)* what() const nothrow { return msg != null ? msg : "unknown exception"; }
 
         // TODO: do we want this? exceptions are classes... ref types.
 //        final ref exception opAssign(ref const(exception) e) nothrow { msg = e.msg; return this; }

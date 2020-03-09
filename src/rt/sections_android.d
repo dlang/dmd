@@ -12,6 +12,9 @@ module rt.sections_android;
 
 version (CRuntime_Bionic):
 
+version (X86)    version = X86_Any;
+version (X86_64) version = X86_Any;
+
 // debug = PRINTF;
 debug(PRINTF) import core.stdc.stdio;
 import core.stdc.stdlib : malloc, free;
@@ -164,7 +167,16 @@ extern(C)
         void* __start_minfo;
         void* __stop_minfo;
 
-        size_t __bss_end__;
+        version (X86_Any)
+        {
+            // the x86 linker scripts don't provide __bss_end__; use _end instead
+            size_t _end;
+            alias __bss_end__ = _end;
+        }
+        else
+        {
+            size_t __bss_end__;
+        }
 
         int _tlsstart;
         int _tlsend;

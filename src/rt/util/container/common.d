@@ -58,7 +58,7 @@ void initialize(T)(ref T t) if (!is(T == struct))
     t = T.init;
 }
 
-version (unittest) struct RC()
+version (CoreUnittest) struct RC()
 {
 nothrow:
     this(size_t* cnt) { ++*(_cnt = cnt); }

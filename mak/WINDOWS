@@ -30,31 +30,35 @@ $(IMPDIR)\core\sync\semaphore.di : src\core\sync\semaphore.d
 ######################## Header .di file copy ##############################
 
 copydir: $(IMPDIR)
-	mkdir $(IMPDIR)\core\gc
-	mkdir $(IMPDIR)\core\stdc
-	mkdir $(IMPDIR)\core\stdcpp
-	mkdir $(IMPDIR)\core\internal
-	mkdir $(IMPDIR)\core\sys\bionic
-	mkdir $(IMPDIR)\core\sys\darwin\mach
-	mkdir $(IMPDIR)\core\sys\darwin\netinet
-	mkdir $(IMPDIR)\core\sys\darwin\sys
-	mkdir $(IMPDIR)\core\sys\freebsd\netinet
-	mkdir $(IMPDIR)\core\sys\freebsd\sys
-	mkdir $(IMPDIR)\core\sys\dragonflybsd\netinet
-	mkdir $(IMPDIR)\core\sys\dragonflybsd\sys
-	mkdir $(IMPDIR)\core\sys\linux\netinet
-	mkdir $(IMPDIR)\core\sys\linux\sys
-	mkdir $(IMPDIR)\core\sys\linux\sys\netinet
-	mkdir src\core\sys\netbsd\sys
-	mkdir src\core\sys\netbsd\
-	mkdir $(IMPDIR)\core\sys\openbsd
-	mkdir $(IMPDIR)\core\sys\posix\arpa
-	mkdir $(IMPDIR)\core\sys\posix\net
-	mkdir $(IMPDIR)\core\sys\posix\netinet
-	mkdir $(IMPDIR)\core\sys\posix\sys
-	mkdir $(IMPDIR)\core\sys\solaris\sys
-	mkdir $(IMPDIR)\core\sys\windows
-	mkdir $(IMPDIR)\etc\linux
+	@if not exist $(IMPDIR)\core\gc                         mkdir $(IMPDIR)\core\gc
+	@if not exist $(IMPDIR)\core\stdc                       mkdir $(IMPDIR)\core\stdc
+	@if not exist $(IMPDIR)\core\stdcpp                     mkdir $(IMPDIR)\core\stdcpp
+	@if not exist $(IMPDIR)\core\internal                   mkdir $(IMPDIR)\core\internal
+	@if not exist $(IMPDIR)\core\internal\array             mkdir $(IMPDIR)\core\internal\array
+	@if not exist $(IMPDIR)\core\internal\util              mkdir $(IMPDIR)\core\internal\util
+	@if not exist $(IMPDIR)\core\sys\bionic                 mkdir $(IMPDIR)\core\sys\bionic
+	@if not exist $(IMPDIR)\core\sys\darwin\mach            mkdir $(IMPDIR)\core\sys\darwin\mach
+	@if not exist $(IMPDIR)\core\sys\darwin\netinet         mkdir $(IMPDIR)\core\sys\darwin\netinet
+	@if not exist $(IMPDIR)\core\sys\darwin\sys             mkdir $(IMPDIR)\core\sys\darwin\sys
+	@if not exist $(IMPDIR)\core\sys\freebsd\netinet        mkdir $(IMPDIR)\core\sys\freebsd\netinet
+	@if not exist $(IMPDIR)\core\sys\freebsd\sys            mkdir $(IMPDIR)\core\sys\freebsd\sys
+	@if not exist $(IMPDIR)\core\sys\dragonflybsd\netinet   mkdir $(IMPDIR)\core\sys\dragonflybsd\netinet
+	@if not exist $(IMPDIR)\core\sys\dragonflybsd\sys       mkdir $(IMPDIR)\core\sys\dragonflybsd\sys
+	@if not exist $(IMPDIR)\core\sys\linux\netinet          mkdir $(IMPDIR)\core\sys\linux\netinet
+	@if not exist $(IMPDIR)\core\sys\linux\sys              mkdir $(IMPDIR)\core\sys\linux\sys
+	@if not exist $(IMPDIR)\core\sys\netbsd                 mkdir $(IMPDIR)\core\sys\netbsd
+	@if not exist $(IMPDIR)\core\sys\netbsd\sys             mkdir $(IMPDIR)\core\sys\netbsd\sys
+	@if not exist $(IMPDIR)\core\sys\openbsd                mkdir $(IMPDIR)\core\sys\openbsd
+	@if not exist $(IMPDIR)\core\sys\openbsd\sys            mkdir $(IMPDIR)\core\sys\openbsd\sys
+	@if not exist $(IMPDIR)\core\sys\posix\arpa             mkdir $(IMPDIR)\core\sys\posix\arpa
+	@if not exist $(IMPDIR)\core\sys\posix\net              mkdir $(IMPDIR)\core\sys\posix\net
+	@if not exist $(IMPDIR)\core\sys\posix\netinet          mkdir $(IMPDIR)\core\sys\posix\netinet
+	@if not exist $(IMPDIR)\core\sys\posix\sys              mkdir $(IMPDIR)\core\sys\posix\sys
+	@if not exist $(IMPDIR)\core\sys\solaris\sys            mkdir $(IMPDIR)\core\sys\solaris\sys
+	@if not exist $(IMPDIR)\core\sys\windows                mkdir $(IMPDIR)\core\sys\windows
+	@if not exist $(IMPDIR)\core\sys\windows                mkdir $(IMPDIR)\core\sys\windows
+	@if not exist $(IMPDIR)\core\thread                     mkdir $(IMPDIR)\core\thread
+	@if not exist $(IMPDIR)\etc\linux                       mkdir $(IMPDIR)\etc\linux
 
 copy: $(COPY)
 
@@ -98,13 +102,13 @@ $(IMPDIR)\core\runtime.d : src\core\runtime.d
 $(IMPDIR)\core\simd.d : src\core\simd.d
 	copy $** $@
 
-$(IMPDIR)\core\thread.d : src\core\thread.d
-	copy $** $@
-
 $(IMPDIR)\core\time.d : src\core\time.d
 	copy $** $@
 
 $(IMPDIR)\core\vararg.d : src\core\vararg.d
+	copy $** $@
+
+$(IMPDIR)\core\volatile.d : src\core\volatile.d
 	copy $** $@
 
 $(IMPDIR)\core\gc\config.d : src\core\gc\config.d
@@ -119,7 +123,10 @@ $(IMPDIR)\core\gc\registry.d : src\core\gc\registry.d
 $(IMPDIR)\core\internal\abort.d : src\core\internal\abort.d
 	copy $** $@
 
-$(IMPDIR)\core\internal\arrayop.d : src\core\internal\arrayop.d
+$(IMPDIR)\core\internal\atomic.d : src\core\internal\atomic.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\attributes.d : src\core\internal\attributes.d
 	copy $** $@
 
 $(IMPDIR)\core\internal\convert.d : src\core\internal\convert.d
@@ -128,16 +135,34 @@ $(IMPDIR)\core\internal\convert.d : src\core\internal\convert.d
 $(IMPDIR)\core\internal\dassert.d : src\core\internal\dassert.d
 	copy $** $@
 
+$(IMPDIR)\core\internal\destruction.d : src\core\internal\destruction.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\entrypoint.d : src\core\internal\entrypoint.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\execinfo.d : src\core\internal\execinfo.d
+	copy $** $@
+
 $(IMPDIR)\core\internal\hash.d : src\core\internal\hash.d
 	copy $** $@
 
+$(IMPDIR)\core\internal\moving.d : src\core\internal\moving.d
+	copy $** $@
+
 $(IMPDIR)\core\internal\parseoptions.d : src\core\internal\parseoptions.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\postblit.d : src\core\internal\postblit.d
 	copy $** $@
 
 $(IMPDIR)\core\internal\spinlock.d : src\core\internal\spinlock.d
 	copy $** $@
 
 $(IMPDIR)\core\internal\string.d : src\core\internal\string.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\switch_.d : src\core\internal\switch_.d
 	copy $** $@
 
 $(IMPDIR)\core\internal\traits.d : src\core\internal\traits.d
@@ -147,6 +172,42 @@ $(IMPDIR)\core\internal\utf.d : src\core\internal\utf.d
 	copy $** $@
 
 $(IMPDIR)\core\internal\lifetime.d : src\core\internal\lifetime.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\array\appending.d : src\core\internal\array\appending.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\array\comparison.d : src\core\internal\array\comparison.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\array\construction.d : src\core\internal\array\construction.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\array\equality.d : src\core\internal\array\equality.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\array\casting.d : src\core\internal\array\casting.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\array\capacity.d : src\core\internal\array\capacity.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\array\concatenation.d : src\core\internal\array\concatenation.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\array\utils.d : src\core\internal\array\utils.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\array\operations.d : src\core\internal\array\operations.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\elf\dl.d : src\core\internal\elf\dl.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\elf\io.d : src\core\internal\elf\io.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\util\array.d : src\core\internal\util\array.d
 	copy $** $@
 
 $(IMPDIR)\core\stdc\assert_.d : src\core\stdc\assert_.d
@@ -227,28 +288,49 @@ $(IMPDIR)\core\stdcpp\array.d : src\core\stdcpp\array.d
 $(IMPDIR)\core\stdcpp\exception.d : src\core\stdcpp\exception.d
 	copy $** $@
 
+$(IMPDIR)\core\stdcpp\memory.d : src\core\stdcpp\memory.d
+	copy $** $@
+
 $(IMPDIR)\core\stdcpp\new_.d : src\core\stdcpp\new_.d
+	copy $** $@
+
+$(IMPDIR)\core\stdcpp\string.d : src\core\stdcpp\string.d
 	copy $** $@
 
 $(IMPDIR)\core\stdcpp\string_view.d : src\core\stdcpp\string_view.d
 	copy $** $@
 
+$(IMPDIR)\core\stdcpp\type_traits.d : src\core\stdcpp\type_traits.d
+	copy $** $@
+
 $(IMPDIR)\core\stdcpp\typeinfo.d : src\core\stdcpp\typeinfo.d
 	copy $** $@
 
-$(IMPDIR)\core\stdcpp\type_traits.d : src\core\stdcpp\type_traits.d
+$(IMPDIR)\core\stdcpp\vector.d : src\core\stdcpp\vector.d
 	copy $** $@
 
 $(IMPDIR)\core\stdcpp\xutility.d : src\core\stdcpp\xutility.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\bionic\err.d : src\core\sys\bionic\err.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\bionic\fcntl.d : src\core\sys\bionic\fcntl.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\bionic\string.d : src\core\sys\bionic\string.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\bionic\unistd.d : src\core\sys\bionic\unistd.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\darwin\crt_externs.d : src\core\sys\darwin\crt_externs.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\darwin\dlfcn.d : src\core\sys\darwin\dlfcn.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\darwin\err.d : src\core\sys\darwin\err.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\darwin\execinfo.d : src\core\sys\darwin\execinfo.d
@@ -294,6 +376,9 @@ $(IMPDIR)\core\sys\darwin\sys\mman.d : src\core\sys\darwin\sys\mman.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\freebsd\dlfcn.d : src\core\sys\freebsd\dlfcn.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\freebsd\err.d : src\core\sys\freebsd\err.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\freebsd\execinfo.d : src\core\sys\freebsd\execinfo.d
@@ -350,6 +435,9 @@ $(IMPDIR)\core\sys\freebsd\unistd.d : src\core\sys\freebsd\unistd.d
 $(IMPDIR)\core\sys\dragonflybsd\dlfcn.d : src\core\sys\dragonflybsd\dlfcn.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\dragonflybsd\err.d : src\core\sys\dragonflybsd\err.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\dragonflybsd\execinfo.d : src\core\sys\dragonflybsd\execinfo.d
 	copy $** $@
 
@@ -395,6 +483,9 @@ $(IMPDIR)\core\sys\dragonflybsd\sys\link_elf.d : src\core\sys\dragonflybsd\sys\l
 $(IMPDIR)\core\sys\dragonflybsd\sys\mman.d : src\core\sys\dragonflybsd\sys\mman.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\dragonflybsd\sys\socket.d : src\core\sys\dragonflybsd\sys\socket.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\linux\config.d : src\core\sys\linux\config.d
 	copy $** $@
 
@@ -405,6 +496,9 @@ $(IMPDIR)\core\sys\linux\elf.d : src\core\sys\linux\elf.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\linux\epoll.d : src\core\sys\linux\epoll.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\linux\err.d : src\core\sys\linux\err.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\linux\errno.d : src\core\sys\linux\errno.d
@@ -423,6 +517,9 @@ $(IMPDIR)\core\sys\linux\link.d : src\core\sys\linux\link.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\linux\sched.d : src\core\sys\linux\sched.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\linux\stdio.d : src\core\sys\linux\stdio.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\linux\string.d : src\core\sys\linux\string.d
@@ -447,9 +544,6 @@ $(IMPDIR)\core\sys\linux\netinet\in_.d : src\core\sys\linux\netinet\in_.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\linux\netinet\tcp.d : src\core\sys\linux\netinet\tcp.d
-	copy $** $@
-
-$(IMPDIR)\core\sys\linux\sys\netinet\tcp.d : src\core\sys\linux\sys\netinet\tcp.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\linux\sys\auxv.d : src\core\sys\linux\sys\auxv.d
@@ -485,16 +579,76 @@ $(IMPDIR)\core\sys\linux\sys\xattr.d : src\core\sys\linux\sys\xattr.d
 $(IMPDIR)\core\sys\linux\sys\time.d : src\core\sys\linux\sys\time.d
 	copy $** $@
 
-$(IMPDIR)\core\sys\netbsd\sys\featuretest.d : src\core\sys\netbsd\sys\featuretest.d
+$(IMPDIR)\core\sys\netbsd\dlfcn.d : src\core\sys\netbsd\dlfcn.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\netbsd\err.d : src\core\sys\netbsd\err.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\netbsd\execinfo.d : src\core\sys\netbsd\execinfo.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\netbsd\string.d : src\core\sys\netbsd\string.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\netbsd\time.d : src\core\sys\netbsd\time.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\netbsd\sys\elf.d : src\core\sys\netbsd\sys\elf.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\netbsd\sys\elf32.d : src\core\sys\netbsd\sys\elf32.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\netbsd\sys\elf64.d : src\core\sys\netbsd\sys\elf64.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\netbsd\sys\elf_common.d : src\core\sys\netbsd\sys\elf_common.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\netbsd\sys\event.d : src\core\sys\netbsd\sys\event.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\netbsd\sys\featuretest.d : src\core\sys\netbsd\sys\featuretest.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\netbsd\sys\link_elf.d : src\core\sys\netbsd\sys\link_elf.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\netbsd\sys\mman.d : src\core\sys\netbsd\sys\mman.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\openbsd\dlfcn.d : src\core\sys\openbsd\dlfcn.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\openbsd\err.d : src\core\sys\openbsd\err.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\openbsd\string.d : src\core\sys\openbsd\string.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\openbsd\time.d : src\core\sys\openbsd\time.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\openbsd\sys\cdefs.d : src\core\sys\openbsd\sys\cdefs.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\openbsd\sys\elf32.d : src\core\sys\openbsd\sys\elf32.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\openbsd\sys\elf64.d : src\core\sys\openbsd\sys\elf64.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\openbsd\sys\elf_common.d : src\core\sys\openbsd\sys\elf_common.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\openbsd\sys\elf.d : src\core\sys\openbsd\sys\elf.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\openbsd\sys\link_elf.d : src\core\sys\openbsd\sys\link_elf.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\openbsd\sys\mman.d : src\core\sys\openbsd\sys\mman.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\posix\arpa\inet.d : src\core\sys\posix\arpa\inet.d
@@ -525,6 +679,12 @@ $(IMPDIR)\core\sys\posix\inttypes.d : src\core\sys\posix\inttypes.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\posix\libgen.d : src\core\sys\posix\libgen.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\locale.d : src\core\sys\posix\locale.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\mqueue.d : src\core\sys\posix\mqueue.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\posix\netdb.d : src\core\sys\posix\netdb.d
@@ -569,6 +729,12 @@ $(IMPDIR)\core\sys\posix\stdio.d : src\core\sys\posix\stdio.d
 $(IMPDIR)\core\sys\posix\stdlib.d : src\core\sys\posix\stdlib.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\posix\string.d : src\core\sys\posix\string.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\strings.d : src\core\sys\posix\strings.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\posix\syslog.d : src\core\sys\posix\syslog.d
 	copy $** $@
 
@@ -585,6 +751,9 @@ $(IMPDIR)\core\sys\posix\sys\ipc.d : src\core\sys\posix\sys\ipc.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\posix\sys\mman.d : src\core\sys\posix\sys\mman.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\sys\msg.d : src\core\sys\posix\sys\msg.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\posix\sys\resource.d : src\core\sys\posix\sys\resource.d
@@ -645,6 +814,9 @@ $(IMPDIR)\core\sys\solaris\dlfcn.d : src\core\sys\solaris\dlfcn.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\solaris\elf.d : src\core\sys\solaris\elf.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\solaris\err.d : src\core\sys\solaris\err.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\solaris\execinfo.d : src\core\sys\solaris\execinfo.d
@@ -1037,6 +1209,9 @@ $(IMPDIR)\core\sys\windows\rpcnterr.d : src\core\sys\windows\rpcnterr.d
 $(IMPDIR)\core\sys\windows\schannel.d : src\core\sys\windows\schannel.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\windows\sdkddkver.d : src\core\sys\windows\sdkddkver.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\windows\secext.d : src\core\sys\windows\secext.d
 	copy $** $@
 
@@ -1182,6 +1357,15 @@ $(IMPDIR)\core\sys\windows\wtsapi32.d : src\core\sys\windows\wtsapi32.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\windows\wtypes.d : src\core\sys\windows\wtypes.d
+	copy $** $@
+
+$(IMPDIR)\core\thread\fiber.d : src\core\thread\fiber.d
+	copy $** $@
+
+$(IMPDIR)\core\thread\osthread.d : src\core\thread\osthread.d
+	copy $** $@
+
+$(IMPDIR)\core\thread\package.d : src\core\thread\package.d
 	copy $** $@
 
 $(IMPDIR)\etc\linux\memoryerror.d : src\etc\linux\memoryerror.d

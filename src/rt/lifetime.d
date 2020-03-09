@@ -47,7 +47,14 @@ extern (C) void lifetime_init()
     import rt.config;
     string s = rt_configOption("callStructDtorsDuringGC");
     if (s != null)
+    {
+        // @@@DEPRECATED_v2.094@@@
+        // Deprecated in v2.088.
+        // To be removed in v2.094, if not earlier.
+        import core.stdc.stdio : fprintf, stderr;
+        fprintf(stderr, "Deprecation: The `callStructDtorsDuringGC` option has been deprecated and will be removed in a future release.\n");
         cast() callStructDtorsDuringGC = s[0] == '1' || s[0] == 'y' || s[0] == 'Y';
+    }
     else
         cast() callStructDtorsDuringGC = true;
 }
@@ -407,6 +414,22 @@ size_t __arrayPad(size_t size, const TypeInfo tinext) nothrow pure @trusted
 }
 
 /**
+  clear padding that might not be zeroed by the GC (it assumes it is within the
+  requested size from the start, but it is actually at the end of the allocated block)
+  */
+private void __arrayClearPad(ref BlkInfo info, size_t arrsize, size_t padsize) nothrow pure
+{
+    import core.stdc.string;
+    if (padsize > MEDPAD && !(info.attr & BlkAttr.NO_SCAN) && info.base)
+    {
+        if (info.size < PAGESIZE)
+            memset(info.base + arrsize, 0, padsize);
+        else
+            memset(info.base, 0, LARGEPREFIX);
+    }
+}
+
+/**
   allocate an array memory block by applying the proper padding and
   assigning block attributes if not inherited from the existing block
   */
@@ -426,7 +449,10 @@ BlkInfo __arrayAlloc(size_t arrsize, const TypeInfo ti, const TypeInfo tinext) n
     uint attr = (!(tinext.flags & 1) ? BlkAttr.NO_SCAN : 0) | BlkAttr.APPENDABLE;
     if (typeInfoSize)
         attr |= BlkAttr.STRUCTFINAL | BlkAttr.FINALIZE;
-    return GC.qalloc(padded_size, attr, tinext);
+
+    auto bi = GC.qalloc(padded_size, attr, tinext);
+    __arrayClearPad(bi, arrsize, padsize);
+    return bi;
 }
 
 BlkInfo __arrayAlloc(size_t arrsize, ref BlkInfo info, const TypeInfo ti, const TypeInfo tinext)
@@ -436,14 +462,17 @@ BlkInfo __arrayAlloc(size_t arrsize, ref BlkInfo info, const TypeInfo ti, const 
     if (!info.base)
         return __arrayAlloc(arrsize, ti, tinext);
 
+    immutable padsize = __arrayPad(arrsize, tinext);
     bool overflow;
-    auto padded_size = addu(arrsize, __arrayPad(arrsize, tinext), overflow);
+    auto padded_size = addu(arrsize, padsize, overflow);
     if (overflow)
     {
         return BlkInfo();
     }
 
-    return GC.qalloc(padded_size, info.attr, tinext);
+    auto bi = GC.qalloc(padded_size, info.attr, tinext);
+    __arrayClearPad(bi, arrsize, padsize);
+    return bi;
 }
 
 /**
@@ -986,7 +1015,7 @@ extern (C) void[] _d_newarrayT(const TypeInfo ti, size_t length) pure nothrow
  */
 extern (C) void[] _d_newarrayiT(const TypeInfo ti, size_t length) pure nothrow
 {
-    import core.internal.traits : TypeTuple;
+    import core.internal.traits : AliasSeq;
 
     void[] result = _d_newarrayU(ti, length);
     auto tinext = unqualify(ti.next);
@@ -996,7 +1025,7 @@ extern (C) void[] _d_newarrayiT(const TypeInfo ti, size_t length) pure nothrow
 
     switch (init.length)
     {
-    foreach (T; TypeTuple!(ubyte, ushort, uint, ulong))
+    foreach (T; AliasSeq!(ubyte, ushort, uint, ulong))
     {
     case T.sizeof:
         (cast(T*)result.ptr)[0 .. size * length / T.sizeof] = *cast(T*)init.ptr;
@@ -1096,7 +1125,8 @@ extern (C) void* _d_newitemU(in TypeInfo _ti)
     auto ti = unqualify(_ti);
     auto flags = !(ti.flags & 1) ? BlkAttr.NO_SCAN : 0;
     immutable tiSize = structTypeInfoSize(ti);
-    immutable size = ti.tsize + tiSize;
+    immutable itemSize = ti.tsize;
+    immutable size = itemSize + tiSize;
     if (tiSize)
         flags |= BlkAttr.STRUCTFINAL | BlkAttr.FINALIZE;
 
@@ -1104,7 +1134,10 @@ extern (C) void* _d_newitemU(in TypeInfo _ti)
     auto p = blkInf.base;
 
     if (tiSize)
+    {
+        *cast(TypeInfo*)(p + itemSize) = null; // the GC might not have cleared this area
         *cast(TypeInfo*)(p + blkInf.size - tiSize) = cast() ti;
+    }
 
     return p;
 }
@@ -2064,24 +2097,24 @@ extern (C) void[] _d_arrayappendcd(ref byte[] x, dchar c)
 {
     // c could encode into from 1 to 4 characters
     char[4] buf = void;
-    byte[] appendthis; // passed to appendT
+    char[] appendthis; // passed to appendT
     if (c <= 0x7F)
     {
         buf.ptr[0] = cast(char)c;
-        appendthis = (cast(byte *)buf.ptr)[0..1];
+        appendthis = buf[0..1];
     }
     else if (c <= 0x7FF)
     {
         buf.ptr[0] = cast(char)(0xC0 | (c >> 6));
         buf.ptr[1] = cast(char)(0x80 | (c & 0x3F));
-        appendthis = (cast(byte *)buf.ptr)[0..2];
+        appendthis = buf[0..2];
     }
     else if (c <= 0xFFFF)
     {
         buf.ptr[0] = cast(char)(0xE0 | (c >> 12));
         buf.ptr[1] = cast(char)(0x80 | ((c >> 6) & 0x3F));
         buf.ptr[2] = cast(char)(0x80 | (c & 0x3F));
-        appendthis = (cast(byte *)buf.ptr)[0..3];
+        appendthis = buf[0..3];
     }
     else if (c <= 0x10FFFF)
     {
@@ -2089,7 +2122,7 @@ extern (C) void[] _d_arrayappendcd(ref byte[] x, dchar c)
         buf.ptr[1] = cast(char)(0x80 | ((c >> 12) & 0x3F));
         buf.ptr[2] = cast(char)(0x80 | ((c >> 6) & 0x3F));
         buf.ptr[3] = cast(char)(0x80 | (c & 0x3F));
-        appendthis = (cast(byte *)buf.ptr)[0..4];
+        appendthis = buf[0..4];
     }
     else
     {
@@ -2102,7 +2135,12 @@ extern (C) void[] _d_arrayappendcd(ref byte[] x, dchar c)
     // get a typeinfo from the compiler.  Assuming shared is the safest option.
     // Once the compiler is fixed, the proper typeinfo should be forwarded.
     //
-    return _d_arrayappendT(typeid(shared char[]), x, appendthis);
+
+    // Hack because _d_arrayappendT takes `x` as a reference
+    auto xx = cast(shared(char)[])x;
+    object._d_arrayappendTImpl!(shared(char)[])._d_arrayappendT(xx, cast(shared(char)[])appendthis);
+    x = cast(byte[])xx;
+    return x;
 }
 
 unittest
@@ -2141,21 +2179,17 @@ extern (C) void[] _d_arrayappendwd(ref byte[] x, dchar c)
 {
     // c could encode into from 1 to 2 w characters
     wchar[2] buf = void;
-    byte[] appendthis; // passed to appendT
+    wchar[] appendthis; // passed to appendT
     if (c <= 0xFFFF)
     {
         buf.ptr[0] = cast(wchar) c;
-        // note that although we are passing only 1 byte here, appendT
-        // interprets this as being an array of wchar, making the necessary
-        // casts.
-        appendthis = (cast(byte *)buf.ptr)[0..1];
+        appendthis = buf[0..1];
     }
     else
     {
         buf.ptr[0] = cast(wchar) ((((c - 0x10000) >> 10) & 0x3FF) + 0xD800);
         buf.ptr[1] = cast(wchar) (((c - 0x10000) & 0x3FF) + 0xDC00);
-        // ditto from above.
-        appendthis = (cast(byte *)buf.ptr)[0..2];
+        appendthis = buf[0..2];
     }
 
     //
@@ -2163,7 +2197,11 @@ extern (C) void[] _d_arrayappendwd(ref byte[] x, dchar c)
     // get a typeinfo from the compiler.  Assuming shared is the safest option.
     // Once the compiler is fixed, the proper typeinfo should be forwarded.
     //
-    return _d_arrayappendT(typeid(shared wchar[]), x, appendthis);
+
+    auto xx = (cast(shared(wchar)*)x.ptr)[0 .. x.length];
+    object._d_arrayappendTImpl!(shared(wchar)[])._d_arrayappendT(xx, cast(shared(wchar)[])appendthis);
+    x = (cast(byte*)xx.ptr)[0 .. xx.length];
+    return x;
 }
 
 
@@ -2385,7 +2423,7 @@ unittest
 }
 
 // cannot define structs inside unit test block, or they become nested structs.
-version (unittest)
+version (CoreUnittest)
 {
     struct S1
     {
@@ -2670,6 +2708,80 @@ deprecated unittest
         aa3 = null;
         GC.runFinalizers((cast(char*)(&entryDtor))[0..1]);
         assert(dtorCount == 4);
+    }
+}
+
+// test struct dtor handling not causing false pointers
+unittest
+{
+    if (!callStructDtorsDuringGC)
+        return;
+
+    // for 64-bit, allocate a struct of size 40
+    static struct S
+    {
+        size_t[4] data;
+        S* ptr4;
+    }
+    auto p1 = new S;
+    auto p2 = new S;
+    p2.ptr4 = p1;
+
+    // a struct with a dtor with size 32, but the dtor will cause
+    //  allocation to be larger by a pointer
+    static struct A
+    {
+        size_t[3] data;
+        S* ptr3;
+
+        ~this() {}
+    }
+
+    GC.free(p2);
+    auto a = new A; // reuse same memory
+    if (cast(void*)a is cast(void*)p2) // reusage not guaranteed
+    {
+        auto ptr = cast(S**)(a + 1);
+        assert(*ptr != p1); // still same data as p2.ptr4?
+    }
+
+    // small array
+    static struct SArr
+    {
+        void*[10] data;
+    }
+    auto arr1 = new SArr;
+    arr1.data[] = p1;
+    GC.free(arr1);
+
+    // allocates 2*A.sizeof + (void*).sizeof (TypeInfo) + 1 (array length)
+    auto arr2 = new A[2];
+    if (cast(void*)arr1 is cast(void*)arr2.ptr) // reusage not guaranteed
+    {
+        auto ptr = cast(S**)(arr2.ptr + 2);
+        assert(*ptr != p1); // still same data as p2.ptr4?
+    }
+
+    // large array
+    static struct LArr
+    {
+        void*[1023] data;
+    }
+    auto larr1 = new LArr;
+    larr1.data[] = p1;
+    GC.free(larr1);
+
+    auto larr2 = new S[255];
+    if (cast(void*)larr1 is cast(void*)larr2.ptr - LARGEPREFIX) // reusage not guaranteed
+    {
+        auto ptr = cast(S**)larr1;
+        assert(ptr[0] != p1); // 16 bytes array header
+        assert(ptr[1] != p1);
+        version (D_LP64) {} else
+        {
+            assert(ptr[2] != p1);
+            assert(ptr[3] != p1);
+        }
     }
 }
 

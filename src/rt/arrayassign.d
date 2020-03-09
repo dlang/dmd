@@ -13,7 +13,7 @@ module rt.arrayassign;
 
 private
 {
-    import rt.util.array;
+    import core.internal.util.array;
     import core.stdc.string;
     import core.stdc.stdlib;
     debug(PRINTF) import core.stdc.stdio;

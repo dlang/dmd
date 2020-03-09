@@ -132,8 +132,7 @@ if (is(T EType == enum) && (!__traits(isScalar, T) || is(T == __vector)))
 {
     static if (is(T EType == enum)) //for EType
     {
-        EType e_val = cast(EType)val;
-        return hashOf(e_val, seed);
+        return hashOf(cast(EType) val, seed);
     }
     else
     {
