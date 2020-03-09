@@ -173,6 +173,7 @@ package:
     extern(D):
         void _Orphan_all()() nothrow @nogc @safe {}
         void _Swap_all()(ref _Container_base0) nothrow @nogc @safe {}
+        void _Swap_proxy_and_iterators()(ref _Container_base0) nothrow {}
     }
     struct _Iterator_base0
     {
@@ -210,6 +211,22 @@ package:
             }
         }
 //        void _Swap_all()(ref _Container_base12) nothrow @nogc;
+
+        void _Swap_proxy_and_iterators()(ref _Container_base12 _Right) nothrow
+        {
+            static if (_ITERATOR_DEBUG_LEVEL == 2)
+                auto _Lock = _Lockit(_LOCK_DEBUG);
+
+            _Container_proxy* _Temp = _Myproxy;
+            _Myproxy = _Right._Myproxy;
+            _Right._Myproxy = _Temp;
+
+            if (_Myproxy)
+                _Myproxy._Mycont = &this;
+
+            if (_Right._Myproxy)
+                _Right._Myproxy._Mycont = &_Right;
+        }
 
         _Container_proxy* _Myproxy;
     }
@@ -347,5 +364,64 @@ extern(C++, "std"):
             _T2 __value2_;
         else
             @property ref inout(_T2) __value2_() inout nothrow @trusted @nogc { return *__get_base2(); }
+    }
+}
+version (CppRuntime_Gcc)
+{
+    import core.atomic;
+
+    alias _Atomic_word = int;
+
+    void __atomic_add_dispatch()(_Atomic_word* __mem, int __val) nothrow @nogc @safe
+    {
+        version (__GTHREADS)
+        {
+            // TODO: check __gthread_active_p()
+//            if (__gthread_active_p())
+                __atomic_add(__mem, __val);
+//            }
+//            else
+//            __atomic_add_single(__mem, __val);
+        }
+        else
+            __atomic_add_single(__mem, __val);
+    }
+
+    void __atomic_add()(_Atomic_word* __mem, int __val) nothrow @nogc @safe
+    {
+        atomicFetchAdd!(MemoryOrder.acq_rel)(*__mem, __val);
+    }
+
+    void __atomic_add_single()(_Atomic_word* __mem, int __val) nothrow @nogc @safe
+    {
+        *__mem += __val;
+    }
+
+    _Atomic_word __exchange_and_add_dispatch()(_Atomic_word* __mem, int __val) nothrow @nogc @safe
+    {
+        version (__GTHREADS)
+        {
+            // TODO: check __gthread_active_p()
+            return __exchange_and_add(__mem, __val);
+
+//            if (__gthread_active_p())
+//                return __exchange_and_add(__mem, __val);
+//            else
+//                return __exchange_and_add_single(__mem, __val);
+        }
+        else
+            return __exchange_and_add_single(__mem, __val);
+    }
+
+    _Atomic_word __exchange_and_add()(_Atomic_word* __mem, int __val) nothrow @nogc @safe
+    {
+        return atomicFetchAdd!(MemoryOrder.acq_rel)(*__mem, __val);
+    }
+
+    _Atomic_word __exchange_and_add_single()(_Atomic_word* __mem, int __val) nothrow @nogc @safe
+    {
+        _Atomic_word __result = *__mem;
+        *__mem += __val;
+        return __result;
     }
 }
