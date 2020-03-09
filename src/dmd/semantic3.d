@@ -482,7 +482,6 @@ private extern(C++) final class Semantic3Visitor : Visitor
             if (f.parameterList.parameters)
             foreach (fparam; *f.parameterList.parameters)
             {
-
                 if (!fparam.ident)
                     continue; // never used, so ignore
                 // expand any tuples
@@ -492,7 +491,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 TypeTuple t = cast(TypeTuple)fparam.type;
                 size_t dim = Parameter.dim(t.arguments);
                 auto exps = new Objects(dim);
-                for (size_t j = 0; j < dim; j++)
+                foreach (j; 0 .. dim)
                 {
                     Parameter narg = Parameter.getNth(t.arguments, j);
                     assert(narg.ident);
