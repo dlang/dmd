@@ -154,70 +154,61 @@ bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
             escapeByValue(arg, &eb.er);
     }
 
-    foreach (const i, ref eb; escapeBy[0 .. $ - 1])
+    void checkOnePair(size_t i, ref EscapeBy eb, ref EscapeBy eb2,
+                      VarDeclaration v, VarDeclaration v2, bool of)
     {
-        foreach (VarDeclaration v; eb.er.byvalue)
+        if (log) printf("v2: `%s`\n", v2.toChars());
+        if (v2 != v)
+            return;
+        //printf("v %d v2 %d\n", eb.isMutable, eb2.isMutable);
+        if (!(eb.isMutable || eb2.isMutable))
+            return;
+
+        if (!(global.params.vsafe && sc.func.setUnsafe()))
+            return;
+
+        if (!gag)
         {
-            if (log) printf("byvalue `%s`\n", v.toChars());
-            if (!v.type.hasPointers())
+            // int i; funcThatEscapes(ref int i);
+            // funcThatEscapes(i); // error escaping reference _to_ `i`
+            // int* j; funcThatEscapes2(int* j);
+            // funcThatEscapes2(j); // error escaping reference _of_ `i`
+            const(char)* referenceVerb = of ? "of" : "to";
+            const(char)* msg = eb.isMutable && eb2.isMutable
+                                ? "more than one mutable reference %s `%s` in arguments to `%s()`"
+                                : "mutable and const references %s `%s` in arguments to `%s()`";
+            error((*arguments)[i].loc, msg,
+                  referenceVerb,
+                  v.toChars(),
+                  fd ? fd.toPrettyChars() : "indirectly");
+        }
+        errors = true;
+    }
+
+    void escape(size_t i, ref EscapeBy eb, bool byval)
+    {
+        foreach (VarDeclaration v; byval ? eb.er.byvalue : eb.er.byref)
+        {
+            if (log)
+            {
+                const(char)* by = byval ? "byval" : "byref";
+                printf("%s %s\n", by, v.toChars());
+            }
+            if (byval && !v.type.hasPointers())
                 continue;
             foreach (ref eb2; escapeBy[i + 1 .. $])
             {
-                foreach (VarDeclaration v2; eb2.er.byvalue)
+                foreach (VarDeclaration v2; byval ? eb2.er.byvalue : eb2.er.byref)
                 {
-                    if (log) printf("v2: `%s`\n", v2.toChars());
-                    if (v2 != v)
-                        continue;
-                    if (eb.isMutable || eb2.isMutable)
-                    {
-                        if (global.params.vsafe && sc.func.setUnsafe())
-                        {
-                            if (!gag)
-                            {
-                                const(char)* msg = eb.isMutable && eb2.isMutable
-                                    ? "more than one mutable reference of `%s` in arguments to `%s()`"
-                                    : "mutable and const references of `%s` in arguments to `%s()`";
-                                error((*arguments)[i].loc, msg,
-                                    v.toChars(),
-                                    fd ? fd.toPrettyChars() : "indirectly");
-                            }
-                            errors = true;
-                        }
-                    }
+                    checkOnePair(i, eb, eb2, v, v2, byval);
                 }
             }
         }
-
-        foreach (VarDeclaration v; eb.er.byref)
-        {
-            if (log) printf("byref `%s`\n", v.toChars());
-            foreach (ref eb2; escapeBy[i + 1 .. $])
-            {
-                foreach (VarDeclaration v2; eb2.er.byref)
-                {
-                    if (log) printf("v2: `%s`\n", v2.toChars());
-                    if (v2 != v)
-                        continue;
-                    //printf("v %d v2 %d\n", eb.isMutable, eb2.isMutable);
-                    if (eb.isMutable || eb2.isMutable)
-                    {
-                        if (global.params.vsafe && sc.func.setUnsafe())
-                        {
-                            if (!gag)
-                            {
-                                const(char)* msg = eb.isMutable && eb2.isMutable
-                                    ? "more than one mutable reference to `%s` in arguments to `%s()`"
-                                    : "mutable and const references to `%s` in arguments to `%s()`";
-                                error((*arguments)[i].loc, msg,
-                                    v.toChars(),
-                                    fd ? fd.toPrettyChars() : "indirectly");
-                            }
-                            errors = true;
-                        }
-                    }
-                }
-            }
-        }
+    }
+    foreach (const i, ref eb; escapeBy[0 .. $ - 1])
+    {
+        escape(i, eb, true);
+        escape(i, eb, false);
     }
 
     /* Reset the arrays in escapeBy[] so we can reuse them next time through
@@ -808,25 +799,24 @@ ByRef:
         if (!(va && va.isScope()))
             notMaybeScope(v);
 
-        if ((v.storage_class & (STC.ref_ | STC.out_)) == 0 && p == sc.func)
+        if ((v.storage_class & (STC.ref_ | STC.out_)) || p != sc.func)
+            continue;
+
+        if (va && !va.isDataseg() && !va.doNotInferScope)
         {
-            if (va && !va.isDataseg() && !va.doNotInferScope)
-            {
-                if (!va.isScope() && inferScope)
-                {   //printf("inferring scope for %s\n", va.toChars());
-                    va.storage_class |= STC.scope_ | STC.scopeinferred;
-                }
-                continue;
-            }
-            if (e1.op == TOK.structLiteral)
-                continue;
-            if (sc.func.setUnsafe())
-            {
-                if (!gag)
-                    error(ae.loc, "reference to local variable `%s` assigned to non-scope `%s`", v.toChars(), e1.toChars());
-                result = true;
+            if (!va.isScope() && inferScope)
+            {   //printf("inferring scope for %s\n", va.toChars());
+                va.storage_class |= STC.scope_ | STC.scopeinferred;
             }
             continue;
+        }
+        if (e1.op == TOK.structLiteral)
+            continue;
+        if (sc.func.setUnsafe())
+        {
+            if (!gag)
+                error(ae.loc, "reference to local variable `%s` assigned to non-scope `%s`", v.toChars(), e1.toChars());
+            result = true;
         }
     }
 
@@ -854,24 +844,23 @@ ByRef:
             if (!(va && va.isScope()))
                 notMaybeScope(v);
 
-            if ((v.storage_class & (STC.ref_ | STC.out_ | STC.scope_)) && p == sc.func)
-            {
-                if (va && !va.isDataseg() && !va.doNotInferScope)
-                {
-                    /* Don't infer STC.scope_ for va, because then a closure
-                     * won't be generated for sc.func.
-                     */
-                    //if (!va.isScope() && inferScope)
-                        //va.storage_class |= STC.scope_ | STC.scopeinferred;
-                    continue;
-                }
-                if (sc.func.setUnsafe())
-                {
-                    if (!gag)
-                        error(ae.loc, "reference to local `%s` assigned to non-scope `%s` in @safe code", v.toChars(), e1.toChars());
-                    result = true;
-                }
+            if (!(v.storage_class & (STC.ref_ | STC.out_ | STC.scope_)) || p != sc.func)
                 continue;
+
+            if (va && !va.isDataseg() && !va.doNotInferScope)
+            {
+                /* Don't infer STC.scope_ for va, because then a closure
+                 * won't be generated for sc.func.
+                 */
+                //if (!va.isScope() && inferScope)
+                    //va.storage_class |= STC.scope_ | STC.scopeinferred;
+                continue;
+            }
+            if (sc.func.setUnsafe())
+            {
+                if (!gag)
+                    error(ae.loc, "reference to local `%s` assigned to non-scope `%s` in @safe code", v.toChars(), e1.toChars());
+                result = true;
             }
         }
     }
@@ -1075,41 +1064,39 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
         /* Check for returning a ref variable by 'ref', but should be 'return ref'
          * Infer the addition of 'return', or set result to be the offending expression.
          */
-        if (v.storage_class & (STC.ref_ | STC.out_))
-        {
-            // DIP25
-            if (sc._module && sc._module.isRoot())
-            {
-                // If -preview=dip25 is used, the user wants an error
-                // Otherwise, issue a deprecation
-                const emitError = global.params.useDIP25;
-                // https://dlang.org/spec/function.html#return-ref-parameters
-                // Only look for errors if in module listed on command line
-                if (p == sc.func)
-                {
-                    //printf("escaping reference to local ref variable %s\n", v.toChars());
-                    //printf("storage class = x%llx\n", v.storage_class);
-                    escapingRef(v, emitError);
-                    continue;
-                }
-                // Don't need to be concerned if v's parent does not return a ref
-                FuncDeclaration fd = p.isFuncDeclaration();
-                if (fd && fd.type && fd.type.ty == Tfunction)
-                {
-                    TypeFunction tf = cast(TypeFunction)fd.type;
-                    if (tf.isref)
-                    {
-                        const(char)* msg = "storing reference to outer local variable `%s` into allocated memory causes it to escape";
-                        if (!gag && emitError)
-                            error(e.loc, msg, v.toChars());
-                        else if (!gag)
-                            deprecation(e.loc, msg, v.toChars());
-                        result |= emitError;
-                        continue;
-                    }
-                }
+        if (!(v.storage_class & (STC.ref_ | STC.out_)))
+            continue;
 
-            }
+        if (!sc._module || !sc._module.isRoot())
+            continue;
+
+        // If -preview=dip25 is used, the user wants an error
+        // Otherwise, issue a deprecation
+        const emitError = global.params.useDIP25;
+        // https://dlang.org/spec/function.html#return-ref-parameters
+        // Only look for errors if in module listed on command line
+        if (p == sc.func)
+        {
+            //printf("escaping reference to local ref variable %s\n", v.toChars());
+            //printf("storage class = x%llx\n", v.storage_class);
+            escapingRef(v, emitError);
+            continue;
+        }
+        // Don't need to be concerned if v's parent does not return a ref
+        FuncDeclaration fd = p.isFuncDeclaration();
+        if (!fd || !fd.type)
+            continue;
+        if (auto tf = fd.type.isTypeFunction())
+        {
+            if (!tf.isref)
+                continue;
+
+            const(char)* msg = "storing reference to outer local variable `%s` into allocated memory causes it to escape";
+            if (!gag && emitError)
+                error(e.loc, msg, v.toChars());
+            else if (!gag)
+                deprecation(e.loc, msg, v.toChars());
+            result |= emitError;
         }
     }
 
@@ -2044,17 +2031,17 @@ public void findAllOuterAccessedVariables(FuncDeclaration fd, VarDeclarations* v
     for (auto p = fd.parent; p; p = p.parent)
     {
         auto fdp = p.isFuncDeclaration();
-        if (fdp)
+        if (!fdp)
+            continue;
+
+        foreach (v; fdp.closureVars)
         {
-            foreach (v; fdp.closureVars)
+            foreach (const fdv; v.nestedrefs)
             {
-                foreach (const fdv; v.nestedrefs)
+                if (fdv == fd)
                 {
-                    if (fdv == fd)
-                    {
-                        //printf("accessed: %s, type %s\n", v.toChars(), v.type.toChars());
-                        vars.push(v);
-                    }
+                    //printf("accessed: %s, type %s\n", v.toChars(), v.type.toChars());
+                    vars.push(v);
                 }
             }
         }
