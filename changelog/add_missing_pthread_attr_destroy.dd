@@ -1,3 +1,0 @@
-Added missing `pthread_attr_destroy` in some place.
-
-Added missing `pthread_attr_destroy`, this prevents memory leak in some OSes such as freebsd or solaris.

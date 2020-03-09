@@ -1020,6 +1020,16 @@ version (CoreUnittest)
             assert(head.gen == 1);
             assert(cast(size_t)head.next == 1);
         }
+
+        // https://issues.dlang.org/show_bug.cgi?id=20629
+        static struct Struct
+        {
+            uint a, b;
+        }
+        shared Struct s1 = Struct(1, 2);
+        atomicStore(s1, Struct(3, 4));
+        assert(cast(uint) s1.a == 3);
+        assert(cast(uint) s1.b == 4);
     }
 
     @betterC pure nothrow unittest
