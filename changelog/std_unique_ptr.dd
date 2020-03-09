@@ -1,3 +1,0 @@
-Added `core.stdcpp.memory.unique_ptr`
-
-Added `core.stdcpp.memory.unique_ptr`, which corresponds to C++ `std::unique_ptr`.
