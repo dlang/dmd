@@ -480,36 +480,33 @@ private extern(C++) final class Semantic3Visitor : Visitor
             // Declare the tuple symbols and put them in the symbol table,
             // but not in parameters[].
             if (f.parameterList.parameters)
+            foreach (fparam; *f.parameterList.parameters)
             {
-                for (size_t i = 0; i < f.parameterList.parameters.dim; i++)
+                if (!fparam.ident)
+                    continue; // never used, so ignore
+                // expand any tuples
+                if (fparam.type.ty != Ttuple)
+                    continue;
+
+                TypeTuple t = cast(TypeTuple)fparam.type;
+                size_t dim = Parameter.dim(t.arguments);
+                auto exps = new Objects(dim);
+                foreach (j; 0 .. dim)
                 {
-                    Parameter fparam = (*f.parameterList.parameters)[i];
-                    if (!fparam.ident)
-                        continue; // never used, so ignore
-                    if (fparam.type.ty == Ttuple)
-                    {
-                        TypeTuple t = cast(TypeTuple)fparam.type;
-                        size_t dim = Parameter.dim(t.arguments);
-                        auto exps = new Objects(dim);
-                        for (size_t j = 0; j < dim; j++)
-                        {
-                            Parameter narg = Parameter.getNth(t.arguments, j);
-                            assert(narg.ident);
-                            VarDeclaration v = sc2.search(Loc.initial, narg.ident, null).isVarDeclaration();
-                            assert(v);
-                            Expression e = new VarExp(v.loc, v);
-                            (*exps)[j] = e;
-                        }
-                        assert(fparam.ident);
-                        auto v = new TupleDeclaration(funcdecl.loc, fparam.ident, exps);
-                        //printf("declaring tuple %s\n", v.toChars());
-                        v.isexp = true;
-                        if (!sc2.insert(v))
-                            funcdecl.error("parameter `%s.%s` is already defined", funcdecl.toChars(), v.toChars());
-                        funcdecl.localsymtab.insert(v);
-                        v.parent = funcdecl;
-                    }
+                    Parameter narg = Parameter.getNth(t.arguments, j);
+                    assert(narg.ident);
+                    VarDeclaration v = sc2.search(Loc.initial, narg.ident, null).isVarDeclaration();
+                    assert(v);
+                    (*exps)[j] = new VarExp(v.loc, v);
                 }
+                assert(fparam.ident);
+                auto v = new TupleDeclaration(funcdecl.loc, fparam.ident, exps);
+                //printf("declaring tuple %s\n", v.toChars());
+                v.isexp = true;
+                if (!sc2.insert(v))
+                    funcdecl.error("parameter `%s.%s` is already defined", funcdecl.toChars(), v.toChars());
+                funcdecl.localsymtab.insert(v);
+                v.parent = funcdecl;
             }
 
             // Precondition invariant
