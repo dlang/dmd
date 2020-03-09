@@ -25,7 +25,7 @@ else # POSIX
 # Like test, but without runnable_cxx
 auto-tester-test:
 	$(QUIET)$(MAKE) -C src -f posix.mak unittest
-	$(QUIET)$(MAKE) -C test -f Makefile
+	$(QUIET)$(MAKE) -C test -f Makefile auto-tester-test
 endif
 endif
 

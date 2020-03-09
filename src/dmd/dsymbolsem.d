@@ -2298,6 +2298,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         ed.cppnamespace = sc.namespace;
 
         ed.semanticRun = PASS.semantic;
+        UserAttributeDeclaration.checkGNUABITag(ed, sc.linkage);
 
         if (!ed.members && !ed.memtype) // enum ident;
         {
@@ -2716,6 +2717,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         tempdecl.protection = sc.protection;
         tempdecl.cppnamespace = sc.namespace;
         tempdecl.isstatic = tempdecl.toParent().isModule() || (tempdecl._scope.stc & STC.static_);
+        UserAttributeDeclaration.checkGNUABITag(tempdecl, sc.linkage);
 
         if (!tempdecl.isstatic)
         {
@@ -3130,6 +3132,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         ns.semanticRun = PASS.semantic;
         ns.parent = sc.parent;
+        // Link does not matter here, if the UDA is present it will error
+        UserAttributeDeclaration.checkGNUABITag(ns, LINK.cpp);
+
         if (ns.members)
         {
             assert(sc);
@@ -3245,6 +3250,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         funcdecl.inlining = sc.inlining;
         funcdecl.protection = sc.protection;
         funcdecl.userAttribDecl = sc.userAttribDecl;
+        UserAttributeDeclaration.checkGNUABITag(funcdecl, funcdecl.linkage);
 
         if (!funcdecl.originalType)
             funcdecl.originalType = funcdecl.type.syntaxCopy();
@@ -4638,6 +4644,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
 
         sd.semanticRun = PASS.semantic;
+        UserAttributeDeclaration.checkGNUABITag(sd, sc.linkage);
 
         if (!sd.members) // if opaque declaration
         {
@@ -4858,6 +4865,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
         }
         cldec.semanticRun = PASS.semantic;
+        UserAttributeDeclaration.checkGNUABITag(cldec, sc.linkage);
 
         if (cldec.baseok < Baseok.done)
         {
@@ -5566,6 +5574,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (!idec.baseclasses.dim && sc.linkage == LINK.cpp)
                 idec.classKind = ClassKind.cpp;
             idec.cppnamespace = sc.namespace;
+            UserAttributeDeclaration.checkGNUABITag(idec, sc.linkage);
 
             if (sc.linkage == LINK.objc)
             {

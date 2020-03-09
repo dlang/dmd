@@ -471,6 +471,7 @@ immutable Msgtable[] msgtable =
     { "char_traits" },
 
     // Compiler recognized UDA's
+    { "udaGNUAbiTag", "gnuAbiTag" },
     { "udaSelector", "selector" },
 
     // C names, for undefined identifier error messages
