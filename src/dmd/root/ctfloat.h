@@ -35,6 +35,7 @@ struct CTFloat
     static real_t log2(real_t x);
     static real_t log10(real_t x);
     static real_t pow(real_t x, real_t y);
+    static real_t exp(real_t x);
     static real_t expm1(real_t x);
     static real_t exp2(real_t x);
 

@@ -1,6 +1,0 @@
-Can now report line numbers in GNU error style
-
-DMD now supports reporting errors and warnings in GNU error style, that is, `filename:line[:column]: message`.
-This may ease compatibility with existing IDEs.
-
-Enable this style by calling DMD with `-verror-style=gnu`.
