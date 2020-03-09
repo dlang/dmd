@@ -154,70 +154,61 @@ bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
             escapeByValue(arg, &eb.er);
     }
 
-    foreach (const i, ref eb; escapeBy[0 .. $ - 1])
+    void checkOnePair(size_t i, ref EscapeBy eb, ref EscapeBy eb2,
+                      VarDeclaration v, VarDeclaration v2, bool of)
     {
-        foreach (VarDeclaration v; eb.er.byvalue)
+        if (log) printf("v2: `%s`\n", v2.toChars());
+        if (v2 != v)
+            return;
+        //printf("v %d v2 %d\n", eb.isMutable, eb2.isMutable);
+        if (!(eb.isMutable || eb2.isMutable))
+            return;
+
+        if (!(global.params.vsafe && sc.func.setUnsafe()))
+            return;
+
+        if (!gag)
         {
-            if (log) printf("byvalue `%s`\n", v.toChars());
-            if (!v.type.hasPointers())
+            // int i; funcThatEscapes(ref int i);
+            // funcThatEscapes(i); // error escaping reference _to_ `i`
+            // int* j; funcThatEscapes2(int* j);
+            // funcThatEscapes2(j); // error escaping reference _of_ `i`
+            const(char)* referenceVerb = of ? "of" : "to";
+            const(char)* msg = eb.isMutable && eb2.isMutable
+                                ? "more than one mutable reference %s `%s` in arguments to `%s()`"
+                                : "mutable and const references %s `%s` in arguments to `%s()`";
+            error((*arguments)[i].loc, msg,
+                  referenceVerb,
+                  v.toChars(),
+                  fd ? fd.toPrettyChars() : "indirectly");
+        }
+        errors = true;
+    }
+
+    void escape(size_t i, ref EscapeBy eb, bool byval)
+    {
+        foreach (VarDeclaration v; byval ? eb.er.byvalue : eb.er.byref)
+        {
+            if (log)
+            {
+                const(char)* by = byval ? "byval" : "byref";
+                printf("%s %s\n", by, v.toChars());
+            }
+            if (byval && !v.type.hasPointers())
                 continue;
             foreach (ref eb2; escapeBy[i + 1 .. $])
             {
-                foreach (VarDeclaration v2; eb2.er.byvalue)
+                foreach (VarDeclaration v2; byval ? eb2.er.byvalue : eb2.er.byref)
                 {
-                    if (log) printf("v2: `%s`\n", v2.toChars());
-                    if (v2 != v)
-                        continue;
-                    if (eb.isMutable || eb2.isMutable)
-                    {
-                        if (global.params.vsafe && sc.func.setUnsafe())
-                        {
-                            if (!gag)
-                            {
-                                const(char)* msg = eb.isMutable && eb2.isMutable
-                                    ? "more than one mutable reference of `%s` in arguments to `%s()`"
-                                    : "mutable and const references of `%s` in arguments to `%s()`";
-                                error((*arguments)[i].loc, msg,
-                                    v.toChars(),
-                                    fd ? fd.toPrettyChars() : "indirectly");
-                            }
-                            errors = true;
-                        }
-                    }
+                    checkOnePair(i, eb, eb2, v, v2, byval);
                 }
             }
         }
-
-        foreach (VarDeclaration v; eb.er.byref)
-        {
-            if (log) printf("byref `%s`\n", v.toChars());
-            foreach (ref eb2; escapeBy[i + 1 .. $])
-            {
-                foreach (VarDeclaration v2; eb2.er.byref)
-                {
-                    if (log) printf("v2: `%s`\n", v2.toChars());
-                    if (v2 != v)
-                        continue;
-                    //printf("v %d v2 %d\n", eb.isMutable, eb2.isMutable);
-                    if (eb.isMutable || eb2.isMutable)
-                    {
-                        if (global.params.vsafe && sc.func.setUnsafe())
-                        {
-                            if (!gag)
-                            {
-                                const(char)* msg = eb.isMutable && eb2.isMutable
-                                    ? "more than one mutable reference to `%s` in arguments to `%s()`"
-                                    : "mutable and const references to `%s` in arguments to `%s()`";
-                                error((*arguments)[i].loc, msg,
-                                    v.toChars(),
-                                    fd ? fd.toPrettyChars() : "indirectly");
-                            }
-                            errors = true;
-                        }
-                    }
-                }
-            }
-        }
+    }
+    foreach (const i, ref eb; escapeBy[0 .. $ - 1])
+    {
+        escape(i, eb, true);
+        escape(i, eb, false);
     }
 
     /* Reset the arrays in escapeBy[] so we can reuse them next time through
