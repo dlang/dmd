@@ -415,8 +415,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             /* Declare all the function parameters as variables
              * and install them in parameters[]
              */
-            size_t nparams = f.parameterList.length;
-            if (nparams)
+            if (size_t nparams = f.parameterList.length)
             {
                 /* parameters[] has all the tuples removed, as the back end
                  * doesn't know about tuples
