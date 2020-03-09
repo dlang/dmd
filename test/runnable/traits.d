@@ -1,4 +1,18 @@
-// PERMUTE_ARGS:
+/*
+PERMUTE_ARGS:
+
+Windows linker may write something like:
+---
+Creating library {{RESULTS_DIR}}/runnable/traits_0.lib and object {{RESULTS_DIR}}/runnable/traits_0.exp
+---
+
+TRANSFORM_OUTPUT: remove_lines("Creating library")
+TEST_OUTPUT:
+---
+__lambda1
+---
+*/
+
 module traits;
 
 import std.stdio;

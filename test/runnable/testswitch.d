@@ -356,8 +356,12 @@ int foo15(int i)
 static this()
 {
     X15 = 4;
-    Y15 = 4;
     Z15 = 5;
+}
+
+shared static this()
+{
+    Y15 = 4;
 }
 
 void test15()
