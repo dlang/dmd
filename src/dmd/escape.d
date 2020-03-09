@@ -2031,17 +2031,17 @@ public void findAllOuterAccessedVariables(FuncDeclaration fd, VarDeclarations* v
     for (auto p = fd.parent; p; p = p.parent)
     {
         auto fdp = p.isFuncDeclaration();
-        if (fdp)
+        if (!fdp)
+            continue;
+
+        foreach (v; fdp.closureVars)
         {
-            foreach (v; fdp.closureVars)
+            foreach (const fdv; v.nestedrefs)
             {
-                foreach (const fdv; v.nestedrefs)
+                if (fdv == fd)
                 {
-                    if (fdv == fd)
-                    {
-                        //printf("accessed: %s, type %s\n", v.toChars(), v.type.toChars());
-                        vars.push(v);
-                    }
+                    //printf("accessed: %s, type %s\n", v.toChars(), v.type.toChars());
+                    vars.push(v);
                 }
             }
         }
