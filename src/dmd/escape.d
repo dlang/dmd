@@ -799,25 +799,24 @@ ByRef:
         if (!(va && va.isScope()))
             notMaybeScope(v);
 
-        if ((v.storage_class & (STC.ref_ | STC.out_)) == 0 && p == sc.func)
+        if ((v.storage_class & (STC.ref_ | STC.out_)) || p != sc.func)
+            continue;
+
+        if (va && !va.isDataseg() && !va.doNotInferScope)
         {
-            if (va && !va.isDataseg() && !va.doNotInferScope)
-            {
-                if (!va.isScope() && inferScope)
-                {   //printf("inferring scope for %s\n", va.toChars());
-                    va.storage_class |= STC.scope_ | STC.scopeinferred;
-                }
-                continue;
-            }
-            if (e1.op == TOK.structLiteral)
-                continue;
-            if (sc.func.setUnsafe())
-            {
-                if (!gag)
-                    error(ae.loc, "reference to local variable `%s` assigned to non-scope `%s`", v.toChars(), e1.toChars());
-                result = true;
+            if (!va.isScope() && inferScope)
+            {   //printf("inferring scope for %s\n", va.toChars());
+                va.storage_class |= STC.scope_ | STC.scopeinferred;
             }
             continue;
+        }
+        if (e1.op == TOK.structLiteral)
+            continue;
+        if (sc.func.setUnsafe())
+        {
+            if (!gag)
+                error(ae.loc, "reference to local variable `%s` assigned to non-scope `%s`", v.toChars(), e1.toChars());
+            result = true;
         }
     }
 
@@ -845,24 +844,23 @@ ByRef:
             if (!(va && va.isScope()))
                 notMaybeScope(v);
 
-            if ((v.storage_class & (STC.ref_ | STC.out_ | STC.scope_)) && p == sc.func)
-            {
-                if (va && !va.isDataseg() && !va.doNotInferScope)
-                {
-                    /* Don't infer STC.scope_ for va, because then a closure
-                     * won't be generated for sc.func.
-                     */
-                    //if (!va.isScope() && inferScope)
-                        //va.storage_class |= STC.scope_ | STC.scopeinferred;
-                    continue;
-                }
-                if (sc.func.setUnsafe())
-                {
-                    if (!gag)
-                        error(ae.loc, "reference to local `%s` assigned to non-scope `%s` in @safe code", v.toChars(), e1.toChars());
-                    result = true;
-                }
+            if (!(v.storage_class & (STC.ref_ | STC.out_ | STC.scope_)) || p != sc.func)
                 continue;
+
+            if (va && !va.isDataseg() && !va.doNotInferScope)
+            {
+                /* Don't infer STC.scope_ for va, because then a closure
+                 * won't be generated for sc.func.
+                 */
+                //if (!va.isScope() && inferScope)
+                    //va.storage_class |= STC.scope_ | STC.scopeinferred;
+                continue;
+            }
+            if (sc.func.setUnsafe())
+            {
+                if (!gag)
+                    error(ae.loc, "reference to local `%s` assigned to non-scope `%s` in @safe code", v.toChars(), e1.toChars());
+                result = true;
             }
         }
     }
