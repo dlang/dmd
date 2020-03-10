@@ -1060,7 +1060,7 @@ int tryMain(string[] args)
             }
         }
 
-        return runBashTest(input_dir, test_name);
+        return runBashTest(input_dir, test_name, envData);
     }
 
     if (testArgs.mode == TestMode.DSHELL)
@@ -1429,16 +1429,23 @@ int tryMain(string[] args)
     return 0;
 }
 
-int runBashTest(string input_dir, string test_name)
+int runBashTest(string input_dir, string test_name, const ref EnvData envData)
 {
-    const scriptPath = dmdTestDir.buildPath("tools", "sh_do_test.sh");
+    enum script = "tools/sh_do_test.sh";
+
     version(Windows)
     {
-        auto process = spawnShell(format("bash %s %s %s",
-            scriptPath, input_dir, test_name));
+        const cmd = "bash " ~ script ~ ' ' ~ input_dir ~ ' ' ~  test_name;
+        const env = [
+            // Make sure the path is bash-friendly
+            "DMD": envData.dmd.relativePath(dmdTestDir).replace('\\', '/')
+        ];
+
+        auto process = spawnShell(cmd, env, Config.none, dmdTestDir);
     }
     else
     {
+        const scriptPath = dmdTestDir.buildPath(script);
         auto process = spawnProcess([scriptPath, input_dir, test_name]);
     }
     return process.wait();
