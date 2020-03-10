@@ -150,13 +150,19 @@ private @nogc nothrow:
 
 version (linux)
 {
+    // TODO: replace with a fixed core.sys.linux.config.__USE_GNU
+    version (CRuntime_Bionic) {} else version = Linux_Use_GNU;
+}
+
+version (Linux_Use_GNU)
+{
     const(char)* getprogname()
     {
         import core.sys.linux.errno;
         return program_invocation_name;
     }
 }
-else
+else // Bionic, BSDs
 {
     extern(C) const(char)* getprogname();
 }
