@@ -1033,17 +1033,4 @@ Ltried:
     return flag;
 }
 
-//////////////////////////////////////
-// Qsort() comparison routine for array of pointers to Symbol's.
-
-extern (C) private int weight_compare(const void *e1,const void *e2)
-{   Symbol **psp1;
-    Symbol **psp2;
-
-    psp1 = cast(Symbol **)e1;
-    psp2 = cast(Symbol **)e2;
-
-    return (*psp2).Sweight - (*psp1).Sweight;
-}
-
 }

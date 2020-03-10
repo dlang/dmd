@@ -2504,14 +2504,34 @@ extern (C++) final class StringExp : Expression
         return this;
     }
 
+    /**
+     * Compare two `StringExp` by length, then value
+     *
+     * The comparison is not the usual C-style comparison as seen with
+     * `strcmp` or `memcmp`, but instead first compare based on the length.
+     * This allows both faster lookup and sorting when comparing sparse data.
+     *
+     * This ordering scheme is relied on by the string-switching feature.
+     * Code in Druntime's `core.internal.switch_` relies on this ordering
+     * when doing a binary search among case statements.
+     *
+     * Both `StringExp` should be of the same encoding.
+     *
+     * Params:
+     *   se2 = String expression to compare `this` to
+     *
+     * Returns:
+     *   `0` when `this` is equal to se2, a value greater than `0` if
+     *   `this` should be considered greater than `se2`,
+     *   and a value less than `0` if `this` is lesser than `se2`.
+     */
     int compare(const StringExp se2) const nothrow pure @nogc
     {
         //printf("StringExp::compare()\n");
-        // Used to sort case statement expressions so we can do an efficient lookup
-
         const len1 = len;
         const len2 = se2.len;
 
+        assert(this.sz == se2.sz, "Comparing string expressions of different sizes");
         //printf("sz = %d, len1 = %d, len2 = %d\n", sz, (int)len1, (int)len2);
         if (len1 == len2)
         {
