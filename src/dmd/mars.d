@@ -658,7 +658,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         library.setFilename(params.objdir, params.libname);
         // Add input object and input library files to output library
         foreach (p; libmodules)
-            library.addObject(p, null);
+            library.addObject(p.toDString(), null);
     }
     // Generate output files
     if (params.doJsonGeneration)
