@@ -168,7 +168,8 @@ void main(string[] args)
 The following is a list of all available settings:
 
     COMPILE_SEPARATELY:  if present, forces each .d file to compile separately and linked
-                         together in an extra setup.
+                         together in an extra setup. May specifiy additional parameters which
+                         are passed to $(DMD) when linking the generated object files.
                          default: (none, aka compile/link all in one step)
 
     EXECUTE_ARGS:        parameters to add to the execution of the test
@@ -191,6 +192,10 @@ The following is a list of all available settings:
 
     EXTRA_CPP_SOURCES:   list of extra C++ files to build and link along with the test
                          default: (none).
+
+    CXXFLAGS:            list of extra arguments passed to $(CC) when compiling C++ sources
+                         defined in EXTRA_CPP_SOURCES.
+                         default: (none)
 
     EXTRA_OBJC_SOURCES:  list of extra Objective-C files to build and link along with the test
                          default: (none). Test files with this variable will be ignored unless
@@ -258,10 +263,25 @@ The following is a list of all available settings:
                                             arguments: the regex
                                             note: patterns containing ')' must be quoted
 
+    RUN_OUTPUT:         output expected from running the compiled executable which must match
+                        the actual output. The comparison adheres to the rules defined for
+                        TEST_OUTPUT and allow e.g. using special sequences as defined below.
+
     POST_SCRIPT:         name of script to execute after test run
                          note: arguments to the script may be included after the name.
                                additionally, the name of the file that contains the output
                                of the compile/link/run steps is added as the last parameter.
+                         default: (none)
+
+    GDB_SCRIPT:          if present, starts a `gdb` session for the compiled executable to run the commands
+                         specified in the corresponding section. GDB_MATCH may be used to used to verfiy
+                         expected output using a regex.
+                         note: restricted to `runnable` tests, the executable will not be run outside of the
+                               gdb session.
+                         default: (none)
+
+    GDB_MATCH:           a regular expression describing the expected output of GDB_SCRIPT. The test
+                         will fail if it does not match the actual output.
                          default: (none)
 
     REQUIRED_ARGS:       arguments to add to the $(DMD) command line
