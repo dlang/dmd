@@ -29,7 +29,6 @@ struct Outbuffer
     ubyte *buf;         // the buffer itself
     ubyte *pend;        // pointer past the end of the buffer
     ubyte *p;           // current position in buffer
-    ubyte *origbuf;     // external buffer
 
   nothrow:
     this(size_t initialSize)
@@ -37,20 +36,12 @@ struct Outbuffer
         enlarge(initialSize);
     }
 
-    this(ubyte *bufx, size_t bufxlen, uint incx)
-    {
-        buf = bufx; pend = bufx + bufxlen; p = bufx; origbuf = bufx;
-    }
-
     //~this() { dtor(); }
 
     void dtor()
     {
-        if (buf != origbuf)
-        {
-            if (buf)
-                free(buf);
-        }
+        if (buf)
+            free(buf);
     }
 
     void reset()
@@ -80,14 +71,7 @@ struct Outbuffer
             len = newlen;
         len = (len + 15) & ~15;
 
-        if (buf == origbuf && origbuf)
-        {
-            buf = cast(ubyte*) malloc(len);
-            if (buf)
-                memcpy(buf, origbuf, used);
-        }
-        else
-            buf = cast(ubyte*) realloc(buf,len);
+        buf = cast(ubyte*) realloc(buf,len);
         if (!buf)
             err_nomem();
 
