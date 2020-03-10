@@ -1589,20 +1589,16 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             // if inside a template instantiation, the instantianting
             // module gets the import.
             // https://issues.dlang.org/show_bug.cgi?id=17181
+            Module importer = sc._module;
             if (sc.minst && sc.tinst)
             {
-                //printf("%s imports %s\n", sc.minst.toChars(), imp.mod.toChars());
+                importer = sc.minst;
                 if (!sc.tinst.importedModules.contains(imp.mod))
                     sc.tinst.importedModules.push(imp.mod);
-                if (!sc.minst.aimports.contains(imp.mod))
-                    sc.minst.aimports.push(imp.mod);
             }
-            else
-            {
-                //printf("%s imports %s\n", sc._module.toChars(), imp.mod.toChars());
-                if (!sc._module.aimports.contains(imp.mod))
-                    sc._module.aimports.push(imp.mod);
-            }
+            //printf("%s imports %s\n", importer.toChars(), imp.mod.toChars());
+            if (!importer.aimports.contains(imp.mod))
+                importer.aimports.push(imp.mod);
 
             if (sc.explicitProtection)
                 imp.protection = sc.protection;
@@ -1654,8 +1650,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (imp.mod.needmoduleinfo)
             {
-                //printf("module4 %s because of %s\n", sc.module.toChars(), mod.toChars());
-                sc._module.needmoduleinfo = 1;
+                //printf("module4 %s because of %s\n", importer.toChars(), imp.mod.toChars());
+                importer.needmoduleinfo = 1;
             }
 
             sc = sc.push(imp.mod);
