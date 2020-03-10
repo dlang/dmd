@@ -1,4 +1,8 @@
 /**
+ * Does semantic analysis for statements.
+ *
+ * Specification: $(LINK2 https://dlang.org/spec/statement.html, Statements)
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

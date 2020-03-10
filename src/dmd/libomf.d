@@ -1,4 +1,6 @@
 /**
+ * A library in the OMF format, a legacy format for 32-bit Windows.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

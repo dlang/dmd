@@ -1,4 +1,6 @@
 /**
+ * Implement $(LINK2 https://digitalmars.com/articles/b62.html, Value Range Propagation).
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

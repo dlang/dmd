@@ -1,4 +1,6 @@
 /**
+ * Provide aliases for arrays of certain declarations or statements.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

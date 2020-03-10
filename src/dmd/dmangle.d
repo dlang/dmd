@@ -1,4 +1,9 @@
 /**
+ * Does name mangling for D symbols, which generates a unique name for a linker symbol based
+ * on the namespace, identifier and type.
+ *
+ * Specification: $(LINK2 https://dlang.org/spec/abi.html#name_mangling, Name Mangling)
+ *
  * Compiler implementation of the $(LINK2 http://www.dlang.org, D programming language)
  *
  * Copyright: Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved

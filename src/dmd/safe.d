@@ -1,4 +1,8 @@
 /**
+ * Checks whether member access or array casting is allowed in `@safe` code.
+ *
+ * Specification: $(https://dlang.org/spec/function.html#function-safety, Function Safety)
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

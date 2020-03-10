@@ -1,4 +1,7 @@
 /**
+ * Give import hints for common symbol names that couldn't be resolved,
+ * e.g. prompting to `import std.stdio` when using `writeln`.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

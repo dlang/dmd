@@ -1,4 +1,6 @@
 /**
+ * Performs the semantic2 stage, which deals with initializer expressions.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

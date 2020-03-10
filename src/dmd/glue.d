@@ -1,4 +1,6 @@
 /**
+ * Generate the object file for function declarations and critical sections.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

@@ -1,4 +1,8 @@
 /**
+ * Ddoc documentation generation.
+ *
+ * Specification: $(LINK2 https://dlang.org/spec/ddoc.html, Documentation Generator)
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

@@ -1,4 +1,7 @@
 /**
+ * Generate $(LINK2 https://dlang.org/dmd-windows.html#interface-files, D interface files).
+ * Also used to convert AST nodes to D code in general, e.g. for error messages or `printf` debugging.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

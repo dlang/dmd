@@ -1,4 +1,6 @@
 /**
+ * Generate `TypeInfo` objects, which are needed for run-time introspection of classes.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

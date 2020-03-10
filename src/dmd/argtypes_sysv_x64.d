@@ -1,4 +1,6 @@
 /**
+ * Break down a D type into basic (register) types for the x86_64 System V ABI.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

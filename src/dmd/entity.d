@@ -1,4 +1,8 @@
 /**
+ * Defines the named entities to support the "\\&amp;Entity;" escape sequence for strings / character literals.
+ *
+ * Specification $(LINK2 https://dlang.org/spec/entity.html, Named Character Entities)
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

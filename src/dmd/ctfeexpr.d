@@ -1,4 +1,6 @@
 /**
+ * CTFE for expressions involving pointers, slices, array concatenation etc.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

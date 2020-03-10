@@ -1,4 +1,7 @@
 /**
+ * Evaluate certain external functions for CTFE.
+ * Currently includes functions from `std.math`, `core.math` and `core.bitop`.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

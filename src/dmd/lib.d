@@ -1,4 +1,7 @@
 /**
+ * A module defining an abstract library.
+ * Implementations for various formats are in separate `libXXX.d` modules.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

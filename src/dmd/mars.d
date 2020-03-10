@@ -1,11 +1,12 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
  * Entry point for DMD.
  *
  * This modules defines the entry point (main) for DMD, as well as related
  * utilities needed for arguments parsing, path manipulation, etc...
  * This file is not shared with other compilers which use the DMD front-end.
+ *
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)

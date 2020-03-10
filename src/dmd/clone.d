@@ -1,4 +1,6 @@
 /**
+ * Define the implicit `opEquals`, `opAssign`, post blit, copy constructor and destructor for structs.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

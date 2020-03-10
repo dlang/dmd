@@ -1,4 +1,8 @@
 /**
+ * Handle introspection using the `__traits()` construct.
+ *
+ * Specification: $(LINK2 https://dlang.org/spec/traits.html, Traits)
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

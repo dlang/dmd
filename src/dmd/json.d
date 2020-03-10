@@ -1,4 +1,6 @@
 /**
+ * Code for generating .json descriptions of the module when passing the `-X` flag to dmd.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

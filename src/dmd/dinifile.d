@@ -1,4 +1,6 @@
 /**
+ * Parses compiler settings from a .ini file.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

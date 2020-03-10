@@ -1,4 +1,6 @@
 /**
+ * A library in the COFF format, used on 32-bit and 64-bit Windows targets.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

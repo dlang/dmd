@@ -1,4 +1,6 @@
 /**
+ * Performs the semantic3 stage, which deals with function bodies.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

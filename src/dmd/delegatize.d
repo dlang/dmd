@@ -1,4 +1,8 @@
 /**
+ * Implements conversion from expressions to delegates for lazy parameters.
+ *
+ * Specification: $(LINK2 https://dlang.org/spec/function.html#lazy-params, Lazy Parameters)
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

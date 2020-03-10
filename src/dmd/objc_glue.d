@@ -1,4 +1,6 @@
 /**
+ * Glue code for Objective-C interop.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

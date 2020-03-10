@@ -1,4 +1,8 @@
 /**
+ * Handles operator overloading.
+ *
+ * Specification: $(LINK2 https://dlang.org/spec/operatoroverloading.html, Operator Overloading)
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

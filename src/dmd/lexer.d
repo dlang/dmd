@@ -1,4 +1,8 @@
 /**
+ * Implements the lexical analyzer, which converts source code into lexical tokens.
+ *
+ * Specification: $(LINK2 https://dlang.org/spec/lex.html, Lexical)
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

@@ -1,4 +1,6 @@
 /**
+ * Semantic analysis for cast-expressions.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

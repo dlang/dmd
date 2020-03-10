@@ -1,4 +1,9 @@
 /**
+ * Perform constant folding of arithmetic expressions.
+ * The routines in this module are called from `optimize.d`.
+ *
+ * Specification: $(LINK2 https://dlang.org/spec/float.html#fp_const_folding, Floating Point Constant Folding)
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

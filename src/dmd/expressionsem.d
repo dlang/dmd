@@ -1,4 +1,8 @@
 /**
+ * Semantic analysis of expressions.
+ *
+ * Specification: ($LINK2 https://dlang.org/spec/expression.html, Expressions)
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

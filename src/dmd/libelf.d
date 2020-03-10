@@ -1,4 +1,6 @@
 /**
+ * A library in the ELF format, used on Unix.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

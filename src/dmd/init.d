@@ -1,4 +1,6 @@
 /**
+ * Defines initializers of variables, e.g. the array literal in `int[3] x = [0, 1, 2]`.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

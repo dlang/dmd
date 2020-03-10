@@ -1,4 +1,10 @@
 /**
+ * Provides an implicit conversion table for basic types.
+ * Used to determine integer promotions and common types.
+ *
+ * Specification: $(LINK2 https://dlang.org/spec/type.html#integer-promotions, Integer Promotions),
+ *   $(LINK2 https://dlang.org/spec/type.html#usual-arithmetic-conversions, Usual Arithmetic Conversions).
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

@@ -1,4 +1,17 @@
 /**
+ * Defines declarations of various 'attributes'.
+ * The term attribute is used very loosly, since it includes:
+ * - Alignment (`align(8)`)
+ * - User defined attributes (`@UDA`)
+ * - Function Attributes (`@safe`)
+ * - Storage classes (`ref`, `static`)
+ * - Mixin declarations  (`mixin("int x;")`)
+ * - Conditional compilation (`static if`, `static foreach`)
+ * - Linkage (`extern(C)`)
+ * - Anonymous structs / unions
+ * - Protection (`private`, `public`)
+ * - Deprecated declarations (`@deprecated`)
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

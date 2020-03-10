@@ -1,4 +1,6 @@
 /**
+ * The state of Intermediate Representation, which is what the backend uses.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

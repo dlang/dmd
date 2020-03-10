@@ -1,4 +1,6 @@
 /**
+ * Provides a visitor class visiting all AST nodes present in the compiler.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

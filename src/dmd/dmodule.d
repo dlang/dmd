@@ -1,4 +1,8 @@
 /**
+ * Defines a package and module.
+ *
+ * Specification: $(LINK2 https://dlang.org/spec/module.html, Modules)
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

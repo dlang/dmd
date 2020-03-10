@@ -1,4 +1,6 @@
 /**
+ * Defines an identifier, which is the name of a `Dsymbol`.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

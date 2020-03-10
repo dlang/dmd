@@ -1,4 +1,6 @@
 /**
+ * A library in the Mach-O format, used on macOS.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

@@ -1,4 +1,6 @@
 /**
+ * Describes a back-end compiler and implements compiler-specific actions.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

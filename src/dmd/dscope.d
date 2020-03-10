@@ -1,4 +1,7 @@
 /**
+ * Defines a scope as defined by curly braces `{}` and provides symbol lookup.
+ * Not to be confused with the `scope` storage class.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

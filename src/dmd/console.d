@@ -1,4 +1,7 @@
 /**
+ * Control the various text mode attributes, such as color, when writing text
+ * to the console.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -8,11 +11,6 @@
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/console.d, _console.d)
  * Documentation:  https://dlang.org/phobos/dmd_console.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/console.d
- */
-
-/********************************************
- * Control the various text mode attributes, such as color, when writing text
- * to the console.
  */
 
 module dmd.console;

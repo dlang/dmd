@@ -1,4 +1,8 @@
 /**
+ * Defines the bulk of the classes which represent the AST at the expression level.
+ *
+ * Specification: ($LINK2 https://dlang.org/spec/expression.html, Expressions)
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

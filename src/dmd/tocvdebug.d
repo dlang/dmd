@@ -1,4 +1,6 @@
 /**
+ * Generate debug info in the CV4 debug format.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

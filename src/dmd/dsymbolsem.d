@@ -1,4 +1,7 @@
 /**
+ * Does the semantic 1 pass on the AST, which looks at symbol declarations but not initializers
+ * or function bodies.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

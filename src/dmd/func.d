@@ -1,4 +1,12 @@
-/***
+/**
+ * Defines a function declaration.
+ * Includes:
+ * - function/delegate literals
+ * - function aliases
+ * - (static/shared) constructors/destructors/post-blits
+ * - `invariant`
+ * - `unittest`
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

@@ -1,4 +1,8 @@
 /**
+ * Defines the `Dsymbol` representing a `static assert()`.
+ *
+ * Specification: $(LINK2 https://dlang.org/spec/version.html#static-assert, Static Assert)
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

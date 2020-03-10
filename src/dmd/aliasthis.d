@@ -1,4 +1,8 @@
 /**
+ * Implements the `alias this` symbol.
+ *
+ * Specification: $(LINK2 https://dlang.org/spec/class.html#alias-this, Alias This)
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

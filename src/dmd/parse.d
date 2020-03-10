@@ -1,4 +1,8 @@
 /**
+ * Takes a token stream from the lexer, and parses it into an abstract syntax tree.
+ *
+ * Specification: $(LINK2 https://dlang.org/spec/grammar.html, D Grammar)
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

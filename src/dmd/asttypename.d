@@ -1,4 +1,6 @@
 /**
+ * Development utility for printing AST nodes by their internal name, instead of as D source code.
+ *
  * Part of the Compiler implementation of the D programming language
  * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     Stefan Koch

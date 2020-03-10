@@ -1,4 +1,6 @@
 /**
+ * Find out in what ways control flow can exit a statement block.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

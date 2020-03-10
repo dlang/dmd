@@ -1,9 +1,9 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
- *
  * This module contains the `Id` struct with a list of predefined symbols the
  * compiler knows about.
+ *
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)

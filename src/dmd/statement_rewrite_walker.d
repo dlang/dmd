@@ -1,4 +1,6 @@
 /**
+ * Provides a visitor for statements that allows rewriting the currently visited node.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

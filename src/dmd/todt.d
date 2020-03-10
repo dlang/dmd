@@ -1,4 +1,7 @@
 /**
+ * Put initializers and objects created from CTFE into a `dt_t` data structure
+ * so the backend puts them into the data segment.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

@@ -1,4 +1,9 @@
 /**
+ * Defines a `Dsymbol` for `version = identifier` and `debug = identifier` statements.
+ *
+ * Specification: $(LINK2 https://dlang.org/spec/version.html#version-specification, Version Specification),
+ *                $(LINK2 https://dlang.org/spec/version.html#debug_specification, Debug Specification).
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

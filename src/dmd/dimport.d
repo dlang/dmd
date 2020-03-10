@@ -1,4 +1,6 @@
 /**
+ * A `Dsymbol` representing a renamed import.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

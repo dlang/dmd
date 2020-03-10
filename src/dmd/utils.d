@@ -1,9 +1,8 @@
 /**
+ * This module defines some utility functions for DMD.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
- * Utility functions for DMD.
- *
- * This modules defines some utility functions for DMD.
  *
  * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)

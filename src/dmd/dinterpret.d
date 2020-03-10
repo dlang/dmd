@@ -1,4 +1,8 @@
 /**
+ * The entry point for CTFE.
+ *
+ * Specification: ($LINK2 https://dlang.org/spec/function.html#interpretation, Compile Time Function Execution (CTFE))
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

@@ -1,4 +1,9 @@
 /**
+ * Defines a `Dsymbol` representing an aggregate, which is a `struct`, `union` or `class`.
+ *
+ * Specification: $(LINK2 https://dlang.org/spec/struct.html, Structs, Unions),
+ *                $(LINK2 https://dlang.org/spec/class.html, Class).
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

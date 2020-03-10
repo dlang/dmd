@@ -1,4 +1,6 @@
 /**
+ * Compute the cost of inlining a function call by counting expressions.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

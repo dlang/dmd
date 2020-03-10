@@ -1,9 +1,9 @@
 /**
- * Compiler implementation of the $(LINK2 http://www.dlang.org, D programming language)
- *
  * Do mangling for C++ linkage.
  * This is the POSIX side of the implementation.
  * It exports two functions to C++, `toCppMangleItanium` and `cppTypeInfoMangleItanium`.
+ *
+ * Compiler implementation of the $(LINK2 http://www.dlang.org, D programming language)
  *
  * Copyright: Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors: Walter Bright, http://www.digitalmars.com
