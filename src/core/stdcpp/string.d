@@ -1900,9 +1900,9 @@ extern(D):
         }
 
         ///
-        size_type size() const nothrow @safe                                { return __is_long() ? __get_long_size() : __get_short_size(); }
+        size_type size() const nothrow                                      { return __is_long() ? __get_long_size() : __get_short_size(); }
         ///
-        size_type capacity() const nothrow @safe                            { return (__is_long() ? __get_long_cap() : __min_cap) - 1; }
+        size_type capacity() const nothrow                                  { return (__is_long() ? __get_long_cap() : __min_cap) - 1; }
         ///
         inout(T)* data() inout @safe                                        { return __get_pointer(); }
         ///
@@ -2342,7 +2342,7 @@ extern(D):
             }
             void __set_long_size(size_type __s) nothrow                         { __r_.first().__l.__size_ = __s; }
             size_type __get_long_size() const nothrow                           { return __r_.first().__l.__size_; }
-            void __set_size(size_type __s) nothrow @safe                        { if (__is_long()) __set_long_size(__s); else __set_short_size(__s); }
+            void __set_size(size_type __s) nothrow                              { if (__is_long()) __set_long_size(__s); else __set_short_size(__s); }
 
             void __set_long_cap(size_type __s) nothrow                          { __r_.first().__l.__cap_  = __long_mask | __s; }
             size_type __get_long_cap() const nothrow                            { return __r_.first().__l.__cap_ & size_type(~__long_mask); }
@@ -2350,7 +2350,7 @@ extern(D):
             void __set_long_pointer(pointer __p) nothrow                        { __r_.first().__l.__data_ = __p; }
             inout(T)* __get_long_pointer() inout nothrow                        { return __r_.first().__l.__data_; }
             inout(T)* __get_short_pointer() inout nothrow @safe                 { return &__r_.first().__s.__data_[0]; }
-            inout(T)* __get_pointer() inout nothrow @safe                       { return __is_long() ? __get_long_pointer() : __get_short_pointer(); }
+            inout(T)* __get_pointer() inout nothrow                             { return __is_long() ? __get_long_pointer() : __get_short_pointer(); }
 
             bool __is_long() const nothrow @safe                                { return (__r_.first().__s.__size_ & __short_mask) != 0; }
 
