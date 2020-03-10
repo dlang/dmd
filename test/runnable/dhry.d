@@ -2,12 +2,6 @@
 PERMUTE_ARGS:
 REQUIRED_ARGS: -release -O -g -inline
 DISABLED: freebsd dragonflybsd
-TEST_OUTPUT:
----
-runnable/dhry.d(625): Deprecation: format specifier `"%7.1lf"` is invalid
-runnable/dhry.d(627): Deprecation: format specifier `"%10.1lf"` is invalid
-runnable/dhry.d(628): Deprecation: format specifier `"%10.3lf"` is invalid
----
 
 Deprecation caused by https://issues.dlang.org/show_bug.cgi?id=20645
 */
@@ -622,19 +616,19 @@ void main ()
     printf ("Register option selected?  NO\n");
     strcpy(Reg_Define.ptr, "Register option not selected.");
     printf ("Microseconds for one run through Dhrystone: ");
-    printf ("%7.1lf \n", Microseconds);
+    printf ("%7.1f \n", Microseconds);
     printf ("Dhrystones per Second:                      ");
-    printf ("%10.1lf \n", Dhrystones_Per_Second);
-    printf ("VAX MIPS rating = %10.3lf \n",Vax_Mips);
+    printf ("%10.1f \n", Dhrystones_Per_Second);
+    printf ("VAX MIPS rating = %10.3f \n",Vax_Mips);
     printf ("\n");
 
    /+
   fprintf(Ap,"\n");
   fprintf(Ap,"Dhrystone Benchmark, Version 2.1 (Language: D)\n");
   fprintf(Ap,"%.*s\n",Reg_Define.length, Reg_Define.ptr);
-  fprintf(Ap,"Microseconds for one loop: %7.1lf\n",Microseconds);
-  fprintf(Ap,"Dhrystones per second: %10.1lf\n",Dhrystones_Per_Second);
-  fprintf(Ap,"VAX MIPS rating: %10.3lf\n",Vax_Mips);
+  fprintf(Ap,"Microseconds for one loop: %7.1f\n",Microseconds);
+  fprintf(Ap,"Dhrystones per second: %10.1f\n",Dhrystones_Per_Second);
+  fprintf(Ap,"VAX MIPS rating: %10.3f\n",Vax_Mips);
   fclose(Ap);
   +/
 
