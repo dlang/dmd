@@ -11,6 +11,11 @@
 module dmd.backend.mscoffobj;
 
 version (MARS)
+    version = COMPILE;
+version (SCPP)
+    version = COMPILE;
+
+version (COMPILE)
 {
 
 import core.stdc.ctype;
@@ -382,6 +387,8 @@ void MsCoffObj_initfile(const(char)* filename, const(char)* csegname, const(char
     //dbg_printf("MsCoffObj_initfile(filename = %s, modname = %s)\n",filename,modname);
 version (SCPP)
 {
+    static if (TARGET_LINUX)
+    {
     if (csegname && *csegname && strcmp(csegname,".text"))
     {   // Define new section and make it the default for cseg segment
         // NOTE: cseg is initialized to CODE
@@ -395,6 +402,7 @@ version (SCPP)
         newtextsec.sh_addralign = 4;
         SegData[cseg].SDsymidx =
             elf_addsym(0, 0, 0, STT_SECTION, STB_LOCAL, newsecidx);
+    }
     }
 }
     if (config.fulltypes)
@@ -989,8 +997,16 @@ version (SCPP)
 
 void MsCoffObj_linnum(Srcpos srcpos, int seg, targ_size_t offset)
 {
-    if (srcpos.Slinnum == 0 || !srcpos.Sfilename)
-        return;
+    version (MARS)
+    {
+        if (srcpos.Slinnum == 0 || !srcpos.Sfilename)
+            return;
+    }
+    else
+    {
+        if (srcpos.Slinnum == 0 || !srcpos.srcpos_name())
+            return;
+    }
 
     cv8_linnum(srcpos, cast(uint)offset);
 }
@@ -1680,7 +1696,7 @@ char *unsstr(uint value)
 char *obj_mangle2(Symbol *s,char *dest)
 {
     size_t len;
-    char *name;
+    const(char)* name;
 
     //printf("MsCoffObj_mangle(s = %p, '%s'), mangle = x%x\n",s,s.Sident.ptr,type_mangle(s.Stype));
     symbol_debug(s);

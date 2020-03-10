@@ -14,6 +14,11 @@
 module dmd.backend.cv8;
 
 version (MARS)
+    version = COMPILE;
+version (SCPP)
+    version = COMPILE;
+
+version (COMPILE)
 {
 
 import core.stdc.stdio;
@@ -359,6 +364,8 @@ void cv8_func_start(Symbol *sfunc)
         currentfuncdata.f1fixup = cast(Outbuffer*)mem_calloc(Outbuffer.sizeof);
         currentfuncdata.f1fixup.enlarge(128);
     }
+
+    version (MARS) // do varstats later
     varStats_startFunction();
 }
 
@@ -403,7 +410,10 @@ void cv8_func_term(Symbol *sfunc)
     else
         typidx = cv_typidx(sfunc.Stype);
 
-    const(char)* id = sfunc.prettyIdent ? sfunc.prettyIdent : prettyident(sfunc);
+    version (MARS)
+        const(char)* id = sfunc.prettyIdent ? sfunc.prettyIdent : prettyident(sfunc);
+    else
+        const(char)* id = prettyident(sfunc);
     size_t len = strlen(id);
     if(len > CV8_MAX_SYMBOL_LENGTH)
         len = CV8_MAX_SYMBOL_LENGTH;
@@ -489,6 +499,7 @@ void cv8_func_term(Symbol *sfunc)
             buf.writeWord(S_END);
         }
     }
+    version (MARS) // do varstats later
     varStats_writeSymbolTable(&globsym, &cv8_outsym, &cv8.endArgs, &cv8.beginBlock, &cv8.endBlock);
 
     /* Put out function return record S_RETURN
@@ -508,20 +519,26 @@ void cv8_func_term(Symbol *sfunc)
 
 void cv8_linnum(Srcpos srcpos, uint offset)
 {
-    //printf("cv8_linnum(file = %s, line = %d, offset = x%x)\n", srcpos.Sfilename, (int)srcpos.Slinnum, (uint)offset);
-    if (!srcpos.Sfilename)
+    version (MARS)
+        const sfilename = srcpos.Sfilename;
+    else
+        const sfilename = srcpos_name(srcpos);
+    //printf("cv8_linnum(file = %s, line = %d, offset = x%x)\n", sfilename, (int)srcpos.Slinnum, (uint)offset);
+
+    if (!sfilename)
         return;
 
+    version (MARS) // do varstats later
     varStats_recordLineOffset(srcpos, offset);
 
     __gshared uint lastoffset;
     __gshared uint lastlinnum;
 
     if (!currentfuncdata.srcfilename ||
-        (currentfuncdata.srcfilename != srcpos.Sfilename && strcmp(currentfuncdata.srcfilename, srcpos.Sfilename)))
+        (currentfuncdata.srcfilename != sfilename && strcmp(currentfuncdata.srcfilename, sfilename)))
     {
-        currentfuncdata.srcfilename = srcpos.Sfilename;
-        uint srcfileoff = cv8_addfile(srcpos.Sfilename);
+        currentfuncdata.srcfilename = sfilename;
+        uint srcfileoff = cv8_addfile(sfilename);
 
         // new file segment
         currentfuncdata.linepairsegment = currentfuncdata.linepairstart + currentfuncdata.linepairbytes;
@@ -675,7 +692,10 @@ void cv8_outsym(Symbol *s)
 
     idx_t typidx = cv_typidx(s.Stype);
     //printf("typidx = %x\n", typidx);
-    const(char)* id = s.prettyIdent ? s.prettyIdent : prettyident(s);
+    version (MARS)
+        const(char)* id = s.prettyIdent ? s.prettyIdent : prettyident(s);
+    else
+        const(char)* id = prettyident(s);
     size_t len = strlen(id);
 
     if(len > CV8_MAX_SYMBOL_LENGTH)
