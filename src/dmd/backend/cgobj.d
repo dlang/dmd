@@ -4075,7 +4075,7 @@ version (MARS)
         return;
 
     ubyte *p = obj.ptrref_buf.buf;
-    ubyte *end = obj.ptrref_buf.p;
+    ubyte *end = obj.ptrref_buf.buf + obj.ptrref_buf.length();
     while (p < end)
     {
         Symbol* s = *cast(Symbol**)p;

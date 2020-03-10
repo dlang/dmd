@@ -2486,7 +2486,7 @@ extern (D) private void objflush_pointerRefs()
         return;
 
     ubyte *p = ptrref_buf.buf;
-    ubyte *end = ptrref_buf.p;
+    ubyte *end = ptrref_buf.buf + ptrref_buf.length();
     while (p < end)
     {
         Symbol* s = *cast(Symbol**)p;

@@ -381,9 +381,7 @@ static if (0)
         name = s.Sfunc.Fredirect;
         len = strlen(name);
     }
-    symtab_strings.reserve(cast(uint)len+1);
-    memcpy(cast(char *)symtab_strings.p, name, len + 1);
-    symtab_strings.setsize(cast(uint)(namidx+len+1));
+    symtab_strings.writeString(name);
     if (destr != dest.ptr)                  // if we resized result
         mem_free(destr);
     //dbg_printf("\telf_addmagled symtab_strings %s namidx %d len %d size %d\n",name, namidx,len,symtab_strings.length());
