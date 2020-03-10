@@ -53,16 +53,18 @@ struct MSCoffObjSymbol
 {
     const(char)[] name;         // still has a terminating 0
     MSCoffObjModule* om;
-}
 
-/*********
- * Do lexical comparison of MSCoffObjSymbol's for qsort()
- */
-extern (C) int MSCoffObjSymbol_cmp(const(void*) p, const(void*) q)
-{
-    MSCoffObjSymbol* s1 = *cast(MSCoffObjSymbol**)p;
-    MSCoffObjSymbol* s2 = *cast(MSCoffObjSymbol**)q;
-    return strcmp(s1.name.ptr, s2.name.ptr);
+    /// Predicate for `Array.sort`for name comparison
+    static int name_pred (scope const MSCoffObjSymbol** ppe1, scope const MSCoffObjSymbol** ppe2) nothrow @nogc pure
+    {
+        return dstrcmp((**ppe1).name, (**ppe2).name);
+    }
+
+    /// Predicate for `Array.sort`for offset comparison
+    static int offset_pred (scope const MSCoffObjSymbol** ppe1, scope const MSCoffObjSymbol** ppe2) nothrow @nogc pure
+    {
+        return (**ppe1).om.offset - (**ppe2).om.offset;
+    }
 }
 
 alias MSCoffObjModules = Array!(MSCoffObjModule*);
@@ -479,7 +481,7 @@ private:
         Port.writelongBE(cast(uint)objsymbols.dim, buf.ptr);
         libbuf.write(buf[0 .. 4]);
         // Sort objsymbols[] in module offset order
-        qsort(objsymbols[].ptr, objsymbols.dim, (objsymbols[0]).sizeof, cast(_compare_fp_t)&MSCoffObjSymbol_offset_cmp);
+        objsymbols.sort!(MSCoffObjSymbol.offset_pred);
         uint lastoffset;
         for (size_t i = 0; i < objsymbols.dim; i++)
         {
@@ -519,7 +521,7 @@ private:
         Port.writelongLE(cast(uint)objsymbols.dim, buf.ptr);
         libbuf.write(buf[0 .. 4]);
         // Sort objsymbols[] in lexical order
-        qsort(objsymbols[].ptr, objsymbols.dim, (objsymbols[0]).sizeof, cast(_compare_fp_t)&MSCoffObjSymbol_cmp);
+        objsymbols.sort!(MSCoffObjSymbol.name_pred);
         for (size_t i = 0; i < objsymbols.dim; i++)
         {
             MSCoffObjSymbol* os = objsymbols[i];
@@ -600,16 +602,6 @@ struct MSCoffObjModule
     uint group_id;
     uint file_mode;
     int scan; // 1 means scan for symbols
-}
-
-/*********
- * Do module offset comparison of MSCoffObjSymbol's for qsort()
- */
-extern (C) int MSCoffObjSymbol_offset_cmp(const(void*) p, const(void*) q)
-{
-    MSCoffObjSymbol* s1 = *cast(MSCoffObjSymbol**)p;
-    MSCoffObjSymbol* s2 = *cast(MSCoffObjSymbol**)q;
-    return s1.om.offset - s2.om.offset;
 }
 
 enum MSCOFF_OBJECT_NAME_SIZE = 16;

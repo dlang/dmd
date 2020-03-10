@@ -46,6 +46,12 @@ struct OmfObjSymbol
 {
     char* name;
     OmfObjModule* om;
+
+    /// Predicate for `Array.sort`for name comparison
+    static int name_pred (scope const OmfObjSymbol** ppe1, scope const OmfObjSymbol** ppe2) nothrow @nogc pure
+    {
+        return strcmp((**ppe1).name, (**ppe2).name);
+    }
 }
 
 alias OmfObjModules = Array!(OmfObjModule*);
@@ -336,7 +342,7 @@ private:
                 return false;
         }
         // Sort the symbols
-        qsort(objsymbols.tdata(), objsymbols.dim, (objsymbols[0]).sizeof, cast(_compare_fp_t)&NameCompare);
+        objsymbols.sort!(OmfObjSymbol.name_pred);
         // Add each of the symbols
         foreach (os; objsymbols)
         {
@@ -502,16 +508,6 @@ struct OmfObjModule
     uint length; // in bytes
     ushort page; // page module starts in output file
     const(char)[] name; // module name, with terminating 0
-}
-
-/*****************************************************************************/
-/*****************************************************************************/
-extern (C)
-{
-    int NameCompare(const(void*) p1, const(void*) p2)
-    {
-        return strcmp((*cast(OmfObjSymbol**)p1).name, (*cast(OmfObjSymbol**)p2).name);
-    }
 }
 
 enum HASHMOD = 0x25;
