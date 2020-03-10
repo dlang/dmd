@@ -103,9 +103,12 @@ struct EnvData
     string ccompiler;
     string model;
     string required_args;
+    string cxxCompatFlags;      /// Additional flags passed to $(compiler) when `EXTRA_CPP_SOURCES` is present
+    string[] picFlag;           /// Compiler flag for PIC (if requested from environment)
     bool dobjc;
     bool coverage_build;
     bool autoUpdate;
+    bool printRuntime;          /// Print time spent on a single test
     bool usingMicrosoftCompiler;
 }
 
@@ -143,6 +146,7 @@ immutable(EnvData) processEnvironment()
     envData.dobjc          = environment.get("D_OBJC") == "1";
     envData.coverage_build = environment.get("DMD_TEST_COVERAGE") == "1";
     envData.autoUpdate     = environment.get("AUTO_UPDATE", "") == "1";
+    envData.printRuntime   = environment.get("PRINT_RUNTIME", "") == "1";
 
     if (envData.ccompiler.empty)
     {
@@ -160,6 +164,31 @@ immutable(EnvData) processEnvironment()
     }
 
     envData.usingMicrosoftCompiler = envData.ccompiler.toLower.endsWith("cl.exe");
+
+    version (Windows) {} else
+    {
+        version(X86_64)
+            envData.picFlag = ["-fPIC"];
+        if (environment.get("PIC", null) == "1")
+            envData.picFlag = ["-fPIC"];
+    }
+
+    switch (envData.compiler)
+    {
+        case "dmd":
+        case "ldc":
+            if(envData.os != "windows")
+                envData.cxxCompatFlags = " -L-lstdc++ -L--no-demangle";
+            break;
+
+        case "gdc":
+            envData.cxxCompatFlags = "-Xlinker -lstdc++ -Xlinker --no-demangle";
+            break;
+
+        default:
+            writeln("Unknown compiler: ", envData.compiler);
+            throw new SilentQuit();
+    }
 
     return cast(immutable) envData;
 }
@@ -1049,7 +1078,7 @@ int tryMain(string[] args)
 
     const printRuntime = environment.get("PRINT_RUNTIME", "") == "1";
     auto stopWatch = StopWatch(AutoStart.no);
-    if (printRuntime)
+    if (envData.printRuntime)
         stopWatch.start();
 
     if (!gatherTestParameters(testArgs, input_dir, input_file, envData))
@@ -1076,20 +1105,8 @@ int tryMain(string[] args)
     //prepare cpp extra sources
     if (!testArgs.isDisabled && testArgs.cppSources.length)
     {
-        switch (envData.compiler)
-        {
-            case "dmd":
-            case "ldc":
-                if(envData.os != "windows")
-                   testArgs.requiredArgs ~= " -L-lstdc++ -L--no-demangle";
-                break;
-            case "gdc":
-                testArgs.requiredArgs ~= "-Xlinker -lstdc++ -Xlinker --no-demangle";
-                break;
-            default:
-                writeln("unknown compiler: "~envData.compiler);
-                return 1;
-        }
+        testArgs.requiredArgs ~= envData.cxxCompatFlags;
+
         if (!collectExtraSources(input_dir, output_dir, testArgs.cppSources, testArgs.sources, envData, envData.ccompiler, testArgs.cxxflags))
             return 1;
     }
@@ -1362,7 +1379,7 @@ int tryMain(string[] args)
             break;
     }
 
-    if (printRuntime)
+    if (envData.printRuntime)
     {
         const long ms = stopWatch.peek.total!"msecs";
         writefln("   [%.3f secs]", ms / 1000.0);
@@ -1390,19 +1407,6 @@ int runBashTest(string input_dir, string test_name)
         auto process = spawnProcess([scriptPath, input_dir, test_name]);
     }
     return process.wait();
-}
-
-/// Return the correct pic flags
-string[] getPicFlags()
-{
-    version (Windows) { } else
-    {
-        version(X86_64)
-            return ["-fPIC"];
-        if (environment.get("PIC", null) == "1")
-            return ["-fPIC"];
-    }
-    return cast(string[])[];
 }
 
 /// Run a dshell test
@@ -1442,7 +1446,7 @@ static this()
     {
         auto outfile = File(output_file_temp, "w");
         const compile = [envData.dmd, "-conf=", "-m"~envData.model] ~
-            getPicFlags ~ [
+            envData.picFlag ~ [
             "-od" ~ testOutDir,
             "-of" ~ testScriptExe,
             "-I=" ~ testScriptDir,
