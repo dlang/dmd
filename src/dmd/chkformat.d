@@ -166,6 +166,7 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
                     errorMsg(null, slice, e, "ptrdiff_t", t);
                 break;
 
+            case Format.lg:
             case Format.g:      // double
                 if (t.ty != Tfloat64 && t.ty != Timaginary64)
                     errorMsg(null, slice, e, "double", t);
@@ -245,7 +246,6 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
                 deprecation(loc, "format specifier `\"%.*s\"` is invalid", cast(int)slice.length, slice.ptr);
                 break;
 
-            case Format.lg:
             case Format.percent:
                 assert(0);
         }
@@ -671,7 +671,7 @@ Format parsePrintfFormatSpecifier(scope const char[] format, ref size_t idx,
      */
     char genSpec;
     Format specifier = parseGenericFormatSpecifier(format, i, genSpec);
-    if (specifier == Format.error || specifier == Format.lg)
+    if (specifier == Format.error)
         return error();
 
     switch (genSpec)
@@ -1055,7 +1055,7 @@ unittest
      assert(idx == 2);
 
      idx = 0;
-     assert(parsePrintfFormatSpecifier("%lg", idx, widthStar, precisionStar) == Format.error);
+     assert(parsePrintfFormatSpecifier("%lg", idx, widthStar, precisionStar) == Format.lg);
      assert(idx == 3);
 
      // width, precision

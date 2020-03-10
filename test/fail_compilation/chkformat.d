@@ -5,7 +5,6 @@ TEST_OUTPUT:
 fail_compilation/chkformat.d(101): Deprecation: width argument `0L` for format specification `"%*.*d"` must be `int`, not `long`
 fail_compilation/chkformat.d(101): Deprecation: precision argument `1L` for format specification `"%*.*d"` must be `int`, not `long`
 fail_compilation/chkformat.d(101): Deprecation: argument `2L` for format specification `"%*.*d"` must be `int`, not `long`
-fail_compilation/chkformat.d(102): Deprecation: format specifier `"%2.2lf"` is invalid
 fail_compilation/chkformat.d(104): Deprecation: argument `4` for format specification `"%lld"` must be `long`, not `int`
 fail_compilation/chkformat.d(105): Deprecation: argument `5` for format specification `"%jd"` must be `core.stdc.stdint.intmax_t`, not `int`
 fail_compilation/chkformat.d(106): Deprecation: argument `6.00000` for format specification `"%zd"` must be `size_t`, not `double`
@@ -62,7 +61,7 @@ import core.stdc.stdio;
 #line 100
 
 void test1() {  printf("%*.*d\n", 0L, 1L, 2L); }
-void test2() { printf("%2.2lf\n", 3.0); }
+//void test2() { }
 //void test3() {  printf("%ld\n", 3.0); }
 void test4() {  printf("%lld\n", 4); }
 void test5() {  printf("%jd\n", 5); }
