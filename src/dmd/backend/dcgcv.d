@@ -454,7 +454,7 @@ void cv_init()
     {
         reset_symbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
         assert(reset_symbuf);
-        reset_symbuf.enlarge(10 * (Symbol *).sizeof);
+        reset_symbuf.reserve(10 * (Symbol*).sizeof);
     }
 
     /* Reset for different OBJ file formats     */

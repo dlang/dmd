@@ -279,7 +279,6 @@ Obj MsCoffObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegna
     {
         string_table = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
         assert(string_table);
-        string_table.enlarge(1024);
         string_table.reserve(2048);
     }
     string_table.setsize(0);
@@ -297,14 +296,14 @@ Obj MsCoffObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegna
     {
         symbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
         assert(symbuf);
-        symbuf.enlarge((Symbol *).sizeof * SYM_TAB_INIT);
+        symbuf.reserve((Symbol *).sizeof * SYM_TAB_INIT);
     }
 
     if (!syment_buf)
     {
         syment_buf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
         assert(syment_buf);
-        syment_buf.enlarge(SymbolTable32.sizeof * SYM_TAB_INIT);
+        syment_buf.reserve(SymbolTable32.sizeof * SYM_TAB_INIT);
     }
     syment_buf.setsize(0);
 
@@ -316,8 +315,6 @@ Obj MsCoffObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegna
     {
         ScnhdrBuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
         assert(ScnhdrBuf);
-        ScnhdrBuf.enlarge(SYM_TAB_INC * IMAGE_SECTION_HEADER.sizeof);
-
         ScnhdrBuf.reserve(SCNHDR_TAB_INITSIZE * (IMAGE_SECTION_HEADER).sizeof);
     }
     ScnhdrBuf.setsize(0);
@@ -1445,7 +1442,6 @@ segidx_t MsCoffObj_getsegment2(IDXSEC shtidx)
         {
             b1 = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
             assert(b1);
-            b1.enlarge(4096);
             b1.reserve(4096);
         }
         if (b2)
@@ -1462,7 +1458,6 @@ segidx_t MsCoffObj_getsegment2(IDXSEC shtidx)
         {
             pseg.SDbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
             assert(pseg.SDbuf);
-            pseg.SDbuf.enlarge(4096);
             pseg.SDbuf.reserve(4096);
         }
     }

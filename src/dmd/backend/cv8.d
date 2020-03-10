@@ -163,7 +163,7 @@ void cv8_initfile(const(char)* filename)
     if (!F1_buf)
     {
         __gshared Outbuffer f1buf;
-        f1buf.enlarge(1024);
+        f1buf.reserve(1024);
         F1_buf = &f1buf;
     }
     F1_buf.setsize(0);
@@ -171,7 +171,7 @@ void cv8_initfile(const(char)* filename)
     if (!F1fixup)
     {
         __gshared Outbuffer f1fixupbuf;
-        f1fixupbuf.enlarge(1024);
+        f1fixupbuf.reserve(1024);
         F1fixup = &f1fixupbuf;
     }
     F1fixup.setsize(0);
@@ -179,7 +179,7 @@ void cv8_initfile(const(char)* filename)
     if (!F2_buf)
     {
         __gshared Outbuffer f2buf;
-        f2buf.enlarge(1024);
+        f2buf.reserve(1024);
         F2_buf = &f2buf;
     }
     F2_buf.setsize(0);
@@ -187,7 +187,7 @@ void cv8_initfile(const(char)* filename)
     if (!F3_buf)
     {
         __gshared Outbuffer f3buf;
-        f3buf.enlarge(1024);
+        f3buf.reserve(1024);
         F3_buf = &f3buf;
     }
     F3_buf.setsize(0);
@@ -196,7 +196,7 @@ void cv8_initfile(const(char)* filename)
     if (!F4_buf)
     {
         __gshared Outbuffer f4buf;
-        f4buf.enlarge(1024);
+        f4buf.reserve(1024);
         F4_buf = &f4buf;
     }
     F4_buf.setsize(0);
@@ -204,7 +204,7 @@ void cv8_initfile(const(char)* filename)
     if (!funcdata)
     {
         __gshared Outbuffer funcdatabuf;
-        funcdatabuf.enlarge(1024);
+        funcdatabuf.reserve(1024);
         funcdata = &funcdatabuf;
     }
     funcdata.setsize(0);
@@ -212,7 +212,7 @@ void cv8_initfile(const(char)* filename)
     if (!linepair)
     {
         __gshared Outbuffer linepairbuf;
-        linepairbuf.enlarge(1024);
+        linepairbuf.reserve(1024);
         linepair = &linepairbuf;
     }
     linepair.setsize(0);
@@ -238,8 +238,7 @@ void cv8_termfile(const(char)* objfilename)
 
     /* Start with starting symbol in separate "F1" section
      */
-    Outbuffer buf;
-    buf.enlarge(1024);
+    Outbuffer buf = Outbuffer(1024);
     size_t len = strlen(objfilename);
     buf.writeWord(cast(int)(2 + 4 + len + 1));
     buf.writeWord(S_COMPILAND_V3);
@@ -360,9 +359,9 @@ void cv8_func_start(Symbol *sfunc)
     {
         // This leaks memory
         currentfuncdata.f1buf = cast(Outbuffer*)mem_calloc(Outbuffer.sizeof);
-        currentfuncdata.f1buf.enlarge(128);
+        currentfuncdata.f1buf.reserve(128);
         currentfuncdata.f1fixup = cast(Outbuffer*)mem_calloc(Outbuffer.sizeof);
-        currentfuncdata.f1fixup.enlarge(128);
+        currentfuncdata.f1fixup.reserve(128);
     }
 
     version (MARS) // do varstats later

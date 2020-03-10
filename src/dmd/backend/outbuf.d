@@ -33,7 +33,7 @@ struct Outbuffer
   nothrow:
     this(size_t initialSize)
     {
-        enlarge(initialSize);
+        reserve(initialSize);
     }
 
     //~this() { dtor(); }
@@ -49,21 +49,15 @@ struct Outbuffer
         p = buf;
     }
 
-    // Reserve nbytes in buffer
+    // Make sure we have at least `nbyte` available for writting
     void reserve(size_t nbytes)
-    {
-        if (pend - p < nbytes)
-            enlarge(nbytes);
-    }
-
-    // Reserve nbytes in buffer
-    void enlarge(size_t nbytes)
     {
         const size_t oldlen = pend - buf;
         const size_t used = p - buf;
 
         size_t len = used + nbytes;
-        if (len <= oldlen)
+        // No need to reallocate
+        if (nbytes < (pend - p))
             return;
 
         const size_t newlen = oldlen + (oldlen >> 1);   // oldlen * 1.5
@@ -83,8 +77,7 @@ struct Outbuffer
     // Write n zeros; return pointer to start of zeros
     void *writezeros(size_t n)
     {
-        if (pend - p < n)
-            reserve(n);
+        reserve(n);
         void *pstart = memset(p,0,n);
         p += n;
         return pstart;
@@ -95,7 +88,7 @@ struct Outbuffer
     {
         if (offset + nbytes > pend - buf)
         {
-            enlarge(offset + nbytes - (p - buf));
+            reserve(offset + nbytes - (p - buf));
         }
         p = buf + offset;
 
@@ -122,8 +115,7 @@ struct Outbuffer
     extern (D)
     void write(const(void)[] b)
     {
-        if (pend - p < b.length)
-            reserve(b.length);
+        reserve(b.length);
         memcpy(p, b.ptr, b.length);
         p += b.length;
     }
@@ -154,8 +146,7 @@ struct Outbuffer
      */
     void writeByte(int v)
     {
-        if (pend == p)
-            reserve(1);
+        reserve(1);
         *p++ = cast(ubyte)v;
     }
 
@@ -192,8 +183,7 @@ struct Outbuffer
      */
     void writeShort(int v)
     {
-        if (pend - p < 2)
-            reserve(2);
+        reserve(2);
         ubyte *q = p;
         q[0] = cast(ubyte)(v >> 8);
         q[1] = cast(ubyte)v;
@@ -213,8 +203,7 @@ struct Outbuffer
      */
     void write32(int v)
     {
-        if (pend - p < 4)
-            reserve(4);
+        reserve(4);
         *cast(int *)p = v;
         p += 4;
     }
@@ -224,8 +213,7 @@ struct Outbuffer
      */
     void write64(long v)
     {
-        if (pend - p < 8)
-            reserve(8);
+        reserve(8);
         *cast(long *)p = v;
         p += 8;
     }
@@ -236,8 +224,7 @@ struct Outbuffer
      */
     void writeFloat(float v)
     {
-        if (pend - p < float.sizeof)
-            reserve(float.sizeof);
+        reserve(float.sizeof);
         *cast(float *)p = v;
         p += float.sizeof;
     }
@@ -247,8 +234,7 @@ struct Outbuffer
      */
     void writeDouble(double v)
     {
-        if (pend - p < double.sizeof)
-            reserve(double.sizeof);
+        reserve(double.sizeof);
         *cast(double *)p = v;
         p += double.sizeof;
     }
@@ -322,8 +308,7 @@ struct Outbuffer
 
     char *toString()
     {
-        if (pend == p)
-            reserve(1);
+        reserve(1);
         *p = 0;                     // terminate string
         return cast(char*)buf;
     }
