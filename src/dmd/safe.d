@@ -49,16 +49,17 @@ bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
     {
         if (sc.intypeof || !sc.func || !sc.func.isSafeBypassingInference())
             return false;
-
         auto ad = v.toParent2().isAggregateDeclaration();
         if (!ad)
             return false;
 
+        // needed to set v.overlapped and v.overlapUnsafe
+        if (ad.sizeok != Sizeok.done)
+            ad.determineSize(ad.loc);
+
         const hasPointers = v.type.hasPointers();
         if (hasPointers)
         {
-            if (ad.sizeok != Sizeok.done)
-                ad.determineSize(ad.loc);       // needed to set v.overlapped
 
             if (v.overlapped && sc.func.setUnsafe())
             {
