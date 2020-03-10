@@ -5,6 +5,11 @@ pure nothrow @safe Object(bool b)
 pure nothrow @safe int*(bool b)
 pure nothrow @safe int[](bool b)
 ---
+
+RUN_OUTPUT:
+---
+Success
+---
 */
 extern (C) int printf(const(char*) fmt, ...);
 

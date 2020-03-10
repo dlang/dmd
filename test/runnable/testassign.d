@@ -12,6 +12,11 @@ Xe	true	true	true	true	true	true	true
 Xf	true	true	true	true	true	true	true
 Xg	true	true	true	true	true	true	true
 ---
+
+RUN_OUTPUT:
+---
+Success
+---
 */
 
 import core.stdc.stdio;

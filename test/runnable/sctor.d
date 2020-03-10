@@ -1,5 +1,11 @@
-// REQUIRED_ARGS:
-// PERMUTE_ARGS: -w -d -de -dw
+/*
+REQUIRED_ARGS:
+PERMUTE_ARGS: -w -d -de -dw
+RUN_OUTPUT:
+---
+Success
+---
+*/
 
 extern(C) int printf(const char*, ...);
 

@@ -1,5 +1,12 @@
-/* REQUIRED_ARGS: -betterC
- * PERMUTE_ARGS:
+/*
+REQUIRED_ARGS: -betterC
+PERMUTE_ARGS:
+RUN_OUTPUT:
+---
+S.this()
+S.~this()
+inside
+---
  */
 
 import core.stdc.stdio;

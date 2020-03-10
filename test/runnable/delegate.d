@@ -1,4 +1,19 @@
-// REQUIRED_ARGS:
+/*
+REQUIRED_ARGS:
+RUN_OUTPUT:
+---
+47 47
+47 47
+48 48
+48 48
+i = 1
+6
+here 3
+here 3
+here 3
+Success
+---
+*/
 
 import core.stdc.stdio;
 

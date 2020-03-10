@@ -39,6 +39,14 @@ pure nothrow @nogc @safe void(int t)
 T = byte
 T = char
 ---
+
+RUN_OUTPUT:
+---
+typeof(T)=
+typeof(T)=
+typeof(T)=
+Success
+---
 */
 
 module breaker;

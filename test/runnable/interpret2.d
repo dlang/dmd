@@ -1,3 +1,9 @@
+/*
+RUN_OUTPUT:
+---
+Success
+---
+*/
 
 //import std.stdio;
 extern(C) int printf(const char*, ...);
