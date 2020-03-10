@@ -297,7 +297,7 @@ struct Outbuffer
     /**
      * Returns the number of bytes written.
      */
-    size_t size()
+    size_t length() const @safe pure nothrow @nogc
     {
         return p - buf;
     }

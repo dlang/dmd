@@ -692,7 +692,7 @@ Obj OmfObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
         if (reset_symbuf)
         {
             Symbol **p = cast(Symbol **)reset_symbuf.buf;
-            const size_t n = reset_symbuf.size() / (Symbol *).sizeof;
+            const size_t n = reset_symbuf.length() / (Symbol *).sizeof;
             for (size_t i = 0; i < n; ++i)
                 symbol_reset(p[i]);
             reset_symbuf.setsize(0);
@@ -920,7 +920,7 @@ static if (TERMCODE)
         linnum_term();
         obj_modend();
 
-        size = cast(uint)obj.buf.size();
+        size = cast(uint)obj.buf.length();
         obj.buf.setsize(0);            // rewind file
         OmfObj_theadr(obj.modname);
         objheader(obj.csegname);
@@ -2372,7 +2372,7 @@ private int obj_newfarseg(targ_size_t size,int classidx)
 {
     seg_data *f = getsegment();
     f.isfarseg = true;
-    f.seek = cast(int)obj.buf.size();
+    f.seek = cast(int)obj.buf.length();
     f.attr = obj.fdsegattr;
     f.origsize = size;
     f.SDoffset = size;

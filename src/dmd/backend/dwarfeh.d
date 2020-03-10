@@ -116,7 +116,7 @@ static if (0)
     printf("-------------------------\n");
 }
 
-    uint startsize = cast(uint)et.size();
+    uint startsize = cast(uint)et.length();
     assert((startsize & 3) == 0);       // should be aligned
 
     DwEhTable *deh = &dwehtable;
@@ -318,17 +318,17 @@ else
      * Iterate until it converges.
      */
     uint TTbase = 1;
-    uint CallSiteTableSize = cast(uint)cstbuf.size();
+    uint CallSiteTableSize = cast(uint)cstbuf.length();
     uint oldTTbase;
     do
     {
         oldTTbase = TTbase;
-        uint start = cast(uint)((et.size() - startsize) + uLEB128size(TTbase));
+        uint start = cast(uint)((et.length() - startsize) + uLEB128size(TTbase));
         TTbase = cast(uint)(
                 1 +
                 uLEB128size(CallSiteTableSize) +
                 CallSiteTableSize +
-                atbuf.size());
+                atbuf.length());
         uint sz = start + TTbase;
         TTbase += -sz & 3;      // align to 4
         TTbase += sfunc.Sfunc.typesTable.length * 4;
@@ -336,7 +336,7 @@ else
 
     if (TType != DW_EH_PE_omit)
         et.writeuLEB128(TTbase);
-    uint TToffset = cast(uint)(TTbase + et.size() - startsize);
+    uint TToffset = cast(uint)(TTbase + et.length() - startsize);
 
 static if (ELFOBJ)
     const ubyte CallSiteFormat = DW_EH_PE_absptr | DW_EH_PE_uleb128;
@@ -356,7 +356,7 @@ else
     et.write(&atbuf);
 
     /* Align to 4 */
-    for (uint n = (-et.size() & 3); n; --n)
+    for (uint n = (-et.length() & 3); n; --n)
         et.writeByte(0);
 
     /* Write out Types Table in reverse */
@@ -368,9 +368,9 @@ else
          *         32: [0] address x004c pcrel 0 length 2 value x224 type 4 RELOC_LOCAL_SECTDIFF
          *             [1] address x0000 pcrel 0 length 2 value x160 type 1 RELOC_PAIR
          */
-        dwarf_reftoident(seg, et.size(), s, 0);
+        dwarf_reftoident(seg, et.length(), s, 0);
     }
-    assert(TToffset == et.size() - startsize);
+    assert(TToffset == et.length() - startsize);
 }
 
 
@@ -400,12 +400,12 @@ int actionTableInsert(Outbuffer *atbuf, int ttindex, int nextoffset)
             return offset;
     }
     assert(p == atbuf.p);
-    int offset = cast(int)atbuf.size();
+    int offset = cast(int)atbuf.length();
     atbuf.writesLEB128(ttindex);
     if (nextoffset == -1)
         nextoffset = 0;
     else
-        nextoffset -= atbuf.size();
+        nextoffset -= atbuf.length();
     atbuf.writesLEB128(nextoffset);
     return offset;
 }
@@ -429,9 +429,9 @@ void unittest_actionTableInsert()
     }
 
     static immutable ubyte[8] result = [ 3,0,2,0x7D,1,0x7D,2,0 ];
-    //for (int i = 0; i < atbuf.size(); ++i) printf(" %02x\n", atbuf.buf[i]);
-    assert(result.sizeof == atbuf.size());
-    int r = memcmp(result.ptr, atbuf.buf, atbuf.size());
+    //for (int i = 0; i < atbuf.length(); ++i) printf(" %02x\n", atbuf.buf[i]);
+    assert(result.lengthof == atbuf.length());
+    int r = memcmp(result.ptr, atbuf.buf, atbuf.length());
     assert(r == 0);
 }
 
@@ -555,7 +555,7 @@ void unittest_LEB128()
 
         buf.reset();
         buf.writeuLEB128(value);
-        assert(buf.size() == uLEB128size(value));
+        assert(buf.length() == uLEB128size(value));
         ubyte *p = buf.buf;
         int result = uLEB128(&p);
         assert(p == buf.p);
@@ -563,7 +563,7 @@ void unittest_LEB128()
 
         buf.reset();
         buf.writesLEB128(value);
-        assert(buf.size() == sLEB128size(value));
+        assert(buf.length() == sLEB128size(value));
         p = buf.buf;
         result = sLEB128(&p);
         assert(p == buf.p);
