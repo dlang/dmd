@@ -278,21 +278,17 @@ void obj_end(Library library, const(char)* objfilename)
     //delete objmod;
     objmod = null;
 
-    const data = objbuf.buf[0 .. objbuf.p - objbuf.buf];
     if (library)
     {
-        // Transfer image to library
-        library.addObject(objfilename, data);
+        // Transfer ownership of image buffer to library
+        library.addObject(objfilename, objbuf.extractSlice[]);
     }
     else
     {
         //printf("write obj %s\n", objfilename);
-        writeFile(Loc.initial, objfilename.toDString, data);
-        free(objbuf.buf); // objbuf is a backend `Outbuffer` managed by C malloc/free
+        writeFile(Loc.initial, objfilename.toDString, objbuf[]);
     }
-    objbuf.buf = null;
-    objbuf.pend = null;
-    objbuf.p = null;
+    objbuf.dtor();
 }
 
 bool obj_includelib(const(char)* name) nothrow

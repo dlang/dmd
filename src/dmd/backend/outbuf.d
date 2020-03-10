@@ -40,13 +40,36 @@ struct Outbuffer
 
     void dtor()
     {
-        if (buf)
-            free(buf);
+        if (auto slice = this.extractSlice())
+            free(slice.ptr);
     }
 
     void reset()
     {
         p = buf;
+    }
+
+    // Returns: A slice to the data written so far
+    extern(D) inout(ubyte)[] opSlice(size_t from, size_t to) inout
+        @trusted pure nothrow @nogc
+    {
+        assert(this.buf, "Attempt to dereference a null pointer");
+        assert(from < to, "First index must be <= to second one");
+        assert(this.length() <= (to - from), "Out of bound access");
+        return this.buf[from .. to];
+    }
+
+    /// Ditto
+    extern(D) inout(ubyte)[] opSlice() inout @trusted pure nothrow @nogc
+    {
+        return this.buf[0 .. this.p - this.buf];
+    }
+
+    extern(D) ubyte[] extractSlice() @safe pure nothrow @nogc
+    {
+        auto ret = this[];
+        this.buf = this.p = this.pend = null;
+        return ret;
     }
 
     // Make sure we have at least `nbyte` available for writting
