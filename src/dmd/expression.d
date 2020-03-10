@@ -2515,6 +2515,8 @@ extern (C++) final class StringExp : Expression
      * Code in Druntime's `core.internal.switch_` relies on this ordering
      * when doing a binary search among case statements.
      *
+     * Both `StringExp` should be of the same encoding.
+     *
      * Params:
      *   se2 = String expression to compare `this` to
      *
@@ -2529,6 +2531,7 @@ extern (C++) final class StringExp : Expression
         const len1 = len;
         const len2 = se2.len;
 
+        assert(this.sz == se2.sz, "Comparing string expressions of different sizes");
         //printf("sz = %d, len1 = %d, len2 = %d\n", sz, (int)len1, (int)len2);
         if (len1 == len2)
         {
