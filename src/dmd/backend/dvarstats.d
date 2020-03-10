@@ -73,8 +73,7 @@ struct VarStatistics
 {
 private:
 nothrow:
-    LifeTime* lifeTimes;
-    int cntAllocLifeTimes;
+    LifeTime[] lifeTimes;
     int cntUsedLifeTimes;
 
     // symbol table sorted by offset of variable creation
@@ -83,8 +82,7 @@ nothrow:
     int uniquecnt;        // number of variables that have unique name and don't need lexical scope
 
     // line number records for the current function
-    LineOffset* lineOffsets;
-    int cntAllocLineOffsets;
+    LineOffset[] lineOffsets;
     int cntUsedLineOffsets;
     const(char)* srcfile;  // only one file supported, no inline
 
@@ -121,7 +119,7 @@ private extern (C) static int cmpLifeTime(scope const void* p1, scope const void
 }
 
 // a parent scope contains the creation offset of the child scope
-private static SYMIDX isParentScope(LifeTime* lifetimes, SYMIDX parent, SYMIDX si)
+private static extern(D) SYMIDX isParentScope(LifeTime[] lifetimes, SYMIDX parent, SYMIDX si)
 {
     if(parent < 0) // full function
         return true;
@@ -130,7 +128,7 @@ private static SYMIDX isParentScope(LifeTime* lifetimes, SYMIDX parent, SYMIDX s
 }
 
 // find a symbol that includes the creation of the given symbol as part of its life time
-private static SYMIDX findParentScope(LifeTime* lifetimes, SYMIDX si)
+private static extern(D) SYMIDX findParentScope(LifeTime[] lifetimes, SYMIDX si)
 {
     for(SYMIDX sj = si - 1; sj >= 0; --sj)
         if(isParentScope(lifetimes, sj, si))
@@ -232,11 +230,8 @@ private symtab_t* calcLexicalScope(symtab_t* symtab) return
     sortLineOffsets();
 
     // precalc the lexical blocks to emit so that identically named symbols don't overlap
-    if (cntAllocLifeTimes < dupcnt)
-    {
-        lifeTimes = cast(LifeTime*) util_realloc(lifeTimes, dupcnt, (LifeTime).sizeof);
-        cntAllocLifeTimes = dupcnt;
-    }
+    if (lifeTimes.length < dupcnt)
+        lifeTimes = (cast(LifeTime*) util_realloc(lifeTimes.ptr, dupcnt, (LifeTime).sizeof))[0 .. dupcnt];
 
     for (SYMIDX si = 0; si < dupcnt; si++)
     {
@@ -245,7 +240,7 @@ private symtab_t* calcLexicalScope(symtab_t* symtab) return
         lifeTimes[si].offDestroy = cast(int)getLineOffset(lifeTimes[si].sym.lnoscopeend);
     }
     cntUsedLifeTimes = dupcnt;
-    qsort(lifeTimes, dupcnt, (LifeTime).sizeof, &cmpLifeTime);
+    qsort(lifeTimes.ptr, dupcnt, (lifeTimes[0]).sizeof, &cmpLifeTime);
 
     // ensure that an inner block does not extend beyond the end of a parent block
     for (SYMIDX si = 0; si < dupcnt; si++)
@@ -358,7 +353,7 @@ private void sortLineOffsets()
     lineOffsets[cntUsedLineOffsets - 1].diffNextOffset = cast(uint)(retoffset + retsize - lineOffsets[cntUsedLineOffsets - 1].offset);
 
     // sort line records and remove duplicate lines preferring smaller offsets
-    qsort(lineOffsets, cntUsedLineOffsets, (*lineOffsets).sizeof, &cmpLineOffsets);
+    qsort(lineOffsets.ptr, cntUsedLineOffsets, (lineOffsets[0]).sizeof, &cmpLineOffsets);
     int j = 0;
     for (int i = 1; i < cntUsedLineOffsets; i++)
         if (lineOffsets[i].linnum > lineOffsets[j].linnum)
@@ -423,10 +418,10 @@ public void recordLineOffset(Srcpos src, targ_size_t off)
         return;
     }
     // don't care for lineOffsets being ordered now, that is taken care of later (calcLexicalScope)
-    if (cntUsedLineOffsets >= cntAllocLineOffsets)
+    if (lineOffsets.length <= cntUsedLineOffsets)
     {
-        cntAllocLineOffsets = 2 * cntUsedLineOffsets + 16;
-        lineOffsets = cast(LineOffset*) util_realloc(lineOffsets, cntAllocLineOffsets, (*lineOffsets).sizeof);
+        const newSize = 2 * cntUsedLineOffsets + 16;
+        lineOffsets = (cast(LineOffset*) util_realloc(lineOffsets.ptr, newSize, (lineOffsets[0]).sizeof))[0 .. newSize];
     }
     lineOffsets[cntUsedLineOffsets].linnum = src.Slinnum;
     lineOffsets[cntUsedLineOffsets].offset = off;
