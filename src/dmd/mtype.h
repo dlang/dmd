@@ -737,7 +737,7 @@ public:
     Dsymbol *toDsymbol(Scope *sc);
     structalign_t alignment();
     Expression *defaultInitLiteral(const Loc &loc);
-    bool isZeroInit(const Loc &loc) /*const*/;
+    bool isZeroInit(const Loc &loc);
     bool isAssignable();
     bool isBoolean() /*const*/;
     bool needsDestruction() /*const*/;

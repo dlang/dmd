@@ -5576,8 +5576,10 @@ extern (C++) final class TypeStruct : Type
         return structinit;
     }
 
-    override bool isZeroInit(const ref Loc loc) const
+    override bool isZeroInit(const ref Loc loc)
     {
+        // Determine zeroInit here, as this can be called before semantic2
+        sym.determineSize(sym.loc);
         return sym.zeroInit;
     }
 
