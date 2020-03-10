@@ -98,7 +98,7 @@ struct SharedObject
         return cast(void*) info.dlpi_addr;
     }
 
-    /// Returns the name of (usually: path to) the object.
+    /// Returns the name of (usually: path to) the object. Null-terminated.
     const(char)[] name() const
     {
         import core.stdc.string : strlen;
@@ -110,6 +110,42 @@ struct SharedObject
             cstr = getprogname();
 
         return cstr[0 .. strlen(cstr)];
+    }
+
+    /**
+     * Tries to fill the specified buffer with the path to the ELF file,
+     * according to the /proc/<PID>/maps file.
+     *
+     * Returns: The filled slice (null-terminated), or null if an error occurs.
+     */
+    char[] getPath(size_t N)(ref char[N] buffer) const
+    if (N > 1)
+    {
+        import core.stdc.stdio, core.stdc.string, core.sys.posix.unistd;
+
+        char[N + 128] lineBuffer = void;
+
+        snprintf(lineBuffer.ptr, lineBuffer.length, "/proc/%d/maps", getpid());
+        auto file = fopen(lineBuffer.ptr, "r");
+        if (!file)
+            return null;
+        scope(exit) fclose(file);
+
+        const thisBase = cast(ulong) baseAddress();
+        ulong startAddress;
+
+        // prevent overflowing `buffer` by specifying the max length in the scanf format string
+        enum int maxPathLength = N - 1;
+        enum scanFormat = "%llx-%*llx %*s %*s %*s %*s %" ~ maxPathLength.stringof ~ "s";
+
+        while (fgets(lineBuffer.ptr, lineBuffer.length, file))
+        {
+            if (sscanf(lineBuffer.ptr, scanFormat.ptr, &startAddress, buffer.ptr) == 2 &&
+                startAddress == thisBase)
+                return buffer[0 .. strlen(buffer.ptr)];
+        }
+
+        return null;
     }
 
     /// Iterates over this object's segments.
