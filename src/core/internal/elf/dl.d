@@ -210,3 +210,20 @@ else // Bionic, BSDs
 {
     extern(C) const(char)* getprogname();
 }
+
+unittest
+{
+    import core.stdc.stdio;
+
+    char[512] buffer = void;
+    foreach (object; SharedObjects)
+    {
+        const name = object.name();
+        assert(name.length);
+        const path = object.getPath(buffer);
+
+        printf("DSO name: %s\n", name.ptr);
+        printf("    path: %s\n", path ? path.ptr : "");
+        printf("    base: %p\n", object.baseAddress);
+    }
+}

@@ -315,3 +315,29 @@ private struct MMapRegion(T)
     private ubyte[] mappedRegion;
     const(T)* data;
 }
+
+version (LinuxOrBSD)
+unittest
+{
+    import core.internal.elf.dl, core.stdc.stdio;
+
+    SharedObject exe = SharedObject.thisExecutable();
+
+    ElfFile file;
+    bool success = ElfFile.open(exe.name.ptr, file);
+    assert(success, "cannot open ELF file");
+
+    foreach (index, name, sectionHeader; file.namedSections)
+    {
+        printf("section %3d %-32s", cast(int) index, name.ptr);
+        if (const offset = sectionHeader.shdr.sh_addr)
+        {
+            auto beg = exe.baseAddress + offset;
+            printf("%p - %p\n", beg, beg + sectionHeader.shdr.sh_size);
+        }
+        else
+        {
+            printf("not mapped into memory\n");
+        }
+    }
+}
