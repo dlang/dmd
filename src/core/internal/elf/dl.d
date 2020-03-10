@@ -60,6 +60,14 @@ struct SharedObjects
 struct SharedObject
 {
 @nogc nothrow:
+    /// Returns the executable of the current process.
+    static SharedObject thisExecutable()
+    {
+        foreach (object; SharedObjects)
+            return object; // first object
+        assert(0);
+    }
+
     /**
      * Tries to find the shared object containing the specified address in one of its segments.
      * Returns: True on success.

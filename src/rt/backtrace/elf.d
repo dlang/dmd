@@ -38,13 +38,7 @@ struct Image
 
     static Image openSelf()
     {
-        const(char)* selfPath;
-        foreach (object; SharedObjects)
-        {
-            // the first object is the main binary
-            selfPath = object.name().ptr;
-            break;
-        }
+        const(char)* selfPath = SharedObject.thisExecutable().name().ptr;
 
         Image image;
         if (!ElfFile.open(selfPath, image.file))
@@ -80,14 +74,6 @@ struct Image
         if (!isDynamicSharedObject)
             return 0;
 
-        size_t base = 0;
-        foreach (object; SharedObjects)
-        {
-            // only take the first address as this will be the main binary
-            base = cast(size_t) object.baseAddress;
-            break;
-        }
-
-        return base;
+        return cast(size_t) SharedObject.thisExecutable().baseAddress;
     }
 }
