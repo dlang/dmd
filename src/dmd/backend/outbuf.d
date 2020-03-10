@@ -28,7 +28,7 @@ struct Outbuffer
 {
     ubyte *buf;         // the buffer itself
     ubyte *pend;        // pointer past the end of the buffer
-    private ubyte *p;   // current position in buffer
+    private size_t off; // current position in buffer
 
   nothrow:
     this(size_t initialSize)
@@ -46,7 +46,7 @@ struct Outbuffer
 
     void reset()
     {
-        p = buf;
+        off = 0;
     }
 
     // Returns: A slice to the data written so far
@@ -62,13 +62,14 @@ struct Outbuffer
     /// Ditto
     extern(D) inout(ubyte)[] opSlice() inout @trusted pure nothrow @nogc
     {
-        return this.buf[0 .. this.p - this.buf];
+        return this.buf[0 .. this.off];
     }
 
     extern(D) ubyte[] extractSlice() @safe pure nothrow @nogc
     {
         auto ret = this[];
-        this.buf = this.p = this.pend = null;
+        this.buf = this.pend = null;
+        this.off = 0;
         return ret;
     }
 
@@ -76,11 +77,10 @@ struct Outbuffer
     void reserve(size_t nbytes)
     {
         const size_t oldlen = pend - buf;
-        const size_t used = p - buf;
 
-        size_t len = used + nbytes;
+        size_t len = off + nbytes;
         // No need to reallocate
-        if (nbytes < (pend - p))
+        if (len < oldlen)
             return;
 
         const size_t newlen = oldlen + (oldlen >> 1);   // oldlen * 1.5
@@ -93,7 +93,6 @@ struct Outbuffer
             err_nomem();
 
         pend = buf + len;
-        p = buf + used;
     }
 
 
@@ -101,8 +100,8 @@ struct Outbuffer
     void *writezeros(size_t n)
     {
         reserve(n);
-        void *pstart = memset(p,0,n);
-        p += n;
+        void *pstart = memset(buf + off, 0, n);
+        off += n;
         return pstart;
     }
 
@@ -111,20 +110,19 @@ struct Outbuffer
     {
         if (offset + nbytes > pend - buf)
         {
-            reserve(offset + nbytes - (p - buf));
+            reserve(offset + nbytes - off);
         }
-        p = buf + offset;
+        off = offset;
 
-        debug assert(buf <= p);
-        debug assert(p <= pend);
-        debug assert(p + nbytes <= pend);
+        debug assert(buf <= pend);
+        debug assert(off + nbytes <= (buf - pend));
     }
 
     // Write an array to the buffer, no reserve check
     void writen(const void *b, size_t len)
     {
-        memcpy(p,b,len);
-        p += len;
+        memcpy(buf + off, b, len);
+        off += len;
     }
 
     // Write an array to the buffer.
@@ -132,8 +130,8 @@ struct Outbuffer
     void write(const(void)[] b)
     {
         reserve(b.length);
-        memcpy(p, b.ptr, b.length);
-        p += b.length;
+        memcpy(buf + off, b.ptr, b.length);
+        off += b.length;
     }
 
     void write(const(void)* b, size_t len)
@@ -146,7 +144,7 @@ struct Outbuffer
      */
     void writeByten(ubyte v)
     {
-        *p++ = v;
+        buf[off++] = v;
     }
 
     /**
@@ -155,7 +153,7 @@ struct Outbuffer
     void writeByte(int v)
     {
         reserve(1);
-        *p++ = cast(ubyte)v;
+        buf[off++] = cast(ubyte)v;
     }
 
     /**
@@ -165,14 +163,14 @@ struct Outbuffer
     {
         version (LittleEndian)
         {
-            *cast(ushort *)p = cast(ushort)v;
+            *cast(ushort *)(buf + off) = cast(ushort)v;
         }
         else
         {
-            p[0] = v;
-            p[1] = v >> 8;
+            buf[off] = v;
+            buf[off + 1] = v >> 8;
         }
-        p += 2;
+        off += 2;
     }
 
 
@@ -192,10 +190,9 @@ struct Outbuffer
     void writeShort(int v)
     {
         reserve(2);
-        ubyte *q = p;
-        q[0] = cast(ubyte)(v >> 8);
-        q[1] = cast(ubyte)v;
-        p += 2;
+        buf[off] = cast(ubyte)(v >> 8);
+        buf[off + 1] = cast(ubyte)v;
+        off += 2;
     }
 
     /**
@@ -204,8 +201,8 @@ struct Outbuffer
     void write32(int v)
     {
         reserve(4);
-        *cast(int *)p = v;
-        p += 4;
+        *cast(int *)(buf + off) = v;
+        off += 4;
     }
 
     /**
@@ -214,8 +211,8 @@ struct Outbuffer
     void write64(long v)
     {
         reserve(8);
-        *cast(long *)p = v;
-        p += 8;
+        *cast(long *)(buf + off) = v;
+        off += 8;
     }
 
 
@@ -225,8 +222,8 @@ struct Outbuffer
     void writeFloat(float v)
     {
         reserve(float.sizeof);
-        *cast(float *)p = v;
-        p += float.sizeof;
+        *cast(float *)(buf + off) = v;
+        off += float.sizeof;
     }
 
     /**
@@ -235,8 +232,8 @@ struct Outbuffer
     void writeDouble(double v)
     {
         reserve(double.sizeof);
-        *cast(double *)p = v;
-        p += double.sizeof;
+        *cast(double *)(buf + off) = v;
+        off += double.sizeof;
     }
 
     /**
@@ -282,9 +279,9 @@ struct Outbuffer
     void prepend(const(void)* b, size_t len)
     {
         reserve(len);
-        memmove(buf + len,buf,p - buf);
+        memmove(buf + len, buf, off);
         memcpy(buf,b,len);
-        p += len;
+        off += len;
     }
 
     /**
@@ -293,10 +290,10 @@ struct Outbuffer
     void bracket(char c1,char c2)
     {
         reserve(2);
-        memmove(buf + 1,buf,p - buf);
+        memmove(buf + 1, buf, off);
         buf[0] = c1;
-        p[1] = c2;
-        p += 2;
+        buf[off + 1] = c2;
+        off += 2;
     }
 
     /**
@@ -304,7 +301,7 @@ struct Outbuffer
      */
     size_t length() const @safe pure nothrow @nogc
     {
-        return p - buf;
+        return off;
     }
 
     /**
@@ -313,7 +310,7 @@ struct Outbuffer
 
     void setsize(size_t size)
     {
-        p = buf + size;
+        off = size;
         //debug assert(buf <= p);
         //debug assert(p <= pend);
     }
