@@ -47,11 +47,11 @@ opCall 2
 two
 one
 one
-Success
 Class39 dtor
 Mixed-in dtor
 Mixed-in dtor
 Base39 dtor
+Success
 ---
 */
 
@@ -987,7 +987,7 @@ class Class39 : Base39
 
 void test39()
 {
-    auto test = new Class39;
+    scope test = new Class39;
 }
 
 
