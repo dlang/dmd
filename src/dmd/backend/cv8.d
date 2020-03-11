@@ -258,7 +258,7 @@ void cv8_termfile(const(char)* objfilename)
     cv8_writesection(seg, 0xF1, &buf);
 
     // Write out "F2" sections
-    uint length = cast(uint)funcdata.size();
+    uint length = cast(uint)funcdata.length();
     ubyte *p = funcdata.buf;
     for (uint u = 0; u < length; u += FuncData.sizeof)
     {   FuncData *fd = cast(FuncData *)(p + u);
@@ -281,14 +281,14 @@ void cv8_termfile(const(char)* objfilename)
         cv8_writesection(f2seg, 0xF2, F2_buf);
         objmod.reftoident(f2seg, offset, fd.sfunc, 0, CFseg | CFoff);
 
-        if (f2seg != seg && fd.f1buf.size())
+        if (f2seg != seg && fd.f1buf.length())
         {
             // Write out "F1" section
             const uint f1offset = cast(uint)SegData[f2seg].SDoffset;
             cv8_writesection(f2seg, 0xF1, fd.f1buf);
 
             // Fixups for "F1" section
-            const uint fixupLength = cast(uint)fd.f1fixup.size();
+            const uint fixupLength = cast(uint)fd.f1fixup.length();
             ubyte *pfixup = fd.f1fixup.buf;
             for (uint v = 0; v < fixupLength; v += F1_Fixups.sizeof)
             {   F1_Fixups *f = cast(F1_Fixups *)(pfixup + v);
@@ -299,21 +299,21 @@ void cv8_termfile(const(char)* objfilename)
     }
 
     // Write out "F3" section
-    if (F3_buf.size() > 1)
+    if (F3_buf.length() > 1)
         cv8_writesection(seg, 0xF3, F3_buf);
 
     // Write out "F4" section
-    if (F4_buf.size() > 0)
+    if (F4_buf.length() > 0)
         cv8_writesection(seg, 0xF4, F4_buf);
 
-    if (F1_buf.size())
+    if (F1_buf.length())
     {
         // Write out "F1" section
         uint f1offset = cast(uint)SegData[seg].SDoffset;
         cv8_writesection(seg, 0xF1, F1_buf);
 
         // Fixups for "F1" section
-        length = cast(uint)F1fixup.size();
+        length = cast(uint)F1fixup.length();
         p = F1fixup.buf;
         for (uint u = 0; u < length; u += F1_Fixups.sizeof)
         {   F1_Fixups *f = cast(F1_Fixups *)(p + u);
@@ -444,7 +444,7 @@ void cv8_func_term(Symbol *sfunc)
 
     F1_Fixups f1f;
     f1f.s = sfunc;
-    f1f.offset = cast(uint)buf.size();
+    f1f.offset = cast(uint)buf.length();
     f1f.value = 0;
     currentfuncdata.f1fixup.write(&f1f, f1f.sizeof);
     buf.write32(0);
@@ -479,7 +479,7 @@ void cv8_func_term(Symbol *sfunc)
         extern (C++) static void beginBlock(int offset, int length)
         {
             Outbuffer *buf = currentfuncdata.f1buf;
-            uint soffset = cast(uint)buf.size();
+            uint soffset = cast(uint)buf.length();
             // parent and end to be filled by linker
             block_v3_data block32 = { block_v3_data.sizeof - 2, S_BLOCK_V3, 0, 0, length, offset, 0, [ 0 ] };
             buf.write(&block32, block32.sizeof);
@@ -578,7 +578,7 @@ uint cv8_addfile(const(char)* filename)
      * Unlike C, there won't be lots of .h source files to be accounted for.
      */
 
-    uint length = cast(uint)F3_buf.size();
+    uint length = cast(uint)F3_buf.length();
     ubyte *p = F3_buf.buf;
     size_t len = strlen(filename);
 
@@ -625,7 +625,7 @@ L1:
     // off is the offset of the filename in F3.
     // Find it in F4.
 
-    length = cast(uint)F4_buf.size();
+    length = cast(uint)F4_buf.length();
     p = F4_buf.buf;
 
     uint u = 0;
@@ -673,7 +673,7 @@ void cv8_writesection(int seg, uint type, Outbuffer *buf)
      */
     uint off = cast(uint)SegData[seg].SDoffset;
     objmod.bytes(seg,off,4,&type);
-    uint length = cast(uint)buf.size();
+    uint length = cast(uint)buf.length();
     objmod.bytes(seg,off+4,4,&length);
     objmod.bytes(seg,off+8,length,buf.buf);
     // Align to 4
@@ -811,7 +811,7 @@ else
             buf.write32(typidx);
 
             f1f.s = s;
-            f1f.offset = cast(uint)buf.size();
+            f1f.offset = cast(uint)buf.length();
             F1fixup.write(&f1f, f1f.sizeof);
             buf.write32(0);
             buf.writeWordn(0);

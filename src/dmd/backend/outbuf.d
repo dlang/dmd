@@ -40,13 +40,36 @@ struct Outbuffer
 
     void dtor()
     {
-        if (buf)
-            free(buf);
+        if (auto slice = this.extractSlice())
+            free(slice.ptr);
     }
 
     void reset()
     {
         p = buf;
+    }
+
+    // Returns: A slice to the data written so far
+    extern(D) inout(ubyte)[] opSlice(size_t from, size_t to) inout
+        @trusted pure nothrow @nogc
+    {
+        assert(this.buf, "Attempt to dereference a null pointer");
+        assert(from < to, "First index must be <= to second one");
+        assert(this.length() <= (to - from), "Out of bound access");
+        return this.buf[from .. to];
+    }
+
+    /// Ditto
+    extern(D) inout(ubyte)[] opSlice() inout @trusted pure nothrow @nogc
+    {
+        return this.buf[0 .. this.p - this.buf];
+    }
+
+    extern(D) ubyte[] extractSlice() @safe pure nothrow @nogc
+    {
+        auto ret = this[];
+        this.buf = this.p = this.pend = null;
+        return ret;
     }
 
     // Make sure we have at least `nbyte` available for writting
@@ -104,13 +127,6 @@ struct Outbuffer
         p += len;
     }
 
-    // Clear bytes, no reserve check
-    void clearn(size_t len)
-    {
-        foreach (i; 0 .. len)
-            *p++ = 0;
-    }
-
     // Write an array to the buffer.
     extern (D)
     void write(const(void)[] b)
@@ -124,14 +140,6 @@ struct Outbuffer
     {
         write(b[0 .. len]);
     }
-
-    void write(Outbuffer *b) { write(b.buf[0 .. b.p - b.buf]); }
-
-    /**
-     * Flushes the stream. This will write any buffered
-     * output bytes.
-     */
-    void flush() { }
 
     /**
      * Writes an 8 bit byte, no reserve check.
@@ -191,14 +199,6 @@ struct Outbuffer
     }
 
     /**
-     * Writes a 16 bit char.
-     */
-    void writeChar(int v)
-    {
-        writeShort(v);
-    }
-
-    /**
      * Writes a 32 bit int.
      */
     void write32(int v)
@@ -248,19 +248,24 @@ struct Outbuffer
     }
 
     /**
-     * Writes a String as a sequence of bytes.
-     */
-    void write(const(ubyte)* s)
-    {
-        write(cast(const(char)*)s);
-    }
-
-    /**
      * Writes a 0 terminated String
      */
     void writeString(const(char)* s)
     {
         write(s[0 .. strlen(s)+1]);
+    }
+
+    /// Ditto
+    extern(D) void writeString(const(char)[] s)
+    {
+        write(s);
+        writeByte(0);
+    }
+
+    /// Disembiguation for `string`
+    extern(D) void writeString(string s)
+    {
+        writeString(cast(const(char)[])(s));
     }
 
     /**
@@ -297,20 +302,9 @@ struct Outbuffer
     /**
      * Returns the number of bytes written.
      */
-    size_t size()
+    size_t length() const @safe pure nothrow @nogc
     {
         return p - buf;
-    }
-
-    /**
-     * Convert to a string.
-     */
-
-    char *toString()
-    {
-        reserve(1);
-        *p = 0;                     // terminate string
-        return cast(char*)buf;
     }
 
     /**
