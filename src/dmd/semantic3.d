@@ -1287,8 +1287,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         // Infer STC.scope_
         if (funcdecl.parameters && !funcdecl.errors)
         {
-            size_t nfparams = f.parameterList.length;
-            assert(nfparams == funcdecl.parameters.dim);
+            assert(f.parameterList.length == funcdecl.parameters.dim);
             foreach (u, v; *funcdecl.parameters)
             {
                 if (v.storage_class & STC.maybescope)
