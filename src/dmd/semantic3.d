@@ -1358,49 +1358,49 @@ private extern(C++) final class Semantic3Visitor : Visitor
          * https://issues.dlang.org/show_bug.cgi?id=14246
          */
         AggregateDeclaration ad = ctor.isMemberDecl();
-        if (ad && ad.fieldDtor && global.params.dtorFields)
+        if (!ad || !ad.fieldDtor || !global.params.dtorFields)
+            return visit(cast(FuncDeclaration)ctor);
+        
+        /* Generate:
+         *   this.fieldDtor()
+         */
+        Expression e = new ThisExp(ctor.loc);
+        e.type = ad.type.mutableOf();
+        e = new DotVarExp(ctor.loc, e, ad.fieldDtor, false);
+        e = new CallExp(ctor.loc, e);
+        auto sexp = new ExpStatement(ctor.loc, e);
+        auto ss = new ScopeStatement(ctor.loc, sexp, ctor.loc);
+
+        version (all)
         {
             /* Generate:
-             *   this.fieldDtor()
+             *   try { ctor.fbody; }
+             *   catch (Exception __o)
+             *   { this.fieldDtor(); throw __o; }
+             * This differs from the alternate scope(failure) version in that an Exception
+             * is caught rather than a Throwable. This enables the optimization whereby
+             * the try-catch can be removed if ctor.fbody is nothrow. (nothrow only
+             * applies to Exception.)
              */
-            Expression e = new ThisExp(ctor.loc);
-            e.type = ad.type.mutableOf();
-            e = new DotVarExp(ctor.loc, e, ad.fieldDtor, false);
-            e = new CallExp(ctor.loc, e);
-            auto sexp = new ExpStatement(ctor.loc, e);
-            auto ss = new ScopeStatement(ctor.loc, sexp, ctor.loc);
+            Identifier id = Identifier.generateId("__o");
+            auto ts = new ThrowStatement(ctor.loc, new IdentifierExp(ctor.loc, id));
+            auto handler = new CompoundStatement(ctor.loc, ss, ts);
 
-            version (all)
-            {
-                /* Generate:
-                 *   try { ctor.fbody; }
-                 *   catch (Exception __o)
-                 *   { this.fieldDtor(); throw __o; }
-                 * This differs from the alternate scope(failure) version in that an Exception
-                 * is caught rather than a Throwable. This enables the optimization whereby
-                 * the try-catch can be removed if ctor.fbody is nothrow. (nothrow only
-                 * applies to Exception.)
-                 */
-                Identifier id = Identifier.generateId("__o");
-                auto ts = new ThrowStatement(ctor.loc, new IdentifierExp(ctor.loc, id));
-                auto handler = new CompoundStatement(ctor.loc, ss, ts);
+            auto catches = new Catches();
+            auto ctch = new Catch(ctor.loc, getException(), id, handler);
+            catches.push(ctch);
 
-                auto catches = new Catches();
-                auto ctch = new Catch(ctor.loc, getException(), id, handler);
-                catches.push(ctch);
-
-                ctor.fbody = new TryCatchStatement(ctor.loc, ctor.fbody, catches);
-            }
-            else
-            {
-                /* Generate:
-                 *   scope (failure) { this.fieldDtor(); }
-                 * Hopefully we can use this version someday when scope(failure) catches
-                 * Exception instead of Throwable.
-                 */
-                auto s = new ScopeGuardStatement(ctor.loc, TOK.onScopeFailure, ss);
-                ctor.fbody = new CompoundStatement(ctor.loc, s, ctor.fbody);
-            }
+            ctor.fbody = new TryCatchStatement(ctor.loc, ctor.fbody, catches);
+        }
+        else
+        {
+            /* Generate:
+             *   scope (failure) { this.fieldDtor(); }
+             * Hopefully we can use this version someday when scope(failure) catches
+             * Exception instead of Throwable.
+             */
+            auto s = new ScopeGuardStatement(ctor.loc, TOK.onScopeFailure, ss);
+            ctor.fbody = new CompoundStatement(ctor.loc, s, ctor.fbody);
         }
         visit(cast(FuncDeclaration)ctor);
     }
