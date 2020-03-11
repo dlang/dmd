@@ -1290,15 +1290,14 @@ private extern(C++) final class Semantic3Visitor : Visitor
             assert(f.parameterList.length == funcdecl.parameters.dim);
             foreach (u, v; *funcdecl.parameters)
             {
-                if (v.storage_class & STC.maybescope)
-                {
-                    //printf("Inferring scope for %s\n", v.toChars());
-                    Parameter p = f.parameterList[u];
-                    notMaybeScope(v);
-                    v.storage_class |= STC.scope_ | STC.scopeinferred;
-                    p.storageClass |= STC.scope_ | STC.scopeinferred;
-                    assert(!(p.storageClass & STC.maybescope));
-                }
+                if (!(v.storage_class & STC.maybescope))
+                    continue;
+                //printf("Inferring scope for %s\n", v.toChars());
+                Parameter p = f.parameterList[u];
+                notMaybeScope(v);
+                v.storage_class |= STC.scope_ | STC.scopeinferred;
+                p.storageClass |= STC.scope_ | STC.scopeinferred;
+                assert(!(p.storageClass & STC.maybescope));
             }
         }
 
