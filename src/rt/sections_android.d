@@ -95,14 +95,6 @@ void initSections() nothrow @nogc
             void* end = start + phdr.p_memsz;
             debug(PRINTF) printf("data segment: %p - %p\n", start, end);
 
-            // exclude static TLS range
-            if (_staticTLSRange.length)
-            {
-                safeAssert(start == _staticTLSRange.ptr,
-                    "static TLS range expected to be at start of data segment");
-                start += _staticTLSRange.length;
-            }
-
             // pointer-align up
             enum mask = size_t.sizeof - 1;
             start = cast(void*) ((cast(size_t)start + mask) & ~mask);
