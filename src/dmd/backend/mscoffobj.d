@@ -776,18 +776,18 @@ version (SCPP)
     }
 
     // Write the section headers
-    fobjbuf.write(ScnhdrBuf);
+    fobjbuf.write((*ScnhdrBuf)[]);
     foffset += ScnhdrBuf.length();
 
     // Write the symbol table
     assert(foffset == symtable_offset);
-    fobjbuf.write(syment_buf);
+    fobjbuf.write((*syment_buf)[]);
     foffset += syment_buf.length();
 
     // Write the string table
     assert(foffset == string_table_offset);
     *cast(uint *)(string_table.buf) = cast(uint)string_table.length();
-    fobjbuf.write(string_table);
+    fobjbuf.write((*string_table)[]);
     foffset += string_table.length();
 
     // Write the section data
@@ -801,7 +801,7 @@ version (SCPP)
             //printf("seg = %2d SDshtidx = %2d psechdr = %p s_scnptr = x%x, foffset = x%x\n", seg, pseg.SDshtidx, psechdr, cast(uint)psechdr.s_scnptr, cast(uint)foffset);
             assert(pseg.SDbuf.length() == psechdr.SizeOfRawData);
             assert(foffset == psechdr.PointerToRawData);
-            fobjbuf.write(pseg.SDbuf);
+            fobjbuf.write((*pseg.SDbuf)[]);
             foffset += pseg.SDbuf.length();
         }
     }

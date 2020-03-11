@@ -350,10 +350,10 @@ else
 
 
     /* Insert Call Site Table */
-    et.write(&cstbuf);
+    et.write(cstbuf[]);
 
     /* Insert Action Table */
-    et.write(&atbuf);
+    et.write(atbuf[]);
 
     /* Align to 4 */
     for (uint n = (-et.length() & 3); n; --n)

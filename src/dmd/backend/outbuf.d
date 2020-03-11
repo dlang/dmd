@@ -148,8 +148,6 @@ struct Outbuffer
         write(b[0 .. len]);
     }
 
-    void write(Outbuffer *b) { write(b.buf[0 .. b.p - b.buf]); }
-
     /**
      * Flushes the stream. This will write any buffered
      * output bytes.

@@ -827,7 +827,7 @@ void writeDebugFrameFDE(IDXSEC dfseg, Symbol *sfunc)
         uint debug_frame_buf_offset = cast(uint)(debug_frame_buf.p - debug_frame_buf.buf);
         debug_frame_buf.reserve(1000);
         debug_frame_buf.writen(&debugFrameFDE64,debugFrameFDE64.sizeof);
-        debug_frame_buf.write(&cfa_buf);
+        debug_frame_buf.write(cfa_buf[]);
 
 static if (ELFOBJ)
         // Absolute address for debug_frame, relative offset for eh_frame
@@ -867,7 +867,7 @@ static if (ELFOBJ)
         uint debug_frame_buf_offset = cast(uint)(debug_frame_buf.p - debug_frame_buf.buf);
         debug_frame_buf.reserve(1000);
         debug_frame_buf.writen(&debugFrameFDE32,debugFrameFDE32.sizeof);
-        debug_frame_buf.write(&cfa_buf);
+        debug_frame_buf.write(cfa_buf[]);
 
 static if (ELFOBJ)
         // Absolute address for debug_frame, relative offset for eh_frame
@@ -981,7 +981,7 @@ else static if (MACHOBJ)
     else
         buf.writeByten(0);                             // Augmentation Data Length
 
-    buf.write(&cfa_buf);
+    buf.write(cfa_buf[]);
 
     for (uint i = 0; i < pad; ++i)
         buf.writeByten(DW_CFA_nop);
