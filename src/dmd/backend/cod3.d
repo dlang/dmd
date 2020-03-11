@@ -6449,7 +6449,7 @@ nomatch:
  *      addr of end of code
  */
 
-struct MiniCodeBuf
+private struct MiniCodeBuf
 {
 nothrow:
     size_t index;
