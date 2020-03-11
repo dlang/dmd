@@ -459,8 +459,6 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
     {
         symtab_strings = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
         assert(symtab_strings);
-        symtab_strings.enlarge(1024);
-
         symtab_strings.reserve(2048);
         symtab_strings.writeByte(0);
     }
@@ -469,7 +467,7 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
     {
         local_symbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
         assert(local_symbuf);
-        local_symbuf.enlarge((Symbol *).sizeof * SYM_TAB_INIT);
+        local_symbuf.reserve((Symbol *).sizeof * SYM_TAB_INIT);
     }
     local_symbuf.setsize(0);
 
@@ -482,7 +480,7 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
     {
         public_symbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
         assert(public_symbuf);
-        public_symbuf.enlarge((Symbol *).sizeof * SYM_TAB_INIT);
+        public_symbuf.reserve((Symbol *).sizeof * SYM_TAB_INIT);
     }
 
     if (extern_symbuf)
@@ -494,14 +492,14 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
     {
         extern_symbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
         assert(extern_symbuf);
-        extern_symbuf.enlarge((Symbol *).sizeof * SYM_TAB_INIT);
+        extern_symbuf.reserve((Symbol *).sizeof * SYM_TAB_INIT);
     }
 
     if (!comdef_symbuf)
     {
         comdef_symbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
         assert(comdef_symbuf);
-        comdef_symbuf.enlarge((Symbol *).sizeof * SYM_TAB_INIT);
+        comdef_symbuf.reserve((Symbol *).sizeof * SYM_TAB_INIT);
     }
     comdef_symbuf.setsize(0);
 
@@ -525,8 +523,6 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
     {
         SECbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
         assert(SECbuf);
-        SECbuf.enlarge(cast(uint)(SYM_TAB_INC * struct_section_size));
-
         SECbuf.reserve(cast(uint)(SEC_TAB_INIT * struct_section_size));
         // Ignore the first section - section numbers start at 1
         SECbuf.writezeros(cast(uint)struct_section_size);
@@ -1900,8 +1896,6 @@ int Obj_getsegment(const(char)* sectname, const(char)* segname,
         {
             pseg.SDbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
             assert(pseg.SDbuf);
-            pseg.SDbuf.enlarge(4096);
-
             pseg.SDbuf.reserve(4096);
         }
     }

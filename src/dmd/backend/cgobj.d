@@ -701,7 +701,7 @@ Obj OmfObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
         {
             reset_symbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
             assert(reset_symbuf);
-            reset_symbuf.enlarge(50 * (Symbol *).sizeof);
+            reset_symbuf.reserve(50 * (Symbol*).sizeof);
         }
 
         memset(&obj,0,obj.sizeof);

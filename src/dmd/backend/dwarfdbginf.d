@@ -1034,7 +1034,7 @@ else static if (ELFOBJ)
     {
         reset_symbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
         assert(reset_symbuf);
-        reset_symbuf.enlarge(50 * (Symbol *).sizeof);
+        reset_symbuf.reserve(50 * (Symbol *).sizeof);
     }
 
     /* ======================================== */

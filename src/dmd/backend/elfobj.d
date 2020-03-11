@@ -426,7 +426,7 @@ private IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, uint sz,
         {
             shndx_data = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
             assert(shndx_data);
-            shndx_data.enlarge(50 * (Elf64_Word).sizeof);
+            shndx_data.reserve(50 * (Elf64_Word).sizeof);
         }
         // fill with zeros up to symbol_idx
         const size_t shndx_idx = shndx_data.size() / Elf64_Word.sizeof;
@@ -442,8 +442,6 @@ private IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, uint sz,
         {
             SYMbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
             assert(SYMbuf);
-            SYMbuf.enlarge(50 * Elf64_Sym.sizeof);
-
             SYMbuf.reserve(100 * Elf64_Sym.sizeof);
         }
         Elf64_Sym sym;
@@ -461,8 +459,6 @@ private IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, uint sz,
         {
             SYMbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
             assert(SYMbuf);
-            SYMbuf.enlarge(50 * Elf32_Sym.sizeof);
-
             SYMbuf.reserve(100 * Elf32_Sym.sizeof);
         }
         Elf32_Sym sym;
@@ -522,9 +518,7 @@ private IDXSEC elf_newsection2(
     {
         SECbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
         assert(SECbuf);
-        SECbuf.enlarge(50 * Elf32_Shdr.sizeof);
-
-        SECbuf.reserve(16 * Elf32_Shdr.sizeof);
+        SECbuf.reserve(50 * Elf32_Shdr.sizeof);
     }
     if (section_cnt == SHN_LORESERVE)
     {   // insert dummy null sections to skip reserved section indices
@@ -693,8 +687,6 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
     {
         symtab_strings = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
         assert(symtab_strings);
-        symtab_strings.enlarge(1024);
-
         symtab_strings.reserve(2048);
         symtab_strings.writeByte(0);
     }
@@ -734,8 +726,6 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
         {
             section_names = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
             assert(section_names);
-            section_names.enlarge(512);
-
             section_names.reserve(1024);
             section_names.writen(section_names_init64.ptr, section_names_init64.sizeof);
         }
@@ -780,8 +770,6 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
         {
             section_names = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
             assert(section_names);
-            section_names.enlarge(512);
-
             section_names.reserve(100*1024);
             section_names.writen(section_names_init.ptr, section_names_init.sizeof);
         }
@@ -829,7 +817,7 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
     {
         reset_symbuf = cast(Outbuffer*) calloc(1, (Outbuffer).sizeof);
         assert(reset_symbuf);
-        reset_symbuf.enlarge(50 * (Symbol *).sizeof);
+        reset_symbuf.reserve(50 * (Symbol*).sizeof);
     }
     if (shndx_data)
         shndx_data.setsize(0);
@@ -1926,8 +1914,6 @@ private int elf_addsegment2(IDXSEC shtidx, IDXSYM symidx, IDXSEC relidx)
         {
             pseg.SDbuf = cast(Outbuffer*) calloc(1, (Outbuffer).sizeof);
             assert(pseg.SDbuf);
-            pseg.SDbuf.enlarge(OB_XTRA_STR);
-
             pseg.SDbuf.reserve(1024);
         }
     }
