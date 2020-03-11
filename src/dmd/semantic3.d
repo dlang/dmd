@@ -637,11 +637,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
                      * ctor consts were initialized.
                      */
                     ScopeDsymbol pd = funcdecl.toParent().isScopeDsymbol();
-                    for (size_t i = 0; i < pd.members.dim; i++)
-                    {
-                        Dsymbol s = (*pd.members)[i];
+                    foreach (s; (*pd.members)[])
                         s.checkCtorConstInit();
-                    }
                 }
                 else if (ad2 && funcdecl.isCtorDeclaration())
                 {
