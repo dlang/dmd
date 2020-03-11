@@ -991,6 +991,11 @@ else static if (MACHOBJ)
 
 void dwarf_initfile(const(char)* filename)
 {
+    dwarf_initfile(filename ? filename[0 .. strlen(filename)] : null);
+}
+
+extern(D) void dwarf_initfile(const(char)[] filename)
+{
     if (config.ehmethod == EHmethod.EH_DWARF)
     {
 static if (MACHOBJ)
@@ -1238,12 +1243,18 @@ static if (ELFOBJ)
  */
 int dwarf_line_addfile(const(char)* filename)
 {
+    return dwarf_line_addfile(filename ? filename[0 .. strlen(filename)] : null);
+}
+
+/// Ditto
+extern(D) int dwarf_line_addfile(const(char)[] filename)
+{
     if (!infoFileName_table) {
         infoFileName_table = AAchars.create();
         linebuf_filetab_end = debug_line.buf.length();
     }
 
-    uint *pidx = infoFileName_table.get(filename, cast(uint)strlen(filename));
+    uint *pidx = infoFileName_table.get(filename);
     if (!*pidx)                 // if no idx assigned yet
     {
         *pidx = infoFileName_table.length(); // assign newly computed idx
@@ -1260,6 +1271,12 @@ int dwarf_line_addfile(const(char)* filename)
 }
 
 void dwarf_initmodule(const(char)* filename, const(char)* modname)
+{
+    dwarf_initmodule(filename ? filename[0 .. strlen(filename)] : null,
+                     modname ? modname[0 .. strlen(modname)] : null);
+}
+
+extern(D) void dwarf_initmodule(const(char)[] filename, const(char)[] modname)
 {
     if (modname)
     {

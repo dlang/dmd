@@ -284,6 +284,19 @@ struct Outbuffer
         write(s[0 .. strlen(s)+1]);
     }
 
+    /// Ditto
+    extern(D) void writeString(const(char)[] s)
+    {
+        write(s);
+        writeByte(0);
+    }
+
+    /// Disembiguation for `string`
+    extern(D) void writeString(string s)
+    {
+        writeString(cast(const(char)[])(s));
+    }
+
     /**
      * Inserts string at beginning of buffer.
      */
