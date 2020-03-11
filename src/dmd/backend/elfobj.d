@@ -1373,7 +1373,6 @@ debug
         fobjbuf.write(&h32, hdrsize);
     }
     fobjbuf.position(foffset, 0);
-    fobjbuf.flush();
 }
 
 /*****************************

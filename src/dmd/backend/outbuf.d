@@ -142,12 +142,6 @@ struct Outbuffer
     }
 
     /**
-     * Flushes the stream. This will write any buffered
-     * output bytes.
-     */
-    void flush() { }
-
-    /**
      * Writes an 8 bit byte, no reserve check.
      */
     void writeByten(ubyte v)
@@ -205,14 +199,6 @@ struct Outbuffer
     }
 
     /**
-     * Writes a 16 bit char.
-     */
-    void writeChar(int v)
-    {
-        writeShort(v);
-    }
-
-    /**
      * Writes a 32 bit int.
      */
     void write32(int v)
@@ -259,14 +245,6 @@ struct Outbuffer
     void write(const(char)* s)
     {
         write(s[0 .. strlen(s)]);
-    }
-
-    /**
-     * Writes a String as a sequence of bytes.
-     */
-    void write(const(ubyte)* s)
-    {
-        write(cast(const(char)*)s);
     }
 
     /**
@@ -327,17 +305,6 @@ struct Outbuffer
     size_t length() const @safe pure nothrow @nogc
     {
         return p - buf;
-    }
-
-    /**
-     * Convert to a string.
-     */
-
-    char *toString()
-    {
-        reserve(1);
-        *p = 0;                     // terminate string
-        return cast(char*)buf;
     }
 
     /**

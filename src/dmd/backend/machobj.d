@@ -1487,7 +1487,6 @@ version (SCPP)
     fobjbuf.write(&symtab_cmd, symtab_cmd.sizeof);
     fobjbuf.write(&dysymtab_cmd, dysymtab_cmd.sizeof);
     fobjbuf.position(foffset, 0);
-    fobjbuf.flush();
 }
 
 /*****************************
