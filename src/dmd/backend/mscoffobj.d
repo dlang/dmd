@@ -2077,16 +2077,12 @@ static if (0)
     int save = cast(int)buf.length();
     //dbg_printf("MsCoffObj_bytes(seg=%d, offset=x%lx, nbytes=%d, p=x%x)\n",
             //seg,offset,nbytes,p);
-    buf.setsize(cast(uint)offset);
-    buf.reserve(nbytes);
+    buf.position(cast(size_t)offset, nbytes);
     if (p)
-    {
-        buf.writen(p,nbytes);
-    }
-    else
-    {   // Zero out the bytes
-        buf.clearn(nbytes);
-    }
+        buf.write(p, nbytes);
+    else // Zero out the bytes
+        buf.writezeros(nbytes);
+
     if (save > offset+nbytes)
         buf.setsize(save);
     else

@@ -2491,15 +2491,12 @@ static if (0)
     int save = cast(int)buf.length();
     //dbg_printf("Obj_bytes(seg=%d, offset=x%lx, nbytes=%d, p=x%x)\n",
             //seg,offset,nbytes,p);
-    buf.position(cast(uint)offset, nbytes);
+    buf.position(cast(size_t)offset, nbytes);
     if (p)
-    {
-        buf.writen(p,nbytes);
-    }
-    else
-    {   // Zero out the bytes
-        buf.clearn(nbytes);
-    }
+        buf.write(p, nbytes);
+    else // Zero out the bytes
+        buf.writezeros(nbytes);
+
     if (save > offset+nbytes)
         buf.setsize(save);
     else

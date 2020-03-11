@@ -127,13 +127,6 @@ struct Outbuffer
         p += len;
     }
 
-    // Clear bytes, no reserve check
-    void clearn(size_t len)
-    {
-        foreach (i; 0 .. len)
-            *p++ = 0;
-    }
-
     // Write an array to the buffer.
     extern (D)
     void write(const(void)[] b)
