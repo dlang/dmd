@@ -1430,17 +1430,14 @@ private extern(C++) final class Semantic3Visitor : Visitor
     override void visit(AttribDeclaration ad)
     {
         Dsymbols* d = ad.include(sc);
-        if (d)
-        {
-            Scope* sc2 = ad.newScope(sc);
-            for (size_t i = 0; i < d.dim; i++)
-            {
-                Dsymbol s = (*d)[i];
-                s.semantic3(sc2);
-            }
-            if (sc2 != sc)
-                sc2.pop();
-        }
+        if (!d)
+            return;
+
+        Scope* sc2 = ad.newScope(sc);
+        foreach (s; (*d)[])
+            s.semantic3(sc2);
+        if (sc2 != sc)
+            sc2.pop();
     }
 
     override void visit(AggregateDeclaration ad)
