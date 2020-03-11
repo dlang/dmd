@@ -1,5 +1,7 @@
-/* Dwarf debug
+/**
+ * Definitions for DWARF debug infos (v3)
  *
+ * See_Also: $(LINK2 http://dwarfstd.org/doc/Dwarf3.pdf, DWARF standard)
  * Source: $(DMDSRC backend/_dwarf.d)
  */
 
