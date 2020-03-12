@@ -156,11 +156,11 @@ immutable(EnvData) processEnvironment()
             envData.ccompiler = "dmc";
         else if (envData.model == "64")
             envData.ccompiler = `C:\"Program Files (x86)"\"Microsoft Visual Studio 10.0"\VC\bin\amd64\cl.exe`;
-
-        // FIXME: Don't eagerly fail because the test suite relies on this behaviour
-        // else
-        //     writeln("Unknown $OS$MODEL combination: ", envData.os, envData.model);
-        //     throw new SilentQuit();
+        else
+        {
+            writeln("Unknown $OS$MODEL combination: ", envData.os, envData.model);
+            throw new SilentQuit();
+        }
     }
 
     envData.usingMicrosoftCompiler = envData.ccompiler.toLower.endsWith("cl.exe");
@@ -1068,13 +1068,6 @@ int tryMain(string[] args)
     // running & linking costs time - for coverage builds we can save this
     if (envData.coverage_build && testArgs.mode == TestMode.RUN)
         testArgs.mode = TestMode.COMPILE;
-
-    // FIXME: Handle this in processEnvironment
-    if (envData.ccompiler.empty)
-    {
-        writeln("Unknown $OS$MODEL combination: ", envData.os, envData.model);
-        throw new SilentQuit();
-    }
 
     const printRuntime = environment.get("PRINT_RUNTIME", "") == "1";
     auto stopWatch = StopWatch(AutoStart.no);
