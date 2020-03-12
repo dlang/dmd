@@ -9,7 +9,6 @@
  */
 module core.internal.convert;
 import core.internal.traits : Unqual;
-import core.math : toPrec;
 
 /+
 A @nogc function can allocate memory during CTFE.
@@ -79,6 +78,8 @@ const(ubyte)[] toUbyte(T)(const ref T val) if (is(Unqual!T == float) || is(Unqua
             //
             // We can get the least significant bits by subtracting the IEEE
             // double precision portion from the real value.
+
+            import core.math : toPrec;
 
             ubyte[] buff = ctfe_alloc(T.sizeof);
             enum msbSize = double.sizeof;

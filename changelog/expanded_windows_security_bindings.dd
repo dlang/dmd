@@ -1,3 +1,0 @@
-Expanded bindings in core.sys.windows.security
-
-Many enum members were missing, the list is now reasonably up-to-date.

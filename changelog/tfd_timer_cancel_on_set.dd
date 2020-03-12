@@ -1,3 +1,0 @@
-Added `TFD_TIMER_CANCEL_ON_SET`.
-
-Added `TFD_TIMER_CANCEL_ON_SET` option, which marks a timer as cancelable if the realtime clock is used.
