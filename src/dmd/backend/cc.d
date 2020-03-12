@@ -1433,11 +1433,8 @@ struct Symbol
     }
     regm_t      Sregsaved;      // mask of registers not affected by this func
 
-    version (MARS)
-    {
-        uint lnoscopestart;     // life time of var
-        uint lnoscopeend;       // the line after the scope
-    }
+    uint lnoscopestart;         // life time of var
+    uint lnoscopeend;           // the line after the scope
 
     char[1] Sident;             // identifier string (dynamic array)
 
