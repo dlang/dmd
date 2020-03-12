@@ -54,6 +54,7 @@ import dmd.ob;
 import dmd.objc;
 import dmd.opover;
 import dmd.parse;
+import dmd.root.array;
 import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.root.rmem;
@@ -80,6 +81,11 @@ extern(C++) void semantic3(Dsymbol dsym, Scope* sc)
 {
     scope v = new Semantic3Visitor(sc);
     dsym.accept(v);
+}
+
+private auto orEmpty(T)(inout Array!(T)* pArr)
+{
+    return pArr? pArr.opSlice() : [];
 }
 
 private extern(C++) final class Semantic3Visitor : Visitor
@@ -1004,30 +1010,26 @@ private extern(C++) final class Semantic3Visitor : Visitor
             {
                 auto a = new Statements();
                 // Merge in initialization of 'out' parameters
-                if (funcdecl.parameters)
+                foreach (v; funcdecl.parameters.orEmpty)
                 {
-                    for (size_t i = 0; i < funcdecl.parameters.dim; i++)
+                    if (!(v.storage_class & STC.out_))
+                        continue;
+
+                    if (!v._init)
                     {
-                        VarDeclaration v = (*funcdecl.parameters)[i];
-                        if (v.storage_class & STC.out_)
-                        {
-                            if (!v._init)
-                            {
-                                v.error("Zero-length `out` parameters are not allowed.");
-                                return;
-                            }
-                            ExpInitializer ie = v._init.isExpInitializer();
-                            assert(ie);
-                            if (auto iec = ie.exp.isConstructExp())
-                            {
-                                // construction occurred in parameter processing
-                                auto ec = new AssignExp(iec.loc, iec.e1, iec.e2);
-                                ec.type = iec.type;
-                                ie.exp = ec;
-                            }
-                            a.push(new ExpStatement(Loc.initial, ie.exp));
-                        }
+                        v.error("Zero-length `out` parameters are not allowed.");
+                        return;
                     }
+                    ExpInitializer ie = v._init.isExpInitializer();
+                    assert(ie);
+                    if (auto iec = ie.exp.isConstructExp())
+                    {
+                        // construction occurred in parameter processing
+                        auto ec = new AssignExp(iec.loc, iec.e1, iec.e2);
+                        ec.type = iec.type;
+                        ie.exp = ec;
+                    }
+                    a.push(new ExpStatement(Loc.initial, ie.exp));
                 }
 
                 if (_arguments)
@@ -1095,35 +1097,32 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                 /* Append destructor calls for parameters as finally blocks.
                  */
-                if (funcdecl.parameters)
+                foreach (v; funcdecl.parameters.orEmpty)
                 {
-                    foreach (v; *funcdecl.parameters)
-                    {
-                        if (v.storage_class & (STC.ref_ | STC.out_ | STC.lazy_))
-                            continue;
-                        if (v.needsScopeDtor())
-                        {
-                            // same with ExpStatement.scopeCode()
-                            Statement s = new DtorExpStatement(Loc.initial, v.edtor, v);
-                            v.storage_class |= STC.nodtor;
+                    if (v.storage_class & (STC.ref_ | STC.out_ | STC.lazy_))
+                        continue;
+                    if (!v.needsScopeDtor())
+                        continue;
 
-                            s = s.statementSemantic(sc2);
+                    // same with ExpStatement.scopeCode()
+                    Statement s = new DtorExpStatement(Loc.initial, v.edtor, v);
+                    v.storage_class |= STC.nodtor;
 
-                            bool isnothrow = f.isnothrow & !(funcdecl.flags & FUNCFLAG.nothrowInprocess);
-                            const blockexit = s.blockExit(funcdecl, isnothrow);
-                            if (blockexit & BE.throw_)
-                                funcdecl.eh_none = false;
-                            if (f.isnothrow && isnothrow && blockexit & BE.throw_)
-                                error(funcdecl.loc, "`nothrow` %s `%s` may throw", funcdecl.kind(), funcdecl.toPrettyChars());
-                            if (funcdecl.flags & FUNCFLAG.nothrowInprocess && blockexit & BE.throw_)
-                                f.isnothrow = false;
+                    s = s.statementSemantic(sc2);
 
-                            if (sbody.blockExit(funcdecl, f.isnothrow) == BE.fallthru)
-                                sbody = new CompoundStatement(Loc.initial, sbody, s);
-                            else
-                                sbody = new TryFinallyStatement(Loc.initial, sbody, s);
-                        }
-                    }
+                    bool isnothrow = f.isnothrow & !(funcdecl.flags & FUNCFLAG.nothrowInprocess);
+                    const blockexit = s.blockExit(funcdecl, isnothrow);
+                    if (blockexit & BE.throw_)
+                        funcdecl.eh_none = false;
+                    if (f.isnothrow && isnothrow && blockexit & BE.throw_)
+                        error(funcdecl.loc, "`nothrow` %s `%s` may throw", funcdecl.kind(), funcdecl.toPrettyChars());
+                    if (funcdecl.flags & FUNCFLAG.nothrowInprocess && blockexit & BE.throw_)
+                        f.isnothrow = false;
+
+                    if (sbody.blockExit(funcdecl, f.isnothrow) == BE.fallthru)
+                        sbody = new CompoundStatement(Loc.initial, sbody, s);
+                    else
+                        sbody = new TryFinallyStatement(Loc.initial, sbody, s);
                 }
                 // from this point on all possible 'throwers' are checked
                 funcdecl.flags &= ~FUNCFLAG.nothrowInprocess;
