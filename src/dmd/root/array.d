@@ -12,10 +12,15 @@
 
 module dmd.root.array;
 
+import core.stdc.stdlib : _compare_fp_t;
 import core.stdc.string;
 
 import dmd.root.rmem;
 import dmd.root.string;
+
+// `qsort` is only `nothrow` since 2.081.0
+private extern(C) void qsort(scope void* base, size_t nmemb, size_t size, _compare_fp_t compar) nothrow @nogc;
+
 
 debug
 {
@@ -296,6 +301,38 @@ public:
         return data[a .. b];
     }
 
+    /**
+     * Sort the elements of an array
+     *
+     * This function relies on `qsort`.
+     *
+     * Params:
+     *   pred = Predicate to use. Should be a function of type
+     *          `int function(scope const T*  e1, scope const T* e2) nothrow`.
+     *          The return value of this function should follow the
+     *          usual C rule: `e1 >= e2 ? (e1 > e2) : -1`.
+     *          The function can have D linkage.
+     *
+     * Returns:
+     *   A reference to this, for easy chaining.
+     */
+    extern(D) ref typeof(this) sort (alias pred) () nothrow
+    {
+        if (this.length < 2)
+            return this;
+        qsort(this.data.ptr, this.length, T.sizeof, &arraySortWrapper!(T, pred));
+        return this;
+    }
+
+    static if (is(typeof(this.data[0].opCmp(this.data[1])) : int))
+    {
+        /// Ditto, but use `opCmp` by default
+        extern(D) ref typeof(this) sort () () nothrow
+        {
+            return this.sort!((pe1, pe2) => pe1.opCmp(*pe2));
+        }
+    }
+
     alias opDollar = length;
     alias dim = length;
 }
@@ -479,4 +516,69 @@ unittest
     string expected = "[id1,id2]";
     assert(array.toString == expected);
     assert(strcmp(array.toChars, expected.ptr) == 0);
+}
+
+/// Predicate to wrap a D function passed to `qsort`
+private template arraySortWrapper(T, alias fn)
+{
+    pragma(mangle, "arraySortWrapper_" ~ T.mangleof ~ "_" ~ fn.mangleof)
+    extern(C) int arraySortWrapper(scope const void* e1, scope const void* e2) nothrow
+    {
+        return fn(cast(const(T*))e1, cast(const(T*))e2);
+    }
+}
+
+// Test sorting
+unittest
+{
+    Array!(const(char)*) strings;
+    strings.push("World");
+    strings.push("Foo");
+    strings.push("baguette");
+    strings.push("Avocado");
+    strings.push("Hello");
+    strings.sort!((e1, e2) => strcmp(*e1, *e2));
+    assert(strings[0] == "baguette");
+    assert(strings[1] == "Avocado");
+    assert(strings[2] == "Foo");
+    assert(strings[3] == "Hello");
+    assert(strings[4] == "World");
+
+    /// opCmp automatically supported
+    static struct MyStruct
+    {
+        int a;
+
+        int opCmp(const ref MyStruct other) const nothrow
+        {
+            // Reverse order
+            return other.a - this.a;
+        }
+    }
+
+    Array!MyStruct arr1;
+    arr1.push(MyStruct(2));
+    arr1.push(MyStruct(4));
+    arr1.push(MyStruct(256));
+    arr1.push(MyStruct(42));
+    arr1.sort();
+    assert(arr1[0].a == 256);
+    assert(arr1[0].a == 42);
+    assert(arr1[0].a == 4);
+    assert(arr1[0].a == 2);
+
+    /// But only if user defined
+    static struct OtherStruct
+    {
+        int a;
+
+        static int pred (scope const OtherStruct* pe1, scope const OtherStruct* pe2)
+            nothrow @nogc pure @safe
+        {
+            return pe1.a - pe2.a;
+        }
+    }
+
+    static assert (!is(typeof(Array!(OtherStruct).init.sort())));
+    static assert (!is(typeof(Array!(OtherStruct).init.sort!pred)));
 }
