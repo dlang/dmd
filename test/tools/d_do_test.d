@@ -103,10 +103,94 @@ struct EnvData
     string ccompiler;
     string model;
     string required_args;
+    string cxxCompatFlags;      /// Additional flags passed to $(compiler) when `EXTRA_CPP_SOURCES` is present
+    string[] picFlag;           /// Compiler flag for PIC (if requested from environment)
     bool dobjc;
     bool coverage_build;
     bool autoUpdate;
+    bool printRuntime;          /// Print time spent on a single test
     bool usingMicrosoftCompiler;
+}
+
+/++
+Creates a new EnvData instance based on the current environment.
+Other code should not read from the environment.
+
+Returns: an initialized EnvData instance
+++/
+immutable(EnvData) processEnvironment()
+{
+    static string envGetRequired(in char[] name)
+    {
+        if (auto value = environment.get(name))
+            return value;
+
+        writefln("Error: Missing environment variable '%s', was this called through the Makefile?",
+            name);
+        throw new SilentQuit();
+    }
+
+    EnvData envData;
+    envData.all_args       = environment.get("ARGS");
+    envData.results_dir    = envGetRequired("RESULTS_DIR");
+    envData.sep            = envGetRequired ("SEP");
+    envData.dsep           = environment.get("DSEP");
+    envData.obj            = envGetRequired ("OBJ");
+    envData.exe            = envGetRequired ("EXE");
+    envData.os             = environment.get("OS");
+    envData.dmd            = replace(envGetRequired("DMD"), "/", envData.sep);
+    envData.compiler       = "dmd"; //should be replaced for other compilers
+    envData.ccompiler      = environment.get("CC");
+    envData.model          = envGetRequired("MODEL");
+    envData.required_args  = environment.get("REQUIRED_ARGS");
+    envData.dobjc          = environment.get("D_OBJC") == "1";
+    envData.coverage_build = environment.get("DMD_TEST_COVERAGE") == "1";
+    envData.autoUpdate     = environment.get("AUTO_UPDATE", "") == "1";
+    envData.printRuntime   = environment.get("PRINT_RUNTIME", "") == "1";
+
+    if (envData.ccompiler.empty)
+    {
+        if (envData.os != "windows")
+            envData.ccompiler = "c++";
+        else if (envData.model == "32")
+            envData.ccompiler = "dmc";
+        else if (envData.model == "64")
+            envData.ccompiler = `C:\"Program Files (x86)"\"Microsoft Visual Studio 10.0"\VC\bin\amd64\cl.exe`;
+
+        // FIXME: Don't eagerly fail because the test suite relies on this behaviour
+        // else
+        //     writeln("Unknown $OS$MODEL combination: ", envData.os, envData.model);
+        //     throw new SilentQuit();
+    }
+
+    envData.usingMicrosoftCompiler = envData.ccompiler.toLower.endsWith("cl.exe");
+
+    version (Windows) {} else
+    {
+        version(X86_64)
+            envData.picFlag = ["-fPIC"];
+        if (environment.get("PIC", null) == "1")
+            envData.picFlag = ["-fPIC"];
+    }
+
+    switch (envData.compiler)
+    {
+        case "dmd":
+        case "ldc":
+            if(envData.os != "windows")
+                envData.cxxCompatFlags = " -L-lstdc++ -L--no-demangle";
+            break;
+
+        case "gdc":
+            envData.cxxCompatFlags = "-Xlinker -lstdc++ -Xlinker --no-demangle";
+            break;
+
+        default:
+            writeln("Unknown compiler: ", envData.compiler);
+            throw new SilentQuit();
+    }
+
+    return cast(immutable) envData;
 }
 
 bool findTestParameter(const ref EnvData envData, string file, string token, ref string result, string multiLineDelimiter = " ")
@@ -897,18 +981,6 @@ string generateDiff(const string expected, string expectedFile,
         return format(`%-(%s, %) failed: %s`, cmd, e.msg);
 }
 
-string envGetRequired(in char[] name)
-{
-    auto value = environment.get(name);
-    if(value is null)
-    {
-        writefln("Error: missing environment variable '%s', was this called this through the Makefile?",
-            name);
-        throw new SilentQuit();
-    }
-    return value;
-}
-
 class SilentQuit : Exception { this() { super(null); } }
 
 class CompareException : Exception
@@ -958,25 +1030,10 @@ int tryMain(string[] args)
             return 1;
     }
 
+    immutable envData = processEnvironment();
+
     string test_base_name = test_file.baseName();
     string test_name = test_base_name.stripExtension();
-
-    EnvData envData;
-    envData.all_args      = environment.get("ARGS");
-    envData.results_dir   = envGetRequired("RESULTS_DIR");
-    envData.sep           = envGetRequired ("SEP");
-    envData.dsep          = environment.get("DSEP");
-    envData.obj           = envGetRequired ("OBJ");
-    envData.exe           = envGetRequired ("EXE");
-    envData.os            = environment.get("OS");
-    envData.dmd           = replace(envGetRequired("DMD"), "/", envData.sep);
-    envData.compiler      = "dmd"; //should be replaced for other compilers
-    envData.ccompiler     = environment.get("CC");
-    envData.model         = envGetRequired("MODEL");
-    envData.required_args = environment.get("REQUIRED_ARGS");
-    envData.dobjc         = environment.get("D_OBJC") == "1";
-    envData.coverage_build   = environment.get("DMD_TEST_COVERAGE") == "1";
-    envData.autoUpdate = environment.get("AUTO_UPDATE", "") == "1";
 
     string result_path    = envData.results_dir ~ envData.sep;
     string input_file     = input_dir ~ envData.sep ~ test_base_name;
@@ -1012,23 +1069,16 @@ int tryMain(string[] args)
     if (envData.coverage_build && testArgs.mode == TestMode.RUN)
         testArgs.mode = TestMode.COMPILE;
 
+    // FIXME: Handle this in processEnvironment
     if (envData.ccompiler.empty)
     {
-        if (envData.os != "windows")
-            envData.ccompiler = "c++";
-        else if (envData.model == "32")
-            envData.ccompiler = "dmc";
-        else if (envData.model == "64")
-            envData.ccompiler = `C:\"Program Files (x86)"\"Microsoft Visual Studio 10.0"\VC\bin\amd64\cl.exe`;
-        else
-            assert(0, "unknown $OS$MODEL combination: " ~ envData.os ~ envData.model);
+        writeln("Unknown $OS$MODEL combination: ", envData.os, envData.model);
+        throw new SilentQuit();
     }
-
-    envData.usingMicrosoftCompiler = envData.ccompiler.toLower.endsWith("cl.exe");
 
     const printRuntime = environment.get("PRINT_RUNTIME", "") == "1";
     auto stopWatch = StopWatch(AutoStart.no);
-    if (printRuntime)
+    if (envData.printRuntime)
         stopWatch.start();
 
     if (!gatherTestParameters(testArgs, input_dir, input_file, envData))
@@ -1055,20 +1105,8 @@ int tryMain(string[] args)
     //prepare cpp extra sources
     if (!testArgs.isDisabled && testArgs.cppSources.length)
     {
-        switch (envData.compiler)
-        {
-            case "dmd":
-            case "ldc":
-                if(envData.os != "windows")
-                   testArgs.requiredArgs ~= " -L-lstdc++ -L--no-demangle";
-                break;
-            case "gdc":
-                testArgs.requiredArgs ~= "-Xlinker -lstdc++ -Xlinker --no-demangle";
-                break;
-            default:
-                writeln("unknown compiler: "~envData.compiler);
-                return 1;
-        }
+        testArgs.requiredArgs ~= envData.cxxCompatFlags;
+
         if (!collectExtraSources(input_dir, output_dir, testArgs.cppSources, testArgs.sources, envData, envData.ccompiler, testArgs.cxxflags))
             return 1;
     }
@@ -1341,7 +1379,7 @@ int tryMain(string[] args)
             break;
     }
 
-    if (printRuntime)
+    if (envData.printRuntime)
     {
         const long ms = stopWatch.peek.total!"msecs";
         writefln("   [%.3f secs]", ms / 1000.0);
@@ -1369,19 +1407,6 @@ int runBashTest(string input_dir, string test_name)
         auto process = spawnProcess([scriptPath, input_dir, test_name]);
     }
     return process.wait();
-}
-
-/// Return the correct pic flags
-string[] getPicFlags()
-{
-    version (Windows) { } else
-    {
-        version(X86_64)
-            return ["-fPIC"];
-        if (environment.get("PIC", null) == "1")
-            return ["-fPIC"];
-    }
-    return cast(string[])[];
 }
 
 /// Run a dshell test
@@ -1421,7 +1446,7 @@ static this()
     {
         auto outfile = File(output_file_temp, "w");
         const compile = [envData.dmd, "-conf=", "-m"~envData.model] ~
-            getPicFlags ~ [
+            envData.picFlag ~ [
             "-od" ~ testOutDir,
             "-of" ~ testScriptExe,
             "-I=" ~ testScriptDir,
