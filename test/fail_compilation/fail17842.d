@@ -26,4 +26,21 @@ Object testobj(scope Object obj) @safe
     return array[0];
 }
 
+/*
+ * TEST_OUTPUT:
+---
+fail_compilation/fail17842.d(107): Error: scope variable `p` may not be copied into allocated memory
+---
+ */
+
+#line 100
+
+// https://issues.dlang.org/show_bug.cgi?id=19873
+
+void test100()
+{
+    int i;
+    int* p = &i;
+    int*[]  slicep = [p];
+}
 
