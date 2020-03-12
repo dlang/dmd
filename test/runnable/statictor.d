@@ -1,6 +1,5 @@
 /*
 PERMUTE_ARGS:
-POST_SCRIPT: runnable/extra-files/statictor-postscript.sh
 RUN_OUTPUT:
 ---
 shared static this()
