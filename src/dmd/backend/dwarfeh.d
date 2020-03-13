@@ -387,19 +387,18 @@ else
 int actionTableInsert(Outbuffer *atbuf, int ttindex, int nextoffset)
 {
     //printf("actionTableInsert(%d, %d)\n", ttindex, nextoffset);
-    ubyte *p;
-    for (p = atbuf.buf; (p - atbuf.buf) < atbuf.length(); )
+    const(ubyte)[] p = (*atbuf)[];
+    while (p.length)
     {
-        int offset = cast(int)(p - atbuf.buf);
-        int TypeFilter = sLEB128(&p);
-        int nrpoffset = cast(int)(p - atbuf.buf);
-        int NextRecordPtr = sLEB128(&p);
+        int offset = cast(int) (atbuf.length - p.length);
+        int TypeFilter = sLEB128(p);
+        int nrpoffset = cast(int) (atbuf.length - p.length);
+        int NextRecordPtr = sLEB128(p);
 
         if (ttindex == TypeFilter &&
             nextoffset == nrpoffset + NextRecordPtr)
             return offset;
     }
-    assert(p == (*atbuf)[].ptr + atbuf.length());
     int offset = cast(int)atbuf.length();
     atbuf.writesLEB128(ttindex);
     if (nextoffset == -1)
@@ -436,19 +435,22 @@ void unittest_actionTableInsert()
 }
 
 
-/******************************
- * Decode Unsigned LEB128.
+/**
+ * Consumes and decode an unsigned LEB128.
+ *
  * Params:
- *      p = pointer to data pointer, *p is updated
- *      to point past decoded value
+ *     data = reference to a slice holding the LEB128 to decode.
+ *            When this function return, the slice will point past the LEB128.
+ *
  * Returns:
  *      decoded value
+ *
  * See_Also:
  *      https://en.wikipedia.org/wiki/LEB128
  */
-uint uLEB128(ubyte **p)
+private extern(D) uint uLEB128(ref const(ubyte)[] data)
 {
-    ubyte *q = *p;
+    const(ubyte)* q = data.ptr;
     uint result = 0;
     uint shift = 0;
     while (1)
@@ -459,23 +461,26 @@ uint uLEB128(ubyte **p)
             break;
         shift += 7;
     }
-    *p = q;
+    data = data[q - data.ptr .. $];
     return result;
 }
 
-/******************************
- * Decode Signed LEB128.
+/**
+ * Consumes and decode a signed LEB128.
+ *
  * Params:
- *      p = pointer to data pointer, *p is updated
- *      to point past decoded value
+ *     data = reference to a slice holding the LEB128 to decode.
+ *            When this function return, the slice will point past the LEB128.
+ *
  * Returns:
  *      decoded value
+ *
  * See_Also:
  *      https://en.wikipedia.org/wiki/LEB128
  */
-int sLEB128(ubyte **p)
+private extern(D) int sLEB128(ref const(ubyte)[] data)
 {
-    ubyte *q = *p;
+    const(ubyte)* q = data.ptr;
     ubyte byte_;
 
     int result = 0;
@@ -490,7 +495,7 @@ int sLEB128(ubyte **p)
     }
     if (shift < result.sizeof * 8 && (byte_ & 0x40))
         result |= -(1 << shift);
-    *p = q;
+    data = data[q - data.ptr .. $];
     return result;
 }
 
@@ -556,17 +561,17 @@ void unittest_LEB128()
         buf.reset();
         buf.writeuLEB128(value);
         assert(buf.length() == uLEB128size(value));
-        ubyte *p = buf.buf;
-        int result = uLEB128(&p);
-        assert(p == buf.p);
+        const(ubyte)[] p = buf[];
+        int result = uLEB128(p);
+        assert(!p.length());
         assert(result == value);
 
         buf.reset();
         buf.writesLEB128(value);
         assert(buf.length() == sLEB128size(value));
-        p = buf.buf;
-        result = sLEB128(&p);
-        assert(p == buf.p);
+        p = buf[];
+        result = sLEB128(p);
+        assert(!p.length());
         assert(result == value);
     }
 }
