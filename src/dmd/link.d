@@ -347,17 +347,17 @@ public int runLINK()
             {
                 if (i)
                     cmdbuf.writeByte('+');
-                const(char)* p = global.params.objfiles[i];
-                const(char)* basename = FileName.removeExt(FileName.name(p));
-                const(char)* ext = FileName.ext(p);
-                if (ext && !strchr(basename, '.'))
+                const(char)[] p = global.params.objfiles[i].toDString();
+                const(char)[] basename = FileName.removeExt(FileName.name(p));
+                const(char)[] ext = FileName.ext(p);
+                if (ext.length && !strchr(basename.ptr, '.'))
                 {
                     // Write name sans extension (but not if a double extension)
-                    writeFilename(&cmdbuf, p[0 .. ext - p - 1]);
+                    writeFilename(&cmdbuf, p[0 .. $ - ext.length - 1]);
                 }
                 else
                     writeFilename(&cmdbuf, p);
-                FileName.free(basename);
+                FileName.free(basename.ptr);
             }
             cmdbuf.writeByte(',');
             if (global.params.exefile)

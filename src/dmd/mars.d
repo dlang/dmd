@@ -2453,7 +2453,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             size_t length = argc - i - 1;
             if (length)
             {
-                const(char)* ext = FileName.ext(arguments[i + 1]);
+                const(char)[] ext = FileName.ext(arguments[i + 1].toDString());
                 if (ext && FileName.equals(ext, "d") == 0 && FileName.equals(ext, "di") == 0)
                 {
                     error("-run must be followed by a source file, not '%s'", arguments[i + 1]);
