@@ -1,5 +1,6 @@
 /**
- * Evaluate certain external functions for CTFE.
+ * Implement CTFE for intrinsic (builtin) functions.
+ *
  * Currently includes functions from `std.math`, `core.math` and `core.bitop`.
  *
  * Compiler implementation of the

@@ -1,10 +1,12 @@
 /**
- * Defines declarations of various 'attributes'.
- * The term attribute is used very loosly, since it includes:
+ * Defines declarations of various attributes.
+ *
+ * The term 'attribute' refers to things that can apply to a larger scope than a single declaration.
+ * Among them are:
  * - Alignment (`align(8)`)
  * - User defined attributes (`@UDA`)
  * - Function Attributes (`@safe`)
- * - Storage classes (`ref`, `static`)
+ * - Storage classes (`static`, `__gshared`)
  * - Mixin declarations  (`mixin("int x;")`)
  * - Conditional compilation (`static if`, `static foreach`)
  * - Linkage (`extern(C)`)

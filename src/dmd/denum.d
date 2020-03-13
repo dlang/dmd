@@ -1,5 +1,5 @@
 /**
- * Define enum declarations and enum members.
+ * Define `enum` declarations and `enum` members.
  *
  * Specification: $(LINK2 https://dlang.org/spec/enum.html, Enums)
  *

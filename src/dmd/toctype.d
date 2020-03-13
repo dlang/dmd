@@ -1,5 +1,5 @@
 /**
- * Convert a D symbol to a symbol the linker understands (with mangled name)
+ * Convert a D type to a type the backend understands.
  *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).

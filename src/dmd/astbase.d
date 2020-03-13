@@ -11,9 +11,6 @@
 
 module dmd.astbase;
 
-/**
- */
-
 import dmd.parsetimevisitor;
 
 /** The ASTBase  family defines a family of AST nodes appropriate for parsing with

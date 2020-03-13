@@ -1,4 +1,6 @@
 /**
+ * Extract symbols from a Mach-O object file.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

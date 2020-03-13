@@ -1,5 +1,5 @@
 /**
- * Handle introspection using the `__traits()` construct.
+ * Handle introspection functionality of the `__traits()` construct.
  *
  * Specification: $(LINK2 https://dlang.org/spec/traits.html, Traits)
  *

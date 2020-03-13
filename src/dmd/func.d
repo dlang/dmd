@@ -1,5 +1,6 @@
 /**
  * Defines a function declaration.
+ *
  * Includes:
  * - function/delegate literals
  * - function aliases

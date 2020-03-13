@@ -1,5 +1,5 @@
 /**
- * Implement array opterations, such as `a[] = b[] + c[]`.
+ * Implement array operations, such as `a[] = b[] + c[]`.
  *
  * Specification: $(LINK2 https://dlang.org/spec/arrays.html#array-operations, Array Operations)
  *

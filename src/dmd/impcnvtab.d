@@ -1,5 +1,6 @@
 /**
  * Provides an implicit conversion table for basic types.
+ *
  * Used to determine integer promotions and common types.
  *
  * Specification: $(LINK2 https://dlang.org/spec/type.html#integer-promotions, Integer Promotions),

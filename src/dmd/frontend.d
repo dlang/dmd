@@ -1,5 +1,5 @@
 /**
- * This module contains high-level interfaces for interacting with DMD as a library.
+ * Contains high-level interfaces for interacting with DMD as a library.
  *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).

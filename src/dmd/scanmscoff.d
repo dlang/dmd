@@ -1,4 +1,6 @@
 /**
+ * Extract symbols from a COFF object file.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

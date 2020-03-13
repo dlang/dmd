@@ -1,6 +1,5 @@
 /**
- * This module contains the `Id` struct with a list of predefined symbols the
- * compiler knows about.
+ * Contains the `Id` struct with a list of predefined symbols the compiler knows about.
  *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).

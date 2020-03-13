@@ -1,6 +1,5 @@
 /**
- * Does name mangling for D symbols, which generates a unique name for a linker symbol based
- * on the namespace, identifier and type.
+ * Does name mangling for `extern(D)` symbols.
  *
  * Specification: $(LINK2 https://dlang.org/spec/abi.html#name_mangling, Name Mangling)
  *

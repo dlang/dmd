@@ -1,5 +1,6 @@
 /**
  * Declarations for back-end functions that the front-end invokes.
+ *
  * This 'glues' either the DMC or GCC back-end to the front-end.
  *
  * Compiler implementation of the

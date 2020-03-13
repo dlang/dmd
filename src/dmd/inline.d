@@ -1,5 +1,6 @@
 /**
  * Performs inlining, which is an optimization pass enabled with the `-inline` flag.
+ *
  * The AST is traversed, and every function call is considered for inlining using `inlinecost.d`.
  * The function call is then inlined if this cost is below a threshold.
  *

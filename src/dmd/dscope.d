@@ -1,5 +1,6 @@
 /**
- * Defines a scope as defined by curly braces `{}` and provides symbol lookup.
+ * A scope as defined by curly braces `{}`.
+ *
  * Not to be confused with the `scope` storage class.
  *
  * Compiler implementation of the

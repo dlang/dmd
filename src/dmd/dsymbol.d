@@ -1,5 +1,5 @@
 /**
- * The base class for a D symbol, which can be a module, variable, function, enums, etc.
+ * The base class for a D symbol, which can be a module, variable, function, enum, etc.
  *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).

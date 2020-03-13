@@ -1,5 +1,5 @@
 /**
- * Defines an abstract ASTNode class.
+ * Defines the base class for all nodes which are part of the AST.
  *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).

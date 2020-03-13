@@ -1,8 +1,9 @@
 /**
- * This modules implements the serialization of a lambda function. The serialization
- * is computed by visiting the abstract syntax subtree of the given lambda function.
- * The serialization is a string which contains the type of the parameters and the
- * string represantation of the lambda expression.
+ * Implements the serialization of a lambda function.
+ *
+ * The serializationis computed by visiting the abstract syntax subtree of the given lambda function.
+ * The serialization is a string which contains the type of the parameters and the string
+ * represantation of the lambda expression.
  *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).

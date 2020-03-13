@@ -1,5 +1,6 @@
 /**
  * Do mangling for C++ linkage.
+ *
  * This is the POSIX side of the implementation.
  * It exports two functions to C++, `toCppMangleItanium` and `cppTypeInfoMangleItanium`.
  *

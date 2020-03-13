@@ -1,5 +1,6 @@
 /**
  * Defines a visitor for the AST.
+ *
  * Other visitors derive from this class.
  *
  * Documentation:  https://dlang.org/phobos/dmd_parsetimevisitor.html

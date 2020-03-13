@@ -1,4 +1,6 @@
 /**
+ * Provides an AST printer for debugging.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
