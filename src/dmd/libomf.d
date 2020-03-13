@@ -155,22 +155,14 @@ final class LibOMF : Library
             if (firstmodule && module_name && !islibrary)
             {
                 // Remove path and extension
-                auto n = cast(char*)Mem.check(strdup(FileName.name(module_name)));
-                om.name = n.toDString();
-                char* ext = cast(char*)FileName.ext(n);
-                if (ext)
-                    ext[-1] = 0;
+                om.name = FileName.removeExt(FileName.name(module_name.toDString()));
             }
             else
             {
                 /* Use THEADR name as module name,
                  * removing path and extension.
                  */
-                auto n = cast(char*)Mem.check(strdup(FileName.name(name)));
-                om.name = n.toDString();
-                char* ext = cast(char*)FileName.ext(n);
-                if (ext)
-                    ext[-1] = 0;
+                om.name = FileName.removeExt(FileName.name(name.toDString()));
             }
             firstmodule = false;
             this.objmodules.push(om);
