@@ -1,4 +1,6 @@
 /**
+ * Associative array implementation
+ *
  * Compiler implementation of the D programming language
  * http://dlang.org
  *

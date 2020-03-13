@@ -1,5 +1,5 @@
 /**
- * This module contains various string related functions.
+ * Contains various string related functions.
  *
  * Compiler implementation of the D programming language
  * http://dlang.org

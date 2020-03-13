@@ -1,4 +1,6 @@
 /**
+ * Provide the root object that classes in dmd inherit from.
+ *
  * Compiler implementation of the D programming language
  * http://dlang.org
  *

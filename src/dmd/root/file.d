@@ -1,4 +1,6 @@
 /**
+ * Read a file from disk and store it in memory.
+ *
  * Compiler implementation of the D programming language
  * http://dlang.org
  *

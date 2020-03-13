@@ -1,4 +1,6 @@
 /**
+ * Provides a D implementation of the standard C function `strold` (String to long double).
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

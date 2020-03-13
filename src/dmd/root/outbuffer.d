@@ -1,4 +1,6 @@
 /**
+ * An expandable buffer in which you can write text or binary data.
+ *
  * Compiler implementation of the D programming language
  * http://dlang.org
  *

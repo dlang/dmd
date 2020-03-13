@@ -1,4 +1,6 @@
 /**
+ * Parse command line arguments from response files.
+ *
  * Compiler implementation of the D programming language
  * http://dlang.org
  * This file is not shared with other compilers which use the DMD front-end.

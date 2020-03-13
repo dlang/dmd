@@ -1,4 +1,6 @@
 /**
+ * Open an online manual page.
+ *
  * Compiler implementation of the D programming language
  * http://dlang.org
  *

@@ -1,4 +1,6 @@
 /**
+ * Allocate memory using `malloc` or the GC depending on the configuration.
+ *
  * Compiler implementation of the D programming language
  * http://dlang.org
  *

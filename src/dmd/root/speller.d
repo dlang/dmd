@@ -1,4 +1,6 @@
 /**
+ * Try to detect typos in identifiers.
+ *
  * Compiler implementation of the D programming language
  * http://dlang.org
  *

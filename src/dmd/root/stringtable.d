@@ -1,4 +1,6 @@
 /**
+ * A specialized associative array with string keys stored in a variable length structure.
+ *
  * Compiler implementation of the D programming language
  * http://dlang.org
  *

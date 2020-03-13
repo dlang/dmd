@@ -1,4 +1,6 @@
 /**
+ * Encapsulate path and file names.
+ *
  * Compiler implementation of the D programming language
  * http://dlang.org
  *

@@ -1,4 +1,6 @@
 /**
+ * Hash functions for arbitrary binary data.
+ *
  * Compiler implementation of the D programming language
  * http://dlang.org
  *

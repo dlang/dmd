@@ -1,4 +1,6 @@
 /**
+ * Portable routines for functions that have different implementations on different platforms.
+ *
  * Compiler implementation of the D programming language
  * http://dlang.org
  *
