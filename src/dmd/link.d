@@ -917,7 +917,7 @@ version (Windows)
         const argv0 = global.params.argv0;
         //printf("argv0='%s', cmd='%s', args='%s'\n",argv0,cmd,args);
         // If cmd is fully qualified, we don't do this
-        if (FileName.absolute(cmd))
+        if (FileName.absolute(cmd.toDString()))
             return -1;
         const file = FileName.replaceName(argv0, cmd.toDString);
         //printf("spawning '%s'\n",file);
@@ -981,14 +981,15 @@ public int runProgram()
         childpid = fork();
         if (childpid == 0)
         {
-            const(char)* fn = argv[0];
+            const(char)[] fn = argv[0].toDString();
+            // Make it "./fn" if needed
             if (!FileName.absolute(fn))
-            {
-                // Make it "./fn"
                 fn = FileName.combine(".", fn);
-            }
-            execv(fn, argv.tdata());
-            perror(fn); // failed to execute
+            fn.toCStringThen!((fnp) {
+                    execv(fnp.ptr, argv.tdata());
+                    // If execv returns, it failed to execute
+                    perror(fnp.ptr);
+                });
             return -1;
         }
         waitpid(childpid, &status, 0);
@@ -1009,4 +1010,3 @@ public int runProgram()
         assert(0);
     }
 }
-

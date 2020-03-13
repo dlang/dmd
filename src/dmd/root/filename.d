@@ -94,12 +94,6 @@ nothrow:
      * Returns:
      *  true if absolute path name.
      */
-    extern (C++) static bool absolute(const(char)* name) pure @nogc
-    {
-        return absolute(name.toDString);
-    }
-
-    /// Ditto
     extern (D) static bool absolute(const(char)[] name) pure @nogc
     {
         if (!name.length)
