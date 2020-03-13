@@ -1,7 +1,7 @@
 /**
  * Defines a `class` declaration.
  *
- * Specification: $(LINK2, https://dlang.org/spec/class.html, Classes)
+ * Specification: $(LINK2 https://dlang.org/spec/class.html, Classes)
  *
  * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)

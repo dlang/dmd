@@ -1,7 +1,7 @@
 /**
  * Perform checks for `nothrow`.
  *
- * Specification: $(LINK2, https://dlang.org/spec/function.html#nothrow-functions, Nothrow Functions)
+ * Specification: $(LINK2 https://dlang.org/spec/function.html#nothrow-functions, Nothrow Functions)
  *
  * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
