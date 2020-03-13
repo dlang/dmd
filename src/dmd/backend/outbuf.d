@@ -28,7 +28,7 @@ struct Outbuffer
 {
     ubyte *buf;         // the buffer itself
     ubyte *pend;        // pointer past the end of the buffer
-    ubyte *p;           // current position in buffer
+    private ubyte *p;   // current position in buffer
 
   nothrow:
     this(size_t initialSize)

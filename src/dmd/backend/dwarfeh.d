@@ -388,7 +388,7 @@ int actionTableInsert(Outbuffer *atbuf, int ttindex, int nextoffset)
 {
     //printf("actionTableInsert(%d, %d)\n", ttindex, nextoffset);
     ubyte *p;
-    for (p = atbuf.buf; p < atbuf.p; )
+    for (p = atbuf.buf; (p - atbuf.buf) < atbuf.length(); )
     {
         int offset = cast(int)(p - atbuf.buf);
         int TypeFilter = sLEB128(&p);
@@ -399,7 +399,7 @@ int actionTableInsert(Outbuffer *atbuf, int ttindex, int nextoffset)
             nextoffset == nrpoffset + NextRecordPtr)
             return offset;
     }
-    assert(p == atbuf.p);
+    assert(p == (*atbuf)[].ptr + atbuf.length());
     int offset = cast(int)atbuf.length();
     atbuf.writesLEB128(ttindex);
     if (nextoffset == -1)
