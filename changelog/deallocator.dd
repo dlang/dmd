@@ -1,6 +1,0 @@
-Class deallocator have been removed from the language
-
-Class deallocator have been deprecated in v2.080.0
-(see $(LINK2 https://dlang.org/changelog/2.080.0.html#deprecate_class_allocators, the changelog entry)),
-and turned into an error in v2.087.0.
-They have now been completely removed from the language, and the parser won't recognize them anymore.
