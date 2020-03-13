@@ -100,8 +100,6 @@ nothrow:
             }
             size = cast(size_t)buf.st_size;
             ubyte* buffer = cast(ubyte*)mem.xmalloc_noscan(size + 2);
-            if (!buffer)
-                goto err2;
             numread = .read(fd, buffer, size);
             if (numread != size)
             {
@@ -144,8 +142,6 @@ nothrow:
                 return result;
             size = GetFileSize(h, null);
             ubyte* buffer = cast(ubyte*)mem.xmalloc_noscan(size + 2);
-            if (!buffer)
-                goto err2;
             if (ReadFile(h, buffer, size, &numread, null) != TRUE)
                 goto err2;
             if (numread != size)
