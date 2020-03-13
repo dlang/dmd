@@ -108,7 +108,7 @@ final class LibMach : Library
             }
             return corrupt(__LINE__);
         }
-        if (memcmp(buf, cast(char*)"!<arch>\n", 8) == 0)
+        if (memcmp(buf, "!<arch>\n".ptr, 8) == 0)
         {
             /* Library file.
              * Pull each object module out of the library and add it
@@ -134,8 +134,8 @@ final class LibMach : Library
                     return corrupt(__LINE__);
                 if (offset + size > buflen)
                     return corrupt(__LINE__);
-                if (memcmp(header.object_name.ptr, cast(char*)"__.SYMDEF       ", 16) == 0 ||
-                    memcmp(header.object_name.ptr, cast(char*)"__.SYMDEF SORTED", 16) == 0)
+                if (memcmp(header.object_name.ptr, "__.SYMDEF       ".ptr, 16) == 0 ||
+                    memcmp(header.object_name.ptr, "__.SYMDEF SORTED".ptr, 16) == 0)
                 {
                     /* Instead of rescanning the object modules we pull from a
                      * library, just use the already created symbol table.
@@ -209,7 +209,7 @@ final class LibMach : Library
         om.base = cast(ubyte*)buf;
         om.length = cast(uint)buflen;
         om.offset = 0;
-        const n = cast(const(char)*)FileName.name(module_name); // remove path, but not extension
+        const n = FileName.name(module_name); // remove path, but not extension
         om.name = n.toDString();
         om.scan = 1;
         if (fromfile)
@@ -381,7 +381,7 @@ private:
         om.file_mode = (1 << 15) | (6 << 6) | (4 << 3) | (4 << 0); // 0100644
         MachLibHeader h;
         MachOmToHeader(&h, &om);
-        memcpy(h.object_name.ptr, cast(const(char)*)"__.SYMDEF", 9);
+        memcpy(h.object_name.ptr, "__.SYMDEF".ptr, 9);
         int len = sprintf(h.file_size.ptr, "%u", om.length);
         assert(len <= 10);
         memset(h.file_size.ptr + len, ' ', 10 - len);

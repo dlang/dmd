@@ -108,7 +108,7 @@ final class LibElf : Library
             }
             return corrupt(__LINE__);
         }
-        if (memcmp(buf, cast(char*)"!<arch>\n", 8) == 0)
+        if (memcmp(buf, "!<arch>\n".ptr, 8) == 0)
         {
             /* Library file.
              * Pull each object module out of the library and add it
