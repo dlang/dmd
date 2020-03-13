@@ -77,6 +77,12 @@ nothrow:
     /// Read the full content of a file.
     extern (C++) static ReadResult read(const(char)* name)
     {
+        return read(name.toDString());
+    }
+
+    /// Ditto
+    static ReadResult read(const(char)[] name)
+    {
         ReadResult result;
 
         version (Posix)
@@ -85,7 +91,7 @@ nothrow:
             stat_t buf;
             ssize_t numread;
             //printf("File::read('%s')\n",name);
-            int fd = open(name, O_RDONLY);
+            int fd = name.toCStringThen!(slice => open(slice.ptr, O_RDONLY));
             if (fd == -1)
             {
                 //printf("\topen error, errno = %d\n",errno);
@@ -130,7 +136,7 @@ nothrow:
 
             // work around Windows file path length limitation
             // (see documentation for extendedPathThen).
-            HANDLE h = name.toDString.extendedPathThen!
+            HANDLE h = name.extendedPathThen!
                 (p => CreateFileW(p.ptr,
                                   GENERIC_READ,
                                   FILE_SHARE_READ,
