@@ -719,8 +719,6 @@ dmd -cov -unittest myprog.d
     static immutable transitions = [
         Feature("field", "vfield",
             "list all non-mutable fields which occupy an object instance"),
-        Feature("checkimports", "check10378",
-            "give deprecation messages about 10378 anomalies", true, true),
         Feature("complex", "vcomplex",
             "give deprecation messages about all usages of complex or imaginary types"),
         Feature("tls", "vtls",
@@ -732,7 +730,6 @@ dmd -cov -unittest myprog.d
     /// Returns all available reverts
     static immutable reverts = [
         Feature("dip25", "noDIP25", "revert DIP25 changes https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md"),
-        Feature("import", "bug10378", "revert to single phase name lookup", true, true),
     ];
 
     /// Returns all available previews

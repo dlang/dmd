@@ -1993,9 +1993,6 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                         case 3449:
                             params.vfield = true;
                             break;
-                        case 10378:
-                            params.bug10378 = true;
-                            break;
                         case 14246:
                             params.dtorFields = true;
                             break;
@@ -2016,9 +2013,6 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                     const ident = p + len;
                     switch (ident.toDString())
                     {
-                        case "import":
-                            params.bug10378 = true;
-                            break;
                         case "dtorfields":
                             params.dtorFields = true;
                             break;
