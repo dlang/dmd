@@ -1,9 +1,6 @@
 /**
  * Generate exception handling tables.
  *
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
- *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
  *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
