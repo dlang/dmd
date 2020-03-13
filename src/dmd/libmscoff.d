@@ -81,18 +81,18 @@ final class LibMSCoff : Library
      * If the buffer is NULL, use module_name as the file name
      * and load the file.
      */
-    override void addObject(const(char)* module_name, const ubyte[] buffer)
+    override void addObject(const(char)[] module_name, const ubyte[] buffer)
     {
-        if (!module_name)
-            module_name = "";
         static if (LOG)
         {
-            printf("LibMSCoff::addObject(%s)\n", module_name);
+            printf("LibMSCoff::addObject(%.*s)\n", cast(int)module_name.length,
+                   module_name.ptr);
         }
 
         void corrupt(int reason)
         {
-            error("corrupt MS Coff object module %s %d", module_name, reason);
+            error("corrupt MS Coff object module %.*s %d",
+                  cast(int)module_name.length, module_name.ptr, reason);
         }
 
         int fromfile = 0;
@@ -100,7 +100,7 @@ final class LibMSCoff : Library
         auto buflen = buffer.length;
         if (!buf)
         {
-            assert(module_name[0]);
+            assert(module_name.length, "No module nor buffer provided to `addObject`");
             // read file and take buffer ownership
             auto data = readFile(Loc.initial, module_name).extractSlice();
             buf = data.ptr;
@@ -312,13 +312,13 @@ final class LibMSCoff : Library
         om.base = cast(ubyte*)buf;
         om.length = cast(uint)buflen;
         om.offset = 0;
-        const(char)* n = global.params.preservePaths ? module_name : FileName.name(module_name); // remove path, but not extension
-        om.name = n.toDString();
+        // remove path, but not extension
+        om.name = global.params.preservePaths ? module_name : FileName.name(module_name);
         om.scan = 1;
         if (fromfile)
         {
             stat_t statbuf;
-            int i = stat(cast(char*)module_name, &statbuf);
+            int i = module_name.toCStringThen!(name => stat(name.ptr, &statbuf));
             if (i == -1) // error, errno is set
                 return corrupt(__LINE__);
             om.file_time = statbuf.st_ctime;

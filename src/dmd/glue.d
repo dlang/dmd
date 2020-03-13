@@ -281,7 +281,7 @@ void obj_end(Library library, const(char)* objfilename)
     if (library)
     {
         // Transfer ownership of image buffer to library
-        library.addObject(objfilename, objbuf.extractSlice[]);
+        library.addObject(objfilename.toDString(), objbuf.extractSlice[]);
     }
     else
     {
