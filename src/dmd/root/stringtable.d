@@ -1,9 +1,6 @@
 /**
  * A specialized associative array with string keys stored in a variable length structure.
  *
- * Compiler implementation of the D programming language
- * http://dlang.org
- *
  * Copyright: Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
