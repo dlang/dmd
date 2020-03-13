@@ -1,6 +1,5 @@
 /*
 REQUIRED_ARGS: -betterC
-POST_SCRIPT: runnable/extra-files/test17868-postscript.sh
 RUN_OUTPUT:
 ---
 init
