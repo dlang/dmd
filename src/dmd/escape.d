@@ -1898,6 +1898,7 @@ void escapeByRef(Expression e, EscapeByResults* er, bool live = false)
 
         override void visit(CallExp e)
         {
+            //printf("escapeByRef.CallExp(): %s\n", e.toChars());
             /* If the function returns by ref, check each argument that is
              * passed as 'return ref'.
              */
@@ -1955,10 +1956,10 @@ void escapeByRef(Expression e, EscapeByResults* er, bool live = false)
 
                     if (dve.var.storage_class & STC.return_ || tf.isreturn)
                     {
-                        if (dve.var.storage_class & STC.scope_ || tf.isscope)
-                            escapeByValue(dve.e1, er, live);
-                        else if (dve.var.storage_class & STC.ref_ || tf.isref)
+                        if (dve.var.storage_class & STC.ref_ || tf.isref)
                             dve.e1.accept(this);
+                        else if (dve.var.storage_class & STC.scope_ || tf.isscope)
+                            escapeByValue(dve.e1, er, live);
                     }
                     // If it's also a nested function that is 'return ref'
                     FuncDeclaration fd = dve.var.isFuncDeclaration();
