@@ -1220,9 +1220,9 @@ int tryMain(string[] args)
 
             // Prepare and append the content of each OUTPUT_FILE conforming to
             // the HAR (https://code.dlang.org/packages/har) format, e.g.
-            // --- <FILENAME_1>
+            // === <FILENAME_1>
             // <CONTENT_1>
-            // --- <FILENAME_2>
+            // === <FILENAME_2>
             // <CONTENT_2>
             // ...
             foreach (const outfile; testArgs.outputFiles)
@@ -1241,7 +1241,7 @@ int tryMain(string[] args)
                 // Prepend a header listing the explicit file
                 compile_output.reserve(outfile.length + content.length + 5);
 
-                compile_output ~= "--- ";
+                compile_output ~= "=== ";
                 compile_output ~= outfile;
                 compile_output ~= '\n';
                 compile_output ~= content;

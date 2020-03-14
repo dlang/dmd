@@ -1,4 +1,4 @@
---- ${RESULTS_DIR}/compilable/json2.out
+=== ${RESULTS_DIR}/compilable/json2.out
 {
     "buildInfo": {
         "argv0": "VALUE_REMOVED_FOR_TEST",
