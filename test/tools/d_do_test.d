@@ -81,6 +81,7 @@ struct TestArgs
     string   gdbScript;
     string   gdbMatch;
     string   postScript;
+    string[] outputFiles; /// generated files appended to the compilation output
     string   transformOutput; /// Transformations for the compiler output
     string   requiredArgs;
     string   requiredArgsForLink;
@@ -461,6 +462,10 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     }
     else
         findOutputParameter(file, "TEST_OUTPUT", testArgs.compileOutput, envData.sep);
+
+    string outFilesStr;
+    findTestParameter(envData, file, "OUTPUT_FILES", outFilesStr);
+    testArgs.outputFiles = outFilesStr.split(';');
 
     findTestParameter(envData, file, "TRANSFORM_OUTPUT", testArgs.transformOutput);
 
@@ -1191,19 +1196,56 @@ int tryMain(string[] args)
                 }
             }
 
-            compile_output = compile_output.unifyNewLine();
-            compile_output = std.regex.replaceAll(compile_output, regex(`^DMD v2\.[0-9]+.*\n? DEBUG$`, "m"), "");
-            compile_output = std.string.strip(compile_output);
-            // replace test_result path with fixed ones
-            compile_output = compile_output.replace(result_path, resultsDirReplacement);
-            compile_output = compile_output.replace(absoluteResultDirPath, resultsDirReplacement);
+            void prepare(ref string compile_output)
+            {
+                if (compile_output.empty)
+                    return;
+
+                compile_output = compile_output.unifyNewLine();
+                compile_output = std.regex.replaceAll(compile_output, regex(`^DMD v2\.[0-9]+.*\n? DEBUG$`, "m"), "");
+                compile_output = std.string.strip(compile_output);
+                // replace test_result path with fixed ones
+                compile_output = compile_output.replace(result_path, resultsDirReplacement);
+                compile_output = compile_output.replace(absoluteResultDirPath, resultsDirReplacement);
+
+                compile_output.applyOutputTransformations(testArgs.transformOutput);
+            }
+
+            prepare(compile_output);
 
             auto m = std.regex.match(compile_output, `Internal error: .*$`);
             enforce(!m, m.hit);
             m = std.regex.match(compile_output, `core.exception.AssertError@dmd.*`);
             enforce(!m, m.hit);
 
-            compile_output.applyOutputTransformations(testArgs.transformOutput);
+            // Prepare and append the content of each OUTPUT_FILE conforming to
+            // the HAR (https://code.dlang.org/packages/har) format, e.g.
+            // --- <FILENAME_1>
+            // <CONTENT_1>
+            // --- <FILENAME_2>
+            // <CONTENT_2>
+            // ...
+            foreach (const outfile; testArgs.outputFiles)
+            {
+                string path = outfile;
+                replaceResultsDir(path, envData);
+
+                // Don't abort if a file is missing, at least verify the remaining output.
+                string content = readText(path).ifThrown("<< File missing >>");
+                prepare(content);
+
+                // Make sure file starts on a new line
+                if (!compile_output.empty && !compile_output.endsWith("\n"))
+                    compile_output ~= '\n';
+
+                // Prepend a header listing the explicit file
+                compile_output.reserve(outfile.length + content.length + 5);
+
+                compile_output ~= "--- ";
+                compile_output ~= outfile;
+                compile_output ~= '\n';
+                compile_output ~= content;
+            }
 
             if (!compareOutput(compile_output, testArgs.compileOutput, envData))
             {

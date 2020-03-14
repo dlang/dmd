@@ -211,6 +211,23 @@ The following is a list of all available settings:
     LINK:                enables linking (used for the compilable and fail_compilable tests).
                          default: (none)
 
+    OUTPUT_FILES:       files generated during the compilation (separated by ';').
+                        The content of each file is appended to the output of the
+                        compilation (in the order of this list) according to the HAR
+                        format (https://code.dlang.org/packages/har).
+                        Example:
+                        ------------------------------------------
+                        <Compilation Output>
+                        --- <FILENAME_1>
+                        <CONTENT_1>
+                        --- <FILENAME_2>
+                        <CONTENT_2>
+                        [...]
+                        ------------------------------------------
+                        The merged output will then be prepared and compared to the
+                        expected TEST_OUTPUT as defined below.
+                        default: (none)
+
     TEST_OUTPUT:         the output is expected from the compilation (if the
                          output of the compilation doesn't match, the test
                          fails). You can use the this format for multi-line
