@@ -1,8 +1,8 @@
 // PERMUTE_ARGS:
-// REQUIRED_ARGS: -d -preview=dip1000 -o- -X -Xf${RESULTS_DIR}/compilable/json.out
-// POST_SCRIPT: compilable/extra-files/json-postscript.sh
+// REQUIRED_ARGS: -d -preview=dip1000 -o- -X -Xf-
 // EXTRA_FILES: imports/jsonimport1.d imports/jsonimport2.d imports/jsonimport3.d imports/jsonimport4.d
-
+// TRANSFORM_OUTPUT: sanitize_json
+// TEST_OUTPUT_FILE: extra-files/json.json
 module json;
 
 shared static this() {}
