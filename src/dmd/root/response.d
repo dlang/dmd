@@ -1,6 +1,6 @@
 /**
- * Compiler implementation of the D programming language
- * http://dlang.org
+ * Parse command line arguments from response files.
+ *
  * This file is not shared with other compilers which use the DMD front-end.
  *
  * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved

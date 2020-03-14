@@ -1,7 +1,4 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
- *
  * Region storage allocator implementation.
  *
  * Copyright:   Copyright (C) 2019-2020 by The D Language Foundation, All Rights Reserved

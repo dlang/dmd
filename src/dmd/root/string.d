@@ -1,8 +1,5 @@
 /**
- * This module contains various string related functions.
- *
- * Compiler implementation of the D programming language
- * http://dlang.org
+ * Contains various string related functions.
  *
  * Copyright: Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com
