@@ -1,3 +1,5 @@
+=== ${RESULTS_DIR}/compilable/testheader2.di
+// D import file generated from 'compilable/extra-files/header2.d'
 class C
 {
 }
