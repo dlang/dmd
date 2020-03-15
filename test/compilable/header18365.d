@@ -1,5 +1,26 @@
-// REQUIRED_ARGS: -c -o- -Hf${RESULTS_DIR}/compilable/header18365.di
-// POST_SCRIPT: compilable/extra-files/header-postscript.sh
+/*
+REQUIRED_ARGS: -c -o- -Hf${RESULTS_DIR}/compilable/header18365.di
+PERMUTE_ARGS:
+OUTPUT_FILES: ${RESULTS_DIR}/compilable/header18365.di
+
+TEST_OUTPUT:
+---
+=== ${RESULTS_DIR}/compilable/header18365.di
+// D import file generated from 'compilable/header18365.d'
+struct FullCaseEntry
+{
+	dchar[3] seq;
+	ubyte n;
+	ubyte size;
+	ubyte entry_len;
+	auto const pure nothrow @nogc @property @trusted value() return
+	{
+		return seq[0..entry_len];
+	}
+}
+---
+*/
+
 struct FullCaseEntry
 {
     dchar[3] seq;
