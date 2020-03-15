@@ -218,9 +218,9 @@ The following is a list of all available settings:
                         Example:
                         ------------------------------------------
                         <Compilation Output>
-                        --- <FILENAME_1>
+                        === <FILENAME_1>
                         <CONTENT_1>
-                        --- <FILENAME_2>
+                        === <FILENAME_2>
                         <CONTENT_2>
                         [...]
                         ------------------------------------------
