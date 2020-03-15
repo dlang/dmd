@@ -51,12 +51,7 @@ alias list_free_fp = void function(void*) @nogc nothrow;
 
 enum FPNULL = cast(list_free_fp)null;
 
-/* **************** PUBLIC VARIABLES ********************* */
-
-__gshared
-{
-    list_t list_freelist;
-}
+private __gshared list_t list_freelist;
 
 /* **************** PUBLIC FUNCTIONS ********************* */
 
