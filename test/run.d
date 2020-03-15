@@ -458,7 +458,7 @@ string[string] getEnvironment()
     env["DMD"] = dmdPath;
     env.getDefault("DMD_TEST_COVERAGE", "0");
 
-    const generatedSuffix = "generated/%s/%s/%s".format(os, build, dmdModel);
+    const generatedSuffix = "generated/%s/%s/%s".format(os, build, model);
 
     version(Windows)
     {
