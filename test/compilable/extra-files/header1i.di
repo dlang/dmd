@@ -1,3 +1,6 @@
+Hello World
+=== ${RESULTS_DIR}/compilable/testheader1i.di
+// D import file generated from 'compilable/extra-files/header1.d'
 module foo.bar;
 import core.vararg;
 void writeln(T...)(T)
