@@ -13,6 +13,7 @@ module core.internal.elf.io;
 
 version (Posix):
 
+import core.lifetime : move;
 import core.sys.posix.fcntl;
 import core.sys.posix.sys.mman;
 import core.sys.posix.unistd;
@@ -135,40 +136,69 @@ template ElfIO(Elf_Ehdr, Elf_Shdr, ubyte ELFCLASS)
         }
 
         /**
+         * Returns a struct to iterate over the named sections.
+         * Examples:
+         * --------------------
+         * foreach (index, name, sectionHeader; elfFile.namedSections) ...
+         * --------------------
+         */
+        NamedSections namedSections() const
+        {
+            return NamedSections(this);
+        }
+
+        /**
          * Tries to find the header of the section with the specified name.
          * Returns: True on success.
          */
         bool findSectionHeaderByName(const(char)[] sectionName, out ElfSectionHeader header) const
         {
-            const index = findSectionIndexByName(sectionName);
-            if (index == -1)
-                return false;
-            header = ElfSectionHeader(this, index);
-            return true;
+            foreach (index, name, sectionHeader; namedSections)
+            {
+                if (name == sectionName)
+                {
+                    header = move(sectionHeader);
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    /// Enables iterating over an ELF file's (named) sections.
+    struct NamedSections
+    {
+    @nogc nothrow:
+        private const(ElfFile)* file;
+
+        private this(ref const ElfFile file)
+        {
+            this.file = &file;
         }
 
-        /**
-         * Tries to find the index of the section with the specified name.
-         * Returns: -1 if not found, otherwise 0-based section index.
-         */
-        size_t findSectionIndexByName(const(char)[] sectionName) const
+        /// name: null-terminated
+        alias Callback = int delegate(size_t index, const(char)[] name, ElfSectionHeader sectionHeader);
+
+        ///
+        int opApply(scope Callback dg)
         {
-            import core.stdc.string : strlen;
+            const stringSectionHeader = ElfSectionHeader(*file, file.ehdr.e_shstrndx);
+            const stringSection = ElfSection(*file, stringSectionHeader);
 
-            const stringSectionHeader = ElfSectionHeader(this, ehdr.e_shstrndx);
-            const stringSection = ElfSection(this, stringSectionHeader);
-
-            foreach (i; 0 .. ehdr.e_shnum)
+            foreach (i; 0 .. file.ehdr.e_shnum)
             {
-                auto sectionHeader = ElfSectionHeader(this, i);
-                auto pCurrentName = cast(const(char)*) (stringSection.data.ptr + sectionHeader.sh_name);
-                auto currentName = pCurrentName[0 .. strlen(pCurrentName)];
-                if (sectionName == currentName)
-                    return i;
+                import core.stdc.string : strlen;
+
+                auto sectionHeader = ElfSectionHeader(*file, i);
+                auto sectionName = cast(const(char)*) (stringSection.data.ptr + sectionHeader.sh_name);
+                const nameLen = strlen(sectionName);
+
+                const r = dg(i, sectionName[0 .. nameLen], move(sectionHeader));
+                if (r != 0)
+                    return r;
             }
 
-            // not found
-            return -1;
+            return 0;
         }
     }
 
@@ -284,4 +314,30 @@ private struct MMapRegion(T)
 
     private ubyte[] mappedRegion;
     const(T)* data;
+}
+
+version (LinuxOrBSD)
+unittest
+{
+    import core.internal.elf.dl, core.stdc.stdio;
+
+    SharedObject exe = SharedObject.thisExecutable();
+
+    ElfFile file;
+    bool success = ElfFile.open(exe.name.ptr, file);
+    assert(success, "cannot open ELF file");
+
+    foreach (index, name, sectionHeader; file.namedSections)
+    {
+        printf("section %3d %-32s", cast(int) index, name.ptr);
+        if (const offset = sectionHeader.shdr.sh_addr)
+        {
+            auto beg = exe.baseAddress + offset;
+            printf("%p - %p\n", beg, beg + sectionHeader.shdr.sh_size);
+        }
+        else
+        {
+            printf("not mapped into memory\n");
+        }
+    }
 }

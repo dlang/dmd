@@ -60,6 +60,14 @@ struct SharedObjects
 struct SharedObject
 {
 @nogc nothrow:
+    /// Returns the executable of the current process.
+    static SharedObject thisExecutable()
+    {
+        foreach (object; SharedObjects)
+            return object; // first object
+        assert(0);
+    }
+
     /**
      * Tries to find the shared object containing the specified address in one of its segments.
      * Returns: True on success.
@@ -98,7 +106,7 @@ struct SharedObject
         return cast(void*) info.dlpi_addr;
     }
 
-    /// Returns the name of (usually: path to) the object.
+    /// Returns the name of (usually: path to) the object. Null-terminated.
     const(char)[] name() const
     {
         import core.stdc.string : strlen;
@@ -110,6 +118,42 @@ struct SharedObject
             cstr = getprogname();
 
         return cstr[0 .. strlen(cstr)];
+    }
+
+    /**
+     * Tries to fill the specified buffer with the path to the ELF file,
+     * according to the /proc/<PID>/maps file.
+     *
+     * Returns: The filled slice (null-terminated), or null if an error occurs.
+     */
+    char[] getPath(size_t N)(ref char[N] buffer) const
+    if (N > 1)
+    {
+        import core.stdc.stdio, core.stdc.string, core.sys.posix.unistd;
+
+        char[N + 128] lineBuffer = void;
+
+        snprintf(lineBuffer.ptr, lineBuffer.length, "/proc/%d/maps", getpid());
+        auto file = fopen(lineBuffer.ptr, "r");
+        if (!file)
+            return null;
+        scope(exit) fclose(file);
+
+        const thisBase = cast(ulong) baseAddress();
+        ulong startAddress;
+
+        // prevent overflowing `buffer` by specifying the max length in the scanf format string
+        enum int maxPathLength = N - 1;
+        enum scanFormat = "%llx-%*llx %*s %*s %*s %*s %" ~ maxPathLength.stringof ~ "s";
+
+        while (fgets(lineBuffer.ptr, lineBuffer.length, file))
+        {
+            if (sscanf(lineBuffer.ptr, scanFormat.ptr, &startAddress, buffer.ptr) == 2 &&
+                startAddress == thisBase)
+                return buffer[0 .. strlen(buffer.ptr)];
+        }
+
+        return null;
     }
 
     /// Iterates over this object's segments.
@@ -150,13 +194,36 @@ private @nogc nothrow:
 
 version (linux)
 {
+    // TODO: replace with a fixed core.sys.linux.config.__USE_GNU
+    version (CRuntime_Bionic) {} else version = Linux_Use_GNU;
+}
+
+version (Linux_Use_GNU)
+{
     const(char)* getprogname()
     {
         import core.sys.linux.errno;
         return program_invocation_name;
     }
 }
-else
+else // Bionic, BSDs
 {
     extern(C) const(char)* getprogname();
+}
+
+unittest
+{
+    import core.stdc.stdio;
+
+    char[512] buffer = void;
+    foreach (object; SharedObjects)
+    {
+        const name = object.name();
+        assert(name.length);
+        const path = object.getPath(buffer);
+
+        printf("DSO name: %s\n", name.ptr);
+        printf("    path: %s\n", path ? path.ptr : "");
+        printf("    base: %p\n", object.baseAddress);
+    }
 }
