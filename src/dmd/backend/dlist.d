@@ -55,7 +55,6 @@ enum FPNULL = cast(list_free_fp)null;
 __gshared
 {
     list_t list_freelist;
-    int nlist;
 }
 
 /* **************** PUBLIC FUNCTIONS ********************* */
@@ -102,7 +101,6 @@ list_t list_alloc()
     }
     else
     {
-        nlist++;
         list = list_new();
     }
     return list;
