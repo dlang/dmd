@@ -2245,7 +2245,7 @@ char[] mangle(T)(const(char)[] fqn, char[] dst = null) @safe pure nothrow
 
         @property bool empty() const { return !s.length; }
 
-        @property const(char)[] front() const
+        @property const(char)[] front() const return
         {
             immutable i = indexOfDot();
             return i == -1 ? s[0 .. $] : s[0 .. i];
