@@ -1219,15 +1219,18 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
 
         Dsymbol p = v.toParent2();
 
-        if ((v.isScope() || (v.storage_class & STC.maybescope)) &&
-            !(v.storage_class & STC.return_) &&
+        bool needsReturn = false;
+        if (!(v.storage_class & STC.return_) &&
             v.isParameter() &&
-            !v.doNotInferReturn &&
-            sc.func.flags & FUNCFLAG.returnInprocess &&
             p == sc.func)
         {
-            inferReturn(sc.func, v);        // infer addition of 'return'
-            continue;
+            if ((v.isScope() || (v.storage_class & STC.maybescope)) &&
+                sc.func.flags & FUNCFLAG.returnInprocess)
+            {
+                inferReturn(sc.func, v);        // infer addition of 'return'
+                continue;
+            }
+            needsReturn = true;                 // needs 'return' annotation on parameter
         }
 
         if (v.isScope())
@@ -1274,6 +1277,17 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                     error(e.loc, "returning `%s` escapes a reference to variadic parameter `%s`", e.toChars(), v.toChars());
                 result = false;
             }
+        }
+        else if (needsReturn && sc.func.type.isTypeFunction().purity != PURE.impure && global.params.vsafe &&
+                 sc._module && sc._module.isRoot())
+        {
+            /* Pure functions assume their parameters are `scope`, but they don't assume `return`.
+             * Hence, the annotation needs to be explicit.
+             */
+            if (!gag)
+                error(e.loc, "`pure` function `%s` returns parameter `%s`, annotate with `return`",
+                    sc.func.ident.toChars(), v.toChars());
+            result = true;
         }
         else
         {
