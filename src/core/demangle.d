@@ -216,7 +216,7 @@ pure @safe:
         }
     }
 
-    char[] append( const(char)[] val )
+    char[] append( const(char)[] val ) return scope
     {
         pragma(inline, false); // tame dmd inliner
 
@@ -253,13 +253,13 @@ pure @safe:
             put(", ");
     }
 
-    char[] put(char c)
+    char[] put(char c) return scope
     {
         char[1] val = c;
         return put(val[]);
     }
 
-    char[] put( const(char)[] val ) return
+    char[] put( scope const(char)[] val ) return scope
     {
         pragma(inline, false); // tame dmd inliner
 
@@ -430,7 +430,7 @@ pure @safe:
         Digit
         Digit Number
     */
-    const(char)[] sliceNumber()
+    const(char)[] sliceNumber() return scope
     {
         debug(trace) printf( "sliceNumber+\n" );
         debug(trace) scope(success) printf( "sliceNumber-\n" );
@@ -448,7 +448,7 @@ pure @safe:
     }
 
 
-    size_t decodeNumber()
+    size_t decodeNumber() scope
     {
         debug(trace) printf( "decodeNumber+\n" );
         debug(trace) scope(success) printf( "decodeNumber-\n" );
@@ -457,7 +457,7 @@ pure @safe:
     }
 
 
-    size_t decodeNumber( const(char)[] num )
+    size_t decodeNumber( scope const(char)[] num ) scope
     {
         debug(trace) printf( "decodeNumber+\n" );
         debug(trace) scope(success) printf( "decodeNumber-\n" );
@@ -478,7 +478,7 @@ pure @safe:
     }
 
 
-    void parseReal()
+    void parseReal() scope
     {
         debug(trace) printf( "parseReal+\n" );
         debug(trace) scope(success) printf( "parseReal-\n" );
@@ -569,7 +569,7 @@ pure @safe:
         Namechar
         Namechar Namechars
     */
-    void parseLName()
+    void parseLName() scope
     {
         debug(trace) printf( "parseLName+\n" );
         debug(trace) scope(success) printf( "parseLName-\n" );
@@ -787,7 +787,7 @@ pure @safe:
     TypeTuple:
         B Number Arguments
     */
-    char[] parseType( char[] name = null ) return
+    char[] parseType( char[] name = null ) return scope
     {
         static immutable string[23] primitives = [
             "char", // a
@@ -1196,7 +1196,7 @@ pure @safe:
         }
     }
 
-    void parseFuncArguments()
+    void parseFuncArguments() scope
     {
         // Arguments
         for ( size_t n = 0; true; n++ )
@@ -1353,7 +1353,7 @@ pure @safe:
         E
         F
     */
-    void parseValue( char[] name = null, char type = '\0' )
+    void parseValue(scope  char[] name = null, char type = '\0' ) scope
     {
         debug(trace) printf( "parseValue+\n" );
         debug(trace) scope(success) printf( "parseValue-\n" );
@@ -1474,7 +1474,7 @@ pure @safe:
     }
 
 
-    void parseIntegerValue( char[] name = null, char type = '\0' )
+    void parseIntegerValue( scope char[] name = null, char type = '\0' ) scope
     {
         debug(trace) printf( "parseIntegerValue+\n" );
         debug(trace) scope(success) printf( "parseIntegerValue-\n" );
@@ -1584,7 +1584,7 @@ pure @safe:
         S Number_opt QualifiedName
         X ExternallyMangledName
     */
-    void parseTemplateArgs()
+    void parseTemplateArgs() scope
     {
         debug(trace) printf( "parseTemplateArgs+\n" );
         debug(trace) scope(success) printf( "parseTemplateArgs-\n" );
@@ -1718,7 +1718,7 @@ pure @safe:
     TemplateInstanceName:
         Number __T LName TemplateArgs Z
     */
-    void parseTemplateInstanceName(bool hasNumber)
+    void parseTemplateInstanceName(bool hasNumber) scope
     {
         debug(trace) printf( "parseTemplateInstanceName+\n" );
         debug(trace) scope(success) printf( "parseTemplateInstanceName-\n" );
@@ -1743,7 +1743,7 @@ pure @safe:
     }
 
 
-    bool mayBeTemplateInstanceName()
+    bool mayBeTemplateInstanceName() scope
     {
         debug(trace) printf( "mayBeTemplateInstanceName+\n" );
         debug(trace) scope(success) printf( "mayBeTemplateInstanceName-\n" );
@@ -1763,7 +1763,7 @@ pure @safe:
         LName
         TemplateInstanceName
     */
-    void parseSymbolName()
+    void parseSymbolName() scope
     {
         debug(trace) printf( "parseSymbolName+\n" );
         debug(trace) scope(success) printf( "parseSymbolName-\n" );
@@ -1805,7 +1805,7 @@ pure @safe:
 
     // parse optional function arguments as part of a symbol name, i.e without return type
     // if keepAttr, the calling convention and function attributes are not discarded, but returned
-    char[] parseFunctionTypeNoReturn( bool keepAttr = false )
+    char[] parseFunctionTypeNoReturn( bool keepAttr = false ) return scope
     {
         // try to demangle a function, in case we are pointing to some function local
         auto prevpos = pos;
@@ -1856,7 +1856,7 @@ pure @safe:
         SymbolName
         SymbolName QualifiedName
     */
-    char[] parseQualifiedName() return
+    char[] parseQualifiedName() return scope
     {
         debug(trace) printf( "parseQualifiedName+\n" );
         debug(trace) scope(success) printf( "parseQualifiedName-\n" );
@@ -1880,7 +1880,7 @@ pure @safe:
         _D QualifiedName Type
         _D QualifiedName M Type
     */
-    void parseMangledName( bool displayType, size_t n = 0 )
+    void parseMangledName( bool displayType, size_t n = 0 ) scope
     {
         debug(trace) printf( "parseMangledName+\n" );
         debug(trace) scope(success) printf( "parseMangledName-\n" );
@@ -1955,7 +1955,7 @@ pure @safe:
         parseMangledName( AddType.yes == addType );
     }
 
-    char[] copyInput()
+    char[] copyInput() return scope
     {
         if (dst.length < buf.length)
             dst.length = buf.length;
@@ -1964,7 +1964,7 @@ pure @safe:
         return r;
     }
 
-    char[] doDemangle(alias FUNC)()
+    char[] doDemangle(alias FUNC)() return scope
     {
         while ( true )
         {
@@ -2080,7 +2080,7 @@ char[] reencodeMangled(const(char)[] mangled) nothrow pure @safe
         Replacement [] replacements;
 
     pure @safe:
-        size_t positionInResult(size_t pos)
+        size_t positionInResult(size_t pos) scope
         {
             foreach_reverse (r; replacements)
                 if (pos >= r.pos)
@@ -2090,7 +2090,7 @@ char[] reencodeMangled(const(char)[] mangled) nothrow pure @safe
 
         alias Remangle = Demangle!(PrependHooks);
 
-        void flushPosition(ref Remangle d)
+        void flushPosition(ref Remangle d) scope
         {
             if (lastpos < d.pos)
             {
@@ -2109,7 +2109,7 @@ char[] reencodeMangled(const(char)[] mangled) nothrow pure @safe
             }
         }
 
-        bool parseLName(ref Remangle d)
+        bool parseLName(scope ref Remangle d) scope
         {
             flushPosition(d);
 
@@ -2140,7 +2140,8 @@ char[] reencodeMangled(const(char)[] mangled) nothrow pure @safe
                     npos = positionInResult(*pid);
                 }
                 encodeBackref(reslen - npos);
-                replacements ~= Replacement(d.pos, result.length);
+                const pos = d.pos; // work around issues.dlang.org/show_bug.cgi?id=20675
+                replacements ~= Replacement(pos, result.length);
             }
             else
             {
@@ -2154,7 +2155,8 @@ char[] reencodeMangled(const(char)[] mangled) nothrow pure @safe
                     size_t npos = positionInResult(*pid);
                     result.length = reslen;
                     encodeBackref(reslen - npos);
-                    replacements ~= Replacement(d.pos, result.length);
+                    const pos = d.pos; // work around issues.dlang.org/show_bug.cgi?id=20675
+                    replacements ~= Replacement(pos, result.length);
                 }
                 else
                 {
@@ -2166,7 +2168,7 @@ char[] reencodeMangled(const(char)[] mangled) nothrow pure @safe
             return true;
         }
 
-        char[] parseType( ref Remangle d, char[] name = null ) return
+        char[] parseType( ref Remangle d, char[] name = null ) return scope
         {
             if (d.front != 'Q')
                 return null;
@@ -2187,7 +2189,7 @@ char[] reencodeMangled(const(char)[] mangled) nothrow pure @safe
             return result[reslen .. $]; // anything but null
         }
 
-        void encodeBackref(size_t relpos)
+        void encodeBackref(size_t relpos) scope
         {
             result ~= 'Q';
             enum base = 26;
