@@ -37,6 +37,7 @@ alias wstring = immutable(wchar)[];
 alias dstring = immutable(dchar)[];
 
 version (D_ObjectiveC) public import core.attribute : selector;
+version (Posix) public import core.attribute : gnuAbiTag;
 
 /**
  * All D class objects inherit from Object.

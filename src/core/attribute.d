@@ -18,8 +18,14 @@ module core.attribute;
 version (D_ObjectiveC)
     version = UdaSelector;
 
+version (Posix)
+    version = UdaGNUAbiTag;
+
 version (CoreDdoc)
+{
+    version = UdaGNUAbiTag;
     version = UdaSelector;
+}
 
 /**
  * Use this attribute to attach an Objective-C selector to a method.
@@ -60,4 +66,78 @@ version (CoreDdoc)
 version (UdaSelector) struct selector
 {
     string selector;
+}
+
+/**
+ * Use this attribute to declare an ABI tag on a C++ symbol.
+ *
+ * ABI tag is an attribute introduced by the GNU C++ compiler.
+ * It modifies the mangled name of the symbol to incorporate the tag name,
+ * in order to distinguish from an earlier version with a different ABI.
+ *
+ * This is a special compiler recognized attribute, it has a few
+ * requirements, which all will be enforced by the compiler:
+ *
+ * $(UL
+ *  $(LI
+ *      There can only be one such attribute per symbol.
+ *  ),
+ *  $(LI
+ *      The attribute can only be attached to an `extern(C++)` symbol
+ *      (`struct`, `class`, `enum`, function, and their templated counterparts).
+ *  ),
+ *  $(LI
+ *      The attribute cannot be applied to C++ namespaces.
+ *      This is to prevent confusion with the C++ semantic, which allows it to
+ *      be applied to namespaces.
+ *  ),
+ *  $(LI
+ *      The string arguments must only contain valid characters
+ *      for C++ name mangling which currently include alphanumerics
+ *      and the underscore character.
+ *  ),
+ * )
+ *
+ * This UDA is not transitive, and inner scope do not inherit outer scopes'
+ * ABI tag. See examples below for how to translate a C++ declaration to D.
+ * Also note that entries in this UDA will be automatically sorted
+ * alphabetically, hence `gnuAbiTag("c", "b", "a")` will appear as
+ * `@gnuAbiTag("a", "b", "c")`.
+ *
+ * See_Also:
+ * $(LINK2 https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangle.abi-tag, Itanium ABI spec)
+ * $(LINK2 https://gcc.gnu.org/onlinedocs/gcc/C_002b_002b-Attributes.html, GCC attributes documentation).
+ *
+ * Examples:
+ * ---
+ * // ---- foo.cpp
+ * struct [[gnu::abi_tag ("tag1", "tag2")]] Tagged1_2
+ * {
+ *     struct [[gnu::abi_tag ("tag3")]] Tagged3
+ *     {
+ *         [[gnu::abi_tag ("tag4")]]
+ *         int Tagged4 () { return 42; }
+ *     }
+ * }
+ * Tagged1_2 inst1;
+ * // ---- foo.d
+ * @gnuAbiTag("tag1", "tag2") struct Tagged1_2
+ * {
+ *     // Notice the repetition
+ *     @gnuAbiTag("tag1", "tag2", "tag3") struct Tagged3
+ *     {
+ *         @gnuAbiTag("tag1", "tag2", "tag3", "tag4") int Tagged4 ();
+ *     }
+ * }
+ * extern __gshared Tagged1_2 inst1;
+ * ---
+ */
+version (UdaGNUAbiTag) struct gnuAbiTag
+{
+    string[] tags;
+
+    this(string[] tags...)
+    {
+        this.tags = tags;
+    }
 }
