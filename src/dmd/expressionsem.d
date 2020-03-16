@@ -2175,9 +2175,10 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
 
         if (paramOffset && nparams >= paramOffset)
         {
-            auto se = (*arguments)[paramOffset - 1].isStringExp();
-            if (se && chkFn(se.loc, se.peekString(), (*arguments)[paramOffset .. nargs]))
-                 err = true;
+            if (auto se = (*arguments)[paramOffset - 1].isStringExp())
+            {
+                chkFn(se.loc, se.peekString(), (*arguments)[paramOffset .. nargs]);
+            }
         }
     }
 
