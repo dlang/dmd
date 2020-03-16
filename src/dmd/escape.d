@@ -1486,8 +1486,7 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false)
         override void visit(DotVarExp e)
         {
             auto t = e.e1.type.toBasetype();
-            if (!live && t.ty == Tstruct ||
-                live && e.type.hasPointers())
+            if (e.type.hasPointers() && (live || t.ty == Tstruct))
             {
                 e.e1.accept(this);
             }
