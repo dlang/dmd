@@ -21,7 +21,7 @@ import core.stdc.stdlib;
 extern (C)
 {
     int _d_isbaseof(ClassInfo b, ClassInfo c);
-    void _d_createTrace(Object o, void* context);
+    void _d_createTrace(Throwable o, void* context);
 }
 
 /* High 4 bytes = vendor, low 4 bytes = language
@@ -956,4 +956,3 @@ struct CppExceptionHeader
         return cast(CppExceptionHeader*)(eo + 1) - 1;
     }
 }
-
