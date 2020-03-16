@@ -259,7 +259,7 @@ pure @safe:
         return put(val[]);
     }
 
-    char[] put( const(char)[] val )
+    char[] put( const(char)[] val ) return
     {
         pragma(inline, false); // tame dmd inliner
 
@@ -787,7 +787,7 @@ pure @safe:
     TypeTuple:
         B Number Arguments
     */
-    char[] parseType( char[] name = null )
+    char[] parseType( char[] name = null ) return
     {
         static immutable string[23] primitives = [
             "char", // a
@@ -1264,7 +1264,7 @@ pure @safe:
         TypeFunction:
             CallConvention FuncAttrs Arguments ArgClose Type
     */
-    char[] parseTypeFunction( char[] name = null, IsDelegate isdg = IsDelegate.no )
+    char[] parseTypeFunction( char[] name = null, IsDelegate isdg = IsDelegate.no ) return
     {
         debug(trace) printf( "parseTypeFunction+\n" );
         debug(trace) scope(success) printf( "parseTypeFunction-\n" );
@@ -1856,7 +1856,7 @@ pure @safe:
         SymbolName
         SymbolName QualifiedName
     */
-    char[] parseQualifiedName()
+    char[] parseQualifiedName() return
     {
         debug(trace) printf( "parseQualifiedName+\n" );
         debug(trace) scope(success) printf( "parseQualifiedName-\n" );
@@ -2166,7 +2166,7 @@ char[] reencodeMangled(const(char)[] mangled) nothrow pure @safe
             return true;
         }
 
-        char[] parseType( ref Remangle d, char[] name = null )
+        char[] parseType( ref Remangle d, char[] name = null ) return
         {
             if (d.front != 'Q')
                 return null;
