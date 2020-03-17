@@ -1182,7 +1182,14 @@ int tryMain(string[] args)
                         join(testArgs.sources, " "),
                         (autoCompileImports ? "-i" : join(testArgs.compiledImports, " ")));
 
-                compile_output = execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path);
+                try
+                    compile_output = execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path);
+                catch (Exception e)
+                {
+                    writeln(""); // We're at "... runnable/xxxx.d (args)"
+                    printCppSources(testArgs.sources);
+                    throw e;
+                }
             }
             else
             {
@@ -1549,4 +1556,27 @@ void printTestFailure(string testLogName, string output_file_temp)
           writeln();
     writeln("==============================");
     remove(output_file_temp);
+}
+
+/**
+ * Print symbols in C++ objects
+ *
+ * If linking failed, we print the symbols present in the C++ object file being
+ * linked it. This is so that C++ `runnable` tests are easier to debug,
+ * as the CI machines can have different environment than the users,
+ * and it is generally painful to work with them when trying to support
+ * newer (C++11, C++14, C++17, etc...) features.
+ */
+void printCppSources (in const(char)[][] compiled)
+{
+    version (Posix)
+    {
+        foreach (file; compiled)
+        {
+            if (!file.endsWith(".cpp.o"))
+                continue;
+            writeln("========== Symbols for C++ object file: ", file, " ==========");
+            std.process.spawnProcess(["nm", file]).wait();
+        }
+    }
 }
