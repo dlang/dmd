@@ -1467,7 +1467,7 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false)
         override void visit(VarExp e)
         {
             VarDeclaration v = e.var.isVarDeclaration();
-            if (v)
+            if (v && e.type.hasPointers())
                 er.byvalue.push(v);
         }
 
@@ -1486,7 +1486,7 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false)
         override void visit(DotVarExp e)
         {
             auto t = e.e1.type.toBasetype();
-            if (!live && t.ty == Tstruct ||
+            if (!live && t.ty == Tstruct && e.type.hasPointers() ||
                 live && e.type.hasPointers())
             {
                 e.e1.accept(this);
