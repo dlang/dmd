@@ -692,7 +692,7 @@ string toUTF8(const scope dchar[] s)
 /* =================== Conversion to UTF16 ======================= */
 
 @safe pure nothrow @nogc
-wchar[] toUTF16(wchar[] buf, dchar c)
+wchar[] toUTF16(return wchar[] buf, dchar c)
     in
     {
         assert(isValidDchar(c));
