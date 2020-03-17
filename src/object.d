@@ -1031,8 +1031,8 @@ class TypeInfo_Class : TypeInfo
         return m_offTi;
     }
 
-    @property auto info() @safe nothrow pure const { return this; }
-    @property auto typeinfo() @safe nothrow pure const { return this; }
+    @property auto info() @safe nothrow pure const return { return this; }
+    @property auto typeinfo() @safe nothrow pure const return { return this; }
 
     byte[]      m_init;         /** class static initializer
                                  * (init.length gives size in bytes of class)
