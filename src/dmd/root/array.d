@@ -1,3 +1,4 @@
+
 /**
  * Dynamic array implementation.
  *
@@ -323,13 +324,11 @@ public:
         return this;
     }
 
-    static if (is(typeof(this.data[0].opCmp(this.data[1])) : int))
+    /// Ditto, but use `opCmp` by default
+    extern(D) ref typeof(this) sort () () nothrow
+        if (is(typeof(this.data[0].opCmp(this.data[1])) : int))
     {
-        /// Ditto, but use `opCmp` by default
-        extern(D) ref typeof(this) sort () () nothrow
-        {
-            return this.sort!((pe1, pe2) => pe1.opCmp(*pe2));
-        }
+        return this.sort!(function (scope const(T)* pe1, scope const(T)* pe2) => pe1.opCmp(*pe2));
     }
 
     alias opDollar = length;
@@ -536,7 +535,8 @@ unittest
     strings.push("baguette");
     strings.push("Avocado");
     strings.push("Hello");
-    strings.sort!((e1, e2) => strcmp(*e1, *e2));
+    // Newer frontend versions will work with (e1, e2) and infer the type
+    strings.sort!(function (scope const char** e1, scope const char** e2) => strcmp(*e1, *e2));
     assert(strings[0] == "baguette");
     assert(strings[1] == "Avocado");
     assert(strings[2] == "Foo");
