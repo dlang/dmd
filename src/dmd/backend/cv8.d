@@ -166,7 +166,7 @@ void cv8_initfile(const(char)* filename)
         f1buf.reserve(1024);
         F1_buf = &f1buf;
     }
-    F1_buf.setsize(0);
+    F1_buf.reset();
 
     if (!F1fixup)
     {
@@ -174,7 +174,7 @@ void cv8_initfile(const(char)* filename)
         f1fixupbuf.reserve(1024);
         F1fixup = &f1fixupbuf;
     }
-    F1fixup.setsize(0);
+    F1fixup.reset();
 
     if (!F2_buf)
     {
@@ -182,7 +182,7 @@ void cv8_initfile(const(char)* filename)
         f2buf.reserve(1024);
         F2_buf = &f2buf;
     }
-    F2_buf.setsize(0);
+    F2_buf.reset();
 
     if (!F3_buf)
     {
@@ -190,7 +190,7 @@ void cv8_initfile(const(char)* filename)
         f3buf.reserve(1024);
         F3_buf = &f3buf;
     }
-    F3_buf.setsize(0);
+    F3_buf.reset();
     F3_buf.writeByte(0);       // first "filename"
 
     if (!F4_buf)
@@ -199,7 +199,7 @@ void cv8_initfile(const(char)* filename)
         f4buf.reserve(1024);
         F4_buf = &f4buf;
     }
-    F4_buf.setsize(0);
+    F4_buf.reset();
 
     if (!funcdata)
     {
@@ -207,7 +207,7 @@ void cv8_initfile(const(char)* filename)
         funcdatabuf.reserve(1024);
         funcdata = &funcdatabuf;
     }
-    funcdata.setsize(0);
+    funcdata.reset();
 
     if (!linepair)
     {
@@ -215,7 +215,7 @@ void cv8_initfile(const(char)* filename)
         linepairbuf.reserve(1024);
         linepair = &linepairbuf;
     }
-    linepair.setsize(0);
+    linepair.reset();
 
     memset(&currentfuncdata, 0, currentfuncdata.sizeof);
     currentfuncdata.f1buf = F1_buf;
@@ -263,7 +263,7 @@ void cv8_termfile(const(char)* objfilename)
     for (uint u = 0; u < length; u += FuncData.sizeof)
     {   FuncData *fd = cast(FuncData *)(p + u);
 
-        F2_buf.setsize(0);
+        F2_buf.reset();
 
         F2_buf.write32(cast(uint)fd.sfunc.Soffset);
         F2_buf.write32(0);

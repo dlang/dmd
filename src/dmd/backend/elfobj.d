@@ -690,7 +690,7 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
     }
 
     if (SECbuf)
-        SECbuf.setsize(0);
+        SECbuf.reset();
     section_cnt = 0;
 
     enum NAMIDX : IDXSTR
@@ -802,14 +802,14 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
     }
 
     if (SYMbuf)
-        SYMbuf.setsize(0);
+        SYMbuf.reset();
     if (reset_symbuf)
     {
         Symbol **p = cast(Symbol **)reset_symbuf.buf;
         const size_t n = reset_symbuf.length() / (Symbol *).sizeof;
         for (size_t i = 0; i < n; ++i)
             symbol_reset(p[i]);
-        reset_symbuf.setsize(0);
+        reset_symbuf.reset();
     }
     else
     {
@@ -818,7 +818,7 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
         reset_symbuf.reserve(50 * (Symbol*).sizeof);
     }
     if (shndx_data)
-        shndx_data.setsize(0);
+        shndx_data.reset();
     symbol_idx = 0;
     local_cnt = 0;
     // The symbols that every object file has
@@ -1905,7 +1905,7 @@ private int elf_addsegment2(IDXSEC shtidx, IDXSYM symidx, IDXSEC relidx)
     pseg.SDshtidx = shtidx;
     pseg.SDoffset = 0;
     if (pseg.SDbuf)
-        pseg.SDbuf.setsize(0);
+        pseg.SDbuf.reset();
     else
     {   if (SecHdrTab[shtidx].sh_type != SHT_NOBITS)
         {
@@ -1915,7 +1915,7 @@ private int elf_addsegment2(IDXSEC shtidx, IDXSYM symidx, IDXSEC relidx)
         }
     }
     if (pseg.SDrel)
-        pseg.SDrel.setsize(0);
+        pseg.SDrel.reset();
     pseg.SDsymidx = symidx;
     pseg.SDrelidx = relidx;
     pseg.SDrelmaxoff = 0;

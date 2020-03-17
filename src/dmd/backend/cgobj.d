@@ -695,7 +695,7 @@ Obj OmfObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
             const size_t n = reset_symbuf.length() / (Symbol *).sizeof;
             for (size_t i = 0; i < n; ++i)
                 symbol_reset(p[i]);
-            reset_symbuf.setsize(0);
+            reset_symbuf.reset();
         }
         else
         {
@@ -921,7 +921,7 @@ static if (TERMCODE)
         obj_modend();
 
         size = cast(uint)obj.buf.length();
-        obj.buf.setsize(0);            // rewind file
+        obj.buf.reset();            // rewind file
         OmfObj_theadr(obj.modname);
         objheader(obj.csegname);
         mem_free(obj.csegname);
