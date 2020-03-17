@@ -875,7 +875,11 @@ union eve
         {
             elem* E1;           // left child for unary & binary nodes
             elem* E2;           // right child for binary nodes
-            Symbol* Edtor;      // OPctor: destructor
+            union
+            {
+                Symbol* Edtor;  // OPctor: destructor
+                Symbol* Edecl2; // VarDeclaration being constructed
+            }
         }
         struct
         {

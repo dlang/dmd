@@ -2979,6 +2979,14 @@ private bool type_jparam2(type* t, tym_t ty)
     else if (ty == TYstruct || ty == TYarray)
     {
         type_debug(t);
+        {
+            // don't enregister non PODs
+            type* t2 = t;
+            while (tybasic(t2.Tty) == TYarray)
+                t2 = t2.Tnext;
+            if (tybasic(t2.Tty) == TYstruct && t2.Ttag.Sstruct.Sflags & STRnotpod)
+                return false;
+        }
         targ_size_t sz = type_size(t);
         return (sz <= _tysize[TYnptr]) &&
                (config.exe == EX_WIN64 || sz == 1 || sz == 2 || sz == 4 || sz == 8);
@@ -3470,6 +3478,9 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             {
                 getregs(cdb,retregs);
                 // LEA preg,np[RSP]
+            version (MARS)
+                const delta = stackpush - ep.EV.Vsym.Soffset;   // stack delta to parameter
+            else
                 uint delta = stackpush - ep.EV.Vuns;   // stack delta to parameter
                 cdb.genc1(LEA,
                         (modregrm(0,4,SP) << 8) | modregxrm(2,preg,4), FLconst,delta);
@@ -3565,14 +3576,49 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
 void cdstrthis(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
 {
     assert(tysize(e.Ety) == REGSIZE);
+version (MARS)
+{
+    if (!*pretregs)
+        return;
+}
     const reg = findreg(*pretregs & allregs);
     getregs(cdb,mask(reg));
     // LEA reg,np[ESP]
+version (MARS)
+{
+    assert(e.EV.Vsym && e.EV.Vsym.Sflags & SFLmemproxy);
+    auto np = stackpush - e.EV.Vsym.Soffset; // stack delta to parameter
+}
+else
+{
     uint np = stackpush - e.EV.Vuns;        // stack delta to parameter
+}
     cdb.genc1(LEA,(modregrm(0,4,SP) << 8) | modregxrm(2,reg,4),FLconst,np);
     if (I64)
         code_orrex(cdb.last(), REX_W);
     fixresult(cdb, e, mask(reg), pretregs);
+}
+
+/***********************************
+ */
+
+void cdstrctor(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
+{
+version (MARS)
+{
+    debug
+    {
+        Symbol* s = e.EV.Edecl2;
+        assert(s && s.Sflags & SFLmemproxy);
+        assert(s.Soffset);
+        assert(!e.Ecount);
+    }
+    codelem(cdb, e.EV.E1, pretregs, true);
+}
+else
+{
+    cderr(cdb, e, pretregs);
+}
 }
 
 /******************************
@@ -4214,6 +4260,21 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
             uint rm;
 
             elem* e1 = e.EV.E1;
+            if (el_findstrctor(e1))
+            {
+                assert(config.exe == EX_WIN32);
+
+                cod3_stackadj(cdb, cast(int)sz);
+                stackpush += sz;
+                cdb.genadjesp(cast(int)sz);
+
+                setstrctor(e1, stackpush);
+
+                regm_t retregs = 0;
+                codelem(cdb, e1, &retregs, true);
+                freenode(e);
+                return;
+            }
             if (sz == 0)
             {
                 docommas(cdb, &e1); // skip over any commas
@@ -4861,6 +4922,37 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
         genpush(cdb,findregmsw(retregs));     // PUSH msreg
         genpush(cdb,findreglsw(retregs));     // PUSH lsreg
         cdb.genadjesp(cast(int)sz);
+    }
+}
+
+/***************************
+ * Walk tree setting offset on OPstrctor elems.
+ */
+private extern(D) void setstrctor(elem* e, targ_size_t offset)
+{
+    while (true)
+    {
+        switch (e.Eoper)
+        {
+            case OPstrctor:
+                Symbol* s = e.EV.Edecl2;
+                assert(s && s.Sflags & SFLmemproxy);
+                s.Soffset = offset;
+                return;
+
+            case OPcomma:
+            case OPcond:
+                break;
+
+            case OPcolon:
+            case OPcolon2:
+                setstrctor(e.EV.E1, offset);
+                break;
+
+            default:
+                return;
+        }
+        e = e.EV.E2;
     }
 }
 

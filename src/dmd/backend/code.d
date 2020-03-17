@@ -458,6 +458,7 @@ void cdstrcpy(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
 void cdstreq(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
 void cdstrlen(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
 void cdstrthis(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
+void cdstrctor(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
 void cdvecfill(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
 void cdvecsto(ref CodeBuilder cdb, elem* e, regm_t* pretregs);
 void cdvector(ref CodeBuilder cdb, elem* e, regm_t* pretregs);

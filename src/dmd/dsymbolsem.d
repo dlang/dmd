@@ -4722,6 +4722,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (sd.inv)
             reinforceInvariant(sd, sc2);
 
+        // recalculate isPOD
+        sd.ispod = StructPOD.fwd;
+
         Module.dprogress++;
         sd.semanticRun = PASS.semanticdone;
         //printf("-StructDeclaration::semantic(this=%p, '%s')\n", sd, sd.toChars());

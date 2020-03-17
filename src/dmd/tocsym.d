@@ -166,6 +166,8 @@ Symbol *toSymbol(Dsymbol s)
                 s.Sflags |= SFLartifical;
             if (isNRVO)
                 s.Sflags |= SFLnodebug;
+            if (vd.ismemproxy)
+                s.Sflags |= SFLmemproxy;
 
             TYPE *t;
             if (vd.storage_class & (STC.out_ | STC.ref_))

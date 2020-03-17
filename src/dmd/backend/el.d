@@ -237,3 +237,5 @@ void el_dehydrate(elem **);
 elem *el_var(Symbol *);
 elem *el_ptr(Symbol *);
 
+bool el_findstrctor(elem *);
+
