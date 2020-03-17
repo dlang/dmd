@@ -1,4 +1,6 @@
 /**
+ * Configuration enums/variables for different targets
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

@@ -1,4 +1,12 @@
 /**
+ * Code generation 2
+ *
+ * Includes:
+ * - math operators (+ - * / %) and functions (abs, cos, sqrt)
+ * - 'string' functions (strlen, memcpy, memset)
+ * - pointers (address of / dereference)
+ * - struct assign, constructor, destructor
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

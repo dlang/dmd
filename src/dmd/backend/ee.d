@@ -1,4 +1,6 @@
 /**
+ * Code to handle debugger expression evaluation
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -9,10 +11,6 @@
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/ee.d, backend/ee.d)
  */
 module dmd.backend.ee;
-
-/*
- * Code to handle debugger expression evaluation
- */
 
 version (SPP) {} else
 {

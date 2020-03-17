@@ -1,4 +1,6 @@
 /**
+ * Support for lexical scope of local variables
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -9,10 +11,6 @@
  */
 
 module dmd.backend.dvarstats;
-
-/******************************************
- * support for lexical scope of local variables
- */
 
 import core.stdc.string;
 import core.stdc.stdlib;

@@ -1,4 +1,11 @@
 /**
+ * Code generation 3
+ *
+ * Includes:
+ * - generating a function prolog (pushing return address, loading paramters)
+ * - generating a function epilog (restoring registers, returning)
+ * - generation / peephole optimizations of jump / branch instructions
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

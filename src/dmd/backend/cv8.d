@@ -1,4 +1,9 @@
 /**
+ * CodeView 8 symbolic debug info generation
+ *
+ * This module generates the `.debug$S` and ``.debug$T` sections for Win64,
+ * which are the MS-Coff symbolic debug info and type debug info sections.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -7,9 +12,6 @@
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cv8.d, backend/cv8.d)
  */
-
-// This module generates the .debug$S and .debug$T sections for Win64,
-// which are the MS-Coff symbolic debug info and type debug info sections.
 
 module dmd.backend.cv8;
 

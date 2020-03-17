@@ -1,4 +1,8 @@
 /**
+ * Code generation 5
+ *
+ * Handles finding out which blocks need a function prolog / epilog attached
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *

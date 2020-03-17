@@ -1,5 +1,4 @@
 /**
- * Compiler implementation of the D programming language.
  * Implements LSDA (Language Specific Data Area) table generation
  * for Dwarf Exception Handling.
  *

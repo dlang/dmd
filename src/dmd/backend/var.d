@@ -1,4 +1,6 @@
 /**
+ * Global variables for PARSER
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -10,8 +12,6 @@
  */
 
 module dmd.backend.var;
-
-/* Global variables for PARSER  */
 
 import core.stdc.stdio;
 

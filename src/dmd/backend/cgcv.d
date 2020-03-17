@@ -1,4 +1,6 @@
 /**
+ * Interface for CodeView symbol debug info generation
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
