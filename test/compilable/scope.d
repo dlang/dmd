@@ -78,3 +78,19 @@ struct Constant
 
     alias Repeat(T...) = T;
 }
+
+/************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=20675
+
+struct D
+{
+    int pos;
+    char* p;
+}
+
+void test(scope ref D d) @safe
+{
+    D[] da;
+    da ~= D(d.pos, null);
+}
