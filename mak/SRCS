@@ -264,6 +264,8 @@ SRCS=\
 	src\core\sys\posix\netinet\in_.d \
 	src\core\sys\posix\netinet\tcp.d \
 	\
+	src\core\sys\posix\stdc\time.d \
+	\
 	src\core\sys\posix\sys\filio.d \
 	src\core\sys\posix\sys\ioccom.d \
 	src\core\sys\posix\sys\ioctl.d \
@@ -436,6 +438,7 @@ SRCS=\
 	src\core\sys\windows\sspi.d \
 	src\core\sys\windows\stacktrace.d \
 	src\core\sys\windows\stat.d \
+	src\core\sys\windows\stdc\time.d \
 	src\core\sys\windows\subauth.d \
 	src\core\sys\windows\threadaux.d \
 	src\core\sys\windows\tlhelp32.d \
