@@ -1797,7 +1797,7 @@ Lnext:
         }
 
         auto exps = new Expressions();
-        if (global.params.useUnitTests)
+        if (global.params.useUnitTests || global.params.UnittestRootOnly || global.params.UnittestFirstRootOnly)
         {
             bool[void*] uniqueUnitTests;
 

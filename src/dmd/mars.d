@@ -1284,7 +1284,7 @@ void addDefaultVersionIdentifiers(const ref Param params)
         VersionCondition.addPredefinedGlobalIdent("D_Coverage");
     if (params.pic != PIC.fixed)
         VersionCondition.addPredefinedGlobalIdent(params.pic == PIC.pic ? "D_PIC" : "D_PIE");
-    if (params.useUnitTests)
+    if (params.useUnitTests || params.UnittestRootOnly || params.UnittestFirstRootOnly)
         VersionCondition.addPredefinedGlobalIdent("unittest");
     if (params.useAssert == CHECKENABLE.on)
         VersionCondition.addPredefinedGlobalIdent("assert");
@@ -2257,6 +2257,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (arg == "-unittest")
             params.useUnitTests = true;
+        else if (arg == "-unittest=rootonly")
+            params.UnittestRootOnly = true;
+        else if (arg == "-unittest=first")
+            params.UnittestFirstRootOnly = true;
         else if (p[1] == 'I')              // https://dlang.org/dmd.html#switch-I
         {
             if (!params.imppath)
@@ -2701,10 +2705,12 @@ Modules createModules(ref Strings files, ref Strings libmodules)
         auto id = Identifier.idPool(name);
         auto m = new Module(files[i].toDString, id, global.params.doDocComments, global.params.doHdrGeneration);
         modules.push(m);
+        m.rootChief = false;
         if (firstmodule)
         {
             global.params.objfiles.push(m.objfile.toChars());
             firstmodule = false;
+            m.rootChief = true;
         }
     }
     return modules;

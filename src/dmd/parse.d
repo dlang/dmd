@@ -327,7 +327,7 @@ final class Parser(AST) : Lexer
         //nextToken();              // start up the scanner
     }
 
-    AST.Dsymbols* parseModule()
+    AST.Dsymbols* parseModule(bool rootModule = false, bool rootChief = false)
     {
         const comment = token.blockComment;
         bool isdeprecated = false;
@@ -428,7 +428,7 @@ final class Parser(AST) : Lexer
             addComment(mod, comment);
         }
 
-        decldefs = parseDeclDefs(0, &lastDecl);
+        decldefs = parseDeclDefs(0, &lastDecl, null, rootModule, rootChief);
         if (token.value != TOK.endOfFile)
         {
             error(token.loc, "unrecognized declaration");
@@ -472,7 +472,7 @@ final class Parser(AST) : Lexer
         return true;
     }
 
-    AST.Dsymbols* parseDeclDefs(int once, AST.Dsymbol* pLastDecl = null, PrefixAttributes!AST* pAttrs = null)
+    AST.Dsymbols* parseDeclDefs(int once, AST.Dsymbol* pLastDecl = null, PrefixAttributes!AST* pAttrs = null, bool rootModule= false, bool rootChief = false)
     {
         AST.Dsymbol lastDecl = null; // used to link unittest to its previous declaration
         if (!pLastDecl)
@@ -622,7 +622,9 @@ final class Parser(AST) : Lexer
                 goto Lerror;
 
             case TOK.unittest_:
-                if (global.params.useUnitTests || global.params.doDocComments || global.params.doHdrGeneration)
+                if ((global.params.useUnitTests || global.params.doDocComments || global.params.doHdrGeneration) ||
+                        (global.params.UnittestRootOnly && rootModule) ||
+                        (global.params.UnittestFirstRootOnly && rootChief))
                 {
                     s = parseUnitTest(pAttrs);
                     if (*pLastDecl)
