@@ -159,43 +159,22 @@ struct Outbuffer
     }
 
     /**
-     * Writes a 16 bit little-end short, no reserve check.
+     * Writes a 16 bit value, no reserve check.
      */
-    void writeWordn(int v)
+    void write16n(int v)
     {
-        version (LittleEndian)
-        {
-            *cast(ushort *)p = cast(ushort)v;
-        }
-        else
-        {
-            p[0] = v;
-            p[1] = v >> 8;
-        }
+        *(cast(ushort *) p) = cast(ushort)v;
         p += 2;
     }
 
 
     /**
-     * Writes a 16 bit little-end short.
+     * Writes a 16 bit value.
      */
-    void writeWord(int v)
+    void write16(int v)
     {
         reserve(2);
-        writeWordn(v);
-    }
-
-
-    /**
-     * Writes a 16 bit big-end short.
-     */
-    void writeShort(int v)
-    {
-        reserve(2);
-        ubyte *q = p;
-        q[0] = cast(ubyte)(v >> 8);
-        q[1] = cast(ubyte)v;
-        p += 2;
+        write16n(v);
     }
 
     /**

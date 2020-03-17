@@ -240,17 +240,17 @@ void cv8_termfile(const(char)* objfilename)
      */
     Outbuffer buf = Outbuffer(1024);
     size_t len = strlen(objfilename);
-    buf.writeWord(cast(int)(2 + 4 + len + 1));
-    buf.writeWord(S_COMPILAND_V3);
+    buf.write16(cast(int)(2 + 4 + len + 1));
+    buf.write16(S_COMPILAND_V3);
     buf.write32(0);
     buf.write(objfilename, cast(uint)(len + 1));
 
     // write S_COMPILE record
-    buf.writeWord(2 + 1 + 1 + 2 + 1 + VERSION.length + 1);
-    buf.writeWord(S_COMPILE);
+    buf.write16(2 + 1 + 1 + 2 + 1 + VERSION.length + 1);
+    buf.write16(S_COMPILE);
     buf.writeByte(I64 ? 0xD0 : 6); // target machine AMD64 or x86 (Pentium II)
     buf.writeByte(config.flags2 & CFG2gms ? (CPP != 0) : 'D'); // language index (C/C++/D)
-    buf.writeWord(0x800 | (config.inline8087 ? 0 : (1<<3)));   // 32-bit, float package
+    buf.write16(0x800 | (config.inline8087 ? 0 : (1<<3)));   // 32-bit, float package
     buf.writeByte(VERSION.length + 1);
     buf.writeByte('Z');
     buf.write(VERSION.ptr, VERSION.length);
@@ -431,8 +431,8 @@ void cv8_func_term(Symbol *sfunc)
      */
     Outbuffer *buf = currentfuncdata.f1buf;
     buf.reserve(cast(uint)(2 + 2 + 4 * 7 + 6 + 1 + len + 1));
-    buf.writeWordn(cast(int)(2 + 4 * 7 + 6 + 1 + len + 1));
-    buf.writeWordn(sfunc.Sclass == SCstatic ? S_LPROC_V3 : S_GPROC_V3);
+    buf.write16n(cast(int)(2 + 4 * 7 + 6 + 1 + len + 1));
+    buf.write16n(sfunc.Sclass == SCstatic ? S_LPROC_V3 : S_GPROC_V3);
     buf.write32(0);            // parent
     buf.write32(0);            // pend
     buf.write32(0);            // pnext
@@ -447,7 +447,7 @@ void cv8_func_term(Symbol *sfunc)
     f1f.value = 0;
     currentfuncdata.f1fixup.write(&f1f, f1f.sizeof);
     buf.write32(0);
-    buf.writeWordn(0);
+    buf.write16n(0);
 
     buf.writeByte(0);
     buf.writen(id, len);
@@ -472,8 +472,8 @@ void cv8_func_term(Symbol *sfunc)
         extern (C++) static void endArgs()
         {
             Outbuffer *buf = currentfuncdata.f1buf;
-            buf.writeWord(2);
-            buf.writeWord(S_ENDARG);
+            buf.write16(2);
+            buf.write16(S_ENDARG);
         }
         extern (C++) static void beginBlock(int offset, int length)
         {
@@ -493,8 +493,8 @@ void cv8_func_term(Symbol *sfunc)
         extern (C++) static void endBlock()
         {
             Outbuffer *buf = currentfuncdata.f1buf;
-            buf.writeWord(2);
-            buf.writeWord(S_END);
+            buf.write16(2);
+            buf.write16(S_END);
         }
     }
     varStats_writeSymbolTable(&globsym, &cv8_outsym, &cv8.endArgs, &cv8.beginBlock, &cv8.endBlock);
@@ -504,8 +504,8 @@ void cv8_func_term(Symbol *sfunc)
      */
 
     // Write function end symbol
-    buf.writeWord(2);
-    buf.writeWord(S_END);
+    buf.write16(2);
+    buf.write16(S_END);
 
     currentfuncdata.f1buf = F1_buf;
     currentfuncdata.f1fixup = F1fixup;
@@ -649,10 +649,10 @@ L1:
      *   or
      * 00 00
      */
-    F4_buf.writeShort(0);
+    F4_buf.write16(0);
 
     // 2 bytes of pad
-    F4_buf.writeShort(0);
+    F4_buf.write16(0);
 
     //printf("\tadded %x\n", length);
     return length;
@@ -730,11 +730,11 @@ static if (1)
 {
             // Register relative addressing
             buf.reserve(cast(uint)(2 + 2 + 4 + 4 + 2 + len + 1));
-            buf.writeWordn(cast(uint)(2 + 4 + 4 + 2 + len + 1));
-            buf.writeWordn(0x1111);
+            buf.write16n(cast(uint)(2 + 4 + 4 + 2 + len + 1));
+            buf.write16n(0x1111);
             buf.write32(cast(uint)(s.Soffset + base + BPoff));
             buf.write32(typidx);
-            buf.writeWordn(I64 ? 334 : 22);       // relative to RBP/EBP
+            buf.write16n(I64 ? 334 : 22);       // relative to RBP/EBP
             cv8_writename(buf, id, len);
             buf.writeByte(0);
 }
@@ -742,8 +742,8 @@ else
 {
             // This is supposed to work, implicit BP relative addressing, but it does not
             buf.reserve(2 + 2 + 4 + 4 + len + 1);
-            buf.writeWordn( 2 + 4 + 4 + len + 1);
-            buf.writeWordn(S_BPREL_V3);
+            buf.write16n( 2 + 4 + 4 + len + 1);
+            buf.write16n(S_BPREL_V3);
             buf.write32(s.Soffset + base + BPoff);
             buf.write32(typidx);
             cv8_writename(buf, id, len);
@@ -771,10 +771,10 @@ else
         case_register:
         L2:
             buf.reserve(cast(uint)(2 + 2 + 4 + 2 + len + 1));
-            buf.writeWordn(cast(uint)(2 + 4 + 2 + len + 1));
-            buf.writeWordn(S_REGISTER_V3);
+            buf.write16n(cast(uint)(2 + 4 + 2 + len + 1));
+            buf.write16n(S_REGISTER_V3);
             buf.write32(typidx);
-            buf.writeWordn(cv8_regnum(s));
+            buf.write16n(cv8_regnum(s));
             cv8_writename(buf, id, len);
             buf.writeByte(0);
             break;
@@ -803,15 +803,15 @@ else
                 sr = (sr == S_GDATA_V3) ? 0x1113 : 0x1112;
 
             buf.reserve(cast(uint)(2 + 2 + 4 + 6 + len + 1));
-            buf.writeWordn(cast(uint)(2 + 4 + 6 + len + 1));
-            buf.writeWordn(sr);
+            buf.write16n(cast(uint)(2 + 4 + 6 + len + 1));
+            buf.write16n(sr);
             buf.write32(typidx);
 
             f1f.s = s;
             f1f.offset = cast(uint)buf.length();
             F1fixup.write(&f1f, f1f.sizeof);
             buf.write32(0);
-            buf.writeWordn(0);
+            buf.write16n(0);
 
             cv8_writename(buf, id, len);
             buf.writeByte(0);
@@ -838,8 +838,8 @@ void cv8_udt(const(char)* id, idx_t typidx)
     if (len > CV8_MAX_SYMBOL_LENGTH)
         len = CV8_MAX_SYMBOL_LENGTH;
     buf.reserve(cast(uint)(2 + 2 + 4 + len + 1));
-    buf.writeWordn(cast(uint)(2 + 4 + len + 1));
-    buf.writeWordn(S_UDT_V3);
+    buf.write16n(cast(uint)(2 + 4 + len + 1));
+    buf.write16n(S_UDT_V3);
     buf.write32(typidx);
     cv8_writename(buf, id, len);
     buf.writeByte(0);

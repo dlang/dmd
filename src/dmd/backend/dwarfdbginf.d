@@ -394,7 +394,7 @@ void dwarf_CFA_set_loc(uint location)
     }
     else if (inc <= 0xFFFF)
     {   cfa_buf.writeByte(DW_CFA_advance_loc2);
-        cfa_buf.writeWord(inc);
+        cfa_buf.write16(inc);
     }
     else
     {   cfa_buf.writeByte(DW_CFA_advance_loc4);
@@ -1213,7 +1213,7 @@ static if (ELFOBJ)
     int seg = debug_pubnames.seg;
 
     debug_pubnames.buf.write32(0);             // unit_length
-    debug_pubnames.buf.writeWord(2);           // version_
+    debug_pubnames.buf.write16(2);           // version_
 
 static if (ELFOBJ)
     dwarf_addrel(seg,debug_pubnames.buf.length(),debug_info.seg);
@@ -1226,7 +1226,7 @@ static if (ELFOBJ)
     debug_aranges.initialize();
 
     debug_aranges.buf.write32(0);              // unit_length
-    debug_aranges.buf.writeWord(2);            // version_
+    debug_aranges.buf.write16(2);            // version_
 
 static if (ELFOBJ)
     dwarf_addrel(debug_aranges.seg,debug_aranges.buf.length(),debug_info.seg);
@@ -1696,7 +1696,7 @@ else
         debug_info.buf.writeString(name);             // DW_AT_name
         debug_info.buf.writeString(sfunc.Sident.ptr);    // DW_AT_MIPS_linkage_name
         debug_info.buf.writeByte(filenum);            // DW_AT_decl_file
-        debug_info.buf.writeWord(sfunc.Sfunc.Fstartline.Slinnum);   // DW_AT_decl_line
+        debug_info.buf.write16(sfunc.Sfunc.Fstartline.Slinnum);   // DW_AT_decl_line
         if (ret_type)
             debug_info.buf.write32(ret_type);         // DW_AT_type
 
@@ -2569,7 +2569,7 @@ uint dwarf_typidx(type *t)
             debug_info.buf.writeString("wchar_t");    // DW_AT_name
             debug_info.buf.write32(typebase);         // DW_AT_type
             debug_info.buf.writeByte(1);              // DW_AT_decl_file
-            debug_info.buf.writeWord(1);              // DW_AT_decl_line
+            debug_info.buf.write16(1);              // DW_AT_decl_line
             typidx_tab[ty] = idx;
             break;
         }
@@ -2681,7 +2681,7 @@ uint dwarf_typidx(type *t)
                 if (sz <= 0xFF)
                     debug_info.buf.writeByte(cast(uint)sz);     // DW_AT_byte_size
                 else if (sz <= 0xFFFF)
-                    debug_info.buf.writeWord(cast(uint)sz);     // DW_AT_byte_size
+                    debug_info.buf.write16(cast(uint)sz);     // DW_AT_byte_size
                 else
                     debug_info.buf.write32(cast(uint)sz);       // DW_AT_byte_size
 

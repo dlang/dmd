@@ -425,7 +425,7 @@ void objrecord(uint rectyp, const(char)* record, uint reclen)
     //printf("rectyp = x%x, record[0] = x%x, reclen = x%x\n",rectyp,record[0],reclen);
     o.reserve(reclen + 4);
     o.writeByten(cast(ubyte)rectyp);
-    o.writeWordn(reclen + 1);  // record length includes checksum
+    o.write16n(reclen + 1);  // record length includes checksum
     o.writen(record,reclen);
     o.writeByten(0);           // use 0 for checksum
 }

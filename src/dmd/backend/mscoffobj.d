@@ -2338,7 +2338,7 @@ static if (0)
         else if (refsize == 6)
         {
             buf.write32(cast(int)val);
-            buf.writeWord(0);
+            buf.write16(0);
         }
         else
             assert(0);
