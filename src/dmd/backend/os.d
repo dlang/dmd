@@ -1,4 +1,9 @@
 /**
+ * Operating system specific routines.
+ *
+ * Placed here to avoid cluttering
+ * up code with OS files.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -9,11 +14,7 @@
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/os.d, backend/os.d)
  */
 
-/*
- * Operating system specific routines.
- * Placed here to avoid cluttering
- * up code with OS files.
- */
+module dmd.backend.os;
 
 import core.stdc.stdio;
 import core.stdc.time;

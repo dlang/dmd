@@ -1,4 +1,10 @@
 /**
+ * SROA structured replacement of aggregate optimization
+ *
+ * This 'slices' a two register wide aggregate into two separate register-sized variables,
+ * enabling much better enregistering.
+ * SROA (Scalar Replacement Of Aggregates) is the common term for this.
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -45,11 +51,6 @@ int REGSIZE();
 
 alias SLICESIZE = REGSIZE;  // slices are all register-sized
 enum MAXSLICES = 2;         // max # of pieces we can slice an aggregate into
-
-/* This 'slices' a two register wide aggregate into two separate register-sized variables,
- * enabling much better enregistering.
- * SROA (Scalar Replacement Of Aggregates) is the common term for this.
- */
 
 struct SymInfo
 {

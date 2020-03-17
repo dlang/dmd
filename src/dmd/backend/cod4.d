@@ -1,4 +1,12 @@
 /**
+ * Code generation 4
+ *
+ * Includes:
+ * - assignemt variations of operators (+= -= *= /= %= <<= >>=)
+ * - integer comparison (< > <= >=)
+ * - converting integers to a different size (e.g. short to int)
+ * - bit instructions (bit scan, population count)
+ *
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
