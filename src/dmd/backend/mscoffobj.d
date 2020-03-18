@@ -281,7 +281,7 @@ Obj MsCoffObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegna
         assert(string_table);
         string_table.reserve(2048);
     }
-    string_table.setsize(0);
+    string_table.reset();
     string_table.write32(4);           // first 4 bytes are length of string table
 
     if (symbuf)
@@ -290,7 +290,7 @@ Obj MsCoffObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegna
         const size_t n = symbuf.length() / (Symbol *).sizeof;
         for (size_t i = 0; i < n; ++i)
             symbol_reset(p[i]);
-        symbuf.setsize(0);
+        symbuf.reset();
     }
     else
     {
@@ -305,7 +305,7 @@ Obj MsCoffObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegna
         assert(syment_buf);
         syment_buf.reserve(SymbolTable32.sizeof * SYM_TAB_INIT);
     }
-    syment_buf.setsize(0);
+    syment_buf.reset();
 
     extdef = 0;
     pointersSeg = 0;
@@ -317,7 +317,7 @@ Obj MsCoffObj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegna
         assert(ScnhdrBuf);
         ScnhdrBuf.reserve(SCNHDR_TAB_INITSIZE * (IMAGE_SECTION_HEADER).sizeof);
     }
-    ScnhdrBuf.setsize(0);
+    ScnhdrBuf.reset();
     scnhdr_cnt = 0;
 
     /* Define sections. Although the order should not matter, we duplicate
@@ -1435,7 +1435,7 @@ segidx_t MsCoffObj_getsegment2(IDXSEC shtidx)
         Outbuffer *b2 = pseg.SDrel;
         memset(pseg, 0, (seg_data).sizeof);
         if (b1)
-            b1.setsize(0);
+            b1.reset();
         else
         {
             b1 = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
@@ -1443,7 +1443,7 @@ segidx_t MsCoffObj_getsegment2(IDXSEC shtidx)
             b1.reserve(4096);
         }
         if (b2)
-            b2.setsize(0);
+            b2.reset();
         pseg.SDbuf = b1;
         pseg.SDrel = b2;
     }

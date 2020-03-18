@@ -466,12 +466,12 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
         assert(local_symbuf);
         local_symbuf.reserve((Symbol *).sizeof * SYM_TAB_INIT);
     }
-    local_symbuf.setsize(0);
+    local_symbuf.reset();
 
     if (public_symbuf)
     {
         reset_symbols(public_symbuf);
-        public_symbuf.setsize(0);
+        public_symbuf.reset();
     }
     else
     {
@@ -483,7 +483,7 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
     if (extern_symbuf)
     {
         reset_symbols(extern_symbuf);
-        extern_symbuf.setsize(0);
+        extern_symbuf.reset();
     }
     else
     {
@@ -498,16 +498,16 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
         assert(comdef_symbuf);
         comdef_symbuf.reserve((Symbol *).sizeof * SYM_TAB_INIT);
     }
-    comdef_symbuf.setsize(0);
+    comdef_symbuf.reset();
 
     extdef = 0;
 
     if (indirectsymbuf1)
-        indirectsymbuf1.setsize(0);
+        indirectsymbuf1.reset();
     jumpTableSeg = 0;
 
     if (indirectsymbuf2)
-        indirectsymbuf2.setsize(0);
+        indirectsymbuf2.reset();
     pointersSeg = 0;
 
     // Initialize segments for CODE, DATA, UDATA and CDATA
@@ -1882,9 +1882,9 @@ int Obj_getsegment(const(char)* sectname, const(char)* segname,
         Outbuffer *b2 = pseg.SDrel;
         memset(pseg, 0, seg_data.sizeof);
         if (b1)
-            b1.setsize(0);
+            b1.reset();
         if (b2)
-            b2.setsize(0);
+            b2.reset();
         pseg.SDbuf = b1;
         pseg.SDrel = b2;
     }
