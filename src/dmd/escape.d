@@ -1466,9 +1466,12 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false)
 
         override void visit(VarExp e)
         {
-            VarDeclaration v = e.var.isVarDeclaration();
-            if (v)
-                er.byvalue.push(v);
+            if (auto v = e.var.isVarDeclaration())
+            {
+                if (v.type.hasPointers() || // not tracking non-pointers
+                    v.storage_class & STC.lazy_) // lazy variables are actually pointers
+                    er.byvalue.push(v);
+            }
         }
 
         override void visit(ThisExp e)
