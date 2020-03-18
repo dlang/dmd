@@ -148,6 +148,18 @@ fail_compilation_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(fai
 dshell_tests=$(wildcard dshell/*.d)
 dshell_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(dshell_tests)))
 
+# Use the generated dmd instead of the host compiler because many CI systems use
+# older versions (which cannot compile the test runner anymore)
+export HOST_DMD=$(subst \,/,$(DMD))
+
+RUNNER:=$(RESULTS_DIR)/run$(EXE)
+EXECUTE_RUNNER:=$(RUNNER) --environment
+
+# N determines the amount of parallel jobs, see ci.sh
+ifneq ($(N),)
+    EXECUTE_RUNNER:=$(EXECUTE_RUNNER) --jobs=$N
+endif
+
 all: run_tests
 
 test_tools=$(RESULTS_DIR)/d_do_test$(EXE) $(RESULTS_DIR)/dshell_prebuilt$(OBJ) $(RESULTS_DIR)/sanitize_json$(EXE)
@@ -175,40 +187,44 @@ $(RESULTS_DIR)/.created:
 	$(QUIET)if [ ! -d $(RESULTS_DIR)/dshell ]; then mkdir $(RESULTS_DIR)/dshell; fi
 	$(QUIET)touch $(RESULTS_DIR)/.created
 
-run_tests: unit_tests start_runnable_tests start_compilable_tests start_fail_compilation_tests start_dshell_tests
+run_tests: run_all_tests
 
-unit_tests: $(RESULTS_DIR)/unit_test_runner$(EXE)
+unit_tests: $(RUNNER)
 	@echo "Running unit tests"
-	$<
+	$(EXECUTE_RUNNER) $@
 
-run_runnable_tests: $(runnable_test_results)
+run_runnable_tests: $(RUNNER)
+	$(EXECUTE_RUNNER) $@
 
-start_runnable_tests: $(RESULTS_DIR)/.created $(test_tools)
+start_runnable_tests:
 	@echo "Running runnable tests"
 	$(QUIET)$(MAKE) $(DMD_TESTSUITE_MAKE_ARGS) --no-print-directory run_runnable_tests
 
-run_compilable_tests: $(compilable_test_results)
+run_compilable_tests: $(RUNNER)
+	$(EXECUTE_RUNNER) $@
 
-start_compilable_tests: $(RESULTS_DIR)/.created $(test_tools)
+start_compilable_tests:
 	@echo "Running compilable tests"
 	$(QUIET)$(MAKE) $(DMD_TESTSUITE_MAKE_ARGS) --no-print-directory run_compilable_tests
 
-run_fail_compilation_tests: $(fail_compilation_test_results)
+run_fail_compilation_tests: $(RUNNER)
+	$(EXECUTE_RUNNER) $@
 
-start_fail_compilation_tests: $(RESULTS_DIR)/.created $(test_tools)
+start_fail_compilation_tests:
 	@echo "Running fail compilation tests"
 	$(QUIET)$(MAKE) $(DMD_TESTSUITE_MAKE_ARGS) --no-print-directory run_fail_compilation_tests
 
-run_dshell_tests: $(dshell_test_results)
+run_dshell_tests: $(RUNNER)
+	$(EXECUTE_RUNNER) $@
 
-start_dshell_tests: $(RESULTS_DIR)/.created $(test_tools)
+start_dshell_tests:
 	@echo "Running dshell tests"
 	$(QUIET)$(MAKE) $(DMD_TESTSUITE_MAKE_ARGS) --no-print-directory run_dshell_tests
 
-run_all_tests: unit_tests run_runnable_tests run_compilable_tests run_fail_compilation_tests run_dshell_tests
+run_all_tests: $(RUNNER)
+	$(EXECUTE_RUNNER)
 
-start_all_tests: $(RESULTS_DIR)/.created
-	$(QUIET)$(MAKE) $(DMD_TESTSUITE_MAKE_ARGS) --no-print-directory $(test_tools)
+start_all_tests:
 	@echo "Running all tests"
 	$(QUIET)$(MAKE) $(DMD_TESTSUITE_MAKE_ARGS) --no-print-directory run_all_tests
 
@@ -236,3 +252,11 @@ $(RESULTS_DIR)/unit_test_runner$(EXE): tools/unit_test_runner.d $(RESULTS_DIR)/.
 	@echo "MODEL: '$(MODEL)'"
 	@echo "PIC: '$(PIC_FLAG)'"
 	$(DMD) -conf= $(MODEL_FLAG) $(DEBUG_FLAGS) -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)unit_test_runner$(EXE) -i $<
+
+# Build d_do_test here to run it's unittests
+# TODO: Migrate this to run.d
+$(RUNNER): run.d $(RESULTS_DIR)/d_do_test$(EXE)
+	$(DMD) -conf= $(MODEL_FLAG) $(DEBUG_FLAGS) -od$(RESULTS_DIR) -of$(RUNNER) -i -release $<
+
+# run.d is not reentrant because each invocation might attempt to build the required tools
+.NOTPARALLEL:

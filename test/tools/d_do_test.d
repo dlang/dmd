@@ -1286,6 +1286,11 @@ int tryMain(string[] args)
                 }
                 else version (linux)
                 {
+                    // Tests failed on SemaphoreCI when multiple GDB tests were run at once
+                    scope lockfile = File(envData.results_dir.buildPath("gdb.lock"), "w");
+                    lockfile.lock();
+                    scope (exit) lockfile.unlock();
+
                     auto script = test_app_dmd_base ~ to!string(permuteIndex) ~ ".gdb";
                     toCleanup ~= script;
                     with (File(script, "w"))

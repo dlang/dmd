@@ -89,14 +89,15 @@ int main(string[] args)
 
 int tryMain(string[] args)
 {
-    bool runUnitTests, calledFromMake;
+    bool runUnitTests, dumpEnvironment;
     int jobs = totalCPUs;
     auto res = getopt(args,
         std.getopt.config.passThrough,
         "j|jobs", "Specifies the number of jobs (commands) to run simultaneously (default: %d)".format(totalCPUs), &jobs,
         "v", "Verbose command output", (cast(bool*) &verbose),
         "f", "Force run (ignore timestamps and always run all tests)", (cast(bool*) &force),
-        "u|unit-tests", "Runs the unit tests", &runUnitTests
+        "u|unit-tests", "Runs the unit tests", &runUnitTests,
+        "e|environment", "Print current environment variables", &dumpEnvironment,
     );
     if (res.helpWanted)
     {
@@ -164,12 +165,12 @@ Options:
     {
         verifyCompilerExists(env);
 
-        if (verbose)
+        if (verbose || dumpEnvironment)
         {
-            log("================================================================================");
+            writefln("================================================================================");
             foreach (key, value; env)
-                log("%s=%s", key, value);
-            log("================================================================================");
+                writefln("%s=%s", key, value);
+            writefln("================================================================================");
         }
 
         int ret;
