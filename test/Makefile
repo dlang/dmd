@@ -110,8 +110,8 @@ endif
 
 all: run_tests
 
-quick:
-	$(MAKE) ARGS="" run_tests
+quick: $(RUNNER)
+	$(EXECUTE_RUNNER) $@
 
 clean:
 	@echo "Removing output directory: $(RESULTS_DIR)"
