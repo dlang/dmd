@@ -805,9 +805,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             // so mark the scope as ctfe if required
             bool needctfe = (dsym.storage_class & (STC.manifest | STC.static_)) != 0;
             if (needctfe)
+            {
+                sc.flags |= SCOPE.condition;
                 sc = sc.startCTFE();
-
-            //printf("inferring type for %s with init %s\n", toChars(), _init.toChars());
+            }
+            //printf("inferring type for %s with init %s\n", dsym.toChars(), dsym._init.toChars());
             dsym._init = dsym._init.inferType(sc);
             dsym.type = dsym._init.initializerToExpression().type;
             if (needctfe)
