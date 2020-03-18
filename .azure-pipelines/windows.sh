@@ -118,7 +118,7 @@ cd "${DMD_DIR}/test"
 # REASON: LIB argument doesn't seem to work
 cp "${DMD_DIR}/../phobos/$LIBNAME" .
 
-DMD_TESTSUITE_MAKE_ARGS="-j$N" "${GNU_MAKE}" -j1 start_all_tests ARGS="-O -inline -g" MODEL="$MODEL"  MODEL_FLAG="$MODEL_FLAG"
+"${GNU_MAKE}" -j1 start_all_tests ARGS="-O -inline -g" MODEL="$MODEL"  MODEL_FLAG="$MODEL_FLAG" N="$N"
 
 ################################################################################
 # Prepare artifacts
