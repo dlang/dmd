@@ -147,37 +147,37 @@ unit_tests: $(RUNNER)
 run_runnable_tests: $(RUNNER)
 	$(EXECUTE_RUNNER) $@
 
-start_runnable_tests:
+start_runnable_tests: $(RUNNER)
 	@echo "Running runnable tests"
-	$(QUIET)$(MAKE) $(DMD_TESTSUITE_MAKE_ARGS) --no-print-directory run_runnable_tests
+	$(EXECUTE_RUNNER) run_runnable_tests
 
 run_compilable_tests: $(RUNNER)
 	$(EXECUTE_RUNNER) $@
 
-start_compilable_tests:
+start_compilable_tests: $(RUNNER)
 	@echo "Running compilable tests"
-	$(QUIET)$(MAKE) $(DMD_TESTSUITE_MAKE_ARGS) --no-print-directory run_compilable_tests
+	$(EXECUTE_RUNNER) run_compilable_tests
 
 run_fail_compilation_tests: $(RUNNER)
 	$(EXECUTE_RUNNER) $@
 
-start_fail_compilation_tests:
+start_fail_compilation_tests: $(RUNNER)
 	@echo "Running fail compilation tests"
-	$(QUIET)$(MAKE) $(DMD_TESTSUITE_MAKE_ARGS) --no-print-directory run_fail_compilation_tests
+	$(EXECUTE_RUNNER) run_fail_compilation_tests
 
 run_dshell_tests: $(RUNNER)
 	$(EXECUTE_RUNNER) $@
 
-start_dshell_tests:
+start_dshell_tests: $(RUNNER)
 	@echo "Running dshell tests"
-	$(QUIET)$(MAKE) $(DMD_TESTSUITE_MAKE_ARGS) --no-print-directory run_dshell_tests
+	$(EXECUTE_RUNNER) run_dshell_tests
 
 run_all_tests: $(RUNNER)
 	$(EXECUTE_RUNNER)
 
-start_all_tests:
+start_all_tests: $(RUNNER)
 	@echo "Running all tests"
-	$(QUIET)$(MAKE) $(DMD_TESTSUITE_MAKE_ARGS) --no-print-directory run_all_tests
+	$(EXECUTE_RUNNER) all
 
 $(RESULTS_DIR)/d_do_test$(EXE): tools/d_do_test.d tools/sanitize_json.d $(RESULTS_DIR)/.created
 	@echo "Building d_do_test tool"

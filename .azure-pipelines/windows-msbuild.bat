@@ -12,7 +12,7 @@ if "%ARCH%"=="x64" set MODEL=64
 set DMD=%DMD_DIR%\generated\Windows\%CONFIGURATION%\%PLATFORM%\dmd.exe
 
 set VISUALD_INSTALLER=VisualD-%VISUALD_VER%.exe
-set DMD_TESTSUITE_MAKE_ARGS=-j3
+set N=3
 set DM_MAKE=%DMD_DIR%\dm\path\make.exe
 set LDC_DIR=%DMD_DIR%\ldc2-%LDC_VERSION%-windows-multilib
 
