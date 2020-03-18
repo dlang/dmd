@@ -7076,8 +7076,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 auto tFrom = t1b.nextOf();
                 auto tTo = tob.nextOf();
 
-                // https://issues.dlang.org/show_bug.cgi?id=19954
-                if (exp.e1.op != TOK.string_ || tTo.ty == Tarray)
+                // https://issues.dlang.org/show_bug.cgi?id=20130
+                if (exp.e1.op != TOK.string_ || !ex.isStringExp)
                 {
                     const uint fromSize = cast(uint)tFrom.size();
                     const uint toSize = cast(uint)tTo.size();
