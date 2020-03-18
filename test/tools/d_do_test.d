@@ -16,14 +16,8 @@ import std.regex;
 import std.path;
 import std.stdio;
 import std.string;
-import core.sys.posix.sys.wait;
 
 const dmdTestDir = __FILE_FULL_PATH__.dirName.dirName;
-
-version(Win32)
-{
-    extern(C) int putenv(const char*);
-}
 
 void usage()
 {
@@ -536,60 +530,32 @@ string genTempFilename(string result_path)
     return a.data;
 }
 
-int system(string command)
-{
-    static import core.stdc.stdlib;
-    if (!command) return core.stdc.stdlib.system(null);
-    const commandz = toStringz(command);
-    auto status = core.stdc.stdlib.system(commandz);
-    if (status == -1) return status;
-    version (Windows) status <<= 8;
-    return status;
-}
-
-version(Windows)
-{
-    extern (D) bool WIFEXITED( int status )    { return ( status & 0x7F ) == 0; }
-    extern (D) int  WEXITSTATUS( int status )  { return ( status & 0xFF00 ) >> 8; }
-    extern (D) int  WTERMSIG( int status )     { return status & 0x7F; }
-    extern (D) bool WIFSIGNALED( int status )
-    {
-        return ( cast(byte) ( ( status & 0x7F ) + 1 ) >> 1 ) > 0;
-    }
-}
-
 void removeIfExists(in char[] filename)
 {
     if (std.file.exists(filename))
         std.file.remove(filename);
 }
 
-string execute(ref File f, string command, bool expectpass, string result_path)
+/++
+Execute the given command, verifies the exit code and returns the collected output.
+
+f          = the logfile
+command    = command to execute
+expectPass = whether the command is expected to pass (as indicated by the respective exit code 0/1)
+env        = variables overriding the current environment (if any)
+++/
+string execute(ref File f, string command, bool expectpass, string[string] env = null)
 {
-    auto filename = genTempFilename(result_path);
-    scope(exit) removeIfExists(filename);
+    f.writeln('\n', command);
+    const res = executeShell(command, env);
+    f.write(res.output);
 
-    auto rc = system(command ~ " > " ~ filename ~ " 2>&1");
+    enforce(res.status >= 0, "Caught signal: " ~ to!string(res.status));
 
-    string output = readText(filename);
-    f.writeln(command);
-    f.write(output);
+    const exp = expectpass ? 0 : 1;
+    enforce(res.status == exp, format!"Got exit code %d instead of %d!"(res.status, exp));
 
-    if (WIFSIGNALED(rc))
-    {
-        auto value = WTERMSIG(rc);
-        enforce(0 == value, "caught signal: " ~ to!string(value));
-    }
-    else if (WIFEXITED(rc))
-    {
-        auto value = WEXITSTATUS(rc);
-        if (expectpass)
-            enforce(0 == value, "expected rc == 0, exited with rc == " ~ to!string(value));
-        else
-            enforce(1 == value, "expected rc == 1, but exited with rc == " ~ to!string(value));
-    }
-
-    return output;
+    return res.output;
 }
 
 /// add quotes around the whole string if it contains spaces that are not in quotes
@@ -1097,6 +1063,8 @@ int tryMain(string[] args)
     if (!gatherTestParameters(testArgs, input_dir, input_file, envData))
         return 0;
 
+    string[string] env; /// Overriden environment variables
+
     // Clear the DFLAGS environment variable if it was specified in the test file
     if (testArgs.clearDflags)
     {
@@ -1112,7 +1080,7 @@ int tryMain(string[] args)
                 }
             }
         }
-        environment["DFLAGS"] = "";
+        env["DFLAGS"] = "";
     }
 
     writef(" ... %-30s %s%s(%s)",
@@ -1189,7 +1157,7 @@ int tryMain(string[] args)
                         join(testArgs.sources, " "),
                         (autoCompileImports ? "-i" : join(testArgs.compiledImports, " ")));
 
-                compile_output = execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path);
+                compile_output = execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, env);
             }
             else
             {
@@ -1200,7 +1168,7 @@ int tryMain(string[] args)
 
                     command = format("%s -conf= -m%s -I%s %s %s -od%s -c %s %s", envData.dmd, envData.model, input_dir,
                         testArgs.requiredArgs, permutedArgs, output_dir, argSet, filename);
-                    compile_output ~= execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path);
+                    compile_output ~= execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, env);
                 }
 
                 if (testArgs.mode == TestMode.RUN || testArgs.link)
@@ -1211,7 +1179,7 @@ int tryMain(string[] args)
                         autoCompileImports ? "extraSourceIncludePaths" : "",
                         envData.required_args, testArgs.requiredArgsForLink, output_dir, test_app_dmd, join(toCleanup, " "));
 
-                    execute(fThisRun, command, true, result_path);
+                    execute(fThisRun, command, true, env);
                 }
             }
 
@@ -1288,7 +1256,7 @@ int tryMain(string[] args)
                     command = test_app_dmd;
                     if (testArgs.executeArgs) command ~= " " ~ testArgs.executeArgs;
 
-                    const output = execute(fThisRun, command, true, result_path)
+                    const output = execute(fThisRun, command, true, env)
                                     .strip()
                                     .unifyNewLine();
 
@@ -1313,7 +1281,7 @@ int tryMain(string[] args)
                         write(testArgs.gdbScript);
                     }
                     string gdbCommand = "gdb "~test_app_dmd~" --batch -x "~script;
-                    auto gdb_output = execute(fThisRun, gdbCommand, true, result_path);
+                    auto gdb_output = execute(fThisRun, gdbCommand, true, env);
                     if (testArgs.gdbMatch !is null)
                     {
                         enforce(match(gdb_output, regex(testArgs.gdbMatch)),
@@ -1329,7 +1297,7 @@ int tryMain(string[] args)
                 f.write("Executing post-test script: ");
                 string prefix = "";
                 version (Windows) prefix = "bash ";
-                execute(f, prefix ~ "tools/postscript.sh " ~ testArgs.postScript ~ " " ~ input_dir ~ " " ~ test_name ~ " " ~ thisRunName, true, result_path);
+                execute(f, prefix ~ "tools/postscript.sh " ~ testArgs.postScript ~ " " ~ input_dir ~ " " ~ test_name ~ " " ~ thisRunName, true, env);
             }
 
             foreach (file; toCleanup) collectException(std.file.remove(file));
