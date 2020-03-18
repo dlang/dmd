@@ -1555,6 +1555,8 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false)
 
         override void visit(CastExp e)
         {
+            if (!e.type.hasPointers())
+                return;
             Type tb = e.type.toBasetype();
             if (tb.ty == Tarray && e.e1.type.toBasetype().ty == Tsarray)
             {

@@ -112,4 +112,5 @@ void test_20682(scope ref D d) @safe
     int[] a;
     a ~= f1_20682(d);
     a ~= f2_20682(d);
+    a ~= cast(int) d.p;
 }
