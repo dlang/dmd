@@ -37,14 +37,9 @@ endif
 QUIET=@
 export RESULTS_DIR=test_results
 export MODEL
-export REQUIRED_ARGS=
 
 ifeq ($(findstring win,$(OS)),win)
-    export ARGS=-inline -release -g -O
     export EXE=.exe
-    export OBJ=.obj
-    export DSEP=\\
-    export SEP=$(subst /,\,/)
 
     PIC?=0
 
@@ -64,11 +59,7 @@ ifeq ($(findstring win,$(OS)),win)
     export DMD=../generated/windows/$(BUILD)/$(DMD_MODEL)/dmd$(EXE)
 
 else
-    export ARGS=-inline -release -g -O -fPIC
     export EXE=
-    export OBJ=.o
-    export DSEP=/
-    export SEP=/
 
     # auto-tester might run the testsuite with a different $(MODEL) than DMD
     # has been compiled with. Hence we manually check which binary exists.
@@ -104,9 +95,6 @@ else
     endif
     export DFLAGS
 endif
-REQUIRED_ARGS+=$(PIC_FLAG)
-
-export DMD_TEST_COVERAGE=
 
 # Use the generated dmd instead of the host compiler because many CI systems use
 # older versions (which cannot compile the test runner anymore)
@@ -185,7 +173,7 @@ $(RESULTS_DIR)/d_do_test$(EXE): tools/d_do_test.d tools/sanitize_json.d $(RESULT
 	@echo "MODEL: '$(MODEL)'"
 	@echo "PIC: '$(PIC_FLAG)'"
 	$(DMD) -conf= $(MODEL_FLAG) $(PIC_FLAG) -g -lowmem -i -Itools -version=NoMain -unittest -run $<
-	$(DMD) -conf= $(MODEL_FLAG) $(PIC_FLAG) -g -lowmem -i -Itools -version=NoMain -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)d_do_test$(EXE) $<
+	$(DMD) -conf= $(MODEL_FLAG) $(PIC_FLAG) -g -lowmem -i -Itools -version=NoMain -od$(RESULTS_DIR) -of$@ $<
 
 # Build d_do_test here to run it's unittests
 # TODO: Migrate this to run.d
