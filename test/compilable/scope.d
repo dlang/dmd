@@ -94,3 +94,22 @@ void test(scope ref D d) @safe
     D[] da;
     da ~= D(d.pos, null);
 }
+
+// https://issues.dlang.org/show_bug.cgi?id=20682
+
+int f1_20682(return scope ref D d) @safe
+{
+    return d.pos;
+}
+
+ref int f2_20682(return scope ref D d) @safe
+{
+    return d.pos;
+}
+
+void test_20682(scope ref D d) @safe
+{
+    int[] a;
+    a ~= f1_20682(d);
+    a ~= f2_20682(d);
+}

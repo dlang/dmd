@@ -1651,6 +1651,9 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false)
             else
                 return;
 
+            if (!e.type.hasPointers())
+                return;
+
             if (e.arguments && e.arguments.dim)
             {
                 /* j=1 if _arguments[] is first argument,
