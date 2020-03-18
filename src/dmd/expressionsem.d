@@ -5288,8 +5288,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
          * is(targ id :  tok2)
          * is(targ id == tok2)
          */
-
-        //printf("IsExp::semantic(%s)\n", toChars());
+        static if (LOGSEMANTIC)
+        {
+            printf("IsExp::semantic(%s)\n", e.toChars());
+        }
         if (e.id && !(sc.flags & SCOPE.condition))
         {
             e.error("can only declare type aliases within `static if` conditionals or `static assert`s");
@@ -10592,6 +10594,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(LogicalExp exp)
     {
+        static if (LOGSEMANTIC)
+        {
+            printf("LogicalExp::semantic() %s\n", exp.toChars());
+        }
+
         if (exp.type)
         {
             result = exp;
