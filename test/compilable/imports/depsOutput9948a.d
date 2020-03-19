@@ -1,4 +1,4 @@
-module depsOutput9948a;
+module imports.depsOutput9948a;
 
 void templateFunc(string myImport)()
 {
