@@ -124,6 +124,13 @@ Options:
     args.popFront;
     args2Environment(args);
 
+    // Run the test suite without default permutations
+    if (args == ["quick"])
+    {
+        args = null;
+        environment["ARGS"] = "";
+    }
+
     // allow overwrites from the environment
     hostDMD = environment.get("HOST_DMD", "dmd");
     unitTestRunnerCommand = resultsDir.buildPath("unit_test_runner");
