@@ -573,7 +573,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         super(loc, ident);
         static if (LOG)
         {
-            printf("TemplateDeclaration(this = %p, id = '%s')\n", this, id.toChars());
+            printf("TemplateDeclaration(this = %p, id = '%s')\n", this, ident.toChars());
         }
         version (none)
         {
@@ -7272,7 +7272,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
         void symbolDg(Dsymbol s)
         {
-            //printf("\t[%d] semantic on '%s' %p kind %s in '%s'\n", i, s.toChars(), s, s.kind(), this.toChars());
+            //printf("\t semantic on '%s' %p kind %s in '%s'\n",  s.toChars(), s, s.kind(), this.toChars());
             //printf("test: enclosing = %d, sc2.parent = %s\n", enclosing, sc2.parent.toChars());
             //if (enclosing)
             //    s.parent = sc.parent;
