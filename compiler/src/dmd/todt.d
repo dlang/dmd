@@ -504,7 +504,6 @@ extern (C++) void Expression_toDt(Expression e, ref DtBuilder dtb)
         //printf("SymOffExp.toDt('%s')\n", e.var.toChars());
         assert(e.var);
         if (!(e.var.isDataseg() || e.var.isCodeseg()) ||
-            e.var.needThis() ||
             e.var.isThreadlocal())
         {
             return nonConstExpError(e);
