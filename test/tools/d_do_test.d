@@ -394,10 +394,7 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     findTestParameter(envData, file, "CXXFLAGS", testArgs.cxxflags);
     string extraCppSourcesStr;
     findTestParameter(envData, file, "EXTRA_CPP_SOURCES", extraCppSourcesStr);
-    testArgs.cppSources = [];
-    // prepend input_dir to each extra source file
-    foreach(s; split(extraCppSourcesStr))
-        testArgs.cppSources ~= s;
+    testArgs.cppSources = split(extraCppSourcesStr);
 
     string extraObjcSourcesStr;
     auto objc = findTestParameter(envData, file, "EXTRA_OBJC_SOURCES", extraObjcSourcesStr);
@@ -405,10 +402,7 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     if (objc && !envData.dobjc)
         return false;
 
-    testArgs.objcSources = [];
-    // prepend input_dir to each extra source file
-    foreach(s; split(extraObjcSourcesStr))
-        testArgs.objcSources ~= s;
+    testArgs.objcSources = split(extraObjcSourcesStr);
 
     // swap / with $SEP
     if (envData.sep && envData.sep != "/")
@@ -1074,7 +1068,6 @@ int tryMain(string[] args)
     if (envData.coverage_build && testArgs.mode == TestMode.RUN)
         testArgs.mode = TestMode.COMPILE;
 
-    const printRuntime = environment.get("PRINT_RUNTIME", "") == "1";
     auto stopWatch = StopWatch(AutoStart.no);
     if (envData.printRuntime)
         stopWatch.start();
@@ -1315,11 +1308,7 @@ int tryMain(string[] args)
                 f.write("Executing post-test script: ");
                 string prefix = "";
                 version (Windows) prefix = "bash ";
-                assert(testArgs.sources[0].length, "Internal error: the tested file has no sources.");
-                import std.path : baseName, dirName, stripExtension;
-                auto testDir = testArgs.sources[0].dirName.baseName;
-                auto testName = testArgs.sources[0].baseName.stripExtension;
-                execute(f, prefix ~ "tools/postscript.sh " ~ testArgs.postScript ~ " " ~ testDir ~ " " ~ testName ~ " " ~ thisRunName, true, result_path);
+                execute(f, prefix ~ "tools/postscript.sh " ~ testArgs.postScript ~ " " ~ input_dir ~ " " ~ test_name ~ " " ~ thisRunName, true, result_path);
             }
 
             foreach (file; toCleanup) collectException(std.file.remove(file));
@@ -1390,7 +1379,6 @@ int tryMain(string[] args)
             if (e.msg.canFind("exited with rc == 139"))
             {
                 auto gdbCommand = "gdb -q -n -ex 'set backtrace limit 100' -ex run -ex bt -batch -args " ~ command;
-                import std.process : spawnShell;
                 spawnShell(gdbCommand).wait;
             }
 
@@ -1547,12 +1535,4 @@ void printTestFailure(string testLogName, string output_file_temp)
           writeln();
     writeln("==============================");
     remove(output_file_temp);
-}
-
-/// Make any parent diretories needed for the given `filename`
-void mkdirsFor(string filename)
-{
-    auto dir = dirName(filename);
-    if (!exists(dir))
-        mkdirRecurse(dir);
 }
