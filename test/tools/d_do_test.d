@@ -66,8 +66,8 @@ struct TestArgs
 
     bool     compileSeparately;
     bool     link;
+    bool     clearDflags; /// whether DFLAGS should be cleared before invoking dmd
     string   executeArgs;
-    string   dflags;
     string   cxxflags;
     string[] sources;
     string[] compiledImports;
@@ -320,7 +320,9 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
 {
     string file = cast(string)std.file.read(input_file);
 
-    findTestParameter(envData, file, "DFLAGS", testArgs.dflags);
+    string dflagsStr;
+    testArgs.clearDflags = findTestParameter(envData, file, "DFLAGS", dflagsStr);
+    enforce(dflagsStr.empty, "The DFLAGS test argument must be empty: It is '" ~ dflagsStr ~ "'");
 
     findTestParameter(envData, file, "REQUIRED_ARGS", testArgs.requiredArgs);
     if (envData.required_args.length)
@@ -353,6 +355,15 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
         testArgs.permuteArgs = newPermuteArgs;
     }
 
+    // tests can override -verrors by using REQUIRED_ARGS
+    if (testArgs.mode == TestMode.FAIL_COMPILE)
+        testArgs.requiredArgs = "-verrors=0 " ~ testArgs.requiredArgs;
+
+    // https://issues.dlang.org/show_bug.cgi?id=10664: exceptions don't work reliably with COMDAT folding
+    // it also slows down some tests drastically, e.g. runnable/test17338.d
+    if (envData.usingMicrosoftCompiler)
+        testArgs.requiredArgs ~= " -L/OPT:NOICF";
+
     {
         string argSetsStr;
         findTestParameter(envData, file, "ARG_SETS", argSetsStr, ";");
@@ -374,8 +385,14 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     // clean up extra spaces
     testArgs.permuteArgs = strip(replace(testArgs.permuteArgs, "  ", " "));
 
-    findTestParameter(envData, file, "EXECUTE_ARGS", testArgs.executeArgs);
-    replaceResultsDir(testArgs.executeArgs, envData);
+    if (findTestParameter(envData, file, "EXECUTE_ARGS", testArgs.executeArgs))
+    {
+        replaceResultsDir(testArgs.executeArgs, envData);
+        // Always run main even if compiled with '-unittest' but let
+        // tests switch to another behaviour if necessary
+        if (!testArgs.executeArgs.canFind("--DRT-testmode"))
+            testArgs.executeArgs ~= " --DRT-testmode=run-main";
+    }
 
     string extraSourcesStr;
     findTestParameter(envData, file, "EXTRA_SOURCES", extraSourcesStr);
@@ -395,6 +412,9 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     string extraCppSourcesStr;
     findTestParameter(envData, file, "EXTRA_CPP_SOURCES", extraCppSourcesStr);
     testArgs.cppSources = split(extraCppSourcesStr);
+
+    if (testArgs.cppSources.length)
+        testArgs.requiredArgs ~= envData.cxxCompatFlags;
 
     string extraObjcSourcesStr;
     auto objc = findTestParameter(envData, file, "EXTRA_OBJC_SOURCES", extraObjcSourcesStr);
@@ -1076,11 +1096,8 @@ int tryMain(string[] args)
         return 0;
 
     // Clear the DFLAGS environment variable if it was specified in the test file
-    if (testArgs.dflags !is null)
+    if (testArgs.clearDflags)
     {
-        if (testArgs.dflags != "")
-            throw new Exception("The DFLAGS test argument must be empty: It is '" ~ testArgs.dflags ~ "'");
-
         // `environment["DFLAGS"] = "";` doesn't seem to work on Win32 (might be a bug
         // in std.process). So, resorting to `putenv` in snn.lib
         version(Win32)
@@ -1096,8 +1113,6 @@ int tryMain(string[] args)
     //prepare cpp extra sources
     if (!testArgs.isDisabled && testArgs.cppSources.length)
     {
-        testArgs.requiredArgs ~= envData.cxxCompatFlags;
-
         if (!collectExtraSources(input_dir, output_dir, testArgs.cppSources, testArgs.sources, envData, envData.ccompiler, testArgs.cxxflags))
             return 1;
     }
@@ -1139,16 +1154,6 @@ int tryMain(string[] args)
                 removeIfExists(thisRunName);
             }
 
-            // can override -verrors by using REQUIRED_ARGS
-            auto reqArgs =
-                (testArgs.mode == TestMode.FAIL_COMPILE ? "-verrors=0 " : null) ~
-                testArgs.requiredArgs;
-
-            // https://issues.dlang.org/show_bug.cgi?id=10664: exceptions don't work reliably with COMDAT folding
-            // it also slows down some tests drastically, e.g. runnable/test17338.d
-            if (envData.usingMicrosoftCompiler)
-                reqArgs ~= " -L/OPT:NOICF";
-
             string compile_output;
             if (!testArgs.compileSeparately)
             {
@@ -1156,7 +1161,7 @@ int tryMain(string[] args)
                 toCleanup ~= objfile;
 
                 command = format("%s -conf= -m%s -I%s %s %s -od%s -of%s %s %s%s %s", envData.dmd, envData.model, input_dir,
-                        reqArgs, permutedArgs, output_dir,
+                        testArgs.requiredArgs, permutedArgs, output_dir,
                         (testArgs.mode == TestMode.RUN || testArgs.link ? test_app_dmd : objfile),
                         argSet,
                         (testArgs.mode == TestMode.RUN || testArgs.link ? "" : "-c "),
@@ -1173,7 +1178,7 @@ int tryMain(string[] args)
                     toCleanup ~= newo;
 
                     command = format("%s -conf= -m%s -I%s %s %s -od%s -c %s %s", envData.dmd, envData.model, input_dir,
-                        reqArgs, permutedArgs, output_dir, argSet, filename);
+                        testArgs.requiredArgs, permutedArgs, output_dir, argSet, filename);
                     compile_output ~= execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path);
                 }
 
@@ -1261,11 +1266,6 @@ int tryMain(string[] args)
                 {
                     command = test_app_dmd;
                     if (testArgs.executeArgs) command ~= " " ~ testArgs.executeArgs;
-
-                    // Always run main even if compiled with '-unittest' but let
-                    // tests switch to another behaviour if necessary
-                    if (!command.canFind("--DRT-testmode"))
-                        command ~= " --DRT-testmode=run-main";
 
                     const output = execute(fThisRun, command, true, result_path)
                                     .strip()
