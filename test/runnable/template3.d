@@ -5,6 +5,13 @@ instantiating...
 instantiating...
 last instantiation!!!
 ---
+
+RUN_OUTPUT:
+---
+1
+3
+Success
+---
 */
 
 import core.stdc.stdio;

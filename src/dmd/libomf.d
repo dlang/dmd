@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/libomf.d, _libomf.d)
@@ -27,6 +27,7 @@ import dmd.root.file;
 import dmd.root.filename;
 import dmd.root.rmem;
 import dmd.root.outbuffer;
+import dmd.root.string;
 import dmd.root.stringtable;
 
 import dmd.scanomf;
@@ -45,6 +46,12 @@ struct OmfObjSymbol
 {
     char* name;
     OmfObjModule* om;
+
+    /// Predicate for `Array.sort`for name comparison
+    static int name_pred (scope const OmfObjSymbol** ppe1, scope const OmfObjSymbol** ppe2) nothrow @nogc pure
+    {
+        return strcmp((**ppe1).name, (**ppe2).name);
+    }
 }
 
 alias OmfObjModules = Array!(OmfObjModule*);
@@ -70,23 +77,25 @@ final class LibOMF : Library
      * If the buffer is NULL, use module_name as the file name
      * and load the file.
      */
-    override void addObject(const(char)* module_name, const ubyte[] buffer)
+    override void addObject(const(char)[] module_name, const ubyte[] buffer)
     {
         static if (LOG)
         {
-            printf("LibOMF::addObject(%s)\n", module_name ? module_name : "");
+            printf("LibOMF::addObject(%.*s)\n", cast(int)module_name.length,
+                   module_name.ptr);
         }
 
         void corrupt(int reason)
         {
-            error("corrupt OMF object module %s %d", module_name, reason);
+            error("corrupt OMF object module %s %d",
+                  cast(int)module_name.length, module_name.ptr, reason);
         }
 
         auto buf = buffer.ptr;
         auto buflen = buffer.length;
         if (!buf)
         {
-            assert(module_name);
+            assert(module_name.length, "No module nor buffer provided to `addObject`");
             // read file and take buffer ownership
             auto data = readFile(Loc.initial, module_name).extractSlice();
             buf = data.ptr;
@@ -148,22 +157,14 @@ final class LibOMF : Library
             if (firstmodule && module_name && !islibrary)
             {
                 // Remove path and extension
-                auto n = cast(char*)Mem.check(strdup(FileName.name(module_name)));
-                om.name = n[0 .. strlen(n)];
-                char* ext = cast(char*)FileName.ext(n);
-                if (ext)
-                    ext[-1] = 0;
+                om.name = FileName.removeExt(FileName.name(module_name));
             }
             else
             {
                 /* Use THEADR name as module name,
                  * removing path and extension.
                  */
-                auto n = cast(char*)Mem.check(strdup(FileName.name(name)));
-                om.name = n[0 .. strlen(n)];
-                char* ext = cast(char*)FileName.ext(n);
-                if (ext)
-                    ext[-1] = 0;
+                om.name = FileName.removeExt(FileName.name(name.toDString()));
             }
             firstmodule = false;
             this.objmodules.push(om);
@@ -335,7 +336,7 @@ private:
                 return false;
         }
         // Sort the symbols
-        qsort(objsymbols.tdata(), objsymbols.dim, (objsymbols[0]).sizeof, cast(_compare_fp_t)&NameCompare);
+        objsymbols.sort!(OmfObjSymbol.name_pred);
         // Add each of the symbols
         foreach (os; objsymbols)
         {
@@ -501,16 +502,6 @@ struct OmfObjModule
     uint length; // in bytes
     ushort page; // page module starts in output file
     const(char)[] name; // module name, with terminating 0
-}
-
-/*****************************************************************************/
-/*****************************************************************************/
-extern (C)
-{
-    int NameCompare(const(void*) p1, const(void*) p2)
-    {
-        return strcmp((*cast(OmfObjSymbol**)p1).name, (*cast(OmfObjSymbol**)p2).name);
-    }
 }
 
 enum HASHMOD = 0x25;

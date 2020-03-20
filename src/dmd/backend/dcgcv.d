@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1995 by Symantec
- *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dcgcv.d, backend/dcgcv.d)
@@ -53,7 +53,7 @@ version (SCPP)
 }
 version (MARS)
 {
-    import dmd.backend.varstats;
+    import dmd.backend.dvarstats;
 }
 
 extern (C++):
@@ -445,16 +445,16 @@ void cv_init()
     if (reset_symbuf)
     {
         Symbol **p = cast(Symbol **)reset_symbuf.buf;
-        const size_t n = reset_symbuf.size() / (Symbol *).sizeof;
+        const size_t n = reset_symbuf.length() / (Symbol *).sizeof;
         for (size_t i = 0; i < n; ++i)
             symbol_reset(p[i]);
-        reset_symbuf.setsize(0);
+        reset_symbuf.reset();
     }
     else
     {
         reset_symbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
         assert(reset_symbuf);
-        reset_symbuf.enlarge(10 * (Symbol *).sizeof);
+        reset_symbuf.reserve(10 * (Symbol*).sizeof);
     }
 
     /* Reset for different OBJ file formats     */
@@ -1769,10 +1769,8 @@ private uint cv4_fwdenum(type* t)
         default:
             assert(0);
     }
-    len += cv_namestring(d.data.ptr + len, id);
-    d.length = 0;                    // so cv_debtyp() will allocate new
+    cv_namestring(d.data.ptr + len, id);
     s.Stypidx = cv_debtyp(d);
-    d.length = cast(ushort)len;      // restore length
     return s.Stypidx;
 }
 

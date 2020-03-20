@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/semantic3.d, _semantic3.d)
@@ -50,6 +50,7 @@ import dmd.hdrgen;
 import dmd.mtype;
 import dmd.nogc;
 import dmd.nspace;
+import dmd.ob;
 import dmd.objc;
 import dmd.opover;
 import dmd.parse;
@@ -62,7 +63,6 @@ import dmd.statementsem;
 import dmd.staticassert;
 import dmd.tokens;
 import dmd.utf;
-import dmd.utils;
 import dmd.semantic2;
 import dmd.statement;
 import dmd.target;
@@ -314,9 +314,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             sc2.sw = null;
             sc2.fes = funcdecl.fes;
             sc2.linkage = LINK.d;
-            sc2.stc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.abstract_ | STC.deprecated_ | STC.override_ |
-                         STC.TYPECTOR | STC.final_ | STC.tls | STC.gshared | STC.ref_ | STC.return_ | STC.property |
-                         STC.nothrow_ | STC.pure_ | STC.safe | STC.trusted | STC.system);
+            sc2.stc &= STCFlowThruFunction;
             sc2.protection = Prot(Prot.Kind.public_);
             sc2.explicitProtection = 0;
             sc2.aligndecl = null;
@@ -364,12 +362,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 }
             }
 
-            // Declare 'this'
-            auto ad = funcdecl.isThis();
-            auto hiddenParams = funcdecl.declareThis(sc2, ad);
-            funcdecl.vthis = hiddenParams.vthis;
-            funcdecl.isThis2 = hiddenParams.isThis2;
-            funcdecl.selectorParameter = hiddenParams.selectorParameter;
+            funcdecl.declareThis(sc2);
+
             //printf("[%s] ad = %p vthis = %p\n", loc.toChars(), ad, vthis);
             //if (vthis) printf("\tvthis.type = %s\n", vthis.type.toChars());
 
@@ -458,8 +452,10 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             stc |= STC.scope_;
                         }
                     }
-                    if (funcdecl.flags & FUNCFLAG.inferScope && !(fparam.storageClass & STC.scope_))
+
+                    if ((funcdecl.flags & FUNCFLAG.inferScope) && !(fparam.storageClass & STC.scope_))
                         stc |= STC.maybescope;
+
                     stc |= fparam.storageClass & (STC.in_ | STC.out_ | STC.ref_ | STC.return_ | STC.scope_ | STC.lazy_ | STC.final_ | STC.TYPECTOR | STC.nodtor);
                     v.storage_class = stc;
                     v.dsymbolSemantic(sc2);
@@ -480,43 +476,40 @@ private extern(C++) final class Semantic3Visitor : Visitor
             // Declare the tuple symbols and put them in the symbol table,
             // but not in parameters[].
             if (f.parameterList.parameters)
+            foreach (fparam; *f.parameterList.parameters)
             {
-                for (size_t i = 0; i < f.parameterList.parameters.dim; i++)
+                if (!fparam.ident)
+                    continue; // never used, so ignore
+                // expand any tuples
+                if (fparam.type.ty != Ttuple)
+                    continue;
+
+                TypeTuple t = cast(TypeTuple)fparam.type;
+                size_t dim = Parameter.dim(t.arguments);
+                auto exps = new Objects(dim);
+                foreach (j; 0 .. dim)
                 {
-                    Parameter fparam = (*f.parameterList.parameters)[i];
-                    if (!fparam.ident)
-                        continue; // never used, so ignore
-                    if (fparam.type.ty == Ttuple)
-                    {
-                        TypeTuple t = cast(TypeTuple)fparam.type;
-                        size_t dim = Parameter.dim(t.arguments);
-                        auto exps = new Objects(dim);
-                        for (size_t j = 0; j < dim; j++)
-                        {
-                            Parameter narg = Parameter.getNth(t.arguments, j);
-                            assert(narg.ident);
-                            VarDeclaration v = sc2.search(Loc.initial, narg.ident, null).isVarDeclaration();
-                            assert(v);
-                            Expression e = new VarExp(v.loc, v);
-                            (*exps)[j] = e;
-                        }
-                        assert(fparam.ident);
-                        auto v = new TupleDeclaration(funcdecl.loc, fparam.ident, exps);
-                        //printf("declaring tuple %s\n", v.toChars());
-                        v.isexp = true;
-                        if (!sc2.insert(v))
-                            funcdecl.error("parameter `%s.%s` is already defined", funcdecl.toChars(), v.toChars());
-                        funcdecl.localsymtab.insert(v);
-                        v.parent = funcdecl;
-                    }
+                    Parameter narg = Parameter.getNth(t.arguments, j);
+                    assert(narg.ident);
+                    VarDeclaration v = sc2.search(Loc.initial, narg.ident, null).isVarDeclaration();
+                    assert(v);
+                    (*exps)[j] = new VarExp(v.loc, v);
                 }
+                assert(fparam.ident);
+                auto v = new TupleDeclaration(funcdecl.loc, fparam.ident, exps);
+                //printf("declaring tuple %s\n", v.toChars());
+                v.isexp = true;
+                if (!sc2.insert(v))
+                    funcdecl.error("parameter `%s.%s` is already defined", funcdecl.toChars(), v.toChars());
+                funcdecl.localsymtab.insert(v);
+                v.parent = funcdecl;
             }
 
             // Precondition invariant
             Statement fpreinv = null;
             if (funcdecl.addPreInvariant())
             {
-                Expression e = addInvariant(funcdecl.loc, sc, ad, funcdecl.vthis);
+                Expression e = addInvariant(funcdecl.loc, sc, funcdecl.isThis(), funcdecl.vthis);
                 if (e)
                     fpreinv = new ExpStatement(Loc.initial, e);
             }
@@ -525,7 +518,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             Statement fpostinv = null;
             if (funcdecl.addPostInvariant())
             {
-                Expression e = addInvariant(funcdecl.loc, sc, ad, funcdecl.vthis);
+                Expression e = addInvariant(funcdecl.loc, sc, funcdecl.isThis(), funcdecl.vthis);
                 if (e)
                     fpostinv = new ExpStatement(Loc.initial, e);
             }
@@ -631,7 +624,9 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     if (funcdecl.storage_class & STC.auto_)
                         funcdecl.storage_class &= ~STC.auto_;
                 }
-                if (!target.isReturnOnStack(f, funcdecl.needThis()))
+
+                // handle NRVO
+                if (!target.isReturnOnStack(f, funcdecl.needThis()) || funcdecl.checkNrvo())
                     funcdecl.nrvo_can = 0;
 
                 if (funcdecl.fbody.isErrorStatement())
@@ -888,7 +883,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                         const hasCopyCtor = exp.type.ty == Tstruct && (cast(TypeStruct)exp.type).sym.hasCopyCtor;
                         // if a copy constructor is present, the return type conversion will be handled by it
-                        if (!hasCopyCtor)
+                        if (!(hasCopyCtor && exp.isLvalue()))
                             exp = exp.implicitCastTo(sc2, tret);
 
                         if (f.isref)
@@ -1331,6 +1326,12 @@ private extern(C++) final class Semantic3Visitor : Visitor
             sc.linkage = funcdecl.linkage; // https://issues.dlang.org/show_bug.cgi?id=8496
             funcdecl.type = f.typeSemantic(funcdecl.loc, sc);
             sc = sc.pop();
+        }
+
+        // Do live analysis
+        if (funcdecl.fbody && funcdecl.type.ty != Terror && funcdecl.type.isTypeFunction().islive)
+        {
+            oblive(funcdecl);
         }
 
         /* If this function had instantiated with gagging, error reproduction will be

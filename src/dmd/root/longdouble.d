@@ -1,12 +1,13 @@
-/* Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+/**
+ * 80-bit floating point value implementation if the C/D compiler does not support them natively.
+ *
+ * Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * All Rights Reserved, written by Rainer Schuetze
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
  * https://github.com/dlang/dmd/blob/master/src/root/longdouble.d
  */
-
-// 80-bit floating point value implementation if the C/D compiler does not support them natively
 
 module dmd.root.longdouble;
 
@@ -63,6 +64,12 @@ bool initFPU()
     }
 
     return true;
+}
+
+version(unittest) version(CRuntime_Microsoft)
+shared static this()
+{
+    initFPU(); // otherwise not guaranteed to be run before pure unittest below
 }
 
 void ld_clearfpu()
@@ -703,15 +710,20 @@ enum LD_TYPE_QNAN     = 4;
 
 int ld_type(longdouble_soft x)
 {
+    // see https://en.wikipedia.org/wiki/Extended_precision
     if(x.exponent == 0)
         return x.mantissa == 0 ? LD_TYPE_ZERO : LD_TYPE_OTHER; // dnormal if not zero
     if(x.exponent != 0x7fff)
-        return LD_TYPE_OTHER;
-    if(x.mantissa == 0)
-        return LD_TYPE_INFINITE;
-    if(x.mantissa & (1L << 63))
-        return LD_TYPE_QNAN;
-    return LD_TYPE_SNAN;
+        return LD_TYPE_OTHER;    // normal or denormal
+    uint  upper2  = x.mantissa >> 62;
+    ulong lower62 = x.mantissa & ((1L << 62) - 1);
+    if(upper2 == 0 && lower62 == 0)
+        return LD_TYPE_INFINITE; // pseudo-infinity
+    if(upper2 == 2 && lower62 == 0)
+        return LD_TYPE_INFINITE; // infinity
+    if(upper2 == 2 && lower62 != 0)
+        return LD_TYPE_SNAN;
+    return LD_TYPE_QNAN;         // qnan, indefinite, pseudo-nan
 }
 
 // consider sprintf pure
@@ -804,6 +816,12 @@ size_t ld_sprint(char* str, int fmt, longdouble_soft x) @system
 
     ld_sprint(buffer.ptr, 'g', longdouble_soft(1234567.89));
     assert(strcmp(buffer.ptr, "1.23457e+06") == 0);
+
+    ld_sprint(buffer.ptr, 'g', ld_inf);
+    assert(strcmp(buffer.ptr, "inf") == 0);
+
+    ld_sprint(buffer.ptr, 'g', ld_qnan);
+    assert(strcmp(buffer.ptr, "nan") == 0);
 
     longdouble_soft ldb = longdouble_soft(0.4);
     long b = cast(long)ldb;

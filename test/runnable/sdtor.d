@@ -1335,7 +1335,7 @@ void test52()
     A52 b = a.copy();
     printf("a: %p, b: %p\n", &a, &b);
   }
-    printf("s = '%.*s'\n", s52.length, s52.ptr);
+    printf("s = '%.*s'\n", cast(int)s52.length, s52.ptr);
     assert(s52 == "cabb");
 }
 
@@ -1836,18 +1836,18 @@ struct S6499
     this(string s)
     {
         m = s;
-        printf("Constructor - %.*s\n", m.length, m.ptr);
+        printf("Constructor - %.*s\n", cast(int)m.length, m.ptr);
         if (m == "foo") { ++sdtor; assert(sdtor == 1); }
         if (m == "bar") { ++sdtor; assert(sdtor == 2); }
     }
     this(this)
     {
-        printf("Postblit    - %.*s\n", m.length, m.ptr);
+        printf("Postblit    - %.*s\n", cast(int)m.length, m.ptr);
         assert(0);
     }
     ~this()
     {
-        printf("Destructor  - %.*s\n", m.length, m.ptr);
+        printf("Destructor  - %.*s\n", cast(int)m.length, m.ptr);
         if (m == "bar") { assert(sdtor == 2); --sdtor; }
         if (m == "foo") { assert(sdtor == 1); --sdtor; }
     }
@@ -2532,21 +2532,21 @@ struct Test9386
     this(string name)
     {
         this.name = name;
-        printf("Created %.*s...\n", name.length, name.ptr);
+        printf("Created %.*s...\n", cast(int)name.length, name.ptr);
         assert(i + 1 < op.length);
         op[i++] = 'a';
     }
 
     this(this)
     {
-        printf("Copied %.*s...\n", name.length, name.ptr);
+        printf("Copied %.*s...\n", cast(int)name.length, name.ptr);
         assert(i + 1 < op.length);
         op[i++] = 'b';
     }
 
     ~this()
     {
-        printf("Deleted %.*s\n", name.length, name.ptr);
+        printf("Deleted %.*s\n", cast(int)name.length, name.ptr);
         assert(i + 1 < op.length);
         op[i++] = 'c';
     }
@@ -2576,7 +2576,7 @@ void test9386()
         printf("----\n");
         foreach (Test9386 test; tests)
         {
-            printf("\tForeach %.*s\n", test.name.length, test.name.ptr);
+            printf("\tForeach %.*s\n", cast(int)test.name.length, test.name.ptr);
             Test9386.op[Test9386.i++] = 'x';
         }
 
@@ -2587,7 +2587,7 @@ void test9386()
         printf("----\n");
         foreach (ref Test9386 test; tests)
         {
-            printf("\tForeach %.*s\n", test.name.length, test.name.ptr);
+            printf("\tForeach %.*s\n", cast(int)test.name.length, test.name.ptr);
             Test9386.op[Test9386.i++] = 'x';
         }
         assert(Test9386.sop == "xxxx");
@@ -2609,8 +2609,8 @@ void test9386()
         printf("----\n");
         foreach (Test9386 k, Test9386 v; tests)
         {
-            printf("\tForeach %.*s : %.*s\n", k.name.length, k.name.ptr,
-                                              v.name.length, v.name.ptr);
+            printf("\tForeach %.*s : %.*s\n", cast(int)k.name.length, k.name.ptr,
+                                              cast(int)v.name.length, v.name.ptr);
             Test9386.op[Test9386.i++] = 'x';
         }
 
@@ -2621,8 +2621,8 @@ void test9386()
         printf("----\n");
         foreach (Test9386 k, ref Test9386 v; tests)
         {
-            printf("\tForeach %.*s : %.*s\n", k.name.length, k.name.ptr,
-                                              v.name.length, v.name.ptr);
+            printf("\tForeach %.*s : %.*s\n", cast(int)k.name.length, k.name.ptr,
+                                              cast(int)v.name.length, v.name.ptr);
             Test9386.op[Test9386.i++] = 'x';
         }
         assert(Test9386.sop == "bxcbxcbxcbxc");
@@ -2681,7 +2681,7 @@ struct Data
 
     ~this()
     {
-        printf("%d\n", _store._count);
+        printf("%zd\n", _store._count);
         --_store._count;
     }
 }
@@ -2730,13 +2730,13 @@ void test9907()
 
         void opAssign(SX rhs)
         {
-            printf("%08X(%d) from Rvalue %08X(%d)\n", &this.i, this.i, &rhs.i, rhs.i);
+            printf("%08zX(%d) from Rvalue %08zX(%d)\n", cast(size_t)&this.i, this.i, cast(size_t)&rhs.i, rhs.i);
             ++assign;
         }
 
         void opAssign(ref SX rhs)
         {
-            printf("%08X(%d) from Lvalue %08X(%d)\n", &this.i, this.i, &rhs.i, rhs.i);
+            printf("%08zX(%d) from Lvalue %08zX(%d)\n", cast(size_t)&this.i, this.i, cast(size_t)&rhs.i, rhs.i);
             assert(0);
         }
 
@@ -2744,7 +2744,7 @@ void test9907()
         {
             ~this()
             {
-                printf("destroying %08X(%d)\n", &this.i, this.i);
+                printf("destroying %08zX(%d)\n", cast(size_t)&this.i, this.i);
                 ++dtor;
             }
         }
@@ -4369,6 +4369,8 @@ void test14696(int len = 2)
     check({ foo(len == 2 ? makeS(1).get(len != 2 ? makeS(2).get() : null) : null); }, "makeS(1).get(1).foo.dtor(1).");
     check({ foo(len != 2 ? makeS(1).get(len == 2 ? makeS(2).get() : null) : null); }, "foo.");
     check({ foo(len != 2 ? makeS(1).get(len != 2 ? makeS(2).get() : null) : null); }, "foo.");
+    check({ foo(len == 2 ? makeS(makeS(2).n - 1).get() : null); }, "makeS(2).makeS(1).get(1).foo.dtor(1).dtor(2).");
+    check({ foo(len != 2 ? makeS(makeS(2).n - 1).get() : null); }, "foo.");
 }
 
 /**********************************/

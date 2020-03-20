@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/libmach.d, _libmach.d)
@@ -33,6 +33,7 @@ import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.root.port;
 import dmd.root.rmem;
+import dmd.root.string;
 import dmd.root.stringtable;
 
 import dmd.scanmach;
@@ -73,18 +74,18 @@ final class LibMach : Library
      * If the buffer is NULL, use module_name as the file name
      * and load the file.
      */
-    override void addObject(const(char)* module_name, const ubyte[] buffer)
+    override void addObject(const(char)[] module_name, const ubyte[] buffer)
     {
-        if (!module_name)
-            module_name = "";
         static if (LOG)
         {
-            printf("LibMach::addObject(%s)\n", module_name);
+            printf("LibMach::addObject(%.*s)\n",
+                   cast(int)module_name.length, module_name.ptr);
         }
 
         void corrupt(int reason)
         {
-            error("corrupt Mach object module %s %d", module_name, reason);
+            error("corrupt Mach object module %s %d",
+                  cast(int)module_name.length, module_name.ptr, reason);
         }
 
         int fromfile = 0;
@@ -107,7 +108,7 @@ final class LibMach : Library
             }
             return corrupt(__LINE__);
         }
-        if (memcmp(buf, cast(char*)"!<arch>\n", 8) == 0)
+        if (memcmp(buf, "!<arch>\n".ptr, 8) == 0)
         {
             /* Library file.
              * Pull each object module out of the library and add it
@@ -133,8 +134,8 @@ final class LibMach : Library
                     return corrupt(__LINE__);
                 if (offset + size > buflen)
                     return corrupt(__LINE__);
-                if (memcmp(header.object_name.ptr, cast(char*)"__.SYMDEF       ", 16) == 0 ||
-                    memcmp(header.object_name.ptr, cast(char*)"__.SYMDEF SORTED", 16) == 0)
+                if (memcmp(header.object_name.ptr, "__.SYMDEF       ".ptr, 16) == 0 ||
+                    memcmp(header.object_name.ptr, "__.SYMDEF SORTED".ptr, 16) == 0)
                 {
                     /* Instead of rescanning the object modules we pull from a
                      * library, just use the already created symbol table.
@@ -153,7 +154,7 @@ final class LibMach : Library
                     om.length = cast(uint)(size + MachLibHeader.sizeof);
                     om.offset = 0;
                     const n = cast(const(char)*)(om.base + MachLibHeader.sizeof);
-                    om.name = n[0 .. strlen(n)];
+                    om.name = n.toDString();
                     om.file_time = cast(uint)strtoul(header.file_time.ptr, &endptr, 10);
                     om.user_id = cast(uint)strtoul(header.user_id.ptr, &endptr, 10);
                     om.group_id = cast(uint)strtoul(header.group_id.ptr, &endptr, 10);
@@ -208,13 +209,13 @@ final class LibMach : Library
         om.base = cast(ubyte*)buf;
         om.length = cast(uint)buflen;
         om.offset = 0;
-        const n = cast(const(char)*)FileName.name(module_name); // remove path, but not extension
-        om.name = n[0 .. strlen(n)];
+        const n = FileName.name(module_name); // remove path, but not extension
+        om.name = n;
         om.scan = 1;
         if (fromfile)
         {
             stat_t statbuf;
-            int i = stat(module_name, &statbuf);
+            int i = module_name.toCStringThen!(slice => stat(slice.ptr, &statbuf));
             if (i == -1) // error, errno is set
                 return corrupt(__LINE__);
             om.file_time = statbuf.st_ctime;
@@ -380,7 +381,7 @@ private:
         om.file_mode = (1 << 15) | (6 << 6) | (4 << 3) | (4 << 0); // 0100644
         MachLibHeader h;
         MachOmToHeader(&h, &om);
-        memcpy(h.object_name.ptr, cast(const(char)*)"__.SYMDEF", 9);
+        memcpy(h.object_name.ptr, "__.SYMDEF".ptr, 9);
         int len = sprintf(h.file_size.ptr, "%u", om.length);
         assert(len <= 10);
         memset(h.file_size.ptr + len, ' ', 10 - len);

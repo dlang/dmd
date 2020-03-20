@@ -322,11 +322,11 @@ void test17()
     string s;
 
     s = passString();
-    printf("passString() = %.*s\n", s.length, s.ptr);
+    printf("passString() = %.*s\n", cast(int)s.length, s.ptr);
     assert(s == "First stringConcatenated with second");
 
     s = butThisWorks();
-    printf("butThisWorks() = %.*s\n", s.length, s.ptr);
+    printf("butThisWorks() = %.*s\n", cast(int)s.length, s.ptr);
     assert(s == "Third stringConcatenated with fourth");
 }
 
@@ -459,7 +459,7 @@ in
 out (result)
 {
 }
-body
+do
 {   int i = 5;
 
     while (i)
@@ -652,7 +652,7 @@ void test36()
 {
     string s = testa36(26, 47, "a", "b", "c");
 
-    printf("s = '%.*s'\n", s.length, s.ptr);
+    printf("s = '%.*s'\n", cast(int)s.length, s.ptr);
     assert(s == "string 0;26string 1;47string 2;26string 3;");
 }
 
@@ -704,7 +704,7 @@ void test38()
     }
     catch(Throwable)
     {
-       printf("Exception: %d\n", k);
+       printf("Exception: %lld\n", k);
         assert(0);
     }
 }

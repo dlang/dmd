@@ -7,4 +7,4 @@ fail_compilation/fail330.d(9): Error: variable `fail330.fun.result` cannot modif
 
 int fun()
 out(result) { result = 2; }
-body { return 1; }
+do { return 1; }

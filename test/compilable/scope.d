@@ -51,3 +51,66 @@ auto callWrappedOops(scope string dArgs) {
 }
 
 /************************************/
+
+struct Constant
+{
+    int* member;
+
+    this(Repeat!(int*) grid) @safe
+    {
+        foreach(ref x; grid)
+            member = x;
+
+        foreach(ref x; grid)
+            x = member;
+    }
+
+    int* foo(return scope Repeat!(int*) grid) @safe
+    {
+        foreach(ref x; grid)
+            x = member;
+
+        foreach(ref x; grid)
+            return x;
+
+        return null;
+    }
+
+    alias Repeat(T...) = T;
+}
+
+/************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=20675
+
+struct D
+{
+    int pos;
+    char* p;
+}
+
+void test(scope ref D d) @safe
+{
+    D[] da;
+    da ~= D(d.pos, null);
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=20682
+
+int f1_20682(return scope ref D d) @safe
+{
+    return d.pos;
+}
+
+ref int f2_20682(return scope ref D d) @safe
+{
+    return d.pos;
+}
+
+void test_20682(scope ref D d) @safe
+{
+    int[] a;
+    a ~= f1_20682(d);
+    a ~= f2_20682(d);
+    a ~= cast(int) d.p;
+}

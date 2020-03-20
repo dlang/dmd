@@ -28,7 +28,8 @@ subPackage {
     "src/dmd/identifier.d" \
     "src/dmd/lexer.d" \
     "src/dmd/tokens.d" \
-    "src/dmd/utf.d"
+    "src/dmd/utf.d" \
+    "src/dmd/utils.d"
 
   preGenerateCommands `
     "$${DUB_EXE}" \
@@ -75,6 +76,25 @@ subPackage {
     "MARS"
 
   excludedSourceFiles "src/dmd/backend/*"
+  excludedSourceFiles "src/dmd/root/*"
+  excludedSourceFiles "src/dmd/{\
+    astbase,\
+    console,\
+    entity,\
+    errors,\
+    filecache,\
+    globals,\
+    id,\
+    identifier,\
+    lexer,\
+    parse,\
+    permissivevisitor,\
+    strictvisitor,\
+    tokens,\
+    transitivevisitor,\
+    utf,\
+    utils\
+  }.d"
   excludedSourceFiles "src/dmd/{\
     dmsc,\
     e2ir,\

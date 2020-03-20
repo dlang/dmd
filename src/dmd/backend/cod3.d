@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cod3.d, backend/cod3.d)
@@ -1151,11 +1151,11 @@ static if (NTEXCEPTIONS)
             gencodelem(cdb,e,&retregs,true);
         L4:
             if (retregs == mST0)
-            {   assert(stackused == 1);
+            {   assert(global87.stackused == 1);
                 pop87();                // account for return value
             }
             else if (retregs == mST01)
-            {   assert(stackused == 2);
+            {   assert(global87.stackused == 2);
                 pop87();
                 pop87();                // account for return value
             }
@@ -5175,7 +5175,7 @@ void assignaddrc(code *c)
             case FLndp:
                 version (MARS)
                 {
-                    assert(c.IEV1.Vuns < NDP.savetop);
+                    assert(c.IEV1.Vuns < global87.save.length);
                 }
                 c.IEV1.Vpointer = c.IEV1.Vuns * tysize(TYldouble) + NDPoff + BPoff;
                 c.Iflags |= CFunambig;
@@ -6449,7 +6449,7 @@ nomatch:
  *      addr of end of code
  */
 
-struct MiniCodeBuf
+private struct MiniCodeBuf
 {
 nothrow:
     size_t index;

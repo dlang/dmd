@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/obj.d, backend/obj.d)
@@ -26,25 +26,17 @@ extern (C++):
 
 nothrow:
 
-version (Windows)
-{
-    version (SCPP)
-    {
-        version = OMF;
-    }
-    version (SPP)
-    {
-        version = OMF;
-    }
-    version (HTOD)
-    {
-        version = STUB;
-    }
-    version (MARS)
-    {
-        version = OMFandMSCOFF;
-    }
-}
+version (SPP)
+    version = STUB;
+else version (HTOD)
+    version = STUB;
+else version (Windows)
+    version = OMFandMSCOFF;
+else version (Posix)
+    version = ELFandMACH;
+else
+    static assert(0, "unsupported version");
+
 
 version (Windows)
 {
@@ -295,358 +287,7 @@ version (Posix)
     }
 }
 
-version (OMF)
-{
-    class Obj
-    {
-      static
-      {
-        nothrow:
-
-        Obj init(Outbuffer* objbuf, const(char)* filename, const(char)* csegname)
-        {
-            return OmfObj_init(objbuf, filename, csegname);
-        }
-
-        void initfile(const(char)* filename, const(char)* csegname, const(char)* modname)
-        {
-            return OmfObj_initfile(filename, csegname, modname);
-        }
-
-        void termfile()
-        {
-            return OmfObj_termfile();
-        }
-
-        void term(const(char)* objfilename)
-        {
-            return OmfObj_term(objfilename);
-        }
-
-        size_t mangle(Symbol *s,char *dest)
-        {
-            return OmfObj_mangle(s, dest);
-        }
-
-        void _import(elem *e)
-        {
-            return OmfObj_import(e);
-        }
-
-        void linnum(Srcpos srcpos, int seg, targ_size_t offset)
-        {
-            return OmfObj_linnum(srcpos, seg, offset);
-        }
-
-        int codeseg(const char *name,int suffix)
-        {
-            return OmfObj_codeseg(name, suffix);
-        }
-
-        void dosseg()
-        {
-            return OmfObj_dosseg();
-        }
-
-        void startaddress(Symbol *s)
-        {
-            return OmfObj_startaddress(s);
-        }
-
-        bool includelib(const(char)* name)
-        {
-            return OmfObj_includelib(name);
-        }
-
-        bool linkerdirective(const(char)* p)
-        {
-            return OmfObj_linkerdirective(p);
-        }
-
-        bool allowZeroSize()
-        {
-            return OmfObj_allowZeroSize();
-        }
-
-        void exestr(const(char)* p)
-        {
-            return OmfObj_exestr(p);
-        }
-
-        void user(const(char)* p)
-        {
-            return OmfObj_user(p);
-        }
-
-        void compiler()
-        {
-            return OmfObj_compiler();
-        }
-
-        void wkext(Symbol* s1, Symbol* s2)
-        {
-            return OmfObj_wkext(s1, s2);
-        }
-
-        void lzext(Symbol* s1, Symbol* s2)
-        {
-            return OmfObj_lzext(s1, s2);
-        }
-
-        void _alias(const(char)* n1,const(char)* n2)
-        {
-            return OmfObj_alias(n1, n2);
-        }
-
-        void theadr(const(char)* modname)
-        {
-            return OmfObj_theadr(modname);
-        }
-
-        void segment_group(targ_size_t codesize, targ_size_t datasize, targ_size_t cdatasize, targ_size_t udatasize)
-        {
-            return OmfObj_segment_group(codesize, datasize, cdatasize, udatasize);
-        }
-
-        void staticctor(Symbol *s,int dtor,int seg)
-        {
-            return OmfObj_staticctor(s, dtor, seg);
-        }
-
-        void staticdtor(Symbol *s)
-        {
-            return OmfObj_staticdtor(s);
-        }
-
-        void setModuleCtorDtor(Symbol *s, bool isCtor)
-        {
-            return OmfObj_setModuleCtorDtor(s, isCtor);
-        }
-
-        void ehtables(Symbol *sfunc,uint size,Symbol *ehsym)
-        {
-            return OmfObj_ehtables(sfunc, size, ehsym);
-        }
-
-        void ehsections()
-        {
-            return OmfObj_ehsections();
-        }
-
-        void moduleinfo(Symbol *scc)
-        {
-            return OmfObj_moduleinfo(scc);
-        }
-
-        int comdat(Symbol *s)
-        {
-            return OmfObj_comdat(s);
-        }
-
-        int comdatsize(Symbol *s, targ_size_t symsize)
-        {
-            return OmfObj_comdatsize(s, symsize);
-        }
-
-        int readonly_comdat(Symbol *s)
-        {
-            return OmfObj_comdat(s);
-        }
-
-        void setcodeseg(int seg)
-        {
-            return OmfObj_setcodeseg(seg);
-        }
-
-        seg_data *tlsseg()
-        {
-            return OmfObj_tlsseg();
-        }
-
-        seg_data *tlsseg_bss()
-        {
-            return OmfObj_tlsseg_bss();
-        }
-
-        seg_data *tlsseg_data()
-        {
-            return OmfObj_tlsseg_data();
-        }
-
-        int  fardata(char *name, targ_size_t size, targ_size_t *poffset)
-        {
-            return OmfObj_fardata(name, size, poffset);
-        }
-
-        void export_symbol(Symbol *s, uint argsize)
-        {
-            return OmfObj_export_symbol(s, argsize);
-        }
-
-        void pubdef(int seg, Symbol *s, targ_size_t offset)
-        {
-            return OmfObj_pubdef(seg, s, offset);
-        }
-
-        void pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize)
-        {
-            return OmfObj_pubdefsize(seg, s, offset, symsize);
-        }
-
-        int external_def(const(char)* name)
-        {
-            return OmfObj_external_def(name);
-        }
-
-        int data_start(Symbol *sdata, targ_size_t datasize, int seg)
-        {
-            return OmfObj_data_start(sdata, datasize, seg);
-        }
-
-        int external(Symbol *s)
-        {
-            return OmfObj_external(s);
-        }
-
-        int common_block(Symbol *s, targ_size_t size, targ_size_t count)
-        {
-            return OmfObj_common_block(s, size, count);
-        }
-
-        int common_block(Symbol *s, int flag, targ_size_t size, targ_size_t count)
-        {
-            return OmfObj_common_block(s, flag, size, count);
-        }
-
-        void lidata(int seg, targ_size_t offset, targ_size_t count)
-        {
-            return OmfObj_lidata(seg, offset, count);
-        }
-
-        void write_zeros(seg_data *pseg, targ_size_t count)
-        {
-            return OmfObj_write_zeros(pseg, count);
-        }
-
-        void write_byte(seg_data *pseg, uint _byte)
-        {
-            return OmfObj_write_byte(pseg, _byte);
-        }
-
-        void write_bytes(seg_data *pseg, uint nbytes, void *p)
-        {
-            return OmfObj_write_bytes(pseg, nbytes, p);
-        }
-
-        void _byte(int seg, targ_size_t offset, uint _byte)
-        {
-            return OmfObj_byte(seg, offset, _byte);
-        }
-
-        uint bytes(int seg, targ_size_t offset, uint nbytes, void *p)
-        {
-            return OmfObj_bytes(seg, offset, nbytes, p);
-        }
-
-        void ledata(int seg, targ_size_t offset, targ_size_t data, uint lcfd, uint idx1, uint idx2)
-        {
-            return OmfObj_ledata(seg, offset, data, lcfd, idx1, idx2);
-        }
-
-        void write_long(int seg, targ_size_t offset, uint data, uint lcfd, uint idx1, uint idx2)
-        {
-            return OmfObj_write_long(seg, offset, data, lcfd, idx1, idx2);
-        }
-
-        void reftodatseg(int seg, targ_size_t offset, targ_size_t val, uint targetdatum, int flags)
-        {
-            return OmfObj_reftodatseg(seg, offset, val, targetdatum, flags);
-        }
-
-        void reftofarseg(int seg, targ_size_t offset, targ_size_t val, int farseg, int flags)
-        {
-            return OmfObj_reftofarseg(seg, offset, val, farseg, flags);
-        }
-
-        void reftocodeseg(int seg, targ_size_t offset, targ_size_t val)
-        {
-            return OmfObj_reftocodeseg(seg, offset, val);
-        }
-
-        int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val, int flags)
-        {
-            return OmfObj_reftoident(seg, offset, s, val, flags);
-        }
-
-        void far16thunk(Symbol *s)
-        {
-            return OmfObj_far16thunk(s);
-        }
-
-        void fltused()
-        {
-            return OmfObj_fltused();
-        }
-
-        int data_readonly(char *p, int len, int *pseg)
-        {
-            return OmfObj_data_readonly(p, len, pseg);
-        }
-
-        int data_readonly(char *p, int len)
-        {
-            return OmfObj_data_readonly(p, len);
-        }
-
-        int string_literal_segment(uint sz)
-        {
-            return OmfObj_string_literal_segment(sz);
-        }
-
-        Symbol *sym_cdata(tym_t ty, char *p, int len)
-        {
-            return OmfObj_sym_cdata(ty, p, len);
-        }
-
-        void func_start(Symbol *sfunc)
-        {
-            return OmfObj_func_start(sfunc);
-        }
-
-        void func_term(Symbol *sfunc)
-        {
-            return OmfObj_func_term(sfunc);
-        }
-
-        void write_pointerRef(Symbol* s, uint off)
-        {
-            return OmfObj_write_pointerRef(s, off);
-        }
-
-        int jmpTableSegment(Symbol* s)
-        {
-            return OmfObj_jmpTableSegment(s);
-        }
-
-        Symbol *tlv_bootstrap()
-        {
-            return OmfObj_tlv_bootstrap();
-        }
-
-        void gotref(Symbol *s)
-        {
-            return OmfObj_gotref(s);
-        }
-
-        int seg_debugT()           // where the symbolic debug type data goes
-        {
-            return OmfObj_seg_debugT();
-        }
-
-      }
-    }
-}
-else version (OMFandMSCOFF)
+version (OMFandMSCOFF)
 {
     class Obj
     {
@@ -1194,7 +835,7 @@ else version (OMFandMSCOFF)
       }
     }
 }
-else version (Posix)
+else version (ELFandMACH)
 {
     class Obj
     {

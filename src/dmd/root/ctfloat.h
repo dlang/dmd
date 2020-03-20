@@ -1,5 +1,5 @@
 
-/* Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+/* Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * All Rights Reserved, written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -35,6 +35,7 @@ struct CTFloat
     static real_t log2(real_t x);
     static real_t log10(real_t x);
     static real_t pow(real_t x, real_t y);
+    static real_t exp(real_t x);
     static real_t expm1(real_t x);
     static real_t exp2(real_t x);
 

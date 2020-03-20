@@ -1,6 +1,0 @@
-The default linker for the Digital Mars tool chain is now optlink.exe
-
-The default linker when building with -m32 under Windows has been changed
-from link.exe to optlink.exe to avoid calling the wrong linker when both
-the Digital Mars tool chain and the Microsoft compiler tools are found in
-the PATH environment variable.

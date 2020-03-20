@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -168,6 +168,7 @@ public:
     Dsymbol *aliassym;
     Dsymbol *overnext;          // next in overload list
     Dsymbol *_import;           // !=NULL if unresolved internal alias for selective import
+    bool wasTemplateParameter; /// indicates wether the alias was created to make a template parameter visible in the scope, i.e as a member.
 
     static AliasDeclaration *create(Loc loc, Identifier *id, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *);
@@ -216,6 +217,7 @@ public:
     bool isargptr;              // if parameter that _argptr points to
     bool ctorinit;              // it has been initialized in a ctor
     bool iscatchvar;            // this is the exception object variable in catch() clause
+    bool isowner;               // this is an Owner, despite it being `scope`
     bool onstack;               // it is a class that was allocated on the stack
     bool mynew;                 // it is a class new'd with custom operator new
     int canassign;              // it can be assigned to
@@ -452,13 +454,6 @@ void builtin_init();
 class FuncDeclaration : public Declaration
 {
 public:
-    struct HiddenParameters
-    {
-        VarDeclaration *this_;
-        bool isThis2;
-        VarDeclaration *selector;
-    };
-
     Statements *frequires;              // in contracts
     Ensures *fensures;                  // out contracts
     Statement *frequire;                // lowered in contract
@@ -609,6 +604,8 @@ public:
 
     static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, const char *name, StorageClass stc=0);
     static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, Identifier *id, StorageClass stc=0);
+
+    bool checkNrvo();
 
     FuncDeclaration *isFuncDeclaration() { return this; }
 
@@ -787,22 +784,5 @@ public:
     bool addPostInvariant();
 
     NewDeclaration *isNewDeclaration() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
-};
-
-
-class DeleteDeclaration : public FuncDeclaration
-{
-public:
-    Parameters *parameters;
-
-    Dsymbol *syntaxCopy(Dsymbol *);
-    const char *kind() const;
-    bool isDelete();
-    bool isVirtual() const;
-    bool addPreInvariant();
-    bool addPostInvariant();
-
-    DeleteDeclaration *isDeleteDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };

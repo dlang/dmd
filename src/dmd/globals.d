@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/globals.d, _globals.d)
@@ -39,6 +39,12 @@ enum DiagnosticReporting : ubyte
     error,        // generate an error
     inform,       // generate a warning
     off,          // disable diagnostic
+}
+
+enum MessageStyle : ubyte
+{
+    digitalmars,  // filename.d(line): message
+    gnu,          // filename.d:line: message, see https://www.gnu.org/prep/standards/html_node/Errors.html
 }
 
 enum CHECKENABLE : ubyte
@@ -162,8 +168,6 @@ extern (C++) struct Param
     bool betterC;           // be a "better C" compiler; no dependency on D runtime
     bool addMain;           // add a default main() function
     bool allInst;           // generate code for all template instantiations
-    bool check10378;        // check for issues transitioning to 10738 @@@DEPRECATED@@@ Remove in 2020-05 or later
-    bool bug10378;          // use pre- https://issues.dlang.org/show_bug.cgi?id=10378 search strategy  @@@DEPRECATED@@@ Remove in 2020-05 or later
     bool fix16997;          // fix integral promotions for unary + - ~ operators
                             // https://issues.dlang.org/show_bug.cgi?id=16997
     bool fixAliasThis;      // if the current scope has an alias this, check it before searching upper scopes
@@ -178,6 +182,10 @@ extern (C++) struct Param
                             // https://issues.dlang.org/show_bug.cgi?id=14246
     bool fieldwise;         // do struct equality testing field-wise rather than by memcmp()
     bool rvalueRefParam;    // allow rvalues to be arguments to ref parameters
+                            // http://dconf.org/2019/talks/alexandrescu.html
+                            // https://gist.github.com/andralex/e5405a5d773f07f73196c05f8339435a
+                            // https://digitalmars.com/d/archives/digitalmars/D/Binding_rvalues_to_ref_parameters_redux_325087.html
+                            // Implementation: https://github.com/dlang/dmd/pull/9817
 
     CppStdRevision cplusplus = CppStdRevision.cpp98;    // version of C++ standard to support
 
@@ -220,14 +228,18 @@ extern (C++) struct Param
     const(char)[] libname;               // .lib file output name
 
     bool doDocComments;                 // process embedded documentation comments
-    const(char)* docdir;                // write documentation file to docdir directory
-    const(char)* docname;               // write documentation file to docname
+    const(char)[] docdir;               // write documentation file to docdir directory
+    const(char)[] docname;              // write documentation file to docname
     Array!(const(char)*) ddocfiles;     // macro include files for Ddoc
 
     bool doHdrGeneration;               // process embedded documentation comments
     const(char)[] hdrdir;                // write 'header' file to docdir directory
     const(char)[] hdrname;               // write 'header' file to docname
     bool hdrStripPlainFunctions = true; // strip the bodies of plain (non-template) functions
+
+    bool doCxxHdrGeneration;            // write 'Cxx header' file
+    const(char)[] cxxhdrdir;            // write 'header' file to docdir directory
+    const(char)[] cxxhdrname;           // write 'header' file to docname
 
     bool doJsonGeneration;              // write JSON file
     const(char)[] jsonfilename;          // write JSON file to jsonfilename
@@ -249,6 +261,7 @@ extern (C++) struct Param
 
     const(char)[] moduleDepsFile;        // filename for deps output
     OutBuffer* moduleDeps;              // contents to be written to deps file
+    MessageStyle messageStyle = MessageStyle.digitalmars; // style of file/line annotations on messages
 
     // Hidden debug switches
     bool debugb;
@@ -289,11 +302,12 @@ extern (C++) struct Global
     string doc_ext = "html";      // for Ddoc generated files
     string ddoc_ext = "ddoc";     // for Ddoc macro include files
     string hdr_ext = "di";        // for D 'header' import files
+    string cxxhdr_ext = "h";      // for C/C++ 'header' files
     string json_ext = "json";     // for JSON files
     string map_ext = "map";       // for .map files
     bool run_noext;                     // allow -run sources without extensions.
 
-    string copyright = "Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved";
+    string copyright = "Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved";
     string written = "written by Walter Bright";
 
     Array!(const(char)*)* path;         // Array of char*'s which form the import lookup path
@@ -313,6 +327,8 @@ extern (C++) struct Global
 
     Array!Identifier* versionids;    // command line versions and predefined versions
     Array!Identifier* debugids;      // command line debug versions and predefined versions
+
+    enum recursionLimit = 500; // number of recursive template expansions before abort
 
   nothrow:
 
@@ -526,7 +542,9 @@ nothrow:
         this.filename = filename;
     }
 
-    extern (C++) const(char)* toChars(bool showColumns = global.params.showColumns) const pure nothrow
+    extern (C++) const(char)* toChars(
+        bool showColumns = global.params.showColumns,
+        ubyte messageStyle = global.params.messageStyle) const pure nothrow
     {
         OutBuffer buf;
         if (filename)
@@ -535,14 +553,28 @@ nothrow:
         }
         if (linnum)
         {
-            buf.writeByte('(');
-            buf.print(linnum);
-            if (showColumns && charnum)
+            final switch (messageStyle)
             {
-                buf.writeByte(',');
-                buf.print(charnum);
+                case MessageStyle.digitalmars:
+                    buf.writeByte('(');
+                    buf.print(linnum);
+                    if (showColumns && charnum)
+                    {
+                        buf.writeByte(',');
+                        buf.print(charnum);
+                    }
+                    buf.writeByte(')');
+                    break;
+                case MessageStyle.gnu: // https://www.gnu.org/prep/standards/html_node/Errors.html
+                    buf.writeByte(':');
+                    buf.print(linnum);
+                    if (showColumns && charnum)
+                    {
+                        buf.writeByte(':');
+                        buf.print(charnum);
+                    }
+                    break;
             }
-            buf.writeByte(')');
         }
         return buf.extractChars();
     }
@@ -578,7 +610,7 @@ nothrow:
 
     extern (D) size_t toHash() const @trusted pure nothrow
     {
-        import dmd.utils : toDString;
+        import dmd.root.string : toDString;
 
         auto hash = hashOf(linnum);
         hash = hashOf(charnum, hash);

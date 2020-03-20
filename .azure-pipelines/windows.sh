@@ -70,6 +70,7 @@ elif [ "$MODEL" == "32mscoff" ] ; then
     LIBNAME=phobos32mscoff.lib
 else
     export MODEL_FLAG="-m32"
+    export LIB="$PWD/dmd2/windows/lib"
     MAKE_FILE="win32.mak"
     LIBNAME=phobos.lib
 fi
@@ -103,6 +104,12 @@ for proj in druntime phobos; do
 done
 
 ################################################################################
+# Run druntime tests
+################################################################################
+cd "${DMD_DIR}/../druntime"
+"${DM_MAKE}" -f "${MAKE_FILE}" MODEL=$MODEL DMD="$DMD_BIN_PATH" "CC=$CC" "AR=$AR" VCDIR=. unittest test_all
+
+################################################################################
 # Run DMD testsuite
 ################################################################################
 cd "${DMD_DIR}/test"
@@ -111,7 +118,7 @@ cd "${DMD_DIR}/test"
 # REASON: LIB argument doesn't seem to work
 cp "${DMD_DIR}/../phobos/$LIBNAME" .
 
-DMD_TESTSUITE_MAKE_ARGS="-j$N" "${GNU_MAKE}" -j1 start_all_tests ARGS="-O -inline -g" MODEL="$MODEL"  MODEL_FLAG="$MODEL_FLAG"
+"${GNU_MAKE}" -j1 start_all_tests ARGS="-O -inline -g" MODEL="$MODEL"  MODEL_FLAG="$MODEL_FLAG" N="$N"
 
 ################################################################################
 # Prepare artifacts

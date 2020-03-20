@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/code_x86.d, backend/code_x86.d)
@@ -19,6 +19,7 @@ import dmd.backend.code;
 import dmd.backend.codebuilder : CodeBuilder;
 import dmd.backend.el : elem;
 import dmd.backend.ty : I64;
+import dmd.backend.barray;
 
 nothrow:
 
@@ -556,11 +557,17 @@ struct NDP
 {
     elem *e;                    // which elem is stored here (NULL if none)
     uint offset;            // offset from e (used for complex numbers)
-
-    __gshared NDP *save;
-    __gshared int savemax;         // # of entries in save[]
-    __gshared int savetop;         // # of entries used in save[]
 }
+
+struct Globals87
+{
+    NDP[8] stack;              // 8087 stack
+    int stackused = 0;         // number of items on the 8087 stack
+
+    Barray!NDP save;           // 8087 values spilled to memory
+}
+
+extern (C++) extern __gshared Globals87 global87;
 
 void getlvalue_msw(code *);
 void getlvalue_lsw(code *);

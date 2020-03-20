@@ -1,8 +1,7 @@
 /**
- * Compiler implementation of the D programming language
- * http://dlang.org
+ * An expandable buffer in which you can write text or binary data.
  *
- * Copyright: Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/outbuffer.d, root/_outbuffer.d)
@@ -17,6 +16,7 @@ import core.stdc.stdio;
 import core.stdc.string;
 import dmd.root.rmem;
 import dmd.root.rootobject;
+import dmd.root.string;
 
 debug
 {
@@ -113,6 +113,11 @@ struct OutBuffer
         notlinehead = true;
     }
 
+    extern (C++) void write(const(void)* data, size_t nbytes) pure nothrow
+    {
+        write(data[0 .. nbytes]);
+    }
+
     void write(const(void)[] buf) pure nothrow
     {
         if (doindent && !notlinehead)
@@ -124,7 +129,7 @@ struct OutBuffer
 
     extern (C++) void writestring(const(char)* string) pure nothrow
     {
-        write(string[0 .. strlen(string)]);
+        write(string.toDString);
     }
 
     void writestring(const(char)[] s) pure nothrow

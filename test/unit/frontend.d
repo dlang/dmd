@@ -153,7 +153,7 @@ unittest
     import dmd.frontend;
     import dmd.globals : global;
 
-    initDMD(["Foo"]);
+    initDMD(null, ["Foo"]);
     defaultImportPaths.each!addImport;
 
     auto t = parseModule("test.d", q{
@@ -171,6 +171,45 @@ unittest
     t.module_.fullSemantic();
 
     assert(global.errors == 0);
+}
+
+@("initDMD - custom diagnostic handling")
+unittest
+{
+    import std.conv;
+    import std.algorithm : each;
+
+    import core.stdc.stdarg : va_list;
+
+    import dmd.frontend;
+    import dmd.globals : Loc;
+    import dmd.root.outbuffer;
+    import dmd.console : Color;
+
+    string[] diagnosticMessages;
+
+    nothrow bool diagnosticHandler(const ref Loc loc, Color headerColor, const(char)* header,
+                                   const(char)* format, va_list ap, const(char)* p1, const(char)* p2)
+    {
+        OutBuffer tmp;
+        tmp.vprintf(format, ap);
+        diagnosticMessages ~= to!string(tmp.peekChars());
+        return true;
+    }
+
+    initDMD(&diagnosticHandler);
+    defaultImportPaths.each!addImport;
+
+    parseModule("test.d", q{
+        void foo(){
+            auto temp == 7.8;
+            foreach(i; 0..5){
+            }
+        }
+    });
+
+    assert(diagnosticMessages[0] == "no identifier for declarator `temp`");
+    assert(diagnosticMessages[1] == "found `==` instead of statement");
 }
 
 @("addStringImport") unittest

@@ -1,9 +1,9 @@
 /**
- * Compiler implementation of the D programming language
- * http://dlang.org
+ * Parse command line arguments from response files.
+ *
  * This file is not shared with other compilers which use the DMD front-end.
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  *              Some portions copyright (c) 1994-1995 by Symantec
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
@@ -90,7 +90,8 @@ version (unittest)
     char[] testEnvironment(const(char)* str) nothrow pure
         {
         import core.stdc.string: strlen;
-        switch (str[0 .. strlen(str)])
+        import dmd.root.string : toDString;
+        switch (str.toDString())
         {
         case "Foo":
             return "foo @Bar #\0".dup;

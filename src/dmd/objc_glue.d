@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2015-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2015-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/objc_glue.d, _objc_glue.d)
@@ -262,7 +262,7 @@ extern(C++) final class Supported : ObjcGlue
         assert(classDeclaration !is null);
         assert(classDeclaration.classKind == ClassKind.objc);
     }
-    body
+    do
     {
         if (!classDeclaration.objc.isMeta)
             ObjcClassDeclaration(classDeclaration, false).toObjFile();
@@ -274,7 +274,7 @@ extern(C++) final class Supported : ObjcGlue
     {
         assert(fd);
     }
-    body
+    do
     {
         if (!fd.selector)
             return count;
@@ -582,7 +582,7 @@ static:
 
         Symbol* symbol = symbol_name("L_OBJC_LABEL_CLASS_$", SCstatic, type_allocn(TYarray, tstypes[TYchar]));
         symbol.Sdt = dtb.finish();
-        symbol.Sseg = Segments[Segments.Id.const_];
+        symbol.Sseg = Segments[Segments.Id.classlist];
         outdata(symbol);
 
         getImageInfo(); // make sure we also generate image info
@@ -619,7 +619,7 @@ static:
     {
         assert(classDeclaration !is null);
     }
-    body
+    do
     {
         return getClassName(ObjcClassDeclaration(classDeclaration, isMeta));
     }
@@ -715,7 +715,7 @@ static:
     {
         assert(type !is null);
     }
-    body
+    do
     {
         enum assertMessage = "imaginary types are not supported by Objective-C";
 
@@ -914,7 +914,7 @@ struct ObjcClassDeclaration
     {
         assert(classDeclaration !is null);
     }
-    body
+    do
     {
         this.classDeclaration = classDeclaration;
         this.isMeta = isMeta;
@@ -1280,7 +1280,7 @@ out(result)
 {
     assert(str.length == result.strlen);
 }
-body
+do
 {
     if (str.length == 0)
         return "".ptr;

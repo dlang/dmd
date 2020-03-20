@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2009-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2009-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/machobj.d, backend/machobj.d)
@@ -70,7 +70,7 @@ private int rel_fp(scope const(void*) e1, scope const(void*) e2)
 
 void mach_relsort(Outbuffer *buf)
 {
-    qsort(buf.buf, buf.size() / Relocation.sizeof, Relocation.sizeof, &rel_fp);
+    qsort(buf.buf, buf.length() / Relocation.sizeof, Relocation.sizeof, &rel_fp);
 }
 
 // for x86_64
@@ -100,11 +100,10 @@ extern __gshared int eh_frame_seg;            // segment of __eh_frame
 /******************************************
  */
 
-__gshared Symbol *GOTsym; // global offset table reference
-__gshared Symbol *tlv_bootstrap_sym;
-
-Symbol *Obj_getGOTsym()
+/// Returns: a reference to the global offset table
+Symbol* Obj_getGOTsym()
 {
+    __gshared Symbol *GOTsym;
     if (!GOTsym)
     {
         GOTsym = symbol_name("_GLOBAL_OFFSET_TABLE_",SCglobal,tspvoid);
@@ -154,7 +153,7 @@ private Outbuffer *extern_symbuf;
 private void reset_symbols(Outbuffer *buf)
 {
     Symbol **p = cast(Symbol **)buf.buf;
-    const size_t n = buf.size() / (Symbol *).sizeof;
+    const size_t n = buf.length() / (Symbol *).sizeof;
     for (size_t i = 0; i < n; ++i)
         symbol_reset(p[i]);
 }
@@ -291,71 +290,10 @@ struct Relocation
 IDXSTR Obj_addstr(Outbuffer *strtab, const(char)* str)
 {
     //printf("Obj_addstr(strtab = %p str = '%s')\n",strtab,str);
-    IDXSTR idx = cast(IDXSTR)strtab.size();        // remember starting offset
+    IDXSTR idx = cast(IDXSTR)strtab.length();        // remember starting offset
     strtab.writeString(str);
-    //printf("\tidx %d, new size %d\n",idx,strtab.size());
+    //printf("\tidx %d, new size %d\n",idx,strtab.length());
     return idx;
-}
-
-/*******************************
- * Find a string in a string table
- * Input:
- *      strtab  =       string table for entry
- *      str     =       string to find
- *
- * Returns index into the specified string table or 0.
- */
-
-private IDXSTR elf_findstr(Outbuffer *strtab, const(char)* str, const(char)* suffix)
-{
-    const(char)* ent = cast(char *)strtab.buf+1;
-    const(char)* pend = ent+strtab.size() - 1;
-    const(char)* s = str;
-    const(char)* sx = suffix;
-    size_t len = strlen(str);
-
-    if (suffix)
-        len += strlen(suffix);
-
-    while(ent < pend)
-    {
-        if(*ent == 0)                   // end of table entry
-        {
-            if(*s == 0 && !sx)          // end of string - found a match
-            {
-                return cast(IDXSTR)(ent - cast(const(char)*)strtab.buf - len);
-            }
-            else                        // table entry too short
-            {
-                s = str;                // back to beginning of string
-                sx = suffix;
-                ent++;                  // start of next table entry
-            }
-        }
-        else if (*s == 0 && sx && *sx == *ent)
-        {                               // matched first string
-            s = sx+1;                   // switch to suffix
-            ent++;
-            sx = null;
-        }
-        else                            // continue comparing
-        {
-            if (*ent == *s)
-            {                           // Have a match going
-                ent++;
-                s++;
-            }
-            else                        // no match
-            {
-                while(*ent != 0)        // skip to end of entry
-                    ent++;
-                ent++;                  // start of next table entry
-                s = str;                // back to beginning of string
-                sx = suffix;
-            }
-        }
-    }
-    return 0;                   // never found match
 }
 
 /*******************************
@@ -374,7 +312,7 @@ private IDXSTR elf_addmangled(Symbol *s)
     const(char)* name;
     IDXSTR namidx;
 
-    namidx = cast(IDXSTR)symtab_strings.size();
+    namidx = cast(IDXSTR)symtab_strings.length();
     destr = obj_mangle2(s, dest.ptr);
     name = destr;
     if (CPP && name[0] == '_' && name[1] == '_')
@@ -412,13 +350,10 @@ static if (0)
     }
     else if (tyfunc(s.ty()) && s.Sfunc && s.Sfunc.Fredirect)
         name = s.Sfunc.Fredirect;
-    size_t len = strlen(name);
-    symtab_strings.reserve(cast(uint)(len+1));
-    strcpy(cast(char *)symtab_strings.p,name);
-    symtab_strings.setsize(cast(uint)(namidx+len+1));
+    symtab_strings.writeString(name);
     if (destr != dest.ptr)                  // if we resized result
         mem_free(destr);
-    //dbg_printf("\telf_addmagled symtab_strings %s namidx %d len %d size %d\n",name, namidx,len,symtab_strings.size());
+    //dbg_printf("\telf_addmagled symtab_strings %s namidx %d len %d size %d\n",name, namidx,len,symtab_strings.length());
     return namidx;
 }
 
@@ -512,8 +447,6 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
     seg_tlsseg = UNKNOWN;
     seg_tlsseg_bss = UNKNOWN;
     seg_tlsseg_data = UNKNOWN;
-    GOTsym = null;
-    tlv_bootstrap_sym = null;
 
     // Initialize buffers
 
@@ -523,8 +456,6 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
     {
         symtab_strings = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
         assert(symtab_strings);
-        symtab_strings.enlarge(1024);
-
         symtab_strings.reserve(2048);
         symtab_strings.writeByte(0);
     }
@@ -533,50 +464,50 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
     {
         local_symbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
         assert(local_symbuf);
-        local_symbuf.enlarge((Symbol *).sizeof * SYM_TAB_INIT);
+        local_symbuf.reserve((Symbol *).sizeof * SYM_TAB_INIT);
     }
-    local_symbuf.setsize(0);
+    local_symbuf.reset();
 
     if (public_symbuf)
     {
         reset_symbols(public_symbuf);
-        public_symbuf.setsize(0);
+        public_symbuf.reset();
     }
     else
     {
         public_symbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
         assert(public_symbuf);
-        public_symbuf.enlarge((Symbol *).sizeof * SYM_TAB_INIT);
+        public_symbuf.reserve((Symbol *).sizeof * SYM_TAB_INIT);
     }
 
     if (extern_symbuf)
     {
         reset_symbols(extern_symbuf);
-        extern_symbuf.setsize(0);
+        extern_symbuf.reset();
     }
     else
     {
         extern_symbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
         assert(extern_symbuf);
-        extern_symbuf.enlarge((Symbol *).sizeof * SYM_TAB_INIT);
+        extern_symbuf.reserve((Symbol *).sizeof * SYM_TAB_INIT);
     }
 
     if (!comdef_symbuf)
     {
         comdef_symbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
         assert(comdef_symbuf);
-        comdef_symbuf.enlarge((Symbol *).sizeof * SYM_TAB_INIT);
+        comdef_symbuf.reserve((Symbol *).sizeof * SYM_TAB_INIT);
     }
-    comdef_symbuf.setsize(0);
+    comdef_symbuf.reset();
 
     extdef = 0;
 
     if (indirectsymbuf1)
-        indirectsymbuf1.setsize(0);
+        indirectsymbuf1.reset();
     jumpTableSeg = 0;
 
     if (indirectsymbuf2)
-        indirectsymbuf2.setsize(0);
+        indirectsymbuf2.reset();
     pointersSeg = 0;
 
     // Initialize segments for CODE, DATA, UDATA and CDATA
@@ -589,8 +520,6 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
     {
         SECbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
         assert(SECbuf);
-        SECbuf.enlarge(cast(uint)(SYM_TAB_INC * struct_section_size));
-
         SECbuf.reserve(cast(uint)(SEC_TAB_INIT * struct_section_size));
         // Ignore the first section - section numbers start at 1
         SECbuf.writezeros(cast(uint)struct_section_size);
@@ -702,28 +631,28 @@ void mach_numbersyms()
     int n = 0;
 
     int dim;
-    dim = cast(int)(local_symbuf.size() / (Symbol *).sizeof);
+    dim = cast(int)(local_symbuf.length() / (Symbol *).sizeof);
     for (int i = 0; i < dim; i++)
     {   Symbol *s = (cast(Symbol **)local_symbuf.buf)[i];
         s.Sxtrnnum = n;
         n++;
     }
 
-    dim = cast(int)(public_symbuf.size() / (Symbol *).sizeof);
+    dim = cast(int)(public_symbuf.length() / (Symbol *).sizeof);
     for (int i = 0; i < dim; i++)
     {   Symbol *s = (cast(Symbol **)public_symbuf.buf)[i];
         s.Sxtrnnum = n;
         n++;
     }
 
-    dim = cast(int)(extern_symbuf.size() / (Symbol *).sizeof);
+    dim = cast(int)(extern_symbuf.length() / (Symbol *).sizeof);
     for (int i = 0; i < dim; i++)
     {   Symbol *s = (cast(Symbol **)extern_symbuf.buf)[i];
         s.Sxtrnnum = n;
         n++;
     }
 
-    dim = cast(int)(comdef_symbuf.size() / Comdef.sizeof);
+    dim = cast(int)(comdef_symbuf.length() / Comdef.sizeof);
     for (int i = 0; i < dim; i++)
     {   Comdef *c = (cast(Comdef *)comdef_symbuf.buf) + i;
         c.sym.Sxtrnnum = n;
@@ -888,14 +817,14 @@ version (SCPP)
         {
             section_64 *psechdr = &SecHdrTab64[pseg.SDshtidx]; // corresponding section
             psechdr.reserved1 = cast(uint)(indirectsymbuf1
-                ? indirectsymbuf1.size() / (Symbol *).sizeof
+                ? indirectsymbuf1.length() / (Symbol *).sizeof
                 : 0);
         }
         else
         {
             section *psechdr = &SecHdrTab[pseg.SDshtidx]; // corresponding section
             psechdr.reserved1 = cast(uint)(indirectsymbuf1
-                ? indirectsymbuf1.size() / (Symbol *).sizeof
+                ? indirectsymbuf1.length() / (Symbol *).sizeof
                 : 0);
         }
     }
@@ -946,10 +875,10 @@ version (SCPP)
                     psechdr.offset = foffset;
                     psechdr.size = 0;
                     //printf("\tsection name %s,", psechdr.sectname);
-                    if (pseg.SDbuf && pseg.SDbuf.size())
+                    if (pseg.SDbuf && pseg.SDbuf.length())
                     {
-                        //printf("\tsize %d\n", pseg.SDbuf.size());
-                        psechdr.size = pseg.SDbuf.size();
+                        //printf("\tsize %d\n", pseg.SDbuf.length());
+                        psechdr.size = pseg.SDbuf.length();
                         fobjbuf.write(pseg.SDbuf.buf, cast(uint)psechdr.size);
                         foffset += psechdr.size;
                     }
@@ -984,10 +913,10 @@ version (SCPP)
                     psechdr.offset = foffset;
                     psechdr.size = 0;
                     //printf("\tsection name %s,", psechdr.sectname);
-                    if (pseg.SDbuf && pseg.SDbuf.size())
+                    if (pseg.SDbuf && pseg.SDbuf.length())
                     {
-                        //printf("\tsize %d\n", pseg.SDbuf.size());
-                        psechdr.size = cast(uint)pseg.SDbuf.size();
+                        //printf("\tsize %d\n", pseg.SDbuf.length());
+                        psechdr.size = cast(uint)pseg.SDbuf.length();
                         fobjbuf.write(pseg.SDbuf.buf, psechdr.size);
                         foffset += psechdr.size;
                     }
@@ -1042,7 +971,7 @@ version (SCPP)
         uint nreloc = 0;
         if (pseg.SDrel)
         {   Relocation *r = cast(Relocation *)pseg.SDrel.buf;
-            Relocation *rend = cast(Relocation *)(pseg.SDrel.buf + pseg.SDrel.size());
+            Relocation *rend = cast(Relocation *)(pseg.SDrel.buf + pseg.SDrel.length());
             for (; r != rend; r++)
             {   Symbol *s = r.targsym;
                 const(char)* rs = r.rtype == RELaddr ? "addr" : "rel";
@@ -1366,12 +1295,12 @@ version (SCPP)
     foffset = elf_align(I64 ? 8 : 4, foffset);
     symtab_cmd.symoff = foffset;
     dysymtab_cmd.ilocalsym = 0;
-    dysymtab_cmd.nlocalsym  = cast(uint)(local_symbuf.size() / (Symbol *).sizeof);
+    dysymtab_cmd.nlocalsym  = cast(uint)(local_symbuf.length() / (Symbol *).sizeof);
     dysymtab_cmd.iextdefsym = dysymtab_cmd.nlocalsym;
-    dysymtab_cmd.nextdefsym = cast(uint)(public_symbuf.size() / (Symbol *).sizeof);
+    dysymtab_cmd.nextdefsym = cast(uint)(public_symbuf.length() / (Symbol *).sizeof);
     dysymtab_cmd.iundefsym = dysymtab_cmd.iextdefsym + dysymtab_cmd.nextdefsym;
-    int nexterns = cast(int)(extern_symbuf.size() / (Symbol *).sizeof);
-    int ncomdefs = cast(int)(comdef_symbuf.size() / Comdef.sizeof);
+    int nexterns = cast(int)(extern_symbuf.length() / (Symbol *).sizeof);
+    int ncomdefs = cast(int)(comdef_symbuf.length() / Comdef.sizeof);
     dysymtab_cmd.nundefsym  = nexterns + ncomdefs;
     symtab_cmd.nsyms =  dysymtab_cmd.nlocalsym +
                         dysymtab_cmd.nextdefsym +
@@ -1512,7 +1441,7 @@ version (SCPP)
     // Put out string table
     foffset = elf_align(I64 ? 8 : 4, foffset);
     symtab_cmd.stroff = foffset;
-    symtab_cmd.strsize = cast(uint)symtab_strings.size();
+    symtab_cmd.strsize = cast(uint)symtab_strings.length();
     fobjbuf.write(symtab_strings.buf, symtab_cmd.strsize);
     foffset += symtab_cmd.strsize;
 
@@ -1520,14 +1449,16 @@ version (SCPP)
     foffset = elf_align(I64 ? 8 : 4, foffset);
     dysymtab_cmd.indirectsymoff = foffset;
     if (indirectsymbuf1)
-    {   dysymtab_cmd.nindirectsyms += indirectsymbuf1.size() / (Symbol *).sizeof;
+    {
+        dysymtab_cmd.nindirectsyms += indirectsymbuf1.length() / (Symbol *).sizeof;
         for (int i = 0; i < dysymtab_cmd.nindirectsyms; i++)
         {   Symbol *s = (cast(Symbol **)indirectsymbuf1.buf)[i];
             fobjbuf.write32(s.Sxtrnnum);
         }
     }
     if (indirectsymbuf2)
-    {   int n = cast(int)(indirectsymbuf2.size() / (Symbol *).sizeof);
+    {
+        int n = cast(int)(indirectsymbuf2.length() / (Symbol *).sizeof);
         dysymtab_cmd.nindirectsyms += n;
         for (int i = 0; i < n; i++)
         {   Symbol *s = (cast(Symbol **)indirectsymbuf2.buf)[i];
@@ -1553,7 +1484,6 @@ version (SCPP)
     fobjbuf.write(&symtab_cmd, symtab_cmd.sizeof);
     fobjbuf.write(&dysymtab_cmd, dysymtab_cmd.sizeof);
     fobjbuf.position(foffset, 0);
-    fobjbuf.flush();
 }
 
 /*****************************
@@ -1807,13 +1737,15 @@ void Obj_ehtables(Symbol *sfunc,uint size,Symbol *ehsym)
 
     Outbuffer *buf = SegData[seg].SDbuf;
     if (I64)
-    {   Obj_reftoident(seg, buf.size(), sfunc, 0, CFoff | CFoffset64);
-        Obj_reftoident(seg, buf.size(), ehsym, 0, CFoff | CFoffset64);
+    {
+        Obj_reftoident(seg, buf.length(), sfunc, 0, CFoff | CFoffset64);
+        Obj_reftoident(seg, buf.length(), ehsym, 0, CFoff | CFoffset64);
         buf.write64(sfunc.Ssize);
     }
     else
-    {   Obj_reftoident(seg, buf.size(), sfunc, 0, CFoff);
-        Obj_reftoident(seg, buf.size(), ehsym, 0, CFoff);
+    {
+        Obj_reftoident(seg, buf.length(), sfunc, 0, CFoff);
+        Obj_reftoident(seg, buf.length(), ehsym, 0, CFoff);
         buf.write32(cast(int)sfunc.Ssize);
     }
 }
@@ -1950,9 +1882,9 @@ int Obj_getsegment(const(char)* sectname, const(char)* segname,
         Outbuffer *b2 = pseg.SDrel;
         memset(pseg, 0, seg_data.sizeof);
         if (b1)
-            b1.setsize(0);
+            b1.reset();
         if (b2)
-            b2.setsize(0);
+            b2.reset();
         pseg.SDbuf = b1;
         pseg.SDrel = b2;
     }
@@ -1964,8 +1896,6 @@ int Obj_getsegment(const(char)* sectname, const(char)* segname,
         {
             pseg.SDbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
             assert(pseg.SDbuf);
-            pseg.SDbuf.enlarge(4096);
-
             pseg.SDbuf.reserve(4096);
         }
     }
@@ -2511,7 +2441,7 @@ void Obj_write_byte(seg_data *pseg, uint byte_)
 void Obj_byte(int seg,targ_size_t offset,uint byte_)
 {
     Outbuffer *buf = SegData[seg].SDbuf;
-    int save = cast(int)buf.size();
+    int save = cast(int)buf.length();
     //dbg_printf("Obj_byte(seg=%d, offset=x%lx, byte_=x%x)\n",seg,offset,byte_);
     buf.setsize(cast(uint)offset);
     buf.writeByte(byte_);
@@ -2519,7 +2449,7 @@ void Obj_byte(int seg,targ_size_t offset,uint byte_)
         buf.setsize(save);
     else
         SegData[seg].SDoffset = offset+1;
-    //dbg_printf("\tsize now %d\n",buf.size());
+    //dbg_printf("\tsize now %d\n",buf.length());
 }
 
 /***********************************
@@ -2554,18 +2484,15 @@ static if (0)
         //raise(SIGSEGV);
         assert(buf != null);
     }
-    int save = cast(int)buf.size();
+    int save = cast(int)buf.length();
     //dbg_printf("Obj_bytes(seg=%d, offset=x%lx, nbytes=%d, p=x%x)\n",
             //seg,offset,nbytes,p);
-    buf.position(cast(uint)offset, nbytes);
+    buf.position(cast(size_t)offset, nbytes);
     if (p)
-    {
-        buf.writen(p,nbytes);
-    }
-    else
-    {   // Zero out the bytes
-        buf.clearn(nbytes);
-    }
+        buf.write(p, nbytes);
+    else // Zero out the bytes
+        buf.writezeros(nbytes);
+
     if (save > offset+nbytes)
         buf.setsize(save);
     else
@@ -2614,7 +2541,7 @@ void Obj_reftodatseg(int seg,targ_size_t offset,targ_size_t val,
         uint targetdatum,int flags)
 {
     Outbuffer *buf = SegData[seg].SDbuf;
-    int save = cast(int)buf.size();
+    int save = cast(int)buf.length();
     buf.setsize(cast(uint)offset);
 static if (0)
 {
@@ -2657,7 +2584,7 @@ void Obj_reftocodeseg(int seg,targ_size_t offset,targ_size_t val)
     //printf("Obj_reftocodeseg(seg=%d, offset=x%lx, val=x%lx )\n",seg,cast(uint)offset,cast(uint)val);
     assert(seg > 0);
     Outbuffer *buf = SegData[seg].SDbuf;
-    int save = cast(int)buf.size();
+    int save = cast(int)buf.length();
     buf.setsize(cast(uint)offset);
     val -= funcsym_p.Soffset;
     Obj_addrel(seg, offset, funcsym_p, 0, RELaddr);
@@ -2743,7 +2670,7 @@ static if (0)
                 }
                 else
                 {   // Look through indirectsym to see if it is already there
-                    int n = cast(int)(indirectsymbuf1.size() / (Symbol *).sizeof);
+                    int n = cast(int)(indirectsymbuf1.length() / (Symbol *).sizeof);
                     Symbol **psym = cast(Symbol **)indirectsymbuf1.buf;
                     for (int i = 0; i < n; i++)
                     {   // Linear search, pretty pathetic
@@ -2754,7 +2681,7 @@ static if (0)
                     }
                 }
 
-                val = pseg.SDbuf.size();
+                val = pseg.SDbuf.length();
                 static immutable char[5] halts = [ 0xF4,0xF4,0xF4,0xF4,0xF4 ];
                 pseg.SDbuf.write(halts.ptr, 5);
 
@@ -2788,7 +2715,7 @@ static if (0)
                 }
                 else
                 {   // Look through indirectsym to see if it is already there
-                    int n = cast(int)(indirectsymbuf2.size() / (Symbol *).sizeof);
+                    int n = cast(int)(indirectsymbuf2.length() / (Symbol *).sizeof);
                     Symbol **psym = cast(Symbol **)indirectsymbuf2.buf;
                     for (int i = 0; i < n; i++)
                     {   // Linear search, pretty pathetic
@@ -2799,7 +2726,7 @@ static if (0)
                     }
                 }
 
-                val = pseg.SDbuf.size();
+                val = pseg.SDbuf.length();
                 pseg.SDbuf.writezeros(_tysize[TYnptr]);
 
                 // Add symbol s to indirectsymbuf2
@@ -2835,7 +2762,7 @@ static if (0)
         }
 
         Outbuffer *buf = SegData[seg].SDbuf;
-        int save = cast(int)buf.size();
+        int save = cast(int)buf.length();
         buf.position(cast(uint)offset, retsize);
         //printf("offset = x%llx, val = x%llx\n", offset, val);
         if (retsize == 8)
@@ -2972,8 +2899,9 @@ void Obj_gotref(Symbol *s)
  * It's used as a placeholder in the TLV descriptors. The dynamic linker will
  * replace the placeholder with a real function at load time.
  */
-Symbol *Obj_tlv_bootstrap()
+Symbol* Obj_tlv_bootstrap()
 {
+    __gshared Symbol* tlv_bootstrap_sym;
     if (!tlv_bootstrap_sym)
         tlv_bootstrap_sym = symbol_name("__tlv_bootstrap", SCextern, type_fake(TYnfunc));
     return tlv_bootstrap_sym;
@@ -3033,7 +2961,7 @@ int dwarf_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val)
 int dwarf_eh_frame_fixup(int dfseg, targ_size_t offset, Symbol *s, targ_size_t val, Symbol *fdesym)
 {
     Outbuffer *buf = SegData[dfseg].SDbuf;
-    assert(offset == buf.size());
+    assert(offset == buf.length());
     assert(fdesym.Sseg == dfseg);
     if (I64)
         buf.write64(val);  // add in 'value' later

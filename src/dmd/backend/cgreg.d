@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgreg.c, backend/cgreg.d)
@@ -425,7 +425,14 @@ static if (1) // causes assert failure in std.range(4488) from std.parallelism's
     debug if (benefit > s.Sweight + retsym_cnt + 1)
         printf("s = '%s', benefit = %d, Sweight = %d, retsym_cnt = x%x\n",s.Sident.ptr,benefit,s.Sweight, retsym_cnt);
 
-    assert(benefit <= s.Sweight + retsym_cnt + 1);
+    /* This can happen upon overflow of s.Sweight, but only in extreme cases such as
+     * issues.dlang.org/show_bug.cgi?id=17098
+     * It essentially means "a whole lotta uses in nested loops", where
+     * it should go into a register anyway. So just saturate it at int.max
+     */
+    //assert(benefit <= s.Sweight + retsym_cnt + 1);
+    if (benefit > s.Sweight + retsym_cnt + 1)
+        benefit = int.max;      // saturate instead of overflow error
     return benefit;
 
 Lcant:
@@ -1024,19 +1031,6 @@ Ltried:
     vec_free(v);
 
     return flag;
-}
-
-//////////////////////////////////////
-// Qsort() comparison routine for array of pointers to Symbol's.
-
-extern (C) private int weight_compare(const void *e1,const void *e2)
-{   Symbol **psp1;
-    Symbol **psp2;
-
-    psp1 = cast(Symbol **)e1;
-    psp2 = cast(Symbol **)e2;
-
-    return (*psp2).Sweight - (*psp1).Sweight;
 }
 
 }

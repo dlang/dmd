@@ -11,7 +11,7 @@ class A
     {
         assert(c !is null);
     }
-    body
+    do
     {
         D[] ds2 = ds.filter!(a => c).array;
 

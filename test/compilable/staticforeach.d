@@ -1,5 +1,126 @@
 // REQUIRED_ARGS: -o-
 // PERMUTE_ARGS:
+/*
+TEST_OUTPUT:
+---
+9
+8
+7
+6
+5
+4
+3
+2
+1
+0
+S(1, 2, 3, [0, 1, 2])
+x0: 1
+x1: 2
+x2: 3
+a: [0, 1, 2]
+(int[], char[], bool[], Object[])
+[0, 0]
+x0: int
+x1: double
+x2: char
+test(0)→ 0
+test(1)→ 1
+test(2)→ 2
+test(3)→ 3
+test(4)→ 4
+test(5)→ 5
+test(6)→ 6
+test(7)→ 7
+test(8)→ 8
+test(9)→ 9
+test(10)→ -1
+test(11)→ -1
+test(12)→ -1
+test(13)→ -1
+test(14)→ -1
+1
+[1, 2, 3]
+2
+[1, 2, 3]
+3
+[1, 2, 3]
+0 1
+1 2
+2 3
+1
+3
+4
+object
+Tuple
+tuple
+main
+front
+popFront
+empty
+back
+popBack
+Iota
+iota
+map
+to
+text
+all
+any
+join
+S
+s
+Seq
+Overloads
+Parameters
+forward
+foo
+A
+B
+C
+D
+E
+Types
+Visitor
+testVisitor
+staticMap
+arrayOf
+StaticForeachLoopVariable
+StaticForeachScopeExit
+StaticForeachReverseHiding
+UnrolledForeachReverse
+StaticForeachReverse
+StaticForeachByAliasDefault
+NestedStaticForeach
+TestAliasOutsideFunctionScope
+OpApplyMultipleStaticForeach
+OpApplyMultipleStaticForeachLowered
+RangeStaticForeach
+OpApplySingleStaticForeach
+TypeStaticForeach
+AliasForeach
+EnumForeach
+TestUninterpretable
+SeqForeachConstant
+SeqForeachBreakContinue
+TestStaticForeach
+testtest
+fun
+testEmpty
+bug17660
+breakContinueBan
+MixinTemplate
+testToStatement
+bug17688
+T
+foo2
+T2
+1 2 '3'
+2 3 '4'
+0 1
+1 2
+2 3
+---
+*/
 
 module staticforeach;
 
@@ -73,7 +194,7 @@ template map(alias a){
 template to(T:string){
     string to(S)(S x)if(is(S:int)||is(S:size_t)||is(S:char)){
         static if(is(S==char)) return cast(string)[x];
-        if(x<0) return "-"~to(-x);
+        if(x<0) return "-"~to(-1 * x);
         if(x==0) return "0";
         return (x>=10?to(x/10):"")~cast(char)(x%10+'0');
     }
@@ -350,7 +471,7 @@ struct NestedStaticForeach{
     static:
     static foreach(i,name;["a"]){
         static foreach(j,name2;["d"]){
-            mixin("enum "~name~name2~"=[i,j];");
+            mixin("enum int[] "~name~name2~"=[i, j];");
         }
     }
     pragma(msg, ad);
@@ -600,12 +721,12 @@ static:
 }
 
 static foreach(i,j;[1,2,3]){
-    pragma(msg, i," ",j);
+    pragma(msg, int(i)," ",j);
 }
 
 void testtest(){
     static foreach(i,v;[1,2,3]){
-        pragma(msg, i," ",v);
+        pragma(msg, int(i)," ",v);
         static assert(i+1 == v);
     }
 }

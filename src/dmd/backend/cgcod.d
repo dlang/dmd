@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgcod.d, backend/cgcod.d)
@@ -219,7 +219,7 @@ tryagain:
     STACKALIGN = TARGET_STACKALIGN;
 
     regsave.reset();
-    memset(_8087elems.ptr,0,_8087elems.sizeof);
+    memset(global87.stack.ptr,0,global87.stack.sizeof);
 
     calledFinally = false;
     usednteh = 0;
@@ -244,7 +244,7 @@ tryagain:
     sfunc.Sfunc.Fflags3 |= Fnothrow;
 
     floatreg = false;
-    assert(stackused == 0);             /* nobody in 8087 stack         */
+    assert(global87.stackused == 0);             /* nobody in 8087 stack         */
 
     CSE.start();
     memset(&regcon,0,regcon.sizeof);
@@ -631,7 +631,8 @@ tryagain:
                start of the last instruction
              */
             /* Instead, try offset to cleanup code  */
-            objmod.linnum(sfunc.Sfunc.Fendline,sfunc.Sseg,funcoffset + retoffset);
+            if (retoffset < sfunc.Ssize)
+                objmod.linnum(sfunc.Sfunc.Fendline,sfunc.Sseg,funcoffset + retoffset);
 
         static if (TARGET_WINDOS && MARS)
         {
@@ -692,16 +693,12 @@ tryagain:
     sfunc.Sregsaved = (functy == TYifunc) ? cast(regm_t) mBP : (mfuncreg | fregsaved);
 
     debug
-    if (stackused != 0)
-      printf("stackused = %d\n",stackused);
+    if (global87.stackused != 0)
+      printf("stackused = %d\n",global87.stackused);
 
-    assert(stackused == 0);             /* nobody in 8087 stack         */
+    assert(global87.stackused == 0);             /* nobody in 8087 stack         */
 
-    /* Clean up ndp save array  */
-    mem_free(NDP.save);
-    NDP.save = null;
-    NDP.savetop = 0;
-    NDP.savemax = 0;
+    global87.save.__dtor();       // clean up ndp save array
 }
 
 /*********************************************
@@ -918,7 +915,7 @@ else
     //printf("CSoff = x%x, size = x%x, alignment = %x\n",
         //cast(int)CSoff, CSE.size(), cast(int)CSE.alignment);
 
-    NDPoff = alignsection(CSoff - NDP.savetop * tysize(TYldouble), REGSIZE, bias);
+    NDPoff = alignsection(CSoff - global87.save.length * tysize(TYldouble), REGSIZE, bias);
 
     regm_t topush = fregsaved & ~mfuncreg;          // mask of registers that need saving
     pushoffuse = false;

@@ -1,4 +1,10 @@
-// REQUIRED_ARGS: -preview=rvaluerefparam
+/*
+REQUIRED_ARGS: -preview=rvaluerefparam
+RUN_OUTPUT:
+---
+Success
+---
+*/
 
 import std.stdio;
 

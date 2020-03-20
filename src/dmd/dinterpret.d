@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dinterpret.d, _dinterpret.d)
@@ -3560,6 +3560,9 @@ public:
 
             if (oldlen != 0) // Get the old array literal.
                 oldval = interpretRegion(e1, istate);
+            UnionExp utmp = void;
+            oldval = resolveSlice(oldval, &utmp);
+
             newval = changeArrayLiteralLength(e.loc, cast(TypeArray)t, oldval, oldlen, newlen).copy();
 
             e1 = assignToLvalue(e, e1, newval);
@@ -5615,12 +5618,6 @@ public:
 
             auto cre = cast(ClassReferenceExp)result;
             auto cd = cre.originalClass();
-            if (cd.aggDelete)
-            {
-                e.error("member deallocators not supported by CTFE");
-                result = CTFEExp.cantexp;
-                return;
-            }
 
             if (cd.dtor)
             {
@@ -5644,12 +5641,6 @@ public:
 
                 auto sd = (cast(TypeStruct)tb).sym;
                 auto sle = cast(StructLiteralExp)(cast(AddrExp)result).e1;
-                if (sd.aggDelete)
-                {
-                    e.error("member deallocators not supported by CTFE");
-                    result = CTFEExp.cantexp;
-                    return;
-                }
 
                 if (sd.dtor)
                 {
@@ -5672,12 +5663,6 @@ public:
                 }
 
                 auto sd = (cast(TypeStruct)tv).sym;
-                if (sd.aggDelete)
-                {
-                    e.error("member deallocators not supported by CTFE");
-                    result = CTFEExp.cantexp;
-                    return;
-                }
 
                 if (sd.dtor)
                 {
@@ -6056,6 +6041,13 @@ public:
 
     override void visit(DotVarExp e)
     {
+        void notImplementedYet()
+        {
+            e.error("`%s.%s` is not yet implemented at compile time", e.e1.toChars(), e.var.toChars());
+            result = CTFEExp.cantexp;
+            return;
+        }
+
         debug (LOG)
         {
             printf("%s DotVarExp::interpret() %s, goal = %d\n", e.loc.toChars(), e.toChars(), goal);
@@ -6094,21 +6086,37 @@ public:
             result = CTFEExp.cantexp;
             return;
         }
-        if (ex.op != TOK.structLiteral && ex.op != TOK.classReference)
-        {
-            e.error("`%s.%s` is not yet implemented at compile time", e.e1.toChars(), e.var.toChars());
-            result = CTFEExp.cantexp;
-            return;
-        }
 
         StructLiteralExp se;
         int i;
+
+        if (ex.op != TOK.structLiteral && ex.op != TOK.classReference && ex.op != TOK.typeid_)
+        {
+            return notImplementedYet();
+        }
 
         // We can't use getField, because it makes a copy
         if (ex.op == TOK.classReference)
         {
             se = (cast(ClassReferenceExp)ex).value;
             i = (cast(ClassReferenceExp)ex).findFieldIndexByName(v);
+        }
+        else if (ex.op == TOK.typeid_)
+        {
+            if (v.ident == Identifier.idPool("name"))
+            {
+                if (auto t = isType(ex.isTypeidExp().obj))
+                {
+                    auto sym = t.toDsymbol(null);
+                    if (auto ident = (sym ? sym.ident : null))
+                    {
+                        result = new StringExp(e.loc, ident.toString());
+                        result.expressionSemantic(null);
+                        return ;
+                    }
+                }
+            }
+            return notImplementedYet();
         }
         else
         {
@@ -6935,6 +6943,7 @@ private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression
                         char x = cast(char)r.isIntegerExp().getInteger();
                         if ((x & 0xC0) != 0x80)
                             break;
+                        --indx;
                         ++buflen;
                     }
                 }

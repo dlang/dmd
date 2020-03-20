@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2015-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2015-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     Rainer Schuetze
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dvarstats.d, backend/dvarstats.d)
@@ -31,7 +31,7 @@ extern(C) void qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar
 
 version (all) // free function version
 {
-    import dmd.backend.varstats;
+    import dmd.backend.dvarstats;
 
     void varStats_writeSymbolTable(symtab_t* symtab,
             void function(Symbol*) nothrow fnWriteVar, void function() nothrow fnEndArgs,
@@ -398,12 +398,17 @@ private int findLineIndex(uint line)
 
 public void recordLineOffset(Srcpos src, targ_size_t off)
 {
+    version (MARS)
+        const sfilename = src.Sfilename;
+    else
+        const sfilename = srcpos_name(src);
+
     // only record line numbers from one file, symbol info does not include source file
-    if (!src.Sfilename || !src.Slinnum)
+    if (!sfilename || !src.Slinnum)
         return;
     if (!srcfile)
-        srcfile = src.Sfilename;
-    if (srcfile != src.Sfilename && strcmp (srcfile, src.Sfilename) != 0)
+        srcfile = sfilename;
+    if (srcfile != sfilename && strcmp(srcfile, sfilename) != 0)
         return;
 
     // assume ascending code offsets generated during codegen, ignore any other

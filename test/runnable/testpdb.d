@@ -49,6 +49,10 @@ void main(string[] args)
 
         testE982(session, globals);
 
+        test20253(session, globals);
+
+        test18147(session, globals);
+
         source.Release();
         session.Release();
         globals.Release();
@@ -359,6 +363,126 @@ void testE982(IDiaSession session, IDiaSymbol globals)
     scope(exit) SysFreeString(typename);
     wchar[] wtypename = typename[0..wcslen(typename)];
     wcscmp(typename, "testpdb.E982") == 0 || assert(false, varName ~ ": unexpected type name " ~ toUTF8(wtypename));
+}
+
+///////////////////////////////////////////////
+// https://issues.dlang.org/show_bug.cgi?id=20253
+string func20253(string s1, string s2)
+{
+    throw new Exception("x");
+}
+string check20253()
+{
+    return "";
+}
+
+void test20253(IDiaSession session, IDiaSymbol globals)
+{
+    IDiaSymbol funcSym = searchSymbol(globals, "testpdb.func20253");
+    funcSym || assert(false, "testpdb.func20253 not found");
+
+    IDiaSymbol checkSym = searchSymbol(globals, "testpdb.check20253");
+    checkSym || assert(false, "testpdb.check20253 not found");
+
+    ubyte[] funcRange;
+    Line[] lines = findSymbolLineNumbers(session, funcSym, &funcRange);
+    lines || assert(false, "no line number info for func20253");
+
+    ubyte[] checkRange;
+    Line[] checkLines = findSymbolLineNumbers(session, checkSym, &checkRange);
+    checkLines || assert(false, "no line number info for check20253");
+
+    foreach(ln; lines)
+        (ln.addr >= funcRange.ptr && ln.addr < funcRange.ptr + funcRange.length) ||
+               assert(false, "line number code offset out of function range");
+
+    (checkRange.ptr >= funcRange.ptr + funcRange.length) ||
+        assert(false, "code range of check20253 overlaps with func20253");
+}
+
+///////////////////////////////////////////////
+// https://issues.dlang.org/show_bug.cgi?id=18147
+string genMembers18147()
+{
+    string s;
+    char[12] es = "member0000,\n";
+    foreach(char i; '0'..'9'+1)
+    {
+        es[6] = i;
+        string s1;
+        foreach(char j; '0'..'9'+1)
+        {
+            es[7] = j;
+            string s2;
+            foreach(char k; '0'..'9'+1)
+            {
+                es[8] = k;
+                string s3;
+                foreach(char l; '0'..'9'+1)
+                {
+                    es[9] = l;
+                    s3 ~= es;
+                }
+                s2 ~= s3;
+            }
+            s1 ~= s2;
+        }
+        s ~= s1;
+    }
+    return s;
+}
+
+enum members18147 = genMembers18147();
+
+mixin("enum Enumerator18147 {" ~ members18147 ~ "}");
+mixin("struct Struct18147 { int " ~ members18147 ~ "member10000;}");
+mixin("struct Class18147 { int " ~ members18147 ~ "member10000;}");
+
+void test18147(IDiaSession session, IDiaSymbol globals)
+{
+    Enumerator18147 anE;
+    Struct18147 aS;
+    Class18147 aC;
+
+    // enum
+    IDiaSymbol enumSym = searchSymbol(globals, "testpdb.Enumerator18147");
+    enumSym || assert(false, "testpdb.Enumerator18147 not found");
+
+    IDiaSymbol enumValue1 = searchSymbol(enumSym, "member0001");
+    enumValue1 || assert(false, "testpdb.Enumerator18147.member0001 not found");
+
+    IDiaSymbol enumValue9999 = searchSymbol(enumSym, "member9999");
+    enumValue9999 || assert(false, "testpdb.Enumerator18147.member9999 not found");
+
+    // struct
+    IDiaSymbol structSym = searchSymbol(globals, "testpdb.Struct18147");
+    structSym || assert(false, "testpdb.Struct18147 not found");
+
+    int off;
+    IDiaSymbol structMember1 = searchSymbol(structSym, "member0001");
+    structMember1 || assert(false, "testpdb.Struct18147.member0001 not found");
+    structMember1.get_offset(&off);
+    off == Struct18147.member0001.offsetof || assert(false, "testpdb.Struct18147.member1 bad offset");
+
+    IDiaSymbol structMember9999 = searchSymbol(structSym, "member9999");
+    structMember9999 || assert(false, "testpdb.Struct18147.member9999 not found");
+    structMember9999.get_offset(&off);
+    off == Struct18147.member9999.offsetof || assert(false, "testpdb.Struct18147.member9999 bad offset");
+
+    // class
+    IDiaSymbol classSym = searchSymbol(globals, "testpdb.Class18147");
+    classSym || assert(false, "testpdb.Class18147 not found");
+
+    IDiaSymbol classMember1 = searchSymbol(classSym, "member0001");
+    classMember1 || assert(false, "testpdb.Class18147.member0001 not found");
+    classMember1.get_offset(&off);
+    off == Class18147.member0001.offsetof || assert(false, "testpdb.Class18147.member1 bad offset");
+
+    IDiaSymbol classMember9999 = searchSymbol(classSym, "member9999");
+    classMember9999 || assert(false, "testpdb.Class18147.member9999 not found");
+    classMember9999.get_offset(&off);
+    off == Class18147.member9999.offsetof || assert(false, "testpdb.Class18147.member9999 bad offset");
+
 }
 
 ///////////////////////////////////////////////
@@ -1019,7 +1143,7 @@ void printSymbol(IDiaSymbol sym, int indent)
     hr = sym.get_name(&name);
     if (hr != S_OK)
         name = cast(BSTR) "no-name"w.ptr;
-    printf("%*s%02x %S\n", indent, "".ptr, tag, name);
+    printf("%*s%02x %ls\n", indent, "".ptr, tag, name);
     if (hr == S_OK)
         SysFreeString(name);
 }

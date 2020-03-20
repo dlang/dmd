@@ -107,7 +107,7 @@ int dll_regserver(const (char) *dllname, int flag)
     if (SUCCEEDED(CoInitialize(null)))
     {
         hMod=LoadLibraryA(dllname);
-        printf("hMod = %d\n", hMod);
+        printf("hMod = %p\n", hMod);
 
         if (hMod)
         {

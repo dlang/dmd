@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/expression.d, _expression.d)
@@ -59,6 +59,7 @@ import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.root.rmem;
 import dmd.root.rootobject;
+import dmd.root.string;
 import dmd.safe;
 import dmd.sideeffect;
 import dmd.target;
@@ -1239,12 +1240,12 @@ extern (C++) abstract class Expression : ASTNode
             return false;
         if (sc.intypeof == 1)
             return false;
-        if (sc.flags & SCOPE.ctfe)
+        if (sc.flags & (SCOPE.ctfe | SCOPE.debug_))
             return false;
 
         if (!f.isSafe() && !f.isTrusted())
         {
-            if (sc.flags & SCOPE.compile ? sc.func.isSafeBypassingInference() : sc.func.setUnsafe() && !(sc.flags & SCOPE.debug_))
+            if (sc.flags & SCOPE.compile ? sc.func.isSafeBypassingInference() : sc.func.setUnsafe())
             {
                 if (!loc.isValid()) // e.g. implicitly generated dtor
                     loc = sc.func.loc;
@@ -1274,12 +1275,12 @@ extern (C++) abstract class Expression : ASTNode
             return false;
         if (sc.intypeof == 1)
             return false;
-        if (sc.flags & SCOPE.ctfe)
+        if (sc.flags & (SCOPE.ctfe | SCOPE.debug_))
             return false;
 
         if (!f.isNogc())
         {
-            if (sc.flags & SCOPE.compile ? sc.func.isNogcBypassingInference() : sc.func.setGC() && !(sc.flags & SCOPE.debug_))
+            if (sc.flags & SCOPE.compile ? sc.func.isNogcBypassingInference() : sc.func.setGC())
             {
                 if (loc.linnum == 0) // e.g. implicitly generated dtor
                     loc = sc.func.loc;
@@ -2304,7 +2305,7 @@ extern (C++) final class StringExp : Expression
 
     static StringExp create(Loc loc, char* s)
     {
-        return new StringExp(loc, s[0 .. strlen(s)]);
+        return new StringExp(loc, s.toDString());
     }
 
     static StringExp create(Loc loc, void* string, size_t len)
@@ -2315,7 +2316,7 @@ extern (C++) final class StringExp : Expression
     // Same as create, but doesn't allocate memory.
     static void emplace(UnionExp* pue, Loc loc, char* s)
     {
-        emplaceExp!(StringExp)(pue, loc, s[0 .. strlen(s)]);
+        emplaceExp!(StringExp)(pue, loc, s.toDString());
     }
 
     extern (D) static void emplace(UnionExp* pue, Loc loc, const(void)[] string)
@@ -2503,14 +2504,34 @@ extern (C++) final class StringExp : Expression
         return this;
     }
 
+    /**
+     * Compare two `StringExp` by length, then value
+     *
+     * The comparison is not the usual C-style comparison as seen with
+     * `strcmp` or `memcmp`, but instead first compare based on the length.
+     * This allows both faster lookup and sorting when comparing sparse data.
+     *
+     * This ordering scheme is relied on by the string-switching feature.
+     * Code in Druntime's `core.internal.switch_` relies on this ordering
+     * when doing a binary search among case statements.
+     *
+     * Both `StringExp` should be of the same encoding.
+     *
+     * Params:
+     *   se2 = String expression to compare `this` to
+     *
+     * Returns:
+     *   `0` when `this` is equal to se2, a value greater than `0` if
+     *   `this` should be considered greater than `se2`,
+     *   and a value less than `0` if `this` is lesser than `se2`.
+     */
     int compare(const StringExp se2) const nothrow pure @nogc
     {
         //printf("StringExp::compare()\n");
-        // Used to sort case statement expressions so we can do an efficient lookup
-
         const len1 = len;
         const len2 = se2.len;
 
+        assert(this.sz == se2.sz, "Comparing string expressions of different sizes");
         //printf("sz = %d, len1 = %d, len2 = %d\n", sz, (int)len1, (int)len2);
         if (len1 == len2)
         {
@@ -3677,7 +3698,7 @@ extern (C++) final class FuncExp : Expression
                 symtab = sds.symtab;
             }
             assert(symtab);
-            Identifier id = Identifier.generateId(s, symtab.len() + 1);
+            Identifier id = Identifier.generateId(s, symtab.length() + 1);
             fd.ident = id;
             if (td)
                 td.ident = id;
@@ -6494,8 +6515,11 @@ extern (C++) final class CondExp : BinExp
                     if (v._init)
                     {
                         if (auto ei = v._init.isExpInitializer())
-                            ei.exp.accept(this);
+                            walkPostorder(ei.exp, this);
                     }
+
+                    if (v.edtor)
+                        walkPostorder(v.edtor, this);
 
                     if (v.needsScopeDtor())
                     {
@@ -6575,7 +6599,7 @@ extern (C++) final class FileInitExp : DefaultInitExp
         else
             s = loc.isValid() ? loc.filename : sc._module.ident.toChars();
 
-        Expression e = new StringExp(loc, s[0 .. strlen(s)]);
+        Expression e = new StringExp(loc, s.toDString());
         e = e.expressionSemantic(sc);
         e = e.castTo(sc, type);
         return e;
@@ -6620,8 +6644,8 @@ extern (C++) final class ModuleInitExp : DefaultInitExp
 
     override Expression resolveLoc(const ref Loc loc, Scope* sc)
     {
-        const char* s = (sc.callsc ? sc.callsc : sc)._module.toPrettyChars();
-        Expression e = new StringExp(loc, s[0 .. strlen(s)]);
+        const auto s = (sc.callsc ? sc.callsc : sc)._module.toPrettyChars().toDString();
+        Expression e = new StringExp(loc, s);
         e = e.expressionSemantic(sc);
         e = e.castTo(sc, type);
         return e;
@@ -6651,7 +6675,7 @@ extern (C++) final class FuncInitExp : DefaultInitExp
             s = sc.func.Dsymbol.toPrettyChars();
         else
             s = "";
-        Expression e = new StringExp(loc, s[0 .. strlen(s)]);
+        Expression e = new StringExp(loc, s.toDString());
         e = e.expressionSemantic(sc);
         e.type = Type.tstring;
         return e;
@@ -6691,7 +6715,7 @@ extern (C++) final class PrettyFuncInitExp : DefaultInitExp
             s = "";
         }
 
-        Expression e = new StringExp(loc, s[0 .. strlen(s)]);
+        Expression e = new StringExp(loc, s.toDString());
         e = e.expressionSemantic(sc);
         e.type = Type.tstring;
         return e;

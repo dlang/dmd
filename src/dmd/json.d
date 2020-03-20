@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/json.d, _json.d)
@@ -35,7 +35,7 @@ import dmd.identifier;
 import dmd.mtype;
 import dmd.root.outbuffer;
 import dmd.root.rootobject;
-import dmd.utils;
+import dmd.root.string;
 import dmd.visitor;
 
 version(Windows) {
@@ -1050,7 +1050,7 @@ Returns: JsonFieldFlags.none on error, otherwise the JsonFieldFlags value
 */
 extern (C++) JsonFieldFlags tryParseJsonField(const(char)* fieldName)
 {
-    auto fieldNameString = fieldName[0 .. strlen(fieldName)];
+    auto fieldNameString = fieldName.toDString();
     foreach (idx, enumName; __traits(allMembers, JsonFieldFlags))
     {
         static if (idx > 0)

@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/inlinecost.d, _inlinecost.d)
@@ -195,8 +195,7 @@ public:
         scope InlineCostVisitor icv = new InlineCostVisitor(this);
         foreach (i; 0 .. s.statements.dim)
         {
-            Statement s2 = (*s.statements)[i];
-            if (s2)
+            if (Statement s2 = (*s.statements)[i])
             {
                 /* Specifically allow:
                  *  if (condition)
@@ -368,9 +367,9 @@ public:
     {
         //printf("VarExp.inlineCost3() %s\n", toChars());
         Type tb = e.type.toBasetype();
-        if (tb.ty == Tstruct)
+        if (auto ts = tb.isTypeStruct())
         {
-            StructDeclaration sd = (cast(TypeStruct)tb).sym;
+            StructDeclaration sd = ts.sym;
             if (sd.isNested())
             {
                 /* An inner struct will be nested inside another function hierarchy than where
@@ -446,11 +445,9 @@ public:
     override void visit(DeclarationExp e)
     {
         //printf("DeclarationExp.inlineCost3()\n");
-        VarDeclaration vd = e.declaration.isVarDeclaration();
-        if (vd)
+        if (auto vd = e.declaration.isVarDeclaration())
         {
-            TupleDeclaration td = vd.toAlias().isTupleDeclaration();
-            if (td)
+            if (auto td = vd.toAlias().isTupleDeclaration())
             {
                 cost = COST_MAX; // finish DeclarationExp.doInlineAs
                 return;
@@ -470,13 +467,12 @@ public:
             // Scan initializer (vd.init)
             if (vd._init)
             {
-                ExpInitializer ie = vd._init.isExpInitializer();
-                if (ie)
+                if (auto ie = vd._init.isExpInitializer())
                 {
                     expressionInlineCost(ie.exp);
                 }
             }
-            cost += 1;
+            ++cost;
         }
 
         // aggregates are accepted under certain circumstances
@@ -487,7 +483,11 @@ public:
         }
 
         // These can contain functions, which when copied, get output twice.
-        if (e.declaration.isStructDeclaration() || e.declaration.isClassDeclaration() || e.declaration.isFuncDeclaration() || e.declaration.isAttribDeclaration() || e.declaration.isTemplateMixin())
+        if (e.declaration.isStructDeclaration() ||
+            e.declaration.isClassDeclaration()  ||
+            e.declaration.isFuncDeclaration()   ||
+            e.declaration.isAttribDeclaration() ||
+            e.declaration.isTemplateMixin())
         {
             cost = COST_MAX;
             return;

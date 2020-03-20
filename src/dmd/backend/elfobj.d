@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) ?-1998 by Symantec
- *              Copyright (C) 2000-2019 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/elfobj.d, backend/elfobj.d)
@@ -317,66 +317,10 @@ int seg_tlsseg_bss = UNKNOWN;
 IDXSTR Obj_addstr(Outbuffer *strtab, const(char)* str)
 {
     //dbg_printf("Obj_addstr(strtab = x%x str = '%s')\n",strtab,str);
-    IDXSTR idx = cast(IDXSTR)strtab.size();        // remember starting offset
+    IDXSTR idx = cast(IDXSTR)strtab.length();        // remember starting offset
     strtab.writeString(str);
-    //dbg_printf("\tidx %d, new size %d\n",idx,strtab.size());
+    //dbg_printf("\tidx %d, new size %d\n",idx,strtab.length());
     return idx;
-}
-
-/*******************************
- * Find a string in a string table
- * Input:
- *      strtab  =       string table for entry
- *      str     =       string to find
- *
- * Returns index into the specified string table or 0.
- */
-
-private IDXSTR elf_findstr(Outbuffer *strtab, const(char)* str, const(char)* suffix)
-{
-    //printf("elf_findstr(strtab = %p, str = %s, suffix = %s\n", strtab, str ? str : "", suffix ? suffix : "");
-
-    size_t len = strlen(str);
-
-    // Combine str~suffix and have buf point to the combination
-debug
-    char[25] tmpbuf = void;    // to exercise the malloc() code path
-else
-    char[1024] tmpbuf = void;  // the malloc() code path is slow
-
-    const(char)* buf;
-    if (suffix)
-    {
-        size_t suffixlen = strlen(suffix);
-        if (len + suffixlen >= (tmpbuf).sizeof)
-        {
-             buf = cast(char *)malloc(len + suffixlen + 1);
-             assert(buf);
-        }
-        else
-        {
-             buf = &tmpbuf[0];
-        }
-        memcpy(cast(char *)buf, str, len);
-        memcpy(cast(char *)buf + len, suffix, suffixlen + 1);
-        len += suffixlen;
-    }
-    else
-        buf = str;
-
-    // Linear search, slow
-    const(char)* ent = cast(char *)strtab.buf+1;
-    const(char)* pend = ent+strtab.size() - 1;
-    while (ent + len < pend)
-    {
-        if (memcmp(buf, ent, len + 1) == 0)
-            return cast(uint)(ent - cast(const(char)* )strtab.buf);
-        ent = cast(const(char)* )memchr(ent, 0, pend - ent);
-        ent += 1;
-    }
-    if (buf != &tmpbuf[0])
-        free(cast(char*)buf);
-    return 0;                   // never found match
 }
 
 /*******************************
@@ -392,7 +336,7 @@ private IDXSTR elf_addmangled(Symbol *s)
     //printf("elf_addmangled(%s)\n", s.Sident.ptr);
     char[DEST_LEN] dest = void;
 
-    IDXSTR namidx = cast(IDXSTR)symtab_strings.size();
+    IDXSTR namidx = cast(IDXSTR)symtab_strings.length();
     size_t len;
     char *destr = obj_mangle2(s, dest.ptr, &len);
     const(char)* name = destr;
@@ -437,12 +381,10 @@ static if (0)
         name = s.Sfunc.Fredirect;
         len = strlen(name);
     }
-    symtab_strings.reserve(cast(uint)len+1);
-    memcpy(cast(char *)symtab_strings.p, name, len + 1);
-    symtab_strings.setsize(cast(uint)(namidx+len+1));
+    symtab_strings.writeString(name);
     if (destr != dest.ptr)                  // if we resized result
         mem_free(destr);
-    //dbg_printf("\telf_addmagled symtab_strings %s namidx %d len %d size %d\n",name, namidx,len,symtab_strings.size());
+    //dbg_printf("\telf_addmagled symtab_strings %s namidx %d len %d size %d\n",name, namidx,len,symtab_strings.length());
     return namidx;
 }
 
@@ -482,10 +424,10 @@ private IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, uint sz,
         {
             shndx_data = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
             assert(shndx_data);
-            shndx_data.enlarge(50 * (Elf64_Word).sizeof);
+            shndx_data.reserve(50 * (Elf64_Word).sizeof);
         }
         // fill with zeros up to symbol_idx
-        const size_t shndx_idx = shndx_data.size() / Elf64_Word.sizeof;
+        const size_t shndx_idx = shndx_data.length() / Elf64_Word.sizeof;
         shndx_data.writezeros(cast(uint)((symbol_idx - shndx_idx) * Elf64_Word.sizeof));
 
         shndx_data.write32(sec);
@@ -498,8 +440,6 @@ private IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, uint sz,
         {
             SYMbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
             assert(SYMbuf);
-            SYMbuf.enlarge(50 * Elf64_Sym.sizeof);
-
             SYMbuf.reserve(100 * Elf64_Sym.sizeof);
         }
         Elf64_Sym sym;
@@ -517,8 +457,6 @@ private IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, uint sz,
         {
             SYMbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
             assert(SYMbuf);
-            SYMbuf.enlarge(50 * Elf32_Sym.sizeof);
-
             SYMbuf.reserve(100 * Elf32_Sym.sizeof);
         }
         Elf32_Sym sym;
@@ -578,9 +516,7 @@ private IDXSEC elf_newsection2(
     {
         SECbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
         assert(SECbuf);
-        SECbuf.enlarge(50 * Elf32_Shdr.sizeof);
-
-        SECbuf.reserve(16 * Elf32_Shdr.sizeof);
+        SECbuf.reserve(50 * Elf32_Shdr.sizeof);
     }
     if (section_cnt == SHN_LORESERVE)
     {   // insert dummy null sections to skip reserved section indices
@@ -606,14 +542,14 @@ Returns:
  */
 private IDXSTR elf_addsectionname(const(char)* name, const(char)* suffix = null, bool *padded = null)
 {
-    IDXSTR namidx = cast(IDXSTR)section_names.size();
+    IDXSTR namidx = cast(IDXSTR)section_names.length();
     section_names.writeString(name);
     if (suffix)
     {   // Append suffix string
-        section_names.setsize(cast(uint)section_names.size() - 1);  // back up over terminating 0
+        section_names.setsize(cast(uint)section_names.length() - 1);  // back up over terminating 0
         section_names.writeString(suffix);
     }
-    IDXSTR *pidx = section_names_hashtable.get(namidx, cast(uint)section_names.size() - 1);
+    IDXSTR *pidx = section_names_hashtable.get(namidx, cast(uint)section_names.length() - 1);
     //IDXSTR *pidx = cast(IDXSTR *)section_names_hashtable.get(&namidx);
     if (*pidx)
     {
@@ -749,33 +685,31 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
     {
         symtab_strings = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
         assert(symtab_strings);
-        symtab_strings.enlarge(1024);
-
         symtab_strings.reserve(2048);
         symtab_strings.writeByte(0);
     }
 
     if (SECbuf)
-        SECbuf.setsize(0);
+        SECbuf.reset();
     section_cnt = 0;
 
-    enum
+    enum NAMIDX : IDXSTR
     {
-        NAMIDX_NONE      =   0,
-        NAMIDX_SYMTAB    =   1,    // .symtab
-        NAMIDX_STRTAB    =   9,    // .strtab
-        NAMIDX_SHSTRTAB  =  17,    // .shstrtab
-        NAMIDX_TEXT      =  27,    // .text
-        NAMIDX_DATA      =  33,    // .data
-        NAMIDX_BSS       =  39,    // .bss
-        NAMIDX_NOTE      =  44,    // .note
-        NAMIDX_COMMENT   =  50,    // .comment
-        NAMIDX_RODATA    =  59,    // .rodata
-        NAMIDX_GNUSTACK  =  67,    // .note.GNU-stack
-        NAMIDX_CDATAREL  =  83,    // .data.rel.ro
-        NAMIDX_RELTEXT   =  96,    // .rel.text and .rela.text
-        NAMIDX_RELDATA   = 106,    // .rel.data
-        NAMIDX_RELDATA64 = 107,    // .rela.data
+        NONE      =   0,
+        SYMTAB    =   1,    // .symtab
+        STRTAB    =   9,    // .strtab
+        SHSTRTAB  =  17,    // .shstrtab
+        TEXT      =  27,    // .text
+        DATA      =  33,    // .data
+        BSS       =  39,    // .bss
+        NOTE      =  44,    // .note
+        COMMENT   =  50,    // .comment
+        RODATA    =  59,    // .rodata
+        GNUSTACK  =  67,    // .note.GNU-stack
+        CDATAREL  =  83,    // .data.rel.ro
+        RELTEXT   =  96,    // .rel.text and .rela.text
+        RELDATA   = 106,    // .rel.data
+        RELDATA64 = 107,    // .rela.data
     }
 
     if (I64)
@@ -790,8 +724,6 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
         {
             section_names = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
             assert(section_names);
-            section_names.enlarge(512);
-
             section_names.reserve(1024);
             section_names.writen(section_names_init64.ptr, section_names_init64.sizeof);
         }
@@ -804,34 +736,25 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
 
         // name,type,flags,addr,offset,size,link,info,addralign,entsize
         elf_newsection2(0,               SHT_NULL,   0,                 0,0,0,0,0, 0,0);
-        elf_newsection2(NAMIDX_TEXT,SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,0,0,0,0,0, 4,0);
-        elf_newsection2(NAMIDX_RELTEXT,SHT_RELA, 0,0,0,0,SHN_SYMTAB,     SHN_TEXT, 8,0x18);
-        elf_newsection2(NAMIDX_DATA,SHT_PROGBITS,SHF_ALLOC|SHF_WRITE,   0,0,0,0,0, 8,0);
-        elf_newsection2(NAMIDX_RELDATA64,SHT_RELA, 0,0,0,0,SHN_SYMTAB,   SHN_DATA, 8,0x18);
-        elf_newsection2(NAMIDX_BSS, SHT_NOBITS,SHF_ALLOC|SHF_WRITE,     0,0,0,0,0, 16,0);
-        elf_newsection2(NAMIDX_RODATA,SHT_PROGBITS,SHF_ALLOC,           0,0,0,0,0, 16,0);
-        elf_newsection2(NAMIDX_STRTAB,SHT_STRTAB, 0,                    0,0,0,0,0, 1,0);
-        elf_newsection2(NAMIDX_SYMTAB,SHT_SYMTAB, 0,                    0,0,0,0,0, 8,0);
-        elf_newsection2(NAMIDX_SHSTRTAB,SHT_STRTAB, 0,                  0,0,0,0,0, 1,0);
-        elf_newsection2(NAMIDX_COMMENT, SHT_PROGBITS,0,                 0,0,0,0,0, 1,0);
-        elf_newsection2(NAMIDX_NOTE,SHT_NOTE,   0,                      0,0,0,0,0, 1,0);
-        elf_newsection2(NAMIDX_GNUSTACK,SHT_PROGBITS,0,                 0,0,0,0,0, 1,0);
-        elf_newsection2(NAMIDX_CDATAREL,SHT_PROGBITS,SHF_ALLOC|SHF_WRITE,0,0,0,0,0, 16,0);
+        elf_newsection2(NAMIDX.TEXT,SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,0,0,0,0,0, 4,0);
+        elf_newsection2(NAMIDX.RELTEXT,SHT_RELA, 0,0,0,0,SHN_SYMTAB,     SHN_TEXT, 8,0x18);
+        elf_newsection2(NAMIDX.DATA,SHT_PROGBITS,SHF_ALLOC|SHF_WRITE,   0,0,0,0,0, 8,0);
+        elf_newsection2(NAMIDX.RELDATA64,SHT_RELA, 0,0,0,0,SHN_SYMTAB,   SHN_DATA, 8,0x18);
+        elf_newsection2(NAMIDX.BSS, SHT_NOBITS,SHF_ALLOC|SHF_WRITE,     0,0,0,0,0, 16,0);
+        elf_newsection2(NAMIDX.RODATA,SHT_PROGBITS,SHF_ALLOC,           0,0,0,0,0, 16,0);
+        elf_newsection2(NAMIDX.STRTAB,SHT_STRTAB, 0,                    0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX.SYMTAB,SHT_SYMTAB, 0,                    0,0,0,0,0, 8,0);
+        elf_newsection2(NAMIDX.SHSTRTAB,SHT_STRTAB, 0,                  0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX.COMMENT, SHT_PROGBITS,0,                 0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX.NOTE,SHT_NOTE,   0,                      0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX.GNUSTACK,SHT_PROGBITS,0,                 0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX.CDATAREL,SHT_PROGBITS,SHF_ALLOC|SHF_WRITE,0,0,0,0,0, 16,0);
 
-        IDXSTR namidx;
-        namidx = NAMIDX_TEXT;      *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init64.ptr + namidx)) = namidx;
-        namidx = NAMIDX_RELTEXT;   *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init64.ptr + namidx)) = namidx;
-        namidx = NAMIDX_DATA;      *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init64.ptr + namidx)) = namidx;
-        namidx = NAMIDX_RELDATA64; *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init64.ptr + namidx)) = namidx;
-        namidx = NAMIDX_BSS;       *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init64.ptr + namidx)) = namidx;
-        namidx = NAMIDX_RODATA;    *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init64.ptr + namidx)) = namidx;
-        namidx = NAMIDX_STRTAB;    *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init64.ptr + namidx)) = namidx;
-        namidx = NAMIDX_SYMTAB;    *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init64.ptr + namidx)) = namidx;
-        namidx = NAMIDX_SHSTRTAB;  *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init64.ptr + namidx)) = namidx;
-        namidx = NAMIDX_COMMENT;   *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init64.ptr + namidx)) = namidx;
-        namidx = NAMIDX_NOTE;      *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init64.ptr + namidx)) = namidx;
-        namidx = NAMIDX_GNUSTACK;  *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init64.ptr + namidx)) = namidx;
-        namidx = NAMIDX_CDATAREL;  *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init64.ptr + namidx)) = namidx;
+        foreach (idxname; __traits(allMembers, NAMIDX)[1 .. $])
+        {
+            NAMIDX idx = mixin("NAMIDX." ~ idxname);
+            *section_names_hashtable.get(idx, cast(uint)section_names_init64.sizeof) = idx;
+        }
     }
     else
     {
@@ -845,8 +768,6 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
         {
             section_names = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
             assert(section_names);
-            section_names.enlarge(512);
-
             section_names.reserve(100*1024);
             section_names.writen(section_names_init.ptr, section_names_init.sizeof);
         }
@@ -859,54 +780,45 @@ Obj Obj_init(Outbuffer *objbuf, const(char)* filename, const(char)* csegname)
 
         // name,type,flags,addr,offset,size,link,info,addralign,entsize
         elf_newsection2(0,               SHT_NULL,   0,                 0,0,0,0,0, 0,0);
-        elf_newsection2(NAMIDX_TEXT,SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,0,0,0,0,0, 16,0);
-        elf_newsection2(NAMIDX_RELTEXT,SHT_REL, 0,0,0,0,SHN_SYMTAB,      SHN_TEXT, 4,8);
-        elf_newsection2(NAMIDX_DATA,SHT_PROGBITS,SHF_ALLOC|SHF_WRITE,   0,0,0,0,0, 4,0);
-        elf_newsection2(NAMIDX_RELDATA,SHT_REL, 0,0,0,0,SHN_SYMTAB,      SHN_DATA, 4,8);
-        elf_newsection2(NAMIDX_BSS, SHT_NOBITS,SHF_ALLOC|SHF_WRITE,     0,0,0,0,0, 32,0);
-        elf_newsection2(NAMIDX_RODATA,SHT_PROGBITS,SHF_ALLOC,           0,0,0,0,0, 1,0);
-        elf_newsection2(NAMIDX_STRTAB,SHT_STRTAB, 0,                    0,0,0,0,0, 1,0);
-        elf_newsection2(NAMIDX_SYMTAB,SHT_SYMTAB, 0,                    0,0,0,0,0, 4,0);
-        elf_newsection2(NAMIDX_SHSTRTAB,SHT_STRTAB, 0,                  0,0,0,0,0, 1,0);
-        elf_newsection2(NAMIDX_COMMENT, SHT_PROGBITS,0,                 0,0,0,0,0, 1,0);
-        elf_newsection2(NAMIDX_NOTE,SHT_NOTE,   0,                      0,0,0,0,0, 1,0);
-        elf_newsection2(NAMIDX_GNUSTACK,SHT_PROGBITS,0,                 0,0,0,0,0, 1,0);
-        elf_newsection2(NAMIDX_CDATAREL,SHT_PROGBITS,SHF_ALLOC|SHF_WRITE,0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX.TEXT,SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,0,0,0,0,0, 16,0);
+        elf_newsection2(NAMIDX.RELTEXT,SHT_REL, 0,0,0,0,SHN_SYMTAB,      SHN_TEXT, 4,8);
+        elf_newsection2(NAMIDX.DATA,SHT_PROGBITS,SHF_ALLOC|SHF_WRITE,   0,0,0,0,0, 4,0);
+        elf_newsection2(NAMIDX.RELDATA,SHT_REL, 0,0,0,0,SHN_SYMTAB,      SHN_DATA, 4,8);
+        elf_newsection2(NAMIDX.BSS, SHT_NOBITS,SHF_ALLOC|SHF_WRITE,     0,0,0,0,0, 32,0);
+        elf_newsection2(NAMIDX.RODATA,SHT_PROGBITS,SHF_ALLOC,           0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX.STRTAB,SHT_STRTAB, 0,                    0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX.SYMTAB,SHT_SYMTAB, 0,                    0,0,0,0,0, 4,0);
+        elf_newsection2(NAMIDX.SHSTRTAB,SHT_STRTAB, 0,                  0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX.COMMENT, SHT_PROGBITS,0,                 0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX.NOTE,SHT_NOTE,   0,                      0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX.GNUSTACK,SHT_PROGBITS,0,                 0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX.CDATAREL,SHT_PROGBITS,SHF_ALLOC|SHF_WRITE,0,0,0,0,0, 1,0);
 
-        IDXSTR namidx;
-        namidx = NAMIDX_TEXT;     *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init.ptr + namidx)) = namidx;
-        namidx = NAMIDX_RELTEXT;  *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init.ptr + namidx)) = namidx;
-        namidx = NAMIDX_DATA;     *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init.ptr + namidx)) = namidx;
-        namidx = NAMIDX_RELDATA;  *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init.ptr + namidx)) = namidx;
-        namidx = NAMIDX_BSS;      *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init.ptr + namidx)) = namidx;
-        namidx = NAMIDX_RODATA;   *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init.ptr + namidx)) = namidx;
-        namidx = NAMIDX_STRTAB;   *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init.ptr + namidx)) = namidx;
-        namidx = NAMIDX_SYMTAB;   *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init.ptr + namidx)) = namidx;
-        namidx = NAMIDX_SHSTRTAB; *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init.ptr + namidx)) = namidx;
-        namidx = NAMIDX_COMMENT;  *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init.ptr + namidx)) = namidx;
-        namidx = NAMIDX_NOTE;     *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init.ptr + namidx)) = namidx;
-        namidx = NAMIDX_GNUSTACK; *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init.ptr + namidx)) = namidx;
-        namidx = NAMIDX_CDATAREL; *section_names_hashtable.get(namidx, namidx + cast(uint)strlen(section_names_init.ptr + namidx)) = namidx;
+        foreach (idxname; __traits(allMembers, NAMIDX)[1 .. $])
+        {
+            NAMIDX idx = mixin("NAMIDX." ~ idxname);
+            *section_names_hashtable.get(idx, cast(uint)section_names_init.sizeof) = idx;
+        }
     }
 
     if (SYMbuf)
-        SYMbuf.setsize(0);
+        SYMbuf.reset();
     if (reset_symbuf)
     {
         Symbol **p = cast(Symbol **)reset_symbuf.buf;
-        const size_t n = reset_symbuf.size() / (Symbol *).sizeof;
+        const size_t n = reset_symbuf.length() / (Symbol *).sizeof;
         for (size_t i = 0; i < n; ++i)
             symbol_reset(p[i]);
-        reset_symbuf.setsize(0);
+        reset_symbuf.reset();
     }
     else
     {
         reset_symbuf = cast(Outbuffer*) calloc(1, (Outbuffer).sizeof);
         assert(reset_symbuf);
-        reset_symbuf.enlarge(50 * (Symbol *).sizeof);
+        reset_symbuf.reserve(50 * (Symbol*).sizeof);
     }
     if (shndx_data)
-        shndx_data.setsize(0);
+        shndx_data.reset();
     symbol_idx = 0;
     local_cnt = 0;
     // The symbols that every object file has
@@ -1062,10 +974,10 @@ void *elf_renumbersyms()
     }
 
     // Reorder extended section header indices
-    if (shndx_data && shndx_data.size())
+    if (shndx_data && shndx_data.length())
     {
         // fill with zeros up to symbol_idx
-        const size_t shndx_idx = shndx_data.size() / Elf64_Word.sizeof;
+        const size_t shndx_idx = shndx_data.length() / Elf64_Word.sizeof;
         shndx_data.writezeros(cast(uint)((symbol_idx - shndx_idx) * Elf64_Word.sizeof));
 
         Elf64_Word *old_buf = cast(Elf64_Word *)shndx_data.buf;
@@ -1111,7 +1023,7 @@ void *elf_renumbersyms()
             else
             {
                 Elf32_Rel *rel = cast(Elf32_Rel *) pseg.SDrel.buf;
-                assert(pseg.SDrelcnt == pseg.SDrel.size() / Elf32_Rel.sizeof);
+                assert(pseg.SDrelcnt == pseg.SDrel.length() / Elf32_Rel.sizeof);
                 for (int r = 0; r < pseg.SDrelcnt; r++)
                 {
                     uint t = ELF32_R_TYPE(rel.r_info);
@@ -1243,10 +1155,10 @@ version (SCPP)
 
         sechdr2.sh_offset = foffset;
         //printf("\tsection name %d,",sechdr2.sh_name);
-        if (pseg.SDbuf && pseg.SDbuf.size())
+        if (pseg.SDbuf && pseg.SDbuf.length())
         {
-            //printf(" - size %d\n",pseg.SDbuf.size());
-            const size_t size = pseg.SDbuf.size();
+            //printf(" - size %d\n",pseg.SDbuf.length());
+            const size_t size = pseg.SDbuf.length();
             fobjbuf.write(pseg.SDbuf.buf, cast(uint)size);
             const int nfoffset = elf_align(sechdr2.sh_addralign, cast(uint)(foffset + size));
             sechdr2.sh_size = nfoffset - foffset;
@@ -1261,7 +1173,7 @@ version (SCPP)
     if (note_data)
     {
         sechdr = &SecHdrTab[secidx_note];               // Notes
-        sechdr.sh_size = cast(uint)note_data.size();
+        sechdr.sh_size = cast(uint)note_data.length();
         sechdr.sh_offset = foffset;
         fobjbuf.write(note_data.buf, sechdr.sh_size);
         foffset += sechdr.sh_size;
@@ -1270,7 +1182,7 @@ version (SCPP)
     if (comment_data)
     {
         sechdr = &SecHdrTab[SHN_COM];           // Comments
-        sechdr.sh_size = cast(uint)comment_data.size();
+        sechdr.sh_size = cast(uint)comment_data.length();
         sechdr.sh_offset = foffset;
         fobjbuf.write(comment_data.buf, sechdr.sh_size);
         foffset += sechdr.sh_size;
@@ -1280,7 +1192,7 @@ version (SCPP)
     // Then output string table for section names
     //
     sechdr = &SecHdrTab[SHN_SECNAMES];  // Section Names
-    sechdr.sh_size = cast(uint)section_names.size();
+    sechdr.sh_size = cast(uint)section_names.length();
     sechdr.sh_offset = foffset;
     //dbg_printf("section names offset %d\n",foffset);
     fobjbuf.write(section_names.buf, sechdr.sh_size);
@@ -1289,9 +1201,9 @@ version (SCPP)
     //
     // Symbol table and string table for symbols next
     //
-    //dbg_printf("output symbol table size %d\n",SYMbuf.size());
+    //dbg_printf("output symbol table size %d\n",SYMbuf.length());
     sechdr = &SecHdrTab[SHN_SYMTAB];    // Symbol Table
-    sechdr.sh_size = cast(uint)SYMbuf.size();
+    sechdr.sh_size = cast(uint)SYMbuf.length();
     sechdr.sh_entsize = I64 ? (Elf64_Sym).sizeof : (Elf32_Sym).sizeof;
     sechdr.sh_link = SHN_STRINGS;
     sechdr.sh_info = local_cnt;
@@ -1301,19 +1213,19 @@ version (SCPP)
     foffset += sechdr.sh_size;
     util_free(symtab);
 
-    if (shndx_data && shndx_data.size())
+    if (shndx_data && shndx_data.length())
     {
         assert(section_cnt >= secidx_shndx);
         sechdr = &SecHdrTab[secidx_shndx];
-        sechdr.sh_size = cast(uint)shndx_data.size();
+        sechdr.sh_size = cast(uint)shndx_data.length();
         sechdr.sh_offset = foffset;
         fobjbuf.write(shndx_data.buf, sechdr.sh_size);
         foffset += sechdr.sh_size;
     }
 
-    //dbg_printf("output section strings size 0x%x,offset 0x%x\n",symtab_strings.size(),foffset);
+    //dbg_printf("output section strings size 0x%x,offset 0x%x\n",symtab_strings.length(),foffset);
     sechdr = &SecHdrTab[SHN_STRINGS];   // Symbol Strings
-    sechdr.sh_size = cast(uint)symtab_strings.size();
+    sechdr.sh_size = cast(uint)symtab_strings.length();
     sechdr.sh_offset = foffset;
     fobjbuf.write(symtab_strings.buf, sechdr.sh_size);
     foffset += sechdr.sh_size;
@@ -1322,7 +1234,7 @@ version (SCPP)
     // Now the relocation data for program code and data sections
     //
     foffset = elf_align(4,foffset);
-    //dbg_printf("output relocations size 0x%x, foffset 0x%x\n",section_names.size(),foffset);
+    //dbg_printf("output relocations size 0x%x, foffset 0x%x\n",section_names.length(),foffset);
     for (int i=1; i<= seg_count; i++)
     {
         seg = SegData[i];
@@ -1333,15 +1245,15 @@ version (SCPP)
 //              sechdr.sh_offset = foffset;
             continue;           // 0, BSS never allocated
         }
-        if (seg.SDrel && seg.SDrel.size())
+        if (seg.SDrel && seg.SDrel.length())
         {
             assert(seg.SDrelidx);
             sechdr = &SecHdrTab[seg.SDrelidx];
-            sechdr.sh_size = cast(uint)seg.SDrel.size();
+            sechdr.sh_size = cast(uint)seg.SDrel.length();
             sechdr.sh_offset = foffset;
             if (I64)
             {
-                assert(seg.SDrelcnt == seg.SDrel.size() / Elf64_Rela.sizeof);
+                assert(seg.SDrelcnt == seg.SDrel.length() / Elf64_Rela.sizeof);
 debug
 {
                 for (size_t j = 0; j < seg.SDrelcnt; ++j)
@@ -1352,7 +1264,7 @@ debug
 }
             }
             else
-                assert(seg.SDrelcnt == seg.SDrel.size() / Elf32_Rel.sizeof);
+                assert(seg.SDrelcnt == seg.SDrel.length() / Elf32_Rel.sizeof);
             fobjbuf.write(seg.SDrel.buf, sechdr.sh_size);
             foffset += sechdr.sh_size;
         }
@@ -1459,7 +1371,6 @@ debug
         fobjbuf.write(&h32, hdrsize);
     }
     fobjbuf.position(foffset, 0);
-    fobjbuf.flush();
 }
 
 /*****************************
@@ -1652,7 +1563,7 @@ void Obj_compiler()
     const newLength = n + config._version.length;
     compiler[n .. newLength] = config._version;
     comment_data.write(compiler[0 .. newLength]);
-    //dbg_printf("Comment data size %d\n",comment_data.size());
+    //dbg_printf("Comment data size %d\n",comment_data.length());
 }
 
 
@@ -1948,7 +1859,7 @@ private void addSectionToComdat(IDXSEC secidx, segidx_t comdatseg)
          */
         Outbuffer *buf = pgroupseg.SDbuf;
         assert(int.sizeof == 4);               // loop depends on this
-        for (size_t i = buf.size(); i > 4;)
+        for (size_t i = buf.length(); i > 4;)
         {
             /* A linear search, but shouldn't be more than 4 items
              * in it.
@@ -1994,19 +1905,17 @@ private int elf_addsegment2(IDXSEC shtidx, IDXSYM symidx, IDXSEC relidx)
     pseg.SDshtidx = shtidx;
     pseg.SDoffset = 0;
     if (pseg.SDbuf)
-        pseg.SDbuf.setsize(0);
+        pseg.SDbuf.reset();
     else
     {   if (SecHdrTab[shtidx].sh_type != SHT_NOBITS)
         {
             pseg.SDbuf = cast(Outbuffer*) calloc(1, (Outbuffer).sizeof);
             assert(pseg.SDbuf);
-            pseg.SDbuf.enlarge(OB_XTRA_STR);
-
             pseg.SDbuf.reserve(1024);
         }
     }
     if (pseg.SDrel)
-        pseg.SDrel.setsize(0);
+        pseg.SDrel.reset();
     pseg.SDsymidx = symidx;
     pseg.SDrelidx = relidx;
     pseg.SDrelmaxoff = 0;
@@ -2691,7 +2600,7 @@ void Obj_write_byte(seg_data *pseg, uint byte_)
 void Obj_byte(int seg,targ_size_t offset,uint byte_)
 {
     Outbuffer *buf = SegData[seg].SDbuf;
-    int save = cast(int)buf.size();
+    int save = cast(int)buf.length();
     //dbg_printf("Obj_byte(seg=%d, offset=x%lx, byte_=x%x)\n",seg,offset,byte_);
     buf.setsize(cast(uint)offset);
     buf.writeByte(byte_);
@@ -2699,7 +2608,7 @@ void Obj_byte(int seg,targ_size_t offset,uint byte_)
         buf.setsize(save);
     else
         SegData[seg].SDoffset = offset+1;
-    //dbg_printf("\tsize now %d\n",buf.size());
+    //dbg_printf("\tsize now %d\n",buf.length());
 }
 
 /***********************************
@@ -2734,18 +2643,15 @@ static if (0)
         //raise(SIGSEGV);
         assert(buf != null);
     }
-    int save = cast(int)buf.size();
+    int save = cast(int)buf.length();
     //dbg_printf("Obj_bytes(seg=%d, offset=x%lx, nbytes=%d, p=x%x)\n",
             //seg,offset,nbytes,p);
-    buf.position(cast(uint)offset, nbytes);
+    buf.position(cast(size_t)offset, nbytes);
     if (p)
-    {
-        buf.writen(p,nbytes);
-    }
-    else
-    {   // Zero out the bytes
-        buf.clearn(nbytes);
-    }
+        buf.write(p, nbytes);
+    else // Zero out the bytes
+        buf.writezeros(nbytes);
+
     if (save > offset+nbytes)
         buf.setsize(save);
     else
@@ -2788,7 +2694,7 @@ void Obj_addrel(int seg, targ_size_t offset, uint type,
         assert(segdata.SDrel);
     }
 
-    if (segdata.SDrel.size() == 0)
+    if (segdata.SDrel.length() == 0)
     {   IDXSEC relidx;
 
         if (secidx == SHN_TEXT)
@@ -2984,7 +2890,7 @@ private size_t writeaddrval(int targseg, size_t offset, targ_size_t val, size_t 
     assert(targseg >= 0 && targseg <= seg_count);
 
     Outbuffer *buf = SegData[targseg].SDbuf;
-    const save = buf.size();
+    const save = buf.length();
     buf.setsize(cast(uint)offset);
     buf.write(&val, cast(uint)size);
     // restore Outbuffer position
@@ -3592,7 +3498,7 @@ private void obj_rtinit()
         }
 
         Outbuffer *buf = SegData[codseg].SDbuf;
-        assert(!buf.size());
+        assert(!buf.length());
         size_t off = 0;
 
         // 16-byte align for call
@@ -3821,7 +3727,7 @@ else
             enum fini_name = USE_INIT_ARRAY ? ".fini_array.d_dso_dtor" : ".dtors.d_dso_dtor";
             enum fini_type = USE_INIT_ARRAY ? SHT_FINI_ARRAY : SHT_PROGBITS;
             const cdseg = Obj_getsegment(fini_name.ptr, null, fini_type, flags, _tysize[TYnptr]);
-            assert(!SegData[cdseg].SDbuf.size());
+            assert(!SegData[cdseg].SDbuf.length());
             // add to section group
             SegData[groupseg].SDbuf.write32(MAP_SEG2SECIDX(cdseg));
             // relocation
@@ -3832,7 +3738,7 @@ else
             enum init_name = USE_INIT_ARRAY ? ".init_array.d_dso_ctor" : ".ctors.d_dso_ctor";
             enum init_type = USE_INIT_ARRAY ? SHT_INIT_ARRAY : SHT_PROGBITS;
             const cdseg = Obj_getsegment(init_name.ptr, null, init_type, flags, _tysize[TYnptr]);
-            assert(!SegData[cdseg].SDbuf.size());
+            assert(!SegData[cdseg].SDbuf.length());
             // add to section group
             SegData[groupseg].SDbuf.write32(MAP_SEG2SECIDX(cdseg));
             // relocation
@@ -3841,7 +3747,7 @@ else
         }
     }
     // set group section infos
-    Offset(groupseg) = SegData[groupseg].SDbuf.size();
+    Offset(groupseg) = SegData[groupseg].SDbuf.length();
     Elf32_Shdr *p = MAP_SEG2SEC(groupseg);
     p.sh_link    = SHN_SYMTAB;
     p.sh_info    = dso_rec; // set the dso_rec as group symbol
@@ -3911,13 +3817,13 @@ int dwarf_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val)
         {
             const dataDWref_seg = Obj_getsegment(".data.DW.ref.", s.Sident.ptr, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE, I64 ? 8 : 4);
             Outbuffer *buf = SegData[dataDWref_seg].SDbuf;
-            assert(buf.size() == 0);
+            assert(buf.length() == 0);
             Obj_reftoident(dataDWref_seg, 0, s, 0, I64 ? CFoffset64 : CFoff);
 
             // Add "DW.ref." ~ name to the symtab_strings table
-            const namidx = cast(IDXSTR)symtab_strings.size();
+            const namidx = cast(IDXSTR)symtab_strings.length();
             symtab_strings.writeString("DW.ref.");
-            symtab_strings.setsize(cast(uint)(symtab_strings.size() - 1));  // back up over terminating 0
+            symtab_strings.setsize(cast(uint)(symtab_strings.length() - 1));  // back up over terminating 0
             symtab_strings.writeString(s.Sident.ptr);
 
             s.Sdw_ref_idx = elf_addsym(namidx, val, 8, STT_OBJECT, STB_WEAK, MAP_SEG2SECIDX(dataDWref_seg), STV_HIDDEN);

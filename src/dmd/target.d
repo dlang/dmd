@@ -1,8 +1,21 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Handles target-specific parameters
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * In order to allow for cross compilation, when the compiler produces a binary
+ * for a different platform than it is running on, target information needs
+ * to be abstracted. This is done in this module, primarily through `Target`.
+ *
+ * Note:
+ * While DMD itself does not support cross-compilation, GDC and LDC do.
+ * Hence, this module is (sometimes heavily) modified by them,
+ * and contributors should review how their changes affect them.
+ *
+ * See_Also:
+ * - $(LINK2 https://wiki.osdev.org/Target_Triplet, Target Triplets)
+ * - $(LINK2 https://github.com/ldc-developers/ldc, LDC repository)
+ * - $(LINK2 https://github.com/D-Programming-GDC/gcc, GDC repository)
+ *
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/target.d, _target.d)
@@ -28,9 +41,9 @@ import dmd.identifier;
 import dmd.mtype;
 import dmd.typesem;
 import dmd.tokens : TOK;
-import dmd.utils : toDString;
 import dmd.root.ctfloat;
 import dmd.root.outbuffer;
+import dmd.root.string : toDString;
 
 ////////////////////////////////////////////////////////////////////////////////
 /**

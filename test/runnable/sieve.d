@@ -1,7 +1,14 @@
-// PERMUTE_ARGS:
-// REQUIRED_ARGS: -cov
-// POST_SCRIPT: runnable/extra-files/coverage-postscript.sh
-// EXECUTE_ARGS: ${RESULTS_DIR}/runnable
+/*
+PERMUTE_ARGS:
+REQUIRED_ARGS: -cov
+POST_SCRIPT: runnable/extra-files/coverage-postscript.sh
+EXECUTE_ARGS: ${RESULTS_DIR}/runnable
+RUN_OUTPUT:
+---
+10 iterations
+1899 primes
+---
+*/
 
 /* Eratosthenes Sieve prime number calculation. */
 

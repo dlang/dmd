@@ -1,4 +1,23 @@
-// REQUIRED_ARGS: -preview=rvaluerefparam
+/*
+REQUIRED_ARGS: -preview=rvaluerefparam
+TEST_OUTPUT:
+---
+\	S1	S2a	S2b	S3a	S3b	S4a	S4b
+-	true	true	true	true	true	true	true
+Xa	true	true	true	true	true	true	true
+Xb	true	true	true	true	true	true	true
+Xc	true	true	true	true	true	true	true
+Xd	true	true	true	true	true	true	true
+Xe	true	true	true	true	true	true	true
+Xf	true	true	true	true	true	true	true
+Xg	true	true	true	true	true	true	true
+---
+
+RUN_OUTPUT:
+---
+Success
+---
+*/
 
 import core.stdc.stdio;
 
@@ -446,12 +465,12 @@ void test6174c()
     static assert(!is(typeof({
         int func1a(int n)
         in{ n = 10; }
-        body { return n; }
+        do { return n; }
     })));
     static assert(!is(typeof({
         int func1b(int n)
         out(r){ r = 20; }
-        body{ return n; }
+        do{ return n; }
     })));
 
     struct DataX
@@ -461,13 +480,13 @@ void test6174c()
     static assert(!is(typeof({
         DataX func2a(DataX n)
         in{ n.x = 10; }
-        body { return n; }
+        do { return n; }
     })));
     static assert(!is(typeof({
         DataX func2b(DataX n)
         in{}
         out(r){ r.x = 20; }
-        body{ return n; }
+        do{ return n; }
     })));
 }
 
@@ -722,7 +741,7 @@ struct S9077b
 immutable(int)[] bar9140()
 out(result) {
     foreach (ref r; result) {}
-} body {
+} do {
     return null;
 }
 

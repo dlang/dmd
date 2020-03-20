@@ -1,3 +1,10 @@
+/*
+RUN_OUTPUT:
+---
+[3, 4, 5]
+Success
+---
+*/
 import std.stdio;
 import std.algorithm;
 

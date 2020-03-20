@@ -26,6 +26,11 @@ tuple((A9741))
 tuple(1)
 tuple(2)
 ---
+
+RUN_OUTPUT:
+---
+Success
+---
 */
 
 import core.stdc.stdio;

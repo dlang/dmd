@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/statementsem.d, _statementsem.d)
@@ -13,7 +13,6 @@
 module dmd.statementsem;
 
 import core.stdc.stdio;
-import core.stdc.string;
 
 import dmd.aggregate;
 import dmd.aliasthis;
@@ -49,6 +48,7 @@ import dmd.mtype;
 import dmd.nogc;
 import dmd.opover;
 import dmd.root.outbuffer;
+import dmd.root.string;
 import dmd.semantic2;
 import dmd.sideeffect;
 import dmd.statement;
@@ -671,9 +671,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         {
             auto needExpansion = args[$-1];
             assert(sc);
-            auto previous = sc.scopesym;
         }
-        alias s = fs;
 
         auto loc = fs.loc;
         size_t dim = fs.parameters.dim;
@@ -913,7 +911,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     var = new AliasDeclaration(loc, ident, t);
                     if (paramtype)
                     {
-                        fs.error("cannot specify element type for symbol `%s`", s.toChars());
+                        fs.error("cannot specify element type for symbol `%s`", fs.toChars());
                         setError();
                         return false;
                     }
@@ -989,14 +987,12 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             else static if (!isDecl)
             {
                 auto fwd = new ForwardingStatement(loc, res);
-                previous = fwd.sym;
                 res = fwd;
             }
             else
             {
                 import dmd.attrib: ForwardingAttribDeclaration;
                 auto res = new ForwardingAttribDeclaration(st);
-                previous = res.sym;
             }
             static if (!isDecl)
             {
@@ -2654,7 +2650,7 @@ else
                     sl = new DotIdExp(ss.loc, sl, Id.__switch_error);
 
                     Expressions* args = new Expressions(2);
-                    (*args)[0] = new StringExp(ss.loc, ss.loc.filename[0 .. strlen(ss.loc.filename)]);
+                    (*args)[0] = new StringExp(ss.loc, ss.loc.filename.toDString());
                     (*args)[1] = new IntegerExp(ss.loc.linnum);
 
                     sl = new CallExp(ss.loc, sl, args);
@@ -2715,19 +2711,14 @@ else
 
             if (numcases)
             {
-                extern (C) static int sort_compare(const(void*) x, const(void*) y) @trusted
+                static int sort_compare(in CaseStatement* x, in CaseStatement* y) @trusted
                 {
-                    CaseStatement ox = *cast(CaseStatement *)x;
-                    CaseStatement oy = *cast(CaseStatement*)y;
-
-                    auto se1 = ox.exp.isStringExp();
-                    auto se2 = oy.exp.isStringExp();
+                    auto se1 = x.exp.isStringExp();
+                    auto se2 = y.exp.isStringExp();
                     return (se1 && se2) ? se1.compare(se2) : 0;
                 }
-
                 // Sort cases for efficient lookup
-                import core.stdc.stdlib : qsort, _compare_fp_t;
-                qsort((*csCopy)[].ptr, numcases, CaseStatement.sizeof, cast(_compare_fp_t)&sort_compare);
+                csCopy.sort!sort_compare;
             }
 
             // The actual lowering
@@ -3284,41 +3275,9 @@ else
                  *    return x; return 3;  // ok, x can be a value
                  */
             }
-
-            // handle NRVO
-            if (fd.nrvo_can && rs.exp.op == TOK.variable)
-            {
-                VarExp ve = cast(VarExp)rs.exp;
-                VarDeclaration v = ve.var.isVarDeclaration();
-                if (tf.isref)
-                {
-                    // Function returns a reference
-                    if (!inferRef)
-                        fd.nrvo_can = 0;
-                }
-                else if (!v || v.isOut() || v.isRef())
-                    fd.nrvo_can = 0;
-                else if (fd.nrvo_var is null)
-                {
-                    if (!v.isDataseg() && !v.isParameter() && v.toParent2() == fd)
-                    {
-                        //printf("Setting nrvo to %s\n", v.toChars());
-                        fd.nrvo_var = v;
-                    }
-                    else
-                        fd.nrvo_can = 0;
-                }
-                else if (fd.nrvo_var != v)
-                    fd.nrvo_can = 0;
-            }
-            else //if (!exp.isLvalue())    // keep NRVO-ability
-                fd.nrvo_can = 0;
         }
         else
         {
-            // handle NRVO
-            fd.nrvo_can = 0;
-
             // infer return type
             if (fd.inferRetType)
             {

@@ -1814,7 +1814,7 @@ string foo90(string a, string b)
 void test90()
 {
     static const string xxx = foo90("A", "xxx");
-    printf("%.*s\n", xxx.length, xxx.ptr);
+    printf("%.*s\n", cast(int)xxx.length, xxx.ptr);
     assert(xxx == "A");
 }
 
@@ -3504,6 +3504,68 @@ void test15681()
 }
 
 /************************************************/
+// toPrec
+
+void testToPrec()
+{
+    import core.math;
+
+    enum real ctpir = 0xc.90fdaa22168c235p-2;
+    enum double ctpid = 0x1.921fb54442d18p+1;
+    enum float ctpif = 0x1.921fb6p+1;
+    static assert(toPrec!float(ctpir) == ctpif);
+    static assert(toPrec!double(ctpir) == ctpid);
+    static assert(toPrec!real(ctpir) == ctpir);
+    static assert(toPrec!float(ctpid) == ctpif);
+    static assert(toPrec!double(ctpid) == ctpid);
+    static assert(toPrec!real(ctpid) == ctpid);
+    static assert(toPrec!float(ctpif) == ctpif);
+    static assert(toPrec!double(ctpif) == ctpif);
+    static assert(toPrec!real(ctpif) == ctpif);
+
+    static real rtpir = 0xc.90fdaa22168c235p-2;
+    static double rtpid = 0x1.921fb54442d18p+1;
+    static float rtpif = 0x1.921fb6p+1;
+    assert(toPrec!float(rtpir) == rtpif);
+    assert(toPrec!double(rtpir) == rtpid);
+    assert(toPrec!real(rtpir) == rtpir);
+    assert(toPrec!float(rtpid) == rtpif);
+    assert(toPrec!double(rtpid) == rtpid);
+    assert(toPrec!real(rtpid) == rtpid);
+    assert(toPrec!float(rtpif) == rtpif);
+    assert(toPrec!double(rtpif) == rtpif);
+    assert(toPrec!real(rtpif) == rtpif);
+}
+
+/************************************************/
+
+auto test20366()
+{
+    const(char)[] s = ['h', 'e', 'l', '\xef', '\xbd', '\x8c', 'o'];
+
+    foreach_reverse (dchar c; s)
+    {
+    }
+
+    return true;
+}
+static assert(test20366());
+
+/************************************************/
+
+bool test20400()
+{
+    char[] s = cast(char[])"1234";
+    char[] ret = s[2 .. $];
+    ret.length += 1;
+    ret[$-1] = '5';
+    assert(ret == "345");
+
+    return true;
+}
+static assert(test20400());
+
+/************************************************/
 
 int main()
 {
@@ -3628,6 +3690,8 @@ int main()
     test14140();
     test14862();
     test15681();
+    test20366();
+    test20400();
 
     printf("Success\n");
     return 0;

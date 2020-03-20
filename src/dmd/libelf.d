@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/libelf.d, _libelf.d)
@@ -33,6 +33,7 @@ import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.root.port;
 import dmd.root.rmem;
+import dmd.root.string;
 import dmd.root.stringtable;
 
 import dmd.scanelf;
@@ -73,18 +74,18 @@ final class LibElf : Library
      * If the buffer is NULL, use module_name as the file name
      * and load the file.
      */
-    override void addObject(const(char)* module_name, const ubyte[] buffer)
+    override void addObject(const(char)[] module_name, const ubyte[] buffer)
     {
-        if (!module_name)
-            module_name = "";
         static if (LOG)
         {
-            printf("LibElf::addObject(%s)\n", module_name);
+            printf("LibElf::addObject(%s)\n",
+                   cast(int)module_name.length, module_name.ptr);
         }
 
         void corrupt(int reason)
         {
-            error("corrupt ELF object module %s %d", module_name, reason);
+            error("corrupt ELF object module %s %d",
+                  cast(int)module_name.length, module_name.ptr, reason);
         }
 
         int fromfile = 0;
@@ -92,7 +93,7 @@ final class LibElf : Library
         auto buflen = buffer.length;
         if (!buf)
         {
-            assert(module_name[0]);
+            assert(module_name.length);
             // read file and take buffer ownership
             auto data = readFile(Loc.initial, module_name).extractSlice();
             buf = data.ptr;
@@ -107,7 +108,7 @@ final class LibElf : Library
             }
             return corrupt(__LINE__);
         }
-        if (memcmp(buf, cast(char*)"!<arch>\n", 8) == 0)
+        if (memcmp(buf, "!<arch>\n".ptr, 8) == 0)
         {
             /* Library file.
              * Pull each object module out of the library and add it
@@ -224,7 +225,7 @@ final class LibElf : Library
                 return corrupt(__LINE__);
             for (uint i = 0; i < nsymbols; i++)
             {
-                const(char)[] name = s[0 .. strlen(s)];
+                const(char)[] name = s.toDString();
                 s += name.length + 1;
                 if (s - symtab > symtab_size)
                     return corrupt(__LINE__);
@@ -253,14 +254,14 @@ final class LibElf : Library
         om.base = cast(ubyte*)buf;
         om.length = cast(uint)buflen;
         om.offset = 0;
-        auto n = cast(char*)FileName.name(module_name); // remove path, but not extension
-        om.name = n[0 .. strlen(n)];
+        // remove path, but not extension
+        om.name = FileName.name(module_name);
         om.name_offset = -1;
         om.scan = 1;
         if (fromfile)
         {
             stat_t statbuf;
-            int i = stat(module_name, &statbuf);
+            int i = module_name.toCStringThen!(slice => stat(slice.ptr, &statbuf));
             if (i == -1) // error, errno is set
                 return corrupt(__LINE__);
             om.file_time = statbuf.st_ctime;

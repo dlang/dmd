@@ -194,7 +194,7 @@ void test7()
 void foo8(int n1 = __LINE__ + 0, int n2 = __LINE__, string s = __FILE__)
 {
     assert(n1 < n2);
-    printf("n1 = %d, n2 = %d, s = %.*s\n", n1, n2, s.length, s.ptr);
+    printf("n1 = %d, n2 = %d, s = %.*s\n", n1, n2, cast(int)s.length, s.ptr);
 }
 
 void test8()
@@ -207,7 +207,7 @@ void test8()
 void foo9(int n1 = __LINE__ + 0, int n2 = __LINE__, string s = __FILE__)()
 {
     assert(n1 < n2);
-    printf("n1 = %d, n2 = %d, s = %.*s\n", n1, n2, s.length, s.ptr);
+    printf("n1 = %d, n2 = %d, s = %.*s\n", n1, n2, cast(int)s.length, s.ptr);
 }
 
 void test9()
@@ -1005,7 +1005,7 @@ struct S49
 
     this( string name )
     {
-        printf( "(ctor) &%.*s.x = %p\n", name.length, name.ptr, &x );
+        printf( "(ctor) &%.*s.x = %p\n", cast(int)name.length, name.ptr, &x );
         p = cast(void*)&x;
     }
 
@@ -1810,7 +1810,7 @@ struct S88
 {
     void opDispatch(string s, T)(T i)
     {
-        printf("S.opDispatch('%.*s', %d)\n", s.length, s.ptr, i);
+        printf("S.opDispatch('%.*s', %d)\n", cast(int)s.length, s.ptr, i);
     }
 }
 
@@ -1818,7 +1818,7 @@ class C88
 {
     void opDispatch(string s)(int i)
     {
-        printf("C.opDispatch('%.*s', %d)\n", s.length, s.ptr, i);
+        printf("C.opDispatch('%.*s', %d)\n", cast(int)s.length, s.ptr, i);
     }
 }
 
@@ -1852,7 +1852,7 @@ void test89() {
         int bar() { return x; }
     }
     X s;
-    printf("%d\n", s.sizeof);
+    printf("%zd\n", s.sizeof);
     assert(s.sizeof == 4);
 }
 
@@ -4175,10 +4175,10 @@ void test1962()
 /***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=6228
 
-
 void test6228()
 {
-    const(int)* ptr;
+    int val;
+    const(int)* ptr = &val;
     const(int)  temp;
     auto x = (*ptr) ^^ temp;
 }
@@ -5260,7 +5260,7 @@ public:
     {
         assert(isHage);
     }
-    body { }
+    do { }
 }
 
 class Child6859 : Parent6859
@@ -7020,7 +7020,7 @@ struct Function
 @property void meta(alias m)()
 {
     static Function md;
-    printf("length = %d\n", md.ai.length);
+    printf("length = %zd\n", md.ai.length);
     printf("ptr = %p\n", md.ai.ptr);
     md.ai[0] = 0;
 }
@@ -7888,7 +7888,7 @@ void test16466()
         real r;
     }
     real r;
-    printf("S.alignof: %x, r.alignof: %x\n", S.alignof, r.alignof);
+    printf("S.alignof: %zx, r.alignof: %zx\n", S.alignof, r.alignof);
     assert(S.alignof == r.alignof);
 }
 

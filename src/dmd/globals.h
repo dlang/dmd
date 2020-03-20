@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -25,6 +25,13 @@ enum
     DIAGNOSTICerror,  // generate an error
     DIAGNOSTICinform, // generate a warning
     DIAGNOSTICoff     // disable diagnostic
+};
+
+typedef unsigned char MessageStyle;
+enum
+{
+    MESSAGESTYLEdigitalmars, // file(line,column): message
+    MESSAGESTYLEgnu          // file:line:column: message
 };
 
 // The state of array bounds checking
@@ -122,7 +129,7 @@ struct Param
     bool useInline;     // inline expand functions
     bool useDIP25;      // implement http://wiki.dlang.org/DIP25
     bool noDIP25;       // revert to pre-DIP25 behavior
-    bool useDIP1021;        // implement https://github.com/dlang/DIPs/blob/master/DIPs/DIP1021.md
+    bool useDIP1021;    // implement https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1021.md
     bool release;       // build release version
     bool preservePaths; // true means don't strip path from source file
     Diagnostic warnings;
@@ -139,8 +146,6 @@ struct Param
     bool betterC;       // be a "better C" compiler; no dependency on D runtime
     bool addMain;       // add a default main() function
     bool allInst;       // generate code for all template instantiations
-    bool check10378;    // check for issues transitioning to 10738
-    bool bug10378;      // use pre-bugzilla 10378 search strategy
     bool fix16997;      // fix integral promotions for unary + - ~ operators
                         // https://issues.dlang.org/show_bug.cgi?id=16997
     bool fixAliasThis;  // if the current scope has an alias this, check it before searching upper scopes
@@ -189,14 +194,18 @@ struct Param
     DString libname;   // .lib file output name
 
     bool doDocComments;  // process embedded documentation comments
-    const char *docdir;  // write documentation file to docdir directory
-    const char *docname; // write documentation file to docname
+    DString docdir;      // write documentation file to docdir directory
+    DString docname;     // write documentation file to docname
     Array<const char *> ddocfiles;  // macro include files for Ddoc
 
     bool doHdrGeneration;  // process embedded documentation comments
     DString hdrdir;        // write 'header' file to docdir directory
     DString hdrname;       // write 'header' file to docname
     bool hdrStripPlainFunctions; // strip the bodies of plain (non-template) functions
+
+    bool doCxxHdrGeneration;  // write 'Cxx header' file
+    DString cxxhdrdir;        // write 'header' file to docdir directory
+    DString cxxhdrname;       // write 'header' file to docname
 
     bool doJsonGeneration;    // write JSON file
     DString jsonfilename;     // write JSON file to jsonfilename
@@ -218,6 +227,7 @@ struct Param
 
     DString moduleDepsFile;     // filename for deps output
     OutBuffer *moduleDeps;      // contents to be written to deps file
+    MessageStyle messageStyle;  // style of file/line annotations on messages
 
     // Hidden debug switches
     bool debugb;
@@ -257,6 +267,7 @@ struct Global
     const DString doc_ext;      // for Ddoc generated files
     const DString ddoc_ext;     // for Ddoc macro include files
     const DString hdr_ext;      // for D 'header' import files
+    const DString cxxhdr_ext;   // for C/C++ 'header' files
     const DString json_ext;     // for JSON files
     const DString map_ext;      // for .map files
     bool run_noext;             // allow -run sources without extensions.
@@ -361,7 +372,9 @@ struct Loc
         this->filename = filename;
     }
 
-    const char *toChars(bool showColumns = global.params.showColumns) const;
+    const char *toChars(
+        bool showColumns = global.params.showColumns,
+        MessageStyle messageStyle = global.params.messageStyle) const;
     bool equals(const Loc& loc) const;
 };
 

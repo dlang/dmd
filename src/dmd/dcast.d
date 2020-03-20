@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dcast.d, _dcast.d)
@@ -2579,101 +2579,81 @@ Expression castTo(Expression e, Scope* sc, Type t)
  */
 Expression inferType(Expression e, Type t, int flag = 0)
 {
-    extern (C++) final class InferType : Visitor
+    Expression visitAle(ArrayLiteralExp ale)
     {
-        alias visit = Visitor.visit;
-    public:
-        Type t;
-        int flag;
-        Expression result;
-
-        extern (D) this(Type t, int flag)
+        Type tb = t.toBasetype();
+        if (tb.ty == Tarray || tb.ty == Tsarray)
         {
-            this.t = t;
-            this.flag = flag;
-        }
-
-        override void visit(Expression e)
-        {
-            result = e;
-        }
-
-        override void visit(ArrayLiteralExp ale)
-        {
-            Type tb = t.toBasetype();
-            if (tb.ty == Tarray || tb.ty == Tsarray)
+            Type tn = tb.nextOf();
+            if (ale.basis)
+                ale.basis = inferType(ale.basis, tn, flag);
+            for (size_t i = 0; i < ale.elements.dim; i++)
             {
-                Type tn = tb.nextOf();
-                if (ale.basis)
-                    ale.basis = inferType(ale.basis, tn, flag);
-                for (size_t i = 0; i < ale.elements.dim; i++)
+                if (Expression e = (*ale.elements)[i])
                 {
-                    Expression e = (*ale.elements)[i];
-                    if (e)
-                    {
-                        e = inferType(e, tn, flag);
-                        (*ale.elements)[i] = e;
-                    }
+                    e = inferType(e, tn, flag);
+                    (*ale.elements)[i] = e;
                 }
             }
-            result = ale;
         }
-
-        override void visit(AssocArrayLiteralExp aale)
-        {
-            Type tb = t.toBasetype();
-            if (tb.ty == Taarray)
-            {
-                TypeAArray taa = cast(TypeAArray)tb;
-                Type ti = taa.index;
-                Type tv = taa.nextOf();
-                for (size_t i = 0; i < aale.keys.dim; i++)
-                {
-                    Expression e = (*aale.keys)[i];
-                    if (e)
-                    {
-                        e = inferType(e, ti, flag);
-                        (*aale.keys)[i] = e;
-                    }
-                }
-                for (size_t i = 0; i < aale.values.dim; i++)
-                {
-                    Expression e = (*aale.values)[i];
-                    if (e)
-                    {
-                        e = inferType(e, tv, flag);
-                        (*aale.values)[i] = e;
-                    }
-                }
-            }
-            result = aale;
-        }
-
-        override void visit(FuncExp fe)
-        {
-            //printf("FuncExp::inferType('%s'), to=%s\n", fe.type ? fe.type.toChars() : "null", t.toChars());
-            if (t.ty == Tdelegate || t.ty == Tpointer && t.nextOf().ty == Tfunction)
-            {
-                fe.fd.treq = t;
-            }
-            result = fe;
-        }
-
-        override void visit(CondExp ce)
-        {
-            Type tb = t.toBasetype();
-            ce.e1 = inferType(ce.e1, tb, flag);
-            ce.e2 = inferType(ce.e2, tb, flag);
-            result = ce;
-        }
+        return ale;
     }
 
-    if (!t)
-        return e;
+    Expression visitAar(AssocArrayLiteralExp aale)
+    {
+        Type tb = t.toBasetype();
+        if (tb.ty == Taarray)
+        {
+            TypeAArray taa = cast(TypeAArray)tb;
+            Type ti = taa.index;
+            Type tv = taa.nextOf();
+            for (size_t i = 0; i < aale.keys.dim; i++)
+            {
+                if (Expression e = (*aale.keys)[i])
+                {
+                    e = inferType(e, ti, flag);
+                    (*aale.keys)[i] = e;
+                }
+            }
+            for (size_t i = 0; i < aale.values.dim; i++)
+            {
+                if (Expression e = (*aale.values)[i])
+                {
+                    e = inferType(e, tv, flag);
+                    (*aale.values)[i] = e;
+                }
+            }
+        }
+        return aale;
+    }
 
-    scope InferType v = new InferType(t, flag);
-    e.accept(v);
-    return v.result;
+    Expression visitFun(FuncExp fe)
+    {
+        //printf("FuncExp::inferType('%s'), to=%s\n", fe.type ? fe.type.toChars() : "null", t.toChars());
+        if (t.ty == Tdelegate || t.ty == Tpointer && t.nextOf().ty == Tfunction)
+        {
+            fe.fd.treq = t;
+        }
+        return fe;
+    }
+
+    Expression visitTer(CondExp ce)
+    {
+        Type tb = t.toBasetype();
+        ce.e1 = inferType(ce.e1, tb, flag);
+        ce.e2 = inferType(ce.e2, tb, flag);
+        return ce;
+    }
+
+    if (t) switch (e.op)
+    {
+        case TOK.arrayLiteral:      return visitAle(cast(ArrayLiteralExp) e);
+        case TOK.assocArrayLiteral: return visitAar(cast(AssocArrayLiteralExp) e);
+        case TOK.function_:         return visitFun(cast(FuncExp) e);
+        case TOK.question:          return visitTer(cast(CondExp) e);
+        default:
+    }
+    return e;
 }
 
 /****************************************
@@ -3395,14 +3375,19 @@ LmodCompare:
             if (t1.nextOf().implicitConvTo(t2.nextOf()))
             {
                 // (cast(T)U)[] op T[]  (https://issues.dlang.org/show_bug.cgi?id=12780)
-                // e1 is left as U[], it will be handled in arrayOp() later.
                 t = t2.nextOf().arrayOf();
+                // if cast won't be handled in arrayOp() later
+                if (!isArrayOpImplicitCast(t1.isTypeDArray(), t2.isTypeDArray()))
+                    e1 = e1.castTo(sc, t);
             }
             else if (t2.nextOf().implicitConvTo(t1.nextOf()))
             {
                 // T[] op (cast(T)U)[]  (https://issues.dlang.org/show_bug.cgi?id=12780)
                 // e2 is left as U[], it will be handled in arrayOp() later.
                 t = t1.nextOf().arrayOf();
+                // if cast won't be handled in arrayOp() later
+                if (!isArrayOpImplicitCast(t2.isTypeDArray(), t1.isTypeDArray()))
+                    e2 = e2.castTo(sc, t);
             }
             else
                 return Lincompatible();

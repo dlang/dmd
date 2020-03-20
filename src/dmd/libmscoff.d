@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2019 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/libmscoff.d, _libmscoff.d)
@@ -32,6 +32,7 @@ import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.root.port;
 import dmd.root.rmem;
+import dmd.root.string;
 import dmd.root.stringtable;
 
 import dmd.scanmscoff;
@@ -52,16 +53,18 @@ struct MSCoffObjSymbol
 {
     const(char)[] name;         // still has a terminating 0
     MSCoffObjModule* om;
-}
 
-/*********
- * Do lexical comparison of MSCoffObjSymbol's for qsort()
- */
-extern (C) int MSCoffObjSymbol_cmp(const(void*) p, const(void*) q)
-{
-    MSCoffObjSymbol* s1 = *cast(MSCoffObjSymbol**)p;
-    MSCoffObjSymbol* s2 = *cast(MSCoffObjSymbol**)q;
-    return strcmp(s1.name.ptr, s2.name.ptr);
+    /// Predicate for `Array.sort`for name comparison
+    static int name_pred (scope const MSCoffObjSymbol** ppe1, scope const MSCoffObjSymbol** ppe2) nothrow @nogc pure
+    {
+        return dstrcmp((**ppe1).name, (**ppe2).name);
+    }
+
+    /// Predicate for `Array.sort`for offset comparison
+    static int offset_pred (scope const MSCoffObjSymbol** ppe1, scope const MSCoffObjSymbol** ppe2) nothrow @nogc pure
+    {
+        return (**ppe1).om.offset - (**ppe2).om.offset;
+    }
 }
 
 alias MSCoffObjModules = Array!(MSCoffObjModule*);
@@ -78,18 +81,18 @@ final class LibMSCoff : Library
      * If the buffer is NULL, use module_name as the file name
      * and load the file.
      */
-    override void addObject(const(char)* module_name, const ubyte[] buffer)
+    override void addObject(const(char)[] module_name, const ubyte[] buffer)
     {
-        if (!module_name)
-            module_name = "";
         static if (LOG)
         {
-            printf("LibMSCoff::addObject(%s)\n", module_name);
+            printf("LibMSCoff::addObject(%.*s)\n", cast(int)module_name.length,
+                   module_name.ptr);
         }
 
         void corrupt(int reason)
         {
-            error("corrupt MS Coff object module %s %d", module_name, reason);
+            error("corrupt MS Coff object module %.*s %d",
+                  cast(int)module_name.length, module_name.ptr, reason);
         }
 
         int fromfile = 0;
@@ -97,7 +100,7 @@ final class LibMSCoff : Library
         auto buflen = buffer.length;
         if (!buf)
         {
-            assert(module_name[0]);
+            assert(module_name.length, "No module nor buffer provided to `addObject`");
             // read file and take buffer ownership
             auto data = readFile(Loc.initial, module_name).extractSlice();
             buf = data.ptr;
@@ -280,7 +283,7 @@ final class LibMSCoff : Library
             char* s = string_table;
             for (uint i = 0; i < number_of_symbols; i++)
             {
-                const(char)[] name = s[0 .. strlen(s)];
+                const(char)[] name = s.toDString();
                 s += name.length + 1;
                 uint memi = indices[i] - 1;
                 if (memi >= number_of_members)
@@ -309,13 +312,13 @@ final class LibMSCoff : Library
         om.base = cast(ubyte*)buf;
         om.length = cast(uint)buflen;
         om.offset = 0;
-        const(char)* n = global.params.preservePaths ? module_name : FileName.name(module_name); // remove path, but not extension
-        om.name = n[0 .. strlen(n)];
+        // remove path, but not extension
+        om.name = global.params.preservePaths ? module_name : FileName.name(module_name);
         om.scan = 1;
         if (fromfile)
         {
             stat_t statbuf;
-            int i = stat(cast(char*)module_name, &statbuf);
+            int i = module_name.toCStringThen!(name => stat(name.ptr, &statbuf));
             if (i == -1) // error, errno is set
                 return corrupt(__LINE__);
             om.file_time = statbuf.st_ctime;
@@ -478,7 +481,7 @@ private:
         Port.writelongBE(cast(uint)objsymbols.dim, buf.ptr);
         libbuf.write(buf[0 .. 4]);
         // Sort objsymbols[] in module offset order
-        qsort(objsymbols[].ptr, objsymbols.dim, (objsymbols[0]).sizeof, cast(_compare_fp_t)&MSCoffObjSymbol_offset_cmp);
+        objsymbols.sort!(MSCoffObjSymbol.offset_pred);
         uint lastoffset;
         for (size_t i = 0; i < objsymbols.dim; i++)
         {
@@ -518,7 +521,7 @@ private:
         Port.writelongLE(cast(uint)objsymbols.dim, buf.ptr);
         libbuf.write(buf[0 .. 4]);
         // Sort objsymbols[] in lexical order
-        qsort(objsymbols[].ptr, objsymbols.dim, (objsymbols[0]).sizeof, cast(_compare_fp_t)&MSCoffObjSymbol_cmp);
+        objsymbols.sort!(MSCoffObjSymbol.name_pred);
         for (size_t i = 0; i < objsymbols.dim; i++)
         {
             MSCoffObjSymbol* os = objsymbols[i];
@@ -599,16 +602,6 @@ struct MSCoffObjModule
     uint group_id;
     uint file_mode;
     int scan; // 1 means scan for symbols
-}
-
-/*********
- * Do module offset comparison of MSCoffObjSymbol's for qsort()
- */
-extern (C) int MSCoffObjSymbol_offset_cmp(const(void*) p, const(void*) q)
-{
-    MSCoffObjSymbol* s1 = *cast(MSCoffObjSymbol**)p;
-    MSCoffObjSymbol* s2 = *cast(MSCoffObjSymbol**)q;
-    return s1.om.offset - s2.om.offset;
 }
 
 enum MSCOFF_OBJECT_NAME_SIZE = 16;

@@ -997,11 +997,11 @@ void test43()
 {
     string s;
 
-    s = __FILE__; printf("file = '%.*s'\n", s.length, s.ptr);
+    s = __FILE__; printf("file = '%.*s'\n", cast(int)s.length, s.ptr);
     printf("line = %d\n", __LINE__);
-    s = __DATE__; printf("date = '%.*s'\n", s.length, s.ptr);
-    s = __TIME__; printf("time = '%.*s'\n", s.length, s.ptr);
-    s = __TIMESTAMP__; printf("timestamp = '%.*s'\n", s.length, s.ptr);
+    s = __DATE__; printf("date = '%.*s'\n", cast(int)s.length, s.ptr);
+    s = __TIME__; printf("time = '%.*s'\n", cast(int)s.length, s.ptr);
+    s = __TIMESTAMP__; printf("timestamp = '%.*s'\n", cast(int)s.length, s.ptr);
 }
 
 /* ================================ */
@@ -1272,7 +1272,7 @@ void test54()
         }
         catch(Exception e)
         {
-                printf("catch %.*s\n", e.msg.length, e.msg.ptr);
+                printf("catch %.*s\n", cast(int)e.msg.length, e.msg.ptr);
                 assert(e.msg == "first");
                 assert(e.next.msg == "second");
         }
@@ -1292,7 +1292,7 @@ void foo55()
     catch (Exception e)
     {
         printf("inner catch %p\n", e);
-        printf("e.msg == %.*s\n", e.msg.length, e.msg.ptr);
+        printf("e.msg == %.*s\n", cast(int)e.msg.length, e.msg.ptr);
         assert(e.msg == "second");
         //assert(e.msg == "first");
         //assert(e.next.msg == "second");
