@@ -22,8 +22,16 @@ void abort(scope string msg, scope string filename = __FILE__, size_t line = __L
         import core.sys.windows.winbase : GetStdHandle, STD_ERROR_HANDLE, WriteFile, INVALID_HANDLE_VALUE;
         auto h = (() @trusted => GetStdHandle(STD_ERROR_HANDLE))();
         if (h == INVALID_HANDLE_VALUE)
+        {
             // attempt best we can to print the message
-            assert(0, msg);
+
+            /* Note that msg is scope.
+             * assert() calls _d_assert_msg() calls onAssertErrorMsg() calls _assertHandler() but
+             * msg parameter isn't scope and can escape.
+             * Give up and use our own immutable message instead.
+             */
+            assert(0, "Cannot get stderr handle for message");
+        }
         void writeStr(scope const(char)[][] m...) @nogc nothrow @trusted
         {
             foreach (s; m)
