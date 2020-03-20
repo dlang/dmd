@@ -280,11 +280,12 @@ bool checkAssocArrayLiteralEscape(Scope *sc, AssocArrayLiteralExp ae, bool gag)
  *      fdc = function being called, `null` if called indirectly
  *      par = function parameter (`this` if null)
  *      arg = initializer for param
+ *      assertmsg = true if the parameter is the msg argument to assert(bool, msg).
  *      gag = do not print error messages
  * Returns:
  *      `true` if pointers to the stack can escape via assignment
  */
-bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Expression arg, bool gag)
+bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Expression arg, bool assertmsg, bool gag)
 {
     enum log = false;
     if (log) printf("checkParamArgumentEscape(arg: %s par: %s)\n",
@@ -311,10 +312,20 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Parameter par, Exp
         if (global.params.vsafe && sc.func.setUnsafe())
         {
             if (!gag)
-                error(arg.loc, "%s `%s` assigned to non-scope parameter `%s` calling %s",
-                    desc, v.toChars(),
-                    par ? par.toChars() : "this",
-                    fdc ? fdc.toPrettyChars() : "indirectly");
+            {
+                if (assertmsg)
+                {
+                    error(arg.loc, "%s `%s` assigned to non-scope parameter calling `assert()`",
+                        desc, v.toChars());
+                }
+                else
+                {
+                    error(arg.loc, "%s `%s` assigned to non-scope parameter `%s` calling %s",
+                        desc, v.toChars(),
+                        par ? par.toChars() : "this",
+                        fdc ? fdc.toPrettyChars() : "indirectly");
+                }
+            }
             result = true;
         }
     }
