@@ -1034,31 +1034,35 @@ int tryMain(string[] args)
         return 1;
     }
 
-    const test_file = args[1];
-    string input_dir = test_file.dirName();
+    immutable envData = processEnvironment();
+
+    const input_file     = args[1];
+    const input_dir      = input_file.dirName();
+    const test_base_name = input_file.baseName();
+    const test_name      = test_base_name.stripExtension();
+
+    const result_path    = envData.results_dir ~ envData.sep;
+    const output_dir     = result_path ~ input_dir;
+    const output_file    = result_path ~ input_file ~ ".out";
 
     TestArgs testArgs;
     switch (input_dir)
     {
         case "compilable":              testArgs.mode = TestMode.COMPILE;      break;
         case "fail_compilation":        testArgs.mode = TestMode.FAIL_COMPILE; break;
-        case "runnable":                testArgs.mode = TestMode.RUN;          break;
-        case "dshell":                  testArgs.mode = TestMode.DSHELL;       break;
+        case "runnable":
+            // running & linking costs time - for coverage builds we can save this
+            testArgs.mode = envData.coverage_build ? TestMode.COMPILE : TestMode.RUN;
+            break;
+
+        case "dshell":
+            testArgs.mode = TestMode.DSHELL;
+            return runDShellTest(input_dir, test_name, envData, output_dir, output_file);
+
         default:
             writefln("Error: invalid test directory '%s', expected 'compilable', 'fail_compilation', 'runnable' or 'dshell'", input_dir);
             return 1;
     }
-
-    immutable envData = processEnvironment();
-
-    string test_base_name = test_file.baseName();
-    string test_name = test_base_name.stripExtension();
-
-    string result_path    = envData.results_dir ~ envData.sep;
-    string input_file     = input_dir ~ envData.sep ~ test_base_name;
-    string output_dir     = result_path ~ input_dir;
-    string output_file    = result_path ~ input_file ~ ".out";
-    string test_app_dmd_base = output_dir ~ envData.sep ~ test_name ~ "_";
 
     if (test_base_name.extension() == ".sh")
     {
@@ -1077,16 +1081,10 @@ int tryMain(string[] args)
         return runBashTest(input_dir, test_name, envData);
     }
 
-    if (testArgs.mode == TestMode.DSHELL)
-        return runDShellTest(input_dir, test_name, envData, output_dir, output_file);
-
     // envData.sep is required as the results_dir path can be `generated`
     const absoluteResultDirPath = envData.results_dir.absolutePath ~ envData.sep;
     const resultsDirReplacement = "{{RESULTS_DIR}}" ~ envData.sep;
-
-    // running & linking costs time - for coverage builds we can save this
-    if (envData.coverage_build && testArgs.mode == TestMode.RUN)
-        testArgs.mode = TestMode.COMPILE;
+    const test_app_dmd_base = output_dir ~ envData.sep ~ test_name ~ "_";
 
     auto stopWatch = StopWatch(AutoStart.no);
     if (envData.printRuntime)
