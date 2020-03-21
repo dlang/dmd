@@ -111,6 +111,7 @@ struct EnvData
     bool autoUpdate;
     bool printRuntime;          /// Print time spent on a single test
     bool usingMicrosoftCompiler;
+    bool tryDisabled;           /// Silently try disabled tests (ignore failure but report success)
 }
 
 /++
@@ -148,6 +149,7 @@ immutable(EnvData) processEnvironment()
     envData.coverage_build = environment.get("DMD_TEST_COVERAGE") == "1";
     envData.autoUpdate     = environment.get("AUTO_UPDATE", "") == "1";
     envData.printRuntime   = environment.get("PRINT_RUNTIME", "") == "1";
+    envData.tryDisabled    = environment.get("TRY_DISABLED") == "1";
 
     if (envData.ccompiler.empty)
     {
@@ -1117,7 +1119,14 @@ int tryMain(string[] args)
             testArgs.permuteArgs);
 
     if (testArgs.isDisabled)
+    {
         writef("!!! [DISABLED %s]", testArgs.disabledReason);
+        if (!envData.tryDisabled)
+        {
+            writeln();
+            return 0;
+        }
+    }
 
     removeIfExists(output_file);
 
