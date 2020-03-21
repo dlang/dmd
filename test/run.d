@@ -18,7 +18,7 @@ import std.algorithm, std.conv, std.datetime, std.exception, std.file, std.forma
 import tools.paths;
 
 const scriptDir = __FILE_FULL_PATH__.dirName.buildNormalizedPath;
-immutable testDirs = ["runnable", "compilable", "fail_compilation", "dshell"];
+immutable testDirs = ["runnable", "runnable_cxx", "compilable", "fail_compilation", "dshell"];
 shared bool verbose; // output verbose logging
 shared bool force; // always run all tests (ignores timestamp checking)
 shared string hostDMD; // path to host DMD binary (used for building the tools)
@@ -358,6 +358,10 @@ auto predefinedTargets(string[] targets)
 
             case "run_runnable_tests", "runnable":
                 newTargets.put(findFiles("runnable").map!createTestTarget);
+                break;
+
+            case "run_runnable_cxx_tests", "runnable_cxx":
+                newTargets.put(findFiles("runnable_cxx").map!createTestTarget);
                 break;
 
             case "run_fail_compilation_tests", "fail_compilation", "fail":
