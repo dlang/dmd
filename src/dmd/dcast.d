@@ -1665,6 +1665,12 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 {
                     // T[n] sa;
                     // cast(U[])sa; // ==> cast(U[])sa[];
+                    if (auto v = expToVariable(e))
+                    {
+                        if (e.type.hasPointers() && !checkAddressVar(sc, e, v))
+                            goto Lfail;
+                    }
+
                     d_uns64 fsize = t1b.nextOf().size();
                     d_uns64 tsize = tob.nextOf().size();
                     if (((cast(TypeSArray)t1b).dim.toInteger() * fsize) % tsize != 0)
