@@ -96,9 +96,43 @@ else
     export DFLAGS
 endif
 
-# Use the generated dmd instead of the host compiler because many CI systems use
-# older versions (which cannot compile the test runner anymore)
-export HOST_DMD=$(subst \,/,$(DMD))
+# Try to find a suitable dmd if HOST_DMD is missing
+ifeq ($(HOST_DMD),)
+    # Legacy support, some CI's use HOST_DC instead of HOST_DMD
+    ifneq ($(HOST_DC),)
+        $(warning Please use HOST_DMD instead of HOST_DC!)
+        HOST_DMD = $(HOST_DC)
+    else
+        HOST_DMD = dmd
+    endif
+endif
+
+# Required version for -lowmem
+MIN_VERSION = v2.086.0
+VERSION = $(filter v2.%, $(shell $(HOST_DMD) --version 2>/dev/null))
+
+
+$(info VERSION = "$(VERSION)")
+
+ifeq ($(VERSION),)
+    # dmd was not found in $PATH
+    USE_GENERATED=1
+# Detect whether the host dmd satisfies MIN_VERSION
+else ifneq ($(MIN_VERSION), $(firstword $(sort $(MIN_VERSION) $(VERSION))))
+    # dmd found in $PATH is too old
+    USE_GENERATED=1
+endif
+
+ifneq ($(USE_GENERATED),)
+    # Use the generated dmd instead of the host compiler
+    HOST_DMD=$(DMD)
+    D=$(HOST_DMD) -conf=
+else
+    D = $(HOST_DMD)
+endif
+
+# Ensure valid paths on windows
+export HOST_DMD:=$(subst \,/,$(HOST_DMD))
 
 RUNNER:=$(RESULTS_DIR)/run$(EXE)
 EXECUTE_RUNNER:=$(RUNNER) --environment
@@ -172,13 +206,13 @@ $(RESULTS_DIR)/d_do_test$(EXE): tools/d_do_test.d tools/sanitize_json.d $(RESULT
 	@echo "OS: '$(OS)'"
 	@echo "MODEL: '$(MODEL)'"
 	@echo "PIC: '$(PIC_FLAG)'"
-	$(DMD) -conf= $(MODEL_FLAG) $(PIC_FLAG) -g -lowmem -i -Itools -version=NoMain -unittest -run $<
-	$(DMD) -conf= $(MODEL_FLAG) $(PIC_FLAG) -g -lowmem -i -Itools -version=NoMain -od$(RESULTS_DIR) -of$@ $<
+	$(D) $(MODEL_FLAG) $(PIC_FLAG) -g -lowmem -i -Itools -version=NoMain -unittest -run $<
+	$(D) $(MODEL_FLAG) $(PIC_FLAG) -g -lowmem -i -Itools -version=NoMain -od$(RESULTS_DIR) -of$@ $<
 
 # Build d_do_test here to run it's unittests
 # TODO: Migrate this to run.d
 $(RUNNER): run.d $(RESULTS_DIR)/d_do_test$(EXE)
-	$(DMD) -conf= $(MODEL_FLAG) $(PIC_FLAG) -g -od$(RESULTS_DIR) -of$(RUNNER) -i -release $<
+	$(D) $(MODEL_FLAG) $(PIC_FLAG) -g -od$(RESULTS_DIR) -of$(RUNNER) -i -release $<
 
 # run.d is not reentrant because each invocation might attempt to build the required tools
 .NOTPARALLEL:
