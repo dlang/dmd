@@ -12659,6 +12659,7 @@ bool checkAddressVar(Scope* sc, Expression exp, VarDeclaration v)
                 v.storage_class &= ~STC.maybescope;
                 v.doNotInferScope = true;
                 if (exp.type.hasPointers() && v.storage_class & STC.scope_ &&
+                    !(v.storage_class & STC.temp) &&
                     !(sc.flags & SCOPE.debug_) && sc.func.setUnsafe())
                 {
                     exp.error("cannot take address of `scope` %s `%s` in `@safe` function `%s`", p, v.toChars(), sc.func.toChars());
@@ -12666,6 +12667,7 @@ bool checkAddressVar(Scope* sc, Expression exp, VarDeclaration v)
                 }
             }
             else if (!(sc.flags & SCOPE.debug_) &&
+                     !(v.storage_class & STC.temp) &&
                      sc.func.setUnsafe())
             {
                 exp.error("cannot take address of %s `%s` in `@safe` function `%s`", p, v.toChars(), sc.func.toChars());
