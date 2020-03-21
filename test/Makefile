@@ -173,6 +173,13 @@ start_runnable_tests: $(RUNNER)
 	@echo "Running runnable tests"
 	$(EXECUTE_RUNNER) run_runnable_tests
 
+run_runnable_cxx_tests: $(RUNNER)
+	$(EXECUTE_RUNNER) $@
+
+start_runnable_cxx_tests:
+	@echo "Running runnable_cxx tests"
+	$(QUIET)$(MAKE) $(DMD_TESTSUITE_MAKE_ARGS) --no-print-directory run_runnable_cxx_tests
+
 run_compilable_tests: $(RUNNER)
 	$(EXECUTE_RUNNER) $@
 
