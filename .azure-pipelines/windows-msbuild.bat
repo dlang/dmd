@@ -48,6 +48,7 @@ msbuild /target:dmd /p:Configuration=%CONFIGURATION% /p:Platform=%PLATFORM% %LDC
 %DMD% --version
 grep --version
 
+set DMD_TESTS=all
 set DRUNTIME_TESTS=test_all
 cd "%DMD_DIR%"
 if not "%C_RUNTIME%" == "mingw" goto not_mingw
@@ -66,7 +67,7 @@ if not "%C_RUNTIME%" == "mingw" goto not_mingw
     set LIB=%DMD_DIR%\mingw\dmd2\windows\lib%MODEL%\mingw
     set REQUIRED_ARGS=-mscrtlib=msvcrt120 "-L/LIBPATH:%DMD_DIR%\mingw\dmd2\windows\lib%MODEL%\mingw"
     rem delete C++ ABI tests
-    for /F "tokens=* USEBACKQ" %%F IN (`grep -l EXTRA_CPP_SOURCES test/runnable/*.d`) DO rm %%F
+    set DMD_TESTS=runnable compilable fail_compilation dshell
     rem FIXME: debug info incomplete when linking through lld-link
     del test\runnable\testpdb.d
 
@@ -95,7 +96,7 @@ set HOST_DMD=%DMD_DIR%\dmd2\windows\bin\dmd.exe
 del phobos%MODEL%.lib
 
 "%HOST_DMD%" -m%MODEL% -i run.d || exit /B 6
-run.exe || exit /B 6
+run.exe %DMD_TESTS% || exit /B 6
 
 rem FIXME: lld-link fails to link phobos unittests ("error: relocation against symbol in discarded section: __TMP2427")
 if "%C_RUNTIME%" == "mingw" exit /B 0
