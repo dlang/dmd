@@ -66,8 +66,8 @@ struct TestArgs
 
     bool     compileSeparately;
     bool     link;
+    bool     clearDflags; /// whether DFLAGS should be cleared before invoking dmd
     string   executeArgs;
-    string   dflags;
     string   cxxflags;
     string[] sources;
     string[] compiledImports;
@@ -320,7 +320,9 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
 {
     string file = cast(string)std.file.read(input_file);
 
-    findTestParameter(envData, file, "DFLAGS", testArgs.dflags);
+    string dflagsStr;
+    testArgs.clearDflags = findTestParameter(envData, file, "DFLAGS", dflagsStr);
+    enforce(dflagsStr.empty, "The DFLAGS test argument must be empty: It is '" ~ dflagsStr ~ "'");
 
     findTestParameter(envData, file, "REQUIRED_ARGS", testArgs.requiredArgs);
     if (envData.required_args.length)
@@ -353,6 +355,15 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
         testArgs.permuteArgs = newPermuteArgs;
     }
 
+    // tests can override -verrors by using REQUIRED_ARGS
+    if (testArgs.mode == TestMode.FAIL_COMPILE)
+        testArgs.requiredArgs = "-verrors=0 " ~ testArgs.requiredArgs;
+
+    // https://issues.dlang.org/show_bug.cgi?id=10664: exceptions don't work reliably with COMDAT folding
+    // it also slows down some tests drastically, e.g. runnable/test17338.d
+    if (envData.usingMicrosoftCompiler)
+        testArgs.requiredArgs ~= " -L/OPT:NOICF";
+
     {
         string argSetsStr;
         findTestParameter(envData, file, "ARG_SETS", argSetsStr, ";");
@@ -374,8 +385,14 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     // clean up extra spaces
     testArgs.permuteArgs = strip(replace(testArgs.permuteArgs, "  ", " "));
 
-    findTestParameter(envData, file, "EXECUTE_ARGS", testArgs.executeArgs);
-    replaceResultsDir(testArgs.executeArgs, envData);
+    if (findTestParameter(envData, file, "EXECUTE_ARGS", testArgs.executeArgs))
+    {
+        replaceResultsDir(testArgs.executeArgs, envData);
+        // Always run main even if compiled with '-unittest' but let
+        // tests switch to another behaviour if necessary
+        if (!testArgs.executeArgs.canFind("--DRT-testmode"))
+            testArgs.executeArgs ~= " --DRT-testmode=run-main";
+    }
 
     string extraSourcesStr;
     findTestParameter(envData, file, "EXTRA_SOURCES", extraSourcesStr);
@@ -394,10 +411,10 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     findTestParameter(envData, file, "CXXFLAGS", testArgs.cxxflags);
     string extraCppSourcesStr;
     findTestParameter(envData, file, "EXTRA_CPP_SOURCES", extraCppSourcesStr);
-    testArgs.cppSources = [];
-    // prepend input_dir to each extra source file
-    foreach(s; split(extraCppSourcesStr))
-        testArgs.cppSources ~= s;
+    testArgs.cppSources = split(extraCppSourcesStr);
+
+    if (testArgs.cppSources.length)
+        testArgs.requiredArgs ~= envData.cxxCompatFlags;
 
     string extraObjcSourcesStr;
     auto objc = findTestParameter(envData, file, "EXTRA_OBJC_SOURCES", extraObjcSourcesStr);
@@ -405,10 +422,7 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     if (objc && !envData.dobjc)
         return false;
 
-    testArgs.objcSources = [];
-    // prepend input_dir to each extra source file
-    foreach(s; split(extraObjcSourcesStr))
-        testArgs.objcSources ~= s;
+    testArgs.objcSources = split(extraObjcSourcesStr);
 
     // swap / with $SEP
     if (envData.sep && envData.sep != "/")
@@ -1020,31 +1034,35 @@ int tryMain(string[] args)
         return 1;
     }
 
-    const test_file = args[1];
-    string input_dir = test_file.dirName();
+    immutable envData = processEnvironment();
+
+    const input_file     = args[1];
+    const input_dir      = input_file.dirName();
+    const test_base_name = input_file.baseName();
+    const test_name      = test_base_name.stripExtension();
+
+    const result_path    = envData.results_dir ~ envData.sep;
+    const output_dir     = result_path ~ input_dir;
+    const output_file    = result_path ~ input_file ~ ".out";
 
     TestArgs testArgs;
     switch (input_dir)
     {
         case "compilable":              testArgs.mode = TestMode.COMPILE;      break;
         case "fail_compilation":        testArgs.mode = TestMode.FAIL_COMPILE; break;
-        case "runnable":                testArgs.mode = TestMode.RUN;          break;
-        case "dshell":                  testArgs.mode = TestMode.DSHELL;       break;
+        case "runnable":
+            // running & linking costs time - for coverage builds we can save this
+            testArgs.mode = envData.coverage_build ? TestMode.COMPILE : TestMode.RUN;
+            break;
+
+        case "dshell":
+            testArgs.mode = TestMode.DSHELL;
+            return runDShellTest(input_dir, test_name, envData, output_dir, output_file);
+
         default:
             writefln("Error: invalid test directory '%s', expected 'compilable', 'fail_compilation', 'runnable' or 'dshell'", input_dir);
             return 1;
     }
-
-    immutable envData = processEnvironment();
-
-    string test_base_name = test_file.baseName();
-    string test_name = test_base_name.stripExtension();
-
-    string result_path    = envData.results_dir ~ envData.sep;
-    string input_file     = input_dir ~ envData.sep ~ test_base_name;
-    string output_dir     = result_path ~ input_dir;
-    string output_file    = result_path ~ input_file ~ ".out";
-    string test_app_dmd_base = output_dir ~ envData.sep ~ test_name ~ "_";
 
     if (test_base_name.extension() == ".sh")
     {
@@ -1063,18 +1081,11 @@ int tryMain(string[] args)
         return runBashTest(input_dir, test_name, envData);
     }
 
-    if (testArgs.mode == TestMode.DSHELL)
-        return runDShellTest(input_dir, test_name, envData, output_dir, output_file);
-
     // envData.sep is required as the results_dir path can be `generated`
     const absoluteResultDirPath = envData.results_dir.absolutePath ~ envData.sep;
     const resultsDirReplacement = "{{RESULTS_DIR}}" ~ envData.sep;
+    const test_app_dmd_base = output_dir ~ envData.sep ~ test_name ~ "_";
 
-    // running & linking costs time - for coverage builds we can save this
-    if (envData.coverage_build && testArgs.mode == TestMode.RUN)
-        testArgs.mode = TestMode.COMPILE;
-
-    const printRuntime = environment.get("PRINT_RUNTIME", "") == "1";
     auto stopWatch = StopWatch(AutoStart.no);
     if (envData.printRuntime)
         stopWatch.start();
@@ -1083,11 +1094,8 @@ int tryMain(string[] args)
         return 0;
 
     // Clear the DFLAGS environment variable if it was specified in the test file
-    if (testArgs.dflags !is null)
+    if (testArgs.clearDflags)
     {
-        if (testArgs.dflags != "")
-            throw new Exception("The DFLAGS test argument must be empty: It is '" ~ testArgs.dflags ~ "'");
-
         // `environment["DFLAGS"] = "";` doesn't seem to work on Win32 (might be a bug
         // in std.process). So, resorting to `putenv` in snn.lib
         version(Win32)
@@ -1103,8 +1111,6 @@ int tryMain(string[] args)
     //prepare cpp extra sources
     if (!testArgs.isDisabled && testArgs.cppSources.length)
     {
-        testArgs.requiredArgs ~= envData.cxxCompatFlags;
-
         if (!collectExtraSources(input_dir, output_dir, testArgs.cppSources, testArgs.sources, envData, envData.ccompiler, testArgs.cxxflags))
             return 1;
     }
@@ -1146,16 +1152,6 @@ int tryMain(string[] args)
                 removeIfExists(thisRunName);
             }
 
-            // can override -verrors by using REQUIRED_ARGS
-            auto reqArgs =
-                (testArgs.mode == TestMode.FAIL_COMPILE ? "-verrors=0 " : null) ~
-                testArgs.requiredArgs;
-
-            // https://issues.dlang.org/show_bug.cgi?id=10664: exceptions don't work reliably with COMDAT folding
-            // it also slows down some tests drastically, e.g. runnable/test17338.d
-            if (envData.usingMicrosoftCompiler)
-                reqArgs ~= " -L/OPT:NOICF";
-
             string compile_output;
             if (!testArgs.compileSeparately)
             {
@@ -1163,7 +1159,7 @@ int tryMain(string[] args)
                 toCleanup ~= objfile;
 
                 command = format("%s -conf= -m%s -I%s %s %s -od%s -of%s %s %s%s %s", envData.dmd, envData.model, input_dir,
-                        reqArgs, permutedArgs, output_dir,
+                        testArgs.requiredArgs, permutedArgs, output_dir,
                         (testArgs.mode == TestMode.RUN || testArgs.link ? test_app_dmd : objfile),
                         argSet,
                         (testArgs.mode == TestMode.RUN || testArgs.link ? "" : "-c "),
@@ -1180,7 +1176,7 @@ int tryMain(string[] args)
                     toCleanup ~= newo;
 
                     command = format("%s -conf= -m%s -I%s %s %s -od%s -c %s %s", envData.dmd, envData.model, input_dir,
-                        reqArgs, permutedArgs, output_dir, argSet, filename);
+                        testArgs.requiredArgs, permutedArgs, output_dir, argSet, filename);
                     compile_output ~= execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path);
                 }
 
@@ -1269,11 +1265,6 @@ int tryMain(string[] args)
                     command = test_app_dmd;
                     if (testArgs.executeArgs) command ~= " " ~ testArgs.executeArgs;
 
-                    // Always run main even if compiled with '-unittest' but let
-                    // tests switch to another behaviour if necessary
-                    if (!command.canFind("--DRT-testmode"))
-                        command ~= " --DRT-testmode=run-main";
-
                     const output = execute(fThisRun, command, true, result_path)
                                     .strip()
                                     .unifyNewLine();
@@ -1315,11 +1306,7 @@ int tryMain(string[] args)
                 f.write("Executing post-test script: ");
                 string prefix = "";
                 version (Windows) prefix = "bash ";
-                assert(testArgs.sources[0].length, "Internal error: the tested file has no sources.");
-                import std.path : baseName, dirName, stripExtension;
-                auto testDir = testArgs.sources[0].dirName.baseName;
-                auto testName = testArgs.sources[0].baseName.stripExtension;
-                execute(f, prefix ~ "tools/postscript.sh " ~ testArgs.postScript ~ " " ~ testDir ~ " " ~ testName ~ " " ~ thisRunName, true, result_path);
+                execute(f, prefix ~ "tools/postscript.sh " ~ testArgs.postScript ~ " " ~ input_dir ~ " " ~ test_name ~ " " ~ thisRunName, true, result_path);
             }
 
             foreach (file; toCleanup) collectException(std.file.remove(file));
@@ -1390,7 +1377,6 @@ int tryMain(string[] args)
             if (e.msg.canFind("exited with rc == 139"))
             {
                 auto gdbCommand = "gdb -q -n -ex 'set backtrace limit 100' -ex run -ex bt -batch -args " ~ command;
-                import std.process : spawnShell;
                 spawnShell(gdbCommand).wait;
             }
 
@@ -1547,12 +1533,4 @@ void printTestFailure(string testLogName, string output_file_temp)
           writeln();
     writeln("==============================");
     remove(output_file_temp);
-}
-
-/// Make any parent diretories needed for the given `filename`
-void mkdirsFor(string filename)
-{
-    auto dir = dirName(filename);
-    if (!exists(dir))
-        mkdirRecurse(dir);
 }
