@@ -1123,15 +1123,20 @@ int tryMain(string[] args)
 
     auto f = File(output_file, "a");
 
-    if (!testArgs.isDisabled && (
+    if (
         //prepare cpp extra sources
         !collectExtraSources(input_dir, output_dir, testArgs.cppSources, testArgs.sources, envData, envData.ccompiler, testArgs.cxxflags, f) ||
 
         //prepare objc extra sources
         !collectExtraSources(input_dir, output_dir, testArgs.objcSources, testArgs.sources, envData, "clang", null, f)
-    ))
+    )
     {
         writeln();
+
+        // Ignore failed test
+        if (testArgs.isDisabled)
+            return 0;
+
         f.close();
         printTestFailure(input_file, output_file);
         return 1;
