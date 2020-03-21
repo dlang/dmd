@@ -1698,6 +1698,14 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 {
                     // T[n] sa;
                     // cast(U[])sa; // ==> cast(U[])sa[];
+                    if (global.params.useDIP1000 == FeatureState.enabled)
+                    {
+                        if (auto v = expToVariable(e))
+                        {
+                            if (e.type.hasPointers() && !checkAddressVar(sc, e, v))
+                                goto Lfail;
+                        }
+                    }
                     const fsize = t1b.nextOf().size();
                     const tsize = tob.nextOf().size();
                     if (fsize != tsize)
