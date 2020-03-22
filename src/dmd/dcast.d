@@ -69,8 +69,7 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
         {
             //printf("Expression.implicitCastTo(%s of type %s) => %s\n", e.toChars(), e.type.toChars(), t.toChars());
 
-            MATCH match = e.implicitConvTo(t);
-            if (match)
+            if (const match = e.implicitConvTo(t))
             {
                 if (match == MATCH.constant && (e.type.constConv(t) || !e.isLvalue() && e.type.equivalent(t)))
                 {
@@ -85,18 +84,16 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
                 auto ad = isAggregate(e.type);
                 if (ad && ad.aliasthis)
                 {
-                    MATCH adMatch;
-                    if (ad.type.ty == Tstruct)
-                        adMatch = (cast(TypeStruct)(ad.type)).implicitConvToWithoutAliasThis(t);
-                    else
-                        adMatch = (cast(TypeClass)(ad.type)).implicitConvToWithoutAliasThis(t);
+                    auto ts = ad.type.isTypeStruct();
+                    const adMatch = ts
+                        ? ts.implicitConvToWithoutAliasThis(t)
+                        : ad.type.isTypeClass().implicitConvToWithoutAliasThis(t);
 
                     if (!adMatch)
                     {
                         Type tob = t.toBasetype();
                         Type t1b = e.type.toBasetype();
-                        AggregateDeclaration toad = isAggregate(tob);
-                        if (ad != toad)
+                        if (ad != isAggregate(tob))
                         {
                             if (t1b.ty == Tclass && tob.ty == Tclass)
                             {
@@ -155,10 +152,10 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
         {
             //printf("StringExp::implicitCastTo(%s of type %s) => %s\n", e.toChars(), e.type.toChars(), t.toChars());
             visit(cast(Expression)e);
-            if (result.op == TOK.string_)
+            if (auto se = result.isStringExp())
             {
                 // Retain polysemous nature if it started out that way
-                (cast(StringExp)result).committed = e.committed;
+                se.committed = e.committed;
             }
         }
 
@@ -184,28 +181,24 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
             visit(cast(Expression)e);
 
             Type tb = result.type.toBasetype();
-            if (tb.ty == Tarray && global.params.useTypeInfo && Type.dtypeinfo)
-                semanticTypeInfo(sc, (cast(TypeDArray)tb).next);
+            if (auto ta = tb.isTypeDArray())
+                if (global.params.useTypeInfo && Type.dtypeinfo)
+                    semanticTypeInfo(sc, ta.next);
         }
 
         override void visit(SliceExp e)
         {
             visit(cast(Expression)e);
-            if (result.op != TOK.slice)
-                return;
 
-            e = cast(SliceExp)result;
-            if (e.e1.op == TOK.arrayLiteral)
-            {
-                ArrayLiteralExp ale = cast(ArrayLiteralExp)e.e1;
-                Type tb = t.toBasetype();
-                Type tx;
-                if (tb.ty == Tsarray)
-                    tx = tb.nextOf().sarrayOf(ale.elements ? ale.elements.dim : 0);
-                else
-                    tx = tb.nextOf().arrayOf();
-                e.e1 = ale.implicitCastTo(sc, tx);
-            }
+            if (auto se = result.isSliceExp())
+                if (auto ale = se.e1.isArrayLiteralExp())
+                {
+                    Type tb = t.toBasetype();
+                    Type tx = (tb.ty == Tsarray)
+                        ? tb.nextOf().sarrayOf(ale.elements ? ale.elements.dim : 0)
+                        : tb.nextOf().arrayOf();
+                    se.e1 = ale.implicitCastTo(sc, tx);
+                }
         }
     }
 
