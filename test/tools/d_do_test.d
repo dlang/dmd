@@ -1100,16 +1100,19 @@ int tryMain(string[] args)
     // Clear the DFLAGS environment variable if it was specified in the test file
     if (testArgs.clearDflags)
     {
-        // `environment["DFLAGS"] = "";` doesn't seem to work on Win32 (might be a bug
-        // in std.process). So, resorting to `putenv` in snn.lib
-        version(Win32)
+        // Temporary debugging aid
+        if (test_name == "printenv")
         {
-            putenv("DFLAGS=");
+            foreach (const arg; environment["DFLAGS"].splitter)
+            {
+                if (arg.startsWith("-L"))
+                {
+                    testArgs.requiredArgs ~= ' ';
+                    testArgs.requiredArgs ~= arg;
+                }
+            }
         }
-        else
-        {
-            environment["DFLAGS"] = "";
-        }
+        environment["DFLAGS"] = "";
     }
 
     writef(" ... %-30s %s%s(%s)",
