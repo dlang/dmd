@@ -111,6 +111,7 @@ struct EnvData
     bool autoUpdate;
     bool printRuntime;          /// Print time spent on a single test
     bool usingMicrosoftCompiler;
+    bool tryDisabled;           /// Silently try disabled tests (ignore failure but report success)
 }
 
 /++
@@ -148,6 +149,7 @@ immutable(EnvData) processEnvironment()
     envData.coverage_build = environment.get("DMD_TEST_COVERAGE") == "1";
     envData.autoUpdate     = environment.get("AUTO_UPDATE", "") == "1";
     envData.printRuntime   = environment.get("PRINT_RUNTIME", "") == "1";
+    envData.tryDisabled    = environment.get("TRY_DISABLED") == "1";
 
     if (envData.ccompiler.empty)
     {
@@ -636,7 +638,7 @@ unittest
 
 bool collectExtraSources (in string input_dir, in string output_dir, in string[] extraSources,
                           ref string[] sources, in EnvData envData, in string compiler,
-                          const(char)[] cxxflags)
+                          const(char)[] cxxflags, ref File logfile)
 {
     foreach (cur; extraSources)
     {
@@ -665,10 +667,12 @@ bool collectExtraSources (in string input_dir, in string output_dir, in string[]
         if (cxxflags)
             command ~= " " ~ cxxflags;
 
-        auto rc = system(command);
-        if(rc)
+        logfile.writeln(command);
+        logfile.flush(); // Avoid reordering due to buffering
+
+        auto pid = spawnShell(command, stdin, logfile, logfile, null, Config.retainStdout | Config.retainStderr);
+        if(wait(pid))
         {
-            writeln("failed to execute '"~command~"'");
             return false;
         }
         sources ~= curObj;
@@ -1108,16 +1112,6 @@ int tryMain(string[] args)
         }
     }
 
-    //prepare cpp extra sources
-    if (!testArgs.isDisabled && testArgs.cppSources.length)
-    {
-        if (!collectExtraSources(input_dir, output_dir, testArgs.cppSources, testArgs.sources, envData, envData.ccompiler, testArgs.cxxflags))
-            return 1;
-    }
-    //prepare objc extra sources
-    if (!testArgs.isDisabled && !collectExtraSources(input_dir, output_dir, testArgs.objcSources, testArgs.sources, envData, "clang", null))
-        return 1;
-
     writef(" ... %-30s %s%s(%s)",
             input_file,
             testArgs.requiredArgs,
@@ -1125,11 +1119,37 @@ int tryMain(string[] args)
             testArgs.permuteArgs);
 
     if (testArgs.isDisabled)
+    {
         writef("!!! [DISABLED %s]", testArgs.disabledReason);
+        if (!envData.tryDisabled)
+        {
+            writeln();
+            return 0;
+        }
+    }
 
     removeIfExists(output_file);
 
     auto f = File(output_file, "a");
+
+    if (
+        //prepare cpp extra sources
+        !collectExtraSources(input_dir, output_dir, testArgs.cppSources, testArgs.sources, envData, envData.ccompiler, testArgs.cxxflags, f) ||
+
+        //prepare objc extra sources
+        !collectExtraSources(input_dir, output_dir, testArgs.objcSources, testArgs.sources, envData, "clang", null, f)
+    )
+    {
+        writeln();
+
+        // Ignore failed test
+        if (testArgs.isDisabled)
+            return 0;
+
+        f.close();
+        printTestFailure(input_file, output_file);
+        return 1;
+    }
 
     enum Result { continue_, return0, return1 }
 
