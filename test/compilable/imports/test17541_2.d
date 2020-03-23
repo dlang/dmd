@@ -15,6 +15,7 @@ struct TWOR(size_t M)
 
     void open()
     {
+        BB bb;
         bb.foo();
     }
 }
