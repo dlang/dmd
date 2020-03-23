@@ -633,9 +633,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     // So deps file generation should be moved after the inlining stage.
     if (OutBuffer* ob = params.moduleDeps)
     {
-        foreach (i; 1 .. modules[0].aimports.dim)
-            semantic3OnDependencies(modules[0].aimports[i]);
-
         const data = (*ob)[];
         if (params.moduleDepsFile)
             writeFile(Loc.initial, params.moduleDepsFile, data);
