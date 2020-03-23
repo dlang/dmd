@@ -1067,21 +1067,7 @@ int tryMain(string[] args)
 
     // Clear the DFLAGS environment variable if it was specified in the test file
     if (testArgs.clearDflags)
-    {
-        // Temporary debugging aid
-        if (test_name == "printenv")
-        {
-            foreach (const arg; environment["DFLAGS"].splitter)
-            {
-                if (arg.startsWith("-L"))
-                {
-                    testArgs.requiredArgs ~= ' ';
-                    testArgs.requiredArgs ~= arg;
-                }
-            }
-        }
         env["DFLAGS"] = "";
-    }
 
     writef(" ... %-30s %s%s(%s)",
             input_file,
