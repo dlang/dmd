@@ -110,11 +110,11 @@ else version (AArch64)
     version = AnyARM;
 
 version (iOS)
-    version = AppleARM;
+    version = iOSDerived;
 else version (TVOS)
-    version = AppleARM;
+    version = iOSDerived;
 else version (WatchOS)
-    version = AppleARM;
+    version = iOSDerived;
 
 private
 {
@@ -179,7 +179,7 @@ version (CoreDoc)
 }
 else version (AnyARM)
 {
-    version (AppleARM)
+    version (iOSDerived)
         enum size_t minimumPageSize = 16384;
     else
         enum size_t minimumPageSize = 4096;

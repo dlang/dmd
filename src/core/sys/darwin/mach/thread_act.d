@@ -35,9 +35,9 @@ version (X86)
 version (X86_64)
     version = i386;
 version (AArch64)
-    version = AppleARM;
+    version = AnyARM;
 version (ARM)
-    version = AppleARM;
+    version = AnyARM;
 
 version (i386)
 {
@@ -142,7 +142,7 @@ version (i386)
 }
 // https://github.com/apple/darwin-xnu/blob/master/osfmk/mach/arm/_structs.h
 // https://github.com/apple/darwin-xnu/blob/master/osfmk/mach/arm/thread_status.h
-else version (AppleARM)
+else version (AnyARM)
 {
     alias thread_act_t = mach_port_t;
     alias thread_state_t = void;
