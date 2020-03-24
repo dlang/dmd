@@ -1570,7 +1570,8 @@ int tryMain(string[] args)
                 execute(f, prefix ~ "tools/postscript.sh " ~ testArgs.postScript ~ " " ~ input_dir ~ " " ~ test_name ~ " " ~ thisRunName, true);
             }
 
-            foreach (file; toCleanup) tryRemove(file);
+            foreach (file; chain(toCleanup, testArgs.outputFiles))
+                tryRemove(file);
             return Result.continue_;
         }
         catch(Exception e)
