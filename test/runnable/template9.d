@@ -4524,6 +4524,7 @@ struct N14174 {}
 
 alias defConfig14174 = Config14174!(N14174, N14174);
 
+@safe @nogc pure nothrow
 void accepter14174a(Config : Config14174!(T) = defConfig14174, T...)()
 {
     static assert(equalDemangle(accepter14174a.mangleof,
@@ -4531,9 +4532,10 @@ void accepter14174a(Config : Config14174!(T) = defConfig14174, T...)()
            "accepter14174a"~
            "HTS7breaker51__T11Config14174TS7breaker6N14174TS7breaker6N14174Z11Config14174TS7breaker6N14174TS7breaker6N14174Z14"~
            "accepter14174a"~
-           "FZv"));
+           "FNaNbNiNfZv"));
 }
 
+@safe @nogc pure nothrow
 void accepter14174b(Config : Config14174!(T) = defConfig14174, T...)()
 {
     static assert(equalDemangle(accepter14174b.mangleof,
@@ -4541,13 +4543,14 @@ void accepter14174b(Config : Config14174!(T) = defConfig14174, T...)()
            "accepter14174b"~
            "HTS7breaker51__T11Config14174TS7breaker6N14174TS7breaker6N14174Z11Config14174TS7breaker6N14174TS7breaker6N14174Z14"~
            "accepter14174b"~
-           "FZv"));
+           "FNaNbNiNfZv"));
 }
 
 void test14174()
 {
-    accepter14174a!()(); // ok
-    accepter14174b();    // error
+    accepter14174a!()();
+
+    accepter14174b!()();
 }
 
 /******************************************/
