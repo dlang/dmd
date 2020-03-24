@@ -2256,7 +2256,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 goto Lerror;
         }
         else if (arg == "-unittest")
-            params.useUnitTests = true;
+            params.UnittestRootOnly = true;
         else if (arg == "-unittest=rootonly")
             params.UnittestRootOnly = true;
         else if (arg == "-unittest=first")
