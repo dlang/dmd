@@ -260,17 +260,20 @@ alias autoTesterBuild = makeRule!((builder, rule) {
 });
 
 /// Returns: the rule that builds the lexer object file
-alias lexer = makeRule!((builder, rule) => builder
+alias lexer = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule rule,
+                                 string suffix, string[] extraFlags)
+    => builder
     .name("lexer")
-    .target(env["G"].buildPath("lexer").objName)
+    .target(env["G"].buildPath("lexer" ~ suffix).objName)
     .sources(sources.lexer)
     .deps([versionFile, sysconfDirFile])
-    .msg("(DC) LEXER_OBJ")
+    .msg("(DC) LEXER" ~ suffix)
     .command([env["HOST_DMD_RUN"],
         "-c",
         "-of" ~ rule.target,
         "-vtls"]
         .chain(flags["DFLAGS"],
+            extraFlags,
             // source files need to have relative paths in order for the code coverage
             // .lst files to be named properly for CodeCov to find them
             rule.sources.map!(e => e.relativePath(srcDir))
@@ -324,17 +327,18 @@ DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@
 });
 
 /// Returns: the rule that builds the backend object file
-alias backend = makeRule!((builder, rule) => builder
+alias backend = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule rule,
+                                   string suffix, string[] extraFlags) => builder
     .name("backend")
-    .target(env["G"].buildPath("backend").objName)
+    .target(env["G"].buildPath("backend" ~ suffix).objName)
     .sources(sources.backend)
-    .msg("(DC) BACKEND_OBJ")
+    .msg("(DC) BACKEND" ~ suffix)
     .command([
         env["HOST_DMD_RUN"],
         "-c",
         "-of" ~ rule.target,
         "-betterC"]
-        .chain(flags["DFLAGS"], rule.sources).array)
+        .chain(flags["DFLAGS"], extraFlags, rule.sources).array)
 );
 
 /// Returns: the rules that generate required string files: VERSION and SYSCONFDIR.imp
@@ -384,13 +388,16 @@ BuildRule for the DMD executable.
 Params:
   extra_flags = Flags to apply to the main build but not the rules
 */
-alias dmdExe = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule rule, string targetSuffix, string[] extraFlags) {
+alias dmdExe = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule rule,
+                                  string targetSuffix, string[] extraFlags, string[] depFlags) {
     const dmdSources = sources.dmd.all.chain(sources.root).array;
 
     string[] platformArgs;
     version (Windows)
         platformArgs = ["-L/STACK:8388608"];
 
+    auto lexer = lexer(targetSuffix, depFlags);
+    auto backend = backend(targetSuffix, depFlags);
     builder
         // include lexer.o and backend.o
         .sources(dmdSources.chain(lexer.targets, backend.targets).array)
@@ -412,12 +419,12 @@ alias dmdExe = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule
 alias dmdDefault = makeRule!((builder, rule) => builder
     .name("dmd")
     .description("Build dmd")
-    .deps([dmdExe(null, null), dmdConf])
+    .deps([dmdExe(null, null, null), dmdConf])
 );
 
 /// BuildRule to run the DMD unittest executable.
 alias runDmdUnittest = makeRule!((builder, rule) {
-    auto dmdUnittestExe = dmdExe("-unittest", ["-version=NoMain", "-unittest", "-main"]);
+auto dmdUnittestExe = dmdExe("-unittest", ["-version=NoMain", "-unittest", "-main"], ["-unittest"]);
     builder
         .name("unittest")
         .description("Run the dmd unittests")
@@ -445,7 +452,7 @@ alias runCxxUnittest = makeRule!((runCxxBuilder, runCxxRule) {
         .name("cxx-unittest")
         .description("Build the C++ unittests")
         .msg("(DMD) CXX-UNITTEST")
-        .deps([lexer, backend, cxxFrontend])
+        .deps([lexer(null, null), backend(null, null), cxxFrontend])
         .sources(sources.dmd.all ~ sources.root)
         .target(env["G"].buildPath("cxx-unittest").exeName)
         .command([ env["HOST_DMD_RUN"], "-of=" ~ exeRule.target, "-vtls", "-J" ~ env["RES"],

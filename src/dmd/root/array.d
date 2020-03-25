@@ -537,11 +537,11 @@ unittest
     strings.push("Hello");
     // Newer frontend versions will work with (e1, e2) and infer the type
     strings.sort!(function (scope const char** e1, scope const char** e2) => strcmp(*e1, *e2));
-    assert(strings[0] == "baguette");
-    assert(strings[1] == "Avocado");
-    assert(strings[2] == "Foo");
-    assert(strings[3] == "Hello");
-    assert(strings[4] == "World");
+    assert(strings[0] == "Avocado");
+    assert(strings[1] == "Foo");
+    assert(strings[2] == "Hello");
+    assert(strings[3] == "World");
+    assert(strings[4] == "baguette");
 
     /// opCmp automatically supported
     static struct MyStruct
@@ -562,9 +562,9 @@ unittest
     arr1.push(MyStruct(42));
     arr1.sort();
     assert(arr1[0].a == 256);
-    assert(arr1[0].a == 42);
-    assert(arr1[0].a == 4);
-    assert(arr1[0].a == 2);
+    assert(arr1[1].a == 42);
+    assert(arr1[2].a == 4);
+    assert(arr1[3].a == 2);
 
     /// But only if user defined
     static struct OtherStruct
