@@ -555,9 +555,9 @@ void main ()
   printf ("Bool_Glob:           %d\n", Bool_Glob);
   printf ("        should be:   %d\n", 1);
   printf ("Ch_1_Glob:           %c\n", Ch_1_Glob);
-  printf ("        should be:   %c\n", cast(int)'A');
+  printf ("        should be:   %c\n", 'A');
   printf ("Ch_2_Glob:           %c\n", Ch_2_Glob);
-  printf ("        should be:   %c\n", cast(int)'B');
+  printf ("        should be:   %c\n", 'B');
   printf ("Arr_1_Glob[8]:       %d\n", Arr_1_Glob[8]);
   printf ("        should be:   %d\n", 7);
   printf ("Arr_2_Glob[8][7]:    %d\n", Arr_2_Glob[8][7]);

@@ -118,6 +118,8 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
         const c_longsize = target.c.longsize;
         const is64bit = global.params.is64bit;
 
+        // Types which are promoted to int are allowed.
+        // Spec: C99 6.5.2.2.7
         final switch (fmt)
         {
             case Format.u:      // unsigned int
@@ -128,13 +130,13 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
 
             case Format.hhu:    // unsigned char
             case Format.hhd:    // signed char
-                if (t.ty != Tint8 && t.ty != Tuns8)
+                if (t.ty != Tint32 && t.ty != Tuns32 && t.ty != Tint8 && t.ty != Tuns8)
                     errorMsg(null, slice, e, "byte", t);
                 break;
 
             case Format.hu:     // unsigned short int
             case Format.hd:     // short int
-                if (t.ty != Tint16 && t.ty != Tuns16)
+                if (t.ty != Tint32 && t.ty != Tuns32 && t.ty != Tint16 && t.ty != Tuns16)
                     errorMsg(null, slice, e, "short", t);
                 break;
 
@@ -216,6 +218,7 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
                 if (!(t.ty == Tpointer && tnext.ty == (is64bit ? Tuns64 : Tuns32)))
                     errorMsg(null, slice, e, "size_t*", t);
                 break;
+
             case Format.tn:     // pointer to ptrdiff_t
                 if (!(t.ty == Tpointer && tnext.ty == (is64bit ? Tint64 : Tint32)))
                     errorMsg(null, slice, e, "ptrdiff_t*", t);
