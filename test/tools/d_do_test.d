@@ -340,10 +340,6 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     {
         if (testArgs.mode == TestMode.RUN)
             testArgs.permuteArgs = envData.all_args;
-
-        string unittestJunk;
-        if(!findTestParameter(envData, file, "unittest", unittestJunk))
-            testArgs.permuteArgs = replace(testArgs.permuteArgs, "-unittest", "");
     }
     replaceResultsDir(testArgs.permuteArgs, envData);
 
