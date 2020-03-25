@@ -1543,9 +1543,8 @@ public:
         {
             printf("FuncDeclaration.inlineScan('%s')\n", fd.toPrettyChars());
         }
-        if (fd.isUnitTestDeclaration() && (!global.params.useUnitTests && !global.params.UnittestRootOnly
-                    && !global.params.UnittestFirstRootOnly)
-                || fd.flags & FUNCFLAG.inlineScanned)
+        if (fd.isUnitTestDeclaration() && (global.params.unittestMode == UnittestMode.disabled
+                || fd.flags & FUNCFLAG.inlineScanned))
             return;
         if (fd.fbody && !fd.naked)
         {

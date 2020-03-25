@@ -110,6 +110,14 @@ enum CppStdRevision : uint
     cpp17 = 201703
 }
 
+enum UnittestMode
+{
+    disabled,
+    standard,
+    rootOnly,
+    firstOnly
+}
+
 // Put command line switches in here
 extern (C++) struct Param
 {
@@ -146,9 +154,7 @@ extern (C++) struct Param
     bool mscoff = false;    // for Win32: write MsCoff object files instead of OMF
     DiagnosticReporting useDeprecated = DiagnosticReporting.inform;  // how use of deprecated features are handled
     bool stackstomp;            // add stack stomping code
-    bool useUnitTests;          // generate unittest code
-    bool UnittestRootOnly;      // generate unittest code only for root modules
-    bool UnittestFirstRootOnly; // generate unittest code only for the first root module
+    UnittestMode unittestMode;
     bool useInline = false;     // inline expand functions
     bool useDIP25;          // implement http://wiki.dlang.org/DIP25
     bool noDIP25;           // revert to pre-DIP25 behavior

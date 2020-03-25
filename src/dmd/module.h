@@ -82,6 +82,7 @@ public:
     int needmoduleinfo;
     int selfimports;            // 0: don't know, 1: does not, 2: does
     bool selfImports();         // returns true if module imports itself
+    bool rootChief;
 
     int rootimports;            // 0: don't know, 1: does not, 2: does
     bool rootImports();         // returns true if module imports root module

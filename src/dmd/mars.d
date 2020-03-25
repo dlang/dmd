@@ -1284,7 +1284,7 @@ void addDefaultVersionIdentifiers(const ref Param params)
         VersionCondition.addPredefinedGlobalIdent("D_Coverage");
     if (params.pic != PIC.fixed)
         VersionCondition.addPredefinedGlobalIdent(params.pic == PIC.pic ? "D_PIC" : "D_PIE");
-    if (params.useUnitTests || params.UnittestRootOnly || params.UnittestFirstRootOnly)
+    if (params.unittestMode != UnittestMode.disabled)
         VersionCondition.addPredefinedGlobalIdent("unittest");
     if (params.useAssert == CHECKENABLE.on)
         VersionCondition.addPredefinedGlobalIdent("assert");
@@ -2256,11 +2256,11 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 goto Lerror;
         }
         else if (arg == "-unittest")
-            params.UnittestRootOnly = true;
+            params.unittestMode = UnittestMode.rootOnly;
         else if (arg == "-unittest=rootonly")
-            params.UnittestRootOnly = true;
+            params.unittestMode = UnittestMode.rootOnly;
         else if (arg == "-unittest=first")
-            params.UnittestFirstRootOnly = true;
+            params.unittestMode = UnittestMode.firstOnly;
         else if (p[1] == 'I')              // https://dlang.org/dmd.html#switch-I
         {
             if (!params.imppath)
@@ -2480,7 +2480,7 @@ private void reconcileCommands(ref Param params, size_t numSrcFiles)
             params.useArrayBounds = params.boundscheck;
     }
 
-    if (params.useUnitTests)
+    if (params.unittestMode != UnittestMode.disabled)
     {
         if (params.useAssert == CHECKENABLE._default)
             params.useAssert = CHECKENABLE.on;

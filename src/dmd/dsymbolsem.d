@@ -4527,7 +4527,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
         }
 
-        if (global.params.useUnitTests || global.params.UnittestRootOnly || global.params.UnittestFirstRootOnly)
+        if (global.params.unittestMode != UnittestMode.disabled)
         {
             if (!utd.type)
                 utd.type = new TypeFunction(ParameterList(), Type.tvoid, LINK.d, utd.storage_class);

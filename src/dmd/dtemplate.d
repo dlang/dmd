@@ -6141,7 +6141,14 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             return false;
         }
 
-        if (global.params.useUnitTests)
+        /* The issue is that if the importee is compiled with a different -debug
+         * setting than the importer, the importer may believe it exists
+         * in the compiled importee when it does not, when the instantiation
+         * is behind a conditional debug declaration.
+         */
+        // workaround for https://issues.dlang.org/show_bug.cgi?id=11239
+        if (global.params.unittestMode == UnittestMode.standard ||
+            global.params.debuglevel)
         {
             // Prefer instantiations from root modules, to maximize link-ability.
             if (minst.isRoot())
@@ -7139,7 +7146,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     {
         Module mi = minst; // instantiated . inserted module
 
-        if (global.params.useUnitTests || global.params.debuglevel)
+        if (global.params.unittestMode == UnittestMode.standard || global.params.debuglevel)
         {
             // Turn all non-root instances to speculative
             if (mi && !mi.isRoot())
