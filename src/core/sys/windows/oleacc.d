@@ -8,6 +8,7 @@
  */
 module core.sys.windows.oleacc;
 version (Windows):
+@system:
 
 version (ANSI) {} else version = Unicode;
 pragma(lib, "oleacc");

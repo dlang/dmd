@@ -12,6 +12,7 @@
 // # do we need the proxies that are defined in this file?
 module core.sys.windows.objidl;
 version (Windows):
+@system:
 
 import core.sys.windows.unknwn;
 import core.sys.windows.objfwd;

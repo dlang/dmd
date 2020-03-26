@@ -8,6 +8,7 @@
  */
 module core.sys.windows.lmremutl;
 version (Windows):
+@system:
 pragma(lib, "netapi32");
 
 // D Conversion Note: DESC_CHAR is defined as TCHAR.

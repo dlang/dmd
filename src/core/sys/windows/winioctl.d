@@ -9,6 +9,7 @@
  */
 module core.sys.windows.winioctl;
 version (Windows):
+@system:
 
 // FIXME: check types of some constants
 

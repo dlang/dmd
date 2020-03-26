@@ -8,6 +8,7 @@
  */
 module core.sys.windows.sqlucode;
 version (Windows):
+@system:
 
 version (ANSI) {} else version = Unicode;
 

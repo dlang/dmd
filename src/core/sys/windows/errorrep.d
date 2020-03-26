@@ -9,6 +9,7 @@
  */
 module core.sys.windows.errorrep;
 version (Windows):
+@system:
 
 version (ANSI) {} else version = Unicode;
 

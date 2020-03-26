@@ -8,6 +8,7 @@
  */
 module core.sys.windows.wtypes;
 version (Windows):
+@system:
 
 import core.sys.windows.rpc, core.sys.windows.rpcndr;
 private import core.sys.windows.windef;

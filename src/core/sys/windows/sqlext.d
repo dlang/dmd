@@ -8,6 +8,7 @@
  */
 module core.sys.windows.sqlext;
 version (Windows):
+@system:
 
 /* Conversion notes:
    The MinGW file was a horrible mess. All of the #defines were sorted alphabetically,

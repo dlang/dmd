@@ -8,6 +8,7 @@
  */
 module core.sys.windows.winnt;
 version (Windows):
+@system:
 
 version (ANSI) {} else version = Unicode;
 

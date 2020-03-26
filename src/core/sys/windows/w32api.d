@@ -9,6 +9,7 @@
  */
 module core.sys.windows.w32api;
 version (Windows):
+@system:
 
 version (ANSI) {} else version = Unicode;
 

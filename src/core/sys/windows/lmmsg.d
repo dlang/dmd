@@ -8,6 +8,7 @@
  */
 module core.sys.windows.lmmsg;
 version (Windows):
+@system:
 pragma(lib, "netapi32");
 
 private import core.sys.windows.lmcons, core.sys.windows.windef, core.sys.windows.w32api;

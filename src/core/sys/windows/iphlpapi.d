@@ -9,6 +9,7 @@
  */
 module core.sys.windows.iphlpapi;
 version (Windows):
+@system:
 
 import core.sys.windows.ipexport, core.sys.windows.iprtrmib, core.sys.windows.iptypes;
 private import core.sys.windows.winbase, core.sys.windows.windef;

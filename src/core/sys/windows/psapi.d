@@ -13,6 +13,7 @@
 
 module core.sys.windows.psapi;
 version (Windows):
+@system:
 
 version (ANSI) {} else version = Unicode;
 

@@ -8,6 +8,7 @@
  */
 module core.sys.windows.lmwksta;
 version (Windows):
+@system:
 pragma(lib, "netapi32");
 
 import core.sys.windows.lmuseflg;

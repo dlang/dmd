@@ -9,6 +9,7 @@
  */
 module core.sys.windows.mcx;
 version (Windows):
+@system:
 
 private import core.sys.windows.windef;
 

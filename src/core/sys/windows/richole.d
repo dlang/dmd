@@ -8,6 +8,7 @@
  */
 module core.sys.windows.richole;
 version (Windows):
+@system:
 
 private import core.sys.windows.objfwd, core.sys.windows.objidl, core.sys.windows.ole2, core.sys.windows.unknwn,
   core.sys.windows.windef;
