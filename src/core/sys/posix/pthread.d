@@ -33,6 +33,7 @@ else version (WatchOS)
 version (Posix):
 extern (C)
 nothrow:
+@system:
 
 //
 // Required
