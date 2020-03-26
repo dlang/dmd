@@ -22,6 +22,7 @@ version (linux):
 extern (C):
 nothrow:
 @nogc:
+@system:
 
 struct ifaddrs
 {
