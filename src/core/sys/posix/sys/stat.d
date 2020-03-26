@@ -33,6 +33,7 @@ version (RISCV64) version = RISCV_Any;
 
 version (Posix):
 extern (C) nothrow @nogc:
+@system:
 
 //
 // Required

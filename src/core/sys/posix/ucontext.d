@@ -22,6 +22,7 @@ version (Posix):
 extern (C):
 nothrow:
 @nogc:
+@system:
 
 version (MIPS32)  version = MIPS_Any;
 version (MIPS64)  version = MIPS_Any;

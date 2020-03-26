@@ -43,7 +43,8 @@ version (X86_64)  version = X86_Any;
 
 version (Posix):
 extern (C):
-//nothrow:  // this causes Issue 12738
+//nothrow:  // this causes http://issues.dlang.org/show_bug.cgi?id=12738 (which has been fixed)
+//@system:
 
 //
 // Required

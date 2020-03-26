@@ -19,6 +19,7 @@ private import core.sys.posix.signal; // for sigset_t
 
 version (Posix):
 extern (C) nothrow @nogc:
+@system:
 
 version (RISCV32) version = RISCV_Any;
 version (RISCV64) version = RISCV_Any;

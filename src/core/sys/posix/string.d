@@ -19,6 +19,7 @@ extern(C):
 @system:
 nothrow:
 @nogc:
+@system:
 
 /// Exposes `locale_t` as defined in `core.sys.posix.locale` (`<locale.h>`)
 public import core.sys.posix.locale : locale_t;

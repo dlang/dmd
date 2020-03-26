@@ -32,6 +32,7 @@ version (Posix):
 extern (C):
 nothrow:
 @nogc:
+@system:
 
 enum STDIN_FILENO  = 0;
 enum STDOUT_FILENO = 1;
