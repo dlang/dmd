@@ -9,6 +9,7 @@ version (linux):
 extern (C):
 pure:
 nothrow:
+@system:
 
 import core.stdc.stdint;
 
