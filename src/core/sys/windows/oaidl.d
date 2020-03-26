@@ -8,6 +8,7 @@
  */
 module core.sys.windows.oaidl;
 version (Windows):
+@system:
 
 private import core.sys.windows.basetyps, core.sys.windows.unknwn, core.sys.windows.windef, core.sys.windows.wtypes;
 

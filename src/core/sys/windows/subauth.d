@@ -8,6 +8,7 @@
  */
 module core.sys.windows.subauth;
 version (Windows):
+@system:
 
 private import core.sys.windows.ntdef, core.sys.windows.windef;
 

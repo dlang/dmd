@@ -8,6 +8,7 @@
  */
 module core.sys.windows.oleidl;
 version (Windows):
+@system:
 
 // DAC: This is defined in ocidl !!
 // what is it doing in here?

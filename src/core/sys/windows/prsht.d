@@ -9,6 +9,7 @@
  */
 module core.sys.windows.prsht;
 version (Windows):
+@system:
 
 version (ANSI) {} else version = Unicode;
 pragma(lib, "comctl32");

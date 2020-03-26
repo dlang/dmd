@@ -8,6 +8,7 @@
  */
 module core.sys.windows.objfwd;
 version (Windows):
+@system:
 
 private import core.sys.windows.objidl;
 

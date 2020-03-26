@@ -8,6 +8,7 @@
  */
 module core.sys.windows.richedit;
 version (Windows):
+@system:
 
 version (ANSI) {} else version = Unicode;
 

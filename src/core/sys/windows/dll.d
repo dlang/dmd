@@ -11,6 +11,7 @@
 
 module core.sys.windows.dll;
 version (Windows):
+@system:
 
 import core.sys.windows.winbase;
 import core.sys.windows.winnt;

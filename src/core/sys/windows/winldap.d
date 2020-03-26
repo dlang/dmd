@@ -9,6 +9,7 @@
  */
 module core.sys.windows.winldap;
 version (Windows):
+@system:
 
 version (ANSI) {} else version = Unicode;
 

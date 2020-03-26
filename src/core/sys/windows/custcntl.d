@@ -9,6 +9,7 @@
  */
 module core.sys.windows.custcntl;
 version (Windows):
+@system:
 
 version (ANSI) {} else version = Unicode;
 

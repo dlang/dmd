@@ -9,6 +9,7 @@
  */
 module core.sys.windows.cpl;
 version (Windows):
+@system:
 
 version (ANSI) {} else version = Unicode;
 

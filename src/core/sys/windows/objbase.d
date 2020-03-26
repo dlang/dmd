@@ -8,6 +8,7 @@
  */
 module core.sys.windows.objbase;
 version (Windows):
+@system:
 pragma(lib, "ole32");
 
 import core.sys.windows.cguid, core.sys.windows.objidl, core.sys.windows.unknwn, core.sys.windows.wtypes;

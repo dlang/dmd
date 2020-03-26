@@ -9,6 +9,7 @@
  */
 module core.sys.windows.snmp;
 version (Windows):
+@system:
 
 private import core.sys.windows.basetsd /+: HANDLE+/;
 private import core.sys.windows.windef /+: BOOL, BYTE, DWORD, INT, LONG, UINT, ULONG+/;

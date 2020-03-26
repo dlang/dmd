@@ -9,6 +9,7 @@
  */
 module core.sys.windows.winnetwk;
 version (Windows):
+@system:
 
 version (ANSI) {} else version = Unicode;
 pragma(lib, "mpr");

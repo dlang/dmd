@@ -8,6 +8,7 @@
  */
 module core.sys.windows.basetyps;
 version (Windows):
+@system:
 
 private import core.sys.windows.windef, core.sys.windows.basetsd;
 

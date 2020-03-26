@@ -9,6 +9,7 @@
  */
 module core.sys.windows.rassapi;
 version (Windows):
+@system:
 
 private import core.sys.windows.lmcons, core.sys.windows.windef;
 
