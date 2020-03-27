@@ -19,7 +19,14 @@ ifneq (,$(findstring Darwin_64_32, $(PWD)))
 auto-tester-test:
 	echo "Darwin_64_32_disabled"
 else
+ifneq (,$(findstring windows, $(PWD)))
 auto-tester-test: test
+else # POSIX
+# Like test, but without runnable_cxx
+auto-tester-test:
+	$(QUIET)$(MAKE) -C src -f posix.mak unittest
+	$(QUIET)$(MAKE) -C test -f Makefile
+endif
 endif
 
 buildkite-test: test
