@@ -2017,7 +2017,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                  * Check arg to see if it matters.
                  */
                 if (global.params.vsafe)
-                    err |= checkParamArgumentEscape(sc, fd, p, arg, false);
+                    err |= checkParamArgumentEscape(sc, fd, p, arg, false, false);
             }
             else
             {
@@ -4589,7 +4589,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 tthis = ue.e1.type;
                 if (!(exp.f.type.ty == Tfunction && (cast(TypeFunction)exp.f.type).isscope))
                 {
-                    if (global.params.vsafe && checkParamArgumentEscape(sc, exp.f, null, ethis, false))
+                    if (global.params.vsafe && checkParamArgumentEscape(sc, exp.f, null, ethis, false, false))
                         return setError();
                 }
             }
@@ -6014,6 +6014,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.msg = resolveProperties(sc, exp.msg);
             exp.msg = exp.msg.implicitCastTo(sc, Type.tchar.constOf().arrayOf());
             exp.msg = exp.msg.optimize(WANTvalue);
+            checkParamArgumentEscape(sc, null, null, exp.msg, true, false);
         }
 
         if (exp.e1.op == TOK.error)
