@@ -340,6 +340,12 @@ alias TMAX = ENUMTY.TMAX;
 
 alias TY = ubyte;
 
+///Returns true if ty is char, wchar, or dchar
+bool isSomeChar(TY ty) pure nothrow @nogc @safe
+{
+    return ty == Tchar || ty == Twchar || ty == Tdchar;
+}
+
 enum MODFlags : int
 {
     const_       = 1,    // type is const
@@ -3590,7 +3596,7 @@ extern (C++) final class TypeSArray : TypeArray
     override bool isString()
     {
         TY nty = next.toBasetype().ty;
-        return nty == Tchar || nty == Twchar || nty == Tdchar;
+        return nty.isSomeChar;
     }
 
     override bool isZeroInit(const ref Loc loc)
@@ -3760,7 +3766,7 @@ extern (C++) final class TypeDArray : TypeArray
     override bool isString()
     {
         TY nty = next.toBasetype().ty;
-        return nty == Tchar || nty == Twchar || nty == Tdchar;
+        return nty.isSomeChar;
     }
 
     override bool isZeroInit(const ref Loc loc) const

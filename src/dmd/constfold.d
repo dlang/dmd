@@ -1516,7 +1516,7 @@ UnionExp Cat(Type type, Expression e1, Expression e2)
         t = t2;
     L2:
         Type tn = e.type.toBasetype();
-        if (tn.ty == Tchar || tn.ty == Twchar || tn.ty == Tdchar)
+        if (tn.ty.isSomeChar)
         {
             // Create a StringExp
             if (t.nextOf())

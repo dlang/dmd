@@ -512,8 +512,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
                 Type typeb = se.type.toBasetype();
                 TY tynto = tb.nextOf().ty;
                 if (!se.committed &&
-                    (typeb.ty == Tarray || typeb.ty == Tsarray) &&
-                    (tynto == Tchar || tynto == Twchar || tynto == Tdchar) &&
+                    (typeb.ty == Tarray || typeb.ty == Tsarray) && tynto.isSomeChar &&
                     se.numberOfCodeUnits(tynto) < (cast(TypeSArray)tb).dim.toInteger())
                 {
                     e = se.castTo(sc, t);

@@ -2897,8 +2897,7 @@ extern (C++) final class ArrayLiteralExp : Expression
     override StringExp toStringExp()
     {
         TY telem = type.nextOf().toBasetype().ty;
-        if (telem == Tchar || telem == Twchar || telem == Tdchar ||
-            (telem == Tvoid && (!elements || elements.dim == 0)))
+        if (telem.isSomeChar || (telem == Tvoid && (!elements || elements.dim == 0)))
         {
             ubyte sz = 1;
             if (telem == Twchar)
