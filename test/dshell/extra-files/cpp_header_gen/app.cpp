@@ -1,4 +1,9 @@
 // This should be solved by the header generator
+
+#define BEGIN_ENUM(name, upper, lower) enum name {
+#define ENUM_KEY(type, name, value, enumName, upper, lower, abbrev) upper##name = value,
+#define END_ENUM(name, upper, lower) };
+
 #include "dcompat.h"
 #include "library.h"
 

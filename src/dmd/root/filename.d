@@ -1,6 +1,5 @@
 /**
- * Compiler implementation of the D programming language
- * http://dlang.org
+ * Encapsulate path and file names.
  *
  * Copyright: Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com

@@ -78,7 +78,7 @@ struct A4
 
 void test4()
 {
-    printf("A4.sizeof = %d\n", A4.sizeof);
+    printf("A4.sizeof = %zd\n", A4.sizeof);
     assert(A4.sizeof == 1 * int.sizeof);
 
     A4 q;
@@ -276,7 +276,7 @@ void test13()
 
 void write14(bool[] c)
 {
-    printf("[%2d]: ", c.length);
+    printf("[%2zd]: ", c.length);
     foreach (bool x; c)
         printf("%d,", x);
     printf("\n");
@@ -841,11 +841,11 @@ void test45()
 {
     S45 s = S45(10);
     S45 val = pow!(S45)(s,2);
-    printf("x = %2.2lf, y = %2.2lf\n", val.x, val.y);
+    printf("x = %2.2f, y = %2.2f\n", val.x, val.y);
     assert(val.x == 100);
     assert(val.y == 0);
     double d = pow!(double)(10,3);
-    printf("%2.2lf\n", d);
+    printf("%2.2f\n", d);
     assert(d == 1000);
 }
 
@@ -937,7 +937,7 @@ void test51()
 {
     bool[9][3] qwert;
 
-    printf("qwert.sizeof = %d\n", qwert.sizeof);
+    printf("qwert.sizeof = %zd\n", qwert.sizeof);
 
     for (int i = 0; i < 3; i++)
         for (int j = 0; j < 9; j++)
@@ -986,13 +986,13 @@ const char[3][13] month = [
 
 void test53()
 {
-    printf("%.*s\n", month[1].length, month[1].ptr);
-    printf("%.*s\n", month[2].length, month[2].ptr);
-    printf("%.*s\n", month[3].length, month[3].ptr);
-    printf("%.*s\n", month[4].length, month[4].ptr);
-    printf("%.*s\n", month[5].length, month[5].ptr);
-    printf("%.*s\n", month[6].length, month[6].ptr);
-    printf("%.*s\n", month[8].length, month[8].ptr);
+    printf("%.*s\n", cast(int)month[1].length, month[1].ptr);
+    printf("%.*s\n", cast(int)month[2].length, month[2].ptr);
+    printf("%.*s\n", cast(int)month[3].length, month[3].ptr);
+    printf("%.*s\n", cast(int)month[4].length, month[4].ptr);
+    printf("%.*s\n", cast(int)month[5].length, month[5].ptr);
+    printf("%.*s\n", cast(int)month[6].length, month[6].ptr);
+    printf("%.*s\n", cast(int)month[8].length, month[8].ptr);
 
     assert(month[1] == "Jan");
     assert(month[2] == "Feb");
@@ -1051,12 +1051,12 @@ void test55()
   str = str ~ c;
   uvw = c ~ uvw;
 
-  printf("%.*s\n", str.length, str.ptr);
+  printf("%.*s\n", cast(int)str.length, str.ptr);
   assert(str == "a");
   assert(uvw == "a");
 
   c = 'b';
-  printf("%.*s\n", str.length, str.ptr);
+  printf("%.*s\n", cast(int)str.length, str.ptr);
   assert(str == "a");
   assert(uvw == "a");
 }
@@ -1198,7 +1198,7 @@ void foo61(real[] arr)
     for (size_t j = i; j >= i; j -= i)
     {
         // interesting results follow from this:
-        printf("%d ", i);
+        printf("%zd ", i);
         // it prints a _lot_ of ones
 
         arr[j] = arr[j - i];

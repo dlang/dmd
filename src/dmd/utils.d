@@ -58,10 +58,16 @@ const(char)* toWinPath(const(char)* src)
  */
 FileBuffer readFile(Loc loc, const(char)* filename)
 {
+    return readFile(loc, filename.toDString());
+}
+
+/// Ditto
+FileBuffer readFile(Loc loc, const(char)[] filename)
+{
     auto result = File.read(filename);
     if (!result.success)
     {
-        error(loc, "Error reading file '%s'", filename);
+        error(loc, "Error reading file `%.*s`", cast(int)filename.length, filename.ptr);
         fatal();
     }
     return FileBuffer(result.extractSlice());

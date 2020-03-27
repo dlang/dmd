@@ -660,3 +660,31 @@ int test21()
     foo22(s);
 }
 
+/*********************************************
+TEST_OUTPUT:
+---
+fail_compilation/retscope.d(1907): Error: scope variable `x` assigned to `this` with longer lifetime
+fail_compilation/retscope.d(1913): Error: scope variable `x` may not be returned
+---
+*/
+#line 1900
+struct Constant
+{
+    int* member;
+
+    int* foo(scope Repeat!(int*) grid) @safe
+    {
+        foreach(ref x; grid)
+            member = x;
+
+        foreach(ref x; grid)
+            x = member;
+
+        foreach(ref x; grid)
+            return x;
+
+        return null;
+    }
+
+    alias Repeat(T...) = T;
+}

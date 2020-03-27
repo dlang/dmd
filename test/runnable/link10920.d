@@ -10,7 +10,7 @@ void main()
     {
         // Run semantic3 of BitArray.toString()
         // before the FormatSpec instantiation in main().
-        pragma(msg, typeof(ba.toString()));
+        static assert(is(typeof(ba.toString())));
     }
 
     // The instance codegen should be run always, unrelated with -version=A.

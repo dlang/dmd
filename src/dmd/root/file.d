@@ -1,6 +1,5 @@
 /**
- * Compiler implementation of the D programming language
- * http://dlang.org
+ * Read a file from disk and store it in memory.
  *
  * Copyright: Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com
@@ -77,6 +76,12 @@ nothrow:
     /// Read the full content of a file.
     extern (C++) static ReadResult read(const(char)* name)
     {
+        return read(name.toDString());
+    }
+
+    /// Ditto
+    static ReadResult read(const(char)[] name)
+    {
         ReadResult result;
 
         version (Posix)
@@ -85,7 +90,7 @@ nothrow:
             stat_t buf;
             ssize_t numread;
             //printf("File::read('%s')\n",name);
-            int fd = open(name, O_RDONLY);
+            int fd = name.toCStringThen!(slice => open(slice.ptr, O_RDONLY));
             if (fd == -1)
             {
                 //printf("\topen error, errno = %d\n",errno);
@@ -100,8 +105,6 @@ nothrow:
             }
             size = cast(size_t)buf.st_size;
             ubyte* buffer = cast(ubyte*)mem.xmalloc_noscan(size + 2);
-            if (!buffer)
-                goto err2;
             numread = .read(fd, buffer, size);
             if (numread != size)
             {
@@ -132,7 +135,7 @@ nothrow:
 
             // work around Windows file path length limitation
             // (see documentation for extendedPathThen).
-            HANDLE h = name.toDString.extendedPathThen!
+            HANDLE h = name.extendedPathThen!
                 (p => CreateFileW(p.ptr,
                                   GENERIC_READ,
                                   FILE_SHARE_READ,
@@ -144,8 +147,6 @@ nothrow:
                 return result;
             size = GetFileSize(h, null);
             ubyte* buffer = cast(ubyte*)mem.xmalloc_noscan(size + 2);
-            if (!buffer)
-                goto err2;
             if (ReadFile(h, buffer, size, &numread, null) != TRUE)
                 goto err2;
             if (numread != size)

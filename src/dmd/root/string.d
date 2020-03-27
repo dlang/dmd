@@ -1,8 +1,5 @@
 /**
- * This module contains various string related functions.
- *
- * Compiler implementation of the D programming language
- * http://dlang.org
+ * Contains various string related functions.
  *
  * Copyright: Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com
@@ -170,4 +167,48 @@ unittest
     assert("\u2028foo".stripLeadingLineTerminator == "foo");
     assert("\u2029foo".stripLeadingLineTerminator == "foo");
     assert("\n\rfoo".stripLeadingLineTerminator == "foo");
+}
+
+/**
+ * A string comparison functions that returns the same result as strcmp
+ *
+ * Note: Strings are compared based on their ASCII values, no UTF-8 decoding.
+ *
+ * Some C functions (e.g. `qsort`) require a `int` result for comparison.
+ * See_Also: Druntime's `core.internal.string`
+ */
+int dstrcmp()( scope const char[] s1, scope const char[] s2 ) @trusted
+{
+    immutable len = s1.length <= s2.length ? s1.length : s2.length;
+    if (__ctfe)
+    {
+        foreach (const u; 0 .. len)
+        {
+            if (s1[u] != s2[u])
+                return s1[u] > s2[u] ? 1 : -1;
+        }
+    }
+    else
+    {
+        import core.stdc.string : memcmp;
+
+        const ret = memcmp( s1.ptr, s2.ptr, len );
+        if ( ret )
+            return ret;
+    }
+    return s1.length < s2.length ? -1 : (s1.length > s2.length);
+}
+
+//
+unittest
+{
+    assert(dstrcmp("Fraise", "Fraise")      == 0);
+    assert(dstrcmp("Baguette", "Croissant") == -1);
+    assert(dstrcmp("Croissant", "Baguette") == 1);
+
+    static assert(dstrcmp("Baguette", "Croissant") == -1);
+
+    // UTF-8 decoding for the CT variant
+    assert(dstrcmp("안녕하세요!", "안녕하세요!") == 0);
+    static assert(dstrcmp("안녕하세요!", "안녕하세요!") == 0);
 }

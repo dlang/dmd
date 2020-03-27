@@ -216,7 +216,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             {
                 /* Allow these special enums to not need a member list
                  */
-                return memtype.getProperty(loc, id, 0);
+                return memtype.getProperty(_scope, loc, id, 0);
             }
 
             error("is forward referenced looking for `.%s`", id.toChars());

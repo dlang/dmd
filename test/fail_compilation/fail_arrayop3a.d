@@ -1,23 +1,14 @@
-// REQUIRED_ARGS: -o-
-
 /*
-example output from druntime
+REQUIRED_ARGS: -o-
+TEST_OUTPUT:
 ----
-../../druntime/import/core/internal/arrayop.d(160): Error: static assert  "Binary op `*` not supported for element type X."
-../../druntime/import/core/internal/arrayop.d(145):        instantiated from here: `opsSupported!(true, X, "*")`
-../../druntime/import/core/internal/arrayop.d(20):        instantiated from here: `opsSupported!(true, X, "*", "=")`
-../../druntime/import/object.d(3640):        instantiated from here: `arrayOp!(X[], X[], X[], "*", "=")`
-fail_compilation/fail_arrayop3a.d(28):        instantiated from here: `_arrayOp!(X[], X[], X[], "*", "=")`
-../../druntime/import/core/internal/arrayop.d(160): Error: static assert  "Binary op `+=` not supported for element type string."
-../../druntime/import/core/internal/arrayop.d(20):        instantiated from here: `opsSupported!(true, string, "+=")`
-../../druntime/import/object.d(3640):        instantiated from here: `arrayOp!(string[], string[], "+=")`
-fail_compilation/fail_arrayop3a.d(32):        instantiated from here: `_arrayOp!(string[], string[], "+=")`
-../../druntime/import/core/internal/arrayop.d(160): Error: static assert  "Binary op `*=` not supported for element type int*."
-../../druntime/import/core/internal/arrayop.d(20):        instantiated from here: `opsSupported!(true, int*, "*=")`
-../../druntime/import/object.d(3640):        instantiated from here: `arrayOp!(int*[], int*[], "*=")`
-fail_compilation/fail_arrayop3a.d(36):        instantiated from here: `_arrayOp!(int*[], int*[], "*=")`
+$p:druntime/import/core/internal/array/operations.d$($n$): Error: static assert:  "Binary `*` not supported for types `X` and `X`."
+$p:druntime/import/core/internal/array/operations.d$($n$):        instantiated from here: `typeCheck!(true, X, X, X, "*", "=")`
+$p:druntime/import/object.d$($n$):        instantiated from here: `arrayOp!(X[], X[], X[], "*", "=")`
+fail_compilation/fail_arrayop3a.d(19):        instantiated from here: `_arrayOp!(X[], X[], X[], "*", "=")`
 ----
 */
+
 void test11376()
 {
     struct X { }

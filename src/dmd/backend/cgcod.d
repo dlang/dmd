@@ -698,11 +698,7 @@ tryagain:
 
     assert(global87.stackused == 0);             /* nobody in 8087 stack         */
 
-    /* Clean up ndp save array  */
-    mem_free(global87.save);
-    global87.save = null;
-    global87.savetop = 0;
-    global87.savemax = 0;
+    global87.save.__dtor();       // clean up ndp save array
 }
 
 /*********************************************
@@ -919,7 +915,7 @@ else
     //printf("CSoff = x%x, size = x%x, alignment = %x\n",
         //cast(int)CSoff, CSE.size(), cast(int)CSE.alignment);
 
-    NDPoff = alignsection(CSoff - global87.savetop * tysize(TYldouble), REGSIZE, bias);
+    NDPoff = alignsection(CSoff - global87.save.length * tysize(TYldouble), REGSIZE, bias);
 
     regm_t topush = fregsaved & ~mfuncreg;          // mask of registers that need saving
     pushoffuse = false;

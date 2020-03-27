@@ -1,6 +1,5 @@
 /**
- * Compiler implementation of the D programming language
- * http://dlang.org
+ * Hash functions for arbitrary binary data.
  *
  * Copyright: Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:   Martin Nowak, Walter Bright, http://www.digitalmars.com

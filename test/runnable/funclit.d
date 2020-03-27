@@ -8,6 +8,11 @@ int
 int[]
 int delegate() pure nothrow @nogc @safe function() pure nothrow @safe
 ---
+
+RUN_OUTPUT:
+---
+Success
+---
 */
 import core.vararg;
 

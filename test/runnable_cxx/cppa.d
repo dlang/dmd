@@ -3,6 +3,9 @@
 // EXTRA_FILES: extra-files/cppb.h
 // CXXFLAGS(linux freebsd osx netbsd dragonflybsd): -std=c++11
 
+// Filter a spurious warning on Semaphore:
+// TRANSFORM_OUTPUT: remove_lines("warning: relocation refers to discarded section")
+
 // N.B MSVC doesn't have a C++11 switch, but it defaults to the latest fully-supported standard
 
 import core.stdc.stdio;
@@ -157,7 +160,7 @@ extern (C) int foosize6();
 void test6()
 {
     S6 f = foo6();
-    printf("%d %d\n", foosize6(), S6.sizeof);
+    printf("%d %zd\n", foosize6(), S6.sizeof);
     assert(foosize6() == S6.sizeof);
 version (X86)
 {
@@ -181,7 +184,7 @@ struct S
 
 void test7()
 {
-    printf("%d %d\n", foo7(), S.sizeof);
+    printf("%d %zd\n", foo7(), S.sizeof);
     assert(foo7() == S.sizeof);
 }
 

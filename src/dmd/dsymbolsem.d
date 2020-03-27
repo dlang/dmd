@@ -750,11 +750,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     {
         version (none)
         {
-            printf("VarDeclaration::semantic('%s', parent = '%s') sem = %d\n", toChars(), sc.parent ? sc.parent.toChars() : null, sem);
-            printf(" type = %s\n", type ? type.toChars() : "null");
-            printf(" stc = x%x\n", sc.stc);
-            printf(" storage_class = x%llx\n", storage_class);
-            printf("linkage = %d\n", sc.linkage);
+            printf("VarDeclaration::semantic('%s', parent = '%s') sem = %d\n",
+                   dsym.toChars(), sc.parent ? sc.parent.toChars() : null, dsym.semanticRun);
+            printf(" type = %s\n", dsym.type ? dsym.type.toChars() : "null");
+            printf(" stc = x%x\n", dsym.storage_class.stc);
+            printf(" storage_class = x%llx\n", dsym.storage_class);
+            printf("linkage = %d\n", dsym.linkage);
             //if (strcmp(toChars(), "mul") == 0) assert(0);
         }
         //if (semanticRun > PASS.init)
@@ -805,9 +806,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             // so mark the scope as ctfe if required
             bool needctfe = (dsym.storage_class & (STC.manifest | STC.static_)) != 0;
             if (needctfe)
+            {
+                sc.flags |= SCOPE.condition;
                 sc = sc.startCTFE();
-
-            //printf("inferring type for %s with init %s\n", toChars(), _init.toChars());
+            }
+            //printf("inferring type for %s with init %s\n", dsym.toChars(), dsym._init.toChars());
             dsym._init = dsym._init.inferType(sc);
             dsym.type = dsym._init.initializerToExpression().type;
             if (needctfe)
@@ -846,7 +849,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         dsym.type.checkDeprecated(dsym.loc, sc);
         dsym.linkage = sc.linkage;
         dsym.parent = sc.parent;
-        //printf("this = %p, parent = %p, '%s'\n", this, parent, parent.toChars());
+        //printf("this = %p, parent = %p, '%s'\n", dsym, dsym.parent, dsym.parent.toChars());
         dsym.protection = sc.protection;
 
         /* If scope's alignment is the default, use the type's alignment,
@@ -1381,9 +1384,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
                     if (ei && dsym.isScope())
                     {
-                        Expression ex = ei.exp;
-                        while (ex.op == TOK.comma)
-                            ex = (cast(CommaExp)ex).e2;
+                        Expression ex = ei.exp.lastComma();
                         if (ex.op == TOK.blit || ex.op == TOK.construct)
                             ex = (cast(AssignExp)ex).e2;
                         if (ex.op == TOK.new_)
@@ -2615,7 +2616,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 ? em.ed.memtype
                 : eprev.type;
 
-            Expression emax = tprev.getProperty(em.ed.loc, Id.max, 0);
+            Expression emax = tprev.getProperty(sc, em.ed.loc, Id.max, 0);
             emax = emax.expressionSemantic(sc);
             emax = emax.ctfeInterpret();
 
@@ -2886,7 +2887,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 tm.symtab = sc.parent.isScopeDsymbol().symtab;
             L1:
                 assert(tm.symtab);
-                tm.ident = Identifier.generateId(s, tm.symtab.len + 1);
+                tm.ident = Identifier.generateId(s, tm.symtab.length + 1);
                 tm.symtab.insert(tm);
             }
         }
@@ -4291,7 +4292,16 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             scd.fbody = new CompoundStatement(Loc.initial, sa);
         }
 
+        const LINK save = sc.linkage;
+        if (save != LINK.d)
+        {
+            const(char)* s = (scd.isSharedStaticCtorDeclaration() ? "shared " : "");
+            deprecation(scd.loc, "`%sstatic` constructor can only be of D linkage", s);
+            // Just correct it
+            sc.linkage = LINK.d;
+        }
         funcDeclarationSemantic(scd);
+        sc.linkage = save;
 
         // We're going to need ModuleInfo
         Module m = scd.getModule();
@@ -4361,7 +4371,16 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             sdd.vgate = v;
         }
 
+        const LINK save = sc.linkage;
+        if (save != LINK.d)
+        {
+            const(char)* s = (sdd.isSharedStaticDtorDeclaration() ? "shared " : "");
+            deprecation(sdd.loc, "`%sstatic` destructor can only be of D linkage", s);
+            // Just correct it
+            sc.linkage = LINK.d;
+        }
         funcDeclarationSemantic(sdd);
+        sc.linkage = save;
 
         // We're going to need ModuleInfo
         Module m = sdd.getModule();
@@ -5759,7 +5778,8 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
     {
         static if (LOG)
         {
-            printf("-TemplateInstance.dsymbolSemantic('%s', this=%p) already run\n", inst.toChars(), tempinst.inst);
+            printf("-TemplateInstance.dsymbolSemantic('%s', this=%p) already run\n",
+                   tempinst.inst.toChars(), tempinst.inst);
         }
         return;
     }
@@ -6021,7 +6041,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
      * member has the same name as the template instance.
      * If so, this template instance becomes an alias for that member.
      */
-    //printf("members.dim = %d\n", members.dim);
+    //printf("members.dim = %d\n", tempinst.members.dim);
     if (tempinst.members.dim)
     {
         Dsymbol s;
@@ -6296,7 +6316,7 @@ Laftersemantic:
 
     static if (LOG)
     {
-        printf("-TemplateInstance.dsymbolSemantic('%s', this=%p)\n", toChars(), this);
+        printf("-TemplateInstance.dsymbolSemantic('%s', this=%p)\n", tempinst.toChars(), tempinst);
     }
 }
 
@@ -6309,6 +6329,10 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
     sc.flags |= SCOPE.alias_;
     scope(exit)
         sc.flags &= ~SCOPE.alias_;
+
+    // preserve the original type
+    if (!ds.originalType && ds.type)
+        ds.originalType = ds.type.syntaxCopy();
 
     if (ds.aliassym)
     {

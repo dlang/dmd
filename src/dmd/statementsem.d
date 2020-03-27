@@ -2711,19 +2711,14 @@ else
 
             if (numcases)
             {
-                extern (C) static int sort_compare(const(void*) x, const(void*) y) @trusted
+                static int sort_compare(in CaseStatement* x, in CaseStatement* y) @trusted
                 {
-                    CaseStatement ox = *cast(CaseStatement *)x;
-                    CaseStatement oy = *cast(CaseStatement*)y;
-
-                    auto se1 = ox.exp.isStringExp();
-                    auto se2 = oy.exp.isStringExp();
+                    auto se1 = x.exp.isStringExp();
+                    auto se2 = y.exp.isStringExp();
                     return (se1 && se2) ? se1.compare(se2) : 0;
                 }
-
                 // Sort cases for efficient lookup
-                import core.stdc.stdlib : qsort, _compare_fp_t;
-                qsort((*csCopy)[].ptr, numcases, CaseStatement.sizeof, cast(_compare_fp_t)&sort_compare);
+                csCopy.sort!sort_compare;
             }
 
             // The actual lowering

@@ -1,4 +1,10 @@
-import test17968a;
+/*
+COMPILE_SEPARATELY:
+EXTRA_SOURCES: imports/test17968a.d
+PERMUTE_ARGS:
+*/
+
+import imports.test17968a;
 
 void main()
 {

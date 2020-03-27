@@ -642,7 +642,7 @@ Initializer inferType(Initializer init, Scope* sc)
 
     Initializer visitExp(ExpInitializer init)
     {
-        //printf("ExpInitializer::inferType() %s\n", toChars());
+        //printf("ExpInitializer::inferType() %s\n", init.toChars());
         init.exp = init.exp.expressionSemantic(sc);
 
         // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684

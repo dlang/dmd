@@ -257,7 +257,7 @@ void obj_start(const(char)* srcfile)
     version (Windows)
     {
         // Produce Ms COFF files for 64 bit code, OMF for 32 bit code
-        assert(objbuf.size() == 0);
+        assert(objbuf.length() == 0);
         objmod = global.params.mscoff ? MsCoffObj_init(&objbuf, srcfile, null)
                                       :    OmfObj_init(&objbuf, srcfile, null);
     }
@@ -278,21 +278,17 @@ void obj_end(Library library, const(char)* objfilename)
     //delete objmod;
     objmod = null;
 
-    const data = objbuf.buf[0 .. objbuf.p - objbuf.buf];
     if (library)
     {
-        // Transfer image to library
-        library.addObject(objfilename, data);
+        // Transfer ownership of image buffer to library
+        library.addObject(objfilename.toDString(), objbuf.extractSlice[]);
     }
     else
     {
         //printf("write obj %s\n", objfilename);
-        writeFile(Loc.initial, objfilename.toDString, data);
-        free(objbuf.buf); // objbuf is a backend `Outbuffer` managed by C malloc/free
+        writeFile(Loc.initial, objfilename.toDString, objbuf[]);
     }
-    objbuf.buf = null;
-    objbuf.pend = null;
-    objbuf.p = null;
+    objbuf.dtor();
 }
 
 bool obj_includelib(const(char)* name) nothrow
