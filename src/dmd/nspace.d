@@ -137,11 +137,6 @@ extern (C++) final class Nspace : ScopeDsymbol
         return ScopeDsymbol.search(loc, ident, flags);
     }
 
-    override int apply(Dsymbol_apply_ft_t fp, void* param)
-    {
-        return members.foreachDsymbol( (s) { return s && s.apply(fp, param); } );
-    }
-
     override bool hasPointers()
     {
         //printf("Nspace::hasPointers() %s\n", toChars());

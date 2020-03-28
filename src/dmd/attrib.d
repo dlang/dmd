@@ -71,11 +71,6 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         return decl;
     }
 
-    override final int apply(Dsymbol_apply_ft_t fp, void* param)
-    {
-        return include(_scope).foreachDsymbol( (s) { return s && s.apply(fp, param); } );
-    }
-
     /****************************************
      * Create a new scope if one or more given attributes
      * are different from the sc's.

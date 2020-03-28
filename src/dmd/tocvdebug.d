@@ -24,6 +24,7 @@ import dmd.root.array;
 import dmd.root.rmem;
 
 import dmd.aggregate;
+import dmd.apply;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum;
@@ -445,19 +446,16 @@ struct CvFieldList
 }
 
 // Lambda function
-int cv_mem_count(Dsymbol s, void *param)
+int cv_mem_count(Dsymbol s, CvFieldList *pmc)
 {
-    CvFieldList *pmc = cast(CvFieldList *)param;
-
     int nwritten = cvMember(s, null);
     pmc.count(nwritten);
     return 0;
 }
 
 // Lambda function
-int cv_mem_p(Dsymbol s, void *param)
+int cv_mem_p(Dsymbol s, CvFieldList *pmc)
 {
-    CvFieldList *pmc = cast(CvFieldList *)param;
     ubyte *p = pmc.writePtr();
     uint len = cvMember(s, p);
     pmc.written(len);
