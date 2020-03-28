@@ -1239,8 +1239,8 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             TemplateParameter tp = (*parameters)[i];
             if (tp.dependent)
                 break;
-            RootObject p = cast(RootObject)tp.dummyArg();
-            if (!p)
+            RootObject p = tp.dummyArg();
+            if (!p) //TemplateTupleParameter
                 break;
 
             tiargs.push(p);
@@ -5324,7 +5324,7 @@ extern (C++) class TemplateParameter : ASTNode
 
     /* Create dummy argument based on parameter.
      */
-    abstract void* dummyArg();
+    abstract RootObject dummyArg();
 
     override void accept(Visitor v)
     {
@@ -5406,7 +5406,7 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
         return defaultType !is null;
     }
 
-    override final void* dummyArg()
+    override final RootObject dummyArg()
     {
         Type t = specType;
         if (!t)
@@ -5416,7 +5416,7 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
                 tdummy = new TypeIdentifier(loc, ident);
             t = tdummy;
         }
-        return cast(void*)t;
+        return t;
     }
 
     override void accept(Visitor v)
@@ -5533,7 +5533,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
         return defaultValue !is null;
     }
 
-    override void* dummyArg()
+    override RootObject dummyArg()
     {
         Expression e = specValue;
         if (!e)
@@ -5548,7 +5548,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
             else
                 e = *pe;
         }
-        return cast(void*)e;
+        return e;
     }
 
     override void accept(Visitor v)
@@ -5630,7 +5630,7 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
         return defaultAlias !is null;
     }
 
-    override void* dummyArg()
+    override RootObject dummyArg()
     {
         RootObject s = specAlias;
         if (!s)
@@ -5639,7 +5639,7 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
                 sdummy = new Dsymbol();
             s = sdummy;
         }
-        return cast(void*)s;
+        return s;
     }
 
     override void accept(Visitor v)
@@ -5720,7 +5720,7 @@ extern (C++) final class TemplateTupleParameter : TemplateParameter
         return false;
     }
 
-    override void* dummyArg()
+    override RootObject dummyArg()
     {
         return null;
     }
