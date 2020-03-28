@@ -1,4 +1,5 @@
-/* REQUIRED_ARGS: -verrors=0
+/*
+REQUIRED_ARGS:-preview=dip1021
 TEST_OUTPUT:
 ---
 fail_compilation/failob1.d(104): Error: variable `failob1.test1.a1` is left dangling at return
