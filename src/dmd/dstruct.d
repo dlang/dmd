@@ -202,6 +202,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
 {
     bool zeroInit;              // !=0 if initialize with 0 fill
     bool hasIdentityAssign;     // true if has identity opAssign
+    bool hasBlitAssign;         // true if opAssign is a blit
     bool hasIdentityEquals;     // true if has identity opEquals
     bool hasNoFields;           // has no fields
     FuncDeclarations postblits; // Array of postblit functions
