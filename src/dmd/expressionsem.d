@@ -11401,6 +11401,12 @@ Expression semanticX(DotIdExp exp, Scope* sc)
                     {
                         return new ErrorExp();
                     }
+                    if (f.flags & (FUNCFLAG.purityInprocess | FUNCFLAG.safetyInprocess |
+                                   FUNCFLAG.nothrowInprocess | FUNCFLAG.nogcInprocess))
+                    {
+                        f.error(exp.loc, "cannot retrieve its `.mangleof` while inferring attributes");
+                        return new ErrorExp();
+                    }
                 }
                 OutBuffer buf;
                 mangleToBuffer(ds, &buf);
