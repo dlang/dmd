@@ -150,7 +150,6 @@ jobs:
       uses: actions/checkout@v2
       with:
         path: dmd
-        ref: ${{ github.base_ref }}
         persist-credentials: false
     - name: Checkout druntime
       uses: actions/checkout@v2
