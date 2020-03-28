@@ -133,7 +133,7 @@ Options:
 
     // allow overwrites from the environment
     hostDMD = environment.get("HOST_DMD", "dmd");
-    unitTestRunnerCommand = resultsDir.buildPath("unit_test_runner");
+    unitTestRunnerCommand = resultsDir.buildPath("unit_test_runner").exeName;
 
     // bootstrap all needed environment variables
     auto env = getEnvironment;
