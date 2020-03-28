@@ -208,6 +208,10 @@ start_all_tests: $(RUNNER)
 	@echo "Running all tests"
 	$(EXECUTE_RUNNER) all
 
+# The auto-tester cannot run runnable_cxx as its compiler is too old
+auto-tester-test: $(RUNNER)
+	$(EXECUTE_RUNNER) runnable compilable fail_compilation dshell
+
 $(RESULTS_DIR)/d_do_test$(EXE): tools/d_do_test.d tools/sanitize_json.d $(RESULTS_DIR)/.created
 	@echo "Building d_do_test tool"
 	@echo "OS: '$(OS)'"

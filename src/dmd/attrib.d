@@ -1348,4 +1348,66 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
     {
         v.visit(this);
     }
+
+    /**
+     * Check if the provided expression references `core.attribute.gnuAbiTag`
+     *
+     * This should be called after semantic has been run on the expression.
+     * Semantic on UDA happens in semantic2 (see `dmd.semantic2`).
+     *
+     * Params:
+     *   e = Expression to check (usually from `UserAttributeDeclaration.atts`)
+     *
+     * Returns:
+     *   `true` if the expression references the compiler-recognized `gnuAbiTag`
+     */
+    static bool isGNUABITag(Expression e)
+    {
+        if (global.params.cplusplus < CppStdRevision.cpp11)
+            return false;
+
+        auto ts = e.type ? e.type.isTypeStruct() : null;
+        if (!ts)
+            return false;
+        if (ts.sym.ident != Id.udaGNUAbiTag || !ts.sym.parent)
+            return false;
+        // Can only be defined in druntime
+        Module m = ts.sym.parent.isModule();
+        if (!m || !m.isCoreModule(Id.attribute))
+            return false;
+        return true;
+    }
+
+    /**
+     * Called from a symbol's semantic to check if `gnuAbiTag` UDA
+     * can be applied to them
+     *
+     * Directly emits an error if the UDA doesn't work with this symbol
+     *
+     * Params:
+     *   sym = symbol to check for `gnuAbiTag`
+     *   linkage = Linkage of the symbol (Declaration.link or sc.link)
+     */
+    static void checkGNUABITag(Dsymbol sym, LINK linkage)
+    {
+        if (global.params.cplusplus < CppStdRevision.cpp11)
+            return;
+
+        // Avoid `if` at the call site
+        if (sym.userAttribDecl is null || sym.userAttribDecl.atts is null)
+            return;
+
+        foreach (exp; *sym.userAttribDecl.atts)
+        {
+            if (isGNUABITag(exp))
+            {
+                if (sym.isCPPNamespaceDeclaration() || sym.isNspace())
+                    exp.error("`@%s` cannot be applied to namespaces", Id.udaGNUAbiTag.toChars());
+                else if (linkage != LINK.cpp)
+                    exp.error("`@%s` can only apply to C++ symbols", Id.udaGNUAbiTag.toChars());
+                // Only one `@gnuAbiTag` is allowed by semantic2
+                return;
+            }
+        }
+    }
 }
