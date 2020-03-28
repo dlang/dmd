@@ -1,6 +1,18 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Defines declarations of various attributes.
+ *
+ * The term 'attribute' refers to things that can apply to a larger scope than a single declaration.
+ * Among them are:
+ * - Alignment (`align(8)`)
+ * - User defined attributes (`@UDA`)
+ * - Function Attributes (`@safe`)
+ * - Storage classes (`static`, `__gshared`)
+ * - Mixin declarations  (`mixin("int x;")`)
+ * - Conditional compilation (`static if`, `static foreach`)
+ * - Linkage (`extern(C)`)
+ * - Anonymous structs / unions
+ * - Protection (`private`, `public`)
+ * - Deprecated declarations (`@deprecated`)
  *
  * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)

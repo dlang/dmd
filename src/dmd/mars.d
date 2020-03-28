@@ -1,6 +1,4 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
  * Entry point for DMD.
  *
  * This modules defines the entry point (main) for DMD, as well as related

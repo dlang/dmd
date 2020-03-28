@@ -1,5 +1,5 @@
 /**
- * Compiler implementation of the $(LINK2 http://www.dlang.org, D programming language)
+ * Do mangling for C++ linkage for Digital Mars C++ and Microsoft Visual C++.
  *
  * Copyright: Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors: Walter Bright, http://www.digitalmars.com
@@ -32,9 +32,6 @@ import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
-
-/* Do mangling for C++ linkage for Digital Mars C++ and Microsoft Visual C++
- */
 
 extern (C++):
 

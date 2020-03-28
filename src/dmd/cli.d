@@ -1,8 +1,6 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Defines the help texts for the CLI options offered by DMD.
  *
- * This modules defines the help texts for the CLI options offered by DMD.
  * This file is not shared with other compilers which use the DMD front-end.
  * However, this file will be used to generate the
  * $(LINK2 https://dlang.org/dmd-linux.html, online documentation) and MAN pages.

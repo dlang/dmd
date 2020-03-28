@@ -1,9 +1,11 @@
-module dmd.astcodegen;
-
 /**
+ * Defines AST nodes for the code generation stage.
+ *
  * Documentation:  https://dlang.org/phobos/dmd_astcodegen.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/astcodegen.d
  */
+module dmd.astcodegen;
+
 
 struct ASTCodegen
 {

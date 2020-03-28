@@ -1,6 +1,8 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Performs inlining, which is an optimization pass enabled with the `-inline` flag.
+ *
+ * The AST is traversed, and every function call is considered for inlining using `inlinecost.d`.
+ * The function call is then inlined if this cost is below a threshold.
  *
  * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)

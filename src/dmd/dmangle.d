@@ -1,5 +1,7 @@
 /**
- * Compiler implementation of the $(LINK2 http://www.dlang.org, D programming language)
+ * Does name mangling for `extern(D)` symbols.
+ *
+ * Specification: $(LINK2 https://dlang.org/spec/abi.html#name_mangling, Name Mangling)
  *
  * Copyright: Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors: Walter Bright, http://www.digitalmars.com
