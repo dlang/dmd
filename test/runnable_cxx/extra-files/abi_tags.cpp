@@ -15,9 +15,13 @@ struct [[gnu::abi_tag("tag1", "tag2")]] Tagged1_2
 {
     struct [[gnu::abi_tag("tag3")]] Tagged3
     {
+        Tagged3(int value_) : value(value_) {}
+
         // _ZN9Tagged1_2B4tag1B4tag27Tagged3B4tag37Tagged4B4tag4Ev
         [[gnu::abi_tag("tag4")]]
-        int Tagged4 () { return 42; }
+        int Tagged4 () { return this->value; }
+
+        int value;
     };
 };
 struct [[gnu::abi_tag("tag1")]] Tagged1Too {};
@@ -25,7 +29,7 @@ struct [[gnu::abi_tag("tag1")]] Tagged1Too {};
 // _Z5inst1B4tag1B4tag2
 Tagged1_2 inst1;
 // _Z5inst2B4tag1B4tag2B4tag3
-Tagged1_2::Tagged3 inst2;
+Tagged1_2::Tagged3 inst2(42);
 
 // _Z5func0B4tag1B4tag2i
 Tagged1_2 func0(int a) { return Tagged1_2(); }
@@ -38,7 +42,7 @@ Tagged1_2 func3(Tagged2 a) { return Tagged1_2(); }
 // _Z5func47Tagged2B4tag27Tagged1B4tag1
 Tagged1_2 func4(Tagged2 a, Tagged1 b) { return Tagged1_2(); }
 // _Z5func5B4tag37Tagged2B4tag27Tagged1B4tag1
-Tagged1_2::Tagged3 func5(Tagged2 a, Tagged1 b) { return Tagged1_2::Tagged3(); }
+Tagged1_2::Tagged3 func5(Tagged2 a, Tagged1 b) { return Tagged1_2::Tagged3(420); }
 // _Z5func67Tagged2B4tag2S_7Tagged1B4tag19Tagged1_2B4tag1B4tag2
 void func6(Tagged2 a, Tagged2 b, Tagged1 c, Tagged1_2 d) {}
 // With T=Tagged1_2: _Z5func7I9Tagged1_2B4tag1B4tag2ET_S1_i
@@ -145,11 +149,3 @@ void instatiate()
     fei<0>();
 #endif
 }
-
-#ifdef __linux__
-#include <string>
-std::string* toString(const char* s)
-{
-    return new std::string(s);
-}
-#endif
