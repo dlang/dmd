@@ -295,7 +295,6 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     const char *kind() const;
     bool oneMember(Dsymbol **ps, Identifier *ident);
-    int apply(Dsymbol_apply_ft_t fp, void *param);
     bool hasPointers();
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     const char *toChars() const;

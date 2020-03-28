@@ -18,6 +18,7 @@ import core.stdc.stdio;
 import core.checkedint;
 
 import dmd.aliasthis;
+import dmd.apply;
 import dmd.arraytypes;
 import dmd.gluelayer : Symbol;
 import dmd.declaration;
@@ -176,15 +177,13 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         // determineFields can be called recursively from one of the fields's v.semantic
         fields.setDim(0);
 
-        extern (C++) static int func(Dsymbol s, void* param)
+        static int func(Dsymbol s, AggregateDeclaration ad)
         {
             auto v = s.isVarDeclaration();
             if (!v)
                 return 0;
             if (v.storage_class & STC.manifest)
                 return 0;
-
-            auto ad = cast(AggregateDeclaration)param;
 
             if (v.semanticRun < PASS.semanticdone)
                 v.dsymbolSemantic(null);
@@ -223,7 +222,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             for (size_t i = 0; i < members.dim; i++)
             {
                 auto s = (*members)[i];
-                if (s.apply(&func, cast(void*)this))
+                if (s.apply(&func, this))
                 {
                     if (sizeok != Sizeok.none)
                     {

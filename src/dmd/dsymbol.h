@@ -140,8 +140,6 @@ enum
     IgnoreSymbolVisibility  = 0x80  // also find private and package protected symbols
 };
 
-typedef int (*Dsymbol_apply_ft_t)(Dsymbol *, void *);
-
 class Dsymbol : public ASTNode
 {
 public:
@@ -194,7 +192,6 @@ public:
     virtual const char *kind() const;
     virtual Dsymbol *toAlias();                 // resolve real symbol
     virtual Dsymbol *toAlias2();
-    virtual int apply(Dsymbol_apply_ft_t fp, void *param);
     virtual void addMember(Scope *sc, ScopeDsymbol *sds);
     virtual void setScope(Scope *sc);
     virtual void importAll(Scope *sc);

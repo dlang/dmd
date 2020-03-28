@@ -7486,14 +7486,6 @@ extern (C++) final class TemplateMixin : TemplateInstance
         return Dsymbol.oneMember(ps, ident);
     }
 
-    override int apply(Dsymbol_apply_ft_t fp, void* param)
-    {
-        if (_scope) // if fwd reference
-            dsymbolSemantic(this, null); // try to resolve it
-
-        return members.foreachDsymbol( (s) { return s && s.apply(fp, param); } );
-    }
-
     override bool hasPointers()
     {
         //printf("TemplateMixin.hasPointers() %s\n", toChars());

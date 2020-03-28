@@ -17,6 +17,7 @@ import core.stdc.stdio;
 import core.stdc.string;
 
 import dmd.aggregate;
+import dmd.apply;
 import dmd.arraytypes;
 import dmd.gluelayer;
 import dmd.declaration;
@@ -877,7 +878,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
          * Resolve forward references to all class member functions,
          * and determine whether this class is abstract.
          */
-        extern (C++) static int func(Dsymbol s, void* param)
+        static int func(Dsymbol s)
         {
             auto fd = s.isFuncDeclaration();
             if (!fd)
@@ -893,7 +894,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         for (size_t i = 0; i < members.dim; i++)
         {
             auto s = (*members)[i];
-            if (s.apply(&func, cast(void*)this))
+            if (s.apply(&func))
             {
                 return yes();
             }
@@ -920,7 +921,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
              * each of the virtual functions,
              * which will fill in the vtbl[] overrides.
              */
-            extern (C++) static int virtualSemantic(Dsymbol s, void* param)
+            static int virtualSemantic(Dsymbol s)
             {
                 auto fd = s.isFuncDeclaration();
                 if (fd && !(fd.storage_class & STC.static_) && !fd.isUnitTestDeclaration())
@@ -931,7 +932,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             for (size_t i = 0; i < members.dim; i++)
             {
                 auto s = (*members)[i];
-                s.apply(&virtualSemantic, cast(void*)this);
+                s.apply(&virtualSemantic);
             }
         }
 
