@@ -111,9 +111,6 @@ endif
 MIN_VERSION = v2.086.0
 VERSION = $(filter v2.%, $(shell $(HOST_DMD) --version 2>/dev/null))
 
-
-$(info VERSION = "$(VERSION)")
-
 ifeq ($(VERSION),)
     # dmd was not found in $PATH
     USE_GENERATED=1
@@ -126,9 +123,9 @@ endif
 ifneq ($(USE_GENERATED),)
     # Use the generated dmd instead of the host compiler
     HOST_DMD=$(DMD)
-    D=$(HOST_DMD) -conf=
+    RUN_HOST_DMD=$(HOST_DMD) -conf=
 else
-    D = $(HOST_DMD)
+    RUN_HOST_DMD = $(HOST_DMD)
 endif
 
 # Ensure valid paths on windows
@@ -217,13 +214,13 @@ $(RESULTS_DIR)/d_do_test$(EXE): tools/d_do_test.d tools/sanitize_json.d $(RESULT
 	@echo "OS: '$(OS)'"
 	@echo "MODEL: '$(MODEL)'"
 	@echo "PIC: '$(PIC_FLAG)'"
-	$(D) $(MODEL_FLAG) $(PIC_FLAG) -g -lowmem -i -Itools -version=NoMain -unittest -run $<
-	$(D) $(MODEL_FLAG) $(PIC_FLAG) -g -lowmem -i -Itools -version=NoMain -od$(RESULTS_DIR) -of$@ $<
+	$(RUN_HOST_DMD) $(MODEL_FLAG) $(PIC_FLAG) -g -lowmem -i -Itools -version=NoMain -unittest -run $<
+	$(RUN_HOST_DMD) $(MODEL_FLAG) $(PIC_FLAG) -g -lowmem -i -Itools -version=NoMain -od$(RESULTS_DIR) -of$@ $<
 
 # Build d_do_test here to run it's unittests
 # TODO: Migrate this to run.d
 $(RUNNER): run.d $(RESULTS_DIR)/d_do_test$(EXE)
-	$(D) $(MODEL_FLAG) $(PIC_FLAG) -g -od$(RESULTS_DIR) -of$(RUNNER) -i -release $<
+	$(RUN_HOST_DMD) $(MODEL_FLAG) $(PIC_FLAG) -g -od$(RESULTS_DIR) -of$(RUNNER) -i -release $<
 
 # run.d is not reentrant because each invocation might attempt to build the required tools
 .NOTPARALLEL:
