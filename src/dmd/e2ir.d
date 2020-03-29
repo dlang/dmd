@@ -42,7 +42,6 @@ import dmd.globals;
 import dmd.glue;
 import dmd.id;
 import dmd.init;
-import dmd.irstate;
 import dmd.mtype;
 import dmd.objc_glue;
 import dmd.s2ir;
