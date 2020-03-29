@@ -771,6 +771,32 @@ public:
         buf.printf("// ignored %s %s\n", ad.aliassym.kind(), ad.aliassym.toPrettyChars());
     }
 
+    override void visit(AST.Nspace ns)
+    {
+        handleNspace(ns.ident, ns.members);
+    }
+
+    override void visit(AST.CPPNamespaceDeclaration ns)
+    {
+        handleNspace(ns.ident, ns.decl);
+    }
+
+    void handleNspace(Identifier name, Dsymbols* members)
+    {
+        buf.printf("namespace %s", name.toChars());
+        buf.writenl();
+        buf.writestring("{");
+        buf.writenl();
+        buf.level++;
+        foreach(decl;(*members))
+        {
+            decl.accept(this);
+        }
+        buf.level--;
+        buf.writestring("}");
+        buf.writenl();
+    }
+
     override void visit(AST.AnonDeclaration ad)
     {
         debug (Debug_DtoH)
