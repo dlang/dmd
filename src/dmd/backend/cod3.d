@@ -6508,7 +6508,7 @@ uint codout(int seg, code *c)
     {
         debug
         {
-        if (debugc) { printf("off=%02lx, sz=%ld, ",cast(int)ggen.getOffset(),cast(int)calccodsize(c)); code_print(c); }
+        if (debugc) { printf("off=%02u, sz=%u, ", ggen.getOffset(), calccodsize(c)); code_print(c); }
         uint startoffset = ggen.getOffset();
         }
 
