@@ -429,7 +429,7 @@ void unittest_actionTableInsert()
 
     static immutable ubyte[8] result = [ 3,0,2,0x7D,1,0x7D,2,0 ];
     //for (int i = 0; i < atbuf.length(); ++i) printf(" %02x\n", atbuf.buf[i]);
-    assert(result.lengthof == atbuf.length());
+    assert(result.sizeof == atbuf.length());
     int r = memcmp(result.ptr, atbuf.buf, atbuf.length());
     assert(r == 0);
 }
@@ -563,7 +563,7 @@ void unittest_LEB128()
         assert(buf.length() == uLEB128size(value));
         const(ubyte)[] p = buf[];
         int result = uLEB128(p);
-        assert(!p.length());
+        assert(!p.length);
         assert(result == value);
 
         buf.reset();
@@ -571,7 +571,7 @@ void unittest_LEB128()
         assert(buf.length() == sLEB128size(value));
         p = buf[];
         result = sLEB128(p);
-        assert(!p.length());
+        assert(!p.length);
         assert(result == value);
     }
 }
