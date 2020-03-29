@@ -799,8 +799,9 @@ LtargetsLoop:
         switch (t)
         {
             case "all":
-                t = "dmd";
-                goto default;
+                // "all" must include dmd + dmd.conf
+                newTargets ~= dmdDefault;
+                break;
 
             default:
                 // check this last, target paths should be checked after predefined names
