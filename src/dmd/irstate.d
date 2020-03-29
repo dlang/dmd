@@ -1,5 +1,7 @@
 /**
- * The state of Intermediate Representation (IR), which is what the back-end uses.
+ * Used to help transform statement AST into flow graph.
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
@@ -11,111 +13,16 @@
 
 module dmd.irstate;
 
-import dmd.root.array;
-
-import dmd.arraytypes;
-import dmd.backend.type;
-import dmd.dclass;
-import dmd.dmodule;
-import dmd.dsymbol;
-import dmd.func;
 import dmd.identifier;
 import dmd.statement;
-import dmd.globals;
-import dmd.mtype;
 
-import dmd.backend.cc;
-import dmd.backend.el;
+import dmd.backend.cc; // for `block`
 
-/****************************************
- * Our label symbol
+/************************************************
+ * Used to traverse the statement AST to transform it into
+ * a flow graph.
+ * Keeps track of things like "where does the `break` go".
  */
-
-struct Label
-{
-    block *lblock;      // The block to which the label is defined.
-}
-
-/***********************************************************
- */
-struct IRState
-{
-    Module m;                       // module
-    private FuncDeclaration symbol; // function that code is being generate for
-    Symbol* shidden;                // hidden parameter to function
-    Symbol* sthis;                  // 'this' parameter to function (member and nested)
-    Symbol* sclosure;               // pointer to closure instance
-    Blockx* blx;
-    Dsymbols* deferToObj;           // array of Dsymbol's to run toObjFile(bool multiobj) on later
-    elem* ehidden;                  // transmit hidden pointer to CallExp::toElem()
-    Symbol* startaddress;
-    Array!(elem*)* varsInScope;     // variables that are in scope that will need destruction later
-    Label*[void*]* labels;          // table of labels used/declared in function
-    const Param* params;            // command line parameters
-    bool mayThrow;                  // the expression being evaluated may throw
-
-    this(Module m, FuncDeclaration fd, Array!(elem*)* varsInScope, Dsymbols* deferToObj, Label*[void*]* labels,
-        const Param* params)
-    {
-        this.m = m;
-        this.symbol = fd;
-        this.varsInScope = varsInScope;
-        this.deferToObj = deferToObj;
-        this.labels = labels;
-        this.params = params;
-        mayThrow = global.params.useExceptions
-            && ClassDeclaration.throwable
-            && !(fd && fd.eh_none);
-    }
-
-    FuncDeclaration getFunc()
-    {
-        return symbol;
-    }
-
-    /**********************
-     * Returns:
-     *    true if do array bounds checking for the current function
-     */
-    bool arrayBoundsCheck()
-    {
-        bool result;
-        final switch (global.params.useArrayBounds)
-        {
-        case CHECKENABLE.off:
-            result = false;
-            break;
-        case CHECKENABLE.on:
-            result = true;
-            break;
-        case CHECKENABLE.safeonly:
-            {
-                result = false;
-                FuncDeclaration fd = getFunc();
-                if (fd)
-                {
-                    Type t = fd.type;
-                    if (t.ty == Tfunction && (cast(TypeFunction)t).trust == TRUST.safe)
-                        result = true;
-                }
-                break;
-            }
-        case CHECKENABLE._default:
-            assert(0);
-        }
-        return result;
-    }
-
-    /****************************
-     * Returns:
-     *  true if in a nothrow section of code
-     */
-    bool isNothrow()
-    {
-        return !mayThrow;
-    }
-}
-
 struct StmtState
 {
     StmtState* prev;

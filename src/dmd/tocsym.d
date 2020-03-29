@@ -44,7 +44,6 @@ import dmd.todt;
 import dmd.tokens;
 import dmd.typinf;
 import dmd.visitor;
-import dmd.irstate;
 import dmd.dmangle;
 
 import dmd.backend.cdef;
