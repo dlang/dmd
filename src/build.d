@@ -1434,17 +1434,22 @@ void args2Environment(ref string[] args)
 }
 
 /**
-Checks whether the environment already contains a value for key and if so, sets
-the found value to the new environment object.
-Otherwise uses the `default_` value as fallback.
+Ensures that env contains a mapping for key and returns the associated value.
+Searches the process environment if it is missing and creates an appropriate
+entry in env using either the found value or `default_` as a fallback.
 
 Params:
     env = environment to write the check to
     key = key to check for existence and write into the new env
     default_ = fallback value if the key doesn't exist in the global environment
+
+Returns: the value associated to key
 */
 auto getDefault(ref string[string] env, string key, string default_)
 {
+    if (auto ex = key in env)
+        return *ex;
+
     if (key in environment)
         env[key] = environment[key];
     else
