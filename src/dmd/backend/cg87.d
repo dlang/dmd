@@ -326,7 +326,7 @@ L1:
             }
 
             debug if (j >= global87.save.length)
-                printf("e = %p, global87.save.length = %d\n",e,global87.save.length);
+                printf("e = %p, global87.save.length = %llu\n",e, cast(ulong) global87.save.length);
 
             assert(j < global87.save.length);
             //printf("\tglobal87.save[%d] = %p, .offset = %d\n", j, global87.save[j].e, global87.save[j].offset);
