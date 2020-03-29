@@ -926,8 +926,7 @@ Expression op_overload(Expression e, Scope* sc, TOK* pop = null)
                 {
                     Type t1n = t1.nextOf().toBasetype();
                     Type t2n = t2.nextOf().toBasetype();
-                    if (((t1n.ty == Tchar || t1n.ty == Twchar || t1n.ty == Tdchar) &&
-                         (t2n.ty == Tchar || t2n.ty == Twchar || t2n.ty == Tdchar)) ||
+                    if ((t1n.ty.isSomeChar && t2n.ty.isSomeChar) ||
                         (t1n.ty == Tvoid || t2n.ty == Tvoid))
                     {
                         return false;

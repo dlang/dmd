@@ -438,8 +438,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
             Type typeb = se.type.toBasetype();
             TY tynto = tb.nextOf().ty;
             if (!se.committed &&
-                (typeb.ty == Tarray || typeb.ty == Tsarray) &&
-                (tynto == Tchar || tynto == Twchar || tynto == Tdchar) &&
+                (typeb.ty == Tarray || typeb.ty == Tsarray) && tynto.isSomeChar &&
                 se.numberOfCodeUnits(tynto) < (cast(TypeSArray)tb).dim.toInteger())
             {
                 i.exp = se.castTo(sc, t);

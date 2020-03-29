@@ -582,7 +582,7 @@ MATCH implicitConvTo(Expression e, Type t)
 
             TY tyn = e.type.nextOf().ty;
 
-            if (!(tyn == Tchar || tyn == Twchar || tyn == Tdchar))
+            if (!tyn.isSomeChar)
                 return visit(cast(Expression)e);
 
             switch (t.ty)
@@ -599,7 +599,7 @@ MATCH implicitConvTo(Expression e, Type t)
                         }
                         return;
                     }
-                    if (tynto == Tchar || tynto == Twchar || tynto == Tdchar)
+                    if (tynto.isSomeChar)
                     {
                         if (e.committed && tynto != tyn)
                             return;
@@ -614,7 +614,7 @@ MATCH implicitConvTo(Expression e, Type t)
                             return;
                         }
                     }
-                    if (!e.committed && (tynto == Tchar || tynto == Twchar || tynto == Tdchar))
+                    if (!e.committed && tynto.isSomeChar)
                     {
                         result = MATCH.exact;
                         return;
@@ -623,7 +623,7 @@ MATCH implicitConvTo(Expression e, Type t)
                 else if (e.type.ty == Tarray)
                 {
                     TY tynto = t.nextOf().ty;
-                    if (tynto == Tchar || tynto == Twchar || tynto == Tdchar)
+                    if (tynto.isSomeChar)
                     {
                         if (e.committed && tynto != tyn)
                             return;
@@ -643,7 +643,7 @@ MATCH implicitConvTo(Expression e, Type t)
                         result = MATCH.exact;
                         return;
                     }
-                    if (!e.committed && (tynto == Tchar || tynto == Twchar || tynto == Tdchar))
+                    if (!e.committed && tynto.isSomeChar)
                     {
                         result = MATCH.exact;
                         return;

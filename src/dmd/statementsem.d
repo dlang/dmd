@@ -1215,9 +1215,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                      */
                     Type tv = (*fs.parameters)[1].type.toBasetype();
                     if ((tab.ty == Tarray ||
-                         (tn.ty != tv.ty &&
-                          (tn.ty == Tchar || tn.ty == Twchar || tn.ty == Tdchar) &&
-                          (tv.ty == Tchar || tv.ty == Twchar || tv.ty == Tdchar))) &&
+                         (tn.ty != tv.ty && tn.ty.isSomeChar && tv.ty.isSomeChar)) &&
                         !Type.tsize_t.implicitConvTo(tindex))
                     {
                         fs.deprecation("foreach: loop index implicitly converted from `size_t` to `%s`",
@@ -1228,13 +1226,12 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 /* Look for special case of parsing char types out of char type
                  * array.
                  */
-                if (tn.ty == Tchar || tn.ty == Twchar || tn.ty == Tdchar)
+                if (tn.ty.isSomeChar)
                 {
                     int i = (dim == 1) ? 0 : 1; // index of value
                     Parameter p = (*fs.parameters)[i];
                     tnv = p.type.toBasetype();
-                    if (tnv.ty != tn.ty &&
-                        (tnv.ty == Tchar || tnv.ty == Twchar || tnv.ty == Tdchar))
+                    if (tnv.ty != tn.ty && tnv.ty.isSomeChar)
                     {
                         if (p.storageClass & STC.ref_)
                         {
