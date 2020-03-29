@@ -46,6 +46,7 @@ private alias requiredEnvVars = AliasSeq!(
     "EXE", "OBJ",
     "DMD", "DFLAGS",
     "OS", "SEP", "DSEP",
+    "BUILD"
 );
 private alias allVars = AliasSeq!(
     requiredEnvVars,
