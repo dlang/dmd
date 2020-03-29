@@ -1064,26 +1064,10 @@ public:
         {
             return;
         }
-        buf.writenl();
 
-        HashIf(*buf, "defined(__GNUC__) || defined(__clang__)");
-        {
-            buf.printf("__attribute__((packed, aligned(%d)))", alignment);
-            buf.writenl();
-            // The equivalent of `#pragma pack(push, n)` is `__attribute__((packed, aligned(n)))`
-            // NOTE: removing the packed attribute will might change the resulting size
-        }
-        HashElIf(*buf, "defined(_MSC_VER)");
-        {
-            buf.printf("__declspec(align(%d))", alignment);
-            buf.writenl();
-        }
-        HashElIf(*buf, "defined (__DMC__)");
-        {
-            buf.printf("#pragma pack(push, %d)", alignment);
-            buf.writenl();
-        }
-        HashEndIf(*buf);
+        buf.writenl();
+        buf.printf("#pragma pack(push, %d)", alignment);
+        buf.writenl();
     }
 
     private void popAlignToBuffer(uint alignment)
@@ -1091,13 +1075,8 @@ public:
         if (alignment == STRUCTALIGN_DEFAULT)
             return;
 
-        HashIf(*buf, "#if defined(__DMC__)");
-        {
-            buf.writestring("#pragma pack(pop)");
-            buf.writenl();
-        }
-        //buf.writestring("#pragma pack()\n");
-        HashEndIf(*buf);
+        buf.writestring("#pragma pack(pop)");
+        buf.writenl();
     }
 
     private void includeSymbol(AST.Dsymbol ds)
