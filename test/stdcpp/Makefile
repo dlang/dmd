@@ -29,14 +29,6 @@ endif
 
 .PHONY: all clean
 
-# osx32 does not link properly, nobody uses it anyway...
-ifeq ($(OS)$(MODEL), osx32)
-
-all:
-
-clean:
-
-else
 all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS))) $(addprefix $(ROOT)/,$(addsuffix _11.done,$(TESTS11))) $(addprefix $(ROOT)/,$(addsuffix _17.done,$(TESTS17))) $(addprefix $(ROOT)/,$(addsuffix _old.done,$(OLDABITESTS))) $(addprefix $(ROOT)/,$(addsuffix _libcpp.done,$(LIBCPPTESTS)))
 
 # run C++98 tests
@@ -83,4 +75,3 @@ $(ROOT)/%_old: $(SRC)/%.cpp $(SRC)/%_test.d
 
 clean:
 	rm -rf $(GENERATED)
-endif
