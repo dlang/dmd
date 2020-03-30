@@ -46,7 +46,6 @@ import dmd.globals;
 import dmd.glue;
 import dmd.identifier;
 import dmd.id;
-import dmd.irstate;
 import dmd.mtype;
 import dmd.target;
 import dmd.tocvdebug;
