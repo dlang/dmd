@@ -82,8 +82,6 @@ DMDMAKE=$(MAKE) -fwin32.mak MAKE="$(MAKE)" HOST_DC="$(HOST_DC)" MODEL=$(MODEL) C
 
 ############################### Rule Variables ###############################
 
-PARSER_SRCS=$D/astbase.d $D/parsetimevisitor.d $D/parse.d $D/transitivevisitor.d $D/permissivevisitor.d $D/strictvisitor.d $D/utils.d
-
 RUN_BUILD=$(GEN)\build.exe --called-from-make "OS=$(OS)" "BUILD=$(BUILD)" "MODEL=$(MODEL)" "HOST_DMD=$(HOST_DMD)" "HOST_DC=$(HOST_DC)" "DDEBUG=$(DDEBUG)" "MAKE=$(MAKE)" VERBOSE=$(VERBOSE)
 
 ############################## Release Targets ###############################
@@ -134,15 +132,6 @@ unittest:
 	$(DMDMAKE) "DDEBUG=-debug -g -unittest -cov" "DOPT=" $(TARGETEXE)
 
 ################################ Libraries ##################################
-
-$G\backend.lib:  $(GEN)\build.exe
-	$(RUN_BUILD) $@
-
-$G\lexer.lib: $(GEN)\build.exe
-	$(RUN_BUILD) $@
-
-$G\parser.lib: $(PARSER_SRCS) $G\lexer.lib $G
-	$(HOST_DC) -of$@ -vtls -lib $(DFLAGS) $(PARSER_SRCS) $G\lexer.lib
 
 $(TARGETEXE): $(GEN)\build.exe
 	$(RUN_BUILD) $@
