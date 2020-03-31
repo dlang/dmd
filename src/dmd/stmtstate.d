@@ -14,14 +14,15 @@ module dmd.stmtstate;
 import dmd.identifier;
 import dmd.statement;
 
-import dmd.backend.cc; // for `block`
 
 /************************************************
  * Used to traverse the statement AST to transform it into
  * a flow graph.
  * Keeps track of things like "where does the `break` go".
+ * Params:
+ *      block = type of the flow graph node
  */
-struct StmtState
+struct StmtState(block)
 {
     StmtState* prev;
     Statement statement;
@@ -32,11 +33,14 @@ struct StmtState
     block* switchBlock;
     block* defaultBlock;
     block* finallyBlock;
+    block* tryBlock;
 
     this(StmtState* prev, Statement statement)
     {
         this.prev = prev;
         this.statement = statement;
+        if (prev)
+            this.tryBlock = prev.tryBlock;
     }
 
     block* getBreakBlock(Identifier ident)

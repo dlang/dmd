@@ -68,6 +68,8 @@ extern (C++):
 alias toSymbol = dmd.tocsym.toSymbol;
 alias toSymbol = dmd.glue.toSymbol;
 
+alias StmtState = dmd.stmtstate.StmtState!block;
+
 
 void elem_setLoc(elem *e, const ref Loc loc) pure nothrow
 {

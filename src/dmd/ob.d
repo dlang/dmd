@@ -37,6 +37,7 @@ import dmd.init;
 import dmd.mtype;
 import dmd.printast;
 import dmd.statement;
+import dmd.stmtstate;
 import dmd.tokens;
 import dmd.visitor;
 
@@ -74,6 +75,8 @@ void oblive(FuncDeclaration funcdecl)
 }
 
 alias ObNodes = Array!(ObNode*);
+
+alias StmtState = dmd.stmtstate.StmtState!ObNode;
 
 /*******************************************
  * Collect the state information.
@@ -309,23 +312,17 @@ void setLabelStatementExtraFields(DsymbolTable labtab)
 
 void toObNodes(ref ObNodes obnodes, Statement s)
 {
-    ObNode* breakBlock;
-    ObNode* contBlock;
-    ObNode* switchBlock;
-    ObNode* defaultBlock;
-    ObNode* tryBlock;
-
-    ObNode* curblock = new ObNode(tryBlock);
+    ObNode* curblock = new ObNode(null);
     obnodes.push(curblock);
 
-    void visit(Statement s)
+    void visit(Statement s, StmtState* stmtstate)
     {
         if (!s)
             return;
 
         ObNode* newNode()
         {
-            return new ObNode(tryBlock);
+            return new ObNode(stmtstate.tryBlock);
         }
 
         ObNode* nextNodeIs(ObNode* ob)
@@ -381,7 +378,7 @@ void toObNodes(ref ObNodes obnodes, Statement s)
             {
                 foreach (s2; *s.statements)
                 {
-                    visit(s2);
+                    visit(s2, stmtstate);
                 }
             }
         }
@@ -393,9 +390,8 @@ void toObNodes(ref ObNodes obnodes, Statement s)
 
         void visitUnrolledLoop(UnrolledLoopStatement s)
         {
-            auto breakBlockSave = breakBlock;
-            breakBlock = newNode();
-            auto contBlockSave = contBlock;
+            StmtState mystate = StmtState(stmtstate, s);
+            mystate.breakBlock = newNode();
 
             gotoNextNode();
 
@@ -403,40 +399,38 @@ void toObNodes(ref ObNodes obnodes, Statement s)
             {
                 if (s2)
                 {
-                    contBlock = newNode();
+                    mystate.contBlock = newNode();
 
-                    visit(s2);
+                    visit(s2, &mystate);
 
-                    gotoNextNodeIs(contBlock);
+                    gotoNextNodeIs(mystate.contBlock);
                 }
             }
 
-            gotoNextNodeIs(breakBlock);
-
-            contBlock = contBlockSave;
-            breakBlock = breakBlockSave;
+            gotoNextNodeIs(mystate.breakBlock);
         }
 
         void visitScope(ScopeStatement s)
         {
             if (s.statement)
             {
-                visit(s.statement);
+                StmtState mystate = StmtState(stmtstate, s);
 
-                if (breakBlock)
-                {
-                    gotoNextNodeIs(breakBlock);
-                }
+                if (mystate.prev.ident)
+                    mystate.ident = mystate.prev.ident;
+
+                visit(s.statement, &mystate);
+
+                if (mystate.breakBlock)
+                    gotoNextNodeIs(mystate.breakBlock);
             }
         }
 
         void visitDo(DoStatement s)
         {
-            auto breakBlockSave = breakBlock;
-            auto contBlockSave = contBlock;
-
-            breakBlock = newNode();
-            contBlock = newNode();
+            StmtState mystate = StmtState(stmtstate, s);
+            mystate.breakBlock = newNode();
+            mystate.contBlock = newNode();
 
             auto bpre = curblock;
 
@@ -446,32 +440,27 @@ void toObNodes(ref ObNodes obnodes, Statement s)
             curblock = ob;
             bpre.succs.push(curblock);
 
-            contBlock.succs.push(curblock);
-            contBlock.succs.push(breakBlock);
+            mystate.contBlock.succs.push(curblock);
+            mystate.contBlock.succs.push(mystate.breakBlock);
 
-            visit(s._body);
+            visit(s._body, &mystate);
 
-            gotoNextNodeIs(contBlock);
-            contBlock.exp = s.condition;
-            nextNodeIs(breakBlock);
-
-            contBlock = contBlockSave;
-            breakBlock = breakBlockSave;
+            gotoNextNodeIs(mystate.contBlock);
+            mystate.contBlock.exp = s.condition;
+            nextNodeIs(mystate.breakBlock);
         }
 
         void visitFor(ForStatement s)
         {
             //printf("visit(ForStatement)) %u..%u\n", s.loc.linnum, s.endloc.linnum);
-            auto breakBlockSave = breakBlock;
-            auto contBlockSave = contBlock;
+            StmtState mystate = StmtState(stmtstate, s);
+            mystate.breakBlock = newNode();
+            mystate.contBlock = newNode();
 
-            breakBlock = newNode();
-            contBlock = newNode();
-
-            visit(s._init);
+            visit(s._init, &mystate);
 
             auto bcond = gotoNextNode();
-            contBlock.succs.push(bcond);
+            mystate.contBlock.succs.push(bcond);
 
             if (s.condition)
             {
@@ -479,7 +468,7 @@ void toObNodes(ref ObNodes obnodes, Statement s)
                 auto ob = newNode();
                 obnodes.push(ob);
                 bcond.succs.push(ob);
-                bcond.succs.push(breakBlock);
+                bcond.succs.push(mystate.breakBlock);
                 curblock = ob;
             }
             else
@@ -489,41 +478,40 @@ void toObNodes(ref ObNodes obnodes, Statement s)
                 bcond.succs.push(nextNode());
             }
 
-            visit(s._body);
+            visit(s._body, &mystate);
             /* End of the body goes to the continue block
              */
-            curblock.succs.push(contBlock);
-            nextNodeIs(contBlock);
+            curblock.succs.push(mystate.contBlock);
+            nextNodeIs(mystate.contBlock);
 
             if (s.increment)
                 curblock.exp = s.increment;
 
             /* The 'break' block follows the for statement.
              */
-            nextNodeIs(breakBlock);
-
-            contBlock = contBlockSave;
-            breakBlock = breakBlockSave;
+            nextNodeIs(mystate.breakBlock);
         }
 
         void visitIf(IfStatement s)
         {
+            StmtState mystate = StmtState(stmtstate, s);
+
             // bexit is the block that gets control after this IfStatement is done
-            auto bexit = breakBlock ? breakBlock : newNode();
+            auto bexit = mystate.breakBlock ? mystate.breakBlock : newNode();
 
             curblock.exp = s.condition;
 
             auto bcond = curblock;
             gotoNextNode();
 
-            visit(s.ifbody);
+            visit(s.ifbody, &mystate);
             curblock.succs.push(bexit);
 
             if (s.elsebody)
             {
                 bcond.succs.push(nextNode());
 
-                visit(s.elsebody);
+                visit(s.elsebody, &mystate);
 
                 gotoNextNodeIs(bexit);
             }
@@ -536,15 +524,13 @@ void toObNodes(ref ObNodes obnodes, Statement s)
 
         void visitSwitch(SwitchStatement s)
         {
-            auto breakBlockSave = breakBlock;
-            auto switchBlockSave = switchBlock;
-            auto defaultBlockSave = defaultBlock;
+            StmtState mystate = StmtState(stmtstate, s);
 
-            switchBlock = curblock;
+            mystate.switchBlock = curblock;
 
             /* Block for where "break" goes to
              */
-            breakBlock = newNode();
+            mystate.breakBlock = newNode();
 
             /* Block for where "default" goes to.
              * If there is a default statement, then that is where default goes.
@@ -552,7 +538,7 @@ void toObNodes(ref ObNodes obnodes, Statement s)
              *   default: break;
              * by making the default block the same as the break block.
              */
-            defaultBlock = s.sdefault ? newNode() : breakBlock;
+            mystate.defaultBlock = s.sdefault ? newNode() : mystate.breakBlock;
 
             const numcases = s.cases ? s.cases.dim : 0;
 
@@ -584,19 +570,15 @@ void toObNodes(ref ObNodes obnodes, Statement s)
 
                 /* The final 'else' clause goes to the default
                  */
-                curblock.succs.push(defaultBlock);
+                curblock.succs.push(mystate.defaultBlock);
                 nextNode();
 
-                visit(s._body);
+                visit(s._body, &mystate);
 
                 /* Have the end of the switch body fall through to the block
                  * following the switch statement.
                  */
-                gotoNextNodeIs(breakBlock);
-
-                breakBlock = breakBlockSave;
-                switchBlock = switchBlockSave;
-                defaultBlock = defaultBlockSave;
+                gotoNextNodeIs(mystate.breakBlock);
                 return;
             }
 
@@ -604,41 +586,38 @@ void toObNodes(ref ObNodes obnodes, Statement s)
             obnodes.push(ob);
             curblock = ob;
 
-            switchBlock.succs.push(defaultBlock);
+            mystate.switchBlock.succs.push(mystate.defaultBlock);
 
-            visit(s._body);
+            visit(s._body, &mystate);
 
             /* Have the end of the switch body fall through to the block
              * following the switch statement.
              */
-            gotoNextNodeIs(breakBlock);
-
-            breakBlock = breakBlockSave;
-            switchBlock = switchBlockSave;
-            defaultBlock = defaultBlockSave;
+            gotoNextNodeIs(mystate.breakBlock);
         }
 
         void visitCase(CaseStatement s)
         {
             auto cb = cast(ObNode*)s.extra;
-            cb.tryBlock = tryBlock;
-            switchBlock.succs.push(cb);
-            cb.tryBlock = tryBlock;
+            cb.tryBlock = stmtstate.tryBlock;
+            auto bsw = stmtstate.getSwitchBlock();
+            bsw.succs.push(cb);
             gotoNextNodeIs(cb);
 
-            visit(s.statement);
+            visit(s.statement, stmtstate);
         }
 
         void visitDefault(DefaultStatement s)
         {
-            defaultBlock.tryBlock = tryBlock;
-            gotoNextNodeIs(defaultBlock);
-            visit(s.statement);
+            auto bdefault = stmtstate.getDefaultBlock;
+            bdefault.tryBlock = stmtstate.tryBlock;
+            gotoNextNodeIs(bdefault);
+            visit(s.statement, stmtstate);
         }
 
         void visitGotoDefault(GotoDefaultStatement s)
         {
-            gotoDest(defaultBlock);
+            gotoDest(stmtstate.getDefaultBlock);
         }
 
         void visitGotoCase(GotoCaseStatement s)
@@ -667,17 +646,17 @@ void toObNodes(ref ObNodes obnodes, Statement s)
 
         void visitBreak(BreakStatement s)
         {
-            gotoDest(breakBlock);
+            gotoDest(stmtstate.getBreakBlock(s.ident));
         }
 
         void visitContinue(ContinueStatement s)
         {
-            gotoDest(contBlock);
+            gotoDest(stmtstate.getContBlock(s.ident));
         }
 
         void visitWith(WithStatement s)
         {
-            visit(s._body);
+            visit(s._body, stmtstate);
         }
 
         void visitTryCatch(TryCatchStatement s)
@@ -689,14 +668,14 @@ void toObNodes(ref ObNodes obnodes, Statement s)
              * breakBlock2
              */
 
-            auto breakBlockSave = breakBlock;
-            breakBlock = newNode();
+            StmtState mystate = StmtState(stmtstate, s);
+            mystate.breakBlock = newNode();
 
             auto tryblock = gotoNextNode();
 
-            visit(s._body);
+            visit(s._body, &mystate);
 
-            gotoNextNodeIs(breakBlock);
+            gotoNextNodeIs(mystate.breakBlock);
 
             // create new break block that follows all the catches
             auto breakBlock2 = newNode();
@@ -708,13 +687,15 @@ void toObNodes(ref ObNodes obnodes, Statement s)
                 /* Each catch block is a successor to tryblock
                  * and the last block of try body
                  */
+                StmtState catchState = StmtState(stmtstate, s);
+
                 auto bcatch = curblock;
                 tryblock.succs.push(bcatch);
-                breakBlock.succs.push(bcatch);
+                mystate.breakBlock.succs.push(bcatch);
 
                 nextNode();
 
-                visit(cs.handler);
+                visit(cs.handler, &catchState);
 
                 gotoDest(breakBlock2);
             }
@@ -722,8 +703,6 @@ void toObNodes(ref ObNodes obnodes, Statement s)
             curblock.succs.push(breakBlock2);
             obnodes.push(breakBlock2);
             curblock = breakBlock2;
-
-            breakBlock = breakBlockSave;
         }
 
         void visitTryFinally(TryFinallyStatement s)
@@ -739,24 +718,25 @@ void toObNodes(ref ObNodes obnodes, Statement s)
              *  8  lastblock
              */
 
+            StmtState bodyState = StmtState(stmtstate, s);
+
             auto b2 = gotoNextNode();
             b2.obtype = ObType.try_;
-            tryBlock = b2;
+            bodyState.tryBlock = b2;
 
             gotoNextNode();
 
-            visit(s._body);
+            visit(s._body, &bodyState);
 
             auto b4 = gotoNextNode();
-
-            tryBlock = b2.tryBlock;
 
             auto b5 = newNode();
             b5.obtype = ObType.finally_;
             nextNodeIs(b5);
             gotoNextNode();
 
-            visit(s.finalbody);
+            StmtState finallyState = StmtState(stmtstate, s);
+            visit(s.finalbody, &finallyState);
 
             auto b7 = gotoNextNode();
             b7.obtype = ObType.fend;
@@ -783,9 +763,12 @@ void toObNodes(ref ObNodes obnodes, Statement s)
 
         void visitLabel(LabelStatement s)
         {
+            StmtState mystate = StmtState(stmtstate, s);
+            mystate.ident = s.ident;
+
             auto ob = cast(ObNode*)s.extra;
-            ob.tryBlock = tryBlock;
-            visit(s.statement);
+            ob.tryBlock = mystate.tryBlock;
+            visit(s.statement, &mystate);
         }
 
         final switch (s.stmt)
@@ -843,14 +826,24 @@ void toObNodes(ref ObNodes obnodes, Statement s)
         }
     }
 
-    visit(s);
+    StmtState stmtstate;
+    visit(s, &stmtstate);
     curblock.obtype = ObType.return_;
 
-    assert(breakBlock is null);
-    assert(contBlock is null);
-    assert(switchBlock is null);
-    assert(defaultBlock is null);
-    assert(tryBlock is null);
+    static if (0)
+    {
+        printf("toObNodes()\n");
+        printf("------- before ----------\n");
+        numberNodes(obnodes);
+        foreach (ob; obnodes) ob.print();
+        printf("-------------------------\n");
+    }
+
+    assert(stmtstate.breakBlock is null);
+    assert(stmtstate.contBlock is null);
+    assert(stmtstate.switchBlock is null);
+    assert(stmtstate.defaultBlock is null);
+    assert(stmtstate.tryBlock is null);
 }
 
 /***************************************************
@@ -995,9 +988,18 @@ void insertFinallyBlockGotos(ref ObNodes obnodes)
  */
 void numberNodes(ref ObNodes obnodes)
 {
+    //printf("numberNodes()\n");
     foreach (i, ob; obnodes)
     {
+        //printf("ob = %d, %p\n", i, ob);
         ob.index = cast(uint)i;
+    }
+
+    // Verify that nodes do not appear more than once in obnodes[]
+    debug
+    foreach (i, ob; obnodes)
+    {
+        assert(ob.index == cast(uint)i);
     }
 }
 
