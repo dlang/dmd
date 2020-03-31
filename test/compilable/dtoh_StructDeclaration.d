@@ -40,6 +40,15 @@ struct S3
     S3() : a(42), b(), c() {}
 };
 
+struct S4
+{
+    int32_t a;
+    int64_t b;
+    int32_t c;
+    int8_t d;
+    S4() : a(), b(), c(), d() {}
+};
+
 struct
 #if defined(__GNUC__) || defined(__clang__)
     __attribute__((packed, aligned(1)))
@@ -125,6 +134,14 @@ extern (C) struct S3
     long c;
 
     this(int a) {}
+}
+
+extern (C) struct S4
+{
+    int a;
+    long b;
+    int c;
+    byte d;
 }
 
 extern (C++) align(1) struct Aligned
