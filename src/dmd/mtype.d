@@ -5140,6 +5140,20 @@ extern (C++) final class TypeTraits : Type
         return tt;
     }
 
+    override Dsymbol toDsymbol(Scope* sc)
+    {
+        Type t;
+        Expression e;
+        Dsymbol s;
+        resolve(this, loc, sc, &e, &t, &s);
+        if (t && t.ty != Terror)
+            s = t.toDsymbol(sc);
+        else if (e)
+            s = getDsymbol(e);
+
+        return s;
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);
