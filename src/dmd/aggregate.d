@@ -82,6 +82,10 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
     /// specifies whether this is a D, C++, Objective-C or anonymous struct/class/interface
     ClassKind classKind;
+    /// Specify whether to mangle the aggregate as a `class` or a `struct`
+    /// This information is used by the MSVC mangler
+    /// Only valid for class and struct. TODO: Merge with ClassKind ?
+    CPPMANGLE cppmangle;
 
     /* !=null if is nested
      * pointing to the dsymbol that directly enclosing it.

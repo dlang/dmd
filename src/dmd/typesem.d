@@ -1811,14 +1811,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
     {
         //printf("TypeStruct::semantic('%s')\n", mtype.toChars());
         if (mtype.deco)
-        {
-            if (sc && sc.cppmangle != CPPMANGLE.def)
-            {
-                if (mtype.cppmangle == CPPMANGLE.def)
-                    mtype.cppmangle = sc.cppmangle;
-            }
             return mtype;
-        }
 
         /* Don't semantic for sym because it should be deferred until
          * sizeof needed or its members accessed.
@@ -1828,11 +1821,6 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
 
         if (mtype.sym.type.ty == Terror)
             return error();
-
-        if (sc && sc.cppmangle != CPPMANGLE.def)
-            mtype.cppmangle = sc.cppmangle;
-        else
-            mtype.cppmangle = CPPMANGLE.asStruct;
 
         return merge(mtype);
     }
@@ -1847,14 +1835,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
     {
         //printf("TypeClass::semantic(%s)\n", mtype.toChars());
         if (mtype.deco)
-        {
-            if (sc && sc.cppmangle != CPPMANGLE.def)
-            {
-                if (mtype.cppmangle == CPPMANGLE.def)
-                    mtype.cppmangle = sc.cppmangle;
-            }
             return mtype;
-        }
 
         /* Don't semantic for sym because it should be deferred until
          * sizeof needed or its members accessed.
@@ -1864,11 +1845,6 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
 
         if (mtype.sym.type.ty == Terror)
             return error();
-
-        if (sc && sc.cppmangle != CPPMANGLE.def)
-            mtype.cppmangle = sc.cppmangle;
-        else
-            mtype.cppmangle = CPPMANGLE.asClass;
 
         return merge(mtype);
     }
