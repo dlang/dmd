@@ -594,8 +594,10 @@ public:
             return;
 
         visited[cast(void*)vd] = true;
+
         if (vd.type == AST.Type.tsize_t)
             origType = &vd.originalType;
+        scope(exit) origType = null;
 
         if (vd.alignment != uint.max)
         {
