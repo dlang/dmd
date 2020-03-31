@@ -197,10 +197,10 @@ Note that these groups have no strict meaning, the category assignments are a bi
 |---------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
 | [dmsc.d](https://github.com/dlang/dmd/blob/master/src/dmd/dmsc.d)                           | Configures and initializes the back-end                                             |
 | [toobj.d](https://github.com/dlang/dmd/blob/master/src/dmd/toobj.d)                         | Convert an AST that went through all semantic phases into an object file            |
-| [irstate.d](https://github.com/dlang/dmd/blob/master/src/dmd/irstate.d)                     | The state of Intermediate Representation (IR), which is what the back-end uses      |
 | [toir.d](https://github.com/dlang/dmd/blob/master/src/dmd/toir.d)                           | Convert Dsymbols intermediate representation                                        |
 | [e2ir.d](https://github.com/dlang/dmd/blob/master/src/dmd/e2ir.d)                           | Convert Expressions to intermediate representation                                  |
 | [s2ir.d](https://github.com/dlang/dmd/blob/master/src/dmd/s2ir.d)                           | Convert Statements to intermediate representation                                   |
+| [stmtstate.d](https://github.com/dlang/dmd/blob/master/src/dmd/stmtstate.d)                 | Used to help transform statement AST into flow graph                                |
 | [toctype.d](https://github.com/dlang/dmd/blob/master/src/dmd/toctype.d)                     | Convert a D type to a type the back-end understands                                 |
 | [tocsym.d](https://github.com/dlang/dmd/blob/master/src/dmd/tocsym.d)                       | Convert a D symbol to a symbol the linker understands (with mangled name)           |
 | [argtypes.d](https://github.com/dlang/dmd/blob/master/src/dmd/argtypes.d)                   | Convert a D type into simple (register) types for calling conventions               |
