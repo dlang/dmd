@@ -2649,7 +2649,7 @@ private enum bool isSafeCopyable(T) = is(typeof(() @safe { union U { T x; } T *x
  *      update = The callable to apply on update.
  */
 void update(K, V, C, U)(ref V[K] aa, K key, scope C create, scope U update)
-if (is(typeof(create()) : V) && is(typeof(update(aa[K.init])) : V))
+if (is(typeof(create()) : V) && (is(typeof(update(aa[K.init])) : V) || is(typeof(update(aa[K.init])) == void)))
 {
     bool found;
     // if key is @safe-ly copyable, `update` may infer @safe
@@ -2667,7 +2667,12 @@ if (is(typeof(create()) : V) && is(typeof(update(aa[K.init])) : V))
     if (!found)
         *p = create();
     else
-        *p = update(*p);
+    {
+        static if (is(typeof(update(*p)) == void))
+            update(*p);
+        else
+            *p = update(*p);
+    }
 }
 
 ///
@@ -2678,14 +2683,14 @@ if (is(typeof(create()) : V) && is(typeof(update(aa[K.init])) : V))
     aa.update("k1", {
         return -1; // create (won't be executed
     }, (ref int v) {
-        return v + 1; // update
+        v += 1; // update
     });
     assert(aa["k1"] == 2);
 
     aa.update("k2", {
         return 0; // create
     }, (ref int v) {
-        return -1; // update (won't be executed)
+        v = -1; // update (won't be executed)
     });
     assert(aa["k2"] == 0);
 }
@@ -2752,6 +2757,19 @@ if (is(typeof(create()) : V) && is(typeof(update(aa[K.init])) : V))
     assert(a["2"] == 3);
     a.update("1", S1.init, S1.init);
     assert(a["1"] == -2);
+}
+
+@system unittest
+{
+    int[string] aa;
+
+    foreach (n; 0 .. 2)
+        aa.update("k1", {
+            return 7;
+        }, (ref int v) {
+            return v + 3;
+        });
+    assert(aa["k1"] == 10);
 }
 
 version (CoreDdoc)
