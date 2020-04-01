@@ -1065,7 +1065,6 @@ public:
             return;
         }
 
-        buf.writenl();
         buf.printf("#pragma pack(push, %d)", alignment);
         buf.writenl();
     }

@@ -13,14 +13,14 @@ TEST_OUTPUT:
 
 namespace nameSpace
 {
-extern void fn();
+    extern void fn();
 
-namespace nameSpace2
-{
-extern void fn2();
+    namespace nameSpace2
+    {
+        extern void fn2();
 
-}
-extern double identity(double _param_0);
+    }
+    extern double identity(double _param_0);
 
 }
 ---

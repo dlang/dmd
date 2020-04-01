@@ -60,27 +60,27 @@ public:
         int32_t u1;
         char u2[4$?:32=u|64=LLU$];
     };
-struct Inner
-{
-    int32_t x;
-    Inner() : x() {}
-};
+    struct Inner
+    {
+        int32_t x;
+        Inner() : x() {}
+    };
 
-class InnerC
-{
-public:
-    int32_t x;
-};
+    class InnerC
+    {
+    public:
+        int32_t x;
+    };
 
-class NonStaticInnerC
-{
-public:
-    int32_t x;
-    A* this;
-};
+    class NonStaticInnerC
+    {
+    public:
+        int32_t x;
+        A* this;
+    };
 
-typedef Inner I;
-class CC;
+    typedef Inner I;
+    class CC;
 
 };
 ---
