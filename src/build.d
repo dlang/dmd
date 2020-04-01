@@ -1070,7 +1070,7 @@ void processEnvironment()
     }
     if (env.getNumberedBool("ENABLE_UNITTEST"))
     {
-        dflags ~= ["-unittest", "-cov"];
+        dflags ~= ["-unittest"];
     }
     if (env.getNumberedBool("ENABLE_PROFILE"))
     {
@@ -1078,7 +1078,7 @@ void processEnvironment()
     }
     if (env.getNumberedBool("ENABLE_COVERAGE"))
     {
-        dflags ~= ["-cov", "-L-lgcov"];
+        dflags ~= ["-cov"];
     }
     if (env.getDefault("ENABLE_SANITIZERS", "") != "")
     {
