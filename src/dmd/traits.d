@@ -1420,7 +1420,9 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto s = getDsymbol(o);
         if (!s)
         {
-            e.error("argument has no members");
+            e.error("In expression `%s` `%s` can't have members", e.toChars(), o.toChars());
+            e.errorSupplemental("`%s` must evaluate to either a module, a struct, an union, a class, an interface or a template instantiation", o.toChars());
+
             return new ErrorExp();
         }
         if (auto imp = s.isImport())
@@ -1432,7 +1434,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto sds = s.isScopeDsymbol();
         if (!sds || sds.isTemplateDeclaration())
         {
-            e.error("%s `%s` has no members", s.kind(), s.toChars());
+            e.error("In expression `%s` %s `%s` has no members", e.toChars(), s.kind(), s.toChars());
+            e.errorSupplemental("`%s` must evaluate to either a module, a struct, an union, a class, an interface or a template instantiation", s.toChars());
             return new ErrorExp();
         }
 
