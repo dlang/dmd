@@ -148,7 +148,7 @@ struct OutBuffer
         write(s);
     }
 
-    void writestringnl(const(char)[] s)
+    void writestringln(const(char)[] s)
     {
         writestring(s);
         writenl();
