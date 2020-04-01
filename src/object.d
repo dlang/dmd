@@ -2681,7 +2681,7 @@ if (is(typeof(create()) : V) && (is(typeof(update(aa[K.init])) : V) || is(typeof
     auto aa = ["k1": 1];
 
     aa.update("k1", {
-        return -1; // create (won't be executed
+        return -1; // create (won't be executed)
     }, (ref int v) {
         v += 1; // update
     });
