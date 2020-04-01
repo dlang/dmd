@@ -867,28 +867,8 @@ void parseEnvironment()
         verbose = "1" == env.getDefault("VERBOSE", null);
 
     // This block is temporary until we can remove the windows make files
-    {
-        const ddebug = env.get("DDEBUG", null);
-        if (ddebug.length)
-        {
-            writefln("WARNING: the DDEBUG variable is deprecated");
-            if (ddebug == "-debug -g -unittest -cov")
-            {
-                environment["ENABLE_DEBUG"] = "1";
-                environment["ENABLE_UNITTEST"] = "1";
-                environment["ENABLE_COVERAGE"] = "1";
-            }
-            else if (ddebug == "-debug -g -unittest")
-            {
-                environment["ENABLE_DEBUG"] = "1";
-                environment["ENABLE_UNITTEST"] = "1";
-            }
-            else
-            {
-                abortBuild("DDEBUG is not an expected value: " ~ ddebug);
-            }
-        }
-    }
+    if ("DDEBUG" in environment)
+        abortBuild("ERROR: the DDEBUG variable is deprecated!");
 
     version (Windows)
     {
@@ -1070,7 +1050,7 @@ void processEnvironment()
     }
     if (env.getNumberedBool("ENABLE_UNITTEST"))
     {
-        dflags ~= ["-unittest", "-cov"];
+        dflags ~= ["-unittest"];
     }
     if (env.getNumberedBool("ENABLE_PROFILE"))
     {
@@ -1078,7 +1058,7 @@ void processEnvironment()
     }
     if (env.getNumberedBool("ENABLE_COVERAGE"))
     {
-        dflags ~= ["-cov", "-L-lgcov"];
+        dflags ~= ["-cov"];
     }
     if (env.getDefault("ENABLE_SANITIZERS", "") != "")
     {
