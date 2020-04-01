@@ -746,9 +746,9 @@ LsdaResult scanLSDA(const(ubyte)* lsda, _Unwind_Ptr ip, _Unwind_Exception_Class 
  *      exceptionClass = which language threw the exception
  *      lsda = pointer to LSDA table
  * Returns:
- *      >=1 means the handler index of the classType
- *      0 means classType is not in the Action Table
- *      <0 means corrupt
+ *      - &gt;=1 means the handler index of the classType
+ *      - 0 means classType is not in the Action Table
+ *      - &lt;0 means corrupt
  */
 int actionTableLookup(_Unwind_Exception* exceptionObject, uint actionRecordPtr, const(ubyte)* pActionTable,
                       const(ubyte)* tt, ubyte TType, _Unwind_Exception_Class exceptionClass, const(ubyte)* lsda)
