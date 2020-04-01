@@ -187,38 +187,35 @@ private void initialize()
     }
 }
 
-void HashIf(ref OutBuffer buf, string content)
+void hashIf(ref OutBuffer buf, string content)
 {
     buf.writestring("#if ");
     buf.writestringln(content);
-    buf.level++;
 }
 
-void HashElIf(ref OutBuffer buf, string content)
+void hashElIf(ref OutBuffer buf, string content)
 {
-    buf.level--;
     buf.writestring("#elif ");
     buf.writestringln(content);
-    buf.level++;
 }
 
-void HashDefine(ref OutBuffer buf, string content)
+void hashEndIf(ref OutBuffer buf)
 {
-    buf.writestring("#define ");
+    buf.writestringln("#endif");
+}
+
+void hashDefine(ref OutBuffer buf, string content)
+{
+    buf.writestring("# define ");
     buf.writestringln(content);
 }
 
-void HashInclude(ref OutBuffer buf, string content)
+void hashInclude(ref OutBuffer buf, string content)
 {
     buf.writestring("#include ");
     buf.writestringln(content);
 }
 
-void HashEndIf(ref OutBuffer buf)
-{
-    buf.level--;
-    buf.writestringln("#endif");
-}
 
 
 extern(C++) void genCppHdrFiles(ref Modules ms)
@@ -251,84 +248,84 @@ extern(C++) void genCppHdrFiles(ref Modules ms)
     buf.writestringln("#pragma once");
     buf.writenl();
 //    buf.writestring("#include <assert.h>\n");
-    HashInclude(buf, "<stddef.h>");
-    HashInclude(buf, "<stdint.h>");
+    hashInclude(buf, "<stddef.h>");
+    hashInclude(buf, "<stdint.h>");
 //    buf.writestring(buf, "#include <stdio.h>\n");
 //    buf.writestring("#include <string.h>\n");
     buf.writenl();
     if (v.hasReal)
     {
-        HashIf(buf, "!defined(_d_real)");
+        hashIf(buf, "!defined(_d_real)");
         {
-            HashDefine(buf, "_d_real long double");
+            hashDefine(buf, "_d_real long double");
         }
-        HashEndIf(buf);
+        hashEndIf(buf);
     }
     if (v.hasDefaultEnum)
     {
-        HashIf(buf, "!defined(BEGIN_ENUM)");
+        hashIf(buf, "!defined(BEGIN_ENUM)");
         {
-            HashDefine(buf, "BEGIN_ENUM(name, upper, lower) enum class name {");
-            HashDefine(buf, "ENUM_KEY(type, name, value, enumName, upper, lower, abbrev) name = value,");
-            HashDefine(buf, "END_ENUM(name, upper, lower) };");
+            hashDefine(buf, "BEGIN_ENUM(name, upper, lower) enum class name {");
+            hashDefine(buf, "ENUM_KEY(type, name, value, enumName, upper, lower, abbrev) name = value,");
+            hashDefine(buf, "END_ENUM(name, upper, lower) };");
         }
-        HashEndIf(buf);
+        hashEndIf(buf);
     }
     if (v.hasNumericEnum)
     {
-        HashIf(buf, "!defined(BEGIN_ENUM_NUMERIC)");
+        hashIf(buf, "!defined(BEGIN_ENUM_NUMERIC)");
         {
-            HashDefine(buf, "BEGIN_ENUM_NUMERIC(type, name, upper, lower) enum class name : type {");
-            HashDefine(buf, "ENUM_KEY_NUMERIC(type, name, value, enumName, upper, lower, abbrev) name = value,");
-            HashDefine(buf, "END_ENUM_NUMERIC(type, name, upper, lower) };");
+            hashDefine(buf, "BEGIN_ENUM_NUMERIC(type, name, upper, lower) enum class name : type {");
+            hashDefine(buf, "ENUM_KEY_NUMERIC(type, name, value, enumName, upper, lower, abbrev) name = value,");
+            hashDefine(buf, "END_ENUM_NUMERIC(type, name, upper, lower) };");
         }
-        HashEndIf(buf);
+        hashEndIf(buf);
     }
     if (v.hasTypedEnum)
     {
-        HashIf(buf, "!defined(BEGIN_ENUM_TYPE)");
+        hashIf(buf, "!defined(BEGIN_ENUM_TYPE)");
         {
-            HashDefine(buf, "BEGIN_ENUM_TYPE(type, name, upper, lower) namespace name {");
-            HashDefine(buf, "ENUM_KEY_TYPE(type, name, value, enumName, upper, lower, abbrev) static type const name = value;");
-            HashDefine(buf, "END_ENUM_TYPE(type, name, upper, lower) };");
+            hashDefine(buf, "BEGIN_ENUM_TYPE(type, name, upper, lower) namespace name {");
+            hashDefine(buf, "ENUM_KEY_TYPE(type, name, value, enumName, upper, lower, abbrev) static type const name = value;");
+            hashDefine(buf, "END_ENUM_TYPE(type, name, upper, lower) };");
         }
-        HashEndIf(buf);
+        hashEndIf(buf);
     }
     if (v.hasAnonEnum)
     {
-        HashIf(buf, "!defined(BEGIN_ANON_ENUM)");
+        hashIf(buf, "!defined(BEGIN_ANON_ENUM)");
         {
-            HashDefine(buf, "BEGIN_ANON_ENUM() enum {");
-            HashDefine(buf, "ANON_ENUM_KEY(type, name, value) name = value,");
-            HashDefine(buf, "END_ANON_ENUM() };");
+            hashDefine(buf, "BEGIN_ANON_ENUM() enum {");
+            hashDefine(buf, "ANON_ENUM_KEY(type, name, value) name = value,");
+            hashDefine(buf, "END_ANON_ENUM() };");
         }
-        HashEndIf(buf);
+        hashEndIf(buf);
     }
     if (v.hasAnonNumericEnum)
     {
-        HashIf(buf, "!defined(BEGIN_ANON_ENUM_NUMERIC)");
+        hashIf(buf, "!defined(BEGIN_ANON_ENUM_NUMERIC)");
         {
-            HashDefine(buf, "BEGIN_ANON_ENUM_NUMERIC(type) enum : type {");
-            HashDefine(buf, "ANON_ENUM_KEY_NUMERIC(type, name, value) name = value,");
-            HashDefine(buf, "END_ANON_ENUM_NUMERIC(type) };");
+            hashDefine(buf, "BEGIN_ANON_ENUM_NUMERIC(type) enum : type {");
+            hashDefine(buf, "ANON_ENUM_KEY_NUMERIC(type, name, value) name = value,");
+            hashDefine(buf, "END_ANON_ENUM_NUMERIC(type) };");
         }
-        HashEndIf(buf);
+        hashEndIf(buf);
     }
     if (v.hasNumericConstant)
     {
-        HashIf(buf, "!defined(ENUM_CONSTANT_NUMERIC)");
+        hashIf(buf, "!defined(ENUM_CONSTANT_NUMERIC)");
         {
-            HashDefine(buf, "ENUM_CONSTANT_NUMERIC(type, name, value) enum : type { name = value };");
+            hashDefine(buf, "ENUM_CONSTANT_NUMERIC(type, name, value) enum : type { name = value };");
         }
-        HashEndIf(buf);
+        hashEndIf(buf);
     }
     if (v.hasTypedConstant)
     {
-        HashIf(buf, "!defined(ENUM_CONSTANT)");
+        hashIf(buf, "!defined(ENUM_CONSTANT)");
         {
-            HashDefine(buf, "ENUM_CONSTANT(type, name, value) static type const name = value;");
+            hashDefine(buf, "ENUM_CONSTANT(type, name, value) static type const name = value;");
         }
-        HashEndIf(buf);
+        hashEndIf(buf);
     }
     buf.writenl();
 
@@ -341,7 +338,8 @@ extern(C++) void genCppHdrFiles(ref Modules ms)
 
     debug (Debug_DtoH)
     {
-        buf.writestring(`#if OFFSETS
+        buf.writestring(`
+#if OFFSETS
     template <class T>
     size_t getSlotNumber(int dummy, ...)
     {
