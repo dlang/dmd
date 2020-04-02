@@ -6246,6 +6246,8 @@ Expression interpret(UnionExp* pue, Expression e, InterState* istate, CtfeGoal g
     e.accept(v);
     Expression ex = v.result;
     assert(goal == ctfeNeedNothing || ex !is null);
+    if (ex)
+        ex.loc = e.loc;
     return ex;
 }
 
