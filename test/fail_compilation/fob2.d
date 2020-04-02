@@ -54,3 +54,51 @@ fail_compilation/fob2.d(303): Error: variable `fob2.foo3.b` is left dangling at 
     scope int* b = malloc();
 }
 
+
+/* TEST_OUTPUT:
+---
+fail_compilation/fob2.d(427): Error: variable `fob2.test43.p` is both Owner and Undefined
+fail_compilation/fob2.d(429): Error: variable `fob2.test43.p` has undefined state and cannot be read
+fail_compilation/fob2.d(429): Error: variable `fob2.test43.p` is not Owner, cannot consume its value
+fail_compilation/fob2.d(432): Error: variable `fob2.test43.p` has undefined state and cannot be read
+fail_compilation/fob2.d(432): Error: variable `fob2.test43.p` is not Owner, cannot consume its value
+---
+*/
+#line 400
+
+
+bool f();
+
+@live void test41(int* p, int i)
+{
+    for (; f(); ++i)
+    {
+        --i;
+        free(p);
+        p = null;
+    }
+    free(p);
+}
+
+@live void test42(int* p, int i)
+{
+    for (; f(); ++i)
+    {
+        --i;
+    }
+    free(p);
+}
+
+
+@live void test43(int* p, int i)
+{
+    for (; f(); ++i)
+    {
+        free(p);
+        --i;
+    }
+    free(p);
+}
+
+
+

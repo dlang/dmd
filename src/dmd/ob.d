@@ -160,6 +160,8 @@ string toString(ObType obtype)
 /***********
  Pointer variable states:
 
+    Initial     state is not known; ignore for now
+
     Undefined   not in a usable state
 
                 T* p = void;
@@ -189,14 +191,19 @@ string toString(ObType obtype)
 
 enum PtrState : ubyte
 {
-    Undefined, Owner, Borrowed, Readonly
+    Initial, Undefined, Owner, Borrowed, Readonly
 }
 
 /************
  */
 const(char)* toChars(PtrState state)
 {
-    return ["Undefined", "Owner", "Borrowed", "Readonly"][state].ptr;
+    return toString(state).ptr;
+}
+
+string toString(PtrState state)
+{
+    return ["Initial", "Undefined", "Owner", "Borrowed", "Readonly"][state];
 }
 
 /******
@@ -227,6 +234,23 @@ struct PtrVarState
         {
             switch (X(state, pvs.state))
             {
+                case X(Initial, Initial):
+                    break;
+
+                case X(Initial, Owner    ):
+                case X(Initial, Borrowed ):
+                case X(Initial, Readonly ):
+                    // Transfer state to `this`
+                    state = pvs.state;
+                    deps = pvs.deps;
+                    break;
+
+                case X(Owner,    Initial):
+                case X(Borrowed, Initial):
+                case X(Readonly, Initial):
+                    break;
+
+                case X(Undefined, Initial):
                 case X(Undefined, Undefined):
                 case X(Undefined, Owner    ):
                 case X(Undefined, Borrowed ):
@@ -258,7 +282,7 @@ struct PtrVarState
      */
     void print(VarDeclaration[] vars)
     {
-        string s = ["Undefined", "Owner", "Borrowed", "Lent", "Readonly", "View"][state];
+        string s = toString(state);
         printf("%.*s [", cast(int)s.length, s.ptr);
         assert(vars.length == deps.length);
         OutBuffer buf;
@@ -864,6 +888,7 @@ void insertFinallyBlockCalls(ref ObNodes obnodes)
 
     static if (log)
     {
+        printf("insertFinallyBlockCalls()\n");
         printf("------- before ----------\n");
         numberNodes(obnodes);
         foreach (ob; obnodes) ob.print();
@@ -1224,7 +1249,7 @@ bool isReadonlyPtr(VarDeclaration v)
 }
 
 /***************************************
- * Compute the gen/comb/kill vectors for each node.
+ * Compute the gen vector for ob.
  */
 void genKill(ref ObState obstate, ObNode* ob)
 {
@@ -1798,7 +1823,11 @@ void doDataFlowAnalysis(ref ObState obstate)
 {
     enum log = false;
     if (log)
+    {
         printf("-----------------doDataFlowAnalysis()-------------------------\n");
+        foreach (ob; obstate.nodes) ob.print();
+        printf("------------------------------------------\n");
+    }
 
     if (!obstate.nodes.length)
         return;
@@ -1826,13 +1855,13 @@ void doDataFlowAnalysis(ref ObState obstate)
         startnode.gen[i] = ps;
     }
 
-    /* Set all output[]s to Undefined
+    /* Set all output[]s to Initial
      */
     foreach (ob; obstate.nodes[])
     {
         foreach (ref ps; ob.output)
         {
-            ps.state = PtrState.Undefined;
+            ps.state = PtrState.Initial;
             ps.deps.zero();
         }
     }
@@ -1907,6 +1936,11 @@ void doDataFlowAnalysis(ref ObState obstate)
                 printf("    %s: ", obstate.vars[i].toChars()); pvs2.print(obstate.vars[]);
             }
 
+            printf("  gen:\n");
+            foreach (i, ref pvs2; ob.gen[])
+            {
+                printf("    %s: ", obstate.vars[i].toChars()); pvs2.print(obstate.vars[]);
+            }
             printf("  output:\n");
             foreach (i, ref pvs2; ob.output[])
             {
