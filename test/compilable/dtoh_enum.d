@@ -11,35 +11,35 @@ TEST_OUTPUT:
 #include <stdint.h>
 
 #if !defined(BEGIN_ENUM)
-#define BEGIN_ENUM(name, upper, lower) enum class name {
-#define ENUM_KEY(type, name, value, enumName, upper, lower, abbrev) name = value,
-#define END_ENUM(name, upper, lower) };
+# define BEGIN_ENUM(name, upper, lower) enum class name {
+# define ENUM_KEY(type, name, value, enumName, upper, lower, abbrev) name = value,
+# define END_ENUM(name, upper, lower) };
 #endif
 #if !defined(BEGIN_ENUM_NUMERIC)
-#define BEGIN_ENUM_NUMERIC(type, name, upper, lower) enum class name : type {
-#define ENUM_KEY_NUMERIC(type, name, value, enumName, upper, lower, abbrev) name = value,
-#define END_ENUM_NUMERIC(type, name, upper, lower) };
+# define BEGIN_ENUM_NUMERIC(type, name, upper, lower) enum class name : type {
+# define ENUM_KEY_NUMERIC(type, name, value, enumName, upper, lower, abbrev) name = value,
+# define END_ENUM_NUMERIC(type, name, upper, lower) };
 #endif
 #if !defined(BEGIN_ENUM_TYPE)
-#define BEGIN_ENUM_TYPE(type, name, upper, lower) namespace name {
-#define ENUM_KEY_TYPE(type, name, value, enumName, upper, lower, abbrev) static type const name = value;
-#define END_ENUM_TYPE(type, name, upper, lower) };
+# define BEGIN_ENUM_TYPE(type, name, upper, lower) namespace name {
+# define ENUM_KEY_TYPE(type, name, value, enumName, upper, lower, abbrev) static type const name = value;
+# define END_ENUM_TYPE(type, name, upper, lower) };
 #endif
 #if !defined(BEGIN_ANON_ENUM)
-#define BEGIN_ANON_ENUM() enum {
-#define ANON_ENUM_KEY(type, name, value) name = value,
-#define END_ANON_ENUM() };
+# define BEGIN_ANON_ENUM() enum {
+# define ANON_ENUM_KEY(type, name, value) name = value,
+# define END_ANON_ENUM() };
 #endif
 #if !defined(BEGIN_ANON_ENUM_NUMERIC)
-#define BEGIN_ANON_ENUM_NUMERIC(type) enum : type {
-#define ANON_ENUM_KEY_NUMERIC(type, name, value) name = value,
-#define END_ANON_ENUM_NUMERIC(type) };
+# define BEGIN_ANON_ENUM_NUMERIC(type) enum : type {
+# define ANON_ENUM_KEY_NUMERIC(type, name, value) name = value,
+# define END_ANON_ENUM_NUMERIC(type) };
 #endif
 #if !defined(ENUM_CONSTANT_NUMERIC)
-#define ENUM_CONSTANT_NUMERIC(type, name, value) enum : type { name = value };
+# define ENUM_CONSTANT_NUMERIC(type, name, value) enum : type { name = value };
 #endif
 #if !defined(ENUM_CONSTANT)
-#define ENUM_CONSTANT(type, name, value) static type const name = value;
+# define ENUM_CONSTANT(type, name, value) static type const name = value;
 #endif
 
 ENUM_CONSTANT_NUMERIC(int32_t, Anon, 10)
