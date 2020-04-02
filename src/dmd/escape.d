@@ -89,6 +89,8 @@ bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
         escapeBy = newPtr[0 .. len];
         escapeByStorage = escapeBy;
     }
+    else
+        escapeBy = escapeBy[0 .. len];
 
     const paramLength = tf.parameterList.length;
 
