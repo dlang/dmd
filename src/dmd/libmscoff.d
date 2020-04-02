@@ -136,8 +136,6 @@ final class LibMSCoff : Library
             char* longnames = null;
             size_t longnames_length = 0;
             size_t offset = 8;
-            char* symtab = null;
-            uint symtab_size = 0;
             size_t mstart = objmodules.dim;
             while (1)
             {

@@ -833,7 +833,7 @@ void toDebugClosure(Symbol* closstru)
     const len1 = numidx + cv4_numericbytes(structsize);
     debtyp_t *d = debtyp_alloc(len1 + cv_stringbytes(closname));
     cv4_storenumeric(d.data.ptr + numidx, structsize);
-    const uint len = len1 + cv_namestring(d.data.ptr + len1, closname);
+    cv_namestring(d.data.ptr + len1, closname);
 
     if (leaf == LF_STRUCTURE)
     {

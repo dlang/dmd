@@ -1035,7 +1035,6 @@ public:
         buf.writeByte(m);
         buf.print(q.length);
         buf.writeByte('_');    // nbytes <= 11
-        const len = buf.length;
         auto slice = buf.allocate(2 * q.length);
         foreach (i, c; q)
         {
