@@ -1,0 +1,13 @@
+`-preview=in` now makes the `in` storage class mean `scope const`.
+
+Without `-preview=in`, these two declarations are equivalent:
+-------------
+void fun(in int x);
+void fun(const int x);
+-------------
+
+With `-preview=in`, these two declarations are equivalent:
+------------------
+void fun(in int x);
+void fun(scope const int x);
+------------------
