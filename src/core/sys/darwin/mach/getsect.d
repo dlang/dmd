@@ -44,7 +44,7 @@ version (CoreDdoc)
      * Returns the section data of the given section in the given segment in the
      * mach executable it is linked into.
      *
-     * ___
+     * ---
      * void main()
      * {
      *      import core.sys.darwin.mach.getsect;
@@ -52,7 +52,7 @@ version (CoreDdoc)
      *      assert(getsectdata("__TEXT", "__text", &size));
      *      assert(size > 0);
      * }
-     * ___
+     * ---
      *
      * Params:
      *  segname = the name of the segment
@@ -74,7 +74,7 @@ version (CoreDdoc)
      * Returns the section data of the given section in the given segment in the
      * given framework.
      *
-     * ___
+     * ---
      * void main()
      * {
      *      import core.sys.darwin.mach.getsect;
@@ -82,7 +82,7 @@ version (CoreDdoc)
      *      assert(getsectdatafromFramework("Foundation", "__TEXT", "__text", &size));
      *      assert(size > 0);
      * }
-     * ___
+     * ---
      *
      * Params:
      *  FrameworkName = the name of the framework to get the section data from
@@ -115,13 +115,13 @@ version (CoreDdoc)
      * Returns the section structure of the given section in the given segment
      * in the mach executable it is linked into.
      *
-     * ___
+     * ---
      * void main()
      * {
      *      import core.sys.darwin.mach.getsect;
      *      assert(getsectbyname("__TEXT", "__text"));
      * }
-     * ___
+     * ---
      *
      * Params:
      *  segname = the name of the segment
@@ -140,7 +140,7 @@ version (CoreDdoc)
      * Returns the section data of the given section in the given segment in the
      * image pointed to by the given mach header.
      *
-     * ___
+     * ---
      * void main()
      * {
      *      import core.sys.darwin.mach.getsect;
@@ -151,7 +151,7 @@ version (CoreDdoc)
      *      assert(getsectdata(mph, "__TEXT", "__text", &size));
      *      assert(size > 0);
      * }
-     * ___
+     * ---
      *
      * Params:
      *  mhp = the mach header to get the section data from
@@ -175,13 +175,13 @@ version (CoreDdoc)
      * Returns the segment structure of the given segment in the mach executable
      * it is linked into.
      *
-     * ___
+     * ---
      * void main()
      * {
      *      import core.sys.darwin.mach.getsect;
      *      assert(getsegbyname("__TEXT"));
      * }
-     * ___
+     * ---
      *
      * Params:
      *  segname = the name of the segment
@@ -198,7 +198,7 @@ version (CoreDdoc)
      * Returns the segment data of the given segment in the image pointed to by
      * the given mach header.
      *
-     * ___
+     * ---
      * void main()
      * {
      *      import core.sys.darwin.mach.getsect;
@@ -209,7 +209,7 @@ version (CoreDdoc)
      *      assert(getsegmentdata(mph, "__TEXT", &size));
      *      assert(size > 0);
      * }
-     * ___
+     * ---
      *
      * Params:
      *  mhp = the mach header to get the section data from
@@ -236,7 +236,7 @@ version (CoreDdoc)
      * Returns the section data of the given section in the given segment in the
      * image pointed to by the given mach header.
      *
-     * ___
+     * ---
      * void main()
      * {
      *      import core.sys.darwin.mach.getsect;
@@ -247,7 +247,7 @@ version (CoreDdoc)
      *      assert(getsectdatafromheader(mph, "__TEXT", "__text", &size));
      *      assert(size > 0);
      * }
-     * ___
+     * ---
      *
      * Params:
      *  mhp = the mach header to get the section data from
@@ -280,7 +280,7 @@ version (CoreDdoc)
      * Returns the section structure of the given section in the given segment
      * in image pointed to by the given mach header.
      *
-     * ___
+     * ---
      * void main()
      * {
      *      import core.sys.darwin.mach.getsect;
@@ -289,7 +289,7 @@ version (CoreDdoc)
      *      auto mph = _NSGetMachExecuteHeader();
      *      assert(getsectbynamefromheader(mph, "__TEXT", "__text"));
      * }
-     * ___
+     * ---
      *
      * Params:
      *  mhp = the mach header to get the section from
