@@ -413,7 +413,6 @@ private extern(C++) final class Semantic2Visitor : Visitor
                     if (f1.fbody is null || f2.fbody is null)
                         return 0;
 
-                    auto tf1 = cast(TypeFunction)f1.type;
                     auto tf2 = cast(TypeFunction)f2.type;
                     error(f2.loc, "%s `%s%s` cannot be overloaded with %s`extern(%s)` function at %s",
                             f2.kind(),

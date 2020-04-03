@@ -1450,8 +1450,6 @@ void genKill(ref ObState obstate, ObNode* ob)
                             if (vi == size_t.max)
                                 return;
 
-                            auto pvs = &ob.gen[vi];
-
                             if (p.storageClass & STC.out_)
                             {
                                 /// initialize
@@ -1492,7 +1490,6 @@ void genKill(ref ObState obstate, ObNode* ob)
                             if (vi == size_t.max)
                                 return;
 
-                            auto pvs = &ob.gen[vi];
                             obstate.varStack.push(vi);
                             obstate.mutableStack.push(isMutableRef(arg.type));
 
@@ -1514,7 +1511,7 @@ void genKill(ref ObState obstate, ObNode* ob)
                 foreach (i; varStackSave .. obstate.varStack.length)
                 {
                     const vi = obstate.varStack[i];
-                    auto pvs = &ob.gen[vi];
+                    // auto pvs = &ob.gen[vi];
                     auto v = obstate.vars[vi];
                     //if (pvs.state == PtrState.Undefined)
                         //v.error(ce.loc, "is Undefined, cannot pass to function");
@@ -1676,7 +1673,6 @@ void genKill(ref ObState obstate, ObNode* ob)
 
             override void visit(NewExp e)
             {
-                Type tb = e.newtype.toBasetype();
                 if (e.arguments)
                 {
                     foreach (ex; *e.arguments)
@@ -2391,7 +2387,6 @@ void checkObErrors(ref ObState obstate)
 
             override void visit(NewExp e)
             {
-                Type tb = e.newtype.toBasetype();
                 if (e.arguments)
                 {
                     foreach (ex; *e.arguments)
@@ -2599,7 +2594,6 @@ void readVar(ObNode* ob, const size_t vi, bool mutable, PtrVarState[] gen)
 void makeChildrenUndefined(size_t vi, PtrVarState[] gen)
 {
     //printf("makeChildrenUndefined(%d)\n", vi);
-    auto pvs = &gen[vi];
     foreach (di; 0 .. gen.length)
     {
         if (gen[di].deps[vi])    // if di depends on vi

@@ -3667,7 +3667,6 @@ public:
         VarDeclaration vd = null;
         Expression* payload = null; // dead-store to prevent spurious warning
         Expression oldval;
-        int from;
 
         if (auto ve = e1.isVarExp())
         {

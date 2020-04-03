@@ -3097,7 +3097,6 @@ elem *toElem(Expression e, IRState *irs)
                      *  memset(&struct, 0, struct.sizeof)
                      */
                     uint sz = cast(uint)ae.e1.type.size();
-                    StructDeclaration sd = t1s.sym;
 
                     elem *el = e1;
                     elem *enbytes = el_long(TYsize_t, sz);
@@ -3142,7 +3141,6 @@ elem *toElem(Expression e, IRState *irs)
                      */
                     elem *ey = null;
                     targ_size_t sz = ae.e1.type.size();
-                    StructDeclaration sd = (cast(TypeStruct)t1b.baseElemOf()).sym;
 
                     elem *el = e1;
                     elem *enbytes = el_long(TYsize_t, sz);
