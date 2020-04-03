@@ -639,7 +639,7 @@ Expression typeToExpressionHelper(TypeQualified t, Expression e, size_t i = 0)
  *      `Type` with completed semantic analysis, `Terror` if errors
  *      were encountered
  */
-extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
+extern(C++) Type typeSemantic(Type t, const ref Loc loc, Scope* sc)
 {
     static Type error()
     {

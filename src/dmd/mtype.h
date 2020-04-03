@@ -41,6 +41,9 @@ typedef struct TYPE type;
 
 void semanticTypeInfo(Scope *sc, Type *t);
 
+Type *typeSemantic(Type *t, const Loc &loc, Scope *sc);
+Type *merge(Type *type);
+
 enum ENUMTY
 {
     Tarray,             // slice array, aka T[]
