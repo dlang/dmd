@@ -88,6 +88,7 @@ public:
 
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
+    void setScope(Scope *sc);
     const char *toChars() const;
     void accept(Visitor *v) { v->visit(this); }
 };

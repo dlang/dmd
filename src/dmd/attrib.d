@@ -435,6 +435,13 @@ extern (C++) final class CPPMangleDeclaration : AttribDeclaration
             sc.aligndecl, sc.inlining);
     }
 
+    override void setScope(Scope* sc)
+    {
+        if (decl)
+            Dsymbol.setScope(sc); // for forward reference
+        return AttribDeclaration.setScope(sc);
+    }
+
     override const(char)* toChars() const
     {
         return toString().ptr;

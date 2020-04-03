@@ -727,7 +727,6 @@ class TypeStruct : public Type
 public:
     StructDeclaration *sym;
     AliasThisRec att;
-    CPPMANGLE cppmangle;
 
     static TypeStruct *create(StructDeclaration *sym);
     const char *kind();
