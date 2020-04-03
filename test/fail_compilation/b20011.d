@@ -2,7 +2,7 @@
 TEST_OUTPUT:
 ---
 fail_compilation/b20011.d(22): Error: cannot modify constant `S1(cast(ubyte)0u).member`
-fail_compilation/b20011.d(24): Error: `S2(null).member` is not an lvalue and cannot be modified
+fail_compilation/b20011.d(25): Error: `S2(null).member` is not an lvalue and cannot be modified
 fail_compilation/b20011.d(26): Error: cannot modify constant expression `S2(null).member`
 fail_compilation/b20011.d(27): Error: cannot modify constant expression `S2(null).member`
 fail_compilation/b20011.d(30): Error: cannot modify constant expression `U1(cast(ubyte)0u, ).m2`
