@@ -2469,6 +2469,8 @@ extern (C++) class FuncDeclaration : Declaration
             return true;
 
         auto tf = type.toTypeFunction();
+        if (tf.isref)
+            return true;
 
         foreach (rs; *returns)
         {
@@ -2476,12 +2478,7 @@ extern (C++) class FuncDeclaration : Declaration
             {
                 auto ve = cast(VarExp)rs.exp;
                 auto v = ve.var.isVarDeclaration();
-                if (tf.isref)
-                {
-                    // Function returns a reference
-                    return true;
-                }
-                else if (!v || v.isOut() || v.isRef())
+                if (!v || v.isOut() || v.isRef())
                     return true;
                 else if (nrvo_var is null)
                 {
