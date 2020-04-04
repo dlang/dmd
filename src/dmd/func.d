@@ -2474,9 +2474,8 @@ extern (C++) class FuncDeclaration : Declaration
 
         foreach (rs; *returns)
         {
-            if (rs.exp.op == TOK.variable)
+            if (auto ve = rs.exp.isVarExp())
             {
-                auto ve = cast(VarExp)rs.exp;
                 auto v = ve.var.isVarDeclaration();
                 if (!v || v.isOut() || v.isRef())
                     return true;
