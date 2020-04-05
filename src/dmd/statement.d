@@ -449,6 +449,88 @@ extern (C++) abstract class Statement : ASTNode
     inout(CompoundDeclarationStatement) isCompoundDeclarationStatement() { return stmt == STMT.CompoundDeclaration ? cast(typeof(return))this : null; }
 }
 
+
+private Statement stripScopeStatement(Statement s)
+{
+    Statement result = s;
+
+    if (s)
+    {
+        ScopeStatement ss = s.isScopeStatement();
+        while(ss && ss.statement)
+        {
+            result = ss.statement;
+            ss = result.isScopeStatement();
+        }
+    }
+
+    return result;
+}
+/**
+* Returns:
+*     Wheter ($D stmt) containts assert(ctfe)
+* Params:
+*  stmt = CompoundStatement to check
+*/
+bool containsAssertCtfe(CompoundStatement stmt)
+{
+    bool result = false;
+
+    Statements *statements;
+    if (stmt !is null)
+    {
+        if (CompoundStatement cs = stmt.isCompoundStatement())
+        {
+            statements = cs.statements;
+        }
+    }
+
+    if (statements !is null)
+    {
+        foreach(s;(*statements))
+        {
+            if (!s)
+                continue;
+
+            s = stripScopeStatement(s);
+            if (isAssertCtfe(s))
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+/**
+* Returns:
+*     Wheter ($D stmt) is assert(ctfe)
+* Params:
+*  stmt = Statement to check
+*/
+extern (C++) public bool isAssertCtfe(Statement s)
+{
+    if (s)
+    {
+        if (auto es = s.isExpStatement())
+        {
+            if (auto ae = (es.exp ? es.exp.isAssertExp() : null))
+            {
+                if (auto ve = (ae.e1 ? ae.e1.isVarExp() : null))
+                {
+                    if (ve && ve.var && ve.var.ident == Id.ctfe)
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
 /***********************************************************
  * Any Statement that fails semantic() or has a component that is an ErrorExp or
  * a TypeError should return an ErrorStatement from semantic().

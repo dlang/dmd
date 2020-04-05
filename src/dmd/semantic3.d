@@ -1000,6 +1000,27 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 if (global.params.useOut == CHECKENABLE.off)
                     fens = null;
             }
+
+            // if the function body or the in contracts contain "assert(__ctfe)" set the compile time only flag
+            {
+                if (funcdecl.fbody)
+                {
+                    if (auto cs = funcdecl.fbody.isCompoundStatement())
+                        if (auto s = cs.statements)
+                            if (s.length && isAssertCtfe((*s)[0]))
+                                funcdecl.flags |= FUNCFLAG.compileTimeOnly;
+                }
+
+                if (funcdecl.frequire)
+                {
+                    auto cs = funcdecl.frequire.isCompoundStatement();
+                    if (cs && containsAssertCtfe(cs))
+                    {
+                        funcdecl.flags |= FUNCFLAG.compileTimeOnly;
+                    }
+                }
+            }
+
             if (funcdecl.fbody && funcdecl.fbody.isErrorStatement())
             {
             }
