@@ -5853,6 +5853,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return op;
             }
 
+            // if the assert condition is a mixin expression, try to compile it
+            if (auto ce = exp.e1.isCompileExp())
+            {
+                if (auto e1 = compileIt(ce))
+                    exp.e1 = e1;
+            }
+
             const tok = exp.e1.op;
             bool isEqualsCallExpression;
             if (tok == TOK.call)

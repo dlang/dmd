@@ -182,10 +182,22 @@ string getMessage(T)(lazy T expr) @trusted
     }
 }
 
+void testMixinExpression() @safe
+{
+    static struct S
+    {
+        bool opEquals(S) @safe { return true; }
+    }
+
+    const msg = getMessage(assert(mixin("S() != S()")));
+    assert(msg == "S() == S()");
+}
+
 void main()
 {
     test8765();
     test9255();
     test20114();
     test20375();
+    testMixinExpression();
 }
