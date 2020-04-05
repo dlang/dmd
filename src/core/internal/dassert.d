@@ -156,10 +156,10 @@ private string miniFormat(V)(const ref V v)
         string msg = "[";
         foreach (k, ref val; v)
         {
-            if (i++ > 0)
+            if (i > 0)
                 msg ~= ", ";
             // don't fully print big AAs
-            if (i >= 30)
+            if (i++ >= 30)
             {
                 msg ~= "...";
                 break;
@@ -172,11 +172,11 @@ private string miniFormat(V)(const ref V v)
     else static if (is(V == struct))
     {
         string msg = V.stringof ~ "(";
-        foreach (idx, mem; v.tupleof)
+        foreach (i, ref field; v.tupleof)
         {
-            if (idx > 0)
+            if (i > 0)
                 msg ~= ", ";
-            msg ~= miniFormat(v.tupleof[idx]);
+            msg ~= miniFormat(field);
         }
         msg ~= ")";
         return msg;
