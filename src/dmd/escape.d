@@ -839,7 +839,7 @@ ByRef:
          * then uncount that address of. This is so it won't cause a
          * closure to be allocated.
          */
-        if (va && va.isScope() && fd.tookAddressOf && global.params.vsafe)
+        if (va && va.isScope() && fd.tookAddressOf)
             --fd.tookAddressOf;
 
         foreach (v; vars)
