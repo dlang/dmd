@@ -3599,7 +3599,8 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
     {
         //printf("TryCatchStatement.semantic()\n");
 
-        if (!global.params.useExceptions)
+        if (!global.params.useExceptions &&
+            !(sc.func && sc.func.flags & FUNCFLAG.compileTimeOnly))
         {
             tcs.error("cannot use try-catch statements with -betterC");
             return setError();
@@ -3814,7 +3815,8 @@ package (dmd) extern (C++) final class StatementSemanticVisitor : Visitor
      */
     extern(D) static bool throwSemantic(const ref Loc loc, ref Expression exp, Scope* sc)
     {
-        if (!global.params.useExceptions)
+        if (!global.params.useExceptions &&
+            !(sc.func && sc.func.flags & FUNCFLAG.compileTimeOnly))
         {
             loc.error("cannot use `throw` statements with -betterC");
             return false;

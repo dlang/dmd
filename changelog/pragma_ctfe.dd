@@ -1,0 +1,33 @@
+Added ability to specify that a function is to be used only in CTFE
+
+Previously, DMD emitted functions which are only used in CTFE into
+generated object files. Although the linker usually removes those unused functions,
+this still causes some problems:
+
+* The function must pass semantic like any other function (i.e. with `-betterC`,
+  it can't use non-betterC features, although those are available in CTFE).
+* The compiler backend spends time optimizing these unused functions.
+* The linker may not be able to remove these functions in some cases, e.g when
+  building shared libraries.
+
+As a solution, `pragma(ctfe`) now allows to specify that a function is only meant to
+be used in CTFE:
+
+-------
+pragma(ctfe)
+string generateMixin(string name)
+{
+    return `string ` ~ name ~ `= "This is not a good mixin";`;
+}
+
+void main(string[] args)
+{
+    import std.stdio;
+    mixin(generateMixin("a"));           // Ok
+    string runtime = generateMixin("a"); // Will fail with an compile time error
+}
+-------
+
+The compiler will complain when using a function annotated this way in an
+runtime context. Additionally, `-betterC` checking is disabled for these
+functions, enabling `-betterC` CTFE functions to use the full D feature set.

@@ -402,7 +402,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 if (f.linkage == LINK.d)
                 {
                     // Variadic arguments depend on Typeinfo being defined.
-                    if (!global.params.useTypeInfo || !Type.dtypeinfo || !Type.typeinfotypelist)
+                    if ((!global.params.useTypeInfo && !(funcdecl.flags & FUNCFLAG.compileTimeOnly)) ||
+                        !Type.dtypeinfo || !Type.typeinfotypelist)
                     {
                         if (!global.params.useTypeInfo)
                             funcdecl.error("D-style variadic functions cannot be used with -betterC");
