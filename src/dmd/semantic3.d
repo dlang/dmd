@@ -485,9 +485,13 @@ private extern(C++) final class Semantic3Visitor : Visitor
             if (f.parameterList.parameters)
             foreach (fparam; *f.parameterList.parameters)
             {
+                if (isAliasType(fparam.type))
+                    funcdecl.flags |= FUNCFLAG.compileTimeOnly;
+
                 if (!fparam.ident)
                     continue; // never used, so ignore
                 // expand any tuples
+
                 if (fparam.type.ty != Ttuple)
                     continue;
 

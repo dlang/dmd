@@ -248,7 +248,11 @@ enum ENUMTY : int
 
     Tdelegate,
     Tnone,
+
+    Talias, /// Type type
+
     Tvoid,
+
     Tint8,
     Tuns8,
     Tint16,
@@ -256,8 +260,8 @@ enum ENUMTY : int
     Tint32,
     Tuns32,
     Tint64,
-
     Tuns64,
+
     Tfloat32,
     Tfloat64,
     Tfloat80,
@@ -300,6 +304,7 @@ alias Tstruct = ENUMTY.Tstruct;
 alias Tenum = ENUMTY.Tenum;
 alias Tdelegate = ENUMTY.Tdelegate;
 alias Tnone = ENUMTY.Tnone;
+alias Talias = ENUMTY.Talias;
 alias Tvoid = ENUMTY.Tvoid;
 alias Tint8 = ENUMTY.Tint8;
 alias Tuns8 = ENUMTY.Tuns8;
@@ -416,6 +421,7 @@ extern (C++) abstract class Type : ASTNode
 
     type* ctype;                    // for back end
 
+    extern (C++) __gshared Type talias;
     extern (C++) __gshared Type tvoid;
     extern (C++) __gshared Type tint8;
     extern (C++) __gshared Type tuns8;
@@ -827,6 +833,7 @@ extern (C++) abstract class Type : ASTNode
         // Set basic types
         __gshared TY* basetab =
         [
+            Talias,
             Tvoid,
             Tint8,
             Tuns8,
@@ -861,6 +868,8 @@ extern (C++) abstract class Type : ASTNode
             basic[basetab[i]] = t;
         }
         basic[Terror] = new TypeError();
+
+        talias = basic[Talias];
 
         tvoid = basic[Tvoid];
         tint8 = basic[Tint8];
@@ -3063,6 +3072,10 @@ extern (C++) final class TypeBasic : Type
         uint flags = 0;
         switch (ty)
         {
+        case Talias:
+            d = Token.toChars(TOK.alias_);
+            break;
+
         case Tvoid:
             d = Token.toChars(TOK.void_);
             break;
@@ -7209,4 +7222,19 @@ bool isCopyable(Type t)
         }
     }
     return true;
+}
+
+/***************************************************
+ * Determine if type t is a Talias on some level.
+ * Params:
+ *      t = type to check
+ * Returns:
+ *      true if it's a Talias (a type type)
+ */
+static bool isAliasType(Type t)
+{
+    if (t.ty == Talias)
+        return true;
+    auto Tnext = t.nextOf();
+    return Tnext ? isAliasType(Tnext) : false;
 }
