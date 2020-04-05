@@ -538,4 +538,3 @@ elem *lnx_builtin_next_arg(elem *efunc,list_t arglist);
 char *lnx_redirect_funcname(const(char)*);
 void  lnx_funcdecl(Symbol *,SC,enum_SC,int);
 int  lnx_attributes(int hinttype,const void *hint, type **ptyp, tym_t *ptym,int *pattrtype);
-

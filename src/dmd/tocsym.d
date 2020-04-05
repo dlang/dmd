@@ -794,4 +794,3 @@ Symbol *toSymbolCppTypeInfo(ClassDeclaration cd)
     s.Stype = t;
     return s;
 }
-
