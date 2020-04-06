@@ -1225,12 +1225,9 @@ elem *toElem(Expression e, IRState *irs)
             if (se.var.toParent2())
                 fd = se.var.toParent2().isFuncDeclaration();
 
-            int nrvo = 0;
-            if (fd && fd.nrvo_can && fd.nrvo_var == se.var)
-            {
+            const bool nrvo = fd && fd.nrvo_can && fd.nrvo_var == se.var;
+            if (nrvo)
                 s = fd.shidden;
-                nrvo = 1;
-            }
 
             if (s.Sclass == SCauto || s.Sclass == SCparameter || s.Sclass == SCshadowreg)
             {
