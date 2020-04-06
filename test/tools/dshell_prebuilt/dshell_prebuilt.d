@@ -64,9 +64,9 @@ static foreach (var; allVars)
 /// called from the dshell module to initialize environment
 void dshellPrebuiltInit(string testDir, string testName)
 {
-    static foreach (var; requiredEnvVars)
+    foreach (var; requiredEnvVars)
     {
-        mixin(`Vars.set("` ~ var ~ `", requireEnv("` ~ var ~ `"));`);
+        Vars.set(var, requireEnv(var));
     }
 
     Vars.set("TEST_DIR", testDir);
