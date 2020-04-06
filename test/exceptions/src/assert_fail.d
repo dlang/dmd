@@ -1,35 +1,19 @@
-import core.stdc.stdio : fprintf, printf, stderr;
+import core.stdc.stdio : fprintf, stderr;
+import core.internal.dassert : _d_assert_fail;
 
 void test(string comp = "==", A, B)(A a, B b, string msg, size_t line = __LINE__)
 {
-    test(assert(mixin("a " ~ comp ~ " b")), msg, line);
+    test(_d_assert_fail!(comp, A, B)(a, b), msg, line);
 }
 
-void test(T)(lazy T dg, string msg, size_t line = __LINE__)
+void test(const string actual, const string expected, size_t line = __LINE__)
 {
-    int ret = () {
-        import core.exception : AssertError;
-        try
-        {
-            dg();
-        } catch(AssertError e)
-        {
-            // don't use assert here for better debugging
-            if (e.msg != msg)
-            {
-                printf("Line %d: '%.*s' != '%.*s'\n",
-                    cast(int)line, cast(int)e.msg.length, e.msg.ptr, cast(int)msg.length, msg.ptr);
-                return 1;
-            }
-            return 0;
-        }
-        printf("Line %d: No assert triggered\n", cast(int)line);
-        return 1;
-    }();
-    // don't use assert here for better debugging
-    if (ret != 0) {
-        import core.stdc.stdlib : exit;
-        exit(1);
+    import core.exception : AssertError;
+
+    if (actual != expected)
+    {
+        const msg = "Mismatch!\nExpected: <" ~ expected ~ ">\nActual:   <" ~ actual ~ '>';
+        throw new AssertError(msg, __FILE__, line);
     }
 }
 
@@ -109,7 +93,7 @@ void testToString()()
         }
     }
 
-    test!"!="(Overloaded(), Overloaded(), "Const is Const");
+    test!"!="(Overloaded(), Overloaded(), "Const == Const");
 }
 
 
@@ -129,8 +113,8 @@ void testStruct()()
 {
     struct S { int s; }
     struct T { T[] t; }
-    test(S(0), S(1), "S(0) !is S(1)");
-    test(T([T(null)]), T(null), "[T([])] != []");
+    test(S(0), S(1), "S(0) != S(1)");
+    test(T([T(null)]), T(null), "T([T([])]) != T([])");
 
     // https://issues.dlang.org/show_bug.cgi?id=20323
     static struct NoCopy
@@ -139,7 +123,7 @@ void testStruct()()
     }
 
     NoCopy n;
-    test(assert(n != n), "NoCopy() is NoCopy()");
+    test(_d_assert_fail!"!="(n, n), "NoCopy() == NoCopy()");
 }
 
 void testAA()()
@@ -153,21 +137,21 @@ void testAA()()
 void testAttributes() @safe pure @nogc nothrow
 {
     int a;
-    assert(a == 0);
+    string s = _d_assert_fail!"=="(a, 0);
 }
 
 // https://issues.dlang.org/show_bug.cgi?id=20066
 void testVoidArray()()
 {
-    assert([] is null);
-    assert(null is null);
-    test([1], null, "[1] != []");
-    test("s", null, `"s" != ""`);
-    test(['c'], null, `"c" != ""`);
+    test!"!is"([], null, "[] is `null`");
+    test!"!is"(null, null, "`null` is `null`");
+    test([1], null, "[1] != `null`");
+    test("s", null, "\"s\" != `null`");
+    test(['c'], null, "\"c\" != `null`");
     test!"!="(null, null, "`null` == `null`");
 
     const void[] chunk = [byte(1), byte(2), byte(3)];
-    test(chunk, null, "[1, 2, 3] != []");
+    test(chunk, null, "[1, 2, 3] != `null`");
 }
 
 void testTemporary()
@@ -177,7 +161,7 @@ void testTemporary()
         ~this() @system {}
     }
 
-    test(assert(Bad() != Bad()), "Bad() is Bad()");
+    test!"!="(Bad(), Bad(), "Bad() == Bad()");
 }
 
 void testEnum()
@@ -191,7 +175,7 @@ void testEnum()
 
     ubyte[] data;
     enum ctfe = UUID();
-    test(assert(ctfe.data == data), "[1] != []");
+    test(_d_assert_fail!"=="(ctfe.data, data), "[1] != []");
 }
 
 void main()
