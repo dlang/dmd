@@ -5,7 +5,7 @@
 # Look up the DMD file for more information about reasoning, patterns, caveats, etc...
 #
 # TODO:
-# - Implement Windows + MSVC support
+# - Implement Windows + MSVC 2017 support (investigate 2015)
 # - Implement Windows + clang support
 # - Implement Linux + Clang 32 bits support (if possible)
 name: stdcpp
@@ -34,7 +34,7 @@ jobs:
           clang-9.0.0, clang-8.0.0, clang-7.0.0,
           clang-6.0.0,  clang-5.0.2, clang-4.0.0, clang-3.9.0,
           g++-9, g++-8, g++-7, g++-6, g++-5,
-          msvc-2019, msvc-2017, msvc-2015, msvc-2013
+          msvc-2019, msvc-2017, msvc-2015
         ]
 
         exclude:
@@ -42,7 +42,6 @@ jobs:
           - { os: ubuntu-16.04, target: msvc-2019 }
           - { os: ubuntu-16.04, target: msvc-2017 }
           - { os: ubuntu-16.04, target: msvc-2015 }
-          - { os: ubuntu-16.04, target: msvc-2013 }
           # FIXME: Can't test clang+Linux because DMD assume g++
           - { os: ubuntu-16.04, target: clang-9.0.0 }
           - { os: ubuntu-16.04, target: clang-8.0.0 }
@@ -60,7 +59,6 @@ jobs:
           - { os: macOS-10.15, target: msvc-2019 }
           - { os: macOS-10.15, target: msvc-2017 }
           - { os: macOS-10.15, target: msvc-2015 }
-          - { os: macOS-10.15, target: msvc-2013 }
           # We don't test g++ on Windows as DMD only mangles for MSVC
           - { os: windows-2019, target: g++-9 }
           - { os: windows-2019, target: g++-8 }
@@ -68,30 +66,21 @@ jobs:
           - { os: windows-2019, target: g++-6 }
           - { os: windows-2019, target: g++-5 }
 
-          # TODO: Implement support for clang and MSVC on Windows
+          # TODO: Implement support for clang and MSVC2017 on Windows
           # Currently those are still being run by the auto-tester
-          - os: windows-2019
-
-        include:
-          # Clang boilerplate
-          - { target: clang-9.0.0, compiler: clang, cxx-version: 9.0.0 }
-          - { target: clang-8.0.0, compiler: clang, cxx-version: 8.0.0 }
-          - { target: clang-7.0.0, compiler: clang, cxx-version: 7.0.0 }
-          - { target: clang-6.0.0, compiler: clang, cxx-version: 6.0.0 }
-          - { target: clang-5.0.2, compiler: clang, cxx-version: 5.0.2 }
-          - { target: clang-4.0.0, compiler: clang, cxx-version: 4.0.0 }
-          - { target: clang-3.9.0, compiler: clang, cxx-version: 3.9.0 }
-          # g++ boilerplace
-          - { target: g++-9, compiler: g++, cxx-version: 9.3.0 }
-          - { target: g++-8, compiler: g++, cxx-version: 8.4.0 }
-          - { target: g++-7, compiler: g++, cxx-version: 7.5.0 }
-          - { target: g++-6, compiler: g++, cxx-version: 6.5.0 }
-          - { target: g++-5, compiler: g++, cxx-version: 5.5.0 }
-          # Platform boilerplate
-          - { os: ubuntu-16.04, arch: x86_64-linux-gnu-ubuntu-16.04 }
-          - { os: macOS-10.15,  arch: x86_64-apple-darwin }
-          # Clang 9.0.0 have a different arch for OSX
-          - { os: macOS-10.15, target: clang-9.0.0, arch: x86_64-darwin-apple }
+          # We can hardly test below 2017 in the CI because there's
+          # no way to install it via command line
+          # (TODO: Test with 2015 as the blog post is slightly ambiguous)
+          # https://devblogs.microsoft.com/cppblog/introducing-the-visual-studio-build-tools/
+          - { os: windows-2019, target: msvc-2017 }
+          - { os: windows-2019, target: msvc-2015 }
+          - { os: windows-2019, target: clang-9.0.0 }
+          - { os: windows-2019, target: clang-8.0.0 }
+          - { os: windows-2019, target: clang-7.0.0 }
+          - { os: windows-2019, target: clang-6.0.0 }
+          - { os: windows-2019, target: clang-5.0.2 }
+          - { os: windows-2019, target: clang-4.0.0 }
+          - { os: windows-2019, target: clang-3.9.0 }
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -206,10 +195,41 @@ jobs:
             exit 1
         fi
 
+    # Restore or install dmc (and DM make)
+    - name: '[Windows] Restore dmc from cache'
+      id: cache-dmc
+      if: runner.os == 'Windows'
+      uses: actions/cache@v1
+      with:
+        path: ${{ github.workspace }}/tools/
+        key: ${{ matrix.os }}-dmc857
+
+    - name: '[Windows] Install dmc'
+      if: runner.os == 'Windows' && steps.cache-dmc.outputs.cache-hit != 'true'
+      shell: powershell
+      run: |
+        $url = "http://ftp.digitalmars.com/Digital_Mars_C++/Patch/dm857c.zip"
+        $sha256hash = "3034016E02057618F1C6E33B9B3EACAE5F5BE25B203025BCC08F1C5D9340AE38"
+        Write-Host ('Downloading {0} ...' -f $url)
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        $ProgressPreference = 'SilentlyContinue'
+        New-Item -ItemType directory -Path ${{ github.workspace }}\tools\
+        Invoke-WebRequest -Uri $url -OutFile '${{ github.workspace }}\tools\dmc.zip'
+        if ((Get-FileHash '${{ github.workspace }}\tools\dmc.zip' -Algorithm "SHA256").Hash -ne $sha256hash) {
+          exit 1
+        }
+        Expand-Archive '${{ github.workspace }}\tools\dmc.zip' -DestinationPath ${{ github.workspace }}\tools\
+
+    - name: '[Windows] Set environment variables'
+      if: runner.os == 'Windows'
+      run: |
+        echo ::add-path::${{ github.workspace }}\tools\dm\bin\
+
     ########################################
     #    Building DMD, druntime, Phobos    #
     ########################################
     - name: '[Posix] Build compiler & standard library'
+      if: runner.os != 'Windows'
       run: |
         # All hosts are 64 bits but let's be explicit
         ./dmd/src/build.d -j2 MODEL=64
@@ -223,16 +243,47 @@ jobs:
           make -C phobos   -f posix.mak -j2 MODEL=32
         fi
 
+    - name: '[Windows] Build compiler & standard library'
+      if: runner.os == 'Windows'
+      shell: cmd
+      env:
+        HOST_DC: ${{ env.DC }}
+      run: |
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        dmd -run ./dmd/src/build.d -j2 MODEL=64
+        if %errorlevel% neq 0 exit /b %errorlevel%
+        # Note: Only CC for druntime and AR for Phobos are required ATM,
+        # but providing all three to avoid surprise for future contributors
+        # Those should really be in the path, though.
+        cd druntime
+        make -f win64.mak CC=cl LD=link AR=lib
+        if %errorlevel% neq 0 exit /b %errorlevel%
+        cd ..\phobos\
+        make -f win64.mak CC=cl LD=link AR=lib
+        if %errorlevel% neq 0 exit /b %errorlevel%
+        cd ..\
+
     ########################################
     #        Running the test suite        #
     ########################################
-    - name: Run C++ test suite
+    - name: '[Posix] Run C++ test suite'
+      if: runner.os != 'Windows'
       run: |
         make -C druntime -f posix.mak test/stdcpp/.run MODEL=64
         if [ ${{ matrix.compiler }} == "g++" ]; then
-          ./dmd/test/run.d clean
           make -C druntime -f posix.mak test/stdcpp/.run MODEL=32
         fi
+
+    - name: '[Windows] Run C++ test suite'
+      if: runner.os == 'Windows'
+      shell: cmd
+      env:
+        HOST_DC: ${{ env.DC }}
+      run: |
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        cd druntime
+        make -f win64.mak test_stdcpp CC=cl LD=link AR=lib
+        if %errorlevel% neq 0 exit /b %errorlevel%
 
     ########################################
     #     Dump symbols on link failure     #
