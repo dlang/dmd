@@ -72,7 +72,7 @@ void toggle(ref U u)
 // FIXME: Generates non-existant global
 // enum PI = 3.141; // extern _d_double PI;
 
-__gshared immutable PI = 3.141;
+__gshared const PI = 3.141;
 __gshared int counter = 42;
 
 enum Weather
