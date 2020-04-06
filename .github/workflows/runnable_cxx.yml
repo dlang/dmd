@@ -170,8 +170,16 @@ jobs:
     ########################################
     #   Setting up the host C++ compiler   #
     ########################################
-    - name: '[Posix] Setting up clang ${{ matrix.cxx-version }}'
+    - name: '[Posix] Load cached clang'
+      id: cache-clang
       if: matrix.compiler == 'clang' && runner.os != 'Windows'
+      uses: actions/cache@v1
+      with:
+        path: ${{ github.workspace }}/clang+llvm-${{ matrix.cxx-version }}-${{ matrix.arch }}/
+        key: ${{ matrix.cxx-version }}-${{ matrix.arch }}
+
+    - name: '[Posix] Setting up clang ${{ matrix.cxx-version }}'
+      if: matrix.compiler == 'clang' && runner.os != 'Windows' && steps.cache-clang.outputs.cache-hit != 'true'
       run: |
         wget --quiet --directory-prefix=${{ github.workspace }} https://releases.llvm.org/${{ matrix.cxx-version }}/clang+llvm-${{ matrix.cxx-version }}-${{ matrix.arch }}.tar.xz
         tar -x -C ${{ github.workspace }} -f ${{ github.workspace }}/clang+llvm-${{ matrix.cxx-version }}-${{ matrix.arch }}.tar.xz
@@ -185,11 +193,25 @@ jobs:
         #!/bin/bash
         ${TMP_CC} -isystem /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/ \$@
         EOF
-          chmod +x ${TMP_CC}-wrapper
-          cat ${TMP_CC}-wrapper
+          # Invoking clang with `clang++` will link the C++ standard library
+          # Make sure we got two separate wrapper for this
+          cat <<EOF > ${TMP_CC}++-wrapper
+        #!/bin/bash
+        ${TMP_CC}++ -isystem /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/ \$@
+        EOF
+          chmod +x ${TMP_CC}-wrapper ${TMP_CC}++-wrapper
+        fi
+
+    - name: '[Posix] Setup environment variables'
+      if: matrix.compiler == 'clang' && runner.os != 'Windows'
+      run: |
+        TMP_CC='${{ github.workspace }}/clang+llvm-${{ matrix.cxx-version }}-${{ matrix.arch }}/bin/clang'
+        if [ "${{ matrix.os }}" == "macOS-10.15" ]; then
           echo ::set-env name=CC::${TMP_CC}-wrapper
+          echo ::set-env name=CXX::${TMP_CC}++-wrapper
         else
           echo ::set-env name=CC::${TMP_CC}
+          echo ::set-env name=CXX::${TMP_CC}++
         fi
 
     # On OSX and Linux, clang is installed by default and in the path,
@@ -198,11 +220,11 @@ jobs:
       if: matrix.compiler == 'clang' && runner.os != 'Windows'
       run: |
         set -e
-        if ${CC} --version | grep -q 'version ${{ matrix.cxx-version }}'; then
-          ${CC} --version
+        if ${CXX} --version | grep -q 'version ${{ matrix.cxx-version }}'; then
+          ${CXX} --version
         else
-            echo "Expected version ${{ matrix.cxx-version }}, from '${CC}', got:"
-            ${CC} --version
+            echo "Expected version ${{ matrix.cxx-version }}, from '${CXX}', got:"
+            ${CXX} --version
             exit 1
         fi
 
@@ -220,17 +242,18 @@ jobs:
         sudo apt-get update
         sudo apt-get install ${{ matrix.target }} ${{ matrix.target }}-multilib
         echo ::set-env name=CC::${{ matrix.target }}
+        echo ::set-env name=CXX::${{ matrix.target }}
 
     # Make sure ${CC} works and we don't use the $PATH one
     - name: '[Linux] Verifying installed g++ version'
       if: matrix.compiler == 'g++'
       run: |
         set -e
-        if ${CC} --version | grep -q '${{ matrix.target }} (Ubuntu '; then
-          ${CC} --version
+        if ${CXX} --version | grep -q '${{ matrix.target }} (Ubuntu '; then
+          ${CXX} --version
         else
-            echo "Expected version ${{ matrix.target }}, from '${CC}', got:"
-            ${CC} --version
+            echo "Expected version ${{ matrix.target }}, from '${CXX}', got:"
+            ${CXX} --version
             exit 1
         fi
 
