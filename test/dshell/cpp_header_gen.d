@@ -10,9 +10,6 @@ int main()
         return DISABLED;
     }
 
-    // FIXME: Should be a default variable
-    Vars.set("CC", "g++");
-
     Vars.set("SOURCE_DIR",  "$EXTRA_FILES/cpp_header_gen");
     Vars.set("LIB",         "$OUTPUT_BASE/lib$LIBEXT");
     Vars.set("CPP_OBJ",     "$OUTPUT_BASE/cpp.o");

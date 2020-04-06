@@ -48,12 +48,16 @@ private alias requiredEnvVars = AliasSeq!(
     "OS", "SEP", "DSEP",
     "BUILD"
 );
+private alias optionalEnvVars = AliasSeq!(
+    "CC",
+);
 private alias allVars = AliasSeq!(
     requiredEnvVars,
+    optionalEnvVars,
     "TEST_DIR", "TEST_NAME",
     "RESULTS_TEST_DIR",
     "OUTPUT_BASE", "EXTRA_FILES",
-    "LIBEXT",
+    "LIBEXT"
 );
 
 static foreach (var; allVars)
@@ -67,6 +71,11 @@ void dshellPrebuiltInit(string testDir, string testName)
     foreach (var; requiredEnvVars)
     {
         Vars.set(var, requireEnv(var));
+    }
+
+    foreach (var; optionalEnvVars)
+    {
+        Vars.set(var, environment.get(var, ""));
     }
 
     Vars.set("TEST_DIR", testDir);
