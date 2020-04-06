@@ -175,6 +175,11 @@ private elem *callfunc(const ref Loc loc,
     elem *eside = null;
     elem *eresult = ehidden;
 
+    if (fd.flags & FUNCFLAG.compileTimeOnly)
+    {
+        fd.error("may only be used for CTFE");
+    }
+
     version (none)
     {
         printf("callfunc(directcall = %d, tret = '%s', ec = %p, fd = %p)\n",
