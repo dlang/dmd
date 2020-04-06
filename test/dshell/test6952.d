@@ -1,12 +1,12 @@
 import dshell;
 import std.algorithm : find;
 
-void main()
+int main()
 {
     if (OS != "linux")
     {
         writefln("Skipping test6952.d for %s.", OS);
-        return;
+        return DISABLED;
     }
 
     auto cmd = shellExpand("$DMD"
@@ -40,4 +40,6 @@ void main()
 
     // This is the way it should look
     assert(ccLine.find("-nostartfiles -nostdlib -nodefaultlibs") != "");
+
+    return 0;
 }

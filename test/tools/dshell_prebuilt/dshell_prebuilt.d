@@ -98,6 +98,9 @@ private string requireEnv(string name)
     return result;
 }
 
+/// Exit code to return if the test is disabled for the current platform
+enum DISABLED = 125;
+
 /// Remove one or more files
 void rm(scope const(char[])[] args...)
 {
