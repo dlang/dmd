@@ -1,13 +1,13 @@
 import dshell;
 
-void main()
+int main()
 {
     version (DigitalMars)
     {
         if (OS == "windows" && MODEL == "32")
         {
             writeln("Skipping test when using Optlink.");
-            return;
+            return DISABLED;
         }
     }
 
@@ -15,4 +15,6 @@ void main()
 
     run("$DMD -m$MODEL -of$lib -lib $EXTRA_FILES/linker_flag_with_spaces_b.d");
     run("$DMD -m$MODEL -I$EXTRA_FILES -of$OUTPUT_BASE/a$EXE $EXTRA_FILES/linker_flag_with_spaces_a.d -L$lib");
+
+    return 0;
 }

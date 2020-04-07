@@ -1534,7 +1534,13 @@ static this()
         outfile.writeln("[RUN_TEST] ", escapeShellCommand(runTest));
         auto runTestProc = std.process.spawnProcess(runTest, stdin, outfile, outfile);
         const exitCode = wait(runTestProc);
-        if (exitCode != 0)
+
+        if (exitCode == 125) // = DISABLED from tools/dshell_prebuilt.d
+        {
+            writefln(" !!! %s is disabled!", testLogName);
+            return 0;
+        }
+        else if (exitCode != 0)
         {
             printTestFailure(testLogName, output_file_temp);
             return exitCode;
