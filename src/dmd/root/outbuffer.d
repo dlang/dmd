@@ -148,6 +148,12 @@ struct OutBuffer
         write(s);
     }
 
+    void writestringln(const(char)[] s)
+    {
+        writestring(s);
+        writenl();
+    }
+
     extern (C++) void prependstring(const(char)* string) pure nothrow
     {
         size_t len = strlen(string);

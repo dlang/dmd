@@ -49,44 +49,43 @@ ENUM_CONSTANT_NUMERIC(bool, Anon2, true)
 ENUM_CONSTANT(const char*, Anon3, "wow")
 
 BEGIN_ENUM(Enum, ENUM, enum)
-  ENUM_KEY(int32_t, One, 0, Enum, ENUM, enum, E)
-  ENUM_KEY(int32_t, Two, 1, Enum, ENUM, enum, E)
+    ENUM_KEY(int32_t, One, 0, Enum, ENUM, enum, E)
+    ENUM_KEY(int32_t, Two, 1, Enum, ENUM, enum, E)
 END_ENUM(Enum, ENUM, enum)
 
 BEGIN_ENUM(EnumDefaultType, ENUMDEFAULTTYPE, enumdefaulttype)
-  ENUM_KEY(int32_t, One, 1, EnumDefaultType, ENUMDEFAULTTYPE, enumdefaulttype, EDT)
-  ENUM_KEY(int32_t, Two, 2, EnumDefaultType, ENUMDEFAULTTYPE, enumdefaulttype, EDT)
+    ENUM_KEY(int32_t, One, 1, EnumDefaultType, ENUMDEFAULTTYPE, enumdefaulttype, EDT)
+    ENUM_KEY(int32_t, Two, 2, EnumDefaultType, ENUMDEFAULTTYPE, enumdefaulttype, EDT)
 END_ENUM(EnumDefaultType, ENUMDEFAULTTYPE, enumdefaulttype)
 
 BEGIN_ENUM_NUMERIC(int8_t, EnumWithType, ENUMWITHTYPE, enumwithtype)
-  ENUM_KEY_NUMERIC(int8_t, One, 1, EnumWithType, ENUMWITHTYPE, enumwithtype, EWT)
-  ENUM_KEY_NUMERIC(int8_t, Two, 2, EnumWithType, ENUMWITHTYPE, enumwithtype, EWT)
+    ENUM_KEY_NUMERIC(int8_t, One, 1, EnumWithType, ENUMWITHTYPE, enumwithtype, EWT)
+    ENUM_KEY_NUMERIC(int8_t, Two, 2, EnumWithType, ENUMWITHTYPE, enumwithtype, EWT)
 END_ENUM_NUMERIC(int8_t, EnumWithType, ENUMWITHTYPE, enumwithtype)
 
 BEGIN_ANON_ENUM()
-  ANON_ENUM_KEY(int32_t, AnonOne, 1)
-  ANON_ENUM_KEY(int32_t, AnonTwo, 2)
+    ANON_ENUM_KEY(int32_t, AnonOne, 1)
+    ANON_ENUM_KEY(int32_t, AnonTwo, 2)
 END_ANON_ENUM()
 
 BEGIN_ANON_ENUM_NUMERIC(int64_t)
-  ANON_ENUM_KEY_NUMERIC(int64_t, AnonWithTypeOne, 1LL)
-  ANON_ENUM_KEY_NUMERIC(int64_t, AnonWithTypeTwo, 2LL)
+    ANON_ENUM_KEY_NUMERIC(int64_t, AnonWithTypeOne, 1LL)
+    ANON_ENUM_KEY_NUMERIC(int64_t, AnonWithTypeTwo, 2LL)
 END_ANON_ENUM_NUMERIC(int64_t)
 
 BEGIN_ENUM_TYPE(const char*, EnumWithStringType, ENUMWITHSTRINGTYPE, enumwithstringtype)
-  ENUM_KEY_TYPE(const char*, One, "1", EnumWithStringType, ENUMWITHSTRINGTYPE, enumwithstringtype, EWST)
-  ENUM_KEY_TYPE(const char*, Two, "2", EnumWithStringType, ENUMWITHSTRINGTYPE, enumwithstringtype, EWST)
+    ENUM_KEY_TYPE(const char*, One, "1", EnumWithStringType, ENUMWITHSTRINGTYPE, enumwithstringtype, EWST)
+    ENUM_KEY_TYPE(const char*, Two, "2", EnumWithStringType, ENUMWITHSTRINGTYPE, enumwithstringtype, EWST)
 END_ENUM_TYPE(const char*, EnumWithStringType, ENUMWITHSTRINGTYPE, enumwithstringtype)
 
 BEGIN_ENUM_TYPE(const char*, EnumWithImplicitType, ENUMWITHIMPLICITTYPE, enumwithimplicittype)
-  ENUM_KEY_TYPE(const char*, One, "1", EnumWithImplicitType, ENUMWITHIMPLICITTYPE, enumwithimplicittype, EWIT)
-  ENUM_KEY_TYPE(const char*, Two, "2", EnumWithImplicitType, ENUMWITHIMPLICITTYPE, enumwithimplicittype, EWIT)
+    ENUM_KEY_TYPE(const char*, One, "1", EnumWithImplicitType, ENUMWITHIMPLICITTYPE, enumwithimplicittype, EWIT)
+    ENUM_KEY_TYPE(const char*, Two, "2", EnumWithImplicitType, ENUMWITHIMPLICITTYPE, enumwithimplicittype, EWIT)
 END_ENUM_TYPE(const char*, EnumWithImplicitType, ENUMWITHIMPLICITTYPE, enumwithimplicittype)
 
 ENUM_CONSTANT_NUMERIC(int32_t, AnonMixedOne, 1)
 ENUM_CONSTANT_NUMERIC(int64_t, AnonMixedTwo, 2LL)
 ENUM_CONSTANT(const char*, AnonMixedA, "a")
-
 ---
 */
 

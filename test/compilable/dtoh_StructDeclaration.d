@@ -49,15 +49,8 @@ struct S4
     S4() : a(), b(), c(), d() {}
 };
 
-struct
-#if defined(__GNUC__) || defined(__clang__)
-    __attribute__((packed, aligned(1)))
-#elif defined(_MSC_VER)
-    __declspec(align(1))
-#elif defined(__DMC__)
-    #pragma pack(push, 1)
-#endif
-Aligned
+#pragma pack(push, 1)
+struct Aligned
 {
     int8_t a;
     int32_t b;
@@ -65,9 +58,7 @@ Aligned
     Aligned(int32_t a);
     Aligned() : a(), b(), c() {}
 };
-#if defined(__DMC__)
-    #pragma pack(pop)
-#endif
+#pragma pack(pop)
 
 struct A
 {
@@ -86,14 +77,14 @@ struct A
         int32_t u1;
         char u2[4$?:32=u|64=LLU$];
     };
-struct Inner
-{
-    int32_t x;
-    Inner() : x() {}
-};
+    struct Inner
+    {
+        int32_t x;
+        Inner() : x() {}
+    };
 
-typedef Inner I;
-class C;
+    typedef Inner I;
+    class C;
 
     A() : a(), s() {}
 };
