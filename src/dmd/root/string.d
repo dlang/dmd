@@ -263,10 +263,12 @@ unittest
  */
 @system pure nothrow @nogc
 bool startsWith(scope const(char)* p, scope const(char)[] s)
+in { assert(p && s.ptr); }
+do
 {
     foreach (const c; s)
     {
-        if (c != *p)
+        if (!*p || c != *p)
             return false;
         ++p;
     }
@@ -284,4 +286,7 @@ unittest
     assert(ptr.startsWith("12"));
     assert(ptr.startsWith("123"));
     assert(!ptr.startsWith("1234"));
+
+    assert(!ptr.startsWith("123\0"));
+    assert(!ptr.startsWith("123\04"));
 }
