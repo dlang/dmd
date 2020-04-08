@@ -253,3 +253,35 @@ unittest
     static assert(empty.length == 1);
     static assert(empty[0] == '\0');
 }
+
+/********************************
+ * Params:
+ *  p = 0 terminated string
+ *  s = string
+ * Returns:
+ *  true if `p` starts with `s`
+ */
+@system pure nothrow @nogc
+bool startsWith(scope const(char)* p, scope const(char)[] s)
+{
+    foreach (const c; s)
+    {
+        if (c != *p)
+            return false;
+        ++p;
+    }
+    return true;
+}
+
+///
+@system pure nothrow @nogc
+unittest
+{
+    const buf = "123".toStaticArray;
+    const ptr = &buf[0];
+    assert(ptr.startsWith(""));
+    assert(ptr.startsWith("1"));
+    assert(ptr.startsWith("12"));
+    assert(ptr.startsWith("123"));
+    assert(!ptr.startsWith("1234"));
+}

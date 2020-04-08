@@ -1453,24 +1453,6 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         return (overflow || value > max || *p) ? uint.max : value;
     }
 
-    /********************************
-     * Params:
-     *  p = 0 terminated string
-     *  s = string
-     * Returns:
-     *  true if `p` starts with `s`
-     */
-    static pure bool startsWith(const(char)* p, string s)
-    {
-        foreach (const c; s)
-        {
-            if (c != *p)
-                return false;
-            ++p;
-        }
-        return true;
-    }
-
     /**
      * Print an error messsage about an invalid switch.
      * If an optional supplemental message has been provided,
