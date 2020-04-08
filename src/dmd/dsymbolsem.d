@@ -555,6 +555,15 @@ private uint setMangleOverride(Dsymbol s, const(char)[] sym)
     return 0;
 }
 
+private void setCTFEOnly(Dsymbol s)
+{
+    if (auto fd = s.isFuncDeclaration())
+        fd.flags |= FUNCFLAG.compileTimeOnly;
+
+    if (auto ad = s.isAttribDeclaration())
+        ad.include(null).foreachDsymbol( (s) { setCTFEOnly(s); } );
+}
+
 /*************************************
  * Does semantic analysis on the public face of declarations.
  */
@@ -2000,7 +2009,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 }
             }
         }
-        else if (pd.ident == Id.crt_constructor || pd.ident == Id.crt_destructor)
+        else if (pd.ident == Id.crt_constructor || pd.ident == Id.crt_destructor || pd.ident == Id.Pctfe)
         {
             if (pd.args && pd.args.dim != 0)
                 pd.error("takes no argument");
@@ -2058,6 +2067,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         if (cnt > 1)
                             pd.error("can only apply to a single declaration");
                     }
+                }
+                else if (pd.ident == Id.Pctfe)
+                {
+                    setCTFEOnly(s);
                 }
             }
             if (sc2 != sc)
