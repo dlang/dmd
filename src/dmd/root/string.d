@@ -254,19 +254,20 @@ unittest
     static assert(empty[0] == '\0');
 }
 
-/********************************
+/**
+ * Checks if C string `p` starts with `needle`.
  * Params:
- *  p = 0 terminated string
- *  s = string
+ *     p = the C string to check
+ *     needle = the string to look for
  * Returns:
- *  true if `p` starts with `s`
+ *    `true` if `p` starts with `needle`
  */
 @system pure nothrow @nogc
-bool startsWith(scope const(char)* p, scope const(char)[] s)
-in { assert(p && s.ptr); }
+bool startsWith(scope const(char)* p, scope const(char)[] needle)
+in { assert(p && needle.ptr); }
 do
 {
-    foreach (const c; s)
+    foreach (const c; needle)
     {
         if (!*p || c != *p)
             return false;

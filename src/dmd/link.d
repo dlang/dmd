@@ -612,20 +612,6 @@ public int runLINK()
             argv.push("--gc-sections");
         }
 
-        /**
-        Checks if C string `p` starts with `needle`.
-        Params:
-            p = the C string to check
-            needle = the string to look for
-        Returns
-            `true` if `p` starts with `needle`
-        */
-        static bool startsWith(const(char)* p, string needle)
-        {
-            const f = p.toDString();
-            return f.length >= needle.length && f[0 .. needle.length] == needle;
-        }
-
         // return true if flagp should be ordered in with the library flags
         static bool flagIsLibraryRelated(const char* p)
         {
