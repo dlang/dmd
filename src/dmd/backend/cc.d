@@ -1436,7 +1436,14 @@ struct Symbol
     uint lnoscopestart;         // life time of var
     uint lnoscopeend;           // the line after the scope
 
-    char[1] Sident;             // identifier string (dynamic array)
+    /**
+     * Identifier for this symbol
+     *
+     * Note that this is used as a flexible array member.
+     * When allocating a Symbol, the allocation is for
+     * `sizeof(Symbol - 1 + strlen(identifier) + "\0".length)`.
+     */
+    char[1] Sident;
 
     int needThis()              // !=0 if symbol needs a 'this' pointer
     { return Symbol_needThis(&this); }
@@ -1875,4 +1882,3 @@ enum
 //        for (size_t i = 0; i < sz / sizeof(size_t); ++i)        \
 //            ((size_t *)(p))[i] = 0;                             \
 //    }
-

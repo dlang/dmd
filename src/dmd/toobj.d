@@ -1591,4 +1591,3 @@ private void genClassInfoForInterface(InterfaceDeclaration id)
     if (id.isExport())
         objmod.export_symbol(id.csym, 0);
 }
-
