@@ -21,6 +21,7 @@ import dmd.globals;
 import dmd.gluelayer;
 import dmd.mtype;
 import dmd.visitor;
+import dmd.func;
 import core.stdc.stdio;
 
 /****************************************************
@@ -38,7 +39,8 @@ void genTypeInfo(Loc loc, Type torig, Scope* sc)
     // Even when compiling without `useTypeInfo` (e.g. -betterC) we should
     // still be able to evaluate `TypeInfo` at compile-time, just not at runtime.
     // https://issues.dlang.org/show_bug.cgi?id=18472
-    if (!sc || !(sc.flags & SCOPE.ctfe))
+    if (!sc || !(sc.flags & SCOPE.ctfe) &&
+        !(sc.func && sc.func.flags & FUNCFLAG.compileTimeOnly))
     {
         if (!global.params.useTypeInfo)
         {

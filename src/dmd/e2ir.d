@@ -175,7 +175,7 @@ private elem *callfunc(const ref Loc loc,
     elem *eside = null;
     elem *eresult = ehidden;
 
-    if (fd.flags & FUNCFLAG.compileTimeOnly)
+    if (fd && fd.flags & FUNCFLAG.compileTimeOnly)
     {
         fd.error("may only be used for CTFE");
     }
