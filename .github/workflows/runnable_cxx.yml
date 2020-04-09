@@ -176,7 +176,7 @@ jobs:
       uses: actions/cache@v1
       with:
         path: ${{ github.workspace }}/clang+llvm-${{ matrix.cxx-version }}-${{ matrix.arch }}/
-        key: ${{ matrix.cxx-version }}-${{ matrix.arch }}
+        key: ${{ matrix.cxx-version }}-${{ matrix.arch }}-1
 
     - name: '[Posix] Setting up clang ${{ matrix.cxx-version }}'
       if: matrix.compiler == 'clang' && runner.os != 'Windows' && steps.cache-clang.outputs.cache-hit != 'true'
@@ -189,15 +189,18 @@ jobs:
         # and config files where only introduced from 6.0.0, use a wrapper script.
         if [ "${{ matrix.os }}" == "macOS-10.15" ]; then
           # Note: heredoc shouldn't be indented
-          cat <<EOF > ${TMP_CC}-wrapper
+          cat << 'EOF' > ${TMP_CC}-wrapper
         #!/bin/bash
-        ${TMP_CC} -isystem /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/ \$@
+        # Note: We need to use this because github.workspace is not stable
+        SCRIPT_FULL_PATH=$(dirname "$0")
+        ${SCRIPT_FULL_PATH}/clang -isystem /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/ $@
         EOF
           # Invoking clang with `clang++` will link the C++ standard library
           # Make sure we got two separate wrapper for this
-          cat <<EOF > ${TMP_CC}++-wrapper
+          cat << 'EOF' > ${TMP_CC}++-wrapper
         #!/bin/bash
-        ${TMP_CC}++ -isystem /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/ \$@
+        SCRIPT_FULL_PATH=$(dirname "$0")
+        ${SCRIPT_FULL_PATH}/clang++ -isystem /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/ $@
         EOF
           chmod +x ${TMP_CC}-wrapper ${TMP_CC}++-wrapper
         fi
