@@ -176,9 +176,7 @@ private elem *callfunc(const ref Loc loc,
     elem *eresult = ehidden;
 
     if (fd && fd.flags & FUNCFLAG.compileTimeOnly)
-    {
-        fd.error("may only be used for CTFE");
-    }
+        fd.error("is annotated with `pragma(ctfe)` and may not be called at runtime");
 
     version (none)
     {

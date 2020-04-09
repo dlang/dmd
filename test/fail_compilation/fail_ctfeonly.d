@@ -1,7 +1,7 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/fail_ctfeonly.d(10): Error: function `fail_ctfeonly.ctfeOnly` may only be used for CTFE
-fail_compilation/fail_ctfeonly.d(16): Error: function `fail_ctfeonly.ctfeOnly2` may only be used for CTFE
+fail_compilation/fail_ctfeonly.d(10): Error: function `fail_ctfeonly.ctfeOnly` is annotated with `pragma(ctfe)` and may not be called at runtime
+fail_compilation/fail_ctfeonly.d(16): Error: function `fail_ctfeonly.ctfeOnly2` is annotated with `pragma(ctfe)` and may not be called at runtime
 ---
 */
 

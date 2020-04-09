@@ -555,13 +555,13 @@ private uint setMangleOverride(Dsymbol s, const(char)[] sym)
     return 0;
 }
 
-private void setCTFEOnly(Dsymbol s)
+private void setCompileTimeOnly(Dsymbol s)
 {
     if (auto fd = s.isFuncDeclaration())
         fd.flags |= FUNCFLAG.compileTimeOnly;
 
     if (auto ad = s.isAttribDeclaration())
-        ad.include(null).foreachDsymbol( (s) { setCTFEOnly(s); } );
+        ad.include(null).foreachDsymbol( (s) { setCompileTimeOnly(s); } );
 }
 
 /*************************************
@@ -2070,7 +2070,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 }
                 else if (pd.ident == Id.Pctfe)
                 {
-                    setCTFEOnly(s);
+                    setCompileTimeOnly(s);
                 }
             }
             if (sc2 != sc)
