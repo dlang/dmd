@@ -1,9 +1,6 @@
 // PERMUTE_ARGS:
 // REQUIRED_ARGS: -betterC
 // POST_SCRIPT: compilable/extra-files/ctfeonly-postscript.sh
-// I guess the platforms below don't have nm
-// DISABLED: win32 win64 osx
-
 
 pragma(ctfe)
 string ctfeOnly(string x, string y)
