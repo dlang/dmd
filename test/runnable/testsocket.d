@@ -6,7 +6,7 @@ runnable/testsocket.d(48): Deprecation: The `delete` keyword has been deprecated
 ---
 */
 
-import std.stdio;
+import core.stdc.stdio;
 import std.socket;
 
 class Connection

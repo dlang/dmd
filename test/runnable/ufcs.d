@@ -424,7 +424,7 @@ class C5 : B5
 /*******************************************/
 // https://issues.dlang.org/show_bug.cgi?id=662
 
-import std.stdio,std.string, std.conv;
+import std.string, std.conv;
 
 enum Etest
 {
@@ -543,7 +543,7 @@ void test7703()
 /*******************************************/
 // https://issues.dlang.org/show_bug.cgi?id=7773
 
-//import std.stdio;
+//import core.stdc.stdio;
 void writeln7773(int n){}
 void test7773()
 {

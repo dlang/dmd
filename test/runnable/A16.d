@@ -7,7 +7,7 @@ class B16
 ---
 */
 
-import std.stdio;
+import core.stdc.stdio;
 
 class AA16
 {
