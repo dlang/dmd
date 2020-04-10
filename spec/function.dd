@@ -2884,9 +2884,59 @@ $(H3 $(LNAME2 safe-functions, Safe Functions))
         so they can be corrected.
         )
 
+$(H4 Safe External Functions)
+
+        $(P External functions don't have a function body visible to the compiler:
+        )
+        ---
+        @safe extern (C) void play();
+        ---
+        and so safety cannot be verified automatically.
+
+        $(BEST_PRACTICE Explicitly set an attribute for external functions rather
+        than relying on default settings.)
+
 $(H3 $(LNAME2 trusted-functions, Trusted Functions))
 
         $(P Trusted functions are marked with the $(CODE @trusted) attribute.)
+
+        $(P Trusted functions act as an interface between safe and system functions.
+        A trusted function provides a safe interface. A $(I Safe Interface) is one that:
+        )
+
+        $(UL
+
+        $(LI Does not invalidate pointers that are passed to it. For example,
+        ---
+        @system void free(void* p);
+        ...
+        free(p);
+        *p = 3;  // p is invalid
+        ---
+        is not a safe interface because `free(p)` means `p` is no longer a valid
+        pointer when it returns. `free` can only be `@system`.)
+
+        $(LI Does not attempt to access memory beyond the bounds of the memory object
+        a parameter points to. For example:
+        ---
+        @system size_t strlen(char* p);
+        ---
+        is not a safe interface because the implementation of `strlen` advances `p` until
+        it finds a `null` character, and this can be arbitrarily beyond the `char` that `p`
+        purportedly points to. `strlen` can only be `@system`. Any function that traverses
+        a C string passed as an argument can only be `@system`.
+        )
+
+        $(LI Does not have array bounds passed as a parameter separate from the pointer
+        type. For example:
+        ---
+        @system void* memcpy(void* dst, void* src, size_t nbytes);
+        ---
+        is not a safe interface because the extent of `dst` and `src` is set by `nbytes`, and
+        so cannot be verified by the compiler. Such functions can only be `@system`.
+        )
+
+        )
 
         $(P Trusted functions are guaranteed to not exhibit any undefined
         behavior if called by a safe function. Furthermore, calls to trusted
@@ -2951,6 +3001,11 @@ $(H3 $(LNAME2 system-functions, System Functions))
 
         $(P System functions are $(B not) covariant with trusted or safe functions.
         )
+
+        $(BEST_PRACTICE When in doubt, mark `extern (C)` and `extern (C++)` functions as
+        `@system` when their implementations are not in D, as the D compiler will be
+        unable to check them. Most of them are `@safe`, but will need to be manually
+        checked.)
 
 
 $(H2 $(LNAME2 function-attribute-inference, Function Attribute Inference))
