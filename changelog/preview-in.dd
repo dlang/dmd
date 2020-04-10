@@ -1,0 +1,18 @@
+Added `-preview=in` to make the `in` storage class mean `scope const`.
+
+Although technically defined to be `const scope`, the `in` storage
+class has never been implemented as such until this preview switch.
+With the implementation now done, `in` should be the storage class
+of choice for purely input function parameters.
+
+Without `-preview=in`, these two declarations are equivalent:
+-------------
+void fun(in int x);
+void fun(const int x);
+-------------
+
+With `-preview=in`, these two declarations are equivalent:
+------------------
+void fun(in int x);
+void fun(scope const int x);
+------------------
