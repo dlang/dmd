@@ -212,3 +212,82 @@ unittest
     assert(dstrcmp("안녕하세요!", "안녕하세요!") == 0);
     static assert(dstrcmp("안녕하세요!", "안녕하세요!") == 0);
 }
+
+/**
+ * Infers the length `N` of a string literal and coerces its type to a static
+ * array with length `N + 1`. Returns the string with a null character appended
+ * to the end.
+ *
+ * Params:
+ *  literal = string literal
+ *
+ * Notes:
+ *  - LDC produces quite optimal code for short strings:
+ *    - https://d.godbolt.org/z/M69Z1g
+ *    - https://gist.github.com/PetarKirov/338e4ab9292b6b2b311a3070572a07fb (backup URL)
+*/
+T[N + 1] toStaticArray(T, size_t N)(scope const(T)[N] literal)
+if (is(T == char) || is(T == wchar) || is(T == dchar))
+{
+    T[N+1] result = void;
+    result[0..N] = literal[0..N];
+    result[N] = 0;
+    return result;
+}
+
+///
+@safe pure nothrow @nogc
+unittest
+{
+    auto m = "123".toStaticArray;
+    const c = "123".toStaticArray;
+    immutable i = "123".toStaticArray;
+    enum e = "123".toStaticArray;
+
+    assert(m == "123\0");
+    assert(c == "123\0");
+    assert(i == "123\0");
+    static assert(e == "123\0");
+
+    const empty = "".toStaticArray;
+    static assert(empty.length == 1);
+    static assert(empty[0] == '\0');
+}
+
+/**
+ * Checks if C string `p` starts with `needle`.
+ * Params:
+ *     p = the C string to check
+ *     needle = the string to look for
+ * Returns:
+ *    `true` if `p` starts with `needle`
+ */
+@system pure nothrow @nogc
+bool startsWith(scope const(char)* p, scope const(char)[] needle)
+in { assert(p && needle.ptr); }
+do
+{
+    foreach (const c; needle)
+    {
+        if (!*p || c != *p)
+            return false;
+        ++p;
+    }
+    return true;
+}
+
+///
+@system pure nothrow @nogc
+unittest
+{
+    const buf = "123".toStaticArray;
+    const ptr = &buf[0];
+    assert(ptr.startsWith(""));
+    assert(ptr.startsWith("1"));
+    assert(ptr.startsWith("12"));
+    assert(ptr.startsWith("123"));
+    assert(!ptr.startsWith("1234"));
+
+    assert(!ptr.startsWith("123\0"));
+    assert(!ptr.startsWith("123\04"));
+}
