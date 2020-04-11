@@ -1050,7 +1050,7 @@ int tryMain(string[] args)
     {
         case "compilable":              testArgs.mode = TestMode.COMPILE;      break;
         case "fail_compilation":        testArgs.mode = TestMode.FAIL_COMPILE; break;
-        case "runnable", "runnable_cxx":
+        case "runnable", "runnable_cxx", "runnable_phobos":
             // running & linking costs time - for coverage builds we can save this
             testArgs.mode = envData.coverage_build ? TestMode.COMPILE : TestMode.RUN;
             break;
@@ -1060,7 +1060,7 @@ int tryMain(string[] args)
             return runDShellTest(input_dir, test_name, envData, output_dir, output_file);
 
         default:
-            writefln("Error: invalid test directory '%s', expected 'compilable', 'fail_compilation', 'runnable', 'runnable_cxx' or 'dshell'", input_dir);
+            writefln("Error: invalid test directory '%s', expected 'compilable', 'fail_compilation', 'runnable', 'runnable_cxx', 'runnable_phobos' or 'dshell'", input_dir);
             return 1;
     }
 
