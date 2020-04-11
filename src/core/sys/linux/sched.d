@@ -53,8 +53,12 @@ private // helpers
 
     cpu_set_t* __CPU_ALLOC(size_t count)
     {
-        const size = ((count + __NCPUBITS - 1) / __NCPUBITS) * cpu_mask.sizeof;
-        return cast(cpu_set_t*) malloc(size);
+        return cast(cpu_set_t*) malloc(__CPU_ALLOC_SIZE(count));
+    }
+
+    size_t __CPU_ALLOC_SIZE(size_t count) pure
+    {
+        return ((count + __NCPUBITS - 1) / __NCPUBITS) * cpu_mask.sizeof;
     }
 
     void __CPU_FREE(cpu_set_t* set)
@@ -103,6 +107,11 @@ struct cpu_set_t
 cpu_set_t* CPU_ALLOC(size_t count)
 {
     return __CPU_ALLOC(count);
+}
+
+size_t CPU_ALLOC_SIZE(size_t count) pure
+{
+    return __CPU_ALLOC_SIZE(count);
 }
 
 void CPU_FREE(cpu_set_t* set)
