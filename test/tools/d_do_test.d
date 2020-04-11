@@ -1053,6 +1053,14 @@ int tryMain(string[] args)
         case "runnable", "runnable_cxx", "runnable_phobos":
             // running & linking costs time - for coverage builds we can save this
             testArgs.mode = envData.coverage_build ? TestMode.COMPILE : TestMode.RUN;
+
+            // Remove phobos from the search paths if runnable or runnable_cxx.
+            if (input_dir == "runnable" || input_dir == "runnable_cxx")
+            {
+                auto dflags = environment["DFLAGS"];
+                auto phobos_path = environment["PHOBOS_PATH"];
+                environment["DFLAGS"] = dflags.replace("-I%s".format(phobos_path), "");
+            }
             break;
 
         case "dshell":
