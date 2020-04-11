@@ -2,7 +2,7 @@
 /*
 TEST_OUTPUT:
 ---
-runnable/testdstress.d(665): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/testdstress.d(666): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
 ---
 */
 
@@ -13,6 +13,7 @@ import core.exception;
 import core.vararg;
 
 extern(C) void* malloc(size_t size);
+extern(C) int printf(const char*, ...);
 
 /* ================================ */
 
@@ -691,8 +692,6 @@ void test31()
 
 /* ================================ */
 
-import std.stdio;
-
 union MyUnion32
 {
         int i;
@@ -703,7 +702,6 @@ void test32()
 {
         TypeInfo ti = typeid(MyUnion32*);
         assert(!(ti is null));
-        writefln("%s %d %d", ti.toString(), ti.tsize, (MyUnion32*).sizeof);
         assert(ti.tsize==(MyUnion32*).sizeof);
         assert(ti.toString()=="run.module_01.MyUnion32*");
 }

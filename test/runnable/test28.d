@@ -226,7 +226,7 @@ void test14()
 
 void func15(...)
 in {
-    writefln("Arguments len = %d\n", _arguments.length);
+    printf("Arguments len = %d\n", cast(int)_arguments.length);
     assert(_arguments.length == 2);
 }
 do {
