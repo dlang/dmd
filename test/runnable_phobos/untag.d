@@ -31,8 +31,8 @@ uint bug = 1;
 int main(string[] args) {
     getopt(args, "bug", &bug);
     enforce(bug <= 2);
-    auto txt = readText("runnable/extra-files/untag.html");
-    untag(txt, "runnable/extra-files/untag.html");
+    auto txt = readText("runnable_phobos/extra-files/untag.html");
+    untag(txt, "runnable_phobos/extra-files/untag.html");
     return 0;
 }
 

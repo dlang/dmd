@@ -2,7 +2,7 @@
 REQUIRED_ARGS:
 TEST_OUTPUT:
 ---
-runnable/hospital.d(179): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable_phobos/hospital.d(179): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
 ---
 */
 

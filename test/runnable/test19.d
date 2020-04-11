@@ -1,7 +1,5 @@
 // REQUIRED_ARGS: -unittest
 
-import std.algorithm: cmp;
-
 extern(C) int printf(const char*, ...);
 
 /* ================================ */
@@ -264,32 +262,6 @@ void test12()
 
 /* ================================ */
 
-char[] tolower13(ref char[] s)
-{
-    int i;
-
-    for (i = 0; i < s.length; i++)
-    {
-        char c = s[i];
-        if ('A' <= c && c <= 'Z')
-            s[i] = cast(char)(c + (cast(char)'a' - 'A'));
-    }
-    return s;
-}
-
-void test13()
-{
-    char[] s1 = "FoL".dup;
-    char[] s2;
-
-    s1 = s1.dup;
-    s2 = tolower13(s1);
-    assert(cmp(s2, "fol") == 0);
-    assert(s2 == s1);
-}
-
-/* ================================ */
-
 alias ABC14* LPABC14;
 class ABC14 { }
 
@@ -465,7 +437,6 @@ int main()
     test10();
     test11();
     test12();
-    test13();
     test14();
     test15();
     test16();

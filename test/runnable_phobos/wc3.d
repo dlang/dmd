@@ -1,5 +1,5 @@
 // PERMUTE_ARGS:
-// EXECUTE_ARGS: runnable/extra-files/alice30.txt
+// EXECUTE_ARGS: runnable_phobos/extra-files/alice30.txt
 // EXTRA_FILES: extra-files/alice30.txt
 
 import std.stdio;
