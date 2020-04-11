@@ -134,6 +134,11 @@ int CPU_COUNT(cpu_set_t* cpusetp) pure
     return __CPU_COUNT_S(cpu_set_t.sizeof, cpusetp);
 }
 
+int CPU_COUNT_S(size_t setsize, cpu_set_t* cpusetp) pure
+{
+    return __CPU_COUNT_S(setsize, cpusetp);
+}
+
 /* Scheduler control functions */
 int sched_setaffinity(pid_t pid, size_t cpusetsize, cpu_set_t *mask);
 int sched_getaffinity(pid_t pid, size_t cpusetsize, cpu_set_t *mask);
