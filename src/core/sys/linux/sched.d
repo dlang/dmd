@@ -17,6 +17,7 @@
 module core.sys.linux.sched;
 
 import core.bitop : popcnt;
+import core.stdc.stdlib : malloc, free;
 import core.sys.posix.sched;
 import core.sys.posix.config;
 import core.sys.posix.sys.types;
@@ -48,6 +49,17 @@ private // helpers
     cpu_mask __CPUMASK(size_t cpu) pure
     {
         return 1UL << (cpu % __NCPUBITS);
+    }
+
+    cpu_set_t* __CPU_ALLOC(size_t count)
+    {
+        const size = ((count + __NCPUBITS - 1) / __NCPUBITS) * cpu_mask.sizeof;
+        return cast(cpu_set_t*) malloc(size);
+    }
+
+    void __CPU_FREE(cpu_set_t* set)
+    {
+        free(cast(void*) set);
     }
 
     cpu_mask __CPU_SET_S(size_t cpu, size_t setsize, cpu_set_t* cpusetp) pure
@@ -87,6 +99,16 @@ struct cpu_set_t
 }
 
 /// Access macros for 'cpu_set' (missing a lot of them)
+
+cpu_set_t* CPU_ALLOC(size_t count)
+{
+    return __CPU_ALLOC(count);
+}
+
+void CPU_FREE(cpu_set_t* set)
+{
+    __CPU_FREE(set);
+}
 
 cpu_mask CPU_SET(size_t cpu, cpu_set_t* cpusetp) pure
 {
