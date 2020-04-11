@@ -9,7 +9,7 @@ Success
 
 module m1;
 
-import std.stdio;
+import core.stdc.stdio;
 
 import imports.m1a;
 

@@ -6,7 +6,7 @@ Success
 ---
 */
 
-import std.stdio;
+import core.stdc.stdio;
 
 struct S
 {

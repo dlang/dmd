@@ -5,7 +5,7 @@ Success
 ---
 */
 
-//import std.stdio;
+//import core.stdc.stdio;
 extern(C) int printf(const char*, ...);
 
 template Tuple(A...)

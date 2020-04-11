@@ -13,7 +13,7 @@ shared static this()
 ---
 */
 
-private import std.stdio;
+private import core.stdc.stdio;
 
 class Foo
 {

@@ -8,7 +8,7 @@ barx
 
 module a17;
 
-import std.stdio;
+import core.stdc.stdio;
 
 private import imports.a17a;
 

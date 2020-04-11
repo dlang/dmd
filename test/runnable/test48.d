@@ -1,7 +1,7 @@
 // EXTRA_SOURCES: imports/test48a.d
 // PERMUTE_ARGS:
 
-import std.stdio;
+import core.stdc.stdio;
 import imports.test48a;
 
 void main()
