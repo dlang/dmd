@@ -11,7 +11,7 @@ Success
 ---
 */
 
-import std.stdio;
+import core.stdc.stdio;
 
 /***********************************/
 
@@ -490,5 +490,5 @@ void main()
     testDIP29_6();
     test15778();
 
-    writefln("Success");
+    printf("Success\n");
 }

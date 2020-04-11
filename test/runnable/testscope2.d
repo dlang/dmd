@@ -29,7 +29,7 @@ pragma(msg, "foo4 ", typeof(&SS.foo4));
 
 void test3()
 {
-    version (all)
+    version (none)
     {
         import std.stdio;
         writeln(SS.foo1.mangleof);

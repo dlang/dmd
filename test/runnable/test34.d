@@ -736,7 +736,7 @@ void test37()
     {
         synchronized
         {
-            writefln("Hello world!");
+            printf("Hello world!\n");
         }
     }
 }
@@ -767,7 +767,7 @@ static Rect sizeTest(bool empty) {
 }
 
 void print38(Rect r) {
-    writefln("(%d, %d)-(%d, %d)", r.left, r.top, r.right, r.bottom);
+    printf("(%d, %d)-(%d, %d)\n", r.left, r.top, r.right, r.bottom);
     assert(r.left == 0);
     assert(r.right == 0);
     assert(r.top == 0);
@@ -1294,7 +1294,7 @@ void main()
     test61();
     test62();
 
-    writefln("Success");
+    printf("Success\n");
 }
 
 

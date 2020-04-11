@@ -1,6 +1,6 @@
 
 import core.vararg;
-import std.stdio;
+import core.stdc.stdio;
 
 /******************************************************/
 
@@ -21,7 +21,7 @@ void foo3(int x, ...)
     printf("%zd arguments\n", _arguments.length);
     for (int i = 0; i < _arguments.length; i++)
     {
-        writeln(_arguments[i].toString());
+        //writeln(_arguments[i].toString());
 
         if (_arguments[i] is typeid(int))
         {
@@ -370,7 +370,7 @@ void printargs(int x, ...)
     printf("%zd arguments\n", _arguments.length);
     for (int i = 0; i < _arguments.length; i++)
     {
-        writeln(_arguments[i].toString());
+        //writeln(_arguments[i].toString());
 
         if (_arguments[i] == typeid(int))
         {

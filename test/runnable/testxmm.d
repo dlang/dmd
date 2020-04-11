@@ -6,7 +6,6 @@ version (D_SIMD)
 
 import core.simd;
 import core.stdc.string;
-import std.stdio;
 
 alias TypeTuple(T...) = T;
 
@@ -812,7 +811,7 @@ void test7949()
 
     auto r = __simd(XMM.ADDPS, v1,v2);
 
-    writeln(r.array);
+    assert(cast(int[4])r.array == [2, 4, 6, 8]);
 }
 
 /*****************************************/

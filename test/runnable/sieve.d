@@ -12,7 +12,7 @@ RUN_OUTPUT:
 
 /* Eratosthenes Sieve prime number calculation. */
 
-import std.stdio;
+import core.stdc.stdio;
 
 bool[8191] flags;
 
@@ -20,7 +20,7 @@ int sieve()
 {
     int count;
 
-    writefln("10 iterations");
+    printf("10 iterations\n");
     for (int iter = 1; iter <= 10; iter++)
     {
         count = 0;
@@ -40,7 +40,7 @@ int sieve()
 	    }
 	}
     }
-    writefln("%d primes", count);
+    printf("%d primes\n", count);
     return 0;
 }
 

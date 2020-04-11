@@ -1,6 +1,6 @@
 module imports.test40a;
 
-import std.stdio;
+import core.stdc.stdio;
 
 template Mix()
 {

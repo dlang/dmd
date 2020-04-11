@@ -786,7 +786,7 @@ void delegate() foo39()
 
                 void dg()
                 {
-                        writefln("delegate!");
+                        printf("delegate!\n");
                         assert(a == 3);
                 }
         }).dg;
@@ -1127,10 +1127,10 @@ bool[void[]] reg57;
 void addToReg57(const(void)[] a, int b, bool v)
 {
     if (!v)
-        writefln("X");
+        printf("X\n");
     auto key = a~(cast(void*)&b)[0..4];
     reg57[cast(immutable(void)[])key] = v;
-    writefln("OK");
+    printf("OK\n");
 }
 
 void test57()
@@ -1349,11 +1349,11 @@ void test69()
     auto n = new NoBug;
     auto n2 = new NoBug2;
 
-    writefln("bug %d", b.t);
+    printf("bug %d\n", b.t);
     assert(b.t == 1);
-    writefln("nobug %d", n.t);
+    printf("nobug %d\n", n.t);
     assert(n.t == 2);
-    writefln("nobug2 %d", n2.t);
+    printf("nobug2 %d\n", n2.t);
     assert(n2.t == 3);
 }
 
