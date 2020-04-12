@@ -421,7 +421,7 @@ if (I32) assert(tysize[TYnptr] == 4);
         else if (op == OPtoPrec)
         {
 #define X(fty, tty) (fty * TMAX + tty)
-            switch (X(tybasic(ep->Ety), tyret))
+            switch (X(tybasic(ep->Ety), tybasic(tyret)))
             {
             case X(TYfloat, TYfloat):     // float -> float
             case X(TYdouble, TYdouble):   // double -> double
