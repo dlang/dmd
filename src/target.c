@@ -28,6 +28,7 @@ const char *toCppMangleItanium(Dsymbol *);
 const char *cppTypeInfoMangleItanium(Dsymbol *);
 const char *toCppMangleMSVC(Dsymbol *);
 const char *cppTypeInfoMangleMSVC(Dsymbol *);
+TypeTuple *toArgTypes(Type *t);
 
 int Target::ptrsize;
 int Target::realsize;
@@ -530,4 +531,13 @@ bool Target::cppFundamentalType(const Type *t, bool& isFundamental)
 LINK Target::systemLinkage()
 {
     return global.params.isWindows ? LINKwindows : LINKc;
+}
+
+/**
+ * Return a tuple describing how argument type is put to a function.
+ * Value is an empty tuple if type is always passed on the stack.
+ */
+TypeTuple *Target::toArgTypes(Type *t)
+{
+  return ::toArgTypes(t);
 }
