@@ -536,6 +536,7 @@ LINK Target::systemLinkage()
 /**
  * Return a tuple describing how argument type is put to a function.
  * Value is an empty tuple if type is always passed on the stack.
+ * NULL if the type is a `void` or argtypes aren't supported by the target.
  */
 TypeTuple *Target::toArgTypes(Type *t)
 {
