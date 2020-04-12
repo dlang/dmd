@@ -1489,7 +1489,7 @@ void test4()
 
 double sumKBN(double s = 0.0)
 {
-    import std.math : fabs;
+    import core.math : fabs;
     double c = 0.0;
         foreach(double x; [1, 1e100, 1, -1e100])
         {

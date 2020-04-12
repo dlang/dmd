@@ -10,7 +10,6 @@ Alias Test instantiated
 Alias Test instantiated
 ---
 */
-import std.stdio;
 import core.stdc.stdio;
 
 /*********************************************************/
@@ -449,20 +448,15 @@ template horse(string w)
 void test14()
 {
     bool lion = zebra!("a");
-    writeln(lion);
     assert(!lion);
     lion = zebra!("aqb");
-    writeln(lion);
     assert(lion);
 
     lion = horse!("a");
-    writeln(lion);
     assert(lion);
     lion = horse!("aqb");
-    writeln(lion);
     assert(lion);
     lion = horse!("ab");
-    writeln(lion);
     assert(!lion);
 }
 
@@ -529,7 +523,7 @@ void test16()
 {
     for (int i=0; i<smallfactorials.length; ++i)
     {
-        writefln("%d  %d", i, smallfactorials[i]);
+        printf("%d  %d\n", i, smallfactorials[i]);
         assert(smallfactorials[i] == testtable[i]);
     }
 }
@@ -621,7 +615,7 @@ template sqrt(real x, real root = x/2, int ntries = 0)
 void test20()
 {
     real x = sqrt!(2);
-    writefln("%.20g", x); // 1.4142135623730950487
+    printf("%.20Lg\n", x); // 1.4142135623730950487
 }
 
 /*********************************************************/
@@ -642,7 +636,7 @@ uint foo21()
 void test21()
 {
     auto i = foo21();
-    writeln(i);
+    printf("%d\n", i);
     assert(i == 1871483972);
 }
 
@@ -826,10 +820,14 @@ void test31()
     i2s[1] = "Hello";
     i2s[5] = "There";
 
-    writeln( i2s.get31(1, "yeh") );
-    writeln( i2s.get31(2, "default") );
-    writeln( i2s.get31(1) );
-    writeln( i2s.get31(2) );
+    auto result = i2s.get31(1, "yeh");
+    printf("%.*s\n", cast(int)result.length, result.ptr);
+    result = i2s.get31(2, "default");
+    printf("%.*s\n", cast(int)result.length, result.ptr);
+    result = i2s.get31(1);
+    printf("%.*s\n", cast(int)result.length, result.ptr);
+    result = i2s.get31(2);
+    printf("%.*s\n", cast(int)result.length, result.ptr);
 }
 
 /*********************************************************/
@@ -904,14 +902,14 @@ void test33() {
     comp += delegate double (double x) { return x/3.0;};
     comp += delegate double (double x) { return x*x;};
     comp += (double x) => x + 1.0;
-    writefln("%f", comp(2.0));
+    printf("%f\n", comp(2.0));
 
     // Try function objects
     Composer!(double) comp2;
     comp2 += tofp!(div3!(double))();
     comp2 += tofp!(square!(double))();
     comp2 += tofp!(plus1!(double))();
-    writefln("%f", comp2( 2.0));
+    printf("%f\n", comp2( 2.0));
 }
 
 /*********************************************************/

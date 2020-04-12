@@ -1,9 +1,3 @@
-/*
-RUN_OUTPUT:
----
-matches: ["hello    world"]
----
-*/
 // This is a copy of the engine here:
 //   http://www.digitalmars.com/d/2.0/templates-revisited.html
 // which is a cut down version of the file here:
@@ -33,9 +27,6 @@ matches: ["hello    world"]
     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
     OTHER DEALINGS IN THE SOFTWARE.
 +/
-
-
-import std.stdio;
 
 
 const int testFail = -1;
@@ -443,7 +434,6 @@ int main()
 {
     auto exp = &regexMatch!(r"[a-z]*\s*\w*");
     string[] m = exp("hello    world");
-    writefln("matches: %s", m);
     assert(m.length == 1);
     assert(m[0] == "hello    world");
     return 0;

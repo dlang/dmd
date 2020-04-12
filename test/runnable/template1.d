@@ -777,16 +777,16 @@ void test30()
 
 /******************************************/
 
-import std.string;
+import core.demangle;
 
 template Foo31(alias X)
 {
-        alias X.toStringz y;
+        alias X.demangle y;
 }
 
 void test31()
 {
-    alias Foo31!(std.string) bar;
+    alias Foo31!(core.demangle) bar;
 }
 
 
