@@ -22,9 +22,9 @@
 #include "statement.h"
 #include "template.h"
 #include "tokens.h"
+#include "target.h"
 
 Type *getTypeInfoType(Loc loc, Type *t, Scope *sc);
-TypeTuple *toArgTypes(Type *t);
 void unSpeculative(Scope *sc, RootObject *o);
 bool MODimplicitConv(MOD modfrom, MOD modto);
 Expression *resolve(Loc loc, Scope *sc, Dsymbol *s, bool hasOverloads);
@@ -1303,7 +1303,7 @@ void StructDeclaration::finalizeSize()
         }
     }
 
-    TypeTuple *tt = toArgTypes(type);
+    TypeTuple *tt = Target::toArgTypes(type);
     size_t dim = tt->arguments->dim;
     if (dim >= 1)
     {
