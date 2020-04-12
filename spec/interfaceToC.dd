@@ -276,7 +276,7 @@ $(H3 Non-Standard Format Specifiers)
         non-Standard ones can be used:
         )
 ---
-string format = "value: %K\n";
+const char* format = "value: %K\n";
 printf(format, value);
 ---
 
