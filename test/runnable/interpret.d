@@ -3523,6 +3523,16 @@ void testToPrec()
     static assert(toPrec!double(ctpif) == ctpif);
     static assert(toPrec!real(ctpif) == ctpif);
 
+    assert(toPrec!float(ctpir) == ctpif);
+    assert(toPrec!double(ctpir) == ctpid);
+    assert(toPrec!real(ctpir) == ctpir);
+    assert(toPrec!float(ctpid) == ctpif);
+    assert(toPrec!double(ctpid) == ctpid);
+    assert(toPrec!real(ctpid) == ctpid);
+    assert(toPrec!float(ctpif) == ctpif);
+    assert(toPrec!double(ctpif) == ctpif);
+    assert(toPrec!real(ctpif) == ctpif);
+
     static real rtpir = 0xc.90fdaa22168c235p-2;
     static double rtpid = 0x1.921fb54442d18p+1;
     static float rtpif = 0x1.921fb6p+1;
