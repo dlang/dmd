@@ -5490,7 +5490,6 @@ extern (C++) final class TypeStruct : Type
 {
     StructDeclaration sym;
     AliasThisRec att = AliasThisRec.fwdref;
-    CPPMANGLE cppmangle = CPPMANGLE.def;
 
     extern (D) this(StructDeclaration sym)
     {
