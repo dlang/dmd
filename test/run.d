@@ -180,7 +180,7 @@ Options:
 
         int ret;
         ensureToolsExists(env, EnumMembers!TestTools);
-        foreach (target; parallel(targets, 1))
+        foreach (target; parallel(targets))
         {
             log("run: %-(%s %)", target.args);
             ret |= spawnProcess(target.args, env, Config.none, scriptDir).wait;
