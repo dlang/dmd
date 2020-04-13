@@ -2006,6 +2006,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 pd.error("takes no argument");
             goto Ldecl;
         }
+        else if (pd.ident == Id.printf || pd.ident == Id.scanf)
+        {
+            goto Ldecl;
+        }
         else if (global.params.ignoreUnsupportedPragmas)
         {
             if (global.params.verbose)
