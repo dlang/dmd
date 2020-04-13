@@ -72,6 +72,7 @@ overhead small and avoid the use of Phobos.
 */
 private string miniFormat(V)(const ref V v)
 {
+    import core.internal.traits: isAggregateType;
     import core.stdc.stdio : sprintf;
     import core.stdc.string : strlen;
     static if (is(V : bool))
@@ -105,7 +106,8 @@ private string miniFormat(V)(const ref V v)
     {
         return (cast() v).toString();
     }
-    else static if (is(V : U[], U))
+    // Static arrays or slices (but not aggregates with `alias this`)
+    else static if (is(V : U[], U) && !isAggregateType!V)
     {
         import core.internal.traits: Unqual;
         alias E = Unqual!U;
