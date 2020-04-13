@@ -7,9 +7,8 @@ TEST_OUTPUT:
 */
 
 import std.array;
-import core.stdc.math : cos, fabs, sin, sqrt;
+import core.math;
 import core.vararg;
-import std.math: rndtol, rint;
 import std.string;
 import std.stdio : File;
 

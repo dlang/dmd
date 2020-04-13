@@ -97,7 +97,7 @@ void test4()
 
 /***************************************/
 
-import std.math; // trigger use of sqrt intrinsic
+import core.math; // trigger use of sqrt intrinsic
 
 void test5x(double p)
 {
@@ -113,7 +113,7 @@ void test5()
 
 /***************************************/
 
-import std.math; // trigger use of sqrt intrinsic
+import core.math; // trigger use of sqrt intrinsic
 
 void dstatsEnforce(bool, string) { }
 

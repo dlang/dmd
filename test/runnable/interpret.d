@@ -4,21 +4,21 @@ TEST_OUTPUT:
 true
 g
 &Test109S(&Test109S(<recursion>))
-runnable/interpret.d(3201): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
-runnable/interpret.d(3203): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/interpret.d(3197): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/interpret.d(3199): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/interpret.d(3202): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/interpret.d(3205): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
 runnable/interpret.d(3206): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
-runnable/interpret.d(3209): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
-runnable/interpret.d(3210): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/interpret.d(3212): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/interpret.d(3213): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
 runnable/interpret.d(3216): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
-runnable/interpret.d(3217): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
-runnable/interpret.d(3220): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
 tfoo
 tfoo
 Crash!
 ---
 */
 
-import std.stdio;
+import core.stdc.stdio;
 
 template Tuple(A...)
 {
@@ -814,7 +814,7 @@ void test36()
 
 string someCompileTimeFunction()
 {
-    return "writefln(\"Wowza!\");";
+    return "printf(\"Wowza!\n\");";
 }
 
 void test37()
@@ -872,7 +872,6 @@ string UpToSpace(string x)
 void test40()
 {
     const y = UpToSpace("first space was after first");
-    writeln(y);
     assert(y == "first");
 }
 
@@ -894,7 +893,6 @@ int foo41(int i)
 void test41()
 {
     const y = foo41(3);
-    writeln(y);
     assert(y == 6);
 }
 
@@ -916,7 +914,6 @@ int foo42(int i)
 void test42()
 {
     const y = foo42(3);
-    writeln(y);
     assert(y == 6);
 }
 
@@ -938,7 +935,6 @@ int bar(string a)
 void test43()
 {
     const int foo = bar("a b c d");
-    writeln(foo);
     assert(foo == 28);
 }
 
@@ -968,7 +964,7 @@ const int[5] foo46 = [0,1,2,3,4];
 
 void test46()
 {
-    writeln(eval!(foo46[3]));
+    printf("%d\n", eval!(foo46[3]));
 }
 
 /************************************************/
@@ -1018,7 +1014,6 @@ dstring testd49(dstring input)
 void test49()
 {
     static x = testd49("hello");
-    writeln(x);
     assert(x == "el");
 }
 
@@ -1132,8 +1127,10 @@ string retsth55(int i) { return foo55[i]; }
 
 void test55()
 {
-    writeln(eval!(foo55[0]));
-    writeln(eval!(retsth55(0)));
+    enum res1 = eval!(foo55[0]);
+    printf("%.*s\n", cast(int)res1.length, res1.ptr);
+    enum res2 = eval!(retsth55(0));
+    printf("%.*s\n", cast(int)res2.length, res2.ptr);
 }
 
 /************************************************/
@@ -1146,7 +1143,8 @@ string retsth56(int i)
 
 void test56()
 {
-    writeln(eval!(retsth56(0)));
+    enum result = eval!(retsth56(0));
+    printf("%.*s\n", cast(int)result.length, result.ptr);
 }
 
 /************************************************/
@@ -1179,7 +1177,6 @@ void test58()
     assert(b.length == 2);
     assert(b[0] == 2);
     assert(b[1] == 3);
-    writeln(b);
 }
 
 /************************************************/
@@ -1623,7 +1620,6 @@ const string s83 = mixItemList83();
 
 void test83()
 {
-    writeln(s83);
     assert(s83 == "item");
 }
 
@@ -3368,7 +3364,6 @@ void test113()
 
     static void compare(real a, real b)
     {
-        writefln("compare(%30.30f, %30.30f);", a, b);
         assert(fabs(a - b) < 128 * real.epsilon);
     }
 

@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-runnable/mixin1.d(955): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/mixin1.d(959): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
 ---
 
 RUN_OUTPUT:
@@ -57,7 +57,7 @@ Success
 
 module mixin1;
 
-import std.stdio;
+import core.stdc.stdio;
 
 alias TypeTuple(T...) = T;
 
@@ -736,7 +736,11 @@ class A30
     {
         this(Type[] arr)
         {
-            foreach(Type v; arr) writeln(typeid(typeof(v)));
+            foreach(Type v; arr)
+            {
+                const str = typeid(typeof(v)).toString();
+                printf("%.*s\n", cast(int)str.length, str.ptr);
+            }
         }
     }
 
