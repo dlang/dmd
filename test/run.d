@@ -116,7 +116,7 @@ Options:
         return 0;
     }
 
-    defaultPoolThreads = jobs;
+    defaultPoolThreads = jobs - 1; // main thread executes tasks as well
 
     // parse arguments
     args.popFront;
