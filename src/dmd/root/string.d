@@ -268,7 +268,8 @@ do
 {
     foreach (const c; needle)
     {
-        if (!*p || c != *p)
+        assert(c);
+        if (c != *p)
             return false;
         ++p;
     }
@@ -286,7 +287,4 @@ unittest
     assert(ptr.startsWith("12"));
     assert(ptr.startsWith("123"));
     assert(!ptr.startsWith("1234"));
-
-    assert(!ptr.startsWith("123\0"));
-    assert(!ptr.startsWith("123\04"));
 }
