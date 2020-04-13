@@ -160,8 +160,8 @@ void testRefPtr()
     assert(findTlsPtr(cast(size_t*)&tlsStr + 1)); // ptr
 
     // monitor is manually managed
-    assert(!findDataPtr(cast(size_t*)cast(void*)Class.classinfo + 1));
-    assert(!findDataPtr(cast(size_t*)cast(void*)Class.classinfo + 1));
+    assert(!findDataPtr(cast(size_t*)cast(void*)typeid(Class) + 1));
+    assert(!findDataPtr(cast(size_t*)cast(void*)typeid(Class) + 1));
 
     assert(!findDataPtr(&arr));
     assert(!findTlsPtr(&arr));
