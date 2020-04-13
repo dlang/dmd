@@ -753,7 +753,7 @@ class TypeIndirection : Type
             return true;
 
         Type nextThis = getNextType();
-        if(this.classinfo != from.classinfo)
+        if (typeid(this) != typeid(from))
             return false;
         auto ifrom = static_cast!TypeIndirection(from);
         _assert(ifrom !is null);
@@ -906,7 +906,7 @@ class TypeDynamicArray : TypeIndirection
         if(super.convertableFrom(from, flags))
             return true;
 
-        if(from.classinfo == typeid(TypeStaticArray))
+        if (typeid(from) is typeid(TypeStaticArray))
         {
             Type nextThis = getNextType();
             auto arrfrom = static_cast!TypeStaticArray(from);
