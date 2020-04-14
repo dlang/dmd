@@ -521,29 +521,17 @@ class Lexer
                     anyToken = 1;
                     if (*t.ptr == '_') // if special identifier token
                     {
-                        __gshared bool initdone = false;
-                        __gshared char[11 + 1] date;
-                        __gshared char[8 + 1] time;
-                        __gshared char[24 + 1] timestamp;
-                        if (!initdone) // lazy evaluation
-                        {
-                            initdone = true;
-                            time_t ct;
-                            .time(&ct);
-                            const p = ctime(&ct);
-                            assert(p);
-                            sprintf(&date[0], "%.6s %.4s", p + 4, p + 20);
-                            sprintf(&time[0], "%.8s", p + 11);
-                            sprintf(&timestamp[0], "%.24s", p);
-                        }
+                        // Lazy initialization
+                        TimeStampInfo.initialize();
+
                         if (id == Id.DATE)
                         {
-                            t.ustring = date.ptr;
+                            t.ustring = TimeStampInfo.date.ptr;
                             goto Lstr;
                         }
                         else if (id == Id.TIME)
                         {
-                            t.ustring = time.ptr;
+                            t.ustring = TimeStampInfo.time.ptr;
                             goto Lstr;
                         }
                         else if (id == Id.VENDOR)
@@ -553,7 +541,7 @@ class Lexer
                         }
                         else if (id == Id.TIMESTAMP)
                         {
-                            t.ustring = timestamp.ptr;
+                            t.ustring = TimeStampInfo.timestamp.ptr;
                         Lstr:
                             t.value = TOK.string_;
                             t.postfix = 0;
@@ -2624,6 +2612,35 @@ private:
     {
         scanloc.linnum++;
         line = p;
+    }
+}
+
+/// Support for `__DATE__`, `__TIME__`, and `__TIMESTAMP__`
+private struct TimeStampInfo
+{
+    private __gshared bool initdone = false;
+
+    // Note: Those properties need to be guarded by a call to `init`
+    // The API isn't safe, and quite brittle, but it was left this way
+    // over performance concerns.
+    // This is currently only called once, from the lexer.
+    __gshared char[11 + 1] date;
+    __gshared char[8 + 1] time;
+    __gshared char[24 + 1] timestamp;
+
+    public static void initialize() nothrow @nogc
+    {
+        if (initdone)
+            return;
+
+        initdone = true;
+        time_t ct;
+        .time(&ct);
+        const p = ctime(&ct);
+        assert(p);
+        sprintf(&date[0], "%.6s %.4s", p + 4, p + 20);
+        sprintf(&time[0], "%.8s", p + 11);
+        sprintf(&timestamp[0], "%.24s", p);
     }
 }
 
