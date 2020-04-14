@@ -226,10 +226,9 @@ unittest
  *    - https://d.godbolt.org/z/M69Z1g
  *    - https://gist.github.com/PetarKirov/338e4ab9292b6b2b311a3070572a07fb (backup URL)
 */
-T[N + 1] toStaticArray(T, size_t N)(scope const(T)[N] literal)
-if (is(T == char) || is(T == wchar) || is(T == dchar))
+char[N + 1] toStaticArray(size_t N)(scope const(char)[N] literal)
 {
-    T[N+1] result = void;
+    char[N+1] result = void;
     result[0..N] = literal[0..N];
     result[N] = 0;
     return result;
@@ -269,7 +268,8 @@ do
 {
     foreach (const c; needle)
     {
-        if (!*p || c != *p)
+        assert(c);
+        if (c != *p)
             return false;
         ++p;
     }
@@ -287,7 +287,4 @@ unittest
     assert(ptr.startsWith("12"));
     assert(ptr.startsWith("123"));
     assert(!ptr.startsWith("1234"));
-
-    assert(!ptr.startsWith("123\0"));
-    assert(!ptr.startsWith("123\04"));
 }
