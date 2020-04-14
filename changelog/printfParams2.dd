@@ -1,4 +1,4 @@
-# Validate printf and scanf (variants too) arguments against format specifiers
+Validate printf and scanf (variants too) arguments against format specifiers
 
 Follows the C99 specification 7.19.6.1 for printf and 7.19.6.2 for scanf.
 
@@ -24,28 +24,46 @@ No attempt is made to fix the arguments or the format string.
 
 In order to use non-Standard printf/scanf formats, an easy workaround is:
 
-```
+---
 printf("%k\n", value);  // error: non-Standard format k
-```
-```
+---
+---
 const format = "%k\n";
 printf(format.ptr, value);  // no error
-```
+---
 
 Most of the errors detected are portability issues. For instance,
 
-```
+---
 string s;
 printf("%.*s\n", s.length, s.ptr);
 printf("%d\n", s.sizeof);
 ulong u;
 scanf("%lld%*c\n", &u);
-```
+---
 should be replaced with:
-```
+---
 string s;
 printf("%.*s\n", cast(int) s.length, s.ptr);
 printf("%zd\n", s.sizeof);
 ulong u;
 scanf("%llu%*c\n", &u);
-```
+---
+
+Printf-like and scanf-like functions are detected by prefixing them
+with `pragma(printf)` for printf-like functions or `pragma(scanf)` for scanf-like functions.
+
+In addition to
+the pragma, the functions must conform to the following characteristics:
+
+$(OL
+$(LI be `extern (C)` or `extern (C++)`)
+$(LI have the format parameter declared as `const(char)*`)
+$(LI have the format parameter immediately precede the `...` for non-v functions,
+or immediately precede the `va_list` parameter (which is the last parameter for "v"
+variants of `printf` and `scanf`))
+)
+
+which enables automatic detection of the format string argument and the argument list.
+
+Checking of "v" format strings is not implemented yet.

@@ -62,11 +62,16 @@ enum SCOPE
 
     fullinst      = 0x10000,  /// fully instantiate templates
     alias_        = 0x20000,  /// inside alias declaration.
+
+    // The following are mutually exclusive
+    printf        = 0x4_0000, /// printf-style function
+    scanf         = 0x8_0000, /// scanf-style function
 }
 
 // Flags that are carried along with a scope push()
 enum SCOPEpush = SCOPE.contract | SCOPE.debug_ | SCOPE.ctfe | SCOPE.compile | SCOPE.constraint |
-                 SCOPE.noaccesscheck | SCOPE.onlysafeaccess | SCOPE.ignoresymbolvisibility;
+                 SCOPE.noaccesscheck | SCOPE.onlysafeaccess | SCOPE.ignoresymbolvisibility |
+                 SCOPE.printf | SCOPE.scanf;
 
 struct Scope
 {
