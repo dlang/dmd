@@ -2,12 +2,6 @@
  */
 
 @safe:
-
-import std.traits: ParameterStorageClassTuple, ParameterStorageClass, Parameters;
-
 void fun(in int* inParam);
-alias storages = ParameterStorageClassTuple!fun;
-alias storage = storages[0];
-
-static assert(is(Parameters!fun[0] == const int*));
-static assert(storage & ParameterStorageClass.scope_);
+static assert(__traits(getParameterStorageClasses, fun, 0)[0] == "scope");
+static assert (is(typeof(fun) P == __parameters) && is(P[0] == const int*));
