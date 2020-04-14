@@ -17,6 +17,7 @@ import core.stdc.ctype;
 import core.stdc.errno;
 import core.stdc.stdarg;
 import core.stdc.stdio;
+import core.stdc.stdlib : getenv;
 import core.stdc.string;
 import core.stdc.time;
 
@@ -32,6 +33,7 @@ import dmd.root.rmem;
 import dmd.root.string;
 import dmd.tokens;
 import dmd.utf;
+import dmd.utils;
 
 nothrow:
 
@@ -522,7 +524,7 @@ class Lexer
                     if (*t.ptr == '_') // if special identifier token
                     {
                         // Lazy initialization
-                        TimeStampInfo.initialize();
+                        TimeStampInfo.initialize(t.loc);
 
                         if (id == Id.DATE)
                         {
@@ -2628,14 +2630,21 @@ private struct TimeStampInfo
     __gshared char[8 + 1] time;
     __gshared char[24 + 1] timestamp;
 
-    public static void initialize() nothrow @nogc
+    public static void initialize(const ref Loc loc) nothrow
     {
         if (initdone)
             return;
 
         initdone = true;
         time_t ct;
-        .time(&ct);
+        // https://issues.dlang.org/show_bug.cgi?id=20444
+        if (auto p = getenv("SOURCE_DATE_EPOCH"))
+        {
+            if (!ct.parseDigits(p.toDString()))
+                error(loc, "Value of environment variable `SOURCE_DATE_EPOCH` should be a valid UNIX timestamp, not: `%s`", p);
+        }
+        else
+            .time(&ct);
         const p = ctime(&ct);
         assert(p);
         sprintf(&date[0], "%.6s %.4s", p + 4, p + 20);
