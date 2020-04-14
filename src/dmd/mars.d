@@ -1432,27 +1432,6 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         errors = true;
     }
 
-    /************************************
-     * Convert string to integer.
-     * Params:
-     *  p = pointer to start of string digits, ending with 0
-     *  max = max allowable value (inclusive)
-     * Returns:
-     *  uint.max on error, otherwise converted integer
-     */
-    static pure uint parseDigits(const(char)*p, const uint max)
-    {
-        uint value;
-        bool overflow;
-        for (uint d; (d = uint(*p) - uint('0')) < 10; ++p)
-        {
-            import core.checkedint : mulu, addu;
-            value = mulu(value, 10, overflow);
-            value = addu(value, d, overflow);
-        }
-        return (overflow || value > max || *p) ? uint.max : value;
-    }
-
     /**
      * Print an error messsage about an invalid switch.
      * If an optional supplemental message has been provided,
