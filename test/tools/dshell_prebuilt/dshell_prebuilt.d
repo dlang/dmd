@@ -151,7 +151,8 @@ void mkdirFor(string filename)
 Run the given command. The `tryRun` variants return the exit code, whereas the `run` variants
 will assert on a non-zero exit code.
 */
-auto tryRun(scope const(char[])[] args, File stdout = std.stdio.stdout, string[string] env = null)
+auto tryRun(scope const(char[])[] args, File stdout = std.stdio.stdout,
+            File stderr = std.stdio.stderr, string[string] env = null)
 {
     std.stdio.stdout.write("[RUN]");
     if (env)
@@ -168,13 +169,14 @@ auto tryRun(scope const(char[])[] args, File stdout = std.stdio.stdout, string[s
     }
     std.stdio.stdout.writeln();
     std.stdio.stdout.flush();
-    auto proc = spawnProcess(args, stdin, stdout, std.stdio.stderr, env);
+    auto proc = spawnProcess(args, stdin, stdout, stderr, env);
     return wait(proc);
 }
 /// ditto
-void run(scope const(char[])[] args, File stdout = std.stdio.stdout, string[string] env = null)
+void run(scope const(char[])[] args, File stdout = std.stdio.stdout,
+         File stderr = std.stdio.stderr, string[string] env = null)
 {
-    const exitCode = tryRun(args, stdout, env);
+    const exitCode = tryRun(args, stdout, stderr, env);
     if (exitCode != 0)
     {
         writefln("Error: last command exited with code %s", exitCode);
@@ -182,12 +184,13 @@ void run(scope const(char[])[] args, File stdout = std.stdio.stdout, string[stri
     }
 }
 /// ditto
-void run(string cmd, File stdout = std.stdio.stdout, string[string] env = null)
+void run(string cmd, File stdout = std.stdio.stdout,
+         File stderr = std.stdio.stderr, string[string] env = null)
 {
     // TODO: option to disable this?
     if (SEP != "/")
         cmd = cmd.replace("/", SEP);
-    run(parseCommand(cmd), stdout, env);
+    run(parseCommand(cmd), stdout, stderr, env);
 }
 
 /**
