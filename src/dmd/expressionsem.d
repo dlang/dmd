@@ -2048,7 +2048,8 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                         FuncDeclaration f = ve.var.isFuncDeclaration();
                         if (f)
                         {
-                            f.tookAddressOf--;
+                            if (f.tookAddressOf)
+                                --f.tookAddressOf;
                             //printf("--tookAddressOf = %d\n", f.tookAddressOf);
                         }
                     }
@@ -8532,7 +8533,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         dvx.e1 = e1x;
                         auto cx = cast(CallExp)ce.copy();
                         cx.e1 = dvx;
-                        if (global.params.vsafe && checkConstructorEscape(sc, cx, false))
+                        if (checkConstructorEscape(sc, cx, false))
                             return setError();
 
                         Expression e0;
