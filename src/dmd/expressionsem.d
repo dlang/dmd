@@ -2027,7 +2027,20 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 Expression a = arg;
                 if (a.op == TOK.cast_)
                     a = (cast(CastExp)a).e1;
-                if (a.op == TOK.function_)
+
+                ArrayLiteralExp ale;
+                if (p.type.toBasetype().ty == Tarray && !(p.storageClass & STC.return_) &&
+                    (ale = a.isArrayLiteralExp()) !is null)
+                {
+                    // allocate the array literal as temporary static array on the stack
+                    ale.type = ale.type.nextOf().sarrayOf(ale.elements.length);
+                    auto tmp = copyToTemp(0, "__arrayliteral_on_stack", ale);
+                    auto declareTmp = new DeclarationExp(ale.loc, tmp);
+                    auto castToSlice = new CastExp(ale.loc, new VarExp(ale.loc, tmp), p.type);
+                    arg = CommaExp.combine(declareTmp, castToSlice);
+                    arg = arg.expressionSemantic(sc);
+                }
+                else if (a.op == TOK.function_)
                 {
                     /* Function literals can only appear once, so if this
                      * appearance was scoped, there cannot be any others.
