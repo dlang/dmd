@@ -10,7 +10,7 @@
 module core.internal.destruction;
 
 // compiler frontend lowers dynamic array deconstruction to this
-void __ArrayDtor(T)(T[] a)
+void __ArrayDtor(T)(scope T[] a)
 {
     foreach_reverse (ref T e; a)
         e.__xdtor();
