@@ -155,7 +155,7 @@ echo "$output" | grep "Only \`gc\` is allowed for \`-profile\`"
 
 output="$(! $DMD -cov=foo 2>&1)"
 echo "$output" | grep "Error: Switch \`-cov=foo\` is invalid"
-echo "$output" | grep "Only a number can be passed to \`-cov=<num>\`"
+echo "$output" | grep "Only a number between 0 and 100 can be passed to \`-cov=<num>\`"
 
 ################################################################################
 # -verrors

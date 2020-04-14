@@ -142,21 +142,85 @@ void escapePath(OutBuffer* buf, const(char)* fname)
 
 /**
  * Convert string to integer.
+ *
  * Params:
- *  p = pointer to start of string digits, ending with 0
- *  max = max allowable value (inclusive)
+ *  T = Type of integer to parse
+ *  val = Variable to store the result in
+ *  p = slice to start of string digits
+ *  max = max allowable value (inclusive), defaults to `T.max`
+ *
  * Returns:
- *  uint.max on error, otherwise converted integer
+ *  `false` on error, `true` on success
  */
-uint parseDigits(const(char)*p, const uint max) pure
+bool parseDigits(T)(ref T val, const(char)[] p, const T max = T.max)
+    @safe pure @nogc nothrow
 {
-    uint value;
-    bool overflow;
-    for (uint d; (d = uint(*p) - uint('0')) < 10; ++p)
+    import core.checkedint : mulu, addu, muls, adds;
+
+    // mul* / add* doesn't support types < int
+    static if (T.sizeof < int.sizeof)
     {
-        import core.checkedint : mulu, addu;
-        value = mulu(value, 10, overflow);
-        value = addu(value, d, overflow);
+        int value;
+        alias add = adds;
+        alias mul = muls;
     }
-    return (overflow || value > max || *p) ? uint.max : value;
+    // unsigned
+    else static if (T.min == 0)
+    {
+        T value;
+        alias add = addu;
+        alias mul = mulu;
+    }
+    else
+    {
+        T value;
+        alias add = adds;
+        alias mul = muls;
+    }
+
+    bool overflow;
+    foreach (char c; p)
+    {
+        if (c > '9' || c < '0')
+            return false;
+        value = mul(value, 10, overflow);
+        value = add(value, uint(c - '0'), overflow);
+    }
+    // If it overflows, value must be > to `max` (since `max` is `T`)
+    val = cast(T) value;
+    return !overflow && value <= max;
+}
+
+///
+@safe pure nothrow @nogc unittest
+{
+    byte b;
+    ubyte ub;
+    short s;
+    ushort us;
+    int i;
+    uint ui;
+    long l;
+    ulong ul;
+
+    assert(b.parseDigits("42") && b  == 42);
+    assert(ub.parseDigits("42") && ub == 42);
+
+    assert(s.parseDigits("420") && s  == 420);
+    assert(us.parseDigits("42000") && us == 42_000);
+
+    assert(i.parseDigits("420000") && i  == 420_000);
+    assert(ui.parseDigits("420000") && ui == 420_000);
+
+    assert(l.parseDigits("42000000000") && l  == 42_000_000_000);
+    assert(ul.parseDigits("82000000000") && ul == 82_000_000_000);
+
+    assert(!b.parseDigits(ubyte.max.stringof));
+    assert(!b.parseDigits("WYSIWYG"));
+    assert(!b.parseDigits("-42"));
+    assert(!b.parseDigits("200"));
+    assert(ub.parseDigits("200") && ub == 200);
+    assert(i.parseDigits(int.max.stringof) && i == int.max);
+    assert(i.parseDigits("420", 500) && i == 420);
+    assert(!i.parseDigits("420", 400));
 }
