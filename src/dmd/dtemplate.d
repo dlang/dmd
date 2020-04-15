@@ -859,7 +859,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             const nfparams = tf.parameterList.length;
             foreach (i, fparam; tf.parameterList)
             {
-                fparam.storageClass &= (STC.in_ | STC.out_ | STC.ref_ | STC.lazy_ | STC.final_ | STC.TYPECTOR | STC.nodtor);
+                fparam.storageClass &= (STC.IOR | STC.lazy_ | STC.final_ | STC.TYPECTOR | STC.nodtor);
                 fparam.storageClass |= STC.parameter;
                 if (tf.parameterList.varargs == VarArg.typesafe && i + 1 == nfparams)
                 {
