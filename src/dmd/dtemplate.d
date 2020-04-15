@@ -7139,7 +7139,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     {
         Module mi = minst; // instantiated . inserted module
 
-        if (global.params.useUnitTests || global.params.debuglevel)
+        if (global.params.useUnitTests)
         {
             // Turn all non-root instances to speculative
             if (mi && !mi.isRoot())
