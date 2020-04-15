@@ -330,9 +330,7 @@ public:
 class ArrayScopeSymbol : public ScopeDsymbol
 {
 public:
-    Expression *exp;    // IndexExp or SliceExp
-    TypeTuple *type;    // for tuple[length]
-    TupleDeclaration *td;       // for tuples of objects
+    RootObject *scopedArray;
     Scope *sc;
 
     Dsymbol *search(const Loc &loc, Identifier *ident, int flags = IgnoreNone);

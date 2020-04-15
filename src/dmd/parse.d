@@ -2969,7 +2969,7 @@ final class Parser(AST) : Lexer
                     }
                 default:
                     {
-                        stc = storageClass & (STC.in_ | STC.out_ | STC.ref_ | STC.lazy_);
+                        stc = storageClass & (STC.IOR | STC.lazy_);
                         // if stc is not a power of 2
                         if (stc & (stc - 1) && !(stc == (STC.in_ | STC.ref_)))
                             error("incompatible parameter storage classes");

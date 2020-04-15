@@ -1109,7 +1109,7 @@ public:
         if ((p.storageClass & (STC.return_ | STC.wild)) == STC.return_ &&
             !(p.storageClass & STC.returninferred))
             buf.writestring("Nk");
-        switch (p.storageClass & (STC.in_ | STC.out_ | STC.ref_ | STC.lazy_))
+        switch (p.storageClass & (STC.IOR | STC.lazy_))
         {
         case 0:
         case STC.in_:
@@ -1126,7 +1126,7 @@ public:
         default:
             debug
             {
-                printf("storageClass = x%llx\n", p.storageClass & (STC.in_ | STC.out_ | STC.ref_ | STC.lazy_));
+                printf("storageClass = x%llx\n", p.storageClass & (STC.IOR | STC.lazy_));
             }
             assert(0);
         }

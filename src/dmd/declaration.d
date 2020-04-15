@@ -257,6 +257,9 @@ enum STC : ulong
     // Group members are mutually exclusive (there can be only one)
     safeGroup = STC.safe | STC.trusted | STC.system,
 
+    /// Group for `in` / `out` / `ref` storage classes on parameter
+    IOR  = STC.in_ | STC.ref_ | STC.out_,
+
     TYPECTOR = (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild),
     FUNCATTR = (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.property | STC.live |
                 STC.safeGroup),
