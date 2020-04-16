@@ -84,23 +84,44 @@ if (is(UT == core.internal.traits.Unqual!UT))
     emplaceRef!(UT, UT)(chunk, forward!args);
 }
 
-//emplace helper functions
-private nothrow pure @trusted
+/+
+Emplaces T.init.
+In contrast to `emplaceRef(chunk)`, there are no checks for disabled default
+constructors etc.
++/
+nothrow pure @trusted
 void emplaceInitializer(T)(scope ref T chunk)
 {
-    // Emplace T.init.
-    // Previously, an immutable static and memcpy were used to hold an initializer.
-    // With improved unions, this is no longer needed.
-    union UntypedInit
-    {
-        T dummy;
-    }
-    static struct UntypedStorage
-    {
-        align(T.alignof) void[T.sizeof] dummy;
-    }
+    import core.internal.traits : hasElaborateAssign;
 
-    () @trusted {
-        *cast(UntypedStorage*) &chunk = cast(UntypedStorage) UntypedInit.init;
-    } ();
+    static if (!hasElaborateAssign!T && __traits(compiles, chunk = T.init))
+    {
+        chunk = T.init;
+    }
+    else
+    {
+        static if (__traits(isZeroInit, T))
+        {
+            static if (is(T U == shared U))
+                alias Unshared = U;
+            else
+                alias Unshared = T;
+
+            import core.stdc.string : memset;
+            memset(cast(Unshared*) &chunk, 0, T.sizeof);
+        }
+        else
+        {
+            // emplace T.init (an rvalue) without extra variable (and according destruction)
+            alias RawBytes = void[T.sizeof];
+
+            static union U
+            {
+                T dummy = T.init; // U.init corresponds to T.init
+                RawBytes data;
+            }
+
+            *cast(RawBytes*) &chunk = U.init.data;
+        }
+    }
 }
