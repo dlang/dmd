@@ -1,6 +1,6 @@
 include ../common.mak
 
-TESTS:=comparison
+TESTS:=comparison isbaseof
 
 .PHONY: all clean
 all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))

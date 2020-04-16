@@ -960,6 +960,8 @@ class TypeInfo_Delegate : TypeInfo
 }
 
 private extern (C) Object _d_newclass(const TypeInfo_Class ci);
+private extern (C) int _d_isbaseof(scope TypeInfo_Class child,
+    scope const TypeInfo_Class parent) @nogc nothrow pure @safe; // rt.cast_
 
 /**
  * Runtime type information about a class.
@@ -1103,6 +1105,36 @@ class TypeInfo_Class : TypeInfo
         }
         return o;
     }
+
+   /**
+    * Returns true if the class described by `child` derives from or is
+    * the class described by this `TypeInfo_Class`. Always returns false
+    * if the argument is null.
+    *
+    * Params:
+    *  child = TypeInfo for some class
+    * Returns:
+    *  true if the class described by `child` derives from or is the
+    *  class described by this `TypeInfo_Class`.
+    */
+    final bool isBaseOf(scope const TypeInfo_Class child) const @nogc nothrow pure @trusted
+    {
+        if (m_init.length)
+        {
+            // If this TypeInfo_Class represents an actual class we only need
+            // to check the child and its direct ancestors.
+            for (auto ti = cast() child; ti !is null; ti = ti.base)
+                if (ti is this)
+                    return true;
+            return false;
+        }
+        else
+        {
+            // If this TypeInfo_Class is the .info field of a TypeInfo_Interface
+            // we also need to recursively check the child's interfaces.
+            return child !is null && _d_isbaseof(cast() child, this);
+        }
+    }
 }
 
 alias ClassInfo = TypeInfo_Class;
@@ -1192,6 +1224,38 @@ class TypeInfo_Interface : TypeInfo
     override @property uint flags() nothrow pure const { return 1; }
 
     TypeInfo_Class info;
+
+   /**
+    * Returns true if the class described by `child` derives from the
+    * interface described by this `TypeInfo_Interface`. Always returns
+    * false if the argument is null.
+    *
+    * Params:
+    *  child = TypeInfo for some class
+    * Returns:
+    *  true if the class described by `child` derives from the
+    *  interface described by this `TypeInfo_Interface`.
+    */
+    final bool isBaseOf(scope const TypeInfo_Class child) const @nogc nothrow pure @trusted
+    {
+        return child !is null && _d_isbaseof(cast() child, this.info);
+    }
+
+   /**
+    * Returns true if the interface described by `child` derives from
+    * or is the interface described by this `TypeInfo_Interface`.
+    * Always returns false if the argument is null.
+    *
+    * Params:
+    *  child = TypeInfo for some interface
+    * Returns:
+    *  true if the interface described by `child` derives from or is
+    *  the interface described by this `TypeInfo_Interface`.
+    */
+    final bool isBaseOf(scope const TypeInfo_Interface child) const @nogc nothrow pure @trusted
+    {
+        return child !is null && _d_isbaseof(cast() child.info, this.info);
+    }
 }
 
 class TypeInfo_Struct : TypeInfo
