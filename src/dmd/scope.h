@@ -57,6 +57,10 @@ class CPPNamespaceDeclaration;
 #define SCOPEfullinst       0x10000 // fully instantiate templates
 #define SCOPEalias          0x20000 // inside alias declaration
 
+// The following are mutually exclusive
+#define SCOPEprintf         0x40000 // printf-style function
+#define SCOPEscanf          0x80000 // scanf-style function
+
 struct Scope
 {
     Scope *enclosing;           // enclosing Scope

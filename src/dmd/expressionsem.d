@@ -2167,34 +2167,23 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
 
     /* If calling C scanf(), printf(), or any variants, check the format string against the arguments
      */
-    if (tf.linkage == LINK.c && fd)
+    if (fd && fd.flags & FUNCFLAG.printf && tf.parameterList.varargs == VarArg.variadic)
     {
-        int paramOffset = 0;
-        bool function(ref const(Loc) loc, scope const(char[]) format, scope Expression[] args) chkFn;
-
-        if (fd.ident == Id.printf)
+        if (auto se = (*arguments)[nparams - 1].isStringExp())
         {
-            paramOffset = 1;
-            chkFn = &checkPrintfFormat;
+            checkPrintfFormat(se.loc, se.peekString(), (*arguments)[nparams .. nargs]);
         }
-        else if (fd.ident == Id.scanf)
+    }
+    else if (fd && fd.flags & FUNCFLAG.scanf && tf.parameterList.varargs == VarArg.variadic)
+    {
+        if (auto se = (*arguments)[nparams - 1].isStringExp())
         {
-            paramOffset = 1;
-            chkFn = &checkScanfFormat;
+            checkScanfFormat(se.loc, se.peekString(), (*arguments)[nparams .. nargs]);
         }
-        else if (fd.ident == Id.sscanf || fd.ident == Id.fscanf)
-        {
-            paramOffset = 2;
-            chkFn = &checkScanfFormat;
-        }
-
-        if (paramOffset && nparams >= paramOffset)
-        {
-            if (auto se = (*arguments)[paramOffset - 1].isStringExp())
-            {
-                chkFn(se.loc, se.peekString(), (*arguments)[paramOffset .. nargs]);
-            }
-        }
+    }
+    else
+    {
+        // TODO: not checking the "v" functions yet (for those, check format string only, not args)
     }
 
     /* Remaining problems:

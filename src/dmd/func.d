@@ -166,6 +166,8 @@ enum FUNCFLAG : uint
     inferScope       = 0x40,   /// infer 'scope' for parameters
     hasCatches       = 0x80,   /// function has try-catch statements
     compileTimeOnly  = 0x100,  /// is a compile time only function; no code will be generated for it
+    printf           = 0x200,  /// is a printf-like function
+    scanf            = 0x400,  /// is a scanf-like function
 }
 
 /***********************************************************

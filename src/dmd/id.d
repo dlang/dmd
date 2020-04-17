@@ -129,12 +129,8 @@ immutable Msgtable[] msgtable =
     { "_assert", "assert" },
     { "_unittest", "unittest" },
     { "_body", "body" },
-    { "fprintf" },
     { "printf" },
-    { "sprintf" },
-    { "fscanf" },
     { "scanf" },
-    { "sscanf" },
 
     { "TypeInfo" },
     { "TypeInfo_Class" },
