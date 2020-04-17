@@ -89,8 +89,8 @@ Emplaces T.init.
 In contrast to `emplaceRef(chunk)`, there are no checks for disabled default
 constructors etc.
 +/
-nothrow pure @trusted
-void emplaceInitializer(T)(scope ref T chunk)
+void emplaceInitializer(T)(scope ref T chunk) nothrow pure @trusted
+    if (!is(T == const) && !is(T == immutable) && !is(T == inout))
 {
     import core.internal.traits : hasElaborateAssign;
 
@@ -98,30 +98,70 @@ void emplaceInitializer(T)(scope ref T chunk)
     {
         chunk = T.init;
     }
+    else static if (__traits(isZeroInit, T))
+    {
+        static if (is(T U == shared U))
+            alias Unshared = U;
+        else
+            alias Unshared = T;
+
+        import core.stdc.string : memset;
+        memset(cast(Unshared*) &chunk, 0, T.sizeof);
+    }
     else
     {
-        static if (__traits(isZeroInit, T))
-        {
-            static if (is(T U == shared U))
-                alias Unshared = U;
-            else
-                alias Unshared = T;
+        // emplace T.init (an rvalue) without extra variable (and according destruction)
+        alias RawBytes = void[T.sizeof];
 
-            import core.stdc.string : memset;
-            memset(cast(Unshared*) &chunk, 0, T.sizeof);
+        static union U
+        {
+            T dummy = T.init; // U.init corresponds to T.init
+            RawBytes data;
         }
-        else
+
+        *cast(RawBytes*) &chunk = U.init.data;
+    }
+}
+
+@safe unittest
+{
+    static void testInitializer(T)()
+    {
+        // mutable T
         {
-            // emplace T.init (an rvalue) without extra variable (and according destruction)
-            alias RawBytes = void[T.sizeof];
+            T dst = void;
+            emplaceInitializer(dst);
+            assert(dst is T.init);
+        }
 
-            static union U
-            {
-                T dummy = T.init; // U.init corresponds to T.init
-                RawBytes data;
-            }
+        // shared T
+        {
+            shared T dst = void;
+            emplaceInitializer(dst);
+            assert(dst is shared(T).init);
+        }
 
-            *cast(RawBytes*) &chunk = U.init.data;
+        // const T
+        {
+            const T dst = void;
+            static assert(!__traits(compiles, emplaceInitializer(dst)));
         }
     }
+
+    static struct ElaborateAndZero
+    {
+        int a;
+        this(this) {}
+    }
+
+    static struct ElaborateAndNonZero
+    {
+        int a = 42;
+        this(this) {}
+    }
+
+    testInitializer!int();
+    testInitializer!double();
+    testInitializer!ElaborateAndZero();
+    testInitializer!ElaborateAndNonZero();
 }
