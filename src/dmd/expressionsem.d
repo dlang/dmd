@@ -2167,18 +2167,19 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
 
     /* If calling C scanf(), printf(), or any variants, check the format string against the arguments
      */
-    if (fd && fd.flags & FUNCFLAG.printf && tf.parameterList.varargs == VarArg.variadic)
+    const isVa_list = tf.parameterList.varargs == VarArg.none;
+    if (fd && fd.flags & FUNCFLAG.printf)
     {
-        if (auto se = (*arguments)[nparams - 1].isStringExp())
+        if (auto se = (*arguments)[nparams - 1 - isVa_list].isStringExp())
         {
-            checkPrintfFormat(se.loc, se.peekString(), (*arguments)[nparams .. nargs]);
+            checkPrintfFormat(se.loc, se.peekString(), (*arguments)[nparams .. nargs], isVa_list);
         }
     }
-    else if (fd && fd.flags & FUNCFLAG.scanf && tf.parameterList.varargs == VarArg.variadic)
+    else if (fd && fd.flags & FUNCFLAG.scanf)
     {
-        if (auto se = (*arguments)[nparams - 1].isStringExp())
+        if (auto se = (*arguments)[nparams - 1 - isVa_list].isStringExp())
         {
-            checkScanfFormat(se.loc, se.peekString(), (*arguments)[nparams .. nargs]);
+            checkScanfFormat(se.loc, se.peekString(), (*arguments)[nparams .. nargs], isVa_list);
         }
     }
     else

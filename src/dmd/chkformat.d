@@ -44,13 +44,19 @@ import dmd.target;
  *
  * No attempt is made to fix the arguments or the format string.
  *
+ * Params:
+ *      loc = location for error messages
+ *      format = format string
+ *      args = arguments to match with format string
+ *      isVa_list = if a "v" function (format check only)
+ *
  * Returns:
  *      `true` if errors occurred
  * References:
  * C99 7.19.6.1
  * http://www.cplusplus.com/reference/cstdio/printf/
  */
-bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expression[] args)
+bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expression[] args, bool isVa_list)
 {
     //printf("checkPrintFormat('%.*s')\n", cast(int)format.length, format.ptr);
     size_t n = 0;
@@ -70,6 +76,14 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
 
         if (fmt == Format.percent)
             continue;                   // "%%", no arguments
+
+        if (isVa_list)
+        {
+            // format check only
+            if (fmt == Format.error)
+                deprecation(loc, "format specifier `\"%.*s\"` is invalid", cast(int)slice.length, slice.ptr);
+            continue;
+        }
 
         Expression getNextArg()
         {
@@ -276,13 +290,19 @@ bool checkPrintfFormat(ref const Loc loc, scope const char[] format, scope Expre
  *
  * No attempt is made to fix the arguments or the format string.
  *
+ * Params:
+ *      loc = location for error messages
+ *      format = format string
+ *      args = arguments to match with format string
+ *      isVa_list = if a "v" function (format check only)
+ *
  * Returns:
  *      `true` if errors occurred
  * References:
  * C99 7.19.6.2
  * http://www.cplusplus.com/reference/cstdio/scanf/
  */
-bool checkScanfFormat(ref const Loc loc, scope const char[] format, scope Expression[] args)
+bool checkScanfFormat(ref const Loc loc, scope const char[] format, scope Expression[] args, bool isVa_list)
 {
     size_t n = 0;
     for (size_t i = 0; i < format.length;)
@@ -300,6 +320,14 @@ bool checkScanfFormat(ref const Loc loc, scope const char[] format, scope Expres
 
         if (fmt == Format.percent || asterisk)
             continue;   // "%%", "%*": no arguments
+
+        if (isVa_list)
+        {
+            // format check only
+            if (fmt == Format.error)
+                deprecation(loc, "format specifier `\"%.*s\"` is invalid", cast(int)slice.length, slice.ptr);
+            continue;
+        }
 
         Expression getNextArg()
         {
