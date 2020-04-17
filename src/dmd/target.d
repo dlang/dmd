@@ -65,13 +65,13 @@ extern (C++) struct Target
     uint classinfosize;       /// size of `ClassInfo`
     ulong maxStaticDataSize;  /// maximum size of static data
 
-    // C ABI
+    /// C ABI
     TargetC c;
 
-    // C++ ABI
+    /// C++ ABI
     TargetCPP cpp;
 
-    // Objective-C ABI
+    /// Objective-C ABI
     TargetObjC objc;
 
     /**
