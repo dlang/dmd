@@ -119,6 +119,20 @@ void test62() { int u; scanf("%90s\n", &u); }
 void test63() { sscanf("1234", "%d\n", 0L); }
 void test64() { fscanf(null, "%d\n", 0L); }
 
+/* TEST_OUTPUT:
+---
+fail_compilation/chkformat.d(301): Deprecation: format specifier `"%K"` is invalid
+fail_compilation/chkformat.d(302): Deprecation: format specifier `"%Q"` is invalid
+---
+*/
+
+import core.stdc.stdarg;
+
+#line 300
+
+void test301() { va_list vargs; vprintf("%K", vargs); }
+void test302() { va_list vargs; vscanf("%Q", vargs); }
+
 // TODO - C++ 11 only:
 //void test() { vscanf(); }
 //void test() { vfscanf(); }
