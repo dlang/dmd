@@ -2836,16 +2836,13 @@ $(H2 $(LNAME2 nogc-functions, No-GC Functions))
 
 $(H2 $(LNAME2 function-safety, Function Safety))
 
-        $(P $(I Safe functions) are functions that are statically checked
-        to exhibit no possibility of
-        $(DDSUBLINK glossary, undefined_behavior, $(I undefined behavior)).
-        Undefined behavior is often used as a vector for malicious
-        attacks.
-        )
-
 $(H3 $(LNAME2 safe-functions, Safe Functions))
 
         $(P Safe functions are marked with the $(CODE @safe) attribute.)
+
+        $(P Safe functions have $(RELATIVE_LINK2 safe-interfaces, safe
+        interfaces). An implementation must enforce this by restricting the
+        function's body to operations that are known safe.)
 
         $(P The following operations are not allowed in safe
         functions:)
@@ -2900,50 +2897,11 @@ $(H3 $(LNAME2 trusted-functions, Trusted Functions))
 
         $(P Trusted functions are marked with the $(CODE @trusted) attribute.)
 
-        $(P Trusted functions act as an interface between safe and system functions.
-        A trusted function provides a safe interface. A $(I Safe Interface) is one that:
-        )
-
-        $(UL
-
-        $(LI Does not invalidate pointers that are passed to it. For example,
-        ---
-        @system void free(void* p);
-        ...
-        free(p);
-        *p = 3;  // p is invalid
-        ---
-        is not a safe interface because `free(p)` means `p` is no longer a valid
-        pointer when it returns. `free` can only be `@system`.)
-
-        $(LI Does not attempt to access memory beyond the bounds of the memory object
-        a parameter points to. For example:
-        ---
-        @system size_t strlen(char* p);
-        ---
-        is not a safe interface because the implementation of `strlen` advances `p` until
-        it finds a `null` character, and this can be arbitrarily beyond the `char` that `p`
-        purportedly points to. `strlen` can only be `@system`. Any function that traverses
-        a C string passed as an argument can only be `@system`.
-        )
-
-        $(LI Does not have array bounds passed as a parameter separate from the pointer
-        type. For example:
-        ---
-        @system void* memcpy(void* dst, void* src, size_t nbytes);
-        ---
-        is not a safe interface because the extent of `dst` and `src` is set by `nbytes`, and
-        so cannot be verified by the compiler. Such functions can only be `@system`.
-        )
-
-        )
-
-        $(P Trusted functions are guaranteed to not exhibit any undefined
-        behavior if called by a safe function. Furthermore, calls to trusted
-        functions cannot lead to undefined behavior in `@safe` code that is
-        executed afterwards. It is the responsibility of the programmer to
-        ensure that these guarantees are upheld.
-        )
+        $(P Like $(RELATIVE_LINK2 safe-functions, safe functions), trusted
+        functions have $(RELATIVE_LINK2 safe-interfaces, safe interfaces).
+        Unlike safe functions, this is not enforced by restrictions on the
+        function body. Instead, it is the responsibility of the programmer to
+        ensure that the interface of a trusted function is safe.)
 
         $(P Example:)
 
@@ -3007,6 +2965,222 @@ $(H3 $(LNAME2 system-functions, System Functions))
         unable to check them. Most of them are `@safe`, but will need to be manually
         checked.)
 
+$(H3 $(LNAME2 safe-interfaces, Safe Interfaces))
+
+        $(P Given that it is only called with $(RELATIVE_LINK2 safe-values, safe
+        values) and $(RELATIVE_LINK2 safe-aliasing, safe aliasing), a
+        function has a safe interface when:)
+        $(OL
+            $(LI it cannot possibly exhibit
+                $(DDSUBLINK glossary, undefined_behavior, undefined behavior),
+                and)
+            $(LI it cannot create unsafe values that are accessible from other
+                parts of the program (e.g., via return values, global variables,
+                or `ref` parameters), and)
+            $(LI it cannot introduce unsafe aliasing that is accessible from
+                other parts of the program.)
+        )
+
+        $(P Functions that meet these requirements may be
+        $(RELATIVE_LINK2 safe-functions, `@safe`) or
+        $(RELATIVE_LINK2 trusted-functions, `@trusted`). Function that do not
+        meet these requirements can only be
+        $(RELATIVE_LINK2 system-functions, `@system`).)
+
+        $(P Examples:)
+
+        $(UL
+            $(LI
+                C's `free` does not have a safe interface:
+                ---
+                extern (C) @system void free(void* ptr);
+                ---
+                because `free(p)` invalidates `p`, making its value unsafe.
+                `free` can only be `@system`.
+            )
+            $(LI
+                C's `strlen` and `memcpy` do not have safe interfaces:
+                ---
+                extern (C) @system size_t strlen(char* s);
+                extern (C) @system void* memcpy(void* dst, void* src, size_t nbytes);
+                ---
+                because they iterate pointers based on unverified assumptions
+                (`strlen` assumes that `s` is zero-terminated; `memcpy` assumes
+                that `dst` and `src` are at least `nbytes` long). Any function
+                that traverses a C string passed as an argument can only be
+                `@system`. Any function that trusts a seperate parameter for
+                array bounds can only be `@system`.
+            )
+            $(LI
+                C's `malloc` does have a safe interface:
+                ---
+                extern (C) @trusted void* malloc(size_t sz);
+                ---
+                It does not exhibit undefined behavior for any input. It returns
+                either a valid pointer, which is safe, or `null` which is also
+                safe. It returns a pointer to a fresh allocation, so it cannot
+                introduce any unsafe aliasing.
+            )
+            $(LI
+                A D version of `memcpy` can have a safe interface:
+                $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+                ---
+                @safe void memcpy(E)(E[] src, E[] dst)
+                {
+                    import std.math : min;
+                    foreach (i; 0 .. min(src.length, dst.length))
+                    {
+                        dst[i] = src[i];
+                    }
+                }
+                ---
+                )
+                because the rules for safe $(RELATIVE_LINK2 safe-values, safe
+                values) ensure that the lengths of the arrays are correct.
+            )
+        )
+
+$(H3 $(LNAME2 safe-values, Safe Values))
+
+        $(P For $(DDSUBLINK spec/type, basic-data-types, basic data types), all
+        possible bit patterns are safe.)
+
+        $(P A pointer is safe when:)
+        $(OL
+            $(LI it can be dereferenced validly, and)
+            $(LI the value of the pointee is safe.)
+        )
+        $(P Examples:)
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+        ---
+        int* n = null; /* n is safe because dereferencing null is a well-defined
+            crash. */
+        int* x = cast(int*) 0xDEADBEEF; /* x is (most likely) unsafe because it
+            is not a valid pointer and cannot be dereferenced. */
+
+        import core.stdc.stdlib: malloc, free;
+        int* p1 = cast(int*) malloc(int.sizeof); /* p1 is safe because the
+            pointer is valid and *p1 is safe regardless of its actual value. */
+        free(p1); /* This makes p1 unsafe. */
+        int** p2 = &p1; /* While it can be dereferenced, p2 is unsafe because p1
+            is unsafe. */
+        p1 = null; /* This makes p1 and p2 safe. */
+        ---
+        )
+
+        $(P A dynamic array is safe when:)
+        $(OL
+            $(LI its pointer is safe, and)
+            $(LI its length is in-bounds with the corresponding memory object,
+            and)
+            $(LI all its elements are safe.)
+        )
+
+        $(P Examples:)
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
+        int[] f() @system
+        {
+            int[3] a;
+            int[] d1 = a[0 .. 2]; /* d1 is safe. */
+            int[] d2 = a.ptr[0 .. 3]; /* d2 is unsafe because it goes beyond a's
+                bounds. */
+            int*[] d3 = [cast(int*) 0xDEADBEEF]; /* d3 is unsafe because the
+                element is unsafe. */
+            return d1; /* Up to here, d1 was safe, but its pointer becomes
+                invalid when the function returns, so the returned dynamic array
+                is unsafe. */
+        }
+        ---
+        )
+
+        $(P A static array is safe when all its elements are safe. Regardless
+        of the element type, a static array with length zero is always safe.)
+
+        $(P An associative array is safe when all its keys and elements are
+        safe.)
+
+        $(P A struct/union instance is safe when:)
+        $(OL
+            $(LI the values of its accessible fields are safe, and)
+            $(LI it does not introduce $(RELATIVE_LINK2 safe-aliasing, unsafe
+            aliasing) with unions.)
+        )
+
+        $(P Examples:)
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
+        struct S { int* p; }
+        S s1 = S(new int); /* s1 is safe. */
+        S s2 = S(cast(int*) 0xDEADBEEF); /* s2 is unsafe, because s2.p is
+            unsafe. */
+
+        union U { int* p; size_t x; }
+        U u = U(new int); /* Even though both u.p and u.x are safe, u is unsafe
+            because of unsafe aliasing. */
+        ---
+        )
+
+        $(P A class reference is safe when it is `null` or:)
+        $(OL
+            $(LI it refers to a valid class instance of the stated type or a
+            subtype, and)
+            $(LI the values of the instance's accessible fields are safe, and)
+            $(LI it does not introduce unsafe aliasing with unions.)
+        )
+
+        $(P A function pointer is safe when it is `null` or it refers to a valid
+        function that has the same or a covariant signature.)
+
+        $(P A `delegate` is safe when:)
+        $(OL
+            $(LI its `.funcptr` is `null` or refers to a function that matches
+            the delegate type, and)
+            $(LI its `.ptr` is `null` or refers to a context that is in a format
+            expected by the function.)
+        )
+
+$(H3 $(LNAME2 safe-aliasing, Safe Aliasing))
+
+    $(P When one memory location is accessible with two different types, that
+    aliasing is considered safe in these cases:)
+    $(OL
+        $(LI both types are `const` or `immutable`; or)
+        $(LI one of the types is mutable while the other is a `const`-qualified
+            $(DDSUBLINK spec/type, basic-data-types, basic data type); or)
+        $(LI both types are mutable basic data types; or)
+        $(LI one of the types is a static array type with length zero; or)
+        $(LI one of the types is a static array type with non-zero length, and
+            aliasing of the array's element type and the other type is safe; or)
+        $(LI both types are pointer types, and aliasing of the target types is
+            safe, and the target types have the same size.)
+    )
+
+    $(P All other cases of aliasing are considered unsafe.)
+
+    $(P $(B Note:) Safe aliasing may be exposed to functions with
+    $(RELATIVE_LINK2 safe-interfaces, safe interfaces) without affecting their
+    guaranteed safety. But when unsafe aliasing is exposed to such functions,
+    their safety is no longer guaranteed.)
+
+    $(P $(B Note:) An aliasing relation being safe does not imply that both
+    views of the data have $(RELATIVE_LINK2 safe-values, safe values). That must
+    be examined separately when safety is of concern.)
+
+    $(P Examples:)
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    void f1(ref ubyte x, ref float y) @safe { x = 0; y = float.init; }
+    union U1 { ubyte x; float y; } /* This aliasing is safe. */
+    U1 u1;
+    f1(u1.x, u1.y); /* So calling f1 like this is ok. */
+
+    void f2(ref int* x, ref int y) @trusted { x = new int; y = 0xDEADBEEF; }
+    union U2 { int* x; int y; } /* This aliasing is unsafe. */
+    U2 u2;
+    version (none) f1(u2.x, u2.y); /* So calling f2 like this is not ok. */
+    ---
+    )
 
 $(H2 $(LNAME2 function-attribute-inference, Function Attribute Inference))
 
