@@ -53,6 +53,9 @@ else
         version = AAPCS32;
 }
 
+version (PPC)   version = PPC_Any;
+version (PPC64) version = PPC_Any;
+
 
 T alignUp(size_t alignment = size_t.sizeof, T)(T base) pure
 {
@@ -185,6 +188,25 @@ void va_arg(T)(ref va_list ap, ref T parmn)
         }
         parmn = *cast(T*) p;
     }
+    else version (PPC_Any)
+    {
+        /*
+         * The rules are described in the 64bit PowerPC ELF ABI Supplement 1.9,
+         * available here:
+         * http://refspecs.linuxfoundation.org/ELF/ppc64/PPC-elf64abi-1.9.html#PARAM-PASS
+         */
+
+        // Chapter 3.1.4 and 3.2.3: alignment may require the va_list pointer to first
+        // be aligned before accessing a value
+        if (T.alignof >= 8)
+            ap = ap.alignUp!8;
+        auto p = ap;
+        version (BigEndian)
+            static if (T.sizeof < size_t.sizeof)
+                p += size_t.sizeof - T.sizeof;
+        parmn = *cast(T*) p;
+        ap += T.sizeof.alignUp;
+    }
     else
         static assert(0, "Unsupported platform");
 }
@@ -236,6 +258,18 @@ void va_arg()(ref va_list ap, TypeInfo ti, void* parmn)
             auto p = cast(void*) ap;
             ap += tsize.alignUp;
         }
+        parmn[0..tsize] = p[0..tsize];
+    }
+    else version (PPC_Any)
+    {
+        if (ti.talign >= 8)
+            ap = ap.alignUp!8;
+        auto p = cast(void*) ap;
+        const tsize = ti.tsize;
+        version (BigEndian)
+            if (tsize < size_t.sizeof)
+                p += size_t.sizeof - tsize;
+        ap += tsize.alignUp;
         parmn[0..tsize] = p[0..tsize];
     }
     else
