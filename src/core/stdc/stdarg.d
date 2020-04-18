@@ -37,6 +37,22 @@ version (SysV_x64)
     }
 }
 
+version (OSX)
+    version = Darwin;
+else version (iOS)
+    version = Darwin;
+else version (TVOS)
+    version = Darwin;
+else version (WatchOS)
+    version = Darwin;
+
+version (Darwin) { /* simpler varargs implementation */ }
+else
+{
+    version (ARM)
+        version = AAPCS32;
+}
+
 
 T alignUp(size_t alignment = size_t.sizeof, T)(T base) pure
 {
@@ -64,6 +80,16 @@ version (SysV_x64)
 {
     alias va_list = core.internal.vararg.sysv_x64.va_list;
     public import core.internal.vararg.sysv_x64 : __va_list, __va_list_tag;
+}
+else version (AAPCS32)
+{
+    alias va_list = __va_list;
+
+    // need std::__va_list for C++ mangling compatibility (AAPCS32 section 8.1.4)
+    extern (C++, std) struct __va_list
+    {
+        void* __ap;
+    }
 }
 else
 {
@@ -140,6 +166,25 @@ void va_arg(T)(ref va_list ap, ref T parmn)
     {
         core.internal.vararg.sysv_x64.va_arg!T(ap, parmn);
     }
+    else version (ARM)
+    {
+        version (AAPCS32)
+        {
+            // AAPCS32 section 6.5 B.5: type with alignment >= 8 is 8-byte
+            // aligned instead of normal 4-byte alignment (APCS doesn't do
+            // this).
+            if (T.alignof >= 8)
+                ap.__ap = ap.__ap.alignUp!8;
+            auto p = ap.__ap;
+            ap.__ap += T.sizeof.alignUp;
+        }
+        else
+        {
+            auto p = ap;
+            ap += T.sizeof.alignUp;
+        }
+        parmn = *cast(T*) p;
+    }
     else
         static assert(0, "Unsupported platform");
 }
@@ -175,6 +220,23 @@ void va_arg()(ref va_list ap, TypeInfo ti, void* parmn)
     else version (SysV_x64)
     {
         core.internal.vararg.sysv_x64.va_arg(ap, ti, parmn);
+    }
+    else version (ARM)
+    {
+        const tsize = ti.tsize;
+        version (AAPCS32)
+        {
+            if (ti.talign >= 8)
+                ap.__ap = ap.__ap.alignUp!8;
+            auto p = ap.__ap;
+            ap.__ap += tsize.alignUp;
+        }
+        else
+        {
+            auto p = cast(void*) ap;
+            ap += tsize.alignUp;
+        }
+        parmn[0..tsize] = p[0..tsize];
     }
     else
         static assert(0, "Unsupported platform");
