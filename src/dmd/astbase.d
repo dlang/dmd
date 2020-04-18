@@ -1486,7 +1486,6 @@ struct ASTBase
         const FileName srcfile;
         const(char)* arg;
         bool rootModule;
-        bool rootChief;
 
         extern (D) this(const(char)* filename, Identifier ident, int doDocComment, int doHdrGen, bool rootModule = false)
         {
