@@ -52,7 +52,7 @@ void main()
     global._init();
     global.params.isLinux = true;
     global.params.is64bit = (size_t.sizeof == 8);
-    global.params.unittestMode = UnittestMode.rootOnly;
+    global.params.useUnitTests = true;
     ASTBase.Type._init();
 
     auto id = Identifier.idPool(fname);

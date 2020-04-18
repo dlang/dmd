@@ -89,14 +89,6 @@ enum CppStdRevision
     CppStdRevisionCpp17 = 201703
 };
 
-enum UnittestMode
-{
-    disabled,
-    standard,
-    rootOnly,
-    firstOnly
-};
-
 // Put command line switches in here
 struct Param
 {
@@ -133,7 +125,7 @@ struct Param
     bool mscoff;        // for Win32: write COFF object files instead of OMF
     Diagnostic useDeprecated;
     bool stackstomp;    // add stack stomping code
-    UnittestMode unittestMode;
+    bool useUnitTests;  // generate unittest code
     bool useInline;     // inline expand functions
     bool useDIP25;      // implement http://wiki.dlang.org/DIP25
     bool noDIP25;       // revert to pre-DIP25 behavior

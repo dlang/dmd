@@ -1488,13 +1488,12 @@ struct ASTBase
         bool rootModule;
         bool rootChief;
 
-        extern (D) this(const(char)* filename, Identifier ident, int doDocComment, int doHdrGen, bool rootModule = false, bool rootChief = false)
+        extern (D) this(const(char)* filename, Identifier ident, int doDocComment, int doHdrGen, bool rootModule = false)
         {
             super(ident);
             this.arg = filename;
             srcfile = FileName(FileName.defaultExt(filename.toDString, global.mars_ext));
             this.rootModule = rootModule;
-            this.rootChief = rootChief;
         }
 
         bool isRoot()

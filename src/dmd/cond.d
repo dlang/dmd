@@ -796,9 +796,7 @@ extern (C++) final class VersionCondition : DVCondition
                     definedInModule = true;
                 }
                 else if (findCondition(global.versionids, ident))
-                {
                     inc = Include.yes;
-                }
                 else
                 {
                     if (!mod.versionidsNot)

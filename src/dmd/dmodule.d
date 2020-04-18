@@ -427,7 +427,6 @@ extern (C++) final class Module : Package
     Strings contentImportedFiles; // array of files whose content was imported
     int needmoduleinfo;
     int selfimports;            // 0: don't know, 1: does not, 2: does
-    bool rootChief;             // first root module in the command line
 
     /*************************************
      * Return true if module imports itself.

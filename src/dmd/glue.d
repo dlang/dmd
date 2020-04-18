@@ -739,7 +739,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         return;
 
     UnitTestDeclaration ud = fd.isUnitTestDeclaration();
-    if (ud && global.params.unittestMode == UnittestMode.disabled)
+    if (ud && !global.params.useUnitTests)
         return;
 
     if (multiobj && !fd.isStaticDtorDeclaration() && !fd.isStaticCtorDeclaration() && !fd.isCrtCtorDtor)

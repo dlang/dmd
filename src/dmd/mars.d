@@ -1284,7 +1284,7 @@ void addDefaultVersionIdentifiers(const ref Param params)
         VersionCondition.addPredefinedGlobalIdent("D_Coverage");
     if (params.pic != PIC.fixed)
         VersionCondition.addPredefinedGlobalIdent(params.pic == PIC.pic ? "D_PIC" : "D_PIE");
-    if (params.unittestMode != UnittestMode.disabled)
+    if (params.useUnitTests)
         VersionCondition.addPredefinedGlobalIdent("unittest");
     if (params.useAssert == CHECKENABLE.on)
         VersionCondition.addPredefinedGlobalIdent("assert");
@@ -2256,11 +2256,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 goto Lerror;
         }
         else if (arg == "-unittest")
-            params.unittestMode = UnittestMode.rootOnly;
-        else if (arg == "-unittest=rootonly")
-            params.unittestMode = UnittestMode.rootOnly;
-        else if (arg == "-unittest=first")
-            params.unittestMode = UnittestMode.firstOnly;
+            params.useUnitTests = true;
         else if (p[1] == 'I')              // https://dlang.org/dmd.html#switch-I
         {
             if (!params.imppath)
@@ -2480,7 +2476,7 @@ private void reconcileCommands(ref Param params, size_t numSrcFiles)
             params.useArrayBounds = params.boundscheck;
     }
 
-    if (params.unittestMode != UnittestMode.disabled)
+    if (params.useUnitTests)
     {
         if (params.useAssert == CHECKENABLE._default)
             params.useAssert = CHECKENABLE.on;
@@ -2705,12 +2701,10 @@ Modules createModules(ref Strings files, ref Strings libmodules)
         auto id = Identifier.idPool(name);
         auto m = new Module(files[i].toDString, id, global.params.doDocComments, global.params.doHdrGeneration);
         modules.push(m);
-        m.rootChief = false;
         if (firstmodule)
         {
             global.params.objfiles.push(m.objfile.toChars());
             firstmodule = false;
-            m.rootChief = true;
         }
     }
     return modules;

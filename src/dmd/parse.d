@@ -622,10 +622,8 @@ final class Parser(AST) : Lexer
                 goto Lerror;
 
             case TOK.unittest_:
-                if ((global.params.unittestMode == UnittestMode.standard
-                            || global.params.doDocComments || global.params.doHdrGeneration) ||
-                        (global.params.unittestMode == UnittestMode.rootOnly && mod.isRoot()) ||
-                        (global.params.unittestMode == UnittestMode.firstOnly && mod.rootChief))
+                if (global.params.useUnitTests && mod.isRoot()
+                        || global.params.doDocComments || global.params.doHdrGeneration)
                 {
                     s = parseUnitTest(pAttrs);
                     if (*pLastDecl)
