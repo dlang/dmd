@@ -51,12 +51,16 @@ else
 {
     version (ARM)
         version = AAPCS32;
+    version (AArch64)
+        version = AAPCS64;
 }
 
-version (MIPS32) version = MIPS_Any;
-version (MIPS64) version = MIPS_Any;
-version (PPC)    version = PPC_Any;
-version (PPC64)  version = PPC_Any;
+version (ARM)     version = ARM_Any;
+version (AArch64) version = ARM_Any;
+version (MIPS32)  version = MIPS_Any;
+version (MIPS64)  version = MIPS_Any;
+version (PPC)     version = PPC_Any;
+version (PPC64)   version = PPC_Any;
 
 
 T alignUp(size_t alignment = size_t.sizeof, T)(T base) pure
@@ -94,6 +98,20 @@ else version (AAPCS32)
     extern (C++, std) struct __va_list
     {
         void* __ap;
+    }
+}
+else version (AAPCS64)
+{
+    alias va_list = __va_list;
+
+    // https://github.com/ARM-software/abi-aa/blob/master/aapcs64/aapcs64.rst#definition-of-va-list
+    extern (C++, std) struct __va_list
+    {
+        void* __stack;
+        void* __gr_top;
+        void* __vr_top;
+        int __gr_offs;
+        int __vr_offs;
     }
 }
 else
@@ -171,24 +189,25 @@ void va_arg(T)(ref va_list ap, ref T parmn)
     {
         core.internal.vararg.sysv_x64.va_arg!T(ap, parmn);
     }
-    else version (ARM)
+    else version (AAPCS32)
     {
-        version (AAPCS32)
-        {
-            // AAPCS32 section 6.5 B.5: type with alignment >= 8 is 8-byte
-            // aligned instead of normal 4-byte alignment (APCS doesn't do
-            // this).
-            if (T.alignof >= 8)
-                ap.__ap = ap.__ap.alignUp!8;
-            auto p = ap.__ap;
-            ap.__ap += T.sizeof.alignUp;
-        }
-        else
-        {
-            auto p = ap;
-            ap += T.sizeof.alignUp;
-        }
+        // AAPCS32 section 6.5 B.5: type with alignment >= 8 is 8-byte aligned
+        // instead of normal 4-byte alignment (APCS doesn't do this).
+        if (T.alignof >= 8)
+            ap.__ap = ap.__ap.alignUp!8;
+        auto p = ap.__ap; // TODO: big-endian adjustment?
         parmn = *cast(T*) p;
+        ap.__ap += T.sizeof.alignUp;
+    }
+    else version (AAPCS64)
+    {
+        static assert(0, "Unsupported platform");
+    }
+    else version (ARM_Any)
+    {
+        auto p = ap; // TODO: big-endian adjustment?
+        parmn = *cast(T*) p;
+        ap += T.sizeof.alignUp;
     }
     else version (PPC_Any)
     {
@@ -254,21 +273,24 @@ void va_arg()(ref va_list ap, TypeInfo ti, void* parmn)
     {
         core.internal.vararg.sysv_x64.va_arg(ap, ti, parmn);
     }
-    else version (ARM)
+    else version (AAPCS32)
     {
         const tsize = ti.tsize;
-        version (AAPCS32)
-        {
-            if (ti.talign >= 8)
-                ap.__ap = ap.__ap.alignUp!8;
-            auto p = ap.__ap;
-            ap.__ap += tsize.alignUp;
-        }
-        else
-        {
-            auto p = cast(void*) ap;
-            ap += tsize.alignUp;
-        }
+        if (ti.talign >= 8)
+            ap.__ap = ap.__ap.alignUp!8;
+        auto p = ap.__ap; // TODO: big-endian adjustment?
+        ap.__ap += tsize.alignUp;
+        parmn[0..tsize] = p[0..tsize];
+    }
+    else version (AAPCS64)
+    {
+        static assert(0, "Unsupported platform");
+    }
+    else version (ARM_Any)
+    {
+        const tsize = ti.tsize;
+        auto p = cast(void*) ap; // TODO: big-endian adjustment?
+        ap += tsize.alignUp;
         parmn[0..tsize] = p[0..tsize];
     }
     else version (PPC_Any)
