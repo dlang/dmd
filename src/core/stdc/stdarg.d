@@ -53,8 +53,10 @@ else
         version = AAPCS32;
 }
 
-version (PPC)   version = PPC_Any;
-version (PPC64) version = PPC_Any;
+version (MIPS32) version = MIPS_Any;
+version (MIPS64) version = MIPS_Any;
+version (PPC)    version = PPC_Any;
+version (PPC64)  version = PPC_Any;
 
 
 T alignUp(size_t alignment = size_t.sizeof, T)(T base) pure
@@ -207,6 +209,15 @@ void va_arg(T)(ref va_list ap, ref T parmn)
         parmn = *cast(T*) p;
         ap += T.sizeof.alignUp;
     }
+    else version (MIPS_Any)
+    {
+        auto p = ap;
+        version (BigEndian)
+            static if (T.sizeof < size_t.sizeof)
+                p += size_t.sizeof - T.sizeof;
+        parmn = *cast(T*) p;
+        ap += T.sizeof.alignUp;
+    }
     else
         static assert(0, "Unsupported platform");
 }
@@ -264,6 +275,16 @@ void va_arg()(ref va_list ap, TypeInfo ti, void* parmn)
     {
         if (ti.talign >= 8)
             ap = ap.alignUp!8;
+        auto p = cast(void*) ap;
+        const tsize = ti.tsize;
+        version (BigEndian)
+            if (tsize < size_t.sizeof)
+                p += size_t.sizeof - tsize;
+        ap += tsize.alignUp;
+        parmn[0..tsize] = p[0..tsize];
+    }
+    else version (MIPS_Any)
+    {
         auto p = cast(void*) ap;
         const tsize = ti.tsize;
         version (BigEndian)
