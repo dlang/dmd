@@ -309,7 +309,7 @@ $(P Compiling, linking, and running produces the output:)
 
 $(CONSOLE
 > g++ base.cpp
-> dmd main.d base.o && ./main
+> dmd main.d base.o -L-lstdc++ && ./main
 5
 20
 a = 1
