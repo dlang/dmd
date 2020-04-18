@@ -373,7 +373,7 @@ class TypeInfo
     abstract const(void)[] initializer() nothrow pure const @safe @nogc;
 
     /** Get flags for type: 1 means GC should scan for pointers,
-    2 means arg of this type is passed in XMM register */
+    2 means arg of this type is passed in SIMD register(s) if available */
     @property uint flags() nothrow pure const @safe @nogc { return 0; }
 
     /// Get type information on the contents of the type; null if not available
@@ -800,7 +800,7 @@ class TypeInfo_Vector : TypeInfo
     override void swap(void* p1, void* p2) const { return base.swap(p1, p2); }
 
     override @property inout(TypeInfo) next() nothrow pure inout { return base.next; }
-    override @property uint flags() nothrow pure const { return base.flags; }
+    override @property uint flags() nothrow pure const { return 2; /* passed in SIMD register */ }
 
     override const(void)[] initializer() nothrow pure const
     {
