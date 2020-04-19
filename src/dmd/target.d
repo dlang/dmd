@@ -522,14 +522,14 @@ extern (C++) struct Target
                 // win32 returns otherwise POD structs with ctors via memory
                 return true;
             }
-            if (sd.arg1type && !sd.arg2type)
+            if (sd.numArgTypes() == 1)
             {
-                tns = sd.arg1type;
+                tns = sd.argType(0);
                 if (tns.ty != Tstruct)
                     goto L2;
                 goto Lagain;
             }
-            else if (global.params.is64bit && !sd.arg1type && !sd.arg2type)
+            else if (global.params.is64bit && sd.numArgTypes() == 0)
                 return true;
             else if (sd.isPOD())
             {
