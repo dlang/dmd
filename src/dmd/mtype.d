@@ -6140,6 +6140,9 @@ extern (C++) final class TypeClass : Type
  */
 extern (C++) final class TypeTuple : Type
 {
+    // 'logically immutable' cached global - don't modify!
+    __gshared TypeTuple empty = new TypeTuple();
+
     Parameters* arguments;  // types making up the tuple
 
     extern (D) this(Parameters* arguments)
