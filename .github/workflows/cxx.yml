@@ -42,14 +42,6 @@ jobs:
           - { os: ubuntu-16.04, target: msvc-2019 }
           - { os: ubuntu-16.04, target: msvc-2017 }
           - { os: ubuntu-16.04, target: msvc-2015 }
-          # FIXME: Can't test clang+Linux because DMD assume g++
-          - { os: ubuntu-16.04, target: clang-9.0.0 }
-          - { os: ubuntu-16.04, target: clang-8.0.0 }
-          - { os: ubuntu-16.04, target: clang-7.0.0 }
-          - { os: ubuntu-16.04, target: clang-6.0.0 }
-          - { os: ubuntu-16.04, target: clang-5.0.2 }
-          - { os: ubuntu-16.04, target: clang-4.0.0 }
-          - { os: ubuntu-16.04, target: clang-3.9.0 }
           # OSX only supports clang
           - { os: macOS-10.15, target: g++-9 }
           - { os: macOS-10.15, target: g++-8 }
