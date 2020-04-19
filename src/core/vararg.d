@@ -104,7 +104,8 @@ void va_arg()(ref va_list ap, TypeInfo ti, void* parmn)
     }
     else version (AAPCS64)
     {
-        static assert(0, "Unsupported platform");
+        static import core.internal.vararg.aarch64;
+        core.internal.vararg.aarch64.va_arg(ap, ti, parmn);
     }
     else version (ARM_Any)
     {
