@@ -94,6 +94,9 @@ void testToString()()
     }
 
     test!"!="(Overloaded(), Overloaded(), "Const == Const");
+
+    Foo fnull = null;
+    test!"!is"(fnull, fnull, "`null` is `null`");
 }
 
 

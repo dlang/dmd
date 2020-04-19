@@ -97,14 +97,21 @@ private string miniFormat(V)(const ref V v)
     {
         return "`null`";
     }
-    else static if (__traits(compiles, { string s = v.toString(); }))
-    {
-        return v.toString();
-    }
-    // Non-const toString(), e.g. classes inheriting from Object
+    // toString() isn't always const, e.g. classes inheriting from Object
     else static if (__traits(compiles, { string s = V.init.toString(); }))
     {
-        return (cast() v).toString();
+        // Object references / struct pointers may be null
+        static if (is(V == class) || is(V == interface) || is(V == U*, U))
+        {
+            if (v is null)
+                return "`null`";
+        }
+
+        // Prefer const overload of toString
+        static if (__traits(compiles, { string s = v.toString(); }))
+            return v.toString();
+        else
+            return (cast() v).toString();
     }
     // Static arrays or slices (but not aggregates with `alias this`)
     else static if (is(V : U[], U) && !isAggregateType!V)
