@@ -29,8 +29,8 @@ nothrow:
 
     void initialize(ulong randSeed)
     {
-        Rand48 _rand48 = { randSeed };
-        rand48 = _rand48;
+        Rand _rand = { randSeed };
+        rand = _rand;
     }
 
     void insert(E element) @nogc
@@ -109,13 +109,13 @@ nothrow:
 
 private:
     Node* root;
-    Rand48 rand48;
+    Rand rand;
 
     Node* allocNode(E element) @nogc
     {
         Node* node = cast(Node*)common.xmalloc(Node.sizeof);
         node.left = node.right = null;
-        node.priority = rand48();
+        node.priority = rand();
         node.element = element;
         return node;
     }
