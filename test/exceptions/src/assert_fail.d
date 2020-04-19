@@ -168,6 +168,7 @@ void testAttributes() @safe pure @nogc nothrow
 {
     int a;
     string s = _d_assert_fail!"=="(a, 0);
+    string s2 = _d_assert_fail!"!"(a);
 }
 
 // https://issues.dlang.org/show_bug.cgi?id=20066
@@ -208,6 +209,12 @@ void testEnum()
     test(_d_assert_fail!"=="(ctfe.data, data), "[1] != []");
 }
 
+void testUnary()
+{
+    test(_d_assert_fail!""(9), "9 != true");
+    test(_d_assert_fail!"!"([1, 2, 3]), "[1, 2, 3] == true");
+}
+
 void main()
 {
     testIntegers();
@@ -222,5 +229,6 @@ void main()
     testVoidArray();
     testTemporary();
     testEnum();
+    testUnary();
     fprintf(stderr, "success.\n");
 }

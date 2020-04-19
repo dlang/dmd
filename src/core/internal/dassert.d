@@ -4,7 +4,15 @@ on assertion failures
 */
 module core.internal.dassert;
 
-/// Allows customized assert error messages
+/// Allows customized assert error messages for unary expressions
+string _d_assert_fail(string op, A)(auto ref const scope A a)
+{
+    string val = miniFormatFakeAttributes(a);
+    enum token = op == "!" ? "==" : "!=";
+    return combine(val, token, "true");
+}
+
+/// Allows customized assert error messages for binary expressions
 string _d_assert_fail(string comp, A, B)(auto ref const scope A a, auto ref const scope B b)
 {
     /*
