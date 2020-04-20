@@ -4780,7 +4780,7 @@ public:
     ParameterList getParameterList();
     static FuncDeclaration* genCfunc(Array<Parameter* >* fparams, Type* treturn, const char* name, StorageClass stc = 0);
     static FuncDeclaration* genCfunc(Array<Parameter* >* fparams, Type* treturn, Identifier* id, StorageClass stc = 0);
-    bool checkNrvo();
+    bool checkNRVO();
     FuncDeclaration* isFuncDeclaration();
     virtual FuncDeclaration* toAliasFunc();
     void accept(Visitor* v);
