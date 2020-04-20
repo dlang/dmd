@@ -2347,8 +2347,9 @@ V[K] dup(T : V[K], K, V)(T aa)
         return *cast(V*)pv;
     }
 
-    if (auto postblit = _getPostblit!V())
+    static if (__traits(hasPostblit, V))
     {
+        auto postblit = _getPostblit!V();
         foreach (k, ref v; aa)
             postblit(duplicateElem(k, v));
     }
@@ -2560,7 +2561,8 @@ Key[] keys(T : Value[Key], Value, Key)(T aa) @property
         const(Value[Key]) realAA = aa;
     auto a = cast(void[])_aaKeys(*cast(inout(AA)*)&realAA, Key.sizeof, typeid(Key[]));
     auto res = *cast(Key[]*)&a;
-    _doPostblit(res);
+    static if (__traits(hasPostblit, Key))
+        _doPostblit(res);
     return res;
 }
 
@@ -2611,7 +2613,8 @@ Value[] values(T : Value[Key], Value, Key)(T aa) @property
         const(Value[Key]) realAA = aa;
     auto a = cast(void[])_aaValues(*cast(inout(AA)*)&realAA, Key.sizeof, Value.sizeof, typeid(Value[]));
     auto res = *cast(Value[]*)&a;
-    _doPostblit(res);
+    static if (__traits(hasPostblit, Value))
+        _doPostblit(res);
     return res;
 }
 
@@ -3101,7 +3104,7 @@ private U[] _dup(T, U)(T[] a) // pure nothrow depends on postblit
     memcpy(arr.ptr, cast(const(void)*)a.ptr, T.sizeof * a.length);
     auto res = *cast(U[]*)&arr;
 
-    static if (!is(T : void))
+    static if (__traits(hasPostblit, T))
         _doPostblit(res);
     return res;
 }
@@ -3325,8 +3328,9 @@ private auto _getPostblit(T)() @trusted pure nothrow @nogc
 private void _doPostblit(T)(T[] arr)
 {
     // infer static postblit type, run postblit if any
-    if (auto postblit = _getPostblit!T())
+    static if (__traits(hasPostblit, T))
     {
+        auto postblit = _getPostblit!T();
         foreach (ref elem; arr)
             postblit(elem);
     }
