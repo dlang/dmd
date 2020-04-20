@@ -1109,11 +1109,6 @@ bool isTrackableVar(VarDeclaration v)
     if (tb.ty == Tclass)
         return false;
 
-    /* Pointers are tracked
-     */
-    if (!tb.hasPointers())
-        return false;
-
     /* Assume types with a destructor are doing their own tracking,
      * such as being a ref counted type
      */
@@ -1262,9 +1257,12 @@ void genKill(ref ObState obstate, ObNode* ob)
      */
     void dgWriteVar(ObNode* ob, VarDeclaration v, Expression e, bool initializer)
     {
+        if (log)
+            printf("dgWriteVar() %s := %s %d\n", v.toChars(), e.toChars(), initializer);
         const vi = obstate.vars.find(v);
         assert(vi != size_t.max);
         PtrVarState* pvs = &ob.gen[vi];
+        readVar(ob, vi, true, ob.gen);
         if (e)
         {
             if (isBorrowedPtr(v))
@@ -1963,6 +1961,7 @@ void checkObErrors(ref ObState obstate)
         const vi = obstate.vars.find(v);
         assert(vi != size_t.max);
         PtrVarState* pvs = &cpvs[vi];
+        readVar(ob, vi, true, cpvs);
         if (e)
         {
             if (isBorrowedPtr(v))
@@ -2565,7 +2564,8 @@ void checkObErrors(ref ObState obstate)
                 if (pvs.state == PtrState.Owner)
                 {
                     auto v = obstate.vars[i];
-                    v.error(v.loc, "is left dangling at return");
+                    if (v.type.hasPointers())
+                        v.error(v.loc, "is left dangling at return");
                 }
             }
         }
