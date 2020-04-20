@@ -39,6 +39,23 @@ alias dstring = immutable(dchar)[];
 version (D_ObjectiveC) public import core.attribute : selector;
 version (Posix) public import core.attribute : gnuAbiTag;
 
+// Some ABIs use a complex varargs implementation requiring TypeInfo.argTypes().
+version (X86_64)
+{
+    version (DigitalMars) version = WithArgTypes;
+    else version (Windows) { /* no need for Win64 ABI */ }
+    else version = WithArgTypes;
+}
+version (AArch64)
+{
+    // Apple uses a trivial varargs implementation
+    version (OSX) {}
+    else version (iOS) {}
+    else version (TVOS){}
+    else version (WatchOS) {}
+    else version = WithArgTypes;
+}
+
 /**
  * All D class objects inherit from Object.
  */
@@ -390,7 +407,7 @@ class TypeInfo
     /** Return internal info on arguments fitting into 8byte.
      * See X86-64 ABI 3.2.3
      */
-    version (X86_64) int argTypes(out TypeInfo arg1, out TypeInfo arg2) @safe nothrow
+    version (WithArgTypes) int argTypes(out TypeInfo arg1, out TypeInfo arg2) @safe nothrow
     {
         arg1 = this;
         return 0;
@@ -430,7 +447,7 @@ class TypeInfo_Enum : TypeInfo
 
     override @property size_t talign() nothrow pure const { return base.talign; }
 
-    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+    version (WithArgTypes) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
     {
         return base.argTypes(arg1, arg2);
     }
@@ -588,7 +605,7 @@ class TypeInfo_Array : TypeInfo
         return (void[]).alignof;
     }
 
-    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+    version (WithArgTypes) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
     {
         arg1 = typeid(size_t);
         arg2 = typeid(void*);
@@ -715,7 +732,7 @@ class TypeInfo_StaticArray : TypeInfo
         return value.talign;
     }
 
-    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+    version (WithArgTypes) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
     {
         arg1 = typeid(void*);
         return 0;
@@ -774,7 +791,7 @@ class TypeInfo_AssociativeArray : TypeInfo
         return (char[int]).alignof;
     }
 
-    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+    version (WithArgTypes) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
     {
         arg1 = typeid(void*);
         return 0;
@@ -809,7 +826,7 @@ class TypeInfo_Vector : TypeInfo
 
     override @property size_t talign() nothrow pure const { return 16; }
 
-    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+    version (WithArgTypes) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
     {
         return base.argTypes(arg1, arg2);
     }
@@ -949,7 +966,7 @@ class TypeInfo_Delegate : TypeInfo
         return dg.alignof;
     }
 
-    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+    version (WithArgTypes) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
     {
         arg1 = typeid(void*);
         arg2 = typeid(void*);
@@ -1381,7 +1398,7 @@ class TypeInfo_Struct : TypeInfo
 
     override @property immutable(void)* rtInfo() nothrow pure const @safe { return m_RTInfo; }
 
-    version (X86_64)
+    version (WithArgTypes)
     {
         override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
         {
@@ -1488,7 +1505,7 @@ class TypeInfo_Tuple : TypeInfo
         assert(0);
     }
 
-    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+    version (WithArgTypes) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
     {
         assert(0);
     }
@@ -1530,7 +1547,7 @@ class TypeInfo_Const : TypeInfo
 
     override @property size_t talign() nothrow pure const { return base.talign; }
 
-    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+    version (WithArgTypes) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
     {
         return base.argTypes(arg1, arg2);
     }
