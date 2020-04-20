@@ -24,6 +24,8 @@ void test_getFunctionAttributes()
         int safeF() @safe { return 0; }
 
         int pureF() pure { return 0; }
+
+        int liveF() @live { return 0; }
     }
 
     static assert(__traits(getFunctionAttributes, S.noF) == tuple!("@system"));
@@ -65,10 +67,14 @@ void test_getFunctionAttributes()
     static assert(__traits(getFunctionAttributes, S.pureF) == tuple!("pure", "@system"));
     static assert(__traits(getFunctionAttributes, typeof(S.pureF)) == tuple!("pure", "@system"));
 
+    static assert(__traits(getFunctionAttributes, S.liveF) == tuple!("@live", "@system"));
+    static assert(__traits(getFunctionAttributes, typeof(S.liveF)) == tuple!("@live", "@system"));
+
     int pure_nothrow() nothrow pure { return 0; }
     static ref int static_ref_property() @property { return *(new int); }
     ref int ref_property() @property { return *(new int); }
     void safe_nothrow() @safe nothrow { }
+    void live_nothrow() nothrow @live { }
 
     static assert(__traits(getFunctionAttributes, pure_nothrow) == tuple!("pure", "nothrow", "@nogc", "@safe"));
     static assert(__traits(getFunctionAttributes, typeof(pure_nothrow)) == tuple!("pure", "nothrow", "@nogc", "@safe"));
@@ -81,6 +87,9 @@ void test_getFunctionAttributes()
 
     static assert(__traits(getFunctionAttributes, safe_nothrow) == tuple!("pure", "nothrow", "@nogc", "@safe"));
     static assert(__traits(getFunctionAttributes, typeof(safe_nothrow)) == tuple!("pure", "nothrow", "@nogc", "@safe"));
+
+    static assert(__traits(getFunctionAttributes, live_nothrow) == tuple!("pure", "nothrow", "@nogc", "@live", "@safe"));
+    static assert(__traits(getFunctionAttributes, typeof(live_nothrow)) == tuple!("pure", "nothrow", "@nogc", "@live", "@safe"));
 
     struct S2
     {

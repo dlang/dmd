@@ -604,6 +604,12 @@ static assert(typeof(fooA).mangleof != typeof(fooB).mangleof);
 
 /***************************************************/
 
+@live int testLive() { return 42; }
+
+static assert(testLive.mangleof == "_D6mangle8testLiveFNmZi");
+
+/***************************************************/
+
 void main()
 {
     test10077h();

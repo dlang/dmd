@@ -1670,7 +1670,7 @@ extern(C++) Type typeSemantic(Type t, const ref Loc loc, Scope* sc)
 
     Type visitTypeof(TypeTypeof mtype)
     {
-        //printf("TypeTypeof::semantic() %s\n", toChars());
+        //printf("TypeTypeof::semantic() %s\n", mtype.toChars());
         Expression e;
         Type t;
         Dsymbol s;
