@@ -2601,13 +2601,12 @@ extern (C++) class FuncDeclaration : Declaration
                     return false;
                 else if (nrvo_var is null)
                 {
-                    if (!v.isDataseg() && !v.isParameter() && v.toParent2() == this)
-                    {
-                        //printf("Setting nrvo to %s\n", v.toChars());
-                        nrvo_var = v;
-                    }
-                    else
+                    // Variables in the data segment (e.g. globals, TLS or not),
+                    // parameters and closure variables cannot be NRVOed.
+                    if (v.isDataseg() || v.isParameter() || v.toParent2() != this)
                         return false;
+                    //printf("Setting nrvo to %s\n", v.toChars());
+                    nrvo_var = v;
                 }
                 else if (nrvo_var != v)
                     return false;
