@@ -3394,21 +3394,8 @@ void destroy(bool initialize = true, T)(ref T obj) if (is(T == struct))
 
     static if (initialize)
     {
-        // We need to re-initialize `obj`.  Previously, an immutable static
-        // and memcpy were used to hold an initializer. With improved unions, this is no longer
-        // needed.
-        union UntypedInit
-        {
-            T dummy;
-        }
-        static struct UntypedStorage
-        {
-            align(T.alignof) void[T.sizeof] dummy;
-        }
-
-        () @trusted {
-            *cast(UntypedStorage*) &obj = cast(UntypedStorage) UntypedInit.init;
-        } ();
+        import core.internal.lifetime : emplaceInitializer;
+        emplaceInitializer(obj); // emplace T.init
     }
 }
 
