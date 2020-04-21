@@ -1591,20 +1591,16 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             // if inside a template instantiation, the instantianting
             // module gets the import.
             // https://issues.dlang.org/show_bug.cgi?id=17181
+            Module importer = sc._module;
             if (sc.minst && sc.tinst)
             {
-                //printf("%s imports %s\n", sc.minst.toChars(), imp.mod.toChars());
+                importer = sc.minst;
                 if (!sc.tinst.importedModules.contains(imp.mod))
                     sc.tinst.importedModules.push(imp.mod);
-                if (!sc.minst.aimports.contains(imp.mod))
-                    sc.minst.aimports.push(imp.mod);
             }
-            else
-            {
-                //printf("%s imports %s\n", sc._module.toChars(), imp.mod.toChars());
-                if (!sc._module.aimports.contains(imp.mod))
-                    sc._module.aimports.push(imp.mod);
-            }
+            //printf("%s imports %s\n", importer.toChars(), imp.mod.toChars());
+            if (!importer.aimports.contains(imp.mod))
+                importer.aimports.push(imp.mod);
 
             if (sc.explicitProtection)
                 imp.protection = sc.protection;
@@ -1656,8 +1652,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (imp.mod.needmoduleinfo)
             {
-                //printf("module4 %s because of %s\n", sc.module.toChars(), mod.toChars());
-                sc._module.needmoduleinfo = 1;
+                //printf("module4 %s because of %s\n", importer.toChars(), imp.mod.toChars());
+                importer.needmoduleinfo = 1;
             }
 
             sc = sc.push(imp.mod);
@@ -4702,6 +4698,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (sc.linkage == LINK.cpp)
                 sd.classKind = ClassKind.cpp;
             sd.cppnamespace = sc.namespace;
+            sd.cppmangle = sc.cppmangle;
         }
         else if (sd.symtab && !scx)
             return;
@@ -4920,6 +4917,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (sc.linkage == LINK.cpp)
                 cldec.classKind = ClassKind.cpp;
             cldec.cppnamespace = sc.namespace;
+            cldec.cppmangle = sc.cppmangle;
             if (sc.linkage == LINK.objc)
                 objc.setObjc(cldec);
         }
@@ -6402,9 +6400,10 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
     //printf("AliasDeclaration::semantic() %s\n", ds.toChars());
 
     // TypeTraits needs to know if it's located in an AliasDeclaration
+    const oldflags = sc.flags;
     sc.flags |= SCOPE.alias_;
     scope(exit)
-        sc.flags &= ~SCOPE.alias_;
+        sc.flags = oldflags;
 
     // preserve the original type
     if (!ds.originalType && ds.type)

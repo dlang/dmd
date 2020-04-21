@@ -576,6 +576,7 @@ public:
         if (d.condition.inc != Include.notComputed)
         {
             visit(cast(AttribDeclaration)d);
+            return; // Don't visit the if/else bodies again below
         }
         Dsymbols* ds = d.decl ? d.decl : d.elsedecl;
         for (size_t i = 0; i < ds.dim; i++)

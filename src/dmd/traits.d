@@ -1573,6 +1573,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                         err = true;
                         break;
                     }
+                    const olderrors = global.errors;
                     const len = buf.length;
                     buf.writeByte(0);
                     const str = buf.extractSlice()[0 .. len];
@@ -1581,7 +1582,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                     //printf("p.loc.linnum = %d\n", p.loc.linnum);
 
                     o = p.parseTypeOrAssignExp(TOK.endOfFile);
-                    if (errors != global.errors || p.token.value != TOK.endOfFile)
+                    if (olderrors != global.errors || p.token.value != TOK.endOfFile)
                     {
                         err = true;
                         break;

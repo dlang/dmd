@@ -1,3 +1,5 @@
+// REQUIRED_ARGS: -preview=dip1021
+
 /* TEST_OUTPUT:
 ---
 fail_compilation/fob1.d(104): Error: variable `fob1.foo1.p` has undefined state and cannot be read
@@ -59,4 +61,3 @@ fail_compilation/fob1.d(405): Error: variable `fob1.foo4.bq` has undefined state
     *bq = 1;
     return p;
 }
-

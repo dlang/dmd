@@ -484,7 +484,7 @@ if (!irs.params.is64bit) assert(tysize(TYnptr) == 4);
         {
             static int X(int fty, int tty) { return fty * TMAX + tty; }
 
-            final switch (X(tybasic(ep.Ety), tyret))
+            final switch (X(tybasic(ep.Ety), tybasic(tyret)))
             {
             case X(TYfloat, TYfloat):     // float -> float
             case X(TYdouble, TYdouble):   // double -> double
