@@ -97,12 +97,23 @@ private string miniFormat(V)(const scope ref V v)
     {
         static if (is(V == char))
         {
-            return ['\'', v, '\''];
+            // Avoid invalid code points
+            if (v < 0x7F)
+                return ['\'', v, '\''];
+
+            uint tmp = v;
+            return "cast(char) " ~ miniFormat(tmp);
         }
         else static if (is(V == wchar) || is(V == dchar))
         {
-            import core.internal.utf: toUTF8;
-            return toUTF8(['\'', v, '\'']);
+            import core.internal.utf: isValidDchar, toUTF8;
+
+            // Avoid invalid code points
+            if (isValidDchar(v))
+                return toUTF8(['\'', v, '\'']);
+
+            uint tmp = v;
+            return "cast(" ~ V.stringof ~ ") " ~ miniFormat(tmp);
         }
         else
         {
