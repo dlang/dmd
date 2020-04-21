@@ -754,7 +754,7 @@ alias install = makeRule!((builder, rule) {
                 const bin = "bin" ~ env["MODEL"];
         }
 
-        installRelativeFiles(env["INSTALL"].buildPath(env["OS"], bin), dmdExeFile.dirName, dmdExeFile.only);
+        installRelativeFiles(env["INSTALL"].buildPath(env["OS"], bin), dmdExeFile.dirName, dmdExeFile.only, octal!755);
 
         version (Windows)
             installRelativeFiles(env["INSTALL"], dmdRepo, sourceFiles);
@@ -1862,7 +1862,7 @@ Params:
                  in targetDir as they are from sourceBase
     files = the files to install.  must be in sourceBase
 */
-void installRelativeFiles(T)(string targetDir, string sourceBase, T files)
+void installRelativeFiles(T)(string targetDir, string sourceBase, T files, uint attributes = octal!644)
 {
     struct FileToCopy
     {
@@ -1885,6 +1885,7 @@ void installRelativeFiles(T)(string targetDir, string sourceBase, T files)
         foreach (fileToCopy; dirFilePair.value)
         {
             std.file.copy(fileToCopy.name, targetDir.buildPath(fileToCopy.relativeName));
+            std.file.setAttributes(targetDir.buildPath(fileToCopy.relativeName), attributes);
         }
     }
 }

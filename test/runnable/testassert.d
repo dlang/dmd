@@ -75,6 +75,8 @@ void test20114()
     assert(c == "1 != 0");
 }
 
+version (DigitalMars) version (Win64) version = DMD_Win64;
+
 void test20375() @safe
 {
     static struct RefCounted
@@ -87,6 +89,7 @@ void test20375() @safe
         }
 
         static int instances;
+        static int postblits;
 
         this(bool) @safe
         {
@@ -96,10 +99,14 @@ void test20375() @safe
         this(this) @safe
         {
             instances++;
+            postblits++;
         }
 
         ~this() @safe
         {
+            // make the dtor non-nothrow (we are tracking clean-ups during AssertError unwinding)
+            if (postblits > 100)
+                throw new Exception("");
             assert(instances > 0);
             instances--;
         }
@@ -112,19 +119,54 @@ void test20375() @safe
 
     {
         auto a = RefCounted.create();
-        assert(a == RefCounted.create());
+        RefCounted.instances++; // we're about to construct an instance below, increment manually
+        assert(a == RefCounted()); // both operands are pure expressions => no temporaries
     }
 
     assert(RefCounted.instances == 0);
+    assert(RefCounted.postblits == 0);
 
     {
         auto a = RefCounted.create();
-        const msg = getMessage(assert(a != RefCounted.create()));
-        // assert(msg == "RefCounted() == RefCounted()"); // Currently not formatted
-        assert(msg == "assert(a != RefCounted.create()) failed");
+        assert(a == RefCounted.create()); // impure rhs is promoted to a temporary lvalue => copy for a.opEquals(rhs)
     }
 
     assert(RefCounted.instances == 0);
+    assert(RefCounted.postblits == 1);
+    RefCounted.postblits = 0;
+
+    {
+        const msg = getMessage(assert(RefCounted.create() != RefCounted.create())); // both operands promoted to temporary lvalues
+        assert(msg == "RefCounted() == RefCounted()");
+    }
+
+    version (DMD_Win64) // FIXME: temporaries apparently not destructed when unwinding via AssertError
+    {
+        assert(RefCounted.instances >= 0 && RefCounted.instances <= 2);
+        RefCounted.instances = 0;
+    }
+    else
+        assert(RefCounted.instances == 0);
+    assert(RefCounted.postblits == 1);
+    RefCounted.postblits = 0;
+
+    static int numGetLvalImpureCalls = 0;
+    ref RefCounted getLvalImpure() @trusted
+    {
+        numGetLvalImpureCalls++;
+        __gshared lval = RefCounted(); // not incrementing RefCounted.instances
+        return lval;
+    }
+
+    {
+        const msg = getMessage(assert(getLvalImpure() != getLvalImpure())); // both operands promoted to ref temporaries
+        assert(msg == "RefCounted() == RefCounted()");
+    }
+
+    assert(numGetLvalImpureCalls == 2);
+    assert(RefCounted.instances == 0);
+    assert(RefCounted.postblits == 1);
+    RefCounted.postblits = 0;
 }
 
 string getMessage(T)(lazy T expr) @trusted
@@ -140,10 +182,22 @@ string getMessage(T)(lazy T expr) @trusted
     }
 }
 
+void testMixinExpression() @safe
+{
+    static struct S
+    {
+        bool opEquals(S) @safe { return true; }
+    }
+
+    const msg = getMessage(assert(mixin("S() != S()")));
+    assert(msg == "S() == S()");
+}
+
 void main()
 {
     test8765();
     test9255();
     test20114();
     test20375();
+    testMixinExpression();
 }

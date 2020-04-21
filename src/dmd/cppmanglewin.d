@@ -16,8 +16,10 @@ import core.stdc.stdio;
 
 import dmd.arraytypes;
 import dmd.cppmangle : isPrimaryDtor, isCppOperator, CppOperator;
+import dmd.dclass;
 import dmd.declaration;
 import dmd.denum : isSpecialEnumIdent;
+import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.errors;
@@ -385,10 +387,11 @@ public:
             return;
         //printf("visit(TypeStruct); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
         mangleModifier(type);
+        const agg = type.sym.isStructDeclaration();
         if (type.sym.isUnionDeclaration())
             buf.writeByte('T');
         else
-            buf.writeByte(type.cppmangle == CPPMANGLE.asClass ? 'V' : 'U');
+            buf.writeByte(agg.cppmangle == CPPMANGLE.asClass ? 'V' : 'U');
         mangleIdent(type.sym);
         flags &= ~IS_NOT_TOP_TYPE;
         flags &= ~IGNORE_CONST;
@@ -456,7 +459,8 @@ public:
             buf.writeByte('E');
         flags |= IS_NOT_TOP_TYPE;
         mangleModifier(type);
-        buf.writeByte(type.cppmangle == CPPMANGLE.asStruct ? 'U' : 'V');
+        const cldecl = type.sym.isClassDeclaration();
+        buf.writeByte(cldecl.cppmangle == CPPMANGLE.asStruct ? 'U' : 'V');
         mangleIdent(type.sym);
         flags &= ~IS_NOT_TOP_TYPE;
         flags &= ~IGNORE_CONST;

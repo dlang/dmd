@@ -873,7 +873,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         if (paramtype)
                             type = paramtype;
                         Initializer ie = new ExpInitializer(Loc.initial, e);
-                        auto v = new VarDeclaration(loc, type, ident, ie);
+                        auto v = new VarDeclaration(loc, type, ident, ie, storageClass);
                         if (storageClass & STC.ref_)
                             v.storage_class |= STC.ref_ | STC.foreach_;
                         if (isStatic || storageClass&STC.manifest || e.isConst() ||

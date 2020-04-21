@@ -5134,6 +5134,20 @@ extern (C++) final class TypeTraits : Type
         return tt;
     }
 
+    override Dsymbol toDsymbol(Scope* sc)
+    {
+        Type t;
+        Expression e;
+        Dsymbol s;
+        resolve(this, loc, sc, &e, &t, &s);
+        if (t && t.ty != Terror)
+            s = t.toDsymbol(sc);
+        else if (e)
+            s = getDsymbol(e);
+
+        return s;
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -5470,7 +5484,6 @@ extern (C++) final class TypeStruct : Type
 {
     StructDeclaration sym;
     AliasThisRec att = AliasThisRec.fwdref;
-    CPPMANGLE cppmangle = CPPMANGLE.def;
 
     extern (D) this(StructDeclaration sym)
     {
@@ -5570,8 +5583,10 @@ extern (C++) final class TypeStruct : Type
         return structinit;
     }
 
-    override bool isZeroInit(const ref Loc loc) const
+    override bool isZeroInit(const ref Loc loc)
     {
+        // Determine zeroInit here, as this can be called before semantic2
+        sym.determineSize(sym.loc);
         return sym.zeroInit;
     }
 

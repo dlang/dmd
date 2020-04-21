@@ -1251,3 +1251,31 @@ extern(C++, `bar`)
 {
     void func19542(T)();
 }
+
+// https://issues.dlang.org/show_bug.cgi?id=20700
+// Only testing on WIn64 because the mangling includes 'E',
+// and the bug can be tested on either platform
+version (Win64) extern(C++)
+{
+    void test20700_1(Struct20700);
+    extern(C++, class) struct Struct20700 {}
+    void test20700_2(Struct20700);
+
+    // Note: Needs to be `V` (`class`), not `U` (`struct`)
+    static assert(test20700_1.mangleof == `?test20700_1@@YAXVStruct20700@@@Z`);
+    static assert(test20700_2.mangleof == `?test20700_2@@YAXVStruct20700@@@Z`);
+
+    // Test that the scope is not "sticky" on the arguments
+    void test20700_3(TStruct20700_1!DefaultClass20700_1);
+    extern(C++, class) struct TStruct20700_1 (T1, T2 = DefaultStruct20700_1) {}
+    extern(C++, class) struct DefaultStruct20700_1 {}
+    extern(C++, struct) class DefaultClass20700_1 {}
+    static assert(test20700_3.mangleof == `?test20700_3@@YAXV?$TStruct20700_1@PEAUDefaultClass20700_1@@VDefaultStruct20700_1@@@@@Z`);
+
+    // Each test needs to be independent symbol to trigger a new semantic pass
+    void test20700_4(TStruct20700_2!(DefaultClass20700_2, DefaultStruct20700_2));
+    extern(C++, struct) class TStruct20700_2 (T1, T2 = DefaultClass20700_2) {}
+    extern(C++, class) struct DefaultStruct20700_2 {}
+    extern(C++, struct) class DefaultClass20700_2 {}
+    static assert(test20700_4.mangleof == `?test20700_4@@YAXPEAU?$TStruct20700_2@PEAUDefaultClass20700_2@@VDefaultStruct20700_2@@@@@Z`);
+}

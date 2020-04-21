@@ -1,4 +1,5 @@
 /* Testing Ownership/Borrowing system
+REQUIRED_ARGS: -preview=dip1021
  */
 
 int* malloc();
@@ -54,7 +55,6 @@ fail_compilation/fob2.d(303): Error: variable `fob2.foo3.b` is left dangling at 
     scope int* b = malloc();
 }
 
-
 /* TEST_OUTPUT:
 ---
 fail_compilation/fob2.d(427): Error: variable `fob2.test43.p` is both Owner and Undefined
@@ -99,6 +99,3 @@ bool f();
     }
     free(p);
 }
-
-
-

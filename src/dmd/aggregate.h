@@ -84,6 +84,7 @@ public:
     Dsymbol *deferred;          // any deferred semantic2() or semantic3() symbol
 
     ClassKind::Type classKind;  // specifies the linkage type
+    CPPMANGLE cppmangle;
 
     /* !=NULL if is nested
      * pointing to the dsymbol that directly enclosing it.
