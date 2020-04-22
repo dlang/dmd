@@ -3,7 +3,7 @@ import std.algorithm : find;
 
 int main()
 {
-    if (OS != "linux")
+    if (OS == "windows")
     {
         writefln("Skipping test6952.d for %s.", OS);
         return DISABLED;
@@ -18,28 +18,37 @@ int main()
     // the command line above.
     string[string] e;
     e["DFLAGS"] = "";
+    // Use our custom linker wrapper in order not to depend on the platform's CC
+    const ccWrapper = shellExpand("$OUTPUT_BASE/test6952.fakeLinker.sh");
+    e["CC"] = ccWrapper;
+
+    // And make this explicit
+    const outputFile = shellExpand("$OUTPUT_BASE/test6952.last_test_output.txt");
+    // Write the wrapper script...
+    std.file.write(ccWrapper, "#!/usr/bin/env bash\nset -e\necho \"$@\" > " ~ outputFile ~ "\n");
+    run("chmod +x " ~ ccWrapper);
 
     // Compile the D code
-    auto result = executeShell(cmd, e);
-    assert(result.status == 0, "\n" ~ result.output);
+    run(cmd, std.stdio.stdout, std.stdio.stderr, e);
 
-    // due to `-v` the last line should be the command past to the linker driver; probably `cc`
-    immutable lines = result.output.split("\n");
-    auto foundLines = lines.find!(a => a.startsWith("cc"));
-    if (!foundLines.length)
-        foundLines = lines.find!(a => a.startsWith("gcc"));
-    if (!foundLines.length)
-        assert(0, "Couldn't find 'cc' in compiler output:\n" ~ result.output);
-    auto ccLine = foundLines[0];
+    // This test used to parse the compiler output (using `-v`),
+    // but that turned out to be quite brittle.
+    // Instead, just provide a wrapper script via CC and write the arguments
+    // to a file, and inspect what has been written.
+    const result = readText(outputFile);
+    immutable lines = result.split("\n");
+    if (!lines.length || !lines[0].length)
+        assert(0, "The CC wrapper didn't write to " ~ outputFile ~ ":\n" ~ result);
+    auto line = lines[0];
 
     // The arguments prefixed with `-Xcc` should not have an
     // additional `-Xlinker` prepended to them
-    assert(ccLine.find("-Xlinker -nostartfiles") == "");
-    assert(ccLine.find("-Xlinker -nostdlib") == "");
-    assert(ccLine.find("-Xlinker -nodefaultlibs") == "");
+    assert(line.find("-Xlinker -nostartfiles") == "");
+    assert(line.find("-Xlinker -nostdlib") == "");
+    assert(line.find("-Xlinker -nodefaultlibs") == "");
 
     // This is the way it should look
-    assert(ccLine.find("-nostartfiles -nostdlib -nodefaultlibs") != "");
+    assert(line.find("-nostartfiles -nostdlib -nodefaultlibs") != "");
 
     return 0;
 }
