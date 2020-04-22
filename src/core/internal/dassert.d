@@ -125,16 +125,29 @@ private string miniFormat(V)(const scope ref V v)
     }
     else static if (__traits(isFloating, V))
     {
+        import core.stdc.config : LD = c_long_double;
+
         char[60] val;
         int len;
-        static if (is(V == cfloat) || is(V == cdouble))
+        static if (is(V == float) || is(V == double))
+            len = sprintf(&val[0], "%g", v);
+        else static if (is(V == real))
+            len = sprintf(&val[0], "%Lg", cast(LD) v);
+        else static if (is(V == cfloat) || is(V == cdouble))
             len = sprintf(&val[0], "%g + %gi", v.re, v.im);
         else static if (is(V == creal))
-            len = sprintf(&val[0], "%Lg + %Lgi", v.re, v.im);
-        else static if (is(V == real) || is(V == ireal))
-            len = sprintf(&val[0], "%Lg", v);
-        else
-            len = sprintf(&val[0], "%g", v);
+            len = sprintf(&val[0], "%Lg + %Lgi", cast(LD) v.re, cast(LD) v.im);
+        else static if (is(V == ifloat) || is(V == idouble))
+            len = sprintf(&val[0], "%gi", v);
+        else // ireal
+        {
+            static assert(is(V == ireal));
+            static if (is(LD == real))
+                alias R = ireal;
+            else
+                alias R = idouble;
+            len = sprintf(&val[0], "%Lgi", cast(R) v);
+        }
         return val.idup[0 .. len];
     }
     // special-handling for void-arrays
