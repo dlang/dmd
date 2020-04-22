@@ -95,10 +95,33 @@ private string miniFormat(V)(const scope ref V v)
     }
     else static if (__traits(isIntegral, V))
     {
-        enum printfFormat = getPrintfFormat!V;
-        char[20] val;
-        const len = sprintf(&val[0], printfFormat, v);
-        return val.idup[0 .. len];
+        static if (is(V == char))
+        {
+            // Avoid invalid code points
+            if (v < 0x7F)
+                return ['\'', v, '\''];
+
+            uint tmp = v;
+            return "cast(char) " ~ miniFormat(tmp);
+        }
+        else static if (is(V == wchar) || is(V == dchar))
+        {
+            import core.internal.utf: isValidDchar, toUTF8;
+
+            // Avoid invalid code points
+            if (isValidDchar(v))
+                return toUTF8(['\'', v, '\'']);
+
+            uint tmp = v;
+            return "cast(" ~ V.stringof ~ ") " ~ miniFormat(tmp);
+        }
+        else
+        {
+            enum printfFormat = getPrintfFormat!V;
+            char[20] val;
+            const len = sprintf(&val[0], printfFormat, v);
+            return val.idup[0 .. len];
+        }
     }
     else static if (__traits(isFloating, V))
     {

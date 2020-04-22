@@ -63,6 +63,15 @@ void testStrings()
     // https://issues.dlang.org/show_bug.cgi?id=20322
     test("left"w, "right"w, `"left" != "right"`);
     test("left"d, "right"d, `"left" != "right"`);
+
+    test('A', 'B', "'A' != 'B'");
+    test(wchar('❤'), wchar('∑'), "'❤' != '∑'");
+    test(dchar('❤'), dchar('∑'), "'❤' != '∑'");
+
+    // Detect invalid code points
+    test(char(255), 'B', "cast(char) 255 != 'B'");
+    test(wchar(0xD888), wchar('∑'), "cast(wchar) 55432 != '∑'");
+    test(dchar(0xDDDD), dchar('∑'), "cast(dchar) 56797 != '∑'");
 }
 
 void testToString()()
