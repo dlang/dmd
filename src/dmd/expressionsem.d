@@ -5988,7 +5988,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 (*tiargs)[1] = (*es)[0].type;
                 (*tiargs)[2] = (*es)[1].type;
             }
-            else // Format exp.e1 before any additional boolean conversion
+
+            // Format exp.e1 before any additional boolean conversion
+            // Ignore &&/|| because "assert(...) failed" is more informative than "false != true"
+            else if (tok != TOK.andAnd && tok != TOK.orOr)
             {
                 es = new Expressions(1);
                 tiargs = new Objects(2);
@@ -6026,6 +6029,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     exp.msg = new StringExp(loc, "assert(__ctfe) failed!");
                     goto LSkip;
                 }
+            }
+            else
+            {
+                OutBuffer buf;
+                buf.printf("%s failed", exp.toChars());
+                exp.msg = new StringExp(Loc.initial, buf.extractSlice());
+                goto LSkip;
             }
 
             Expression __assertFail = new IdentifierExp(exp.loc, Id.empty);
