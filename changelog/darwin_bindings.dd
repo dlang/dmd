@@ -1,4 +1,5 @@
-Added module `core.sys.darwin.mach.nlist`
+Added module `core.sys.darwin.mach.nlist` and `core.sys.darwin.mach.stab`
 
-This module contains bindings for the 64 bits part of Mac OSX's `<mach-o/nlish.h>`,
+Those modules contains bindings for the 64 bits part of Mac OSX's
+`<mach-o/nlish.h>` and `<mach-o/stab.h>`, respectively,
 and can be used by users wishing to inspect binary data of Mach-O object files.

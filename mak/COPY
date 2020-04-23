@@ -111,6 +111,7 @@ COPY=\
 	$(IMPDIR)\core\sys\darwin\mach\nlist.d \
 	$(IMPDIR)\core\sys\darwin\mach\port.d \
 	$(IMPDIR)\core\sys\darwin\mach\semaphore.d \
+	$(IMPDIR)\core\sys\darwin\mach\stab.d \
 	$(IMPDIR)\core\sys\darwin\mach\thread_act.d \
 	\
 	$(IMPDIR)\core\sys\darwin\netinet\in_.d \
