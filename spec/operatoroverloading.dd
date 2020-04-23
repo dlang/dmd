@@ -538,7 +538,7 @@ $(H2 $(LEGACY_LNAME2 Assignment, assignment, Assignment Operator Overloading))
     ---
     struct S
     {
-        // identiy assignment, allowed.
+        // identity assignment, allowed.
         void $(CODE_HIGHLIGHT opAssign)(S rhs);
 
         // not identity assignment, also allowed.

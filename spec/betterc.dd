@@ -84,6 +84,7 @@ $(H2 $(LNAME2 retained, Retained Features))
     $(LI `switch` with strings)
     $(LI `final switch`)
     $(LI `unittest`)
+    $(LI $(DDSUBLINK spec/interfaceToC, calling_printf, `printf` format validation))
     )
 
 $(H3 $(LNAME2 unittests, Running unittests in `-betterC`))
