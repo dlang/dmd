@@ -113,6 +113,7 @@ SRCS=\
 	src\core\sys\darwin\mach\getsect.d \
 	src\core\sys\darwin\mach\kern_return.d \
 	src\core\sys\darwin\mach\loader.d \
+	src\core\sys\darwin\mach\nlist.d \
 	src\core\sys\darwin\mach\port.d \
 	src\core\sys\darwin\mach\semaphore.d \
 	src\core\sys\darwin\mach\thread_act.d \
