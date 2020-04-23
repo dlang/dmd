@@ -1190,6 +1190,10 @@ pure @safe:
                 popFront();
                 put( "scope " );
                 continue;
+            case 'm': // FuncAttrLive
+                popFront();
+                put( "@live " );
+                continue;
             default:
                 error();
             }
@@ -2485,7 +2489,7 @@ else
         ["_D3foo7__arrayZ", "foo.__array"],
         ["_D8link657428__T3fooVE8link65746Methodi0Z3fooFZi", "int link6574.foo!(0).foo()"],
         ["_D8link657429__T3fooHVE8link65746Methodi0Z3fooFZi", "int link6574.foo!(0).foo()"],
-        ["_D4test22__T4funcVAyaa3_610a62Z4funcFNaNbNiNfZAya", `pure nothrow @nogc @safe immutable(char)[] test.func!("a\x0ab").func()`],
+        ["_D4test22__T4funcVAyaa3_610a62Z4funcFNaNbNiNmNfZAya", `pure nothrow @nogc @live @safe immutable(char)[] test.func!("a\x0ab").func()`],
         ["_D3foo3barFzkZzi", "cent foo.bar(ucent)"],
         ["_D5bug145Class3fooMFNlZPv", "scope void* bug14.Class.foo()"],
         ["_D5bug145Class3barMFNjZPv", "return void* bug14.Class.bar()"],
