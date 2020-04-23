@@ -7,20 +7,13 @@ TEST_OUTPUT:
 
 #pragma once
 
-#include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <string.h>
-
-#if !defined(_d_real)
-# define _d_real long double
-#endif
 
 
-// Parsing module dtoh_StructDeclaration
 struct S;
 struct Inner;
+
 struct S
 {
     int8_t a;
@@ -47,15 +40,17 @@ struct S3
     S3() : a(42), b(), c() {}
 };
 
-struct
-#if defined(__GNUC__) || defined(__clang__)
-    __attribute__((packed, aligned(1)))
-#elif defined(_MSC_VER)
-    __declspec(align(1))
-#elif defined(__DMC__)
-    #pragma pack(push, 1)
-#endif
-Aligned
+struct S4
+{
+    int32_t a;
+    int64_t b;
+    int32_t c;
+    int8_t d;
+    S4() : a(), b(), c(), d() {}
+};
+
+#pragma pack(push, 1)
+struct Aligned
 {
     int8_t a;
     int32_t b;
@@ -63,9 +58,7 @@ Aligned
     Aligned(int32_t a);
     Aligned() : a(), b(), c() {}
 };
-#if defined(__DMC__)
-    #pragma pack(pop)
-#endif
+#pragma pack(pop)
 
 struct A
 {
@@ -84,14 +77,14 @@ struct A
         int32_t u1;
         char u2[4$?:32=u|64=LLU$];
     };
-struct Inner
-{
-    int32_t x;
-    Inner() : x() {}
-};
+    struct Inner
+    {
+        int32_t x;
+        Inner() : x() {}
+    };
 
-typedef Inner I;
-class C;
+    typedef Inner I;
+    class C;
 
     A() : a(), s() {}
 };
@@ -132,6 +125,14 @@ extern (C) struct S3
     long c;
 
     this(int a) {}
+}
+
+extern (C) struct S4
+{
+    int a;
+    long b;
+    int c;
+    byte d;
 }
 
 extern (C++) align(1) struct Aligned

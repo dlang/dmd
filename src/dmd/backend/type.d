@@ -187,4 +187,3 @@ extern (C) type *type_function(tym_t tyf, type*[] ptypes, bool variadic, type *t
 type *type_enum(const(char) *name, type *tbase);
 type *type_struct_class(const(char)* name, uint alignsize, uint structsize,
         type *arg1type, type *arg2type, bool isUnion, bool isClass, bool isPOD, bool is0size);
-

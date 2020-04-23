@@ -1,6 +1,7 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Does semantic analysis for statements.
+ *
+ * Specification: $(LINK2 https://dlang.org/spec/statement.html, Statements)
  *
  * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
@@ -1214,9 +1215,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                      */
                     Type tv = (*fs.parameters)[1].type.toBasetype();
                     if ((tab.ty == Tarray ||
-                         (tn.ty != tv.ty &&
-                          (tn.ty == Tchar || tn.ty == Twchar || tn.ty == Tdchar) &&
-                          (tv.ty == Tchar || tv.ty == Twchar || tv.ty == Tdchar))) &&
+                         (tn.ty != tv.ty && tn.ty.isSomeChar && tv.ty.isSomeChar)) &&
                         !Type.tsize_t.implicitConvTo(tindex))
                     {
                         fs.deprecation("foreach: loop index implicitly converted from `size_t` to `%s`",
@@ -1227,13 +1226,12 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 /* Look for special case of parsing char types out of char type
                  * array.
                  */
-                if (tn.ty == Tchar || tn.ty == Twchar || tn.ty == Tdchar)
+                if (tn.ty.isSomeChar)
                 {
                     int i = (dim == 1) ? 0 : 1; // index of value
                     Parameter p = (*fs.parameters)[i];
                     tnv = p.type.toBasetype();
-                    if (tnv.ty != tn.ty &&
-                        (tnv.ty == Tchar || tnv.ty == Twchar || tnv.ty == Tdchar))
+                    if (tnv.ty != tn.ty && tnv.ty.isSomeChar)
                     {
                         if (p.storageClass & STC.ref_)
                         {
@@ -2711,19 +2709,14 @@ else
 
             if (numcases)
             {
-                extern (C) static int sort_compare(const(void*) x, const(void*) y) @trusted
+                static int sort_compare(in CaseStatement* x, in CaseStatement* y) @trusted
                 {
-                    CaseStatement ox = *cast(CaseStatement *)x;
-                    CaseStatement oy = *cast(CaseStatement*)y;
-
-                    auto se1 = ox.exp.isStringExp();
-                    auto se2 = oy.exp.isStringExp();
+                    auto se1 = x.exp.isStringExp();
+                    auto se2 = y.exp.isStringExp();
                     return (se1 && se2) ? se1.compare(se2) : 0;
                 }
-
                 // Sort cases for efficient lookup
-                import core.stdc.stdlib : qsort, _compare_fp_t;
-                qsort((*csCopy)[].ptr, numcases, CaseStatement.sizeof, cast(_compare_fp_t)&sort_compare);
+                csCopy.sort!sort_compare;
             }
 
             // The actual lowering

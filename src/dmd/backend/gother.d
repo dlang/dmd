@@ -185,7 +185,7 @@ private void rd_compute()
             {
                 int j;
 
-                printf("block %d Binrd ",i); vec_println(b.Binrd);
+                printf("block %d Binrd ", cast(int) i); vec_println(b.Binrd);
                 printf("       Boutrd "); vec_println(b.Boutrd);
                 WReqn(b.Belem);
                 printf("\n");
@@ -1978,7 +1978,7 @@ void verybusyexp()
             debug
             {
                 if (debugc)
-                {   printf("VBE %d,%d, block %d (",j,k,i);
+                {   printf("VBE %d,%d, block %d (",j,k, cast(int) i);
                     WReqn(go.expnod[j]);
                     printf(");\n");
                 }

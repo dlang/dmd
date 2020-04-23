@@ -1,6 +1,7 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Defines the bulk of the classes which represent the AST at the expression level.
+ *
+ * Specification: ($LINK2 https://dlang.org/spec/expression.html, Expressions)
  *
  * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
@@ -693,7 +694,9 @@ extern (C++) abstract class Expression : ASTNode
             }
             assert(0);
         }
-        e = cast(Expression)mem.xmalloc(size);
+
+        // memory never freed, so can use the faster bump-pointer-allocation
+        e = cast(Expression)_d_allocmemory(size);
         //printf("Expression::copy(op = %d) e = %p\n", op, e);
         return cast(Expression)memcpy(cast(void*)e, cast(void*)this, size);
     }
@@ -2504,14 +2507,34 @@ extern (C++) final class StringExp : Expression
         return this;
     }
 
+    /**
+     * Compare two `StringExp` by length, then value
+     *
+     * The comparison is not the usual C-style comparison as seen with
+     * `strcmp` or `memcmp`, but instead first compare based on the length.
+     * This allows both faster lookup and sorting when comparing sparse data.
+     *
+     * This ordering scheme is relied on by the string-switching feature.
+     * Code in Druntime's `core.internal.switch_` relies on this ordering
+     * when doing a binary search among case statements.
+     *
+     * Both `StringExp` should be of the same encoding.
+     *
+     * Params:
+     *   se2 = String expression to compare `this` to
+     *
+     * Returns:
+     *   `0` when `this` is equal to se2, a value greater than `0` if
+     *   `this` should be considered greater than `se2`,
+     *   and a value less than `0` if `this` is lesser than `se2`.
+     */
     int compare(const StringExp se2) const nothrow pure @nogc
     {
         //printf("StringExp::compare()\n");
-        // Used to sort case statement expressions so we can do an efficient lookup
-
         const len1 = len;
         const len2 = se2.len;
 
+        assert(this.sz == se2.sz, "Comparing string expressions of different sizes");
         //printf("sz = %d, len1 = %d, len2 = %d\n", sz, (int)len1, (int)len2);
         if (len1 == len2)
         {
@@ -2877,8 +2900,7 @@ extern (C++) final class ArrayLiteralExp : Expression
     override StringExp toStringExp()
     {
         TY telem = type.nextOf().toBasetype().ty;
-        if (telem == Tchar || telem == Twchar || telem == Tdchar ||
-            (telem == Tvoid && (!elements || elements.dim == 0)))
+        if (telem.isSomeChar || (telem == Tvoid && (!elements || elements.dim == 0)))
         {
             ubyte sz = 1;
             if (telem == Twchar)
@@ -3678,7 +3700,7 @@ extern (C++) final class FuncExp : Expression
                 symtab = sds.symtab;
             }
             assert(symtab);
-            Identifier id = Identifier.generateId(s, symtab.len() + 1);
+            Identifier id = Identifier.generateId(s, symtab.length() + 1);
             fd.ident = id;
             if (td)
                 td.ident = id;

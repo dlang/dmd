@@ -11,6 +11,18 @@ false
 [1] = string
 [0] = int
 ---
+
+RUN_OUTPUT:
+---
+1 1.1
+ctor
+cpctor
+dtor
+cpctor
+dtor
+dtor
+Success
+---
 */
 
 extern (C) int printf(const(char*) fmt, ...);

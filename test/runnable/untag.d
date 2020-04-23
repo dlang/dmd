@@ -1,7 +1,7 @@
 // PERMUTE_ARGS:
 
 import std.algorithm, std.ascii, std.conv, std.exception,
-    std.file, std.getopt, std.path, std.range, std.stdio,
+    std.file, std.getopt, std.path, std.range,
     std.string, std.traits;
 
 auto binaryFun(string pred, T, U)(T a, U b)

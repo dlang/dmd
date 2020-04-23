@@ -1,6 +1,9 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Perform constant folding of arithmetic expressions.
+ *
+ * The routines in this module are called from `optimize.d`.
+ *
+ * Specification: $(LINK2 https://dlang.org/spec/float.html#fp_const_folding, Floating Point Constant Folding)
  *
  * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
@@ -1516,7 +1519,7 @@ UnionExp Cat(Type type, Expression e1, Expression e2)
         t = t2;
     L2:
         Type tn = e.type.toBasetype();
-        if (tn.ty == Tchar || tn.ty == Twchar || tn.ty == Tdchar)
+        if (tn.ty.isSomeChar)
         {
             // Create a StringExp
             if (t.nextOf())

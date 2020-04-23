@@ -1,8 +1,5 @@
 /**
- * This module contains various string related functions.
- *
- * Compiler implementation of the D programming language
- * http://dlang.org
+ * Contains various string related functions.
  *
  * Copyright: Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com
@@ -170,4 +167,124 @@ unittest
     assert("\u2028foo".stripLeadingLineTerminator == "foo");
     assert("\u2029foo".stripLeadingLineTerminator == "foo");
     assert("\n\rfoo".stripLeadingLineTerminator == "foo");
+}
+
+/**
+ * A string comparison functions that returns the same result as strcmp
+ *
+ * Note: Strings are compared based on their ASCII values, no UTF-8 decoding.
+ *
+ * Some C functions (e.g. `qsort`) require a `int` result for comparison.
+ * See_Also: Druntime's `core.internal.string`
+ */
+int dstrcmp()( scope const char[] s1, scope const char[] s2 ) @trusted
+{
+    immutable len = s1.length <= s2.length ? s1.length : s2.length;
+    if (__ctfe)
+    {
+        foreach (const u; 0 .. len)
+        {
+            if (s1[u] != s2[u])
+                return s1[u] > s2[u] ? 1 : -1;
+        }
+    }
+    else
+    {
+        import core.stdc.string : memcmp;
+
+        const ret = memcmp( s1.ptr, s2.ptr, len );
+        if ( ret )
+            return ret;
+    }
+    return s1.length < s2.length ? -1 : (s1.length > s2.length);
+}
+
+//
+unittest
+{
+    assert(dstrcmp("Fraise", "Fraise")      == 0);
+    assert(dstrcmp("Baguette", "Croissant") == -1);
+    assert(dstrcmp("Croissant", "Baguette") == 1);
+
+    static assert(dstrcmp("Baguette", "Croissant") == -1);
+
+    // UTF-8 decoding for the CT variant
+    assert(dstrcmp("안녕하세요!", "안녕하세요!") == 0);
+    static assert(dstrcmp("안녕하세요!", "안녕하세요!") == 0);
+}
+
+/**
+ * Infers the length `N` of a string literal and coerces its type to a static
+ * array with length `N + 1`. Returns the string with a null character appended
+ * to the end.
+ *
+ * Params:
+ *  literal = string literal
+ *
+ * Notes:
+ *  - LDC produces quite optimal code for short strings:
+ *    - https://d.godbolt.org/z/M69Z1g
+ *    - https://gist.github.com/PetarKirov/338e4ab9292b6b2b311a3070572a07fb (backup URL)
+*/
+char[N + 1] toStaticArray(size_t N)(scope const(char)[N] literal)
+{
+    char[N+1] result = void;
+    result[0..N] = literal[0..N];
+    result[N] = 0;
+    return result;
+}
+
+///
+@safe pure nothrow @nogc
+unittest
+{
+    auto m = "123".toStaticArray;
+    const c = "123".toStaticArray;
+    immutable i = "123".toStaticArray;
+    enum e = "123".toStaticArray;
+
+    assert(m == "123\0");
+    assert(c == "123\0");
+    assert(i == "123\0");
+    static assert(e == "123\0");
+
+    const empty = "".toStaticArray;
+    static assert(empty.length == 1);
+    static assert(empty[0] == '\0');
+}
+
+/**
+ * Checks if C string `p` starts with `needle`.
+ * Params:
+ *     p = the C string to check
+ *     needle = the string to look for
+ * Returns:
+ *    `true` if `p` starts with `needle`
+ */
+@system pure nothrow @nogc
+bool startsWith(scope const(char)* p, scope const(char)[] needle)
+in { assert(p && needle.ptr); }
+do
+{
+    foreach (const c; needle)
+    {
+        assert(c);
+        if (c != *p)
+            return false;
+        ++p;
+    }
+    return true;
+}
+
+///
+@system pure nothrow @nogc
+unittest
+{
+    const buf = "123".toStaticArray;
+    const ptr = &buf[0];
+    assert(ptr.startsWith(""));
+    assert(ptr.startsWith("1"));
+    assert(ptr.startsWith("12"));
+    assert(ptr.startsWith("123"));
+    assert(!ptr.startsWith("1234"));
 }

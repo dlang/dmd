@@ -41,6 +41,9 @@ typedef struct TYPE type;
 
 void semanticTypeInfo(Scope *sc, Type *t);
 
+Type *typeSemantic(Type *t, const Loc &loc, Scope *sc);
+Type *merge(Type *type);
+
 enum ENUMTY
 {
     Tarray,             // slice array, aka T[]
@@ -243,7 +246,6 @@ public:
     virtual bool iscomplex();
     virtual bool isscalar();
     virtual bool isunsigned();
-    virtual bool ischar();
     virtual bool isscope();
     virtual bool isString();
     virtual bool isAssignable();
@@ -389,7 +391,6 @@ public:
     bool iscomplex() /*const*/;
     bool isscalar() /*const*/;
     bool isunsigned() /*const*/;
-    bool ischar() /*const*/;
     MATCH implicitConvTo(Type *to);
     bool isZeroInit(const Loc &loc) /*const*/;
 
@@ -770,7 +771,6 @@ public:
     bool iscomplex();
     bool isscalar();
     bool isunsigned();
-    bool ischar();
     bool isBoolean();
     bool isString();
     bool isAssignable();

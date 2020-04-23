@@ -1,6 +1,8 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Defines a `Dsymbol` for `version = identifier` and `debug = identifier` statements.
+ *
+ * Specification: $(LINK2 https://dlang.org/spec/version.html#version-specification, Version Specification),
+ *                $(LINK2 https://dlang.org/spec/version.html#debug_specification, Debug Specification).
  *
  * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)

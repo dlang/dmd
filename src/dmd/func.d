@@ -1,6 +1,12 @@
-/***
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+/**
+ * Defines a function declaration.
+ *
+ * Includes:
+ * - function/delegate literals
+ * - function aliases
+ * - (static/shared) constructors/destructors/post-blits
+ * - `invariant`
+ * - `unittest`
  *
  * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
@@ -160,6 +166,8 @@ enum FUNCFLAG : uint
     inferScope       = 0x40,   /// infer 'scope' for parameters
     hasCatches       = 0x80,   /// function has try-catch statements
     compileTimeOnly  = 0x100,  /// is a compile time only function; no code will be generated for it
+    printf           = 0x200,  /// is a printf-like function
+    scanf            = 0x400,  /// is a scanf-like function
 }
 
 /***********************************************************
@@ -199,27 +207,6 @@ extern (C++) struct Ensure
  */
 extern (C++) class FuncDeclaration : Declaration
 {
-    /// All hidden parameters bundled.
-    static struct HiddenParameters
-    {
-        /**
-         * The `this` parameter for methods or nested functions.
-         *
-         * For methods, it would be the class object or struct value the
-         * method is called on. For nested functions it would be the enclosing
-         * function's stack frame.
-         */
-        VarDeclaration vthis;
-
-        /**
-         * Is 'this' a pointer to a static array holding two contexts.
-         */
-        bool isThis2;
-
-        /// The selector parameter for Objective-C methods.
-        VarDeclaration selectorParameter;
-    }
-
     Statements* frequires;              /// in contracts
     Ensures* fensures;                  /// out contracts
     Statement frequire;                 /// lowered in contract
@@ -477,93 +464,65 @@ extern (C++) class FuncDeclaration : Declaration
      * Hidden parameters include the `this` parameter of a class, struct or
      * nested function and the selector parameter for Objective-C methods.
      */
-    extern (D) final HiddenParameters declareThis(Scope* sc, AggregateDeclaration ad)
+    extern (D) final void declareThis(Scope* sc)
     {
-        if (toParent2() != toParentLocal())
+        isThis2 = toParent2() != toParentLocal();
+        auto ad = isThis();
+        if (!isThis2 && !ad && !isNested())
         {
-            Type tthis2 = Type.tvoidptr.sarrayOf(2).pointerTo();
-            tthis2 = tthis2.addMod(type.mod)
-                           .addStorageClass(storage_class);
-            VarDeclaration v2 = new VarDeclaration(loc, tthis2, Id.this2, null);
-            v2.storage_class |= STC.parameter | STC.nodtor;
-            if (type.ty == Tfunction)
-            {
-                TypeFunction tf = cast(TypeFunction)type;
-                if (tf.isreturn)
-                    v2.storage_class |= STC.return_;
-                if (tf.isscope)
-                    v2.storage_class |= STC.scope_;
-                // if member function is marked 'inout', then this is 'return ref'
-                if (tf.iswild & 2)
-                    v2.storage_class |= STC.return_;
-            }
-            if (flags & FUNCFLAG.inferScope && !(v2.storage_class & STC.scope_))
-                v2.storage_class |= STC.maybescope;
-            v2.dsymbolSemantic(sc);
-            if (!sc.insert(v2))
-                assert(0);
-            v2.parent = this;
-            return HiddenParameters(v2, true);
+            vthis = null;
+            selectorParameter = null;
+            return;
         }
-        if (ad)
-        {
-            //printf("declareThis() %s\n", toChars());
-            Type thandle = ad.handleType();
-            assert(thandle);
-            thandle = thandle.addMod(type.mod);
-            thandle = thandle.addStorageClass(storage_class);
-            VarDeclaration v = new ThisDeclaration(loc, thandle);
-            v.storage_class |= STC.parameter;
-            if (thandle.ty == Tstruct)
-            {
-                v.storage_class |= STC.ref_;
-                // if member function is marked 'inout', then 'this' is 'return ref'
-                if (type.ty == Tfunction && (cast(TypeFunction)type).iswild & 2)
-                    v.storage_class |= STC.return_;
-            }
-            if (type.ty == Tfunction)
-            {
-                TypeFunction tf = cast(TypeFunction)type;
-                if (tf.isreturn)
-                    v.storage_class |= STC.return_;
-                if (tf.isscope)
-                    v.storage_class |= STC.scope_;
-            }
-            if (flags & FUNCFLAG.inferScope && !(v.storage_class & STC.scope_))
-                v.storage_class |= STC.maybescope;
 
-            v.dsymbolSemantic(sc);
-            if (!sc.insert(v))
-                assert(0);
-            v.parent = this;
-            return HiddenParameters(v, false, objc.createSelectorParameter(this, sc));
+        Type addModStc(Type t)
+        {
+            return t.addMod(type.mod).addStorageClass(storage_class);
         }
-        if (isNested())
+
+        if (isThis2 || isNested())
         {
             /* The 'this' for a nested function is the link to the
              * enclosing function's stack frame.
              * Note that nested functions and member functions are disjoint.
              */
-            VarDeclaration v = new VarDeclaration(loc, Type.tvoid.pointerTo(), Id.capture, null);
-            v.storage_class |= STC.parameter | STC.nodtor;
-            if (type.ty == Tfunction)
-            {
-                TypeFunction tf = cast(TypeFunction)type;
-                if (tf.isreturn)
-                    v.storage_class |= STC.return_;
-                if (tf.isscope)
-                    v.storage_class |= STC.scope_;
-            }
-            if (flags & FUNCFLAG.inferScope && !(v.storage_class & STC.scope_))
-                v.storage_class |= STC.maybescope;
-
-            v.dsymbolSemantic(sc);
-            if (!sc.insert(v))
-                assert(0);
-            v.parent = this;
-            return HiddenParameters(v);
+            Type tthis = addModStc(isThis2 ?
+                                   Type.tvoidptr.sarrayOf(2).pointerTo() :
+                                   Type.tvoid.pointerTo());
+            vthis = new VarDeclaration(loc, tthis, isThis2 ? Id.this2 : Id.capture, null);
+            vthis.storage_class |= STC.parameter | STC.nodtor;
         }
-        return HiddenParameters.init;
+        else if (ad)
+        {
+            Type thandle = addModStc(ad.handleType());
+            vthis = new ThisDeclaration(loc, thandle);
+            vthis.storage_class |= STC.parameter;
+            if (thandle.ty == Tstruct)
+            {
+                vthis.storage_class |= STC.ref_;
+                // if member function is marked 'inout', then 'this' is 'return ref'
+                if (type.ty == Tfunction && (cast(TypeFunction)type).iswild & 2)
+                    vthis.storage_class |= STC.return_;
+            }
+        }
+
+        if (type.ty == Tfunction)
+        {
+            TypeFunction tf = cast(TypeFunction)type;
+            if (tf.isreturn)
+                vthis.storage_class |= STC.return_;
+            if (tf.isscope)
+                vthis.storage_class |= STC.scope_;
+        }
+        if (flags & FUNCFLAG.inferScope && !(vthis.storage_class & STC.scope_))
+            vthis.storage_class |= STC.maybescope;
+
+        vthis.dsymbolSemantic(sc);
+        if (!sc.insert(vthis))
+            assert(0);
+        vthis.parent = this;
+        if (ad)
+            selectorParameter = objc.createSelectorParameter(this, sc);
     }
 
     override final bool equals(const RootObject o) const
@@ -2512,19 +2471,15 @@ extern (C++) class FuncDeclaration : Declaration
             return true;
 
         auto tf = type.toTypeFunction();
+        if (tf.isref)
+            return true;
 
         foreach (rs; *returns)
         {
-            if (rs.exp.op == TOK.variable)
+            if (auto ve = rs.exp.isVarExp())
             {
-                auto ve = cast(VarExp)rs.exp;
                 auto v = ve.var.isVarDeclaration();
-                if (tf.isref)
-                {
-                    // Function returns a reference
-                    return true;
-                }
-                else if (!v || v.isOut() || v.isRef())
+                if (!v || v.isOut() || v.isRef())
                     return true;
                 else if (nrvo_var is null)
                 {
@@ -2933,7 +2888,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
                    td.kind(), td.parent.toPrettyChars(), td.ident.toChars(),
                    tiargsBuf.peekChars(), fargsBuf.peekChars());
 
-            printCandidates(loc, td);
+            printCandidates(loc, td, sc.isDeprecated());
             return null;
         }
         /* This case happens when several ctors are mixed in an agregate.
@@ -2966,7 +2921,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
         {
             .error(loc, "none of the overloads of `%s` are callable using a %sobject, candidates are:",
                    fd.ident.toChars(), thisBuf.peekChars());
-            printCandidates(loc, fd);
+            printCandidates(loc, fd, sc.isDeprecated());
             return null;
         }
 
@@ -2997,7 +2952,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
     {
         .error(loc, "none of the overloads of `%s` are callable using argument types `%s`, candidates are:",
                fd.toChars(), fargsBuf.peekChars());
-        printCandidates(loc, fd);
+        printCandidates(loc, fd, sc.isDeprecated());
         return null;
     }
 
@@ -3015,14 +2970,16 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
 /*******************************************
  * Prints template and function overload candidates as supplemental errors.
  * Params:
- *      loc =           instantiation location
- *      declaration =   the declaration to print overload candidates for
+ *      loc =            instantiation location
+ *      declaration =    the declaration to print overload candidates for
+ *      showDeprecated = If `false`, `deprecated` function won't be shown
  */
-private void printCandidates(Decl)(const ref Loc loc, Decl declaration)
+private void printCandidates(Decl)(const ref Loc loc, Decl declaration, bool showDeprecated)
 if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
 {
     // max num of overloads to print (-v overrides this).
-    int numToDisplay = 5;
+    enum int DisplayLimit = 5;
+    int displayed;
     const(char)* constraintsTip;
 
     overloadApply(declaration, (Dsymbol s)
@@ -3031,7 +2988,13 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
 
         if (auto fd = s.isFuncDeclaration())
         {
+            // Don't print overloads which have errors.
+            // Not that if the whole overload set has errors, we'll never reach
+            // this point so there's no risk of printing no candidate
             if (fd.errors || fd.type.ty == Terror)
+                return 0;
+            // Don't print disabled functions, or `deprecated` outside of deprecated scope
+            if (fd.storage_class & STC.disable || (fd.isDeprecated() && !showDeprecated))
                 return 0;
 
             auto tf = cast(TypeFunction) fd.type;
@@ -3052,7 +3015,7 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
             nextOverload = td.overnext;
         }
 
-        if (global.params.verbose || --numToDisplay != 0)
+        if (global.params.verbose || ++displayed < DisplayLimit)
             return 0;
 
         // Too many overloads to sensibly display.
@@ -3064,6 +3027,10 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
             .errorSupplemental(loc, "... (%d more, -v to show) ...", num);
         return 1;   // stop iterating
     });
+
+    // Nothing was displayed, all overloads are either disabled or deprecated
+    if (!displayed)
+        .errorSupplemental(loc, "All possible candidates are marked as `deprecated` or `@disable`");
     // should be only in verbose mode
     if (constraintsTip)
         .tip(constraintsTip);

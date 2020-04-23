@@ -1,9 +1,6 @@
 /**
  * Inline assembler implementation for DMD.
  *
- * Part of the compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
- *
  * Copyright:   Copyright (c) 1992-1999 by Symantec
  *              Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     Mike Cote, John Micco and $(LINK2 http://www.digitalmars.com, Walter Bright)

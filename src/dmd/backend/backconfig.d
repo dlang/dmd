@@ -452,6 +452,9 @@ else
 }
     _tyalignsize[TYsptr] = LONGSIZE;
     _tyalignsize[TYcptr] = LONGSIZE;
+    _tyalignsize[TYfptr] = LONGSIZE;     // NOTE: There are codgen test that check
+    _tyalignsize[TYvptr] = LONGSIZE;     // _tysize[x] == _tysize[TYfptr] so don't set
+    _tyalignsize[TYfref] = LONGSIZE;     // _tysize[TYfptr] to _tysize[TYnptr]
 
     _tysize[TYimmutPtr] = _tysize[TYnptr];
     _tysize[TYsharePtr] = _tysize[TYnptr];

@@ -1,5 +1,53 @@
-// REQUIRED_ARGS: -preview=rvaluerefparam
-// PERMUTE_ARGS:
+/*
+REQUIRED_ARGS: -preview=rvaluerefparam
+PERMUTE_ARGS:
+TEST_OUTPUT:
+---
+func
+double
+All good 1
+All good 2
+All good 3
+_D7imports10testmangle12detectMangleFPSQBlQBg6DetectZQq
+_D7imports10testmangle__T10DetectTmplTiZQpFNaNbNiNfZv
+true
+false
+uint
+int[]
+int[]
+const(K5886)
+4 ; const(K5886)
+8 ; const(K5886)
+K5886
+immutable(K5886)
+4 ; K5886
+4 ; immutable(K5886)
+1 ; K5886
+2 ; const(K5886)
+3 ; immutable(K5886)
+8 ; K5886
+9 ; const(K5886)
+10 ; immutable(K5886)
+> U = int, N:$?:64=ulong = 3LU|32=uint = 3u$
+K=string, V=int
+K=char, V=string
+T = SA, E = int, dim = $?:64=5LU|32=5u$
+T = DA, E = int
+T = AA, K = string, V = int
+pure nothrow @nogc @safe void(int t)
+pure nothrow @nogc @safe void(int t)
+T = byte
+T = char
+---
+
+RUN_OUTPUT:
+---
+typeof(T)=double typeof(S)=int
+typeof(T)=double typeof(S)=int
+typeof(T)=float typeof(S)=int
+Success
+---
+*/
 
 module breaker;
 
@@ -75,19 +123,23 @@ void test4()
 
 /**********************************/
 
-import std.stdio:writefln;
-
 template foo5(T,S)
 {
     void foo5(T t, S s) {
-        writefln("typeof(T)=",typeid(T)," typeof(S)=",typeid(S));
+        const tstr = typeid(T).toString();
+        const sstr = typeid(S).toString();
+        printf("typeof(T)=%.*s typeof(S)=%.*s\n",
+               cast(int)tstr.length, tstr.ptr, cast(int)sstr.length, sstr.ptr);
     }
 }
 
 template bar5(T,S)
 {
     void bar5(S s) {
-        writefln("typeof(T)=",typeid(T),"typeof(S)=",typeid(S));
+        const tstr = typeid(T).toString();
+        const sstr = typeid(S).toString();
+        printf("typeof(T)=%.*s typeof(S)=%.*s\n",
+               cast(int)tstr.length, tstr.ptr, cast(int)sstr.length, sstr.ptr);
     }
 }
 
@@ -4476,6 +4528,7 @@ struct N14174 {}
 
 alias defConfig14174 = Config14174!(N14174, N14174);
 
+@safe @nogc pure nothrow
 void accepter14174a(Config : Config14174!(T) = defConfig14174, T...)()
 {
     static assert(equalDemangle(accepter14174a.mangleof,
@@ -4483,9 +4536,10 @@ void accepter14174a(Config : Config14174!(T) = defConfig14174, T...)()
            "accepter14174a"~
            "HTS7breaker51__T11Config14174TS7breaker6N14174TS7breaker6N14174Z11Config14174TS7breaker6N14174TS7breaker6N14174Z14"~
            "accepter14174a"~
-           "FZv"));
+           "FNaNbNiNfZv"));
 }
 
+@safe @nogc pure nothrow
 void accepter14174b(Config : Config14174!(T) = defConfig14174, T...)()
 {
     static assert(equalDemangle(accepter14174b.mangleof,
@@ -4493,13 +4547,14 @@ void accepter14174b(Config : Config14174!(T) = defConfig14174, T...)()
            "accepter14174b"~
            "HTS7breaker51__T11Config14174TS7breaker6N14174TS7breaker6N14174Z11Config14174TS7breaker6N14174TS7breaker6N14174Z14"~
            "accepter14174b"~
-           "FZv"));
+           "FNaNbNiNfZv"));
 }
 
 void test14174()
 {
-    accepter14174a!()(); // ok
-    accepter14174b();    // error
+    accepter14174a!()();
+
+    accepter14174b!()();
 }
 
 /******************************************/

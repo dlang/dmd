@@ -1,6 +1,7 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * A scope as defined by curly braces `{}`.
+ *
+ * Not to be confused with the `scope` storage class.
  *
  * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
@@ -61,11 +62,16 @@ enum SCOPE
 
     fullinst      = 0x10000,  /// fully instantiate templates
     alias_        = 0x20000,  /// inside alias declaration.
+
+    // The following are mutually exclusive
+    printf        = 0x4_0000, /// printf-style function
+    scanf         = 0x8_0000, /// scanf-style function
 }
 
 // Flags that are carried along with a scope push()
 enum SCOPEpush = SCOPE.contract | SCOPE.debug_ | SCOPE.ctfe | SCOPE.compile | SCOPE.constraint |
-                 SCOPE.noaccesscheck | SCOPE.onlysafeaccess | SCOPE.ignoresymbolvisibility;
+                 SCOPE.noaccesscheck | SCOPE.onlysafeaccess | SCOPE.ignoresymbolvisibility |
+                 SCOPE.printf | SCOPE.scanf;
 
 struct Scope
 {
@@ -523,17 +529,25 @@ struct Scope
             Module.clearCache();
             Dsymbol scopesym = null;
             Dsymbol s = sc.search(Loc.initial, id, &scopesym, IgnoreErrors);
-            if (s)
+            if (!s)
+                return null;
+
+            // Do not show `@disable`d declarations
+            if (auto decl = s.isDeclaration())
+                if (decl.storage_class & STC.disable)
+                    return null;
+            // Or `deprecated` ones if we're not in a deprecated scope
+            if (s.isDeprecated() && !sc.isDeprecated())
+                return null;
+
+            for (cost = 0; sc; sc = sc.enclosing, ++cost)
+                if (sc.scopesym == scopesym)
+                    break;
+            if (scopesym != s.parent)
             {
-                for (cost = 0; sc; sc = sc.enclosing, ++cost)
-                    if (sc.scopesym == scopesym)
-                        break;
-                if (scopesym != s.parent)
-                {
-                    ++cost; // got to the symbol through an import
-                    if (s.prot().kind == Prot.Kind.private_)
-                        return null;
-                }
+                ++cost; // got to the symbol through an import
+                if (s.prot().kind == Prot.Kind.private_)
+                    return null;
             }
             return s;
         }

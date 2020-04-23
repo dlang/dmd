@@ -1,6 +1,5 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Performs the semantic3 stage, which deals with function bodies.
  *
  * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
@@ -362,12 +361,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 }
             }
 
-            // Declare 'this'
-            auto ad = funcdecl.isThis();
-            auto hiddenParams = funcdecl.declareThis(sc2, ad);
-            funcdecl.vthis = hiddenParams.vthis;
-            funcdecl.isThis2 = hiddenParams.isThis2;
-            funcdecl.selectorParameter = hiddenParams.selectorParameter;
+            funcdecl.declareThis(sc2);
+
             //printf("[%s] ad = %p vthis = %p\n", loc.toChars(), ad, vthis);
             //if (vthis) printf("\tvthis.type = %s\n", vthis.type.toChars());
 
@@ -480,43 +475,40 @@ private extern(C++) final class Semantic3Visitor : Visitor
             // Declare the tuple symbols and put them in the symbol table,
             // but not in parameters[].
             if (f.parameterList.parameters)
+            foreach (fparam; *f.parameterList.parameters)
             {
-                for (size_t i = 0; i < f.parameterList.parameters.dim; i++)
+                if (!fparam.ident)
+                    continue; // never used, so ignore
+                // expand any tuples
+                if (fparam.type.ty != Ttuple)
+                    continue;
+
+                TypeTuple t = cast(TypeTuple)fparam.type;
+                size_t dim = Parameter.dim(t.arguments);
+                auto exps = new Objects(dim);
+                foreach (j; 0 .. dim)
                 {
-                    Parameter fparam = (*f.parameterList.parameters)[i];
-                    if (!fparam.ident)
-                        continue; // never used, so ignore
-                    if (fparam.type.ty == Ttuple)
-                    {
-                        TypeTuple t = cast(TypeTuple)fparam.type;
-                        size_t dim = Parameter.dim(t.arguments);
-                        auto exps = new Objects(dim);
-                        for (size_t j = 0; j < dim; j++)
-                        {
-                            Parameter narg = Parameter.getNth(t.arguments, j);
-                            assert(narg.ident);
-                            VarDeclaration v = sc2.search(Loc.initial, narg.ident, null).isVarDeclaration();
-                            assert(v);
-                            Expression e = new VarExp(v.loc, v);
-                            (*exps)[j] = e;
-                        }
-                        assert(fparam.ident);
-                        auto v = new TupleDeclaration(funcdecl.loc, fparam.ident, exps);
-                        //printf("declaring tuple %s\n", v.toChars());
-                        v.isexp = true;
-                        if (!sc2.insert(v))
-                            funcdecl.error("parameter `%s.%s` is already defined", funcdecl.toChars(), v.toChars());
-                        funcdecl.localsymtab.insert(v);
-                        v.parent = funcdecl;
-                    }
+                    Parameter narg = Parameter.getNth(t.arguments, j);
+                    assert(narg.ident);
+                    VarDeclaration v = sc2.search(Loc.initial, narg.ident, null).isVarDeclaration();
+                    assert(v);
+                    (*exps)[j] = new VarExp(v.loc, v);
                 }
+                assert(fparam.ident);
+                auto v = new TupleDeclaration(funcdecl.loc, fparam.ident, exps);
+                //printf("declaring tuple %s\n", v.toChars());
+                v.isexp = true;
+                if (!sc2.insert(v))
+                    funcdecl.error("parameter `%s.%s` is already defined", funcdecl.toChars(), v.toChars());
+                funcdecl.localsymtab.insert(v);
+                v.parent = funcdecl;
             }
 
             // Precondition invariant
             Statement fpreinv = null;
             if (funcdecl.addPreInvariant())
             {
-                Expression e = addInvariant(funcdecl.loc, sc, ad, funcdecl.vthis);
+                Expression e = addInvariant(funcdecl.loc, sc, funcdecl.isThis(), funcdecl.vthis);
                 if (e)
                     fpreinv = new ExpStatement(Loc.initial, e);
             }
@@ -525,7 +517,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             Statement fpostinv = null;
             if (funcdecl.addPostInvariant())
             {
-                Expression e = addInvariant(funcdecl.loc, sc, ad, funcdecl.vthis);
+                Expression e = addInvariant(funcdecl.loc, sc, funcdecl.isThis(), funcdecl.vthis);
                 if (e)
                     fpostinv = new ExpStatement(Loc.initial, e);
             }

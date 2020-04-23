@@ -1,6 +1,5 @@
 /**
- * Compiler implementation of the D programming language
- * http://dlang.org
+ * Allocate memory using `malloc` or the GC depending on the configuration.
  *
  * Copyright: Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com

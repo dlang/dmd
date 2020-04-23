@@ -23,6 +23,7 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
+import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
@@ -95,13 +96,8 @@ enum CW_roundtonearest = 0x3BF;
 
 /**********************************
  * When we need to temporarilly save 8087 registers, we record information
- * about the save into an array of NDP structs:
+ * about the save into an array of NDP structs.
  */
-
-debug
-    enum NDPSAVEINC = 2;            // flush reallocation bugs
-else
-    enum NDPSAVEINC = 8;            // allocation chunk sizes
 
 private void getlvalue87(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
 {
@@ -186,19 +182,11 @@ private int getemptyslot()
 {
     int i;
 
-    for (i = 0; i < global87.savemax; i++)
+    for (i = 0; i < global87.save.length; ++i)
         if (global87.save[i].e == null)
-                goto L1;
-    // Out of room, reallocate global87.save[]
-    global87.save = cast(NDP *)mem_realloc(global87.save,
-            (global87.savemax + NDPSAVEINC) * (*global87.save).sizeof);
-    /* clear out new portion of global87.save[] */
-    memset(global87.save + global87.savemax,0,NDPSAVEINC * (*global87.save).sizeof);
-    i = global87.savemax;
-    global87.savemax += NDPSAVEINC;
+            return i;
 
-L1: if (i >= global87.savetop)
-        global87.savetop = i + 1;
+    global87.save.push(NDP());
     return i;
 }
 
@@ -331,16 +319,16 @@ L1:
         int j;
         for (j = 0; 1; j++)
         {
-            if (j >= global87.savetop && e.Eoper == OPcomma)
+            if (j >= global87.save.length && e.Eoper == OPcomma)
             {
                 e = e.EV.E2;              // try right side
                 goto L1;
             }
 
-            debug if (j >= global87.savetop)
-                printf("e = %p, global87.savetop = %d\n",e,global87.savetop);
+            debug if (j >= global87.save.length)
+                printf("e = %p, global87.save.length = %llu\n",e, cast(ulong) global87.save.length);
 
-            assert(j < global87.savetop);
+            assert(j < global87.save.length);
             //printf("\tglobal87.save[%d] = %p, .offset = %d\n", j, global87.save[j].e, global87.save[j].offset);
             if (e == global87.save[j].e && offset == global87.save[j].offset)
                 break;

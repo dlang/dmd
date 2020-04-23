@@ -53,7 +53,7 @@ template TypeTuple(T...) { alias T TypeTuple; }
 
 void showf(string f)
 {
-    printf("%.*s\n", f.length, f.ptr);
+    printf("%.*s\n", cast(int)f.length, f.ptr);
 }
 
 /************************************/
@@ -626,7 +626,7 @@ class C42
 
 void test42()
 {
-    printf("%d\n", C42.classinfo.initializer.length);
+    printf("%zd\n", C42.classinfo.initializer.length);
     assert(C42.classinfo.initializer.length == 12 + (void*).sizeof +
         (void*).sizeof);
     C42 c = new C42;
@@ -963,7 +963,7 @@ void test56()
 {
     S56 s;
     S56 t;
-    printf("S56.sizeof = %d\n", S56.sizeof);
+    printf("S56.sizeof = %zd\n", S56.sizeof);
     //t = s;
 }
 
@@ -2914,7 +2914,7 @@ void test7105()
 
 void test7202()
 {
-    void writeln(string s) @system { printf("%.*s\n", s.length, s.ptr); }
+    void writeln(string s) @system { printf("%.*s\n", cast(int)s.length, s.ptr); }
     void delegate() @system x = { writeln("I am @system"); };
     void delegate() @safe y = {  };
     auto px = &x;

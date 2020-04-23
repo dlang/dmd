@@ -1,12 +1,13 @@
-/* Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+/**
+ * 80-bit floating point value implementation if the C/D compiler does not support them natively.
+ *
+ * Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * All Rights Reserved, written by Rainer Schuetze
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
  * https://github.com/dlang/dmd/blob/master/src/root/longdouble.d
  */
-
-// 80-bit floating point value implementation if the C/D compiler does not support them natively
 
 module dmd.root.longdouble;
 
@@ -66,7 +67,7 @@ bool initFPU()
 }
 
 version(unittest) version(CRuntime_Microsoft)
-shared static this()
+extern(D) shared static this()
 {
     initFPU(); // otherwise not guaranteed to be run before pure unittest below
 }

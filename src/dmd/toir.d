@@ -1,6 +1,5 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Convert to Intermediate Representation (IR) for the back-end.
  *
  * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
@@ -47,7 +46,6 @@ import dmd.globals;
 import dmd.glue;
 import dmd.identifier;
 import dmd.id;
-import dmd.irstate;
 import dmd.mtype;
 import dmd.target;
 import dmd.tocvdebug;
@@ -56,6 +54,95 @@ import dmd.tocsym;
 alias toSymbol = dmd.tocsym.toSymbol;
 alias toSymbol = dmd.glue.toSymbol;
 
+/****************************************
+ * Our label symbol
+ */
+
+struct Label
+{
+    block *lblock;      // The block to which the label is defined.
+}
+
+/***********************************************************
+ * Collect state variables needed by the intermediate representation (IR)
+ */
+struct IRState
+{
+    Module m;                       // module
+    private FuncDeclaration symbol; // function that code is being generate for
+    Symbol* shidden;                // hidden parameter to function
+    Symbol* sthis;                  // 'this' parameter to function (member and nested)
+    Symbol* sclosure;               // pointer to closure instance
+    Blockx* blx;
+    Dsymbols* deferToObj;           // array of Dsymbol's to run toObjFile(bool multiobj) on later
+    elem* ehidden;                  // transmit hidden pointer to CallExp::toElem()
+    Symbol* startaddress;
+    Array!(elem*)* varsInScope;     // variables that are in scope that will need destruction later
+    Label*[void*]* labels;          // table of labels used/declared in function
+    const Param* params;            // command line parameters
+    bool mayThrow;                  // the expression being evaluated may throw
+
+    this(Module m, FuncDeclaration fd, Array!(elem*)* varsInScope, Dsymbols* deferToObj, Label*[void*]* labels,
+        const Param* params)
+    {
+        this.m = m;
+        this.symbol = fd;
+        this.varsInScope = varsInScope;
+        this.deferToObj = deferToObj;
+        this.labels = labels;
+        this.params = params;
+        mayThrow = global.params.useExceptions
+            && ClassDeclaration.throwable
+            && !(fd && fd.eh_none);
+    }
+
+    FuncDeclaration getFunc()
+    {
+        return symbol;
+    }
+
+    /**********************
+     * Returns:
+     *    true if do array bounds checking for the current function
+     */
+    bool arrayBoundsCheck()
+    {
+        bool result;
+        final switch (global.params.useArrayBounds)
+        {
+        case CHECKENABLE.off:
+            result = false;
+            break;
+        case CHECKENABLE.on:
+            result = true;
+            break;
+        case CHECKENABLE.safeonly:
+            {
+                result = false;
+                FuncDeclaration fd = getFunc();
+                if (fd)
+                {
+                    Type t = fd.type;
+                    if (t.ty == Tfunction && (cast(TypeFunction)t).trust == TRUST.safe)
+                        result = true;
+                }
+                break;
+            }
+        case CHECKENABLE._default:
+            assert(0);
+        }
+        return result;
+    }
+
+    /****************************
+     * Returns:
+     *  true if in a nothrow section of code
+     */
+    bool isNothrow()
+    {
+        return !mayThrow;
+    }
+}
 
 extern (C++):
 

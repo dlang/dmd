@@ -1,5 +1,16 @@
-// REQUIRED_ARGS:
-//
+/*
+REQUIRED_ARGS:
+TEST_OUTPUT:
+---
+success
+myInt int
+myBool bool
+i
+s
+C6test42__T4T219TiZ1C
+C6test427test219FZ8__mixin11C
+---
+*/
 
 module test42;
 
@@ -51,7 +62,7 @@ void test3()
 {
     auto i = mixin("__LINE__");
     printf("%d\n", i);
-    assert(i == 52);
+    assert(i == 63);
 }
 
 /***************************************************/
@@ -195,7 +206,7 @@ void test12()
     assert((foo ~ cast(char[])"foo").length == foo.length + 1);
     assert((cast(char[])"foo" ~ foo).length == foo.length + 1);
 
-    printf("%d\n", (foo ~ cast(char[])"foo")[0].length);
+    printf("%zd\n", (foo ~ cast(char[])"foo")[0].length);
 
     assert((foo ~ [cast(char[])"foo"]).length == foo.length + 1);
 
@@ -801,7 +812,7 @@ void test54()
     string[] k=["adf","AsdfadSF","dfdsfassdf"];
     foreach(d;k)
     {
-        printf("%.*s\n", d.length, d.ptr);
+        printf("%.*s\n", cast(int)d.length, d.ptr);
         string foo() {assert(d!="");return d;}
         func54(&foo);
         func54(delegate string() {assert(d!="");return d;});
@@ -1378,7 +1389,7 @@ void test83()
 void test84()
 {
     int[0][10] arr;
-    printf("%u\n", &arr[9] - &arr[0]);
+    printf("%tu\n", &arr[9] - &arr[0]);
     auto i = &arr[9] - &arr[0];
     assert(i == 0);
 }
@@ -1972,7 +1983,7 @@ struct Foobar;
 int test124()
 {   int result;
     dchar[] aa;
-    alias uint foo_t;
+    alias size_t foo_t;
 
     foreach (foo_t i, dchar d; aa)
     {
@@ -3274,7 +3285,7 @@ void test201() {
 
 
 void foo202(int x, ...) {
-    printf("%d arguments\n", _arguments.length);
+    printf("%zd arguments\n", _arguments.length);
     for (int i = 0; i < _arguments.length; i++) {
         int j = va_arg!(int)(_argptr);
         printf("\t%d\n", j);
@@ -3283,7 +3294,7 @@ void foo202(int x, ...) {
 }
 
 void fooRef202(ref int x, ...) {
-    printf("%d arguments\n", _arguments.length);
+    printf("%zd arguments\n", _arguments.length);
     for (int i = 0; i < _arguments.length; i++) {
         int j = va_arg!(int)(_argptr);
         printf("\t%d\n", j);

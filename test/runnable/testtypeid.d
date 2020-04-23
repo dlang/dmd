@@ -1,6 +1,6 @@
 
 import core.vararg;
-import std.stdio;
+import core.stdc.stdio;
 
 /******************************************************/
 
@@ -18,10 +18,10 @@ FOO3 foox3;
 
 void foo3(int x, ...)
 {
-    printf("%d arguments\n", _arguments.length);
+    printf("%zd arguments\n", _arguments.length);
     for (int i = 0; i < _arguments.length; i++)
     {
-        writeln(_arguments[i].toString());
+        //writeln(_arguments[i].toString());
 
         if (_arguments[i] is typeid(int))
         {
@@ -367,10 +367,10 @@ class Bar32 { long y = 4; }
 
 void printargs(int x, ...)
 {
-    printf("%d arguments\n", _arguments.length);
+    printf("%zd arguments\n", _arguments.length);
     for (int i = 0; i < _arguments.length; i++)
     {
-        writeln(_arguments[i].toString());
+        //writeln(_arguments[i].toString());
 
         if (_arguments[i] == typeid(int))
         {

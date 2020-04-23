@@ -21,3 +21,13 @@ static assert(is(typeof(true ? char.init : dchar.init) == dchar));
 static assert(is(typeof(true ? wchar.init : wchar.init) == wchar));
 static assert(is(typeof(true ? wchar.init : dchar.init) == dchar));
 static assert(is(typeof(true ? dchar.init : dchar.init) == dchar));
+
+enum cenum : char { a }
+enum wenum : wchar{ b }
+enum denum : dchar{ c }
+
+static assert(is(typeof(true ? char.init : cenum.init) == char));
+static assert(is(typeof(true ? wchar.init : cenum.init) == dchar));
+static assert(is(typeof(true ? char.init : wenum.init) == dchar));
+static assert(is(typeof(true ? dchar.init : wenum.init) == dchar));
+static assert(is(typeof(true ? cenum.init : wenum.init) == dchar));

@@ -1,6 +1,5 @@
 /**
- * Compiler implementation of the D programming language
- * http://dlang.org
+ * An expandable buffer in which you can write text or binary data.
  *
  * Copyright: Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com
@@ -29,7 +28,12 @@ struct OutBuffer
     private ubyte[] data;
     private size_t offset;
     private bool notlinehead;
+
+    /// Whether to indent
     bool doindent;
+    /// Whether to indent by 4 spaces or by tabs;
+    bool spaces;
+    /// Current indent level
     int level;
 
     extern (C++) ~this() pure nothrow
@@ -107,9 +111,10 @@ struct OutBuffer
     {
         if (level)
         {
-            reserve(level);
-            data[offset .. offset + level] = '\t';
-            offset += level;
+            const indentLevel = spaces ? level * 4 : level;
+            reserve(indentLevel);
+            data[offset .. offset + indentLevel] = (spaces ? ' ' : '\t');
+            offset += indentLevel;
         }
         notlinehead = true;
     }
@@ -143,6 +148,12 @@ struct OutBuffer
         write(s);
     }
 
+    void writestringln(const(char)[] s)
+    {
+        writestring(s);
+        writenl();
+    }
+
     extern (C++) void prependstring(const(char)* string) pure nothrow
     {
         size_t len = strlen(string);
@@ -152,7 +163,7 @@ struct OutBuffer
         offset += len;
     }
 
-    // write newline
+    /// write newline
     extern (C++) void writenl() pure nothrow
     {
         version (Windows)

@@ -1,6 +1,7 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Defines lexical tokens.
+ *
+ * Specification: $(LINK2 https://dlang.org/spec/lex.html#tokens, Tokens)
  *
  * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
@@ -421,6 +422,17 @@ private immutable TOK[] keywords =
     TOK.immutable_,
 ];
 
+// Initialize the identifier pool
+shared static this() nothrow
+{
+    Identifier.initTable();
+    foreach (kw; keywords)
+    {
+        //printf("keyword[%d] = '%s'\n",kw, tochars[kw].ptr);
+        Identifier.idPool(Token.tochars[kw].ptr, Token.tochars[kw].length, cast(uint)kw);
+    }
+}
+
 /***********************************************************
  */
 extern (C++) struct Token
@@ -706,16 +718,6 @@ extern (C++) struct Token
     }());
 
 nothrow:
-
-    shared static this()
-    {
-        Identifier.initTable();
-        foreach (kw; keywords)
-        {
-            //printf("keyword[%d] = '%s'\n",kw, tochars[kw].ptr);
-            Identifier.idPool(tochars[kw].ptr, tochars[kw].length, cast(uint)kw);
-        }
-    }
 
     int isKeyword() const
     {

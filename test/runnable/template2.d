@@ -4,7 +4,7 @@
 // by Sean L Palmer (seanpalmer@directvinternet.com)
 // This code is released without any warranty.  Use at your own risk.
 import core.stdc.stdio;
-import std.math : sqrt;
+import core.math : sqrt;
 
 template VecTemplate(tfloat, int dim:3)
 {
@@ -20,24 +20,24 @@ template VecTemplate(tfloat, int dim:3)
    bool opEquals(Vector b) { for (int i=0; i<dim; ++i) if (d[i] != b.d[i]) return
 false; return true; }
    // negate (-a)
-   Vector opNeg() { Vector r; for (int i=0; i<dim; ++i) r.d[i] = -d[i]; return
+   Vector opUnary(string op : "-")() { Vector r; for (int i=0; i<dim; ++i) r.d[i] = -d[i]; return
 r;  }
    // complement (~a)
-   Vector opCom() { Vector r; for (int i=0; i<dim; ++i) r.d[i] = d[(i+1)%dim];
+   Vector opUnary(string op : "~")() { Vector r; for (int i=0; i<dim; ++i) r.d[i] = d[(i+1)%dim];
 d[0] = -d[0]; return r;  }
    // add (a + b)
-   Vector opAdd(Vector b) { Vector r; r.d[] = d[] + b.d[]; return r;  }
+   Vector opBinary(string op : "+")(Vector b) { Vector r; r.d[] = d[] + b.d[]; return r;  }
    // addto (a += b)
-   Vector opAddAssign(Vector b) { d[] += b.d[]; return r;  }
+   Vector opOpAssign(string op : "+")(Vector b) { d[] += b.d[]; return r;  }
    // subtract (a - b)
-   Vector opSub(Vector b) { Vector r; r.d[] = d[] - b.d[]; return r;  }
+   Vector opBinary(string op : "-")(Vector b) { Vector r; r.d[] = d[] - b.d[]; return r;  }
    // multiply by scalar (a * 2.0)
-   Vector opMul(tfloat b) { Vector r; for (int i=0; i<dim; ++i) r.d[i] = d[i]
+   Vector opBinary(string op : "*")(tfloat b) { Vector r; for (int i=0; i<dim; ++i) r.d[i] = d[i]
 * b; return r;  }
    // divide by scalar (a / b)
-   Vector opDiv(tfloat b) { return *this * (1/b);  }
+   Vector opBinary(string op : "/")(tfloat b) { return *this * (1/b);  }
    // dot product (a * b)
-   tfloat opMul(Vector b) { tfloat r=0; for (int i=0; i<dim; ++i) r += d[i];
+   tfloat opBinary(string op : "*")(Vector b) { tfloat r=0; for (int i=0; i<dim; ++i) r += d[i];
 return r;  }
    // outer product (a ^ b)
    //Vector opXor(Vector b) { Vector r; for (int i=0; i<dim; ++i) r += d[i]; return r;  }
@@ -48,27 +48,27 @@ return r;  }
   const bool opEquals(ref const Vector b) { for (int i=0; i<dim; ++i) if (d[i] != b.d[i]) return
 false; return true; }
   // negate (-a)
-  Vector opNeg() { Vector r; for (int i=0; i<dim; ++i) r.d[i] = -d[i]; return
+  Vector opUnary(string op : "-")() { Vector r; for (int i=0; i<dim; ++i) r.d[i] = -d[i]; return
 r;  }
   // complement (~a)
-  Vector opCom() { Vector r; for (int i=0; i<dim; ++i) r.d[i] = d[(i+1)%dim];
+  Vector opUnary(string op : "~")() { Vector r; for (int i=0; i<dim; ++i) r.d[i] = d[(i+1)%dim];
 d[0] = -d[0]; return r;  }
   // add (a + b)
-  Vector opAdd(Vector b) { Vector r; for (int i=0; i<dim; ++i) r.d[i] = d[i] +
+  Vector opBinary(string op : "+")(Vector b) { Vector r; for (int i=0; i<dim; ++i) r.d[i] = d[i] +
 b.d[i]; return r;  }
   // addto (a += b)
-  Vector opAddAssign(Vector b) { for (int i=0; i<dim; ++i) d[i] += b.d[i]; return
+  Vector opOpAssign(string op : "+")(Vector b) { for (int i=0; i<dim; ++i) d[i] += b.d[i]; return
 this; }
   // subtract (a - b)
-  Vector opSub(Vector b) { Vector r; for (int i=0; i<dim; ++i) r.d[i] = d[i] -
+  Vector opBinary(string op : "-")(Vector b) { Vector r; for (int i=0; i<dim; ++i) r.d[i] = d[i] -
 b.d[i]; return r;  }
   // multiply by scalar (a * 2.0)
-  Vector opMul(tfloat b) { Vector r; for (int i=0; i<dim; ++i) r.d[i] = d[i] *
+  Vector opBinary(string op : "*")(tfloat b) { Vector r; for (int i=0; i<dim; ++i) r.d[i] = d[i] *
 b; return r;  }
   // divide by scalar (a / b)
-  Vector opDiv(tfloat b) { return this * (1/b);  }
+  Vector opBinary(string op : "/")(tfloat b) { return this * (1/b);  }
   // dot product (a * b)
-  tfloat opMul(Vector b) { tfloat r=0; for (int i=0; i<dim; ++i) r += d[i];
+  tfloat opBinary(string op : "*")(Vector b) { tfloat r=0; for (int i=0; i<dim; ++i) r += d[i];
 return r;  }
   // outer product (a ^ b)
   //Vector opXor(Vector b) { Vector r; for (int i=0; i<dim; ++i) r += d[i]; return r;  }
@@ -109,6 +109,3 @@ int main(char[][] args)
  printf("closing\n");
  return 0;
 }
-
-
-

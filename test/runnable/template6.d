@@ -29,9 +29,6 @@
 +/
 
 
-import std.stdio;
-
-
 const int testFail = -1;
 
 /**
@@ -437,9 +434,7 @@ int main()
 {
     auto exp = &regexMatch!(r"[a-z]*\s*\w*");
     string[] m = exp("hello    world");
-    writefln("matches: %s", m);
     assert(m.length == 1);
     assert(m[0] == "hello    world");
     return 0;
 }
-

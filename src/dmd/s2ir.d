@@ -1,6 +1,5 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Convert statements to Intermediate Representation (IR) for the back-end.
  *
  * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
@@ -38,9 +37,9 @@ import dmd.globals;
 import dmd.glue;
 import dmd.id;
 import dmd.init;
-import dmd.irstate;
 import dmd.mtype;
 import dmd.statement;
+import dmd.stmtstate;
 import dmd.target;
 import dmd.toctype;
 import dmd.tocsym;
@@ -68,6 +67,8 @@ extern (C++):
 
 alias toSymbol = dmd.tocsym.toSymbol;
 alias toSymbol = dmd.glue.toSymbol;
+
+alias StmtState = dmd.stmtstate.StmtState!block;
 
 
 void elem_setLoc(elem *e, const ref Loc loc) pure nothrow
@@ -123,11 +124,13 @@ private void incUsage(IRState *irs, const ref Loc loc)
 
 private extern (C++) class S2irVisitor : Visitor
 {
-    IRState *irs;
+    IRState* irs;
+    StmtState* stmtstate;
 
-    this(IRState *irs)
+    this(IRState *irs, StmtState* stmtstate)
     {
         this.irs = irs;
+        this.stmtstate = stmtstate;
     }
 
     alias visit = Visitor.visit;
@@ -158,27 +161,27 @@ private extern (C++) class S2irVisitor : Visitor
 
         //printf("IfStatement.toIR('%s')\n", s.condition.toChars());
 
-        IRState mystate = IRState(irs, s);
+        StmtState mystate = StmtState(stmtstate, s);
 
         // bexit is the block that gets control after this IfStatement is done
         block *bexit = mystate.breakBlock ? mystate.breakBlock : dmd.backend.global.block_calloc();
 
         incUsage(irs, s.loc);
-        e = toElemDtor(s.condition, &mystate);
+        e = toElemDtor(s.condition, irs);
         block_appendexp(blx.curblock, e);
         block *bcond = blx.curblock;
         block_next(blx, BCiftrue, null);
 
         bcond.appendSucc(blx.curblock);
         if (s.ifbody)
-            Statement_toIR(s.ifbody, &mystate);
+            Statement_toIR(s.ifbody, irs, &mystate);
         blx.curblock.appendSucc(bexit);
 
         if (s.elsebody)
         {
             block_next(blx, BCgoto, null);
             bcond.appendSucc(blx.curblock);
-            Statement_toIR(s.elsebody, &mystate);
+            Statement_toIR(s.elsebody, irs, &mystate);
             blx.curblock.appendSucc(bexit);
         }
         else
@@ -202,8 +205,6 @@ private extern (C++) class S2irVisitor : Visitor
             FuncDeclaration f = sa.isFuncDeclaration();
             assert(f);
             Symbol *sym = toSymbol(f);
-            while (irs.prev)
-                irs = irs.prev;
             irs.startaddress = sym;
         }
     }
@@ -223,7 +224,7 @@ private extern (C++) class S2irVisitor : Visitor
     {
         Blockx *blx = irs.blx;
 
-        IRState mystate = IRState(irs,s);
+        StmtState mystate = StmtState(stmtstate, s);
         mystate.breakBlock = block_calloc(blx);
         mystate.contBlock = block_calloc(blx);
 
@@ -235,12 +236,12 @@ private extern (C++) class S2irVisitor : Visitor
         mystate.contBlock.appendSucc(mystate.breakBlock);
 
         if (s._body)
-            Statement_toIR(s._body, &mystate);
+            Statement_toIR(s._body, irs, &mystate);
         blx.curblock.appendSucc(mystate.contBlock);
 
         block_next(blx, BCgoto, mystate.contBlock);
         incUsage(irs, s.condition.loc);
-        block_appendexp(mystate.contBlock, toElemDtor(s.condition, &mystate));
+        block_appendexp(mystate.contBlock, toElemDtor(s.condition, irs));
         block_next(blx, BCiftrue, mystate.breakBlock);
 
     }
@@ -253,12 +254,12 @@ private extern (C++) class S2irVisitor : Visitor
         //printf("visit(ForStatement)) %u..%u\n", s.loc.linnum, s.endloc.linnum);
         Blockx *blx = irs.blx;
 
-        IRState mystate = IRState(irs,s);
+        StmtState mystate = StmtState(stmtstate, s);
         mystate.breakBlock = block_calloc(blx);
         mystate.contBlock = block_calloc(blx);
 
         if (s._init)
-            Statement_toIR(s._init, &mystate);
+            Statement_toIR(s._init, irs, &mystate);
         block *bpre = blx.curblock;
         block_next(blx,BCgoto,null);
         block *bcond = blx.curblock;
@@ -267,7 +268,7 @@ private extern (C++) class S2irVisitor : Visitor
         if (s.condition)
         {
             incUsage(irs, s.condition.loc);
-            block_appendexp(bcond, toElemDtor(s.condition, &mystate));
+            block_appendexp(bcond, toElemDtor(s.condition, irs));
             block_next(blx,BCiftrue,null);
             bcond.appendSucc(blx.curblock);
             bcond.appendSucc(mystate.breakBlock);
@@ -280,7 +281,7 @@ private extern (C++) class S2irVisitor : Visitor
         }
 
         if (s._body)
-            Statement_toIR(s._body, &mystate);
+            Statement_toIR(s._body, irs, &mystate);
         /* End of the body goes to the continue block
          */
         blx.curblock.appendSucc(mystate.contBlock);
@@ -290,7 +291,7 @@ private extern (C++) class S2irVisitor : Visitor
         if (s.increment)
         {
             incUsage(irs, s.increment.loc);
-            block_appendexp(mystate.contBlock, toElemDtor(s.increment, &mystate));
+            block_appendexp(mystate.contBlock, toElemDtor(s.increment, irs));
         }
 
         /* The 'break' block follows the for statement.
@@ -327,7 +328,7 @@ private extern (C++) class S2irVisitor : Visitor
         block *b;
         Blockx *blx = irs.blx;
 
-        bbreak = irs.getBreakBlock(s.ident);
+        bbreak = stmtstate.getBreakBlock(s.ident);
         assert(bbreak);
         b = blx.curblock;
         incUsage(irs, s.loc);
@@ -355,7 +356,7 @@ private extern (C++) class S2irVisitor : Visitor
         Blockx *blx = irs.blx;
 
         //printf("ContinueStatement.toIR() %p\n", this);
-        bcont = irs.getContBlock(s.ident);
+        bcont = stmtstate.getContBlock(s.ident);
         assert(bcont);
         b = blx.curblock;
         incUsage(irs, s.loc);
@@ -398,7 +399,7 @@ private extern (C++) class S2irVisitor : Visitor
         //printf("LabelStatement.toIR() %p, statement: `%s`\n", this, s.statement.toChars());
         Blockx *blx = irs.blx;
         block *bc = blx.curblock;
-        IRState mystate = IRState(irs,s);
+        StmtState mystate = StmtState(stmtstate, s);
         mystate.ident = s.ident;
 
         block* bdest = cast(block*)s.extra;
@@ -408,7 +409,7 @@ private extern (C++) class S2irVisitor : Visitor
         block_next(blx, BCgoto, bdest);
         bc.appendSucc(blx.curblock);
         if (s.statement)
-            Statement_toIR(s.statement, &mystate);
+            Statement_toIR(s.statement, irs, &mystate);
     }
 
     /**************************************
@@ -419,7 +420,7 @@ private extern (C++) class S2irVisitor : Visitor
         Blockx *blx = irs.blx;
 
         //printf("SwitchStatement.toIR()\n");
-        IRState mystate = IRState(irs,s);
+        StmtState mystate = StmtState(stmtstate, s);
 
         mystate.switchBlock = blx.curblock;
 
@@ -446,7 +447,7 @@ private extern (C++) class S2irVisitor : Visitor
             }
 
         incUsage(irs, s.loc);
-        elem *econd = toElemDtor(s.condition, &mystate);
+        elem *econd = toElemDtor(s.condition, irs);
         if (s.hasVars)
         {   /* Generate a sequence of if-then-else blocks for the cases.
              */
@@ -460,7 +461,7 @@ private extern (C++) class S2irVisitor : Visitor
             if (numcases)
                 foreach (cs; *s.cases)
                 {
-                    elem *ecase = toElemDtor(cs.exp, &mystate);
+                    elem *ecase = toElemDtor(cs.exp, irs);
                     elem *e = el_bin(OPeqeq, TYbool, el_copytree(econd), ecase);
                     block *b = blx.curblock;
                     block_appendexp(b, e);
@@ -476,7 +477,7 @@ private extern (C++) class S2irVisitor : Visitor
             block_next(blx, BCgoto, null);
             b.appendSucc(mystate.defaultBlock);
 
-            Statement_toIR(s._body, &mystate);
+            Statement_toIR(s._body, irs, &mystate);
 
             /* Have the end of the switch body fall through to the block
              * following the switch statement.
@@ -512,7 +513,7 @@ private extern (C++) class S2irVisitor : Visitor
             foreach (cs; *s.cases)
                 *pu++ = cs.exp.toInteger();
 
-        Statement_toIR(s._body, &mystate);
+        Statement_toIR(s._body, irs, &mystate);
 
         /* Have the end of the switch body fall through to the block
          * following the switch statement.
@@ -526,32 +527,32 @@ private extern (C++) class S2irVisitor : Visitor
         block *bcase = blx.curblock;
         block* cb = cast(block*)s.extra;
         block_next(blx, BCgoto, cb);
-        block *bsw = irs.getSwitchBlock();
+        block *bsw = stmtstate.getSwitchBlock();
         if (bsw.BC == BCswitch)
             bsw.appendSucc(cb);   // second entry in pair
         bcase.appendSucc(cb);
         incUsage(irs, s.loc);
         if (s.statement)
-            Statement_toIR(s.statement, irs);
+            Statement_toIR(s.statement, irs, stmtstate);
     }
 
     override void visit(DefaultStatement s)
     {
         Blockx *blx = irs.blx;
         block *bcase = blx.curblock;
-        block *bdefault = irs.getDefaultBlock();
+        block *bdefault = stmtstate.getDefaultBlock();
         block_next(blx,BCgoto,bdefault);
         bcase.appendSucc(blx.curblock);
         incUsage(irs, s.loc);
         if (s.statement)
-            Statement_toIR(s.statement, irs);
+            Statement_toIR(s.statement, irs, stmtstate);
     }
 
     override void visit(GotoDefaultStatement s)
     {
         block *b;
         Blockx *blx = irs.blx;
-        block *bdest = irs.getDefaultBlock();
+        block *bdest = stmtstate.getDefaultBlock();
 
         b = blx.curblock;
 
@@ -706,7 +707,7 @@ private extern (C++) class S2irVisitor : Visitor
         block *finallyBlock;
         if (config.ehmethod != EHmethod.EH_DWARF &&
             !irs.isNothrow() &&
-            (finallyBlock = irs.getFinallyBlock()) != null)
+            (finallyBlock = stmtstate.getFinallyBlock()) != null)
         {
             assert(finallyBlock.BC == BC_finally);
             blx.curblock.appendSucc(finallyBlock);
@@ -722,7 +723,7 @@ private extern (C++) class S2irVisitor : Visitor
     {
         Blockx *blx = irs.blx;
 
-        //printf("ExpStatement.toIR(), exp = %s\n", s.exp ? s.exp.toChars() : "");
+        //printf("ExpStatement.toIR(), exp: %p %s\n", s.exp, s.exp ? s.exp.toChars() : "");
         if (s.exp)
         {
             if (s.exp.hasCode)
@@ -742,7 +743,7 @@ private extern (C++) class S2irVisitor : Visitor
             foreach (s2; *s.statements)
             {
                 if (s2)
-                    Statement_toIR(s2, irs);
+                    Statement_toIR(s2, irs, stmtstate);
             }
         }
     }
@@ -755,7 +756,7 @@ private extern (C++) class S2irVisitor : Visitor
     {
         Blockx *blx = irs.blx;
 
-        IRState mystate = IRState(irs,s);
+        StmtState mystate = StmtState(stmtstate, s);
         mystate.breakBlock = block_calloc(blx);
 
         block *bpre = blx.curblock;
@@ -772,7 +773,7 @@ private extern (C++) class S2irVisitor : Visitor
             {
                 mystate.contBlock = block_calloc(blx);
 
-                Statement_toIR(s2, &mystate);
+                Statement_toIR(s2, irs, &mystate);
 
                 bdox = blx.curblock;
                 block_next(blx, BCgoto, mystate.contBlock);
@@ -794,12 +795,12 @@ private extern (C++) class S2irVisitor : Visitor
         if (s.statement)
         {
             Blockx *blx = irs.blx;
-            IRState mystate = IRState(irs,s);
+            StmtState mystate = StmtState(stmtstate, s);
 
             if (mystate.prev.ident)
                 mystate.ident = mystate.prev.ident;
 
-            Statement_toIR(s.statement, &mystate);
+            Statement_toIR(s.statement, irs, &mystate);
 
             if (mystate.breakBlock)
                 block_goto(blx,BCgoto,mystate.breakBlock);
@@ -833,7 +834,7 @@ private extern (C++) class S2irVisitor : Visitor
         }
         // Execute with block
         if (s._body)
-            Statement_toIR(s._body, irs);
+            Statement_toIR(s._body, irs, stmtstate);
     }
 
 
@@ -873,7 +874,7 @@ private extern (C++) class S2irVisitor : Visitor
         if (config.ehmethod == EHmethod.EH_WIN32)
             nteh_declarvars(blx);
 
-        IRState mystate = IRState(irs,s);
+        StmtState mystate = StmtState(stmtstate, s);
 
         block *tryblock = block_goto(blx,BCgoto,null);
 
@@ -892,7 +893,7 @@ private extern (C++) class S2irVisitor : Visitor
         block_goto(blx,BC_try,null);
         if (s._body)
         {
-            Statement_toIR(s._body, &mystate);
+            Statement_toIR(s._body, irs, &mystate);
         }
         blx.tryblock = tryblock.Btry;
 
@@ -1023,7 +1024,7 @@ private extern (C++) class S2irVisitor : Visitor
 
                 if (cs.handler !is null)
                 {
-                    IRState catchState = IRState(irs, s);
+                    StmtState catchState = StmtState(stmtstate, s);
 
                     /* Append to block:
                      *   *(sclosure + cs.var.offset) = cs.var;
@@ -1035,7 +1036,7 @@ private extern (C++) class S2irVisitor : Visitor
                         ex = el_bin(OPadd, TYnptr, ex, el_long(TYsize_t, cs.var.offset));
                         ex = el_una(OPind, tym, ex);
                         ex = el_bin(OPeq, tym, ex, el_var(toSymbol(cs.var)));
-                        block_appendexp(catchState.blx.curblock, ex);
+                        block_appendexp(irs.blx.curblock, ex);
                     }
                     if (isCPPclass)
                     {
@@ -1051,10 +1052,10 @@ private extern (C++) class S2irVisitor : Visitor
                         ecc.type = Type.tvoid;
                         Statement sf = ExpStatement.create(Loc.initial, ecc);
                         Statement stf = TryFinallyStatement.create(Loc.initial, cs.handler, sf);
-                        Statement_toIR(stf, &catchState);
+                        Statement_toIR(stf, irs, &catchState);
                     }
                     else
-                        Statement_toIR(cs.handler, &catchState);
+                        Statement_toIR(cs.handler, irs, &catchState);
                 }
                 blx.curblock.appendSucc(breakblock2);
                 if (i + 1 == numcases)
@@ -1091,7 +1092,7 @@ private extern (C++) class S2irVisitor : Visitor
                 block_goto(blx, BCjcatch, null);
                 if (cs.handler !is null)
                 {
-                    IRState catchState = IRState(irs, s);
+                    StmtState catchState = StmtState(stmtstate, s);
 
                     /* Append to block:
                      *   *(sclosure + cs.var.offset) = cs.var;
@@ -1103,9 +1104,9 @@ private extern (C++) class S2irVisitor : Visitor
                         ex = el_bin(OPadd, TYnptr, ex, el_long(TYsize_t, cs.var.offset));
                         ex = el_una(OPind, tym, ex);
                         ex = el_bin(OPeq, tym, ex, el_var(toSymbol(cs.var)));
-                        block_appendexp(catchState.blx.curblock, ex);
+                        block_appendexp(irs.blx.curblock, ex);
                     }
-                    Statement_toIR(cs.handler, &catchState);
+                    Statement_toIR(cs.handler, irs, &catchState);
                 }
                 blx.curblock.appendSucc(breakblock2);
                 block_next(blx, BCgoto, null);
@@ -1151,7 +1152,7 @@ private extern (C++) class S2irVisitor : Visitor
         blx.tryblock = tryblock;
         block_goto(blx,BC_try,null);
 
-        IRState bodyirs = IRState(irs, s);
+        StmtState bodyirs = StmtState(stmtstate, s);
 
         block *finallyblock = block_calloc(blx);
 
@@ -1160,7 +1161,7 @@ private extern (C++) class S2irVisitor : Visitor
         bodyirs.finallyBlock = finallyblock;
 
         if (s._body)
-            Statement_toIR(s._body, &bodyirs);
+            Statement_toIR(s._body, irs, &bodyirs);
         blx.tryblock = tryblock.Btry;     // back to previous tryblock
 
         setScopeIndex(blx,blx.curblock,previndex);
@@ -1221,11 +1222,11 @@ private extern (C++) class S2irVisitor : Visitor
             assert(!retblock.Belem);
             retblock.Belem = eu;
 
-            IRState finallyState = IRState(irs, s);
+            StmtState finallyState = StmtState(stmtstate, s);
 
             setScopeIndex(blx, blx.curblock, previndex);
             if (s.finalbody)
-                Statement_toIR(s.finalbody, &finallyState);
+                Statement_toIR(s.finalbody, irs, &finallyState);
             block_goto(blx, BCgoto, retblock);
 
             block_next(blx,BC_ret,breakblock);
@@ -1285,11 +1286,11 @@ private extern (C++) class S2irVisitor : Visitor
 
             landingPad.Belem = el_bin(OPeq, TYvoid, el_var(sflag), el_long(TYint, 0)); // __flag = 0;
 
-            IRState finallyState = IRState(irs, s);
+            StmtState finallyState = StmtState(stmtstate, s);
 
             setScopeIndex(blx, blx.curblock, previndex);
             if (s.finalbody)
-                Statement_toIR(s.finalbody, &finallyState);
+                Statement_toIR(s.finalbody, irs, &finallyState);
             block_goto(blx, BCgoto, retblock);
 
             block_next(blx,BC_ret,breakblock);
@@ -1305,11 +1306,11 @@ private extern (C++) class S2irVisitor : Visitor
              */
             block_goto(blx,BC_finally,null);
 
-            IRState finallyState = IRState(irs, s);
+            StmtState finallyState = StmtState(stmtstate, s);
 
             setScopeIndex(blx, blx.curblock, previndex);
             if (s.finalbody)
-                Statement_toIR(s.finalbody, &finallyState);
+                Statement_toIR(s.finalbody, irs, &finallyState);
             block_goto(blx, BCgoto, retblock);
 
             block_next(blx,BC_ret,null);
@@ -1472,9 +1473,9 @@ private extern (C++) class S2irVisitor : Visitor
     {
     }
 
-    static void Statement_toIR(Statement s, IRState *irs)
+    static void Statement_toIR(Statement s, IRState *irs, StmtState* stmtstate)
     {
-        scope v = new S2irVisitor(irs);
+        scope v = new S2irVisitor(irs, stmtstate);
         s.accept(v);
     }
 }
@@ -1493,7 +1494,8 @@ void Statement_toIR(Statement s, IRState *irs)
                 label.statement.extra = dmd.backend.global.block_calloc();
         }
 
-    scope v = new S2irVisitor(irs);
+    StmtState stmtstate;
+    scope v = new S2irVisitor(irs, &stmtstate);
     s.accept(v);
 }
 

@@ -1,7 +1,6 @@
 /**
- * Compiler implementation of the $(LINK2 http://www.dlang.org, D programming language)
- *
  * Do mangling for C++ linkage.
+ *
  * This is the POSIX side of the implementation.
  * It exports two functions to C++, `toCppMangleItanium` and `cppTypeInfoMangleItanium`.
  *
@@ -40,8 +39,10 @@ import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
 import dmd.nspace;
+import dmd.root.array;
 import dmd.root.outbuffer;
 import dmd.root.rootobject;
+import dmd.root.string;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
@@ -148,9 +149,10 @@ private final class CppMangleVisitor : Visitor
     /// Context used when processing pre-semantic AST
     private Context context;
 
-    Objects components;         // array of components available for substitution
-    OutBuffer* buf;             // append the mangling to buf[]
-    Loc loc;                    // location for use in error messages
+    ABITagContainer abiTags;    /// Container for already-written ABI tags
+    Objects components;         /// array of components available for substitution
+    OutBuffer* buf;             /// append the mangling to buf[]
+    Loc loc;                    /// location for use in error messages
 
     /**
      * Constructor
@@ -318,6 +320,36 @@ private final class CppMangleVisitor : Visitor
         const name = ident.toString();
         this.buf.print(name.length);
         this.buf.writestring(name);
+    }
+
+    /**
+     * Insert the leftover ABI tags to the buffer
+     *
+     * This inset ABI tags that hasn't already been written
+     * after the mangled name of the function.
+     * For more details, see the `abiTags` variable.
+     *
+     * Params:
+     *   off  = Offset to insert at
+     *   fd   = Type of the function to mangle the return type of
+     */
+    void writeRemainingTags(size_t off, TypeFunction tf)
+    {
+        scope remainingVisitor = new LeftoverVisitor(&this.abiTags.written);
+        tf.next.accept(remainingVisitor);
+        OutBuffer b2;
+        foreach (se; remainingVisitor.toWrite)
+        {
+            auto tag = se.peekString();
+            // We can only insert a slice, and each insert is a memmove,
+            // so use a temporary buffer to keep it efficient.
+            b2.reset();
+            b2.writestring("B");
+            b2.print(tag.length);
+            b2.writestring(tag);
+            this.buf.insert(off, b2[]);
+            off += b2.length;
+        }
     }
 
     /************************
@@ -592,6 +624,7 @@ private final class CppMangleVisitor : Visitor
             }
             else if (this.writeStdSubstitution(ti, needsTa))
             {
+                this.abiTags.writeSymbol(ti, this);
                 if (needsTa)
                     template_args(ti);
             }
@@ -601,13 +634,17 @@ private final class CppMangleVisitor : Visitor
                     s.cppnamespace, () {
                         this.writeIdentifier(ti.tempdecl.toAlias().ident);
                         append(ti.tempdecl);
+                        this.abiTags.writeSymbol(ti.tempdecl, this);
                         template_args(ti);
                     }, haveNE);
             }
         }
         else
-            this.writeNamespace(s.cppnamespace, () => this.writeIdentifier(s.ident),
-                                haveNE);
+            this.writeNamespace(s.cppnamespace, () {
+                    this.writeIdentifier(s.ident);
+                    this.abiTags.writeSymbol(s, this);
+                },
+                haveNE);
     }
 
     /********
@@ -730,6 +767,7 @@ private final class CppMangleVisitor : Visitor
                 auto ti = si.isTemplateInstance();
                 if (this.writeStdSubstitution(ti, needsTa))
                 {
+                    this.abiTags.writeSymbol(ti, this);
                     if (needsTa)
                     {
                         template_args(ti);
@@ -893,7 +931,7 @@ private final class CppMangleVisitor : Visitor
             }
         }
         else
-            source_name(se);
+            source_name(se, false);
         append(s);
     }
 
@@ -935,16 +973,28 @@ private final class CppMangleVisitor : Visitor
             source_name(d, true);
             buf.writeByte('E');
         }
-        //char beta[6] should mangle as "beta"
+        else if (isNested)
+        {
+            buf.writestring("_Z");
+            source_name(d, false);
+        }
         else
         {
-            if (!isNested)
-                buf.writestring(d.ident.toString());
-            else
+            if (auto varTags = ABITagContainer.forSymbol(d))
             {
                 buf.writestring("_Z");
-                source_name(d);
+                source_name(d, false);
+                return;
             }
+            if (auto typeTags = ABITagContainer.forSymbol(d.type.toDsymbol(null)))
+            {
+                buf.writestring("_Z");
+                source_name(d, false);
+                this.abiTags.write(*this.buf, typeTags);
+                return;
+            }
+            //char beta[6] should mangle as "beta"
+            buf.writestring(d.ident.toString());
         }
     }
 
@@ -993,11 +1043,18 @@ private final class CppMangleVisitor : Visitor
             }
             else
             {
-                source_name(d);
+                source_name(d, false);
             }
+
+            // Save offset for potentially writing tags
+            const size_t off = this.buf.length();
+
             // Template args accept extern "C" symbols with special mangling
             if (tf.linkage == LINK.cpp)
                 mangleFunctionParameters(tf.parameterList.parameters, tf.parameterList.varargs);
+
+            if (!tf.next.isTypeBasic())
+                this.writeRemainingTags(off, tf);
         }
     }
 
@@ -1071,7 +1128,7 @@ private final class CppMangleVisitor : Visitor
             if (nspace && nspace.isNspace())
                 this.writeChained(ti.toParent(), () => source_name(ti, true));
             else
-                source_name(ti);
+                source_name(ti, false);
             this.mangleReturnType(preSemantic);
             this.mangleFunctionParameters(preSemantic.parameterList.parameters, tf.parameterList.varargs);
             return;
@@ -1798,6 +1855,9 @@ extern(C++):
         // If substitution failed, write `TX_` where `X` is the index
         this.writeTemplateArgIndex(idx, param);
         this.append(param);
+        // Write the ABI tags, if any
+        if (auto sym = this.context.res.isDsymbol())
+            this.abiTags.writeSymbol(sym, this);
     }
 
     /// Ditto
@@ -2008,6 +2068,7 @@ private extern(C++) final class ComponentVisitor : Visitor
                 goto default;
             break;
 
+        // Note: ABI tags are also handled here (they are TupleExp of StringExp)
         default:
             this.object = base;
         }
@@ -2168,4 +2229,235 @@ private bool isNamespaceEqual (CPPNamespaceDeclaration a, CPPNamespaceDeclaratio
     if (a.ident != b.ident)
         return false;
     return a.cppnamespace is null ? true : isNamespaceEqual(a.cppnamespace, b.cppnamespace);
+}
+
+/**
+ * A container for ABI tags
+ *
+ * At its hearth, there is a sorted array of ABI tags having been written
+ * already. ABI tags can be present on parameters, template parameters,
+ * return value, and varaible. ABI tags for a given type needs to be written
+ * sorted. When a function returns a type that has ABI tags, only the tags that
+ * haven't been printed as part of the mangling (e.g. arguments) are written
+ * directly after the function name.
+ *
+ * This means that:
+ * ---
+ * /++ C++ type definitions:
+ * struct [[gnu::abi_tag("tag1")]] Struct1 {};
+ * struct [[gnu::abi_tag("tag2")]] Struct2 {};
+ * // Can also be: "tag2", "tag1", since tags are sorted.
+ * struct [[gnu::abi_tag("tag1", "tag2")]] Struct3 {};
+ * +/
+ * // Functions definitions:
+ * Struct3 func1 (Struct1);
+ * Struct3 func2 (Struct2);
+ * Struct3 func3 (Struct2, Struct1);
+ * ---
+ * Will be respectively pseudo-mangled (part of interest between stars) as:
+ * "_Z4 func1 *B4tag2* ParamsMangling" (ParamsMangling includes tag1),
+ * "_Z4 func2 *B4tag1* ParamsMangling" (ParamsMangling includes tag2),
+ * "_Z4 func2 *B4tag1* ParamsMangling" (ParamsMangling includes both).
+ *
+ * This is why why need to keep a list of tags that were written,
+ * and insert the missing one after parameter mangling has been written.
+ * Since there's a lot of operations that are not easily doable in DMD
+ * (since we can't use Phobos), this special container is implemented.
+ */
+private struct ABITagContainer
+{
+    private Array!StringExp written;
+
+    static ArrayLiteralExp forSymbol (Dsymbol s)
+    {
+        if (!s)
+            return null;
+        // If this is a template instance, we want the declaration,
+        // as that's where the UDAs are
+        if (auto ti = s.isTemplateInstance())
+            s = ti.tempdecl;
+        if (!s.userAttribDecl || !s.userAttribDecl.atts)
+            return null;
+
+        foreach (exp; *s.userAttribDecl.atts)
+        {
+            if (UserAttributeDeclaration.isGNUABITag(exp))
+                return (*exp.isStructLiteralExp().elements)[0]
+                    .isArrayLiteralExp();
+        }
+        return null;
+    }
+
+    void writeSymbol(Dsymbol s, CppMangleVisitor self)
+    {
+        auto tale = forSymbol(s);
+        if (!tale) return;
+        if (self.substitute(tale))
+            return;
+        this.write(*self.buf, tale);
+    }
+
+    /**
+     * Write an ArrayLiteralExp (expected to be an ABI tag) to the buffer
+     *
+     * Params:
+     *   buf = Buffer to write mangling to
+     *   ale = GNU ABI tag array literal expression, semantically analyzed
+     */
+    void write (ref OutBuffer buf, ArrayLiteralExp ale, bool skipKnown = false)
+    {
+        void writeElem (StringExp exp)
+        {
+            const tag = exp.peekString();
+            buf.writestring("B");
+            buf.print(tag.length);
+            buf.writestring(tag);
+        }
+
+        bool match;
+        foreach (exp; *ale.elements)
+        {
+            auto elem = exp.toStringExp();
+            auto idx = closestIndex(this.written[], elem, match);
+            if (!match)
+            {
+                writeElem(elem);
+                this.written.insert(idx, elem);
+            }
+            else if (!skipKnown)
+                writeElem(elem);
+        }
+    }
+}
+
+/**
+ * Returns the closest index to to `exp` in `slice`
+ *
+ * Performs a binary search on `slice` (assumes `slice` is sorted),
+ * and returns either `exp`'s index in `slice` if `exact` is `true`,
+ * or the index at which `exp` can be inserted in `slice` if `exact is `false`.
+ * Inserting `exp` at the return value will keep the array sorted.
+ *
+ * Params:
+ *   slice = The sorted slice to search into
+ *   exp   = The string expression to search for
+ *   exact = If `true` on return, `exp` was found in `slice`
+ *
+ * Returns:
+ *   Either the index to insert `exp` at (if `exact == false`),
+ *   or the index of `exp` in `slice`.
+ */
+private size_t closestIndex (const(StringExp)[] slice, StringExp exp, out bool exact)
+{
+    if (!slice.length) return 0;
+
+    const StringExp* first = slice.ptr;
+    while (true)
+    {
+        int res = dstrcmp(exp.peekString(), slice[$ / 2].peekString());
+        if (res == 0)
+        {
+            exact = true;
+            return (&slice[$/2] - first);
+        }
+
+        if (slice.length == 1)
+            return (slice.ptr - first) + (res > 0);
+        slice = slice[(res > 0 ? $ / 2 : 0) .. (res > 0 ? $ : $ / 2)];
+    }
+}
+
+//
+unittest
+{
+    bool match;
+    auto s1 = new StringExp(Loc.initial, "Amande");
+    auto s2 = new StringExp(Loc.initial, "Baguette");
+    auto s3 = new StringExp(Loc.initial, "Croissant");
+    auto s4 = new StringExp(Loc.initial, "Framboises");
+    auto s5 = new StringExp(Loc.initial, "Proscuitto");
+
+    // Found, odd size
+    assert(closestIndex([s1, s2, s3, s4, s5], s1, match) == 0 && match);
+    assert(closestIndex([s1, s2, s3, s4, s5], s2, match) == 1 && match);
+    assert(closestIndex([s1, s2, s3, s4, s5], s3, match) == 2 && match);
+    assert(closestIndex([s1, s2, s3, s4, s5], s4, match) == 3 && match);
+    assert(closestIndex([s1, s2, s3, s4, s5], s5, match) == 4 && match);
+
+    // Not found, even size
+    assert(closestIndex([s2, s3, s4, s5], s1, match) == 0 && !match);
+    assert(closestIndex([s1, s3, s4, s5], s2, match) == 1 && !match);
+    assert(closestIndex([s1, s2, s4, s5], s3, match) == 2 && !match);
+    assert(closestIndex([s1, s2, s3, s5], s4, match) == 3 && !match);
+    assert(closestIndex([s1, s2, s3, s4], s5, match) == 4 && !match);
+
+    // Found, even size
+    assert(closestIndex([s1, s2, s3, s4], s1, match) == 0 && match);
+    assert(closestIndex([s1, s2, s3, s4], s2, match) == 1 && match);
+    assert(closestIndex([s1, s2, s3, s4], s3, match) == 2 && match);
+    assert(closestIndex([s1, s2, s3, s4], s4, match) == 3 && match);
+    assert(closestIndex([s1, s3, s4, s5], s5, match) == 3 && match);
+
+    // Not found, odd size
+    assert(closestIndex([s2, s4, s5], s1, match) == 0 && !match);
+    assert(closestIndex([s1, s4, s5], s2, match) == 1 && !match);
+    assert(closestIndex([s1, s2, s4], s3, match) == 2 && !match);
+    assert(closestIndex([s1, s3, s5], s4, match) == 2 && !match);
+    assert(closestIndex([s1, s2, s4], s5, match) == 3 && !match);
+}
+
+/**
+ * Visits the return type of a function and writes leftover ABI tags
+ */
+extern(C++) private final class LeftoverVisitor : Visitor
+{
+    /// List of tags to write
+    private Array!StringExp toWrite;
+    /// List of tags to ignore
+    private const(Array!StringExp)* ignore;
+
+    ///
+    public this(const(Array!StringExp)* previous)
+    {
+        this.ignore = previous;
+    }
+
+    /// Reintroduce base class overloads
+    public alias visit = Visitor.visit;
+
+    /// Least specialized overload of each direct child of `RootObject`
+    public override void visit(Dsymbol o)
+    {
+        auto ale = ABITagContainer.forSymbol(o);
+        if (!ale) return;
+
+        bool match;
+        foreach (elem; *ale.elements)
+        {
+            auto se = elem.toStringExp();
+            closestIndex((*this.ignore)[], se, match);
+            if (match) continue;
+            auto idx = closestIndex(this.toWrite[], se, match);
+            if (!match)
+                this.toWrite.insert(idx, se);
+        }
+    }
+
+    /// Ditto
+    public override void visit(Type o)
+    {
+        if (auto sym = o.toDsymbol(null))
+            sym.accept(this);
+    }
+
+    /// Composite type
+    public override void visit(TypePointer o)
+    {
+        o.next.accept(this);
+    }
+
+    public override void visit(TypeReference o)
+    {
+        o.next.accept(this);
+    }
 }

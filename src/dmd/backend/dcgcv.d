@@ -445,16 +445,16 @@ void cv_init()
     if (reset_symbuf)
     {
         Symbol **p = cast(Symbol **)reset_symbuf.buf;
-        const size_t n = reset_symbuf.size() / (Symbol *).sizeof;
+        const size_t n = reset_symbuf.length() / (Symbol *).sizeof;
         for (size_t i = 0; i < n; ++i)
             symbol_reset(p[i]);
-        reset_symbuf.setsize(0);
+        reset_symbuf.reset();
     }
     else
     {
         reset_symbuf = cast(Outbuffer*) calloc(1, Outbuffer.sizeof);
         assert(reset_symbuf);
-        reset_symbuf.enlarge(10 * (Symbol *).sizeof);
+        reset_symbuf.reserve(10 * (Symbol*).sizeof);
     }
 
     /* Reset for different OBJ file formats     */

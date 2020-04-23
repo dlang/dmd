@@ -1,8 +1,7 @@
 
 module traits_getPointerBitmap;
 
-import std.stdio;
-static import std.traits;
+import core.stdc.stdio;
 
 // version = RTInfo;
 // debug = LOG;

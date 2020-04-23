@@ -1,13 +1,63 @@
 /*
 TEST_OUTPUT:
 ---
-runnable/mixin1.d(906): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+runnable/mixin1.d(959): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+---
+
+RUN_OUTPUT:
+---
+Foo3.func()
+Code3.func()
+Foo4.func()
+Foo5.func()
+b.x = 5
+x = 5
+duff_for(1, 11)
+fid = 1, 2
+foo12
+foo12
+foo13 j = 1
+foo13 j = 1
+x14 = 6
+x15 = 6
+bar15() = 5
+x16 = 6
+bar() = 5
+x17 = 5
+b.x17 = 5
+x17 = 3
+x17 = 5
+x17 = 4
+x17 = 3
+x17 = 5
+in C20.f()
+B22.foo()
+5
+5
+a = 0
+int
+int
+int
+int
+foo 1
+foo 2
+opCall 1
+opCall 2
+0 0
+two
+one
+one
+Class39 dtor
+Mixed-in dtor
+Mixed-in dtor
+Base39 dtor
+Success
 ---
 */
 
 module mixin1;
 
-import std.stdio;
+import core.stdc.stdio;
 
 alias TypeTuple(T...) = T;
 
@@ -686,7 +736,11 @@ class A30
     {
         this(Type[] arr)
         {
-            foreach(Type v; arr) writeln(typeid(typeof(v)));
+            foreach(Type v; arr)
+            {
+                const str = typeid(typeof(v)).toString();
+                printf("%.*s\n", cast(int)str.length, str.ptr);
+            }
         }
     }
 
@@ -831,7 +885,6 @@ struct Foo36
 void test36()
 {
    Foo36 f;
-   printf("f.sizeof = %d\n", f.sizeof);
    assert(f.sizeof == 12);
 
    f.a = 1;
@@ -938,7 +991,7 @@ class Class39 : Base39
 
 void test39()
 {
-    auto test = new Class39;
+    scope test = new Class39;
 }
 
 

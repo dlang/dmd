@@ -1,6 +1,5 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Define the implicit `opEquals`, `opAssign`, post blit, copy constructor and destructor for structs.
  *
  * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
@@ -332,7 +331,10 @@ FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     }
     /* postblit was called when the value was passed to opAssign, we just need to blit the result */
     else if (sd.postblit)
+    {
         e = new BlitExp(loc, new ThisExp(loc), new IdentifierExp(loc, Id.p));
+        sd.hasBlitAssign = true;
+    }
     else
     {
         /* Do memberwise copy.

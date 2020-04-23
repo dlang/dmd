@@ -20,7 +20,9 @@ TODO:
 version(CoreDdoc) {} else:
 
 import std.algorithm, std.conv, std.datetime, std.exception, std.file, std.format, std.functional,
-       std.getopt, std.parallelism, std.path, std.process, std.range, std.stdio, std.string, std.traits;
+       std.getopt, std.path, std.process, std.range, std.stdio, std.string, std.traits;
+
+import std.parallelism : TaskPool, totalCPUs;
 
 const thisBuildScript = __FILE_FULL_PATH__.buildNormalizedPath;
 const srcDir = thisBuildScript.dirName;
@@ -32,6 +34,7 @@ shared bool dryRun; /// dont execute targets, just print command to be executed
 __gshared string[string] env;
 __gshared string[][string] flags;
 __gshared typeof(sourceFiles()) sources;
+__gshared TaskPool taskPool;
 
 /// Array of build rules through which all other build rules can be reached
 immutable rootRules = [
@@ -120,6 +123,20 @@ Command-line parameters
         return;
     }
 
+    // workaround issue https://issues.dlang.org/show_bug.cgi?id=13727
+    version (CRuntime_DigitalMars)
+    {
+        pragma(msg, "Warning: Parallel builds disabled because of Issue 13727!");
+        jobs = min(jobs, 1); // Fall back to a sequential build
+    }
+
+    if (jobs <= 0)
+        abortBuild("Invalid number of jobs: %d".format(jobs));
+
+    taskPool = new TaskPool(jobs - 1); // Main thread is active too
+    scope (exit) taskPool.finish();
+    scope (failure) taskPool.stop();
+
     // parse arguments
     args.popFront;
     args2Environment(args);
@@ -130,6 +147,14 @@ Command-line parameters
 
     if (res.helpWanted)
         return showHelp;
+
+    // Since we're ultimately outputting to a TTY, force colored output
+    // A more proper solution would be to redirect DMD's output to this script's
+    // output using `std.process`', but it's more involved and the following
+    // "just works"
+    if (!flags["DFLAGS"].canFind("-color=off") &&
+        [env["HOST_DMD_RUN"], "-color=on", "-h"].tryRun().status == 0)
+        flags["DFLAGS"] ~= "-color=on";
 
     // default target
     if (!args.length)
@@ -145,6 +170,8 @@ Command-line parameters
         log("================================================================================");
         foreach (key, value; env)
             log("%s=%s", key, value);
+        foreach (key, value; flags)
+            log("%s=%-(%s %)", key, value);
         log("================================================================================");
     }
     {
@@ -163,8 +190,8 @@ Command-line parameters
                 lockFile.close();
             }
         }
-        foreach (target; targets.parallel(1))
-            target.run();
+
+        Scheduler.build(targets);
     }
 
     writeln("Success");
@@ -235,17 +262,20 @@ alias autoTesterBuild = makeRule!((builder, rule) {
 });
 
 /// Returns: the rule that builds the lexer object file
-alias lexer = makeRule!((builder, rule) => builder
+alias lexer = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule rule,
+                                 string suffix, string[] extraFlags)
+    => builder
     .name("lexer")
-    .target(env["G"].buildPath("lexer").objName)
+    .target(env["G"].buildPath("lexer" ~ suffix).objName)
     .sources(sources.lexer)
     .deps([versionFile, sysconfDirFile])
-    .msg("(DC) LEXER_OBJ")
+    .msg("(DC) LEXER" ~ suffix)
     .command([env["HOST_DMD_RUN"],
         "-c",
         "-of" ~ rule.target,
         "-vtls"]
         .chain(flags["DFLAGS"],
+            extraFlags,
             // source files need to have relative paths in order for the code coverage
             // .lst files to be named properly for CodeCov to find them
             rule.sources.map!(e => e.relativePath(srcDir))
@@ -289,25 +319,28 @@ DFLAGS=-I%@P%/../../../../../druntime/import -I%@P%/../../../../../phobos -L-L%@
         .target(env["G"].buildPath(confFile))
         .msg("(TX) DMD_CONF")
         .commandFunction(() {
-            conf.replace("{exportDynamic}", exportDynamic)
+            const expConf = conf
+                .replace("{exportDynamic}", exportDynamic)
                 .replace("{BUILD}", env["BUILD"])
-                .replace("{OS}", env["OS"])
-                .toFile(rule.target);
+                .replace("{OS}", env["OS"]);
+
+            writeText(rule.target, expConf);
         });
 });
 
 /// Returns: the rule that builds the backend object file
-alias backend = makeRule!((builder, rule) => builder
+alias backend = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule rule,
+                                   string suffix, string[] extraFlags) => builder
     .name("backend")
-    .target(env["G"].buildPath("backend").objName)
+    .target(env["G"].buildPath("backend" ~ suffix).objName)
     .sources(sources.backend)
-    .msg("(DC) BACKEND_OBJ")
+    .msg("(DC) BACKEND" ~ suffix)
     .command([
         env["HOST_DMD_RUN"],
         "-c",
         "-of" ~ rule.target,
         "-betterC"]
-        .chain(flags["DFLAGS"], rule.sources).array)
+        .chain(flags["DFLAGS"], extraFlags, rule.sources).array)
 );
 
 /// Returns: the rules that generate required string files: VERSION and SYSCONFDIR.imp
@@ -333,14 +366,14 @@ alias versionFile = makeRule!((builder, rule) {
     .target(env["G"].buildPath("VERSION"))
     .condition(() => !rule.target.exists || rule.target.readText != contents)
     .msg("(TX) VERSION")
-    .commandFunction(() => std.file.write(rule.target, contents));
+    .commandFunction(() => writeText(rule.target, contents));
 });
 
 alias sysconfDirFile = makeRule!((builder, rule) => builder
     .target(env["G"].buildPath("SYSCONFDIR.imp"))
     .condition(() => !rule.target.exists || rule.target.readText != env["SYSCONFDIR"])
     .msg("(TX) SYSCONFDIR")
-    .commandFunction(() => std.file.write(rule.target, env["SYSCONFDIR"]))
+    .commandFunction(() => writeText(rule.target, env["SYSCONFDIR"]))
 );
 
 /// BuildRule to create a directory if it doesn't exist.
@@ -357,13 +390,16 @@ BuildRule for the DMD executable.
 Params:
   extra_flags = Flags to apply to the main build but not the rules
 */
-alias dmdExe = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule rule, string targetSuffix, string[] extraFlags) {
+alias dmdExe = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule rule,
+                                  string targetSuffix, string[] extraFlags, string[] depFlags) {
     const dmdSources = sources.dmd.all.chain(sources.root).array;
 
     string[] platformArgs;
     version (Windows)
         platformArgs = ["-L/STACK:8388608"];
 
+    auto lexer = lexer(targetSuffix, depFlags);
+    auto backend = backend(targetSuffix, depFlags);
     builder
         // include lexer.o and backend.o
         .sources(dmdSources.chain(lexer.targets, backend.targets).array)
@@ -385,12 +421,12 @@ alias dmdExe = makeRuleWithArgs!((MethodInitializer!BuildRule builder, BuildRule
 alias dmdDefault = makeRule!((builder, rule) => builder
     .name("dmd")
     .description("Build dmd")
-    .deps([dmdExe(null, null), dmdConf])
+    .deps([dmdExe(null, null, null), dmdConf])
 );
 
 /// BuildRule to run the DMD unittest executable.
 alias runDmdUnittest = makeRule!((builder, rule) {
-    auto dmdUnittestExe = dmdExe("-unittest", ["-version=NoMain", "-unittest", "-main"]);
+auto dmdUnittestExe = dmdExe("-unittest", ["-version=NoMain", "-unittest", "-main"], ["-unittest"]);
     builder
         .name("unittest")
         .description("Run the dmd unittests")
@@ -418,7 +454,7 @@ alias runCxxUnittest = makeRule!((runCxxBuilder, runCxxRule) {
         .name("cxx-unittest")
         .description("Build the C++ unittests")
         .msg("(DMD) CXX-UNITTEST")
-        .deps([lexer, backend, cxxFrontend])
+        .deps([lexer(null, null), backend(null, null), cxxFrontend])
         .sources(sources.dmd.all ~ sources.root)
         .target(env["G"].buildPath("cxx-unittest").exeName)
         .command([ env["HOST_DMD_RUN"], "-of=" ~ exeRule.target, "-vtls", "-J" ~ env["RES"],
@@ -474,7 +510,7 @@ alias checkwhitespace = makeRule!((builder, rule) => builder
         auto chunkLength = allRepoSources.length;
         version (Win32)
             chunkLength = 80; // avoid command-line limit on win32
-        foreach (nextSources; allRepoSources.chunks(chunkLength).parallel(1))
+        foreach (nextSources; taskPool.parallel(allRepoSources.chunks(chunkLength), 1))
         {
             const nextCommand = cmdPrefix ~ nextSources;
             run(nextCommand);
@@ -489,21 +525,13 @@ alias style = makeRule!((builder, rule)
         .msg("(GIT) DScanner")
         .target(dscannerDir)
         .condition(() => !exists(dscannerDir))
-        // .command([
-        //     // FIXME: Omitted --shallow-submodules because  it errors for libdparse
-        //     env["GIT"], "clone", "--depth=1", "--recurse-submodules", "--branch=v0.8.0",
-        //     "https://github.com/dlang-community/Dscanner", dscannerDir
-        // ])
-        .commandFunction(()
-        {
-            const git = env["GIT"];
-            run([git, "clone", "--depth=15", "--recurse-submodules", "--branch=v0.8.0",
-                "https://github.com/dlang-community/Dscanner", dscannerDir]);
-
-            // TODO: Remove this temporary fix for the invalid error messages in
-            // backend/ptrtab.d when D-Scanner upgrades DParse
-            run([git, "-C", dscannerDir.buildPath("libdparse"), "checkout", "63559db5cc6fa38c01bdda36e09638b5f20fb8e5"]);
-        })
+        .command([
+            // FIXME: Omitted --shallow-submodules because it requires a more recent
+            //        git version which is not available on buildkite
+            env["GIT"], "clone", "--depth=1", "--recurse-submodules",
+            "--branch=v0.9.0-beta.1",
+            "https://github.com/dlang-community/Dscanner", dscannerDir
+        ])
     );
 
     alias dscanner = methodInit!(BuildRule, (dscannerBuilder, dscannerRule) {
@@ -569,7 +597,7 @@ alias man = makeRule!((builder, rule) {
         .deps([genMan, directoryRule(dmdManRule.target.dirName)])
         .msg("(GEN_MAN) " ~ dmdManRule.target)
         .commandFunction(() {
-            std.file.write(dmdManRule.target, genMan.target.execute.output);
+            writeText(dmdManRule.target, genMan.target.execute.output);
         })
     );
     builder
@@ -772,8 +800,9 @@ LtargetsLoop:
         switch (t)
         {
             case "all":
-                t = "dmd";
-                goto default;
+                // "all" must include dmd + dmd.conf
+                newTargets ~= dmdDefault;
+                break;
 
             default:
                 // check this last, target paths should be checked after predefined names
@@ -830,28 +859,8 @@ void parseEnvironment()
         verbose = "1" == env.getDefault("VERBOSE", null);
 
     // This block is temporary until we can remove the windows make files
-    {
-        const ddebug = env.get("DDEBUG", null);
-        if (ddebug.length)
-        {
-            writefln("WARNING: the DDEBUG variable is deprecated");
-            if (ddebug == "-debug -g -unittest -cov")
-            {
-                environment["ENABLE_DEBUG"] = "1";
-                environment["ENABLE_UNITTEST"] = "1";
-                environment["ENABLE_COVERAGE"] = "1";
-            }
-            else if (ddebug == "-debug -g -unittest")
-            {
-                environment["ENABLE_DEBUG"] = "1";
-                environment["ENABLE_UNITTEST"] = "1";
-            }
-            else
-            {
-                abortBuild("DDEBUG is not an expected value: " ~ ddebug);
-            }
-        }
-    }
+    if ("DDEBUG" in environment)
+        abortBuild("ERROR: the DDEBUG variable is deprecated!");
 
     version (Windows)
     {
@@ -1033,7 +1042,7 @@ void processEnvironment()
     }
     if (env.getNumberedBool("ENABLE_UNITTEST"))
     {
-        dflags ~= ["-unittest", "-cov"];
+        dflags ~= ["-unittest"];
     }
     if (env.getNumberedBool("ENABLE_PROFILE"))
     {
@@ -1041,7 +1050,7 @@ void processEnvironment()
     }
     if (env.getNumberedBool("ENABLE_COVERAGE"))
     {
-        dflags ~= ["-cov", "-L-lgcov"];
+        dflags ~= ["-cov"];
     }
     if (env.getDefault("ENABLE_SANITIZERS", "") != "")
     {
@@ -1145,12 +1154,12 @@ auto sourceFiles()
     }
     DmdSources dmd = {
         glue: fileArray(env["D"], "
-            irstate.d toctype.d glue.d gluelayer.d todt.d tocsym.d toir.d dmsc.d
+            stmtstate.d toctype.d glue.d gluelayer.d todt.d tocsym.d toir.d dmsc.d
             tocvdebug.d s2ir.d toobj.d e2ir.d eh.d iasm.d iasmdmd.d iasmgcc.d objc_glue.d
         "),
         frontend: fileArray(env["D"], "
             access.d aggregate.d aliasthis.d apply.d argtypes.d argtypes_sysv_x64.d arrayop.d
-            arraytypes.d ast_node.d astcodegen.d attrib.d blockexit.d builtin.d canthrow.d
+            arraytypes.d ast_node.d astcodegen.d asttypename.d attrib.d blockexit.d builtin.d canthrow.d chkformat.d
             cli.d clone.d compiler.d complex.d cond.d constfold.d cppmangle.d cppmanglewin.d ctfeexpr.d
             ctorflow.d dcast.d dclass.d declaration.d delegatize.d denum.d dimport.d dinifile.d
             dinterpret.d dmacro.d dmangle.d dmodule.d doc.d dscope.d dstruct.d dsymbol.d dsymbolsem.d
@@ -1160,7 +1169,7 @@ auto sourceFiles()
             parse.d parsetimevisitor.d permissivevisitor.d printast.d safe.d sapply.d scanelf.d scanmach.d
             scanmscoff.d scanomf.d semantic2.d semantic3.d sideeffect.d statement.d statement_rewrite_walker.d
             statementsem.d staticassert.d staticcond.d target.d templateparamsem.d traits.d
-            transitivevisitor.d typesem.d typinf.d utils.d visitor.d foreachvar.d
+            transitivevisitor.d typesem.d typinf.d utils.d visitor.d vsoptions.d foreachvar.d
         "),
         backendHeaders: fileArray(env["C"], "
             cc.d cdef.d cgcv.d code.d cv4.d dt.d el.d global.d
@@ -1399,17 +1408,22 @@ void args2Environment(ref string[] args)
 }
 
 /**
-Checks whether the environment already contains a value for key and if so, sets
-the found value to the new environment object.
-Otherwise uses the `default_` value as fallback.
+Ensures that env contains a mapping for key and returns the associated value.
+Searches the process environment if it is missing and creates an appropriate
+entry in env using either the found value or `default_` as a fallback.
 
 Params:
     env = environment to write the check to
     key = key to check for existence and write into the new env
     default_ = fallback value if the key doesn't exist in the global environment
+
+Returns: the value associated to key
 */
 auto getDefault(ref string[string] env, string key, string default_)
 {
+    if (auto ex = key in env)
+        return *ex;
+
     if (key in environment)
         env[key] = environment[key];
     else
@@ -1474,12 +1488,10 @@ Params:
 */
 void updateIfChanged(const string path, const string content)
 {
-    import std.file : exists, readText, write;
-
     const existingContent = path.exists ? path.readText : "";
 
     if (content != existingContent)
-        write(path, content);
+        writeText(path, content);
 }
 
 /**
@@ -1502,9 +1514,6 @@ class BuildRule
     string name; /// optional string that can be used to identify this rule
     string description; /// optional string to describe this rule rather than printing the target files
 
-    private shared bool executed; // true if run has been called and has returned
-    private shared bool updated;  // true if run has been called and the command was exected
-
     /// Finish creating the rule by checking that it is configured properly
     void finalize()
     {
@@ -1515,40 +1524,27 @@ class BuildRule
         }
     }
 
-    /// Executes the rule
-    bool run()
+    /**
+    Executes the rule
+
+    Params:
+        depUpdated = whether any dependency was built (skips isUpToDate)
+
+    Returns: Whether the targets of this rule were (re)built
+    **/
+    bool run(bool depUpdated = false)
     {
-        synchronized (this)
-        {
-            runSynchronized();
-            return updated;
-        }
-    }
-
-    private void runSynchronized()
-    {
-        if (executed) return;
-        scope (exit) executed = true;
-        scope (failure) if (verbose) dump();
-
-        bool depUpdated = false;
-        foreach (dep; deps.parallel(1))
-        {
-            if (dep.run())
-                depUpdated = true;
-        }
-
         if (condition !is null && !condition())
         {
             log("Skipping build of %-(%s%) as its condition returned false", targets);
-            return;
+            return false;
         }
 
         if (!depUpdated && targets && targets.isUpToDate(this.sources.chain([thisBuildScript])))
         {
             if (this.sources !is null)
                 log("Skipping build of %-(%s%) as it's newer than %-(%s%)", targets, this.sources);
-            return;
+            return false;
         }
 
         // Display the execution of the rule
@@ -1588,7 +1584,7 @@ class BuildRule
             }
         }
 
-        updated = true;
+        return true;
     }
 
     /// Writes relevant informations about this rule to stdout
@@ -1615,6 +1611,130 @@ class BuildRule
         write("Command: %-(%s %)\n\n", command);
         write("CommandFunction: %-s\n\n", commandFunction ? "Yes" : null);
         writer.put("-----------------------------------------------------------\n");
+    }
+}
+
+/// Fake namespace containing all utilities to execute many rules in parallel
+abstract final class Scheduler
+{
+    /**
+    Builds the supplied targets in parallel using the global taskPool.
+
+    Params:
+        targets = rules to build
+    **/
+    static void build(BuildRule[] targets)
+    {
+        // Create an execution plan to build all targets
+        Context[BuildRule] contexts;
+        Context[] topSorted, leaves;
+
+        foreach(target; targets)
+            findLeafs(target, contexts, topSorted, leaves);
+
+        // Start all leaves in parallel, they will submit the remaining tasks recursively
+        foreach (leaf; leaves)
+            taskPool.put(leaf.task);
+
+        // Await execution of all targets while executing pending tasks. The
+        // topological order of tasks guarantees that every tasks was already
+        // submitted to taskPool before we call workForce.
+        foreach (context; topSorted)
+            context.task.workForce();
+    }
+
+    /**
+    Recursively creates contexts instances for rule and all of its dependencies and stores
+    them in contexts, tasks and leaves for further usage.
+
+    Params:
+        rule = current rule
+        contexts = already created context instances
+        tasks = context instances in topological order implied by Dependency.deps
+        leaves = contexts of rules without dependencies
+
+    Returns: the context belonging to rule
+    **/
+    private static Context findLeafs(BuildRule rule, ref Context[BuildRule] contexts, ref Context[] all, ref Context[] leaves)
+    {
+        // This implementation is based on Tarjan's algorithm for topological sorting.
+
+        auto context = contexts.get(rule, null);
+
+        // Check whether the current node wasn't already visited
+        if (context is null)
+        {
+            context = contexts[rule] = new Context(rule);
+
+            // Leafs are rules without further dependencies
+            if (rule.deps.empty)
+            {
+                leaves ~= context;
+            }
+            else
+            {
+                // Recursively visit all dependencies
+                foreach (dep; rule.deps)
+                {
+                    auto depContext = findLeafs(dep, contexts, all, leaves);
+                    depContext.requiredBy ~= context;
+                }
+            }
+
+            // Append the current rule AFTER all dependencies
+            all ~= context;
+        }
+
+        return context;
+    }
+
+    /// Metadata required for parallel execution
+    private static class Context
+    {
+        import std.parallelism: createTask = task;
+        alias Task = typeof(createTask(&Context.init.buildRecursive)); /// Task type
+
+        BuildRule target; /// the rule to execute
+        Context[] requiredBy; /// rules relying on this one
+        shared size_t pendingDeps; /// amount of rules to be built
+        shared bool depUpdated; /// whether any dependency of target was updated
+        Task task; /// corresponding task
+
+        /// Creates a new context for rule
+        this(BuildRule rule)
+        {
+            this.target = rule;
+            this.pendingDeps = rule.deps.length;
+            this.task = createTask(&buildRecursive);
+        }
+
+        /**
+        Builds the rule given by this context and schedules other rules
+        requiring it (if the current was the last missing dependency)
+        **/
+        private void buildRecursive()
+        {
+            import core.atomic: atomicLoad, atomicOp, atomicStore;
+
+            /// Stores whether the current build is stopping because some step failed
+            static shared bool aborting;
+            scope (failure) atomicStore(aborting, true);
+
+            // Build the current rule unless another one failed
+            if (!atomicLoad(aborting) && target.run(depUpdated))
+            {
+                // Propagate that this rule's targets were (re)built
+                foreach (parent; requiredBy)
+                    atomicStore(parent.depUpdated, true);
+            }
+
+            // Mark this rule as finished for all parent rules
+            foreach (parent; requiredBy)
+            {
+                if (parent.pendingDeps.atomicOp!"-="(1) == 0)
+                    taskPool.put(parent.task);
+            }
+        }
     }
 }
 
@@ -1672,7 +1792,6 @@ Aborts the current build
 
 TODO:
     - Display detailed error messages
-    - Handle spawned processes
 
 Params:
     msg = error message to display
@@ -1771,16 +1890,39 @@ void installRelativeFiles(T)(string targetDir, string sourceBase, T files, uint 
     }
 }
 
-version (CRuntime_DigitalMars)
-{
-    // workaround issue https://issues.dlang.org/show_bug.cgi?id=13727
-    auto parallel(R)(R range, size_t workUnitSize) { return range; }
-}
-
 /** Wrapper around std.file.copy that also updates the target timestamp. */
 void copyAndTouch(RF, RT)(RF from, RT to)
 {
     std.file.copy(from, to);
     const now = Clock.currTime;
     to.setTimes(now, now);
+}
+
+version (OSX)
+{
+    // FIXME: Parallel executions hangs reliably on Mac  (esp. the 'macair'
+    // host used by the autotester) for unknown reasons outside of this script.
+    pragma(msg, "Warning: Syncing file access because of OSX!");
+
+    // Wrap standard library functions to ensure mutually exclusive file access
+    alias readText = fileAccess!(std.file.readText, string);
+    alias writeText = fileAccess!(std.file.write, string, string);
+    alias timeLastModified = fileAccess!(std.file.timeLastModified, string);
+
+    import core.sync.mutex;
+    __gshared Mutex fileAccessMutex;
+    shared static this() {
+        fileAccessMutex = new Mutex();
+    }
+
+    auto fileAccess(alias dg, T...)(T args)
+    {
+        fileAccessMutex.lock_nothrow();
+        scope (exit) fileAccessMutex.unlock_nothrow();
+        return dg(args);
+    }
+}
+else
+{
+    alias writeText = std.file.write;
 }

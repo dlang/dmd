@@ -1,0 +1,8 @@
+Environment variable `SOURCE_DATE_EPOCH` is now supported
+
+The environment variable `SOURCE_DATE_EPOCH` is used for
+$(LINK2 https://reproducible-builds.org/, reproducible builds).
+It is an UNIX timestamp (seconds since 1970-01-01 00:00:00),
+as described $(LINK2 https://reproducible-builds.org/docs/source-date-epoch/, here).
+DMD now correctly recognize it and will set the `__DATE__`,
+`__TIME__`, and `__TIMESTAMP__` tokens accordingly.

@@ -1,6 +1,5 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Convert an AST that went through all semantic phases into an object file.
  *
  * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
@@ -41,7 +40,6 @@ import dmd.glue;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.init;
-import dmd.irstate;
 import dmd.mtype;
 import dmd.nspace;
 import dmd.objc_glue;
@@ -1593,4 +1591,3 @@ private void genClassInfoForInterface(InterfaceDeclaration id)
     if (id.isExport())
         objmod.export_symbol(id.csym, 0);
 }
-

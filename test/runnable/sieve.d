@@ -1,11 +1,18 @@
-// PERMUTE_ARGS:
-// REQUIRED_ARGS: -cov
-// POST_SCRIPT: runnable/extra-files/coverage-postscript.sh
-// EXECUTE_ARGS: ${RESULTS_DIR}/runnable
+/*
+PERMUTE_ARGS:
+REQUIRED_ARGS: -cov
+POST_SCRIPT: runnable/extra-files/coverage-postscript.sh
+EXECUTE_ARGS: ${RESULTS_DIR}/runnable
+RUN_OUTPUT:
+---
+10 iterations
+1899 primes
+---
+*/
 
 /* Eratosthenes Sieve prime number calculation. */
 
-import std.stdio;
+import core.stdc.stdio;
 
 bool[8191] flags;
 
@@ -13,7 +20,7 @@ int sieve()
 {
     int count;
 
-    writefln("10 iterations");
+    printf("10 iterations\n");
     for (int iter = 1; iter <= 10; iter++)
     {
         count = 0;
@@ -33,7 +40,7 @@ int sieve()
 	    }
 	}
     }
-    writefln("%d primes", count);
+    printf("%d primes\n", count);
     return 0;
 }
 

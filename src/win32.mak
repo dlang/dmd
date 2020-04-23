@@ -65,36 +65,21 @@ RD=rmdir
 # Target name
 TARGET=$G\dmd
 TARGETEXE=$(TARGET).exe
-# D Optimizer flags
-DOPT=
-# D Model flags
-DMODEL=-m$(MODEL)
-# D Debug flags
-DDEBUG=-debug -g -unittest
-
-##### Implementation variables (do not modify)
-
-# D compile flags
-DFLAGS=$(DOPT) $(DMODEL) $(DDEBUG) -wi -version=MARS -dip25
 
 # Recursive make
 DMDMAKE=$(MAKE) -fwin32.mak MAKE="$(MAKE)" HOST_DC="$(HOST_DC)" MODEL=$(MODEL) CC="$(CC)" VERBOSE=$(VERBOSE)
 
 ############################### Rule Variables ###############################
 
-PARSER_SRCS=$D/astbase.d $D/parsetimevisitor.d $D/parse.d $D/transitivevisitor.d $D/permissivevisitor.d $D/strictvisitor.d $D/utils.d
-
-RUN_BUILD=$(GEN)\build.exe --called-from-make "OS=$(OS)" "BUILD=$(BUILD)" "MODEL=$(MODEL)" "HOST_DMD=$(HOST_DMD)" "HOST_DC=$(HOST_DC)" "DDEBUG=$(DDEBUG)" "MAKE=$(MAKE)" VERBOSE=$(VERBOSE)
+RUN_BUILD=$(GEN)\build.exe --called-from-make "OS=$(OS)" "BUILD=$(BUILD)" "MODEL=$(MODEL)" "HOST_DMD=$(HOST_DMD)" "HOST_DC=$(HOST_DC)" "MAKE=$(MAKE)" VERBOSE=$(VERBOSE) "ENABLE_RELEASE=$(ENABLE_RELEASE)" "ENABLE_DEBUG=$(ENABLE_DEBUG)" "ENABLE_UNITTEST=$(ENABLE_UNITTEST)" "ENABLE_PROFILE=$(ENABLE_PROFILE)" "ENABLE_COVERAGE=$(ENABLE_COVERAGE)" "DFLAGS=$(DFLAGS)"
 
 ############################## Release Targets ###############################
 
 defaulttarget: $G debdmd
 
 # FIXME: Windows test suite uses src/dmd.exe instead of $(GENERATED)/dmd.exe
-# FIXME: DDEBUG needs to be overidden to exclude unittests from dmd.exe
-#        (They are compiled in a seperate executable for build.d's unittest target)
 auto-tester-build: $(GEN)\build.exe
-	$(RUN_BUILD) "DDEBUG=" "ENABLE_RELEASE=1" $@
+	$(RUN_BUILD) "ENABLE_RELEASE=1" $@
 	copy $(TARGETEXE) .
 
 dmd: $G reldmd
@@ -117,32 +102,23 @@ check-host-dc:
 debdmd: check-host-dc debdmd-make
 
 debdmd-make:
-	$(DMDMAKE) "DDEBUG=-debug -g -unittest" "DOPT=" $(TARGETEXE)
+	$(DMDMAKE) "ENABLE_DEBUG=1" "ENABLE_UNITTEST=1" $(TARGETEXE)
 
 reldmd: check-host-dc reldmd-make
 
 reldmd-make: $(GEN)\build.exe
-	$(RUN_BUILD) "DDEBUG=" "ENABLE_RELEASE=1" $(TARGETEXE)
+	$(RUN_BUILD) "ENABLE_RELEASE=1" $(TARGETEXE)
 
+# Don't use ENABLE_RELEASE=1 to avoid -inline
 profile:
-	$(DMDMAKE) "DDEBUG=" "DOPT=-O -release -profile" $(TARGETEXE)
+	$(DMDMAKE) "ENABLE_PROFILE=1" "DFLAGS=-O -release" $(TARGETEXE)
 
-trace:
-	$(DMDMAKE) "DDEBUG=-debug -g -unittest" "DOPT=" $(TARGETEXE)
+trace: debdmd-make
 
 unittest:
-	$(DMDMAKE) "DDEBUG=-debug -g -unittest -cov" "DOPT=" $(TARGETEXE)
+	$(DMDMAKE) "ENABLE_DEBUG=1" "ENABLE_UNITTEST=1" "ENABLE_COVERAGE=1" $(TARGETEXE)
 
 ################################ Libraries ##################################
-
-$G\backend.lib:  $(GEN)\build.exe
-	$(RUN_BUILD) $@
-
-$G\lexer.lib: $(GEN)\build.exe
-	$(RUN_BUILD) $@
-
-$G\parser.lib: $(PARSER_SRCS) $G\lexer.lib $G
-	$(HOST_DC) -of$@ -vtls -lib $(DFLAGS) $(PARSER_SRCS) $G\lexer.lib
 
 $(TARGETEXE): $(GEN)\build.exe
 	$(RUN_BUILD) $@

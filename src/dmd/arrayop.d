@@ -1,6 +1,7 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Implement array operations, such as `a[] = b[] + c[]`.
+ *
+ * Specification: $(LINK2 https://dlang.org/spec/arrays.html#array-operations, Array Operations)
  *
  * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)

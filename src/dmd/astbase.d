@@ -1,9 +1,14 @@
-module dmd.astbase;
-
 /**
+ * Defines AST nodes for the parsing stage.
+ *
+ * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/astbase.d, _astbase.d)
  * Documentation:  https://dlang.org/phobos/dmd_astbase.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/astbase.d
  */
+
+module dmd.astbase;
 
 import dmd.parsetimevisitor;
 
@@ -257,7 +262,6 @@ struct ASTBase
         real_        = 8,
         imaginary    = 0x10,
         complex      = 0x20,
-        char_        = 0x40,
     }
 
     enum PKG : int
@@ -672,7 +676,6 @@ struct ASTBase
     {
         Type type;
         Initializer _init;
-        StorageClass storage_class;
         enum AdrOnStackNone = ~0u;
         uint ctfeAdrOnStack;
         uint sequenceNumber;
@@ -3586,17 +3589,17 @@ struct ASTBase
 
             case Tchar:
                 d = Token.toChars(TOK.char_);
-                flags |= TFlags.integral | TFlags.unsigned | TFlags.char_;
+                flags |= TFlags.integral | TFlags.unsigned;
                 break;
 
             case Twchar:
                 d = Token.toChars(TOK.wchar_);
-                flags |= TFlags.integral | TFlags.unsigned | TFlags.char_;
+                flags |= TFlags.integral | TFlags.unsigned;
                 break;
 
             case Tdchar:
                 d = Token.toChars(TOK.dchar_);
-                flags |= TFlags.integral | TFlags.unsigned | TFlags.char_;
+                flags |= TFlags.integral | TFlags.unsigned;
                 break;
 
             default:

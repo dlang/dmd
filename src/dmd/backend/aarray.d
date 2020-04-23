@@ -439,9 +439,8 @@ nothrow:
         free(aac);
     }
 
-    uint* get(const(char)* s, uint len)
+    extern(D) uint* get(const(char)[] buf)
     {
-        auto buf = s[0 .. len];
         return aa.get(&buf);
     }
 

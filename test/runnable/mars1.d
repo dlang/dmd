@@ -177,7 +177,7 @@ struct Foo4
 
 void testsizes()
 {
-    printf("%d\n", Foo1.sizeof);
+    printf("%zd\n", Foo1.sizeof);
     assert(Foo1.a.offsetof == 0);
     assert(Foo1.b.offsetof == 4);
     assert(Foo1.c.offsetof == 5);
@@ -279,12 +279,12 @@ void testulldiv()
     {
         ulong q = vectors[i][0] / vectors[i][1];
         if (q != vectors[i][2])
-            printf("[%d] %lld / %lld = %lld, should be %lld\n",
-                vectors[i][0], vectors[i][1], q, vectors[i][2]);
+            printf("[%zd] %lld / %lld = %lld, should be %lld\n",
+                i, vectors[i][0], vectors[i][1], q, vectors[i][2]);
 
         ulong r = vectors[i][0] % vectors[i][1];
         if (r != vectors[i][3])
-            printf("[%d] %lld %% %lld = %lld, should be %lld\n",
+            printf("[%zd] %lld %% %lld = %lld, should be %lld\n",
                 i, vectors[i][0], vectors[i][1], r, vectors[i][3]);
     }
 }
@@ -442,13 +442,13 @@ void test12095(int k)
 
 bool test3918a( float t, real u )
 {
-        printf("%f\n", u );
+        printf("%Lf\n", u );
         return t && u;
 }
 
 bool test3918b( real t, float u )
 {
-        printf("%f\n", t );
+        printf("%Lf\n", t );
         return t && u;
 }
 
@@ -1489,7 +1489,7 @@ void test4()
 
 double sumKBN(double s = 0.0)
 {
-    import std.math : fabs;
+    import core.math : fabs;
     double c = 0.0;
         foreach(double x; [1, 1e100, 1, -1e100])
         {

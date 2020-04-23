@@ -1,6 +1,8 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Defines a `Dsymbol` representing an aggregate, which is a `struct`, `union` or `class`.
+ *
+ * Specification: $(LINK2 https://dlang.org/spec/struct.html, Structs, Unions),
+ *                $(LINK2 https://dlang.org/spec/class.html, Class).
  *
  * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
@@ -16,6 +18,7 @@ import core.stdc.stdio;
 import core.checkedint;
 
 import dmd.aliasthis;
+import dmd.apply;
 import dmd.arraytypes;
 import dmd.gluelayer : Symbol;
 import dmd.declaration;
@@ -178,15 +181,13 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         // determineFields can be called recursively from one of the fields's v.semantic
         fields.setDim(0);
 
-        extern (C++) static int func(Dsymbol s, void* param)
+        static int func(Dsymbol s, AggregateDeclaration ad)
         {
             auto v = s.isVarDeclaration();
             if (!v)
                 return 0;
             if (v.storage_class & STC.manifest)
                 return 0;
-
-            auto ad = cast(AggregateDeclaration)param;
 
             if (v.semanticRun < PASS.semanticdone)
                 v.dsymbolSemantic(null);
@@ -225,7 +226,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             for (size_t i = 0; i < members.dim; i++)
             {
                 auto s = (*members)[i];
-                if (s.apply(&func, cast(void*)this))
+                if (s.apply(&func, this))
                 {
                     if (sizeok != Sizeok.none)
                     {

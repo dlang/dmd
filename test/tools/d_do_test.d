@@ -66,8 +66,8 @@ struct TestArgs
 
     bool     compileSeparately;
     bool     link;
+    bool     clearDflags; /// whether DFLAGS should be cleared before invoking dmd
     string   executeArgs;
-    string   dflags;
     string   cxxflags;
     string[] sources;
     string[] compiledImports;
@@ -77,9 +77,12 @@ struct TestArgs
     string[] argSets;
     string   compileOutput;
     string   compileOutputFile; /// file containing the expected output
+    string   runOutput; /// Expected output of the compiled executable
     string   gdbScript;
     string   gdbMatch;
     string   postScript;
+    string[] outputFiles; /// generated files appended to the compilation output
+    string   transformOutput; /// Transformations for the compiler output
     string   requiredArgs;
     string   requiredArgsForLink;
     string   disabledReason; // if empty, the test is not disabled
@@ -101,10 +104,96 @@ struct EnvData
     string ccompiler;
     string model;
     string required_args;
+    string cxxCompatFlags;      /// Additional flags passed to $(compiler) when `EXTRA_CPP_SOURCES` is present
+    string[] picFlag;           /// Compiler flag for PIC (if requested from environment)
     bool dobjc;
     bool coverage_build;
     bool autoUpdate;
+    bool printRuntime;          /// Print time spent on a single test
     bool usingMicrosoftCompiler;
+    bool tryDisabled;           /// Silently try disabled tests (ignore failure but report success)
+}
+
+/++
+Creates a new EnvData instance based on the current environment.
+Other code should not read from the environment.
+
+Returns: an initialized EnvData instance
+++/
+immutable(EnvData) processEnvironment()
+{
+    static string envGetRequired(in char[] name)
+    {
+        if (auto value = environment.get(name))
+            return value;
+
+        writefln("Error: Missing environment variable '%s', was this called through the Makefile?",
+            name);
+        throw new SilentQuit();
+    }
+
+    EnvData envData;
+    envData.all_args       = environment.get("ARGS");
+    envData.results_dir    = envGetRequired("RESULTS_DIR");
+    envData.sep            = envGetRequired ("SEP");
+    envData.dsep           = environment.get("DSEP");
+    envData.obj            = envGetRequired ("OBJ");
+    envData.exe            = envGetRequired ("EXE");
+    envData.os             = environment.get("OS");
+    envData.dmd            = replace(envGetRequired("DMD"), "/", envData.sep);
+    envData.compiler       = "dmd"; //should be replaced for other compilers
+    envData.ccompiler      = environment.get("CC");
+    envData.model          = envGetRequired("MODEL");
+    envData.required_args  = environment.get("REQUIRED_ARGS");
+    envData.dobjc          = environment.get("D_OBJC") == "1";
+    envData.coverage_build = environment.get("DMD_TEST_COVERAGE") == "1";
+    envData.autoUpdate     = environment.get("AUTO_UPDATE", "") == "1";
+    envData.printRuntime   = environment.get("PRINT_RUNTIME", "") == "1";
+    envData.tryDisabled    = environment.get("TRY_DISABLED") == "1";
+
+    if (envData.ccompiler.empty)
+    {
+        if (envData.os != "windows")
+            envData.ccompiler = "c++";
+        else if (envData.model == "32")
+            envData.ccompiler = "dmc";
+        else if (envData.model == "64")
+            envData.ccompiler = `C:\"Program Files (x86)"\"Microsoft Visual Studio 10.0"\VC\bin\amd64\cl.exe`;
+        else
+        {
+            writeln("Unknown $OS$MODEL combination: ", envData.os, envData.model);
+            throw new SilentQuit();
+        }
+    }
+
+    envData.usingMicrosoftCompiler = envData.ccompiler.toLower.endsWith("cl.exe");
+
+    version (Windows) {} else
+    {
+        version(X86_64)
+            envData.picFlag = ["-fPIC"];
+        if (environment.get("PIC", null) == "1")
+            envData.picFlag = ["-fPIC"];
+    }
+
+    switch (envData.compiler)
+    {
+        case "dmd":
+        case "ldc":
+            if(envData.os != "windows")
+                envData.cxxCompatFlags = " -L-lstdc++ -L--no-demangle";
+            break;
+
+        case "gdc":
+            envData.cxxCompatFlags = "-Xlinker -lstdc++ -Xlinker --no-demangle";
+            break;
+
+        default:
+            writeln("Unknown compiler: ", envData.compiler);
+            throw new SilentQuit();
+    }
+
+    return cast(immutable) envData;
 }
 
 bool findTestParameter(const ref EnvData envData, string file, string token, ref string result, string multiLineDelimiter = " ")
@@ -233,7 +322,9 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
 {
     string file = cast(string)std.file.read(input_file);
 
-    findTestParameter(envData, file, "DFLAGS", testArgs.dflags);
+    string dflagsStr;
+    testArgs.clearDflags = findTestParameter(envData, file, "DFLAGS", dflagsStr);
+    enforce(dflagsStr.empty, "The DFLAGS test argument must be empty: It is '" ~ dflagsStr ~ "'");
 
     findTestParameter(envData, file, "REQUIRED_ARGS", testArgs.requiredArgs);
     if (envData.required_args.length)
@@ -249,10 +340,6 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     {
         if (testArgs.mode == TestMode.RUN)
             testArgs.permuteArgs = envData.all_args;
-
-        string unittestJunk;
-        if(!findTestParameter(envData, file, "unittest", unittestJunk))
-            testArgs.permuteArgs = replace(testArgs.permuteArgs, "-unittest", "");
     }
     replaceResultsDir(testArgs.permuteArgs, envData);
 
@@ -265,6 +352,15 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
             .join(" ");
         testArgs.permuteArgs = newPermuteArgs;
     }
+
+    // tests can override -verrors by using REQUIRED_ARGS
+    if (testArgs.mode == TestMode.FAIL_COMPILE)
+        testArgs.requiredArgs = "-verrors=0 " ~ testArgs.requiredArgs;
+
+    // https://issues.dlang.org/show_bug.cgi?id=10664: exceptions don't work reliably with COMDAT folding
+    // it also slows down some tests drastically, e.g. runnable/test17338.d
+    if (envData.usingMicrosoftCompiler)
+        testArgs.requiredArgs ~= " -L/OPT:NOICF";
 
     {
         string argSetsStr;
@@ -287,8 +383,14 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     // clean up extra spaces
     testArgs.permuteArgs = strip(replace(testArgs.permuteArgs, "  ", " "));
 
-    findTestParameter(envData, file, "EXECUTE_ARGS", testArgs.executeArgs);
-    replaceResultsDir(testArgs.executeArgs, envData);
+    if (findTestParameter(envData, file, "EXECUTE_ARGS", testArgs.executeArgs))
+    {
+        replaceResultsDir(testArgs.executeArgs, envData);
+        // Always run main even if compiled with '-unittest' but let
+        // tests switch to another behaviour if necessary
+        if (!testArgs.executeArgs.canFind("--DRT-testmode"))
+            testArgs.executeArgs ~= " --DRT-testmode=run-main";
+    }
 
     string extraSourcesStr;
     findTestParameter(envData, file, "EXTRA_SOURCES", extraSourcesStr);
@@ -307,10 +409,10 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     findTestParameter(envData, file, "CXXFLAGS", testArgs.cxxflags);
     string extraCppSourcesStr;
     findTestParameter(envData, file, "EXTRA_CPP_SOURCES", extraCppSourcesStr);
-    testArgs.cppSources = [];
-    // prepend input_dir to each extra source file
-    foreach(s; split(extraCppSourcesStr))
-        testArgs.cppSources ~= s;
+    testArgs.cppSources = split(extraCppSourcesStr);
+
+    if (testArgs.cppSources.length)
+        testArgs.requiredArgs ~= envData.cxxCompatFlags;
 
     string extraObjcSourcesStr;
     auto objc = findTestParameter(envData, file, "EXTRA_OBJC_SOURCES", extraObjcSourcesStr);
@@ -318,10 +420,7 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     if (objc && !envData.dobjc)
         return false;
 
-    testArgs.objcSources = [];
-    // prepend input_dir to each extra source file
-    foreach(s; split(extraObjcSourcesStr))
-        testArgs.objcSources ~= s;
+    testArgs.objcSources = split(extraObjcSourcesStr);
 
     // swap / with $SEP
     if (envData.sep && envData.sep != "/")
@@ -369,10 +468,20 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     {
         // Don't require tests to specify the test directory
         testArgs.compileOutputFile = input_dir.buildPath(testArgs.compileOutputFile);
-        testArgs.compileOutput = readText(testArgs.compileOutputFile);
+        testArgs.compileOutput = readText(testArgs.compileOutputFile)
+                                    .unifyNewLine() // Avoid CRLF issues
+                                    .strip();
     }
     else
         findOutputParameter(file, "TEST_OUTPUT", testArgs.compileOutput, envData.sep);
+
+    string outFilesStr;
+    findTestParameter(envData, file, "OUTPUT_FILES", outFilesStr);
+    testArgs.outputFiles = outFilesStr.split(';');
+
+    findTestParameter(envData, file, "TRANSFORM_OUTPUT", testArgs.transformOutput);
+
+    findOutputParameter(file, "RUN_OUTPUT", testArgs.runOutput, envData.sep);
 
     findOutputParameter(file, "GDB_SCRIPT", testArgs.gdbScript, envData.sep);
     findTestParameter(envData, file, "GDB_MATCH", testArgs.gdbMatch);
@@ -525,7 +634,7 @@ unittest
 
 bool collectExtraSources (in string input_dir, in string output_dir, in string[] extraSources,
                           ref string[] sources, in EnvData envData, in string compiler,
-                          const(char)[] cxxflags)
+                          const(char)[] cxxflags, ref File logfile)
 {
     foreach (cur; extraSources)
     {
@@ -554,16 +663,161 @@ bool collectExtraSources (in string input_dir, in string output_dir, in string[]
         if (cxxflags)
             command ~= " " ~ cxxflags;
 
-        auto rc = system(command);
-        if(rc)
+        logfile.writeln(command);
+        logfile.flush(); // Avoid reordering due to buffering
+
+        auto pid = spawnShell(command, stdin, logfile, logfile, null, Config.retainStdout | Config.retainStderr);
+        if(wait(pid))
         {
-            writeln("failed to execute '"~command~"'");
             return false;
         }
         sources ~= curObj;
     }
 
     return true;
+}
+
+/++
+Applies custom transformations defined in transformOutput to testOutput.
+
+Currently the following actions are supported:
+ * "sanitize_json"       = replace compiler/plattform specific data from generated JSON
+ * "remove_lines(<re>)" = remove all lines matching a regex <re>
+
+Params:
+    testOutput      = the existing output to be modified
+    transformOutput = list of transformation identifiers
+++/
+void applyOutputTransformations(ref string testOutput, string transformOutput)
+{
+    while (transformOutput.length)
+    {
+        string step, arg;
+
+        const idx = transformOutput.countUntil(' ', '(');
+        if (idx == -1)
+        {
+            step = transformOutput;
+            transformOutput = null;
+        }
+        else
+        {
+            step = transformOutput[0 .. idx];
+            const hasArgs = transformOutput[idx] == '(';
+            transformOutput = transformOutput[idx + 1 .. $];
+            if (hasArgs)
+            {
+                // "..." quotes are optional but necessary if the arg contains ')'
+                const isQuoted = transformOutput[0] == '"';
+                const end = isQuoted ? `"` : `)`;
+                auto parts = transformOutput[isQuoted .. $].findSplit(end);
+                enforce(parts, "Missing closing `" ~ end ~ "`!");
+                arg = parts[0];
+                transformOutput = parts[2][isQuoted .. $];
+            }
+
+            // Skip space between steps
+            import std.ascii : isWhite;
+            transformOutput.skipOver!isWhite();
+        }
+
+        switch (step)
+        {
+            case "sanitize_json":
+            {
+                import sanitize_json : sanitize;
+                sanitize(testOutput);
+                break;
+            }
+
+            case "remove_lines":
+            {
+                auto re = regex(arg);
+                testOutput = testOutput
+                    .splitter('\n')
+                    .filter!(line => !line.matchFirst(re))
+                    .join('\n');
+                break;
+            }
+
+            default:
+                throw new Exception(format(`Unknown transformation: "%s"!`, step));
+        }
+    }
+}
+
+unittest
+{
+    static void test(string input, const string transformations, const string expected)
+    {
+        applyOutputTransformations(input, transformations);
+        assert(input == expected);
+    }
+
+    static void testJson(const string transformations, const string expectedJson)
+    {
+        test(`{
+    "modules": [
+        {
+            "file": "/path/to/the/file",
+            "kind": "module",
+            "members": []
+        }
+    ]
+}`, transformations, expectedJson);
+    }
+
+
+    testJson("sanitize_json", `{
+    "modules": [
+        {
+            "file": "VALUE_REMOVED_FOR_TEST",
+            "kind": "module",
+            "members": []
+        }
+    ]
+}`);
+
+    testJson(`sanitize_json  remove_lines("kind")`, `{
+    "modules": [
+        {
+            "file": "VALUE_REMOVED_FOR_TEST",
+            "members": []
+        }
+    ]
+}`);
+
+    testJson(`sanitize_json remove_lines("kind") remove_lines("file")`, `{
+    "modules": [
+        {
+            "members": []
+        }
+    ]
+}`);
+
+    test(`This is a text containing
+        some words which is a text sample
+        nevertheless`,
+        `remove_lines(text sample)`,
+        `This is a text containing
+        nevertheless`);
+
+    test(`This is a text with
+        a random ) which should
+        still work`,
+        `remove_lines("random \)")`,
+        `This is a text with
+        still work`);
+
+    test(`Tom bought
+        12 apples
+        and 6 berries
+        from the store`,
+        `remove_lines("(\d+)")`,
+        `Tom bought
+        from the store`);
+
+    assertThrown(test("", "unknown", ""));
 }
 
 /++
@@ -650,7 +904,7 @@ bool compareOutput(string output, string refoutput, const ref EnvData envData)
                 break;
             }
             // Match against OS or model (accepts "32mscoff" as "32")
-            else if (conditional[0].among(envData.os, envData.model, envData.model[0 .. min(2, $)]))
+            else if (conditional[0].splitter('+').all!(c => c.among(envData.os, envData.model, envData.model[0 .. min(2, $)])))
             {
                 toSkip = conditional[2];
                 break;
@@ -699,34 +953,36 @@ unittest
 
     ed.model = "32mscoff";
     assert(compareOutput("size_t is uint!", "size_t is $?:32=uint|64=ulong$!", ed));
+
+    assert(compareOutput("no", "$?:posix+64=yes|no$", ed));
+    ed.model = "64";
+    assert(compareOutput("yes", "$?:posix+64=yes|no$", ed));
 }
 
 /++
 Creates a diff of the expected and actual test output.
 
 Params:
-    testData = the test configuration
-    output   = the actual output
-    name     = the test files name
+    expected     = the expected output
+    expectedFile = file containing expected (if present, null otherwise)
+    actual       = the actual output
+    name         = the test files name
 
 Returns: the comparison created by the `diff` utility
 ++/
-string generateDiff(ref const TestArgs testData, const string output, const string name)
+string generateDiff(const string expected, string expectedFile,
+    const string actual, const string name)
 {
-    string actualFile = tempDir.buildPath("expected_" ~ name);
-    File(actualFile, "w").writeln(output); // Append \n
+    string actualFile = tempDir.buildPath("actual_" ~ name);
+    File(actualFile, "w").writeln(actual); // Append \n
     scope (exit) remove(actualFile);
 
-    const needTmp = !testData.compileOutputFile;
-    string expectedFile;
+    const needTmp = !expectedFile;
     if (needTmp) // Create a temporary file
     {
-        expectedFile = tempDir.buildPath("actual_" ~ name);
-        File(expectedFile, "w").writeln(testData.compileOutput); // Append \n
+        expectedFile = tempDir.buildPath("expected_" ~ name);
+        File(expectedFile, "w").writeln(expected); // Append \n
     }
-    else // Reuse TEST_OUTPUT_FILE
-        expectedFile = testData.compileOutputFile;
-
     // Remove temporary file
     scope (exit) if (needTmp)
         remove(expectedFile);
@@ -744,32 +1000,22 @@ string generateDiff(ref const TestArgs testData, const string output, const stri
         return format(`%-(%s, %) failed: %s`, cmd, e.msg);
 }
 
-string envGetRequired(in char[] name)
-{
-    auto value = environment.get(name);
-    if(value is null)
-    {
-        writefln("Error: missing environment variable '%s', was this called this through the Makefile?",
-            name);
-        throw new SilentQuit();
-    }
-    return value;
-}
-
 class SilentQuit : Exception { this() { super(null); } }
 
 class CompareException : Exception
 {
     string expected;
     string actual;
+    bool fromRun; /// Compared execution instead of compilation output
 
-    this(string expected, string actual, string diff) {
+    this(string expected, string actual, string diff, bool fromRun = false) {
         string msg = "\nexpected:\n----\n" ~ expected ~
             "\n----\nactual:\n----\n" ~ actual ~
             "\n----\ndiff:\n----\n" ~ diff ~ "----\n";
         super(msg);
         this.expected = expected;
         this.actual = actual;
+        this.fromRun = fromRun;
     }
 }
 
@@ -788,46 +1034,35 @@ int tryMain(string[] args)
         return 1;
     }
 
-    const test_file = args[1];
-    string input_dir = test_file.dirName();
+    immutable envData = processEnvironment();
+
+    const input_file     = args[1];
+    const input_dir      = input_file.dirName();
+    const test_base_name = input_file.baseName();
+    const test_name      = test_base_name.stripExtension();
+
+    const result_path    = envData.results_dir ~ envData.sep;
+    const output_dir     = result_path ~ input_dir;
+    const output_file    = result_path ~ input_file ~ ".out";
 
     TestArgs testArgs;
     switch (input_dir)
     {
         case "compilable":              testArgs.mode = TestMode.COMPILE;      break;
         case "fail_compilation":        testArgs.mode = TestMode.FAIL_COMPILE; break;
-        case "runnable":                testArgs.mode = TestMode.RUN;          break;
-        case "dshell":                  testArgs.mode = TestMode.DSHELL;       break;
+        case "runnable", "runnable_cxx":
+            // running & linking costs time - for coverage builds we can save this
+            testArgs.mode = envData.coverage_build ? TestMode.COMPILE : TestMode.RUN;
+            break;
+
+        case "dshell":
+            testArgs.mode = TestMode.DSHELL;
+            return runDShellTest(input_dir, test_name, envData, output_dir, output_file);
+
         default:
-            writefln("Error: invalid test directory '%s', expected 'compilable', 'fail_compilation', 'runnable' or 'dshell'", input_dir);
+            writefln("Error: invalid test directory '%s', expected 'compilable', 'fail_compilation', 'runnable', 'runnable_cxx' or 'dshell'", input_dir);
             return 1;
     }
-
-    string test_base_name = test_file.baseName();
-    string test_name = test_base_name.stripExtension();
-
-    EnvData envData;
-    envData.all_args      = environment.get("ARGS");
-    envData.results_dir   = envGetRequired("RESULTS_DIR");
-    envData.sep           = envGetRequired ("SEP");
-    envData.dsep          = environment.get("DSEP");
-    envData.obj           = envGetRequired ("OBJ");
-    envData.exe           = envGetRequired ("EXE");
-    envData.os            = environment.get("OS");
-    envData.dmd           = replace(envGetRequired("DMD"), "/", envData.sep);
-    envData.compiler      = "dmd"; //should be replaced for other compilers
-    envData.ccompiler     = environment.get("CC");
-    envData.model         = envGetRequired("MODEL");
-    envData.required_args = environment.get("REQUIRED_ARGS");
-    envData.dobjc         = environment.get("D_OBJC") == "1";
-    envData.coverage_build   = environment.get("DMD_TEST_COVERAGE") == "1";
-    envData.autoUpdate = environment.get("AUTO_UPDATE", "") == "1";
-
-    string result_path    = envData.results_dir ~ envData.sep;
-    string input_file     = input_dir ~ envData.sep ~ test_base_name;
-    string output_dir     = result_path ~ input_dir;
-    string output_file    = result_path ~ input_file ~ ".out";
-    string test_app_dmd_base = output_dir ~ envData.sep ~ test_name ~ "_";
 
     if (test_base_name.extension() == ".sh")
     {
@@ -843,48 +1078,24 @@ int tryMain(string[] args)
             }
         }
 
-        return runBashTest(input_dir, test_name);
+        return runBashTest(input_dir, test_name, envData);
     }
-
-    if (testArgs.mode == TestMode.DSHELL)
-        return runDShellTest(input_dir, test_name, envData, output_dir, output_file);
 
     // envData.sep is required as the results_dir path can be `generated`
     const absoluteResultDirPath = envData.results_dir.absolutePath ~ envData.sep;
     const resultsDirReplacement = "{{RESULTS_DIR}}" ~ envData.sep;
+    const test_app_dmd_base = output_dir ~ envData.sep ~ test_name ~ "_";
 
-    // running & linking costs time - for coverage builds we can save this
-    if (envData.coverage_build && testArgs.mode == TestMode.RUN)
-        testArgs.mode = TestMode.COMPILE;
-
-    if (envData.ccompiler.empty)
-    {
-        if (envData.os != "windows")
-            envData.ccompiler = "c++";
-        else if (envData.model == "32")
-            envData.ccompiler = "dmc";
-        else if (envData.model == "64")
-            envData.ccompiler = `C:\"Program Files (x86)"\"Microsoft Visual Studio 10.0"\VC\bin\amd64\cl.exe`;
-        else
-            assert(0, "unknown $OS$MODEL combination: " ~ envData.os ~ envData.model);
-    }
-
-    envData.usingMicrosoftCompiler = envData.ccompiler.toLower.endsWith("cl.exe");
-
-    const printRuntime = environment.get("PRINT_RUNTIME", "") == "1";
     auto stopWatch = StopWatch(AutoStart.no);
-    if (printRuntime)
+    if (envData.printRuntime)
         stopWatch.start();
 
     if (!gatherTestParameters(testArgs, input_dir, input_file, envData))
         return 0;
 
     // Clear the DFLAGS environment variable if it was specified in the test file
-    if (testArgs.dflags !is null)
+    if (testArgs.clearDflags)
     {
-        if (testArgs.dflags != "")
-            throw new Exception("The DFLAGS test argument must be empty: It is '" ~ testArgs.dflags ~ "'");
-
         // `environment["DFLAGS"] = "";` doesn't seem to work on Win32 (might be a bug
         // in std.process). So, resorting to `putenv` in snn.lib
         version(Win32)
@@ -897,30 +1108,6 @@ int tryMain(string[] args)
         }
     }
 
-    //prepare cpp extra sources
-    if (!testArgs.isDisabled && testArgs.cppSources.length)
-    {
-        switch (envData.compiler)
-        {
-            case "dmd":
-            case "ldc":
-                if(envData.os != "windows")
-                   testArgs.requiredArgs ~= " -L-lstdc++ -L--no-demangle";
-                break;
-            case "gdc":
-                testArgs.requiredArgs ~= "-Xlinker -lstdc++ -Xlinker --no-demangle";
-                break;
-            default:
-                writeln("unknown compiler: "~envData.compiler);
-                return 1;
-        }
-        if (!collectExtraSources(input_dir, output_dir, testArgs.cppSources, testArgs.sources, envData, envData.ccompiler, testArgs.cxxflags))
-            return 1;
-    }
-    //prepare objc extra sources
-    if (!testArgs.isDisabled && !collectExtraSources(input_dir, output_dir, testArgs.objcSources, testArgs.sources, envData, "clang", null))
-        return 1;
-
     writef(" ... %-30s %s%s(%s)",
             input_file,
             testArgs.requiredArgs,
@@ -928,11 +1115,37 @@ int tryMain(string[] args)
             testArgs.permuteArgs);
 
     if (testArgs.isDisabled)
+    {
         writef("!!! [DISABLED %s]", testArgs.disabledReason);
+        if (!envData.tryDisabled)
+        {
+            writeln();
+            return 0;
+        }
+    }
 
     removeIfExists(output_file);
 
     auto f = File(output_file, "a");
+
+    if (
+        //prepare cpp extra sources
+        !collectExtraSources(input_dir, output_dir, testArgs.cppSources, testArgs.sources, envData, envData.ccompiler, testArgs.cxxflags, f) ||
+
+        //prepare objc extra sources
+        !collectExtraSources(input_dir, output_dir, testArgs.objcSources, testArgs.sources, envData, "clang", null, f)
+    )
+    {
+        writeln();
+
+        // Ignore failed test
+        if (testArgs.isDisabled)
+            return 0;
+
+        f.close();
+        printTestFailure(input_file, output_file);
+        return 1;
+    }
 
     enum Result { continue_, return0, return1 }
 
@@ -955,16 +1168,6 @@ int tryMain(string[] args)
                 removeIfExists(thisRunName);
             }
 
-            // can override -verrors by using REQUIRED_ARGS
-            auto reqArgs =
-                (testArgs.mode == TestMode.FAIL_COMPILE ? "-verrors=0 " : null) ~
-                testArgs.requiredArgs;
-
-            // https://issues.dlang.org/show_bug.cgi?id=10664: exceptions don't work reliably with COMDAT folding
-            // it also slows down some tests drastically, e.g. runnable/test17338.d
-            if (envData.usingMicrosoftCompiler)
-                reqArgs ~= " -L/OPT:NOICF";
-
             string compile_output;
             if (!testArgs.compileSeparately)
             {
@@ -972,14 +1175,21 @@ int tryMain(string[] args)
                 toCleanup ~= objfile;
 
                 command = format("%s -conf= -m%s -I%s %s %s -od%s -of%s %s %s%s %s", envData.dmd, envData.model, input_dir,
-                        reqArgs, permutedArgs, output_dir,
+                        testArgs.requiredArgs, permutedArgs, output_dir,
                         (testArgs.mode == TestMode.RUN || testArgs.link ? test_app_dmd : objfile),
                         argSet,
                         (testArgs.mode == TestMode.RUN || testArgs.link ? "" : "-c "),
                         join(testArgs.sources, " "),
                         (autoCompileImports ? "-i" : join(testArgs.compiledImports, " ")));
 
-                compile_output = execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path);
+                try
+                    compile_output = execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path);
+                catch (Exception e)
+                {
+                    writeln(""); // We're at "... runnable/xxxx.d (args)"
+                    printCppSources(testArgs.sources);
+                    throw e;
+                }
             }
             else
             {
@@ -989,7 +1199,7 @@ int tryMain(string[] args)
                     toCleanup ~= newo;
 
                     command = format("%s -conf= -m%s -I%s %s %s -od%s -c %s %s", envData.dmd, envData.model, input_dir,
-                        reqArgs, permutedArgs, output_dir, argSet, filename);
+                        testArgs.requiredArgs, permutedArgs, output_dir, argSet, filename);
                     compile_output ~= execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path);
                 }
 
@@ -1005,30 +1215,62 @@ int tryMain(string[] args)
                 }
             }
 
-            compile_output = compile_output.unifyNewLine();
-            compile_output = std.regex.replaceAll(compile_output, regex(`^DMD v2\.[0-9]+.*\n? DEBUG$`, "m"), "");
-            compile_output = std.string.strip(compile_output);
-            // replace test_result path with fixed ones
-            compile_output = compile_output.replace(result_path, resultsDirReplacement);
-            compile_output = compile_output.replace(absoluteResultDirPath, resultsDirReplacement);
+            void prepare(ref string compile_output)
+            {
+                if (compile_output.empty)
+                    return;
+
+                compile_output = compile_output.unifyNewLine();
+                compile_output = std.regex.replaceAll(compile_output, regex(`^DMD v2\.[0-9]+.*\n? DEBUG$`, "m"), "");
+                compile_output = std.string.strip(compile_output);
+                // replace test_result path with fixed ones
+                compile_output = compile_output.replace(result_path, resultsDirReplacement);
+                compile_output = compile_output.replace(absoluteResultDirPath, resultsDirReplacement);
+
+                compile_output.applyOutputTransformations(testArgs.transformOutput);
+            }
+
+            prepare(compile_output);
 
             auto m = std.regex.match(compile_output, `Internal error: .*$`);
             enforce(!m, m.hit);
             m = std.regex.match(compile_output, `core.exception.AssertError@dmd.*`);
             enforce(!m, m.hit);
 
+            // Prepare and append the content of each OUTPUT_FILE conforming to
+            // the HAR (https://code.dlang.org/packages/har) format, e.g.
+            // === <FILENAME_1>
+            // <CONTENT_1>
+            // === <FILENAME_2>
+            // <CONTENT_2>
+            // ...
+            foreach (const outfile; testArgs.outputFiles)
+            {
+                string path = outfile;
+                replaceResultsDir(path, envData);
+
+                // Don't abort if a file is missing, at least verify the remaining output.
+                string content = readText(path).ifThrown("<< File missing >>");
+                prepare(content);
+
+                // Make sure file starts on a new line
+                if (!compile_output.empty && !compile_output.endsWith("\n"))
+                    compile_output ~= '\n';
+
+                // Prepend a header listing the explicit file
+                compile_output.reserve(outfile.length + content.length + 5);
+
+                compile_output ~= "=== ";
+                compile_output ~= outfile;
+                compile_output ~= '\n';
+                compile_output ~= content;
+            }
+
             if (!compareOutput(compile_output, testArgs.compileOutput, envData))
             {
-                // Allow any messages to come from tests if TEST_OUTPUT wasn't given.
-                // This will be removed in future once all tests have been updated.
-                if (testArgs.compileOutput !is null ||
-                    (testArgs.mode != TestMode.COMPILE &&
-                     testArgs.mode != TestMode.FAIL_COMPILE &&
-                     testArgs.mode != TestMode.RUN))
-                {
-                    const diff = generateDiff(testArgs, compile_output, test_base_name);
-                    throw new CompareException(testArgs.compileOutput, compile_output, diff);
-                }
+                const diff = generateDiff(testArgs.compileOutput, testArgs.compileOutputFile,
+                                            compile_output, test_base_name);
+                throw new CompareException(testArgs.compileOutput, compile_output, diff);
             }
 
             if (testArgs.mode == TestMode.RUN)
@@ -1046,10 +1288,23 @@ int tryMain(string[] args)
                     command = test_app_dmd;
                     if (testArgs.executeArgs) command ~= " " ~ testArgs.executeArgs;
 
-                    execute(fThisRun, command, true, result_path);
+                    const output = execute(fThisRun, command, true, result_path)
+                                    .strip()
+                                    .unifyNewLine();
+
+                    if (testArgs.runOutput && !compareOutput(output, testArgs.runOutput, envData))
+                    {
+                        const diff = generateDiff(testArgs.runOutput, null, output, test_base_name);
+                        throw new CompareException(testArgs.runOutput, output, diff, true);
+                    }
                 }
                 else version (linux)
                 {
+                    // Tests failed on SemaphoreCI when multiple GDB tests were run at once
+                    scope lockfile = File(envData.results_dir.buildPath("gdb.lock"), "w");
+                    lockfile.lock();
+                    scope (exit) lockfile.unlock();
+
                     auto script = test_app_dmd_base ~ to!string(permuteIndex) ~ ".gdb";
                     toCleanup ~= script;
                     with (File(script, "w"))
@@ -1074,11 +1329,7 @@ int tryMain(string[] args)
                 f.write("Executing post-test script: ");
                 string prefix = "";
                 version (Windows) prefix = "bash ";
-                assert(testArgs.sources[0].length, "Internal error: the tested file has no sources.");
-                import std.path : baseName, dirName, stripExtension;
-                auto testDir = testArgs.sources[0].dirName.baseName;
-                auto testName = testArgs.sources[0].baseName.stripExtension;
-                execute(f, prefix ~ "tools/postscript.sh " ~ testArgs.postScript ~ " " ~ testDir ~ " " ~ testName ~ " " ~ thisRunName, true, result_path);
+                execute(f, prefix ~ "tools/postscript.sh " ~ testArgs.postScript ~ " " ~ input_dir ~ " " ~ test_name ~ " " ~ thisRunName, true, result_path);
             }
 
             foreach (file; toCleanup) collectException(std.file.remove(file));
@@ -1097,9 +1348,11 @@ int tryMain(string[] args)
             if (auto ce = cast(CompareException) e)
             {
                 // remove the output file in test_results as its outdated
-                output_file.remove();
+                // (might fail for runnable tests on Windows)
+                if (output_file.remove().collectException())
+                    writef("\nWARNING: Failed to remove `%s`!", output_file);
 
-                if (testArgs.compileOutputFile)
+                if (testArgs.compileOutputFile && !ce.fromRun)
                 {
                     std.file.write(testArgs.compileOutputFile, ce.actual);
                     writefln("\n==> `TEST_OUTPUT_FILE` `%s` has been updated", testArgs.compileOutputFile);
@@ -1147,7 +1400,6 @@ int tryMain(string[] args)
             if (e.msg.canFind("exited with rc == 139"))
             {
                 auto gdbCommand = "gdb -q -n -ex 'set backtrace limit 100' -ex run -ex bt -batch -args " ~ command;
-                import std.process : spawnShell;
                 spawnShell(gdbCommand).wait;
             }
 
@@ -1176,7 +1428,7 @@ int tryMain(string[] args)
             break;
     }
 
-    if (printRuntime)
+    if (envData.printRuntime)
     {
         const long ms = stopWatch.peek.total!"msecs";
         writefln("   [%.3f secs]", ms / 1000.0);
@@ -1191,32 +1443,26 @@ int tryMain(string[] args)
     return 0;
 }
 
-int runBashTest(string input_dir, string test_name)
+int runBashTest(string input_dir, string test_name, const ref EnvData envData)
 {
-    const scriptPath = dmdTestDir.buildPath("tools", "sh_do_test.sh");
+    enum script = "tools/sh_do_test.sh";
+
     version(Windows)
     {
-        auto process = spawnShell(format("bash %s %s %s",
-            scriptPath, input_dir, test_name));
+        const cmd = "bash " ~ script ~ ' ' ~ input_dir ~ ' ' ~  test_name;
+        const env = [
+            // Make sure the path is bash-friendly
+            "DMD": envData.dmd.relativePath(dmdTestDir).replace('\\', '/')
+        ];
+
+        auto process = spawnShell(cmd, env, Config.none, dmdTestDir);
     }
     else
     {
+        const scriptPath = dmdTestDir.buildPath(script);
         auto process = spawnProcess([scriptPath, input_dir, test_name]);
     }
     return process.wait();
-}
-
-/// Return the correct pic flags
-string[] getPicFlags()
-{
-    version (Windows) { } else
-    {
-        version(X86_64)
-            return ["-fPIC"];
-        if (environment.get("PIC", null) == "1")
-            return ["-fPIC"];
-    }
-    return cast(string[])[];
 }
 
 /// Run a dshell test
@@ -1256,7 +1502,7 @@ static this()
     {
         auto outfile = File(output_file_temp, "w");
         const compile = [envData.dmd, "-conf=", "-m"~envData.model] ~
-            getPicFlags ~ [
+            envData.picFlag ~ [
             "-od" ~ testOutDir,
             "-of" ~ testScriptExe,
             "-I=" ~ testScriptDir,
@@ -1288,7 +1534,13 @@ static this()
         outfile.writeln("[RUN_TEST] ", escapeShellCommand(runTest));
         auto runTestProc = std.process.spawnProcess(runTest, stdin, outfile, outfile);
         const exitCode = wait(runTestProc);
-        if (exitCode != 0)
+
+        if (exitCode == 125) // = DISABLED from tools/dshell_prebuilt.d
+        {
+            writefln(" !!! %s is disabled!", testLogName);
+            return 0;
+        }
+        else if (exitCode != 0)
         {
             printTestFailure(testLogName, output_file_temp);
             return exitCode;
@@ -1312,10 +1564,25 @@ void printTestFailure(string testLogName, string output_file_temp)
     remove(output_file_temp);
 }
 
-/// Make any parent diretories needed for the given `filename`
-void mkdirsFor(string filename)
+/**
+ * Print symbols in C++ objects
+ *
+ * If linking failed, we print the symbols present in the C++ object file being
+ * linked it. This is so that C++ `runnable` tests are easier to debug,
+ * as the CI machines can have different environment than the users,
+ * and it is generally painful to work with them when trying to support
+ * newer (C++11, C++14, C++17, etc...) features.
+ */
+void printCppSources (in const(char)[][] compiled)
 {
-    auto dir = dirName(filename);
-    if (!exists(dir))
-        mkdirRecurse(dir);
+    version (Posix)
+    {
+        foreach (file; compiled)
+        {
+            if (!file.endsWith(".cpp.o"))
+                continue;
+            writeln("========== Symbols for C++ object file: ", file, " ==========");
+            std.process.spawnProcess(["nm", file]).wait();
+        }
+    }
 }

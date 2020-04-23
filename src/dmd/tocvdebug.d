@@ -1,6 +1,5 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Generate debug info in the CV4 debug format.
  *
  * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
@@ -25,6 +24,7 @@ import dmd.root.array;
 import dmd.root.rmem;
 
 import dmd.aggregate;
+import dmd.apply;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum;
@@ -446,19 +446,16 @@ struct CvFieldList
 }
 
 // Lambda function
-int cv_mem_count(Dsymbol s, void *param)
+int cv_mem_count(Dsymbol s, CvFieldList *pmc)
 {
-    CvFieldList *pmc = cast(CvFieldList *)param;
-
     int nwritten = cvMember(s, null);
     pmc.count(nwritten);
     return 0;
 }
 
 // Lambda function
-int cv_mem_p(Dsymbol s, void *param)
+int cv_mem_p(Dsymbol s, CvFieldList *pmc)
 {
-    CvFieldList *pmc = cast(CvFieldList *)param;
     ubyte *p = pmc.writePtr();
     uint len = cvMember(s, p);
     pmc.written(len);
@@ -836,7 +833,7 @@ void toDebugClosure(Symbol* closstru)
     const len1 = numidx + cv4_numericbytes(structsize);
     debtyp_t *d = debtyp_alloc(len1 + cv_stringbytes(closname));
     cv4_storenumeric(d.data.ptr + numidx, structsize);
-    const uint len = len1 + cv_namestring(d.data.ptr + len1, closname);
+    cv_namestring(d.data.ptr + len1, closname);
 
     if (leaf == LF_STRUCTURE)
     {

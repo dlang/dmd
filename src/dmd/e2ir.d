@@ -1,6 +1,5 @@
 /**
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Converts expressions to Intermediate Representation (IR) for the backend.
  *
  * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
@@ -43,7 +42,6 @@ import dmd.globals;
 import dmd.glue;
 import dmd.id;
 import dmd.init;
-import dmd.irstate;
 import dmd.mtype;
 import dmd.objc_glue;
 import dmd.s2ir;
@@ -1227,12 +1225,9 @@ elem *toElem(Expression e, IRState *irs)
             if (se.var.toParent2())
                 fd = se.var.toParent2().isFuncDeclaration();
 
-            int nrvo = 0;
-            if (fd && fd.nrvo_can && fd.nrvo_var == se.var)
-            {
+            const bool nrvo = fd && fd.nrvo_can && fd.nrvo_var == se.var;
+            if (nrvo)
                 s = fd.shidden;
-                nrvo = 1;
-            }
 
             if (s.Sclass == SCauto || s.Sclass == SCparameter || s.Sclass == SCshadowreg)
             {
@@ -3099,7 +3094,6 @@ elem *toElem(Expression e, IRState *irs)
                      *  memset(&struct, 0, struct.sizeof)
                      */
                     uint sz = cast(uint)ae.e1.type.size();
-                    StructDeclaration sd = t1s.sym;
 
                     elem *el = e1;
                     elem *enbytes = el_long(TYsize_t, sz);
@@ -3144,7 +3138,6 @@ elem *toElem(Expression e, IRState *irs)
                      */
                     elem *ey = null;
                     targ_size_t sz = ae.e1.type.size();
-                    StructDeclaration sd = (cast(TypeStruct)t1b.baseElemOf()).sym;
 
                     elem *el = e1;
                     elem *enbytes = el_long(TYsize_t, sz);

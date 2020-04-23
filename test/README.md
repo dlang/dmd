@@ -62,7 +62,7 @@ Updating the `TEST_OUTPUT` can also be done for a custom subset of tests:
 
 Note:
 - you might need to run this command twice if you add a new error message(s) as then the line numbers of the following error messages will change
-- `AUTO_UPDATE` doesn't work with tests that have multiple `TEST_OUTPUT` segments
+- `AUTO_UPDATE` doesn't work with tests that have no, empty or multiple `TEST_OUTPUT` segments
 - `AUTO_UPDATE` can be set as an environment variable or as Makefile-like argument assignment
 
 ### Running the Unit Tests
@@ -168,7 +168,8 @@ void main(string[] args)
 The following is a list of all available settings:
 
     COMPILE_SEPARATELY:  if present, forces each .d file to compile separately and linked
-                         together in an extra setup.
+                         together in an extra setup. May specifiy additional parameters which
+                         are passed to $(DMD) when linking the generated object files.
                          default: (none, aka compile/link all in one step)
 
     EXECUTE_ARGS:        parameters to add to the execution of the test
@@ -192,6 +193,10 @@ The following is a list of all available settings:
     EXTRA_CPP_SOURCES:   list of extra C++ files to build and link along with the test
                          default: (none).
 
+    CXXFLAGS:            list of extra arguments passed to $(CC) when compiling C++ sources
+                         defined in EXTRA_CPP_SOURCES.
+                         default: (none)
+
     EXTRA_OBJC_SOURCES:  list of extra Objective-C files to build and link along with the test
                          default: (none). Test files with this variable will be ignored unless
                          the D_OBJC environment variable is set to "1"
@@ -211,6 +216,23 @@ The following is a list of all available settings:
     LINK:                enables linking (used for the compilable and fail_compilable tests).
                          default: (none)
 
+    OUTPUT_FILES:       files generated during the compilation (separated by ';').
+                        The content of each file is appended to the output of the
+                        compilation (in the order of this list) according to the HAR
+                        format (https://code.dlang.org/packages/har).
+                        Example:
+                        ------------------------------------------
+                        <Compilation Output>
+                        === <FILENAME_1>
+                        <CONTENT_1>
+                        === <FILENAME_2>
+                        <CONTENT_2>
+                        [...]
+                        ------------------------------------------
+                        The merged output will then be prepared and compared to the
+                        expected TEST_OUTPUT as defined below.
+                        default: (none)
+
     TEST_OUTPUT:         the output is expected from the compilation (if the
                          output of the compilation doesn't match, the test
                          fails). You can use the this format for multi-line
@@ -223,10 +245,43 @@ The following is a list of all available settings:
                          note: if not given, it is assumed that the compilation will be silent.
                          default: (none)
 
+    TEST_OUTPUT_FILE:   file containing the expected output as defined for TEST_OUTPUT.
+                        note: Further TEST_OUTPUT sections in the test are ignored.
+                        default: (none)
+
+    TRANSFORM_OUTPUT:   steps to apply to the output of the compilation before it
+                        is compared to the expected TEST_OUTPUT. A step may take
+                        arguments akin to a function call, e.g. `step(arg)` and arguments
+                        may be quoted using "".
+
+                        Supported transformations:
+                        - sanitize_json:    Remove compiler specific information from output
+                                            of -Xi (see test/tools/sanitize_json.d)
+                                            arguments: none
+
+                        - remove_lines:     Remove lines matching a given regex
+                                            arguments: the regex
+                                            note: patterns containing ')' must be quoted
+
+    RUN_OUTPUT:         output expected from running the compiled executable which must match
+                        the actual output. The comparison adheres to the rules defined for
+                        TEST_OUTPUT and allow e.g. using special sequences as defined below.
+
     POST_SCRIPT:         name of script to execute after test run
                          note: arguments to the script may be included after the name.
                                additionally, the name of the file that contains the output
                                of the compile/link/run steps is added as the last parameter.
+                         default: (none)
+
+    GDB_SCRIPT:          if present, starts a `gdb` session for the compiled executable to run the commands
+                         specified in the corresponding section. GDB_MATCH may be used to used to verfiy
+                         expected output using a regex.
+                         note: restricted to `runnable` tests, the executable will not be run outside of the
+                               gdb session.
+                         default: (none)
+
+    GDB_MATCH:           a regular expression describing the expected output of GDB_SCRIPT. The test
+                         will fail if it does not match the actual output.
                          default: (none)
 
     REQUIRED_ARGS:       arguments to add to the $(DMD) command line
@@ -307,6 +362,22 @@ A few operations are done on the output of a test before the comparison with `TE
 - newlines get unified for consistent `TEST_OUTPUT` between platforms
 - DMD's debug message (e.g. `DMD v2.084.0-255-g86b608a15-dirty DEBUG`) gets stripped away
 - paths to `test_results` will be replaced with `{{RESULTS_DIR}}`
+
+`TEST_OUTPUT` offers the following special sequences to match error messages which
+depend on the current platform and target:
+
+    $n$             arbitrary amount of digits
+
+    $p:<tail>$      paths ending with <tail> (which must refer to an existing file or directory)
+
+    $?:<choices>$   selection based on the current environment where a choice is either
+                    conditional `<condition>=<content>` or a fallback value `<default>`.
+                    Multiple choices are separated by `|` and the leftmost satisfied condition
+                    or fallback is chosen if multiple choices apply.
+
+                    Supported conditions:
+                    - OS: posix, windows, ...
+                    - Model: 64, 32mscoff and 32 (also matches 32mscoff)
 
 Both stderr and stdout of the DMD are captured for output comparison.
 

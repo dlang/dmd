@@ -17,7 +17,7 @@ int testinvariant()
     printf("hello\n");
     Foo f = new Foo();
     printf("f = %p\n", f);
-    printf("f.sizeof = x%x\n", Foo.sizeof);
+    printf("f.sizeof = x%zx\n", Foo.sizeof);
     printf("f.classinfo = %p\n", f.classinfo);
     printf("f.classinfo._invariant = %p\n", f.classinfo.base);
     f.test();

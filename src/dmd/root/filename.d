@@ -1,6 +1,5 @@
 /**
- * Compiler implementation of the D programming language
- * http://dlang.org
+ * Encapsulate path and file names.
  *
  * Copyright: Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com
@@ -95,12 +94,6 @@ nothrow:
      * Returns:
      *  true if absolute path name.
      */
-    extern (C++) static bool absolute(const(char)* name) pure @nogc
-    {
-        return absolute(name.toDString);
-    }
-
-    /// Ditto
     extern (D) static bool absolute(const(char)[] name) pure @nogc
     {
         if (!name.length)
@@ -152,12 +145,6 @@ nothrow:
      *  Points past '.' of extension.
      *  If there isn't one, return null.
      */
-    extern (C++) static const(char)* ext(const(char)* str) pure @nogc
-    {
-        return ext(str.toDString).ptr;
-    }
-
-    /// Ditto
     extern (D) static const(char)[] ext(const(char)[] str) nothrow pure @safe @nogc
     {
         foreach_reverse (idx, char e; str)

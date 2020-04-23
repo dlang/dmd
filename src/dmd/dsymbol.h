@@ -140,8 +140,6 @@ enum
     IgnoreSymbolVisibility  = 0x80  // also find private and package protected symbols
 };
 
-typedef int (*Dsymbol_apply_ft_t)(Dsymbol *, void *);
-
 class Dsymbol : public ASTNode
 {
 public:
@@ -194,7 +192,6 @@ public:
     virtual const char *kind() const;
     virtual Dsymbol *toAlias();                 // resolve real symbol
     virtual Dsymbol *toAlias2();
-    virtual int apply(Dsymbol_apply_ft_t fp, void *param);
     virtual void addMember(Scope *sc, ScopeDsymbol *sds);
     virtual void setScope(Scope *sc);
     virtual void importAll(Scope *sc);
@@ -388,10 +385,13 @@ public:
     // Look up Identifier. Return Dsymbol if found, NULL if not.
     Dsymbol *lookup(Identifier const * const ident);
 
-    // Insert Dsymbol in table. Return NULL if already there.
-    Dsymbol *insert(Dsymbol *s);
-
     // Look for Dsymbol in table. If there, return it. If not, insert s and return that.
     Dsymbol *update(Dsymbol *s);
+
+    // Insert Dsymbol in table. Return NULL if already there.
+    Dsymbol *insert(Dsymbol *s);
     Dsymbol *insert(Identifier const * const ident, Dsymbol *s);     // when ident and s are not the same
+
+    // Number of symbols in symbol table
+    size_t length() const;
 };

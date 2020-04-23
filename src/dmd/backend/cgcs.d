@@ -456,7 +456,7 @@ void ecom(elem **pe)
         {
             debug if (debugx)
                 printf("i: %2d Hhash: %6d Helem: %p\n",
-                       i,hcs.Hhash,hcs.Helem);
+                       cast(int) i,hcs.Hhash,hcs.Helem);
 
             elem* ehash;
             if (hash == hcs.Hhash && (ehash = hcs.Helem) != null)

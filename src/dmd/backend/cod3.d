@@ -5175,7 +5175,7 @@ void assignaddrc(code *c)
             case FLndp:
                 version (MARS)
                 {
-                    assert(c.IEV1.Vuns < global87.savetop);
+                    assert(c.IEV1.Vuns < global87.save.length);
                 }
                 c.IEV1.Vpointer = c.IEV1.Vuns * tysize(TYldouble) + NDPoff + BPoff;
                 c.Iflags |= CFunambig;
@@ -6449,7 +6449,7 @@ nomatch:
  *      addr of end of code
  */
 
-struct MiniCodeBuf
+private struct MiniCodeBuf
 {
 nothrow:
     size_t index;
@@ -6508,7 +6508,7 @@ uint codout(int seg, code *c)
     {
         debug
         {
-        if (debugc) { printf("off=%02lx, sz=%ld, ",cast(int)ggen.getOffset(),cast(int)calccodsize(c)); code_print(c); }
+        if (debugc) { printf("off=%02u, sz=%u, ", ggen.getOffset(), calccodsize(c)); code_print(c); }
         uint startoffset = ggen.getOffset();
         }
 

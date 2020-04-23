@@ -1,8 +1,7 @@
 /**
- * Handle enums.
+ * Define `enum` declarations and `enum` members.
  *
- * Compiler implementation of the
- * $(LINK2 http://www.dlang.org, D programming language).
+ * Specification: $(LINK2 https://dlang.org/spec/enum.html, Enums)
  *
  * Copyright:   Copyright (C) 1999-2020 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
@@ -216,7 +215,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             {
                 /* Allow these special enums to not need a member list
                  */
-                return memtype.getProperty(loc, id, 0);
+                return memtype.getProperty(_scope, loc, id, 0);
             }
 
             error("is forward referenced looking for `.%s`", id.toChars());

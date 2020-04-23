@@ -1,7 +1,13 @@
-// EXTRA_SOURCES: imports/argufile.d
 /*
+EXTRA_SOURCES: imports/argufile.d
 TEST_OUTPUT:
 ---
+---
+
+RUN_OUTPUT:
+---
+bob is 7 years old
+why is 8 scared of 7? because789
 ---
 */
 

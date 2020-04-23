@@ -686,21 +686,24 @@
                 "file": "VALUE_REMOVED_FOR_TEST",
                 "kind": "alias",
                 "line": 145,
-                "name": "b0"
+                "name": "b0",
+                "originalType": "a"
             },
             {},
             {
                 "char": 1,
                 "kind": "alias",
                 "line": 145,
-                "name": "b1"
+                "name": "b1",
+                "originalType": "a"
             },
             {},
             {
                 "char": 1,
                 "kind": "alias",
                 "line": 145,
-                "name": "b2"
+                "name": "b2",
+                "originalType": "a"
             },
             {
                 "char": 9,
@@ -937,6 +940,14 @@
                         "name": "n"
                     }
                 ]
+            },
+            {
+                "char": 1,
+                "deco": "VALUE_REMOVED_FOR_TEST",
+                "kind": "alias",
+                "line": 210,
+                "name": "F",
+                "originalType": "size_t function(size_t a)"
             }
         ],
         "name": "json"

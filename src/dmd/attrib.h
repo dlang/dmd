@@ -25,7 +25,6 @@ public:
     Dsymbols *decl;     // array of Dsymbol's
 
     virtual Dsymbols *include(Scope *sc);
-    int apply(Dsymbol_apply_ft_t fp, void *param);
     virtual Scope *newScope(Scope *sc);
     void addMember(Scope *sc, ScopeDsymbol *sds);
     void setScope(Scope *sc);
