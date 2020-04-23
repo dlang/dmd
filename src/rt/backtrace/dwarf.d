@@ -1,9 +1,46 @@
 /**
- * This code handles backtrace generation using DWARF debug_line section
- * in ELF and Mach-O files for Posix.
+ * Generates a human-readable stack-trace on POSIX targets using DWARF
+ *
+ * The common use case for printing a stack trace is when `toString` is called
+ * on a `Throwable` (see `object.d`). It will iterate on what is likely to be
+ * the default trace handler (see `core.runtime : defaultTraceHandler`).
+ * The class returned by `defaultTraceHandler` is what ends up calling into
+ * this module, through the use of `core.internal.traits : externDFunc`.
+ *
+ * The entry point of this module is `traceHandlerOpApplyImpl`,
+ * and the only really "public" symbol (since all `rt` symbols are private).
+ * In the future, this implementation should probably be made idiomatic,
+ * so that it can for example work with attributes.
+ *
+ * Resilience:
+ * As this module is used for diagnostic, it should handle failures
+ * as gracefully as possible. Having the runtime error out on printing
+ * the stack trace one is trying to debug would be quite a terrible UX.
+ * For this reason, this module works on a "best effort" basis and will
+ * sometimes print mangled symbols, or "???" when it cannot do anything
+ * more useful.
+ *
+ * Source_of_data:
+ * This module uses two main sources for generating human-readable data.
+ * First, it uses `backtrace_symbols` to obtain the name of the symbols
+ * (functions or methods) associated with the addresses.
+ * Since the names are mangled, it will also call into `core.demangle`,
+ * and doesn't need to use any DWARF information for this,
+ * however a future extension  could make use of the call frame information
+ * (See DWARF4 "6.4 Call Frame Information", PDF page 126).
+ *
+ * The other piece of data used is the DWARF `.debug_line` section,
+ * which contains the line informations of a program, necessary to associate
+ * the instruction address with its (file, line) information.
+ *
+ * Since debug lines informations are quite large, they are encoded using a
+ * program that is to be fed to a finite state machine.
+ * See `runStateMachine` and `readLineNumberProgram` for more details.
+ *
+ * DWARF_Version:
+ * This module only supports DWARF 3 and 4.
  *
  * Reference: http://www.dwarfstd.org/
- *
  * Copyright: Copyright Digital Mars 2015 - 2015.
  * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Yazan Dabain, Sean Kelly
@@ -12,7 +49,7 @@
 
 module rt.backtrace.dwarf;
 
-private import core.internal.execinfo;
+import core.internal.execinfo;
 
 static if (hasExecinfo):
 
