@@ -20,27 +20,14 @@ else version (WatchOS)
 version (Darwin):
 
 import core.stdc.config : c_ulong;
-
-version (D_LP64)
-{
-    import core.sys.darwin.mach.loader :
-        MachHeader = mach_header_64,
-        Section = section_64;
-}
-
-else
-{
-    import core.sys.darwin.mach.loader :
-        MachHeader = mach_header,
-        Section = section;
-}
+import core.sys.darwin.mach.loader;
 
 private extern (C)
 {
-    MachHeader* _NSGetMachExecuteHeader();
+    mach_header_64* _NSGetMachExecuteHeader();
 
     ubyte* getsectiondata(
-        in MachHeader* mhp,
+        in mach_header_64* mhp,
         in char* segname,
         in char* sectname,
         c_ulong* size
@@ -49,7 +36,7 @@ private extern (C)
 
 struct Image
 {
-    private MachHeader* self;
+    private mach_header_64* self;
 
     static Image openSelf()
     {
