@@ -9,6 +9,7 @@
  */
 module core.sys.windows.mgmtapi;
 version (Windows):
+@system:
 
 import core.sys.windows.snmp;
 private import core.sys.windows.windef;

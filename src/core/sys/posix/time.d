@@ -33,6 +33,7 @@ version (Posix):
 extern (C):
 nothrow:
 @nogc:
+@system:
 
 //
 // Required (defined in core.stdc.time)

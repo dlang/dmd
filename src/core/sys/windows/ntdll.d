@@ -9,6 +9,7 @@
  */
 module core.sys.windows.ntdll;
 version (Windows):
+@system:
 
 private import core.sys.windows.w32api;
 

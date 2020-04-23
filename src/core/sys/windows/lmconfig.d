@@ -8,6 +8,7 @@
  */
 module core.sys.windows.lmconfig;
 version (Windows):
+@system:
 
 // All functions in this file are deprecated!
 

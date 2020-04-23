@@ -12,6 +12,7 @@ version (linux):
 extern (C):
 nothrow:
 @nogc:
+@system:
 
 void err(int eval, scope const char* fmt, ...);
 void errx(int eval, scope const char* fmt, ...);

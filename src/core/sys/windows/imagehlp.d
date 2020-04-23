@@ -9,6 +9,7 @@
  */
 module core.sys.windows.imagehlp;
 version (Windows):
+@system:
 
 version (ANSI) {} else version = Unicode;
 

@@ -165,3 +165,15 @@ void emplaceInitializer(T)(scope ref T chunk) nothrow pure @trusted
     testInitializer!ElaborateAndZero();
     testInitializer!ElaborateAndNonZero();
 }
+
+/*
+Simple swap function.
+*/
+void swap(T)(ref T lhs, ref T rhs)
+{
+    import core.lifetime : move, moveEmplace;
+
+    T tmp = move(lhs);
+    moveEmplace(rhs, lhs);
+    moveEmplace(tmp, rhs);
+}

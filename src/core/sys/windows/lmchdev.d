@@ -8,6 +8,7 @@
  */
 module core.sys.windows.lmchdev;
 version (Windows):
+@system:
 
 // COMMENT: This file might be deprecated.
 

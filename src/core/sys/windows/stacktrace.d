@@ -11,6 +11,7 @@
 
 module core.sys.windows.stacktrace;
 version (Windows):
+@system:
 
 import core.demangle;
 import core.runtime;

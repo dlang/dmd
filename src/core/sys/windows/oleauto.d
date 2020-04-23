@@ -8,6 +8,7 @@
  */
 module core.sys.windows.oleauto;
 version (Windows):
+@system:
 pragma(lib, "oleaut32");
 
 import core.sys.windows.oaidl;

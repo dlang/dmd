@@ -104,6 +104,17 @@
 
 module core.memory;
 
+version (ARM)
+    version = AnyARM;
+else version (AArch64)
+    version = AnyARM;
+
+version (iOS)
+    version = iOSDerived;
+else version (TVOS)
+    version = iOSDerived;
+else version (WatchOS)
+    version = iOSDerived;
 
 private
 {
@@ -151,6 +162,91 @@ private
     package extern (C) bool gc_inFinalizer() nothrow @nogc @safe;
 }
 
+version (CoreDoc)
+{
+    /**
+     * The minimum size of a system page in bytes.
+     *
+     * This is a compile time, platform specific value. This value might not
+     * be accurate, since it might be possible to change this value. Whenever
+     * possible, please use $(LREF pageSize) instead, which is initialized
+     * during runtime.
+     *
+     * The minimum size is useful when the context requires a compile time known
+     * value, like the size of a static array: `ubyte[minimumPageSize] buffer`.
+     */
+    enum minimumPageSize : size_t;
+}
+else version (AnyARM)
+{
+    version (iOSDerived)
+        enum size_t minimumPageSize = 16384;
+    else
+        enum size_t minimumPageSize = 4096;
+}
+else
+    enum size_t minimumPageSize = 4096;
+
+///
+unittest
+{
+    ubyte[minimumPageSize] buffer;
+}
+
+/**
+ * The size of a system page in bytes.
+ *
+ * This value is set at startup time of the application. It's safe to use
+ * early in the start process, like in shared module constructors and
+ * initialization of the D runtime itself.
+ */
+immutable size_t pageSize;
+
+///
+unittest
+{
+    ubyte[] buffer = new ubyte[pageSize];
+}
+
+// The reason for this elaborated way of declaring a function is:
+//
+// * `pragma(crt_constructor)` is used to declare a constructor that is called by
+// the C runtime, before C main. This allows the `pageSize` value to be used
+// during initialization of the D runtime. This also avoids any issues with
+// static module constructors and circular references.
+//
+// * `pragma(mangle)` is used because `pragma(crt_constructor)` requires a
+// function with C linkage. To avoid any name conflict with other C symbols,
+// standard D mangling is used.
+//
+// * The extra function declaration, without the body, is to be able to get the
+// D mangling of the function without the need to hardcode the value.
+//
+// * The extern function declaration also has the side effect of making it
+// impossible to manually call the function with standard syntax. This is to
+// make it more difficult to call the function again, manually.
+private void initialize();
+pragma(crt_constructor)
+pragma(mangle, `_D` ~ initialize.mangleof)
+private extern (C) void initialize() @system
+{
+    version (Posix)
+    {
+        import core.sys.posix.unistd : sysconf, _SC_PAGESIZE;
+
+        (cast() pageSize) = cast(size_t) sysconf(_SC_PAGESIZE);
+    }
+    else version (Windows)
+    {
+        import core.sys.windows.winbase : GetSystemInfo, SYSTEM_INFO;
+
+        SYSTEM_INFO si;
+        GetSystemInfo(&si);
+        (cast() pageSize) = cast(size_t) si.dwPageSize;
+    }
+    else
+        static assert(false, __FUNCTION__ ~ " is not implemented on this platform");
+}
 
 /**
  * This struct encapsulates all garbage collection functionality for the D

@@ -51,7 +51,7 @@ endif
 ifeq (osx,$(OS))
 	DOTDLL:=.dylib
 	DOTLIB:=.a
-	export MACOSX_DEPLOYMENT_TARGET=10.7
+	export MACOSX_DEPLOYMENT_TARGET=10.9
 else
 	DOTDLL:=.so
 	DOTLIB:=.a
@@ -65,7 +65,7 @@ LINKDL=$(if $(findstring $(OS),linux),-L-ldl,)
 
 MAKEFILE = $(firstword $(MAKEFILE_LIST))
 
-DDOCFLAGS=-conf= -c -w -o- -Isrc -Iimport -version=CoreDdoc
+DDOCFLAGS=-conf= -c -w -o- -Isrc -Iimport -version=CoreDdoc -preview=markdown
 
 # Set CFLAGS
 CFLAGS=$(MODEL_FLAG) -fPIC -DHAVE_UNISTD_H

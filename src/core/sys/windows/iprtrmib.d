@@ -9,6 +9,7 @@
  */
 module core.sys.windows.iprtrmib;
 version (Windows):
+@system:
 
 import core.sys.windows.ipifcons;
 private import core.sys.windows.windef;

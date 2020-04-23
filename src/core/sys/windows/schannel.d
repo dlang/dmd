@@ -9,6 +9,7 @@
  */
 module core.sys.windows.schannel;
 version (Windows):
+@system:
 
 import core.sys.windows.wincrypt;
 private import core.sys.windows.windef;

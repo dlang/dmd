@@ -8,6 +8,7 @@
  */
 module core.sys.windows.lmerrlog;
 version (Windows):
+@system:
 
 // COMMENT: This appears to be only for Win16. All functions are deprecated.
 

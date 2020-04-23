@@ -19,6 +19,7 @@ public import core.stdc.config;
 
 version (Posix):
 extern (C) nothrow @nogc:
+@system:
 
 enum _XOPEN_SOURCE     = 600;
 enum _POSIX_SOURCE     = true;
@@ -61,9 +62,9 @@ version (CRuntime_Glibc)
     enum __USE_REENTRANT     = _REENTRANT;
 
     version (D_LP64)
-        enum __WORDSIZE=64;
+        enum __WORDSIZE = 64;
     else
-        enum __WORDSIZE=32;
+        enum __WORDSIZE = 32;
 }
 else version (CRuntime_Musl)
 {
@@ -109,13 +110,19 @@ else version (CRuntime_UClibc)
     enum __USE_REENTRANT     = _REENTRANT;
 
     version (D_LP64)
-        enum __WORDSIZE=64;
+        enum __WORDSIZE = 64;
     else
-        enum __WORDSIZE=32;
+        enum __WORDSIZE = 32;
 }
 else version (CRuntime_Bionic)
 {
-    enum __USE_GNU           = false;
+    enum _GNU_SOURCE         = false;
+    enum __USE_GNU           = _GNU_SOURCE;
+
+    version (D_LP64)
+        enum __WORDSIZE = 64;
+    else
+        enum __WORDSIZE = 32;
 }
 else version (OpenBSD)
 {

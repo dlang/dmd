@@ -19,6 +19,7 @@ DOCDIR=doc
 IMPDIR=import
 
 MAKE=make
+HOST_DMD=dmd
 
 DFLAGS=-m$(MODEL) -conf= -O -release -dip1000 -preview=fieldwise -inline -w -Isrc -Iimport
 UDFLAGS=-m$(MODEL) -conf= -O -release -dip1000 -preview=fieldwise -w -version=_MSC_VER_$(_MSC_VER) -Isrc -Iimport
@@ -53,13 +54,13 @@ OBJS_TO_DELETE= errno_c_$(MODEL).obj msvc_$(MODEL).obj msvc_math_$(MODEL).obj
 ######################## Header file generation ##############################
 
 import:
-	"$(MAKE)" -f mak/WINDOWS import DMD="$(DMD)" IMPDIR="$(IMPDIR)"
+	"$(MAKE)" -f mak/WINDOWS import DMD="$(DMD)" HOST_DMD="$(HOST_DMD)" IMPDIR="$(IMPDIR)"
 
 copydir:
-	"$(MAKE)" -f mak/WINDOWS copydir IMPDIR="$(IMPDIR)"
+	"$(MAKE)" -f mak/WINDOWS copydir HOST_DMD="$(HOST_DMD)" IMPDIR="$(IMPDIR)"
 
 copy:
-	"$(MAKE)" -f mak/WINDOWS copy DMD="$(DMD)" IMPDIR="$(IMPDIR)"
+	"$(MAKE)" -f mak/WINDOWS copy DMD="$(DMD)" HOST_DMD="$(HOST_DMD)" IMPDIR="$(IMPDIR)"
 
 ################### C\ASM Targets ############################
 

@@ -65,7 +65,8 @@ class TypeInfo_c : TypeInfo
         return F.alignof;
     }
 
-    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+    static if (__traits(hasMember, TypeInfo, "argTypes"))
+    override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
     {
         arg1 = typeid(real);
         arg2 = typeid(real);

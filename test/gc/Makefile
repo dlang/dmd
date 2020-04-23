@@ -51,10 +51,10 @@ $(ROOT)/startbackgc: startbackgc.d
 	$(DMD) $(UDFLAGS) -of$@ sigmaskgc.d
 
 $(ROOT)/recoverfree: recoverfree.d
-	$(DMD) $(UDFLAGS) -of$@ recoverfree.d
+	$(DMD) $(DFLAGS) -of$@ recoverfree.d
 
 $(ROOT)/nocollect: nocollect.d
-	$(DMD) $(UDFLAGS) -of$@ nocollect.d
+	$(DMD) $(DFLAGS) -of$@ nocollect.d
 
 clean:
 	rm -rf $(ROOT)

@@ -9,6 +9,7 @@
  */
 module core.sys.windows.nspapi;
 version (Windows):
+@system:
 
 version (ANSI) {} else version = Unicode;
 

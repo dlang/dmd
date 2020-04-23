@@ -37,6 +37,24 @@ alias wstring = immutable(wchar)[];
 alias dstring = immutable(dchar)[];
 
 version (D_ObjectiveC) public import core.attribute : selector;
+version (Posix) public import core.attribute : gnuAbiTag;
+
+// Some ABIs use a complex varargs implementation requiring TypeInfo.argTypes().
+version (X86_64)
+{
+    version (DigitalMars) version = WithArgTypes;
+    else version (Windows) { /* no need for Win64 ABI */ }
+    else version = WithArgTypes;
+}
+version (AArch64)
+{
+    // Apple uses a trivial varargs implementation
+    version (OSX) {}
+    else version (iOS) {}
+    else version (TVOS){}
+    else version (WatchOS) {}
+    else version = WithArgTypes;
+}
 
 /**
  * All D class objects inherit from Object.
@@ -372,7 +390,7 @@ class TypeInfo
     abstract const(void)[] initializer() nothrow pure const @safe @nogc;
 
     /** Get flags for type: 1 means GC should scan for pointers,
-    2 means arg of this type is passed in XMM register */
+    2 means arg of this type is passed in SIMD register(s) if available */
     @property uint flags() nothrow pure const @safe @nogc { return 0; }
 
     /// Get type information on the contents of the type; null if not available
@@ -389,7 +407,7 @@ class TypeInfo
     /** Return internal info on arguments fitting into 8byte.
      * See X86-64 ABI 3.2.3
      */
-    version (X86_64) int argTypes(out TypeInfo arg1, out TypeInfo arg2) @safe nothrow
+    version (WithArgTypes) int argTypes(out TypeInfo arg1, out TypeInfo arg2) @safe nothrow
     {
         arg1 = this;
         return 0;
@@ -429,7 +447,7 @@ class TypeInfo_Enum : TypeInfo
 
     override @property size_t talign() nothrow pure const { return base.talign; }
 
-    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+    version (WithArgTypes) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
     {
         return base.argTypes(arg1, arg2);
     }
@@ -587,7 +605,7 @@ class TypeInfo_Array : TypeInfo
         return (void[]).alignof;
     }
 
-    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+    version (WithArgTypes) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
     {
         arg1 = typeid(size_t);
         arg2 = typeid(void*);
@@ -714,7 +732,7 @@ class TypeInfo_StaticArray : TypeInfo
         return value.talign;
     }
 
-    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+    version (WithArgTypes) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
     {
         arg1 = typeid(void*);
         return 0;
@@ -773,7 +791,7 @@ class TypeInfo_AssociativeArray : TypeInfo
         return (char[int]).alignof;
     }
 
-    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+    version (WithArgTypes) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
     {
         arg1 = typeid(void*);
         return 0;
@@ -799,7 +817,7 @@ class TypeInfo_Vector : TypeInfo
     override void swap(void* p1, void* p2) const { return base.swap(p1, p2); }
 
     override @property inout(TypeInfo) next() nothrow pure inout { return base.next; }
-    override @property uint flags() nothrow pure const { return base.flags; }
+    override @property uint flags() nothrow pure const { return 2; /* passed in SIMD register */ }
 
     override const(void)[] initializer() nothrow pure const
     {
@@ -808,7 +826,7 @@ class TypeInfo_Vector : TypeInfo
 
     override @property size_t talign() nothrow pure const { return 16; }
 
-    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+    version (WithArgTypes) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
     {
         return base.argTypes(arg1, arg2);
     }
@@ -948,7 +966,7 @@ class TypeInfo_Delegate : TypeInfo
         return dg.alignof;
     }
 
-    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+    version (WithArgTypes) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
     {
         arg1 = typeid(void*);
         arg2 = typeid(void*);
@@ -959,6 +977,8 @@ class TypeInfo_Delegate : TypeInfo
 }
 
 private extern (C) Object _d_newclass(const TypeInfo_Class ci);
+private extern (C) int _d_isbaseof(scope TypeInfo_Class child,
+    scope const TypeInfo_Class parent) @nogc nothrow pure @safe; // rt.cast_
 
 /**
  * Runtime type information about a class.
@@ -1030,8 +1050,8 @@ class TypeInfo_Class : TypeInfo
         return m_offTi;
     }
 
-    @property auto info() @safe nothrow pure const { return this; }
-    @property auto typeinfo() @safe nothrow pure const { return this; }
+    @property auto info() @safe nothrow pure const return { return this; }
+    @property auto typeinfo() @safe nothrow pure const return { return this; }
 
     byte[]      m_init;         /** class static initializer
                                  * (init.length gives size in bytes of class)
@@ -1101,6 +1121,36 @@ class TypeInfo_Class : TypeInfo
             defaultConstructor(o);
         }
         return o;
+    }
+
+   /**
+    * Returns true if the class described by `child` derives from or is
+    * the class described by this `TypeInfo_Class`. Always returns false
+    * if the argument is null.
+    *
+    * Params:
+    *  child = TypeInfo for some class
+    * Returns:
+    *  true if the class described by `child` derives from or is the
+    *  class described by this `TypeInfo_Class`.
+    */
+    final bool isBaseOf(scope const TypeInfo_Class child) const @nogc nothrow pure @trusted
+    {
+        if (m_init.length)
+        {
+            // If this TypeInfo_Class represents an actual class we only need
+            // to check the child and its direct ancestors.
+            for (auto ti = cast() child; ti !is null; ti = ti.base)
+                if (ti is this)
+                    return true;
+            return false;
+        }
+        else
+        {
+            // If this TypeInfo_Class is the .info field of a TypeInfo_Interface
+            // we also need to recursively check the child's interfaces.
+            return child !is null && _d_isbaseof(cast() child, this);
+        }
     }
 }
 
@@ -1191,6 +1241,38 @@ class TypeInfo_Interface : TypeInfo
     override @property uint flags() nothrow pure const { return 1; }
 
     TypeInfo_Class info;
+
+   /**
+    * Returns true if the class described by `child` derives from the
+    * interface described by this `TypeInfo_Interface`. Always returns
+    * false if the argument is null.
+    *
+    * Params:
+    *  child = TypeInfo for some class
+    * Returns:
+    *  true if the class described by `child` derives from the
+    *  interface described by this `TypeInfo_Interface`.
+    */
+    final bool isBaseOf(scope const TypeInfo_Class child) const @nogc nothrow pure @trusted
+    {
+        return child !is null && _d_isbaseof(cast() child, this.info);
+    }
+
+   /**
+    * Returns true if the interface described by `child` derives from
+    * or is the interface described by this `TypeInfo_Interface`.
+    * Always returns false if the argument is null.
+    *
+    * Params:
+    *  child = TypeInfo for some interface
+    * Returns:
+    *  true if the interface described by `child` derives from or is
+    *  the interface described by this `TypeInfo_Interface`.
+    */
+    final bool isBaseOf(scope const TypeInfo_Interface child) const @nogc nothrow pure @trusted
+    {
+        return child !is null && _d_isbaseof(cast() child.info, this.info);
+    }
 }
 
 class TypeInfo_Struct : TypeInfo
@@ -1316,7 +1398,7 @@ class TypeInfo_Struct : TypeInfo
 
     override @property immutable(void)* rtInfo() nothrow pure const @safe { return m_RTInfo; }
 
-    version (X86_64)
+    version (WithArgTypes)
     {
         override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
         {
@@ -1423,7 +1505,7 @@ class TypeInfo_Tuple : TypeInfo
         assert(0);
     }
 
-    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+    version (WithArgTypes) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
     {
         assert(0);
     }
@@ -1465,7 +1547,7 @@ class TypeInfo_Const : TypeInfo
 
     override @property size_t talign() nothrow pure const { return base.talign; }
 
-    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+    version (WithArgTypes) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
     {
         return base.argTypes(arg1, arg2);
     }
@@ -2265,8 +2347,9 @@ V[K] dup(T : V[K], K, V)(T aa)
         return *cast(V*)pv;
     }
 
-    if (auto postblit = _getPostblit!V())
+    static if (__traits(hasPostblit, V))
     {
+        auto postblit = _getPostblit!V();
         foreach (k, ref v; aa)
             postblit(duplicateElem(k, v));
     }
@@ -2478,7 +2561,8 @@ Key[] keys(T : Value[Key], Value, Key)(T aa) @property
         const(Value[Key]) realAA = aa;
     auto a = cast(void[])_aaKeys(*cast(inout(AA)*)&realAA, Key.sizeof, typeid(Key[]));
     auto res = *cast(Key[]*)&a;
-    _doPostblit(res);
+    static if (__traits(hasPostblit, Key))
+        _doPostblit(res);
     return res;
 }
 
@@ -2529,7 +2613,8 @@ Value[] values(T : Value[Key], Value, Key)(T aa) @property
         const(Value[Key]) realAA = aa;
     auto a = cast(void[])_aaValues(*cast(inout(AA)*)&realAA, Key.sizeof, Value.sizeof, typeid(Value[]));
     auto res = *cast(Value[]*)&a;
-    _doPostblit(res);
+    static if (__traits(hasPostblit, Value))
+        _doPostblit(res);
     return res;
 }
 
@@ -2648,7 +2733,7 @@ private enum bool isSafeCopyable(T) = is(typeof(() @safe { union U { T x; } T *x
  *      update = The callable to apply on update.
  */
 void update(K, V, C, U)(ref V[K] aa, K key, scope C create, scope U update)
-if (is(typeof(create()) : V) && is(typeof(update(aa[K.init])) : V))
+if (is(typeof(create()) : V) && (is(typeof(update(aa[K.init])) : V) || is(typeof(update(aa[K.init])) == void)))
 {
     bool found;
     // if key is @safe-ly copyable, `update` may infer @safe
@@ -2666,7 +2751,12 @@ if (is(typeof(create()) : V) && is(typeof(update(aa[K.init])) : V))
     if (!found)
         *p = create();
     else
-        *p = update(*p);
+    {
+        static if (is(typeof(update(*p)) == void))
+            update(*p);
+        else
+            *p = update(*p);
+    }
 }
 
 ///
@@ -2675,16 +2765,16 @@ if (is(typeof(create()) : V) && is(typeof(update(aa[K.init])) : V))
     auto aa = ["k1": 1];
 
     aa.update("k1", {
-        return -1; // create (won't be executed
+        return -1; // create (won't be executed)
     }, (ref int v) {
-        return v + 1; // update
+        v += 1; // update
     });
     assert(aa["k1"] == 2);
 
     aa.update("k2", {
         return 0; // create
     }, (ref int v) {
-        return -1; // update (won't be executed)
+        v = -1; // update (won't be executed)
     });
     assert(aa["k2"] == 0);
 }
@@ -2751,6 +2841,19 @@ if (is(typeof(create()) : V) && is(typeof(update(aa[K.init])) : V))
     assert(a["2"] == 3);
     a.update("1", S1.init, S1.init);
     assert(a["1"] == -2);
+}
+
+@system unittest
+{
+    int[string] aa;
+
+    foreach (n; 0 .. 2)
+        aa.update("k1", {
+            return 7;
+        }, (ref int v) {
+            return v + 3;
+        });
+    assert(aa["k1"] == 10);
 }
 
 version (CoreDdoc)
@@ -3001,7 +3104,7 @@ private U[] _dup(T, U)(T[] a) // pure nothrow depends on postblit
     memcpy(arr.ptr, cast(const(void)*)a.ptr, T.sizeof * a.length);
     auto res = *cast(U[]*)&arr;
 
-    static if (!is(T : void))
+    static if (__traits(hasPostblit, T))
         _doPostblit(res);
     return res;
 }
@@ -3225,8 +3328,9 @@ private auto _getPostblit(T)() @trusted pure nothrow @nogc
 private void _doPostblit(T)(T[] arr)
 {
     // infer static postblit type, run postblit if any
-    if (auto postblit = _getPostblit!T())
+    static if (__traits(hasPostblit, T))
     {
+        auto postblit = _getPostblit!T();
         foreach (ref elem; arr)
             postblit(elem);
     }

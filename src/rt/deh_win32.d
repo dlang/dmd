@@ -215,7 +215,7 @@ extern(C)
 {
     int _d_isbaseof(ClassInfo b, ClassInfo c);
     Throwable.TraceInfo _d_traceContext(void* ptr = null);
-    void _d_createTrace(Object o, void* context);
+    void _d_createTrace(Throwable o, void* context);
 }
 
 
@@ -1006,4 +1006,3 @@ void _d_monitor_epilog(void *x, void *y, Object h)
         pop     EAX;
     }
 }
-

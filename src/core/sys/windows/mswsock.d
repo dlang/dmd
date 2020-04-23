@@ -9,6 +9,7 @@
  */
 module core.sys.windows.mswsock;
 version (Windows):
+@system:
 
 import core.sys.windows.winbase, core.sys.windows.windef;
 private import core.sys.windows.basetyps, core.sys.windows.w32api;

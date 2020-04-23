@@ -20,12 +20,6 @@ public import core.sync.exception;
 private import core.sync.condition;
 private import core.sync.mutex;
 
-version (Posix)
-{
-    private import core.stdc.errno;
-    private import core.sys.posix.pthread;
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // Barrier

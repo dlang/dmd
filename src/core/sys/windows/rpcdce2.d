@@ -8,6 +8,7 @@
  */
 module core.sys.windows.rpcdce2;
 version (Windows):
+@system:
 
 version (ANSI) {} else version = Unicode;
 
