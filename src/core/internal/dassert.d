@@ -163,11 +163,19 @@ private string miniFormat(V)(const scope ref V v)
     {
         return "`null`";
     }
+    else static if (is(V == U*, U))
+    {
+        // Format as ulong because not all sprintf implementations
+        // prepend a 0x for pointers
+        char[20] val;
+        const len = sprintf(&val[0], "0x%llX", cast(ulong) v);
+        return val.idup[0 .. len];
+    }
     // toString() isn't always const, e.g. classes inheriting from Object
     else static if (__traits(compiles, { string s = V.init.toString(); }))
     {
         // Object references / struct pointers may be null
-        static if (is(V == class) || is(V == interface) || is(V == U*, U))
+        static if (is(V == class) || is(V == interface))
         {
             if (v is null)
                 return "`null`";

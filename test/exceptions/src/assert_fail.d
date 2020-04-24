@@ -60,6 +60,22 @@ void testFloatingPoint()()
     test(creal(1 + 2i), creal(-1 + 2i), "1 + 2i != -1 + 2i");
 }
 
+void testPointers()
+{
+    static struct S
+    {
+        string toString() const { return "S(...)"; }
+    }
+
+    static if ((void*).sizeof == 4)
+        enum ptr = "0x12345670";
+    else
+        enum ptr = "0x123456789ABCDEF0";
+
+    int* p = cast(int*) mixin(ptr);
+    test(cast(S*) p, p, ptr ~ " != " ~ ptr);
+}
+
 void testStrings()
 {
     test("foo", "bar", `"foo" != "bar"`);
@@ -229,6 +245,7 @@ void main()
     testIntegers();
     testIntegerComparisons();
     testFloatingPoint();
+    testPointers();
     testStrings();
     testToString();
     testArray();
