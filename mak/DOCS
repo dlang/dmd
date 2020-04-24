@@ -70,8 +70,10 @@ DOCS=\
 	$(DOCDIR)\core_sys_darwin_mach_getsect.html \
 	$(DOCDIR)\core_sys_darwin_mach_kern_return.html \
 	$(DOCDIR)\core_sys_darwin_mach_loader.html \
+	$(DOCDIR)\core_sys_darwin_mach_nlist.html \
 	$(DOCDIR)\core_sys_darwin_mach_port.html \
 	$(DOCDIR)\core_sys_darwin_mach_semaphore.html \
+	$(DOCDIR)\core_sys_darwin_mach_stab.html \
 	$(DOCDIR)\core_sys_darwin_mach_thread_act.html \
 	$(DOCDIR)\core_sys_darwin_netinet_in_.html \
 	\
