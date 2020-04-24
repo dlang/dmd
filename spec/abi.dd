@@ -536,6 +536,7 @@ $(GNAME FuncAttr):
     $(GLINK FuncAttrScope)
     $(GLINK FuncAttrTrusted)
     $(GLINK FuncAttrSafe)
+    $(GLINK FuncAttrLive)
 )
 
     $(P Function attributes are emitted in the order as listed above.)
@@ -568,6 +569,9 @@ $(GNAME FuncAttrTrusted):
 $(GNAME FuncAttrSafe):
     $(B Nf)
 
+%(GNAME FuncAttrLive):
+    %(B Nm)
+
 $(GNAME Parameters):
     $(GLINK Parameter)
     $(GLINK Parameter) $(I Parameters)
@@ -575,6 +579,7 @@ $(GNAME Parameters):
 $(GNAME Parameter):
     $(GLINK Parameter2)
     $(B M) $(GLINK Parameter2)     $(GREEN // scope)
+    $(B Nk) $(GLINK Parameter2)    $(GREEN // return)
 
 $(GNAME Parameter2):
     $(GLINK Type)
