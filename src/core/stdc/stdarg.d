@@ -184,7 +184,8 @@ void va_arg(T)(ref va_list ap, ref T parmn)
     }
     else version (Win64)
     {
-        static if (T.sizeof > size_t.sizeof)
+        // passed indirectly by value if > 64 bits or of a size that is not a power of 2
+        static if (T.sizeof > size_t.sizeof || (T.sizeof & (T.sizeof - 1)) != 0)
             parmn = **cast(T**) ap;
         else
             parmn = *cast(T*) ap;
@@ -272,7 +273,7 @@ void va_arg()(ref va_list ap, TypeInfo ti, void* parmn)
         auto p = ap;
         auto tsize = ti.tsize;
         ap = cast(va_list) (p + size_t.sizeof);
-        void* q = (tsize > size_t.sizeof) ? *cast(void**) p : p;
+        void* q = (tsize > size_t.sizeof || (tsize & (tsize - 1)) != 0) ? *cast(void**) p : p;
         parmn[0..tsize] = q[0..tsize];
     }
     else version (SysV_x64)
