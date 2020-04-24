@@ -184,8 +184,18 @@ void va_arg(T)(ref va_list ap, ref T parmn)
     }
     else version (Win64)
     {
+        // LDC passes slices as 2 separate 64-bit values, not as 128-bit struct
+        version (LDC) enum isLDC = true;
+        else          enum isLDC = false;
+        static if (isLDC && is(T == E[], E))
+        {
+            const length = *cast(size_t*) ap;
+            ap += size_t.sizeof;
+            auto ptr = *cast(typeof(parmn.ptr)*) ap;
+            parmn = ptr[0 .. length];
+        }
         // passed indirectly by value if > 64 bits or of a size that is not a power of 2
-        static if (T.sizeof > size_t.sizeof || (T.sizeof & (T.sizeof - 1)) != 0)
+        else static if (T.sizeof > size_t.sizeof || (T.sizeof & (T.sizeof - 1)) != 0)
             parmn = **cast(T**) ap;
         else
             parmn = *cast(T*) ap;
@@ -267,13 +277,25 @@ void va_arg()(ref va_list ap, TypeInfo ti, void* parmn)
     }
     else version (Win64)
     {
+        version (LDC) enum isLDC = true;
+        else          enum isLDC = false;
+
         // Wait until everyone updates to get TypeInfo.talign
         //auto talign = ti.talign;
         //auto p = cast(void*)(cast(size_t)ap + talign - 1) & ~(talign - 1);
         auto p = ap;
         auto tsize = ti.tsize;
-        ap = cast(va_list) (p + size_t.sizeof);
-        void* q = (tsize > size_t.sizeof || (tsize & (tsize - 1)) != 0) ? *cast(void**) p : p;
+        void* q;
+        if (isLDC && tsize == 16 && cast(TypeInfo_Array) ti)
+        {
+            q = p;
+            ap = cast(va_list) (p + tsize);
+        }
+        else
+        {
+            q = (tsize > size_t.sizeof || (tsize & (tsize - 1)) != 0) ? *cast(void**) p : p;
+            ap = cast(va_list) (p + size_t.sizeof);
+        }
         parmn[0..tsize] = q[0..tsize];
     }
     else version (SysV_x64)
