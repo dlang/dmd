@@ -22,7 +22,11 @@ version (X86_64)
     else version = SysV_x64;
 }
 
-version (SysV_x64)
+version (GNU)
+{
+    import gcc.builtins;
+}
+else version (SysV_x64)
 {
     static import core.internal.vararg.sysv_x64;
 
@@ -85,7 +89,12 @@ unittest
 /**
  * The argument pointer type.
  */
-version (SysV_x64)
+version (GNU)
+{
+    alias va_list = __gnuc_va_list;
+    alias __gnuc_va_list = __builtin_va_list;
+}
+else version (SysV_x64)
 {
     alias va_list = core.internal.vararg.sysv_x64.va_list;
     public import core.internal.vararg.sysv_x64 : __va_list, __va_list_tag;
@@ -116,25 +125,36 @@ else version (AAPCS64)
 }
 else
 {
-    alias va_list = char*;
+    alias va_list = char*; // incl. unknown platforms
 }
 
 
 /**
  * Initialize ap.
- * parmn should be the last named parameter;
- * for DMD and non-Windows x86_64 targets, it should be __va_argsave.
+ * parmn should be the last named parameter.
  */
-version (X86)
+version (GNU)
 {
-    void va_start(T)(out va_list ap, ref T parmn)
-    {
-        ap = cast(va_list) ((cast(void*) &parmn) + T.sizeof.alignUp);
-    }
+    void va_start(T)(out va_list ap, ref T parmn);
 }
-else
+else version (LDC)
 {
-    void va_start(T)(out va_list ap, ref T parmn); // Compiler intrinsic
+    pragma(LDC_va_start)
+    void va_start(T)(out va_list ap, ref T parmn) @nogc;
+}
+else version (DigitalMars)
+{
+    version (X86)
+    {
+        void va_start(T)(out va_list ap, ref T parmn)
+        {
+            ap = cast(va_list) ((cast(void*) &parmn) + T.sizeof.alignUp);
+        }
+    }
+    else
+    {
+        void va_start(T)(out va_list ap, ref T parmn); // intrinsic; parmn should be __va_argsave for non-Windows x86_64 targets
+    }
 }
 
 
@@ -143,33 +163,18 @@ else
  */
 T va_arg(T)(ref va_list ap)
 {
-    version (X86)
-    {
-        T arg = *cast(T*) ap;
-        ap += T.sizeof.alignUp;
-        return arg;
-    }
-    else version (Win64)
-    {
-        static if (T.sizeof > size_t.sizeof)
-            T arg = **cast(T**) ap;
-        else
-            T arg = *cast(T*) ap;
-        ap += size_t.sizeof;
-        return arg;
-    }
-    else
-    {
-        T a;
-        va_arg(ap, a);
-        return a;
-    }
+    T a;
+    va_arg(ap, a);
+    return a;
 }
 
 
 /**
  * Retrieve and store in parmn the next value that is of type T.
  */
+version (GNU)
+    void va_arg(T)(ref va_list ap, ref T parmn); // intrinsic
+else
 void va_arg(T)(ref va_list ap, ref T parmn)
 {
     version (X86)
@@ -246,6 +251,7 @@ void va_arg(T)(ref va_list ap, ref T parmn)
  * Retrieve and store through parmn the next value that is of TypeInfo ti.
  * Used when the static type is not known.
  */
+version (GNU) { /* unsupported */ } else
 void va_arg()(ref va_list ap, TypeInfo ti, void* parmn)
 {
     version (X86)
@@ -323,34 +329,56 @@ void va_arg()(ref va_list ap, TypeInfo ti, void* parmn)
 /**
  * End use of ap.
  */
-void va_end(va_list ap)
+version (GNU)
 {
+    alias va_end = __builtin_va_end;
+}
+else version (LDC)
+{
+    pragma(LDC_va_end)
+    void va_end(va_list ap);
+}
+else version (DigitalMars)
+{
+    void va_end(va_list ap) {}
 }
 
 
-// va_copy
-version (SysV_x64)
+/**
+ * Make a copy of ap.
+ */
+version (GNU)
 {
-    import core.stdc.stdlib : alloca;
-
-    ///
-    void va_copy(out va_list dest, va_list src, void* storage = alloca(__va_list_tag.sizeof))
+    alias va_copy = __builtin_va_copy;
+}
+else version (LDC)
+{
+    pragma(LDC_va_copy)
+    void va_copy(out va_list dest, va_list src);
+}
+else version (DigitalMars)
+{
+    version (SysV_x64)
     {
-        // Instead of copying the pointers, and aliasing the source va_list,
-        // the default argument alloca will allocate storage in the caller's
-        // stack frame.  This is still not correct (it should be allocated in
-        // the place where the va_list variable is declared) but most of the
-        // time the caller's stack frame _is_ the place where the va_list is
-        // allocated, so in most cases this will now work.
-        dest = cast(va_list) storage;
-        *dest = *src;
+        void va_copy(out va_list dest, va_list src, void* storage = alloca(__va_list_tag.sizeof))
+        {
+            // Instead of copying the pointers, and aliasing the source va_list,
+            // the default argument alloca will allocate storage in the caller's
+            // stack frame.  This is still not correct (it should be allocated in
+            // the place where the va_list variable is declared) but most of the
+            // time the caller's stack frame _is_ the place where the va_list is
+            // allocated, so in most cases this will now work.
+            dest = cast(va_list) storage;
+            *dest = *src;
+        }
+
+        import core.stdc.stdlib : alloca;
     }
-}
-else
-{
-    ///
-    void va_copy(out va_list dest, va_list src)
+    else
     {
-        dest = src;
+        void va_copy(out va_list dest, va_list src)
+        {
+            dest = src;
+        }
     }
 }
