@@ -86,6 +86,17 @@ unittest
 }
 
 
+version (BigEndian)
+{
+    // Adjusts a size_t-aligned pointer for types smaller than size_t.
+    T* adjustForBigEndian(T)(T* p, size_t size) pure
+    {
+        return size >= size_t.sizeof ? p :
+            cast(T*) ((cast(void*) p) + (size_t.sizeof - size));
+    }
+}
+
+
 /**
  * The argument pointer type.
  */
@@ -211,7 +222,10 @@ void va_arg(T)(ref va_list ap, ref T parmn)
         // instead of normal 4-byte alignment (APCS doesn't do this).
         if (T.alignof >= 8)
             ap.__ap = ap.__ap.alignUp!8;
-        auto p = ap.__ap; // TODO: big-endian adjustment?
+        auto p = ap.__ap;
+        version (BigEndian)
+            static if (T.sizeof < size_t.sizeof)
+                p = adjustForBigEndian(p, T.sizeof);
         parmn = *cast(T*) p;
         ap.__ap += T.sizeof.alignUp;
     }
@@ -221,7 +235,10 @@ void va_arg(T)(ref va_list ap, ref T parmn)
     }
     else version (ARM_Any)
     {
-        auto p = ap; // TODO: big-endian adjustment?
+        auto p = ap;
+        version (BigEndian)
+            static if (T.sizeof < size_t.sizeof)
+                p = adjustForBigEndian(p, T.sizeof);
         parmn = *cast(T*) p;
         ap += T.sizeof.alignUp;
     }
@@ -240,7 +257,7 @@ void va_arg(T)(ref va_list ap, ref T parmn)
         auto p = ap;
         version (BigEndian)
             static if (T.sizeof < size_t.sizeof)
-                p += size_t.sizeof - T.sizeof;
+                p = adjustForBigEndian(p, T.sizeof);
         parmn = *cast(T*) p;
         ap += T.sizeof.alignUp;
     }
@@ -249,7 +266,7 @@ void va_arg(T)(ref va_list ap, ref T parmn)
         auto p = ap;
         version (BigEndian)
             static if (T.sizeof < size_t.sizeof)
-                p += size_t.sizeof - T.sizeof;
+                p = adjustForBigEndian(p, T.sizeof);
         parmn = *cast(T*) p;
         ap += T.sizeof.alignUp;
     }
@@ -307,7 +324,9 @@ void va_arg()(ref va_list ap, TypeInfo ti, void* parmn)
         const tsize = ti.tsize;
         if (ti.talign >= 8)
             ap.__ap = ap.__ap.alignUp!8;
-        auto p = ap.__ap; // TODO: big-endian adjustment?
+        auto p = ap.__ap;
+        version (BigEndian)
+            p = adjustForBigEndian(p, tsize);
         ap.__ap += tsize.alignUp;
         parmn[0..tsize] = p[0..tsize];
     }
@@ -318,7 +337,9 @@ void va_arg()(ref va_list ap, TypeInfo ti, void* parmn)
     else version (ARM_Any)
     {
         const tsize = ti.tsize;
-        auto p = cast(void*) ap; // TODO: big-endian adjustment?
+        auto p = cast(void*) ap;
+        version (BigEndian)
+            p = adjustForBigEndian(p, tsize);
         ap += tsize.alignUp;
         parmn[0..tsize] = p[0..tsize];
     }
@@ -326,21 +347,19 @@ void va_arg()(ref va_list ap, TypeInfo ti, void* parmn)
     {
         if (ti.talign >= 8)
             ap = ap.alignUp!8;
-        auto p = cast(void*) ap;
         const tsize = ti.tsize;
+        auto p = cast(void*) ap;
         version (BigEndian)
-            if (tsize < size_t.sizeof)
-                p += size_t.sizeof - tsize;
+            p = adjustForBigEndian(p, tsize);
         ap += tsize.alignUp;
         parmn[0..tsize] = p[0..tsize];
     }
     else version (MIPS_Any)
     {
-        auto p = cast(void*) ap;
         const tsize = ti.tsize;
+        auto p = cast(void*) ap;
         version (BigEndian)
-            if (tsize < size_t.sizeof)
-                p += size_t.sizeof - tsize;
+            p = adjustForBigEndian(p, tsize);
         ap += tsize.alignUp;
         parmn[0..tsize] = p[0..tsize];
     }
