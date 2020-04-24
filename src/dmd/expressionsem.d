@@ -3164,7 +3164,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (exp.type.ty == Terror)
             return setError();
 
-        //printf("TypeExp::semantic(%s)\n", type.toChars());
+        //printf("TypeExp::semantic(%s)\n", exp.type.toChars());
         Expression e;
         Type t;
         Dsymbol s;

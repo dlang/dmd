@@ -6726,6 +6726,8 @@ void attributesApply(const TypeFunction tf, void delegate(string) dg, TRUSTforma
         dg("return");
     if (tf.isscope && !tf.isscopeinferred)
         dg("scope");
+    if (tf.islive)
+        dg("@live");
 
     TRUST trustAttrib = tf.trust;
 
