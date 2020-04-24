@@ -569,8 +569,8 @@ $(GNAME FuncAttrTrusted):
 $(GNAME FuncAttrSafe):
     $(B Nf)
 
-%(GNAME FuncAttrLive):
-    %(B Nm)
+$(GNAME FuncAttrLive):
+    $(B Nm)
 
 $(GNAME Parameters):
     $(GLINK Parameter)
