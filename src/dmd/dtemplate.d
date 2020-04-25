@@ -558,6 +558,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     bool literal;           // this template declaration is a literal
     bool ismixin;           // this is a mixin template declaration
     bool isstatic;          // this is static template declaration
+    bool isAliasSeq;        /// matches `template AliasSeq(T...) { alias AliasSeq = T; }
     Prot protection;
     int inuse;              /// for recursive expansion detection
 
@@ -607,6 +608,30 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             {
                 onemember = s;
                 s.parent = this;
+
+                /* Set isAliasSeq if this is of the form:
+                 * template AliasSeq(T...) { alias AliasSeq = T; }
+                 */
+                if (parameters && parameters.length == 1)
+                {
+                    if (auto ttp = (*parameters)[0].isTemplateTupleParameter())
+                    {
+                        if (auto ad = s.isAliasDeclaration())
+                        {
+                            if (ad.type)
+                            {
+                                if (auto ti = ad.type.isTypeIdentifier())
+                                {
+                                    if (ti.idents.length == 0 &&
+                                        ti.ident is ttp.ident)
+                                    {
+                                        isAliasSeq = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
