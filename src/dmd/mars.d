@@ -1037,7 +1037,8 @@ void getenv_setargv(const(char)* envvalue, Strings* args)
 
 /**
  * Parse command line arguments for the last instance of -m32, -m64 or -m32mscoff
- * to detect the desired architecture.
+ * to detect the desired architecture. If multiple conflicting arguments are
+ * given (e.g. "-m32" and "-m64"), an error is raised.
  *
  * Params:
  *   args = Command line arguments
@@ -1050,19 +1051,29 @@ void getenv_setargv(const(char)* envvalue, Strings* args)
  */
 const(char)* parse_arch_arg(Strings* args, const(char)* arch)
 {
+    bool parsedArch = false;
+
     foreach (const p; *args)
     {
         if (p[0] == '-')
         {
             if (strcmp(p + 1, "m32") == 0 || strcmp(p + 1, "m32mscoff") == 0 || strcmp(p + 1, "m64") == 0)
+            {
+                if (parsedArch && strcmp(p + 2, arch) != 0)
+                {
+                    error(Loc.initial, "Conflicting target architectures specified: -m%s and %s.", arch, p);
+                    fatal();
+                }
+
                 arch = p + 2;
+                parsedArch = true;
+            }
             else if (strcmp(p + 1, "run") == 0)
                 break;
         }
     }
     return arch;
 }
-
 
 /**
  * Parse command line arguments for the last instance of -conf=path.
