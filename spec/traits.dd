@@ -561,6 +561,9 @@ void test()
 class C { int x = -1; }
 
 static assert(__traits(isZeroInit, C));
+
+// For initializing arrays of element type `void`.
+static assert(__traits(isZeroInit, void));
 ---
 )
 
