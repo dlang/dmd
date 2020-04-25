@@ -502,6 +502,34 @@ a = 2;         // sets `S.i` to `2`
 b = 4;         // sets `S.j` to `4`
 -----------
 
+$(H3 $(LNAME2 alias-template-declaration, Alias Template Declarations))
+
+    $(P If the optional $(GLINK2 template, TemplateParameters) is present, then the
+    $(GLINK AliasDeclaration):)
+
+$(GRAMMAR
+    $(D alias) $(GLINK_LEX Identifier) $(GLINK TemplateParameters) $(D =) $(GLINK AliasRHS) $(D ;)
+)
+
+    $(P is a shorthand syntax for a $(GLINK2 template, TemplateDeclaration) of the form:)
+
+$(GRAMMAR
+    $(B template) $(GLINK_LEX Identifier) $(GLINK2 template, TemplateParameters)
+        $(TT {) $(B alias) $(GLINK_LEX Identifier) $(TT =) $(GLINK AliasRHS) $(TT })
+)
+
+    $(P For example:)
+
+---
+alias AliasSeq(T...) = T;
+---
+
+    $(P is equivalent to:)
+
+---
+template AliasSeq(T...) { alias AliasSeq = T; }
+---
+
 $(H2 $(LNAME2 extern, Extern Declarations))
 
 $(P Variable declarations with the storage class $(D extern) are not allocated
