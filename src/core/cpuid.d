@@ -954,7 +954,7 @@ void cpuidX86()
 
         if (cf.probablyAMD && max_extended_cpuid >= 0x8000_001E) {
             version (GNU_OR_LDC) asm pure nothrow @nogc {
-                "cpuid" : "=a" a, "=b" b : "a" 0x8000_001E : "ecx", "edx";
+                "cpuid" : "=a" (a), "=b" (b) : "a" (0x8000_001E) : "ecx", "edx";
             } else {
                 asm pure nothrow @nogc {
                     mov EAX, 0x8000_001e;
@@ -992,7 +992,7 @@ bool hasCPUID()
                 xor {(%%esp), %%eax|eax, [esp]}
                                            # eax = whichever bits were changed
                 popf{l|d}                  # Restore original EFLAGS
-                " : "=a" flags;
+                " : "=a" (flags);
             }
         }
         else version (D_InlineAsm_X86)
