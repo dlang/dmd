@@ -167,26 +167,16 @@ else version (DigitalMars)
 /**
  * Retrieve and return the next value that is of type T.
  */
-T va_arg(T)(ref va_list ap)
-{
-    T a;
-    va_arg(ap, a);
-    return a;
-}
-
-
-/**
- * Retrieve and store in parmn the next value that is of type T.
- */
 version (GNU)
-    void va_arg(T)(ref va_list ap, ref T parmn); // intrinsic
+    T va_arg(T)(ref va_list ap); // intrinsic
 else
-void va_arg(T)(ref va_list ap, ref T parmn)
+T va_arg(T)(ref va_list ap)
 {
     version (X86)
     {
-        parmn = *cast(T*) ap;
+        auto p = cast(T*) ap;
         ap += T.sizeof.alignUp;
+        return *p;
     }
     else version (Win64)
     {
@@ -195,21 +185,22 @@ void va_arg(T)(ref va_list ap, ref T parmn)
         else          enum isLDC = false;
         static if (isLDC && is(T == E[], E))
         {
-            const length = *cast(size_t*) ap;
-            ap += size_t.sizeof;
-            auto ptr = *cast(typeof(parmn.ptr)*) ap;
-            parmn = ptr[0 .. length];
+            auto p = cast(T*) ap;
+            ap += T.sizeof;
+            return *p;
         }
+
         // passed indirectly by value if > 64 bits or of a size that is not a power of 2
-        else static if (T.sizeof > size_t.sizeof || (T.sizeof & (T.sizeof - 1)) != 0)
-            parmn = **cast(T**) ap;
+        static if (T.sizeof > size_t.sizeof || (T.sizeof & (T.sizeof - 1)) != 0)
+            auto p = *cast(T**) ap;
         else
-            parmn = *cast(T*) ap;
+            auto p = cast(T*) ap;
         ap += size_t.sizeof;
+        return *p;
     }
     else version (SysV_x64)
     {
-        core.internal.vararg.sysv_x64.va_arg!T(ap, parmn);
+        return core.internal.vararg.sysv_x64.va_arg!T(ap);
     }
     else version (AAPCS32)
     {
@@ -217,12 +208,12 @@ void va_arg(T)(ref va_list ap, ref T parmn)
         // instead of normal 4-byte alignment (APCS doesn't do this).
         if (T.alignof >= 8)
             ap.__ap = ap.__ap.alignUp!8;
-        auto p = ap.__ap;
+        auto p = cast(T*) ap.__ap;
         version (BigEndian)
             static if (T.sizeof < size_t.sizeof)
                 p = adjustForBigEndian(p, T.sizeof);
-        parmn = *cast(T*) p;
         ap.__ap += T.sizeof.alignUp;
+        return *p;
     }
     else version (AAPCS64)
     {
@@ -230,12 +221,12 @@ void va_arg(T)(ref va_list ap, ref T parmn)
     }
     else version (ARM_Any)
     {
-        auto p = ap;
+        auto p = cast(T*) ap;
         version (BigEndian)
             static if (T.sizeof < size_t.sizeof)
                 p = adjustForBigEndian(p, T.sizeof);
-        parmn = *cast(T*) p;
         ap += T.sizeof.alignUp;
+        return *p;
     }
     else version (PPC_Any)
     {
@@ -249,24 +240,33 @@ void va_arg(T)(ref va_list ap, ref T parmn)
         // be aligned before accessing a value
         if (T.alignof >= 8)
             ap = ap.alignUp!8;
-        auto p = ap;
+        auto p = cast(T*) ap;
         version (BigEndian)
             static if (T.sizeof < size_t.sizeof)
                 p = adjustForBigEndian(p, T.sizeof);
-        parmn = *cast(T*) p;
         ap += T.sizeof.alignUp;
+        return *p;
     }
     else version (MIPS_Any)
     {
-        auto p = ap;
+        auto p = cast(T*) ap;
         version (BigEndian)
             static if (T.sizeof < size_t.sizeof)
                 p = adjustForBigEndian(p, T.sizeof);
-        parmn = *cast(T*) p;
         ap += T.sizeof.alignUp;
+        return *p;
     }
     else
         static assert(0, "Unsupported platform");
+}
+
+
+/**
+ * Retrieve and store in parmn the next value that is of type T.
+ */
+void va_arg(T)(ref va_list ap, ref T parmn)
+{
+    parmn = va_arg!T(ap);
 }
 
 
