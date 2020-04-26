@@ -29,9 +29,10 @@ Note:
 void __move_post_blt(S)(ref S newLocation, ref S oldLocation) nothrow
     if (is(S == struct))
 {
+    import core.internal.traits : hasElaborateMove;
     static foreach (i, M; typeof(S.tupleof))
     {
-        static if (is(M == struct))
+        static if (hasElaborateMove!M)
         {
             __move_post_blt(newLocation.tupleof[i], oldLocation.tupleof[i]);
         }
@@ -45,6 +46,17 @@ void __move_post_blt(S)(ref S newLocation, ref S oldLocation) nothrow
                 "`" ~ S.stringof ~ ".opPostMove` must take exactly one argument of type `" ~ S.stringof ~ "` by reference");
 
         newLocation.opPostMove(oldLocation);
+    }
+}
+
+void __move_post_blt(S)(ref S newLocation, ref S oldLocation) nothrow
+    if (__traits(isStaticArray, S))
+{
+    import core.internal.traits : hasElaborateMove;
+    static if (S.length && hasElaborateMove!(typeof(newLocation[0])))
+    {
+        foreach (i; 0 .. S.length)
+            __move_post_blt(newLocation[i], oldLocation[i]);
     }
 }
 
@@ -110,4 +122,26 @@ void __move_post_blt(S)(ref S newLocation, ref S oldLocation) nothrow
     A src, dest;
     __move_post_blt(dest, src);
     assert(!doNotMove.movedInto);
+}
+
+@safe nothrow unittest
+{
+    static struct A
+    {
+        bool movedInto;
+        void opPostMove(const ref A oldLocation)
+        {
+            movedInto = true;
+        }
+    }
+    static struct B
+    {
+        A[2] a;
+    }
+    B src, dest;
+    __move_post_blt(dest, src);
+    foreach (ref a; src.a)
+        assert(!a.movedInto);
+    foreach (ref a; dest.a)
+        assert(a.movedInto);
 }
