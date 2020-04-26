@@ -109,6 +109,7 @@ version (SCPP)
                 case TYnptr:
                 case TYimmutPtr:
                 case TYsharePtr:
+                case TYrestrictPtr:
                 case TYfgPtr:
                     b = el_tolong(e) != 0;
                     break;

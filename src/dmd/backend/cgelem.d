@@ -178,6 +178,7 @@ int elemisone(elem *e)
             case TYnptr:
             case TYimmutPtr:
             case TYsharePtr:
+            case TYrestrictPtr:
             case TYfgPtr:
             case TYbool:
             case TYwchar_t:
@@ -242,6 +243,7 @@ int elemisnegone(elem *e)
             case TYvptr:
             case TYimmutPtr:
             case TYsharePtr:
+            case TYrestrictPtr:
             case TYfgPtr:
             case TYbool:
             case TYwchar_t:
@@ -1177,6 +1179,7 @@ private elem * elmin(elem *e, goal_t goal)
              tybasic(tym) == TYsptr ||
              tybasic(tym) == TYfgPtr ||
              tybasic(tym) == TYimmutPtr ||
+             tybasic(tym) == TYrestrictPtr ||
              tybasic(tym) == TYsharePtr)
            )
         {
