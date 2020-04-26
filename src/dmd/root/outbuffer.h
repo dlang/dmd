@@ -23,6 +23,7 @@ private:
     bool notlinehead;
 public:
     bool doindent;
+    bool spaces;
     int level;
 
     OutBuffer()
