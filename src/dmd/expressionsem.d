@@ -2125,10 +2125,15 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 }
             }
 
-            // Do not allow types that need destructors
+            // Do not allow types that need destructors or copy constructors.
             if (arg.type.needsDestruction())
             {
                 arg.error("cannot pass types that need destruction as variadic arguments");
+                err = true;
+            }
+            if (arg.type.needsCopyOrPostblit())
+            {
+                arg.error("cannot pass types with postblits or copy constructors as variadic arguments");
                 err = true;
             }
 

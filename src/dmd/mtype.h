@@ -314,6 +314,7 @@ public:
     Type *baseElemOf();
     uinteger_t sizemask();
     virtual bool needsDestruction();
+    virtual bool needsCopyOrPostblit();
     virtual bool needsNested();
 
     // For eliminating dynamic_cast
@@ -446,6 +447,7 @@ public:
     Expression *defaultInitLiteral(const Loc &loc);
     bool hasPointers();
     bool needsDestruction();
+    bool needsCopyOrPostblit();
     bool needsNested();
 
     void accept(Visitor *v) { v->visit(this); }
@@ -742,6 +744,7 @@ public:
     bool isAssignable();
     bool isBoolean() /*const*/;
     bool needsDestruction() /*const*/;
+    bool needsCopyOrPostblit();
     bool needsNested();
     bool hasPointers();
     bool hasVoidInitPointers();
@@ -775,6 +778,7 @@ public:
     bool isString();
     bool isAssignable();
     bool needsDestruction();
+    bool needsCopyOrPostblit();
     bool needsNested();
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
