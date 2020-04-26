@@ -264,6 +264,8 @@ COPY=\
 	$(IMPDIR)\core\sys\posix\netinet\in_.d \
 	$(IMPDIR)\core\sys\posix\netinet\tcp.d \
 	\
+	$(IMPDIR)\core\sys\posix\stdc\time.d \
+	\
 	$(IMPDIR)\core\sys\posix\sys\filio.d \
 	$(IMPDIR)\core\sys\posix\sys\ioccom.d \
 	$(IMPDIR)\core\sys\posix\sys\ioctl.d \
@@ -437,6 +439,7 @@ COPY=\
 	$(IMPDIR)\core\sys\windows\sspi.d \
 	$(IMPDIR)\core\sys\windows\stacktrace.d \
 	$(IMPDIR)\core\sys\windows\stat.d \
+	$(IMPDIR)\core\sys\windows\stdc\time.d \
 	$(IMPDIR)\core\sys\windows\subauth.d \
 	$(IMPDIR)\core\sys\windows\threadaux.d \
 	$(IMPDIR)\core\sys\windows\tlhelp32.d \
