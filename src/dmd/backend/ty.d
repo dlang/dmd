@@ -141,8 +141,9 @@ enum
     TYsharePtr          = 0x5C, // pointer to shared data
     TYimmutPtr          = 0x5D, // pointer to immutable data
     TYfgPtr             = 0x5E, // GS: pointer (I32) FS: pointer (I64)
+    TYrestrictPtr       = 0x5F, // restrict pointer
 
-    TYMAX               = 0x5F,
+    TYMAX               = 0x60,
 }
 
 alias TYerror = TYint;

@@ -3087,6 +3087,7 @@ void codelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,uint constflag)
                     case TYfgPtr:
                     case TYimmutPtr:
                     case TYsharePtr:
+                    case TYrestrictPtr:
                         *pretregs |= I16 ? IDXREGS : ALLREGS;
                         break;
 

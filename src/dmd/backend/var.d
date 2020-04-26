@@ -409,6 +409,7 @@ extern (C) __gshared const(char)*[TYMAX] tystring =
     TYvptr     : "__handle *",
     TYimmutPtr : "__immutable *",
     TYsharePtr : "__shared *",
+    TYrestrictPtr : "__restrict *",
     TYfgPtr    : "__fg *",
     TYffunc    : "far C func",
     TYfpfunc   : "far Pascal func",
@@ -617,6 +618,7 @@ __gshared ubyte[TYMAX] dttab =
     TYvptr     : 0x40,
     TYimmutPtr : 0x20,
     TYsharePtr : 0x20,
+    TYrestrictPtr : 0x20,
     TYfgPtr    : 0x20,
     TYffunc    : 0x64,
     TYfpfunc   : 0x73,
@@ -726,6 +728,7 @@ __gshared ushort[TYMAX] dttab4 =
     TYvptr     : 0x200,
     TYimmutPtr : 0x100,
     TYsharePtr : 0x100,
+    TYrestrictPtr : 0x100,
     TYfgPtr    : 0x100,
     TYffunc    : 0x00,
     TYfpfunc   : 0x00,
@@ -835,6 +838,7 @@ __gshared byte[256] _tysize =
     TYvptr     : 4,
     TYimmutPtr : 2,
     TYsharePtr : 2,
+    TYrestrictPtr : 2,
     TYfgPtr    : 2,
     TYffunc    : -1,
     TYfpfunc   : -1,
@@ -955,6 +959,7 @@ __gshared byte[256] _tyalignsize =
     TYvptr     : 4,
     TYimmutPtr : 2,
     TYsharePtr : 2,
+    TYrestrictPtr : 2,
     TYfgPtr    : 2,
     TYffunc    : -1,
     TYfpfunc   : -1,
@@ -975,7 +980,7 @@ __gshared byte[256] _tyalignsize =
 private:
 
 enum TXptr       = [ TYnptr ];
-enum TXptr_nflat = [ TYsptr,TYcptr,TYf16ptr,TYfptr,TYhptr,TYvptr,TYimmutPtr,TYsharePtr,TYfgPtr ];
+enum TXptr_nflat = [ TYsptr,TYcptr,TYf16ptr,TYfptr,TYhptr,TYvptr,TYimmutPtr,TYsharePtr,TYrestrictPtr,TYfgPtr ];
 enum TXreal      = [ TYfloat,TYdouble,TYdouble_alias,TYldouble,
                      TYfloat4,TYdouble2,
                      TYfloat8,TYdouble4,
