@@ -2354,7 +2354,6 @@ char[] mangleFunc(T:FT*, FT)(const(char)[] fqn, char[] dst = null) @safe pure no
 
 private enum hasTypeBackRef = (int function(void**,void**)).mangleof[$-4 .. $] == "QdZi";
 
-///
 @safe pure nothrow unittest
 {
     assert(mangleFunc!(int function(int))("a.b") == "_D1a1bFiZi");
