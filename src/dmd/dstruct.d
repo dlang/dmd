@@ -566,7 +566,10 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         ispod = StructPOD.yes;
 
         if (enclosing || postblit || dtor || hasCopyCtor)
+        {
             ispod = StructPOD.no;
+            return false;
+        }
 
         // Recursively check all fields are POD.
         for (size_t i = 0; i < fields.dim; i++)
@@ -575,7 +578,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             if (v.storage_class & STC.ref_)
             {
                 ispod = StructPOD.no;
-                break;
+                return false;
             }
 
             Type tv = v.type.baseElemOf();
@@ -586,7 +589,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
                 if (!sd.isPOD())
                 {
                     ispod = StructPOD.no;
-                    break;
+                    return false;
                 }
             }
         }
