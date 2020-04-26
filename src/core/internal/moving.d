@@ -29,11 +29,11 @@ Note:
 void __move_post_blt(S)(ref S newLocation, ref S oldLocation) nothrow
     if (is(S == struct))
 {
-    static foreach (memberName; __traits(allMembers, S))
+    static foreach (i, M; typeof(S.tupleof))
     {
-        static if (is(typeof(__traits(getMember, S, memberName)) == struct))
+        static if (is(M == struct))
         {
-            __move_post_blt(__traits(getMember, newLocation, memberName), __traits(getMember, oldLocation, memberName));
+            __move_post_blt(newLocation.tupleof[i], oldLocation.tupleof[i]);
         }
     }
 
@@ -86,4 +86,28 @@ void __move_post_blt(S)(ref S newLocation, ref S oldLocation) nothrow
     B src, dest;
     __move_post_blt(dest, src);
     assert(dest.movedInto && dest.a.movedInto);
+}
+
+@safe nothrow unittest
+{
+    static struct DoNotMove
+    {
+        bool movedInto;
+        void opPostMove(const ref DoNotMove oldLocation)
+        {
+            movedInto = true;
+        }
+    }
+    static DoNotMove doNotMove;
+
+    struct A
+    {
+        @property ref DoNotMove member()
+        {
+            return doNotMove;
+        }
+    }
+    A src, dest;
+    __move_post_blt(dest, src);
+    assert(!doNotMove.movedInto);
 }
