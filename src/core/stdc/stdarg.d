@@ -41,30 +41,25 @@ else version (SysV_x64)
     }
 }
 
-version (OSX)
-    version = Darwin;
-else version (iOS)
-    version = Darwin;
-else version (TVOS)
-    version = Darwin;
-else version (WatchOS)
-    version = Darwin;
-
-version (Darwin) { /* simpler varargs implementation */ }
-else
-{
-    version (ARM)
-        version = AAPCS32;
-    version (AArch64)
-        version = AAPCS64;
-}
-
 version (ARM)     version = ARM_Any;
 version (AArch64) version = ARM_Any;
 version (MIPS32)  version = MIPS_Any;
 version (MIPS64)  version = MIPS_Any;
 version (PPC)     version = PPC_Any;
 version (PPC64)   version = PPC_Any;
+
+version (ARM_Any)
+{
+    // Darwin uses a simpler varargs implementation
+    version (OSX) {}
+    else version (iOS) {}
+    else version (TVOS) {}
+    else version (WatchOS) {}
+    else:
+
+    version (ARM)     version = AAPCS32;
+    version (AArch64) version = AAPCS64;
+}
 
 
 T alignUp(size_t alignment = size_t.sizeof, T)(T base) pure
@@ -269,99 +264,6 @@ void va_arg(T)(ref va_list ap, ref T parmn)
                 p = adjustForBigEndian(p, T.sizeof);
         parmn = *cast(T*) p;
         ap += T.sizeof.alignUp;
-    }
-    else
-        static assert(0, "Unsupported platform");
-}
-
-
-/**
- * Retrieve and store through parmn the next value that is of TypeInfo ti.
- * Used when the static type is not known.
- */
-version (GNU) { /* unsupported */ } else
-void va_arg()(ref va_list ap, TypeInfo ti, void* parmn)
-{
-    version (X86)
-    {
-        // Wait until everyone updates to get TypeInfo.talign
-        //auto talign = ti.talign;
-        //auto p = cast(void*)(cast(size_t)ap + talign - 1) & ~(talign - 1);
-        auto p = ap;
-        auto tsize = ti.tsize;
-        ap = cast(va_list) (p + tsize.alignUp);
-        parmn[0..tsize] = p[0..tsize];
-    }
-    else version (Win64)
-    {
-        version (LDC) enum isLDC = true;
-        else          enum isLDC = false;
-
-        // Wait until everyone updates to get TypeInfo.talign
-        //auto talign = ti.talign;
-        //auto p = cast(void*)(cast(size_t)ap + talign - 1) & ~(talign - 1);
-        auto p = ap;
-        auto tsize = ti.tsize;
-        void* q;
-        if (isLDC && tsize == 16 && cast(TypeInfo_Array) ti)
-        {
-            q = p;
-            ap = cast(va_list) (p + tsize);
-        }
-        else
-        {
-            q = (tsize > size_t.sizeof || (tsize & (tsize - 1)) != 0) ? *cast(void**) p : p;
-            ap = cast(va_list) (p + size_t.sizeof);
-        }
-        parmn[0..tsize] = q[0..tsize];
-    }
-    else version (SysV_x64)
-    {
-        core.internal.vararg.sysv_x64.va_arg(ap, ti, parmn);
-    }
-    else version (AAPCS32)
-    {
-        const tsize = ti.tsize;
-        if (ti.talign >= 8)
-            ap.__ap = ap.__ap.alignUp!8;
-        auto p = ap.__ap;
-        version (BigEndian)
-            p = adjustForBigEndian(p, tsize);
-        ap.__ap += tsize.alignUp;
-        parmn[0..tsize] = p[0..tsize];
-    }
-    else version (AAPCS64)
-    {
-        static assert(0, "Unsupported platform");
-    }
-    else version (ARM_Any)
-    {
-        const tsize = ti.tsize;
-        auto p = cast(void*) ap;
-        version (BigEndian)
-            p = adjustForBigEndian(p, tsize);
-        ap += tsize.alignUp;
-        parmn[0..tsize] = p[0..tsize];
-    }
-    else version (PPC_Any)
-    {
-        if (ti.talign >= 8)
-            ap = ap.alignUp!8;
-        const tsize = ti.tsize;
-        auto p = cast(void*) ap;
-        version (BigEndian)
-            p = adjustForBigEndian(p, tsize);
-        ap += tsize.alignUp;
-        parmn[0..tsize] = p[0..tsize];
-    }
-    else version (MIPS_Any)
-    {
-        const tsize = ti.tsize;
-        auto p = cast(void*) ap;
-        version (BigEndian)
-            p = adjustForBigEndian(p, tsize);
-        ap += tsize.alignUp;
-        parmn[0..tsize] = p[0..tsize];
     }
     else
         static assert(0, "Unsupported platform");
