@@ -1124,7 +1124,6 @@ class ConservativeGC : GC
 
 enum
 {   PAGESIZE =    4096,
-    POOLSIZE =   (4096*256),
 }
 
 
@@ -3057,6 +3056,8 @@ struct Pool
 
     void initialize(size_t npages, bool isLargeObject) nothrow
     {
+        assert(npages >= 256);
+
         this.isLargeObject = isLargeObject;
         size_t poolsize;
 
@@ -3064,7 +3065,6 @@ struct Pool
 
         //debug(PRINTF) printf("Pool::Pool(%u)\n", npages);
         poolsize = npages * PAGESIZE;
-        assert(poolsize >= POOLSIZE);
         baseAddr = cast(byte *)os_mem_map(poolsize);
 
         // Some of the code depends on page alignment of memory pools

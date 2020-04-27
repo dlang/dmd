@@ -33,7 +33,6 @@ debug(PRINTF) import core.stdc.stdio : printf;
 
 extern (C)
 {
-    Throwable.TraceInfo _d_traceContext(void* ptr = null);
     int _d_isbaseof(ClassInfo oc, ClassInfo c);
     void _d_createTrace(Throwable o, void* context);
 }
