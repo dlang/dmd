@@ -423,7 +423,7 @@ elem *el_combines(void **args, int length)
  * Return number of op nodes
  */
 
-size_t el_opN(elem *e, uint op)
+size_t el_opN(const elem *e, OPER op)
 {
     if (e.Eoper == op)
         return el_opN(e.EV.E1, op) + el_opN(e.EV.E2, op);
@@ -435,7 +435,7 @@ size_t el_opN(elem *e, uint op)
  * Fill an array with the ops.
  */
 
-void el_opArray(elem ***parray, elem *e, uint op)
+void el_opArray(elem ***parray, elem *e, OPER op)
 {
     if (e.Eoper == op)
     {
@@ -449,7 +449,7 @@ void el_opArray(elem ***parray, elem *e, uint op)
     }
 }
 
-void el_opFree(elem *e, uint op)
+void el_opFree(elem *e, OPER op)
 {
     if (e.Eoper == op)
     {
@@ -465,7 +465,7 @@ void el_opFree(elem *e, uint op)
  * Do an array of parameters as a tree
  */
 
-extern (C) elem *el_opCombine(elem **args, size_t length, uint op, uint ty)
+extern (C) elem *el_opCombine(elem **args, size_t length, OPER op, tym_t ty)
 {
     if (length == 0)
         return null;
@@ -478,7 +478,7 @@ extern (C) elem *el_opCombine(elem **args, size_t length, uint op, uint ty)
  * Return a list of the parameters.
  */
 
-int el_nparams(elem *e)
+int el_nparams(const elem *e)
 {
     return cast(int)el_opN(e, OPparam);
 }
@@ -526,7 +526,7 @@ elem *el_pair(tym_t tym, elem *lo, elem *hi)
  * Copy an element (not the tree!).
  */
 
-void el_copy(elem *to,elem *from)
+void el_copy(elem *to, const elem *from)
 {
     assert(to && from);
     elem_debug(from);
@@ -759,7 +759,7 @@ elem *el_copytotmp(elem **pe)
 version (SCPP_HTOD)
 {
 
-void el_replace_sym(elem *e,Symbol *s1,Symbol *s2)
+void el_replace_sym(elem *e,const Symbol *s1,Symbol *s2)
 {
     symbol_debug(s1);
     symbol_debug(s2);
@@ -799,7 +799,7 @@ void el_replace_sym(elem *e,Symbol *s1,Symbol *s2)
  *      0       no
  */
 
-int el_appears(elem *e,Symbol *s)
+int el_appears(const(elem)* e, const Symbol *s)
 {
     symbol_debug(s);
     while (1)
@@ -881,7 +881,7 @@ Symbol *el_basesym(elem *e)
  *      true if there is one
  */
 
-bool el_anydef(elem *ed, elem *e)
+bool el_anydef(const elem *ed, const(elem)* e)
 {
     const edop = ed.Eoper;
     const s = (edop == OPvar) ? ed.EV.Vsym : null;
@@ -1108,7 +1108,7 @@ elem * el_settype(elem *e,type *t)
 version (SCPP_HTOD)
 {
 
-void el_replacesym(elem *e,Symbol *s1,Symbol *s2)
+void el_replacesym(elem *e,const Symbol *s1,Symbol *s2)
 {
     assert(PARSER);
     while (e)
@@ -1239,7 +1239,7 @@ bool el_funcsideeff(const elem *e)
  * Returns: true if elem has any side effects.
  */
 
-int el_sideeffect(elem *e)
+bool el_sideeffect(const elem *e)
 {
     assert(e);
     const op = e.Eoper;
@@ -1261,7 +1261,7 @@ int el_sideeffect(elem *e)
  *      2       eb definitely depends on ea
  */
 
-int el_depends(elem *ea,elem *eb)
+int el_depends(const(elem)* ea, const elem *eb)
 {
  L1:
     elem_debug(ea);
@@ -1416,7 +1416,7 @@ elem *el_scancommas(elem *e)
  * Count number of commas in the expression.
  */
 
-int el_countCommas(elem *e)
+int el_countCommas(const(elem)* e)
 {
     int ncommas = 0;
     while (1)
