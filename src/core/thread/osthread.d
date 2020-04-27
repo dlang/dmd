@@ -12,6 +12,7 @@
 
 module core.thread.osthread;
 
+import core.thread.context;
 import core.time;
 import core.exception : onOutOfMemoryError;
 
@@ -651,8 +652,7 @@ class Thread
     do
     {
         this(sz);
-        () @trusted { m_fn   = fn; }();
-        m_call = Call.FN;
+        m_call = fn;
         m_curr = &m_main;
     }
 
@@ -676,8 +676,7 @@ class Thread
     do
     {
         this(sz);
-        () @trusted { m_dg   = dg; }();
-        m_call = Call.DG;
+        m_call = dg;
         m_curr = &m_main;
     }
 
@@ -1540,7 +1539,6 @@ private:
     this(size_t sz = 0) @safe pure nothrow @nogc
     {
         m_sz = sz;
-        m_call = Call.NO;
         m_curr = &m_main;
     }
 
@@ -1551,31 +1549,10 @@ private:
     //
     final void run()
     {
-        switch ( m_call )
-        {
-        case Call.FN:
-            m_fn();
-            break;
-        case Call.DG:
-            m_dg();
-            break;
-        default:
-            break;
-        }
+        m_call();
     }
-
 
 private:
-    //
-    // The type of routine passed on thread construction.
-    //
-    enum Call
-    {
-        NO,
-        FN,
-        DG
-    }
-
 
     //
     // Standard types
@@ -1620,13 +1597,8 @@ private:
         mach_port_t     m_tmach;
     }
     ThreadID            m_addr;
-    Call                m_call;
+    Callable            m_call;
     string              m_name;
-    union
-    {
-        void function() m_fn;
-        void delegate() m_dg;
-    }
     size_t              m_sz;
     version (Posix)
     {
@@ -1656,23 +1628,9 @@ private:
     }
 
 package(core.thread):
-    static struct Context
-    {
-        void*           bstack,
-                        tstack;
 
-        /// Slot for the EH implementation to keep some state for each stack
-        /// (will be necessary for exception chaining, etc.). Opaque as far as
-        /// we are concerned here.
-        void*           ehContext;
-
-        Context*        within;
-        Context*        next,
-                        prev;
-    }
-
-    Context             m_main;
-    Context*            m_curr;
+    StackContext        m_main;
+    StackContext*       m_curr;
     bool                m_lock;
     void*               m_tlsgcdata;
 
@@ -1681,7 +1639,7 @@ package(core.thread):
     ///////////////////////////////////////////////////////////////////////////
 
 
-    final void pushContext( Context* c ) nothrow @nogc
+    final void pushContext( StackContext* c ) nothrow @nogc
     in
     {
         assert( !c.within );
@@ -1701,7 +1659,7 @@ package(core.thread):
     }
     do
     {
-        Context* c = m_curr;
+        StackContext* c = m_curr;
         m_curr = c.within;
         c.ehContext = swapContext(m_curr.ehContext);
         c.within = null;
@@ -1709,7 +1667,7 @@ package(core.thread):
 
 private:
 
-    final Context* topContext() nothrow @nogc
+    final StackContext* topContext() nothrow @nogc
     in
     {
         assert( m_curr );
@@ -1831,7 +1789,7 @@ package(core.thread):
         (cast(Mutex)_criticalRegionLock.ptr).__dtor();
     }
 
-    __gshared Context*  sm_cbeg;
+    __gshared StackContext*  sm_cbeg;
 
     __gshared Thread    sm_tbeg;
     __gshared size_t    sm_tlen;
@@ -1855,7 +1813,7 @@ package(core.thread):
     //
     // Add a context to the global context list.
     //
-    static void add( Context* c ) nothrow @nogc
+    static void add( StackContext* c ) nothrow @nogc
     in
     {
         assert( c );
@@ -1880,7 +1838,7 @@ package(core.thread):
     //
     // This assumes slock being acquired. This isn't done here to
     // avoid double locking when called from remove(Thread)
-    static void remove( Context* c ) nothrow @nogc
+    static void remove( StackContext* c ) nothrow @nogc
     in
     {
         assert( c );
@@ -2258,7 +2216,7 @@ extern (C) Thread thread_attachThis()
 
 private Thread attachThread(Thread thisThread) @nogc
 {
-    Thread.Context* thisContext = &thisThread.m_main;
+    StackContext* thisContext = &thisThread.m_main;
     assert( thisContext == thisThread.m_curr );
 
     version (Windows)
@@ -2321,8 +2279,8 @@ version (Windows)
         if (auto t = thread_findByAddr(addr))
             return t;
 
-        Thread          thisThread  = new Thread();
-        Thread.Context* thisContext = &thisThread.m_main;
+        Thread        thisThread  = new Thread();
+        StackContext* thisContext = &thisThread.m_main;
         assert( thisContext == thisThread.m_curr );
 
         thisThread.m_addr  = addr;
@@ -3093,7 +3051,7 @@ private void scanAllTypeImpl( scope ScanAllThreadsTypeFn scan, void* curStackTop
     if (Thread.nAboutToStart)
         scan(ScanType.stack, Thread.pAboutToStart, Thread.pAboutToStart + Thread.nAboutToStart);
 
-    for ( Thread.Context* c = Thread.sm_cbeg; c; c = c.next )
+    for ( StackContext* c = Thread.sm_cbeg; c; c = c.next )
     {
         version (StackGrowsDown)
         {

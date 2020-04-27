@@ -12,6 +12,7 @@
 module core.thread.fiber;
 
 import core.thread.osthread;
+import core.thread.context;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Fiber Platform Detection
@@ -723,16 +724,14 @@ class Fiber
     final void reset( void function() fn ) nothrow @nogc
     {
         reset();
-        m_fn    = fn;
-        m_call  = Call.FN;
+        m_call  = fn;
     }
 
     /// ditto
     final void reset( void delegate() dg ) nothrow @nogc
     {
         reset();
-        m_dg    = dg;
-        m_call  = Call.DG;
+        m_call  = dg;
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -858,14 +857,6 @@ class Fiber
     }
 
 private:
-    //
-    // Initializes a fiber object which has no associated executable function.
-    //
-    this() @safe pure nothrow @nogc
-    {
-        m_call = Call.NO;
-    }
-
 
     //
     // Fiber entry point.  Invokes the function or delegate passed on
@@ -873,41 +864,13 @@ private:
     //
     final void run()
     {
-        switch ( m_call )
-        {
-        case Call.FN:
-            m_fn();
-            break;
-        case Call.DG:
-            m_dg();
-            break;
-        default:
-            break;
-        }
+        m_call();
     }
-
-
-private:
-    //
-    // The type of routine passed on fiber construction.
-    //
-    enum Call
-    {
-        NO,
-        FN,
-        DG
-    }
-
 
     //
     // Standard fiber data
     //
-    Call                m_call;
-    union
-    {
-        void function() m_fn;
-        void delegate() m_dg;
-    }
+    Callable            m_call;
     bool                m_isRunning;
     Throwable           m_unhandled;
     State               m_state;
@@ -941,7 +904,7 @@ private:
         //       room for this struct explicitly would be to mash it into the
         //       base of the stack being allocated below.  However, doing so
         //       requires too much special logic to be worthwhile.
-        m_ctxt = new Thread.Context;
+        m_ctxt = new StackContext;
 
         version (Windows)
         {
@@ -1439,7 +1402,7 @@ private:
     }
 
 
-    Thread.Context* m_ctxt;
+    StackContext*   m_ctxt;
     size_t          m_size;
     void*           m_pmem;
 
