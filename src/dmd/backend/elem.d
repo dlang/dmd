@@ -126,8 +126,7 @@ private __gshared
 struct STAB
 {
     Symbol *sym;        // symbol that refers to the string
-    char *p;            // pointer to the string
-    int len;            // length of string p
+    char[] str;         // the string
 }
 
 private __gshared
@@ -154,7 +153,7 @@ void el_reset()
 {
     stable_si = 0;
     for (int i = 0; i < stable.length; i++)
-        mem_free(stable[i].p);
+        mem_free(stable[i].str.ptr);
     memset(stable.ptr,0,stable.sizeof);
 }
 
@@ -167,7 +166,7 @@ void el_term()
     static if (TERMCODE)
     {
         for (int i = 0; i < stable.length; i++)
-            mem_free(stable[i].p);
+            mem_free(stable[i].str.ptr);
 
         debug printf("Max # of elems = %d\n",elmax);
 
@@ -1617,8 +1616,8 @@ elem *el_convstring(elem *e)
     // See if e is already in the string table
     for (i = 0; i < stable.length; i++)
     {
-        if (stable[i].len == len &&
-            memcmp(stable[i].p,p,cast(uint)len) == 0)
+        if (stable[i].str.length == len &&
+            memcmp(stable[i].str.ptr,p,cast(uint)len) == 0)
         {
             // Replace e with that symbol
             MEM_PH_FREE(p);
@@ -1640,9 +1639,8 @@ elem *el_convstring(elem *e)
 
     // Remember the string for possible reuse later
     //printf("Adding %d, '%s'\n",stable_si,p);
-    mem_free(stable[stable_si].p);
-    stable[stable_si].p   = p;
-    stable[stable_si].len = cast(int)len;
+    mem_free(stable[stable_si].str.ptr);
+    stable[stable_si].str = p[0 .. cast(size_t)len];
     stable[stable_si].sym = s;
     stable_si = (stable_si + 1) & (stable.length - 1);
 
