@@ -3496,8 +3496,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 return false;
             }
 
-            static bool isVa_list(Parameter p)
+            bool isVa_list(Parameter p)
             {
+                Type.tvalist = Type.tvalist.typeSemantic(funcdecl.loc, sc);
                 return p.type.equals(Type.tvalist);
             }
 
