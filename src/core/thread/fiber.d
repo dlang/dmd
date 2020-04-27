@@ -112,8 +112,6 @@ private
 
     version (Posix)
     {
-        import core.sys.posix.unistd;   // for sysconf
-
         version (AsmX86_Windows)    {} else
         version (AsmX86_Posix)      {} else
         version (AsmX86_64_Windows) {} else
