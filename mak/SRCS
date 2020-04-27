@@ -474,6 +474,7 @@ SRCS=\
 	\
 	src\core\thread\fiber.d \
 	src\core\thread\osthread.d \
+	src\core\thread\context.d \
 	src\core\thread\package.d \
 	\
 	src\gc\bits.d \
