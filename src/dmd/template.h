@@ -66,6 +66,7 @@ public:
     bool literal;               // this template declaration is a literal
     bool ismixin;               // template declaration is only to be used as a mixin
     bool isstatic;              // this is static template declaration
+    bool isAliasSeq;            // matches `template AliasSeq(T...) { alias AliasSeq = T; }
     Prot protection;
     int inuse;                  // for recursive expansion detection
 
