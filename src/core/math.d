@@ -208,9 +208,10 @@ T toPrec(T:real)(real f)  { pragma(inline, false); return f; }
 
 @safe unittest
 {
-    static float f = 1.1f;
-    static double d = 1.1;
-    static real r = 1.1L;
+    // Test all instantiations work with all combinations of float.
+    float f = 1.1f;
+    double d = 1.1;
+    real r = 1.1L;
     f = toPrec!float(f + f);
     f = toPrec!float(d + d);
     f = toPrec!float(r + r);
