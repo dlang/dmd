@@ -99,3 +99,41 @@ bool f();
     }
     free(p);
 }
+
+/* TEST_OUTPUT:
+---
+fail_compilation/fob2.d(506): Error: variable `fob2.test51.p` has undefined state and cannot be read
+fail_compilation/fob2.d(515): Error: variable `fob2.test52.p` has undefined state and cannot be read
+---
+*/
+
+// https://issues.dlang.org/show_bug.cgi?id=20747
+
+#line 500
+
+@live test51()
+{
+    int x;
+    scope p = &x;
+    x = 3;
+    *p = 4;
+}
+
+
+@live void test52()
+{
+    int x = 5;
+    auto p = &x;
+    auto q = &x;
+    *p = 3;
+}
+
+
+@live void test53()
+{
+    scope int x;
+    scope int y;
+    y = x;
+    x = 3;
+    y = 4;
+}
