@@ -2571,6 +2571,15 @@ extern (C++) abstract class Type : ASTNode
         return false;
     }
 
+    /********************************
+     * true if when type is copied, it needs a copy constructor or postblit
+     * applied. Only applies to value types, not ref types.
+     */
+    bool needsCopyOrPostblit()
+    {
+        return false;
+    }
+
     /*********************************
      *
      */
@@ -3693,6 +3702,11 @@ extern (C++) final class TypeSArray : TypeArray
     override bool needsDestruction()
     {
         return next.needsDestruction();
+    }
+
+    override bool needsCopyOrPostblit()
+    {
+        return next.needsCopyOrPostblit();
     }
 
     /*********************************
@@ -5639,6 +5653,11 @@ extern (C++) final class TypeStruct : Type
         return sym.dtor !is null;
     }
 
+    override bool needsCopyOrPostblit()
+    {
+        return sym.hasCopyCtor || sym.postblit;
+    }
+
     override bool needsNested()
     {
         if (sym.isNested())
@@ -5904,6 +5923,11 @@ extern (C++) final class TypeEnum : Type
     override bool needsDestruction()
     {
         return memType().needsDestruction();
+    }
+
+    override bool needsCopyOrPostblit()
+    {
+        return memType().needsCopyOrPostblit();
     }
 
     override bool needsNested()
