@@ -729,6 +729,7 @@ class TypeStruct : public Type
 public:
     StructDeclaration *sym;
     AliasThisRec att;
+    bool inuse;
 
     static TypeStruct *create(StructDeclaration *sym);
     const char *kind();
