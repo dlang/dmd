@@ -398,7 +398,7 @@ unittest
 
 unittest
 {
-    auto arrayA = Array!int(0);
+    auto arrayA = Array!int(size_t(0));
     int[3] buf = [10, 15, 20];
     arrayA.pushSlice(buf);
     assert(arrayA[] == buf[]);
