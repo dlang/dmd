@@ -296,6 +296,8 @@ private struct TypedMMapRegion(T)
         const pageMapped = (mappedSize / pageSize) + !!(mappedSize % pageSize);
         this.region = MMapRegion(fd, pageOffset, pageMapped);
         this.data = cast(const(T)*) (this.region.data.ptr + offsetDiff);
+        if (this.region.data.ptr !is null)
+            this.data = cast(const(T)*) (this.region.data.ptr + offsetDiff);
     }
 
     private MMapRegion region;
@@ -327,7 +329,8 @@ private struct MMapRegion
         const mappedSize = pageCount * pageSize;
 
         const ptr = cast(ubyte*) mmap(null, mappedSize, PROT_READ, MAP_PRIVATE, fd, offset);
-        this.data = ptr[0 .. mappedSize];
+        if (ptr !is MAP_FAILED)
+            this.data = ptr[0 .. mappedSize];
     }
 
     @disable this(this);
