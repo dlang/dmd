@@ -3496,10 +3496,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 return false;
             }
 
-            static bool isVa_list(Parameter p)
+            bool isVa_list(Parameter p)
             {
-                // What it's actually pointing to depends on the target
-                return p.type.isTypePointer() !is null;
+                Type.tvalist = Type.tvalist.typeSemantic(funcdecl.loc, sc);
+                return p.type.equals(Type.tvalist);
             }
 
             const nparams = f.parameterList.length;
