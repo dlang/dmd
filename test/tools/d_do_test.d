@@ -830,6 +830,8 @@ $?:<choices>$ = environment dependent content supplied as a list
                 choices (either <condition>=<content> or <default>),
                 separated by a '|'. Currently supported conditions are
                 OS and model as supplied from the environment
+$r:<regex>$   = text matching <regex> (using $ inside of regex is not
+                supported, use multiple regexes instead)
 
 Params:
     output    = the real output
@@ -846,7 +848,7 @@ bool compareOutput(string output, string refoutput, const ref EnvData envData)
 
     for ( ; ; )
     {
-        auto special = refoutput.find("$n$", "$p:", "$?:").rename!("remainder", "id");
+        auto special = refoutput.find("$n$", "$p:", "$r:", "$?:").rename!("remainder", "id");
 
         // Simple equality check if no special tokens remain
         if (special.id == 0)
@@ -887,6 +889,32 @@ bool compareOutput(string output, string refoutput, const ref EnvData envData)
                 return false;
 
             output = parts[1];
+            continue;
+        }
+
+        else if (special.id == 3) // $r:<regex>$
+        {
+            // need some context behind this expression to stop the regex match
+            // e.g. "$r:.*$ failed with..." uses " failed"
+            auto context = refoutput[0 .. min(7, $)];
+
+            // Avoid collisions with other special sequences
+            if (auto parts = context.findSplitBefore("$"))
+            {
+                context = parts[0];
+                enforce(context.length, "Another sequence following $r:...$ is not supported!");
+            }
+
+            // Remove the context from the remaining expected output
+            refoutput = refoutput[context.length .. $];
+
+            // Use '^' to match <regex><context> at the beginning of output
+            auto re = regex('^' ~ refparts[0] ~ context, "s");
+            auto match = output.matchFirst(re);
+            if (!match)
+                return false;
+
+            output = output[match.front.length .. $];
             continue;
         }
 
@@ -957,6 +985,19 @@ unittest
     assert(compareOutput("no", "$?:posix+64=yes|no$", ed));
     ed.model = "64";
     assert(compareOutput("yes", "$?:posix+64=yes|no$", ed));
+
+
+    assert(compareOutput("This number 12", `This $r:\w+ \d+$`, ed));
+    assert(compareOutput("This number 12", `This $r:\w+ (\d)+$`, ed));
+
+    assert(compareOutput("This number 12 is nice", `This $r:.*$ 12 is nice`, ed));
+    assert(compareOutput("This number 12", `This $r:.*$ 12`, ed));
+    assert(!compareOutput("This number 12 is 24", `This $r:\d*$ 12`, ed));
+
+    assert(compareOutput("This number 12 is 24", `This $r:.*$ 12 is $n$`, ed));
+
+    string msg = collectExceptionMsg(compareOutput("12345", `$r:\d*$$n$`, ed));
+    assert(msg == "Another sequence following $r:...$ is not supported!");
 }
 
 /++
