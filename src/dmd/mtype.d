@@ -5484,6 +5484,7 @@ extern (C++) final class TypeStruct : Type
 {
     StructDeclaration sym;
     AliasThisRec att = AliasThisRec.fwdref;
+    bool inuse = false; // struct currently subject of recursive method call
 
     extern (D) this(StructDeclaration sym)
     {
@@ -5641,6 +5642,11 @@ extern (C++) final class TypeStruct : Type
 
     override bool needsNested()
     {
+        if (inuse) return false; // circular type, error instead of crashing
+
+        inuse = true;
+        scope(exit) inuse = false;
+
         if (sym.isNested())
             return true;
 

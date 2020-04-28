@@ -3769,6 +3769,7 @@ struct ASTBase
     {
         StructDeclaration sym;
         AliasThisRec att = AliasThisRec.fwdref;
+        bool inuse = false;
 
         extern (D) this(StructDeclaration sym)
         {
