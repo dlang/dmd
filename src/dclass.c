@@ -553,7 +553,7 @@ void ClassDeclaration::semantic(Scope *sc)
         baseok = BASEOKdone;
 
         // If no base class, and this is not an Object, use Object as base class
-        if (!baseClass && ident != Id::Object && classKind != ClassKind::cpp)
+        if (!baseClass && ident != Id::Object && !isCPPclass())
         {
             if (!object || object->errors)
                 badObjectDotD(this);
@@ -598,7 +598,7 @@ void ClassDeclaration::semantic(Scope *sc)
             // then this is a COM interface too.
             if (b->sym->isCOMinterface())
                 com = true;
-            if (classKind == ClassKind::cpp && !b->sym->isCPPinterface())
+            if (isCPPclass() && !b->sym->isCPPinterface())
             {
                 ::error(loc, "C++ class '%s' cannot implement D interface '%s'",
                     toPrettyChars(), b->sym->toPrettyChars());
@@ -673,7 +673,7 @@ Lancestorsdone:
         // initialize vtbl
         if (baseClass)
         {
-            if (classKind == ClassKind::cpp && baseClass->vtbl.dim == 0)
+            if (isCPPclass() && baseClass->vtbl.dim == 0)
             {
                 error("C++ base class %s needs at least one virtual function", baseClass->toChars());
             }
@@ -1085,7 +1085,7 @@ void ClassDeclaration::finalizeSize()
 
         alignsize = baseClass->alignsize;
         structsize = baseClass->structsize;
-        if (classKind == ClassKind::cpp && global.params.isWindows)
+        if (isCPPclass() && global.params.isWindows)
             structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
     }
     else if (isInterfaceDeclaration())
@@ -1100,7 +1100,7 @@ void ClassDeclaration::finalizeSize()
     {
         alignsize = Target::ptrsize;
         structsize = Target::ptrsize;      // allow room for __vptr
-        if (classKind != ClassKind::cpp)
+        if (!isCPPclass())
             structsize += Target::ptrsize; // allow room for __monitor
     }
 

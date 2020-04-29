@@ -693,7 +693,7 @@ static void membersToDt(AggregateDeclaration *ad, DtBuilder& dtb,
         {
             dtb.xoff(toVtblSymbol(concreteType), 0);  // __vptr
             offset = Target::ptrsize;
-            if (cd->classKind != ClassKind::cpp)
+            if (!cd->isCPPclass())
             {
                 dtb.size(0);              // __monitor
                 offset += Target::ptrsize;

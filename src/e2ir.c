@@ -4106,9 +4106,9 @@ elem *toElem(Expression *e, IRState *irs)
                         // Casting from derived class to base class is a no-op
                     }
                 }
-                else if (cdfrom->classKind == ClassKind::cpp)
+                else if (cdfrom->isCPPclass())
                 {
-                    if (cdto->classKind == ClassKind::cpp)
+                    if (cdto->isCPPclass())
                     {
                         /* Casting from a C++ interface to a C++ interface
                          * is always a 'paint' operation

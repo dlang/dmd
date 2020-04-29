@@ -362,7 +362,7 @@ void toObjFile(Dsymbol *ds, bool multiobj)
                 dtb.size(0);                    // monitor
 
                 // initializer[]
-                assert(cd->structsize >= 8 || (cd->classKind == ClassKind::cpp && cd->structsize >= 4));
+                assert(cd->structsize >= 8 || (cd->isCPPclass() && cd->structsize >= 4));
                 dtb.size(cd->structsize);           // size
                 dtb.xoff(sinit, 0, TYnptr);      // initializer
 

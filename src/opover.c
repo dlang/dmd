@@ -962,7 +962,7 @@ Expression *op_overload(Expression *e, Scope *sc)
                 ClassDeclaration *cd1 = t1->isClassHandle();
                 ClassDeclaration *cd2 = t2->isClassHandle();
 
-                if (!(cd1->classKind == ClassKind::cpp || cd2->classKind == ClassKind::cpp))
+                if (!(cd1->isCPPclass() || cd2->isCPPclass()))
                 {
                     /* Rewrite as:
                      *      .object.opEquals(e1, e2)
