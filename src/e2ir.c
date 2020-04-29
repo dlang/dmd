@@ -455,8 +455,8 @@ if (I32) assert(tysize[TYnptr] == 4);
                 e = el_una(OPld_d, tyret, ep);
                 break;
 
-	    default:
-		assert(0);
+            default:
+                assert(0);
             }
 #undef X
         }
