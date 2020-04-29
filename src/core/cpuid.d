@@ -954,7 +954,7 @@ void cpuidX86()
 
         if (cf.probablyAMD && max_extended_cpuid >= 0x8000_001E) {
             version (GNU_OR_LDC) asm pure nothrow @nogc {
-                "cpuid" : "=a" a, "=b" b : "a" 0x8000_001E : "ecx", "edx";
+                "cpuid" : "=a" (a), "=b" (b) : "a" (0x8000_001E) : "ecx", "edx";
             } else {
                 asm pure nothrow @nogc {
                     mov EAX, 0x8000_001e;
@@ -977,22 +977,19 @@ bool hasCPUID()
     else
     {
         uint flags;
-        version (GNU)
+        version (GNU_OR_LDC)
         {
             // http://wiki.osdev.org/CPUID#Checking_CPUID_availability
-            // ASM template supports both AT&T and Intel syntax.
             asm nothrow @nogc { "
-                pushf{l|d}                 # Save EFLAGS
-                pushf{l|d}                 # Store EFLAGS
-                xor{l $0x00200000, (%%esp)| dword ptr [esp], 0x00200000}
-                                           # Invert the ID bit in stored EFLAGS
-                popf{l|d}                  # Load stored EFLAGS (with ID bit inverted)
-                pushf{l|d}                 # Store EFLAGS again (ID bit may or may not be inverted)
-                pop {%%}eax                # eax = modified EFLAGS (ID bit may or may not be inverted)
-                xor {(%%esp), %%eax|eax, [esp]}
-                                           # eax = whichever bits were changed
-                popf{l|d}                  # Restore original EFLAGS
-                " : "=a" flags;
+                pushfl                    # Save EFLAGS
+                pushfl                    # Store EFLAGS
+                xorl $0x00200000, (%%esp) # Invert the ID bit in stored EFLAGS
+                popfl                     # Load stored EFLAGS (with ID bit inverted)
+                pushfl                    # Store EFLAGS again (ID bit may or may not be inverted)
+                popl %%eax                # eax = modified EFLAGS (ID bit may or may not be inverted)
+                xorl (%%esp), %%eax       # eax = whichever bits were changed
+                popfl                     # Restore original EFLAGS
+                " : "=a" (flags);
             }
         }
         else version (D_InlineAsm_X86)
